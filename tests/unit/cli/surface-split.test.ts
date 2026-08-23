@@ -165,7 +165,9 @@ describe("2-Tier CLI Surface Split (REMED-005)", () => {
     expect(overview).not.toContain("| capture |");
     expect(overview).not.toContain("| critic |");
 
-    expect(overview).toContain("Pass `--internal` to view lower-level internal and diagnostic commands.");
+    expect(overview).toContain(
+      "Pass `--internal` to view lower-level internal and diagnostic commands.",
+    );
   });
 
   test("renders internal tier overview when internal option is true", () => {

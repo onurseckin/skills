@@ -84,11 +84,18 @@ describe("True Multi-Capsule Parallel Orchestration & Anti-Sequentiality Engine"
 
     it("throws HarnessError on undeclared dependency reference", () => {
       const specs: CapsuleSpec[] = [
-        { id: "cap-01", repoPath: "/repo", writeScope: ["src/a/"], dependencies: ["cap-nonexistent"] },
+        {
+          id: "cap-01",
+          repoPath: "/repo",
+          writeScope: ["src/a/"],
+          dependencies: ["cap-nonexistent"],
+        },
       ];
 
       expect(() => new MultiCapsuleDAG(specs)).toThrow(HarnessError);
-      expect(() => new MultiCapsuleDAG(specs)).toThrow("references undeclared dependency 'cap-nonexistent'");
+      expect(() => new MultiCapsuleDAG(specs)).toThrow(
+        "references undeclared dependency 'cap-nonexistent'",
+      );
     });
 
     it("throws HarnessError on self dependency", () => {
@@ -192,12 +199,12 @@ describe("True Multi-Capsule Parallel Orchestration & Anti-Sequentiality Engine"
         { id: "cap-2", repoPath: "/repo", writeScope: ["src/a.ts"] },
       ];
 
-      expect(() => assertAntiSequentiality(specs, { allowScopeOverlapInIsolatedWorktrees: false })).toThrow(
-        HarnessError,
-      );
-      expect(() => assertAntiSequentiality(specs, { allowScopeOverlapInIsolatedWorktrees: false })).toThrow(
-        "Anti-Sequentiality Engine Violation",
-      );
+      expect(() =>
+        assertAntiSequentiality(specs, { allowScopeOverlapInIsolatedWorktrees: false }),
+      ).toThrow(HarnessError);
+      expect(() =>
+        assertAntiSequentiality(specs, { allowScopeOverlapInIsolatedWorktrees: false }),
+      ).toThrow("Anti-Sequentiality Engine Violation");
     });
 
     it("correctly identifies scope overlap helper with prefixes and exact paths", () => {
@@ -393,7 +400,9 @@ describe("True Multi-Capsule Parallel Orchestration & Anti-Sequentiality Engine"
       ];
 
       await expect(orchestrator.orchestrate(collidingSpecs)).rejects.toThrow(HarnessError);
-      await expect(orchestrator.orchestrate(collidingSpecs)).rejects.toThrow("Strict Anti-Sequentiality violation");
+      await expect(orchestrator.orchestrate(collidingSpecs)).rejects.toThrow(
+        "Strict Anti-Sequentiality violation",
+      );
     });
   });
 
@@ -458,13 +467,22 @@ describe("True Multi-Capsule Parallel Orchestration & Anti-Sequentiality Engine"
   describe("5. Invariant Verification: Zero Any & Zero Suppressions", () => {
     it("verifies zero TypeScript any and zero suppressions across all multi-capsule source and test files", () => {
       const pathsToCheck = [
-        join(import.meta.dir, "../../../orchestrating-long-tasks/scripts/src/orchestrator/multi-capsule.ts"),
+        join(
+          import.meta.dir,
+          "../../../orchestrating-long-tasks/scripts/src/orchestrator/multi-capsule.ts",
+        ),
         import.meta.path,
       ];
 
       const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
       const suppressionPattern = new RegExp(
-        ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck", "eslint" + "-disable", "oxlint" + "-disable"].join("|"),
+        [
+          "@ts" + "-ignore",
+          "@ts" + "-expect-error",
+          "@ts" + "-nocheck",
+          "eslint" + "-disable",
+          "oxlint" + "-disable",
+        ].join("|"),
       );
 
       for (const filePath of pathsToCheck) {

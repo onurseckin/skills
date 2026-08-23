@@ -54,7 +54,10 @@ describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservatio
       { name: "git restore .", args: ["restore", "."] },
       { name: "git restore file.ts", args: ["restore", "file.ts"] },
       { name: "git restore --worktree src", args: ["restore", "--worktree", "src"] },
-      { name: "git restore --staged --worktree .", args: ["restore", "--staged", "--worktree", "."] },
+      {
+        name: "git restore --staged --worktree .",
+        args: ["restore", "--staged", "--worktree", "."],
+      },
       { name: "git stash drop", args: ["stash", "drop"] },
       { name: "git stash clear", args: ["stash", "clear"] },
       { name: "git stash push --hard", args: ["stash", "push", "--hard"] },
@@ -102,8 +105,14 @@ describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservatio
       { name: "git checkout -b new-branch", args: ["checkout", "-b", "new-branch"] },
       { name: "git reset HEAD file.ts", args: ["reset", "HEAD", "file.ts"] },
       { name: "git reset --soft HEAD~1", args: ["reset", "--soft", "HEAD~1"] },
-      { name: "git worktree add -b b /path sha", args: ["worktree", "add", "-b", "b", "/path", "sha"] },
-      { name: "git worktree remove --force /path", args: ["worktree", "remove", "--force", "/path"] },
+      {
+        name: "git worktree add -b b /path sha",
+        args: ["worktree", "add", "-b", "b", "/path", "sha"],
+      },
+      {
+        name: "git worktree remove --force /path",
+        args: ["worktree", "remove", "--force", "/path"],
+      },
       { name: "git worktree list --porcelain", args: ["worktree", "list", "--porcelain"] },
       { name: "git branch -D temp-branch", args: ["branch", "-D", "temp-branch"] },
       { name: "git rev-parse HEAD", args: ["rev-parse", "HEAD"] },
@@ -143,7 +152,9 @@ describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservatio
       // Positive matches
       expect(isPathInWriteScope("src/authority/thread-identifier.ts", writeScope)).toBe(true);
       expect(isPathInWriteScope("src/authority/sub/deep/module.ts", writeScope)).toBe(true);
-      expect(isPathInWriteScope("tests/unit/worktree/git-preservation.test.ts", writeScope)).toBe(true);
+      expect(isPathInWriteScope("tests/unit/worktree/git-preservation.test.ts", writeScope)).toBe(
+        true,
+      );
       expect(isPathInWriteScope("tests/unit/worktree/nested/deep.test.ts", writeScope)).toBe(true);
       expect(isPathInWriteScope("docs/guide.md", writeScope)).toBe(true);
       expect(isPathInWriteScope("config.json", writeScope)).toBe(true);
@@ -301,10 +312,7 @@ describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservatio
           __dirname,
           "../../../orchestrating-long-tasks/scripts/src/worktree/zero-destructive-policy.ts",
         ),
-        join(
-          __dirname,
-          "../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts",
-        ),
+        join(__dirname, "../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts"),
         __filename,
       ];
 

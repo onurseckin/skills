@@ -84,9 +84,7 @@ describe("Socratic Reflexive Self-Questioning Engine", () => {
     expect(report.healthy).toBe(false);
     expect(report.questions_failed).toBeGreaterThan(0);
 
-    const premiseQuestion = report.questions.find(
-      (q) => q.id === "SOC-PREM-01-ARTIFACT-GROUNDING",
-    );
+    const premiseQuestion = report.questions.find((q) => q.id === "SOC-PREM-01-ARTIFACT-GROUNDING");
     expect(premiseQuestion).toBeDefined();
     expect(premiseQuestion?.passed).toBe(false);
     expect(premiseQuestion?.verdict).toBe("DEFECT_FLAGGED");
@@ -129,9 +127,7 @@ describe("Socratic Reflexive Self-Questioning Engine", () => {
     const report = evaluateSocraticSelfQuestioning("/mock/run", state);
     expect(report.healthy).toBe(false);
 
-    const hierQuestion = report.questions.find(
-      (q) => q.id === "SOC-HIER-01-TIER-ROLE-SEGREGATION",
-    );
+    const hierQuestion = report.questions.find((q) => q.id === "SOC-HIER-01-TIER-ROLE-SEGREGATION");
     expect(hierQuestion).toBeDefined();
     expect(hierQuestion?.passed).toBe(false);
     expect(hierQuestion?.verdict).toBe("DEFECT_FLAGGED");

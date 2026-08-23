@@ -1,8 +1,5 @@
 import { HarnessError } from "../errors/harness-error.ts";
-import {
-  buildInclusiveStageArgs,
-  isPathInWriteScope,
-} from "./zero-destructive-policy.ts";
+import { buildInclusiveStageArgs, isPathInWriteScope } from "./zero-destructive-policy.ts";
 
 export { buildInclusiveStageArgs, isPathInWriteScope };
 
@@ -123,7 +120,10 @@ export function formatConventionalCommit(input: FormatConventionalCommitInput): 
 
   const scope = input.scope !== undefined ? input.scope.trim().toLowerCase() : undefined;
   const breakingMark = input.isBreaking ? "!" : "";
-  const headerPrefix = typeof scope === "string" && scope.length > 0 ? `${type}(${scope})${breakingMark}: ` : `${type}${breakingMark}: `;
+  const headerPrefix =
+    typeof scope === "string" && scope.length > 0
+      ? `${type}(${scope})${breakingMark}: `
+      : `${type}${breakingMark}: `;
   const header = `${headerPrefix}${desc}`;
 
   const sections: string[] = [header];
@@ -132,14 +132,15 @@ export function formatConventionalCommit(input: FormatConventionalCommitInput): 
     sections.push(input.body.trim());
   }
 
-  if (input.breakingChangeDescription !== undefined && input.breakingChangeDescription.trim() !== "") {
+  if (
+    input.breakingChangeDescription !== undefined &&
+    input.breakingChangeDescription.trim() !== ""
+  ) {
     sections.push(`BREAKING CHANGE: ${input.breakingChangeDescription.trim()}`);
   }
 
   if (input.issuesClosed !== undefined && input.issuesClosed.length > 0) {
-    const issues = input.issuesClosed
-      .map((i) => i.trim())
-      .filter((i) => i.length > 0);
+    const issues = input.issuesClosed.map((i) => i.trim()).filter((i) => i.length > 0);
     if (issues.length > 0) {
       sections.push(`Closes: ${issues.join(", ")}`);
     }
@@ -218,7 +219,10 @@ export function validatePhaseCommitMessage(message: string): CommitValidationRes
       breakingChangeDescription = trimmed.replace(/^BREAKING[\s-]CHANGE:\s+/u, "").trim();
     } else if (/^(?:Closes|Fixes|Resolves|Refs):\s+/iu.test(trimmed)) {
       const issueText = trimmed.replace(/^(?:Closes|Fixes|Resolves|Refs):\s+/iu, "").trim();
-      const ids = issueText.split(/[,;\s]+/u).map((s) => s.trim()).filter((s) => s.length > 0);
+      const ids = issueText
+        .split(/[,;\s]+/u)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
       issuesClosed.push(...ids);
     } else {
       bodyParagraphs.push(trimmed);
@@ -311,7 +315,12 @@ export function verifyPhasePreconditions(
 
   let writeScopeClean = true;
   const unscopedModifiedPaths: string[] = [];
-  if (options !== undefined && options.modifiedPaths !== undefined && options.modifiedPaths.length > 0 && config.writeScope !== undefined) {
+  if (
+    options !== undefined &&
+    options.modifiedPaths !== undefined &&
+    options.modifiedPaths.length > 0 &&
+    config.writeScope !== undefined
+  ) {
     for (const path of options.modifiedPaths) {
       if (!isPathInWriteScope(path, config.writeScope)) {
         unscopedModifiedPaths.push(path);
@@ -325,7 +334,8 @@ export function verifyPhasePreconditions(
     }
   }
 
-  const gateResults = options !== undefined && options.gateResults !== undefined ? options.gateResults : [];
+  const gateResults =
+    options !== undefined && options.gateResults !== undefined ? options.gateResults : [];
   let gatesPassed = true;
   if (config.requirePassingGates) {
     if (gateResults.length === 0) {
@@ -399,13 +409,14 @@ export function createPhaseCommitPayload(
     );
   }
 
-  const pushPolicy: UpstreamPushPolicy = config.upstreamPushPolicy !== undefined
-    ? config.upstreamPushPolicy
-    : {
-        mode: "on-verified",
-        remote: "origin",
-        requireCleanBranch: true,
-      };
+  const pushPolicy: UpstreamPushPolicy =
+    config.upstreamPushPolicy !== undefined
+      ? config.upstreamPushPolicy
+      : {
+          mode: "on-verified",
+          remote: "origin",
+          requireCleanBranch: true,
+        };
 
   const stageArgs = buildInclusiveStageArgs(config.writeScope);
 
@@ -425,7 +436,8 @@ export function evaluateUpstreamPushPolicy(
   policy: UpstreamPushPolicy,
   verification: PhaseVerificationResult,
 ): PushEvaluationResult {
-  const remote = typeof policy.remote === "string" && policy.remote.length > 0 ? policy.remote : "origin";
+  const remote =
+    typeof policy.remote === "string" && policy.remote.length > 0 ? policy.remote : "origin";
   const branch = policy.branch;
 
   switch (policy.mode) {

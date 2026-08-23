@@ -242,10 +242,7 @@ export function getSourceEmpiricalCommand(
   return cmd;
 }
 
-export function getSourceRevalidationGate(
-  sourceIdOrAlias: string,
-  targetPath?: string,
-): string {
+export function getSourceRevalidationGate(sourceIdOrAlias: string, targetPath?: string): string {
   const def = getSourceDefinition(sourceIdOrAlias);
   if (targetPath && targetPath.endsWith(".test.ts")) {
     return `bun test ${targetPath} && ${def.revalidationGate}`;

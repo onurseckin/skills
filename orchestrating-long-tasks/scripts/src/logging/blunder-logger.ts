@@ -56,8 +56,7 @@ export function recordKeyedBlunder(
   const targetPath = resolveBlunderLogPath(options);
   const deduplicate = options.deduplicate !== false;
 
-  const keyOptsObj =
-    options.keyOptions !== undefined ? { keyOptions: options.keyOptions } : {};
+  const keyOptsObj = options.keyOptions !== undefined ? { keyOptions: options.keyOptions } : {};
 
   if (!targetPath) {
     const entry = toAggregatedBlunder(blunder, keyOptsObj);

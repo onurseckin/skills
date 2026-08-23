@@ -24,7 +24,9 @@ describe("Multi-Domain Dispatch & Validator Pairing", () => {
         id: "task-backend-with-ui-req",
         write_scope: ["src/api/handler.ts"],
       };
-      const requirementTexts = ["Ensure response renders properly in frontend visual UI screenshot"];
+      const requirementTexts = [
+        "Ensure response renders properly in frontend visual UI screenshot",
+      ];
 
       expect(isDualValidationRequired(task, requirementTexts)).toBe(true);
       expect(getRequiredValidatorDomains(task, requirementTexts)).toEqual([

@@ -27,12 +27,8 @@ export interface TaskBriefParams {
 
 export function formatTaskBrief(params: TaskBriefParams): string {
   const scopeStr =
-    params.writeScope.length > 0
-      ? params.writeScope.map((s) => `\`${s}\``).join(", ")
-      : "`none`";
-  const mdLines: string[] = [
-    `### 🌌 Zero-Exploration Briefing: ${params.taskId}`,
-  ];
+    params.writeScope.length > 0 ? params.writeScope.map((s) => `\`${s}\``).join(", ") : "`none`";
+  const mdLines: string[] = [`### 🌌 Zero-Exploration Briefing: ${params.taskId}`];
   if (params.label !== undefined && params.label.trim() !== "") {
     mdLines.push(`- **Label**: ${params.label}`);
   }

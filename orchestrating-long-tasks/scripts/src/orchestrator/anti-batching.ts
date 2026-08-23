@@ -21,11 +21,16 @@ export interface IsolatedDefectTask {
 /**
  * Asserts that defect candidates are distinct and each holds a non-empty unique identifier.
  */
-export function assertDefectCandidatesIsolated(findings: readonly (Finding | FindingDetail)[]): void {
+export function assertDefectCandidatesIsolated(
+  findings: readonly (Finding | FindingDetail)[],
+): void {
   const ids = new Set<string>();
   for (const f of findings) {
     if (!f.id || typeof f.id !== "string" || !f.id.trim()) {
-      throw new HarnessError("INVALID_ARGUMENT", "Each defect candidate must declare a non-empty unique id");
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        "Each defect candidate must declare a non-empty unique id",
+      );
     }
     if (ids.has(f.id.trim())) {
       throw new HarnessError("INVALID_ARGUMENT", `Duplicate defect candidate id: ${f.id}`);

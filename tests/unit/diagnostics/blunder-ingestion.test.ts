@@ -58,9 +58,7 @@ describe("Diagnostics Blunder Ingestion Engine", () => {
       expect(entry.observation).toContain("Tier 1 Orchestrator attempted direct file edits");
       expect(entry.message).toContain("Tier 1 Orchestrator attempted direct file edits");
       expect(entry.remediation).toContain("Enforce strict CLI-level write restrictions");
-      expect(entry.prescribed_remediation).toContain(
-        "Enforce strict CLI-level write restrictions",
-      );
+      expect(entry.prescribed_remediation).toContain("Enforce strict CLI-level write restrictions");
     });
 
     test("correctly parses historical record: blunder-20260821-09-mind-plan-revision-paralysis", () => {
@@ -79,9 +77,7 @@ describe("Diagnostics Blunder Ingestion Engine", () => {
       expect(entry.role).toBe("mind");
       expect(["open", "resolved"]).toContain(entry.status);
       expect(entry.observation).toContain("Tier 0 Mind exhibited passive inertia");
-      expect(entry.remediation).toContain(
-        "Tier 0 Mind must actively use plan revision mechanisms",
-      );
+      expect(entry.remediation).toContain("Tier 0 Mind must actively use plan revision mechanisms");
     });
 
     test("correctly parses historical record: blunder-20260821-10-identity-and-role-amnesia with role_confusion mapping", () => {

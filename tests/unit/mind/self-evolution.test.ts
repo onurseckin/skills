@@ -211,9 +211,7 @@ describe("Autonomous Mind Self-Evolution Loop & Perpetual Cadence", () => {
         autoEnqueue: true,
       });
 
-      expect(["MODE_A_AUTONOMIC_DISCOVERY", "MODE_C_INVARIANT_HARDENING"]).toContain(
-        result.mode,
-      );
+      expect(["MODE_A_AUTONOMIC_DISCOVERY", "MODE_C_INVARIANT_HARDENING"]).toContain(result.mode);
       expect(result.generation).toBe(2);
       expect(result.cycleNumber).toBe(3);
       expect(result.synthesizedTasks.length).toBeGreaterThanOrEqual(1);

@@ -2,7 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { GitResult, GitRunner } from "../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
+import type {
+  GitResult,
+  GitRunner,
+} from "../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
 import {
   assertDomainIsolation,
   commitAndPushDomainSubphase,
@@ -21,7 +24,12 @@ import {
   type DomainSyncResult,
   type GlobalSyncSummary,
 } from "../../../orchestrating-long-tasks/scripts/src/worktree/domain-sync.ts";
-import { FakeRunStore, baseLedger, seedLedger, seedTask } from "../workflow/worktree/fake-transact.ts";
+import {
+  FakeRunStore,
+  baseLedger,
+  seedLedger,
+  seedTask,
+} from "../workflow/worktree/fake-transact.ts";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -66,9 +74,13 @@ describe("Continuous Per-Domain Commit Push & Global Sync Pipeline (p36)", () =>
     });
 
     test("throws INVALID_ARGUMENT on empty harnessBranch, baseSha, or root", () => {
-      expect(() => createDomainLedger("", "base123", "/root")).toThrow(/harnessBranch cannot be empty/);
+      expect(() => createDomainLedger("", "base123", "/root")).toThrow(
+        /harnessBranch cannot be empty/,
+      );
       expect(() => createDomainLedger("main", "", "/root")).toThrow(/baseSha cannot be empty/);
-      expect(() => createDomainLedger("main", "base123", "")).toThrow(/root directory cannot be empty/);
+      expect(() => createDomainLedger("main", "base123", "")).toThrow(
+        /root directory cannot be empty/,
+      );
     });
   });
 
@@ -181,14 +193,18 @@ describe("Continuous Per-Domain Commit Push & Global Sync Pipeline (p36)", () =>
 
       expect(outcome.committed).toBe(true);
       expect(outcome.pushed).toBe(true);
-      expect(outcome.commit?.subject).toBe("feat(frontend-ui): create shiny primary button component");
+      expect(outcome.commit?.subject).toBe(
+        "feat(frontend-ui): create shiny primary button component",
+      );
       expect(outcome.commit?.sha).toBe("sha1234567890");
       expect(outcome.commit?.changedLines).toBe(50);
       expect(outcome.commit?.overLimit).toBe(false);
       expect(outcome.commit?.committedAt).toBe("2026-08-22T14:10:00.000Z");
 
       const commitCall = calls.find((c) => c.argv[0] === "commit");
-      expect(commitCall?.argv).toContain("feat(frontend-ui): create shiny primary button component");
+      expect(commitCall?.argv).toContain(
+        "feat(frontend-ui): create shiny primary button component",
+      );
     });
 
     test("truncates overly long commit label to stay within 70 characters", () => {
@@ -307,7 +323,10 @@ describe("Continuous Per-Domain Commit Push & Global Sync Pipeline (p36)", () =>
       expect(mergeCall?.argv).toContain("harness--frontend-ui-run-1");
 
       const removeCall = calls.find(
-        (c) => c.argv[0] === "worktree" && c.argv[1] === "remove" && c.argv.at(-1)?.includes("domain-sync"),
+        (c) =>
+          c.argv[0] === "worktree" &&
+          c.argv[1] === "remove" &&
+          c.argv.at(-1)?.includes("domain-sync"),
       );
       expect(removeCall).toBeDefined();
     });
@@ -319,7 +338,8 @@ describe("Continuous Per-Domain Commit Push & Global Sync Pipeline (p36)", () =>
 
       const { runner } = scripted((call) => {
         if (call.argv[0] === "merge" && call.argv.includes("--no-ff")) return fail("CONFLICT", 1);
-        if (call.argv[0] === "diff" && call.argv.includes("--name-only")) return ok("conflict-file.ts\n");
+        if (call.argv[0] === "diff" && call.argv.includes("--name-only"))
+          return ok("conflict-file.ts\n");
         return ok();
       });
 
@@ -378,7 +398,8 @@ describe("Continuous Per-Domain Commit Push & Global Sync Pipeline (p36)", () =>
       const ledgerRoot = trackedDir("ledger");
       const ledger = createDomainLedger("main", "sha001", ledgerRoot);
       const { runner, calls } = scripted((call) => {
-        if (call.argv[0] === "rev-parse" && call.argv[1] === "HEAD") return ok("sha_domain_updated\n");
+        if (call.argv[0] === "rev-parse" && call.argv[1] === "HEAD")
+          return ok("sha_domain_updated\n");
         return ok();
       });
 
@@ -405,7 +426,8 @@ describe("Continuous Per-Domain Commit Push & Global Sync Pipeline (p36)", () =>
       const ledgerRoot = trackedDir("ledger");
       const ledger = createDomainLedger("main", "sha001", ledgerRoot);
       const { runner, calls } = scripted((call) => {
-        if (call.argv[0] === "rev-parse" && call.argv[1] === "HEAD") return ok("sha_domain_rebased\n");
+        if (call.argv[0] === "rev-parse" && call.argv[1] === "HEAD")
+          return ok("sha_domain_rebased\n");
         return ok();
       });
 
@@ -431,7 +453,8 @@ describe("Continuous Per-Domain Commit Push & Global Sync Pipeline (p36)", () =>
       const ledgerRoot = trackedDir("ledger");
       const ledger = createDomainLedger("main", "sha001", ledgerRoot, "origin/main");
       const { runner } = scripted((call) => {
-        if (call.argv[0] === "diff" && call.argv[1] === "--stat") return ok("3 files changed, 100 insertions(+)\n");
+        if (call.argv[0] === "diff" && call.argv[1] === "--stat")
+          return ok("3 files changed, 100 insertions(+)\n");
         if (call.argv[0] === "rev-parse" && call.argv[1] === "HEAD") return ok("sha_global_head\n");
         return ok();
       });
@@ -549,15 +572,23 @@ describe("Continuous Per-Domain Commit Push & Global Sync Pipeline (p36)", () =>
         pushed: true,
       };
 
-      recordDomainCommit(store.runRoot, "tester", "frontend-ui", "task-ui-1", commit, store.transact);
+      recordDomainCommit(
+        store.runRoot,
+        "tester",
+        "frontend-ui",
+        "task-ui-1",
+        commit,
+        store.transact,
+      );
 
       const state = store.read();
       const domainLedger = (state as unknown as { domain_sync_ledger: DomainLedgerState })
         .domain_sync_ledger;
       expect(domainLedger.commits).toEqual([commit]);
       expect(
-        (state as unknown as { tasks: Record<string, { domain_commit: unknown }> }).tasks["task-ui-1"]!
-          .domain_commit,
+        (state as unknown as { tasks: Record<string, { domain_commit: unknown }> }).tasks[
+          "task-ui-1"
+        ]!.domain_commit,
       ).toEqual(commit);
     });
 
@@ -577,7 +608,14 @@ describe("Continuous Per-Domain Commit Push & Global Sync Pipeline (p36)", () =>
         committedAt: "2026-08-22T14:00:00.000Z",
         pushed: true,
       };
-      recordDomainCommit(store.runRoot, "tester", "frontend-ui", "task-ui-1", commit, store.transact);
+      recordDomainCommit(
+        store.runRoot,
+        "tester",
+        "frontend-ui",
+        "task-ui-1",
+        commit,
+        store.transact,
+      );
 
       const syncResult: DomainSyncResult = {
         domain: "frontend-ui",
@@ -613,7 +651,14 @@ describe("Continuous Per-Domain Commit Push & Global Sync Pipeline (p36)", () =>
         committedAt: "2026-08-22T14:00:00.000Z",
         pushed: true,
       };
-      recordDomainCommit(store.runRoot, "tester", "frontend-ui", "task-ui-1", commit, store.transact);
+      recordDomainCommit(
+        store.runRoot,
+        "tester",
+        "frontend-ui",
+        "task-ui-1",
+        commit,
+        store.transact,
+      );
 
       const summary: GlobalSyncSummary = {
         harnessBranch: "main",

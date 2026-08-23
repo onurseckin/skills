@@ -2,10 +2,7 @@ import { HarnessError } from "../errors/harness-error.ts";
 import { dependencyMap } from "../graph/dependency-map.ts";
 import { topologicalOrder, type DependencyMap } from "../graph/topology.ts";
 import { isInteger, isRecord } from "../requirements/predicates.ts";
-import {
-  applicableValidatorDomains,
-  type ValidatorDomain,
-} from "../contracts/workflow.ts";
+import { applicableValidatorDomains, type ValidatorDomain } from "../contracts/workflow.ts";
 import type { TopologyDecision, TopologyReason } from "../contracts/topology.ts";
 import { resourceConflict, scopeConflict } from "./conflicts.ts";
 import { proposeBatch } from "./propose-batch.ts";
@@ -242,8 +239,7 @@ export function pairValidatorsStrictly(
   tasks: readonly ScheduledTask[],
   options: PairValidatorsOptions = {},
 ): ValidatorPairingRecord[] {
-  const strictness =
-    options.pairingStrictness !== undefined ? options.pairingStrictness : "strict";
+  const strictness = options.pairingStrictness !== undefined ? options.pairingStrictness : "strict";
   const records: ValidatorPairingRecord[] = [];
 
   const getReqTexts = (taskId: string): readonly string[] => {
@@ -448,8 +444,7 @@ export function scheduleUnlimitedDepthDAG(
     });
 
     const pairings = pairValidatorsStrictly(batchTasks, {
-      pairingStrictness:
-        config.require_strict_validator_pairing === false ? "relaxed" : "strict",
+      pairingStrictness: config.require_strict_validator_pairing === false ? "relaxed" : "strict",
       requirementTexts: config.requirement_texts,
     });
     allPairings.push(...pairings);
@@ -496,12 +491,7 @@ export function scheduleUnlimitedDepthDAG(
         reason,
         rationale: agentReported
           ? supplied
-          : derivedRationale(
-              wave,
-              [...prerequisites].sort(),
-              [...overlaps].sort(),
-              maxParallel,
-            ),
+          : derivedRationale(wave, [...prerequisites].sort(), [...overlaps].sort(), maxParallel),
         evidence_class: agentReported ? "agent_reported" : "derived",
       });
     }
@@ -517,15 +507,11 @@ export function scheduleUnlimitedDepthDAG(
 
   const totalTasks = taskMap.size;
   const maxWaveDepth = waves.length;
-  const maxConcurrentWidth =
-    waves.length > 0 ? Math.max(...waves.map((w) => w.parallelism)) : 0;
+  const maxConcurrentWidth = waves.length > 0 ? Math.max(...waves.map((w) => w.parallelism)) : 0;
   const averageConcurrency =
-    totalTasks > 0 && waves.length > 0
-      ? Number((totalTasks / waves.length).toFixed(2))
-      : 0;
+    totalTasks > 0 && waves.length > 0 ? Number((totalTasks / waves.length).toFixed(2)) : 0;
   const pairedCount = allPairings.filter((p) => p.isPaired).length;
-  const validatorPairingRate =
-    totalTasks > 0 ? Number((pairedCount / totalTasks).toFixed(2)) : 1.0;
+  const validatorPairingRate = totalTasks > 0 ? Number((pairedCount / totalTasks).toFixed(2)) : 1.0;
 
   const metrics: DepthMetrics = {
     totalTasks,

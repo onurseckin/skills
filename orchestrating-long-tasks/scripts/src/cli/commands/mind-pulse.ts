@@ -202,9 +202,7 @@ export async function mindPulseCommand(
     const openPulseId =
       typeof openPulse.pulse_id === "string" ? openPulse.pulse_id : "pulse-active";
     const openedAt =
-      typeof openPulse.opened_at === "string"
-        ? openPulse.opened_at
-        : new Date(nowMs).toISOString();
+      typeof openPulse.opened_at === "string" ? openPulse.opened_at : new Date(nowMs).toISOString();
     const deadlineAt =
       typeof openPulse.deadline_at === "string" ? openPulse.deadline_at : "unknown";
     const pulseActor = typeof openPulse.actor === "string" ? openPulse.actor : actor;

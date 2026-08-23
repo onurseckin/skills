@@ -487,7 +487,9 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
       });
       expect(circular.valid).toBe(false);
       expect(circular.acyclic).toBe(false);
-      expect(circular.violations.some((v) => v.includes("Circular delegation violation"))).toBe(true);
+      expect(circular.violations.some((v) => v.includes("Circular delegation violation"))).toBe(
+        true,
+      );
 
       expect(() => {
         assertAcyclicPushbackDelegation({
@@ -526,7 +528,9 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
       });
       expect(cyclic.valid).toBe(false);
       expect(cyclic.acyclic).toBe(false);
-      expect(cyclic.violations.some((v) => v.includes("Circular DAG dependency detected"))).toBe(true);
+      expect(cyclic.violations.some((v) => v.includes("Circular DAG dependency detected"))).toBe(
+        true,
+      );
     });
 
     it("accepts valid structured acyclic pushback delegation", () => {

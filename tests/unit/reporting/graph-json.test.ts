@@ -372,10 +372,7 @@ describe("graph-json", () => {
       expect(result.valid).toBe(false);
       expect(result.issues).toContain("Node missing id");
       expect(result.issues).toContain("Node  has invalid coordinates rank=-1, lane=0");
-      expect(result.issues).toContain(
-        "Node node-bad-lane has invalid coordinates rank=0, lane=-2",
-      );
+      expect(result.issues).toContain("Node node-bad-lane has invalid coordinates rank=0, lane=-2");
     });
   });
 });
-

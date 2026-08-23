@@ -87,15 +87,18 @@ export const PROACTIVE_QUESTION_CATALOG: readonly ProactiveQuestionSpec[] = [
     id: "PQ-SIMPLICITY-1",
     dimension: "simplicity",
     flavorDimension: "simpler",
-    question: "Can redundant intermediate states or superfluous abstractions be eliminated without losing fidelity?",
+    question:
+      "Can redundant intermediate states or superfluous abstractions be eliminated without losing fidelity?",
     probeTarget: "graph_architecture",
-    defaultHypothesis: "Intermediate coordination buffers might be compressible into direct pipeline edges.",
+    defaultHypothesis:
+      "Intermediate coordination buffers might be compressible into direct pipeline edges.",
   },
   {
     id: "PQ-PERFORMANCE-1",
     dimension: "performance",
     flavorDimension: "faster",
-    question: "Are independent execution chains serialized unnecessarily due to false write-scope barriers?",
+    question:
+      "Are independent execution chains serialized unnecessarily due to false write-scope barriers?",
     probeTarget: "critical_path",
     defaultHypothesis: "Parallel task branches can run concurrently across distinct worker lanes.",
   },
@@ -103,33 +106,41 @@ export const PROACTIVE_QUESTION_CATALOG: readonly ProactiveQuestionSpec[] = [
     id: "PQ-OBSERVABILITY-1",
     dimension: "observability",
     flavorDimension: "more_visual",
-    question: "Does every state transition produce unambiguous structured telemetry and telemetry-bound evidence?",
+    question:
+      "Does every state transition produce unambiguous structured telemetry and telemetry-bound evidence?",
     probeTarget: "event_stream",
-    defaultHypothesis: "High-level state changes require fine-grained event payloads with complete causal links.",
+    defaultHypothesis:
+      "High-level state changes require fine-grained event payloads with complete causal links.",
   },
   {
     id: "PQ-TYPE_SAFETY-1",
     dimension: "type_safety",
     flavorDimension: "higher_quality",
-    question: "Are there untyped structures, unsafe casts, or unvalidated boundaries masking integrity defects?",
+    question:
+      "Are there untyped structures, unsafe casts, or unvalidated boundaries masking integrity defects?",
     probeTarget: "type_contracts",
-    defaultHypothesis: "Strict type guards and discriminated unions will catch runtime invariant violations at compile time.",
+    defaultHypothesis:
+      "Strict type guards and discriminated unions will catch runtime invariant violations at compile time.",
   },
   {
     id: "PQ-AST_PURITY-1",
     dimension: "ast_purity",
     flavorDimension: "more_token_efficient",
-    question: "Are fallback operators (??, ||) silently masking undefined/null values instead of explicit assertions?",
+    question:
+      "Are fallback operators (??, ||) silently masking undefined/null values instead of explicit assertions?",
     probeTarget: "source_ast",
-    defaultHypothesis: "AST linter rules can enforce zero-fallback purity and explicit branching repository-wide.",
+    defaultHypothesis:
+      "AST linter rules can enforce zero-fallback purity and explicit branching repository-wide.",
   },
   {
     id: "PQ-DAG_CONCURRENCY-1",
     dimension: "dag_concurrency",
     flavorDimension: "better",
-    question: "Is task fan-out constrained by artificially wide write scopes that could be decomposed?",
+    question:
+      "Is task fan-out constrained by artificially wide write scopes that could be decomposed?",
     probeTarget: "task_decomposition",
-    defaultHypothesis: "Splitting wide-scope tasks into isolated atomic units maximizes wave concurrency.",
+    defaultHypothesis:
+      "Splitting wide-scope tasks into isolated atomic units maximizes wave concurrency.",
   },
 ] as const;
 
@@ -286,9 +297,9 @@ export interface DimensionalWeights {
 
 export const DEFAULT_DIMENSIONAL_WEIGHTS: DimensionalWeights = {
   simplicity: 0.15,
-  performance: 0.20,
+  performance: 0.2,
   observability: 0.15,
-  type_safety: 0.20,
+  type_safety: 0.2,
   ast_purity: 0.15,
   dag_concurrency: 0.15,
 };
@@ -366,7 +377,11 @@ function extractSystemMetricsFromState(
       ready += 1;
     } else if (task.status === "pending" || task.status === "draft") {
       pending += 1;
-    } else if (task.status === "failed" || task.status === "rejected" || task.status === "changes_requested") {
+    } else if (
+      task.status === "failed" ||
+      task.status === "rejected" ||
+      task.status === "changes_requested"
+    ) {
       failed += 1;
     }
   }
@@ -385,7 +400,11 @@ function extractSystemMetricsFromState(
           const hasOverlappingScope = task.write_scope.some((scopeA) =>
             depTask.write_scope.some((scopeB) => scopeA === scopeB),
           );
-          if (!hasOverlappingScope && task.write_scope.length > 0 && depTask.write_scope.length > 0) {
+          if (
+            !hasOverlappingScope &&
+            task.write_scope.length > 0 &&
+            depTask.write_scope.length > 0
+          ) {
             falseBarriers += 1;
           }
         }
@@ -625,7 +644,9 @@ export function runAutonomousAuditLoop(
   };
 }
 
-export function executeProactiveSelfQuestioningCycle(input: QuestionCycleInput): ProactiveQuestionCycle {
+export function executeProactiveSelfQuestioningCycle(
+  input: QuestionCycleInput,
+): ProactiveQuestionCycle {
   const timestamp = input.timestamp !== undefined ? input.timestamp : new Date().toISOString();
   const defaultSpec = PROACTIVE_QUESTION_CATALOG[0];
   if (defaultSpec === undefined) {
@@ -667,8 +688,11 @@ export function executeProactiveSelfQuestioningCycle(input: QuestionCycleInput):
         for (let j = i + 1; j < tasks.length; j += 1) {
           const taskB = tasks[j];
           if (taskB !== undefined) {
-            const hasDep = taskB.dependencies.includes(taskA.id) || taskA.dependencies.includes(taskB.id);
-            const overlapping = taskA.write_scope.some((sA) => taskB.write_scope.some((sB) => sA === sB));
+            const hasDep =
+              taskB.dependencies.includes(taskA.id) || taskA.dependencies.includes(taskB.id);
+            const overlapping = taskA.write_scope.some((sA) =>
+              taskB.write_scope.some((sB) => sA === sB),
+            );
             if (!hasDep && !overlapping) {
               parallelOpportunities += 1;
             }
@@ -702,7 +726,8 @@ export function executeProactiveSelfQuestioningCycle(input: QuestionCycleInput):
       id: `OPT-AST-PURITY-${input.cycleId}`,
       title: "Zero-Fallback AST Hardening",
       dimension: "ast_purity",
-      expectedBenefit: "Eliminate silent fallback operators and mandate explicit validation predicates.",
+      expectedBenefit:
+        "Eliminate silent fallback operators and mandate explicit validation predicates.",
       riskAssessment: "low",
       targetFiles: tasks.flatMap((t) => t.write_scope),
       scoreBoost: 8,
@@ -739,7 +764,9 @@ export function executeProactiveSelfQuestioningCycle(input: QuestionCycleInput):
   };
 }
 
-export function harvestPlanEnhancementsDuringPulse(context: MindPulseContext): PlanEnhancementHarvest {
+export function harvestPlanEnhancementsDuringPulse(
+  context: MindPulseContext,
+): PlanEnhancementHarvest {
   const timestamp = context.timestamp !== undefined ? context.timestamp : new Date().toISOString();
   const tasks = extractTasksFromState(context.state);
 
@@ -811,7 +838,8 @@ export function generateOptimizationProposals(
       id: `PROP-CONCURRENCY-BOOST-${Math.floor(Math.random() * 100000)}`,
       title: "DAG Critical Path De-Serialization",
       dimension: "dag_concurrency",
-      expectedBenefit: "Prune false barrier dependencies and rebalance task execution across parallel waves.",
+      expectedBenefit:
+        "Prune false barrier dependencies and rebalance task execution across parallel waves.",
       riskAssessment: "low",
       targetFiles: [],
       scoreBoost: 15,
@@ -825,7 +853,8 @@ export function generateOptimizationProposals(
       id: `PROP-AST-PURITY-${Math.floor(Math.random() * 100000)}`,
       title: "Structural Fallback Elimination",
       dimension: "ast_purity",
-      expectedBenefit: "Replace all ?? and || fallback operators with explicit type-narrowed assertions.",
+      expectedBenefit:
+        "Replace all ?? and || fallback operators with explicit type-narrowed assertions.",
       riskAssessment: "low",
       targetFiles: [],
       scoreBoost: 12,
@@ -839,7 +868,8 @@ export function generateOptimizationProposals(
       id: `PROP-TYPE-SAFETY-${Math.floor(Math.random() * 100000)}`,
       title: "Exhaustive Contract Boundary Hardening",
       dimension: "type_safety",
-      expectedBenefit: "Inject strict runtime predicates and eliminate any remaining unvalidated types.",
+      expectedBenefit:
+        "Inject strict runtime predicates and eliminate any remaining unvalidated types.",
       riskAssessment: "medium",
       targetFiles: [],
       scoreBoost: 10,
@@ -962,13 +992,17 @@ export function formatHyperCognitionBrief(report: HyperCognitivePulseReport): st
   for (const h of report.harvestedEnhancements) {
     lines.push(`- Harvest \`${h.harvestId}\`: ${h.suggestedSubtasks.length} suggested subtasks`);
     for (const sub of h.suggestedSubtasks) {
-      lines.push(`  - Subtask \`${sub.taskId}\`: "${sub.title}" (Scope: ${sub.writeScope.join(", ")})`);
+      lines.push(
+        `  - Subtask \`${sub.taskId}\`: "${sub.title}" (Scope: ${sub.writeScope.join(", ")})`,
+      );
     }
   }
   lines.push("");
   lines.push(`#### Optimization Proposals (${report.proposals.length})`);
   for (const p of report.proposals) {
-    lines.push(`- **${p.title}** [\`${p.dimension}\` | Risk: \`${p.riskAssessment}\` | +${p.scoreBoost} pts]`);
+    lines.push(
+      `- **${p.title}** [\`${p.dimension}\` | Risk: \`${p.riskAssessment}\` | +${p.scoreBoost} pts]`,
+    );
     lines.push(`  - Expected Benefit: ${p.expectedBenefit}`);
   }
 
@@ -986,13 +1020,19 @@ export function validateHyperCognitiveReport(report: unknown): HyperCognitivePul
     throw new HarnessError("INTEGRITY", "HyperCognitivePulseReport missing pulseTimestamp");
   }
   if (!Array.isArray(report.activeQuestions)) {
-    throw new HarnessError("INTEGRITY", "HyperCognitivePulseReport activeQuestions must be an array");
+    throw new HarnessError(
+      "INTEGRITY",
+      "HyperCognitivePulseReport activeQuestions must be an array",
+    );
   }
   if (!isRecord(report.auditResult)) {
     throw new HarnessError("INTEGRITY", "HyperCognitivePulseReport auditResult must be an object");
   }
   if (!Array.isArray(report.harvestedEnhancements)) {
-    throw new HarnessError("INTEGRITY", "HyperCognitivePulseReport harvestedEnhancements must be an array");
+    throw new HarnessError(
+      "INTEGRITY",
+      "HyperCognitivePulseReport harvestedEnhancements must be an array",
+    );
   }
   if (!Array.isArray(report.proposals)) {
     throw new HarnessError("INTEGRITY", "HyperCognitivePulseReport proposals must be an array");
@@ -1010,7 +1050,9 @@ export function validateHyperCognitiveReport(report: unknown): HyperCognitivePul
   return report as unknown as HyperCognitivePulseReport;
 }
 
-export function createHyperCognitionEngine(options: HyperCognitionEngineOptions): HyperCognitionEngine {
+export function createHyperCognitionEngine(
+  options: HyperCognitionEngineOptions,
+): HyperCognitionEngine {
   if (!isNonblank(options.repoRoot)) {
     throw new HarnessError("INVALID_ARGUMENT", "repoRoot must be a non-blank string");
   }
@@ -1045,7 +1087,10 @@ export function createHyperCognitionEngine(options: HyperCognitionEngineOptions)
       scoreHistory.push(report.scoreVector);
       return report;
     },
-    integratePulseCadence(pulseEvent: HarnessEvent, currentState: unknown): HyperCognitivePulseReport {
+    integratePulseCadence(
+      pulseEvent: HarnessEvent,
+      currentState: unknown,
+    ): HyperCognitivePulseReport {
       const pulseId =
         typeof pulseEvent.kind === "string" && pulseEvent.kind.length > 0
           ? `${pulseEvent.kind}-${pulseEvent.sequence}`

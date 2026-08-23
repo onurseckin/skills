@@ -133,7 +133,11 @@ export interface CognitiveGapScanResult {
 
 export interface DormantCriteriaFinding {
   readonly criteriaId: string;
-  readonly source: "charter_goal" | "charter_stability" | "prompt_requirement" | "unverified_backlog";
+  readonly source:
+    | "charter_goal"
+    | "charter_stability"
+    | "prompt_requirement"
+    | "unverified_backlog";
   readonly statement: string;
   readonly severity: DiscoverySeverity;
   readonly suggestedRemediation: string;
@@ -399,19 +403,25 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
           issueType: "OVERSIZED_MODULE",
           description: `Module length of ${lines.length} lines exceeds recommended limit of ${maxLineThreshold} lines`,
           severity: "LOW",
-          suggestedRemediation: "Refactor module into modular sub-components or distinct domain helpers.",
+          suggestedRemediation:
+            "Refactor module into modular sub-components or distinct domain helpers.",
         });
       }
 
       // Check 2: Unexported dead code detection (for non-test modules)
       if (!isTestFile && lines.length > 5) {
-        const topLevelDeclRegex = /^(?:function|const|let|var|class|interface|type)\s+([A-Za-z0-9_$]+)/;
+        const topLevelDeclRegex =
+          /^(?:function|const|let|var|class|interface|type)\s+([A-Za-z0-9_$]+)/;
         for (let idx = 0; idx < lines.length; idx++) {
           if (findings.length >= maxFindings) break;
           const currentLine = lines[idx];
           if (!currentLine) continue;
           const lineTrimmed = currentLine.trim();
-          if (lineTrimmed.startsWith("export ") || lineTrimmed.startsWith("//") || lineTrimmed.startsWith("/*")) {
+          if (
+            lineTrimmed.startsWith("export ") ||
+            lineTrimmed.startsWith("//") ||
+            lineTrimmed.startsWith("/*")
+          ) {
             continue;
           }
 
@@ -419,11 +429,16 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
           if (declMatch && declMatch[1]) {
             const ident = declMatch[1];
             // Skip common boilerplate identifiers
-            if (ident.startsWith("DEFAULT_") || ident === "map" || ident === "lines" || ident.length < 3) {
+            if (
+              ident.startsWith("DEFAULT_") ||
+              ident === "map" ||
+              ident === "lines" ||
+              ident.length < 3
+            ) {
               continue;
             }
             const identRegex = new RegExp(`\\b${ident}\\b`, "g");
-            const matchCount = (content.match(identRegex) ? content.match(identRegex)!.length : 0);
+            const matchCount = content.match(identRegex) ? content.match(identRegex)!.length : 0;
             if (matchCount === 1) {
               findings.push({
                 file,
@@ -560,9 +575,7 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
       ? options.sourceRoots
       : ["orchestrating-long-tasks/scripts/src"];
   const testRoots =
-    options.testRoots && options.testRoots.length > 0
-      ? options.testRoots
-      : ["tests/unit", "tests"];
+    options.testRoots && options.testRoots.length > 0 ? options.testRoots : ["tests/unit", "tests"];
   const extensions = options.fileExtensions ? options.fileExtensions : DEFAULT_SOURCE_EXTENSIONS;
   const excludes = options.excludePatterns ? options.excludePatterns : DEFAULT_EXCLUDE_PATTERNS;
   const maxFindings = options.maxFindings ? options.maxFindings : 50;
@@ -600,7 +613,9 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
     const expectedTestName1 = `${base}.test.ts`;
     const expectedTestName2 = `${base}.spec.ts`;
 
-    const matchedTest = testFileMap.get(expectedTestName1) ? testFileMap.get(expectedTestName1) : testFileMap.get(expectedTestName2);
+    const matchedTest = testFileMap.get(expectedTestName1)
+      ? testFileMap.get(expectedTestName1)
+      : testFileMap.get(expectedTestName2);
 
     if (!matchedTest) {
       missingTestCount++;
@@ -608,7 +623,9 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
         sourceFile: sf,
         issueType: "MISSING_TEST_FILE",
         description: `Missing dedicated unit test suite for source module: ${basename(sf)}`,
-        suggestedRemediation: `Create unit test suite at tests/unit/${relative(process.cwd(), sf).replace(/scripts\/src\//, "").replace(/\.ts$/, ".test.ts")}`,
+        suggestedRemediation: `Create unit test suite at tests/unit/${relative(process.cwd(), sf)
+          .replace(/scripts\/src\//, "")
+          .replace(/\.ts$/, ".test.ts")}`,
         severity: "HIGH",
       });
     }
@@ -633,7 +650,8 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
           testFile: tf,
           issueType: "SKIPPED_TESTS",
           description: `Skipped test cases detected in test suite: ${basename(tf)}`,
-          suggestedRemediation: "Re-enable skipped tests and repair any underlying assertion failures.",
+          suggestedRemediation:
+            "Re-enable skipped tests and repair any underlying assertion failures.",
           severity: "MEDIUM",
         });
       }
@@ -645,7 +663,8 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
           testFile: tf,
           issueType: "EMPTY_TEST_SUITE",
           description: `Empty test suite without test assertions: ${basename(tf)}`,
-          suggestedRemediation: "Implement comprehensive assertions covering positive and negative cases.",
+          suggestedRemediation:
+            "Implement comprehensive assertions covering positive and negative cases.",
           severity: "HIGH",
         });
       } else if (hasTestBlock) {
@@ -658,7 +677,8 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
             testFile: tf,
             issueType: "LOW_ASSERTION_DENSITY",
             description: `Test suite ${basename(tf)} has zero expect() assertion calls`,
-            suggestedRemediation: "Add explicit expect() assertions verifying return values and invariants.",
+            suggestedRemediation:
+              "Add explicit expect() assertions verifying return values and invariants.",
             severity: "HIGH",
           });
         }
@@ -729,7 +749,8 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
             description: `Excessive nesting depth (${leadingSpaces} spaces) on line ${lineNum}: "${trimmed.slice(0, 50)}"`,
             snippet: trimmed,
             severity: "MEDIUM",
-            suggestedRemediation: "Extract deeply nested conditionals or loops into focused helper functions.",
+            suggestedRemediation:
+              "Extract deeply nested conditionals or loops into focused helper functions.",
           });
         }
 
@@ -747,14 +768,23 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
             description: `Function exceeds Cowan/Miller chunking capacity with >5 positional parameters on line ${lineNum}`,
             snippet: trimmed,
             severity: "MEDIUM",
-            suggestedRemediation: "Consolidate parameters into a structured options interface object.",
+            suggestedRemediation:
+              "Consolidate parameters into a structured options interface object.",
           });
         }
 
         // Check 3: Raw JSON.parse without safe parser wrapper or try-catch context in immediate vicinity
-        if (trimmed.includes("JSON.parse(") && !trimmed.startsWith("//") && !trimmed.startsWith("/*")) {
+        if (
+          trimmed.includes("JSON.parse(") &&
+          !trimmed.startsWith("//") &&
+          !trimmed.startsWith("/*")
+        ) {
           const priorLines = lines.slice(Math.max(0, i - 4), i).join(" ");
-          if (!priorLines.includes("try {") && !priorLines.includes("try{") && !priorLines.includes("try ")) {
+          if (
+            !priorLines.includes("try {") &&
+            !priorLines.includes("try{") &&
+            !priorLines.includes("try ")
+          ) {
             findings.push({
               file,
               line: lineNum,
@@ -762,7 +792,8 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
               description: `Unprotected JSON.parse boundary on line ${lineNum}: "${trimmed.slice(0, 50)}"`,
               snippet: trimmed,
               severity: "HIGH",
-              suggestedRemediation: "Wrap JSON.parse in try/catch or use a resilient parsing utility.",
+              suggestedRemediation:
+                "Wrap JSON.parse in try/catch or use a resilient parsing utility.",
             });
           }
         }
@@ -799,15 +830,15 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
         }
 
         // Check 5: Missing error recovery (empty catch blocks - single line and multi-line)
-        const isCatchHeader = trimmed.startsWith("catch") || trimmed.endsWith("catch {") || trimmed.includes("} catch");
+        const isCatchHeader =
+          trimmed.startsWith("catch") || trimmed.endsWith("catch {") || trimmed.includes("} catch");
         const nextTrimmed = lines[i + 1] ? lines[i + 1]!.trim() : "";
         const nextNextTrimmed = lines[i + 2] ? lines[i + 2]!.trim() : "";
-        const isMultiLineEmptyCatch = isCatchHeader && (nextTrimmed === "}" || (nextTrimmed.startsWith("//") && nextNextTrimmed === "}"));
+        const isMultiLineEmptyCatch =
+          isCatchHeader &&
+          (nextTrimmed === "}" || (nextTrimmed.startsWith("//") && nextNextTrimmed === "}"));
 
-        if (
-          /catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(trimmed) ||
-          isMultiLineEmptyCatch
-        ) {
+        if (/catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(trimmed) || isMultiLineEmptyCatch) {
           findings.push({
             file,
             line: lineNum,
@@ -855,7 +886,8 @@ export function scanDormantCriteria(
           source: "charter_goal",
           statement: "Charter document is missing at expected location",
           severity: "CRITICAL",
-          suggestedRemediation: "Create CHARTER.md with valid identity, goals, and repo_roots sections.",
+          suggestedRemediation:
+            "Create CHARTER.md with valid identity, goals, and repo_roots sections.",
         },
       ],
       goalsCheckedCount: 0,
@@ -869,7 +901,9 @@ export function scanDormantCriteria(
     const parsed = parseCharter(rawContent);
 
     // Read task history from queue or provided history
-    const taskHistory = options.recentTasksHistory ? options.recentTasksHistory : readTaskQueue(options.taskQueuePath);
+    const taskHistory = options.recentTasksHistory
+      ? options.recentTasksHistory
+      : readTaskQueue(options.taskQueuePath);
     const targetedGoals = new Set<string>();
 
     for (const task of taskHistory) {
@@ -1196,10 +1230,7 @@ export function proposeCandidateEvolutions(findings: {
  * Synthesizes a structured DiscoveredTaskPlan from a generic DiscoveryItem.
  * Strictly guarantees Anti-Batching rules, isolated scopes, and 1:1 implementer-validator separation.
  */
-export function synthesizeTaskFromDiscovery(
-  item: DiscoveryItem,
-  index = 1,
-): DiscoveredTaskPlan {
+export function synthesizeTaskFromDiscovery(item: DiscoveryItem, index = 1): DiscoveredTaskPlan {
   const taskSlug = sanitizeSlug(item.id);
   const taskId = `task-p49-discovery-${index}-${taskSlug}`;
   const implementerRole = `implementer-p49-discovery-${taskSlug}`;
@@ -1213,9 +1244,7 @@ export function synthesizeTaskFromDiscovery(
         : ["orchestrating-long-tasks/scripts/src/mind/"];
 
   const gate =
-    item.gate.trim().length > 0
-      ? item.gate
-      : "bun test tests/unit/mind && bun run typecheck";
+    item.gate.trim().length > 0 ? item.gate : "bun test tests/unit/mind && bun run typecheck";
 
   const acceptanceCriteria =
     item.acceptanceCriteria.length > 0
@@ -1363,9 +1392,9 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
   // Step 7: Scan Open Blunders
   const openBlunders =
     options.enableBlunderScan !== false
-      ? auditBlunderLog(options.capsulesDir ? [options.capsulesDir] : [".capsules/"]).blunders.filter(
-          (b) => b.status === "open",
-        )
+      ? auditBlunderLog(
+          options.capsulesDir ? [options.capsulesDir] : [".capsules/"],
+        ).blunders.filter((b) => b.status === "open")
       : [];
 
   const rawDiscoveries: DiscoveryItem[] = [];
@@ -1498,10 +1527,11 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
     const fileBase = basename(tc.sourceFile, extname(tc.sourceFile));
     const slug = `${sanitizeSlug(fileBase)}-coverage`;
     const relSource = relative(process.cwd(), tc.sourceFile);
-    const targetTestFile =
-      tc.testFile ? tc.testFile : (relSource.startsWith("orchestrating-long-tasks/")
+    const targetTestFile = tc.testFile
+      ? tc.testFile
+      : relSource.startsWith("orchestrating-long-tasks/")
         ? `tests/unit/${relSource.replace("orchestrating-long-tasks/scripts/src/", "").replace(/\.ts$/, ".test.ts")}`
-        : `tests/unit/${fileBase}.test.ts`);
+        : `tests/unit/${fileBase}.test.ts`;
 
     addDiscovery({
       id: `cov-${slug}`,
@@ -1695,4 +1725,3 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
     summary,
   };
 }
-

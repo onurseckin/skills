@@ -365,9 +365,7 @@ export async function deliverEventsToWebhook(
   }
 
   const batchSize =
-    options.batchSize !== undefined && options.batchSize > 0
-      ? options.batchSize
-      : events.length;
+    options.batchSize !== undefined && options.batchSize > 0 ? options.batchSize : events.length;
 
   const batches: (readonly (HarnessEvent | Record<string, unknown>)[])[] = [];
   for (let i = 0; i < events.length; i += batchSize) {

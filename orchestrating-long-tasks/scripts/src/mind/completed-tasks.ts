@@ -284,8 +284,14 @@ function updateFeedbackQueueItems(
       const parsed = JSON.parse(line) as Record<string, unknown>;
       const id = typeof parsed["id"] === "string" ? parsed["id"].toLowerCase().trim() : undefined;
       const candidateId =
-        typeof parsed["candidate_id"] === "string" ? parsed["candidate_id"].toLowerCase().trim() : undefined;
-      const isCompleted = (id && idMap.has(id)) || (candidateId && idMap.has(candidateId)) || parsed["status"] === "COMPLETED" || parsed["status"] === "RESOLVED";
+        typeof parsed["candidate_id"] === "string"
+          ? parsed["candidate_id"].toLowerCase().trim()
+          : undefined;
+      const isCompleted =
+        (id && idMap.has(id)) ||
+        (candidateId && idMap.has(candidateId)) ||
+        parsed["status"] === "COMPLETED" ||
+        parsed["status"] === "RESOLVED";
 
       if (!isCompleted) {
         remainingLines.push(line);
@@ -295,7 +301,11 @@ function updateFeedbackQueueItems(
     }
   }
 
-  writeFileSync(filePath, remainingLines.join("\n") + (remainingLines.length > 0 ? "\n" : ""), "utf8");
+  writeFileSync(
+    filePath,
+    remainingLines.join("\n") + (remainingLines.length > 0 ? "\n" : ""),
+    "utf8",
+  );
   return;
 }
 
@@ -320,7 +330,11 @@ function updateBlunderItems(records: readonly CompletedTaskRecord[], customPath?
     try {
       const parsed = JSON.parse(line) as Record<string, unknown>;
       const id = typeof parsed["id"] === "string" ? parsed["id"].toLowerCase().trim() : undefined;
-      const isResolved = (id && idMap.has(id)) || parsed["status"] === "resolved" || parsed["status"] === "RESOLVED" || parsed["status"] === "CLOSED";
+      const isResolved =
+        (id && idMap.has(id)) ||
+        parsed["status"] === "resolved" ||
+        parsed["status"] === "RESOLVED" ||
+        parsed["status"] === "CLOSED";
 
       if (!isResolved) {
         remainingLines.push(line);
@@ -330,7 +344,11 @@ function updateBlunderItems(records: readonly CompletedTaskRecord[], customPath?
     }
   }
 
-  writeFileSync(filePath, remainingLines.join("\n") + (remainingLines.length > 0 ? "\n" : ""), "utf8");
+  writeFileSync(
+    filePath,
+    remainingLines.join("\n") + (remainingLines.length > 0 ? "\n" : ""),
+    "utf8",
+  );
   return;
 }
 
@@ -455,4 +473,3 @@ export function formatCompletedTasksBrief(
 
   return enforceLineLimit(lines.join("\n"), maxLines);
 }
-

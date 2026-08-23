@@ -142,7 +142,9 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
 
   const writeScope = task.write_scope !== undefined ? task.write_scope : [];
   const explicitTargets = Array.isArray(task.target_files)
-    ? (task.target_files.filter((item): item is string => typeof item === "string") as readonly string[])
+    ? (task.target_files.filter(
+        (item): item is string => typeof item === "string",
+      ) as readonly string[])
     : undefined;
   const targetFiles = deriveTargetFiles(writeScope, explicitTargets);
 
@@ -151,7 +153,9 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
   const recommendedCommands = deriveRecommendedCommands(gateCommands, targetFiles);
 
   const explicitCriteria = Array.isArray(task.acceptance_criteria)
-    ? (task.acceptance_criteria.filter((item): item is string => typeof item === "string") as readonly string[])
+    ? (task.acceptance_criteria.filter(
+        (item): item is string => typeof item === "string",
+      ) as readonly string[])
     : undefined;
   const acceptanceCriteria = resolveAcceptanceCriteria(
     wf.requirements,
@@ -162,9 +166,9 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
   const nextSteps = deriveNextSteps(run, taskId, task.status, role, agent);
 
   const resolvedRole =
-    role !== undefined ? role : (typeof task.role === "string" ? task.role : undefined);
+    role !== undefined ? role : typeof task.role === "string" ? task.role : undefined;
   const resolvedAgent =
-    agent !== undefined ? agent : (typeof task.agent === "string" ? task.agent : undefined);
+    agent !== undefined ? agent : typeof task.agent === "string" ? task.agent : undefined;
 
   const briefing: TaskBriefParams = {
     taskId,
@@ -223,9 +227,7 @@ export async function agentBriefCommand(flags: Flags): Promise<Record<string, un
   }
 
   const toolsGranted =
-    grant.tools_granted?.value !== undefined
-      ? grant.tools_granted.value.map((t) => t.name)
-      : [];
+    grant.tools_granted?.value !== undefined ? grant.tools_granted.value.map((t) => t.name) : [];
 
   const briefing: AgentBriefParams = {
     agentId: grant.id,
@@ -238,7 +240,9 @@ export async function agentBriefCommand(flags: Flags): Promise<Record<string, un
     tools: toolsGranted.length > 0 ? toolsGranted : undefined,
     writeScope,
     recommendedCommands:
-      recommendedCommands !== undefined && recommendedCommands.length > 0 ? recommendedCommands : undefined,
+      recommendedCommands !== undefined && recommendedCommands.length > 0
+        ? recommendedCommands
+        : undefined,
   };
 
   const markdown = formatAgentBrief(briefing);

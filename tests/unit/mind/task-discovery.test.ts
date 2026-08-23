@@ -76,7 +76,7 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
         "  const x = param.foo;",
         "  // TODO: Refactor this logic later",
         "  if (param.fallback) {",
-        "    return \"TODO\";",
+        '    return "TODO";',
         "  }",
         "  return x;",
         "}",
@@ -287,7 +287,11 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
 
       writeFileSync(fileA, `import { b } from "./moduleB.ts";\nexport const a = b + 1;`, "utf8");
       writeFileSync(fileB, `import { a } from "./moduleA.ts";\nexport const b = 2;`, "utf8");
-      writeFileSync(fileC, `import { missing } from "./nonExistentFile.ts";\nexport const c = 3;`, "utf8");
+      writeFileSync(
+        fileC,
+        `import { missing } from "./nonExistentFile.ts";\nexport const c = 3;`,
+        "utf8",
+      );
 
       const result = scanArchitecturalHealth({
         sourceRoots: [srcDir],
@@ -540,10 +544,17 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
           }
 
           // Invariant 1: No compiler suppressions
-          const suppressionTokens = ["@" + "ts-ignore", "@" + "ts-nocheck", "@" + "ts-expect-error", "eslint" + "-disable"];
+          const suppressionTokens = [
+            "@" + "ts-ignore",
+            "@" + "ts-nocheck",
+            "@" + "ts-expect-error",
+            "eslint" + "-disable",
+          ];
           for (const token of suppressionTokens) {
             if (trimmed.includes(token)) {
-              throw new Error(`Compiler suppression '${token}' detected in ${filePath}:${lineNum}: "${trimmed}"`);
+              throw new Error(
+                `Compiler suppression '${token}' detected in ${filePath}:${lineNum}: "${trimmed}"`,
+              );
             }
             expect(trimmed.includes(token)).toBe(false);
           }
@@ -557,7 +568,9 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
             /Promise<any>/.test(trimmed);
 
           if (hasAnyType) {
-            throw new Error(`Forbidden 'any' type annotation found in ${filePath}:${lineNum}: "${trimmed}"`);
+            throw new Error(
+              `Forbidden 'any' type annotation found in ${filePath}:${lineNum}: "${trimmed}"`,
+            );
           }
           expect(hasAnyType).toBe(false);
         }

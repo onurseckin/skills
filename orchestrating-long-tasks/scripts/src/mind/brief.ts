@@ -585,13 +585,7 @@ export async function buildWakeBrief(
       "--actor",
       actor,
     ];
-    thenArgv = [
-      "bun",
-      "harness.ts",
-      "mind:wake",
-      "--run",
-      actualRunRoot,
-    ];
+    thenArgv = ["bun", "harness.ts", "mind:wake", "--run", actualRunRoot];
   } else if (lane === "defer") {
     nextArgv = [
       "bun",
@@ -606,15 +600,7 @@ export async function buildWakeBrief(
       "--driver",
       driver,
     ];
-    thenArgv = [
-      "bun",
-      "harness.ts",
-      "mind:pulse",
-      "--run",
-      actualRunRoot,
-      "--arm",
-      "15m",
-    ];
+    thenArgv = ["bun", "harness.ts", "mind:pulse", "--run", actualRunRoot, "--arm", "15m"];
   } else if (lane === "rescue") {
     const rescueTarget =
       liveRuns.find((r) => r.hasStaleLease)?.runRoot ?? liveRuns[0]?.runRoot ?? actualRunRoot;
@@ -627,15 +613,7 @@ export async function buildWakeBrief(
       "--actor",
       actor,
     ];
-    thenArgv = [
-      "bun",
-      "harness.ts",
-      "mind:pulse",
-      "--run",
-      actualRunRoot,
-      "--arm",
-      "15m",
-    ];
+    thenArgv = ["bun", "harness.ts", "mind:pulse", "--run", actualRunRoot, "--arm", "15m"];
   } else if (lane === "repair") {
     const repairTarget =
       liveRuns.find((r) => r.openFindingsCount > 0 || r.failingGatesCount > 0)?.runRoot ??
@@ -649,15 +627,7 @@ export async function buildWakeBrief(
       "--actor",
       actor,
     ];
-    thenArgv = [
-      "bun",
-      "harness.ts",
-      "mind:pulse",
-      "--run",
-      actualRunRoot,
-      "--arm",
-      "15m",
-    ];
+    thenArgv = ["bun", "harness.ts", "mind:pulse", "--run", actualRunRoot, "--arm", "15m"];
   } else {
     // quiesce or advance
     nextArgv = [
@@ -673,15 +643,7 @@ export async function buildWakeBrief(
       "--driver",
       driver,
     ];
-    thenArgv = [
-      "bun",
-      "harness.ts",
-      "mind:pulse",
-      "--run",
-      actualRunRoot,
-      "--arm",
-      "15m",
-    ];
+    thenArgv = ["bun", "harness.ts", "mind:pulse", "--run", actualRunRoot, "--arm", "15m"];
   }
 
   const facts: MindBriefFacts = {

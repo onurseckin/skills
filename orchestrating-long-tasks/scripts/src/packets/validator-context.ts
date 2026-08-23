@@ -105,7 +105,9 @@ function forbiddenKey(key: string): boolean {
     FORBIDDEN.has(normalized) ||
     /^(?:implementer|task|validator|historical)_reports?$/u.test(normalized) ||
     /^(?:previous|prior)_reviews?(?:_notes)?$/u.test(normalized) ||
-    /^(?:assumed|fake|historical|prior|hallucinated)_completions?(?:_claims?)?$/u.test(normalized) ||
+    /^(?:assumed|fake|historical|prior|hallucinated)_completions?(?:_claims?)?$/u.test(
+      normalized,
+    ) ||
     /^(?:raw_events?|raw_event_logs?|raw_metadata|giant_logs?|error_logs?|debug_logs?|dependency_graph_dump|full_graph_dump|raw_errors?|raw_error_blobs?|error_blobs?|stack_traces?|diagnostic_dumps?|raw_telemetry|bulk_logs?|historical_events?|giant_payloads?|unfiltered_metadata)$/u.test(
       normalized,
     ) ||

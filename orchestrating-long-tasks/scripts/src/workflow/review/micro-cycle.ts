@@ -1,7 +1,13 @@
 import { HarnessError } from "../../errors/harness-error.ts";
 import type { MicroCycleRecord } from "../../contracts/workflow.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
-import { systemClock, type Clock, type TaskRecord, type TransactionPort, type WorkflowState } from "../types.ts";
+import {
+  systemClock,
+  type Clock,
+  type TaskRecord,
+  type TransactionPort,
+  type WorkflowState,
+} from "../types.ts";
 
 export const DEFAULT_MAX_MICRO_CYCLES = 3;
 
@@ -45,7 +51,8 @@ export function recordMicroCycleCritique(
     );
   }
 
-  const currentRound = typeof currentTask.micro_cycle_round === "number" ? currentTask.micro_cycle_round : 0;
+  const currentRound =
+    typeof currentTask.micro_cycle_round === "number" ? currentTask.micro_cycle_round : 0;
   const nextRound = currentRound + 1;
   if (nextRound > maxRounds) {
     throw new HarnessError(

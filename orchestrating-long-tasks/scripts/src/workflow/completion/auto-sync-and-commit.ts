@@ -53,10 +53,7 @@ export type SyncRunner = (
   options?: { cwd?: string },
 ) => Promise<SyncRunnerResult> | SyncRunnerResult;
 
-function defaultGitRunner(
-  args: readonly string[],
-  options?: { cwd?: string },
-): GitRunnerResult {
+function defaultGitRunner(args: readonly string[], options?: { cwd?: string }): GitRunnerResult {
   try {
     const res = spawnSync("git", args, {
       cwd: options !== undefined ? options.cwd : undefined,
@@ -82,10 +79,7 @@ function defaultGitRunner(
   }
 }
 
-function defaultSyncRunner(
-  scriptPath: string,
-  options?: { cwd?: string },
-): SyncRunnerResult {
+function defaultSyncRunner(scriptPath: string, options?: { cwd?: string }): SyncRunnerResult {
   try {
     const res = spawnSync("bun", [scriptPath], {
       cwd: options !== undefined ? options.cwd : undefined,
@@ -128,13 +122,9 @@ export async function executeAutoSyncAndCommit(
       ? options.repoRoot
       : process.cwd();
   const remote =
-    typeof options.remote === "string" && options.remote.length > 0
-      ? options.remote
-      : "origin";
+    typeof options.remote === "string" && options.remote.length > 0 ? options.remote : "origin";
   const branch =
-    typeof options.branch === "string" && options.branch.length > 0
-      ? options.branch
-      : "main";
+    typeof options.branch === "string" && options.branch.length > 0 ? options.branch : "main";
   const commitType =
     typeof options.commitType === "string" && options.commitType.length > 0
       ? options.commitType

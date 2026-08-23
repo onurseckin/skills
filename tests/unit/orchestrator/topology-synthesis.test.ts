@@ -74,9 +74,7 @@ describe("Topology Synthesis Unit Tests", () => {
     });
 
     it("detects direct self-dependencies", () => {
-      const tasks = [
-        { id: "task-self", dependencies: ["task-self"] },
-      ];
+      const tasks = [{ id: "task-self", dependencies: ["task-self"] }];
 
       expect(() => validateTopologyAcyclicity(tasks, { strict: true })).toThrow(HarnessError);
 
@@ -105,12 +103,14 @@ describe("Topology Synthesis Unit Tests", () => {
         { id: "task-1", dependencies: [] },
         { id: "task-1", dependencies: [] },
       ];
-      expect(() => validateTopologyAcyclicity(duplicateTasks, { strict: true })).toThrow(HarnessError);
+      expect(() => validateTopologyAcyclicity(duplicateTasks, { strict: true })).toThrow(
+        HarnessError,
+      );
 
-      const unknownDepTasks = [
-        { id: "task-1", dependencies: ["non-existent"] },
-      ];
-      expect(() => validateTopologyAcyclicity(unknownDepTasks, { strict: true })).toThrow(HarnessError);
+      const unknownDepTasks = [{ id: "task-1", dependencies: ["non-existent"] }];
+      expect(() => validateTopologyAcyclicity(unknownDepTasks, { strict: true })).toThrow(
+        HarnessError,
+      );
     });
   });
 
@@ -186,9 +186,27 @@ describe("Topology Synthesis Unit Tests", () => {
         prompt: "Synthesize full execution topology with anti-batching and critic feedback",
         tasks: [
           { id: "t-arch", label: "Architecture", writeScope: ["src/arch.ts"], effort: 2 },
-          { id: "t-engine", label: "Engine", writeScope: ["src/engine.ts"], dependencies: ["t-arch"], effort: 4 },
-          { id: "t-tests", label: "Tests", writeScope: ["tests/engine.test.ts"], dependencies: ["t-engine"], effort: 3 },
-          { id: "t-docs", label: "Documentation", writeScope: ["docs/README.md"], dependencies: ["t-arch"], effort: 1 },
+          {
+            id: "t-engine",
+            label: "Engine",
+            writeScope: ["src/engine.ts"],
+            dependencies: ["t-arch"],
+            effort: 4,
+          },
+          {
+            id: "t-tests",
+            label: "Tests",
+            writeScope: ["tests/engine.test.ts"],
+            dependencies: ["t-engine"],
+            effort: 3,
+          },
+          {
+            id: "t-docs",
+            label: "Documentation",
+            writeScope: ["docs/README.md"],
+            dependencies: ["t-arch"],
+            effort: 1,
+          },
         ],
         maxParallel: 4,
       };
@@ -220,9 +238,7 @@ describe("Topology Synthesis Unit Tests", () => {
           { id: "t-a", writeScope: ["src/a.ts"] },
           { id: "t-b", writeScope: ["src/b.ts"] },
         ],
-        dependencyRules: [
-          { from: "t-a", to: "t-b", reason: "Order t-b after t-a" },
-        ],
+        dependencyRules: [{ from: "t-a", to: "t-b", reason: "Order t-b after t-a" }],
       };
 
       const topology = synthesizeDAGTopology(spec);
@@ -305,7 +321,11 @@ describe("Topology Synthesis Unit Tests", () => {
             parentTaskId: "t-core",
             subTasks: [
               { id: "t-core-lexer", writeScope: ["src/core/lexer.ts"] },
-              { id: "t-core-parser", writeScope: ["src/core/parser.ts"], dependencies: ["t-core-lexer"] },
+              {
+                id: "t-core-parser",
+                writeScope: ["src/core/parser.ts"],
+                dependencies: ["t-core-lexer"],
+              },
             ],
           },
         ],
@@ -360,7 +380,7 @@ describe("Topology Synthesis Unit Tests", () => {
         "}",
         "export function configureWorker(config: WorkerConfig): boolean {",
         "  if (!config.name) {",
-        "    throw new HarnessError(\"INVALID_ARGUMENT\", \"name required\");",
+        '    throw new HarnessError("INVALID_ARGUMENT", "name required");',
         "  }",
         "  return true;",
         "}",
@@ -456,11 +476,21 @@ describe("Topology Synthesis Unit Tests", () => {
           continue;
         }
 
-        if (/:\s*any\b/.test(line) || /as\s+any\b/.test(line) || /<\s*any\s*>/.test(line) || /\bany\[\]/.test(line)) {
+        if (
+          /:\s*any\b/.test(line) ||
+          /as\s+any\b/.test(line) ||
+          /<\s*any\s*>/.test(line) ||
+          /\bany\[\]/.test(line)
+        ) {
           anyMatches.push(`L${lineNum}: ${line.trim()}`);
         }
 
-        if (/@ts-ignore/.test(line) || /@ts-expect-error/.test(line) || /@ts-nocheck/.test(line) || /eslint-disable/.test(line)) {
+        if (
+          /@ts-ignore/.test(line) ||
+          /@ts-expect-error/.test(line) ||
+          /@ts-nocheck/.test(line) ||
+          /eslint-disable/.test(line)
+        ) {
           suppressionMatches.push(`L${lineNum}: ${line.trim()}`);
         }
       }
@@ -486,11 +516,21 @@ describe("Topology Synthesis Unit Tests", () => {
           continue;
         }
 
-        if (/:\s*any\b/.test(line) || /as\s+any\b/.test(line) || /<\s*any\s*>/.test(line) || /\bany\[\]/.test(line)) {
+        if (
+          /:\s*any\b/.test(line) ||
+          /as\s+any\b/.test(line) ||
+          /<\s*any\s*>/.test(line) ||
+          /\bany\[\]/.test(line)
+        ) {
           anyMatches.push(`L${lineNum}: ${line.trim()}`);
         }
 
-        if (/@ts-ignore/.test(line) || /@ts-expect-error/.test(line) || /@ts-nocheck/.test(line) || /eslint-disable/.test(line)) {
+        if (
+          /@ts-ignore/.test(line) ||
+          /@ts-expect-error/.test(line) ||
+          /@ts-nocheck/.test(line) ||
+          /eslint-disable/.test(line)
+        ) {
           suppressionMatches.push(`L${lineNum}: ${line.trim()}`);
         }
       }

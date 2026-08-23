@@ -35,7 +35,9 @@ describe("registry-resolved argv", () => {
     expect(dispatchFailure(["bun", ENTRYPOINT, "nonexistent-command"])).toBe(
       "no registry command named nonexistent-command",
     );
-    expect(dispatchFailure(["bun", ENTRYPOINT, "report:leases"])).toBe("report:leases is missing --run");
+    expect(dispatchFailure(["bun", ENTRYPOINT, "report:leases"])).toBe(
+      "report:leases is missing --run",
+    );
     expect(dispatchFailure(["bun", ENTRYPOINT, "run:status", "--run", RUN, "--nope"])).toContain(
       "unknown option",
     );

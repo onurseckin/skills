@@ -64,7 +64,9 @@ describe("Blunder Discriminator & Signature Normalization", () => {
       const key1 = computeBlunderDiscriminator(b1);
       const key2 = computeBlunderDiscriminator(b2);
 
-      expect(key1).toBe("boundary_violation::main_thread_direct_execution::agent-orch-01::direct execution at <time> by pid=<pid>");
+      expect(key1).toBe(
+        "boundary_violation::main_thread_direct_execution::agent-orch-01::direct execution at <time> by pid=<pid>",
+      );
       expect(key1).toBe(key2);
     });
 

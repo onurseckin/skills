@@ -57,27 +57,15 @@ describe("isFullSuiteTestCommand", () => {
   });
 
   test("identifies scoped single-file test commands as false (never full suite)", () => {
+    expect(isFullSuiteTestCommand("bun test tests/unit/agents/grants.test.ts")).toBe(false);
     expect(
-      isFullSuiteTestCommand("bun test tests/unit/agents/grants.test.ts"),
+      isFullSuiteTestCommand(["bun", "test", "tests/unit/testing/concurrency-lock.test.ts"]),
     ).toBe(false);
     expect(
-      isFullSuiteTestCommand([
-        "bun",
-        "test",
-        "tests/unit/testing/concurrency-lock.test.ts",
-      ]),
+      isFullSuiteTestCommand("bun test --coverage tests/unit/cli/coverage-check.test.ts"),
     ).toBe(false);
-    expect(
-      isFullSuiteTestCommand(
-        "bun test --coverage tests/unit/cli/coverage-check.test.ts",
-      ),
-    ).toBe(false);
-    expect(isFullSuiteTestCommand("bun test ./tests/unit/foo.spec.ts")).toBe(
-      false,
-    );
-    expect(
-      isFullSuiteTestCommand("bun test --bail tests/unit/bar.test.js"),
-    ).toBe(false);
+    expect(isFullSuiteTestCommand("bun test ./tests/unit/foo.spec.ts")).toBe(false);
+    expect(isFullSuiteTestCommand("bun test --bail tests/unit/bar.test.js")).toBe(false);
   });
 
   test("identifies non-test commands as false", () => {

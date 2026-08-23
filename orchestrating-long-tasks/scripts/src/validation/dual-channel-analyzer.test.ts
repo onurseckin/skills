@@ -632,7 +632,14 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
     ];
 
     const anyPattern = /:\s*any\b|as\s+any\b|<any>/;
-    const suppressionPattern = new RegExp("@ts-" + "ignore|@ts-" + "expect-error|@ts-" + "nocheck|eslint-" + "disable|oxlint-" + "disable");
+    const suppressionPattern = new RegExp(
+      "@ts-" +
+        "ignore|@ts-" +
+        "expect-error|@ts-" +
+        "nocheck|eslint-" +
+        "disable|oxlint-" +
+        "disable",
+    );
 
     for (const filePath of filesToAudit) {
       const content = readFileSync(filePath, "utf-8");
@@ -641,7 +648,12 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]!;
         // Skip comment lines in invariant check itself
-        if (line.includes("anyPattern") || line.includes("suppressionPattern") || line.includes("new RegExp")) continue;
+        if (
+          line.includes("anyPattern") ||
+          line.includes("suppressionPattern") ||
+          line.includes("new RegExp")
+        )
+          continue;
 
         expect(anyPattern.test(line)).toBe(false);
         expect(suppressionPattern.test(line)).toBe(false);
@@ -694,4 +706,3 @@ describe("Ultra-Lean Packet Invariants & Fake Completion Purging Verification", 
     expect("stale_evidence" in nested).toBe(false);
   });
 });
-

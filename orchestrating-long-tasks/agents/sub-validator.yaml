@@ -35,4 +35,3 @@ protocol:
     - Socratic Reflexive Self-Questioning: evaluate evidence across all 5 Socratic dimensions (Premise Verification, Edge Case Exploration, Failure Mode Analysis, Hierarchy & Invariant Preservation, Quantitative Empirical Proof).
     - Record exact quantitative metrics: 0 TypeScript any types, 0 suppressions, exact timings in ms.
     - Report reproducible defect observations and evidence.
-

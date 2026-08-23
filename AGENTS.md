@@ -28,17 +28,18 @@ Every agent executing within this repository must adhere to the following non-ne
    - Implementers own 100% of unit test execution. Cognitive Validators execute ZERO commands (0 `run:exec`, 0 terminal commands). Mechanic Validators execute ONLY typechecks (`tsc --noEmit`), AST static invariant audits (0 any, 0 suppressions), and Adversarial Gate Proofs (AGP counterfactuals). Coordinators/Orchestrators strictly consume structured evidence receipts.
 7. **Per-Task/Subgroup Commit, Push & Global Skill Sync:**
    - Upon task or subgroup verification and completion:
-     * Create a Conventional Commit (`feat(...)`, `fix(...)`).
-     * Push to upstream main (`git push origin main`).
-     * Run global skill sync (`bun scripts/sync-global.ts`) to synchronize `~/.agents/skills/orchestrating-long-tasks/`.
+     - Create a Conventional Commit (`feat(...)`, `fix(...)`).
+     - Push to upstream main (`git push origin main`).
+     - Run global skill sync (`bun scripts/sync-global.ts`) to synchronize `~/.agents/skills/orchestrating-long-tasks/`.
 8. **Hard Agent Reset Discipline:**
    - Upon wave completion or task group finish, coordinators and orchestrators perform a hard reset on completed subagents (`manage_subagents` with `Action: 'kill'`) to prevent stale context accumulation, ghost leases, and memory leaks.
 9. **Direct Argv & Non-Interactive Execution:**
    - All gate and verification commands must execute non-interactively using direct argv arrays (`run:exec … -- <argv>`).
    - Shell string interpolations, subshells, interactive confirmation prompts, and unshielded command chaining (`&&`, `||`, `;`, `|`) are strictly prohibited in automated task execution.
 10. **Zero-JSON CLI Surface:**
-   - Agents interact with the harness exclusively through clean colon commands (e.g. `task:claim`, `task:submit`, `task:validate-start`, `task:review`, `task:brief`, `agent:brief`).
-   - Commands return concise, structured markdown briefs ($\le 30$ lines) designed for token efficiency and high signal.
+
+- Agents interact with the harness exclusively through clean colon commands (e.g. `task:claim`, `task:submit`, `task:validate-start`, `task:review`, `task:brief`, `agent:brief`).
+- Commands return concise, structured markdown briefs ($\le 30$ lines) designed for token efficiency and high signal.
 
 ---
 
@@ -87,20 +88,20 @@ The repository enforces a strict **3-Tier Host-Agnostic Architecture** to isolat
 
 ### Role Contracts & Prohibitions
 
-| Role | Tier | Key Responsibilities | Non-Negotiable Prohibitions (`must_not`) |
-| :--- | :---: | :--- | :--- |
-| **`coordinator`** | 2 | Run lifecycle ownership, agent registration, 1-shot briefings, wave dispatching, hard resets, git commits/pushes/sync. | **Must not** write repository code, claim tasks, self-validate, or execute raw test suites (`bun test`). |
-| **`orchestrator`**| 1/2 | Multi-round orchestration, watchdog cadence, final synthesis, release syncing. | **Must not** implement tasks directly, run raw test suites, or spill work onto the main interactive thread. |
-| **`planner`** | 3 | Prompt decomposition, DAG generation, gate assignment. | **Must not** implement code or execute task write scopes. |
-| **`plan-validator`** | 3 | Adversarial inspection of compiled plan topology. | **Must not** touch task implementation or alter runtime code. |
-| **`implementer`** | 3 | Leased task implementation within assigned write scope; 1-hop micro-cycles; file-scoped testing. | **Must not** edit outside write scope, self-validate work, or run whole-repo test suites (`bun test`). |
-| **`validator`** | 3 | Cognitive verification, adversarial probing, 1-hop micro-cycle critique, Socratic review. | **Must not** execute ANY bash/test commands (`run:exec`, 0 command privileges), pass without probe round, or validate own work. |
-| **`mechanic-validator`** | 3 | Typechecks (`tsc --noEmit`), AST static invariant audits, Adversarial Gate Proofs (AGP). | **Must not** re-run implementer unit tests, write application code, run whole-repo test suites, or validate tasks without direct execution receipts. |
-| **`repairer`** | 3 | Targeted remediation of specific validator findings. | **Must not** expand scope beyond reported finding remediations. |
-| **`completeness-critic`** | 3 | Whole-run verification against original user prompt. | **Must not** approve runs with unmapped requirements or failing gates. |
-| **`sub-implementer`** | 3 | Narrow branch sub-task execution. | **Must not** exceed parent's write scope subset. |
-| **`sub-validator`** | 3 | Command execution and evidence gathering. | **Must not** render verdicts (`pass`/`fail`) or close findings. |
-| **`sub-investigator`** | 3 | Read-only diagnosis and root-cause analysis. | **Must not** modify filesystem state or write code. |
+| Role                      | Tier | Key Responsibilities                                                                                                   | Non-Negotiable Prohibitions (`must_not`)                                                                                                             |
+| :------------------------ | :--: | :--------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`coordinator`**         |  2   | Run lifecycle ownership, agent registration, 1-shot briefings, wave dispatching, hard resets, git commits/pushes/sync. | **Must not** write repository code, claim tasks, self-validate, or execute raw test suites (`bun test`).                                             |
+| **`orchestrator`**        | 1/2  | Multi-round orchestration, watchdog cadence, final synthesis, release syncing.                                         | **Must not** implement tasks directly, run raw test suites, or spill work onto the main interactive thread.                                          |
+| **`planner`**             |  3   | Prompt decomposition, DAG generation, gate assignment.                                                                 | **Must not** implement code or execute task write scopes.                                                                                            |
+| **`plan-validator`**      |  3   | Adversarial inspection of compiled plan topology.                                                                      | **Must not** touch task implementation or alter runtime code.                                                                                        |
+| **`implementer`**         |  3   | Leased task implementation within assigned write scope; 1-hop micro-cycles; file-scoped testing.                       | **Must not** edit outside write scope, self-validate work, or run whole-repo test suites (`bun test`).                                               |
+| **`validator`**           |  3   | Cognitive verification, adversarial probing, 1-hop micro-cycle critique, Socratic review.                              | **Must not** execute ANY bash/test commands (`run:exec`, 0 command privileges), pass without probe round, or validate own work.                      |
+| **`mechanic-validator`**  |  3   | Typechecks (`tsc --noEmit`), AST static invariant audits, Adversarial Gate Proofs (AGP).                               | **Must not** re-run implementer unit tests, write application code, run whole-repo test suites, or validate tasks without direct execution receipts. |
+| **`repairer`**            |  3   | Targeted remediation of specific validator findings.                                                                   | **Must not** expand scope beyond reported finding remediations.                                                                                      |
+| **`completeness-critic`** |  3   | Whole-run verification against original user prompt.                                                                   | **Must not** approve runs with unmapped requirements or failing gates.                                                                               |
+| **`sub-implementer`**     |  3   | Narrow branch sub-task execution.                                                                                      | **Must not** exceed parent's write scope subset.                                                                                                     |
+| **`sub-validator`**       |  3   | Command execution and evidence gathering.                                                                              | **Must not** render verdicts (`pass`/`fail`) or close findings.                                                                                      |
+| **`sub-investigator`**    |  3   | Read-only diagnosis and root-cause analysis.                                                                           | **Must not** modify filesystem state or write code.                                                                                                  |
 
 ---
 
@@ -174,8 +175,8 @@ To eliminate sycophantic bias and accelerate execution convergence, validation e
 2. **Mandatory Adversarial Probe Round (`min_adversarial_probes >= 1`):**
    - A task pass (`task:review --status pass`) is refused until at least one adversarial probe demand (`task:probe`) is formally recorded.
    - **Probe vs. Defect Distinction:**
-     * `task:probe`: Demands rigorous proof (e.g. "Prove logic handles empty sets"). Does not increment repair round or push task to `changes_requested`.
-     * `task:reject`: Documents genuine defects where the mechanical gate is green but requirements are unfulfilled. Moves task to `changes_requested`.
+     - `task:probe`: Demands rigorous proof (e.g. "Prove logic handles empty sets"). Does not increment repair round or push task to `changes_requested`.
+     - `task:reject`: Documents genuine defects where the mechanical gate is green but requirements are unfulfilled. Moves task to `changes_requested`.
 3. **Multi-Domain Standing Checklist Verification:**
    - Tasks undergo independent validation across applicable checklist domains (`code-quality`, `ui-design`, `system-design`, `product`, `security`).
    - **All applicable domains must record an independent pass** before the task transitions to `validated`.
@@ -212,8 +213,9 @@ To protect repository state and prevent common LLM blunder modes:
    - Implementers holding active leases must periodically issue `task:heartbeat` before lease expiry.
    - Expired leases are automatically reclaimed by `recover` / `orchestrator:supervise` to prevent orphaned dead-agent blocking.
 10. **Git Hygiene & Ephemeral State:**
-   - Dynamic plan state belongs strictly in `.capsules/<run-id>/`, never committed to `docs/planning/` or root git history.
-   - Temporary testing artifacts must be directed to designated `.tmp/` or scratch directories.
+
+- Dynamic plan state belongs strictly in `.capsules/<run-id>/`, never committed to `docs/planning/` or root git history.
+- Temporary testing artifacts must be directed to designated `.tmp/` or scratch directories.
 
 ---
 
@@ -288,4 +290,3 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
-

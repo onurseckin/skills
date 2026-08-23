@@ -81,9 +81,9 @@ describe("Innovative Mind Cognition & Self-Questioning Flavor", () => {
     });
 
     it("throws HarnessError on unknown dimension", () => {
-      expect(() => getCognitiveDimensionSpec("unknown_dim" as unknown as CognitiveDimension)).toThrow(
-        HarnessError,
-      );
+      expect(() =>
+        getCognitiveDimensionSpec("unknown_dim" as unknown as CognitiveDimension),
+      ).toThrow(HarnessError);
     });
 
     it("looks up flavor profiles correctly", () => {
@@ -93,9 +93,9 @@ describe("Innovative Mind Cognition & Self-Questioning Flavor", () => {
     });
 
     it("throws HarnessError on unknown flavor ID", () => {
-      expect(() => getCognitiveFlavorProfile("UNKNOWN_FLAVOR" as unknown as CognitiveFlavorId)).toThrow(
-        HarnessError,
-      );
+      expect(() =>
+        getCognitiveFlavorProfile("UNKNOWN_FLAVOR" as unknown as CognitiveFlavorId),
+      ).toThrow(HarnessError);
     });
   });
 

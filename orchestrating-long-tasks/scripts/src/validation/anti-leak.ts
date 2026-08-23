@@ -63,7 +63,12 @@ export interface DelegateRepairTaskParams {
   readonly findingIds?: readonly string[] | undefined;
   readonly writeScope: readonly string[];
   readonly repairRound?: number | undefined;
-  readonly reason?: "repeated_failure" | "stale" | "unavailable" | "finding_remediation" | undefined;
+  readonly reason?:
+    | "repeated_failure"
+    | "stale"
+    | "unavailable"
+    | "finding_remediation"
+    | undefined;
   readonly runRoot?: string | undefined;
 }
 
@@ -144,10 +149,14 @@ export function isBoundaryLeakViolation(check: BoundaryLeakCheck): boolean {
   const isCriticOrVal = isCriticOrValidatorRole(role) || isCriticOrValidatorAgent(check.agent_id);
   const isSup = isSupervisorRole(role);
   const action = check.action.trim().toLowerCase();
-  const hasWriteScope = (check.write_scope && check.write_scope.length > 0) || Boolean(check.target_file);
+  const hasWriteScope =
+    (check.write_scope && check.write_scope.length > 0) || Boolean(check.target_file);
 
   // 1. Critic or Validator attempting code write lease / task:claim
-  if (isCriticOrVal && (action === "task:claim" || action === "task:submit" || action === "claim")) {
+  if (
+    isCriticOrVal &&
+    (action === "task:claim" || action === "task:submit" || action === "claim")
+  ) {
     return true;
   }
 
@@ -324,22 +333,33 @@ export function validateBoundaryIntegrity(
   };
 }
 
-export function assertNoBoundaryLeak(checks: readonly BoundaryLeakCheck[] | BoundaryLeakCheck): void {
+export function assertNoBoundaryLeak(
+  checks: readonly BoundaryLeakCheck[] | BoundaryLeakCheck,
+): void {
   const result = validateBoundaryIntegrity(checks);
   if (!result.valid) {
     const firstViolation = result.violations.length > 0 ? result.violations[0] : undefined;
     let observationMessage: string;
-    if (firstViolation && typeof firstViolation.observation === "string" && firstViolation.observation.length > 0) {
+    if (
+      firstViolation &&
+      typeof firstViolation.observation === "string" &&
+      firstViolation.observation.length > 0
+    ) {
       observationMessage = firstViolation.observation;
     } else {
       observationMessage = "Role confinement boundary breached";
     }
 
     let remediationMessage: string;
-    if (firstViolation && typeof firstViolation.remediation === "string" && firstViolation.remediation.length > 0) {
+    if (
+      firstViolation &&
+      typeof firstViolation.remediation === "string" &&
+      firstViolation.remediation.length > 0
+    ) {
       remediationMessage = firstViolation.remediation;
     } else {
-      remediationMessage = "Delegate repair to an assigned implementer/repairer via task:assign-repairer.";
+      remediationMessage =
+        "Delegate repair to an assigned implementer/repairer via task:assign-repairer.";
     }
 
     const details = result.violations.map((v) => ({
@@ -461,9 +481,10 @@ export interface AcyclicPushbackValidationResult {
   readonly remediation_guidance?: string | undefined;
 }
 
-export function detectGraphCycles(
-  graph: Readonly<Record<string, readonly string[]>>,
-): { hasCycle: boolean; cyclePath?: string[] } {
+export function detectGraphCycles(graph: Readonly<Record<string, readonly string[]>>): {
+  hasCycle: boolean;
+  cyclePath?: string[];
+} {
   const visited = new Set<string>();
   const recStack = new Set<string>();
   const path: string[] = [];
@@ -551,9 +572,7 @@ export function validateAcyclicPushbackDelegation(
         typeof rec["remediation"] !== "string" ||
         rec["remediation"].trim().length === 0
       ) {
-        violations.push(
-          `Finding '${findingLabel}' missing non-empty 'remediation' instructions`,
-        );
+        violations.push(`Finding '${findingLabel}' missing non-empty 'remediation' instructions`);
         structured = false;
       }
       if (
@@ -587,9 +606,7 @@ export function validateAcyclicPushbackDelegation(
     const cycleCheck = detectGraphCycles(params.dependencyGraph);
     if (cycleCheck.hasCycle) {
       const cycleStr = cycleCheck.cyclePath !== undefined ? cycleCheck.cyclePath.join(" -> ") : "";
-      violations.push(
-        `Circular DAG dependency detected: cycle along path [${cycleStr}]`,
-      );
+      violations.push(`Circular DAG dependency detected: cycle along path [${cycleStr}]`);
       acyclic = false;
     }
   }
@@ -620,4 +637,3 @@ export function assertAcyclicPushbackDelegation(params: AcyclicPushbackValidatio
     );
   }
 }
-

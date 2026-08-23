@@ -281,7 +281,9 @@ describe("Sugiyama DAG Renderer & Diagnostics (p24, p25, p26)", () => {
       expect(diag.bypasses[0]!.from).toBe("A");
       expect(diag.bypasses[0]!.to).toBe("D");
       expect(diag.bypasses[0]!.intermediatePath).toEqual(["B", "C"]);
-      expect(diag.warnings[0]).toContain("Direct edge [A ➔ D] bypasses required intermediate stage (B ➔ C)");
+      expect(diag.warnings[0]).toContain(
+        "Direct edge [A ➔ D] bypasses required intermediate stage (B ➔ C)",
+      );
     });
 
     it("returns hasBypass: false when no transitive bypasses exist", () => {
@@ -379,7 +381,9 @@ describe("Sugiyama DAG Renderer & Diagnostics (p24, p25, p26)", () => {
 
       // Check bypass alert in rendered DAG
       expect(report.renderedDag).toContain("❌ [ILLEGAL BYPASS]");
-      expect(report.renderedDag).toContain("Direct edge [B ➔ D] bypasses required intermediate stage (C)");
+      expect(report.renderedDag).toContain(
+        "Direct edge [B ➔ D] bypasses required intermediate stage (C)",
+      );
 
       // Check cycle and bypass badges in node boxes
       expect(report.renderedDag).toContain("⚡[CYCLE]");
@@ -479,4 +483,3 @@ describe("Sugiyama DAG Renderer & Diagnostics (p24, p25, p26)", () => {
     });
   });
 });
-

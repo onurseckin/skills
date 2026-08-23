@@ -17,14 +17,7 @@ export interface ExitCodeSpec {
   readonly meaning: string;
 }
 
-export const PRIMARY_VERBS = [
-  "plan",
-  "queue",
-  "task",
-  "run",
-  "doctor",
-  "mind",
-] as const;
+export const PRIMARY_VERBS = ["plan", "queue", "task", "run", "doctor", "mind"] as const;
 
 export type PrimaryVerb = (typeof PRIMARY_VERBS)[number];
 

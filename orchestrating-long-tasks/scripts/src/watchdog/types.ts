@@ -192,7 +192,9 @@ export interface AutonomicWatchdogConfig {
   readonly onHeartbeat?: ((tick: WatchdogTickReport) => void | Promise<void>) | undefined;
   readonly onHealthAudit?: ((audit: WatchdogHealthAuditReport) => void | Promise<void>) | undefined;
   readonly onViolation?: ((finding: WatchdogFinding) => void | Promise<void>) | undefined;
-  readonly onReactiveWakeup?: ((trigger: ReactiveEvent, tick: WatchdogTickReport) => void | Promise<void>) | undefined;
+  readonly onReactiveWakeup?:
+    | ((trigger: ReactiveEvent, tick: WatchdogTickReport) => void | Promise<void>)
+    | undefined;
   readonly onIntervalAdjusted?: ((state: AdaptiveTimerState) => void | Promise<void>) | undefined;
   readonly adaptive?: boolean | AdaptiveTimerConfig | undefined;
   readonly minIntervalMs?: number | undefined;

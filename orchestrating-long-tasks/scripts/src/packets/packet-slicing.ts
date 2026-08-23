@@ -275,13 +275,14 @@ export function enforcePacketBudget(
   };
 }
 
-export function sliceMarkdownSections(
-  markdown: string,
-  config: MarkdownSliceConfig = {},
-): string {
+export function sliceMarkdownSections(markdown: string, config: MarkdownSliceConfig = {}): string {
   const sections = parseMarkdownSections(markdown);
-  const include = config.includeSections ? new Set(config.includeSections.map((s) => s.toLowerCase())) : null;
-  const exclude = config.excludeSections ? new Set(config.excludeSections.map((s) => s.toLowerCase())) : null;
+  const include = config.includeSections
+    ? new Set(config.includeSections.map((s) => s.toLowerCase()))
+    : null;
+  const exclude = config.excludeSections
+    ? new Set(config.excludeSections.map((s) => s.toLowerCase()))
+    : null;
   const maxSecBytes = config.maxSectionBytes ?? 4096;
 
   const resultSections: string[] = [];
@@ -327,7 +328,10 @@ export function sliceMarkdownSections(
 
   let finalMarkdown = resultSections.join("\n\n").trim();
 
-  if (config.maxTotalBytes && Buffer.from(finalMarkdown, "utf-8").byteLength > config.maxTotalBytes) {
+  if (
+    config.maxTotalBytes &&
+    Buffer.from(finalMarkdown, "utf-8").byteLength > config.maxTotalBytes
+  ) {
     const notice = "\n\n[... Packet truncated to maximum total budget ...]";
     const noticeBytes = Buffer.from(notice, "utf-8").byteLength;
     if (config.maxTotalBytes <= noticeBytes) {
@@ -337,7 +341,10 @@ export function sliceMarkdownSections(
       const maxTextBytes = config.maxTotalBytes - noticeBytes;
       let textBuf = Buffer.from(finalMarkdown, "utf-8").subarray(0, maxTextBytes);
       let candidate = `${textBuf.toString("utf-8")}${notice}`;
-      while (Buffer.from(candidate, "utf-8").byteLength > config.maxTotalBytes && textBuf.byteLength > 0) {
+      while (
+        Buffer.from(candidate, "utf-8").byteLength > config.maxTotalBytes &&
+        textBuf.byteLength > 0
+      ) {
         textBuf = textBuf.subarray(0, textBuf.byteLength - 1);
         candidate = `${textBuf.toString("utf-8")}${notice}`;
       }
@@ -407,19 +414,27 @@ export function sliceTaskContract(
   const label = typeof task.label === "string" ? task.label : undefined;
 
   const writeScope = Array.isArray(task.write_scope)
-    ? (task.write_scope.filter((item): item is string => typeof item === "string") as readonly string[])
+    ? (task.write_scope.filter(
+        (item): item is string => typeof item === "string",
+      ) as readonly string[])
     : [];
 
   const resourceScope = Array.isArray(task.resource_scope)
-    ? (task.resource_scope.filter((item): item is string => typeof item === "string") as readonly string[])
+    ? (task.resource_scope.filter(
+        (item): item is string => typeof item === "string",
+      ) as readonly string[])
     : undefined;
 
   const requirementIds = Array.isArray(task.requirement_ids)
-    ? (task.requirement_ids.filter((item): item is string => typeof item === "string") as readonly string[])
+    ? (task.requirement_ids.filter(
+        (item): item is string => typeof item === "string",
+      ) as readonly string[])
     : [];
 
   const dependencies = Array.isArray(task.dependencies)
-    ? (task.dependencies.filter((item): item is string => typeof item === "string") as readonly string[])
+    ? (task.dependencies.filter(
+        (item): item is string => typeof item === "string",
+      ) as readonly string[])
     : [];
 
   const gate = typeof task.gate === "string" ? task.gate : undefined;
@@ -457,7 +472,11 @@ export function sliceTaskContract(
 
 export function sliceGraphNeighborhood(
   graph: {
-    readonly nodes?: readonly { readonly id: string; readonly label?: string; readonly status?: string }[];
+    readonly nodes?: readonly {
+      readonly id: string;
+      readonly label?: string;
+      readonly status?: string;
+    }[];
     readonly edges?: readonly { readonly from: string; readonly to: string }[];
   },
   focalTaskId: string,
@@ -545,10 +564,7 @@ export function sliceGraphNeighborhood(
   };
 }
 
-export function sliceEvidenceLog(
-  logText: string,
-  options: LogSliceOptions = {},
-): EvidenceExcerpt {
+export function sliceEvidenceLog(logText: string, options: LogSliceOptions = {}): EvidenceExcerpt {
   const maxLines = options.maxLines ?? DEFAULT_LOG_MAX_LINES;
   const maxBytes = options.maxBytes ?? DEFAULT_LOG_MAX_BYTES;
 
@@ -578,9 +594,7 @@ export function sliceEvidenceLog(
   const tailLines = lines.slice(-half);
   const truncatedLinesCount = Math.max(0, originalLineCount - maxLines);
 
-  const pointerInfo = options.logPath
-    ? ` (full log on disk at: ${options.logPath})`
-    : "";
+  const pointerInfo = options.logPath ? ` (full log on disk at: ${options.logPath})` : "";
   const marker = `\n[... Log truncated: omitted ${truncatedLinesCount} lines / ${originalByteSize} total bytes${pointerInfo} ...]\n`;
   const formattedExcerpt = `${headLines.join("\n")}${marker}${tailLines.join("\n")}`;
 
@@ -618,7 +632,9 @@ export function sliceEventStream(
   }
 
   if (options.actor) {
-    filtered = filtered.filter((evt) => evt.actor === options.actor || evt.agent_id === options.actor);
+    filtered = filtered.filter(
+      (evt) => evt.actor === options.actor || evt.agent_id === options.actor,
+    );
   }
 
   if (options.since) {
@@ -728,7 +744,9 @@ export function createMetadataSlice(
       break;
     }
     case "graph": {
-      const graph = isJsonObject(state.graph) ? (state.graph as unknown as { nodes: GraphNodeSummary[]; edges: GraphEdgeSummary[] }) : { nodes: [], edges: [] };
+      const graph = isJsonObject(state.graph)
+        ? (state.graph as unknown as { nodes: GraphNodeSummary[]; edges: GraphEdgeSummary[] })
+        : { nodes: [], edges: [] };
       if (request.taskId) {
         const neighborhood = sliceGraphNeighborhood(graph, request.taskId, request.depth ?? 1);
         rawData = neighborhood as unknown as JsonObject;
@@ -761,7 +779,9 @@ export function createMetadataSlice(
       const reqs = Array.isArray(state.requirements) ? (state.requirements as JsonObject[]) : [];
       totalCount = reqs.length;
       if (request.taskId && isJsonObject(state.tasks)) {
-        const task = isJsonObject(state.tasks[request.taskId]) ? (state.tasks[request.taskId] as TaskRecord) : null;
+        const task = isJsonObject(state.tasks[request.taskId])
+          ? (state.tasks[request.taskId] as TaskRecord)
+          : null;
         const mappedIds = new Set(task?.requirement_ids ?? []);
         const filtered = reqs.filter((r) => typeof r.id === "string" && mappedIds.has(r.id));
         rawData = filtered as unknown as JsonValue[];
@@ -832,9 +852,7 @@ export function createMetadataSlice(
   };
 }
 
-export function formatLeanMarkdownBrief(
-  options: LeanBriefOptions,
-): string {
+export function formatLeanMarkdownBrief(options: LeanBriefOptions): string {
   const task = options.task ? sliceTaskContract(options.task as TaskRecord) : null;
   const taskId = task ? task.id : "run-level";
   const duration = options.leaseDurationMinutes ?? 20;
@@ -851,7 +869,8 @@ export function formatLeanMarkdownBrief(
   }
 
   if (task) {
-    const scopeStr = task.write_scope.length > 0 ? task.write_scope.map((s) => `\`${s}\``).join(", ") : "`none`";
+    const scopeStr =
+      task.write_scope.length > 0 ? task.write_scope.map((s) => `\`${s}\``).join(", ") : "`none`";
     lines.push(`- **Assigned Write Scope**: ${scopeStr}`);
     if (task.gate) {
       lines.push(`- **Gate**: \`${task.gate}\``);
@@ -869,10 +888,14 @@ export function formatLeanMarkdownBrief(
   lines.push("⚡ On-Demand Capsule Memory Queries:");
   const runId = options.runId ?? "<run-id>";
   const taskFlag = task ? ` --task ${taskId}` : "";
-  lines.push(`1. \`bun harness.ts report:task --run .capsules/${runId}${taskFlag}\` — Detailed task & review state`);
+  lines.push(
+    `1. \`bun harness.ts report:task --run .capsules/${runId}${taskFlag}\` — Detailed task & review state`,
+  );
   lines.push(`2. \`bun harness.ts stream:events --run .capsules/${runId}\` — Event timeline slice`);
   lines.push(`3. \`bun harness.ts dag:view --run .capsules/${runId}\` — Neighborhood DAG trace`);
-  lines.push(`4. \`bun harness.ts doctor --run .capsules/${runId}\` — Harness health & diagnostics`);
+  lines.push(
+    `4. \`bun harness.ts doctor --run .capsules/${runId}\` — Harness health & diagnostics`,
+  );
 
   if (options.customGuidance && options.customGuidance.length > 0) {
     lines.push("");

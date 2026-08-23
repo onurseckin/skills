@@ -142,8 +142,12 @@ describe("Phase Commits & Conventional Commit Validation (p09)", () => {
       expect(result.parsed?.scope).toBe("store");
       expect(result.parsed?.isBreaking).toBeTrue();
       expect(result.parsed?.description).toBe("migrate to atomic json commits");
-      expect(result.parsed?.body).toBe("This replaces individual write calls with transaction batches.");
-      expect(result.parsed?.breakingChangeDescription).toBe("Store format v1 is no longer supported.");
+      expect(result.parsed?.body).toBe(
+        "This replaces individual write calls with transaction batches.",
+      );
+      expect(result.parsed?.breakingChangeDescription).toBe(
+        "Store format v1 is no longer supported.",
+      );
       expect(result.parsed?.issuesClosed).toEqual(["#42", "#43"]);
     });
 
@@ -213,7 +217,10 @@ describe("Phase Commits & Conventional Commit Validation (p09)", () => {
 
     test("returns verified = true when all preconditions are satisfied", () => {
       const result = verifyPhasePreconditions(validConfig, {
-        modifiedPaths: ["src/worktree/phase-commits.ts", "tests/unit/worktree/phase-commits.test.ts"],
+        modifiedPaths: [
+          "src/worktree/phase-commits.ts",
+          "tests/unit/worktree/phase-commits.test.ts",
+        ],
         now: new Date("2026-08-22T17:00:00.000Z"),
       });
 
@@ -227,10 +234,7 @@ describe("Phase Commits & Conventional Commit Validation (p09)", () => {
 
     test("fails verification when modified paths are out of assigned write scope", () => {
       const result = verifyPhasePreconditions(validConfig, {
-        modifiedPaths: [
-          "src/worktree/phase-commits.ts",
-          "unrelated/outside/file.ts",
-        ],
+        modifiedPaths: ["src/worktree/phase-commits.ts", "unrelated/outside/file.ts"],
       });
 
       expect(result.verified).toBeFalse();
@@ -370,36 +374,54 @@ describe("Phase Commits & Conventional Commit Validation (p09)", () => {
     };
 
     test("mode 'never' always prevents push", () => {
-      const outcome = evaluateUpstreamPushPolicy({ mode: "never", remote: "origin" }, verifiedResult);
+      const outcome = evaluateUpstreamPushPolicy(
+        { mode: "never", remote: "origin" },
+        verifiedResult,
+      );
       expect(outcome.shouldPush).toBeFalse();
       expect(outcome.reason).toContain("'never'");
     });
 
     test("mode 'always' allows push regardless of verification", () => {
-      const outcome = evaluateUpstreamPushPolicy({ mode: "always", remote: "origin" }, unverifiedResult);
+      const outcome = evaluateUpstreamPushPolicy(
+        { mode: "always", remote: "origin" },
+        unverifiedResult,
+      );
       expect(outcome.shouldPush).toBeTrue();
       expect(outcome.reason).toContain("'always'");
     });
 
     test("mode 'on-verified' pushes when verified and skips when unverified", () => {
-      const passing = evaluateUpstreamPushPolicy({ mode: "on-verified", remote: "origin" }, verifiedResult);
+      const passing = evaluateUpstreamPushPolicy(
+        { mode: "on-verified", remote: "origin" },
+        verifiedResult,
+      );
       expect(passing.shouldPush).toBeTrue();
       expect(passing.reason).toContain("passed");
 
-      const failing = evaluateUpstreamPushPolicy({ mode: "on-verified", remote: "origin" }, unverifiedResult);
+      const failing = evaluateUpstreamPushPolicy(
+        { mode: "on-verified", remote: "origin" },
+        unverifiedResult,
+      );
       expect(failing.shouldPush).toBeFalse();
       expect(failing.reason).toContain("failed");
     });
 
     test("mode 'atomic-phase' verifies scope cleanliness before pushing", () => {
-      const passing = evaluateUpstreamPushPolicy({ mode: "atomic-phase", remote: "origin" }, verifiedResult);
+      const passing = evaluateUpstreamPushPolicy(
+        { mode: "atomic-phase", remote: "origin" },
+        verifiedResult,
+      );
       expect(passing.shouldPush).toBeTrue();
 
       const scopeViolation = {
         ...verifiedResult,
         writeScopeClean: false,
       };
-      const failing = evaluateUpstreamPushPolicy({ mode: "atomic-phase", remote: "origin" }, scopeViolation);
+      const failing = evaluateUpstreamPushPolicy(
+        { mode: "atomic-phase", remote: "origin" },
+        scopeViolation,
+      );
       expect(failing.shouldPush).toBeFalse();
     });
   });
@@ -414,7 +436,13 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
 
     const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
     const suppressionPattern = new RegExp(
-      ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck", "eslint" + "-disable", "oxlint" + "-disable"].join("|"),
+      [
+        "@ts" + "-ignore",
+        "@ts" + "-expect-error",
+        "@ts" + "-nocheck",
+        "eslint" + "-disable",
+        "oxlint" + "-disable",
+      ].join("|"),
     );
 
     for (const filePath of filesToAudit) {

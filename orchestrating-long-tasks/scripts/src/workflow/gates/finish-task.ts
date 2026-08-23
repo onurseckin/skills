@@ -48,7 +48,11 @@ export function finishTask(
       if (
         covering.length > 0 &&
         covering.every((candidate) => candidate.status === "done") &&
-        covering.every((candidate) => candidate.report && everyApplicableDomainPassed(candidate, taskClassificationTexts(draft, candidate))) &&
+        covering.every(
+          (candidate) =>
+            candidate.report &&
+            everyApplicableDomainPassed(candidate, taskClassificationTexts(draft, candidate)),
+        ) &&
         workflowGates(draft)
           .filter(
             (gate) =>

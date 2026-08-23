@@ -87,7 +87,9 @@ describe("Hyper-Conscious Mind Dynamic Role Synthesis Engine", () => {
 
       const result = validateDynamicRoleSpec(spec);
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes("Tier must be an integer between 0 and 3"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("Tier must be an integer between 0 and 3"))).toBe(
+        true,
+      );
     });
 
     it("detects archetype-tier mismatch", () => {
@@ -148,7 +150,9 @@ describe("Hyper-Conscious Mind Dynamic Role Synthesis Engine", () => {
 
       const result2 = validateDynamicRoleSpec(specWithWriteMay);
       expect(result2.valid).toBe(false);
-      expect(result2.errors.some((e) => e.includes("permitted activities contain write actions"))).toBe(true);
+      expect(
+        result2.errors.some((e) => e.includes("permitted activities contain write actions")),
+      ).toBe(true);
     });
 
     it("rejects forbidden commands such as orchestrator:run", () => {
@@ -211,7 +215,9 @@ describe("Hyper-Conscious Mind Dynamic Role Synthesis Engine", () => {
 
       const result2 = validateDynamicRoleSpec(tier1Bypasser);
       expect(result2.valid).toBe(false);
-      expect(result2.errors.some((e) => e.includes("may only spawn Tier 2 'coordinator'"))).toBe(true);
+      expect(result2.errors.some((e) => e.includes("may only spawn Tier 2 'coordinator'"))).toBe(
+        true,
+      );
     });
   });
 
@@ -361,9 +367,7 @@ Prose summary
     });
 
     it("throws HarnessError on malformed documents", () => {
-      expect(() => parseDynamicRoleContract("not markdown without fence")).toThrow(
-        HarnessError,
-      );
+      expect(() => parseDynamicRoleContract("not markdown without fence")).toThrow(HarnessError);
 
       const unterminated = "---\nrole: incomplete\ntier: 1\n";
       expect(() => parseDynamicRoleContract(unterminated)).toThrow(HarnessError);
@@ -404,7 +408,9 @@ Prose summary
       expect(plan.validatorRole.writeScopePolicy).toBe("forbidden");
       expect(plan.validatorRole.commands).toContain("gate:check");
       expect(plan.validatorRole.must_not.some((m) => m.includes("Anti-Boundary-Leak"))).toBe(true);
-      expect(plan.validatorRole.spec.metadata?.validatedImplementer).toBe(plan.implementerRole.role);
+      expect(plan.validatorRole.spec.metadata?.validatedImplementer).toBe(
+        plan.implementerRole.role,
+      );
     });
 
     it("synthesizes specialized repairer role when requiresRepair is true", () => {
@@ -438,7 +444,9 @@ Prose summary
       expect(role.domain).toBe("blunder-investigation");
       expect(role.cognitivePillars.some((p) => p.includes("WRITE_SCOPE_LEAK"))).toBe(true);
       expect(role.cognitivePillars.some((p) => p.includes("Unchecked file write"))).toBe(true);
-      expect(role.must_not.some((m) => m.includes("Re-introduce identical blunder signature"))).toBe(true);
+      expect(
+        role.must_not.some((m) => m.includes("Re-introduce identical blunder signature")),
+      ).toBe(true);
     });
   });
 
@@ -466,12 +474,16 @@ Prose summary
       expect(evolvedRole.spec.version).toBe(2);
       expect(evolvedRole.spec.parentRole).toBe("adaptive-worker");
       expect(evolvedRole.spec.invariants).toContain("Invariant 2 - Strict Null Checking");
-      expect(evolvedRole.spec.cognitivePillars).toContain("Pillar 2 - Zero Tolerance for Implicit Any");
+      expect(evolvedRole.spec.cognitivePillars).toContain(
+        "Pillar 2 - Zero Tolerance for Implicit Any",
+      );
       expect(evolvedRole.spec.grantedCommands).toContain("doctor");
       expect(evolvedRole.spec.prohibitedActions).toContain("Use non-null assertion operator !");
 
       expect(evolvedRole.spec.lineage).toHaveLength(1);
-      expect(evolvedRole.spec.lineage?.[0]?.mutationReason).toBe("Tighten verification after edge-case failure");
+      expect(evolvedRole.spec.lineage?.[0]?.mutationReason).toBe(
+        "Tighten verification after edge-case failure",
+      );
       expect(evolvedRole.spec.lineage?.[0]?.previousSha256).toBe(initialRole.sha256);
       expect(evolvedRole.sha256).not.toBe(initialRole.sha256);
     });

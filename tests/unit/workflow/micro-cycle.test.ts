@@ -260,10 +260,42 @@ describe("isMicroCycleRecord type guard", () => {
     expect(isMicroCycleRecord(undefined)).toBe(false);
     expect(isMicroCycleRecord("string")).toBe(false);
     expect(isMicroCycleRecord({})).toBe(false);
-    expect(isMicroCycleRecord({ round: 0, validator_id: "v", critique: "c", status: "open", created_at: "t" })).toBe(false);
-    expect(isMicroCycleRecord({ round: 1, validator_id: "", critique: "c", status: "open", created_at: "t" })).toBe(false);
-    expect(isMicroCycleRecord({ round: 1, validator_id: "v", critique: "", status: "open", created_at: "t" })).toBe(false);
-    expect(isMicroCycleRecord({ round: 1, validator_id: "v", critique: "c", status: "closed", created_at: "t" })).toBe(false);
+    expect(
+      isMicroCycleRecord({
+        round: 0,
+        validator_id: "v",
+        critique: "c",
+        status: "open",
+        created_at: "t",
+      }),
+    ).toBe(false);
+    expect(
+      isMicroCycleRecord({
+        round: 1,
+        validator_id: "",
+        critique: "c",
+        status: "open",
+        created_at: "t",
+      }),
+    ).toBe(false);
+    expect(
+      isMicroCycleRecord({
+        round: 1,
+        validator_id: "v",
+        critique: "",
+        status: "open",
+        created_at: "t",
+      }),
+    ).toBe(false);
+    expect(
+      isMicroCycleRecord({
+        round: 1,
+        validator_id: "v",
+        critique: "c",
+        status: "closed",
+        created_at: "t",
+      }),
+    ).toBe(false);
   });
 });
 
@@ -299,7 +331,11 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
     expect(rejectResult.markdown).toContain("### 🔄 Micro-Cycle Feedback (Round 1/3)");
     expect(rejectResult.markdown).toContain("Missing edge-case check for empty input array");
 
-    const task = rejectResult.task as { status: string; lease?: { agent_id: string; token_digest: string }; micro_cycles?: MicroCycleRecord[] };
+    const task = rejectResult.task as {
+      status: string;
+      lease?: { agent_id: string; token_digest: string };
+      micro_cycles?: MicroCycleRecord[];
+    };
     expect(task.status).toBe("leased");
     expect(task.lease?.agent_id).toBe("worker-1");
     expect(task.micro_cycles).toHaveLength(1);
@@ -316,7 +352,11 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
 
     expect(secondResult.micro_cycle).toBe(true);
     expect(secondResult.round).toBe(2);
-    const task2 = secondResult.task as { micro_cycles?: MicroCycleRecord[]; status: string; lease?: { agent_id: string } };
+    const task2 = secondResult.task as {
+      micro_cycles?: MicroCycleRecord[];
+      status: string;
+      lease?: { agent_id: string };
+    };
     expect(task2.status).toBe("leased");
     expect(task2.lease?.agent_id).toBe("worker-1");
     expect(task2.micro_cycles).toHaveLength(2);

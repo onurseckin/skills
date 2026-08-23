@@ -447,7 +447,10 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
   });
 
   describe("9. File and Directory Operations", () => {
-    const testDir = join(tmpdir(), `ast-linter-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    const testDir = join(
+      tmpdir(),
+      `ast-linter-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    );
 
     it("lints a single file on disk", () => {
       mkdirSync(testDir, { recursive: true });

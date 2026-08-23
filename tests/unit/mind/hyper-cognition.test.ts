@@ -423,7 +423,7 @@ describe("Hyper-Active Mind Cognition Engine", () => {
         performanceScore: 60,
         observabilityScore: 90,
         typeSafetyScore: 70, // low
-        astPurityScore: 65,   // low
+        astPurityScore: 65, // low
         dagConcurrencyScore: 55, // low
         compositeScore: 71,
         evaluatedAt: new Date().toISOString(),

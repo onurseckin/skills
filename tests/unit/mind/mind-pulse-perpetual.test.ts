@@ -249,9 +249,18 @@ describe("P43 Unified Perpetual mind:pulse Command", () => {
     test("refuses pulse when mind is halted", async () => {
       const fixture = setupMindFixture("halted-guard");
 
-      transact(fixture.run, "safety", "mind-halted", { reason: "owner intervention" }, (working) => {
-        working.mind = { halted: true, halt_reason: "owner intervention" } as unknown as JsonObject;
-      });
+      transact(
+        fixture.run,
+        "safety",
+        "mind-halted",
+        { reason: "owner intervention" },
+        (working) => {
+          working.mind = {
+            halted: true,
+            halt_reason: "owner intervention",
+          } as unknown as JsonObject;
+        },
+      );
 
       await expect(
         mindPulseCommand({
@@ -312,7 +321,17 @@ describe("P43 Unified Perpetual mind:pulse Command", () => {
       const fixture = setupMindFixture("cli-rejection");
 
       await expect(
-        execute(["mind:pulse-close", "--run", fixture.run, "--actor", "mind-1", "--pulse", "pulse-1", "--outcome", "quiescent"]),
+        execute([
+          "mind:pulse-close",
+          "--run",
+          fixture.run,
+          "--actor",
+          "mind-1",
+          "--pulse",
+          "pulse-1",
+          "--outcome",
+          "quiescent",
+        ]),
       ).rejects.toThrow(/unknown command: mind:pulse-close/);
     });
 

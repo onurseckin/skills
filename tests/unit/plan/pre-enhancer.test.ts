@@ -57,7 +57,8 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
     effort: 3,
     priority: 50,
     requirementIds: ["req-track2"],
-    description: "Pre-compile discriminating unit test assertions and clean AST boundaries before task claim",
+    description:
+      "Pre-compile discriminating unit test assertions and clean AST boundaries before task claim",
   };
 
   describe("Constants & Basic Predicates", () => {
@@ -135,8 +136,14 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
 
   describe("Scope Disjointness Verification", () => {
     test("detects mutually disjoint write scopes", () => {
-      const scopeA = ["orchestrating-long-tasks/scripts/src/plan/pre-enhancer.ts", "tests/unit/plan/pre-enhancer.test.ts"];
-      const scopeB = ["orchestrating-long-tasks/scripts/src/mind/hyper-cognition.ts", "tests/unit/mind/hyper-cognition.test.ts"];
+      const scopeA = [
+        "orchestrating-long-tasks/scripts/src/plan/pre-enhancer.ts",
+        "tests/unit/plan/pre-enhancer.test.ts",
+      ];
+      const scopeB = [
+        "orchestrating-long-tasks/scripts/src/mind/hyper-cognition.ts",
+        "tests/unit/mind/hyper-cognition.test.ts",
+      ];
 
       const result = verifyScopeDisjointness(scopeA, scopeB);
       expect(result.isDisjoint).toBe(true);
@@ -188,7 +195,9 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
     });
 
     test("respects maxAssertionsPerTask limit option", () => {
-      const assertions = compileDiscriminatingAssertions(sampleTaskInput, { maxAssertionsPerTask: 3 });
+      const assertions = compileDiscriminatingAssertions(sampleTaskInput, {
+        maxAssertionsPerTask: 3,
+      });
       expect(assertions.length).toBe(3);
     });
 
@@ -256,7 +265,9 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       expect(checklist.writeScopeBoundary.sourceFiles).toContain(
         "orchestrating-long-tasks/scripts/src/plan/pre-enhancer.ts",
       );
-      expect(checklist.writeScopeBoundary.testFiles).toContain("tests/unit/plan/pre-enhancer.test.ts");
+      expect(checklist.writeScopeBoundary.testFiles).toContain(
+        "tests/unit/plan/pre-enhancer.test.ts",
+      );
     });
 
     test("detects concurrent lane scope conflict in checklist", () => {
@@ -377,7 +388,12 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       const emptyAssertions: DiscriminatingAssertion[] = [];
       const probes: AgpCounterfactualProbeTemplate[] = [];
       const astIssues = ["src/test.ts:1 - Prohibited any"];
-      const score = calculateTaskReadinessScore(sampleTaskInput, emptyAssertions, probes, astIssues);
+      const score = calculateTaskReadinessScore(
+        sampleTaskInput,
+        emptyAssertions,
+        probes,
+        astIssues,
+      );
       expect(score).toBe(40); // -30 for 0 assertions, -20 for 0 probes, -10 for AST issue
     });
 
@@ -389,7 +405,12 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
         dependencies: [],
         gateCommand: "",
       };
-      const score = calculateTaskReadinessScore(emptyTask, [], [], ["issue1", "issue2", "issue3", "issue4"]);
+      const score = calculateTaskReadinessScore(
+        emptyTask,
+        [],
+        [],
+        ["issue1", "issue2", "issue3", "issue4"],
+      );
       expect(score).toBe(MIN_READINESS_SCORE);
     });
   });
@@ -400,7 +421,11 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
 
       expect(result.taskId).toBe(sampleTaskInput.taskId);
       expect(result.label).toBe(sampleTaskInput.label);
-      expect(result.compiledGateCommand).toEqual(["bun", "test", "tests/unit/plan/pre-enhancer.test.ts"]);
+      expect(result.compiledGateCommand).toEqual([
+        "bun",
+        "test",
+        "tests/unit/plan/pre-enhancer.test.ts",
+      ]);
       expect(result.discriminatingAssertions.length).toBeGreaterThanOrEqual(7);
       expect(result.agpProbes.length).toBe(5);
       expect(result.invariantChecklist.invariants.length).toBe(5);
@@ -422,7 +447,9 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
     });
 
     test("throws INVALID_ARGUMENT for invalid task structures", () => {
-      expect(() => preEnhanceTask(null as unknown as PreEnhancementTaskInput)).toThrow(HarnessError);
+      expect(() => preEnhanceTask(null as unknown as PreEnhancementTaskInput)).toThrow(
+        HarnessError,
+      );
       expect(() => preEnhanceTask({ ...sampleTaskInput, taskId: "" })).toThrow(HarnessError);
       expect(() => preEnhanceTask({ ...sampleTaskInput, label: "" })).toThrow(HarnessError);
       expect(() => preEnhanceTask({ ...sampleTaskInput, writeScope: [] })).toThrow(HarnessError);
@@ -510,7 +537,7 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       const template = synthesizeProactiveTestTemplate(taskResult);
 
       expect(template).toContain(`describe("${taskResult.taskId}: ${taskResult.label}"`);
-      expect(template).toContain("import { describe, test, expect } from \"bun:test\";");
+      expect(template).toContain('import { describe, test, expect } from "bun:test";');
       expect(template).toContain("Discriminating Assertion:");
       expect(template).toContain("rejects fallback operators and untyped any references");
     });

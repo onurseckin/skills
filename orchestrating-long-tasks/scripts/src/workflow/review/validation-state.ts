@@ -36,16 +36,12 @@ export function everyApplicableDomainPassed(
   if (open.length === 0) {
     const history = task.validation_history ?? [];
     const passedHistory = new Set(
-      history
-        .filter((entry) => entry.verdict === "pass")
-        .map((entry) => entry.domain),
+      history.filter((entry) => entry.verdict === "pass").map((entry) => entry.domain),
     );
     return applicable.every((domain) => passedHistory.has(domain));
   }
   const passed = new Set(
-    open
-      .filter((entry) => entry.verdict === "pass")
-      .map((entry) => entry.domain),
+    open.filter((entry) => entry.verdict === "pass").map((entry) => entry.domain),
   );
   return applicable.every((domain) => passed.has(domain));
 }

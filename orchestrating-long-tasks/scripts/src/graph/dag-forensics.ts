@@ -292,7 +292,9 @@ export function describeCycle(
         } else if (!visited.has(next)) {
           visited.add(next);
           inStack.add(next);
-          const nextNeighbors = extractNeighbors(dependencies, next).filter((id) => unresolved.has(id));
+          const nextNeighbors = extractNeighbors(dependencies, next).filter((id) =>
+            unresolved.has(id),
+          );
           stack.push({ node: next, edgeIdx: 0, neighbors: nextNeighbors });
         }
       } else {
@@ -406,9 +408,13 @@ export function calculateBrentsTheorem(
 
   const lowerBound = Math.max(Math.ceil(W / p), S);
   const upperBound = Math.floor((W - S) / p) + S;
-  const estimatedTime = Math.max(lowerBound, Math.min(upperBound, Math.round(W / p + S * (1 - 1 / p))));
+  const estimatedTime = Math.max(
+    lowerBound,
+    Math.min(upperBound, Math.round(W / p + S * (1 - 1 / p))),
+  );
   const theoreticalSpeedup = estimatedTime > 0 ? Math.round((W / estimatedTime) * 100) / 100 : 0;
-  const theoreticalEfficiency = p > 0 && estimatedTime > 0 ? Math.round((W / (p * estimatedTime)) * 100) / 100 : 0;
+  const theoreticalEfficiency =
+    p > 0 && estimatedTime > 0 ? Math.round((W / (p * estimatedTime)) * 100) / 100 : 0;
 
   return {
     processorCount: p,
@@ -544,7 +550,8 @@ export function computeCriticalPathDrag(
     const override = new Map<string, number>([[task.id, 0]]);
     const counterfactual = internalComputeSpan(tasks, dependencies, override);
     const drag = Math.max(0, base.criticalSpan - counterfactual.criticalSpan);
-    const dragPercentage = base.criticalSpan > 0 ? Math.round((drag / base.criticalSpan) * 10000) / 100 : 0;
+    const dragPercentage =
+      base.criticalSpan > 0 ? Math.round((drag / base.criticalSpan) * 10000) / 100 : 0;
 
     results.push({
       taskId: task.id,
@@ -655,13 +662,17 @@ export function analyzeQueueStalls(
       }
     }
 
-    const taskScopes = (task.writeScope !== undefined ? task.writeScope : []).map(normalizeScopePath);
+    const taskScopes = (task.writeScope !== undefined ? task.writeScope : []).map(
+      normalizeScopePath,
+    );
 
     for (const blockerId of deps) {
       const blocker = taskMap.get(blockerId);
       if (blocker === undefined) continue;
 
-      const blockerScopes = (blocker.writeScope !== undefined ? blocker.writeScope : []).map(normalizeScopePath);
+      const blockerScopes = (blocker.writeScope !== undefined ? blocker.writeScope : []).map(
+        normalizeScopePath,
+      );
       const overlap = checkScopeOverlap(taskScopes, blockerScopes);
       const edgeKey = `${task.id}->${blockerId}`;
 
@@ -686,12 +697,11 @@ export function analyzeQueueStalls(
           `Eliminate sequential dependency: Task ${task.id} is blocked by ${blockerId} for ${stallDuration} units ` +
           `despite disjoint write scopes and no declared dataflow reason. Decouple to unlock parallel lane.`;
       } else if (writeScopeDisjoint && isDataflowJustified) {
-        recommendation =
-          `Disjoint write scopes with validated dataflow justification: "${depReason}". Dependency is legitimate.`;
+        recommendation = `Disjoint write scopes with validated dataflow justification: "${depReason}". Dependency is legitimate.`;
       } else {
-        const conflict = overlap.conflictingPath.length > 0 ? overlap.conflictingPath : "overlapping scope";
-        recommendation =
-          `Physical write scope overlap: tasks contend on [${conflict}]. Sequential ordering is required.`;
+        const conflict =
+          overlap.conflictingPath.length > 0 ? overlap.conflictingPath : "overlapping scope";
+        recommendation = `Physical write scope overlap: tasks contend on [${conflict}]. Sequential ordering is required.`;
       }
 
       stalls.push({
@@ -727,12 +737,23 @@ export function computeWorkSpan(
   const { criticalSpan, criticalPath } = internalComputeSpan(tasks, dependencies);
 
   const parallelismFactor =
-    criticalSpan > 0 ? Math.round((totalWork / criticalSpan) * 100) / 100 : tasks.length > 0 ? 1 : 0;
+    criticalSpan > 0
+      ? Math.round((totalWork / criticalSpan) * 100) / 100
+      : tasks.length > 0
+        ? 1
+        : 0;
 
-  const optimalLanes = Math.max(1, Math.min(maxLanes, Math.ceil(parallelismFactor > 0 ? parallelismFactor : 1)));
+  const optimalLanes = Math.max(
+    1,
+    Math.min(maxLanes, Math.ceil(parallelismFactor > 0 ? parallelismFactor : 1)),
+  );
 
-  const standardProcessors = [1, 2, 4, 8, 16, maxLanes].filter((v, i, a) => a.indexOf(v) === i && v <= maxLanes);
-  const brentsBounds = standardProcessors.map((p) => calculateBrentsTheorem(totalWork, criticalSpan, p));
+  const standardProcessors = [1, 2, 4, 8, 16, maxLanes].filter(
+    (v, i, a) => a.indexOf(v) === i && v <= maxLanes,
+  );
+  const brentsBounds = standardProcessors.map((p) =>
+    calculateBrentsTheorem(totalWork, criticalSpan, p),
+  );
 
   const drags = computeCriticalPathDrag(tasks, dependencies);
   const fanOutBottlenecks = detectFanOutBottlenecks(tasks, dependencies);
@@ -1046,9 +1067,10 @@ export function renderMermaidDag(
   const lines: string[] = ["graph TD"];
 
   for (const task of tasks) {
-    const label = task.label !== undefined && task.label.length > 0
-      ? `${task.id}["${task.id}: ${task.label}"]`
-      : task.id;
+    const label =
+      task.label !== undefined && task.label.length > 0
+        ? `${task.id}["${task.id}: ${task.label}"]`
+        : task.id;
     lines.push(`  ${label}`);
   }
 
@@ -1103,8 +1125,12 @@ export function renderForensicUnicodeReport(
   }
 
   if (metrics.fanOutBottlenecks.length > 0) {
-    lines.push("╠════════════════════════════════════════════════════════════════════════════════╣");
-    lines.push("║ FAN-OUT BOTTLENECKS:                                                           ║");
+    lines.push(
+      "╠════════════════════════════════════════════════════════════════════════════════╣",
+    );
+    lines.push(
+      "║ FAN-OUT BOTTLENECKS:                                                           ║",
+    );
     for (const b of metrics.fanOutBottlenecks) {
       lines.push(
         `║ ⚠️  Task ${b.taskId} (fan-out: ${b.fanOutCount}, blocked effort: ${b.blockedEffort}, severity: ${b.severity})`,
@@ -1115,10 +1141,16 @@ export function renderForensicUnicodeReport(
   if (metrics.queueStalls.length > 0) {
     const artificial = metrics.queueStalls.filter((s) => s.isCriticalStall);
     if (artificial.length > 0) {
-      lines.push("╠════════════════════════════════════════════════════════════════════════════════╣");
-      lines.push("║ ARTIFICIAL SERIALIZATION & QUEUE STALLS:                                       ║");
+      lines.push(
+        "╠════════════════════════════════════════════════════════════════════════════════╣",
+      );
+      lines.push(
+        "║ ARTIFICIAL SERIALIZATION & QUEUE STALLS:                                       ║",
+      );
       for (const s of artificial) {
-        lines.push(`║ 🛑 ${s.blockedTaskId} stalled by ${s.blockerTaskId} (${s.stallDuration} units): ${s.recommendation}`);
+        lines.push(
+          `║ 🛑 ${s.blockedTaskId} stalled by ${s.blockerTaskId} (${s.stallDuration} units): ${s.recommendation}`,
+        );
       }
     }
   }
@@ -1127,8 +1159,4 @@ export function renderForensicUnicodeReport(
   return lines.join("\n");
 }
 
-export {
-  topologicalOrder,
-  downstreamMap,
-  type DependencyMap,
-} from "./topology.ts";
+export { topologicalOrder, downstreamMap, type DependencyMap } from "./topology.ts";

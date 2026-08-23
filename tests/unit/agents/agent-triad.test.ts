@@ -98,7 +98,9 @@ describe("P06 Agent Triad Architecture Unit Tests", () => {
         expect(resultMissingContract.valid).toBe(false);
         expect(resultMissingContract.hasIdentity).toBe(true);
         expect(resultMissingContract.hasDefinition).toBe(false);
-        expect(resultMissingContract.issues.some((i) => i.includes("Missing agent role definition"))).toBe(true);
+        expect(
+          resultMissingContract.issues.some((i) => i.includes("Missing agent role definition")),
+        ).toBe(true);
 
         // Only create role contract, missing manifest
         writeFileSync(
@@ -117,7 +119,9 @@ describe("P06 Agent Triad Architecture Unit Tests", () => {
         expect(resultMissingManifest.valid).toBe(false);
         expect(resultMissingManifest.hasIdentity).toBe(false);
         expect(resultMissingManifest.hasDefinition).toBe(true);
-        expect(resultMissingManifest.issues.some((i) => i.includes("Missing agent identity manifest"))).toBe(true);
+        expect(
+          resultMissingManifest.issues.some((i) => i.includes("Missing agent identity manifest")),
+        ).toBe(true);
       } finally {
         rmSync(mockDir, { recursive: true, force: true });
       }

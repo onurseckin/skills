@@ -288,13 +288,19 @@ function evaluateHierarchyAndInvariants(state: JsonObject): SocraticQuestionEval
     const joined = argv.join(" ");
 
     // Check for coordinator code writing or orchestrator direct implementation in command args
-    if (matchesCoordinator(actor) && (joined.includes("task:claim") || joined.includes("plan:claim"))) {
+    if (
+      matchesCoordinator(actor) &&
+      (joined.includes("task:claim") || joined.includes("plan:claim"))
+    ) {
       hierarchyViolations += 1;
     }
     if (matchesOrchestrator(actor) && joined.includes("task:claim")) {
       hierarchyViolations += 1;
     }
-    if (matchesImplementer(actor) && (joined.includes("task:validate-start") || joined.includes("task:review"))) {
+    if (
+      matchesImplementer(actor) &&
+      (joined.includes("task:validate-start") || joined.includes("task:review"))
+    ) {
       hierarchyViolations += 1;
     }
   }

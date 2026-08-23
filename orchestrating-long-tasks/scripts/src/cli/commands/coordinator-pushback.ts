@@ -24,7 +24,9 @@ export function coordinatorPushbackCommand(flags: Flags): Record<string, unknown
     observation,
     remediation,
     ...(guidance ? { guidance: [guidance] } : {}),
-    ...(rejectionReasonsRaw ? { rejection_reasons: rejectionReasonsRaw.split(",").map((s) => s.trim()) } : {}),
+    ...(rejectionReasonsRaw
+      ? { rejection_reasons: rejectionReasonsRaw.split(",").map((s) => s.trim()) }
+      : {}),
   };
 
   validateReviewPushbackCriteria(taskId, actor, inputPayload);

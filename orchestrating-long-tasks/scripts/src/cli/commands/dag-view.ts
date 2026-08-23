@@ -662,7 +662,10 @@ export function dagViewCommand(
             ? tRecord.lease.agent.trim()
             : null;
       if (agentId && !activeAgents.some((a) => a.id === agentId)) {
-        const role = typeof tRecord.lease.role === "string" && tRecord.lease.role.length > 0 ? tRecord.lease.role : "implementer";
+        const role =
+          typeof tRecord.lease.role === "string" && tRecord.lease.role.length > 0
+            ? tRecord.lease.role
+            : "implementer";
         const attempt = typeof tRecord.lease.attempt === "number" ? tRecord.lease.attempt : 1;
         activeAgents.push({
           id: agentId,

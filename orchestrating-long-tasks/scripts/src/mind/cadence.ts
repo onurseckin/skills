@@ -99,7 +99,12 @@ export interface CadenceTelemetry {
 }
 
 export interface CadenceEvent {
-  readonly type: "PHASE_CHANGE" | "TRIGGER_DISPATCHED" | "ROLLOVER_EXECUTED" | "PULSE_TICK" | "STATE_TRANSITION";
+  readonly type:
+    | "PHASE_CHANGE"
+    | "TRIGGER_DISPATCHED"
+    | "ROLLOVER_EXECUTED"
+    | "PULSE_TICK"
+    | "STATE_TRANSITION";
   readonly previousPhase?: CadencePhase | undefined;
   readonly currentPhase: CadencePhase;
   readonly trigger?: CadenceTrigger | undefined;
@@ -307,11 +312,13 @@ export function enforceInfiniteMindCadence(state: CadenceState): {
 /**
  * Creates initial baseline CadenceState.
  */
-export function createInitialCadenceState(options: {
-  readonly generation?: number | undefined;
-  readonly baseIntervalMs?: number | undefined;
-  readonly now?: string | number | Date | undefined;
-} = {}): CadenceState {
+export function createInitialCadenceState(
+  options: {
+    readonly generation?: number | undefined;
+    readonly baseIntervalMs?: number | undefined;
+    readonly now?: string | number | Date | undefined;
+  } = {},
+): CadenceState {
   const generation = options.generation ?? 1;
   const baseIntervalMs = options.baseIntervalMs ?? DEFAULT_CADENCE_BASE_INTERVAL_MS;
   const nowMs = options.now !== undefined ? new Date(options.now).getTime() : Date.now();

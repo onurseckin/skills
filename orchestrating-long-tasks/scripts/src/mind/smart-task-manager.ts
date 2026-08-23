@@ -288,9 +288,7 @@ export function partitionGroupedFeedbacksStrictly(
       write_scope: scope,
       gate,
       charter_goals:
-        options.charterGoals && options.charterGoals.length > 0
-          ? options.charterGoals
-          : ["G1"],
+        options.charterGoals && options.charterGoals.length > 0 ? options.charterGoals : ["G1"],
       acceptance_criteria: [
         `Strictly isolate and satisfy feedback item: ${fb.title}`,
         `Pass mandatory gate: ${gate}`,
@@ -385,9 +383,7 @@ export function partitionCandidatesStrictly(
       write_scope: scope,
       gate,
       charter_goals:
-        options.charterGoals && options.charterGoals.length > 0
-          ? options.charterGoals
-          : ["G1"],
+        options.charterGoals && options.charterGoals.length > 0 ? options.charterGoals : ["G1"],
       acceptance_criteria: [
         `Strictly isolate and satisfy candidate: ${label}`,
         `Pass gate: ${gate}`,
@@ -504,9 +500,7 @@ export function calculateScopeCollisions(
 /**
  * Detects write scope collisions among a set of task plans (alias to calculateScopeCollisions).
  */
-export function detectScopeCollisions(
-  plans: readonly SmartTaskPlan[],
-): readonly ScopeCollision[] {
+export function detectScopeCollisions(plans: readonly SmartTaskPlan[]): readonly ScopeCollision[] {
   return calculateScopeCollisions(plans);
 }
 
@@ -621,18 +615,14 @@ export function planWaveExecution(tasks: readonly SmartTaskPlan[]): SmartWavePla
 /**
  * Compiles an array of SmartTaskPlans into ordered execution waves with disjoint write scopes.
  */
-export function compileSmartTasksToWavePlan(
-  tasks: readonly SmartTaskPlan[],
-): SmartWavePlanResult {
+export function compileSmartTasksToWavePlan(tasks: readonly SmartTaskPlan[]): SmartWavePlanResult {
   return planWaveExecution(tasks);
 }
 
 /**
  * Partitions tasks into strictly disjoint waves (alias to planWaveExecution).
  */
-export function partitionIntoDisjointWaves(
-  tasks: readonly SmartTaskPlan[],
-): SmartWavePlanResult {
+export function partitionIntoDisjointWaves(tasks: readonly SmartTaskPlan[]): SmartWavePlanResult {
   return planWaveExecution(tasks);
 }
 
@@ -737,10 +727,7 @@ export function synthesizeSmartTasksFromFeedbackQueue(
     enqueuedCount = enqueued.length;
 
     // Drain and mark pending feedbacks as ADMITTED
-    drainPendingFeedbacks(
-      { markAs: "ADMITTED", limit: selected.length },
-      options.capsulesDir,
-    );
+    drainPendingFeedbacks({ markAs: "ADMITTED", limit: selected.length }, options.capsulesDir);
   }
 
   return {
@@ -821,9 +808,7 @@ export function synthesizeSmartTasksFromSelfEvolution(
     write_scope: hardeningScope,
     gate: "bun test tests/unit/mind && bun run typecheck",
     charter_goals:
-      options.charterGoals && options.charterGoals.length > 0
-        ? [options.charterGoals[0]!]
-        : ["G1"],
+      options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G1"],
     acceptance_criteria: [
       "0 TypeScript any across all modules",
       "0 compiler or linter suppressions",
@@ -850,9 +835,7 @@ export function synthesizeSmartTasksFromSelfEvolution(
     write_scope: ["orchestrating-long-tasks/scripts/src/mind/", "tests/unit/mind/"],
     gate: "bun test tests/unit/mind && bun run typecheck",
     charter_goals:
-      options.charterGoals && options.charterGoals.length > 0
-        ? [options.charterGoals[0]!]
-        : ["G3"],
+      options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G3"],
     acceptance_criteria: [
       "Autonomic self-evolution cycle maintaining loop cadence and clean metrics",
       "Pass all mind unit tests cleanly",
@@ -1150,9 +1133,7 @@ export function planEnhance(
     write_scope: scope,
     gate,
     charter_goals:
-      options.charterGoals && options.charterGoals.length > 0
-        ? options.charterGoals
-        : ["G1"],
+      options.charterGoals && options.charterGoals.length > 0 ? options.charterGoals : ["G1"],
     acceptance_criteria: [
       `Satisfy feedback requirements: ${fb.title}`,
       `Pass gate: ${gate}`,
@@ -1280,10 +1261,7 @@ export function planEnhanceToWavePlan(
   return planWaveExecution(tasks);
 }
 
-export function deriveWriteScopeForCategory(
-  category: string,
-  id: string,
-): readonly string[] {
+export function deriveWriteScopeForCategory(category: string, id: string): readonly string[] {
   const slug = sanitizeSlug(id);
   switch (category) {
     case "DOCUMENTATION":
@@ -1321,10 +1299,7 @@ export function deriveWriteScopeForCategory(
   }
 }
 
-export function deriveGateForCategory(
-  _category: string,
-  writeScope: readonly string[],
-): string {
+export function deriveGateForCategory(_category: string, writeScope: readonly string[]): string {
   const testFile = writeScope.find((s) => s.includes("test.ts") || s.includes("tests/"));
   if (testFile) {
     const cleaned = testFile.endsWith("/") ? testFile.slice(0, -1) : testFile;

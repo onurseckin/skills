@@ -47,7 +47,9 @@ export function isMechanicValidatorReceipt(command: RecordedCommand): boolean {
   );
 }
 
-export function filterMechanicTestReceipts(commands: readonly RecordedCommand[]): RecordedCommand[] {
+export function filterMechanicTestReceipts(
+  commands: readonly RecordedCommand[],
+): RecordedCommand[] {
   return commands.filter(isMechanicValidatorReceipt);
 }
 

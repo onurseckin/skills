@@ -36,7 +36,10 @@ import {
   createPushbackHistory,
   appendPushbackRound,
 } from "../../../orchestrating-long-tasks/scripts/src/authority/review-pushback.ts";
-import { findCycles, breakCycles } from "../../../orchestrating-long-tasks/scripts/src/graph/dag-forensics.ts";
+import {
+  findCycles,
+  breakCycles,
+} from "../../../orchestrating-long-tasks/scripts/src/graph/dag-forensics.ts";
 import {
   CANONICAL_VIEWPORTS,
   DEFAULT_PRESETS,
@@ -276,7 +279,9 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
       });
 
       it("validates naming convention for ui-mechanic-validator and ui-validator identifiers", () => {
-        const mechRes = validateAgentNamingConvention("ui-mechanic-validator_task-p48-viewport-matrix");
+        const mechRes = validateAgentNamingConvention(
+          "ui-mechanic-validator_task-p48-viewport-matrix",
+        );
         expect(mechRes.valid).toBe(true);
         expect(mechRes.role).toBe("ui-mechanic-validator");
         expect(mechRes.tier).toBe(3);
@@ -306,16 +311,18 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
         expect(parsedCog?.taskId).toBe("task-1");
         expect(parsedCog?.taskSlug).toBe("visual-critique");
 
-        expect(recommendStandardAgentId("ui-mechanic-validator", "task-p48", "viewport-matrix")).toBe(
-          "ui-mechanic-validator_task-p48-viewport-matrix",
-        );
+        expect(
+          recommendStandardAgentId("ui-mechanic-validator", "task-p48", "viewport-matrix"),
+        ).toBe("ui-mechanic-validator_task-p48-viewport-matrix");
         expect(recommendStandardAgentId("ui-validator", "task-p48", "viewport-matrix")).toBe(
           "ui-validator_task-p48-viewport-matrix",
         );
       });
 
       it("maps agent IDs to roles and execution tiers", () => {
-        expect(agentIdToRole("ui-mechanic-validator_task-p48-matrix")).toBe("ui-mechanic-validator");
+        expect(agentIdToRole("ui-mechanic-validator_task-p48-matrix")).toBe(
+          "ui-mechanic-validator",
+        );
         expect(agentIdToRole("ui-validator_task-p48-critique")).toBe("ui-validator");
         expect(agentIdToRole("mechanic-validator_task-p47-watchdog")).toBe("mechanic-validator");
 
@@ -490,7 +497,8 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
           domain: "ui-design",
           cause: "missing_counterfactual_evidence",
           observation: "Missing APCA contrast measurement on primary CTA button in dark mode",
-          remediation: "Capture visual report with APCA Lc >= 60 and include mobile viewport screenshot",
+          remediation:
+            "Capture visual report with APCA Lc >= 60 and include mobile viewport screenshot",
           rejectionReasons: ["APCA contrast unverified"],
           correctiveGuidance: ["Measure APCA contrast in dark theme"],
           statusAfter: "changes_requested",

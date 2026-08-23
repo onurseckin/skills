@@ -64,4 +64,3 @@ export const SUMMARY_COMMANDS: readonly CommandSpec[] = [
     handler: testSummaryCommand,
   },
 ];
-

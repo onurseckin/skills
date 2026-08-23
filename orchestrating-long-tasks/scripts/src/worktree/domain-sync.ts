@@ -228,7 +228,10 @@ export function provisionDomainWorktree(
   if (!domain || domain.trim() === "") {
     throw new HarnessError("INVALID_ARGUMENT", "domain name cannot be empty");
   }
-  const cleanDomain = domain.trim().toLowerCase().replace(/[^a-z0-9-_]/gu, "-");
+  const cleanDomain = domain
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]/gu, "-");
   const worktreeId = `domain-${cleanDomain}`;
   const branch = `harness--${cleanDomain}-${runId}`;
   const worktreePath = join(ledger.root, runId, cleanDomain);
@@ -254,9 +257,7 @@ export function provisionDomainWorktree(
   return config;
 }
 
-export function commitAndPushDomainSubphase(
-  input: DomainCommitPushInput,
-): DomainCommitPushOutcome {
+export function commitAndPushDomainSubphase(input: DomainCommitPushInput): DomainCommitPushOutcome {
   const commitType = input.commitType ?? "feat";
   if (!CONVENTIONAL_COMMIT_TYPES.has(commitType)) {
     throw new HarnessError(
@@ -281,12 +282,7 @@ export function commitAndPushDomainSubphase(
   const maxCommitLines = input.maxCommitLines ?? 400;
   const subject = buildSubject(commitType, input.domain, input.label);
 
-  const sha = stageAndCommit(
-    input.worktreePath,
-    input.writeScope.map(toPathspec),
-    subject,
-    runner,
-  );
+  const sha = stageAndCommit(input.worktreePath, input.writeScope.map(toPathspec), subject, runner);
 
   if (sha === null) {
     return { committed: false, pushed: false };
@@ -684,7 +680,10 @@ export function recordDomainSync(
         throw new HarnessError("INVALID_STATE", "run state is not a json object");
       }
       if (!isJsonObject(draft.domain_sync_ledger)) {
-        throw new HarnessError("INVALID_STATE", "no domain sync ledger to record sync result against");
+        throw new HarnessError(
+          "INVALID_STATE",
+          "no domain sync ledger to record sync result against",
+        );
       }
       const ledger = draft.domain_sync_ledger as unknown as DomainLedgerState;
       ledger.syncHistory.push(syncResult);
@@ -713,7 +712,10 @@ export function recordGlobalSync(
         throw new HarnessError("INVALID_STATE", "run state is not a json object");
       }
       if (!isJsonObject(draft.domain_sync_ledger)) {
-        throw new HarnessError("INVALID_STATE", "no domain sync ledger to record global sync against");
+        throw new HarnessError(
+          "INVALID_STATE",
+          "no domain sync ledger to record global sync against",
+        );
       }
       const ledger = draft.domain_sync_ledger as unknown as DomainLedgerState;
       ledger.globalSyncSummary = summary;

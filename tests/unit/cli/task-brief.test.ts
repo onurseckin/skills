@@ -41,9 +41,13 @@ describe("formatTaskBrief", () => {
     expect(brief).toContain("### 🌌 Zero-Exploration Briefing: task-42");
     expect(brief).toContain("- **Label**: Implement User Auth");
     expect(brief).toContain("- **Assignment**: Role: `implementer` · Agent: `worker-1`");
-    expect(brief).toContain("- **Assigned Write Scope**: `src/auth/jwt.ts`, `tests/auth/jwt.test.ts`");
+    expect(brief).toContain(
+      "- **Assigned Write Scope**: `src/auth/jwt.ts`, `tests/auth/jwt.test.ts`",
+    );
     expect(brief).toContain("- **Isolated Worktree**: `.worktrees/task-42`");
-    expect(brief).toContain("- **Suggested Target Files**: `src/auth/jwt.ts`, `tests/auth/jwt.test.ts`");
+    expect(brief).toContain(
+      "- **Suggested Target Files**: `src/auth/jwt.ts`, `tests/auth/jwt.test.ts`",
+    );
     expect(brief).toContain("- **Recommended Commands**:");
     expect(brief).toContain("  - `bun test tests/auth/jwt.test.ts`");
     expect(brief).toContain("- **Gate Commands**:");
@@ -53,7 +57,9 @@ describe("formatTaskBrief", () => {
     expect(brief).toContain("  - Passes JWT verification test suite");
     expect(brief).toContain("  - Requirement `REQ-1`: Token expiration handled");
     expect(brief).toContain("⚡ Next Actions:");
-    expect(brief).toContain("1. `bun harness.ts task:claim --run .capsules/test --task task-42 --agent worker-1 --role implementer`");
+    expect(brief).toContain(
+      "1. `bun harness.ts task:claim --run .capsules/test --task task-42 --agent worker-1 --role implementer`",
+    );
   });
 
   test("renders minimal task briefing gracefully when optional fields are absent", () => {
@@ -104,8 +110,12 @@ describe("formatAgentBrief", () => {
     expect(brief).toContain("- **Recommended Commands**:");
     expect(brief).toContain("  - `bun test tests/unit/lib/helper.test.ts`");
     expect(brief).toContain("⚡ Next Actions:");
-    expect(brief).toContain("bun harness.ts task:brief --task task-1 --agent worker-sub-1 --role implementer");
-    expect(brief).toContain("bun harness.ts task:claim --task task-1 --agent worker-sub-1 --role implementer");
+    expect(brief).toContain(
+      "bun harness.ts task:brief --task task-1 --agent worker-sub-1 --role implementer",
+    );
+    expect(brief).toContain(
+      "bun harness.ts task:claim --task task-1 --agent worker-sub-1 --role implementer",
+    );
   });
 
   test("renders root agent briefing without parent or task", () => {
@@ -118,7 +128,9 @@ describe("formatAgentBrief", () => {
       thinkingLevel: "medium",
     });
 
-    expect(brief).toContain("### 🌌 Zero-Exploration Briefing: Agent root-orchestrator (orchestrator)");
+    expect(brief).toContain(
+      "### 🌌 Zero-Exploration Briefing: Agent root-orchestrator (orchestrator)",
+    );
     expect(brief).toContain("- **Under**: root / no task");
     expect(brief).toContain("- **Tools Granted**: none");
     expect(brief).not.toContain("- **Assigned Write Scope**:");
@@ -132,7 +144,9 @@ describe("formatAgentBrief", () => {
       parentTaskId: "task-2",
     });
 
-    expect(brief).toContain("bun harness.ts task:validate-start --task task-2 --validator val-agent-1");
+    expect(brief).toContain(
+      "bun harness.ts task:validate-start --task task-2 --validator val-agent-1",
+    );
   });
 });
 
@@ -278,7 +292,9 @@ describe("taskBriefCommand and agentBriefCommand handler tests", () => {
     expect(briefing.role).toBe("implementer");
     expect(briefing.parentTaskId).toBe(TASK_ID);
     expect(briefing.writeScope).toEqual(["tests/unit/core"]);
-    expect(String(result.markdown)).toContain("### 🌌 Zero-Exploration Briefing: Agent worker-agent-1 (implementer)");
+    expect(String(result.markdown)).toContain(
+      "### 🌌 Zero-Exploration Briefing: Agent worker-agent-1 (implementer)",
+    );
   });
 
   test("agentBriefCommand throws INVALID_STATE when agent holds no grant", async () => {
@@ -339,13 +355,7 @@ describe("taskBriefCommand and agentBriefCommand handler tests", () => {
 describe("CLI integration via execute()", () => {
   test("execute(['task:brief', ...]) succeeds with 1-shot briefing", async () => {
     const { run } = await setupRun("cli-task-brief", roots);
-    const output = await execute([
-      "task:brief",
-      "--run",
-      run,
-      "--task",
-      TASK_ID,
-    ]);
+    const output = await execute(["task:brief", "--run", run, "--task", TASK_ID]);
 
     expect(output.run_root).toBe(run);
     expect(String(output.markdown)).toContain("### 🌌 Zero-Exploration Briefing: " + TASK_ID);

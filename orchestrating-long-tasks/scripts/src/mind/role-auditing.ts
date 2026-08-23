@@ -432,7 +432,10 @@ export function auditSingleRole(
   }
 
   // 2. Anti-Boundary-Leak Enforcement for Validators & Critics
-  if (strictAntiLeak && (spec.archetype === "tier_3_validator" || spec.archetype === "tier_3_critic")) {
+  if (
+    strictAntiLeak &&
+    (spec.archetype === "tier_3_validator" || spec.archetype === "tier_3_critic")
+  ) {
     if (spec.writeScopePolicy !== "forbidden") {
       findings.push({
         id: `FIND-LEAK-WRITE-${spec.name}`,
@@ -581,7 +584,9 @@ export function auditSingleRole(
         p.toLowerCase().includes("type safety") ||
         p.toLowerCase().includes("strict type"),
     ) ||
-    spec.invariants.some((i) => i.toLowerCase().includes("zero-any") || i.toLowerCase().includes("zero any"));
+    spec.invariants.some(
+      (i) => i.toLowerCase().includes("zero-any") || i.toLowerCase().includes("zero any"),
+    );
 
   if (spec.tier === 3 && spec.archetype === "tier_3_implementer" && !hasZeroAnyPillar) {
     findings.push({
@@ -592,7 +597,8 @@ export function auditSingleRole(
       severity: "LOW",
       title: "Missing Explicit Zero-Any TypeScript Pillar",
       description: `Implementer role '${spec.name}' does not explicitly cite the Zero-Any TypeScript discipline.`,
-      recommendation: "Include 'Strict Zero-Any & Zero-Suppression TypeScript Discipline' in cognitive pillars.",
+      recommendation:
+        "Include 'Strict Zero-Any & Zero-Suppression TypeScript Discipline' in cognitive pillars.",
     });
   }
 
@@ -751,7 +757,9 @@ export function formatRoleAuditMarkdown(
   }
 
   if (report.findings.length === 0) {
-    lines.push("✅ **Zero role audit findings.** All registered personas adhere strictly to 4-Tier boundaries, Anti-Boundary-Leak invariants, and Zero-Any type discipline.");
+    lines.push(
+      "✅ **Zero role audit findings.** All registered personas adhere strictly to 4-Tier boundaries, Anti-Boundary-Leak invariants, and Zero-Any type discipline.",
+    );
     return lines.join("\n").trim();
   }
 
@@ -759,7 +767,9 @@ export function formatRoleAuditMarkdown(
     lines.push("#### ⚠️ Detailed Findings List");
     for (const f of report.findings) {
       lines.push(`##### [${f.severity}] ${f.title} (\`${f.id}\`)`);
-      lines.push(`- **Role**: \`${f.roleName}\` (Tier ${f.tier}) | **Category**: \`${f.category}\``);
+      lines.push(
+        `- **Role**: \`${f.roleName}\` (Tier ${f.tier}) | **Category**: \`${f.category}\``,
+      );
       lines.push(`- **Description**: ${f.description}`);
       lines.push(`- **Remediation**: ${f.recommendation}`);
       lines.push("");
@@ -816,9 +826,7 @@ export function renderRoleAuditAsciiTable(report: RoleAuditReport): string {
 /**
  * Formats the result of a non-duplicate persona synthesis for logging and telemetry.
  */
-export function formatNonDuplicatePersonaSummary(
-  result: NonDuplicateRoleSynthesisResult,
-): string {
+export function formatNonDuplicatePersonaSummary(result: NonDuplicateRoleSynthesisResult): string {
   const lines: string[] = [];
   lines.push(`### 🎭 Non-Duplicate Persona Synthesis: \`${result.contract.role}\``);
   lines.push(`- **Action**: \`${result.action}\``);

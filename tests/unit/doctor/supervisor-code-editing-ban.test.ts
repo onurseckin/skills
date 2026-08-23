@@ -86,7 +86,7 @@ describe("Mechanical Supervisor Code-Editing Ban & Doctor Enforcement (p46)", ()
         tier: 1,
         violation_type: "orchestrator_direct_implementation",
         severity: "critical",
-        observation: "Tier 1 Orchestrator agent \"orch-01\" executed code editing tool directly",
+        observation: 'Tier 1 Orchestrator agent "orch-01" executed code editing tool directly',
         remediation: "Delegate coding exclusively to Tier 3 Implementers.",
       },
     ];

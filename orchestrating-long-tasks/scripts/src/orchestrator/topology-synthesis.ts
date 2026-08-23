@@ -37,7 +37,9 @@ export interface TopologySynthesisSpec {
   readonly targetSkillQuality?: number | undefined;
   readonly enforceZeroAny?: boolean | undefined;
   readonly enforceZeroSuppressions?: boolean | undefined;
-  readonly codeSnippets?: readonly { readonly path: string; readonly content: string }[] | undefined;
+  readonly codeSnippets?:
+    | readonly { readonly path: string; readonly content: string }[]
+    | undefined;
 }
 
 /**
@@ -206,7 +208,8 @@ export function validateTopologyAcyclicity(
   tasks: readonly { readonly id: string; readonly dependencies?: readonly string[] | undefined }[],
   options?: { readonly strict?: boolean | undefined },
 ): AcyclicityValidationResult {
-  const strict = options !== undefined && typeof options.strict === "boolean" ? options.strict : false;
+  const strict =
+    options !== undefined && typeof options.strict === "boolean" ? options.strict : false;
   const issues: string[] = [];
 
   const taskIds = new Set<string>();
@@ -253,7 +256,12 @@ export function validateTopologyAcyclicity(
         const msg = `Self-referential dependency: task '${dependentId}' cannot depend on itself`;
         if (strict) throw new HarnessError("INVALID_ARGUMENT", msg);
         issues.push(msg);
-        return { isAcyclic: false, topologicalOrder: [], cycle: [dependentId, dependentId], issues };
+        return {
+          isAcyclic: false,
+          topologicalOrder: [],
+          cycle: [dependentId, dependentId],
+          issues,
+        };
       }
 
       const currentDeps = adjacency.get(prereq);
@@ -336,7 +344,10 @@ function findCyclePath(
   for (const t of tasks) {
     if (unresolvedSet.has(t.id)) {
       const taskDeps = t.dependencies !== undefined ? t.dependencies : [];
-      taskMap.set(t.id, taskDeps.filter((d) => unresolvedSet.has(d)));
+      taskMap.set(
+        t.id,
+        taskDeps.filter((d) => unresolvedSet.has(d)),
+      );
     }
   }
 
@@ -500,12 +511,15 @@ export function partitionTopologyWaves(
  */
 export function assertDominatingSkillQuality(options: {
   readonly skills?: readonly string[] | undefined;
-  readonly codeSnippets?: readonly { readonly path: string; readonly content: string }[] | undefined;
+  readonly codeSnippets?:
+    | readonly { readonly path: string; readonly content: string }[]
+    | undefined;
   readonly qualityThreshold?: number | undefined;
   readonly strict?: boolean | undefined;
 }): DominatingSkillQualityReport {
   const threshold = typeof options.qualityThreshold === "number" ? options.qualityThreshold : 0.8;
-  const strict = options.strict !== undefined && typeof options.strict === "boolean" ? options.strict : false;
+  const strict =
+    options.strict !== undefined && typeof options.strict === "boolean" ? options.strict : false;
   const snippets = options.codeSnippets !== undefined ? options.codeSnippets : [];
   const issues: string[] = [];
 
@@ -552,9 +566,7 @@ export function assertDominatingSkillQuality(options: {
         const matches = line.match(rx);
         if (matches && matches.length > 0) {
           anyTypeCount += matches.length;
-          issues.push(
-            `Forbidden 'any' type in ${snippet.path}:${lineNum} - "${line.trim()}"`,
-          );
+          issues.push(`Forbidden 'any' type in ${snippet.path}:${lineNum} - "${line.trim()}"`);
         }
       }
 
@@ -580,7 +592,11 @@ export function assertDominatingSkillQuality(options: {
       }
 
       // Count typed constructs
-      if (/interface\s+\w+|type\s+\w+\s*=|function\s+\w+\s*\(|:\s*(string|number|boolean|readonly)/.test(line)) {
+      if (
+        /interface\s+\w+|type\s+\w+\s*=|function\s+\w+\s*\(|:\s*(string|number|boolean|readonly)/.test(
+          line,
+        )
+      ) {
         typedConstructCount += 1;
       }
     }
@@ -588,7 +604,8 @@ export function assertDominatingSkillQuality(options: {
 
   // Calculate sub-scores
   const typeCoverageScore = anyTypeCount === 0 ? 1.0 : Math.max(0, 1.0 - anyTypeCount * 0.25);
-  const suppressionScore = suppressionCount === 0 ? 1.0 : Math.max(0, 1.0 - suppressionCount * 0.35);
+  const suppressionScore =
+    suppressionCount === 0 ? 1.0 : Math.max(0, 1.0 - suppressionCount * 0.35);
   const errorHandlingScore =
     genericThrowCount === 0
       ? 1.0
@@ -608,10 +625,7 @@ export function assertDominatingSkillQuality(options: {
     score = Math.max(0, Math.min(1, Math.round(score * 100) / 100));
   }
 
-  const passed =
-    anyTypeCount === 0 &&
-    suppressionCount === 0 &&
-    score >= threshold;
+  const passed = anyTypeCount === 0 && suppressionCount === 0 && score >= threshold;
 
   if (!passed && strict) {
     throw new HarnessError(
@@ -692,7 +706,10 @@ function computeCriticalPath(
  */
 export function synthesizeDAGTopology(spec: TopologySynthesisSpec): SynthesizedTopology {
   if (!spec.tasks || spec.tasks.length === 0) {
-    throw new HarnessError("INVALID_ARGUMENT", "TopologySynthesisSpec must contain at least one task");
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "TopologySynthesisSpec must contain at least one task",
+    );
   }
 
   const taskMap = new Map<string, SynthesizedTaskSpec>();
@@ -720,10 +737,16 @@ export function synthesizeDAGTopology(spec: TopologySynthesisSpec): SynthesizedT
       const toId = rule.to.trim();
 
       if (!taskMap.has(fromId)) {
-        throw new HarnessError("INVALID_ARGUMENT", `Dependency rule references unknown task '${fromId}'`);
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          `Dependency rule references unknown task '${fromId}'`,
+        );
       }
       if (!taskMap.has(toId)) {
-        throw new HarnessError("INVALID_ARGUMENT", `Dependency rule references unknown task '${toId}'`);
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          `Dependency rule references unknown task '${toId}'`,
+        );
       }
 
       const targetTask = taskMap.get(toId)!;
@@ -744,7 +767,8 @@ export function synthesizeDAGTopology(spec: TopologySynthesisSpec): SynthesizedT
   const acyclicity = validateTopologyAcyclicity(resolvedTasks, { strict: true });
 
   // Partition into waves
-  const maxParallel = typeof spec.maxParallel === "number" && spec.maxParallel > 0 ? spec.maxParallel : 4;
+  const maxParallel =
+    typeof spec.maxParallel === "number" && spec.maxParallel > 0 ? spec.maxParallel : 4;
   const waves = partitionTopologyWaves(resolvedTasks, maxParallel);
 
   // Compute critical path & depth
@@ -885,10 +909,7 @@ export function adaptTopologyWithCriticFeedback(
           const parentDeps = parentTask.dependencies !== undefined ? parentTask.dependencies : [];
           return {
             ...st,
-            dependencies: [
-              ...stDeps,
-              ...parentDeps,
-            ],
+            dependencies: [...stDeps, ...parentDeps],
           };
         });
 
@@ -936,9 +957,7 @@ export function adaptTopologyWithCriticFeedback(
 
   // Handle skill enhancements
   if (feedback.skillEnhancements && feedback.skillEnhancements.length > 0) {
-    const skillMap = new Map(
-      feedback.skillEnhancements.map((se) => [se.taskId, se]),
-    );
+    const skillMap = new Map(feedback.skillEnhancements.map((se) => [se.taskId, se]));
 
     updatedTasks = updatedTasks.map((t) => {
       const enhancement = skillMap.get(t.id);
@@ -956,9 +975,11 @@ export function adaptTopologyWithCriticFeedback(
   }
 
   // Re-synthesize DAG topology with adapted tasks and extra rules
-  const metaObj = currentTopology.metadata !== undefined ? currentTopology.metadata.objective : undefined;
+  const metaObj =
+    currentTopology.metadata !== undefined ? currentTopology.metadata.objective : undefined;
   const objective = typeof metaObj === "string" ? metaObj : "Adapted Topology";
-  const metaPrompt = currentTopology.metadata !== undefined ? currentTopology.metadata.prompt : undefined;
+  const metaPrompt =
+    currentTopology.metadata !== undefined ? currentTopology.metadata.prompt : undefined;
   const prompt = typeof metaPrompt === "string" ? metaPrompt : "";
 
   const newSpec: TopologySynthesisSpec = {

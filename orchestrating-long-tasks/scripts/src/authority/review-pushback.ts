@@ -228,7 +228,9 @@ export function detectDomainBatching(
     const rawEvidence = domainEvidenceMap[domain];
     if (rawEvidence === undefined || rawEvidence === null) {
       violatingDomains.push(domain);
-      reasons.push(`Domain '${domain}' is claimed in batch without dedicated domain-specific evidence.`);
+      reasons.push(
+        `Domain '${domain}' is claimed in batch without dedicated domain-specific evidence.`,
+      );
       continue;
     }
 
@@ -328,7 +330,11 @@ export function auditTaskVerificationEvidence(
   const correctiveGuidance: string[] = [];
 
   // 1. Validate 1:1 task identity
-  if (!evidence.taskId || typeof evidence.taskId !== "string" || evidence.taskId.trim().length === 0) {
+  if (
+    !evidence.taskId ||
+    typeof evidence.taskId !== "string" ||
+    evidence.taskId.trim().length === 0
+  ) {
     violations.push({
       type: "empty_rationale",
       message: "Task ID is required for 1:1 individual task verification.",
@@ -399,7 +405,9 @@ export function auditTaskVerificationEvidence(
       message: "No check commands or artifact proofs were provided for verification.",
       taskId: evidence.taskId,
     });
-    rejectionReasons.push("Verification lacks any executed check commands or tangible evidence artifacts.");
+    rejectionReasons.push(
+      "Verification lacks any executed check commands or tangible evidence artifacts.",
+    );
     correctiveGuidance.push(
       "Execute the task gate check command and record the exit code and output in the verification proof.",
     );
@@ -572,9 +580,10 @@ export function evaluateRepairProgression(
   for (const reason of lastRound.rejectionReasons) {
     const reasonLower = reason.toLowerCase();
     const addressedInSummary = currentSummary.toLowerCase().includes(reasonLower);
-    const addressedInChecks = (newEvidence.checks ?? []).some((c) =>
-      (c.command ?? "").toLowerCase().includes(reasonLower) ||
-      (c.output ?? "").toLowerCase().includes(reasonLower),
+    const addressedInChecks = (newEvidence.checks ?? []).some(
+      (c) =>
+        (c.command ?? "").toLowerCase().includes(reasonLower) ||
+        (c.output ?? "").toLowerCase().includes(reasonLower),
     );
 
     if (addressedInSummary || addressedInChecks) {

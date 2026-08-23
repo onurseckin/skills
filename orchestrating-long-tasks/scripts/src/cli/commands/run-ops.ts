@@ -211,7 +211,8 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
     let agentOrLock = "-";
     if (t.lease) {
       const leaseAgent = extractLeaseAgentId(t.lease) || "unknown";
-      const roleStr = typeof t.lease.role === "string" && t.lease.role.length > 0 ? ` [${t.lease.role}]` : "";
+      const roleStr =
+        typeof t.lease.role === "string" && t.lease.role.length > 0 ? ` [${t.lease.role}]` : "";
       agentOrLock = `Leased (${leaseAgent}${roleStr})`;
     } else if (t.validations && t.validations.length > 0) {
       const activeVals = t.validations.filter((v) => v.verdict === undefined);

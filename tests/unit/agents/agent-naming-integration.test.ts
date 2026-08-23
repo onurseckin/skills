@@ -49,7 +49,9 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
         expect(spec).toBeDefined();
         expect(spec.role).toBe(role);
         expect([0, 1, 2, 3]).toContain(spec.tier);
-        expect(["pulse", "phase", "audit", "domain", "task", "subtask"]).toContain(spec.bindingType);
+        expect(["pulse", "phase", "audit", "domain", "task", "subtask"]).toContain(
+          spec.bindingType,
+        );
         expect(spec.regexPattern).toBeInstanceOf(RegExp);
         expect(spec.example.length).toBeGreaterThan(0);
         expect(spec.description.length).toBeGreaterThan(0);
@@ -78,12 +80,7 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
 
   describe("Tier 0: Mind Naming and Restraint Invariants", () => {
     test("validates Tier 0 mind agent IDs with pulse bindings", () => {
-      const validIds = [
-        "mind_pulse-001",
-        "mind_pulse-gen-1",
-        "mind_p-12345",
-        "mind_run-session-a",
-      ];
+      const validIds = ["mind_pulse-001", "mind_pulse-gen-1", "mind_p-12345", "mind_run-session-a"];
 
       for (const id of validIds) {
         expect(isStandardAgentId(id)).toBe(true);
@@ -127,10 +124,7 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
     });
 
     test("validates Tier 1 mind-auditor agent IDs with audit bindings", () => {
-      const validAuditIds = [
-        "mind-auditor_audit-gen-1",
-        "mind-auditor_pulse-check-4",
-      ];
+      const validAuditIds = ["mind-auditor_audit-gen-1", "mind-auditor_pulse-check-4"];
 
       for (const id of validAuditIds) {
         expect(isStandardAgentId(id)).toBe(true);
@@ -191,13 +185,26 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
     });
 
     test("validates Tier 3 domain-specialized validators", () => {
-      const specializedValidators: Array<{ id: string; role: StandardAgentRole; taskId: string }> = [
-        { id: "validator-code-quality_task-p54-naming", role: "validator-code-quality", taskId: "task-p54" },
-        { id: "validator-ui-design_task-p48-viewports", role: "validator-ui-design", taskId: "task-p48" },
-        { id: "validator-security_task-p30-jwt", role: "validator-security", taskId: "task-p30" },
-        { id: "validator-product_task-p10-specs", role: "validator-product", taskId: "task-p10" },
-        { id: "validator-system-design_task-p12-arch", role: "validator-system-design", taskId: "task-p12" },
-      ];
+      const specializedValidators: Array<{ id: string; role: StandardAgentRole; taskId: string }> =
+        [
+          {
+            id: "validator-code-quality_task-p54-naming",
+            role: "validator-code-quality",
+            taskId: "task-p54",
+          },
+          {
+            id: "validator-ui-design_task-p48-viewports",
+            role: "validator-ui-design",
+            taskId: "task-p48",
+          },
+          { id: "validator-security_task-p30-jwt", role: "validator-security", taskId: "task-p30" },
+          { id: "validator-product_task-p10-specs", role: "validator-product", taskId: "task-p10" },
+          {
+            id: "validator-system-design_task-p12-arch",
+            role: "validator-system-design",
+            taskId: "task-p12",
+          },
+        ];
 
       for (const item of specializedValidators) {
         expect(isStandardAgentId(item.id)).toBe(true);
@@ -213,7 +220,11 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
 
     test("validates Tier 3 subagents (sub-implementer, sub-validator, sub-investigator)", () => {
       const subagents: Array<{ id: string; role: StandardAgentRole; subtaskId: string }> = [
-        { id: "sub-implementer_subtask-1-unit-test", role: "sub-implementer", subtaskId: "subtask-1" },
+        {
+          id: "sub-implementer_subtask-1-unit-test",
+          role: "sub-implementer",
+          subtaskId: "subtask-1",
+        },
         { id: "sub-validator_subtask-1-proof", role: "sub-validator", subtaskId: "subtask-1" },
         { id: "sub-investigator_subtask-2-diag", role: "sub-investigator", subtaskId: "subtask-2" },
       ];
@@ -279,7 +290,9 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
     test("every yaml file in orchestrating-long-tasks/agents matches standard naming conventions", () => {
       const skillRoot = findSkillRoot();
       const agentsDir = join(skillRoot, "agents");
-      const agentFiles = readdirSync(agentsDir).filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"));
+      const agentFiles = readdirSync(agentsDir).filter(
+        (f) => f.endsWith(".yaml") || f.endsWith(".yml"),
+      );
 
       expect(agentFiles.length).toBeGreaterThanOrEqual(13);
 
@@ -315,7 +328,11 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
     });
 
     test("whoamiCommand and identifyExecutionContext seamlessly integrate with standardized agent IDs", () => {
-      const testCases: Array<{ agentId: string; expectedTier: ExecutionTier; expectedRole: string }> = [
+      const testCases: Array<{
+        agentId: string;
+        expectedTier: ExecutionTier;
+        expectedRole: string;
+      }> = [
         { agentId: "mind_pulse-gen-1", expectedTier: 0, expectedRole: "mind" },
         { agentId: "orchestrator_wave-1", expectedTier: 1, expectedRole: "orchestrator" },
         { agentId: "mind-auditor_audit-1", expectedTier: 1, expectedRole: "mind-auditor" },
@@ -323,7 +340,11 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
         { agentId: "implementer_task-p54-naming", expectedTier: 3, expectedRole: "implementer" },
         { agentId: "validator_task-p54-naming", expectedTier: 3, expectedRole: "validator" },
         { agentId: "repairer_task-1-fix", expectedTier: 3, expectedRole: "repairer" },
-        { agentId: "validator-code-quality_task-p54", expectedTier: 3, expectedRole: "validator-code-quality" },
+        {
+          agentId: "validator-code-quality_task-p54",
+          expectedTier: 3,
+          expectedRole: "validator-code-quality",
+        },
         { agentId: "sub-implementer_subtask-1", expectedTier: 3, expectedRole: "sub-implementer" },
       ];
 
@@ -343,7 +364,10 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
   describe("Invariants & TypeScript Strictness Audit", () => {
     test("zero TypeScript any and zero suppressions across thread-identifier files", () => {
       const sourceFiles = [
-        join(__dirname, "../../../orchestrating-long-tasks/scripts/src/authority/thread-identifier.ts"),
+        join(
+          __dirname,
+          "../../../orchestrating-long-tasks/scripts/src/authority/thread-identifier.ts",
+        ),
         join(__dirname, "../../../orchestrating-long-tasks/scripts/src/agents/naming.ts"),
         __filename,
       ];

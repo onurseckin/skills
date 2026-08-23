@@ -114,7 +114,11 @@ describe("Unified Reporting CLI Surface", () => {
     expect(report.markdown).not.toContain("undefined");
 
     // Test aliases
-    const aliasReport1 = (await execute(["report:unified", "--run", run])) as unknown as UnifiedReport;
+    const aliasReport1 = (await execute([
+      "report:unified",
+      "--run",
+      run,
+    ])) as unknown as UnifiedReport;
     const aliasReport2 = (await execute(["report:all", "--run", run])) as unknown as UnifiedReport;
     expect(aliasReport1.run_id).toBe(report.run_id);
     expect(aliasReport2.run_id).toBe(report.run_id);
@@ -268,12 +272,18 @@ describe("Unified Reporting CLI Surface", () => {
       "implementer",
     ]);
 
-    const leasesResult = (await execute(["report:leases", "--run", run])) as Record<string, unknown>;
+    const leasesResult = (await execute(["report:leases", "--run", run])) as Record<
+      string,
+      unknown
+    >;
     expect(leasesResult.matrix).toBeDefined();
     expect(leasesResult.markdown as string).toContain("`impl-core-1`");
     expect(leasesResult.markdown as string).not.toContain("undefined");
 
-    const decisionsResult = (await execute(["report:decisions", "--run", run])) as Record<string, unknown>;
+    const decisionsResult = (await execute(["report:decisions", "--run", run])) as Record<
+      string,
+      unknown
+    >;
     expect(decisionsResult.decisions).toBeDefined();
   });
 
@@ -337,7 +347,12 @@ describe("Unified Reporting CLI Surface", () => {
     expect(dagResult.markdown as string).toContain("legacy-worker-99");
     expect(dagResult.markdown as string).not.toContain("undefined");
 
-    const reportResult = (await execute(["report", "--run", run, "--detailed"])) as unknown as UnifiedReport;
+    const reportResult = (await execute([
+      "report",
+      "--run",
+      run,
+      "--detailed",
+    ])) as unknown as UnifiedReport;
     expect(reportResult.lifecycle.implementers.active[0]?.agentId).toBe("legacy-worker-99");
     expect(reportResult.markdown).toContain("legacy-worker-99");
     expect(reportResult.markdown).not.toContain("`undefined`");
@@ -424,7 +439,10 @@ describe("Unified Reporting CLI Surface", () => {
     expect(report.markdown).toContain("`worker-monolith`");
 
     // 2. Summary view verification
-    const summaryResult = (await execute(["summary:view", "--run", run])) as Record<string, unknown>;
+    const summaryResult = (await execute(["summary:view", "--run", run])) as Record<
+      string,
+      unknown
+    >;
     expect(summaryResult.dag).toBeDefined();
     expect(summaryResult.doctor).toBeDefined();
     expect(summaryResult.metrics).toBeDefined();
@@ -438,4 +456,3 @@ describe("Unified Reporting CLI Surface", () => {
     expect(statusResult.occupancy).toBeDefined();
   });
 });
-

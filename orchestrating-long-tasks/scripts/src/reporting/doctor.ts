@@ -99,7 +99,9 @@ export function formatDoctorReport(params: {
   socraticReport?: SocraticAuditReport | undefined;
 }): string {
   const issues = params.issues;
-  const findings = (params.tierConfinementFindings ?? params.behavioralFindings ?? []) as unknown as readonly BehavioralFinding[];
+  const findings = (params.tierConfinementFindings ??
+    params.behavioralFindings ??
+    []) as unknown as readonly BehavioralFinding[];
   const lines = [
     `### Capsule Doctor: \`${params.runRoot}\``,
     `- **Healthy**: ${params.healthy ? "yes" : "no"}`,
@@ -158,7 +160,10 @@ export async function runDoctor(
       const diffOutput = gitCommand(repository, ["diff", "--name-only"], 1024 * 64, [0]);
       if (diffOutput.status === 0) {
         const text = new TextDecoder().decode(diffOutput.bytes);
-        gitDiffs = text.split("\n").map((s) => s.trim()).filter((s) => s.length > 0);
+        gitDiffs = text
+          .split("\n")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
       }
     } catch {
       // Graceful fallback if git probe fails

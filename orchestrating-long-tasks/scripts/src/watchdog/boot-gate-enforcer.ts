@@ -18,15 +18,13 @@ export class BootGateEnforcer {
     options: SubagentRegistrationOptions,
     now?: string | number | Date,
   ): SubagentBootGateRecord {
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     const existing = this.records.get(options.agentId);
     if (existing) {
       return existing;
     }
 
-    const tier =
-      options.tier !== undefined ? options.tier : roleToTier(options.role);
+    const tier = options.tier !== undefined ? options.tier : roleToTier(options.role);
 
     const record: SubagentBootGateRecord = {
       agentId: options.agentId,
@@ -59,16 +57,19 @@ export class BootGateEnforcer {
     now?: string | number | Date,
     proof?: Partial<LiveCliProof>,
   ): SubagentBootGateRecord {
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
-    const existing = this.records.get(agentId) ?? this.registerSpawnedSubagent({
-      agentId,
-      role: "unknown",
-    }, timestamp);
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const existing =
+      this.records.get(agentId) ??
+      this.registerSpawnedSubagent(
+        {
+          agentId,
+          role: "unknown",
+        },
+        timestamp,
+      );
 
     const isVerified =
-      proof?.verified !== false &&
-      (proof?.exitCode === undefined || proof.exitCode === 0);
+      proof?.verified !== false && (proof?.exitCode === undefined || proof.exitCode === 0);
 
     const constructedProof: LiveCliProof = {
       gate: "whoami",
@@ -76,17 +77,27 @@ export class BootGateEnforcer {
       argv: proof?.argv ?? ["bun", "scripts/harness.ts", "whoami"],
       exitCode: proof?.exitCode ?? 0,
       executedAt: timestamp,
-      ...(proof?.pid !== undefined ? { pid: proof.pid } : existing.pid !== undefined ? { pid: existing.pid } : {}),
+      ...(proof?.pid !== undefined
+        ? { pid: proof.pid }
+        : existing.pid !== undefined
+          ? { pid: existing.pid }
+          : {}),
       ...(proof?.outputSnippet !== undefined ? { outputSnippet: proof.outputSnippet } : {}),
       ...(proof?.fingerprint !== undefined ? { fingerprint: proof.fingerprint } : {}),
       verified: isVerified,
-      ...(proof?.failureReason !== undefined ? { failureReason: proof.failureReason } : isVerified ? {} : { failureReason: "whoami CLI command failed with non-zero exit" }),
+      ...(proof?.failureReason !== undefined
+        ? { failureReason: proof.failureReason }
+        : isVerified
+          ? {}
+          : { failureReason: "whoami CLI command failed with non-zero exit" }),
     };
 
     const doctorPassed = existing.doctorExecuted;
     const gateViolations: string[] = [];
     if (!isVerified) {
-      gateViolations.push(`Pre-flight boot gate 'whoami' verification failed: ${constructedProof.failureReason ?? "unverified execution"}`);
+      gateViolations.push(
+        `Pre-flight boot gate 'whoami' verification failed: ${constructedProof.failureReason ?? "unverified execution"}`,
+      );
     }
     if (!doctorPassed) {
       gateViolations.push("Pre-flight boot gate 'doctor' not yet executed");
@@ -111,16 +122,19 @@ export class BootGateEnforcer {
     now?: string | number | Date,
     proof?: Partial<LiveCliProof>,
   ): SubagentBootGateRecord {
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
-    const existing = this.records.get(agentId) ?? this.registerSpawnedSubagent({
-      agentId,
-      role: "unknown",
-    }, timestamp);
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const existing =
+      this.records.get(agentId) ??
+      this.registerSpawnedSubagent(
+        {
+          agentId,
+          role: "unknown",
+        },
+        timestamp,
+      );
 
     const isVerified =
-      proof?.verified !== false &&
-      (proof?.exitCode === undefined || proof.exitCode === 0);
+      proof?.verified !== false && (proof?.exitCode === undefined || proof.exitCode === 0);
 
     const constructedProof: LiveCliProof = {
       gate: "doctor",
@@ -128,11 +142,19 @@ export class BootGateEnforcer {
       argv: proof?.argv ?? ["bun", "scripts/harness.ts", "doctor"],
       exitCode: proof?.exitCode ?? 0,
       executedAt: timestamp,
-      ...(proof?.pid !== undefined ? { pid: proof.pid } : existing.pid !== undefined ? { pid: existing.pid } : {}),
+      ...(proof?.pid !== undefined
+        ? { pid: proof.pid }
+        : existing.pid !== undefined
+          ? { pid: existing.pid }
+          : {}),
       ...(proof?.outputSnippet !== undefined ? { outputSnippet: proof.outputSnippet } : {}),
       ...(proof?.fingerprint !== undefined ? { fingerprint: proof.fingerprint } : {}),
       verified: isVerified,
-      ...(proof?.failureReason !== undefined ? { failureReason: proof.failureReason } : isVerified ? {} : { failureReason: "doctor CLI command failed with non-zero exit" }),
+      ...(proof?.failureReason !== undefined
+        ? { failureReason: proof.failureReason }
+        : isVerified
+          ? {}
+          : { failureReason: "doctor CLI command failed with non-zero exit" }),
     };
 
     const whoamiPassed = existing.whoamiExecuted;
@@ -141,7 +163,9 @@ export class BootGateEnforcer {
       gateViolations.push("Pre-flight boot gate 'whoami' not yet executed");
     }
     if (!isVerified) {
-      gateViolations.push(`Pre-flight boot gate 'doctor' verification failed: ${constructedProof.failureReason ?? "unverified execution"}`);
+      gateViolations.push(
+        `Pre-flight boot gate 'doctor' verification failed: ${constructedProof.failureReason ?? "unverified execution"}`,
+      );
     }
 
     const updated: SubagentBootGateRecord = {
@@ -162,8 +186,7 @@ export class BootGateEnforcer {
     proof: LiveCliProof,
     now?: string | number | Date,
   ): SubagentBootGateRecord | undefined {
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
 
     if (proof.gate === "whoami") {
       return this.recordWhoamiExecution(proof.actor, timestamp, proof);
@@ -182,8 +205,7 @@ export class BootGateEnforcer {
     pid?: number,
     outputSnippet?: string,
   ): SubagentBootGateRecord | undefined {
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     const cmdLine = argv.join(" ").toLowerCase();
 
     let updatedRecord: SubagentBootGateRecord | undefined;
@@ -246,10 +268,7 @@ export class BootGateEnforcer {
     return updated;
   }
 
-  public verifyBootGates(
-    agentId: string,
-    requireValidProof = false,
-  ): BootGateVerificationResult {
+  public verifyBootGates(agentId: string, requireValidProof = false): BootGateVerificationResult {
     const record = this.records.get(agentId);
     if (!record) {
       return {
@@ -319,8 +338,7 @@ export class BootGateEnforcer {
   ): readonly SubagentBootGateRecord[] {
     if (!state) return this.getAllRecords();
 
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
 
     const agentsRaw = state.agents;
     if (Array.isArray(agentsRaw)) {
@@ -329,14 +347,11 @@ export class BootGateEnforcer {
           const entry = ag as Record<string, unknown>;
           const id = typeof entry.id === "string" ? entry.id : undefined;
           const role = typeof entry.role === "string" ? entry.role : "subagent";
-          const parentId =
-            typeof entry.parent_agent_id === "string" ? entry.parent_agent_id : null;
-          const taskId =
-            typeof entry.parent_task_id === "string" ? entry.parent_task_id : null;
+          const parentId = typeof entry.parent_agent_id === "string" ? entry.parent_agent_id : null;
+          const taskId = typeof entry.parent_task_id === "string" ? entry.parent_task_id : null;
           const pid = typeof entry.pid === "number" ? entry.pid : undefined;
           const ppid = typeof entry.ppid === "number" ? entry.ppid : undefined;
-          const grantedAt =
-            typeof entry.granted_at === "string" ? entry.granted_at : timestamp;
+          const grantedAt = typeof entry.granted_at === "string" ? entry.granted_at : timestamp;
 
           if (id && !this.records.has(id)) {
             this.registerSpawnedSubagent(
@@ -362,13 +377,9 @@ export class BootGateEnforcer {
         if (typeof cmd === "object" && cmd !== null) {
           const entry = cmd as Record<string, unknown>;
           const actor = typeof entry.actor === "string" ? entry.actor : undefined;
-          const argv = Array.isArray(entry.argv)
-            ? entry.argv.map(String)
-            : [];
-          const startedAt =
-            typeof entry.started_at === "string" ? entry.started_at : timestamp;
-          const exitCode =
-            typeof entry.exit_code === "number" ? entry.exit_code : undefined;
+          const argv = Array.isArray(entry.argv) ? entry.argv.map(String) : [];
+          const startedAt = typeof entry.started_at === "string" ? entry.started_at : timestamp;
+          const exitCode = typeof entry.exit_code === "number" ? entry.exit_code : undefined;
           const pid = typeof entry.pid === "number" ? entry.pid : undefined;
 
           if (actor && argv.length > 0) {
@@ -386,8 +397,7 @@ export class BootGateEnforcer {
     now?: string | number | Date,
   ): readonly WatchdogFinding[] {
     const targetRecords = records ?? this.getAllRecords();
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     const findings: WatchdogFinding[] = [];
 
     for (const rec of targetRecords) {
@@ -400,9 +410,7 @@ export class BootGateEnforcer {
           (rec.whoamiProof && !rec.whoamiProof.verified) ||
           (rec.doctorProof && !rec.doctorProof.verified);
 
-        const violationType = isUnverified
-          ? "invalid_boot_gate_proof"
-          : "boot_gate_missing";
+        const violationType = isUnverified ? "invalid_boot_gate_proof" : "boot_gate_missing";
 
         findings.push({
           id: `finding-bootgate-${rec.agentId}`,
@@ -434,9 +442,7 @@ export class BootGateEnforcer {
     return findings;
   }
 
-  public renderAsciiBootGateTable(
-    records?: readonly SubagentBootGateRecord[],
-  ): string {
+  public renderAsciiBootGateTable(records?: readonly SubagentBootGateRecord[]): string {
     const targetRecords = records ?? this.getAllRecords();
     if (targetRecords.length === 0) {
       return "No subagents registered in boot gate tracker.";

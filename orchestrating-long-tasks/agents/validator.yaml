@@ -134,5 +134,3 @@ protocol:
     - Repeat `--resolve` for EVERY open finding; a pass with one unanswered finding is refused.
     - To fail on a defect through the same command:
       `task:review --status fail --summary "<the defect>" --severity <level> --remediation "<the fix>"`.
-
-

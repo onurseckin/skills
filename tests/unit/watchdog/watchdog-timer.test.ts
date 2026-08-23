@@ -165,9 +165,9 @@ describe("Mandatory Subagent Pre-Flight Boot Gates (whoami & doctor)", () => {
     expect(check1.missingGates).toEqual(["whoami", "doctor"]);
 
     // Attempting task work without boot gates throws ROLE_CONFINEMENT_VIOLATION
-    expect(() =>
-      enforcer.assertBootGatesPassed("impl-wave-01", "claiming task"),
-    ).toThrow(HarnessError);
+    expect(() => enforcer.assertBootGatesPassed("impl-wave-01", "claiming task")).toThrow(
+      HarnessError,
+    );
 
     // Execute whoami only -> doctor still missing
     enforcer.recordWhoamiExecution("impl-wave-01");
@@ -178,9 +178,9 @@ describe("Mandatory Subagent Pre-Flight Boot Gates (whoami & doctor)", () => {
     expect(check2.record?.doctorExecuted).toBe(false);
     expect(check2.record?.bootGatePassed).toBe(false);
 
-    expect(() =>
-      enforcer.assertBootGatesPassed("impl-wave-01", "writing files"),
-    ).toThrow(HarnessError);
+    expect(() => enforcer.assertBootGatesPassed("impl-wave-01", "writing files")).toThrow(
+      HarnessError,
+    );
 
     // Execute doctor -> both gates passed!
     enforcer.recordDoctorExecution("impl-wave-01");
@@ -193,9 +193,7 @@ describe("Mandatory Subagent Pre-Flight Boot Gates (whoami & doctor)", () => {
     expect(check3.record?.gateViolations.length).toBe(0);
 
     // Now assertions pass cleanly
-    expect(() =>
-      enforcer.assertBootGatesPassed("impl-wave-01", "claiming task"),
-    ).not.toThrow();
+    expect(() => enforcer.assertBootGatesPassed("impl-wave-01", "claiming task")).not.toThrow();
   });
 
   it("automatically detects whoami and doctor in command execution argv", () => {
@@ -206,11 +204,7 @@ describe("Mandatory Subagent Pre-Flight Boot Gates (whoami & doctor)", () => {
     });
 
     // Run whoami command
-    enforcer.recordCommandExecution("val-agent-02", [
-      "bun",
-      "scripts/harness.ts",
-      "whoami",
-    ]);
+    enforcer.recordCommandExecution("val-agent-02", ["bun", "scripts/harness.ts", "whoami"]);
 
     let record = enforcer.getRecord("val-agent-02");
     expect(record?.whoamiExecuted).toBe(true);
@@ -363,9 +357,9 @@ describe("Watchdog Live CLI Integration & Process Health Auditing (p56)", () => 
     expect(findings[0]?.violationType).toBe("invalid_boot_gate_proof");
     expect(findings[0]?.severity).toBe("critical");
 
-    expect(() =>
-      enforcer.assertBootGatesPassed("impl-failing-cli", "running gate", true),
-    ).toThrow(HarnessError);
+    expect(() => enforcer.assertBootGatesPassed("impl-failing-cli", "running gate", true)).toThrow(
+      HarnessError,
+    );
   });
 
   it("audits live process health and detects dead or terminated worker processes", async () => {
@@ -706,20 +700,14 @@ describe("DOCTOR_SUPERVISOR_CODE_CONTAMINATION Doctor Check Enforcement", () => 
 
 describe("Invariants & Cleanliness Audit - Autonomic Watchdog (p47 & p56)", () => {
   it("zero TypeScript any and zero suppressions across all watchdog files", () => {
-    const watchdogDir = join(
-      __dirname,
-      "../../../orchestrating-long-tasks/scripts/src/watchdog",
-    );
+    const watchdogDir = join(__dirname, "../../../orchestrating-long-tasks/scripts/src/watchdog");
     const sourceFiles = [
       join(watchdogDir, "constants.ts"),
       join(watchdogDir, "types.ts"),
       join(watchdogDir, "boot-gate-enforcer.ts"),
       join(watchdogDir, "autonomic-watchdog.ts"),
       join(watchdogDir, "index.ts"),
-      join(
-        __dirname,
-        "../../../orchestrating-long-tasks/scripts/src/doctor/tier-confinement.ts",
-      ),
+      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/doctor/tier-confinement.ts"),
       __filename,
     ];
 

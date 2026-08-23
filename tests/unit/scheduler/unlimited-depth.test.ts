@@ -460,9 +460,7 @@ describe("Unlimited Depth DAG Scheduler & Validator Pairing", () => {
 
       const result = validateDepthInvariants(metrics, { max_depth: 4 });
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.includes("exceeds configured max_depth"))).toBe(
-        true,
-      );
+      expect(result.violations.some((v) => v.includes("exceeds configured max_depth"))).toBe(true);
     });
   });
 

@@ -113,9 +113,7 @@ export function toAggregatedBlunder(
     id,
     dedup_key: dedupKey,
     type:
-      typeof input.type === "string" && input.type.length > 0
-        ? input.type
-        : "unspecified_blunder",
+      typeof input.type === "string" && input.type.length > 0 ? input.type : "unspecified_blunder",
     severity: input.severity ? input.severity.toLowerCase() : "warning",
     category,
     status,

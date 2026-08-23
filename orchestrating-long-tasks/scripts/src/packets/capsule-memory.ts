@@ -239,7 +239,13 @@ export function verifyCapsuleLayoutSync(capsuleRoot: string): CapsuleLayoutValid
     } catch {
       exists = false;
     }
-    files.push({ name: fileName, type: "file", exists, path: filePath, ...(sizeBytes !== undefined ? { sizeBytes } : {}) });
+    files.push({
+      name: fileName,
+      type: "file",
+      exists,
+      path: filePath,
+      ...(sizeBytes !== undefined ? { sizeBytes } : {}),
+    });
     if (!exists) {
       missingFiles.push(fileName);
     }
@@ -304,10 +310,7 @@ export function partitionDecoupledMemory(
   };
 }
 
-export function detectContextBloat(
-  context: JsonObject,
-  maxSizeBytes = 32768,
-): ContextBloatAudit {
+export function detectContextBloat(context: JsonObject, maxSizeBytes = 32768): ContextBloatAudit {
   const issues: ContextBloatIssue[] = [];
   const forbiddenFound = new Set<string>();
 

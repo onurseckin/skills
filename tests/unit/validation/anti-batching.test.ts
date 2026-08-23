@@ -20,7 +20,10 @@ import {
 } from "../../../orchestrating-long-tasks/scripts/src/validation/anti-batching.ts";
 import { validateReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/validate-review.ts";
 import { parseCompletionAssessment } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/review-input.ts";
-import type { TaskRecord, WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type {
+  TaskRecord,
+  WorkflowState,
+} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import type { FeedbackItem } from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
@@ -180,7 +183,9 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
 
       const report = validateAntiBatchingIsolation([batchedPlan]);
       expect(report.compliant).toBe(false);
-      expect(report.violations.some((v) => v.includes("illegally merges multiple feedback items"))).toBe(true);
+      expect(
+        report.violations.some((v) => v.includes("illegally merges multiple feedback items")),
+      ).toBe(true);
 
       expect(() => {
         assertAntiBatchingRule([batchedPlan]);
@@ -205,8 +210,12 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
 
       const report = validateAntiBatchingIsolation([commaPlan]);
       expect(report.compliant).toBe(false);
-      expect(report.violations.some((v) => v.includes("declares multi-item feedback_id"))).toBe(true);
-      expect(report.violations.some((v) => v.includes("title indicates batched execution"))).toBe(true);
+      expect(report.violations.some((v) => v.includes("declares multi-item feedback_id"))).toBe(
+        true,
+      );
+      expect(report.violations.some((v) => v.includes("title indicates batched execution"))).toBe(
+        true,
+      );
     });
 
     it("rejects task plans with empty write scopes violating scope isolation", () => {
@@ -250,7 +259,9 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       expect(report.compliant).toBe(false);
       expect(
         report.violations.some((v) =>
-          v.includes("violates 1:1 isolation: implementer 'agent-alice' cannot act as independent validator"),
+          v.includes(
+            "violates 1:1 isolation: implementer 'agent-alice' cannot act as independent validator",
+          ),
         ),
       ).toBe(true);
     });
@@ -271,13 +282,17 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
 
       const report = validateAntiBatchingIsolation([missingValidatorPlan]);
       expect(report.compliant).toBe(false);
-      expect(report.violations.some((v) => v.includes("missing an independent Validator assignment"))).toBe(true);
+      expect(
+        report.violations.some((v) => v.includes("missing an independent Validator assignment")),
+      ).toBe(true);
     });
 
     it("assertOneToOneImplementerValidatorIsolation throws on matching implementer and validator", () => {
       expect(() => {
         assertOneToOneImplementerValidatorIsolation("worker-1", "worker-1", "task-xyz");
-      }).toThrow("Anti-batching violation: task 'task-xyz' assigned implementer 'worker-1' cannot validate its own task");
+      }).toThrow(
+        "Anti-batching violation: task 'task-xyz' assigned implementer 'worker-1' cannot validate its own task",
+      );
 
       expect(() => {
         assertOneToOneImplementerValidatorIsolation("worker-1", "val-1", "task-xyz");
@@ -395,7 +410,9 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
 
       expect(() => {
         validateReview(mockTaskMultiReq, batchedReviewAttempt);
-      }).toThrow("anti-batching violation: passing review covers 2 requirements but only provides 1 check(s)");
+      }).toThrow(
+        "anti-batching violation: passing review covers 2 requirements but only provides 1 check(s)",
+      );
 
       const res = validateReviewAntiBatching(mockTaskMultiReq, batchedReviewAttempt);
       expect(res.valid).toBe(false);
@@ -406,10 +423,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       const validDiscriminatingReview = {
         verdict: "pass" as const,
         requirement_ids: ["req-1", "req-2"],
-        checks: [
-          { command_id: "cmd-check-req-1" },
-          { command_id: "cmd-check-req-2" },
-        ],
+        checks: [{ command_id: "cmd-check-req-1" }, { command_id: "cmd-check-req-2" }],
         findings: [],
       };
 
@@ -426,10 +440,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       const invalidResolutionReview = {
         verdict: "pass" as const,
         requirement_ids: ["req-1", "req-2"],
-        checks: [
-          { command_id: "cmd-check-req-1" },
-          { command_id: "cmd-check-req-2" },
-        ],
+        checks: [{ command_id: "cmd-check-req-1" }, { command_id: "cmd-check-req-2" }],
         findings: [],
         resolved_findings: [
           {
@@ -450,16 +461,21 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
 
     it("assertDiscriminatingSignOffProofs utility function throws appropriately on insufficient proofs", () => {
       expect(() => {
-        assertDiscriminatingSignOffProofs("task-test", ["req-1", "req-2", "req-3"], [
-          { command_id: "cmd-1" },
-        ]);
-      }).toThrow("Anti-batching violation: task 'task-test' covers 3 requirements but only provides 1 check(s)");
+        assertDiscriminatingSignOffProofs(
+          "task-test",
+          ["req-1", "req-2", "req-3"],
+          [{ command_id: "cmd-1" }],
+        );
+      }).toThrow(
+        "Anti-batching violation: task 'task-test' covers 3 requirements but only provides 1 check(s)",
+      );
 
       expect(() => {
-        assertDiscriminatingSignOffProofs("task-test", ["req-1", "req-2"], [
-          { command_id: "cmd-1" },
-          { command_id: "cmd-2" },
-        ]);
+        assertDiscriminatingSignOffProofs(
+          "task-test",
+          ["req-1", "req-2"],
+          [{ command_id: "cmd-1" }, { command_id: "cmd-2" }],
+        );
       }).not.toThrow();
     });
   });
@@ -536,21 +552,32 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
             requirement_id: "REQ-PERF",
             status: "satisfied" as const,
             evidence: [
-              { kind: "command", reference: "cmd-perf-benchmark", observation: "Latency measured at 18ms" },
+              {
+                kind: "command",
+                reference: "cmd-perf-benchmark",
+                observation: "Latency measured at 18ms",
+              },
             ],
           },
           {
             requirement_id: "REQ-SECURITY",
             status: "satisfied" as const,
             evidence: [
-              { kind: "command", reference: "cmd-crypto-timing-test", observation: "Constant-time verified" },
+              {
+                kind: "command",
+                reference: "cmd-crypto-timing-test",
+                observation: "Constant-time verified",
+              },
             ],
           },
         ],
         residual_risks: [],
       };
 
-      const assessment = parseCompletionAssessment(mockWorkflowState, validDiscriminatingCriticInput);
+      const assessment = parseCompletionAssessment(
+        mockWorkflowState,
+        validDiscriminatingCriticInput,
+      );
       expect(assessment.findings.length).toBe(0);
       expect(assessment.requirement_proofs.length).toBe(2);
       expect(assessment.requirement_proofs[0]!.status).toBe("satisfied");
@@ -607,8 +634,20 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
 
     it("assertDefectCandidatesIsolated checks for duplicate finding IDs", () => {
       const duplicateFindings = [
-        { id: "FINDING-1", requirement_id: "REQ-1", severity: "minor" as const, observation: "obs 1", remediation: "rem 1" },
-        { id: "FINDING-1", requirement_id: "REQ-2", severity: "minor" as const, observation: "obs 2", remediation: "rem 2" },
+        {
+          id: "FINDING-1",
+          requirement_id: "REQ-1",
+          severity: "minor" as const,
+          observation: "obs 1",
+          remediation: "rem 1",
+        },
+        {
+          id: "FINDING-1",
+          requirement_id: "REQ-2",
+          severity: "minor" as const,
+          observation: "obs 2",
+          remediation: "rem 2",
+        },
       ];
 
       expect(() => {
@@ -626,7 +665,13 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
 
       const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
       const suppressionPattern = new RegExp(
-        ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck", "eslint" + "-disable", "oxlint" + "-disable"].join("|"),
+        [
+          "@ts" + "-ignore",
+          "@ts" + "-expect-error",
+          "@ts" + "-nocheck",
+          "eslint" + "-disable",
+          "oxlint" + "-disable",
+        ].join("|"),
       );
 
       for (const filePath of filesToAudit) {

@@ -19,7 +19,9 @@ export const DEFAULT_MAX_OPEN_PROPOSALS = DEFAULT_MIND_BUDGET.max_open_proposals
 export const DEFAULT_PROPOSAL_MIN_INTERVAL_MS = 86_400_000; // 24 hours
 export const DEFAULT_INITIATIVE_CONFIDENCE_THRESHOLD = 0.85;
 
-export const VALID_PROPOSAL_TRANSITIONS: Readonly<Record<ProposalStatus, readonly ProposalStatus[]>> = {
+export const VALID_PROPOSAL_TRANSITIONS: Readonly<
+  Record<ProposalStatus, readonly ProposalStatus[]>
+> = {
   opened: ["needs_authority", "admitted", "declined"],
   needs_authority: ["granted", "admitted", "declined"],
   granted: ["admitted", "declined", "revised"],
@@ -250,8 +252,14 @@ export function calculateProposalFingerprint(
   writeScope: readonly string[] = [],
 ): string {
   const normStatement = normalizeText(statement);
-  const normGoals = [...charterGoalIds].map((g) => g.trim().toLowerCase()).sort().join(",");
-  const normScope = [...writeScope].map((s) => s.trim().toLowerCase()).sort().join(",");
+  const normGoals = [...charterGoalIds]
+    .map((g) => g.trim().toLowerCase())
+    .sort()
+    .join(",");
+  const normScope = [...writeScope]
+    .map((s) => s.trim().toLowerCase())
+    .sort()
+    .join(",");
   const hash = createHash("sha256")
     .update(`${normStatement}|${normGoals}|${normScope}`)
     .digest("hex");
@@ -278,7 +286,10 @@ export function isDuplicateProposal(
   // 1. Exact statement match against active/open proposals
   const openMatch = all.find(
     (p) =>
-      (p.status === "needs_authority" || p.status === "opened" || p.status === "admitted" || p.status === "in_progress") &&
+      (p.status === "needs_authority" ||
+        p.status === "opened" ||
+        p.status === "admitted" ||
+        p.status === "in_progress") &&
       (normalizeText(p.statement) === normTarget || p.fingerprint === targetFingerprint),
   );
   if (openMatch) {
@@ -361,7 +372,7 @@ export function getAllProposals(state: Record<string, unknown>): MindProposal[] 
         : undefined;
       const falsifierExit = typeof c.falsifier_exit === "number" ? c.falsifier_exit : undefined;
       const writeScope = Array.isArray(c.write_scope) ? (c.write_scope as string[]) : [];
-      
+
       const rawStatus = typeof c.status === "string" ? c.status : "";
       let status: ProposalStatus = "needs_authority";
       if (
@@ -406,7 +417,8 @@ export function getAllProposals(state: Record<string, unknown>): MindProposal[] 
           ? c.fingerprint
           : calculateProposalFingerprint(statement, charterGoalIds, writeScope);
       const revisionCount = typeof c.revision_count === "number" ? c.revision_count : 0;
-      const parentProposalId = typeof c.parent_proposal_id === "string" ? c.parent_proposal_id : null;
+      const parentProposalId =
+        typeof c.parent_proposal_id === "string" ? c.parent_proposal_id : null;
       const autonomousInitiative = Boolean(c.autonomous_initiative);
       const initiativeTriggerId =
         typeof c.initiative_trigger_id === "string" ? c.initiative_trigger_id : null;
@@ -655,7 +667,12 @@ export function recordProposalInState(
   }
 
   // Duplicate check
-  const duplicateCheck = isDuplicateProposal(state, statement, options.charter_goal_ids, writeScope);
+  const duplicateCheck = isDuplicateProposal(
+    state,
+    statement,
+    options.charter_goal_ids,
+    writeScope,
+  );
   if (duplicateCheck.isDuplicate) {
     throw new HarnessError(
       "INVALID_STATE",
@@ -682,13 +699,17 @@ export function recordProposalInState(
     options.id ?? `cand-prop-${createHash("sha256").update(hashSeed).digest("hex").slice(0, 8)}`;
   const requirementId = `req-${candidateId}`;
 
-  const initialStatus: ProposalStatus = options.autonomousInitiative ? "admitted" : "needs_authority";
+  const initialStatus: ProposalStatus = options.autonomousInitiative
+    ? "admitted"
+    : "needs_authority";
   const initialDisposition = options.autonomousInitiative ? "actionable" : "needs_authority";
   const witness = options.autonomousInitiative
-    ? options.witness ?? `${PROPOSAL_WITNESS_AUTONOMOUS_INITIATIVE}:${options.initiativeTriggerId ?? "trigger"}`
+    ? (options.witness ??
+      `${PROPOSAL_WITNESS_AUTONOMOUS_INITIATIVE}:${options.initiativeTriggerId ?? "trigger"}`)
     : null;
   const witnessCommandId = options.autonomousInitiative
-    ? options.witness_command_id ?? `${PROPOSAL_WITNESS_AUTONOMOUS_INITIATIVE}:${options.initiativeTriggerId ?? "trigger"}`
+    ? (options.witness_command_id ??
+      `${PROPOSAL_WITNESS_AUTONOMOUS_INITIATIVE}:${options.initiativeTriggerId ?? "trigger"}`)
     : null;
 
   const proposal: MindProposal = {
@@ -838,11 +859,13 @@ export function transitionProposalStatusInState(
     candidate.disposition = "completed";
   } else if (newStatus === "declined") {
     candidate.disposition = "out_of_scope";
-    candidate.decline_reason = options.declineReason ?? options.rationale ?? "Declined by authority";
+    candidate.decline_reason =
+      options.declineReason ?? options.rationale ?? "Declined by authority";
     candidate.decided_at = nowIso;
     candidate.decided_by = actor;
   } else if (newStatus === "revised") {
-    const currentRevisions = typeof candidate.revision_count === "number" ? candidate.revision_count : 0;
+    const currentRevisions =
+      typeof candidate.revision_count === "number" ? candidate.revision_count : 0;
     candidate.revision_count = currentRevisions + 1;
   }
 
@@ -886,7 +909,10 @@ export function admitProposalInState(
   state: Record<string, unknown>,
   proposalOrReqId: string,
   actor: string,
-  options: { readonly now?: number | Date | string | undefined; readonly witness?: string | undefined } = {},
+  options: {
+    readonly now?: number | Date | string | undefined;
+    readonly witness?: string | undefined;
+  } = {},
 ): MindProposal {
   return transitionProposalStatusInState(state, proposalOrReqId, "admitted", actor, {
     now: options.now,
@@ -901,7 +927,10 @@ export function completeProposalInState(
   state: Record<string, unknown>,
   proposalOrReqId: string,
   actor: string,
-  options: { readonly now?: number | Date | string | undefined; readonly rationale?: string | undefined } = {},
+  options: {
+    readonly now?: number | Date | string | undefined;
+    readonly rationale?: string | undefined;
+  } = {},
 ): MindProposal {
   return transitionProposalStatusInState(state, proposalOrReqId, "completed", actor, {
     now: options.now,
@@ -1077,9 +1106,10 @@ export function generatePlanRevisionFromSignals(
     let revisionType: PlanRevisionType = "SCOPE_REFINEMENT";
     let autonomousEligible = false;
     let confidence = 0.9;
-    const scopes = signal.affectedWriteScopes.length > 0
-      ? signal.affectedWriteScopes
-      : options.baseWriteScope ?? ["orchestrating-long-tasks/scripts/src/mind"];
+    const scopes =
+      signal.affectedWriteScopes.length > 0
+        ? signal.affectedWriteScopes
+        : (options.baseWriteScope ?? ["orchestrating-long-tasks/scripts/src/mind"]);
 
     switch (signal.signalType) {
       case "TEST_REGRESSION":
@@ -1262,7 +1292,14 @@ export function evaluateInitiativeTriggers(
 
   // Check 3: Avoids prohibitions (e.g. destructive actions, secrets, git push, direct contract edits)
   const normStatement = statement.toLowerCase();
-  const destructiveKeywords = ["git push", "rm -rf", "delete database", "drop table", "publish package", "modify charter"];
+  const destructiveKeywords = [
+    "git push",
+    "rm -rf",
+    "delete database",
+    "drop table",
+    "publish package",
+    "modify charter",
+  ];
   let avoidsProhibitions = !destructiveKeywords.some((kw) => normStatement.includes(kw));
 
   if (input.charterProhibitions && input.charterProhibitions.length > 0) {
@@ -1292,7 +1329,8 @@ export function evaluateInitiativeTriggers(
     reason = `Autonomous initiative trigger qualified: confidence ${(confidence * 100).toFixed(1)}% >= ${(threshold * 100).toFixed(1)}%, safe charter-bounded scope`;
   } else if (!avoidsProhibitions) {
     action = "REQUIRES_HUMAN_AUTHORITY";
-    reason = "Proposal involves potentially sensitive or prohibited actions; mandatory human authority required";
+    reason =
+      "Proposal involves potentially sensitive or prohibited actions; mandatory human authority required";
   } else if (!notDeclined) {
     action = "REQUIRES_HUMAN_AUTHORITY";
     reason = "Proposal matches a previously declined proposal; cannot advance autonomously";
@@ -1362,7 +1400,9 @@ export function formatProposalBrief(proposal: MindProposal): string {
     lines.push(`- **Decline Reason**: ${proposal.decline_reason}`);
   }
   if (proposal.autonomous_initiative) {
-    lines.push(`- **Autonomous Initiative**: Trigger \`${proposal.initiative_trigger_id}\` (Score: ${proposal.initiative_score ?? "N/A"})`);
+    lines.push(
+      `- **Autonomous Initiative**: Trigger \`${proposal.initiative_trigger_id}\` (Score: ${proposal.initiative_score ?? "N/A"})`,
+    );
   }
   return lines.join("\n");
 }

@@ -210,9 +210,13 @@ describe("Dynamic DAG Subagent Relationship & Live Branch Expansion Visualizer (
       const boxText = boxLines.join("\n");
 
       expect(boxText).toContain("↳ Dynamic Branch [branch-feature-expansion] (3 sub-tasks):");
-      expect(boxText).toContain("  ├──► [subtask-1a] [● ACTIVE] [● IMPLEMENTER: sub-impl-1 ──► VALIDATOR: sub-val-1]");
+      expect(boxText).toContain(
+        "  ├──► [subtask-1a] [● ACTIVE] [● IMPLEMENTER: sub-impl-1 ──► VALIDATOR: sub-val-1]",
+      );
       expect(boxText).toContain("  ├──► [subtask-1b] [○ READY]");
-      expect(boxText).toContain("  └──► [subtask-1c] [🔍 PROBING] [● INVESTIGATOR: probe-investigator]");
+      expect(boxText).toContain(
+        "  └──► [subtask-1c] [🔍 PROBING] [● INVESTIGATOR: probe-investigator]",
+      );
     });
 
     it("renders branch expansion hierarchy using renderBranchExpansionHierarchy helper", () => {
@@ -234,7 +238,9 @@ describe("Dynamic DAG Subagent Relationship & Live Branch Expansion Visualizer (
       });
 
       expect(lines[0]).toBe("↳ Dynamic Branch [branch-exp-01] (2 sub-tasks):");
-      expect(lines[1]).toContain("  ├──► [branch-sub-1] [● ACTIVE] [● IMPLEMENTER: impl-a ──► VALIDATOR: val-a]");
+      expect(lines[1]).toContain(
+        "  ├──► [branch-sub-1] [● ACTIVE] [● IMPLEMENTER: impl-a ──► VALIDATOR: val-a]",
+      );
       expect(lines[2]).toContain("  └──► [branch-sub-2] [○ READY]");
     });
   });
@@ -272,7 +278,9 @@ describe("Dynamic DAG Subagent Relationship & Live Branch Expansion Visualizer (
       const report = renderSugiyamaDag(nodes, edges);
       expect(report.renderedDag).toContain("⚡ [ACTIVE EXECUTION SUBGRAPH]");
       expect(report.renderedDag).toContain("task-lane-1");
-      expect(report.renderedDag).toContain("[● IMPLEMENTER: agent-alpha ──► VALIDATOR: agent-val-alpha]");
+      expect(report.renderedDag).toContain(
+        "[● IMPLEMENTER: agent-alpha ──► VALIDATOR: agent-val-alpha]",
+      );
       expect(report.renderedDag).toContain("task-lane-2");
     });
 

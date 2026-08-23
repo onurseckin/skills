@@ -429,7 +429,9 @@ describe("ProcessTimeoutWatchdog - Structured Failure Payload & Remediation Guid
 
     expect(guidance.action).toBe("autonomous_repair_routing");
     expect(guidance.supervisorTarget).toBe("coordinator");
-    expect(guidance.summary).toContain("Mechanical process timeout watchdog detected execution stall / timeout.");
+    expect(guidance.summary).toContain(
+      "Mechanical process timeout watchdog detected execution stall / timeout.",
+    );
   });
 });
 
@@ -680,10 +682,7 @@ describe("HierarchicalStallProbe - Supervisor-to-Child Health Probing", () => {
 describe("Invariants & Cleanliness Audit - Mechanical Process Timeout Watchdog", () => {
   test("zero TypeScript any and zero suppressions across process-timeout watchdog files", () => {
     const sourceFiles = [
-      join(
-        __dirname,
-        "../../../orchestrating-long-tasks/scripts/src/watchdog/process-timeout.ts",
-      ),
+      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/watchdog/process-timeout.ts"),
       __filename,
     ];
 

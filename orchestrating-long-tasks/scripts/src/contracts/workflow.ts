@@ -171,7 +171,8 @@ export function isMicroCycleRecord(value: unknown): value is MicroCycleRecord {
     rec["critique"].trim().length > 0 &&
     (rec["status"] === "open" || rec["status"] === "addressed") &&
     typeof rec["created_at"] === "string" &&
-    (rec["suggested_remediation"] === undefined || typeof rec["suggested_remediation"] === "string") &&
+    (rec["suggested_remediation"] === undefined ||
+      typeof rec["suggested_remediation"] === "string") &&
     (rec["observed_defect"] === undefined || typeof rec["observed_defect"] === "string")
   );
 }
@@ -184,7 +185,9 @@ export function isStructuredFinding(value: unknown): value is Finding {
     rec["id"].trim().length > 0 &&
     typeof rec["requirement_id"] === "string" &&
     rec["requirement_id"].trim().length > 0 &&
-    (rec["severity"] === "critical" || rec["severity"] === "important" || rec["severity"] === "minor") &&
+    (rec["severity"] === "critical" ||
+      rec["severity"] === "important" ||
+      rec["severity"] === "minor") &&
     typeof rec["observation"] === "string" &&
     rec["observation"].trim().length > 0 &&
     Array.isArray(rec["evidence"]) &&
@@ -216,4 +219,3 @@ export function isCoordinatorPushback(value: unknown): value is CoordinatorPushb
     typeof rec["created_at"] === "string"
   );
 }
-

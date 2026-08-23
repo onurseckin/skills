@@ -41,11 +41,7 @@ export type RoleSpecializationDomain =
 /**
  * Policy governing write scope access for a synthesized role.
  */
-export type WriteScopePolicy =
-  | "forbidden"
-  | "lease_bounded"
-  | "unrestricted"
-  | "domain_isolated";
+export type WriteScopePolicy = "forbidden" | "lease_bounded" | "unrestricted" | "domain_isolated";
 
 /**
  * Lineage tracking entry for evolved dynamic roles.
@@ -250,19 +246,8 @@ const ARCHETYPE_DEFAULT_COMMANDS: Readonly<Record<RoleArchetype, readonly string
     "summary:export",
   ],
   tier_3_implementer: ["task:claim", "task:heartbeat", "task:submit", "run:exec"],
-  tier_3_validator: [
-    "gate:check",
-    "validator:findings",
-    "evidence:record",
-    "critic:evaluate",
-  ],
-  tier_3_repairer: [
-    "task:claim",
-    "task:heartbeat",
-    "task:submit",
-    "run:exec",
-    "recover",
-  ],
+  tier_3_validator: ["gate:check", "validator:findings", "evidence:record", "critic:evaluate"],
+  tier_3_repairer: ["task:claim", "task:heartbeat", "task:submit", "run:exec", "recover"],
   tier_3_critic: ["critic:evaluate", "gate:check", "evidence:record"],
   tier_3_specialist: ["task:claim", "task:heartbeat", "task:submit", "run:exec"],
 };
@@ -372,17 +357,11 @@ export function validateDynamicRoleSpec(spec: DynamicRoleSpec): DynamicRoleValid
 
   // Name validation
   if (!spec.name || typeof spec.name !== "string" || !ROLE_NAME_PATTERN.test(spec.name)) {
-    errors.push(
-      `Role name '${spec.name}' is invalid. Must match pattern ^[a-z][a-z0-9_-]*$.`,
-    );
+    errors.push(`Role name '${spec.name}' is invalid. Must match pattern ^[a-z][a-z0-9_-]*$.`);
   }
 
   // Tier validation
-  if (
-    !Number.isSafeInteger(spec.tier) ||
-    spec.tier < 0 ||
-    spec.tier > 3
-  ) {
+  if (!Number.isSafeInteger(spec.tier) || spec.tier < 0 || spec.tier > 3) {
     errors.push(`Tier must be an integer between 0 and 3, got: ${spec.tier}.`);
   }
 
@@ -432,9 +411,7 @@ export function validateDynamicRoleSpec(spec: DynamicRoleSpec): DynamicRoleValid
   // Forbidden command check
   for (const cmd of spec.grantedCommands) {
     if (FORBIDDEN_COMMANDS.has(cmd)) {
-      errors.push(
-        `Command '${cmd}' is strictly forbidden across all role specifications.`,
-      );
+      errors.push(`Command '${cmd}' is strictly forbidden across all role specifications.`);
     }
   }
 
@@ -713,7 +690,10 @@ export function parseDynamicRoleContract(
   }
 
   const frontmatterLines = lines.slice(1, endFenceIndex);
-  const rawBody = lines.slice(endFenceIndex + 1).join("\n").trim();
+  const rawBody = lines
+    .slice(endFenceIndex + 1)
+    .join("\n")
+    .trim();
 
   let roleName: string | undefined;
   let tier: number | undefined;
@@ -1022,15 +1002,9 @@ export function mutateRoleWithFeedback(
   const currentVersion = currentSpec.version ?? 1;
   const newVersion = currentVersion + 1;
 
-  const updatedInvariants = [
-    ...currentSpec.invariants,
-    ...(feedback.newInvariants ?? []),
-  ];
+  const updatedInvariants = [...currentSpec.invariants, ...(feedback.newInvariants ?? [])];
 
-  const updatedPillars = [
-    ...currentSpec.cognitivePillars,
-    ...(feedback.newPillars ?? []),
-  ];
+  const updatedPillars = [...currentSpec.cognitivePillars, ...(feedback.newPillars ?? [])];
 
   const removedCmdSet = new Set(feedback.removedCommands ?? []);
   const updatedCommands = [

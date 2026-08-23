@@ -64,10 +64,7 @@ export function helpRequest(argv: readonly string[]): HelpRequest | null {
   return null;
 }
 
-export function renderHelp(
-  command: string | null,
-  options?: RenderHelpOptions | boolean,
-): string {
+export function renderHelp(command: string | null, options?: RenderHelpOptions | boolean): string {
   const internal = typeof options === "boolean" ? options : (options?.internal ?? false);
   if (command === null) return renderOverview(internal);
   const spec = findCommand(command);
@@ -107,7 +104,9 @@ function renderOverview(internal: boolean): string {
       verb === "doctor"
         ? COMMAND_REGISTRY.filter(
             (spec) =>
-              (spec.name === "doctor" || spec.name.startsWith("doctor:") || spec.domain === "doctor") &&
+              (spec.name === "doctor" ||
+                spec.name.startsWith("doctor:") ||
+                spec.domain === "doctor") &&
               !isInternalCommand(spec),
           )
         : COMMAND_REGISTRY.filter(

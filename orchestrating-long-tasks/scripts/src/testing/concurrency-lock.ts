@@ -6,7 +6,15 @@
  * Supports stale lock recovery for terminated PIDs and memoizes test summary execution records.
  */
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { hostname } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { findRepoRoot } from "./isolation.ts";
@@ -72,11 +80,13 @@ export function isTestFilePath(targetPath: string): boolean {
  */
 function tokenizeCommand(command: string | readonly string[]): string[] {
   if (typeof command === "string") {
-    return command.trim().split(/\s+/).filter((entry: string) => entry.length > 0);
+    return command
+      .trim()
+      .split(/\s+/)
+      .filter((entry: string) => entry.length > 0);
   }
   return command.map((entry: string) => entry.trim()).filter((entry: string) => entry.length > 0);
 }
-
 
 /**
  * Determines whether a command invocation represents a full-suite test execution
@@ -228,8 +238,12 @@ export function readLockPayload(lockPath: string): FullSuiteTestLockPayload | nu
       return {
         pid: parsed.pid,
         agent_id: parsed.agent_id,
-        acquired_at_utc: typeof parsed.acquired_at_utc === "string" ? parsed.acquired_at_utc : new Date().toISOString(),
-        acquired_at_ms: typeof parsed.acquired_at_ms === "number" ? parsed.acquired_at_ms : Date.now(),
+        acquired_at_utc:
+          typeof parsed.acquired_at_utc === "string"
+            ? parsed.acquired_at_utc
+            : new Date().toISOString(),
+        acquired_at_ms:
+          typeof parsed.acquired_at_ms === "number" ? parsed.acquired_at_ms : Date.now(),
         hostname: typeof parsed.hostname === "string" ? parsed.hostname : hostname(),
         command: typeof parsed.command === "string" ? parsed.command : undefined,
       };
@@ -265,7 +279,11 @@ export async function acquireFullSuiteTestLock(
     try {
       if (existsSync(lockPath)) {
         const currentPayload = readLockPayload(lockPath);
-        if (!currentPayload || currentPayload.pid === process.pid || currentPayload.agent_id === agentId) {
+        if (
+          !currentPayload ||
+          currentPayload.pid === process.pid ||
+          currentPayload.agent_id === agentId
+        ) {
           rmSync(lockPath, { force: true });
         }
       }
@@ -440,10 +458,12 @@ export function createTestSummaryRecord(params: {
     failed_count: Math.max(0, params.failed_count),
     skipped_count: Math.max(0, params.skipped_count ?? 0),
     duration_ms: Math.max(0, params.duration_ms ?? 0),
-    coverage_percentage: params.coverage_percentage !== undefined ? params.coverage_percentage : null,
+    coverage_percentage:
+      params.coverage_percentage !== undefined ? params.coverage_percentage : null,
     commit_sha: params.commit_sha !== undefined ? params.commit_sha : resolveCommitSha(),
     test_files_count: Math.max(1, params.test_files_count ?? 1),
-    scope: params.scope ?? (params.test_files_count && params.test_files_count > 1 ? "full" : "scoped"),
+    scope:
+      params.scope ?? (params.test_files_count && params.test_files_count > 1 ? "full" : "scoped"),
     agent_id: params.agent_id,
     details: params.details,
   };
@@ -531,7 +551,11 @@ export async function getLatestTestSummary(
  */
 export function formatTestSummaryMarkdown(summary: TestSummaryRecord): string {
   const isPassing = summary.passed_count > 0 && summary.failed_count === 0;
-  const statusIcon = isPassing ? "✅ PASSED" : summary.failed_count > 0 ? "❌ FAILED" : "⚠️ NO_TESTS";
+  const statusIcon = isPassing
+    ? "✅ PASSED"
+    : summary.failed_count > 0
+      ? "❌ FAILED"
+      : "⚠️ NO_TESTS";
 
   const lines: string[] = [
     `### Test Execution Summary: \`${summary.scope}\``,

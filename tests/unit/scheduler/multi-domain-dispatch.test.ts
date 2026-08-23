@@ -89,10 +89,7 @@ function createMultiDomainState(
     tasks: Object.fromEntries(
       tasks.map((item) => {
         const id = String(item.id);
-        return [
-          id,
-          { ...item, dependencies: [...(dependencySets.get(id) ?? [])] },
-        ];
+        return [id, { ...item, dependencies: [...(dependencySets.get(id) ?? [])] }];
       }),
     ),
   };
@@ -153,19 +150,29 @@ describe("REMED-006: Simultaneous Multi-Domain Dispatch", () => {
       expect(classifyTaskDomain({ validator_domain: "security" })).toBe("security-auth");
       expect(classifyTaskDomain({ validator_domain: "product" })).toBe("product-experience");
       expect(classifyTaskDomain({ validator_domain: "code-quality" })).toBe("core-engine");
-      expect(classifyTaskDomain({ validator_domain: "specialized-domain" })).toBe("specialized-domain");
+      expect(classifyTaskDomain({ validator_domain: "specialized-domain" })).toBe(
+        "specialized-domain",
+      );
     });
 
     test("classifies tasks by file extension and path markers in write_scope", () => {
-      expect(classifyTaskDomain({ write_scope: ["src/components/Header.tsx"] })).toBe("frontend-ui");
+      expect(classifyTaskDomain({ write_scope: ["src/components/Header.tsx"] })).toBe(
+        "frontend-ui",
+      );
       expect(classifyTaskDomain({ write_scope: ["src/styles/theme.css"] })).toBe("frontend-ui");
       expect(classifyTaskDomain({ write_scope: ["src/views/Dashboard.vue"] })).toBe("frontend-ui");
-      expect(classifyTaskDomain({ write_scope: ["src/schema/schema.graphql"] })).toBe("backend-system");
-      expect(classifyTaskDomain({ write_scope: ["src/proto/service.proto"] })).toBe("backend-system");
+      expect(classifyTaskDomain({ write_scope: ["src/schema/schema.graphql"] })).toBe(
+        "backend-system",
+      );
+      expect(classifyTaskDomain({ write_scope: ["src/proto/service.proto"] })).toBe(
+        "backend-system",
+      );
       expect(classifyTaskDomain({ write_scope: ["src/api/routes.ts"] })).toBe("backend-system");
       expect(classifyTaskDomain({ write_scope: ["src/server/handler.ts"] })).toBe("backend-system");
       expect(classifyTaskDomain({ write_scope: ["src/auth/jwt-signer.ts"] })).toBe("security-auth");
-      expect(classifyTaskDomain({ write_scope: ["src/security/encryption.ts"] })).toBe("security-auth");
+      expect(classifyTaskDomain({ write_scope: ["src/security/encryption.ts"] })).toBe(
+        "security-auth",
+      );
       expect(classifyTaskDomain({ write_scope: ["src/core/math.ts"] })).toBe("core-engine");
       expect(classifyTaskDomain(null)).toBe("core-engine");
     });
@@ -173,8 +180,12 @@ describe("REMED-006: Simultaneous Multi-Domain Dispatch", () => {
     test("derivePrimaryValidatorDomain extracts appropriate validator domain", () => {
       expect(derivePrimaryValidatorDomain({ validator_domain: "security" })).toBe("security");
       expect(derivePrimaryValidatorDomain({ write_scope: ["src/ui/App.tsx"] })).toBe("ui-design");
-      expect(derivePrimaryValidatorDomain({ write_scope: ["src/schema/db.graphql"] })).toBe("system-design");
-      expect(derivePrimaryValidatorDomain({ write_scope: ["src/core/calc.ts"] })).toBe("code-quality");
+      expect(derivePrimaryValidatorDomain({ write_scope: ["src/schema/db.graphql"] })).toBe(
+        "system-design",
+      );
+      expect(derivePrimaryValidatorDomain({ write_scope: ["src/core/calc.ts"] })).toBe(
+        "code-quality",
+      );
       expect(derivePrimaryValidatorDomain(null)).toBe("code-quality");
     });
   });
@@ -393,7 +404,6 @@ describe("REMED-006: Simultaneous Multi-Domain Dispatch", () => {
       expect(valIds).not.toContain("sub-ui-conflict");
     });
   });
-
 
   describe("5. Strict Scope Isolation Across Disjoint Domains", () => {
     test("Prevents simultaneous dispatch of cross-domain tasks with overlapping write scopes", () => {
@@ -718,7 +728,6 @@ describe("REMED-006: Simultaneous Multi-Domain Dispatch", () => {
       expect(factor).toBe(2.75);
     });
 
-
     test("sorts domain groups alphabetically on equal priority during multi-domain dispatch", () => {
       const tasks = [
         createTask("task-b", "src/api/b.ts", { priority: 5 }), // backend-system
@@ -787,5 +796,3 @@ describe("REMED-006: Simultaneous Multi-Domain Dispatch", () => {
     });
   });
 });
-
-

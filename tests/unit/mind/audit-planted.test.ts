@@ -476,22 +476,19 @@ describe("PHASE-5 §4.1 & PLAN §13.7 Planted-Ledger Audit Test Suite", () => {
       const fixture = setupPlantedAuditCapsule("pulse-gap-clean");
 
       // Transact clean pulse-1 cycle
-      transact(
-        fixture.run,
-        "mind-1",
-        "mind-pulse-opened",
-        { pulse_id: "pulse-1" },
-        (working) => {
-          working.pulse = { open: { pulse_id: "pulse-1" } } as unknown as JsonObject;
-        },
-      );
+      transact(fixture.run, "mind-1", "mind-pulse-opened", { pulse_id: "pulse-1" }, (working) => {
+        working.pulse = { open: { pulse_id: "pulse-1" } } as unknown as JsonObject;
+      });
       transact(
         fixture.run,
         "mind-1",
         "mind-pulse-closed",
         { pulse_id: "pulse-1", outcome: "quiescent", value: 0 },
         (working) => {
-          working.pulse = { open: null, last: { pulse_id: "pulse-1", outcome: "quiescent" } } as unknown as JsonObject;
+          working.pulse = {
+            open: null,
+            last: { pulse_id: "pulse-1", outcome: "quiescent" },
+          } as unknown as JsonObject;
         },
       );
 

@@ -65,7 +65,9 @@ function identifyTestCall(
     if (
       (ts.isIdentifier(obj) && isTestIdentifier(obj.text)) ||
       (ts.isIdentifier(obj) && obj.text === "describe" && isTestIdentifier(prop)) ||
-      (ts.isPropertyAccessExpression(obj) && ts.isIdentifier(obj.name) && isTestIdentifier(obj.name.text))
+      (ts.isPropertyAccessExpression(obj) &&
+        ts.isIdentifier(obj.name) &&
+        isTestIdentifier(obj.name.text))
     ) {
       const callback = findCallback(node.arguments);
       if (callback) {
@@ -155,7 +157,8 @@ export function checkAssertionFloor(
 ): AssertionFloorResult {
   const minPerTest = options?.minAssertionsPerTest ?? 1;
   const minPerFile = options?.minAssertionsPerFile ?? 1;
-  const fileName = typeof options?.file === "string" && options.file.length > 0 ? options.file : "test.ts";
+  const fileName =
+    typeof options?.file === "string" && options.file.length > 0 ? options.file : "test.ts";
   const customIdentifiers = new Set(options?.customAssertionIdentifiers ?? []);
 
   const sourceFile = ts.createSourceFile(

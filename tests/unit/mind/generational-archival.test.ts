@@ -6,7 +6,10 @@ import {
   formatMindRotateBrief,
   mindRotateCommand,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-rotate.ts";
-import type { JsonObject, JsonValue } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import type {
+  JsonObject,
+  JsonValue,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   appendArchivedObjectives,
@@ -219,7 +222,10 @@ describe("Generational State Archival (REMED-007)", () => {
     });
 
     test("resolveArchivedObjectivesPath resolves custom, capsulesDir, and default paths", () => {
-      const custom = resolveArchivedObjectivesPath(undefined, "/custom/path/ARCHIVED_OBJECTIVES.jsonl");
+      const custom = resolveArchivedObjectivesPath(
+        undefined,
+        "/custom/path/ARCHIVED_OBJECTIVES.jsonl",
+      );
       expect(custom).toBe("/custom/path/ARCHIVED_OBJECTIVES.jsonl");
 
       const fromCapsulesDir = resolveArchivedObjectivesPath("/capsules/dir");
@@ -569,7 +575,9 @@ describe("Generational State Archival (REMED-007)", () => {
 
       // Step 3: In Generation 2, add Gen 2 candidate and objective records
       transact(rot1.targetRunRoot, "mind-agent", "add-gen2-records", {}, (state) => {
-        const cands = Array.isArray(state.candidates) ? (state.candidates as CandidateRecord[]) : [];
+        const cands = Array.isArray(state.candidates)
+          ? (state.candidates as CandidateRecord[])
+          : [];
         cands.push({
           id: "cand-gen2-completed",
           kind: "defect",
@@ -613,7 +621,9 @@ describe("Generational State Archival (REMED-007)", () => {
 
       // Step 5: In Generation 3, add Gen 3 records
       transact(rot2.targetRunRoot, "mind-agent", "add-gen3-records", {}, (state) => {
-        const cands = Array.isArray(state.candidates) ? (state.candidates as CandidateRecord[]) : [];
+        const cands = Array.isArray(state.candidates)
+          ? (state.candidates as CandidateRecord[])
+          : [];
         cands.push({
           id: "cand-gen3-completed",
           kind: "defect",
@@ -708,7 +718,9 @@ describe("Generational State Archival (REMED-007)", () => {
 
       const verdict = evaluateGate6NotADuplicate(duplicateCandidate, gateContext);
       expect(verdict.passed).toBe(false);
-      expect(verdict.reason).toContain("duplicate of permanently declined candidate 'cand-gen1-declined'");
+      expect(verdict.reason).toContain(
+        "duplicate of permanently declined candidate 'cand-gen1-declined'",
+      );
 
       // Step 8: Diagnostics and Integrity verification across all capsules
       expect(verifyIntegrity(gen1Root)).toEqual([]);
@@ -760,7 +772,9 @@ describe("Generational State Archival (REMED-007)", () => {
       expect(result.archived_count).toBe(1);
       expect(result.markdown).toContain("Mind Rotated: Generation 3 → 4");
       expect(result.markdown).toContain("Generational State Archival");
-      expect(result.markdown).toContain("1 items pruned (<= Gen 1) and archived to `ARCHIVED_OBJECTIVES.jsonl`");
+      expect(result.markdown).toContain(
+        "1 items pruned (<= Gen 1) and archived to `ARCHIVED_OBJECTIVES.jsonl`",
+      );
     });
   });
 
@@ -1008,4 +1022,3 @@ describe("Generational State Archival (REMED-007)", () => {
     });
   });
 });
-

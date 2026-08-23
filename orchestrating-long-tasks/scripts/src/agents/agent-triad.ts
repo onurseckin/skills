@@ -126,7 +126,9 @@ function resolveWorkspacePaths(options?: AgentTriadOptions): {
   const root = options?.skillRoot ? resolve(options.skillRoot) : findSkillRoot();
   const agents = options?.agentsDir ? resolve(options.agentsDir) : join(root, "agents");
   const roles = options?.rolesDir ? resolve(options.rolesDir) : join(root, "roles");
-  const references = options?.referencesDir ? resolve(options.referencesDir) : join(root, "references");
+  const references = options?.referencesDir
+    ? resolve(options.referencesDir)
+    : join(root, "references");
 
   return {
     skillRoot: root,
@@ -203,7 +205,9 @@ export function loadAgentIdentity(roleInput: string, options?: AgentTriadOptions
       provider: ["generic"],
       tools: {
         enable_subagent_tools: true,
-        enable_write_tools: fallbackTier === 3 && (normRole === "implementer" || normRole === "repairer" || normRole === "worker"),
+        enable_write_tools:
+          fallbackTier === 3 &&
+          (normRole === "implementer" || normRole === "repairer" || normRole === "worker"),
       },
       filePath: undefined,
       rawYaml: undefined,
@@ -214,8 +218,11 @@ export function loadAgentIdentity(roleInput: string, options?: AgentTriadOptions
   const manifest: AgentManifest = parseAgentManifest(rawYaml, targetPath);
 
   const iface: AgentManifestInterface | undefined = manifest.interface;
-  const displayName = iface?.display_name ?? `${manifest.name.charAt(0).toUpperCase() + manifest.name.slice(1)} Agent`;
-  const shortDescription = iface?.short_description ?? `Agent operating under the ${manifest.role} specification`;
+  const displayName =
+    iface?.display_name ??
+    `${manifest.name.charAt(0).toUpperCase() + manifest.name.slice(1)} Agent`;
+  const shortDescription =
+    iface?.short_description ?? `Agent operating under the ${manifest.role} specification`;
 
   return {
     name: manifest.name,
@@ -234,7 +241,10 @@ export function loadAgentIdentity(roleInput: string, options?: AgentTriadOptions
   };
 }
 
-export function loadAgentRoleDefinition(roleInput: string, options?: AgentTriadOptions): AgentRoleDefinition {
+export function loadAgentRoleDefinition(
+  roleInput: string,
+  options?: AgentTriadOptions,
+): AgentRoleDefinition {
   const normRole = normalizeRoleName(roleInput);
   const { rolesDir } = resolveWorkspacePaths(options);
 
@@ -488,7 +498,10 @@ export function findRelevantReferencesForRole(
 // 1. validateAgentTriad
 // ---------------------------------------------------------------------------
 
-export function validateAgentTriad(roleInput: string, options?: AgentTriadOptions): TriadValidationResult {
+export function validateAgentTriad(
+  roleInput: string,
+  options?: AgentTriadOptions,
+): TriadValidationResult {
   const normRole = normalizeRoleName(roleInput);
 
   const issues: string[] = [];
@@ -526,7 +539,8 @@ export function validateAgentTriad(roleInput: string, options?: AgentTriadOption
     const cleanRef = basename(ref, extname(ref));
     const isKnownMapping =
       (normRole === "ui-mechanic-validator" && cleanRef === "mechanic-validator") ||
-      (normRole === "ui-validator" && (cleanRef === "validator-ui-design" || cleanRef === "validator")) ||
+      (normRole === "ui-validator" &&
+        (cleanRef === "validator-ui-design" || cleanRef === "validator")) ||
       (normRole === "mechanic-validator" && cleanRef === "mechanic-validator") ||
       (normRole.startsWith("validator-") && (cleanRef === normRole || cleanRef === "validator"));
     if (cleanRef !== normRole && cleanRef !== identity.name && !isKnownMapping) {
@@ -539,13 +553,24 @@ export function validateAgentTriad(roleInput: string, options?: AgentTriadOption
 
   // Check references
   const allReferences = loadAgentReferenceDocs(options);
-  const relevantReferences = findRelevantReferencesForRole(normRole, allReferences, identity, definition);
+  const relevantReferences = findRelevantReferencesForRole(
+    normRole,
+    allReferences,
+    identity,
+    definition,
+  );
   const hasReferences = relevantReferences.length > 0;
   if (!hasReferences) {
-    warnings.push(`No associated reference documentation found for role '${normRole}' in references/`);
+    warnings.push(
+      `No associated reference documentation found for role '${normRole}' in references/`,
+    );
   }
 
-  const effectiveTier = hasDefinition ? definition.tier : (hasIdentity ? identity.tier : roleToTier(normRole));
+  const effectiveTier = hasDefinition
+    ? definition.tier
+    : hasIdentity
+      ? identity.tier
+      : roleToTier(normRole);
   const valid = issues.length === 0;
 
   return {
@@ -620,7 +645,19 @@ export function auditAgentTriadWorkspace(options?: AgentTriadOptions): TriadAudi
   for (const r of manifestRoles) {
     if (!contractRoles.has(r)) {
       // Exclude generic host provider manifests or specialized validator manifests mapped to existing contracts
-      if (!["antigravity", "claude", "codex", "cursor", "generic", "openai", "ui-mechanic-validator", "ui-validator", "worker"].includes(r)) {
+      if (
+        ![
+          "antigravity",
+          "claude",
+          "codex",
+          "cursor",
+          "generic",
+          "openai",
+          "ui-mechanic-validator",
+          "ui-validator",
+          "worker",
+        ].includes(r)
+      ) {
         orphanedManifests.push(r);
       }
     }
@@ -697,7 +734,10 @@ export function auditAgentTriadWorkspace(options?: AgentTriadOptions): TriadAudi
 // 3. synthesizeTriadManifest
 // ---------------------------------------------------------------------------
 
-export function synthesizeTriadManifest(roleInput: string, options?: AgentTriadOptions): AgentTriadBundle {
+export function synthesizeTriadManifest(
+  roleInput: string,
+  options?: AgentTriadOptions,
+): AgentTriadBundle {
   const normRole = normalizeRoleName(roleInput);
   const validation = validateAgentTriad(normRole, options);
 
@@ -714,7 +754,8 @@ export function synthesizeTriadManifest(roleInput: string, options?: AgentTriadO
   const allReferences = loadAgentReferenceDocs(options);
   const references = findRelevantReferencesForRole(normRole, allReferences, identity, definition);
 
-  const isComplete = validation.hasIdentity && validation.hasDefinition && validation.tierConsistent;
+  const isComplete =
+    validation.hasIdentity && validation.hasDefinition && validation.tierConsistent;
   const validationIssues = validation.issues.length > 0 ? validation.issues : undefined;
 
   return {

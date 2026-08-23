@@ -32,18 +32,26 @@ describe("mind role contract & strategic purpose codification", () => {
 
     // 1. Zero source code edits
     expect(mustNotSection).toContain("zero source code edits");
-    expect(mustNotSection).toContain("Write, edit, stage, revert, format or delete any repository file or source code");
+    expect(mustNotSection).toContain(
+      "Write, edit, stage, revert, format or delete any repository file or source code",
+    );
 
     // 2. Zero unit test execution
     expect(mustNotSection).toContain("zero unit test execution");
-    expect(mustNotSection).toContain("Run, execute, or debug unit tests, integration tests, or test suites directly");
+    expect(mustNotSection).toContain(
+      "Run, execute, or debug unit tests, integration tests, or test suites directly",
+    );
 
     // 3. Zero critic jobs
     expect(mustNotSection).toContain("zero critic jobs");
-    expect(mustNotSection).toContain("Execute critic/review jobs, linting/formatting passes, or line-level pull request critique directly");
+    expect(mustNotSection).toContain(
+      "Execute critic/review jobs, linting/formatting passes, or line-level pull request critique directly",
+    );
 
     // In prose
-    expect(contract.text).toContain("The Three Hard Zeros (Zero Source Edits, Zero Unit Test Execution, Zero Critic Jobs)");
+    expect(contract.text).toContain(
+      "The Three Hard Zeros (Zero Source Edits, Zero Unit Test Execution, Zero Critic Jobs)",
+    );
   });
 
   test("mind contract mandates proactive bandwidth utilization during long subordinate execution windows (2+ hours)", () => {
@@ -58,7 +66,9 @@ describe("mind role contract & strategic purpose codification", () => {
     expect(maySection).toContain("proactive roadmap planning for future fleets");
 
     // Verify prose details
-    expect(contract.text).toContain("Proactive Bandwidth Utilization During Subordinate Execution Windows (2+ Hours)");
+    expect(contract.text).toContain(
+      "Proactive Bandwidth Utilization During Subordinate Execution Windows (2+ Hours)",
+    );
     expect(contract.text).toContain("Macro-level DAG diagnostics");
     expect(contract.text).toContain("Backlog grooming");
     expect(contract.text).toContain("Candidate admission");
@@ -86,7 +96,9 @@ describe("mind role contract & strategic purpose codification", () => {
 
     // Verify persona laws
     expect(yamlContent).toContain("Strategic Brain at 30,000 Feet (The 3 Hard Zeros)");
-    expect(yamlContent).toContain("Proactive Bandwidth Utilization During Subordinate Execution Windows");
+    expect(yamlContent).toContain(
+      "Proactive Bandwidth Utilization During Subordinate Execution Windows",
+    );
     expect(yamlContent).toContain("2+ hours");
   });
 

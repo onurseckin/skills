@@ -87,7 +87,9 @@ export interface MultiCapsuleOrchestratorOptions {
   readonly outputDir?: string | undefined;
   readonly actor?: string | undefined;
   readonly onCapsuleStateChange?: ((event: CapsuleStateChangeEvent) => void) | undefined;
-  readonly onAntiSequentialityViolation?: ((violation: AntiSequentialityViolation) => void) | undefined;
+  readonly onAntiSequentialityViolation?:
+    | ((violation: AntiSequentialityViolation) => void)
+    | undefined;
 }
 
 export interface MultiCapsuleSummary {
@@ -286,10 +288,12 @@ export class MultiCapsuleDAG {
  */
 export function validateAntiSequentiality(
   specs: readonly CapsuleSpec[],
-  options?: {
-    readonly maxParallelCapsules?: number | undefined;
-    readonly allowScopeOverlapInIsolatedWorktrees?: boolean | undefined;
-  } | undefined,
+  options?:
+    | {
+        readonly maxParallelCapsules?: number | undefined;
+        readonly allowScopeOverlapInIsolatedWorktrees?: boolean | undefined;
+      }
+    | undefined,
 ): AntiSequentialityReport {
   const violations: AntiSequentialityViolation[] = [];
   const diagnostics: string[] = [];
@@ -403,20 +407,19 @@ export function validateAntiSequentiality(
  */
 export function assertAntiSequentiality(
   specs: readonly CapsuleSpec[],
-  options?: {
-    readonly maxParallelCapsules?: number | undefined;
-    readonly allowScopeOverlapInIsolatedWorktrees?: boolean | undefined;
-  } | undefined,
+  options?:
+    | {
+        readonly maxParallelCapsules?: number | undefined;
+        readonly allowScopeOverlapInIsolatedWorktrees?: boolean | undefined;
+      }
+    | undefined,
 ): void {
   const report = validateAntiSequentiality(specs, options);
   if (!report.compliant) {
     const errorDetails = report.violations
       .map((v) => `[${v.type}] on (${v.capsuleIds.join(", ")}): ${v.message}`)
       .join("; ");
-    throw new HarnessError(
-      "INVALID_STATE",
-      `Anti-Sequentiality Engine Violation: ${errorDetails}`,
-    );
+    throw new HarnessError("INVALID_STATE", `Anti-Sequentiality Engine Violation: ${errorDetails}`);
   }
 }
 
@@ -489,12 +492,18 @@ export class TrueMultiCapsuleOrchestrator {
 
   private readonly executor: CapsuleExecutor | undefined;
   private readonly onCapsuleStateChange?: ((event: CapsuleStateChangeEvent) => void) | undefined;
-  private readonly onAntiSequentialityViolation?: ((violation: AntiSequentialityViolation) => void) | undefined;
+  private readonly onAntiSequentialityViolation?:
+    | ((violation: AntiSequentialityViolation) => void)
+    | undefined;
 
   public constructor(options: MultiCapsuleOrchestratorOptions = {}) {
-    this.maxParallelCapsules = Math.max(1, options.maxParallelCapsules ?? TrueMultiCapsuleOrchestrator.DEFAULT_MAX_PARALLEL);
+    this.maxParallelCapsules = Math.max(
+      1,
+      options.maxParallelCapsules ?? TrueMultiCapsuleOrchestrator.DEFAULT_MAX_PARALLEL,
+    );
     this.strictAntiSequentiality = options.strictAntiSequentiality ?? false;
-    this.allowScopeOverlapInIsolatedWorktrees = options.allowScopeOverlapInIsolatedWorktrees ?? true;
+    this.allowScopeOverlapInIsolatedWorktrees =
+      options.allowScopeOverlapInIsolatedWorktrees ?? true;
     this.executor = options.executor;
     this.outputDir = options.outputDir;
     this.actor = options.actor;
@@ -508,7 +517,10 @@ export class TrueMultiCapsuleOrchestrator {
    */
   public async orchestrate(specs: readonly CapsuleSpec[]): Promise<MultiCapsuleSummary> {
     if (specs.length === 0) {
-      throw new HarnessError("INVALID_ARGUMENT", "Cannot orchestrate an empty set of capsule specs");
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        "Cannot orchestrate an empty set of capsule specs",
+      );
     }
 
     const startTime = Date.now();

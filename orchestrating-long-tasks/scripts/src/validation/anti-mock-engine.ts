@@ -36,7 +36,9 @@ export function formatAntiMockReport(report: AntiMockDiagnosticReport): string {
   const p1 = report.pillar1AstLinter;
   const p1Status = p1.passed ? "✅ PASSED" : "❌ FAILED";
   lines.push(` ┌── Pillar 1: AST Early-Return & Mock Tautology Linter ────────────────────┐`);
-  lines.push(` │ Status: ${p1Status} (${p1.violations.length} violation(s) across ${p1.totalTestsAnalyzed} test(s))`);
+  lines.push(
+    ` │ Status: ${p1Status} (${p1.violations.length} violation(s) across ${p1.totalTestsAnalyzed} test(s))`,
+  );
   lines.push(` │ • Empty test functions: ${p1.emptyTestCount}`);
   lines.push(` │ • Trivial early returns: ${p1.trivialReturnCount}`);
   lines.push(` │ • Mock tautologies: ${p1.mockTautologyCount}`);
@@ -103,12 +105,16 @@ export async function evaluateAntiMock(
   input: AntiMockEvaluationInput,
   config?: AntiMockEngineConfig,
 ): Promise<AntiMockDiagnosticReport> {
-  const testFile = typeof input.testFileName === "string" && input.testFileName.length > 0
-    ? input.testFileName
-    : "test.ts";
-  const implFile = typeof input.implementationFileName === "string" && input.implementationFileName.length > 0
-    ? input.implementationFileName
-    : (typeof input.testFileName === "string" && input.testFileName.length > 0 ? input.testFileName : "source.ts");
+  const testFile =
+    typeof input.testFileName === "string" && input.testFileName.length > 0
+      ? input.testFileName
+      : "test.ts";
+  const implFile =
+    typeof input.implementationFileName === "string" && input.implementationFileName.length > 0
+      ? input.implementationFileName
+      : typeof input.testFileName === "string" && input.testFileName.length > 0
+        ? input.testFileName
+        : "source.ts";
 
   const linterOpts: AstLinterOptions = {
     ...config?.linterOptions,
@@ -133,7 +139,8 @@ export async function evaluateAntiMock(
 
   let pillar3: MutationGateResult | undefined = undefined;
   if (input.testRunner) {
-    const targetSource = input.implementationSource !== undefined ? input.implementationSource : input.testSource;
+    const targetSource =
+      input.implementationSource !== undefined ? input.implementationSource : input.testSource;
     pillar3 = await runMutationGate(targetSource, input.testRunner, mutationOpts);
   }
 

@@ -4,7 +4,14 @@
  * CLI commands, and core mind domain facilities.
  */
 
-import { boolFlag, integerFlag, listFlag, textFlag, type CommandContext, type Flags } from "../cli/options.ts";
+import {
+  boolFlag,
+  integerFlag,
+  listFlag,
+  textFlag,
+  type CommandContext,
+  type Flags,
+} from "../cli/options.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,
@@ -350,7 +357,11 @@ export const MIND_TASK_DISCOVERY_COMMAND_SPEC: CommandSpec = {
     optionalFlag("feedback-queue", "string", "Custom path to FEEDBACK_QUEUE.jsonl."),
     optionalFlag("task-queue", "string", "Custom path to TASK_QUEUE.jsonl."),
     optionalFlag("capsules-dir", "string", "Capsules root directory."),
-    optionalFlag("auto-enqueue", "bool", "Automatically enqueue synthesized tasks into task queue."),
+    optionalFlag(
+      "auto-enqueue",
+      "bool",
+      "Automatically enqueue synthesized tasks into task queue.",
+    ),
     optionalFlag("max-tasks", "int", "Maximum tasks to synthesize (default: 5).", 5),
     optionalFlag("actor", "string", "Acting agent identifier.", "mind-task-discovery"),
     optionalFlag("json", "bool", "Output structured JSON."),
@@ -404,7 +415,12 @@ export const MIND_STRATEGIC_COGNITION_COMMAND_SPEC: CommandSpec = {
   description:
     "Channels Mind cognitive bandwidth at 30,000 feet into macro DAG diagnostics (P = W/S), backlog grooming, candidate admission, and proactive roadmap planning for future fleets.",
   flags: [
-    optionalFlag("window-hours", "int", "Subordinate execution window duration in hours (default: 2).", 2),
+    optionalFlag(
+      "window-hours",
+      "int",
+      "Subordinate execution window duration in hours (default: 2).",
+      2,
+    ),
     optionalFlag("fleet-id", "string", "Target fleet identifier for proactive roadmap."),
     optionalFlag("json", "bool", "Output structured JSON."),
   ],

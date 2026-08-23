@@ -1,10 +1,7 @@
 import { existsSync } from "node:fs";
 import { loadRun } from "../store/index.ts";
 import { isJsonObject, type JsonObject } from "../contracts/json.ts";
-import {
-  auditTierConfinement,
-  type TierConfinementFinding,
-} from "../doctor/tier-confinement.ts";
+import { auditTierConfinement, type TierConfinementFinding } from "../doctor/tier-confinement.ts";
 import { BootGateEnforcer } from "./boot-gate-enforcer.ts";
 import {
   DEFAULT_ADAPTIVE_ACTIVITY_BOOST,
@@ -101,19 +98,16 @@ export class AutonomicWatchdog {
   private readonly hasExplicitInitialStartedAt: boolean;
 
   public constructor(config: AutonomicWatchdogConfig = {}) {
-    this.heartbeatIntervalMs =
-      config.heartbeatIntervalMs ?? DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS;
+    this.heartbeatIntervalMs = config.heartbeatIntervalMs ?? DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS;
     this.timeoutMs = config.timeoutMs ?? DEFAULT_WATCHDOG_TIMEOUT_MS;
-    this.healthAuditIntervalMs =
-      config.healthAuditIntervalMs ?? DEFAULT_HEALTH_AUDIT_INTERVAL_MS;
+    this.healthAuditIntervalMs = config.healthAuditIntervalMs ?? DEFAULT_HEALTH_AUDIT_INTERVAL_MS;
     this.processHealthCheckIntervalMs =
       config.processHealthCheckIntervalMs ?? DEFAULT_PROCESS_HEALTH_CHECK_INTERVAL_MS;
     this.capsuleRoot = config.capsuleRoot ?? null;
     this.generation = config.generation ?? 1;
     this.pulseId = config.pulseId ?? null;
     this.enforcePreFlightGates = config.enforcePreFlightGates !== false;
-    this.processLivenessChecker =
-      config.processLivenessChecker ?? defaultProcessLivenessChecker;
+    this.processLivenessChecker = config.processLivenessChecker ?? defaultProcessLivenessChecker;
 
     this.bootGateEnforcer = new BootGateEnforcer();
     this.onHeartbeatCallback = config.onHeartbeat;
@@ -135,9 +129,7 @@ export class AutonomicWatchdog {
     this.lastAdjustedAtState = new Date(this.startedAtMs).toISOString();
 
     const adaptiveConfig =
-      typeof config.adaptive === "object" && config.adaptive !== null
-        ? config.adaptive
-        : undefined;
+      typeof config.adaptive === "object" && config.adaptive !== null ? config.adaptive : undefined;
 
     this.adaptiveEnabled =
       config.adaptive !== false &&
@@ -149,9 +141,7 @@ export class AutonomicWatchdog {
         true);
 
     const minBound =
-      adaptiveConfig?.minIntervalMs ??
-      config.minIntervalMs ??
-      DEFAULT_ADAPTIVE_MIN_INTERVAL_MS;
+      adaptiveConfig?.minIntervalMs ?? config.minIntervalMs ?? DEFAULT_ADAPTIVE_MIN_INTERVAL_MS;
     const maxBound =
       adaptiveConfig?.maxIntervalMs ??
       config.maxIntervalMs ??
@@ -160,13 +150,9 @@ export class AutonomicWatchdog {
     this.minIntervalMsState = Math.min(minBound, maxBound);
     this.maxIntervalMsState = Math.max(minBound, maxBound);
     this.backoffFactorState =
-      adaptiveConfig?.backoffFactor ??
-      config.backoffFactor ??
-      DEFAULT_ADAPTIVE_BACKOFF_FACTOR;
+      adaptiveConfig?.backoffFactor ?? config.backoffFactor ?? DEFAULT_ADAPTIVE_BACKOFF_FACTOR;
     this.activityBoostState =
-      adaptiveConfig?.activityBoost ??
-      config.activityBoost ??
-      DEFAULT_ADAPTIVE_ACTIVITY_BOOST;
+      adaptiveConfig?.activityBoost ?? config.activityBoost ?? DEFAULT_ADAPTIVE_ACTIVITY_BOOST;
 
     const initial =
       adaptiveConfig?.initialIntervalMs ??
@@ -187,8 +173,7 @@ export class AutonomicWatchdog {
     options: SubagentRegistrationOptions,
     now?: string | number | Date,
   ): SubagentBootGateRecord {
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     const timeMs =
       typeof now === "number"
         ? now
@@ -219,8 +204,7 @@ export class AutonomicWatchdog {
     now?: string | number | Date,
     proof?: Partial<LiveCliProof>,
   ): SubagentBootGateRecord {
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     this.recordActivity(agentId, undefined, now);
     return this.bootGateEnforcer.recordWhoamiExecution(agentId, timestamp, proof);
   }
@@ -230,8 +214,7 @@ export class AutonomicWatchdog {
     now?: string | number | Date,
     proof?: Partial<LiveCliProof>,
   ): SubagentBootGateRecord {
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     this.recordActivity(agentId, undefined, now);
     return this.bootGateEnforcer.recordDoctorExecution(agentId, timestamp, proof);
   }
@@ -240,8 +223,7 @@ export class AutonomicWatchdog {
     proof: LiveCliProof,
     now?: string | number | Date,
   ): SubagentBootGateRecord | undefined {
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     this.recordActivity(proof.actor, undefined, now);
     return this.bootGateEnforcer.recordCliProof(proof, timestamp);
   }
@@ -254,8 +236,7 @@ export class AutonomicWatchdog {
     pid?: number,
     outputSnippet?: string,
   ): void {
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     this.recordActivity(agentId, undefined, now);
     this.bootGateEnforcer.recordCommandExecution(
       agentId,
@@ -267,11 +248,7 @@ export class AutonomicWatchdog {
     );
   }
 
-  public recordHeartbeat(
-    agentId: string,
-    taskId?: string,
-    now?: string | number | Date,
-  ): void {
+  public recordHeartbeat(agentId: string, taskId?: string, now?: string | number | Date): void {
     const timeMs =
       typeof now === "number"
         ? now
@@ -296,11 +273,7 @@ export class AutonomicWatchdog {
     });
   }
 
-  public recordActivity(
-    agentId: string,
-    taskId?: string,
-    now?: string | number | Date,
-  ): void {
+  public recordActivity(agentId: string, taskId?: string, now?: string | number | Date): void {
     const timeMs =
       typeof now === "number"
         ? now
@@ -330,8 +303,7 @@ export class AutonomicWatchdog {
     agentId?: string,
     now?: string | number | Date,
   ): ProcessHealthStatus {
-    const timestamp =
-      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const timestamp = now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     const alive = this.processLivenessChecker(pid);
 
     const status: ProcessHealthStatus = {
@@ -357,9 +329,7 @@ export class AutonomicWatchdog {
     return status;
   }
 
-  public auditProcessHealth(
-    now?: string | number | Date,
-  ): readonly ProcessHealthStatus[] {
+  public auditProcessHealth(now?: string | number | Date): readonly ProcessHealthStatus[] {
     const results: ProcessHealthStatus[] = [];
     const allRecords = this.bootGateEnforcer.getAllRecords();
 
@@ -385,11 +355,7 @@ export class AutonomicWatchdog {
     operationDescription = "performing task operations",
     requireValidProof = false,
   ): void {
-    this.bootGateEnforcer.assertBootGatesPassed(
-      agentId,
-      operationDescription,
-      requireValidProof,
-    );
+    this.bootGateEnforcer.assertBootGatesPassed(agentId, operationDescription, requireValidProof);
   }
 
   public async runHealthAudit(
@@ -667,10 +633,7 @@ export class AutonomicWatchdog {
     ) {
       this.activityBoostState = config.activityBoost;
     }
-    if (
-      config.initialIntervalMs !== undefined &&
-      Number.isFinite(config.initialIntervalMs)
-    ) {
+    if (config.initialIntervalMs !== undefined && Number.isFinite(config.initialIntervalMs)) {
       this.currentIntervalMsState = Math.min(
         Math.max(config.initialIntervalMs, this.minIntervalMsState),
         this.maxIntervalMsState,
@@ -797,10 +760,7 @@ export class AutonomicWatchdog {
     return this.currentIntervalMsState;
   }
 
-  public resetInterval(
-    intervalMs?: number,
-    now?: string | number | Date,
-  ): void {
+  public resetInterval(intervalMs?: number, now?: string | number | Date): void {
     const target = intervalMs ?? this.heartbeatIntervalMs;
     const previousIntervalMs = this.currentIntervalMsState;
     const newIntervalMs = Math.min(
@@ -938,9 +898,7 @@ export class AutonomicWatchdog {
     return await this.triggerReactiveWakeup(normalized, resolvedMs);
   }
 
-  public async tick(
-    currentTime?: string | number | Date,
-  ): Promise<WatchdogTickReport> {
+  public async tick(currentTime?: string | number | Date): Promise<WatchdogTickReport> {
     this.tickCount++;
     const timeMs =
       typeof currentTime === "number"
@@ -951,11 +909,7 @@ export class AutonomicWatchdog {
             ? Date.parse(currentTime)
             : Date.now();
     const resolvedMs = Number.isFinite(timeMs) ? timeMs : Date.now();
-    if (
-      this.tickCount === 1 &&
-      !this.hasExplicitInitialStartedAt &&
-      currentTime !== undefined
-    ) {
+    if (this.tickCount === 1 && !this.hasExplicitInitialStartedAt && currentTime !== undefined) {
       this.startedAtMs = resolvedMs;
     }
     const timestamp = new Date(resolvedMs).toISOString();
@@ -991,9 +945,7 @@ export class AutonomicWatchdog {
     return report;
   }
 
-  public async renderCliStatusReport(
-    currentTime?: string | number | Date,
-  ): Promise<string> {
+  public async renderCliStatusReport(currentTime?: string | number | Date): Promise<string> {
     const health = await this.runHealthAudit(currentTime);
     const bootGateTable = this.bootGateEnforcer.renderAsciiBootGateTable();
 
@@ -1048,11 +1000,7 @@ export class AutonomicWatchdog {
       }
     }, delay);
 
-    if (
-      typeof this.timer === "object" &&
-      this.timer !== null &&
-      "unref" in this.timer
-    ) {
+    if (typeof this.timer === "object" && this.timer !== null && "unref" in this.timer) {
       (this.timer as { unref: () => void }).unref();
     }
   }
@@ -1103,17 +1051,11 @@ export class AutonomicWatchdog {
     }
   }
 
-  public addEventListener(
-    event: string,
-    listener: WatchdogEventListener,
-  ): () => void {
+  public addEventListener(event: string, listener: WatchdogEventListener): () => void {
     return this.on(event, listener);
   }
 
-  public removeEventListener(
-    event: string,
-    listener: WatchdogEventListener,
-  ): void {
+  public removeEventListener(event: string, listener: WatchdogEventListener): void {
     this.off(event, listener);
   }
 
@@ -1143,10 +1085,7 @@ export class AutonomicWatchdog {
     }
   }
 
-  private emitCustom(
-    eventType: string,
-    payload: ReactiveEvent | WatchdogEvent,
-  ): void {
+  private emitCustom(eventType: string, payload: ReactiveEvent | WatchdogEvent): void {
     const specific = this.listeners.get(eventType);
     if (specific) {
       for (const listener of specific) {

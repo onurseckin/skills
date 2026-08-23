@@ -22,7 +22,10 @@ import { evidenceSchema } from "../../../orchestrating-long-tasks/scripts/src/pa
 import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../workflow/test-port.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
-import type { TaskRecord, WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type {
+  TaskRecord,
+  WorkflowState,
+} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
@@ -135,14 +138,12 @@ describe("Ultra-Lean Packet Architecture & Metadata Slicing", () => {
     });
 
     test("sliceMarkdownSections truncates large code payloads and caps total bytes", () => {
-      const giantJson = JSON.stringify(Array.from({ length: 100 }, (_, i) => ({ item: i })), null, 2);
-      const md = [
-        "# Header",
-        "## Massive JSON Section",
-        "```json",
-        giantJson,
-        "```",
-      ].join("\n");
+      const giantJson = JSON.stringify(
+        Array.from({ length: 100 }, (_, i) => ({ item: i })),
+        null,
+        2,
+      );
+      const md = ["# Header", "## Massive JSON Section", "```json", giantJson, "```"].join("\n");
 
       const sliced = sliceMarkdownSections(md, {
         maxSectionBytes: 500,
@@ -212,7 +213,10 @@ describe("Ultra-Lean Packet Architecture & Metadata Slicing", () => {
         dependencies: ["T-99"],
         gate: "bun test db",
         repair_round: 1,
-        attempts: [{ attempt: 1, logs: "huge logs" }, { attempt: 2, logs: "more logs" }],
+        attempts: [
+          { attempt: 1, logs: "huge logs" },
+          { attempt: 2, logs: "more logs" },
+        ],
         history: ["event 1", "event 2", "event 3"],
         findings: [{ id: "F-1", note: "prior finding" }],
       };
@@ -266,14 +270,19 @@ describe("Ultra-Lean Packet Architecture & Metadata Slicing", () => {
 
       // Depth 2 from T-3 should include T-1, T-2, T-3, T-4, T-5
       const sliceDepth2 = sliceGraphNeighborhood(fullGraph, "T-3", 2);
-      expect(sliceDepth2.nodes.map((n) => n.id).sort()).toEqual(["T-1", "T-2", "T-3", "T-4", "T-5"].sort());
+      expect(sliceDepth2.nodes.map((n) => n.id).sort()).toEqual(
+        ["T-1", "T-2", "T-3", "T-4", "T-5"].sort(),
+      );
       expect(sliceDepth2.nodes.map((n) => n.id)).not.toContain("T-99");
     });
   });
 
   describe("Evidence Log Slicing", () => {
     test("returns compact excerpt with head and tail for long logs and preserves digest", () => {
-      const lines = Array.from({ length: 100 }, (_, i) => `Output line ${i}: test step execution log`);
+      const lines = Array.from(
+        { length: 100 },
+        (_, i) => `Output line ${i}: test step execution log`,
+      );
       const fullLog = lines.join("\n");
 
       const excerpt = sliceEvidenceLog(fullLog, {
@@ -306,10 +315,30 @@ describe("Ultra-Lean Packet Architecture & Metadata Slicing", () => {
   describe("Event Stream Slicing", () => {
     test("filters events by task ID, type, and pagination", () => {
       const events: JsonObject[] = [
-        { event_id: "evt-1", task_id: "T-1", type: "task:leased", timestamp: "2026-08-13T12:00:00Z" },
-        { event_id: "evt-2", task_id: "T-2", type: "task:leased", timestamp: "2026-08-13T12:01:00Z" },
-        { event_id: "evt-3", task_id: "T-1", type: "task:submitted", timestamp: "2026-08-13T12:05:00Z" },
-        { event_id: "evt-4", task_id: "T-1", type: "task:validated", timestamp: "2026-08-13T12:10:00Z" },
+        {
+          event_id: "evt-1",
+          task_id: "T-1",
+          type: "task:leased",
+          timestamp: "2026-08-13T12:00:00Z",
+        },
+        {
+          event_id: "evt-2",
+          task_id: "T-2",
+          type: "task:leased",
+          timestamp: "2026-08-13T12:01:00Z",
+        },
+        {
+          event_id: "evt-3",
+          task_id: "T-1",
+          type: "task:submitted",
+          timestamp: "2026-08-13T12:05:00Z",
+        },
+        {
+          event_id: "evt-4",
+          task_id: "T-1",
+          type: "task:validated",
+          timestamp: "2026-08-13T12:10:00Z",
+        },
       ];
 
       const forTask1 = sliceEventStream(events, { taskId: "T-1", limit: 2 });
@@ -416,7 +445,10 @@ describe("Ultra-Lean Packet Architecture & Metadata Slicing", () => {
         task: {
           id: "task-p37-packet-slicing",
           status: "leased",
-          write_scope: ["src/packets/packet-slicing.ts", "tests/unit/packets/packet-slicing.test.ts"],
+          write_scope: [
+            "src/packets/packet-slicing.ts",
+            "tests/unit/packets/packet-slicing.test.ts",
+          ],
           requirement_ids: ["R-SLICE-1"],
           dependencies: [],
           gate: "bun test tests/unit/packets/packet-slicing.test.ts",
@@ -431,10 +463,14 @@ describe("Ultra-Lean Packet Architecture & Metadata Slicing", () => {
       expect(brief).toContain("- **Agent**: `implementer_task-p37`");
       expect(brief).toContain("- **Role**: `implementer`");
       expect(brief).toContain("- **Lease Token**: `TEST_LEASE_TOKEN_123`");
-      expect(brief).toContain("- **Assigned Write Scope**: `src/packets/packet-slicing.ts`, `tests/unit/packets/packet-slicing.test.ts`");
+      expect(brief).toContain(
+        "- **Assigned Write Scope**: `src/packets/packet-slicing.ts`, `tests/unit/packets/packet-slicing.test.ts`",
+      );
       expect(brief).toContain("- **Gate**: `bun test tests/unit/packets/packet-slicing.test.ts`");
       expect(brief).toContain("⚡ On-Demand Capsule Memory Queries:");
-      expect(brief).toContain("bun harness.ts report:task --run .capsules/run-lean-1 --task task-p37-packet-slicing");
+      expect(brief).toContain(
+        "bun harness.ts report:task --run .capsules/run-lean-1 --task task-p37-packet-slicing",
+      );
     });
   });
 

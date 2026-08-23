@@ -153,4 +153,3 @@ protocol:
     - Release the final round's coordinator and perform Hard Agent Reset (`manage_subagents` with `Action: 'kill'`).
     - Execute release Conventional Commits (`feat(...)`, `fix(...)`), push to upstream main (`git push origin main`), and sync global skills (`bun scripts/sync-global.ts`) to `~/.agents/skills/orchestrating-long-tasks/`.
     - Compose the one finished report from every round's summary and hand it to the Tier 0 main thread as the loop's final milestone — never a per-round transcript for the main thread to interpret and act on itself.
-

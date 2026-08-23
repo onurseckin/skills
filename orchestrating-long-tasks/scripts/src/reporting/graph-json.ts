@@ -147,9 +147,10 @@ export function validateGduiReportIntegrity(report: unknown): GduiIntegrityResul
   for (const node of report.nodes) {
     if (!node.id) issues.push("Node missing id");
     if (node.coordinates.rank < 0 || node.coordinates.lane < 0) {
-      issues.push(`Node ${node.id} has invalid coordinates rank=${node.coordinates.rank}, lane=${node.coordinates.lane}`);
+      issues.push(
+        `Node ${node.id} has invalid coordinates rank=${node.coordinates.rank}, lane=${node.coordinates.lane}`,
+      );
     }
   }
   return { valid: issues.length === 0, issues };
 }
-

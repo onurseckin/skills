@@ -228,7 +228,8 @@ function normalizeTask(id: string, value: unknown): ScheduledTask | null {
   if (!isRecord(value)) return null;
   if (typeof id !== "string" || id.length === 0) return null;
 
-  const priority = typeof value.priority === "number" && isInteger(value.priority) ? value.priority : 1;
+  const priority =
+    typeof value.priority === "number" && isInteger(value.priority) ? value.priority : 1;
   const createdOrder =
     typeof value.created_order === "number" && isInteger(value.created_order)
       ? value.created_order
@@ -264,7 +265,8 @@ function normalizeTask(id: string, value: unknown): ScheduledTask | null {
     status,
     domain: typeof value.domain === "string" ? value.domain : undefined,
     primary_domain: typeof value.primary_domain === "string" ? value.primary_domain : undefined,
-    validator_domain: typeof value.validator_domain === "string" ? value.validator_domain : undefined,
+    validator_domain:
+      typeof value.validator_domain === "string" ? value.validator_domain : undefined,
   };
 }
 
@@ -289,10 +291,7 @@ function occupiesScope(task: ScheduledTask): boolean {
 export function resolveParallelismFactor(state: unknown, explicitFactor?: number): number {
   if (explicitFactor !== undefined) {
     if (typeof explicitFactor !== "number" || Number.isNaN(explicitFactor) || explicitFactor < 0) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "parallelismFactor must be a non-negative number",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "parallelismFactor must be a non-negative number");
     }
     return Number(explicitFactor.toFixed(2));
   }
@@ -315,7 +314,10 @@ export function resolveParallelismFactor(state: unknown, explicitFactor?: number
       }
     }
 
-    if (typeof state.workParallelismRatio === "number" && !Number.isNaN(state.workParallelismRatio)) {
+    if (
+      typeof state.workParallelismRatio === "number" &&
+      !Number.isNaN(state.workParallelismRatio)
+    ) {
       return Number(state.workParallelismRatio.toFixed(2));
     }
     if (typeof state.parallelismFactor === "number" && !Number.isNaN(state.parallelismFactor)) {
@@ -335,9 +337,8 @@ export function evaluateMultiDomainBatch(
   state: unknown,
   options: MultiDomainBatchOptions = {},
 ): MultiDomainBatchResult {
-  const maxParallel = options.maxParallel !== undefined && options.maxParallel !== null
-    ? options.maxParallel
-    : 10;
+  const maxParallel =
+    options.maxParallel !== undefined && options.maxParallel !== null ? options.maxParallel : 10;
 
   if (!isInteger(maxParallel) || maxParallel < 1) {
     throw new HarnessError("INVALID_ARGUMENT", "maxParallel must be a positive integer");
@@ -448,9 +449,7 @@ export function evaluateMultiDomainBatch(
       : isMultiDomainActive;
 
   if (allowValidators) {
-    const submittedTasks = [...allTasks.values()].filter(
-      (task) => task.status === "submitted",
-    );
+    const submittedTasks = [...allTasks.values()].filter((task) => task.status === "submitted");
 
     const eligibleValidators = submittedTasks.filter((task) => {
       // Must not conflict with occupied tasks
@@ -596,9 +595,8 @@ export function dispatchMultiDomainValidators(
   state: unknown,
   options: MultiDomainValidatorDispatchOptions = {},
 ): MultiDomainValidatorDispatchResult {
-  const maxParallel = options.maxParallel !== undefined && options.maxParallel !== null
-    ? options.maxParallel
-    : 10;
+  const maxParallel =
+    options.maxParallel !== undefined && options.maxParallel !== null ? options.maxParallel : 10;
 
   if (!isInteger(maxParallel) || maxParallel < 1) {
     throw new HarnessError("INVALID_ARGUMENT", "maxParallel must be a positive integer");
@@ -621,9 +619,7 @@ export function dispatchMultiDomainValidators(
   const activeImplementerScopes = options.activeImplementerScopes ?? [];
   const activeResourceScopes = options.activeResourceScopes ?? [];
 
-  const submittedTasks = [...allTasks.values()].filter(
-    (task) => task.status === "submitted",
-  );
+  const submittedTasks = [...allTasks.values()].filter((task) => task.status === "submitted");
 
   const eligibleValidators = submittedTasks.filter((task) => {
     if (occupiedTasks.some((running) => running.id !== task.id && conflicts(task, running))) {

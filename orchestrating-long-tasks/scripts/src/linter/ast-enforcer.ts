@@ -437,12 +437,7 @@ function scanCompilerSuppressions(
     languageVariant = ts.LanguageVariant.JSX;
   }
 
-  const scanner = ts.createScanner(
-    ts.ScriptTarget.Latest,
-    false,
-    languageVariant,
-    sourceCode,
-  );
+  const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, languageVariant, sourceCode);
 
   let token = scanner.scan();
   while (token !== ts.SyntaxKind.EndOfFileToken) {
@@ -652,7 +647,10 @@ function detectMockDeclarations(
 ): MockInfo[] {
   const mocks: MockInfo[] = [];
 
-  function checkInitializer(init: ts.Expression): { isMock: boolean; stubbedValue?: string | undefined } {
+  function checkInitializer(init: ts.Expression): {
+    isMock: boolean;
+    stubbedValue?: string | undefined;
+  } {
     if (ts.isCallExpression(init)) {
       let curr: ts.Expression = init;
       let stubbedValue: string | undefined = undefined;
@@ -675,7 +673,9 @@ function detectMockDeclarations(
             if (MOCK_FRAMEWORK_NAMES.has(curr.expression.text)) {
               const firstArg = curr.arguments[0];
               if (firstArg !== undefined) {
-                const isFn = ts.isArrowFunction(firstArg) ? true : ts.isFunctionExpression(firstArg);
+                const isFn = ts.isArrowFunction(firstArg)
+                  ? true
+                  : ts.isFunctionExpression(firstArg);
                 if (isFn) {
                   const fnNode = firstArg as ts.ArrowFunction | ts.FunctionExpression;
                   if (fnNode.body && !ts.isBlock(fnNode.body)) {
@@ -837,7 +837,8 @@ export function lintSourceCode(
       const loc = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
       violations.push({
         rule: "nullish_coalescing",
-        message: "Prohibited nullish coalescing operator (??) detected. Use explicit branching instead.",
+        message:
+          "Prohibited nullish coalescing operator (??) detected. Use explicit branching instead.",
         file: fileName,
         line: loc.line + 1,
         column: loc.character + 1,
@@ -863,14 +864,12 @@ export function lintSourceCode(
     }
 
     // any type keyword
-    if (
-      enabledRulesSet.has("any_type") &&
-      node.kind === ts.SyntaxKind.AnyKeyword
-    ) {
+    if (enabledRulesSet.has("any_type") && node.kind === ts.SyntaxKind.AnyKeyword) {
       const loc = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
       violations.push({
         rule: "any_type",
-        message: "Prohibited 'any' type annotation detected. Use strict types or type guards instead.",
+        message:
+          "Prohibited 'any' type annotation detected. Use strict types or type guards instead.",
         file: fileName,
         line: loc.line + 1,
         column: loc.character + 1,
@@ -879,14 +878,12 @@ export function lintSourceCode(
     }
 
     // Non-null assertion operator !
-    if (
-      enabledRulesSet.has("non_null_assertion") &&
-      ts.isNonNullExpression(node)
-    ) {
+    if (enabledRulesSet.has("non_null_assertion") && ts.isNonNullExpression(node)) {
       const loc = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
       violations.push({
         rule: "non_null_assertion",
-        message: "Prohibited non-null assertion operator (!) detected. Use explicit branching and runtime verification.",
+        message:
+          "Prohibited non-null assertion operator (!) detected. Use explicit branching and runtime verification.",
         file: fileName,
         line: loc.line + 1,
         column: loc.character + 1,
@@ -917,7 +914,9 @@ export function lintSourceCode(
       if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
         const modVendor = findVendorInWordList(node.moduleSpecifier.text, vendorSet);
         if (modVendor !== undefined && modVendor !== null) {
-          const loc = sourceFile.getLineAndCharacterOfPosition(node.moduleSpecifier.getStart(sourceFile));
+          const loc = sourceFile.getLineAndCharacterOfPosition(
+            node.moduleSpecifier.getStart(sourceFile),
+          );
           violations.push({
             rule: "vendor_leak",
             message: `Prohibited vendor identifier '${modVendor}' found in module import '${node.moduleSpecifier.text}'.`,
@@ -931,10 +930,16 @@ export function lintSourceCode(
       }
 
       // Check export declaration module specifiers
-      if (ts.isExportDeclaration(node) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) {
+      if (
+        ts.isExportDeclaration(node) &&
+        node.moduleSpecifier !== undefined &&
+        ts.isStringLiteral(node.moduleSpecifier)
+      ) {
         const modVendor = findVendorInWordList(node.moduleSpecifier.text, vendorSet);
         if (modVendor !== undefined && modVendor !== null) {
-          const loc = sourceFile.getLineAndCharacterOfPosition(node.moduleSpecifier.getStart(sourceFile));
+          const loc = sourceFile.getLineAndCharacterOfPosition(
+            node.moduleSpecifier.getStart(sourceFile),
+          );
           violations.push({
             rule: "vendor_leak",
             message: `Prohibited vendor identifier '${modVendor}' found in module export '${node.moduleSpecifier.text}'.`,
@@ -979,7 +984,11 @@ export function lintSourceCode(
         !ts.isExportDeclaration(node.parent) &&
         !isInsideVendorConfigDefinition(node)
       ) {
-        if (/\b(gpt-[0-9]|claude-[0-9]|gemini-[0-9]|dall-e-[0-9]|text-davinci|sonnet-[0-9]|opus-[0-9]|haiku-[0-9])\b/iu.test(node.text)) {
+        if (
+          /\b(gpt-[0-9]|claude-[0-9]|gemini-[0-9]|dall-e-[0-9]|text-davinci|sonnet-[0-9]|opus-[0-9]|haiku-[0-9])\b/iu.test(
+            node.text,
+          )
+        ) {
           const loc = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
           violations.push({
             rule: "vendor_leak",
@@ -1014,7 +1023,9 @@ export function lintSourceCode(
               snippet: node.getText(sourceFile),
             });
           } else if (ts.isBlock(callback.body) && callback.body.statements.length === 0) {
-            const loc = sourceFile.getLineAndCharacterOfPosition(callback.body.getStart(sourceFile));
+            const loc = sourceFile.getLineAndCharacterOfPosition(
+              callback.body.getStart(sourceFile),
+            );
             violations.push({
               rule: "empty_test_body",
               message: `Test '${testName}' has an empty function body.`,
@@ -1028,7 +1039,11 @@ export function lintSourceCode(
         }
 
         // Check trivial early return
-        if (enabledRulesSet.has("trivial_early_return") && callback.body && ts.isBlock(callback.body)) {
+        if (
+          enabledRulesSet.has("trivial_early_return") &&
+          callback.body &&
+          ts.isBlock(callback.body)
+        ) {
           let foundAssertion = false;
           for (const stmt of callback.body.statements) {
             let stmtHasAssertion = false;
@@ -1135,8 +1150,13 @@ export function lintSourceCode(
                     const stubbed = stubbedMap.get(calledName);
                     if (stubbed !== undefined && assertion.arguments.length > 0) {
                       const expectedArg = assertion.arguments[0];
-                      if (expectedArg !== undefined && expectedArg.getText(sourceFile) === stubbed) {
-                        const loc = sourceFile.getLineAndCharacterOfPosition(assertion.getStart(sourceFile));
+                      if (
+                        expectedArg !== undefined &&
+                        expectedArg.getText(sourceFile) === stubbed
+                      ) {
+                        const loc = sourceFile.getLineAndCharacterOfPosition(
+                          assertion.getStart(sourceFile),
+                        );
                         violations.push({
                           rule: "mock_tautology",
                           message: `Test '${testName}' asserts stubbed mock '${calledName}()' return value (${stubbed}) directly without exercising implementation logic.`,
@@ -1180,7 +1200,10 @@ export function lintSourceCode(
                 const firstMock = mocks[0];
                 const varName = firstMock !== undefined ? firstMock.varName : "mock";
                 const firstAssert = assertions[0];
-                const pos = firstAssert !== undefined ? firstAssert.getStart(sourceFile) : callback.getStart(sourceFile);
+                const pos =
+                  firstAssert !== undefined
+                    ? firstAssert.getStart(sourceFile)
+                    : callback.getStart(sourceFile);
                 const loc = sourceFile.getLineAndCharacterOfPosition(pos);
                 violations.push({
                   rule: "mock_tautology",
@@ -1189,7 +1212,10 @@ export function lintSourceCode(
                   line: loc.line + 1,
                   column: loc.character + 1,
                   testName,
-                  snippet: firstAssert !== undefined ? firstAssert.getText(sourceFile) : callback.getText(sourceFile),
+                  snippet:
+                    firstAssert !== undefined
+                      ? firstAssert.getText(sourceFile)
+                      : callback.getText(sourceFile),
                 });
               }
             }
@@ -1299,11 +1325,9 @@ export function lintSourceCode(
 
 export function lintFile(filePath: string, options?: AstLintOptions): AstLintResult {
   if (!existsSync(filePath)) {
-    throw new HarnessError(
-      "PATH_SAFETY",
-      `Target file does not exist: ${filePath}`,
-      [{ filePath }],
-    );
+    throw new HarnessError("PATH_SAFETY", `Target file does not exist: ${filePath}`, [
+      { filePath },
+    ]);
   }
   const content = readFileSync(filePath, "utf-8");
   return lintSourceCode(content, filePath, options);
@@ -1368,25 +1392,18 @@ function collectSourceFiles(
   return results;
 }
 
-export function lintDirectory(
-  dirPath: string,
-  options?: AstLintOptions,
-): DirectoryLintResult {
+export function lintDirectory(dirPath: string, options?: AstLintOptions): DirectoryLintResult {
   if (!existsSync(dirPath)) {
-    throw new HarnessError(
-      "PATH_SAFETY",
-      `Target directory does not exist: ${dirPath}`,
-      [{ dirPath }],
-    );
+    throw new HarnessError("PATH_SAFETY", `Target directory does not exist: ${dirPath}`, [
+      { dirPath },
+    ]);
   }
 
   const stat = statSync(dirPath);
   if (!stat.isDirectory()) {
-    throw new HarnessError(
-      "PATH_SAFETY",
-      `Target path is not a directory: ${dirPath}`,
-      [{ dirPath }],
-    );
+    throw new HarnessError("PATH_SAFETY", `Target path is not a directory: ${dirPath}`, [
+      { dirPath },
+    ]);
   }
 
   let extensions: readonly string[] = DEFAULT_EXTENSIONS;
@@ -1468,7 +1485,8 @@ export function generateFixSuggestion(
       } else {
         suggestedReplacement = "/* Use explicit if-check or ternary condition */";
       }
-      explanation = "Replace nullish coalescing operator (??) with explicit nullish checks or explicit branching.";
+      explanation =
+        "Replace nullish coalescing operator (??) with explicit nullish checks or explicit branching.";
       break;
     }
     case "logical_or_fallback": {
@@ -1498,7 +1516,8 @@ export function generateFixSuggestion(
     }
     case "non_null_assertion": {
       suggestedReplacement = "/* verify value !== undefined before access */";
-      explanation = "Replace non-null assertion (!) with explicit conditional guard or runtime check.";
+      explanation =
+        "Replace non-null assertion (!) with explicit conditional guard or runtime check.";
       break;
     }
     case "vendor_leak": {
@@ -1508,17 +1527,20 @@ export function generateFixSuggestion(
     }
     case "compiler_suppression": {
       suggestedReplacement = "";
-      explanation = "Remove compiler suppression directive and fix underlying TypeScript type issue.";
+      explanation =
+        "Remove compiler suppression directive and fix underlying TypeScript type issue.";
       break;
     }
     case "mock_tautology": {
       suggestedReplacement = "/* Pass mock to system under test and assert on output */";
-      explanation = "Avoid asserting on mocks directly without exercising production implementation logic.";
+      explanation =
+        "Avoid asserting on mocks directly without exercising production implementation logic.";
       break;
     }
     case "trivial_assertion": {
       suggestedReplacement = "/* Assert on dynamic computed result from function under test */";
-      explanation = "Replace trivial literal comparison with meaningful assertions on actual business logic.";
+      explanation =
+        "Replace trivial literal comparison with meaningful assertions on actual business logic.";
       break;
     }
     case "empty_test_body": {
@@ -1627,9 +1649,7 @@ export function autoFixSourceCode(
   };
 }
 
-export function formatAstLintReport(
-  result: DirectoryLintResult | AstLintResult,
-): string {
+export function formatAstLintReport(result: DirectoryLintResult | AstLintResult): string {
   const lines: string[] = [];
 
   if (isDirectoryLintResult(result)) {
@@ -1640,7 +1660,9 @@ export function formatAstLintReport(
       statusText = "PASSED (0 violations)";
     }
     lines.push(`Status: ${statusText}`);
-    lines.push(`Files scanned: ${result.totalFiles} (Clean: ${result.cleanFiles}, Failed: ${result.failedFiles})`);
+    lines.push(
+      `Files scanned: ${result.totalFiles} (Clean: ${result.cleanFiles}, Failed: ${result.failedFiles})`,
+    );
     lines.push("--------------------------------------------------------------------------------");
     lines.push("Summary by rule:");
     for (const rule of ALL_AST_LINT_RULES) {
@@ -1648,7 +1670,9 @@ export function formatAstLintReport(
     }
 
     if (!result.valid) {
-      lines.push("--------------------------------------------------------------------------------");
+      lines.push(
+        "--------------------------------------------------------------------------------",
+      );
       lines.push("Violations by file:");
       for (const fileRes of result.fileResults) {
         if (!fileRes.valid) {
@@ -1676,7 +1700,9 @@ export function formatAstLintReport(
     }
 
     if (!result.valid) {
-      lines.push("--------------------------------------------------------------------------------");
+      lines.push(
+        "--------------------------------------------------------------------------------",
+      );
       lines.push("Violations:");
       for (const v of result.violations) {
         lines.push(`  Line ${v.line}:${v.column} [${v.rule}] ${v.message}`);
@@ -1691,17 +1717,16 @@ export function formatAstLintReport(
 
 export function formatViolationMarkdown(violation: AstLintViolation): string {
   const parts: string[] = [];
-  parts.push(`- **[${violation.rule}]** \`${violation.file}:${violation.line}:${violation.column}\``);
+  parts.push(
+    `- **[${violation.rule}]** \`${violation.file}:${violation.line}:${violation.column}\``,
+  );
   parts.push(`  ${violation.message}`);
   parts.push(`  \`\`\`ts\n  ${violation.snippet}\n  \`\`\``);
   return parts.join("\n");
 }
 
 export function formatSummaryTable(summaryByRule: Readonly<Record<AstLintRule, number>>): string {
-  const rows: string[] = [
-    "| Rule | Violations |",
-    "| :--- | :--- |",
-  ];
+  const rows: string[] = ["| Rule | Violations |", "| :--- | :--- |"];
   for (const rule of ALL_AST_LINT_RULES) {
     rows.push(`| \`${rule}\` | ${summaryByRule[rule]} |`);
   }

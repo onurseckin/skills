@@ -2,10 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  initRun,
-  transact,
-} from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import {
   reportDagCommand,
   reportGraphCommand,
@@ -26,7 +23,9 @@ afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
 );
 
-async function createFixture(runId: string = "unified-run"): Promise<{ repo: string; run: string }> {
+async function createFixture(
+  runId: string = "unified-run",
+): Promise<{ repo: string; run: string }> {
   const repo = await mkdtemp(join(tmpdir(), "harness-unified-test-"));
   roots.push(repo);
   const runRoot = initRun(
@@ -144,7 +143,12 @@ describe("Unified Reporting Subsystem", () => {
             status: "planned",
             evidence: [],
             authority_history: [
-              { decision: "grant", rationale: "Approved by architect", actor: "architect", at: "2026-08-22T08:00:00.000Z" },
+              {
+                decision: "grant",
+                rationale: "Approved by architect",
+                actor: "architect",
+                at: "2026-08-22T08:00:00.000Z",
+              },
             ],
           },
           {
@@ -153,7 +157,12 @@ describe("Unified Reporting Subsystem", () => {
             status: "planned",
             evidence: [],
             authority_history: [
-              { decision: "decline", rationale: "Declined by security", actor: "security", at: "2026-08-22T08:01:00.000Z" },
+              {
+                decision: "decline",
+                rationale: "Declined by security",
+                actor: "security",
+                at: "2026-08-22T08:01:00.000Z",
+              },
             ],
           },
         ],

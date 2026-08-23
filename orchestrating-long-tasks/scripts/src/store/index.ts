@@ -24,4 +24,3 @@ export {
   type ConsolidateCapsulesOptions,
   type ConsolidateCapsulesResult,
 } from "../mind/archival.ts";
-

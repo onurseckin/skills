@@ -151,4 +151,3 @@ protocol:
       `agent:report --run $RUN --agent <worker-id> --tool <name> --tokens-in <n> --tokens-out <n>`
       Add `--tokens-estimated` when the numbers are estimates rather than measurements. Report only
       what you actually have; a number nobody measured stays absent and renders as "unknown".
-

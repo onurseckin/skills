@@ -40,8 +40,7 @@ export function formatAgentBrief(params: AgentBriefParams): string {
       ? params.writeScope.map((s) => `\`${s}\``).join(", ")
       : undefined;
 
-  const modelPart =
-    params.model !== undefined ? `\`${params.model}\`` : "unknown";
+  const modelPart = params.model !== undefined ? `\`${params.model}\`` : "unknown";
   const thinkingPart =
     params.thinkingLevel !== undefined ? `\`${params.thinkingLevel}\`` : "unknown";
 
@@ -144,8 +143,7 @@ export function formatAgentReportBrief(grant: AgentGrantRecord, runId: string): 
       ? "none reported"
       : extras.map(([name, counter]) => `\`${name}\` ${cell(counter)}`).join(", ");
   const reportCount = grant.report_count !== undefined ? grant.report_count : 0;
-  const lastReported =
-    grant.last_reported_at !== undefined ? grant.last_reported_at : "unknown";
+  const lastReported = grant.last_reported_at !== undefined ? grant.last_reported_at : "unknown";
   const md = [
     `### Agent Report: ${grant.id} (${grant.role})`,
     `- **Reports Ingested**: ${reportCount} (latest ${lastReported})`,
@@ -166,8 +164,7 @@ export function formatAgentReportBrief(grant: AgentGrantRecord, runId: string): 
 }
 
 export function formatAgentReleaseBrief(grant: AgentGrantRecord, runId: string): string {
-  const releasedAtStr =
-    grant.released_at !== undefined ? grant.released_at : "unknown";
+  const releasedAtStr = grant.released_at !== undefined ? grant.released_at : "unknown";
   const releaseReasonStr =
     grant.release_reason !== undefined ? grant.release_reason : "none recorded";
   const md = [

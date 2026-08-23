@@ -27,12 +27,7 @@ import {
 } from "./sugiyama-dag.ts";
 import { ignoredByGit, versionAtLeast } from "./doctor.ts";
 
-export {
-  extractLeaseAgentId,
-  extractLeaseRole,
-  extractLeaseAttempt,
-  type LeaseRecordView,
-};
+export { extractLeaseAgentId, extractLeaseRole, extractLeaseAttempt, type LeaseRecordView };
 
 export interface LeaseMatrixRow {
   taskId: string;
@@ -68,7 +63,13 @@ export interface UnifiedAgentRow {
 export interface UnifiedLifecycleBreakdown {
   implementers: {
     count: number;
-    active: Array<{ taskId: string; agentId: string; role: string; attempt: number; expiresAt: string }>;
+    active: Array<{
+      taskId: string;
+      agentId: string;
+      role: string;
+      attempt: number;
+      expiresAt: string;
+    }>;
   };
   validators: {
     count: number;
@@ -120,16 +121,17 @@ export interface UnifiedReport {
   leases: LeaseMatrixRow[];
   decisions: DecisionAuditRow[];
   dag?: SugiyamaDagReport | undefined;
-  doctor?: {
-    healthy: boolean;
-    bun_version: string;
-    bun_supported: boolean;
-    gitignored: boolean | null;
-    issues: readonly string[];
-  } | undefined;
+  doctor?:
+    | {
+        healthy: boolean;
+        bun_version: string;
+        bun_supported: boolean;
+        gitignored: boolean | null;
+        issues: readonly string[];
+      }
+    | undefined;
   metrics?: SugiyamaWaveMetrics | undefined;
 }
-
 
 export function generateLeasesReport(runRoot: string): {
   matrix: LeaseMatrixRow[];
@@ -145,11 +147,13 @@ export function generateLeasesReport(runRoot: string): {
   for (const t of tasks) {
     if (t.lease) {
       const agentId = extractLeaseAgentId(t.lease) || "unknown";
-      const role = typeof t.lease.role === "string" && t.lease.role.length > 0 ? t.lease.role : "implementer";
+      const role =
+        typeof t.lease.role === "string" && t.lease.role.length > 0 ? t.lease.role : "implementer";
       const attempt = typeof t.lease.attempt === "number" ? t.lease.attempt : 1;
       const issuedAt = typeof t.lease.issued_at === "string" ? t.lease.issued_at : undefined;
       const expiresAt = typeof t.lease.expires_at === "string" ? t.lease.expires_at : undefined;
-      const heartbeatAt = typeof t.lease.heartbeat_at === "string" ? t.lease.heartbeat_at : undefined;
+      const heartbeatAt =
+        typeof t.lease.heartbeat_at === "string" ? t.lease.heartbeat_at : undefined;
 
       matrix.push({
         taskId: String(t.id),
@@ -168,11 +172,16 @@ export function generateLeasesReport(runRoot: string): {
     for (const sub of b.sub_tasks) {
       if (sub.lease) {
         const agentId = extractLeaseAgentId(sub.lease) || "unknown";
-        const role = typeof sub.lease.role === "string" && sub.lease.role.length > 0 ? sub.lease.role : "sub_implementer";
+        const role =
+          typeof sub.lease.role === "string" && sub.lease.role.length > 0
+            ? sub.lease.role
+            : "sub_implementer";
         const attempt = typeof sub.lease.attempt === "number" ? sub.lease.attempt : 1;
         const issuedAt = typeof sub.lease.issued_at === "string" ? sub.lease.issued_at : undefined;
-        const expiresAt = typeof sub.lease.expires_at === "string" ? sub.lease.expires_at : undefined;
-        const heartbeatAt = typeof sub.lease.heartbeat_at === "string" ? sub.lease.heartbeat_at : undefined;
+        const expiresAt =
+          typeof sub.lease.expires_at === "string" ? sub.lease.expires_at : undefined;
+        const heartbeatAt =
+          typeof sub.lease.heartbeat_at === "string" ? sub.lease.heartbeat_at : undefined;
 
         matrix.push({
           taskId: String(sub.id),
@@ -308,7 +317,8 @@ export function generateUnifiedReport(
         implementersActive.push({
           taskId: t.id,
           agentId: extractLeaseAgentId(t.lease) || "unknown",
-          role: typeof t.lease.role === "string" && t.lease.role.length > 0 ? t.lease.role : "repairer",
+          role:
+            typeof t.lease.role === "string" && t.lease.role.length > 0 ? t.lease.role : "repairer",
           attempt: typeof t.lease.attempt === "number" ? t.lease.attempt : 1,
           expiresAt: typeof t.lease.expires_at === "string" ? t.lease.expires_at : "",
         });
@@ -331,7 +341,10 @@ export function generateUnifiedReport(
         implementersActive.push({
           taskId: t.id,
           agentId: extractLeaseAgentId(t.lease) || "unknown",
-          role: typeof t.lease.role === "string" && t.lease.role.length > 0 ? t.lease.role : "implementer",
+          role:
+            typeof t.lease.role === "string" && t.lease.role.length > 0
+              ? t.lease.role
+              : "implementer",
           attempt: typeof t.lease.attempt === "number" ? t.lease.attempt : 1,
           expiresAt: typeof t.lease.expires_at === "string" ? t.lease.expires_at : "",
         });
@@ -363,10 +376,10 @@ export function generateUnifiedReport(
   for (const a of rawAgents) {
     if (isRecord(a) && typeof a.id === "string") {
       const agentId = a.id;
-      const role = typeof a.role === "string" ? a.role : agentIdToRole(agentId) ?? "unknown";
-      const tier = (typeof a.tier === "number"
-        ? a.tier
-        : agentIdToTier(agentId) ?? roleToTier(role)) as ExecutionTier;
+      const role = typeof a.role === "string" ? a.role : (agentIdToRole(agentId) ?? "unknown");
+      const tier = (
+        typeof a.tier === "number" ? a.tier : (agentIdToTier(agentId) ?? roleToTier(role))
+      ) as ExecutionTier;
       const tierName = TIER_NAMES[tier] ?? `Tier ${tier}`;
       const status = typeof a.status === "string" ? a.status : "active";
 
@@ -564,8 +577,9 @@ export function generateUnifiedReport(
     [
       "🔄 Validators (Testing/Probing)",
       String(validatorsActive.length),
-      validatorsActive.map((v) => `\`${v.taskId}\` (\`${v.validatorId}\` [${v.domain}])`).join(", ") ||
-        "none",
+      validatorsActive
+        .map((v) => `\`${v.taskId}\` (\`${v.validatorId}\` [${v.domain}])`)
+        .join(", ") || "none",
     ],
     [
       "📦 Submitted (Awaiting Validation)",
@@ -607,8 +621,12 @@ export function generateUnifiedReport(
   mdSections.push("#### 4. Live Doctor Diagnostics & System Integrity");
   mdSections.push(`- **Healthy**: ${doctorHealthy ? "yes" : "no"}`);
   mdSections.push(`- **Bun**: ${Bun.version} (${bunSupported ? "supported" : "unsupported"})`);
-  mdSections.push(`- **Gitignored**: ${gitignored === true ? "yes" : gitignored === false ? "no" : "unknown"}`);
-  mdSections.push(`- **Supervisory Invariants**: Strict Tier Hierarchy & Supervisor Zero-File-Edit Rule actively enforced`);
+  mdSections.push(
+    `- **Gitignored**: ${gitignored === true ? "yes" : gitignored === false ? "no" : "unknown"}`,
+  );
+  mdSections.push(
+    `- **Supervisory Invariants**: Strict Tier Hierarchy & Supervisor Zero-File-Edit Rule actively enforced`,
+  );
   if (doctorIssues.length > 0) {
     mdSections.push("- **Issues**:");
     for (const issue of doctorIssues) {

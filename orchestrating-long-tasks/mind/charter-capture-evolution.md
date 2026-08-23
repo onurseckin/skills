@@ -27,7 +27,6 @@ The Global Capture Engine and Dual-Channel UI Validation Subsystem within `orche
 - `bun test` -> exit 0
 - `bun run typecheck` -> exit 0
 
-
 ## Prohibitions
 
 NEVER, unattended, at any tier:

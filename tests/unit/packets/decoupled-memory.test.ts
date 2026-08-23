@@ -296,8 +296,12 @@ describe("Decoupled Capsule Memory Architecture", () => {
     test("validator.md contract includes strict AGP definitions and review criteria", () => {
       const contract = loadRoleContract("validator");
       expect(contract.text).toContain("Adversarial Gate Proof (AGP) Protocol");
-      expect(contract.text).toContain("Anti-Rubber-Stamping & Direct End-to-End Command Verification");
-      expect(contract.text).toContain("Strict Quantitative Metric Floors & Zero-Tolerance Invariants");
+      expect(contract.text).toContain(
+        "Anti-Rubber-Stamping & Direct End-to-End Command Verification",
+      );
+      expect(contract.text).toContain(
+        "Strict Quantitative Metric Floors & Zero-Tolerance Invariants",
+      );
       expect(contract.text).toContain("Prohibition of Fragmented Options & Partial Deliveries");
       expect(contract.must_not.join("\n")).toContain("superficial unit tests");
       expect(contract.must_not.join("\n")).toContain("Adversarial Gate Proofs (AGP)");
@@ -308,7 +312,9 @@ describe("Decoupled Capsule Memory Architecture", () => {
     test("completeness-critic.md contract includes strict run-level AGP definitions and review criteria", () => {
       const contract = loadRoleContract("completeness-critic");
       expect(contract.text).toContain("Run-Level Adversarial Gate Proof (AGP) Protocol");
-      expect(contract.text).toContain("Anti-Rubber-Stamping & Direct End-to-End Requirement Proofs");
+      expect(contract.text).toContain(
+        "Anti-Rubber-Stamping & Direct End-to-End Requirement Proofs",
+      );
       expect(contract.text).toContain("Strict Quantitative Invariants");
       expect(contract.text).toContain("Complete Feature Delivery & Unified CLI Surface");
       expect(contract.must_not.join("\n")).toContain("Adversarial Gate Proofs (AGP)");
@@ -407,13 +413,21 @@ describe("Decoupled Capsule Memory Architecture", () => {
       });
 
       expect(packet.markdown).toContain("## Capsule memory on disk");
-      expect(packet.markdown).toContain("bun harness.ts report:task --run .capsules/run-p52-ptrs --task T-1");
-      expect(packet.markdown).toContain("bun harness.ts stream:events --run .capsules/run-p52-ptrs");
+      expect(packet.markdown).toContain(
+        "bun harness.ts report:task --run .capsules/run-p52-ptrs --task T-1",
+      );
+      expect(packet.markdown).toContain(
+        "bun harness.ts stream:events --run .capsules/run-p52-ptrs",
+      );
       expect(packet.markdown).toContain("bun harness.ts dag:view --run .capsules/run-p52-ptrs");
-      expect(packet.markdown).toContain("bun harness.ts gate:prove --run .capsules/run-p52-ptrs --task T-1");
+      expect(packet.markdown).toContain(
+        "bun harness.ts gate:prove --run .capsules/run-p52-ptrs --task T-1",
+      );
       expect(packet.markdown).toContain("bun harness.ts explain <ERROR_CODE>");
       expect(packet.markdown).toContain("bun harness.ts doctor --run .capsules/run-p52-ptrs");
-      expect(packet.markdown).toContain("bun harness.ts evidence:get --run .capsules/run-p52-ptrs --evidence <ID>");
+      expect(packet.markdown).toContain(
+        "bun harness.ts evidence:get --run .capsules/run-p52-ptrs --evidence <ID>",
+      );
     });
 
     test("sanitizes raw error blobs, stack traces, and unverified completion claims", () => {
@@ -506,4 +520,3 @@ describe("Decoupled Capsule Memory Architecture", () => {
     });
   });
 });
-

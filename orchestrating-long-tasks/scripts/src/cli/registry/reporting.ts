@@ -20,7 +20,8 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     name: "report",
     aliases: ["report:unified", "report:all"],
     domain: "reporting",
-    summary: "Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.",
+    summary:
+      "Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.",
     description:
       "Generates comprehensive unified run report across tasks, topology, agent lifecycle tiers, and audit trail.",
     flags: [

@@ -87,4 +87,3 @@ protocol:
     ### Step 6: Sign off with answers, not adjectives (`task:review --status pass`)
     - Re-run test gates and verify all probe demands and defects are answered with fresh command evidence.
     - `task:review --run $RUN --task <task-id> --validator <val-agent> --token <token> --status pass --checks <cmd-ids> --resolve <finding-id>=<cmd-id> --summary "<quantitative test pass summary>"`
-

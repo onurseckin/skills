@@ -124,10 +124,7 @@ const DEFAULT_ARCHIVED_OBJECTIVES_FILE = ".capsules/ARCHIVED_OBJECTIVES.jsonl";
 /**
  * Resolves the path to the ARCHIVED_OBJECTIVES.jsonl ledger.
  */
-export function resolveArchivedObjectivesPath(
-  capsulesDir?: string,
-  customPath?: string,
-): string {
+export function resolveArchivedObjectivesPath(capsulesDir?: string, customPath?: string): string {
   if (customPath && customPath.trim()) {
     return resolve(customPath.trim());
   }
@@ -415,7 +412,8 @@ export function pruneAndArchiveGenerationalState(
   for (const cand of candidates) {
     const candidateId = typeof cand["id"] === "string" ? cand["id"] : "cand-unknown";
     const status = typeof cand["status"] === "string" ? cand["status"] : "opened";
-    const statement = typeof cand["statement"] === "string" ? cand["statement"] : `Candidate ${candidateId}`;
+    const statement =
+      typeof cand["statement"] === "string" ? cand["statement"] : `Candidate ${candidateId}`;
     const candGen = extractItemGeneration(cand, sourceGeneration);
     const completed = isItemCompleted(cand);
 
@@ -428,10 +426,7 @@ export function pruneAndArchiveGenerationalState(
             ? cand["completed_at"]
             : nowIso;
 
-      const result =
-        typeof cand["result"] === "string" && cand["result"]
-          ? cand["result"]
-          : status;
+      const result = typeof cand["result"] === "string" && cand["result"] ? cand["result"] : status;
 
       toArchive.push({
         id: candidateId,
@@ -441,7 +436,9 @@ export function pruneAndArchiveGenerationalState(
         completed_at: completedAt,
         result,
         candidate_id: candidateId,
-        write_scope: Array.isArray(cand["write_scope"]) ? (cand["write_scope"] as string[]) : undefined,
+        write_scope: Array.isArray(cand["write_scope"])
+          ? (cand["write_scope"] as string[])
+          : undefined,
         charter_goals: Array.isArray(cand["charter_goals"])
           ? (cand["charter_goals"] as string[])
           : Array.isArray(cand["charter_goal_ids"])
@@ -468,7 +465,8 @@ export function pruneAndArchiveGenerationalState(
   for (const obj of objectives) {
     const objId = typeof obj["id"] === "string" ? obj["id"] : "obj-unknown";
     const status = typeof obj["status"] === "string" ? obj["status"] : "active";
-    const statement = typeof obj["statement"] === "string" ? obj["statement"] : `Objective ${objId}`;
+    const statement =
+      typeof obj["statement"] === "string" ? obj["statement"] : `Objective ${objId}`;
     const objGen = extractItemGeneration(obj, sourceGeneration);
     const completed = isItemCompleted(obj);
 
@@ -535,7 +533,9 @@ export function pruneAndArchiveGenerationalState(
         completed_at: completedAt,
         result: status,
         task_id: taskId,
-        write_scope: Array.isArray(task["write_scope"]) ? (task["write_scope"] as string[]) : undefined,
+        write_scope: Array.isArray(task["write_scope"])
+          ? (task["write_scope"] as string[])
+          : undefined,
         details: {
           role: task["role"],
           status,
@@ -593,7 +593,9 @@ export function pruneAndArchiveGenerationalState(
     archivedCount: toArchive.length,
     archivalPath,
     ...(consolidatedCapsules !== undefined ? { consolidatedCapsules } : {}),
-    ...(prunedBoilerplateDirs.length > 0 ? { prunedBoilerplateDirectories: prunedBoilerplateDirs } : {}),
+    ...(prunedBoilerplateDirs.length > 0
+      ? { prunedBoilerplateDirectories: prunedBoilerplateDirs }
+      : {}),
   };
 }
 
@@ -684,12 +686,18 @@ export function archiveCapsule(
   options: ArchiveCapsuleOptions = {},
 ): ArchiveCapsuleResult {
   if (!sourceCapsulePath || !existsSync(sourceCapsulePath)) {
-    throw new HarnessError("INVALID_ARGUMENT", `sourceCapsulePath must exist: ${sourceCapsulePath}`);
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `sourceCapsulePath must exist: ${sourceCapsulePath}`,
+    );
   }
   const resolvedSource = resolve(sourceCapsulePath);
   const stat = lstatSync(resolvedSource);
   if (!stat.isDirectory()) {
-    throw new HarnessError("INVALID_ARGUMENT", `sourceCapsulePath must be a directory: ${sourceCapsulePath}`);
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `sourceCapsulePath must be a directory: ${sourceCapsulePath}`,
+    );
   }
 
   const runId = basename(resolvedSource);
@@ -815,7 +823,9 @@ export function consolidateCapsules(
         if (existsSync(statePath)) {
           const stateRaw = JSON.parse(readFileSync(statePath, "utf-8")) as Record<string, unknown>;
           const mindState = stateRaw["mind"] as Record<string, unknown> | undefined;
-          const completionResult = stateRaw["completion_result"] as Record<string, unknown> | undefined;
+          const completionResult = stateRaw["completion_result"] as
+            | Record<string, unknown>
+            | undefined;
           if (mindState?.status === "rotated" || completionResult?.status === "complete") {
             if (typeof mindState?.generation === "number" && currentGen !== undefined) {
               if (mindState.generation <= currentGen - retention) {

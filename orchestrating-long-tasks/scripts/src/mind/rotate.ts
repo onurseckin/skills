@@ -8,10 +8,7 @@ import { chainCapsules } from "../orchestrator/capsule-chainer.ts";
 import { initRun, loadRun } from "../store/index.ts";
 import { transact } from "../store/transaction.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";
-import {
-  pruneAndArchiveGenerationalState,
-  type ArchivedObjectiveRecord,
-} from "./archival.ts";
+import { pruneAndArchiveGenerationalState, type ArchivedObjectiveRecord } from "./archival.ts";
 import type { CandidateRecord } from "./gates.ts";
 import type { ObjectiveRecord } from "./rounds.ts";
 

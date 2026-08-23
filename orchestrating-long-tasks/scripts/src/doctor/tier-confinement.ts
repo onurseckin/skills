@@ -792,10 +792,7 @@ export interface GitDiffRecord {
 
 export function isSourceCodeFile(filePath: string): boolean {
   const normalized = filePath.toLowerCase().trim();
-  if (
-    normalized.startsWith(".capsules/") ||
-    normalized.includes("/.capsules/")
-  ) {
+  if (normalized.startsWith(".capsules/") || normalized.includes("/.capsules/")) {
     return false;
   }
   if (
@@ -938,8 +935,8 @@ export function auditSupervisorCodeContamination(
         isMindRole(leaseRole) || isMindRole(agentRole)
           ? "mind"
           : isOrchestratorRole(leaseRole) || isOrchestratorRole(agentRole)
-          ? "orchestrator"
-          : "coordinator";
+            ? "orchestrator"
+            : "coordinator";
       const tier = roleToTier(effectiveRole);
 
       resultFindings.push({
@@ -969,9 +966,12 @@ export function auditSupervisorCodeContamination(
 
       if (isSourceCodeFile(diffPath)) {
         if (diffActor) {
-          const actorRole =
-            diffRole ?? roleMap.get(diffActor) ?? inferRole(diffActor, roleMap, {});
-          if (isMindRole(actorRole) || isOrchestratorRole(actorRole) || isCoordinatorRole(actorRole)) {
+          const actorRole = diffRole ?? roleMap.get(diffActor) ?? inferRole(diffActor, roleMap, {});
+          if (
+            isMindRole(actorRole) ||
+            isOrchestratorRole(actorRole) ||
+            isCoordinatorRole(actorRole)
+          ) {
             const tier = roleToTier(actorRole);
             resultFindings.push({
               agent_id: diffActor,
@@ -1080,9 +1080,7 @@ export function summarizeTierConfinement(
  * never perform direct code edits or hold task leases.
  * Throws a fatal HarnessError if any supervisor code contamination is detected.
  */
-export function assertSupervisorRoleConfinement(
-  findings: readonly TierConfinementFinding[],
-): void {
+export function assertSupervisorRoleConfinement(findings: readonly TierConfinementFinding[]): void {
   const supervisorViolations = findings.filter(
     (f) =>
       f.violation_type === "coordinator_code_writing" ||
@@ -1100,4 +1098,3 @@ export function assertSupervisorRoleConfinement(
     );
   }
 }
-

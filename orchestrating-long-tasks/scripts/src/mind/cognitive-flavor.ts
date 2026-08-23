@@ -63,11 +63,14 @@ export interface CognitiveDimensionSpec {
   readonly breakthroughExamples: readonly string[];
 }
 
-export const COGNITIVE_DIMENSION_SPECS: Readonly<Record<CognitiveDimension, CognitiveDimensionSpec>> = {
+export const COGNITIVE_DIMENSION_SPECS: Readonly<
+  Record<CognitiveDimension, CognitiveDimensionSpec>
+> = {
   simpler: {
     dimension: "simpler",
     title: "Radical Simplification & Abstraction Pruning",
-    coreQuestion: "How can this system be made simpler by eliminating accidental complexity and ceremonial bloat?",
+    coreQuestion:
+      "How can this system be made simpler by eliminating accidental complexity and ceremonial bloat?",
     mappedPillarId: 6,
     principles: [
       "Eliminate redundant abstraction layers, pass-through wrappers, and premature abstractions.",
@@ -90,7 +93,8 @@ export const COGNITIVE_DIMENSION_SPECS: Readonly<Record<CognitiveDimension, Cogn
   better: {
     dimension: "better",
     title: "Architectural Soundness & Invariant Enforcement",
-    coreQuestion: "How can this system be made better through tighter contracts, cleaner boundaries, and stronger guarantees?",
+    coreQuestion:
+      "How can this system be made better through tighter contracts, cleaner boundaries, and stronger guarantees?",
     mappedPillarId: 3,
     principles: [
       "Enforce unbreakable tier boundaries (Tier 0 Mind -> Tier 1 Orchestrator -> Tier 2 Coordinator -> Tier 3 Workers).",
@@ -113,7 +117,8 @@ export const COGNITIVE_DIMENSION_SPECS: Readonly<Record<CognitiveDimension, Cogn
   faster: {
     dimension: "faster",
     title: "Topological Concurrency & Latency Minimization",
-    coreQuestion: "How can this system be made faster by maximizing parallelism ($P = W / S$) and removing serial bottlenecks?",
+    coreQuestion:
+      "How can this system be made faster by maximizing parallelism ($P = W / S$) and removing serial bottlenecks?",
     mappedPillarId: 7,
     principles: [
       "Dynamically scale concurrency to Work/Span algorithmic headroom (P = W / S).",
@@ -136,7 +141,8 @@ export const COGNITIVE_DIMENSION_SPECS: Readonly<Record<CognitiveDimension, Cogn
   more_visual: {
     dimension: "more_visual",
     title: "Visual Truth & Radical Observability",
-    coreQuestion: "How can this system be made more visual through rich ASCII/Unicode DAG graphs and quantitative proof?",
+    coreQuestion:
+      "How can this system be made more visual through rich ASCII/Unicode DAG graphs and quantitative proof?",
     mappedPillarId: 2,
     principles: [
       "Render live execution topologies as Unicode boxed DAGs with status indicators and coordinates.",
@@ -159,7 +165,8 @@ export const COGNITIVE_DIMENSION_SPECS: Readonly<Record<CognitiveDimension, Cogn
   more_token_efficient: {
     dimension: "more_token_efficient",
     title: "CLI-First Token Leverage & Parsimony",
-    coreQuestion: "How can this system be made more token-efficient to eliminate context bloat and prevent compaction?",
+    coreQuestion:
+      "How can this system be made more token-efficient to eliminate context bloat and prevent compaction?",
     mappedPillarId: 1,
     principles: [
       "Prevent token bloat by using structured CLI commands with strict line limiters (<= 30 lines).",
@@ -182,7 +189,8 @@ export const COGNITIVE_DIMENSION_SPECS: Readonly<Record<CognitiveDimension, Cogn
   higher_quality: {
     dimension: "higher_quality",
     title: "Strict Type Safety & Adversarial Gate Hardening",
-    coreQuestion: "How can this system be made higher quality with zero untyped code and falsifiable verification gates?",
+    coreQuestion:
+      "How can this system be made higher quality with zero untyped code and falsifiable verification gates?",
     mappedPillarId: 6,
     principles: [
       "STRICT ZERO-ANY & ZERO-SUPPRESSION: 0 TypeScript `any`, 0 `@ts-ignore`, 0 `@ts-expect-error`, 0 lint suppressions.",
@@ -215,14 +223,17 @@ export interface CognitiveFlavorProfile {
   readonly evaluationFocus: readonly string[];
 }
 
-export const COGNITIVE_FLAVOR_PROFILES: Readonly<Record<CognitiveFlavorId, CognitiveFlavorProfile>> = {
+export const COGNITIVE_FLAVOR_PROFILES: Readonly<
+  Record<CognitiveFlavorId, CognitiveFlavorProfile>
+> = {
   FIRST_PRINCIPLES: {
     id: "FIRST_PRINCIPLES",
     name: "First-Principles Radical Simplifier",
     archetype: "Fundamental Axiom Questioner & Abstraction Pruner",
     primaryDimension: "simpler",
     secondaryDimensions: ["better", "more_token_efficient"],
-    coreMotto: "Question every assumption from bedrock fundamentals; eliminate all ceremonial friction.",
+    coreMotto:
+      "Question every assumption from bedrock fundamentals; eliminate all ceremonial friction.",
     promptGuidance:
       "Constantly challenge legacy assumptions and unnecessary abstraction layers. Seek radical directness, small context-sized modules, and elegant simplicity.",
     evaluationFocus: [
@@ -297,7 +308,8 @@ export const COGNITIVE_FLAVOR_PROFILES: Readonly<Record<CognitiveFlavorId, Cogni
     archetype: "Continuous Consciousness & Generational Evolver",
     primaryDimension: "faster",
     secondaryDimensions: ["simpler", "better"],
-    coreMotto: "Closing is forbidden; dynamic Work/Span concurrency (P = W / S) without artificial limits.",
+    coreMotto:
+      "Closing is forbidden; dynamic Work/Span concurrency (P = W / S) without artificial limits.",
     promptGuidance:
       "Operate as an infinite autonomous consciousness loop. Dynamically scale concurrency to Work/Span math, continuously discover tasks, and rotate generations seamlessly.",
     evaluationFocus: [
@@ -401,7 +413,8 @@ export function evaluateCognitiveState(
       title: "High Module Count",
       description: `Source file count (${input.sourceFilesCount}) may contain redundant shims or pass-through adapters.`,
       metricObserved: input.sourceFilesCount,
-      recommendedBreakthrough: "Consolidate small companion utilities into cohesive domain modules.",
+      recommendedBreakthrough:
+        "Consolidate small companion utilities into cohesive domain modules.",
     });
   }
 
@@ -416,7 +429,8 @@ export function evaluateCognitiveState(
       title: "Supervisor Zero-File-Edit Rule Violation",
       description: `Detected ${input.supervisoryFileEditsCount} direct file modifications on supervisory lead threads.`,
       metricObserved: input.supervisoryFileEditsCount,
-      recommendedBreakthrough: "Enforce pure delegation: delegate all code edits to leased Tier 3 Implementers.",
+      recommendedBreakthrough:
+        "Enforce pure delegation: delegate all code edits to leased Tier 3 Implementers.",
     });
   }
 
@@ -435,7 +449,8 @@ export function evaluateCognitiveState(
       title: "Under-Utilized Algorithmic Concurrency Headroom ($P = W / S$)",
       description: `Theoretical Work/Span concurrency is ${theoreticalHeadroom}, but active worker concurrency is only ${activeConcurrency}.`,
       metricObserved: `${activeConcurrency} / ${theoreticalHeadroom}`,
-      recommendedBreakthrough: "Dispatch independent DAG lanes in parallel wave arrays via continuous anti-batching.",
+      recommendedBreakthrough:
+        "Dispatch independent DAG lanes in parallel wave arrays via continuous anti-batching.",
     });
   }
   if (input.idleLoopDetected) {
@@ -445,8 +460,10 @@ export function evaluateCognitiveState(
       dimension: "faster",
       severity: "HIGH",
       title: "Idle Loop Detected in Execution Cadence",
-      description: "Mind or Coordinator experienced passive idling instead of autonomic task discovery or perpetual pulsing.",
-      recommendedBreakthrough: "Engage perpetual self-evolution loop to synthesize candidate tasks when queues empty.",
+      description:
+        "Mind or Coordinator experienced passive idling instead of autonomic task discovery or perpetual pulsing.",
+      recommendedBreakthrough:
+        "Engage perpetual self-evolution loop to synthesize candidate tasks when queues empty.",
     });
   }
 
@@ -461,7 +478,8 @@ export function evaluateCognitiveState(
       title: "Missing 4-Tier Viewport Resolution Coverage",
       description: `Found ${input.missingViewportCoverageCount} UI task(s) lacking complete multi-viewport rasterized captures.`,
       metricObserved: input.missingViewportCoverageCount,
-      recommendedBreakthrough: "Execute 4-tier viewport captures (Desktop-Wide, Desktop, Tablet, Mobile) with DOM JSON metrics.",
+      recommendedBreakthrough:
+        "Execute 4-tier viewport captures (Desktop-Wide, Desktop, Tablet, Mobile) with DOM JSON metrics.",
     });
   }
 
@@ -474,8 +492,10 @@ export function evaluateCognitiveState(
       dimension: "more_token_efficient",
       severity: "HIGH",
       title: "Unbounded CLI Output Exceeding Line Limit",
-      description: "CLI command returned un-bounded output exceeding the 30-line threshold, risking context compaction.",
-      recommendedBreakthrough: "Wrap command output in `enforceLineLimit(output, 30)` with structured next actions.",
+      description:
+        "CLI command returned un-bounded output exceeding the 30-line threshold, risking context compaction.",
+      recommendedBreakthrough:
+        "Wrap command output in `enforceLineLimit(output, 30)` with structured next actions.",
     });
   }
 
@@ -490,7 +510,8 @@ export function evaluateCognitiveState(
       title: "TypeScript `any` Type Annotations Detected",
       description: `Detected ${input.anyTypesCount} untyped \`any\` references violating zero-any type safety invariants.`,
       metricObserved: input.anyTypesCount,
-      recommendedBreakthrough: "Replace `any` with precise discriminated unions, generic type bounds, or `unknown` with narrowing.",
+      recommendedBreakthrough:
+        "Replace `any` with precise discriminated unions, generic type bounds, or `unknown` with narrowing.",
     });
   }
   if ((input.suppressionsCount ?? 0) > 0) {
@@ -502,7 +523,8 @@ export function evaluateCognitiveState(
       title: "Compiler Suppressions Present",
       description: `Detected ${input.suppressionsCount} compiler/linter suppression comments (@ts-ignore / @ts-expect-error).`,
       metricObserved: input.suppressionsCount,
-      recommendedBreakthrough: "Resolve underlying type discrepancies directly without compiler suppressions.",
+      recommendedBreakthrough:
+        "Resolve underlying type discrepancies directly without compiler suppressions.",
     });
   }
   if ((input.unprovenGatesCount ?? 0) > 0) {
@@ -514,7 +536,8 @@ export function evaluateCognitiveState(
       title: "Unproven Verification Gates (`gate:prove`)",
       description: `Found ${input.unprovenGatesCount} compiled task gates lacking negative failure verification on scratch copies.`,
       metricObserved: input.unprovenGatesCount,
-      recommendedBreakthrough: "Run `gate:prove` on disposable scratch copies to verify gates reliably fail on defects.",
+      recommendedBreakthrough:
+        "Run `gate:prove` on disposable scratch copies to verify gates reliably fail on defects.",
     });
   }
   if ((input.qualitativePassesCount ?? 0) > 0) {
@@ -526,7 +549,8 @@ export function evaluateCognitiveState(
       title: "Qualitative-Only Validation Passes Detected",
       description: `Detected ${input.qualitativePassesCount} validator reviews lacking quantitative metric proof.`,
       metricObserved: input.qualitativePassesCount,
-      recommendedBreakthrough: "Issue `coordinator:pushback` and require DOM bounding boxes, APCA contrast ratings, and screenshot bytes.",
+      recommendedBreakthrough:
+        "Issue `coordinator:pushback` and require DOM bounding boxes, APCA contrast ratings, and screenshot bytes.",
     });
   }
 
@@ -600,7 +624,8 @@ export function evaluateCognitiveState(
       id: "PROP-SIMP-001",
       title: "Radical Architecture & File Consolidation",
       targetDimension: "simpler",
-      rationale: "Excess abstraction layers and fragmented utility modules introduce cognitive friction and maintenance overhead.",
+      rationale:
+        "Excess abstraction layers and fragmented utility modules introduce cognitive friction and maintenance overhead.",
       firstPrinciplesAnalysis:
         "Every layer of indirection must justify its existence with concrete isolation benefits. Direct module exports eliminate redundant mapping logic.",
       estimatedSimplicityGain: "40% reduction in mental hops and import graph depth",
@@ -618,7 +643,8 @@ export function evaluateCognitiveState(
       id: "PROP-FAST-001",
       title: "Topological Concurrency Expansion ($P = W / S$)",
       targetDimension: "faster",
-      rationale: "Independent tasks are being queued serially despite available Work/Span parallelism headroom.",
+      rationale:
+        "Independent tasks are being queued serially despite available Work/Span parallelism headroom.",
       firstPrinciplesAnalysis:
         "When write scopes are disjoint, tasks have zero resource contention. Concurrency is limited only by topological span length $S$.",
       estimatedSimplicityGain: "Elimination of complex queue synchronization barriers",
@@ -636,11 +662,13 @@ export function evaluateCognitiveState(
       id: "PROP-QUAL-001",
       title: "Zero-Any Type Hardening & Counterfactual Probing",
       targetDimension: "higher_quality",
-      rationale: "Untyped references or unproven gates weaken system guarantees and risk silent regressions.",
+      rationale:
+        "Untyped references or unproven gates weaken system guarantees and risk silent regressions.",
       firstPrinciplesAnalysis:
         "TypeScript's type checker provides zero-cost compile-time invariants when untyped escapes are eliminated.",
       estimatedSimplicityGain: "Self-documenting interfaces with total type safety",
-      estimatedLatencyReduction: "Elimination of debugging cycles caused by runtime type mismatches",
+      estimatedLatencyReduction:
+        "Elimination of debugging cycles caused by runtime type mismatches",
       implementationPlan: [
         "Replace all `any` types with strict discriminated unions or type narrowing.",
         "Run `gate:prove` against disposable scratch copies to verify gate falsifiability.",
@@ -724,15 +752,25 @@ export function formatCognitivePromptSection(options?: {
     lines.push("");
     lines.push(`**Role Guidance (${role.toUpperCase()}):**`);
     if (role === "mind") {
-      lines.push("- Maintain infinite observe-only consciousness; synthesize radical simplifications for the full system topology.");
+      lines.push(
+        "- Maintain infinite observe-only consciousness; synthesize radical simplifications for the full system topology.",
+      );
     } else if (role === "orchestrator") {
-      lines.push("- Supervise execution rounds and eliminate cross-round redundant synthesis overhead.");
+      lines.push(
+        "- Supervise execution rounds and eliminate cross-round redundant synthesis overhead.",
+      );
     } else if (role === "coordinator") {
-      lines.push("- Expand concurrency to Work/Span math (P = W / S), eliminate serial bottlenecks, and enforce disjoint write scopes.");
+      lines.push(
+        "- Expand concurrency to Work/Span math (P = W / S), eliminate serial bottlenecks, and enforce disjoint write scopes.",
+      );
     } else if (role === "implementer") {
-      lines.push("- Enforce strict zero-any types, zero suppressions, and make minimal, elegant, context-sized changes.");
+      lines.push(
+        "- Enforce strict zero-any types, zero suppressions, and make minimal, elegant, context-sized changes.",
+      );
     } else if (role === "validator") {
-      lines.push("- Execute adversarial falsification probes, verify gate failure paths, and demand quantitative DOM/screenshot proof.");
+      lines.push(
+        "- Execute adversarial falsification probes, verify gate failure paths, and demand quantitative DOM/screenshot proof.",
+      );
     }
   }
 
@@ -742,12 +780,16 @@ export function formatCognitivePromptSection(options?: {
 export function formatCognitiveEvaluationBrief(evaluation: CognitiveFlavorEvaluation): string {
   const lines: string[] = [];
   lines.push(`### 🧠 Cognitive Flavor Brief: ${evaluation.primaryFlavor}`);
-  lines.push(`**Health Score:** ${evaluation.overallCognitiveHealthScore}/100 | **Findings:** ${evaluation.frictionFindings.length} | **Breakthroughs:** ${evaluation.breakthroughProposals.length}`);
+  lines.push(
+    `**Health Score:** ${evaluation.overallCognitiveHealthScore}/100 | **Findings:** ${evaluation.frictionFindings.length} | **Breakthroughs:** ${evaluation.breakthroughProposals.length}`,
+  );
   lines.push("");
   lines.push("**Dimensional Posture:**");
   for (const dim of COGNITIVE_DIMENSIONS) {
     const score = evaluation.dimensionScores[dim];
-    lines.push(`- **${dim}**: ${score.score}/100 [${score.grade}] (${score.findingsCount} issue(s))`);
+    lines.push(
+      `- **${dim}**: ${score.score}/100 [${score.grade}] (${score.findingsCount} issue(s))`,
+    );
   }
 
   if (evaluation.breakthroughProposals.length > 0) {

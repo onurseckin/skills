@@ -359,8 +359,7 @@ export function buildScopedTestCommand(
     );
   }
 
-  const runner: TestRunnerType =
-    options.runner !== undefined ? options.runner : "bun";
+  const runner: TestRunnerType = options.runner !== undefined ? options.runner : "bun";
   const validRunners: readonly TestRunnerType[] = ["bun", "npm", "pnpm", "yarn", "vitest", "jest"];
   if (!validRunners.includes(runner)) {
     throw new HarnessError("INVALID_ARGUMENT", `Unsupported test runner: ${String(runner)}`);
@@ -479,14 +478,14 @@ export function validateMemoryAndCpuConservation(
 export function auditScopedExecutionCompliance(
   params: ScopedExecutionAuditParams,
 ): ScopedExecutionAuditResult {
-  const targets = Array.isArray(params.commandOrTargets) &&
+  const targets =
+    Array.isArray(params.commandOrTargets) &&
     params.commandOrTargets.length > 0 &&
     typeof params.commandOrTargets[0] === "object"
-    ? (params.commandOrTargets as readonly ScopedTestTarget[])
-    : resolveScopedTestTargets(
-        params.commandOrTargets as string | readonly string[],
-        { repoRoot: params.repoRoot },
-      );
+      ? (params.commandOrTargets as readonly ScopedTestTarget[])
+      : resolveScopedTestTargets(params.commandOrTargets as string | readonly string[], {
+          repoRoot: params.repoRoot,
+        });
 
   const violations: string[] = [];
 

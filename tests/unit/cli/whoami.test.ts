@@ -336,7 +336,9 @@ describe("Supervisory Persona Reminder Dynamic Injection (whoami CLI)", () => {
     expect(reminder.tier).toBe(0);
     expect(String(result.markdown)).toContain("SUPERVISOR ROLE DETECTED");
     expect(String(result.markdown)).toContain("SUPERVISORY PERSONA");
-    expect(String(result.markdown)).toContain("Strict 4-Tier Spawning Hierarchy & Zero-File-Edit Invariant");
+    expect(String(result.markdown)).toContain(
+      "Strict 4-Tier Spawning Hierarchy & Zero-File-Edit Invariant",
+    );
     expect(Array.isArray(result.decision_protocols)).toBeTrue();
     expect(Array.isArray(result.checklist)).toBeTrue();
   });

@@ -52,7 +52,10 @@ describe("Blunder Pipeline - Categorization & Discriminator Logic", () => {
   it("categorizes boundary violations correctly", () => {
     const cases: Array<{ input: Partial<BlunderRecordInput>; expected: BlunderCategory }> = [
       {
-        input: { type: "role_confusion_detected", observation: "Agent attempted orchestrator actions" },
+        input: {
+          type: "role_confusion_detected",
+          observation: "Agent attempted orchestrator actions",
+        },
         expected: "boundary_violation",
       },
       {
@@ -186,7 +189,9 @@ describe("Blunder Pipeline - Categorization & Discriminator Logic", () => {
     };
 
     const standardKey = computeBlunderDiscriminator(blunder);
-    expect(standardKey).toBe("boundary_violation::role_leak::implementer-1::direct file edit attempted");
+    expect(standardKey).toBe(
+      "boundary_violation::role_leak::implementer-1::direct file edit attempted",
+    );
 
     const ignoreAgentKey = computeBlunderDiscriminator(blunder, { includeAgentId: false });
     expect(ignoreAgentKey).toBe("boundary_violation::role_leak::all::direct file edit attempted");
@@ -974,7 +979,10 @@ describe("Blunder Pipeline - Static Code Invariants", () => {
       .filter((f) => f.endsWith(".ts"))
       .map((f) => join(blunderDir, f));
 
-    const mindBlundersPath = join(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/blunders.ts");
+    const mindBlundersPath = join(
+      process.cwd(),
+      "orchestrating-long-tasks/scripts/src/mind/blunders.ts",
+    );
     const testFilePath = join(process.cwd(), "tests/unit/blunders/blunder-pipeline.test.ts");
     const allFiles = [...blunderFiles, mindBlundersPath, testFilePath];
 
@@ -1012,7 +1020,9 @@ describe("Blunder Pipeline - Static Code Invariants", () => {
         for (const pattern of forbiddenPatterns) {
           const matched = pattern.test(line);
           if (matched) {
-            throw new Error(`File ${filePath}:${i + 1} violated invariant with pattern ${pattern.source}: "${line}"`);
+            throw new Error(
+              `File ${filePath}:${i + 1} violated invariant with pattern ${pattern.source}: "${line}"`,
+            );
           }
           expect(matched).toBe(false);
         }

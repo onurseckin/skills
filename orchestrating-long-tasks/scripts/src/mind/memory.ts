@@ -1059,7 +1059,8 @@ export function indexArchivedObjectiveDocuments(
             const statement = typeof parsed["statement"] === "string" ? parsed["statement"] : "";
             const result = typeof parsed["result"] === "string" ? parsed["result"] : "completed";
             const gen = typeof parsed["generation"] === "number" ? parsed["generation"] : 1;
-            const completedAt = typeof parsed["completed_at"] === "string" ? parsed["completed_at"] : "";
+            const completedAt =
+              typeof parsed["completed_at"] === "string" ? parsed["completed_at"] : "";
             const type = typeof parsed["type"] === "string" ? parsed["type"] : "objective";
 
             const searchableContent = `${parsed["id"]} ${type} ${statement} gen-${gen} ${result} ${completedAt}`;

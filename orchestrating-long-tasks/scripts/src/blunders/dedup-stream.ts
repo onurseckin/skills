@@ -70,10 +70,7 @@ export function deduplicateBlunderLog(
         }
       }
 
-      const created = toAggregatedBlunder(
-        b,
-        keyOpts !== undefined ? { keyOptions: keyOpts } : {},
-      );
+      const created = toAggregatedBlunder(b, keyOpts !== undefined ? { keyOptions: keyOpts } : {});
       result.push(created);
       if (options.onNewBlunder) {
         options.onNewBlunder(created);
@@ -136,9 +133,7 @@ export function parseAndDeduplicateBlunderJsonl(
   return deduplicateBlunderLog(inputs, options);
 }
 
-export function serializeAggregatedBlunderLog(
-  blunders: readonly AggregatedBlunder[],
-): string {
+export function serializeAggregatedBlunderLog(blunders: readonly AggregatedBlunder[]): string {
   if (!Array.isArray(blunders) || blunders.length === 0) {
     return "";
   }

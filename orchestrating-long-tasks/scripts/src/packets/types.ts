@@ -90,4 +90,3 @@ export interface CognitiveStepCoverageResult {
   readonly missingStepsCount: number;
   readonly issues: readonly CognitiveStepCoverageIssue[];
 }
-

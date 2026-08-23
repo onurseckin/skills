@@ -156,7 +156,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
 
     const updatedTask = state.tasks[taskId]!;
     const latestRecord = getLatestMicroCycle(updatedTask);
-    const round = latestRecord?.round ?? (updatedTask.micro_cycle_round ?? 1);
+    const round = latestRecord?.round ?? updatedTask.micro_cycle_round ?? 1;
     const markdown = latestRecord
       ? formatMicroCycleFeedback(taskId, latestRecord, maxRounds ?? DEFAULT_MAX_MICRO_CYCLES)
       : `### 🔄 Micro-Cycle Feedback (Round ${round})\n\nValidator: ${validator}\nCritique: ${reason}`;
@@ -227,17 +227,11 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   const taskScreenshots = isUiCandidate
     ? collectTaskScreenshots(loaded.runRoot, taskId, validator, checkIds)
     : [];
-  const companionManifests = isUiCandidate
-    ? collectCompanionManifests(loaded.runRoot, taskId)
-    : [];
+  const companionManifests = isUiCandidate ? collectCompanionManifests(loaded.runRoot, taskId) : [];
   const dualChannel = isUiCandidate
-    ? runDualChannelAudit(
-        loaded.runRoot,
-        taskBefore,
-        taskScreenshots,
-        companionManifests,
-        { requireSemanticDepth },
-      )
+    ? runDualChannelAudit(loaded.runRoot, taskBefore, taskScreenshots, companionManifests, {
+        requireSemanticDepth,
+      })
     : {
         isUiTask: false,
         passed: true,

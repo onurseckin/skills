@@ -43,13 +43,7 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
         "NORMAL",
         "LOW",
       ]);
-      const validStatuses = new Set([
-        "PENDING",
-        "ADMITTED",
-        "DECLINED",
-        "PROCESSED",
-        "COMPLETED",
-      ]);
+      const validStatuses = new Set(["PENDING", "ADMITTED", "DECLINED", "PROCESSED", "COMPLETED"]);
 
       // Check that all items match expected schema and properties
       for (const item of items) {

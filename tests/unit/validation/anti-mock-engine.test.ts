@@ -476,7 +476,9 @@ describe("Pillar 3: Mutation Gate Engine", () => {
     expect(result.survivedMutants).toBeGreaterThan(0);
     expect(result.mutationScore).toBeLessThan(100);
     expect(result.violations.length).toBe(result.survivedMutants);
-    expect(result.violations[0]?.message).toContain("survived: test suite passed without detecting intentional defect");
+    expect(result.violations[0]?.message).toContain(
+      "survived: test suite passed without detecting intentional defect",
+    );
   });
 
   test("supports maxMutants limit and non-strict survival mode", async () => {
@@ -660,7 +662,9 @@ describe("Unified AntiMockEngine & Diagnostics", () => {
     const linterRes = engine.lintAst(`test("good", () => { expect(1 + 1).toBe(2); });`);
     expect(linterRes.passed).toBe(true);
 
-    const floorRes = engine.enforceAssertionFloor(`test("single", () => { expect(1 + 1).toBe(2); });`);
+    const floorRes = engine.enforceAssertionFloor(
+      `test("single", () => { expect(1 + 1).toBe(2); });`,
+    );
     expect(floorRes.passed).toBe(false);
     expect(floorRes.minAssertionsPerTest).toBe(3);
 

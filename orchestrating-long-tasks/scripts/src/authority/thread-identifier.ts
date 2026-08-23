@@ -176,7 +176,8 @@ export function agentIdToTier(agentId: string): ExecutionTier | null {
   if (/^mind|^human/i.test(normalized)) return 0;
   if (/^orch/i.test(normalized)) return 1;
   if (/^coord/i.test(normalized)) return 2;
-  if (/^(impl|val|critic|completeness[-_]critic|repair|worker|sub|plan)/i.test(normalized)) return 3;
+  if (/^(impl|val|critic|completeness[-_]critic|repair|worker|sub|plan)/i.test(normalized))
+    return 3;
   return null;
 }
 
@@ -754,7 +755,8 @@ export const AGENT_NAMING_STANDARDS: Readonly<Record<string, AgentNamingStandard
     tier: 3,
     bindingType: "subtask",
     formatTemplate: "sub-investigator_<subtask-id>[-<descriptive-slug>]",
-    regexPattern: /^sub-investigator_(subtask-[a-z0-9]+|[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
+    regexPattern:
+      /^sub-investigator_(subtask-[a-z0-9]+|[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
     example: "sub-investigator_subtask-1-diag",
     description: "Tier 3 Branch Sub-Investigator bound to branch subtask ID",
   },

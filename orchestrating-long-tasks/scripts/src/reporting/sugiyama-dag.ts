@@ -16,7 +16,12 @@ export interface SugiyamaSubtask {
   readonly implementerAgent?: string | null | undefined;
   readonly role?: string | undefined;
   readonly coordinates?:
-    | { readonly wave?: number; readonly lane?: number; readonly rank?: number; readonly order?: number }
+    | {
+        readonly wave?: number;
+        readonly lane?: number;
+        readonly rank?: number;
+        readonly order?: number;
+      }
     | string
     | undefined;
   readonly writeScope?: readonly string[] | undefined;
@@ -46,7 +51,12 @@ export interface SugiyamaNode {
   readonly origSource?: string | undefined;
   readonly origTarget?: string | undefined;
   readonly coordinates?:
-    | { readonly wave?: number; readonly lane?: number; readonly rank?: number; readonly order?: number }
+    | {
+        readonly wave?: number;
+        readonly lane?: number;
+        readonly rank?: number;
+        readonly order?: number;
+      }
     | string
     | undefined;
   readonly wave?: number | undefined;
@@ -279,7 +289,12 @@ export function formatSubagentAllocation(
  */
 export function formatCoordinates(
   coordinates?:
-    | { readonly wave?: number; readonly lane?: number; readonly rank?: number; readonly order?: number }
+    | {
+        readonly wave?: number;
+        readonly lane?: number;
+        readonly rank?: number;
+        readonly order?: number;
+      }
     | string
     | null,
   waveFallback?: number,
@@ -540,7 +555,9 @@ export function validateDiagnosticHealth(
   }
   if (bypassDiag.hasBypass) {
     for (const b of bypassDiag.bypasses) {
-      issues.push(`Illegal bypass: ${b.from} -> ${b.to} via intermediate [${b.intermediatePath.join(", ")}]`);
+      issues.push(
+        `Illegal bypass: ${b.from} -> ${b.to} via intermediate [${b.intermediatePath.join(", ")}]`,
+      );
     }
   }
   return {
@@ -550,7 +567,6 @@ export function validateDiagnosticHealth(
     bypassCount: bypassDiag.bypasses.length,
   };
 }
-
 
 /**
  * Step 1: Assign nodes to discrete rank layers using longest-path leveling.
@@ -836,8 +852,7 @@ export function renderRoundedNodeBox(
 
   // Active Subagent Allocation rendering: [● IMPLEMENTER: <agent-id> ──► VALIDATOR: <agent-id>]
   const implementerId =
-    task.implementerAgent ??
-    (task.assignedRole !== "validator" ? task.assignedAgent : null);
+    task.implementerAgent ?? (task.assignedRole !== "validator" ? task.assignedAgent : null);
   const validatorId =
     task.validatorAgent ??
     task.validatorId ??

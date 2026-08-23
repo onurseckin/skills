@@ -312,7 +312,9 @@ export function computeConcurrencyMetrics(
 
   const averageWaveConcurrency = totalWaves > 0 ? Number((totalTasks / totalWaves).toFixed(2)) : 0;
   const laneUtilization =
-    lanes.length > 0 ? Number((lanes.filter((l) => l.taskId.length > 0).length / lanes.length).toFixed(2)) : 1;
+    lanes.length > 0
+      ? Number((lanes.filter((l) => l.taskId.length > 0).length / lanes.length).toFixed(2))
+      : 1;
   const theoreticalSpeedup = totalWaves > 0 ? Number((totalTasks / totalWaves).toFixed(2)) : 1;
 
   return {
@@ -362,7 +364,7 @@ export function reconstructDynamicDagState(
           }
         }
         const writeScope = Array.isArray(node.write_scope)
-          ? (node.write_scope.filter((s): s is string => typeof s === "string"))
+          ? node.write_scope.filter((s): s is string => typeof s === "string")
           : [];
 
         taskMap.set(id, {
@@ -379,7 +381,8 @@ export function reconstructDynamicDagState(
           round: 1,
           attempt: 1,
           executionState: "idle",
-          validatorId: typeof node.paired_validator_id === "string" ? node.paired_validator_id : undefined,
+          validatorId:
+            typeof node.paired_validator_id === "string" ? node.paired_validator_id : undefined,
         });
       }
     }
@@ -388,9 +391,18 @@ export function reconstructDynamicDagState(
   // Replay events
   for (let seq = 0; seq < events.length; seq++) {
     const event = events[seq]!;
-    const kind = typeof event.kind === "string" ? event.kind : typeof event.type === "string" ? event.type : "";
+    const kind =
+      typeof event.kind === "string"
+        ? event.kind
+        : typeof event.type === "string"
+          ? event.type
+          : "";
     const actor = typeof event.actor === "string" ? event.actor : "";
-    const payload = isJsonObject(event.payload) ? event.payload : isJsonObject(event.data) ? event.data : {};
+    const payload = isJsonObject(event.payload)
+      ? event.payload
+      : isJsonObject(event.data)
+        ? event.data
+        : {};
     const timestamp = typeof event.timestamp === "string" ? event.timestamp : undefined;
 
     if (actor && actor !== "system") {
@@ -421,7 +433,7 @@ export function reconstructDynamicDagState(
             role: typeof payload.role === "string" ? payload.role : "implementer",
             dependencies: [],
             writeScope: Array.isArray(payload.write_scope)
-              ? (payload.write_scope.filter((s): s is string => typeof s === "string"))
+              ? payload.write_scope.filter((s): s is string => typeof s === "string")
               : [],
             assignedAgent: null,
             origin: "dynamic_expansion",
@@ -510,15 +522,18 @@ export function reconstructDynamicDagState(
             updatedAtSeq: seq + 1,
             executionState: isPass ? "completed" : "rejected",
             round: isPass ? existing.round : existing.round + 1,
-            rejectionReason: !isPass && typeof payload.summary === "string" ? payload.summary : undefined,
+            rejectionReason:
+              !isPass && typeof payload.summary === "string" ? payload.summary : undefined,
           });
         }
         break;
       }
       case "branch-opened": {
         totalBranches++;
-        const parentTaskId = typeof payload.parent_task_id === "string" ? payload.parent_task_id : "";
-        const branchId = typeof payload.branch_id === "string" ? payload.branch_id : `branch-${totalBranches}`;
+        const parentTaskId =
+          typeof payload.parent_task_id === "string" ? payload.parent_task_id : "";
+        const branchId =
+          typeof payload.branch_id === "string" ? payload.branch_id : `branch-${totalBranches}`;
         const subtasks = Array.isArray(payload.subtasks) ? payload.subtasks : [];
 
         for (const sub of subtasks) {
@@ -531,7 +546,7 @@ export function reconstructDynamicDagState(
               role: "sub_implementer",
               dependencies: parentTaskId ? [parentTaskId] : [],
               writeScope: Array.isArray(sub.write_scope)
-                ? (sub.write_scope.filter((s): s is string => typeof s === "string"))
+                ? sub.write_scope.filter((s): s is string => typeof s === "string")
                 : [],
               assignedAgent: null,
               origin: "branch",
@@ -666,7 +681,10 @@ export function replanFromFindings(input: ReplanFromFindingsInput): ReplanFromFi
   }
 
   // Partition findings by unique write scope sets
-  const scopeGroups = new Map<string, { scope: string[]; findings: ReplanFindingInput[]; gate: string }>();
+  const scopeGroups = new Map<
+    string,
+    { scope: string[]; findings: ReplanFindingInput[]; gate: string }
+  >();
 
   for (let i = 0; i < input.findings.length; i++) {
     const finding = input.findings[i]!;
@@ -675,7 +693,9 @@ export function replanFromFindings(input: ReplanFromFindingsInput): ReplanFromFi
         ? finding.filePaths.map(normalizeScopePath)
         : ["src/repair"];
     const key = [...scopes].sort().join("::");
-    const gate = finding.revalidationGate ?? (typeof input.fallbackGate === "string" ? input.fallbackGate : input.fallbackGate.join(" "));
+    const gate =
+      finding.revalidationGate ??
+      (typeof input.fallbackGate === "string" ? input.fallbackGate : input.fallbackGate.join(" "));
 
     if (!scopeGroups.has(key)) {
       scopeGroups.set(key, { scope: scopes, findings: [finding], gate });
@@ -747,7 +767,9 @@ export function formatDynamicDagAscii(
     lines.push(
       `Tasks: ${dag.executionSummary.totalTasks} (Done: ${dag.executionSummary.doneTasks}, Leased: ${dag.executionSummary.leasedTasks}, Ready: ${dag.executionSummary.readyTasks})`,
     );
-    lines.push(`Active Agents: ${dag.executionSummary.activeAgentsCount}, Total Events: ${dag.totalEvents}`);
+    lines.push(
+      `Active Agents: ${dag.executionSummary.activeAgentsCount}, Total Events: ${dag.totalEvents}`,
+    );
     lines.push(`Critical Path: ${dag.criticalPath.join(" -> ") || "none"}`);
     lines.push("");
     lines.push("Concurrency Waves:");

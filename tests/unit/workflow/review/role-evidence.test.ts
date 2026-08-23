@@ -153,7 +153,8 @@ describe("gateReviewPayload & review payload gating", () => {
     viewport: "desktop",
     criteria: Array.from({ length: 40 }, (_, i) => ({
       id: `CRIT-${i}`,
-      pillar: i % 4 === 0 ? "mechanical" : i % 4 === 1 ? "cognitive" : i % 4 === 2 ? "product" : "ux",
+      pillar:
+        i % 4 === 0 ? "mechanical" : i % 4 === 1 ? "cognitive" : i % 4 === 2 ? "product" : "ux",
       passed: true,
       details: "Detailed diagnostic measurement and evaluation of component behavior",
       evidence: "Quantitative measurements: 120ms transitions, 25 inspected nodes, 0 layout shifts",
@@ -185,7 +186,10 @@ describe("gateReviewPayload & review payload gating", () => {
         viewport: "desktop",
         width: 1280,
         height: 800,
-        domNodes: Array.from({ length: 100 }, (_, i) => ({ id: `el-${i}`, bounds: [0, 0, 100, 100] })),
+        domNodes: Array.from({ length: 100 }, (_, i) => ({
+          id: `el-${i}`,
+          bounds: [0, 0, 100, 100],
+        })),
       },
     ],
   };
@@ -263,4 +267,3 @@ describe("gateReviewPayload & review payload gating", () => {
     expect(gatedBytes).toBeLessThan(2048);
   });
 });
-

@@ -108,24 +108,24 @@ const ROLE_ALIASES: Readonly<Record<string, string>> = {
   // Mind / Tier 0
   mind: "mind",
   "tier-0": "mind",
-  "tier_0": "mind",
+  tier_0: "mind",
   "tier 0": "mind",
   human: "mind",
   "mind-auditor": "mind-auditor",
-  "mind_auditor": "mind-auditor",
+  mind_auditor: "mind-auditor",
 
   // Orchestrator / Tier 1
   orchestrator: "orchestrator",
   orch: "orchestrator",
   "tier-1": "orchestrator",
-  "tier_1": "orchestrator",
+  tier_1: "orchestrator",
   "tier 1": "orchestrator",
 
   // Coordinator / Tier 2
   coordinator: "coordinator",
   coord: "coordinator",
   "tier-2": "coordinator",
-  "tier_2": "coordinator",
+  tier_2: "coordinator",
   "tier 2": "coordinator",
 
   // Tier 3
@@ -134,7 +134,7 @@ const ROLE_ALIASES: Readonly<Record<string, string>> = {
   repairer: "repairer",
   validator: "validator",
   "completeness-critic": "completeness-critic",
-  "critic": "critic",
+  critic: "critic",
   "plan-validator": "plan-validator",
   planner: "planner",
   "sub-implementer": "sub-implementer",
@@ -279,7 +279,12 @@ function parseYamlScalar(rawInput: string): unknown {
     try {
       return JSON.parse(trimmed);
     } catch {
-      return trimmed.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, "\\").replace(/\\n/g, "\n").replace(/\\t/g, "\t");
+      return trimmed
+        .slice(1, -1)
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, "\\")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t");
     }
   }
 
@@ -491,7 +496,11 @@ export function parseYaml(yamlText: string): unknown {
   }
 
   if (parsedLines.length === 0) return {};
-  if (parsedLines.length === 1 && findColonKeyBoundary(parsedLines[0]!.text) === -1 && !parsedLines[0]!.text.startsWith("-")) {
+  if (
+    parsedLines.length === 1 &&
+    findColonKeyBoundary(parsedLines[0]!.text) === -1 &&
+    !parsedLines[0]!.text.startsWith("-")
+  ) {
     return parseYamlScalar(parsedLines[0]!.text);
   }
 
@@ -531,7 +540,13 @@ export function parseYaml(yamlText: string): unknown {
               const k = cleanYamlKey(itemText.slice(0, colonBoundary));
               const afterColon = itemText.slice(colonBoundary + 1).trim();
 
-              if (afterColon === "|" || afterColon === "|-" || afterColon === "|+" || afterColon === ">" || afterColon === ">-") {
+              if (
+                afterColon === "|" ||
+                afterColon === "|-" ||
+                afterColon === "|+" ||
+                afterColon === ">" ||
+                afterColon === ">-"
+              ) {
                 const scalarVal = parseBlockScalar(rawLines, line.lineNum, afterColon);
                 const obj: Record<string, unknown> = { [k]: scalarVal };
                 // Check if there are other keys at the same sub-indent
@@ -540,7 +555,10 @@ export function parseYaml(yamlText: string): unknown {
               } else if (afterColon.length === 0) {
                 // Nested object under this list item
                 let childObj: Record<string, unknown> = {};
-                if (currentIdx < parsedLines.length && parsedLines[currentIdx]!.indent > line.indent) {
+                if (
+                  currentIdx < parsedLines.length &&
+                  parsedLines[currentIdx]!.indent > line.indent
+                ) {
                   const nested = parseBlock(parsedLines[currentIdx]!.indent);
                   if (typeof nested === "object" && nested !== null && !Array.isArray(nested)) {
                     childObj = { [k]: nested, ...(nested as Record<string, unknown>) };
@@ -587,7 +605,14 @@ export function parseYaml(yamlText: string): unknown {
       const valuePart = line.text.slice(colonIdx + 1).trim();
       currentIdx++;
 
-      if (valuePart === "|" || valuePart === "|-" || valuePart === "|+" || valuePart === ">" || valuePart === ">-" || valuePart === ">+") {
+      if (
+        valuePart === "|" ||
+        valuePart === "|-" ||
+        valuePart === "|+" ||
+        valuePart === ">" ||
+        valuePart === ">-" ||
+        valuePart === ">+"
+      ) {
         obj[key] = parseBlockScalar(rawLines, line.lineNum, valuePart);
       } else if (valuePart.length === 0) {
         // Child block
@@ -615,10 +640,19 @@ export function parseYaml(yamlText: string): unknown {
         const nextValPart = nextLine.text.slice(colIdx + 1).trim();
         currentIdx++;
 
-        if (nextValPart === "|" || nextValPart === "|-" || nextValPart === "|+" || nextValPart === ">" || nextValPart === ">-") {
+        if (
+          nextValPart === "|" ||
+          nextValPart === "|-" ||
+          nextValPart === "|+" ||
+          nextValPart === ">" ||
+          nextValPart === ">-"
+        ) {
           target[nextKey] = parseBlockScalar(rawLines, nextLine.lineNum, nextValPart);
         } else if (nextValPart.length === 0) {
-          if (currentIdx < parsedLines.length && parsedLines[currentIdx]!.indent > nextLine.indent) {
+          if (
+            currentIdx < parsedLines.length &&
+            parsedLines[currentIdx]!.indent > nextLine.indent
+          ) {
             target[nextKey] = parseBlock(parsedLines[currentIdx]!.indent);
           } else {
             target[nextKey] = null;
@@ -771,7 +805,12 @@ export function parseMarkdownFrontmatter<T = Record<string, unknown>>(
 export function parseRoleContract(content: string, filePath?: string): RoleContract {
   const { frontmatter, body } = parseMarkdownFrontmatter<RoleContractFrontmatter>(content);
 
-  const role = typeof frontmatter.role === "string" ? normalizeRoleName(frontmatter.role) : (filePath ? basename(filePath, extname(filePath)) : "unknown");
+  const role =
+    typeof frontmatter.role === "string"
+      ? normalizeRoleName(frontmatter.role)
+      : filePath
+        ? basename(filePath, extname(filePath))
+        : "unknown";
   const tier = typeof frontmatter.tier === "number" ? frontmatter.tier : 3;
   const domain = typeof frontmatter.domain === "string" ? frontmatter.domain : undefined;
 
@@ -817,29 +856,39 @@ export function parseAgentManifest(content: string, filePath?: string): AgentMan
 
   const record = parsed as Record<string, unknown>;
 
-  const name = typeof record.name === "string" ? record.name : (filePath ? basename(filePath, extname(filePath)) : "agent");
-  const role = typeof record.role === "string" ? normalizeRoleName(record.role) : normalizeRoleName(name);
+  const name =
+    typeof record.name === "string"
+      ? record.name
+      : filePath
+        ? basename(filePath, extname(filePath))
+        : "agent";
+  const role =
+    typeof record.role === "string" ? normalizeRoleName(record.role) : normalizeRoleName(name);
   const tier = typeof record.tier === "number" ? record.tier : 3;
 
   const provider: readonly string[] = Array.isArray(record.provider)
     ? record.provider.map((p) => String(p).trim()).filter(Boolean)
     : [];
 
-  const tools: AgentToolsConfig | undefined = typeof record.tools === "object" && record.tools !== null
-    ? (record.tools as AgentToolsConfig)
-    : undefined;
+  const tools: AgentToolsConfig | undefined =
+    typeof record.tools === "object" && record.tools !== null
+      ? (record.tools as AgentToolsConfig)
+      : undefined;
 
-  const config = typeof record.config === "object" && record.config !== null
-    ? (record.config as Record<string, unknown>)
-    : undefined;
+  const config =
+    typeof record.config === "object" && record.config !== null
+      ? (record.config as Record<string, unknown>)
+      : undefined;
 
-  const iface = typeof record.interface === "object" && record.interface !== null
-    ? (record.interface as AgentManifestInterface)
-    : undefined;
+  const iface =
+    typeof record.interface === "object" && record.interface !== null
+      ? (record.interface as AgentManifestInterface)
+      : undefined;
 
-  const protocol = typeof record.protocol === "object" && record.protocol !== null
-    ? (record.protocol as AgentManifestProtocol)
-    : undefined;
+  const protocol =
+    typeof record.protocol === "object" && record.protocol !== null
+      ? (record.protocol as AgentManifestProtocol)
+      : undefined;
 
   return {
     name,
@@ -948,7 +997,10 @@ export function loadRoleContract(roleInput: string, options?: ManifestLoaderOpti
   return contract;
 }
 
-export function loadAgentManifest(roleInput: string, options?: ManifestLoaderOptions): AgentManifest {
+export function loadAgentManifest(
+  roleInput: string,
+  options?: ManifestLoaderOptions,
+): AgentManifest {
   const role = normalizeRoleName(roleInput);
   const bypassCache = options?.bypassCache ?? false;
 
@@ -983,7 +1035,10 @@ export function loadAgentManifest(roleInput: string, options?: ManifestLoaderOpt
             const fullPath = join(agentsDir, file);
             const content = readFileSync(fullPath, "utf-8");
             const parsed = parseAgentManifest(content, fullPath);
-            if (normalizeRoleName(parsed.role) === role || normalizeRoleName(parsed.name) === role) {
+            if (
+              normalizeRoleName(parsed.role) === role ||
+              normalizeRoleName(parsed.name) === role
+            ) {
               foundPath = fullPath;
               MANIFEST_CACHE.set(role, parsed);
               return parsed;
@@ -1031,7 +1086,10 @@ export function loadAgentManifest(roleInput: string, options?: ManifestLoaderOpt
   return manifest;
 }
 
-export function loadUnifiedAgentModel(roleInput: string, options?: ManifestLoaderOptions): UnifiedAgentModel {
+export function loadUnifiedAgentModel(
+  roleInput: string,
+  options?: ManifestLoaderOptions,
+): UnifiedAgentModel {
   const role = normalizeRoleName(roleInput);
   const bypassCache = options?.bypassCache ?? false;
 
@@ -1042,8 +1100,10 @@ export function loadUnifiedAgentModel(roleInput: string, options?: ManifestLoade
   const contract = loadRoleContract(role, options);
   const manifest = loadAgentManifest(role, options);
 
-  const displayName = manifest.interface?.display_name ?? `${role.charAt(0).toUpperCase() + role.slice(1)} Agent`;
-  const shortDescription = manifest.interface?.short_description ?? `Agent operating under the ${role} contract.`;
+  const displayName =
+    manifest.interface?.display_name ?? `${role.charAt(0).toUpperCase() + role.slice(1)} Agent`;
+  const shortDescription =
+    manifest.interface?.short_description ?? `Agent operating under the ${role} contract.`;
   const tier = manifest.tier ?? contract.tier;
 
   let archetype = "Autonomous Worker";
@@ -1051,26 +1111,38 @@ export function loadUnifiedAgentModel(roleInput: string, options?: ManifestLoade
 
   if (tier === 0) {
     archetype = "Autonomous Consciousness & Observe-Only Lead";
-    coreMandate = "Operate indefinitely as an infinite autonomous consciousness loop, supervising pulse health, generational rotation, and global execution topology without touching repository code.";
+    coreMandate =
+      "Operate indefinitely as an infinite autonomous consciousness loop, supervising pulse health, generational rotation, and global execution topology without touching repository code.";
   } else if (tier === 1) {
     archetype = "Plan Supervisor & Multi-Round Release Manager";
-    coreMandate = "Drive multi-round autonomous execution loops, dispatch Tier 2 Domain Coordinators, synthesize findings into next-round prompts, and execute final git releases on dedicated background threads.";
+    coreMandate =
+      "Drive multi-round autonomous execution loops, dispatch Tier 2 Domain Coordinators, synthesize findings into next-round prompts, and execute final git releases on dedicated background threads.";
   } else if (tier === 2) {
     archetype = "Wave Execution & Lease Manager";
-    coreMandate = "Own the run capsule, compile task graphs, dispatch parallel wave lanes to Tier 3 workers, prove gates on disposable scratch copies, enforce quantitative validation, and declare run completion.";
+    coreMandate =
+      "Own the run capsule, compile task graphs, dispatch parallel wave lanes to Tier 3 workers, prove gates on disposable scratch copies, enforce quantitative validation, and declare run completion.";
   } else if (role === "validator" || role.startsWith("validator-")) {
     archetype = "Adversarial Verifier & Quantitative Gate Inspector";
-    coreMandate = "Independently verify task submissions with quantitative metrics, adversarial probes, dual-channel visual validation, and counterfactual falsifiability proofs.";
+    coreMandate =
+      "Independently verify task submissions with quantitative metrics, adversarial probes, dual-channel visual validation, and counterfactual falsifiability proofs.";
   } else if (role === "implementer" || role === "repairer" || role === "worker") {
     archetype = "Scoped Modular Implementer";
-    coreMandate = "Implement modular code strictly within the leased write scope, execute pre-submission verification, maintain 100% strict TypeScript types, and answer findings with proof.";
+    coreMandate =
+      "Implement modular code strictly within the leased write scope, execute pre-submission verification, maintain 100% strict TypeScript types, and answer findings with proof.";
   } else if (role === "completeness-critic") {
     archetype = "Run Completeness & Verification Critic";
-    coreMandate = "Independently inspect run convergence, unresolved findings, orphan evidence, and multi-viewport proofs before authorizing run completion.";
+    coreMandate =
+      "Independently inspect run convergence, unresolved findings, orphan evidence, and multi-viewport proofs before authorizing run completion.";
   }
 
-  const enableSubagentTools = manifest.tools?.enable_subagent_tools ?? manifest.interface?.tools?.enable_subagent_tools ?? true;
-  const enableWriteTools = manifest.tools?.enable_write_tools ?? manifest.interface?.tools?.enable_write_tools ?? (tier === 3 && (role === "implementer" || role === "repairer" || role === "worker"));
+  const enableSubagentTools =
+    manifest.tools?.enable_subagent_tools ??
+    manifest.interface?.tools?.enable_subagent_tools ??
+    true;
+  const enableWriteTools =
+    manifest.tools?.enable_write_tools ??
+    manifest.interface?.tools?.enable_write_tools ??
+    (tier === 3 && (role === "implementer" || role === "repairer" || role === "worker"));
 
   const instructions = manifest.protocol?.instructions ?? "";
   const roleContractBody = contract.body;

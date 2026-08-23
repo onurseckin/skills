@@ -1,9 +1,5 @@
 import ts from "typescript";
-import type {
-  AstLinterOptions,
-  AstLinterResult,
-  AstLinterViolation,
-} from "./anti-mock-types.ts";
+import type { AstLinterOptions, AstLinterResult, AstLinterViolation } from "./anti-mock-types.ts";
 
 interface TestCallInfo {
   readonly node: ts.CallExpression;
@@ -12,7 +8,14 @@ interface TestCallInfo {
 }
 
 const TEST_IDENTIFIERS = new Set(["test", "it"]);
-const MOCK_FACTORIES = new Set(["fn", "mock", "spyOn", "mockReturnValue", "mockResolvedValue", "mockImplementation"]);
+const MOCK_FACTORIES = new Set([
+  "fn",
+  "mock",
+  "spyOn",
+  "mockReturnValue",
+  "mockResolvedValue",
+  "mockImplementation",
+]);
 
 function isTestIdentifier(name: string): boolean {
   return TEST_IDENTIFIERS.has(name);
@@ -57,7 +60,9 @@ function identifyTestCall(node: ts.CallExpression): TestCallInfo | undefined {
     if (
       (ts.isIdentifier(obj) && isTestIdentifier(obj.text)) ||
       (ts.isIdentifier(obj) && obj.text === "describe" && isTestIdentifier(prop)) ||
-      (ts.isPropertyAccessExpression(obj) && ts.isIdentifier(obj.name) && isTestIdentifier(obj.name.text))
+      (ts.isPropertyAccessExpression(obj) &&
+        ts.isIdentifier(obj.name) &&
+        isTestIdentifier(obj.name.text))
     ) {
       const callback = findCallback(node.arguments);
       if (callback) {
@@ -278,7 +283,9 @@ function checkTrivialConstantAssertion(
         (matcherName === "toBeTruthy" && rootArg.kind === ts.SyntaxKind.TrueKeyword) ||
         (matcherName === "toBeFalsy" && rootArg.kind === ts.SyntaxKind.FalseKeyword) ||
         (matcherName === "toBeNull" && rootArg.kind === ts.SyntaxKind.NullKeyword) ||
-        (matcherName === "toBeUndefined" && ts.isIdentifier(rootArg) && rootArg.text === "undefined") ||
+        (matcherName === "toBeUndefined" &&
+          ts.isIdentifier(rootArg) &&
+          rootArg.text === "undefined") ||
         (matcherName === "toBeNaN" && ts.isIdentifier(rootArg) && rootArg.text === "NaN") ||
         (matcherName === "toBeDefined" && isLiteralOrConstant(rootArg))
       ) {
@@ -305,10 +312,16 @@ interface MockInfo {
   readonly isMockObject?: boolean | undefined;
 }
 
-function detectMockDeclarations(callback: ts.FunctionLikeDeclaration, sourceFile: ts.SourceFile): MockInfo[] {
+function detectMockDeclarations(
+  callback: ts.FunctionLikeDeclaration,
+  sourceFile: ts.SourceFile,
+): MockInfo[] {
   const mocks: MockInfo[] = [];
 
-  function checkInitializer(init: ts.Expression): { isMock: boolean; stubbedValue?: string | undefined } {
+  function checkInitializer(init: ts.Expression): {
+    isMock: boolean;
+    stubbedValue?: string | undefined;
+  } {
     if (ts.isCallExpression(init)) {
       let curr: ts.Expression = init;
       let stubbedValue: string | undefined = undefined;
@@ -326,7 +339,11 @@ function detectMockDeclarations(callback: ts.FunctionLikeDeclaration, sourceFile
             }
             curr = curr.expression.expression;
           } else if (ts.isIdentifier(curr.expression)) {
-            if (curr.expression.text === "mock" || curr.expression.text === "vi" || curr.expression.text === "jest") {
+            if (
+              curr.expression.text === "mock" ||
+              curr.expression.text === "vi" ||
+              curr.expression.text === "jest"
+            ) {
               const firstArg = curr.arguments[0];
               if (firstArg && (ts.isArrowFunction(firstArg) || ts.isFunctionExpression(firstArg))) {
                 if (firstArg.body && !ts.isBlock(firstArg.body)) {
@@ -455,7 +472,9 @@ function checkMockTautology(
       if (stubbed !== undefined && assertion.arguments.length > 0) {
         const expectedArg = assertion.arguments[0];
         if (expectedArg && expectedArg.getText(sourceFile) === stubbed) {
-          const { line, character } = sourceFile.getLineAndCharacterOfPosition(assertion.getStart());
+          const { line, character } = sourceFile.getLineAndCharacterOfPosition(
+            assertion.getStart(),
+          );
           return {
             rule: "mock_tautology",
             message: `Test '${testName}' asserts stubbed mock '${calledName}()' return value (${stubbed}) directly without exercising implementation logic.`,
@@ -481,7 +500,8 @@ function checkMockTautology(
       }
       const rootText = rootArg.getText(sourceFile);
       const targetsMock = Array.from(mockNames).some(
-        (name) => rootText === name || rootText.startsWith(`${name}.`) || rootText.startsWith(`${name}(`),
+        (name) =>
+          rootText === name || rootText.startsWith(`${name}.`) || rootText.startsWith(`${name}(`),
       );
       if (!targetsMock) {
         onlyMockAssertions = false;
@@ -515,7 +535,8 @@ export function lintTestAst(sourceCode: string, options?: AstLinterOptions): Ast
   const detectReturns = options?.detectTrivialReturns ?? true;
   const detectMocks = options?.detectMockTautologies ?? true;
   const detectConstants = options?.detectTrivialConstants ?? true;
-  const fileName = typeof options?.file === "string" && options.file.length > 0 ? options.file : "test.ts";
+  const fileName =
+    typeof options?.file === "string" && options.file.length > 0 ? options.file : "test.ts";
 
   const sourceFile = ts.createSourceFile(
     fileName,
@@ -563,7 +584,9 @@ export function lintTestAst(sourceCode: string, options?: AstLinterOptions): Ast
         continue;
       } else if (ts.isBlock(callback.body)) {
         if (callback.body.statements.length === 0) {
-          const { line, character } = sourceFile.getLineAndCharacterOfPosition(callback.body.getStart());
+          const { line, character } = sourceFile.getLineAndCharacterOfPosition(
+            callback.body.getStart(),
+          );
           violations.push({
             rule: "empty_test_function",
             message: `Test '${testName}' has an empty function body.`,

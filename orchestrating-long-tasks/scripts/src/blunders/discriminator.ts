@@ -175,9 +175,7 @@ const STOP_WORDS = new Set([
 export function extractBlunderKeywords(text: string): readonly string[] {
   if (typeof text !== "string") return [];
   const cleaned = text.toLowerCase().replace(/[^a-z0-9_\-\s]/g, " ");
-  const tokens = cleaned
-    .split(/\s+/)
-    .filter((t) => t.length > 2 && !STOP_WORDS.has(t));
+  const tokens = cleaned.split(/\s+/).filter((t) => t.length > 2 && !STOP_WORDS.has(t));
   return Array.from(new Set(tokens));
 }
 

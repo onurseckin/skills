@@ -332,7 +332,11 @@ describe("Orchestrator-Tier Completion Audio & Subagent Anti-Noise Filter", () =
       });
 
       const t1 = 100000;
-      const res1 = await manager.notifyCompletion("orchestrator:complete", { tier: "orchestrator" }, t1);
+      const res1 = await manager.notifyCompletion(
+        "orchestrator:complete",
+        { tier: "orchestrator" },
+        t1,
+      );
       expect(res1.played).toBe(true);
 
       const t2 = 101000; // 1 second later (cooldown is 3s)
@@ -359,7 +363,11 @@ describe("Orchestrator-Tier Completion Audio & Subagent Anti-Noise Filter", () =
       manager.resetCooldown();
       expect(manager.getLastPlayedAt()).toBe(0);
 
-      const res = await manager.notifyCompletion("orchestrator:complete", { tier: "orchestrator" }, 10500);
+      const res = await manager.notifyCompletion(
+        "orchestrator:complete",
+        { tier: "orchestrator" },
+        10500,
+      );
       expect(res.played).toBe(true);
     });
   });

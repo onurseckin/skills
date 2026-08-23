@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
 import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { getDualTime, isDualTimeRecord } from "../../../orchestrating-long-tasks/scripts/src/core/dual-time.ts";
+import {
+  getDualTime,
+  isDualTimeRecord,
+} from "../../../orchestrating-long-tasks/scripts/src/core/dual-time.ts";
 import {
   ActionSpan,
   categorizeHarnessAction,
@@ -27,7 +30,10 @@ describe("Omnipresent Time Telemetry - Action Categorization", () => {
   test("categorizeHarnessAction correctly maps command prefixes to categories and tiers", () => {
     expect(categorizeHarnessAction("mind:pulse")).toEqual({ category: "mind", defaultTier: 0 });
     expect(categorizeHarnessAction("memory:query")).toEqual({ category: "mind", defaultTier: 0 });
-    expect(categorizeHarnessAction("smart-task:plan")).toEqual({ category: "mind", defaultTier: 0 });
+    expect(categorizeHarnessAction("smart-task:plan")).toEqual({
+      category: "mind",
+      defaultTier: 0,
+    });
     expect(categorizeHarnessAction("orchestrate")).toEqual({ category: "plan", defaultTier: 1 });
     expect(categorizeHarnessAction("plan:compile")).toEqual({ category: "plan", defaultTier: 2 });
     expect(categorizeHarnessAction("dag:view")).toEqual({ category: "plan", defaultTier: 2 });
@@ -36,13 +42,28 @@ describe("Omnipresent Time Telemetry - Action Categorization", () => {
     expect(categorizeHarnessAction("task:submit")).toEqual({ category: "task", defaultTier: 3 });
     expect(categorizeHarnessAction("run:exec")).toEqual({ category: "run", defaultTier: 3 });
     expect(categorizeHarnessAction("doctor")).toEqual({ category: "doctor", defaultTier: 1 });
-    expect(categorizeHarnessAction("doctor:repair")).toEqual({ category: "doctor", defaultTier: 1 });
-    expect(categorizeHarnessAction("watchdog:heartbeat")).toEqual({ category: "watchdog", defaultTier: 1 });
+    expect(categorizeHarnessAction("doctor:repair")).toEqual({
+      category: "doctor",
+      defaultTier: 1,
+    });
+    expect(categorizeHarnessAction("watchdog:heartbeat")).toEqual({
+      category: "watchdog",
+      defaultTier: 1,
+    });
     expect(categorizeHarnessAction("heartbeat")).toEqual({ category: "watchdog", defaultTier: 1 });
-    expect(categorizeHarnessAction("subagent:spawn")).toEqual({ category: "subagent", defaultTier: 3 });
+    expect(categorizeHarnessAction("subagent:spawn")).toEqual({
+      category: "subagent",
+      defaultTier: 3,
+    });
     expect(categorizeHarnessAction("gate:check")).toEqual({ category: "gate", defaultTier: 3 });
-    expect(categorizeHarnessAction("workflow:export")).toEqual({ category: "workflow", defaultTier: 2 });
-    expect(categorizeHarnessAction("custom_operation")).toEqual({ category: "custom", defaultTier: 3 });
+    expect(categorizeHarnessAction("workflow:export")).toEqual({
+      category: "workflow",
+      defaultTier: 2,
+    });
+    expect(categorizeHarnessAction("custom_operation")).toEqual({
+      category: "custom",
+      defaultTier: 3,
+    });
   });
 
   test("HARNESS_ACTION_CATEGORIES contains all required canonical domains", () => {
@@ -372,7 +393,10 @@ describe("Omnipresent Time Telemetry - Health & Anomaly Detection", () => {
 
 describe("Omnipresent Time Telemetry - Markdown Rendering", () => {
   test("renderDualTimeHeader produces valid markdown header", () => {
-    const header = renderDualTimeHeader("Test Telemetry View", getDualTime("2026-08-22T09:30:00.000Z", "UTC"));
+    const header = renderDualTimeHeader(
+      "Test Telemetry View",
+      getDualTime("2026-08-22T09:30:00.000Z", "UTC"),
+    );
     expect(header).toContain("# Test Telemetry View");
     expect(header).toContain("2026-08-22 09:30:00 UTC");
   });
@@ -393,7 +417,9 @@ describe("Omnipresent Time Telemetry - Markdown Rendering", () => {
     ];
 
     const table = formatDualTimeTable(records);
-    expect(table).toContain("| Action | Category | Actor | Tier | Status | Started (Local) | Duration | Drift |");
+    expect(table).toContain(
+      "| Action | Category | Actor | Tier | Status | Started (Local) | Duration | Drift |",
+    );
     expect(table).toContain("`task:claim`");
     expect(table).toContain("`task`");
     expect(table).toContain("`implementer_1`");

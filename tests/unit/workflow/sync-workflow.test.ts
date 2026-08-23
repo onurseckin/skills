@@ -194,7 +194,9 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
       expect(result.logs.some((l) => l.includes("[format]"))).toBeTrue();
       expect(result.logs.some((l) => l.includes("[stage] Staging complete"))).toBeTrue();
       expect(result.logs.some((l) => l.includes("[commit] Git commit succeeded"))).toBeTrue();
-      expect(result.logs.some((l) => l.includes("[push] Pushed successfully to origin/main"))).toBeTrue();
+      expect(
+        result.logs.some((l) => l.includes("[push] Pushed successfully to origin/main")),
+      ).toBeTrue();
       expect(result.logs.some((l) => l.includes("[sync] Global skill sync succeeded"))).toBeTrue();
     });
 
@@ -225,7 +227,9 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
 
       expect(result.committed).toBeTrue();
       expect(result.message).toBe("feat: add default fallback parameters");
-      expect(gitCalls.some((c) => c[0] === "push" && c[1] === "origin" && c[2] === "main")).toBeTrue();
+      expect(
+        gitCalls.some((c) => c[0] === "push" && c[1] === "origin" && c[2] === "main"),
+      ).toBeTrue();
     });
 
     test("respects custom remote and custom branch", async () => {
@@ -251,7 +255,11 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
       const result = await executeAutoSyncAndCommit(options, mockGitRunner, mockSyncRunner);
 
       expect(result.pushed).toBeTrue();
-      expect(gitCalls.some((c) => c[0] === "push" && c[1] === "upstream" && c[2] === "feature/auth-patch")).toBeTrue();
+      expect(
+        gitCalls.some(
+          (c) => c[0] === "push" && c[1] === "upstream" && c[2] === "feature/auth-patch",
+        ),
+      ).toBeTrue();
     });
 
     test("supports asynchronous Promise-returning GitRunner and SyncRunner", async () => {
@@ -276,7 +284,11 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
         writeScope: ["src/store.ts"],
       };
 
-      const result = await executeAutoSyncAndCommit(options, mockAsyncGitRunner, mockAsyncSyncRunner);
+      const result = await executeAutoSyncAndCommit(
+        options,
+        mockAsyncGitRunner,
+        mockAsyncSyncRunner,
+      );
 
       expect(result.committed).toBeTrue();
       expect(result.commitSha).toBe("sha12345");
@@ -319,7 +331,9 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
       expect(result.synced).toBeTrue();
       expect(syncCalled).toBeTrue();
       expect(gitCommands).not.toContain("push");
-      expect(result.logs.some((l) => l.includes("[push] Push skipped (skipPush = true)"))).toBeTrue();
+      expect(
+        result.logs.some((l) => l.includes("[push] Push skipped (skipPush = true)")),
+      ).toBeTrue();
     });
 
     test("skips global sync when skipSync = true", async () => {

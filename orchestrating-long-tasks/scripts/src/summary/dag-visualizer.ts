@@ -230,8 +230,10 @@ export function renderVisualDag(
       const agentBadge = activeAgentBadge(task);
       const labelSuffix = task.label && task.label !== task.id ? ` • ${task.label}` : "";
       const titleLen = `${glyph} ${task.id}${labelSuffix}${agentBadge}`.length;
-      const scopesLen = task.writeScope.length > 0 ? `Scope:  ${task.writeScope.join(", ")}`.length : 0;
-      const depsLen = task.dependencies.length > 0 ? `Deps:   ${task.dependencies.join(", ")}`.length : 0;
+      const scopesLen =
+        task.writeScope.length > 0 ? `Scope:  ${task.writeScope.join(", ")}`.length : 0;
+      const depsLen =
+        task.dependencies.length > 0 ? `Deps:   ${task.dependencies.join(", ")}`.length : 0;
       const maxLen = Math.max(titleLen, scopesLen, depsLen, 55);
       const target = maxLen + 4;
       const finalW = target % 2 === 0 ? target + 1 : target;

@@ -81,17 +81,17 @@ const COMMAND_PREFIX_MAP: Readonly<Record<string, CommandDomainMapping>> = {
   "memory:": { category: "mind", defaultTier: 0 },
   "feedback:": { category: "mind", defaultTier: 0 },
   "smart-task:": { category: "mind", defaultTier: 0 },
-  "orchestrate": { category: "plan", defaultTier: 1 },
+  orchestrate: { category: "plan", defaultTier: 1 },
   "plan:": { category: "plan", defaultTier: 2 },
   "dag:": { category: "plan", defaultTier: 2 },
   "queue:": { category: "queue", defaultTier: 2 },
   "task:": { category: "task", defaultTier: 3 },
   "run:": { category: "run", defaultTier: 3 },
-  "doctor": { category: "doctor", defaultTier: 1 },
+  doctor: { category: "doctor", defaultTier: 1 },
   "doctor:": { category: "doctor", defaultTier: 1 },
   "watchdog:": { category: "watchdog", defaultTier: 1 },
-  "watchdog": { category: "watchdog", defaultTier: 1 },
-  "heartbeat": { category: "watchdog", defaultTier: 1 },
+  watchdog: { category: "watchdog", defaultTier: 1 },
+  heartbeat: { category: "watchdog", defaultTier: 1 },
   "subagent:": { category: "subagent", defaultTier: 3 },
   "gate:": { category: "gate", defaultTier: 3 },
   "workflow:": { category: "workflow", defaultTier: 2 },
@@ -190,17 +190,15 @@ export class ActionSpan {
   private _error?: string | undefined;
   private _metadata: Record<string, JsonValue>;
   private _subSteps: SubStepTiming[] = [];
-  private _activeSubStep?: {
-    name: string;
-    startedAt: DualTimeRecord;
-    details?: Record<string, JsonValue> | undefined;
-  } | undefined;
+  private _activeSubStep?:
+    | {
+        name: string;
+        startedAt: DualTimeRecord;
+        details?: Record<string, JsonValue> | undefined;
+      }
+    | undefined;
 
-  public constructor(
-    actionName: string,
-    actor: string,
-    options: StartActionSpanOptions = {},
-  ) {
+  public constructor(actionName: string, actor: string, options: StartActionSpanOptions = {}) {
     const classification = categorizeHarnessAction(actionName);
     this.actionId = randomUUID();
     this.actionName = actionName;
@@ -925,7 +923,8 @@ export function validateTimeTelemetryHealth(
     }
   }
 
-  const healthy = anomalies.filter((a) => a.severity === "high" || a.severity === "critical").length === 0;
+  const healthy =
+    anomalies.filter((a) => a.severity === "high" || a.severity === "critical").length === 0;
   const recommendation = healthy
     ? "Time telemetry healthy: all actions adhere to dual-time temporal invariants."
     : `Temporal health degraded: detected ${anomalies.length} timing anomalies requiring inspection.`;
@@ -964,10 +963,10 @@ export function enrichHarnessEvent(
   timezone?: string,
 ): HarnessEvent & { readonly dual_time: DualTimeRecord } {
   const eventTime = getDualTime(event.timestamp, timezone);
-  return ({
+  return {
     ...event,
     dual_time: eventTime as unknown as JsonValue,
-  } as unknown) as HarnessEvent & { readonly dual_time: DualTimeRecord };
+  } as unknown as HarnessEvent & { readonly dual_time: DualTimeRecord };
 }
 
 /**
@@ -1036,7 +1035,8 @@ export function formatDualTimeTable(
 
   for (const rec of slice) {
     const startedDisplay = rec.startedAt.local.replace("T", " ");
-    const duration = rec.durationFormatted ?? (rec.durationMs !== undefined ? `${rec.durationMs}ms` : "-");
+    const duration =
+      rec.durationFormatted ?? (rec.durationMs !== undefined ? `${rec.durationMs}ms` : "-");
     const drift = rec.driftMs !== undefined ? `${rec.driftMs > 0 ? "+" : ""}${rec.driftMs}ms` : "-";
     const statusIcon =
       rec.status === "success"
@@ -1069,11 +1069,15 @@ export function formatDualTimeTable(
 export function renderOmnipresentTelemetryMarkdown(report: TimeTelemetryReport): string {
   const lines: string[] = [];
 
-  lines.push(renderDualTimeHeader("Omnipresent Time Telemetry & Dual-Time Report", report.generatedAt));
+  lines.push(
+    renderDualTimeHeader("Omnipresent Time Telemetry & Dual-Time Report", report.generatedAt),
+  );
 
   lines.push("## Overview & Statistical Profile");
   lines.push(`- **Timezone**: \`${report.timezone}\``);
-  lines.push(`- **Total Actions**: \`${report.totalActions}\` (Active: \`${report.activeActions}\`, Completed: \`${report.completedActions}\`)`);
+  lines.push(
+    `- **Total Actions**: \`${report.totalActions}\` (Active: \`${report.activeActions}\`, Completed: \`${report.completedActions}\`)`,
+  );
   lines.push(`- **Total Aggregate Duration**: \`${formatDuration(report.totalDurationMs)}\``);
   lines.push(`- **Mean Action Duration**: \`${formatDuration(report.overallPercentiles.meanMs)}\``);
   lines.push(
@@ -1083,7 +1087,9 @@ export function renderOmnipresentTelemetryMarkdown(report: TimeTelemetryReport):
 
   if (report.categoryBreakdown.length > 0) {
     lines.push("## Domain Category Breakdown");
-    lines.push("| Category | Count | Success | Failure | Error Rate | Total Time | Mean Time | p95 Latency |");
+    lines.push(
+      "| Category | Count | Success | Failure | Error Rate | Total Time | Mean Time | p95 Latency |",
+    );
     lines.push("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |");
     for (const cat of report.categoryBreakdown) {
       lines.push(
@@ -1123,7 +1129,9 @@ export function renderOmnipresentTelemetryMarkdown(report: TimeTelemetryReport):
 
   if (report.recentActions.length > 0) {
     lines.push("## Recent Telemetry Activity Stream");
-    lines.push(formatDualTimeTable(report.recentActions, { timezone: report.timezone, maxRows: 15 }));
+    lines.push(
+      formatDualTimeTable(report.recentActions, { timezone: report.timezone, maxRows: 15 }),
+    );
   }
 
   return lines.join("\n");
@@ -1135,15 +1143,13 @@ export function renderOmnipresentTelemetryMarkdown(report: TimeTelemetryReport):
 
 export function isHarnessActionCategory(value: unknown): value is HarnessActionCategory {
   return (
-    typeof value === "string" &&
-    HARNESS_ACTION_CATEGORIES.includes(value as HarnessActionCategory)
+    typeof value === "string" && HARNESS_ACTION_CATEGORIES.includes(value as HarnessActionCategory)
   );
 }
 
 export function isActionExecutionStatus(value: unknown): value is ActionExecutionStatus {
   return (
-    typeof value === "string" &&
-    ACTION_EXECUTION_STATUSES.includes(value as ActionExecutionStatus)
+    typeof value === "string" && ACTION_EXECUTION_STATUSES.includes(value as ActionExecutionStatus)
   );
 }
 
@@ -1159,7 +1165,8 @@ export function isHarnessActionTimeRecord(value: unknown): value is HarnessActio
 
   if (rec.finishedAt !== undefined && !isDualTimeRecord(rec.finishedAt)) return false;
   if (rec.durationMs !== undefined && typeof rec.durationMs !== "number") return false;
-  if (rec.durationFormatted !== undefined && typeof rec.durationFormatted !== "string") return false;
+  if (rec.durationFormatted !== undefined && typeof rec.durationFormatted !== "string")
+    return false;
   if (rec.driftMs !== undefined && typeof rec.driftMs !== "number") return false;
   if (rec.error !== undefined && typeof rec.error !== "string") return false;
 

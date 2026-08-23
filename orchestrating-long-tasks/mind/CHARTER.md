@@ -37,7 +37,6 @@ The autonomous maintenance, verification, and hardening mind for the orchestrati
 - `bun test tests/unit` → exit 0
 - `bun run typecheck` → exit 0
 
-
 ## prohibitions
 
 - Never add `@ts-ignore`, `@ts-expect-error`, or `eslint-disable`.

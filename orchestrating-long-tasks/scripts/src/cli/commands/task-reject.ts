@@ -46,21 +46,15 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
     const defect = textFlag(flags, "defect", false) ?? reason;
     const maxRounds = integerFlag(flags, "max-rounds", { minimum: 1, maximum: 50 });
 
-    const state = recordMicroCycleCritique(
-      workflowPort(run),
-      taskId,
-      validator,
-      reason,
-      {
-        ...(remediation !== undefined ? { remediation } : {}),
-        ...(defect !== undefined ? { defect } : {}),
-        ...(maxRounds !== undefined ? { maxRounds } : {}),
-      },
-    );
+    const state = recordMicroCycleCritique(workflowPort(run), taskId, validator, reason, {
+      ...(remediation !== undefined ? { remediation } : {}),
+      ...(defect !== undefined ? { defect } : {}),
+      ...(maxRounds !== undefined ? { maxRounds } : {}),
+    });
 
     const updatedTask = state.tasks[taskId]!;
     const latestRecord = getLatestMicroCycle(updatedTask);
-    const round = latestRecord?.round ?? (updatedTask.micro_cycle_round ?? 1);
+    const round = latestRecord?.round ?? updatedTask.micro_cycle_round ?? 1;
     const markdown = latestRecord
       ? formatMicroCycleFeedback(taskId, latestRecord, maxRounds ?? DEFAULT_MAX_MICRO_CYCLES)
       : `### 🔄 Micro-Cycle Feedback (Round ${round})\n\nValidator: ${validator}\nCritique: ${reason}`;

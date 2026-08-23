@@ -152,10 +152,8 @@ export const PILLAR_6_FIRST_PRINCIPLES: CognitivePillar = {
     "Am I questioning assumptions and seeking radical simplification to make the architecture simpler, faster, and higher quality?",
   supervisoryImplications: {
     mind: "Continuously evaluate first-principles simplifications for the entire autonomous consciousness engine.",
-    orchestrator:
-      "Optimize round structure and remove redundant cross-round synthesis overhead.",
-    coordinator:
-      "Eliminate serial scheduling bottlenecks and streamline task graph compilation.",
+    orchestrator: "Optimize round structure and remove redundant cross-round synthesis overhead.",
+    coordinator: "Eliminate serial scheduling bottlenecks and streamline task graph compilation.",
   },
 };
 

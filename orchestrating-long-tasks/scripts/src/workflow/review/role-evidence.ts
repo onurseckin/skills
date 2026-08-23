@@ -163,4 +163,3 @@ export function gateReviewPayload(
 ): Record<string, unknown> {
   return pruneNonUiPayload(reportData, isUiTask);
 }
-

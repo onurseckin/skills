@@ -61,8 +61,16 @@ describe("Blunder Stream Deduplication & Serialization", () => {
 
     test("respects exact_dedup strategy", () => {
       const blunders: BlunderRecordInput[] = [
-        { type: "test_failure", observation: "Failed assertion", timestamp: "2026-08-22T08:00:00.000Z" },
-        { type: "test_failure", observation: "Failed assertion", timestamp: "2026-08-22T08:01:00.000Z" },
+        {
+          type: "test_failure",
+          observation: "Failed assertion",
+          timestamp: "2026-08-22T08:00:00.000Z",
+        },
+        {
+          type: "test_failure",
+          observation: "Failed assertion",
+          timestamp: "2026-08-22T08:01:00.000Z",
+        },
       ];
 
       const result = deduplicateBlunderLog(blunders, { strategy: "exact_dedup" });
@@ -72,9 +80,21 @@ describe("Blunder Stream Deduplication & Serialization", () => {
 
     test("respects windowed strategy", () => {
       const blunders: BlunderRecordInput[] = [
-        { type: "test_failure", observation: "Failed assertion", timestamp: "2026-08-22T08:00:00.000Z" },
-        { type: "test_failure", observation: "Failed assertion", timestamp: "2026-08-22T08:00:30.000Z" }, // Within 1 min
-        { type: "test_failure", observation: "Failed assertion", timestamp: "2026-08-22T08:05:00.000Z" }, // Outside 1 min
+        {
+          type: "test_failure",
+          observation: "Failed assertion",
+          timestamp: "2026-08-22T08:00:00.000Z",
+        },
+        {
+          type: "test_failure",
+          observation: "Failed assertion",
+          timestamp: "2026-08-22T08:00:30.000Z",
+        }, // Within 1 min
+        {
+          type: "test_failure",
+          observation: "Failed assertion",
+          timestamp: "2026-08-22T08:05:00.000Z",
+        }, // Outside 1 min
       ];
 
       const result = deduplicateBlunderLog(blunders, { strategy: "windowed", windowMs: 60_000 });

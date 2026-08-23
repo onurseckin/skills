@@ -112,7 +112,9 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
         actor: "orchestrator_main",
       });
 
-      const check = isDuplicateProposal(state, "Enhance cognitive gap analyzer", ["goal-cognitive"]);
+      const check = isDuplicateProposal(state, "Enhance cognitive gap analyzer", [
+        "goal-cognitive",
+      ]);
       expect(check.isDuplicate).toBe(true);
       expect(check.existingProposal).toBeDefined();
 
@@ -181,7 +183,12 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
       };
 
       // opened -> needs_authority
-      const t1 = transitionProposalStatusInState(state, "cand-01", "needs_authority", "orchestrator");
+      const t1 = transitionProposalStatusInState(
+        state,
+        "cand-01",
+        "needs_authority",
+        "orchestrator",
+      );
       expect(t1.status).toBe("needs_authority");
 
       // needs_authority -> granted
@@ -277,14 +284,25 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
         requirements: [],
       };
 
-      const revised = transitionProposalStatusInState(state, "cand-rev", "revised", "orchestrator", {
-        rationale: "Revision triggered by test regression signal",
-      });
+      const revised = transitionProposalStatusInState(
+        state,
+        "cand-rev",
+        "revised",
+        "orchestrator",
+        {
+          rationale: "Revision triggered by test regression signal",
+        },
+      );
       expect(revised.status).toBe("revised");
       expect(revised.revision_count).toBe(1);
 
       // Revised can transition back to admitted or in_progress
-      const reAdmitted = transitionProposalStatusInState(state, "cand-rev", "admitted", "orchestrator");
+      const reAdmitted = transitionProposalStatusInState(
+        state,
+        "cand-rev",
+        "admitted",
+        "orchestrator",
+      );
       expect(reAdmitted.status).toBe("admitted");
     });
   });
@@ -471,7 +489,9 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
           statement: "Harden unit tests for layout shift tracker",
           rationale: "Increase test assertion density and edge case coverage",
           charter_goal_ids: ["goal-quality"],
-          write_scope: ["orchestrating-long-tasks/scripts/src/capture/layout-shift-tracker.test.ts"],
+          write_scope: [
+            "orchestrating-long-tasks/scripts/src/capture/layout-shift-tracker.test.ts",
+          ],
         },
         confidenceScore: 0.95,
         repoRoots: ["orchestrating-long-tasks/"],
@@ -680,7 +700,9 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
         { id: "task-api-2", write_scope: ["src/api/handler.ts"] },
       ];
 
-      const plan = balanceOrchestratorLoad(orchestrators, tasksToAssign, { maxTasksPerOrchestrator: 5 });
+      const plan = balanceOrchestratorLoad(orchestrators, tasksToAssign, {
+        maxTasksPerOrchestrator: 5,
+      });
 
       expect(plan.assignments.length).toBe(2);
       const uiAssignment = plan.assignments.find((a) => a.orchestratorId === "orchestrator_ui");
@@ -748,7 +770,12 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
           // Skip lines within comments or string literals testing forbidden patterns if any
-          if (line.includes("forbiddenPatterns") || line.includes("regex:") || line.includes("name:") || line.includes("linterPattern")) {
+          if (
+            line.includes("forbiddenPatterns") ||
+            line.includes("regex:") ||
+            line.includes("name:") ||
+            line.includes("linterPattern")
+          ) {
             continue;
           }
 

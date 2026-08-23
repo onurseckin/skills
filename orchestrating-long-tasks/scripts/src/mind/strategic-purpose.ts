@@ -31,8 +31,7 @@ export const MIND_PROACTIVE_BANDWIDTH_ACTIVITIES = [
   "proactive_roadmap_planning",
 ] as const;
 
-export type MindProactiveBandwidthActivity =
-  (typeof MIND_PROACTIVE_BANDWIDTH_ACTIVITIES)[number];
+export type MindProactiveBandwidthActivity = (typeof MIND_PROACTIVE_BANDWIDTH_ACTIVITIES)[number];
 
 export interface MacroDagTaskNode {
   readonly taskId: string;
@@ -294,7 +293,8 @@ export function diagnoseMacroDag(
         type: "fan_in",
         taskId: node.taskId,
         description: `High fan-in convergence point with ${inDegree} incoming dependencies.`,
-        suggestedMitigation: "Authorize Tier 1 Orchestrator to split convergence into multi-stage pipelines.",
+        suggestedMitigation:
+          "Authorize Tier 1 Orchestrator to split convergence into multi-stage pipelines.",
       });
     }
 
@@ -303,7 +303,8 @@ export function diagnoseMacroDag(
         type: "fan_out",
         taskId: node.taskId,
         description: `High fan-out bottleneck unblocking ${outDegree} downstream tasks.`,
-        suggestedMitigation: "Prioritize top-of-wave execution to maximize downstream worker concurrency.",
+        suggestedMitigation:
+          "Prioritize top-of-wave execution to maximize downstream worker concurrency.",
       });
     }
 
@@ -482,8 +483,7 @@ export function evaluateStrategicCandidateAdmission(
     });
   }
 
-  const summary =
-    `Candidate Admission: ${candidates.length} evaluated, ${admittedCount} admitted, ${declinedCount} declined.`;
+  const summary = `Candidate Admission: ${candidates.length} evaluated, ${admittedCount} admitted, ${declinedCount} declined.`;
 
   return {
     evaluatedCount: candidates.length,
@@ -551,7 +551,10 @@ export function planProactiveRoadmap(
     waveNumber: 1,
     title: "Wave 1: Strategic Foundations & Core Implementations",
     scopeDescription: "Disjoint foundational modules with strict write lease boundaries",
-    isolatedWriteScopes: ["orchestrating-long-tasks/scripts/src/core", "orchestrating-long-tasks/roles"],
+    isolatedWriteScopes: [
+      "orchestrating-long-tasks/scripts/src/core",
+      "orchestrating-long-tasks/roles",
+    ],
     estimatedParallelism: wave1Tasks.length,
     atomicTasks: wave1Tasks,
   });
@@ -575,7 +578,8 @@ export function planProactiveRoadmap(
   waves.push({
     waveNumber: 2,
     title: "Wave 2: Multi-Viewport Validation & Soak Verification",
-    scopeDescription: "Independent validation passes covering all 4 viewport tiers and contract invariants",
+    scopeDescription:
+      "Independent validation passes covering all 4 viewport tiers and contract invariants",
     isolatedWriteScopes: ["tests/unit/mind", "tests/unit/roles"],
     estimatedParallelism: 2,
     atomicTasks: wave2Tasks,
@@ -670,13 +674,19 @@ export function formatStrategicCognitionBrief(result: ProactiveMindCognitionResu
   const lines: string[] = [];
 
   lines.push(`### 🧠 Tier 0 Mind Strategic Cognition (Altitude: ${result.altitude})`);
-  lines.push(`**Subordinate Execution Window**: ${result.subordinateExecutionWindowHours}h (${result.subordinateExecutionWindowMs}ms)`);
+  lines.push(
+    `**Subordinate Execution Window**: ${result.subordinateExecutionWindowHours}h (${result.subordinateExecutionWindowMs}ms)`,
+  );
   lines.push(`**Strategic Summary**: ${result.strategicSummary}`);
   lines.push("");
 
   lines.push("#### 📊 Macro DAG Diagnostics");
-  lines.push(`- Total Nodes: ${result.macroDag.totalNodes} | Critical Span: ${result.macroDag.criticalPathLength} levels | Total Work: ${Math.round(result.macroDag.totalWorkMs / 1000)}s`);
-  lines.push(`- Topological Concurrency (P = W / S): **${result.macroDag.workSpanRatio}** (Recommended Concurrency: ${result.macroDag.concurrencyRecommendation})`);
+  lines.push(
+    `- Total Nodes: ${result.macroDag.totalNodes} | Critical Span: ${result.macroDag.criticalPathLength} levels | Total Work: ${Math.round(result.macroDag.totalWorkMs / 1000)}s`,
+  );
+  lines.push(
+    `- Topological Concurrency (P = W / S): **${result.macroDag.workSpanRatio}** (Recommended Concurrency: ${result.macroDag.concurrencyRecommendation})`,
+  );
   if (result.macroDag.bottlenecks.length > 0) {
     lines.push(`- Identified Bottlenecks (${result.macroDag.bottlenecks.length}):`);
     for (const b of result.macroDag.bottlenecks.slice(0, 3)) {
@@ -699,14 +709,18 @@ export function formatStrategicCognitionBrief(result: ProactiveMindCognitionResu
   lines.push("#### 🛡️ Candidate Admission Pre-Evaluation");
   lines.push(`- ${result.candidateAdmission.summary}`);
   for (const e of result.candidateAdmission.evaluations.slice(0, 3)) {
-    lines.push(`  * \`${e.candidateId}\`: ${e.admitted ? "✅ ADMITTED" : "❌ DECLINED"} — ${e.decisionRationale}`);
+    lines.push(
+      `  * \`${e.candidateId}\`: ${e.admitted ? "✅ ADMITTED" : "❌ DECLINED"} — ${e.decisionRationale}`,
+    );
   }
   lines.push("");
 
   lines.push("#### 🚀 Proactive Roadmap Planning for Future Fleets");
   lines.push(`- ${result.proactiveRoadmap.proactiveStrategy}`);
   for (const wave of result.proactiveRoadmap.waves) {
-    lines.push(`  * **${wave.title}** (${wave.atomicTasks.length} tasks, parallelism: ${wave.estimatedParallelism})`);
+    lines.push(
+      `  * **${wave.title}** (${wave.atomicTasks.length} tasks, parallelism: ${wave.estimatedParallelism})`,
+    );
     for (const t of wave.atomicTasks.slice(0, 2)) {
       lines.push(`    - \`${t.taskId}\` [${t.role}]: ${t.description}`);
     }
@@ -723,9 +737,7 @@ export function formatStrategicCognitionBrief(result: ProactiveMindCognitionResu
  * - Zero critic jobs
  * - Proactive bandwidth utilization during long execution windows (2+ hours)
  */
-export function verifyMindRoleStrategicInvariants(
-  input: string | Record<string, unknown>,
-): {
+export function verifyMindRoleStrategicInvariants(input: string | Record<string, unknown>): {
   readonly isValid: boolean;
   readonly altitudeCompliant: boolean;
   readonly zeroEditsCompliant: boolean;
@@ -734,10 +746,7 @@ export function verifyMindRoleStrategicInvariants(
   readonly proactiveBandwidthCompliant: boolean;
   readonly violations: readonly string[];
 } {
-  const text =
-    typeof input === "string"
-      ? input
-      : JSON.stringify(input);
+  const text = typeof input === "string" ? input : JSON.stringify(input);
 
   const lower = text.toLowerCase();
   const violations: string[] = [];
@@ -776,10 +785,18 @@ export function verifyMindRoleStrategicInvariants(
   }
 
   const proactiveBandwidthCompliant =
-    (lower.includes("bandwidth") || lower.includes("subordinate execution window") || lower.includes("2+ hours") || lower.includes("proactive")) &&
-    (lower.includes("dag") || lower.includes("backlog") || lower.includes("candidate") || lower.includes("roadmap"));
+    (lower.includes("bandwidth") ||
+      lower.includes("subordinate execution window") ||
+      lower.includes("2+ hours") ||
+      lower.includes("proactive")) &&
+    (lower.includes("dag") ||
+      lower.includes("backlog") ||
+      lower.includes("candidate") ||
+      lower.includes("roadmap"));
   if (!proactiveBandwidthCompliant) {
-    violations.push("Missing proactive execution window bandwidth utilization specification (DAG diagnostics, backlog grooming, candidate admission, roadmap planning)");
+    violations.push(
+      "Missing proactive execution window bandwidth utilization specification (DAG diagnostics, backlog grooming, candidate admission, roadmap planning)",
+    );
   }
 
   const isValid = violations.length === 0;

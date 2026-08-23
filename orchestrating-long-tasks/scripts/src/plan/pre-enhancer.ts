@@ -213,7 +213,8 @@ export const FORBIDDEN_SYNTAX_RULES: readonly ForbiddenSyntaxRule[] = [
   {
     ruleId: "NO_NULLISH_COALESCING_FALLBACK",
     pattern: "??",
-    reason: "Nullish coalescing masks missing/undefined state instead of asserting or explicitly branching",
+    reason:
+      "Nullish coalescing masks missing/undefined state instead of asserting or explicitly branching",
     astNodeType: "LogicalExpression[operator='??']",
   },
   {
@@ -321,13 +322,19 @@ export function parseGateCommand(gateCommand: string | readonly string[]): reado
     const result: string[] = [];
     for (const part of gateCommand) {
       if (typeof part !== "string" || part.trim().length === 0) {
-        throw new HarnessError("INVALID_ARGUMENT", "Gate command argv elements must be non-empty strings");
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          "Gate command argv elements must be non-empty strings",
+        );
       }
       result.push(part.trim());
     }
     return result;
   }
-  throw new HarnessError("INVALID_ARGUMENT", "Gate command must be a non-empty string or array of strings");
+  throw new HarnessError(
+    "INVALID_ARGUMENT",
+    "Gate command must be a non-empty string or array of strings",
+  );
 }
 
 /**
@@ -380,9 +387,12 @@ export function compileDiscriminatingAssertions(
     taskId: task.taskId,
     type: "ast_zero_fallback",
     targetSymbol: "sourceAST",
-    description: "Enforces that implementation source contains zero fallback operators (??, ||) and zero 'any' casts",
-    expectedBehavior: "All source files in write scope pass strict AST linting with 0 fallback violations",
-    counterfactualCondition: "Source file contains a literal `??` or `||` operator masking nullish return values",
+    description:
+      "Enforces that implementation source contains zero fallback operators (??, ||) and zero 'any' casts",
+    expectedBehavior:
+      "All source files in write scope pass strict AST linting with 0 fallback violations",
+    counterfactualCondition:
+      "Source file contains a literal `??` or `||` operator masking nullish return values",
     falsifiableCodeSnippet: `expect(verifyAstBoundaries(sourcePath).compliant).toBe(true);`,
     testCaseName: "rejects fallback operators and untyped any references",
     severity: "critical",
@@ -394,9 +404,12 @@ export function compileDiscriminatingAssertions(
     taskId: task.taskId,
     type: "strict_type_guard",
     targetSymbol: "predicateGuards",
-    description: "Validates explicit type narrowing predicates against arbitrary invalid inputs without throwing unhandled exceptions",
-    expectedBehavior: "Predicates return false for null, undefined, numbers, strings, arrays, or objects missing required fields",
-    counterfactualCondition: "Predicates use unsafe type assertions or return true for structurally incomplete objects",
+    description:
+      "Validates explicit type narrowing predicates against arbitrary invalid inputs without throwing unhandled exceptions",
+    expectedBehavior:
+      "Predicates return false for null, undefined, numbers, strings, arrays, or objects missing required fields",
+    counterfactualCondition:
+      "Predicates use unsafe type assertions or return true for structurally incomplete objects",
     falsifiableCodeSnippet: `expect(isValidInput(null)).toBe(false);\nexpect(isValidInput({})).toBe(false);\nexpect(isValidInput(validObject)).toBe(true);`,
     testCaseName: "strictly validates types and rejects malformed inputs without fallback defaults",
     severity: "critical",
@@ -408,9 +421,12 @@ export function compileDiscriminatingAssertions(
     taskId: task.taskId,
     type: "non_empty_return",
     targetSymbol: "mainEngineFunction",
-    description: "Ensures engine produces complete structured results with non-empty required collections and correct schemas",
-    expectedBehavior: "Returns fully populated, validated result object with non-blank identifier and version stamps",
-    counterfactualCondition: "Engine returns empty stub object, null, or undefined when called with valid inputs",
+    description:
+      "Ensures engine produces complete structured results with non-empty required collections and correct schemas",
+    expectedBehavior:
+      "Returns fully populated, validated result object with non-blank identifier and version stamps",
+    counterfactualCondition:
+      "Engine returns empty stub object, null, or undefined when called with valid inputs",
     falsifiableCodeSnippet: `const res = executeTaskLogic(validConfig);\nexpect(res).toBeDefined();\nexpect(res.id.length).toBeGreaterThan(0);`,
     testCaseName: "produces non-empty complete structured records on valid inputs",
     severity: "high",
@@ -422,9 +438,12 @@ export function compileDiscriminatingAssertions(
     taskId: task.taskId,
     type: "boundary_value_rejection",
     targetSymbol: "inputValidation",
-    description: "Validates that out-of-range numeric values, empty strings, and negative bounds throw structured HarnessError",
-    expectedBehavior: "Throws HarnessError with code 'INVALID_ARGUMENT' or 'INVALID_STATE' on invalid bounds",
-    counterfactualCondition: "Function silently accepts negative scores, out-of-bound timeouts, or empty identifiers",
+    description:
+      "Validates that out-of-range numeric values, empty strings, and negative bounds throw structured HarnessError",
+    expectedBehavior:
+      "Throws HarnessError with code 'INVALID_ARGUMENT' or 'INVALID_STATE' on invalid bounds",
+    counterfactualCondition:
+      "Function silently accepts negative scores, out-of-bound timeouts, or empty identifiers",
     falsifiableCodeSnippet: `expect(() => executeWithBounds(-1)).toThrow(HarnessError);`,
     testCaseName: "throws structured HarnessError on boundary violations and invalid states",
     severity: "high",
@@ -436,9 +455,12 @@ export function compileDiscriminatingAssertions(
     taskId: task.taskId,
     type: "invariant_enforcement",
     targetSymbol: "stateManagement",
-    description: "Enforces deterministic state transitions and verifies state mutations are monotonic and validated",
-    expectedBehavior: "State updates advance revisions sequentially and prevent backward or corrupted state transitions",
-    counterfactualCondition: "State update mutates reserved fields or resets sequence counter to zero",
+    description:
+      "Enforces deterministic state transitions and verifies state mutations are monotonic and validated",
+    expectedBehavior:
+      "State updates advance revisions sequentially and prevent backward or corrupted state transitions",
+    counterfactualCondition:
+      "State update mutates reserved fields or resets sequence counter to zero",
     falsifiableCodeSnippet: `const nextState = applyStateMutation(prevState, mutation);\nexpect(nextState.revision).toBe(prevState.revision + 1);`,
     testCaseName: "enforces monotonic state transitions and protects immutable fields",
     severity: "critical",
@@ -450,8 +472,10 @@ export function compileDiscriminatingAssertions(
     taskId: task.taskId,
     type: "disjoint_scope_isolation",
     targetSymbol: "writeScopeGuard",
-    description: "Verifies that file access and artifact emission are strictly confined to assigned write scope paths",
-    expectedBehavior: "Attempting to write outside declared scope paths is rejected with path violation error",
+    description:
+      "Verifies that file access and artifact emission are strictly confined to assigned write scope paths",
+    expectedBehavior:
+      "Attempting to write outside declared scope paths is rejected with path violation error",
     counterfactualCondition: "Agent writes to out-of-scope files or root configuration files",
     falsifiableCodeSnippet: `expect(isPathInWriteScope("disallowed/file.ts", task.writeScope)).toBe(false);`,
     testCaseName: "confines all file modifications to declared write scope",
@@ -464,8 +488,10 @@ export function compileDiscriminatingAssertions(
     taskId: task.taskId,
     type: "error_class_discrimination",
     targetSymbol: "errorHandler",
-    description: "Ensures error paths produce discriminating error codes (INVALID_ARGUMENT vs INVALID_STATE vs INTEGRITY)",
-    expectedBehavior: "Specific defect classes map 1:1 to standard repository error codes without generic catch-all errors",
+    description:
+      "Ensures error paths produce discriminating error codes (INVALID_ARGUMENT vs INVALID_STATE vs INTEGRITY)",
+    expectedBehavior:
+      "Specific defect classes map 1:1 to standard repository error codes without generic catch-all errors",
     counterfactualCondition: "All errors throw generic Error with vague untyped messages",
     falsifiableCodeSnippet: `try {\n  triggerDefect();\n} catch (e: unknown) {\n  expect(e).toBeInstanceOf(HarnessError);\n  expect((e as HarnessError).code).toBe("INVALID_ARGUMENT");\n}`,
     testCaseName: "discriminates error classes accurately with standard HarnessError codes",
@@ -473,7 +499,11 @@ export function compileDiscriminatingAssertions(
   });
 
   // Apply maxAssertionsPerTask limit if specified
-  if (options !== undefined && options.maxAssertionsPerTask !== undefined && options.maxAssertionsPerTask > 0) {
+  if (
+    options !== undefined &&
+    options.maxAssertionsPerTask !== undefined &&
+    options.maxAssertionsPerTask > 0
+  ) {
     return assertions.slice(0, options.maxAssertionsPerTask);
   }
 
@@ -503,7 +533,8 @@ export function compileAgpCounterfactualProbes(
     taskId: task.taskId,
     targetFile,
     probeCategory: "fallback_injection",
-    originalBehaviorDescription: "Explicit parameter validation checks throwing on undefined or null input values",
+    originalBehaviorDescription:
+      "Explicit parameter validation checks throwing on undefined or null input values",
     counterfactualMutation: "Replace explicit validation with invalid fallback injection",
     expectedGateOutcome: "failure",
     expectedFailurePattern: "fallback operator detected or boundary test failure",
@@ -516,7 +547,8 @@ export function compileAgpCounterfactualProbes(
     taskId: task.taskId,
     targetFile,
     probeCategory: "null_mutation",
-    originalBehaviorDescription: "Function returns fully populated record with non-null required properties",
+    originalBehaviorDescription:
+      "Function returns fully populated record with non-null required properties",
     counterfactualMutation: "Mutate return statement to return `null` or `{}` empty stub",
     expectedGateOutcome: "failure",
     expectedFailurePattern: "TypeError or assertion failure on required properties",
@@ -529,7 +561,8 @@ export function compileAgpCounterfactualProbes(
     taskId: task.taskId,
     targetFile,
     probeCategory: "inverted_condition",
-    originalBehaviorDescription: "Boundary check validates range `score >= MIN_SCORE && score <= MAX_SCORE`",
+    originalBehaviorDescription:
+      "Boundary check validates range `score >= MIN_SCORE && score <= MAX_SCORE`",
     counterfactualMutation: "Invert boolean logic to `score < MIN_SCORE || score > MAX_SCORE`",
     expectedGateOutcome: "failure",
     expectedFailurePattern: "out-of-range assertion failure or inversion error",
@@ -543,7 +576,8 @@ export function compileAgpCounterfactualProbes(
     targetFile,
     probeCategory: "scope_violation",
     originalBehaviorDescription: "All mutations are restricted to declared write scope paths",
-    counterfactualMutation: "Inject write operation targeting an un-leased file outside write scope",
+    counterfactualMutation:
+      "Inject write operation targeting an un-leased file outside write scope",
     expectedGateOutcome: "failure",
     expectedFailurePattern: "write scope audit violation",
     remediationGuidance: "Confine write operations exclusively to leased scope paths",
@@ -555,8 +589,10 @@ export function compileAgpCounterfactualProbes(
     taskId: task.taskId,
     targetFile,
     probeCategory: "type_corruption",
-    originalBehaviorDescription: "Functions accept strictly typed inputs and reject non-object payloads",
-    counterfactualMutation: "Pass primitive number or string to a function requiring a structured object",
+    originalBehaviorDescription:
+      "Functions accept strictly typed inputs and reject non-object payloads",
+    counterfactualMutation:
+      "Pass primitive number or string to a function requiring a structured object",
     expectedGateOutcome: "failure",
     expectedFailurePattern: "HarnessError INVALID_ARGUMENT or TypeScript compile failure",
     remediationGuidance: "Add type predicate check before processing object properties",
@@ -578,7 +614,9 @@ export function compileTaskInvariantChecklist(
 
   const role = task.roleContract !== undefined ? task.roleContract : "implementer";
   const normalizedPaths = task.writeScope.map(normalizeScopePath);
-  const sourceFiles = normalizedPaths.filter((p) => !p.endsWith(".test.ts") && !p.endsWith(".spec.ts"));
+  const sourceFiles = normalizedPaths.filter(
+    (p) => !p.endsWith(".test.ts") && !p.endsWith(".spec.ts"),
+  );
   const testFiles = normalizedPaths.filter((p) => p.endsWith(".test.ts") || p.endsWith(".spec.ts"));
 
   // Check disjointness against any concurrent scopes
@@ -644,7 +682,8 @@ export function verifyAstBoundaries(
         line: lineNumber,
         column: nullishIdx + 1,
         codeSnippet: line.trim(),
-        message: "Prohibited nullish coalescing operator (??) detected; use explicit branching or predicates",
+        message:
+          "Prohibited nullish coalescing operator (??) detected; use explicit branching or predicates",
         severity: "critical",
       });
     }
@@ -658,7 +697,8 @@ export function verifyAstBoundaries(
         line: lineNumber,
         column: orIdx + 1,
         codeSnippet: line.trim(),
-        message: "Prohibited logical OR fallback operator (||) detected; use explicit type guards or ternary branching",
+        message:
+          "Prohibited logical OR fallback operator (||) detected; use explicit type guards or ternary branching",
         severity: "critical",
       });
     }
@@ -673,7 +713,8 @@ export function verifyAstBoundaries(
         line: lineNumber,
         column: col,
         codeSnippet: line.trim(),
-        message: "Prohibited 'any' type annotation detected; specify a precise TypeScript type or unknown with type guard",
+        message:
+          "Prohibited 'any' type annotation detected; specify a precise TypeScript type or unknown with type guard",
         severity: "critical",
       });
     }
@@ -688,7 +729,8 @@ export function verifyAstBoundaries(
         line: lineNumber,
         column: col,
         codeSnippet: line.trim(),
-        message: "Prohibited 'as any' type assertion detected; use safe narrowing or proper interface casting",
+        message:
+          "Prohibited 'as any' type assertion detected; use safe narrowing or proper interface casting",
         severity: "critical",
       });
     }
@@ -700,7 +742,8 @@ export function verifyAstBoundaries(
         line: lineNumber,
         column: line.indexOf("@ts-ignore") + 1,
         codeSnippet: line.trim(),
-        message: "Prohibited @ts-ignore directive detected; fix the underlying type mismatch instead of suppressing it",
+        message:
+          "Prohibited @ts-ignore directive detected; fix the underlying type mismatch instead of suppressing it",
         severity: "critical",
       });
     }
@@ -779,7 +822,9 @@ export function calculateTaskReadinessScore(
   if (task.writeScope.length === 0) {
     score -= 40;
   } else {
-    const hasSource = task.writeScope.some((p) => !p.endsWith(".test.ts") && !p.endsWith(".spec.ts"));
+    const hasSource = task.writeScope.some(
+      (p) => !p.endsWith(".test.ts") && !p.endsWith(".spec.ts"),
+    );
     const hasTest = task.writeScope.some((p) => p.endsWith(".test.ts") || p.endsWith(".spec.ts"));
     if (!hasSource) score -= 15;
     if (!hasTest) score -= 15;
@@ -830,7 +875,10 @@ export function preEnhanceTask(
     throw new HarnessError("INVALID_ARGUMENT", "label must be a non-blank string");
   }
   if (!Array.isArray(task.writeScope) || task.writeScope.length === 0) {
-    throw new HarnessError("INVALID_ARGUMENT", "writeScope must be a non-empty array of file paths");
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "writeScope must be a non-empty array of file paths",
+    );
   }
 
   const compiledGate = compileDiscriminatingGate(task);
@@ -980,9 +1028,10 @@ export function preEnhancePlan(
 /**
  * Validates a single pre-enhanced task result.
  */
-export function validatePreEnhancedTask(
-  taskResult: PreEnhancedTaskResult,
-): { readonly valid: boolean; readonly errors: readonly string[] } {
+export function validatePreEnhancedTask(taskResult: PreEnhancedTaskResult): {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+} {
   const errors: string[] = [];
 
   if (!isNonblank(taskResult.taskId)) {
@@ -995,10 +1044,14 @@ export function validatePreEnhancedTask(
     errors.push("Compiled gate command must not be empty");
   }
   if (taskResult.discriminatingAssertions.length < 3) {
-    errors.push(`Insufficient discriminating assertions: expected >= 3, found ${taskResult.discriminatingAssertions.length}`);
+    errors.push(
+      `Insufficient discriminating assertions: expected >= 3, found ${taskResult.discriminatingAssertions.length}`,
+    );
   }
   if (taskResult.agpProbes.length < 2) {
-    errors.push(`Insufficient AGP counterfactual probes: expected >= 2, found ${taskResult.agpProbes.length}`);
+    errors.push(
+      `Insufficient AGP counterfactual probes: expected >= 2, found ${taskResult.agpProbes.length}`,
+    );
   }
   if (!taskResult.scopeIntegrity.valid) {
     for (const issue of taskResult.scopeIntegrity.issues) {
@@ -1015,9 +1068,10 @@ export function validatePreEnhancedTask(
 /**
  * Validates a pre-enhanced plan result.
  */
-export function validatePreEnhancedPlan(
-  planResult: PreEnhancedPlanResult,
-): { readonly valid: boolean; readonly errors: readonly string[] } {
+export function validatePreEnhancedPlan(planResult: PreEnhancedPlanResult): {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+} {
   const errors: string[] = [];
 
   if (planResult.schema !== "harness.pre-enhanced-plan") {
@@ -1059,7 +1113,9 @@ export function synthesizeProactiveTestTemplate(taskResult: PreEnhancedTaskResul
   lines.push(` */`);
   lines.push(``);
   lines.push(`import { describe, test, expect } from "bun:test";`);
-  lines.push(`import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";`);
+  lines.push(
+    `import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";`,
+  );
   lines.push(``);
   lines.push(`describe("${taskResult.taskId}: ${taskResult.label}", () => {`);
 
@@ -1105,8 +1161,12 @@ export function renderTaskPreEnhancementMarkdown(taskResult: PreEnhancedTaskResu
   }
   lines.push(``);
   lines.push(`#### 🛡️ Write Scope Boundary`);
-  lines.push(`- **Declared Paths**: \`${taskResult.invariantChecklist.writeScopeBoundary.declaredPaths.join("`, `")}\``);
-  lines.push(`- **Disjoint From Concurrent Lanes**: ${taskResult.invariantChecklist.writeScopeBoundary.isDisjointFromConcurrentLanes ? "✅ Yes" : "❌ No"}`);
+  lines.push(
+    `- **Declared Paths**: \`${taskResult.invariantChecklist.writeScopeBoundary.declaredPaths.join("`, `")}\``,
+  );
+  lines.push(
+    `- **Disjoint From Concurrent Lanes**: ${taskResult.invariantChecklist.writeScopeBoundary.isDisjointFromConcurrentLanes ? "✅ Yes" : "❌ No"}`,
+  );
   lines.push(``);
 
   return lines.join("\n");
@@ -1122,7 +1182,9 @@ export function renderPreEnhancedPlanMarkdown(planResult: PreEnhancedPlanResult)
   lines.push(`**Total Tasks**: ${planResult.tasks.length}`);
   lines.push(`**Total Discriminating Assertions**: ${planResult.totalAssertionsCount}`);
   lines.push(`**Total AGP Probes**: ${planResult.totalAgpProbesCount}`);
-  lines.push(`**Scope Disjointness**: ${planResult.allScopesDisjoint ? "✅ All write scopes mutually disjoint" : "🛑 Overlapping scopes detected"}`);
+  lines.push(
+    `**Scope Disjointness**: ${planResult.allScopesDisjoint ? "✅ All write scopes mutually disjoint" : "🛑 Overlapping scopes detected"}`,
+  );
   lines.push(`**Compiled At**: ${planResult.compiledAt}`);
   lines.push(``);
   lines.push(`### 📋 Global Invariants`);

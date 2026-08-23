@@ -281,10 +281,7 @@ describe("Mind Autonomous Role Auditing & Non-Duplicate Persona Synthesis", () =
       const val = synthesizeDynamicRole({
         name: "clean-val",
         archetype: "tier_3_validator",
-        cognitivePillars: [
-          "Adversarial Gate Falsification",
-          "Quantitative Proof Enforcement",
-        ],
+        cognitivePillars: ["Adversarial Gate Falsification", "Quantitative Proof Enforcement"],
       });
 
       const implFindings = auditSingleRole(impl);

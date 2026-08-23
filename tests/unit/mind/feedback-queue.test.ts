@@ -451,7 +451,13 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
 
     const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
     const suppressionPattern = new RegExp(
-      ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck", "eslint" + "-disable", "oxlint" + "-disable"].join("|"),
+      [
+        "@ts" + "-ignore",
+        "@ts" + "-expect-error",
+        "@ts" + "-nocheck",
+        "eslint" + "-disable",
+        "oxlint" + "-disable",
+      ].join("|"),
     );
 
     for (const filePath of filesToAudit) {
@@ -469,4 +475,3 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
     }
   });
 });
-

@@ -165,13 +165,28 @@ export function isSupervisoryRole(role: string): role is SupervisoryRole {
 
 export function normalizeSupervisoryRole(role: string): SupervisoryRole | null {
   const normalized = role.trim().toLowerCase();
-  if (normalized === "mind" || normalized === "tier-0" || normalized === "tier 0" || normalized === "human") {
+  if (
+    normalized === "mind" ||
+    normalized === "tier-0" ||
+    normalized === "tier 0" ||
+    normalized === "human"
+  ) {
     return "mind";
   }
-  if (normalized === "orchestrator" || normalized === "orch" || normalized === "tier-1" || normalized === "tier 1") {
+  if (
+    normalized === "orchestrator" ||
+    normalized === "orch" ||
+    normalized === "tier-1" ||
+    normalized === "tier 1"
+  ) {
     return "orchestrator";
   }
-  if (normalized === "coordinator" || normalized === "coord" || normalized === "tier-2" || normalized === "tier 2") {
+  if (
+    normalized === "coordinator" ||
+    normalized === "coord" ||
+    normalized === "tier-2" ||
+    normalized === "tier 2"
+  ) {
     return "coordinator";
   }
   return null;
@@ -329,10 +344,7 @@ export function generateWatchdogPersonaGrounding(
   };
 }
 
-export type ReflexiveCheckType =
-  | "role_invariants"
-  | "subordinate_fulfillment"
-  | "behavioral_drift";
+export type ReflexiveCheckType = "role_invariants" | "subordinate_fulfillment" | "behavioral_drift";
 
 export type DriftSeverity = "none" | "low" | "medium" | "high" | "critical";
 
@@ -490,7 +502,11 @@ export function evaluateReflexiveSelfAudit(
   // Invariant 1.1: Zero file mutations on supervisory thread
   const modifiedFiles = [
     ...(context.fileModificationsOnSupervisoryThread ?? []),
-    ...(context.recentActions?.filter((a) => a.action === "edit_file" || a.action === "write_file" || a.action === "delete_file").map((a) => a.targetFile ?? "unknown_file") ?? []),
+    ...(context.recentActions
+      ?.filter(
+        (a) => a.action === "edit_file" || a.action === "write_file" || a.action === "delete_file",
+      )
+      .map((a) => a.targetFile ?? "unknown_file") ?? []),
   ];
 
   if (modifiedFiles.length > 0) {
@@ -513,7 +529,12 @@ export function evaluateReflexiveSelfAudit(
   // Invariant 1.2: Task Self-Implementation Attempts
   const directExecutionAttempts = [
     ...(context.directExecutionAttempts ?? []),
-    ...(context.recentActions?.filter((a) => a.action === "claim_task" || a.action === "implement_task" || a.action === "repair_task").map((a) => a.action) ?? []),
+    ...(context.recentActions
+      ?.filter(
+        (a) =>
+          a.action === "claim_task" || a.action === "implement_task" || a.action === "repair_task",
+      )
+      .map((a) => a.action) ?? []),
   ];
 
   if (directExecutionAttempts.length > 0) {
@@ -536,10 +557,12 @@ export function evaluateReflexiveSelfAudit(
   // Invariant 1.3: Cross-Tier Hierarchy & Spawning
   const invalidSpawns = [
     ...(context.crossTierSpawns ?? []),
-    ...(context.recentActions?.filter((a) => {
-      if (!a.spawnedRole) return false;
-      return !roleBoundaries.permittedSpawns.includes(a.spawnedRole.toLowerCase());
-    }).map((a) => a.spawnedRole!) ?? []),
+    ...(context.recentActions
+      ?.filter((a) => {
+        if (!a.spawnedRole) return false;
+        return !roleBoundaries.permittedSpawns.includes(a.spawnedRole.toLowerCase());
+      })
+      .map((a) => a.spawnedRole!) ?? []),
   ];
 
   if (invalidSpawns.length > 0) {
@@ -605,10 +628,14 @@ export function evaluateReflexiveSelfAudit(
   }
 
   const staleLeases = leases.filter(
-    (l) => l.isStale || (l.heartbeatAgeMs !== undefined && l.heartbeatAgeMs > DEFAULT_WATCHDOG_TIMEOUT_MS),
+    (l) =>
+      l.isStale ||
+      (l.heartbeatAgeMs !== undefined && l.heartbeatAgeMs > DEFAULT_WATCHDOG_TIMEOUT_MS),
   );
   const staleSubordinates = subordinates.filter(
-    (s) => s.status === "stale" || (s.lastHeartbeatAgeMs !== undefined && s.lastHeartbeatAgeMs > DEFAULT_WATCHDOG_TIMEOUT_MS),
+    (s) =>
+      s.status === "stale" ||
+      (s.lastHeartbeatAgeMs !== undefined && s.lastHeartbeatAgeMs > DEFAULT_WATCHDOG_TIMEOUT_MS),
   );
 
   const totalStaleCount = Math.max(staleLeases.length, staleSubordinates.length);
@@ -695,9 +722,7 @@ export function evaluateReflexiveSelfAudit(
         "Dispatch ready tasks immediately using `queue:wave` up to available concurrency slots (P = W / S).",
       evidence: { readyCount, activeSubordinatesCount },
     });
-    recommendedActions.push(
-      "Dispatch ready tasks in parallel wave lanes using `queue:wave`.",
-    );
+    recommendedActions.push("Dispatch ready tasks in parallel wave lanes using `queue:wave`.");
   }
 
   // Drift 3.3: Premature Completion Attempt
@@ -770,22 +795,34 @@ export function evaluateReflexiveSelfAudit(
   const passed = overallSeverity === "none" || (overallSeverity === "low" && driftScore < 0.2);
 
   // Summary and Markdown Report Generation
-  const statusEmoji = passed ? "🟢 PASS" : overallSeverity === "critical" ? "🔴 CRITICAL DRIFT" : "🟡 WARNING";
+  const statusEmoji = passed
+    ? "🟢 PASS"
+    : overallSeverity === "critical"
+      ? "🔴 CRITICAL DRIFT"
+      : "🟡 WARNING";
   const groundingSummary = passed
     ? `Supervisory persona for ${supervisoryRole.toUpperCase()} is fully grounded and compliant with 0 critical drift findings.`
     : `Supervisory persona for ${supervisoryRole.toUpperCase()} exhibits ${overallSeverity.toUpperCase()} behavioral drift (drift score: ${driftScore}). ${findings.length} finding(s) detected.`;
 
   const reportLines: string[] = [];
-  reportLines.push(`### 🛡️ Supervisory Reflexive Self-Audit Report: \`${supervisoryRole.toUpperCase()}\``);
-  reportLines.push(`- **Status**: ${statusEmoji} (Drift Score: \`${driftScore.toFixed(2)}\` / 1.00)`);
+  reportLines.push(
+    `### 🛡️ Supervisory Reflexive Self-Audit Report: \`${supervisoryRole.toUpperCase()}\``,
+  );
+  reportLines.push(
+    `- **Status**: ${statusEmoji} (Drift Score: \`${driftScore.toFixed(2)}\` / 1.00)`,
+  );
   reportLines.push(`- **Tier**: Tier ${roleBoundaries.tier} (${roleBoundaries.tierName})`);
   reportLines.push(`- **Timestamp**: \`${timestamp}\``);
-  reportLines.push(`- **Subordinate Health**: ${subordinateHealth.healthy ? "Healthy" : "Attention Required"} (${subordinateHealth.activeCount} active, ${subordinateHealth.staleCount} stale, ${subordinateHealth.conflictingScopeCount} conflicting)`);
+  reportLines.push(
+    `- **Subordinate Health**: ${subordinateHealth.healthy ? "Healthy" : "Attention Required"} (${subordinateHealth.activeCount} active, ${subordinateHealth.staleCount} stale, ${subordinateHealth.conflictingScopeCount} conflicting)`,
+  );
   reportLines.push("");
 
   reportLines.push("#### 📋 Invariant Compliance Matrix");
   for (const [invKey, isCompliant] of Object.entries(invariantCompliance)) {
-    reportLines.push(`- ${isCompliant ? "✅" : "❌"} \`${invKey}\`: ${isCompliant ? "COMPLIANT" : "VIOLATION"}`);
+    reportLines.push(
+      `- ${isCompliant ? "✅" : "❌"} \`${invKey}\`: ${isCompliant ? "COMPLIANT" : "VIOLATION"}`,
+    );
   }
   reportLines.push("");
 
@@ -866,10 +903,7 @@ export function createWatchdogTickReminder(
 ): string {
   const supervisoryRole = normalizeSupervisoryRole(role);
   if (!supervisoryRole) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `role '${role}' is not a supervisory role`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `role '${role}' is not a supervisory role`);
   }
 
   const grounding = generateWatchdogPersonaGrounding({

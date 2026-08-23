@@ -47,7 +47,7 @@ function adaptWorkflowState(rawState: unknown): WorkflowState {
   const s = rawState as Record<string, unknown>;
   const reqs = Array.isArray(s.requirements)
     ? s.requirements
-    : (s.requirements as { requirements?: unknown[] })?.requirements ?? [];
+    : ((s.requirements as { requirements?: unknown[] })?.requirements ?? []);
   return {
     ...s,
     requirements: reqs,
@@ -184,7 +184,9 @@ describe("P52 & P53 End-to-End Integration Verification", () => {
     expect(implPacket.markdown).toContain("Direct end-to-end implementation & tests");
     expect(implPacket.markdown).toContain("Strict static invariants");
     expect(implPacket.markdown).toContain("## Capsule memory on disk");
-    expect(implPacket.markdown).toContain("report:task --run .capsules/e2e-combined-flow --task task-engine");
+    expect(implPacket.markdown).toContain(
+      "report:task --run .capsules/e2e-combined-flow --task task-engine",
+    );
 
     // 5. Inspect run:status output and verify lifecycle phase breakdown
     const statusRes = (await execute(["run:status", "--run", run])) as Record<string, unknown>;
@@ -203,7 +205,12 @@ describe("P52 & P53 End-to-End Integration Verification", () => {
     expect(dagRes.markdown as string).not.toContain("undefined");
 
     // 7. Inspect unified report output
-    const unifiedRes = (await execute(["report", "--run", run, "--detailed"])) as unknown as UnifiedReport;
+    const unifiedRes = (await execute([
+      "report",
+      "--run",
+      run,
+      "--detailed",
+    ])) as unknown as UnifiedReport;
     expect(unifiedRes.run_id).toBe("e2e-combined-flow");
     expect(unifiedRes.topology.total_tasks).toBe(2);
     expect(unifiedRes.lifecycle.implementers.count).toBe(1);

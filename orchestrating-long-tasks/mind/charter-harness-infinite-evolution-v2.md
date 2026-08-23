@@ -27,7 +27,6 @@ The Master Infinite Mind Subsystem within `orchestrating-long-tasks` is the supr
 - `bun test` -> exit 0
 - `bun run typecheck` -> exit 0
 
-
 ## Prohibitions
 
 NEVER, unattended, at any tier:

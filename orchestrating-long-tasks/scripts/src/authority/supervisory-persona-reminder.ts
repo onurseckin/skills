@@ -46,144 +46,146 @@ export interface DecisionProtocolDefinition {
   readonly applicableTiers: readonly number[];
 }
 
-export const DECISION_PROTOCOLS: Readonly<Record<DecisionProtocolId, DecisionProtocolDefinition>> = {
-  work_span_scaling: {
-    id: "work_span_scaling",
-    name: "Work/Span Concurrency Scaling (P = W / S)",
-    summary:
-      "Dynamic parallel occupancy scaling where concurrency P is determined by total work W over critical path span S, without artificial daily limits or budget refusal ladders.",
-    formulaOrRule: "P = ceil(W / S)",
-    keyInvariants: [
-      "Compute algorithmic concurrency headroom (P = W / S) across independent DAG lanes.",
-      "Dispatch disjoint independent work units simultaneously up to available worker capacity.",
-      "Never impose artificial fixed daily worker caps or pulse exhaustion halts when headroom exists.",
-    ],
-    operationalGuidance:
-      "Continuously inspect live ASCII DAG topology (`dag:view`) to identify critical-path bottlenecks and expand wave parallelism.",
-    applicableTiers: [0, 1, 2],
-  },
-  anti_batching_continuous_dispatch: {
-    id: "anti_batching_continuous_dispatch",
-    name: "1:1 Anti-Batching & Continuous Eligible-Set Dispatch",
-    summary:
-      "The instant a slot frees (an agent submits, a lease is released, a dependency clears), dispatch the next claimable task immediately without waiting for sibling tasks.",
-    formulaOrRule: "Continuous Dispatch + 1:1 Pairing (Implementer -> Validator)",
-    keyInvariants: [
-      "Continuous dispatch: Never serialize independent work lanes into sequential loops.",
-      "1:1 Anti-batching: Validate an implementer's submission immediately upon arrival; do not wait for wave completion.",
-      "Pairing invariant: Implementer + Validator paired dispatch for every task; validator dispatches the moment implementer submits.",
-    ],
-    operationalGuidance:
-      "Keep the eligible set full. Fill freed capacity with the next highest-ranked claimable task instantly.",
-    applicableTiers: [1, 2],
-  },
-  supervisor_zero_file_edit: {
-    id: "supervisor_zero_file_edit",
-    name: "Supervisor Zero-File-Edit Invariant",
-    summary:
-      "Supervisory threads (Tier 0 Mind, Tier 1 Orchestrator, Tier 2 Coordinator) are pure observers/managers and must NEVER write, edit, stage, format, or revert application source code or test files.",
-    formulaOrRule: "Supervisory File Mod = 0 (Strict Pure Delegation)",
-    keyInvariants: [
-      "Never succumb to the 'trivial fix' fallacy: even a 1-line syntax fix must be delegated to a Tier 3 implementer.",
-      "Main thread and supervisory threads stay empty of implementation code.",
-      "Mutate capsule state strictly through recorded harness CLI commands, never hand edits.",
-    ],
-    operationalGuidance:
-      "When a code fix is required, dispatch a Tier 3 Implementer via host native subagents with an exclusive write scope.",
-    applicableTiers: [0, 1, 2],
-  },
-  four_tier_viewport_matrix: {
-    id: "four_tier_viewport_matrix",
-    name: "4-Tier Viewport Resolution Matrix",
-    summary:
-      "All UI/visual frontend tasks mandate multi-viewport verification across Desktop-Wide, Desktop, Tablet, and Mobile resolutions.",
-    formulaOrRule:
-      "Viewport Matrix = [1920x1080 (Desktop-Wide), 1440x900 (Desktop), 768x1024 (Tablet), 390x844 (Mobile)]",
-    keyInvariants: [
-      "Reject UI/visual submissions lacking multi-viewport rasterized captures across all 4 resolutions.",
-      "Synthesize Dual-Channel DOM metrics (`visual-report.json`) and screenshot proofs across all 4 viewports.",
-      "Enforce zero 0-byte or stubbed screenshot captures.",
-    ],
-    operationalGuidance:
-      "Run visual regression proofs against all 4 viewport tiers before certifying UI task pass verdicts.",
-    applicableTiers: [0, 1, 2, 3],
-  },
-  scepticism_quantitative_proof: {
-    id: "scepticism_quantitative_proof",
-    name: "Task Scepticism & Quantitative Proof Enforcement",
-    summary:
-      "Supervisors must actively push back on unverified, superficial, or qualitative-only validator reports, requiring quantitative metrics and counterfactual gate falsification.",
-    formulaOrRule: "Verification = Quantitative Proof + Falsifiable Gate Proof + Adversarial Probe",
-    keyInvariants: [
-      "Prove compiled gates fail on disposable scratch copies (`gate:prove`) before trusting them.",
-      "Reject rubber-stamped passes with `coordinator:pushback`.",
-      "Require mandatory adversarial probe (`task:probe`) before any pass verdict is accepted.",
-    ],
-    operationalGuidance:
-      "Require DOM bounding boxes, APCA contrast, screenshot byte proofs (> 1024B), and exact exit codes in evidence.",
-    applicableTiers: [1, 2, 3],
-  },
-  strict_tier_hierarchy: {
-    id: "strict_tier_hierarchy",
-    name: "Strict 4-Tier Spawning Hierarchy & Disjoint Write Scopes",
-    summary:
-      "Tier 0 Mind spawns Tier 1 Orchestrator; Tier 1 spawns Tier 2 Coordinators; Tier 2 spawns Tier 3 Workers. Active leases must maintain disjoint write scopes.",
-    formulaOrRule: "Tier(N) -> Tier(N+1) Spawning Only + Disjoint Write Scopes",
-    keyInvariants: [
-      "Cross-tier spawning is strictly forbidden (e.g. Mind or Orchestrator directly spawning Tier 3 workers).",
-      "Zero overlapping write scopes among concurrently active leases.",
-      "Implementers never validate their own work; validators never hold implementation leases.",
-    ],
-    operationalGuidance:
-      "Verify write scopes are disjoint before dispatching concurrent worker leases.",
-    applicableTiers: [0, 1, 2, 3],
-  },
-  infinite_pulse_cadence: {
-    id: "infinite_pulse_cadence",
-    name: "Infinite Borderless Cadence & 5-Minute Supervisory Heartbeats",
-    summary:
-      "Mind operates indefinitely as an autonomous loop (`mind:pulse`); closing or dying is forbidden. Supervisory schedules maintain 5-minute heartbeat cycles.",
-    formulaOrRule: "Cadence = Continuous Loop + 5-Min Supervisory Crons + Unified Evidence",
-    keyInvariants: [
-      "Supervisory heartbeat ticks occur every 3-5 minutes.",
-      "Mind pulse never terminates; continuous background timers keep loop active.",
-      "All task evidence stored strictly in unified directory `.capsules/<run>/evidence/`.",
-    ],
-    operationalGuidance:
-      "Maintain active heartbeats (`task:heartbeat`, `mind:pulse`) and verify capsule health on every tick.",
-    applicableTiers: [0, 1, 2],
-  },
-  dual_channel_validation: {
-    id: "dual_channel_validation",
-    name: "Dual-Channel Visual & DOM Validation",
-    summary:
-      "Synthesize computed DOM metrics (Channel 1) with rasterized visual screenshots (Channel 2) to eliminate virtual rendering blind spots.",
-    formulaOrRule: "Channel 1 (DOM JSON) + Channel 2 (PNG Screenshots) = Ground Truth",
-    keyInvariants: [
-      "Channel 1: Computed DOM metrics (`visual-report.json`) verifying bounding boxes, styles, overflow, and APCA contrast.",
-      "Channel 2: High-resolution screenshots (`.png`) verifying authentic browser layout engine rasterization.",
-      "Cross-channel gap filling: when one channel is partial, the other corroborates.",
-    ],
-    operationalGuidance:
-      "Mandate both DOM metrics and visual screenshots for every UI/frontend file modification.",
-    applicableTiers: [2, 3],
-  },
-  standardized_agent_naming: {
-    id: "standardized_agent_naming",
-    name: "Standardized Task & Phase Agent Naming Convention",
-    summary:
-      "All agents enforce standard role-prefixed IDs: Tier 3 uses task-bound names (<role>_<task-id>[-<slug>]), Tier 1/2 uses phase/domain-bound names (<role>_<domain-or-phase-slug>).",
-    formulaOrRule: "Tier 3: <role>_<task-id>[-<slug>] | Tier 1/2: <role>_<phase-or-domain-slug>",
-    keyInvariants: [
-      "Tier 3 Implementers and Validators embed assigned task ID in agent name (e.g. implementer_task-p47-autonomic-watchdog, validator_task-p47-autonomic-watchdog).",
-      "Tier 1 Orchestrators and Tier 2 Coordinators embed run, phase, or domain slug (e.g. orchestrator_wave-2-foundations, coordinator_domain-cli-tools).",
-      "Standardized names provide clear observability and unambiguous lineage across transcripts, CLI logs, and reports.",
-    ],
-    operationalGuidance:
-      "Register and dispatch all agents with standardized IDs according to role tier and scope binding.",
-    applicableTiers: [0, 1, 2, 3],
-  },
-};
+export const DECISION_PROTOCOLS: Readonly<Record<DecisionProtocolId, DecisionProtocolDefinition>> =
+  {
+    work_span_scaling: {
+      id: "work_span_scaling",
+      name: "Work/Span Concurrency Scaling (P = W / S)",
+      summary:
+        "Dynamic parallel occupancy scaling where concurrency P is determined by total work W over critical path span S, without artificial daily limits or budget refusal ladders.",
+      formulaOrRule: "P = ceil(W / S)",
+      keyInvariants: [
+        "Compute algorithmic concurrency headroom (P = W / S) across independent DAG lanes.",
+        "Dispatch disjoint independent work units simultaneously up to available worker capacity.",
+        "Never impose artificial fixed daily worker caps or pulse exhaustion halts when headroom exists.",
+      ],
+      operationalGuidance:
+        "Continuously inspect live ASCII DAG topology (`dag:view`) to identify critical-path bottlenecks and expand wave parallelism.",
+      applicableTiers: [0, 1, 2],
+    },
+    anti_batching_continuous_dispatch: {
+      id: "anti_batching_continuous_dispatch",
+      name: "1:1 Anti-Batching & Continuous Eligible-Set Dispatch",
+      summary:
+        "The instant a slot frees (an agent submits, a lease is released, a dependency clears), dispatch the next claimable task immediately without waiting for sibling tasks.",
+      formulaOrRule: "Continuous Dispatch + 1:1 Pairing (Implementer -> Validator)",
+      keyInvariants: [
+        "Continuous dispatch: Never serialize independent work lanes into sequential loops.",
+        "1:1 Anti-batching: Validate an implementer's submission immediately upon arrival; do not wait for wave completion.",
+        "Pairing invariant: Implementer + Validator paired dispatch for every task; validator dispatches the moment implementer submits.",
+      ],
+      operationalGuidance:
+        "Keep the eligible set full. Fill freed capacity with the next highest-ranked claimable task instantly.",
+      applicableTiers: [1, 2],
+    },
+    supervisor_zero_file_edit: {
+      id: "supervisor_zero_file_edit",
+      name: "Supervisor Zero-File-Edit Invariant",
+      summary:
+        "Supervisory threads (Tier 0 Mind, Tier 1 Orchestrator, Tier 2 Coordinator) are pure observers/managers and must NEVER write, edit, stage, format, or revert application source code or test files.",
+      formulaOrRule: "Supervisory File Mod = 0 (Strict Pure Delegation)",
+      keyInvariants: [
+        "Never succumb to the 'trivial fix' fallacy: even a 1-line syntax fix must be delegated to a Tier 3 implementer.",
+        "Main thread and supervisory threads stay empty of implementation code.",
+        "Mutate capsule state strictly through recorded harness CLI commands, never hand edits.",
+      ],
+      operationalGuidance:
+        "When a code fix is required, dispatch a Tier 3 Implementer via host native subagents with an exclusive write scope.",
+      applicableTiers: [0, 1, 2],
+    },
+    four_tier_viewport_matrix: {
+      id: "four_tier_viewport_matrix",
+      name: "4-Tier Viewport Resolution Matrix",
+      summary:
+        "All UI/visual frontend tasks mandate multi-viewport verification across Desktop-Wide, Desktop, Tablet, and Mobile resolutions.",
+      formulaOrRule:
+        "Viewport Matrix = [1920x1080 (Desktop-Wide), 1440x900 (Desktop), 768x1024 (Tablet), 390x844 (Mobile)]",
+      keyInvariants: [
+        "Reject UI/visual submissions lacking multi-viewport rasterized captures across all 4 resolutions.",
+        "Synthesize Dual-Channel DOM metrics (`visual-report.json`) and screenshot proofs across all 4 viewports.",
+        "Enforce zero 0-byte or stubbed screenshot captures.",
+      ],
+      operationalGuidance:
+        "Run visual regression proofs against all 4 viewport tiers before certifying UI task pass verdicts.",
+      applicableTiers: [0, 1, 2, 3],
+    },
+    scepticism_quantitative_proof: {
+      id: "scepticism_quantitative_proof",
+      name: "Task Scepticism & Quantitative Proof Enforcement",
+      summary:
+        "Supervisors must actively push back on unverified, superficial, or qualitative-only validator reports, requiring quantitative metrics and counterfactual gate falsification.",
+      formulaOrRule:
+        "Verification = Quantitative Proof + Falsifiable Gate Proof + Adversarial Probe",
+      keyInvariants: [
+        "Prove compiled gates fail on disposable scratch copies (`gate:prove`) before trusting them.",
+        "Reject rubber-stamped passes with `coordinator:pushback`.",
+        "Require mandatory adversarial probe (`task:probe`) before any pass verdict is accepted.",
+      ],
+      operationalGuidance:
+        "Require DOM bounding boxes, APCA contrast, screenshot byte proofs (> 1024B), and exact exit codes in evidence.",
+      applicableTiers: [1, 2, 3],
+    },
+    strict_tier_hierarchy: {
+      id: "strict_tier_hierarchy",
+      name: "Strict 4-Tier Spawning Hierarchy & Disjoint Write Scopes",
+      summary:
+        "Tier 0 Mind spawns Tier 1 Orchestrator; Tier 1 spawns Tier 2 Coordinators; Tier 2 spawns Tier 3 Workers. Active leases must maintain disjoint write scopes.",
+      formulaOrRule: "Tier(N) -> Tier(N+1) Spawning Only + Disjoint Write Scopes",
+      keyInvariants: [
+        "Cross-tier spawning is strictly forbidden (e.g. Mind or Orchestrator directly spawning Tier 3 workers).",
+        "Zero overlapping write scopes among concurrently active leases.",
+        "Implementers never validate their own work; validators never hold implementation leases.",
+      ],
+      operationalGuidance:
+        "Verify write scopes are disjoint before dispatching concurrent worker leases.",
+      applicableTiers: [0, 1, 2, 3],
+    },
+    infinite_pulse_cadence: {
+      id: "infinite_pulse_cadence",
+      name: "Infinite Borderless Cadence & 5-Minute Supervisory Heartbeats",
+      summary:
+        "Mind operates indefinitely as an autonomous loop (`mind:pulse`); closing or dying is forbidden. Supervisory schedules maintain 5-minute heartbeat cycles.",
+      formulaOrRule: "Cadence = Continuous Loop + 5-Min Supervisory Crons + Unified Evidence",
+      keyInvariants: [
+        "Supervisory heartbeat ticks occur every 3-5 minutes.",
+        "Mind pulse never terminates; continuous background timers keep loop active.",
+        "All task evidence stored strictly in unified directory `.capsules/<run>/evidence/`.",
+      ],
+      operationalGuidance:
+        "Maintain active heartbeats (`task:heartbeat`, `mind:pulse`) and verify capsule health on every tick.",
+      applicableTiers: [0, 1, 2],
+    },
+    dual_channel_validation: {
+      id: "dual_channel_validation",
+      name: "Dual-Channel Visual & DOM Validation",
+      summary:
+        "Synthesize computed DOM metrics (Channel 1) with rasterized visual screenshots (Channel 2) to eliminate virtual rendering blind spots.",
+      formulaOrRule: "Channel 1 (DOM JSON) + Channel 2 (PNG Screenshots) = Ground Truth",
+      keyInvariants: [
+        "Channel 1: Computed DOM metrics (`visual-report.json`) verifying bounding boxes, styles, overflow, and APCA contrast.",
+        "Channel 2: High-resolution screenshots (`.png`) verifying authentic browser layout engine rasterization.",
+        "Cross-channel gap filling: when one channel is partial, the other corroborates.",
+      ],
+      operationalGuidance:
+        "Mandate both DOM metrics and visual screenshots for every UI/frontend file modification.",
+      applicableTiers: [2, 3],
+    },
+    standardized_agent_naming: {
+      id: "standardized_agent_naming",
+      name: "Standardized Task & Phase Agent Naming Convention",
+      summary:
+        "All agents enforce standard role-prefixed IDs: Tier 3 uses task-bound names (<role>_<task-id>[-<slug>]), Tier 1/2 uses phase/domain-bound names (<role>_<domain-or-phase-slug>).",
+      formulaOrRule: "Tier 3: <role>_<task-id>[-<slug>] | Tier 1/2: <role>_<phase-or-domain-slug>",
+      keyInvariants: [
+        "Tier 3 Implementers and Validators embed assigned task ID in agent name (e.g. implementer_task-p47-autonomic-watchdog, validator_task-p47-autonomic-watchdog).",
+        "Tier 1 Orchestrators and Tier 2 Coordinators embed run, phase, or domain slug (e.g. orchestrator_wave-2-foundations, coordinator_domain-cli-tools).",
+        "Standardized names provide clear observability and unambiguous lineage across transcripts, CLI logs, and reports.",
+      ],
+      operationalGuidance:
+        "Register and dispatch all agents with standardized IDs according to role tier and scope binding.",
+      applicableTiers: [0, 1, 2, 3],
+    },
+  };
 
 // ---------------------------------------------------------------------------
 // Responsibility Checklist Item Definitions
@@ -205,8 +207,10 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-MIND-001",
     category: "boundary",
     title: "Observe-Only Supervisory Confinement",
-    mandate: "Maintain 100% observe-only posture; never edit code, stage files, or execute tasks directly.",
-    verificationCriteria: "Zero file mutations and zero direct implementation commands on Mind thread.",
+    mandate:
+      "Maintain 100% observe-only posture; never edit code, stage files, or execute tasks directly.",
+    verificationCriteria:
+      "Zero file mutations and zero direct implementation commands on Mind thread.",
     protocolKey: "supervisor_zero_file_edit",
     targetRoles: ["mind", "mind-auditor"],
   },
@@ -214,8 +218,10 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-MIND-002",
     category: "scaling",
     title: "Infinite Autonomous Pulse & Generational Rotation",
-    mandate: "Drive perpetual pulse loops (`mind:pulse`) and rotate generational capsules preserving charter pins.",
-    verificationCriteria: "Mind pulse active, continuous cadence timers armed, no self-termination attempts.",
+    mandate:
+      "Drive perpetual pulse loops (`mind:pulse`) and rotate generational capsules preserving charter pins.",
+    verificationCriteria:
+      "Mind pulse active, continuous cadence timers armed, no self-termination attempts.",
     protocolKey: "infinite_pulse_cadence",
     targetRoles: ["mind"],
   },
@@ -223,8 +229,10 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-MIND-003",
     category: "scaling",
     title: "Dynamic Multi-Orchestrator Scaling & Work/Span Math",
-    mandate: "Scale concurrent Tier 1 Orchestrators based on Work/Span math (P = W / S) without artificial caps.",
-    verificationCriteria: "Concurrency scaling evaluated against critical path span length via `dag:view`.",
+    mandate:
+      "Scale concurrent Tier 1 Orchestrators based on Work/Span math (P = W / S) without artificial caps.",
+    verificationCriteria:
+      "Concurrency scaling evaluated against critical path span length via `dag:view`.",
     protocolKey: "work_span_scaling",
     targetRoles: ["mind"],
   },
@@ -232,7 +240,8 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-MIND-004",
     category: "governance",
     title: "Strict Spawning Hierarchy & Domain Isolation",
-    mandate: "Deploy strictly Tier 1 Orchestrators; never bypass tier hierarchy to spawn coordinators or workers directly.",
+    mandate:
+      "Deploy strictly Tier 1 Orchestrators; never bypass tier hierarchy to spawn coordinators or workers directly.",
     verificationCriteria: "All child spawns belong to Tier 1 (`orchestrator`).",
     protocolKey: "strict_tier_hierarchy",
     targetRoles: ["mind"],
@@ -243,7 +252,8 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-ORCH-001",
     category: "boundary",
     title: "Plan Supervisor Zero-Code Invariant",
-    mandate: "Supervise execution rounds and release packages without claiming tasks or modifying code.",
+    mandate:
+      "Supervise execution rounds and release packages without claiming tasks or modifying code.",
     verificationCriteria: "Zero direct task implementations or file edits on Orchestrator thread.",
     protocolKey: "supervisor_zero_file_edit",
     targetRoles: ["orchestrator"],
@@ -252,7 +262,8 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-ORCH-002",
     category: "dispatch",
     title: "Autonomous Multi-Round Loop & Domain Coordinator Dispatch",
-    mandate: "Dispatch dedicated Tier 2 Domain Coordinators across disjoint candidate scopes and chain round lineage.",
+    mandate:
+      "Dispatch dedicated Tier 2 Domain Coordinators across disjoint candidate scopes and chain round lineage.",
     verificationCriteria: "Dispatched coordinators registered with non-overlapping domain scopes.",
     protocolKey: "strict_tier_hierarchy",
     targetRoles: ["orchestrator"],
@@ -261,7 +272,8 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-ORCH-003",
     category: "governance",
     title: "Unresolved Finding Synthesis into Next-Round Prompts",
-    mandate: "Synthesize open coordinator/critic findings into next round prompts rather than reporting raw unresolved text.",
+    mandate:
+      "Synthesize open coordinator/critic findings into next round prompts rather than reporting raw unresolved text.",
     verificationCriteria: "Open findings triaged and integrated into round synthesis manifests.",
     protocolKey: "scepticism_quantitative_proof",
     targetRoles: ["orchestrator"],
@@ -270,7 +282,8 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-ORCH-004",
     category: "hygiene",
     title: "Background Thread Finalization Release Confinement",
-    mandate: "Execute final git commits, git pushes, and global sync strictly on background threads before recycling.",
+    mandate:
+      "Execute final git commits, git pushes, and global sync strictly on background threads before recycling.",
     verificationCriteria: "No release or git synchronization spillover to main interactive thread.",
     protocolKey: "supervisor_zero_file_edit",
     targetRoles: ["orchestrator"],
@@ -279,8 +292,10 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-ORCH-005",
     category: "governance",
     title: "Phase/Domain-Bound Standardized Agent Naming",
-    mandate: "Register and dispatch Tier 2 Coordinators using standardized domain/phase-bound names (coordinator_<domain-slug>).",
-    verificationCriteria: "Dispatched coordinators use standardized coordinator_<slug> identifiers.",
+    mandate:
+      "Register and dispatch Tier 2 Coordinators using standardized domain/phase-bound names (coordinator_<domain-slug>).",
+    verificationCriteria:
+      "Dispatched coordinators use standardized coordinator_<slug> identifiers.",
     protocolKey: "standardized_agent_naming",
     targetRoles: ["orchestrator"],
   },
@@ -290,8 +305,10 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-COORD-001",
     category: "boundary",
     title: "Pure Management & Zero-File-Edit Rule",
-    mandate: "Own capsule lifecycle, task graph compilation, and dispatch without editing code or test files.",
-    verificationCriteria: "Zero file mutations on coordinator thread; all code edits delegated to Tier 3 implementers.",
+    mandate:
+      "Own capsule lifecycle, task graph compilation, and dispatch without editing code or test files.",
+    verificationCriteria:
+      "Zero file mutations on coordinator thread; all code edits delegated to Tier 3 implementers.",
     protocolKey: "supervisor_zero_file_edit",
     targetRoles: ["coordinator"],
   },
@@ -299,8 +316,10 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-COORD-002",
     category: "dispatch",
     title: "Continuous 1:1 Anti-Batching Wave Dispatch",
-    mandate: "Dispatch claimable tasks continuously as soon as capacity opens without waiting for wave barriers.",
-    verificationCriteria: "Queue drained continuously; ready tasks dispatched up to Work/Span headroom.",
+    mandate:
+      "Dispatch claimable tasks continuously as soon as capacity opens without waiting for wave barriers.",
+    verificationCriteria:
+      "Queue drained continuously; ready tasks dispatched up to Work/Span headroom.",
     protocolKey: "anti_batching_continuous_dispatch",
     targetRoles: ["coordinator"],
   },
@@ -308,7 +327,8 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-COORD-003",
     category: "boundary",
     title: "Disjoint Write Scope Exclusivity",
-    mandate: "Enforce strict disjoint write scopes across active implementer leases with zero file collisions.",
+    mandate:
+      "Enforce strict disjoint write scopes across active implementer leases with zero file collisions.",
     verificationCriteria: "Active leases have mutually exclusive write scope file lists.",
     protocolKey: "strict_tier_hierarchy",
     targetRoles: ["coordinator"],
@@ -317,7 +337,8 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-COORD-004",
     category: "verification",
     title: "Disposable Scratch Gate Falsification (`gate:prove`)",
-    mandate: "Prove compiled task gates can actually fail on disposable scratch copies before trusting them.",
+    mandate:
+      "Prove compiled task gates can actually fail on disposable scratch copies before trusting them.",
     verificationCriteria: "Gate commands proven with recorded negative failure proof.",
     protocolKey: "scepticism_quantitative_proof",
     targetRoles: ["coordinator"],
@@ -326,7 +347,8 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-COORD-005",
     category: "verification",
     title: "Scepticism Pushback on Qualitative-Only Passes",
-    mandate: "Reject rubber-stamped passes lacking quantitative evidence via structured `coordinator:pushback`.",
+    mandate:
+      "Reject rubber-stamped passes lacking quantitative evidence via structured `coordinator:pushback`.",
     verificationCriteria: "All accepted verdicts carry quantitative metrics and gate proofs.",
     protocolKey: "scepticism_quantitative_proof",
     targetRoles: ["coordinator"],
@@ -335,8 +357,10 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-COORD-006",
     category: "verification",
     title: "4-Tier Viewport Resolution Matrix Enforcement",
-    mandate: "Enforce multi-viewport verification (1920x1080, 1440x900, 768x1024, 390x844) on all visual/UI tasks.",
-    verificationCriteria: "UI tasks verified across Desktop-Wide, Desktop, Tablet, and Mobile captures.",
+    mandate:
+      "Enforce multi-viewport verification (1920x1080, 1440x900, 768x1024, 390x844) on all visual/UI tasks.",
+    verificationCriteria:
+      "UI tasks verified across Desktop-Wide, Desktop, Tablet, and Mobile captures.",
     protocolKey: "four_tier_viewport_matrix",
     targetRoles: ["coordinator"],
   },
@@ -344,8 +368,10 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-COORD-007",
     category: "governance",
     title: "No Premature Run Completion",
-    mandate: "Never declare run completion with live leases, open findings, unproven gates, or missing critic review.",
-    verificationCriteria: "All wave lanes closed, 0 open findings, all gates green, completeness critic approved.",
+    mandate:
+      "Never declare run completion with live leases, open findings, unproven gates, or missing critic review.",
+    verificationCriteria:
+      "All wave lanes closed, 0 open findings, all gates green, completeness critic approved.",
     protocolKey: "anti_batching_continuous_dispatch",
     targetRoles: ["coordinator"],
   },
@@ -353,8 +379,10 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-COORD-008",
     category: "governance",
     title: "Task-Bound Standardized Agent Naming & Observability",
-    mandate: "Dispatch Tier 3 Implementers and Validators using standardized task-bound names (implementer_<task-id>-<slug>, validator_<task-id>-<slug>).",
-    verificationCriteria: "All dispatched Tier 3 worker IDs follow standardized <role>_<task-id>-<slug> conventions.",
+    mandate:
+      "Dispatch Tier 3 Implementers and Validators using standardized task-bound names (implementer_<task-id>-<slug>, validator_<task-id>-<slug>).",
+    verificationCriteria:
+      "All dispatched Tier 3 worker IDs follow standardized <role>_<task-id>-<slug> conventions.",
     protocolKey: "standardized_agent_naming",
     targetRoles: ["coordinator"],
   },
@@ -364,8 +392,10 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-IMPL-001",
     category: "boundary",
     title: "Strict Disjoint Write Scope Confinement",
-    mandate: "Create, edit, and delete files strictly within assigned leased write scope; never touch out-of-scope paths.",
-    verificationCriteria: "All modified files fall strictly within the task's declared write_scope.",
+    mandate:
+      "Create, edit, and delete files strictly within assigned leased write scope; never touch out-of-scope paths.",
+    verificationCriteria:
+      "All modified files fall strictly within the task's declared write_scope.",
     protocolKey: "strict_tier_hierarchy",
     targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
   },
@@ -373,7 +403,8 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-IMPL-002",
     category: "hygiene",
     title: "Zero-Any TypeScript & Zero Suppressions",
-    mandate: "Maintain 100% strict TypeScript types: 0 `any`, 0 `@ts-ignore`, 0 `@ts-expect-error`, 0 lint suppressions.",
+    mandate:
+      "Maintain 100% strict TypeScript types: 0 `any`, 0 `@ts-ignore`, 0 `@ts-expect-error`, 0 lint suppressions.",
     verificationCriteria: "Codebase compiles with 0 type errors and 0 type suppressions.",
     protocolKey: "scepticism_quantitative_proof",
     targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
@@ -382,8 +413,10 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-IMPL-003",
     category: "verification",
     title: "Pre-Submission Verification & Regression Coverage",
-    mandate: "Run scoped tests, verify negative paths, and add regression tests for repaired defect findings before submitting.",
-    verificationCriteria: "Verification commands recorded via `run:exec` and cited in submission evidence.",
+    mandate:
+      "Run scoped tests, verify negative paths, and add regression tests for repaired defect findings before submitting.",
+    verificationCriteria:
+      "Verification commands recorded via `run:exec` and cited in submission evidence.",
     protocolKey: "scepticism_quantitative_proof",
     targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
   },
@@ -391,7 +424,8 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-IMPL-004",
     category: "boundary",
     title: "Independent Validation Invariant",
-    mandate: "Never validate, review, probe, or sign off own work; submit to independent validator.",
+    mandate:
+      "Never validate, review, probe, or sign off own work; submit to independent validator.",
     verificationCriteria: "Implementer never claims validation lease or executes `task:review`.",
     protocolKey: "strict_tier_hierarchy",
     targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
@@ -400,7 +434,8 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-IMPL-005",
     category: "governance",
     title: "Task-Bound Standard Implementer Naming",
-    mandate: "Register and claim leases using standardized task-bound agent ID (implementer_<task-id>-<slug>).",
+    mandate:
+      "Register and claim leases using standardized task-bound agent ID (implementer_<task-id>-<slug>).",
     verificationCriteria: "Agent ID conforms to standardized implementer_<task-id>-<slug> pattern.",
     protocolKey: "standardized_agent_naming",
     targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
@@ -411,17 +446,28 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-VAL-001",
     category: "verification",
     title: "Mandatory Adversarial Probe Round",
-    mandate: "Record an adversarial probe demanding proof (`task:probe`) before issuing any pass review.",
+    mandate:
+      "Record an adversarial probe demanding proof (`task:probe`) before issuing any pass review.",
     verificationCriteria: "Task has recorded at least 1 probe demand before pass verdict.",
     protocolKey: "scepticism_quantitative_proof",
-    targetRoles: ["validator", "validator-code-quality", "validator-product", "validator-security", "validator-system-design", "validator-ui-design", "sub-validator"],
+    targetRoles: [
+      "validator",
+      "validator-code-quality",
+      "validator-product",
+      "validator-security",
+      "validator-system-design",
+      "validator-ui-design",
+      "sub-validator",
+    ],
   },
   {
     id: "RESP-VAL-002",
     category: "verification",
     title: "Dual-Channel Visual & DOM Verification for UI Tasks",
-    mandate: "Synthesize computed DOM metrics (`visual-report.json`) and screenshot captures across 4 viewports for UI tasks.",
-    verificationCriteria: "UI tasks verified with DOM bounds, APCA contrast, and 4-tier screenshots (> 1024B).",
+    mandate:
+      "Synthesize computed DOM metrics (`visual-report.json`) and screenshot captures across 4 viewports for UI tasks.",
+    verificationCriteria:
+      "UI tasks verified with DOM bounds, APCA contrast, and 4-tier screenshots (> 1024B).",
     protocolKey: "four_tier_viewport_matrix",
     targetRoles: ["validator", "validator-ui-design", "sub-validator"],
   },
@@ -429,19 +475,38 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     id: "RESP-VAL-003",
     category: "boundary",
     title: "Independent Verification & Anti-Anchoring Bias",
-    mandate: "Inspect repository directly using independent gate proofs; ignore implementer confidence claims.",
+    mandate:
+      "Inspect repository directly using independent gate proofs; ignore implementer confidence claims.",
     verificationCriteria: "All checks executed independently via `run:exec` on validator thread.",
     protocolKey: "scepticism_quantitative_proof",
-    targetRoles: ["validator", "validator-code-quality", "validator-product", "validator-security", "validator-system-design", "validator-ui-design", "sub-validator"],
+    targetRoles: [
+      "validator",
+      "validator-code-quality",
+      "validator-product",
+      "validator-security",
+      "validator-system-design",
+      "validator-ui-design",
+      "sub-validator",
+    ],
   },
   {
     id: "RESP-VAL-004",
     category: "governance",
     title: "Task-Bound Standard Validator Naming",
-    mandate: "Register and perform validation using standardized task-bound agent ID (validator_<task-id>-<slug>).",
-    verificationCriteria: "Validator agent ID conforms to standardized validator_<task-id>-<slug> pattern.",
+    mandate:
+      "Register and perform validation using standardized task-bound agent ID (validator_<task-id>-<slug>).",
+    verificationCriteria:
+      "Validator agent ID conforms to standardized validator_<task-id>-<slug> pattern.",
     protocolKey: "standardized_agent_naming",
-    targetRoles: ["validator", "validator-code-quality", "validator-product", "validator-security", "validator-system-design", "validator-ui-design", "sub-validator"],
+    targetRoles: [
+      "validator",
+      "validator-code-quality",
+      "validator-product",
+      "validator-security",
+      "validator-system-design",
+      "validator-ui-design",
+      "sub-validator",
+    ],
   },
 ];
 
@@ -584,7 +649,9 @@ export function evaluateSupervisoryState(
 
   // Filter checklist definitions relevant to this role
   const relevantChecklists = STANDING_CHECKLIST_DEFINITIONS.filter(
-    (def) => def.targetRoles.includes(role) || (def.targetRoles.includes("validator") && role.startsWith("validator")),
+    (def) =>
+      def.targetRoles.includes(role) ||
+      (def.targetRoles.includes("validator") && role.startsWith("validator")),
   );
 
   const checklistEvaluations: ChecklistItemEvaluation[] = [];
@@ -592,7 +659,11 @@ export function evaluateSupervisoryState(
   // 1. Invariant: Supervisor Zero-File-Edit Rule
   const modifiedFiles = [
     ...(context.fileModificationsOnSupervisoryThread ?? []),
-    ...(context.recentActions?.filter((a) => a.action === "edit_file" || a.action === "write_file" || a.action === "delete_file").map((a) => a.targetFile ?? "unknown") ?? []),
+    ...(context.recentActions
+      ?.filter(
+        (a) => a.action === "edit_file" || a.action === "write_file" || a.action === "delete_file",
+      )
+      .map((a) => a.targetFile ?? "unknown") ?? []),
   ];
 
   if (tier < 3 && modifiedFiles.length > 0) {
@@ -613,7 +684,12 @@ export function evaluateSupervisoryState(
   // 2. Invariant: Direct Task Execution on Supervisor
   const directExecutionAttempts = [
     ...(context.directExecutionAttempts ?? []),
-    ...(context.recentActions?.filter((a) => a.action === "claim_task" || a.action === "implement_task" || a.action === "repair_task").map((a) => a.action) ?? []),
+    ...(context.recentActions
+      ?.filter(
+        (a) =>
+          a.action === "claim_task" || a.action === "implement_task" || a.action === "repair_task",
+      )
+      .map((a) => a.action) ?? []),
   ];
 
   if (tier < 3 && directExecutionAttempts.length > 0) {
@@ -634,11 +710,13 @@ export function evaluateSupervisoryState(
   // 3. Invariant: Strict 4-Tier Spawning Hierarchy
   const crossTierSpawns = [
     ...(context.crossTierSpawns ?? []),
-    ...(context.recentActions?.filter((a) => {
-      if (!a.spawnedRole) return false;
-      const spawned = normalizeRoleName(a.spawnedRole);
-      return !model.spawns.map(normalizeRoleName).includes(spawned);
-    }).map((a) => a.spawnedRole!) ?? []),
+    ...(context.recentActions
+      ?.filter((a) => {
+        if (!a.spawnedRole) return false;
+        const spawned = normalizeRoleName(a.spawnedRole);
+        return !model.spawns.map(normalizeRoleName).includes(spawned);
+      })
+      .map((a) => a.spawnedRole!) ?? []),
   ];
 
   if (crossTierSpawns.length > 0) {
@@ -647,8 +725,7 @@ export function evaluateSupervisoryState(
       rule: "Subagent spawning must strictly adhere to the 4-Tier hierarchy.",
       severity: "critical",
       message: `${role.toUpperCase()} (Tier ${tier}) attempted unauthorized spawns: ${crossTierSpawns.join(", ")}. Permitted: [${model.spawns.join(", ")}].`,
-      correctiveDirective:
-        `Terminate invalid subagent dispatches and route spawning through proper tier channels ([${model.spawns.join(", ")}]).`,
+      correctiveDirective: `Terminate invalid subagent dispatches and route spawning through proper tier channels ([${model.spawns.join(", ")}]).`,
       evidence: { crossTierSpawns, permittedSpawns: model.spawns },
     });
     correctiveDirectives.push(
@@ -676,7 +753,13 @@ export function evaluateSupervisoryState(
 
   // 5. Invariant: Continuous Dispatch & Queue Headroom (1:1 Anti-Batching & P=W/S)
   const queue = context.queueState;
-  if (tier === 2 && queue && queue.readyCount > 0 && queue.runningCount === 0 && queue.blockedCount === 0) {
+  if (
+    tier === 2 &&
+    queue &&
+    queue.readyCount > 0 &&
+    queue.runningCount === 0 &&
+    queue.blockedCount === 0
+  ) {
     violations.push({
       code: "QUEUE_IDLE_ANTI_BATCHING_NEGLECT",
       rule: "Coordinator must dispatch ready tasks continuously the instant capacity frees.",
@@ -745,17 +828,18 @@ export function evaluateSupervisoryState(
   // 9. Invariant: Premature Run Completion
   if (context.attemptedPrematureCompletion) {
     const hasBlockers =
-      (leases.length > 0) ||
-      ((context.openFindingsCount ?? 0) > 0) ||
-      ((context.failedGatesCount ?? 0) > 0) ||
-      (unprovenGatesCount > 0);
+      leases.length > 0 ||
+      (context.openFindingsCount ?? 0) > 0 ||
+      (context.failedGatesCount ?? 0) > 0 ||
+      unprovenGatesCount > 0;
 
     if (hasBlockers) {
       violations.push({
         code: "PREMATURE_RUN_COMPLETION_BREACH",
         rule: "Never declare run completion with active leases, open findings, or unproven gates.",
         severity: "critical",
-        message: "Attempted `run:complete` while active blockers, open findings, or unproven gates remain.",
+        message:
+          "Attempted `run:complete` while active blockers, open findings, or unproven gates remain.",
         correctiveDirective:
           "Halt run completion. Resolve all open findings, verify gates, and obtain completeness critic sign-off.",
         evidence: {
@@ -776,7 +860,8 @@ export function evaluateSupervisoryState(
       code: "MANDATORY_ADVERSARIAL_PROBE_OMISSION",
       rule: "Adversarial validators must record at least 1 probe demand (`task:probe`) before passing.",
       severity: "high",
-      message: "Validator attempted or issued a review without recording a mandatory adversarial probe round.",
+      message:
+        "Validator attempted or issued a review without recording a mandatory adversarial probe round.",
       correctiveDirective:
         "Execute `task:probe` demanding proof of edge cases or error handling before certifying pass.",
     });
@@ -798,7 +883,10 @@ export function evaluateSupervisoryState(
         correctiveDirective: namingValidation.recommendedAgentId
           ? `Adopt recommended standardized agent ID: ${namingValidation.recommendedAgentId}`
           : "Adopt standardized agent ID (<role>_<task-id>-<slug> for Tier 3, <role>_<slug> for Tier 1/2).",
-        evidence: { agentId: context.agentId, reasons: namingValidation.reason ? [namingValidation.reason] : [] },
+        evidence: {
+          agentId: context.agentId,
+          reasons: namingValidation.reason ? [namingValidation.reason] : [],
+        },
       });
       correctiveDirectives.push(
         namingValidation.recommendedAgentId
@@ -1056,9 +1144,10 @@ export function constructSupervisoryPersonaReminder(
   const renderedMarkdown = lines.join("\n");
 
   // Compact prompt injection string for high-density heartbeat injection
-  const compactDirectives = evaluation.correctiveDirectives.length > 0
-    ? ` DIRECTIVES: ${evaluation.correctiveDirectives.join(" | ")}`
-    : "";
+  const compactDirectives =
+    evaluation.correctiveDirectives.length > 0
+      ? ` DIRECTIVES: ${evaluation.correctiveDirectives.join(" | ")}`
+      : "";
   const compactPromptInjection = `[PERSONA REMINDER Tick #${tickNumber}]: Role=${role.toUpperCase()} (Tier ${unifiedModel.tier}). Mandate: ${unifiedModel.coreMandate}. Invariants: (1) Zero direct file edits on supervisory threads; (2) P=W/S Work/Span continuous wave dispatch; (3) 4-tier multi-viewport validation; (4) Quantitative gate proofs only.${compactDirectives}`;
 
   const heartbeatTickBrief = `Heartbeat Tick #${tickNumber} [${role.toUpperCase()}]: ${evaluation.summary}`;

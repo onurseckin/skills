@@ -67,6 +67,3 @@ describe("agent personas", () => {
     expect(mechanic).toContain("run:exec");
   });
 });
-
-
-

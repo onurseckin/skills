@@ -45,8 +45,12 @@ describe("formatAgentRegisterBrief", () => {
     expect(brief).toContain("`mystery` (uncategorised)");
     expect(brief).toContain("agent:release --run run-1 --agent agent-1");
     expect(brief).toContain("⚡ Next Actions:");
-    expect(brief).toContain("`bun harness.ts queue:next --run run-1` [Agent] — Check queue for claimable tasks");
-    expect(brief).toContain("`bun harness.ts agent:release --run run-1 --agent agent-1 --reason \"<WHY>\"` [Coordinator] — Release agent grant upon completion");
+    expect(brief).toContain(
+      "`bun harness.ts queue:next --run run-1` [Agent] — Check queue for claimable tasks",
+    );
+    expect(brief).toContain(
+      '`bun harness.ts agent:release --run run-1 --agent agent-1 --reason "<WHY>"` [Coordinator] — Release agent grant upon completion',
+    );
     // Fields never evidenced are said to be unknown, never guessed.
     expect(brief).toContain("**Thinking**: unknown");
   });
@@ -97,7 +101,9 @@ describe("formatAgentReportBrief", () => {
     expect(brief).toContain("`cache_read` `10` (agent_reported)");
     expect(brief).toContain("**Run**: `run-1`");
     expect(brief).toContain("⚡ Next Actions:");
-    expect(brief).toContain("`bun harness.ts agent:list --run run-1` [Coordinator] — Inspect all active agent grants");
+    expect(brief).toContain(
+      "`bun harness.ts agent:list --run run-1` [Coordinator] — Inspect all active agent grants",
+    );
   });
 
   test("a grant with nothing reported yet says so plainly, with no reports and no counters", () => {
@@ -124,8 +130,12 @@ describe("formatAgentReleaseBrief", () => {
     expect(brief).toContain("**Reason**: task complete");
     expect(brief).toContain("agent:list --run run-1");
     expect(brief).toContain("⚡ Next Actions:");
-    expect(brief).toContain("`bun harness.ts agent:register --run run-1 --agent <AGENT_ID> --role <ROLE> --host <HOST>` [Coordinator] — Register new agent grant");
-    expect(brief).toContain("`bun harness.ts run:status --run run-1` [Orchestrator] — Inspect active lanes and lease status");
+    expect(brief).toContain(
+      "`bun harness.ts agent:register --run run-1 --agent <AGENT_ID> --role <ROLE> --host <HOST>` [Coordinator] — Register new agent grant",
+    );
+    expect(brief).toContain(
+      "`bun harness.ts run:status --run run-1` [Orchestrator] — Inspect active lanes and lease status",
+    );
   });
 
   test("an unreleased grant admits it has no release time or reason", () => {
@@ -142,7 +152,9 @@ describe("formatAgentListBrief", () => {
     expect(brief).toContain("**Released Grants**: 0");
     expect(brief).toContain("agent:register --run run-1");
     expect(brief).toContain("⚡ Next Actions:");
-    expect(brief).toContain("`bun harness.ts agent:register --run run-1 --agent <AGENT_ID> --role <ROLE> --host <HOST>` [Coordinator] — Register new agent grant");
+    expect(brief).toContain(
+      "`bun harness.ts agent:register --run run-1 --agent <AGENT_ID> --role <ROLE> --host <HOST>` [Coordinator] — Register new agent grant",
+    );
   });
 
   test("hides released grants unless the caller opts in", () => {
@@ -178,8 +190,12 @@ describe("formatAgentListBrief", () => {
     expect(brief).toContain("`root-agent`");
     expect(brief).toContain("`task-1`");
     expect(brief).toContain("⚡ Next Actions:");
-    expect(brief).toContain("`bun harness.ts agent:register --run run-1 --agent <AGENT_ID> --role <ROLE> --host <HOST>` [Coordinator] — Register new agent grant");
-    expect(brief).toContain("`bun harness.ts run:status --run run-1` [Orchestrator] — Inspect active lanes and lease status");
+    expect(brief).toContain(
+      "`bun harness.ts agent:register --run run-1 --agent <AGENT_ID> --role <ROLE> --host <HOST>` [Coordinator] — Register new agent grant",
+    );
+    expect(brief).toContain(
+      "`bun harness.ts run:status --run run-1` [Orchestrator] — Inspect active lanes and lease status",
+    );
   });
 });
 
@@ -224,13 +240,18 @@ describe("formatAgentLineageBrief", () => {
     expect(brief).toContain("`root-agent`");
     expect(brief).toContain("`child-agent`");
     expect(brief).toContain("⚡ Next Actions:");
-    expect(brief).toContain("`bun harness.ts task:claim --task task-1 --agent <AGENT>` [Implementer] — Inspect or claim task");
+    expect(brief).toContain(
+      "`bun harness.ts task:claim --task task-1 --agent <AGENT>` [Implementer] — Inspect or claim task",
+    );
   });
 });
 
 describe("formatDeterministicActionChaining", () => {
   test("generates deterministic action chains for agent and critic stages", () => {
-    const agentActions = formatDeterministicActionChaining("agent", { runId: "run-xyz", role: "Worker" });
+    const agentActions = formatDeterministicActionChaining("agent", {
+      runId: "run-xyz",
+      role: "Worker",
+    });
     expect(agentActions.length).toBeGreaterThan(0);
     expect(agentActions.join("\n")).toContain("⚡ Next Actions:");
     expect(agentActions.join("\n")).toContain("bun harness.ts agent:register --run run-xyz");
@@ -238,8 +259,11 @@ describe("formatDeterministicActionChaining", () => {
     expect(agentActions.join("\n")).toContain("bun harness.ts queue:next --run run-xyz` [Worker]");
 
     const criticActions = formatDeterministicActionChaining("critic", { runId: "run-xyz" });
-    expect(criticActions.join("\n")).toContain("bun harness.ts critic:start --run run-xyz --critic critic-1` [Critic]");
-    expect(criticActions.join("\n")).toContain("bun harness.ts run:complete --run run-xyz --auth-token <TOKEN>` [Orchestrator]");
+    expect(criticActions.join("\n")).toContain(
+      "bun harness.ts critic:start --run run-xyz --critic critic-1` [Critic]",
+    );
+    expect(criticActions.join("\n")).toContain(
+      "bun harness.ts run:complete --run run-xyz --auth-token <TOKEN>` [Orchestrator]",
+    );
   });
 });
-

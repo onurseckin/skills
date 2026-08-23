@@ -285,9 +285,7 @@ export interface AntiIdleIntervalResult {
  * When work is pending (hasPendingWork = true), immediately returns intervalMs = 0 (isImmediate = true).
  * Otherwise applies standard exponential backoff with optional jitter.
  */
-export function computeAntiIdleInterval(
-  options: AntiIdleIntervalOptions,
-): AntiIdleIntervalResult {
+export function computeAntiIdleInterval(options: AntiIdleIntervalOptions): AntiIdleIntervalResult {
   const {
     hasPendingWork,
     zeroValueStreak,

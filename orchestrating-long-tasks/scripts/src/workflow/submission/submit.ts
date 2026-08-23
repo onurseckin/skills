@@ -76,7 +76,8 @@ export function submitTask(
       isOrchestratorRole(agentId) ||
       isCoordinatorRole(agentId) ||
       isMindRole(agentId) ||
-      (lease && (isOrchestratorRole(lease.role) || isCoordinatorRole(lease.role) || isMindRole(lease.role)))
+      (lease &&
+        (isOrchestratorRole(lease.role) || isCoordinatorRole(lease.role) || isMindRole(lease.role)))
     ) {
       throw new HarnessError(
         "ROLE_CONFINEMENT_VIOLATION",

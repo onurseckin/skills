@@ -82,18 +82,30 @@ describe("Cognitive Pillars Subsystem (authority/pillars.ts)", () => {
 
     // Pillar 5: Graph Visualizer UI & External Interoperability
     expect(PILLAR_5_GRAPH_INTEROPERABILITY.id).toBe(5);
-    expect(PILLAR_5_GRAPH_INTEROPERABILITY.code).toBe("GRAPH_VISUALIZER_UI_AND_EXTERNAL_INTEROPERABILITY");
-    expect(PILLAR_5_GRAPH_INTEROPERABILITY.title).toBe("Graph Visualizer UI & External Interoperability");
+    expect(PILLAR_5_GRAPH_INTEROPERABILITY.code).toBe(
+      "GRAPH_VISUALIZER_UI_AND_EXTERNAL_INTEROPERABILITY",
+    );
+    expect(PILLAR_5_GRAPH_INTEROPERABILITY.title).toBe(
+      "Graph Visualizer UI & External Interoperability",
+    );
 
     // Pillar 6: First-Principles Innovation & Radical Simplification
     expect(PILLAR_6_FIRST_PRINCIPLES.id).toBe(6);
-    expect(PILLAR_6_FIRST_PRINCIPLES.code).toBe("FIRST_PRINCIPLES_INNOVATION_AND_RADICAL_SIMPLIFICATION");
-    expect(PILLAR_6_FIRST_PRINCIPLES.title).toBe("First-Principles Innovation & Radical Simplification");
+    expect(PILLAR_6_FIRST_PRINCIPLES.code).toBe(
+      "FIRST_PRINCIPLES_INNOVATION_AND_RADICAL_SIMPLIFICATION",
+    );
+    expect(PILLAR_6_FIRST_PRINCIPLES.title).toBe(
+      "First-Principles Innovation & Radical Simplification",
+    );
 
     // Pillar 7: Infinite Borderless Cadence & Topological Concurrency
     expect(PILLAR_7_INFINITE_CADENCE.id).toBe(7);
-    expect(PILLAR_7_INFINITE_CADENCE.code).toBe("INFINITE_BORDERLESS_CADENCE_AND_TOPOLOGICAL_CONCURRENCY");
-    expect(PILLAR_7_INFINITE_CADENCE.title).toBe("Infinite Borderless Cadence & Topological Concurrency");
+    expect(PILLAR_7_INFINITE_CADENCE.code).toBe(
+      "INFINITE_BORDERLESS_CADENCE_AND_TOPOLOGICAL_CONCURRENCY",
+    );
+    expect(PILLAR_7_INFINITE_CADENCE.title).toBe(
+      "Infinite Borderless Cadence & Topological Concurrency",
+    );
   });
 
   test("getCognitivePillar resolves pillars by id, string number, code, title, and aliases", () => {
@@ -144,7 +156,9 @@ describe("Cognitive Pillars Subsystem (authority/pillars.ts)", () => {
     const fullMarkdown = formatPillarsMarkdown();
     expect(fullMarkdown).toContain("### 🧠 The 7 Cognitive Pillars");
     expect(fullMarkdown).toContain("#### Pillar 1: CLI-First Token Leverage");
-    expect(fullMarkdown).toContain("#### Pillar 7: Infinite Borderless Cadence & Topological Concurrency");
+    expect(fullMarkdown).toContain(
+      "#### Pillar 7: Infinite Borderless Cadence & Topological Concurrency",
+    );
     expect(fullMarkdown).toContain("**Key Invariants:**");
     expect(fullMarkdown).toContain("**Reflexive Audit Question:**");
 
@@ -157,7 +171,9 @@ describe("Cognitive Pillars Subsystem (authority/pillars.ts)", () => {
 
     const brief = formatPillarsBrief();
     expect(brief).toContain("- **Pillar 1 (CLI-First Token Leverage)**:");
-    expect(brief).toContain("- **Pillar 7 (Infinite Borderless Cadence & Topological Concurrency)**:");
+    expect(brief).toContain(
+      "- **Pillar 7 (Infinite Borderless Cadence & Topological Concurrency)**:",
+    );
   });
 });
 
@@ -268,13 +284,17 @@ describe("3-Minute Watchdog Persona Grounding Injection", () => {
     expect(injection.reflexiveAuditQuestions).toHaveLength(7);
 
     // Formatted markdown assertions
-    expect(injection.formattedMarkdown).toContain("Autonomic Watchdog 3-Minute Persona Grounding [Tick #1]");
+    expect(injection.formattedMarkdown).toContain(
+      "Autonomic Watchdog 3-Minute Persona Grounding [Tick #1]",
+    );
     expect(injection.formattedMarkdown).toContain("`COORDINATOR` (Tier 2)");
     expect(injection.formattedMarkdown).toContain("`run-test-123`");
     expect(injection.formattedMarkdown).toContain("Invariant Boundaries & Absolute Confinement");
     expect(injection.formattedMarkdown).toContain("The 7 Cognitive Pillars Reflexive Grounding");
     expect(injection.formattedMarkdown).toContain("Pillar 1 (CLI-First Token Leverage)");
-    expect(injection.formattedMarkdown).toContain("Pillar 7 (Infinite Borderless Cadence & Topological Concurrency)");
+    expect(injection.formattedMarkdown).toContain(
+      "Pillar 7 (Infinite Borderless Cadence & Topological Concurrency)",
+    );
     expect(injection.formattedMarkdown).toContain("Role-Specific Reflexive Self-Audit Questions");
 
     // Compact prompt assertions
@@ -371,9 +391,7 @@ describe("Reflexive Self-Audit & Behavioral Drift Evaluation Engine", () => {
     const context: ReflexiveAuditContext = {
       role: "coordinator",
       fileModificationsOnSupervisoryThread: ["src/models/user.ts", "src/auth.ts"],
-      recentActions: [
-        { action: "edit_file", targetFile: "src/models/user.ts" },
-      ],
+      recentActions: [{ action: "edit_file", targetFile: "src/models/user.ts" }],
     };
 
     const evaluation = evaluateReflexiveSelfAudit(context);
@@ -382,7 +400,9 @@ describe("Reflexive Self-Audit & Behavioral Drift Evaluation Engine", () => {
     expect(evaluation.overallSeverity).toBe("critical");
     expect(evaluation.invariantCompliance.zero_file_mutation).toBe(false);
 
-    const finding = evaluation.findings.find((f) => f.code === "SUPERVISORY_FILE_MUTATION_VIOLATION");
+    const finding = evaluation.findings.find(
+      (f) => f.code === "SUPERVISORY_FILE_MUTATION_VIOLATION",
+    );
     expect(finding).toBeDefined();
     expect(finding?.severity).toBe("critical");
     expect(finding?.type).toBe("role_invariants");
@@ -403,7 +423,9 @@ describe("Reflexive Self-Audit & Behavioral Drift Evaluation Engine", () => {
     expect(evaluation.overallSeverity).toBe("critical");
     expect(evaluation.invariantCompliance.delegated_execution_only).toBe(false);
 
-    const finding = evaluation.findings.find((f) => f.code === "TASK_SELF_IMPLEMENTATION_VIOLATION");
+    const finding = evaluation.findings.find(
+      (f) => f.code === "TASK_SELF_IMPLEMENTATION_VIOLATION",
+    );
     expect(finding).toBeDefined();
     expect(finding?.severity).toBe("critical");
     expect(finding?.description).toContain("MIND attempted self-implementation");
@@ -424,7 +446,9 @@ describe("Reflexive Self-Audit & Behavioral Drift Evaluation Engine", () => {
     const finding = evaluation.findings.find((f) => f.code === "CROSS_TIER_SPAWNING_VIOLATION");
     expect(finding).toBeDefined();
     expect(finding?.severity).toBe("critical");
-    expect(finding?.description).toContain("Permitted spawns are strictly limited to: [coordinator]");
+    expect(finding?.description).toContain(
+      "Permitted spawns are strictly limited to: [coordinator]",
+    );
   });
 
   test("detects subordinate write scope collision as HIGH severity finding", () => {
@@ -527,7 +551,9 @@ describe("Reflexive Self-Audit & Behavioral Drift Evaluation Engine", () => {
     expect(finding).toBeDefined();
     expect(finding?.severity).toBe("medium");
     expect(finding?.type).toBe("behavioral_drift");
-    expect(finding?.description).toContain("Execution queue has 4 ready task(s) available, but 0 active subordinate workers");
+    expect(finding?.description).toContain(
+      "Execution queue has 4 ready task(s) available, but 0 active subordinate workers",
+    );
   });
 
   test("detects premature completion drift when attempting completion with blockers", () => {

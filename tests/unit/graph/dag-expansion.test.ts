@@ -143,7 +143,8 @@ describe("DAG Expansion & High-Leverage Planning Engine", () => {
 
       const result = expandDeeper(graph, {
         parentTaskId: "task-2",
-        decompositionRationale: "Task 2 is monolithic, decomposing into AST parser and code generator",
+        decompositionRationale:
+          "Task 2 is monolithic, decomposing into AST parser and code generator",
         autoPairValidators: true,
         subtasks: [
           {

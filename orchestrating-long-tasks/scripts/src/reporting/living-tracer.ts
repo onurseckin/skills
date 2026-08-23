@@ -8,11 +8,7 @@ import { join } from "node:path";
 import type { HarnessEvent } from "../contracts/capsule.ts";
 import { readCapsuleEvents } from "./event-stream.ts";
 import { formatTable } from "../cli/formatters/line-limiter.ts";
-import {
-  formatCoordinates,
-  formatStatusBadge,
-  formatSubagentAllocation,
-} from "./sugiyama-dag.ts";
+import { formatCoordinates, formatStatusBadge, formatSubagentAllocation } from "./sugiyama-dag.ts";
 
 export type DynamicTaskOrigin =
   | "static"
@@ -45,7 +41,12 @@ export interface DynamicTaskState {
   readonly sproutedChildren?: readonly string[] | undefined;
   readonly findings?: readonly string[] | undefined;
   readonly coordinates?:
-    | { readonly wave?: number; readonly lane?: number; readonly rank?: number; readonly order?: number }
+    | {
+        readonly wave?: number;
+        readonly lane?: number;
+        readonly rank?: number;
+        readonly order?: number;
+      }
     | string
     | undefined;
   readonly probeRound?: number | undefined;
@@ -931,9 +932,7 @@ export function renderDynamicDagAscii(dynamicDag: DynamicDagState): string {
       agentText = ` [● VALIDATOR: ${task.validatorId}]`;
     }
 
-    const coordText = task.coordinates
-      ? ` ${formatCoordinates(task.coordinates)}`
-      : "";
+    const coordText = task.coordinates ? ` ${formatCoordinates(task.coordinates)}` : "";
 
     return `[${task.id}] ${task.executionState}${coordText}${agentText}${stepText}`;
   }
@@ -974,9 +973,7 @@ export function renderDynamicDagAscii(dynamicDag: DynamicDagState): string {
         const sproutConnector = isLastSub ? "└──► " : "├──► ";
         const subStatus = formatStatusBadge(sub.status ?? "ready");
         const subImpl =
-          "assignedAgent" in sub && sub.role !== "validator"
-            ? sub.assignedAgent
-            : null;
+          "assignedAgent" in sub && sub.role !== "validator" ? sub.assignedAgent : null;
         const subVal =
           "validatorId" in sub && typeof sub.validatorId === "string"
             ? sub.validatorId

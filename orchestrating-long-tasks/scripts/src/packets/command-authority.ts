@@ -122,4 +122,3 @@ export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
 
   assertRoleMayInvoke(grant.role, spec, agentId);
 }
-

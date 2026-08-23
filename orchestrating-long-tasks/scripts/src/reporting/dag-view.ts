@@ -97,9 +97,7 @@ export function renderBranchExpansionHierarchy(
       const alloc = formatSubagentAllocation(impl, val, sub.role ?? "IMPLEMENTER");
       const allocText = alloc ? ` ${alloc}` : "";
       const coords =
-        "coordinates" in sub && sub.coordinates
-          ? ` ${formatCoordinates(sub.coordinates)}`
-          : "";
+        "coordinates" in sub && sub.coordinates ? ` ${formatCoordinates(sub.coordinates)}` : "";
       lines.push(`${arrow} [${subId}] ${subStatus}${coords}${allocText}`);
     }
   }
@@ -110,16 +108,15 @@ export function renderBranchExpansionHierarchy(
 /**
  * Converts telemetry dynamic DAG state into Sugiyama nodes and edges for layered rendering.
  */
-export function dynamicDagStateToSugiyama(
-  dynamicDag: DynamicDagState,
-): { nodes: SugiyamaNode[]; edges: SugiyamaEdge[] } {
+export function dynamicDagStateToSugiyama(dynamicDag: DynamicDagState): {
+  nodes: SugiyamaNode[];
+  edges: SugiyamaEdge[];
+} {
   const nodes: SugiyamaNode[] = [];
   const edges: SugiyamaEdge[] = [];
 
   for (const task of dynamicDag.tasks.values()) {
-    const coords = task.coordinates
-      ? task.coordinates
-      : { wave: task.round, lane: 1 };
+    const coords = task.coordinates ? task.coordinates : { wave: task.round, lane: 1 };
 
     nodes.push({
       id: task.id,

@@ -104,7 +104,10 @@ export function getExitCodeForStatus(kind: LivenessStatusKind): number {
  */
 export function evaluateLivenessFromRecord(
   parsed: Record<string, unknown>,
-  options: LivenessOptions & { readonly capsuleDir?: string | undefined; readonly pulseFile?: string | undefined } = {},
+  options: LivenessOptions & {
+    readonly capsuleDir?: string | undefined;
+    readonly pulseFile?: string | undefined;
+  } = {},
 ): LivenessStatus {
   const capsuleDir = options.capsuleDir ?? ".";
   const pulseFile = options.pulseFile ?? "last_pulse.json";
@@ -473,7 +476,8 @@ export function analyzeLivenessTrends(
   });
 
   const validCount = healthyCount + staleCount;
-  const healthPercentage = validCount > 0 ? Number(((healthyCount / validCount) * 100).toFixed(1)) : 100;
+  const healthPercentage =
+    validCount > 0 ? Number(((healthyCount / validCount) * 100).toFixed(1)) : 100;
   const meanAgeMs = validCount > 0 ? Math.round(totalAge / validCount) : 0;
 
   return {

@@ -135,4 +135,3 @@ describe("assertGrantedCommand", () => {
     }
   });
 });
-

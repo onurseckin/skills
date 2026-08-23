@@ -1060,4 +1060,3 @@ export function formatDeterministicActionChaining(
   }
   return nextActionsBlock(actions);
 }
-

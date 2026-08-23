@@ -87,9 +87,7 @@ export function extractAcceptanceCriteria(
 ): ExtractedCriterion[] {
   const results: ExtractedCriterion[] = [];
   const targetSet =
-    targetRequirementIds && targetRequirementIds.length > 0
-      ? new Set(targetRequirementIds)
-      : null;
+    targetRequirementIds && targetRequirementIds.length > 0 ? new Set(targetRequirementIds) : null;
 
   if (!requirements || !Array.isArray(requirements)) {
     if (targetSet) {
@@ -116,9 +114,7 @@ export function extractAcceptanceCriteria(
         const item = acceptance[i];
         if (isJsonObject(item)) {
           const criterionId =
-            typeof item.id === "string" && item.id.length > 0
-              ? item.id
-              : `crit-${reqId}-${i + 1}`;
+            typeof item.id === "string" && item.id.length > 0 ? item.id : `crit-${reqId}-${i + 1}`;
           const criterionText =
             typeof item.criterion === "string" && item.criterion.length > 0
               ? item.criterion
@@ -201,9 +197,7 @@ export function generateDynamicValidationSteps(input: DynamicStepInput): Dynamic
   if (criteria.length === 0) {
     const taskId = input.task && typeof input.task.id === "string" ? input.task.id : "task";
     const label =
-      input.task && typeof input.task.label === "string"
-        ? input.task.label
-        : "task implementation";
+      input.task && typeof input.task.label === "string" ? input.task.label : "task implementation";
     const defaultReqId = targetRequirementIds[0] ?? `${taskId}-req`;
     criteria.push({
       requirementId: defaultReqId,

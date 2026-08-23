@@ -58,9 +58,7 @@ export function capabilityManifest(): CapabilityManifest {
 
 export function commandSlice(commandName: string): CommandManifest | undefined {
   const manifest = capabilityManifest();
-  return manifest.commands.find(
-    (c) => c.name === commandName || c.aliases.includes(commandName),
-  );
+  return manifest.commands.find((c) => c.name === commandName || c.aliases.includes(commandName));
 }
 
 export function domainSlice(domain: CommandSpec["domain"]): CapabilityManifest {

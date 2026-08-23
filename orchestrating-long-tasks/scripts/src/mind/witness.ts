@@ -91,8 +91,7 @@ function collectCapsuleSearchRoots(startPath?: string): string[] {
 
   const cwdResolved = resolve(process.cwd());
   const cwdIsRun =
-    existsSync(join(cwdResolved, "state.json")) ||
-    existsSync(join(cwdResolved, "manifest.json"));
+    existsSync(join(cwdResolved, "state.json")) || existsSync(join(cwdResolved, "manifest.json"));
   if (cwdIsRun) {
     roots.add(cwdResolved);
   }
@@ -219,9 +218,7 @@ export function readCommandOutput(resolution: WitnessResolution): {
 
   if (stdout.length === 0 && commandRecord.logs?.stdout?.path) {
     const stdoutPath = commandRecord.logs.stdout.path;
-    const customStdoutPath = isAbsolute(stdoutPath)
-      ? stdoutPath
-      : join(capsuleRoot, stdoutPath);
+    const customStdoutPath = isAbsolute(stdoutPath) ? stdoutPath : join(capsuleRoot, stdoutPath);
     if (existsSync(customStdoutPath)) {
       try {
         stdout = readFileSync(customStdoutPath, "utf-8");
@@ -233,9 +230,7 @@ export function readCommandOutput(resolution: WitnessResolution): {
 
   if (stderr.length === 0 && commandRecord.logs?.stderr?.path) {
     const stderrPath = commandRecord.logs.stderr.path;
-    const customStderrPath = isAbsolute(stderrPath)
-      ? stderrPath
-      : join(capsuleRoot, stderrPath);
+    const customStderrPath = isAbsolute(stderrPath) ? stderrPath : join(capsuleRoot, stderrPath);
     if (existsSync(customStderrPath)) {
       try {
         stderr = readFileSync(customStderrPath, "utf-8");

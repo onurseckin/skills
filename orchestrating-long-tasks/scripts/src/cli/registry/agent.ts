@@ -48,9 +48,7 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts agent:brief --run .capsules/<run-id> --agent worker-1",
-    ],
+    examples: ["bun harness.ts agent:brief --run .capsules/<run-id> --agent worker-1"],
     handler: agentBriefCommand,
   },
   {

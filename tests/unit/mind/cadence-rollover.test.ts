@@ -326,11 +326,47 @@ describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
       const base = 1000;
       const max = 20000;
 
-      expect(calculateBackoffWithStrategy({ baseIntervalMs: base, maxIntervalMs: max, streak: 3, strategy: "immediate" })).toBe(0);
-      expect(calculateBackoffWithStrategy({ baseIntervalMs: base, maxIntervalMs: max, streak: 3, strategy: "fixed" })).toBe(1000);
-      expect(calculateBackoffWithStrategy({ baseIntervalMs: base, maxIntervalMs: max, streak: 3, strategy: "linear" })).toBe(4000);
-      expect(calculateBackoffWithStrategy({ baseIntervalMs: base, maxIntervalMs: max, streak: 3, strategy: "fibonacci" })).toBe(3000);
-      expect(calculateBackoffWithStrategy({ baseIntervalMs: base, maxIntervalMs: max, streak: 2, strategy: "exponential", multiplier: 2 })).toBe(4000);
+      expect(
+        calculateBackoffWithStrategy({
+          baseIntervalMs: base,
+          maxIntervalMs: max,
+          streak: 3,
+          strategy: "immediate",
+        }),
+      ).toBe(0);
+      expect(
+        calculateBackoffWithStrategy({
+          baseIntervalMs: base,
+          maxIntervalMs: max,
+          streak: 3,
+          strategy: "fixed",
+        }),
+      ).toBe(1000);
+      expect(
+        calculateBackoffWithStrategy({
+          baseIntervalMs: base,
+          maxIntervalMs: max,
+          streak: 3,
+          strategy: "linear",
+        }),
+      ).toBe(4000);
+      expect(
+        calculateBackoffWithStrategy({
+          baseIntervalMs: base,
+          maxIntervalMs: max,
+          streak: 3,
+          strategy: "fibonacci",
+        }),
+      ).toBe(3000);
+      expect(
+        calculateBackoffWithStrategy({
+          baseIntervalMs: base,
+          maxIntervalMs: max,
+          streak: 2,
+          strategy: "exponential",
+          multiplier: 2,
+        }),
+      ).toBe(4000);
     });
 
     it("projects interval progression over N steps", () => {
@@ -613,7 +649,12 @@ describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i]!;
           // Skip comment lines in static test checking itself if needed, but here we enforce clean source
-          if (line.includes("// Build search patterns") || line.includes("const colonAny =") || line.includes("const tsIgnore =") || line.includes("suppressionDirectiveA")) {
+          if (
+            line.includes("// Build search patterns") ||
+            line.includes("const colonAny =") ||
+            line.includes("const tsIgnore =") ||
+            line.includes("suppressionDirectiveA")
+          ) {
             continue;
           }
 

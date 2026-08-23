@@ -60,11 +60,19 @@ describe("zero-destructive git invariant (p55)", () => {
       expect(isDestructiveGitCommand(["status"]).destructive).toBe(false);
       expect(isDestructiveGitCommand(["diff"]).destructive).toBe(false);
       expect(isDestructiveGitCommand(["add", "--", "src/file.ts"]).destructive).toBe(false);
-      expect(isDestructiveGitCommand(["commit", "-m", "feat: new feature"]).destructive).toBe(false);
+      expect(isDestructiveGitCommand(["commit", "-m", "feat: new feature"]).destructive).toBe(
+        false,
+      );
       expect(isDestructiveGitCommand(["rev-parse", "HEAD"]).destructive).toBe(false);
-      expect(isDestructiveGitCommand(["symbolic-ref", "--short", "-q", "HEAD"]).destructive).toBe(false);
-      expect(isDestructiveGitCommand(["worktree", "add", "-b", "branch", "/path", "sha"]).destructive).toBe(false);
-      expect(isDestructiveGitCommand(["worktree", "remove", "--force", "/path"]).destructive).toBe(false);
+      expect(isDestructiveGitCommand(["symbolic-ref", "--short", "-q", "HEAD"]).destructive).toBe(
+        false,
+      );
+      expect(
+        isDestructiveGitCommand(["worktree", "add", "-b", "branch", "/path", "sha"]).destructive,
+      ).toBe(false);
+      expect(isDestructiveGitCommand(["worktree", "remove", "--force", "/path"]).destructive).toBe(
+        false,
+      );
       expect(isDestructiveGitCommand(["branch", "-D", "temp-branch"]).destructive).toBe(false);
     });
   });
@@ -120,7 +128,11 @@ describe("zero-destructive git invariant (p55)", () => {
     test("assertNonDestructiveWriteScope throws ROLE_CONFINEMENT_VIOLATION on out-of-scope edits", () => {
       const scope = ["src/worktree"];
       expect(() =>
-        assertNonDestructiveWriteScope(["src/worktree/index.ts", "user-file.ts"], scope, "worker-1"),
+        assertNonDestructiveWriteScope(
+          ["src/worktree/index.ts", "user-file.ts"],
+          scope,
+          "worker-1",
+        ),
       ).toThrow(/Agent 'worker-1' modified files outside its assigned write scope: user-file.ts/);
     });
 
@@ -142,11 +154,7 @@ describe("zero-destructive git invariant (p55)", () => {
         "src/worktree",
         "docs",
       ]);
-      expect(buildInclusiveStageArgs(["src/**/*.ts"])).toEqual([
-        "add",
-        "--",
-        ":(glob)src/**/*.ts",
-      ]);
+      expect(buildInclusiveStageArgs(["src/**/*.ts"])).toEqual(["add", "--", ":(glob)src/**/*.ts"]);
       expect(() => buildInclusiveStageArgs([])).toThrow(/requires at least one write scope path/);
     });
 

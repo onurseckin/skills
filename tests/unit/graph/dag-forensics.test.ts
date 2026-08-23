@@ -477,12 +477,7 @@ describe("DAG Forensics: Waves & Parallel Lane Allocation", () => {
   });
 
   test("allocateParallelLanes assigns distinct lane indices", () => {
-    const tasks: ForensicTaskNode[] = [
-      { id: "p1" },
-      { id: "p2" },
-      { id: "p3" },
-      { id: "p4" },
-    ];
+    const tasks: ForensicTaskNode[] = [{ id: "p1" }, { id: "p2" }, { id: "p3" }, { id: "p4" }];
     const deps = new Map<string, ReadonlySet<string>>([
       ["p1", new Set<string>()],
       ["p2", new Set<string>()],

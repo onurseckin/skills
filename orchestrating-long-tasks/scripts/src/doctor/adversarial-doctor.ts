@@ -212,8 +212,7 @@ export function mutateWriteScopeForCounterfactual(
     );
   }
 
-  const kind: MutationKind =
-    options.kind !== undefined ? options.kind : "syntax_error";
+  const kind: MutationKind = options.kind !== undefined ? options.kind : "syntax_error";
   let mutatedContent: string;
 
   switch (kind) {
@@ -233,7 +232,8 @@ export function mutateWriteScopeForCounterfactual(
         "!== true": "!== false",
         "!== false": "!== true",
       };
-      const regex = /toBe\(true\)|toBe\(false\)|toBeTrue\(\)|toBeFalse\(\)|=== true|=== false|!== true|!== false/g;
+      const regex =
+        /toBe\(true\)|toBe\(false\)|toBeTrue\(\)|toBeFalse\(\)|=== true|=== false|!== true|!== false/g;
       let temp = originalContent.replace(regex, (match) => {
         replaced = true;
         const mapped = patterns[match];
@@ -271,7 +271,10 @@ export function mutateWriteScopeForCounterfactual(
 
     default: {
       const exhaustiveCheck: never = kind;
-      throw new HarnessError("INVALID_ARGUMENT", `Unsupported mutation kind: ${String(exhaustiveCheck)}`);
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `Unsupported mutation kind: ${String(exhaustiveCheck)}`,
+      );
     }
   }
 
@@ -345,7 +348,8 @@ export async function runAdversarialCounterfactualCheck(
     };
   }
 
-  const cwd = typeof options.cwd === "string" && options.cwd.length > 0 ? options.cwd : process.cwd();
+  const cwd =
+    typeof options.cwd === "string" && options.cwd.length > 0 ? options.cwd : process.cwd();
 
   const executeTest = async (
     path: string,
@@ -406,7 +410,11 @@ export async function runAdversarialCounterfactualCheck(
       }
     }
 
-    return { success: true, output: "No test runner configured; baseline assumed clean", exitCode: 0 };
+    return {
+      success: true,
+      output: "No test runner configured; baseline assumed clean",
+      exitCode: 0,
+    };
   };
 
   // Step 1: Run baseline test runner on pristine code
@@ -437,7 +445,8 @@ export async function runAdversarialCounterfactualCheck(
       baselinePassed: false,
       output: baselineResult.output,
       exitCode: baselineResult.exitCode,
-      message: "Baseline test failed before adversarial mutation was applied; target is currently failing",
+      message:
+        "Baseline test failed before adversarial mutation was applied; target is currently failing",
       durationMs: Date.now() - startTime,
     };
   }
@@ -544,7 +553,11 @@ export async function runDoctorDiagnostics(
   }
 
   // 2. Capsule Root Confinement Check
-  if (options.checkCapsuleRoot !== false && typeof options.runRoot === "string" && options.runRoot.length > 0) {
+  if (
+    options.checkCapsuleRoot !== false &&
+    typeof options.runRoot === "string" &&
+    options.runRoot.length > 0
+  ) {
     try {
       const rootAudit = verifyStrictRepositoryCapsuleRoot(options.runRoot, options.repoRoot);
       if (rootAudit.valid) {
@@ -567,7 +580,8 @@ export async function runDoctorDiagnostics(
             misplacedCapsules: rootAudit.misplacedCapsules,
             issues: rootAudit.issues,
           },
-          remediation: "Ensure run capsules are stored exclusively at <repo-root>/.capsules/<run-id>",
+          remediation:
+            "Ensure run capsules are stored exclusively at <repo-root>/.capsules/<run-id>",
         });
       }
     } catch (err: unknown) {
@@ -583,7 +597,11 @@ export async function runDoctorDiagnostics(
   }
 
   // 3. Unified Evidence Location Check
-  if (options.checkUnifiedEvidence !== false && typeof options.runRoot === "string" && options.runRoot.length > 0) {
+  if (
+    options.checkUnifiedEvidence !== false &&
+    typeof options.runRoot === "string" &&
+    options.runRoot.length > 0
+  ) {
     try {
       const stateObj = options.state as JsonObject | null | undefined;
       const evidenceAudit = verifyUnifiedEvidenceLocation(options.runRoot, stateObj);
@@ -653,7 +671,8 @@ export async function runDoctorDiagnostics(
           passed: false,
           message: critical.map((f) => f.observation).join("; "),
           details: { criticalCount: critical.length, findings: critical },
-          remediation: "Enforce strict separation: Only Tier 3 Implementers may edit repository files",
+          remediation:
+            "Enforce strict separation: Only Tier 3 Implementers may edit repository files",
         });
       }
     } catch (err: unknown) {
@@ -676,7 +695,10 @@ export async function runDoctorDiagnostics(
     existsSync(options.runRoot)
   ) {
     try {
-      const integrityIssues = [...verifyIntegrity(options.runRoot), ...verifyCapsuleDeep(options.runRoot)];
+      const integrityIssues = [
+        ...verifyIntegrity(options.runRoot),
+        ...verifyCapsuleDeep(options.runRoot),
+      ];
       if (integrityIssues.length === 0) {
         checks.push({
           name: "capsule_state_integrity",
@@ -834,7 +856,9 @@ export async function certifyHarnessDoctor(
       const advMsg = typeof adv.message === "string" ? adv.message : "Completed";
       mdLines.push(`- ${icon} **${adv.name}**: ${advMsg}`);
       if (adv.mutation) {
-        mdLines.push(`  - Mutation: \`${adv.mutation.mutationKind}\` applied to \`${basename(adv.targetPath)}\``);
+        mdLines.push(
+          `  - Mutation: \`${adv.mutation.mutationKind}\` applied to \`${basename(adv.targetPath)}\``,
+        );
       }
     }
   }

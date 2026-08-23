@@ -134,7 +134,9 @@ describe("Tier 0 Mind Strategic Purpose & Proactive Cognition", () => {
       ];
       const diag = diagnoseMacroDag({ nodes });
       expect(diag.failedNodes).toBe(1);
-      expect(diag.bottlenecks.some((b) => b.type === "critical_path" && b.taskId === "failed-task")).toBe(true);
+      expect(
+        diag.bottlenecks.some((b) => b.type === "critical_path" && b.taskId === "failed-task"),
+      ).toBe(true);
     });
   });
 
@@ -200,7 +202,8 @@ describe("Tier 0 Mind Strategic Purpose & Proactive Cognition", () => {
         {
           id: "cand-1",
           title: "Implement Sugiyama Visualizer Layering",
-          objectiveStatement: "Add Sugiyama DAG vertex layering and barycenter edge crossing reduction.",
+          objectiveStatement:
+            "Add Sugiyama DAG vertex layering and barycenter edge crossing reduction.",
           charterGoalIds: ["goal-visualization", "goal-observability"],
           writeScope: ["src/visualizer"],
         },

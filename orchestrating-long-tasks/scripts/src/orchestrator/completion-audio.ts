@@ -1,8 +1,5 @@
 import { spawnSync } from "node:child_process";
-import {
-  DEFAULT_DARWIN_AUDIO_COMMAND,
-  DEFAULT_DARWIN_SOUND_PATH,
-} from "../hooks/config.ts";
+import { DEFAULT_DARWIN_AUDIO_COMMAND, DEFAULT_DARWIN_SOUND_PATH } from "../hooks/config.ts";
 import { resolveAudioSoundPath } from "../hooks/dispatcher.ts";
 
 /**
@@ -268,8 +265,10 @@ export function evaluateCompletionAudio(
     }
 
     if (
-      (input.role && isSubagentRole(input.role, config?.suppressedRoles ?? DEFAULT_SUBAGENT_ROLES)) ||
-      (input.actor && isSubagentRole(input.actor, config?.suppressedRoles ?? DEFAULT_SUBAGENT_ROLES))
+      (input.role &&
+        isSubagentRole(input.role, config?.suppressedRoles ?? DEFAULT_SUBAGENT_ROLES)) ||
+      (input.actor &&
+        isSubagentRole(input.actor, config?.suppressedRoles ?? DEFAULT_SUBAGENT_ROLES))
     ) {
       return { shouldPlay: false, reason: "role_suppressed" };
     }
@@ -333,9 +332,12 @@ export interface SoundExecutionOptions {
 /**
  * Safely plays the completion audio sound across platforms.
  */
-export function playCompletionAudioSync(
-  options?: SoundExecutionOptions | undefined,
-): { success: boolean; command: string; output?: string; error?: string } {
+export function playCompletionAudioSync(options?: SoundExecutionOptions | undefined): {
+  success: boolean;
+  command: string;
+  output?: string;
+  error?: string;
+} {
   const platform = options?.platform ?? process.platform;
   const timeoutMs = options?.timeoutMs ?? 5000;
   const silent = options?.silent ?? false;
@@ -348,7 +350,8 @@ export function playCompletionAudioSync(
       soundPath = resolveAudioSoundPath(options?.sound ?? "Bottle", options?.file);
       command = `afplay "${soundPath}"`;
     } else if (platform === "linux") {
-      const file = options?.file ?? (options?.sound ? `/usr/share/sounds/${options.sound}` : undefined);
+      const file =
+        options?.file ?? (options?.sound ? `/usr/share/sounds/${options.sound}` : undefined);
       command = file ? `paplay "${file}" || aplay "${file}"` : `printf '\\a'`;
     } else {
       return {
@@ -370,7 +373,11 @@ export function playCompletionAudioSync(
       return {
         success: true,
         command,
-        output: result.stdout ? result.stdout.trim() : (soundPath ? `Played audio: ${soundPath}` : "Audio notification played"),
+        output: result.stdout
+          ? result.stdout.trim()
+          : soundPath
+            ? `Played audio: ${soundPath}`
+            : "Audio notification played",
       };
     }
 
@@ -458,8 +465,10 @@ export class CompletionAudioManager {
     }
 
     const sound = this.config.sound ?? "Bottle";
-    const file = this.config.soundFile ?? (sound === "Bottle" ? DEFAULT_DARWIN_SOUND_PATH : undefined);
-    const command = this.config.command ?? (file ? `afplay "${file}"` : DEFAULT_DARWIN_AUDIO_COMMAND);
+    const file =
+      this.config.soundFile ?? (sound === "Bottle" ? DEFAULT_DARWIN_SOUND_PATH : undefined);
+    const command =
+      this.config.command ?? (file ? `afplay "${file}"` : DEFAULT_DARWIN_AUDIO_COMMAND);
 
     const execResult = playCompletionAudioSync({
       sound,

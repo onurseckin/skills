@@ -79,9 +79,7 @@ describe("resolveScopedTestTargets", () => {
     const unitTarget = resolveScopedTestTargets("tests/unit/authority/manifest.test.ts")[0]!;
     expect(unitTarget.domain).toBe("unit");
 
-    const integrationTarget = resolveScopedTestTargets(
-      "test/integration/database.spec.ts",
-    )[0]!;
+    const integrationTarget = resolveScopedTestTargets("test/integration/database.spec.ts")[0]!;
     expect(integrationTarget.domain).toBe("integration");
 
     const srcTarget = resolveScopedTestTargets("src/components/button.test.tsx")[0]!;
@@ -112,9 +110,7 @@ describe("resolveScopedTestTargets", () => {
   });
 
   test("calculates file metadata for existing files", () => {
-    const targets = resolveScopedTestTargets(
-      "tests/unit/testing/concurrency-lock.test.ts",
-    );
+    const targets = resolveScopedTestTargets("tests/unit/testing/concurrency-lock.test.ts");
     expect(targets.length).toBe(1);
     const target = targets[0]!;
     expect(target.exists).toBe(true);
@@ -159,10 +155,7 @@ describe("assertScopedExecutionPolicy", () => {
   test("throws HarnessError when target count exceeds maxAllowedTestFiles", () => {
     expect(() => {
       assertScopedExecutionPolicy(
-        [
-          "tests/unit/testing/concurrency-lock.test.ts",
-          "tests/unit/testing/isolation.test.ts",
-        ],
+        ["tests/unit/testing/concurrency-lock.test.ts", "tests/unit/testing/isolation.test.ts"],
         strictPolicy,
       );
     }).toThrow(HarnessError);
@@ -208,18 +201,18 @@ describe("buildScopedTestCommand", () => {
   });
 
   test("builds npm test command with double dashes", () => {
-    const cmd = buildScopedTestCommand(
-      ["tests/unit/testing/concurrency-lock.test.ts"],
-      { runner: "npm" },
-    );
+    const cmd = buildScopedTestCommand(["tests/unit/testing/concurrency-lock.test.ts"], {
+      runner: "npm",
+    });
     expect(cmd).toEqual(["npm", "test", "--", "tests/unit/testing/concurrency-lock.test.ts"]);
   });
 
   test("builds vitest run command with filter and timeout", () => {
-    const cmd = buildScopedTestCommand(
-      ["tests/unit/testing/concurrency-lock.test.ts"],
-      { runner: "vitest", timeoutMs: 5000, filter: "isTestFilePath" },
-    );
+    const cmd = buildScopedTestCommand(["tests/unit/testing/concurrency-lock.test.ts"], {
+      runner: "vitest",
+      timeoutMs: 5000,
+      filter: "isTestFilePath",
+    });
     expect(cmd).toEqual([
       "vitest",
       "run",
@@ -232,15 +225,12 @@ describe("buildScopedTestCommand", () => {
   });
 
   test("appends coverage, bail, and extraArgs correctly", () => {
-    const cmd = buildScopedTestCommand(
-      ["tests/unit/testing/concurrency-lock.test.ts"],
-      {
-        runner: "bun",
-        coverage: true,
-        bail: true,
-        extraArgs: ["--max-concurrency", "1"],
-      },
-    );
+    const cmd = buildScopedTestCommand(["tests/unit/testing/concurrency-lock.test.ts"], {
+      runner: "bun",
+      coverage: true,
+      bail: true,
+      extraArgs: ["--max-concurrency", "1"],
+    });
     expect(cmd).toEqual([
       "bun",
       "test",

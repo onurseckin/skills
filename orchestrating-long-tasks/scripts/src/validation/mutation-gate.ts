@@ -43,14 +43,12 @@ function shouldSkipStringLiteral(node: ts.StringLiteral): boolean {
   return false;
 }
 
-export function generateMutants(
-  sourceCode: string,
-  options?: MutationGateOptions,
-): MutantRecord[] {
+export function generateMutants(sourceCode: string, options?: MutationGateOptions): MutantRecord[] {
   const allowedTypes = options?.mutationTypes
     ? new Set<MutationType>(options.mutationTypes)
     : undefined;
-  const fileName = typeof options?.file === "string" && options.file.length > 0 ? options.file : "source.ts";
+  const fileName =
+    typeof options?.file === "string" && options.file.length > 0 ? options.file : "source.ts";
 
   const sourceFile = ts.createSourceFile(
     fileName,
@@ -126,41 +124,146 @@ export function generateMutants(
 
       // Comparison / Equality
       if (opKind === ts.SyntaxKind.EqualsEqualsEqualsToken) {
-        addCandidate("comparison_mutation", "Mutate === to !==", opToken.getStart(sourceFile), opToken.getEnd(), "===", "!==");
+        addCandidate(
+          "comparison_mutation",
+          "Mutate === to !==",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "===",
+          "!==",
+        );
       } else if (opKind === ts.SyntaxKind.ExclamationEqualsEqualsToken) {
-        addCandidate("comparison_mutation", "Mutate !== to ===", opToken.getStart(sourceFile), opToken.getEnd(), "!==", "===");
+        addCandidate(
+          "comparison_mutation",
+          "Mutate !== to ===",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "!==",
+          "===",
+        );
       } else if (opKind === ts.SyntaxKind.EqualsEqualsToken) {
-        addCandidate("comparison_mutation", "Mutate == to !=", opToken.getStart(sourceFile), opToken.getEnd(), "==", "!=");
+        addCandidate(
+          "comparison_mutation",
+          "Mutate == to !=",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "==",
+          "!=",
+        );
       } else if (opKind === ts.SyntaxKind.ExclamationEqualsToken) {
-        addCandidate("comparison_mutation", "Mutate != to ==", opToken.getStart(sourceFile), opToken.getEnd(), "!=", "==");
+        addCandidate(
+          "comparison_mutation",
+          "Mutate != to ==",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "!=",
+          "==",
+        );
       } else if (opKind === ts.SyntaxKind.LessThanToken) {
-        addCandidate("comparison_mutation", "Mutate < to >=", opToken.getStart(sourceFile), opToken.getEnd(), "<", ">=");
+        addCandidate(
+          "comparison_mutation",
+          "Mutate < to >=",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "<",
+          ">=",
+        );
       } else if (opKind === ts.SyntaxKind.LessThanEqualsToken) {
-        addCandidate("comparison_mutation", "Mutate <= to >", opToken.getStart(sourceFile), opToken.getEnd(), "<=", ">");
+        addCandidate(
+          "comparison_mutation",
+          "Mutate <= to >",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "<=",
+          ">",
+        );
       } else if (opKind === ts.SyntaxKind.GreaterThanToken) {
-        addCandidate("comparison_mutation", "Mutate > to <=", opToken.getStart(sourceFile), opToken.getEnd(), ">", "<=");
+        addCandidate(
+          "comparison_mutation",
+          "Mutate > to <=",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          ">",
+          "<=",
+        );
       } else if (opKind === ts.SyntaxKind.GreaterThanEqualsToken) {
-        addCandidate("comparison_mutation", "Mutate >= to <", opToken.getStart(sourceFile), opToken.getEnd(), ">=", "<");
+        addCandidate(
+          "comparison_mutation",
+          "Mutate >= to <",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          ">=",
+          "<",
+        );
       }
 
       // Logical Operators
       if (opKind === ts.SyntaxKind.AmpersandAmpersandToken) {
-        addCandidate("logical_operator_mutation", "Mutate && to " + "||", opToken.getStart(sourceFile), opToken.getEnd(), "&&", "||");
+        addCandidate(
+          "logical_operator_mutation",
+          "Mutate && to " + "||",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "&&",
+          "||",
+        );
       } else if (opKind === ts.SyntaxKind.BarBarToken) {
-        addCandidate("logical_operator_mutation", "Mutate || to " + "&&", opToken.getStart(sourceFile), opToken.getEnd(), "||", "&&");
+        addCandidate(
+          "logical_operator_mutation",
+          "Mutate || to " + "&&",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "||",
+          "&&",
+        );
       }
 
       // Arithmetic Operators
       if (opKind === ts.SyntaxKind.PlusToken) {
-        addCandidate("arithmetic_mutation", "Mutate + to -", opToken.getStart(sourceFile), opToken.getEnd(), "+", "-");
+        addCandidate(
+          "arithmetic_mutation",
+          "Mutate + to -",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "+",
+          "-",
+        );
       } else if (opKind === ts.SyntaxKind.MinusToken) {
-        addCandidate("arithmetic_mutation", "Mutate - to +", opToken.getStart(sourceFile), opToken.getEnd(), "-", "+");
+        addCandidate(
+          "arithmetic_mutation",
+          "Mutate - to +",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "-",
+          "+",
+        );
       } else if (opKind === ts.SyntaxKind.AsteriskToken) {
-        addCandidate("arithmetic_mutation", "Mutate * to /", opToken.getStart(sourceFile), opToken.getEnd(), "*", "/");
+        addCandidate(
+          "arithmetic_mutation",
+          "Mutate * to /",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "*",
+          "/",
+        );
       } else if (opKind === ts.SyntaxKind.SlashToken) {
-        addCandidate("arithmetic_mutation", "Mutate / to *", opToken.getStart(sourceFile), opToken.getEnd(), "/", "*");
+        addCandidate(
+          "arithmetic_mutation",
+          "Mutate / to *",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "/",
+          "*",
+        );
       } else if (opKind === ts.SyntaxKind.PercentToken) {
-        addCandidate("arithmetic_mutation", "Mutate % to *", opToken.getStart(sourceFile), opToken.getEnd(), "%", "*");
+        addCandidate(
+          "arithmetic_mutation",
+          "Mutate % to *",
+          opToken.getStart(sourceFile),
+          opToken.getEnd(),
+          "%",
+          "*",
+        );
       }
     }
 
@@ -267,7 +370,8 @@ export function generateMutants(
 
   walk(sourceFile);
 
-  const maxMutants = typeof options?.maxMutants === "number" ? options.maxMutants : candidates.length;
+  const maxMutants =
+    typeof options?.maxMutants === "number" ? options.maxMutants : candidates.length;
   const selectedCandidates = candidates.slice(0, maxMutants);
 
   return selectedCandidates.map((candidate, idx) => {
@@ -297,7 +401,8 @@ export async function runMutationGate(
   options?: MutationGateOptions,
 ): Promise<MutationGateResult> {
   const minScore = typeof options?.minMutationScore === "number" ? options.minMutationScore : 100;
-  const strictZeroSurvival = options?.strictZeroSurvival !== undefined ? options.strictZeroSurvival : true;
+  const strictZeroSurvival =
+    options?.strictZeroSurvival !== undefined ? options.strictZeroSurvival : true;
   const mutants = generateMutants(sourceCode, options);
 
   if (mutants.length === 0) {
@@ -331,9 +436,10 @@ export async function runMutationGate(
       // If tests pass (passed: true, exitCode == 0), mutant SURVIVED (failure - test suite missed it!)
       if (outcome.passed === false || (outcome.exitCode !== undefined && outcome.exitCode !== 0)) {
         killed++;
-        const errDetails = typeof outcome.error === "string" && outcome.error.length > 0
-          ? outcome.error
-          : "Test suite detected mutation and failed as expected.";
+        const errDetails =
+          typeof outcome.error === "string" && outcome.error.length > 0
+            ? outcome.error
+            : "Test suite detected mutation and failed as expected.";
         results.push({
           mutant,
           status: "killed",

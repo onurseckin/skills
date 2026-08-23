@@ -489,10 +489,7 @@ describe("REMED-008: Event Bus Listener Registration & Invocation", () => {
 
 describe("REMED-008: Invariants & Cleanliness Audit", () => {
   it("enforces zero TypeScript any and zero suppression directives across all watchdog files", () => {
-    const watchdogDir = join(
-      __dirname,
-      "../../../orchestrating-long-tasks/scripts/src/watchdog",
-    );
+    const watchdogDir = join(__dirname, "../../../orchestrating-long-tasks/scripts/src/watchdog");
     const sourceFiles = [
       join(watchdogDir, "constants.ts"),
       join(watchdogDir, "types.ts"),

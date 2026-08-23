@@ -109,7 +109,9 @@ describe("Decoupled Capsule Memory & Rich Instruction Architecture", () => {
       expect(commandsWithTask.length).toBeGreaterThanOrEqual(8);
 
       const taskReportCmd = commandsWithTask.find((c) => c.category === "status");
-      expect(taskReportCmd?.command).toBe("bun harness.ts report:task --run .capsules/run-123 --task T-42");
+      expect(taskReportCmd?.command).toBe(
+        "bun harness.ts report:task --run .capsules/run-123 --task T-42",
+      );
 
       const eventStreamCmd = commandsWithTask.find((c) => c.category === "timeline");
       expect(eventStreamCmd?.command).toBe("bun harness.ts stream:events --run .capsules/run-123");
@@ -118,7 +120,9 @@ describe("Decoupled Capsule Memory & Rich Instruction Architecture", () => {
       expect(dagCmd?.command).toBe("bun harness.ts dag:view --run .capsules/run-123");
 
       const gateProveCmd = commandsWithTask.find((c) => c.category === "verification");
-      expect(gateProveCmd?.command).toBe("bun harness.ts gate:prove --run .capsules/run-123 --task T-42");
+      expect(gateProveCmd?.command).toBe(
+        "bun harness.ts gate:prove --run .capsules/run-123 --task T-42",
+      );
 
       const commandsWithoutTask = getCapsuleCliCommands("run-123", null);
       const generalReportCmd = commandsWithoutTask.find((c) => c.category === "status");
@@ -133,10 +137,14 @@ describe("Decoupled Capsule Memory & Rich Instruction Architecture", () => {
 
       const guidance = formatCapsuleMemoryGuidance(pointer);
       expect(guidance).toContain("Capsule Memory on disk");
-      expect(guidance).toContain("bun harness.ts report:task --run .capsules/run-test-p38 --task T-1");
+      expect(guidance).toContain(
+        "bun harness.ts report:task --run .capsules/run-test-p38 --task T-1",
+      );
       expect(guidance).toContain("bun harness.ts stream:events --run .capsules/run-test-p38");
       expect(guidance).toContain("bun harness.ts dag:view --run .capsules/run-test-p38");
-      expect(guidance).toContain("bun harness.ts gate:prove --run .capsules/run-test-p38 --task T-1");
+      expect(guidance).toContain(
+        "bun harness.ts gate:prove --run .capsules/run-test-p38 --task T-1",
+      );
       expect(guidance).toContain("bun harness.ts explain <ERROR_CODE>");
       expect(guidance).toContain("bun harness.ts doctor --run .capsules/run-test-p38");
     });
@@ -191,7 +199,9 @@ describe("Decoupled Capsule Memory & Rich Instruction Architecture", () => {
       expect(bloatedAudit.containsForbiddenKeys).toBe(true);
       expect(bloatedAudit.forbiddenKeysFound).toContain("implementer_report");
       expect(bloatedAudit.issues.some((i) => i.reason.includes("Large array"))).toBe(true);
-      expect(bloatedAudit.issues.some((i) => i.reason.includes("String value exceeds 8KB"))).toBe(true);
+      expect(bloatedAudit.issues.some((i) => i.reason.includes("String value exceeds 8KB"))).toBe(
+        true,
+      );
     });
   });
 
@@ -270,12 +280,16 @@ describe("Decoupled Capsule Memory & Rich Instruction Architecture", () => {
 
       const readBack = await readDecoupledBlob(tempRoot, writeResult.hash);
       expect(readBack).not.toBeNull();
-      expect(readBack!.toString("utf-8")).toBe("Large test artifact buffer content for decoupled memory");
+      expect(readBack!.toString("utf-8")).toBe(
+        "Large test artifact buffer content for decoupled memory",
+      );
 
       // Lookup by prefix of hash
       const readByPrefix = await readDecoupledBlob(tempRoot, writeResult.hash.slice(0, 16));
       expect(readByPrefix).not.toBeNull();
-      expect(readByPrefix!.toString("utf-8")).toBe("Large test artifact buffer content for decoupled memory");
+      expect(readByPrefix!.toString("utf-8")).toBe(
+        "Large test artifact buffer content for decoupled memory",
+      );
     });
   });
 
@@ -320,7 +334,8 @@ describe("Decoupled Capsule Memory & Rich Instruction Architecture", () => {
 
     test("detects missing sections and forbidden leaked text in malformed packets", () => {
       const malformedPacket = {
-        markdown: "# Raw packet\nSome unformatted text without structure\nI tested everything manually and it is 100% flawless.",
+        markdown:
+          "# Raw packet\nSome unformatted text without structure\nI tested everything manually and it is 100% flawless.",
         metadata: {
           schema: "harness.packet",
           version: 1,

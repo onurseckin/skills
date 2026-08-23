@@ -46,7 +46,7 @@ tilde_null: ~
 `;
     const parsed = parseYaml(yaml) as Record<string, unknown>;
     expect(parsed.string_val).toBe("hello world");
-    expect(parsed.quoted_val).toBe("escaped \"quotes\" and \nnewlines");
+    expect(parsed.quoted_val).toBe('escaped "quotes" and \nnewlines');
     expect(parsed.single_quoted).toBe("single 'quotes'");
     expect(parsed.int_val).toBe(42);
     expect(parsed.float_val).toBe(3.1415);
@@ -107,9 +107,9 @@ folded_block: >
 `;
     const parsed = parseYaml(yaml) as Record<string, unknown>;
     expect(typeof parsed.literal_block).toBe("string");
-    expect((parsed.literal_block as string)).toContain("Line 1\nLine 2\nLine 3");
+    expect(parsed.literal_block as string).toContain("Line 1\nLine 2\nLine 3");
     expect(typeof parsed.folded_block).toBe("string");
-    expect((parsed.folded_block as string)).toContain("This is a folded sentence.");
+    expect(parsed.folded_block as string).toContain("This is a folded sentence.");
   });
 
   test("handles inline and block comments correctly", () => {
@@ -409,14 +409,18 @@ describe("Standing Responsibility Checklists (supervisory-persona-reminder.ts)",
   });
 
   test("mind checklists include observe-only confinement and infinite pulse", () => {
-    const mindChecklists = STANDING_CHECKLIST_DEFINITIONS.filter((d) => d.targetRoles.includes("mind"));
+    const mindChecklists = STANDING_CHECKLIST_DEFINITIONS.filter((d) =>
+      d.targetRoles.includes("mind"),
+    );
     expect(mindChecklists.some((c) => c.id === "RESP-MIND-001")).toBe(true);
     expect(mindChecklists.some((c) => c.id === "RESP-MIND-002")).toBe(true);
     expect(mindChecklists.some((c) => c.id === "RESP-MIND-003")).toBe(true);
   });
 
   test("coordinator checklists include zero-code, anti-batching, gate:prove, and 4-tier viewports", () => {
-    const coordChecklists = STANDING_CHECKLIST_DEFINITIONS.filter((d) => d.targetRoles.includes("coordinator"));
+    const coordChecklists = STANDING_CHECKLIST_DEFINITIONS.filter((d) =>
+      d.targetRoles.includes("coordinator"),
+    );
     expect(coordChecklists.some((c) => c.id === "RESP-COORD-001")).toBe(true);
     expect(coordChecklists.some((c) => c.id === "RESP-COORD-002")).toBe(true);
     expect(coordChecklists.some((c) => c.id === "RESP-COORD-003")).toBe(true);
@@ -427,7 +431,9 @@ describe("Standing Responsibility Checklists (supervisory-persona-reminder.ts)",
   });
 
   test("implementer checklists enforce strict write scope, zero-any TS, and pre-submission verification", () => {
-    const implChecklists = STANDING_CHECKLIST_DEFINITIONS.filter((d) => d.targetRoles.includes("implementer"));
+    const implChecklists = STANDING_CHECKLIST_DEFINITIONS.filter((d) =>
+      d.targetRoles.includes("implementer"),
+    );
     expect(implChecklists.some((c) => c.id === "RESP-IMPL-001")).toBe(true);
     expect(implChecklists.some((c) => c.id === "RESP-IMPL-002")).toBe(true);
     expect(implChecklists.some((c) => c.id === "RESP-IMPL-003")).toBe(true);
@@ -435,7 +441,9 @@ describe("Standing Responsibility Checklists (supervisory-persona-reminder.ts)",
   });
 
   test("validator checklists enforce mandatory adversarial probe and dual-channel verification", () => {
-    const valChecklists = STANDING_CHECKLIST_DEFINITIONS.filter((d) => d.targetRoles.includes("validator"));
+    const valChecklists = STANDING_CHECKLIST_DEFINITIONS.filter((d) =>
+      d.targetRoles.includes("validator"),
+    );
     expect(valChecklists.some((c) => c.id === "RESP-VAL-001")).toBe(true);
     expect(valChecklists.some((c) => c.id === "RESP-VAL-002")).toBe(true);
     expect(valChecklists.some((c) => c.id === "RESP-VAL-003")).toBe(true);
@@ -449,8 +457,16 @@ describe("Automated State Evaluation & Neglected Responsibility Detection (super
       agentId: "coordinator_domain-cli-tools",
       runId: "mind-gen-1-wave-2",
       activeLeases: [
-        { taskId: "task-1", agentId: "implementer_task-p47-autonomic-watchdog", writeScope: ["src/a.ts"] },
-        { taskId: "task-2", agentId: "implementer_task-p48-another-task", writeScope: ["src/b.ts"] },
+        {
+          taskId: "task-1",
+          agentId: "implementer_task-p47-autonomic-watchdog",
+          writeScope: ["src/a.ts"],
+        },
+        {
+          taskId: "task-2",
+          agentId: "implementer_task-p48-another-task",
+          writeScope: ["src/b.ts"],
+        },
       ],
       queueState: { readyCount: 0, runningCount: 2, blockedCount: 0, totalCount: 2 },
       openFindingsCount: 0,
@@ -476,10 +492,14 @@ describe("Automated State Evaluation & Neglected Responsibility Detection (super
     const evalResult = evaluateSupervisoryState(context);
     expect(evalResult.compliant).toBe(false);
     expect(evalResult.severity).toBe("critical");
-    const violation = evalResult.violations.find((v) => v.code === "SUPERVISOR_ZERO_FILE_EDIT_BREACH");
+    const violation = evalResult.violations.find(
+      (v) => v.code === "SUPERVISOR_ZERO_FILE_EDIT_BREACH",
+    );
     expect(violation).toBeDefined();
     expect(violation?.severity).toBe("critical");
-    expect(evalResult.correctiveDirectives.some((d) => d.includes("Tier 3 Implementer"))).toBe(true);
+    expect(evalResult.correctiveDirectives.some((d) => d.includes("Tier 3 Implementer"))).toBe(
+      true,
+    );
     const checklistItem = evalResult.checklist.find((c) => c.id === "RESP-COORD-001");
     expect(checklistItem?.status).toBe("violated");
   });
@@ -493,7 +513,9 @@ describe("Automated State Evaluation & Neglected Responsibility Detection (super
     const evalResult = evaluateSupervisoryState(context);
     expect(evalResult.compliant).toBe(false);
     expect(evalResult.severity).toBe("critical");
-    const violation = evalResult.violations.find((v) => v.code === "SUPERVISOR_TASK_SELF_EXECUTION_BREACH");
+    const violation = evalResult.violations.find(
+      (v) => v.code === "SUPERVISOR_TASK_SELF_EXECUTION_BREACH",
+    );
     expect(violation).toBeDefined();
     expect(evalResult.correctiveDirectives.some((d) => d.includes("task:release"))).toBe(true);
   });
@@ -507,7 +529,9 @@ describe("Automated State Evaluation & Neglected Responsibility Detection (super
     const evalResult = evaluateSupervisoryState(context);
     expect(evalResult.compliant).toBe(false);
     expect(evalResult.severity).toBe("critical");
-    const violation = evalResult.violations.find((v) => v.code === "CROSS_TIER_SPAWN_HIERARCHY_BREACH");
+    const violation = evalResult.violations.find(
+      (v) => v.code === "CROSS_TIER_SPAWN_HIERARCHY_BREACH",
+    );
     expect(violation).toBeDefined();
   });
 
@@ -536,7 +560,9 @@ describe("Automated State Evaluation & Neglected Responsibility Detection (super
 
     const evalResult = evaluateSupervisoryState(context);
     expect(evalResult.compliant).toBe(false);
-    const violation = evalResult.violations.find((v) => v.code === "QUEUE_IDLE_ANTI_BATCHING_NEGLECT");
+    const violation = evalResult.violations.find(
+      (v) => v.code === "QUEUE_IDLE_ANTI_BATCHING_NEGLECT",
+    );
     expect(violation).toBeDefined();
     expect(evalResult.correctiveDirectives.some((d) => d.includes("queue:wave"))).toBe(true);
   });
@@ -562,9 +588,13 @@ describe("Automated State Evaluation & Neglected Responsibility Detection (super
 
     const evalResult = evaluateSupervisoryState(context);
     expect(evalResult.compliant).toBe(false);
-    const violation = evalResult.violations.find((v) => v.code === "QUALITATIVE_PASS_RUBBER_STAMP_BREACH");
+    const violation = evalResult.violations.find(
+      (v) => v.code === "QUALITATIVE_PASS_RUBBER_STAMP_BREACH",
+    );
     expect(violation).toBeDefined();
-    expect(evalResult.correctiveDirectives.some((d) => d.includes("coordinator:pushback"))).toBe(true);
+    expect(evalResult.correctiveDirectives.some((d) => d.includes("coordinator:pushback"))).toBe(
+      true,
+    );
   });
 
   test("detects UI tasks missing 4-tier viewport validation", () => {
@@ -575,7 +605,9 @@ describe("Automated State Evaluation & Neglected Responsibility Detection (super
 
     const evalResult = evaluateSupervisoryState(context);
     expect(evalResult.compliant).toBe(false);
-    const violation = evalResult.violations.find((v) => v.code === "FOUR_TIER_VIEWPORT_MATRIX_BREACH");
+    const violation = evalResult.violations.find(
+      (v) => v.code === "FOUR_TIER_VIEWPORT_MATRIX_BREACH",
+    );
     expect(violation).toBeDefined();
     expect(evalResult.correctiveDirectives.some((d) => d.includes("1920x1080"))).toBe(true);
   });
@@ -592,7 +624,9 @@ describe("Automated State Evaluation & Neglected Responsibility Detection (super
     const evalResult = evaluateSupervisoryState(context);
     expect(evalResult.compliant).toBe(false);
     expect(evalResult.severity).toBe("critical");
-    const violation = evalResult.violations.find((v) => v.code === "PREMATURE_RUN_COMPLETION_BREACH");
+    const violation = evalResult.violations.find(
+      (v) => v.code === "PREMATURE_RUN_COMPLETION_BREACH",
+    );
     expect(violation).toBeDefined();
   });
 
@@ -604,7 +638,9 @@ describe("Automated State Evaluation & Neglected Responsibility Detection (super
 
     const evalResult = evaluateSupervisoryState(context);
     expect(evalResult.compliant).toBe(false);
-    const violation = evalResult.violations.find((v) => v.code === "MANDATORY_ADVERSARIAL_PROBE_OMISSION");
+    const violation = evalResult.violations.find(
+      (v) => v.code === "MANDATORY_ADVERSARIAL_PROBE_OMISSION",
+    );
     expect(violation).toBeDefined();
     expect(evalResult.correctiveDirectives.some((d) => d.includes("task:probe"))).toBe(true);
   });
@@ -640,7 +676,9 @@ describe("Supervisory Persona Reminder Engine (supervisory-persona-reminder.ts)"
     expect(reminder.decisionProtocols.some((p) => p.id === "infinite_pulse_cadence")).toBe(true);
 
     // Formatted outputs
-    expect(reminder.renderedMarkdown).toContain("### 🛡️ Supervisory Persona & Responsibility Reminder [Tick #1]");
+    expect(reminder.renderedMarkdown).toContain(
+      "### 🛡️ Supervisory Persona & Responsibility Reminder [Tick #1]",
+    );
     expect(reminder.renderedMarkdown).toContain("- **Role**: `MIND` (Tier 0)");
     expect(reminder.renderedMarkdown).toContain("#### 📜 Binding Capability Contract");
     expect(reminder.renderedMarkdown).toContain("#### 🧠 Standing Decision Protocols");
@@ -756,7 +794,9 @@ describe("Adversarial Counterfactual Falsifiability Verification (Task-p51 Probe
   test("evaluateSupervisoryState strictly detects and aggregates multiple concurrent violations with corrective directives", () => {
     const multiViolationContext: SupervisoryReminderEvaluationContext = {
       role: "coordinator",
-      fileModificationsOnSupervisoryThread: ["orchestrating-long-tasks/scripts/src/authority/manifest-parser.ts"],
+      fileModificationsOnSupervisoryThread: [
+        "orchestrating-long-tasks/scripts/src/authority/manifest-parser.ts",
+      ],
       directExecutionAttempts: ["claim_task"],
       activeLeases: [
         { taskId: "task-p51", agentId: "impl-1", writeScope: ["src/a.ts", "src/shared.ts"] },
@@ -808,4 +848,3 @@ describe("Adversarial Counterfactual Falsifiability Verification (Task-p51 Probe
     expect(violatedItem?.correctiveDirective).toContain("Tier 3 Implementers");
   });
 });
-

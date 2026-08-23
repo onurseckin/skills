@@ -247,4 +247,3 @@ protocol:
     Notify the Tier 1 parent ONLY at major milestones (Plan Compiled, Queue Drained, Escalation
     Needed, Run Completed). Suppress intermediate tool noise, heartbeats, probe rounds, and raw gate
     output.
-

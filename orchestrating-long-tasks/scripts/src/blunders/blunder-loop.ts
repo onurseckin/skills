@@ -93,12 +93,8 @@ export interface BlunderLoopOptions {
   readonly onRemediationProposed?:
     | ((action: BlunderRemediationAction, hypothesis: BlunderHypothesis) => void)
     | undefined;
-  readonly onFeedbackCycleCompleted?:
-    | ((cycle: BlunderFeedbackCycle) => void)
-    | undefined;
-  readonly onTaskCompleted?:
-    | ((result: DomainTaskResult<unknown>) => void)
-    | undefined;
+  readonly onFeedbackCycleCompleted?: ((cycle: BlunderFeedbackCycle) => void) | undefined;
+  readonly onTaskCompleted?: ((result: DomainTaskResult<unknown>) => void) | undefined;
 }
 
 export interface BlunderLoopMetrics {
@@ -316,7 +312,9 @@ export class ContinuousBlunderFeedbackLoop {
     this.status = "stopped";
     for (const queue of this.taskQueues.values()) {
       for (const entry of queue) {
-        entry.reject(new Error(`Task ${entry.task.id} cancelled: ContinuousBlunderFeedbackLoop stopped`));
+        entry.reject(
+          new Error(`Task ${entry.task.id} cancelled: ContinuousBlunderFeedbackLoop stopped`),
+        );
       }
     }
     this.taskQueues.clear();
@@ -380,7 +378,9 @@ export class ContinuousBlunderFeedbackLoop {
     const maxPerDomain = this.options.maxConcurrentPerDomain ?? 4;
     const maxParallelDomains = this.options.maxParallelDomains ?? 8;
     const currentDomainWorkers = this.domainActiveWorkers.get(domain) ?? 0;
-    const totalActiveDomains = Array.from(this.domainActiveWorkers.values()).filter((w) => w > 0).length;
+    const totalActiveDomains = Array.from(this.domainActiveWorkers.values()).filter(
+      (w) => w > 0,
+    ).length;
 
     if (currentDomainWorkers >= maxPerDomain) {
       return false;
@@ -429,7 +429,9 @@ export class ContinuousBlunderFeedbackLoop {
       timeoutHandle = setTimeout(() => {
         isTimedOut = true;
         abortController.abort();
-        reject(new Error(`Domain task ${task.id} in domain ${domain} timed out after ${timeoutMs}ms`));
+        reject(
+          new Error(`Domain task ${task.id} in domain ${domain} timed out after ${timeoutMs}ms`),
+        );
       }, timeoutMs);
     });
 
@@ -487,7 +489,10 @@ export class ContinuousBlunderFeedbackLoop {
           id: `blunder-exec-${task.id}-${attempt}`,
           type: "task_execution_failure",
           severity: "warning",
-          category: categorizeBlunder({ type: "task_execution_failure", observation: errorMessage }),
+          category: categorizeBlunder({
+            type: "task_execution_failure",
+            observation: errorMessage,
+          }),
           observation: `Task execution failed in domain ${domain}: ${errorMessage}`,
           remediation: `Investigate root cause in domain ${domain} task ${task.name}`,
         };

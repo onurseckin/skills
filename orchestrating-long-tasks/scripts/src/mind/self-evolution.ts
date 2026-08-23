@@ -113,7 +113,10 @@ export interface HierarchyScalingDecision {
   readonly action: HierarchyScalingDirection;
   readonly newTier1Count: number;
   readonly newTier2Count: number;
-  readonly spawnsRecommended: readonly { readonly role: "orchestrator" | "coordinator"; readonly domainSlug: string }[];
+  readonly spawnsRecommended: readonly {
+    readonly role: "orchestrator" | "coordinator";
+    readonly domainSlug: string;
+  }[];
   readonly drainsRecommended: readonly string[];
   readonly reason: string;
 }
@@ -316,9 +319,7 @@ export function recordEvolutionCycle(entry: EvolutionLedgerEntry, customPath?: s
   writeFileSync(filePath, existing + line, "utf8");
 }
 
-export function getEvolutionStats(
-  history: readonly EvolutionLedgerEntry[],
-): EvolutionHistoryStats {
+export function getEvolutionStats(history: readonly EvolutionLedgerEntry[]): EvolutionHistoryStats {
   const cyclesByMode: Record<SelfEvolutionMode, number> = {
     MODE_A_AUTONOMIC_DISCOVERY: 0,
     MODE_B_FEEDBACK_INTAKE: 0,
@@ -388,7 +389,9 @@ export function calculateHierarchyCapacity(params: {
   };
 
   const tasks = params.taskQueue ?? [];
-  const pendingTasks = tasks.filter((t) => t.status === "PENDING" || t.status === "ADMITTED").length;
+  const pendingTasks = tasks.filter(
+    (t) => t.status === "PENDING" || t.status === "ADMITTED",
+  ).length;
   const inProgressTasks = tasks.filter(
     (t) => t.status === "IN_PROGRESS" || t.status === "RUNNING",
   ).length;
@@ -398,9 +401,7 @@ export function calculateHierarchyCapacity(params: {
   const tier1Orchestrators = orchestratorList.filter(
     (o) => o.tier === 1 && o.status !== "DRAINING",
   );
-  const tier2Coordinators = orchestratorList.filter(
-    (o) => o.tier === 2 && o.status !== "DRAINING",
-  );
+  const tier2Coordinators = orchestratorList.filter((o) => o.tier === 2 && o.status !== "DRAINING");
 
   const activeTier1Count = Math.max(tier1Orchestrators.length, 1);
   const activeTier2Count = Math.max(tier2Coordinators.length, 1);
@@ -438,10 +439,7 @@ export function calculateHierarchyCapacity(params: {
     reasons.push(
       `Tier 1 orchestrator load ratio (${tier1LoadRatio}) exceeds scale-out threshold (${thresholds.scaleOutLoadThreshold}); recommend scaling to ${recommendedTier1Count} orchestrator(s)`,
     );
-  } else if (
-    totalActiveTasks === 0 &&
-    activeTier1Count > thresholds.minTier1Limit
-  ) {
+  } else if (totalActiveTasks === 0 && activeTier1Count > thresholds.minTier1Limit) {
     scalingDirection = "SCALE_IN";
     reasons.push(
       `Queue is quiescent with ${activeTier1Count} active orchestrator(s); recommend scaling in to baseline ${thresholds.minTier1Limit}`,
@@ -463,12 +461,18 @@ export function calculateHierarchyCapacity(params: {
       const maxLoad = Math.max(...loads);
       if (maxLoad - minLoad >= 3) {
         scalingDirection = "REBALANCE";
-        reasons.push(`Load imbalance detected (min: ${minLoad}, max: ${maxLoad}); rebalancing recommended`);
+        reasons.push(
+          `Load imbalance detected (min: ${minLoad}, max: ${maxLoad}); rebalancing recommended`,
+        );
       } else {
-        reasons.push(`Hierarchy capacity steady (${activeTier1Count} T1, ${activeTier2Count} T2; load ratio ${tier1LoadRatio})`);
+        reasons.push(
+          `Hierarchy capacity steady (${activeTier1Count} T1, ${activeTier2Count} T2; load ratio ${tier1LoadRatio})`,
+        );
       }
     } else {
-      reasons.push(`Hierarchy capacity steady (${activeTier1Count} T1, ${activeTier2Count} T2; load ratio ${tier1LoadRatio})`);
+      reasons.push(
+        `Hierarchy capacity steady (${activeTier1Count} T1, ${activeTier2Count} T2; load ratio ${tier1LoadRatio})`,
+      );
     }
   }
 
@@ -500,7 +504,8 @@ export function evaluateHierarchyScaling(
     ...(customThresholds ?? {}),
   };
 
-  const spawns: { readonly role: "orchestrator" | "coordinator"; readonly domainSlug: string }[] = [];
+  const spawns: { readonly role: "orchestrator" | "coordinator"; readonly domainSlug: string }[] =
+    [];
   const drains: string[] = [];
 
   if (metrics.scalingDirection === "SCALE_OUT") {
@@ -556,7 +561,11 @@ export function evaluateHierarchyScaling(
  */
 export function balanceOrchestratorLoad(
   orchestrators: readonly OrchestratorNodeInfo[],
-  tasks: readonly { readonly id: string; readonly write_scope: readonly string[]; readonly weight?: number | undefined }[],
+  tasks: readonly {
+    readonly id: string;
+    readonly write_scope: readonly string[];
+    readonly weight?: number | undefined;
+  }[],
   options: { readonly maxTasksPerOrchestrator?: number | undefined } = {},
 ): LoadBalancingPlan {
   if (orchestrators.length === 0) {
@@ -590,7 +599,8 @@ export function balanceOrchestratorLoad(
   // Calculate variance before
   const loadsBefore = Array.from(assignmentsMap.values()).map((a) => a.taskIds.length);
   const meanBefore = loadsBefore.reduce((a, b) => a + b, 0) / loadsBefore.length;
-  const varianceBefore = loadsBefore.reduce((acc, l) => acc + Math.pow(l - meanBefore, 2), 0) / loadsBefore.length;
+  const varianceBefore =
+    loadsBefore.reduce((acc, l) => acc + Math.pow(l - meanBefore, 2), 0) / loadsBefore.length;
 
   // Assign unassigned tasks or balance overloaded nodes
   for (const task of tasks) {
@@ -633,7 +643,8 @@ export function balanceOrchestratorLoad(
   // Calculate variance after
   const loadsAfter = Array.from(assignmentsMap.values()).map((a) => a.taskIds.length);
   const meanAfter = loadsAfter.reduce((a, b) => a + b, 0) / loadsAfter.length;
-  const varianceAfter = loadsAfter.reduce((acc, l) => acc + Math.pow(l - meanAfter, 2), 0) / loadsAfter.length;
+  const varianceAfter =
+    loadsAfter.reduce((acc, l) => acc + Math.pow(l - meanAfter, 2), 0) / loadsAfter.length;
 
   const assignments: LoadBalancingAssignment[] = Array.from(assignmentsMap.entries()).map(
     ([orchId, data]) => ({
@@ -658,7 +669,15 @@ export function balanceOrchestratorLoad(
  * Synthesizes dynamic plan revisions from cognitive discoveries and active queue state.
  */
 export function synthesizeDynamicPlanRevisions(params: {
-  readonly discoveries?: readonly { readonly category?: string; readonly severity?: string; readonly description?: string; readonly file?: string; readonly targetFile?: string }[] | undefined;
+  readonly discoveries?:
+    | readonly {
+        readonly category?: string;
+        readonly severity?: string;
+        readonly description?: string;
+        readonly file?: string;
+        readonly targetFile?: string;
+      }[]
+    | undefined;
   readonly signals?: readonly PlanRevisionSignal[] | undefined;
   readonly activePlans?: readonly DiscoveredTaskPlan[] | undefined;
   readonly maxRevisions?: number | undefined;
@@ -676,14 +695,19 @@ export function synthesizeDynamicPlanRevisions(params: {
         sigType = "TEST_REGRESSION";
       } else if (disc.category === "COGNITIVE_GAP" || disc.category === "cognitive_gap") {
         sigType = "COGNITIVE_OVERLOAD";
-      } else if (disc.category === "BLUNDER_REMEDIATION" || disc.category === "blunder_remediation") {
+      } else if (
+        disc.category === "BLUNDER_REMEDIATION" ||
+        disc.category === "blunder_remediation"
+      ) {
         sigType = "BLUNDER_SURGE";
       } else if (disc.category === "CODE_QUALITY" || disc.category === "code_quality") {
         sigType = "SCOPE_COLLISION";
       }
 
-      const sev = disc.severity === "CRITICAL" ? "CRITICAL" : disc.severity === "HIGH" ? "HIGH" : "MEDIUM";
-      const targetScope = disc.file ?? disc.targetFile ?? "orchestrating-long-tasks/scripts/src/mind";
+      const sev =
+        disc.severity === "CRITICAL" ? "CRITICAL" : disc.severity === "HIGH" ? "HIGH" : "MEDIUM";
+      const targetScope =
+        disc.file ?? disc.targetFile ?? "orchestrating-long-tasks/scripts/src/mind";
 
       signalList.push({
         signalType: sigType,
@@ -944,7 +968,8 @@ export function runSelfEvolutionCycle(
     cycle: cycleNumber,
     phase: enqueuedTasks.length > 0 ? "EVOLVING" : "PERPETUAL_REST",
     lastCycleAt: nowIso,
-    consecutiveIdlePulses: enqueuedTasks.length === 0 ? (evaluation.activeTasksCount === 0 ? 1 : 0) : 0,
+    consecutiveIdlePulses:
+      enqueuedTasks.length === 0 ? (evaluation.activeTasksCount === 0 ? 1 : 0) : 0,
     totalTasksSynthesized: synthesizedTasks.length,
     totalTasksCompleted: 0,
     quiescenceStreak: enqueuedTasks.length === 0 ? 1 : 0,

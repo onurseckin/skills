@@ -116,4 +116,3 @@ export interface ReviewPacketPayload extends JsonObject {
   readonly dual_channel_audit?: JsonObject;
   readonly visual_report?: JsonObject;
 }
-

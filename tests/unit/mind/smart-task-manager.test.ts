@@ -137,7 +137,9 @@ describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
 
       const report = validateAntiBatchingRule([batchedPlan]);
       expect(report.compliant).toBe(false);
-      expect(report.violations.some((v) => v.includes("illegally merges multiple feedback items"))).toBe(true);
+      expect(
+        report.violations.some((v) => v.includes("illegally merges multiple feedback items")),
+      ).toBe(true);
       expect(() => assertAntiBatchingRule([batchedPlan])).toThrow("Anti-Batching Rule violation");
     });
 
@@ -161,7 +163,9 @@ describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
 
       const report = validateAntiBatchingRule([batchedCandidatePlan]);
       expect(report.compliant).toBe(false);
-      expect(report.violations.some((v) => v.includes("illegally merges multiple defect candidates"))).toBe(true);
+      expect(
+        report.violations.some((v) => v.includes("illegally merges multiple defect candidates")),
+      ).toBe(true);
     });
 
     it("rejects multi-item feedback_id with delimiter (comma/semicolon)", () => {
@@ -255,7 +259,11 @@ describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
 
       const report = validateAntiBatchingRule([selfValidatingPlan]);
       expect(report.compliant).toBe(false);
-      expect(report.violations.some((v) => v.includes("cannot act as independent validator for its own task"))).toBe(true);
+      expect(
+        report.violations.some((v) =>
+          v.includes("cannot act as independent validator for its own task"),
+        ),
+      ).toBe(true);
     });
 
     it("rejects missing implementer or missing validator", () => {
@@ -957,7 +965,13 @@ describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
 
       const anyRegex = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
       const suppressionRegex = new RegExp(
-        ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck", "eslint" + "-disable", "oxlint" + "-disable"].join("|"),
+        [
+          "@ts" + "-ignore",
+          "@ts" + "-expect-error",
+          "@ts" + "-nocheck",
+          "eslint" + "-disable",
+          "oxlint" + "-disable",
+        ].join("|"),
       );
 
       for (const filePath of filesToAudit) {

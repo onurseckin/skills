@@ -200,7 +200,6 @@ export function persistReviewReport(
   return reportPath;
 }
 
-
 export function resolveCheckIds(
   explicitEvidence: string | undefined,
   commands: unknown,

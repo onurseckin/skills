@@ -37,7 +37,9 @@ describe("Adversarial Doctor & Counterfactual Certification", () => {
   describe("mutateWriteScopeForCounterfactual", () => {
     test("throws INVALID_ARGUMENT on empty or non-existent file path", () => {
       expect(() => mutateWriteScopeForCounterfactual("")).toThrow(HarnessError);
-      expect(() => mutateWriteScopeForCounterfactual("/non/existent/path/file.ts")).toThrow(HarnessError);
+      expect(() => mutateWriteScopeForCounterfactual("/non/existent/path/file.ts")).toThrow(
+        HarnessError,
+      );
     });
 
     test("applies syntax_error mutation and reverts cleanly", async () => {
@@ -68,7 +70,7 @@ describe("Adversarial Doctor & Counterfactual Certification", () => {
       const dir = await mkdtemp(join(tmpdir(), "adv-mut-flip-"));
       tempDirs.push(dir);
       const filePath = join(dir, "test-sample.ts");
-      const original = 'expect(result).toBe(true);\nexpect(isValid).toBeTrue();\n';
+      const original = "expect(result).toBe(true);\nexpect(isValid).toBeTrue();\n";
       await writeFile(filePath, original, "utf-8");
 
       const { mutation, revert } = mutateWriteScopeForCounterfactual(filePath, {
@@ -115,9 +117,9 @@ describe("Adversarial Doctor & Counterfactual Certification", () => {
       const original = "const x = 10;\n";
       await writeFile(filePath, original, "utf-8");
 
-      expect(() =>
-        mutateWriteScopeForCounterfactual(filePath, { kind: "custom" }),
-      ).toThrow(HarnessError);
+      expect(() => mutateWriteScopeForCounterfactual(filePath, { kind: "custom" })).toThrow(
+        HarnessError,
+      );
 
       const res = mutateWriteScopeForCounterfactual(filePath, {
         kind: "custom",
@@ -343,7 +345,9 @@ describe("Adversarial Doctor & Counterfactual Certification", () => {
         totalChecks: 1,
         passedChecks: 0,
         failedChecks: 1,
-        criticalIssues: ["[TIER_CONFINEMENT] tier_confinement_isolation: Supervisor role edited code"],
+        criticalIssues: [
+          "[TIER_CONFINEMENT] tier_confinement_isolation: Supervisor role edited code",
+        ],
         warnings: [],
         summary: "Harness Doctor UNCERTIFIED: 1 critical issue detected",
         markdown: "# Report",
@@ -373,7 +377,12 @@ describe("Adversarial Doctor & Counterfactual Certification", () => {
       const srcContent = readFileSync(srcPath, "utf-8");
 
       // Zero suppressions
-      const suppressionTokens = ["@" + "ts-ignore", "@" + "ts-expect-error", "@" + "ts-nocheck", "eslint" + "-disable"];
+      const suppressionTokens = [
+        "@" + "ts-ignore",
+        "@" + "ts-expect-error",
+        "@" + "ts-nocheck",
+        "eslint" + "-disable",
+      ];
       for (const token of suppressionTokens) {
         expect(srcContent.includes(token)).toBe(false);
       }
@@ -384,19 +393,26 @@ describe("Adversarial Doctor & Counterfactual Certification", () => {
     });
 
     test("adversarial-doctor.test.ts contains zero suppressions and zero any", () => {
-      const testPath = join(
-        process.cwd(),
-        "tests/unit/doctor/adversarial-doctor.test.ts",
-      );
+      const testPath = join(process.cwd(), "tests/unit/doctor/adversarial-doctor.test.ts");
 
       const testContent = readFileSync(testPath, "utf-8");
 
       const lines = testContent
         .split("\n")
-        .filter((l) => !l.includes("suppressionTokens") && !l.includes("anyRegex") && !l.includes("Static Invariants"));
+        .filter(
+          (l) =>
+            !l.includes("suppressionTokens") &&
+            !l.includes("anyRegex") &&
+            !l.includes("Static Invariants"),
+        );
       const filtered = lines.join("\n");
 
-      const suppressionTokens = ["@" + "ts-ignore", "@" + "ts-expect-error", "@" + "ts-nocheck", "eslint" + "-disable"];
+      const suppressionTokens = [
+        "@" + "ts-ignore",
+        "@" + "ts-expect-error",
+        "@" + "ts-nocheck",
+        "eslint" + "-disable",
+      ];
       for (const token of suppressionTokens) {
         expect(filtered.includes(token)).toBe(false);
       }
