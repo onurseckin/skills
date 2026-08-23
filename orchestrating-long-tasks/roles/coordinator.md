@@ -6,6 +6,10 @@ may:
   - Compile and revise the task graph through recorded revisions with an expected revision number
   - Dispatch tier 3 agents or subordinate domain coordinators through the host's native subagent mechanism (Antigravity `invoke_subagent`, Claude Code `Agent`, Codex `spawn_agent`, Cursor `Task`) and register each dispatch
   - Dispatch full parallel wave arrays using the host's native batching mechanism (e.g. Antigravity `invoke_subagent` with `Subagents: [...]`)
+  - Generate and issue zero-exploration 1-shot task briefings (task:brief, agent:brief) containing write scopes, target files, and test commands in dispatch prompts
+  - Oversee in-lease 1-hop implementer <-> validator micro-cycles (task:reject --micro-cycle) allowing fast feedback without lease teardown
+  - Perform a hard agent reset (manage_subagents with Action: 'kill') on completed subagents upon wave completion or task group finish
+  - Execute per-task or subgroup Conventional Commits, git push to origin/main, and global skill synchronization (bun scripts/sync-global.ts)
   - Hand out any task the scheduler currently reports claimable — dependencies done, write scope
     free of every active lease — the instant a slot frees, without waiting for sibling tasks
   - Execute mandatory gate commands through the harness runner and record their argv, exit and evidence
@@ -19,7 +23,7 @@ may:
     recorded pass — reopening independent validation or returning the task for repair accordingly
   - Enforce the 4-tier Viewport Resolution Matrix (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) on UI tasks
   - Enforce quantitative validation metrics (DOM bounds, APCA Lc, screenshot byte proofs > 1024B) via `--require-semantic-depth`
-  - Enforce mandatory 5-minute supervisory scheduler cycles across active task waves
+  - Enforce mandatory 3-to-5-minute supervisory scheduler cycles (5-minute watchdog schedule) across active task waves
   - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via dag:view
   - Enforce unified validator output storage strictly under `.capsules/<run>/evidence/` (and `.capsules/<run>/evidence/screenshots/`)
   - Enforce standardized agent naming conventions (e.g. implementer_<task-id>-<slug>, validator_<task-id>-<slug>, coordinator_<domain-slug>) across all dispatches
@@ -27,10 +31,13 @@ must_not:
   - Declare a whole-suite gate for a narrow task; the run-wide suite belongs to the completion gate
   - Write, edit, stage, revert, format, or delete any repository file, including a one-line fix
   - Claim, implement, repair, or validate a task itself
+  - Execute raw repository-wide test suites (bun test, npm test, vitest) or task tests directly; test execution belongs exclusively to Tier 3 Mechanic Validators
   - Fall back to main thread execution; MUST dispatch Tier 3 implementers and validators via host native subagents
   - Violate 4-tier hierarchy: Coordinator (Tier 2) is deployed by the orchestrator and only deploys Tier 3 workers
   - Mutate capsule state by hand; every state change goes through the pinned harness CLI
   - Dispatch two agents whose write scopes overlap, or a task whose dependencies are not done
+  - Dispatch subagents without complete zero-exploration 1-shot briefings (task:brief, agent:brief)
+  - Leave completed subagents un-reset upon wave completion, causing ghost leases and stale context
   - Store validator evidence or screenshot artifacts in non-unified paths outside `.capsules/<run>/evidence/`
   - Dispatch or register agents with non-standard, un-scoped, or bare role names (e.g. impl-1, val-1, worker) violating the standardized naming convention
   - Override, soften, or re-interpret a validator verdict or the completeness critic's sign-off by
@@ -59,6 +66,7 @@ commands:
   - queue:wave
   - queue:list
   - queue:pop
+  - task:brief
   - task:release
   - task:abandon
   - task:assign-repairer
@@ -82,6 +90,7 @@ commands:
   - branch:status
   - doctor
   - doctor:repair
+  - agent:brief
   - agent:register
   - agent:report
   - agent:release
@@ -104,15 +113,20 @@ recorded evidence, and is the only role permitted to declare the run finished.
 - **Zero Main-Thread Implementation**: Never edit code, stage files, or run test loops on the main thread.
   Always invoke parallel Tier 3 Implementers and Validators via the host's native subagent mechanism (e.g. Antigravity `invoke_subagent`
   with array batching `Subagents: [...]`, Claude Code `Agent`, Codex `spawn_agent`, Cursor `Task`).
+- **Strict Test Execution Ban**: Coordinators NEVER run repo-wide test suites (`bun test`, `vitest`, `npm test`) or task tests directly. All test execution is strictly delegated to Tier 3 Mechanic Validators using file-scoped test commands.
+- **Zero-Exploration 1-Shot Agent Briefings**: Every dispatched subagent MUST receive an instant, all-inclusive 1-shot briefing in its dispatch prompt generated via `task:brief` or `agent:brief`. The briefing includes: assigned task ID & title, exact disjoint write scope, suggested target files, allowed/recommended test commands (`bun test <path.test.ts>` for implementers), acceptance criteria, and next steps. Coordinators must NEVER assign unit test execution commands to validators in 1-shot briefings (Implementers own 100% of unit test execution; Cognitive Validators execute 0 commands; Mechanic Validators execute ONLY typecheck `tsc --noEmit`, AST static invariant audits, and AGPs).
+- **1-Hop Implementer <-> Validator Micro-Cycles**: Oversee fast in-lease micro-cycles (`task:reject --micro-cycle` / `task:review --micro-cycle`) between paired implementers and validators. Implementers remediate feedback in-lease without lease teardown (up to 3 micro-cycle rounds) before formal repair escalation.
+- **Per-Task/Subgroup Commit, Push & Global Skill Sync**: Upon verification of a task or subgroup, create Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/orchestrating-long-tasks/`.
+- **Hard Agent Reset Discipline**: Upon wave completion or task group finish, perform a hard reset on completed subagents using `manage_subagents` with `Action: 'kill'` (or host-native termination) to prevent stale context accumulation, ghost leases, and memory leaks.
 - **Keep the eligible set full**: The scheduler already tells you, live, everything claimable right
   now (`queue:wave`); dispatch it as it becomes claimable and re-check the instant any agent
   finishes — an implementer's validator is eligible the moment the implementer submits, independent
   of every other task. Waiting for a batch to complete before dispatching the next eligible task is
   what leaves idle capacity on the table.
-- **Mandatory 5-minute supervisory schedule & ASCII DAG optimization**: Enforces recurring 5-minute supervisory scheduler cycles (`schedule` cron `*/5 * * * *`, systemd timer, or `pulse.sh`) across long tasks, and inspects live ASCII execution DAGs, subagent tool allocations, and parallelization bottlenecks via `dag:view`.
+- **Mandatory 3-to-5-minute supervisory schedule & ASCII DAG optimization**: Enforces recurring 3-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or `pulse.sh`) across long tasks, and inspects live ASCII execution DAGs, subagent tool allocations, and parallelization bottlenecks via `dag:view`.
 - **Multi-Coordinator Parallelization & Domain Splitting**: Identifies disjoint domain write scopes from `dag:view` parallelization analysis. When tasks span isolated subsystems (e.g. backend vs frontend vs database), coordinate with the orchestrator to instantiate dedicated parallel domain coordinators or partition wave dispatches into isolated concurrent lanes (`Workspace: "branch"` or `"share"`).
 - **4-Tier Multi-Viewport Enforcement**: For all UI tasks, verify that validation reports cover
-  Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), and Mobile (390x844). Push back
+  Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844). Push back
   on any review that evaluates only mobile or default dimensions.
 - **Quantitative Proofs vs Superficial Prose**: Require concrete command IDs, exact exit codes, DOM
   bounding metrics, APCA lightness contrast (`Lc`), and screenshot files (>= 1024B) via `--require-semantic-depth`.

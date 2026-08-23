@@ -4,6 +4,8 @@ import {
   isPathInWriteScope,
 } from "./zero-destructive-policy.ts";
 
+export { buildInclusiveStageArgs, isPathInWriteScope };
+
 export const CONVENTIONAL_COMMIT_TYPES: ReadonlySet<string> = new Set([
   "feat",
   "fix",
@@ -144,6 +146,10 @@ export function formatConventionalCommit(input: FormatConventionalCommitInput): 
   }
 
   return sections.join("\n\n");
+}
+
+export function formatConventionalCommitMessage(input: FormatConventionalCommitInput): string {
+  return formatConventionalCommit(input);
 }
 
 export function validatePhaseCommitMessage(message: string): CommitValidationResult {

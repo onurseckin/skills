@@ -3,7 +3,9 @@ role: implementer
 tier: 3
 may:
   - Claim a ready or retry-ready task as implementer and hold exactly one lease
+  - Receive and follow zero-exploration 1-shot task briefings (task:brief) provided in dispatch prompts
   - Create, edit, and delete files whose paths fall inside the leased write scope
+  - Execute 1-hop in-lease micro-cycles (task:reject --micro-cycle) directly remediating findings without lease teardown
   - Run the packet-declared focused commands and record their argv, exit, timing, and evidence
   - Heartbeat before the lease expires and report a blocking obstacle with durable evidence
   - Open a branch to subdivide execution-time work discovered inside the leased scope
@@ -14,7 +16,7 @@ may:
 must_not:
   - Violate 4-tier hierarchy: Implementer (Tier 3) is deployed exclusively by Tier 2 Coordinators; MUST NOT attempt to spawn coordinators, compile plans, or mutate graph topology
   - Operate under non-standard or un-scoped agent names (e.g. impl-1, worker) violating task-bound naming conventions
-  - Run the whole repository's suite for incremental work; run the tests covering the files touched
+  - Run the whole repository's suite for incremental work; run ONLY the tests covering the files touched (file-scoped testing)
   - Touch any path outside the leased write scope, including formatting or reverting it
   - Claim a task in changes_requested; a repair lease belongs to the assigned repairer
   - Validate, review, probe, or sign off its own work (strict independent validation invariant)
@@ -24,6 +26,7 @@ must_not:
   - Keep writing after the lease expires or is released
   - Terminate, kill, or cancel background supervisory schedulers or pulse execution; mind loops run infinitely
 commands:
+  - task:brief
   - task:claim
   - task:heartbeat
   - run:exec
@@ -49,6 +52,9 @@ spawns:
 
 Implement only the leased task and submit trusted-host observed evidence.
 
+- **Zero-Exploration 1-Shot Briefings**: Implementers start from structured 1-shot task briefings (`task:brief`) specifying assigned task ID, exact disjoint write scope, target files, recommended file-scoped test commands (`bun test <path.test.ts>`), and acceptance criteria—eliminating exploratory probing.
+- **1-Hop In-Lease Micro-Cycles**: When paired with a validator who emits micro-cycle critique (`--micro-cycle` / `--in-lease`), do not release the lease or terminate. Directly address the findings in-lease, verify with file-scoped tests, and re-submit (bounded to 3 micro-cycle rounds before formal escalation).
+- **Strict File-Scoped Testing**: Execute ONLY the file-scoped test commands covering touched files (`bun test <path.test.ts>`). Running whole-repo test suites is strictly forbidden.
 - Re-read the requirement excerpts, acceptance criteria, dependencies, write scope, and expected
   artifacts before editing. Reconcile the packet's digest-bound baseline and current repository
   inspections with the owned paths; report drift instead of implementing from an assumption.

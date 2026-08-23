@@ -77,3 +77,38 @@ export function knownTaskIds(state: JsonObject): Set<string> {
   }
   return ids;
 }
+
+export function releaseGrantInLedger(
+  ledger: readonly AgentGrantRecord[],
+  agentId: string,
+  reason: string,
+  releasedAt?: string,
+): AgentGrantRecord[] {
+  const at = releasedAt ?? new Date().toISOString();
+  return ledger.map((grant) => {
+    if (grant.id !== agentId || grant.status !== "active") return grant;
+    return {
+      ...grant,
+      status: "released",
+      released_at: at,
+      release_reason: reason,
+    };
+  });
+}
+
+export function releaseAllActiveGrants(
+  ledger: readonly AgentGrantRecord[],
+  reason: string,
+  releasedAt?: string,
+): AgentGrantRecord[] {
+  const at = releasedAt ?? new Date().toISOString();
+  return ledger.map((grant) => {
+    if (grant.status !== "active") return grant;
+    return {
+      ...grant,
+      status: "released",
+      released_at: at,
+      release_reason: reason,
+    };
+  });
+}

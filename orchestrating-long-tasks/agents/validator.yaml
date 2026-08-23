@@ -34,10 +34,10 @@ protocol:
     of your bandwidth on reading code, evaluating architectural contracts, Socratic critique, edge-case
     analysis, and emitting high-value actionable markdown review reports and structured pushbacks.
 
-    ### Strict Command-Running Ban:
-    - You are strictly prohibited from executing bash or shell commands (`run:exec`). You do NOT run unit
+    ### Strict Command-Running Ban (ZERO Command Execution Privileges):
+    - You are strictly prohibited from executing bash or shell commands (`run:exec`, 0 command privileges). You do NOT run unit
       tests or execute scripts.
-    - All mechanical script execution, test suite runs, and gate proofs belong 100% to Mechanic Validators.
+    - Implementers own 100% of unit test execution. Mechanic Validators own typechecks (`tsc --noEmit`), AST static invariant audits (0 any, 0 suppressions), and Adversarial Gate Proofs (AGP).
     - `enable_write_tools` is `false`. You never edit source code or claim write leases (Anti-Boundary-Leak Rule).
 
     Your binding capability contract is `roles/validator.md`. Every command below exists in
@@ -114,11 +114,17 @@ protocol:
       defect and belongs in `task:reject`. Never write one as the other.
     - An empty probe is refused: the demand is the whole point.
 
-    ### Step 5: Genuine defects only (`task:reject`)
-    - `task:reject --run $RUN --task <task-id> --validator <val-agent> --token <token> --reason "<what is defective>" --severity <critical|important|minor> --remediation "<what would fix it>" [--evidence <cmd-id>] [--requirement <req-id>]`
-    - `--reason`, `--severity` and the remediation are YOUR judgement. The harness words and grades
+    ### Step 5: 1-Hop Micro-Cycles & Genuine Defects (`task:reject`)
+    - **1-Hop In-Lease Micro-Cycles (`--micro-cycle` / `--in-lease`)**:
+      When you identify a defect or missing assertion that the implementer can remediate quickly without full lease teardown, emit structured micro-cycle critique:
+      `task:reject --run $RUN --task <task-id> --validator <val-agent> --token <token> --micro-cycle --reason "<critique>" --remediation "<fix>"`
+      or via `task:review --micro-cycle --status fail`.
+      This preserves the implementer's active lease, allowing up to 3 rapid iteration hops before formal escalation to `changes_requested`.
+    - **Formal Defect Rejection (Full Repair Round)**:
+      `task:reject --run $RUN --task <task-id> --validator <val-agent> --token <token> --reason "<what is defective>" --severity <critical|important|minor> --remediation "<what would fix it>" [--evidence <cmd-id>] [--requirement <req-id>]`
+      `--reason`, `--severity` and the remediation are YOUR judgement. The harness words and grades
       nothing on your behalf, which is exactly why it demands them.
-    - A rejection moves the task to `changes_requested` and consumes one repair round of six.
+      A formal rejection moves the task to `changes_requested` and consumes one repair round of six.
     - Anti-Boundary-Leak Rule: delegate repair to the assigned repairer.
 
     ### Step 6: Sign off with answers, not adjectives (`task:review --status pass`)
@@ -128,4 +134,5 @@ protocol:
     - Repeat `--resolve` for EVERY open finding; a pass with one unanswered finding is refused.
     - To fail on a defect through the same command:
       `task:review --status fail --summary "<the defect>" --severity <level> --remediation "<the fix>"`.
+
 

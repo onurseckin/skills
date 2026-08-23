@@ -38,7 +38,9 @@ protocol:
     - If the work genuinely needs a second, disjoint region, do not violate the scope and do not ask
       for a replan: open a branch (Step 5).
 
-    ### Step 1: Claim the lease under an explicit role and standardized agent ID
+    ### Step 1: Zero-Exploration 1-Shot Briefing & Lease Claiming
+    - Review your 1-shot briefing in your prompt (or via `task:brief --run $RUN --task <task-id>`):
+      contains assigned task ID, exact write scope, suggested target files, allowed & recommended test commands (`bun test <path.test.ts>`), and acceptance criteria.
     - Standardized Agent Naming: Tier 3 Implementers MUST register and claim leases using `<role>_<task-id>[-<descriptive-slug>]` (e.g. `implementer_task-p47-autonomic-watchdog` or `implementer_<task-id>`). Repairers use `repairer_<task-id>[-<descriptive-slug>]`.
     - New work: `task:claim --run $RUN --task <task-id> --agent implementer_<task-id>-<slug> --role implementer`
     - Repair of a task in `changes_requested`:
@@ -47,8 +49,6 @@ protocol:
       bound to for the whole lease. A repair lease is only granted to the recorded repair assignee.
     - Store the returned lease token for `task:heartbeat`, `task:submit`, `task:release` and
       `branch:*`. Never echo, log, or persist it in a report, evidence file, or prose.
-    - Review your `write_scope`, mapped `requirement_ids`, dependencies, acceptance criteria, and
-      mandatory gate command.
 
     ### Step 2: Read the brief, and the findings if this is a repair
     - Round 1: implement against the requirements and acceptance criteria in your brief.
@@ -63,12 +63,13 @@ protocol:
         demand by citing a command id.
     - Understand the root cause before changing a line.
 
-    ### Step 3: Implement inside the scope
+    ### Step 3: Implement inside the scope & File-Scoped Testing
     - Adhere to production-grade repository standards:
       - **Zero-Any TypeScript**: no `any` in any form (`: any`, `Promise<any>`, `Record<string, any>`,
         `as any`, `<any>x`, generic default `T = any`, implicit any).
       - **No Suppressions**: no `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `eslint-disable`,
         `oxlint-disable`, or coverage-ignore pragmas.
+      - **Strict File-Scoped Testing**: run ONLY file-scoped test commands (`bun test <path.test.ts>`) covering your touched files. NEVER run whole-repo test suites.
       - **Comment Integrity**: comments explain WHY and name gotchas; they never restate the code and
         never describe what the code used to do.
 
@@ -104,9 +105,9 @@ protocol:
       Every live sub-task is abandoned and you resume to carry the work yourself.
     - An uncollected branch BLOCKS run completion. Never walk away from an open one.
 
-    ### Step 6: Pre-submission verification
+    ### Step 6: Pre-submission verification (File-Scoped Only)
     Before submitting, verify inside your write scope:
-    1. **Unit & Integration Tests**: comprehensive coverage of what you implemented.
+    1. **File-Scoped Unit & Integration Tests**: `bun test <touched.test.ts>` covering what you implemented.
     2. **Negative & Edge-Case Coverage**: explicit assertions for negative paths, boundary
        conditions, input validation, and error recovery.
     3. **Regression Tests for Repairs**: a dedicated test per defect finding that fails without your
@@ -128,10 +129,14 @@ protocol:
     - The task moves to `submitted` and is handed to an independent validator. You do not validate,
       review, or probe your own work.
 
-    ### Step 8: Handle probes and rejections
+    ### Step 8: Handle 1-Hop Micro-Cycles, Probes and Rejections
+    - **1-Hop In-Lease Micro-Cycles (`--micro-cycle` / `--in-lease`)**:
+      When your paired validator emits micro-cycle critique, DO NOT terminate and DO NOT release your lease.
+      Address the findings directly in-lease, verify with file-scoped tests (`bun test <path.test.ts>`), and re-submit (`task:submit`).
+      Micro-cycles allow up to 3 rapid iteration hops before formal lease teardown.
     - A probe demand is not a rejection: your task is still in validation, no repair round was
       consumed, and nothing was declared broken. Produce the proof it asks for.
-    - A rejection moves the task to `changes_requested` with structured findings. Re-claim with
+    - A full rejection moves the task to `changes_requested` with structured findings. Re-claim with
       `--role repairer`, remediate inside the scope, add the regression test, and resubmit.
     - The budget is 6 repair rounds. Past that the task escalates to the coordinator — escalate with
       preserved evidence rather than looping.
@@ -146,3 +151,4 @@ protocol:
       `agent:report --run $RUN --agent <worker-id> --tool <name> --tokens-in <n> --tokens-out <n>`
       Add `--tokens-estimated` when the numbers are estimates rather than measurements. Report only
       what you actually have; a number nobody measured stays absent and renders as "unknown".
+

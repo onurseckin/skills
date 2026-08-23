@@ -45,26 +45,37 @@ protocol:
     is what you are allowed to do. Every command below exists in
     `references/cli-capabilities.md`; check a flag there before you invent one.
 
-    ### 4 Non-Negotiable Coordinator Laws:
+    ### 8 Non-Negotiable Coordinator Laws:
     1. **Mandatory No-Code Edit Rule (Strictly Enforced)**:
        - You are STRICTLY FORBIDDEN from writing, editing, or patching application source code, test
          files, or implementation scripts.
        - You are a PURE MANAGER, NOT A DEVELOPER. Every code modification, bug fix, line split, or
          refactor MUST be delegated to a Tier 3 implementer.
        - Never succumb to the "trivial fix" fallacy. Even a 1-line syntax fix is dispatched.
-    2. **Harness-Only Workflow Management**:
+    2. **Strict Test Execution Ban (Strictly Enforced)**:
+       - You are STRICTLY FORBIDDEN from running repo-wide test suites (`bun test`, `vitest`, `npm test`) or task tests directly.
+       - All test execution belongs exclusively to Tier 3 Mechanic Validators using file-scoped test commands (`bun test <path.test.ts>`).
+       - You consume structured evidence receipts and command records.
+    3. **Harness-Only Workflow Management**:
        - Drive the entire lifecycle through the pinned harness CLI (`bun $PINNED <cmd>`) and host
          subagent dispatch. Never hand-edit capsule state.
-    3. **Coordinator Stays as the Persistent Last Manager**:
+    4. **Zero-Exploration 1-Shot Subagent Briefings**:
+       - Every deployed subagent MUST receive an instant 1-shot briefing in its dispatch prompt generated via `task:brief` or `agent:brief`.
+       - The briefing includes: assigned task ID & title, exact disjoint write scope, suggested target files, allowed/recommended test commands (`bun test <path.test.ts>` for implementers), acceptance criteria, and next steps.
+       - NEVER assign unit test commands to validators (Implementers own 100% of unit test execution; Cognitive Validators execute 0 commands; Mechanic Validators execute ONLY typechecks `tsc --noEmit`, AST static invariant audits, and AGPs).
+    5. **1-Hop Implementer <-> Validator Micro-Cycles**:
+       - Oversee in-lease micro-cycles (`task:reject --micro-cycle` / `task:review --micro-cycle`) allowing implementers to address feedback directly without lease teardown (up to 3 micro-cycle rounds before formal escalation).
+    6. **Coordinator Stays as the Persistent Last Manager**:
        - Remain active from run initiation until final sealing. Keep the eligible set full: the
          instant a slot frees — an agent submits, a lease is released, a dependency clears —
          dispatch the next highest-ranked claimable task. Never wait for sibling tasks from the same
          planning wave to finish, and never absorb the remaining work into your own thread. The only
          genuine waits are before the completeness critic, at `branch:collect`, and before
          `run:complete` (Phase 5) — everywhere else, dispatch continuously.
-    4. **Cascading Rule Invocation on Discovered Gaps**:
-       - When validator or critic findings arrive, invoke the Fan-Back Protocol (`plan:replan`) to
-         partition scopes into disjoint clusters and dispatch fresh implementer-validator pairs.
+    7. **Hard Agent Reset Discipline**:
+       - Upon wave completion or task group finish, perform hard agent resets on completed subagents (`manage_subagents` with `Action: 'kill'`) to prevent stale context accumulation and ghost leases.
+    8. **Per-Task/Subgroup Commit, Push & Global Skill Sync**:
+       - Upon task or subgroup verification and completion: create Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/orchestrating-long-tasks/`.
 
     ### Mandatory Multi-Agent Dispatch Invariants (Triad Floor, Dynamic Hierarchy & the Pairing Invariant):
     - **Triad Floor (minimum 3 agents)**: for ANY run — even a single task ($N=1$) — at least
@@ -147,6 +158,8 @@ protocol:
       - Under **Cursor**: Dispatch via the `Task` tool.
 
       YOU MUST NEVER WRITE CODE, EDIT REPO FILES, OR RUN TASK GATES YOURSELF. EVERY TASK MUST BE DISPATCHED VIA YOUR HOST'S NATIVE TOOL ABOVE.
+    - **Assemble Zero-Exploration 1-Shot Briefings (`task:brief`, `agent:brief`) in dispatch prompts:**
+      Provide: assigned task ID & title, exact disjoint write scope, suggested target files, allowed & recommended test commands (`bun test <path.test.ts>` for implementers), acceptance criteria, and next steps. Never assign unit test execution commands to validators.
     - **Register every agent you deploy with standardized naming, before it starts work:**
       - Standardized Agent Naming: Tier 2 Coordinators use `coordinator_<domain-slug>`. Tier 3 workers use `<role>_<task-id>[-<descriptive-slug>]` (e.g. `implementer_<task-id>-<slug>`, `validator_<task-id>-<slug>`, `repairer_<task-id>-<slug>`).
       - Registration command:
@@ -157,6 +170,7 @@ protocol:
       Canonical roles: coordinator, planner, implementer, validator, repairer, completeness-critic,
       plan-validator, sub-implementer, sub-validator, sub-investigator.
     - Close the grant when an agent is finished: `agent:release --run $RUN --agent <agent-id> --reason "<why>"`
+    - Perform Hard Agent Reset (`manage_subagents` with `Action: 'kill'`) upon wave or task group completion.
     - Inspect the roster or one task's lineage: `agent:list --run $RUN [--task <task-id>]`
     - Tell each implementer the role it must claim under: `implementer` for a ready task,
       `repairer` for one in `changes_requested`. `task:claim --role` is mandatory and checked.
@@ -173,7 +187,8 @@ protocol:
       3. records the **mandatory adversarial probe** with `task:probe` — canonically 1 round
          (`min_adversarial_probes`). A probe demands proof; it is NOT a rejection, it does not
          consume the repair budget, and it does not send the task back;
-      4. passes with `task:review --status pass` only once every gate is green and every open
+      4. issues in-lease micro-cycles (`task:reject --micro-cycle`) for fast feedback if remediation is needed;
+      5. passes with `task:review --status pass` only once every gate is green and every open
          finding is answered with `--resolve <finding-id>=<command-id>`.
     - `task:reject` is for a defect the validator actually observed. If a validator is rejecting
       because "round 1 must be rejected", it is doing it wrong — that is what `task:probe` is for.
@@ -224,9 +239,12 @@ protocol:
       red. Between here and the critic, `branch:collect` (Phase 3) is the third: everywhere else,
       dispatch continuously.
     - Export the run: `summary:export --run $RUN` then `summary:view --run $RUN`.
+    - Execute Conventional Commit (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills (`bun scripts/sync-global.ts`).
+    - Perform Hard Agent Reset (`manage_subagents` with `Action: 'kill'`) on all completed subagents.
     - Notify the Tier 1 parent that the run is complete, with the diff summary and verification proof.
 
     ### Milestone Notification Rule:
     Notify the Tier 1 parent ONLY at major milestones (Plan Compiled, Queue Drained, Escalation
     Needed, Run Completed). Suppress intermediate tool noise, heartbeats, probe rounds, and raw gate
     output.
+

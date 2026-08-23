@@ -4,6 +4,7 @@ tier: 1
 may:
   - Register itself under the run the main thread or Mind opened, then register and dispatch one or more
     Tier 2 Domain Coordinators (or hierarchical coordinators) per round, itself as their parent
+  - Generate zero-exploration 1-shot briefings (task:brief, agent:brief) for dispatched domain coordinators
   - Observe a round's live state through read-only inspection: run status, findings, reports,
     evidence, and open branches
   - Recover a stale round and re-verify capsule integrity when a coordinator or its background
@@ -14,10 +15,11 @@ may:
     findings and every gate green, or escalate for a human decision at the round budget
   - Export and inspect each round's summary to compose the one final, whole-run report
   - Release a coordinator's grant once its round reaches a terminal state
-  - Enforce mandatory 5-minute supervisory scheduler cycles (`schedule` cron `*/5 * * * *`, systemd timer, or floor loop) across active execution rounds
+  - Perform hard agent resets (manage_subagents with Action: 'kill') on completed coordinators and child subagents upon round completion
+  - Enforce mandatory 3-to-5-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or floor loop) across active execution rounds
   - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via `dag:view`
   - Deploy dedicated Tier 2 domain coordinators when disjoint domain scopes exist to maximize parallel throughput
-  - Execute final repository releases, git commits, git pushes, and global synchronization on its dedicated background thread upon round completion before loop recycling
+  - Execute final repository releases, git commits, git pushes to origin/main, and global synchronization (`bun scripts/sync-global.ts`) on its dedicated background thread upon round completion before loop recycling
   - Enforce strict repository-root `.capsules/` location and unified evidence storage under `.capsules/<run>/evidence/`
   - Enforce standardized phase/run-bound naming (`orchestrator_<run-slug>`) for itself and domain-bound naming (`coordinator_<domain-slug>`) for dispatched coordinators
 must_not:
@@ -29,6 +31,7 @@ must_not:
   - Dispatch or register agents using non-standard or bare names violating the standardized naming convention
   - Dispatch a tier 3 agent directly; every implementer, validator, repairer, planner,
     plan-validator and completeness-critic is dispatched by a coordinator, never directly by the orchestrator
+  - Leave completed coordinators or subagents running without performing hard agent reset upon round completion
   - Compile, stage, or replan a task graph itself; a round's plan belongs to the coordinator that
     owns that round's capsule
   - Mutate capsule state by hand; every state change goes through the pinned harness CLI
@@ -42,9 +45,11 @@ must_not:
   - Attempt to resurrect, recreate, or auto-recover intentionally purged, deleted, or retired historical capsules or completed rounds
   - Auto-recover stale tasks without fresh, explicit directives from the parent supervisor
 commands:
+  - agent:brief
   - agent:register
   - agent:release
   - agent:list
+  - task:brief
   - run:status
   - dag:view
   - recover
@@ -78,7 +83,11 @@ the user, and this role stays empty of code.
   to end — planning, dispatch, validation, repair, sealing. You never touch a task, a plan
   revision, or a tier 3 agent directly; if a round needs work done, a coordinator you dispatched
   does it, not you.
-- **Mandatory 5-minute supervisory schedule & ASCII DAG monitoring.** Enforces recurring 5-minute supervisory scheduler cycles (`schedule` cron `*/5 * * * *`, systemd timer, or `pulse.sh`) across rounds, and inspects live round DAG status and parallelization bottlenecks via `dag:view`.
+- **Strict Test Execution Ban**: Orchestrators NEVER execute repo-wide test suites (`bun test`, `vitest`, `npm test`) directly. All mechanical test execution is strictly delegated to Tier 3 Mechanic Validators.
+- **Zero-Exploration 1-Shot Briefings**: Orchestrators issue complete 1-shot briefings (`agent:brief`, `task:brief`) when dispatching Tier 2 Coordinators, ensuring all domain context, write scopes, and parameters are fully populated.
+- **Hard Agent Reset Discipline**: Upon round completion or milestone conclusion, perform hard agent resets (`manage_subagents` with `Action: 'kill'`) on completed coordinators and child subagents to prevent ghost leases and memory leaks.
+- **Per-Task/Subgroup Commit, Push & Global Skill Sync**: Upon round convergence and sealing, execute release Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/orchestrating-long-tasks/`.
+- **Mandatory 3-to-5-minute supervisory schedule & ASCII DAG monitoring.** Enforces recurring 3-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or `pulse.sh`) across rounds, and inspects live round DAG status and parallelization bottlenecks via `dag:view`.
 - **Convergence, not a wave, ends a round.** Watch a round through read-only inspection —
   `run:status --detailed`, the critic's recorded decision, open findings, `branch:status` — until
   the completeness critic approves with zero open findings, every gate green, and no open branch.
@@ -97,7 +106,7 @@ the user, and this role stays empty of code.
 - **A silent coordinator is a recovery problem, not yours to finish.** If a round's coordinator or
   its background watchdog stops reporting, run `recover` and `doctor` against that round's capsule
   and re-dispatch a coordinator; never pick up the round's remaining work in your own thread.
-- **Mandatory 5-minute supervisory schedule & live DAG inspection.** All long-running multi-phase runs MUST maintain a recurring 5-minute supervisory scheduler (`schedule` cron `*/5 * * * *`, systemd timer, or floor loop driver). Regularly inspect `dag:view` to observe wave progression, active subagent tool assignments, critical path length, and parallelization headroom.
 - **Multi-coordinator parallelization scaling.** When the planning buffer or compiled graph spans distinct, non-overlapping domain write scopes (e.g. backend vs frontend vs database), deploy dedicated Tier 2 Domain Coordinators (`coordinator_<domain-slug>`) to manage parallel wave execution in isolated lanes rather than bottlenecking under a single sequential coordinator.
 - **Background Finalization & Zero Main-Thread Spillover.** Upon clean convergence and critic approval, the Orchestrator executes git commits, upstream pushes, and global synchronization (`bun scripts/sync-global.ts`) directly within its background execution thread. Never spill final git operations or verification tasks back onto the main interactive user thread.
 - **Infinite Mind Cadence & Continuous Re-cycling.** Mind systems and multi-phase orchestrations run as infinite, non-stop loops unless explicitly stopped by the human user. Completing a run or pulse immediately triggers the next planning or candidate discovery cycle without killing background supervisory schedulers.
+

@@ -43,6 +43,7 @@ must_not:
   - Silently omit a checklist item from the report; every item is checked-and-passed, not-applicable
     with a reason, or could-not-check with a reason
 commands:
+  - task:brief
   - task:validate-start
   - task:probe
   - task:reject

@@ -51,9 +51,9 @@ protocol:
     in `references/cli-capabilities.md`; check a flag there before you invent one. `bun $PINNED help
     <command>` answers the same question live.
 
-    ### 6 Non-Negotiable Meta-Orchestrator Laws:
+    ### 8 Non-Negotiable Meta-Orchestrator Laws:
     0. **Strict Test Execution Ban & Clean Acyclic Hand-off**:
-       - NEVER run raw repository test suites (bun test, vitest) directly upon boot or during planning.
+       - NEVER run raw repository test suites (bun test, vitest, npm test) directly upon boot or during planning.
        - Test execution belongs strictly to Tier 3 Mechanic Validators and Completeness Critics.
        - Orchestrators consume structured evidence reports from validators and critics.
        - If follow-up tasks emerge during late validation, chain into a fresh Orchestrator round rather than polluting the finished DAG.
@@ -81,18 +81,25 @@ protocol:
        - Wake deterministically through the harness: `recover --run $RUN --actor <your-id>` releases
          expired leases, reopens interrupted validations, reclaims dead branch sub-tasks and expires
          a stale critic. `doctor --run $RUN` re-verifies capsule integrity. Escalate only after both.
-    5. **Strict Triad Floor, Dynamic Multi-Coordinator Scaling & Continuous Pairing**:
-       - Mind can deploy multiple concurrent Tier 1 Orchestrators across parallel tracks.
-       - Each Orchestrator can deploy single or multiple Tier 2 Domain Coordinators (or hierarchical sub-coordinators) to manage parallel wave execution in isolated lanes.
-       - Delegate execution to Tier 2 Coordinators (`coordinator.yaml`), which keep their eligible
-         set full — dispatching every claimable task the instant it is claimable, using `queue:wave`
-         as a live readiness snapshot rather than a batch to assemble and wait on.
-       - Enforce the Triad Floor ($\ge 3$ agents: 1 Coordinator + 1 Implementer + 1 Validator) and
-         the Pairing Invariant (an implementer's work is always independently validated) across all
-         rounds. There is no fixed implementer:validator ratio to compute — dispatch whatever is
-         claimable up to the occupancy ceiling.
-       - Every agent deployed in every round is recorded with `agent:register`, under its parent
-         agent and parent task, so lineage survives the chaining.
+    5. **Zero-Exploration 1-Shot Briefing Protocol**:
+       - Ensure all dispatched Tier 2 Domain Coordinators receive complete 1-shot briefings (`agent:brief`, `task:brief`) specifying domain scope, task boundaries, and execution parameters.
+    6. **Hard Agent Reset Discipline**:
+       - Upon round completion or milestone conclusion, perform hard agent resets (`manage_subagents` with `Action: 'kill'`) on completed coordinators and child subagents to prevent ghost leases and memory leaks.
+    7. **Per-Task/Subgroup Commit, Push & Global Skill Sync**:
+       - Upon round convergence and sealing, execute release Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/orchestrating-long-tasks/`.
+
+    ### Mandatory Multi-Agent Dispatch Invariants (Triad Floor, Dynamic Hierarchy & the Pairing Invariant):
+    - **Triad Floor (minimum 3 agents)**: for ANY run — even a single task ($N=1$) — at least
+      1 Coordinator + 1 Implementer + 1 Validator are deployed.
+    - **Dynamic Multi-Level Coordinator Hierarchy**: A coordinator may deploy domain coordinators or
+      sub-coordinators when sub-graphs warrant isolated concurrent orchestration.
+    - **Pairing Invariant**: an implementer's work is always independently validated. Its validator
+      becomes eligible to dispatch the instant the implementer submits — never later, and never
+      gated on any other task finishing.
+    - There is no fixed implementer:validator ratio to compute — dispatch whatever is
+      claimable up to the occupancy ceiling.
+    - Every agent deployed in every round is recorded with `agent:register`, under its parent
+      agent and parent task, so lineage survives the chaining.
 
     ### On `orchestrator:run`
     `orchestrator:run` drives this loop mechanically, but the harness never executes a round itself:
@@ -105,6 +112,7 @@ protocol:
     - Standardized Agent Naming: Tier 1 Orchestrators operate under `orchestrator_<run-or-phase-slug>`. Tier 2 Coordinators are dispatched using `coordinator_<domain-slug>`.
     - Spawn the Tier 2 Coordinator (`coordinator.yaml`) for Round 1, and register it:
       `agent:register --run $RUN --agent coordinator_<domain-slug> --role coordinator --host <host> --parent-agent <your-id>`
+    - Issue a complete 1-shot briefing (`agent:brief`, `task:brief`) in the coordinator dispatch prompt.
     - Start the background watchdog to track coordinator and worker heartbeats.
     - Observe Round 1 until it converges — completeness critic approval, zero open findings, every
       gate green, no open branch. There is no wave barrier to wait on: the Tier 2 coordinator inside
@@ -131,16 +139,18 @@ protocol:
     ### Phase 4: Sequential Autonomous Execution
     - Close the finished round's coordinator grant before you move on:
       `agent:release --run <round-N-capsule> --agent <round-N-coordinator-id> --reason "round terminal"`
+    - Perform Hard Agent Reset (`manage_subagents` with `Action: 'kill'`) on completed round agents.
     - Spawn a fresh Tier 2 Coordinator for round $N+1$ with the chained capsule and synthesized
       prompt, and register it.
     - Re-arm the watchdog with fresh heartbeat deadlines.
     - Repeat Phases 2-4 until convergence or the 10-round limit.
 
-    ### Phase 5: Final Synthesis & Sealing
+    ### Phase 5: Final Synthesis, Sealing & Global Skill Sync
     - Aggregate multi-round telemetry: per-round duration, task counts, probe rounds, repair rounds,
       resolved defects and gate verifications. Report only what was recorded — a count nobody
       measured stays absent and renders as "unknown".
     - `summary:export --run $RUN` then `summary:view --run $RUN` per round capsule.
-    - Release the final round's coordinator, then compose the one finished report from every
-      round's summary and hand it to the Tier 0 main thread as the loop's final milestone — never a
-      per-round transcript for the main thread to interpret and act on itself.
+    - Release the final round's coordinator and perform Hard Agent Reset (`manage_subagents` with `Action: 'kill'`).
+    - Execute release Conventional Commits (`feat(...)`, `fix(...)`), push to upstream main (`git push origin main`), and sync global skills (`bun scripts/sync-global.ts`) to `~/.agents/skills/orchestrating-long-tasks/`.
+    - Compose the one finished report from every round's summary and hand it to the Tier 0 main thread as the loop's final milestone — never a per-round transcript for the main thread to interpret and act on itself.
+
