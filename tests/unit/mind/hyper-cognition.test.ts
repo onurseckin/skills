@@ -281,16 +281,28 @@ describe("Hyper-Active Mind Cognition Engine", () => {
     });
 
     it("clamps scores to MIN_COGNITIVE_SCORE on severe failure cascades", () => {
-      const severeFindings: CognitiveAuditFinding[] = Array.from({ length: 20 }, (_, i) => ({
-        id: `F-SEVERE-${i}`,
-        dimension: "type_safety" as CognitiveAuditDimension,
-        severity: "critical" as const,
-        ruleId: "RULE-SEVERE",
-        description: "Catastrophic type breakdown",
-        remediation: "Rewrite",
-        scoreImpact: 20,
-        timestamp: new Date().toISOString(),
-      }));
+      const severeFindings: CognitiveAuditFinding[] = [
+        ...Array.from({ length: 10 }, (_, i) => ({
+          id: `F-SEVERE-TYPE-${i}`,
+          dimension: "type_safety" as CognitiveAuditDimension,
+          severity: "critical" as const,
+          ruleId: "RULE-SEVERE-TYPE",
+          description: "Catastrophic type breakdown",
+          remediation: "Rewrite",
+          scoreImpact: 20,
+          timestamp: new Date().toISOString(),
+        })),
+        ...Array.from({ length: 10 }, (_, i) => ({
+          id: `F-SEVERE-DAG-${i}`,
+          dimension: "dag_concurrency" as CognitiveAuditDimension,
+          severity: "critical" as const,
+          ruleId: "RULE-SEVERE-DAG",
+          description: "Catastrophic DAG blockage",
+          remediation: "Rebuild",
+          scoreImpact: 20,
+          timestamp: new Date().toISOString(),
+        })),
+      ];
 
       const metrics: SystemStateMetrics = {
         totalTasks: 10,

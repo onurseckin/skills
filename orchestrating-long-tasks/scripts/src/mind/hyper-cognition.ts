@@ -627,17 +627,23 @@ export function runAutonomousAuditLoop(
 
 export function executeProactiveSelfQuestioningCycle(input: QuestionCycleInput): ProactiveQuestionCycle {
   const timestamp = input.timestamp !== undefined ? input.timestamp : new Date().toISOString();
-  let spec: ProactiveQuestionSpec | undefined;
-
-  if (input.questionId !== undefined) {
-    spec = PROACTIVE_QUESTION_CATALOG.find((q) => q.id === input.questionId);
+  const defaultSpec = PROACTIVE_QUESTION_CATALOG[0];
+  if (defaultSpec === undefined) {
+    throw new HarnessError("INTEGRITY", "PROACTIVE_QUESTION_CATALOG must not be empty");
   }
 
-  if (spec === undefined) {
+  let spec: ProactiveQuestionSpec = defaultSpec;
+
+  if (input.questionId !== undefined) {
+    const found = PROACTIVE_QUESTION_CATALOG.find((q) => q.id === input.questionId);
+    if (found !== undefined) {
+      spec = found;
+    }
+  } else {
     const cycleIndex = Math.abs(hashCode(input.cycleId)) % PROACTIVE_QUESTION_CATALOG.length;
-    spec = PROACTIVE_QUESTION_CATALOG[cycleIndex];
-    if (spec === undefined) {
-      spec = PROACTIVE_QUESTION_CATALOG[0];
+    const indexed = PROACTIVE_QUESTION_CATALOG[cycleIndex];
+    if (indexed !== undefined) {
+      spec = indexed;
     }
   }
 
