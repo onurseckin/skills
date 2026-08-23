@@ -7,7 +7,77 @@ import {
   agentListNextActions,
   agentRegisterNextActions,
   nextActionsBlock,
+  type NextActionItem,
 } from "./next-actions.ts";
+
+export interface AgentBriefParams {
+  agentId: string;
+  role: string;
+  parentAgentId?: string | null;
+  parentTaskId?: string | null;
+  model?: string;
+  thinkingLevel?: string;
+  tools?: readonly string[];
+  writeScope?: readonly string[];
+  recommendedCommands?: readonly string[];
+}
+
+export function formatAgentBrief(params: AgentBriefParams): string {
+  const parent = params.parentAgentId ? `\`${params.parentAgentId}\`` : "root";
+  const task = params.parentTaskId ? `task \`${params.parentTaskId}\`` : "no task";
+  const toolsStr =
+    params.tools && params.tools.length > 0
+      ? params.tools.map((t) => `\`${t}\``).join(", ")
+      : "none";
+  const scopeStr =
+    params.writeScope && params.writeScope.length > 0
+      ? params.writeScope.map((s) => `\`${s}\``).join(", ")
+      : undefined;
+
+  const mdLines: string[] = [
+    `### 🌌 Zero-Exploration Briefing: Agent ${params.agentId} (${params.role})`,
+    `- **Under**: ${parent} / ${task}`,
+    `- **Model**: \`${params.model ?? "unknown"}\` · **Thinking**: \`${params.thinkingLevel ?? "unknown"}\``,
+    `- **Tools Granted**: ${toolsStr}`,
+  ];
+
+  if (scopeStr) {
+    mdLines.push(`- **Assigned Write Scope**: ${scopeStr}`);
+  }
+  if (params.recommendedCommands && params.recommendedCommands.length > 0) {
+    mdLines.push(`- **Recommended Commands**:`);
+    for (const cmd of params.recommendedCommands) {
+      mdLines.push(`  - \`${cmd}\``);
+    }
+  }
+
+  const nextActions: NextActionItem[] = [];
+  if (params.parentTaskId) {
+    nextActions.push({
+      command: `bun harness.ts task:brief --task ${params.parentTaskId} --agent ${params.agentId} --role ${params.role}`,
+      role: params.role,
+      description: "Inspect task briefing and exact write scope",
+    });
+    if (params.role === "implementer" || params.role === "repairer") {
+      nextActions.push({
+        command: `bun harness.ts task:claim --task ${params.parentTaskId} --agent ${params.agentId} --role ${params.role}`,
+        role: params.role,
+        description: "Claim task lease",
+      });
+    } else if (params.role === "validator") {
+      nextActions.push({
+        command: `bun harness.ts task:validate-start --task ${params.parentTaskId} --validator ${params.agentId}`,
+        role: "Validator",
+        description: "Start validation lease",
+      });
+    }
+  }
+  if (nextActions.length > 0) {
+    mdLines.push(...nextActionsBlock(nextActions));
+  }
+
+  return enforceLineLimit(mdLines.join("\n"), 30);
+}
 
 function cell(value: Evidenced<number | string> | undefined): string {
   if (value === undefined) return "unknown";

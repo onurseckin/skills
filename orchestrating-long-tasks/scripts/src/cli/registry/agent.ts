@@ -4,6 +4,7 @@ import {
   agentReleaseCommand,
   agentReportCommand,
 } from "../commands/agent-ops.ts";
+import { agentBriefCommand } from "../commands/task-brief.ts";
 import { CATEGORY_FLAG_HELP } from "../taxonomy-flags.ts";
 import {
   DEFAULT_EXIT_CODES,
@@ -31,6 +32,27 @@ const toolExtraFlag: FlagSpec = {
 };
 
 export const AGENT_COMMANDS: readonly CommandSpec[] = [
+  {
+    name: "agent:brief",
+    aliases: [],
+    domain: "agent",
+    tier: "internal",
+    internal: true,
+    summary: "Generate a zero-exploration 1-shot briefing for a dispatched agent.",
+    description:
+      "Produces a structured briefing for the agent with role, parent lineage, model/thinking configuration, tools, and parent task write scope and test commands if attached to a task.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag("agent", "string", "Agent id holding the grant."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts agent:brief --run .capsules/<run-id> --agent worker-1",
+    ],
+    handler: agentBriefCommand,
+  },
   {
     name: "agent:register",
     aliases: [],

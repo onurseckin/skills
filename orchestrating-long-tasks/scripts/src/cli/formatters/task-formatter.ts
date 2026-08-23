@@ -11,6 +11,66 @@ import {
   validationStartNextActions,
 } from "./next-actions.ts";
 
+export interface TaskBriefParams {
+  taskId: string;
+  label?: string;
+  role?: string;
+  agent?: string;
+  writeScope: readonly string[];
+  worktreePath?: string;
+  targetFiles?: readonly string[];
+  recommendedCommands?: readonly string[];
+  gateCommands?: readonly string[];
+  acceptanceCriteria?: readonly string[];
+  nextSteps?: readonly string[];
+}
+
+export function formatTaskBrief(params: TaskBriefParams): string {
+  const scopeStr = params.writeScope.map((s) => `\`${s}\``).join(", ") || "`none`";
+  const mdLines: string[] = [
+    `### 🌌 Zero-Exploration Briefing: ${params.taskId}`,
+  ];
+  if (params.label) {
+    mdLines.push(`- **Label**: ${params.label}`);
+  }
+  if (params.role || params.agent) {
+    const rolePart = params.role ? `Role: \`${params.role}\`` : "";
+    const agentPart = params.agent ? `Agent: \`${params.agent}\`` : "";
+    const combined = [rolePart, agentPart].filter(Boolean).join(" · ");
+    mdLines.push(`- **Assignment**: ${combined}`);
+  }
+  mdLines.push(`- **Assigned Write Scope**: ${scopeStr}`);
+  if (params.worktreePath) {
+    mdLines.push(`- **Isolated Worktree**: \`${params.worktreePath}\``);
+  }
+  if (params.targetFiles && params.targetFiles.length > 0) {
+    const filesStr = params.targetFiles.map((f) => `\`${f}\``).join(", ");
+    mdLines.push(`- **Suggested Target Files**: ${filesStr}`);
+  }
+  if (params.recommendedCommands && params.recommendedCommands.length > 0) {
+    mdLines.push(`- **Recommended Commands**:`);
+    for (const cmd of params.recommendedCommands) {
+      mdLines.push(`  - \`${cmd}\``);
+    }
+  }
+  if (params.gateCommands && params.gateCommands.length > 0) {
+    mdLines.push(`- **Gate Commands**:`);
+    for (const cmd of params.gateCommands) {
+      mdLines.push(`  - \`${cmd}\``);
+    }
+  }
+  if (params.acceptanceCriteria && params.acceptanceCriteria.length > 0) {
+    mdLines.push(`- **Acceptance Criteria**:`);
+    for (const ac of params.acceptanceCriteria) {
+      mdLines.push(`  - ${ac}`);
+    }
+  }
+  if (params.nextSteps && params.nextSteps.length > 0) {
+    mdLines.push(...nextActionsBlock(params.nextSteps));
+  }
+  return enforceLineLimit(mdLines.join("\n"), 30);
+}
+
 export interface TaskClaimParams {
   taskId: string;
   agent: string;
@@ -19,6 +79,8 @@ export interface TaskClaimParams {
   writeScope: readonly string[];
   packetPath?: string;
   worktreePath?: string | undefined;
+  targetFiles?: readonly string[];
+  recommendedCommands?: readonly string[];
 }
 
 export function formatTaskClaimBrief(params: TaskClaimParams): string {
@@ -34,6 +96,15 @@ export function formatTaskClaimBrief(params: TaskClaimParams): string {
       : [
           `- **Isolated Worktree**: \`${params.worktreePath}\` — do all editing there, not in the shared repo checkout.`,
         ]),
+    ...(params.targetFiles && params.targetFiles.length > 0
+      ? [`- **Suggested Target Files**: ${params.targetFiles.map((f) => `\`${f}\``).join(", ")}`]
+      : []),
+    ...(params.recommendedCommands && params.recommendedCommands.length > 0
+      ? [
+          `- **Recommended Commands**:`,
+          ...params.recommendedCommands.map((cmd) => `  - \`${cmd}\``),
+        ]
+      : []),
     `- **Note**: Pass \`--token ${params.token}\` to \`task:submit\`.`,
     ...nextActionsBlock(taskClaimNextActions(undefined, params.taskId, params.agent, params.token)),
   ].join("\n");
@@ -92,6 +163,9 @@ export interface ValidationStartParams {
   gates: readonly string[];
   packetPath?: string;
   minProbes?: number;
+  targetFiles?: readonly string[];
+  recommendedCommands?: readonly string[];
+  writeScope?: readonly string[];
 }
 
 export function formatValidationStartBrief(params: ValidationStartParams): string {
@@ -100,8 +174,20 @@ export function formatValidationStartBrief(params: ValidationStartParams): strin
     `### Validation Leased: ${params.taskId}`,
     `- **Validator**: \`${params.validator}\``,
     `- **Validation Token**: \`${params.token}\``,
+    ...(params.writeScope && params.writeScope.length > 0
+      ? [`- **Task Write Scope**: ${params.writeScope.map((s) => `\`${s}\``).join(", ")}`]
+      : []),
+    ...(params.targetFiles && params.targetFiles.length > 0
+      ? [`- **Suggested Target Files**: ${params.targetFiles.map((f) => `\`${f}\``).join(", ")}`]
+      : []),
     `- **Mandatory Gates to Run**:${gateLines.length === 0 ? " none recorded for this task" : ""}`,
     ...gateLines,
+    ...(params.recommendedCommands && params.recommendedCommands.length > 0
+      ? [
+          `- **Recommended Commands**:`,
+          ...params.recommendedCommands.map((cmd) => `  - \`${cmd}\``),
+        ]
+      : []),
     ...(params.minProbes === undefined || params.minProbes === 0
       ? []
       : [

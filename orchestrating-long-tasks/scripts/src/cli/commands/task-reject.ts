@@ -5,8 +5,14 @@ import { loadRun } from "../../store/index.ts";
 import { tokenDigest } from "../../workflow/lease/token.ts";
 import { recordReview } from "../../workflow/review/record-review.ts";
 import { systemClock, type TaskRecord, type WorkflowState } from "../../workflow/types.ts";
+import {
+  DEFAULT_MAX_MICRO_CYCLES,
+  formatMicroCycleFeedback,
+  getLatestMicroCycle,
+  recordMicroCycleCritique,
+} from "../../workflow/review/micro-cycle.ts";
 import { formatTaskRejectBrief } from "../formatters/index.ts";
-import { textFlag, type Flags } from "../options.ts";
+import { boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 import {
   buildReviewFinding,
   nextFindingRound,
@@ -27,13 +33,50 @@ import {
 } from "./task-review-support.ts";
 
 export async function taskRejectCommand(flags: Flags): Promise<Record<string, unknown>> {
-  const [run, taskId, validator, token, reason] = [
+  const isMicroCycle = boolFlag(flags, "micro-cycle") || boolFlag(flags, "in-lease");
+  const [run, taskId, validator, reason] = [
     textFlag(flags, "run")!,
     textFlag(flags, "task")!,
     textFlag(flags, "validator")!,
-    textFlag(flags, "token")!,
     textFlag(flags, "reason")!,
   ];
+
+  if (isMicroCycle) {
+    const remediation = textFlag(flags, "remediation", false) ?? textFlag(flags, "finding", false);
+    const defect = textFlag(flags, "defect", false) ?? reason;
+    const maxRounds = integerFlag(flags, "max-rounds", { minimum: 1, maximum: 50 });
+
+    const state = recordMicroCycleCritique(
+      workflowPort(run),
+      taskId,
+      validator,
+      reason,
+      {
+        ...(remediation !== undefined ? { remediation } : {}),
+        ...(defect !== undefined ? { defect } : {}),
+        ...(maxRounds !== undefined ? { maxRounds } : {}),
+      },
+    );
+
+    const updatedTask = state.tasks[taskId]!;
+    const latestRecord = getLatestMicroCycle(updatedTask);
+    const round = latestRecord?.round ?? (updatedTask.micro_cycle_round ?? 1);
+    const markdown = latestRecord
+      ? formatMicroCycleFeedback(taskId, latestRecord, maxRounds ?? DEFAULT_MAX_MICRO_CYCLES)
+      : `### 🔄 Micro-Cycle Feedback (Round ${round})\n\nValidator: ${validator}\nCritique: ${reason}`;
+
+    return {
+      micro_cycle: true,
+      round,
+      markdown,
+      run_root: run,
+      task: updatedTask,
+      ...(latestRecord ? { micro_cycle_record: latestRecord } : {}),
+      ...(remediation !== undefined ? { remediation } : {}),
+    };
+  }
+
+  const token = textFlag(flags, "token")!;
   const remediation = textFlag(flags, "remediation", false) ?? textFlag(flags, "finding", false);
   if (remediation === undefined) {
     throw new HarnessError(

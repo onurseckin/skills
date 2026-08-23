@@ -9,6 +9,7 @@ import {
   taskSubmitCommand,
   taskValidateStartCommand,
 } from "../commands/task-ops.ts";
+import { taskBriefCommand } from "../commands/task-brief.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,
@@ -18,6 +19,28 @@ import {
 } from "./types.ts";
 
 export const TASK_COMMANDS: readonly CommandSpec[] = [
+  {
+    name: "task:brief",
+    aliases: [],
+    domain: "task",
+    summary: "Generate a zero-exploration 1-shot briefing for a task.",
+    description:
+      "Produces a structured briefing containing assigned write scope, target files, gate commands, recommended file-scoped test commands, acceptance criteria, and next actions.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag("task", "string", "Task id to brief."),
+      optionalFlag("agent", "string", "Agent id assigned to or briefing for the task."),
+      optionalFlag("role", "string", "Role under which the task is being briefed."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts task:brief --run .capsules/<run-id> --task task-1",
+      "bun harness.ts task:brief --run .capsules/<run-id> --task task-1 --agent worker-1 --role implementer",
+    ],
+    handler: taskBriefCommand,
+  },
   {
     name: "task:claim",
     aliases: [],

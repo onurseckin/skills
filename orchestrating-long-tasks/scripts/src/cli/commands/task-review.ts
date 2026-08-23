@@ -20,8 +20,16 @@ import {
   type ChecklistCoverageReport,
 } from "../../workflow/review/validate-review.ts";
 import { systemClock, type TaskRecord, type WorkflowState } from "../../workflow/types.ts";
+import {
+  DEFAULT_MAX_MICRO_CYCLES,
+  formatMicroCycleFeedback,
+  getLatestMicroCycle,
+  getOpenMicroCycles,
+  markMicroCycleAddressed,
+  recordMicroCycleCritique,
+} from "../../workflow/review/micro-cycle.ts";
 import { formatTaskRejectBrief, formatTaskReviewPassBrief } from "../formatters/index.ts";
-import { boolFlag, textFlag, type Flags } from "../options.ts";
+import { boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 import {
   assertNoResolutions,
   assertOpenFindingsAnswered,
@@ -104,6 +112,7 @@ function gateEvidenceSummary(state: WorkflowState, task: TaskRecord): string {
 }
 
 export async function taskReviewCommand(flags: Flags): Promise<Record<string, unknown>> {
+  const isMicroCycle = boolFlag(flags, "micro-cycle") || boolFlag(flags, "in-lease");
   const [run, taskId, validator, token, status] = [
     textFlag(flags, "run")!,
     textFlag(flags, "task")!,
@@ -119,6 +128,36 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   if (status === "fail") assertNoResolutions(flags);
   const failure = status === "fail" ? failingVerdictInput(flags) : undefined;
   const summary = failure ? failure.observation : textFlag(flags, "summary", false);
+
+  if (isMicroCycle && status === "fail") {
+    const reason = failure?.observation ?? summary ?? "Micro-cycle critique";
+    const remediation = failure?.remediation ?? textFlag(flags, "remediation", false);
+    const defect = failure?.observation ?? textFlag(flags, "defect", false) ?? reason;
+    const maxRounds = integerFlag(flags, "max-rounds", { minimum: 1, maximum: 50 });
+
+    const state = recordMicroCycleCritique(workflowPort(run), taskId, validator, reason, {
+      ...(remediation !== undefined ? { remediation } : {}),
+      ...(defect !== undefined ? { defect } : {}),
+      ...(maxRounds !== undefined ? { maxRounds } : {}),
+    });
+
+    const updatedTask = state.tasks[taskId]!;
+    const latestRecord = getLatestMicroCycle(updatedTask);
+    const round = latestRecord?.round ?? (updatedTask.micro_cycle_round ?? 1);
+    const markdown = latestRecord
+      ? formatMicroCycleFeedback(taskId, latestRecord, maxRounds ?? DEFAULT_MAX_MICRO_CYCLES)
+      : `### 🔄 Micro-Cycle Feedback (Round ${round})\n\nValidator: ${validator}\nCritique: ${reason}`;
+
+    return {
+      micro_cycle: true,
+      round,
+      markdown,
+      run_root: run,
+      task: updatedTask,
+      ...(latestRecord ? { micro_cycle_record: latestRecord } : {}),
+      ...(remediation !== undefined ? { remediation } : {}),
+    };
+  }
 
   const loaded = loadRun(run);
   const taskBefore = ((loaded.state.tasks ?? {}) as Record<string, TaskRecord>)[taskId];
@@ -251,6 +290,11 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   );
   if (findingObj === null) {
     state = finalizePassingTask(run, taskId, validator, checkIds, state);
+  }
+
+  const openCycles = getOpenMicroCycles(state.tasks[taskId] ?? taskBefore);
+  if (openCycles.length > 0) {
+    state = markMicroCycleAddressed(workflowPort(run), taskId, validator);
   }
 
   const unblocked = isPass

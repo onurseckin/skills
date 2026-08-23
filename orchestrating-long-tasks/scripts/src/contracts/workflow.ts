@@ -108,6 +108,8 @@ export interface Lease extends JsonObject {
   expires_at: string;
   heartbeat_at: string;
   duration_seconds: number;
+  micro_cycles?: MicroCycleRecord[];
+  micro_cycle_round?: number;
 }
 
 export interface Finding extends JsonObject {
@@ -142,6 +144,36 @@ export interface CoordinatorPushback extends JsonObject {
   remediation: string;
   review_round: number;
   created_at: string;
+}
+
+export type MicroCycleStatus = "open" | "addressed";
+
+export interface MicroCycleRecord extends JsonObject {
+  round: number;
+  validator_id: string;
+  critique: string;
+  suggested_remediation?: string;
+  observed_defect?: string;
+  created_at: string;
+  status: MicroCycleStatus;
+}
+
+export function isMicroCycleRecord(value: unknown): value is MicroCycleRecord {
+  if (typeof value !== "object" || value === null) return false;
+  const rec = value as Record<string, unknown>;
+  return (
+    typeof rec["round"] === "number" &&
+    Number.isSafeInteger(rec["round"]) &&
+    rec["round"] > 0 &&
+    typeof rec["validator_id"] === "string" &&
+    rec["validator_id"].trim().length > 0 &&
+    typeof rec["critique"] === "string" &&
+    rec["critique"].trim().length > 0 &&
+    (rec["status"] === "open" || rec["status"] === "addressed") &&
+    typeof rec["created_at"] === "string" &&
+    (rec["suggested_remediation"] === undefined || typeof rec["suggested_remediation"] === "string") &&
+    (rec["observed_defect"] === undefined || typeof rec["observed_defect"] === "string")
+  );
 }
 
 export function isStructuredFinding(value: unknown): value is Finding {
