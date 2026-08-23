@@ -27,5 +27,56 @@ export async function execute(
   );
   if (missing) throw new HarnessError("INVALID_ARGUMENT", `--${missing.name} is required`);
   assertGrantedCommand(spec, parsed.flags);
+
+  if (typeof parsed.flags["run"] === "string" && parsed.flags["run"].trim() !== "") {
+    try {
+      const runRoot = parsed.flags["run"] as string;
+      const { loadRun } = await import("../engine/store/load.ts");
+      const runData = loadRun(runRoot, false);
+      CumulativePhaseInvariantEngine.verify(spec.domain, runData.state);
+    } catch (e: unknown) {
+      if (e instanceof HarnessError && e.code === "INVALID_STATE") throw e;
+    }
+  }
+
   return (await spec.handler(parsed.flags, context, parsed.remainder)) as JsonObject;
+}
+
+export class DeductiveStateMachine {
+  constructor(public readonly state: Record<string, unknown>) {}
+
+  public isPhaseVerified(phase: string): boolean {
+    switch (phase) {
+      case "plan":
+        return !!this.state.requirements;
+      case "queue":
+        return !!this.state.tasks && Object.keys(this.state.tasks as object).length > 0;
+      case "task":
+        return !!this.state.tasks && Object.keys(this.state.tasks as object).length > 0;
+      case "run":
+        return !!this.state.completion_result;
+      default:
+        return true;
+    }
+  }
+}
+
+export class CumulativePhaseInvariantEngine {
+  public static verify(domain: string, state: Record<string, unknown>): void {
+    const PHASE_HIERARCHY = ["plan", "queue", "task", "run"];
+    const machine = new DeductiveStateMachine(state);
+
+    const targetIndex = PHASE_HIERARCHY.indexOf(domain);
+    if (targetIndex <= 0) return;
+
+    for (let i = 0; i < targetIndex; i++) {
+      const higherPhase = PHASE_HIERARCHY[i] as string;
+      if (!machine.isPhaseVerified(higherPhase)) {
+        throw new HarnessError(
+          "INVALID_STATE",
+          `Cumulative Phase Invariant Violation: cannot execute lower-phase command domain '${domain}' because higher prerequisite phase '${higherPhase}' is unverified.`,
+        );
+      }
+    }
+  }
 }

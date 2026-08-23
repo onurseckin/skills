@@ -5,7 +5,6 @@ import { AGENT_ROLES, isAgentRole } from "../../core/contracts/packets.ts";
 import { evidenced, type Evidenced } from "../../core/contracts/evidence.ts";
 import { getHarnessConfig } from "../../core/config/harness-config.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
-import { recordDefect } from "../../authority/thread-identifier.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
@@ -154,30 +153,6 @@ export async function taskClaimCommand(
 
   if (isOrchestrator || isCoordinator) {
     const roleTitle = isOrchestrator ? "Orchestrators" : "Coordinators";
-    const defectId = `defect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    recordDefect(
-      {
-        id: defectId,
-        type: "role_confinement_violation",
-        severity: "critical",
-        timestamp: new Date().toISOString(),
-        pid: typeof process !== "undefined" ? process.pid : 0,
-        ppid: typeof process !== "undefined" ? process.ppid : 0,
-        agent_id: agent,
-        observation: `${roleTitle} attempted to claim task '${taskId}' in violation of mechanical role confinement.`,
-        remediation:
-          "Orchestrators are mechanically confined from claiming code execution tasks. Dispatch Tier 3 Implementers via invoke_subagent.",
-        context: {
-          cwd: typeof process !== "undefined" ? process.cwd() : ".",
-          indicators: {
-            task_id: taskId,
-            agent_id: agent,
-            role,
-          },
-        },
-      },
-      { runRoot: run },
-    );
 
     if (isOrchestrator) {
       throw new HarnessError(
@@ -208,30 +183,6 @@ export async function taskClaimCommand(
 
   if (isCriticOrValidator) {
     const roleTitle = role === "completeness-critic" ? "Completeness critics" : "Validators";
-    const defectId = `defect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    recordDefect(
-      {
-        id: defectId,
-        type: "role_confinement_violation",
-        severity: "critical",
-        timestamp: new Date().toISOString(),
-        pid: typeof process !== "undefined" ? process.pid : 0,
-        ppid: typeof process !== "undefined" ? process.ppid : 0,
-        agent_id: agent,
-        observation: `${roleTitle} (${role}) attempted to claim task '${taskId}' in violation of mechanical anti-boundary-leak rule.`,
-        remediation:
-          "Critics and Validators are strictly prohibited from claiming code write leases or editing source files directly. Record findings via task:reject / finding:report and assign a dedicated repairer via task:assign-repairer.",
-        context: {
-          cwd: typeof process !== "undefined" ? process.cwd() : ".",
-          indicators: {
-            task_id: taskId,
-            agent_id: agent,
-            role,
-          },
-        },
-      },
-      { runRoot: run },
-    );
 
     throw new HarnessError(
       "INVALID_ARGUMENT",
