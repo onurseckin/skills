@@ -66,7 +66,6 @@ commands:
   - task:check
   - run:status
   - dag
-  - dag
   - defect:audit
   - recover
   - doctor
