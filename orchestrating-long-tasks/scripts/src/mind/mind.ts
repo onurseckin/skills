@@ -1,7 +1,7 @@
 /**
  * Unified Mind Subsystem Registry and Cognitive Discovery Engine.
- * Exports cognitive task discovery, self-evolution loops, CLI commands,
- * and core mind domain facilities.
+ * Exports cognitive task discovery, self-evolution loops, strategic purpose codification,
+ * CLI commands, and core mind domain facilities.
  */
 
 import { boolFlag, integerFlag, listFlag, textFlag, type CommandContext, type Flags } from "../cli/options.ts";
@@ -70,6 +70,36 @@ import {
   type SelfEvolutionCycleResult,
   type SelfEvolutionMode,
 } from "./self-evolution.ts";
+import {
+  MIND_STRATEGIC_ALTITUDE,
+  MIND_HARD_ZEROS,
+  MIND_PROACTIVE_BANDWIDTH_ACTIVITIES,
+  diagnoseMacroDag,
+  groomBacklog,
+  evaluateStrategicCandidateAdmission,
+  planProactiveRoadmap,
+  executeProactiveMindCognition,
+  formatStrategicCognitionBrief,
+  verifyMindRoleStrategicInvariants,
+  type MacroDagTaskNode,
+  type MacroDagBottleneck,
+  type MacroDagDiagnosticResult,
+  type BacklogGroomingItem,
+  type BacklogGroomingResult,
+  type StrategicCandidate,
+  type StrategicCandidateEvaluation,
+  type StrategicCandidateAdmissionResult,
+  type ProactiveWaveTask,
+  type ProactiveWavePlan,
+  type ProactiveRoadmapPlan,
+  type ProactiveMindCognitionResult,
+  type MacroDagDiagnosticOptions,
+  type BacklogGroomingOptions,
+  type StrategicCandidateAdmissionOptions,
+  type ProactiveRoadmapPlanningOptions,
+  type ProactiveMindCognitionOptions,
+  type MindProactiveBandwidthActivity,
+} from "./strategic-purpose.ts";
 
 // Re-export cognitive task discovery
 export {
@@ -132,6 +162,37 @@ export {
   type SelfEvolutionMode,
 };
 
+// Re-export strategic purpose and proactive cognition
+export {
+  MIND_STRATEGIC_ALTITUDE,
+  MIND_HARD_ZEROS,
+  MIND_PROACTIVE_BANDWIDTH_ACTIVITIES,
+  diagnoseMacroDag,
+  groomBacklog,
+  evaluateStrategicCandidateAdmission,
+  planProactiveRoadmap,
+  executeProactiveMindCognition,
+  formatStrategicCognitionBrief,
+  verifyMindRoleStrategicInvariants,
+  type MacroDagTaskNode,
+  type MacroDagBottleneck,
+  type MacroDagDiagnosticResult,
+  type BacklogGroomingItem,
+  type BacklogGroomingResult,
+  type StrategicCandidate,
+  type StrategicCandidateEvaluation,
+  type StrategicCandidateAdmissionResult,
+  type ProactiveWaveTask,
+  type ProactiveWavePlan,
+  type ProactiveRoadmapPlan,
+  type ProactiveMindCognitionResult,
+  type MacroDagDiagnosticOptions,
+  type BacklogGroomingOptions,
+  type StrategicCandidateAdmissionOptions,
+  type ProactiveRoadmapPlanningOptions,
+  type ProactiveMindCognitionOptions,
+  type MindProactiveBandwidthActivity,
+};
 
 /**
  * CLI Command Handler: mind:task-discovery / mind-task-discovery
@@ -242,6 +303,38 @@ export function mindSelfEvolveCommand(
   };
 }
 
+/**
+ * CLI Command Handler: mind:strategic-cognition / mind:proactive-plan
+ * Executes proactive strategic cognition during subordinate execution windows.
+ */
+export function mindStrategicCognitionCommand(
+  flags: Flags,
+  _context?: CommandContext,
+): Record<string, unknown> {
+  const subordinateWindowHours = integerFlag(flags, "window-hours") ?? 2;
+  const subordinateExecutionWindowMs = subordinateWindowHours * 3_600_000;
+  const fleetId = textFlag(flags, "fleet-id", false);
+
+  const result = executeProactiveMindCognition({
+    subordinateExecutionWindowMs,
+    fleetId,
+  });
+
+  const brief = formatStrategicCognitionBrief(result);
+  const formattedMarkdown = enforceLineLimit(brief, 30);
+
+  return {
+    markdown: formattedMarkdown,
+    altitude: result.altitude,
+    window_hours: result.subordinateExecutionWindowHours,
+    macro_dag: result.macroDag,
+    backlog_grooming: result.backlogGrooming,
+    candidate_admission: result.candidateAdmission,
+    proactive_roadmap: result.proactiveRoadmap,
+    strategic_summary: result.strategicSummary,
+  };
+}
+
 export const MIND_TASK_DISCOVERY_COMMAND_SPEC: CommandSpec = {
   name: "mind:task-discovery",
   aliases: ["mind-task-discovery", "task:discover"],
@@ -301,4 +394,26 @@ export const MIND_SELF_EVOLVE_COMMAND_SPEC: CommandSpec = {
     "bun harness.ts mind:self-evolve --generation 1 --cycle 2",
   ],
   handler: mindSelfEvolveCommand,
+};
+
+export const MIND_STRATEGIC_COGNITION_COMMAND_SPEC: CommandSpec = {
+  name: "mind:strategic-cognition",
+  aliases: ["mind-strategic-cognition", "mind:proactive-plan"],
+  domain: "mind",
+  summary: "Execute proactive strategic cognition during subordinate execution windows.",
+  description:
+    "Channels Mind cognitive bandwidth at 30,000 feet into macro DAG diagnostics (P = W/S), backlog grooming, candidate admission, and proactive roadmap planning for future fleets.",
+  flags: [
+    optionalFlag("window-hours", "int", "Subordinate execution window duration in hours (default: 2).", 2),
+    optionalFlag("fleet-id", "string", "Target fleet identifier for proactive roadmap."),
+    optionalFlag("json", "bool", "Output structured JSON."),
+  ],
+  readsStdin: false,
+  takesRemainder: false,
+  exitCodes: DEFAULT_EXIT_CODES,
+  examples: [
+    "bun harness.ts mind:strategic-cognition",
+    "bun harness.ts mind:strategic-cognition --window-hours 3 --fleet-id fleet-gen-5",
+  ],
+  handler: mindStrategicCognitionCommand,
 };

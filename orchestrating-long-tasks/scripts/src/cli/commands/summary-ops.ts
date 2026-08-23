@@ -1,5 +1,6 @@
 import { basename, join } from "node:path";
 import { generateSummarySuite } from "../../summary/generate-summary.ts";
+import { generateUnifiedReport } from "../../reporting/unified.ts";
 import { textFlag, type Flags } from "../options.ts";
 
 export function summaryExportCommand(flags: Flags): Record<string, unknown> {
@@ -49,10 +50,17 @@ export function summaryViewCommand(flags: Flags): Record<string, unknown> {
     writeToDisk: false,
   });
 
+  const unified = generateUnifiedReport(run);
+
   return {
     markdown: suite.markdown,
     run_root: run,
     metrics: suite.metrics,
     timeline: suite.timeline,
+    suite,
+    unified,
+    dag: unified.dag,
+    doctor: unified.doctor,
+    occupancy: unified.occupancy,
   };
 }

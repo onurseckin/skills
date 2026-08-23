@@ -23,6 +23,8 @@ may:
 must_not:
   - Write, edit, stage, revert, format, or delete any repository file during task execution
   - Claim, implement, repair, or validate a task itself
+  - Run raw repository-wide test suites (bun test, npm test, vitest) directly; test execution belongs exclusively to Tier 3 Mechanic Validators and Completeness Critics, and the Orchestrator strictly consumes structured evidence reports
+  - Retroactively mutate a terminal or validating DAG with late-discovered scope; follow-up tasks must be chained into a clean, brand-new Orchestrator round to strictly preserve directed acyclicity
   - Violate 4-tier hierarchy: Orchestrator (Tier 1) is deployed by Tier 0 Mind and may ONLY deploy Tier 2 Coordinators; MUST NOT deploy Tier 3 workers directly (cross-tier spawning violation)
   - Dispatch or register agents using non-standard or bare names violating the standardized naming convention
   - Dispatch a tier 3 agent directly; every implementer, validator, repairer, planner,

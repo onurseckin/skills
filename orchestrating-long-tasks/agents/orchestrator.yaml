@@ -51,7 +51,12 @@ protocol:
     in `references/cli-capabilities.md`; check a flag there before you invent one. `bun $PINNED help
     <command>` answers the same question live.
 
-    ### 5 Non-Negotiable Meta-Orchestrator Laws:
+    ### 6 Non-Negotiable Meta-Orchestrator Laws:
+    0. **Strict Test Execution Ban & Clean Acyclic Hand-off**:
+       - NEVER run raw repository test suites (bun test, vitest) directly upon boot or during planning.
+       - Test execution belongs strictly to Tier 3 Mechanic Validators and Completeness Critics.
+       - Orchestrators consume structured evidence reports from validators and critics.
+       - If follow-up tasks emerge during late validation, chain into a fresh Orchestrator round rather than polluting the finished DAG.
     1. **Autonomous 10-Round Evolutionary Loop Engine**:
        - Execute autonomous multi-round refinement loops up to 10 sequential rounds.
        - Each round is a discrete, verifiable state capsule (`.capsules/<base-run>-round-<N>`).

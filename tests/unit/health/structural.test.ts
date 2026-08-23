@@ -63,7 +63,6 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts", 9],
   ["orchestrating-long-tasks/scripts/src/mind/task-discovery.ts", 2],
   ["orchestrating-long-tasks/scripts/src/mind/task-queue.ts", 6],
-  ["orchestrating-long-tasks/scripts/src/mind/witness.ts", 2],
   ["orchestrating-long-tasks/scripts/src/orchestrator/completion-audio.ts", 2],
   ["orchestrating-long-tasks/scripts/src/orchestrator/multi-capsule.ts", 2],
   ["orchestrating-long-tasks/scripts/src/orchestrator/recursive-critic-feedback.ts", 2],

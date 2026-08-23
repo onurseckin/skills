@@ -13,6 +13,7 @@ import type {
   WorkflowState,
 } from "../types.ts";
 import { openValidations, validationForDomain } from "../review/validation-state.ts";
+import { taskClassificationTexts } from "../review/role-evidence.ts";
 import { jsonDigest } from "./completion-review-digest.ts";
 import { completionHistoryIssues } from "./completion-history.ts";
 import { completionReviewIssues } from "./review-issues.ts";
@@ -98,7 +99,8 @@ export function gateTally(state: WorkflowState): GateTally {
 
 function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] {
   const gates = applicableGates(state, task);
-  return applicableValidatorDomains(task.write_scope).flatMap((domain) => {
+  const reqTexts = taskClassificationTexts(state, task);
+  return applicableValidatorDomains(task.write_scope, reqTexts).flatMap((domain) => {
     const validation = validationForDomain(task, domain);
     if (validation?.verdict !== "pass")
       return [`task ${task.id} lacks independent ${domain} validator approval`];

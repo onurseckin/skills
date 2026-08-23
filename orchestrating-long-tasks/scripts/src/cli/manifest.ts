@@ -10,26 +10,22 @@ import {
 
 export const MANIFEST_SCHEMA = "orchestrating-long-tasks/cli-capabilities@1";
 
-interface FlagManifest {
+export interface FlagManifest {
   name: string;
   type: FlagSpec["type"];
   required: boolean;
   repeatable: boolean;
   default: string | number | boolean | null;
-  description: string;
 }
 
-interface CommandManifest {
+export interface CommandManifest {
   name: string;
   aliases: string[];
   domain: CommandSpec["domain"];
   summary: string;
-  description: string;
   flags: FlagManifest[];
   reads_stdin: boolean;
   takes_remainder: boolean;
-  exit_codes: ExitCodeSpec[];
-  examples: string[];
 }
 
 export interface CapabilityManifest {
@@ -47,20 +43,32 @@ export function capabilityManifest(): CapabilityManifest {
       aliases: [...spec.aliases],
       domain: spec.domain,
       summary: spec.summary,
-      description: spec.description,
       flags: spec.flags.map((flag) => ({
         name: flag.name,
         type: flag.type,
         required: flag.required,
         repeatable: flag.repeatable,
         default: flag.default ?? null,
-        description: flag.description,
       })),
       reads_stdin: spec.readsStdin,
       takes_remainder: spec.takesRemainder,
-      exit_codes: spec.exitCodes.map((exit) => ({ code: exit.code, meaning: exit.meaning })),
-      examples: [...spec.examples],
     })),
+  };
+}
+
+export function commandSlice(commandName: string): CommandManifest | undefined {
+  const manifest = capabilityManifest();
+  return manifest.commands.find(
+    (c) => c.name === commandName || c.aliases.includes(commandName),
+  );
+}
+
+export function domainSlice(domain: CommandSpec["domain"]): CapabilityManifest {
+  const manifest = capabilityManifest();
+  return {
+    schema: manifest.schema,
+    source: manifest.source,
+    commands: manifest.commands.filter((c) => c.domain === domain),
   };
 }
 

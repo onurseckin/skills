@@ -19,6 +19,7 @@ import {
   everyApplicableDomainPassed,
   validationForValidator,
 } from "./validation-state.ts";
+import { taskClassificationTexts } from "./role-evidence.ts";
 
 export function recordReview(
   port: TransactionPort,
@@ -117,7 +118,7 @@ export function recordReview(
         falsifiability,
       });
     }
-    if (everyApplicableDomainPassed(task)) {
+    if (everyApplicableDomainPassed(task, taskClassificationTexts(draft, task))) {
       transition(task, "validated", validatorId, now, "independent validation passed");
     }
   });

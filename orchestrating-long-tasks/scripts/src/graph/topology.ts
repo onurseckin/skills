@@ -44,32 +44,58 @@ function joinWithAnd(items: readonly string[]): string {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
-function describeCycle(
+export function describeCycle(
   dependencies: ReadonlyMap<string, ReadonlySet<string>>,
-  order: readonly string[],
+  order?: readonly string[],
 ): string {
-  const resolved = new Set(order);
+  const resolved = new Set(order ?? topologicalOrder(dependencies));
   const unresolved = new Set([...dependencies.keys()].filter((id) => !resolved.has(id)));
-  const start = [...unresolved].sort()[0]!;
-  const path = [start];
-  const positionOf = new Map([[start, 0]]);
-  let current = start;
-  for (;;) {
-    const next = [...(dependencies.get(current) ?? [])]
+  if (unresolved.size === 0) return "no cycle detected";
+
+  for (const start of [...unresolved].sort()) {
+    const stack: { node: string; edgeIdx: number; neighbors: string[] }[] = [];
+    const inStack = new Set<string>();
+    const visited = new Set<string>();
+
+    const startNeighbors = [...(dependencies.get(start) ?? [])]
       .filter((id) => unresolved.has(id))
-      .sort()[0]!;
-    const seenAt = positionOf.get(next);
-    if (seenAt !== undefined) {
-      const cycle = path.slice(seenAt);
-      const cycleEdges = cycle.map(
-        (id, index) => `${id} --deps ${cycle[(index + 1) % cycle.length]}`,
-      );
-      return `${joinWithAnd(cycleEdges)} form a cycle; drop ${cycleEdges[0]} to break it`;
+      .sort();
+    stack.push({ node: start, edgeIdx: 0, neighbors: startNeighbors });
+    inStack.add(start);
+    visited.add(start);
+
+    while (stack.length > 0) {
+      const top = stack[stack.length - 1]!;
+      if (top.edgeIdx < top.neighbors.length) {
+        const next = top.neighbors[top.edgeIdx]!;
+        top.edgeIdx++;
+
+        if (inStack.has(next)) {
+          const cycleNodes: string[] = [];
+          const idx = stack.findIndex((item) => item.node === next);
+          for (let i = idx; i < stack.length; i++) {
+            cycleNodes.push(stack[i]!.node);
+          }
+          const cycleEdges = cycleNodes.map(
+            (id, i) => `${id} --deps ${cycleNodes[(i + 1) % cycleNodes.length]}`,
+          );
+          return `${joinWithAnd(cycleEdges)} form a cycle; drop ${cycleEdges[0]} to break it`;
+        } else if (!visited.has(next)) {
+          visited.add(next);
+          inStack.add(next);
+          const nextNeighbors = [...(dependencies.get(next) ?? [])]
+            .filter((id) => unresolved.has(id))
+            .sort();
+          stack.push({ node: next, edgeIdx: 0, neighbors: nextNeighbors });
+        }
+      } else {
+        inStack.delete(top.node);
+        stack.pop();
+      }
     }
-    positionOf.set(next, path.length);
-    path.push(next);
-    current = next;
   }
+
+  return "cycle detected";
 }
 
 export function dependencyData(
@@ -128,3 +154,20 @@ export {
   decoupleDisjointTasks,
   detectArtificialSerialization,
 } from "./parallel-decoupler.ts";
+
+export {
+  type BrentsBoundResult,
+  type CycleBreakCandidate,
+  type ForensicTaskNode,
+  type ForensicWave,
+  type TaskSlack,
+  type WorkSpanMetrics,
+  breakCycles,
+  calculateBrentsTheorem,
+  computeTaskSlack,
+  computeTopologicalWaves,
+  computeWorkSpan,
+  findCycles,
+  isAcyclic,
+  renderMermaidDag,
+} from "./dag-forensics.ts";

@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   capabilityManifest,
+  commandSlice,
+  domainSlice,
   MANIFEST_SCHEMA,
   renderManifestJson,
   renderManifestMarkdown,
@@ -45,8 +47,42 @@ describe("CLI capability manifest", () => {
     expect(init?.aliases).toEqual(["init"]);
   });
 
+  test("pruned JSON manifest is compact and under 200KB", () => {
+    const jsonContent = readFileSync(join(references, "cli-capabilities.json"), "utf-8");
+    expect(Buffer.byteLength(jsonContent, "utf-8")).toBeLessThan(200_000);
+  });
+
+  test("provides on-demand commandSlice for individual commands and aliases", () => {
+    const execSlice = commandSlice("run:exec");
+    expect(execSlice).toBeDefined();
+    expect(execSlice?.name).toBe("run:exec");
+    expect(execSlice?.takes_remainder).toBeTrue();
+
+    const initAliasSlice = commandSlice("init");
+    expect(initAliasSlice).toBeDefined();
+    expect(initAliasSlice?.name).toBe("plan:init");
+
+    const nonExistent = commandSlice("non:existent:command");
+    expect(nonExistent).toBeUndefined();
+  });
+
+  test("provides on-demand domainSlice filtering commands by domain", () => {
+    const planSlice = domainSlice("plan");
+    expect(planSlice.schema).toBe(MANIFEST_SCHEMA);
+    expect(planSlice.commands.length).toBeGreaterThan(0);
+    expect(planSlice.commands.every((c) => c.domain === "plan")).toBeTrue();
+  });
+
   test("renders deterministically so the freshness check cannot drift", () => {
     expect(renderManifestJson()).toBe(renderManifestJson());
     expect(renderManifestMarkdown()).toBe(renderManifestMarkdown());
+  });
+
+  test("static invariant verification: zero any and zero suppressions", () => {
+    const testFile = readFileSync(__filename, "utf-8");
+    expect(testFile).not.toContain("@ts-" + "ignore");
+    expect(testFile).not.toContain("@ts-" + "expect-error");
+    expect(testFile).not.toContain("eslint-" + "disable");
+    expect(testFile).not.toContain(": " + "any");
   });
 });

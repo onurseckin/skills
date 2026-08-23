@@ -1,9 +1,10 @@
 import { dirname } from "node:path";
-import { loadRun } from "../store/index.ts";
+import { loadRun, verifyCapsuleDeep, verifyIntegrity } from "../store/index.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { isRecord } from "../requirements/predicates.ts";
 import { getHarnessConfig } from "../config/harness-config.ts";
+import { MINIMUM_BUN_VERSION } from "../config/constants.ts";
 import {
   agentIdToRole,
   agentIdToTier,
@@ -17,6 +18,14 @@ import {
   extractLeaseAttempt,
   type LeaseRecordView,
 } from "./lease-agent-extractor.ts";
+import {
+  buildSugiyamaDagReport,
+  type SugiyamaDagReport,
+  type SugiyamaEdge,
+  type SugiyamaNode,
+  type SugiyamaWaveMetrics,
+} from "./sugiyama-dag.ts";
+import { ignoredByGit, versionAtLeast } from "./doctor.ts";
 
 export {
   extractLeaseAgentId,
@@ -110,6 +119,15 @@ export interface UnifiedReport {
   agent_matrix: UnifiedAgentRow[];
   leases: LeaseMatrixRow[];
   decisions: DecisionAuditRow[];
+  dag?: SugiyamaDagReport | undefined;
+  doctor?: {
+    healthy: boolean;
+    bun_version: string;
+    bun_supported: boolean;
+    gitignored: boolean | null;
+    issues: readonly string[];
+  } | undefined;
+  metrics?: SugiyamaWaveMetrics | undefined;
 }
 
 
@@ -419,11 +437,95 @@ export function generateUnifiedReport(
   const { matrix: leases } = generateLeasesReport(runRoot);
   const { decisions } = generateDecisionsReport(runRoot);
 
+  // Sugiyama Hierarchical DAG Construction
+  const isCompiled = state.graph !== undefined && state.graph !== null;
+  const graphRevision =
+    isRecord(state.graph) && typeof state.graph.revision === "number" ? state.graph.revision : null;
+
+  const sugiyamaNodes: SugiyamaNode[] = [];
+  const sugiyamaEdges: SugiyamaEdge[] = [];
+
+  for (const t of tasks) {
+    const status = typeof t.status === "string" ? t.status : "proposed";
+    const label = typeof t.label === "string" ? t.label : t.id;
+    const priority = typeof t.priority === "number" ? t.priority : 50;
+    const writeScope = Array.isArray(t.write_scope) ? (t.write_scope as string[]) : [];
+    const resourceScope = Array.isArray(t.resource_scope) ? (t.resource_scope as string[]) : [];
+    const gate = typeof t.gate === "string" ? t.gate : undefined;
+    const deps = Array.isArray(t.dependencies) ? (t.dependencies as string[]) : [];
+    const lease = isRecord(t.lease) ? t.lease : null;
+    const assignedAgent = lease ? extractLeaseAgentId(lease) : null;
+    const attempt = lease && typeof lease.attempt === "number" ? lease.attempt : null;
+    const effort = typeof t.effort === "number" ? t.effort : 1;
+
+    const matchingAgent = rawAgents.find((a) => a.id === assignedAgent);
+    const assignedRole =
+      typeof matchingAgent?.role === "string"
+        ? matchingAgent.role
+        : typeof lease?.role === "string"
+          ? (lease.role as string)
+          : assignedAgent
+            ? "implementer"
+            : undefined;
+
+    sugiyamaNodes.push({
+      id: t.id,
+      label,
+      status,
+      priority,
+      writeScope,
+      resourceScope,
+      gate,
+      dependencies: deps,
+      assignedAgent,
+      assignedRole,
+      attempt,
+      effort,
+    });
+
+    for (const depId of deps) {
+      sugiyamaEdges.push({
+        from: depId,
+        to: t.id,
+      });
+    }
+  }
+
+  const sugiyamaReport = buildSugiyamaDagReport(sugiyamaNodes, sugiyamaEdges, {
+    runRoot,
+    runId,
+    isCompiled,
+    graphRevision,
+    maxParallel,
+    detailed: options.detailed,
+    boxStyle: "rounded",
+  });
+
+  // Live Doctor & Integrity Diagnostics
+  const integrityIssues = [...verifyIntegrity(runRoot), ...verifyCapsuleDeep(runRoot)];
+  const gitignored = ignoredByGit(runRoot);
+  const bunSupported = versionAtLeast(Bun.version, MINIMUM_BUN_VERSION);
+  const doctorIssues = [
+    ...integrityIssues.map(({ code, message }) => `${code}: ${message}`),
+    ...(gitignored === false ? ["run capsule is not gitignored"] : []),
+    ...(bunSupported ? [] : [`Bun ${Bun.version} is below ${MINIMUM_BUN_VERSION}`]),
+  ];
+  const doctorHealthy = doctorIssues.length === 0;
+  const doctorReport = {
+    healthy: doctorHealthy,
+    bun_version: Bun.version,
+    bun_supported: bunSupported,
+    gitignored,
+    issues: doctorIssues,
+  };
+
   // Markdown Construction
   const mdSections: string[] = [
     `### Unified Run Report & Telemetry: \`${runId}\``,
     `- **Phase**: ${phase} | **Total Tasks**: ${tasks.length} | **Progress**: ${satisfiedTaskIds.length}/${tasks.length} Satisfied`,
     `- **Occupancy**: ${occupancySummary}`,
+    `- **Doctor Health**: ${doctorHealthy ? "✅ Healthy" : "⚠️ Issues Detected"} | **Bun**: ${Bun.version} (${bunSupported ? "supported" : "unsupported"}) | **Gitignored**: ${gitignored === true ? "yes" : gitignored === false ? "no" : "unknown"}`,
+    `- **DAG Execution**: ${sugiyamaReport.metrics.totalWaves} wave(s), ${sugiyamaReport.metrics.criticalPathLength} critical path depth, Work/Span (P)=${sugiyamaReport.metrics.parallelismFactor}`,
     "",
     "#### 1. Lifecycle Tier & Active Agent Breakdown",
   ];
@@ -493,8 +595,31 @@ export function generateUnifiedReport(
   ];
   mdSections.push(...formatTable(phaseHeaders, phaseRows));
 
+  if (sugiyamaNodes.length > 0) {
+    mdSections.push("");
+    mdSections.push("#### 3. Live Sugiyama Hierarchical DAG");
+    mdSections.push("```text");
+    mdSections.push(sugiyamaReport.renderedDag);
+    mdSections.push("```");
+  }
+
   mdSections.push("");
-  mdSections.push("#### 3. Task Topology & Write Scope Matrix");
+  mdSections.push("#### 4. Live Doctor Diagnostics & System Integrity");
+  mdSections.push(`- **Healthy**: ${doctorHealthy ? "yes" : "no"}`);
+  mdSections.push(`- **Bun**: ${Bun.version} (${bunSupported ? "supported" : "unsupported"})`);
+  mdSections.push(`- **Gitignored**: ${gitignored === true ? "yes" : gitignored === false ? "no" : "unknown"}`);
+  mdSections.push(`- **Supervisory Invariants**: Strict Tier Hierarchy & Supervisor Zero-File-Edit Rule actively enforced`);
+  if (doctorIssues.length > 0) {
+    mdSections.push("- **Issues**:");
+    for (const issue of doctorIssues) {
+      mdSections.push(`  - ${issue}`);
+    }
+  } else {
+    mdSections.push("- **Issues**: none");
+  }
+
+  mdSections.push("");
+  mdSections.push("#### 5. Task Topology & Write Scope Matrix");
   const taskHeaders = ["Task ID", "Label", "Status", "Gate", "Write Scope"];
   const taskTableRows = tasks.map((t) => [
     `\`${t.id}\``,
@@ -505,10 +630,19 @@ export function generateUnifiedReport(
   ]);
   mdSections.push(...formatTable(taskHeaders, taskTableRows));
 
+  mdSections.push("");
+  mdSections.push("#### 6. Task Rollup & Concurrency Metrics");
+  mdSections.push(
+    `- **Waves**: ${sugiyamaReport.metrics.totalWaves} | **Max Parallel Lanes**: ${sugiyamaReport.metrics.maxParallelLanes} | **Critical Path**: ${sugiyamaReport.metrics.criticalPathLength}`,
+  );
+  mdSections.push(
+    `- **Work/Span Ratio (P)**: ${sugiyamaReport.metrics.parallelismFactor} (Work=${sugiyamaReport.metrics.totalWork}, Span=${sugiyamaReport.metrics.span}) | **Optimal Concurrency**: ${sugiyamaReport.metrics.optimalConcurrency}`,
+  );
+
   if (options.detailed) {
     if (decisions.length > 0) {
       mdSections.push("");
-      mdSections.push("#### 4. Authority Decisions & Governance Audit");
+      mdSections.push("#### 7. Authority Decisions & Governance Audit");
       const decHeaders = ["Requirement ID", "Decision", "Actor", "Timestamp", "Rationale"];
       const decRows = decisions.map((d) => [
         `\`${d.requirementId}\``,
@@ -522,7 +656,7 @@ export function generateUnifiedReport(
   }
 
   const fullMarkdown = mdSections.join("\n");
-  const markdown = enforceLineLimit(fullMarkdown, 120);
+  const markdown = options.detailed ? fullMarkdown : enforceLineLimit(fullMarkdown, 180);
 
   return {
     markdown,
@@ -547,5 +681,8 @@ export function generateUnifiedReport(
     agent_matrix: agentRows,
     leases,
     decisions,
+    dag: sugiyamaReport,
+    doctor: doctorReport,
+    metrics: sugiyamaReport.metrics,
   };
 }

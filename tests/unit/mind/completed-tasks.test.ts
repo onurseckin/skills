@@ -405,42 +405,14 @@ describe("Completed Tasks Ledger Engine", () => {
     expect(ledger[0]?.assertions).toBe(24);
     expect(ledger[0]?.runtime_ms).toBe(68);
 
-    // Check feedback queue
+    // Check feedback queue: completed items (fb-101 and fb-102) are purged from active queue
     const rawFb = readFileSync(feedbackFile, "utf8");
     const fbLines = rawFb
       .trim()
       .split("\n")
+      .filter(Boolean)
       .map((l) => JSON.parse(l) as Record<string, unknown>);
-    expect(fbLines).toHaveLength(3);
-
-    const updatedFb101 = fbLines.find((f) => f["id"] === "fb-101");
-    expect(updatedFb101?.["status"]).toBe("COMPLETED");
-    expect(updatedFb101?.["resolution_note"]).toBe(
-      "Completed tasks ledger implemented and tested.",
-    );
-    expect(updatedFb101?.["processed_at"]).toBe("2026-08-22T02:00:00.000Z");
-    expect(updatedFb101?.["test_path"]).toBe("tests/unit/mind/completed-tasks.test.ts");
-    expect(updatedFb101?.["assertions"]).toBe(24);
-    expect(updatedFb101?.["runtime_ms"]).toBe(68);
-    expect(updatedFb101?.["commit_sha"]).toBe("abc9999");
-    const res101 = updatedFb101?.["resolution"] as Record<string, unknown>;
-    expect(res101).toBeDefined();
-    expect(res101["task_id"]).toBe("fb-101");
-    expect(res101["test_path"]).toBe("tests/unit/mind/completed-tasks.test.ts");
-    expect(res101["assertions"]).toBe(24);
-    expect(res101["runtime_ms"]).toBe(68);
-    expect(res101["commit_sha"]).toBe("abc9999");
-
-    // Match by candidate_id
-    const updatedFb102 = fbLines.find((f) => f["id"] === "fb-102");
-    expect(updatedFb102?.["status"]).toBe("COMPLETED");
-    expect(updatedFb102?.["test_path"]).toBe("tests/unit/mind/cand.test.ts");
-    expect(updatedFb102?.["assertions"]).toEqual(["assertion A", "assertion B"]);
-    expect(updatedFb102?.["runtime_ms"]).toBe(110);
-    expect(updatedFb102?.["commit_sha"]).toBe("def8888");
-    const res102 = updatedFb102?.["resolution"] as Record<string, unknown>;
-    expect(res102).toBeDefined();
-    expect(res102["task_id"]).toBe("task-cand-102");
+    expect(fbLines).toHaveLength(1);
 
     const untouchedFb103 = fbLines.find((f) => f["id"] === "fb-103");
     expect(untouchedFb103?.["status"]).toBe("PENDING");
@@ -504,26 +476,14 @@ describe("Completed Tasks Ledger Engine", () => {
     expect(ledger[0]?.id).toBe("blunder-99");
     expect(ledger[0]?.status).toBe("RESOLVED");
 
-    // Check blunders log
+    // Check blunders log: resolved blunder-99 is purged from active blunders file
     const rawBlunders = readFileSync(blundersFile, "utf8");
     const blunderLines = rawBlunders
       .trim()
       .split("\n")
+      .filter(Boolean)
       .map((l) => JSON.parse(l) as Record<string, unknown>);
-    expect(blunderLines).toHaveLength(2);
-
-    const updatedBlunder99 = blunderLines.find((b) => b["id"] === "blunder-99");
-    expect(updatedBlunder99?.["status"]).toBe("resolved");
-    const resolution = updatedBlunder99?.["resolution"] as Record<string, unknown>;
-    expect(resolution).toBeDefined();
-    expect(resolution["task_id"]).toBe("blunder-99");
-    expect(resolution["test_assertion"]).toBe(
-      "bun test tests/unit/mind/completed-tasks.test.ts passed 100%",
-    );
-    expect(resolution["resolved_at"]).toBe("2026-08-22T02:30:00.000Z");
-    expect(resolution["commit_sha"]).toBe("fed4321");
-    expect(resolution["test_path"]).toBe("tests/unit/mind/completed-tasks.test.ts");
-    expect(resolution["runtime_ms"]).toBe(55);
+    expect(blunderLines).toHaveLength(1);
 
     const untouchedBlunder100 = blunderLines.find((b) => b["id"] === "blunder-100");
     expect(untouchedBlunder100?.["status"]).toBe("open");

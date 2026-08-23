@@ -195,6 +195,35 @@ export function derivePrimaryValidatorDomain(
   return "code-quality";
 }
 
+/**
+ * Checks if dual-validation (or multi-validator pairing) is required for a task.
+ */
+export function isDualValidationRequired(
+  task: unknown,
+  requirementTexts: readonly string[] = [],
+): boolean {
+  if (!isRecord(task)) return false;
+  const writeScope: string[] = Array.isArray(task.write_scope)
+    ? task.write_scope.filter((s): s is string => typeof s === "string")
+    : [];
+  const domains = applicableValidatorDomains(writeScope, requirementTexts);
+  return domains.length >= 2;
+}
+
+/**
+ * Returns all required validator domains for a task.
+ */
+export function getRequiredValidatorDomains(
+  task: unknown,
+  requirementTexts: readonly string[] = [],
+): ValidatorDomain[] {
+  if (!isRecord(task)) return ["code-quality"];
+  const writeScope: string[] = Array.isArray(task.write_scope)
+    ? task.write_scope.filter((s): s is string => typeof s === "string")
+    : [];
+  return applicableValidatorDomains(writeScope, requirementTexts);
+}
+
 function normalizeTask(id: string, value: unknown): ScheduledTask | null {
   if (!isRecord(value)) return null;
   if (typeof id !== "string" || id.length === 0) return null;

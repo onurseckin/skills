@@ -6,6 +6,7 @@ import { requirementExecutionState } from "../authority/index.ts";
 import { orphanEvidenceIssues } from "../orphan-evidence/digest.ts";
 import type { GateRuntime, RequirementRuntime, WorkflowState } from "../types.ts";
 import { validationForDomain } from "../review/validation-state.ts";
+import { taskClassificationTexts } from "../review/role-evidence.ts";
 import { authoritativeRepositoryCommand } from "./repository-evidence.ts";
 import { commandIsSuccessfulGate } from "./readiness-snapshot.ts";
 import { currentRepositoryBinding } from "./repository-binding.ts";
@@ -40,7 +41,8 @@ function taskIssues(state: WorkflowState): string[] {
     if (task.lease) issues.push(`task ${task.id} has a live lease`);
     if (!task.report) issues.push(`task ${task.id} lacks a submission report`);
     const gates = applicableGates(state, task);
-    for (const domain of applicableValidatorDomains(task.write_scope)) {
+    const reqTexts = taskClassificationTexts(state, task);
+    for (const domain of applicableValidatorDomains(task.write_scope, reqTexts)) {
       const validation = validationForDomain(task, domain);
       if (validation?.verdict !== "pass")
         issues.push(`task ${task.id} lacks independent ${domain} validator approval`);

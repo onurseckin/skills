@@ -26,10 +26,24 @@ export function earliestOpenValidation(task: TaskRecord): ValidationAttempt | un
   );
 }
 
-export function everyApplicableDomainPassed(task: TaskRecord): boolean {
-  const applicable = applicableValidatorDomains(task.write_scope);
+export function everyApplicableDomainPassed(
+  task: TaskRecord,
+  requirementTexts: readonly string[] = [],
+): boolean {
+  const applicable = applicableValidatorDomains(task.write_scope, requirementTexts);
+  if (applicable.length === 0) return false;
+  const open = openValidations(task);
+  if (open.length === 0) {
+    const history = task.validation_history ?? [];
+    const passedHistory = new Set(
+      history
+        .filter((entry) => entry.verdict === "pass")
+        .map((entry) => entry.domain),
+    );
+    return applicable.every((domain) => passedHistory.has(domain));
+  }
   const passed = new Set(
-    openValidations(task)
+    open
       .filter((entry) => entry.verdict === "pass")
       .map((entry) => entry.domain),
   );

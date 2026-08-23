@@ -5,6 +5,7 @@ import { applicableGates, taskHasPassedGate, workflowGates } from "./gate-policy
 import { requirementExecutionState } from "../authority/index.ts";
 import { assertAttemptsClosed } from "../lease/attempt-state.ts";
 import { everyApplicableDomainPassed } from "../review/validation-state.ts";
+import { taskClassificationTexts } from "../review/role-evidence.ts";
 
 export function finishTask(
   port: TransactionPort,
@@ -19,7 +20,8 @@ export function finishTask(
       throw new HarnessError("INVALID_STATE", "only validated or gating tasks can finish");
     }
     assertAttemptsClosed(task, "finish");
-    if (!task.report || !everyApplicableDomainPassed(task)) {
+    const classificationTexts = taskClassificationTexts(draft, task);
+    if (!task.report || !everyApplicableDomainPassed(task, classificationTexts)) {
       throw new HarnessError("INVALID_STATE", "task lacks a passing review and report");
     }
     if ((task.findings ?? []).some((finding) => finding.status === "open")) {
@@ -46,6 +48,7 @@ export function finishTask(
       if (
         covering.length > 0 &&
         covering.every((candidate) => candidate.status === "done") &&
+        covering.every((candidate) => candidate.report && everyApplicableDomainPassed(candidate, taskClassificationTexts(draft, candidate))) &&
         workflowGates(draft)
           .filter(
             (gate) =>

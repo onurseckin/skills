@@ -351,4 +351,91 @@ describe("Unified Reporting CLI Surface", () => {
     expect(extractLeaseAttempt({ attempt: 2 })).toBe(2);
     expect(extractLeaseAttempt({})).toBe(1);
   });
+
+  test("monolithic default report view combines Sugiyama DAG, doctor checks, metrics, and allocations", async () => {
+    const { repo, run } = await createBaseRun("monolithic-report-view");
+
+    await mkdir(join(repo, "src/api"), { recursive: true });
+    await writeFile(join(repo, "gate-api.ts"), "console.log('api gate');\n");
+
+    await execute([
+      "plan:add",
+      "--run",
+      run,
+      "--id",
+      "task-api",
+      "--label",
+      "API Layer",
+      "--scope",
+      "src/api",
+      "--gate",
+      "bun gate-api.ts",
+      "--requirement-lines",
+      "1",
+      "--actor",
+      "planner",
+    ]);
+
+    await execute([
+      "plan:compile",
+      "--run",
+      run,
+      "--actor",
+      "planner",
+      "--completion-gate",
+      "bun test tests",
+    ]);
+
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "worker-monolith",
+      "--role",
+      "implementer",
+      "--host",
+      "cli",
+    ]);
+
+    await execute([
+      "task:claim",
+      "--run",
+      run,
+      "--task",
+      "task-api",
+      "--agent",
+      "worker-monolith",
+      "--role",
+      "implementer",
+    ]);
+
+    // 1. Unified report verification
+    const report = (await execute(["report", "--run", run])) as unknown as UnifiedReport;
+    expect(report.dag).toBeDefined();
+    expect(report.dag?.renderedDag).toBeDefined();
+    expect(report.doctor).toBeDefined();
+    expect(report.metrics).toBeDefined();
+    expect(report.lifecycle.implementers.count).toBe(1);
+    expect(report.markdown).toContain("Unified Run Report & Telemetry");
+    expect(report.markdown).toContain("Live Sugiyama Hierarchical DAG");
+    expect(report.markdown).toContain("Live Doctor Diagnostics & System Integrity");
+    expect(report.markdown).toContain("Task Rollup & Concurrency Metrics");
+    expect(report.markdown).toContain("`worker-monolith`");
+
+    // 2. Summary view verification
+    const summaryResult = (await execute(["summary:view", "--run", run])) as Record<string, unknown>;
+    expect(summaryResult.dag).toBeDefined();
+    expect(summaryResult.doctor).toBeDefined();
+    expect(summaryResult.metrics).toBeDefined();
+    expect(summaryResult.occupancy).toBeDefined();
+
+    // 3. Run status verification
+    const statusResult = (await execute(["run:status", "--run", run])) as Record<string, unknown>;
+    expect(statusResult.dag).toBeDefined();
+    expect(statusResult.doctor).toBeDefined();
+    expect(statusResult.metrics).toBeDefined();
+    expect(statusResult.occupancy).toBeDefined();
+  });
 });
+

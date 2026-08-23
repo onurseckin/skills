@@ -35,7 +35,7 @@ import { ingestScreenshots, ingestVisualReport } from "../../reporting/screensho
 import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
 import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
-import { extractLeaseAgentId } from "../../reporting/unified.ts";
+import { extractLeaseAgentId, generateUnifiedReport } from "../../reporting/unified.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
 
 function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParallel: number } {
@@ -277,6 +277,13 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
     occupancySummary,
   );
 
+  let unified: ReturnType<typeof generateUnifiedReport> | undefined;
+  try {
+    unified = generateUnifiedReport(actualRunRoot, { detailed });
+  } catch {
+    // Non-blocking fallback
+  }
+
   return {
     markdown,
     run_root: run,
@@ -295,6 +302,16 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
       gate_max_parallel: gateMaxParallel,
       summary: occupancySummary,
     },
+    ...(unified === undefined
+      ? {}
+      : {
+          unified,
+          dag: unified.dag,
+          doctor: unified.doctor,
+          metrics: unified.metrics,
+          lifecycle: unified.lifecycle,
+          agent_matrix: unified.agent_matrix,
+        }),
     ...(readWorktreeLedger(state) === null ? {} : { worktrees: readWorktreeLedger(state) }),
   };
 }

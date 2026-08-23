@@ -9,3 +9,5 @@ export * from "./ast-linter.ts";
 export * from "./assertion-floor.ts";
 export * from "./mutation-gate.ts";
 export * from "./anti-mock-engine.ts";
+export * from "./anti-leak.ts";
+export * from "./anti-batching.ts";

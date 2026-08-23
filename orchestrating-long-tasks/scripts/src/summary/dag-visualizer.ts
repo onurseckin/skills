@@ -222,11 +222,29 @@ export function renderVisualDag(
     );
     const activeWaveBadge = hasActiveTasks ? " ⚡ [ACTIVE EXECUTION SUBGRAPH]" : "";
     const headerTitle = ` WAVE ${waveNum} (${waveTasks.length} ${waveTasks.length === 1 ? "lane" : "lanes"} • ${waveStatuses})${activeWaveBadge} `;
-    const barLength = Math.max(10, 61 - headerTitle.length);
+
+    // Compute max box width needed for this wave
+    let maxBoxWidth = 63;
+    for (const task of waveTasks) {
+      const glyph = statusGlyph(task.status, task.dependencies.length > 0);
+      const agentBadge = activeAgentBadge(task);
+      const labelSuffix = task.label && task.label !== task.id ? ` • ${task.label}` : "";
+      const titleLen = `${glyph} ${task.id}${labelSuffix}${agentBadge}`.length;
+      const scopesLen = task.writeScope.length > 0 ? `Scope:  ${task.writeScope.join(", ")}`.length : 0;
+      const depsLen = task.dependencies.length > 0 ? `Deps:   ${task.dependencies.join(", ")}`.length : 0;
+      const maxLen = Math.max(titleLen, scopesLen, depsLen, 55);
+      const target = maxLen + 4;
+      const finalW = target % 2 === 0 ? target + 1 : target;
+      if (finalW > maxBoxWidth) maxBoxWidth = finalW;
+    }
+
+    const barLength = Math.max(2, maxBoxWidth - 3 - headerTitle.length);
     const headerLine = `┌─${headerTitle}${"─".repeat(barLength)}┐`;
     lines.push(headerLine);
 
     const isLastWave = w === waves.length - 1;
+    const mid = Math.floor((maxBoxWidth - 3) / 2);
+    const connectorPad = " ".repeat(mid + 1);
 
     for (let t = 0; t < waveTasks.length; t += 1) {
       const task = waveTasks[t]!;
@@ -237,19 +255,21 @@ export function renderVisualDag(
         detailed,
         hasDownConnector,
         forensics,
+        boxWidth: maxBoxWidth,
       });
       lines.push(...boxLines);
 
       if (!isLastTaskInWave) {
-        lines.push("                              │");
-        lines.push("                        ──┬── ──▶ [PARALLEL LANE]");
-        lines.push("                              │");
+        lines.push(`${connectorPad}│`);
+        const lanePad = Math.max(0, mid - 6);
+        lines.push(`${" ".repeat(lanePad)}──┬── ──▶ [PARALLEL LANE]`);
+        lines.push(`${connectorPad}│`);
       }
     }
 
     if (!isLastWave) {
-      lines.push("                              │");
-      lines.push("                              ▼");
+      lines.push(`${connectorPad}│`);
+      lines.push(`${connectorPad}▼`);
     }
   }
 
