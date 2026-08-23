@@ -1,7 +1,7 @@
 import { existsSync, lstatSync, mkdirSync, realpathSync, rmSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import type { Manifest } from "../contracts/capsule.ts";
+import type { CapsuleMode, Manifest } from "../contracts/capsule.ts";
 import { atomicWriteBytes, atomicWriteJson, fsyncDirectory } from "../core/durable-write.ts";
 import { copyPinnedRuntime } from "../core/runtime-tree.ts";
 import { safeRepoPath } from "../core/paths.ts";
@@ -20,6 +20,7 @@ import { resolveCapsulesDir } from "../shared/paths.ts";
 export interface InitRunOptions {
   runtimeSource?: string;
   beforeRuntimeSourceRecheck?: () => void;
+  mode?: CapsuleMode;
 }
 
 export function initRun(
@@ -72,6 +73,7 @@ export function initRun(
       capture_mode: captureMode,
       source_verified: sourceVerified,
       assurance,
+      mode: options.mode ?? "feature",
       created_at: new Date().toISOString(),
       bun_version: Bun.version,
       bun_compatibility: BUN_COMPATIBILITY,
@@ -88,7 +90,7 @@ export function initRun(
     };
     atomicWriteJson(join(runRoot, "manifest.json"), manifest);
     atomicWriteBytes(join(runRoot, "events.jsonl"), new Uint8Array());
-    const state = initialState();
+    const state = initialState(options.mode);
     atomicWriteJson(join(runRoot, "state.json"), state);
     atomicWriteBytes(
       join(runRoot, "README.md"),

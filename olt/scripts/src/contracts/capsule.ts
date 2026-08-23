@@ -3,12 +3,14 @@ import type { JsonObject, JsonValue } from "./json.ts";
 export type CaptureAssurance = "recorded-unverified" | "source-verified";
 export type CaptureMode = "file" | "stdin" | "argv" | "verbatim_context_copy";
 export type BunCompatibility = "same-major-not-older";
+export type CapsuleMode = "feature" | "mind";
 
 export interface Manifest extends JsonObject {
   schema: "harness.manifest";
   version: number;
   run_id: string;
   capsule_id: string;
+  mode: CapsuleMode;
   prompt_sha256: string;
   prompt_bytes: number;
   capture_mode: CaptureMode;
@@ -49,6 +51,7 @@ export interface HarnessEvent extends JsonObject {
   version: number;
   run_id: string;
   capsule_id: string;
+  mode: CapsuleMode;
   sequence: number;
   revision: number;
   timestamp: string;

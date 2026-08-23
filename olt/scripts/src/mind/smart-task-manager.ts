@@ -3527,3 +3527,20 @@ export function autonomousCreativeOverload(
     charterGoals: options.charterGoals,
   });
 }
+
+export function assertMindModeAllowed(runRoot: string, commandName: string): void {
+  const manifestPath = require("node:path").join(runRoot, "manifest.json");
+  if (!require("node:fs").existsSync(manifestPath)) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `manifest.json not found for run ${runRoot}`
+    );
+  }
+  const manifest = JSON.parse(require("node:fs").readFileSync(manifestPath, "utf-8"));
+  if (manifest.mode !== "mind") {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `command '${commandName}' is exclusive to Tier 0 Mind capsules. Current capsule '${manifest.run_id}' is running in feature mode.`
+    );
+  }
+}

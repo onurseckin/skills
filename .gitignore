@@ -17,7 +17,6 @@ __pycache__/
 # build / run capsules scratch
 !.olt/
 .olt/capsules/
-.olt/.locks/
 .olt/scratch/
 
 # os / filesystem

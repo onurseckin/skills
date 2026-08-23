@@ -3,9 +3,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
 
 export const OLT_DIR_NAME = ".olt";
-export const LEGACY_OLT_DIR_NAME = "olt";
 export const CAPSULES_DIR_NAME = "capsules";
-export const LEGACY_CAPSULES_DIR_NAME = ".capsules";
 
 export const OLT_FILES = {
   POLICY: "policy.json",
@@ -14,15 +12,8 @@ export const OLT_FILES = {
   DEFECTS: "defects.jsonl",
   COMPLETED_DEFECTS: "completed-defects.jsonl",
   TELEMETRY: "telemetry.jsonl",
-} as const;
-
-export const LEGACY_MIND_QUEUE_FILES = {
-  POLICY: ".capsules/repo-policy.json",
-  BACKLOG: ".capsules/mind/queue/feedback-queue.jsonl",
-  COMPLETED_TASKS: ".capsules/mind/queue/completed-tasks.jsonl",
-  DEFECTS: ".capsules/mind/queue/blunders.jsonl",
-  COMPLETED_DEFECTS: ".capsules/mind/queue/completed-blunders.jsonl",
-  TELEMETRY: ".capsules/mind/queue/observations.jsonl",
+  MEMORY: "memory.json",
+  WATCHDOGS: "watchdogs.json",
 } as const;
 
 function unsafe(message: string): never {
@@ -35,7 +26,6 @@ export function findRepoRoot(startDir: string = process.cwd()): string {
     if (
       existsSync(join(current, OLT_DIR_NAME)) ||
       existsSync(join(current, ".git")) ||
-      existsSync(join(current, LEGACY_CAPSULES_DIR_NAME)) ||
       existsSync(join(current, "package.json"))
     ) {
       return current;
@@ -51,82 +41,60 @@ export function findRepoRoot(startDir: string = process.cwd()): string {
 
 export function resolveOltDir(repoRoot?: string): string {
   const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
-  const modern = join(root, OLT_DIR_NAME);
-  if (existsSync(modern)) return modern;
-  const legacy = join(root, LEGACY_OLT_DIR_NAME);
-  if (existsSync(legacy)) return legacy;
-  return modern;
+  return join(root, OLT_DIR_NAME);
 }
 
 export function resolveCapsulesDir(repoRoot?: string): string {
   const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
-  const canonical = join(root, OLT_DIR_NAME, CAPSULES_DIR_NAME);
-  if (existsSync(canonical)) return canonical;
-  const modern = join(root, CAPSULES_DIR_NAME);
-  if (existsSync(modern)) return modern;
-  const legacy = join(root, LEGACY_CAPSULES_DIR_NAME);
-  if (existsSync(legacy)) return legacy;
-  return canonical;
+  return join(root, OLT_DIR_NAME, CAPSULES_DIR_NAME);
 }
 
 export function resolvePolicyPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
   const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
-  const canonical = join(root, OLT_DIR_NAME, OLT_FILES.POLICY);
-  if (existsSync(canonical)) return canonical;
-  const legacy = join(root, LEGACY_MIND_QUEUE_FILES.POLICY);
-  if (existsSync(legacy)) return legacy;
-  return canonical;
+  return join(root, OLT_DIR_NAME, OLT_FILES.POLICY);
 }
 
 export function resolveBacklogPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
   const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
-  const canonical = join(root, OLT_DIR_NAME, OLT_FILES.BACKLOG);
-  if (existsSync(canonical)) return canonical;
-  const legacy = join(root, LEGACY_MIND_QUEUE_FILES.BACKLOG);
-  if (existsSync(legacy)) return legacy;
-  return canonical;
+  return join(root, OLT_DIR_NAME, OLT_FILES.BACKLOG);
 }
 
 export function resolveCompletedTasksPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
   const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
-  const canonical = join(root, OLT_DIR_NAME, OLT_FILES.COMPLETED_TASKS);
-  if (existsSync(canonical)) return canonical;
-  const legacy = join(root, LEGACY_MIND_QUEUE_FILES.COMPLETED_TASKS);
-  if (existsSync(legacy)) return legacy;
-  return canonical;
+  return join(root, OLT_DIR_NAME, OLT_FILES.COMPLETED_TASKS);
 }
 
 export function resolveDefectsPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
   const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
-  const canonical = join(root, OLT_DIR_NAME, OLT_FILES.DEFECTS);
-  if (existsSync(canonical)) return canonical;
-  const legacy = join(root, LEGACY_MIND_QUEUE_FILES.DEFECTS);
-  if (existsSync(legacy)) return legacy;
-  return canonical;
+  return join(root, OLT_DIR_NAME, OLT_FILES.DEFECTS);
 }
 
 export function resolveCompletedDefectsPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
   const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
-  const canonical = join(root, OLT_DIR_NAME, OLT_FILES.COMPLETED_DEFECTS);
-  if (existsSync(canonical)) return canonical;
-  const legacy = join(root, LEGACY_MIND_QUEUE_FILES.COMPLETED_DEFECTS);
-  if (existsSync(legacy)) return legacy;
-  return canonical;
+  return join(root, OLT_DIR_NAME, OLT_FILES.COMPLETED_DEFECTS);
 }
 
 export function resolveTelemetryPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
   const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
-  const canonical = join(root, OLT_DIR_NAME, OLT_FILES.TELEMETRY);
-  if (existsSync(canonical)) return canonical;
-  const legacy = join(root, LEGACY_MIND_QUEUE_FILES.TELEMETRY);
-  if (existsSync(legacy)) return legacy;
-  return canonical;
+  return join(root, OLT_DIR_NAME, OLT_FILES.TELEMETRY);
+}
+
+export function resolveMemoryPath(repoRoot?: string, customPath?: string): string {
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  return join(root, OLT_DIR_NAME, OLT_FILES.MEMORY);
+}
+
+export function resolveWatchdogsPath(repoRoot?: string, customPath?: string): string {
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  return join(root, OLT_DIR_NAME, OLT_FILES.WATCHDOGS);
 }
 
 export function resolveScratchDir(repoRoot?: string): string {

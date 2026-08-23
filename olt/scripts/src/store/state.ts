@@ -4,13 +4,16 @@ import { FORMAT_VERSION, RESERVED_STATE_KEYS, STATE_SCHEMA } from "./constants.t
 
 export { sameJson } from "../core/json.ts";
 
-export function initialState(): RunState {
+import type { CapsuleMode } from "../contracts/capsule.ts";
+
+export function initialState(mode?: CapsuleMode): RunState {
   return {
     schema: STATE_SCHEMA,
     version: FORMAT_VERSION,
     revision: 0,
     event_sequence: 0,
     event_head: null,
+    ...(mode === "mind" ? { mind: { generation: 1, candidates: [] } } : {}),
   };
 }
 
