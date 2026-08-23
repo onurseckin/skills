@@ -95,7 +95,7 @@ export function verifyStrictRepositoryCapsuleRoot(
     relFromRepo.startsWith(".capsules/") &&
     !relFromRepo.slice(".capsules/".length).includes("/.capsules");
 
-  const isAtRepoRoot = isDirectChildOfRootCapsules && !relFromRepo.startsWith("../");
+  const isAtRepoRoot = isDirectChildOfRootCapsules && !relFromRepo.startsWith("../../");
 
   if (!isAtRepoRoot) {
     issues.push(

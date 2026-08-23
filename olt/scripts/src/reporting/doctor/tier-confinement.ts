@@ -1,18 +1,18 @@
 import { existsSync } from "node:fs";
-import { HarnessError } from "../errors/harness-error.ts";
-import type { AgentGrantRecord, AgentToolRef, AgentToolUse } from "../contracts/agents.ts";
-import { isAgentRole } from "../contracts/packets.ts";
-import type { CommandRecord } from "../contracts/commands.ts";
-import { isJsonObject, type JsonObject } from "../contracts/json.ts";
-import type { TaskRecord, ValidationAttempt } from "../workflow/types.ts";
-import type { RunState } from "../contracts/capsule.ts";
-import { readAgentLedger } from "../workflow/agents/ledger.ts";
-import { loadRun } from "../engine/store/index.ts";
+import { HarnessError } from "../../errors/harness-error.ts";
+import type { AgentGrantRecord, AgentToolRef, AgentToolUse } from "../../contracts/agents.ts";
+import { isAgentRole } from "../../contracts/packets.ts";
+import type { CommandRecord } from "../../contracts/commands.ts";
+import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
+import type { TaskRecord, ValidationAttempt } from "../../workflow/types.ts";
+import type { RunState } from "../../contracts/capsule.ts";
+import { readAgentLedger } from "../../workflow/agents/ledger.ts";
+import { loadRun } from "../../store/index.ts";
 import {
   type ExecutionTier,
   roleToTier,
   validateTierSpawning,
-} from "../authority/thread-identifier.ts";
+} from "../../authority/thread-identifier.ts";
 
 export const DOCTOR_SUPERVISOR_CODE_CONTAMINATION = "DOCTOR_SUPERVISOR_CODE_CONTAMINATION";
 
