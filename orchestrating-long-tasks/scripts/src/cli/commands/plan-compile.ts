@@ -89,11 +89,13 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
     prompt,
     buffer,
   );
+  const currentGraph = loaded.state.graph as Record<string, unknown> | undefined;
+  const nextRevision = typeof currentGraph?.revision === "number" ? currentGraph.revision + 1 : 1;
   const { graphDocument } = compileGraphDocument(
     buffer,
     requirementsDocument,
     requirementIdsByTask,
-    1,
+    nextRevision,
     completionGate,
   );
   const { dependencies } = dependencyData(

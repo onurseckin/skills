@@ -58,6 +58,11 @@ export function projectPlan(
         if (key !== "dependencies" && key in existing) projected[key] = jsonCopy(existing[key]);
       }
     projected.dependencies = [...(dependencies.get(taskId) ?? [])].sort();
+    if (projected.status === "pending" || projected.status === "proposed") {
+      const deps = projected.dependencies as string[];
+      const allDepsDone = deps.length === 0 || deps.every((d) => (existingTasks[d] as Record<string, unknown> | undefined)?.status === "done");
+      projected.status = allDepsDone ? "ready" : "proposed";
+    }
     if (!("history" in projected)) projected.history = [];
     projectedTasks[taskId] = projected;
     projectedGraphTasks.get(taskId)!.status = projected.status;
