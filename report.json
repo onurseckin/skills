@@ -1,7 +1,0 @@
-{
-  "checks":[{"id":"dummy","name":"typecheck","status":"pass"}],
-  "evidence":[{"id":"dummy"}],
-  "files_changed":["olt/scripts/src/mind/defects/index.ts"],
-  "requirement_ids":["req-mod_mind"],
-  "summary":"Moved defects/ to mind/defects/ and updated internal imports."
-}

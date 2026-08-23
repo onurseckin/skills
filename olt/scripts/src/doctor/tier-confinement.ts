@@ -7,7 +7,7 @@ import { isJsonObject, type JsonObject } from "../contracts/json.ts";
 import type { TaskRecord, ValidationAttempt } from "../workflow/types.ts";
 import type { RunState } from "../contracts/capsule.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
-import { loadRun } from "../store/index.ts";
+import { loadRun } from "../engine/store/index.ts";
 import {
   type ExecutionTier,
   roleToTier,

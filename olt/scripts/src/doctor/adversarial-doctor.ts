@@ -4,7 +4,7 @@ import { basename, resolve } from "node:path";
 import { MINIMUM_BUN_VERSION } from "../config/constants.ts";
 import type { JsonObject } from "../contracts/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
-import { verifyCapsuleDeep, verifyIntegrity } from "../store/index.ts";
+import { verifyCapsuleDeep, verifyIntegrity } from "../engine/store/index.ts";
 import { verifyStrictRepositoryCapsuleRoot } from "./capsule-root.ts";
 import { verifyUnifiedEvidenceLocation } from "./evidence-location.ts";
 import { auditTierConfinement } from "./tier-confinement.ts";
@@ -133,7 +133,7 @@ export interface DoctorCertificationOptions extends DoctorDiagnosticOptions {
 }
 
 export function compareSemver(actual: string, minimum: string): boolean {
-  const left = actual.split(".").map((part) => Number.parseInt(part, 10));
+  const left = actual.split("./").map((part) => Number.parseInt(part, 10));
   const right = minimum.split(".").map((part) => Number.parseInt(part, 10));
   const len = Math.max(left.length, right.length);
   for (let i = 0; i < len; i += 1) {
