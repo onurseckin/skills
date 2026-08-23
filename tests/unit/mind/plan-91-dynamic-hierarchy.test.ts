@@ -125,26 +125,48 @@ describe("Plan 91 Pillar 1: Elastic Dynamic Hierarchy Scaling & Anti-Serializati
       expect(inferStackOrDomain("cmd/server/main.go")).toBe("go");
     });
 
-    it("keeps <= 5 lanes under a single coordinator partition", () => {
-      const tasks = [
-        createMockTask("t1", ["src/t1.ts"]),
-        createMockTask("t2", ["src/t2.ts"]),
-        createMockTask("t3", ["src/t3.ts"]),
-      ];
-
-      const partitionResult: MultiCoordinatorWavePartitionResult = partitionWaveCoordinators(
-        tasks,
-        {
-          waveIndex: 1,
-        },
+    it("proves exact boundary condition: N = 5 uses 1 coordinator, N = 6 triggers multi-coordinator expansion", () => {
+      const fiveTasks = Array.from({ length: 5 }, (_, i) =>
+        createMockTask(`t-${i + 1}`, [`src/t${i + 1}.ts`]),
       );
+      const res5 = partitionWaveCoordinators(fiveTasks, { waveIndex: 1 });
+      expect(res5.totalLanes).toBe(5);
+      expect(res5.coordinatorCount).toBe(1);
+      expect(res5.isMultiCoordinator).toBe(false);
+      expect(res5.partitions.length).toBe(1);
 
-      expect(partitionResult.waveIndex).toBe(1);
-      expect(partitionResult.totalLanes).toBe(3);
-      expect(partitionResult.coordinatorCount).toBe(1);
-      expect(partitionResult.isMultiCoordinator).toBe(false);
-      expect(partitionResult.partitions.length).toBe(1);
-      expect(partitionResult.partitions[0]?.taskIds).toEqual(["t1", "t2", "t3"]);
+      const sixTasks = Array.from({ length: 6 }, (_, i) =>
+        createMockTask(`t-${i + 1}`, [`src/t${i + 1}.ts`]),
+      );
+      const res6 = partitionWaveCoordinators(sixTasks, { waveIndex: 1 });
+      expect(res6.totalLanes).toBe(6);
+      expect(res6.coordinatorCount).toBe(2);
+      expect(res6.isMultiCoordinator).toBe(true);
+      expect(res6.partitions.length).toBe(2);
+      expect(res6.partitions[0]?.taskIds.length).toBe(5);
+      expect(res6.partitions[1]?.taskIds.length).toBe(1);
+    });
+
+    it("handles single-domain overflow with 12 lanes in ui domain under stackPartitioning", () => {
+      const uiTasks = Array.from({ length: 12 }, (_, i) =>
+        createMockTask(`ui-${i + 1}`, [`src/ui/Component${i + 1}.tsx`]),
+      );
+      const res = partitionWaveCoordinators(uiTasks, { waveIndex: 1, stackPartitioning: true });
+      expect(res.totalLanes).toBe(12);
+      expect(res.coordinatorCount).toBe(3);
+      expect(res.isMultiCoordinator).toBe(true);
+      expect(res.partitions[0]?.coordinatorId).toBe("coordinator_ui_part1");
+      expect(res.partitions[1]?.coordinatorId).toBe("coordinator_ui_part2");
+      expect(res.partitions[2]?.coordinatorId).toBe("coordinator_ui_part3");
+      expect(res.partitions[0]?.taskIds.length).toBe(5);
+      expect(res.partitions[1]?.taskIds.length).toBe(5);
+      expect(res.partitions[2]?.taskIds.length).toBe(2);
+    });
+
+    it("falls back to core domain on unfamiliar file scopes without throwing", () => {
+      expect(inferStackOrDomain("config/custom.unknown")).toBe("core");
+      expect(inferStackOrDomain("")).toBe("core");
+      expect(inferStackOrDomain([])).toBe("core");
     });
 
     it("partitions waves with > 5 lanes into multiple coordinators (<= 5 lanes each)", () => {
@@ -260,6 +282,18 @@ describe("Plan 91 Pillar 1: Elastic Dynamic Hierarchy Scaling & Anti-Serializati
       expect(result.violation?.recommendedDispatchArray.length).toBe(4);
 
       expect(() => assertAntiSerializationInterlock(readyTasks, 1)).toThrow(HarnessError);
+
+      // Verify partial batching (k = 2 or k = 3 for N = 4) is also blocked
+      const partial2 = verifyAntiSerializationInterlock(readyTasks, 2);
+      expect(partial2.passed).toBe(false);
+      expect(partial2.violation?.code).toBe(FALSE_SERIALIZATION_BLUNDER);
+      expect(() => assertAntiSerializationInterlock(readyTasks, 2)).toThrow(HarnessError);
+
+      const partial3 = verifyAntiSerializationInterlock(readyTasks, 3);
+      expect(partial3.passed).toBe(false);
+      expect(partial3.violation?.code).toBe(FALSE_SERIALIZATION_BLUNDER);
+      expect(() => assertAntiSerializationInterlock(readyTasks, 3)).toThrow(HarnessError);
+
       try {
         assertAntiSerializationInterlock(readyTasks, 1);
       } catch (err: unknown) {

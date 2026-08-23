@@ -19,6 +19,7 @@ __pycache__/
 .capsules/
 capsules/
 runtime/
+evidence/
 !olt/
 
 # os / filesystem

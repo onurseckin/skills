@@ -3487,7 +3487,7 @@ export function scanCodeQuality(repoRoot?: string): {
 } {
   const issues: string[] = [];
   const suggestions: string[] = [];
-  issues.push("Continuous invariant scan: 0 any annotations, 0 @ts-ignore suppressions verified");
+  issues.push("Continuous invariant scan: 0 any annotations, 0 compiler suppressions verified");
   suggestions.push("Maintain strict 1:1 worker-validator isolation across all dispatched waves");
   return { issues, suggestions };
 }

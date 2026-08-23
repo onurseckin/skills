@@ -53,22 +53,15 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
       expect(matchesFullTest).toBe(true);
     });
 
-    test("compiles implementer rules restricting un-targeted test runs and git operations", () => {
+    test("compiles implementer rules restricting git operations and policy forbidden commands", () => {
       const implementerPatterns = compileEffectiveForbiddenPatterns("implementer", samplePolicy);
-      // Forbids bare un-targeted test runs
-      expect(implementerPatterns.some((p) => p.test("bun test"))).toBe(true);
-      expect(implementerPatterns.some((p) => p.test("npm test"))).toBe(true);
-      expect(implementerPatterns.some((p) => p.test("pytest"))).toBe(true);
-      expect(implementerPatterns.some((p) => p.test("cargo test"))).toBe(true);
-
       // Forbids git commit and push
       expect(implementerPatterns.some((p) => p.test("git commit -m 'feat'"))).toBe(true);
       expect(implementerPatterns.some((p) => p.test("git push"))).toBe(true);
+      expect(implementerPatterns.some((p) => p.test("git reset --hard"))).toBe(true);
+      expect(implementerPatterns.some((p) => p.test("rm -rf /"))).toBe(true);
 
-      // Does NOT match targeted test runs
-      expect(implementerPatterns.some((p) => p.test("bun test tests/unit/auth.test.ts"))).toBe(
-        false,
-      );
+      // Does NOT match diagnostic reads
       expect(implementerPatterns.some((p) => p.test("git status"))).toBe(false);
       expect(implementerPatterns.some((p) => p.test("git diff"))).toBe(false);
     });
@@ -83,14 +76,145 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
       expect(isUntargetedTestCommand("cargo test")).toBe(true);
     });
 
+    test("detects un-targeted test commands with flags and flag values (leakage prevention)", () => {
+      expect(isUntargetedTestCommand("bun test --bail")).toBe(true);
+      expect(isUntargetedTestCommand("bun test -b -v")).toBe(true);
+      expect(isUntargetedTestCommand("bun test --seed 1234")).toBe(true);
+      expect(isUntargetedTestCommand("bun test --max-concurrency 4")).toBe(true);
+      expect(isUntargetedTestCommand("npm test --")).toBe(true);
+      expect(isUntargetedTestCommand("npm test -- --bail")).toBe(true);
+      expect(isUntargetedTestCommand("pytest -v -s --cov")).toBe(true);
+      expect(isUntargetedTestCommand("pytest --override-ini foo=bar")).toBe(true);
+      expect(isUntargetedTestCommand("cargo test --all --workspace")).toBe(true);
+      expect(isUntargetedTestCommand("vitest run")).toBe(true);
+      expect(isUntargetedTestCommand("vitest run --bail")).toBe(true);
+    });
+
+    test("detects multi-language un-targeted test commands", () => {
+      expect(isUntargetedTestCommand("go test")).toBe(true);
+      expect(isUntargetedTestCommand("go test -v")).toBe(true);
+      expect(isUntargetedTestCommand("go test ./...")).toBe(true);
+      expect(isUntargetedTestCommand("mvn test")).toBe(true);
+      expect(isUntargetedTestCommand("gradle test")).toBe(true);
+      expect(isUntargetedTestCommand("./gradlew test")).toBe(true);
+      expect(isUntargetedTestCommand("dotnet test")).toBe(true);
+      expect(isUntargetedTestCommand("mix test")).toBe(true);
+    });
+
     test("returns false for targeted test commands", () => {
       expect(isUntargetedTestCommand("bun test tests/unit/foo.test.ts")).toBe(false);
+      expect(isUntargetedTestCommand("bun test --bail tests/unit/foo.test.ts")).toBe(false);
       expect(isUntargetedTestCommand("npm test -- tests/unit/foo.test.ts")).toBe(false);
       expect(isUntargetedTestCommand("pytest tests/unit/test_app.py")).toBe(false);
+      expect(isUntargetedTestCommand("cargo test -- tests/unit/test_app.rs")).toBe(false);
+      expect(isUntargetedTestCommand("cargo test test_something")).toBe(false);
+      expect(isUntargetedTestCommand("vitest run src/foo.spec.ts")).toBe(false);
+      expect(isUntargetedTestCommand("go test ./pkg/auth/auth_test.go")).toBe(false);
+      expect(isUntargetedTestCommand("dotnet test Tests/UnitTests.cs")).toBe(false);
     });
   });
 
   describe("verifyCommandAuthorization", () => {
+    test("enforces immutable can_execute_shell: false on validator even if spoofed to true", () => {
+      const spoofedValidatorActor = {
+        agent_id: "val-spoofed",
+        role: "validator",
+        tier: 3,
+        can_execute_shell: true, // Attempted spoof
+      };
+
+      const result = verifyCommandAuthorization(spoofedValidatorActor, "ls -la", samplePolicy);
+      expect(result.authorized).toBe(false);
+      expect(result.error_code).toBe("PERMISSION_DENIED");
+      expect(result.message).toContain(
+        "Cognitive Validators are strictly prohibited from running commands",
+      );
+    });
+
+    test("blocks subshell and evaluator invocations with UNSHIELDED_COMMAND_BLUNDER", () => {
+      const implementerActor: AgentMetadata = {
+        agent_id: "imp-1",
+        role: "implementer",
+        tier: 3,
+        write_scope: ["src/foo.ts"],
+        allowed_read_scope: [],
+        can_execute_shell: true,
+        spawned_at: new Date().toISOString(),
+      };
+
+      const resSh = verifyCommandAuthorization(implementerActor, "sh -c 'bun test'", samplePolicy);
+      expect(resSh.authorized).toBe(false);
+      expect(resSh.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+
+      const resBash = verifyCommandAuthorization(
+        implementerActor,
+        "bash -c 'git push'",
+        samplePolicy,
+      );
+      expect(resBash.authorized).toBe(false);
+      expect(resBash.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+
+      const resNode = verifyCommandAuthorization(
+        implementerActor,
+        ["node", "-e", "process.exit(1)"],
+        samplePolicy,
+      );
+      expect(resNode.authorized).toBe(false);
+      expect(resNode.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+
+      const resBun = verifyCommandAuthorization(
+        implementerActor,
+        ["bun", "-e", "console.log(1)"],
+        samplePolicy,
+      );
+      expect(resBun.authorized).toBe(false);
+      expect(resBun.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+
+      const resPy = verifyCommandAuthorization(
+        implementerActor,
+        ["python3", "-c", "import os"],
+        samplePolicy,
+      );
+      expect(resPy.authorized).toBe(false);
+      expect(resPy.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+    });
+
+    test("blocks unshielded command chaining operators in argv", () => {
+      const implementerActor: AgentMetadata = {
+        agent_id: "imp-1",
+        role: "implementer",
+        tier: 3,
+        write_scope: ["src/foo.ts"],
+        allowed_read_scope: [],
+        can_execute_shell: true,
+        spawned_at: new Date().toISOString(),
+      };
+
+      const resAnd = verifyCommandAuthorization(
+        implementerActor,
+        ["echo", "foo", "&&", "git", "push"],
+        samplePolicy,
+      );
+      expect(resAnd.authorized).toBe(false);
+      expect(resAnd.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+
+      const resPipe = verifyCommandAuthorization(
+        implementerActor,
+        ["ls", "|", "grep", "foo"],
+        samplePolicy,
+      );
+      expect(resPipe.authorized).toBe(false);
+      expect(resPipe.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+
+      const resSemi = verifyCommandAuthorization(
+        implementerActor,
+        ["git", "status", ";", "rm", "-rf", "/"],
+        samplePolicy,
+      );
+      expect(resSemi.authorized).toBe(false);
+      expect(resSemi.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+    });
+
     test("blocks cognitive validator from running any shell command", () => {
       const validatorActor: AgentMetadata = {
         agent_id: "val-1",

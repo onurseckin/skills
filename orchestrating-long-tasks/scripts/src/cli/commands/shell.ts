@@ -7,7 +7,7 @@ import { loadRun } from "../../store/index.ts";
 import { runAndRecordCommand } from "../../integration/record-command.ts";
 import { declaredToolFlags } from "../taxonomy-flags.ts";
 import { formatRunExecBrief } from "../formatters/index.ts";
-import { actorFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { actorFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
 import { createAgentMetadata, readAgentMetadata } from "../../runtime/agent-metadata.ts";
@@ -35,6 +35,7 @@ export async function shellCommand(
   const actor = actorFlag(flags);
   const run = textFlag(flags, "run", false) ?? textFlag(flags, "run-id", false);
   const task = textFlag(flags, "task", false);
+  const wave = integerFlag(flags, "wave", { required: false });
   const gate = textFlag(flags, "gate", false);
   const cwd = textFlag(flags, "cwd", false) ?? process.cwd();
   const explicitRole = textFlag(flags, "role", false);
@@ -63,7 +64,9 @@ export async function shellCommand(
   const auth = verifyCommandAuthorization(metadata, remainder, policy);
   if (!auth.authorized) {
     const errCode =
-      auth.error_code === "INVALID_SCOPE" ? "INVALID_ARGUMENT" : "ROLE_CONFINEMENT_VIOLATION";
+      auth.error_code === "INVALID_SCOPE" || auth.error_code === "UNSHIELDED_COMMAND_BLUNDER"
+        ? "INVALID_ARGUMENT"
+        : "ROLE_CONFINEMENT_VIOLATION";
     throw new HarnessError(
       errCode,
       auth.message ?? auth.reason ?? "Command execution unauthorized by RBAC policy",
@@ -94,14 +97,24 @@ export async function shellCommand(
     const durationMs = Date.now() - startTime;
     const exitCode = record.exit_code;
 
+    const rawStdout =
+      typeof record.stdout === "string" ? record.stdout : JSON.stringify(record.stdout ?? "");
+    const rawStderr =
+      typeof record.stderr === "string" ? record.stderr : JSON.stringify(record.stderr ?? "");
+    const stdoutSha256 = createHash("sha256").update(rawStdout).digest("hex");
+    const stderrSha256 = createHash("sha256").update(rawStderr).digest("hex");
+
     const receiptPayload = {
       actor,
       argv: remainder,
       exit_code: exitCode,
       started_at: record.started_at,
       finished_at: record.finished_at,
+      duration_ms: durationMs,
       status: record.status,
       command_id: record.id,
+      stdout_sha256: stdoutSha256,
+      stderr_sha256: stderrSha256,
     };
     const receiptSha256 = createHash("sha256").update(JSON.stringify(receiptPayload)).digest("hex");
 
@@ -116,13 +129,20 @@ export async function shellCommand(
       "utf-8",
     );
 
+    const tokenEstimate = Math.max(
+      1,
+      Math.round((rawStdout.length + rawStderr.length + commandStr.length) / 4),
+    );
+
     emitTelemetryEvent(
       {
         timestamp: new Date().toISOString(),
         actor,
         task_id: task ?? record.task_id ?? undefined,
+        wave: wave ?? undefined,
         action: `shell: ${commandStr}`,
         status: exitCode === 0 ? "success" : "failure",
+        token_estimate: tokenEstimate,
         details: { exit_code: exitCode, command_id: record.id, receipt_sha256: receiptSha256 },
       },
       repoRoot,
@@ -159,25 +179,50 @@ export async function shellCommand(
   const exitCode = child.status;
   const stdout = child.stdout ?? "";
   const stderr = child.stderr ?? "";
+  const finishedAt = new Date().toISOString();
+  const startedAt = new Date(startTime).toISOString();
+
+  const stdoutSha256 = createHash("sha256").update(stdout).digest("hex");
+  const stderrSha256 = createHash("sha256").update(stderr).digest("hex");
 
   const receiptPayload = {
     actor,
     argv: remainder,
     exit_code: exitCode,
-    timestamp: new Date().toISOString(),
+    started_at: startedAt,
+    finished_at: finishedAt,
     duration_ms: durationMs,
-    stdout_sha256: createHash("sha256").update(stdout).digest("hex"),
-    stderr_sha256: createHash("sha256").update(stderr).digest("hex"),
+    status: exitCode === 0 ? "success" : "failure",
+    stdout_sha256: stdoutSha256,
+    stderr_sha256: stderrSha256,
   };
   const receiptSha256 = createHash("sha256").update(JSON.stringify(receiptPayload)).digest("hex");
+
+  const evidenceDir = join(repoRoot, "evidence");
+  if (!existsSync(evidenceDir)) {
+    mkdirSync(evidenceDir, { recursive: true });
+  }
+  const evidenceReceiptPath = join(evidenceDir, `cmd-${receiptSha256.slice(0, 16)}.json`);
+  writeFileSync(
+    evidenceReceiptPath,
+    JSON.stringify({ ...receiptPayload, receipt_sha256: receiptSha256 }, null, 2) + "\n",
+    "utf-8",
+  );
+
+  const tokenEstimate = Math.max(
+    1,
+    Math.round((stdout.length + stderr.length + commandStr.length) / 4),
+  );
 
   emitTelemetryEvent(
     {
       timestamp: new Date().toISOString(),
       actor,
       task_id: task ?? undefined,
+      wave: wave ?? undefined,
       action: `shell: ${commandStr}`,
       status: exitCode === 0 ? "success" : "failure",
+      token_estimate: tokenEstimate,
       details: { exit_code: exitCode, receipt_sha256: receiptSha256 },
     },
     repoRoot,
@@ -189,6 +234,7 @@ export async function shellCommand(
     `- **Exit Code**: \`${exitCode}\``,
     `- **Duration**: ${(durationMs / 1000).toFixed(2)}s`,
     `- **Cryptographic Receipt SHA-256**: \`${receiptSha256}\``,
+    `- **Evidence Receipt Path**: \`${evidenceReceiptPath}\``,
   ];
 
   if (stdout.trim()) {
@@ -218,6 +264,7 @@ export async function shellCommand(
     stdout,
     stderr,
     receipt_sha256: receiptSha256,
+    evidence_path: evidenceReceiptPath,
     duration_ms: durationMs,
   };
 }

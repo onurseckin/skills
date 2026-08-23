@@ -116,7 +116,7 @@ const TEST_GATE_PREFIXES: readonly string[] = [
 ] as const;
 
 const BLOCK_END_DELIMITERS = new Set(["}", "};", ");", ") {"]);
-const PYTHON_EXTENSIONS = new Set(["py", "python"]);
+const PY_EXTENSIONS = new Set(["py", "python"]);
 const MARKDOWN_EXTENSIONS = new Set(["md", "markdown"]);
 const SHELL_EXTENSIONS = new Set(["sh", "bash", "zsh"]);
 
@@ -543,7 +543,7 @@ function extractSymbolsFromGenericSource(
     const lineNum = i + 1;
 
     // Python functions & classes
-    if (ext !== undefined && PYTHON_EXTENSIONS.has(ext)) {
+    if (ext !== undefined && PY_EXTENSIONS.has(ext)) {
       const pyFuncMatch = trimmed.match(/^(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\(/);
       if (pyFuncMatch !== null && pyFuncMatch[1] !== undefined) {
         symbols.push({
