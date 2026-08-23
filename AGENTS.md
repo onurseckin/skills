@@ -30,7 +30,7 @@ Every agent executing within this repository must adhere to the following non-ne
    - Upon task or subgroup verification and completion:
      - Create a Conventional Commit (`feat(...)`, `fix(...)`).
      - Push to upstream main (`git push origin main`).
-     - Run global skill sync (`bun scripts/sync-global.ts`) to synchronize `~/.agents/skills/orchestrating-long-tasks/`.
+     - Run global skill sync (`bun scripts/sync-global.ts`) to synchronize `~/.agents/skills/olt/`.
 8. **Hard Agent Reset Discipline:**
    - Upon wave completion or task group finish, coordinators and orchestrators perform a hard reset on completed subagents (`manage_subagents` with `Action: 'kill'`) to prevent stale context accumulation, ghost leases, and memory leaks.
 9. **Direct Argv & Non-Interactive Execution:**

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { orphanEvidenceSha256 } from "../../../orchestrating-long-tasks/scripts/src/workflow/orphan-evidence/digest.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import { orphanEvidenceSha256 } from "../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { actions, view } from "./actions-fixture.ts";
 
 describe("completion argv after every task is done", () => {

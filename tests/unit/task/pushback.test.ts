@@ -4,8 +4,8 @@ import {
   isSubstantivePushback,
   validatePushbackEvidence,
   type CoordinatorPushbackCause,
-} from "../../../orchestrating-long-tasks/scripts/src/task/pushback.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/task/pushback.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 
 describe("task subsystem pushback unit tests", () => {
   it("recognizes pushback cause categories", () => {

@@ -1,10 +1,7 @@
-import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
-import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type {
-  TaskRecord,
-  WorkflowState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/contracts/agents.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 export function makeTask(id: string, overrides: Partial<TaskRecord> = {}): TaskRecord {
   return {

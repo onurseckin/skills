@@ -2,11 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   evaluateHierarchicalDecision,
   assertHierarchicalCompliance,
-} from "../../../orchestrating-long-tasks/scripts/src/scheduler/decision-tree.ts";
-import type {
-  TaskRecord,
-  WorkflowState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/scheduler/decision-tree.ts";
+import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Hierarchical Decision Tree & Dominating Skill Mechanics", () => {
   const dummyState: WorkflowState = {

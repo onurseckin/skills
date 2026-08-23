@@ -3,8 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { createServer, type Server } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import { syncTree } from "../../../orchestrating-long-tasks/scripts/src/installer/durable-tree.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { syncTree } from "../../../olt/scripts/src/installer/durable-tree.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("syncTree", () => {

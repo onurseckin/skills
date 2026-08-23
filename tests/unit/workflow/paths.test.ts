@@ -11,30 +11,37 @@ import {
   resolveOltDir,
   resolvePolicyPath,
   resolveTelemetryPath,
-} from "../../../orchestrating-long-tasks/scripts/src/shared/paths.ts";
+} from "../../../olt/scripts/src/shared/paths.ts";
 
 describe("Plan 93 Canonical olt/ Storage & Paths System", () => {
   const tmpRoot = join(process.cwd(), ".tmp", "test-olt-paths");
 
-  test("resolves canonical olt/ directory and persistent files", () => {
+  test("resolves canonical .olt/ directory and persistent files", () => {
+    mkdirSync(join(tmpRoot, ".olt"), { recursive: true });
+    writeFileSync(join(tmpRoot, ".olt", "policy.json"), "{}", "utf-8");
+    writeFileSync(join(tmpRoot, ".olt", "backlog.jsonl"), "", "utf-8");
+    writeFileSync(join(tmpRoot, ".olt", "completed-tasks.jsonl"), "", "utf-8");
+    writeFileSync(join(tmpRoot, ".olt", "defects.jsonl"), "", "utf-8");
+    writeFileSync(join(tmpRoot, ".olt", "completed-defects.jsonl"), "", "utf-8");
+    writeFileSync(join(tmpRoot, ".olt", "telemetry.jsonl"), "", "utf-8");
+
+    expect(resolveOltDir(tmpRoot)).toBe(join(tmpRoot, ".olt"));
+    expect(resolvePolicyPath(tmpRoot)).toBe(join(tmpRoot, ".olt", "policy.json"));
+    expect(resolveBacklogPath(tmpRoot)).toBe(join(tmpRoot, ".olt", "backlog.jsonl"));
+    expect(resolveCompletedTasksPath(tmpRoot)).toBe(join(tmpRoot, ".olt", "completed-tasks.jsonl"));
+    expect(resolveDefectsPath(tmpRoot)).toBe(join(tmpRoot, ".olt", "defects.jsonl"));
+    expect(resolveCompletedDefectsPath(tmpRoot)).toBe(
+      join(tmpRoot, ".olt", "completed-defects.jsonl"),
+    );
+    expect(resolveTelemetryPath(tmpRoot)).toBe(join(tmpRoot, ".olt", "telemetry.jsonl"));
+
+    rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  test("resolves fallback olt/ directory when .olt does not exist", () => {
     mkdirSync(join(tmpRoot, "olt"), { recursive: true });
     writeFileSync(join(tmpRoot, "olt", "policy.json"), "{}", "utf-8");
-    writeFileSync(join(tmpRoot, "olt", "backlog.jsonl"), "", "utf-8");
-    writeFileSync(join(tmpRoot, "olt", "completed-tasks.jsonl"), "", "utf-8");
-    writeFileSync(join(tmpRoot, "olt", "defects.jsonl"), "", "utf-8");
-    writeFileSync(join(tmpRoot, "olt", "completed-defects.jsonl"), "", "utf-8");
-    writeFileSync(join(tmpRoot, "olt", "telemetry.jsonl"), "", "utf-8");
-
     expect(resolveOltDir(tmpRoot)).toBe(join(tmpRoot, "olt"));
-    expect(resolvePolicyPath(tmpRoot)).toBe(join(tmpRoot, "olt", "policy.json"));
-    expect(resolveBacklogPath(tmpRoot)).toBe(join(tmpRoot, "olt", "backlog.jsonl"));
-    expect(resolveCompletedTasksPath(tmpRoot)).toBe(join(tmpRoot, "olt", "completed-tasks.jsonl"));
-    expect(resolveDefectsPath(tmpRoot)).toBe(join(tmpRoot, "olt", "defects.jsonl"));
-    expect(resolveCompletedDefectsPath(tmpRoot)).toBe(
-      join(tmpRoot, "olt", "completed-defects.jsonl"),
-    );
-    expect(resolveTelemetryPath(tmpRoot)).toBe(join(tmpRoot, "olt", "telemetry.jsonl"));
-
     rmSync(tmpRoot, { recursive: true, force: true });
   });
 

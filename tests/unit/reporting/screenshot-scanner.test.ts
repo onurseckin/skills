@@ -9,7 +9,7 @@ import {
   findVisualReportCandidates,
   scanDirectoryForImages,
   scanDirectoryForVisualReports,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-scanner.ts";
+} from "../../../olt/scripts/src/reporting/screenshot-scanner.ts";
 
 const roots: string[] = [];
 afterEach(() => {

@@ -6,12 +6,12 @@ import {
   queryBrowserRuns,
   readBrowserRun,
   writeBrowserRunRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/browser-run-store.ts";
+} from "../../../olt/scripts/src/reporting/browser-run-store.ts";
 import {
   extractBrowserReportsFromText,
   findBrowserReportCandidates,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/browser-run-scanner.ts";
-import type { BrowserRunRecord } from "../../../orchestrating-long-tasks/scripts/src/reporting/browser-run-types.ts";
+} from "../../../olt/scripts/src/reporting/browser-run-scanner.ts";
+import type { BrowserRunRecord } from "../../../olt/scripts/src/reporting/browser-run-types.ts";
 import { cleanupTempDirs, tempDir } from "./browser-run-fixture.ts";
 
 afterEach(cleanupTempDirs);

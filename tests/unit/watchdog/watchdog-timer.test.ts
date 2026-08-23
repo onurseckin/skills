@@ -15,7 +15,7 @@ import {
   type WatchdogFinding,
   type WatchdogHealthAuditReport,
   type WatchdogTickReport,
-} from "../../../orchestrating-long-tasks/scripts/src/watchdog/index.ts";
+} from "../../../olt/scripts/src/watchdog/index.ts";
 import {
   assertSupervisorRoleConfinement,
   auditSupervisorCodeContamination,
@@ -23,12 +23,12 @@ import {
   DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
   isSourceCodeFile,
   type TierConfinementFinding,
-} from "../../../orchestrating-long-tasks/scripts/src/doctor/tier-confinement.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
-import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+} from "../../../olt/scripts/src/doctor/tier-confinement.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/contracts/agents.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
 
 describe("Autonomic Watchdog 3-Minute Heartbeat Loop (p47)", () => {
   it("initializes with 3-minute standard cadence (180,000ms) and 6-minute timeout (360,000ms)", () => {
@@ -700,14 +700,14 @@ describe("DOCTOR_SUPERVISOR_CODE_CONTAMINATION Doctor Check Enforcement", () => 
 
 describe("Invariants & Cleanliness Audit - Autonomic Watchdog (p47 & p56)", () => {
   it("zero TypeScript any and zero suppressions across all watchdog files", () => {
-    const watchdogDir = join(__dirname, "../../../orchestrating-long-tasks/scripts/src/watchdog");
+    const watchdogDir = join(__dirname, "../../../olt/scripts/src/watchdog");
     const sourceFiles = [
       join(watchdogDir, "constants.ts"),
       join(watchdogDir, "types.ts"),
       join(watchdogDir, "boot-gate-enforcer.ts"),
       join(watchdogDir, "autonomic-watchdog.ts"),
       join(watchdogDir, "index.ts"),
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/doctor/tier-confinement.ts"),
+      join(__dirname, "../../../olt/scripts/src/doctor/tier-confinement.ts"),
       __filename,
     ];
 

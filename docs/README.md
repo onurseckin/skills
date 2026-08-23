@@ -9,8 +9,8 @@ Root `docs/` is **strictly reserved** for repository-wide multi-skill collection
 ### Architectural Invariants:
 
 1. **No Individual Skill Runtime Docs in Root `docs/`:**
-   - All documentation specific to an individual skill (such as role definitions, reference guides, protocol specifications, checklists, and state models) resides strictly inside that skill's dedicated directory (e.g., `orchestrating-long-tasks/references/`, `orchestrating-long-tasks/roles/`, `orchestrating-long-tasks/mind/`).
-   - `orchestrating-long-tasks/docs/` is prohibited and must not exist.
+   - All documentation specific to an individual skill (such as role definitions, reference guides, protocol specifications, checklists, and state models) resides strictly inside that skill's dedicated directory (e.g., `olt/references/`, `olt/roles/`, `olt/mind/`).
+   - `olt/docs/` is prohibited and must not exist.
 2. **No Stale Planning Files:**
    - Static execution planning directories (e.g., `docs/planning/`) are prohibited. Active execution state lives dynamically in `.capsules/<run-id>/`.
 3. **Repository-Wide Guidelines Only:**

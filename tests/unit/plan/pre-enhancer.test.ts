@@ -12,7 +12,7 @@
  */
 
 import { describe, test, expect } from "bun:test";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   PRE_ENHANCER_VERSION,
   DEFAULT_TASK_PRIORITY,
@@ -42,16 +42,13 @@ import {
   type PreEnhancementTaskInput,
   type DiscriminatingAssertion,
   type AgpCounterfactualProbeTemplate,
-} from "../../../orchestrating-long-tasks/scripts/src/plan/pre-enhancer.ts";
+} from "../../../olt/scripts/src/plan/pre-enhancer.ts";
 
 describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
   const sampleTaskInput: PreEnhancementTaskInput = {
     taskId: "task-p74-proactive-plan-pre-enhancer",
     label: "Proactive Plan Pre-Enhancer & Discriminating Gate Compiler",
-    writeScope: [
-      "orchestrating-long-tasks/scripts/src/plan/pre-enhancer.ts",
-      "tests/unit/plan/pre-enhancer.test.ts",
-    ],
+    writeScope: ["olt/scripts/src/plan/pre-enhancer.ts", "tests/unit/plan/pre-enhancer.test.ts"],
     dependencies: ["task-p72-hyper-active-mind-cognition"],
     gateCommand: "bun test tests/unit/plan/pre-enhancer.test.ts",
     effort: 3,
@@ -137,11 +134,11 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
   describe("Scope Disjointness Verification", () => {
     test("detects mutually disjoint write scopes", () => {
       const scopeA = [
-        "orchestrating-long-tasks/scripts/src/plan/pre-enhancer.ts",
+        "olt/scripts/src/plan/pre-enhancer.ts",
         "tests/unit/plan/pre-enhancer.test.ts",
       ];
       const scopeB = [
-        "orchestrating-long-tasks/scripts/src/mind/hyper-cognition.ts",
+        "olt/scripts/src/mind/hyper-cognition.ts",
         "tests/unit/mind/hyper-cognition.test.ts",
       ];
 
@@ -233,7 +230,7 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       for (const probe of probes) {
         expect(probe.probeId.startsWith("AGP-")).toBe(true);
         expect(probe.taskId).toBe(sampleTaskInput.taskId);
-        expect(probe.targetFile).toBe("orchestrating-long-tasks/scripts/src/plan/pre-enhancer.ts");
+        expect(probe.targetFile).toBe("olt/scripts/src/plan/pre-enhancer.ts");
         expect(probe.expectedGateOutcome).toBe("failure");
         expect(probe.counterfactualMutation.length).toBeGreaterThan(0);
         expect(probe.expectedFailurePattern.length).toBeGreaterThan(0);
@@ -263,7 +260,7 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       expect(checklist.writeScopeBoundary.declaredPaths).toEqual(sampleTaskInput.writeScope);
       expect(checklist.writeScopeBoundary.isDisjointFromConcurrentLanes).toBe(true);
       expect(checklist.writeScopeBoundary.sourceFiles).toContain(
-        "orchestrating-long-tasks/scripts/src/plan/pre-enhancer.ts",
+        "olt/scripts/src/plan/pre-enhancer.ts",
       );
       expect(checklist.writeScopeBoundary.testFiles).toContain(
         "tests/unit/plan/pre-enhancer.test.ts",
@@ -271,7 +268,7 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
     });
 
     test("detects concurrent lane scope conflict in checklist", () => {
-      const collidingScope = [["orchestrating-long-tasks/scripts/src/plan/pre-enhancer.ts"]];
+      const collidingScope = [["olt/scripts/src/plan/pre-enhancer.ts"]];
       const checklist = compileTaskInvariantChecklist(sampleTaskInput, collidingScope);
       expect(checklist.writeScopeBoundary.isDisjointFromConcurrentLanes).toBe(false);
     });
@@ -461,7 +458,7 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       taskId: "task-p72-hyper-active-mind-cognition",
       label: "Hyper-Active Mind Cognition Engine",
       writeScope: [
-        "orchestrating-long-tasks/scripts/src/mind/hyper-cognition.ts",
+        "olt/scripts/src/mind/hyper-cognition.ts",
         "tests/unit/mind/hyper-cognition.test.ts",
       ],
       dependencies: [],
@@ -473,10 +470,7 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
     const taskB: PreEnhancementTaskInput = {
       taskId: "task-p74-proactive-plan-pre-enhancer",
       label: "Proactive Plan Pre-Enhancer & Discriminating Gate Compiler",
-      writeScope: [
-        "orchestrating-long-tasks/scripts/src/plan/pre-enhancer.ts",
-        "tests/unit/plan/pre-enhancer.test.ts",
-      ],
+      writeScope: ["olt/scripts/src/plan/pre-enhancer.ts", "tests/unit/plan/pre-enhancer.test.ts"],
       dependencies: ["task-p72-hyper-active-mind-cognition"],
       gateCommand: "bun test tests/unit/plan/pre-enhancer.test.ts",
       effort: 3,
@@ -501,7 +495,7 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       const overlappingTaskB: PreEnhancementTaskInput = {
         ...taskB,
         writeScope: [
-          "orchestrating-long-tasks/scripts/src/mind/hyper-cognition.ts", // Collides with taskA
+          "olt/scripts/src/mind/hyper-cognition.ts", // Collides with taskA
           "tests/unit/plan/pre-enhancer.test.ts",
         ],
       };

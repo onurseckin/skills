@@ -9,15 +9,15 @@ import {
   isDestructiveGitCommand,
   isPathInWriteScope,
   partitionObservedChanges,
-} from "../../../orchestrating-long-tasks/scripts/src/worktree/zero-destructive-policy.ts";
+} from "../../../olt/scripts/src/worktree/zero-destructive-policy.ts";
 import {
   createGitRunner,
   git,
   worktreeGitEnvironment,
   type GitRunner,
   type GitSpawn,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/workflow/worktree/git.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 
 describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservation", () => {
   function createTrackingSpawn(recordedCalls: Array<{ cmd: string; args: string[] }>): GitSpawn {
@@ -308,11 +308,8 @@ describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservatio
   describe("Invariants & TypeScript Strictness Audit", () => {
     test("zero TypeScript any and zero suppressions across zero-destructive-policy files", () => {
       const sourceFiles = [
-        join(
-          __dirname,
-          "../../../orchestrating-long-tasks/scripts/src/worktree/zero-destructive-policy.ts",
-        ),
-        join(__dirname, "../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts"),
+        join(__dirname, "../../../olt/scripts/src/worktree/zero-destructive-policy.ts"),
+        join(__dirname, "../../../olt/scripts/src/workflow/worktree/git.ts"),
         __filename,
       ];
 

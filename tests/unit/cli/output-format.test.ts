@@ -2,18 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { stripOutputFormat } from "../../../orchestrating-long-tasks/scripts/src/cli/output-format.ts";
+import { stripOutputFormat } from "../../../olt/scripts/src/cli/output-format.ts";
 
 const roots: string[] = [];
-const entrypoint = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "..",
-  "orchestrating-long-tasks",
-  "scripts",
-  "harness.ts",
-);
+const entrypoint = join(import.meta.dir, "..", "..", "..", "olt", "scripts", "harness.ts");
 afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
 );

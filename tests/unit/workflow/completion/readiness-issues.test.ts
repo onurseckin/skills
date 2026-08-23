@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { completionReadinessIssues } from "../../../../orchestrating-long-tasks/scripts/src/workflow/completion/readiness-issues.ts";
-import { BRANCH_LEDGER_KEY } from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/ledger.ts";
+import { completionReadinessIssues } from "../../../../olt/scripts/src/workflow/completion/readiness-issues.ts";
+import { BRANCH_LEDGER_KEY } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
 import { branchRecord } from "../branch/fixture.ts";
 import { workflowState } from "../test-port.ts";
 

@@ -6,7 +6,7 @@ import {
   formatFindingsListBrief,
   formatReportBrief,
   formatReportsListBrief,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/inspection-formatter.ts";
+} from "../../../olt/scripts/src/cli/formatters/inspection-formatter.ts";
 
 describe("formatFindingBrief", () => {
   test("renders every field of a fully populated finding", () => {

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { testSummaryCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/test-summary.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { testSummaryCommand } from "../../../olt/scripts/src/cli/commands/test-summary.ts";
 import {
   acquireFullSuiteTestLock,
   createTestSummaryRecord,
@@ -16,7 +16,7 @@ import {
   resolveLockPath,
   saveTestSummary,
   type TestSummaryRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/testing/concurrency-lock.ts";
+} from "../../../olt/scripts/src/testing/concurrency-lock.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("isTestFilePath", () => {

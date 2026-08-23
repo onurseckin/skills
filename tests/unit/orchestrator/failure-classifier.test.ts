@@ -3,7 +3,7 @@ import {
   classifyFailure,
   nextBackoffDelayMs,
   type FailureRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/orchestrator/failure-classifier.ts";
+} from "../../../olt/scripts/src/orchestrator/failure-classifier.ts";
 
 const NOW = new Date("2026-08-19T00:10:00.000Z");
 

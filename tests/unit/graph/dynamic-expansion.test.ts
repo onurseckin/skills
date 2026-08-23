@@ -5,8 +5,8 @@ import {
   expandDeeper,
   expandDynamicPlan,
   expandWider,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/dynamic-expansion.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/graph/dynamic-expansion.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import { requirementsDocument } from "../requirements/fixtures.ts";
 import { graphDocument } from "./fixtures.ts";
 

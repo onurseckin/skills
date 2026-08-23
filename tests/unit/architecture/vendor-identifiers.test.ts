@@ -5,11 +5,11 @@ import {
   scanTreeForVendorIdentifiers,
   staleExemptions,
   type VendorIdentifierFinding,
-} from "../../../orchestrating-long-tasks/scripts/src/health/vendor-identifiers.ts";
-import { VENDOR_NAMES } from "../../../orchestrating-long-tasks/scripts/src/health/vendor-names.ts";
+} from "../../../olt/scripts/src/health/vendor-identifiers.ts";
+import { VENDOR_NAMES } from "../../../olt/scripts/src/health/vendor-names.ts";
 
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
-const scriptsRoot = join(repoRoot, "orchestrating-long-tasks/scripts");
+const scriptsRoot = join(repoRoot, "olt/scripts");
 const testsRoot = join(repoRoot, "tests");
 
 /**

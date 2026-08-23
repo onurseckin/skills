@@ -3,26 +3,19 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import {
-  initRun,
-  loadRun,
-  transact,
-} from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { runDoctor } from "../../../orchestrating-long-tasks/scripts/src/reporting/doctor.ts";
-import {
-  renderHandoff,
-  writeHandoff,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/handoff.ts";
-import { renderPreplanHandoff } from "../../../orchestrating-long-tasks/scripts/src/reporting/preplan-handoff.ts";
-import { runStatus } from "../../../orchestrating-long-tasks/scripts/src/reporting/status.ts";
-import { runStatusCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/run-ops.ts";
+import { initRun, loadRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
+import { renderHandoff, writeHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
+import { renderPreplanHandoff } from "../../../olt/scripts/src/reporting/preplan-handoff.ts";
+import { runStatus } from "../../../olt/scripts/src/reporting/status.ts";
+import { runStatusCommand } from "../../../olt/scripts/src/cli/commands/run-ops.ts";
 import { repositoryBinding, commandRecord } from "../workflow/test-port.ts";
-import { orphanEvidenceSha256 } from "../../../orchestrating-long-tasks/scripts/src/workflow/orphan-evidence/digest.ts";
+import { orphanEvidenceSha256 } from "../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
-import { generateLeasesReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/unified.ts";
+import { generateLeasesReport } from "../../../olt/scripts/src/reporting/unified.ts";
 
 const roots: string[] = [];
-const skillRoot = fileURLToPath(new URL("../../../orchestrating-long-tasks", import.meta.url));
+const skillRoot = fileURLToPath(new URL("../../../olt", import.meta.url));
 const gateEvidence = {
   assurance: "trusted_host_observed_v1",
   sandboxed: false,

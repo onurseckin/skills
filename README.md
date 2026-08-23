@@ -8,7 +8,7 @@ This repository is structured as a modular, multi-skill monorepo adhering to the
 
 ## 📦 Skills Directory
 
-### 1. [`orchestrating-long-tasks`](./orchestrating-long-tasks/SKILL.md)
+### 1. [`olt`](./olt/SKILL.md)
 
 **Durable, multi-phase, graph-scheduled task orchestration with adversarial independent validation.**
 
@@ -23,7 +23,7 @@ This repository is structured as a modular, multi-skill monorepo adhering to the
 - **Durable Crash Recovery:** Capsules under `.capsules/<run-id>/` resume across interruptions; `recover` reclaims dead leases explicitly and `task:release` hands one back voluntarily.
 - **Zero Runtime Dependencies:** Pure Bun standard library and native OS bindings (`node:fs`, `node:crypto`, `node:child_process`). No `node_modules` and no network calls at runtime.
 
-📚 **[Read the skill specification →](./orchestrating-long-tasks/SKILL.md)** · 🧭 **[Generated CLI manifest →](./orchestrating-long-tasks/references/cli-capabilities.md)** · 📖 **[Protocol reference →](./orchestrating-long-tasks/references/protocol.md)**
+📚 **[Read the skill specification →](./olt/SKILL.md)** · 🧭 **[Generated CLI manifest →](./olt/references/cli-capabilities.md)** · 📖 **[Protocol reference →](./olt/references/protocol.md)**
 
 ---
 
@@ -60,7 +60,7 @@ ceiling rather than assembled into fixed-size batches:
 ```
 
 Nine canonical roles exist, each with a binding capability contract in
-[`orchestrating-long-tasks/roles/`](./orchestrating-long-tasks/roles): `coordinator`, `planner`,
+[`olt/roles/`](./olt/roles): `coordinator`, `planner`,
 `implementer`, `validator`, `repairer`, `completeness-critic`, `sub-implementer`, `sub-validator`,
 `sub-investigator`. `task:claim --role` binds the agent to one for the whole lease.
 
@@ -82,11 +82,11 @@ Install any skill globally or locally into your current project:
 # Install all skills from this repository
 npx skills add onurseckin/skills
 
-# Install a specific skill (e.g. orchestrating-long-tasks)
-npx skills add onurseckin/skills --skill orchestrating-long-tasks
+# Install a specific skill (e.g. olt)
+npx skills add onurseckin/skills --skill olt
 
 # Or using Bun
-bunx skills add onurseckin/skills --skill orchestrating-long-tasks
+bunx skills add onurseckin/skills --skill olt
 ```
 
 #### Managing Installed Skills:
@@ -102,25 +102,25 @@ npx skills check
 npx skills update
 
 # Remove an installed skill
-npx skills remove orchestrating-long-tasks
+npx skills remove olt
 ```
 
 ---
 
 ### Method B: Native Harness Multi-Client Installer
 
-For `orchestrating-long-tasks`, use the native zero-dependency installer to link the canonical skill across all supported AI assistants simultaneously:
+For `olt`, use the native zero-dependency installer to link the canonical skill across all supported AI assistants simultaneously:
 
 ```bash
 # Install and link to Claude Code, Antigravity, Codex, and ChatGPT
-bun orchestrating-long-tasks/scripts/harness.ts install \
-  --source $(pwd)/orchestrating-long-tasks \
+bun olt/scripts/harness.ts install \
+  --source $(pwd)/olt \
   --home ~ \
   --clients codex,chatgpt,claude,antigravity
 
 # Verify installation health and symlink integrity
-bun orchestrating-long-tasks/scripts/harness.ts installation-status \
-  --source $(pwd)/orchestrating-long-tasks \
+bun olt/scripts/harness.ts installation-status \
+  --source $(pwd)/olt \
   --home ~
 ```
 
@@ -133,7 +133,7 @@ Every line below was executed in order and works as written. `jv` reads one fiel
 exactly once.
 
 ```bash
-H=orchestrating-long-tasks/scripts/harness.ts
+H=olt/scripts/harness.ts
 RUN=.capsules/quickstart
 jv() { bun -e 'const p=Bun.argv[1];const j=JSON.parse(await Bun.stdin.text());console.log(String(p.split(".").reduce((a,k)=>a?.[k],j)))' "$1"; }
 
@@ -241,21 +241,21 @@ Five things in that sequence are easy to get wrong and are refused outright:
   checked against that assignment's own record rather than the critic's live grant, so releasing the
   critic first does not invalidate it. Omitting it is refused outright, not defaulted.
 
-The [run playbook](./orchestrating-long-tasks/references/run-playbook.md)
+The [run playbook](./olt/references/run-playbook.md)
 runs the same flow with a branch, a real rejection and a repair round.
 
 ---
 
 ## 📊 Visualizing Execution Graphs in GVUI
 
-Runs executed by `orchestrating-long-tasks` produce complete execution graph datasets, agent-grant telemetry, gate verifications, and visual audit evidence inside `.capsules/<run-id>/`. Every value in that export carries its `evidence_class`, and a value nobody reported renders as `unknown` rather than as a plausible default. You can visualize any run interactively in [**GVUI (Graph Visualization UI)**](https://github.com/onurseckin/gvui):
+Runs executed by `olt` produce complete execution graph datasets, agent-grant telemetry, gate verifications, and visual audit evidence inside `.capsules/<run-id>/`. Every value in that export carries its `evidence_class`, and a value nobody reported renders as `unknown` rather than as a plausible default. You can visualize any run interactively in [**GVUI (Graph Visualization UI)**](https://github.com/onurseckin/gvui):
 
 ### 1. Export the Capsule Summary Suite
 
 From the workspace where your task ran, export the graph datasets:
 
 ```bash
-bun orchestrating-long-tasks/scripts/harness.ts summary:export --run .capsules/<run-id>
+bun olt/scripts/harness.ts summary:export --run .capsules/<run-id>
 ```
 
 This compiles `.capsules/<run-id>/summary/`:
@@ -352,7 +352,7 @@ When developing or updating skills locally:
 4. **Code Formatting**: `bun run format` (using `oxfmt`)
 5. **Zero Runtime Dependencies**: All runtime scripts must run directly via `bun` standard libraries and Node built-ins without requiring runtime `node_modules`.
 6. **The CLI Manifest Is Generated**: `references/cli-capabilities.md` and `.json` are rendered from `src/cli/registry/` by `scripts/generate-cli-manifest.ts`, and a unit test asserts the checked-in files still match the registry. Change the registry, regenerate, never hand-edit.
-7. **Role Contracts Are Checked**: every `commands:` entry in `orchestrating-long-tasks/roles/*.md` must name a command that exists in the manifest, and the frontmatter is parsed and hashed at runtime — a malformed contract is an `INTEGRITY` error.
+7. **Role Contracts Are Checked**: every `commands:` entry in `olt/roles/*.md` must name a command that exists in the manifest, and the frontmatter is parsed and hashed at runtime — a malformed contract is an `INTEGRITY` error.
 
 ---
 

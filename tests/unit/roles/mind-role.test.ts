@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadRoleContract } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
-import { isAgentRole } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
+import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
+import { isAgentRole } from "../../../olt/scripts/src/contracts/packets.ts";
 import {
   MIND_STRATEGIC_ALTITUDE,
   MIND_HARD_ZEROS,
   MIND_PROACTIVE_BANDWIDTH_ACTIVITIES,
   verifyMindRoleStrategicInvariants,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/strategic-purpose.ts";
+} from "../../../olt/scripts/src/mind/strategic-purpose.ts";
 
 describe("mind role contract & strategic purpose codification", () => {
   test("mind role is registered with tier 0", () => {
@@ -76,15 +76,7 @@ describe("mind role contract & strategic purpose codification", () => {
   });
 
   test("mind agent persona (mind.yaml) specifies strategic brain invariants and prohibitions matching roles/mind.md", () => {
-    const agentYamlPath = join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "orchestrating-long-tasks",
-      "agents",
-      "mind.yaml",
-    );
+    const agentYamlPath = join(import.meta.dir, "..", "..", "..", "olt", "agents", "mind.yaml");
     const yamlContent = readFileSync(agentYamlPath, "utf-8");
 
     // Verify declared mind_invariants

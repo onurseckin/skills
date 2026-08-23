@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   formatBlunderAuditBrief,
   formulateBlunderCandidates,
@@ -9,7 +9,7 @@ import {
   type BlunderAuditReport,
   type BlunderEntry,
   type BlunderResolutionProof,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/blunders.ts";
+} from "../../../olt/scripts/src/mind/blunders.ts";
 
 describe("Diagnostics Remediation Proof & Static Quality Invariants", () => {
   const sampleBlunder: BlunderEntry = {
@@ -165,9 +165,9 @@ describe("Diagnostics Remediation Proof & Static Quality Invariants", () => {
   describe("Static Quality Invariant Verification", () => {
     const repoRoot = process.cwd();
     const filesToAudit = [
-      "orchestrating-long-tasks/scripts/src/mind/blunders.ts",
-      "orchestrating-long-tasks/scripts/src/mind/pushbacks.ts",
-      "orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts",
+      "olt/scripts/src/mind/blunders.ts",
+      "olt/scripts/src/mind/pushbacks.ts",
+      "olt/scripts/src/mind/feedback-queue.ts",
       "tests/unit/diagnostics/blunder-ingestion.test.ts",
       "tests/unit/diagnostics/blunder-categorization.test.ts",
       "tests/unit/diagnostics/pushback-ingestion.test.ts",

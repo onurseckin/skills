@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type {
-  AuditFinding,
-  AuditNotEvaluated,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/plan-audit.ts";
+import type { AuditFinding, AuditNotEvaluated } from "../../../olt/scripts/src/graph/plan-audit.ts";
 import {
   formatAutoPartitionBrief,
   formatCapsuleInitBrief,
@@ -16,7 +13,7 @@ import {
   formatPlanStatusBrief,
   formatPlanValidateStartBrief,
   formatTaskRegisteredBrief,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/plan-formatter.ts";
+} from "../../../olt/scripts/src/cli/formatters/plan-formatter.ts";
 
 describe("formatPlanStatusBrief with declared dependencies", () => {
   test("names a task's dependencies in its row rather than reporting None", () => {

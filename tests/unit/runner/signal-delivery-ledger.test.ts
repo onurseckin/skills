@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   DescendantTracker,
   type ProcessIdentity,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/descendant-tracker.ts";
-import { terminateProcessGroup } from "../../../orchestrating-long-tasks/scripts/src/runner/process-group.ts";
+} from "../../../olt/scripts/src/runner/descendant-tracker.ts";
+import { terminateProcessGroup } from "../../../olt/scripts/src/runner/process-group.ts";
 
 const identity = (pid: number, parent: number, group = pid): ProcessIdentity => ({
   pid,

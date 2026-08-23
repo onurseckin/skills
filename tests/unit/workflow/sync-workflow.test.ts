@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   executeAutoSyncAndCommit,
   executePhaseCompletionSyncAndCommit,
@@ -10,13 +10,13 @@ import {
   type GitRunnerResult,
   type SyncRunner,
   type SyncRunnerResult,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/auto-sync-and-commit.ts";
+} from "../../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
 import {
   CONVENTIONAL_COMMIT_TYPES,
   formatConventionalCommit,
   formatConventionalCommitMessage,
   validatePhaseCommitMessage,
-} from "../../../orchestrating-long-tasks/scripts/src/worktree/phase-commits.ts";
+} from "../../../olt/scripts/src/worktree/phase-commits.ts";
 
 describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Task 3)", () => {
   describe("Conventional Commit Message Formatting & Exports", () => {
@@ -601,11 +601,8 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   test("verifies auto-sync and phase-commits modules and tests contain zero any and zero suppressions", () => {
     const filesToAudit = [
-      join(
-        process.cwd(),
-        "orchestrating-long-tasks/scripts/src/workflow/completion/auto-sync-and-commit.ts",
-      ),
-      join(process.cwd(), "orchestrating-long-tasks/scripts/src/worktree/phase-commits.ts"),
+      join(process.cwd(), "olt/scripts/src/workflow/completion/auto-sync-and-commit.ts"),
+      join(process.cwd(), "olt/scripts/src/worktree/phase-commits.ts"),
       join(process.cwd(), "tests/unit/workflow/sync-workflow.test.ts"),
     ];
 

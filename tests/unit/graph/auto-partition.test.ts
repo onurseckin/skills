@@ -8,7 +8,7 @@ import {
   globToRegExp,
   partitionByGlob,
   slugifyScope,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/auto-partition.ts";
+} from "../../../olt/scripts/src/graph/auto-partition.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

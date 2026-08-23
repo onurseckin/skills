@@ -1,10 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type {
-  CompletionReview,
-  TaskRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
-import { collectTimeline } from "../../../orchestrating-long-tasks/scripts/src/summary/timeline-collector.ts";
+import type { CompletionReview, TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
+import { collectTimeline } from "../../../olt/scripts/src/summary/timeline-collector.ts";
 import { assetUrlCounts, makeEvent, makeState, makeTask } from "./graph-fixtures.ts";
 
 const visualTask: TaskRecord = makeTask("T-full-visual", {

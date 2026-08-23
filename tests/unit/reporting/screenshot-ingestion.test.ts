@@ -5,10 +5,10 @@ import { join } from "node:path";
 import {
   ingestScreenshots,
   ingestVisualReport,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-ingestion.ts";
-import { queryScreenshots } from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-store.ts";
-import { listBlobs } from "../../../orchestrating-long-tasks/scripts/src/store/blobs.ts";
-import { readCaptures } from "../../../orchestrating-long-tasks/scripts/src/store/captures.ts";
+} from "../../../olt/scripts/src/reporting/screenshot-ingestion.ts";
+import { queryScreenshots } from "../../../olt/scripts/src/reporting/screenshot-store.ts";
+import { listBlobs } from "../../../olt/scripts/src/store/blobs.ts";
+import { readCaptures } from "../../../olt/scripts/src/store/captures.ts";
 
 const roots: string[] = [];
 afterEach(() => {

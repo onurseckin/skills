@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import {
   loadRoleContract,
   parseRoleContract,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
+} from "../../../olt/scripts/src/packets/role-contract.ts";
 
 const encoder = new TextEncoder();
 

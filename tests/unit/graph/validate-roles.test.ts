@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { validateRoles } from "../../../orchestrating-long-tasks/scripts/src/graph/validate-roles.ts";
+import { validateRoles } from "../../../olt/scripts/src/graph/validate-roles.ts";
 
 describe("graph validate roles", () => {
   test("flags invalid assigned_to edges and validator role mismatches", () => {

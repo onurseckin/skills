@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createRepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
+import { createRepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
 
 // B38 finding 1: a plain fork+exec `git` spawn can transiently return no status, no error and no
 // stderr under process-table pressure — the same shape `process-tree.ts`'s `processSnapshot` already

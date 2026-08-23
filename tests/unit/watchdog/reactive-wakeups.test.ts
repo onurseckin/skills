@@ -11,7 +11,7 @@ import {
   type AdaptiveTimerState,
   type ReactiveEvent,
   type WatchdogEvent,
-} from "../../../orchestrating-long-tasks/scripts/src/watchdog/index.ts";
+} from "../../../olt/scripts/src/watchdog/index.ts";
 
 describe("REMED-008: Immediate Reactive Wakeups upon Event Arrival", () => {
   it("immediately awakens watchdog and executes tick on string event notification", async () => {
@@ -489,7 +489,7 @@ describe("REMED-008: Event Bus Listener Registration & Invocation", () => {
 
 describe("REMED-008: Invariants & Cleanliness Audit", () => {
   it("enforces zero TypeScript any and zero suppression directives across all watchdog files", () => {
-    const watchdogDir = join(__dirname, "../../../orchestrating-long-tasks/scripts/src/watchdog");
+    const watchdogDir = join(__dirname, "../../../olt/scripts/src/watchdog");
     const sourceFiles = [
       join(watchdogDir, "constants.ts"),
       join(watchdogDir, "types.ts"),

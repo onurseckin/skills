@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { beginPlanValidation } from "../../../orchestrating-long-tasks/scripts/src/workflow/plan-review/begin-plan-validation.ts";
-import { recordPlanReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/plan-review/record-plan-review.ts";
-import { currentPlanDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/plan-review/plan-digest.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
+import { beginPlanValidation } from "../../../olt/scripts/src/workflow/plan-review/begin-plan-validation.ts";
+import { recordPlanReview } from "../../../olt/scripts/src/workflow/plan-review/record-plan-review.ts";
+import { currentPlanDigest } from "../../../olt/scripts/src/workflow/plan-review/plan-digest.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import {
   clock,
   compiledPort,

@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
-import { assertGrantedCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/command-authority.ts";
-import { findCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
-import type { Flags } from "../../../orchestrating-long-tasks/scripts/src/cli/options.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { assertGrantedCommand } from "../../../olt/scripts/src/packets/command-authority.ts";
+import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
+import { transact } from "../../../olt/scripts/src/store/index.ts";
 import { emptyGrantRun } from "./grant-run-fixture.ts";
 
 function spec(invocation: string) {
@@ -105,7 +105,7 @@ describe("assertGrantedCommand", () => {
   test("verifies zero TypeScript any and zero suppressions across command authority files", () => {
     const { existsSync, readFileSync } = require("node:fs");
     const filesToAudit = [
-      "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/packets/command-authority.ts",
+      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/command-authority.ts",
       "/Users/onurseckinsenoglu/repos/skills/tests/unit/packets/command-authority.test.ts",
     ];
 

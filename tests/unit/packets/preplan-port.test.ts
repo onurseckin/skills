@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { preplanPacketPort } from "../../../orchestrating-long-tasks/scripts/src/packets/preplan-port.ts";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { preplanPacketPort } from "../../../olt/scripts/src/packets/preplan-port.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
 
 const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true }))));

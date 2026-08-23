@@ -13,11 +13,11 @@ import {
   reconstructDynamicDagState,
   replanFromFindings,
   type ReplanFindingInput,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/dag-expansion.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/graph/dag-expansion.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import { requirementsDocument } from "../requirements/fixtures.ts";
 import { graphDocument } from "./fixtures.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
 
 describe("DAG Expansion & High-Leverage Planning Engine", () => {
   describe("createImplementerValidatorPair", () => {

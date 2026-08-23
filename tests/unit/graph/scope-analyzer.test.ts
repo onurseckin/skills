@@ -4,7 +4,7 @@ import {
   checkScopeOverlap,
   computeConcurrencyWaves,
   normalizeScopePath,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/scope-analyzer.ts";
+} from "../../../olt/scripts/src/graph/scope-analyzer.ts";
 
 describe("Scope Independence Analyzer", () => {
   test("normalizeScopePath strips leading ./, trailing /, and backslashes", () => {

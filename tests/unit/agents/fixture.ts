@@ -1,13 +1,9 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import {
-  initRun,
-  loadRun,
-  transact,
-} from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { registerAgentGrant } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts";
-import { readAgentLedger } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/ledger.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import { initRun, loadRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
+import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 /**

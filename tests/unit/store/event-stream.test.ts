@@ -1,15 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type {
-  HarnessEvent,
-  RunState,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import {
-  canonicalJsonBytes,
-  sha256Bytes,
-} from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
-import { validateEventChain } from "../../../orchestrating-long-tasks/scripts/src/store/event-stream.ts";
+import type { HarnessEvent, RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { validateEventChain } from "../../../olt/scripts/src/store/event-stream.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

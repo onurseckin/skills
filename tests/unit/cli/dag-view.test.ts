@@ -3,7 +3,7 @@ import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   activeAgentBadge,
   analyzeDependencyForensics,
@@ -18,7 +18,7 @@ import {
   statusGlyph,
   type DagNodeSummary,
   type DagViewResult,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/dag-view.ts";
+} from "../../../olt/scripts/src/cli/commands/dag-view.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
@@ -1008,7 +1008,7 @@ describe("renderAsciiDag formatting", () => {
       label: "task-whoami-identity-command",
       status: "leased",
       priority: 90,
-      writeScope: ["orchestrating-long-tasks/scripts/src/cli/commands/whoami.ts"],
+      writeScope: ["olt/scripts/src/cli/commands/whoami.ts"],
       resourceScope: [],
       gate: "bun test tests/unit/cli/whoami.test.ts",
       dependencies: [],
@@ -1027,7 +1027,7 @@ describe("renderAsciiDag formatting", () => {
       label: "task-skill-spec-3m-watchdog",
       status: "blocked",
       priority: 80,
-      writeScope: ["orchestrating-long-tasks/SKILL.md"],
+      writeScope: ["olt/SKILL.md"],
       resourceScope: [],
       gate: "bun test tests/unit/contracts/scheduler-invariant.test.ts",
       dependencies: ["task-whoami-identity-command"],
@@ -1064,11 +1064,11 @@ describe("renderAsciiDag formatting", () => {
   test("zero TypeScript any and zero suppressions across dag-view source, visualizer, and test files", async () => {
     const { readFileSync } = await import("node:fs");
     const dagViewSource = readFileSync(
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/cli/commands/dag-view.ts"),
+      join(__dirname, "../../../olt/scripts/src/cli/commands/dag-view.ts"),
       "utf8",
     );
     const dagVisualizerSource = readFileSync(
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/summary/dag-visualizer.ts"),
+      join(__dirname, "../../../olt/scripts/src/summary/dag-visualizer.ts"),
       "utf8",
     );
     const testSource = readFileSync(__filename, "utf8");

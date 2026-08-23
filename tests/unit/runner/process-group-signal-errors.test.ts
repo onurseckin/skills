@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { signalProcessGroup } from "../../../orchestrating-long-tasks/scripts/src/runner/process-group.ts";
+import { signalProcessGroup } from "../../../olt/scripts/src/runner/process-group.ts";
 
 function errnoError(code: string): NodeJS.ErrnoException {
   const error = new Error(code) as NodeJS.ErrnoException;

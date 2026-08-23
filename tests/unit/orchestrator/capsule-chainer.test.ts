@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { chainCapsules } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/capsule-chainer.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import type { CapsuleChainManifest } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/types.ts";
+import { chainCapsules } from "../../../olt/scripts/src/orchestrator/capsule-chainer.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { CapsuleChainManifest } from "../../../olt/scripts/src/orchestrator/types.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Capsule Chainer Unit Tests", () => {

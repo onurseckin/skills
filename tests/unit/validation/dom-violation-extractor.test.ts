@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { extractDomViolations } from "../../../orchestrating-long-tasks/scripts/src/validation/dom-violation-extractor.ts";
-import type { VisualMetricsReport } from "../../../orchestrating-long-tasks/scripts/src/validation/dual-channel-types.ts";
+import { extractDomViolations } from "../../../olt/scripts/src/validation/dom-violation-extractor.ts";
+import type { VisualMetricsReport } from "../../../olt/scripts/src/validation/dual-channel-types.ts";
 
 interface RecordedFinding {
   category: string;

@@ -12,7 +12,7 @@ import { join } from "node:path";
 import {
   captureRepositoryLeaf,
   verifyRepositoryAncestors,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/repository-path-identity.ts";
+} from "../../../olt/scripts/src/packets/repository-path-identity.ts";
 
 describe("repository-path-identity", () => {
   test("captures and verifies valid nested ancestors", () => {

@@ -3,11 +3,11 @@ import {
   aggregateBlunderEntries,
   toAggregatedBlunder,
   withinDeduplicationWindow,
-} from "../../../orchestrating-long-tasks/scripts/src/blunders/aggregator.ts";
+} from "../../../olt/scripts/src/blunders/aggregator.ts";
 import type {
   BlunderRecordInput,
   BlunderResolutionProof,
-} from "../../../orchestrating-long-tasks/scripts/src/blunders/types.ts";
+} from "../../../olt/scripts/src/blunders/types.ts";
 
 describe("Blunder Entry Aggregator", () => {
   describe("toAggregatedBlunder", () => {

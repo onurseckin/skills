@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   browserRunPath,
   readBrowserRun,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/browser-run-store.ts";
+} from "../../../olt/scripts/src/reporting/browser-run-store.ts";
 import {
   browserRunHarness,
   cleanupTempDirs,

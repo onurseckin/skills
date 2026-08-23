@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import { narrateUnclassifiedEvent } from "../../../orchestrating-long-tasks/scripts/src/summary/step-event-summaries.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
+import { narrateUnclassifiedEvent } from "../../../olt/scripts/src/summary/step-event-summaries.ts";
 
 function createEvent(
   kind: string,

@@ -3,7 +3,7 @@ import {
   ContinuousBlunderFeedbackLoop,
   type DomainExecutionContext,
   type DomainExecutionTask,
-} from "../../../orchestrating-long-tasks/scripts/src/blunders/blunder-loop.ts";
+} from "../../../olt/scripts/src/blunders/blunder-loop.ts";
 
 describe("Multi-Domain Parallel Execution & Continuous Blunder Feedback Loop", () => {
   test("executes tasks across multiple domains in parallel", async () => {

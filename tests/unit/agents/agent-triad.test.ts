@@ -17,8 +17,8 @@ import {
   type AgentTriadBundle,
   type TriadAuditReport,
   type TriadValidationResult,
-} from "../../../orchestrating-long-tasks/scripts/src/agents/agent-triad.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/agents/agent-triad.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 
 describe("P06 Agent Triad Architecture Unit Tests", () => {
   const standardRoles = [
@@ -509,7 +509,7 @@ describe("P06 Agent Triad Architecture Unit Tests", () => {
   describe("Static Invariants & Zero-Any / Zero-Suppression Verification", () => {
     test("zero TypeScript any and zero compiler suppressions across agent-triad source and tests", () => {
       const sourceFiles = [
-        join(__dirname, "../../../orchestrating-long-tasks/scripts/src/agents/agent-triad.ts"),
+        join(__dirname, "../../../olt/scripts/src/agents/agent-triad.ts"),
         __filename,
       ];
 

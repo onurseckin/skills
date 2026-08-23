@@ -1,21 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { mindInitCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-init.ts";
+import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
 import {
   formatMindRotateBrief,
   mindRotateCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-rotate.ts";
-import type {
-  JsonObject,
-  JsonValue,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+} from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
 import {
   appendFeedbackItem,
   writeFeedbackQueue,
   type FeedbackItem,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
-import type { CandidateRecord } from "../../../orchestrating-long-tasks/scripts/src/mind/gates.ts";
+} from "../../../olt/scripts/src/mind/feedback-queue.ts";
+import type { CandidateRecord } from "../../../olt/scripts/src/mind/gates.ts";
 import {
   assessRecyclingState,
   compileAutonomicWavePlan,
@@ -30,10 +27,10 @@ import {
   transitionCompletenessCriticSignOff,
   transitionPulseCloseToWake,
   validateRolloverReadiness,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/recycler.ts";
-import type { RoundRecord } from "../../../orchestrating-long-tasks/scripts/src/mind/rounds.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/recycler.ts";
+import type { RoundRecord } from "../../../olt/scripts/src/mind/rounds.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const SAMPLE_CHARTER = `

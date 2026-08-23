@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
 import {
   buildDynamicDagState,
   buildLivingTracerReport,
@@ -12,8 +12,8 @@ import {
   renderDynamicDagAscii,
   inspectCapsuleAuxiliary,
   type LivingTracerOptions,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/living-tracer.ts";
-import { executeDagTraceCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/dag.ts";
+} from "../../../olt/scripts/src/reporting/living-tracer.ts";
+import { executeDagTraceCommand } from "../../../olt/scripts/src/cli/commands/dag.ts";
 
 function createMockEvent(
   sequence: number,

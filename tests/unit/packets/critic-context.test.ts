@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { criticContext } from "../../../orchestrating-long-tasks/scripts/src/packets/critic-context.ts";
-import type { PacketInput } from "../../../orchestrating-long-tasks/scripts/src/packets/types.ts";
-import { repositoryBindingFromInspection } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-inspection.ts";
-import { completionReadinessSnapshot } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/readiness-snapshot.ts";
+import { criticContext } from "../../../olt/scripts/src/packets/critic-context.ts";
+import type { PacketInput } from "../../../olt/scripts/src/packets/types.ts";
+import { repositoryBindingFromInspection } from "../../../olt/scripts/src/packets/repository-inspection.ts";
+import { completionReadinessSnapshot } from "../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
 import { commandRecord, workflowState } from "../workflow/test-port.ts";
 import { inspection } from "./inspection-fixture.ts";
 

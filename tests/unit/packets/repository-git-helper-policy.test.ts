@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { rejectLocalGitHelpers } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-helper-policy.ts";
-import type { RepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
+import { rejectLocalGitHelpers } from "../../../olt/scripts/src/packets/repository-git-helper-policy.ts";
+import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
 
 function createMockGit(status: number, output: Buffer): RepositoryGitCommand {
   return () => ({

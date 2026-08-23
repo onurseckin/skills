@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   assertNoUnfulfilledDemands,
   evaluateUnfulfilledDemands,
-} from "../../../orchestrating-long-tasks/scripts/src/platform/index.ts";
+} from "../../../olt/scripts/src/platform/index.ts";
 
 describe("Aggressive Unfulfilled-Demand Pushback Engine", () => {
   test("returns clean report when all planned tasks are fulfilled (done / validated)", () => {

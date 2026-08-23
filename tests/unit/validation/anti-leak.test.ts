@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   assertAcyclicPushbackDelegation,
   assertNoBoundaryLeak,
@@ -17,7 +17,7 @@ import {
   type BoundaryViolation,
   type RepairDelegationOrder,
   type AntiLeakValidationResult,
-} from "../../../orchestrating-long-tasks/scripts/src/validation/anti-leak.ts";
+} from "../../../olt/scripts/src/validation/anti-leak.ts";
 
 describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
   describe("1. Role and Action Classification Helpers", () => {
@@ -321,7 +321,7 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
         validatorId: "validator_task-p08-anti-leak",
         findingIds: ["FINDING-001", "FINDING-002"],
         writeScope: [
-          "orchestrating-long-tasks/scripts/src/validation/anti-leak.ts",
+          "olt/scripts/src/validation/anti-leak.ts",
           "tests/unit/validation/anti-leak.test.ts",
         ],
         reason: "finding_remediation",
@@ -576,7 +576,7 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
   describe("8. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     it("verifies zero TypeScript any and zero suppressions across anti-leak source and test files", () => {
       const filesToAudit = [
-        "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/validation/anti-leak.ts",
+        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak.ts",
         "/Users/onurseckinsenoglu/repos/skills/tests/unit/validation/anti-leak.test.ts",
       ];
 

@@ -3,8 +3,8 @@ import {
   computeLcaDirectory,
   partitionFindingsIntoScopes,
   type FindingDetail,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/scope-partitioner.ts";
-import { analyzeScopeIndependence } from "../../../orchestrating-long-tasks/scripts/src/graph/scope-analyzer.ts";
+} from "../../../olt/scripts/src/workflow/scope-partitioner.ts";
+import { analyzeScopeIndependence } from "../../../olt/scripts/src/graph/scope-analyzer.ts";
 
 describe("Scope Partitioner Algorithm", () => {
   describe("computeLcaDirectory", () => {

@@ -1,15 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { validateGraph } from "../../../orchestrating-long-tasks/scripts/src/graph/validate-graph.ts";
-import { validateRequirements } from "../../../orchestrating-long-tasks/scripts/src/requirements/validate-requirements.ts";
-import { validateReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/validate-review.ts";
-import { validateReport } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/validate-report.ts";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts";
+import { validateRequirements } from "../../../olt/scripts/src/requirements/validate-requirements.ts";
+import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
+import { validateReport } from "../../../olt/scripts/src/workflow/submission/validate-report.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
-const path = fileURLToPath(
-  new URL("../../../orchestrating-long-tasks/references/schema-examples.md", import.meta.url),
-);
+const path = fileURLToPath(new URL("../../../olt/references/schema-examples.md", import.meta.url));
 const source = readFileSync(path, "utf8");
 
 function example(heading: string): Record<string, unknown> {

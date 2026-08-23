@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { recoverSuspendedChains } from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/chain-recovery.ts";
+import { recoverSuspendedChains } from "../../../../olt/scripts/src/workflow/branch/chain-recovery.ts";
 import {
   BRANCH_LEDGER_KEY,
   readBranchLedger,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/ledger.ts";
+} from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
 import { branchRecord, subTask } from "./fixture.ts";
 import { draftWithTask, scopedLease, taskRecord } from "./task-fixture.ts";
-import type { JsonObject } from "../../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import type { BranchRecord } from "../../../../orchestrating-long-tasks/scripts/src/contracts/branch.ts";
+import type { JsonObject } from "../../../../olt/scripts/src/contracts/json.ts";
+import type { BranchRecord } from "../../../../olt/scripts/src/contracts/branch.ts";
 
 const NOW = new Date("2026-08-19T02:00:00.000Z");
 

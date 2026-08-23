@@ -10,15 +10,15 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { canonicalCommandFingerprint } from "../../../orchestrating-long-tasks/scripts/src/runner/command-id.ts";
-import { captureGateEnvironment } from "../../../orchestrating-long-tasks/scripts/src/runner/gate-environment.ts";
-import { restrictedGateGitArgv } from "../../../orchestrating-long-tasks/scripts/src/runner/restricted-git-gate.ts";
-import { createInternalCommandRunner } from "../../../orchestrating-long-tasks/scripts/src/runner/internal-command-runner.ts";
-import { verifyCommandRecord } from "../../../orchestrating-long-tasks/scripts/src/runner/verify-command.ts";
+import { canonicalCommandFingerprint } from "../../../olt/scripts/src/runner/command-id.ts";
+import { captureGateEnvironment } from "../../../olt/scripts/src/runner/gate-environment.ts";
+import { restrictedGateGitArgv } from "../../../olt/scripts/src/runner/restricted-git-gate.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
+import { verifyCommandRecord } from "../../../olt/scripts/src/runner/verify-command.ts";
 import {
   createRepositoryGitCommand,
   repositoryGitEnvironment,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
+} from "../../../olt/scripts/src/packets/repository-git-command.ts";
 
 const restrictedEnvironment = {
   GIT_CONFIG_GLOBAL: "/dev/null",

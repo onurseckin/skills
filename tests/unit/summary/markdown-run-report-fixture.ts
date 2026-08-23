@@ -1,8 +1,8 @@
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { generateSummarySuite } from "../../../orchestrating-long-tasks/scripts/src/summary/generate-summary.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { generateSummarySuite } from "../../../olt/scripts/src/summary/generate-summary.ts";
 
 type FlagValue = readonly string[] | string;
 

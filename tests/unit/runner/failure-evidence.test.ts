@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { FailureEvidence } from "../../../orchestrating-long-tasks/scripts/src/runner/failure-evidence.ts";
+import { FailureEvidence } from "../../../olt/scripts/src/runner/failure-evidence.ts";
 
 describe("FailureEvidence", () => {
   test("starts with no signals found", () => {

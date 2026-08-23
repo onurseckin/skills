@@ -2,11 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
-import {
-  AGENT_ROLES,
-  type AgentRole,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
-import { loadMindContract } from "../../../orchestrating-long-tasks/scripts/src/mind/deploy.ts";
+import { AGENT_ROLES, type AgentRole } from "../../../olt/scripts/src/contracts/packets.ts";
+import { loadMindContract } from "../../../olt/scripts/src/mind/deploy.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

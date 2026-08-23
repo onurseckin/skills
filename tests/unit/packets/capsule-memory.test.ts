@@ -21,10 +21,10 @@ import {
   verifyCapsuleLayout,
   verifyCapsuleLayoutSync,
   writeDecoupledBlob,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/capsule-memory.ts";
-import { evidenceSchema } from "../../../orchestrating-long-tasks/scripts/src/packets/evidence-schema.ts";
-import { buildPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/render-packet.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
+} from "../../../olt/scripts/src/packets/capsule-memory.ts";
+import { evidenceSchema } from "../../../olt/scripts/src/packets/evidence-schema.ts";
+import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../workflow/test-port.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 

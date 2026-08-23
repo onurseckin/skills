@@ -1,13 +1,10 @@
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
 import { realpathSync } from "node:fs";
-import { commandFingerprint } from "../../../orchestrating-long-tasks/scripts/src/workflow/gates/gate-policy.ts";
-import { captureGatePathBindings } from "../../../orchestrating-long-tasks/scripts/src/runner/gate-path-bindings.ts";
-import { captureGateEnvironment } from "../../../orchestrating-long-tasks/scripts/src/runner/gate-environment.ts";
-import type {
-  TransactionPort,
-  WorkflowState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import { commandFingerprint } from "../../../olt/scripts/src/workflow/gates/gate-policy.ts";
+import { captureGatePathBindings } from "../../../olt/scripts/src/runner/gate-path-bindings.ts";
+import { captureGateEnvironment } from "../../../olt/scripts/src/runner/gate-environment.ts";
+import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 export const repositoryBinding = {
   schema: "harness.repository-binding" as const,

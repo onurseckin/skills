@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { evidenced } from "../../../../orchestrating-long-tasks/scripts/src/contracts/evidence.ts";
-import { HarnessError } from "../../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { evidenced } from "../../../../olt/scripts/src/contracts/evidence.ts";
+import { HarnessError } from "../../../../olt/scripts/src/errors/harness-error.ts";
 import {
   appendGateProof,
   type GateProofRecord,
-} from "../../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
+} from "../../../../olt/scripts/src/graph/gate-proof.ts";
 import {
   assertGateProofFalsifiable,
   claimedBaseSha,
   gateFalsifiabilityStatuses,
   gateRunEvidence,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/pass-preconditions.ts";
+} from "../../../../olt/scripts/src/workflow/review/pass-preconditions.ts";
 import { commandRecord, TEST_GATE_ARGV, workflowState } from "../test-port.ts";
 
 function gateProof(overrides: Partial<GateProofRecord> = {}): GateProofRecord {

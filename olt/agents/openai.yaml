@@ -1,0 +1,25 @@
+provider: "openai"
+display_name: "OpenAI Codex / ChatGPT Multi-Agent Harness"
+aliases:
+  - "chatgpt"
+  - "openai-agents"
+  - "codex"
+dispatch:
+  mechanism: "multi_agent_v1"
+  tool: "spawn_agent"
+messaging:
+  tool: "send_message"
+interface:
+  display_name: "Orchestrating Long Tasks"
+  short_description: "Run durable, validated multi-agent harnesses"
+  default_prompt: "Use $olt to execute this request autonomously with durable planning, independent validation, and recovery."
+supported_tiers:
+  - 0
+  - 1
+  - 2
+  - 3
+capabilities:
+  hierarchical_subagents: true
+  concurrency_ceiling: 20
+  token_reporting: true
+  native_resume: true

@@ -7,7 +7,7 @@ import {
   loadRepoPolicy,
   saveRepoPolicy,
   validateRepoPolicy,
-} from "../../../orchestrating-long-tasks/scripts/src/policy/repo-policy.ts";
+} from "../../../olt/scripts/src/policy/repo-policy.ts";
 
 describe("Repo Policy Auto-Detection & Schema Validation", () => {
   const tmpTestDir = join(process.cwd(), ".tmp", "test-repo-policy");

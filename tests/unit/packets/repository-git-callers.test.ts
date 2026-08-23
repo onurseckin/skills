@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ensureHarnessIgnored } from "../../../orchestrating-long-tasks/scripts/src/cli/git-ignore.ts";
-import { ignoredByGit } from "../../../orchestrating-long-tasks/scripts/src/reporting/doctor.ts";
-import { createRepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
+import { ensureHarnessIgnored } from "../../../olt/scripts/src/cli/git-ignore.ts";
+import { ignoredByGit } from "../../../olt/scripts/src/reporting/doctor.ts";
+import { createRepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
 
 const roots: string[] = [];
 const prefix = [
@@ -96,14 +96,7 @@ describe("restricted repository Git callers", () => {
   });
 
   test("contains no direct production Git spawn outside the shared seam", () => {
-    const scriptsRoot = join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "orchestrating-long-tasks",
-      "scripts",
-    );
+    const scriptsRoot = join(import.meta.dir, "..", "..", "..", "olt", "scripts");
     for (const path of [
       join(scriptsRoot, "src", "cli", "git-ignore.ts"),
       join(scriptsRoot, "src", "reporting", "doctor.ts"),

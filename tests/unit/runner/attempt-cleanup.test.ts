@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { cleanupFailedAttempt } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-cleanup.ts";
-import type { ProcessIdentity } from "../../../orchestrating-long-tasks/scripts/src/runner/descendant-tracker.ts";
+import { cleanupFailedAttempt } from "../../../olt/scripts/src/runner/attempt-cleanup.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/runner/descendant-tracker.ts";
 
 const mockIdentity: ProcessIdentity = {
   pid: 40,

@@ -1,15 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type {
-  HarnessEvent,
-  Manifest,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type {
-  TaskRecord,
-  WorkflowState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import { collectMetrics } from "../../../orchestrating-long-tasks/scripts/src/summary/metrics-collector.ts";
-import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
+import type { HarnessEvent, Manifest } from "../../../olt/scripts/src/contracts/capsule.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import { collectMetrics } from "../../../olt/scripts/src/summary/metrics-collector.ts";
+import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
 
 describe("metrics collector", () => {
   test("computes rollup metrics accurately", () => {

@@ -6,7 +6,7 @@ import {
   parseUncoveredLineTokens,
   scanUncoveredRegions,
   type FileCoverageMetric,
-} from "../../../orchestrating-long-tasks/scripts/src/health/coverage.ts";
+} from "../../../olt/scripts/src/health/coverage.ts";
 
 describe("coverage audit engine", () => {
   test("parseUncoveredLineTokens correctly handles single numbers and ranges", () => {

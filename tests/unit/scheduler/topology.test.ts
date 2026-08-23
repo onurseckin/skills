@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { isTopologyRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/topology.ts";
-import { computeTopology } from "../../../orchestrating-long-tasks/scripts/src/scheduler/topology.ts";
+import { isTopologyRecord } from "../../../olt/scripts/src/contracts/topology.ts";
+import { computeTopology } from "../../../olt/scripts/src/scheduler/topology.ts";
 import { topologyState } from "./fixtures.ts";
 
 function decision(

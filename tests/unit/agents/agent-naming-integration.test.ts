@@ -11,14 +11,14 @@ import {
   roleToTier,
   validateAgentNamingConvention,
   type StandardAgentRole,
-} from "../../../orchestrating-long-tasks/scripts/src/agents/naming.ts";
-import { identifyExecutionContext } from "../../../orchestrating-long-tasks/scripts/src/authority/thread-identifier.ts";
+} from "../../../olt/scripts/src/agents/naming.ts";
+import { identifyExecutionContext } from "../../../olt/scripts/src/authority/thread-identifier.ts";
 import {
   findSkillRoot,
   loadAgentManifest,
   loadRoleContract,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/manifest-parser.ts";
-import { whoamiCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/whoami.ts";
+} from "../../../olt/scripts/src/authority/manifest-parser.ts";
+import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
 
 describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", () => {
   const allKnownRoles: StandardAgentRole[] = [
@@ -287,7 +287,7 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
   });
 
   describe("End-to-End Skill Manifests & Role Contracts Standardization Audit", () => {
-    test("every yaml file in orchestrating-long-tasks/agents matches standard naming conventions", () => {
+    test("every yaml file in olt/agents matches standard naming conventions", () => {
       const skillRoot = findSkillRoot();
       const agentsDir = join(skillRoot, "agents");
       const agentFiles = readdirSync(agentsDir).filter(
@@ -310,7 +310,7 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
       }
     });
 
-    test("every markdown file in orchestrating-long-tasks/roles matches standard contracts", () => {
+    test("every markdown file in olt/roles matches standard contracts", () => {
       const skillRoot = findSkillRoot();
       const rolesDir = join(skillRoot, "roles");
       const roleFiles = readdirSync(rolesDir).filter((f) => f.endsWith(".md"));
@@ -364,11 +364,8 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
   describe("Invariants & TypeScript Strictness Audit", () => {
     test("zero TypeScript any and zero suppressions across thread-identifier files", () => {
       const sourceFiles = [
-        join(
-          __dirname,
-          "../../../orchestrating-long-tasks/scripts/src/authority/thread-identifier.ts",
-        ),
-        join(__dirname, "../../../orchestrating-long-tasks/scripts/src/agents/naming.ts"),
+        join(__dirname, "../../../olt/scripts/src/authority/thread-identifier.ts"),
+        join(__dirname, "../../../olt/scripts/src/agents/naming.ts"),
         __filename,
       ];
 

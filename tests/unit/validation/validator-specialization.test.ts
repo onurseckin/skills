@@ -7,11 +7,11 @@ import {
   isExecutionToolCategory,
   assertRoleMayInvoke,
   assertGrantedCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/command-authority.ts";
-import { findCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
-import type { Flags } from "../../../orchestrating-long-tasks/scripts/src/cli/options.ts";
-import type { CommandSpec } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/types.ts";
-import { evidenceSchema } from "../../../orchestrating-long-tasks/scripts/src/packets/evidence-schema.ts";
+} from "../../../olt/scripts/src/packets/command-authority.ts";
+import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
+import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
+import { evidenceSchema } from "../../../olt/scripts/src/packets/evidence-schema.ts";
 import {
   validateAgentNamingConvention,
   parseStandardAgentId,
@@ -20,14 +20,14 @@ import {
   agentIdToTier,
   roleToTier,
   AGENT_NAMING_STANDARDS,
-} from "../../../orchestrating-long-tasks/scripts/src/agents/naming.ts";
+} from "../../../olt/scripts/src/agents/naming.ts";
 import {
   loadAgentIdentity,
   loadAgentRoleDefinition,
   validateAgentTriad,
   synthesizeTriadManifest,
   assertTriadIntegrity,
-} from "../../../orchestrating-long-tasks/scripts/src/agents/agent-triad.ts";
+} from "../../../olt/scripts/src/agents/agent-triad.ts";
 import {
   SUPERFICIAL_PATTERNS,
   rejectSuperficialClaims,
@@ -35,17 +35,14 @@ import {
   auditTaskVerificationEvidence,
   createPushbackHistory,
   appendPushbackRound,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/review-pushback.ts";
-import {
-  findCycles,
-  breakCycles,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/dag-forensics.ts";
+} from "../../../olt/scripts/src/authority/review-pushback.ts";
+import { findCycles, breakCycles } from "../../../olt/scripts/src/graph/dag-forensics.ts";
 import {
   CANONICAL_VIEWPORTS,
   DEFAULT_PRESETS,
-} from "../../../orchestrating-long-tasks/scripts/src/capture/config/default-presets.ts";
-import { createSyntheticPngBuffer } from "../../../orchestrating-long-tasks/scripts/src/capture/runners/live-capture-runner.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+} from "../../../olt/scripts/src/capture/config/default-presets.ts";
+import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
+import { transact } from "../../../olt/scripts/src/store/index.ts";
 import { emptyGrantRun } from "../packets/grant-run-fixture.ts";
 
 function spec(invocation: string): CommandSpec {
@@ -584,12 +581,12 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
   describe("5. Static Code Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     test("verifies zero TypeScript any and zero compiler/linter suppressions across touched files", () => {
       const filesToAudit = [
-        "orchestrating-long-tasks/scripts/src/agents/naming.ts",
-        "orchestrating-long-tasks/scripts/src/agents/agent-triad.ts",
-        "orchestrating-long-tasks/scripts/src/agents/index.ts",
-        "orchestrating-long-tasks/scripts/src/capture/runners/live-capture-runner.ts",
-        "orchestrating-long-tasks/scripts/src/capture/runners/types.ts",
-        "orchestrating-long-tasks/scripts/src/packets/command-authority.ts",
+        "olt/scripts/src/agents/naming.ts",
+        "olt/scripts/src/agents/agent-triad.ts",
+        "olt/scripts/src/agents/index.ts",
+        "olt/scripts/src/capture/runners/live-capture-runner.ts",
+        "olt/scripts/src/capture/runners/types.ts",
+        "olt/scripts/src/packets/command-authority.ts",
         "tests/unit/validation/validator-specialization.test.ts",
       ];
 

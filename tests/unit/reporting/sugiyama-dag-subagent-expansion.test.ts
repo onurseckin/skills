@@ -9,18 +9,18 @@ import {
   renderSugiyamaDag,
   type SugiyamaEdge,
   type SugiyamaNode,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/sugiyama-dag.ts";
+} from "../../../olt/scripts/src/reporting/sugiyama-dag.ts";
 import {
   dynamicDagStateToSugiyama,
   renderBranchExpansionHierarchy,
   renderDynamicDagView,
   renderSubagentRelationship,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/dag-view.ts";
+} from "../../../olt/scripts/src/reporting/dag-view.ts";
 import {
   buildDynamicDagState,
   renderDynamicDagAscii,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/living-tracer.ts";
-import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
+} from "../../../olt/scripts/src/reporting/living-tracer.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
 
 function createMockEvent(
   sequence: number,

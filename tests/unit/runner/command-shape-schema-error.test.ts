@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { RepositoryBinding } from "../../../orchestrating-long-tasks/scripts/src/contracts/repository.ts";
-import { embeddedCommandIssues } from "../../../orchestrating-long-tasks/scripts/src/runner/command-shape.ts";
-import { createInternalCommandRunner } from "../../../orchestrating-long-tasks/scripts/src/runner/internal-command-runner.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/contracts/repository.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/runner/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
 
 const roots: string[] = [];
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { validateGraph } from "../../../orchestrating-long-tasks/scripts/src/graph/validate-graph.ts";
+import { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts";
 import { taskById, validPlanningDocuments } from "./fixtures.ts";
 
 describe("graph ownership roles and scoped gates", () => {
@@ -133,13 +133,7 @@ describe("graph ownership roles and scoped gates", () => {
       ["test", "-h", "links/current"],
       ["node", "scripts/verify.js"],
       ["bun", "scripts/verify.ts"],
-      [
-        "bun",
-        "orchestrating-long-tasks/scripts/harness.ts",
-        "status",
-        "--run",
-        ".capsules/example",
-      ],
+      ["bun", "olt/scripts/harness.ts", "status", "--run", ".capsules/example"],
       ["deno", "test", "tests/verify_test.ts"],
       ["deno", "run", "scripts/verify.ts"],
       ["bun", "test", "tests"],

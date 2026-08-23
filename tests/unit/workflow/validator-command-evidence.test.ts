@@ -2,11 +2,11 @@ import { describe, expect, test } from "bun:test";
 import {
   appendGateProof,
   type GateProofRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { beginValidation } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/begin-validation.ts";
-import { recordReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/record-review.ts";
-import { submitTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
+} from "../../../olt/scripts/src/graph/gate-proof.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { beginValidation } from "../../../olt/scripts/src/workflow/review/begin-validation.ts";
+import { recordReview } from "../../../olt/scripts/src/workflow/review/record-review.ts";
+import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
 import {
   at,
   commandRecord,

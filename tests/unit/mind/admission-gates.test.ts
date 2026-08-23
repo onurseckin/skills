@@ -3,12 +3,12 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
+import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
 import {
   formatMindAdmitBrief,
   mindAdmitCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-admit.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/cli/commands/mind-admit.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   evaluateAdmissionGates,
   evaluateGate1Witnessed,
@@ -18,10 +18,10 @@ import {
   evaluateGate5Affordable,
   evaluateGate6NotADuplicate,
   type CandidateRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/gates.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/gates.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 
 const roots: string[] = [];
 
@@ -62,7 +62,7 @@ function setupMindTest(
   const charterPath = join(charterDir, "CHARTER.md");
   const charterContent =
     options.charterContent ??
-    `# CHARTER\n\n## identity\nTest application for admission gates\n\n## goals\n- G1: Ensure stability\n- G2: Comprehensive verification\n\n## non-goals\n- Out of scope\n- UI redesign\n\n## repo_roots\n- \`src/\`\n- \`orchestrating-long-tasks/\`\n`;
+    `# CHARTER\n\n## identity\nTest application for admission gates\n\n## goals\n- G1: Ensure stability\n- G2: Comprehensive verification\n\n## non-goals\n- Out of scope\n- UI redesign\n\n## repo_roots\n- \`src/\`\n- \`olt/\`\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -88,7 +88,7 @@ function setupMindTest(
           pinned_sha256: charterSha,
           goals: ["G1", "G2"],
           non_goals: ["Out of scope", "UI redesign"],
-          repo_roots: ["src/", "orchestrating-long-tasks/"],
+          repo_roots: ["src/", "olt/"],
           evidence_class: "harness_observed",
         },
         actor: "mind-1",

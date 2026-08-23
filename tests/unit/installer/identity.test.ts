@@ -1,19 +1,19 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { canonicalJsonBytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
+import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
 import {
   identifiedInstallation,
   installationManifest,
   readInstallationManifest,
-} from "../../../orchestrating-long-tasks/scripts/src/installer/identity.ts";
-import { sealInstallationManifest } from "../../../orchestrating-long-tasks/scripts/src/installer/manifest-integrity.ts";
-import { treeDigest } from "../../../orchestrating-long-tasks/scripts/src/installer/tree-digest.ts";
+} from "../../../olt/scripts/src/installer/identity.ts";
+import { sealInstallationManifest } from "../../../olt/scripts/src/installer/manifest-integrity.ts";
+import { treeDigest } from "../../../olt/scripts/src/installer/tree-digest.ts";
 import {
   INSTALL_SCHEMA,
   INSTALL_VERSION,
   SKILL_NAME,
-} from "../../../orchestrating-long-tasks/scripts/src/installer/constants.ts";
+} from "../../../olt/scripts/src/installer/constants.ts";
 import { cleanInstallerFixtures, installerFixture } from "./helpers.ts";
 
 afterEach(cleanInstallerFixtures);

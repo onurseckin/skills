@@ -27,7 +27,7 @@ import {
   validateAntiBatchingIsolation,
   validateAntiBatchingRule,
   type SmartTaskPlan,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts";
+} from "../../../olt/scripts/src/mind/smart-task-manager.ts";
 import {
   admitFeedbackToQueue,
   appendFeedbackItem,
@@ -44,13 +44,13 @@ import {
   updateFeedbackItem,
   type FeedbackItem,
   type FeedbackResolutionProof,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import {
   clearTaskQueue,
   enqueueTasksBatch,
   getQueueStats,
   readTaskQueue,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/task-queue.ts";
+} from "../../../olt/scripts/src/mind/task-queue.ts";
 
 describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
   const testDir = join(tmpdir(), `test-bench-smart-task-${Date.now()}`);
@@ -962,8 +962,8 @@ describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
   describe("5. Static Invariant Verification: 0 TypeScript any & 0 Suppressions", () => {
     it("proves 0 any and 0 compiler/linter suppressions across all leased modules", () => {
       const filesToAudit = [
-        join(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts"),
-        join(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts"),
+        join(process.cwd(), "olt/scripts/src/mind/smart-task-manager.ts"),
+        join(process.cwd(), "olt/scripts/src/mind/feedback-queue.ts"),
         join(process.cwd(), "tests/unit/mind/smart-task-manager.test.ts"),
       ];
 

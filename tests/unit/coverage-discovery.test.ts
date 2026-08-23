@@ -23,7 +23,7 @@ function findSourceFiles(directory: string): string[] {
 }
 
 describe("coverage discovery", () => {
-  const srcDir = resolve(import.meta.dir, "../../orchestrating-long-tasks/scripts/src");
+  const srcDir = resolve(import.meta.dir, "../../olt/scripts/src");
   const sourceFiles = findSourceFiles(srcDir);
 
   test("discovers production source files", () => {

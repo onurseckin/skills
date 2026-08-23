@@ -1,7 +1,7 @@
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { completionReviewIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/review-issues.ts";
-import type { CompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/types.ts";
-import type { WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import { completionReviewIssues } from "../../../olt/scripts/src/workflow/completion/review-issues.ts";
+import type { CompletionReview } from "../../../olt/scripts/src/workflow/completion/types.ts";
+import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { repositoryBinding, workflowState } from "./test-port.ts";
 
 /**

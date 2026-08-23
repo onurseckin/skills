@@ -14,11 +14,11 @@ import {
   type AuditedBlunder,
   type BlunderStatus,
   type RGBColor,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/blunder-audit.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/cli/commands/blunder-audit.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 
 const tempRoots: string[] = [];
 

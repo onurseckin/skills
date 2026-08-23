@@ -10,13 +10,13 @@ import {
   readGateProofs,
   type GateProofRecord,
   type GateSpawn,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+} from "../../../olt/scripts/src/graph/gate-proof.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
 import type {
   RepositoryGitCommand,
   RepositoryGitResult,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
+} from "../../../olt/scripts/src/packets/repository-git-command.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 /** A directory carrying only a real `.git` marker — `hasRepositoryGitMetadata` only needs that

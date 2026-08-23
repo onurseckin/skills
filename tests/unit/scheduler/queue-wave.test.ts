@@ -7,14 +7,11 @@ import {
   queueNextCommand,
   queuePopCommand,
   queueWaveCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/queue.ts";
-import { formatQueueWaveBrief } from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/queue-formatter.ts";
-import { resetHarnessConfigCache } from "../../../orchestrating-long-tasks/scripts/src/config/harness-config.ts";
-import {
-  readySet,
-  recordTopology,
-} from "../../../orchestrating-long-tasks/scripts/src/scheduler/index.ts";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+} from "../../../olt/scripts/src/cli/commands/queue.ts";
+import { formatQueueWaveBrief } from "../../../olt/scripts/src/cli/formatters/queue-formatter.ts";
+import { resetHarnessConfigCache } from "../../../olt/scripts/src/config/harness-config.ts";
+import { readySet, recordTopology } from "../../../olt/scripts/src/scheduler/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
 import { queueCapsuleState, schedulerState } from "./fixtures.ts";
 
 interface ReadyEntryShape {

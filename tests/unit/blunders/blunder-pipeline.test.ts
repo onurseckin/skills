@@ -21,13 +21,13 @@ import {
   serializeAggregatedBlunderLog,
   streamDeduplicateBlunders,
   toAggregatedBlunder,
-} from "../../../orchestrating-long-tasks/scripts/src/blunders/index.ts";
+} from "../../../olt/scripts/src/blunders/index.ts";
 import type {
   AggregatedBlunder,
   BlunderCategory,
   BlunderRecordInput,
   BlunderResolutionProof,
-} from "../../../orchestrating-long-tasks/scripts/src/blunders/types.ts";
+} from "../../../olt/scripts/src/blunders/types.ts";
 import {
   advanceDeliberationRound,
   auditBlunderLog,
@@ -46,7 +46,7 @@ import {
   validateResolutionProof,
   verifyResolutionProofEmpirical,
   type BlunderEntry,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/blunders.ts";
+} from "../../../olt/scripts/src/mind/blunders.ts";
 
 describe("Blunder Pipeline - Categorization & Discriminator Logic", () => {
   it("categorizes boundary violations correctly", () => {
@@ -974,15 +974,12 @@ describe("Blunder Pipeline - Audit Reporting & Markdown Formatting", () => {
 
 describe("Blunder Pipeline - Static Code Invariants", () => {
   it("strictly enforces 0 TypeScript any and 0 compiler/linter suppressions across all blunder files", () => {
-    const blunderDir = join(process.cwd(), "orchestrating-long-tasks/scripts/src/blunders");
+    const blunderDir = join(process.cwd(), "olt/scripts/src/blunders");
     const blunderFiles = readdirSync(blunderDir)
       .filter((f) => f.endsWith(".ts"))
       .map((f) => join(blunderDir, f));
 
-    const mindBlundersPath = join(
-      process.cwd(),
-      "orchestrating-long-tasks/scripts/src/mind/blunders.ts",
-    );
+    const mindBlundersPath = join(process.cwd(), "olt/scripts/src/mind/blunders.ts");
     const testFilePath = join(process.cwd(), "tests/unit/blunders/blunder-pipeline.test.ts");
     const allFiles = [...blunderFiles, mindBlundersPath, testFilePath];
 

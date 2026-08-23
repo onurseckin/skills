@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   commandLayers,
   effectiveCommandArgv,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/command-wrappers.ts";
+} from "../../../olt/scripts/src/runner/command-wrappers.ts";
 
 describe("commandLayers", () => {
   test("returns invalid with no executable indices for an empty argv", () => {

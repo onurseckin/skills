@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   advanceProposalWithInitiative,
   admitProposalInState,
@@ -32,7 +32,7 @@ import {
   type PlanRevisionProposal,
   type PlanRevisionSignal,
   type ProposalStatus,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/proposal.ts";
+} from "../../../olt/scripts/src/mind/proposal.ts";
 import {
   balanceOrchestratorLoad,
   calculateHierarchyCapacity,
@@ -45,7 +45,7 @@ import {
   type HierarchyCapacityMetrics,
   type OrchestratorNodeInfo,
   type ScalingThresholds,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/self-evolution.ts";
+} from "../../../olt/scripts/src/mind/self-evolution.ts";
 
 describe("Mind Proposal & Plan Revision Subsystem", () => {
   describe("Proposal Creation, Deduplication & Fingerprinting", () => {
@@ -60,7 +60,7 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
         statement: "Implement active plan revision engine",
         rationale: "Allows Mind to synthesize evolutionary updates without human blockage",
         charter_goal_ids: ["goal-self-evolution"],
-        write_scope: ["orchestrating-long-tasks/scripts/src/mind/proposal.ts"],
+        write_scope: ["olt/scripts/src/mind/proposal.ts"],
         actor: "orchestrator_main",
       });
 
@@ -401,7 +401,7 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
           source: "scripts/src/mind/proposal.test.ts",
           severity: "CRITICAL",
           evidence: "Assertion failed in lifecycle state machine",
-          affectedWriteScopes: ["orchestrating-long-tasks/scripts/src/mind/proposal.ts"],
+          affectedWriteScopes: ["olt/scripts/src/mind/proposal.ts"],
           charterGoalId: "goal-test-stability",
         },
         {
@@ -409,7 +409,7 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
           source: "scripts/src/mind/smart-task-manager.ts",
           severity: "HIGH",
           evidence: "Function cyclomatic complexity exceeds threshold (score: 28 > 15)",
-          affectedWriteScopes: ["orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts"],
+          affectedWriteScopes: ["olt/scripts/src/mind/smart-task-manager.ts"],
           charterGoalId: "goal-maintainability",
         },
         {
@@ -417,7 +417,7 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
           source: "scripts/src/mind/blunders.ts",
           severity: "CRITICAL",
           evidence: "Multiple consecutive compilation errors detected",
-          affectedWriteScopes: ["orchestrating-long-tasks/scripts/src/mind/blunders.ts"],
+          affectedWriteScopes: ["olt/scripts/src/mind/blunders.ts"],
           charterGoalId: "goal-zero-defect",
         },
       ];
@@ -489,12 +489,10 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
           statement: "Harden unit tests for layout shift tracker",
           rationale: "Increase test assertion density and edge case coverage",
           charter_goal_ids: ["goal-quality"],
-          write_scope: [
-            "orchestrating-long-tasks/scripts/src/capture/layout-shift-tracker.test.ts",
-          ],
+          write_scope: ["olt/scripts/src/capture/layout-shift-tracker.test.ts"],
         },
         confidenceScore: 0.95,
-        repoRoots: ["orchestrating-long-tasks/"],
+        repoRoots: ["olt/"],
         charterProhibitions: ["git push", "rm -rf"],
       };
 
@@ -745,8 +743,8 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
   describe("Static Invariant Proof: Zero-Any & Zero Suppressions", () => {
     it("proves 0 occurrences of TypeScript any and 0 compiler/linter suppressions across scoped files", () => {
       const filesToCheck = [
-        resolve(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/proposal.ts"),
-        resolve(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/self-evolution.ts"),
+        resolve(process.cwd(), "olt/scripts/src/mind/proposal.ts"),
+        resolve(process.cwd(), "olt/scripts/src/mind/self-evolution.ts"),
         resolve(process.cwd(), "tests/unit/mind/plan-revision.test.ts"),
       ];
 

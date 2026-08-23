@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { inspectRepository } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-snapshot.ts";
-import type { RepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
+import { inspectRepository } from "../../../olt/scripts/src/packets/repository-snapshot.ts";
+import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
 
 describe("repository-snapshot", () => {
   test("inspects a non-git directory with instructions and conventions", () => {

@@ -14,7 +14,7 @@ import {
   resolveHostProvider,
   validateDispatchPacket,
   type SubagentDispatchPacket,
-} from "../../../orchestrating-long-tasks/scripts/src/platform/index.ts";
+} from "../../../olt/scripts/src/platform/index.ts";
 import {
   assertPushbackSafety,
   contestValidatorVerdict,
@@ -23,12 +23,12 @@ import {
   isProceduralPushback,
   isSubstantivePushback,
   validatePushbackEvidence,
-} from "../../../orchestrating-long-tasks/scripts/src/task/pushback.ts";
+} from "../../../olt/scripts/src/task/pushback.ts";
 import type {
   TaskRecord,
   TransactionPort,
   WorkflowState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/workflow/types.ts";
 
 function createMockPortWithValidatedTask(taskId: string = "task-1"): {
   port: TransactionPort;

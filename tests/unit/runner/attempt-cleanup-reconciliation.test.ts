@@ -8,14 +8,14 @@ import {
   cleanupDispositionEntryDigest,
   cleanupDispositionSigningBytes,
   type CleanupDispositionPayload,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-cleanup-disposition.ts";
-import { createCommandSigningCapability } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-disposition-capability.ts";
+} from "../../../olt/scripts/src/runner/attempt-cleanup-disposition.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/runner/attempt-disposition-capability.ts";
 import {
   attemptStartedIssues,
   ownershipTokenDigest,
   settledAttemptTerminalProof,
   startAttemptIntent,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-intent.ts";
+} from "../../../olt/scripts/src/runner/attempt-intent.ts";
 
 const roots: string[] = [];
 

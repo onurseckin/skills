@@ -1,7 +1,7 @@
 import { describe, expect, it, test } from "bun:test";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   assertZeroMainThreadSpillover,
   enforceZeroMainThreadSpillover,
@@ -14,15 +14,15 @@ import {
   type GitRunner,
   type GitRunnerResult,
   type SyncRunner,
-} from "../../../orchestrating-long-tasks/scripts/src/orchestrator/supervision-loop.ts";
+} from "../../../olt/scripts/src/orchestrator/supervision-loop.ts";
 import type {
   RoundExecutionInput,
   RoundExecutionResult,
   RoundExecutor,
-} from "../../../orchestrating-long-tasks/scripts/src/orchestrator/types.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/orchestrator/types.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function createMockGitRunner(

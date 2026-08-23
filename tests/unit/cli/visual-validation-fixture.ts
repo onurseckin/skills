@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { seedGateProof } from "./probe-fixture.ts";
 
 export function createMockScreenshot(

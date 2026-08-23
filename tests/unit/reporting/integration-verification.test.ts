@@ -4,20 +4,20 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { transact, loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { buildPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/render-packet.ts";
-import { isolateValidatorContext } from "../../../orchestrating-long-tasks/scripts/src/packets/validator-context.ts";
-import { evidenceSchema } from "../../../orchestrating-long-tasks/scripts/src/packets/evidence-schema.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { transact, loadRun } from "../../../olt/scripts/src/store/index.ts";
+import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
+import { isolateValidatorContext } from "../../../olt/scripts/src/packets/validator-context.ts";
+import { evidenceSchema } from "../../../olt/scripts/src/packets/evidence-schema.ts";
 import {
   extractLeaseAgentId,
   extractLeaseRole,
   extractLeaseAttempt,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/lease-agent-extractor.ts";
-import type { UnifiedReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/unified.ts";
+} from "../../../olt/scripts/src/reporting/lease-agent-extractor.ts";
+import type { UnifiedReport } from "../../../olt/scripts/src/reporting/unified.ts";
 import { cleanupRoots } from "../cli/full-lifecycle-fixture.ts";
 import { inspectionContext } from "../packets/inspection-fixture.ts";
-import type { WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));

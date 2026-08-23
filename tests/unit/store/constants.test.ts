@@ -6,7 +6,7 @@ import {
   SHA256_PATTERN,
   isCheckpointSequence,
   limits,
-} from "../../../orchestrating-long-tasks/scripts/src/store/constants.ts";
+} from "../../../olt/scripts/src/store/constants.ts";
 
 describe("limits", () => {
   test("fills in every default when no overrides are given", () => {

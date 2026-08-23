@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_RESOLVED_CONFIG } from "../../../orchestrating-long-tasks/scripts/src/config/harness-config.ts";
-import { COMMAND_REGISTRY } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
+import { DEFAULT_RESOLVED_CONFIG } from "../../../olt/scripts/src/config/harness-config.ts";
+import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
 
-const skillRoot = join(import.meta.dir, "../../../orchestrating-long-tasks");
+const skillRoot = join(import.meta.dir, "../../../olt");
 const skillPath = join(skillRoot, "SKILL.md");
 const skill = readFileSync(skillPath, "utf8");
 
@@ -99,7 +99,7 @@ describe("SKILL.md is a router, not a manual", () => {
     // A copied invocation is a second copy of the playbook with a shorter half-life. The only
     // command line the router may carry is the one that sends an agent to the live manifest.
     const invocations = [...skill.matchAll(/^\s*bun .*$/gmu)].map((match) => match[0].trim());
-    expect(invocations).toEqual(["bun orchestrating-long-tasks/scripts/harness.ts help <command>"]);
+    expect(invocations).toEqual(["bun olt/scripts/harness.ts help <command>"]);
     expect(skill).not.toContain("$PINNED");
   });
 

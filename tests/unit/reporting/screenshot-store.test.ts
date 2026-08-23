@@ -5,9 +5,9 @@ import { join } from "node:path";
 import {
   getVisualReport,
   queryScreenshots,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-store.ts";
-import { recordCaptures } from "../../../orchestrating-long-tasks/scripts/src/store/captures.ts";
-import type { CaptureRecord } from "../../../orchestrating-long-tasks/scripts/src/store/captures.ts";
+} from "../../../olt/scripts/src/reporting/screenshot-store.ts";
+import { recordCaptures } from "../../../olt/scripts/src/store/captures.ts";
+import type { CaptureRecord } from "../../../olt/scripts/src/store/captures.ts";
 
 const roots: string[] = [];
 afterEach(() => {

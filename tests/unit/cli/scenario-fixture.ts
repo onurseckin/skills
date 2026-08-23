@@ -1,7 +1,7 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { graphDocument } from "../graph/fixtures.ts";
 import { requirementsDocument } from "../requirements/fixtures.ts";
 import { runStateAssertion, writeJson } from "./full-lifecycle-fixture.ts";

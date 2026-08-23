@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   inspectRepositoryContent,
   type RepositoryContentPathSource,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/repository-content.ts";
+} from "../../../olt/scripts/src/packets/repository-content.ts";
 
 // tests/unit/reporting/handoff-triggers.test.ts's "sealing the run rewrites it against the
 // completed state" threw "repository content listing changed during scan" under real

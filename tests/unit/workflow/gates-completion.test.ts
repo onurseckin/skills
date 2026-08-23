@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { attachGateResult } from "../../../orchestrating-long-tasks/scripts/src/workflow/gates/attach-result.ts";
-import { completionIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/completion-state.ts";
-import { finishTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/gates/finish-task.ts";
-import { makeAuthorityDecisionRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/authority/decision-record.ts";
-import { applicableGates } from "../../../orchestrating-long-tasks/scripts/src/workflow/gates/gate-policy.ts";
-import { validateGraph } from "../../../orchestrating-long-tasks/scripts/src/graph/validate-graph.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { attachGateResult } from "../../../olt/scripts/src/workflow/gates/attach-result.ts";
+import { completionIssues } from "../../../olt/scripts/src/workflow/completion/completion-state.ts";
+import { finishTask } from "../../../olt/scripts/src/workflow/gates/finish-task.ts";
+import { makeAuthorityDecisionRecord } from "../../../olt/scripts/src/workflow/authority/decision-record.ts";
+import { applicableGates } from "../../../olt/scripts/src/workflow/gates/gate-policy.ts";
+import { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import { workflowState, TestPort, at, commandRecord } from "./test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");

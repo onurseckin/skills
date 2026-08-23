@@ -8,12 +8,9 @@ import {
   MAIN_THREAD_ADVISORY,
   recordBlunder,
   type BlunderRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/thread-identifier.ts";
-import { whoamiCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/whoami.ts";
-import {
-  commandInvocations,
-  findCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
+} from "../../../olt/scripts/src/authority/thread-identifier.ts";
+import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
+import { commandInvocations, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

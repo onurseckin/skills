@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { COMMAND_REGISTRY } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
+import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
 
-const skillRoot = join(import.meta.dir, "../../../orchestrating-long-tasks");
+const skillRoot = join(import.meta.dir, "../../../olt");
 const skillPath = join(skillRoot, "SKILL.md");
 const mindRolePath = join(skillRoot, "roles/mind.md");
 const coordinatorRolePath = join(skillRoot, "roles/coordinator.md");

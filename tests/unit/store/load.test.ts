@@ -1,12 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import {
-  loadRun,
-  loadRunProjection,
-} from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun, loadRunProjection } from "../../../olt/scripts/src/store/load.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function freshRun(label: string): string {

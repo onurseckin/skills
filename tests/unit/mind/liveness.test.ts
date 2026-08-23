@@ -12,7 +12,7 @@ import {
   EXIT_CODE_STALE,
   formatLivenessBrief,
   getExitCodeForStatus,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/liveness.ts";
+} from "../../../olt/scripts/src/mind/liveness.ts";
 
 const tempDirs: string[] = [];
 

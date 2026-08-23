@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   ALL_AST_LINT_RULES,
   COMPILER_SUPPRESSION_DIRECTIVES,
@@ -29,7 +29,7 @@ import {
   type AstLintViolation,
   type DirectoryLintResult,
   type FixSuggestion,
-} from "../../../orchestrating-long-tasks/scripts/src/linter/ast-enforcer.ts";
+} from "../../../olt/scripts/src/linter/ast-enforcer.ts";
 
 describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () => {
   describe("1. Nullish Coalescing (??) Rule", () => {
@@ -683,7 +683,7 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
 
   describe("13. Self-Compliance Invariant Verification", () => {
     it("ast-enforcer.ts itself is 100% compliant with zero fallback and no violations", () => {
-      const linterPath = "orchestrating-long-tasks/scripts/src/linter/ast-enforcer.ts";
+      const linterPath = "olt/scripts/src/linter/ast-enforcer.ts";
       const result = lintFile(linterPath);
 
       expect(result.valid).toBe(true);

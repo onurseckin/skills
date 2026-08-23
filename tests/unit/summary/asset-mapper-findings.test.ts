@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { mapFindingDetails } from "../../../orchestrating-long-tasks/scripts/src/summary/asset-mapper.ts";
-import type {
-  CompletionReview,
-  TaskRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import { mapFindingDetails } from "../../../olt/scripts/src/summary/asset-mapper.ts";
+import type { CompletionReview, TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { makeTask } from "./graph-fixtures.ts";
 
 describe("mapFindingDetails: field-name fallbacks a harness or an older log format might use", () => {

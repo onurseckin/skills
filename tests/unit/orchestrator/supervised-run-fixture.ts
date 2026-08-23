@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 /**

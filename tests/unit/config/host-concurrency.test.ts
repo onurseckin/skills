@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   deriveGateConcurrencyCeiling,
   discoverHostConcurrencyCeiling,
-} from "../../../orchestrating-long-tasks/scripts/src/config/host-concurrency.ts";
+} from "../../../olt/scripts/src/config/host-concurrency.ts";
 
 // A host's own variable name, held as a value so no product names a symbol in this suite.
 const CONCURRENCY_VAR = "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS";

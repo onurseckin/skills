@@ -3,23 +3,17 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
+import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
 import {
   mindAuditReportCommand,
   mindAuditStartCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-audit.ts";
-import { mindPulseCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse.ts";
-import { mindPulseOpenCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-open.ts";
-import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type {
-  HarnessEvent,
-  RunState,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import type {
-  JsonObject,
-  JsonValue,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/cli/commands/mind-audit.ts";
+import { mindPulseCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
+import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+import type { HarnessEvent, RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   assertAuditAllowsPulseOpen,
   checkAdmittedCandidateGoals,
@@ -29,12 +23,12 @@ import {
   checkPulseGaps,
   checkScopeViolations,
   checkValueConsistency,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/audit.ts";
-import { calculatePulseValue } from "../../../orchestrating-long-tasks/scripts/src/mind/value.ts";
-import { verifyDefectWitness } from "../../../orchestrating-long-tasks/scripts/src/mind/witness.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/audit.ts";
+import { calculatePulseValue } from "../../../olt/scripts/src/mind/value.ts";
+import { verifyDefectWitness } from "../../../olt/scripts/src/mind/witness.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 
 const roots: string[] = [];
 

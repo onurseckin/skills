@@ -2,11 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import {
-  ignoredByGit,
-  runDoctor,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/doctor.ts";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { ignoredByGit, runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
 
 const roots: string[] = [];
 afterEach(async () =>

@@ -14,12 +14,12 @@ import {
   type LintCheckResult,
   type TaskCheckSummary,
   type TypeCheckResult,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-check.ts";
-import type { Flags } from "../../../orchestrating-long-tasks/scripts/src/cli/options.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import { ALL_AST_LINT_RULES } from "../../../orchestrating-long-tasks/scripts/src/linter/ast-enforcer.ts";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/cli/commands/task-check.ts";
+import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { ALL_AST_LINT_RULES } from "../../../olt/scripts/src/linter/ast-enforcer.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function createScratchContext(label: string): {

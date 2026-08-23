@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { canonicalizeEcmaScriptWhitespace } from "../../../../orchestrating-long-tasks/scripts/src/store/content-normalization/ecmascript-whitespace.ts";
+import { canonicalizeEcmaScriptWhitespace } from "../../../../olt/scripts/src/store/content-normalization/ecmascript-whitespace.ts";
 
 function eq(left: string, right: string): void {
   expect(canonicalizeEcmaScriptWhitespace(left)).toBe(canonicalizeEcmaScriptWhitespace(right));

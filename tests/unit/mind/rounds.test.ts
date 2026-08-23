@@ -2,16 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
+import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
 import {
   mindRoundCloseCommand,
   mindRoundOpenCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-round.ts";
-import type {
-  JsonObject,
-  JsonValue,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/cli/commands/mind-round.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   carryForwardFindingsAndRequirements,
   formatMindRoundCloseBrief,
@@ -25,10 +22,10 @@ import {
   validatePriorRoundCompleted,
   validateRoundBudget,
   validateRoundCloseArmingRail,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/rounds.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/rounds.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 interface MindFixture {

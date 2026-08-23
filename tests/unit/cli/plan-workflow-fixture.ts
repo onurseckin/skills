@@ -1,7 +1,7 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 
 /** A freshly plan:init'd run with a throwaway repo and a synthetic multi-line prompt. */
 export async function freshRun(

@@ -9,16 +9,14 @@ import {
   recordGrantInspections,
   type SubTaskRoleGrant,
   type TaskRoleGrant,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/role-grant.ts";
-import { loadRoleContract } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
-import { loadRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { workflowPort } from "../../../orchestrating-long-tasks/scripts/src/integration/store-ports.ts";
-import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
+} from "../../../olt/scripts/src/packets/role-grant.ts";
+import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
+import { loadRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import { emptyGrantRun, seedSingleTaskGraph } from "./grant-run-fixture.ts";
 
-const HARNESS_SCRIPT = fileURLToPath(
-  new URL("../../../orchestrating-long-tasks/scripts/harness.ts", import.meta.url),
-);
+const HARNESS_SCRIPT = fileURLToPath(new URL("../../../olt/scripts/harness.ts", import.meta.url));
 
 describe("role-grant pure helpers", () => {
   test("grantedInvocations builds a bun-harness argv for every contract command", () => {

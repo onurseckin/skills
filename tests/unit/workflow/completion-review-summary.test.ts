@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import { recordCompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-review.ts";
-import type { RepositoryBindingVerifier } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/repository-binding.ts";
-import type { TransactionPort } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import { collectActionSteps } from "../../../orchestrating-long-tasks/scripts/src/summary/timeline-collector.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
+import { recordCompletionReview } from "../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
+import type { RepositoryBindingVerifier } from "../../../olt/scripts/src/workflow/completion/repository-binding.ts";
+import type { TransactionPort } from "../../../olt/scripts/src/workflow/types.ts";
+import { collectActionSteps } from "../../../olt/scripts/src/summary/timeline-collector.ts";
 import {
   at,
   commandRecord,
@@ -12,8 +12,8 @@ import {
   TestPort,
   workflowState,
 } from "./test-port.ts";
-import { beginCompletenessCritic } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { criticIntegrityDigest } from "../../../orchestrating-long-tasks/scripts/src/packets/critic-integrity-digest.ts";
+import { beginCompletenessCritic } from "../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
+import { criticIntegrityDigest } from "../../../olt/scripts/src/packets/critic-integrity-digest.ts";
 
 // B21: recording the completion review is the run's final lifecycle closure. Before this, the
 // CLI's --summary flag was already required but its value only ever reached a side report file and

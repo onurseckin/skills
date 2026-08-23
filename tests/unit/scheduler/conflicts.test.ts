@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-  ownershipConflicts,
-  scopeConflict,
-} from "../../../orchestrating-long-tasks/scripts/src/scheduler/conflicts.ts";
-import { proposeBatch } from "../../../orchestrating-long-tasks/scripts/src/scheduler/propose-batch.ts";
+import { ownershipConflicts, scopeConflict } from "../../../olt/scripts/src/scheduler/conflicts.ts";
+import { proposeBatch } from "../../../olt/scripts/src/scheduler/propose-batch.ts";
 import { topologyState } from "./fixtures.ts";
 
 describe("scope conflicts", () => {

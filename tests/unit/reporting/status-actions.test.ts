@@ -3,19 +3,14 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { renderHandoff } from "../../../orchestrating-long-tasks/scripts/src/reporting/handoff.ts";
-import {
-  formatStatusBrief,
-  runStatus,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/status.ts";
-import type { NextActions } from "../../../orchestrating-long-tasks/scripts/src/reporting/action-types.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { renderHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
+import { formatStatusBrief, runStatus } from "../../../olt/scripts/src/reporting/status.ts";
+import type { NextActions } from "../../../olt/scripts/src/reporting/action-types.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
 
 const roots: string[] = [];
-const entrypoint = fileURLToPath(
-  new URL("../../../orchestrating-long-tasks/scripts/harness.ts", import.meta.url),
-);
+const entrypoint = fileURLToPath(new URL("../../../olt/scripts/harness.ts", import.meta.url));
 
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));

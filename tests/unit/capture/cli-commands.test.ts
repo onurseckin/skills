@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { captureInitCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/capture-init.ts";
-import { captureRunCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/capture-run.ts";
-import { captureEvalCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/capture-eval.ts";
+import { captureInitCommand } from "../../../olt/scripts/src/cli/commands/capture-init.ts";
+import { captureRunCommand } from "../../../olt/scripts/src/cli/commands/capture-run.ts";
+import { captureEvalCommand } from "../../../olt/scripts/src/cli/commands/capture-eval.ts";
 
 describe("T-CAP-CLI-TESTS: Harness CLI Capture Commands Integration", () => {
   describe("capture:init", () => {
@@ -232,10 +232,7 @@ screens:
 
   describe("cli-capabilities contracts", () => {
     it("validates cli-capabilities.json contains standardized mind:queue commands", () => {
-      const jsonPath = join(
-        __dirname,
-        "../../../orchestrating-long-tasks/references/cli-capabilities.json",
-      );
+      const jsonPath = join(__dirname, "../../../olt/references/cli-capabilities.json");
       const content = readFileSync(jsonPath, "utf-8");
       const parsed = JSON.parse(content);
       const commandNames = new Set(parsed.commands.map((c: { name: string }) => c.name));

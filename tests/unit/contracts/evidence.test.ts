@@ -5,7 +5,7 @@ import {
   evidenced,
   isEvidenceClass,
   isEvidenced,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/evidence.ts";
+} from "../../../olt/scripts/src/contracts/evidence.ts";
 
 function isNumber(value: unknown): value is number {
   return typeof value === "number";

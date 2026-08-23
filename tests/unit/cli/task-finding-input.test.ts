@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import {
   buildProbeDemand,
   buildReviewFinding,
@@ -7,12 +7,12 @@ import {
   nextFindingRound,
   parseSeverity,
   resolveFindingRequirement,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-finding-input.ts";
+} from "../../../olt/scripts/src/cli/commands/task-finding-input.ts";
 import {
   dualChannelRefusalMessage,
   resolveCheckIds,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-review-support.ts";
-import type { DualChannelAuditResult } from "../../../orchestrating-long-tasks/scripts/src/validation/dual-channel-types.ts";
+} from "../../../olt/scripts/src/cli/commands/task-review-support.ts";
+import type { DualChannelAuditResult } from "../../../olt/scripts/src/validation/dual-channel-types.ts";
 
 function taskWith(requirementIds: string[]): TaskRecord {
   return { id: "task-1", requirement_ids: requirementIds } as unknown as TaskRecord;

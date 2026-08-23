@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { beginCompletenessCritic } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { parseRawProofs } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/parse-raw-proofs.ts";
-import { recordCompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-review.ts";
-import { completionReviewIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/review-issues.ts";
-import { parseCompletionAssessment } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/review-input.ts";
+import { beginCompletenessCritic } from "../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
+import { parseRawProofs } from "../../../olt/scripts/src/workflow/completion/parse-raw-proofs.ts";
+import { recordCompletionReview } from "../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
+import { completionReviewIssues } from "../../../olt/scripts/src/workflow/completion/review-issues.ts";
+import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/review-input.ts";
 import {
   at,
   commandRecord,
@@ -12,7 +12,7 @@ import {
   TestPort,
   workflowState,
 } from "./test-port.ts";
-import { criticIntegrityDigest } from "../../../orchestrating-long-tasks/scripts/src/packets/critic-integrity-digest.ts";
+import { criticIntegrityDigest } from "../../../olt/scripts/src/packets/critic-integrity-digest.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 const integrity = [{ status: "passed", event_head: "head" }];

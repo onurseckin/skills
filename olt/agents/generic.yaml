@@ -1,0 +1,24 @@
+provider: "generic"
+display_name: "Generic Subagent CLI"
+aliases:
+  - "custom"
+  - "subprocess"
+dispatch:
+  mechanism: "subprocess"
+  spawn_command: "bun"
+  arguments:
+    - "~/.agents/skills/olt/scripts/harness.ts"
+messaging:
+  mechanism: "ipc_or_capsule"
+command_execution:
+  mechanism: "posix_exec"
+supported_tiers:
+  - 0
+  - 1
+  - 2
+  - 3
+capabilities:
+  hierarchical_subagents: true
+  concurrency_ceiling: 16
+  token_reporting: false
+  native_resume: false

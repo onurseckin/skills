@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { shellCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/shell.ts";
-import { scopeExpandCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/scope-expand.ts";
+import { shellCommand } from "../../../olt/scripts/src/cli/commands/shell.ts";
+import { scopeExpandCommand } from "../../../olt/scripts/src/cli/commands/scope-expand.ts";
 import {
   checkReadScopeAuthorization,
   isWithinNeighborhood,
-} from "../../../orchestrating-long-tasks/scripts/src/runtime/read-scope-guard.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/runtime/read-scope-guard.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 
 describe("CLI Shell Interlock & Read Scope Expansion", () => {
   describe("shellCommand", () => {

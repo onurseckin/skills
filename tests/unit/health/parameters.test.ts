@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { scanUnreadParameters } from "../../../orchestrating-long-tasks/scripts/src/health/parameters.ts";
+import { scanUnreadParameters } from "../../../olt/scripts/src/health/parameters.ts";
 import { cleanupTempRoots, sourceOf } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);

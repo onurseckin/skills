@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { memoryQueryCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/memory-ops.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { memoryQueryCommand } from "../../../olt/scripts/src/cli/commands/memory-ops.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   buildMemoryIndex,
   countTokens,
@@ -23,7 +23,7 @@ import {
   type MemoryDocument,
   type MemoryIndex,
   type MemoryKind,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/memory.ts";
+} from "../../../olt/scripts/src/mind/memory.ts";
 
 const tempRoots: string[] = [];
 
@@ -85,7 +85,7 @@ Autonomous Verification Core for test suites and memory indexing.
   writeFileSync(join(charterDir, "CHARTER.md"), charterContent, "utf-8");
 
   // 2. References
-  const refDir = join(repoRoot, "orchestrating-long-tasks", "references");
+  const refDir = join(repoRoot, "olt", "references");
   mkdirSync(refDir, { recursive: true });
   writeFileSync(
     join(refDir, "protocol.md"),
@@ -136,7 +136,7 @@ Autonomous Verification Core for test suites and memory indexing.
         id: "task-1-memory",
         label: "Implement memory search CLI",
         status: "completed",
-        write_scope: ["orchestrating-long-tasks/scripts/src/mind/memory.ts"],
+        write_scope: ["olt/scripts/src/mind/memory.ts"],
       },
     ],
     candidates: [

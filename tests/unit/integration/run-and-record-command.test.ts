@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { runAndRecordCommand } from "../../../orchestrating-long-tasks/scripts/src/integration/record-command.ts";
+import { runAndRecordCommand } from "../../../olt/scripts/src/integration/record-command.ts";
 
 describe("runAndRecordCommand — stranded-recovery short-circuit", () => {
   test("refuses to run a new command while a prior running intent still lacks terminal evidence", async () => {

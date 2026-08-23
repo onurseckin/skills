@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { describe, expect, test } from "bun:test";
-import { buildPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/render-packet.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
-import { completionReadinessSnapshot } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/readiness-snapshot.ts";
+import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
+import { completionReadinessSnapshot } from "../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
 import {
   at,
   commandRecord,

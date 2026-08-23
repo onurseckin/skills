@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { renderEnhancedPlanMarkdown } from "../../../orchestrating-long-tasks/scripts/src/requirements/enhanced-plan-markdown.ts";
+import { renderEnhancedPlanMarkdown } from "../../../olt/scripts/src/requirements/enhanced-plan-markdown.ts";
 import {
   buildEnhancedPlan,
   ENHANCED_PLAN_JSON_FILE,
@@ -11,12 +11,9 @@ import {
   PLANNING_DIRECTORY,
   writeEnhancedPlan,
   type EnhancedPlanInput,
-} from "../../../orchestrating-long-tasks/scripts/src/requirements/enhanced-plan.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import {
-  canonicalJsonBytes,
-  sha256Bytes,
-} from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
+} from "../../../olt/scripts/src/requirements/enhanced-plan.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function input(overrides: Partial<EnhancedPlanInput> = {}): EnhancedPlanInput {

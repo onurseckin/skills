@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { formatDoctorBrief } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/diagnostics-ops.ts";
+import { formatDoctorBrief } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
 
 describe("doctor brief rendering", () => {
   test("renders observed booleans and the measured Bun version", () => {

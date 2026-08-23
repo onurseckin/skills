@@ -7,15 +7,15 @@ import {
   openTaskValidations,
   taskAttemptTurnState,
   validationTurnState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/turn-state.ts";
-import { suspendLease } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/suspension.ts";
+} from "../../../olt/scripts/src/workflow/lease/turn-state.ts";
+import { suspendLease } from "../../../olt/scripts/src/workflow/lease/suspension.ts";
 import type {
   CompletionCriticAuthorization,
   ScopedLease,
   TaskRecord,
   ValidationAttempt,
   WorkflowState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/workflow/types.ts";
 import { workflowState } from "./test-port.ts";
 
 const t0 = new Date("2026-08-19T00:00:00.000Z");

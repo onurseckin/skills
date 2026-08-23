@@ -2,14 +2,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { completionReviewDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/completion-review-digest.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { completionReviewDigest } from "../../../olt/scripts/src/workflow/completion/completion-review-digest.ts";
 import type {
   CompletionCriticAuthorization,
   CompletionFinding,
   CompletionReview,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/workflow/types.ts";
 import { commandRecord, repositoryBinding } from "../workflow/test-port.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";

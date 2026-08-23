@@ -3,8 +3,8 @@ import {
   deduplicateBlunderLog,
   parseAndDeduplicateBlunderJsonl,
   serializeAggregatedBlunderLog,
-} from "../../../orchestrating-long-tasks/scripts/src/blunders/dedup-stream.ts";
-import type { BlunderRecordInput } from "../../../orchestrating-long-tasks/scripts/src/blunders/types.ts";
+} from "../../../olt/scripts/src/blunders/dedup-stream.ts";
+import type { BlunderRecordInput } from "../../../olt/scripts/src/blunders/types.ts";
 
 describe("Blunder Stream Deduplication & Serialization", () => {
   describe("deduplicateBlunderLog", () => {

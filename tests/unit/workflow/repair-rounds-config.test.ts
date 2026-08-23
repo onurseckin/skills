@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { beginCompletenessCritic } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { recordCompletionRemediation } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-remediation.ts";
-import { recordCompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-review.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { beginValidation } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/begin-validation.ts";
-import { recordReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/record-review.ts";
-import { submitTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
+import { beginCompletenessCritic } from "../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
+import { recordCompletionRemediation } from "../../../olt/scripts/src/workflow/completion/record-completion-remediation.ts";
+import { recordCompletionReview } from "../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { beginValidation } from "../../../olt/scripts/src/workflow/review/begin-validation.ts";
+import { recordReview } from "../../../olt/scripts/src/workflow/review/record-review.ts";
+import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
 import {
   at,
   commandRecord,
@@ -16,7 +16,7 @@ import {
   TestPort,
   workflowState,
 } from "./test-port.ts";
-import { criticIntegrityDigest } from "../../../orchestrating-long-tasks/scripts/src/packets/critic-integrity-digest.ts";
+import { criticIntegrityDigest } from "../../../olt/scripts/src/packets/critic-integrity-digest.ts";
 
 const clock = at("2026-08-14T12:00:00.000Z");
 const integrity = [{ status: "passed", event_head: "head" }];

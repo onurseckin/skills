@@ -2,11 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   AssetRegistry,
   projectFindingsForNode,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/graph-asset-ownership.ts";
-import type {
-  FindingDetail,
-  MediaAsset,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/graph-types.ts";
+} from "../../../olt/scripts/src/summary/graph-asset-ownership.ts";
+import type { FindingDetail, MediaAsset } from "../../../olt/scripts/src/summary/graph-types.ts";
 
 function asset(id: string, url: string): MediaAsset {
   return { id, type: "image", url };

@@ -29,8 +29,8 @@ import {
   type HierarchyScalingResult,
   type MultiCoordinatorWavePartitionResult,
   type SmartTaskPlan,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/mind/smart-task-manager.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 
 function createMockTask(
   id: string,
@@ -96,9 +96,7 @@ describe("Plan 91 Pillar 1: Elastic Dynamic Hierarchy Scaling & Anti-Serializati
     });
 
     it("integrates fast-path compaction into planWaveExecution on N = 1", () => {
-      const singleTask = [
-        createMockTask("task-1-fast", ["orchestrating-long-tasks/scripts/src/a.ts"]),
-      ];
+      const singleTask = [createMockTask("task-1-fast", ["olt/scripts/src/a.ts"])];
       const wavePlan = planWaveExecution(singleTask);
 
       expect(wavePlan.total_tasks).toBe(1);
@@ -333,10 +331,10 @@ describe("Plan 91 Pillar 1: Elastic Dynamic Hierarchy Scaling & Anti-Serializati
   describe("4. Integration with Multi-Orchestrator Pre-Planning", () => {
     it("calculates hierarchy scaling and coordinator counts in preplanMultiOrchestratorTasks", () => {
       const tasks = [
-        createMockTask("core-1", ["orchestrating-long-tasks/scripts/src/core1.ts"]),
-        createMockTask("core-2", ["orchestrating-long-tasks/scripts/src/core2.ts"]),
-        createMockTask("cli-1", ["orchestrating-long-tasks/scripts/src/cli/cmd1.ts"]),
-        createMockTask("cli-2", ["orchestrating-long-tasks/scripts/src/cli/cmd2.ts"]),
+        createMockTask("core-1", ["olt/scripts/src/core1.ts"]),
+        createMockTask("core-2", ["olt/scripts/src/core2.ts"]),
+        createMockTask("cli-1", ["olt/scripts/src/cli/cmd1.ts"]),
+        createMockTask("cli-2", ["olt/scripts/src/cli/cmd2.ts"]),
       ];
 
       const multiOrchPlan = preplanMultiOrchestratorTasks(tasks, {
@@ -354,10 +352,10 @@ describe("Plan 91 Pillar 1: Elastic Dynamic Hierarchy Scaling & Anti-Serializati
   describe("5. Static Invariant Verification: 0 any & 0 Suppressions", () => {
     it("proves 0 TypeScript any and 0 compiler/linter suppressions across all modules", () => {
       const modules = [
-        "orchestrating-long-tasks/scripts/src/graph/parallel-decoupler.ts",
-        "orchestrating-long-tasks/scripts/src/graph/topology.ts",
-        "orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts",
-        "orchestrating-long-tasks/scripts/src/cli/commands/task-check.ts",
+        "olt/scripts/src/graph/parallel-decoupler.ts",
+        "olt/scripts/src/graph/topology.ts",
+        "olt/scripts/src/mind/smart-task-manager.ts",
+        "olt/scripts/src/cli/commands/task-check.ts",
       ];
 
       for (const mod of modules) {

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   expandScopeEntry,
   expandWriteScope,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/scope-expansion.ts";
+} from "../../../olt/scripts/src/graph/scope-expansion.ts";
 
 const roots: string[] = [];
 function fixtureRepo(): string {

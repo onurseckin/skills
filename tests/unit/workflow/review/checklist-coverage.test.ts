@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { loadChecklist } from "../../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
+import { loadChecklist } from "../../../../olt/scripts/src/packets/role-contract.ts";
 import {
   validateChecklistCoverage,
   type ChecklistCoverageEntry,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/validate-review.ts";
+} from "../../../../olt/scripts/src/workflow/review/validate-review.ts";
 
 // A real domain checklist, not a fixture invented for the test: B12.5's whole point is that
 // coverage is checked against the actual, versioned document a validator's packet carries.

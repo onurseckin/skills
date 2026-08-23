@@ -2,15 +2,15 @@ import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import type { RepositoryBinding } from "../../../orchestrating-long-tasks/scripts/src/contracts/repository.ts";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { inspectRepositoryBinding } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-identity.ts";
-import { captureGateEnvironment } from "../../../orchestrating-long-tasks/scripts/src/runner/gate-environment.ts";
-import { captureGatePathBindings } from "../../../orchestrating-long-tasks/scripts/src/runner/gate-path-bindings.ts";
-import { canonicalCommandFingerprint } from "../../../orchestrating-long-tasks/scripts/src/runner/command-id.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/contracts/repository.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { inspectRepositoryBinding } from "../../../olt/scripts/src/packets/repository-identity.ts";
+import { captureGateEnvironment } from "../../../olt/scripts/src/runner/gate-environment.ts";
+import { captureGatePathBindings } from "../../../olt/scripts/src/runner/gate-path-bindings.ts";
+import { canonicalCommandFingerprint } from "../../../olt/scripts/src/runner/command-id.ts";
+import { transact } from "../../../olt/scripts/src/store/index.ts";
 
 /**
  * critic:start's readiness gate (completionReadinessIssues) demands a task done with validator

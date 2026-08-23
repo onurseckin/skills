@@ -4,7 +4,7 @@ import {
   validateModalFocusTrap,
   validateSubpixelBorders,
   computePhysicalViewportMetrics,
-} from "../../../orchestrating-long-tasks/scripts/src/heuristics/index.ts";
+} from "../../../olt/scripts/src/heuristics/index.ts";
 
 describe("heuristics subsystem unit tests", () => {
   it("exports core heuristic analyzers", () => {

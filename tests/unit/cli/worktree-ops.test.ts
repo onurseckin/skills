@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

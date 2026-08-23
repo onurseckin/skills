@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   auditBlunderLog,
   categorizeBlunder,
@@ -12,7 +12,7 @@ import {
   serializeBlunderLog,
   type BlunderEntry,
   type BlunderResolutionProof,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/blunders.ts";
+} from "../../../olt/scripts/src/mind/blunders.ts";
 
 const tempRoots: string[] = [];
 

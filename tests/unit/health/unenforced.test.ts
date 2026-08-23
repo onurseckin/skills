@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { checkDeclarations } from "../../../orchestrating-long-tasks/scripts/src/health/unenforced.ts";
-import { COMMAND_REGISTRY } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
+import { checkDeclarations } from "../../../olt/scripts/src/health/unenforced.ts";
+import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
 import { cleanupTempRoots, loadTree, tempRoot, writeTree } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);
@@ -172,7 +172,7 @@ describe("documentation that promises a command nobody implemented", () => {
 });
 
 describe("the shipped role contracts and documents are consistent with the registry", () => {
-  const skillRoot = new URL("../../../orchestrating-long-tasks/", import.meta.url).pathname;
+  const skillRoot = new URL("../../../olt/", import.meta.url).pathname;
   const findings = checkDeclarations({
     production: new Map(),
     skillRoot,

@@ -24,7 +24,7 @@ import {
   type HookConfig,
   type HookDefinition,
   type LifecycleEvent,
-} from "../../../orchestrating-long-tasks/scripts/src/hooks/index.ts";
+} from "../../../olt/scripts/src/hooks/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Lifecycle Hooks - Event Pattern Matching", () => {
@@ -555,9 +555,9 @@ describe("Lifecycle Hooks - Declarative Config Parsing & Loading", () => {
     expect(loaded.hooks[0]?.id).toBe("custom-capsule-hook");
   });
 
-  test("loads hook configuration from orchestrating-long-tasks/hooks.json in target directory", () => {
+  test("loads hook configuration from olt/hooks.json in target directory", () => {
     const dir = scratchRoot(import.meta.path, "load-olt-config");
-    const oltDir = join(dir, "orchestrating-long-tasks");
+    const oltDir = join(dir, "olt");
     mkdirSync(oltDir, { recursive: true });
 
     const customConfig: HookConfig = {
@@ -617,10 +617,10 @@ describe("Lifecycle Hooks - Declarative Config Parsing & Loading", () => {
 describe("Lifecycle Hooks - Invariant & Type Cleanliness Audit", () => {
   test("zero TypeScript any and zero suppressions across hook source files", () => {
     const sourceFiles = [
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/hooks/types.ts"),
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/hooks/config.ts"),
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/hooks/dispatcher.ts"),
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/hooks/index.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/types.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/dispatcher.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/index.ts"),
       __filename,
     ];
 

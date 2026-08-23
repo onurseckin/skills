@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import { assertInstallerPlatform } from "../../../orchestrating-long-tasks/scripts/src/installer/platform.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { assertInstallerPlatform } from "../../../olt/scripts/src/installer/platform.ts";
 
 describe("assertInstallerPlatform", () => {
   test("accepts darwin", () => {

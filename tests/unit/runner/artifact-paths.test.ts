@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   portableArtifactPath,
   resolveArtifactPath,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/artifact-paths.ts";
+} from "../../../olt/scripts/src/runner/artifact-paths.ts";
 
 const roots: string[] = [];
 

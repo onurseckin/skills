@@ -17,7 +17,7 @@ import {
   PILLAR_6_FIRST_PRINCIPLES,
   PILLAR_7_INFINITE_CADENCE,
   type CognitivePillar,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/pillars.ts";
+} from "../../../olt/scripts/src/authority/pillars.ts";
 import {
   buildWatchdogAuditPrompt,
   createWatchdogTickReminder,
@@ -32,8 +32,8 @@ import {
   type ActiveLeaseInfo,
   type ReflexiveAuditContext,
   type SubordinateAgentInfo,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/persona-grounding.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/authority/persona-grounding.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 
 describe("Cognitive Pillars Subsystem (authority/pillars.ts)", () => {
   test("defines exactly 7 cognitive pillars", () => {

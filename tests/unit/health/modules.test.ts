@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { resolveOrigin } from "../../../orchestrating-long-tasks/scripts/src/health/modules.ts";
+import { resolveOrigin } from "../../../olt/scripts/src/health/modules.ts";
 import { cleanupTempRoots, loadTree } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);

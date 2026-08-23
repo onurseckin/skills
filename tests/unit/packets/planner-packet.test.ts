@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { initializePlannerPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/planner-packet.ts";
+import { initializePlannerPacket } from "../../../olt/scripts/src/packets/planner-packet.ts";
 import { emptyGrantRun, seedSingleTaskGraph } from "./grant-run-fixture.ts";
 
 describe("initializePlannerPacket", () => {

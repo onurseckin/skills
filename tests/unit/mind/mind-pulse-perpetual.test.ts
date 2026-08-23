@@ -8,19 +8,19 @@ import {
   formatMindPulseActiveBrief,
   formatMindPulseOpenedBrief,
   mindPulseCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse.ts";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { findCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import { readLastPulse } from "../../../orchestrating-long-tasks/scripts/src/mind/last-pulse.ts";
+} from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { readLastPulse } from "../../../olt/scripts/src/mind/last-pulse.ts";
 import {
   enforceInfiniteMindCadence,
   transitionPulseToWake,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/recycler.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/recycler.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 
 const testRoots: string[] = [];
 

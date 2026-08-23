@@ -8,7 +8,7 @@
     "allowImportingTsExtensions": true,
     "exactOptionalPropertyTypes": true,
     "noEmit": true,
-    "types": ["node", "bun"],
+    "types": ["node", "bun-types"],
     "strict": true,
     "noImplicitAny": true,
     "noImplicitOverride": true,
@@ -20,9 +20,9 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "orchestrating-long-tasks/scripts/src/**/*.ts",
-    "orchestrating-long-tasks/scripts/harness.ts",
-    "orchestrating-long-tasks/scripts/generate-cli-manifest.ts",
+    "olt/scripts/src/**/*.ts",
+    "olt/scripts/harness.ts",
+    "olt/scripts/generate-cli-manifest.ts",
     "scripts/verify-gen5.ts"
   ],
   "exclude": ["tests"]

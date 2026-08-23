@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { buildModules } from "../../../orchestrating-long-tasks/scripts/src/health/modules.ts";
-import { checkDeadCode } from "../../../orchestrating-long-tasks/scripts/src/health/dead-code.ts";
+import { buildModules } from "../../../olt/scripts/src/health/modules.ts";
+import { checkDeadCode } from "../../../olt/scripts/src/health/dead-code.ts";
 import { cleanupTempRoots, loadTree, sourceOf } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);

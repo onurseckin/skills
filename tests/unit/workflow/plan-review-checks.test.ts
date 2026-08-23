@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { beginPlanValidation } from "../../../orchestrating-long-tasks/scripts/src/workflow/plan-review/begin-plan-validation.ts";
-import { recordPlanReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/plan-review/record-plan-review.ts";
-import type { PacketRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import { beginPlanValidation } from "../../../olt/scripts/src/workflow/plan-review/begin-plan-validation.ts";
+import { recordPlanReview } from "../../../olt/scripts/src/workflow/plan-review/record-plan-review.ts";
+import type { PacketRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { clock, compiledPort, fourAnswers } from "./plan-review-fixture.ts";
 import { commandRecord } from "./test-port.ts";
 

@@ -2,11 +2,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildNodeBrowserTests } from "../../../orchestrating-long-tasks/scripts/src/summary/browser-tests.ts";
-import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
-import { writeBrowserRunRecord } from "../../../orchestrating-long-tasks/scripts/src/reporting/browser-run-store.ts";
-import type { BrowserRunRecord } from "../../../orchestrating-long-tasks/scripts/src/reporting/browser-run-types.ts";
-import type { GraphNodeData } from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
+import { buildNodeBrowserTests } from "../../../olt/scripts/src/summary/browser-tests.ts";
+import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
+import { writeBrowserRunRecord } from "../../../olt/scripts/src/reporting/browser-run-store.ts";
+import type { BrowserRunRecord } from "../../../olt/scripts/src/reporting/browser-run-types.ts";
+import type { GraphNodeData } from "../../../olt/scripts/src/summary/types.ts";
 import { makeCommand, makeState, makeTask } from "./graph-fixtures.ts";
 
 const roots: string[] = [];

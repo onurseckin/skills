@@ -8,7 +8,7 @@ import {
   scanTreeForVendorIdentifiers,
   staleExemptions,
   stripCommentsAndStrings,
-} from "../../../orchestrating-long-tasks/scripts/src/health/vendor-identifiers.ts";
+} from "../../../olt/scripts/src/health/vendor-identifiers.ts";
 
 const roots: string[] = [];
 

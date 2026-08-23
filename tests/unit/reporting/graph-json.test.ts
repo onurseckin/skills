@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { DagViewReport } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/dag-view.ts";
+import type { DagViewReport } from "../../../olt/scripts/src/cli/commands/dag-view.ts";
 import {
   generateDagJsonReport,
   isDagJsonReport,
   validateGduiReportIntegrity,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/graph-json.ts";
+} from "../../../olt/scripts/src/reporting/graph-json.ts";
 
 const mockDagView: DagViewReport = {
   markdown: "",

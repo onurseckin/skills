@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/store/index.ts";
 import {
   cli,
   git,

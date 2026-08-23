@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { evidenced } from "../../../orchestrating-long-tasks/scripts/src/contracts/evidence.ts";
+import { evidenced } from "../../../olt/scripts/src/contracts/evidence.ts";
 import {
   ABSTRACT_PROFILES,
   formatHostDegradation,
@@ -11,7 +11,7 @@ import {
   resolveProfile,
   roleToProfile,
   type ProfileBindings,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/profiles.ts";
+} from "../../../olt/scripts/src/mind/profiles.ts";
 
 describe("Mind abstract profiles and host degradation", () => {
   test("maps canonical roles to correct abstract profiles per PLAN §10 / PHASE-4 §3.4", () => {
@@ -176,10 +176,7 @@ describe("Mind abstract profiles and host degradation", () => {
   });
 
   test("enforces 0 hardcoded vendor model names in profiles.ts source", () => {
-    const profilesPath = join(
-      import.meta.dir,
-      "../../../orchestrating-long-tasks/scripts/src/mind/profiles.ts",
-    );
+    const profilesPath = join(import.meta.dir, "../../../olt/scripts/src/mind/profiles.ts");
     const content = readFileSync(profilesPath, "utf-8");
 
     const prohibitedVendorKeywords = [

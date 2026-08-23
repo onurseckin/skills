@@ -9,8 +9,8 @@ import {
   captureGatePathBindings,
   executionArgv,
   gatePathBindingIssues,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/gate-path-bindings.ts";
-import { gateControlBindingsOverlapWriteScopes } from "../../../orchestrating-long-tasks/scripts/src/runner/gate-path-overlap.ts";
+} from "../../../olt/scripts/src/runner/gate-path-bindings.ts";
+import { gateControlBindingsOverlapWriteScopes } from "../../../olt/scripts/src/runner/gate-path-overlap.ts";
 
 const roots: string[] = [];
 

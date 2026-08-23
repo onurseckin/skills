@@ -7,7 +7,7 @@ import {
   compactCapsuleBlunders,
   loadCapsuleBlunders,
   resolveCapsuleBlunder,
-} from "../../../orchestrating-long-tasks/scripts/src/store/blunder-store.ts";
+} from "../../../olt/scripts/src/store/blunder-store.ts";
 
 const tempRoots: string[] = [];
 

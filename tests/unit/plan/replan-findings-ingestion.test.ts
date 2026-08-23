@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   collectReplanFindings,
   UNREPORTED_REMEDIATION,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/plan-replan-findings.ts";
+} from "../../../olt/scripts/src/cli/commands/plan-replan-findings.ts";
 
 function ingest(payload: string): ReturnType<typeof collectReplanFindings> {
   return collectReplanFindings({

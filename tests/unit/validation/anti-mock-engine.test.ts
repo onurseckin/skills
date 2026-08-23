@@ -7,13 +7,13 @@ import {
   generateMutants,
   lintTestAst,
   runMutationGate,
-} from "../../../orchestrating-long-tasks/scripts/src/validation/index.ts";
+} from "../../../olt/scripts/src/validation/index.ts";
 import type {
   AntiMockDiagnosticReport,
   AntiMockEvaluationInput,
   MutantRecord,
   MutationTestRunOutcome,
-} from "../../../orchestrating-long-tasks/scripts/src/validation/anti-mock-types.ts";
+} from "../../../olt/scripts/src/validation/anti-mock-types.ts";
 
 describe("Pillar 1: AST Early-Return & Mock Tautology Linter", () => {
   test("detects empty test functions (arrow and function expressions)", () => {

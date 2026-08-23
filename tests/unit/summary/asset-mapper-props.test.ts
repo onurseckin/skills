@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   getMimeTypeForUrl,
   inferAssetProps,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/asset-mapper-props.ts";
+} from "../../../olt/scripts/src/summary/asset-mapper-props.ts";
 import { makeCommand, makeTask } from "./graph-fixtures.ts";
 
 describe("getMimeTypeForUrl", () => {

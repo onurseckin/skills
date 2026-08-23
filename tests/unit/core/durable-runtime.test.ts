@@ -16,11 +16,11 @@ import {
   atomicWriteBytes,
   atomicWriteJson,
   fsyncDirectory,
-} from "../../../orchestrating-long-tasks/scripts/src/core/durable-write.ts";
+} from "../../../olt/scripts/src/core/durable-write.ts";
 import {
   copyPinnedRuntime,
   runtimeTreeSnapshot,
-} from "../../../orchestrating-long-tasks/scripts/src/core/runtime-tree.ts";
+} from "../../../olt/scripts/src/core/runtime-tree.ts";
 
 function fixture(): { root: string; source: string; destination: string } {
   const root = mkdtempSync(join(tmpdir(), "harness-runtime-"));

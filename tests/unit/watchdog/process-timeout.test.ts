@@ -24,7 +24,7 @@ import {
   createHierarchicalStallProbe,
   buildRemediationGuidance,
   type BunSubprocess,
-} from "../../../orchestrating-long-tasks/scripts/src/watchdog/process-timeout.ts";
+} from "../../../olt/scripts/src/watchdog/process-timeout.ts";
 
 function createFakeSubprocess(
   options: {
@@ -682,7 +682,7 @@ describe("HierarchicalStallProbe - Supervisor-to-Child Health Probing", () => {
 describe("Invariants & Cleanliness Audit - Mechanical Process Timeout Watchdog", () => {
   test("zero TypeScript any and zero suppressions across process-timeout watchdog files", () => {
     const sourceFiles = [
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/watchdog/process-timeout.ts"),
+      join(__dirname, "../../../olt/scripts/src/watchdog/process-timeout.ts"),
       __filename,
     ];
 

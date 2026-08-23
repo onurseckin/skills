@@ -2,14 +2,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, readlink, symlink } from "node:fs/promises";
 import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   applyClientLinks,
   clientLinkPaths,
   preflightClientLinks,
   type ClientLinkPlan,
-} from "../../../orchestrating-long-tasks/scripts/src/installer/client-links.ts";
-import { pathIdentity } from "../../../orchestrating-long-tasks/scripts/src/installer/path-safety.ts";
+} from "../../../olt/scripts/src/installer/client-links.ts";
+import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { cleanInstallerFixtures } from "./helpers.ts";
 
@@ -18,10 +18,8 @@ afterEach(cleanInstallerFixtures);
 describe("clientLinkPaths", () => {
   test("builds the claude and antigravity link paths under home", () => {
     const paths = clientLinkPaths("/home/user");
-    expect(paths.claude).toBe(join("/home/user", ".claude", "skills", "orchestrating-long-tasks"));
-    expect(paths.antigravity).toBe(
-      join("/home/user", ".gemini", "config", "skills", "orchestrating-long-tasks"),
-    );
+    expect(paths.claude).toBe(join("/home/user", ".claude", "skills", "olt"));
+    expect(paths.antigravity).toBe(join("/home/user", ".gemini", "config", "skills", "olt"));
   });
 });
 

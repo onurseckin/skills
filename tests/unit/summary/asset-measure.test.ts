@@ -6,8 +6,8 @@ import {
   measureAssets,
   measureCapsuleAsset,
   readHeader,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/asset-measure.ts";
-import type { MediaAsset } from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
+} from "../../../olt/scripts/src/summary/asset-measure.ts";
+import type { MediaAsset } from "../../../olt/scripts/src/summary/types.ts";
 
 const roots: string[] = [];
 afterEach(() => {

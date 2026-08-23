@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { completionIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/completion-state.ts";
-import { completeRun } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/complete-run.ts";
-import { recordCompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-review.ts";
+import { completionIssues } from "../../../olt/scripts/src/workflow/completion/completion-state.ts";
+import { completeRun } from "../../../olt/scripts/src/workflow/completion/complete-run.ts";
+import { recordCompletionReview } from "../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
 import { commandRecord, TestPort } from "./test-port.ts";
 import {
   artifactVerification,

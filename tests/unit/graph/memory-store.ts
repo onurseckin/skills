@@ -2,7 +2,7 @@ import type {
   PlanningMutation,
   PlanningSnapshot,
   PlanningStore,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/apply-plan.ts";
+} from "../../../olt/scripts/src/graph/apply-plan.ts";
 
 export class MemoryPlanningStore implements PlanningStore {
   public state: Record<string, unknown>;

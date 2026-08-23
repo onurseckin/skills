@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { streamEventLines } from "../../../orchestrating-long-tasks/scripts/src/store/event-lines.ts";
+import { streamEventLines } from "../../../olt/scripts/src/store/event-lines.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

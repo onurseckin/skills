@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   classifySignals,
   inspectFailureText,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/classify-failure.ts";
+} from "../../../olt/scripts/src/runner/classify-failure.ts";
 
 describe("inspectFailureText", () => {
   test("detects authorization failures", () => {

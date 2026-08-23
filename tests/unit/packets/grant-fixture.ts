@@ -2,13 +2,13 @@ import { afterAll, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   loadRoleContract,
   type RoleContract,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import type { PacketRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/packets/role-contract.ts";
+import { loadRun } from "../../../olt/scripts/src/store/index.ts";
+import type { PacketRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 /** Capsule roots the grant tests create; removed once the file that registered them is done. */
 export function disposableRoots(): string[] {

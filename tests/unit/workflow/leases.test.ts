@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { evidenced } from "../../../orchestrating-long-tasks/scripts/src/contracts/evidence.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { heartbeat } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/heartbeat.ts";
-import { recoverStale } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/recover-stale.ts";
+import { evidenced } from "../../../olt/scripts/src/contracts/evidence.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { heartbeat } from "../../../olt/scripts/src/workflow/lease/heartbeat.ts";
+import { recoverStale } from "../../../olt/scripts/src/workflow/lease/recover-stale.ts";
 import { at, TestPort, workflowState } from "./test-port.ts";
 
 const start = at("2026-08-13T12:00:00.000Z");

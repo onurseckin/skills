@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { completionIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/completion-state.ts";
-import { dispositionOrphanEvidence } from "../../../orchestrating-long-tasks/scripts/src/workflow/orphan-evidence/disposition.ts";
-import { orphanEvidenceSha256 } from "../../../orchestrating-long-tasks/scripts/src/workflow/orphan-evidence/digest.ts";
+import { completionIssues } from "../../../olt/scripts/src/workflow/completion/completion-state.ts";
+import { dispositionOrphanEvidence } from "../../../olt/scripts/src/workflow/orphan-evidence/disposition.ts";
+import { orphanEvidenceSha256 } from "../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { at, TestPort, workflowState } from "./test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");

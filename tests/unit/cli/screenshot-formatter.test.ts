@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { ScreenshotRecord } from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-types.ts";
-import { formatScreenshotsListBrief } from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/screenshot-formatter.ts";
+import type { ScreenshotRecord } from "../../../olt/scripts/src/reporting/screenshot-types.ts";
+import { formatScreenshotsListBrief } from "../../../olt/scripts/src/cli/formatters/screenshot-formatter.ts";
 
 function screenshot(overrides: Partial<ScreenshotRecord> = {}): ScreenshotRecord {
   return {

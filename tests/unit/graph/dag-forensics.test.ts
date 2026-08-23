@@ -17,14 +17,14 @@ import {
   renderMermaidDag,
   topologicalOrder,
   type ForensicTaskNode,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/dag-forensics.ts";
+} from "../../../olt/scripts/src/graph/dag-forensics.ts";
 import {
   formatBox,
   renderNodeBox,
   renderVisualDag,
   statusBadge,
   statusGlyph,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/dag-visualizer.ts";
+} from "../../../olt/scripts/src/summary/dag-visualizer.ts";
 
 describe("DAG Forensics: Topological Sorting & Acyclicity", () => {
   test("topologicalOrder returns empty array on empty graph", () => {

@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { RunState } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
+import type { RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
 import {
   buildIndex,
   indexFreshness,
   loadIndex,
   refreshIndex,
   writeIndex,
-} from "../../../orchestrating-long-tasks/scripts/src/store/capsule-index.ts";
+} from "../../../olt/scripts/src/store/capsule-index.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

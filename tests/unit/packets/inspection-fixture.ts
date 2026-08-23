@@ -1,4 +1,4 @@
-import { repositoryInspectionDigest } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-inspection.ts";
+import { repositoryInspectionDigest } from "../../../olt/scripts/src/packets/repository-inspection.ts";
 
 export function inspection(phase: "baseline" | "current", capturedAt = "2026-08-13T12:00:00.000Z") {
   const value = {

@@ -21,7 +21,7 @@ import {
   formatTaskReviewPassBrief,
   formatTaskSubmitBrief,
   formatValidationStartBrief,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/index.ts";
+} from "../../../olt/scripts/src/cli/formatters/index.ts";
 
 describe("Markdown Formatters", () => {
   test("enforceLineLimit clamps markdown to max lines", () => {

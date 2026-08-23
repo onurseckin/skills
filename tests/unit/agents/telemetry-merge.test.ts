@@ -1,16 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import {
-  evidenced,
-  estimated,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/evidence.ts";
+import { evidenced, estimated } from "../../../olt/scripts/src/contracts/evidence.ts";
 import type {
   AgentToolUse,
   TelemetryFieldConflict,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { registerAgentGrant } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts";
+} from "../../../olt/scripts/src/contracts/agents.ts";
+import { initRun } from "../../../olt/scripts/src/store/index.ts";
+import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import {
   appendTelemetryConflicts,
   checkParentAgentConflict,
@@ -19,8 +16,8 @@ import {
   mergeObservedTools,
   refreshAgentDerivedTelemetry,
   transcriptAuditContext,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/telemetry-merge.ts";
-import type { AgentTranscriptTelemetry } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/transcript-telemetry.ts";
+} from "../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
+import type { AgentTranscriptTelemetry } from "../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("mergeObservedCount", () => {

@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { planReviewCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/plan-validate.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { planReviewCommand } from "../../../olt/scripts/src/cli/commands/plan-validate.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

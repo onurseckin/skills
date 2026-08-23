@@ -3,17 +3,17 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseArguments } from "../../../orchestrating-long-tasks/scripts/src/cli/arguments.ts";
-import { mindWakeCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-wake.ts";
+import { parseArguments } from "../../../olt/scripts/src/cli/arguments.ts";
+import { mindWakeCommand } from "../../../olt/scripts/src/cli/commands/mind-wake.ts";
 import {
   buildWakeBrief,
   deriveLane,
   formatDuration,
   formatNumber,
   formatShortSha,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/brief.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/brief.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 
 const roots: string[] = [];
 

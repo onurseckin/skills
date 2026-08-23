@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderValidationRound } from "../../../orchestrating-long-tasks/scripts/src/packets/render-validation-round.ts";
+import { renderValidationRound } from "../../../olt/scripts/src/packets/render-validation-round.ts";
 
 describe("renderValidationRound fencing edge cases", () => {
   test("widens the code fence so it never collides with backticks already in the content", () => {

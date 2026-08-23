@@ -11,10 +11,10 @@ import {
   isSubagentRole,
   isValidatorRole,
   summarizeBehavioralHealth,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/behavioral-auditor.ts";
-import { runDoctor } from "../../../orchestrating-long-tasks/scripts/src/reporting/doctor.ts";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+} from "../../../olt/scripts/src/reporting/behavioral-auditor.ts";
+import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
 
 const roots: string[] = [];
 afterEach(async () =>

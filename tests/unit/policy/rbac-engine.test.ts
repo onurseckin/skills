@@ -3,9 +3,9 @@ import {
   compileEffectiveForbiddenPatterns,
   isUntargetedTestCommand,
   verifyCommandAuthorization,
-} from "../../../orchestrating-long-tasks/scripts/src/policy/rbac-engine.ts";
-import type { RepoPolicy } from "../../../orchestrating-long-tasks/scripts/src/policy/repo-policy.ts";
-import type { AgentMetadata } from "../../../orchestrating-long-tasks/scripts/src/runtime/agent-metadata.ts";
+} from "../../../olt/scripts/src/policy/rbac-engine.ts";
+import type { RepoPolicy } from "../../../olt/scripts/src/policy/repo-policy.ts";
+import type { AgentMetadata } from "../../../olt/scripts/src/runtime/agent-metadata.ts";
 
 describe("RBAC Engine & Hybrid Deny-List", () => {
   const samplePolicy: RepoPolicy = {

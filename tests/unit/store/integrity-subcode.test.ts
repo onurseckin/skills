@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { IntegrityIssue } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { canonicalJsonBytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
-import { issue } from "../../../orchestrating-long-tasks/scripts/src/store/issues.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+import type { IntegrityIssue } from "../../../olt/scripts/src/contracts/capsule.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/store/integrity.ts";
+import { issue } from "../../../olt/scripts/src/store/issues.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function freshRun(label: string): string {

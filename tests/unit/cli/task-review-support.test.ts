@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { attachGateResult } from "../../../orchestrating-long-tasks/scripts/src/workflow/gates/attach-result.ts";
-import { finalizePassingTask } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-review-support.ts";
+import { attachGateResult } from "../../../olt/scripts/src/workflow/gates/attach-result.ts";
+import { finalizePassingTask } from "../../../olt/scripts/src/cli/commands/task-review-support.ts";
 import { at, commandRecord, TestPort, workflowState } from "../workflow/test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");

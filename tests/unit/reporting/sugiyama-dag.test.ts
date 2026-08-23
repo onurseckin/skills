@@ -14,8 +14,8 @@ import {
   type SugiyamaEdge,
   type SugiyamaLayer,
   type SugiyamaNode,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/sugiyama-dag.ts";
-import { executeDagRenderCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/dag.ts";
+} from "../../../olt/scripts/src/reporting/sugiyama-dag.ts";
+import { executeDagRenderCommand } from "../../../olt/scripts/src/cli/commands/dag.ts";
 
 describe("Sugiyama DAG Renderer & Diagnostics (p24, p25, p26)", () => {
   describe("Status badges and glyphs", () => {

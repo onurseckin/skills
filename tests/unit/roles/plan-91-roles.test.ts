@@ -13,18 +13,15 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import {
-  AGENT_ROLES,
-  type AgentRole,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
+import { AGENT_ROLES, type AgentRole } from "../../../olt/scripts/src/contracts/packets.ts";
 import {
   loadRoleContract,
   resolveRoleContractPath,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
+} from "../../../olt/scripts/src/packets/role-contract.ts";
 
 describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", () => {
   const repoRoot = resolve(".");
-  const rolesDir = resolve(repoRoot, "orchestrating-long-tasks/roles");
+  const rolesDir = resolve(repoRoot, "olt/roles");
 
   describe("1. 10-Step Deep-Thinking Planning Checklist in roles/orchestrator.md", () => {
     it("contains all 10 deep-thinking planning steps in roles/orchestrator.md", () => {
@@ -138,7 +135,7 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
     });
 
     it("verifies SKILL.md includes hard rules 37, 38, and 39", () => {
-      const skillPath = resolve(repoRoot, "orchestrating-long-tasks/SKILL.md");
+      const skillPath = resolve(repoRoot, "olt/SKILL.md");
       const content = readFileSync(skillPath, "utf-8");
 
       expect(content).toContain("37. Elastic Dynamic Hierarchy Scaling");
@@ -150,11 +147,11 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
   describe("5. Static Invariant Verification: 0 any & 0 Suppressions", () => {
     it("proves 0 TypeScript any and 0 compiler/linter suppressions in touched modules", () => {
       const targetModules = [
-        "orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts",
-        "orchestrating-long-tasks/scripts/src/graph/parallel-decoupler.ts",
-        "orchestrating-long-tasks/scripts/src/graph/topology.ts",
-        "orchestrating-long-tasks/scripts/src/packets/role-contract.ts",
-        "orchestrating-long-tasks/scripts/src/cli/commands/task-check.ts",
+        "olt/scripts/src/mind/smart-task-manager.ts",
+        "olt/scripts/src/graph/parallel-decoupler.ts",
+        "olt/scripts/src/graph/topology.ts",
+        "olt/scripts/src/packets/role-contract.ts",
+        "olt/scripts/src/cli/commands/task-check.ts",
       ];
 
       for (const mod of targetModules) {

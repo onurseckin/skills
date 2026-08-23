@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { readAgentLedger } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/ledger.ts";
-import { taskLineage } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/lineage.ts";
+import { loadRun } from "../../../olt/scripts/src/store/index.ts";
+import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
+import { taskLineage } from "../../../olt/scripts/src/workflow/agents/lineage.ts";
 import { legacyPreLedgerCapsule } from "../../support/legacy-capsule-fixture.ts";
 
 describe("agent ledger compatibility", () => {

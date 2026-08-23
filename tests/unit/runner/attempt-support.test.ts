@@ -8,7 +8,7 @@ import {
   raceWithTimeout,
   settleBounded,
   settleTrackerBeforeOutcome,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-support.ts";
+} from "../../../olt/scripts/src/runner/attempt-support.ts";
 
 const roots: string[] = [];
 

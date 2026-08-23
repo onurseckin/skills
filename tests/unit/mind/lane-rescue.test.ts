@@ -3,12 +3,12 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
-import { executeRescueLane } from "../../../orchestrating-long-tasks/scripts/src/mind/lanes/rescue.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
-import type { WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/contracts/agents.ts";
+import { executeRescueLane } from "../../../olt/scripts/src/mind/lanes/rescue.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 const roots: string[] = [];
 

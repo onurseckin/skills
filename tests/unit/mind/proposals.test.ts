@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   assertRoleMayDecideProposal,
   checkProposalRateLimits,
@@ -18,11 +18,11 @@ import {
   isProposalGranted,
   PROPOSAL_WITNESS_OWNER_DECISION,
   recordProposal,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/proposal.ts";
-import { assertRoleMayInvoke } from "../../../orchestrating-long-tasks/scripts/src/packets/command-authority.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/proposal.ts";
+import { assertRoleMayInvoke } from "../../../olt/scripts/src/packets/command-authority.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 
 const roots: string[] = [];
 

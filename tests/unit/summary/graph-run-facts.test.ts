@@ -5,8 +5,8 @@ import { join } from "node:path";
 import {
   buildRunFacts,
   type RunFactsInput,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/graph-run-facts.ts";
-import type { WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/summary/graph-run-facts.ts";
+import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { makeEvent, makeState, makeTask } from "./graph-fixtures.ts";
 
 const roots: string[] = [];

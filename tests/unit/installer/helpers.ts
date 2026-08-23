@@ -11,14 +11,11 @@ export async function installerFixture() {
   const home = join(root, "home");
   await mkdir(join(source, "scripts", "src", "config"), { recursive: true });
   await mkdir(home);
-  await writeFile(
-    join(source, "SKILL.md"),
-    "---\nname: orchestrating-long-tasks\ndescription: test\n---\n",
-  );
+  await writeFile(join(source, "SKILL.md"), "---\nname: olt\ndescription: test\n---\n");
   await writeFile(join(source, "scripts", "harness.ts"), "console.log('ok')\n", { mode: 0o755 });
   await writeFile(
     join(source, "scripts", "package.json"),
-    JSON.stringify({ name: "@local/orchestrating-long-tasks-runtime", private: true }),
+    JSON.stringify({ name: "@local/olt-runtime", private: true }),
   );
   await writeFile(
     join(source, "scripts", "src", "config", "constants.ts"),

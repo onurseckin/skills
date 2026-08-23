@@ -1,11 +1,11 @@
 import { expect } from "bun:test";
-import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { nextActions } from "../../../orchestrating-long-tasks/scripts/src/reporting/next-actions.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/contracts/agents.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import { nextActions } from "../../../olt/scripts/src/reporting/next-actions.ts";
 import { dispatchFailures } from "./dispatchable.ts";
 
 export const RUN = "/repo/.capsules/run";
-export const ENTRYPOINT = "/skill/orchestrating-long-tasks/scripts/harness.ts";
+export const ENTRYPOINT = "/skill/olt/scripts/harness.ts";
 
 const HELD = new Set(["leased", "running"]);
 

@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { inspectRepositoryGitIdentity } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-identity.ts";
-import type { RepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
+import { inspectRepositoryGitIdentity } from "../../../olt/scripts/src/packets/repository-git-identity.ts";
+import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
 
 function fixtureRepo(prefix: string): { repo: string; gitDir: string } {
   const repo = realpathSync(mkdtempSync(join(tmpdir(), prefix)));

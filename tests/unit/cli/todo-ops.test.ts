@@ -12,14 +12,14 @@ import {
   todoDrainCommand,
   todoListCommand,
   todoSealCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/todo-ops.ts";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+} from "../../../olt/scripts/src/cli/commands/todo-ops.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   readFeedbackQueue,
   writeFeedbackQueue,
   type FeedbackItem,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
-import { readCompletedTasksLedger } from "../../../orchestrating-long-tasks/scripts/src/mind/completed-tasks.ts";
+} from "../../../olt/scripts/src/mind/feedback-queue.ts";
+import { readCompletedTasksLedger } from "../../../olt/scripts/src/mind/completed-tasks.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("CLI todo-ops and mind:queue commands", () => {
@@ -706,8 +706,8 @@ describe("CLI todo-ops and mind:queue commands", () => {
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   it("verifies CLI todo-ops test files contain zero any and zero suppressions", () => {
     const filesToAudit = [
-      join(process.cwd(), "orchestrating-long-tasks/scripts/src/cli/commands/todo-ops.ts"),
-      join(process.cwd(), "orchestrating-long-tasks/scripts/src/cli/registry/todo.ts"),
+      join(process.cwd(), "olt/scripts/src/cli/commands/todo-ops.ts"),
+      join(process.cwd(), "olt/scripts/src/cli/registry/todo.ts"),
       join(process.cwd(), "tests/unit/cli/todo-ops.test.ts"),
     ];
 

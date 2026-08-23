@@ -3,11 +3,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const REPO_ROOT = process.cwd();
-const ROLES_DIR = join(REPO_ROOT, "orchestrating-long-tasks", "roles");
-const AGENTS_DIR = join(REPO_ROOT, "orchestrating-long-tasks", "agents");
-const SKILL_MD_PATH = join(REPO_ROOT, "orchestrating-long-tasks", "SKILL.md");
+const ROLES_DIR = join(REPO_ROOT, "olt", "roles");
+const AGENTS_DIR = join(REPO_ROOT, "olt", "agents");
+const SKILL_MD_PATH = join(REPO_ROOT, "olt", "SKILL.md");
 const AGENTS_MD_PATH = join(REPO_ROOT, "AGENTS.md");
-const SKILL_AGENTS_MD_PATH = join(REPO_ROOT, "orchestrating-long-tasks", "AGENTS.md");
+const SKILL_AGENTS_MD_PATH = join(REPO_ROOT, "olt", "AGENTS.md");
 
 describe("Canonical Codification & Global Documentation Sync Test Suite", () => {
   describe("1. Target Files Existence & Baseline Integrity", () => {

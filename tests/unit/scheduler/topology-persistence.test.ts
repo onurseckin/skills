@@ -2,13 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readTopology } from "../../../orchestrating-long-tasks/scripts/src/contracts/topology.ts";
-import { recordTopology } from "../../../orchestrating-long-tasks/scripts/src/scheduler/index.ts";
-import {
-  initRun,
-  loadRun,
-  transact,
-} from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { readTopology } from "../../../olt/scripts/src/contracts/topology.ts";
+import { recordTopology } from "../../../olt/scripts/src/scheduler/index.ts";
+import { initRun, loadRun, transact } from "../../../olt/scripts/src/store/index.ts";
 import { queueCapsuleState } from "./fixtures.ts";
 import { legacyPreLedgerCapsule } from "../../support/legacy-capsule-fixture.ts";
 

@@ -17,7 +17,7 @@ import {
   createTestIsolationContext,
   runWithIsolation,
   type TestIsolationContext,
-} from "../../orchestrating-long-tasks/scripts/src/testing/isolation";
+} from "../../olt/scripts/src/testing/isolation";
 
 describe("Parallel Test Isolation Primitives", () => {
   describe("findRepoRoot", () => {
@@ -29,7 +29,7 @@ describe("Parallel Test Isolation Primitives", () => {
     });
 
     it("should resolve root starting from subdirectories", () => {
-      const subDir = join(findRepoRoot(), "orchestrating-long-tasks", "scripts");
+      const subDir = join(findRepoRoot(), "olt", "scripts");
       const root = findRepoRoot(subDir);
       expect(root).toBe(findRepoRoot());
     });

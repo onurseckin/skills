@@ -4,10 +4,7 @@ import { join } from "node:path";
 
 describe("Orchestrator YAML Specification Unit Tests", () => {
   it("verifies orchestrator.yaml exists and contains valid required schema fields", () => {
-    const yamlPath = join(
-      import.meta.dir,
-      "../../../orchestrating-long-tasks/agents/orchestrator.yaml",
-    );
+    const yamlPath = join(import.meta.dir, "../../../olt/agents/orchestrator.yaml");
     expect(existsSync(yamlPath)).toBe(true);
 
     const content = readFileSync(yamlPath, "utf-8");
@@ -23,9 +20,7 @@ describe("Orchestrator YAML Specification Unit Tests", () => {
     expect(content).toContain("background_watchdog_monitoring: true");
     expect(content).toContain("triad_floor_enforcement: true");
     expect(content).toContain("zero_main_thread_pollution: true");
-    expect(content).toContain(
-      'cli: "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts"',
-    );
+    expect(content).toContain('cli: "bun ~/.agents/skills/olt/scripts/harness.ts"');
     expect(content).toContain("round_started: true");
     expect(content).toContain("round_completed: true");
     expect(content).toContain("defect_synthesis_ready: true");

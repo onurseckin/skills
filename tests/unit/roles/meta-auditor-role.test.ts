@@ -8,15 +8,15 @@ import {
   parseYaml,
   type AgentManifest,
   type RoleContract,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/manifest-parser.ts";
+} from "../../../olt/scripts/src/authority/manifest-parser.ts";
 import {
   ROOT_CAUSE_CATEGORIES,
   FORENSICS_SEVERITIES,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/meta-auditor.ts";
+} from "../../../olt/scripts/src/mind/meta-auditor.ts";
 
 describe("Meta-Auditor Role & Agent Persona Test Suite", () => {
   const rootDir = resolve(import.meta.dir, "../../..");
-  const skillDir = join(rootDir, "orchestrating-long-tasks");
+  const skillDir = join(rootDir, "olt");
   const roleFilePath = join(skillDir, "roles", "meta-auditor.md");
   const agentUnderscoreYamlPath = join(skillDir, "agents", "meta_auditor.yaml");
   const agentHyphenYamlPath = join(skillDir, "agents", "meta-auditor.yaml");
@@ -315,9 +315,7 @@ describe("Meta-Auditor Role & Agent Persona Test Suite", () => {
           expect(parsedManifest.protocol).toBeDefined();
           expect(parsedManifest.protocol?.role_contract).toBe("roles/meta-auditor.md");
           expect(parsedManifest.protocol?.zero_json).toBe(true);
-          expect(parsedManifest.protocol?.cli).toBe(
-            "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts",
-          );
+          expect(parsedManifest.protocol?.cli).toBe("bun ~/.agents/skills/olt/scripts/harness.ts");
         });
 
         test("instructions and system_prompt contain complete behavioral forensics guidelines", () => {

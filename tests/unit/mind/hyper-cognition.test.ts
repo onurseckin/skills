@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
 import {
   COGNITIVE_AUDIT_DIMENSIONS,
   DEFAULT_DIMENSIONAL_WEIGHTS,
@@ -24,7 +24,7 @@ import {
   type HyperCognitionEngine,
   type HyperPulseInput,
   type SystemStateMetrics,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/hyper-cognition.ts";
+} from "../../../olt/scripts/src/mind/hyper-cognition.ts";
 
 describe("Hyper-Active Mind Cognition Engine", () => {
   describe("Constants, Matrix & Taxonomy", () => {

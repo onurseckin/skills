@@ -1,8 +1,8 @@
-import type { BranchRecord } from "../../../../orchestrating-long-tasks/scripts/src/contracts/branch.ts";
-import type { JsonObject } from "../../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import type { RunState } from "../../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import type { transact } from "../../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
-import { writeBranchLedger } from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/ledger.ts";
+import type { BranchRecord } from "../../../../olt/scripts/src/contracts/branch.ts";
+import type { JsonObject } from "../../../../olt/scripts/src/contracts/json.ts";
+import type { RunState } from "../../../../olt/scripts/src/contracts/capsule.ts";
+import type { transact } from "../../../../olt/scripts/src/store/transaction.ts";
+import { writeBranchLedger } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
 
 export const FAKE_RUN_ROOT = "fake-run-root";
 

@@ -5,7 +5,7 @@ import {
   validateCrossChannelConsistency,
   type ScreenshotMetadata,
   type VisualMetricsReport,
-} from "../../../orchestrating-long-tasks/scripts/src/validation/dual-channel-analyzer.ts";
+} from "../../../olt/scripts/src/validation/dual-channel-analyzer.ts";
 
 describe("Dual-Channel Visual Analyzer", () => {
   describe("UI Scope Detection (isUiScope)", () => {

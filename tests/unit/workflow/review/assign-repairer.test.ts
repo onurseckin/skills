@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { assignReplacementRepairer } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/assign-repairer.ts";
+import { assignReplacementRepairer } from "../../../../olt/scripts/src/workflow/review/assign-repairer.ts";
 import { TestPort, workflowState } from "../test-port.ts";
 
 function portWithChangesRequestedTask(overrides: Record<string, unknown> = {}): TestPort {

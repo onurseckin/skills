@@ -2,11 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { publishPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/persist-packet.ts";
-import { createPacketBundle } from "../../../orchestrating-long-tasks/scripts/src/packets/packet-bundle.ts";
-import type { BuiltPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/types.ts";
+import { publishPacket } from "../../../olt/scripts/src/packets/persist-packet.ts";
+import { createPacketBundle } from "../../../olt/scripts/src/packets/packet-bundle.ts";
+import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
 import { TestPort, workflowState, repositoryBinding } from "../workflow/test-port.ts";
-import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 
 function createPacket(
   role: string,

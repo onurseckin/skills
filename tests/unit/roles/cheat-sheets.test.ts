@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { roleCheatSheetCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/role-cheat-sheet.ts";
+import { roleCheatSheetCommand } from "../../../olt/scripts/src/cli/commands/role-cheat-sheet.ts";
 import {
   generateRoleCheatSheet,
   listAvailableRoles,
   parseRoleContract,
   renderAsciiRoleTable,
   type RoleSummary,
-} from "../../../orchestrating-long-tasks/scripts/src/roles/cheat-sheets.ts";
+} from "../../../olt/scripts/src/roles/cheat-sheets.ts";
 
 const SAMPLE_CONTRACT = `---
 role: implementer

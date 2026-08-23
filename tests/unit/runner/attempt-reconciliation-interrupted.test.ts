@@ -2,22 +2,19 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { RepositoryBinding } from "../../../orchestrating-long-tasks/scripts/src/contracts/repository.ts";
-import { atomicWriteJson } from "../../../orchestrating-long-tasks/scripts/src/core/durable-write.ts";
-import {
-  readBoundedBytes,
-  sha256Bytes,
-} from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
-import { recoverAggregateFromAttempts } from "../../../orchestrating-long-tasks/scripts/src/integration/reconcile-command-attempts.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/contracts/repository.ts";
+import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
+import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { recoverAggregateFromAttempts } from "../../../olt/scripts/src/integration/reconcile-command-attempts.ts";
 import {
   startAttemptIntent,
   strongAttemptTerminalProof,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-intent.ts";
-import { createInternalCommandRunner } from "../../../orchestrating-long-tasks/scripts/src/runner/internal-command-runner.ts";
-import { createCommandSigningCapability } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-disposition-capability.ts";
-import { OWNERSHIP_ENV } from "../../../orchestrating-long-tasks/scripts/src/runner/pipe-ownership.ts";
-import type { ProcessIdentity } from "../../../orchestrating-long-tasks/scripts/src/runner/process-identity.ts";
-import type { PreparedCommand } from "../../../orchestrating-long-tasks/scripts/src/runner/types.ts";
+} from "../../../olt/scripts/src/runner/attempt-intent.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/runner/attempt-disposition-capability.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/runner/pipe-ownership.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/runner/process-identity.ts";
+import type { PreparedCommand } from "../../../olt/scripts/src/runner/types.ts";
 
 const roots: string[] = [];
 const identity: ProcessIdentity = { pid: 4242, parent: 100, group: 4242, birth: "birth-1" };

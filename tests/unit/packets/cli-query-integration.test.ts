@@ -2,18 +2,18 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { whoamiCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/whoami.ts";
-import { dagViewCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/dag-view.ts";
+import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
+import { dagViewCommand } from "../../../olt/scripts/src/cli/commands/dag-view.ts";
 import {
   findingGetCommand,
   reportGetCommand,
   evidenceGetCommand,
   evidenceScreenshotsCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/inspection-ops.ts";
-import { findCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
-import { assertRoleMayInvoke } from "../../../orchestrating-long-tasks/scripts/src/packets/command-authority.ts";
-import { loadRoleContract } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+} from "../../../olt/scripts/src/cli/commands/inspection-ops.ts";
+import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+import { assertRoleMayInvoke } from "../../../olt/scripts/src/packets/command-authority.ts";
+import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

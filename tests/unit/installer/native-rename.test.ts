@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   exchangePaths,
   renameNoReplace,
-} from "../../../orchestrating-long-tasks/scripts/src/installer/native-rename.ts";
+} from "../../../olt/scripts/src/installer/native-rename.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("renameNoReplace", () => {

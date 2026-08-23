@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   taskClaimCommand,
   taskSubmitCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-claim.ts";
+} from "../../../olt/scripts/src/cli/commands/task-claim.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { TASK_ID, claimSubmitValidate, setupRun } from "./probe-fixture.ts";
 

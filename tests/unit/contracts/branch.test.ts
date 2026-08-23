@@ -7,7 +7,7 @@ import {
   type BranchRecord,
   type BranchRepositoryObservation,
   type BranchSubTask,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/branch.ts";
+} from "../../../olt/scripts/src/contracts/branch.ts";
 
 function subTask(overrides: Partial<BranchSubTask> = {}): BranchSubTask {
   return {

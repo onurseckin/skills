@@ -4,7 +4,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
-const scriptsRoot = join(repoRoot, "orchestrating-long-tasks/scripts");
+const scriptsRoot = join(repoRoot, "olt/scripts");
 const testsRoot = join(repoRoot, "tests");
 
 /**

@@ -11,9 +11,9 @@ import {
   renderAsciiEventStreamTable,
   resolveCapsulePath,
   type FetchLike,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/event-stream.ts";
-import { streamEventsCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/stream-events.ts";
-import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
+} from "../../../olt/scripts/src/reporting/event-stream.ts";
+import { streamEventsCommand } from "../../../olt/scripts/src/cli/commands/stream-events.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
 
 function createMockCapsule(events: readonly Record<string, unknown>[]): {
   dir: string;

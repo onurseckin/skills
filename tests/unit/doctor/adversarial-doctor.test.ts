@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   assertDoctorCertification,
   certifyHarnessDoctor,
@@ -16,7 +16,7 @@ import {
   type DoctorCertificationReport,
   type HarnessHealthCheck,
   type MutationKind,
-} from "../../../orchestrating-long-tasks/scripts/src/doctor/adversarial-doctor.ts";
+} from "../../../olt/scripts/src/doctor/adversarial-doctor.ts";
 
 const tempDirs: string[] = [];
 afterEach(async () => {
@@ -369,10 +369,7 @@ describe("Adversarial Doctor & Counterfactual Certification", () => {
 
   describe("Static Invariants: Zero Any & Zero Compiler Suppressions", () => {
     test("adversarial-doctor.ts contains zero any and zero suppressions", () => {
-      const srcPath = join(
-        process.cwd(),
-        "orchestrating-long-tasks/scripts/src/doctor/adversarial-doctor.ts",
-      );
+      const srcPath = join(process.cwd(), "olt/scripts/src/doctor/adversarial-doctor.ts");
 
       const srcContent = readFileSync(srcPath, "utf-8");
 

@@ -2,13 +2,10 @@ import { describe, expect, test } from "bun:test";
 import {
   commitSubphase,
   recordWorktreeCommit,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/commit.ts";
-import { readWorktreeLedger } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/ledger.ts";
-import type {
-  GitResult,
-  GitRunner,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
-import type { WorktreeCommitRecord } from "../../../../orchestrating-long-tasks/scripts/src/contracts/worktree.ts";
+} from "../../../../olt/scripts/src/workflow/worktree/commit.ts";
+import { readWorktreeLedger } from "../../../../olt/scripts/src/workflow/worktree/ledger.ts";
+import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
+import type { WorktreeCommitRecord } from "../../../../olt/scripts/src/contracts/worktree.ts";
 import { FakeRunStore, baseLedger, seedLedger, seedTask } from "./fake-transact.ts";
 
 type Call = { cwd: string; argv: readonly string[] };

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { evidenceSchema } from "../../../orchestrating-long-tasks/scripts/src/packets/evidence-schema.ts";
+import { evidenceSchema } from "../../../olt/scripts/src/packets/evidence-schema.ts";
 
 const gateEvidence = {
   assurance: "trusted_host_observed_v1",

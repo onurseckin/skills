@@ -8,17 +8,10 @@ import {
   MANIFEST_SCHEMA,
   renderManifestJson,
   renderManifestMarkdown,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/manifest.ts";
-import { COMMAND_REGISTRY } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
+} from "../../../olt/scripts/src/cli/manifest.ts";
+import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
 
-const references = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "..",
-  "orchestrating-long-tasks",
-  "references",
-);
+const references = join(import.meta.dir, "..", "..", "..", "olt", "references");
 
 describe("CLI capability manifest", () => {
   test("checked-in markdown matches the registry render", () => {

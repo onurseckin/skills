@@ -3,8 +3,8 @@ import { statSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { loadRun } from "../../../olt/scripts/src/store/index.ts";
 import {
   LEGACY_PRE_LEDGER_RUN_ID,
   legacyPreLedgerCapsule,

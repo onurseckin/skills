@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   recordAuthorityDecision,
   requirementExecutionState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/authority/index.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
+} from "../../../olt/scripts/src/workflow/authority/index.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "./test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");

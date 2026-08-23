@@ -3,7 +3,7 @@ import {
   commandOutputRetryingEmpty,
   repositoryWorktree,
   type RepositoryGitCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
+} from "../../../olt/scripts/src/packets/repository-git-command.ts";
 
 describe("commandOutputRetryingEmpty", () => {
   test("retries a successful-but-empty result and returns the first non-empty output", () => {

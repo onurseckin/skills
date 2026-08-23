@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { readAgentLedgerView } from "../../../orchestrating-long-tasks/scripts/src/summary/agent-telemetry.ts";
-import { AssetRegistry } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-asset-ownership.ts";
-import { buildGateNode } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator-gate-helpers.ts";
-import { mapGateStatus } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-node-context.ts";
-import { prepareTaskContext } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-task-preparation.ts";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import { readAgentLedgerView } from "../../../olt/scripts/src/summary/agent-telemetry.ts";
+import { AssetRegistry } from "../../../olt/scripts/src/summary/graph-asset-ownership.ts";
+import { buildGateNode } from "../../../olt/scripts/src/summary/graph-generator-gate-helpers.ts";
+import { mapGateStatus } from "../../../olt/scripts/src/summary/graph-node-context.ts";
+import { prepareTaskContext } from "../../../olt/scripts/src/summary/graph-task-preparation.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { makeTask } from "./graph-fixtures.ts";
 
 function contextFor(task: TaskRecord) {

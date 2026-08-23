@@ -1,8 +1,8 @@
 import {
   atomicReleaseCopy,
   type ReleaseCopyOptions,
-} from "../../../../orchestrating-long-tasks/scripts/src/installer/release-copy.ts";
-import { markerPath } from "../../../../orchestrating-long-tasks/scripts/src/installer/transaction-marker.ts";
+} from "../../../../olt/scripts/src/installer/release-copy.ts";
+import { markerPath } from "../../../../olt/scripts/src/installer/transaction-marker.ts";
 import { readFile, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 

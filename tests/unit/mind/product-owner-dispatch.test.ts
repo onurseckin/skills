@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   admitAndDispatchFeedbackAtomically,
   admitFeedbackToQueue,
@@ -14,7 +14,7 @@ import {
   reconcilePausedAdmittedFeedbacks,
   writeFeedbackQueue,
   type FeedbackItem,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import {
   assertAntiBatchingRule,
   executeAtomicAdmissionToDispatch,
@@ -34,13 +34,13 @@ import {
   type MultiOrchestratorPrePlanningResult,
   type ProductOwnerIntakeItem,
   type SmartTaskPlan,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts";
+} from "../../../olt/scripts/src/mind/smart-task-manager.ts";
 import {
   clearTaskQueue,
   enqueueTasksBatch,
   getQueueStats,
   readTaskQueue,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/task-queue.ts";
+} from "../../../olt/scripts/src/mind/task-queue.ts";
 
 describe("Mind Product Owner Mode & Atomic Dispatch Chaining Test Suite", () => {
   const testRoot = join(
@@ -724,8 +724,8 @@ describe("Mind Product Owner Mode & Atomic Dispatch Chaining Test Suite", () => 
   describe("4. Static Invariant Verification: 0 any & 0 Suppressions", () => {
     it("proves 0 TypeScript any and 0 compiler/linter suppressions across all target files", () => {
       const filesToCheck = [
-        "orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts",
-        "orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts",
+        "olt/scripts/src/mind/smart-task-manager.ts",
+        "olt/scripts/src/mind/feedback-queue.ts",
         "tests/unit/mind/product-owner-dispatch.test.ts",
       ];
 

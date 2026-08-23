@@ -2,13 +2,13 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createCommandSigningCapability } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-disposition-capability.ts";
-import { OWNERSHIP_ENV } from "../../../orchestrating-long-tasks/scripts/src/runner/pipe-ownership.ts";
-import { runAttempt } from "../../../orchestrating-long-tasks/scripts/src/runner/run-attempt.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/runner/attempt-disposition-capability.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/runner/pipe-ownership.ts";
+import { runAttempt } from "../../../olt/scripts/src/runner/run-attempt.ts";
 import type {
   BunSpawnApi,
   NormalizedCommandOptions,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/types.ts";
+} from "../../../olt/scripts/src/runner/types.ts";
 
 // These drive the real `runAttempt` orchestration end to end through the `spawnApi` injection
 // seam rather than the global `Bun.spawn`: the returned pid never corresponds to a real OS

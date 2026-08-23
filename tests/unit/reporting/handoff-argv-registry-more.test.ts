@@ -4,10 +4,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { RunState } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import { findCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
-import { renderHandoff } from "../../../orchestrating-long-tasks/scripts/src/reporting/handoff.ts";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import type { RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
+import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+import { renderHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
 import { commandRecord } from "../workflow/test-port.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
 import { STATUSES } from "./handoff-statuses.ts";
@@ -21,9 +21,7 @@ import {
   sharedRoots,
 } from "./handoff-argv-registry.test.ts";
 
-const REPORTING = fileURLToPath(
-  new URL("../../../orchestrating-long-tasks/scripts/src/reporting/", import.meta.url),
-);
+const REPORTING = fileURLToPath(new URL("../../../olt/scripts/src/reporting/", import.meta.url));
 
 /** `registryArgv(entrypoint, "task:claim"` — the command name written into the call itself. */
 const LITERAL_INVOCATION = /registryArgv\(\s*[A-Za-z_$][\w$]*\s*,\s*"([^"]+)"/g;
@@ -126,9 +124,7 @@ describe("every argv line the rendered document prints", () => {
   });
 
   test("names an entrypoint that is on disk, on both renderers", async () => {
-    const harness = fileURLToPath(
-      new URL("../../../orchestrating-long-tasks/scripts/harness.ts", import.meta.url),
-    );
+    const harness = fileURLToPath(new URL("../../../olt/scripts/harness.ts", import.meta.url));
     const documents = [
       renderHandoff(await capsule("entrypoint", "ready")),
       renderHandoff(await preplanCapsule("entrypoint")),

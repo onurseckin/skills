@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   agentBriefCommand,
   taskBriefCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-brief.ts";
+} from "../../../olt/scripts/src/cli/commands/task-brief.ts";
 import {
   formatTaskBrief,
   formatTaskClaimBrief,
   formatValidationStartBrief,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/task-formatter.ts";
-import { formatAgentBrief } from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/agent-formatter.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/cli/formatters/task-formatter.ts";
+import { formatAgentBrief } from "../../../olt/scripts/src/cli/formatters/agent-formatter.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "./probe-fixture.ts";
 

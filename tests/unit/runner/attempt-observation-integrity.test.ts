@@ -2,10 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { RepositoryBinding } from "../../../orchestrating-long-tasks/scripts/src/contracts/repository.ts";
-import { createInternalCommandRunner } from "../../../orchestrating-long-tasks/scripts/src/runner/internal-command-runner.ts";
-import { embeddedCommandIssues } from "../../../orchestrating-long-tasks/scripts/src/runner/command-shape.ts";
-import type { AttemptResult } from "../../../orchestrating-long-tasks/scripts/src/runner/types.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/contracts/repository.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/runner/command-shape.ts";
+import type { AttemptResult } from "../../../olt/scripts/src/runner/types.ts";
 
 const roots: string[] = [];
 const digest = (marker: string): string => marker.repeat(64);

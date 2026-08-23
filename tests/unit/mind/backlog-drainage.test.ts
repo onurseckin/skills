@@ -7,13 +7,13 @@ import {
   scanCharterGaps,
   scanCodeQuality,
   scanTestCoverage,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts";
+} from "../../../olt/scripts/src/mind/smart-task-manager.ts";
 import {
   readFeedbackQueue,
   writeFeedbackQueue,
   type FeedbackItem,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
-import { readCompletedTasksLedger } from "../../../orchestrating-long-tasks/scripts/src/mind/completed-tasks.ts";
+} from "../../../olt/scripts/src/mind/feedback-queue.ts";
+import { readCompletedTasksLedger } from "../../../olt/scripts/src/mind/completed-tasks.ts";
 
 describe("Mind Backlog Drainage & Autonomous Creative Overload", () => {
   const tmpDir = join(process.cwd(), ".tmp", "test-backlog-drainage");

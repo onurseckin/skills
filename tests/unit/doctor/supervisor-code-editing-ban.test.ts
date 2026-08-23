@@ -4,12 +4,12 @@ import {
   auditOrchestratorConfinement,
   assertSupervisorRoleConfinement,
   type TierConfinementFinding,
-} from "../../../orchestrating-long-tasks/scripts/src/doctor/tier-confinement.ts";
-import { whoamiCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/whoami.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
-import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/doctor/tier-confinement.ts";
+import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/contracts/agents.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Mechanical Supervisor Code-Editing Ban & Doctor Enforcement (p46)", () => {
   test("auditOrchestratorConfinement flags critical finding when Orchestrator uses write tools", () => {

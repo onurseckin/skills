@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { LiveBlunderDeduplicator } from "../../../orchestrating-long-tasks/scripts/src/blunders/live-dedup.ts";
+import { LiveBlunderDeduplicator } from "../../../olt/scripts/src/blunders/live-dedup.ts";
 
 describe("LiveBlunderDeduplicator Engine", () => {
   test("tracks and aggregates live blunders synchronously", () => {

@@ -1,8 +1,5 @@
-import type { JsonObject } from "../../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import type {
-  ScopedLease,
-  TaskRecord,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type { JsonObject } from "../../../../olt/scripts/src/contracts/json.ts";
+import type { ScopedLease, TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
 
 export function scopedLease(overrides: Partial<ScopedLease> = {}): ScopedLease {
   return {

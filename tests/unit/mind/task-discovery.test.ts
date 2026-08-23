@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   appendFeedbackItem,
   readFeedbackQueue,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import {
   findSourceDefinition,
   getSourceDefinition,
@@ -14,7 +14,7 @@ import {
   mapSourceIdToDiscoveryCategory,
   MIND_DISCOVERY_SOURCES,
   validateQuiescentSources,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/sources.ts";
+} from "../../../olt/scripts/src/mind/sources.ts";
 import {
   discoverTasks,
   formatTaskDiscoveryBrief,
@@ -27,12 +27,12 @@ import {
   scanTestCoverage,
   synthesizeTaskFromDiscovery,
   type DiscoveryItem,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/task-discovery.ts";
+} from "../../../olt/scripts/src/mind/task-discovery.ts";
 import {
   clearTaskQueue,
   enqueueTask,
   readTaskQueue,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/task-queue.ts";
+} from "../../../olt/scripts/src/mind/task-queue.ts";
 
 describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Validation Loops", () => {
   const testDir = join(process.cwd(), ".tmp-test-task-discovery-" + Date.now().toString());
@@ -512,8 +512,8 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
   describe("10. Static Invariant Verification (0 any, 0 suppressions)", () => {
     it("proves 0 TypeScript any and 0 compiler/linter suppressions across write scope files", () => {
       const writeScopeFiles = [
-        join(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/task-discovery.ts"),
-        join(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/sources.ts"),
+        join(process.cwd(), "olt/scripts/src/mind/task-discovery.ts"),
+        join(process.cwd(), "olt/scripts/src/mind/sources.ts"),
         join(process.cwd(), "tests/unit/mind/task-discovery.test.ts"),
       ];
 

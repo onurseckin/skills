@@ -14,7 +14,7 @@ import {
   TIER_NAMES,
   validateTierSpawning,
   type ExecutionTier,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/thread-identifier.ts";
+} from "../../../olt/scripts/src/authority/thread-identifier.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Thread Identifier - 4-Tier Authority & Spawning Rules", () => {
@@ -318,10 +318,7 @@ describe("Thread Identifier - 4-Tier Authority & Spawning Rules", () => {
 describe("Thread Identifier - Invariants & Cleanliness Audit", () => {
   test("zero TypeScript any and zero suppressions across thread-identifier files", () => {
     const sourceFiles = [
-      join(
-        __dirname,
-        "../../../orchestrating-long-tasks/scripts/src/authority/thread-identifier.ts",
-      ),
+      join(__dirname, "../../../olt/scripts/src/authority/thread-identifier.ts"),
       __filename,
     ];
 

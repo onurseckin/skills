@@ -12,7 +12,7 @@ import {
   extractSymbolsFromSource,
   findAnchorByPattern,
   formatExactAnchorBriefingMarkdown,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/briefing-builder.ts";
+} from "../../../olt/scripts/src/mind/briefing-builder.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {
@@ -521,9 +521,7 @@ ${longBody}
     });
 
     it("locates matching unit test file for non-test target source files", () => {
-      const cmds = deriveRecommendedTestCommands([
-        "orchestrating-long-tasks/scripts/src/mind/briefing-builder.ts",
-      ]);
+      const cmds = deriveRecommendedTestCommands(["olt/scripts/src/mind/briefing-builder.ts"]);
       expect(cmds).toContain("bun test tests/unit/mind/briefing-builder.test.ts");
       expect(cmds).toContain("bun run typecheck");
       expect(cmds).toContain("bun run lint");
@@ -621,7 +619,7 @@ ${longBody}
         "3. **Zero 'any' / Zero Suppressions**: 0 `any` annotations, 0 `@ts-ignore`, 0 `@ts-expect-error`, 0 `eslint-disable`.",
       );
       expect(markdown).toContain(
-        '4. **Task Submission**: Submit completed task via `bun ./orchestrating-long-tasks/scripts/harness.ts task:submit --run <run> --task task-01-calc --agent <agent> --token <token> --summary "<summary>"`.',
+        '4. **Task Submission**: Submit completed task via `bun ./olt/scripts/harness.ts task:submit --run <run> --task task-01-calc --agent <agent> --token <token> --summary "<summary>"`.',
       );
     });
 
@@ -654,19 +652,15 @@ ${longBody}
       const briefing = buildExactAnchorBriefing({
         taskId: "task-test-briefing-builder",
         label: "Unit test suite for briefing-builder",
-        writeScope: ["orchestrating-long-tasks/scripts/src/mind/briefing-builder.ts"],
+        writeScope: ["olt/scripts/src/mind/briefing-builder.ts"],
         targetSymbols: ["extractSymbolsFromSource", "buildExactAnchorBriefing"],
       });
 
       expect(briefing.taskId).toBe("task-test-briefing-builder");
       expect(briefing.label).toBe("Unit test suite for briefing-builder");
       expect(briefing.waitMsMandate).toBe(10000);
-      expect(briefing.writeScope).toEqual([
-        "orchestrating-long-tasks/scripts/src/mind/briefing-builder.ts",
-      ]);
-      expect(briefing.targetFiles).toEqual([
-        "orchestrating-long-tasks/scripts/src/mind/briefing-builder.ts",
-      ]);
+      expect(briefing.writeScope).toEqual(["olt/scripts/src/mind/briefing-builder.ts"]);
+      expect(briefing.targetFiles).toEqual(["olt/scripts/src/mind/briefing-builder.ts"]);
 
       // Anchors & symbols
       expect(briefing.anchors.length).toBeGreaterThanOrEqual(2);
@@ -681,7 +675,7 @@ ${longBody}
       // Default acceptance criteria check
       expect(briefing.acceptanceCriteria).toEqual([
         "Strict type safety: 0 'any' types, 0 compiler suppressions (@ts-ignore, @ts-expect-error, eslint-disable).",
-        "Strict disjoint write scope: Only modify files in assigned write scope (orchestrating-long-tasks/scripts/src/mind/briefing-builder.ts).",
+        "Strict disjoint write scope: Only modify files in assigned write scope (olt/scripts/src/mind/briefing-builder.ts).",
         "All verification commands pass cleanly with exit code 0.",
         "Mandate WaitMsBeforeAsync: 10000 on all run_command invocations.",
       ]);

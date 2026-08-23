@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { cp, mkdir, realpath, symlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import { clientLinkPaths } from "../../../orchestrating-long-tasks/scripts/src/installer/client-links.ts";
-import { SKILL_NAME } from "../../../orchestrating-long-tasks/scripts/src/installer/constants.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { clientLinkPaths } from "../../../olt/scripts/src/installer/client-links.ts";
+import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
 import {
   assertInstalledRuntimeFresh,
   freshnessFindings,
   installedRuntimeFreshness,
   type RuntimeFreshnessReport,
-} from "../../../orchestrating-long-tasks/scripts/src/installer/runtime-freshness.ts";
-import { validateSkillSource } from "../../../orchestrating-long-tasks/scripts/src/installer/source-validation.ts";
+} from "../../../olt/scripts/src/installer/runtime-freshness.ts";
+import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { cleanInstallerFixtures, installerFixture } from "./helpers.ts";
 
@@ -195,7 +195,7 @@ describe("freshnessFindings", () => {
       roots: [
         {
           kind: "primary",
-          path: "/home/.agents/skills/orchestrating-long-tasks",
+          path: "/home/.agents/skills/olt",
           present: false,
           resolvedPath: null,
           digest: null,
@@ -205,9 +205,9 @@ describe("freshnessFindings", () => {
         },
         {
           kind: "claude",
-          path: "/home/.claude/skills/orchestrating-long-tasks",
+          path: "/home/.claude/skills/olt",
           present: true,
-          resolvedPath: "/home/.claude/skills/orchestrating-long-tasks",
+          resolvedPath: "/home/.claude/skills/olt",
           digest: "b".repeat(64),
           runtimeVersion: "0.9.0",
           fresh: false,

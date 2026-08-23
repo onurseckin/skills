@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { evidenced } from "../../../../orchestrating-long-tasks/scripts/src/contracts/evidence.ts";
+import { evidenced } from "../../../../olt/scripts/src/contracts/evidence.ts";
 import {
   appendGateProof,
   type GateProofRecord,
-} from "../../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
-import { findingFalsifiabilityVerdict } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/finding-falsifiability.ts";
+} from "../../../../olt/scripts/src/graph/gate-proof.ts";
+import { findingFalsifiabilityVerdict } from "../../../../olt/scripts/src/workflow/review/finding-falsifiability.ts";
 import { TEST_GATE_ARGV, workflowState } from "../test-port.ts";
 
 function gateProof(overrides: Partial<GateProofRecord> = {}): GateProofRecord {

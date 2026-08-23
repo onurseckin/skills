@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { recoverStale } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/recover-stale.ts";
-import { releaseLease } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/release.ts";
-import { submitTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
-import { recordAuthorityDecision } from "../../../orchestrating-long-tasks/scripts/src/workflow/authority/index.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { recoverStale } from "../../../olt/scripts/src/workflow/lease/recover-stale.ts";
+import { releaseLease } from "../../../olt/scripts/src/workflow/lease/release.ts";
+import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
+import { recordAuthorityDecision } from "../../../olt/scripts/src/workflow/authority/index.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "./test-port.ts";
 
 const start = at("2026-08-13T12:00:00.000Z");

@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
 import {
   isLeaseSuspended,
   leaseIsExpired,
   restoreLease,
   suspendLease,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/suspension.ts";
+} from "../../../olt/scripts/src/workflow/lease/suspension.ts";
 
 const t0 = new Date("2026-08-19T00:00:00.000Z");
 

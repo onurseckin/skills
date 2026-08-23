@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   computeBlunderDiscriminator,
   normalizeObservationSignature,
-} from "../../../orchestrating-long-tasks/scripts/src/blunders/discriminator.ts";
-import type { BlunderRecordInput } from "../../../orchestrating-long-tasks/scripts/src/blunders/types.ts";
+} from "../../../olt/scripts/src/blunders/discriminator.ts";
+import type { BlunderRecordInput } from "../../../olt/scripts/src/blunders/types.ts";
 
 describe("Blunder Discriminator & Signature Normalization", () => {
   describe("normalizeObservationSignature", () => {

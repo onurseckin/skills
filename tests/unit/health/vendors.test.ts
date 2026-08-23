@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { checkVendorIdentifiers } from "../../../orchestrating-long-tasks/scripts/src/health/vendors.ts";
-import { VENDOR_NAMES } from "../../../orchestrating-long-tasks/scripts/src/health/vendor-names.ts";
+import { checkVendorIdentifiers } from "../../../olt/scripts/src/health/vendors.ts";
+import { VENDOR_NAMES } from "../../../olt/scripts/src/health/vendor-names.ts";
 import { cleanupTempRoots, tempRoot, writeTree } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);

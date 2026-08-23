@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { auditPlan } from "../../../orchestrating-long-tasks/scripts/src/graph/plan-audit.ts";
+import { auditPlan } from "../../../olt/scripts/src/graph/plan-audit.ts";
 import { cleanupFixtureRoots, fixtureRepo, task } from "./plan-audit-fixture.ts";
 
 const roots: string[] = [];

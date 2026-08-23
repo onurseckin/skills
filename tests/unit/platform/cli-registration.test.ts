@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   assertAgentRegistered,
   buildAgentRegisterCommand,
@@ -9,7 +9,7 @@ import {
   buildTaskHeartbeatCommand,
   buildTaskSubmitCommand,
   verifyAgentRegistration,
-} from "../../../orchestrating-long-tasks/scripts/src/platform/index.ts";
+} from "../../../olt/scripts/src/platform/index.ts";
 
 describe("Mandatory CLI Action Registration Protocol", () => {
   const runRoot = ".capsules/test-run-platform";

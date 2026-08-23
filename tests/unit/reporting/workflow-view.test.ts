@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { workflowView } from "../../../orchestrating-long-tasks/scripts/src/reporting/workflow-view.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { workflowView } from "../../../olt/scripts/src/reporting/workflow-view.ts";
 import type {
   CompletionArtifactVerification,
   CompletionCriticAuthorization,
@@ -13,7 +13,7 @@ import type {
   PacketRecord,
   RequirementRuntime,
   TaskRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/workflow/types.ts";
 import { commandRecord, repositoryBinding } from "../workflow/test-port.ts";
 
 const roots: string[] = [];

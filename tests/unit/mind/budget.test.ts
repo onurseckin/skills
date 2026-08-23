@@ -3,10 +3,10 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
-import { mindPulseOpenCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-open.ts";
-import { mindRoundOpenCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-round.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
+import { mindRoundOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-round.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   checkDailyPulseLimit,
   checkDailyWallClockLimit,
@@ -21,14 +21,11 @@ import {
   parseNowMs,
   rollDayKeyIfNeeded,
   type BudgetOutcome,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/budget.ts";
-import {
-  DEFAULT_MIND_BUDGET,
-  parseCharter,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/charter.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/budget.ts";
+import { DEFAULT_MIND_BUDGET, parseCharter } from "../../../olt/scripts/src/mind/charter.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 
 const roots: string[] = [];
 
@@ -811,7 +808,7 @@ Infinite Borderless Mind with Topological Concurrency
 - Manual intervention bottlenecks
 
 ## repo_roots
-- \`orchestrating-long-tasks/\`
+- \`olt/\`
 
 ## budgets
 - cadence: infinite_borderless

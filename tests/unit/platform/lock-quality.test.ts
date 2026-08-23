@@ -16,17 +16,12 @@ import {
   linuxLibcCandidates,
   releaseFlock,
   tryExclusiveFlock,
-} from "../../../orchestrating-long-tasks/scripts/src/platform/flock-ffi.ts";
-import { withRunLock } from "../../../orchestrating-long-tasks/scripts/src/platform/run-lock.ts";
-import {
-  clearObserver,
-  publishObserver,
-} from "../../../orchestrating-long-tasks/scripts/src/platform/observer.ts";
+} from "../../../olt/scripts/src/platform/flock-ffi.ts";
+import { withRunLock } from "../../../olt/scripts/src/platform/run-lock.ts";
+import { clearObserver, publishObserver } from "../../../olt/scripts/src/platform/observer.ts";
 
-const lockModule = new URL(
-  "../../../orchestrating-long-tasks/scripts/src/platform/run-lock.ts",
-  import.meta.url,
-).pathname;
+const lockModule = new URL("../../../olt/scripts/src/platform/run-lock.ts", import.meta.url)
+  .pathname;
 
 function runRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "lock-quality-"));

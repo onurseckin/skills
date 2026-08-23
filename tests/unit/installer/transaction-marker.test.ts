@@ -2,17 +2,17 @@ import { describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { canonicalJsonBytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
-import type { JsonValue } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
+import type { JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   createMarker,
   markerPath,
   MARKER_SCHEMA,
   readMarker,
   type TransactionMarker,
-} from "../../../orchestrating-long-tasks/scripts/src/installer/transaction-marker.ts";
-import { SKILL_NAME } from "../../../orchestrating-long-tasks/scripts/src/installer/constants.ts";
+} from "../../../olt/scripts/src/installer/transaction-marker.ts";
+import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const validDigest = "c".repeat(64);

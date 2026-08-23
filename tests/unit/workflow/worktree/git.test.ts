@@ -6,7 +6,7 @@ import {
   type GitResult,
   type GitRunner,
   type GitSpawn,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
+} from "../../../../olt/scripts/src/workflow/worktree/git.ts";
 
 function fakeRunner(result: Partial<GitResult>): GitRunner {
   return () => ({ status: 0, stdout: "", stderr: "", ...result });

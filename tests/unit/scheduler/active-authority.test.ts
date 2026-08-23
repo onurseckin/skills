@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { proposeBatch } from "../../../orchestrating-long-tasks/scripts/src/scheduler/index.ts";
-import { makeAuthorityDecisionRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/authority/decision-record.ts";
+import { proposeBatch } from "../../../olt/scripts/src/scheduler/index.ts";
+import { makeAuthorityDecisionRecord } from "../../../olt/scripts/src/workflow/authority/decision-record.ts";
 import { schedulerState } from "./fixtures.ts";
 
 function addTask(

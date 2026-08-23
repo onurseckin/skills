@@ -3,9 +3,9 @@ import {
   nearestFlagNames,
   parseArguments,
   suggestFlag,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/arguments.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import { shouldReadPromptStdin } from "../../../orchestrating-long-tasks/scripts/src/cli/prompt-input.ts";
+} from "../../../olt/scripts/src/cli/arguments.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { shouldReadPromptStdin } from "../../../olt/scripts/src/cli/prompt-input.ts";
 
 describe("CLI argument parsing", () => {
   test("parses flags, booleans, and a literal command tail", () => {

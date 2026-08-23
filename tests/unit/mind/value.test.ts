@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   applyIntervalJitter,
   calculateExponentialBackoff,
@@ -15,7 +15,7 @@ import {
   MAX_JITTER_RATIO,
   MIN_INTERVAL_MS,
   type TrailingValuePoint,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/interval.ts";
+} from "../../../olt/scripts/src/mind/interval.ts";
 import {
   calculatePulseValue,
   EXCLUDED_VALUE_METRICS,
@@ -28,7 +28,7 @@ import {
   PULSE_OUTCOMES,
   TERMINAL_OUTCOMES,
   type PulseValueMetrics,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/value.ts";
+} from "../../../olt/scripts/src/mind/value.ts";
 
 describe("Mechanical Value Accounting (PLAN §11.2, PHASE-5 §3.3)", () => {
   test("value formula strictly sums only the 6 harness-measured metrics", () => {

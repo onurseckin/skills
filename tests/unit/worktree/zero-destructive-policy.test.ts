@@ -7,7 +7,7 @@ import {
   isDestructiveGitCommand,
   isPathInWriteScope,
   partitionObservedChanges,
-} from "../../../orchestrating-long-tasks/scripts/src/worktree/zero-destructive-policy.ts";
+} from "../../../olt/scripts/src/worktree/zero-destructive-policy.ts";
 
 describe("zero-destructive git invariant (p55)", () => {
   describe("isDestructiveGitCommand", () => {

@@ -1,12 +1,9 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, realpathSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
-import { buildModules } from "../../../orchestrating-long-tasks/scripts/src/health/modules.ts";
-import {
-  loadSources,
-  type SourceFile,
-} from "../../../orchestrating-long-tasks/scripts/src/health/sources.ts";
-import { scanSource } from "../../../orchestrating-long-tasks/scripts/src/health/scanner.ts";
+import { buildModules } from "../../../olt/scripts/src/health/modules.ts";
+import { loadSources, type SourceFile } from "../../../olt/scripts/src/health/sources.ts";
+import { scanSource } from "../../../olt/scripts/src/health/scanner.ts";
 
 const roots: string[] = [];
 

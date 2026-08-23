@@ -1,9 +1,9 @@
 import { describe, expect, it, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { findCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
-import type { CommandSpec } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/types.ts";
-import type { Flags } from "../../../orchestrating-long-tasks/scripts/src/cli/options.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
+import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   isCognitiveValidatorRole,
   isMechanicValidatorRole,
@@ -16,23 +16,23 @@ import {
   assertCognitiveValidatorHardlock,
   assertRoleMayInvoke,
   assertGrantedCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/command-authority.ts";
+} from "../../../olt/scripts/src/packets/command-authority.ts";
 import {
   auditSingleRole,
   createRoleBoundaryWatchdog,
   validateParentChildSupervision,
   assertParentChildBoundary,
   type RoleBoundaryAction,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/role-auditing.ts";
+} from "../../../olt/scripts/src/mind/role-auditing.ts";
 import {
   isBoundaryLeakViolation,
   validateBoundaryIntegrity,
   assertNoBoundaryLeak,
   type BoundaryLeakCheck,
-} from "../../../orchestrating-long-tasks/scripts/src/validation/anti-leak.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+} from "../../../olt/scripts/src/validation/anti-leak.ts";
+import { transact } from "../../../olt/scripts/src/store/index.ts";
 import { emptyGrantRun } from "../packets/grant-run-fixture.ts";
-import type { DynamicRoleSpec } from "../../../orchestrating-long-tasks/scripts/src/mind/dynamic-roles.ts";
+import type { DynamicRoleSpec } from "../../../olt/scripts/src/mind/dynamic-roles.ts";
 
 function spec(invocation: string): CommandSpec {
   const found = findCommand(invocation);
@@ -583,9 +583,9 @@ describe("Hierarchical Boundary Supervision & Cognitive Validator Hard-Lock", ()
 
   describe("3. Static Code Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     const filesToAudit = [
-      "orchestrating-long-tasks/scripts/src/mind/role-auditing.ts",
-      "orchestrating-long-tasks/scripts/src/packets/command-authority.ts",
-      "orchestrating-long-tasks/scripts/src/validation/anti-leak.ts",
+      "olt/scripts/src/mind/role-auditing.ts",
+      "olt/scripts/src/packets/command-authority.ts",
+      "olt/scripts/src/validation/anti-leak.ts",
     ];
 
     it("verifies zero TypeScript any and zero compiler/linter suppressions across touched files", () => {

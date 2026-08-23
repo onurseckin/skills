@@ -8,14 +8,11 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { mindInitCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-init.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import {
-  DEFAULT_MIND_BUDGET,
-  parseCharter,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/charter.ts";
-import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
+import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { DEFAULT_MIND_BUDGET, parseCharter } from "../../../olt/scripts/src/mind/charter.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/store/integrity.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {
@@ -38,7 +35,7 @@ Autonomous Mind supervising long-running task orchestration and maintaining code
 - Deploying releases without explicit owner confirmation
 
 ## repo_roots
-- \`orchestrating-long-tasks/\`
+- \`olt/\`
 - \`docs/\`
 - \`tests/\`
 
@@ -82,7 +79,7 @@ describe("parseCharter", () => {
     });
     expect(parsed.nonGoals.length).toBe(2);
     expect(parsed.nonGoals[0]).toBe("Modifying production secrets or ungranted external APIs");
-    expect(parsed.repoRoots).toEqual(["orchestrating-long-tasks/", "docs/", "tests/"]);
+    expect(parsed.repoRoots).toEqual(["olt/", "docs/", "tests/"]);
     expect(parsed.stability).toBeDefined();
     expect(parsed.stability!.length).toBe(2);
     expect(parsed.stability![0]).toEqual({ command: "bun run test", expectedExit: 0 });
@@ -273,7 +270,7 @@ describe("mindInitCommand", () => {
       source_path: "CHARTER.md",
       pinned_sha256: result.charter_sha256,
       goals: ["G1", "G2", "G3"],
-      repo_roots: ["orchestrating-long-tasks/", "docs/", "tests/"],
+      repo_roots: ["olt/", "docs/", "tests/"],
       evidence_class: "harness_observed",
     });
     expect(mind.previous_generation).toBeNull();

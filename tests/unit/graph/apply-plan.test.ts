@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { applyPlan } from "../../../orchestrating-long-tasks/scripts/src/graph/apply-plan.ts";
+import { applyPlan } from "../../../olt/scripts/src/graph/apply-plan.ts";
 import { MemoryPlanningStore } from "./memory-store.ts";
 import { validPlanningDocuments } from "./fixtures.ts";
 

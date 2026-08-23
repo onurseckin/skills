@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { normalizeVisualReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/visual-report.ts";
+import { normalizeVisualReport } from "../../../olt/scripts/src/reporting/visual-report.ts";
 
 describe("normalizeVisualReport", () => {
   test("returns null for anything that is not a plain object", () => {

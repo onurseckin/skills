@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { loadRun } from "../../../olt/scripts/src/store/index.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun, markCoreImplemented } from "./task-ops-fixture.ts";
 

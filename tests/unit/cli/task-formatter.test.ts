@@ -5,7 +5,7 @@ import {
   formatTaskProbeBrief,
   formatTaskReviewPassBrief,
   formatValidationStartBrief,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/task-formatter.ts";
+} from "../../../olt/scripts/src/cli/formatters/task-formatter.ts";
 
 describe("formatTaskClaimBrief", () => {
   test("names the isolated worktree when the task was assigned one", () => {

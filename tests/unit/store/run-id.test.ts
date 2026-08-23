@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import { normalizeRunId } from "../../../orchestrating-long-tasks/scripts/src/store/run-id.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { normalizeRunId } from "../../../olt/scripts/src/store/run-id.ts";
 
 describe("normalizeRunId", () => {
   test("returns a bare run id unchanged", () => {

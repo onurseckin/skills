@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { formatOrchestrateBrief } from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/index.ts";
+import { formatOrchestrateBrief } from "../../../olt/scripts/src/cli/formatters/index.ts";
 
 describe("formatOrchestrateBrief", () => {
   test("reports a derived run id as derived and tells the caller how to pin it", () => {

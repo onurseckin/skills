@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { transact } from "../../../olt/scripts/src/store/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

@@ -5,7 +5,7 @@ import {
   removeIsolatedTempDir,
   snapshotEnv,
   restoreEnvSnapshot,
-} from "../../../orchestrating-long-tasks/scripts/src/testing/isolation.ts";
+} from "../../../olt/scripts/src/testing/isolation.ts";
 import { existsSync } from "node:fs";
 
 describe("testing subsystem mirror tests", () => {

@@ -17,14 +17,11 @@ import {
   validateCriticAntiBatching,
   validateReviewAntiBatching,
   type SmartTaskPlan,
-} from "../../../orchestrating-long-tasks/scripts/src/validation/anti-batching.ts";
-import { validateReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/validate-review.ts";
-import { parseCompletionAssessment } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/review-input.ts";
-import type {
-  TaskRecord,
-  WorkflowState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import type { FeedbackItem } from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/validation/anti-batching.ts";
+import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
+import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/review-input.ts";
+import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {
@@ -659,7 +656,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
   describe("8. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     it("verifies zero TypeScript any and zero suppressions across all anti-batching pipeline source and test files", () => {
       const filesToAudit = [
-        "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/validation/anti-batching.ts",
+        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-batching.ts",
         "/Users/onurseckinsenoglu/repos/skills/tests/unit/validation/anti-batching.test.ts",
       ];
 

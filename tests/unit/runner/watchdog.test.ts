@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { monitorProcess } from "../../../orchestrating-long-tasks/scripts/src/runner/watchdog.ts";
-import type { BunSubprocess } from "../../../orchestrating-long-tasks/scripts/src/runner/types.ts";
+import { monitorProcess } from "../../../olt/scripts/src/runner/watchdog.ts";
+import type { BunSubprocess } from "../../../olt/scripts/src/runner/types.ts";
 
 function fakeChild(exited: Promise<number>): BunSubprocess {
   return { pid: 1234, exited } as never;
@@ -85,7 +85,7 @@ describe("Invariants & Cleanliness Audit - Runner Watchdog", () => {
     const { readFileSync } = require("node:fs");
     const { join } = require("node:path");
     const sourceFiles = [
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/runner/watchdog.ts"),
+      join(__dirname, "../../../olt/scripts/src/runner/watchdog.ts"),
       __filename,
     ];
 

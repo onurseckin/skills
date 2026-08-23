@@ -3,16 +3,13 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
+import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
 import {
   formatMindObserveBrief,
   mindObserveCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-observe.ts";
-import {
-  COMMAND_REGISTRY,
-  findCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/cli/commands/mind-observe.ts";
+import { COMMAND_REGISTRY, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   findSourceDefinition,
   getSourceDefinition,
@@ -23,11 +20,11 @@ import {
   validateQuiescentSources,
   type EvidenceClass,
   type MindSourceId,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/sources.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/sources.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/store/integrity.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 
 const tempRoots: string[] = [];
 

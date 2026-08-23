@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { tmpdir } from "node:os";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   COMMAND_DOMAINS,
   COMMAND_REGISTRY,
   commandInvocations,
   findCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
-import { shouldReadPromptStdin } from "../../../orchestrating-long-tasks/scripts/src/cli/prompt-input.ts";
+} from "../../../olt/scripts/src/cli/registry/index.ts";
+import { shouldReadPromptStdin } from "../../../olt/scripts/src/cli/prompt-input.ts";
 
 const EXPECTED_INVOCATIONS = [
   "orchestrate",

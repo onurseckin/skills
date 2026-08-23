@@ -2,14 +2,14 @@ import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readPlanBindings } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/plan-replan-bindings.ts";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { readPlanBindings } from "../../../olt/scripts/src/cli/commands/plan-replan-bindings.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   appendGateProof,
   type GateProofRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/graph/gate-proof.ts";
+import { loadRun } from "../../../olt/scripts/src/store/index.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 
 export const TASK_ID = "task-core";
 export const VALIDATOR = "val-1";

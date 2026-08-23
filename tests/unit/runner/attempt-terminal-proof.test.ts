@@ -2,14 +2,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { cleanupFailedAttempt } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-cleanup.ts";
+import { cleanupFailedAttempt } from "../../../olt/scripts/src/runner/attempt-cleanup.ts";
 import {
   settledAttemptTerminalProof,
   startAttemptIntent,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-intent.ts";
-import { createCommandSigningCapability } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-disposition-capability.ts";
-import type { ProcessIdentity } from "../../../orchestrating-long-tasks/scripts/src/runner/process-identity.ts";
-import { cleanupAfterAttemptFailure } from "../../../orchestrating-long-tasks/scripts/src/runner/run-attempt.ts";
+} from "../../../olt/scripts/src/runner/attempt-intent.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/runner/attempt-disposition-capability.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/runner/process-identity.ts";
+import { cleanupAfterAttemptFailure } from "../../../olt/scripts/src/runner/run-attempt.ts";
 
 const roots: string[] = [];
 const rootIdentity: ProcessIdentity = { pid: 40, parent: 30, group: 40, birth: "root" };

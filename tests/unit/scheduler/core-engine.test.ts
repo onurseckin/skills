@@ -21,14 +21,14 @@ import {
   recoverStaleTasks,
   runPulseLoop,
   SchedulerEngine,
-} from "../../../orchestrating-long-tasks/scripts/src/scheduler/index.ts";
-import { registerWatchdog } from "../../../orchestrating-long-tasks/scripts/src/authority/watchdog-manager.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/scheduler/index.ts";
+import { registerWatchdog } from "../../../olt/scripts/src/authority/watchdog-manager.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import type {
   TaskRecord,
   TransactionPort,
   WorkflowState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/workflow/types.ts";
 import { schedulerState } from "./fixtures.ts";
 
 function createMockPort(initialState: Record<string, unknown>): TransactionPort {

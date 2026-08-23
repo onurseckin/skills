@@ -1,8 +1,8 @@
-import type { JsonObject } from "../../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import type { RunState } from "../../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import type { transact } from "../../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
-import type { WorktreeLedgerState } from "../../../../orchestrating-long-tasks/scripts/src/contracts/worktree.ts";
-import { writeWorktreeLedger } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/ledger.ts";
+import type { JsonObject } from "../../../../olt/scripts/src/contracts/json.ts";
+import type { RunState } from "../../../../olt/scripts/src/contracts/capsule.ts";
+import type { transact } from "../../../../olt/scripts/src/store/transaction.ts";
+import type { WorktreeLedgerState } from "../../../../olt/scripts/src/contracts/worktree.ts";
+import { writeWorktreeLedger } from "../../../../olt/scripts/src/workflow/worktree/ledger.ts";
 
 export const FAKE_RUN_ROOT = "fake-run-root";
 

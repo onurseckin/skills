@@ -3,8 +3,8 @@ import {
   identitiesMatch,
   identityValid,
   signalLedgerValid,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-cleanup-validation.ts";
-import type { CommandProcessIdentity } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
+} from "../../../olt/scripts/src/runner/attempt-cleanup-validation.ts";
+import type { CommandProcessIdentity } from "../../../olt/scripts/src/contracts/commands.ts";
 
 const validIdentity: CommandProcessIdentity = {
   pid: 100,

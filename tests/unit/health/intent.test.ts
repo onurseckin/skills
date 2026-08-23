@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { checkIntentDrift } from "../../../orchestrating-long-tasks/scripts/src/health/intent.ts";
+import { checkIntentDrift } from "../../../olt/scripts/src/health/intent.ts";
 import { cleanupTempRoots, sourceOf, tempRoot, writeTree } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);

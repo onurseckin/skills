@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 
 /** Sentences the fixture plants so a completeness assertion has something distinctive to look for. */
 export const PLANTED = {

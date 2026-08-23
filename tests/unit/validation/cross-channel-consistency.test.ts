@@ -2,11 +2,11 @@ import { describe, expect, test } from "bun:test";
 import {
   normalizeViewportName,
   validateCrossChannelConsistency,
-} from "../../../orchestrating-long-tasks/scripts/src/validation/cross-channel-consistency.ts";
+} from "../../../olt/scripts/src/validation/cross-channel-consistency.ts";
 import type {
   ScreenshotMetadata,
   VisualMetricsReport,
-} from "../../../orchestrating-long-tasks/scripts/src/validation/dual-channel-types.ts";
+} from "../../../olt/scripts/src/validation/dual-channel-types.ts";
 
 describe("normalizeViewportName", () => {
   test("falls back to width-based classification when the name is blank or absent", () => {

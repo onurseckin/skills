@@ -2,10 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import type { OrchestratorCommandContext } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/orchestrator-ops.ts";
-import type { RoundExecutionResult } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/types.ts";
-import type { TaskDispatcher } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/supervisor.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import type { OrchestratorCommandContext } from "../../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
+import type { RoundExecutionResult } from "../../../olt/scripts/src/orchestrator/types.ts";
+import type { TaskDispatcher } from "../../../olt/scripts/src/orchestrator/supervisor.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

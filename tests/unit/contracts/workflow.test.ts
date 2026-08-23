@@ -4,7 +4,7 @@ import {
   isValidatorDomain,
   textSignalsUiDomain,
   uiDomainApplies,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/workflow.ts";
+} from "../../../olt/scripts/src/contracts/workflow.ts";
 
 describe("isValidatorDomain", () => {
   test("recognizes the known domains and rejects anything else", () => {

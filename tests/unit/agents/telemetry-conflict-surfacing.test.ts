@@ -3,12 +3,12 @@ import {
   isAgentGrantRecord,
   isTelemetryFieldConflict,
   type TelemetryFieldConflict,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
+} from "../../../olt/scripts/src/contracts/agents.ts";
 import {
   refreshAgentDerivedTelemetry,
   registerAgentGrant,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts";
-import { appendTelemetryConflicts } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/telemetry-merge.ts";
+} from "../../../olt/scripts/src/workflow/agents/grants.ts";
+import { appendTelemetryConflicts } from "../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
 import { ledgerOf, registerCoordinator, seededRun } from "./fixture.ts";
 
 function worker(run: string) {

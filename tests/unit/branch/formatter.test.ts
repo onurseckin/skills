@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { BranchRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/branch.ts";
+import type { BranchRecord } from "../../../olt/scripts/src/contracts/branch.ts";
 import {
   formatBranchCollectBrief,
   formatBranchStatusBrief,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/branch-formatter.ts";
+} from "../../../olt/scripts/src/cli/formatters/branch-formatter.ts";
 
 function branch(overrides: Partial<BranchRecord> = {}): BranchRecord {
   return {

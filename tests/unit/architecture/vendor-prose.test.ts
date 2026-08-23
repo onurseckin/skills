@@ -3,15 +3,15 @@ import { fileURLToPath } from "node:url";
 import {
   scanProseForUnqualifiedDispatch,
   scanTreeForUnqualifiedDispatch,
-} from "../../../orchestrating-long-tasks/scripts/src/health/vendor-prose.ts";
-import { staleExemptions } from "../../../orchestrating-long-tasks/scripts/src/health/vendor-identifiers.ts";
+} from "../../../olt/scripts/src/health/vendor-prose.ts";
+import { staleExemptions } from "../../../olt/scripts/src/health/vendor-identifiers.ts";
 import {
   HOST_DISPATCH_TERMS,
   HOST_NAME_ALIASES,
-} from "../../../orchestrating-long-tasks/scripts/src/health/vendor-names.ts";
+} from "../../../olt/scripts/src/health/vendor-names.ts";
 
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
-const skillRoot = `${repoRoot}orchestrating-long-tasks`;
+const skillRoot = `${repoRoot}olt`;
 
 /**
  * Nothing is exempted today: every `.md`/`.yaml` file under the skill root already qualifies every

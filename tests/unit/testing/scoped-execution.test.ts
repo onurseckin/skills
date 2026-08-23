@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   assertScopedExecutionPolicy,
   auditScopedExecutionCompliance,
@@ -12,13 +12,13 @@ import {
   type ScopedExecutionAuditResult,
   type ScopedExecutionPolicy,
   type ScopedTestTarget,
-} from "../../../orchestrating-long-tasks/scripts/src/testing/scoped-execution.ts";
+} from "../../../olt/scripts/src/testing/scoped-execution.ts";
 
 describe("Static Invariants: Zero Any & Zero Suppressions", () => {
   test("scoped-execution source and test files have 0 any and 0 compiler/linter suppressions", () => {
     const sourcePath = join(
       import.meta.dir,
-      "../../../orchestrating-long-tasks/scripts/src/testing/scoped-execution.ts",
+      "../../../olt/scripts/src/testing/scoped-execution.ts",
     );
     const testPath = join(import.meta.dir, "scoped-execution.test.ts");
 

@@ -13,7 +13,7 @@ import {
   writeFeedbackQueue,
   appendFeedbackItem,
   type FeedbackItem,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import {
   CANONICAL_COMPLETED_TASKS_FILE,
   TODO_COMPLETED_TASKS_FILE,
@@ -43,14 +43,14 @@ import {
   readCompletedTasksLedger,
   writeCompletedTasksLedger,
   type CompletedTaskRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/completed-tasks.ts";
+} from "../../../olt/scripts/src/mind/completed-tasks.ts";
 import {
   CANONICAL_WATCHDOG_FILE,
   TODO_WATCHDOG_FILE,
   LEGACY_WATCHDOG_FILE,
   resolveCanonicalWatchdogStorePath,
   resolveWatchdogStorePath,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/watchdog-manager.ts";
+} from "../../../olt/scripts/src/mind/watchdog-manager.ts";
 import {
   CANONICAL_COGNITIVE_MEMORY_FILE,
   TODO_COGNITIVE_MEMORY_FILE,
@@ -61,7 +61,7 @@ import {
   writeCognitiveMemory,
   updateCognitiveMemory,
   type CognitiveMemoryState,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts";
+} from "../../../olt/scripts/src/mind/smart-task-manager.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () => {

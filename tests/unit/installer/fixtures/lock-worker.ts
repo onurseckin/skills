@@ -1,4 +1,4 @@
-import { acquireInstallerLock } from "../../../../orchestrating-long-tasks/scripts/src/installer/installer-lock.ts";
+import { acquireInstallerLock } from "../../../../olt/scripts/src/installer/installer-lock.ts";
 
 const parent = process.argv[2];
 if (!parent) throw new Error("missing installer parent");

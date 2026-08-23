@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { proposeBatch } from "../../../orchestrating-long-tasks/scripts/src/scheduler/index.ts";
+import { proposeBatch } from "../../../olt/scripts/src/scheduler/index.ts";
 import { schedulerState } from "./fixtures.ts";
 
 describe("scheduler batches", () => {

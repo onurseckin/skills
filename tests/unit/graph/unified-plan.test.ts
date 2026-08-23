@@ -3,8 +3,8 @@ import {
   compileUnifiedHighLeveragePlan,
   detectCapsuleContext,
   expandDynamicPlanUnified,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/unified-plan.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/graph/unified-plan.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import { cleanupFixtureRoots, fixtureRepo } from "./plan-audit-fixture.ts";
 
 const roots: string[] = [];

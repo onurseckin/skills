@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import type { FileHandle } from "node:fs/promises";
-import { pumpOutput } from "../../../orchestrating-long-tasks/scripts/src/runner/output-pump.ts";
-import { OutputBudget } from "../../../orchestrating-long-tasks/scripts/src/runner/output-budget.ts";
+import { pumpOutput } from "../../../olt/scripts/src/runner/output-pump.ts";
+import { OutputBudget } from "../../../olt/scripts/src/runner/output-budget.ts";
 
 function chunkStream(chunks: string[]): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();

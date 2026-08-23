@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
 import {
   reportDagCommand,
   reportGraphCommand,
@@ -10,13 +10,13 @@ import {
   reportLeasesCommand,
   reportDecisionsCommand,
   reportUnifiedCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/unified-reporting.ts";
-import type { Flags } from "../../../orchestrating-long-tasks/scripts/src/cli/options.ts";
+} from "../../../olt/scripts/src/cli/commands/unified-reporting.ts";
+import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
 import type {
   LeaseMatrixRow,
   DecisionAuditRow,
   UnifiedReport,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/unified.ts";
+} from "../../../olt/scripts/src/reporting/unified.ts";
 
 const roots: string[] = [];
 afterEach(async () =>

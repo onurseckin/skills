@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { checkUnqualifiedDispatch } from "../../../orchestrating-long-tasks/scripts/src/health/vendors.ts";
+import { checkUnqualifiedDispatch } from "../../../olt/scripts/src/health/vendors.ts";
 import { cleanupTempRoots, tempRoot, writeTree } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);

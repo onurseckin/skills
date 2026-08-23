@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 import { requirementIds } from "./critic-run-fixture.ts";
@@ -18,7 +18,7 @@ import {
   seedGateProof,
 } from "./probe-fixture.ts";
 import { setupRun as setupSingleTaskRun } from "./probe-fixture.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 
 /** Two independent (undependent) ready tasks — for the queue's own multi-candidate sort/partition branches. */
 async function setupTwoIndependentTasks(

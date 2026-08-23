@@ -1,15 +1,12 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Manifest } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import { formatSummaryMarkdown } from "../../../orchestrating-long-tasks/scripts/src/summary/markdown-formatter.ts";
-import type { MarkdownFormatterInput } from "../../../orchestrating-long-tasks/scripts/src/summary/markdown-formatter.ts";
-import type {
-  GraphDataset,
-  RollupMetrics,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
+import type { Manifest } from "../../../olt/scripts/src/contracts/capsule.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+import { formatSummaryMarkdown } from "../../../olt/scripts/src/summary/markdown-formatter.ts";
+import type { MarkdownFormatterInput } from "../../../olt/scripts/src/summary/markdown-formatter.ts";
+import type { GraphDataset, RollupMetrics } from "../../../olt/scripts/src/summary/types.ts";
 
 const roots: string[] = [];
 

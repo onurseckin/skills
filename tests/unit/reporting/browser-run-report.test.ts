@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { readBrowserRunReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/browser-run-report.ts";
+import { readBrowserRunReport } from "../../../olt/scripts/src/reporting/browser-run-report.ts";
 import { cleanupTempDirs, tempDir } from "./browser-run-fixture.ts";
 
 afterEach(cleanupTempDirs);

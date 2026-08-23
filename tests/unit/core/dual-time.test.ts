@@ -21,7 +21,7 @@ import {
   updateStepMachineTelemetry,
   updateSubagentLifecycle,
   type DualTimeRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/core/dual-time.ts";
+} from "../../../olt/scripts/src/core/dual-time.ts";
 
 describe("Dual-Time Engine (DualTimeRecord, Conversion & Formatting)", () => {
   test("getDualTime() defaults to current time with complete valid structure", () => {

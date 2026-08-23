@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const skillRoot = join(import.meta.dir, "..", "..", "..", "orchestrating-long-tasks");
+const skillRoot = join(import.meta.dir, "..", "..", "..", "olt");
 
 describe("operator reference examples", () => {
   test("the CLI reference delegates to the generated manifest", () => {

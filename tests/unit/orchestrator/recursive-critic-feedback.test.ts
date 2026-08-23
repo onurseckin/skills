@@ -3,12 +3,9 @@ import {
   processCriticFeedbackLoop,
   generateRepairInstructions,
   evaluateRepairCycleStatus,
-} from "../../../orchestrating-long-tasks/scripts/src/orchestrator/recursive-critic-feedback.ts";
-import type { CompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/types.ts";
-import type {
-  TaskRecord,
-  WorkflowState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/orchestrator/recursive-critic-feedback.ts";
+import type { CompletionReview } from "../../../olt/scripts/src/workflow/completion/types.ts";
+import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { TestPort, repositoryBinding, workflowState } from "../workflow/test-port.ts";
 
 describe("Orchestrator Recursive Critic Feedback Integration", () => {

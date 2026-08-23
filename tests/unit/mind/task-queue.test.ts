@@ -22,7 +22,7 @@ import {
   validateTaskQueueDag,
   writeTaskQueue,
   type TaskQueueItem,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/task-queue.ts";
+} from "../../../olt/scripts/src/mind/task-queue.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Stateful Task Queue Engine", () => {
@@ -50,7 +50,7 @@ describe("Stateful Task Queue Engine", () => {
         title: "Alpha Task",
         description: "Alpha task description",
         priority: "HIGH",
-        write_scope: ["orchestrating-long-tasks/scripts/src/mind/alpha.ts"],
+        write_scope: ["olt/scripts/src/mind/alpha.ts"],
         gate: "bun test tests/unit/mind && bun run typecheck",
         charter_goals: ["G1"],
         acceptance_criteria: ["Must pass all gates"],
@@ -702,8 +702,8 @@ describe("Stateful Task Queue Engine", () => {
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   it("verifies task-queue.ts and smart-task-ops.ts contain zero any and zero suppressions", () => {
     const filesToAudit = [
-      "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/mind/task-queue.ts",
-      "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/cli/commands/smart-task-ops.ts",
+      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/task-queue.ts",
+      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/smart-task-ops.ts",
       "/Users/onurseckinsenoglu/repos/skills/tests/unit/mind/task-queue.test.ts",
     ];
 

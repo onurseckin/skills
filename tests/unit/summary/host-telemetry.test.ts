@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   detectHostIdentity,
   detectHostTelemetry,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/host-telemetry.ts";
+} from "../../../olt/scripts/src/summary/host-telemetry.ts";
 
 // A host's own variable name, held as a value so no product names a symbol in this suite.
 const HOST_MODEL_VARIABLE = "CLAUDE_CODE_MODEL";

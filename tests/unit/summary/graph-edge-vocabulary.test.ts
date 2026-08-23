@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { BranchRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/branch.ts";
-import type { CompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
+import type { BranchRecord } from "../../../olt/scripts/src/contracts/branch.ts";
+import type { CompletionReview } from "../../../olt/scripts/src/workflow/types.ts";
+import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
 import { makeState, makeTask } from "./graph-fixtures.ts";
 
 const review: CompletionReview = {

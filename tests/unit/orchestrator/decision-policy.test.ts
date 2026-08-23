@@ -2,11 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   auditHierarchicalExecution,
   validateTaskDispatchCompliance,
-} from "../../../orchestrating-long-tasks/scripts/src/orchestrator/decision-policy.ts";
-import type {
-  TaskRecord,
-  WorkflowState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/orchestrator/decision-policy.ts";
+import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { workflowState } from "../workflow/test-port.ts";
 
 describe("Orchestrator Decision Policy & Hierarchical Audit", () => {

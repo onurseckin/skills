@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import type { BranchView } from "../../../orchestrating-long-tasks/scripts/src/reporting/action-types.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { BranchView } from "../../../olt/scripts/src/reporting/action-types.ts";
 import {
   branchActions,
   openBranchActions,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/branch-actions.ts";
-import { registryArgv } from "../../../orchestrating-long-tasks/scripts/src/reporting/registry-argv.ts";
+} from "../../../olt/scripts/src/reporting/branch-actions.ts";
+import { registryArgv } from "../../../olt/scripts/src/reporting/registry-argv.ts";
 import { actions, ENTRYPOINT, RUN, view } from "./actions-fixture.ts";
 import { dispatchFailure, dispatchFailures } from "./dispatchable.ts";
 

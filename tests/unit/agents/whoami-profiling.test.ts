@@ -9,8 +9,8 @@ import {
   agentIdToRole,
   MAIN_THREAD_ADVISORY,
   type HostProfile,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/thread-identifier";
-import { whoamiCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/whoami";
+} from "../../../olt/scripts/src/authority/thread-identifier";
+import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami";
 import { cleanupRoots } from "../cli/full-lifecycle-fixture";
 import { setupCompiledRun } from "../cli/task-ops-fixture";
 

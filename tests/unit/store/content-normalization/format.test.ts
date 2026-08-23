@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { detectContentFormat } from "../../../../orchestrating-long-tasks/scripts/src/store/content-normalization/format.ts";
+import { detectContentFormat } from "../../../../olt/scripts/src/store/content-normalization/format.ts";
 
 describe("detectContentFormat", () => {
   test("recognizes JSON by extension", () => {
@@ -30,9 +30,7 @@ describe("detectContentFormat", () => {
   });
 
   test("uses only the final extension of a path", () => {
-    expect(detectContentFormat("orchestrating-long-tasks/references/cli-capabilities.json")).toBe(
-      "json",
-    );
+    expect(detectContentFormat("olt/references/cli-capabilities.json")).toBe("json");
     expect(detectContentFormat("a/b/c.test.ts")).toBe("typescript");
   });
 });

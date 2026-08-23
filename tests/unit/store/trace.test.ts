@@ -1,11 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import {
-  appendTraceStep,
-  writeTrace,
-} from "../../../orchestrating-long-tasks/scripts/src/store/trace.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
+import { appendTraceStep, writeTrace } from "../../../olt/scripts/src/store/trace.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

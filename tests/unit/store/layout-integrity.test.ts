@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { chmodSync, linkSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { sha256Bytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
-import { putBlobFile } from "../../../orchestrating-long-tasks/scripts/src/store/blobs.ts";
+import { sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { putBlobFile } from "../../../olt/scripts/src/store/blobs.ts";
 import {
   undeclaredEntries,
   verifyBlobContents,
   verifyCapsuleDeep,
   verifyCapsuleLayout,
-} from "../../../orchestrating-long-tasks/scripts/src/store/layout-integrity.ts";
+} from "../../../olt/scripts/src/store/layout-integrity.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

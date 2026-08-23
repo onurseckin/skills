@@ -1,7 +1,4 @@
-import type {
-  BranchRecord,
-  BranchSubTask,
-} from "../../../../orchestrating-long-tasks/scripts/src/contracts/branch.ts";
+import type { BranchRecord, BranchSubTask } from "../../../../olt/scripts/src/contracts/branch.ts";
 
 export function subTask(overrides: Partial<BranchSubTask> = {}): BranchSubTask {
   return {

@@ -5,12 +5,12 @@ import { join, resolve } from "node:path";
 describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
   const repoRoot = resolve(import.meta.dir, "../../..");
   const rootDocsDir = join(repoRoot, "docs");
-  const skillDocsDir = join(repoRoot, "orchestrating-long-tasks", "docs");
+  const skillDocsDir = join(repoRoot, "olt", "docs");
   const capsulesDir = join(repoRoot, ".capsules");
-  const mindDir = join(repoRoot, "orchestrating-long-tasks", "mind");
-  const mindRolePath = join(repoRoot, "orchestrating-long-tasks", "roles", "mind.md");
+  const mindDir = join(repoRoot, "olt", "mind");
+  const mindRolePath = join(repoRoot, "olt", "roles", "mind.md");
 
-  it("verifies orchestrating-long-tasks/docs directory is completely removed and does not exist", () => {
+  it("verifies olt/docs directory is completely removed and does not exist", () => {
     expect(existsSync(skillDocsDir)).toBe(false);
   });
 
@@ -22,11 +22,7 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
   it("verifies root docs/ directory contains strictly repository-wide skill collection guidelines and human educational docs", () => {
     expect(existsSync(rootDocsDir)).toBe(true);
 
-    const allowedEntries = new Set([
-      "README.md",
-      "SKILL_COLLECTION_GUIDELINES.md",
-      "orchestrating-long-tasks",
-    ]);
+    const allowedEntries = new Set(["README.md", "SKILL_COLLECTION_GUIDELINES.md", "olt"]);
     const entries = readdirSync(rootDocsDir);
     expect(entries.length).toBeGreaterThan(0);
 
@@ -35,7 +31,7 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
     }
   });
 
-  it("verifies Mind charter and definitions reside inside orchestrating-long-tasks", () => {
+  it("verifies Mind charter and definitions reside inside olt", () => {
     expect(existsSync(mindRolePath)).toBe(true);
     expect(existsSync(mindDir)).toBe(true);
 

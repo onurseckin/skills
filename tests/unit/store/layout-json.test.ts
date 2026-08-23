@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { isRecord, text } from "../../../orchestrating-long-tasks/scripts/src/store/layout-json.ts";
+import { isRecord, text } from "../../../olt/scripts/src/store/layout-json.ts";
 
 describe("isRecord", () => {
   test("accepts plain objects", () => {

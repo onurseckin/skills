@@ -1,16 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { mindInitCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-init.ts";
+import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
 import {
   formatMindRotateBrief,
   mindRotateCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-rotate.ts";
-import type {
-  JsonObject,
-  JsonValue,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   appendArchivedObjectives,
   archiveCapsule,
@@ -27,24 +24,24 @@ import {
   writeArchivedObjectives,
   BOILERPLATE_CAPSULE_SUBDIRECTORIES,
   type ArchivedObjectiveRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/archival.ts";
+} from "../../../olt/scripts/src/mind/archival.ts";
 import {
   evaluateGate6NotADuplicate,
   type CandidateRecord,
   type GateEvaluationContext,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/gates.ts";
+} from "../../../olt/scripts/src/mind/gates.ts";
 import {
   buildMemoryIndex,
   createMemoryDocument,
   indexAllMemory,
   indexArchivedObjectiveDocuments,
   searchMemory,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/memory.ts";
-import { rotateMindGeneration } from "../../../orchestrating-long-tasks/scripts/src/mind/rotate.ts";
-import type { ObjectiveRecord } from "../../../orchestrating-long-tasks/scripts/src/mind/rounds.ts";
-import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/memory.ts";
+import { rotateMindGeneration } from "../../../olt/scripts/src/mind/rotate.ts";
+import type { ObjectiveRecord } from "../../../olt/scripts/src/mind/rounds.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/store/integrity.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

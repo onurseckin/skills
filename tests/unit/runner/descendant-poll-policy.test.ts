@@ -3,7 +3,7 @@ import {
   MAX_POLL_DELAY_MS,
   MIN_POLL_DELAY_MS,
   nextPollDelayMs,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/descendant-poll-policy.ts";
+} from "../../../olt/scripts/src/runner/descendant-poll-policy.ts";
 
 describe("descendant poll policy", () => {
   test("resets to the minimum delay when a new descendant was discovered", () => {

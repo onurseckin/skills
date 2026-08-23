@@ -1,10 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import {
-  getDualTime,
-  isDualTimeRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/core/dual-time.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import { getDualTime, isDualTimeRecord } from "../../../olt/scripts/src/core/dual-time.ts";
 import {
   ActionSpan,
   categorizeHarnessAction,
@@ -24,7 +21,7 @@ import {
   renderOmnipresentTelemetryMarkdown,
   validateTimeTelemetryHealth,
   type HarnessActionTimeRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/time-telemetry.ts";
+} from "../../../olt/scripts/src/reporting/time-telemetry.ts";
 
 describe("Omnipresent Time Telemetry - Action Categorization", () => {
   test("categorizeHarnessAction correctly maps command prefixes to categories and tiers", () => {

@@ -14,8 +14,8 @@ import {
   type SynthesizedTaskSpec,
   type SynthesizedTopology,
   type TopologySynthesisSpec,
-} from "../../../orchestrating-long-tasks/scripts/src/orchestrator/topology-synthesis.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/orchestrator/topology-synthesis.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 
 describe("Topology Synthesis Unit Tests", () => {
   describe("Scope Utilities", () => {
@@ -454,7 +454,7 @@ describe("Topology Synthesis Unit Tests", () => {
     it("verifies topology-synthesis.ts has 0 'any' types and 0 suppressions", () => {
       const implPath = resolve(
         import.meta.dir,
-        "../../../orchestrating-long-tasks/scripts/src/orchestrator/topology-synthesis.ts",
+        "../../../olt/scripts/src/orchestrator/topology-synthesis.ts",
       );
       const content = readFileSync(implPath, "utf-8");
 

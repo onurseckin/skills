@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { COMMAND_REGISTRY } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
+import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
 
 describe("host adapters & two-tier architecture specifications", () => {
   const root = join(import.meta.dir, "../../..");
-  const hostAdaptersPath = join(root, "orchestrating-long-tasks/references/host-adapters.md");
-  const skillPath = join(root, "orchestrating-long-tasks/SKILL.md");
-  const cliDocPath = join(root, "orchestrating-long-tasks/references/cli.md");
+  const hostAdaptersPath = join(root, "olt/references/host-adapters.md");
+  const skillPath = join(root, "olt/SKILL.md");
+  const cliDocPath = join(root, "olt/references/cli.md");
 
   test("host-adapters.md exists and documents tier-0 through tier-3 isolation rules", () => {
     expect(existsSync(hostAdaptersPath)).toBe(true);
@@ -73,7 +73,7 @@ describe("host adapters & two-tier architecture specifications", () => {
   });
 
   test("all 4 multi-agent YAML specifications exist with proper tier metadata", () => {
-    const agentDir = join(root, "orchestrating-long-tasks/agents");
+    const agentDir = join(root, "olt/agents");
     const personas = {
       coordinator: "coordinator",
       worker: "implementer",

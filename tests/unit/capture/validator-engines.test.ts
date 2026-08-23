@@ -15,7 +15,7 @@ import {
   validateMechanical,
   type ElementPhysicsSnapshot,
   type ValidationContext,
-} from "../../../orchestrating-long-tasks/scripts/src/capture/validator/index.ts";
+} from "../../../olt/scripts/src/capture/validator/index.ts";
 
 describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
   describe("Pillar 1: Mechanical Engine", () => {

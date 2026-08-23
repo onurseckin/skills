@@ -2,8 +2,8 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { writeAttemptStarted } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-intent.ts";
-import { createCommandSigningCapability } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-disposition-capability.ts";
+import { writeAttemptStarted } from "../../../olt/scripts/src/runner/attempt-intent.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/runner/attempt-disposition-capability.ts";
 
 const roots: string[] = [];
 

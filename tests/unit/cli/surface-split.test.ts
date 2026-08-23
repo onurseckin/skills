@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { helpRequest, renderHelp } from "../../../orchestrating-long-tasks/scripts/src/cli/help.ts";
+import { helpRequest, renderHelp } from "../../../olt/scripts/src/cli/help.ts";
 import {
   COMMAND_REGISTRY,
   INTERNAL_COMMANDS,
@@ -13,17 +13,9 @@ import {
   isInternalCommand,
   isPrimaryCommand,
   type CommandSpec,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
+} from "../../../olt/scripts/src/cli/registry/index.ts";
 
-const entrypoint = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "..",
-  "orchestrating-long-tasks",
-  "scripts",
-  "harness.ts",
-);
+const entrypoint = join(import.meta.dir, "..", "..", "..", "olt", "scripts", "harness.ts");
 
 async function harness(args: readonly string[]) {
   const spawned = Bun.spawn(["bun", entrypoint, ...args], { stdout: "pipe", stderr: "pipe" });

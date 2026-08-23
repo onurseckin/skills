@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   assertRunnerPlatform,
   reserveCommandRoot,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/platform-policy.ts";
+} from "../../../olt/scripts/src/runner/platform-policy.ts";
 
 const roots: string[] = [];
 

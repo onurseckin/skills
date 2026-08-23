@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
-import type { TaskLineage } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/lineage.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/contracts/agents.ts";
+import type { TaskLineage } from "../../../olt/scripts/src/workflow/agents/lineage.ts";
 import {
   formatAgentLineageBrief,
   formatAgentListBrief,
   formatAgentRegisterBrief,
   formatAgentReleaseBrief,
   formatAgentReportBrief,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/agent-formatter.ts";
-import { formatDeterministicActionChaining } from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/next-actions.ts";
+} from "../../../olt/scripts/src/cli/formatters/agent-formatter.ts";
+import { formatDeterministicActionChaining } from "../../../olt/scripts/src/cli/formatters/next-actions.ts";
 
 function grant(overrides: Partial<AgentGrantRecord> = {}): AgentGrantRecord {
   return {

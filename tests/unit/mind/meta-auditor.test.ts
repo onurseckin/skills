@@ -21,20 +21,17 @@ import {
   type ForensicsSeverity,
   type PlanInjectionProposal,
   type RootCauseCategory,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/meta-auditor.ts";
+} from "../../../olt/scripts/src/mind/meta-auditor.ts";
 import {
   formatMetaAuditReport,
   metaAuditCommand,
   renderEfficiencyMetricsTable,
   renderForensicsIncidentTable,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/meta-audit.ts";
-import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
-import type {
-  Manifest,
-  RunState,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import { readFeedbackQueue } from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/cli/commands/meta-audit.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/contracts/agents.ts";
+import type { Manifest, RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
+import { readFeedbackQueue } from "../../../olt/scripts/src/mind/feedback-queue.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Deep Behavioral Forensics Engine (meta-auditor)", () => {
@@ -1484,14 +1481,8 @@ describe("Deep Behavioral Forensics Engine (meta-auditor)", () => {
   describe("Static Invariant Verification", () => {
     it("verifies meta-auditor.ts, meta-audit.ts, and test suite have 0 any types and 0 compiler suppressions", () => {
       const filesToAudit = [
-        resolve(
-          import.meta.dir,
-          "../../../orchestrating-long-tasks/scripts/src/mind/meta-auditor.ts",
-        ),
-        resolve(
-          import.meta.dir,
-          "../../../orchestrating-long-tasks/scripts/src/cli/commands/meta-audit.ts",
-        ),
+        resolve(import.meta.dir, "../../../olt/scripts/src/mind/meta-auditor.ts"),
+        resolve(import.meta.dir, "../../../olt/scripts/src/cli/commands/meta-audit.ts"),
         resolve(import.meta.dir, "../../../tests/unit/mind/meta-auditor.test.ts"),
       ];
 

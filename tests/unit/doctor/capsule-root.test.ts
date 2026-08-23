@@ -6,7 +6,7 @@ import {
   findRepositoryRoot,
   scanMisplacedCapsulesDirectories,
   verifyStrictRepositoryCapsuleRoot,
-} from "../../../orchestrating-long-tasks/scripts/src/doctor/capsule-root.ts";
+} from "../../../olt/scripts/src/doctor/capsule-root.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { workflowPort } from "../../../orchestrating-long-tasks/scripts/src/integration/store-ports.ts";
+import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function freshRun(label: string): string {

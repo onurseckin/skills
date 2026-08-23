@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   MultiCapsuleDAG,
   TrueMultiCapsuleOrchestrator,
@@ -15,7 +15,7 @@ import {
   type CapsuleSpec,
   type CapsuleStateChangeEvent,
   type MultiCapsuleSummary,
-} from "../../../orchestrating-long-tasks/scripts/src/orchestrator/multi-capsule.ts";
+} from "../../../olt/scripts/src/orchestrator/multi-capsule.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("True Multi-Capsule Parallel Orchestration & Anti-Sequentiality Engine", () => {
@@ -467,10 +467,7 @@ describe("True Multi-Capsule Parallel Orchestration & Anti-Sequentiality Engine"
   describe("5. Invariant Verification: Zero Any & Zero Suppressions", () => {
     it("verifies zero TypeScript any and zero suppressions across all multi-capsule source and test files", () => {
       const pathsToCheck = [
-        join(
-          import.meta.dir,
-          "../../../orchestrating-long-tasks/scripts/src/orchestrator/multi-capsule.ts",
-        ),
+        join(import.meta.dir, "../../../olt/scripts/src/orchestrator/multi-capsule.ts"),
         import.meta.path,
       ];
 

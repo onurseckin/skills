@@ -1,7 +1,7 @@
 import { chmodSync, readdirSync } from "node:fs";
 import { rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 
 export const GATE_SCRIPT = "gate-check.ts";
 

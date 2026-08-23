@@ -12,8 +12,8 @@ import { join } from "node:path";
 import {
   createPacketBundle,
   verifyPacketBundle,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/packet-bundle.ts";
-import type { BuiltPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/types.ts";
+} from "../../../olt/scripts/src/packets/packet-bundle.ts";
+import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
 
 function root(prefix: string): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));

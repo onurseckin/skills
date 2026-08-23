@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 describe("Directive p06: Agent Triad Architecture & Host Provider Taxonomy", () => {
   const root = join(import.meta.dir, "../../..");
-  const skillRoot = join(root, "orchestrating-long-tasks");
+  const skillRoot = join(root, "olt");
   const agentsDir = join(skillRoot, "agents");
   const rolesDir = join(skillRoot, "roles");
   const referencesDir = join(skillRoot, "references");

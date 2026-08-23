@@ -1,27 +1,24 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { doctorCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/diagnostics-ops.ts";
-import { mindInitCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-init.ts";
+import { doctorCommand } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
+import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
 import {
   formatMindRotateBrief,
   mindRotateCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-rotate.ts";
-import { summaryViewCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/summary-ops.ts";
-import type {
-  JsonObject,
-  JsonValue,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
+import { summaryViewCommand } from "../../../olt/scripts/src/cli/commands/summary-ops.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   evaluateGate6NotADuplicate,
   type CandidateRecord,
   type GateEvaluationContext,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/gates.ts";
-import { rotateMindGeneration } from "../../../orchestrating-long-tasks/scripts/src/mind/rotate.ts";
-import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/gates.ts";
+import { rotateMindGeneration } from "../../../olt/scripts/src/mind/rotate.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/store/integrity.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

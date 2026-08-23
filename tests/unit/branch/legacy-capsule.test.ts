@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { readBranchLedger } from "../../../orchestrating-long-tasks/scripts/src/workflow/branch/ledger.ts";
-import { openBranchIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/branch/completion-blockers.ts";
+import { loadRun } from "../../../olt/scripts/src/store/index.ts";
+import { readBranchLedger } from "../../../olt/scripts/src/workflow/branch/ledger.ts";
+import { openBranchIssues } from "../../../olt/scripts/src/workflow/branch/completion-blockers.ts";
 import { legacyPreLedgerCapsule } from "../../support/legacy-capsule-fixture.ts";
 
 describe("branch ledger compatibility", () => {

@@ -1,12 +1,12 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
 import {
   appendGateProof,
   type GateProofRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
-import type { AuditTaskInput } from "../../../orchestrating-long-tasks/scripts/src/graph/plan-audit.ts";
+} from "../../../olt/scripts/src/graph/gate-proof.ts";
+import type { AuditTaskInput } from "../../../olt/scripts/src/graph/plan-audit.ts";
 
 export function task(overrides: Partial<AuditTaskInput> & { taskId: string }): AuditTaskInput {
   return { writeScope: [], deps: [], gate: "bun test tests/unit", ...overrides };

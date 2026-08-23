@@ -3,9 +3,9 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { canonicalJsonBytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
-import { packetEvidenceIssues } from "../../../orchestrating-long-tasks/scripts/src/reporting/packet-evidence.ts";
-import type { PacketRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
+import { packetEvidenceIssues } from "../../../olt/scripts/src/reporting/packet-evidence.ts";
+import type { PacketRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 const roots: string[] = [];
 afterEach(() => {

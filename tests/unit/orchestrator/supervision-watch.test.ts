@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { runSupervisionWatch } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/supervision-watch.ts";
+import { transact } from "../../../olt/scripts/src/store/index.ts";
+import { runSupervisionWatch } from "../../../olt/scripts/src/orchestrator/supervision-watch.ts";
 import { fakeClock, supervisedRun } from "./supervised-run-fixture.ts";
 
 function markDone(run: string, taskId: string): void {
@@ -18,7 +18,7 @@ describe("runSupervisionWatch", () => {
       "..",
       "..",
       "..",
-      "orchestrating-long-tasks",
+      "olt",
       "scripts",
       "src",
       "orchestrator",
@@ -31,8 +31,8 @@ describe("runSupervisionWatch", () => {
   test("process lifetime smoke test: supervision-watch keeps the process event loop alive across ticks without premature exit", async () => {
     const run = supervisedRun("process-lifetime-smoke");
     const childScript = `
-      import { runSupervisionWatch } from "./orchestrating-long-tasks/scripts/src/orchestrator/supervision-watch.ts";
-      import { transact } from "./orchestrating-long-tasks/scripts/src/store/index.ts";
+      import { runSupervisionWatch } from "./olt/scripts/src/orchestrator/supervision-watch.ts";
+      import { transact } from "./olt/scripts/src/store/index.ts";
 
       const run = ${JSON.stringify(run)};
       let observed = 0;

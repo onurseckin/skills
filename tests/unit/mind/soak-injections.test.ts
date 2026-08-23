@@ -11,16 +11,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { agentRegisterCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
-import { doctorCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/diagnostics-ops.ts";
-import { mindInitCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-init.ts";
-import { mindPulseOpenCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-open.ts";
-import { mindRotateCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-rotate.ts";
-import { mindWakeCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-wake.ts";
-import type {
-  JsonObject,
-  JsonValue,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { doctorCommand } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
+import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
+import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
+import { mindRotateCommand } from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
+import { mindWakeCommand } from "../../../olt/scripts/src/cli/commands/mind-wake.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
 
 function simulatePulseClose(params: {
   run: string;
@@ -83,17 +80,17 @@ import {
   evaluateGate6NotADuplicate,
   type CandidateRecord,
   type GateEvaluationContext,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/gates.ts";
+} from "../../../olt/scripts/src/mind/gates.ts";
 import {
   readLastPulse,
   writeLastPulse,
   type LastPulseRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/last-pulse.ts";
-import { calculateNextWakeInterval } from "../../../orchestrating-long-tasks/scripts/src/mind/value.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/last-pulse.ts";
+import { calculateNextWakeInterval } from "../../../olt/scripts/src/mind/value.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/store/integrity.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 import { auditRemoteUrls, isPushTargetInert } from "../../support/remote-safety.ts";
 
 const roots: string[] = [];
@@ -135,10 +132,7 @@ Autonomous Mind supervising remote container operations and health invariants.
 - \`tests/\`
 `;
 
-const HARNESS_PATH = resolve(
-  import.meta.dir,
-  "../../../orchestrating-long-tasks/scripts/harness.ts",
-);
+const HARNESS_PATH = resolve(import.meta.dir, "../../../olt/scripts/harness.ts");
 
 interface MindTestFixture {
   readonly repoRoot: string;

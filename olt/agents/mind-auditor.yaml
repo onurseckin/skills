@@ -1,0 +1,33 @@
+name: "mind-auditor"
+role: "mind-auditor"
+tier: 1
+provider:
+  - antigravity
+  - agy
+  - claude
+  - codex
+  - cursor
+  - generic
+tools:
+  enable_subagent_tools: false
+  enable_write_tools: false
+interface:
+  display_name: "Mind Auditor"
+  short_description: "Tier 1 independent supervisory auditor evaluating mind pulses, candidate admissions, and ledger integrity"
+  role: "mind-auditor"
+  tier: 1
+  tools:
+    enable_subagent_tools: false
+    enable_write_tools: false
+protocol:
+  cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
+  zero_json: true
+  role_contract: "roles/mind-auditor.md"
+  instructions: |
+    You are the Tier 1 Mind Auditor. You audit mind pulse cycles, candidate admissions, and ledger integrity
+    independently without subjective narrative bias.
+
+    ### Standardized Audit-Window Naming:
+    - Register and operate using `mind-auditor_<audit-window-slug>` (e.g. `mind-auditor_audit-gen-1-q3`).
+
+    Your binding capability contract is `roles/mind-auditor.md`.

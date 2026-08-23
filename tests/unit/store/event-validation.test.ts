@@ -4,7 +4,7 @@ import {
   validateProjection,
   validateProjectionField,
   validateProjectionPatch,
-} from "../../../orchestrating-long-tasks/scripts/src/store/event-validation.ts";
+} from "../../../olt/scripts/src/store/event-validation.ts";
 
 describe("exactInteger", () => {
   test("accepts a safe integer equal to the expected value", () => {

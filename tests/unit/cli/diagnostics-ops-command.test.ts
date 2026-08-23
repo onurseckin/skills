@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { transact } from "../../../olt/scripts/src/store/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
 import { branchCapsule, openBranchVia } from "../branch/fixture.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
@@ -48,14 +48,11 @@ describe("doctor", () => {
     const home = join(installRoot, "home");
     await mkdir(join(source, "scripts", "src", "config"), { recursive: true });
     await mkdir(home, { recursive: true });
-    await writeFile(
-      join(source, "SKILL.md"),
-      "---\nname: orchestrating-long-tasks\ndescription: test\n---\n",
-    );
+    await writeFile(join(source, "SKILL.md"), "---\nname: olt\ndescription: test\n---\n");
     await writeFile(join(source, "scripts", "harness.ts"), "console.log('ok')\n", { mode: 0o755 });
     await writeFile(
       join(source, "scripts", "package.json"),
-      '{"name":"@local/orchestrating-long-tasks-runtime","private":true}\n',
+      '{"name":"@local/olt-runtime","private":true}\n',
     );
     await writeFile(
       join(source, "scripts", "src", "config", "constants.ts"),

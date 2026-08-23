@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { abandonAttempt } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/abandon.ts";
+import { abandonAttempt } from "../../../olt/scripts/src/workflow/lease/abandon.ts";
 import {
   isAttemptOpen,
   openAttempts,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/attempt-state.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { recoverStale } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/recover-stale.ts";
-import { submitTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/workflow/lease/attempt-state.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { recoverStale } from "../../../olt/scripts/src/workflow/lease/recover-stale.ts";
+import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "./test-port.ts";
 
 const start = at("2026-08-19T00:00:00.000Z");

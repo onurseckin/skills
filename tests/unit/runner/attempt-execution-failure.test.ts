@@ -2,30 +2,27 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { relative, join, sep } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandAttemptRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import { atomicWriteJson } from "../../../orchestrating-long-tasks/scripts/src/core/durable-write.ts";
-import {
-  readBoundedBytes,
-  sha256Bytes,
-} from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
-import { recoverAggregateFromAttempts } from "../../../orchestrating-long-tasks/scripts/src/integration/reconcile-command-attempts.ts";
-import { AttemptExecutionError } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-execution-error.ts";
+import type { CommandAttemptRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
+import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { recoverAggregateFromAttempts } from "../../../olt/scripts/src/integration/reconcile-command-attempts.ts";
+import { AttemptExecutionError } from "../../../olt/scripts/src/runner/attempt-execution-error.ts";
 import {
   settledAttemptTerminalProof,
   startAttemptIntent,
   strongAttemptTerminalProof,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-intent.ts";
-import { settleBounded } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-support.ts";
-import { embeddedCommandIssues } from "../../../orchestrating-long-tasks/scripts/src/runner/command-shape.ts";
-import { createInternalCommandRunner } from "../../../orchestrating-long-tasks/scripts/src/runner/internal-command-runner.ts";
-import { OWNERSHIP_ENV } from "../../../orchestrating-long-tasks/scripts/src/runner/pipe-ownership.ts";
+} from "../../../olt/scripts/src/runner/attempt-intent.ts";
+import { settleBounded } from "../../../olt/scripts/src/runner/attempt-support.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/runner/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/runner/pipe-ownership.ts";
 import type {
   AttemptResult,
   FailureClass,
   NormalizedCommandOptions,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/types.ts";
-import { verifyCommandRecord } from "../../../orchestrating-long-tasks/scripts/src/runner/verify-command.ts";
-import type { CommandSigningCapability } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-disposition-capability.ts";
+} from "../../../olt/scripts/src/runner/types.ts";
+import { verifyCommandRecord } from "../../../olt/scripts/src/runner/verify-command.ts";
+import type { CommandSigningCapability } from "../../../olt/scripts/src/runner/attempt-disposition-capability.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

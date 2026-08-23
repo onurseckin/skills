@@ -1,10 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import {
-  ERROR_CODES,
-  type ErrorCode,
-} from "../../../orchestrating-long-tasks/scripts/src/errors/codes.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import { normalizeError } from "../../../orchestrating-long-tasks/scripts/src/errors/normalize-error.ts";
+import { ERROR_CODES, type ErrorCode } from "../../../olt/scripts/src/errors/codes.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { normalizeError } from "../../../olt/scripts/src/errors/normalize-error.ts";
 
 describe("errors subsystem unit tests", () => {
   it("defines standard error codes", () => {

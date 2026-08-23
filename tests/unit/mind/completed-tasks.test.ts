@@ -19,12 +19,12 @@ import {
   validateCompletedTaskStatus,
   writeCompletedTasksLedger,
   type CompletedTaskRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/completed-tasks.ts";
+} from "../../../olt/scripts/src/mind/completed-tasks.ts";
 import {
   popNextEligibleTaskWithCleanup,
   readTaskQueue,
   writeTaskQueue,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/task-queue.ts";
+} from "../../../olt/scripts/src/mind/task-queue.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Completed Tasks Ledger Engine", () => {
@@ -641,7 +641,7 @@ describe("Completed Tasks Ledger Engine", () => {
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   it("verifies completed tasks files contain zero any and zero suppressions", () => {
     const filesToAudit = [
-      join(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/completed-tasks.ts"),
+      join(process.cwd(), "olt/scripts/src/mind/completed-tasks.ts"),
       join(process.cwd(), "tests/unit/mind/completed-tasks.test.ts"),
     ];
 

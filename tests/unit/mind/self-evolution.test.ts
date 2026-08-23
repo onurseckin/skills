@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   appendFeedbackItem,
   readFeedbackQueue,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import {
   CLOSING_FORBIDDEN_IDLE_MIND,
   enforcePerpetualNonStoppingCadence,
@@ -19,16 +19,16 @@ import {
   resolveEvolutionHistoryPath,
   runSelfEvolutionCycle,
   type EvolutionLedgerEntry,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/self-evolution.ts";
+} from "../../../olt/scripts/src/mind/self-evolution.ts";
 import {
   mindSelfEvolveCommand,
   MIND_SELF_EVOLVE_COMMAND_SPEC,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/mind.ts";
+} from "../../../olt/scripts/src/mind/mind.ts";
 import {
   clearTaskQueue,
   enqueueTask,
   readTaskQueue,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/task-queue.ts";
+} from "../../../olt/scripts/src/mind/task-queue.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Autonomous Mind Self-Evolution Loop & Perpetual Cadence", () => {

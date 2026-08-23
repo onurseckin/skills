@@ -1,11 +1,8 @@
 import {
   executePreparedCommand,
   prepareCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/run-command.ts";
-import type {
-  CommandOptions,
-  CommandResult,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/types.ts";
+} from "../../../olt/scripts/src/runner/run-command.ts";
+import type { CommandOptions, CommandResult } from "../../../olt/scripts/src/runner/types.ts";
 
 /**
  * Prepare-then-execute in one call. Production runs every command through the durable

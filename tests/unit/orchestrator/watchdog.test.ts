@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { OrchestratorWatchdog } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/watchdog.ts";
-import type { WatchdogEvent } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/types.ts";
+import { OrchestratorWatchdog } from "../../../olt/scripts/src/orchestrator/watchdog.ts";
+import type { WatchdogEvent } from "../../../olt/scripts/src/orchestrator/types.ts";
 
 describe("OrchestratorWatchdog Unit Tests", () => {
   it("registers and unregisters monitors correctly", () => {
@@ -271,7 +271,7 @@ describe("Invariants & Cleanliness Audit - Orchestrator Watchdog", () => {
     const { readFileSync } = require("node:fs");
     const { join } = require("node:path");
     const sourceFiles = [
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/orchestrator/watchdog.ts"),
+      join(__dirname, "../../../olt/scripts/src/orchestrator/watchdog.ts"),
       __filename,
     ];
 

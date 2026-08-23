@@ -2,10 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { taskReviewCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-review.ts";
-import { taskValidateStartCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-validation-start.ts";
-import { loadChecklist } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { taskReviewCommand } from "../../../olt/scripts/src/cli/commands/task-review.ts";
+import { taskValidateStartCommand } from "../../../olt/scripts/src/cli/commands/task-validation-start.ts";
+import { loadChecklist } from "../../../olt/scripts/src/packets/role-contract.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import {
   CHANGED_FILE,

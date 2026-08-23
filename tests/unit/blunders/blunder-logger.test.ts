@@ -6,7 +6,7 @@ import {
   compactBlunderLogFile,
   readBlunderLogFile,
   recordKeyedBlunder,
-} from "../../../orchestrating-long-tasks/scripts/src/logging/blunder-logger.ts";
+} from "../../../olt/scripts/src/logging/blunder-logger.ts";
 
 const tempRoots: string[] = [];
 

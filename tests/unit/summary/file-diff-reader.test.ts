@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { enrichFileRefsWithDiffs } from "../../../orchestrating-long-tasks/scripts/src/summary/file-diff-reader.ts";
-import type { RepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
-import type { FileRef } from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
+import { enrichFileRefsWithDiffs } from "../../../olt/scripts/src/summary/file-diff-reader.ts";
+import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
+import type { FileRef } from "../../../olt/scripts/src/summary/types.ts";
 
 const roots: string[] = [];
 let rootCounter = 0;

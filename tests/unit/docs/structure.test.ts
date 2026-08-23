@@ -5,10 +5,10 @@ import { join, resolve } from "node:path";
 describe("Documentation Structure, Diátaxis Modules & Semantic Mirroring Invariant Tests", () => {
   const repoRoot = resolve(import.meta.dir, "../../..");
   const rootDocsDir = join(repoRoot, "docs");
-  const skillDocsDir = join(rootDocsDir, "orchestrating-long-tasks");
-  const forbiddenSkillDocs = join(repoRoot, "orchestrating-long-tasks", "docs");
+  const skillDocsDir = join(rootDocsDir, "olt");
+  const forbiddenSkillDocs = join(repoRoot, "olt", "docs");
   const forbiddenPlanningDir = join(rootDocsDir, "planning");
-  const scriptsSrcDir = join(repoRoot, "orchestrating-long-tasks", "scripts", "src");
+  const scriptsSrcDir = join(repoRoot, "olt", "scripts", "src");
   const testsUnitDir = join(repoRoot, "tests", "unit");
 
   const expectedModules = [
@@ -29,7 +29,7 @@ describe("Documentation Structure, Diátaxis Modules & Semantic Mirroring Invari
     expect(existsSync(forbiddenPlanningDir)).toBe(false);
   });
 
-  it("verifies docs/orchestrating-long-tasks contains README.md and all 10 educational modules", () => {
+  it("verifies docs/olt contains README.md and all 10 educational modules", () => {
     expect(existsSync(skillDocsDir)).toBe(true);
 
     const masterReadme = join(skillDocsDir, "README.md");

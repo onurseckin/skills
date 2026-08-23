@@ -3,7 +3,7 @@ import {
   contentDigest,
   contentEquals,
   normalizeContent,
-} from "../../../../orchestrating-long-tasks/scripts/src/store/content-normalization/normalize.ts";
+} from "../../../../olt/scripts/src/store/content-normalization/normalize.ts";
 
 const encode = (text: string): Uint8Array => new TextEncoder().encode(text);
 

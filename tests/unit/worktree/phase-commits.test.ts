@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   assertConventionalCommitCompliance,
   CONVENTIONAL_COMMIT_TYPES,
@@ -14,7 +14,7 @@ import {
   type PhaseCommitConfig,
   type PhaseGateResult,
   type UpstreamPushPolicy,
-} from "../../../orchestrating-long-tasks/scripts/src/worktree/phase-commits.ts";
+} from "../../../olt/scripts/src/worktree/phase-commits.ts";
 
 describe("Phase Commits & Conventional Commit Validation (p09)", () => {
   describe("CONVENTIONAL_COMMIT_TYPES", () => {
@@ -430,7 +430,7 @@ describe("Phase Commits & Conventional Commit Validation (p09)", () => {
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   test("verifies phase-commits module and test file contain zero any and zero suppressions", () => {
     const filesToAudit = [
-      join(process.cwd(), "orchestrating-long-tasks/scripts/src/worktree/phase-commits.ts"),
+      join(process.cwd(), "olt/scripts/src/worktree/phase-commits.ts"),
       join(process.cwd(), "tests/unit/worktree/phase-commits.test.ts"),
     ];
 

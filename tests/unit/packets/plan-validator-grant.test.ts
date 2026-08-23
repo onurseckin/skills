@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { publishPlanValidatorRolePacket } from "../../../orchestrating-long-tasks/scripts/src/packets/plan-validator-grant.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { workflowPort } from "../../../orchestrating-long-tasks/scripts/src/integration/store-ports.ts";
-import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
+import { publishPlanValidatorRolePacket } from "../../../olt/scripts/src/packets/plan-validator-grant.ts";
+import { transact } from "../../../olt/scripts/src/store/index.ts";
+import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import {
   emptyGrantRun,
   seedRepositoryInspection,

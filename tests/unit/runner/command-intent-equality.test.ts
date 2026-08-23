@@ -2,16 +2,16 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { RepositoryBinding } from "../../../orchestrating-long-tasks/scripts/src/contracts/repository.ts";
-import { atomicWriteJson } from "../../../orchestrating-long-tasks/scripts/src/core/durable-write.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/contracts/repository.ts";
+import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import {
   reconcileCommandResult,
   recordCommandIntent,
-} from "../../../orchestrating-long-tasks/scripts/src/integration/record-command.ts";
-import { createInternalCommandRunner } from "../../../orchestrating-long-tasks/scripts/src/runner/internal-command-runner.ts";
-import { embeddedCommandIssues } from "../../../orchestrating-long-tasks/scripts/src/runner/command-shape.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { createCommandSigningCapability } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-disposition-capability.ts";
+} from "../../../olt/scripts/src/integration/record-command.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/runner/command-shape.ts";
+import { initRun } from "../../../olt/scripts/src/store/index.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/runner/attempt-disposition-capability.ts";
 
 const roots: string[] = [];
 

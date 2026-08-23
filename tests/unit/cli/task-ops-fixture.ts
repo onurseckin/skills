@@ -2,7 +2,7 @@ import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 
 /** Two tasks, one depending on the other, compiled and ready to be claimed. */
 export async function setupCompiledRun(name: string, roots: string[]) {

@@ -5,7 +5,7 @@ import {
   parseBlunderLog,
   serializeBlunderLog,
   type BlunderEntry,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/blunders.ts";
+} from "../../../olt/scripts/src/mind/blunders.ts";
 
 describe("Diagnostics Blunder Ingestion Engine", () => {
   const repoRoot = process.cwd();

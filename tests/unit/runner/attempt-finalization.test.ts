@@ -3,25 +3,22 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { relative, join, sep } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandAttemptRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type { RepositoryBinding } from "../../../orchestrating-long-tasks/scripts/src/contracts/repository.ts";
-import { atomicWriteJson } from "../../../orchestrating-long-tasks/scripts/src/core/durable-write.ts";
-import {
-  readBoundedBytes,
-  sha256Bytes,
-} from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
-import { recoverAggregateFromAttempts } from "../../../orchestrating-long-tasks/scripts/src/integration/reconcile-command-attempts.ts";
-import { writeAttemptStarted } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-intent.ts";
-import { createCommandSigningCapability } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-disposition-capability.ts";
-import { embeddedCommandIssues } from "../../../orchestrating-long-tasks/scripts/src/runner/command-shape.ts";
-import { createInternalCommandRunner } from "../../../orchestrating-long-tasks/scripts/src/runner/internal-command-runner.ts";
-import { OWNERSHIP_ENV } from "../../../orchestrating-long-tasks/scripts/src/runner/pipe-ownership.ts";
-import { runAttempt } from "../../../orchestrating-long-tasks/scripts/src/runner/run-attempt.ts";
+import type { CommandAttemptRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/contracts/repository.ts";
+import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
+import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { recoverAggregateFromAttempts } from "../../../olt/scripts/src/integration/reconcile-command-attempts.ts";
+import { writeAttemptStarted } from "../../../olt/scripts/src/runner/attempt-intent.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/runner/attempt-disposition-capability.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/runner/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/runner/pipe-ownership.ts";
+import { runAttempt } from "../../../olt/scripts/src/runner/run-attempt.ts";
 import type {
   AttemptResult,
   BunSpawnApi,
   NormalizedCommandOptions,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/types.ts";
+} from "../../../olt/scripts/src/runner/types.ts";
 
 const roots: string[] = [];
 const digest = (marker: string): string => marker.repeat(64);

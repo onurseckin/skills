@@ -1,16 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync } from "node:fs";
 import { dirname } from "node:path";
-import {
-  AGENT_ROLES,
-  isAgentRole,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
+import { AGENT_ROLES, isAgentRole } from "../../../olt/scripts/src/contracts/packets.ts";
 import {
   loadRoleContract,
   loadValidatorDomainContract,
   resolveRoleContractPath,
   VALIDATOR_DOMAINS,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
+} from "../../../olt/scripts/src/packets/role-contract.ts";
 
 const rolesRoot = dirname(resolveRoleContractPath("planner"));
 

@@ -2,11 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentRole } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
-import { publishPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/persist-packet.ts";
-import type { BuiltPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/types.ts";
-import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
-import type { WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type { AgentRole } from "../../../olt/scripts/src/contracts/packets.ts";
+import { publishPacket } from "../../../olt/scripts/src/packets/persist-packet.ts";
+import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
+import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { TestPort, workflowState } from "../workflow/test-port.ts";
 
 const clock = { now: () => new Date("2026-08-13T12:30:00.000Z") };

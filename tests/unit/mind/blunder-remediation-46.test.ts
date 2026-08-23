@@ -24,7 +24,7 @@ import {
   type BlunderCategory,
   type BlunderEntry,
   type BlunderResolutionProof,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/blunders.ts";
+} from "../../../olt/scripts/src/mind/blunders.ts";
 import { GLOBAL_SYNC_GEN5 } from "../../../scripts/sync-global.ts";
 
 const tempRoots: string[] = [];

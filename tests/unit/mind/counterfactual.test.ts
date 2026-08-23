@@ -10,12 +10,12 @@ import {
   formatCounterfactualReportMarkdown,
   runCounterfactualReAdmissionSuite,
   selectPreviouslyAdmittedCandidates,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/counterfactual.ts";
+} from "../../../olt/scripts/src/mind/counterfactual.ts";
 import type {
   CandidateRecord,
   GateEvaluationContext,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/gates.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
+} from "../../../olt/scripts/src/mind/gates.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
 
 const roots: string[] = [];
 
@@ -45,7 +45,7 @@ function setupTestEnvironment(name: string): CounterfactualTestContext {
   const charterDir = join(repo, "docs", "mind");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "CHARTER.md");
-  const charterContent = `# CHARTER\n\n## identity\nCounterfactual Test System\n\n## goals\n- G1: Ensure stability\n- G2: Verification excellence\n\n## non-goals\n- Unattended deletion\n- Out of scope\n\n## repo_roots\n- \`src/\`\n- \`orchestrating-long-tasks/\`\n- \`tests/\`\n`;
+  const charterContent = `# CHARTER\n\n## identity\nCounterfactual Test System\n\n## goals\n- G1: Ensure stability\n- G2: Verification excellence\n\n## non-goals\n- Unattended deletion\n- Out of scope\n\n## repo_roots\n- \`src/\`\n- \`olt/\`\n- \`tests/\`\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -64,7 +64,7 @@ function setupTestEnvironment(name: string): CounterfactualTestContext {
     state: {},
     charterGoals: new Set(["G1", "G2"]),
     charterNonGoals: ["Unattended deletion", "Out of scope"],
-    repoRoots: ["src/", "orchestrating-long-tasks/", "tests/"],
+    repoRoots: ["src/", "olt/", "tests/"],
   };
 
   return {

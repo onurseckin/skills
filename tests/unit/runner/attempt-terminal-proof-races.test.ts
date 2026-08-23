@@ -2,12 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { atomicWriteJson } from "../../../orchestrating-long-tasks/scripts/src/core/durable-write.ts";
-import { cleanupFailedAttempt } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-cleanup.ts";
-import { writeAttemptFailureEvidence } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-failure-evidence.ts";
-import type { AttemptProcessProof } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-intent.ts";
-import { DescendantTracker } from "../../../orchestrating-long-tasks/scripts/src/runner/descendant-tracker.ts";
-import type { ProcessIdentity } from "../../../orchestrating-long-tasks/scripts/src/runner/process-identity.ts";
+import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
+import { cleanupFailedAttempt } from "../../../olt/scripts/src/runner/attempt-cleanup.ts";
+import { writeAttemptFailureEvidence } from "../../../olt/scripts/src/runner/attempt-failure-evidence.ts";
+import type { AttemptProcessProof } from "../../../olt/scripts/src/runner/attempt-intent.ts";
+import { DescendantTracker } from "../../../olt/scripts/src/runner/descendant-tracker.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/runner/process-identity.ts";
 
 const roots: string[] = [];
 const rootIdentity: ProcessIdentity = { pid: 40, parent: 30, group: 40, birth: "root" };

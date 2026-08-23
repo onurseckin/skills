@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { AGENT_ROLES } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
-import { VALIDATOR_DOMAINS } from "../../../orchestrating-long-tasks/scripts/src/contracts/workflow.ts";
-import { evidenceSchema } from "../../../orchestrating-long-tasks/scripts/src/packets/evidence-schema.ts";
+import { AGENT_ROLES } from "../../../olt/scripts/src/contracts/packets.ts";
+import { VALIDATOR_DOMAINS } from "../../../olt/scripts/src/contracts/workflow.ts";
+import { evidenceSchema } from "../../../olt/scripts/src/packets/evidence-schema.ts";
 import {
   loadChecklist,
   loadRoleContract,
   loadValidatorDomainContract,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
-import { buildPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/render-packet.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
+} from "../../../olt/scripts/src/packets/role-contract.ts";
+import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "../workflow/test-port.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 

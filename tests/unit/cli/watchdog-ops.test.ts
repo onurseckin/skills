@@ -6,9 +6,9 @@ import {
   saveWatchdogStore,
   type WatchdogRecord,
   type WatchdogStore,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/watchdog-manager.ts";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/authority/watchdog-manager.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("CLI - watchdog:status", () => {

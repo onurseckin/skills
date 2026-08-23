@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { completionIssues } from "../../../../orchestrating-long-tasks/scripts/src/workflow/completion/completion-state.ts";
+import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
 import { commandRecord, TEST_GATE_ARGV, workflowState } from "../test-port.ts";
-import type { WorkflowState } from "../../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type { WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
 
 describe("completionIssues: validator command provenance", () => {
   test("flags a validator check whose command was run by a different actor than the validator", () => {

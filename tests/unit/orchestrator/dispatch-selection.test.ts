@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { selectDispatchable } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/dispatch-selection.ts";
-import type { DispatchLogEvent } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/dispatch-log.ts";
+import { selectDispatchable } from "../../../olt/scripts/src/orchestrator/dispatch-selection.ts";
+import type { DispatchLogEvent } from "../../../olt/scripts/src/orchestrator/dispatch-log.ts";
 import { schedulerState } from "../scheduler/fixtures.ts";
 
 describe("selectDispatchable (B28.3 — what is safe to dispatch right now)", () => {

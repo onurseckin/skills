@@ -3,7 +3,7 @@ import {
   assertSubScopes,
   scopeContains,
   scopeStrictlyContains,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/scope.ts";
+} from "../../../../olt/scripts/src/workflow/branch/scope.ts";
 
 describe("scopeContains", () => {
   test("an exact single-segment match contains itself", () => {

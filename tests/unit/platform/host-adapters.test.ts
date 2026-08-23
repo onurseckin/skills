@@ -11,7 +11,7 @@ import {
   listSupportedHostProviders,
   resolveHostProvider,
   type SubagentDispatchPacket,
-} from "../../../orchestrating-long-tasks/scripts/src/platform/index.ts";
+} from "../../../olt/scripts/src/platform/index.ts";
 
 describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", () => {
   const samplePacket: SubagentDispatchPacket = {
@@ -20,7 +20,7 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
     runRoot: ".capsules/test-run-1",
     taskId: "task-42",
     taskDescription: "Implement strict POSIX flock concurrency primitives.",
-    writeScope: ["orchestrating-long-tasks/scripts/src/platform/"],
+    writeScope: ["olt/scripts/src/platform/"],
     modelTier: "m",
     thinkingLevel: "high",
   };
@@ -236,7 +236,7 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
   test("getHostAdapter throws INVALID_ARGUMENT on unknown host provider", () => {
     expect(() =>
       getHostAdapter(
-        "unknown-host" as unknown as import("../../../orchestrating-long-tasks/scripts/src/platform/index.ts").HostProvider,
+        "unknown-host" as unknown as import("../../../olt/scripts/src/platform/index.ts").HostProvider,
       ),
     ).toThrow(/Unsupported host provider/);
   });

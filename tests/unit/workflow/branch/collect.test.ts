@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import {
   abandonBranch,
   collectBranch,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/collect.ts";
-import { readBranchLedger } from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/ledger.ts";
-import { tokenDigest } from "../../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
+} from "../../../../olt/scripts/src/workflow/branch/collect.ts";
+import { readBranchLedger } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
+import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
 import { branchRecord, subTask } from "./fixture.ts";
 import { FakeRunStore, seedBranchLedger, seedTask } from "./fake-transact.ts";
 

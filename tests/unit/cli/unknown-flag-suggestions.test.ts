@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { assertFlags } from "../../../orchestrating-long-tasks/scripts/src/cli/options.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { assertFlags } from "../../../olt/scripts/src/cli/options.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 
 function catchHarnessError(thunk: () => void): HarnessError {
   try {

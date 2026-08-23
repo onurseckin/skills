@@ -15,7 +15,7 @@ import {
   type AgentManifest,
   type RoleContract,
   type UnifiedAgentModel,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/manifest-parser.ts";
+} from "../../../olt/scripts/src/authority/manifest-parser.ts";
 import {
   constructSupervisoryPersonaReminder,
   DECISION_PROTOCOLS,
@@ -24,8 +24,8 @@ import {
   type DecisionProtocolId,
   type SupervisoryPersonaReminder,
   type SupervisoryReminderEvaluationContext,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/supervisory-persona-reminder.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/authority/supervisory-persona-reminder.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 
 describe("YAML and Markdown Frontmatter Parser (manifest-parser.ts)", () => {
   test("parses plain scalars, booleans, numbers, and nulls correctly", () => {
@@ -794,9 +794,7 @@ describe("Adversarial Counterfactual Falsifiability Verification (Task-p51 Probe
   test("evaluateSupervisoryState strictly detects and aggregates multiple concurrent violations with corrective directives", () => {
     const multiViolationContext: SupervisoryReminderEvaluationContext = {
       role: "coordinator",
-      fileModificationsOnSupervisoryThread: [
-        "orchestrating-long-tasks/scripts/src/authority/manifest-parser.ts",
-      ],
+      fileModificationsOnSupervisoryThread: ["olt/scripts/src/authority/manifest-parser.ts"],
       directExecutionAttempts: ["claim_task"],
       activeLeases: [
         { taskId: "task-p51", agentId: "impl-1", writeScope: ["src/a.ts", "src/shared.ts"] },

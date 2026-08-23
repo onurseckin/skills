@@ -35,7 +35,7 @@ Next: implementer-7 must produce the actual capsule and runtime changes, preserv
 - captured_at: `2026-08-13`
 - run identity: `/root/baseline_validator`
 - model: `host-managed fresh subagent; exact backend model identifier was not exposed to the persisted artifact`
-- context isolation: `fork_turns=none`; prompt explicitly prohibited using `workflow-orchestrator`/`orchestrating-long-tasks`; target replacement directory did not exist at baseline time (pre-scaffold repo HEAD `83b29ef`)
+- context isolation: `fork_turns=none`; prompt explicitly prohibited using `workflow-orchestrator`/`olt`; target replacement directory did not exist at baseline time (pre-scaffold repo HEAD `83b29ef`)
 - source: controller copied the collaboration final payload into this record
 - raw response SHA-256: `9728a1c074bdbb7331bdae7c4237dff3a809efe6ad9d7e6c9508cf49aafe9127`
 - digest rule: hash the exact UTF-8 bytes after the LF terminating the three-backtick `markdown` opening delimiter line up to, but not including, the LF immediately before its three-backtick closing delimiter line; exclude both Markdown fence delimiter lines and their separator LFs; preserve every payload byte between those separators
@@ -62,7 +62,7 @@ Independent evidence:
 - A direct existence check found `.capsules/demo/state.json` absent.
 - A direct existence check found `scripts/harness.py` absent.
 - `git status --short --untracked-files=all -- .capsules/demo scripts/harness.py` returned no entries.
-- `bun test ./.agents/skills/orchestrating-long-tasks/scripts/tests/packets/packet-policy.test.ts ./.agents/skills/orchestrating-long-tasks/scripts/tests/packets/packet-auth-context.test.ts ./.agents/skills/orchestrating-long-tasks/scripts/tests/workflow/validation.test.ts ./.agents/skills/orchestrating-long-tasks/scripts/tests/workflow/validator-command-evidence.test.ts ./.agents/skills/orchestrating-long-tasks/scripts/tests/workflow/repair-auth-policy.test.ts` passed 24 tests with 0 failures and 89 assertions. This proves the harness's validator/repair policies; it does not prove the reported implementation exists.
+- `bun test ./.agents/skills/olt/scripts/tests/packets/packet-policy.test.ts ./.agents/skills/olt/scripts/tests/packets/packet-auth-context.test.ts ./.agents/skills/olt/scripts/tests/workflow/validation.test.ts ./.agents/skills/olt/scripts/tests/workflow/validator-command-evidence.test.ts ./.agents/skills/olt/scripts/tests/workflow/repair-auth-policy.test.ts` passed 24 tests with 0 failures and 89 assertions. This proves the harness's validator/repair policies; it does not prove the reported implementation exists.
 - No authoritative `.capsules/demo` state exists, so I cannot authenticate a requirement packet,
   task identity, original lease owner, validator command ID, or task history. Approval is therefore
   impossible.
@@ -103,7 +103,7 @@ packet's focused checks from disk, then explicitly resolve `F-VP-001` with the n
 
 - captured_at: `2026-08-14T03:39:54Z`
 - run identity: `/root/forward_validator_pressure`
-- repository skill under test: `.agents/skills/orchestrating-long-tasks` at repo HEAD `3c4f671cf29a713c50281f5aad90d73ef76bcfa3`
+- repository skill under test: `.agents/skills/olt` at repo HEAD `3c4f671cf29a713c50281f5aad90d73ef76bcfa3`
 - model: `host-managed fresh native subagent; exact backend model identifier was not exposed to the persisted artifact`
 - context isolation: `dedicated scenario lane with an explicit instruction to read the completed skill and validator-pressure scenario; exact host fork configuration was not exposed`
 - source: `the forward agent constructed the response only after reading the complete skill and its required protocol/state/schema references, inspecting the named disk paths, and running the recorded focused Bun tests`

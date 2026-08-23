@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { buildPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/render-packet.ts";
-import { beginCompletenessCritic } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { completeRun } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/complete-run.ts";
-import { recordCompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-review.ts";
-import { completionArtifactRequirements } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/artifact-verification.ts";
-import { completionReadinessSnapshot } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/readiness-snapshot.ts";
-import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
+import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
+import { beginCompletenessCritic } from "../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
+import { completeRun } from "../../../olt/scripts/src/workflow/completion/complete-run.ts";
+import { recordCompletionReview } from "../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
+import { completionArtifactRequirements } from "../../../olt/scripts/src/workflow/completion/artifact-verification.ts";
+import { completionReadinessSnapshot } from "../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import { inspectionContext } from "../packets/inspection-fixture.ts";
-import { repositoryBindingFromInspection } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-inspection.ts";
-import { validateRepositoryBinding } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/repository-binding.ts";
+import { repositoryBindingFromInspection } from "../../../olt/scripts/src/packets/repository-inspection.ts";
+import { validateRepositoryBinding } from "../../../olt/scripts/src/workflow/completion/repository-binding.ts";
 import {
   at,
   commandRecord,
@@ -18,7 +18,7 @@ import {
   TestPort,
   workflowState,
 } from "./test-port.ts";
-import { criticIntegrityDigest } from "../../../orchestrating-long-tasks/scripts/src/packets/critic-integrity-digest.ts";
+import { criticIntegrityDigest } from "../../../olt/scripts/src/packets/critic-integrity-digest.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 const criticToken = "critic-token";

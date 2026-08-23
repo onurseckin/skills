@@ -2,18 +2,18 @@ import { describe, expect, test } from "bun:test";
 import {
   appendGateProof,
   type GateProofRecord,
-} from "../../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
-import { assignReplacementRepairer } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/assign-repairer.ts";
-import { beginValidation } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/begin-validation.ts";
-import { isProbeDemand } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/finding-class.ts";
+} from "../../../../olt/scripts/src/graph/gate-proof.ts";
+import { assignReplacementRepairer } from "../../../../olt/scripts/src/workflow/review/assign-repairer.ts";
+import { beginValidation } from "../../../../olt/scripts/src/workflow/review/begin-validation.ts";
+import { isProbeDemand } from "../../../../olt/scripts/src/workflow/review/finding-class.ts";
 import {
   failingGateRuns,
   probeRoundsRecorded,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/pass-preconditions.ts";
-import { recordProbe } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/record-probe.ts";
-import { recordReview } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/record-review.ts";
-import { claimTask } from "../../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { submitTask } from "../../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
+} from "../../../../olt/scripts/src/workflow/review/pass-preconditions.ts";
+import { recordProbe } from "../../../../olt/scripts/src/workflow/review/record-probe.ts";
+import { recordReview } from "../../../../olt/scripts/src/workflow/review/record-review.ts";
+import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
+import { submitTask } from "../../../../olt/scripts/src/workflow/submission/submit.ts";
 import {
   at,
   commandRecord,

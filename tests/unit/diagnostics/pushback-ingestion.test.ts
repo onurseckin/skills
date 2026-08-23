@@ -6,7 +6,7 @@ import {
   readFeedbackQueue,
   type FeedbackCategory,
   type FeedbackItem,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import {
   ingestPushbacks,
   mapFeedbackCategoryToBlunderCategory,
@@ -14,7 +14,7 @@ import {
   resolvePushbackMarkdownPath,
   type PushbackAuditReport,
   type PushbackRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/pushbacks.ts";
+} from "../../../olt/scripts/src/mind/pushbacks.ts";
 
 describe("Diagnostics Pushback Ingestion Engine", () => {
   const repoRoot = process.cwd();

@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import type { RunState } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
+import type { RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
 import {
   repositoryBindingFromInspection,
   repositoryInspectionContext,
   repositoryInspectionDigest,
   validateRepositoryInspectionPair,
   type RepositoryInspection,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/repository-inspection.ts";
+} from "../../../olt/scripts/src/packets/repository-inspection.ts";
 
 function baseInspection(): RepositoryInspection {
   return {

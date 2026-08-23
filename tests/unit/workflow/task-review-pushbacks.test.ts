@@ -3,9 +3,9 @@ import {
   assertReviewProtocolSatisfied,
   projectTaskReviewState,
   ReviewProtocolEngine,
-} from "../../../orchestrating-long-tasks/scripts/src/policy/review-protocol.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/policy/review-protocol.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Task Review Dual-Channel Pushback Enforcement", () => {
   const baseTask: TaskRecord = {

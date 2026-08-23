@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import type { RunState } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
+import type { RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
 import {
   businessFields,
   cloneObject,
   initialState,
   isTerminalState,
   sameJson,
-} from "../../../orchestrating-long-tasks/scripts/src/store/state.ts";
+} from "../../../olt/scripts/src/store/state.ts";
 
 describe("initialState", () => {
   test("returns a freshly minted zero-revision state", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { TelemetryFieldConflict } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
-import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type { TelemetryFieldConflict } from "../../../olt/scripts/src/contracts/agents.ts";
+import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { makeGrant, makeState, makeTask } from "./graph-fixtures.ts";
 import { cleanupRoots, emptyState, render } from "./markdown-fixtures.ts";
 

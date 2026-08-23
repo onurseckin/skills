@@ -20,16 +20,13 @@ import {
   SchedulerEngine,
   type CliDiagnosticReceipt,
   type ScriptBackedDiagnosticsResult,
-} from "../../../orchestrating-long-tasks/scripts/src/scheduler/index.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import type {
-  TransactionPort,
-  WorkflowState,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/scheduler/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import {
   formatMindPulseActiveBrief,
   formatMindPulseOpenedBrief,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse.ts";
+} from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
 import { schedulerState } from "./fixtures.ts";
 
 function createMockPort(initialState: Record<string, unknown>): TransactionPort {
@@ -384,10 +381,10 @@ describe("Script-Backed Scheduler Diagnostics Engine", () => {
   describe("6. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     test("verifies touched scheduler source files contain zero any and zero suppressions", () => {
       const filesToCheck = [
-        "orchestrating-long-tasks/scripts/src/scheduler/diagnostics.ts",
-        "orchestrating-long-tasks/scripts/src/scheduler/pulse.ts",
-        "orchestrating-long-tasks/scripts/src/scheduler/metrics.ts",
-        "orchestrating-long-tasks/scripts/src/scheduler/index.ts",
+        "olt/scripts/src/scheduler/diagnostics.ts",
+        "olt/scripts/src/scheduler/pulse.ts",
+        "olt/scripts/src/scheduler/metrics.ts",
+        "olt/scripts/src/scheduler/index.ts",
       ];
 
       const anyWord = "a" + "n" + "y";

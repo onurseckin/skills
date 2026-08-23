@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { formatDoctorBrief } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/diagnostics-ops.ts";
+import { formatDoctorBrief } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
 import {
   agentListNextActions,
   agentRegisterNextActions,
@@ -88,7 +88,7 @@ import {
   validationStartNextActions,
   whoamiNextActions,
   type NextActionItem,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/index.ts";
+} from "../../../olt/scripts/src/cli/formatters/index.ts";
 
 describe("Next Actions Formatter", () => {
   test("nextActionsBlock returns empty array for no actions", () => {

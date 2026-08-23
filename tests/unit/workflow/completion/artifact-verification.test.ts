@@ -2,10 +2,10 @@ import { describe, expect, test } from "bun:test";
 import {
   completionArtifactRequirements,
   validateCompletionArtifactVerification,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/completion/artifact-verification.ts";
+} from "../../../../olt/scripts/src/workflow/completion/artifact-verification.ts";
 import { commandRecord, repositoryBinding, TEST_GATE_ARGV, workflowState } from "../test-port.ts";
-import type { WorkflowState } from "../../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import type { CompletionRemediation } from "../../../../orchestrating-long-tasks/scripts/src/workflow/completion/types.ts";
+import type { WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
+import type { CompletionRemediation } from "../../../../olt/scripts/src/workflow/completion/types.ts";
 
 function baseState(): WorkflowState {
   const state = workflowState();

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
+import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
 import { makeCommand, makeState, makeTask } from "./graph-fixtures.ts";
 
 function pipelineDataset() {

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
-const skillPath = join(repoRoot, "orchestrating-long-tasks/SKILL.md");
+const skillPath = join(repoRoot, "olt/SKILL.md");
 
 describe("SKILL.md architectural invariants and cadence specification", () => {
   const content = readFileSync(skillPath, "utf8");

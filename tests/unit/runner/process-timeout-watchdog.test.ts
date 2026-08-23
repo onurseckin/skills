@@ -15,8 +15,8 @@ import {
   createProcessTimeoutWatchdog,
   createHierarchicalStallProbe,
   buildRemediationGuidance,
-} from "../../../orchestrating-long-tasks/scripts/src/runner/process-timeout-watchdog.ts";
-import type { BunSubprocess } from "../../../orchestrating-long-tasks/scripts/src/runner/types.ts";
+} from "../../../olt/scripts/src/runner/process-timeout-watchdog.ts";
+import type { BunSubprocess } from "../../../olt/scripts/src/runner/types.ts";
 
 function createFakeSubprocess(
   options: {
@@ -621,11 +621,8 @@ describe("Invariants & Cleanliness Audit - Mechanical Process Timeout Watchdog",
     const { join } = require("node:path");
 
     const sourceFiles = [
-      join(
-        __dirname,
-        "../../../orchestrating-long-tasks/scripts/src/runner/process-timeout-watchdog.ts",
-      ),
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/runner/policy.ts"),
+      join(__dirname, "../../../olt/scripts/src/runner/process-timeout-watchdog.ts"),
+      join(__dirname, "../../../olt/scripts/src/runner/policy.ts"),
       __filename,
     ];
 

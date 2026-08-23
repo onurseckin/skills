@@ -4,13 +4,13 @@ import {
   git,
   worktreeGitEnvironment,
   type GitSpawn,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
+} from "../../../olt/scripts/src/workflow/worktree/git.ts";
 import {
   provisionWorktrees,
   type ProvisionWorktreesInput,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/worktree/provision.ts";
-import { parseCoverageTable } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/coverage-check.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/workflow/worktree/provision.ts";
+import { parseCoverageTable } from "../../../olt/scripts/src/cli/commands/coverage-check.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 
 describe("coverage sweep gap tests: git runner edge cases", () => {
   test("worktreeGitEnvironment filters undefined and empty string keys and preserves passthrough", () => {

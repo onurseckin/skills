@@ -4,15 +4,15 @@ import { existsSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   deriveRunId,
   firstAvailableRunId,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/orchestrate-slug.ts";
+} from "../../../olt/scripts/src/cli/commands/orchestrate-slug.ts";
 import {
   extractOrchestrateInlinePrompt,
   shouldAutoReadOrchestrateStdin,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/prompt-input.ts";
+} from "../../../olt/scripts/src/cli/prompt-input.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
@@ -25,15 +25,7 @@ function stdinFor(text: string): Uint8Array {
 // Every other test in this file calls `execute()` directly with `context.stdin`/`context.inlinePrompt`
 // already populated, which never exercises `harness.ts`'s own entrypoint (argv extraction, the
 // stdin gate). These spawn the real entrypoint so a regression in that wiring fails a test here.
-const entrypoint = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "..",
-  "orchestrating-long-tasks",
-  "scripts",
-  "harness.ts",
-);
+const entrypoint = join(import.meta.dir, "..", "..", "..", "olt", "scripts", "harness.ts");
 
 async function spawnOrchestrate(
   args: readonly string[],

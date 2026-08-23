@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   isMicroCycleRecord,
   type MicroCycleRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/workflow.ts";
+} from "../../../olt/scripts/src/contracts/workflow.ts";
 import {
   DEFAULT_MAX_MICRO_CYCLES,
   formatMicroCycleFeedback,
@@ -11,11 +11,11 @@ import {
   getOpenMicroCycles,
   markMicroCycleAddressed,
   recordMicroCycleCritique,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/review/micro-cycle.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { taskRejectCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-reject.ts";
-import { taskReviewCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-review.ts";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+} from "../../../olt/scripts/src/workflow/review/micro-cycle.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { taskRejectCommand } from "../../../olt/scripts/src/cli/commands/task-reject.ts";
+import { taskReviewCommand } from "../../../olt/scripts/src/cli/commands/task-review.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { cleanupRoots } from "../cli/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../cli/file-persistence-fixture.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "./test-port.ts";

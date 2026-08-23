@@ -6,8 +6,8 @@ import {
   validateReviewAntiBatching,
   AntiMockEngine,
   type DualChannelInput,
-} from "../../../orchestrating-long-tasks/scripts/src/validation/index.ts";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/validation/index.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Validation Layer Hardening & Dual-Validation Requirements", () => {
   describe("1. Validation Index Re-exports", () => {

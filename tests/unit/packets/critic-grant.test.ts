@@ -3,11 +3,11 @@ import {
   publishCriticRolePacket,
   repositoryEvidenceCommandIds,
   type CriticRoleGrant,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/critic-grant.ts";
-import { loadRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { workflowPort } from "../../../orchestrating-long-tasks/scripts/src/integration/store-ports.ts";
-import { completionReadinessSnapshot } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/readiness-snapshot.ts";
-import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
+} from "../../../olt/scripts/src/packets/critic-grant.ts";
+import { loadRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
+import { completionReadinessSnapshot } from "../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import { TestPort, commandRecord, workflowState } from "../workflow/test-port.ts";
 import {
   emptyGrantRun,

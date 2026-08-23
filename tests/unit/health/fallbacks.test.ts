@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { checkLiteralFallbacks } from "../../../orchestrating-long-tasks/scripts/src/health/fallbacks.ts";
+import { checkLiteralFallbacks } from "../../../olt/scripts/src/health/fallbacks.ts";
 import { cleanupTempRoots, sourceOf } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);

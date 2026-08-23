@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { inspectRepositoryGitControls } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-controls.ts";
-import type { RepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
+import { inspectRepositoryGitControls } from "../../../olt/scripts/src/packets/repository-git-controls.ts";
+import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
 
 /**
  * inspectRepositoryGitControls never spawns git itself — every path it inspects comes back from

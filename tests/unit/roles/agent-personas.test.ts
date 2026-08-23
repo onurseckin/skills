@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { isAgentRole } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
+import { isAgentRole } from "../../../olt/scripts/src/contracts/packets.ts";
 import {
   MAX_REPAIR_ROUNDS,
   MIN_ADVERSARIAL_PROBES,
-} from "../../../orchestrating-long-tasks/scripts/src/config/constants.ts";
-import { resolveRoleContractPath } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
+} from "../../../olt/scripts/src/config/constants.ts";
+import { resolveRoleContractPath } from "../../../olt/scripts/src/packets/role-contract.ts";
 
-const agentsRoot = join(import.meta.dir, "..", "..", "..", "orchestrating-long-tasks", "agents");
+const agentsRoot = join(import.meta.dir, "..", "..", "..", "olt", "agents");
 const rolesRoot = dirname(resolveRoleContractPath("planner"));
 
 function persona(name: string): string {

@@ -1,15 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { AutonomousLoopRunner } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/loop-runner.ts";
+import { AutonomousLoopRunner } from "../../../olt/scripts/src/orchestrator/loop-runner.ts";
 import {
   loopGateStatus,
   roundGateStatus,
-} from "../../../orchestrating-long-tasks/scripts/src/orchestrator/gate-status.ts";
+} from "../../../olt/scripts/src/orchestrator/gate-status.ts";
 import type {
   RoundExecutionInput,
   RoundExecutionResult,
   RoundExecutor,
   RoundTelemetry,
-} from "../../../orchestrating-long-tasks/scripts/src/orchestrator/types.ts";
+} from "../../../olt/scripts/src/orchestrator/types.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function telemetry(round: number, gateStatus: RoundTelemetry["gateStatus"]): RoundTelemetry {

@@ -1,14 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
-import { AGENT_ROLES } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
+import { AGENT_ROLES } from "../../../olt/scripts/src/contracts/packets.ts";
 import {
   loadRoleContract,
   resolveRoleContractPath,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
-import {
-  COMMAND_REGISTRY,
-  findCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
+} from "../../../olt/scripts/src/packets/role-contract.ts";
+import { COMMAND_REGISTRY, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 
 describe("Phase 4 Role Contracts Reconciliation", () => {
   test("scope role contract source files exist and contain valid frontmatter", () => {

@@ -20,7 +20,7 @@ __pycache__/
 capsules/
 runtime/
 evidence/
-!olt/
+!.olt/
 
 # os / filesystem
 .DS_Store

@@ -20,14 +20,14 @@ import {
   verifyWatchdogLifecycle,
   type WatchdogRecord,
   type WatchdogStore,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/watchdog-manager.ts";
+} from "../../../olt/scripts/src/authority/watchdog-manager.ts";
 import {
   watchdogCleanupCommand,
   watchdogPhaseCleanupCommand,
   watchdogStatusCommand,
   watchdogVerifyCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/watchdog-ops.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/cli/commands/watchdog-ops.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("WatchdogManager - Store Lifecycle & Resolution", () => {
@@ -917,13 +917,10 @@ describe("WatchdogManager - Lifecycle Invariant Verification", () => {
 describe("Invariants & Cleanliness Audit", () => {
   test("zero TypeScript any and zero suppressions across watchdog files", () => {
     const sourceFiles = [
-      join(
-        __dirname,
-        "../../../orchestrating-long-tasks/scripts/src/authority/watchdog-manager.ts",
-      ),
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/runner/watchdog.ts"),
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/orchestrator/watchdog.ts"),
-      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/cli/commands/watchdog-ops.ts"),
+      join(__dirname, "../../../olt/scripts/src/authority/watchdog-manager.ts"),
+      join(__dirname, "../../../olt/scripts/src/runner/watchdog.ts"),
+      join(__dirname, "../../../olt/scripts/src/orchestrator/watchdog.ts"),
+      join(__dirname, "../../../olt/scripts/src/cli/commands/watchdog-ops.ts"),
       __filename,
     ];
 

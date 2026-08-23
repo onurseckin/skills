@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import {
-  issue,
-  throwIntegrity,
-} from "../../../orchestrating-long-tasks/scripts/src/store/issues.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { issue, throwIntegrity } from "../../../olt/scripts/src/store/issues.ts";
 
 describe("issue", () => {
   test("omits path when not given", () => {

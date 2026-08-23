@@ -3,19 +3,19 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { buildPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/render-packet.ts";
+import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
 import {
   createPacketBundle,
   verifyPacketBundle,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/packet-bundle.ts";
+} from "../../../olt/scripts/src/packets/packet-bundle.ts";
 import {
   isolateValidatorContext,
   excludeValidatorContamination,
   VALIDATOR_EXCLUSIONS,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/validator-context.ts";
-import { evidenceSchema } from "../../../orchestrating-long-tasks/scripts/src/packets/evidence-schema.ts";
-import { loadRoleContract } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
+} from "../../../olt/scripts/src/packets/validator-context.ts";
+import { evidenceSchema } from "../../../olt/scripts/src/packets/evidence-schema.ts";
+import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../workflow/test-port.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 

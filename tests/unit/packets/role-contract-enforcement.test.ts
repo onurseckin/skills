@@ -1,22 +1,22 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { AGENT_ROLES } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
+import { AGENT_ROLES } from "../../../olt/scripts/src/contracts/packets.ts";
 import {
   assertGrantedCommand,
   assertRoleMayInvoke,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/command-authority.ts";
+} from "../../../olt/scripts/src/packets/command-authority.ts";
 import {
   loadRoleContract,
   parseRoleContract,
   resolveRoleContractPath,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
+} from "../../../olt/scripts/src/packets/role-contract.ts";
 import {
   commandInvocations,
   findCommand,
   type CommandSpec,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
-import type { Flags } from "../../../orchestrating-long-tasks/scripts/src/cli/options.ts";
+} from "../../../olt/scripts/src/cli/registry/index.ts";
+import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
 
 function spec(invocation: string): CommandSpec {
   const found = findCommand(invocation);

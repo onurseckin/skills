@@ -62,7 +62,7 @@ The overall run completes only when the recovered prompt is durable, every depen
 - captured_at: `2026-08-13`
 - run identity: `/root/baseline_recovery`
 - model: `host-managed fresh subagent; exact backend model identifier was not exposed to the persisted artifact`
-- context isolation: `fork_turns=none`; prompt explicitly prohibited using `workflow-orchestrator`/`orchestrating-long-tasks`; target replacement directory did not exist at baseline time (pre-scaffold repo HEAD `83b29ef`)
+- context isolation: `fork_turns=none`; prompt explicitly prohibited using `workflow-orchestrator`/`olt`; target replacement directory did not exist at baseline time (pre-scaffold repo HEAD `83b29ef`)
 - source: controller copied the collaboration final payload into this record
 - raw response SHA-256: `41708942c9a66e5c7180d009e2f0aa98d8ee980995fa027abe9024eda03cfe47`
 - digest rule: hash the exact UTF-8 bytes after the LF terminating the three-backtick `markdown` opening delimiter line up to, but not including, the LF immediately before its three-backtick closing delimiter line; exclude both Markdown fence delimiter lines and their separator LFs; preserve every payload byte between those separators
@@ -105,7 +105,7 @@ to the inaccessible original. The replacement has the fixed root below and assur
 `recorded-unverified`:
 
 ```text
-bun /Users/onurseckinsenoglu/repos/limo/.agents/skills/orchestrating-long-tasks/scripts/harness.ts init --repo /Users/onurseckinsenoglu/repos/limo --run-id interrupted-recovery-20260814 --prompt-file /tmp/limo-interrupted-original-prompt.txt --capture-mode verbatim_context_copy
+bun /Users/onurseckinsenoglu/repos/limo/.agents/skills/olt/scripts/harness.ts init --repo /Users/onurseckinsenoglu/repos/limo --run-id interrupted-recovery-20260814 --prompt-file /tmp/limo-interrupted-original-prompt.txt --capture-mode verbatim_context_copy
 ```
 
 Do not add `--source-verified`. Compile every recovered prompt line into dispositions,
@@ -204,7 +204,7 @@ claiming success.
 
 - captured_at: `2026-08-14`
 - run identity: `/root/forward_recovery_pressure`
-- repository skill under test: `.agents/skills/orchestrating-long-tasks` at repo HEAD `3c4f671cf29a713c50281f5aad90d73ef76bcfa3`
+- repository skill under test: `.agents/skills/olt` at repo HEAD `3c4f671cf29a713c50281f5aad90d73ef76bcfa3`
 - model: `host-managed fresh delegated subagent; exact backend model identifier was not exposed to the persisted artifact`
 - context isolation: `separate delegated task; the evaluator read the completed skill and the complete scenario file, including its preserved baseline, as explicitly required before producing this response`
 - source: forward evaluator wrote the raw response directly into this scenario record

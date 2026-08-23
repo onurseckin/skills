@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildSubmissionReport } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/build-report.ts";
-import { observeChangedFiles } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/observe-changes.ts";
-import type { RepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import { buildSubmissionReport } from "../../../olt/scripts/src/workflow/submission/build-report.ts";
+import { observeChangedFiles } from "../../../olt/scripts/src/workflow/submission/observe-changes.ts";
+import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { commandRecord, workflowState } from "./test-port.ts";
 
-const SOURCE_ROOT = join(import.meta.dir, "../../../orchestrating-long-tasks/scripts/src");
+const SOURCE_ROOT = join(import.meta.dir, "../../../olt/scripts/src");
 
 function task(): TaskRecord {
   return workflowState().tasks["T-1"]!;

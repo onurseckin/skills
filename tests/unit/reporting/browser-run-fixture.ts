@@ -1,8 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ingestBrowserRun } from "../../../orchestrating-long-tasks/scripts/src/reporting/browser-run-ingestion.ts";
-import type { BrowserRunRecord } from "../../../orchestrating-long-tasks/scripts/src/reporting/browser-run-types.ts";
+import { ingestBrowserRun } from "../../../olt/scripts/src/reporting/browser-run-ingestion.ts";
+import type { BrowserRunRecord } from "../../../olt/scripts/src/reporting/browser-run-types.ts";
 
 type IngestOverrides = Partial<Parameters<typeof ingestBrowserRun>[0]>;
 

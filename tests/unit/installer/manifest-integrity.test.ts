@@ -1,18 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import {
-  canonicalJsonBytes,
-  sha256Bytes,
-} from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
 import {
   sealInstallationManifest,
   verifiedManifestPayload,
-} from "../../../orchestrating-long-tasks/scripts/src/installer/manifest-integrity.ts";
+} from "../../../olt/scripts/src/installer/manifest-integrity.ts";
 import {
   INSTALL_SCHEMA,
   INSTALL_VERSION,
   SKILL_NAME,
-} from "../../../orchestrating-long-tasks/scripts/src/installer/constants.ts";
+} from "../../../olt/scripts/src/installer/constants.ts";
 
 const validDigest = "a".repeat(64);
 

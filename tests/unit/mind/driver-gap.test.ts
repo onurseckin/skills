@@ -3,19 +3,16 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  buildWakeBrief,
-  renderGapLine,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/brief.ts";
+import { buildWakeBrief, renderGapLine } from "../../../olt/scripts/src/mind/brief.ts";
 import {
   readLastPulse,
   reconcileLastPulse,
   writeLastPulse,
   type LastPulseRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/last-pulse.ts";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+} from "../../../olt/scripts/src/mind/last-pulse.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 
 const roots: string[] = [];
 
@@ -95,7 +92,7 @@ function setupMindCapsule(
         counter: 2,
         open: null,
         last: pulseLast,
-      } as unknown as import("../../../orchestrating-long-tasks/scripts/src/contracts/json.ts").JsonValue;
+      } as unknown as import("../../../olt/scripts/src/contracts/json.ts").JsonValue;
       working.observations = [];
       working.candidates = [];
       working.escalations = [];

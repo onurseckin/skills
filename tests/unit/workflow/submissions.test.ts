@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import type { RepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
-import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { submitTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
-import type { WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
+import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { inspection } from "../packets/inspection-fixture.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "./test-port.ts";
 

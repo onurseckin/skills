@@ -1,8 +1,8 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { buildModules } from "../../../orchestrating-long-tasks/scripts/src/health/modules.ts";
-import { checkUnusedCode } from "../../../orchestrating-long-tasks/scripts/src/health/reachability.ts";
-import type { HealthFinding } from "../../../orchestrating-long-tasks/scripts/src/health/types.ts";
+import { buildModules } from "../../../olt/scripts/src/health/modules.ts";
+import { checkUnusedCode } from "../../../olt/scripts/src/health/reachability.ts";
+import type { HealthFinding } from "../../../olt/scripts/src/health/types.ts";
 import { cleanupTempRoots, loadTree } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);

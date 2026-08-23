@@ -2,23 +2,20 @@ import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { transact } from "../../../olt/scripts/src/store/transaction.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
 }
 
-const PULSE_SH_PATH = resolve(
-  import.meta.dir,
-  "../../../orchestrating-long-tasks/scripts/pulse.sh",
-);
+const PULSE_SH_PATH = resolve(import.meta.dir, "../../../olt/scripts/pulse.sh");
 
 const MIND_WAKE_SRC = resolve(
   import.meta.dir,
-  "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-wake.ts",
+  "../../../olt/scripts/src/cli/commands/mind-wake.ts",
 );
 
 function createTestHarness(root: string): string {
@@ -315,7 +312,7 @@ describe("pulse.sh driver seam", () => {
           driver: "pulse.sh",
         };
         working.pulse =
-          workingPulse as unknown as import("../../../orchestrating-long-tasks/scripts/src/contracts/json.ts").JsonObject;
+          workingPulse as unknown as import("../../../olt/scripts/src/contracts/json.ts").JsonObject;
       },
     );
 

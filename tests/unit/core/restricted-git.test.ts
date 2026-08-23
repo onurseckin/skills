@@ -5,7 +5,7 @@ import {
   RESTRICTED_GIT_ARGUMENTS,
   restrictedGitDiffArgv,
   restrictedRepositoryGitArgv,
-} from "../../../orchestrating-long-tasks/scripts/src/core/restricted-git.ts";
+} from "../../../olt/scripts/src/core/restricted-git.ts";
 
 describe("isGitArgv", () => {
   test("recognizes a bare 'git' invocation, case-insensitively and with a .exe suffix", () => {

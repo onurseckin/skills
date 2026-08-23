@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { collectBoundedDirectoryEntries } from "../../../orchestrating-long-tasks/scripts/src/core/bounded-directory.ts";
+import { collectBoundedDirectoryEntries } from "../../../olt/scripts/src/core/bounded-directory.ts";
 
 interface Entry {
   name: string;
@@ -57,15 +57,7 @@ describe("bounded streaming directory enumeration", () => {
   });
 
   test("routes every repository directory walk through the bounded streaming helper", () => {
-    const sourceRoot = join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "orchestrating-long-tasks",
-      "scripts",
-      "src",
-    );
+    const sourceRoot = join(import.meta.dir, "..", "..", "..", "olt", "scripts", "src");
     for (const relative of [
       "packets/repository-content-paths.ts",
       "packets/repository-snapshot.ts",

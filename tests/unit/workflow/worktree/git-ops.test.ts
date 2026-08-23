@@ -14,11 +14,8 @@ import {
   rebaseOnto,
   removeWorktree,
   stageAndCommit,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git-ops.ts";
-import type {
-  GitResult,
-  GitRunner,
-} from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
+} from "../../../../olt/scripts/src/workflow/worktree/git-ops.ts";
+import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
 
 type Call = { cwd: string; argv: readonly string[] };
 

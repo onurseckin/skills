@@ -8,7 +8,7 @@ import {
   looksWholeSuite,
   namesATarget,
   scopeIsNarrow,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/gate-breadth.ts";
+} from "../../../olt/scripts/src/graph/gate-breadth.ts";
 
 /** A throwaway repository tree so discovery hits real, verifiable files rather than an assumption. */
 function fixtureRepo(): string {

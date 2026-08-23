@@ -142,7 +142,7 @@ Completion is allowed only when all requirements have evidence, both implementat
 - captured_at: `2026-08-13`
 - run identity: `/root/baseline_long_prompt`
 - model: `host-managed fresh subagent; exact backend model identifier was not exposed to the persisted artifact`
-- context isolation: `fork_turns=none`; prompt explicitly prohibited using `workflow-orchestrator`/`orchestrating-long-tasks`; target replacement directory did not exist at baseline time (pre-scaffold repo HEAD `83b29ef`)
+- context isolation: `fork_turns=none`; prompt explicitly prohibited using `workflow-orchestrator`/`olt`; target replacement directory did not exist at baseline time (pre-scaffold repo HEAD `83b29ef`)
 - source: controller copied the collaboration final payload into this record
 - raw response SHA-256: `9018dbabfc7f2d17aeee4b5487c734ce5d67aa5b0efe2992b2959ef875a2e14f`
 - digest rule: hash the exact UTF-8 bytes after the LF terminating the four-backtick `markdown` opening delimiter line up to, but not including, the LF immediately before its four-backtick closing delimiter line; exclude both Markdown fence delimiter lines and their separator LFs; preserve every payload byte between those separators
@@ -274,7 +274,7 @@ report that blocker and the generated handoff path; I will not say everything is
 
 - captured_at: `2026-08-14`
 - run identity: `/root/forward_long_prompt`
-- repository skill under test: `.agents/skills/orchestrating-long-tasks` at repo HEAD `3c4f671cf29a713c50281f5aad90d73ef76bcfa3`
+- repository skill under test: `.agents/skills/olt` at repo HEAD `3c4f671cf29a713c50281f5aad90d73ef76bcfa3`
 - runtime under test: modular Bun/TypeScript implementation in `scripts/harness.ts` and `scripts/src/**`
 - model: `host-managed collaboration subagent; exact backend model identifier was not exposed to the persisted artifact`
 - context isolation: `task-scoped collaboration subagent; the controller supplied the scenario path and evaluation contract, and this agent read the complete current SKILL.md plus its required protocol/state/schema references before responding`
