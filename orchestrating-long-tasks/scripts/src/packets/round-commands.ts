@@ -1,5 +1,6 @@
 import type { CommandLogMetadata, CommandRecord } from "../contracts/commands.ts";
 import type { JsonObject } from "../contracts/json.ts";
+import { isMechanicValidatorRole } from "../contracts/packets.ts";
 import { readLog } from "../summary/node-evidence.ts";
 import type { WorkflowState } from "../workflow/types.ts";
 
@@ -22,6 +23,32 @@ export interface RecordedCommand extends JsonObject {
   finished_at: string | null;
   stdout?: RecordedStream;
   stderr?: RecordedStream;
+}
+
+export interface StructuredTestReceipt extends JsonObject {
+  command_id: string;
+  gate_id: string | null;
+  actor: string;
+  argv: string[];
+  exit_code: number | null;
+  status: string;
+  started_at: string;
+  finished_at: string | null;
+  duration_ms?: number;
+  stdout?: RecordedStream;
+  stderr?: RecordedStream;
+}
+
+export function isMechanicValidatorReceipt(command: RecordedCommand): boolean {
+  return (
+    isMechanicValidatorRole(command.actor) ||
+    command.actor.includes("mechanic-validator") ||
+    command.actor.includes("ui-mechanic-validator")
+  );
+}
+
+export function filterMechanicTestReceipts(commands: readonly RecordedCommand[]): RecordedCommand[] {
+  return commands.filter(isMechanicValidatorReceipt);
 }
 
 function logsOf(
