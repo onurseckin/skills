@@ -4,14 +4,16 @@
 
 ### The Core Problem: The Dispatch Degradation Vector
 Historical agent runs suffered from **conversational prompt degradation**:
-- When parent agents invoked child subagents, they generated ad-hoc, lossy summary strings in `define_subagent` / `invoke_subagent`, completely stripping away core invariants (0-any TypeScript, scope isolation, 0-command cognitive validator locks, scratch hygiene, doctor pre-flight checks).
+- When parent agents invoked child subagents, they generated ad-hoc, lossy summary strings in `define_subagent` / `invoke_subagent`, completely stripping away core invariants.
 - Maintaining two separate file trees per agent (`olt/agents/*.yaml` vs `olt/roles/*.md`) multiplied cognitive drift and led to stale, out-of-sync instructions.
+- Using boolean toggles (`flag: true`) for universal invariants created an anti-pattern where non-negotiable laws of the codebase were falsely represented as configurable settings.
 
 ### The Quality Maximization Architecture
-To achieve 100% deterministic quality, this blueprint establishes a **3-Tier Hardened Quality Engine**:
-1. **Single Source of Truth (SSoT) Unified YAML Manifest**: Every agent is defined by exactly one comprehensive YAML file (`olt/agents/<role>.yaml`) containing metadata, tool toggles, capabilities, permissions (`may`/`must_not`), invariants, and complete operational runbooks.
-2. **Deterministic Harness Dispatch Engine (`agent:brief` / `agent:define`)**: A typed TypeScript compiler that ingests the unified YAML, repository policy (`policy.json`), and task context to output the **exact 100% complete landing prompt** for native host tools (`define_subagent` / `invoke_subagent`).
-3. **Automated AST Manifest Quality Gate (`scripts/validate-agent-manifests.ts`)**: A strict validation script that mechanically verifies every YAML manifest against an exhaustive schema (0 missing fields, mandatory `must_not` clauses, valid CLI commands whitelisted in `cli-capabilities.json`, and explicit `doctor` pre-flight steps).
+To achieve 100% deterministic quality, this blueprint establishes a **4-Tier Hardened Quality Engine**:
+1. **Single Source of Truth (SSoT) Unified YAML Manifest**: Every agent is defined by exactly one comprehensive YAML file (`olt/agents/<role>.yaml`) containing metadata, tool toggles, capabilities, permissions (`may`/`must_not`), and complete operational runbooks.
+2. **Universal Invariants Hardcoded in Engine (0 Booleans)**: Universal laws (0-any TypeScript, 0 compiler suppressions, scratch directory hygiene, zero tool hallucination, evidence over assertion) are enforced unconditionally by the engine and `doctor`. Fake boolean toggles are permanently removed.
+3. **Permission Anti-Collision & Health Verification Engine**: A mechanical check ensuring strictly disjoint sets (`Allowed ∩ Forbidden = ∅`), capability registry resolution, and role-hierarchy boundary enforcement.
+4. **Deterministic Harness Dispatch Engine (`agent:brief` / `agent:define`)**: A typed TypeScript compiler that ingests the unified YAML, repository policy (`policy.json`), and task context to output the **exact 100% complete landing prompt** for native host tools (`define_subagent` / `invoke_subagent`).
 
 ---
 
@@ -55,7 +57,40 @@ To guarantee that no agent runs unauthorized commands or bypasses repository bou
 
 ---
 
-## 3. Canonical Unified Agent YAML Schema Specification
+## 3. Permission System Health & Anti-Collision Engine
+
+To prevent permission loopholes, conflicting directives, or security bypasses, `doctor` and the AST manifest validator execute these **4 Mathematical Anti-Collision Proofs**:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     PERMISSION ANTI-COLLISION PROOFS                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Proof 1: Disjoint Set Invariant (Allowed ∩ Forbidden = ∅)                  │
+│  • No command pattern present in `allowed_commands` or `permissions.commands`│
+│    can overlap with any entry in `forbidden_commands` or static denylists.  │
+│                                                                             │
+│  Proof 2: Capability Registry Whitelist Resolution                          │
+│  • Every CLI command in `permissions.commands` MUST resolve to an existing,  │
+│    actively registered spec in `olt/references/cli-capabilities.json`.      │
+│                                                                             │
+│  Proof 3: Role-Hierarchy Boundary Confinement                               │
+│  • Cognitive Validators: `can_execute_shell === false` (0 commands).        │
+│  • Supervisory Tiers (Mind, Orchestrator, Coordinator): 0 file-edit tools    │
+│    and 0 direct unit test execution commands (`bun test`).                  │
+│  • Implementers: Confined strictly to file-scoped tests; whole-repo test    │
+│    suites (`^bun test$`, `^npm test$`) are permanently in forbidden list.   │
+│                                                                             │
+│  Proof 4: Spawning Authority DAG Validation                                 │
+│  • An agent can ONLY spawn roles declared in its `permissions.spawns` list. │
+│  • Cross-tier spawning (e.g. Mind spawning Implementers) is blocked.        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. Canonical Unified Agent YAML Schema Specification (0 Boolean Invariants)
 
 Every agent manifest in `olt/agents/<role>.yaml` MUST strictly conform to this typed schema:
 
@@ -102,25 +137,26 @@ permissions:
   spawns:
     - "sub-implementer"
     - "sub-investigator"
-invariants:
-  disjoint_write_scope_isolation: true
-  zero_any_typescript: true
-  zero_compiler_suppressions: true
-  file_scoped_testing_only: true
-  non_empty_payload_mandate: true
-  no_root_scratch_files: true
-  no_hallucinated_sdks: true
-  doctor_preflight_required: true
 protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
 instructions: |
-  # Full operational step-by-step runbook...
+  ### Step 1: Pre-Flight Doctor Check
+  Run `bun harness.ts doctor` upon lease claim to verify capsule integrity and permission health.
+
+  ### Step 2: Zero-Exploration Exact-Anchor Implementation
+  Implement code strictly inside the leased write scope.
+
+  ### Step 3: Fast Incremental Verification
+  Run `bun harness.ts task:check --file <path>` for millisecond typechecking and invariant verification.
+
+  ### Step 4: Submission & Proofs
+  Submit with mandatory `--summary` and cited command evidence.
 ```
 
 ---
 
-## 3. Parallel Execution Topology & Brent Work/Span Matrix
+## 5. Parallel Execution Topology & Brent Work/Span Matrix
 
 We structure the implementation using **Brent's Work/Span Theorem ($P = \lceil W / S \rceil = 4 \text{ Lanes}$)** with **100% Disjoint Write Scopes**:
 
@@ -132,8 +168,9 @@ We structure the implementation using **Brent's Work/Span Theorem ($P = \lceil W
 │  [ PHASE 1: CORE FOUNDATION & QUALITY GATE (Serial - Main Thread) ]         │
 │  • Task 1.1: `scripts/validate-agent-manifests.ts` (AST Schema Validator)   │
 │  • Task 1.2: `olt/scripts/src/authority/manifest-schema.ts` (Type Schema)   │
-│  • Task 1.3: `olt/scripts/src/cli/commands/agent-brief.ts` (Prompt Compiler)│
-│  • Task 1.4: `olt/scripts/src/cli/registry/agent.ts` (CLI Command Binding)  │
+│  • Task 1.3: `olt/scripts/src/policy/permission-health.ts` (Anti-Collision) │
+│  • Task 1.4: `olt/scripts/src/cli/commands/agent-brief.ts` (Prompt Compiler)│
+│  • Task 1.5: `olt/scripts/src/cli/registry/agent.ts` (CLI Command Binding)  │
 │                         │                                                   │
 │                         ▼                                                   │
 │  [ PHASE 2: MASSIVE PARALLEL SSoT WAVE (4 Fully Disjoint Lanes) ]           │
@@ -149,7 +186,7 @@ We structure the implementation using **Brent's Work/Span Theorem ($P = \lceil W
 │                         │                                                   │
 │                         ▼                                                   │
 │  [ GATE 2: MECHANICAL AST MANIFEST AUDIT (`validate-agent-manifests.ts`) ]  │
-│  • Automated assertion: 100% of YAMLs pass schema, 0 missing invariants     │
+│  • Automated assertion: 100% of YAMLs pass schema, 0 collisions, 0 booleans │
 │                         │                                                   │
 │                         ▼                                                   │
 │  [ PHASE 3: CONVERGENCE & VERIFICATION (2 Disjoint Lanes) ]                 │
@@ -168,7 +205,7 @@ We structure the implementation using **Brent's Work/Span Theorem ($P = \lceil W
 
 ---
 
-## 4. Disjoint Write Scope Isolation Guarantee
+## 6. Disjoint Write Scope Isolation Guarantee
 
 | Lane | Assigned Disjoint Write Scope | Target Files |
 | :--- | :--- | :--- |
@@ -181,21 +218,22 @@ We structure the implementation using **Brent's Work/Span Theorem ($P = \lceil W
 
 ---
 
-## 5. Incision-by-Incision Quality Checklist
+## 7. Incision-by-Incision Quality Checklist
 
 ### Incision 1: Core Engine & Automated AST Validator
-1. Implement `olt/scripts/src/authority/manifest-schema.ts` defining `UnifiedAgentManifest` interface with Zod / TypeScript schemas.
-2. Implement `scripts/validate-agent-manifests.ts` CLI validator checking every YAML in `olt/agents/`.
-3. Implement `olt/scripts/src/cli/commands/agent-brief.ts` producing 1-shot prompt briefings.
-4. Register `agent:brief` and `agent:define` in `olt/scripts/src/cli/registry/agent.ts`.
-5. Run `bun scripts/validate-agent-manifests.ts` (Pre-flight baseline).
+1. Implement `olt/scripts/src/authority/manifest-schema.ts` defining `UnifiedAgentManifest` interface (0 boolean invariants).
+2. Implement `olt/scripts/src/policy/permission-health.ts` executing the 4 Anti-Collision Proofs (`Allowed ∩ Forbidden = ∅`).
+3. Implement `scripts/validate-agent-manifests.ts` CLI validator checking every YAML in `olt/agents/`.
+4. Implement `olt/scripts/src/cli/commands/agent-brief.ts` producing 1-shot prompt briefings.
+5. Register `agent:brief` and `agent:define` in `olt/scripts/src/cli/registry/agent.ts`.
+6. Run `bun scripts/validate-agent-manifests.ts` (Pre-flight baseline).
 
 ### Incision 2: SSoT Manifest Consolidation (Lanes A, B, C, D)
 1. **Lane A**: Merge `roles/mind.md` $\rightarrow$ `agents/mind.yaml`, `roles/orchestrator.md` $\rightarrow$ `agents/orchestrator.yaml`.
 2. **Lane B**: Merge `roles/coordinator.md` $\rightarrow$ `agents/coordinator.yaml`, `roles/meta-auditor.md` $\rightarrow$ `agents/meta-auditor.yaml`, `roles/mind-auditor.md` $\rightarrow$ `agents/mind-auditor.yaml`.
 3. **Lane C**: Merge `roles/implementer.md` $\rightarrow$ `agents/implementer.yaml`, `roles/validator*.md` $\rightarrow$ `agents/validator.yaml`, `roles/completeness-critic.md` $\rightarrow$ `agents/completeness-critic.yaml`.
 4. **Lane D**: Merge `roles/planner.md` $\rightarrow$ `agents/planner.yaml`, `roles/plan-validator.md` $\rightarrow$ `agents/plan-validator.yaml`, `roles/independent-*.md` $\rightarrow$ `agents/independent-*.yaml`.
-5. Run `bun scripts/validate-agent-manifests.ts` (All 12 agents MUST pass with Exit Code 0).
+5. Run `bun scripts/validate-agent-manifests.ts` (All 12 agents MUST pass with Exit Code 0, 0 collisions).
 
 ### Incision 3: Step-by-Step Runbooks & Doctor Integration
 1. Verify every manifest's `instructions:` block starts with:
