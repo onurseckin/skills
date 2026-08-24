@@ -106,7 +106,7 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
         headers: { "Content-Type": "application/json" },
         body: "{}",
         tls: { rejectUnauthorized: false },
-        signal: AbortSignal.timeout(600),
+        signal: AbortSignal.timeout(400),
       };
       const res = await fetch(
         `https://127.0.0.1:${port}/exa.language_server_pb.LanguageServerService/GetUserStatus`,
@@ -118,10 +118,13 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
         if (data) return data;
       }
     } catch {
-      // Fall back to bundled fixture if live RPC fails
+      // Port unreachable or timed out
     }
 
-    // Fallback to sample fixture
+    return null;
+  }
+
+  public async fetchAntigravityFixture(): Promise<Record<string, unknown> | null> {
     try {
       const fixturePath = new URL("../fixtures/antigravity-sample.json", import.meta.url).pathname;
       const raw = await readFile(fixturePath, "utf8");
