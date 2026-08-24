@@ -204,26 +204,16 @@ describe("Phase 4 W4.3: Strict Tier Hierarchy and Deployment", () => {
       const mindContract = loadMindContract();
       const commandSet = new Set(mindContract.commands);
       const expectedCommands = [
-        "mind:init",
-        "mind:wake",
-        "mind:pulse-open",
-        "mind:pulse",
         "mind:observe",
+        "mind:pulse",
         "mind:candidate",
         "mind:admit",
-        "mind:decline",
         "mind:quiesce",
         "mind:escalate",
         "mind:halt",
-        "orchestrator:supervise",
-        "run:status",
         "doctor",
-        "doctor:repair",
-        "recover",
-        "health",
         "agent:list",
         "agent:register",
-        "agent:report",
         "agent:release",
       ];
       for (const cmd of expectedCommands) {

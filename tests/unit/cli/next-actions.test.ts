@@ -141,9 +141,9 @@ describe("Next Actions Helper Generators", () => {
   test("plan and orchestration helpers generate exact role-bound commands", () => {
     const initActions = planInitNextActions(".olt/capsules/run-1");
     expect(initActions.length).toBe(2);
-    expect(initActions[0]!.command).toContain("plan:enhance --run .capsules/run-1");
+    expect(initActions[0]!.command).toContain("plan:enhance --run .olt/capsules/run-1");
     expect(initActions[0]!.role).toBe("Planner");
-    expect(initActions[1]!.command).toContain("plan:add --run .capsules/run-1");
+    expect(initActions[1]!.command).toContain("plan:add --run .olt/capsules/run-1");
 
     const orchActions = orchestrateNextActions(".olt/capsules/run-1");
     expect(orchActions.length).toBe(3);
@@ -152,12 +152,12 @@ describe("Next Actions Helper Generators", () => {
     expect(orchActions[2]!.role).toBe("Coordinator");
 
     const regActions = taskRegisteredNextActions(".olt/capsules/run-1");
-    expect(regActions[0]!.command).toContain("plan:add --run .capsules/run-1");
-    expect(regActions[1]!.command).toContain("plan:compile --run .capsules/run-1");
+    expect(regActions[0]!.command).toContain("plan:add --run .olt/capsules/run-1");
+    expect(regActions[1]!.command).toContain("plan:compile --run .olt/capsules/run-1");
 
     const enhanceActions = planEnhanceNextActions(".olt/capsules/run-1");
-    expect(enhanceActions[0]!.command).toContain("plan:add --run .capsules/run-1");
-    expect(enhanceActions[1]!.command).toContain("plan:compile --run .capsules/run-1");
+    expect(enhanceActions[0]!.command).toContain("plan:add --run .olt/capsules/run-1");
+    expect(enhanceActions[1]!.command).toContain("plan:compile --run .olt/capsules/run-1");
 
     const compileActions = planCompileNextActions(".olt/capsules/run-1", true);
     expect(compileActions[0]!.role).toBe("Plan-Validator");

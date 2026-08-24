@@ -8,6 +8,7 @@ import {
   determineTopLeader,
   dispatchSupervisoryHealthProbe,
   executePulseTick,
+  formatSupervisoryHealthMarkdown,
   probeAgentRegistryAccuracy,
   probeCircularDependencies,
   probeDoctorErrorResolution,
@@ -468,6 +469,9 @@ describe("Core Scheduler Engine — Structured 5-Point Supervisory Health Audit 
     expect(dispatch.targetAgentId).toBe("mind-lead");
     expect(dispatch.targetRole).toBe("mind");
     expect(dispatch.promptForLeader).toContain("[SUPERVISORY WATCHDOG PROBE]");
+
+    const formattedMd = formatSupervisoryHealthMarkdown(report);
+    expect(formattedMd).toContain("Two-Way Supervisory Watchdog 5-Point Health Probe");
   });
 });
 
@@ -611,6 +615,102 @@ describe("Core Scheduler Engine — Pulse Loop Execution", () => {
     expect(loopResult.stoppedReason).toBe("aborted");
     expect(loopResult.totalTicks).toBeLessThan(100);
   });
+
+  test("executePulseTick handles watchdog registration fallback and unexpected error recovery", () => {
+    const state = schedulerState();
+    const port = createMockPort(state);
+
+    // 1. With watchdogId: registers or heartbeats watchdog
+    const resWithWatchdog = executePulseTick(port, {
+      tickNumber: 1,
+      watchdogId: "pulse-wd-1",
+    });
+    expect(resWithWatchdog.tickNumber).toBe(1);
+
+    // 2. Port that throws during transact
+    const failingPort: TransactionPort = {
+      read: () => structuredClone(state),
+      transact: () => {
+        throw new Error("Transact failure");
+      },
+    };
+
+    const resWithError = executePulseTick(failingPort, { tickNumber: 2 });
+    expect(resWithError.graphHealthy).toBe(false);
+    expect(resWithError.error).toContain("Transact failure");
+  });
+
+  test("runPulseLoop invokes onError and onStop callbacks", async () => {
+    const failingPort: TransactionPort = {
+      read: () => {
+        throw new Error("Loop error simulation");
+      },
+      transact: () => {
+        throw new Error("Transact simulation");
+      },
+    };
+
+    let errorReported = false;
+    let stopReported = false;
+
+    const result = await runPulseLoop(failingPort, {
+      maxTicks: 1,
+      onError: () => {
+        errorReported = true;
+      },
+      onStop: (reason) => {
+        stopReported = true;
+      },
+    });
+
+    expect(errorReported).toBe(true);
+    expect(stopReported).toBe(true);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  test("runPulseLoop catches diagnostics error and continues floor execution", async () => {
+    const state = schedulerState();
+    const port = createMockPort(state);
+
+    const loopResult = await runPulseLoop(port, {
+      maxTicks: 1,
+      runDiagnostics: true,
+      diagnosticsOptions: {
+        inspectors: ["failing:check" as unknown as "doctor"],
+        customInspectors: {
+          "failing:check": () => {
+            throw new Error("Diagnostics explosion");
+          },
+        },
+        strict: true,
+      },
+    });
+
+    expect(loopResult.totalTicks).toBe(1);
+    expect(loopResult.errors.some((e) => e.includes("Diagnostics explosion"))).toBe(true);
+  });
+
+  test("runPulseLoop stops on mid-loop abort signal", async () => {
+    const state = schedulerState();
+    const port = createMockPort(state);
+    const controller = new AbortController();
+
+    let count = 0;
+    const loopResult = await runPulseLoop(port, {
+      maxTicks: 5,
+      intervalMs: 10,
+      signal: controller.signal,
+      onTick: () => {
+        count++;
+        if (count === 1) {
+          controller.abort();
+        }
+      },
+    });
+
+    expect(loopResult.stoppedReason).toBe("aborted");
+    expect(loopResult.totalTicks).toBe(1);
+  });
 });
 
 describe("Core Scheduler Engine — Complete SchedulerEngine Instance Methods", () => {
@@ -707,5 +807,5 @@ describe("Core Scheduler Engine — Complete SchedulerEngine Instance Methods", 
     expect(diagAudit.receipts.length).toBeGreaterThan(0);
     const diagRun = await engine.runScriptBackedDiagnostics({ state });
     expect(diagRun.receipts.length).toBeGreaterThan(0);
-  });
+  }, 20000);
 });

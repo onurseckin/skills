@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   CadenceTriggerDispatcher,
@@ -25,6 +26,8 @@ import {
   DEFAULT_BASE_INTERVAL_MS,
   DEFAULT_MAX_INTERVAL_MS,
   DEFAULT_MAX_PAUSE_INTERVAL_MS,
+  extractTrailingValueSeriesFromEvents,
+  extractTrailingValueSeriesFromState,
   formatIntervalDuration,
   formatRawValueSeries,
   generateTrailingValueSeries,
@@ -46,6 +49,7 @@ import {
   EXIT_CODE_STALE,
   formatLivenessBrief,
   getExitCodeForStatus,
+  resolvePulseFilePath,
 } from "../../../olt/scripts/src/mind/liveness.ts";
 
 describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
@@ -617,6 +621,170 @@ describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
       expect(trends.healthPercentage).toBe(100);
       expect(trends.consecutiveHealthyStreak).toBe(3);
       expect(trends.latestStatus).toBe("healthy");
+    });
+    it("supports unsubscribe, clear, on, and evaluateRollover on MindCadenceEngine", () => {
+      const dispatcher = new CadenceTriggerDispatcher();
+      const listener = () => {};
+      dispatcher.subscribe(listener);
+      expect(dispatcher.listenerCount).toBe(1);
+      dispatcher.unsubscribe(listener);
+      expect(dispatcher.listenerCount).toBe(0);
+
+      dispatcher.subscribe(listener);
+      expect(dispatcher.listenerCount).toBe(1);
+      dispatcher.clear();
+      expect(dispatcher.listenerCount).toBe(0);
+
+      const engine = new MindCadenceEngine({ generation: 1, applyJitter: false });
+      const unsub = engine.on(() => {});
+      expect(typeof unsub).toBe("function");
+      unsub();
+
+      const decision = engine.evaluateRollover();
+      expect(decision).toBeDefined();
+      expect(decision.shouldRolloverImmediately).toBeDefined();
+    });
+
+    it("covers interval.ts throttle, anti-idle rate limit, and trailing value series branches", () => {
+      // 1. Throttle interval with jitter and zero value
+      const throttledZero = calculateThrottleInterval({
+        baseIntervalMs: 1000,
+        maxIntervalMs: 10000,
+        zeroValueStreak: 2,
+        value: 0,
+        applyJitter: true,
+      });
+      expect(throttledZero.zeroValueStreak).toBe(3);
+
+      // 2. Anti-idle interval with rate limit
+      const antiIdleRateLimited = computeAntiIdleInterval({
+        hasPendingWork: false,
+        zeroValueStreak: 1,
+        isRateLimited: true,
+        previousIntervalMs: 2000,
+        applyJitter: false,
+      });
+      expect(antiIdleRateLimited.isImmediate).toBe(false);
+      expect(antiIdleRateLimited.rawIntervalMs).toBe(4000);
+
+      // 3. Trailing value series from state with pulse.last fallback and pulse.history
+      const stateWithLast = {
+        pulse: {
+          last: {
+            pulse_id: "last-pulse",
+            value: 0,
+            outcome: "quiescent",
+            closed_at: "2026-08-24T10:00:00Z",
+          },
+        },
+      };
+      const seriesFromLast = extractTrailingValueSeriesFromState(stateWithLast, 5);
+      expect(seriesFromLast.rawValues).toEqual([0]);
+
+      const stateWithHistory = {
+        pulse: {
+          history: [
+            { pulse_id: "p-1", value: 5, outcome: "advanced", closed_at: "2026-08-24T09:00:00Z" },
+            { id: "p-2", value: 2, outcome: "quiescent", at: "2026-08-24T09:15:00Z" },
+          ],
+        },
+      };
+      const seriesFromHistory = extractTrailingValueSeriesFromState(stateWithHistory, 5);
+      expect(seriesFromHistory.rawValues).toEqual([5, 2]);
+
+      // 4. Flat zero series with >= 5 items includes warning markdown
+      const flatPoints = Array(6)
+        .fill(null)
+        .map((_, i) => ({
+          pulseId: `p-${i}`,
+          outcome: "quiescent",
+          value: 0,
+        }));
+      const flatSeries = generateTrailingValueSeries(flatPoints, 10);
+      expect(flatSeries.isFlatZero).toBe(true);
+      expect(flatSeries.markdown).toContain("Flat Zero Series");
+
+      // 5. Trailing value series from events stream
+      const events = [
+        {
+          kind: "mind-pulse-closed",
+          payload: { pulse_id: "p-ev-1", value: 3, outcome: "advanced" },
+          timestamp: "2026-08-24T11:00:00Z",
+        },
+      ];
+      const seriesFromEvents = extractTrailingValueSeriesFromEvents(events, 5);
+      expect(seriesFromEvents.rawValues).toEqual([3]);
+    });
+
+    it("covers liveness.ts file resolution, disk evaluation, and edge case branches", () => {
+      // 1. resolvePulseFilePath
+      expect(resolvePulseFilePath("/tmp/nonexistent/last_pulse.json")).toBe(
+        "/tmp/nonexistent/last_pulse.json",
+      );
+      expect(resolvePulseFilePath("/tmp/nonexistent_dir")).toBe(
+        "/tmp/nonexistent_dir/last_pulse.json",
+      );
+
+      // 2. evaluateMindLiveness on nonexistent path
+      const missingStatus = evaluateMindLiveness("/tmp/definitely_missing_capsule_dir_xyz");
+      expect(missingStatus.status).toBe("missing_record");
+      expect(missingStatus.healthy).toBe(false);
+
+      // 3. calculateTimeToStaleMs with invalid timestamp
+      const invalidTime = calculateTimeToStaleMs("invalid-timestamp-xyz");
+      expect(invalidTime.isStale).toBe(true);
+
+      // 4. checkStalePulseReclaimReadiness with invalid and missing deadline
+      const missingDeadline = checkStalePulseReclaimReadiness({});
+      expect(missingDeadline.isReadyForReclaim).toBe(false);
+
+      const invalidDeadline = checkStalePulseReclaimReadiness({
+        open: { pulse_id: "p-1", deadline_at: "not-a-date" },
+      });
+      expect(invalidDeadline.isReadyForReclaim).toBe(false);
+
+      // 5. analyzeLivenessTrends with empty history and stale items
+      const emptyTrends = analyzeLivenessTrends([]);
+      expect(emptyTrends.totalPulses).toBe(0);
+      expect(emptyTrends.latestStatus).toBe("missing_record");
+
+      const staleHistory = [{ closed_at: new Date(Date.now() - 100_000_000).toISOString() }];
+      const staleTrends = analyzeLivenessTrends(staleHistory, { intervalMs: 1000, graceMs: 500 });
+      expect(staleTrends.staleCount).toBe(1);
+
+      // 6. evaluateMindLiveness with real files on disk
+      const tmpDir = mkdtempSync(join(tmpdir(), "liveness-test-"));
+      try {
+        const pulseFilePath = join(tmpDir, "last_pulse.json");
+
+        // Non-object JSON
+        writeFileSync(pulseFilePath, JSON.stringify(["not", "an", "object"]), "utf-8");
+        const nonObjStatus = evaluateMindLiveness(tmpDir);
+        expect(nonObjStatus.status).toBe("corrupted_record");
+
+        // Malformed JSON
+        writeFileSync(pulseFilePath, "{ broken json", "utf-8");
+        const brokenStatus = evaluateMindLiveness(tmpDir);
+        expect(brokenStatus.status).toBe("corrupted_record");
+
+        // Valid healthy record
+        writeFileSync(
+          pulseFilePath,
+          JSON.stringify({ closed_at: new Date().toISOString(), value: 1 }),
+          "utf-8",
+        );
+        expect(resolvePulseFilePath(pulseFilePath)).toBe(pulseFilePath);
+        const healthyStatus = evaluateMindLiveness(tmpDir);
+        expect(healthyStatus.status).toBe("healthy");
+        expect(healthyStatus.healthy).toBe(true);
+
+        // Record with missing timestamp
+        writeFileSync(pulseFilePath, JSON.stringify({ value: 1 }), "utf-8");
+        const noTsStatus = evaluateMindLiveness(tmpDir);
+        expect(noTsStatus.status).toBe("corrupted_record");
+      } finally {
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
     });
   });
 

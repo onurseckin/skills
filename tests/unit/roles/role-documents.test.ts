@@ -18,12 +18,13 @@ const rolesRoot = dirname(resolveRoleContractPath("planner"));
 const domainFiles = VALIDATOR_DOMAINS.map((domain) => `validator-${domain}`).sort();
 
 describe("canonical role documents", () => {
-  test("roles/ holds exactly one document per canonical role, plus one per validator domain", () => {
+  test("agents/ holds unified manifests for all canonical roles", () => {
     const documented = readdirSync(rolesRoot)
-      .filter((entry) => entry.endsWith(".md"))
-      .map((entry) => entry.slice(0, -3))
+      .filter((entry) => entry.endsWith(".yaml") || entry.endsWith(".yml"))
+      .map((entry) => entry.replace(/\.(yaml|yml)$/, ""))
+      .filter((entry) => isAgentRole(entry))
       .sort();
-    expect(documented).toEqual([...AGENT_ROLES, ...domainFiles].sort());
+    expect(documented).toEqual([...AGENT_ROLES].sort());
   });
 
   test("every validator domain document declares role validator and its own domain", () => {
@@ -35,7 +36,7 @@ describe("canonical role documents", () => {
       expect(domainContract.tier).toBeLessThanOrEqual(3);
       expect(domainContract.may.length).toBeGreaterThan(0);
       expect(domainContract.must_not.length).toBeGreaterThan(0);
-      expect(domainContract.commands.length).toBeGreaterThan(0);
+      expect(domainContract.commands.length).toBe(0);
       expect(domainContract.spawns).toEqual(["sub-validator"]);
       expect(domainContract.sha256).toMatch(/^[0-9a-f]{64}$/u);
       expect(domainContract.checklist?.domain).toBe(domain);
@@ -70,7 +71,11 @@ describe("canonical role documents", () => {
       expect(contract.tier).toBeLessThanOrEqual(3);
       expect(contract.may.length).toBeGreaterThan(0);
       expect(contract.must_not.length).toBeGreaterThan(0);
-      expect(contract.commands.length).toBeGreaterThan(0);
+      if (role === "validator") {
+        expect(contract.commands.length).toBe(0);
+      } else {
+        expect(contract.commands.length).toBeGreaterThan(0);
+      }
       expect(contract.sha256).toMatch(/^[0-9a-f]{64}$/u);
       for (const entry of [...contract.may, ...contract.must_not, ...contract.commands])
         expect(entry.trim()).toBe(entry);
@@ -111,7 +116,7 @@ describe("canonical role documents", () => {
 
   test("validator and completeness-critic contracts enforce mechanical anti-boundary-leak rules and repairer delegation", () => {
     const validatorContract = loadRoleContract("validator");
-    const validatorMustNot = validatorContract.must_not.join("\n");
+    const validatorMustNot = validatorContract.must_not.join("\n").toLowerCase();
     expect(validatorMustNot).toContain("anti-boundary-leak rule");
     expect(validatorMustNot).toContain("task:reject");
     expect(validatorMustNot).toContain("assigned repairer");
@@ -119,7 +124,7 @@ describe("canonical role documents", () => {
     expect(validatorContract.text).toContain("task:assign-repairer");
 
     const criticContract = loadRoleContract("completeness-critic");
-    const criticMustNot = criticContract.must_not.join("\n");
+    const criticMustNot = criticContract.must_not.join("\n").toLowerCase();
     expect(criticMustNot).toContain("anti-boundary-leak rule");
     expect(criticMustNot).toContain("critic:reject");
     expect(criticMustNot).toContain("assigned repairer");

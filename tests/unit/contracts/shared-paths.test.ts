@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, afterAll } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
@@ -27,8 +27,50 @@ describe("core shared/paths contract and resolution", () => {
     rmSync(scratchBase, { recursive: true, force: true });
   });
 
-  test("isTestEnvironment correctly identifies test runtime", () => {
+  test("isTestEnvironment correctly identifies test runtime and argv branches", () => {
     expect(isTestEnvironment()).toBe(true);
+
+    const oldNodeEnv = process.env["NODE_ENV"];
+    const oldBunTest = process.env["BUN_TEST"];
+    const oldTest = process.env["TEST"];
+    const oldArgv = [...process.argv];
+
+    try {
+      delete process.env["NODE_ENV"];
+      delete process.env["BUN_TEST"];
+      delete process.env["TEST"];
+
+      // With test in argv
+      process.argv = ["bun", "run", "test:unit"];
+      expect(isTestEnvironment()).toBe(true);
+
+      process.argv = ["bun", "run", "bun:test"];
+      expect(isTestEnvironment()).toBe(true);
+
+      // With non-test in argv
+      process.argv = ["bun", "run", "serve.ts"];
+      expect(isTestEnvironment()).toBe(false);
+
+      // With non-array argv
+      process.argv = null as unknown as string[];
+      expect(isTestEnvironment()).toBe(false);
+    } finally {
+      if (oldNodeEnv !== undefined) process.env["NODE_ENV"] = oldNodeEnv;
+      if (oldBunTest !== undefined) process.env["BUN_TEST"] = oldBunTest;
+      if (oldTest !== undefined) process.env["TEST"] = oldTest;
+      process.argv = oldArgv;
+    }
+  });
+
+  test("resolveSafeRoot handles findRepoRoot when isTestEnvironment is active", () => {
+    const root = findRepoRoot();
+    expect(resolveBacklogPath(root)).toContain("olt-scratch");
+    expect(resolveCompletedTasksPath(root)).toContain("olt-scratch");
+    expect(resolveDefectsPath(root)).toContain("olt-scratch");
+    expect(resolveCompletedDefectsPath(root)).toContain("olt-scratch");
+    expect(resolveTelemetryPath(root)).toContain("olt-scratch");
+    expect(resolveMemoryPath(root)).toContain("olt-scratch");
+    expect(resolveWatchdogsPath(root)).toContain("olt-scratch");
   });
 
   test("findRepoRoot discovers repo root upward across .olt, .git, and package.json markers", () => {

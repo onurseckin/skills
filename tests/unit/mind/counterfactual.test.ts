@@ -515,5 +515,65 @@ describe("Counterfactual Re-Admission Tester", () => {
       expect(result.finding?.gateId).toBe("gate-4-scoped");
       expect(result.finding?.message).toContain("outside charter repo_roots");
     });
+
+    test("produces finding when defect candidate has no witness command id", () => {
+      const ctx = setupTestEnvironment("no-witness-defect");
+      const candidate: CandidateRecord = {
+        id: "cand-no-witness",
+        kind: "defect",
+        statement: "Defect without witness",
+        witness_command_id: null,
+        charter_goal_ids: ["G1"],
+        write_scope: ["src/"],
+        status: "admitted",
+      };
+
+      const result = evaluateCandidateCounterfactual(candidate, ctx.gateContext);
+      expect(result.admissible).toBe(false);
+      expect(result.finding?.findingKind).toBe("defect_never_real");
+    });
+
+    test("handles parseNowIso and createIsolatedCandidate input variations", () => {
+      expect(() => createIsolatedCandidate(null as unknown as CandidateRecord)).toThrow();
+
+      const candidateWithNarrative = createIsolatedCandidate({
+        id: "cand-narrative",
+        kind: "proposal",
+        statement: "Statement",
+        narrative: "Forbidden narrative",
+        justification: "Forbidden rationale",
+      });
+
+      expect(candidateWithNarrative.id).toBe("cand-narrative");
+      expect(
+        (candidateWithNarrative as unknown as Record<string, unknown>).narrative,
+      ).toBeUndefined();
+    });
+
+    test("selectPreviouslyAdmittedCandidates supports strategy filters and mind.candidates", () => {
+      const state = {
+        mind: {
+          candidates: [
+            { id: "c1", status: "admitted", kind: "proposal", charter_goals: ["G1"] },
+            { id: "c2", status: "admitted", kind: "defect", charter_goal_ids: ["G2"] },
+          ],
+        },
+        candidates: [],
+      };
+
+      const newest = selectPreviouslyAdmittedCandidates(state, {
+        strategy: "newest",
+        filterKind: "proposal",
+      });
+      expect(newest.length).toBe(1);
+      expect(newest[0].id).toBe("c1");
+
+      const sampled = selectPreviouslyAdmittedCandidates(state, {
+        strategy: "sample",
+        count: 1,
+        seed: 42,
+      });
+      expect(sampled.length).toBe(1);
+    });
   });
 });

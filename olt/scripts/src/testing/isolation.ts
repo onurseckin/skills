@@ -66,9 +66,11 @@ export function findRepoRoot(startDir?: string | undefined): string {
   let current = resolve(startDir ?? import.meta.dir ?? process.cwd());
   while (true) {
     if (
-      existsSync(join(current, "package.json")) ||
-      existsSync(join(current, ".olt")) ||
-      existsSync(join(current, ".git"))
+      !current.endsWith("/olt/scripts") &&
+      !current.endsWith("/olt") &&
+      (existsSync(join(current, ".git")) ||
+        existsSync(join(current, ".olt")) ||
+        existsSync(join(current, "package.json")))
     ) {
       return current;
     }

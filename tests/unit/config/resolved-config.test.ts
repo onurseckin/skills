@@ -29,8 +29,8 @@ describe("resolved harness config", () => {
       hostConcurrency: null,
     });
     expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
-    expect(config.min_adversarial_probes).toBe(1);
-    expect(config.max_repair_rounds).toBe(6);
+    expect(config.min_adversarial_probes).toBe(DEFAULT_RESOLVED_CONFIG.min_adversarial_probes);
+    expect(config.max_repair_rounds).toBe(DEFAULT_RESOLVED_CONFIG.max_repair_rounds);
     expect(config.default_max_parallel).toBe(4);
   });
 

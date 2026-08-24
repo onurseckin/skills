@@ -402,11 +402,20 @@ describe("ingestVisualReport", () => {
 
   test("a malformed, non-array explicitPaths cannot crash the search; it just finds nothing", () => {
     const { run, shots } = workspace();
-    // Same bridged-value technique as the ingestScreenshots case above: findVisualReportCandidates
-    // has no try/catch of its own around this loop, so the outer ingestVisualReport try/catch must
-    // absorb the throw instead of letting it propagate.
     const explicitPaths = {} as unknown as string[];
 
     expect(ingestVisualReport({ runRoot: run, searchDirs: [shots], explicitPaths })).toBeNull();
+  });
+
+  test("handles nonexistent screenshot files in stdout with startedAt timestamp", () => {
+    const { run, shots } = workspace();
+    const result = ingestScreenshots({
+      runRoot: run,
+      searchDirs: [shots],
+      stdout: "Screenshot saved to /nonexistent/path/missing-image.png",
+      startedAt: new Date().toISOString(),
+    });
+
+    expect(result).toEqual([]);
   });
 });

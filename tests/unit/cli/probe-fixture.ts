@@ -1,4 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readPlanBindings } from "../../../olt/scripts/src/cli/commands/plan-replan-bindings.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
@@ -8,7 +9,6 @@ import {
 } from "../../../olt/scripts/src/graph/gate-proof.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
 
 export const TASK_ID = "task-core";
 export const VALIDATOR = "val-1";
@@ -20,7 +20,7 @@ export async function setupRun(
   roots: string[],
   config?: Record<string, boolean | number | string>,
 ): Promise<{ repo: string; run: string }> {
-  const repo = scratchRoot(import.meta.path, `probe-${name}`);
+  const repo = await mkdtemp(join(tmpdir(), `harness-probe-${name}-`));
   roots.push(repo);
   await writeFile(
     join(repo, "harness.config.json"),

@@ -17,6 +17,7 @@ permissions:
     - "Perform adversarial falsification of DAG edges and gates"
     - "Emit plan review verdict (plan:review)"
   must_not:
+    - "Approve shallow umbrella compression [SHALLOW_PLAN_BLUNDER] (8-vector expansion, EMPTY_PAYLOAD, socratic_expansion_depth, mandatory_brainstorming_rounds, max_files_per_task)"
     - "Write repository code files (0 source edits)"
     - "Execute unit test suites (0 test runs)"
     - "Approve plans with overlapping write scopes"
@@ -25,6 +26,8 @@ permissions:
     - "plan:audit"
     - "plan:review"
     - "plan:status"
+    - "run:exec"
+    - "run:status"
     - "doctor"
     - "whoami"
   spawns: []

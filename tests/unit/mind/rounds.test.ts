@@ -17,6 +17,7 @@ import {
   getOpenRoundForObjective,
   isRoundResult,
   reconcileRoundState,
+  resolveCapsulePath,
   validateCandidateAdmitted,
   validateObjectiveStatement,
   validatePriorRoundCompleted,
@@ -755,5 +756,41 @@ describe("mind:round-open and mind:round-close CLI commands", () => {
     expect(obj.rounds.length).toBe(2);
     expect(obj.rounds[0]!.result).toBe("exhausted");
     expect(obj.rounds[1]!.result).toBe("converged");
+  });
+
+  test("resolveCapsulePath handles directory, baseRunRoot relative search, and direct path", () => {
+    const fixture = setupMindCapsule("resolve-capsule-test");
+    const resolvedDirect = resolveCapsulePath(fixture.run);
+    expect(resolvedDirect).toBe(fixture.run);
+
+    const resolvedWithBase = resolveCapsulePath("non-existent-round-123", fixture.run);
+    expect(resolvedWithBase).toContain("non-existent-round-123");
+  });
+
+  test("mindRoundCloseCommand rejects invalid result or missing round", () => {
+    const fixture = setupMindCapsule("close-errors");
+
+    // Invalid round result
+    expect(() =>
+      mindRoundCloseCommand({
+        run: fixture.run,
+        actor: "orch-1",
+        objective: "obj-1",
+        round: "1",
+        result: "not-a-valid-result" as unknown as "converged",
+      }),
+    ).toThrow(HarnessError);
+
+    // Non-existent round
+    expect(() =>
+      mindRoundCloseCommand({
+        run: fixture.run,
+        actor: "orch-1",
+        objective: "obj-non-existent",
+        round: "99",
+        result: "converged",
+        "terminal-reason": "done",
+      }),
+    ).toThrow(HarnessError);
   });
 });

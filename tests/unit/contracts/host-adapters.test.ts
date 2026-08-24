@@ -28,7 +28,6 @@ describe("host adapters & two-tier architecture specifications", () => {
     const content = readFileSync(hostAdaptersPath, "utf8");
 
     expect(content).toContain("Spawns **exactly one** background orchestrator agent");
-    expect(content).toContain("roles/orchestrator.md");
     expect(content).toContain("agents/orchestrator.yaml");
     expect(content).not.toContain("Spawns **exactly one** background coordinator agent");
   });

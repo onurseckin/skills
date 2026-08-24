@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -269,12 +269,20 @@ describe("linuxTokenOwnerIdentities against a fixture procfs", () => {
 
   test("throws ownership-token process scan is too large when process count exceeds cap", async () => {
     const root = await fakeProc("token-too-many-pids");
-    const { closeSync, openSync } = await import("node:fs");
-    for (let i = 0; i < 65537; i++) {
-      closeSync(openSync(join(root, String(i)), "w"));
+    const fs = await import("node:fs");
+    const oversizedPids = Array.from({ length: 65537 }, (_, i) => String(i + 1));
+    const spy = spyOn(fs, "readdirSync").mockImplementation((path) => {
+      if (path === root) {
+        return oversizedPids as unknown as ReturnType<typeof fs.readdirSync>;
+      }
+      return spy.getMockImplementation()?.(path) ?? [];
+    });
+    try {
+      expect(() => linuxTokenOwnerIdentities("secret-token", root)).toThrow(
+        "ownership-token process scan is too large",
+      );
+    } finally {
+      spy.mockRestore();
     }
-    expect(() => linuxTokenOwnerIdentities("secret-token", root)).toThrow(
-      "ownership-token process scan is too large",
-    );
-  }, 15000);
+  });
 });

@@ -6,20 +6,20 @@ import { cleanupTempRoots, loadTree, tempRoot, writeTree } from "./fixture.ts";
 afterAll(cleanupTempRoots);
 
 const ROLE = [
-  "---",
-  "role: validator",
+  'name: "validator"',
+  'role: "validator"',
   "tier: 3",
-  "may:",
-  "  - Review a submitted task",
-  "must_not:",
-  "  - Validate a task it implemented",
-  "commands:",
-  "  - task:review",
-  "  - task:invent",
-  "spawns: []",
-  "---",
-  "",
-  "# Validator",
+  "permissions:",
+  "  may:",
+  '    - "Review a submitted task"',
+  "  must_not:",
+  '    - "Validate a task it implemented"',
+  "  commands:",
+  '    - "task:review"',
+  '    - "task:invent"',
+  "  spawns: []",
+  "instructions: |",
+  "  # Validator",
 ].join("\n");
 
 function keysFor(skillFiles: Record<string, string>, production: Record<string, string>): string[] {
@@ -125,14 +125,14 @@ describe("a config knob nothing reads is a promise the harness does not keep", (
 });
 
 describe("a role contract that grants a command the CLI does not have binds nothing", () => {
-  const keys = keysFor({ "roles/validator.md": ROLE }, {});
+  const keys = keysFor({ "agents/validator.yaml": ROLE }, {});
 
   test("the missing command is named", () => {
-    expect(keys).toContain("role-command-missing:roles/validator.md:task:invent");
+    expect(keys).toContain("role-command-missing:agents/validator.yaml:task:invent");
   });
 
   test("a granted command the registry defines is not reported", () => {
-    expect(keys).not.toContain("role-command-missing:roles/validator.md:task:review");
+    expect(keys).not.toContain("role-command-missing:agents/validator.yaml:task:review");
   });
 
   test("a well-formed contract is not reported as unreadable", () => {
@@ -140,16 +140,16 @@ describe("a role contract that grants a command the CLI does not have binds noth
   });
 
   test("a contract the binding loader refuses to read is reported", () => {
-    const broken = ROLE.replace("commands:\n  - task:review", "commands:\n- task:review");
-    expect(keysFor({ "roles/validator.md": broken }, {})).toContain(
-      "role-unparseable:roles/validator.md",
+    const broken = "invalid: yaml: content: [";
+    expect(keysFor({ "agents/validator.yaml": broken }, {})).toContain(
+      "role-unparseable:agents/validator.yaml",
     );
   });
 
   test("a role outside the vocabulary the code enforces is reported", () => {
     expect(
-      keysFor({ "roles/ghost.md": ROLE.replace("role: validator", "role: archivist") }, {}),
-    ).toContain("role-unknown:roles/ghost.md");
+      keysFor({ "agents/ghost.yaml": ROLE.replace('role: "validator"', 'role: "archivist"') }, {}),
+    ).toContain("role-unknown:agents/ghost.yaml");
   });
 });
 

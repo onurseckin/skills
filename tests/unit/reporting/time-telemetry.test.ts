@@ -457,5 +457,44 @@ describe("Omnipresent Time Telemetry - Strict Type Guards", () => {
     };
     expect(isHarnessActionTimeRecord(validRecord)).toBe(true);
     expect(isHarnessActionTimeRecord({ actionId: 123 })).toBe(false);
+
+    const collector = new OmnipresentTelemetryCollector();
+    const report = collector.generateReport();
+    expect(isTimeTelemetryReport(report)).toBe(true);
+    expect(isTimeTelemetryReport("not a report")).toBe(false);
+
+    const health = validateTimeTelemetryHealth([]);
+    expect(isTimeTelemetryHealthResult(health)).toBe(true);
+    expect(isTimeTelemetryHealthResult(null)).toBe(false);
+  });
+
+  test("exercises ActionSpan getters and clear method", () => {
+    const span = new ActionSpan("task:exec", "impl-1", {
+      metadata: { key: "val" },
+    });
+
+    expect(span.status).toBe("running");
+    expect(span.finishedAt).toBeUndefined();
+    expect(span.durationMs).toBeUndefined();
+    expect(span.durationFormatted).toBeUndefined();
+    expect(span.error).toBeUndefined();
+    expect(span.metadata).toEqual({ key: "val" });
+    expect(span.subSteps).toEqual([]);
+
+    span.startSubStep("sub1", { step: 1 });
+    span.finishSubStep("success");
+    expect(span.subSteps.length).toBe(1);
+
+    span.finish("success");
+    expect(span.status).toBe("success");
+    expect(span.finishedAt).toBeDefined();
+    expect(span.durationMs).toBeGreaterThanOrEqual(0);
+    expect(span.durationFormatted).toBeDefined();
+
+    const collector = new OmnipresentTelemetryCollector();
+    collector.recordCommandExecution("bun test", "worker", 1000, 2000, 0);
+    expect(collector.generateReport().completedActions).toBe(1);
+    collector.clear();
+    expect(collector.generateReport().completedActions).toBe(0);
   });
 });

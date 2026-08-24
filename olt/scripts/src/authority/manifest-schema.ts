@@ -20,6 +20,7 @@ export interface UnifiedAgentManifest {
     readonly spawns: readonly string[];
   };
   readonly invariants: readonly string[];
+  readonly domain?: string | undefined;
   readonly protocol: {
     readonly cli: string;
     readonly zero_json: boolean;
@@ -77,6 +78,7 @@ export function parseUnifiedAgentManifest(
         spawns: Array.isArray(rawPerms.spawns) ? rawPerms.spawns : [],
       },
       invariants: Array.isArray(doc.invariants) ? doc.invariants : [],
+      domain: typeof doc.domain === "string" ? doc.domain : undefined,
       protocol: {
         cli: String(rawProtocol.cli || "bun ~/.agents/skills/olt/scripts/harness.ts"),
         zero_json: rawProtocol.zero_json !== false,

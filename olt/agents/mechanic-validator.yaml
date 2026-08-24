@@ -35,6 +35,8 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Generation 8 Retirement Notice
+  > **RETIREMENT NOTICE (Generation 8)**: `mechanic-validator` is permanently retired as an LLM subagent role in Generation 8. All mechanical invariant checks (TypeScript typechecks, AST static invariant audits for 0 any and 0 suppressions) are anchored in the deterministic CLI tool `task:check`.
   ---
   role: mechanic-validator
   tier: 3

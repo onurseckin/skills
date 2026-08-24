@@ -1017,5 +1017,53 @@ describe("Generational State Archival (REMED-007)", () => {
       expect(existsSync(join(capsulesDir, "archive", "mind-gen-1"))).toBe(true);
       expect(existsSync(join(capsulesDir, "mind-gen-1"))).toBe(false);
     });
+
+    test("archiveCapsule error handling and dryRun overwrite behavior", () => {
+      expect(() => archiveCapsule("/non/existent/path")).toThrow(HarnessError);
+
+      const scratch = scratchRoot("archive-capsule-errors");
+      const fileCapsule = join(scratch, "regular-file.txt");
+      writeFileSync(fileCapsule, "not a directory", "utf-8");
+      expect(() => archiveCapsule(fileCapsule)).toThrow(HarnessError);
+
+      // Target already exists without overwrite -> throws INVALID_STATE
+      const capDir = join(scratch, "capsule-1");
+      const arcDir = join(scratch, "archive");
+      mkdirSync(capDir, { recursive: true });
+      mkdirSync(join(arcDir, "capsule-1"), { recursive: true });
+
+      expect(() => archiveCapsule(capDir, { targetArchiveDir: arcDir, overwrite: false })).toThrow(
+        HarnessError,
+      );
+
+      // Dry run with overwrite -> passes without throwing
+      const dryRunRes = archiveCapsule(capDir, {
+        targetArchiveDir: arcDir,
+        overwrite: true,
+        dryRun: true,
+      });
+      expect(dryRunRes.runId).toBe("capsule-1");
+    });
+
+    test("consolidateCapsules identifies legacy capsules by reading activeRunIds list", () => {
+      const scratch = scratchRoot("consolidate-active-run-ids");
+      const capsulesDir = join(scratch, "capsules");
+      const oldRunDir = join(capsulesDir, "arbitrary-run-name-1");
+      mkdirSync(oldRunDir, { recursive: true });
+
+      writeFileSync(
+        join(oldRunDir, "state.json"),
+        JSON.stringify({
+          mind: { status: "rotated", generation: 1 },
+        }),
+        "utf-8",
+      );
+
+      const result = consolidateCapsules(capsulesDir, {
+        activeRunIds: ["other-active-run"],
+      });
+
+      expect(result.archivedCapsules).toContain("arbitrary-run-name-1");
+    });
   });
 });

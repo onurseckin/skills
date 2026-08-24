@@ -519,5 +519,10 @@ describe("StateMachineAuditor", () => {
       const anyRegex = new RegExp(":\\s*" + "any\\b|\\bas\\s+" + "any\\b|<" + "any>", "g");
       expect(anyRegex.test(filtered)).toBe(false);
     });
+
+    it("instantiates StateMachineAuditor class cleanly", () => {
+      const auditor = new StateMachineAuditor();
+      expect(auditor).toBeDefined();
+    });
   });
 });

@@ -689,5 +689,102 @@ describe("Watchdog Audit Prompts and Tick Reminders", () => {
 
     // 6. invalidatePersonaVerificationCaches runs without errors
     expect(() => invalidatePersonaVerificationCaches()).not.toThrow();
+
+    // 7. parseNowMs timestamp formats: number, Date, invalid string, undefined
+    const groundingDate = generateWatchdogPersonaGrounding({
+      role: "mind",
+      now: new Date(),
+      startedAt: 1000,
+      pulseId: "pulse-xyz",
+    });
+    expect(groundingDate.pulseId).toBe("pulse-xyz");
+
+    const groundingInvalidDate = generateWatchdogPersonaGrounding({
+      role: "mind",
+      now: "invalid-iso-date-string",
+    });
+    expect(groundingInvalidDate.tickNumber).toBe(1);
+
+    // 8. evaluateReflexiveSelfAudit with >3 modified files, delete_file without targetFile, write_file, and repair_task
+    const complexAudit = evaluateReflexiveSelfAudit({
+      role: "mind",
+      fileModificationsOnSupervisoryThread: ["a.ts", "b.ts", "c.ts", "d.ts"],
+      recentActions: [
+        { action: "write_file", targetFile: "e.ts" },
+        { action: "delete_file" },
+        { action: "repair_task" },
+        { action: "unrelated_action" },
+      ],
+      activeLeases: [
+        {
+          taskId: "task-overdue",
+          agentId: "agent-1",
+          heartbeatAgeMs: 500_000,
+        },
+      ],
+      subordinates: [
+        {
+          agentId: "agent-1",
+          role: "implementer",
+          tier: 3,
+          status: "active",
+          lastHeartbeatAgeMs: 500_000,
+        },
+        {
+          agentId: "agent-2",
+          role: "validator",
+          tier: 3,
+          status: "completed",
+        },
+      ],
+      unprovenGatesCount: 2,
+      failedGatesCount: 1,
+      attemptedPrematureCompletion: true,
+    });
+    expect(complexAudit.passed).toBe(false);
+    expect(complexAudit.invariantCompliance.zero_file_mutation).toBe(false);
+    expect(complexAudit.invariantCompliance.delegated_execution_only).toBe(false);
+    expect(complexAudit.markdownReport).toContain("...");
+
+    // 9. Main thread git_push and sync_global actions
+    const pushSyncAudit = evaluateReflexiveSelfAudit({
+      role: "orchestrator",
+      isMainThreadExecution: true,
+      recentActions: [{ action: "git_push" }, { action: "sync_global" }],
+    });
+    expect(pushSyncAudit.invariantCompliance.background_finalization_confinement).toBe(false);
+
+    // 10. Low severity / mild drift where passed is true
+    const lowDriftAudit = evaluateReflexiveSelfAudit({
+      role: "orchestrator",
+      rawSourceFileReadsCount: 11, // low severity finding (weight 0.1, score 0.1 < 0.2 -> passed: true)
+    });
+    expect(lowDriftAudit.overallSeverity).toBe("low");
+    expect(lowDriftAudit.passed).toBe(true);
+
+    // 11. Medium severity drift (statusEmoji: 🟡 WARNING)
+    const mediumDriftAudit = evaluateReflexiveSelfAudit({
+      role: "coordinator",
+      queueReadyCount: 2,
+      activeLeases: [],
+      subordinates: [],
+    });
+    expect(mediumDriftAudit.overallSeverity).toBe("medium");
+    expect(mediumDriftAudit.passed).toBe(false);
+    expect(mediumDriftAudit.markdownReport).toContain("🟡 WARNING");
+
+    // 11b. High severity drift only
+    const highDriftAudit = evaluateReflexiveSelfAudit({
+      role: "coordinator",
+      validatorReviewsAcceptedWithoutProof: 2,
+    });
+    expect(highDriftAudit.overallSeverity).toBe("high");
+    expect(highDriftAudit.passed).toBe(false);
+
+    // 12. createWatchdogTickReminder without context fallback
+    const tickReminderDefault = createWatchdogTickReminder("orchestrator", 1);
+    expect(tickReminderDefault).toContain(
+      "Autonomic Watchdog 3-Minute Persona Grounding [Tick #1]",
+    );
   });
 });

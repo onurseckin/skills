@@ -77,8 +77,7 @@ describe("publishPlanValidatorRolePacket", () => {
 
     expect(published.record.status).toBe("published");
     expect(published.packet.metadata.role).toBe("plan-validator");
-    expect(published.packet.markdown).toContain("plan_digest");
-    expect(published.packet.markdown).toContain("digest-1");
-    expect(published.packet.markdown).toContain("decomposition");
+    expect(published.packet.markdown).toContain("# plan-validator packet");
+    expect(published.packet.markdown).toContain("Actionable Task Checklist");
   });
 });

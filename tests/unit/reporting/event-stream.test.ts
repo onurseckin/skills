@@ -524,5 +524,53 @@ describe("reporting/event-stream", () => {
         mock.cleanup();
       }
     });
+
+    it("handles direct events.jsonl file paths and partial/legacy event objects", () => {
+      const mock = createMockCapsule([]);
+      const eventsFile = join(mock.dir, "events.jsonl");
+      const partialEvent = {
+        sequence: 1,
+        kind: "legacy-event",
+        actor: "legacy-actor",
+      };
+      writeFileSync(eventsFile, JSON.stringify(partialEvent) + "\n", "utf8");
+
+      try {
+        const res = readCapsuleEvents(eventsFile);
+        expect(res.matchingEvents.length).toBe(1);
+        expect(res.matchingEvents[0]?.sequence).toBe(1);
+      } finally {
+        mock.cleanup();
+      }
+    });
+
+    it("handles webhook delivery with alternative receiptId shapes and fallback generation", async () => {
+      // Test response with receiptId
+      const mockFetchReceiptId: FetchLike = async () =>
+        new Response(JSON.stringify({ receiptId: "rcpt-alt-id" }), { status: 200 });
+
+      const res1 = await deliverEventsToWebhook(sampleEvents, "https://example.com/webhook", {
+        customFetch: mockFetchReceiptId,
+      });
+      expect(res1.receiptId).toBe("rcpt-alt-id");
+
+      // Test response with id field
+      const mockFetchId: FetchLike = async () =>
+        new Response(JSON.stringify({ id: "id-receipt-99" }), { status: 200 });
+
+      const res2 = await deliverEventsToWebhook(sampleEvents, "https://example.com/webhook", {
+        customFetch: mockFetchId,
+      });
+      expect(res2.receiptId).toBe("id-receipt-99");
+
+      // Test response without json receipt
+      const mockFetchNoReceipt: FetchLike = async () => new Response("plain ok", { status: 200 });
+
+      const res3 = await deliverEventsToWebhook(sampleEvents, "https://example.com/webhook", {
+        customFetch: mockFetchNoReceipt,
+      });
+      expect(res3.receiptId).toBeDefined();
+      expect(res3.receiptId?.startsWith("rcpt_")).toBe(true);
+    });
   });
 });

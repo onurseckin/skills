@@ -140,4 +140,22 @@ describe("completionReviewIssues: findings and residual risks are actually inspe
       "completion residual risk evidence is invalid",
     );
   });
+
+  test("handles state.requirements as nested requirements object and dictionary", () => {
+    const state = workflowState();
+    // Nested requirements object
+    (state as Record<string, unknown>).requirements = {
+      requirements: [{ id: "R-1", status: "planned", dependencies: [] }],
+    };
+    const review = baseReview();
+    const issuesNested = completionReviewIssues(state, review);
+    expect(issuesNested).not.toContain("completion requirement proof coverage is incomplete");
+
+    // Dictionary representation
+    (state as Record<string, unknown>).requirements = {
+      "R-1": { id: "R-1", status: "planned", dependencies: [] },
+    };
+    const issuesDict = completionReviewIssues(state, review);
+    expect(issuesDict).not.toContain("completion requirement proof coverage is incomplete");
+  });
 });

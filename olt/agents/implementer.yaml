@@ -36,6 +36,9 @@ permissions:
     - "branch:open"
     - "branch:collect"
     - "branch:abandon"
+    - "finding:get"
+    - "report:get"
+    - "evidence:get"
     - "doctor"
     - "whoami"
   spawns:

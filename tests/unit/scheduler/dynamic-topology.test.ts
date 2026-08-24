@@ -396,4 +396,130 @@ describe("Dynamic Topology Synthesis", () => {
       expect(metrics.componentTaskIds).toEqual([]);
     });
   });
+
+  describe("dynamic-topology edge cases and error handling", () => {
+    test("computeWorkSpanMetrics throws on dependency cycle", () => {
+      const deps = new Map([
+        ["t1", new Set(["t2"])],
+        ["t2", new Set(["t1"])],
+      ]);
+      const tasks = new Map([
+        [
+          "t1",
+          {
+            id: "t1",
+            priority: 1,
+            created_order: 1,
+            effort: 1,
+            requirement_ids: [],
+            write_scope: [],
+          },
+        ],
+        [
+          "t2",
+          {
+            id: "t2",
+            priority: 1,
+            created_order: 2,
+            effort: 1,
+            requirement_ids: [],
+            write_scope: [],
+          },
+        ],
+      ]);
+      expect(() => computeWorkSpanMetrics(deps, tasks)).toThrow(/execution cycle/);
+    });
+
+    test("partitionOrchestratorDomains assigns core-engine domain for general paths", () => {
+      const tasks = [
+        {
+          id: "core-1",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/utils/math.ts"],
+        },
+      ];
+      const deps = new Map([["sec-1", new Set<string>()]]);
+      const partitions = partitionOrchestratorDomains(tasks, deps);
+      expect(partitions.some((p) => p.domain === "core-engine")).toBe(true);
+    });
+
+    test("partitionOrchestratorDomains limits partitions when maxPartitions is specified", () => {
+      const tasks = [
+        {
+          id: "t-ui",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/ui/app.tsx"],
+        },
+        {
+          id: "t-sec",
+          priority: 1,
+          created_order: 2,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/auth/token.ts"],
+        },
+        {
+          id: "t-sys",
+          priority: 1,
+          created_order: 3,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/contracts/api.graphql"],
+        },
+        {
+          id: "t-core",
+          priority: 1,
+          created_order: 4,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/core/math.ts"],
+        },
+      ];
+      const deps = new Map([
+        ["t-ui", new Set<string>()],
+        ["t-sec", new Set<string>()],
+        ["t-sys", new Set<string>()],
+        ["t-core", new Set<string>()],
+      ]);
+      const partitions = partitionOrchestratorDomains(tasks, deps, 2);
+      expect(partitions.length).toBeLessThanOrEqual(2);
+    });
+
+    test("synthesizeDynamicTopology validates options and state revision", () => {
+      const state = topologyState();
+      expect(() => synthesizeDynamicTopology(state, { default_max_parallel: -1 })).toThrow(
+        /default_max_parallel must be a positive integer/,
+      );
+      const invalidRevisionState = { graph: { revision: 0 }, tasks: {} };
+      expect(() => synthesizeDynamicTopology(invalidRevisionState)).toThrow(
+        /graph revision is required/,
+      );
+      const unappliedPlanState = { graph: { revision: 1 }, tasks: null };
+      expect(() => synthesizeDynamicTopology(unappliedPlanState)).toThrow(
+        /a plan must be applied before topology is synthesized/,
+      );
+    });
+
+    test("partitionOrchestratorDomains maps system-design paths to backend-system domain", () => {
+      const tasks = [
+        {
+          id: "sys-1",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/contracts/user.graphql"],
+        },
+      ];
+      const deps = new Map([["sys-1", new Set<string>()]]);
+      const partitions = partitionOrchestratorDomains(tasks, deps);
+      expect(partitions.some((p) => p.domain === "backend-system")).toBe(true);
+    });
+  });
 });

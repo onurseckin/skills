@@ -3,6 +3,7 @@ import { evidenced } from "../../../olt/scripts/src/core/contracts/evidence.ts";
 import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { heartbeat } from "../../../olt/scripts/src/workflow/lease/heartbeat.ts";
 import { recoverStale } from "../../../olt/scripts/src/workflow/lease/recover-stale.ts";
+import { releaseLease } from "../../../olt/scripts/src/workflow/lease/release.ts";
 import { at, TestPort, workflowState } from "./test-port.ts";
 
 const start = at("2026-08-13T12:00:00.000Z");
@@ -90,5 +91,93 @@ describe("workflow leases", () => {
     expect(() =>
       claimTask(port, "T-1", "agent", "implementer", { leaseSeconds: true as never, clock: start }),
     ).toThrow();
+  });
+
+  test("claimTask throws when run is already completed", () => {
+    const state = workflowState();
+    state.completion_result = {
+      status: "complete",
+    } as never;
+    const port = new TestPort(state);
+    expect(() => claimTask(port, "T-1", "agent-a", "implementer", { clock: start })).toThrow(
+      "run is already completed",
+    );
+  });
+
+  test("claimTask validates role matching task status", () => {
+    const state = workflowState();
+    const port = new TestPort(state);
+    // Ready task with repairer role throws INVALID_ARGUMENT
+    expect(() => claimTask(port, "T-1", "agent-a", "repairer", { clock: start })).toThrow(
+      "lease role does not match the task state",
+    );
+
+    // Changes requested task with implementer role throws INVALID_ARGUMENT
+    state.tasks["T-1"]!.status = "changes_requested";
+    state.tasks["T-1"]!.repair_assignee = "agent-a";
+    expect(() => claimTask(port, "T-1", "agent-a", "implementer", { clock: start })).toThrow(
+      "lease role does not match the task state",
+    );
+  });
+
+  test("claimTask throws when all task requirements are disposed", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.requirement_ids = [];
+    const port = new TestPort(state);
+    expect(() => claimTask(port, "T-1", "agent-a", "implementer", { clock: start })).toThrow(
+      "task requirements are disposed",
+    );
+  });
+
+  test("heartbeat and releaseLease throw when lease has expired", () => {
+    const port = new TestPort(workflowState());
+    const { token } = claimTask(port, "T-1", "agent-a", "implementer", {
+      leaseSeconds: 10,
+      clock: start,
+    });
+
+    const pastExpiry = at("2026-08-13T12:00:20.000Z");
+    expect(() => heartbeat(port, "T-1", "agent-a", token, pastExpiry)).toThrow("lease has expired");
+    expect(() => releaseLease(port, "T-1", "agent-a", token, pastExpiry)).toThrow(
+      "lease has expired",
+    );
+  });
+
+  test("claimTask propagates resource_scope and writeScopeContentHash onto lease", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.resource_scope = ["db:users"];
+    const port = new TestPort(state);
+    const writeScopeContentHash = { algorithm: "sha256" as const, value: "hash-value" };
+    const { state: updated } = claimTask(port, "T-1", "agent-a", "implementer", {
+      clock: start,
+      writeScopeContentHash,
+    });
+
+    const lease = updated.tasks["T-1"]!.lease!;
+    expect(lease.resource_scope).toEqual(["db:users"]);
+    expect(lease.write_scope_content_hash).toEqual(writeScopeContentHash);
+  });
+
+  test("releaseLease handles repair attempts and invalid task statuses", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.status = "changes_requested";
+    state.tasks["T-1"]!.repair_assignee = "agent-a";
+    const port = new TestPort(state);
+
+    const { token } = claimTask(port, "T-1", "agent-a", "repairer", { clock: start });
+    expect(port.read().tasks["T-1"]!.status).toBe("leased");
+
+    const releasedState = releaseLease(port, "T-1", "agent-a", token, start);
+    expect(releasedState.tasks["T-1"]!.status).toBe("changes_requested");
+    expect(releasedState.tasks["T-1"]!.lease).toBeUndefined();
+
+    // Releasing a non-leased/running task that still has a lease throws INVALID_STATE
+    const { token: t2 } = claimTask(port, "T-1", "agent-a", "repairer", { clock: start });
+    port.transact("test", "modify-status", {}, (draft) => {
+      draft.tasks["T-1"]!.status = "done";
+    });
+    expect(() => releaseLease(port, "T-1", "agent-a", t2, start)).toThrow(
+      "task does not hold a releasable lease",
+    );
   });
 });

@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { monitorProcess } from "../../../olt/scripts/src/engine/runner/watchdog.ts";
+import {
+  monitorProcess,
+  type TimeoutKind,
+  type WatchdogOutcome,
+} from "../../../olt/scripts/src/engine/runner/watchdog.ts";
 import type { BunSubprocess } from "../../../olt/scripts/src/capture/runners/types.ts";
 
 function fakeChild(exited: Promise<number>): BunSubprocess {
@@ -77,6 +81,54 @@ describe("monitorProcess", () => {
       () => undefined,
     );
     expect(outcome).toEqual({ code: null, timeout: "idle", interrupted: false });
+  });
+
+  test("resolves with exit code when signal is provided but not aborted", async () => {
+    const controller = new AbortController();
+    const outcome = await monitorProcess(
+      fakeChild(Promise.resolve(42)),
+      Date.now(),
+      () => Date.now(),
+      10_000,
+      10_000,
+      () => undefined,
+      controller.signal,
+    );
+    expect(outcome).toEqual({ code: 42, timeout: null, interrupted: false });
+  });
+
+  test("exercises intermediate poll duration calculation", async () => {
+    let heartbeats = 0;
+    const started = Date.now() - 100;
+    const outcome = await monitorProcess(
+      fakeChild(new Promise(() => undefined)),
+      started,
+      () => Date.now(),
+      40,
+      40,
+      () => {
+        heartbeats += 1;
+      },
+    );
+    expect(outcome).toEqual({ code: null, timeout: "wall", interrupted: false });
+    expect(heartbeats).toBeGreaterThan(0);
+  });
+
+  test("handles multiple watchdog ticks before child exits", async () => {
+    let resolveChild!: (code: number) => void;
+    const exitedPromise = new Promise<number>((res) => {
+      resolveChild = res;
+    });
+    setTimeout(() => resolveChild(0), 35);
+    const outcome = await monitorProcess(
+      fakeChild(exitedPromise),
+      Date.now(),
+      () => Date.now(),
+      10_000,
+      10_000,
+      () => undefined,
+    );
+    expect(outcome).toEqual({ code: 0, timeout: null, interrupted: false });
   });
 });
 

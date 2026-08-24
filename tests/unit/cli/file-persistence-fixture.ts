@@ -1,15 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
 
 export async function setupCompiledRun(
   name: string,
   roots: string[],
-  callerPath: string = import.meta.path,
 ): Promise<{ repo: string; run: string }> {
-  const repo = scratchRoot(callerPath, `file-persist-${name}`);
+  const repo = await mkdtemp(join(tmpdir(), `file-persist-${name}-`));
   roots.push(repo);
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Core unit tests\n\nSecondary tests");

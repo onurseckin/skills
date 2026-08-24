@@ -65,7 +65,8 @@ function authorizeValidator(input: ReturnType<typeof base>): void {
 describe("role packets", () => {
   test("appends common instructions and hashes content", () => {
     const packet = buildPacket({ ...base(), role: "implementer" });
-    expect(packet.markdown).toContain("Preserve unrelated changes");
+    expect(packet.markdown).toContain("Actionable Task Checklist");
+    expect(packet.markdown).toContain("Exclusive write scope");
     expect(packet.metadata.packet_sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(packet.metadata.requirement_ids).toEqual(["R-1"]);
   });
@@ -77,7 +78,7 @@ describe("role packets", () => {
     for (const forbidden of ["I am done", "high", "trust me", "prior validator", "hidden"]) {
       expect(packet.markdown).not.toContain(forbidden);
     }
-    expect(packet.markdown).toContain('"mapped_requirements"');
+    expect(packet.markdown).toContain('"requirement_ids"');
     expect(packet.metadata.excluded_fields).toContain("implementer_report");
   });
 
@@ -98,7 +99,7 @@ describe("role packets", () => {
       },
     });
     expect(packet.metadata.agent_id).toBe("author-agent");
-    expect(packet.markdown).toContain("F-1");
+    expect(packet.markdown).toContain('"original_implementer": "author-agent"');
   });
 
   test("persists packets immutably", async () => {
@@ -112,5 +113,104 @@ describe("role packets", () => {
     const path = createPacketBundle(root, "packet-1", packet, false).markdownPath;
     expect(await readFile(path, "utf8")).toBe(packet.markdown);
     expect(() => createPacketBundle(root, "packet-1", packet, false)).toThrow();
+  });
+
+  test("renders mechanic-validator checklist with mechanical execution ownership", () => {
+    const input = base();
+    const packet = buildPacket({
+      ...input,
+      role: "mechanic-validator",
+      task: undefined,
+      leaseToken: undefined,
+    });
+    expect(packet.markdown).toContain("# mechanic-validator packet");
+    expect(packet.markdown).toContain("100% Mechanical Execution Ownership");
+    expect(packet.markdown).toContain("Structured Test Receipts & Evidence Generation");
+  });
+
+  test("renders subTask branch packet with non-ui scope", () => {
+    const input = base();
+    const subToken = "sub-token-xyz";
+    const subTask = {
+      id: "sub-1",
+      label: "Sub Task 1",
+      write_scope: ["src/backend.ts"],
+      status: "claimed" as const,
+      agent_id: "sub-agent-1",
+      claimed_at: "2026-08-13T12:05:00.000Z",
+      lease: {
+        token_digest: tokenDigest(subToken),
+        agent_id: "sub-agent-1",
+        issued_at: "2026-08-13T12:05:00.000Z",
+        expires_at: "2026-08-13T13:00:00.000Z",
+        duration_seconds: 60,
+      },
+    };
+    input.state.branches = [
+      {
+        id: "B-1",
+        parent_task_id: "T-1",
+        parent_agent_id: "agent",
+        reason: "backend work",
+        depth: 1,
+        status: "open",
+        opened_at: "2026-08-13T12:00:00.000Z",
+        sub_tasks: [subTask],
+      },
+    ];
+
+    const packet = buildPacket({
+      ...input,
+      role: "sub-implementer",
+      agentId: "sub-agent-1",
+      task: undefined,
+      leaseToken: subToken,
+      subTask,
+    });
+    expect(packet.markdown).toContain("# sub-implementer packet");
+    expect(packet.markdown).toContain('"write_scope": [\n    "src/backend.ts"\n  ]');
+  });
+
+  test("renders subTask branch packet with UI scope", () => {
+    const input = base();
+    const subToken = "sub-token-ui";
+    const subTask = {
+      id: "sub-ui-1",
+      label: "UI button redesign",
+      write_scope: ["src/components/button.tsx"],
+      status: "claimed" as const,
+      agent_id: "sub-ui-agent",
+      claimed_at: "2026-08-13T12:05:00.000Z",
+      lease: {
+        token_digest: tokenDigest(subToken),
+        agent_id: "sub-ui-agent",
+        issued_at: "2026-08-13T12:05:00.000Z",
+        expires_at: "2026-08-13T13:00:00.000Z",
+        duration_seconds: 60,
+      },
+    };
+    input.state.branches = [
+      {
+        id: "B-2",
+        parent_task_id: "T-1",
+        parent_agent_id: "agent",
+        reason: "ui work",
+        depth: 1,
+        status: "open",
+        opened_at: "2026-08-13T12:00:00.000Z",
+        sub_tasks: [subTask],
+      },
+    ];
+
+    const packet = buildPacket({
+      ...input,
+      role: "sub-implementer",
+      agentId: "sub-ui-agent",
+      task: undefined,
+      leaseToken: subToken,
+      subTask,
+    });
+    expect(packet.markdown).toContain("# sub-implementer packet");
+    expect(packet.markdown).toContain('"write_scope": [\n    "src/components/button.tsx"\n  ]');
   });
 });

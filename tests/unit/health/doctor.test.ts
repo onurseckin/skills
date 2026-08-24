@@ -70,6 +70,20 @@ describe("health/doctor and health/health-check", () => {
       expect(Array.isArray(report.zombieProcesses)).toBe(true);
       expect(Array.isArray(report.recommendations)).toBe(true);
     });
+
+    it("includes automated cleanup recommendations when dangling browser processes are killed", async () => {
+      const doctorMod = await import("../../../olt/scripts/src/health/doctor.ts");
+      const { spyOn } = await import("bun:test");
+      const killSpy = spyOn(doctorMod, "killDanglingBrowserProcesses").mockReturnValue(2);
+
+      try {
+        const badges: DagBadge[] = [];
+        const report = generatePulseReport(badges, "wave-1");
+        expect(report.activeBadges).toEqual([]);
+      } finally {
+        killSpy.mockRestore();
+      }
+    });
   });
 
   describe("renderHealthReport", () => {

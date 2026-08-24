@@ -17,8 +17,7 @@ import { readRegularFileNoFollow } from "../core/no-follow.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { parseUnifiedAgentManifest } from "../authority/manifest-schema.ts";
 
-const ROLES_ROOT = fileURLToPath(new URL("../../../roles", import.meta.url));
-const SCRIPTS_SRC_ROLES_ROOT = fileURLToPath(new URL("../roles", import.meta.url));
+const AGENTS_ROOT = fileURLToPath(new URL("../../../agents", import.meta.url));
 const CHECKLISTS_ROOT = fileURLToPath(new URL("../../../checklists", import.meta.url));
 const LIST_FIELDS = ["may", "must_not", "commands", "spawns"] as const;
 const KEY_LINE = /^([a-z][a-z_-]*):(?:[ \t]+(.*))?$/u;
@@ -45,8 +44,8 @@ export interface RoleContract {
   must_not: readonly string[];
   commands: readonly string[];
   spawns: readonly AgentRole[];
-  domain?: ValidatorDomain;
-  checklist?: Checklist;
+  domain?: ValidatorDomain | undefined;
+  checklist?: Checklist | undefined;
   text: string;
   bytes: Uint8Array;
   sha256: string;
@@ -146,9 +145,42 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
   } catch {
     invalid("role contract", source, "document is not valid UTF-8");
   }
+
+  if (!text.trimStart().startsWith("---")) {
+    if (source.endsWith(".md")) {
+      invalid("role contract", source, "missing opening frontmatter fence");
+    }
+    const manifest = parseUnifiedAgentManifest(text, source);
+    const role = (manifest.role ?? manifest.name) as AgentRole;
+    if (!isAgentRole(role)) {
+      invalid("role contract", source, `role is not a canonical agent role: ${role}`);
+    }
+    const commands = manifest.permissions?.commands ?? [];
+    if (isCognitiveValidatorRole(role) && !isMechanicValidatorRole(role)) {
+      if (commands.includes("run:exec")) {
+        invalid(
+          "role contract",
+          source,
+          `cognitive validator role ${role} must not declare run:exec in commands (command-running ban)`,
+        );
+      }
+    }
+    return {
+      role,
+      tier: typeof manifest.tier === "number" ? manifest.tier : 3,
+      may: manifest.permissions?.may ?? [],
+      must_not: manifest.permissions?.must_not ?? [],
+      commands,
+      spawns: (manifest.permissions?.spawns ?? []) as AgentRole[],
+      domain:
+        typeof manifest.domain === "string" ? (manifest.domain as ValidatorDomain) : undefined,
+      text,
+      bytes,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+    };
+  }
+
   const lines = text.split("\n");
-  if (lines[0] !== "---")
-    invalid("role contract", source, "document does not open with a frontmatter fence");
   const end = lines.indexOf("---", 1);
   if (end === -1) invalid("role contract", source, "frontmatter fence is unterminated");
   const frontmatter = readFrontmatter(
@@ -237,54 +269,39 @@ export function isMechanicValidatorContract(contract: RoleContract): boolean {
 }
 
 export function resolveRoleContractPath(role: AgentRole): string {
-  const srcPath = join(SCRIPTS_SRC_ROLES_ROOT, `${role}.md`);
-  if (existsSync(srcPath)) return srcPath;
-  return join(ROLES_ROOT, `${role}.md`);
+  const yamlPath = join(AGENTS_ROOT, `${role}.yaml`);
+  if (existsSync(yamlPath)) return yamlPath;
+  const ymlPath = join(AGENTS_ROOT, `${role}.yml`);
+  if (existsSync(ymlPath)) return ymlPath;
+  return yamlPath;
 }
 
-const AGENTS_ROOT = fileURLToPath(new URL("../../../agents", import.meta.url));
+function normalizeRoleName(role: string): string {
+  const lower = role.toLowerCase().trim();
+  if (lower === "critic") return "completeness-critic";
+  if (lower === "worker") return "implementer";
+  if (lower === "orch") return "orchestrator";
+  if (lower === "coord") return "coordinator";
+  return lower;
+}
 
 export function loadRoleContract(
   role: AgentRole,
   read: (path: string) => Uint8Array = readRegularFileNoFollow,
 ): RoleContract {
   const path = resolveRoleContractPath(role);
-  if (existsSync(path)) {
-    let bytes: Uint8Array;
-    try {
-      bytes = read(path);
-    } catch (error) {
-      throw new HarnessError("INTEGRITY", `role contract is unreadable: ${path}: ${String(error)}`);
-    }
-    const contract = parseRoleContract(bytes, `${role}.md`);
-    if (contract.role !== role)
-      throw new HarnessError("INTEGRITY", `role contract ${path} declares role ${contract.role}`);
-    return contract;
+  let rawBytes: Uint8Array;
+  try {
+    rawBytes = read(path);
+  } catch (error) {
+    throw new HarnessError("INTEGRITY", `role contract is unreadable: ${path}: ${String(error)}`);
   }
 
-  const yamlPath = join(AGENTS_ROOT, `${role}.yaml`);
-  if (existsSync(yamlPath)) {
-    const rawBytes = read(yamlPath);
-    const content = new TextDecoder("utf-8").decode(rawBytes);
-    const manifest = parseUnifiedAgentManifest(content, yamlPath);
-    const text = manifest.instructions || "";
-    const bytes = new TextEncoder().encode(text);
-    const sha256 = createHash("sha256").update(bytes).digest("hex");
-    const contract: RoleContract = {
-      role,
-      tier: typeof manifest.tier === "number" ? manifest.tier : 3,
-      may: manifest.permissions.may,
-      must_not: manifest.permissions.must_not,
-      commands: manifest.permissions.commands,
-      spawns: manifest.permissions.spawns as AgentRole[],
-      text,
-      bytes,
-      sha256,
-    };
-    return contract;
+  const contract = parseRoleContract(rawBytes, `${role}.yaml`);
+  if (contract.role !== role && normalizeRoleName(contract.role) !== normalizeRoleName(role)) {
+    throw new HarnessError("INTEGRITY", `role contract ${path} declares role ${contract.role}`);
   }
-
-  throw new HarnessError("INTEGRITY", `role contract is unreadable: ${path}: ENOENT`);
+  return contract;
 }
 
 const CHECKLIST_ITEM_LIST_FIELDS = new Set(["sources"]);
@@ -398,7 +415,29 @@ export function loadChecklist(
 }
 
 export function resolveValidatorDomainContractPath(domain: ValidatorDomain): string {
-  return join(ROLES_ROOT, `validator-${domain}.md`);
+  const domainYaml = join(AGENTS_ROOT, `validator-${domain}.yaml`);
+  if (existsSync(domainYaml)) return domainYaml;
+  return join(AGENTS_ROOT, "validator.yaml");
+}
+
+function extractValidatorDomainSection(
+  instructions: string,
+  domain: ValidatorDomain,
+): string | null {
+  const blocks = instructions.split(/\n(?=---\s*\nrole:\s*validator)/);
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed.startsWith("---")) continue;
+    const lines = trimmed.split("\n");
+    const end = lines.indexOf("---", 1);
+    if (end === -1) continue;
+    const frontmatterText = lines.slice(1, end).join("\n");
+    const domainMatch = frontmatterText.match(/^domain:\s*([a-z-]+)$/m);
+    if (domainMatch && domainMatch[1] === domain) {
+      return trimmed;
+    }
+  }
+  return null;
 }
 
 export function loadValidatorDomainContract(
@@ -412,7 +451,47 @@ export function loadValidatorDomainContract(
   } catch (error) {
     throw new HarnessError("INTEGRITY", `role contract is unreadable: ${path}: ${String(error)}`);
   }
-  const contract = parseRoleContract(bytes, `validator-${domain}.md`);
+
+  const textContent = new TextDecoder("utf-8").decode(bytes);
+  let contract: RoleContract;
+
+  if (textContent.trimStart().startsWith("---")) {
+    contract = parseRoleContract(bytes, `validator-${domain}.md`);
+  } else {
+    const manifest = parseUnifiedAgentManifest(textContent, path);
+    if (manifest.role !== "validator" && manifest.name !== "validator") {
+      throw new HarnessError(
+        "INTEGRITY",
+        `validator domain contract ${path} declares role ${manifest.role}`,
+      );
+    }
+
+    const instructions = manifest.instructions || "";
+    const matchedSection = extractValidatorDomainSection(instructions, domain);
+
+    if (matchedSection) {
+      contract = parseRoleContract(
+        new TextEncoder().encode(matchedSection),
+        `validator-${domain}.md`,
+      );
+    } else {
+      const domainVal =
+        typeof manifest.domain === "string" ? (manifest.domain as ValidatorDomain) : domain;
+      contract = {
+        role: "validator",
+        tier: typeof manifest.tier === "number" ? manifest.tier : 3,
+        may: manifest.permissions.may,
+        must_not: manifest.permissions.must_not,
+        commands: manifest.permissions.commands,
+        spawns: manifest.permissions.spawns as AgentRole[],
+        domain: domainVal,
+        text: instructions,
+        bytes: new TextEncoder().encode(instructions),
+        sha256: createHash("sha256").update(new TextEncoder().encode(instructions)).digest("hex"),
+      };
+    }
+  }
+
   if (contract.role !== "validator")
     throw new HarnessError(
       "INTEGRITY",

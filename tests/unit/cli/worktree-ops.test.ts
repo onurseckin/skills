@@ -1,11 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+afterAll(async () => cleanupRoots(roots));
 
 async function seedLedger(run: string): Promise<void> {
   transact(run, "test-seed", "seed-worktree-ledger-for-test", {}, (state) => {
@@ -20,11 +21,6 @@ async function seedLedger(run: string): Promise<void> {
   });
 }
 
-// worktree:reclaim's reclaim step always shells out to real `git worktree prune` regardless of
-// whether any worktree needs removing (git-ops.ts's pruneWorktrees has no CLI-exposed injection
-// seam here), so its success path genuinely requires a real git repository and a real subprocess —
-// a legitimate integration-only surface; see the summary's findings. These tests cover every
-// branch worktree-ops.ts itself decides before reaching that call.
 describe("worktree:reclaim", () => {
   test("refuses a run with no worktree ledger at all", async () => {
     const { run } = await setupCompiledRun("worktree-reclaim-no-ledger", roots);
@@ -39,5 +35,51 @@ describe("worktree:reclaim", () => {
     await expect(
       execute(["worktree:reclaim", "--run", run, "--actor", "coordinator"]),
     ).rejects.toThrow(/worktree_isolation is off in this run's current config/);
+  });
+
+  test("reclaims worktrees on git repo with worktree isolation enabled", async () => {
+    const { repo, run } = await setupCompiledRun("worktree-reclaim-success", roots);
+    const { spawnSync } = await import("node:child_process");
+    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo });
+    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo });
+    spawnSync("git", ["config", "user.name", "Test"], { cwd: repo });
+    spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo });
+
+    const configContent = JSON.stringify({ worktree_isolation: true });
+    await Bun.write(join(run, "config.json"), configContent);
+    await Bun.write(join(repo, "harness.config.json"), configContent);
+    await seedLedger(run);
+
+    const result = await execute(["worktree:reclaim", "--run", run, "--actor", "coordinator"]);
+    expect(result.run_root).toBe(run);
+    expect(result.harness_branch).toBe("harness/worktree-ops-test");
+    expect(result.markdown).toBeDefined();
+  });
+
+  test("reclaims worktrees on sealed run", async () => {
+    const { repo, run } = await setupCompiledRun("worktree-reclaim-sealed", roots);
+    const { spawnSync } = await import("node:child_process");
+    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo });
+    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo });
+    spawnSync("git", ["config", "user.name", "Test"], { cwd: repo });
+    spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo });
+
+    const configContent = JSON.stringify({ worktree_isolation: true });
+    await Bun.write(join(run, "config.json"), configContent);
+    await Bun.write(join(repo, "harness.config.json"), configContent);
+    transact(run, "test-seed", "seed-worktree-ledger-and-seal", {}, (state) => {
+      state.worktree_ledger = {
+        harness_branch: "harness/worktree-ops-test",
+        base_sha: "0".repeat(40),
+        root: ".worktrees",
+        worktrees: [],
+        assignments: [],
+        commits: [],
+      };
+      state.completion_result = { status: "complete" };
+    });
+
+    const result = await execute(["worktree:reclaim", "--run", run, "--actor", "coordinator"]);
+    expect(result.run_root).toBe(run);
   });
 });

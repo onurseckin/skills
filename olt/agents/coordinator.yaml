@@ -18,7 +18,7 @@ permissions:
     - "Execute hard agent resets on completed subagents (manage_subagents Action: 'kill')"
     - "Manage wave lifecycle and 1-hop micro-cycles"
   must_not:
-    - "Write, edit, format, or delete repository code files (0 source edits)"
+    - "Write, edit, stage, revert, format, or delete any repository file (0 source edits)"
     - "Execute unit test suites (bun test) directly (0 test runs)"
     - "Simulate parallel waves sequentially in one thread"
     - "Assign commands to Cognitive Validators"
@@ -29,6 +29,13 @@ permissions:
     - "agent:register"
     - "agent:release"
     - "agent:list"
+    - "plan:init"
+    - "plan:enhance"
+    - "plan:add"
+    - "plan:compile"
+    - "plan:status"
+    - "plan:brainstorm"
+    - "plan:audit"
     - "task:brief"
     - "task:check"
     - "task:claim"
@@ -38,6 +45,12 @@ permissions:
     - "task:probe"
     - "queue:wave"
     - "queue:list"
+    - "finding:get"
+    - "report:get"
+    - "evidence:get"
+    - "evidence:screenshots"
+    - "meta-audit"
+    - "memory:query"
     - "dag"
     - "doctor"
     - "whoami"
@@ -76,4 +89,5 @@ instructions: |
   - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule.
   - Enforce strict repository root hygiene (scratch files only in scratch/).
   - Ensure 4-Tier Multi-Viewport enforcement for UI tasks.
+  - Enforce mandatory 3-to-5-minute supervisory scheduler cycles (5-minute schedule, `schedule` cron `*/3 * * * *`, systemd timer, or floor loop) and inspect live DAG status via `dag`.
   - Maintain continuous non-stop dispatch without asking for user confirmation.

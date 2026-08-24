@@ -481,4 +481,63 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
     expect(customCaller.role).toBe("custom-unmapped-entity");
     expect(customCaller.tier).toBe(3);
   });
+
+  it("autoDeriveCallerIdentity returns resolved session identity when active session exists", () => {
+    const session = registerSessionGrant({
+      runRoot: sandboxDir,
+      agentId: "agent-caller-1",
+      role: "coordinator",
+      pid: 33445,
+    });
+
+    const resolved = autoDeriveCallerIdentity({
+      cwd: sandboxDir,
+      pid: 33445,
+    });
+
+    expect(resolved.actor).toBe("agent-caller-1");
+    expect(resolved.role).toBe("coordinator");
+    expect(resolved.tier).toBe(2);
+    expect(resolved.token).toBe(session.token);
+    expect(resolved.mechanisms.some((m) => m.includes("process_ancestry_pid"))).toBe(true);
+  });
+
+  it("autoDeriveCallerIdentity falls back to root mind shell when no session or explicit actor is given", () => {
+    const defaultCaller = autoDeriveCallerIdentity({
+      cwd: sandboxDir,
+      pid: 0,
+      ppid: 0,
+      env: {},
+    });
+
+    expect(defaultCaller.actor).toBe("mind");
+    expect(defaultCaller.role).toBe("mind");
+    expect(defaultCaller.tier).toBe(0);
+    expect(defaultCaller.mechanisms).toContain("interactive_terminal_fallback");
+  });
+
+  it("autoDeriveCallerIdentity handles explicitActor fallback with unmapped role and token", () => {
+    const fallbackWithToken = autoDeriveCallerIdentity({
+      cwd: sandboxDir,
+      pid: 0,
+      ppid: 0,
+      env: {},
+      explicitActor: "some-agent-id",
+      explicitToken: "tok-explicit-123",
+    });
+
+    expect(fallbackWithToken.actor).toBe("some-agent-id");
+    expect(fallbackWithToken.token).toBe("tok-explicit-123");
+    expect(fallbackWithToken.mechanisms).toContain("interactive_terminal_fallback");
+  });
+
+  it("resolveActiveSession handles empty options and resolves global sessions dir with fallback", () => {
+    const res = resolveActiveSession({
+      cwd: "/tmp/non-repo-dir",
+      env: {},
+      pid: 0,
+      ppid: 0,
+    });
+    expect(res).toBeNull();
+  });
 });

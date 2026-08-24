@@ -616,7 +616,8 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
       });
 
       const loaded = loadRun(runRoot, false);
-      expect(loaded.state.pulse?.counter).toBe(2);
+      const pulseState = loaded.state.pulse as Record<string, unknown> | undefined;
+      expect(pulseState?.counter).toBe(2);
       expect(verifyIntegrity(runRoot)).toEqual([]);
     });
   });

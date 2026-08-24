@@ -45,8 +45,10 @@ describe("TimerProtectionGuard", () => {
     }
   });
 
-  it("can be instantiated without errors", () => {
+  it("can be instantiated and constructor executed", () => {
     const guard = new TimerProtectionGuard();
     expect(guard).toBeDefined();
+    expect(guard instanceof TimerProtectionGuard).toBe(true);
+    expect(TimerProtectionGuard.prototype.constructor).toBeDefined();
   });
 });

@@ -503,10 +503,150 @@ describe("Ultra-Lean Packet Architecture & Metadata Slicing", () => {
       expect(ultraLean.metadata.is_ultra_lean).toBe(true);
       expect(ultraLean.metadata.packet_sha256).toMatch(/^[0-9a-f]{64}$/);
       expect(ultraLean.markdown).toContain("# implementer packet");
-      expect(ultraLean.markdown).toContain("Responsibility checklist");
+      expect(ultraLean.markdown).toContain("Actionable Task Checklist");
 
       const budgetCheck = enforcePacketBudget(ultraLean, DEFAULT_PACKET_BYTE_BUDGET);
       expect(budgetCheck.compliant).toBe(true);
+    });
+  });
+
+  describe("Additional Edge Cases & Branch Coverage", () => {
+    test("sliceMarkdownSections truncates non-code blocks and handles total budget limit", () => {
+      const nonCodeMd = "## Narrative\n\n" + "Very long explanatory text line.\n".repeat(50);
+      const sliced = sliceMarkdownSections(nonCodeMd, {
+        maxSectionBytes: 100,
+        maxTotalBytes: 200,
+      });
+      expect(sliced).toContain("[... Section truncated to budget");
+    });
+
+    test("sliceMarkdownSections handles extreme total budget limit smaller than notice", () => {
+      const md = "## Narrative\n\nSome text";
+      const sliced = sliceMarkdownSections(md, {
+        maxTotalBytes: 10,
+      });
+      expect(Buffer.from(sliced, "utf-8").byteLength).toBeLessThanOrEqual(10);
+    });
+
+    test("sliceEventStream filters by actor and since date", () => {
+      const events: JsonObject[] = [
+        {
+          event_id: "evt-1",
+          actor: "worker-1",
+          type: "task:leased",
+          timestamp: "2026-08-13T12:00:00Z",
+        },
+        {
+          event_id: "evt-2",
+          agent_id: "worker-2",
+          type: "task:leased",
+          timestamp: "2026-08-13T13:00:00Z",
+        },
+        {
+          event_id: "evt-3",
+          actor: "worker-1",
+          type: "task:submitted",
+          timestamp: "invalid-date",
+        },
+      ];
+
+      const byActor = sliceEventStream(events, { actor: "worker-1" });
+      expect(byActor.total).toBe(2);
+
+      const bySince = sliceEventStream(events, { since: "2026-08-13T12:30:00Z" });
+      expect(bySince.total).toBe(1);
+    });
+
+    test("sliceRepositoryDiff handles empty scope and large diff truncation", () => {
+      expect(sliceRepositoryDiff("diff --git a/a.ts b/a.ts", [])).toBe(
+        "[Scope Empty: No diff displayed]",
+      );
+
+      const largeDiff = "diff --git a/a.ts b/a.ts\n" + "+line\n".repeat(1000);
+      const truncated = sliceRepositoryDiff(largeDiff, ["a.ts"], 200);
+      expect(truncated).toContain("[... Diff truncated to budget");
+    });
+
+    test("createMetadataSlice handles all targets and fallback branches", () => {
+      const state: JsonObject = {
+        tasks: {
+          "T-1": { id: "T-1", status: "ready", write_scope: ["a.ts"], requirement_ids: ["R-1"] },
+        },
+        graph: {
+          nodes: [{ id: "T-1" }],
+          edges: [],
+        },
+        events: [
+          { event_id: "E-1", task_id: "T-1", type: "event" },
+          { event_id: "E-2", task_id: "T-2", type: "event" },
+        ],
+        requirements: [
+          { id: "R-1", description: "Requirement 1" },
+          { id: "R-2", description: "Requirement 2" },
+        ],
+        commands: {
+          "C-1": { command_id: "C-1", task_id: "T-1", argv: ["bun", "test"] },
+          "C-2": { command_id: "C-2", task_id: "T-2", argv: ["bun", "lint"] },
+        },
+        custom_field: "custom_value",
+      };
+
+      // task not found
+      expect(() =>
+        createMetadataSlice(state, { runId: "r1", target: "task", taskId: "T-MISSING" }),
+      ).toThrow("not found in state");
+
+      // task list
+      const taskList = createMetadataSlice(state, { runId: "r1", target: "task" });
+      expect(taskList.totalCount).toBe(1);
+
+      // full graph
+      const graphList = createMetadataSlice(state, { runId: "r1", target: "graph" });
+      expect(graphList.totalCount).toBe(1);
+
+      // events
+      const eventsSlice = createMetadataSlice(state, {
+        runId: "r1",
+        target: "events",
+        taskId: "T-1",
+      });
+      expect(eventsSlice.totalCount).toBe(1);
+
+      // requirements with and without task
+      const reqTask = createMetadataSlice(state, {
+        runId: "r1",
+        target: "requirements",
+        taskId: "T-1",
+      });
+      expect(reqTask.totalCount).toBe(2);
+      expect(reqTask.returnedCount).toBe(1);
+
+      const reqAll = createMetadataSlice(state, { runId: "r1", target: "requirements" });
+      expect(reqAll.totalCount).toBe(2);
+      expect(reqAll.returnedCount).toBe(2);
+
+      // commands / evidence with and without task
+      const cmdTask = createMetadataSlice(state, {
+        runId: "r1",
+        target: "commands",
+        taskId: "T-1",
+      });
+      expect(cmdTask.returnedCount).toBe(1);
+
+      const cmdAll = createMetadataSlice(state, { runId: "r1", target: "evidence" });
+      expect(cmdAll.totalCount).toBe(2);
+
+      // custom with fields
+      const customSlice = createMetadataSlice(state, {
+        runId: "r1",
+        target: "custom",
+        fields: ["custom_field"],
+      });
+      expect((customSlice.data as JsonObject).custom_field).toBe("custom_value");
+
+      // custom without fields
+      const customAll = createMetadataSlice(state, { runId: "r1", target: "custom" });
+      expect(customAll.totalCount).toBe(1);
     });
   });
 });

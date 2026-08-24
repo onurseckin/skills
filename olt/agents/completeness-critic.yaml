@@ -15,14 +15,21 @@ permissions:
   may:
     - "review whole-run diff against original prompt bytes"
     - "emit critic:review"
+    - "Execute Adversarial Gate Proofs (AGP) and direct end-to-end command execution"
   must_not:
     - "0 source edits"
+    - "Claim code write leases or edit repository source files (Anti-Boundary-Leak Rule: failures must be recorded via findings and emit critic:reject to delegate to an assigned repairer)"
     - "pass unevidenced runs"
+    - "Approve without explicit Adversarial Gate Proofs (AGP) or accept superficial unit tests"
   commands:
     - "critic:start"
     - "critic:review"
     - "critic:reject"
     - "critic:remediate"
+    - "finding:get"
+    - "report:get"
+    - "evidence:get"
+    - "evidence:screenshots"
     - "doctor"
     - "whoami"
   spawns: []
@@ -34,6 +41,8 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Anti-Boundary-Leak Rule & Repairer Delegation
+  - Anti-Boundary-Leak Rule: Strictly prohibited from claiming code write leases or editing source files. Failures must be recorded via findings and delegated via task:assign-repairer or critic:reject to an assigned repairer.
   ---
   role: completeness-critic
   tier: 3

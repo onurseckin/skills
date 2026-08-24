@@ -138,5 +138,53 @@ describe("Scope Partitioner Algorithm", () => {
       );
       expect(analysis.collisions).toHaveLength(0);
     });
+
+    test("groups multiple findings with exact same LCA directory into a single cluster", () => {
+      const findings: FindingDetail[] = [
+        {
+          id: "F-1",
+          severity: "minor",
+          file_paths: ["src/utils/a.ts"],
+          observation: "obs 1",
+          remediation: "rem 1",
+        },
+        {
+          id: "F-2",
+          severity: "minor",
+          file_paths: ["src/utils/b.ts"],
+          observation: "obs 2",
+          remediation: "rem 2",
+        },
+      ];
+
+      const clusters = partitionFindingsIntoScopes(findings, 1);
+      expect(clusters).toHaveLength(1);
+      expect(clusters[0]!.writeScope).toEqual(["src/utils"]);
+      expect(clusters[0]!.findings).toHaveLength(2);
+    });
+
+    test("merges child scope when child is processed before parent scope", () => {
+      const findings: FindingDetail[] = [
+        {
+          id: "F-CHILD",
+          severity: "critical",
+          file_paths: ["src/components/EdgeDetailDrawer/EdgeDrawer.tsx"],
+          observation: "child obs",
+          remediation: "child rem",
+        },
+        {
+          id: "F-PARENT",
+          severity: "important",
+          file_paths: ["src/components/Button.tsx"],
+          observation: "parent obs",
+          remediation: "parent rem",
+        },
+      ];
+
+      const clusters = partitionFindingsIntoScopes(findings, 1);
+      expect(clusters).toHaveLength(1);
+      expect(clusters[0]!.writeScope).toEqual(["src/components"]);
+      expect(clusters[0]!.findings).toHaveLength(2);
+    });
   });
 });

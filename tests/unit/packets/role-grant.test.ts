@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { fileURLToPath } from "node:url";
 import {
+  assertGrantedRoleTools,
   grantContext,
   grantPacketId,
   grantedInvocations,
@@ -35,6 +36,26 @@ describe("role-grant pure helpers", () => {
     expect(first).toBe(same);
     expect(first).not.toBe(other);
     expect(first.startsWith("implementer-")).toBe(true);
+  });
+
+  test("assertGrantedRoleTools forbids execution tools on cognitive validators", () => {
+    expect(() =>
+      assertGrantedRoleTools("validator", [{ name: "run:exec", category: "shell" }]),
+    ).toThrow("Shell and test execution belongs exclusively to mechanic validators");
+
+    expect(() => assertGrantedRoleTools("validator", [{ name: "bash" }])).toThrow(
+      "Shell and test execution belongs exclusively to mechanic validators",
+    );
+
+    // Safe tools on validator succeed
+    expect(() =>
+      assertGrantedRoleTools("validator", [{ name: "view_file", category: "reading" }]),
+    ).not.toThrow();
+
+    // Execution tools on mechanic validator succeed
+    expect(() =>
+      assertGrantedRoleTools("mechanic-validator", [{ name: "run:exec", category: "shell" }]),
+    ).not.toThrow();
   });
 });
 

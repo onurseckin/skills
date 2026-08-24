@@ -19,6 +19,7 @@ import {
   planEnhanceToWavePlan,
   planWaveExecution,
   processAutonomousDualIntake,
+  rebalanceTasksWithBrentLimits,
   runAutonomousDualIntakeCycle,
   sanitizeSlug,
   synthesizeAutonomousTasks,
@@ -956,6 +957,49 @@ describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
       clearFeedbackQueue(feedbackFile);
       expect(readFeedbackQueue(feedbackFile)).toHaveLength(0);
       teardown();
+    });
+
+    it("rebalanceTasksWithBrentLimits decouples artificial edges and computes macro metrics", () => {
+      const emptyRes = rebalanceTasksWithBrentLimits([]);
+      expect(emptyRes.total_waves).toBe(0);
+      expect(emptyRes.macro_metrics.work).toBe(0);
+
+      const taskA = expandExternalPromptToPlan("Implement Core Engine Feature", {
+        baseId: "task-a",
+        writeScope: ["olt/scripts/src/engine/"],
+      });
+      const taskB = expandExternalPromptToPlan("Implement CLI Tooling Feature", {
+        baseId: "task-b",
+        writeScope: ["olt/scripts/src/cli/"],
+      });
+      // Artificial dependency with disjoint write scope
+      const taskBWithArtificialDep = {
+        ...taskB,
+        dependencies: [taskA.id],
+      };
+
+      const rebalanceRes = rebalanceTasksWithBrentLimits([taskA, taskBWithArtificialDep], {
+        preserveJustified: false,
+      });
+      expect(rebalanceRes.decoupled_edges_count).toBe(1);
+      expect(rebalanceRes.total_tasks).toBe(2);
+      expect(rebalanceRes.macro_metrics.work).toBeGreaterThanOrEqual(2);
+    });
+
+    it("expandExternalPromptToWavePlan and planEnhanceToWavePlan generate valid wave plans", () => {
+      const wavePlan = expandExternalPromptToWavePlan(
+        "Build Multi-Module Subsystem\nEnsure all modules pass verification.",
+        {
+          writeScope: ["src/module-a/"],
+        },
+      );
+      expect(wavePlan.total_waves).toBeGreaterThan(0);
+      expect(wavePlan.total_tasks).toBe(2);
+
+      const enhancedWave = planEnhanceToWavePlan("Refactor feedback processor", {
+        writeScope: ["src/mind/"],
+      });
+      expect(enhancedWave.total_waves).toBe(1);
     });
   });
 

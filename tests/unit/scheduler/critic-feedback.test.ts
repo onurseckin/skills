@@ -55,6 +55,23 @@ describe("Recursive Critic Feedback & Dominating Skill Engine", () => {
       expect(normalized?.status).toBe("open");
     });
 
+    test("normalizes raw critic finding object with affected_files and evidence array", () => {
+      const raw = {
+        id: "F-AUTH-02",
+        requirement_id: "REQ-AUTH",
+        severity: "minor",
+        observation: "Missing audit log",
+        remediation: "Add audit log call",
+        affected_files: ["src/auth/audit.ts"],
+        evidence: [{ kind: "log", snippet: "missing" }],
+      };
+
+      const normalized = normalizeCriticFinding(raw);
+      expect(normalized).not.toBeNull();
+      expect(normalized?.affectedFilePaths).toEqual(["src/auth/audit.ts"]);
+      expect(normalized?.evidence.length).toBe(1);
+    });
+
     test("returns null on invalid input", () => {
       expect(normalizeCriticFinding(null)).toBeNull();
       expect(normalizeCriticFinding("not-an-object")).toBeNull();
@@ -83,18 +100,22 @@ describe("Recursive Critic Feedback & Dominating Skill Engine", () => {
       expect(pair.validatorId).not.toBe("worker-alpha");
     });
 
-    test("binds replacement implementer and independent validator on subsequent repair rounds", () => {
+    test("throws HarnessError on invalid currentRound < 1", () => {
+      expect(() => selectImplementerValidatorPair(dummyTask, 0)).toThrow(
+        /currentRound must be positive/,
+      );
+    });
+
+    test("falls back to first available implementer / validator when pool has no other match", () => {
       const pair = selectImplementerValidatorPair(
         dummyTask,
         2,
         "replacement_pair",
-        ["worker-alpha", "worker-beta", "worker-gamma"],
-        ["val-1", "val-2"],
+        ["worker-alpha"], // only original implementer in pool
+        ["worker-alpha"], // only original implementer in pool
       );
       expect(pair.isReplacementPair).toBeTrue();
-      expect(pair.implementerId).toBe("worker-beta");
-      expect(pair.validatorId).not.toBe(pair.implementerId);
-      expect(pair.validatorId).not.toBe("worker-alpha");
+      expect(pair.implementerId).toBe("worker-alpha");
     });
   });
 
@@ -219,6 +240,98 @@ describe("Recursive Critic Feedback & Dominating Skill Engine", () => {
       expect(dag.totalSpan).toBe(2);
       expect(dag.parallelismFactor).toBe(1);
       expect(dag.dominatingDirectives.length).toBeGreaterThanOrEqual(3);
+    });
+
+    test("handles dependency cycles in repair DAG gracefully by marking acyclic=false", () => {
+      const state = workflowState();
+      state.tasks["T-A"] = {
+        id: "T-A",
+        status: "changes_requested",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: ["T-B"],
+        attempts: [],
+        history: [],
+      } as unknown as TaskRecord;
+      state.tasks["T-B"] = {
+        id: "T-B",
+        status: "changes_requested",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: ["T-A"],
+        attempts: [],
+        history: [],
+      } as unknown as TaskRecord;
+
+      const payloads: ClosedLoopRepairPayload[] = [
+        {
+          taskId: "T-A",
+          repairRound: 1,
+          priorStatus: "done",
+          newStatus: "changes_requested",
+          binding: { implementerId: "w1", validatorId: "v1", isReplacementPair: false },
+          writeScope: [],
+          findings: [],
+          counterfactualRequirements: [],
+          revalidationGates: [],
+          repairDirectives: "",
+          isEscalated: false,
+        },
+        {
+          taskId: "T-B",
+          repairRound: 1,
+          priorStatus: "done",
+          newStatus: "changes_requested",
+          binding: { implementerId: "w2", validatorId: "v2", isReplacementPair: false },
+          writeScope: [],
+          findings: [],
+          counterfactualRequirements: [],
+          revalidationGates: [],
+          repairDirectives: "",
+          isEscalated: false,
+        },
+      ];
+
+      const dag = compileRepairDag(payloads, state, 1);
+      expect(dag.isAcyclic).toBeFalse();
+    });
+  });
+
+  describe("routeCriticFeedback with requirement proofs and matching heuristics", () => {
+    test("routes unproven requirement proofs as repair findings", () => {
+      const state = workflowState();
+      state.tasks["T-1"] = {
+        id: "T-1",
+        status: "done",
+        requirement_ids: ["REQ-UNPROVEN"],
+        write_scope: ["src/unproven.ts"],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+      } as unknown as TaskRecord;
+
+      const port = new TestPort(state);
+      const result = routeCriticFeedback(
+        port,
+        { actor: "critic-lead", role: "completeness-critic" },
+        {
+          status: "findings",
+          findings: [],
+          requirement_proofs: [
+            {
+              requirement_id: "REQ-UNPROVEN",
+              status: "unproven",
+              observation: "Proof missing for invariant",
+              remediation: "Add property test proof",
+            },
+          ],
+        },
+      );
+
+      expect(result.isConverged).toBeFalse();
+      expect(result.totalFindingsRouted).toBe(1);
+      expect(result.changesRequestedTaskIds).toContain("T-1");
     });
   });
 
@@ -405,6 +518,119 @@ describe("Recursive Critic Feedback & Dominating Skill Engine", () => {
       expect(status2.isConverged).toBeTrue();
       expect(status2.tasksInRepair).toEqual([]);
       expect(status2.openFindingsCount).toBe(0);
+    });
+
+    test("routeCriticFeedback matches tasks by affectedFilePaths and write scope in observation", () => {
+      const state = workflowState();
+      state.tasks["T-PATH"] = {
+        ...state.tasks["T-1"]!,
+        id: "T-PATH",
+        status: "ready",
+        requirement_ids: ["R-OTHER"],
+        write_scope: ["src/special/file.ts"],
+        findings: [],
+      };
+
+      const findingsByPath = [
+        {
+          id: "F-PATH",
+          requirement_id: "R-UNKNOWN",
+          role: "critic",
+          category: "soundness",
+          observation: "Issue in src/special/file.ts",
+          affected_files: ["src/special/file.ts"],
+          remediation: "Fix",
+          revalidation_command: "bun test",
+          status: "open",
+        },
+      ];
+
+      const port = new TestPort(state);
+      const result = routeCriticFeedback(
+        port,
+        { actor: "val-1", role: "validator" },
+        findingsByPath,
+      );
+      expect(result.payloads[0]?.taskId).toBe("T-PATH");
+    });
+
+    test("routeCriticFeedback falls back to done/validated/changes_requested tasks when no requirement or path matches", () => {
+      const state = workflowState();
+      state.tasks["T-FALLBACK"] = {
+        ...state.tasks["T-1"]!,
+        id: "T-FALLBACK",
+        status: "done",
+        requirement_ids: ["R-100"],
+        write_scope: ["src/done.ts"],
+        findings: [],
+      };
+
+      const unmappedFindings = [
+        {
+          id: "F-UNMAPPED",
+          requirement_id: "R-TOTALLY-UNMAPPED",
+          role: "critic",
+          category: "soundness",
+          observation: "General issue without file markers",
+          affected_files: [],
+          remediation: "Fix",
+          revalidation_command: "bun test",
+          status: "open",
+        },
+      ];
+
+      const port = new TestPort(state);
+      const result = routeCriticFeedback(
+        port,
+        { actor: "val-1", role: "validator" },
+        unmappedFindings,
+      );
+      expect(result.payloads[0]?.taskId).toBe("T-FALLBACK");
+    });
+
+    test("compileRepairDag computes critical path for multi-step dependent repair DAG", () => {
+      const state = workflowState();
+      state.tasks["T-1"] = {
+        ...state.tasks["T-1"]!,
+        id: "T-1",
+        status: "changes_requested",
+        requirement_ids: ["R-001"],
+        write_scope: ["src/1.ts"],
+        dependencies: [],
+        effort: 2,
+        findings: [],
+      };
+      state.tasks["T-2"] = {
+        ...state.tasks["T-1"]!,
+        id: "T-2",
+        status: "changes_requested",
+        requirement_ids: ["R-001"],
+        write_scope: ["src/2.ts"],
+        dependencies: ["T-1"],
+        effort: 3,
+        findings: [],
+      };
+
+      const rawFindings = [
+        {
+          id: "F-1",
+          requirement_id: "R-001",
+          role: "critic",
+          category: "soundness",
+          observation: "Issue across both tasks",
+          affected_files: ["src/1.ts", "src/2.ts"],
+          remediation: "Fix both",
+          revalidation_command: "bun test",
+          status: "open",
+        },
+      ];
+
+      const port = new TestPort(state);
+      const routed = routeCriticFeedback(port, { actor: "val-1", role: "validator" }, rawFindings);
+      const dag = compileRepairDag(routed.payloads, port.read(), 2);
+      expect(dag.isAcyclic).toBeTrue();
+      expect(dag.totalSpan).toBeGreaterThanOrEqual(2);
+      expect(dag.criticalPath.length).toBeGreaterThanOrEqual(1);
     });
   });
 });

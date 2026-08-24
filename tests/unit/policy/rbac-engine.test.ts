@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   compileEffectiveForbiddenPatterns,
   hasUnshieldedSubshellOrChaining,
+  isTargetTestArgument,
   isUntargetedTestCommand,
   verifyCommandAuthorization,
 } from "../../../olt/scripts/src/policy/rbac-engine.ts";
@@ -420,6 +421,272 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
       const match = hasUnshieldedSubshellOrChaining("eval something", ["custom_token"]);
       expect(match.detected).toBe(true);
       expect(match.reason).toContain("evaluator pattern");
+    });
+
+    test("hasUnshieldedSubshellOrChaining exhaustively covers subshells, evaluators, and flags", () => {
+      expect(hasUnshieldedSubshellOrChaining("dash", ["dash"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("fish", ["fish"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("ksh", ["ksh"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("csh", ["csh"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("tcsh", ["tcsh"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("sh.exe", ["sh.exe"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("bash.exe", ["bash.exe"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("zsh.exe", ["zsh.exe"]).detected).toBe(true);
+
+      expect(hasUnshieldedSubshellOrChaining("node", ["node.exe", "-e", "1"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("bun", ["bun.exe", "--eval", "1"]).detected).toBe(
+        true,
+      );
+      expect(hasUnshieldedSubshellOrChaining("deno", ["deno", "-e", "1"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("node", ["node", "-e=console.log(1)"]).detected).toBe(
+        true,
+      );
+      expect(
+        hasUnshieldedSubshellOrChaining("bun", ["bun", "--eval=console.log(1)"]).detected,
+      ).toBe(true);
+
+      expect(hasUnshieldedSubshellOrChaining("python", ["python", "-c", "1"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("python", ["python", "-c=1"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("perl", ["perl", "-c=1"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("perl", ["perl", "-e", "1"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("ruby", ["ruby", "-e=1"]).detected).toBe(true);
+
+      expect(hasUnshieldedSubshellOrChaining("ls", ["ls", "&"]).detected).toBe(true);
+      expect(hasUnshieldedSubshellOrChaining("ls", ["ls", "||", "true"]).detected).toBe(true);
+
+      expect(hasUnshieldedSubshellOrChaining("git status", ["git", "status"]).detected).toBe(false);
+    });
+
+    test("isTargetTestArgument covers all branches and conditions", () => {
+      expect(isTargetTestArgument("")).toBe(false);
+      expect(isTargetTestArgument("   ")).toBe(false);
+      expect(isTargetTestArgument("-v")).toBe(false);
+      expect(isTargetTestArgument("--")).toBe(false);
+      expect(isTargetTestArgument("--flag")).toBe(false);
+      expect(isTargetTestArgument("./...")).toBe(false);
+      expect(isTargetTestArgument("...")).toBe(false);
+      expect(isTargetTestArgument(".")).toBe(false);
+      expect(isTargetTestArgument("12345")).toBe(false);
+      expect(isTargetTestArgument("0")).toBe(false);
+      expect(isTargetTestArgument("true")).toBe(false);
+      expect(isTargetTestArgument("false")).toBe(false);
+      expect(isTargetTestArgument("TRUE")).toBe(false);
+
+      const ignored = [
+        "all",
+        "workspace",
+        "run",
+        "watch",
+        "related",
+        "bench",
+        "coverage",
+        "cov",
+        "bail",
+        "quiet",
+        "silent",
+        "verbose",
+        "json",
+        "tap",
+        "junit",
+        "html",
+        "text",
+        "lcov",
+        "node",
+        "bun",
+        "browser",
+        "jsdom",
+        "happy-dom",
+      ];
+      for (const kw of ignored) {
+        expect(isTargetTestArgument(kw)).toBe(false);
+        expect(isTargetTestArgument(kw.toUpperCase())).toBe(false);
+      }
+
+      expect(isTargetTestArgument("key=value")).toBe(false);
+      expect(isTargetTestArgument("config=path/to/file")).toBe(true);
+      expect(isTargetTestArgument("dir/test")).toBe(true);
+      expect(isTargetTestArgument("dir\\test")).toBe(true);
+
+      expect(isTargetTestArgument("foo.spec.js")).toBe(true);
+      expect(isTargetTestArgument("foo.tsx")).toBe(true);
+      expect(isTargetTestArgument("foo.jsx")).toBe(true);
+      expect(isTargetTestArgument("foo.rs")).toBe(true);
+      expect(isTargetTestArgument("foo.go")).toBe(true);
+      expect(isTargetTestArgument("foo.rb")).toBe(true);
+      expect(isTargetTestArgument("foo.cpp")).toBe(true);
+      expect(isTargetTestArgument("foo.c")).toBe(true);
+      expect(isTargetTestArgument("foo.h")).toBe(true);
+      expect(isTargetTestArgument("foo.kt")).toBe(true);
+      expect(isTargetTestArgument("foo.scala")).toBe(true);
+      expect(isTargetTestArgument("foo.cs")).toBe(true);
+      expect(isTargetTestArgument("foo.php")).toBe(true);
+      expect(isTargetTestArgument("foo.ex")).toBe(true);
+      expect(isTargetTestArgument("foo.exs")).toBe(true);
+
+      expect(isTargetTestArgument("test_feature")).toBe(true);
+      expect(isTargetTestArgument("unit_test")).toBe(true);
+      expect(isTargetTestArgument("test_suite.py")).toBe(true);
+      expect(isTargetTestArgument("UserTest.java")).toBe(true);
+
+      expect(isTargetTestArgument("MyTestFunc")).toBe(true);
+      expect(isTargetTestArgument("Namespace::TestClass")).toBe(true);
+
+      expect(isTargetTestArgument("!@#$%^&*")).toBe(false);
+    });
+
+    test("isUntargetedTestCommand handles empty inputs, runner variations, and dynamic policies", () => {
+      expect(isUntargetedTestCommand("")).toBe(false);
+      expect(isUntargetedTestCommand("   ")).toBe(false);
+      expect(isUntargetedTestCommand("", [])).toBe(false);
+      expect(isUntargetedTestCommand("echo hello")).toBe(false);
+
+      expect(isUntargetedTestCommand("python -m pytest")).toBe(true);
+      expect(isUntargetedTestCommand("python -m pytest -k test_feature tests/test_foo.py")).toBe(
+        false,
+      );
+      expect(isUntargetedTestCommand("python3 -m pytest")).toBe(true);
+      expect(isUntargetedTestCommand("poetry run pytest")).toBe(true);
+      expect(isUntargetedTestCommand("pipenv run pytest")).toBe(true);
+      expect(isUntargetedTestCommand("pnpm test")).toBe(true);
+      expect(isUntargetedTestCommand("yarn test")).toBe(true);
+      expect(isUntargetedTestCommand("bunx vitest")).toBe(true);
+      expect(isUntargetedTestCommand("bunx vitest run src/test.ts")).toBe(false);
+      expect(isUntargetedTestCommand("npx vitest")).toBe(true);
+      expect(isUntargetedTestCommand("npx jest")).toBe(true);
+
+      expect(isUntargetedTestCommand("go test -tags unit")).toBe(true);
+      expect(isUntargetedTestCommand("mvn test -Dtest=Unit src/Test.java")).toBe(false);
+      expect(isUntargetedTestCommand("gradle test -Pflag")).toBe(true);
+      expect(isUntargetedTestCommand("dotnet test --filter Category=Unit src/Test.cs")).toBe(false);
+      expect(isUntargetedTestCommand("mix test --only unit test/my_test.exs")).toBe(false);
+
+      expect(isUntargetedTestCommand("bun test -t")).toBe(true);
+      expect(isUntargetedTestCommand("bun test -t -v")).toBe(true);
+
+      const customPolicy: RepoPolicy = {
+        schema_version: 1,
+        ecosystem: "unknown",
+        test_runner: {
+          default_command: "my-test run",
+          targeted_pattern: "my-test run <path>",
+          full_suite_command: "my-test run-all-suites",
+        },
+      };
+      expect(isUntargetedTestCommand("my-test", undefined, customPolicy)).toBe(false);
+      expect(isUntargetedTestCommand("other-test run-all-suites", undefined, customPolicy)).toBe(
+        false,
+      );
+      expect(isUntargetedTestCommand("my-test run-all-suites", undefined, customPolicy)).toBe(true);
+      expect(
+        isUntargetedTestCommand("my-test run-all-suites src/test.ts", undefined, customPolicy),
+      ).toBe(false);
+    });
+
+    test("compileEffectiveForbiddenPatterns covers all role variants and cache behavior", () => {
+      const p1 = compileEffectiveForbiddenPatterns("validator", samplePolicy);
+      const p2 = compileEffectiveForbiddenPatterns("validator", samplePolicy);
+      expect(p1).toBe(p2);
+
+      const cognitiveRoles = [
+        "cognitive-validator",
+        "cognitive_validator",
+        "critic",
+        "completeness_critic",
+        "planner",
+        "plan-validator",
+        "plan_validator",
+        "sub-investigator",
+        "sub_investigator",
+      ];
+      for (const r of cognitiveRoles) {
+        const patterns = compileEffectiveForbiddenPatterns(r, samplePolicy);
+        expect(patterns.length).toBe(1);
+        expect(patterns[0]!.test("anything")).toBe(true);
+      }
+
+      const emptyPolicy: RepoPolicy = {
+        schema_version: 1,
+        ecosystem: "bun",
+      };
+
+      const supervisorRoles = [
+        "mind",
+        "orchestrator",
+        "meta-auditor",
+        "meta_auditor",
+        "mind-auditor",
+        "mind_auditor",
+      ];
+      for (const r of supervisorRoles) {
+        const patternsWithPolicy = compileEffectiveForbiddenPatterns(r, samplePolicy);
+        expect(patternsWithPolicy.some((p) => p.test("rm -rf /"))).toBe(true);
+
+        const patternsWithoutForb = compileEffectiveForbiddenPatterns(r, emptyPolicy);
+        expect(patternsWithoutForb.length).toBeGreaterThan(0);
+      }
+
+      const mechanicRoles = [
+        "mechanic-validator",
+        "mechanic_validator",
+        "sub-validator",
+        "sub_validator",
+      ];
+      for (const r of mechanicRoles) {
+        const patterns = compileEffectiveForbiddenPatterns(r, samplePolicy);
+        expect(patterns.some((p) => p.test("git commit"))).toBe(true);
+      }
+
+      const workerPatternsEmpty = compileEffectiveForbiddenPatterns("worker", emptyPolicy);
+      expect(workerPatternsEmpty.some((p) => p.test("git commit"))).toBe(true);
+    });
+
+    test("verifyCommandAuthorization covers all supervisor test rejections and edge actor formats", () => {
+      const supervisorRoles = [
+        "coordinator",
+        "orchestrator",
+        "mind",
+        "meta-auditor",
+        "mind_auditor",
+      ];
+      const testCommands = ["vitest", "npm test", "pytest", "cargo test", "run_all.spec.ts"];
+
+      for (const role of supervisorRoles) {
+        for (const cmd of testCommands) {
+          const res = verifyCommandAuthorization(
+            { role, can_execute_shell: true },
+            cmd,
+            samplePolicy,
+          );
+          expect(res.authorized).toBe(false);
+          expect(res.error_code).toBe("SUPERVISOR_TEST_EXECUTION_FORBIDDEN");
+        }
+      }
+
+      const criticRoles = ["critic", "completeness-critic", "plan-validator", "sub-investigator"];
+      for (const role of criticRoles) {
+        const res = verifyCommandAuthorization({ role }, "ls", samplePolicy);
+        expect(res.authorized).toBe(false);
+        expect(res.error_code).toBe("COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN");
+      }
+
+      const untargetedEmptyPatternPolicy: RepoPolicy = {
+        schema_version: 1,
+        ecosystem: "bun",
+      };
+      const resUntargeted = verifyCommandAuthorization(
+        { role: "implementer", can_execute_shell: true },
+        "bun test",
+        untargetedEmptyPatternPolicy,
+      );
+      expect(resUntargeted.authorized).toBe(false);
+      expect(resUntargeted.error_code).toBe("UNBOUNDED_TEST_RUNNER_FORBIDDEN");
+      expect(resUntargeted.message).toContain("bun test <path>");
+
+      const resAllowed = verifyCommandAuthorization(
+        { role: "  implementer  ", can_execute_shell: true },
+        ["git", "status"],
+      );
+      expect(resAllowed.authorized).toBe(true);
     });
   });
 });

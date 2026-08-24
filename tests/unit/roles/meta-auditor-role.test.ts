@@ -17,30 +17,30 @@ import {
 describe("Meta-Auditor Role & Agent Persona Test Suite", () => {
   const rootDir = resolve(import.meta.dir, "../../..");
   const skillDir = join(rootDir, "olt");
-  const roleFilePath = join(skillDir, "roles", "meta-auditor.md");
-  const agentUnderscoreYamlPath = join(skillDir, "agents", "meta_auditor.yaml");
+  const roleFilePath = join(skillDir, "agents", "meta-auditor.yaml");
   const agentHyphenYamlPath = join(skillDir, "agents", "meta-auditor.yaml");
 
   // -------------------------------------------------------------------------
-  // 1. Role Contract Document Structure & Frontmatter (roles/meta-auditor.md)
+  // 1. Role Contract Document Structure & Frontmatter (agents/meta-auditor.yaml)
   // -------------------------------------------------------------------------
-  describe("roles/meta-auditor.md Role Contract", () => {
+  describe("agents/meta-auditor.yaml Unified Manifest", () => {
     test("role file exists at expected location", () => {
       expect(existsSync(roleFilePath)).toBe(true);
     });
 
-    test("YAML frontmatter contains exact role, tier, and domain specifications", () => {
+    test("Manifest contains exact role, tier, and domain specifications", () => {
       const rawContent = readFileSync(roleFilePath, "utf-8");
-      const { frontmatter } = parseMarkdownFrontmatter<Record<string, unknown>>(rawContent);
+      const parsed = parseYaml(rawContent) as Record<string, unknown>;
 
-      expect(frontmatter["role"]).toBe("meta-auditor");
-      expect(frontmatter["tier"]).toBe(2);
-      expect(frontmatter["domain"]).toBe("forensics");
-      expect(Array.isArray(frontmatter["may"])).toBe(true);
-      expect(Array.isArray(frontmatter["must_not"])).toBe(true);
-      expect(Array.isArray(frontmatter["commands"])).toBe(true);
-      expect(Array.isArray(frontmatter["spawns"])).toBe(true);
-      expect(frontmatter["spawns"]).toEqual([]);
+      expect(parsed["role"]).toBe("meta-auditor");
+      expect(parsed["tier"]).toBe(2);
+      expect(parsed["domain"]).toBe("forensics");
+      const permissions = parsed["permissions"] as Record<string, unknown>;
+      expect(Array.isArray(permissions["may"])).toBe(true);
+      expect(Array.isArray(permissions["must_not"])).toBe(true);
+      expect(Array.isArray(permissions["commands"])).toBe(true);
+      expect(Array.isArray(permissions["spawns"])).toBe(true);
+      expect(permissions["spawns"]).toEqual([]);
     });
 
     test("parses successfully via authority manifest-parser", () => {
@@ -58,46 +58,46 @@ describe("Meta-Auditor Role & Agent Persona Test Suite", () => {
 
     test("capability contract 'may' grants core behavioral forensics responsibilities", () => {
       const rawContent = readFileSync(roleFilePath, "utf-8");
-      const endFence = rawContent.indexOf("---", 3);
-      const frontmatterText = rawContent.slice(0, endFence);
+      const parsed: RoleContract = parseRoleContract(rawContent, roleFilePath);
+      const mayText = parsed.may.join("\n");
 
       // 1. Transcript and capsule inspection
-      expect(frontmatterText).toContain(
+      expect(mayText).toContain(
         "Inspect transcripts, tool calls, events, and run capsules across wave executions",
       );
       // 2. Behavioral forensics and telemetry extraction
-      expect(frontmatterText).toContain(
+      expect(mayText).toContain(
         "Run deep behavioral forensics and extract empirical telemetry across agent runs",
       );
       // 3. Root causes detection (all 7 core heuristics)
-      expect(frontmatterText).toContain(
+      expect(mayText).toContain(
         "Detect root causes: token burning, false serialization, role boundary deviations, polling waste, context overflow, ghost leases, and straggler tasks",
       );
       // 4. Efficiency score computation
-      expect(frontmatterText).toContain(
+      expect(mayText).toContain(
         "Compute deterministic behavioral efficiency scores (0.0% - 100.0%) and quantitative operational metrics",
       );
       // 5. Remediation synthesis
-      expect(frontmatterText).toContain(
+      expect(mayText).toContain(
         "Synthesize actionable remediation proposals and directives from detected forensics incidents",
       );
       // 6. Feedback queue injection
-      expect(frontmatterText).toContain("canonical feedback queue");
-      expect(frontmatterText).toContain("mind candidate pool");
+      expect(mayText).toContain("canonical feedback queue");
+      expect(mayText).toContain("mind candidate pool");
       // 7. Structured reports
-      expect(frontmatterText).toContain(
+      expect(mayText).toContain(
         "Generate and output structured markdown and JSON deep behavioral forensics reports",
       );
       // 8. Zero-exploration briefings
-      expect(frontmatterText).toContain(
+      expect(mayText).toContain(
         "Issue zero-exploration exact-anchor task briefings to prevent exploratory tool calling and token burning",
       );
       // 9. Reporting to orchestrator and mind
-      expect(frontmatterText).toContain(
+      expect(mayText).toContain(
         "Record and report forensics findings to parent orchestrator and mind supervisory loop",
       );
       // 10. Standardized naming
-      expect(frontmatterText).toContain(
+      expect(mayText).toContain(
         "Register and operate under standardized agent naming (`meta-auditor_<run-or-phase-slug>`)",
       );
     });

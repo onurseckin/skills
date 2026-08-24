@@ -297,8 +297,11 @@ describe("task:claim / task:heartbeat / task:submit", () => {
       commit_per_subphase: true,
     });
 
-    // Mock git metadata in repo
-    await Bun.write(join(repo, ".git", "HEAD"), "ref: refs/heads/main\n");
+    const { spawnSync } = await import("node:child_process");
+    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo });
+    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo });
+    spawnSync("git", ["config", "user.name", "Test"], { cwd: repo });
+    spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo });
     // Also place config in all possible parent directories
     const { resolve } = await import("node:path");
     await Bun.write(
@@ -368,8 +371,11 @@ describe("task:claim / task:heartbeat / task:submit", () => {
       bytes: Buffer.from(""),
       command: "git rev-parse",
     });
-    const { run: run3 } = await setupRun("claim-git-fail", roots);
-    await Bun.write(join(repo, ".git", "HEAD"), "ref: refs/heads/main\n");
+    const { repo: repo3, run: run3 } = await setupRun("claim-git-fail", roots);
+    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo3 });
+    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo3 });
+    spawnSync("git", ["config", "user.name", "Test"], { cwd: repo3 });
+    spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo3 });
     const claim3 = await taskClaimCommand(
       {
         run: run3,
@@ -385,7 +391,11 @@ describe("task:claim / task:heartbeat / task:submit", () => {
     const mockGitThrow = () => {
       throw new Error("git error");
     };
-    const { run: run4 } = await setupRun("claim-git-throw", roots);
+    const { repo: repo4, run: run4 } = await setupRun("claim-git-throw", roots);
+    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo4 });
+    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo4 });
+    spawnSync("git", ["config", "user.name", "Test"], { cwd: repo4 });
+    spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo4 });
     const claim4 = await taskClaimCommand(
       {
         run: run4,

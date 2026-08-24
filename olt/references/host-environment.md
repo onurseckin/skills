@@ -302,7 +302,7 @@ Repository Root: /path/to/repo/
 ├── olt/                                  <-- SKILL DEFINITION & ROLES (Immutable during runs)
 │   ├── SKILL.md                          <-- Skill entrypoint & tier coordination briefs
 │   ├── AGENTS.md                         <-- Detailed agent instructions & operational rules
-│   ├── roles/                            <-- 13 canonical role contracts (may / must_not)
+│   ├── agents/                           <-- 21 unified agent manifests (identity + permissions + runbook)
 │   ├── references/                       <-- Architectural references & host contracts
 │   └── scripts/                          <-- Harness TypeScript source (`harness.ts`, …)
 │

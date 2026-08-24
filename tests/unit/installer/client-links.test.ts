@@ -214,4 +214,45 @@ describe("applyClientLinks: race detection and recovery", () => {
     // previous link) once claude's publish failed.
     expect(await pathIdentity(antigravityLink)).toBeNull();
   });
+
+  test("handles publication failure and cleans up temporary link", async () => {
+    const root = scratchRoot(import.meta.path, "pub-failure");
+    const target = join(root, "target");
+    const oldTarget = join(root, "old-target");
+    mkdirSync(target);
+    mkdirSync(oldTarget);
+    const linkPath = clientLinkPaths(root).claude;
+    mkdirSync(dirname(linkPath), { recursive: true });
+    symlinkSync(oldTarget, linkPath, "dir");
+    const plans = await preflightClientLinks(root, target, new Set(["claude"]));
+
+    // If replaceBoundPath succeeds but link is altered before linkSnapshot verification
+    await expect(
+      applyClientLinks(plans, {
+        beforePublish() {
+          // Normal publish hook
+        },
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("handles failure during rollback of a replaced link and cleans up rollback link", async () => {
+    const root = scratchRoot(import.meta.path, "replace-rollback-failure");
+    const target = join(root, "target");
+    const oldTarget = join(root, "old-target");
+    mkdirSync(target);
+    mkdirSync(oldTarget);
+    const linkPath = clientLinkPaths(root).claude;
+    mkdirSync(dirname(linkPath), { recursive: true });
+    symlinkSync(oldTarget, linkPath, "dir");
+    const plans = await preflightClientLinks(root, target, new Set(["claude"]));
+
+    const applied = await applyClientLinks(plans, {
+      beforeRollback() {
+        rmSync(linkPath);
+        symlinkSync(join(root, "tampered"), linkPath, "dir");
+      },
+    });
+    await expect(applied.rollback()).rejects.toBeInstanceOf(AggregateError);
+  });
 });

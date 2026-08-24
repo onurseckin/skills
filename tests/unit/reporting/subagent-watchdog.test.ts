@@ -12,5 +12,21 @@ describe("SubagentWatchdogTelemetryMonitor", () => {
     expect(report.isHealthy).toBe(false);
     expect(report.detectedAnomalies).toContain("POLLING_WASTE");
     expect(report.detectedAnomalies).toContain("STRAGGLER");
+    expect(report.remediation).toContain("Trigger hard reset");
+  });
+
+  it("reports healthy when within thresholds and instantiates monitor class", () => {
+    const monitor = new SubagentWatchdogTelemetryMonitor();
+    expect(monitor).toBeDefined();
+
+    const report = SubagentWatchdogTelemetryMonitor.evaluateHealth({
+      agentId: "impl-clean",
+      turnCount: 5,
+      recentCommands: ["bun test", "git status"],
+    });
+
+    expect(report.isHealthy).toBe(true);
+    expect(report.detectedAnomalies).toEqual([]);
+    expect(report.remediation).toBeNull();
   });
 });

@@ -310,4 +310,32 @@ describe("provisionWorktrees", () => {
     });
     expect(store.events.length).toBeGreaterThan(eventsBefore);
   });
+
+  test("provisionWorktrees works with default loadState and transact functions", async () => {
+    const { setupCompiledRun } = await import("../../cli/file-persistence-fixture.ts");
+    const { repo, run } = await setupCompiledRun("provision-defaults", roots);
+    const wtRoot = trackedDir("provision-defaults-wtroot");
+
+    const { runner } = scripted((call) => {
+      if (call.argv[0] === "rev-parse" && call.argv.includes("--verify")) return ok();
+      if (call.argv[0] === "rev-parse" && call.argv[1] === "HEAD") return ok("deadbeef000\n");
+      if (call.argv[0] === "branch" && call.argv.includes("--show-current")) return ok("main\n");
+      return ok();
+    });
+
+    const result = provisionWorktrees({
+      runRoot: run,
+      repoRoot: repo,
+      runId: "default-run",
+      actor: "coordinator",
+      topology: topology([["task-core"]]),
+      tasksById: tasks(["task-core"]),
+      config: config(wtRoot),
+      runner,
+    });
+
+    expect(result.enabled).toBe(true);
+    expect(result.ledger).toBeDefined();
+    expect(result.ledger?.worktrees).toHaveLength(1);
+  });
 });

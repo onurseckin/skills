@@ -7,6 +7,16 @@ describe("AutoReceiptLogger", () => {
   it("can be instantiated", () => {
     const logger = new AutoReceiptLogger();
     expect(logger).toBeInstanceOf(AutoReceiptLogger);
+    expect(logger.constructor).toBe(AutoReceiptLogger);
+    const viaReflect = Reflect.construct(AutoReceiptLogger, []);
+    expect(viaReflect).toBeInstanceOf(AutoReceiptLogger);
+    class SubLogger extends AutoReceiptLogger {
+      constructor() {
+        super();
+      }
+    }
+    const sub = new SubLogger();
+    expect(sub).toBeInstanceOf(AutoReceiptLogger);
   });
 
   it("records command receipt directly into capsule state", () => {

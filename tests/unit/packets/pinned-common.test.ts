@@ -62,6 +62,8 @@ describe("canonical common packet instructions", () => {
       targetedCommands: [],
       attempt: 1,
     });
-    expect(packet.markdown).toContain("Common agent instructions");
+    expect(packet.metadata.common_instructions_sha256).toBeDefined();
+    expect(packet.markdown).toContain("# planner packet");
+    expect(packet.markdown).toContain("Actionable Task Checklist");
   });
 });

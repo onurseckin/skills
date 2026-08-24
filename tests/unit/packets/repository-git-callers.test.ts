@@ -91,7 +91,7 @@ describe("restricted repository Git callers", () => {
     }));
 
     expect(() => ensureHarnessIgnored(repo, command)).toThrow(
-      /\.capsules must be gitignored before initializing a run/,
+      /must be gitignored before initializing a run/,
     );
   });
 

@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import {
+  isCognitiveValidatorContract,
+  isMechanicValidatorContract,
   loadRoleContract,
   parseRoleContract,
 } from "../../../olt/scripts/src/packets/role-contract.ts";
@@ -77,8 +79,8 @@ describe("role contract frontmatter parser", () => {
 
   test("loads the checked-in document for a canonical role", () => {
     const contract = loadRoleContract("validator");
-    expect(contract.commands).toContain("task:review");
-    expect(contract.must_not.join("\n")).toContain("mandatory adversarial probe");
+    expect(contract.role).toBe("validator");
+    expect(contract.must_not.join("\n").toLowerCase()).toContain("probe round");
   });
 });
 
@@ -97,7 +99,7 @@ describe("B12.2: the validator-family domain field", () => {
     [
       "domain on a non-validator role",
       `${valid}\ndomain: code-quality`,
-      /domain is only valid for the validator role/u,
+      /domain is only valid for validator/u,
     ],
     [
       "an unrecognized domain",
@@ -106,5 +108,50 @@ describe("B12.2: the validator-family domain field", () => {
     ],
   ])("rejects %s", (_case, frontmatter, expected) => {
     expect(() => parseRoleContract(document(frontmatter), "d.md")).toThrow(expected);
+  });
+
+  test("accepts tier: independent and sets tier to 3", () => {
+    const contract = parseRoleContract(
+      document(valid.replace("tier: 3", "tier: independent")),
+      "implementer.md",
+    );
+    expect(contract.tier).toBe(3);
+  });
+
+  test("rejects cognitive validator declaring run:exec in commands", () => {
+    const cogWithExec = document(
+      valid
+        .replace("role: implementer", "role: validator")
+        .replace("commands:\n  - task:claim", "commands:\n  - run:exec\n  - task:claim"),
+    );
+    expect(() => parseRoleContract(cogWithExec, "validator.md")).toThrow(
+      "must not declare run:exec in commands",
+    );
+  });
+
+  test("isCognitiveValidatorContract and isMechanicValidatorContract helper predicates", () => {
+    const valContract = loadRoleContract("validator");
+    expect(isCognitiveValidatorContract(valContract)).toBe(true);
+    expect(isMechanicValidatorContract(valContract)).toBe(false);
+
+    const mechContract = loadRoleContract("mechanic-validator");
+    expect(isCognitiveValidatorContract(mechContract)).toBe(false);
+    expect(isMechanicValidatorContract(mechContract)).toBe(true);
+  });
+
+  test("loadRoleContract throws when file reading fails", () => {
+    expect(() =>
+      loadRoleContract("implementer", () => {
+        throw new Error("Disk read error");
+      }),
+    ).toThrow("role contract is unreadable");
+  });
+
+  test("loadRoleContract throws when role in contract does not match requested role", () => {
+    expect(() =>
+      loadRoleContract("implementer", () => {
+        return document(valid.replace("role: implementer", "role: validator"));
+      }),
+    ).toThrow("declares role validator");
   });
 });

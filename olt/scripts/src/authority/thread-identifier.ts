@@ -369,7 +369,11 @@ export function identifyExecutionContext(
       argvStr,
     );
 
-  if (isMainThread && !isPassive && isMutationOrTest && !isTestEnvironment()) {
+  if (
+    isMainThread &&
+    !isTestEnvironment() &&
+    (options.isInteractiveMainThread === true || (!isPassive && isMutationOrTest))
+  ) {
     const defectId = `defect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     defect = {
       id: defectId,

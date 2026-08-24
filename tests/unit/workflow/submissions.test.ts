@@ -211,4 +211,75 @@ describe("workflow submissions", () => {
     );
     expect(result.state.tasks["T-1"]!.findings ?? []).toEqual([]);
   });
+
+  test("validateReport rejects unsafe paths with leading slash or backslash", () => {
+    const port = new TestPort(workflowState());
+    const { token } = claimTask(port, "T-1", "agent", "implementer", { clock: start });
+    registerTaskPacket(port, "implementer", "agent", 1);
+
+    expect(() =>
+      submitTask(
+        port,
+        "T-1",
+        "agent",
+        token,
+        { ...report, files_changed: ["/src/owned/a.ts"] },
+        start,
+      ),
+    ).toThrow("unsafe changed path: /src/owned/a.ts");
+
+    expect(() =>
+      submitTask(
+        port,
+        "T-1",
+        "agent",
+        token,
+        { ...report, files_changed: ["src\\owned\\a.ts"] },
+        start,
+      ),
+    ).toThrow("unsafe changed path: src\\owned\\a.ts");
+
+    expect(() =>
+      submitTask(port, "T-1", "agent", token, { ...report, files_changed: ["."] }, start),
+    ).toThrow("unsafe changed path: .");
+
+    expect(() =>
+      submitTask(
+        port,
+        "T-1",
+        "agent",
+        token,
+        { ...report, files_changed: ["src/owned/../a.ts"] },
+        start,
+      ),
+    ).toThrow("unsafe changed path: src/owned/../a.ts");
+  });
+
+  test("submitTask throws ROLE_CONFINEMENT_VIOLATION on critical confinement breach", () => {
+    const state = workflowState();
+    // Record a command where implementer runs validation command
+    state.commands["C-SELF-GRADE"] = {
+      id: "C-SELF-GRADE",
+      actor: "implementer",
+      task_id: "T-1",
+      argv: ["task:review", "--task", "T-1", "--verdict", "pass"],
+      cwd: ".",
+      cwd_relative: ".",
+      started_at: "2026-08-13T12:00:00.000Z",
+      finished_at: "2026-08-13T12:00:01.000Z",
+      status: "succeeded",
+      exit_code: 0,
+      gate_id: null,
+      fingerprint: "fp",
+      repository_root: "/repo",
+    };
+
+    const port = new TestPort(state);
+    const { token } = claimTask(port, "T-1", "implementer", "implementer", { clock: start });
+    registerTaskPacket(port, "implementer", "implementer", 1);
+
+    expect(() => submitTask(port, "T-1", "implementer", token, report, start)).toThrow(
+      /Tier confinement violation detected during task submission/,
+    );
+  });
 });

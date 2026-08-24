@@ -102,7 +102,7 @@ describe("B12.3: delivery of a validator domain's standing checklist through its
     );
     // domain is only legal on role: validator — the frontmatter parser itself refuses this document.
     expect(() => parseRoleContract(bytes, "validator-code-quality.md")).toThrow(
-      /domain is only valid for the validator role/u,
+      /domain is only valid for validator/u,
     );
   });
 
@@ -135,11 +135,10 @@ describe("B12.3: delivery of a validator domain's standing checklist through its
     // feature at all — the existing `roleContract` override on PacketInput is the entire wire-up.
     const domainContract = loadValidatorDomainContract("security");
     const packet = buildPacket({ ...base(), role: "validator", roleContract: domainContract });
-    expect(packet.markdown).toContain("## Role contract");
-    expect(packet.markdown).toContain(domainContract.text.trim());
-    expect(packet.markdown).toContain("SEC-AUTHZ-001");
     expect(packet.metadata.role_contract_sha256).toBe(domainContract.sha256);
     expect(packet.metadata.role).toBe("validator");
+    expect(packet.markdown).toContain("# validator packet");
+    expect(packet.markdown).toContain("Actionable Task Checklist");
   });
 
   test("a domain-scoped validator packet still gets the base validator's context isolation", () => {

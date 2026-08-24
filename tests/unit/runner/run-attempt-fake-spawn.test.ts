@@ -200,4 +200,21 @@ describe("runAttempt via an injected spawnApi (no real subprocess)", () => {
       chmodSync(attemptDir, 0o700);
     }
   });
+
+  test("handles child whose exited promise rejects", async () => {
+    const { root, commandRoot } = attemptRoot("run-attempt-exited-reject-");
+    const options = baseOptions(root);
+    const spawnApi: BunSpawnApi = {
+      spawn: () => ({
+        pid: 999_999_994,
+        exited: Promise.reject(new Error("unexpected exit failure")),
+        signalCode: null,
+        stdout: textStream([]),
+        stderr: textStream([]),
+      }),
+    };
+    await expect(
+      runAttempt(options, 1, "C-1", commandRoot, createCommandSigningCapability(), spawnApi),
+    ).rejects.toThrow(/residual pid|termination withheld|unexpected exit failure/i);
+  });
 });

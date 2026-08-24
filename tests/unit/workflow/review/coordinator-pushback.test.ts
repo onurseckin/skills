@@ -240,4 +240,35 @@ describe("recordCoordinatorPushback", () => {
     expect(pushbacks).toHaveLength(2);
     expect(new Set(pushbacks.map((p) => p.id)).size).toBe(2);
   });
+
+  test("validateCoordinatorPushbackInput throws on non-object inputs", () => {
+    expect(() => validateCoordinatorPushbackInput(null)).toThrow(
+      "coordinator pushback must be an object",
+    );
+    expect(() => validateCoordinatorPushbackInput([])).toThrow(
+      "coordinator pushback must be an object",
+    );
+    expect(() => validateCoordinatorPushbackInput("not-an-object")).toThrow(
+      "coordinator pushback must be an object",
+    );
+  });
+
+  test("recordCoordinatorPushback throws when original_implementer is missing on substantive pushback", () => {
+    const { port, validatorId } = validatedTask();
+    port.transact("test", "clear-implementer", {}, (draft) => {
+      delete draft.tasks["T-1"]!.original_implementer;
+    });
+
+    expect(() =>
+      recordCoordinatorPushback(
+        port,
+        "T-1",
+        "coordinator-1",
+        validInput({ validator_id: validatorId, cause: "substantive" }),
+        clock,
+      ),
+    ).toThrow(
+      "task has no original implementer to reassign for a substantive coordinator pushback",
+    );
+  });
 });

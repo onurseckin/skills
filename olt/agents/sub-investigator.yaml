@@ -16,7 +16,7 @@ permissions:
     - "Read logs and code"
     - "Perform root-cause diagnosis"
   must_not:
-    - "Make source edits"
+    - "Create, edit, stage, revert, format, or delete any repository file"
     - "Write any files"
   commands:
     - "branch:claim"

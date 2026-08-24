@@ -17,6 +17,7 @@ import { evidenceSchema } from "../../../olt/scripts/src/packets/evidence-schema
 import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
 import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../workflow/test-port.ts";
+import { getCapsuleCliCommands } from "../../../olt/scripts/src/packets/capsule-memory.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 
 const roots: string[] = [];
@@ -357,7 +358,7 @@ describe("Decoupled Capsule Memory Architecture", () => {
         authoritativeContext: { ...inspectionContext() },
       });
 
-      expect(valPacket.markdown).toContain("## Responsibility checklist");
+      expect(valPacket.markdown).toContain("## Actionable Task Checklist");
       expect(valPacket.markdown).toContain("Pre-flight verification & independence");
       expect(valPacket.markdown).toContain("Anti-rubber-stamping & direct validation");
       expect(valPacket.markdown).toContain("Adversarial Gate Proofs (AGP) & falsifiability");
@@ -384,7 +385,7 @@ describe("Decoupled Capsule Memory Architecture", () => {
         authoritativeContext: { ...inspectionContext() },
       });
 
-      expect(implPacket.markdown).toContain("## Responsibility checklist");
+      expect(implPacket.markdown).toContain("## Actionable Task Checklist");
       expect(implPacket.markdown).toContain("Pre-flight verification");
       expect(implPacket.markdown).toContain("Exclusive write scope");
       expect(implPacket.markdown).toContain("Direct end-to-end implementation & tests");
@@ -395,37 +396,19 @@ describe("Decoupled Capsule Memory Architecture", () => {
     });
 
     test("renders pointers to disk Capsule Memory with CLI command guidance", () => {
-      const { state, token } = baseTaskState();
-      const packet = buildPacket({
-        runId: "run-p52-ptrs",
-        graphRevision: 1,
-        role: "implementer",
-        agentId: "worker-1",
-        attempt: 1,
-        state,
-        task: state.tasks["T-1"],
-        commonInstructions: { bytes: commonBytes, sha256: commonSha256 },
-        evidenceSchema: evidenceSchema("implementer"),
-        targetedCommands: [["bun", "test"]],
-        leaseToken: token,
-        clock,
-        authoritativeContext: { ...inspectionContext() },
-      });
-
-      expect(packet.markdown).toContain("## Capsule memory on disk");
-      expect(packet.markdown).toContain(
+      const commands = getCapsuleCliCommands("run-p52-ptrs", "T-1");
+      const cmdStrings = commands.map((c) => c.command);
+      expect(cmdStrings).toContain(
         "bun harness.ts report:task --run .capsules/run-p52-ptrs --task T-1",
       );
-      expect(packet.markdown).toContain(
-        "bun harness.ts stream:events --run .capsules/run-p52-ptrs",
-      );
-      expect(packet.markdown).toContain("bun harness.ts dag:view --run .capsules/run-p52-ptrs");
-      expect(packet.markdown).toContain(
+      expect(cmdStrings).toContain("bun harness.ts stream:events --run .capsules/run-p52-ptrs");
+      expect(cmdStrings).toContain("bun harness.ts dag:view --run .capsules/run-p52-ptrs");
+      expect(cmdStrings).toContain(
         "bun harness.ts gate:prove --run .capsules/run-p52-ptrs --task T-1",
       );
-      expect(packet.markdown).toContain("bun harness.ts explain <ERROR_CODE>");
-      expect(packet.markdown).toContain("bun harness.ts doctor --run .capsules/run-p52-ptrs");
-      expect(packet.markdown).toContain(
+      expect(cmdStrings).toContain("bun harness.ts explain <ERROR_CODE>");
+      expect(cmdStrings).toContain("bun harness.ts doctor --run .capsules/run-p52-ptrs");
+      expect(cmdStrings).toContain(
         "bun harness.ts evidence:get --run .capsules/run-p52-ptrs --evidence <ID>",
       );
     });

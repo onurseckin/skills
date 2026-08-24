@@ -68,7 +68,9 @@ describe("loadValidatorDomainContract", () => {
   });
 
   test("rejects a validator document that declares a different domain", () => {
-    const securityContract = readFileSync(resolveValidatorDomainContractPath("security"));
+    const securityContract = new TextEncoder().encode(
+      "---\nrole: validator\ntier: 3\ndomain: security\nmay:\n  - a\nmust_not:\n  - b\ncommands: []\nspawns: []\n---\n\n# Validator Security\n",
+    );
     expect(() => loadValidatorDomainContract("product", () => securityContract)).toThrow(
       `validator domain contract ${resolveValidatorDomainContractPath("product")} declares domain security`,
     );

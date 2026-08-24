@@ -169,3 +169,36 @@ describe("parseCompletionAssessment: residual risks", () => {
     ).toThrow(/residual risk must be an object/);
   });
 });
+
+describe("parseCompletionAssessment: anti-batching enforcement", () => {
+  test("throws INVALID_ARGUMENT when multiple requirements share empty or generic proof evidence", () => {
+    const state = workflowState();
+    state.requirements.push({
+      id: "R-2",
+      status: "planned",
+      evidence: [],
+      dependencies: [],
+    });
+
+    // Multiple satisfied requirements with generic evidence reference
+    expect(() =>
+      parseCompletionAssessment(
+        state,
+        baseInput({
+          requirement_proofs: [
+            {
+              requirement_id: "R-1",
+              status: "satisfied",
+              evidence: [{ kind: "command", reference: "generic-check", observation: "ok" }],
+            },
+            {
+              requirement_id: "R-2",
+              status: "satisfied",
+              evidence: [{ kind: "command", reference: "generic-check", observation: "ok" }],
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/anti-batching violation/);
+  });
+});

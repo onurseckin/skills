@@ -21,11 +21,11 @@ import {
 
 describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", () => {
   const repoRoot = resolve(".");
-  const rolesDir = resolve(repoRoot, "olt/roles");
+  const rolesDir = resolve(repoRoot, "olt/agents");
 
-  describe("1. 10-Step Deep-Thinking Planning Checklist in roles/orchestrator.md", () => {
-    it("contains all 10 deep-thinking planning steps in roles/orchestrator.md", () => {
-      const orchPath = resolve(rolesDir, "orchestrator.md");
+  describe("1. 10-Step Deep-Thinking Planning Checklist in orchestrator.yaml", () => {
+    it("contains all 10 deep-thinking planning steps in orchestrator.yaml", () => {
+      const orchPath = resolve(rolesDir, "orchestrator.yaml");
       expect(existsSync(orchPath)).toBe(true);
 
       const content = readFileSync(orchPath, "utf-8");
@@ -97,14 +97,19 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
       expect(valContract.tier).toBe(3);
       expect(valContract.commands).not.toContain("run:exec");
       expect(
-        valContract.must_not.some((rule) => rule.includes("Execute bash or shell commands")),
+        valContract.must_not.some(
+          (rule) =>
+            rule.toLowerCase().includes("0 command execution privileges") ||
+            rule.toLowerCase().includes("execute bash") ||
+            rule.toLowerCase().includes("execute any bash"),
+        ),
       ).toBe(true);
     });
   });
 
   describe("3. Retirement Notices for Mechanic-Validator and Repairer", () => {
-    it("verifies roles/mechanic-validator.md contains Generation 8 retirement notice", () => {
-      const mechPath = resolve(rolesDir, "mechanic-validator.md");
+    it("verifies mechanic-validator.yaml contains Generation 8 retirement notice", () => {
+      const mechPath = resolve(rolesDir, "mechanic-validator.yaml");
       const content = readFileSync(mechPath, "utf-8");
 
       expect(content).toContain("Generation 8 Retirement Notice");
@@ -112,8 +117,8 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
       expect(content).toContain("task:check");
     });
 
-    it("verifies roles/repairer.md contains Generation 8 retirement notice", () => {
-      const repPath = resolve(rolesDir, "repairer.md");
+    it("verifies repairer.yaml contains Generation 8 retirement notice", () => {
+      const repPath = resolve(rolesDir, "repairer.yaml");
       const content = readFileSync(repPath, "utf-8");
 
       expect(content).toContain("Generation 8 Retirement Notice");

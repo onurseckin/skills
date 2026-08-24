@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { findRepoRoot, resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { loadRun, loadRunProjection } from "../../../olt/scripts/src/engine/store/load.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
@@ -54,6 +55,21 @@ describe("loadRun", () => {
     const runRoot = freshRun("invalid-event-chain");
     writeFileSync(join(runRoot, "events.jsonl"), "not json\n");
     expect(() => loadRun(runRoot)).toThrow(HarnessError);
+  });
+
+  test("resolves a run relative to resolveCapsulesDir when targetPath does not exist directly", () => {
+    const repo = findRepoRoot();
+    const runId = "test-load-relative-candidate-run";
+    const capsulesDir = resolveCapsulesDir(repo);
+    const fullPath = join(capsulesDir, runId);
+    mkdirSync(capsulesDir, { recursive: true });
+    initRun(repo, runId, new TextEncoder().encode("relative body"), "file", true);
+    try {
+      const loaded = loadRun(runId);
+      expect(loaded.manifest.run_id).toBe(runId);
+    } finally {
+      rmSync(fullPath, { recursive: true, force: true });
+    }
   });
 });
 

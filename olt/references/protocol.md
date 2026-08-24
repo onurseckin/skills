@@ -37,7 +37,7 @@ model, tier or thinking level is inferred from the machine that exported the run
 
 ## Canonical roles
 
-Thirteen roles, each with a capability contract in `roles/<role>.md` declaring `may`, `must_not`, the
+Thirteen roles, each with a capability contract in `agents/<role>.yaml` declaring `may`, `must_not`, the
 exact commands it may invoke, and the roles it may branch into:
 
 | Tier       | Roles                                                                                      |
@@ -50,7 +50,7 @@ exact commands it may invoke, and the roles it may branch into:
 
 The orchestrator sits above every run: it dispatches exactly one coordinator per round and never a
 tier 3 agent directly, and it is the only role the main thread (tier 0, outside this table — it never
-registers a role) ever dispatches. See `roles/orchestrator.md` and `references/host-adapters.md`.
+registers a role) ever dispatches. See `agents/orchestrator.yaml` and `references/host-adapters.md`.
 
 `task:claim --role` names the contract the agent is bound to for the whole lease: `implementer` for
 a ready or retry-ready task, `repairer` for one in `changes_requested`. A mismatch is refused.
@@ -334,7 +334,7 @@ agent that owns the branch.
 6. **Write Scope Isolation**: every implementer holds a normalized, disjoint `write_scope`;
    overlapping scopes are refused by the scheduler and by `branch:open` alike.
 
-The exhaustive `may` / `must_not` lists are in `roles/<role>.md`; those documents bind, not this
+The exhaustive `may` / `must_not` lists are in `agents/<role>.yaml`; those documents bind, not this
 summary.
 
 ---

@@ -12,7 +12,12 @@ import {
 } from "../../../olt/scripts/src/packets/prior-round-demands.ts";
 import { renderValidationRound } from "../../../olt/scripts/src/packets/render-validation-round.ts";
 import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
-import { taskCommandEvidence } from "../../../olt/scripts/src/packets/round-commands.ts";
+import {
+  filterMechanicTestReceipts,
+  isMechanicValidatorReceipt,
+  taskCommandEvidence,
+  type RecordedCommand,
+} from "../../../olt/scripts/src/packets/round-commands.ts";
 import {
   anchoredDiff,
   diffAnchor,
@@ -480,5 +485,51 @@ describe("a prior round enters the packet as a demand and never as a conclusion"
       "That inspection and the current one recorded the same content digest (null → null files, null → null bytes).",
     );
     expect(markdown).toContain("No tracked file differs from that commit.");
+  });
+
+  test("filters mechanic validator test receipts", () => {
+    const commands: RecordedCommand[] = [
+      {
+        command_id: "C-1",
+        actor: "mechanic-validator-1",
+        argv: ["bun", "test"],
+        cwd_relative: ".",
+        gate_id: null,
+        status: "passed",
+        exit_code: 0,
+        started_at: "2026-08-13T12:00:00Z",
+        finished_at: "2026-08-13T12:00:01Z",
+      },
+      {
+        command_id: "C-2",
+        actor: "ui-mechanic-validator-2",
+        argv: ["bun", "test"],
+        cwd_relative: ".",
+        gate_id: null,
+        status: "passed",
+        exit_code: 0,
+        started_at: "2026-08-13T12:00:00Z",
+        finished_at: "2026-08-13T12:00:01Z",
+      },
+      {
+        command_id: "C-3",
+        actor: "implementer-1",
+        argv: ["bun", "test"],
+        cwd_relative: ".",
+        gate_id: null,
+        status: "passed",
+        exit_code: 0,
+        started_at: "2026-08-13T12:00:00Z",
+        finished_at: "2026-08-13T12:00:01Z",
+      },
+    ];
+
+    expect(isMechanicValidatorReceipt(commands[0]!)).toBe(true);
+    expect(isMechanicValidatorReceipt(commands[1]!)).toBe(true);
+    expect(isMechanicValidatorReceipt(commands[2]!)).toBe(false);
+
+    const filtered = filterMechanicTestReceipts(commands);
+    expect(filtered.length).toBe(2);
+    expect(filtered.map((c) => c.command_id)).toEqual(["C-1", "C-2"]);
   });
 });

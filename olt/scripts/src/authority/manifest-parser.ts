@@ -5,9 +5,17 @@ import { HarnessError } from "../core/errors/harness-error.ts";
 export type RoleTier = 0 | 1 | 2 | 3;
 
 export interface RoleContractFrontmatter {
-  readonly role: string;
-  readonly tier: number;
+  readonly role?: string | undefined;
+  readonly tier?: number | undefined;
   readonly domain?: string | undefined;
+  readonly permissions?:
+    | {
+        readonly may?: readonly string[] | undefined;
+        readonly must_not?: readonly string[] | undefined;
+        readonly commands?: readonly string[] | undefined;
+        readonly spawns?: readonly string[] | undefined;
+      }
+    | undefined;
   readonly may?: readonly string[] | undefined;
   readonly must_not?: readonly string[] | undefined;
   readonly commands?: readonly string[] | undefined;
@@ -67,6 +75,7 @@ export interface AgentManifest {
   readonly name: string;
   readonly role: string;
   readonly tier: number;
+  readonly domain?: string | undefined;
   readonly provider?: readonly string[] | undefined;
   readonly tools?: AgentToolsConfig | undefined;
   readonly config?: Readonly<Record<string, unknown>> | undefined;
@@ -203,13 +212,13 @@ export function findSkillRoot(startDir?: string): string {
   for (const candidate of candidates) {
     let cur = candidate;
     for (let depth = 0; depth < 5; depth++) {
-      // Check if cur itself has agents/ and roles/
-      if (existsSync(join(cur, "agents")) && existsSync(join(cur, "roles"))) {
+      // Check if cur itself has agents/
+      if (existsSync(join(cur, "agents"))) {
         return cur;
       }
-      // Check if cur/olt has agents/ and roles/
+      // Check if cur/olt has agents/
       const sub = join(cur, "olt");
-      if (existsSync(join(sub, "agents")) && existsSync(join(sub, "roles"))) {
+      if (existsSync(join(sub, "agents"))) {
         return sub;
       }
       const parent = dirname(cur);
@@ -813,6 +822,34 @@ export function parseMarkdownFrontmatter<T = Record<string, unknown>>(
 // ---------------------------------------------------------------------------
 
 export function parseRoleContract(content: string, filePath?: string): RoleContract {
+  if (!content.trimStart().startsWith("---")) {
+    const manifest = parseAgentManifest(content, filePath);
+    const may = manifest.permissions?.may ?? [];
+    const mustNot = manifest.permissions?.must_not ?? [];
+    const commands = manifest.permissions?.commands ?? [];
+    const spawns = (manifest.permissions?.spawns ?? []) as string[];
+    return {
+      role: manifest.role || (filePath ? basename(filePath, extname(filePath)) : "unknown"),
+      tier: manifest.tier ?? 3,
+      domain: typeof manifest.domain === "string" ? manifest.domain : undefined,
+      may,
+      mustNot,
+      commands,
+      spawns,
+      frontmatter: {
+        role: manifest.role,
+        tier: manifest.tier,
+        may,
+        must_not: mustNot,
+        commands,
+        spawns,
+      },
+      body: manifest.instructions || "",
+      filePath,
+      raw: content,
+    };
+  }
+
   const { frontmatter, body } = parseMarkdownFrontmatter<RoleContractFrontmatter>(content);
 
   const role =
@@ -824,21 +861,41 @@ export function parseRoleContract(content: string, filePath?: string): RoleContr
   const tier = typeof frontmatter.tier === "number" ? frontmatter.tier : 3;
   const domain = typeof frontmatter.domain === "string" ? frontmatter.domain : undefined;
 
-  const may: readonly string[] = Array.isArray(frontmatter.may)
-    ? frontmatter.may.map((item) => String(item).trim()).filter(Boolean)
-    : [];
+  const rawMay = Array.isArray(frontmatter.may)
+    ? frontmatter.may
+    : Array.isArray(frontmatter.permissions?.may)
+      ? frontmatter.permissions.may
+      : [];
+  const may: readonly string[] = (rawMay as readonly unknown[])
+    .map((item) => String(item).trim())
+    .filter(Boolean);
 
-  const mustNot: readonly string[] = Array.isArray(frontmatter.must_not)
-    ? frontmatter.must_not.map((item) => String(item).trim()).filter(Boolean)
-    : [];
+  const rawMustNot = Array.isArray(frontmatter.must_not)
+    ? frontmatter.must_not
+    : Array.isArray(frontmatter.permissions?.must_not)
+      ? frontmatter.permissions.must_not
+      : [];
+  const mustNot: readonly string[] = (rawMustNot as readonly unknown[])
+    .map((item) => String(item).trim())
+    .filter(Boolean);
 
-  const commands: readonly string[] = Array.isArray(frontmatter.commands)
-    ? frontmatter.commands.map((item) => String(item).trim()).filter(Boolean)
-    : [];
+  const rawCommands = Array.isArray(frontmatter.commands)
+    ? frontmatter.commands
+    : Array.isArray(frontmatter.permissions?.commands)
+      ? frontmatter.permissions.commands
+      : [];
+  const commands: readonly string[] = (rawCommands as readonly unknown[])
+    .map((item) => String(item).trim())
+    .filter(Boolean);
 
-  const spawns: readonly string[] = Array.isArray(frontmatter.spawns)
-    ? frontmatter.spawns.map((item) => String(item).trim()).filter(Boolean)
-    : [];
+  const rawSpawns = Array.isArray(frontmatter.spawns)
+    ? frontmatter.spawns
+    : Array.isArray(frontmatter.permissions?.spawns)
+      ? frontmatter.permissions.spawns
+      : [];
+  const spawns: readonly string[] = (rawSpawns as readonly unknown[])
+    .map((item) => String(item).trim())
+    .filter(Boolean);
 
   return {
     role,
@@ -875,6 +932,7 @@ export function parseAgentManifest(content: string, filePath?: string): AgentMan
   const role =
     typeof record.role === "string" ? normalizeRoleName(record.role) : normalizeRoleName(name);
   const tier = typeof record.tier === "number" ? record.tier : 3;
+  const domain = typeof record.domain === "string" ? record.domain : undefined;
 
   const provider: readonly string[] = Array.isArray(record.provider)
     ? record.provider.map((p) => String(p).trim()).filter(Boolean)
@@ -915,6 +973,7 @@ export function parseAgentManifest(content: string, filePath?: string): AgentMan
     name,
     role,
     tier,
+    domain,
     provider: provider.length > 0 ? provider : undefined,
     tools,
     config,
@@ -966,7 +1025,7 @@ export function loadRoleContract(roleInput: string, options?: ManifestLoaderOpti
       commands: manifest.permissions?.commands?.length
         ? manifest.permissions.commands
         : ["task:claim", "task:heartbeat", "task:submit", "whoami"],
-      spawns: manifest.permissions?.spawns ?? [],
+      spawns: (manifest.permissions?.spawns ?? []) as string[],
       frontmatter: {
         role: manifest.role || role,
         tier: manifest.tier ?? 3,
@@ -982,78 +1041,69 @@ export function loadRoleContract(roleInput: string, options?: ManifestLoaderOpti
     if (!bypassCache) CONTRACT_CACHE.set(role, contract);
     return contract;
   } catch {
-    // Fall through to markdown check if legacy rolesDir exists
+    // Custom sandbox fallback or synthetic fallback
   }
 
   const skillRoot = options?.skillRoot ?? findSkillRoot();
-  const rolesDir = options?.rolesDir ?? join(skillRoot, "roles");
+  const searchDirs = [options?.agentsDir, options?.rolesDir, join(skillRoot, "agents")].filter(
+    (d): d is string => typeof d === "string" && existsSync(d),
+  );
 
-  // Attempt resolving direct file names
-  const candidateFiles = [
-    join(rolesDir, `${role}.md`),
-    join(rolesDir, `${roleInput}.md`),
-    join(rolesDir, `roles/${role}.md`),
-  ];
-
-  // Specific domain validations
-  if (role.startsWith("validator-")) {
-    candidateFiles.unshift(join(rolesDir, `${role}.md`));
-  }
-
-  let foundPath: string | null = null;
-  for (const cand of candidateFiles) {
-    if (existsSync(cand)) {
-      foundPath = cand;
-      break;
+  for (const searchDir of searchDirs) {
+    const candidateFiles = [
+      join(searchDir, `${role}.yaml`),
+      join(searchDir, `${role}.yml`),
+      join(searchDir, `${role}.md`),
+      join(searchDir, `${roleInput}.yaml`),
+      join(searchDir, `${roleInput}.md`),
+    ];
+    for (const cand of candidateFiles) {
+      if (existsSync(cand)) {
+        try {
+          const content = readFileSync(cand, "utf-8");
+          const contract = parseRoleContract(content, cand);
+          if (!bypassCache) CONTRACT_CACHE.set(role, contract);
+          return contract;
+        } catch {
+          // Continue to next candidate file
+        }
+      }
     }
-  }
-
-  if (!foundPath) {
-    // If not found directly, scan directory for matching role in frontmatter
-    if (existsSync(rolesDir)) {
-      try {
-        const files = readdirSync(rolesDir);
-        for (const file of files) {
-          if (file.endsWith(".md")) {
-            const fullPath = join(rolesDir, file);
+    try {
+      const files = readdirSync(searchDir);
+      for (const file of files) {
+        if (file.endsWith(".md") || file.endsWith(".yaml") || file.endsWith(".yml")) {
+          const fullPath = join(searchDir, file);
+          try {
             const content = readFileSync(fullPath, "utf-8");
             const parsed = parseRoleContract(content, fullPath);
             if (normalizeRoleName(parsed.role) === role) {
-              foundPath = fullPath;
-              CONTRACT_CACHE.set(role, parsed);
+              if (!bypassCache) CONTRACT_CACHE.set(role, parsed);
               return parsed;
             }
+          } catch {
+            // Ignore parse errors on unrelated files
           }
         }
-      } catch {
-        // Continue to error
       }
+    } catch {
+      // Continue to next search directory
     }
   }
 
-  if (!foundPath || !existsSync(foundPath)) {
-    // Create fallback synthetic contract rather than crashing if not present
-    const fallbackContract: RoleContract = {
-      role,
-      tier: 3,
-      may: [`Operate as ${role} inside assigned task boundaries`],
-      mustNot: [`Violate ${role} role boundaries or edit files outside assigned scope`],
-      commands: ["task:claim", "task:heartbeat", "task:submit", "whoami"],
-      spawns: [],
-      frontmatter: { role, tier: 3 },
-      body: `# Role: ${role}\n\nSynthetic contract loaded for role \`${role}\`.`,
-      raw: `---\nrole: ${role}\ntier: 3\n---\n# Role: ${role}`,
-    };
-    if (!bypassCache) CONTRACT_CACHE.set(role, fallbackContract);
-    return fallbackContract;
-  }
-
-  const content = readFileSync(foundPath, "utf-8");
-  const contract = parseRoleContract(content, foundPath);
-  if (!bypassCache) {
-    CONTRACT_CACHE.set(role, contract);
-  }
-  return contract;
+  const fallbackContract: RoleContract = {
+    role,
+    tier: 3,
+    may: [`Operate as ${role} inside assigned task boundaries`],
+    mustNot: [`Violate ${role} role boundaries or edit files outside assigned scope`],
+    commands: ["task:claim", "task:heartbeat", "task:submit", "whoami"],
+    spawns: [],
+    frontmatter: { role, tier: 3 },
+    body: `# Role: ${role}\n\nSynthetic contract loaded for role \`${role}\`.`,
+    raw: `---\nrole: ${role}\ntier: 3\n---\n# Role: ${role}`,
+  };
+  if (!bypassCache) CONTRACT_CACHE.set(role, fallbackContract);
+  return fallbackContract;
 }
 
 export function loadAgentManifest(
@@ -1238,15 +1288,15 @@ export function loadUnifiedAgentModel(
 
 export function listAvailableRoles(options?: ManifestLoaderOptions): readonly string[] {
   const skillRoot = options?.skillRoot ?? findSkillRoot();
-  const rolesDir = options?.rolesDir ?? join(skillRoot, "roles");
+  const searchDir = options?.agentsDir ?? options?.rolesDir ?? join(skillRoot, "agents");
   const rolesSet = new Set<string>();
 
-  if (existsSync(rolesDir)) {
+  if (existsSync(searchDir)) {
     try {
-      const files = readdirSync(rolesDir);
+      const files = readdirSync(searchDir);
       for (const file of files) {
-        if (file.endsWith(".md")) {
-          const roleName = basename(file, ".md");
+        if (file.endsWith(".yaml") || file.endsWith(".yml") || file.endsWith(".md")) {
+          const roleName = basename(file, extname(file));
           rolesSet.add(normalizeRoleName(roleName));
         }
       }

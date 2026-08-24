@@ -20,6 +20,7 @@ function validManifest(runRoot: string, promptBytes: Uint8Array): Manifest {
     version: 1,
     run_id: basename(runRoot),
     capsule_id: "a".repeat(32),
+    mode: "feature",
     prompt_sha256: sha256Bytes(promptBytes),
     prompt_bytes: promptBytes.byteLength,
     capture_mode: "file",

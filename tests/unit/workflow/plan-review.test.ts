@@ -72,6 +72,19 @@ describe("beginPlanValidation", () => {
     );
     expect(() => beginPlanValidation(port, "plan-val-1", { clock })).toThrow(/already recorded/);
   });
+
+  test("refuses invalid leaseSeconds", () => {
+    const port = compiledPort();
+    expect(() => beginPlanValidation(port, "plan-val-1", { leaseSeconds: 1, clock })).toThrow(
+      "lease_seconds must be an integer from 5 to 86400",
+    );
+    expect(() => beginPlanValidation(port, "plan-val-1", { leaseSeconds: 100_000, clock })).toThrow(
+      "lease_seconds must be an integer from 5 to 86400",
+    );
+    expect(() => beginPlanValidation(port, "plan-val-1", { leaseSeconds: 1.5, clock })).toThrow(
+      "lease_seconds must be an integer from 5 to 86400",
+    );
+  });
 });
 
 describe("recordPlanReview", () => {

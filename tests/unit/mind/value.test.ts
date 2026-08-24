@@ -18,6 +18,8 @@ import {
 } from "../../../olt/scripts/src/mind/interval.ts";
 import {
   calculatePulseValue,
+  calculateQuiescentBackoffInterval,
+  calculateNextWakeInterval,
   EXCLUDED_VALUE_METRICS,
   INCLUDED_VALUE_METRICS,
   isExcludedValueMetric,
@@ -391,5 +393,89 @@ describe("Trailing Value Series Generator for Owner Digest (PLAN §11.2, PHASE-5
     const eventSeries = extractTrailingValueSeriesFromEvents(events);
     expect(eventSeries.rawValues).toEqual([4, 0]);
     expect(formatRawValueSeries(eventSeries.rawValues)).toBe("[4, 0]");
+  });
+
+  test("calculates quiescent backoff interval cleanly", () => {
+    expect(calculateQuiescentBackoffInterval(10_000, 60_000, 0)).toBe(10_000);
+    expect(calculateQuiescentBackoffInterval(10_000, 60_000, 1)).toBe(15_000);
+    expect(calculateQuiescentBackoffInterval(10_000, 60_000, 2)).toBe(22_500);
+    expect(calculateQuiescentBackoffInterval(10_000, 60_000, 10)).toBe(60_000);
+  });
+
+  test("calculates next wake interval for all outcome branches and jitter", () => {
+    // 1. Terminal outcomes
+    const halted = calculateNextWakeInterval({
+      baseIntervalMs: 10_000,
+      maxIntervalMs: 60_000,
+      zeroValueStreak: 3,
+      value: 0,
+      outcome: "halted",
+    });
+    expect(halted.isTerminal).toBe(true);
+    expect(halted.intervalMs).toBeNull();
+
+    const unarmed = calculateNextWakeInterval({
+      baseIntervalMs: 10_000,
+      maxIntervalMs: 60_000,
+      zeroValueStreak: 3,
+      value: 0,
+      outcome: "unarmed",
+    });
+    expect(unarmed.isTerminal).toBe(true);
+    expect(unarmed.intervalMs).toBeNull();
+
+    // 2. Rate limited / paused
+    const rateLimited = calculateNextWakeInterval({
+      baseIntervalMs: 10_000,
+      maxIntervalMs: 60_000,
+      previousIntervalMs: 20_000,
+      zeroValueStreak: 2,
+      value: 0,
+      signal: "rate_limit",
+    });
+    expect(rateLimited.rawIntervalMs).toBe(40_000);
+    expect(rateLimited.zeroValueStreak).toBe(3);
+
+    const rateLimitedWithValue = calculateNextWakeInterval({
+      baseIntervalMs: 10_000,
+      maxIntervalMs: 60_000,
+      previousIntervalMs: 20_000,
+      zeroValueStreak: 2,
+      value: 5,
+      outcome: "paused",
+    });
+    expect(rateLimitedWithValue.zeroValueStreak).toBe(0);
+
+    // 3. Value > 0 resets streak and interval
+    const positiveValue = calculateNextWakeInterval({
+      baseIntervalMs: 10_000,
+      maxIntervalMs: 60_000,
+      zeroValueStreak: 5,
+      value: 2,
+    });
+    expect(positiveValue.zeroValueStreak).toBe(0);
+    expect(positiveValue.rawIntervalMs).toBe(10_000);
+
+    // 4. Value == 0 backs off
+    const zeroVal = calculateNextWakeInterval({
+      baseIntervalMs: 10_000,
+      maxIntervalMs: 60_000,
+      zeroValueStreak: 0,
+      value: 0,
+    });
+    expect(zeroVal.zeroValueStreak).toBe(1);
+    expect(zeroVal.rawIntervalMs).toBe(15_000);
+
+    // 5. Jitter applied
+    const jittered = calculateNextWakeInterval({
+      baseIntervalMs: 10_000,
+      maxIntervalMs: 60_000,
+      zeroValueStreak: 0,
+      value: 0,
+      applyJitter: true,
+      jitterRatio: 0.15,
+      random: () => 0.8,
+    });
+    expect(jittered.intervalMs).toBeGreaterThan(0);
   });
 });

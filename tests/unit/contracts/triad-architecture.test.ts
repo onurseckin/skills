@@ -6,92 +6,30 @@ describe("Directive p06: Agent Triad Architecture & Host Provider Taxonomy", () 
   const root = join(import.meta.dir, "../../..");
   const skillRoot = join(root, "olt");
   const agentsDir = join(skillRoot, "agents");
-  const rolesDir = join(skillRoot, "roles");
   const referencesDir = join(skillRoot, "references");
 
   test("agent triad directories exist and maintain clean structural separation", () => {
     expect(existsSync(agentsDir)).toBeTrue();
-    expect(existsSync(rolesDir)).toBeTrue();
     expect(existsSync(referencesDir)).toBeTrue();
   });
 
-  test("all canonical agent entity profiles in agents/ reference their role contracts and declare provider taxonomy", () => {
+  test("all canonical agent entity profiles in agents/ declare provider taxonomy and unified configuration", () => {
     const canonicalAgentFiles = [
-      { file: "mind.yaml", expectedRole: "mind", tier: 0, contract: "roles/mind.md" },
-      {
-        file: "mind-auditor.yaml",
-        expectedRole: "mind-auditor",
-        tier: 1,
-        contract: "roles/mind-auditor.md",
-      },
-      {
-        file: "orchestrator.yaml",
-        expectedRole: "orchestrator",
-        tier: 1,
-        contract: "roles/orchestrator.md",
-      },
-      {
-        file: "coordinator.yaml",
-        expectedRole: "coordinator",
-        tier: 2,
-        contract: "roles/coordinator.md",
-      },
-      { file: "planner.yaml", expectedRole: "planner", tier: 3, contract: "roles/planner.md" },
-      {
-        file: "implementer.yaml",
-        expectedRole: "implementer",
-        tier: 3,
-        contract: "roles/implementer.md",
-      },
-      {
-        file: "worker.yaml",
-        expectedRole: "implementer",
-        tier: 3,
-        contract: "roles/implementer.md",
-      },
-      {
-        file: "validator.yaml",
-        expectedRole: "validator",
-        tier: 3,
-        contract: "roles/validator.md",
-      },
-      {
-        file: "plan-validator.yaml",
-        expectedRole: "plan-validator",
-        tier: 3,
-        contract: "roles/plan-validator.md",
-      },
-      { file: "repairer.yaml", expectedRole: "repairer", tier: 3, contract: "roles/repairer.md" },
-      {
-        file: "completeness-critic.yaml",
-        expectedRole: "completeness-critic",
-        tier: 3,
-        contract: "roles/completeness-critic.md",
-      },
-      {
-        file: "critic.yaml",
-        expectedRole: "completeness-critic",
-        tier: 3,
-        contract: "roles/completeness-critic.md",
-      },
-      {
-        file: "sub-implementer.yaml",
-        expectedRole: "sub-implementer",
-        tier: 3,
-        contract: "roles/sub-implementer.md",
-      },
-      {
-        file: "sub-validator.yaml",
-        expectedRole: "sub-validator",
-        tier: 3,
-        contract: "roles/sub-validator.md",
-      },
-      {
-        file: "sub-investigator.yaml",
-        expectedRole: "sub-investigator",
-        tier: 3,
-        contract: "roles/sub-investigator.md",
-      },
+      { file: "mind.yaml", expectedRole: "mind", tier: 0 },
+      { file: "mind-auditor.yaml", expectedRole: "mind-auditor", tier: 1 },
+      { file: "orchestrator.yaml", expectedRole: "orchestrator", tier: 1 },
+      { file: "coordinator.yaml", expectedRole: "coordinator", tier: 2 },
+      { file: "planner.yaml", expectedRole: "planner", tier: 3 },
+      { file: "implementer.yaml", expectedRole: "implementer", tier: 3 },
+      { file: "worker.yaml", expectedRole: "implementer", tier: 3 },
+      { file: "validator.yaml", expectedRole: "validator", tier: 3 },
+      { file: "plan-validator.yaml", expectedRole: "plan-validator", tier: 3 },
+      { file: "repairer.yaml", expectedRole: "repairer", tier: 3 },
+      { file: "completeness-critic.yaml", expectedRole: "completeness-critic", tier: 3 },
+      { file: "critic.yaml", expectedRole: "completeness-critic", tier: 3 },
+      { file: "sub-implementer.yaml", expectedRole: "sub-implementer", tier: 3 },
+      { file: "sub-validator.yaml", expectedRole: "sub-validator", tier: 3 },
+      { file: "sub-investigator.yaml", expectedRole: "sub-investigator", tier: 3 },
     ];
 
     const supportedProviders = ["antigravity", "agy", "claude", "codex", "cursor", "generic"];
@@ -103,16 +41,11 @@ describe("Directive p06: Agent Triad Architecture & Host Provider Taxonomy", () 
 
       expect(raw).toContain(`role: "${item.expectedRole}"`);
       expect(raw).toContain(`tier: ${item.tier}`);
-      expect(raw).toContain(`role_contract: "${item.contract}"`);
       expect(raw).toContain("zero_json: true");
 
       for (const provider of supportedProviders) {
         expect(raw).toContain(provider);
       }
-
-      // Verify that the referenced role contract file physically exists
-      const contractPath = join(skillRoot, item.contract);
-      expect(existsSync(contractPath)).toBeTrue();
     }
   });
 
@@ -138,7 +71,7 @@ describe("Directive p06: Agent Triad Architecture & Host Provider Taxonomy", () 
     }
   });
 
-  test("role contracts in roles/ define valid frontmatter with capability boundaries and permissions", () => {
+  test("unified manifests in agents/ define valid configuration with capability boundaries and permissions", () => {
     const canonicalRoles = [
       "orchestrator",
       "coordinator",
@@ -153,34 +86,21 @@ describe("Directive p06: Agent Triad Architecture & Host Provider Taxonomy", () 
       "sub-validator",
       "sub-investigator",
       "planner",
-      "validator-code-quality",
-      "validator-product",
-      "validator-security",
-      "validator-system-design",
-      "validator-ui-design",
     ];
 
     for (const role of canonicalRoles) {
-      const filePath = join(rolesDir, `${role}.md`);
+      const filePath = join(agentsDir, `${role}.yaml`);
       expect(existsSync(filePath)).toBeTrue();
       const content = readFileSync(filePath, "utf8");
 
-      // Verify YAML frontmatter
-      expect(content.startsWith("---")).toBeTrue();
-      const endFrontmatterIndex = content.indexOf("---", 3);
-      expect(endFrontmatterIndex).toBeGreaterThan(0);
-
-      const frontmatter = content.substring(3, endFrontmatterIndex);
-      expect(frontmatter).toContain("role:");
-      expect(frontmatter).toContain("tier:");
-      expect(frontmatter).toContain("may:");
-      expect(frontmatter).toContain("must_not:");
-      expect(frontmatter).toContain("commands:");
-      expect(frontmatter).toContain("spawns:");
-
-      // Verify body provides operational procedure details
-      const body = content.substring(endFrontmatterIndex + 3);
-      expect(body.length).toBeGreaterThan(100);
+      expect(content).toContain("role:");
+      expect(content).toContain("tier:");
+      expect(content).toContain("permissions:");
+      expect(content).toContain("may:");
+      expect(content).toContain("must_not:");
+      expect(content).toContain("commands:");
+      expect(content).toContain("spawns:");
+      expect(content).toContain("instructions:");
     }
   });
 

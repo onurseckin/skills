@@ -155,7 +155,7 @@ describe("Thread Identifier - 4-Tier Authority & Spawning Rules", () => {
     // Interactive main thread
     const mainCtx = identifyExecutionContext({
       isInteractiveMainThread: true,
-      env: {},
+      env: { NODE_ENV: "test" },
     });
     expect(mainCtx.tier).toBe(0);
     expect(mainCtx.is_main_thread).toBe(true);
@@ -635,6 +635,49 @@ describe("Standardized Agent Naming System (AGENT_NAMING_STANDARDS)", () => {
 
     expect(briefWithDefect).toContain("**Environment Grants**: root_access");
     expect(briefWithDefect).toContain("**Defect Logged**: `defect-999`");
+  });
+
+  test("identifyExecutionContext records defect when mutating action is run on main thread in non-test mode", () => {
+    const originalArgv = process.argv;
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalBunTest = process.env.BUN_TEST;
+    const originalTest = process.env.TEST;
+
+    const testScratch = scratchRoot(import.meta.path, "thread-defect-test");
+
+    try {
+      process.argv = ["bun", "run", "task:submit"];
+      process.env.NODE_ENV = "production";
+      delete process.env.BUN_TEST;
+      delete process.env.TEST;
+
+      const contextWithDefect = identifyExecutionContext({
+        isInteractiveMainThread: true,
+        runRoot: testScratch,
+        agentId: "mind-0",
+      });
+
+      expect(contextWithDefect.defect).not.toBeNull();
+      expect(contextWithDefect.defect?.type).toBe("main_thread_direct_execution");
+      expect(contextWithDefect.defect?.severity).toBe("critical");
+    } finally {
+      process.argv = originalArgv;
+      if (originalNodeEnv !== undefined) {
+        process.env.NODE_ENV = originalNodeEnv;
+      } else {
+        delete process.env.NODE_ENV;
+      }
+      if (originalBunTest !== undefined) {
+        process.env.BUN_TEST = originalBunTest;
+      } else {
+        delete process.env.BUN_TEST;
+      }
+      if (originalTest !== undefined) {
+        process.env.TEST = originalTest;
+      } else {
+        delete process.env.TEST;
+      }
+    }
   });
 });
 

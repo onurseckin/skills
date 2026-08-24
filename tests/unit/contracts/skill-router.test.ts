@@ -66,14 +66,11 @@ describe("SKILL.md is a router, not a manual", () => {
     for (const command of named) expect(known).toContain(command);
   });
 
-  test("routes to every role contract and every host persona", () => {
-    const roles = readdirSync(join(skillRoot, "roles")).filter((file) => file.endsWith(".md"));
+  test("routes to every agent manifest and host adapter", () => {
     const personas = readdirSync(join(skillRoot, "agents")).filter((file) =>
       file.endsWith(".yaml"),
     );
-    // 15 canonical roles + 5 validator-domain contracts (B12.2's taxonomy, sharing role: validator).
-    expect(roles.length).toBeGreaterThanOrEqual(19);
-    for (const role of roles) expect(skill).toContain(`roles/${role}`);
+    expect(personas.length).toBeGreaterThanOrEqual(19);
     for (const persona of personas) expect(skill).toContain(`agents/${persona}`);
   });
 

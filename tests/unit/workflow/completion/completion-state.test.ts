@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
+import {
+  completionIssues,
+  gateTally,
+} from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
 import { commandRecord, TEST_GATE_ARGV, workflowState } from "../test-port.ts";
 import type { WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
 
@@ -119,5 +122,82 @@ describe("completionIssues: paused (needs-authority) requirements", () => {
     expect(issues).toContain("requirement R-2 still needs authority");
     expect(issues).not.toContain("requirement R-2 is not satisfied");
     expect(issues).not.toContain("requirement R-2 has no evidence");
+  });
+});
+
+describe("gateTally and completion state verification edge cases", () => {
+  test("gateTally tallies task and run scope gates accurately", () => {
+    const state = workflowState();
+    state.gates = [
+      {
+        id: "G-TASK",
+        command: TEST_GATE_ARGV,
+        cwd: ".",
+        scope: "task",
+        requirement_ids: ["R-1"],
+        mandatory: true,
+      },
+      {
+        id: "G-RUN",
+        command: TEST_GATE_ARGV,
+        cwd: ".",
+        scope: "run",
+        requirement_ids: [],
+        mandatory: true,
+      },
+    ];
+    state.commands["C-TASK"] = commandRecord("C-TASK", {
+      gate_id: "G-TASK",
+      task_id: "T-1",
+      argv: TEST_GATE_ARGV,
+      status: "succeeded",
+      exit_code: 0,
+    });
+    state.commands["C-RUN"] = commandRecord("C-RUN", {
+      gate_id: "G-RUN",
+      task_id: null,
+      argv: TEST_GATE_ARGV,
+      status: "succeeded",
+      exit_code: 0,
+    });
+
+    const tally = gateTally(state);
+    expect(tally.total).toBe(2);
+    expect(tally.green).toBe(2);
+  });
+
+  test("completionIssues detects running command, unpublished packet, invalid verification digest, and stale result", () => {
+    const state = workflowState();
+    state.commands["C-RUNNING"] = commandRecord("C-RUNNING", { status: "running" as never });
+    state.packets = {
+      "P-1": {
+        id: "P-1",
+        role: "implementer",
+        status: "draft" as never,
+        agent_id: "worker",
+        task_id: "T-1",
+        created_at: "2026-08-20T00:00:00.000Z",
+        packet_sha256: "0".repeat(64),
+      },
+    };
+    state.completion_verification = {
+      verification_sha256: "invalid-digest",
+      reviewed_at: "2026-08-20T00:00:00.000Z",
+      verified_files: [],
+      issues: [],
+    };
+    state.completion_result = {
+      critic_review_sha256: "stale-sha",
+      readiness_sha256: "stale-readiness",
+      repository_binding: { root: "/repo", head_sha: "stale" },
+      artifact_verification_sha256: "stale-art",
+      mandatory_run_gate_commands: {},
+    };
+
+    const issues = completionIssues(state);
+    expect(issues).toContain("running command blocks completion: C-RUNNING");
+    expect(issues).toContain("packet P-1 is not durably published");
+    expect(issues).toContain("completion artifact verification digest is invalid");
+    expect(issues).toContain("completion result provenance is stale");
   });
 });

@@ -26,7 +26,7 @@ describe("harness-config", () => {
     const dir = makeTempDir("no-config-file");
     const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
     expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
-    expect(config.max_repair_rounds).toBe(6);
+    expect(config.max_repair_rounds).toBe(DEFAULT_RESOLVED_CONFIG.max_repair_rounds);
     expect(config.max_branch_depth).toBe(5);
     expect(config.max_agents).toBe(100);
     expect(config.max_output_bytes).toBe(10 * 1024 * 1024);

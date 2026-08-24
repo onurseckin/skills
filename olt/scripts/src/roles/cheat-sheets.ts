@@ -5,16 +5,21 @@ import { findCommand } from "../cli/registry/index.ts";
 import type { CommandSpec } from "../cli/registry/types.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { isAgentRole } from "../core/contracts/packets.ts";
 import {
+  loadRoleContract,
+  loadValidatorDomainContract,
   parseRoleContract as parseBaseRoleContract,
   type RoleContract as BaseRoleContract,
+  type ValidatorDomain,
 } from "../packets/role-contract.ts";
 
-const DEFAULT_ROLES_ROOT = fileURLToPath(new URL("../../../roles", import.meta.url));
+const DEFAULT_AGENTS_ROOT = fileURLToPath(new URL("../../../agents", import.meta.url));
 
 export interface RoleCheatSheetOptions {
   readonly compact?: boolean | undefined;
   readonly rolesDir?: string | undefined;
+  readonly agentsDir?: string | undefined;
 }
 
 export interface RoleCommandCheatSheet {
@@ -62,29 +67,57 @@ export function parseRoleContract(
 }
 
 export function listAvailableRoles(rolesDir?: string | undefined): readonly string[] {
-  const dir = rolesDir !== undefined ? resolve(rolesDir) : DEFAULT_ROLES_ROOT;
+  const dir = rolesDir !== undefined ? resolve(rolesDir) : DEFAULT_AGENTS_ROOT;
   if (!existsSync(dir)) {
     throw new HarnessError("PATH_SAFETY", `roles directory does not exist: ${dir}`);
   }
   const entries = readdirSync(dir);
   const roles = entries
-    .filter((entry) => entry.endsWith(".md") && !entry.startsWith("."))
-    .map((entry) => entry.slice(0, -3))
+    .filter(
+      (entry) =>
+        (entry.endsWith(".yaml") || entry.endsWith(".yml") || entry.endsWith(".md")) &&
+        !entry.startsWith("."),
+    )
+    .map((entry) => entry.replace(/\.(yaml|yml|md)$/, ""))
+    .filter((entry) => rolesDir !== undefined || isAgentRole(entry))
     .sort();
+  if (roles.includes("validator") && !roles.includes("validator-code-quality")) {
+    roles.push(
+      "validator-code-quality",
+      "validator-product",
+      "validator-security",
+      "validator-system-design",
+      "validator-ui-design",
+    );
+    roles.sort();
+  }
   return roles;
 }
 
 function resolveRoleFile(role: string, rolesDir?: string | undefined): string {
-  const dir = rolesDir !== undefined ? resolve(rolesDir) : DEFAULT_ROLES_ROOT;
-  const fileName = role.endsWith(".md") ? role : `${role}.md`;
-  const fullPath = join(dir, fileName);
-  if (!existsSync(fullPath)) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `role contract not found for role '${role}' at ${fullPath}`,
+  const dir = rolesDir !== undefined ? resolve(rolesDir) : DEFAULT_AGENTS_ROOT;
+  const candidates = [
+    join(dir, `${role}.yaml`),
+    join(dir, `${role}.yml`),
+    join(dir, `${role}.md`),
+    join(dir, role),
+  ];
+  if (role.startsWith("validator-")) {
+    candidates.push(
+      join(dir, "validator.yaml"),
+      join(dir, "validator.yml"),
+      join(dir, "validator.md"),
     );
   }
-  return fullPath;
+  for (const cand of candidates) {
+    if (existsSync(cand)) {
+      return cand;
+    }
+  }
+  throw new HarnessError(
+    "INVALID_ARGUMENT",
+    `role contract not found for role '${role}' at ${join(dir, role)}`,
+  );
 }
 
 function formatCommandSyntax(spec: CommandSpec): {
@@ -271,11 +304,25 @@ export function generateRoleCheatSheet(
   role: string,
   options?: RoleCheatSheetOptions | undefined,
 ): RoleCheatSheet {
-  const filePath = resolveRoleFile(role, options?.rolesDir);
+  const filePath = resolveRoleFile(role, options?.rolesDir ?? options?.agentsDir);
   const bytes = readRegularFileNoFollow(filePath);
-  const contract = parseBaseRoleContract(bytes, basename(filePath));
+  const rawText = new TextDecoder("utf-8").decode(bytes);
 
-  const body = contract.text.slice(contract.text.indexOf("---", 3) + 3).trim();
+  let contract: BaseRoleContract;
+  let body: string;
+
+  if (rawText.trimStart().startsWith("---")) {
+    contract = parseBaseRoleContract(bytes, basename(filePath));
+    body = contract.text.slice(contract.text.indexOf("---", 3) + 3).trim();
+  } else if (role.startsWith("validator-")) {
+    const domain = role.slice("validator-".length) as ValidatorDomain;
+    contract = loadValidatorDomainContract(domain);
+    body = contract.text;
+  } else {
+    contract = loadRoleContract(role as Parameters<typeof loadRoleContract>[0]);
+    body = contract.text;
+  }
+
   const prose = extractProseDetails(body);
 
   const commandDetails = contract.commands.map(buildCommandCheatSheet);
@@ -288,6 +335,11 @@ export function generateRoleCheatSheet(
     antiLeakRules.push(
       "**Anti-Boundary-Leak Rule**: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.",
     );
+    if (!invariants.some((i) => i.toLowerCase().includes("anti-boundary-leak"))) {
+      invariants.push(
+        "Anti-Boundary-Leak Rule: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.",
+      );
+    }
   }
   const authorityRules = [
     `Tier ${contract.tier} execution authority`,
@@ -299,7 +351,10 @@ export function generateRoleCheatSheet(
   const baseSheet = {
     role: contract.role,
     tier: contract.tier,
-    title: prose.title.length > 0 && prose.title !== "Role" ? prose.title : contract.role,
+    title:
+      prose.title.length > 0 && prose.title !== "Role"
+        ? prose.title
+        : contract.role.charAt(0).toUpperCase() + contract.role.slice(1),
     summary: prose.summary.length > 0 ? prose.summary : `Role contract for ${contract.role}`,
     domain: contract.domain,
     grantedCommands: contract.commands,

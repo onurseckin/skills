@@ -16,10 +16,45 @@ describe("terminateProcessGroup default inspect/wait dependencies", () => {
       birth: "not-the-real-birth",
     };
     const neverExits = new Promise<number>(() => undefined);
-    const signals = await terminateProcessGroup(process.pid, 5, neverExits, mismatchedExpected, {
-      kill: () => {
-        throw new Error("must not signal a mismatched process group");
-      },
+    const signals = await terminateProcessGroup(process.pid, 5, neverExits, mismatchedExpected);
+    expect(signals).toEqual([]);
+  });
+
+  test("handles rejected exited promise via catch callback and sends both SIGTERM and SIGKILL", async () => {
+    const expected: ProcessGroupIdentity = { pid: 50, group: 50, birth: "birth-50" };
+    const signalsRecorded: NodeJS.Signals[] = [];
+    const rejectedExited = Promise.reject(new Error("failed spawn"));
+    const signals = await terminateProcessGroup(50, 0, rejectedExited, expected, {
+      inspect: () => expected,
+      kill: () => true,
+      wait: async () => undefined,
+      onSignal: (sig) => signalsRecorded.push(sig),
+    });
+    expect(signals).toEqual(["SIGTERM", "SIGKILL"]);
+    expect(signalsRecorded).toEqual(["SIGTERM", "SIGKILL"]);
+  });
+
+  test("skips SIGTERM when already in signalsSent and delivers SIGKILL", async () => {
+    const expected: ProcessGroupIdentity = { pid: 60, group: 60, birth: "birth-60" };
+    const delivered: NodeJS.Signals[] = [];
+    const signals = await terminateProcessGroup(60, 0, Promise.resolve(0), expected, {
+      inspect: () => expected,
+      kill: () => true,
+      wait: async () => undefined,
+      signalsSent: ["SIGTERM"],
+      onSignal: (sig) => delivered.push(sig),
+    });
+    expect(signals).toEqual(["SIGKILL"]);
+    expect(delivered).toEqual(["SIGKILL"]);
+  });
+
+  test("handles case where both SIGTERM and SIGKILL are already in signalsSent", async () => {
+    const expected: ProcessGroupIdentity = { pid: 70, group: 70, birth: "birth-70" };
+    const signals = await terminateProcessGroup(70, 0, Promise.resolve(0), expected, {
+      inspect: () => expected,
+      kill: () => true,
+      wait: async () => undefined,
+      signalsSent: ["SIGTERM", "SIGKILL"],
     });
     expect(signals).toEqual([]);
   });

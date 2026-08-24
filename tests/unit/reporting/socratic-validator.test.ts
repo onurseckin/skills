@@ -182,4 +182,35 @@ describe("Socratic Reflexive Self-Questioning Engine", () => {
     expect(defectMarkdown).toContain("SOC-PREM-02-BASELINE-CONSISTENCY");
     expect(defectMarkdown).toContain("*Remediation*:");
   });
+
+  test("evaluates probe commands and detects coordinator task claim hierarchy violation", () => {
+    const state: JsonObject = {
+      commands: {
+        "cmd-probe": {
+          id: "cmd-probe",
+          actor: "val-1",
+          status: "succeeded",
+          exit_code: 0,
+          argv: ["bun", "test", "--boundary", "--edge-cases", "--negative"],
+        },
+        "cmd-coord-claim": {
+          id: "cmd-coord-claim",
+          actor: "coordinator-1",
+          status: "succeeded",
+          exit_code: 0,
+          argv: ["bun", "harness.ts", "task:claim", "--task", "task-1"],
+        },
+      },
+    };
+
+    const report = evaluateSocraticSelfQuestioning("/mock/run", state);
+    const hierQ = report.questions.find((q) => q.id === "SOC-HIER-01-TIER-ROLE-SEGREGATION");
+    expect(hierQ).toBeDefined();
+    expect(hierQ?.passed).toBe(false);
+
+    const edgeQ = report.questions.find((q) => q.id === "SOC-EDGE-01-BOUNDARY-PROBING");
+    expect(edgeQ).toBeDefined();
+    expect(edgeQ?.passed).toBe(true);
+    expect(edgeQ?.observation).toContain("recorded probe interactions: 1");
+  });
 });

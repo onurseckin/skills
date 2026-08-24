@@ -1588,4 +1588,69 @@ complex_items:
     expect(typeof fallbackRoot).toBe("string");
     expect(fallbackRoot.length).toBeGreaterThan(0);
   });
+
+  test("manifest-parser covers remaining YAML tokenization branches and completeness-critic model", () => {
+    // 1. stripYamlComment when # is in unquoted string without preceding whitespace
+    const unquotedHash = parseYaml("identifier: value#tag");
+    expect(unquotedHash).toEqual({ identifier: "value#tag" });
+
+    // 2. Flow mapping and array with backslash inside double quotes
+    const flowEscaped = parseYaml('entries: [ "escaped\\\\item", "second" ]');
+    expect(Array.isArray((flowEscaped as Record<string, unknown>).entries)).toBe(true);
+
+    const flowMapEscaped = parseYaml('{ key: "escaped\\\\\\"token" }');
+    expect(typeof flowMapEscaped).toBe("object");
+
+    // 3. parseBlock with nested list inside list item
+    const nestedListYaml = `
+data:
+  - nested_list:
+      - item1
+      - item2
+`;
+    const parsedNestedList = parseYaml(nestedListYaml) as {
+      data: Array<{ nested_list: string[] }>;
+    };
+    expect(parsedNestedList.data[0].nested_list).toEqual(["item1", "item2"]);
+
+    // 4. parseBlock with continuation lines in list and stray non-colon line in mapping
+    const continuationYaml = `
+items:
+  - line1
+    line2 continuation
+mapping:
+  stray line without colon
+  actual_key: 123
+`;
+    const parsedContinuation = parseYaml(continuationYaml) as Record<string, unknown>;
+    expect(parsedContinuation.mapping).toEqual({ actual_key: 123 });
+
+    // 5. loadUnifiedAgentModel for completeness-critic
+    const completenessModel = loadUnifiedAgentModel("completeness-critic");
+    expect(completenessModel.role).toBe("completeness-critic");
+    expect(completenessModel.archetype).toBe("Run Completeness & Verification Critic");
+    expect(completenessModel.coreMandate).toContain("Independently inspect run convergence");
+
+    // 6. evaluateSupervisoryState with tier mismatch agent ID without recommended ID
+    const customModel = {
+      ...loadUnifiedAgentModel("coordinator"),
+      tier: 1, // Override tier to 1 so expectedTier (1) !== parsed.tier (2)
+    };
+    const tierMismatchState = evaluateSupervisoryState(
+      {
+        role: "coordinator",
+        agentId: "coordinator_wave-1",
+      },
+      customModel,
+    );
+    expect(tierMismatchState.compliant).toBe(false);
+    expect(
+      tierMismatchState.violations.some((v) => v.code === "UNSTANDARDIZED_AGENT_ID_BREACH"),
+    ).toBe(true);
+    expect(
+      tierMismatchState.correctiveDirectives.some((d) =>
+        d.includes("Review the agent naming conventions"),
+      ),
+    ).toBe(true);
+  });
 });

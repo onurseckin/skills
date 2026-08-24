@@ -617,7 +617,12 @@ describe("HierarchicalStallProbe - Supervisor-to-Child Health Probing", () => {
 
 describe("MultiChildSupervisorWatchdog and Default ProcessTimeoutWatchdog Methods", () => {
   test("exercises MultiChildSupervisorWatchdog methods and defaults", () => {
-    const supervisor = createHierarchicalStallProbe({ supervisorTier: "coordinator" });
+    const supervisor = createHierarchicalStallProbe("coordinator", {
+      defaultWallTimeoutMs: 5000,
+      defaultIdleTimeoutMs: 2000,
+      defaultStallThresholdMs: 3000,
+      graceMs: 100,
+    });
     const child = supervisor.registerChild({
       childId: "child-1",
       pid: 12345,
@@ -641,8 +646,39 @@ describe("MultiChildSupervisorWatchdog and Default ProcessTimeoutWatchdog Method
     supervisor.recordChildOutput("child-1", "stdout", "output data");
     supervisor.recordChildOutput("nonexistent", "stderr", "ignored");
 
+    const fallbackPayload = supervisor.synthesizeStallFailurePayload(
+      "nonexistent-child",
+      "probe reason",
+    );
+    expect(fallbackPayload.reason).toBe("probe reason");
+    expect(fallbackPayload.errorClassification).toBe("STALL_TIMEOUT");
+
     expect(supervisor.unregisterChild("child-1")).toBe(true);
     expect(supervisor.unregisterChild("child-1")).toBe(false);
+  });
+
+  test("handleChildStall with enforceSigkill false", async () => {
+    const supervisor = createHierarchicalStallProbe("coordinator");
+    supervisor.registerChild({
+      childId: "child-no-kill",
+      pid: 12346,
+      role: "worker",
+    });
+    const payload = await supervisor.handleChildStall("child-no-kill", { enforceSigkill: false });
+    expect(payload.errorClassification).toBe("STALL_TIMEOUT");
+  });
+
+  test("createProcessTimeoutWatchdog factory with custom options", () => {
+    const watchdog = createProcessTimeoutWatchdog({
+      pid: 54321,
+      wallTimeoutMs: 10000,
+      idleTimeoutMs: 5000,
+      supervisorTier: "mind",
+      childRole: "orchestrator",
+    });
+    expect(watchdog.pid).toBe(54321);
+    expect(watchdog.supervisorTier).toBe("mind");
+    expect(watchdog.childRole).toBe("orchestrator");
   });
 
   test("ProcessTimeoutWatchdog and HierarchicalStallProbe default killFn handles dead processes", () => {

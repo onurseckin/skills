@@ -154,6 +154,32 @@ describe("validateReview", () => {
       }),
     ).toThrow(/declares class probe_demand, which this verdict cannot carry/);
   });
+
+  test("rejects passing review with anti-batching violation when checks count is less than requirements count", () => {
+    const multiReqTask = task({ requirement_ids: ["R-1", "R-2"] });
+    expect(() =>
+      validateReview(multiReqTask, {
+        verdict: "pass",
+        requirement_ids: ["R-1", "R-2"],
+        checks: [{ command_id: "C-1" }], // 1 check for 2 requirements
+        findings: [],
+      }),
+    ).toThrow(
+      /anti-batching violation: passing review covers 2 requirements but only provides 1 check/,
+    );
+  });
+
+  test("rejects passing review when resolved finding has empty evidence", () => {
+    expect(() =>
+      validateReview(task(), {
+        verdict: "pass",
+        requirement_ids: ["R-1"],
+        checks: [{ command_id: "C-1" }],
+        findings: [],
+        resolved_findings: [{ finding_id: "F-1", method: "re-ran gate", evidence: [] }],
+      }),
+    ).toThrow(/revalidation evidence for F-1 must contain nonempty substantive objects/);
+  });
 });
 
 describe("validateChecklistCoverage: malformed entries", () => {

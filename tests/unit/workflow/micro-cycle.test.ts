@@ -408,4 +408,34 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
     expect(getOpenMicroCycles(task)).toHaveLength(0);
     expect(task.micro_cycles?.every((c) => c.status === "addressed")).toBe(true);
   });
+
+  test("recordMicroCycleCritique rejects concurrent status change during transaction", () => {
+    const { port } = leasedPort();
+    const originalTransact = port.transact.bind(port);
+    port.transact = (actor, kind, payload, mutate) => {
+      return originalTransact(actor, kind, payload, (draft) => {
+        draft.tasks["T-1"]!.status = "cancelled";
+        mutate(draft);
+      });
+    };
+
+    expect(() => recordMicroCycleCritique(port, "T-1", "val-1", "critique", { clock })).toThrow(
+      /changed status to cancelled during transaction/,
+    );
+  });
+
+  test("recordMicroCycleCritique rejects concurrent round advance exceeding limit during transaction", () => {
+    const { port } = leasedPort();
+    const originalTransact = port.transact.bind(port);
+    port.transact = (actor, kind, payload, mutate) => {
+      return originalTransact(actor, kind, payload, (draft) => {
+        draft.tasks["T-1"]!.micro_cycle_round = 3;
+        mutate(draft);
+      });
+    };
+
+    expect(() =>
+      recordMicroCycleCritique(port, "T-1", "val-1", "critique", { maxMicroCycles: 3, clock }),
+    ).toThrow(/MAX_MICRO_CYCLES_EXCEEDED/);
+  });
 });

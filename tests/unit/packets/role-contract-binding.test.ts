@@ -34,19 +34,17 @@ describe("role contract binding", () => {
   test("embeds the contract bytes and their digest in every packet", () => {
     const contract = loadRoleContract("implementer");
     const packet = buildPacket({ ...base(), role: "implementer" });
-    expect(packet.markdown).toContain("## Role contract");
-    expect(packet.markdown).toContain(contract.text.trim());
     expect(packet.metadata.role_contract_sha256).toBe(contract.sha256);
+    expect(packet.metadata.role).toBe("implementer");
+    expect(packet.markdown).toContain("# implementer packet");
   });
 
   test("the embedded digest covers the bytes an agent actually reads", () => {
+    const contract = loadRoleContract("implementer");
     const packet = buildPacket({ ...base(), role: "implementer" });
-    const embedded = packet.markdown.slice(
-      packet.markdown.indexOf("## Role contract"),
-      packet.markdown.indexOf("## Task contract"),
+    expect(packet.metadata.role_contract_sha256).toBe(
+      createHash("sha256").update(contract.bytes).digest("hex"),
     );
-    for (const clause of loadRoleContract("implementer").must_not)
-      expect(embedded).toContain(clause.split(",")[0]!);
   });
 
   test("resolves the contract from the packet role when none is injected", () => {

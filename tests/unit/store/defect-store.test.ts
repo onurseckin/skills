@@ -106,4 +106,52 @@ describe("Store Layer Capsule Defect Engine", () => {
     expect(reloaded.length).toBe(1);
     expect(reloaded[0]?.count).toBe(3);
   });
+
+  test("handles empty or invalid runRoot parameters across all defect functions", () => {
+    expect(() =>
+      appendCapsuleDefect("", {
+        id: "d-bad",
+        type: "code_defect",
+        observation: "fail",
+      }),
+    ).toThrow(/runRoot is required/);
+
+    expect(loadCapsuleDefects("")).toEqual([]);
+
+    expect(compactCapsuleDefects("")).toEqual({ totalBefore: 0, totalAfter: 0 });
+
+    expect(() =>
+      resolveCapsuleDefect("", "d-bad", {
+        task_id: "t1",
+        test_assertion: "true",
+        resolved_at: "now",
+      }),
+    ).toThrow(/runRoot is required/);
+  });
+
+  test("resolveCapsuleDefect returns null when defects.jsonl does not exist or defect is not found", () => {
+    const runRoot = createTempRunDir();
+
+    // 1. File does not exist yet
+    const notFound1 = resolveCapsuleDefect(runRoot, "non-existent-defect", {
+      task_id: "t1",
+      test_assertion: "true",
+      resolved_at: "now",
+    });
+    expect(notFound1).toBeNull();
+
+    // 2. File exists but defect id / key not found
+    appendCapsuleDefect(runRoot, {
+      id: "defect-present",
+      type: "code_defect",
+      observation: "Some defect",
+    });
+
+    const notFound2 = resolveCapsuleDefect(runRoot, "defect-unknown-key", {
+      task_id: "t1",
+      test_assertion: "true",
+      resolved_at: "now",
+    });
+    expect(notFound2).toBeNull();
+  });
 });

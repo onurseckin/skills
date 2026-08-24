@@ -1,16 +1,21 @@
-import { describe, it, expect, mock, spyOn, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { capturePromptWithTimeout } from "../../../olt/scripts/src/cli/prompt-capture.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
-import * as fs from "node:fs";
-
-mock.module("node:fs", () => ({
-  existsSync: mock(() => false),
-  readFileSync: mock(() => ""),
-}));
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 describe("capturePromptWithTimeout", () => {
-  beforeEach(() => {
-    mock.restore();
+  let tempDir = "";
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "prompt-cap-"));
+  });
+
+  afterEach(async () => {
+    if (tempDir) {
+      await rm(tempDir, { recursive: true, force: true });
+    }
   });
 
   it("should return inline text immediately if provided", async () => {
@@ -19,31 +24,21 @@ describe("capturePromptWithTimeout", () => {
   });
 
   it("should return file content if promptFile is provided", async () => {
-    const existsSyncMock = mock(() => true);
-    const readFileSyncMock = mock(() => "file prompt content\n");
-
-    mock.module("node:fs", () => ({
-      existsSync: existsSyncMock,
-      readFileSync: readFileSyncMock,
-    }));
-
-    const result = await capturePromptWithTimeout(undefined, { promptFile: "test.txt" });
+    const filePath = join(tempDir, "test.txt");
+    await writeFile(filePath, "file prompt content\n");
+    const result = await capturePromptWithTimeout(undefined, { promptFile: filePath });
     expect(result).toBe("file prompt content");
   });
 
   it("should throw error if promptFile does not exist", async () => {
-    const existsSyncMock = mock(() => false);
-
-    mock.module("node:fs", () => ({
-      existsSync: existsSyncMock,
-      readFileSync: mock(() => ""),
-    }));
-
-    await expect(
-      capturePromptWithTimeout(undefined, { promptFile: "missing.txt" }),
-    ).rejects.toThrow(HarnessError);
+    const missingPath = join(tempDir, "missing.txt");
+    await expect(capturePromptWithTimeout(undefined, { promptFile: missingPath })).rejects.toThrow(
+      HarnessError,
+    );
   });
 });
+
+type StreamHandler = (...args: unknown[]) => void;
 
 describe("capturePromptWithTimeout - stdin", () => {
   let originalStdinOn: typeof process.stdin.on;
@@ -66,26 +61,25 @@ describe("capturePromptWithTimeout - stdin", () => {
   });
 
   it("should timeout if stdin does not emit anything within timeoutMs", async () => {
-    process.stdin.on = mock(() => process.stdin) as unknown as typeof process.stdin.on;
-    process.stdin.off = mock(() => process.stdin) as unknown as typeof process.stdin.off;
-    process.stdin.resume = mock(() => process.stdin) as unknown as typeof process.stdin.resume;
-    process.stdin.pause = mock(() => process.stdin) as unknown as typeof process.stdin.pause;
+    process.stdin.on = (() => process.stdin) as unknown as typeof process.stdin.on;
+    process.stdin.off = (() => process.stdin) as unknown as typeof process.stdin.off;
+    process.stdin.resume = (() => process.stdin) as unknown as typeof process.stdin.resume;
+    process.stdin.pause = (() => process.stdin) as unknown as typeof process.stdin.pause;
 
     const promise = capturePromptWithTimeout(undefined, { timeoutMs: 100 });
-    // wait for timeout
 
     await expect(promise).rejects.toThrow(/timed out/);
   });
 
   it("should resolve if stdin emits data and ends", async () => {
-    const handlers: Record<string, Function> = {};
-    process.stdin.on = mock((event, handler) => {
-      handlers[event as string] = handler as Function;
+    const handlers: Record<string, StreamHandler> = {};
+    process.stdin.on = ((event: string, handler: StreamHandler) => {
+      handlers[event] = handler;
       return process.stdin;
     }) as unknown as typeof process.stdin.on;
-    process.stdin.off = mock(() => process.stdin) as unknown as typeof process.stdin.off;
-    process.stdin.resume = mock(() => process.stdin) as unknown as typeof process.stdin.resume;
-    process.stdin.pause = mock(() => process.stdin) as unknown as typeof process.stdin.pause;
+    process.stdin.off = (() => process.stdin) as unknown as typeof process.stdin.off;
+    process.stdin.resume = (() => process.stdin) as unknown as typeof process.stdin.resume;
+    process.stdin.pause = (() => process.stdin) as unknown as typeof process.stdin.pause;
 
     const promise = capturePromptWithTimeout(undefined, { timeoutMs: 100 });
 

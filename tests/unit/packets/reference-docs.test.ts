@@ -12,7 +12,7 @@ describe("operator reference examples", () => {
   });
 
   test("describes implementer submissions as trusted-host observed evidence", () => {
-    const implementer = readFileSync(join(skillRoot, "roles", "implementer.md"), "utf8");
+    const implementer = readFileSync(join(skillRoot, "agents", "implementer.yaml"), "utf8");
     expect(implementer).toContain("trusted-host observed evidence");
     expect(implementer).not.toContain("reproducible evidence");
   });

@@ -5,9 +5,9 @@ import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts
 
 const skillRoot = join(import.meta.dir, "../../../olt");
 const skillPath = join(skillRoot, "SKILL.md");
-const mindRolePath = join(skillRoot, "roles/mind.md");
-const coordinatorRolePath = join(skillRoot, "roles/coordinator.md");
-const orchestratorRolePath = join(skillRoot, "roles/orchestrator.md");
+const mindRolePath = join(skillRoot, "agents/mind.yaml");
+const coordinatorRolePath = join(skillRoot, "agents/coordinator.yaml");
+const orchestratorRolePath = join(skillRoot, "agents/orchestrator.yaml");
 const hostAdaptersPath = join(skillRoot, "references/host-adapters.md");
 
 describe("Mandatory Supervisory Scheduler Invariant & Rule 16 Contract", () => {
@@ -29,7 +29,7 @@ describe("Mandatory Supervisory Scheduler Invariant & Rule 16 Contract", () => {
     expect(lines.length).toBeLessThanOrEqual(150);
   });
 
-  test("roles/mind.md mandates supervisory schedule and dag inspection", () => {
+  test("agents/mind.yaml mandates supervisory schedule and dag inspection", () => {
     expect(existsSync(mindRolePath)).toBe(true);
     const content = readFileSync(mindRolePath, "utf8");
 
@@ -37,27 +37,27 @@ describe("Mandatory Supervisory Scheduler Invariant & Rule 16 Contract", () => {
     expect(content).toMatch(/dag(:view)?/);
     expect(content).toContain("schedule");
     expect(content).toContain("commands:");
-    expect(content).toMatch(/-\s+dag/);
+    expect(content).toMatch(/-\s+"?dag"?/);
   });
 
-  test("roles/coordinator.md mandates supervisory schedule and dag inspection", () => {
+  test("agents/coordinator.yaml mandates supervisory schedule and dag inspection", () => {
     expect(existsSync(coordinatorRolePath)).toBe(true);
     const content = readFileSync(coordinatorRolePath, "utf8");
 
     expect(content).toMatch(/(3-minute|5-minute)/);
     expect(content).toMatch(/dag(:view)?/);
     expect(content).toContain("commands:");
-    expect(content).toMatch(/-\s+dag/);
+    expect(content).toMatch(/-\s+"?dag"?/);
   });
 
-  test("roles/orchestrator.md mandates supervisory schedule and dag inspection", () => {
+  test("agents/orchestrator.yaml mandates supervisory schedule and dag inspection", () => {
     expect(existsSync(orchestratorRolePath)).toBe(true);
     const content = readFileSync(orchestratorRolePath, "utf8");
 
     expect(content).toMatch(/(3-minute|5-minute)/);
     expect(content).toMatch(/dag(:view)?/);
     expect(content).toContain("commands:");
-    expect(content).toMatch(/-\s+dag/);
+    expect(content).toMatch(/-\s+"?dag"?/);
   });
 
   test("references/host-adapters.md documents Section 5.6 for Mandatory Supervisory Scheduler", () => {

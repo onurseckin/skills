@@ -73,4 +73,8 @@ describe("canonicalizeJsonl", () => {
     expect(result).toBeDefined();
     expect(decode(result!)).toBe("");
   });
+
+  test("returns undefined for invalid UTF-8 in canonicalizeJsonl", () => {
+    expect(canonicalizeJsonl(new Uint8Array([0xff, 0xfe, 0xfd]))).toBeUndefined();
+  });
 });

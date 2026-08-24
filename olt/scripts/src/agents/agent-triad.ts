@@ -246,68 +246,15 @@ export function loadAgentRoleDefinition(
   options?: AgentTriadOptions,
 ): AgentRoleDefinition {
   const normRole = normalizeRoleName(roleInput);
-  const { rolesDir } = resolveWorkspacePaths(options);
+  const { agentsDir } = resolveWorkspacePaths(options);
 
-  const candidateNames = [
-    `${normRole}.md`,
-    `${roleInput}.md`,
-    normRole.startsWith("validator-") ? `${normRole}.md` : "",
-    normRole === "ui-validator" ? "validator-ui-design.md" : "",
-    normRole === "ui-mechanic-validator" ? "mechanic-validator.md" : "",
-    normRole === "mechanic-validator" ? "mechanic-validator.md" : "",
-  ].filter(Boolean);
+  const identity = loadAgentIdentity(normRole, options);
 
-  let targetPath: string | null = null;
-  for (const name of candidateNames) {
-    const p = join(rolesDir, name);
-    if (existsSync(p)) {
-      targetPath = p;
-      break;
-    }
-  }
-
-  if (!targetPath) {
-    try {
-      const identity = loadAgentIdentity(normRole, options);
-      if (identity.protocol?.role_contract) {
-        const contractRel = identity.protocol.role_contract;
-        const candidate1 = join(rolesDir, basename(contractRel));
-        const candidate2 = join(resolveWorkspacePaths(options).skillRoot, contractRel);
-        if (existsSync(candidate1)) {
-          targetPath = candidate1;
-        } else if (existsSync(candidate2)) {
-          targetPath = candidate2;
-        }
-      }
-    } catch {
-      // Fallback
-    }
-  }
-
-  if (!targetPath && existsSync(rolesDir)) {
-    try {
-      const files = readdirSync(rolesDir);
-      for (const file of files) {
-        if (file.endsWith(".md")) {
-          const full = join(rolesDir, file);
-          const raw = readFileSync(full, "utf-8");
-          const parsed = parseRoleContract(raw, full);
-          if (normalizeRoleName(parsed.role) === normRole) {
-            targetPath = full;
-            break;
-          }
-        }
-      }
-    } catch {
-      // Fallback
-    }
-  }
-
-  if (!targetPath || !existsSync(targetPath)) {
+  if (!identity.filePath || !existsSync(identity.filePath)) {
     if (options?.strict) {
       throw new HarnessError(
         "INVALID_ARGUMENT",
-        `Agent role definition contract not found for role '${normRole}' in ${rolesDir}`,
+        `Agent role definition contract not found for role '${normRole}' in ${agentsDir}`,
       );
     }
 
@@ -327,20 +274,40 @@ export function loadAgentRoleDefinition(
     };
   }
 
-  const raw = readFileSync(targetPath, "utf-8");
-  const contract: RoleContract = parseRoleContract(raw, targetPath);
+  const raw = identity.rawYaml ?? readFileSync(identity.filePath, "utf-8");
+  const manifest: AgentManifest = parseAgentManifest(raw, identity.filePath);
+
+  const may = manifest.permissions?.may ?? [`Operate as ${normRole} within authorized boundaries`];
+  const mustNot = manifest.permissions?.must_not ?? [
+    `Exceed ${normRole} role capabilities or write outside lease scope`,
+  ];
+  const commands = manifest.permissions?.commands ?? [
+    "task:claim",
+    "task:heartbeat",
+    "task:submit",
+    "whoami",
+  ];
+  const spawns = (manifest.permissions?.spawns ?? []) as string[];
+  const body = manifest.instructions ?? "";
 
   return {
-    role: contract.role,
-    tier: contract.tier,
-    domain: contract.domain,
-    may: contract.may,
-    mustNot: contract.mustNot,
-    commands: contract.commands,
-    spawns: contract.spawns,
-    body: contract.body,
-    filePath: targetPath,
-    frontmatter: contract.frontmatter,
+    role: manifest.role,
+    tier: manifest.tier,
+    domain: typeof manifest.domain === "string" ? manifest.domain : undefined,
+    may,
+    mustNot,
+    commands,
+    spawns,
+    body,
+    filePath: identity.filePath,
+    frontmatter: {
+      role: manifest.role,
+      tier: manifest.tier,
+      may,
+      must_not: mustNot,
+      commands,
+      spawns,
+    },
     raw,
   };
 }
@@ -514,11 +481,11 @@ export function validateAgentTriad(
     issues.push(`Missing agent identity manifest in agents/ for role '${normRole}'`);
   }
 
-  // Check definition in roles/
+  // Check definition in agents/
   const definition = loadAgentRoleDefinition(normRole, options);
   const hasDefinition = Boolean(definition.filePath && existsSync(definition.filePath));
   if (!hasDefinition) {
-    issues.push(`Missing agent role definition in roles/ for role '${normRole}'`);
+    issues.push(`Missing agent role definition in agents/ for role '${normRole}'`);
   }
 
   // Check tier consistency
@@ -596,7 +563,7 @@ export function validateAgentTriad(
 // ---------------------------------------------------------------------------
 
 export function auditAgentTriadWorkspace(options?: AgentTriadOptions): TriadAuditReport {
-  const { skillRoot, agentsDir, rolesDir, referencesDir } = resolveWorkspacePaths(options);
+  const { skillRoot, agentsDir, referencesDir } = resolveWorkspacePaths(options);
   const issues: string[] = [];
 
   const manifestRoles = new Set<string>();
@@ -616,61 +583,14 @@ export function auditAgentTriadWorkspace(options?: AgentTriadOptions): TriadAudi
     issues.push(`Agents directory does not exist: ${agentsDir}`);
   }
 
-  const contractRoles = new Set<string>();
-  if (existsSync(rolesDir)) {
-    try {
-      const files = readdirSync(rolesDir);
-      for (const file of files) {
-        if (file.endsWith(".md")) {
-          const role = normalizeRoleName(basename(file, ".md"));
-          contractRoles.add(role);
-        }
-      }
-    } catch {
-      issues.push(`Failed to read roles directory: ${rolesDir}`);
-    }
-  } else {
-    issues.push(`Roles directory does not exist: ${rolesDir}`);
-  }
-
   const allReferences = loadAgentReferenceDocs(options);
 
-  // Union of all roles discovered
-  const allRoles = new Set<string>([...manifestRoles, ...contractRoles]);
+  // Union of all roles discovered from agents/
+  const allRoles = manifestRoles;
 
   const triads: TriadValidationResult[] = [];
   const orphanedManifests: string[] = [];
   const orphanedContracts: string[] = [];
-
-  for (const r of manifestRoles) {
-    if (!contractRoles.has(r)) {
-      // Exclude generic host provider manifests or specialized validator manifests mapped to existing contracts
-      if (
-        ![
-          "antigravity",
-          "claude",
-          "codex",
-          "cursor",
-          "generic",
-          "openai",
-          "ui-mechanic-validator",
-          "ui-validator",
-          "worker",
-        ].includes(r)
-      ) {
-        orphanedManifests.push(r);
-      }
-    }
-  }
-
-  for (const r of contractRoles) {
-    if (!manifestRoles.has(r)) {
-      // Specialized validators use validator.yaml manifest in default structure
-      if (!r.startsWith("validator-")) {
-        orphanedContracts.push(r);
-      }
-    }
-  }
 
   let completeCount = 0;
   for (const r of Array.from(allRoles).sort()) {
@@ -710,8 +630,8 @@ export function auditAgentTriadWorkspace(options?: AgentTriadOptions): TriadAudi
   const healthy = issues.length === 0 && incompleteCount === 0;
 
   const summary = healthy
-    ? `Agent Triad Workspace Audit Healthy: ${completeCount}/${allRoles.size} complete agent triads verified across agents/, roles/, and references/.`
-    : `Agent Triad Workspace Audit Found Inconsistencies: ${completeCount}/${allRoles.size} complete triads, ${orphanedManifests.length} orphaned manifests, ${orphanedContracts.length} orphaned contracts, ${issues.length} total issues.`;
+    ? `Agent Triad Workspace Audit Healthy: ${completeCount}/${allRoles.size} complete unified agent manifests verified in agents/ with references/.`
+    : `Agent Triad Workspace Audit Found Inconsistencies: ${completeCount}/${allRoles.size} complete triads, ${issues.length} total issues.`;
 
   return {
     timestamp: new Date().toISOString(),

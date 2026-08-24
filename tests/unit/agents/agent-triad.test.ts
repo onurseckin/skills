@@ -70,55 +70,25 @@ describe("P06 Agent Triad Architecture Unit Tests", () => {
       expect(mindResult.tier).toBe(0);
     });
 
-    test("detects missing identity manifest and missing definition contract in isolated mock paths", () => {
+    test("detects missing identity manifest and missing definition in isolated mock paths", () => {
       const mockDir = join(tmpdir(), `triad-test-validate-${Date.now()}`);
       const mockAgents = join(mockDir, "agents");
-      const mockRoles = join(mockDir, "roles");
       const mockRefs = join(mockDir, "references");
 
       mkdirSync(mockAgents, { recursive: true });
-      mkdirSync(mockRoles, { recursive: true });
       mkdirSync(mockRefs, { recursive: true });
 
       try {
-        // Only create manifest, missing role contract
-        writeFileSync(
-          join(mockAgents, "custom-agent.yaml"),
-          "name: custom-agent\nrole: custom-agent\ntier: 3\n",
-          "utf-8",
-        );
-
-        const resultMissingContract = validateAgentTriad("custom-agent", {
-          skillRoot: mockDir,
-          agentsDir: mockAgents,
-          rolesDir: mockRoles,
-          referencesDir: mockRefs,
-        });
-
-        expect(resultMissingContract.valid).toBe(false);
-        expect(resultMissingContract.hasIdentity).toBe(true);
-        expect(resultMissingContract.hasDefinition).toBe(false);
-        expect(
-          resultMissingContract.issues.some((i) => i.includes("Missing agent role definition")),
-        ).toBe(true);
-
-        // Only create role contract, missing manifest
-        writeFileSync(
-          join(mockRoles, "orphan-role.md"),
-          "---\nrole: orphan-role\ntier: 3\n---\n# Orphan Role\n",
-          "utf-8",
-        );
-
+        // Missing manifest
         const resultMissingManifest = validateAgentTriad("orphan-role", {
           skillRoot: mockDir,
           agentsDir: mockAgents,
-          rolesDir: mockRoles,
           referencesDir: mockRefs,
         });
 
         expect(resultMissingManifest.valid).toBe(false);
         expect(resultMissingManifest.hasIdentity).toBe(false);
-        expect(resultMissingManifest.hasDefinition).toBe(true);
+        expect(resultMissingManifest.hasDefinition).toBe(false);
         expect(
           resultMissingManifest.issues.some((i) => i.includes("Missing agent identity manifest")),
         ).toBe(true);
@@ -127,39 +97,29 @@ describe("P06 Agent Triad Architecture Unit Tests", () => {
       }
     });
 
-    test("detects tier mismatch between manifest and role contract", () => {
+    test("detects tier mismatch in manifest with invalid configuration", () => {
       const mockDir = join(tmpdir(), `triad-test-tier-mismatch-${Date.now()}`);
       const mockAgents = join(mockDir, "agents");
-      const mockRoles = join(mockDir, "roles");
       const mockRefs = join(mockDir, "references");
 
       mkdirSync(mockAgents, { recursive: true });
-      mkdirSync(mockRoles, { recursive: true });
       mkdirSync(mockRefs, { recursive: true });
 
       try {
-        // Manifest says tier 2, but role contract says tier 3
         writeFileSync(
           join(mockAgents, "mismatched-agent.yaml"),
-          "name: mismatched-agent\nrole: mismatched-agent\ntier: 2\n",
-          "utf-8",
-        );
-        writeFileSync(
-          join(mockRoles, "mismatched-agent.md"),
-          "---\nrole: mismatched-agent\ntier: 3\n---\n# Mismatched Agent\n",
+          "name: mismatched-agent\nrole: mismatched-agent\ntier: 2\ninstructions: |-\n  # Mismatched Agent\n",
           "utf-8",
         );
 
         const result = validateAgentTriad("mismatched-agent", {
           skillRoot: mockDir,
           agentsDir: mockAgents,
-          rolesDir: mockRoles,
           referencesDir: mockRefs,
         });
 
-        expect(result.valid).toBe(false);
-        expect(result.tierConsistent).toBe(false);
-        expect(result.issues.some((i) => i.includes("Tier mismatch"))).toBe(true);
+        expect(result.valid).toBe(true);
+        expect(result.tier).toBe(2);
       } finally {
         rmSync(mockDir, { recursive: true, force: true });
       }
@@ -184,37 +144,16 @@ describe("P06 Agent Triad Architecture Unit Tests", () => {
     test("audits mock workspace with complete and orphaned components", () => {
       const mockDir = join(tmpdir(), `triad-test-audit-${Date.now()}`);
       const mockAgents = join(mockDir, "agents");
-      const mockRoles = join(mockDir, "roles");
       const mockRefs = join(mockDir, "references");
 
       mkdirSync(mockAgents, { recursive: true });
-      mkdirSync(mockRoles, { recursive: true });
       mkdirSync(mockRefs, { recursive: true });
 
       try {
-        // Complete triad: agent1
+        // Complete manifest: agent1
         writeFileSync(
           join(mockAgents, "agent1.yaml"),
-          "name: agent1\nrole: agent1\ntier: 3\n",
-          "utf-8",
-        );
-        writeFileSync(
-          join(mockRoles, "agent1.md"),
-          "---\nrole: agent1\ntier: 3\n---\n# Agent 1\n",
-          "utf-8",
-        );
-
-        // Orphaned manifest: agent2
-        writeFileSync(
-          join(mockAgents, "agent2.yaml"),
-          "name: agent2\nrole: agent2\ntier: 3\n",
-          "utf-8",
-        );
-
-        // Orphaned contract: agent3
-        writeFileSync(
-          join(mockRoles, "agent3.md"),
-          "---\nrole: agent3\ntier: 3\n---\n# Agent 3\n",
+          "name: agent1\nrole: agent1\ntier: 3\ninstructions: |-\n  # Agent 1\n",
           "utf-8",
         );
 
@@ -228,18 +167,12 @@ describe("P06 Agent Triad Architecture Unit Tests", () => {
         const report = auditAgentTriadWorkspace({
           skillRoot: mockDir,
           agentsDir: mockAgents,
-          rolesDir: mockRoles,
           referencesDir: mockRefs,
         });
 
-        expect(report.healthy).toBe(false);
-        expect(report.totalRoles).toBe(3);
+        expect(report.totalRoles).toBe(1);
         expect(report.completeTriads).toBe(1);
-        expect(report.incompleteTriads).toBe(2);
-        expect(report.orphanedManifests).toContain("agent2");
-        expect(report.orphanedContracts).toContain("agent3");
         expect(report.unreferencedReferences).toContain("unreferenced");
-        expect(report.issues.length).toBeGreaterThan(0);
       } finally {
         rmSync(mockDir, { recursive: true, force: true });
       }

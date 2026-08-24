@@ -241,6 +241,26 @@ describe("reporting workflow view", () => {
         }),
       };
       state.packets = { "P-2": packetValidator, "P-1": packetImplementer };
+      state.branches = [
+        {
+          id: "branch-1",
+          parent_task_id: "task-1",
+          parent_agent_id: "agent-1",
+          status: "open",
+          reason: "Sprouted repair",
+          depth: 1,
+          opened_at: pastTime,
+          sub_tasks: [
+            {
+              id: "sub-1",
+              label: "Fix linting",
+              status: "open",
+              agent_id: "agent-1",
+              write_scope: ["src/index.ts"],
+            },
+          ],
+        },
+      ];
       state.completion_critic = completionCritic;
       state.completion_critic_history = [completionCriticHistory];
       state.completion_review = completionReview;
@@ -251,6 +271,7 @@ describe("reporting workflow view", () => {
     });
 
     const view = workflowView(runRoot, new Date());
+    expect(view.branches).toHaveLength(1);
     expect(view.tasks).toHaveLength(2);
     expect(view.tasks[0]).toMatchObject({
       id: "task-1",
@@ -311,5 +332,28 @@ describe("reporting workflow view", () => {
     expect(view.stale_evidence).toContainEqual(
       expect.stringContaining("completion critic critic-1 expired"),
     );
+  });
+
+  test("renderDynamicDagView renders from raw Sugiyama nodes and string subtasks", async () => {
+    const { renderDynamicDagView, renderBranchExpansionHierarchy } =
+      await import("../../../olt/scripts/src/reporting/dag-view.ts");
+    const subtaskLines = renderBranchExpansionHierarchy("p-1", ["subtask-str-1", "subtask-str-2"], {
+      branchId: "b-dyn",
+    });
+    expect(subtaskLines.some((l) => l.includes("[subtask-str-1]"))).toBe(true);
+
+    const nodes = [
+      {
+        id: "node-1",
+        label: "Node 1",
+        status: "ready",
+        dependencies: [],
+        writeScope: [],
+        assignedAgent: null,
+      },
+    ];
+    const edges: never[] = [];
+    const report = renderDynamicDagView(nodes, edges);
+    expect(report.renderedDag).toContain("node-1");
   });
 });

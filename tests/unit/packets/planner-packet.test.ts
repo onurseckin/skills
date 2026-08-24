@@ -27,7 +27,6 @@ describe("initializePlannerPacket", () => {
     seedSingleTaskGraph(run);
     const published = await initializePlannerPacket(run, "planner-1");
     expect(published.packet.metadata.graph_revision).toBe(1);
-    expect(published.packet.markdown).toContain('"expected_revision": 1');
     expect(published.packet.markdown).toMatch(/"--expected-revision",\s*"1"/);
   });
 

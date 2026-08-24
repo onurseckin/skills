@@ -552,4 +552,186 @@ describe("mind:candidate CLI command", () => {
       }),
     ).toThrow(HarnessError);
   });
+
+  test("resolves witness from flat record path commands/{id}.json", () => {
+    const { run } = setupMindCapsule("flat-record");
+    const cmdDir = join(run, "commands");
+    mkdirSync(cmdDir, { recursive: true });
+    const flatPath = join(cmdDir, "cmd-flat.json");
+    writeFileSync(
+      flatPath,
+      JSON.stringify({
+        id: "cmd-flat",
+        actor: "mind-1",
+        tool: "test_runner",
+        argv: ["bun", "test"],
+        status: "failed",
+        exit_code: 1,
+        started_at: new Date().toISOString(),
+        ended_at: new Date().toISOString(),
+      }),
+      "utf-8",
+    );
+
+    const resolution = resolveWitnessCommand("cmd-flat", run);
+    expect(resolution.commandId).toBe("cmd-flat");
+    expect(resolution.recordPath).toBe(flatPath);
+
+    const verified = verifyDefectWitness("cmd-flat", run);
+    expect(verified.exitCode).toBe(1);
+  });
+
+  test("resolves witness from state.json commands object", () => {
+    const { run } = setupMindCapsule("state-record");
+    const statePath = join(run, "state.json");
+    const stateObj = JSON.parse(readFileSync(statePath, "utf-8"));
+    stateObj.commands = {
+      "cmd-in-state": {
+        id: "cmd-in-state",
+        actor: "mind-1",
+        tool: "test_runner",
+        argv: ["bun", "test"],
+        status: "failed",
+        exit_code: 2,
+        started_at: new Date().toISOString(),
+        ended_at: new Date().toISOString(),
+      },
+    };
+    writeFileSync(statePath, JSON.stringify(stateObj), "utf-8");
+
+    const resolution = resolveWitnessCommand("cmd-in-state", run);
+    expect(resolution.commandId).toBe("cmd-in-state");
+    expect(resolution.commandRecord.exit_code).toBe(2);
+
+    const verified = verifyDefectWitness("cmd-in-state", run);
+    expect(verified.exitCode).toBe(2);
+  });
+
+  test("reads custom logs from commandRecord.logs and attempts", () => {
+    const { run } = setupMindCapsule("custom-logs");
+    const cmdDir = join(run, "commands", "cmd-logs");
+    mkdirSync(cmdDir, { recursive: true });
+
+    const stdoutFile = join(run, "custom-out.log");
+    const stderrFile = join(run, "custom-err.log");
+    writeFileSync(stdoutFile, "Custom stdout line with specific_defect_marker", "utf-8");
+    writeFileSync(stderrFile, "Custom stderr line with error", "utf-8");
+
+    const recordPath = join(cmdDir, "record.json");
+    writeFileSync(
+      recordPath,
+      JSON.stringify({
+        id: "cmd-logs",
+        actor: "mind-1",
+        tool: "test_runner",
+        argv: ["bun", "test"],
+        status: "failed",
+        exit_code: 1,
+        logs: {
+          stdout: { path: "custom-out.log" },
+          stderr: { path: "custom-err.log" },
+        },
+      }),
+      "utf-8",
+    );
+
+    const verified = verifyDefectWitness("cmd-logs", run, "specific_defect_marker");
+    expect(verified.stdout).toContain("specific_defect_marker");
+    expect(verified.stderr).toContain("Custom stderr line");
+    expect(verified.output).toContain("specific_defect_marker");
+
+    // Throws if expected substring is not in output
+    expect(() => verifyDefectWitness("cmd-logs", run, "non_existent_substring")).toThrow(
+      HarnessError,
+    );
+  });
+
+  test("reads logs and exit code from attempts fallback", () => {
+    const { run } = setupMindCapsule("attempts-fallback");
+    const cmdDir = join(run, "commands", "cmd-att");
+    mkdirSync(cmdDir, { recursive: true });
+
+    const attOut = join(run, "att-out.log");
+    const attErr = join(run, "att-err.log");
+    writeFileSync(attOut, "Attempt stdout output", "utf-8");
+    writeFileSync(attErr, "Attempt stderr error", "utf-8");
+
+    const recordPath = join(cmdDir, "record.json");
+    writeFileSync(
+      recordPath,
+      JSON.stringify({
+        id: "cmd-att",
+        actor: "mind-1",
+        tool: "test_runner",
+        argv: ["bun", "test"],
+        status: "failed",
+        attempts: [
+          {
+            attempt: 1,
+            exit_code: 42,
+            logs: {
+              stdout: { path: "att-out.log" },
+              stderr: { path: "att-err.log" },
+            },
+          },
+        ],
+      }),
+      "utf-8",
+    );
+
+    const verified = verifyDefectWitness("cmd-att", run);
+    expect(verified.exitCode).toBe(42);
+    expect(verified.output).toContain("Attempt stdout");
+  });
+
+  test("scans .capsules sibling directory and handles directory edge cases", () => {
+    const parentDir = mkdtempSync(join(tmpdir(), "capsules-parent-"));
+    roots.push(parentDir);
+
+    const capsulesDir = join(parentDir, ".capsules");
+    mkdirSync(capsulesDir, { recursive: true });
+
+    const capA = join(capsulesDir, "cap-a");
+    const capB = join(capsulesDir, "cap-b");
+    mkdirSync(join(capA, "commands", "cmd-a"), { recursive: true });
+    mkdirSync(join(capB, "commands", "cmd-b"), { recursive: true });
+    writeFileSync(join(capA, "state.json"), JSON.stringify({}), "utf-8");
+    writeFileSync(join(capB, "state.json"), JSON.stringify({}), "utf-8");
+
+    writeFileSync(
+      join(capB, "commands", "cmd-b", "record.json"),
+      JSON.stringify({
+        id: "cmd-b",
+        actor: "mind-1",
+        tool: "tool",
+        status: "failed",
+        exit_code: 5,
+      }),
+      "utf-8",
+    );
+
+    // Resolving from sibling capA finds cmd-b in sibling capB
+    const res = resolveWitnessCommand("cmd-b", capA);
+    expect(res.commandId).toBe("cmd-b");
+
+    // Resolving from parentDir which contains .capsules directory
+    const resParent = resolveWitnessCommand("cmd-b", parentDir);
+    expect(resParent.commandId).toBe("cmd-b");
+
+    // Resolving from capsulesDir directly
+    const resCaps = resolveWitnessCommand("cmd-b", capsulesDir);
+    expect(resCaps.commandId).toBe("cmd-b");
+
+    // Resolving with non-existent or regular file path
+    const fakeFile = join(parentDir, "regular.txt");
+    writeFileSync(fakeFile, "some text", "utf-8");
+    expect(() => resolveWitnessCommand("non-existent-cmd", fakeFile)).toThrow(HarnessError);
+    expect(() => resolveWitnessCommand("non-existent-cmd", "/non/existent/path/xyz")).toThrow(
+      HarnessError,
+    );
+
+    // Invalid command ID throws HarnessError
+    expect(() => resolveWitnessCommand("", capA)).toThrow(HarnessError);
+    expect(() => resolveWitnessCommand(null as unknown as string, capA)).toThrow(HarnessError);
+  });
 });

@@ -45,6 +45,13 @@ describe("normalizeContent: format dispatch", () => {
     expect(result.method).toBe("byte-identical");
   });
 
+  test("falls back to byte-identical when a declared TypeScript file contains invalid UTF-8", () => {
+    const invalidUtf8 = new Uint8Array([0xff, 0xfe, 0xfd]);
+    const result = normalizeContent(invalidUtf8, "broken.ts");
+    expect(result.method).toBe("byte-identical");
+    expect(result.normalized).toBe(invalidUtf8);
+  });
+
   test("accepts an explicit ContentFormat in place of a filename", () => {
     expect(normalizeContent(encode('{"a":1}'), "json").method).toBe("json-canonical");
     expect(normalizeContent(encode("plain text"), "unknown").method).toBe("byte-identical");

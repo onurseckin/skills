@@ -92,8 +92,13 @@ describe("core json & no-follow contracts", () => {
       /must contain a JSON object/i,
     );
 
-    // Oversized throws
-    expect(() => readBoundedBytes(target, 2)).toThrow(/size limit exceeded/i);
+    // Non-file in readBoundedBytes
+    expect(() => readBoundedBytes(dir, 1024)).toThrow(/not a regular file/i);
+
+    // Null instead of object in readCanonicalObject throws
+    const nullFile = join(dir, "null.json");
+    writeFileSync(nullFile, "null", "utf-8");
+    expect(() => readCanonicalObject(nullFile, "null.json")).toThrow(/must contain a JSON object/i);
 
     rmSync(dir, { recursive: true, force: true });
   });
@@ -102,6 +107,7 @@ describe("core json & no-follow contracts", () => {
     expect(normalizeJson({ b: 2, a: 1 }, "item")).toEqual({ b: 2, a: 1 });
     expect(() => normalizeJson(undefined, "undef")).toThrow(/is not JSON/i);
     expect(() => normalizeJson(() => {}, "fn")).toThrow(/is not JSON/i);
+    expect(() => normalizeJson(10n, "bigint")).toThrow(/is not JSON/i);
 
     const original = { hello: "world", count: 42 };
     const copy = jsonCopy(original);

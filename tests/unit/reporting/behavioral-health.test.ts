@@ -721,4 +721,268 @@ describe("doctor integration and markdown rendering", () => {
     ).toBe(true);
     expect(dirtyReport.markdown as string).toContain("violations detected");
   });
+
+  test("auditBehavioralHealth loads state from disk capsuleRoot when state is omitted", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-doctor-load-"));
+    roots.push(repo);
+    const runRoot = initRun(
+      repo,
+      "behav-load-run",
+      new TextEncoder().encode("Behavioral load test prompt"),
+      "file",
+      true,
+    );
+
+    transact(runRoot, "coord-1", "plan-compiled", { task_id: "t1" }, (draft) => {
+      draft.agents = [
+        {
+          id: "coord-1",
+          role: "coordinator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-21T00:00:00.000Z",
+          status: "active",
+        },
+      ];
+    });
+
+    const findings = auditBehavioralHealth(runRoot);
+    expect(findings).toEqual([]);
+  });
+
+  test("inferRole correctly infers role from packets, tasks, attempts, and regex prefixes", () => {
+    const state: JsonObject = {
+      packets: {
+        "p-1": { agent_id: "custom-packet-agent", role: "implementer" },
+      },
+      tasks: {
+        "t-1": {
+          id: "t-1",
+          lease: { agent_id: "custom-lease-agent", role: "validator" },
+          attempts: [{ agent_id: "custom-attempt-agent", role: "implementer" }],
+        },
+      },
+      commands: {
+        "cmd-kill-sub": {
+          id: "cmd-kill-sub",
+          actor: "custom-packet-agent",
+          argv: ["kill", "pulse.sh"],
+          status: "succeeded",
+          started_at: "2026-08-21T00:00:00.000Z",
+          finished_at: "2026-08-21T00:00:01.000Z",
+        },
+      },
+    };
+
+    const findings = auditBehavioralHealth("", state);
+    expect(findings.length).toBeGreaterThan(0);
+  });
+
+  test("detects coordinator with unauthorized code-editing tool in tools_granted", () => {
+    const state: JsonObject = {
+      agents: [
+        {
+          id: "coord-granted",
+          role: "coordinator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-21T00:00:00.000Z",
+          status: "active",
+          tools_granted: {
+            evidence_class: "harness_observed",
+            value: [{ name: "write_to_file", category: "file-edit" }],
+          },
+        },
+      ],
+      tasks: {},
+      commands: {},
+    };
+
+    const findings = auditBehavioralHealth("", state);
+    const finding = findings.find((f) => f.agent_id === "coord-granted");
+    expect(finding).toBeDefined();
+    expect(finding?.observation).toContain("holds unauthorized grant for code-editing tool");
+  });
+
+  test("detects orchestrator tool usage and command executions editing files", () => {
+    const state: JsonObject = {
+      agents: [
+        {
+          id: "orch-edit",
+          role: "orchestrator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-21T00:00:00.000Z",
+          status: "active",
+          tools_used: [
+            {
+              name: "replace_file_content",
+              category: "file-edit",
+              evidence_class: "agent_reported",
+              first_reported_at: "2026-08-21T00:00:00.000Z",
+            },
+          ],
+        },
+      ],
+      tasks: {},
+      commands: {
+        "cmd-orch-edit": {
+          id: "cmd-orch-edit",
+          actor: "orch-edit",
+          tool: "replace_file_content",
+          tool_category: "file-edit",
+          argv: ["replace_file_content", "src/code.ts"],
+          status: "succeeded",
+          started_at: "2026-08-21T00:00:00.000Z",
+          finished_at: "2026-08-21T00:00:01.000Z",
+        },
+      },
+    };
+
+    const findings = auditBehavioralHealth("", state);
+    expect(findings.some((f) => f.violation_type === "orchestrator_direct_implementation")).toBe(
+      true,
+    );
+  });
+
+  test("detects implementer self-grading via history and graph mutation events", () => {
+    const state: JsonObject = {
+      agents: [
+        {
+          id: "impl-hist",
+          role: "implementer",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-21T00:00:00.000Z",
+          status: "active",
+        },
+      ],
+      tasks: {
+        "t-hist": {
+          id: "t-hist",
+          history: [{ from: "ready", to: "submitted", actor: "impl-hist" }],
+          validations: [{ validator_id: "impl-hist", verdict: "pass" }],
+        },
+      },
+      commands: {},
+    };
+
+    const findings = auditBehavioralHealth("", state);
+    expect(findings.some((f) => f.violation_type === "implementer_self_grading")).toBe(true);
+  });
+
+  test("detects implementer emitting graph topology mutation events", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-events-test-"));
+    roots.push(repo);
+    const runRoot = initRun(
+      repo,
+      "event-audit-run",
+      new TextEncoder().encode("Event prompt"),
+      "file",
+      true,
+    );
+
+    transact(runRoot, "impl-event", "agent-registered", {}, (draft) => {
+      draft.agents = [
+        {
+          id: "impl-event",
+          role: "implementer",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-21T00:00:00.000Z",
+          status: "active",
+        },
+      ];
+    });
+
+    transact(runRoot, "impl-event", "plan-compiled", { plan_id: "plan-1" }, () => {});
+    transact(runRoot, "impl-event", "plan-applied", { plan_id: "plan-1" }, () => {});
+    transact(runRoot, "impl-event", "plan-enhanced", { plan_id: "plan-1" }, () => {});
+    transact(runRoot, "impl-event", "plan-replan-requested", { plan_id: "plan-1" }, () => {});
+    transact(runRoot, "impl-event", "mind-candidate-recorded", { candidate_id: "c-1" }, () => {});
+
+    const findings = auditBehavioralHealth(runRoot);
+    const graphFindings = findings.filter((f) => f.violation_type === "implementer_graph_mutation");
+    expect(graphFindings.length).toBeGreaterThan(0);
+  });
+
+  test("detects subagent command attempting to kill or stop scheduler or daemon", () => {
+    const state: JsonObject = {
+      agents: [
+        {
+          id: "subagent-killer",
+          role: "coordinator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-21T00:00:00.000Z",
+          status: "active",
+        },
+      ],
+      tasks: {},
+      commands: {
+        "cmd-stop-service": {
+          id: "cmd-stop-service",
+          actor: "subagent-killer",
+          argv: ["systemctl", "stop", "mind.service"],
+          status: "succeeded",
+          started_at: "2026-08-21T00:00:00.000Z",
+          finished_at: "2026-08-21T00:00:01.000Z",
+        },
+      },
+    };
+
+    const findings = auditBehavioralHealth("", state);
+    expect(findings.some((f) => f.violation_type === "subagent_pulse_termination")).toBe(true);
+  });
+
+  test("infers role from packets, leases, attempts, and regex names during pulse audit", () => {
+    const state: JsonObject = {
+      agents: [],
+      packets: {
+        "p-1": { agent_id: "unreg-packet-actor", role: "coordinator" },
+      },
+      tasks: {
+        "t-1": {
+          lease: { agent_id: "unreg-lease-actor", role: "implementer" },
+          attempts: [{ agent_id: "unreg-attempt-actor", role: "validator" }],
+        },
+      },
+      commands: {
+        "cmd-1": {
+          id: "cmd-1",
+          actor: "unreg-packet-actor",
+          argv: ["kill", "pulse.sh"],
+          status: "succeeded",
+        },
+        "cmd-2": {
+          id: "cmd-2",
+          actor: "unreg-lease-actor",
+          argv: ["kill", "pulse.sh"],
+          status: "succeeded",
+        },
+        "cmd-3": {
+          id: "cmd-3",
+          actor: "unreg-attempt-actor",
+          argv: ["kill", "pulse.sh"],
+          status: "succeeded",
+        },
+        "cmd-4": {
+          id: "cmd-4",
+          actor: "worker-99",
+          argv: ["kill", "pulse.sh"],
+          status: "succeeded",
+        },
+      },
+    };
+
+    const findings = auditBehavioralHealth("", state);
+    const pulseFindings = findings.filter((f) => f.violation_type === "subagent_pulse_termination");
+    expect(pulseFindings.length).toBe(4);
+  });
 });

@@ -8,7 +8,7 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
   const skillDocsDir = join(repoRoot, "olt", "docs");
   const capsulesDir = join(repoRoot, ".olt");
   const mindDir = join(repoRoot, "olt", "mind");
-  const mindRolePath = join(repoRoot, "olt", "roles", "mind.md");
+  const mindRolePath = join(repoRoot, "olt", "agents", "mind.yaml");
 
   it("verifies olt/docs directory is completely removed and does not exist", () => {
     expect(existsSync(skillDocsDir)).toBe(false);
@@ -20,9 +20,11 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
     const allowedEntries = new Set([
       "README.md",
       "SKILL_COLLECTION_GUIDELINES.md",
+      "CHARTER.md",
       "olt",
       "planning",
-      "mind",
+      "blueprints",
+      "archive",
     ]);
     const entries = readdirSync(rootDocsDir);
     expect(entries.length).toBeGreaterThan(0);
@@ -32,11 +34,10 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
     }
   });
 
-  it("verifies Mind charter and definitions reside inside olt", () => {
+  it("verifies Mind charter and definitions reside inside repo", () => {
     expect(existsSync(mindRolePath)).toBe(true);
-    expect(existsSync(mindDir)).toBe(true);
 
-    const charterPath = join(mindDir, "CHARTER.md");
+    const charterPath = join(repoRoot, "docs", "CHARTER.md");
     expect(existsSync(charterPath)).toBe(true);
   });
 

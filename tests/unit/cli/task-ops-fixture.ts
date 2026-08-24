@@ -1,11 +1,11 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
 
 /** Two tasks, one depending on the other, compiled and ready to be claimed. */
 export async function setupCompiledRun(name: string, roots: string[]) {
-  const repo = scratchRoot(import.meta.path, `task-ops-${name}`);
+  const repo = await mkdtemp(join(tmpdir(), `task-ops-${name}-`));
   roots.push(repo);
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Core unit tests\n\nSecondary tests");

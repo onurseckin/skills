@@ -794,5 +794,37 @@ describe("REMED-006: Simultaneous Multi-Domain Dispatch", () => {
       expect(result.validatorDispatches).toHaveLength(1);
       expect(result.validatorDispatches[0]!.taskId).toBe("t-sub-clean");
     });
+
+    test("handles validator resource conflicts in multi-domain batch and validator dispatch", () => {
+      const tasks = [
+        createTask("impl-1", "src/ui/1.tsx", { status: "ready", priority: 10 }),
+        createTask("sub-res-1", "src/api/1.ts", {
+          status: "submitted",
+          priority: 9,
+          resource_scope: ["res:db"],
+        }),
+        createTask("sub-res-2", "src/api/2.ts", {
+          status: "submitted",
+          priority: 8,
+          resource_scope: ["res:db"],
+        }),
+      ];
+
+      const state = createMultiDomainState(tasks);
+
+      const batchResult = evaluateMultiDomainBatch(state, {
+        parallelismFactor: 3.0,
+        maxParallel: 3,
+      });
+      expect(batchResult.validatorDispatches).toHaveLength(1);
+      expect(batchResult.validatorDispatches[0]!.taskId).toBe("sub-res-1");
+
+      const valResult = dispatchMultiDomainValidators(state, {
+        parallelismFactor: 3.0,
+        maxParallel: 3,
+        activeResourceScopes: [["res:db"]],
+      });
+      expect(valResult.validatorDispatches).toHaveLength(0);
+    });
   });
 });

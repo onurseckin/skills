@@ -46,6 +46,10 @@ describe("doctor/capsule-root", () => {
       const nonRepo = "/nonexistent/test/path/without/git/or/capsules";
       const found = findRepositoryRoot(nonRepo);
       expect(typeof found).toBe("string");
+
+      const nonExistentCapsules = "/nonexistent-prefix-dir-xyz/.capsules/run-1";
+      const found2 = findRepositoryRoot(nonExistentCapsules);
+      expect(typeof found2).toBe("string");
     });
   });
 

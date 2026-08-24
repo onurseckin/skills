@@ -3,6 +3,10 @@ import { ParallelWaveDispatchEnforcer } from "../../../olt/scripts/src/engine/sc
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 describe("ParallelWaveDispatchEnforcer", () => {
+  it("can be instantiated", () => {
+    expect(new ParallelWaveDispatchEnforcer()).toBeDefined();
+  });
+
   it("blocks single-agent dispatch when wave contains 3 ready disjoint lanes", () => {
     const wave = { waveIndex: 1, readyTaskIds: ["t1", "t2", "t3"] };
 

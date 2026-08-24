@@ -21,10 +21,13 @@ function makeWritable(path: string): void {
 }
 
 export async function cleanupRoots(roots: string[]): Promise<void> {
+  const toClean = roots.splice(0);
   await Promise.all(
-    roots.splice(0).map(async (root) => {
-      makeWritable(root);
-      await rm(root, { recursive: true, force: true });
+    toClean.map(async (root) => {
+      try {
+        makeWritable(root);
+        await rm(root, { recursive: true, force: true });
+      } catch {}
     }),
   );
 }

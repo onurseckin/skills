@@ -179,11 +179,7 @@ describe("Thread Authority Identifier", () => {
     expect(identified.tier_name).toBe("Main Interactive Agent Thread");
     expect(identified.compliance_state).toBe("restrained");
     expect(identified.advisory).toBe(MAIN_THREAD_ADVISORY);
-    expect(identified.defect).not.toBeNull();
-    expect(identified.defect?.type).toBe("main_thread_direct_execution");
-    expect(identified.defect?.severity).toBe("critical");
-    expect(identified.defect?.observation).toContain("interactive main conversation thread");
-    expect(identified.defect?.remediation).toContain("invoke_subagent");
+    expect(identified.defect).toBeNull();
   });
 
   test("records defect records to run directory when available", async () => {

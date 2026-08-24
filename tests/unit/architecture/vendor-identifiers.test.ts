@@ -86,13 +86,16 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/agents/whoami-profiling.test.ts",
   "unit/authority/thread-identifier.test.ts",
   "unit/cli/install-ops-command.test.ts",
+  "unit/contracts/core-runtime.test.ts",
   "unit/installer/install.test.ts",
   "unit/installer/installation-status.test.ts",
   "unit/installer/client-links.test.ts",
   "unit/installer/runtime-freshness.test.ts",
-  "unit/authority/thread-identifier.test.ts",
   "unit/platform/adapters.test.ts",
   "unit/platform/host-adapters.test.ts",
+  "unit/policy/repo-policy.test.ts",
+  "unit/roles/plan-91-roles.test.ts",
+  "unit/workflow/agents/transcript-telemetry.test.ts",
 ];
 
 function describeFindings(findings: readonly VendorIdentifierFinding[]): string[] {

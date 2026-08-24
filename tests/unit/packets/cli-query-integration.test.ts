@@ -300,43 +300,25 @@ describe("CLI Query Integration & Retrieval Contracts", () => {
       }
     });
 
-    test("validator contract grants on-demand CLI query commands", () => {
+    test("validator contract enforces 0 command privileges (cognitive validator hard-lock)", () => {
       const contract = loadRoleContract("validator");
-      expect(contract.commands).toContain("finding:get");
-      expect(contract.commands).toContain("report:get");
-      expect(contract.commands).toContain("evidence:get");
-      expect(contract.commands).toContain("evidence:screenshots");
-      expect(contract.commands).toContain("whoami");
-
-      for (const cmd of [
-        "finding:get",
-        "report:get",
-        "evidence:get",
-        "evidence:screenshots",
-        "whoami",
-      ]) {
-        const spec = findCommand(cmd)!;
-        expect(spec).toBeDefined();
-        expect(() => assertRoleMayInvoke("validator", spec, "val-1")).not.toThrow();
-      }
+      expect(contract.commands).toEqual([]);
     });
 
-    test("coordinator contract grants dag:view and all CLI query commands", () => {
+    test("coordinator contract grants dag and all CLI query commands", () => {
       const contract = loadRoleContract("coordinator");
-      expect(contract.commands).toContain("dag:view");
+      expect(contract.commands).toContain("dag");
       expect(contract.commands).toContain("finding:get");
       expect(contract.commands).toContain("report:get");
       expect(contract.commands).toContain("evidence:get");
       expect(contract.commands).toContain("evidence:screenshots");
-      expect(contract.commands).toContain("whoami");
 
       for (const cmd of [
-        "dag:view",
+        "dag",
         "finding:get",
         "report:get",
         "evidence:get",
         "evidence:screenshots",
-        "whoami",
       ]) {
         const spec = findCommand(cmd)!;
         expect(spec).toBeDefined();

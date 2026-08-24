@@ -568,6 +568,109 @@ describe("Unlimited Depth DAG Scheduler & Validator Pairing", () => {
         "graph revision is required to schedule DAG",
       );
     });
+
+    test("scheduleUnlimitedDepthDAG validates options and enforces depth invariants", () => {
+      const state = topologyState();
+      expect(() => scheduleUnlimitedDepthDAG(state, { default_max_parallel: -1 })).toThrow(
+        /default_max_parallel must be a positive integer/,
+      );
+      expect(() => scheduleUnlimitedDepthDAG(null)).toThrow(
+        /a plan must be applied before DAG can be scheduled/,
+      );
+      // Fails when max_depth is set lower than wave depth:
+      expect(() => scheduleUnlimitedDepthDAG(state, { max_depth: 1 })).toThrow(
+        /Depth invariant violated/,
+      );
+    });
+
+    test("accepts Record objects for taskMap, requirementTexts, and assignedImplementers", () => {
+      const taskRecord = {
+        t1: {
+          id: "t1",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/ui.tsx"],
+        },
+      };
+      const deps = new Map([["t1", new Set<string>()]]);
+      const cpResult = computeCriticalPathDepth(deps, taskRecord);
+      expect(cpResult.depth).toBe(1);
+
+      const pairingResult = pairValidatorsStrictly([taskRecord.t1], {
+        requirementTexts: { t1: ["WCAG contrast"] },
+        assignedImplementers: { t1: "worker-1" },
+      });
+      expect(pairingResult[0]!.assignedImplementer).toBe("worker-1");
+      expect(pairingResult[0]!.applicableDomains).toContain("ui-design");
+
+      // Non-record, non-map fallbacks
+      const fallbackPairings = pairValidatorsStrictly([taskRecord.t1], {
+        requirementTexts: "invalid" as unknown as Record<string, string[]>,
+        assignedImplementers: 123 as unknown as Record<string, string>,
+      });
+      expect(fallbackPairings[0]!.assignedImplementer).toBeNull();
+    });
+
+    test("validateDepthInvariants checks all individual invariant branches", () => {
+      // 1. maxWaveDepth < 0 and criticalPathLength < 0
+      const res1 = validateDepthInvariants({
+        totalTasks: 2,
+        maxWaveDepth: -1,
+        criticalPathLength: -1,
+        criticalPathTasks: [],
+        longestChainEffort: 0,
+        maxConcurrentWidth: 1,
+        averageConcurrency: 1,
+        unboundedSafetyVerified: true,
+        validatorPairingRate: 1.0,
+      });
+      expect(res1.violations).toContain("maxWaveDepth must be non-negative");
+      expect(res1.violations).toContain("criticalPathLength must be non-negative");
+
+      // 2. totalTasks > 0 && maxWaveDepth === 0
+      const res2 = validateDepthInvariants({
+        totalTasks: 2,
+        maxWaveDepth: 0,
+        criticalPathLength: 1,
+        criticalPathTasks: [],
+        longestChainEffort: 0,
+        maxConcurrentWidth: 1,
+        averageConcurrency: 1,
+        unboundedSafetyVerified: true,
+        validatorPairingRate: 1.0,
+      });
+      expect(res2.violations).toContain("maxWaveDepth must be > 0 when totalTasks > 0");
+
+      // 3. criticalPathLength > totalTasks
+      const res3 = validateDepthInvariants({
+        totalTasks: 2,
+        maxWaveDepth: 2,
+        criticalPathLength: 5,
+        criticalPathTasks: [],
+        longestChainEffort: 0,
+        maxConcurrentWidth: 1,
+        averageConcurrency: 1,
+        unboundedSafetyVerified: true,
+        validatorPairingRate: 1.0,
+      });
+      expect(res3.violations).toContain("criticalPathLength cannot exceed totalTasks");
+
+      // 4. validatorPairingRate < 0 or > 1
+      const res4 = validateDepthInvariants({
+        totalTasks: 2,
+        maxWaveDepth: 2,
+        criticalPathLength: 2,
+        criticalPathTasks: [],
+        longestChainEffort: 0,
+        maxConcurrentWidth: 1,
+        averageConcurrency: 1,
+        unboundedSafetyVerified: true,
+        validatorPairingRate: 1.5,
+      });
+      expect(res4.violations).toContain("validatorPairingRate must be between 0.0 and 1.0");
+    });
   });
 
   describe("Static Invariants & Typing", () => {

@@ -79,6 +79,8 @@ describe("process-group identity safety", () => {
   });
 
   test("rejects unsafe raw process-group identifiers", () => {
+    expect(() => signalProcessGroup(0, "SIGTERM")).toThrow(/identifier|group/i);
+    expect(() => signalProcessGroup(1, "SIGTERM")).toThrow(/identifier|group/i);
     expect(() => signalProcessGroup(0, "SIGTERM", () => true)).toThrow(/identifier|group/i);
     expect(() => signalProcessGroup(1, "SIGTERM", () => true)).toThrow(/identifier|group/i);
   });

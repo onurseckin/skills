@@ -3,7 +3,11 @@ import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { inspectRepository } from "../../../olt/scripts/src/packets/repository-snapshot.ts";
-import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
+import { inspectRepositoryBinding } from "../../../olt/scripts/src/packets/repository-identity.ts";
+import {
+  createRepositoryGitCommand,
+  type RepositoryGitCommand,
+} from "../../../olt/scripts/src/packets/repository-git-command.ts";
 
 describe("repository-snapshot", () => {
   test("inspects a non-git directory with instructions and conventions", () => {
@@ -93,5 +97,27 @@ describe("repository-snapshot", () => {
       expect(snapshot.git.head).toMatch(/^[0-9a-f]{40}$/);
       expect(snapshot.git.recent_commits.length).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  test("inspectRepositoryBinding retries and throws INTEGRITY if git identity continuously changes", () => {
+    const repo = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-drift-")));
+    Bun.spawnSync(["git", "init", "-q", repo]);
+
+    let counter = 0;
+    const realGit = createRepositoryGitCommand();
+    const driftingCommand: RepositoryGitCommand = (r, argv, max, accepted) => {
+      if (argv[0] === "status") {
+        counter += 1;
+        return {
+          status: 0,
+          bytes: Buffer.from(`# branch.oid 000000000000000000000000000000000000000${counter}\n`),
+        };
+      }
+      return realGit(r, argv, max, accepted);
+    };
+
+    expect(() => inspectRepositoryBinding(repo, {}, { command: driftingCommand })).toThrow(
+      "repository Git identity changed during scan",
+    );
   });
 });

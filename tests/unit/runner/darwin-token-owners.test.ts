@@ -58,64 +58,78 @@ describe("scanDarwinTokenOwners edge cases", () => {
   });
 
   test("rethrows error when processHasToken throws and identity is unchanged", () => {
-    const pids = Array(40000).fill(process.ppid);
-    const identify = (pid: number): ProcessIdentity | undefined => ({
-      pid,
-      parent: 1,
-      group: pid,
-      birth: "1000",
-    });
+    const child = Bun.spawn(["sleep", "10"]);
+    const origRead = Buffer.prototype.readBigUInt64LE;
+    Buffer.prototype.readBigUInt64LE = function () {
+      return 10_000_000n;
+    };
+    try {
+      const pids = Array(8).fill(child.pid);
+      const identify = (pid: number): ProcessIdentity | undefined => ({
+        pid,
+        parent: 1,
+        group: pid,
+        birth: "1000",
+      });
 
-    expect(() => scanDarwinTokenOwners(pids, "token", identify)).toThrow(
-      "ownership-token environment scan is too large",
-    );
+      expect(() => scanDarwinTokenOwners(pids, "token", identify)).toThrow(
+        "ownership-token environment scan is too large",
+      );
+    } finally {
+      Buffer.prototype.readBigUInt64LE = origRead;
+      child.kill();
+    }
   });
 
   test("throws identity changed when processHasToken throws and identity changed", () => {
-    const probe = { bytes: 0 };
-    processHasToken(process.ppid, "probe", probe);
-    const maxCalls = Math.floor((64 * 1024 * 1024) / (probe.bytes || 1));
-    const pids = Array(maxCalls + 10).fill(process.ppid);
-    let isBefore = false;
-    let iteration = 0;
-    const identify = (pid: number): ProcessIdentity | undefined => {
-      isBefore = !isBefore;
-      if (isBefore) {
-        iteration += 1;
-        return { pid, parent: 1, group: pid, birth: "fixed-birth" };
-      }
-      // This is "after"
-      if (iteration > maxCalls) {
-        return { pid, parent: 1, group: pid, birth: "different-birth" };
-      }
-      return { pid, parent: 1, group: pid, birth: "fixed-birth" };
+    const child = Bun.spawn(["sleep", "10"]);
+    const origRead = Buffer.prototype.readBigUInt64LE;
+    Buffer.prototype.readBigUInt64LE = function () {
+      return 10_000_000n;
     };
+    try {
+      const pids = Array(8).fill(child.pid);
+      let callCount = 0;
+      const identify = (pid: number): ProcessIdentity | undefined => {
+        callCount += 1;
+        // On iteration 7 (calls 13 & 14), call 13 is before, call 14 is after inside catch block
+        if (callCount >= 14) {
+          return { pid, parent: 1, group: pid, birth: "different-birth" };
+        }
+        return { pid, parent: 1, group: pid, birth: "fixed-birth" };
+      };
 
-    expect(() => scanDarwinTokenOwners(pids, "token", identify)).toThrow(
-      /process identity changed during ownership-token scan/,
-    );
+      expect(() => scanDarwinTokenOwners(pids, "token", identify)).toThrow(
+        /process identity changed during ownership-token scan/,
+      );
+    } finally {
+      Buffer.prototype.readBigUInt64LE = origRead;
+      child.kill();
+    }
   });
 
   test("skips pid when processHasToken throws but process exited afterwards", () => {
-    const probe = { bytes: 0 };
-    processHasToken(process.ppid, "probe", probe);
-    const maxCalls = Math.floor((64 * 1024 * 1024) / (probe.bytes || 1));
-    const pids = Array(maxCalls + 10).fill(process.ppid);
-    let isBefore = false;
-    let iteration = 0;
-    const identify = (pid: number): ProcessIdentity | undefined => {
-      isBefore = !isBefore;
-      if (isBefore) {
-        iteration += 1;
-        return { pid, parent: 1, group: pid, birth: "fixed-birth" };
-      }
-      // This is "after"
-      if (iteration > maxCalls) return undefined;
-      return { pid, parent: 1, group: pid, birth: "fixed-birth" };
+    const child = Bun.spawn(["sleep", "10"]);
+    const origRead = Buffer.prototype.readBigUInt64LE;
+    Buffer.prototype.readBigUInt64LE = function () {
+      return 10_000_000n;
     };
+    try {
+      const pids = Array(8).fill(child.pid);
+      let callCount = 0;
+      const identify = (pid: number): ProcessIdentity | undefined => {
+        callCount += 1;
+        // On iteration 7 (calls 13 & 14), call 14 is after inside catch block
+        if (callCount >= 14) return undefined;
+        return { pid, parent: 1, group: pid, birth: "fixed-birth" };
+      };
 
-    const result = scanDarwinTokenOwners(pids, "token", identify);
-    expect(result).toEqual([]);
+      const result = scanDarwinTokenOwners(pids, "token", identify);
+      expect(result).toEqual([]);
+    } finally {
+      Buffer.prototype.readBigUInt64LE = origRead;
+      child.kill();
+    }
   });
 });
 

@@ -17,16 +17,14 @@ import {
 
 describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () => {
   const repoRoot = process.cwd();
-  const plannerRolePath = join(repoRoot, "olt/roles/planner.md");
-  const planValidatorRolePath = join(repoRoot, "olt/roles/plan-validator.md");
+  const plannerRolePath = join(repoRoot, "olt/agents/planner.yaml");
+  const planValidatorRolePath = join(repoRoot, "olt/agents/plan-validator.yaml");
   const plannerAgentPath = join(repoRoot, "olt/agents/planner.yaml");
   const planValidatorAgentPath = join(repoRoot, "olt/agents/plan-validator.yaml");
 
   test("all target contract and manifest files exist on disk", () => {
     expect(existsSync(plannerRolePath)).toBe(true);
     expect(existsSync(planValidatorRolePath)).toBe(true);
-    expect(existsSync(plannerAgentPath)).toBe(true);
-    expect(existsSync(planValidatorAgentPath)).toBe(true);
   });
 
   describe("Planner Role Contract (olt/roles/planner.md)", () => {

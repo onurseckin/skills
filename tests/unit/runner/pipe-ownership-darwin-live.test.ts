@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import {
   addedPipeHandles,
   authenticatedOwnerPids,
@@ -85,6 +85,21 @@ describe("platform dispatch seam", () => {
       "cannot enumerate processes for ownership tokens",
     );
   });
+
+  test("ownedProcessPids maps linux token owners to pids", async () => {
+    const linuxPipes = await import("../../../olt/scripts/src/engine/runner/linux-pipes.ts");
+    const spyOwners = spyOn(linuxPipes, "linuxPipeOwners").mockReturnValue(new Set([101, 102]));
+    const spyTokens = spyOn(linuxPipes, "linuxTokenOwnerIdentities").mockReturnValue([
+      { pid: 101, parent: 1, group: 101, birth: "1000" },
+    ]);
+    try {
+      const result = ownedProcessPids(new Set([999n]), "some-token", "linux");
+      expect(result).toEqual(new Set([101]));
+    } finally {
+      spyOwners.mockRestore();
+      spyTokens.mockRestore();
+    }
+  });
 });
 
 describe("ownedProcessPids / ownershipTokenIdentities (real darwin dispatch)", () => {
@@ -97,6 +112,21 @@ describe("ownedProcessPids / ownershipTokenIdentities (real darwin dispatch)", (
     const token = `unit-test-nonexistent-ownership-token-${process.pid}`;
     expect(ownedProcessPids(new Set(), token)).toEqual(new Set());
     expect(ownershipTokenIdentities(token)).toEqual([]);
+  });
+
+  test("ownedProcessPids maps darwin token owners to pids when owners exist", async () => {
+    const darwinPipes = await import("../../../olt/scripts/src/engine/runner/darwin-pipes.ts");
+    const spyOwners = spyOn(darwinPipes, "darwinPipeOwners").mockReturnValue(new Set([201, 202]));
+    const spyTokens = spyOn(darwinPipes, "darwinTokenOwnerIdentities").mockReturnValue([
+      { pid: 201, parent: 1, group: 201, birth: "1000" },
+    ]);
+    try {
+      const result = ownedProcessPids(new Set([999n]), "some-token", "darwin");
+      expect(result).toEqual(new Set([201]));
+    } finally {
+      spyOwners.mockRestore();
+      spyTokens.mockRestore();
+    }
   });
 });
 

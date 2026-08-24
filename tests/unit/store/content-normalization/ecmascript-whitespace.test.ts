@@ -122,20 +122,60 @@ describe("canonicalizeEcmaScriptWhitespace: genuine content changes compare uneq
   });
 });
 
+describe("canonicalizeEcmaScriptWhitespace: numbers, regex, and template expressions", () => {
+  test("handles decimal numbers correctly", () => {
+    eq("const a = 123.456;\n", "const a = 123.456;");
+    eq("const a = 0.5 + .25;\n", "const a = 0.5 + .25;\n");
+  });
+
+  test("handles regex with escapes, classes, and flags", () => {
+    eq("const r = /foo\\/bar[a-z\\]]/gi;\n", "const r = /foo\\/bar[a-z\\]]/gi;\n");
+  });
+
+  test("handles complex template expressions with objects, strings, comments, and regexes", () => {
+    const complex =
+      "const a = `${ { a: 'hello', b: \"world\" } } ${ `nested ${ /regex/i.test(s) }` } ${ // line comment\n /* block */ 123 } ${ (x) / 2 } ${ arr[0] / 2 }`;\n";
+    expect(canonicalizeEcmaScriptWhitespace(complex)).toBeDefined();
+  });
+
+  test("handles CRLF and CR linebreaks", () => {
+    eq("const a = 1;\r\nconst b = 2;\r\n", "const a = 1;\nconst b = 2;\n");
+    eq("const a = 1;\rconst b = 2;\r", "const a = 1;\nconst b = 2;\n");
+  });
+
+  test("handles escaped backslashes in template literals", () => {
+    const escaped = "const a = `\\` ${x} \\``;\n";
+    expect(canonicalizeEcmaScriptWhitespace(escaped)).toBeDefined();
+  });
+});
+
 describe("canonicalizeEcmaScriptWhitespace: falls back to undefined on unsupported input", () => {
   test("an unterminated string literal", () => {
     expect(canonicalizeEcmaScriptWhitespace("const a = 'unterminated;\n")).toBeUndefined();
+    expect(canonicalizeEcmaScriptWhitespace("const a = 'unterminated")).toBeUndefined();
   });
 
   test("an unterminated template literal", () => {
     expect(canonicalizeEcmaScriptWhitespace("const a = `unterminated;\n")).toBeUndefined();
+    expect(canonicalizeEcmaScriptWhitespace("const a = `unterminated")).toBeUndefined();
+  });
+
+  test("an unterminated template expression", () => {
+    expect(canonicalizeEcmaScriptWhitespace("const a = `${unterminated;\n")).toBeUndefined();
   });
 
   test("an unterminated block comment", () => {
     expect(canonicalizeEcmaScriptWhitespace("/* unterminated\nconst a = 1;\n")).toBeUndefined();
+    expect(canonicalizeEcmaScriptWhitespace("/* unterminated")).toBeUndefined();
   });
 
   test("a regex literal that never closes before a line break", () => {
     expect(canonicalizeEcmaScriptWhitespace("const a = /unterminated\n;\n")).toBeUndefined();
+    expect(canonicalizeEcmaScriptWhitespace("const a = /unterminated")).toBeUndefined();
+  });
+
+  test("division following an identifier inside a template expression", () => {
+    const code = "const msg = `${total / count + val / 2}`;";
+    expect(canonicalizeEcmaScriptWhitespace(code)).toBe(code);
   });
 });

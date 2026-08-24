@@ -5,3 +5,7 @@ documentation/
 .DS_Store
 .capsules
 .capsules/
+tests/
+*.test.ts
+coverage/
+.tmp/

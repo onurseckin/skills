@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   createGitRunner,
   git,
+  runGit,
   worktreeGitEnvironment,
   type GitResult,
   type GitRunner,
@@ -102,8 +103,14 @@ describe("createGitRunner", () => {
       status: null,
       stdout: undefined,
       stderr: undefined,
-      error: new Error("boom"),
+      error: new Error("spawn git ENOENT"),
     }));
-    expect(() => runner("/repo", [])).toThrow(/git {2}failed to start: boom/);
+    expect(() => runner("/repo", [])).toThrow(/git  failed to start: spawn git ENOENT/);
+  });
+
+  test("runGit default runner executes real git commands", () => {
+    const result = runGit(process.cwd(), ["status", "--short"]);
+    expect(result.status).toBe(0);
+    expect(git(process.cwd(), ["status", "--short"])).toBeString();
   });
 });

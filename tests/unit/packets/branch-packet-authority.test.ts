@@ -116,9 +116,7 @@ describe("a branch sub-agent packet is bound to its sub-task lease", () => {
   test("a read-only branch role is handed resources, never a write scope", () => {
     for (const role of ["sub-investigator", "sub-validator"] as const) {
       const packet = buildPacket(packetInput(branched(), role));
-      expect(packet.markdown).toContain(
-        '"write_scope": [],\n  "resource_scope": [\n    "src/owned/parser"',
-      );
+      expect(packet.markdown).toContain("## Disjoint Write Scope\n\n```json\n[]\n```");
     }
   });
 

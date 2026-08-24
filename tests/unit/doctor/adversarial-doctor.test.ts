@@ -238,7 +238,7 @@ describe("Adversarial Doctor & Counterfactual Certification", () => {
       const repo = await mkdtemp(join(tmpdir(), "adv-diag-repo-"));
       tempDirs.push(repo);
       await mkdir(join(repo, ".git"));
-      const runRoot = join(repo, ".olt", "capsules", "run-diag-1");
+      const runRoot = join(repo, ".capsules", "run-diag-1");
       await mkdir(runRoot, { recursive: true });
       await mkdir(join(runRoot, "evidence"), { recursive: true });
 
@@ -294,7 +294,7 @@ describe("Adversarial Doctor & Counterfactual Certification", () => {
       const repo = await mkdtemp(join(tmpdir(), "adv-cert-pass-"));
       tempDirs.push(repo);
       await mkdir(join(repo, ".git"));
-      const runRoot = join(repo, ".olt", "capsules", "run-cert-1");
+      const runRoot = join(repo, ".capsules", "run-cert-1");
       await mkdir(runRoot, { recursive: true });
 
       const testFile = join(runRoot, "component.test.ts");
@@ -369,7 +369,7 @@ describe("Adversarial Doctor & Counterfactual Certification", () => {
 
   describe("Static Invariants: Zero Any & Zero Compiler Suppressions", () => {
     test("adversarial-doctor.ts contains zero any and zero suppressions", () => {
-      const srcPath = join(process.cwd(), "olt/scripts/src/doctor/adversarial-doctor.ts");
+      const srcPath = join(process.cwd(), "olt/scripts/src/reporting/doctor/adversarial-doctor.ts");
 
       const srcContent = readFileSync(srcPath, "utf-8");
 

@@ -291,4 +291,68 @@ describe("Unified Reporting Subsystem", () => {
     expect(result.run_root).toBe(run);
     expect(result.markdown).toBeDefined();
   });
+
+  it("handles submitted, changes_requested tasks, empty agents, and authority decisions table", async () => {
+    const { run } = await createFixture("unified-coverage-states");
+    transact(run, "coordinator", "task-status-mix", {}, (state) => {
+      state.tasks = {
+        "t-sub": {
+          id: "t-sub",
+          status: "submitted",
+          requirement_ids: [],
+          write_scope: [],
+          dependencies: [],
+          attempts: [],
+          history: [],
+          repair_round: 0,
+        },
+        "t-rep": {
+          id: "t-rep",
+          status: "changes_requested",
+          requirement_ids: [],
+          write_scope: [],
+          dependencies: [],
+          attempts: [],
+          history: [],
+          repair_round: 1,
+          lease: {
+            agent_id: "repairer-1",
+            role: "repairer",
+            attempt: 2,
+            token_digest: "tok-r",
+            issued_at: "2026-08-22T08:00:00.000Z",
+            expires_at: "2026-08-22T08:30:00.000Z",
+            heartbeat_at: "2026-08-22T08:05:00.000Z",
+            duration_seconds: 1800,
+          },
+        },
+      };
+      state.requirements = [
+        {
+          id: "R-AUTH",
+          status: "approved",
+          evidence: [],
+          authority_history: [
+            {
+              decision: "approved",
+              actor: "auth-lead",
+              timestamp: "2026-08-22T08:00:00.000Z",
+              rationale: "Compliant implementation",
+            },
+          ],
+        },
+      ];
+    });
+
+    const report = reportUnifiedCommand({ run, detailed: true }) as unknown as UnifiedReport;
+    expect(report.markdown).toContain("Authority Decisions & Governance Audit");
+    expect(report.markdown).toContain("Submitted (Awaiting Validation)");
+    expect(report.markdown).toContain("t-sub");
+    expect(report.markdown).toContain("t-rep");
+
+    // Test run with completely empty agents
+    const { run: emptyRun } = await createFixture("unified-empty-agents");
+    const emptyReport = reportUnifiedCommand({ run: emptyRun }) as unknown as UnifiedReport;
+    expect(emptyReport.markdown).toContain("No active agents registered");
+  });
 });

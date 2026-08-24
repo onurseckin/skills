@@ -27,7 +27,13 @@ import {
   formatMindPulseActiveBrief,
   formatMindPulseOpenedBrief,
 } from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 import { schedulerState } from "./fixtures.ts";
+
+function scratchRoot(label: string): string {
+  return makeScratchRoot(import.meta.path, label);
+}
 
 function createMockPort(initialState: Record<string, unknown>): TransactionPort {
   let state = structuredClone(initialState) as unknown as WorkflowState;
@@ -154,42 +160,168 @@ describe("Script-Backed Scheduler Diagnostics Engine", () => {
         result.receipts.some((r) => r.inspector === "dag:view" && r.status === "passed"),
       ).toBeTrue();
     });
+
+    test("handles unrecognized inspector names by generating warning receipt", async () => {
+      const result = await runScriptBackedDiagnostics({
+        inspectors: ["unrecognized:inspector" as unknown as "doctor"],
+        state: schedulerState(),
+      });
+      expect(result.healthy).toBeFalse();
+      expect(result.receipts[0]?.status).toBe("warning");
+      expect(result.receipts[0]?.summary).toContain("Unrecognized inspector");
+    });
   });
 
   describe("2. Individual Diagnostic Inspector Functions", () => {
-    test("runInspectorDoctor returns skipped receipt when runRoot is absent", async () => {
-      const receipt = await runInspectorDoctor(undefined);
-      expect(receipt.inspector).toBe("doctor");
-      expect(receipt.status).toBe("skipped");
-      expect(receipt.badge).toBe("[RECEIPT: doctor SKIP]");
+    test("runInspectorDoctor evaluates initialized runRoot and handles absent path", async () => {
+      const receipt1 = await runInspectorDoctor(undefined);
+      expect(receipt1.inspector).toBe("doctor");
+      expect(receipt1.status).toBe("skipped");
+      expect(receipt1.badge).toBe("[RECEIPT: doctor SKIP]");
+
+      const receipt2 = await runInspectorDoctor("/nonexistent/invalid/run/dir");
+      expect(receipt2.status).toBe("skipped");
+
+      const root = scratchRoot("diag-doc-test");
+      const runRoot = initRun(
+        root,
+        "diag-doc-run",
+        Buffer.from("Prompt for diag doctor"),
+        "argv",
+        true,
+      );
+      const receipt3 = await runInspectorDoctor(runRoot);
+      expect(receipt3.status).toBe("passed");
+      expect(receipt3.badge).toBe("[RECEIPT: doctor PASS]");
+
+      // Corrupt run triggers error catch in runDoctor
+      const corruptDocRoot = scratchRoot("corrupt-doc-test");
+      const corruptDocRun = resolve(corruptDocRoot, "corrupt-run");
+      const { mkdirSync, writeFileSync } = await import("node:fs");
+      mkdirSync(corruptDocRun, { recursive: true });
+      writeFileSync(resolve(corruptDocRun, "manifest.json"), "NOT_JSON");
+      const receiptCorrupt = await runInspectorDoctor(corruptDocRun);
+      expect(receiptCorrupt.status).toBe("failed");
     });
 
-    test("runInspectorHealth evaluates harness scripts root and passes", async () => {
+    test("runInspectorHealth evaluates harness scripts root and handles missing src dir", async () => {
       const receipt = await runInspectorHealth();
       expect(receipt.inspector).toBe("health");
       expect(receipt.status).toBe("passed");
       expect(receipt.badge).toContain("[RECEIPT: health PASS");
+
+      const skipReceipt = await runInspectorHealth("/nonexistent/scripts/root");
+      expect(skipReceipt.status).toBe("skipped");
     });
 
-    test("runInspectorDagView evaluates topological waves from state", async () => {
+    test("runInspectorDagView evaluates topological waves from state, real runRoot, and cycles", async () => {
       const state = schedulerState();
-      const receipt = await runInspectorDagView(undefined, state);
-      expect(receipt.inspector).toBe("dag:view");
-      expect(receipt.status).toBe("passed");
-      expect(receipt.badge).toContain("WAVES");
-      expect(receipt.details?.waveCount).toBeGreaterThanOrEqual(1);
+      const receipt1 = await runInspectorDagView(undefined, state);
+      expect(receipt1.inspector).toBe("dag:view");
+      expect(receipt1.status).toBe("passed");
+      expect(receipt1.badge).toContain("WAVES");
+      expect(receipt1.details?.waveCount).toBeGreaterThanOrEqual(1);
+
+      const receipt2 = await runInspectorDagView(undefined, undefined);
+      expect(receipt2.status).toBe("passed");
+
+      const root = scratchRoot("diag-dag-test");
+      const runRoot = initRun(
+        root,
+        "diag-dag-run",
+        Buffer.from("Prompt for diag dag view"),
+        "argv",
+        true,
+      );
+      const receipt3 = await runInspectorDagView(runRoot);
+      expect(receipt3.status).toBe("passed");
+
+      // Cyclic state triggers error catch
+      const cyclicGraphState = {
+        graph: {
+          edges: [
+            { source: "a", target: "b", type: "depends_on" },
+            { source: "b", target: "a", type: "depends_on" },
+          ],
+        },
+        tasks: { a: { id: "a" }, b: { id: "b" } },
+      };
+      const receiptFail = await runInspectorDagView(undefined, cyclicGraphState);
+      expect(receiptFail.status).toBe("failed");
     });
 
-    test("runInspectorUnifiedReport generates in-memory unified report from state", async () => {
+    test("runInspectorUnifiedReport generates in-memory unified report, real runRoot report, and handles missing input", async () => {
       const state = schedulerState();
-      const receipt = await runInspectorUnifiedReport(undefined, state);
-      expect(receipt.inspector).toBe("report:unified");
-      expect(receipt.status).toBe("passed");
-      expect(receipt.badge).toContain("[RECEIPT: report:unified IN-MEMORY");
+      const receipt1 = await runInspectorUnifiedReport(undefined, state);
+      expect(receipt1.inspector).toBe("report:unified");
+      expect(receipt1.status).toBe("passed");
+      expect(receipt1.badge).toContain("[RECEIPT: report:unified IN-MEMORY");
+
+      const receiptSkip = await runInspectorUnifiedReport(undefined, undefined);
+      expect(receiptSkip.status).toBe("skipped");
+
+      const root = scratchRoot("diag-unified-test");
+      const runRoot = initRun(
+        root,
+        "diag-unified-run",
+        Buffer.from("Prompt for diag unified report"),
+        "argv",
+        true,
+      );
+      const receiptReal = await runInspectorUnifiedReport(runRoot);
+      expect(receiptReal.status).toBe("passed");
+
+      // Corrupted run dir triggers catch block in generateUnifiedReport
+      const corruptRoot = scratchRoot("corrupt-unified-test");
+      const corruptRunRoot = resolve(corruptRoot, "corrupt-run");
+      const { mkdirSync } = await import("node:fs");
+      mkdirSync(corruptRunRoot, { recursive: true });
+      const receiptCatch = await runInspectorUnifiedReport(corruptRunRoot);
+      expect(receiptCatch.status).toBe("failed");
     });
   });
 
-  describe("3. ASCII DAG Badge & Forensics Generators", () => {
+  describe("3. Badge Formatting Across All Statuses", () => {
+    test("generateReceiptBadge formats passed, failed, warning, and skipped badges", () => {
+      const rPassed: CliDiagnosticReceipt = {
+        inspector: "test",
+        status: "passed",
+        timestamp: "now",
+        durationMs: 5,
+        summary: "ok",
+        receiptHash: "00",
+        badge: "",
+      };
+      expect(generateReceiptBadge(rPassed)).toBe("[RECEIPT: test PASS]");
+
+      const rFailed = { ...rPassed, status: "failed" as const };
+      expect(generateReceiptBadge(rFailed)).toBe("[RECEIPT: test FAIL]");
+
+      const rWarn = { ...rPassed, status: "warning" as const };
+      expect(generateReceiptBadge(rWarn)).toBe("[RECEIPT: test WARN]");
+
+      const rSkip = { ...rPassed, status: "skipped" as const };
+      expect(generateReceiptBadge(rSkip)).toBe("[RECEIPT: test SKIP]");
+    });
+
+    test("generateReceiptSummaryBadge handles empty receipts", () => {
+      expect(generateReceiptSummaryBadge([])).toBe("[CLI-RECEIPTS: none]");
+    });
+
+    test("generateAsciiDagBadges handles raw tasks array and empty input", () => {
+      const tasks = [
+        { id: "t1", status: "ready", priority: 1 },
+        { id: "t2", status: "running", assignedAgent: "worker-1" },
+      ];
+      const badges = generateAsciiDagBadges(tasks);
+      expect(badges.length).toBe(2);
+
+      expect(generateAsciiDagBadges(null)).toEqual([]);
+      expect(generateAsciiDagBadges({})).toEqual([]);
+    });
+  });
+
+  describe("4. ASCII DAG Badge & Forensics Generators", () => {
     test("generateAsciiDagBadges generates wave/lane badges for all tasks in state", () => {
       const state = schedulerState();
       const badges = generateAsciiDagBadges(state);

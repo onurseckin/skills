@@ -343,5 +343,100 @@ describe("doctor/adversarial-doctor", () => {
 
       expect(() => assertDoctorCertification(uncertifiedReport)).toThrow(HarnessError);
     });
+
+    it("handles empty testCommand and default runner for non-test files", async () => {
+      const filePath = join(SCRATCH_DIR, "plain.ts");
+      writeFileSync(filePath, "const a = 1;", "utf-8");
+
+      const resEmptyCmd = await runAdversarialCounterfactualCheck(filePath, {
+        testCommand: [""],
+      });
+      expect(resEmptyCmd.baselinePassed).toBe(false);
+
+      const resDefaultPlain = await runAdversarialCounterfactualCheck(filePath);
+      expect(resDefaultPlain.baselinePassed).toBe(true);
+    });
+
+    it("handles errors during mutated test execution in counterfactual check", async () => {
+      const filePath = join(SCRATCH_DIR, "mut-err.test.ts");
+      writeFileSync(filePath, "const b = 2;", "utf-8");
+
+      let callCount = 0;
+      const resMutErr = await runAdversarialCounterfactualCheck(filePath, {
+        testRunner: () => {
+          callCount++;
+          if (callCount === 1) return { success: true };
+          throw new Error("Mutated runner exploded");
+        },
+      });
+
+      expect(resMutErr.baselinePassed).toBe(true);
+      expect(resMutErr.passed).toBe(false);
+      expect(resMutErr.error).toContain("Mutated runner exploded");
+    });
+
+    it("runs doctor diagnostics covering all checks with valid and invalid options", async () => {
+      const repoDir = join(SCRATCH_DIR, "doctor-diag-repo");
+      mkdirSync(join(repoDir, ".git"), { recursive: true });
+      const runRoot = initRun(
+        repoDir,
+        "diag-full-run",
+        new TextEncoder().encode("Diag prompt"),
+        "file",
+        true,
+      );
+
+      // Compliant state with all checks enabled
+      const checksPass = await runDoctorDiagnostics({
+        runRoot,
+        repoRoot: repoDir,
+        state: {
+          agents: [{ id: "coord-1", role: "coordinator" }],
+          tasks: {},
+          commands: {},
+        },
+        checkBunVersion: true,
+        checkCapsuleRoot: true,
+        checkUnifiedEvidence: true,
+        checkTierConfinement: true,
+        checkIntegrity: true,
+      });
+
+      expect(checksPass.length).toBeGreaterThanOrEqual(4);
+      expect(checksPass.some((c) => c.category === "bun_version" && c.passed)).toBe(true);
+      expect(checksPass.some((c) => c.category === "tier_confinement" && c.passed)).toBe(true);
+
+      // Non-compliant state (tier confinement violation)
+      const checksFail = await runDoctorDiagnostics({
+        runRoot,
+        repoRoot: repoDir,
+        state: {
+          agents: [
+            {
+              id: "coord-rogue",
+              role: "coordinator",
+              parent_agent_id: null,
+              parent_task_id: null,
+              host: "antigravity",
+              granted_at: "2026-08-24T00:00:00.000Z",
+              status: "active",
+              tools_used: [
+                {
+                  name: "write_to_file",
+                  category: "file-edit",
+                  evidence_class: "agent_reported",
+                  first_reported_at: "2026-08-24T00:00:00.000Z",
+                },
+              ],
+            },
+          ],
+          tasks: {},
+          commands: {},
+        },
+        checkTierConfinement: true,
+      });
+
+      expect(checksFail.some((c) => c.category === "tier_confinement" && !c.passed)).toBe(true);
+    });
   });
 });

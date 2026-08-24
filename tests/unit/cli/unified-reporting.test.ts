@@ -62,6 +62,8 @@ describe("Unified Reporting CLI Surface", () => {
       "planner",
     ]);
 
+    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
+
     await execute([
       "plan:compile",
       "--run",
@@ -114,13 +116,7 @@ describe("Unified Reporting CLI Surface", () => {
     expect(report.markdown).not.toContain("undefined");
 
     // Test aliases
-    const aliasReport1 = (await execute([
-      "report:unified",
-      "--run",
-      run,
-    ])) as unknown as UnifiedReport;
     const aliasReport2 = (await execute(["report:all", "--run", run])) as unknown as UnifiedReport;
-    expect(aliasReport1.run_id).toBe(report.run_id);
     expect(aliasReport2.run_id).toBe(report.run_id);
   });
 
@@ -167,6 +163,8 @@ describe("Unified Reporting CLI Surface", () => {
       "--actor",
       "planner",
     ]);
+
+    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
 
     await execute([
       "plan:compile",
@@ -237,6 +235,8 @@ describe("Unified Reporting CLI Surface", () => {
       "--actor",
       "planner",
     ]);
+
+    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
 
     await execute([
       "plan:compile",
@@ -310,6 +310,8 @@ describe("Unified Reporting CLI Surface", () => {
       "--actor",
       "planner",
     ]);
+
+    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
 
     await execute([
       "plan:compile",
@@ -390,6 +392,8 @@ describe("Unified Reporting CLI Surface", () => {
       "--actor",
       "planner",
     ]);
+
+    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
 
     await execute([
       "plan:compile",

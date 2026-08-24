@@ -273,4 +273,17 @@ describe("browser run freshness", () => {
     expect(harness.ingest(runRoot, repo, { startedAt: null })).toBeNull();
     expect(harness.ingest(runRoot, repo, { startedAt: "not a time" })).toBeNull();
   });
+
+  test("handles stdout candidate pointing to non-existent file during writtenByCommand check", () => {
+    const harness = browserRunHarness();
+    const runRoot = tempDir("run");
+    const repo = tempDir("repo");
+
+    const rec = harness.ingest(runRoot, repo, {
+      stdout: "Report saved to /nonexistent/path/to/report.json",
+      startedAt: new Date().toISOString(),
+    });
+
+    expect(rec).toBeNull();
+  });
 });

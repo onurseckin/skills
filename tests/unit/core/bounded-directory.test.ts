@@ -61,7 +61,7 @@ describe("bounded streaming directory enumeration", () => {
     for (const relative of [
       "packets/repository-content-paths.ts",
       "packets/repository-snapshot.ts",
-      "runner/gate-path-tree.ts",
+      "engine/runner/gate-path-tree.ts",
     ]) {
       const source = readFileSync(join(sourceRoot, relative), "utf8");
       expect(source).toContain("opendirSync");

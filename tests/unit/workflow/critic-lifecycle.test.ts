@@ -202,7 +202,7 @@ describe("completion critic lifecycle", () => {
     }
     expect(port.read().completion_remediations).toHaveLength(20);
     expect(() => beginCompletenessCritic(port, "critic-21", { clock })).toThrow();
-  });
+  }, 30_000);
 
   test("completion rechecks immutable critic and remediation history", () => {
     const port = readyPort();

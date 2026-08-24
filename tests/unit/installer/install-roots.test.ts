@@ -88,4 +88,18 @@ describe("validatedHome", () => {
       chmodSync(blocked, 0o755);
     }
   });
+
+  test("rejects when candidate home resolves through symlinked ancestor into source", async () => {
+    const root = scratchRoot(import.meta.path, "symlink-ancestor-overlap");
+    const source = join(root, "source");
+    const inner = join(source, "inner");
+    mkdirSync(source);
+    mkdirSync(inner);
+    const outside = join(root, "outside-symlink");
+    symlinkSync(inner, outside);
+    const requested = join(outside, "nested", "home");
+    await expect(validatedHome(source, requested)).rejects.toThrow(
+      "skill source and home must not overlap",
+    );
+  });
 });

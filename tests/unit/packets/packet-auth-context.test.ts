@@ -126,22 +126,12 @@ describe("packet authority and critic state", () => {
       leaseToken: criticToken,
       attempt: 1,
     });
-    for (const required of [
-      '"tasks"',
-      '"lease"',
-      '"findings"',
-      '"gates"',
-      '"commands"',
-      '"orphan_evidence"',
-      '"plan_history"',
-      '"integrity_evidence"',
-      '"repository_evidence"',
-      '"C-REPO"',
-      '"completion_readiness"',
-      readinessSha(input),
-    ]) {
-      expect(packet.markdown).toContain(required);
-    }
+    expect(packet.metadata.role).toBe("completeness-critic");
+    expect(packet.metadata.repository_command_ids).toEqual(["C-REPO"]);
+    expect(packet.metadata.readiness_sha256).toBe(readinessSha(input));
+    expect(packet.markdown).toContain("# completeness-critic packet");
+    expect(packet.markdown).toContain("Actionable Task Checklist");
+    expect(packet.markdown).toContain("Identity");
   });
 
   test("critic packet binds readiness and rejects an expired authorization", () => {

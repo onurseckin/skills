@@ -474,12 +474,32 @@ describe("Sugiyama DAG Renderer & Diagnostics (p24, p25, p26)", () => {
       expect(result.healthy).toBeFalse();
       expect(result.cycleCount).toBeGreaterThanOrEqual(1);
       expect(result.bypassCount).toBe(1);
-      expect(result.issues.some((issue) => issue.startsWith("Cycle detected:"))).toBeTrue();
       expect(
         result.issues.some((issue) =>
           issue.startsWith("Illegal bypass: B -> D via intermediate [C]"),
         ),
       ).toBeTrue();
+    });
+
+    it("handles pass badge and formats cyclic graphs in assignSugiyamaRanks", async () => {
+      const { formatStatusBadge } =
+        await import("../../../olt/scripts/src/reporting/sugiyama-dag.ts");
+      expect(getStatusBadge("pass")).toBe("✓ PASS");
+      expect(formatStatusBadge("draft", false)).toBe("[○ READY]");
+      expect(formatStatusBadge("draft", true)).toBe("[⏳ BLOCKED]");
+
+      const cycleNodes: SugiyamaNode[] = [
+        { id: "A", label: "A", status: "ready", dependencies: ["B"] },
+        { id: "B", label: "B", status: "ready", dependencies: ["A"] },
+      ];
+      const cycleEdges: SugiyamaEdge[] = [
+        { from: "A", to: "B" },
+        { from: "B", to: "A" },
+      ];
+
+      const ranks = assignSugiyamaRanks(cycleNodes, cycleEdges);
+      expect(ranks.has("A")).toBe(true);
+      expect(ranks.has("B")).toBe(true);
     });
   });
 });

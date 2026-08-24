@@ -305,7 +305,7 @@ describe("PHASE-6 W6.4: Remote Container Safety & Capability Removal", () => {
       const permittedCommands = new Set(mindContract.commands);
       expect(permittedCommands.has("mind:observe")).toBe(true);
       expect(permittedCommands.has("mind:admit")).toBe(true);
-      expect(permittedCommands.has("orchestrator:supervise")).toBe(true);
+      expect(permittedCommands.has("mind:pulse")).toBe(true);
 
       // Mind role is strictly prohibited from compilation, claim, implement, validate
       expect(permittedCommands.has("plan:compile")).toBe(false);

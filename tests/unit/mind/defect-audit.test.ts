@@ -15,6 +15,7 @@ import {
   type DefectStatus,
   type RGBColor,
 } from "../../../olt/scripts/src/cli/commands/defect-audit.ts";
+import { executeDefectAudit } from "../../../olt/scripts/src/mind/defect-audit.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
@@ -642,5 +643,15 @@ describe("Defect Audit CLI Command", () => {
     const gray2: RGBColor = { r: 121, g: 121, b: 121 };
     const lowContrast = calculateApcaLightnessContrast(gray1, gray2);
     expect(lowContrast).toBe(0);
+  });
+
+  test("executeDefectAudit delegates to defectAuditCommand", () => {
+    const { repoRoot, capsulesDir } = setupTestWorkspace("execute-delegation");
+    const result = executeDefectAudit({
+      run: repoRoot,
+      "capsules-dir": capsulesDir,
+    });
+    expect(result.summary.open_count).toBe(0);
+    expect(result.markdown).toBeDefined();
   });
 });

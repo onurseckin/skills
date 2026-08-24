@@ -185,6 +185,16 @@ describe("linkBlobIntoView", () => {
     expect(readFileSync(target, "utf-8")).toBe("cross-device bytes");
     expect((statSync(target).mode & 0o222) === 0).toBe(true);
   });
+
+  test("handles existing target when stat fails during inode check", () => {
+    const root = scratchRoot("stat-fails-during-inode-check");
+    const blob = storeBlob(root, "stat fail bytes");
+    const target = join(root, "evidence", "dangling.png");
+    mkdirSync(join(root, "evidence"), { recursive: true });
+    symlinkSync(join(root, "evidence", "does-not-exist"), target);
+    const view = linkBlobIntoView(root, blob, "evidence", "dangling.png");
+    expect(["hardlink", "copy"]).toContain(view.storage);
+  });
 });
 
 describe("listBlobs", () => {

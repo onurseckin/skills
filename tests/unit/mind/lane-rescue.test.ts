@@ -708,5 +708,49 @@ describe("rescue.ts — executeRescueLane", () => {
       expect(result.actionsTaken.length).toBe(0);
       expect(result.escalations.length).toBe(0);
     });
+
+    test("Rung 0: halts on runtime drift", async () => {
+      const fixture = setupMindCapsule("runtime-drift");
+
+      const result = await executeRescueLane(fixture.run, {
+        runtimeFreshnessOverride: { drifted: true, referenceRuntimeVersion: "2.0.0" },
+      });
+
+      expect(result.halted).toBe(true);
+      expect(result.haltReason).toContain("runtime drifted");
+      expect(result.rungs.rung0.runtimeDrifted).toBe(true);
+    });
+
+    test("Rung 2: reclaims worktrees when worktree ledger is present", async () => {
+      const fixture = setupMindCapsule("wt-reclaim");
+      const workerRun = initRun(
+        fixture.repo,
+        "worker-capsule-1",
+        readFileSync(fixture.charterPath),
+        "file",
+        true,
+      );
+
+      // Add a worktree ledger to workerRun
+      transact(workerRun, "actor-1", "task-assigned", {}, (working) => {
+        working.worktrees = {
+          "wt-1": {
+            id: "wt-1",
+            path: "/tmp/fake-wt-1",
+            branch: "task-branch-1",
+            status: "active",
+            created_at: new Date(Date.now() - 100_000).toISOString(),
+          },
+        };
+      });
+
+      const result = await executeRescueLane(fixture.run, {
+        targetRunRoots: [workerRun],
+        runtimeFreshnessOverride: { drifted: false, referenceRuntimeVersion: "1.0.0" },
+        now: "2026-08-24T12:00:00.000Z",
+      });
+
+      expect(result.rungs.rung2).toBeDefined();
+    });
   });
 });

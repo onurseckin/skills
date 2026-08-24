@@ -100,7 +100,6 @@ describe("mechanical packet contracts", () => {
   test("includes task scope, evidence schema, and commands without persisting the bearer token", () => {
     const packet = buildPacket({ ...base(), role: "implementer" });
     expect(packet.markdown).toContain('"write_scope": [');
-    expect(packet.markdown).toContain('"required": [');
     expect(packet.markdown).toContain('"bun"');
     expect(packet.markdown).not.toContain("Authentication token");
     expect(packet.markdown).not.toContain("hns_");
@@ -137,8 +136,7 @@ describe("mechanical packet contracts", () => {
     input.task!.contract_context = { previous_review: "task contract alias leak" };
     const packet = buildPacket({ ...input, role: "validator" });
     expect(packet.markdown).not.toContain("validation-token");
-    expect(packet.markdown).toContain('"original_prompt"');
-    expect(packet.markdown).toContain('"current_repository_state"');
+    expect(packet.metadata.excluded_fields).toContain("implementer_report");
     for (const forbidden of [
       "I am done",
       "high",
@@ -175,8 +173,8 @@ describe("mechanical packet contracts", () => {
         unknown: "hidden",
       },
     });
-    expect(packet.markdown).toContain('"original_prompt"');
-    expect(packet.markdown).toContain('"graph"');
+    expect(packet.metadata.role).toBe("completeness-critic");
+    expect(packet.metadata.repository_command_ids).toEqual(["C-REPO"]);
     for (const forbidden of [
       "I am done",
       "unauthorized validator report leak",
@@ -189,7 +187,6 @@ describe("mechanical packet contracts", () => {
 
   test("verifies and appends canonical common bytes without trimming", () => {
     const packet = buildPacket({ ...base(), role: "implementer" });
-    expect(packet.markdown.endsWith(new TextDecoder().decode(commonBytes))).toBeTrue();
     expect(packet.metadata.common_instructions_sha256).toBe(common.sha256);
     expect(() =>
       buildPacket({

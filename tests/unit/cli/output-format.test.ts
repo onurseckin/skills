@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stripOutputFormat } from "../../../olt/scripts/src/cli/output-format.ts";
@@ -53,6 +53,8 @@ describe("harness output format scan", () => {
   test("passes the child argv through the harness unchanged", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-format-"));
     roots.push(repo);
+    await mkdir(join(repo, "src"), { recursive: true });
+    await writeFile(join(repo, "src", "file.ts"), "export const x = 1;\n");
     const prompt = join(repo, "prompt.txt");
     await writeFile(prompt, "verbatim prompt");
     const init = Bun.spawn(
@@ -70,6 +72,51 @@ describe("harness output format scan", () => {
       { stdout: "pipe", stderr: "pipe" },
     );
     expect(await init.exited).toBe(0);
+
+    const runRoot = join(repo, ".olt", "capsules", "format-run");
+    const add = Bun.spawn(
+      [
+        "bun",
+        entrypoint,
+        "plan:add",
+        "--run",
+        runRoot,
+        "--id",
+        "task-1",
+        "--label",
+        "Task 1",
+        "--scope",
+        "src",
+        "--gate",
+        "bun test src/file.ts",
+        "--actor",
+        "planner",
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    expect(await add.exited).toBe(0);
+
+    const brainstorm = Bun.spawn(
+      ["bun", entrypoint, "plan:brainstorm", "--run", runRoot, "--actor", "planner"],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    expect(await brainstorm.exited).toBe(0);
+
+    const compile = Bun.spawn(
+      [
+        "bun",
+        entrypoint,
+        "plan:compile",
+        "--run",
+        runRoot,
+        "--actor",
+        "planner",
+        "--completion-gate",
+        "bun test src/file.ts",
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    expect(await compile.exited).toBe(0);
 
     const exec = Bun.spawn(
       [

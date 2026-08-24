@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { doctorCommand } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
 import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
 import {
@@ -491,6 +491,11 @@ describe("rotateMindGeneration and mindRotateCommand", () => {
       rotateMindGeneration({ sourceRunRoot: "/non/existent/path" });
     }).toThrow(HarnessError);
 
+    // Empty sourceRunRoot -> throws INVALID_ARGUMENT
+    expect(() => {
+      rotateMindGeneration({ sourceRunRoot: "" });
+    }).toThrow(HarnessError);
+
     // Target capsule collision -> throws INVALID_STATE
     const { runRoot: secondRunRoot } = setupMindCapsule("rotate-collision-test");
     expect(() => {
@@ -500,6 +505,16 @@ describe("rotateMindGeneration and mindRotateCommand", () => {
         nextRunId: "mind-gen-1", // collision with self
       });
     }).toThrow(HarnessError);
+
+    // Custom nextRunRoot and nextRunId with slash
+    const { runRoot: thirdRunRoot } = setupMindCapsule("rotate-custom-path");
+    const capsulesDir = dirname(thirdRunRoot);
+    const customTarget = join(capsulesDir, "custom-gen-2");
+    const rotatedCustom = rotateMindGeneration({
+      sourceRunRoot: thirdRunRoot,
+      nextRunRoot: customTarget,
+    });
+    expect(rotatedCustom.targetRunRoot).toBe(customTarget);
   });
 
   test("formatMindRotateBrief formats expected markdown summary", () => {

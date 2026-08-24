@@ -453,4 +453,53 @@ describe("mind/digest.ts - Owner Digest and Escalation Digest", () => {
 
     expect(markdown).toBe(expected);
   });
+
+  test("buildEscalationDigest processes liveRuns, state, events, and trailing value numbers", () => {
+    const liveRunState = {
+      tasks: {
+        "task-1": {
+          id: "task-1",
+          status: "open",
+          open_finding_ids: ["find-live-1"],
+          findings: [
+            {
+              id: "find-live-1",
+              severity: "critical",
+              observation: "Critical live finding",
+              status: "open",
+            },
+          ],
+        },
+      },
+      gates: {
+        "gate-live-1": {
+          status: "failed",
+          exit_code: 1,
+          name: "Live gate 1",
+          command: ["bun", "test"],
+        },
+      },
+    };
+
+    const digest = buildEscalationDigest({
+      runId: "mind-multi-source",
+      now: "2026-08-21T15:00:00.000Z",
+      liveRuns: [
+        {
+          runId: "worker-live-1",
+          state: liveRunState,
+        },
+      ],
+      trailingValueSeries: [0, 1, 3, 0],
+    });
+
+    expect(digest.openFindings.length).toBe(1);
+    expect(digest.openFindings[0].findingId).toBe("find-live-1");
+    expect(digest.failingGates.length).toBe(1);
+    expect(digest.trailingValueSeries.rawValues).toEqual([0, 1, 3, 0]);
+
+    const md = formatEscalationDigestMarkdown(digest);
+    expect(md).toContain("Escalation Digest");
+    expect(md).toContain("find-live-1");
+  });
 });

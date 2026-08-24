@@ -8,6 +8,9 @@ provider:
   - "cursor"
   - "generic"
 tier: 3
+interface:
+  display_name: "UI Mechanic Validator"
+  short_description: "Deterministic UI compilation and mechanic validator"
 tools:
   enable_subagent_tools: false
   enable_write_tools: false

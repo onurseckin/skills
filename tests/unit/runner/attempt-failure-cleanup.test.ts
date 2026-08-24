@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -282,5 +282,78 @@ describe("attempt-failure-cleanup", () => {
         }),
       ).rejects.toThrow("terminal process proof failed");
     });
+
+    test("handles missing terminalProof in cleanup when startedAt and activityRecord are set", async () => {
+      const attemptCleanupModule =
+        await import("../../../olt/scripts/src/engine/runner/attempt-cleanup.ts");
+      const spyCleanup = spyOn(attemptCleanupModule, "cleanupFailedAttempt").mockResolvedValue({
+        issues: [],
+        signals: [],
+        terminalProof: undefined,
+      });
+
+      const attemptIntent = {
+        beginCleanupUncertain: () => undefined,
+      } as never;
+      const activityRecord = { complete: () => undefined } as never;
+
+      try {
+        await expect(
+          handleAttemptFailure({
+            ...baseCtx,
+            attemptIntent,
+            startedAt: new Date(),
+            activityRecord,
+            rootIdentity: { ...mockIdentity, pid: 999999 },
+            child: { pid: 999999, exited: Promise.resolve(0) } as never,
+            descendants: {
+              stop: async () => undefined,
+              terminate: async () => [],
+              proveAbsent: async () => true,
+            } as never,
+          }),
+        ).rejects.toThrow(
+          "terminal process proof failed: Error: failed attempt cleanup lacks strong terminal process proof",
+        );
+      } finally {
+        spyCleanup.mockRestore();
+      }
+    });
+  });
+
+  test("settleAndTerminateAttempt catches errors during probeRoot and uses realSettleClock wait", async () => {
+    const attemptIntentModule =
+      await import("../../../olt/scripts/src/engine/runner/attempt-intent.ts");
+    let probeCount = 0;
+    const probeSpy = spyOn(attemptIntentModule, "probeAttemptProcess").mockImplementation(() => {
+      probeCount += 1;
+      if (probeCount === 1) throw new Error("probe internal error");
+      return "absent";
+    });
+
+    let absentCount = 0;
+    const tracker = {
+      terminate: async () => [],
+      proveAbsent: async () => {
+        absentCount += 1;
+        return absentCount > 1;
+      },
+    } as never;
+
+    try {
+      const res = await settleAndTerminateAttempt(
+        { pid: 999998, exited: Promise.resolve(0) } as never,
+        tracker,
+        { ...mockIdentity, pid: 999998 },
+        mockOptions,
+        { timeout: "wall", code: null, interrupted: false },
+        [],
+        () => undefined,
+      );
+      expect(res.descendantsAbsent).toBe(true);
+      expect(res.rootProof).toBe(true);
+    } finally {
+      probeSpy.mockRestore();
+    }
   });
 });

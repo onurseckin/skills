@@ -185,22 +185,10 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
         ];
       });
 
-      const permittedCommands = [
-        "task:validate-start",
-        "task:probe",
-        "task:reject",
-        "task:review",
-        "finding:get",
-        "report:get",
-        "evidence:get",
-        "whoami",
-      ];
-
-      for (const cmdName of permittedCommands) {
-        const cmdSpec = spec(cmdName);
-        const flags: Flags = { run, validator: "validator_task-1", agent: "validator_task-1" };
-        expect(() => assertGrantedCommand(cmdSpec, flags)).not.toThrow();
-      }
+      expect(isCognitiveValidatorRole("validator")).toBe(true);
+      const cmdSpec = spec("task:validate-start");
+      const flags: Flags = { run, validator: "validator_task-1", agent: "validator_task-1" };
+      expect(() => assertGrantedCommand(cmdSpec, flags)).toThrow();
     });
   });
 

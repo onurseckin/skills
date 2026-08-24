@@ -59,13 +59,20 @@ describe("Hierarchical Decision Tree & Dominating Skill Mechanics", () => {
     expect(outcome.ruleId).toBe("DOM-02-IMPLEMENTER-NOT-REPAIRER");
   });
 
-  test("Rule D3: Allows Repairers to claim tasks in changes_requested", () => {
-    const outcome = evaluateHierarchicalDecision(
+  test("Rule D3: Allows Repairers to claim tasks in changes_requested, rejects non-changes_requested", () => {
+    const outcome1 = evaluateHierarchicalDecision(
       { actor: "worker-1", role: "repairer", targetTaskId: "task-repair", state: dummyState },
       "claim_task",
     );
-    expect(outcome.allowed).toBeTrue();
-    expect(outcome.ruleId).toBe("DOM-00-PERMITTED");
+    expect(outcome1.allowed).toBeTrue();
+    expect(outcome1.ruleId).toBe("DOM-00-PERMITTED");
+
+    const outcome2 = evaluateHierarchicalDecision(
+      { actor: "worker-1", role: "repairer", targetTaskId: "task-1", state: dummyState },
+      "claim_task",
+    );
+    expect(outcome2.allowed).toBeFalse();
+    expect(outcome2.ruleId).toBe("DOM-03-REPAIRER-REQUIRES-CHANGES-REQUESTED");
   });
 
   test("Rule D4: Prohibits Validators from reviewing their own code", () => {
@@ -77,13 +84,26 @@ describe("Hierarchical Decision Tree & Dominating Skill Mechanics", () => {
     expect(outcome.ruleId).toBe("DOM-04-VALIDATOR-INDEPENDENCE");
   });
 
-  test("Rule D5: Prohibits Completeness Critic from reviewing while tasks are still in changes_requested", () => {
+  test("Rule D5: Prohibits Completeness Critic from reviewing while tasks are still in changes_requested, permits when all tasks done", () => {
     const outcome = evaluateHierarchicalDecision(
       { actor: "critic-1", role: "completeness-critic", state: dummyState },
       "critic_start",
     );
     expect(outcome.allowed).toBeFalse();
     expect(outcome.ruleId).toBe("DOM-05-CRITIC-PREMATURE-START");
+
+    const allDoneState: WorkflowState = {
+      ...dummyState,
+      tasks: {
+        "task-1": { ...dummyState.tasks["task-1"]!, status: "done" } as TaskRecord,
+        "task-repair": { ...dummyState.tasks["task-repair"]!, status: "validated" } as TaskRecord,
+      },
+    };
+    const readyCriticOutcome = evaluateHierarchicalDecision(
+      { actor: "critic-1", role: "completeness-critic", state: allDoneState },
+      "critic_review",
+    );
+    expect(readyCriticOutcome.allowed).toBeTrue();
   });
 
   test("Rule D6: Prohibits Implementers from recording validation reviews", () => {

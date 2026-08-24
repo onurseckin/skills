@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
 import { chmodSync, linkSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
@@ -264,6 +265,29 @@ describe("capture references (via verifyCapsuleLayout)", () => {
     writeCaptures(root, [captureFixture({ sha256: digest, blob_path: `blobs/ee/${digest}` })]);
     const found = verifyCapsuleLayout(root);
     expect(found).toEqual([expect.objectContaining({ code: "CAPTURE_VIEW_DIVERGED" })]);
+  });
+
+  test("reports CAPTURE_VIEW_DIVERGED when stat throws in sameInode check", () => {
+    const root = scratchRoot("reports-capture-view-diverged-when-stat-throws");
+    const digest = "e".repeat(64);
+    const blobDir = join(root, "blobs", "ee");
+    mkdirSync(blobDir, { recursive: true });
+    const blobPath = join(blobDir, digest);
+    writeFileSync(blobPath, "hello", { mode: 0o444 });
+    mkdirSync(join(root, "evidence"), { recursive: true });
+    const viewPath = join(root, "evidence", "shot.png");
+    writeFileSync(viewPath, "hello");
+    writeCaptures(root, [captureFixture({ sha256: digest, blob_path: `blobs/ee/${digest}` })]);
+
+    const spy = spyOn(fs, "statSync").mockImplementation(() => {
+      throw new Error("stat error");
+    });
+    try {
+      const found = verifyCapsuleLayout(root);
+      expect(found.some((i) => i.code === "CAPTURE_VIEW_DIVERGED")).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   test("accepts a copy-storage capture whose view content still hashes to the recorded digest", () => {

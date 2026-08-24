@@ -557,4 +557,18 @@ describe("CLI Command: mindQuiesceCommand (PLAN.md §7.5 / PHASE-3.md §3.5)", (
     expect(brief).toContain("Digest Triggered**: yes (8th consecutive quiescent pulse)");
     expect(brief.split("\n").length).toBeLessThanOrEqual(30);
   });
+
+  test("validateQuiescentScan handles malformed inputs and unknown sources", () => {
+    const res = validateQuiescentScan([
+      "invalid-string-spec-without-colons",
+      { source: "typecheck_failure", commandId: "cmd-1", count: -5 },
+      { source: "", commandId: "cmd-1", count: 0 },
+      null as unknown as string,
+      { source: "completely_unknown_source_name", commandId: "cmd-1", count: 0 },
+    ]);
+
+    expect(res.ok).toBe(false);
+    expect(res.missingSources.length).toBeGreaterThan(0);
+    expect(res.invalidSources.length).toBeGreaterThan(0);
+  });
 });

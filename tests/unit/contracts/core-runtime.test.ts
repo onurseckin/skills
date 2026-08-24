@@ -114,10 +114,37 @@ describe("core runtime utilities: bounded directory, git, filter, concurrency, r
 
   test("host concurrency ceiling detection and safe derivation", () => {
     const ceiling = discoverHostConcurrencyCeiling();
-    // In CI/local it may return null or an object
     if (ceiling !== null) {
       expect(ceiling.value).toBeGreaterThanOrEqual(1);
     }
+
+    const isolatedHome = join(scratchBase, "isolated-home");
+    const claudeCeiling = discoverHostConcurrencyCeiling({
+      homeDir: isolatedHome,
+      env: {
+        CLAUDE_CODE_MODEL: "claude-3-5-sonnet",
+        CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS: "4",
+      },
+    });
+    expect(claudeCeiling).toEqual({ value: 4, hostTool: "claude-code" });
+
+    const invalidClaudeCeiling = discoverHostConcurrencyCeiling({
+      homeDir: isolatedHome,
+      env: {
+        CLAUDE_CODE_MODEL: "claude-3-5-sonnet",
+        CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS: "-2",
+      },
+    });
+    expect(invalidClaudeCeiling).toBeNull();
+
+    const nonIntegerCeiling = discoverHostConcurrencyCeiling({
+      homeDir: isolatedHome,
+      env: {
+        CLAUDE_CODE_MODEL: "claude-3-5-sonnet",
+        CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS: "0",
+      },
+    });
+    expect(nonIntegerCeiling).toBeNull();
 
     expect(deriveGateConcurrencyCeiling(8)).toBe(4);
     expect(deriveGateConcurrencyCeiling(1)).toBe(1);
@@ -136,9 +163,35 @@ describe("core runtime utilities: bounded directory, git, filter, concurrency, r
       cpuCount: () => 4,
     };
     expect(deriveGateConcurrencyCeiling(undefined, failingProbe)).toBe(2);
+
+    const failingAvailableParallelismOnly = {
+      availableParallelism: () => {
+        throw new Error("fail");
+      },
+    };
+    expect(
+      deriveGateConcurrencyCeiling(undefined, failingAvailableParallelismOnly),
+    ).toBeGreaterThanOrEqual(1);
+
+    // Probes returning non-integers or <= 0
+    const nonIntegerProbe = {
+      availableParallelism: () => 0,
+      cpuCount: () => 0,
+    };
+    expect(deriveGateConcurrencyCeiling(undefined, nonIntegerProbe)).toBe(1);
+
+    const errorProbe = {
+      availableParallelism: () => {
+        throw new Error("error1");
+      },
+      cpuCount: () => {
+        throw new Error("error2");
+      },
+    };
+    expect(deriveGateConcurrencyCeiling(undefined, errorProbe)).toBe(1);
   });
 
-  test("runtime-tree snapshot and copyPinnedRuntime securely copies runtime directory", () => {
+  test("runtime-tree snapshot and copyPinnedRuntime securely copies runtime directory and handles error conditions", () => {
     const sourceDir = join(scratchBase, "source-runtime");
     const destDir = join(scratchBase, "dest-runtime");
     mkdirSync(join(sourceDir, "src"), { recursive: true });
@@ -165,8 +218,19 @@ describe("core runtime utilities: bounded directory, git, filter, concurrency, r
       }),
     ).toThrow(/runtime source changed while it was being copied/i);
 
+    // Non-existent source directory throws
+    expect(() =>
+      copyPinnedRuntime(join(scratchBase, "nonexistent-source"), join(scratchBase, "dest2")),
+    ).toThrow(/runtime source must be a real directory/i);
+
+    // File as source directory throws
+    expect(() =>
+      copyPinnedRuntime(join(sourceDir, "package.json"), join(scratchBase, "dest3")),
+    ).toThrow(/runtime source must be a real directory/i);
+
     rmSync(sourceDir, { recursive: true, force: true });
     rmSync(destDir, { recursive: true, force: true });
     rmSync(modDest, { recursive: true, force: true });
+    rmSync(scratchBase, { recursive: true, force: true });
   });
 });

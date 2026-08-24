@@ -15,6 +15,7 @@ function event(overrides: Partial<HarnessEvent> = {}): HarnessEvent {
     version: 1,
     run_id: "run",
     capsule_id: "cap",
+    mode: "feature",
     sequence: 1,
     revision: 1,
     timestamp: "2026-08-20T00:00:00.000Z",

@@ -550,6 +550,112 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
       expect(result.logs.some((l) => l.includes("Simulated bun execution crash"))).toBeTrue();
     });
 
+    test("handles git staging failure and empty write scope", async () => {
+      // Staging non-zero status with stderr
+      const mockFailingStageRunner: GitRunner = (args) => {
+        if (args[0] === "add") {
+          return { status: 128, stdout: "", stderr: "fatal: pathspec not found" };
+        }
+        return { status: 0, stdout: "ok", stderr: "" };
+      };
+
+      const options: AutoSyncOptions = {
+        taskId: "task-stage-fail",
+        commitType: "fix",
+        description: "failing staging test",
+        writeScope: ["nonexistent.ts"],
+        skipPush: true,
+        skipSync: true,
+      };
+
+      const result = await executeAutoSyncAndCommit(options, mockFailingStageRunner, () => ({
+        status: 0,
+        stdout: "",
+        stderr: "",
+      }));
+      expect(result.logs.some((l) => l.includes("[stage] Git stage failed"))).toBeTrue();
+
+      // Staging with empty writeScope
+      const emptyScopeOptions: AutoSyncOptions = {
+        taskId: "task-empty-scope",
+        commitType: "fix",
+        description: "empty write scope",
+        writeScope: [],
+        skipPush: true,
+        skipSync: true,
+      };
+      const resultEmpty = await executeAutoSyncAndCommit(
+        emptyScopeOptions,
+        () => ({ status: 0, stdout: "", stderr: "" }),
+        () => ({ status: 0, stdout: "", stderr: "" }),
+      );
+      expect(
+        resultEmpty.logs.some((l) => l.includes("[stage] Empty write scope; skipping git add")),
+      ).toBeTrue();
+    });
+
+    test("handles git push exception and failure with stdout only", async () => {
+      const mockPushExceptionRunner: GitRunner = (args) => {
+        if (args[0] === "push") {
+          throw new Error("Push network timeout");
+        }
+        return { status: 0, stdout: "ok", stderr: "" };
+      };
+
+      const options: AutoSyncOptions = {
+        taskId: "task-push-exception",
+        commitType: "feat",
+        description: "push throws exception",
+        writeScope: ["src/file.ts"],
+        skipSync: true,
+      };
+
+      const result = await executeAutoSyncAndCommit(options, mockPushExceptionRunner, () => ({
+        status: 0,
+        stdout: "",
+        stderr: "",
+      }));
+      expect(result.pushed).toBeFalse();
+      expect(
+        result.logs.some((l) => l.includes("[push] Git push exception: Push network timeout")),
+      ).toBeTrue();
+
+      // Push non-zero with stdout instead of stderr
+      const mockPushStdoutRunner: GitRunner = (args) => {
+        if (args[0] === "push") {
+          return { status: 1, stdout: "remote rejected", stderr: "" };
+        }
+        return { status: 0, stdout: "ok", stderr: "" };
+      };
+      const resultStdout = await executeAutoSyncAndCommit(options, mockPushStdoutRunner, () => ({
+        status: 0,
+        stdout: "",
+        stderr: "",
+      }));
+      expect(resultStdout.pushed).toBeFalse();
+      expect(
+        resultStdout.logs.some((l) =>
+          l.includes("[push] Git push failed (status 1): remote rejected"),
+        ),
+      ).toBeTrue();
+    });
+
+    test("executes defaultGitRunner and defaultSyncRunner when runners are omitted", async () => {
+      const options: AutoSyncOptions = {
+        taskId: "task-default-runners",
+        commitType: "chore",
+        description: "run with default runners",
+        writeScope: [],
+        skipPush: true,
+        skipSync: true,
+      };
+
+      const result = await executeAutoSyncAndCommit(options);
+      expect(typeof result.committed).toBe("boolean");
+      expect(typeof result.synced).toBe("boolean");
+      expect(typeof result.pushed).toBe("boolean");
+    });
+
     test("handles invalid commit type without crashing", async () => {
       const options: AutoSyncOptions = {
         taskId: "task-bad-type",

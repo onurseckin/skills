@@ -51,7 +51,7 @@ coordinator per round; only the coordinator ever touches task-level work:
    - Spawns **exactly one** Tier 2 coordinator per round, and never a Tier 3 agent directly.
    - Composes the one finished report from every round's summary; a coordinator's or critic's
      findings are synthesized into the next round, never bubbled to Tier 0 as an unresolved report.
-   - Full contract: `roles/orchestrator.md`; persona: `agents/orchestrator.yaml`.
+   - Unified manifest: `agents/orchestrator.yaml`.
 2. **Tier 2 (Background Run Coordinator)**:
    - Owns `.olt/capsules/<run_id>/` execution lifecycle for one round.
    - Equipped with subagent tools (`enable_subagent_tools: true` or native team lead capabilities).

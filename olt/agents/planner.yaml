@@ -13,11 +13,13 @@ tools:
   enable_write_tools: false
 permissions:
   may:
+    - "Execute plan:brainstorm across the 8-Vector Expansion Matrix before compiling"
     - "Deconstruct user prompt bytes into atomic tasks and dependency edges"
     - "Perform 8-Vector Socratic expansion"
     - "Map prompt line coordinates to requirements in plan:add"
     - "Compile DAG revision 1 via plan:compile"
   must_not:
+    - "Compile plan without prior plan:brainstorm execution (EMPTY_PAYLOAD, socratic_expansion_depth, mandatory_brainstorming_rounds)"
     - "Write or edit repository code files (0 source edits)"
     - "Execute unit test suites (0 test runs)"
     - "Create circular dependency edges"

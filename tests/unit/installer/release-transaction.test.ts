@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { cp, mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
@@ -297,6 +297,43 @@ describe("beginReleaseTransaction", () => {
       await mkdir(markerPath(parent));
 
       await expect(transaction.update("published")).rejects.toThrow(HarnessError);
+
+      const names = await readdir(parent);
+      expect(names.some((name) => name.includes(".update-"))).toBe(false);
+    } finally {
+      lock.release();
+    }
+  });
+
+  test("update() inner catch cleans up replacement marker when replaceBoundPath fails", async () => {
+    const root = scratchRoot(import.meta.path, "update-inner-catch-cleanup");
+    const parent = join(root, "parent");
+    mkdirSync(parent);
+    const destination = join(parent, "dest");
+    const lock = acquireInstallerLock(parent);
+    try {
+      const transaction = await beginReleaseTransaction(
+        parent,
+        destination,
+        join(parent, `dest.tmp-${randomUUID()}`),
+        join(parent, `dest.old-${randomUUID()}`),
+        join(parent, `dest.delete-${randomUUID()}`),
+        "0".repeat(64),
+        null,
+        lock,
+      );
+
+      // Custom stage whose serialization invokes getter and tampers with marker after assertPathIdentity passes
+      const maliciousStage = {
+        get stage() {
+          rmSync(markerPath(parent));
+          writeFileSync(markerPath(parent), "tampered content");
+          return "published";
+        },
+      };
+
+      // Type-safe cast via unknown
+      await expect(transaction.update(maliciousStage as unknown as "published")).rejects.toThrow();
 
       const names = await readdir(parent);
       expect(names.some((name) => name.includes(".update-"))).toBe(false);

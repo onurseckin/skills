@@ -249,4 +249,24 @@ describe("BaseTieredCollector", () => {
     expect(report.results.length).toBe(1);
     expect(report.results[0]?.platformId).toBe("test_platform");
   });
+
+  it("handles non-string non-Error throw objects", async () => {
+    class ObjectThrowCollector extends BaseTieredCollector {
+      readonly platformId = "object_throw_app";
+      protected async probeTier1Cli(): Promise<TierResult | null> {
+        throw { code: 500, detail: "Internal" };
+      }
+      protected async probeTier2Storage(): Promise<TierResult | null> {
+        return null;
+      }
+      protected async probeTier3Runtime(): Promise<TierResult | null> {
+        return null;
+      }
+    }
+
+    const collector = new ObjectThrowCollector();
+    const result = await collector.probe();
+    expect(result.errors.length).toBe(1);
+    expect(result.errors[0]?.message).toContain("[object Object]");
+  });
 });

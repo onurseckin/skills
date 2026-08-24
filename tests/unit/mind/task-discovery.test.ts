@@ -388,7 +388,7 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
             priority: "HIGH_ARCHITECTURAL_FEATURE",
             category: "CORE_ENGINE",
             status: "PENDING",
-            created_at: new Date().toISOString(),
+            timestamp: new Date().toISOString(),
           },
         ],
       });

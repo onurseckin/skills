@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 import { isEvidenced } from "../../core/contracts/evidence.ts";
 import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
 import {
@@ -53,7 +54,7 @@ export function gateProveCommand(flags: Flags): Record<string, unknown> {
 
   const previous = latestGateProof(loaded.state, taskId, binding.gate);
 
-  const repoRoot = resolve(run, "..", "..");
+  const repoRoot = findRepoRoot(run);
   const outcome = proveGateFalsifiable({
     repoRoot,
     writeScope: binding.writeScope,

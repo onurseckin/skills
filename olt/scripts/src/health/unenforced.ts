@@ -1,8 +1,9 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { COMMAND_REGISTRY, commandInvocations } from "../cli/registry/index.ts";
 import { AGENT_ROLES } from "../core/contracts/packets.ts";
 import { parseRoleContract } from "../packets/role-contract.ts";
+import { parseUnifiedAgentManifest } from "../authority/manifest-schema.ts";
 import { listFiles } from "./sources.ts";
 import type { ModuleRecord } from "./modules.ts";
 import { finding, type HealthCheckResult, type HealthFinding } from "./types.ts";
@@ -92,10 +93,49 @@ function roleContracts(skillRoot: string): HealthFinding[] {
   const invocations = new Set(commandInvocations());
   const roles = new Set<string>(AGENT_ROLES);
   const findings: HealthFinding[] = [];
-  for (const path of listFiles(join(skillRoot, "roles"), [".md"])) {
+  const agentsDir = join(skillRoot, "agents");
+  if (!existsSync(agentsDir)) return findings;
+
+  for (const path of listFiles(agentsDir, [".yaml", ".yml"])) {
     const text = readFileSync(path, "utf-8");
-    const relative = `roles/${path.split("/").pop() ?? ""}`;
-    const declared = /\nrole:\s*([a-z-]+)/u.exec(text)?.[1];
+    const filename = path.split("/").pop() ?? "";
+    const relative = `agents/${filename}`;
+    const basenameWithoutExt = filename.replace(/\.(yaml|yml)$/, "");
+    // Ignore provider profile configs and auxiliary aliases
+    if (
+      [
+        "antigravity",
+        "claude",
+        "codex",
+        "cursor",
+        "generic",
+        "openai",
+        "worker",
+        "critic",
+        "independent-planner",
+        "independent-planner-audit",
+        "ui-mechanic-validator",
+      ].includes(basenameWithoutExt)
+    ) {
+      continue;
+    }
+
+    let manifest;
+    try {
+      manifest = parseUnifiedAgentManifest(text, relative);
+    } catch (error) {
+      findings.push(
+        finding(
+          "unenforced-declarations",
+          `role-unparseable:${relative}`,
+          relative,
+          `the contract cannot be parsed by the loader that binds it: ${error instanceof Error ? error.message : "unknown failure"}`,
+        ),
+      );
+      continue;
+    }
+
+    const declared = manifest.role;
     if (declared === undefined || !roles.has(declared)) {
       findings.push(
         finding(
@@ -106,22 +146,8 @@ function roleContracts(skillRoot: string): HealthFinding[] {
         ),
       );
     }
-    try {
-      parseRoleContract(new TextEncoder().encode(text), relative);
-    } catch (error) {
-      findings.push(
-        finding(
-          "unenforced-declarations",
-          `role-unparseable:${relative}`,
-          relative,
-          `the contract cannot be parsed by the loader that binds it: ${error instanceof Error ? error.message : "unknown failure"}`,
-        ),
-      );
-    }
-    const listed = (FRONTMATTER_COMMANDS.exec(text)?.[1] ?? "")
-      .split("\n")
-      .map((line) => line.replace(/^\s*-\s*/u, "").trim())
-      .filter(Boolean);
+
+    const listed = manifest.permissions?.commands ?? [];
     for (const command of listed.filter((entry) => !invocations.has(entry))) {
       findings.push(
         finding(

@@ -441,6 +441,42 @@ describe("WatchdogManager - ASCII Rendering", () => {
         terminated_at: null,
         termination_reason: "heartbeat_timeout",
       },
+      {
+        id: "wd-gen1-term7777",
+        generation: 1,
+        pulse_id: null,
+        phase: "complete",
+        run_id: "run-1",
+        run_root: null,
+        pid: 7777,
+        ppid: 1,
+        agent_id: "coord-2",
+        started_at: "2026-08-21T18:00:00.000Z",
+        last_heartbeat_at: "2026-08-21T18:00:00.000Z",
+        heartbeat_cadence_ms: 180_000,
+        timeout_ms: 360_000,
+        status: "terminated",
+        terminated_at: "2026-08-21T19:00:00.000Z",
+        termination_reason: "done",
+      },
+      {
+        id: "wd-gen1-orphan8888",
+        generation: 1,
+        pulse_id: null,
+        phase: "unknown",
+        run_id: null,
+        run_root: null,
+        pid: 8888,
+        ppid: 1,
+        agent_id: null,
+        started_at: "2026-08-21T18:00:00.000Z",
+        last_heartbeat_at: "2026-08-21T18:00:00.000Z",
+        heartbeat_cadence_ms: 180_000,
+        timeout_ms: 360_000,
+        status: "orphaned",
+        terminated_at: null,
+        termination_reason: "lost",
+      },
     ];
 
     const rendered = renderAsciiWatchdogTable(watchdogs, { now: "2026-08-21T20:01:00.000Z" });
@@ -451,6 +487,8 @@ describe("WatchdogManager - ASCII Rendering", () => {
     expect(rendered).toContain("PID");
     expect(rendered).toContain("[ACTIVE 🟢]");
     expect(rendered).toContain("[STALE ⚠️]");
+    expect(rendered).toContain("[TERMINATED ⏹️]");
+    expect(rendered).toContain("[ORPHANED ❌]");
     expect(rendered).toContain("180s");
     expect(rendered).toContain("12345");
   });
@@ -1104,6 +1142,20 @@ describe("WatchdogManager - Lifecycle Invariant Verification", () => {
     expect(tableStr).toContain("[STALE ⚠️]");
     expect(tableStr).toContain("[TERMINATED ⏹️]");
     expect(tableStr).toContain("[ORPHANED ❌]");
+
+    // Filter by run_id, agent_id, and scalar status
+    const filterEdgeDir = scratchRoot(import.meta.path, "watchdog-filter-edge");
+    registerWatchdog({ id: "wd-edge-1", run_id: "run-a", agent_id: "agent-x" }, filterEdgeDir);
+    registerWatchdog({ id: "wd-edge-2", run_id: "run-b", agent_id: "agent-y" }, filterEdgeDir);
+
+    const filteredRun = listWatchdogs({ run_id: "run-a" }, filterEdgeDir);
+    expect(filteredRun.length).toBe(1);
+
+    const filteredAgent = listWatchdogs({ agent_id: "agent-y" }, filterEdgeDir);
+    expect(filteredAgent.length).toBe(1);
+
+    const filteredScalarStatus = listWatchdogs({ status: "stale" }, filterEdgeDir);
+    expect(filteredScalarStatus.length).toBe(0);
   });
 });
 

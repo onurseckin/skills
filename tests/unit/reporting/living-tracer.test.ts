@@ -11,6 +11,7 @@ import {
   renderAsciiTimeline,
   renderDynamicDagAscii,
   inspectCapsuleAuxiliary,
+  traceCapsuleRun,
   type LivingTracerOptions,
 } from "../../../olt/scripts/src/reporting/living-tracer.ts";
 import { executeDagTraceCommand } from "../../../olt/scripts/src/cli/commands/dag.ts";
@@ -449,6 +450,130 @@ describe("Living Dynamic DAG Expansion & Real-Time Step Tracer (p27 & defect-202
         sproutedRepairPairs: [],
       });
       expect(dag).toContain("No dynamic DAG tasks discovered");
+    });
+
+    it("traceCapsuleRun reads capsule files and produces full living tracer report", () => {
+      const tempDir = join(tmpdir(), `harness-tracer-capsule-${Date.now()}`);
+      mkdirSync(tempDir, { recursive: true });
+      const events = [
+        createMockEvent(1, "task-created", "coord-1", { task_id: "t-1", label: "Task 1" }),
+        createMockEvent(2, "task-claimed", "impl-1", { task_id: "t-1", role: "implementer" }),
+        createMockEvent(3, "task-released", "impl-1", { task_id: "t-1" }),
+        createMockEvent(4, "branch-opened", "coord-1", { branch_id: "b-1" }),
+        createMockEvent(5, "replacement-repairer-assigned", "coord-1", {
+          task_id: "t-1",
+          replacement_id: "rep-2",
+        }),
+        createMockEvent(6, "task-rejected", "val-1", {
+          task_id: "t-1",
+          reason: "Fails tests",
+          round: 1,
+        }),
+      ];
+
+      writeFileSync(
+        join(tempDir, "events.jsonl"),
+        events.map((e) => JSON.stringify(e)).join("\n") + "\n",
+        "utf8",
+      );
+
+      try {
+        const report = traceCapsuleRun(tempDir);
+        expect(report.summary.totalSteps).toBe(6);
+        expect(report.dynamicDag.tasks.has("t-1")).toBe(true);
+        expect(report.markdown).toContain("Dynamically Sprouted Repair & Validator Branches");
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it("renders dynamic DAG with expanded subtasks and coordinates", () => {
+      const tasks = new Map();
+      tasks.set("parent-task", {
+        id: "parent-task",
+        label: "Parent Task",
+        status: "leased",
+        role: "implementer",
+        assignedAgent: "impl-1",
+        validatorId: "val-1",
+        coordinates: { wave: 1, lane: 2 },
+        probeRound: 1,
+        writeScope: ["src/file.ts"],
+        rejectionReason: "Test failure",
+        activeCommand: "bun test",
+        dependencies: [],
+        origin: "static",
+        createdAtSeq: 1,
+        updatedAtSeq: 2,
+        round: 1,
+        attempt: 1,
+        executionState: "[🟢 RUNNING]",
+        activeTool: "write_to_file",
+        activeStepIndex: 2,
+        sproutedChildren: ["child-task"],
+        expandedSubtasks: [
+          { id: "sub-1", status: "ready", role: "implementer", assignedAgent: "sub-impl" },
+          { id: "sub-2", status: "validated", role: "validator", validatorId: "sub-val" },
+        ],
+      });
+
+      tasks.set("child-task", {
+        id: "child-task",
+        label: "Child Task",
+        status: "ready",
+        dependencies: [],
+        writeScope: [],
+        assignedAgent: null,
+        origin: "repair_branch",
+        createdAtSeq: 3,
+        updatedAtSeq: 3,
+        round: 2,
+        attempt: 1,
+        executionState: "[⏳ READY]",
+        activeTool: null,
+        activeCommand: "git commit",
+        activeStepIndex: 3,
+        sproutedChildren: [],
+        rejectionReason: "Child rejected",
+      });
+
+      const activeAgents = new Map();
+      activeAgents.set("impl-1", {
+        agentId: "impl-1",
+        role: "implementer",
+        taskId: "parent-task",
+        activeStepIndex: 2,
+        currentTool: "write_to_file",
+        currentCommand: "bun test",
+      });
+
+      const dagAscii = renderDynamicDagAscii({
+        runId: "expanded-run",
+        revision: 1,
+        totalTasks: 2,
+        staticTasksCount: 1,
+        dynamicTasksCount: 1,
+        repairBranchesCount: 1,
+        currentRound: 2,
+        tasks,
+        activeAgents,
+        activeBranches: [],
+        sproutedRepairPairs: [
+          {
+            rejectedTaskId: "parent-task",
+            round: 1,
+            repairTaskId: "child-task",
+            validatorTaskId: "val-task",
+            reason: "assertion failed",
+          },
+        ],
+      });
+
+      expect(dagAscii).toContain("parent-task");
+      expect(dagAscii).toContain("sub-1");
+      expect(dagAscii).toContain("child-task");
+      expect(dagAscii).toContain("↳ Coordinates: [W1:L2]");
+      expect(dagAscii).toContain("↳ Probe Round: P1");
     });
   });
 });

@@ -144,12 +144,44 @@ describe("Closed-Loop Recursive Critic Feedback Mechanics", () => {
     };
 
     expect(isDeterministicFindingRepeat(task, newFinding)).toBeTrue();
+
+    // False cases: empty findings, undefined findings, different observation
+    const emptyTask = { findings: [] } as unknown as TaskRecord;
+    expect(isDeterministicFindingRepeat(emptyTask, newFinding)).toBeFalse();
+
+    const undefTask = {} as unknown as TaskRecord;
+    expect(isDeterministicFindingRepeat(undefTask, newFinding)).toBeFalse();
   });
 
-  test("trackTaskRepairBudget accurately computes remaining repair capacity", () => {
+  test("generateStructuredFindingsFromCritic handles non-object inputs and missing finding fields", () => {
+    expect(generateStructuredFindingsFromCritic(null)).toEqual([]);
+    expect(generateStructuredFindingsFromCritic([])).toEqual([]);
+    expect(generateStructuredFindingsFromCritic("not-an-object")).toEqual([]);
+
+    const partialFindingsReview = {
+      status: "findings",
+      findings: [
+        { id: "F-MIN", severity: "minor" },
+        { id: "F-DEF", severity: "other" },
+        { id: "   " }, // ignored whitespace id
+      ],
+    };
+    const findings = generateStructuredFindingsFromCritic(partialFindingsReview);
+    expect(findings).toHaveLength(2);
+    expect(findings[0]!.severity).toBe("minor");
+    expect(findings[0]!.observation).toBe("Critic defect detected");
+    expect(findings[0]!.remediation).toBe("Remediate finding and verify with non-mocked tests");
+    expect(findings[1]!.severity).toBe("important");
+  });
+
+  test("trackTaskRepairBudget accurately computes remaining repair capacity and detects repeated defects", () => {
     const task = {
       repair_round: 1,
-      findings: [],
+      findings: [
+        { id: "F-1" },
+        { id: "F-1" }, // duplicate 1
+        { id: "F-1" }, // duplicate 2 -> repeatCount >= 2
+      ],
     } as unknown as TaskRecord;
 
     const budget = trackTaskRepairBudget(task, 3);
@@ -157,5 +189,65 @@ describe("Closed-Loop Recursive Critic Feedback Mechanics", () => {
     expect(budget.maxRepairRounds).toBe(3);
     expect(budget.remainingBudget).toBe(2);
     expect(budget.isExhausted).toBeFalse();
+    expect(budget.deterministicDefectDetected).toBeTrue();
+
+    // Default round when task.repair_round is undefined
+    const defaultRoundTask = {} as unknown as TaskRecord;
+    expect(trackTaskRepairBudget(defaultRoundTask).repairRound).toBe(0);
+  });
+
+  test("routeCriticReviewFindings matches tasks by write_scope or fallback status and escalates on deterministic repeat", () => {
+    const state = workflowState();
+    // T-1 has write_scope ["src/core/target.ts"], requirement_ids: ["R-DIFFERENT"]
+    state.tasks["T-1"]!.requirement_ids = ["R-DIFFERENT"];
+    state.tasks["T-1"]!.write_scope = ["src/core/target.ts"];
+    state.tasks["T-1"]!.status = "validated";
+    state.tasks["T-1"]!.findings = [
+      {
+        id: "F-EXISTING",
+        requirement_id: "R-99",
+        severity: "critical",
+        observation: "duplicate observation in target",
+        evidence: [],
+        remediation: "fix it",
+        revalidation: "",
+        status: "open",
+      },
+    ];
+
+    const port = new TestPort(state);
+    const review = makeReview([
+      {
+        id: "F-NEW-SCOPE-MATCH",
+        requirement_id: "R-99",
+        observation: "duplicate observation in target",
+        remediation: "fix in src/core/target.ts",
+      },
+    ]);
+
+    const result = routeCriticReviewFindings(port, "orchestrator", review);
+    expect(result.affectedTaskIds).toContain("T-1");
+    // Since observation matches and status was open, it is deterministic -> escalated
+    expect(result.escalatedTaskIds).toContain("T-1");
+  });
+
+  test("routeCriticReviewFindings fallback matches candidate tasks by active/done status when no scope matches", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.requirement_ids = ["R-OTHER"];
+    state.tasks["T-1"]!.write_scope = ["src/other.ts"];
+    state.tasks["T-1"]!.status = "changes_requested";
+
+    const port = new TestPort(state);
+    const review = makeReview([
+      {
+        id: "F-ORPHAN",
+        requirement_id: "R-UNMAPPED",
+        observation: "generic unmapped observation",
+        remediation: "generic remediation",
+      },
+    ]);
+
+    const result = routeCriticReviewFindings(port, "orchestrator", review);
+    expect(result.affectedTaskIds).toContain("T-1");
   });
 });

@@ -787,5 +787,36 @@ describe("doctor/tier-confinement and doctor/index", () => {
         }
       }
     });
+
+    it("infers role from task lease and task attempt records in state", () => {
+      const state: JsonObject = {
+        tasks: {
+          "t-lease": {
+            id: "t-lease",
+            lease: { agent_id: "unregistered-leased-coord", role: "coordinator" },
+            attempts: [{ agent_id: "unregistered-attempt-coord", role: "coordinator" }],
+          },
+        },
+        commands: {
+          "cmd-1": {
+            id: "cmd-1",
+            actor: "unregistered-leased-coord",
+            tool: "write_to_file",
+            argv: ["write_to_file", "src/foo.ts"],
+            status: "succeeded",
+          },
+          "cmd-2": {
+            id: "cmd-2",
+            actor: "unregistered-attempt-coord",
+            argv: ["kill", "-9", "pulse.sh"],
+            status: "succeeded",
+          },
+        },
+      };
+
+      const findings = auditTierConfinement("", state);
+      expect(findings.some((f) => f.agent_id === "unregistered-leased-coord")).toBe(true);
+      expect(findings.some((f) => f.agent_id === "unregistered-attempt-coord")).toBe(true);
+    });
   });
 });

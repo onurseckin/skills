@@ -36,7 +36,11 @@ function ungranted(role: (typeof AGENT_ROLES)[number]): string[] {
 describe("role capability documents bind the CLI", () => {
   test.each(AGENT_ROLES)("%s names only commands the registry actually has", (role) => {
     const contract = loadRoleContract(role);
-    expect(contract.commands.length).toBeGreaterThan(0);
+    if (role === "validator") {
+      expect(contract.commands.length).toBe(0);
+    } else {
+      expect(contract.commands.length).toBeGreaterThan(0);
+    }
     for (const command of contract.commands) expect(findCommand(command)).toBeDefined();
   });
 
@@ -120,29 +124,28 @@ describe("role capability documents are what the packet digests", () => {
 
   test.each(AGENT_ROLES)("%s digest moves the moment a single byte is tampered with", (role) => {
     const bytes = readFileSync(resolveRoleContractPath(role));
-    const original = parseRoleContract(bytes, `${role}.md`);
+    const original = parseRoleContract(bytes, `${role}.yaml`);
     const tampered = new TextEncoder().encode(`${original.text} `);
-    expect(parseRoleContract(tampered, `${role}.md`).sha256).not.toBe(original.sha256);
+    expect(parseRoleContract(tampered, `${role}.yaml`).sha256).not.toBe(original.sha256);
   });
 
   test("a tampered prohibition is detected even though the document still parses", () => {
     const original = loadRoleContract("sub-investigator");
     const relaxed = original.text.replace(
-      "  - Create, edit, stage, revert, format, or delete any repository file",
-      "  - Create or delete unrelated repository files",
+      "Create, edit, stage, revert, format, or delete any repository file",
+      "Create or delete unrelated repository files",
     );
     expect(relaxed).not.toBe(original.text);
-    const contract = parseRoleContract(new TextEncoder().encode(relaxed), "sub-investigator.md");
+    const contract = parseRoleContract(new TextEncoder().encode(relaxed), "sub-investigator.yaml");
     expect(contract.sha256).not.toBe(original.sha256);
     expect(contract.must_not).not.toEqual([...original.must_not]);
   });
 
   test("a contract whose declared role differs from its file is refused", () => {
-    const swapped = loadRoleContract("validator").text.replace(
-      "role: validator",
-      "role: implementer",
-    );
-    const contract = parseRoleContract(new TextEncoder().encode(swapped), "validator.md");
+    const swapped = loadRoleContract("validator")
+      .text.replace('role: "validator"', 'role: "implementer"')
+      .replace("role: validator", "role: implementer");
+    const contract = parseRoleContract(new TextEncoder().encode(swapped), "validator.yaml");
     expect(contract.role).toBe("implementer");
     expect(contract.sha256).not.toBe(loadRoleContract("validator").sha256);
   });

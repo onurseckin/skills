@@ -28,6 +28,8 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Generation 8 Retirement Notice
+  > **RETIREMENT NOTICE (Generation 8)**: `repairer` is permanently retired as a separate subagent role in Generation 8. Repairs are executed directly by the active Implementer through 1-hop micro-cycles (`task:reject --in-lease`).
   ---
   role: repairer
   tier: 3

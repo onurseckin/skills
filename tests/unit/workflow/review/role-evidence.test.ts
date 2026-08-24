@@ -141,6 +141,35 @@ describe("assertRoleArtifactPresent", () => {
       expect(String((error as { fix?: string }).fix)).toContain("task:review");
     }
   });
+
+  test("refuses when all recorded screenshots are below 1024 bytes", () => {
+    expect(() =>
+      assertRoleArtifactPresent("task-1", true, {
+        hasArtifact: true,
+        screenshots: [
+          { path: "shot.png", sizeBytes: 500 },
+          { path: "shot2.png", bytes: 100 },
+        ],
+      }),
+    ).toThrow(/all recorded screenshots are below 1024 bytes/);
+  });
+
+  test("accepts when screenshots contain valid items (>= 1024 bytes) or manifests exist", () => {
+    expect(() =>
+      assertRoleArtifactPresent("task-1", true, {
+        hasArtifact: true,
+        screenshots: [{ path: "shot.png", bytes: 2048 }],
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      assertRoleArtifactPresent("task-1", true, {
+        hasArtifact: true,
+        screenshots: [{ path: "small.png", sizeBytes: 100 }],
+        manifests: [{ path: "manifest.json" }],
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe("gateReviewPayload & review payload gating", () => {

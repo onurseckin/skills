@@ -160,7 +160,7 @@ describe("registry-driven required flags", () => {
       "--prompt-file",
       promptPath,
     ]);
-    const result = await execute(["run:status", "--run", init.run_root as string]);
+    const result = await execute(["plan:status", "--run", init.run_root as string]);
     expect(typeof result.markdown).toBe("string");
   });
 });

@@ -55,7 +55,7 @@ describe("CLI help", () => {
     expect(detail).toContain("| `--gate` | string | no | no |");
     expect(detail).toContain("**Arguments after `--`**: forwarded to the child process");
     expect(detail).toContain("**Exit codes**");
-    expect(detail).toContain("bun harness.ts run:exec --run .capsules/<run-id>");
+    expect(detail).toContain("bun harness.ts run:exec --run .olt/capsules/<run-id>");
   });
 
   test("resolves aliases and reports the stdin rule", () => {
@@ -87,10 +87,8 @@ describe("CLI help", () => {
 
     const unknown = await harness(["help", "nope"]);
     expect(unknown.exit).toBe(3);
-    expect(JSON.parse(unknown.stderr.trimEnd())).toMatchObject({
-      ok: false,
-      error: { code: "INVALID_ARGUMENT" },
-    });
+    expect(unknown.stderr).toContain("INVALID_ARGUMENT");
+    expect(unknown.stderr).toContain("unknown command: nope");
   });
 
   test("ignores a --help standing in a flag value position", () => {
@@ -109,10 +107,7 @@ describe("CLI help", () => {
     const run = await harness(["plan:add", "--label", "--help", "--run", "/tmp/run"]);
     expect(run.exit).toBe(3);
     expect(run.stdout).toBe("");
-    expect(JSON.parse(run.stderr.trimEnd())).toMatchObject({
-      ok: false,
-      error: { code: "INVALID_ARGUMENT" },
-    });
+    expect(run.stderr).toContain("INVALID_ARGUMENT");
   });
 
   test("refuses an unknown command", () => {

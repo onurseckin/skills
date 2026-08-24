@@ -18,9 +18,9 @@ describe("Capsule Root Doctor Checks - p18 strict repository root confinement", 
     const repo = await mkdtemp(join(tmpdir(), "harness-repo-root-"));
     roots.push(repo);
     await mkdir(join(repo, ".git"));
-    await mkdir(join(repo, ".olt", "capsules", "run-1"), { recursive: true });
+    await mkdir(join(repo, ".capsules", "run-1"), { recursive: true });
 
-    const discovered = findRepositoryRoot(join(repo, ".olt", "capsules", "run-1"));
+    const discovered = findRepositoryRoot(join(repo, ".capsules", "run-1"));
     expect(discovered).toBe(repo);
   });
 
@@ -28,7 +28,7 @@ describe("Capsule Root Doctor Checks - p18 strict repository root confinement", 
     const repo = await mkdtemp(join(tmpdir(), "harness-repo-valid-"));
     roots.push(repo);
     await mkdir(join(repo, ".git"));
-    const runRoot = join(repo, ".olt", "capsules", "run-valid-1");
+    const runRoot = join(repo, ".capsules", "run-valid-1");
     await mkdir(runRoot, { recursive: true });
 
     const audit = verifyStrictRepositoryCapsuleRoot(runRoot, repo);
@@ -55,9 +55,9 @@ describe("Capsule Root Doctor Checks - p18 strict repository root confinement", 
     const repo = await mkdtemp(join(tmpdir(), "harness-repo-nested-"));
     roots.push(repo);
     await mkdir(join(repo, ".git"));
-    await mkdir(join(repo, "packages", "pkg-a", ".olt", "capsules"), { recursive: true });
-    await mkdir(join(repo, "submodules", "sub", ".olt", "capsules"), { recursive: true });
-    const runRoot = join(repo, ".olt", "capsules", "root-run");
+    await mkdir(join(repo, "packages", "pkg-a", ".capsules"), { recursive: true });
+    await mkdir(join(repo, "submodules", "sub", ".capsules"), { recursive: true });
+    const runRoot = join(repo, ".capsules", "root-run");
     await mkdir(runRoot, { recursive: true });
 
     const misplaced = scanMisplacedCapsulesDirectories(repo);

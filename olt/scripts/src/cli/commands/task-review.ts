@@ -118,7 +118,8 @@ function gateEvidenceSummary(state: WorkflowState, task: TaskRecord): string {
 }
 
 export function assertValidReviewer(callerId: string, task: TaskRecord): void {
-  const pairedValidatorId = (task.lease as any)?.paired_validator_id;
+  const pairedValidatorId = (task.lease as { readonly paired_validator_id?: string } | undefined)
+    ?.paired_validator_id;
   if (pairedValidatorId && callerId !== pairedValidatorId) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
