@@ -712,13 +712,13 @@ export function searchMemory(
 export const queryMemory = searchMemory;
 
 /**
- * Indexes charter documents from docs/mind/CHARTER.md, references, and docs.
+ * Indexes charter documents from docs/CHARTER.md, references, and docs.
  */
 export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
   const documents: MemoryDocument[] = [];
   const visitedPaths = new Set<string>();
 
-  const charterPath = join(repoRoot, "docs", "mind", "CHARTER.md");
+  const charterPath = join(repoRoot, "docs", "CHARTER.md");
   if (existsSync(charterPath)) {
     visitedPaths.add(resolve(charterPath));
     try {
@@ -729,12 +729,12 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
           id: "charter-root",
           kind: "charter",
           title: "Mind Charter (Core Directives & Invariants)",
-          source_path: "docs/mind/CHARTER.md",
+          source_path: "docs/CHARTER.md",
           generation: null,
           tags: ["charter", "directive", "invariant", "core"],
           content,
           snippet: content.slice(0, 200),
-          metadata: { file: "docs/mind/CHARTER.md" },
+          metadata: { file: "docs/CHARTER.md" },
         }),
       );
 
@@ -749,7 +749,7 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
               id: `charter-goal-${goalId.toLowerCase()}`,
               kind: "charter",
               title: `Charter Goal ${goalId}`,
-              source_path: "docs/mind/CHARTER.md",
+              source_path: "docs/CHARTER.md",
               generation: null,
               tags: ["charter", "goal", goalId.toLowerCase()],
               content: `${goalId}: ${goalText}`,
@@ -771,7 +771,7 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
               id: `charter-${pillarId.toLowerCase().replace(/\s+/g, "-")}`,
               kind: "charter",
               title: `Charter ${pillarId}`,
-              source_path: "docs/mind/CHARTER.md",
+              source_path: "docs/CHARTER.md",
               generation: null,
               tags: ["charter", "pillar", pillarId.toLowerCase().replace(/\s+/g, "-")],
               content: `${pillarId}: ${pillarText}`,

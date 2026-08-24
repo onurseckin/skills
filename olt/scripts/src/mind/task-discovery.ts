@@ -318,17 +318,15 @@ export function resolveDiscoveryCharterPath(customPath?: string): string {
   }
   const cwd = process.cwd();
   const candidates = [
-    join(cwd, "docs", "mind", "CHARTER.md"),
     join(cwd, "docs", "CHARTER.md"),
     join(cwd, "CHARTER.md"),
-    join(dirname(cwd), "docs", "mind", "CHARTER.md"),
     join(dirname(cwd), "docs", "CHARTER.md"),
     join(dirname(cwd), "CHARTER.md"),
   ];
   for (const c of candidates) {
     if (existsSync(c)) return c;
   }
-  return resolve(cwd, "docs/mind/CHARTER.md");
+  return resolve(cwd, "docs/CHARTER.md");
 }
 
 function collectFilesRecursively(

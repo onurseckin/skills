@@ -53,7 +53,7 @@ function setupMindCapsuleEnvironment(name: string): MindTestCapsule {
   const capsulesDir = join(repo, ".olt", "capsules");
   mkdirSync(capsulesDir, { recursive: true });
 
-  const charterDir = join(repo, "docs", "mind");
+  const charterDir = join(repo, "docs");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "CHARTER.md");
   const charterContent = `# CHARTER\n\n## identity\nDiscovery source test app\n\n## goals\n- G1: Stability\n\n## non-goals\n- None\n\n## repo_roots\n- \`src/\`\n`;
@@ -70,7 +70,7 @@ function setupMindCapsuleEnvironment(name: string): MindTestCapsule {
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/mind/CHARTER.md",
+      charter_source_path: "docs/CHARTER.md",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -78,7 +78,7 @@ function setupMindCapsuleEnvironment(name: string): MindTestCapsule {
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/mind/CHARTER.md",
+          source_path: "docs/CHARTER.md",
           pinned_sha256: charterSha,
           goals: ["G1"],
           repo_roots: ["src/"],

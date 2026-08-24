@@ -157,7 +157,7 @@ function setupMindCapsule(
   const repoRoot = scratchRoot(label);
   writeFileSync(join(repoRoot, ".gitignore"), ".olt/capsules/\n.tmp/\n", "utf-8");
 
-  const charterDir = join(repoRoot, "docs", "mind");
+  const charterDir = join(repoRoot, "docs");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "CHARTER.md");
   const charterContent = overrides.charterText ?? SAMPLE_CHARTER;
@@ -176,7 +176,7 @@ function setupMindCapsule(
     "mind-initialized",
     {
       generation: gen,
-      charter_source_path: "docs/mind/CHARTER.md",
+      charter_source_path: "docs/CHARTER.md",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -184,7 +184,7 @@ function setupMindCapsule(
         generation: gen,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/mind/CHARTER.md",
+          source_path: "docs/CHARTER.md",
           pinned_sha256: charterSha,
           goals: ["G1", "G2", "G3"],
           repo_roots: ["src/", "docs/", "tests/"],

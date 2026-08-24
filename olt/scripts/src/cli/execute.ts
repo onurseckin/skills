@@ -3,7 +3,7 @@ import { HarnessError } from "../core/errors/harness-error.ts";
 import { parseArguments } from "./arguments.ts";
 import { assertFlags, type CommandContext } from "./options.ts";
 import { assertGrantedCommand } from "../packets/command-authority.ts";
-import { findCommand, flagShapes } from "./registry/index.ts";
+import { findCommand, flagShapes, type CommandSpec } from "./registry/index.ts";
 import { autoDeriveCallerIdentity } from "../authority/session-registry.ts";
 
 export async function execute(
@@ -51,10 +51,10 @@ export async function execute(
       const runRoot = parsed.flags["run"] as string;
       const { loadRun } = await import("../engine/store/load.ts");
       const runData = loadRun(runRoot, false);
-      CumulativePhaseInvariantEngine.verify(spec.domain, runData.state);
+      CumulativePhaseInvariantEngine.verify(spec, runData.state as Record<string, unknown>);
     } catch (e: unknown) {
       if (e instanceof HarnessError && e.code === "INVALID_STATE") throw e;
-      CumulativePhaseInvariantEngine.verify(spec.domain, {});
+      CumulativePhaseInvariantEngine.verify(spec, {});
     }
   }
 
@@ -69,13 +69,29 @@ export class DeductiveStateMachine {
       case "plan":
         return !!this.state.requirements;
       case "queue":
-        return !!this.state.tasks && Object.keys(this.state.tasks as object).length > 0;
+        return (
+          !!this.state.tasks &&
+          typeof this.state.tasks === "object" &&
+          this.state.tasks !== null &&
+          Object.keys(this.state.tasks as object).length > 0
+        );
       case "task":
-        return !!this.state.tasks && Object.keys(this.state.tasks as object).length > 0;
+        return (
+          !!this.state.tasks &&
+          typeof this.state.tasks === "object" &&
+          this.state.tasks !== null &&
+          Object.keys(this.state.tasks as object).length > 0
+        );
+      case "critic":
+        return (
+          !!this.state.critic_verdict ||
+          !!this.state.critic_review ||
+          !!this.state.completion_review ||
+          (!!this.state.completion_critic &&
+            (this.state.completion_critic as { status?: string }).status === "reviewed")
+        );
       case "run":
         return !!this.state.completion_result;
-      case "critic":
-        return !!this.state.critic_verdict;
       default:
         return true;
     }
@@ -83,21 +99,43 @@ export class DeductiveStateMachine {
 }
 
 export class CumulativePhaseInvariantEngine {
-  public static verify(domain: string, state: Record<string, unknown>): void {
-    const PHASE_HIERARCHY = ["plan", "queue", "task", "run", "critic"];
+  public static verify(spec: CommandSpec, state: Record<string, unknown>): void {
     const machine = new DeductiveStateMachine(state);
+    const prerequisitePhases = CumulativePhaseInvariantEngine.getPrerequisitePhases(spec);
 
-    const targetIndex = PHASE_HIERARCHY.indexOf(domain);
-    if (targetIndex <= 0) return;
-
-    for (let i = 0; i < targetIndex; i++) {
-      const higherPhase = PHASE_HIERARCHY[i] as string;
-      if (!machine.isPhaseVerified(higherPhase)) {
+    for (const prereq of prerequisitePhases) {
+      if (!machine.isPhaseVerified(prereq)) {
         throw new HarnessError(
           "INVALID_STATE",
-          `Cumulative Phase Invariant Violation: cannot execute lower-phase command domain '${domain}' because higher prerequisite phase '${higherPhase}' is unverified.`,
+          `Cumulative Phase Invariant Violation: cannot execute command '${spec.name}' because higher prerequisite phase '${prereq}' is unverified.`,
         );
       }
     }
+  }
+
+  private static getPrerequisitePhases(spec: CommandSpec): readonly string[] {
+    const name = spec.name;
+    if (name === "run:complete") {
+      return ["plan", "queue", "task", "critic"];
+    }
+    if (
+      name === "run:exec" ||
+      name === "run:status" ||
+      name === "shell" ||
+      spec.domain === "critic" ||
+      name.startsWith("critic:")
+    ) {
+      return ["plan", "queue", "task"];
+    }
+    if (spec.domain === "task" || name.startsWith("task:")) {
+      return ["plan", "queue"];
+    }
+    if (spec.domain === "queue" || name.startsWith("queue:")) {
+      return ["plan"];
+    }
+    if (spec.domain === "plan" || name.startsWith("plan:")) {
+      return [];
+    }
+    return [];
   }
 }

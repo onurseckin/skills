@@ -57,7 +57,7 @@ function setupNegativeAdmissionTest(
   const repo = mkdtempSync(join(tmpdir(), `mind-admission-neg-${name}-`));
   tempRoots.push(repo);
 
-  const charterDir = join(repo, "docs", "mind");
+  const charterDir = join(repo, "docs");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "CHARTER.md");
   const charterContent =
@@ -76,7 +76,7 @@ function setupNegativeAdmissionTest(
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/mind/CHARTER.md",
+      charter_source_path: "docs/CHARTER.md",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -84,7 +84,7 @@ function setupNegativeAdmissionTest(
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/mind/CHARTER.md",
+          source_path: "docs/CHARTER.md",
           pinned_sha256: charterSha,
           goals: ["G1", "G2"],
           non_goals: ["UI redesign", "Out of scope"],

@@ -42,7 +42,7 @@ function setupTestEnvironment(name: string): CounterfactualTestContext {
   const repo = mkdtempSync(join(tmpdir(), `mind-counterfactual-${name}-`));
   roots.push(repo);
 
-  const charterDir = join(repo, "docs", "mind");
+  const charterDir = join(repo, "docs");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "CHARTER.md");
   const charterContent = `# CHARTER\n\n## identity\nCounterfactual Test System\n\n## goals\n- G1: Ensure stability\n- G2: Verification excellence\n\n## non-goals\n- Unattended deletion\n- Out of scope\n\n## repo_roots\n- \`src/\`\n- \`olt/\`\n- \`tests/\`\n`;

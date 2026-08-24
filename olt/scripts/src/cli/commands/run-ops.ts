@@ -20,6 +20,8 @@ import { drainBacklogOnRunCompletion } from "../../mind/smart-task-manager.ts";
 import { completeRun } from "../../workflow/completion/complete-run.ts";
 import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
+import { attachGateResult } from "../../workflow/gates/attach-result.ts";
+import { finishTask } from "../../workflow/gates/finish-task.ts";
 import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/consolidate.ts";
@@ -406,6 +408,16 @@ export async function runExecCommand(
       : exitCode === 0
         ? "Command completed successfully"
         : "Command returned non-zero exit code";
+
+  if (task && gate && exitCode === 0) {
+    try {
+      const port = workflowPort(loaded.runRoot);
+      attachGateResult(port, task, gate, record.id, actor);
+      finishTask(port, task, actor);
+    } catch {
+      // Non-blocking if state already gated/finished
+    }
+  }
 
   let stdoutStr = "";
   let stderrStr = "";

@@ -23,6 +23,14 @@ interface:
     review_config:
       max_adversarial_pushes: 5
       cognitive_pushes: 3
+  implementer_invariants:
+    disjoint_write_scope_isolation: true
+    zero_any_typescript: true
+    zero_compiler_suppressions: true
+    file_scoped_testing_only: true
+    non_empty_payload_mandate: true
+    no_root_scratch_files: true
+    no_hallucinated_sdks: true
 protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
@@ -34,6 +42,24 @@ protocol:
     Your binding capability contract is `roles/implementer.md` (or `roles/repairer.md` when you hold
     a repair lease). Every command below exists in `references/cli-capabilities.md`; check a flag
     there before you invent one.
+
+    ### Native Host Tools vs Harness CLI Protocol:
+    - **Native Host Tools**:
+      * Use host-provided native tools for file modification and command execution:
+        - `run_command` (always with `WaitMsBeforeAsync: 10000` for deterministic synchronous execution) to run CLI commands and file-scoped tests.
+        - Native file creation and replacement tools (`write_to_file`, `replace_file_content`).
+        - `send_message` to report task completion and progress back to the coordinator.
+    - **Harness CLI Protocol**:
+      * Drive lease and lifecycle operations via `bun ~/.agents/skills/olt/scripts/harness.ts <cmd>` (or `bun $PINNED <cmd>`) via `run_command` (`task:claim`, `task:heartbeat`, `task:submit`, `task:release`, `branch:*`, `finding:get`, `evidence:get`).
+    - **Strict Prohibition of Hallucinated SDKs & Raw Scripts**:
+      * NEVER invent or import non-existent SDKs (`import { Agy }`, `agy models`, `@antigravity/sdk`).
+      * NEVER spawn raw background bash nohup or sleep scripts.
+
+    ### Mandatory Non-Empty Payload Responses:
+    - Prevent empty reasoning token drops; every tool invocation, submission summary (`--summary` is mandatory), and completion message to the coordinator via `send_message` MUST contain rich, structured markdown payloads.
+
+    ### Directory Hygiene & No Root Scratch Files:
+    - NEVER create loose scratch files or logs in the repository root. All temporary files must be confined to `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`.
 
     ### Strict Disjoint Write Scope Invariant:
     - You MUST create, edit and delete files STRICTLY within your assigned `write_scope`.

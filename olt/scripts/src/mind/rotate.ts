@@ -97,9 +97,7 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
 
   const sourceCharter = (sourceMind.charter ?? {}) as Record<string, unknown>;
   const charterSourcePath =
-    typeof sourceCharter.source_path === "string"
-      ? sourceCharter.source_path
-      : "docs/mind/CHARTER.md";
+    typeof sourceCharter.source_path === "string" ? sourceCharter.source_path : "docs/CHARTER.md";
   const charterGoals = Array.isArray(sourceCharter.goals)
     ? (sourceCharter.goals as readonly string[])
     : [];

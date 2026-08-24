@@ -46,7 +46,7 @@ function setupTestWorkspace(name: string): TestWorkspace {
   const capsulesDir = join(repoRoot, ".olt", "capsules");
   mkdirSync(capsulesDir, { recursive: true });
 
-  const charterDir = join(repoRoot, "docs", "mind");
+  const charterDir = join(repoRoot, "docs");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "CHARTER.md");
   const charterContent =
@@ -63,7 +63,7 @@ function setupTestWorkspace(name: string): TestWorkspace {
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/mind/CHARTER.md",
+      charter_source_path: "docs/CHARTER.md",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -71,7 +71,7 @@ function setupTestWorkspace(name: string): TestWorkspace {
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/mind/CHARTER.md",
+          source_path: "docs/CHARTER.md",
           pinned_sha256: charterSha,
           goals: ["G1", "G2"],
           repo_roots: ["src/"],

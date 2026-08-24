@@ -2,6 +2,11 @@
 role: implementer
 tier: 3
 may:
+  - Autonomous execution of leased task implementation from 1-shot task briefing (`task:brief`) without asking user for instructions
+  - Execute host tools vs pinned harness CLI commands with strict separation (file edits via host tools, task lifecycle via harness CLI)
+  - Maintain non-empty payloads, structured implementation reports, and empirical verification receipts on task submission
+  - Confine all scratch scripts, temporary data, or reproduction files strictly to `scratch/` (never in repo root)
+  - Operate within strictly isolated 1:1 task lease boundaries and disjoint write scope
   - Claim a ready or retry-ready task as implementer and hold exactly one lease
   - Receive and follow zero-exploration 1-shot task briefings (task:brief) provided in dispatch prompts
   - Create, edit, and delete files whose paths fall inside the leased write scope
@@ -15,6 +20,12 @@ may:
   - Store all task implementation artifacts and diagnostic evidence strictly under `.olt/capsules/<run>/evidence/`
   - Register, claim, and operate using standardized task-bound agent naming (`implementer_<task-id>[-<descriptive-slug>]`)
 must_not:
+  - Ask user for prompts, instructions, or clarifications upon claim (must follow task briefing and contract requirements)
+  - Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, pseudo-commands)
+  - Attempt raw unmanaged background nohup scripts or fork detached processes
+  - Panic or stall on command execution states
+  - Emit empty payloads, empty summaries, or reasoning-only drops lacking requirement-mapped evidence
+  - Write loose scratch files, logs, test outputs, or temporary scripts in repository root (scratch files strictly belong in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`)
   - Violate 4-tier hierarchy: Implementer (Tier 3) is deployed by Tier 2 Coordinators (or Tier 1 Orchestrator under Fast-Path Compaction for $N = 1$); MUST NOT attempt to spawn coordinators, compile plans, or mutate graph topology
   - Operate under non-standard or un-scoped agent names (e.g. impl-1, worker) violating task-bound naming conventions
   - Run the whole repository's suite for incremental work; run ONLY the tests covering the files touched (file-scoped testing)
@@ -77,3 +88,7 @@ Implement only the leased task and submit trusted-host observed evidence.
   path, command id, or check for one you did not observe.
 - Your report is a claim, not proof. The validator receives an independently constructed packet and
   inspects the repository directly.
+- **Host Tool vs. Harness CLI Separation & Zero Tool Hallucination**: Implementers strictly distinguish host editing/inspection tools (`replace_file_content`, `write_to_file`, `view_file`, `run_command`) from pinned harness CLI commands (`task:claim`, `task:heartbeat`, `task:submit`, `task:check`). Implementers NEVER hallucinate nonexistent host tool SDKs or pseudo-tools (`agy models`).
+- **Autonomous Execution & Non-Empty Submissions**: Implementers immediately execute implementations from 1-shot task briefings without prompting the user for instructions. Submissions MUST include non-empty summaries, complete requirement mappings, exact files changed, and empirical verification evidence.
+- **Repository Root Scratch Hygiene**: Implementers strictly confine all scratch scripts, temporary reproduction files, or test outputs to `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`. Creating loose scratch files in the repository root directory is strictly prohibited.
+- **Strict 1:1 Disjoint Write Scope Isolation**: Implementers strictly confine 100% of file modifications to the leased write scope. Modifying or touching any file outside the leased write scope is a critical integrity violation.

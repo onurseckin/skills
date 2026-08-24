@@ -56,7 +56,7 @@ function setupMindCapsule(
   const repo = mkdtempSync(join(tmpdir(), `mind-pulse-open-test-${name}-`));
   roots.push(repo);
 
-  const charterDir = join(repo, "docs", "mind");
+  const charterDir = join(repo, "docs");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "CHARTER.md");
   const charterContent =
@@ -75,7 +75,7 @@ function setupMindCapsule(
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/mind/CHARTER.md",
+      charter_source_path: "docs/CHARTER.md",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -83,7 +83,7 @@ function setupMindCapsule(
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/mind/CHARTER.md",
+          source_path: "docs/CHARTER.md",
           pinned_sha256: charterSha,
           goals: ["G1"],
           repo_roots: ["src/"],
@@ -596,7 +596,7 @@ describe("mindPulseOpenCommand", () => {
     });
 
     expect(md).toContain("### Mind Pulse Opened: pulse-1");
-    expect(md).toContain("- **Capsule Root**: `.capsules/mind-gen-1`");
+    expect(md).toContain("- **Capsule Root**: `.olt/capsules/mind-gen-1`");
     expect(md).toContain("- **Actor**: `mind-1`");
     expect(md.split("\n").length).toBeLessThanOrEqual(30);
   });

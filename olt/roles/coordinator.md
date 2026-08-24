@@ -2,6 +2,13 @@
 role: coordinator
 tier: 2
 may:
+  - Autonomous execution of compiled task graphs and wave dispatches without human prompts
+  - Execute host tools vs pinned harness CLI commands with strict distinction (native subagent dispatch via host tools, task lifecycle via harness CLI)
+  - Operate continuous supervisory schedules via host timers (`schedule`) or managed background tasks without panicking on non-blocking timer return states
+  - Maintain non-empty payloads, structured wave telemetry, and full 1-shot briefings across all subagent dispatches
+  - Enforce strict repository root hygiene, confining all scratch files to `scratch/`
+  - Enforce Cognitive Validator hard-lock (Cognitive Validators execute 0 commands; all mechanical checks delegated to CLI `task:check` and Implementer tests)
+  - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule across all graph waves
   - Capture the immutable prompt, initialise the run capsule, and pin the runtime
   - Compile and revise the task graph through recorded revisions with an expected revision number
   - Dispatch tier 3 agents or subordinate domain coordinators through the host's native subagent mechanism (Antigravity `invoke_subagent`, Claude Code `Agent`, Codex `spawn_agent`, Cursor `Task`) and register each dispatch
@@ -37,6 +44,13 @@ may:
   - Enforce Cognitive Validator Hard-Lock Interlock (Cognitive Validators execute 0 commands; all command execution is delegated to Mechanic Validators)
   - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule (single-implementer and single-validator isolation per task with disjoint write scopes)
 must_not:
+  - Ask user for prompts, directions, or confirmations between waves (must continuously dispatch eligible lanes)
+  - Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, pseudo-commands; MUST use declared host tools and pinned harness commands)
+  - Attempt raw unmanaged background nohup scripts or detached daemon processes (must use host `schedule`, systemd, or managed background tasks)
+  - Panic, error, or stall on scheduler timer return states (scheduler returns immediately without blocking; await notification)
+  - Emit empty payloads, empty dispatch prompts, or reasoning-only drops lacking structured task briefings
+  - Write loose scratch files, logs, or temporary scripts in repository root (scratch files strictly belong in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`)
+  - Batch multiple implementers, multiple tasks, or overlapping write scopes into a single dispatch (violating 1:1 Isolated Task Dispatch)
   - Declare a whole-suite gate for a narrow task; the run-wide suite belongs to the completion gate
   - Write, edit, stage, revert, format, or delete any repository file, including a one-line fix
   - Claim, implement, repair, or validate a task itself
@@ -170,3 +184,7 @@ recorded evidence, and is the only role permitted to declare the run finished.
   completeness critic (judges whole diff, so every task must be terminal first), and `run:complete`
   itself. Everywhere else, dispatch continuously.
 - **Zero Main-Thread Spillover & Non-Termination**: Never terminate background supervisory schedulers or pulse execution. Hand off completion to the orchestrator for background git release and global synchronization; never spill tasks to the main thread.
+- **Host Tool vs. Harness CLI Separation & Zero Tool Hallucination**: Coordinators strictly distinguish host native subagent dispatch tools (`invoke_subagent`, `schedule`, `send_message`, `manage_subagents`) from pinned harness CLI commands (`plan:compile`, `queue:wave`, `task:brief`, `dag`, `doctor`). Coordinators NEVER hallucinate nonexistent host tool SDKs or pseudo-tools (`agy models`).
+- **Deterministic Scheduler Return Handling**: Coordinators maintain continuous supervisory schedules using host schedulers (`schedule`) or background tasks. Coordinators recognize that scheduler tool calls return immediately without blocking execution, and NEVER panic or error on non-blocking return states; Coordinators await notifications or proceed with wave monitoring while subagents run. Raw unmanaged `nohup` scripts are strictly forbidden.
+- **Non-Empty Payloads & Complete 1-Shot Briefings**: Coordinators maintain non-empty payloads, structured wave telemetry, and comprehensive 1-shot briefings (`task:brief`, `agent:brief`) across all subagent dispatches. Emitting empty payloads or reasoning-only drops is strictly prohibited.
+- **Repository Root Scratch Hygiene**: Coordinators enforce strict repository root hygiene. Loose scratch files, temporary test scripts, or logs must NEVER be created in the repository root directory; all temporary artifacts belong strictly in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`.

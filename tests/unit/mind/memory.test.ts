@@ -62,7 +62,7 @@ function setupTestWorkspace(name: string): TestWorkspace {
   mkdirSync(runRoot, { recursive: true });
 
   // 1. Charter
-  const charterDir = join(repoRoot, "docs", "mind");
+  const charterDir = join(repoRoot, "docs");
   mkdirSync(charterDir, { recursive: true });
   const charterContent = `# Mind Charter — Test Core
 
@@ -236,7 +236,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
         id: "doc-1",
         kind: "charter",
         title: "Charter Goal G1",
-        source_path: "docs/mind/CHARTER.md",
+        source_path: "docs/CHARTER.md",
         content: "Continuously ensure 0 TypeScript any across all codebase modules.",
         metadata: { goal: "G1" },
       });
@@ -244,7 +244,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
       expect(doc.id).toBe("doc-1");
       expect(doc.kind).toBe("charter");
       expect(doc.title).toBe("Charter Goal G1");
-      expect(doc.source_path).toBe("docs/mind/CHARTER.md");
+      expect(doc.source_path).toBe("docs/CHARTER.md");
       expect(doc.tokens.length).toBeGreaterThan(0);
       expect(doc.token_counts["typescript"]).toBe(1);
       expect(doc.metadata["goal"]).toBe("G1");
@@ -350,7 +350,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
           kind: "charter",
           title: "Goal G1 Zero Any",
           capsule_id: null,
-          source_path: "docs/mind/CHARTER.md",
+          source_path: "docs/CHARTER.md",
           content: "G1: Zero TypeScript any and 0 compiler suppressions.",
         }),
         createMemoryDocument({
@@ -529,7 +529,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
           kind: "charter" as MemoryKind,
           title: "Goal G1",
           capsule_id: null,
-          source_path: "docs/mind/CHARTER.md",
+          source_path: "docs/CHARTER.md",
           score: 3.5,
           snippet: "0 TypeScript any",
           matched_terms: ["any"],

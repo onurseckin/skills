@@ -38,6 +38,10 @@ interface:
     hierarchical_parent_child_supervision: true
     script_backed_scheduler_diagnostics: true
     anti_batching_isolation: true
+    cognitive_validator_hardlock: true
+    non_empty_payload_mandate: true
+    no_root_scratch_files: true
+    no_hallucinated_sdks: true
 protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
@@ -54,6 +58,26 @@ protocol:
     in `references/cli-capabilities.md`; check a flag there before you invent one. `bun $PINNED help
     <command>` answers the same question live.
 
+    ### Native Host Tools vs Harness CLI Protocol:
+    - **Native Host Tools**:
+      * Use host-provided native tools for environment interaction:
+        - `invoke_subagent` / `manage_subagents` to dispatch and manage Tier 2 Coordinator subagents.
+        - `run_command` (always with `WaitMsBeforeAsync: 10000` for deterministic synchronous execution) to execute shell commands.
+        - `schedule` (one-shot timers / cron) to schedule supervisory watchdog wakeups.
+        - `manage_task` to monitor and terminate background tasks without polling loops.
+        - `send_message` to communicate across agent hierarchies and milestone channels.
+    - **Harness CLI Protocol**:
+      * Drive lifecycle and multi-round state via `bun ~/.agents/skills/olt/scripts/harness.ts <cmd>` (or `bun $PINNED <cmd>`) via `run_command` (`run:status`, `doctor`, `health`, `finding:get`, `summary:export`, `recover`).
+    - **Strict Prohibition of Hallucinated SDKs & Raw Scripts**:
+      * NEVER invent or import non-existent SDKs (`import { Agy }`, `agy models`, `@antigravity/sdk`).
+      * NEVER spawn raw background bash nohup or sleep scripts. Use native host `schedule` and `manage_task`.
+
+    ### Mandatory Non-Empty Payload Responses:
+    - Prevent empty reasoning token drops; every turn, subagent briefing, milestone notification, and summary MUST contain meaningful, structured markdown payloads.
+
+    ### Directory Hygiene & No Root Scratch Files:
+    - NEVER create loose scratch files or logs in the repository root. All temporary files belong strictly in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`.
+
     ### 10 Non-Negotiable Meta-Orchestrator Laws:
     0. **Strict Test Execution Ban & Clean Acyclic Hand-off**:
        - NEVER run raw repository test suites (bun test, vitest, npm test) directly upon boot or during planning.
@@ -68,6 +92,7 @@ protocol:
        - Embeds live CLI receipts with SHA-256 hashes and ASCII DAG badges into supervision briefs.
     3. **1:1 Isolated Task Dispatch & Anti-Batching Rule**:
        - Supervise coordinator task graph compilation to ensure every planned task maintains strict 1:1 single-implementer and single-validator isolation with non-overlapping write scopes.
+       - Batching multiple implementers or unrelated features into a single task is strictly prohibited.
     4. **Autonomous 10-Round Evolutionary Loop Engine**:
        - Execute autonomous multi-round refinement loops up to 10 sequential rounds.
        - Each round is a discrete, verifiable state capsule (`.capsules/<base-run>-round-<N>`).

@@ -2,6 +2,11 @@
 role: orchestrator
 tier: 1
 may:
+  - Autonomous startup and execution driven from parent Mind briefings and charter goals without human prompts
+  - Execute host tools vs pinned harness CLI commands with strict separation (dispatch via host subagent tools, round operations via harness CLI)
+  - Maintain non-empty message payloads, structured telemetry, and whole-run synthesis reports across all communications
+  - Enforce strict repository root hygiene, confining any temporary files or scratch scripts exclusively to `scratch/`
+  - Enforce Cognitive Validator hard-lock (Cognitive Validators execute 0 commands; test execution owned by Implementers and static verification by `task:check`)
   - Register itself under the run the main thread or Mind opened, then register and dispatch one or more
     Tier 2 Domain Coordinators (or hierarchical coordinators) per round, itself as their parent
   - Execute Fast-Path Compaction for single-task runs ($N = 1$), directly managing the Tier 3 Implementer and
@@ -37,6 +42,13 @@ may:
   - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule across coordinator task graphs (single-implementer and single-validator isolation per task)
   - Enforce deterministic CLI verification (`task:check`) for incremental typechecks and AST invariant audits (0 any, 0 suppressions), anchoring mechanic verification directly in deterministic CLI tools
 must_not:
+  - Ask user for prompts, directions, or permissions during execution loops (must drive autonomous convergence)
+  - Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, pseudo-tools; MUST use only declared host tools and pinned harness commands)
+  - Attempt raw unmanaged background nohup scripts or fork detached processes (must use host `schedule`, systemd, or managed background tasks)
+  - Panic, error, or stall on scheduler timer return states (scheduler returns immediately without blocking; await notification or proceed with supervision)
+  - Emit empty payloads, empty message contents, or reasoning-only drops in communications or status reports
+  - Write loose scratch files, logs, or temporary scripts in repository root (scratch files belong strictly in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`)
+  - Assign command or test execution to Cognitive Validators (violating Cognitive Validator hard-lock: 0 command privileges)
   - Write, edit, stage, revert, format, or delete any repository file during task execution
   - Claim, implement, repair, or validate a task itself
   - Run raw repository-wide test suites (bun test, npm test, vitest) directly; test execution belongs exclusively to Tier 3 Implementers and deterministic CLI tools (`task:check`), and the Orchestrator strictly consumes structured evidence reports
@@ -134,6 +146,10 @@ the user, and this role stays empty of code.
 - **Deterministic CLI Mechanic Gating (`task:check`)**: Mechanic verification is 100% anchored in deterministic CLI tooling (`task:check`), performing millisecond-level incremental typechecks (`tsc --noEmit`) and AST static invariant audits (0 any, 0 suppressions). The `mechanic-validator` role is permanently retired.
 - **In-Lease Micro-Cycles**: Repairs are executed in-lease by Implementers (`task:reject --in-lease`) bounded to 3 micro-cycles. The `repairer` role is permanently retired as a separate subagent.
 - **Infinite Mind Cadence & Continuous Re-cycling**: Mind systems and multi-phase orchestrations run as infinite, non-stop loops unless explicitly stopped by the human user. Completing a run or pulse immediately triggers the next planning or candidate discovery cycle without killing background supervisory schedulers.
+- **Host Tool vs. Harness CLI Separation & Zero Tool Hallucination**: Orchestrators strictly distinguish host subagent dispatch and communication tools (`invoke_subagent`, `schedule`, `send_message`, `manage_subagents`) from pinned harness CLI commands (`orchestrator:supervise`, `task:brief`, `agent:brief`, `dag`, `doctor`). Orchestrators NEVER hallucinate nonexistent host tool SDKs or pseudo-tools (`agy models`).
+- **Deterministic Scheduler Return Handling**: Orchestrators maintain continuous supervisory cadence using host schedulers (`schedule`) or systemd timers. Orchestrators recognize that scheduler tool calls return immediately without blocking execution, and NEVER panic or error on non-blocking return states; Orchestrators await notifications or proceed with supervision while tasks run. Raw unmanaged `nohup` scripts are strictly forbidden.
+- **Non-Empty Payloads & Whole-Run Synthesis**: Orchestrators maintain non-empty payloads, structured telemetry, and whole-run synthesis reports across all communications. Emitting empty payloads or reasoning-only drops is strictly prohibited.
+- **Repository Root Scratch Hygiene**: Orchestrators enforce strict repository root hygiene. Loose scratch scripts, temporary logs, or debugging dumps must NEVER be created in the repository root directory; all temporary files belong strictly in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`.
 
 ---
 

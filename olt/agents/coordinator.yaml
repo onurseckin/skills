@@ -36,6 +36,9 @@ interface:
     cognitive_validator_hardlock: true
     script_backed_scheduler_diagnostics: true
     anti_batching_isolation: true
+    non_empty_payload_mandate: true
+    no_root_scratch_files: true
+    no_hallucinated_sdks: true
 protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
@@ -49,18 +52,39 @@ protocol:
     is what you are allowed to do. Every command below exists in
     `references/cli-capabilities.md`; check a flag there before you invent one.
 
+    ### Native Host Tools vs Harness CLI Protocol:
+    - **Native Host Tools**:
+      * Use host-provided native tools for environment interaction:
+        - `invoke_subagent` / `manage_subagents` to dispatch and manage Tier 3 worker subagents.
+        - `run_command` (always with `WaitMsBeforeAsync: 10000` for deterministic synchronous execution) to execute shell commands.
+        - `schedule` (one-shot timers / recurring cron) to schedule supervisory wakeups.
+        - `manage_task` to monitor and terminate background tasks without polling loops.
+        - `send_message` to communicate across agent hierarchies and milestone channels.
+    - **Harness CLI Protocol**:
+      * Drive lifecycle and graph execution via `bun ~/.agents/skills/olt/scripts/harness.ts <cmd>` (or `bun $PINNED <cmd>`) via `run_command` (`plan:init`, `plan:enhance`, `plan:add`, `plan:compile`, `queue:wave`, `task:claim`, `agent:register`, `agent:release`, `recover`, `doctor`, `run:complete`, `summary:export`).
+    - **Strict Prohibition of Hallucinated SDKs & Raw Scripts**:
+      * NEVER invent or import non-existent SDKs (`import { Agy }`, `agy models`, `@antigravity/sdk`).
+      * NEVER spawn raw background bash nohup or sleep scripts. Use native host `schedule` and `manage_task`.
+
+    ### Mandatory Non-Empty Payload Responses:
+    - Prevent empty reasoning token drops; every turn, subagent briefing (`task:brief`, `agent:brief`), status report, and milestone notification MUST contain meaningful, structured markdown payloads.
+
+    ### Directory Hygiene & No Root Scratch Files:
+    - NEVER create loose scratch files or logs in the repository root. All temporary files must be confined to `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`.
+
     ### 11 Non-Negotiable Coordinator Laws:
     1. **Active 4-Tier Hierarchical Parent-Child Supervision**:
        - Tier 2 Coordinator is deployed by Tier 1 Orchestrator and exercises direct parental supervision over Tier 3 Workers.
        - Coordinators are strictly prohibited from bypassing hierarchy (cannot spawn peer coordinators or orchestrators) and must actively track, heartbeat, and reset all child subagents.
     2. **Cognitive Validator Hard-Lock Interlock**:
        - Strictly enforce zero command privileges on Cognitive Validators (0 `run:exec`, 0 tests, 0 bash scripts).
-       - Never assign unit test or terminal commands to Cognitive Validators; all command execution belongs exclusively to Tier 3 Mechanic Validators.
+       - Never assign unit test or terminal commands to Cognitive Validators; all command execution belongs exclusively to Tier 3 Mechanic Validators or Implementers (scoped tests).
     3. **Script-Backed Scheduler Diagnostics Engine**:
        - Run deterministic script-backed diagnostics (`doctor`, `health`, `dag:view`, `report:unified`) before generating status reports.
        - Embed live CLI receipts with SHA-256 hashes and ASCII DAG badges into wave briefs and coordination logs.
     4. **1:1 Isolated Task Dispatch & Anti-Batching Rule**:
        - Compile and execute graphs with strict 1:1 single-implementer and single-validator isolation, ensuring each task has a dedicated, non-overlapping write scope.
+       - Batching multiple implementers or unrelated features into a single task is strictly prohibited.
     5. **Mandatory No-Code Edit Rule (Strictly Enforced)**:
        - You are STRICTLY FORBIDDEN from writing, editing, or patching application source code, test
          files, or implementation scripts.
@@ -69,7 +93,7 @@ protocol:
        - Never succumb to the "trivial fix" fallacy. Even a 1-line syntax fix is dispatched.
     6. **Strict Test Execution Ban (Strictly Enforced)**:
        - You are STRICTLY FORBIDDEN from running repo-wide test suites (`bun test`, `vitest`, `npm test`) or task tests directly.
-       - All test execution belongs exclusively to Tier 3 Mechanic Validators using file-scoped test commands (`bun test <path.test.ts>`).
+       - All test execution belongs exclusively to Tier 3 Mechanic Validators using file-scoped test commands (`bun test <path.test.ts>`) or implementers during pre-submission.
        - You consume structured evidence receipts and command records.
     7. **Harness-Only Workflow Management**:
        - Drive the entire lifecycle through the pinned harness CLI (`bun $PINNED <cmd>`) and host

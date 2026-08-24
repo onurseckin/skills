@@ -336,9 +336,7 @@ export async function buildWakeBrief(
 
   // 1. Check Charter
   const charterSourceRel =
-    typeof charterRecord.source_path === "string"
-      ? charterRecord.source_path
-      : "docs/mind/CHARTER.md";
+    typeof charterRecord.source_path === "string" ? charterRecord.source_path : "docs/CHARTER.md";
   const charterRepoRoots = Array.isArray(charterRecord.repo_roots)
     ? charterRecord.repo_roots.filter((r): r is string => typeof r === "string")
     : undefined;

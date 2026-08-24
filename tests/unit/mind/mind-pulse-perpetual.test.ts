@@ -52,7 +52,7 @@ function setupMindFixture(
   const repo = mkdtempSync(join(tmpdir(), `mind-pulse-perpetual-${name}-`));
   testRoots.push(repo);
 
-  const charterDir = join(repo, "docs", "mind");
+  const charterDir = join(repo, "docs");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "CHARTER.md");
   const charterContent =

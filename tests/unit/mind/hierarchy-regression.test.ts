@@ -67,7 +67,7 @@ function createMindTestCapsule(
   } = {},
 ): { repo: string; run: string } {
   const repo = scratchRoot(callerPath, label);
-  const charterDir = join(repo, "docs", "mind");
+  const charterDir = join(repo, "docs");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "CHARTER.md");
   writeFileSync(
@@ -82,13 +82,13 @@ function createMindTestCapsule(
     run,
     "mind-init",
     "mind-initialized",
-    { generation: 1, charter_source_path: "docs/mind/CHARTER.md", pinned_sha256: charterSha },
+    { generation: 1, charter_source_path: "docs/CHARTER.md", pinned_sha256: charterSha },
     (w) => {
       w.mind = {
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/mind/CHARTER.md",
+          source_path: "docs/CHARTER.md",
           pinned_sha256: charterSha,
           goals: ["G1"],
           repo_roots: ["src/"],

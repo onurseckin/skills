@@ -66,7 +66,6 @@ const ENTRIES = [
   ".skillignore",
   "agents",
   "checklists",
-  "mind",
   "references",
   "roles",
   "scripts",
