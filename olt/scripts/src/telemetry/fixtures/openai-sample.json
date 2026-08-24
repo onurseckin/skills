@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-08-24T06:55:00.000Z",
+  "type": "event_msg",
+  "payload": {
+    "type": "token_count",
+    "info": {
+      "total_token_usage": {
+        "input_tokens": 125000,
+        "cached_input_tokens": 85000,
+        "output_tokens": 15000,
+        "reasoning_output_tokens": 3500,
+        "total_tokens": 140000
+      },
+      "last_token_usage": {
+        "input_tokens": 1250,
+        "cached_input_tokens": 850,
+        "output_tokens": 150,
+        "reasoning_output_tokens": 35,
+        "total_tokens": 1400
+      },
+      "model_context_window": 258400
+    },
+    "rate_limits": {
+      "limit_id": "codex",
+      "limit_name": null,
+      "primary": {
+        "used_percent": 76.0,
+        "window_minutes": 10080,
+        "resets_at": 1787280818
+      },
+      "secondary": null,
+      "credits": {
+        "has_credits": false,
+        "unlimited": false,
+        "balance": "0"
+      },
+      "individual_limit": null,
+      "spend_control_reached": null,
+      "plan_type": "prolite",
+      "rate_limit_reached_type": null
+    }
+  }
+}

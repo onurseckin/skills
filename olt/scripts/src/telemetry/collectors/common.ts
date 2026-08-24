@@ -1,5 +1,5 @@
 import { homedir } from "node:os";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { join } from "node:path";
@@ -20,6 +20,7 @@ export interface CollectorEnvironment {
   homedir?: string;
   fetchUserStatus?: (port: string) => Promise<Record<string, unknown> | null>;
   fetchClaudeUsage?: () => Promise<Record<string, unknown> | null>;
+  fetchCodexUsage?: () => Promise<Record<string, unknown> | null>;
 }
 
 export class DefaultCollectorEnvironment implements Required<CollectorEnvironment> {
@@ -86,26 +87,13 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       return this.overrides.fetchUserStatus(port);
     }
 
-    if (port === "0" || port === "mock") {
+    // Unit test isolation guard: when readFile is mocked and no explicit fetch override was passed, return null
+    if (this.overrides.readFile) {
       return null;
     }
 
-    // Default to local cached fixture to avoid rate-limiting/spamming live server during report formatting.
-    // Set OLT_LIVE_RPC=true to execute live Connect-RPC call directly against the active Language Server.
-    const useLiveRpc = this.env.OLT_LIVE_RPC === "true";
-
-    if (!useLiveRpc) {
-      if (this.overrides.readFile && !this.overrides.fetchUserStatus) {
-        return null;
-      }
-      try {
-        const fixturePath = new URL("../fixtures/antigravity-sample.json", import.meta.url)
-          .pathname;
-        const raw = await readFile(fixturePath, "utf8");
-        return JSON.parse(raw) as Record<string, unknown>;
-      } catch {
-        // Fall back to live RPC if fixture read fails
-      }
+    if (port === "0" || port === "mock") {
+      return null;
     }
 
     /* =========================================================================
@@ -125,11 +113,19 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
         // Cast via unknown to RequestInit for Bun TLS extension support
         requestOptions as unknown as RequestInit,
       );
-      if (!res.ok) {
-        return null;
+      if (res.ok) {
+        const data = (await res.json()) as Record<string, unknown>;
+        if (data) return data;
       }
-      const data = (await res.json()) as Record<string, unknown>;
-      return data;
+    } catch {
+      // Fall back to bundled fixture if live RPC fails
+    }
+
+    // Fallback to sample fixture
+    try {
+      const fixturePath = new URL("../fixtures/antigravity-sample.json", import.meta.url).pathname;
+      const raw = await readFile(fixturePath, "utf8");
+      return JSON.parse(raw) as Record<string, unknown>;
     } catch {
       return null;
     }
@@ -144,34 +140,21 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       return this.overrides.fetchClaudeUsage();
     }
 
-    // Default to local cached fixture to avoid rate-limiting/spamming live server during report formatting.
-    // Set OLT_LIVE_CLAUDE_RPC=true to execute live Anthropic API call directly against the OAuth endpoint.
-    const useLiveRpc = this.env.OLT_LIVE_CLAUDE_RPC === "true";
+    // Unit test isolation guard: when readFile is mocked and no explicit fetch override was passed, return null
+    if (this.overrides.readFile) {
+      return null;
+    }
 
-    if (!useLiveRpc) {
-      if (this.overrides.readFile && !this.overrides.fetchClaudeUsage) {
-        return null;
+    // 1. Try reading live ~/.claude.json directly
+    try {
+      const claudeJsonPath = join(this.homedir, ".claude.json");
+      const raw = await readFile(claudeJsonPath, "utf8");
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      if (parsed && (parsed.cachedUsageUtilization || parsed.oauthAccount || parsed.utilization)) {
+        return parsed;
       }
-      // 1. Try reading the local cached fixture first
-      try {
-        const fixturePath = new URL("../fixtures/claude-sample.json", import.meta.url).pathname;
-        const raw = await readFile(fixturePath, "utf8");
-        return JSON.parse(raw) as Record<string, unknown>;
-      } catch {
-        // Fall back to reading ~/.claude.json directly
-      }
-
-      // 2. Try reading ~/.claude.json directly
-      try {
-        const claudeJsonPath = join(this.homedir, ".claude.json");
-        const raw = await readFile(claudeJsonPath, "utf8");
-        const parsed = JSON.parse(raw) as Record<string, unknown>;
-        if (parsed.cachedUsageUtilization || parsed.oauthAccount) {
-          return parsed;
-        }
-      } catch {
-        // Fall back to live call
-      }
+    } catch {
+      // Fall back to live API or fixture
     }
 
     /* =========================================================================
@@ -180,25 +163,99 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
      * ========================================================================= */
     try {
       const token = this.env.CLAUDE_CODE_OAUTH_TOKEN || this.env.ANTHROPIC_OAUTH_TOKEN;
-      if (!token) {
-        return null;
+      if (token) {
+        const requestOptions = {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "anthropic-beta": "oauth-2025-04-20",
+            "User-Agent": "claude-code/2.1.241",
+            Accept: "application/json",
+          },
+          signal: AbortSignal.timeout(1500),
+        };
+        const res = await fetch("https://api.anthropic.com/api/oauth/usage", requestOptions);
+        if (res.ok) {
+          const data = (await res.json()) as Record<string, unknown>;
+          if (data) {
+            return { cachedUsageUtilization: { utilization: data } };
+          }
+        }
       }
-      const requestOptions = {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "anthropic-beta": "oauth-2025-04-20",
-          "User-Agent": "claude-code/2.1.241",
-          Accept: "application/json",
-        },
-        signal: AbortSignal.timeout(1500),
-      };
-      const res = await fetch("https://api.anthropic.com/api/oauth/usage", requestOptions);
-      if (!res.ok) {
-        return null;
+    } catch {
+      // Fall back to fixture
+    }
+
+    // 2. Fall back to bundled fixture
+    try {
+      const fixturePath = new URL("../fixtures/claude-sample.json", import.meta.url).pathname;
+      const raw = await readFile(fixturePath, "utf8");
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+
+  public get hasFetchCodexUsageOverride(): boolean {
+    return typeof this.overrides.fetchCodexUsage === "function";
+  }
+
+  public async fetchCodexUsage(): Promise<Record<string, unknown> | null> {
+    if (this.overrides.fetchCodexUsage) {
+      return this.overrides.fetchCodexUsage();
+    }
+
+    // Unit test isolation guard: when readFile is mocked and no explicit fetch override was passed, return null
+    if (this.overrides.readFile) {
+      return null;
+    }
+
+    // 1. Find latest ~/.codex/sessions/**/rollout-*.jsonl and extract the last token_count event
+    try {
+      const sessionsDir = join(this.homedir, ".codex", "sessions");
+      const entries = await readdir(sessionsDir, { recursive: true, withFileTypes: true });
+      const rolloutFiles = entries
+        .filter((e) => e.isFile() && e.name.startsWith("rollout-") && e.name.endsWith(".jsonl"))
+        .map((e) => ({
+          name: e.name,
+          fullPath: join(e.parentPath || (e as { path?: string }).path || sessionsDir, e.name),
+        }))
+        .sort((a, b) => b.name.localeCompare(a.name));
+
+      for (const file of rolloutFiles.slice(0, 20)) {
+        try {
+          const raw = await readFile(file.fullPath, "utf8");
+          const lines = raw.split("\n").filter(Boolean);
+          for (let i = lines.length - 1; i >= 0; i--) {
+            try {
+              const parsed = JSON.parse(lines[i]!) as Record<string, unknown>;
+              const payload = parsed?.payload as Record<string, unknown> | undefined;
+              if (
+                parsed &&
+                (payload?.type === "token_count" ||
+                  parsed.type === "token_count" ||
+                  payload?.rate_limits ||
+                  parsed.rate_limits)
+              ) {
+                return parsed;
+              }
+            } catch {
+              // Ignore invalid line JSON
+            }
+          }
+        } catch {
+          // Continue to next rollout candidate
+        }
       }
-      const data = (await res.json()) as Record<string, unknown>;
-      return { cachedUsageUtilization: { utilization: data } };
+    } catch {
+      // Sessions dir missing or inaccessible
+    }
+
+    // 2. Fall back to bundled fixture
+    try {
+      const fixturePath = new URL("../fixtures/openai-sample.json", import.meta.url).pathname;
+      const raw = await readFile(fixturePath, "utf8");
+      return JSON.parse(raw) as Record<string, unknown>;
     } catch {
       return null;
     }

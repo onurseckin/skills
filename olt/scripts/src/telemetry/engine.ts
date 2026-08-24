@@ -266,6 +266,17 @@ export class TelemetryNormalizationEngine {
         const parts = [email, plan, billing].filter(Boolean);
         accountBadges.push(`\`[claude]\` ${parts.join(" · ")}`);
       }
+
+      if (
+        (res.platformId === "codex" || res.platformId === "openai") &&
+        (res.rawObservations.planType || res.rawObservations.plan_type || res.rawObservations.plan)
+      ) {
+        const plan =
+          res.rawObservations.planType ?? res.rawObservations.plan_type ?? res.rawObservations.plan;
+        const email = res.rawObservations.email ? `${res.rawObservations.email}` : "";
+        const parts = [`Plan: ${plan}`, email].filter(Boolean);
+        accountBadges.push(`\`[${res.platformId}]\` ${parts.join(" · ")}`);
+      }
     }
 
     if (accountBadges.length > 0) {

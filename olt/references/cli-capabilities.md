@@ -1028,6 +1028,124 @@ bun harness.ts dag:trace --run .olt/capsules/<run-id>
 bun harness.ts dag:trace --run .olt/capsules/<run-id> --task task-1
 ```
 
+### `usage:report`
+
+Discover and report cross-platform quota, rate limit, and token usage telemetry.
+
+Autonomously probes frontier LLM platforms (Antigravity, Claude, Cursor, OpenAI/Codex) using a 3-tier fallback strategy and generates unified ASCII telemetry tables.
+
+- **Aliases**: `telemetry:usage`, `quota:report`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--platform` | string | no | no | - | Filter probe to a specific platform ID (antigravity, claude, cursor, openai, codex). |
+| `--detailed` | bool | no | no | - | Include full raw vendor observation payloads. |
+| `--json` | bool | no | no | - | Output structured JSON report. |
+
+```bash
+bun harness.ts usage:report
+bun harness.ts usage:report --platform antigravity
+bun harness.ts usage:report --detailed
+```
+
+### `quota:check`
+
+Evaluate quota circuit-breaker status, wrap-up directives, and auto-wake timer schedule.
+
+Probes cross-platform quota telemetry, detects exhaustion (<5%), generates wrap-up directives for active agents, and computes one-shot auto-wake scheduler payloads.
+
+- **Aliases**: `quota:circuit-break`, `circuit-breaker:check`, `circuit-break`, `quota:circuit-breaker`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--platform` | string | no | no | - | Filter probe to a specific platform ID (antigravity, claude, cursor, openai, codex). |
+| `--threshold` | string | no | no | `5.0` | Quota percentage threshold to trigger circuit breaker (default: 5.0). |
+| `--active-agents` | int | no | no | `0` | Number of currently active agents to register in auto-wake schedule. |
+| `--detailed` | bool | no | no | - | Include full vendor observation payloads. |
+| `--json` | bool | no | no | - | Output structured JSON report. |
+
+```bash
+bun harness.ts quota:check
+bun harness.ts quota:check --threshold 5.0
+bun harness.ts quota:circuit-break --json
+```
+
+### `quota:freeze`
+
+Initiate DAG quota freeze and create a snapshot.
+
+Probes quota telemetry and freezes DAG operations if circuit breaker is triggered or force is applied. Outputs state to a snapshot file.
+
+- **Aliases**: `quota:suspend`, `freeze:quota`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--repo` | string | no | no | - | Repository root path. |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--threshold` | string | no | no | `5.0` | Quota percentage threshold (default: 5.0). |
+| `--active-agents` | int | no | no | `0` | Number of currently active agents. |
+| `--force` | bool | no | no | `false` | Force freeze even if quota healthy. |
+| `--json` | bool | no | no | - | Output structured JSON report. |
+| `--detailed` | bool | no | no | - | Detailed markdown output. |
+
+```bash
+bun harness.ts quota:freeze
+bun harness.ts quota:freeze --force
+```
+
+### `quota:resume`
+
+Resume DAG operations from a quota freeze snapshot.
+
+Probes quota telemetry and resumes operations from a prior freeze if quota is healthy or force is applied.
+
+- **Aliases**: `quota:unfreeze`, `resume:quota`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--repo` | string | no | no | - | Repository root path. |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--snapshot` | string | no | no | - | Custom snapshot file path. |
+| `--threshold` | string | no | no | `5.0` | Quota percentage threshold (default: 5.0). |
+| `--force` | bool | no | no | `false` | Force resume even if quota is still constrained. |
+| `--json` | bool | no | no | - | Output structured JSON report. |
+| `--detailed` | bool | no | no | - | Detailed markdown output. |
+
+```bash
+bun harness.ts quota:resume
+bun harness.ts quota:resume --force
+```
+
+### `skill:audit:live`
+
+Live Tier 0 out-of-band audit of skill compliance and delta event forensics.
+
+Scans incremental delta events, audits cognitive contracts, and routes defects upstream.
+
+- **Aliases**: `skill:audit`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--repo` | string | no | no | - | Repository root path. |
+| `--run` | string | no | no | - | Target capsule run root directory. |
+| `--log-defects` | bool | no | no | `true` | Automatically log detected incidents as defects. |
+| `--json` | bool | no | no | - | Output structured JSON. |
+
+```bash
+bun harness.ts skill:audit:live
+bun harness.ts skill:audit:live --run .olt/capsules/run-1 --json
+```
+
 ## run
 
 ### `run:exec`
@@ -2869,4 +2987,26 @@ Moves sealed items from .olt/backlog.jsonl to .olt/completed-tasks.jsonl.
 ```bash
 bun harness.ts mind:queue:clean
 bun harness.ts todo:clean
+```
+
+### `mind:audit:live`
+
+Live Tier 0 out-of-band audit of mind liveness, stagnation, and Mode A/B injection.
+
+Evaluates idle duration against >120s stagnation threshold and builds verbatim role prompt.
+
+- **Aliases**: `mind:audit`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--repo` | string | no | no | - | Repository root path. |
+| `--threshold` | int | no | no | `120` | Stagnation threshold in seconds (default: 120). |
+| `--conversation-id` | string | no | no | - | Target conversation identifier. |
+| `--json` | bool | no | no | - | Output structured JSON. |
+
+```bash
+bun harness.ts mind:audit:live
+bun harness.ts mind:audit:live --threshold 60 --json
 ```

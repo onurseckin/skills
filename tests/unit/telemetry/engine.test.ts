@@ -130,6 +130,37 @@ describe("TelemetryNormalizationEngine", () => {
     expect(ascii).toContain("Tier 1");
     expect(ascii).toContain("Detailed Raw Observations");
   });
+
+  it("renders account badges for Codex and Claude in formatAsciiReport", async () => {
+    const codexCollector: TelemetryCollector = {
+      platformId: "codex",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "codex",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [
+          {
+            rawMetricName: "Codex (7-Day Limit)",
+            canonicalProvider: "openai",
+            windowType: "weekly",
+            remainingPercentage: 24,
+            sourceTier: "tier1_cli_command",
+            confidence: "verified_exact",
+            rawPayload: {},
+          },
+        ],
+        rawObservations: { plan_type: "prolite" },
+        errors: [],
+      }),
+    };
+
+    const engine = new TelemetryNormalizationEngine([codexCollector]);
+    const report = await engine.probeAll();
+    const ascii = engine.formatAsciiReport(report);
+
+    expect(ascii).toContain("Account Badges");
+    expect(ascii).toContain("`[codex]` Plan: prolite");
+  });
 });
 
 describe("renderProgressBar and formatTierBadge helpers", () => {
