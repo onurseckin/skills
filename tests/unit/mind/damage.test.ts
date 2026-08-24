@@ -38,12 +38,12 @@ function setupMindDamageCapsule(
   } = {},
 ): MindDamageFixture {
   const repo = scratchRoot(import.meta.path, label);
-  const charterDir = join(repo, "docs");
+  const charterDir = join(repo, ".olt");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "CHARTER.md");
   const charterContent =
     overrides.charterContent ??
-    `# CHARTER\n\n## identity\nDeliberate Damage Test App\n\n## goals\n- G1: Ensure stability under damage\n\n## non-goals\n- Out of scope\n\n## repo_roots\n- \`src/\`\n`;
+    `# CHARTER\n\n## identity\nDeliberate Damage Test App\n\n## goals\n- G1: Ensure stability under damage\n\n## non-goals\n- Out of scope\n\n## repo_roots\n- \`src/\`\n- \`.olt/\`\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -57,7 +57,7 @@ function setupMindDamageCapsule(
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/CHARTER.md",
+      charter_source_path: ".olt/CHARTER.md",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -65,10 +65,10 @@ function setupMindDamageCapsule(
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/CHARTER.md",
+          source_path: ".olt/CHARTER.md",
           pinned_sha256: charterSha,
           goals: ["G1"],
-          repo_roots: ["docs/"],
+          repo_roots: [".olt/"],
           evidence_class: "harness_observed",
         },
         actor: "mind-1",

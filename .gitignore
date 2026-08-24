@@ -19,11 +19,11 @@ __pycache__/
 .olt/capsules/
 .olt/scratch/
 .olt/.sessions/
-scratch/
-.scratch/
-.tmp/
+/scratch/
+/.scratch/
+/.tmp/
 coverage.json
-runtime/
+/runtime/
 
 # test temporary sandbox
 tests/.tmp/

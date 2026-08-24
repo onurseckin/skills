@@ -76,6 +76,7 @@ export * from "./task-validation-start.ts";
 export * from "./test-summary.ts";
 export * from "./todo-ops.ts";
 export * from "./unified-reporting.ts";
+export * from "./usage-report.ts";
 export * from "./watchdog-ops.ts";
 export * from "./whoami.ts";
 export * from "./worktree-ops.ts";

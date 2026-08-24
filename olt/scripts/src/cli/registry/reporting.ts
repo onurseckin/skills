@@ -15,6 +15,7 @@ import { streamEventsCommand } from "../commands/stream-events.ts";
 import { exportGraphJsonCommand } from "../commands/graph-export.ts";
 import { dagViewCommand } from "../commands/dag-view.ts";
 import { dagRenderCommand, dagTraceCommand } from "../commands/dag.ts";
+import { usageReportCommand } from "../commands/usage-report.ts";
 
 export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   {
@@ -311,5 +312,31 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts dag:trace --run .olt/capsules/<run-id> --task task-1",
     ],
     handler: dagTraceCommand,
+  },
+  {
+    name: "usage:report",
+    aliases: ["telemetry:usage", "quota:report"],
+    domain: "reporting",
+    summary: "Discover and report cross-platform quota, rate limit, and token usage telemetry.",
+    description:
+      "Autonomously probes frontier LLM platforms (Antigravity, Claude, Cursor, OpenAI/Codex) using a 3-tier fallback strategy and generates unified ASCII telemetry tables.",
+    flags: [
+      optionalFlag(
+        "platform",
+        "string",
+        "Filter probe to a specific platform ID (antigravity, claude, cursor, openai, codex).",
+      ),
+      optionalFlag("detailed", "bool", "Include full raw vendor observation payloads."),
+      optionalFlag("json", "bool", "Output structured JSON report."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts usage:report",
+      "bun harness.ts usage:report --platform antigravity",
+      "bun harness.ts usage:report --detailed",
+    ],
+    handler: usageReportCommand,
   },
 ];

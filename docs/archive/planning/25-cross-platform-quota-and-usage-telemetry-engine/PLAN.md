@@ -106,12 +106,12 @@ export interface TelemetryCollector {
 
 ## 3. Implementation Status & Empirical Audit
 
-| Task       | Title                                                |    Status     | Grounded Files & Proof                                                                                                                                                                                                                                                                                                                                                                                                  |
-| :--------- | :--------------------------------------------------- | :-----------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Task 1** | Resilient Schemas & Universal Interfaces             | **COMPLETED** | [`olt/scripts/src/telemetry/types.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/telemetry/types.ts)<br>[`olt/scripts/src/telemetry/probe-interface.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/telemetry/probe-interface.ts)<br>[`tests/unit/telemetry/probe-resilience.test.ts`](file:///Users/onurseckinsenoglu/repos/skills/tests/unit/telemetry/probe-resilience.test.ts) |
-| **Task 2** | Base Tiered Discovery Engine (`BaseTieredCollector`) | **COMPLETED** | [`olt/scripts/src/telemetry/base-collector.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/telemetry/base-collector.ts)<br>[`tests/unit/telemetry/base-collector.test.ts`](file:///Users/onurseckinsenoglu/repos/skills/tests/unit/telemetry/base-collector.test.ts) (8 test cases passing)                                                                                                           |
-| **Task 3** | Discovery Collectors for Frontier Platforms          |  **PENDING**  | `olt/scripts/src/telemetry/collectors/`<br>(Antigravity, Claude, Cursor, Codex adapters)                                                                                                                                                                                                                                                                                                                                |
-| **Task 4** | Normalization Aggregator Engine & CLI Command        |  **PENDING**  | `olt/scripts/src/telemetry/engine.ts`<br>`olt/scripts/src/cli/commands/usage-report.ts`                                                                                                                                                                                                                                                                                                                                 |
+| Task       | Title                                                |    Status     | Grounded Files & Proof                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| :--------- | :--------------------------------------------------- | :-----------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Task 1** | Resilient Schemas & Universal Interfaces             | **COMPLETED** | [`olt/scripts/src/telemetry/types.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/telemetry/types.ts)<br>[`olt/scripts/src/telemetry/probe-interface.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/telemetry/probe-interface.ts)<br>[`tests/unit/telemetry/probe-resilience.test.ts`](file:///Users/onurseckinsenoglu/repos/skills/tests/unit/telemetry/probe-resilience.test.ts)                                                                                                                                                |
+| **Task 2** | Base Tiered Discovery Engine (`BaseTieredCollector`) | **COMPLETED** | [`olt/scripts/src/telemetry/base-collector.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/telemetry/base-collector.ts)<br>[`tests/unit/telemetry/base-collector.test.ts`](file:///Users/onurseckinsenoglu/repos/skills/tests/unit/telemetry/base-collector.test.ts) (8 test cases passing)                                                                                                                                                                                                                                                          |
+| **Task 3** | Discovery Collectors for Frontier Platforms          | **COMPLETED** | [`olt/scripts/src/telemetry/collectors/`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/telemetry/collectors/)<br>[`tests/unit/telemetry/collectors.test.ts`](file:///Users/onurseckinsenoglu/repos/skills/tests/unit/telemetry/collectors.test.ts) (14 test cases passing)                                                                                                                                                                                                                                                                             |
+| **Task 4** | Normalization Aggregator Engine & CLI Command        | **COMPLETED** | [`olt/scripts/src/telemetry/engine.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/telemetry/engine.ts)<br>[`olt/scripts/src/cli/commands/usage-report.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/usage-report.ts)<br>[`tests/unit/telemetry/engine.test.ts`](file:///Users/onurseckinsenoglu/repos/skills/tests/unit/telemetry/engine.test.ts)<br>[`tests/unit/telemetry/usage-report.test.ts`](file:///Users/onurseckinsenoglu/repos/skills/tests/unit/telemetry/usage-report.test.ts) (10 test cases passing) |
 
 ### Grounded Empirical Proof of Completed Components
 
@@ -172,7 +172,7 @@ Ran 9 tests across 2 files. [32.00ms]
 
 ---
 
-### Task 3: Implement Discovery Collectors for Antigravity, Claude, Cursor & Codex (Pending)
+### Task 3: Implement Discovery Collectors for Antigravity, Claude, Cursor & Codex (Completed)
 
 **Files:**
 
@@ -202,10 +202,10 @@ Ran 9 tests across 2 files. [32.00ms]
    - **Tier 2 (Storage)**: Inspect `~/.openai/` or cached token ledgers.
    - **Tier 3 (Runtime)**: Inspect `OPENAI_API_KEY` and session context window variables.
 
-- [ ] **Step 1: Write unit tests in `tests/unit/telemetry/collectors.test.ts` mocking filesystem and execution calls for each collector**
-- [ ] **Step 2: Implement concrete platform collectors adhering to `BaseTieredCollector`**
-- [ ] **Step 3: Run unit tests to verify all 4 collectors properly discover, fallback, and preserve raw metrics**
-- [ ] **Step 4: Commit**
+- [x] **Step 1: Write unit tests in `tests/unit/telemetry/collectors.test.ts` mocking filesystem and execution calls for each collector**
+- [x] **Step 2: Implement concrete platform collectors adhering to `BaseTieredCollector`**
+- [x] **Step 3: Run unit tests to verify all 4 collectors properly discover, fallback, and preserve raw metrics**
+- [x] **Step 4: Commit**
 
 ```bash
 git add olt/scripts/src/telemetry/collectors/ tests/unit/telemetry/collectors.test.ts
@@ -214,7 +214,7 @@ git commit -m "feat(telemetry): implement tiered collectors for Antigravity, Cla
 
 ---
 
-### Task 4: Implement `TelemetryNormalizationEngine` & `usage:report` CLI Command (Pending)
+### Task 4: Implement `TelemetryNormalizationEngine` & `usage:report` CLI Command (Completed)
 
 **Files:**
 
@@ -234,11 +234,11 @@ git commit -m "feat(telemetry): implement tiered collectors for Antigravity, Cla
    - Displays platform ID, detection state, active tier badge, quota metrics, remaining percentage bar (`[████████░░] 80%`), and confidence.
    - Summarizes probe errors non-fatally with clear remediation hints.
 
-- [ ] **Step 1: Write unit test in `tests/unit/telemetry/engine.test.ts` verifying concurrent multi-platform aggregation and ASCII table generation**
-- [ ] **Step 2: Implement `TelemetryNormalizationEngine` in `engine.ts`**
-- [ ] **Step 3: Implement `usage:report` command and register it in the OLT CLI command registry**
-- [ ] **Step 4: Run unit tests and typecheck (`bun run typecheck`) to verify zero errors**
-- [ ] **Step 5: Commit & Push & Sync**
+- [x] **Step 1: Write unit test in `tests/unit/telemetry/engine.test.ts` verifying concurrent multi-platform aggregation and ASCII table generation**
+- [x] **Step 2: Implement `TelemetryNormalizationEngine` in `engine.ts`**
+- [x] **Step 3: Implement `usage:report` command and register it in the OLT CLI command registry**
+- [x] **Step 4: Run unit tests and typecheck (`bun run typecheck`) to verify zero errors**
+- [x] **Step 5: Commit & Push & Sync**
 
 ```bash
 git add olt/scripts/src/telemetry/engine.ts olt/scripts/src/cli/commands/usage-report.ts olt/scripts/src/cli/registry/ tests/unit/telemetry/engine.test.ts

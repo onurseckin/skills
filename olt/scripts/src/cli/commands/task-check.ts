@@ -17,6 +17,7 @@ import {
   type AstLintViolation,
 } from "../../linter/ast-enforcer.ts";
 import { loadRun } from "../../engine/store/index.ts";
+import { AutoReceiptLogger } from "../../engine/runner/auto-receipt.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
 import { boolFlag, listFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
@@ -787,8 +788,20 @@ export async function taskCheckCommand(
         ) + "\n",
         "utf-8",
       );
+      const actorFlagVal = textFlag(flags, "actor", false);
+      const actor = actorFlagVal !== undefined ? actorFlagVal : "mechanic-validator";
+      const taskIdVal = taskId !== undefined ? taskId : "task:check";
+      AutoReceiptLogger.recordReceipt(resolve(runRoot), {
+        taskId: taskIdVal,
+        actor,
+        command: "task:check",
+        argv: ["task:check", ...(taskId ? ["--task", taskId] : []), ...targetFiles],
+        exitCode: passed ? 0 : 1,
+        stdout: markdown,
+        updateState: true,
+      });
     } catch {
-      // Non-fatal if evidence write fails
+      // Non-fatal if evidence or receipt write fails
     }
   }
 

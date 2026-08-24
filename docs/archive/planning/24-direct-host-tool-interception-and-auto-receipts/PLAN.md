@@ -41,7 +41,7 @@ Plan 24 establishes a unified **Shielded Execution & Automatic Receipt Pipeline*
 │   │  Path A: Standalone Host Execution (`shellCommand`)                             │   │
 │   │  • Direct argv execution via spawnSync                                          │   │
 │   │  • Emits signed receipt to `evidence/cmd-<sha16>.json`                          │   │
-│   │  • Emits live telemetry event to `olt/telemetry.jsonl`                          │   │
+│   │  • Emits live telemetry event to `.olt/telemetry.jsonl`                         │   │
 │   │                                                                                 │   │
 │   │  Path B: Capsule-Integrated Execution (`run:exec` / `runAndRecordCommand`)      │   │
 │   │  • Two-phase transaction: `recordCommandIntent` -> `reconcileCommandResult`     │   │
@@ -57,11 +57,11 @@ Plan 24 establishes a unified **Shielded Execution & Automatic Receipt Pipeline*
 │                                            │                                            │
 │                                            ▼                                            │
 │   [ Cryptographic Receipts, State Ledgers & Telemetry Stream ]                          │
-│   ┌─────────────────────────────┐ ┌───────────────────────────┐ ┌───────────────────┐  │
-│   │ Cryptographic Evidence JSON │ │ Capsule Transaction State │ │ Live Telemetry    │  │
-│   │  `evidence/cmd-*.json`      │ │   `state.json` (commands) │ │   Stream Logging  │  │
-│   │  `stdout_sha256`, receipt   │ │   `events.jsonl` (receipt)│ │(.olt/telemetry.json)│
-│   └─────────────────────────────┘ └───────────────────────────┘ └───────────────────┘  │
+│   ┌─────────────────────────────┐ ┌───────────────────────────┐ ┌─────────────────────┐│
+│   │ Cryptographic Evidence JSON │ │ Capsule Transaction State │ │ Live Telemetry Stream││
+│   │  `evidence/cmd-*.json`      │ │   `state.json` (commands) │ │  Stream Logging      ││
+│   │  `stdout_sha256`, receipt   │ │   `events.jsonl` (receipt)│ │(.olt/telemetry.jsonl)││
+│   └─────────────────────────────┘ └───────────────────────────┘ └─────────────────────┘│
 │                                                                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -87,7 +87,7 @@ Plan 24 establishes a unified **Shielded Execution & Automatic Receipt Pipeline*
   - Direct argv execution without subshell invocation.
   - Cryptographically signs execution metadata (`receipt_sha256`, `stdout_sha256`, `stderr_sha256`).
   - Writes durable receipts to `<runRoot>/evidence/cmd-<id>.json` or `evidence/cmd-<sha>.json`.
-  - Emits telemetry events to `olt/telemetry.jsonl` with estimated token counts and exit codes.
+  - Emits telemetry events to `.olt/telemetry.jsonl` with estimated token counts and exit codes.
 
 ### C. Capsule Command Execution & Auto-Gate Proof Attachment
 
@@ -221,14 +221,14 @@ git commit -m "feat(cli): implement fast incremental verification tooling with t
 - Modify: `olt/scripts/src/cli/commands/task-check.ts`
 - Test: `tests/unit/runner/auto-receipt.test.ts`
 
-- [ ] **Step 1: Extend `AutoReceiptLogger.recordReceipt` to support optional state transaction (`transact`) when capsule ledger is active**
-- [ ] **Step 2: Wire `taskCheckCommand` to record verification passes through `AutoReceiptLogger`**
-- [ ] **Step 3: Run test suite to verify dual state and event updates**
-- [ ] **Step 4: Commit**
+- [x] **Step 1: Extend `AutoReceiptLogger.recordReceipt` to support optional state transaction (`transact`) when capsule ledger is active**
+- [x] **Step 2: Wire `taskCheckCommand` to record verification passes through `AutoReceiptLogger`**
+- [x] **Step 3: Run test suite to verify dual state and event updates**
+- [x] **Step 4: Commit**
 
 ```bash
 bun test tests/unit/runner/auto-receipt.test.ts tests/unit/cli/task-check.test.ts
-git add olt/scripts/src/engine/runner/auto-receipt.ts olt/scripts/src/cli/commands/task-check.ts
+git add olt/scripts/src/engine/runner/auto-receipt.ts olt/scripts/src/cli/commands/task-check.ts tests/unit/runner/auto-receipt.test.ts
 git commit -m "refactor(runner): bridge AutoReceiptLogger with capsule state transactions and task:check"
 ```
 
@@ -244,7 +244,8 @@ All core implementations across Plan 24 have been empirically validated in the l
    tests/unit/runner/auto-receipt.test.ts:
    (pass) AutoReceiptLogger > can be instantiated
    (pass) AutoReceiptLogger > records command receipt directly into capsule state
-   2 pass, 0 fail (12 expect calls)
+   (pass) AutoReceiptLogger > records command receipt via state transaction when capsule ledger is active
+   3 pass, 0 fail (21 expect calls)
    ```
 
 2. **Shell Interlock & Scope Suite:**
@@ -272,4 +273,4 @@ All core implementations across Plan 24 have been empirically validated in the l
    8 pass, 0 fail (46 expect calls)
    ```
 
-4. **Total Verified Assertions:** **22 tests, 0 failures, 114 expect calls** executing across runner, CLI, and interlock systems.
+4. **Total Verified Assertions:** **23 tests, 0 failures, 123 expect calls** executing across runner, CLI, and interlock systems.
