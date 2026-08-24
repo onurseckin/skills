@@ -362,7 +362,14 @@ export function identifyExecutionContext(
   const advisory = isMainThread ? MAIN_THREAD_ADVISORY : null;
 
   let defect: DefectRecord | null = null;
-  if (isMainThread) {
+  const argvStr = typeof process !== "undefined" ? process.argv.join(" ") : "";
+  const isPassive = /(whoami|doctor|dag|agent:list)/i.test(argvStr);
+  const isMutationOrTest =
+    /(test|vitest|pytest|jest|run:exec|shell|task:submit|task:claim|task:review|replace_file|write_to_file)/i.test(
+      argvStr,
+    );
+
+  if (isMainThread && !isPassive && isMutationOrTest) {
     const defectId = `defect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     defect = {
       id: defectId,

@@ -228,4 +228,30 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     examples: ["bun harness.ts worktree:reclaim --run .olt/capsules/<run-id> --actor coordinator"],
     handler: worktreeReclaimCommand,
   },
+  {
+    name: "meta-audit",
+    aliases: [],
+    domain: "diagnostics",
+    tier: "internal",
+    internal: true,
+    summary: "Deep behavioral forensics and anomaly detection across all agent telemetry.",
+    description:
+      "Evaluates raw execution traces against 7 behavioral heuristics (TOKEN_BURNING, FALSE_SERIALIZATION, etc.), computes efficiency scores, and injects autonomous remediation proposals.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag("format", "string", "Output format."),
+      optionalFlag("inject", "bool", "Inject remediation proposals."),
+      optionalFlag("agent", "string", "Agent ID to filter."),
+      optionalFlag("verbose", "bool", "Verbose output."),
+      optionalFlag("json", "bool", "Output JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts meta-audit --run .olt/capsules/<run-id> --inject"],
+    handler: async (flags, context, remainder) => {
+      const { metaAuditCommand } = await import("../commands/meta-audit.ts");
+      return (await metaAuditCommand(flags, context)) as unknown as Record<string, unknown>;
+    },
+  },
 ];

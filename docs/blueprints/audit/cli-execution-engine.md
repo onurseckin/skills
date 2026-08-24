@@ -1,7 +1,9 @@
 # CLI Execution Engine Audit Blueprint
 
 ## Overview
+
 This document represents an exhaustive, unconstrained deep code audit of the CLI execution engine for the `olt` project, specifically analyzing:
+
 - `olt/scripts/src/cli/execute.ts`
 - `olt/scripts/src/cli/arguments.ts` (mapped from `args.ts`)
 - `olt/scripts/src/cli/output-format.ts` (mapped from `output.ts`)
@@ -60,18 +62,22 @@ This document represents an exhaustive, unconstrained deep code audit of the CLI
    - Returns a `JsonObject`.
 
 ## Zero-JSON CLI Surface Evaluation
+
 - **Raw JSON Leaks**: High risk in `execute.ts` where `return (await spec.handler(...)) as JsonObject` is cast. If the host tool directly stringifies this return without checking the `json` boolean derived from `output-format.ts`, any command will vomit raw JSON objects.
 - **Error Formatting**: `HarnessError` instances propagate upwards. If the global unhandled exception catcher does not respect the `OutputFormatScan.json` flag, it will either leak JSON errors into a text stream or text traces into a JSON parser.
 - **Length Constraint (30 Lines)**: The help generation (noted as `run harness.ts help` inside `arguments.ts`) and suggested flag format alternatives (`formatAlternatives`) are safe text paths. However, the JSON output path for commands like `plan:brainstorm` can output hundreds of lines. We must ensure the `stdout` buffer is paginated or routed to files.
 
 ## Native Host Tool Interaction
+
 - **LLM Command Parsing**: The parser explicitly blocks positional arguments unless they are safely encapsulated behind `--`. When LLMs try to interact using traditional patterns like `bun harness.ts command my-file.txt`, it will crash. LLMs must be instructed to either use `--my-file my-file.txt` or place it after `--`.
 - **Error Messages for LLMs**: The errors from `parseArguments` are well-formed for LLM agents, providing explicit `hints` like: `"prefix it with -- to name a flag, or move it after a literal --"`.
 
 ## Concrete TypeScript Refactoring Blueprints
 
 ### 1. Command Consolidation (Dynamic Registry)
+
 Remove the hardcoded `plan:brainstorm` block in `execute.ts`:
+
 ```typescript
 function resolveCommandSpec(invocation: string): CommandSpec | undefined {
   return findCommand(invocation); // Register brainstorm dynamically within the registry folder
@@ -79,7 +85,9 @@ function resolveCommandSpec(invocation: string): CommandSpec | undefined {
 ```
 
 ### 2. Output Format Fix
+
 Fix the strict mismatch in `output-format.ts` to consistently filter `--format=*`:
+
 ```typescript
 const filtered = argv.filter((arg, index) => {
   if (index >= end) return true;
@@ -90,4 +98,5 @@ const filtered = argv.filter((arg, index) => {
 ```
 
 ### 3. Argument Parsing Relaxation
+
 Allow raw positional strings if explicitly opted-in by the command spec (e.g. `spec.takesPositional`), bypassing the strict `--` delimiter requirement, enabling a more robust LLM-to-CLI interface.

@@ -1,9 +1,12 @@
 # Runtime Lease & Lock Concurrency Audit
+
 ## 1. Audit Overview
+
 **Target File:** `olt/scripts/src/runtime/lease.ts` & `locks.ts` (600 lines)
 **Role:** Runtime, Storage & Concurrency Lead Auditor (Round 2)
 
 ## 2. Findings Inventory
+
 The EXACT true number of findings is **21**.
 
 1. Lease expiration uses `Date.now()`, vulnerable to NTP clock skew.
@@ -29,11 +32,13 @@ The EXACT true number of findings is **21**.
 21. Opportunity to move to a memory-mapped lock registry.
 
 ## 3. Step-by-Step Disk Mutation Trace
-* `CLAIM`: `open(lockfile, O_CREAT | O_EXCL)`.
-* `RENEW`: `utimes(lockfile)` to update modified time.
-* `RELEASE`: `unlink(lockfile)`.
-* `STEAL`: `unlink(lockfile)` followed by `open(lockfile, O_CREAT | O_EXCL)`.
+
+- `CLAIM`: `open(lockfile, O_CREAT | O_EXCL)`.
+- `RENEW`: `utimes(lockfile)` to update modified time.
+- `RELEASE`: `unlink(lockfile)`.
+- `STEAL`: `unlink(lockfile)` followed by `open(lockfile, O_CREAT | O_EXCL)`.
 
 ## 4. Refactoring Blueprints
-* **Blueprint:** Replace file-based `utimes` heartbeats with a robust IPC or WebSocket signaling server for lease validity.
-* **Blueprint:** Remove `Atomics.wait` and spinlocks. Implement an event-driven lock queue.
+
+- **Blueprint:** Replace file-based `utimes` heartbeats with a robust IPC or WebSocket signaling server for lease validity.
+- **Blueprint:** Remove `Atomics.wait` and spinlocks. Implement an event-driven lock queue.

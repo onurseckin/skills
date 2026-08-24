@@ -339,9 +339,21 @@ export function isUntargetedTestCommand(
   return false;
 }
 
+const regexCache = new Map<string, RegExp[]>();
+
 export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPolicy): RegExp[] {
   const normalizedRole = role.trim().toLowerCase();
   const activePolicy = policy ?? loadRepoPolicy();
+  const forbiddenCommandsStr = activePolicy.forbidden_commands
+    ? activePolicy.forbidden_commands.join(",")
+    : "";
+  const cacheKey = `${normalizedRole}:${forbiddenCommandsStr}`;
+
+  if (regexCache.has(cacheKey)) {
+    return regexCache.get(cacheKey)!;
+  }
+
+  let patterns: RegExp[];
 
   // Cognitive Validators: Hard-lock matches everything (0 commands allowed)
   if (
@@ -358,11 +370,11 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
     normalizedRole === "sub-investigator" ||
     normalizedRole === "sub_investigator"
   ) {
-    return [/.*/];
+    patterns = [/.*/];
   }
 
   // Supervisors
-  if (
+  else if (
     normalizedRole === "mind" ||
     normalizedRole === "orchestrator" ||
     normalizedRole === "coordinator" ||
@@ -377,17 +389,17 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
         supervisorPatterns.push(new RegExp(`^${escapeRegex(cmd)}`, "i"));
       }
     }
-    return supervisorPatterns;
+    patterns = supervisorPatterns;
   }
 
   // Mechanic Validators: Can run typechecks, AST static audits, tests; cannot mutate git or source files
-  if (
+  else if (
     normalizedRole === "mechanic-validator" ||
     normalizedRole === "mechanic_validator" ||
     normalizedRole === "sub-validator" ||
     normalizedRole === "sub_validator"
   ) {
-    return [
+    patterns = [
       /^git\s+(commit|push|reset|checkout(\s+-b)?|merge|rebase)/i,
       /write_to_file/i,
       /replace_file/i,
@@ -397,15 +409,19 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
   }
 
   // Implementers / Repairers / Workers
-  const implementerPatterns: RegExp[] = [...STATIC_IMPLEMENTER_FORBIDDEN_PATTERNS];
+  else {
+    const implementerPatterns: RegExp[] = [...STATIC_IMPLEMENTER_FORBIDDEN_PATTERNS];
 
-  if (activePolicy.forbidden_commands) {
-    for (const cmd of activePolicy.forbidden_commands) {
-      implementerPatterns.push(new RegExp(`^${escapeRegex(cmd)}`, "i"));
+    if (activePolicy.forbidden_commands) {
+      for (const cmd of activePolicy.forbidden_commands) {
+        implementerPatterns.push(new RegExp(`^${escapeRegex(cmd)}`, "i"));
+      }
     }
+    patterns = implementerPatterns;
   }
 
-  return implementerPatterns;
+  regexCache.set(cacheKey, patterns);
+  return patterns;
 }
 
 function escapeRegex(str: string): string {

@@ -1,14 +1,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseUnifiedAgentManifest } from "../../authority/manifest-schema";
+import { parseUnifiedAgentManifest } from "../../authority/manifest-schema.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { Flags } from "../options.ts";
 
 export function executeAgentBrief(options: { role: string; format?: string }): string {
   const agentPath = join(import.meta.dir, "..", "..", "..", "..", "agents", `${options.role}.yaml`);
   const rawYaml = readFileSync(agentPath, "utf-8");
   const manifest = parseUnifiedAgentManifest(rawYaml, agentPath);
 
-  // Read policy.json. Mocking here since we don't have the exact RepoPolicy implementation or path handy.
-  // In a real scenario we'd do: const policy = loadRepoPolicy();
   const policyPath = join(import.meta.dir, "..", "..", "..", "..", "policy.json");
   let repoPolicy = { allowed_commands: [] as string[] };
   try {
@@ -70,29 +70,20 @@ ${manifest.instructions}`);
   return sections.join("\n\n");
 }
 
-export async function agentBriefCommand(args: Record<string, unknown>) {
-  const role = typeof args["role"] === "string" ? args["role"] : "";
-  const format = typeof args["format"] === "string" ? args["format"] : undefined;
+export async function agentBriefCommand(flags: Flags): Promise<Record<string, unknown>> {
+  const role = typeof flags["role"] === "string" ? flags["role"] : "";
+  const format = typeof flags["format"] === "string" ? flags["format"] : undefined;
   if (!role) {
-    console.error("Missing --role");
-    process.exit(1);
+    throw new HarnessError("INVALID_ARGUMENT", "Missing --role");
   }
-  try {
-    const opts: { role: string; format?: string } = { role };
-    if (format !== undefined) {
-      opts.format = format;
-    }
-    const output = executeAgentBrief(opts);
-    console.log(output);
-    process.exit(0);
-  } catch (err: unknown) {
-    console.error(err instanceof Error ? err.message : String(err));
-    process.exit(1);
+  const opts: { role: string; format?: string } = { role };
+  if (format !== undefined) {
+    opts.format = format;
   }
+  const output = executeAgentBrief(opts);
+  return { markdown: output };
 }
 
-export async function agentDefineCommand(args: Record<string, unknown>) {
-  // Placeholder for agent:define
-  console.log("agent:define not fully implemented yet");
-  process.exit(0);
+export async function agentDefineCommand(flags: Flags): Promise<Record<string, unknown>> {
+  return { markdown: "agent:define not fully implemented yet" };
 }

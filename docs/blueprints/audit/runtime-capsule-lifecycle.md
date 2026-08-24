@@ -1,9 +1,12 @@
 # Runtime Capsule Lifecycle Audit
+
 ## 1. Audit Overview
+
 **Target File:** `olt/scripts/src/runtime/capsule.ts` (1,050 lines)
 **Role:** Runtime, Storage & Concurrency Lead Auditor (Round 2)
 
 ## 2. Findings Inventory
+
 We conducted an unconstrained deep audit. The EXACT true number of findings, failure vectors, and state transitions identified is **24**.
 
 1. Initialization state mutation is not atomic; disk write can fail mid-way.
@@ -32,27 +35,32 @@ We conducted an unconstrained deep audit. The EXACT true number of findings, fai
 24. Concurrency threshold limits are hardcoded rather than dynamically scaled via Brent's Theorem.
 
 ## 3. Step-by-Step Disk Mutation Trace
-* `INIT`: `mkdir -p .capsules/<id>` -> `write .capsules/<id>/manifest.tmp` -> `rename manifest.tmp manifest.json`. (Vulnerability: `rename` is not cross-platform atomic if target is open).
-* `PLANNED`: `read manifest.json` -> `write .capsules/<id>/plan.json` -> update `manifest.json` state to `PLANNED`.
-* `RUNNING`: Acquires POSIX lock on `manifest.json`. Writes `.capsules/<id>/events.logl` continuously.
-* `REVIEWING`: Flushes `events.logl`, removes POSIX lock, writes `.capsules/<id>/review.json`.
-* `TERMINAL`: Moves capsule to `completed-tasks.jsonl` or archives directory. Leaves orphaned `lock` file.
+
+- `INIT`: `mkdir -p .capsules/<id>` -> `write .capsules/<id>/manifest.tmp` -> `rename manifest.tmp manifest.json`. (Vulnerability: `rename` is not cross-platform atomic if target is open).
+- `PLANNED`: `read manifest.json` -> `write .capsules/<id>/plan.json` -> update `manifest.json` state to `PLANNED`.
+- `RUNNING`: Acquires POSIX lock on `manifest.json`. Writes `.capsules/<id>/events.logl` continuously.
+- `REVIEWING`: Flushes `events.logl`, removes POSIX lock, writes `.capsules/<id>/review.json`.
+- `TERMINAL`: Moves capsule to `completed-tasks.jsonl` or archives directory. Leaves orphaned `lock` file.
 
 ## 4. Lock Mechanics & Concurrency
-* **POSIX Lock Mechanics:** Uses `fs.open` with `O_EXCL` for advisory locks. Susceptible to stale lock files if process crashes.
-* **Spinlocks:** Implementation in `capsule.ts` uses a while loop with `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50)`. Blocks main thread, critical violation.
-* **Race Vulnerabilities:** `INIT` and `PLANNED` state mutations lack strict file-level locking before the `RUNNING` state is achieved.
+
+- **POSIX Lock Mechanics:** Uses `fs.open` with `O_EXCL` for advisory locks. Susceptible to stale lock files if process crashes.
+- **Spinlocks:** Implementation in `capsule.ts` uses a while loop with `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50)`. Blocks main thread, critical violation.
+- **Race Vulnerabilities:** `INIT` and `PLANNED` state mutations lack strict file-level locking before the `RUNNING` state is achieved.
 
 ## 5. Native Host & Filesystem Safety
-* Path normalization lacks `realpath` validation, susceptible to symlink traversal.
-* `.tmp` swap files are created in the same directory, but without cryptographic uniqueness (uses Math.random() instead of crypto.randomUUID).
+
+- Path normalization lacks `realpath` validation, susceptible to symlink traversal.
+- `.tmp` swap files are created in the same directory, but without cryptographic uniqueness (uses Math.random() instead of crypto.randomUUID).
 
 ## 6. Bottlenecks & Desync Risks
-* **Disk I/O Bottleneck:** High I/O contention on `events.logl` during multi-agent parallel execution.
-* **Lock Contention:** All agents attempt to read `manifest.json` simultaneously during state checks.
-* **State Desync:** Ledger says `RUNNING`, but POSIX lock is absent.
+
+- **Disk I/O Bottleneck:** High I/O contention on `events.logl` during multi-agent parallel execution.
+- **Lock Contention:** All agents attempt to read `manifest.json` simultaneously during state checks.
+- **State Desync:** Ledger says `RUNNING`, but POSIX lock is absent.
 
 ## 7. Refactoring Blueprints & Simplification Proposals
-* **Blueprint:** Migrate from raw filesystem `manifest.json` tracking to an embedded SQLite datastore (e.g., `better-sqlite3`) for ACID-compliant state transitions.
-* **Blueprint:** Implement adaptive backoff for locks (10ms -> 50ms -> 100ms) instead of `Atomics.wait`.
-* **Simplification:** Use memory-mapped files for `events.logl` to reduce write bottlenecks.
+
+- **Blueprint:** Migrate from raw filesystem `manifest.json` tracking to an embedded SQLite datastore (e.g., `better-sqlite3`) for ACID-compliant state transitions.
+- **Blueprint:** Implement adaptive backoff for locks (10ms -> 50ms -> 100ms) instead of `Atomics.wait`.
+- **Simplification:** Use memory-mapped files for `events.logl` to reduce write bottlenecks.

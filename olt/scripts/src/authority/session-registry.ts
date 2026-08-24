@@ -1,4 +1,12 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  unlinkSync,
+  readdirSync,
+  statSync,
+} from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { randomBytes } from "node:crypto";
 import { HarnessError } from "../core/errors/harness-error.ts";
@@ -40,6 +48,43 @@ export interface RegisterSessionOptions {
   writeScope?: readonly string[] | undefined;
   worktreeDir?: string | undefined;
   customToken?: string | undefined;
+}
+
+export function pruneStaleSessions(maxAgeMs = 86400000): void {
+  const globalDir = resolveGlobalSessionsDir(findRepoRoot());
+  if (!existsSync(globalDir)) return;
+
+  try {
+    const files = readdirSync(globalDir);
+    const now = Date.now();
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue;
+      const filePath = join(globalDir, file);
+      try {
+        const stats = statSync(filePath);
+        if (now - stats.mtimeMs > maxAgeMs) {
+          unlinkSync(filePath);
+          continue;
+        }
+
+        const pidStr = file.replace(".json", "");
+        const pid = parseInt(pidStr, 10);
+        if (!Number.isNaN(pid) && pid > 0) {
+          try {
+            process.kill(pid, 0);
+          } catch (e: any) {
+            if (e.code === "ESRCH") {
+              unlinkSync(filePath);
+            }
+          }
+        }
+      } catch {
+        // Best-effort removal
+      }
+    }
+  } catch {
+    // Best-effort directory read
+  }
 }
 
 export interface ResolveSessionOptions {

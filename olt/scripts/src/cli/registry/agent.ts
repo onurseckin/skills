@@ -197,10 +197,9 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: ["bun harness.ts agent:brief --role implementer"],
-    handler: async (args: Record<string, unknown>) => {
+    handler: async (flags, _context, _remainder) => {
       const { agentBriefCommand } = await import("../commands/agent-brief.ts");
-      await agentBriefCommand(args);
-      return {};
+      return await agentBriefCommand(flags);
     },
   },
   {
@@ -216,10 +215,9 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [],
-    handler: async (args: Record<string, unknown>) => {
+    handler: async (flags, _context, _remainder) => {
       const { agentDefineCommand } = await import("../commands/agent-brief.ts");
-      await agentDefineCommand(args);
-      return {};
+      return await agentDefineCommand(flags);
     },
   },
 ];

@@ -11,6 +11,10 @@ const ALLOWED_ROOT_FILES = new Set([
   ".gitignore",
   "bun.lock",
   "bun.lockb",
+  ".editorconfig",
+  ".oxfmtrc.json",
+  "eslint.config.js",
+  ".prettierrc",
 ]);
 
 export class RootDirectoryHygieneGuard {

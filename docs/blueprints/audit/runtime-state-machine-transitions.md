@@ -1,9 +1,12 @@
 # Runtime State Machine Transitions Audit
+
 ## 1. Audit Overview
+
 **Target File:** `olt/scripts/src/runtime/state-machine.ts` (850 lines), `olt/scripts/src/engine/state-ledger.ts` & `transition-rules.ts`
 **Role:** Runtime, Storage & Concurrency Lead Auditor (Round 2)
 
 ## 2. Findings Inventory
+
 The EXACT true number of findings, failure vectors, and state transitions identified is **18**.
 
 1. State transitions are not idempotent; re-running `transition('RUNNING')` duplicates logs.
@@ -26,17 +29,20 @@ The EXACT true number of findings, failure vectors, and state transitions identi
 18. Refactoring opportunity: Use Event Sourcing for state transitions instead of mutable state blocks.
 
 ## 3. Step-by-Step Disk Mutation Trace
-* `INIT`: Writes `{"state": "INIT"}` to ledger.
-* `PLANNED`: Overwrites ledger with `{"state": "PLANNED"}`. (Risk: No atomic swap).
-* `RUNNING`: Appends to ledger.
-* `REVIEWING`: Reads full ledger, parses JSON, appends `REVIEWING`.
-* `TERMINAL`: Flushes ledger, creates snapshot.
+
+- `INIT`: Writes `{"state": "INIT"}` to ledger.
+- `PLANNED`: Overwrites ledger with `{"state": "PLANNED"}`. (Risk: No atomic swap).
+- `RUNNING`: Appends to ledger.
+- `REVIEWING`: Reads full ledger, parses JSON, appends `REVIEWING`.
+- `TERMINAL`: Flushes ledger, creates snapshot.
 
 ## 4. Lock Mechanics & Concurrency
-* **POSIX Lock:** Advisory lock on `ledger.json`.
-* **Spinlocks/Atomics:** `state-machine.ts` uses a busy-wait loop for ledger access. Highly inefficient.
-* **Race Risks:** Concurrent agents reading ledger before writer has completed `fs.close()`.
+
+- **POSIX Lock:** Advisory lock on `ledger.json`.
+- **Spinlocks/Atomics:** `state-machine.ts` uses a busy-wait loop for ledger access. Highly inefficient.
+- **Race Risks:** Concurrent agents reading ledger before writer has completed `fs.close()`.
 
 ## 5. Refactoring Blueprints
-* **Blueprint:** Implement atomic file swaps (`fs.renameSync`) for all ledger updates.
-* **Blueprint:** Remove `Atomics.wait` completely. Use asynchronous `fs.promises` with an in-memory queue.
+
+- **Blueprint:** Implement atomic file swaps (`fs.renameSync`) for all ledger updates.
+- **Blueprint:** Remove `Atomics.wait` completely. Use asynchronous `fs.promises` with an in-memory queue.

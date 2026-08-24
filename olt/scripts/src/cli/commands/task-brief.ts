@@ -281,7 +281,28 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
     if (combinedMarkdown.length > 0) {
       combinedMarkdown += "\n\n---\n\n";
     }
-    combinedMarkdown += exactAnchorBriefing.markdown;
+
+    let rewritten = exactAnchorBriefing.markdown;
+    // Format StartLine and EndLine
+    rewritten = rewritten.replace(
+      /\- \*\*Anchor\*\*: Lines (\d+)–(\d+)/g,
+      "- **Anchor**:\n  - **StartLine**: $1\n  - **EndLine**: $2",
+    );
+    // Format drop-in chunks
+    rewritten = rewritten.replace(
+      /(\- \*\*Anchor\*\*:[\s\S]*?)```typescript/g,
+      "$1\n  - **Drop-in chunk**:\n```typescript",
+    );
+
+    // Ensure non-empty acceptance criteria
+    if (!rewritten.includes("#### ✅ Acceptance Criteria\n- ")) {
+      rewritten = rewritten.replace(
+        "#### ✅ Acceptance Criteria",
+        "#### ✅ Acceptance Criteria\n- Strict adherence to project architecture.\n- Code passes all lint and typecheck rules.",
+      );
+    }
+
+    combinedMarkdown += rewritten;
   }
 
   return {

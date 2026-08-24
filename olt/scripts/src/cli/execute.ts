@@ -80,6 +80,12 @@ export async function execute(
     }
   }
 
+  if (parsed.flags["run-id"] !== undefined && parsed.flags["run"] === undefined) {
+    parsed.flags["run"] = parsed.flags["run-id"];
+  } else if (parsed.flags["run"] !== undefined && parsed.flags["run-id"] === undefined) {
+    parsed.flags["run-id"] = parsed.flags["run"];
+  }
+
   assertFlags(
     parsed.flags,
     spec.flags.map((flag) => flag.name),
@@ -102,7 +108,23 @@ export async function execute(
     }
   }
 
-  return (await spec.handler(parsed.flags, context, parsed.remainder)) as JsonObject;
+  try {
+    return (await spec.handler(parsed.flags, context, parsed.remainder)) as JsonObject;
+  } catch (error: unknown) {
+    if (error instanceof HarnessError) {
+      process.exitCode = error.exitCode;
+      return {
+        markdown: `**Error (${error.code})**: ${error.message}${error.fix ? `\n> **Fix**: ${error.fix}` : ""}`,
+      };
+    }
+    if (error instanceof Error) {
+      process.exitCode = 70;
+      return {
+        markdown: `**Fatal Internal Error**: ${error.message}`,
+      };
+    }
+    throw error;
+  }
 }
 
 export class DeductiveStateMachine {

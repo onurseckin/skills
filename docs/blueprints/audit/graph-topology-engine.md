@@ -1,9 +1,12 @@
 # Graph Topology & Engine Audit
+
 ## 1. Audit Overview
+
 **Target Files:** `olt/scripts/src/graph/dag.ts`, `topology.ts`, `cycle-detector.ts`
 **Role:** Runtime, Storage & Concurrency Lead Auditor (Round 2)
 
 ## 2. Findings Inventory
+
 The EXACT true number of findings is **19**.
 
 1. `cycle-detector.ts` uses a recursive DFS that throws `RangeError` (call stack size exceeded) on deep graphs.
@@ -27,10 +30,12 @@ The EXACT true number of findings is **19**.
 19. Refactoring blueprint: Implement Kahn's Algorithm iteratively to avoid call stack limits.
 
 ## 3. Step-by-Step Disk Mutation Trace
-* `DAG INIT`: Write `dag.json` (Atomic swap missing).
-* `NODE COMPLETE`: Read `dag.json` -> Update Node -> Write `dag.json`.
-* `CYCLE DETECT`: In-memory.
+
+- `DAG INIT`: Write `dag.json` (Atomic swap missing).
+- `NODE COMPLETE`: Read `dag.json` -> Update Node -> Write `dag.json`.
+- `CYCLE DETECT`: In-memory.
 
 ## 4. Refactoring Blueprints
-* **Blueprint:** Migrate to Iterative Kahn's Algorithm for topological sorting.
-* **Blueprint:** Batch DAG disk updates using a 50ms debounce to reduce I/O bottlenecks.
+
+- **Blueprint:** Migrate to Iterative Kahn's Algorithm for topological sorting.
+- **Blueprint:** Batch DAG disk updates using a 50ms debounce to reduce I/O bottlenecks.

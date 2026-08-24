@@ -1,11 +1,13 @@
 # Meta-Auditor Behavioral Forensics Audit Blueprint
 
 ## Overview
+
 Analyzes heuristics, behavioral auditing, and anti-blunder mechanisms.
 
 ## Total Findings: 11
 
 ### Key Failure Vectors
+
 1. Ghost lease heuristics triggering false positives on slow tests.
 2. Context overflow checks failing on deeply nested JSON.
 3. Role boundary deviations missing cross-tier impersonation.
@@ -19,6 +21,7 @@ Analyzes heuristics, behavioral auditing, and anti-blunder mechanisms.
 11. Multi-viewport manifest missing ultra-wide resolutions.
 
 ## Refactoring Proposals
+
 - Adjust straggler and ghost lease thresholds.
 - Enhance role boundary checking with cryptographic signatures.
 - Improve contextual analysis of sequential dependencies.

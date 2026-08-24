@@ -1,6 +1,7 @@
 # CLI Task Queue Lifecycle Audit Blueprint
 
 ## 1. Executive Summary
+
 This document provides a comprehensive deep code audit of the Task Queue, Mind Pulse, Orchestrator, Critic, Memory, and Branch operations within the `olt/scripts/src/cli/commands` directory.
 
 **Exact "Things to Look For" Count: 44**
@@ -8,33 +9,40 @@ This document provides a comprehensive deep code audit of the Task Queue, Mind P
 ## 2. Comprehensive Call Graph and Flag Routing Mechanics
 
 ### `todo-ops.ts` (Mind Queue)
+
 - **Commands**: `list`, `add`, `drain`, `seal`, `clean`
 - **Routing**: Aliased to `mindQueue*` commands.
 - **Mechanics**: Reads/writes to a JSON ledger for feedback queues. Uses `resolveFeedbackQueuePath` and `resolveCompletedTasksLedgerPath`.
 
 ### `mind-pulse.ts` (Mind Pulse)
+
 - **Commands**: `mindPulseCommand`
 - **Routing**: Computes cognitive telemetry, calculates budget, assesses topological waves (lanes), and transacts `mind-pulse-opened`.
 
 ### `orchestrator-ops.ts` (Orchestrator)
+
 - **Commands**: `run`, `supervise` (`tick`)
 - **Routing**: `run` relies on `AutonomousLoopRunner`. `supervise` leverages `RunSupervisor` and optionally `runSupervisionWatch` for daemon mode.
 
 ### `critic-ops.ts` (Critic)
+
 - **Commands**: `start`, `review`, `reject`, `remediate`
 - **Routing**: Integrates deeply with `workflowPort(run)` to validate completeness.
 
 ### `memory-ops.ts` (Memory)
+
 - **Commands**: `query`
 - **Routing**: Dispatches to `searchMemory` building an ephemeral index of capsule files.
 
 ### `branch-ops.ts` (Branching)
+
 - **Commands**: `open`, `claim`, `submit`, `collect`, `abandon`, `status`
 - **Routing**: Custom sub-task string parsing (`id=value`). Calls `workflow/branch/*`.
 
 ## 3. Zero-JSON CLI Surface Evaluation
 
 The CLI framework uses a pattern of returning dual-purpose objects `(markdown: string, ...rawData)`.
+
 - **`todo-ops.ts`**: Safely bound by `enforceLineLimit` (limits range from 25 to 30 lines).
 - **`mind-pulse.ts`**: Returns `MindPulseResult`. Limits output to 35 lines via `enforceLineLimit`.
 - **`orchestrator-ops.ts`**: Output bound heavily depends on `formatMorningReportMarkdown` and `AutonomousLoopRunner`'s markdown summaries. **Risk**: High likelihood of exceeding 30 lines if the morning report is extensive. No inline `enforceLineLimit`.
@@ -43,12 +51,14 @@ The CLI framework uses a pattern of returning dual-purpose objects `(markdown: s
 - **`branch-ops.ts`**: Relies on `formatBranch*` formatters.
 
 ## 4. Native Host Tool Interaction
+
 - Errors are consistently thrown as `HarnessError("INVALID_STATE", ...)`.
 - Many error messages embed explicit **LLM steering instructions**, e.g., `Outcome: halted. Next: human inspection required.` or `Next: assign a fresh completeness critic with critic:start.`
 
 ## 5. Concrete List of Edge Cases, Flag Collisions, and Parameter Discrepancies
 
 ### Flag Collisions / Aliases (17 identified)
+
 1. `todo-ops`: `queue-file` vs `queue-path`.
 2. `todo-ops`: `content` vs `description` vs `content` (redundant check).
 3. `todo-ops`: `archive-file` vs `completed-file`.
@@ -66,6 +76,7 @@ The CLI framework uses a pattern of returning dual-purpose objects `(markdown: s
 15. `branch-ops`: `sub-task`, `sub-label`, `sub-scope`, `sub-gate` lists must correctly align.
 
 ### Edge Cases (12 identified)
+
 1. `mind-pulse`: Missing charter file triggers a hard halt.
 2. `mind-pulse`: Event sequence > 100,000 threshold halt.
 3. `mind-pulse`: Open pulse past its deadline requires reclaim.
@@ -78,6 +89,7 @@ The CLI framework uses a pattern of returning dual-purpose objects `(markdown: s
 ## 6. TypeScript Refactoring Blueprints & Command Consolidation
 
 ### Optimization Opportunities (6 identified)
+
 1. **Centralize Alias Resolution**: Extract `resolveFlag([alias1, alias2])` to deduplicate null coalescing in every command.
 2. **Unified Output Truncation**: Apply `enforceLineLimit` at the CLI framework router level, rather than ad-hoc within command implementations.
 3. **Array Pair Parsing**: `branch-ops.ts` `splitPair` and `groupPairs` logic should be abstracted into an `options.ts` array-tuple parser.

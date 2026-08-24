@@ -224,7 +224,7 @@ export function dagRenderCommand(
     boxStyle,
   });
 
-  const finalMarkdown = showAll ? report.markdown : enforceLineLimit(report.markdown, 80);
+  const finalMarkdown = showAll ? report.markdown : enforceLineLimit(report.markdown, 30);
 
   return {
     ...report,
@@ -279,7 +279,7 @@ export function dagTraceCommand(
     all: showAll,
   });
 
-  const finalMarkdown = showAll ? report.markdown : enforceLineLimit(report.markdown, 80);
+  const finalMarkdown = showAll ? report.markdown : enforceLineLimit(report.markdown, 30);
 
   return {
     ...report,

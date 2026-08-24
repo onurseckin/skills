@@ -8,12 +8,14 @@
 ## 2. Call Graph & Flag Routing Mechanics
 
 ### Flags Routing
+
 - `--run`: Parsed via `textFlag(flags, "run")`. Fails if omitted.
 - `--actor`: Parsed via `actorFlag(flags)`.
 - `--completion-gate`: Parsed via `textFlag(flags, "completion-gate")` and evaluated by `parseGateArgv()`.
 - `--accept-audit`: Parsed via `listFlag(flags, "accept-audit")` and mapped through `parseAuditAcceptance`.
 
 ### Execution Call Graph
+
 1. `loadRun(run)`
 2. `hasBrainstormingExecuted(loaded, run)`
 3. `analyzeScopeIndependence(...)`
@@ -34,9 +36,10 @@
 ## 3. Zero-JSON CLI Surface Evaluation
 
 **Line-by-line evaluation for raw JSON leaks and >30 line outputs**:
+
 - **Line 244-245**: `executeDagViewCommand` produces `dagReport.ascii_dag`. If this ASCII DAG exceeds 30 lines, it could flood the console if printed, but here it is explicitly written to `dag.txt`, preserving the zero-JSON terminal rule.
 - **Line 258-276**: The command returns a heavily nested JavaScript object containing raw arrays (`topology_declaration.edges`, `warnings`), state metrics, and the full `markdown` brief.
-  - **Risk**: If the surrounding CLI runner prints the return value natively (e.g. `console.log(result)`), it **will leak raw JSON** and easily exceed 30 lines. 
+  - **Risk**: If the surrounding CLI runner prints the return value natively (e.g. `console.log(result)`), it **will leak raw JSON** and easily exceed 30 lines.
   - **Mitigation**: The command should strictly rely on standard formatters and perhaps return a string (the Markdown) or rely on a generic wrapper that knows to pluck `.markdown` and suppress the rest unless `--json` is explicitly passed.
 
 ## 4. Native Host Tool Interaction & LLM Mechanics
@@ -49,7 +52,7 @@
 1. **Hardcoded Revision Bug (Critical)**: On Line 168, `nextRevision` is dynamically calculated (`currentGraph.revision + 1`). However, on Line 218 (`formatPlanCompileBrief({ revision: 1 ... })`) and Line 261 (`revision: 1`), it is completely hardcoded to `1`. This will desynchronize the UI and the returned data from the actual state.
 2. **Missing `prompt` Validation**: On Line 115, `promptText(loaded.prompt)` assumes `loaded.prompt` is a strictly valid `Uint8Array`. If `prompt` is undefined, `TextDecoder` will throw an unhandled `TypeError`.
 3. **Blind Cast of `planning_buffer`**: On Line 116-117, `rawBuffer` is blindly cast to `TaskDeclaration[]`. If the stored buffer contains malformed objects, it will corrupt downstream scope analysis.
-4. **Scope Collision Sub-optimal Reporting**: On Line 122, if multiple scope collisions occur, only the *first* one is thrown in the error message, hiding the rest from the LLM and requiring multi-step iterative fixes.
+4. **Scope Collision Sub-optimal Reporting**: On Line 122, if multiple scope collisions occur, only the _first_ one is thrown in the error message, hiding the rest from the LLM and requiring multi-step iterative fixes.
 5. **Requirements File Extra Newline**: On Line 254, joining an empty array and appending `(reqLines ? "\n" : "")` leaves edge cases where empty requirements create structurally empty files.
 6. **Duplicated Event Scanning**: `hasBrainstormingExecuted` manually iterates over `loaded.events` and then again over `state.events` with verbose type guards.
 

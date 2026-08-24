@@ -1,17 +1,20 @@
 # Reporting Evidence Grounding Audit Blueprint
 
 ## Overview
+
 Analyzes the evidence collection and reporting pipelines.
 
 ## Total Findings: 12
 
 ### Step-by-Step Trace
+
 1. Evidence capture intercepts shell commands.
 2. Output is hashed using SHA-256 for integrity.
 3. Hashed receipts are sealed in the capsule.
 4. Cognitive probes are dispatched referencing the sealed receipts.
 
 ### Key Failure Vectors & Contamination Risks
+
 1. Unverified receipt acceptance from third-party tools.
 2. Token truncation causing lost hash signatures.
 3. Asynchronous log interleaving.
@@ -26,5 +29,6 @@ Analyzes the evidence collection and reporting pipelines.
 12. Socratic validator state desync.
 
 ## Refactoring Proposals
+
 - Strengthen hash verification.
 - Implement streaming JSON parsing for event streams.

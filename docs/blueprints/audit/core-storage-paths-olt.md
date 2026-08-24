@@ -1,9 +1,12 @@
 # Core Storage & Paths OLT Audit
+
 ## 1. Audit Overview
+
 **Target Files:** `olt/scripts/src/core/paths.ts`, `storage/`, `errors/`
 **Role:** Runtime, Storage & Concurrency Lead Auditor (Round 2)
 
 ## 2. Findings Inventory
+
 The EXACT true number of findings is **15**.
 
 1. `core/paths.ts` does not use `path.resolve` consistently, leading to relative path leaks.
@@ -23,8 +26,10 @@ The EXACT true number of findings is **15**.
 15. Refactoring blueprint: Implement a virtual filesystem (VFS) layer.
 
 ## 3. Step-by-Step Disk Mutation Trace
-* N/A - Path resolution does not mutate, but storage writes do.
-* Storage Write: `open` -> `write` -> `close`. No `fsync`.
+
+- N/A - Path resolution does not mutate, but storage writes do.
+- Storage Write: `open` -> `write` -> `close`. No `fsync`.
 
 ## 4. Refactoring Blueprints
-* **Blueprint:** Introduce `fs.realpath` and strict prefix checking to sandbox all storage operations to `.capsules/` and `scratch/`.
+
+- **Blueprint:** Introduce `fs.realpath` and strict prefix checking to sandbox all storage operations to `.capsules/` and `scratch/`.
