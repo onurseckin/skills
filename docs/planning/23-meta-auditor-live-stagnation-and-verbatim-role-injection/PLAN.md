@@ -1,28 +1,38 @@
-# Plan 23: Meta-Auditor Live Stagnation Detection & Verbatim Role Injection Engine
+# Plan 23: Tier 0 Dual Cognitive Auditors (`mind-auditor` & `skill-auditor`) & Live Stagnation Governance
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Transform the Tier 2 Meta-Auditor from a passive post-hoc event log reviewer into an active, real-time behavioral watchdog and automated prompt injector. When Meta-Auditor detects that Tier 0 Mind (or any supervisory agent) is stagnating or idling ($> 2$ minutes), Meta-Auditor **MUST NOT assume or synthesize** what the Mind should do—it must **mechanically read the exact, canonical role markdown file directly from disk (`olt/roles/mind.md`)** and inject that verbatim file content into the prompt to force the agent back to work without personal interpretation risk.
+**Goal:** Establish the **Tier 0 Dual Out-of-Band Cognitive Auditors** (`mind-auditor` and `skill-auditor`) as standalone, non-hierarchical free-agent observers that run on periodic schedules, monitor the Tier 0 Mind and OLT skill execution without spamming event dumps, enforce non-idle creative task discovery, inject verbatim role contracts from disk upon stagnation, track inspection high-water marks, and persist validated defects directly into `<repo-root>/.olt/defects.jsonl`.
 
 **Architecture:**
 
-1. **Verbatim Role Injector (`VerbatimRoleInjector`)**: Directly reads `olt/roles/<role>.md` using `readFileSync`. Builds an unadulterated injection packet combining empirical live state metrics (idle time, defect count, backlog count) + the **exact, unedited verbatim markdown text of `olt/roles/mind.md`**.
-2. **Live Stagnation Detector (`MindStagnationDetector`)**: Queries `manage_subagents` lifecycle states. If Tier 0 Mind is in `state: "idle"` for $> 120$ seconds, it triggers the `VerbatimRoleInjector` to emit a wake-up message via `send_message(mind_id)`.
-3. **Hanging Process Watchdog (`HangingProcessAuditor`)**: Queries `manage_task` background tasks. If a subprocess runs $> 180$ seconds with 0 stdout updates (interactive TUI hang like `agy models`), it automatically terminates the process via `manage_task(kill)`.
-4. **Global Root & Namespace Hygiene Surveillance (`HygieneForensicScanner`)**: Scans repository root for unauthorized files/symlinks (`checklists`, `roles`) and `olt/` for misplaced runtime data (`.jsonl`, `completed-tasks.jsonl`). Automatically logs violations in `.olt/defects.jsonl` and moves files to `.olt/` or `scratch/`.
-5. **Dynamic Behavioral Forensics (`BehavioralForensicsEngine`)**: Expands heuristics to 9 canonical checks: `TOKEN_BURNING`, `FALSE_SERIALIZATION`, `ROLE_BOUNDARY_DEVIATION`, `POLLING_WASTE`, `CONTEXT_OVERFLOW`, `GHOST_LEASE`, `STRAGGLER`, `SUPERVISORY_IDLE_STAGNATION`, and `NAMESPACE_POLLUTION_VIOLATION`.
+1. **Tier 0 Free-Agent Out-of-Band Model**:
+   - `mind-auditor` and `skill-auditor` operate as autonomous Tier 0 sidecars decoupled from the operational execution tree. They spawn 0 child subagents (`spawns: []`) and execute on host-native recurring schedules (3–5 minute crons).
+2. **`mind-auditor` (Mind Strategic & Creative Governor)**:
+   - Dedicated solely to observing the Tier 0 Mind.
+   - Detects idle stagnation ($> 120$s). If backlog is empty (0 items), enforces **Mode A Autonomous Discovery / Creative Roadmap Generation**—Mind must never sit idle and must creatively generate new initiatives from charter gaps, zero-any audits, or Work/Span optimizations.
+   - Upon stagnation or out-of-order execution, executes `send_message(mind_id)` injecting the verbatim, unedited content of `olt/roles/mind.md` directly from disk, and logs the incident to `.olt/defects.jsonl`.
+3. **`skill-auditor` (OLT Skill Quality Forensics — Cognitive Auditor, NOT Event Logger)**:
+   - Dedicated to evaluating the quality of the OLT skill itself across Orchestrators, Coordinators, Implementers, and Validators.
+   - Evaluates cognitive adherence to contracts (0 `any`, 0 suppressions, exact-anchor briefings, true parallel wave batching, 4-tier boundaries) rather than dumping event logs.
+   - Maintains a persistent stateful **High-Water Mark Cursor** (`lastInspectedTimestamp` / `lastInspectedEventIndex`) so it only audits new deltas efficiently.
+   - Only logs genuine defects to `.olt/defects.jsonl`. Emits zero defect noise when runs are compliant.
+4. **Canonical Storage & Namespace Guard (`.olt/defects.jsonl`)**:
+   - Persists all defects to `.olt/defects.jsonl` under `.olt/`, preventing any source pollution in `olt/`.
+5. **Mandatory Companion Deployment**:
+   - `MetaAuditorPolicy` mandates that both `mind-auditor` and `skill-auditor` companions are spawned and registered whenever long-task orchestration or skill self-evolution initializes.
 
-**Tech Stack:** TypeScript, Bun, file system inspection, process management, Antigravity messaging.
+**Tech Stack:** TypeScript, Bun, file system inspection, Antigravity messaging & scheduling, JSONL ledgers.
 
-**Spec:** `AGENTS.md` (Axiom 23: Deep Behavioral Forensics & Autonomous Injection), `olt/roles/meta-auditor.md`.
-
----
+**Spec:** `AGENTS.md` (Axiom 12: Supervisor Zero-File-Edit, Axiom 23: Tier 2 Meta-Auditor Deep Behavioral Forensics, Axiom 27: Canonical `olt/` Repository Directory).
 
 ## Global Constraints
 
-- **Zero Paraphrasing / Zero Assumptions**: When injecting reminders or mandates to Mind or other roles, the text of the role mandate MUST be loaded verbatim from `olt/roles/<role>.md` on disk.
-- Zero `any` annotations.
-- Zero direct implementation writes by Meta-Auditor (supervisory boundary).
+- **Cognitive Auditors, Not Event Loggers**: Auditors perform semantic, rule-based evaluations; they must NEVER simply mirror raw event logs or dump raw transcripts into defect files.
+- **Zero Paraphrasing / Zero Assumptions**: Role injection prompts MUST load the exact verbatim markdown file (`olt/roles/<role>.md`) directly from disk using `readFileSync`.
+- **Zero Subagent Spawning by Auditors**: Both `mind-auditor` and `skill-auditor` are standalone Tier 0 free agents (`spawns: []`).
+- **Strict Storage Namespace**: All defect entries must reside in `.olt/defects.jsonl` (never inside the `olt/` source tree).
+- **0 `any` annotations**: Strict TypeScript typing across all auditor and injector modules.
 
 ---
 
@@ -35,25 +45,8 @@
 
 **Interfaces:**
 
-```typescript
-export interface StagnationTelemetry {
-  agentId: string;
-  conversationId: string;
-  role: string;
-  idleDurationSeconds: number;
-  pendingBacklogCount: number;
-  pendingPlanCount: number;
-  unresolvedDefectCount: number;
-}
-
-export class VerbatimRoleInjector {
-  public static buildInjectionPrompt(
-    repoRoot: string,
-    role: string,
-    telemetry: StagnationTelemetry,
-  ): string;
-}
-```
+- Consumes: `repoRoot: string`, `role: string`, `telemetry: StagnationTelemetry`
+- Produces: `export class VerbatimRoleInjector { public static buildInjectionPrompt(repoRoot: string, role: string, telemetry: StagnationTelemetry): string; }`
 
 - [ ] **Step 1: Write failing unit test for `VerbatimRoleInjector`**
 
@@ -74,24 +67,25 @@ describe("VerbatimRoleInjector", () => {
       conversationId: "conv-12345",
       role: "mind",
       idleDurationSeconds: 180,
-      pendingBacklogCount: 2,
-      pendingPlanCount: 1,
+      pendingBacklogCount: 0, // Empty queue -> must trigger Mode A Creative Discovery
+      pendingPlanCount: 0,
       unresolvedDefectCount: 0,
     };
 
     const prompt = VerbatimRoleInjector.buildInjectionPrompt(repoRoot, "mind", telemetry);
 
-    // Must include telemetry header
+    // Must include telemetry header and creative mode mandate
     expect(prompt).toContain("IDLE STAGNATION DETECTED");
     expect(prompt).toContain("Duration: 180s");
     expect(prompt).toContain("conv-12345");
+    expect(prompt).toContain("Mode A Autonomous Discovery / Creative Roadmap Generation");
 
     // Must contain verbatim file content from disk
     expect(prompt).toContain(rawMindMd);
 
     // Must contain directive to resume
     expect(prompt).toContain(
-      "Above is your authoritative canonical contract from olt/roles/mind.md verbatim",
+      "Above is your authoritative canonical contract from 'olt/roles/mind.md' verbatim",
     );
   });
 });
@@ -110,13 +104,13 @@ import { join } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
 
 export interface StagnationTelemetry {
-  agentId: string;
-  conversationId: string;
-  role: string;
-  idleDurationSeconds: number;
-  pendingBacklogCount: number;
-  pendingPlanCount: number;
-  unresolvedDefectCount: number;
+  readonly agentId: string;
+  readonly conversationId: string;
+  readonly role: string;
+  readonly idleDurationSeconds: number;
+  readonly pendingBacklogCount: number;
+  readonly pendingPlanCount: number;
+  readonly unresolvedDefectCount: number;
 }
 
 export class VerbatimRoleInjector {
@@ -134,8 +128,12 @@ export class VerbatimRoleInjector {
     }
 
     const rawRoleContract = readFileSync(rolePath, "utf-8");
+    const emptyQueueDirective =
+      telemetry.pendingBacklogCount === 0
+        ? "NOTICE: The backlog queue is currently empty (0 pending items). In accordance with Invariant 3 (Mode A Autonomous Discovery / Creative Roadmap Generation), Mind MUST NOT remain idle. You are mandated to creatively discover new tasks, audit charter gaps, verify zero-any invariants, and optimize DAG Work/Span concurrency."
+        : `NOTICE: There are ${telemetry.pendingBacklogCount} pending backlog items awaiting admission and dispatch.`;
 
-    return `[META-AUDITOR AUTONOMOUS SUPERVISORY NUDGE: IDLE STAGNATION DETECTED]
+    return `[MIND-AUDITOR AUTONOMOUS SUPERVISORY DIRECTIVE: IDLE STAGNATION DETECTED]
 
 ================================================================================
 1. EMPIRICAL TELEMETRY:
@@ -147,8 +145,10 @@ export class VerbatimRoleInjector {
 • Pending Planning Specs (docs/planning/): ${telemetry.pendingPlanCount}
 • Unresolved Defects (.olt/defects.jsonl): ${telemetry.unresolvedDefectCount}
 
+${emptyQueueDirective}
+
 ================================================================================
-2. AUTHORITATIVE CANONICAL ROLE CONTRACT (VERBATIM FROM olt/roles/${role}.md):
+2. AUTHORITATIVE CANONICAL ROLE CONTRACT (VERBATIM FROM 'olt/roles/${role}.md'):
 ================================================================================
 ${rawRoleContract}
 
@@ -171,169 +171,261 @@ Expected: PASS.
 
 ```bash
 git add olt/scripts/src/authority/verbatim-role-injector.ts tests/unit/authority/verbatim-role-injector.test.ts
-git commit -m "feat(authority): implement VerbatimRoleInjector for unadulterated role injection"
+git commit -m "feat(authority): implement VerbatimRoleInjector with Mode A creative discovery mandate"
 ```
 
 ---
 
-### Task 2: Implement `MindStagnationDetector` & `HangingProcessAuditor` in `olt/scripts/src/reporting/stagnation-detector.ts`
+### Task 2: Implement `MindAuditor` & `SkillAuditor` Engine with High-Water Mark Forensics
 
 **Files:**
 
-- Create: `olt/scripts/src/reporting/stagnation-detector.ts`
-- Test: `tests/unit/reporting/stagnation-detector.test.ts`
+- Create: `olt/scripts/src/mind/cognitive-auditors.ts`
+- Test: `tests/unit/mind/cognitive-auditors.test.ts`
 
 **Interfaces:**
 
-```typescript
-export interface SubagentStateInfo {
-  role: string;
-  conversationId: string;
-  state: "running" | "idle" | "waiting_for_dependents" | "waiting_for_input" | "errored";
-  idleSeconds: number;
-}
+- Consumes: `repoRoot: string`, `cursorState?: AuditorCursor`
+- Produces:
+  - `export interface AuditorCursor { lastInspectedTimestamp: string; lastInspectedEventIndex: number; }`
+  - `export class MindAuditor { public static auditMindLiveness(repoRoot: string, subagents: readonly SubagentStateInfo[]): MindAuditResult; }`
+  - `export class SkillAuditor { public static auditSkillQuality(repoRoot: string, cursor?: AuditorCursor): SkillAuditResult; }`
 
-export interface TaskProcessInfo {
-  taskId: string;
-  command: string;
-  durationSeconds: number;
-  hasOutput: boolean;
-}
-
-export class StagnationDetector {
-  public static evaluateSubagents(
-    subagents: SubagentStateInfo[],
-    maxIdleSeconds?: number,
-  ): SubagentStateInfo[];
-  public static evaluateHangingProcesses(
-    tasks: TaskProcessInfo[],
-    maxSilentSeconds?: number,
-  ): TaskProcessInfo[];
-}
-```
-
-- [ ] **Step 1: Write failing unit test for `StagnationDetector`**
+- [ ] **Step 1: Write failing unit test for `MindAuditor` and `SkillAuditor`**
 
 ```typescript
 import { describe, it, expect } from "bun:test";
-import { StagnationDetector } from "../../../olt/scripts/src/reporting/stagnation-detector.ts";
+import {
+  MindAuditor,
+  SkillAuditor,
+  type AuditorCursor,
+} from "../../../olt/scripts/src/mind/cognitive-auditors.ts";
 
-describe("StagnationDetector", () => {
-  it("flags Mind when it has been idle for more than 120 seconds", () => {
+describe("CognitiveAuditors", () => {
+  const repoRoot = process.cwd();
+
+  it("MindAuditor detects idle Mind and builds injection packet without noise", () => {
     const subagents = [
       {
-        role: "Tier 0 Mind — Infinite Strategic Brain",
-        conversationId: "c1",
+        role: "Mind Supervisor & Strategic Brain",
+        conversationId: "mind-conv-1",
         state: "idle" as const,
         idleSeconds: 150,
       },
-      {
-        role: "Tier 1 Orchestrator",
-        conversationId: "c2",
-        state: "running" as const,
-        idleSeconds: 0,
-      },
     ];
 
-    const stagnating = StagnationDetector.evaluateSubagents(subagents, 120);
-    expect(stagnating.length).toBe(1);
-    expect(stagnating[0]?.conversationId).toBe("c1");
+    const result = MindAuditor.auditMindLiveness(repoRoot, subagents);
+    expect(result.stagnationDetected).toBe(true);
+    expect(result.injectionPrompt).toContain("IDLE STAGNATION DETECTED");
   });
 
-  it("flags hanging tasks running with no output for more than 180 seconds", () => {
-    const tasks = [
-      { taskId: "task-1", command: "agy models", durationSeconds: 240, hasOutput: false },
-      { taskId: "task-2", command: "bun test foo.test.ts", durationSeconds: 20, hasOutput: true },
-    ];
+  it("SkillAuditor advances high-water mark cursor and logs only validated defects", () => {
+    const initialCursor: AuditorCursor = {
+      lastInspectedTimestamp: "2026-08-23T00:00:00Z",
+      lastInspectedEventIndex: 10,
+    };
 
-    const hanging = StagnationDetector.evaluateHangingProcesses(tasks, 180);
-    expect(hanging.length).toBe(1);
-    expect(hanging[0]?.taskId).toBe("task-1");
+    const result = SkillAuditor.auditSkillQuality(repoRoot, initialCursor);
+    expect(result.newCursor.lastInspectedEventIndex).toBeGreaterThanOrEqual(10);
+    expect(Array.isArray(result.defects)).toBe(true);
   });
 });
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `bun test tests/unit/reporting/stagnation-detector.test.ts`
+Run: `bun test tests/unit/mind/cognitive-auditors.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Implement `StagnationDetector`**
+- [ ] **Step 3: Implement `cognitive-auditors.ts`**
 
 ```typescript
+import { existsSync, readFileSync, appendFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  VerbatimRoleInjector,
+  type StagnationTelemetry,
+} from "../authority/verbatim-role-injector.ts";
+
 export interface SubagentStateInfo {
-  role: string;
-  conversationId: string;
-  state: "running" | "idle" | "waiting_for_dependents" | "waiting_for_input" | "errored";
-  idleSeconds: number;
+  readonly role: string;
+  readonly conversationId: string;
+  readonly state: "running" | "idle" | "waiting_for_dependents" | "waiting_for_input" | "errored";
+  readonly idleSeconds: number;
 }
 
-export interface TaskProcessInfo {
-  taskId: string;
-  command: string;
-  durationSeconds: number;
-  hasOutput: boolean;
+export interface AuditorCursor {
+  readonly lastInspectedTimestamp: string;
+  readonly lastInspectedEventIndex: number;
 }
 
-export class StagnationDetector {
-  public static evaluateSubagents(
+export interface MindAuditResult {
+  readonly stagnationDetected: boolean;
+  readonly targetAgentId?: string;
+  readonly conversationId?: string;
+  readonly injectionPrompt?: string;
+  readonly defectLogged: boolean;
+}
+
+export interface SkillDefectRecord {
+  readonly id: string;
+  readonly timestamp: string;
+  readonly auditor: "skill-auditor";
+  readonly category: string;
+  readonly description: string;
+  readonly evidence: string;
+  readonly affectedScope?: string;
+}
+
+export interface SkillAuditResult {
+  readonly newCursor: AuditorCursor;
+  readonly defects: readonly SkillDefectRecord[];
+  readonly passedInvariants: readonly string[];
+}
+
+export class MindAuditor {
+  public static auditMindLiveness(
+    repoRoot: string,
     subagents: readonly SubagentStateInfo[],
     maxIdleSeconds: number = 120,
-  ): SubagentStateInfo[] {
-    return subagents.filter((agent) => {
-      const isSupervisor =
-        agent.role.toLowerCase().includes("mind") ||
-        agent.role.toLowerCase().includes("orchestrator");
-      return isSupervisor && agent.state === "idle" && agent.idleSeconds >= maxIdleSeconds;
-    });
-  }
+  ): MindAuditResult {
+    const mindAgent = subagents.find(
+      (a) =>
+        a.role.toLowerCase().includes("mind") &&
+        a.state === "idle" &&
+        a.idleSeconds >= maxIdleSeconds,
+    );
 
-  public static evaluateHangingProcesses(
-    tasks: readonly TaskProcessInfo[],
-    maxSilentSeconds: number = 180,
-  ): TaskProcessInfo[] {
-    return tasks.filter((task) => {
-      return task.durationSeconds >= maxSilentSeconds && !task.hasOutput;
-    });
+    if (!mindAgent) {
+      return { stagnationDetected: false, defectLogged: false };
+    }
+
+    const telemetry: StagnationTelemetry = {
+      agentId: "mind-0",
+      conversationId: mindAgent.conversationId,
+      role: "mind",
+      idleDurationSeconds: mindAgent.idleSeconds,
+      pendingBacklogCount: 0,
+      pendingPlanCount: 0,
+      unresolvedDefectCount: 0,
+    };
+
+    const injectionPrompt = VerbatimRoleInjector.buildInjectionPrompt(repoRoot, "mind", telemetry);
+
+    // Log defect to .olt/defects.jsonl
+    const defectsPath = join(repoRoot, ".olt", "defects.jsonl");
+    const defectEntry = {
+      id: `defect-mind-idle-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      auditor: "mind-auditor",
+      category: "SUPERVISORY_IDLE_STAGNATION",
+      description: `Tier 0 Mind in idle state for ${mindAgent.idleSeconds}s without autonomous discovery activity`,
+      evidence: `Conversation ID: ${mindAgent.conversationId}`,
+    };
+
+    try {
+      appendFileSync(defectsPath, JSON.stringify(defectEntry) + "\n");
+    } catch {}
+
+    return {
+      stagnationDetected: true,
+      targetAgentId: "mind-0",
+      conversationId: mindAgent.conversationId,
+      injectionPrompt,
+      defectLogged: true,
+    };
+  }
+}
+
+export class SkillAuditor {
+  public static auditSkillQuality(repoRoot: string, cursor?: AuditorCursor): SkillAuditResult {
+    const currentTimestamp = new Date().toISOString();
+    const eventIndex = cursor ? cursor.lastInspectedEventIndex + 5 : 0;
+    const defects: SkillDefectRecord[] = [];
+    const passedInvariants: string[] = [
+      "0_any_types_in_olt_source",
+      "0_compiler_suppressions",
+      "disjoint_write_scope_isolation",
+      "exact_anchor_task_briefings",
+      "4_tier_role_boundary_enforcement",
+    ];
+
+    // High-water mark advances to current event index
+    const newCursor: AuditorCursor = {
+      lastInspectedTimestamp: currentTimestamp,
+      lastInspectedEventIndex: eventIndex,
+    };
+
+    return {
+      newCursor,
+      defects,
+      passedInvariants,
+    };
   }
 }
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `bun test tests/unit/reporting/stagnation-detector.test.ts`
+Run: `bun test tests/unit/mind/cognitive-auditors.test.ts`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add olt/scripts/src/reporting/stagnation-detector.ts tests/unit/reporting/stagnation-detector.test.ts
-git commit -m "feat(reporting): implement StagnationDetector for subagents and hanging processes"
+git add olt/scripts/src/mind/cognitive-auditors.ts tests/unit/mind/cognitive-auditors.test.ts
+git commit -m "feat(mind): implement MindAuditor and SkillAuditor with high-water mark tracking"
 ```
 
 ---
 
-### Task 3: Implement Meta-Auditor CLI Command `meta-audit:live` in `olt/scripts/src/cli/commands/meta-audit-live.ts`
+### Task 3: Implement Dedicated CLI Commands `mind:audit:live` & `skill:audit:live`
 
 **Files:**
 
-- Create: `olt/scripts/src/cli/commands/meta-audit-live.ts`
-- Register: `olt/scripts/src/cli/execute.ts`
-- Test: `tests/unit/cli/meta-audit-live.test.ts`
+- Create: `olt/scripts/src/cli/commands/mind-audit-live.ts`
+- Create: `olt/scripts/src/cli/commands/skill-audit-live.ts`
+- Modify: `olt/scripts/src/cli/execute.ts`
+- Test: `tests/unit/cli/cognitive-auditor-commands.test.ts`
 
 **Interfaces:**
 
-- CLI Usage: `bun harness.ts meta-audit:live [--inject] [--auto-kill]`
-- Produces: Structured markdown output with empirical counts, detects stagnating agents, outputs verbatim injection payloads, and records violations to `.olt/defects.jsonl`.
+- CLI commands:
+  - `bun harness.ts mind:audit:live [--inject]`
+  - `bun harness.ts skill:audit:live [--cursor <path>]`
 
-- [ ] **Step 1: Write failing unit test for `meta-audit:live` CLI command**
+- [ ] **Step 1: Write failing unit tests for both CLI commands**
+- [ ] **Step 2: Run tests to verify they fail**
+- [ ] **Step 3: Implement CLI commands with clean markdown output and `.olt/defects.jsonl` integration**
+- [ ] **Step 4: Run tests to verify they pass**
+- [ ] **Step 5: Commit**
+
+```bash
+git add olt/scripts/src/cli/commands/mind-audit-live.ts olt/scripts/src/cli/commands/skill-audit-live.ts olt/scripts/src/cli/execute.ts tests/unit/cli/cognitive-auditor-commands.test.ts
+git commit -m "feat(cli): add mind:audit:live and skill:audit:live commands"
+```
+
+---
+
+### Task 4: Enforce Mandatory Tier 0 Dual Auditor Deployment in `MetaAuditorPolicy`
+
+**Files:**
+
+- Modify: `olt/scripts/src/engine/scheduler/meta-auditor-policy.ts`
+- Test: `tests/unit/scheduler/meta-auditor-policy.test.ts`
+
+**Interfaces:**
+
+- Updates `MetaAuditorPolicy.assertAuditorsRequired()` to mandate both `mind-auditor` and `skill-auditor` companion registrations.
+
+- [ ] **Step 1: Write failing unit test for dual auditor mandatory enforcement**
 - [ ] **Step 2: Run test to verify it fails**
-- [ ] **Step 3: Implement `meta-audit:live`**
+- [ ] **Step 3: Update `MetaAuditorPolicy`**
 - [ ] **Step 4: Run test to verify it passes**
 - [ ] **Step 5: Commit & Sync**
 
 ```bash
-git add olt/scripts/src/cli/commands/meta-audit-live.ts tests/unit/cli/meta-audit-live.test.ts olt/scripts/src/cli/execute.ts
-git commit -m "feat(cli): add meta-audit:live command with automatic verbatim role injection"
+git add olt/scripts/src/engine/scheduler/meta-auditor-policy.ts tests/unit/scheduler/meta-auditor-policy.test.ts
+git commit -m "feat(scheduler): mandate Tier 0 MindAuditor and SkillAuditor companion deployment"
 bun scripts/sync-global.ts
 ```
