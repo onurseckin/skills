@@ -131,7 +131,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
       } as RepoPolicy);
 
       expect(result.authorized).toBe(false);
-      expect(result.error_code).toBe("ROLE_BOUNDARY_VIOLATION");
+      expect(result.error_code).toBe("SUPERVISOR_TEST_EXECUTION_FORBIDDEN");
     });
 
     test("enforces immutable can_execute_shell: false on validator even if spoofed to true", () => {
@@ -144,7 +144,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
 
       const result = verifyCommandAuthorization(spoofedValidatorActor, "ls -la", samplePolicy);
       expect(result.authorized).toBe(false);
-      expect(result.error_code).toBe("ROLE_BOUNDARY_VIOLATION");
+      expect(result.error_code).toBe("COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN");
       expect(result.message).toContain("Cognitive Validators are locked to 0 command execution");
     });
 
@@ -245,7 +245,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
 
       const result = verifyCommandAuthorization(validatorActor, "git status", samplePolicy);
       expect(result.authorized).toBe(false);
-      expect(result.error_code).toBe("ROLE_BOUNDARY_VIOLATION");
+      expect(result.error_code).toBe("COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN");
       expect(result.message).toContain("Cognitive Validators are locked to 0 command execution");
     });
 
@@ -262,8 +262,8 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
 
       const result = verifyCommandAuthorization(implementerActor, "bun test", samplePolicy);
       expect(result.authorized).toBe(false);
-      expect(result.error_code).toBe("POLICY_VIOLATION");
-      expect(result.message).toContain("[POLICY_VIOLATION]");
+      expect(result.error_code).toBe("UNBOUNDED_TEST_RUNNER_FORBIDDEN");
+      expect(result.message).toContain("[UNBOUNDED_TEST_RUNNER_FORBIDDEN]");
       expect(result.message).toContain("Un-targeted whole-repo test run detected: 'bun test'");
     });
 

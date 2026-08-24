@@ -387,9 +387,12 @@ export function formatMindPulseActiveBrief(params: {
     `- **Invariant**: Mind never self-terminates, dies, or closes. Runs indefinitely until human OS termination.`,
     `- **Supervisory Invariants**: Strict 4-Tier Spawning Hierarchy & Supervisor Zero-File-Edit Invariant actively enforced.`,
   );
-  
+
   if (typeof params.activeRuns === "number" && typeof params.pendingBacklog === "number") {
-    const directive = formatPulseDirective({ activeRuns: params.activeRuns, pendingBacklog: params.pendingBacklog });
+    const directive = formatPulseDirective({
+      activeRuns: params.activeRuns,
+      pendingBacklog: params.pendingBacklog,
+    });
     if (directive) lines.push(directive);
   }
   return enforceLineLimit(lines.join("\n"), 35);
@@ -467,9 +470,12 @@ export function formatMindPulseOpenedBrief(params: {
     `- **Invariant**: Mind never self-terminates, dies, or closes. Runs indefinitely until human OS termination.`,
     `- **Supervisory Invariants**: Strict 4-Tier Spawning Hierarchy & Supervisor Zero-File-Edit Invariant actively enforced.`,
   );
-  
+
   if (typeof params.activeRuns === "number" && typeof params.pendingBacklog === "number") {
-    const directive = formatPulseDirective({ activeRuns: params.activeRuns, pendingBacklog: params.pendingBacklog });
+    const directive = formatPulseDirective({
+      activeRuns: params.activeRuns,
+      pendingBacklog: params.pendingBacklog,
+    });
     if (directive) lines.push(directive);
   }
   return enforceLineLimit(lines.join("\n"), 35);
@@ -636,7 +642,14 @@ export async function mindPulseCommand(
       cliReceiptSummaryBadge: diagResult?.receiptSummaryBadge,
       dagBadges,
       activeRuns: cognitiveTelemetry.activeAgents?.length ?? 0,
-      pendingBacklog: (Array.isArray(state.planning_buffer) ? state.planning_buffer.length : 0) + (typeof state.tasks === 'object' && state.tasks ? Object.values(state.tasks).filter(t => t && typeof t === 'object' && (t as Record<string, unknown>).status === 'proposed').length : 0),
+      pendingBacklog:
+        (Array.isArray(state.planning_buffer) ? state.planning_buffer.length : 0) +
+        (typeof state.tasks === "object" && state.tasks
+          ? Object.values(state.tasks).filter(
+              (t) =>
+                t && typeof t === "object" && (t as Record<string, unknown>).status === "proposed",
+            ).length
+          : 0),
     });
 
     return {
@@ -866,7 +879,14 @@ export async function mindPulseCommand(
     cliReceiptSummaryBadge: diagResult?.receiptSummaryBadge,
     dagBadges,
     activeRuns: cognitiveTelemetry.activeAgents?.length ?? 0,
-    pendingBacklog: (Array.isArray(state.planning_buffer) ? state.planning_buffer.length : 0) + (typeof state.tasks === 'object' && state.tasks ? Object.values(state.tasks).filter(t => t && typeof t === 'object' && (t as Record<string, unknown>).status === 'proposed').length : 0),
+    pendingBacklog:
+      (Array.isArray(state.planning_buffer) ? state.planning_buffer.length : 0) +
+      (typeof state.tasks === "object" && state.tasks
+        ? Object.values(state.tasks).filter(
+            (t) =>
+              t && typeof t === "object" && (t as Record<string, unknown>).status === "proposed",
+          ).length
+        : 0),
   });
 
   return {
@@ -902,7 +922,6 @@ export async function mindPulseCommand(
   };
 }
 
-
 import { MindAutonomousDiscoveryEngine } from "../../mind/discovery-engine.ts";
 
 export function formatPulseDirective(params: {
@@ -920,7 +939,7 @@ export function formatPulseDirective(params: {
       "- Active Runs: 0",
       "- Pending Backlog: 0",
       "- Action: Generate candidate proposals using MindAutonomousDiscoveryEngine.",
-      "- Invariant: CLOSING_FORBIDDEN_FOR_MIND"
+      "- Invariant: CLOSING_FORBIDDEN_FOR_MIND",
     ];
     if (proposals.length > 0) {
       lines.push("");

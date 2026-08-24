@@ -28,7 +28,10 @@ mock.module("../../../olt/scripts/src/policy/rbac-engine.ts", () => ({
 describe("prepareCommand / executePreparedCommand delegation", () => {
   test("prepareCommand forwards its input to the supplied runner unchanged and returns its result", async () => {
     const seenInputs: CommandOptions[] = [];
-    const preparedStub = { commandRoot: "stub-root", options: { runRoot: "/repo", repositoryRoot: "/repo" } } as unknown as PreparedCommand;
+    const preparedStub = {
+      commandRoot: "stub-root",
+      options: { runRoot: "/repo", repositoryRoot: "/repo" },
+    } as unknown as PreparedCommand;
     const fakeRunner: InternalCommandRunner = {
       prepareCommand: async (input) => {
         seenInputs.push(input);
@@ -52,7 +55,10 @@ describe("prepareCommand / executePreparedCommand delegation", () => {
   test("executePreparedCommand forwards its prepared command to the supplied runner unchanged", async () => {
     const seenPrepared: PreparedCommand[] = [];
     const resultStub = { record: { id: "C-1" } } as unknown as CommandResult;
-    const prepared = { commandRoot: "stub-root-2", options: { runRoot: "/repo", repositoryRoot: "/repo", argv: ["echo"] } } as unknown as PreparedCommand;
+    const prepared = {
+      commandRoot: "stub-root-2",
+      options: { runRoot: "/repo", repositoryRoot: "/repo", argv: ["echo"] },
+    } as unknown as PreparedCommand;
     const fakeRunner: InternalCommandRunner = {
       prepareCommand: async () => {
         throw new Error("must not be called by executePreparedCommand");

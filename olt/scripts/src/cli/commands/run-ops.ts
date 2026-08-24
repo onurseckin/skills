@@ -364,7 +364,7 @@ export async function runExecCommand(
   const declared = declaredToolFlags(flags);
   const commandDir = `${loaded.runRoot}/commands`;
 
-  const metadata = readAgentMetadata(loaded.runRoot, actor);
+  const metadata = readAgentMetadata(actor, loaded.runRoot);
   if (!metadata) {
     throw new HarnessError(
       "INVALID_ARGUMENT",

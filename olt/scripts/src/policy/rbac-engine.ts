@@ -477,10 +477,10 @@ export function verifyCommandAuthorization(
   if (isCognitiveValidator) {
     return {
       authorized: false,
-      error_code: "ROLE_BOUNDARY_VIOLATION",
+      error_code: "COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN",
       reason: `Role '${role}' has 'can_execute_shell: false'`,
       message:
-        `[ROLE_BOUNDARY_VIOLATION] Cognitive Validators are locked to 0 command execution.\n` +
+        `[COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN] Cognitive Validators are locked to 0 command execution.\n` +
         `Focus exclusively on Socratic diff review and logic critique.`,
     };
   }
@@ -492,9 +492,9 @@ export function verifyCommandAuthorization(
   if (isSupervisor && isTestCommand) {
     return {
       authorized: false,
-      error_code: "ROLE_BOUNDARY_VIOLATION",
+      error_code: "SUPERVISOR_TEST_EXECUTION_FORBIDDEN",
       reason: `Supervisors cannot run tests: '${commandStr}'`,
-      message: `[ROLE_BOUNDARY_VIOLATION] Coordinators and Orchestrators are mechanically blocked from running test commands.`,
+      message: `[SUPERVISOR_TEST_EXECUTION_FORBIDDEN] Coordinators and Orchestrators are mechanically blocked from running test commands.`,
     };
   }
 
@@ -515,10 +515,10 @@ export function verifyCommandAuthorization(
     const targetedExample = activePolicy.test_runner?.targeted_pattern ?? "bun test <path>";
     return {
       authorized: false,
-      error_code: "POLICY_VIOLATION",
+      error_code: "UNBOUNDED_TEST_RUNNER_FORBIDDEN",
       reason: `Un-targeted whole-repo test run detected: '${commandStr}'`,
       message:
-        `[POLICY_VIOLATION] Un-targeted whole-repo test run detected: '${commandStr}'.\n` +
+        `[UNBOUNDED_TEST_RUNNER_FORBIDDEN] Un-targeted whole-repo test run detected: '${commandStr}'.\n` +
         `Implementers are forbidden from running full test suites.\n` +
         `You must pass a targeted file argument matching: '${targetedExample}'.`,
     };

@@ -130,7 +130,12 @@ export async function normalizeCommandOptions(
     if (!inOltCapsules && !inCapsules && !inLegacyCapsules) {
       throw new HarnessError(
         "PATH_SAFETY",
-        "gate command artifacts must be stored under the repository .olt/capsules directory",
+        "gate command artifacts must be stored under the repository .olt/capsules directory. runFromRepository: " +
+          runFromRepository +
+          " runRoot: " +
+          runRoot +
+          " repoRoot: " +
+          repositoryRoot,
       );
     }
   }
