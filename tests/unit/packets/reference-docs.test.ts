@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const skillRoot = join(import.meta.dir, "..", "..", "..", "olt");
@@ -35,5 +35,14 @@ describe("operator reference examples", () => {
     expect(state).toContain("only to the spawned Git child, never a process group, ancestor");
     for (const document of [skill, protocol, state])
       expect(document).toContain("trusted_host_observed_v1");
+  });
+
+  test("the Diataxis reference hub exists under docs/olt/reference/", () => {
+    const refDir = join(import.meta.dir, "..", "..", "..", "docs", "olt", "reference");
+    expect(existsSync(join(refDir, "harness-cli.md"))).toBe(true);
+    expect(existsSync(join(refDir, "state-schemas.md"))).toBe(true);
+    expect(existsSync(join(refDir, "error-codes.md"))).toBe(true);
+    expect(existsSync(join(refDir, "role-contracts.md"))).toBe(true);
+    expect(existsSync(join(refDir, "verification-engines.md"))).toBe(true);
   });
 });

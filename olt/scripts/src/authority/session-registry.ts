@@ -7,11 +7,17 @@ import {
   readdirSync,
   statSync,
 } from "node:fs";
-import { join, resolve, dirname } from "node:path";
+import { join, resolve, dirname, basename, isAbsolute } from "node:path";
 import { randomBytes } from "node:crypto";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
-import { findRepoRoot, isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
+import {
+  findRepoRoot,
+  isInsideCapsule,
+  isTestEnvironment,
+  resolveCapsulesDir,
+  resolveScratchDir,
+} from "../core/shared/paths.ts";
 import {
   agentIdToRole,
   agentIdToTier,
@@ -158,6 +164,16 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
   const host = options.host ?? detectHostApp(process.env);
   const granted_at = new Date().toISOString();
 
+  let resolvedRunRoot: string | undefined;
+  if (options.runRoot && options.runRoot.trim()) {
+    const trimmed = options.runRoot.trim();
+    if (isAbsolute(trimmed) || isInsideCapsule(trimmed)) {
+      resolvedRunRoot = resolve(trimmed);
+    } else {
+      resolvedRunRoot = join(resolveCapsulesDir(repoRoot), trimmed);
+    }
+  }
+
   const session: SessionIdentity = {
     agent_id: options.agentId.trim(),
     role,
@@ -165,7 +181,7 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
     token,
     pid,
     ppid,
-    run_id: options.runRoot ? dirname(resolve(options.runRoot)) : undefined,
+    run_id: resolvedRunRoot ? basename(resolvedRunRoot) : undefined,
     task_id: options.taskId,
     write_scope: options.writeScope,
     can_execute_shell,
@@ -188,8 +204,8 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
   }
 
   // 2. Write Capsule Runtime Session
-  if (options.runRoot) {
-    const runtimeSessionsDir = join(resolve(options.runRoot), "runtime", "sessions");
+  if (resolvedRunRoot) {
+    const runtimeSessionsDir = join(resolvedRunRoot, "runtime", "sessions");
     try {
       mkdirSync(runtimeSessionsDir, { recursive: true });
       writeFileSync(join(runtimeSessionsDir, `${options.agentId}.json`), payload, "utf8");

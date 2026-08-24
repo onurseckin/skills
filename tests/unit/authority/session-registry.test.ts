@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, utimesSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, utimesSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   registerSessionGrant,
@@ -8,7 +8,11 @@ import {
   pruneStaleSessions,
 } from "../../../olt/scripts/src/authority/session-registry.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
-import { resolveScratchDir } from "../../../olt/scripts/src/core/shared/paths.ts";
+import {
+  findRepoRoot,
+  resolveCapsulesDir,
+  resolveScratchDir,
+} from "../../../olt/scripts/src/core/shared/paths.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", () => {
@@ -539,5 +543,42 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
       ppid: 0,
     });
     expect(res).toBeNull();
+  });
+
+  // Regression test: ensure unqualified/bare run IDs resolve into .olt/capsules/<runId>
+  // rather than leaking runtime session directories onto sovereign repository root or cwd.
+  it("registers session grant with bare run ID and writes runtime session inside .olt/capsules and NOT on repo root", () => {
+    const bareRunId = `test-bare-run-${Date.now()}`;
+    const repoRoot = findRepoRoot();
+    const expectedCapsuleRunDir = join(resolveCapsulesDir(repoRoot), bareRunId);
+    const forbiddenRepoLooseDir = join(repoRoot, bareRunId);
+    const forbiddenCwdLooseDir = join(process.cwd(), bareRunId);
+
+    try {
+      const session = registerSessionGrant({
+        runRoot: bareRunId,
+        agentId: "agent-bare-test",
+        role: "implementer",
+      });
+
+      expect(session.run_id).toBe(bareRunId);
+      expect(session.agent_id).toBe("agent-bare-test");
+      expect(
+        existsSync(join(expectedCapsuleRunDir, "runtime", "sessions", "agent-bare-test.json")),
+      ).toBe(true);
+
+      expect(existsSync(forbiddenRepoLooseDir)).toBe(false);
+      expect(existsSync(forbiddenCwdLooseDir)).toBe(false);
+    } finally {
+      if (existsSync(expectedCapsuleRunDir)) {
+        rmSync(expectedCapsuleRunDir, { recursive: true, force: true });
+      }
+      if (existsSync(forbiddenRepoLooseDir)) {
+        rmSync(forbiddenRepoLooseDir, { recursive: true, force: true });
+      }
+      if (existsSync(forbiddenCwdLooseDir)) {
+        rmSync(forbiddenCwdLooseDir, { recursive: true, force: true });
+      }
+    }
   });
 });

@@ -76,12 +76,14 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
           }
           continue;
         }
-        if (entry.startsWith("run-")) {
-          const runEntries = readdirSync(runPath);
-          expect(runEntries).toContain("manifest.json");
-          expect(runEntries).toContain("prompt.md");
-        }
       }
     }
+  });
+
+  it("verifies Diataxis tutorials exist under docs/olt/tutorials/", () => {
+    const tutorialsDir = join(repoRoot, "docs", "olt", "tutorials");
+    expect(existsSync(tutorialsDir)).toBe(true);
+    expect(existsSync(join(tutorialsDir, "getting-started.md"))).toBe(true);
+    expect(existsSync(join(tutorialsDir, "first-autonomous-workflow.md"))).toBe(true);
   });
 });

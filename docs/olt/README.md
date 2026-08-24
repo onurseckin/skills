@@ -1,14 +1,14 @@
 # Orchestrating Long Tasks — Master Documentation & Architectural Manual
 
-Welcome to the definitive architectural manual and developer tutorial for the **`olt`** autonomous agent skill.
+Welcome to the definitive architectural manual and developer documentation for the **`olt`** autonomous agent skill.
 
-This manual provides a rigorous, deeply technical, step-by-step foundation for deterministic multi-agent software engineering. It explains how autonomous AI systems can safely, deterministically, and reliably orchestrate long-running, multi-phase coding tasks using a **Zero-JSON Colon Command Architecture**, a **Two-Tier Workforce Hierarchy**, and a **Strict Dependency Graph Engine**.
+This manual provides a rigorous, deeply technical foundation for deterministic multi-agent software engineering. It explains how autonomous AI systems can safely, deterministically, and reliably orchestrate long-running, multi-phase coding tasks using a **Zero-JSON Colon Command Architecture**, a **Two-Tier Workforce Hierarchy**, and a **Strict Dependency Graph Engine**.
 
 ---
 
 ## 🏛️ Diátaxis Architectural Framework Matrix
 
-To ensure clarity and usability across different developer needs, this manual is organized into the four distinct quadrants of the **Diátaxis Documentation Framework**:
+To ensure clarity and usability across different developer needs, this documentation suite is organized into the four distinct quadrants of the **Diátaxis Documentation Framework**:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -17,28 +17,69 @@ To ensure clarity and usability across different developer needs, this manual is
 │               PRACTICAL GOALS                │      THEORETICAL CONCEPTS    │
 ├──────────────────────────────────────────────┼──────────────────────────────┤
 │  LEARNING-ORIENTED:                          │  UNDERSTANDING-ORIENTED:     │
-│  [ TUTORIALS ]                               │  [ EXPLANATION ]             │
-│  • Hands-on End-to-End Walkthrough           │  • Why Long Tasks Fail (01§01)│
-│    (Chapter 10 §01)                          │  • Prompt Integrity (02§01)  │
-│  • The 10-Stage Lifecycle (01§03)            │  • Brent Work/Span (03§02)   │
-│                                              │  • Two-Tier Hierarchy (04§01)│
-│                                              │  • Adversarial Theory (06§01)│
-│                                              │  • Critic Philosophy (07§02) │
+│  [ TUTORIALS ]                               │  [ ARCHITECTURE ]            │
+│  • Getting Started with OLT                  │  • Mental Model & Foundations│
+│  • End-to-End Hands-on Walkthrough           │  • Brent Work/Span Scaling   │
+│  • Autonomous Workforce Operations           │  • POSIX flock Storage Model │
+│  • Dynamic Sub-Branching                     │  • Adversarial Theory        │
+│                                              │                              │
+│  👉 Explore: docs/olt/tutorials/             │  👉 Explore: docs/olt/architecture/│
 ├──────────────────────────────────────────────┼──────────────────────────────┤
 │  PROBLEM-ORIENTED:                           │  INFORMATION-ORIENTED:       │
 │  [ HOW-TO GUIDES ]                           │  [ REFERENCE ]               │
-│  • Plan Revision & Replanning (03§03)        │  • Node & Edge Schema (03§01)│
-│  • Dynamic Execution Branching (09§01)       │  • Zero-JSON CLI Ref (10§02) │
-│  • Bounded Repair Routing (06§03)            │  • Blunder Dictionary (10§03)│
-│  • Watchdog Health Monitoring (05§01)        │  • 10 Role Contracts (04§02) │
-│  • Crash & Lease Recovery (08§03, 10§03)     │  • Evidence Classes (09§03)  │
-│                                              │  • Finding Schema (06§02)    │
+│  • Dynamic Plan Revision & Replanning        │  • Harness CLI Dictionary    │
+│  • Handling Adversarial Probe Demands        │  • Formal State Schemas      │
+│  • Crash Forensics & Lease Recovery          │  • Error & Blunder Catalog   │
+│  • Building Domain-Specific Validators       │  • 10 Role Contracts Matrix  │
+│  • AST Linter & Rule Enforcement             │  • Deterministic Engines     │
+│                                              │                              │
+│  👉 Explore: docs/olt/how-to/                │  👉 Explore: docs/olt/reference/  │
 └──────────────────────────────────────────────┴──────────────────────────────┘
 ```
 
 ---
 
-## 🧭 Master Table of Contents (All 10 Chapters)
+## 🧭 Diátaxis Quadrants & Deep Documentation Map
+
+### 1. 📚 [Reference Manuals (`docs/olt/reference/`)](./reference/)
+
+The authoritative information specifications:
+
+- **[Harness CLI Command Dictionary](./reference/harness-cli.md)**: Exhaustive flag tables, types, defaults, stdin handling, and exit statuses for every CLI command.
+- **[State Schemas & Data Contracts](./reference/state-schemas.md)**: Formal JSON schemas and exemplars for `manifest.json`, `events.jsonl`, `state.json`, `requirements.json`, and command receipts.
+- **[Error Codes & Blunder Catalog](./reference/error-codes.md)**: Complete catalog of exit statuses (0, 3, 4, 70), error classes, and empirical failure countermeasures.
+- **[Role Contracts & Authority Matrix](./reference/role-contracts.md)**: Formal permissions, invariant prohibitions (`must_not`), command access, and packet limits for all 10 agent roles.
+- **[Deterministic Verification Engines](./reference/verification-engines.md)**: Specifications for `task:check` typechecker, the 10 AST static lint rules, and `gate:prove` falsifiability engine.
+
+### 2. 🎓 [Tutorials (`docs/olt/tutorials/`)](./tutorials/)
+
+Step-by-step lessons for mastering autonomous agent orchestration:
+
+- **[Getting Started with OLT](./tutorials/)**: Setup, capsule initialization, and environment verification.
+- **[End-to-End Orchestration Tutorial](./10-tutorial-and-cli/01-end-to-end-tutorial.md)**: A complete walkthrough from prompt capture to terminal sealing.
+- **[Autonomous Lifecycle Operations](./tutorials/)**: Multi-phase wave dispatching and continuous supervisor pulse loops.
+
+### 3. 🛠️ [How-To Guides (`docs/olt/how-to/`)](./how-to/)
+
+Targeted operational recipes for developers and system operators:
+
+- **[How to Execute Dynamic Scope-Aware Replanning](./how-to/)**: Partitioning late-stage defects into clean repair waves.
+- **[How to Answer Adversarial Probe Demands](./how-to/)**: Resolving validator demands with monitored command receipts.
+- **[How to Recover From Crashes & Expired Leases](./how-to/)**: Stale lease reclamation and torn event log forensics.
+- **[How to Create Custom Cognitive Validators](./how-to/)**: Authoring domain-specific checklists and validation probes.
+
+### 4. 🧠 [Architecture & Explanations (`docs/olt/architecture/`)](./architecture/)
+
+Deep conceptual and theoretical foundations:
+
+- **[Mental Model & Why Long Tasks Fail](./01-foundations/01-why-long-tasks-fail.md)**: Root causes of context decay, hallucination, and state drift.
+- **[Storage Model & Kernel flock Atomicity](./01-foundations/02-capsule-and-storage-model.md)**: Append-only hash chains, `events.jsonl`, projected `state.json`, and advisory locking.
+- **[Dependency Graph Theory & Brent Scaling](./03-graph-scheduler/01-dependency-graph-theory.md)**: Topological sorting, Tarjan SCC cycle detection, and Brent work/span concurrency.
+- **[Adversarial Validation Philosophy](./06-validation-repair/01-adversarial-validation-philosophy.md)**: Independent validator isolation, probe/defect split, and context sanitization.
+
+---
+
+## 🧭 Master Chapter Index (All 10 Chapters)
 
 ### [Chapter 01: Mental Model & Architectural Foundations](./01-foundations/01-why-long-tasks-fail.md)
 
@@ -49,8 +90,6 @@ To ensure clarity and usability across different developer needs, this manual is
 3. **[03. The Lifecycle Walkthrough](./01-foundations/03-lifecycle-walkthrough.md)**  
    _The ten stages from prompt capture to mechanical completion, alongside the formal task state machine including `branched` and `retry_ready`._
 
----
-
 ### [Chapter 02: Prompt Compilation & Requirements Engine](./02-requirements/01-prompt-capture-and-integrity.md)
 
 4. **[01. Prompt Capture & Byte-Exact Integrity](./02-requirements/01-prompt-capture-and-integrity.md)**  
@@ -59,8 +98,6 @@ To ensure clarity and usability across different developer needs, this manual is
    _The 100% line coverage rule, `--requirement-lines` binding, the positional fallback and its warnings, and the requirement the compiler mints per task._
 6. **[03. Authority-Gated Obligations & Their Dispositions](./02-requirements/03-authority-decisions-and-dispositions.md)**  
    _The `needs_authority` vocabulary the harness enforces, what has no CLI path today, and how to handle a gated obligation honestly._
-
----
 
 ### [Chapter 03: Graph Scheduling & Write-Scope Isolation](./03-graph-scheduler/01-dependency-graph-theory.md)
 
@@ -71,8 +108,6 @@ To ensure clarity and usability across different developer needs, this manual is
 9. **[03. Plan Revision, Replanning & Immutability](./03-graph-scheduler/03-plan-revision-and-freezing.md)**  
    _Three-tier plan stability, the structural freeze, independent plan-validator adversary, `gate:prove` falsifiability engine, Living Dynamic DAG Expansion (`dag:trace`), and `plan:replan` into a disjoint repair wave._
 
----
-
 ### [Chapter 04: Multi-Agent Deployment & Two-Tier Hierarchy](./04-multi-agent/01-host-agnostic-architecture.md)
 
 10. **[01. Host-Agnostic Architecture & Adapters](./04-multi-agent/01-host-agnostic-architecture.md)**  
@@ -81,8 +116,6 @@ To ensure clarity and usability across different developer needs, this manual is
     _The ten canonical roles, Lean Packets ($\le 4\text{KB}$ budgets), Validator Context Isolation (`isolateValidatorContext`, `excludeValidatorContamination`), and sycophancy mitigation._
 12. **[03. Bearer Token Protocol & Dispatch Security](./04-multi-agent/03-bearer-token-security.md)**  
     _One-time stdout-delivered tokens, digest-only persistence including in reports, the three token families, and voluntary release._
-
----
 
 ### [Chapter 05: Task Lifecycle & Monitored Execution](./05-task-execution/01-leasing-and-heartbeats.md)
 
@@ -93,8 +126,6 @@ To ensure clarity and usability across different developer needs, this manual is
 15. **[03. Structured Submission & Monitored Command Evidence](./05-task-execution/03-submission-and-evidence-collection.md)**  
     _`task:submit --summary`, where each report field comes from, the on-disk command record, and byte-identical scope non-change detection._
 
----
-
 ### [Chapter 06: Adversarial Validation & Bounded Repair Loop](./06-validation-repair/01-adversarial-validation-philosophy.md)
 
 16. **[01. Adversarial Validation: The Probe / Defect Split](./06-validation-repair/01-adversarial-validation-philosophy.md)**  
@@ -103,8 +134,6 @@ To ensure clarity and usability across different developer needs, this manual is
     _`defect` vs `probe_demand`, the mandatory components, and closing a finding with `--resolve <finding-id>=<command-id>`._
 18. **[03. Bounded Repair Routing & Escalation](./06-validation-repair/03-repair-routing-and-escalation.md)**  
     _The repair lease under `--role repairer`, the fresh-validator rule, the 6-round budget, and `plan:replan` into a parallel repair wave._
-
----
 
 ### [Chapter 07: Gates & Completeness Critic Verification](./07-gates-and-completion/01-mandatory-gate-systems.md)
 
@@ -115,8 +144,6 @@ To ensure clarity and usability across different developer needs, this manual is
 21. **[03. Mechanical Completion Engine & The 9-Point Terminal Checklist](./07-gates-and-completion/03-mechanical-completion-engine.md)**  
     _Deterministic completion via `run:complete`, closing grants first, and reading the sealed run with `doctor` and `summary:view`._
 
----
-
 ### [Chapter 08: Durability & Crash Recovery](./08-durability-recovery/01-tamper-proof-hash-chains.md)
 
 22. **[01. Event-Sourced Storage & Tamper-Proof Hash Chains](./08-durability-recovery/01-tamper-proof-hash-chains.md)**  
@@ -126,8 +153,6 @@ To ensure clarity and usability across different developer needs, this manual is
 24. **[03. Stale Worker, Crash Forensics & Torn Tail Quarantine](./08-durability-recovery/03-stale-worker-and-torn-tail-recovery.md)**  
     _Torn tail quarantine protocol, stale lease reclamation, Watchdog lifecycle monitoring (`watchdog:phase-cleanup`), and crash resilience._
 
----
-
 ### [Chapter 09: Branching, Grants & Evidence Honesty](./09-branching-and-honesty/01-execution-time-branching.md)
 
 25. **[01. Execution-Time Branching & Collect](./09-branching-and-honesty/01-execution-time-branching.md)**  
@@ -136,8 +161,6 @@ To ensure clarity and usability across different developer needs, this manual is
     _`agent:register` / `agent:report` / `agent:release` / `agent:list`, Host Telemetry Probe merging, and per-agent telemetry that is never inferred._
 27. **[03. Evidence Classes & The Honesty Model](./09-branching-and-honesty/03-evidence-classes-and-honesty.md)**  
     _`harness_observed` / `agent_reported` / `host_reported` / `derived` / `unknown`, Dual-Time Telemetry pairing, and how the exported graph renders absence._
-
----
 
 ### [Chapter 10: Complete End-to-End Tutorial & CLI Manual](./10-tutorial-and-cli/01-end-to-end-tutorial.md)
 
@@ -150,89 +173,34 @@ To ensure clarity and usability across different developer needs, this manual is
 
 ---
 
-## 🎯 High-Level Architecture Overview
+## 🎯 Master Architecture Diagram
 
-```text
-┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                      USER PROMPT (Raw Bytes)                                      │
-└─────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
-                                                  │
-                                                  ▼
-┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                          1. IMMUTABLE RUN CAPSULE (.olt/capsules/<slug>/)                             │
-│  • prompt.md (mode 0444, SHA-256 bound)    • manifest.json (runtime pin, environment hash)        │
-│  • events.jsonl (SHA-256 HMAC hash chain)  • state.json (single projected atomic state)           │
-│  • Kernel POSIX flock concurrency guard    • harness.config.json (probes=1, repair_budget=6)      │
-└─────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
-                                                  │
-                                                  ▼
-┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                          2. REQUIREMENTS & LINE DISPOSITION ENGINE                                │
-│  • 100% prompt line coverage invariant     • Atomic requirement nodes mapped via --req-lines      │
-│  • Unmapped lines disposed as context      • Authority-gated obligations (needs_authority)        │
-└─────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
-                                                  │
-                                                  ▼
-┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                          3. STRICT DEPENDENCY GRAPH & TOPOLOGY (state.graph)                      │
-│  • 8 formal node types, 10 edge types      • Tarjan SCC linear cycle detector (detectCyclesTarjan)│
-│  • Mandatory C6 topology declarations      • Sugiyama 4-phase hierarchical DAG (dag)       │
-└─────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
-                                                  │
-                                                  ▼
-┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                          3B. DUAL ADVERSARIAL COMPILATION GATES                                   │
-│  • Gate 1: Mechanical Plan Audit (plan:audit / Invariants A1-A6 block plan:compile)               │
-│  • Gate 2: Independent Plan-Validator (plan:validate-start/review blocks task:claim)              │
-│  • Dynamic Gate Falsifiability Engine (gate:prove on scratch copy reverts)                        │
-└───────────────────────────────────────────────────────────────────────────────────────────────────┘
-                                                  │
-                                                  ▼
-┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                          4. CONFLICT-FREE WAVE SCHEDULER (proposeBatch)                           │
-│  • Single scheduling authority             • 6-factor deterministic ranking comparator            │
-│  • Glob-aware scope conflict detection     • Brent Work/Span scaling (P = ceil(W / S))            │
-│  • Anti-serialization interlock: FALSE_SERIALIZATION_BLUNDER blocks lazy serial dispatch          │
-│  • Multi-coordinator wave partitioning for > 5 lanes or cross-domain stacks                       │
-└─────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
-                                                  │
-                                                  ▼
-┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                          5. CONTINUOUS PARALLEL EXECUTION & LEASING                               │
-│                                                                                                   │
-│  [ Master Coordinator ] ---agent:register---> state.agents workforce ledger                       │
-│    │                                                                                              │
-│    ├──► [ Tier 3 Implementer ]  task:claim -> run:exec -> task:submit                             │
-│    │          │                                                                                   │
-│    │          └──► branch:open -> [ sub-implementers ] -> branch:collect (parent lease frozen)    │
-│    │                                                                                              │
-│    └──► [ Tier 3 Validator ]  task:validate-start (fresh identity every round)                    │
-│               │                                                                                   │
-│         +-----+-----------------------+                                                           │
-│         │                             │                                                           │
-│    task:probe (Probe demand)     task:reject (Defect finding)                                     │
-│    probe_round +1                repair_round +1 (budget 6, then escalated)                       │
-│    task stays validating         task -> changes_requested -> task:claim --role repairer          │
-│         │                             │                                                           │
-│         v                             v                                                           │
-│    task:review --status pass --resolve <finding>=<cmd-receipt> (100% findings resolved)           │
-│                                                                                                   │
-└─────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
-                                                  │
-                                                  ▼
-┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                          6. RUN-WIDE VERIFICATION & COMPLETENESS CRITIC                           │
-│  • run:exec gate-run-completion            • Independent Completeness Critic (critic:start)       │
-│  • Independent critic command receipts     • 100% requirement proof binding (/tmp/proofs.json)    │
-└─────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
-                                                  │
-                                                  ▼
-┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                          7. MECHANICAL TERMINAL SEALING & AUDIT EXPORT                            │
-│  • Clean workforce grant teardown (agent:release) prior to seal                                   │
-│  • Cryptographic capsule seal: run:complete --auth-token <critic-certificate>                     │
-│  • Summary suite export (summary:export): graph.json, timeline.json, metrics.json, summary.md    │
-└───────────────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph Ingestion ["1. Prompt Ingestion & Pinning"]
+        PROMPT["Raw User Prompt"] --> MANIFEST["manifest.json (SHA-256 bound)"]
+        PROMPT --> CAPSULE[".olt/capsules/<slug>/ (mode 0444)"]
+    end
+
+    subgraph Planning ["2. Requirements & Strict DAG"]
+        CAPSULE --> REQS["requirements.json (100% line coverage)"]
+        REQS --> DAG["state.graph (8 node types, 10 edge types)"]
+        DAG --> TOPOLOGY["state.topology (Brent Work/Span Rebalancing)"]
+    end
+
+    subgraph Workforce ["3. Two-Tier Parallel Execution"]
+        TOPOLOGY --> COORD["Tier 2: Coordinator"]
+        COORD -->|Dispatches Wave| IMP["Tier 3: Implementer (task:claim -> run:exec -> task:submit)"]
+        COORD -->|Dispatches Paired| VAL["Tier 3: Validator (task:probe / task:reject / task:review)"]
+        IMP -.->|Optional Sub-tasks| BRANCH["branch:open -> branch:collect"]
+    end
+
+    subgraph Completion ["4. Critic Verification & Sealing"]
+        VAL -->|All Tasks Done| CRITIC["Tier 3: Completeness Critic (critic:start)"]
+        CRITIC -->|100% Requirements Proven| SEAL["run:complete (Cryptographic Seal)"]
+        CRITIC -->|Findings Detected| REPLAN["plan:replan (Cascading Scope-Aware Wave)"]
+        REPLAN --> COORD
+    end
 ```
 
 ---
@@ -248,21 +216,21 @@ To ensure clarity and usability across different developer needs, this manual is
 │     Start with Chapter 01 §01 (Mental Model)                                │
 │       ──► Chapter 01 §03 (Lifecycle Walkthrough)                            │
 │       ──► Chapter 10 §01 (Complete End-to-End Tutorial)                     │
-│       ──► Chapter 10 §03 (Troubleshooting & FAQ)                            │
+│       ──► docs/olt/reference/harness-cli.md (CLI Dictionary)                │
 │                                                                             │
 │  2. IMPLEMENTER AGENT (Tier 3 Worker):                                      │
-│     Start with Chapter 04 §02 (Role Contracts & Packets)                    │
-│       ──► Chapter 05 §01 (Leasing & Heartbeats)                             │
+│     Start with docs/olt/reference/role-contracts.md (Role Contracts)        │
+│       ──► docs/olt/reference/harness-cli.md (CLI Dictionary)                │
+│       ──► docs/olt/reference/verification-engines.md (Verification Engines) │
 │       ──► Chapter 05 §02 (Write Scopes & Directory Invariants)              │
-│       ──► Chapter 09 §01 (Execution-Time Branching)                         │
 │       ──► Chapter 05 §03 (Structured Submissions)                           │
 │                                                                             │
 │  3. VALIDATOR & COMPLETENESS CRITIC (Adversarial Roles):                    │
 │     Start with Chapter 06 §01 (Adversarial Philosophy)                      │
-│       ──► Chapter 06 §02 (Finding Schema & Probe Demands)                   │
+│       ──► docs/olt/reference/state-schemas.md (Finding Schema)              │
+│       ──► docs/olt/reference/error-codes.md (Error & Blunder Catalog)       │
 │       ──► Chapter 07 §01 (Mandatory Gate Systems)                           │
 │       ──► Chapter 07 §02 (Completeness Critic Verification Protocol)        │
-│       ──► Chapter 03 §03 (gate:prove Falsifiability Engine)                 │
 │                                                                             │
 │  4. DISTRIBUTED SYSTEMS & AI ARCHITECT:                                     │
 │     Start with Chapter 01 §02 (Storage Model & Kernel flock)                │
@@ -273,7 +241,3 @@ To ensure clarity and usability across different developer needs, this manual is
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
-
----
-
-[Proceed to Chapter 01: Mental Model & Foundations ➔](./01-foundations/01-why-long-tasks-fail.md)
