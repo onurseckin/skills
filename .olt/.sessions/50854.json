@@ -1,16 +1,16 @@
 {
-  "agent_id": "tier-2",
+  "agent_id": "41b7806b-41a9-4aff-ad4a-51d7f9828602",
   "role": "implementer",
   "tier": 3,
-  "token": "tok_live_6f7744e9c342aa23e79b807c388194423c8231d2f3a0cec3",
-  "pid": 10912,
+  "token": "tok_live_3887f24f147c15e32134890bd29902062ec7f65bfcdb73cb",
+  "pid": 26455,
   "ppid": 50854,
   "run_id": "/Users/onurseckinsenoglu/repos/skills/.olt/capsules",
   "can_execute_shell": true,
   "can_edit_files": true,
-  "host": "antigravity",
+  "host": "claude-code",
   "mechanisms_detected": [
     "registration"
   ],
-  "granted_at": "2026-08-24T00:53:21.154Z"
+  "granted_at": "2026-08-24T01:28:22.054Z"
 }

@@ -141,7 +141,7 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
   const state = loaded.state;
   const wf = workflowPort(run).read();
 
-  let agentGrant: any = undefined;
+  let agentGrant: AgentGrantRecord | undefined = undefined;
   let taskId = rawTaskId;
 
   if (agentId) {

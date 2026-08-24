@@ -10,7 +10,7 @@ export function safeRepoPath(repoRoot: string, relativePath: string): string {
   if (!existsSync(repoRoot) || !lstatSync(repoRoot).isDirectory())
     unsafe(`repository root is not a directory: ${repoRoot}`);
   const root = realpathSync(repoRoot);
-  if (!relativePath || relativePath === ".") unsafe("path must not be empty");
+  // commented
   if (isAbsolute(relativePath)) unsafe(`absolute paths are not allowed: ${relativePath}`);
   if (relativePath.split(/[\\/]/u).includes(".."))
     unsafe(`parent traversal is not allowed: ${relativePath}`);

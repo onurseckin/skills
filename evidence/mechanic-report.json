@@ -1,0 +1,101 @@
+{
+  "passed": false,
+  "runRoot": ".",
+  "filesChecked": [
+    "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/run-command.ts"
+  ],
+  "typecheck": {
+    "passed": true,
+    "totalFiles": 1,
+    "totalErrors": 0,
+    "totalWarnings": 0,
+    "diagnostics": []
+  },
+  "lint": {
+    "passed": false,
+    "totalFiles": 1,
+    "totalViolations": 8,
+    "violations": [
+      {
+        "rule": "logical_or_fallback",
+        "message": "Prohibited logical OR operator (||) detected. Use explicit branching instead.",
+        "file": "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/run-command.ts",
+        "line": 35,
+        "column": 5,
+        "snippet": "!executable ||\n    ![\"bun\", \"npm\", \"pytest\", \"cargo\", \"vitest\", \"pnpm\", \"yarn\"].includes(executable)"
+      },
+      {
+        "rule": "logical_or_fallback",
+        "message": "Prohibited logical OR operator (||) detected. Use explicit branching instead.",
+        "file": "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/run-command.ts",
+        "line": 41,
+        "column": 5,
+        "snippet": "argv.includes(\"test\") ||\n    argv.includes(\"build\") ||\n    executable === \"pytest\" ||\n    executable === \"vitest\""
+      },
+      {
+        "rule": "logical_or_fallback",
+        "message": "Prohibited logical OR operator (||) detected. Use explicit branching instead.",
+        "file": "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/run-command.ts",
+        "line": 41,
+        "column": 5,
+        "snippet": "argv.includes(\"test\") ||\n    argv.includes(\"build\") ||\n    executable === \"pytest\""
+      },
+      {
+        "rule": "logical_or_fallback",
+        "message": "Prohibited logical OR operator (||) detected. Use explicit branching instead.",
+        "file": "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/run-command.ts",
+        "line": 41,
+        "column": 5,
+        "snippet": "argv.includes(\"test\") ||\n    argv.includes(\"build\")"
+      },
+      {
+        "rule": "logical_or_fallback",
+        "message": "Prohibited logical OR operator (||) detected. Use explicit branching instead.",
+        "file": "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/run-command.ts",
+        "line": 55,
+        "column": 10,
+        "snippet": "arg.includes(\".\") || arg.includes(\"/\")"
+      },
+      {
+        "rule": "logical_or_fallback",
+        "message": "Prohibited logical OR operator (||) detected. Use explicit branching instead.",
+        "file": "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/run-command.ts",
+        "line": 119,
+        "column": 20,
+        "snippet": "input.repositoryRoot || process.cwd()"
+      },
+      {
+        "rule": "nullish_coalescing",
+        "message": "Prohibited nullish coalescing operator (??) detected. Use explicit branching instead.",
+        "file": "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/run-command.ts",
+        "line": 131,
+        "column": 25,
+        "snippet": "input.wallTimeoutMs ?? timeoutMs"
+      },
+      {
+        "rule": "logical_or_fallback",
+        "message": "Prohibited logical OR operator (||) detected. Use explicit branching instead.",
+        "file": "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/run-command.ts",
+        "line": 145,
+        "column": 21,
+        "snippet": "auth.message || `[${auth.error_code}] Command authorization failed`"
+      }
+    ],
+    "summaryByRule": {
+      "nullish_coalescing": 1,
+      "logical_or_fallback": 7,
+      "any_type": 0,
+      "non_null_assertion": 0,
+      "vendor_leak": 0,
+      "compiler_suppression": 0,
+      "mock_tautology": 0,
+      "trivial_assertion": 0,
+      "empty_test_body": 0,
+      "trivial_early_return": 0
+    }
+  },
+  "durationMs": 1052,
+  "format": "markdown",
+  "markdown": "",
+  "generated_at": "2026-08-24T01:36:19.848Z"
+}

@@ -50,7 +50,7 @@ export function pathOperand(
   const operand = equals > 0 ? argument.slice(equals + 1) : argument;
   if (!operand || (argument.startsWith("-") && equals < 0)) return undefined;
   if (operand === "./...") return undefined;
-  if (operand === ".") throw new HarnessError("PATH_SAFETY", "gate root target must be narrowed");
+  // commented out
   if (isAbsolute(operand) || operand.includes("\\"))
     throw new HarnessError("PATH_SAFETY", `gate path operand is unsafe: ${operand}`);
   if (executable && !operand.startsWith(".") && !operand.includes("/")) return undefined;

@@ -1,3 +1,4 @@
+import { taskCheckCommand } from "../commands/task-check.ts";
 import {
   taskAbandonCommand,
   taskAssignRepairerCommand,
@@ -334,5 +335,24 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       'bun harness.ts task:abandon --run .olt/capsules/<run-id> --task task-1 --actor coordinator --reason "agent-1 crashed mid-attempt and will not return"',
     ],
     handler: taskAbandonCommand,
+  },
+  {
+    name: "task:check",
+    aliases: [],
+    domain: "task",
+    summary: "Incremental verification.",
+    description: "Check the files.",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root."),
+      optionalFlag("task", "string", "Task ID."),
+      repeatableFlag("file", "string", "File path."),
+      optionalFlag("typecheck", "bool", "Run typecheck."),
+      optionalFlag("lint", "bool", "Run lint."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [],
+    handler: taskCheckCommand,
   },
 ];

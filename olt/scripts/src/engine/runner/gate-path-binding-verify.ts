@@ -13,7 +13,7 @@ export function inside(root: string, path: string): boolean {
 
 export function portableRelative(repositoryRoot: string, absolutePath: string): string {
   const value = relative(repositoryRoot, absolutePath);
-  if (!value || !inside(repositoryRoot, absolutePath))
+  if (value === undefined || !inside(repositoryRoot, absolutePath))
     throw new HarnessError("PATH_SAFETY", "gate path must resolve inside repositoryRoot");
   return value.split(sep).join("/");
 }

@@ -84,8 +84,8 @@ function acquireMutexLock(repositoryRoot: string, argv: string[]) {
           );
         }
       }
-    } catch (e: any) {
-      if (e.message?.includes("[ENGINE_MUTEX_LOCKED]")) throw e;
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message.includes("[ENGINE_MUTEX_LOCKED]")) throw e;
     }
   }
 
