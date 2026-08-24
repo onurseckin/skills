@@ -4,6 +4,7 @@ import { parseArguments } from "./arguments.ts";
 import { assertFlags, type CommandContext } from "./options.ts";
 import { assertGrantedCommand } from "../packets/command-authority.ts";
 import { findCommand, flagShapes } from "./registry/index.ts";
+import { autoDeriveCallerIdentity } from "../authority/session-registry.ts";
 
 export async function execute(
   argv: readonly string[],
@@ -18,6 +19,23 @@ export async function execute(
       `command ${parsed.command} does not accept -- arguments`,
     );
   }
+
+  const identity = autoDeriveCallerIdentity();
+  for (const flag of spec.flags) {
+    if (flag.required && !Object.hasOwn(parsed.flags, flag.name)) {
+      if (
+        flag.name === "agent" ||
+        flag.name === "actor" ||
+        flag.name === "validator" ||
+        flag.name === "critic"
+      ) {
+        parsed.flags[flag.name] = identity.actor;
+      } else if (flag.name === "role") {
+        parsed.flags[flag.name] = identity.role;
+      }
+    }
+  }
+
   assertFlags(
     parsed.flags,
     spec.flags.map((flag) => flag.name),
@@ -36,6 +54,7 @@ export async function execute(
       CumulativePhaseInvariantEngine.verify(spec.domain, runData.state);
     } catch (e: unknown) {
       if (e instanceof HarnessError && e.code === "INVALID_STATE") throw e;
+      CumulativePhaseInvariantEngine.verify(spec.domain, {});
     }
   }
 
@@ -55,6 +74,8 @@ export class DeductiveStateMachine {
         return !!this.state.tasks && Object.keys(this.state.tasks as object).length > 0;
       case "run":
         return !!this.state.completion_result;
+      case "critic":
+        return !!this.state.critic_verdict;
       default:
         return true;
     }
@@ -63,7 +84,7 @@ export class DeductiveStateMachine {
 
 export class CumulativePhaseInvariantEngine {
   public static verify(domain: string, state: Record<string, unknown>): void {
-    const PHASE_HIERARCHY = ["plan", "queue", "task", "run"];
+    const PHASE_HIERARCHY = ["plan", "queue", "task", "run", "critic"];
     const machine = new DeductiveStateMachine(state);
 
     const targetIndex = PHASE_HIERARCHY.indexOf(domain);
