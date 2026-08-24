@@ -1,4 +1,4 @@
-import * as yaml from 'js-yaml';
+import * as yaml from "js-yaml";
 
 export interface UnifiedAgentManifest {
   readonly name: string;
@@ -27,99 +27,153 @@ export interface UnifiedAgentManifest {
   readonly instructions: string;
 }
 
-export function parseUnifiedAgentManifest(rawYaml: string, filePath?: string): UnifiedAgentManifest {
+export function parseUnifiedAgentManifest(
+  rawYaml: string,
+  filePath?: string,
+): UnifiedAgentManifest {
   try {
-    const doc = yaml.load(rawYaml);
-    if (!doc || typeof doc !== 'object') {
-      throw new Error('YAML document must be an object');
+    const doc = yaml.load(rawYaml) as Record<string, unknown>;
+    if (!doc || typeof doc !== "object") {
+      throw new Error("YAML document must be an object");
     }
-    return doc as unknown as UnifiedAgentManifest;
+
+    const rawPerms = (
+      doc.permissions && typeof doc.permissions === "object" ? doc.permissions : {}
+    ) as Record<string, unknown>;
+    const rawTools = (doc.tools && typeof doc.tools === "object" ? doc.tools : {}) as Record<
+      string,
+      unknown
+    >;
+    const rawInterface = (
+      doc.interface && typeof doc.interface === "object" ? doc.interface : {}
+    ) as Record<string, unknown>;
+    const rawProtocol = (
+      doc.protocol && typeof doc.protocol === "object" ? doc.protocol : {}
+    ) as Record<string, unknown>;
+
+    const manifest: UnifiedAgentManifest = {
+      name: String(doc.name || ""),
+      role: String(doc.role || doc.name || ""),
+      tier: (doc.tier === "independent"
+        ? "independent"
+        : typeof doc.tier === "number"
+          ? doc.tier
+          : 3) as number | "independent",
+      provider: Array.isArray(doc.provider)
+        ? doc.provider
+        : ["antigravity", "agy", "claude", "codex", "cursor", "generic"],
+      tools: {
+        enable_subagent_tools: Boolean(rawTools.enable_subagent_tools),
+        enable_write_tools: Boolean(rawTools.enable_write_tools),
+      },
+      interface: {
+        display_name: String(rawInterface.display_name || doc.name || ""),
+        short_description: String(rawInterface.short_description || doc.role || ""),
+      },
+      permissions: {
+        may: Array.isArray(rawPerms.may) ? rawPerms.may : [],
+        must_not: Array.isArray(rawPerms.must_not) ? rawPerms.must_not : [],
+        commands: Array.isArray(rawPerms.commands) ? rawPerms.commands : [],
+        spawns: Array.isArray(rawPerms.spawns) ? rawPerms.spawns : [],
+      },
+      invariants: Array.isArray(doc.invariants) ? doc.invariants : [],
+      protocol: {
+        cli: String(rawProtocol.cli || "bun ~/.agents/skills/olt/scripts/harness.ts"),
+        zero_json: rawProtocol.zero_json !== false,
+      },
+      instructions: typeof doc.instructions === "string" ? doc.instructions : "",
+    };
+
+    return manifest;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to parse manifest${filePath ? ` at ${filePath}` : ''}: ${msg}`);
+    throw new Error(`Failed to parse manifest${filePath ? ` at ${filePath}` : ""}: ${msg}`);
   }
 }
 
-export function validateUnifiedAgentManifest(manifest: UnifiedAgentManifest): { valid: boolean; errors: string[] } {
+export function validateUnifiedAgentManifest(manifest: UnifiedAgentManifest): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
-  if (typeof manifest.name !== 'string') errors.push("Field 'name' must be a string");
-  if (typeof manifest.role !== 'string') errors.push("Field 'role' must be a string");
-  if (typeof manifest.tier !== 'number' && manifest.tier !== "independent") {
+  if (typeof manifest.name !== "string") errors.push("Field 'name' must be a string");
+  if (typeof manifest.role !== "string") errors.push("Field 'role' must be a string");
+  if (typeof manifest.tier !== "number" && manifest.tier !== "independent") {
     errors.push("Field 'tier' must be a number or 'independent'");
   }
 
   if (!Array.isArray(manifest.provider)) {
     errors.push("Field 'provider' must be an array of strings");
-  } else if (!manifest.provider.every((p: unknown) => typeof p === 'string')) {
+  } else if (!manifest.provider.every((p: unknown) => typeof p === "string")) {
     errors.push("Field 'provider' array must only contain strings");
   }
 
-  if (!manifest.tools || typeof manifest.tools !== 'object') {
+  if (!manifest.tools || typeof manifest.tools !== "object") {
     errors.push("Field 'tools' must be an object");
   } else {
-    if (typeof manifest.tools.enable_subagent_tools !== 'boolean') {
+    if (typeof manifest.tools.enable_subagent_tools !== "boolean") {
       errors.push("Field 'tools.enable_subagent_tools' must be a boolean");
     }
-    if (typeof manifest.tools.enable_write_tools !== 'boolean') {
+    if (typeof manifest.tools.enable_write_tools !== "boolean") {
       errors.push("Field 'tools.enable_write_tools' must be a boolean");
     }
   }
 
-  if (!manifest.interface || typeof manifest.interface !== 'object') {
+  if (!manifest.interface || typeof manifest.interface !== "object") {
     errors.push("Field 'interface' must be an object");
   } else {
-    if (typeof manifest.interface.display_name !== 'string') {
+    if (typeof manifest.interface.display_name !== "string") {
       errors.push("Field 'interface.display_name' must be a string");
     }
-    if (typeof manifest.interface.short_description !== 'string') {
+    if (typeof manifest.interface.short_description !== "string") {
       errors.push("Field 'interface.short_description' must be a string");
     }
   }
 
-  if (!manifest.permissions || typeof manifest.permissions !== 'object') {
+  if (!manifest.permissions || typeof manifest.permissions !== "object") {
     errors.push("Field 'permissions' must be an object");
   } else {
     const checkStringArray = (val: unknown, path: string) => {
       if (!Array.isArray(val)) {
         errors.push(`Field '${path}' must be an array of strings`);
-      } else if (!val.every((p: unknown) => typeof p === 'string')) {
+      } else if (!val.every((p: unknown) => typeof p === "string")) {
         errors.push(`Field '${path}' array must only contain strings`);
       }
     };
-    checkStringArray(manifest.permissions.may, 'permissions.may');
-    checkStringArray(manifest.permissions.must_not, 'permissions.must_not');
-    checkStringArray(manifest.permissions.commands, 'permissions.commands');
-    checkStringArray(manifest.permissions.spawns, 'permissions.spawns');
+    checkStringArray(manifest.permissions.may, "permissions.may");
+    checkStringArray(manifest.permissions.must_not, "permissions.must_not");
+    checkStringArray(manifest.permissions.commands, "permissions.commands");
+    checkStringArray(manifest.permissions.spawns, "permissions.spawns");
   }
 
   if (!Array.isArray(manifest.invariants)) {
     errors.push("Field 'invariants' must be an array of strings");
   } else {
     for (const inv of manifest.invariants as unknown[]) {
-      if (typeof inv !== 'string') {
+      if (typeof inv !== "string") {
         errors.push(`Field 'invariants' array must only contain strings, found ${typeof inv}`);
       }
     }
   }
 
-  if (!manifest.protocol || typeof manifest.protocol !== 'object') {
+  if (!manifest.protocol || typeof manifest.protocol !== "object") {
     errors.push("Field 'protocol' must be an object");
   } else {
-    if (typeof manifest.protocol.cli !== 'string') {
+    if (typeof manifest.protocol.cli !== "string") {
       errors.push("Field 'protocol.cli' must be a string");
     }
-    if (typeof manifest.protocol.zero_json !== 'boolean') {
+    if (typeof manifest.protocol.zero_json !== "boolean") {
       errors.push("Field 'protocol.zero_json' must be a boolean");
     }
   }
 
-  if (typeof manifest.instructions !== 'string') {
+  if (typeof manifest.instructions !== "string") {
     errors.push("Field 'instructions' must be a string");
   }
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }

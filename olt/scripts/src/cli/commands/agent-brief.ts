@@ -1,25 +1,25 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { parseUnifiedAgentManifest } from '../../authority/manifest-schema';
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { parseUnifiedAgentManifest } from "../../authority/manifest-schema";
 
 export function executeAgentBrief(options: { role: string; format?: string }): string {
-  const agentPath = join(import.meta.dir, '..', '..', '..', '..', 'agents', `${options.role}.yaml`);
-  const rawYaml = readFileSync(agentPath, 'utf-8');
+  const agentPath = join(import.meta.dir, "..", "..", "..", "..", "agents", `${options.role}.yaml`);
+  const rawYaml = readFileSync(agentPath, "utf-8");
   const manifest = parseUnifiedAgentManifest(rawYaml, agentPath);
 
   // Read policy.json. Mocking here since we don't have the exact RepoPolicy implementation or path handy.
   // In a real scenario we'd do: const policy = loadRepoPolicy();
-  const policyPath = join(import.meta.dir, '..', '..', '..', '..', 'policy.json');
+  const policyPath = join(import.meta.dir, "..", "..", "..", "..", "policy.json");
   let repoPolicy = { allowed_commands: [] as string[] };
   try {
-    const rawPolicy = readFileSync(policyPath, 'utf-8');
+    const rawPolicy = readFileSync(policyPath, "utf-8");
     repoPolicy = JSON.parse(rawPolicy) as unknown as { allowed_commands: string[] };
   } catch (err: unknown) {
     // Ignore, just use empty
   }
 
   const sections: string[] = [];
-  
+
   sections.push(`================================================================================
 SECTION 1: SYSTEM IDENTITY & HOST TOOL PROTOCOL
 ================================================================================
@@ -34,25 +34,25 @@ TOOLS ENABLED: Subagent: ${manifest.tools.enable_subagent_tools} | Write: ${mani
 SECTION 2: CONSTITUTIONAL PERMISSIONS & INVARIANTS
 ================================================================================
 MAY:
-${manifest.permissions.may.map(p => `  - ${p}`).join('\n')}
+${manifest.permissions.may.map((p) => `  - ${p}`).join("\n")}
 
 MUST NOT:
-${manifest.permissions.must_not.map(p => `  - ${p}`).join('\n')}
+${manifest.permissions.must_not.map((p) => `  - ${p}`).join("\n")}
 
 SPAWNS ALLOWED:
-${manifest.permissions.spawns.length > 0 ? manifest.permissions.spawns.map(p => `  - ${p}`).join('\n') : '  (None)'}
+${manifest.permissions.spawns.length > 0 ? manifest.permissions.spawns.map((p) => `  - ${p}`).join("\n") : "  (None)"}
 
 INVARIANTS:
-${manifest.invariants.map(i => `  - ${i}`).join('\n')}`);
+${manifest.invariants.map((i) => `  - ${i}`).join("\n")}`);
 
   sections.push(`================================================================================
 SECTION 3: REPOSITORY POLICY & PERMISSION BOUNDARIES
 ================================================================================
 ALLOWED COMMANDS:
-${manifest.permissions.commands.length > 0 ? manifest.permissions.commands.map(c => `  - ${c}`).join('\n') : '  (None)'}
+${manifest.permissions.commands.length > 0 ? manifest.permissions.commands.map((c) => `  - ${c}`).join("\n") : "  (None)"}
 
 GLOBAL CAPABILITIES AVAILABLE (POLICY):
-${repoPolicy.allowed_commands && repoPolicy.allowed_commands.length > 0 ? repoPolicy.allowed_commands.map(c => `  - ${c}`).join('\n') : '  (None)'}
+${repoPolicy.allowed_commands && repoPolicy.allowed_commands.length > 0 ? repoPolicy.allowed_commands.map((c) => `  - ${c}`).join("\n") : "  (None)"}
 
 SCRATCH HYGIENE:
 All temporary scripts and files must strictly be written to \`scratch/\` (or \`.olt/scratch/\`). Root directory hygiene is enforced.
@@ -67,12 +67,12 @@ SECTION 4: OPERATIONAL STEP-BY-STEP RUNBOOK
 ================================================================================
 ${manifest.instructions}`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 export async function agentBriefCommand(args: Record<string, unknown>) {
-  const role = typeof args['role'] === 'string' ? args['role'] : '';
-  const format = typeof args['format'] === 'string' ? args['format'] : undefined;
+  const role = typeof args["role"] === "string" ? args["role"] : "";
+  const format = typeof args["format"] === "string" ? args["format"] : undefined;
   if (!role) {
     console.error("Missing --role");
     process.exit(1);

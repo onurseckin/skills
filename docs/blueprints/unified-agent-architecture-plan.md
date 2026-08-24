@@ -3,13 +3,17 @@
 ## 1. Executive Summary & Quality Strategy
 
 ### The Core Problem: The Dispatch Degradation Vector
+
 Historical agent runs suffered from **conversational prompt degradation**:
+
 - When parent agents invoked child subagents, they generated ad-hoc, lossy summary strings in `define_subagent` / `invoke_subagent`, completely stripping away core invariants.
 - Maintaining two separate file trees per agent (`olt/agents/*.yaml` vs `olt/roles/*.md`) multiplied cognitive drift and led to stale, out-of-sync instructions.
 - Using boolean toggles (`flag: true`) for universal invariants created an anti-pattern where non-negotiable laws of the codebase were falsely represented as configurable settings.
 
 ### The Quality Maximization Architecture
+
 To achieve 100% deterministic quality, this blueprint establishes a **4-Tier Hardened Quality Engine**:
+
 1. **Single Source of Truth (SSoT) Unified YAML Manifest**: Every agent is defined by exactly one comprehensive YAML file (`olt/agents/<role>.yaml`) containing metadata, tool toggles, capabilities, permissions (`may`/`must_not`), and complete operational runbooks.
 2. **Universal Invariants Hardcoded in Engine (0 Booleans)**: Universal laws (0-any TypeScript, 0 compiler suppressions, scratch directory hygiene, zero tool hallucination, evidence over assertion) are enforced unconditionally by the engine and `doctor`. Fake boolean toggles are permanently removed.
 3. **Permission Anti-Collision & Health Verification Engine**: A mechanical check ensuring strictly disjoint sets (`Allowed ∩ Forbidden = ∅`), capability registry resolution, and role-hierarchy boundary enforcement.
@@ -207,20 +211,21 @@ We structure the implementation using **Brent's Work/Span Theorem ($P = \lceil W
 
 ## 6. Disjoint Write Scope Isolation Guarantee
 
-| Lane | Assigned Disjoint Write Scope | Target Files |
-| :--- | :--- | :--- |
-| **Lane A (Supervisors)** | `olt/agents/{mind,orchestrator}.yaml` | `mind.yaml`, `orchestrator.yaml` |
-| **Lane B (Coordinators)** | `olt/agents/{coordinator,meta-auditor,mind-auditor}.yaml` | `coordinator.yaml`, `meta-auditor.yaml`, `mind-auditor.yaml` |
-| **Lane C (Workers)** | `olt/agents/{implementer,validator,completeness-critic}.yaml` | `implementer.yaml`, `validator.yaml`, `completeness-critic.yaml` |
-| **Lane D (Planners)** | `olt/agents/{planner,plan-validator,independent-*}.yaml` | `planner.yaml`, `plan-validator.yaml`, `independent-planner.yaml`, `independent-planner-audit.yaml` |
-| **Lane E (Cleanup)** | `olt/roles/`, `olt/scripts/src/core/paths.ts` | Path redirection and legacy role retirement |
-| **Lane F (Tests)** | `tests/unit/authority/`, `tests/unit/cli/` | Unit test suite & automated test receipts |
+| Lane                      | Assigned Disjoint Write Scope                                 | Target Files                                                                                        |
+| :------------------------ | :------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------- |
+| **Lane A (Supervisors)**  | `olt/agents/{mind,orchestrator}.yaml`                         | `mind.yaml`, `orchestrator.yaml`                                                                    |
+| **Lane B (Coordinators)** | `olt/agents/{coordinator,meta-auditor,mind-auditor}.yaml`     | `coordinator.yaml`, `meta-auditor.yaml`, `mind-auditor.yaml`                                        |
+| **Lane C (Workers)**      | `olt/agents/{implementer,validator,completeness-critic}.yaml` | `implementer.yaml`, `validator.yaml`, `completeness-critic.yaml`                                    |
+| **Lane D (Planners)**     | `olt/agents/{planner,plan-validator,independent-*}.yaml`      | `planner.yaml`, `plan-validator.yaml`, `independent-planner.yaml`, `independent-planner-audit.yaml` |
+| **Lane E (Cleanup)**      | `olt/roles/`, `olt/scripts/src/core/paths.ts`                 | Path redirection and legacy role retirement                                                         |
+| **Lane F (Tests)**        | `tests/unit/authority/`, `tests/unit/cli/`                    | Unit test suite & automated test receipts                                                           |
 
 ---
 
 ## 7. Incision-by-Incision Quality Checklist
 
 ### Incision 1: Core Engine & Automated AST Validator
+
 1. Implement `olt/scripts/src/authority/manifest-schema.ts` defining `UnifiedAgentManifest` interface (0 boolean invariants).
 2. Implement `olt/scripts/src/policy/permission-health.ts` executing the 4 Anti-Collision Proofs (`Allowed ∩ Forbidden = ∅`).
 3. Implement `scripts/validate-agent-manifests.ts` CLI validator checking every YAML in `olt/agents/`.
@@ -229,6 +234,7 @@ We structure the implementation using **Brent's Work/Span Theorem ($P = \lceil W
 6. Run `bun scripts/validate-agent-manifests.ts` (Pre-flight baseline).
 
 ### Incision 2: SSoT Manifest Consolidation (Lanes A, B, C, D)
+
 1. **Lane A**: Merge `roles/mind.md` $\rightarrow$ `agents/mind.yaml`, `roles/orchestrator.md` $\rightarrow$ `agents/orchestrator.yaml`.
 2. **Lane B**: Merge `roles/coordinator.md` $\rightarrow$ `agents/coordinator.yaml`, `roles/meta-auditor.md` $\rightarrow$ `agents/meta-auditor.yaml`, `roles/mind-auditor.md` $\rightarrow$ `agents/mind-auditor.yaml`.
 3. **Lane C**: Merge `roles/implementer.md` $\rightarrow$ `agents/implementer.yaml`, `roles/validator*.md` $\rightarrow$ `agents/validator.yaml`, `roles/completeness-critic.md` $\rightarrow$ `agents/completeness-critic.yaml`.
@@ -236,6 +242,7 @@ We structure the implementation using **Brent's Work/Span Theorem ($P = \lceil W
 5. Run `bun scripts/validate-agent-manifests.ts` (All 12 agents MUST pass with Exit Code 0, 0 collisions).
 
 ### Incision 3: Step-by-Step Runbooks & Doctor Integration
+
 1. Verify every manifest's `instructions:` block starts with:
    - **Step 1: Pre-Flight Doctor Check** (`bun harness.ts doctor`).
    - **Step 2: Subagent Dispatching Protocol** (Must run `bun harness.ts agent:brief --role <child>` before `define_subagent` / `invoke_subagent`).
@@ -243,11 +250,13 @@ We structure the implementation using **Brent's Work/Span Theorem ($P = \lceil W
    - **Step 4: Submission & Reset** (`task:submit`, `manage_subagents Action: 'kill'`).
 
 ### Incision 4: Retirement of Legacy `olt/roles/`
+
 1. Safely remove all files in `olt/roles/`.
 2. Update all imports and references in `olt/scripts/` to reference `olt/agents/`.
 3. Update `AGENTS.md` and `SKILL.md` to reflect SSoT architecture.
 
 ### Incision 5: Full Integration & Global Sync
+
 1. Run `bun run format`.
 2. Run `bun run typecheck` (`tsc -p tsconfig.json --noEmit` exits 0).
 3. Run `bun test` (All unit tests pass).
