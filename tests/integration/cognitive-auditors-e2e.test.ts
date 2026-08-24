@@ -6,7 +6,7 @@ import { skillAuditLiveCommand } from "../../olt/scripts/src/cli/commands/skill-
 import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import type { AgentGrantRecord } from "../../olt/scripts/src/core/contracts/agents.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/harness-error.ts";
-import { MetaAuditorPolicy } from "../../olt/scripts/src/engine/scheduler/meta-auditor-policy.ts";
+import { SkillAuditorPolicy } from "../../olt/scripts/src/engine/scheduler/skill-auditor-policy.ts";
 import {
   AuditorCursorStore,
   MindAuditorEngine,
@@ -295,11 +295,11 @@ describe("Tier 0 Dual Cognitive Auditors End-to-End Integration Suite", () => {
 
       // 1. assertMindAuditorRequired throws on skills repo when mind-auditor is missing
       expect(() => {
-        MetaAuditorPolicy.assertMindAuditorRequired(skillsRepo, mindOnlyAgent);
+        SkillAuditorPolicy.assertMindAuditorRequired(skillsRepo, mindOnlyAgent);
       }).toThrow(HarnessError);
 
       try {
-        MetaAuditorPolicy.assertMindAuditorRequired(skillsRepo, mindOnlyAgent);
+        SkillAuditorPolicy.assertMindAuditorRequired(skillsRepo, mindOnlyAgent);
       } catch (err) {
         expect(err).toBeInstanceOf(HarnessError);
         expect((err as HarnessError).message).toContain("[MIND_AUDITOR_MANDATE_VIOLATION]");
@@ -307,7 +307,7 @@ describe("Tier 0 Dual Cognitive Auditors End-to-End Integration Suite", () => {
 
       // Passes on non-mandatory repo
       expect(() => {
-        MetaAuditorPolicy.assertMindAuditorRequired(foreignRepo, mindOnlyAgent);
+        SkillAuditorPolicy.assertMindAuditorRequired(foreignRepo, mindOnlyAgent);
       }).not.toThrow();
 
       // Passes when mind-auditor is present
@@ -324,16 +324,16 @@ describe("Tier 0 Dual Cognitive Auditors End-to-End Integration Suite", () => {
         },
       ];
       expect(() => {
-        MetaAuditorPolicy.assertMindAuditorRequired(skillsRepo, mindWithAuditor);
+        SkillAuditorPolicy.assertMindAuditorRequired(skillsRepo, mindWithAuditor);
       }).not.toThrow();
 
       // 2. assertSkillAuditorRequired throws on skills repo when skill-auditor is missing
       expect(() => {
-        MetaAuditorPolicy.assertSkillAuditorRequired(skillsRepo, orchestratorOnlyAgent);
+        SkillAuditorPolicy.assertSkillAuditorRequired(skillsRepo, orchestratorOnlyAgent);
       }).toThrow(HarnessError);
 
       try {
-        MetaAuditorPolicy.assertSkillAuditorRequired(skillsRepo, orchestratorOnlyAgent);
+        SkillAuditorPolicy.assertSkillAuditorRequired(skillsRepo, orchestratorOnlyAgent);
       } catch (err) {
         expect(err).toBeInstanceOf(HarnessError);
         expect((err as HarnessError).message).toContain("[SKILL_AUDITOR_MANDATE_VIOLATION]");
@@ -341,7 +341,7 @@ describe("Tier 0 Dual Cognitive Auditors End-to-End Integration Suite", () => {
 
       // Passes on non-mandatory repo
       expect(() => {
-        MetaAuditorPolicy.assertSkillAuditorRequired(foreignRepo, orchestratorOnlyAgent);
+        SkillAuditorPolicy.assertSkillAuditorRequired(foreignRepo, orchestratorOnlyAgent);
       }).not.toThrow();
 
       // Passes when skill-auditor is present
@@ -358,7 +358,7 @@ describe("Tier 0 Dual Cognitive Auditors End-to-End Integration Suite", () => {
         },
       ];
       expect(() => {
-        MetaAuditorPolicy.assertSkillAuditorRequired(skillsRepo, orchestratorWithAuditor);
+        SkillAuditorPolicy.assertSkillAuditorRequired(skillsRepo, orchestratorWithAuditor);
       }).not.toThrow();
     });
   });

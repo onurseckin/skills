@@ -148,3 +148,4 @@ export {
   type MultiDomainWaveResult,
   type TaskDomain,
 } from "./multi-domain-dispatch.ts";
+export { SkillAuditorPolicy, MetaAuditorPolicy } from "./skill-auditor-policy.ts";
