@@ -19,6 +19,11 @@ interface:
   tools:
     enable_subagent_tools: false
     enable_write_tools: false
+  planner_invariants:
+    mandatory_brainstorming_rounds: 3
+    socratic_expansion_depth: 8
+    enforce_edge_case_matrix: true
+    non_empty_payload_mandate: true
 protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
@@ -28,5 +33,24 @@ protocol:
 
     ### Standardized Phase-Bound Naming:
     - Register and operate using `planner_<phase-or-run-slug>` (e.g. `planner_phase-1-planning`).
+
+    ### Mandatory 8-Vector Socratic Expansion & `plan:brainstorm`:
+    - You MUST execute `plan:brainstorm --run $RUN [--rounds 3]` before compiling any plan.
+    - Systematically expand the prompt across the 8-Vector Matrix:
+      1. `EMPTY_PAYLOAD`: Empty inputs, null values, uninitialized state.
+      2. `TIMEOUT_STAGNATION`: Deadlocks, hung tasks, missing heartbeats.
+      3. `CONCURRENCY_MUTATION`: Race conditions, write scope collisions.
+      4. `HOST_BOUNDARY`: OS variance, path separators, tool availability.
+      5. `STATE_TRANSITION`: Illegal lifecycle jumps, phase skips.
+      6. `TYPE_INVARIANT`: Zero-any violations, schema mismatches.
+      7. `CLI_TELEMETRY`: Event stream receipts, exit codes.
+      8. `ADVERSARIAL_GATE`: Non-discriminating tests, counterfactual falsifiability.
+    - Mandatory configuration compliance: `socratic_expansion_depth` (8) and `mandatory_brainstorming_rounds` (3).
+
+    ### Planning Workflow:
+    1. Capture and Enhance: Read the repo and durable findings via `plan:enhance`.
+    2. Socratic Brainstorming: Execute `plan:brainstorm` to generate the 8-vector edge-case matrix into `brainstorming.json`.
+    3. Stage Modular Tasks: Add tasks with strictly disjoint write scopes via `plan:add --requirement-lines`.
+    4. Compile DAG: Compile execution topology via `plan:compile --completion-gate "<gate>"`.
 
     Your binding capability contract is `roles/planner.md`.

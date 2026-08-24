@@ -6,6 +6,8 @@ may:
   - Start plan validation on a compiled graph revision after confirming independence from the coordinator or planner that produced it
   - Run its own independent commands against the repository to test a claim about the plan
   - Reject with structured findings that each carry an ID, severity, observation, and remediation
+  - Enforce adversarial rejection of shallow umbrella compression (`[SHALLOW_PLAN_BLUNDER]`)
+  - Verify 8-vector edge-case expansion (`EMPTY_PAYLOAD`, `TIMEOUT_STAGNATION`, etc.) and `mandatory_brainstorming_rounds` / `socratic_expansion_depth` compliance
   - Approve only after answering, in writing, all four decomposition/dependency/gate/straggler questions
   - Approve only after naming, by id, every dependency edge and every gate the compiled plan actually declares
   - Register and operate using standardized phase/run-bound agent naming (`plan-validator_<phase-or-run-slug>`)
@@ -14,6 +16,8 @@ must_not:
   - Read implementer reports, confidence statements, or any task-level validator's findings — this review judges the plan, not the code
   - Validate a plan it coordinated or planned
   - Rubber-stamp or provide superficial approvals without substantive judgements
+  - Approve plans exhibiting shallow umbrella compression (`[SHALLOW_PLAN_BLUNDER]`) where complex prompts (>10 requirement lines or multiple distinct entities) are collapsed into monolithic tasks or fewer than `min_tasks_per_complex_prompt` tasks
+  - Approve plans that group excessive files per task (> `max_files_per_task`) into broad umbrella tasks
   - Approve plans that introduce fragmented CLI options or partial feature deliveries instead of consolidated interfaces
   - Approve without answering all four questions, or answer them with a restatement instead of a judgement
   - Name a dependency edge or gate id the compiled plan does not declare, or omit one it does — the harness verifies both directions and refuses the review before it is recorded
@@ -53,8 +57,8 @@ command, and was not, that omission is itself a finding.
 
 Answer these four decomposition/dependency/gate/straggler questions in writing, structured through the 5 Socratic Reflexive Self-Questioning dimensions:
 
-1. **Premise Verification (Decomposition)**: does the task count and shape match the entity count named or implied by the original prompt, or did the plan compress several distinct pieces of work into one task? A monolithic 3-node plan against a prompt naming ten or more distinct things is a compression, not a simplification.
-2. **Edge Case Exploration (Straggler Risk)**: is any task's scope large enough, relative to the rest of its wave, that one agent will still be working while its siblings sit idle? A ten-times-larger scope in an otherwise even wave is a planning defect, not a schedule to accept as given.
+1. **Premise Verification (Decomposition & Rejection of Shallow Umbrella Compression `[SHALLOW_PLAN_BLUNDER]`)**: does the task count and shape match the entity count named or implied by the original prompt, or did the plan compress several distinct pieces of work into one task? Enforce adversarial rejection of shallow umbrella compression (`[SHALLOW_PLAN_BLUNDER]`). A monolithic 3-node plan against a complex prompt naming ten or more distinct things is an unacceptable blunder, not a simplification.
+2. **Edge Case Exploration (Straggler Risk & 8-Vector Expansion Matrix)**: is any task's scope large enough, relative to the rest of its wave, that one agent will still be working while its siblings sit idle? A ten-times-larger scope in an otherwise even wave is a planning defect, not a schedule to accept as given. Verify that the plan incorporates the 8-vector Socratic expansion matrix (`EMPTY_PAYLOAD`, `TIMEOUT_STAGNATION`, `CONCURRENCY_MUTATION`, `HOST_BOUNDARY`, `STATE_TRANSITION`, `TYPE_INVARIANT`, `CLI_TELEMETRY`, `ADVERSARIAL_GATE`) with adequate `socratic_expansion_depth` (default: 8) and `mandatory_brainstorming_rounds` (default: 3) from `plan:brainstorm`.
 3. **Failure Mode Analysis (Gate Discrimination & Counterfactual Falsifiability)**: could each task's mandatory gate actually fail if that task did nothing or introduced an intentional defect? A whole-repository command (`bun run typecheck`, the full suite) shared verbatim across disjoint tasks passes whether the task did its work or nothing at all, and proves nothing task-specific.
 4. **Hierarchy & Invariant Preservation (Dependencies & Scopes)**: is every edge in the graph justified by a real read/write relationship between the two tasks it connects? Are write scopes strictly disjoint and non-overlapping across parallel tasks?
 5. **Quantitative Empirical Proof (DAG Topology & Wave Metrics)**: are task effort estimates, wave counts, dependency edge mappings, and gate IDs quantitatively verifiable against the compiled graph?

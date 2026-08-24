@@ -1,6 +1,7 @@
 import { basename, resolve, join } from "node:path";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import type { RunFiles } from "../../core/contracts/capsule.ts";
 import type { JsonValue } from "../../core/contracts/json.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 import { compileGraphDocument, compilePlanMarkdown } from "../../graph/compiler.ts";
@@ -32,6 +33,70 @@ function promptText(prompt: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: true }).decode(prompt);
 }
 
+function hasBrainstormingExecuted(loaded: RunFiles, runRoot: string): boolean {
+  if (Array.isArray(loaded.events)) {
+    for (const evt of loaded.events) {
+      if (
+        evt &&
+        typeof evt === "object" &&
+        (("kind" in evt && evt.kind === "plan-brainstormed") ||
+          ("type" in evt && (evt as Record<string, unknown>).type === "plan-brainstormed") ||
+          ("event" in evt && (evt as Record<string, unknown>).event === "plan-brainstormed"))
+      ) {
+        return true;
+      }
+    }
+  }
+
+  const state = loaded.state as Record<string, unknown>;
+  if (state && typeof state === "object") {
+    if (
+      "brainstorming" in state &&
+      state.brainstorming !== null &&
+      state.brainstorming !== undefined
+    ) {
+      return true;
+    }
+    if (typeof state.planning === "object" && state.planning !== null) {
+      const planning = state.planning as Record<string, unknown>;
+      if (
+        "brainstorming" in planning &&
+        planning.brainstorming !== null &&
+        planning.brainstorming !== undefined
+      ) {
+        return true;
+      }
+    }
+    if (Array.isArray(state.events)) {
+      for (const evt of state.events) {
+        if (
+          evt &&
+          typeof evt === "object" &&
+          (("kind" in evt && (evt as Record<string, unknown>).kind === "plan-brainstormed") ||
+            ("type" in evt && (evt as Record<string, unknown>).type === "plan-brainstormed") ||
+            ("event" in evt && (evt as Record<string, unknown>).event === "plan-brainstormed"))
+        ) {
+          return true;
+        }
+      }
+    }
+  }
+
+  const candidateRoots = [runRoot, loaded.runRoot];
+  for (const root of candidateRoots) {
+    if (root) {
+      if (existsSync(join(root, "brainstorming.json"))) {
+        return true;
+      }
+      if (existsSync(join(root, ".olt", "brainstorming.json"))) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 export function planCompileCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const actor = actorFlag(flags);
@@ -39,6 +104,14 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
   if (completionGate === undefined)
     throw new HarnessError("INVALID_ARGUMENT", "--completion-gate must name a command");
   const loaded = loadRun(run);
+
+  if (!hasBrainstormingExecuted(loaded, run)) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      "[MANDATORY_PLAN_STEP_SKIPPED] Cannot compile plan: plan:brainstorm must be executed first.",
+    );
+  }
+
   const prompt = promptText(loaded.prompt);
   const rawBuffer = Array.isArray(loaded.state.planning_buffer) ? loaded.state.planning_buffer : [];
   const buffer = rawBuffer as unknown as TaskDeclaration[];

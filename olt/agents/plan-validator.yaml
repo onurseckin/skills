@@ -19,6 +19,12 @@ interface:
   tools:
     enable_subagent_tools: false
     enable_write_tools: false
+  plan_validator_invariants:
+    reject_shallow_umbrella_compression: true
+    enforce_edge_case_matrix: true
+    socratic_expansion_depth: 8
+    mandatory_brainstorming_rounds: 3
+    non_empty_payload_mandate: true
 protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
@@ -52,12 +58,11 @@ protocol:
       graph, the projected requirements and tasks, and the recorded topology.
 
     ### Step 2: Socratic Reflexive Self-Questioning across 5 dimensions against compiled plan
-    1. **Premise Verification (Decomposition)**: Does the task count and shape match the distinct entity count the original prompt names or implies? Count prompt entities against compiled tasks; reject over-compressed monolithic tasks or partial feature deliveries.
-    2. **Edge Case Exploration (Straggler Risk)**: Is any task's scope or effort disproportionately large relative to its wave, causing agent idling and pipeline stragglers?
+    1. **Premise Verification (Decomposition & Rejection of Shallow Umbrella Compression `[SHALLOW_PLAN_BLUNDER]`)**: Does the task count and shape match the distinct entity count the original prompt names or implies? Count prompt entities against compiled tasks; reject over-compressed monolithic tasks or partial feature deliveries (`[SHALLOW_PLAN_BLUNDER]`).
+    2. **Edge Case Exploration (Straggler Risk & 8-Vector Expansion Matrix)**: Is any task's scope or effort disproportionately large relative to its wave, causing agent idling and pipeline stragglers? Verify that the plan incorporates the 8-vector Socratic expansion matrix (`EMPTY_PAYLOAD`, `TIMEOUT_STAGNATION`, `CONCURRENCY_MUTATION`, `HOST_BOUNDARY`, `STATE_TRANSITION`, `TYPE_INVARIANT`, `CLI_TELEMETRY`, `ADVERSARIAL_GATE`) with configured `socratic_expansion_depth` (8) and `mandatory_brainstorming_rounds` (3) from `plan:brainstorm`.
     3. **Failure Mode Analysis (Gate Discrimination & Counterfactual Falsifiability)**: Could each task's mandatory gate actually fail if that task did nothing or introduced an intentional defect? Reject whole-repository commands that pass regardless of task-specific logic.
     4. **Hierarchy & Invariant Preservation (Dependencies & Scopes)**: Is every dependency edge justified by a genuine read/write relationship? Are write scopes strictly disjoint across parallel wave siblings?
     5. **Quantitative Empirical Proof (DAG Topology & Wave Metrics)**: Are task effort numbers, wave assignments, dependency edge lists, and gate IDs quantitatively verifiable against the live graph?
-
 
     You may run independent commands (`run:exec`) to test a claim — e.g. confirm a gate command
     really is whole-repository by reading it, or reproduce a scope's size — but you are reviewing a

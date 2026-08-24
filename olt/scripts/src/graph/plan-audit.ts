@@ -1,5 +1,8 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { EvidenceClass } from "../core/contracts/evidence.ts";
 import type { JsonObject } from "../core/contracts/json.ts";
+import { DEFAULT_PLANNING_POLICY, loadRepoPolicy } from "../policy/repo-policy.ts";
 import { promptLines } from "../requirements/prompt-lines.ts";
 import { looksWholeSuite, namesATarget } from "./gate-breadth.ts";
 import { latestGateProof } from "./gate-proof.ts";
@@ -17,6 +20,8 @@ export const AUDIT_INVARIANT_IDS = [
   "A4-false-barrier",
   "A5-straggler",
   "A6-whole-suite-gate",
+  "A7-edge-case-exhaustiveness",
+  "A8-systemic-decomposition",
 ] as const;
 
 export type AuditInvariantId = (typeof AUDIT_INVARIANT_IDS)[number];
@@ -303,6 +308,147 @@ function auditParallelism(
   };
 }
 
+const A7_PROMPT_LINE_THRESHOLD = 5;
+const A8_PROMPT_LINE_THRESHOLD = 10;
+
+function extractCountFromCandidate(candidate: unknown): number {
+  if (Array.isArray(candidate)) return candidate.length;
+  if (typeof candidate === "object" && candidate !== null) {
+    const rec = candidate as Record<string, unknown>;
+    if (typeof rec["totalExpandedItems"] === "number") return rec["totalExpandedItems"];
+    if (Array.isArray(rec["expandedItems"])) return rec["expandedItems"].length;
+    if (Array.isArray(rec["items"])) return rec["items"].length;
+    if (Array.isArray(rec["vectors"])) return rec["vectors"].length;
+    return Object.keys(rec).length > 0 ? 1 : 0;
+  }
+  return 0;
+}
+
+function countMappedEdgeCases(
+  repoRoot: string,
+  _tasks: readonly AuditTaskInput[],
+  runState: JsonObject,
+): number {
+  let count = 0;
+
+  if ("brainstorming" in runState) {
+    count += extractCountFromCandidate(runState["brainstorming"]);
+  }
+  if ("edge_cases" in runState) {
+    count += extractCountFromCandidate(runState["edge_cases"]);
+  }
+  if ("edge_case_matrix" in runState) {
+    count += extractCountFromCandidate(runState["edge_case_matrix"]);
+  }
+  if ("matrix" in runState) {
+    count += extractCountFromCandidate(runState["matrix"]);
+  }
+
+  if (typeof runState["planning"] === "object" && runState["planning"] !== null) {
+    const planning = runState["planning"] as Record<string, unknown>;
+    if ("brainstorming" in planning) {
+      count += extractCountFromCandidate(planning["brainstorming"]);
+    }
+    if ("edge_cases" in planning) {
+      count += extractCountFromCandidate(planning["edge_cases"]);
+    }
+    if ("edge_case_matrix" in planning) {
+      count += extractCountFromCandidate(planning["edge_case_matrix"]);
+    }
+  }
+
+  if (Array.isArray(runState["events"])) {
+    for (const evt of runState["events"] as unknown[]) {
+      if (typeof evt === "object" && evt !== null) {
+        const rec = evt as Record<string, unknown>;
+        if (rec["type"] === "plan-brainstormed" || rec["event"] === "plan-brainstormed") {
+          count += 1;
+        }
+      }
+    }
+  }
+
+  if (count === 0 && repoRoot) {
+    const directFile = join(repoRoot, "brainstorming.json");
+    const oltFile = join(repoRoot, ".olt", "brainstorming.json");
+    try {
+      if (existsSync(directFile)) {
+        count += extractCountFromCandidate(
+          JSON.parse(readFileSync(directFile, "utf-8")) as unknown,
+        );
+      } else if (existsSync(oltFile)) {
+        count += extractCountFromCandidate(JSON.parse(readFileSync(oltFile, "utf-8")) as unknown);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return count;
+}
+
+function auditEdgeCaseExhaustiveness(
+  repoRoot: string,
+  tasks: readonly AuditTaskInput[],
+  runState: JsonObject,
+  prompt: string,
+): AuditFinding[] {
+  const promptLineCount = promptLines(prompt).filter((line) => line.trim().length > 0).length;
+  if (promptLineCount <= A7_PROMPT_LINE_THRESHOLD) {
+    return [];
+  }
+
+  const mappedCount = countMappedEdgeCases(repoRoot, tasks, runState);
+  if (mappedCount > 0) {
+    return [];
+  }
+
+  const taskIds = tasks.map((t) => t.taskId);
+  return [
+    finding(
+      "A7-edge-case-exhaustiveness",
+      "blocking",
+      `the prompt carries ${promptLineCount} non-blank lines (> ${A7_PROMPT_LINE_THRESHOLD}) but 0 edge-case matrix ` +
+        `vectors or brainstorming items were mapped — execute plan:brainstorm or map edge cases before compilation.`,
+      taskIds,
+      "derived",
+    ),
+  ];
+}
+
+function auditSystemicDecomposition(
+  repoRoot: string,
+  tasks: readonly AuditTaskInput[],
+  prompt: string,
+): AuditFinding[] {
+  const promptLineCount = promptLines(prompt).filter((line) => line.trim().length > 0).length;
+  if (promptLineCount <= A8_PROMPT_LINE_THRESHOLD) {
+    return [];
+  }
+
+  const policy = loadRepoPolicy(repoRoot);
+  const minTasks =
+    policy.planning?.min_tasks_per_complex_prompt ??
+    DEFAULT_PLANNING_POLICY.min_tasks_per_complex_prompt;
+
+  if (tasks.length >= minTasks) {
+    return [];
+  }
+
+  const taskIds = tasks.map((t) => t.taskId);
+  return [
+    finding(
+      "A8-systemic-decomposition",
+      "blocking",
+      `the prompt carries ${promptLineCount} non-blank lines (> ${A8_PROMPT_LINE_THRESHOLD}, complex prompt) ` +
+        `while the plan only contains ${tasks.length} task${tasks.length === 1 ? "" : "s"} (minimum required: ${minTasks}) — ` +
+        `decompose into more granular tasks to avoid shallow umbrella compression.`,
+      taskIds,
+      "derived",
+    ),
+  ];
+}
+
 export function auditPlan(
   repoRoot: string,
   tasks: readonly AuditTaskInput[],
@@ -316,6 +462,8 @@ export function auditPlan(
     ...auditGateDiscrimination(tasks, runState),
     ...auditFalseBarriersAndStragglers(tasks),
     ...auditWholeSuiteGate(tasks, runState),
+    ...auditEdgeCaseExhaustiveness(repoRoot, tasks, runState, prompt),
+    ...auditSystemicDecomposition(repoRoot, tasks, prompt),
   ];
   return {
     findings,

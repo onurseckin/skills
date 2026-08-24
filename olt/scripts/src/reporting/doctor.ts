@@ -36,6 +36,11 @@ import {
   type SocraticDimension,
   type SocraticQuestionEvaluation,
 } from "./socratic-validator.ts";
+import {
+  StateMachineAuditor,
+  type LifecycleFinding,
+  type LifecycleAuditSummary,
+} from "./doctor/state-machine-auditor.ts";
 
 export {
   auditBehavioralHealth,
@@ -55,6 +60,9 @@ export {
   type SocraticAuditReport,
   type SocraticDimension,
   type SocraticQuestionEvaluation,
+  StateMachineAuditor,
+  type LifecycleFinding,
+  type LifecycleAuditSummary,
 };
 
 export interface DoctorOptions {
@@ -98,6 +106,7 @@ export function formatDoctorReport(params: {
   behavioralFindings?: readonly BehavioralFinding[] | readonly TierConfinementFinding[];
   tierConfinementFindings?: readonly TierConfinementFinding[];
   socraticReport?: SocraticAuditReport | undefined;
+  lifecycleFindings?: readonly LifecycleFinding[] | undefined;
 }): string {
   const issues = params.issues;
   const findings = (params.tierConfinementFindings ??
@@ -184,6 +193,15 @@ export async function runDoctor(
   );
   const socraticIssues = socraticReport.issues;
 
+  const lifecycleFindings = loaded
+    ? StateMachineAuditor.auditLifecycle(
+        (loaded.state ?? {}) as Record<string, unknown>,
+        (loaded.events ?? []) as readonly Record<string, unknown>[],
+      )
+    : [];
+  const lifecycleSummary = StateMachineAuditor.summarizeLifecycle(lifecycleFindings);
+  const lifecycleIssues = lifecycleSummary.issues;
+
   const issues = [
     ...integrityIssues.map(({ code, message }) => `${code}: ${message}`),
     ...(gitignored === false ? ["run capsule is not gitignored"] : []),
@@ -193,6 +211,7 @@ export async function runDoctor(
     ...workflowIssues,
     ...tierIssues,
     ...socraticIssues,
+    ...lifecycleIssues,
     ...installationIssues,
   ];
 
@@ -208,6 +227,7 @@ export async function runDoctor(
     behavioralFindings,
     tierConfinementFindings: tierFindings,
     socraticReport,
+    lifecycleFindings,
   });
 
   return {
@@ -228,6 +248,8 @@ export async function runDoctor(
     tier_confinement_issues: tierIssues,
     socratic_audit: socraticReport,
     socratic_issues: socraticIssues,
+    lifecycle_findings: lifecycleFindings,
+    lifecycle_issues: lifecycleIssues,
     installation: installation ?? null,
     installation_issues: installationIssues,
     issues,

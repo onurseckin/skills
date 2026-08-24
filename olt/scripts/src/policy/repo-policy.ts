@@ -23,6 +23,24 @@ export const DEFAULT_REVIEW_PROTOCOL_POLICY: ReviewProtocolPolicy = {
   escalate_on_exhausted_adversarial: true,
 };
 
+export interface PlanningPolicy {
+  readonly mandatory_brainstorming_rounds: number;
+  readonly socratic_expansion_depth: number;
+  readonly enforce_edge_case_matrix: boolean;
+  readonly min_tasks_per_complex_prompt: number;
+  readonly max_files_per_task: number;
+  readonly reject_shallow_umbrella_compression: boolean;
+}
+
+export const DEFAULT_PLANNING_POLICY: PlanningPolicy = {
+  mandatory_brainstorming_rounds: 3,
+  socratic_expansion_depth: 8,
+  enforce_edge_case_matrix: true,
+  min_tasks_per_complex_prompt: 6,
+  max_files_per_task: 2,
+  reject_shallow_umbrella_compression: true,
+};
+
 export interface RepoPolicy {
   readonly schema_version: number;
   readonly ecosystem: RepoEcosystem;
@@ -34,6 +52,7 @@ export interface RepoPolicy {
   readonly forbidden_commands?: readonly string[] | undefined;
   readonly read_scope_neighborhood_depth?: number | undefined;
   readonly review_protocol?: ReviewProtocolPolicy | undefined;
+  readonly planning?: PlanningPolicy | undefined;
 }
 
 export const CURRENT_POLICY_SCHEMA_VERSION = 1;
@@ -103,6 +122,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         forbidden_commands: ["git commit", "git push", "git reset", "rm -rf /"],
         read_scope_neighborhood_depth: 2,
         review_protocol: DEFAULT_REVIEW_PROTOCOL_POLICY,
+        planning: { ...DEFAULT_PLANNING_POLICY },
       };
 
     case "cargo":
@@ -129,6 +149,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         forbidden_commands: ["git commit", "git push", "git reset"],
         read_scope_neighborhood_depth: 2,
         review_protocol: DEFAULT_REVIEW_PROTOCOL_POLICY,
+        planning: { ...DEFAULT_PLANNING_POLICY },
       };
 
     case "python":
@@ -160,6 +181,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         forbidden_commands: ["git commit", "git push", "git reset"],
         read_scope_neighborhood_depth: 2,
         review_protocol: DEFAULT_REVIEW_PROTOCOL_POLICY,
+        planning: { ...DEFAULT_PLANNING_POLICY },
       };
 
     case "node": {
@@ -184,6 +206,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         forbidden_commands: ["git commit", "git push", "git reset"],
         read_scope_neighborhood_depth: 2,
         review_protocol: DEFAULT_REVIEW_PROTOCOL_POLICY,
+        planning: { ...DEFAULT_PLANNING_POLICY },
       };
     }
 
@@ -198,6 +221,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         },
         read_scope_neighborhood_depth: 2,
         review_protocol: DEFAULT_REVIEW_PROTOCOL_POLICY,
+        planning: { ...DEFAULT_PLANNING_POLICY },
       };
   }
 }
@@ -304,6 +328,54 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
     reviewProtocol = DEFAULT_REVIEW_PROTOCOL_POLICY;
   }
 
+  let planning: PlanningPolicy | undefined;
+  if (typeof rec["planning"] === "object" && rec["planning"] !== null) {
+    const pl = rec["planning"] as Record<string, unknown>;
+    const mandatoryBrainstorming =
+      typeof pl["mandatory_brainstorming_rounds"] === "number" &&
+      Number.isSafeInteger(pl["mandatory_brainstorming_rounds"]) &&
+      pl["mandatory_brainstorming_rounds"] >= 0
+        ? pl["mandatory_brainstorming_rounds"]
+        : DEFAULT_PLANNING_POLICY.mandatory_brainstorming_rounds;
+    const socraticExpansionDepth =
+      typeof pl["socratic_expansion_depth"] === "number" &&
+      Number.isSafeInteger(pl["socratic_expansion_depth"]) &&
+      pl["socratic_expansion_depth"] >= 0
+        ? pl["socratic_expansion_depth"]
+        : DEFAULT_PLANNING_POLICY.socratic_expansion_depth;
+    const enforceEdgeCaseMatrix =
+      typeof pl["enforce_edge_case_matrix"] === "boolean"
+        ? pl["enforce_edge_case_matrix"]
+        : DEFAULT_PLANNING_POLICY.enforce_edge_case_matrix;
+    const minTasksPerComplexPrompt =
+      typeof pl["min_tasks_per_complex_prompt"] === "number" &&
+      Number.isSafeInteger(pl["min_tasks_per_complex_prompt"]) &&
+      pl["min_tasks_per_complex_prompt"] >= 1
+        ? pl["min_tasks_per_complex_prompt"]
+        : DEFAULT_PLANNING_POLICY.min_tasks_per_complex_prompt;
+    const maxFilesPerTask =
+      typeof pl["max_files_per_task"] === "number" &&
+      Number.isSafeInteger(pl["max_files_per_task"]) &&
+      pl["max_files_per_task"] >= 1
+        ? pl["max_files_per_task"]
+        : DEFAULT_PLANNING_POLICY.max_files_per_task;
+    const rejectShallowCompression =
+      typeof pl["reject_shallow_umbrella_compression"] === "boolean"
+        ? pl["reject_shallow_umbrella_compression"]
+        : DEFAULT_PLANNING_POLICY.reject_shallow_umbrella_compression;
+
+    planning = {
+      mandatory_brainstorming_rounds: mandatoryBrainstorming,
+      socratic_expansion_depth: socraticExpansionDepth,
+      enforce_edge_case_matrix: enforceEdgeCaseMatrix,
+      min_tasks_per_complex_prompt: minTasksPerComplexPrompt,
+      max_files_per_task: maxFilesPerTask,
+      reject_shallow_umbrella_compression: rejectShallowCompression,
+    };
+  } else {
+    planning = { ...DEFAULT_PLANNING_POLICY };
+  }
+
   return {
     schema_version: schemaVersion,
     ecosystem,
@@ -315,6 +387,7 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
     ...(forbiddenCommands ? { forbidden_commands: forbiddenCommands } : {}),
     read_scope_neighborhood_depth: readScopeDepth,
     review_protocol: reviewProtocol,
+    planning,
   };
 }
 
