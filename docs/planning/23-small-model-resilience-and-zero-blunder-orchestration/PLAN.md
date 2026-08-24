@@ -9,38 +9,39 @@
 
 ## 1. Executive Summary & Root-Cause Forensics
 
-During extensive stress-testing of long-horizon orchestration runs with small-to-medium parameter language models (specifically cataloged in benchmark conversation `8b1c3333-a00c-4dc3-871d-8f72b3b3465a`), several recurring failure modes and behavioral blunders emerged. These failure patterns undermined autonomous loop convergence, burned prompt tokens on exploratory scanning, and introduced fragile reliance on manual prompt engineering.
+During extensive stress-testing of long-horizon orchestration runs with small-to-medium parameter language models (specifically cataloged in benchmark conversation `8b1c3333-a00c-4dc3-871d-8f72b3b3465a`, 1.59MB transcript with 1,365 steps and 44 user interventions), recurring failure modes, tool confusion, and behavioral blunders emerged. These failure patterns undermined autonomous loop convergence, caused 41 runtime crashes from empty output payloads, burned prompt tokens on exploratory scanning, and introduced fragile reliance on manual prompt engineering.
 
 Plan 23 permanently hardens the entire OLT agent ecosystem, role contracts, YAML manifests, reference architectures, AST briefing builders, and execution guards against these failure modes.
 
-### The 7 Critical Small-Model Failure Modes
+### The 8 Critical Small-Model Failure Modes & Empirical Evidence
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                 SMALL-MODEL FAILURE MODES & STRUCTURAL REMEDIES             │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 1. Initiation Paralysis / Prompt Stalls                                     │
+│ 1. Initiation Paralysis & Conversational Pushback (Steps 0–30)              │
 │    ❌ Model wakes up and asks user "How can I help you?" or halts on turn 0.│
 │    ✅ Turn 0 Autonomous Wake-up Invariant: Autonomous discovery from         │
 │       olt/agents/mind.yaml and .olt/feedback-queue.jsonl without prompts.   │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 2. Tool & SDK Hallucinations                                                │
-│    ❌ Inventing fictional SDKs (`import { Agy } from 'agy'`, `agy models`). │
+│ 2. Tool & Host Binary Confusion (Steps 266–436: `agy agents list`)           │
+│    ❌ Running `agy agents` in shell, inventing fictional CLI SDKs (`import  │
+│       { Agy }`). `agy` hangs in non-TTY background with 0 output.           │
 │    ✅ Host Environment Contract (`host-environment.md`) + negative          │
 │       constraints separating Host Platform tools from Harness CLI commands. │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 3. Unmanaged Background Shell Scripts & Sleep Daemons                       │
-│    ❌ Executing `nohup cmd &` or `sleep 300` in bash subshells.              │
+│ 3. Unmanaged Background Shell Scripts & Sleep Daemons (Steps 129–140)       │
+│    ❌ Executing `nohup check_mind.sh &` with `while true; sleep 10; done`.  │
 │    ✅ Host `schedule` reactive timer protocol + Non-Blocking Scheduler      │
 │       Return Invariant (ending turn or continuing proactive background cog).│
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 4. Empty Message Payloads & Reasoning-Only Drops                            │
-│    ❌ Terminating without `send_message` or returning empty JSON bodies.   │
+│ 4. Empty Message Payloads & Reasoning-Only Drops (41 Recorded Occurrences)  │
+│    ❌ Model completes thought block but emits 0 text/tools, crashing host.  │
 │    ✅ Non-Empty Payload Mandate (`NON_EMPTY_PAYLOAD_MANDATE`) + mandatory    │
-│       structured submission reports and receipts.                           │
+│       structured submission reports and telemetry briefs.                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ 5. Root Directory Hygiene Pollution                                         │
-│    ❌ Dumping temporary scripts (`./test.ts`, `./temp.js`, `./debug.log`)    │
+│ 5. Root Directory Hygiene Pollution & Stray Scripts                         │
+│    ❌ Dumping temporary scripts (`./test.ts`, `./temp.js`, `./check_mind.sh`)│
 │       directly into the repository root.                                    │
 │    ✅ `RootDirectoryHygieneGuard` (`root-hygiene-guard.ts`): Enforces        │
 │       `ROOT_HYGIENE_VIOLATION` for uncoordinated files outside `scratch/`.  │
@@ -54,6 +55,11 @@ Plan 23 permanently hardens the entire OLT agent ecosystem, role contracts, YAML
 │    ❌ Burning 5-10 turns doing `list_dir`, `grep_search`, `find_by_name`.    │
 │    ✅ Zero-Exploration Exact-Anchor Briefings (`briefing-builder.ts`):       │
 │       Supplies exact line coordinates, AST symbols, and drop-in chunks.     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 8. Liveness Theater & Cron Math Blunders (Steps 108–112, 855–917)           │
+│    ❌ Conflating `*/10 * * * *` (10 min) with 10s; tautological timestamp   │
+│       logging in `CONTINUE_REPORT.md` without substantive task execution.   │
+│    ✅ Anti-Tautology Liveness Filter + Self-Rearming Timer Subagent pattern. │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 

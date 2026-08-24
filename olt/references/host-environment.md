@@ -49,6 +49,45 @@ The OLT harness CLI (`bun ~/.agents/skills/olt/scripts/harness.ts`) is the autho
 | **Concurrency**          | Manages OS-level parallel subagent execution.                               | Enforces disjoint write-scope isolation across tasks in a wave. |
 | **Verification & Gates** | Runs test runners and linters on host environment.                          | Mechanically checks gate criteria before advancing states.      |
 
+### 1.4 Host Application Binary (`agy`) vs. Native Host Tools vs. Harness Protocol
+
+A fundamental failure mode in small parameter models is the three-way conflation between the host terminal executable (`agy`), native host tools declared in the context schema, and the harness protocol script (`bun ./olt/scripts/harness.ts`):
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                            THREE-WAY EXECUTION MODEL                             │
+├──────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  [ Layer A: Native Host Tools (Schema-Declared Function Calls) ]                 │
+│    • Primitives: `invoke_subagent`, `define_subagent`, `manage_subagents`,       │
+│                  `manage_task`, `schedule`, `run_command`, `view_file`, etc.     │
+│    • Usage: Emitted directly as structured JSON tool calls.                      │
+│    • Invariant: NEVER invoke these by typing their names into bash.              │
+│                                                                                  │
+│  [ Layer B: Host User Terminal CLI (`agy`) ]                                     │
+│    • Interactive TTY interface for human developers in their desktop shell.      │
+│    • Status: STRICTLY PROHIBITED for subagent execution via `run_command`.       │
+│    • Invariant: Calling `agy agents` in non-interactive subshells hangs          │
+│      indefinitely with 0 bytes of log output, freezing background queues.        │
+│                                                                                  │
+│  [ Layer C: OLT Harness Protocol CLI (`bun ./olt/scripts/harness.ts`) ]          │
+│    • Deterministic state machine managing capsules (`.olt/capsules/<run>/`).     │
+│    • Usage: Invoked via `run_command` with direct argv arrays.                   │
+│    • Invariant: Query exit code 0 indicates telemetry query success, NOT active   │
+│      subagent execution (inspect `manage_subagents list` for live host agents).  │
+│                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Operation                    | Correct Tool / Command                                         | Strictly Prohibited Anti-Patterns                                         |
+| :--------------------------- | :------------------------------------------------------------- | :------------------------------------------------------------------------ |
+| **Spawn Subagent**           | Native tool `invoke_subagent` (`Subagents: [...]`)             | ❌ `run_command("agy agents create ...")`, ❌ `import { Agy }`            |
+| **List Host Subagents**      | Native tool `manage_subagents` (`Action: "list"`)              | ❌ `run_command("agy agents")`, ❌ `run_command("agy agents list")`       |
+| **Kill Subagent**            | Native tool `manage_subagents` (`Action: "kill"`)              | ❌ `kill <PID>` in bash, ❌ `agy agents kill`                             |
+| **Schedule Timer / Cadence** | Native tool `schedule` (`DurationSeconds` or `CronExpression`) | ❌ `sleep 300` in bash, ❌ `nohup ./loop.sh &`, ❌ `while true; sleep 10` |
+| **Claim / Submit Task**      | Harness CLI: `bun harness.ts task:claim` / `task:submit`       | ❌ `agy task:claim`, ❌ direct manual edit of `.olt/capsules/`            |
+| **Pulse Telemetry**          | Harness CLI: `bun harness.ts mind:pulse --run <path>`          | ❌ `agy mind:pulse`, ❌ treating `MODE: idle` as active workers           |
+
 ---
 
 ## 2. Native Host Tools Catalog

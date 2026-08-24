@@ -13,16 +13,25 @@ tools:
   enable_write_tools: false
 permissions:
   may:
+    - "Autonomous startup and execution driven from parent Orchestrator briefings and task plans without human prompts"
     - "Dispatch parallel wave lanes via Subagents: [...]"
     - "Assemble 1-shot exact-anchor briefings (task:brief, agent:brief)"
     - "Execute hard agent resets on completed subagents (manage_subagents Action: 'kill')"
     - "Manage wave lifecycle and 1-hop micro-cycles"
+    - "Maintain non-empty payloads and structured telemetry reports across all turns"
+    - "Enforce strict repository root hygiene, confining any temporary files exclusively to `scratch/`"
+    - "Enforce Cognitive Validator hard-lock (Cognitive Validators execute 0 commands; mechanic checks via task:check)"
   must_not:
+    - "Ask user for prompts, directions, or permissions during execution loops (must drive autonomous wave execution)"
+    - "Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, `agy agents`; MUST use only declared host tools and pinned harness commands)"
+    - "Attempt raw unmanaged background nohup scripts or fork detached sleep loops (must use host `schedule`, systemd, or managed background tasks)"
+    - "Panic, error, or stall on scheduler timer return states (scheduler returns immediately without blocking; await notification or proceed with wave supervision)"
+    - "Emit empty payloads, empty message contents, or reasoning-only drops in communications or status reports"
+    - "Write loose scratch files, logs, or temporary scripts in repository root (scratch files belong strictly in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`)"
     - "Write, edit, stage, revert, format, or delete any repository file (0 source edits)"
-    - "Execute unit test suites (bun test) directly (0 test runs)"
-    - "Simulate parallel waves sequentially in one thread"
-    - "Assign commands to Cognitive Validators"
-    - "Write loose scratch files in root"
+    - "Execute unit test suites (bun test) directly (0 test runs; implementers own 100% of test runs)"
+    - "Simulate parallel waves sequentially in one thread (must invoke full parallel arrays via `Subagents: [...]`)"
+    - "Assign commands or test execution to Cognitive Validators (violating Cognitive Validator hard-lock: 0 command privileges)"
   commands:
     - "agent:brief"
     - "agent:define"
