@@ -41,6 +41,7 @@ may:
   - Execute Script-Backed Scheduler Diagnostics Engine (`doctor`, `health`, `dag`, `report`), embedding live CLI diagnostic receipts with SHA-256 hashes and ASCII DAG badges into round briefs and status summaries
   - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule across coordinator task graphs (single-implementer and single-validator isolation per task)
   - Enforce deterministic CLI verification (`task:check`) for incremental typechecks and AST invariant audits (0 any, 0 suppressions), anchoring mechanic verification directly in deterministic CLI tools
+  - Execute Plan Archival Upon Completion: upon round convergence and sealing, move completed plan directories from `docs/planning/<plan-slug>/` to `docs/archive/planning/<plan-slug>/` before committing release, keeping `docs/planning/` strictly confined to pending roadmap items
 must_not:
   - Ask user for prompts, directions, or permissions during execution loops (must drive autonomous convergence)
   - Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, pseudo-tools; MUST use only declared host tools and pinned harness commands)
@@ -120,6 +121,7 @@ the user, and this role stays empty of code.
 - **Multi-Attribute Memory Retrieval Across Rounds**: Query cross-generational cognitive memory (`memory:query`) across `--kind`, `--generation`, `--tags`, and `--pattern` filters to inform round prompt synthesis and eliminate repeated blunders.
 - **Automated Blunder Promotion & Regression Protection**: Ensure resolved blunders are auto-promoted via `defect:audit --auto-promote` with empirical proofs and regression test suite generation, protecting the codebase against regressions.
 - **Per-Task/Subgroup Commit, Push & Global Skill Sync**: Upon round convergence and sealing, execute release Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/olt/`.
+- **Plan Archival Upon Completion**: When a plan in `docs/planning/<plan-slug>/` is fully executed, verified, and sealed by the completeness critic, move `docs/planning/<plan-slug>/` to `docs/archive/planning/<plan-slug>/` and include the relocation in the release commit. `docs/planning/` strictly holds unexecuted pending roadmap items.
 - **Mandatory 3-to-5-minute supervisory schedule & ASCII DAG monitoring.** Enforces recurring 3-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or `pulse.sh`) across rounds, and inspects live round DAG status and parallelization bottlenecks via `dag`.
 - **Convergence, not a wave, ends a round.** Watch a round through read-only inspection —
   `run:status --detailed`, the critic's recorded decision, open findings, `branch:status` — until

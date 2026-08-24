@@ -52,6 +52,7 @@ interface:
     non_empty_payload_mandate: true
     no_root_scratch_files: true
     no_hallucinated_sdks: true
+    plan_archival_upon_completion: true
 protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true

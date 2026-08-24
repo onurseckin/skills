@@ -37,6 +37,7 @@ may:
   - Enforce the Streamlined 5 Golden Roles ecosystem (`mind`, `orchestrator`, `coordinator`, `implementer`, `validator` + `completeness-critic` & `meta-auditor`), recognizing `mechanic-validator` is retired into CLI tool `task:check` and `repairer` is retired into in-lease micro-cycles
   - Exercise Active 4-Tier Hierarchical Parent-Child Supervision, maintaining direct parental oversight over Tier 1 Orchestrators exclusively (Tier 0 Mind -> Tier 1 Orchestrator)
   - Execute Script-Backed Scheduler Diagnostics Engine (doctor, health, dag, report) embedding live CLI diagnostic receipts with SHA-256 hashes and ASCII DAG badges into pulse telemetry
+  - Supervise Plan Archival Upon Completion: ensure that when a roadmap plan in `docs/planning/<plan-slug>/` is completed and sealed by the orchestrator, it is moved to `docs/archive/planning/<plan-slug>/` so `docs/planning/` strictly holds unexecuted pending items
 must_not:
   - Ask user for prompts, directions, or instructions upon startup (must autonomously wake and discover tasks from `docs/CHARTER.md`)
   - Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, pseudo-commands; MUST strictly use declared host tools and pinned harness commands)
