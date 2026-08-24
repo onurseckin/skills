@@ -1,4 +1,5 @@
 import { execSync } from "child_process";
+import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
 
 export interface DagBadge {
   id: string;
@@ -8,8 +9,13 @@ export interface DagBadge {
 }
 
 export function pruneAsciiDagBadges(badges: DagBadge[], activeWave: string): DagBadge[] {
-  // Prune ASCII DAG badges to active wave neighborhoods to conserve LLM context tokens
-  return badges.filter((badge) => badge.waveNeighborhood === activeWave || badge.isActive);
+  // Prune ASCII DAG badges to active wave neighborhoods to conserve LLM context tokens and enforce <= 30 lines
+  return badges
+    .filter((badge) => badge.waveNeighborhood === activeWave || badge.isActive)
+    .map((badge) => ({
+      ...badge,
+      asciiArt: enforceLineLimit(badge.asciiArt, 30),
+    }));
 }
 
 export function killDanglingBrowserProcesses(): number {

@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { resolveCapsulesDir } from "../core/shared/paths.ts";
 
 export type MemoryKind = "capsule" | "defect" | "decision" | "charter" | "report";
 
@@ -1494,7 +1495,7 @@ export function indexArchivedObjectiveDocuments(
 export function indexAllMemory(options: IndexMemoryOptions = {}): MemoryIndex {
   const repoRoot = options.repoRoot !== undefined ? resolve(options.repoRoot) : process.cwd();
   const capsulesDir =
-    options.capsulesDir !== undefined ? resolve(options.capsulesDir) : join(repoRoot, ".capsules");
+    options.capsulesDir !== undefined ? resolve(options.capsulesDir) : resolveCapsulesDir(repoRoot);
   const runRoot = options.runRoot !== undefined ? resolve(options.runRoot) : undefined;
 
   const charterDocs = indexCharterDocuments(repoRoot);

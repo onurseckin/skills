@@ -1,22 +1,5 @@
 {
-  "active_watchdog": {
-    "agent_id": "scheduler-pulse-loop",
-    "generation": 1,
-    "heartbeat_cadence_ms": 180000,
-    "id": "wd-gen1-mt6wxlv6-xd91ks",
-    "last_heartbeat_at": "2026-08-24T07:26:50.625Z",
-    "phase": "scheduler-continuous-loop",
-    "pid": 97506,
-    "ppid": 99964,
-    "pulse_id": null,
-    "run_id": null,
-    "run_root": null,
-    "started_at": "2026-08-24T07:26:50.610Z",
-    "status": "active",
-    "terminated_at": null,
-    "termination_reason": null,
-    "timeout_ms": 360000
-  },
+  "active_watchdog": null,
   "schema": "harness.watchdog_store",
   "updated_at": "2026-08-24T07:26:50.625Z",
   "version": 2

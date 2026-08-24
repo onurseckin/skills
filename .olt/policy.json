@@ -10,7 +10,6 @@
   "typecheck_command": "bun run typecheck",
   "lint_command": "bun run lint",
   "allowed_commands": [
-    "bun test",
     "bun run",
     "tsc",
     "git status",
@@ -22,7 +21,7 @@
     "cat",
     "wc"
   ],
-  "forbidden_commands": ["git commit", "git push", "git reset", "rm -rf /"],
+  "forbidden_commands": ["bun test", "git commit", "git push", "git reset", "rm -rf /"],
   "read_scope_neighborhood_depth": 2,
   "review_protocol": {
     "max_adversarial_pushes": 5,
