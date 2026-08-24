@@ -1,6 +1,46 @@
+import type { AgentGrantRecord } from "../core/contracts/agents.ts";
 import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
 import type { FindingDetail } from "../workflow/scope-partitioner.ts";
 import type { Finding, TaskStatus } from "../core/contracts/workflow.ts";
+import type { AuditorCursor } from "../mind/cognitive-auditors.ts";
+import type { ForensicsIncident } from "../mind/meta-auditor.ts";
+
+export type BehavioralForensicsIncident = ForensicsIncident;
+
+export interface OrchestratorCompanionOptions {
+  readonly activeAgents?: readonly AgentGrantRecord[] | undefined;
+  readonly companionAgentId?: string | undefined;
+  readonly strictPolicy?: boolean | undefined;
+  readonly now?: string | undefined;
+}
+
+export interface CompanionPairingResult {
+  readonly paired: boolean;
+  readonly autoProvisioned: boolean;
+  readonly isMandatoryTarget: boolean;
+  readonly companionAgentId: string;
+  readonly pairedAt: string;
+}
+
+export interface BehavioralForensicsOptions {
+  readonly cursor?: AuditorCursor | undefined;
+  readonly capsuleRunRoot?: string | undefined;
+  readonly logDefects?: boolean | undefined;
+  readonly now?: string | undefined;
+}
+
+export interface BehavioralForensicsReport {
+  readonly compliant: boolean;
+  readonly eventsAnalyzed: number;
+  readonly incidents: readonly BehavioralForensicsIncident[];
+  readonly tokenBurningCount: number;
+  readonly falseSerializationCount: number;
+  readonly roleBoundaryDeviationsCount: number;
+  readonly defectsLogged: number;
+  readonly cursor: AuditorCursor;
+  readonly timestamp: string;
+  readonly markdown: string;
+}
 
 export type RoundExecutionStatus =
   | "pending"
@@ -129,6 +169,7 @@ export interface RoundTelemetry {
   readonly gateStatus: GateRoundStatus;
   readonly gateCount: number;
   readonly summary?: string | undefined;
+  readonly behavioralForensics?: BehavioralForensicsReport | undefined;
 }
 
 export interface LoopSummary {
@@ -146,6 +187,8 @@ export interface LoopSummary {
   readonly finalCriticDecision?: CriticDecision | undefined;
   readonly finalMarkdownSummary: string;
   readonly actor?: string | undefined;
+  readonly companionPairing?: CompanionPairingResult | undefined;
+  readonly behavioralForensicsSummary?: BehavioralForensicsReport | undefined;
 }
 
 export interface RoundExecutionInput {
@@ -180,6 +223,7 @@ export interface RoundExecutionResult {
   readonly gateResults: readonly RoundGateResult[];
   readonly summary?: string | undefined;
   readonly logs?: readonly string[] | undefined;
+  readonly behavioralForensics?: BehavioralForensicsReport | undefined;
 }
 
 export interface RoundExecutor {
@@ -196,10 +240,13 @@ export interface LoopRunnerOptions {
   readonly actor?: string | undefined;
   readonly executor?: RoundExecutor | undefined;
   readonly watchdogConfig?: WatchdogConfig | undefined;
+  readonly skillAuditorCompanion?: boolean | undefined;
+  readonly strictAuditorPolicy?: boolean | undefined;
   readonly onRoundStart?: ((round: number, runId: string) => void) | undefined;
   readonly onRoundComplete?: ((telemetry: RoundTelemetry) => void) | undefined;
   readonly onDefectSynthesis?: ((synthesis: DefectSynthesis) => void) | undefined;
   readonly onCapsuleChained?: ((manifest: CapsuleChainManifest) => void) | undefined;
   readonly onStall?: ((event: WatchdogEvent) => void) | undefined;
   readonly onLoopComplete?: ((summary: LoopSummary) => void) | undefined;
+  readonly onBehavioralForensics?: ((report: BehavioralForensicsReport) => void) | undefined;
 }

@@ -86,6 +86,7 @@ permissions:
     - "task:brief"
     - "task:check"
     - "run:status"
+    - "run:complete"
     - "dag"
     - "doctor"
     - "orchestrator:supervise"

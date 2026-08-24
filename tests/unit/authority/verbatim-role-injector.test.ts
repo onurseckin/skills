@@ -202,6 +202,261 @@ describe("VerbatimRoleInjector", () => {
     });
   });
 
+  describe("buildMindInitializationPrompt", () => {
+    it("produces Mode A initialization prompt by default when backlog count is 0 or omitted", () => {
+      const expectedMind = readFileSync(resolve(REPO_ROOT, "olt", "agents", "mind.yaml"), "utf-8");
+      const prompt = VerbatimRoleInjector.buildMindInitializationPrompt(REPO_ROOT);
+
+      expect(prompt).toContain("[MIND_INITIALIZATION_VERBATIM_MANIFEST_INJECTION]");
+      expect(prompt).toContain(
+        "CRITICAL SUPERVISORY INITIALIZATION: Mind Autonomous Consciousness Ignition",
+      );
+      expect(prompt).toContain("Mind ID: mind-gen-1 | Generation: 1");
+      expect(prompt).toContain("MODE A: AUTONOMOUS SELF-EVOLUTION MANDATE (Backlog Queue Empty)");
+      expect(prompt).toContain("INITIALIZATION DIRECTIVES:");
+      expect(prompt).toContain(
+        "1. Autonomously wake from olt/agents/mind.yaml without human prompts or instructions.",
+      );
+      expect(prompt).toContain(
+        "2. Observe active system health, doctor reports, and candidate queues.",
+      );
+      expect(prompt).toContain(
+        "3. If feedback queue is empty (0 pending items), execute Mode A autonomous discovery:",
+      );
+      expect(prompt).toContain(
+        "Scan codebase for TypeScript `any` or compiler suppression violations.",
+      );
+      expect(prompt).toContain(
+        "Admit new self-evolution candidate tasks via `mind:admit` with Brent Work/Span ($P = W/S$) analysis.",
+      );
+      expect(prompt).toContain(
+        "4. Atomically convert admitted candidates to dispatched tasks with 1:1 isolated implementer-validator allocations.",
+      );
+      expect(prompt).toContain(
+        "5. Operate indefinitely as an infinite autonomous loop (`mind:pulse`); never exit or sit idle.",
+      );
+      expect(prompt).toContain("=== VERBATIM ROLE MANIFEST (olt/agents/mind.yaml) ===");
+      expect(prompt).toContain(expectedMind);
+      expect(prompt).toContain("Execute your verbatim role instructions immediately.");
+    });
+
+    it("verifies verbatim manifest injection contains complete charter, 16 pillars, permissions, and Product Owner mandate", () => {
+      const prompt = VerbatimRoleInjector.buildMindInitializationPrompt(REPO_ROOT, {
+        mindId: "mind-gen-2",
+        generation: 2,
+        runRoot: "/path/to/capsule",
+        charterSourcePath: "olt/agents/mind.yaml",
+      });
+
+      expect(prompt).toContain(
+        "Mind ID: mind-gen-2 | Generation: 2 | Capsule Root: /path/to/capsule | Charter Source: olt/agents/mind.yaml",
+      );
+
+      // Charter Verification
+      expect(prompt).toContain("charter:");
+      expect(prompt).toContain(
+        'identity: "The autonomous maintenance, verification, and hardening mind',
+      );
+      expect(prompt).toContain("G1");
+      expect(prompt).toContain("Continuously ensure 0 TypeScript any");
+      expect(prompt).toContain("G2");
+      expect(prompt).toContain("Maintain strict multi-agent orchestration invariants");
+      expect(prompt).toContain("G3");
+      expect(prompt).toContain("Preserve repository integrity");
+
+      // 16 Cognitive Pillars Verification
+      expect(prompt).toContain("Pillar 1: CLI-First Token Leverage");
+      expect(prompt).toContain("Pillar 2: Visual Truth & Radical Observability");
+      expect(prompt).toContain("Pillar 3: Thread Authority & Zero Main-Thread Spillover");
+      expect(prompt).toContain("Pillar 4: Perpetual Self-Evolution");
+      expect(prompt).toContain("Pillar 5: Graph Visualizer UI & External Interoperability");
+      expect(prompt).toContain("Pillar 6: First-Principles Innovation & Radical Simplification");
+      expect(prompt).toContain("Pillar 7: Infinite Borderless Cadence & Topological Concurrency");
+      expect(prompt).toContain(
+        "Pillar 8: Autonomic Self-Recovery & Non-Idle In-Progress Resumption",
+      );
+      expect(prompt).toContain("Pillar 9: Strategic Brain & Hyper-Active Proactive Cognition");
+      expect(prompt).toContain("Pillar 10: Mind Queue Domain & Cognitive Memory Persistence");
+      expect(prompt).toContain("Pillar 11: Generation 5 Mindful Infusion");
+      expect(prompt).toContain(
+        "Pillar 12: Infinite Mind Product Owner Mode & Atomic Admission-to-Dispatch Chaining",
+      );
+      expect(prompt).toContain("Pillar 13: Active 4-Tier Hierarchical Parent-Child Supervision");
+      expect(prompt).toContain("Pillar 14: Script-Backed Scheduler Diagnostics Engine");
+      expect(prompt).toContain("Pillar 15: Autonomous Wakeup & Operational Grounding");
+      expect(prompt).toContain("Pillar 16: Quota Freeze & Cron Suspension");
+
+      // Permissions Verification
+      expect(prompt).toContain("permissions:");
+      expect(prompt).toContain("may:");
+      expect(prompt).toContain("must_not:");
+      expect(prompt).toContain("SUPERVISOR_ZERO_CODE_EDITS");
+      expect(prompt).toContain("ANTI_BATCHING_ISOLATION");
+      expect(prompt).toContain("QUOTA_FREEZE_ZERO_KILL_RESUME");
+    });
+
+    it("produces Mode B initialization prompt when pendingBacklogCount > 0", () => {
+      const prompt = VerbatimRoleInjector.buildMindInitializationPrompt(REPO_ROOT, {
+        mindId: "mind-gen-3",
+        generation: 3,
+        pendingBacklogCount: 5,
+      });
+
+      expect(prompt).toContain("MODE B: ACTIVE INTAKE & WORK/SPAN SCALING MANDATE");
+      expect(prompt).toContain(
+        "2. Ingest 5 pending backlog items from feedback-queue.jsonl and evaluate against 6 Admission Gates.",
+      );
+      expect(prompt).toContain(
+        "3. Calculate Brent Work/Span concurrency $P = \\lceil W / S \\rceil$ and dispatch disjoint lanes in parallel.",
+      );
+      expect(prompt).toContain(
+        "4. Direct Tier 1 Orchestrator exclusively; enforce 1:1 isolated task allocations (Anti-Batching Rule).",
+      );
+      expect(prompt).toContain("=== VERBATIM ROLE MANIFEST (olt/agents/mind.yaml) ===");
+    });
+
+    it("respects explicit mode override flag", () => {
+      const promptModeB = VerbatimRoleInjector.buildMindInitializationPrompt(REPO_ROOT, {
+        pendingBacklogCount: 0,
+        mode: "B",
+      });
+      expect(promptModeB).toContain("MODE B: ACTIVE INTAKE & WORK/SPAN SCALING MANDATE");
+
+      const promptModeA = VerbatimRoleInjector.buildMindInitializationPrompt(REPO_ROOT, {
+        pendingBacklogCount: 10,
+        mode: "A",
+      });
+      expect(promptModeA).toContain(
+        "MODE A: AUTONOMOUS SELF-EVOLUTION MANDATE (Backlog Queue Empty)",
+      );
+    });
+  });
+
+  describe("buildInitializationPrompt", () => {
+    it("routes role === 'mind' to buildMindInitializationPrompt", () => {
+      const prompt = VerbatimRoleInjector.buildInitializationPrompt(REPO_ROOT, "mind", {
+        agentId: "custom-mind-id",
+        runRoot: "/run/root/test",
+        mode: "A",
+      });
+
+      expect(prompt).toContain("[MIND_INITIALIZATION_VERBATIM_MANIFEST_INJECTION]");
+      expect(prompt).toContain("Mind ID: custom-mind-id");
+      expect(prompt).toContain("Capsule Root: /run/root/test");
+      expect(prompt).toContain("=== VERBATIM ROLE MANIFEST (olt/agents/mind.yaml) ===");
+    });
+
+    it("formats role initialization for orchestrator with verbatim orchestrator manifest", () => {
+      const expectedOrch = readFileSync(
+        resolve(REPO_ROOT, "olt", "agents", "orchestrator.yaml"),
+        "utf-8",
+      );
+      const prompt = VerbatimRoleInjector.buildInitializationPrompt(REPO_ROOT, "orchestrator", {
+        agentId: "orchestrator-1",
+        runRoot: "/run/root/orch",
+        taskId: "task-release-1",
+      });
+
+      expect(prompt).toContain("[ROLE_INITIALIZATION_VERBATIM_MANIFEST_INJECTION]");
+      expect(prompt).toContain("SUPERVISORY ROLE INITIALIZATION: ORCHESTRATOR");
+      expect(prompt).toContain(
+        "Agent ID: orchestrator-1 | Capsule Root: /run/root/orch | Task: task-release-1",
+      );
+      expect(prompt).toContain("=== VERBATIM ROLE MANIFEST (olt/agents/orchestrator.yaml) ===");
+      expect(prompt).toContain(expectedOrch);
+      expect(prompt).toContain("Execute your verbatim role instructions immediately.");
+    });
+
+    it("formats role initialization for coordinator with verbatim coordinator manifest", () => {
+      const expectedCoord = readFileSync(
+        resolve(REPO_ROOT, "olt", "agents", "coordinator.yaml"),
+        "utf-8",
+      );
+      const prompt = VerbatimRoleInjector.buildInitializationPrompt(REPO_ROOT, "coordinator", {
+        agentId: "coordinator-1",
+      });
+
+      expect(prompt).toContain("[ROLE_INITIALIZATION_VERBATIM_MANIFEST_INJECTION]");
+      expect(prompt).toContain("SUPERVISORY ROLE INITIALIZATION: COORDINATOR");
+      expect(prompt).toContain("Agent ID: coordinator-1");
+      expect(prompt).toContain("=== VERBATIM ROLE MANIFEST (olt/agents/coordinator.yaml) ===");
+      expect(prompt).toContain(expectedCoord);
+    });
+
+    it("throws HarnessError when given unknown role", () => {
+      expect(() => {
+        VerbatimRoleInjector.buildInitializationPrompt(REPO_ROOT, "unknown-role-xyz");
+      }).toThrow(HarnessError);
+    });
+  });
+
+  describe("buildSubagentSystemPrompt", () => {
+    it("builds subagent system prompt with verbatim manifest for implementer", () => {
+      const expectedImpl = readFileSync(
+        resolve(REPO_ROOT, "olt", "agents", "implementer.yaml"),
+        "utf-8",
+      );
+      const prompt = VerbatimRoleInjector.buildSubagentSystemPrompt(REPO_ROOT, "implementer", {
+        customInstructions: "Mandate zero TypeScript any and zero compiler suppressions.",
+      });
+
+      expect(prompt).toContain("[SUBAGENT_VERBATIM_SYSTEM_PROMPT: IMPLEMENTER]");
+      expect(prompt).toContain("=== VERBATIM ROLE MANIFEST (olt/agents/implementer.yaml) ===");
+      expect(prompt).toContain(expectedImpl);
+      expect(prompt).toContain(
+        "ADDITIONAL INSTRUCTIONS:\nMandate zero TypeScript any and zero compiler suppressions.",
+      );
+      expect(prompt).toContain(
+        "You must strictly execute within your declared role boundaries, permissions, and invariants.",
+      );
+    });
+
+    it("builds subagent system prompt without custom instructions", () => {
+      const prompt = VerbatimRoleInjector.buildSubagentSystemPrompt(REPO_ROOT, "validator");
+      expect(prompt).toContain("[SUBAGENT_VERBATIM_SYSTEM_PROMPT: VALIDATOR]");
+      expect(prompt).toContain("=== VERBATIM ROLE MANIFEST (olt/agents/validator.yaml) ===");
+      expect(prompt).not.toContain("ADDITIONAL INSTRUCTIONS:");
+    });
+  });
+
+  describe("buildSubagentDispatchPrompt", () => {
+    it("builds subagent dispatch prompt with task prompt, write scope, exact anchors, and verbatim manifest", () => {
+      const expectedImpl = readFileSync(
+        resolve(REPO_ROOT, "olt", "agents", "implementer.yaml"),
+        "utf-8",
+      );
+      const prompt = VerbatimRoleInjector.buildSubagentDispatchPrompt(
+        REPO_ROOT,
+        "implementer",
+        "Implement candidate 3 verbatim injection",
+        {
+          agentId: "implementer-1",
+          taskId: "task-1",
+          runRoot: "/run/root/test",
+          writeScope: ["olt/scripts/src/authority/verbatim-role-injector.ts"],
+          exactAnchorBriefing: "Anchor: interface StagnationTelemetry (lines 6-15)",
+        },
+      );
+
+      expect(prompt).toContain("[SUBAGENT_DISPATCH_MANDATE: IMPLEMENTER]");
+      expect(prompt).toContain(
+        "DISPATCH COORDINATES: Agent: implementer-1 | Task: task-1 | Capsule Root: /run/root/test",
+      );
+      expect(prompt).toContain("TASK PROMPT:\nImplement candidate 3 verbatim injection");
+      expect(prompt).toContain(
+        "ASSIGNED WRITE SCOPE:\n- olt/scripts/src/authority/verbatim-role-injector.ts",
+      );
+      expect(prompt).toContain(
+        "EXACT-ANCHOR BRIEFING:\nAnchor: interface StagnationTelemetry (lines 6-15)",
+      );
+      expect(prompt).toContain("=== VERBATIM ROLE MANIFEST (olt/agents/implementer.yaml) ===");
+      expect(prompt).toContain(expectedImpl);
+      expect(prompt).toContain(
+        "Execute your verbatim role instructions and task requirements immediately.",
+      );
+    });
+  });
+
   describe("class instantiation", () => {
     it("can be instantiated and constructor executed", () => {
       const injector = new VerbatimRoleInjector();

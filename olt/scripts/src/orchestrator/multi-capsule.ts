@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { SplitChannelDefectRouter } from "../reporting/split-channel-defect-router.ts";
+import { OrchestratorCompanionAuditor } from "./companion-auditor.ts";
 import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
 
 export type CapsuleExecutionStatus =
@@ -120,7 +122,11 @@ export function hasScopeOverlap(scopeA: readonly string[], scopeB: readonly stri
     for (const pathB of scopeB) {
       const normB = pathB.trim().replace(/\/+$/, "");
       if (!normB) continue;
-      if (normA === normB || normA.startsWith(`${normB}/`) || normB.startsWith(`${normA}/`)) {
+      let isOverlap = false;
+      if (normA === normB) isOverlap = true;
+      if (normA.startsWith(`${normB}/`)) isOverlap = true;
+      if (normB.startsWith(`${normA}/`)) isOverlap = true;
+      if (isOverlap) {
         return true;
       }
     }
@@ -142,7 +148,10 @@ export class MultiCapsuleDAG {
     }
 
     for (const spec of specs) {
-      if (!spec.id || !spec.id.trim()) {
+      let isIdInvalid = false;
+      if (spec.id === undefined) isIdInvalid = true;
+      else if (spec.id.trim().length === 0) isIdInvalid = true;
+      if (isIdInvalid) {
         throw new HarnessError("INVALID_ARGUMENT", "Capsule spec must contain a non-empty id");
       }
       if (this.specsMap.has(spec.id)) {
@@ -154,7 +163,7 @@ export class MultiCapsuleDAG {
     }
 
     for (const spec of specs) {
-      const deps = spec.dependencies ?? [];
+      const deps = spec.dependencies !== undefined ? spec.dependencies : [];
       for (const depId of deps) {
         if (!this.specsMap.has(depId)) {
           throw new HarnessError(
@@ -202,7 +211,8 @@ export class MultiCapsuleDAG {
 
     const dfs = (node: string, path: readonly string[]): void => {
       visiting.add(node);
-      const nextNodes = this.adjacency.get(node) ?? new Set();
+      const nextMapVal = this.adjacency.get(node);
+      const nextNodes = nextMapVal !== undefined ? nextMapVal : new Set<string>();
       for (const next of nextNodes) {
         if (visiting.has(next)) {
           const cycle = [...path, next].join(" -> ");
@@ -236,8 +246,12 @@ export class MultiCapsuleDAG {
     const assigned = new Map<string, number>();
 
     const getWaveLevel = (id: string, visited: Set<string>): number => {
-      if (assigned.has(id)) return assigned.get(id) ?? 0;
-      const deps = this.reverseAdjacency.get(id) ?? new Set();
+      if (assigned.has(id)) {
+        const val = assigned.get(id);
+        return val !== undefined ? val : 0;
+      }
+      const revVal = this.reverseAdjacency.get(id);
+      const deps = revVal !== undefined ? revVal : new Set<string>();
       if (deps.size === 0) {
         assigned.set(id, 0);
         return 0;
@@ -272,7 +286,11 @@ export class MultiCapsuleDAG {
 
     // Sort capsules in each wave by priority descending
     for (const wave of waves) {
-      wave.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+      wave.sort((a, b) => {
+        const prioA = a.priority !== undefined ? a.priority : 0;
+        const prioB = b.priority !== undefined ? b.priority : 0;
+        return prioB - prioA;
+      });
     }
 
     return waves;
@@ -315,25 +333,41 @@ export function validateAntiSequentiality(
   const waves = dag.computeParallelWaves();
   const criticalPathLength = waves.length;
   const totalCapsules = specs.length;
-  const maxParallel = options?.maxParallelCapsules ?? totalCapsules;
-  const allowOverlapInWorktrees = options?.allowScopeOverlapInIsolatedWorktrees ?? true;
+  const maxParallel =
+    options !== undefined && options.maxParallelCapsules !== undefined
+      ? options.maxParallelCapsules
+      : totalCapsules;
+  const allowOverlapInWorktrees =
+    options !== undefined && options.allowScopeOverlapInIsolatedWorktrees !== undefined
+      ? options.allowScopeOverlapInIsolatedWorktrees
+      : true;
 
   // 1. Check for Scope Collisions in the same wave (parallel candidates)
   for (let w = 0; w < waves.length; w++) {
-    const wave = waves[w] ?? [];
+    const waveEntry = waves[w];
+    const wave = waveEntry !== undefined ? waveEntry : [];
     for (let i = 0; i < wave.length; i++) {
       for (let j = i + 1; j < wave.length; j++) {
         const capA = wave[i];
         const capB = wave[j];
-        if (!capA || !capB) continue;
+        if (!capA) continue;
+        if (!capB) continue;
 
         if (hasScopeOverlap(capA.writeScope, capB.writeScope)) {
-          const bothHaveWorktrees =
-            Boolean(capA.worktreePath?.trim()) &&
-            Boolean(capB.worktreePath?.trim()) &&
-            capA.worktreePath?.trim() !== capB.worktreePath?.trim();
+          let bothHaveWorktrees = false;
+          if (capA.worktreePath !== undefined && capA.worktreePath.trim().length > 0) {
+            if (capB.worktreePath !== undefined && capB.worktreePath.trim().length > 0) {
+              if (capA.worktreePath.trim() !== capB.worktreePath.trim()) {
+                bothHaveWorktrees = true;
+              }
+            }
+          }
 
-          if (!bothHaveWorktrees || !allowOverlapInWorktrees) {
+          let isCollision = false;
+          if (!bothHaveWorktrees) isCollision = true;
+          else if (!allowOverlapInWorktrees) isCollision = true;
+
+          if (isCollision) {
             violations.push({
               type: "SCOPE_COLLISION_WITHOUT_WORKTREE_ISOLATION",
               capsuleIds: [capA.id, capB.id],
@@ -348,7 +382,7 @@ export function validateAntiSequentiality(
 
   // 2. Check for Artificial Sequential Bottlenecks (unjustified dependencies)
   for (const spec of specs) {
-    const deps = spec.dependencies ?? [];
+    const deps = spec.dependencies !== undefined ? spec.dependencies : [];
     for (const depId of deps) {
       const depSpec = dag.getSpec(depId);
       if (depSpec) {
@@ -468,7 +502,12 @@ export function formatMultiCapsuleSummary(summary: MultiCapsuleSummary): string 
 
   for (const [id, res] of Object.entries(summary.results)) {
     const gateCol = res.gatePassed === undefined ? "N/A" : res.gatePassed ? "✅ Pass" : "❌ Fail";
-    const sumCol = res.summary ? res.summary.replace(/\|/g, "\\|") : (res.error ?? "Completed");
+    let sumCol = "Completed";
+    if (res.summary !== undefined) {
+      sumCol = res.summary.replace(/\|/g, "\\|");
+    } else if (res.error !== undefined) {
+      sumCol = res.error;
+    }
     lines.push(
       `| \`${id}\` | **${res.status.toUpperCase()}** | ${(res.durationMs / 1000).toFixed(2)}s | ${gateCol} | ${sumCol} |`,
     );
@@ -497,13 +536,17 @@ export class TrueMultiCapsuleOrchestrator {
     | undefined;
 
   public constructor(options: MultiCapsuleOrchestratorOptions = {}) {
-    this.maxParallelCapsules = Math.max(
-      1,
-      options.maxParallelCapsules ?? TrueMultiCapsuleOrchestrator.DEFAULT_MAX_PARALLEL,
-    );
-    this.strictAntiSequentiality = options.strictAntiSequentiality ?? false;
+    const configuredMax =
+      options.maxParallelCapsules !== undefined
+        ? options.maxParallelCapsules
+        : TrueMultiCapsuleOrchestrator.DEFAULT_MAX_PARALLEL;
+    this.maxParallelCapsules = Math.max(1, configuredMax);
+    this.strictAntiSequentiality =
+      options.strictAntiSequentiality !== undefined ? options.strictAntiSequentiality : false;
     this.allowScopeOverlapInIsolatedWorktrees =
-      options.allowScopeOverlapInIsolatedWorktrees ?? true;
+      options.allowScopeOverlapInIsolatedWorktrees !== undefined
+        ? options.allowScopeOverlapInIsolatedWorktrees
+        : true;
     this.executor = options.executor;
     this.outputDir = options.outputDir;
     this.actor = options.actor;
@@ -526,15 +569,36 @@ export class TrueMultiCapsuleOrchestrator {
     const startTime = Date.now();
     const startedAt = new Date(startTime).toISOString();
 
+    // 0. Auto-pair companion Skill Auditor
+    const firstSpec = specs[0];
+    const targetRepoRoot = firstSpec !== undefined ? firstSpec.repoPath : process.cwd();
+    OrchestratorCompanionAuditor.pairCompanion(targetRepoRoot);
+
     // 1. Anti-Sequentiality Validation
     const antiSeqReport = validateAntiSequentiality(specs, {
       maxParallelCapsules: this.maxParallelCapsules,
       allowScopeOverlapInIsolatedWorktrees: this.allowScopeOverlapInIsolatedWorktrees,
     });
 
-    if (this.onAntiSequentialityViolation && antiSeqReport.violations.length > 0) {
+    if (antiSeqReport.violations.length > 0) {
       for (const v of antiSeqReport.violations) {
-        this.onAntiSequentialityViolation(v);
+        if (this.onAntiSequentialityViolation !== undefined) {
+          this.onAntiSequentialityViolation(v);
+        }
+        SplitChannelDefectRouter.routeDefect({
+          currentRepoRoot: targetRepoRoot,
+          domain: "skill-framework",
+          defect: {
+            error_code: "FALSE_SERIALIZATION",
+            title: `Anti-Sequentiality Violation: ${v.type}`,
+            description: v.message,
+            actor: "multi-capsule-orchestrator",
+            context: {
+              capsuleIds: v.capsuleIds,
+              remedy: v.remedy,
+            },
+          },
+        });
       }
     }
 
@@ -568,9 +632,10 @@ export class TrueMultiCapsuleOrchestrator {
       reason?: string,
       error?: string,
     ): void => {
-      const prev = statuses.get(capsuleId) ?? "pending";
+      const rawPrev = statuses.get(capsuleId);
+      const prev = rawPrev !== undefined ? rawPrev : "pending";
       statuses.set(capsuleId, newStatus);
-      if (this.onCapsuleStateChange && prev !== newStatus) {
+      if (this.onCapsuleStateChange !== undefined && prev !== newStatus) {
         this.onCapsuleStateChange({
           capsuleId,
           previousStatus: prev,
@@ -585,7 +650,7 @@ export class TrueMultiCapsuleOrchestrator {
     // Helper to evaluate if capsule is ready to run
     const isReadyToRun = (spec: CapsuleSpec): boolean => {
       if (statuses.get(spec.id) !== "pending") return false;
-      const deps = spec.dependencies ?? [];
+      const deps = spec.dependencies !== undefined ? spec.dependencies : [];
       for (const depId of deps) {
         const depStatus = statuses.get(depId);
         if (depStatus !== "converged") {
@@ -597,10 +662,14 @@ export class TrueMultiCapsuleOrchestrator {
 
     // Helper to check if capsule has failed dependencies
     const hasFailedDependency = (spec: CapsuleSpec): boolean => {
-      const deps = spec.dependencies ?? [];
+      const deps = spec.dependencies !== undefined ? spec.dependencies : [];
       for (const depId of deps) {
         const depStatus = statuses.get(depId);
-        if (depStatus === "failed" || depStatus === "blocked" || depStatus === "cancelled") {
+        let isFailedDep = false;
+        if (depStatus === "failed") isFailedDep = true;
+        else if (depStatus === "blocked") isFailedDep = true;
+        else if (depStatus === "cancelled") isFailedDep = true;
+        if (isFailedDep) {
           return true;
         }
       }
@@ -634,8 +703,11 @@ export class TrueMultiCapsuleOrchestrator {
     // Dispatch loop
     const runDispatchLoop = async (): Promise<void> => {
       const pendingQueue = new Set(specs.map((s) => s.id));
-
-      while (pendingQueue.size > 0 || activeCapsules.size > 0) {
+      for (;;) {
+        let hasRemainingWork = false;
+        if (pendingQueue.size > 0) hasRemainingWork = true;
+        else if (activeCapsules.size > 0) hasRemainingWork = true;
+        if (!hasRemainingWork) break;
         // 1. Check for blocked capsules due to failed dependencies
         for (const specId of Array.from(pendingQueue)) {
           const spec = dag.getSpec(specId);
@@ -666,7 +738,11 @@ export class TrueMultiCapsuleOrchestrator {
         }
 
         // Sort by priority descending
-        readyToDispatch.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+        readyToDispatch.sort((a, b) => {
+          const prioA = a.priority !== undefined ? a.priority : 0;
+          const prioB = b.priority !== undefined ? b.priority : 0;
+          return prioB - prioA;
+        });
 
         // 3. Dispatch up to available capacity (Continuous 1:1 Anti-Batching Dispatch)
         const availableSlots = this.maxParallelCapsules - activeCapsules.size;
@@ -780,7 +856,9 @@ export class TrueMultiCapsuleOrchestrator {
     let overallStatus: "converged" | "failed" | "partial" | "cancelled" = "converged";
     if (failedCount > 0 && convergedCount > 0) {
       overallStatus = "partial";
-    } else if (failedCount > 0 || blockedCount === specs.length) {
+    } else if (failedCount > 0) {
+      overallStatus = "failed";
+    } else if (blockedCount === specs.length) {
       overallStatus = "failed";
     } else if (cancelledCount > 0 && convergedCount === 0) {
       overallStatus = "cancelled";
@@ -814,7 +892,7 @@ export class TrueMultiCapsuleOrchestrator {
         const mdPath = join(this.outputDir, "multi-capsule-summary.md");
         writeFileSync(jsonPath, JSON.stringify(summary, null, 2) + "\n", "utf-8");
         writeFileSync(mdPath, summary.markdownSummary, "utf-8");
-      } catch (ioErr: unknown) {
+      } catch {
         // Output persistence failure does not crash result
       }
     }

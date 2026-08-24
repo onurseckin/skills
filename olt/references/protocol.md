@@ -49,8 +49,11 @@ exact commands it may invoke, and the roles it may branch into:
 | 3 (branch) | `sub-implementer`, `sub-validator`, `sub-investigator`                                     |
 
 The orchestrator sits above every run: it dispatches exactly one coordinator per round and never a
-tier 3 agent directly, and it is the only role the main thread (tier 0, outside this table — it never
-registers a role) ever dispatches. See `agents/orchestrator.yaml` and `references/host-adapters.md`.
+tier 3 agent directly. On standard task runs (`orchestrate`), `orchestrator` is the single role the
+main thread dispatches. On `/olt mind` (infinite product owner mode), the main thread dispatches both
+`mind` (Tier 0) and `mind-auditor` (Tier 1) in a single 1-shot batch dispatch via `invoke_subagent`
+(`Subagents: [...]`), since `mind` cannot self-spawn `mind-auditor` under `ALLOWED_TIER_SPAWNS`.
+See `agents/orchestrator.yaml`, `agents/mind.yaml`, `agents/mind-auditor.yaml`, and `references/host-adapters.md`.
 
 `task:claim --role` names the contract the agent is bound to for the whole lease: `implementer` for
 a ready or retry-ready task, `repairer` for one in `changes_requested`. A mismatch is refused.

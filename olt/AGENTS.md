@@ -91,6 +91,10 @@ Every agent executing within this repository must adhere to the following non-ne
     - Core personas are streamlined to 5 Golden Roles: `mind` (Tier 0), `orchestrator` (Tier 1), `coordinator` (Tier 2), `implementer` (Tier 3), `validator` (Tier 3), plus `completeness-critic` (Tier 3) and `meta-auditor` (Tier 2).
     - `mechanic-validator` is permanently retired as an LLM subagent role; all typechecks and AST static invariant audits (0 any, 0 suppressions) are anchored in the deterministic CLI tool `task:check`.
     - `repairer` is permanently retired as a separate subagent role; repairs are executed directly by the active Implementer through 1-hop in-lease micro-cycles (`task:reject --in-lease`).
+27. **1-Shot Batch Auto-Deployment of Mind and Mind-Auditor (`/olt mind`):**
+    - When the user invokes `/olt mind` or enters autonomous product owner mode, the main interactive thread MUST immediately deploy BOTH the Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) subagents in a single 1-shot batch dispatch via `invoke_subagent` (`Subagents: [...]`), injecting verbatim YAML manifests and registering the 3-minute supervisory schedule (`schedule` cron `*/3 * * * *`).
+    - The main thread MUST NOT stall, emit conversational questionnaires, or serialize dispatches across multiple turns.
+    - Because Tier 0 Mind cannot self-spawn Tier 1 Mind Auditor under `ALLOWED_TIER_SPAWNS`, both MUST be deployed together in 1-shot batch dispatch by the entrypoint.
 
 ---
 

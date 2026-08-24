@@ -104,7 +104,7 @@ export interface BackgroundFinalizationResult {
   readonly pushed: boolean;
   readonly synced: boolean;
   readonly commitSha?: string | undefined;
-  readonly zeroMainThreadSpillover: true;
+  readonly zeroMainThreadSpillover: boolean;
   readonly spilloverVerification: ZeroMainThreadSpilloverVerification;
   readonly recyclingAssessment?: RecycleAssessment | undefined;
   readonly markdown: string;
@@ -113,19 +113,21 @@ export interface BackgroundFinalizationResult {
 
 export interface SupervisionLoopRunnerOptions extends LoopRunnerOptions {
   readonly autoFinalizeOnConvergence?: boolean | undefined;
+  readonly commitMessageTemplate?: string | undefined;
+  readonly branch?: string | undefined;
+  readonly remote?: string | undefined;
   readonly skipPush?: boolean | undefined;
   readonly skipSync?: boolean | undefined;
   readonly syncCommand?: string | undefined;
   readonly gitRunner?: GitRunner | undefined;
   readonly syncRunner?: SyncRunner | undefined;
-  readonly commitMessageTemplate?: string | undefined;
   readonly onFinalizationComplete?: ((result: BackgroundFinalizationResult) => void) | undefined;
 }
 
 export interface SupervisionLoopSummary extends LoopSummary {
   readonly finalization?: BackgroundFinalizationResult | undefined;
   readonly recyclingAssessment?: RecycleAssessment | undefined;
-  readonly zeroMainThreadSpillover: true;
+  readonly zeroMainThreadSpillover: boolean;
 }
 
 const defaultGitRunner: GitRunner = (args: readonly string[], cwd: string): GitRunnerResult => {
@@ -138,8 +140,8 @@ const defaultGitRunner: GitRunner = (args: readonly string[], cwd: string): GitR
     });
     return {
       status: result.status,
-      stdout: result.stdout ?? "",
-      stderr: result.stderr ?? "",
+      stdout: result.stdout !== null && result.stdout !== undefined ? result.stdout : "",
+      stderr: result.stderr !== null && result.stderr !== undefined ? result.stderr : "",
     };
   } catch (error) {
     return {
@@ -153,7 +155,13 @@ const defaultGitRunner: GitRunner = (args: readonly string[], cwd: string): GitR
 const defaultSyncRunner: SyncRunner = (command: string, cwd: string): GitRunnerResult => {
   try {
     const parts = command.trim().split(/\s+/);
-    const executable = parts.length > 0 && parts[0] ? parts[0] : "bun";
+    let executable = "bun";
+    if (parts.length > 0) {
+      const firstPart = parts[0];
+      if (firstPart !== undefined && firstPart.length > 0) {
+        executable = firstPart;
+      }
+    }
     const args = parts.slice(1);
     const result = spawnSync(executable, args, {
       cwd,
@@ -163,8 +171,8 @@ const defaultSyncRunner: SyncRunner = (command: string, cwd: string): GitRunnerR
     });
     return {
       status: result.status,
-      stdout: result.stdout ?? "",
-      stderr: result.stderr ?? "",
+      stdout: result.stdout !== null && result.stdout !== undefined ? result.stdout : "",
+      stderr: result.stderr !== null && result.stderr !== undefined ? result.stderr : "",
     };
   } catch (error) {
     return {
@@ -188,21 +196,37 @@ export function enforceZeroMainThreadSpillover(params: {
   readonly globalSyncEnclosed?: boolean | undefined;
   readonly now?: Date | string | number | undefined;
 }): ZeroMainThreadSpilloverVerification {
-  const tier = params.executionTier ?? 1;
-  const isMain = params.isMainThread ?? false;
-  const finalComplete = params.finalizationComplete ?? true;
-  const gitEnclosed = params.gitOperationsEnclosed ?? true;
-  const syncEnclosed = params.globalSyncEnclosed ?? true;
-  const verifiedAt = params.now ? new Date(params.now).toISOString() : new Date().toISOString();
+  const tier = params.executionTier !== undefined ? params.executionTier : 1;
+  const isMain = params.isMainThread !== undefined ? params.isMainThread : false;
+  const finalComplete =
+    params.finalizationComplete !== undefined ? params.finalizationComplete : true;
+  const gitEnclosed =
+    params.gitOperationsEnclosed !== undefined ? params.gitOperationsEnclosed : true;
+  const syncEnclosed = params.globalSyncEnclosed !== undefined ? params.globalSyncEnclosed : true;
+  const verifiedAt =
+    params.now !== undefined ? new Date(params.now).toISOString() : new Date().toISOString();
 
-  const isCompliant = !isMain && (tier === 1 || tier === 0) && finalComplete && gitEnclosed;
+  let isTierValid = false;
+  if (tier === 1) isTierValid = true;
+  if (tier === 0) isTierValid = true;
+
+  let isCompliant = false;
+  if (!isMain) {
+    if (isTierValid) {
+      if (finalComplete) {
+        if (gitEnclosed) {
+          isCompliant = true;
+        }
+      }
+    }
+  }
 
   let message =
     "Zero main-thread spillover verified: release operations executed strictly within Tier 1 background orchestrator thread.";
   if (isMain) {
     message =
       "Violation: Finalization executed on main interactive thread instead of background orchestrator thread.";
-  } else if (tier !== 1 && tier !== 0) {
+  } else if (!isTierValid) {
     message = `Violation: Finalization executed by non-orchestrator tier ${tier}; only Tier 1 background orchestrator may finalize.`;
   } else if (!finalComplete) {
     message = "Violation: Finalization release operations failed to complete in background.";
@@ -230,7 +254,10 @@ export function assertZeroMainThreadSpillover(
   target: ZeroMainThreadSpilloverVerification | BackgroundFinalizationResult,
 ): void {
   const verification = "spilloverVerification" in target ? target.spilloverVerification : target;
-  if (!verification.compliant || verification.mainThreadSpillover) {
+  if (!verification.compliant) {
+    throw new HarnessError("INTEGRITY", verification.message);
+  }
+  if (verification.mainThreadSpillover) {
     throw new HarnessError("INTEGRITY", verification.message);
   }
 }
@@ -251,18 +278,22 @@ export function formatBackgroundFinalizationBrief(input: {
   readonly success: boolean;
   readonly error?: string | undefined;
 }): string {
+  const commitStatusText = input.committed
+    ? `✓ Committed (${input.commitSha !== undefined ? input.commitSha : "unrecorded"})`
+    : "○ Skipped/Clean";
+
   const lines = [
     `### Tier 1 Background Orchestrator Finalization`,
-    input.runId ? `- **Run ID**: \`${input.runId}\`` : undefined,
+    input.runId !== undefined ? `- **Run ID**: \`${input.runId}\`` : undefined,
     `- **Status**: ${input.success ? "✓ Completed" : "✗ Failed"}`,
     `- **Actor**: \`${input.actor}\` (Tier ${input.spilloverVerification.executionTier} Background Orchestrator)`,
     `- **Zero Main-Thread Spillover**: ${input.spilloverVerification.compliant ? "✓ Verified (0 spillover)" : "✗ Violated"}`,
-    `- **Git Commit**: ${input.committed ? `✓ Committed (${input.commitSha ? input.commitSha : "unrecorded"})` : "○ Skipped/Clean"}`,
+    `- **Git Commit**: ${commitStatusText}`,
     `- **Git Push**: ${input.pushed ? "✓ Pushed to upstream" : "○ Skipped"}`,
     `- **Global Sync**: ${input.synced ? "✓ Synced (`~/.agents/skills`)" : "○ Skipped"}`,
     `- **Duration**: ${(input.durationMs / 1000).toFixed(2)}s`,
-    input.error ? `- **Error**: ${input.error}` : undefined,
-    input.recyclingAssessment
+    input.error !== undefined ? `- **Error**: ${input.error}` : undefined,
+    input.recyclingAssessment !== undefined
       ? `- **Autonomous Recycling**: \`${input.recyclingAssessment.transition}\` -> \`${input.recyclingAssessment.nextRecommendedCommand}\``
       : undefined,
   ].filter((l): l is string => l !== undefined);
@@ -287,25 +318,36 @@ export async function executeBackgroundFinalization(
     throw new HarnessError("INVALID_ARGUMENT", "repoPath is required for background finalization");
   }
 
-  const isMainThread = options.isMainThread ?? false;
-  const executionTier = options.executionTier ?? 1;
-  const actor = options.actor ? options.actor : "orchestrator-tier1";
+  const isMainThread = options.isMainThread !== undefined ? options.isMainThread : false;
+  const executionTier = options.executionTier !== undefined ? options.executionTier : 1;
+  const actor =
+    options.actor !== undefined && options.actor.length > 0 ? options.actor : "orchestrator-tier1";
   const runId = options.runId;
   const runRoot = options.runRoot;
-  const gitRunner = options.gitRunner ? options.gitRunner : defaultGitRunner;
-  const syncRunner = options.syncRunner ? options.syncRunner : defaultSyncRunner;
-  const skipPush = options.skipPush ?? false;
-  const skipSync = options.skipSync ?? false;
-  const syncCommand = options.syncCommand ? options.syncCommand : "bun scripts/sync-global.ts";
-  let commitMessage = options.commitMessage;
-  if (!commitMessage) {
-    commitMessage = runId
-      ? `feat(orchestrator): autonomous convergence finalization [${runId}]`
-      : "feat(orchestrator): autonomous convergence finalization";
+  const gitRunner = options.gitRunner !== undefined ? options.gitRunner : defaultGitRunner;
+  const syncRunner = options.syncRunner !== undefined ? options.syncRunner : defaultSyncRunner;
+  const skipPush = options.skipPush !== undefined ? options.skipPush : false;
+  const skipSync = options.skipSync !== undefined ? options.skipSync : false;
+  const syncCommand =
+    options.syncCommand !== undefined && options.syncCommand.length > 0
+      ? options.syncCommand
+      : "bun scripts/sync-global.ts";
+  let commitMessage: string;
+  if (options.commitMessage !== undefined && options.commitMessage.length > 0) {
+    commitMessage = options.commitMessage;
+  } else if (runId !== undefined) {
+    commitMessage = `feat(orchestrator): autonomous convergence finalization [${runId}]`;
+  } else {
+    commitMessage = "feat(orchestrator): autonomous convergence finalization";
   }
-  const branch = options.branch ? options.branch : "main";
-  const remote = options.remote ? options.remote : "origin";
-  const now = options.now ? new Date(options.now).toISOString() : new Date(startTime).toISOString();
+  const branch =
+    options.branch !== undefined && options.branch.length > 0 ? options.branch : "main";
+  const remote =
+    options.remote !== undefined && options.remote.length > 0 ? options.remote : "origin";
+  const now =
+    options.now !== undefined
+      ? new Date(options.now).toISOString()
+      : new Date(startTime).toISOString();
 
   // Enforce zero main-thread spillover check upfront
   if (isMainThread) {
@@ -314,7 +356,10 @@ export async function executeBackgroundFinalization(
       "Zero Main-Thread Spillover violation: background finalization cannot be executed from the interactive main thread",
     );
   }
-  if (executionTier !== 1 && executionTier !== 0) {
+  let isTierValid = false;
+  if (executionTier === 1) isTierValid = true;
+  if (executionTier === 0) isTierValid = true;
+  if (!isTierValid) {
     throw new HarnessError(
       "INTEGRITY",
       `Zero Main-Thread Spillover violation: finalization must execute in Tier 1 Orchestrator thread (current tier: ${executionTier})`,
@@ -346,7 +391,7 @@ export async function executeBackgroundFinalization(
     });
   } else {
     overallSuccess = false;
-    firstError = `git add failed: ${addResult.stderr || addResult.stdout}`;
+    firstError = `git add failed: ${addResult.stderr.length > 0 ? addResult.stderr : addResult.stdout}`;
     steps.push({
       step: "git_add",
       executed: true,
@@ -364,7 +409,12 @@ export async function executeBackgroundFinalization(
   const statusStart = Date.now();
   const statusResult = await Promise.resolve(gitRunner(["status", "--porcelain"], repoPath));
   const statusDuration = Date.now() - statusStart;
-  const hasStagedChanges = statusResult.status === 0 && statusResult.stdout.trim().length > 0;
+  let hasStagedChanges = false;
+  if (statusResult.status === 0) {
+    if (statusResult.stdout.trim().length > 0) {
+      hasStagedChanges = true;
+    }
+  }
   steps.push({
     step: "git_status",
     executed: true,
@@ -399,7 +449,7 @@ export async function executeBackgroundFinalization(
       });
     } else {
       overallSuccess = false;
-      firstError = `git commit failed: ${commitResult.stderr || commitResult.stdout}`;
+      firstError = `git commit failed: ${commitResult.stderr.length > 0 ? commitResult.stderr : commitResult.stdout}`;
       steps.push({
         step: "git_commit",
         executed: true,
@@ -443,7 +493,7 @@ export async function executeBackgroundFinalization(
       });
     } else {
       overallSuccess = false;
-      firstError = `git push failed: ${pushResult.stderr || pushResult.stdout}`;
+      firstError = `git push failed: ${pushResult.stderr.length > 0 ? pushResult.stderr : pushResult.stdout}`;
       steps.push({
         step: "git_push",
         executed: true,
@@ -487,7 +537,7 @@ export async function executeBackgroundFinalization(
       });
     } else {
       overallSuccess = false;
-      firstError = `global sync failed: ${syncResult.stderr || syncResult.stdout}`;
+      firstError = `global sync failed: ${syncResult.stderr.length > 0 ? syncResult.stderr : syncResult.stdout}`;
       steps.push({
         step: "global_sync",
         executed: true,
@@ -522,21 +572,29 @@ export async function executeBackgroundFinalization(
 
   // Step 6: autonomous recycling assessment
   let recyclingAssessment: RecycleAssessment | undefined;
-  if (runRoot || options.state) {
+  let hasRecyclingStateSource = false;
+  if (runRoot !== undefined) hasRecyclingStateSource = true;
+  if (options.state !== undefined) hasRecyclingStateSource = true;
+
+  if (hasRecyclingStateSource) {
     try {
       let stateToAssess = options.state;
-      if (!stateToAssess && runRoot) {
-        stateToAssess = loadRun(runRoot).state;
+      if (stateToAssess === undefined) {
+        if (runRoot !== undefined) {
+          stateToAssess = loadRun(runRoot).state;
+        }
       }
-      if (stateToAssess) {
-        recyclingAssessment = assessRecyclingState(stateToAssess, runRoot ?? repoPath, { now });
+      if (stateToAssess !== undefined) {
+        const rootPath = runRoot !== undefined ? runRoot : repoPath;
+        recyclingAssessment = assessRecyclingState(stateToAssess, rootPath, { now });
       }
     } catch {
       // If state cannot be read, fallback to clean discovery recycling below
     }
   }
 
-  if (!recyclingAssessment) {
+  if (recyclingAssessment === undefined) {
+    const rootPath = runRoot !== undefined ? runRoot : repoPath;
     recyclingAssessment = {
       canRecycle: true,
       phase: "critic_signed_off",
@@ -544,10 +602,10 @@ export async function executeBackgroundFinalization(
       objectiveId: null,
       candidateId: null,
       roundNumber: null,
-      nextRecommendedCommand: `bun harness.ts mind:wake --run ${runRoot ?? repoPath}`,
+      nextRecommendedCommand: `bun harness.ts mind:wake --run ${rootPath}`,
       suggestedCommands: [
-        `bun harness.ts mind:wake --run ${runRoot ?? repoPath}`,
-        `bun harness.ts mind:candidate --run ${runRoot ?? repoPath} --actor ${actor} --kind defect --statement "Autonomous candidate discovery"`,
+        `bun harness.ts mind:wake --run ${rootPath}`,
+        `bun harness.ts mind:candidate --run ${rootPath} --actor ${actor} --kind defect --statement "Autonomous candidate discovery"`,
       ],
       reason:
         "Completeness critic sign-off passed; autonomous background finalization complete. Recycling to perpetual discovery wave.",
@@ -570,8 +628,8 @@ export async function executeBackgroundFinalization(
     error: firstError,
   });
 
-  if (options.throwOnError && !overallSuccess) {
-    const errMessage = firstError ? firstError : "Background finalization failed";
+  if (options.throwOnError === true && !overallSuccess) {
+    const errMessage = firstError !== undefined ? firstError : "Background finalization failed";
     throw new HarnessError("INTEGRITY", errMessage);
   }
 
@@ -592,7 +650,7 @@ export async function executeBackgroundFinalization(
     spilloverVerification,
     recyclingAssessment,
     markdown,
-    ...(firstError ? { error: firstError } : {}),
+    ...(firstError !== undefined ? { error: firstError } : {}),
   };
 }
 
@@ -603,14 +661,17 @@ export function transitionSupervisionLoopToDiscovery(
   options: AutonomousRecycleOptions & { readonly state?: Record<string, unknown> | undefined },
 ): RecycleAssessment {
   let state = options.state;
-  if (!state && options.runRoot) {
-    try {
-      state = loadRun(options.runRoot).state;
-    } catch {
-      state = {};
+  if (state === undefined) {
+    if (options.runRoot !== undefined) {
+      try {
+        state = loadRun(options.runRoot).state;
+      } catch {
+        state = {};
+      }
     }
   }
-  return assessRecyclingState(state ?? {}, options.runRoot, { now: options.now });
+  const targetState = state !== undefined ? state : {};
+  return assessRecyclingState(targetState, options.runRoot, { now: options.now });
 }
 
 /**
@@ -658,14 +719,22 @@ export class SupervisionLoopRunner {
     let finalization: BackgroundFinalizationResult | undefined;
     let recyclingAssessment: RecycleAssessment | undefined;
 
-    const autoFinalize = this.options.autoFinalizeOnConvergence ?? true;
+    const autoFinalize =
+      this.options.autoFinalizeOnConvergence !== undefined
+        ? this.options.autoFinalizeOnConvergence
+        : true;
 
     if (summary.finalStatus === "converged_success" && autoFinalize) {
+      const actorName =
+        this.options.actor !== undefined && this.options.actor.length > 0
+          ? this.options.actor
+          : "orchestrator-tier1";
+
       finalization = await executeBackgroundFinalization({
         repoPath: this.options.repoPath,
         runId: this.loopRunner.baseRunId,
         runRoot: this.loopRunner.getCapsulePath(this.loopRunner.baseRunId),
-        actor: this.options.actor ? this.options.actor : "orchestrator-tier1",
+        actor: actorName,
         skipPush: this.options.skipPush,
         skipSync: this.options.skipSync,
         syncCommand: this.options.syncCommand,
@@ -683,8 +752,8 @@ export class SupervisionLoopRunner {
 
     return {
       ...summary,
-      ...(finalization ? { finalization } : {}),
-      ...(recyclingAssessment ? { recyclingAssessment } : {}),
+      ...(finalization !== undefined ? { finalization } : {}),
+      ...(recyclingAssessment !== undefined ? { recyclingAssessment } : {}),
       zeroMainThreadSpillover: true,
     };
   }

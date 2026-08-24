@@ -14,6 +14,36 @@ export interface StagnationTelemetry {
   readonly lastActiveTimestamp?: string | undefined;
 }
 
+export interface MindInitializationOptions {
+  readonly mindId?: string | undefined;
+  readonly generation?: number | undefined;
+  readonly runRoot?: string | undefined;
+  readonly charterSourcePath?: string | undefined;
+  readonly pendingBacklogCount?: number | undefined;
+  readonly mode?: "A" | "B" | undefined;
+}
+
+export interface RoleInitializationOptions {
+  readonly agentId?: string | undefined;
+  readonly runRoot?: string | undefined;
+  readonly taskId?: string | undefined;
+  readonly mode?: string | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface SubagentSystemPromptOptions {
+  readonly customInstructions?: string | undefined;
+  readonly policyPath?: string | undefined;
+}
+
+export interface SubagentDispatchPromptOptions {
+  readonly agentId?: string | undefined;
+  readonly taskId?: string | undefined;
+  readonly runRoot?: string | undefined;
+  readonly writeScope?: readonly string[] | undefined;
+  readonly exactAnchorBriefing?: string | undefined;
+}
+
 export class VerbatimRoleInjector {
   public static resolveManifestPath(repoRoot: string, role: string): string {
     const candidates = [
@@ -81,5 +111,143 @@ ${instructions}
 ${manifestContent}
 ================================================================================
 Execute your verbatim role instructions immediately.`;
+  }
+
+  public static buildMindInitializationPrompt(
+    repoRoot: string,
+    options: MindInitializationOptions = {},
+  ): string {
+    const manifestContent = this.loadVerbatimManifestContent(repoRoot, "mind");
+    const pendingCount = options.pendingBacklogCount ?? 0;
+    const isModeA = options.mode !== undefined ? options.mode === "A" : pendingCount === 0;
+
+    const mandateHeader = isModeA
+      ? "MODE A: AUTONOMOUS SELF-EVOLUTION MANDATE (Backlog Queue Empty)"
+      : "MODE B: ACTIVE INTAKE & WORK/SPAN SCALING MANDATE";
+
+    const instructions = isModeA
+      ? `INITIALIZATION DIRECTIVES:
+1. Autonomously wake from olt/agents/mind.yaml without human prompts or instructions.
+2. Observe active system health, doctor reports, and candidate queues.
+3. If feedback queue is empty (0 pending items), execute Mode A autonomous discovery:
+   - Scan codebase for TypeScript \`any\` or compiler suppression violations.
+   - Audit unfulfilled Charter goals and historical blunders in .olt/defects.jsonl.
+   - Admit new self-evolution candidate tasks via \`mind:admit\` with Brent Work/Span ($P = W/S$) analysis.
+4. Atomically convert admitted candidates to dispatched tasks with 1:1 isolated implementer-validator allocations.
+5. Operate indefinitely as an infinite autonomous loop (\`mind:pulse\`); never exit or sit idle.`
+      : `INITIALIZATION DIRECTIVES:
+1. Autonomously wake from olt/agents/mind.yaml without human prompts or instructions.
+2. Ingest ${pendingCount} pending backlog items from feedback-queue.jsonl and evaluate against 6 Admission Gates.
+3. Calculate Brent Work/Span concurrency $P = \\lceil W / S \\rceil$ and dispatch disjoint lanes in parallel.
+4. Direct Tier 1 Orchestrator exclusively; enforce 1:1 isolated task allocations (Anti-Batching Rule).
+5. Supervise active execution runs and enforce 1-hop micro-cycle repairs.`;
+
+    const mindId = options.mindId ?? "mind-gen-1";
+    const generation = options.generation ?? 1;
+    const runRoot = options.runRoot ? ` | Capsule Root: ${options.runRoot}` : "";
+    const charterSource = options.charterSourcePath
+      ? ` | Charter Source: ${options.charterSourcePath}`
+      : "";
+
+    return `[MIND_INITIALIZATION_VERBATIM_MANIFEST_INJECTION]
+================================================================================
+CRITICAL SUPERVISORY INITIALIZATION: Mind Autonomous Consciousness Ignition
+Mind ID: ${mindId} | Generation: ${generation}${runRoot}${charterSource}
+================================================================================
+
+${mandateHeader}
+
+${instructions}
+
+================================================================================
+=== VERBATIM ROLE MANIFEST (olt/agents/mind.yaml) ===
+================================================================================
+${manifestContent}
+================================================================================
+Execute your verbatim role instructions immediately.`;
+  }
+
+  public static buildInitializationPrompt(
+    repoRoot: string,
+    role: string,
+    options: RoleInitializationOptions = {},
+  ): string {
+    if (role === "mind") {
+      return this.buildMindInitializationPrompt(repoRoot, {
+        mindId: options.agentId,
+        runRoot: options.runRoot,
+        mode: options.mode === "A" || options.mode === "B" ? options.mode : undefined,
+      });
+    }
+
+    const manifestContent = this.loadVerbatimManifestContent(repoRoot, role);
+    const agentId = options.agentId ?? `${role}-1`;
+    const runRoot = options.runRoot ? ` | Capsule Root: ${options.runRoot}` : "";
+    const taskId = options.taskId ? ` | Task: ${options.taskId}` : "";
+
+    return `[ROLE_INITIALIZATION_VERBATIM_MANIFEST_INJECTION]
+================================================================================
+SUPERVISORY ROLE INITIALIZATION: ${role.toUpperCase()}
+Agent ID: ${agentId}${runRoot}${taskId}
+================================================================================
+
+================================================================================
+=== VERBATIM ROLE MANIFEST (olt/agents/${role}.yaml) ===
+================================================================================
+${manifestContent}
+================================================================================
+Execute your verbatim role instructions immediately.`;
+  }
+
+  public static buildSubagentSystemPrompt(
+    repoRoot: string,
+    role: string,
+    options: SubagentSystemPromptOptions = {},
+  ): string {
+    const manifestContent = this.loadVerbatimManifestContent(repoRoot, role);
+    const extraInstructions = options.customInstructions
+      ? `\n\nADDITIONAL INSTRUCTIONS:\n${options.customInstructions}`
+      : "";
+
+    return `[SUBAGENT_VERBATIM_SYSTEM_PROMPT: ${role.toUpperCase()}]
+================================================================================
+=== VERBATIM ROLE MANIFEST (olt/agents/${role}.yaml) ===
+================================================================================
+${manifestContent}
+================================================================================${extraInstructions}
+You must strictly execute within your declared role boundaries, permissions, and invariants.`;
+  }
+
+  public static buildSubagentDispatchPrompt(
+    repoRoot: string,
+    role: string,
+    taskPrompt: string,
+    options: SubagentDispatchPromptOptions = {},
+  ): string {
+    const manifestContent = this.loadVerbatimManifestContent(repoRoot, role);
+    const agentId = options.agentId ?? `${role}-worker`;
+    const taskId = options.taskId ? ` | Task: ${options.taskId}` : "";
+    const runRoot = options.runRoot ? ` | Capsule Root: ${options.runRoot}` : "";
+    const writeScope =
+      options.writeScope && options.writeScope.length > 0
+        ? `\nASSIGNED WRITE SCOPE:\n${options.writeScope.map((s) => `- ${s}`).join("\n")}`
+        : "";
+    const anchorBriefing = options.exactAnchorBriefing
+      ? `\n\nEXACT-ANCHOR BRIEFING:\n${options.exactAnchorBriefing}`
+      : "";
+
+    return `[SUBAGENT_DISPATCH_MANDATE: ${role.toUpperCase()}]
+================================================================================
+DISPATCH COORDINATES: Agent: ${agentId}${taskId}${runRoot}
+================================================================================
+TASK PROMPT:
+${taskPrompt}${writeScope}${anchorBriefing}
+
+================================================================================
+=== VERBATIM ROLE MANIFEST (olt/agents/${role}.yaml) ===
+================================================================================
+${manifestContent}
+================================================================================
+Execute your verbatim role instructions and task requirements immediately.`;
   }
 }

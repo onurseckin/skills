@@ -19,6 +19,16 @@ is the prompt, byte for byte, no flags to learn — bare piped stdin is read aut
 (`--prompt-stdin`/`--prompt-file` still work for `--repo`/`--run`). It opens the capsule and hands back
 one fixed step: register and dispatch a Tier 1 orchestrator; everything after is its job. Stand down host todo tools.
 
+## Autonomous Product Owner entry point: `/olt mind`
+
+When invoked via `/olt mind` or when infinite product owner mode is requested, the main interactive thread MUST immediately:
+
+1. Initialize the mind system if uninitialized (`bun ~/.agents/skills/olt/scripts/harness.ts mind:init --repo . --charter olt/agents/mind.yaml --actor owner`).
+2. Register a recurring 3-minute supervisory watchdog (`schedule` cron `*/3 * * * *`).
+3. Deploy **BOTH** Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) in a single 1-shot batch dispatch via `invoke_subagent` (`Subagents: [{ Role: "mind", TypeName: "mind", Prompt: "..." }, { Role: "mind-auditor", TypeName: "mind-auditor", Prompt: "..." }]`).
+4. Inject full verbatim YAML manifests from `agents/mind.yaml` and `agents/mind-auditor.yaml` into their prompts (never ad-hoc summarized prompts).
+5. Stand down and await background milestone messages via `send_message` (zero main-thread tool chatter or code editing).
+
 ## Why the harness exists
 
 - **Observability over every step.** Every action is a recorded command with an actor, exit code, and evidence class.
@@ -78,6 +88,7 @@ Do not create a harness for a simple answer, one-file mechanical edit, or short 
 40. Canonical `olt/` Repository Governance: Persistent project governance and backlogs live in committed `olt/` (`olt/policy.json`, `olt/backlog.jsonl`, `olt/completed-tasks.jsonl`, `olt/defects.jsonl`, `olt/completed-defects.jsonl`, `olt/telemetry.jsonl`). Runtime capsules live in gitignored `capsules/` (and `.olt/capsules/`).
 41. Hard-Coded Mechanical RBAC Engine (`harness.ts shell`): Direct command execution is strictly validated against repository policy via `verifyCommandAuthorization`. Cognitive Validators have `can_execute_shell: false` (0 commands). Implementers are restricted from running un-targeted full-suite test commands (`^npm test$`, `^bun test$`, `^pytest$`, `^cargo test$`) and git mutations. All commands are executed via `bun harness.ts shell --actor <id> -- <cmd>`.
 42. Bounded Read Scope & Dynamic Expansion (`harness.ts scope:expand`): Subagents are bounded to target files and direct neighborhood (depth 2). Expanding read scope requires `bun harness.ts scope:expand --actor <id> --read <path>`.
+43. 1-Shot Batch Auto-Deployment of Mind and Companion Mind-Auditor (`/olt mind`): When `/olt mind` or autonomous mind mode is invoked, the main interactive thread MUST immediately deploy BOTH the Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) subagents in a single 1-shot batch dispatch via `invoke_subagent` (or host subagent array `Subagents: [...]`), injecting verbatim YAML manifests and registering the 3-minute supervisory schedule (`schedule` cron `*/3 * * * *`). The main thread MUST NOT stall, emit conversational questionnaires, or serialize dispatches across multiple turns. Because Tier 0 Mind cannot self-spawn Tier 1 Mind Auditor under `ALLOWED_TIER_SPAWNS`, both MUST be deployed together in 1-shot batch dispatch by the entrypoint.
 
 ## Route by role
 
@@ -145,3 +156,4 @@ bun olt/scripts/harness.ts help <command>
 - **Unverified Telemetry & Prose-Only Status Reports**: Never emit scheduler status without script-backed diagnostic receipts (`doctor`, `health`, `dag`, `report`), cryptographic SHA-256 hashes, and ASCII DAG badges.
 - **Heavyweight Whole-Repo Testing During Iteration**: Never run whole-repo test suites during task implementation or repair; use `task:check` for fast incremental type and lint verification and file-scoped test commands (`bun test <path.test.ts>`).
 - **Nested Capsules**: Never nest `.olt/capsules/` in subdirectories; always anchor to local repo root `<repo-root>/.olt/capsules/`.
+- **Omitted or Serialized Mind / Mind-Auditor Auto-Deployment on `/olt mind`**: Never fail to automatically deploy or serialize the deployment of `mind` and `mind-auditor` when `/olt mind` is entered. Because Mind cannot self-spawn Mind-Auditor under `ALLOWED_TIER_SPAWNS`, the main interactive thread must deploy both in a single 1-shot batch dispatch (`invoke_subagent` with `Subagents: [...]`) with verbatim YAML manifests.

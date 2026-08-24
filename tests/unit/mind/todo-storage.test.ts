@@ -338,6 +338,36 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
   });
 });
 
+describe("Mind & Mind-Auditor 1-Shot Auto-Deployment Documentation Invariants", () => {
+  it("verifies olt/SKILL.md contains /olt mind 1-shot batch auto-deployment directives", () => {
+    const content = readFileSync(join(process.cwd(), "olt/SKILL.md"), "utf-8");
+    expect(content).toContain("Autonomous Product Owner entry point: `/olt mind`");
+    expect(content).toContain("1-Shot Batch Auto-Deployment of Mind and Companion Mind-Auditor");
+  });
+
+  it("verifies olt/references/host-adapters.md contains 1-shot batch deployment guardrails", () => {
+    const content = readFileSync(join(process.cwd(), "olt/references/host-adapters.md"), "utf-8");
+    expect(content).toContain(
+      "1-Shot Batch Auto-Deployment for Mind and Mind-Auditor (`/olt mind`)",
+    );
+  });
+
+  it("verifies olt/references/protocol.md documents mind + mind-auditor batch dispatch", () => {
+    const content = readFileSync(join(process.cwd(), "olt/references/protocol.md"), "utf-8");
+    expect(content).toContain("dispatches both");
+    expect(content).toContain(
+      "`mind` (Tier 0) and `mind-auditor` (Tier 1) in a single 1-shot batch dispatch",
+    );
+  });
+
+  it("verifies olt/AGENTS.md includes axiom 27 for /olt mind 1-shot batch dispatch", () => {
+    const content = readFileSync(join(process.cwd(), "olt/AGENTS.md"), "utf-8");
+    expect(content).toContain(
+      "1-Shot Batch Auto-Deployment of Mind and Mind-Auditor (`/olt mind`)",
+    );
+  });
+});
+
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   it("verifies todo-storage test file contains zero any and zero suppressions", () => {
     const filesToAudit = [join(process.cwd(), "tests/unit/mind/todo-storage.test.ts")];

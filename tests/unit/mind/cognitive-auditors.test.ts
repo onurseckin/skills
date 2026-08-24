@@ -222,6 +222,90 @@ describe("MindAuditorEngine", () => {
 
     expect(result.telemetry.unresolvedDefectCount).toBe(2);
   });
+
+  test("auditMindPulse inspects last_pulse.json in active capsule when cursor is absent and prevents false stagnation", () => {
+    const now = "2026-08-24T12:01:00.000Z";
+    // Create an active mind capsule with a pulse recorded 30s ago
+    const capsuleDir = join(testDir, ".olt", "capsules", "mind-gen-1");
+    mkdirSync(capsuleDir, { recursive: true });
+    const pulseRecord = {
+      at: "2026-08-24T12:00:30.000Z", // 30s ago (well within 120s threshold)
+      pulse_id: "pulse-1",
+      outcome: "active",
+      next_wake_at: "2026-08-24T12:15:30.000Z",
+    };
+    writeFileSync(join(capsuleDir, "last_pulse.json"), JSON.stringify(pulseRecord), "utf-8");
+
+    // Do NOT pass a cursor or pass default uninitialized cursor
+    const result = MindAuditorEngine.auditMindPulse(testDir, {
+      stagnationThresholdSeconds: 120,
+      now,
+      conversationId: "conv-live-mind",
+    });
+
+    expect(result.stagnant).toBe(false);
+    expect(result.idleDurationSeconds).toBe(30);
+    expect(result.defectCreated).toBeFalsy();
+    expect(result.injectionPrompt).toBeUndefined();
+    expect(result.cursor.lastInspectedTimestamp).toBe(now);
+  });
+
+  test("auditMindPulse falls back to stagnation when cursor is absent and no last_pulse.json exists", () => {
+    const now = "2026-08-24T12:01:00.000Z";
+    // No auditor-cursors.json and no last_pulse.json anywhere
+    const result = MindAuditorEngine.auditMindPulse(testDir, {
+      stagnationThresholdSeconds: 120,
+      now,
+    });
+
+    expect(result.stagnant).toBe(true);
+    expect(result.idleDurationSeconds).toBe(121);
+    expect(result.defectCreated).toBe(true);
+    expect(result.injectionPrompt).toBeDefined();
+  });
+
+  test("auditMindPulse inspects last_pulse.json via explicit capsuleRunRoot option", () => {
+    const now = "2026-08-24T12:01:00.000Z";
+    const customCapsuleDir = join(testDir, "custom-capsules", "run-special");
+    mkdirSync(customCapsuleDir, { recursive: true });
+    const pulseRecord = {
+      at: "2026-08-24T12:00:45.000Z", // 15s ago
+      pulse_id: "pulse-special",
+      outcome: "active",
+      next_wake_at: null,
+    };
+    writeFileSync(join(customCapsuleDir, "last_pulse.json"), JSON.stringify(pulseRecord), "utf-8");
+
+    const result = MindAuditorEngine.auditMindPulse(testDir, {
+      capsuleRunRoot: customCapsuleDir,
+      stagnationThresholdSeconds: 120,
+      now,
+    });
+
+    expect(result.stagnant).toBe(false);
+    expect(result.idleDurationSeconds).toBe(15);
+  });
+
+  test("resolveLatestPulseTimestamp finds the latest pulse across multiple capsules", () => {
+    const cap1 = join(testDir, ".olt", "capsules", "mind-gen-1");
+    const cap2 = join(testDir, ".olt", "capsules", "mind-gen-2");
+    mkdirSync(cap1, { recursive: true });
+    mkdirSync(cap2, { recursive: true });
+
+    writeFileSync(
+      join(cap1, "last_pulse.json"),
+      JSON.stringify({ at: "2026-08-24T10:00:00.000Z" }),
+      "utf-8",
+    );
+    writeFileSync(
+      join(cap2, "last_pulse.json"),
+      JSON.stringify({ at: "2026-08-24T11:00:00.000Z" }),
+      "utf-8",
+    );
+
+    const latest = MindAuditorEngine.resolveLatestPulseTimestamp(testDir);
+    expect(latest).toBe(new Date("2026-08-24T11:00:00.000Z").getTime());
+  });
 });
 
 describe("SkillAuditorEngine", () => {
@@ -282,9 +366,10 @@ describe("SkillAuditorEngine", () => {
 
     expect(result.compliant).toBe(false);
     expect(result.incidents.length).toBe(1);
-    expect(result.incidents[0]!.category).toBe("ROLE_BOUNDARY_DEVIATION");
-    expect(result.incidents[0]!.severity).toBe("CRITICAL");
-    expect(result.incidents[0]!.description).toBe("Coordinator executed direct file write");
+    const firstIncident = result.incidents[0];
+    expect(firstIncident?.category).toBe("ROLE_BOUNDARY_DEVIATION");
+    expect(firstIncident?.severity).toBe("CRITICAL");
+    expect(firstIncident?.description).toBe("Coordinator executed direct file write");
     expect(result.defectsLogged).toBe(1);
     expect(result.eventsAnalyzed).toBe(2);
     expect(result.cursor.lastInspectedEventIndex).toBe(1);

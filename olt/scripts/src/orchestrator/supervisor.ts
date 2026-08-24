@@ -1,8 +1,10 @@
 import { workflowPort } from "../integration/store-ports.ts";
 import { loadRun } from "../engine/store/index.ts";
+import { findRepoRoot } from "../core/shared/paths.ts";
 import { systemClock, type Clock } from "../workflow/types.ts";
 import { escalateTask } from "../workflow/lease/escalate.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { OrchestratorCompanionAuditor } from "./companion-auditor.ts";
 import { selectDispatchable, type BackingOffTask } from "./dispatch-selection.ts";
 import {
   recordDispatchOutcome,
@@ -24,6 +26,7 @@ import {
 } from "./supervision-tick.ts";
 import type { ReadyEntry } from "../engine/scheduler/index.ts";
 import type { DeadAgentEvent } from "./dead-agent-detector.ts";
+import type { BehavioralForensicsReport, CompanionPairingResult } from "./types.ts";
 
 export interface TaskDispatchInput {
   readonly taskId: string;
@@ -67,6 +70,8 @@ export interface RunSupervisorOptions {
   readonly maxTotalElapsedMs?: number;
   readonly clock?: Clock;
   readonly sleep?: (ms: number) => Promise<void>;
+  readonly skillAuditorCompanion?: boolean | undefined;
+  readonly strictAuditorPolicy?: boolean | undefined;
 }
 
 export interface SupervisorTickOutcome {
@@ -78,6 +83,7 @@ export interface SupervisorTickOutcome {
   readonly occupied: number;
   readonly maxParallel: number;
   readonly gateMaxParallel?: number;
+  readonly behavioralForensics?: BehavioralForensicsReport | undefined;
 }
 
 export interface SupervisionRunResult {
@@ -85,6 +91,8 @@ export interface SupervisionRunResult {
   readonly ticks: number;
   readonly lastTick: SupervisorTickOutcome;
   readonly report: MorningReport;
+  readonly companionPairing?: CompanionPairingResult | undefined;
+  readonly behavioralForensicsSummary?: BehavioralForensicsReport | undefined;
 }
 
 const DEFAULT_POLL_INTERVAL_MS = 15_000;
@@ -94,11 +102,16 @@ export class RunSupervisor {
   private readonly port: ReturnType<typeof workflowPort>;
   private readonly clock: Clock;
   private readonly sleepFn: (ms: number) => Promise<void>;
+  private readonly repoRoot: string;
 
   public constructor(private readonly options: RunSupervisorOptions) {
     this.port = workflowPort(options.runRoot);
-    this.clock = options.clock ?? systemClock;
-    this.sleepFn = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    this.clock = options.clock !== undefined ? options.clock : systemClock;
+    this.sleepFn =
+      options.sleep !== undefined
+        ? options.sleep
+        : (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    this.repoRoot = findRepoRoot(options.runRoot);
   }
 
   private load(): ReturnType<typeof loadRun> {
@@ -121,6 +134,12 @@ export class RunSupervisor {
     const freeSlots = Math.max(0, o.maxParallel - reclaim.occupied);
     const selection = selectDispatchable(loaded.state, loaded.events, freeSlots, this.clock.now());
 
+    // Execute out-of-band behavioral forensics per tick
+    const behavioralForensics = OrchestratorCompanionAuditor.executeForensics(this.repoRoot, {
+      capsuleRunRoot: this.options.runRoot,
+      now: this.clock.now().toISOString(),
+    });
+
     const outcome: SupervisorTickOutcome = {
       reclaimed: reclaim.reclaimed,
       escalatedNow: reclaim.escalatedNow,
@@ -129,6 +148,7 @@ export class RunSupervisor {
       backingOff: selection.backingOff,
       occupied: reclaim.occupied,
       maxParallel: o.maxParallel,
+      behavioralForensics,
       ...(o.gateMaxParallel === undefined ? {} : { gateMaxParallel: o.gateMaxParallel }),
     };
     if (o.dispatcher !== undefined) await this.dispatchReady(outcome, loaded.events);
@@ -165,8 +185,10 @@ export class RunSupervisor {
     events: readonly DispatchLogEvent[],
   ): void {
     const now = this.clock.now();
-    const signal = failure?.signal ?? "unknown";
-    const detail = failure?.detail ?? "unknown";
+    const signal =
+      failure !== undefined && failure.signal !== undefined ? failure.signal : "unknown";
+    const detail =
+      failure !== undefined && failure.detail !== undefined ? failure.detail : "unknown";
     const history = readDispatchHistory(events, taskId);
     const classification = classifyFailure({
       signal,
@@ -208,7 +230,11 @@ export class RunSupervisor {
         this.clock,
       );
     } catch (error) {
-      if (!(error instanceof HarnessError) || error.code !== "INVALID_STATE") throw error;
+      let isIgnorable = false;
+      if (error instanceof HarnessError) {
+        if (error.code === "INVALID_STATE") isIgnorable = true;
+      }
+      if (!isIgnorable) throw error;
     }
   }
 
@@ -222,35 +248,85 @@ export class RunSupervisor {
   }
 
   public async run(): Promise<SupervisionRunResult> {
+    // 1. Auto-pair companion Skill Auditor
+    const companionPairing = OrchestratorCompanionAuditor.pairCompanion(this.repoRoot, {
+      strictPolicy: this.options.strictAuditorPolicy,
+    });
+
     const startedAt = this.clock.now().valueOf();
-    const maxTotalElapsedMs = this.options.maxTotalElapsedMs ?? DEFAULT_MAX_TOTAL_ELAPSED_MS;
-    const pollIntervalMs = this.options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
+    const maxTotalElapsedMs =
+      this.options.maxTotalElapsedMs !== undefined
+        ? this.options.maxTotalElapsedMs
+        : DEFAULT_MAX_TOTAL_ELAPSED_MS;
+    const pollIntervalMs =
+      this.options.pollIntervalMs !== undefined
+        ? this.options.pollIntervalMs
+        : DEFAULT_POLL_INTERVAL_MS;
 
     let ticks = 0;
     let last = await this.tick();
     ticks += 1;
 
     if (this.options.dispatcher === undefined) {
-      return { stopReason: "single_tick", ticks, lastTick: last, report: this.report() };
+      const summaryReport = OrchestratorCompanionAuditor.executeForensics(this.repoRoot, {
+        capsuleRunRoot: this.options.runRoot,
+        now: this.clock.now().toISOString(),
+      });
+      return {
+        stopReason: "single_tick",
+        ticks,
+        lastTick: last,
+        report: this.report(),
+        companionPairing,
+        behavioralForensicsSummary: summaryReport,
+      };
     }
 
     for (;;) {
       const state = this.port.read();
       if (isRunTerminal(state)) {
-        return { stopReason: "terminal", ticks, lastTick: last, report: this.report() };
+        const summaryReport = OrchestratorCompanionAuditor.executeForensics(this.repoRoot, {
+          capsuleRunRoot: this.options.runRoot,
+          now: this.clock.now().toISOString(),
+        });
+        return {
+          stopReason: "terminal",
+          ticks,
+          lastTick: last,
+          report: this.report(),
+          companionPairing,
+          behavioralForensicsSummary: summaryReport,
+        };
       }
       if (this.clock.now().valueOf() - startedAt >= maxTotalElapsedMs) {
+        const summaryReport = OrchestratorCompanionAuditor.executeForensics(this.repoRoot, {
+          capsuleRunRoot: this.options.runRoot,
+          now: this.clock.now().toISOString(),
+        });
         return {
           stopReason: "elapsed_budget_exhausted",
           ticks,
           lastTick: last,
           report: this.report(),
+          companionPairing,
+          behavioralForensicsSummary: summaryReport,
         };
       }
       const stuck =
         last.dispatchable.length === 0 && last.occupied === 0 && last.backingOff.length === 0;
       if (stuck) {
-        return { stopReason: "stalled", ticks, lastTick: last, report: this.report() };
+        const summaryReport = OrchestratorCompanionAuditor.executeForensics(this.repoRoot, {
+          capsuleRunRoot: this.options.runRoot,
+          now: this.clock.now().toISOString(),
+        });
+        return {
+          stopReason: "stalled",
+          ticks,
+          lastTick: last,
+          report: this.report(),
+          companionPairing,
+          behavioralForensicsSummary: summaryReport,
+        };
       }
       let soonestRetry: number | undefined;
       for (const task of last.backingOff) {

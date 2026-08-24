@@ -13,6 +13,13 @@ import {
   SkillAuditorEngine,
   type AuditorCursor,
 } from "../../olt/scripts/src/mind/cognitive-auditors.ts";
+import { OrchestratorCompanionAuditor } from "../../olt/scripts/src/orchestrator/companion-auditor.ts";
+import { AutonomousLoopRunner } from "../../olt/scripts/src/orchestrator/loop-runner.ts";
+import type {
+  RoundExecutor,
+  RoundExecutionInput,
+  RoundExecutionResult,
+} from "../../olt/scripts/src/orchestrator/types.ts";
 import {
   SplitChannelDefectRouter,
   type DefectRouteResult,
@@ -344,12 +351,12 @@ describe("Tier 0 Dual Cognitive Auditors End-to-End Integration Suite", () => {
         SkillAuditorPolicy.assertSkillAuditorRequired(foreignRepo, orchestratorOnlyAgent);
       }).not.toThrow();
 
-      // Passes when skill-auditor is present
+      // Passes when skill-auditor or meta-auditor is present
       const orchestratorWithAuditor: readonly AgentGrantRecord[] = [
         ...orchestratorOnlyAgent,
         {
           id: "skill-auditor-1",
-          role: "skill-auditor",
+          role: "meta-auditor",
           parent_agent_id: "orchestrator-1",
           parent_task_id: null,
           host: "local",
@@ -379,19 +386,14 @@ describe("Tier 0 Dual Cognitive Auditors End-to-End Integration Suite", () => {
       });
 
       // 1. Test mind:audit:live handler and CLI execute
-      const mindJson = await mindAuditLiveCommand(
-        { repo: cliRepo, json: true },
-        { suppressStdout: true },
-      );
+      const mindJson = await mindAuditLiveCommand({ repo: cliRepo, json: true });
       expect(typeof mindJson["stagnant"]).toBe("boolean");
       expect(typeof mindJson["idle_duration_seconds"]).toBe("number");
       expect(typeof mindJson["pending_backlog_count"]).toBe("number");
       expect(typeof mindJson["unresolved_defect_count"]).toBe("number");
       expect(typeof mindJson["output"]).toBe("string");
 
-      const mindText = await execute(["mind:audit:live", "--repo", cliRepo], {
-        suppressStdout: true,
-      });
+      const mindText = await execute(["mind:audit:live", "--repo", cliRepo]);
       expect(typeof mindText["output"]).toBe("string");
       const mindOutputLines = String(mindText["output"]).split("\n");
       expect(mindOutputLines.length).toBeLessThanOrEqual(30);
@@ -405,22 +407,74 @@ describe("Tier 0 Dual Cognitive Auditors End-to-End Integration Suite", () => {
       });
       writeFileSync(eventsPath, `${e0}\n`, "utf-8");
 
-      const skillJson = await skillAuditLiveCommand(
-        { repo: cliRepo, run: runDir, json: true },
-        { suppressStdout: true },
-      );
+      const skillJson = await skillAuditLiveCommand({ repo: cliRepo, run: runDir, json: true });
       expect(typeof skillJson["compliant"]).toBe("boolean");
       expect(typeof skillJson["incidents_count"]).toBe("number");
       expect(typeof skillJson["events_analyzed"]).toBe("number");
       expect(typeof skillJson["defects_logged"]).toBe("number");
       expect(typeof skillJson["output"]).toBe("string");
 
-      const skillText = await execute(["skill:audit:live", "--repo", cliRepo, "--run", runDir], {
-        suppressStdout: true,
-      });
+      const skillText = await execute(["skill:audit:live", "--repo", cliRepo, "--run", runDir]);
       expect(typeof skillText["output"]).toBe("string");
       const skillOutputLines = String(skillText["output"]).split("\n");
       expect(skillOutputLines.length).toBeLessThanOrEqual(30);
+    });
+  });
+
+  describe("Simulation 6: Orchestrator Companion Auditor Auto-Dispatch & Forensics", () => {
+    test("automatically pairs companion auditor and tracks behavioral forensics per round", async () => {
+      const simRepo = scratchRoot(import.meta.path, "sim-6-orchestrator-companion");
+      mkdirSync(join(simRepo, ".olt"), { recursive: true });
+
+      const pairing = OrchestratorCompanionAuditor.pairCompanion(simRepo);
+      expect(pairing.paired).toBe(true);
+      expect(pairing.autoProvisioned).toBe(true);
+
+      const mockExecutor: RoundExecutor = {
+        async executeRound(input: RoundExecutionInput): Promise<RoundExecutionResult> {
+          const eventsPath = join(input.capsulePath, "events.jsonl");
+          const boundaryEvent = JSON.stringify({
+            type: "boundary_violation",
+            message: "Supervisor performed direct edit",
+            timestamp: new Date().toISOString(),
+          });
+          writeFileSync(eventsPath, `${boundaryEvent}\n`, "utf-8");
+
+          return {
+            runId: input.runId,
+            round: input.round,
+            status: "completed",
+            criticDecision: "approve",
+            tasks: [{ id: "task-1", status: "done", writeScope: ["src/app.ts"], gatePassed: true }],
+            findings: [],
+            gateResults: [{ gate_id: "gate-1", command_id: "cmd-1", status: "passed" }],
+            summary: "Round 1 completed with supervisor boundary violation recorded",
+          };
+        },
+      };
+
+      const runner = new AutonomousLoopRunner({
+        baseRunId: "test-companion-run",
+        repoPath: simRepo,
+        initialPrompt: "Test auto companion dispatch",
+        maxRounds: 1,
+        executor: mockExecutor,
+      });
+
+      const summary = await runner.run();
+      expect(summary.finalStatus).toBe("converged_success");
+      expect(summary.companionPairing !== undefined).toBe(true);
+      expect(summary.rounds.length).toBe(1);
+
+      const round1 = summary.rounds[0];
+      expect(round1 !== undefined).toBe(true);
+      if (round1 !== undefined) {
+        expect(round1.behavioralForensics !== undefined).toBe(true);
+        if (round1.behavioralForensics !== undefined) {
+          expect(round1.behavioralForensics.roleBoundaryDeviationsCount).toBe(1);
+          expect(round1.behavioralForensics.compliant).toBe(false);
+        }
+      }
     });
   });
 

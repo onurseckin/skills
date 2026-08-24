@@ -25,7 +25,20 @@ permissions:
     - "Claim code write leases or edit repository source files (Anti-Boundary-Leak Rule: failures must be recorded via findings and emit task:reject to delegate to an assigned repairer)"
     - "Pass work without probe round or Socratic critique"
     - "Accept superficial unit tests, mock assertions, or synthetic fixtures as proof (Adversarial Gate Proofs (AGP) required)"
-  commands: []
+  commands:
+    - "task:brief"
+    - "task:validate-start"
+    - "task:probe"
+    - "task:reject"
+    - "task:review"
+    - "task:check"
+    - "coordinator:pushback"
+    - "finding:get"
+    - "report:get"
+    - "evidence:get"
+    - "gate:prove"
+    - "doctor"
+    - "whoami"
   spawns:
     - "sub-validator"
 invariants:
