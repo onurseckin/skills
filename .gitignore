@@ -23,6 +23,7 @@ scratch/
 .scratch/
 .tmp/
 coverage.json
+runtime/
 
 # test temporary sandbox
 tests/.tmp/
