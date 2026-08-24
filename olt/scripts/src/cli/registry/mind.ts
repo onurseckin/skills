@@ -13,6 +13,7 @@ import {
 import { memoryQueryCommand } from "../commands/memory-ops.ts";
 import { mindAdmitCommand, mindDeclineCommand } from "../commands/mind-admit.ts";
 import { mindAuditReportCommand, mindAuditStartCommand } from "../commands/mind-audit.ts";
+import { mindAuditLiveCommand } from "../commands/mind-audit-live.ts";
 import { mindCandidateCommand } from "../commands/mind-candidate.ts";
 import { mindInitCommand } from "../commands/mind-init.ts";
 import { mindObserveCommand } from "../commands/mind-observe.ts";
@@ -35,6 +36,7 @@ import {
 export {
   memoryQueryCommand,
   mindAdmitCommand,
+  mindAuditLiveCommand,
   mindAuditReportCommand,
   mindAuditStartCommand,
   mindCandidateCommand,
@@ -655,5 +657,27 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: ["bun harness.ts mind:queue:clean", "bun harness.ts todo:clean"],
     handler: mindQueueCleanCommand,
+  },
+  {
+    name: "mind:audit:live",
+    aliases: ["mind:audit"],
+    domain: "mind",
+    summary: "Live Tier 0 out-of-band audit of mind liveness, stagnation, and Mode A/B injection.",
+    description:
+      "Evaluates idle duration against >120s stagnation threshold and builds verbatim role prompt.",
+    flags: [
+      optionalFlag("repo", "string", "Repository root path."),
+      optionalFlag("threshold", "int", "Stagnation threshold in seconds (default: 120).", 120),
+      optionalFlag("conversation-id", "string", "Target conversation identifier."),
+      optionalFlag("json", "bool", "Output structured JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts mind:audit:live",
+      "bun harness.ts mind:audit:live --threshold 60 --json",
+    ],
+    handler: mindAuditLiveCommand,
   },
 ];

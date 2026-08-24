@@ -6,6 +6,7 @@ import {
   readlinkSync,
   rmSync,
   symlinkSync,
+  writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
@@ -81,6 +82,17 @@ for (const entry of ENTRIES) {
     });
   }
 }
+
+const skillConfig = {
+  home_repo_root: process.cwd(),
+  synced_at: new Date().toISOString(),
+  version: "1.0.0",
+};
+writeFileSync(
+  join(TARGET_OLT, "skill-config.json"),
+  JSON.stringify(skillConfig, null, 2) + "\n",
+  "utf-8",
+);
 
 // 2. Remove legacy name in ~/.agents/skills/
 safeRemove(join(homedir(), ".agents", "skills", LEGACY_NAME));

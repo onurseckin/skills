@@ -1,5 +1,5 @@
-import { existsSync, lstatSync, realpathSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
 
@@ -15,6 +15,7 @@ export const OLT_FILES = {
   TELEMETRY: "telemetry.jsonl",
   MEMORY: "memory.json",
   WATCHDOGS: "watchdogs.json",
+  SKILL_CONFIG: "skill-config.json",
 } as const;
 
 function unsafe(message: string): never {
@@ -211,4 +212,50 @@ export function resolveEvidenceDir(repoRoot?: string, runRoot?: string): string 
     return join(runRoot, "evidence");
   }
   return join(resolveScratchDir(), "evidence");
+}
+
+export interface SkillGlobalConfig {
+  readonly home_repo_root: string;
+  readonly synced_at: string;
+  readonly version: string;
+}
+
+export function resolveSkillGlobalConfigPath(): string {
+  return join(homedir(), ".agents", "skills", "olt", "skill-config.json");
+}
+
+export function loadSkillGlobalConfig(): SkillGlobalConfig | null {
+  try {
+    const p = resolveSkillGlobalConfigPath();
+    if (existsSync(p)) {
+      const raw = readFileSync(p, "utf-8");
+      const parsed = JSON.parse(raw) as unknown;
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        "home_repo_root" in parsed &&
+        typeof (parsed as { home_repo_root: unknown }).home_repo_root === "string"
+      ) {
+        return parsed as SkillGlobalConfig;
+      }
+    }
+  } catch {
+    // Ignore error and fall through
+  }
+  return null;
+}
+
+export function resolveSkillHomeRepo(currentRepoRoot?: string): string {
+  if (process.env["OLT_SKILL_HOME_REPO"] && existsSync(process.env["OLT_SKILL_HOME_REPO"])) {
+    return resolve(process.env["OLT_SKILL_HOME_REPO"]);
+  }
+  const cfg = loadSkillGlobalConfig();
+  if (cfg && existsSync(cfg.home_repo_root)) {
+    return resolve(cfg.home_repo_root);
+  }
+  const root = currentRepoRoot ? resolve(currentRepoRoot) : findRepoRoot();
+  if (existsSync(join(root, "olt", "agents")) || existsSync(join(root, "olt", "scripts"))) {
+    return root;
+  }
+  return root;
 }

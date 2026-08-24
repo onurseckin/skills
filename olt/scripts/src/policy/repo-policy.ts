@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
-import { findRepoRoot, resolvePolicyPath } from "../core/shared/paths.ts";
+import { findRepoRoot, resolvePolicyPath, resolveSkillHomeRepo } from "../core/shared/paths.ts";
 
 export type RepoEcosystem = "bun" | "node" | "python" | "cargo" | "unknown";
 
@@ -45,6 +45,7 @@ export interface RepoPolicy {
   readonly schema_version: number;
   readonly ecosystem: RepoEcosystem;
   readonly package_manager?: string | undefined;
+  readonly skill_home_repo_root?: string | undefined;
   readonly test_runner: TestRunnerPolicy;
   readonly typecheck_command?: string | undefined;
   readonly lint_command?: string | undefined;
@@ -99,6 +100,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         schema_version: CURRENT_POLICY_SCHEMA_VERSION,
         ecosystem: "bun",
         package_manager: "bun",
+        skill_home_repo_root: resolveSkillHomeRepo(root),
         test_runner: {
           default_command: "bun test",
           targeted_pattern: "bun test <path>",
@@ -130,6 +132,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         schema_version: CURRENT_POLICY_SCHEMA_VERSION,
         ecosystem: "cargo",
         package_manager: "cargo",
+        skill_home_repo_root: resolveSkillHomeRepo(root),
         test_runner: {
           default_command: "cargo test",
           targeted_pattern: "cargo test -- <path>",
@@ -161,6 +164,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
           : existsSync(join(root, "Pipfile"))
             ? "pipenv"
             : "pip",
+        skill_home_repo_root: resolveSkillHomeRepo(root),
         test_runner: {
           default_command: "pytest",
           targeted_pattern: "pytest <path>",
@@ -195,6 +199,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         schema_version: CURRENT_POLICY_SCHEMA_VERSION,
         ecosystem: "node",
         package_manager: pm,
+        skill_home_repo_root: resolveSkillHomeRepo(root),
         test_runner: {
           default_command: `${pm} test`,
           targeted_pattern: `${runner} <path>`,
@@ -214,6 +219,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
       return {
         schema_version: CURRENT_POLICY_SCHEMA_VERSION,
         ecosystem: "unknown",
+        skill_home_repo_root: resolveSkillHomeRepo(root),
         test_runner: {
           default_command: "test",
           targeted_pattern: "test <path>",
@@ -245,6 +251,11 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
 
   const packageManager =
     typeof rec["package_manager"] === "string" ? rec["package_manager"] : undefined;
+
+  const skillHomeRepoRoot =
+    typeof rec["skill_home_repo_root"] === "string" && rec["skill_home_repo_root"].trim()
+      ? rec["skill_home_repo_root"].trim()
+      : undefined;
 
   let testRunner: TestRunnerPolicy;
   if (typeof rec["test_runner"] === "object" && rec["test_runner"] !== null) {
@@ -380,6 +391,7 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
     schema_version: schemaVersion,
     ecosystem,
     ...(packageManager ? { package_manager: packageManager } : {}),
+    ...(skillHomeRepoRoot ? { skill_home_repo_root: skillHomeRepoRoot } : {}),
     test_runner: testRunner,
     ...(typecheckCommand ? { typecheck_command: typecheckCommand } : {}),
     ...(lintCommand ? { lint_command: lintCommand } : {}),

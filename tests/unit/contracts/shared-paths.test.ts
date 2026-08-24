@@ -1,10 +1,12 @@
 import { describe, expect, test, afterAll } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import {
   findRepoRoot,
   isInsideCapsule,
   isTestEnvironment,
+  loadSkillGlobalConfig,
   OLT_DIR_NAME,
   OLT_FILES,
   resolveBacklogPath,
@@ -17,6 +19,8 @@ import {
   resolveOltDir,
   resolvePolicyPath,
   resolveScratchDir,
+  resolveSkillGlobalConfigPath,
+  resolveSkillHomeRepo,
   resolveTelemetryPath,
   resolveWatchdogsPath,
   stripCapsulePath,
@@ -255,5 +259,131 @@ describe("core shared/paths contract and resolution", () => {
 
     rmSync(customRepo, { recursive: true, force: true });
     rmSync(runRoot, { recursive: true, force: true });
+  });
+
+  test("resolveSkillGlobalConfigPath returns canonical skill-config.json path under ~/.agents/skills/olt", () => {
+    expect(OLT_FILES.SKILL_CONFIG).toBe("skill-config.json");
+    const expected = join(homedir(), ".agents", "skills", "olt", "skill-config.json");
+    expect(resolveSkillGlobalConfigPath()).toBe(expected);
+  });
+
+  test("loadSkillGlobalConfig correctly reads valid config, or returns null for corrupted / missing file", () => {
+    const configPath = resolveSkillGlobalConfigPath();
+    const configDir = dirname(configPath);
+    const backup = existsSync(configPath) ? readFileSync(configPath, "utf-8") : null;
+
+    try {
+      mkdirSync(configDir, { recursive: true });
+
+      // 1. Valid config
+      const validConfig = {
+        home_repo_root: "/path/to/home/repo",
+        synced_at: "2026-08-24T12:00:00.000Z",
+        version: "1.0.0",
+      };
+      writeFileSync(configPath, JSON.stringify(validConfig, null, 2), "utf-8");
+      const loaded = loadSkillGlobalConfig();
+      expect(loaded).not.toBeNull();
+      expect(loaded?.home_repo_root).toBe("/path/to/home/repo");
+      expect(loaded?.version).toBe("1.0.0");
+      expect(loaded?.synced_at).toBe("2026-08-24T12:00:00.000Z");
+
+      // 2. Corrupted JSON
+      writeFileSync(configPath, "{ malformed json: true", "utf-8");
+      expect(loadSkillGlobalConfig()).toBeNull();
+
+      // 3. Object without home_repo_root or non-string home_repo_root
+      writeFileSync(configPath, JSON.stringify({ version: "1.0.0" }), "utf-8");
+      expect(loadSkillGlobalConfig()).toBeNull();
+
+      writeFileSync(configPath, JSON.stringify({ home_repo_root: 123 }), "utf-8");
+      expect(loadSkillGlobalConfig()).toBeNull();
+
+      // 4. Non-existent file
+      rmSync(configPath, { force: true });
+      expect(loadSkillGlobalConfig()).toBeNull();
+    } finally {
+      if (backup !== null) {
+        writeFileSync(configPath, backup, "utf-8");
+      } else {
+        rmSync(configPath, { force: true });
+      }
+    }
+  });
+
+  test("resolveSkillHomeRepo resolves via OLT_SKILL_HOME_REPO env, global config, or repo root fallback", () => {
+    const testDir = join(scratchBase, "skill-home-test");
+    const customHome = join(scratchBase, "custom-home-repo");
+    const globalHome = join(scratchBase, "global-home-repo");
+    mkdirSync(testDir, { recursive: true });
+    mkdirSync(customHome, { recursive: true });
+    mkdirSync(globalHome, { recursive: true });
+
+    const configPath = resolveSkillGlobalConfigPath();
+    const configDir = dirname(configPath);
+    const backup = existsSync(configPath) ? readFileSync(configPath, "utf-8") : null;
+    const oldEnv = process.env["OLT_SKILL_HOME_REPO"];
+
+    try {
+      // 1. OLT_SKILL_HOME_REPO env var takes highest precedence when directory exists
+      process.env["OLT_SKILL_HOME_REPO"] = customHome;
+      expect(resolveSkillHomeRepo(testDir)).toBe(resolve(customHome));
+
+      // 2. If OLT_SKILL_HOME_REPO points to nonexistent dir, falls through
+      process.env["OLT_SKILL_HOME_REPO"] = join(scratchBase, "nonexistent-dir");
+      mkdirSync(configDir, { recursive: true });
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          home_repo_root: globalHome,
+          synced_at: new Date().toISOString(),
+          version: "1.0.0",
+        }),
+        "utf-8",
+      );
+      expect(resolveSkillHomeRepo(testDir)).toBe(resolve(globalHome));
+
+      // 3. If global config has nonexistent home_repo_root, falls through
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          home_repo_root: join(scratchBase, "nonexistent-global-root"),
+          synced_at: new Date().toISOString(),
+          version: "1.0.0",
+        }),
+        "utf-8",
+      );
+      delete process.env["OLT_SKILL_HOME_REPO"];
+      expect(resolveSkillHomeRepo(testDir)).toBe(resolve(testDir));
+
+      // 4. If currentRepoRoot has olt/agents or olt/scripts, returns root
+      const repoWithAgents = join(scratchBase, "repo-with-agents");
+      mkdirSync(join(repoWithAgents, "olt", "agents"), { recursive: true });
+      expect(resolveSkillHomeRepo(repoWithAgents)).toBe(resolve(repoWithAgents));
+
+      const repoWithScripts = join(scratchBase, "repo-with-scripts");
+      mkdirSync(join(repoWithScripts, "olt", "scripts"), { recursive: true });
+      expect(resolveSkillHomeRepo(repoWithScripts)).toBe(resolve(repoWithScripts));
+
+      // 5. Default with no currentRepoRoot falls back to findRepoRoot()
+      rmSync(configPath, { force: true });
+      expect(resolveSkillHomeRepo()).toBe(findRepoRoot());
+    } finally {
+      if (oldEnv !== undefined) {
+        process.env["OLT_SKILL_HOME_REPO"] = oldEnv;
+      } else {
+        delete process.env["OLT_SKILL_HOME_REPO"];
+      }
+
+      if (backup !== null) {
+        writeFileSync(configPath, backup, "utf-8");
+      } else {
+        rmSync(configPath, { force: true });
+      }
+
+      rmSync(testDir, { recursive: true, force: true });
+      rmSync(customHome, { recursive: true, force: true });
+      rmSync(globalHome, { recursive: true, force: true });
+    }
   });
 });

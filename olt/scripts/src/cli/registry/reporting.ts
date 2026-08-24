@@ -16,6 +16,26 @@ import { exportGraphJsonCommand } from "../commands/graph-export.ts";
 import { dagViewCommand } from "../commands/dag-view.ts";
 import { dagRenderCommand, dagTraceCommand } from "../commands/dag.ts";
 import { usageReportCommand } from "../commands/usage-report.ts";
+import { skillAuditLiveCommand } from "../commands/skill-audit-live.ts";
+
+export {
+  reportUnifiedCommand,
+  reportDagCommand,
+  reportGraphCommand,
+  reportGraphJsonCommand,
+  reportHealthCommand,
+  reportLeasesCommand,
+  reportDecisionsCommand,
+  summaryViewCommand,
+  reportGetCommand,
+  streamEventsCommand,
+  exportGraphJsonCommand,
+  dagViewCommand,
+  dagRenderCommand,
+  dagTraceCommand,
+  usageReportCommand,
+  skillAuditLiveCommand,
+};
 
 export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   {
@@ -338,5 +358,27 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts usage:report --detailed",
     ],
     handler: usageReportCommand,
+  },
+  {
+    name: "skill:audit:live",
+    aliases: ["skill:audit"],
+    domain: "reporting",
+    summary: "Live Tier 0 out-of-band audit of skill compliance and delta event forensics.",
+    description:
+      "Scans incremental delta events, audits cognitive contracts, and routes defects upstream.",
+    flags: [
+      optionalFlag("repo", "string", "Repository root path."),
+      optionalFlag("run", "string", "Target capsule run root directory."),
+      optionalFlag("log-defects", "bool", "Automatically log detected incidents as defects.", true),
+      optionalFlag("json", "bool", "Output structured JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts skill:audit:live",
+      "bun harness.ts skill:audit:live --run .olt/capsules/run-1 --json",
+    ],
+    handler: skillAuditLiveCommand,
   },
 ];

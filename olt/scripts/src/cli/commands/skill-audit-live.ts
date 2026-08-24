@@ -1,0 +1,55 @@
+import type { JsonObject } from "../../core/contracts/json.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { SkillAuditorEngine } from "../../mind/cognitive-auditors.ts";
+import { enforceLineLimit } from "../formatters/line-limiter.ts";
+import type { CommandContext } from "../options.ts";
+
+export async function skillAuditLiveCommand(
+  flags: Record<string, unknown>,
+  context: CommandContext = {},
+): Promise<JsonObject> {
+  const repoRoot = typeof flags["repo"] === "string" ? String(flags["repo"]) : findRepoRoot();
+  const runRoot = typeof flags["run"] === "string" ? String(flags["run"]) : undefined;
+  const logDefects = flags["log-defects"] !== false;
+  const asJson = Boolean(flags["json"]);
+
+  const result = SkillAuditorEngine.auditSkillCompliance(repoRoot, {
+    capsuleRunRoot: runRoot,
+    logDefects,
+  });
+
+  const lines = [
+    `# Tier 0 Skill Compliance Live Audit: ${result.compliant ? "COMPLIANT" : "NON_COMPLIANT"}`,
+    "",
+    `- Status: ${result.compliant ? "✓ COMPLIANT" : `⚠️ ${result.incidents.length} INCIDENTS`}`,
+    `- Delta Events Analyzed: ${result.eventsAnalyzed}`,
+    `- Defects Logged: ${result.defectsLogged}`,
+    `- High-Water Mark Event Seq: ${result.cursor.lastInspectedEventIndex}`,
+    `- Cursor Timestamp: ${result.cursor.lastInspectedTimestamp}`,
+  ];
+
+  if (result.incidents.length > 0) {
+    lines.push("", "## Forensics Incidents Detected:");
+    for (const inc of result.incidents.slice(0, 5)) {
+      lines.push(`- [${inc.severity}] ${inc.category}: ${inc.description}`);
+    }
+  }
+
+  const output = enforceLineLimit(lines.join("\n"), 30);
+  const suppressStdout =
+    "suppressStdout" in context
+      ? Boolean((context as Record<string, unknown>)["suppressStdout"])
+      : false;
+  if (!asJson && !suppressStdout) {
+    console.log(output);
+  }
+
+  return {
+    compliant: result.compliant,
+    incidents_count: result.incidents.length,
+    events_analyzed: result.eventsAnalyzed,
+    defects_logged: result.defectsLogged,
+    cursor: result.cursor as unknown as JsonObject,
+    output,
+  };
+}
