@@ -38,43 +38,43 @@ export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
       "A declared policy default, not a reading: it sits with the five timeout defaults above it and states what the watchdog does when the caller expresses no preference. The numeric half of the check already excludes knobs from POLICY_WORDS; the string half has no such vocabulary, so the same kind of default reads as a substitution.",
   },
   {
-    key: "numeric-fallback:olt/scripts/src/summary/metrics-collector-helpers.ts:manifest?.prompt_bytes:0",
+    key: "numeric-fallback:olt/scripts/src/summary/metrics/metrics-collector-helpers.ts:manifest?.prompt_bytes:0",
     check: "literal-fallbacks",
     reason:
       "computeTaskTokens's byte-ratio branch already discloses its output as an estimate (isEstimated: true, evidenceClass: 'derived'), and Math.max(50, ...) floors the result regardless. A missing manifest contributing 0 bytes toward an already-disclosed guess is a policy for that guess, not a claim that we measured a prompt of zero bytes.",
   },
   {
-    key: "numeric-fallback:olt/scripts/src/summary/metrics-collector-helpers.ts:reasoningTokens:0",
+    key: "numeric-fallback:olt/scripts/src/summary/metrics/metrics-collector-helpers.ts:reasoningTokens:0",
     check: "literal-fallbacks",
     reason:
       "Only reached inside the estimated/derived branches of computeTaskTokens and computeGateTokens, whose result is already labelled isEstimated: true. Most providers never emit reasoning tokens at all, so folding an absent optional category into an already-disclosed estimate as 'no contribution' does not overstate a measurement - the host-reported branch above (sumReportedTokens) is where a real reading's absence is instead left as absence.",
   },
   {
-    key: "numeric-fallback:olt/scripts/src/summary/metrics-collector-helpers.ts:cacheCreationTokens:0",
+    key: "numeric-fallback:olt/scripts/src/summary/metrics/metrics-collector-helpers.ts:cacheCreationTokens:0",
     check: "literal-fallbacks",
     reason:
       "Same as the reasoningTokens allowance above: reached only inside the already-disclosed estimate branches, and prompt caching is opt-in per provider, so an absent count there is 'not applicable', not 'unmeasured'.",
   },
   {
-    key: "numeric-fallback:olt/scripts/src/summary/metrics-collector-helpers.ts:cacheReadTokens:0",
+    key: "numeric-fallback:olt/scripts/src/summary/metrics/metrics-collector-helpers.ts:cacheReadTokens:0",
     check: "literal-fallbacks",
     reason:
       "Same as the reasoningTokens allowance above: reached only inside the already-disclosed estimate branches, and prompt caching is opt-in per provider, so an absent count there is 'not applicable', not 'unmeasured'.",
   },
   {
-    key: "numeric-fallback:olt/scripts/src/summary/metrics-collector.ts:manifest?.prompt_bytes:0",
+    key: "numeric-fallback:olt/scripts/src/summary/metrics/metrics-collector.ts:manifest?.prompt_bytes:0",
     check: "literal-fallbacks",
     reason:
       "computeTokenEstimations feeds RollupMetrics.estimated_tokens, a required field that is a run-wide byte-ratio guess by name and by type - unlike total_edge_traffic_exchanges lower in the same file, which is genuinely omitted when unknown because it is not disclosed as an estimate. A missing manifest contributing 0 bytes to an already-named 'estimated_tokens' total is a policy for that guess, not a claim of a measured zero.",
   },
   {
-    key: "numeric-fallback:olt/scripts/src/summary/metrics-collector.ts:cmd.logs?.stdout?.bytes:0",
+    key: "numeric-fallback:olt/scripts/src/summary/metrics/metrics-collector.ts:cmd.logs?.stdout?.bytes:0",
     check: "literal-fallbacks",
     reason:
       "Same estimated_tokens computation as the prompt_bytes allowance above: a command whose stdout byte count was not captured contributes 0 to the run-wide guess rather than the guess claiming a real reading for it.",
   },
   {
-    key: "unused-export:olt/scripts/src/config/harness-config.ts#resetHarnessConfigCache",
+    key: "unused-export:olt/scripts/src/core/config/harness-config.ts#resetHarnessConfigCache",
     check: "unused-code",
     reason:
       "The resolved-config cache lives for the life of one process, and every harness.ts invocation is a fresh process, so production never has a stale read to invalidate. The reset exists to stop the shared module cache leaking between test cases that run in the same process - a problem only the test runner has.",
@@ -86,7 +86,7 @@ export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
       "The one production installer (installer/install.ts) must apply client links between the release copy's commit and finalize, so it drives prepareReleaseCopy directly instead of through this all-in-one helper. atomicReleaseCopy composes the same commit/rollback/cleanup sequence without that interleaving, which is exactly the shape the release-copy subsystem's own tests - and the crash-injection worker they spawn - need to exercise it in isolation from client-link concerns.",
   },
   {
-    key: "unused-export:olt/scripts/src/runner/attempt-intent.ts#writeAttemptStarted",
+    key: "unused-export:olt/scripts/src/engine/runner/attempt-intent.ts#writeAttemptStarted",
     check: "unused-code",
     reason:
       "Production always needs the AttemptIntentController this record initialisation can return, and run-attempt.ts gets it from the sibling startAttemptIntent. writeAttemptStarted returns the bare record and accepts a syncParent override that startAttemptIntent does not expose, which is the seam attempt-directory-durability.test.ts needs to observe fsync-before-marker ordering directly - a capability only a test asks for.",
@@ -98,13 +98,13 @@ export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
       "Both sites normalise a relative(root, X) path and fall back to a dot when that call returns the empty string: at the root itself it does, and a dot is that same result spelled as a path so the root entry is addressable. Identical shape to the already-allowed installer/tree-digest.ts case, and only visible to this check now that copyPinnedRuntime has a caller and the module is reachable.",
   },
   {
-    key: "string-fallback:olt/scripts/src/summary/asset-mapper.ts:options?.scope:all",
+    key: "string-fallback:olt/scripts/src/summary/assets/asset-mapper.ts:options?.scope:all",
     check: "literal-fallbacks",
     reason:
       "A declared policy default, the same shape as the already-allowed watchdog.ts case: AssetScope's own doc comment says \"'all' exists for callers that genuinely want the union\", so a caller that names no scope is asking for everything, not reporting a scope that went missing.",
   },
   {
-    key: "string-fallback:olt/scripts/src/summary/graph-generator-critic-nodes.ts:completion?.status:pending",
+    key: "string-fallback:olt/scripts/src/summary/graph/graph-generator-critic-nodes.ts:completion?.status:pending",
     check: "literal-fallbacks",
     reason:
       'CompletionResult.status is a single-member literal type ("complete"); its only content is whether the field exists at all. This mirrors the terminal node\'s own status ternary (completion?.status === "complete" ? "success" : "pending") three lines above it, unflagged only because a ternary is not `??` - both name the same two-state lifecycle, not a value substituted for one the run failed to record.',

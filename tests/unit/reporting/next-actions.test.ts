@@ -80,7 +80,7 @@ describe("state-specific resumable argv", () => {
 
   test("stops naming the probe once the configured rounds are recorded", () => {
     const probed = view("validating");
-    (probed.tasks as JsonObject[])[0]!.probe_round = 1;
+    (probed.tasks as JsonObject[])[0]!.probe_round = 5;
     const text = actions(probed).text;
     expect(text).not.toContain(" task:probe ");
     expect(text).toContain(" task:review ");

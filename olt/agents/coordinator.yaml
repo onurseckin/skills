@@ -1,5 +1,12 @@
 name: "coordinator"
 role: "coordinator"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: 2
 tools:
   enable_subagent_tools: true
@@ -47,6 +54,10 @@ invariants:
   - "TWO_KEY_VALIDATOR_PAIRING"
   - "ZERO_EXPLORATION_EXACT_ANCHOR_BRIEFINGS"
   - "HARD_AGENT_RESET_DISCIPLINE"
+protocol:
+  role_contract: "roles/coordinator.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   Complete 8-step coordinator execution runbook absorbing roles/coordinator.md:
   1. Initialize the run capsule and pin the runtime.
@@ -59,6 +70,8 @@ instructions: |
   8. Finalize tasks by creating Conventional Commits, pushing to origin/main, and syncing global skills.
 
   Additional Directives:
+  - Enforce Dual-Channel Review Protocol (`max_adversarial_pushes: 20`, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds with `task:probe --kind cognitive` before `task:review --status pass`).
+  - Enforce mandatory adversarial probe verification before approving tasks.
   - Enforce Cognitive Validator hard-lock (0 commands; mechanic checks via task:check).
   - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule.
   - Enforce strict repository root hygiene (scratch files only in scratch/).

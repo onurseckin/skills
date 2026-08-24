@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { planReviewCommand } from "../../../olt/scripts/src/cli/commands/plan-validate.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
@@ -64,7 +65,7 @@ describe("plan:review", () => {
     // plan:validate-start, no real token is needed to reach this refusal.
     await expect(
       planReviewCommand({
-        run: mkdtempSync(join(tmpdir(), "olt-test-")),
+        run: scratchRoot(import.meta.path, "status-invalid"),
         validator: "plan-val-1",
         token: "unused-token",
         status: "maybe",
@@ -78,7 +79,7 @@ describe("plan:review", () => {
     // only required to be non-blank at this point, not verified against a real plan yet.
     await expect(
       planReviewCommand({
-        run: mkdtempSync(join(tmpdir(), "olt-test-")),
+        run: scratchRoot(import.meta.path, "approved-with-findings"),
         validator: "plan-val-1",
         token: "unused-token",
         status: "approved",
@@ -97,7 +98,7 @@ describe("plan:review", () => {
   test("changes_requested requires --findings or --findings-file", async () => {
     await expect(
       planReviewCommand({
-        run: mkdtempSync(join(tmpdir(), "olt-test-")),
+        run: scratchRoot(import.meta.path, "missing-findings"),
         validator: "plan-val-1",
         token: "unused-token",
         status: "changes_requested",
@@ -179,7 +180,7 @@ describe("plan:review", () => {
     // Findings are read from disk before loadRun; the file doesn't need to live in any capsule.
     await expect(
       planReviewCommand({
-        run: mkdtempSync(join(tmpdir(), "olt-test-")),
+        run: scratchRoot(import.meta.path, "unreadable-findings-file"),
         validator: "plan-val-1",
         token: "unused-token",
         status: "changes_requested",
@@ -196,7 +197,7 @@ describe("plan:review", () => {
   test("malformed inline --findings JSON is refused", async () => {
     await expect(
       planReviewCommand({
-        run: mkdtempSync(join(tmpdir(), "olt-test-")),
+        run: scratchRoot(import.meta.path, "malformed-inline-findings"),
         validator: "plan-val-1",
         token: "unused-token",
         status: "changes_requested",
@@ -389,5 +390,57 @@ describe("plan:review", () => {
     expect(reviewed.verdict).toBe("approved");
     const review = reviewed.plan_review as { gate_ids_reviewed: string[] };
     expect(review.gate_ids_reviewed.sort()).toEqual(["gate-core", "gate-sec"]);
+  });
+
+  test("rejects malformed --dependency-edges-reviewed entries", async () => {
+    const { run } = await setupCompiledRun("plan-review-bad-edge", roots);
+    const started = await execute([
+      "plan:validate-start",
+      "--run",
+      run,
+      "--validator",
+      "plan-val-1",
+    ]);
+
+    await expect(
+      execute([
+        "plan:review",
+        "--run",
+        run,
+        "--validator",
+        "plan-val-1",
+        "--token",
+        started.token as string,
+        "--status",
+        "approved",
+        "--summary",
+        "Sound",
+        "--decomposition-answer",
+        "ans",
+        "--dependency-answer",
+        "ans",
+        "--gate-answer",
+        "ans",
+        "--straggler-answer",
+        "ans",
+        "--dependency-edges-reviewed",
+        "malformed_pair_without_colon",
+      ]),
+    ).rejects.toThrow(/--dependency-edges-reviewed entries must be "<from>:<to>"/);
+  });
+});
+
+describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
+  test("verifies plan-validate test file contains zero any and zero suppressions", async () => {
+    const testContent = await Bun.file(import.meta.path).text();
+    const forbiddenAnyRegex = new RegExp(":[ \\t]*" + "any\\b");
+    const forbiddenCastRegex = new RegExp("\\bas[ \\t]+" + "any\\b");
+    const forbiddenSuppressionsRegex = new RegExp("@ts-" + "(ignore|expect-error|nocheck)");
+    const forbiddenLintRegex = new RegExp("(eslint|oxlint)" + "-disable");
+
+    expect(testContent).not.toMatch(forbiddenAnyRegex);
+    expect(testContent).not.toMatch(forbiddenCastRegex);
+    expect(testContent).not.toMatch(forbiddenSuppressionsRegex);
+    expect(testContent).not.toMatch(forbiddenLintRegex);
   });
 });

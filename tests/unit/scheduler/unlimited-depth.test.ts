@@ -574,7 +574,7 @@ describe("Unlimited Depth DAG Scheduler & Validator Pairing", () => {
     test("unlimited-depth.ts contains 0 any types and 0 linter/compiler suppressions", () => {
       const filePath = join(
         import.meta.dir,
-        "../../../olt/scripts/src/scheduler/unlimited-depth.ts",
+        "../../../olt/scripts/src/engine/scheduler/unlimited-depth.ts",
       );
       const content = readFileSync(filePath, "utf-8");
 

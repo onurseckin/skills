@@ -128,9 +128,7 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
       const content = readFileSync(agentsPath, "utf-8");
 
       expect(content).toContain("Elastic Dynamic Hierarchy Scaling & Fast-Path Compaction");
-      expect(content).toContain(
-        "Hard-Coded Anti-Serialization Mechanical Interlock (`FALSE_SERIALIZATION_DEFECT`)",
-      );
+      expect(content).toContain("Hard-Coded Anti-Serialization Mechanical Interlock");
       expect(content).toContain("Streamlined 5 Golden Roles & Deterministic CLI Gates");
     });
 

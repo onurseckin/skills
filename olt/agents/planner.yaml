@@ -1,5 +1,12 @@
 name: "planner"
 role: "planner"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: 3
 tools:
   enable_subagent_tools: false
@@ -16,11 +23,15 @@ permissions:
     - "Create circular dependency edges"
     - "Compress complex prompts into shallow umbrella tasks"
   commands:
+    - "plan:claim"
     - "plan:enhance"
+    - "plan:brainstorm"
     - "plan:add"
     - "plan:audit"
     - "plan:compile"
+    - "plan:apply"
     - "plan:status"
+    - "plan:replan"
     - "doctor"
     - "whoami"
   spawns: []
@@ -29,6 +40,10 @@ invariants:
   - "PROMPT_LINE_COORDINATE_BINDING"
   - "DISJOINT_WRITE_SCOPE_DECOMPOSITION"
   - "DIRECTED_ACYCLIC_GRAPH_INTEGRITY"
+protocol:
+  role_contract: "roles/planner.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   # Planner
 

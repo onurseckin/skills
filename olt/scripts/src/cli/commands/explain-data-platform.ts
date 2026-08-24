@@ -54,7 +54,7 @@ export const PLATFORM_AND_LOCK_ENTRIES: readonly ExplainEntry[] = [
         "Run the harness on macOS or Linux; there is no fallback path for another platform.",
         [
           example(
-            "runner/platform-policy.ts",
+            "engine/runner/platform-policy.ts",
             "monitored commands are unsupported on ${platform}; POSIX process groups are required",
           ),
           example("installer/platform.ts", "installer is unsupported on ${platform}"),

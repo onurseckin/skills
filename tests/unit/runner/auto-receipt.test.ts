@@ -1,19 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import { AutoReceiptLogger } from "../../../olt/scripts/src/engine/runner/auto-receipt.ts";
-import { rmSync, mkdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("AutoReceiptLogger", () => {
-  const capsuleRoot = "./test-capsule-root";
-
-  beforeEach(() => {
-    mkdirSync(capsuleRoot, { recursive: true });
-  });
-
-  afterEach(() => {
-    rmSync(capsuleRoot, { recursive: true, force: true });
+  it("can be instantiated", () => {
+    const logger = new AutoReceiptLogger();
+    expect(logger).toBeInstanceOf(AutoReceiptLogger);
   });
 
   it("records command receipt directly into capsule state", () => {
+    const capsuleRoot = scratchRoot(import.meta.path, "auto-receipt-record");
     AutoReceiptLogger.recordReceipt(capsuleRoot, {
       taskId: "task-1",
       actor: "impl-1",

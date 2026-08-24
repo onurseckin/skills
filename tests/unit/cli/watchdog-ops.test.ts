@@ -287,10 +287,13 @@ describe("CLI - watchdog:verify", () => {
     expect(String(result.markdown)).toContain("#### Invariant Violations");
   });
 
-  test("supports watchdog:check and watchdog:lint aliases", async () => {
+  test("supports watchdog:check and watchdog:lint aliases and filters violations by generation", async () => {
     const dir = scratchRoot(import.meta.path, "cli-verify-alias");
     const result = await execute(["watchdog:check", "--run", dir]);
     expect(result.valid).toBe(true);
+
+    const genResult = await execute(["watchdog:verify", "--run", dir, "--generation", "1"]);
+    expect(genResult.valid).toBe(true);
   });
 });
 

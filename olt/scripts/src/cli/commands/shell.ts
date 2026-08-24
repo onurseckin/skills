@@ -80,7 +80,7 @@ export async function shellCommand(
   if (run) {
     const loaded = loadRun(run);
     const declared = declaredToolFlags(flags);
-    const commandDir = declared.toolCategory === "test-runner" ? "commands" : "commands";
+    const commandDir = join(loaded.runRoot, "commands");
 
     const cmdOpts = {
       commandDir,

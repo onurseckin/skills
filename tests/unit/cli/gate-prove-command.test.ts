@@ -71,6 +71,7 @@ async function compiledSingleTaskRun(
     "--actor",
     "planner",
   ]);
+  await execute(["plan:brainstorm", "--run", run, "--actor", "coordinator"]);
   await execute([
     "plan:compile",
     "--run",

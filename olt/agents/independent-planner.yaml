@@ -1,5 +1,12 @@
 name: "independent-planner"
 role: "independent-planner"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: "independent"
 tools:
   enable_subagent_tools: false
@@ -22,6 +29,10 @@ invariants:
   - "COMPLETE_HARNESS_DECOUPLING"
   - "FIVE_ROUND_SOCRATIC_DIALOGUE_PROTOCOL"
   - "CANONICAL_BLUEPRINT_OUTPUT_DOCS_BLUEPRINTS"
+protocol:
+  role_contract: "roles/independent-planner.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   # Independent Planner
 

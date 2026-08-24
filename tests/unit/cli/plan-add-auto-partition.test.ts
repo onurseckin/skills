@@ -163,6 +163,7 @@ describe("plan:add --auto-partition", () => {
       "--actor",
       "planner",
     ]);
+    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
     await execute([
       "plan:compile",
       "--run",

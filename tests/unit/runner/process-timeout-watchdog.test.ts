@@ -615,6 +615,51 @@ describe("HierarchicalStallProbe - Supervisor-to-Child Health Probing", () => {
   });
 });
 
+describe("MultiChildSupervisorWatchdog and Default ProcessTimeoutWatchdog Methods", () => {
+  test("exercises MultiChildSupervisorWatchdog methods and defaults", () => {
+    const supervisor = createHierarchicalStallProbe({ supervisorTier: "coordinator" });
+    const child = supervisor.registerChild({
+      childId: "child-1",
+      pid: 12345,
+      ppid: process.pid,
+      taskId: "task-1",
+      role: "task_implementer",
+    });
+    expect(child).toBeDefined();
+
+    expect(supervisor.getChild("child-1")).toBeDefined();
+    expect(supervisor.getChildWatchdog("child-1")).toBe(child);
+    expect(supervisor.getChildWatchdog("nonexistent")).toBeUndefined();
+    expect(supervisor.listChildren().length).toBe(1);
+
+    supervisor.recordChildHeartbeat("child-1", { step: 1 });
+    supervisor.recordChildHeartbeat("nonexistent");
+
+    supervisor.recordChildProgress("child-1", "compiling");
+    supervisor.recordChildProgress("nonexistent", "ignored");
+
+    supervisor.recordChildOutput("child-1", "stdout", "output data");
+    supervisor.recordChildOutput("nonexistent", "stderr", "ignored");
+
+    expect(supervisor.unregisterChild("child-1")).toBe(true);
+    expect(supervisor.unregisterChild("child-1")).toBe(false);
+  });
+
+  test("ProcessTimeoutWatchdog and HierarchicalStallProbe default killFn handles dead processes", () => {
+    const watchdog = new ProcessTimeoutWatchdog();
+    const killed1 = (
+      watchdog as unknown as { killFn: (pid: number, sig: NodeJS.Signals) => boolean }
+    ).killFn(999999999, "SIGTERM");
+    expect(killed1).toBe(false);
+
+    const supervisor = new HierarchicalStallProbe({ supervisorTier: "coordinator" });
+    const killed2 = (
+      supervisor as unknown as { killFn: (pid: number, sig: NodeJS.Signals) => boolean }
+    ).killFn(999999999, "SIGTERM");
+    expect(killed2).toBe(false);
+  });
+});
+
 describe("Invariants & Cleanliness Audit - Mechanical Process Timeout Watchdog", () => {
   test("zero TypeScript any and zero suppressions across all watchdog files", () => {
     const { readFileSync } = require("node:fs");

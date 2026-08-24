@@ -381,10 +381,10 @@ describe("Script-Backed Scheduler Diagnostics Engine", () => {
   describe("6. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     test("verifies touched scheduler source files contain zero any and zero suppressions", () => {
       const filesToCheck = [
-        "olt/scripts/src/scheduler/diagnostics.ts",
-        "olt/scripts/src/scheduler/pulse.ts",
-        "olt/scripts/src/scheduler/metrics.ts",
-        "olt/scripts/src/scheduler/index.ts",
+        "olt/scripts/src/engine/scheduler/diagnostics.ts",
+        "olt/scripts/src/engine/scheduler/pulse.ts",
+        "olt/scripts/src/engine/scheduler/metrics.ts",
+        "olt/scripts/src/engine/scheduler/index.ts",
       ];
 
       const anyWord = "a" + "n" + "y";

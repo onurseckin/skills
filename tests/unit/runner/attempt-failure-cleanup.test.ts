@@ -11,16 +11,18 @@ import {
 import type { NormalizedCommandOptions } from "../../../olt/scripts/src/capture/runners/types.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/descendant-tracker.ts";
 
-const tempDir = mkdtempSync(join(tmpdir(), "cleanup-test-"));
+import { scratchRoot } from "../../support/scratch-root.ts";
+import { readProcessIdentity } from "../../../olt/scripts/src/engine/runner/process-identity.ts";
+
 const mockOptions: NormalizedCommandOptions = {
   commandId: "cmd-1",
   argv: ["echo", "test"],
-  cwd: tempDir,
-  runRoot: tempDir,
+  cwd: "/repo",
+  runRoot: "/repo",
   timeoutMs: 1000,
   wallTimeoutMs: 1000,
   idleTimeoutMs: 500,
-  graceMs: 1,
+  graceMs: 50,
   drainTimeoutMs: 1,
   maxOutputBytes: 1024,
   maxRecordedOutputBytes: 1024,
@@ -44,6 +46,7 @@ describe("attempt-failure-cleanup", () => {
   });
 
   test("startAttemptPumpsAndMonitoring starts custom pumps", async () => {
+    const tempDir = scratchRoot(import.meta.path, "cleanup-pumps");
     const child = {
       stdout: new ReadableStream(),
       stderr: new ReadableStream(),
@@ -54,6 +57,7 @@ describe("attempt-failure-cleanup", () => {
     const res = startAttemptPumpsAndMonitoring(
       {
         ...mockOptions,
+        runRoot: tempDir,
         pump: async (_s, _f, path) => ({ bytes: 5, truncated: false, path }),
       },
       child,
@@ -72,6 +76,31 @@ describe("attempt-failure-cleanup", () => {
     expect((await res.monitoring).code).toBe(0);
   });
 
+  test("settleAndTerminateAttempt terminates detached process group and records signal", async () => {
+    const child = Bun.spawn(["sleep", "5"], { detached: true });
+    const rootIdentity = readProcessIdentity(child.pid);
+    const tracker = {
+      terminate: async () => [],
+      proveAbsent: async () => true,
+    } as never;
+    const pgSignals: NodeJS.Signals[] = [];
+    const recorded: NodeJS.Signals[] = [];
+
+    const res = await settleAndTerminateAttempt(
+      child as never,
+      tracker,
+      rootIdentity,
+      { ...mockOptions, graceMs: 50 },
+      { timeout: "wall", code: null, interrupted: false },
+      pgSignals,
+      (s) => recorded.push(s),
+    );
+    expect(res.descendantsAbsent).toBe(true);
+    expect(res.rootProof).toBe(true);
+    expect(pgSignals).toContain("SIGTERM");
+    expect(recorded).toContain("SIGTERM");
+  });
+
   test("settleAndTerminateAttempt validates root identity and timeouts", async () => {
     const tracker = {
       terminate: async () => [],
@@ -83,7 +112,7 @@ describe("attempt-failure-cleanup", () => {
         tracker,
         undefined,
         mockOptions,
-        { timeout: true, code: null, interrupted: false },
+        { timeout: "wall", code: null, interrupted: false },
         [],
         () => undefined,
       ),
@@ -95,7 +124,7 @@ describe("attempt-failure-cleanup", () => {
       tracker,
       { ...mockIdentity, pid: 999999 },
       mockOptions,
-      { timeout: true, code: 0, interrupted: false },
+      { timeout: "wall", code: 0, interrupted: false },
       signals,
       (s) => signals.push(s),
     );
@@ -115,7 +144,7 @@ describe("attempt-failure-cleanup", () => {
         { terminate: async () => [], proveAbsent: async () => false } as never,
         { ...mockIdentity, pid: 999999 },
         mockOptions,
-        { timeout: true, code: null, interrupted: false },
+        { timeout: "wall", code: null, interrupted: false },
         [],
         () => undefined,
         fakeClock,
@@ -124,6 +153,7 @@ describe("attempt-failure-cleanup", () => {
   });
 
   describe("handleAttemptFailure", () => {
+    const tempDir = scratchRoot(import.meta.path, "handle-failure");
     const attemptDir = join(tempDir, "attempts/1");
     mkdirSync(attemptDir, { recursive: true });
     writeFileSync(join(attemptDir, "stdout.log"), "sample stdout");

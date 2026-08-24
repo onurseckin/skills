@@ -10,6 +10,7 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
 export * from "./pushbacks.ts";
 
 export type DefectCategory = "code_defect" | "model_reasoning_error" | "boundary_violation";
@@ -674,22 +675,27 @@ export function resolveDefect(
 
 export const DEFAULT_COMPLETED_DEFECTS_FILE = "olt/completed-defects.jsonl";
 
-export function resolveCanonicalDefectLogPath(customRoot?: string, useTodo = false): string {
+export function resolveCanonicalDefectLogPath(customRoot?: string, _useTodo = false): string {
   return require("path").join(customRoot || process.cwd(), ".olt", "defects.jsonl");
 }
 
 export function resolveDefectLogPath(customPath?: string): string {
-  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
-  return require("path").join(process.cwd(), ".olt", "defects.jsonl");
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  const root = isTestEnvironment() ? resolveScratchDir() : process.cwd();
+  return join(root, ".olt", "defects.jsonl");
 }
 
-export function resolveCanonicalCompletedDefectsPath(customRoot?: string, useTodo = false): string {
-  return require("path").join(customRoot || process.cwd(), ".olt", "completed-defects.jsonl");
+export function resolveCanonicalCompletedDefectsPath(
+  customRoot?: string,
+  _useTodo = false,
+): string {
+  const root = customRoot || (isTestEnvironment() ? resolveScratchDir() : process.cwd());
+  return join(root, ".olt", "completed-defects.jsonl");
 }
 
 export function resolveCompletedDefectsPath(customPath?: string): string {
-  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
-  return require("path").join(process.cwd(), ".olt", "completed-defects.jsonl");
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  return resolveCanonicalCompletedDefectsPath();
 }
 
 export function readCompletedDefectsLog(customPath?: string): DefectEntry[] {
@@ -1201,6 +1207,8 @@ function findDefectFiles(targetPath: string): string[] {
     }
 
     const checkCandidates = [
+      join(targetPath, ".olt", "defects.jsonl"),
+      join(targetPath, "olt", "defects.jsonl"),
       join(targetPath, ".capsules", "mind", "queue", "defects.jsonl"),
       join(targetPath, ".capsules", "todo", "defects.jsonl"),
       join(targetPath, ".capsules", "defects.jsonl"),

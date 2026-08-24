@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { describe, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/attempt-disposition-capability.ts";
 import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
 import { runAttempt } from "../../../olt/scripts/src/engine/runner/run-attempt.ts";
@@ -31,13 +31,12 @@ function neverExited(): Promise<number> {
   return new Promise<number>(() => undefined);
 }
 
-const roots: string[] = [];
+import { scratchRoot } from "../../support/scratch-root.ts";
 
-async function attemptRoot(prefix: string): Promise<{ root: string; commandRoot: string }> {
-  const root = await mkdtemp(join(tmpdir(), prefix));
-  roots.push(root);
+function attemptRoot(label: string): { root: string; commandRoot: string } {
+  const root = scratchRoot(import.meta.path, label);
   const commandRoot = join(root, "commands", "C-1");
-  await mkdir(commandRoot, { recursive: true });
+  mkdirSync(commandRoot, { recursive: true });
   return { root, commandRoot };
 }
 
@@ -63,13 +62,9 @@ function baseOptions(root: string, overrides: Partial<NormalizedCommandOptions> 
   } as NormalizedCommandOptions;
 }
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
-
 describe("runAttempt via an injected spawnApi (no real subprocess)", () => {
   test("finalizes a successful attempt end to end once the child exits", async () => {
-    const { root, commandRoot } = await attemptRoot("run-attempt-success-");
+    const { root, commandRoot } = attemptRoot("run-attempt-success-");
     const options = baseOptions(root);
     const spawnApi: BunSpawnApi = {
       spawn: () => ({
@@ -102,7 +97,7 @@ describe("runAttempt via an injected spawnApi (no real subprocess)", () => {
   }, 10_000);
 
   test("fails with a residual-pid error when the wall timeout fires and root identity never bound", async () => {
-    const { root, commandRoot } = await attemptRoot("run-attempt-timeout-");
+    const { root, commandRoot } = attemptRoot("run-attempt-timeout-");
     const options = baseOptions(root, { wallTimeoutMs: 25, idleTimeoutMs: 5000, graceMs: 10 });
     const spawnApi: BunSpawnApi = {
       spawn: () => ({
@@ -119,7 +114,7 @@ describe("runAttempt via an injected spawnApi (no real subprocess)", () => {
   }, 10_000);
 
   test("surfaces an output-quota failure raised while the attempt is still running", async () => {
-    const { root, commandRoot } = await attemptRoot("run-attempt-quota-");
+    const { root, commandRoot } = attemptRoot("run-attempt-quota-");
     const options = baseOptions(root, {
       maxOutputBytes: 1,
       wallTimeoutMs: 5000,
@@ -138,4 +133,71 @@ describe("runAttempt via an injected spawnApi (no real subprocess)", () => {
       runAttempt(options, 1, "C-1", commandRoot, createCommandSigningCapability(), spawnApi),
     ).rejects.toThrow("combined command output quota exceeded");
   }, 10_000);
+
+  test("throws when command ownership token is missing from environment", async () => {
+    const { root, commandRoot } = attemptRoot("run-attempt-no-token-");
+    const options = baseOptions(root, {
+      environment: {},
+    });
+    const spawnApi: BunSpawnApi = {
+      spawn: () => ({
+        pid: 999_999_996,
+        exited: Promise.resolve(0),
+        signalCode: null,
+        stdout: textStream([]),
+        stderr: textStream([]),
+      }),
+    };
+    await expect(
+      runAttempt(options, 1, "C-1", commandRoot, createCommandSigningCapability(), spawnApi),
+    ).rejects.toThrow("command ownership token is missing");
+  });
+
+  test("records and persists signals when process group is terminated on timeout", async () => {
+    const { root, commandRoot } = attemptRoot("run-attempt-timeout-signal-");
+    const options = baseOptions(root, {
+      argv: ["sleep", "10"],
+      wallTimeoutMs: 50,
+      idleTimeoutMs: 50,
+      graceMs: 50,
+      drainTimeoutMs: 50,
+    });
+    const result = await runAttempt(
+      options,
+      1,
+      "C-1",
+      commandRoot,
+      createCommandSigningCapability(),
+    );
+    expect(result.record.status).toBe("timed_out");
+    expect(result.record.signals_sent).toContain("SIGTERM");
+  });
+
+  test("flags cleanupPrewriteFailed when beginCleanupUncertain fails to write", async () => {
+    const { root, commandRoot } = attemptRoot("run-attempt-unwritable-dir-");
+    const attemptDir = join(commandRoot, "attempt-1");
+    const options = baseOptions(root);
+    const { chmodSync } = await import("node:fs");
+
+    const spawnApi: BunSpawnApi = {
+      spawn: () => {
+        chmodSync(attemptDir, 0o500);
+        return {
+          pid: 999_999_995,
+          exited: Promise.resolve(0),
+          signalCode: null,
+          stdout: textStream([]),
+          stderr: textStream([]),
+        };
+      },
+    };
+
+    try {
+      await expect(
+        runAttempt(options, 1, "C-1", commandRoot, createCommandSigningCapability(), spawnApi),
+      ).rejects.toThrow(/permission denied|EACCES/);
+    } finally {
+      chmodSync(attemptDir, 0o700);
+    }
+  });
 });

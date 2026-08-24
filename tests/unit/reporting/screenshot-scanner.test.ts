@@ -31,7 +31,7 @@ describe("scanDirectoryForImages", () => {
     writeFileSync(join(dir, "node_modules", "c.png"), "x");
     mkdirSync(join(dir, ".git"));
     writeFileSync(join(dir, ".git", "d.png"), "x");
-    mkdirSync(join(dir, ".olt", "capsules"));
+    mkdirSync(join(dir, ".olt", "capsules"), { recursive: true });
     writeFileSync(join(dir, ".olt", "capsules", "e.png"), "x");
     writeFileSync(join(dir, ".hidden.png"), "x");
 
@@ -95,7 +95,7 @@ describe("scanDirectoryForVisualReports", () => {
     const dir = tempDir("reports-nested");
     mkdirSync(join(dir, "sub"));
     writeFileSync(join(dir, "sub", "visual-report.json"), "{}");
-    mkdirSync(join(dir, ".olt", "capsules"));
+    mkdirSync(join(dir, ".olt", "capsules"), { recursive: true });
     writeFileSync(join(dir, ".olt", "capsules", "visual-report.json"), "{}");
 
     expect(scanDirectoryForVisualReports(dir)).toEqual([join(dir, "sub", "visual-report.json")]);

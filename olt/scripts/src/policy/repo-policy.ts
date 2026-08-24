@@ -18,8 +18,8 @@ export interface ReviewProtocolPolicy {
 }
 
 export const DEFAULT_REVIEW_PROTOCOL_POLICY: ReviewProtocolPolicy = {
-  max_adversarial_pushes: 5,
-  cognitive_pushes: 3,
+  max_adversarial_pushes: 20,
+  cognitive_pushes: 5,
   escalate_on_exhausted_adversarial: true,
 };
 

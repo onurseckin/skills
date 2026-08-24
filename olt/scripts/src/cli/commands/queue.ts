@@ -17,8 +17,10 @@ import {
 } from "../formatters/index.ts";
 import { integerFlag, textFlag, type Flags } from "../options.ts";
 
+import { findRepoRoot } from "../../core/shared/paths.ts";
+
 function runConfig(runRoot: string): ReturnType<typeof getHarnessConfig> {
-  return getHarnessConfig(resolve(runRoot, "..", ".."), runRoot);
+  return getHarnessConfig(findRepoRoot(runRoot), runRoot);
 }
 
 function mandatoryGateCommands(state: WorkflowState, task: TaskRecord): string[] {

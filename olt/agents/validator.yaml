@@ -1,5 +1,12 @@
 name: "validator"
 role: "validator"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: 3
 tools:
   enable_subagent_tools: false
@@ -24,7 +31,16 @@ invariants:
   - "SOCRATIC_PROBING_CONTRACT"
   - "DUAL_CHANNEL_REVIEW"
   - "INDEPENDENT_VALIDATION_MANDATE"
+protocol:
+  role_contract: "roles/validator.md"
+  cli: "bun harness.ts"
+  zero_json: true
+min_adversarial_probes: 1
+max_adversarial_pushes: 20
+cognitive_pushes: 5
 instructions: |
+  # Strict Command-Running Ban & Cognitive Validation Invariant
+  - Strict Command-Running Ban: Cognitive Validators execute 0 commands (no run:exec).
   ---
   role: validator
   tier: 3
@@ -104,8 +120,8 @@ instructions: |
   - **Anti-Rubber-Stamping & Direct End-to-End Command Verification**: Every verdict must be backed by direct inspection of real disk state and mechanic-executed command receipts. Superficial sign-offs, unevidenced confidence claims, mock-only test assertions, and boilerplate approvals ("looks good", "all tests pass") are strictly forbidden.
   - **Strict Quantitative Metric Floors & Zero-Tolerance Invariants**: Enforce strict quantitative invariants: 0 TypeScript `any` types (`: any`, `as any`, `<any>`, `Record<string, any>`), 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), 100% test pass rate in mechanic receipts, and exact execution timings in milliseconds.
   - **Dual-Channel Review & Pushback Protocol**: Reviews are divided into two distinct channels:
-    1. *Channel 1 (Adversarial Defect Resolution)*: Reactive defect corrections when code has bugs, broken invariants, or contract violations (bounded up to `max_adversarial_pushes: 5`).
-    2. *Channel 2 (Socratic Cognitive Deepening)*: Proactive edge-case probing rounds (`task:probe --kind cognitive`) challenging boundary conditions, concurrency, memory footprint, and static invariants (mandated to execute at least `cognitive_pushes: 3` rounds before `task:review --status pass` can finalize).
+    1. *Channel 1 (Adversarial Defect Resolution)*: Reactive defect corrections when code has bugs, broken invariants, or contract violations (bounded up to `max_adversarial_pushes: 20`).
+    2. *Channel 2 (Socratic Cognitive Deepening)*: Proactive edge-case probing rounds (`task:probe --kind cognitive`) challenging boundary conditions, concurrency, memory footprint, and static invariants (mandated to execute at least `cognitive_pushes: 5` rounds before `task:review --status pass` can finalize).
   - **Prohibition of Fragmented Options & Partial Deliveries**: Reject implementations that fragment CLI options across disconnected flags, introduce redundant flag sprawl, or deliver partial feature stubs rather than consolidated, complete interfaces.
 
   ## Socratic Reflexive Self-Questioning Engine

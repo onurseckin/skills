@@ -145,13 +145,13 @@ describe("task:review", () => {
     const { repo, run } = await setupRun("review-preconditions", roots);
     const validation = await claimSubmitValidate(repo, run);
     const gateCmd = await runGate(repo, run, "gate-core.ts");
+    seedGateProof(run, TASK_ID);
 
     await expect(execute(reviewPass(run, validation.token as string, gateCmd))).rejects.toThrow(
-      /adversarial probe/,
+      /Cognitive deepening protocol not satisfied|required cognitive rounds|adversarial probe/,
     );
 
     const probed = await recordProbe(run, validation.token as string, "Prove it works");
-    seedGateProof(run, TASK_ID);
     await expect(execute(reviewPass(run, validation.token as string, gateCmd))).rejects.toThrow(
       /open finding/,
     );
@@ -352,5 +352,190 @@ describe("task:review", () => {
       coveragePath,
     ]);
     expect((passed.checklist_coverage as { applicable: boolean }).applicable).toBe(true);
+  });
+
+  test("task:validate-start accepts --lease-duration flag", async () => {
+    const { repo, run } = await setupRun("validate-start-lease", roots);
+    const claim = await execute([
+      "task:claim",
+      "--run",
+      run,
+      "--task",
+      TASK_ID,
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+    ]);
+    await Bun.write(
+      `${repo}/${CHANGED_FILE}`,
+      "export const probed = true;\nexport const modified = true;\n",
+    );
+    const gateCmd = await runGate(repo, run, "gate-core.ts");
+    await execute([
+      "task:submit",
+      "--run",
+      run,
+      "--task",
+      TASK_ID,
+      "--agent",
+      "worker-1",
+      "--token",
+      claim.token as string,
+      "--files-changed",
+      CHANGED_FILE,
+      "--evidence",
+      gateCmd,
+      "--summary",
+      "Implemented probe target",
+    ]);
+
+    const val = await execute([
+      "task:validate-start",
+      "--run",
+      run,
+      "--task",
+      TASK_ID,
+      "--validator",
+      VALIDATOR,
+      "--lease-duration",
+      "3600",
+    ]);
+    expect(val.token).toBeDefined();
+  });
+
+  test("task:review enforces paired_validator_id authorization (assertValidReviewer)", async () => {
+    const { assertValidReviewer } =
+      await import("../../../olt/scripts/src/cli/commands/task-review.ts");
+
+    const taskWithPairedValidator: TaskRecord = {
+      id: TASK_ID,
+      status: "validating",
+      requirement_ids: [],
+      dependencies: [],
+      attempts: [],
+      history: [],
+      repair_round: 0,
+      lease: {
+        agent_id: "worker-1",
+        role: "implementer",
+        paired_validator_id: "val-assigned-only",
+        token: "token-1",
+        granted_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 3600000).toISOString(),
+      },
+    };
+
+    // Unauthorized validator throws HarnessError
+    expect(() =>
+      assertValidReviewer("val-different-unauthorized", taskWithPairedValidator),
+    ).toThrow(
+      /Reviewer Authorization Failed: Caller 'val-different-unauthorized' is not the assigned paired validator \('val-assigned-only'\)/,
+    );
+
+    // Authorized validator passes cleanly
+    expect(() => assertValidReviewer("val-assigned-only", taskWithPairedValidator)).not.toThrow();
+
+    // Task without paired_validator_id allows any caller
+    const taskWithoutPair: TaskRecord = {
+      ...taskWithPairedValidator,
+      lease: undefined,
+    };
+    expect(() => assertValidReviewer("any-validator", taskWithoutPair)).not.toThrow();
+  });
+
+  test("task:review rejects superficial rubber-stamp / generic sign-offs", async () => {
+    const { repo, run } = await setupRun("review-rubber-stamp", roots);
+    const validation = await claimSubmitValidate(repo, run);
+    const gateCmd = await runGate(repo, run, "gate-core.ts");
+    const probed = await recordProbe(run, validation.token as string, "Prove it");
+    seedGateProof(run, TASK_ID);
+
+    await expect(
+      execute([
+        "task:review",
+        "--run",
+        run,
+        "--task",
+        TASK_ID,
+        "--validator",
+        VALIDATOR,
+        "--token",
+        validation.token as string,
+        "--resolve",
+        `${(probed.finding_ids as string[])[0]!}=${gateCmd}`,
+        "--status",
+        "pass",
+        "--summary",
+        "LGTM",
+      ]),
+    ).rejects.toThrow(/validator summary cannot be a superficial rubber-stamp/);
+  });
+
+  test("task:review supports micro-cycle critique when --status fail and --micro-cycle are specified", async () => {
+    const { repo, run } = await setupRun("review-micro-cycle", roots);
+    const validation = await claimSubmitValidate(repo, run);
+
+    const result = await execute([
+      "task:review",
+      "--run",
+      run,
+      "--task",
+      TASK_ID,
+      "--validator",
+      VALIDATOR,
+      "--token",
+      validation.token as string,
+      "--status",
+      "fail",
+      "--summary",
+      "Micro-cycle critique: edge case uncovered",
+      "--severity",
+      "important",
+      "--remediation",
+      "Handle null payload gracefully",
+      "--micro-cycle",
+      "--max-rounds",
+      "5",
+    ]);
+
+    expect(result.micro_cycle).toBe(true);
+    expect(result.round).toBe(1);
+  });
+
+  test("task:review records structured failing verdict and supports --kind flag", async () => {
+    const { repo, run } = await setupRun("review-fail-verdict", roots);
+    const validation = await claimSubmitValidate(repo, run);
+    const gateCmd = await runGate(repo, run, "gate-core.ts");
+
+    const failed = await execute([
+      "task:review",
+      "--run",
+      run,
+      "--task",
+      TASK_ID,
+      "--validator",
+      VALIDATOR,
+      "--token",
+      validation.token as string,
+      "--status",
+      "fail",
+      "--summary",
+      "Critical security regression detected in auth handler",
+      "--severity",
+      "critical",
+      "--remediation",
+      "Add permission check before DB query",
+      "--finding-id",
+      "finding-sec-01",
+      "--checks",
+      gateCmd,
+      "--kind",
+      "adversarial",
+    ]);
+
+    expect(failed.verdict).toBe("fail");
+    expect(failed.finding_id).toBe("finding-sec-01");
+    expect((failed.task as { status: string }).status).toBe("changes_requested");
   });
 });

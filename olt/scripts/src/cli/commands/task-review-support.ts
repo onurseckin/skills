@@ -45,7 +45,7 @@ export function reviewPolicyFor(runRoot: string, validatorId?: string): ReviewPo
   const reviewProtocol = resolveReviewProtocolConfig(repoRoot, agentMetadata);
 
   return {
-    minProbes: reviewProtocol.cognitive_pushes,
+    minProbes: config.min_adversarial_probes ?? 1,
     maxRepairRounds: reviewProtocol.max_adversarial_pushes,
     reviewProtocol,
   };

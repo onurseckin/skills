@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, isAbsolute, resolve } from "node:path";
 
 /**
@@ -617,6 +617,13 @@ export function extractFileSymbols(
   if (!existsSync(fullPath)) {
     return [];
   }
+  try {
+    if (statSync(fullPath).isDirectory()) {
+      return [];
+    }
+  } catch {
+    return [];
+  }
   const content = readFileSync(fullPath, "utf-8");
   const allSymbols = extractSymbolsFromSource(content, basename(filePath));
 
@@ -730,6 +737,13 @@ export function extractFileAnchors(
   const fullPath = resolveFilePath(filePath, baseDir);
 
   if (!existsSync(fullPath)) {
+    return [];
+  }
+  try {
+    if (statSync(fullPath).isDirectory()) {
+      return [];
+    }
+  } catch {
     return [];
   }
 

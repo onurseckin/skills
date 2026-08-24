@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   compileEffectiveForbiddenPatterns,
+  hasUnshieldedSubshellOrChaining,
   isUntargetedTestCommand,
   verifyCommandAuthorization,
 } from "../../../olt/scripts/src/policy/rbac-engine.ts";
@@ -325,6 +326,100 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
 
       const resultLs = verifyCommandAuthorization(implementerActor, "ls -la", samplePolicy);
       expect(resultLs.authorized).toBe(true);
+    });
+
+    test("blocks non-executable roles with explicit can_execute_shell: false", () => {
+      const nonExecActor = {
+        role: "worker",
+        can_execute_shell: false,
+      };
+      const result = verifyCommandAuthorization(nonExecActor, "ls", samplePolicy);
+      expect(result.authorized).toBe(false);
+      expect(result.error_code).toBe("PERMISSION_DENIED");
+      expect(result.message).toContain("can_execute_shell: false");
+    });
+
+    test("blocks direct eval and exec tokens", () => {
+      const actor: AgentMetadata = {
+        agent_id: "imp-1",
+        role: "implementer",
+        tier: 3,
+        write_scope: ["src/foo.ts"],
+        allowed_read_scope: [],
+        can_execute_shell: true,
+        spawned_at: new Date().toISOString(),
+      };
+      const resEval = verifyCommandAuthorization(actor, "eval 'console.log(1)'", samplePolicy);
+      expect(resEval.authorized).toBe(false);
+      expect(resEval.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+
+      const resExec = verifyCommandAuthorization(actor, "exec ./script.sh", samplePolicy);
+      expect(resExec.authorized).toBe(false);
+      expect(resExec.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+    });
+
+    test("compiles forbidden patterns for mechanic-validator and sub-validator", () => {
+      const mechanicPatterns = compileEffectiveForbiddenPatterns(
+        "mechanic-validator",
+        samplePolicy,
+      );
+      expect(mechanicPatterns.some((p) => p.test("git commit -m 'test'"))).toBe(true);
+      expect(mechanicPatterns.some((p) => p.test("write_to_file"))).toBe(true);
+      expect(mechanicPatterns.some((p) => p.test("replace_file"))).toBe(true);
+
+      const subValidatorPatterns = compileEffectiveForbiddenPatterns("sub_validator", samplePolicy);
+      expect(subValidatorPatterns.some((p) => p.test("git reset"))).toBe(true);
+    });
+
+    test("detects dynamic full_suite_command from custom repo policy in isUntargetedTestCommand", () => {
+      const customPolicy: RepoPolicy = {
+        schema_version: 1,
+        ecosystem: "unknown",
+        test_runner: {
+          default_command: "custom-runner test",
+          targeted_pattern: "custom-runner test <path>",
+          full_suite_command: "custom-runner test-all",
+        },
+      };
+
+      expect(isUntargetedTestCommand("custom-runner test-all", undefined, customPolicy)).toBe(true);
+      expect(
+        isUntargetedTestCommand("custom-runner test-all src/test.ts", undefined, customPolicy),
+      ).toBe(false);
+    });
+
+    test("detects subshell regex patterns such as perl/ruby inline evaluators", () => {
+      const actor: AgentMetadata = {
+        agent_id: "imp-1",
+        role: "implementer",
+        tier: 3,
+        write_scope: ["src/foo.ts"],
+        allowed_read_scope: [],
+        can_execute_shell: true,
+        spawned_at: new Date().toISOString(),
+      };
+      const resPerl = verifyCommandAuthorization(actor, "perl -e 'print 1;'", samplePolicy);
+      expect(resPerl.authorized).toBe(false);
+      expect(resPerl.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+
+      const resRuby = verifyCommandAuthorization(actor, "ruby -e 'puts 1'", samplePolicy);
+      expect(resRuby.authorized).toBe(false);
+      expect(resRuby.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+    });
+
+    test("handles flags with values and diverse test identifiers in isUntargetedTestCommand", () => {
+      expect(isUntargetedTestCommand("jest -c jest.config.js")).toBe(true);
+      expect(isUntargetedTestCommand("pytest -o rootdir=/tmp")).toBe(true);
+      expect(isUntargetedTestCommand("jest -c jest.config.js src/test.ts")).toBe(false);
+      expect(isUntargetedTestCommand("pytest -o rootdir=/tmp test_app")).toBe(false);
+      expect(isUntargetedTestCommand("cargo test unit_test_name")).toBe(false);
+      expect(isUntargetedTestCommand("cargo test SomeTest.java")).toBe(false);
+    });
+
+    test("hasUnshieldedSubshellOrChaining matches pattern when custom argv is provided", () => {
+      const match = hasUnshieldedSubshellOrChaining("eval something", ["custom_token"]);
+      expect(match.detected).toBe(true);
+      expect(match.reason).toContain("evaluator pattern");
     });
   });
 });

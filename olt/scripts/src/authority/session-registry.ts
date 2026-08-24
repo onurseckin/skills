@@ -11,7 +11,7 @@ import { join, resolve, dirname } from "node:path";
 import { randomBytes } from "node:crypto";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
-import { findRepoRoot } from "../core/shared/paths.ts";
+import { findRepoRoot, isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
 import {
   agentIdToRole,
   agentIdToTier,
@@ -72,8 +72,13 @@ export function pruneStaleSessions(maxAgeMs = 86400000): void {
         if (!Number.isNaN(pid) && pid > 0) {
           try {
             process.kill(pid, 0);
-          } catch (e: any) {
-            if (e.code === "ESRCH") {
+          } catch (e: unknown) {
+            if (
+              typeof e === "object" &&
+              e !== null &&
+              "code" in e &&
+              (e as { code?: unknown }).code === "ESRCH"
+            ) {
               unlinkSync(filePath);
             }
           }
@@ -98,8 +103,17 @@ export interface ResolveSessionOptions {
 }
 
 function resolveGlobalSessionsDir(repoRoot?: string): string {
-  const root = repoRoot ?? findRepoRoot();
-  return join(root, ".olt", ".sessions");
+  if (repoRoot) {
+    const resolved = resolve(repoRoot);
+    if (isTestEnvironment() && resolved === findRepoRoot()) {
+      return join(resolveScratchDir(), ".sessions");
+    }
+    return join(resolved, ".olt", ".sessions");
+  }
+  if (isTestEnvironment()) {
+    return join(resolveScratchDir(), ".sessions");
+  }
+  return join(findRepoRoot(), ".olt", ".sessions");
 }
 
 function inferCanExecute(role: string): { can_execute_shell: boolean; can_edit_files: boolean } {

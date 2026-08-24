@@ -47,6 +47,7 @@ const UI_TEXT_MARKERS: readonly RegExp[] = [
   /\bcontrast ratio\b/i,
   /\baccessib(le|ility)\b/i,
   /\bdom metrics\b/i,
+  /\bdual-channel\b/i,
 ];
 
 function isDocOnlyScope(writeScope: readonly string[]): boolean {

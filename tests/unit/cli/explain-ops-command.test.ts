@@ -94,7 +94,7 @@ describe("explain: command behaviour", () => {
 
   test("rejects an unknown code, naming the real ones", async () => {
     await expect(execute(["explain", "--code", "NOT_A_REAL_CODE"])).rejects.toThrow(
-      /unknown error code: NOT_A_REAL_CODE; known codes are INTEGRITY/u,
+      /unknown error code: NOT_A_REAL_CODE; known codes are .*INTEGRITY/u,
     );
   });
 
@@ -145,5 +145,35 @@ describe("explain: command behaviour", () => {
       sample.name,
     ]);
     expect(result.command).toBe("orphan:dispose");
+  });
+
+  test("resolveExampleLine throws INTEGRITY when example file does not exist", () => {
+    expect(() =>
+      resolveExampleLine({ file: "non/existent/file.ts", message: "some message" }, "INTEGRITY"),
+    ).toThrow(/does not exist as a file under scripts\/src/u);
+  });
+
+  test("resolveExampleLine throws INTEGRITY when message has no live throw in file", () => {
+    expect(() =>
+      resolveExampleLine(
+        { file: "cli/commands/task-claim.ts", message: "unmatched throw message text" },
+        "INTEGRITY",
+      ),
+    ).toThrow(/has no live throw of INTEGRITY with message/u);
+  });
+});
+
+describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
+  test("verifies explain-ops-command test file contains zero any and zero suppressions", async () => {
+    const testContent = await Bun.file(import.meta.path).text();
+    const forbiddenAnyRegex = new RegExp(":[ \\t]*" + "any\\b");
+    const forbiddenCastRegex = new RegExp("\\bas[ \\t]+" + "any\\b");
+    const forbiddenSuppressionsRegex = new RegExp("@ts-" + "(ignore|expect-error|nocheck)");
+    const forbiddenLintRegex = new RegExp("(eslint|oxlint)" + "-disable");
+
+    expect(testContent).not.toMatch(forbiddenAnyRegex);
+    expect(testContent).not.toMatch(forbiddenCastRegex);
+    expect(testContent).not.toMatch(forbiddenSuppressionsRegex);
+    expect(testContent).not.toMatch(forbiddenLintRegex);
   });
 });

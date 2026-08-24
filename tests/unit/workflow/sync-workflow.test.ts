@@ -602,7 +602,7 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
   test("verifies auto-sync and phase-commits modules and tests contain zero any and zero suppressions", () => {
     const filesToAudit = [
       join(process.cwd(), "olt/scripts/src/workflow/completion/auto-sync-and-commit.ts"),
-      join(process.cwd(), "olt/scripts/src/worktree/phase-commits.ts"),
+      join(process.cwd(), "olt/scripts/src/engine/worktree/phase-commits.ts"),
       join(process.cwd(), "tests/unit/workflow/sync-workflow.test.ts"),
     ];
 

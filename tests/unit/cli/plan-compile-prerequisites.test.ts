@@ -139,4 +139,78 @@ describe("plan:compile prerequisites", () => {
     expect(compileResult.total_tasks).toBe(0);
     expect(compileResult.revision).toBe(1);
   });
+
+  test("succeeds when state.brainstorming is set directly on state", async () => {
+    const { run } = await createTestRun("harness-plan-compile-direct-state-");
+
+    transact(run, "planner", "test-direct", {}, (state) => {
+      (state as Record<string, unknown>).brainstorming = { rounds: 1 };
+    });
+
+    const compileResult = await execute([
+      "plan:compile",
+      "--run",
+      run,
+      "--actor",
+      "planner",
+      "--completion-gate",
+      "bun test tests",
+    ]);
+    expect(compileResult.total_tasks).toBe(0);
+  });
+
+  test("succeeds when state.events has type or event matching plan-brainstormed", async () => {
+    const { run } = await createTestRun("harness-plan-compile-evt-variants-");
+
+    transact(run, "planner", "test-evt", {}, (state) => {
+      (state as Record<string, unknown>).events = [
+        { type: "plan-brainstormed" },
+        { event: "plan-brainstormed" },
+      ];
+    });
+
+    const compileResult = await execute([
+      "plan:compile",
+      "--run",
+      run,
+      "--actor",
+      "planner",
+      "--completion-gate",
+      "bun test tests",
+    ]);
+    expect(compileResult.total_tasks).toBe(0);
+  });
+
+  test("succeeds when .olt/brainstorming.json is present", async () => {
+    const { run } = await createTestRun("harness-plan-compile-dot-olt-json-");
+    const { mkdir } = await import("node:fs/promises");
+    await mkdir(join(run, ".olt"), { recursive: true });
+    await writeFile(join(run, ".olt", "brainstorming.json"), "{}", "utf-8");
+
+    const compileResult = await execute([
+      "plan:compile",
+      "--run",
+      run,
+      "--actor",
+      "planner",
+      "--completion-gate",
+      "bun test tests",
+    ]);
+    expect(compileResult.total_tasks).toBe(0);
+  });
+});
+
+describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
+  test("verifies plan-compile-prerequisites test file contains zero any and zero suppressions", async () => {
+    const testContent = await Bun.file(import.meta.path).text();
+    const forbiddenAnyRegex = new RegExp(":[ \\t]*" + "any\\b");
+    const forbiddenCastRegex = new RegExp("\\bas[ \\t]+" + "any\\b");
+    const forbiddenSuppressionsRegex = new RegExp("@ts-" + "(ignore|expect-error|nocheck)");
+    const forbiddenLintRegex = new RegExp("(eslint|oxlint)" + "-disable");
+
+    expect(testContent).not.toMatch(forbiddenAnyRegex);
+    expect(testContent).not.toMatch(forbiddenCastRegex);
+    expect(testContent).not.toMatch(forbiddenSuppressionsRegex);
+    expect(testContent).not.toMatch(forbiddenLintRegex);
+  });
 });

@@ -1,7 +1,7 @@
 import { existsSync, appendFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import os from "node:os";
-import { resolveDefectsPath } from "../core/shared/paths.ts";
+import { isTestEnvironment, resolveDefectsPath } from "../core/shared/paths.ts";
 
 export type ExecutionTier = 0 | 1 | 2 | 3;
 
@@ -369,7 +369,7 @@ export function identifyExecutionContext(
       argvStr,
     );
 
-  if (isMainThread && !isPassive && isMutationOrTest) {
+  if (isMainThread && !isPassive && isMutationOrTest && !isTestEnvironment()) {
     const defectId = `defect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     defect = {
       id: defectId,

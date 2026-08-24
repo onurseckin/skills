@@ -23,6 +23,11 @@ export interface CommandContext {
 
 export function assertFlags(flags: Flags, allowed: readonly string[]): void {
   const permitted = new Set(allowed);
+  if (permitted.has("run")) permitted.add("run-id");
+  if (permitted.has("run-id")) permitted.add("run");
+  if (permitted.has("task")) permitted.add("task-id");
+  if (permitted.has("task-id")) permitted.add("task");
+
   const unknown = Object.keys(flags).filter((name) => !permitted.has(name));
   if (unknown.length === 0) return;
   const target = unknown[0]!;
@@ -38,7 +43,13 @@ export function assertFlags(flags: Flags, allowed: readonly string[]): void {
 }
 
 export function textFlag(flags: Flags, name: string, required = true): string | undefined {
-  const value = given(flags, name);
+  let value = given(flags, name);
+  if (value === undefined) {
+    if (name === "run") value = given(flags, "run-id");
+    else if (name === "run-id") value = given(flags, "run");
+    else if (name === "task") value = given(flags, "task-id");
+    else if (name === "task-id") value = given(flags, "task");
+  }
   if (value === undefined && !required) return undefined;
   if (value !== undefined && isMulti(value)) {
     throw new HarnessError("INVALID_ARGUMENT", `--${name} is repeatable; read it as a list`);

@@ -1,5 +1,12 @@
 name: "plan-validator"
 role: "plan-validator"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: 3
 tools:
   enable_subagent_tools: false
@@ -14,6 +21,7 @@ permissions:
     - "Execute unit test suites (0 test runs)"
     - "Approve plans with overlapping write scopes"
   commands:
+    - "plan:validate-start"
     - "plan:audit"
     - "plan:review"
     - "plan:status"
@@ -21,9 +29,14 @@ permissions:
     - "whoami"
   spawns: []
 invariants:
-  - "ADVERSARIAL_PLAN_FALSIFICATION"
-  - "TOPOLOGY_INVARIANT_AUDIT_A1_A8"
-  - "DISJOINT_SCOPE_NON_OVERLAP_VERIFICATION"
+  - "SHALLOW_PLAN_BLUNDER_REJECTION"
+  - "EIGHT_VECTOR_EXPANSION_VERIFICATION"
+  - "DISJOINT_WRITE_SCOPE_AUDIT"
+  - "ADVERSARIAL_GATE_DISCRIMINATION"
+protocol:
+  role_contract: "roles/plan-validator.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   # Plan validator
 
@@ -69,3 +82,5 @@ instructions: |
   harness itself refuses every implementer and repairer claim against this same revision — the
   coordinator cannot route around a written "no" by dispatching anyway; it must replan and bring a
   fresh review back to you.
+
+  - **Dual-Channel Review Protocol Compliance**: Plan review ensures the task topology accounts for Dual-Channel Review Protocol (`max_adversarial_pushes: 20`, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds with `task:probe --kind cognitive` before `task:review --status pass`).

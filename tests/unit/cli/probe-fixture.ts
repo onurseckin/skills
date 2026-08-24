@@ -1,6 +1,4 @@
-import { realpathSync } from "node:fs";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { readPlanBindings } from "../../../olt/scripts/src/cli/commands/plan-replan-bindings.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
@@ -10,6 +8,7 @@ import {
 } from "../../../olt/scripts/src/graph/gate-proof.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 export const TASK_ID = "task-core";
 export const VALIDATOR = "val-1";
@@ -21,17 +20,36 @@ export async function setupRun(
   roots: string[],
   config?: Record<string, boolean | number | string>,
 ): Promise<{ repo: string; run: string }> {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-probe-${name}-`)));
+  const repo = scratchRoot(import.meta.path, `probe-${name}`);
   roots.push(repo);
-  if (config) {
-    await writeFile(join(repo, "harness.config.json"), JSON.stringify(config));
-  }
+  await writeFile(
+    join(repo, "harness.config.json"),
+    JSON.stringify({ min_adversarial_probes: 1, ...config }),
+  );
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Core unit tests");
   await mkdir(join(repo, "tests/unit/core"), { recursive: true });
   await writeFile(join(repo, CHANGED_FILE), "export const probed = true;\n");
   await writeFile(join(repo, "gate-core.ts"), "console.log('gate-core');\n");
   await writeFile(join(repo, "gate-red.ts"), "process.exit(1);\n");
+  await mkdir(join(repo, "olt"), { recursive: true });
+  await mkdir(join(repo, ".olt"), { recursive: true });
+  const policyContent = JSON.stringify({
+    schema_version: 1,
+    ecosystem: "bun",
+    package_manager: "bun",
+    test_runner: {
+      default_command: "bun test",
+      targeted_pattern: "bun test <path>",
+      full_suite_command: "bun test",
+    },
+    review_protocol: {
+      max_adversarial_pushes: 20,
+      cognitive_pushes: 1,
+    },
+  });
+  await writeFile(join(repo, "olt", "policy.json"), policyContent);
+  await writeFile(join(repo, ".olt", "policy.json"), policyContent);
 
   const init = await execute([
     "plan:init",
@@ -58,6 +76,8 @@ export async function setupRun(
     "--actor",
     "planner",
   ]);
+  await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
+
   await execute([
     "plan:compile",
     "--run",
@@ -166,15 +186,21 @@ export async function runGate(
  *  history to check the gate actually fails without the work) cannot run against them — seed the
  *  same `gate_proofs` record it would have appended instead. */
 export function seedGateProof(run: string, taskId: string, actor = "coordinator"): void {
-  const binding = readPlanBindings(loadRun(run).state).tasks.find((task) => task.id === taskId);
+  const loaded = loadRun(run);
+  const binding = readPlanBindings(loaded.state).tasks.find((task) => task.id === taskId);
   if (!binding || binding.gate === undefined) {
     throw new Error(`seedGateProof: ${taskId} has no compiled task-scope gate to prove`);
   }
+  const task = (loaded.state.tasks as Record<string, unknown> | undefined)?.[taskId] as
+    | { attempts?: { claimed_base_sha?: { value?: string } }[] }
+    | undefined;
+  const attempt = task?.attempts?.at(-1);
+  const base = attempt?.claimed_base_sha?.value ?? "HEAD";
   const record: GateProofRecord = {
     task_id: taskId,
     gate_argv: [...binding.gate],
     write_scope: [...binding.writeScope],
-    base: "HEAD",
+    base,
     falsifiable: true,
     exit_code: 1,
     timed_out: false,

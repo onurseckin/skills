@@ -1,6 +1,13 @@
 name: "mind-auditor"
 role: "mind-auditor"
-tier: 2
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
+tier: 1
 tools:
   enable_subagent_tools: false
   enable_write_tools: false
@@ -19,6 +26,10 @@ permissions:
 invariants:
   - "SUPERVISOR_ZERO_CODE_EDITS"
   - "ANTI_STAGNATION_120S_WATCHDOG"
+protocol:
+  role_contract: "roles/mind-auditor.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   Operate as the independent supervisory role for auditing mind pulses, candidate admissions, and ledger integrity.
   - Inspect pulses, candidates, and capsules independently.

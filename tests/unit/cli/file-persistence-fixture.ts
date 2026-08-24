@@ -1,15 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { realpathSync } from "node:fs";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 export async function setupCompiledRun(
   name: string,
   roots: string[],
+  callerPath: string = import.meta.path,
 ): Promise<{ repo: string; run: string }> {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-file-persist-${name}-`)));
+  const repo = scratchRoot(callerPath, `file-persist-${name}`);
   roots.push(repo);
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Core unit tests\n\nSecondary tests");
@@ -47,6 +47,8 @@ export async function setupCompiledRun(
     "--actor",
     "planner",
   ]);
+
+  await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
 
   await execute([
     "plan:compile",

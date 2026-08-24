@@ -124,7 +124,10 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
   const capsulesParent = options.capsulesDir
     ? resolve(options.capsulesDir)
     : dirname(realSourceRunRoot);
-  const repoRoot = dirname(capsulesParent);
+  const repoRoot =
+    basename(capsulesParent) === "capsules" && basename(dirname(capsulesParent)) === ".olt"
+      ? dirname(dirname(capsulesParent))
+      : dirname(capsulesParent);
 
   let targetRunId: string;
   let targetRunRoot: string;

@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
 import type { CandidateRecord } from "./gates.ts";
 import type { ObjectiveRecord } from "./rounds.ts";
 
@@ -125,7 +126,7 @@ export const DEFAULT_ARCHIVED_OBJECTIVES_FILE = ".capsules/ARCHIVED_OBJECTIVES.j
  */
 export function resolveCanonicalArchivedObjectivesPath(
   customRoot?: string,
-  useTodo = false,
+  _useTodo = false,
 ): string {
   return require("path").join(customRoot || process.cwd(), ".olt", "archived-objectives.jsonl");
 }
@@ -134,8 +135,14 @@ export function resolveCanonicalArchivedObjectivesPath(
  * Resolves the path to the archived objectives ledger, supporting canonical, todo, and legacy locations.
  */
 export function resolveArchivedObjectivesPath(capsulesDir?: string, customPath?: string): string {
-  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
-  return require("path").join(process.cwd(), ".olt", "archived-objectives.jsonl");
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  if (capsulesDir && capsulesDir.trim()) {
+    return join(resolve(capsulesDir.trim()), "ARCHIVED_OBJECTIVES.jsonl");
+  }
+  if (isTestEnvironment()) {
+    return join(resolveScratchDir(), "ARCHIVED_OBJECTIVES.jsonl");
+  }
+  return join(process.cwd(), ".capsules", "ARCHIVED_OBJECTIVES.jsonl");
 }
 
 /**

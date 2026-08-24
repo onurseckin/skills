@@ -632,7 +632,7 @@ describe("task-check: formatTaskCheckMarkdown", () => {
     const formatted = formatTaskCheckMarkdown(summary);
     expect(formatted).toContain("### ⚡ Incremental Verification: Task `task-feat-auth`");
     expect(formatted).toContain("❌ **FAIL: Verification Violations Detected**");
-    expect(formatted).toContain("- **Capsule Run**: `.capsules/test-run-123`");
+    expect(formatted).toContain("- **Capsule Run**: `.olt/capsules/test-run-123`");
     expect(formatted).toContain("- **Task ID**: `task-feat-auth`");
     expect(formatted).toContain("- Status: **Failed** (1 errors across 2 files)");
     expect(formatted).toContain("- Status: **Failed** (1 violations in 2 files)");

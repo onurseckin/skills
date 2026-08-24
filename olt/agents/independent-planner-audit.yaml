@@ -1,5 +1,12 @@
 name: "independent-planner-audit"
 role: "independent-planner-audit"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: "independent"
 tools:
   enable_subagent_tools: false
@@ -18,6 +25,10 @@ invariants:
   - "PURE_ENGLISH_CONCEPTUAL_STANDARD"
   - "COMPLETE_HARNESS_DECOUPLING"
   - "SOCRATIC_DEVILS_ADVOCATE_CRITIQUE"
+protocol:
+  role_contract: "roles/independent-planner-audit.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   # Independent Plan Auditor
 

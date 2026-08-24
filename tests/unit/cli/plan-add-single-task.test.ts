@@ -284,6 +284,7 @@ describe("plan:add (single task)", () => {
       "--actor",
       "planner",
     ]);
+    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
     await execute([
       "plan:compile",
       "--run",

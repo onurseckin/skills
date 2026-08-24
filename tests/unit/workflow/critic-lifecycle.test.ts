@@ -68,7 +68,7 @@ function readyPort(): TestPort {
 
 function publishCritic(port: TestPort, critic: string, attempt: number, token: string): void {
   const id = `critic-${attempt}`;
-  const sha = String(attempt).repeat(64);
+  const sha = (attempt % 16).toString(16).repeat(64);
   port.transact(critic, "packet-published", {}, (draft) => {
     draft.commands[`C-CHECK-${attempt}`] = commandRecord(`C-CHECK-${attempt}`, {
       task_id: null,
@@ -108,7 +108,7 @@ function findings(port: TestPort, critic: string, attempt: number, token: string
     {
       packet_id: `critic-${attempt}`,
       critic_token: token,
-      packet_sha256: String(attempt).repeat(64),
+      packet_sha256: (attempt % 16).toString(16).repeat(64),
       graph_revision: 1,
       readiness_sha256: port.read().completion_critic!.readiness_sha256,
       repository_binding: structuredClone(repositoryBinding),
@@ -191,7 +191,7 @@ describe("completion critic lifecycle", () => {
 
   test("requires remediation and a fresh critic, preserves history, and bounds rounds", () => {
     const port = readyPort();
-    for (let attempt = 1; attempt <= 6; attempt += 1) {
+    for (let attempt = 1; attempt <= 20; attempt += 1) {
       const critic = `critic-${attempt}`;
       const authorization = beginCompletenessCritic(port, critic, { clock });
       findings(port, critic, attempt, authorization.token);
@@ -200,8 +200,8 @@ describe("completion critic lifecycle", () => {
       remediate(port);
       expect(() => beginCompletenessCritic(port, critic, { clock })).toThrow();
     }
-    expect(port.read().completion_remediations).toHaveLength(6);
-    expect(() => beginCompletenessCritic(port, "critic-7", { clock })).toThrow();
+    expect(port.read().completion_remediations).toHaveLength(20);
+    expect(() => beginCompletenessCritic(port, "critic-21", { clock })).toThrow();
   });
 
   test("completion rechecks immutable critic and remediation history", () => {

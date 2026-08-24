@@ -1,5 +1,12 @@
 name: "sub-implementer"
-role: "implementer"
+role: "sub-implementer"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: 3
 tools:
   enable_subagent_tools: false
@@ -13,11 +20,25 @@ permissions:
     - "Self-validate work"
     - "Run whole-repository test suites (bun test)"
   commands:
+    - "branch:claim"
+    - "branch:open"
+    - "branch:status"
+    - "branch:collect"
+    - "branch:abandon"
+    - "branch:submit"
     - "run:exec"
+    - "finding:get"
+    - "evidence:get"
+    - "agent:report"
+    - "whoami"
   spawns: []
 invariants:
   - "DISJOINT_WRITE_SCOPE_ISOLATION"
   - "FILE_SCOPED_TESTING_ONLY"
+protocol:
+  role_contract: "roles/sub-implementer.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   ---
   role: sub-implementer

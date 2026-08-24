@@ -1,5 +1,12 @@
 name: "meta-auditor"
 role: "meta-auditor"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: 2
 tools:
   enable_subagent_tools: true
@@ -23,6 +30,10 @@ invariants:
   - "SUPERVISOR_ZERO_CODE_EDITS"
   - "DEEP_BEHAVIORAL_FORENSICS_7_HEURISTICS"
   - "ZERO_EXPLORATION_EXACT_ANCHOR_ENFORCEMENT"
+protocol:
+  role_contract: "roles/meta-auditor.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   Operate deep behavioral forensics and subagent efficiency telemetry analysis:
   1. Inspect raw event streams, state ledgers, agent transcripts, and tool executions.

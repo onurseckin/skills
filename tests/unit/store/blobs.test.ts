@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
 import {
   chmodSync,
   lstatSync,
@@ -86,6 +87,33 @@ describe("putBlobFile", () => {
     expect(() => putBlobFile(root, source)).toThrow(
       new RegExp(`capture exceeds the ${MAX_BLOB_BYTES} byte blob limit`),
     );
+  });
+
+  test("throws when bytes read exceed the blob byte limit during stream reading", () => {
+    const root = scratchRoot("throws-when-bytes-read-exceed-limit-in-loop");
+    const source = join(root, "dynamic.bin");
+    writeFileSync(source, "initial");
+
+    const spy = spyOn(fs, "readSync").mockImplementation(
+      (
+        fd: number,
+        buffer: NodeJS.ArrayBufferView,
+        offset: number,
+        length: number,
+        position: fs.ReadPosition | null,
+      ) => {
+        spy.mockRestore();
+        return MAX_BLOB_BYTES + 1;
+      },
+    );
+
+    try {
+      expect(() => putBlobFile(root, source)).toThrow(
+        new RegExp(`capture exceeds the ${MAX_BLOB_BYTES} byte blob limit`),
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

@@ -65,6 +65,7 @@ export async function branchCapsule(
     join(repo, "prompt.txt"),
   ]);
   const run = String(init.run_root);
+  await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
   await execute([
     "plan:add",
     "--run",
@@ -80,6 +81,7 @@ export async function branchCapsule(
     "--actor",
     "planner",
   ]);
+  await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
   await execute([
     "plan:compile",
     "--run",

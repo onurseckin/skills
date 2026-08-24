@@ -2,7 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { ignoredByGit, runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
+import {
+  ignoredByGit,
+  runDoctor,
+  versionAtLeast,
+  formatDoctorReport,
+} from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
@@ -10,12 +15,25 @@ afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
 );
 
-const exitCode = (status: number) => () => ({ status, bytes: Buffer.alloc(0) });
+const exitCode =
+  (status: number, stdout = "") =>
+  () => ({
+    status,
+    bytes: Buffer.from(stdout),
+  });
 const throwingGitCommand = () => {
   throw new Error("git exec failure");
 };
 
 describe("doctor diagnostics and gitignore policy", () => {
+  test("versionAtLeast checks semver ordering", () => {
+    expect(versionAtLeast("1.3.14", "1.2.0")).toBe(true);
+    expect(versionAtLeast("1.2.0", "1.2.0")).toBe(true);
+    expect(versionAtLeast("1.1.0", "1.2.0")).toBe(false);
+    expect(versionAtLeast("2.0.0", "1.9.9")).toBe(true);
+    expect(versionAtLeast("1.0.0", "2.0.0")).toBe(false);
+  });
+
   test("ignoredByGit answers true, false, or unknown and never guesses", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-git-doc-"));
     roots.push(repo);
@@ -32,9 +50,48 @@ describe("doctor diagnostics and gitignore policy", () => {
     expect(ignoredByGit(runRoot, throwingGitCommand)).toBeNull();
   });
 
-  test("runDoctor collects command, packet, and workflow issues", async () => {
+  test("formatDoctorReport formats healthy and unhealthly states with markdown", () => {
+    const healthyReport = formatDoctorReport({
+      runRoot: "/repo/.capsules/run-ok",
+      healthy: true,
+      bunVersion: "1.3.14",
+      bunSupported: true,
+      gitignored: true,
+      issues: [],
+    });
+    expect(healthyReport).toContain("**Healthy**: yes");
+    expect(healthyReport).toContain("**Gitignored**: yes");
+    expect(healthyReport).toContain("**Issues**: none");
+
+    const unhealthyReport = formatDoctorReport({
+      runRoot: "/repo/.capsules/run-fail",
+      healthy: false,
+      bunVersion: "1.0.0",
+      bunSupported: false,
+      gitignored: false,
+      issues: ["Broken integrity", "Corrupted state"],
+      tierConfinementFindings: [
+        {
+          agent_id: "coord-1",
+          role: "coordinator",
+          tier: 2,
+          violation_type: "coordinator_code_writing",
+          severity: "critical",
+          observation: "Coordinator edited source",
+          remediation: "Revert edits",
+        },
+      ],
+    });
+    expect(unhealthyReport).toContain("**Healthy**: no");
+    expect(unhealthyReport).toContain("**Gitignored**: no");
+    expect(unhealthyReport).toContain("Broken integrity");
+  });
+
+  test("runDoctor collects command, packet, workflow, and git diff issues", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-doc-full-"));
     roots.push(repo);
+    await mkdir(join(repo, ".git"));
+
     const runRoot = initRun(
       repo,
       "doc-run",
@@ -74,7 +131,8 @@ describe("doctor diagnostics and gitignore policy", () => {
       };
     });
 
-    const report = await runDoctor(runRoot);
+    const diffGitCommand = exitCode(0, "src/foo.ts\nsrc/bar.ts\n");
+    const report = await runDoctor(runRoot, {}, diffGitCommand);
     expect(report.healthy).toBe(false);
     expect(report.run_root).toBe(runRoot);
     expect(report.bun_supported).toBe(true);
@@ -83,11 +141,42 @@ describe("doctor diagnostics and gitignore policy", () => {
     expect(report.workflow_issues).toContain("task task-1 is proposed, not done");
   });
 
+  test("runDoctor handles corrupted run directory where loadRun fails", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-doc-corrupted-"));
+    roots.push(repo);
+    const runRoot = join(repo, ".capsules", "empty-nonexistent");
+
+    const report = await runDoctor(runRoot);
+    expect(report.healthy).toBe(false);
+    expect(report.issues.length).toBeGreaterThan(0);
+  });
+
+  test("runDoctor handles options.installation status check", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-doc-install-"));
+    roots.push(repo);
+    const runRoot = initRun(
+      repo,
+      "install-run",
+      new TextEncoder().encode("Doctor prompt"),
+      "file",
+      true,
+    );
+
+    const report = await runDoctor(runRoot, {
+      installation: {
+        source: join(process.cwd(), "olt"),
+        home: repo,
+        clients: ["claude-code"],
+      },
+    });
+
+    expect(report.run_root).toBe(runRoot);
+    expect(Array.isArray(report.installation_issues)).toBe(true);
+  });
+
   test("runDoctor flags run capsule when not gitignored", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-doc-unignored-"));
     roots.push(repo);
-    // A `.git` entry present, and an injected probe answering "not ignored" the way a fresh
-    // repository with no matching gitignore rule would.
     await mkdir(join(repo, ".git"));
     const runRoot = initRun(
       repo,
@@ -104,7 +193,6 @@ describe("doctor diagnostics and gitignore policy", () => {
   test("runDoctor reports an unanswerable gitignore probe as unknown, not as a violation", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-doc-unknown-ignore-"));
     roots.push(repo);
-    // A `.git` entry the probe cannot read: present enough to be asked, broken enough to fail.
     await mkdir(join(repo, ".git"));
     const runRoot = initRun(
       repo,

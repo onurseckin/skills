@@ -10,7 +10,7 @@ export function enforceIsolatedTaskDispatch(candidateId: string): {
   };
 }
 
-export function atomicAdmissionToDispatch(candidateId: string): boolean {
+export function atomicAdmissionToDispatch(_candidateId: string): boolean {
   // Admitted feedback immediately enters active task queues with zero paused admitted intermediate state.
   return true;
 }

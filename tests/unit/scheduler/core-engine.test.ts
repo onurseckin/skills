@@ -23,6 +23,8 @@ import {
   SchedulerEngine,
 } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { registerWatchdog } from "../../../olt/scripts/src/authority/watchdog-manager.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import type {
   TaskRecord,
@@ -30,6 +32,10 @@ import type {
   WorkflowState,
 } from "../../../olt/scripts/src/workflow/types.ts";
 import { schedulerState } from "./fixtures.ts";
+
+function scratchRoot(label: string): string {
+  return makeScratchRoot(import.meta.path, label);
+}
 
 function createMockPort(initialState: Record<string, unknown>): TransactionPort {
   let state = structuredClone(initialState) as unknown as WorkflowState;
@@ -604,5 +610,102 @@ describe("Core Scheduler Engine — Pulse Loop Execution", () => {
 
     expect(loopResult.stoppedReason).toBe("aborted");
     expect(loopResult.totalTicks).toBeLessThan(100);
+  });
+});
+
+describe("Core Scheduler Engine — Complete SchedulerEngine Instance Methods", () => {
+  test("auditDoctorGate and assertDoctorGatePassed succeed on healthy initialized run", async () => {
+    const root = scratchRoot("doctor-gate-healthy");
+    const runRoot = initRun(
+      root,
+      "run-healthy-doc",
+      Buffer.from("Verify doctor gate passes cleanly"),
+      "argv",
+      true,
+    );
+
+    const auditRes = await auditDoctorGate(runRoot);
+    expect(auditRes.healthy).toBe(true);
+
+    const assertRes = await assertDoctorGatePassed(runRoot);
+    expect(assertRes.healthy).toBe(true);
+  });
+
+  test("SchedulerEngine executes complete suite of methods", async () => {
+    const engine = new SchedulerEngine({
+      heartbeatCadenceMs: 5000,
+      timeoutMs: 10000,
+      maxRepairRounds: 3,
+      maxParallel: 4,
+    });
+
+    const state = schedulerState();
+    const port = createMockPort(state);
+
+    // 1. auditHealth
+    const healthReport = engine.auditHealth(state);
+    expect(healthReport.healthy).toBe(true);
+
+    // 2. auditWatchdog
+    const watchdogReport = engine.auditWatchdog();
+    expect(watchdogReport).toBeDefined();
+
+    // 3. auditSupervisory5Point
+    const supervisory5Point = engine.auditSupervisory5Point(state);
+    expect(supervisory5Point.healthy).toBe(true);
+
+    // 4. dispatchTopLeaderProbe
+    const leaderProbe = engine.dispatchTopLeaderProbe(state);
+    expect(leaderProbe.dispatched).toBe(true);
+    expect(leaderProbe.targetAgentId).toBeDefined();
+
+    // 5. evaluateReadyBatch
+    const readyBatch = engine.evaluateReadyBatch(state, 3);
+    expect(readyBatch.entries.length).toBeGreaterThan(0);
+
+    // 6. evaluateWave with ready, occupied, and blocked tasks
+    const waveRes = engine.evaluateWave(state, 5);
+    expect(waveRes.readyTasks.length).toBeGreaterThan(0);
+    expect(waveRes.totalEligible).toBe(waveRes.readyTasks.length);
+
+    // 7. evaluateMultiDomainBatch
+    const mdBatch = engine.evaluateMultiDomainBatch(state, { maxParallel: 3 });
+    expect(mdBatch).toBeDefined();
+
+    // 8. dispatchMultiDomainValidators
+    const mdVal = engine.dispatchMultiDomainValidators(state, { maxParallel: 3 });
+    expect(mdVal).toBeDefined();
+
+    // 9. proposeMultiDomainWave
+    const mdWave = engine.proposeMultiDomainWave(state, { maxParallel: 3 });
+    expect(mdWave).toBeDefined();
+
+    // 10. recoverStale
+    const recRes = engine.recoverStale(port);
+    expect(recRes).toBeDefined();
+
+    // 11. registerSupervisoryHeartbeat
+    const hb = engine.registerSupervisoryHeartbeat("test-leader-1");
+    expect(hb.agent_id).toBe("test-leader-1");
+
+    // 12. auditDoctor & runDoctorGate
+    const root = scratchRoot("engine-doctor-test");
+    const runRoot = initRun(
+      root,
+      "run-engine-doc",
+      Buffer.from("Test prompt for engine doctor"),
+      "argv",
+      true,
+    );
+    const docAudit = await engine.auditDoctor(runRoot);
+    expect(docAudit.healthy).toBe(true);
+    const docGate = await engine.runDoctorGate(runRoot);
+    expect(docGate.healthy).toBe(true);
+
+    // 13. auditScriptBackedDiagnostics & runScriptBackedDiagnostics
+    const diagAudit = await engine.auditScriptBackedDiagnostics({ state });
+    expect(diagAudit.receipts.length).toBeGreaterThan(0);
+    const diagRun = await engine.runScriptBackedDiagnostics({ state });
+    expect(diagRun.receipts.length).toBeGreaterThan(0);
   });
 });

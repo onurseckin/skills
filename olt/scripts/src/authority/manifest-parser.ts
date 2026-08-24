@@ -56,6 +56,13 @@ export interface AgentManifestProtocol {
   readonly [key: string]: unknown;
 }
 
+export interface AgentManifestPermissions {
+  readonly may?: readonly string[] | undefined;
+  readonly must_not?: readonly string[] | undefined;
+  readonly commands?: readonly string[] | undefined;
+  readonly spawns?: readonly string[] | undefined;
+}
+
 export interface AgentManifest {
   readonly name: string;
   readonly role: string;
@@ -64,6 +71,9 @@ export interface AgentManifest {
   readonly tools?: AgentToolsConfig | undefined;
   readonly config?: Readonly<Record<string, unknown>> | undefined;
   readonly interface?: AgentManifestInterface | undefined;
+  readonly permissions?: AgentManifestPermissions | undefined;
+  readonly invariants?: readonly string[] | undefined;
+  readonly instructions?: string | undefined;
   readonly protocol?: AgentManifestProtocol | undefined;
   readonly filePath?: string | undefined;
   readonly raw?: string | undefined;
@@ -885,6 +895,17 @@ export function parseAgentManifest(content: string, filePath?: string): AgentMan
       ? (record.interface as AgentManifestInterface)
       : undefined;
 
+  const permissions =
+    typeof record.permissions === "object" && record.permissions !== null
+      ? (record.permissions as AgentManifestPermissions)
+      : undefined;
+
+  const invariants = Array.isArray(record.invariants)
+    ? record.invariants.map((inv) => String(inv).trim()).filter(Boolean)
+    : undefined;
+
+  const instructions = typeof record.instructions === "string" ? record.instructions : undefined;
+
   const protocol =
     typeof record.protocol === "object" && record.protocol !== null
       ? (record.protocol as AgentManifestProtocol)
@@ -898,6 +919,9 @@ export function parseAgentManifest(content: string, filePath?: string): AgentMan
     tools,
     config,
     interface: iface,
+    permissions,
+    invariants,
+    instructions,
     protocol,
     filePath,
     raw: content,
@@ -924,6 +948,41 @@ export function loadRoleContract(roleInput: string, options?: ManifestLoaderOpti
 
   if (!bypassCache && CONTRACT_CACHE.has(role)) {
     return CONTRACT_CACHE.get(role)!;
+  }
+
+  // Load directly from Unified YAML Manifest
+  try {
+    const manifest = loadAgentManifest(roleInput, options);
+    const contract: RoleContract = {
+      role: manifest.role || role,
+      tier: manifest.tier ?? 3,
+      domain: typeof manifest.domain === "string" ? manifest.domain : undefined,
+      may: manifest.permissions?.may?.length
+        ? manifest.permissions.may
+        : [`Operate as ${role} inside assigned task boundaries`],
+      mustNot: manifest.permissions?.must_not?.length
+        ? manifest.permissions.must_not
+        : [`Violate ${role} role boundaries or edit files outside assigned scope`],
+      commands: manifest.permissions?.commands?.length
+        ? manifest.permissions.commands
+        : ["task:claim", "task:heartbeat", "task:submit", "whoami"],
+      spawns: manifest.permissions?.spawns ?? [],
+      frontmatter: {
+        role: manifest.role || role,
+        tier: manifest.tier ?? 3,
+        may: manifest.permissions?.may,
+        must_not: manifest.permissions?.must_not,
+        commands: manifest.permissions?.commands,
+        spawns: manifest.permissions?.spawns,
+      },
+      body: manifest.instructions || "",
+      filePath: manifest.filePath,
+      raw: manifest.raw || "",
+    };
+    if (!bypassCache) CONTRACT_CACHE.set(role, contract);
+    return contract;
+  } catch {
+    // Fall through to markdown check if legacy rolesDir exists
   }
 
   const skillRoot = options?.skillRoot ?? findSkillRoot();
@@ -1144,7 +1203,7 @@ export function loadUnifiedAgentModel(
     manifest.interface?.tools?.enable_write_tools ??
     (tier === 3 && (role === "implementer" || role === "repairer" || role === "worker"));
 
-  const instructions = manifest.protocol?.instructions ?? "";
+  const instructions = manifest.instructions ?? manifest.protocol?.instructions ?? "";
   const roleContractBody = contract.body;
 
   const unified: UnifiedAgentModel = {

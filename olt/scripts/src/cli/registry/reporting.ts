@@ -13,6 +13,7 @@ import { summaryViewCommand } from "../commands/summary-ops.ts";
 import { reportGetCommand } from "../commands/inspection-ops.ts";
 import { streamEventsCommand } from "../commands/stream-events.ts";
 import { exportGraphJsonCommand } from "../commands/graph-export.ts";
+import { dagViewCommand } from "../commands/dag-view.ts";
 import { dagRenderCommand, dagTraceCommand } from "../commands/dag.ts";
 
 export const REPORTING_COMMANDS: readonly CommandSpec[] = [
@@ -263,6 +264,11 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
         "bool",
         "Render full write scopes, gate commands, and dependency lists.",
       ),
+      optionalFlag(
+        "recommendations",
+        "bool",
+        "Include algorithmic parallelization recommendations.",
+      ),
       optionalFlag("box-style", "string", "Box border style: rounded, sharp, or ascii.", "rounded"),
       optionalFlag("all", "bool", "Do not truncate output lines."),
       optionalFlag("json", "bool", "Output structured JSON report."),
@@ -274,7 +280,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts dag:render --run .olt/capsules/<run-id>",
       "bun harness.ts dag:render --detailed --box-style rounded",
     ],
-    handler: dagRenderCommand,
+    handler: dagViewCommand,
   },
   {
     name: "dag:trace",

@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import type { JsonValue } from "../core/contracts/json.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
 import {
   createDefaultWatchdogStore,
   DEFAULT_HEARTBEAT_CADENCE_MS,
@@ -37,15 +38,17 @@ export {
   type WatchdogStore,
 };
 
-export const DEFAULT_WATCHDOG_FILE = ".capsules/watchdogs.json";
+export const CANONICAL_WATCHDOG_FILE = "olt/watchdogs.json";
+export const DEFAULT_WATCHDOG_FILE = "olt/watchdogs.json";
 
-export function resolveCanonicalWatchdogStorePath(customRoot?: string, useTodo = false): string {
-  return require("path").join(customRoot || process.cwd(), ".olt", "watchdogs.json");
+export function resolveCanonicalWatchdogStorePath(customRoot?: string, _useTodo = false): string {
+  const root = customRoot || (isTestEnvironment() ? resolveScratchDir() : process.cwd());
+  return join(root, ".olt", "watchdogs.json");
 }
 
 export function resolveWatchdogStorePath(customPath?: string): string {
-  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
-  return require("path").join(process.cwd(), ".olt", "watchdogs.json");
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  return resolveCanonicalWatchdogStorePath();
 }
 
 export function loadMindWatchdogStore(target?: string): WatchdogStore {

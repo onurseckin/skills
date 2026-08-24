@@ -2,6 +2,25 @@ import { cause, example, type ExplainEntry } from "./explain-data-types.ts";
 
 export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
   {
+    code: "AUTHENTICATION_FAILURE",
+    summary: "Caller identity verification or token authentication failed.",
+    rule: "Commands requiring authenticated sessions or specific agent identities must provide valid, verified credentials and cannot spoof other agents or roles.",
+    causes: [
+      cause(
+        "actor-spoofing-blocked",
+        "Actor spoofing or invalid session credentials",
+        "An explicit actor argument was passed that does not match the active session identity or lacks required credentials.",
+        "Execute commands under the verified agent session or provide the matching token for delegation.",
+        [
+          example(
+            "authority/session-registry.ts",
+            "Actor spoofing blocked: caller verified as '${finalAgentId}' (${finalRole}) cannot execute as '${requestedActor}' without matching credentials.",
+          ),
+        ],
+      ),
+    ],
+  },
+  {
     code: "INVALID_STATE",
     summary:
       "The record the command names is not in the lifecycle position, ownership, or freshness it requires.",
@@ -108,7 +127,7 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
             "workflow/completion/begin-completeness-critic.ts",
             "completeness critic rounds are exhausted",
           ),
-          example("store/event-append.ts", "event count exceeds configured limit"),
+          example("engine/store/event-append.ts", "event count exceeds configured limit"),
         ],
       ),
       cause(
@@ -223,12 +242,12 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
         "--run does not name a real directory, or --report/--findings does not name a readable file of the expected kind.",
         "Point the flag at a real, readable path of the right kind - a directory for --run, a file for --report or a findings/proofs file.",
         [
-          example("store/load.ts", "run_root must be a real directory: ${runRoot}"),
+          example("engine/store/load.ts", "run_root must be a real directory: ${runRoot}"),
           example(
             "workflow/completion/parse-raw-findings.ts",
             "cannot read findings file: ${findingsFile}",
           ),
-          example("store/blobs.ts", "not a regular file: ${sourcePath}"),
+          example("engine/store/blobs.ts", "not a regular file: ${sourcePath}"),
         ],
       ),
     ],

@@ -520,7 +520,7 @@ describe("rotateMindGeneration and mindRotateCommand", () => {
 
     expect(brief).toContain("Mind Rotated: Generation 1 → 2");
     expect(brief).toContain("`mind-gen-1` (sealed with status `rotated`)");
-    expect(brief).toContain("`mind-gen-2` at `.capsules/mind-gen-2`");
+    expect(brief).toContain("`mind-gen-2` at `.olt/capsules/mind-gen-2`");
     expect(brief).toContain("`abcdef1234567890` (pinned across boundary)");
     expect(brief).toContain("42 (preserved)");
     expect(brief).toContain("5 (2 open/admitted, 3 declined)");

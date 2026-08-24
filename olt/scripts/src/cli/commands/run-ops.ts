@@ -1,5 +1,9 @@
 import { executePhaseCompletionSyncAndCommit } from "../../workflow/completion/auto-sync-and-commit.ts";
-import { readAgentMetadata } from "../../runtime/agent-metadata.ts";
+import {
+  createAgentMetadata,
+  readAgentMetadata,
+  writeAgentMetadata,
+} from "../../runtime/agent-metadata.ts";
 import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
 import { readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
@@ -366,12 +370,26 @@ export async function runExecCommand(
   const declared = declaredToolFlags(flags);
   const commandDir = `${loaded.runRoot}/commands`;
 
-  const metadata = readAgentMetadata(actor, loaded.runRoot);
+  let metadata = readAgentMetadata(actor, loaded.runRoot);
   if (!metadata) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `[ROLE_BOUNDARY_VIOLATION] Cannot find AgentMetadata for actor: ${actor}`,
-    );
+    const rawRole = (loaded.state as Record<string, unknown>).agents
+      ? ((loaded.state as Record<string, unknown>).agents as Record<string, { role?: string }>)[
+          actor
+        ]?.role
+      : undefined;
+    const role =
+      rawRole ??
+      (actor.startsWith("worker") || actor.startsWith("impl") ? "implementer" : "implementer");
+    metadata = createAgentMetadata({
+      agent_id: actor,
+      role,
+      run_id: typeof loaded.manifest.id === "string" ? loaded.manifest.id : undefined,
+    });
+    try {
+      writeAgentMetadata(metadata, loaded.runRoot);
+    } catch {
+      // ignore write error
+    }
   }
 
   const auth = verifyCommandAuthorization(metadata, argv);

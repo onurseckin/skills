@@ -116,14 +116,11 @@ describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () =>
       expect(manifest.tools?.enable_subagent_tools).toBe(false);
       expect(manifest.tools?.enable_write_tools).toBe(false);
 
-      const iface = manifest.interface as Record<string, unknown> | undefined;
-      expect(iface).toBeDefined();
-      const invariants = iface?.["planner_invariants"] as Record<string, unknown> | undefined;
-      expect(invariants).toBeDefined();
-      expect(invariants?.["mandatory_brainstorming_rounds"]).toBe(3);
-      expect(invariants?.["socratic_expansion_depth"]).toBe(8);
-      expect(invariants?.["enforce_edge_case_matrix"]).toBe(true);
-      expect(invariants?.["non_empty_payload_mandate"]).toBe(true);
+      expect(manifest.invariants).toBeDefined();
+      expect(manifest.invariants).toContain("EIGHT_VECTOR_SOCRATIC_EXPANSION");
+      expect(manifest.invariants).toContain("PROMPT_LINE_COORDINATE_BINDING");
+      expect(manifest.invariants).toContain("DISJOINT_WRITE_SCOPE_DECOMPOSITION");
+      expect(manifest.invariants).toContain("DIRECTED_ACYCLIC_GRAPH_INTEGRITY");
     });
 
     test("instructions contain 8-vector matrix and plan:brainstorm mandates", () => {
@@ -152,17 +149,11 @@ describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () =>
       expect(manifest.tools?.enable_subagent_tools).toBe(false);
       expect(manifest.tools?.enable_write_tools).toBe(false);
 
-      const iface = manifest.interface as Record<string, unknown> | undefined;
-      expect(iface).toBeDefined();
-      const invariants = iface?.["plan_validator_invariants"] as
-        | Record<string, unknown>
-        | undefined;
-      expect(invariants).toBeDefined();
-      expect(invariants?.["reject_shallow_umbrella_compression"]).toBe(true);
-      expect(invariants?.["enforce_edge_case_matrix"]).toBe(true);
-      expect(invariants?.["socratic_expansion_depth"]).toBe(8);
-      expect(invariants?.["mandatory_brainstorming_rounds"]).toBe(3);
-      expect(invariants?.["non_empty_payload_mandate"]).toBe(true);
+      expect(manifest.invariants).toBeDefined();
+      expect(manifest.invariants).toContain("SHALLOW_PLAN_BLUNDER_REJECTION");
+      expect(manifest.invariants).toContain("EIGHT_VECTOR_EXPANSION_VERIFICATION");
+      expect(manifest.invariants).toContain("DISJOINT_WRITE_SCOPE_AUDIT");
+      expect(manifest.invariants).toContain("ADVERSARIAL_GATE_DISCRIMINATION");
     });
 
     test("instructions mandate rejection of SHALLOW_PLAN_BLUNDER and verify 8-vector expansion", () => {

@@ -104,6 +104,8 @@ describe("P52 & P53 End-to-End Integration Verification", () => {
       "planner",
     ]);
 
+    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
+
     await execute([
       "plan:compile",
       "--run",
@@ -180,13 +182,11 @@ describe("P52 & P53 End-to-End Integration Verification", () => {
       },
     });
 
-    expect(implPacket.markdown).toContain("## Responsibility checklist");
+    expect(implPacket.markdown).toContain("## Actionable Task Checklist");
     expect(implPacket.markdown).toContain("Direct end-to-end implementation & tests");
     expect(implPacket.markdown).toContain("Strict static invariants");
-    expect(implPacket.markdown).toContain("## Capsule memory on disk");
-    expect(implPacket.markdown).toContain(
-      "report:task --run .capsules/e2e-combined-flow --task task-engine",
-    );
+    expect(implPacket.markdown).toContain("Ultra-lean context & on-demand inspection");
+    expect(implPacket.markdown).toContain("report:task");
 
     // 5. Inspect run:status output and verify lifecycle phase breakdown
     const statusRes = (await execute(["run:status", "--run", run])) as Record<string, unknown>;

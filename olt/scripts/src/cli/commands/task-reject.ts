@@ -74,7 +74,10 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
     };
   }
 
-  const token = textFlag(flags, "token")!;
+  const token = textFlag(flags, "token", false);
+  if (token === undefined) {
+    throw new HarnessError("INVALID_ARGUMENT", "--token is required");
+  }
   const remediation = textFlag(flags, "remediation", false) ?? textFlag(flags, "finding", false);
   if (remediation === undefined) {
     throw new HarnessError(
@@ -82,7 +85,14 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
       "--remediation is required: state what would fix the defect",
     );
   }
-  const severity = parseSeverity(textFlag(flags, "severity")!, "severity");
+  const severityFlag = textFlag(flags, "severity", false);
+  if (severityFlag === undefined) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "--severity is required: critical, important or minor",
+    );
+  }
+  const severity = parseSeverity(severityFlag, "severity");
   const customFindingId = textFlag(flags, "finding-id", false);
 
   const loaded = loadRun(run);

@@ -206,6 +206,8 @@ describe("dag:view CLI command execution", () => {
       "planner",
     ]);
 
+    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
+
     await execute([
       "plan:compile",
       "--run",
@@ -271,6 +273,8 @@ describe("dag:view CLI command execution", () => {
       "--actor",
       "planner",
     ]);
+
+    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
 
     await execute([
       "plan:compile",
@@ -816,7 +820,7 @@ describe("Algorithmic Parallelization & Serialization Analysis", () => {
       "5",
     ]);
 
-    const result = executeDagViewCommand(["--run", run, "--detailed"]);
+    const result = executeDagViewCommand(["--run", run, "--detailed", "--all"]);
     expect(result.metrics).toBeDefined();
     expect(result.metrics.totalWaves).toBe(2);
     expect(result.metrics.maxParallelLanes).toBe(1);

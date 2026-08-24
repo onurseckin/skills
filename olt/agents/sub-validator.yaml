@@ -1,5 +1,12 @@
 name: "sub-validator"
-role: "validator"
+role: "sub-validator"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: 3
 tools:
   enable_subagent_tools: false
@@ -11,11 +18,23 @@ permissions:
   must_not:
     - "Render verdicts"
     - "Edit files"
-  commands: []
+  commands:
+    - "branch:claim"
+    - "branch:submit"
+    - "run:exec"
+    - "finding:get"
+    - "evidence:get"
+    - "evidence:screenshots"
+    - "agent:report"
+    - "whoami"
   spawns: []
 invariants:
   - "NO_VERDICT_RENDERING"
   - "ZERO_SOURCE_EDITS"
+protocol:
+  role_contract: "roles/sub-validator.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   ---
   role: sub-validator

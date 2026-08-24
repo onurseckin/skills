@@ -82,3 +82,5 @@ Once you approve, implementers become dispatchable against this graph revision. 
 harness itself refuses every implementer and repairer claim against this same revision — the
 coordinator cannot route around a written "no" by dispatching anyway; it must replan and bring a
 fresh review back to you.
+
+- **Dual-Channel Review Protocol Compliance**: Plan review ensures the task topology accounts for Dual-Channel Review Protocol (`max_adversarial_pushes: 20`, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds with `task:probe --kind cognitive` before `task:review --status pass`).

@@ -9,15 +9,9 @@ import {
   CommandResult,
   PreparedCommand,
 } from "../../../olt/scripts/src/capture/runners/types.ts";
-import { mock } from "bun:test";
-
-mock.module("../../../olt/scripts/src/runtime/agent-metadata.ts", () => ({
-  readAgentMetadata: () => ({ agent_id: "validator", role: "validator" }),
-}));
-
-mock.module("../../../olt/scripts/src/policy/rbac-engine.ts", () => ({
-  verifyCommandAuthorization: () => ({ authorized: true }),
-}));
+import { scratchRoot } from "../../support/scratch-root.ts";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 // `prepareCommand`/`executePreparedCommand` are the production entry points: by default they
 // delegate to a runner wired to the real repository inspector and the real attempt spawner, which
@@ -27,10 +21,26 @@ mock.module("../../../olt/scripts/src/policy/rbac-engine.ts", () => ({
 
 describe("prepareCommand / executePreparedCommand delegation", () => {
   test("prepareCommand forwards its input to the supplied runner unchanged and returns its result", async () => {
+    const repo = scratchRoot(import.meta.path, "delegation-prepare");
+    const runtimeDir = join(repo, "runtime");
+    mkdirSync(runtimeDir, { recursive: true });
+    writeFileSync(
+      join(runtimeDir, "agent-implementer-1.json"),
+      JSON.stringify({
+        agent_id: "implementer-1",
+        role: "implementer",
+        tier: 3,
+        can_execute_shell: true,
+        write_scope: ["src/"],
+        allowed_read_scope: ["src/"],
+        spawned_at: new Date().toISOString(),
+      }),
+    );
+
     const seenInputs: CommandOptions[] = [];
     const preparedStub = {
       commandRoot: "stub-root",
-      options: { runRoot: "/repo", repositoryRoot: "/repo" },
+      options: { runRoot: repo, repositoryRoot: repo },
     } as unknown as PreparedCommand;
     const fakeRunner: InternalCommandRunner = {
       prepareCommand: async (input) => {
@@ -43,9 +53,10 @@ describe("prepareCommand / executePreparedCommand delegation", () => {
     };
     const input: CommandOptions = {
       argv: ["echo", "hi"],
-      cwd: "/repo",
-      commandDir: "/repo/.capsules/commands",
-      actor: "validator",
+      cwd: repo,
+      repositoryRoot: repo,
+      commandDir: join(repo, ".capsules", "commands"),
+      actor: "implementer-1",
     };
     const result = await prepareCommand(input, fakeRunner);
     expect(result).toBe(preparedStub);

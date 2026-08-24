@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { lstat, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseJsonBytes } from "../core/json.ts";
@@ -49,7 +50,10 @@ export async function validateSkillSource(
   ) {
     throw new HarnessError("INTEGRITY", "skill runtime package identity is invalid");
   }
-  const runtimeConstants = readStableText(resolve(root, "scripts/src/config/constants.ts"));
+  const constantsPath = existsSync(resolve(root, "scripts/src/core/config/constants.ts"))
+    ? resolve(root, "scripts/src/core/config/constants.ts")
+    : resolve(root, "scripts/src/config/constants.ts");
+  const runtimeConstants = readStableText(constantsPath);
   const runtimeVersion = /RUNTIME_VERSION\s*=\s*["']([^"']+)["']/u.exec(runtimeConstants)?.[1];
   if (!runtimeVersion)
     throw new HarnessError("INTEGRITY", "skill source runtime version is missing");

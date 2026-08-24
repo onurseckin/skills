@@ -135,7 +135,7 @@ const DEFAULT_MAX_RETRIES = 3;
 /**
  * Resolves the canonical path for the task queue storage file.
  */
-export function resolveCanonicalTaskQueuePath(customRoot?: string, useTodo = false): string {
+export function resolveCanonicalTaskQueuePath(customRoot?: string, _useTodo = false): string {
   return require("path").join(customRoot || process.cwd(), ".olt", "task-queue.jsonl");
 }
 

@@ -84,6 +84,6 @@ export async function agentBriefCommand(flags: Flags): Promise<Record<string, un
   return { markdown: output };
 }
 
-export async function agentDefineCommand(flags: Flags): Promise<Record<string, unknown>> {
+export async function agentDefineCommand(_flags: Flags): Promise<Record<string, unknown>> {
   return { markdown: "agent:define not fully implemented yet" };
 }

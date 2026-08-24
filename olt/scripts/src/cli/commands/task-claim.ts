@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { CommandRecord } from "../../core/contracts/commands.ts";
 import { AGENT_ROLES, isAgentRole } from "../../core/contracts/packets.ts";
@@ -50,7 +50,7 @@ function commitSubphaseIfAssigned(
   task: TaskRecord,
   runner?: GitRunner,
 ): { warning?: string } {
-  const repoRoot = resolve(run, "..", "..");
+  const repoRoot = findRepoRoot(run);
   const config = getHarnessConfig(repoRoot, run);
   if (!config.worktree_isolation || !config.commit_per_subphase) return {};
   const ledger = readWorktreeLedger(loadRun(run).state);
@@ -79,7 +79,7 @@ function assignedWorktreeForClaim(
   run: string,
   taskId: string,
 ): { worktreePath: string; worktreeId: string } | undefined {
-  const repoRoot = resolve(run, "..", "..");
+  const repoRoot = findRepoRoot(run);
   const config = getHarnessConfig(repoRoot, run);
   if (!config.worktree_isolation) return undefined;
   const ledger = readWorktreeLedger(loadRun(run).state);
@@ -153,6 +153,21 @@ export async function taskClaimCommand(
 
   if (isOrchestrator || isCoordinator) {
     const roleTitle = isOrchestrator ? "Orchestrators" : "Coordinators";
+    const defect = {
+      type: "role_confinement_violation",
+      category: "role_boundary",
+      actor: agent,
+      role,
+      task_id: taskId,
+      timestamp: new Date().toISOString(),
+      details: `${roleTitle} are mechanically confined from claiming code execution tasks.`,
+    };
+    try {
+      const defectsPath = join(run, "defects.jsonl");
+      appendFileSync(defectsPath, JSON.stringify(defect) + "\n", "utf-8");
+    } catch {
+      // ignore
+    }
 
     if (isOrchestrator) {
       throw new HarnessError(
@@ -196,7 +211,7 @@ export async function taskClaimCommand(
     integerFlag(flags, "lease-duration", { minimum: 5, maximum: 86_400 }) ??
     integerFlag(flags, "lease-seconds", { minimum: 5, maximum: 86_400 });
 
-  const repoRoot = resolve(run, "..", "..");
+  const repoRoot = findRepoRoot(run);
   const taskBeforeClaim = workflowPort(run).read().tasks[taskId];
   const writeScopeContentHash = taskBeforeClaim
     ? evidenced(

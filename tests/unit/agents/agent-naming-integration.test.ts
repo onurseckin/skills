@@ -290,9 +290,14 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
     test("every yaml file in olt/agents matches standard naming conventions", () => {
       const skillRoot = findSkillRoot();
       const agentsDir = join(skillRoot, "agents");
-      const agentFiles = readdirSync(agentsDir).filter(
-        (f) => f.endsWith(".yaml") || f.endsWith(".yml"),
-      );
+      const agentFiles = readdirSync(agentsDir)
+        .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
+        .filter(
+          (f) =>
+            !["antigravity", "claude", "codex", "cursor", "generic", "openai"].includes(
+              f.replace(/\.ya?ml$/, ""),
+            ),
+        );
 
       expect(agentFiles.length).toBeGreaterThanOrEqual(13);
 
@@ -310,15 +315,22 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
       }
     });
 
-    test("every markdown file in olt/roles matches standard contracts", () => {
+    test("every unified agent manifest in olt/agents matches standard role contracts", () => {
       const skillRoot = findSkillRoot();
-      const rolesDir = join(skillRoot, "roles");
-      const roleFiles = readdirSync(rolesDir).filter((f) => f.endsWith(".md"));
+      const agentsDir = join(skillRoot, "agents");
+      const agentFiles = readdirSync(agentsDir)
+        .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
+        .filter(
+          (f) =>
+            !["antigravity", "claude", "codex", "cursor", "generic", "openai"].includes(
+              f.replace(/\.ya?ml$/, ""),
+            ),
+        );
 
-      expect(roleFiles.length).toBeGreaterThanOrEqual(13);
+      expect(agentFiles.length).toBeGreaterThanOrEqual(13);
 
-      for (const file of roleFiles) {
-        const roleName = file.replace(/\.md$/, "");
+      for (const file of agentFiles) {
+        const roleName = file.replace(/\.ya?ml$/, "");
         const contract = loadRoleContract(roleName);
 
         expect([0, 1, 2, 3]).toContain(contract.tier);

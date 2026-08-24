@@ -3,9 +3,6 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import {
   CANONICAL_FEEDBACK_FILE,
-  TODO_FEEDBACK_FILE,
-  LEGACY_FEEDBACK_FILE,
-  LEGACY_LOWER_FEEDBACK_FILE,
   resolveCanonicalFeedbackQueuePath,
   resolveFeedbackQueuePath,
   migrateFeedbackQueue,
@@ -16,21 +13,9 @@ import {
 } from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import {
   CANONICAL_COMPLETED_TASKS_FILE,
-  TODO_COMPLETED_TASKS_FILE,
-  LEGACY_COMPLETED_TASKS_FILE,
-  LEGACY_LOWER_COMPLETED_TASKS_FILE,
   CANONICAL_DEFECTS_FILE,
-  TODO_DEFECTS_FILE,
-  LEGACY_DEFECTS_FILE,
-  LEGACY_UPPER_DEFECTS_FILE,
   CANONICAL_COMPLETED_DEFECTS_FILE,
-  TODO_COMPLETED_DEFECTS_FILE,
-  LEGACY_COMPLETED_DEFECTS_FILE,
-  LEGACY_LOWER_COMPLETED_DEFECTS_FILE,
   CANONICAL_OBSERVATIONS_FILE,
-  TODO_OBSERVATIONS_FILE,
-  LEGACY_OBSERVATIONS_FILE,
-  LEGACY_LOWER_OBSERVATIONS_FILE,
   resolveCanonicalCompletedTasksPath,
   resolveCompletedTasksLedgerPath,
   resolveCanonicalDefectsPath,
@@ -46,15 +31,11 @@ import {
 } from "../../../olt/scripts/src/mind/completed-tasks.ts";
 import {
   CANONICAL_WATCHDOG_FILE,
-  TODO_WATCHDOG_FILE,
-  LEGACY_WATCHDOG_FILE,
   resolveCanonicalWatchdogStorePath,
   resolveWatchdogStorePath,
 } from "../../../olt/scripts/src/mind/watchdog-manager.ts";
 import {
   CANONICAL_COGNITIVE_MEMORY_FILE,
-  TODO_COGNITIVE_MEMORY_FILE,
-  LEGACY_COGNITIVE_MEMORY_FILE,
   resolveCanonicalCognitiveMemoryPath,
   resolveCognitiveMemoryPath,
   readCognitiveMemory,
@@ -68,91 +49,41 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
   describe("Standardized Canonical Constants & Layout Naming", () => {
     it("verifies canonical filenames adhere strictly to lowercase kebab-case naming", () => {
       expect(CANONICAL_FEEDBACK_FILE).toBe("olt/backlog.jsonl");
-      expect(TODO_FEEDBACK_FILE).toBe(".olt/capsules/todo/feedback-queue.jsonl");
-      expect(LEGACY_FEEDBACK_FILE).toBe(".olt/capsules/FEEDBACK_QUEUE.jsonl");
-      expect(LEGACY_LOWER_FEEDBACK_FILE).toBe(".olt/capsules/feedback-queue.jsonl");
-
       expect(CANONICAL_COMPLETED_TASKS_FILE).toBe("olt/completed-tasks.jsonl");
-      expect(TODO_COMPLETED_TASKS_FILE).toBe(".olt/capsules/todo/completed-tasks.jsonl");
-      expect(LEGACY_COMPLETED_TASKS_FILE).toBe(".olt/capsules/COMPLETED_TASKS.jsonl");
-      expect(LEGACY_LOWER_COMPLETED_TASKS_FILE).toBe(".olt/capsules/completed-tasks.jsonl");
-
       expect(CANONICAL_DEFECTS_FILE).toBe("olt/defects.jsonl");
-      expect(TODO_DEFECTS_FILE).toBe(".olt/capsules/todo/defects.jsonl");
-      expect(LEGACY_DEFECTS_FILE).toBe(".olt/capsules/defects.jsonl");
-      expect(LEGACY_UPPER_DEFECTS_FILE).toBe(".olt/capsules/DEFECTS.jsonl");
-
       expect(CANONICAL_COMPLETED_DEFECTS_FILE).toBe("olt/completed-defects.jsonl");
-      expect(TODO_COMPLETED_DEFECTS_FILE).toBe(".olt/capsules/todo/completed-defects.jsonl");
-      expect(LEGACY_COMPLETED_DEFECTS_FILE).toBe(".olt/capsules/COMPLETED_DEFECTS.jsonl");
-      expect(LEGACY_LOWER_COMPLETED_DEFECTS_FILE).toBe(".olt/capsules/completed-defects.jsonl");
-
       expect(CANONICAL_OBSERVATIONS_FILE).toBe("olt/telemetry.jsonl");
-      expect(TODO_OBSERVATIONS_FILE).toBe(".olt/capsules/todo/observations.jsonl");
-      expect(LEGACY_OBSERVATIONS_FILE).toBe(".olt/capsules/OBSERVATIONS.jsonl");
-      expect(LEGACY_LOWER_OBSERVATIONS_FILE).toBe(".olt/capsules/observations.jsonl");
-
-      expect(CANONICAL_WATCHDOG_FILE).toBe(".olt/capsules/mind/queue/watchdogs.json");
-      expect(TODO_WATCHDOG_FILE).toBe(".olt/capsules/todo/watchdogs.json");
-      expect(LEGACY_WATCHDOG_FILE).toBe(".olt/capsules/watchdogs.json");
-
-      expect(CANONICAL_COGNITIVE_MEMORY_FILE).toBe(".olt/capsules/mind/memory.json");
-      expect(TODO_COGNITIVE_MEMORY_FILE).toBe(".olt/capsules/todo/memory.json");
-      expect(LEGACY_COGNITIVE_MEMORY_FILE).toBe(".olt/capsules/memory.json");
+      expect(CANONICAL_WATCHDOG_FILE).toBe("olt/watchdogs.json");
+      expect(CANONICAL_COGNITIVE_MEMORY_FILE).toBe(".olt/memory.json");
     });
 
-    it("resolves canonical paths correctly with custom roots and todo layout flags", () => {
+    it("resolves canonical paths correctly with custom roots", () => {
       const root = "/custom/repo/root";
 
       // Feedback queue
-      expect(resolveCanonicalFeedbackQueuePath(root)).toBe(join(root, "olt/backlog.jsonl"));
-      expect(resolveCanonicalFeedbackQueuePath(root, true)).toBe(
-        join(root, ".olt/capsules/todo/feedback-queue.jsonl"),
-      );
+      expect(resolveCanonicalFeedbackQueuePath(root)).toBe(join(root, ".olt/backlog.jsonl"));
 
       // Completed tasks
       expect(resolveCanonicalCompletedTasksPath(root)).toBe(
-        join(root, "olt/completed-tasks.jsonl"),
-      );
-      expect(resolveCanonicalCompletedTasksPath(root, true)).toBe(
-        join(root, ".olt/capsules/todo/completed-tasks.jsonl"),
+        join(root, ".olt/completed-tasks.jsonl"),
       );
 
       // Defects
-      expect(resolveCanonicalDefectsPath(root)).toBe(join(root, "olt/defects.jsonl"));
-      expect(resolveCanonicalDefectsPath(root, true)).toBe(
-        join(root, ".olt/capsules/todo/defects.jsonl"),
-      );
+      expect(resolveCanonicalDefectsPath(root)).toBe(join(root, ".olt/defects.jsonl"));
 
       // Completed defects
       expect(resolveCanonicalCompletedDefectsPath(root)).toBe(
-        join(root, "olt/completed-defects.jsonl"),
-      );
-      expect(resolveCanonicalCompletedDefectsPath(root, true)).toBe(
-        join(root, ".olt/capsules/todo/completed-defects.jsonl"),
+        join(root, ".olt/completed-defects.jsonl"),
       );
 
       // Observations
-      expect(resolveCanonicalObservationsPath(root)).toBe(join(root, "olt/telemetry.jsonl"));
-      expect(resolveCanonicalObservationsPath(root, true)).toBe(
-        join(root, ".olt/capsules/todo/observations.jsonl"),
-      );
+      expect(resolveCanonicalObservationsPath(root)).toBe(join(root, ".olt/telemetry.jsonl"));
 
       // Watchdogs
-      expect(resolveCanonicalWatchdogStorePath(root)).toBe(
-        join(root, ".olt/capsules/mind/queue/watchdogs.json"),
-      );
-      expect(resolveCanonicalWatchdogStorePath(root, true)).toBe(
-        join(root, ".olt/capsules/todo/watchdogs.json"),
-      );
+      expect(resolveCanonicalWatchdogStorePath(root)).toBe(join(root, ".olt/watchdogs.json"));
 
       // Cognitive memory
-      expect(resolveCanonicalCognitiveMemoryPath(root)).toBe(
-        join(root, ".olt/capsules/mind/memory.json"),
-      );
-      expect(resolveCanonicalCognitiveMemoryPath(root, true)).toBe(
-        join(root, ".olt/capsules/todo/memory.json"),
-      );
+      expect(resolveCanonicalCognitiveMemoryPath(root)).toBe(join(root, ".olt/memory.json"));
     });
   });
 
@@ -187,12 +118,14 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
       const canonicalQueue = join(testDir, ".olt", "feedback-queue.jsonl");
       const legacyQueue = join(testDir, ".olt", "capsules", "FEEDBACK_QUEUE.jsonl");
       mkdirSync(dirname(canonicalQueue), { recursive: true });
+      mkdirSync(dirname(legacyQueue), { recursive: true });
       writeFileSync(canonicalQueue, "", "utf8");
       writeFileSync(legacyQueue, "", "utf8");
 
       const canonicalTasks = join(testDir, ".olt", "completed-tasks.jsonl");
       const legacyTasks = join(testDir, ".olt", "capsules", "COMPLETED_TASKS.jsonl");
       mkdirSync(dirname(canonicalTasks), { recursive: true });
+      mkdirSync(dirname(legacyTasks), { recursive: true });
       writeFileSync(canonicalTasks, "", "utf8");
       writeFileSync(legacyTasks, "", "utf8");
 

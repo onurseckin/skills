@@ -1,24 +1,123 @@
 import { describe, it, expect } from "bun:test";
 import { MetaAuditorPolicy } from "../../../olt/scripts/src/engine/scheduler/meta-auditor-policy.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
 
 describe("MetaAuditorPolicy", () => {
-  it("enforces mandatory meta-auditor when developing skills repo", () => {
-    const activeAgents = [{ id: "mind-1", role: "mind" }];
-
-    expect(() => {
-      MetaAuditorPolicy.assertMetaAuditorRequired("/Users/foo/repos/skills", activeAgents as any);
-    }).toThrow(HarnessError);
+  it("can be instantiated", () => {
+    const policy = new MetaAuditorPolicy();
+    expect(policy).toBeDefined();
   });
 
-  it("passes when meta-auditor is actively registered", () => {
-    const activeAgents = [
-      { id: "mind-1", role: "mind" },
-      { id: "meta-auditor-1", role: "meta-auditor" },
-    ];
+  describe("isMandatoryTarget", () => {
+    it("returns true for repos containing /skills", () => {
+      expect(MetaAuditorPolicy.isMandatoryTarget("/Users/foo/repos/skills")).toBe(true);
+    });
 
-    expect(() => {
-      MetaAuditorPolicy.assertMetaAuditorRequired("/Users/foo/repos/skills", activeAgents as any);
-    }).not.toThrow();
+    it("returns true for repos containing orchestrating-long-tasks", () => {
+      expect(
+        MetaAuditorPolicy.isMandatoryTarget("/Users/foo/.agents/skills/orchestrating-long-tasks"),
+      ).toBe(true);
+    });
+
+    it("returns true for repos containing /olt", () => {
+      expect(MetaAuditorPolicy.isMandatoryTarget("/Users/foo/project/olt/scripts")).toBe(true);
+    });
+
+    it("returns false for unrelated repositories", () => {
+      expect(MetaAuditorPolicy.isMandatoryTarget("/Users/foo/repos/unrelated-app")).toBe(false);
+    });
+  });
+
+  describe("assertMetaAuditorRequired", () => {
+    it("returns immediately without throwing on non-mandatory target repo", () => {
+      const activeAgents: readonly AgentGrantRecord[] = [
+        {
+          id: "mind-1",
+          role: "mind",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+      ];
+
+      expect(() => {
+        MetaAuditorPolicy.assertMetaAuditorRequired("/Users/foo/repos/external-repo", activeAgents);
+      }).not.toThrow();
+    });
+
+    it("enforces mandatory meta-auditor when developing skills repo", () => {
+      const activeAgents: readonly AgentGrantRecord[] = [
+        {
+          id: "mind-1",
+          role: "mind",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+      ];
+
+      expect(() => {
+        MetaAuditorPolicy.assertMetaAuditorRequired("/Users/foo/repos/skills", activeAgents);
+      }).toThrow(HarnessError);
+    });
+
+    it("passes when meta-auditor is actively registered", () => {
+      const activeAgents: readonly AgentGrantRecord[] = [
+        {
+          id: "mind-1",
+          role: "mind",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+        {
+          id: "meta-auditor-1",
+          role: "meta-auditor",
+          parent_agent_id: "mind-1",
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+      ];
+
+      expect(() => {
+        MetaAuditorPolicy.assertMetaAuditorRequired("/Users/foo/repos/skills", activeAgents);
+      }).not.toThrow();
+    });
+
+    it("passes when mind-auditor is actively registered", () => {
+      const activeAgents: readonly AgentGrantRecord[] = [
+        {
+          id: "mind-1",
+          role: "mind",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+        {
+          id: "mind-auditor-1",
+          role: "mind-auditor",
+          parent_agent_id: "mind-1",
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+      ];
+
+      expect(() => {
+        MetaAuditorPolicy.assertMetaAuditorRequired("/Users/foo/repos/skills", activeAgents);
+      }).not.toThrow();
+    });
   });
 });

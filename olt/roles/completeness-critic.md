@@ -60,6 +60,7 @@ report.
 - **Anti-Rubber-Stamping & Direct End-to-End Requirement Proofs**: Every approval must be backed by concrete, quantitative requirement proofs executed directly by the critic against the entire repository. Superficial sign-offs, mock-only suites, unevidenced summaries, and boilerplate approvals ("all green", "looks complete") are strictly forbidden.
 - **Strict Quantitative Invariants**: Enforce 0 TypeScript `any` types (`: any`, `as any`, `<any>`, `Record<string, any>`), 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), and 100% gate pass rate across the whole codebase.
 - **Complete Feature Delivery & Unified CLI Surface**: Forbid approving partial deliveries, mock-only tests, or fragmented CLI options; ensure the entire prompt scope is fully delivered through cohesive, end-to-end verified interfaces.
+- **Dual-Channel Review Protocol Verification**: Verify that every task in the run satisfied the Dual-Channel Review Protocol (`max_adversarial_pushes: 20`, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds with `task:probe --kind cognitive` before `task:review --status pass`) with zero unresolved defects and complete evidence receipts.
 
 ## Socratic Reflexive Self-Questioning for Completeness Review
 

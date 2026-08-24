@@ -1,9 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import {
   applicableValidatorDomains,
+  isCoordinatorPushback,
+  isCoordinatorPushbackCause,
+  isMicroCycleRecord,
+  isStructuredFinding,
   isValidatorDomain,
   textSignalsUiDomain,
   uiDomainApplies,
+  type CoordinatorPushback,
+  type Finding,
+  type MicroCycleRecord,
 } from "../../../olt/scripts/src/core/contracts/workflow.ts";
 
 describe("isValidatorDomain", () => {
@@ -77,5 +84,68 @@ describe("uiDomainApplies", () => {
     expect(uiDomainApplies(["src/Button.tsx"])).toBeTrue();
     expect(uiDomainApplies(["src/types/dsa.ts"])).toBeFalse();
     expect(uiDomainApplies(["src/types/dsa.ts"], ["a dual-channel screenshot task"])).toBeTrue();
+  });
+});
+
+describe("isCoordinatorPushbackCause, isMicroCycleRecord, isStructuredFinding, and isCoordinatorPushback", () => {
+  test("isCoordinatorPushbackCause validates cause", () => {
+    expect(isCoordinatorPushbackCause("procedural")).toBe(true);
+    expect(isCoordinatorPushbackCause("substantive")).toBe(true);
+    expect(isCoordinatorPushbackCause("invalid")).toBe(false);
+  });
+
+  test("isMicroCycleRecord validates micro-cycle records", () => {
+    const valid: MicroCycleRecord = {
+      round: 1,
+      validator_id: "val-1",
+      critique: "Needs refinement",
+      suggested_remediation: "Refactor logic",
+      observed_defect: "Off-by-one",
+      created_at: "2026-08-24T00:00:00.000Z",
+      status: "open",
+    };
+
+    expect(isMicroCycleRecord(valid)).toBe(true);
+    expect(isMicroCycleRecord({ ...valid, round: 0 })).toBe(false);
+    expect(isMicroCycleRecord({ ...valid, validator_id: "" })).toBe(false);
+    expect(isMicroCycleRecord({ ...valid, status: "closed" })).toBe(false);
+    expect(isMicroCycleRecord(null)).toBe(false);
+  });
+
+  test("isStructuredFinding validates finding records", () => {
+    const validFinding: Finding = {
+      id: "f-1",
+      requirement_id: "req-1",
+      severity: "critical",
+      observation: "Fatal crash",
+      evidence: [],
+      remediation: "Add null check",
+      revalidation: "Run unit test",
+      status: "open",
+    };
+
+    expect(isStructuredFinding(validFinding)).toBe(true);
+    expect(isStructuredFinding({ ...validFinding, severity: "other" })).toBe(false);
+    expect(isStructuredFinding({ ...validFinding, status: "closed" })).toBe(false);
+    expect(isStructuredFinding({ ...validFinding, evidence: "not-array" })).toBe(false);
+    expect(isStructuredFinding(null)).toBe(false);
+  });
+
+  test("isCoordinatorPushback validates pushback objects", () => {
+    const validPushback: CoordinatorPushback = {
+      id: "pb-1",
+      validator_id: "val-1",
+      domain: "code-quality",
+      cause: "procedural",
+      observation: "Missing evidence",
+      remediation: "Attach command receipt",
+      review_round: 1,
+      created_at: "2026-08-24T00:00:00.000Z",
+    };
+
+    expect(isCoordinatorPushback(validPushback)).toBe(true);
+    expect(isCoordinatorPushback({ ...validPushback, domain: "invalid-domain" })).toBe(false);
+    expect(isCoordinatorPushback({ ...validPushback, cause: "invalid-cause" })).toBe(false);
+    expect(isCoordinatorPushback(null)).toBe(false);
   });
 });

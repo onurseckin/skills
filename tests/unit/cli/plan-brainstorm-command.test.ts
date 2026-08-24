@@ -157,4 +157,58 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
     expect(output.roundsExecuted).toBe(1);
     expect(output.totalExpandedItems).toBe(8);
   });
+
+  test("executePlanBrainstorm parses string array tokens and handles prompt.txt fallback", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "brainstorm-txt-"));
+    roots.push(tempDir);
+
+    await writeFile(join(tempDir, "prompt.txt"), "Single prompt.txt fallback line", "utf-8");
+
+    const outputFromTokens = executePlanBrainstorm(["--run", tempDir, "--rounds", "1"]);
+    expect(outputFromTokens.success).toBe(true);
+    expect(outputFromTokens.roundsExecuted).toBe(1);
+
+    const outputPromptTokens = executePlanBrainstorm([
+      "plan:brainstorm",
+      "--prompt",
+      "Direct CLI prompt argument",
+      "--save",
+      "false",
+    ]);
+    expect(outputPromptTokens.success).toBe(true);
+    expect(outputPromptTokens.roundsExecuted).toBe(3);
+
+    const outputFlagsWithRunId = executePlanBrainstorm({
+      "run-id": tempDir,
+      rounds: "2",
+      actor: "custom-planner",
+    });
+    expect(outputFlagsWithRunId.success).toBe(true);
+    expect(outputFlagsWithRunId.roundsExecuted).toBe(2);
+  });
+
+  test("throws HarnessError INVALID_ARGUMENT when writing brainstorming.json fails", () => {
+    expect(() => {
+      executePlanBrainstorm({
+        runRoot: "/dev/null/impossible/path",
+        prompt: "Valid prompt",
+        save: true,
+      });
+    }).toThrow(HarnessError);
+  });
+});
+
+describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
+  test("verifies plan-brainstorm-command test file contains zero any and zero suppressions", async () => {
+    const testContent = await Bun.file(import.meta.path).text();
+    const forbiddenAnyRegex = new RegExp(":[ \\t]*" + "any\\b");
+    const forbiddenCastRegex = new RegExp("\\bas[ \\t]+" + "any\\b");
+    const forbiddenSuppressionsRegex = new RegExp("@ts-" + "(ignore|expect-error|nocheck)");
+    const forbiddenLintRegex = new RegExp("(eslint|oxlint)" + "-disable");
+
+    expect(testContent).not.toMatch(forbiddenAnyRegex);
+    expect(testContent).not.toMatch(forbiddenCastRegex);
+    expect(testContent).not.toMatch(forbiddenSuppressionsRegex);
+    expect(testContent).not.toMatch(forbiddenLintRegex);
+  });
 });

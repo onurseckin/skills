@@ -296,6 +296,94 @@ describe("nodeSpawnGate", () => {
       "gate command failed to start",
     );
   });
+
+  test("runs a successful gate command and captures stdout/stderr", () => {
+    const cwd = scratchRoot(import.meta.path, "successful-binary");
+    const result = nodeSpawnGate(["node", "-e", "console.log('gate-ok')"], cwd, 5_000);
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("gate-ok");
+    expect(result.timedOut).toBe(false);
+  });
+
+  test("reports timedOut when a command exceeds its timeout", () => {
+    const cwd = scratchRoot(import.meta.path, "timeout-binary");
+    const result = nodeSpawnGate(["node", "-e", "setTimeout(() => {}, 10000)"], cwd, 50);
+    expect(result.timedOut).toBe(true);
+    expect(result.status).toBeNull();
+  });
+});
+
+describe("proveGateFalsifiable revert scope and copy edge cases", () => {
+  test("effectiveRevertScope handles bun test filtering out test files when implementation files exist", () => {
+    const repo = repoWithoutRealGit("bun-test-effective-scope");
+    mkdirSync(join(repo, "src"), { recursive: true });
+    mkdirSync(join(repo, "tests"), { recursive: true });
+    mkdirSync(join(repo, "node_modules"), { recursive: true });
+    writeFileSync(join(repo, "src/index.ts"), "export const val = 1;\n");
+    writeFileSync(join(repo, "tests/index.test.ts"), "test('a', () => {});\n");
+
+    const git = fakeGit({
+      "ls-files": { status: 0, bytes: Buffer.from("src/index.ts\0tests/index.test.ts\0") },
+      "ls-tree": { status: 0, bytes: Buffer.from("100644 blob abc123\tsrc/index.ts\n") },
+      show: { status: 0, bytes: Buffer.from("export const val = 0;\n") },
+    });
+    const spawn = fsCheckSpawn((cwd) =>
+      readFileSync(join(cwd, "src/index.ts"), "utf8").includes("val = 1"),
+    );
+    const result = proveGateFalsifiable(
+      {
+        repoRoot: repo,
+        writeScope: ["src/index.ts", "tests/index.test.ts"],
+        gateArgv: ["bun", "test", "tests/index.test.ts"],
+      },
+      { git, spawn },
+    );
+    expect(result.falsifiable).toBe(true);
+    expect(result.restoredPaths).toEqual(["src/index.ts"]);
+  });
+
+  test("effectiveRevertScope handles vitest / jest / pytest test runners", () => {
+    const repo = repoWithoutRealGit("vitest-effective-scope");
+    mkdirSync(join(repo, "src"), { recursive: true });
+    mkdirSync(join(repo, "tests"), { recursive: true });
+    writeFileSync(join(repo, "src/service.ts"), "export const run = true;\n");
+    writeFileSync(join(repo, "tests/service.spec.ts"), "describe('run', () => {});\n");
+
+    const git = fakeGit({
+      "ls-files": { status: 0, bytes: Buffer.from("src/service.ts\0tests/service.spec.ts\0") },
+      "ls-tree": { status: 0, bytes: Buffer.from("100644 blob abc123\tsrc/service.ts\n") },
+      show: { status: 0, bytes: Buffer.from("export const run = false;\n") },
+    });
+    const spawn = fsCheckSpawn((cwd) =>
+      readFileSync(join(cwd, "src/service.ts"), "utf8").includes("run = true"),
+    );
+    const result = proveGateFalsifiable(
+      {
+        repoRoot: repo,
+        writeScope: ["src/service.ts", "tests/service.spec.ts"],
+        gateArgv: ["vitest", "tests/service.spec.ts"],
+      },
+      { git, spawn },
+    );
+    expect(result.falsifiable).toBe(true);
+    expect(result.restoredPaths).toEqual(["src/service.ts"]);
+  });
+
+  test("copyIntoScratch skips files that fail to stat in tracked list", () => {
+    const repo = repoWithoutRealGit("missing-stat-entry");
+    writeFileSync(join(repo, "existing.ts"), "export const ok = true;\n");
+    // git ls-files claims missing.ts is tracked, but it doesn't exist on disk
+    const git = fakeGit({
+      "ls-files": { status: 0, bytes: Buffer.from("existing.ts\0missing.ts\0") },
+      "ls-tree": { status: 0, bytes: Buffer.from("100644 blob abc123\texisting.ts\n") },
+      show: { status: 0, bytes: Buffer.from("export const ok = false;\n") },
+    });
+    const result = proveGateFalsifiable(
+      { repoRoot: repo, writeScope: ["existing.ts"], gateArgv: ["true"] },
+      { git, spawn: noopSpawn },
+    );
+    expect(result.exitCode).toBe(0);
+  });
 });
 
 describe("gate proof records", () => {

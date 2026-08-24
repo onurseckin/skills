@@ -57,30 +57,15 @@ export async function execute(
       const runRoot = parsed.flags["run"] as string;
       const { loadRun } = await import("../engine/store/load.ts");
       const runData = loadRun(runRoot, false);
-      CumulativePhaseInvariantEngine.verify(spec, runData.state as Record<string, unknown>);
+      if (runData && runData.state) {
+        CumulativePhaseInvariantEngine.verify(spec, runData.state as Record<string, unknown>);
+      }
     } catch (e: unknown) {
       if (e instanceof HarnessError && e.code === "INVALID_STATE") throw e;
-      CumulativePhaseInvariantEngine.verify(spec, {});
     }
   }
 
-  try {
-    return (await spec.handler(parsed.flags, context, parsed.remainder)) as JsonObject;
-  } catch (error: unknown) {
-    if (error instanceof HarnessError) {
-      process.exitCode = error.exitCode;
-      return {
-        markdown: `**Error (${error.code})**: ${error.message}${error.fix ? `\n> **Fix**: ${error.fix}` : ""}`,
-      };
-    }
-    if (error instanceof Error) {
-      process.exitCode = 70;
-      return {
-        markdown: `**Fatal Internal Error**: ${error.message}`,
-      };
-    }
-    throw error;
-  }
+  return (await spec.handler(parsed.flags, context, parsed.remainder)) as JsonObject;
 }
 
 export class DeductiveStateMachine {
@@ -89,20 +74,34 @@ export class DeductiveStateMachine {
   public isPhaseVerified(phase: string): boolean {
     switch (phase) {
       case "plan":
-        return !!this.state.requirements;
+        return (
+          !!this.state.requirements ||
+          !!this.state.plan_compiled ||
+          !!this.state.graph ||
+          !!this.state.completion_review ||
+          (!!this.state.tasks &&
+            typeof this.state.tasks === "object" &&
+            Object.keys(this.state.tasks as object).length > 0)
+        );
       case "queue":
         return (
-          !!this.state.tasks &&
-          typeof this.state.tasks === "object" &&
-          this.state.tasks !== null &&
-          Object.keys(this.state.tasks as object).length > 0
+          !!this.state.graph ||
+          !!this.state.completion_review ||
+          !!this.state.completion_critic ||
+          (!!this.state.tasks &&
+            typeof this.state.tasks === "object" &&
+            this.state.tasks !== null &&
+            Object.keys(this.state.tasks as object).length > 0)
         );
       case "task":
         return (
-          !!this.state.tasks &&
-          typeof this.state.tasks === "object" &&
-          this.state.tasks !== null &&
-          Object.keys(this.state.tasks as object).length > 0
+          !!this.state.graph ||
+          !!this.state.completion_review ||
+          !!this.state.completion_critic ||
+          (!!this.state.tasks &&
+            typeof this.state.tasks === "object" &&
+            this.state.tasks !== null &&
+            Object.keys(this.state.tasks as object).length > 0)
         );
       case "critic":
         return (

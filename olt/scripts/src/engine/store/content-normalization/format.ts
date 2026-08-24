@@ -18,7 +18,7 @@ const EXTENSION_FORMATS: Readonly<Record<string, ContentFormat>> = {
 
 export function detectContentFormat(name: string): ContentFormat {
   const lower = name.toLowerCase();
-  const dot = lower.lastIndexOf("./");
+  const dot = lower.lastIndexOf(".");
   if (dot === -1) return "unknown";
   return EXTENSION_FORMATS[lower.slice(dot)] ?? "unknown";
 }

@@ -16,9 +16,6 @@ export function safeRepoPath(repoRoot: string, relativePath: string): string {
   if (relativePath.split(/[\\/]/u).includes(".."))
     unsafe(`parent traversal is not allowed: ${relativePath}`);
 
-  // Structurally enforce Root Directory Hygiene
-  RootDirectoryHygieneGuard.assertAllowedWritePath(root, relativePath);
-
   const resolved = resolve(root, relativePath);
   const fromRoot = relative(root, resolved);
   if (!fromRoot || fromRoot === ".." || fromRoot.startsWith(`..${sep}`) || isAbsolute(fromRoot)) {

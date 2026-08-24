@@ -26,7 +26,7 @@ function deriveTargetFiles(
     return taskTargetFiles;
   }
   return writeScope.filter((item) => {
-    return item.includes(".") || !item.endsWith("/");
+    return /\.[a-zA-Z0-9_-]+$/.test(item);
   });
 }
 
@@ -146,9 +146,13 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
 
   if (agentId) {
     const ledger = readAgentLedger(state);
-    agentGrant = requireGrant(ledger, agentId);
-    if (!taskId && agentGrant.parent_task_id) {
-      taskId = agentGrant.parent_task_id;
+    if (!taskId) {
+      agentGrant = requireGrant(ledger, agentId);
+      if (agentGrant.parent_task_id) {
+        taskId = agentGrant.parent_task_id;
+      }
+    } else {
+      agentGrant = ledger.find((g) => g.id === agentId);
     }
   }
 
@@ -255,6 +259,10 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
     };
   }
 
+  if (legacyBriefing) {
+    combinedMarkdown = formatTaskBrief(legacyBriefing);
+  }
+
   if (agentGrant && agentId) {
     const toolsGranted =
       agentGrant.tools_granted?.value !== undefined
@@ -274,6 +282,9 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
       writeScope: task?.write_scope,
       recommendedCommands: recommendedCommands.length > 0 ? recommendedCommands : undefined,
     };
+    if (combinedMarkdown.length > 0) {
+      combinedMarkdown += "\n\n---\n\n";
+    }
     combinedMarkdown += formatAgentBrief(agentBriefing);
   }
 
@@ -305,7 +316,28 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
     combinedMarkdown += rewritten;
   }
 
-  return {
+  const output: Record<string, unknown> = {
     markdown: combinedMarkdown,
+    run_root: run,
   };
+  if (task !== undefined) {
+    output.task = task;
+  }
+  if (rawTaskId) {
+    output.briefing = legacyBriefing;
+    if (agentBriefing !== undefined) {
+      output.agent_briefing = agentBriefing;
+    }
+  } else if (agentBriefing !== undefined) {
+    output.briefing = agentBriefing;
+    if (legacyBriefing !== undefined) {
+      output.task_briefing = legacyBriefing;
+    }
+  } else if (legacyBriefing !== undefined) {
+    output.briefing = legacyBriefing;
+  }
+  if (agentGrant !== undefined) {
+    output.grant = agentGrant;
+  }
+  return output;
 }

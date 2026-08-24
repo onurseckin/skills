@@ -1,12 +1,11 @@
-import { realpathSync } from "node:fs";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 /** Two tasks, one depending on the other, compiled and ready to be claimed. */
 export async function setupCompiledRun(name: string, roots: string[]) {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-task-ops-${name}-`)));
+  const repo = scratchRoot(import.meta.path, `task-ops-${name}`);
   roots.push(repo);
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Core unit tests\n\nSecondary tests");
@@ -61,6 +60,8 @@ export async function setupCompiledRun(name: string, roots: string[]) {
     "--actor",
     "planner",
   ]);
+
+  await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
 
   await execute([
     "plan:compile",

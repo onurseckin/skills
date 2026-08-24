@@ -290,9 +290,9 @@ describe("the adversarial probe is not a rejection", () => {
     ).toThrow(/has not failed repeatedly/);
   });
 
-  test("probes never shorten the six-round repair budget", () => {
+  test("probes never shorten the twenty-round repair budget", () => {
     const port = submitted();
-    for (let round = 1; round <= 6; round += 1) {
+    for (let round = 1; round <= 20; round += 1) {
       const validator = `validator-${round}`;
       const token = validationToken(port, validator);
       recordProbe(
@@ -321,7 +321,7 @@ describe("the adversarial probe is not a rejection", () => {
       const task = port.read().tasks["T-1"]!;
       expect(task.probe_round).toBe(round);
       expect(task.repair_round).toBe(round);
-      if (round < 6) {
+      if (round < 20) {
         expect(task.status).toBe("changes_requested");
         const repair = claimTask(port, "T-1", "implementer", "repairer", { clock });
         registerTaskPacket(port, "repairer", "implementer", round + 1);

@@ -37,7 +37,53 @@ export function findRepoRoot(startDir: string = process.cwd()): string {
     }
     current = parent;
   }
-  return resolve(startDir);
+  const resolved = resolve(startDir);
+  if (resolved.includes("/.olt/capsules/")) {
+    return resolved.split("/.olt/capsules/")[0] || resolved;
+  }
+  if (resolved.includes("/.capsules/")) {
+    return resolved.split("/.capsules/")[0] || resolved;
+  }
+  if (resolved.includes("/capsules/")) {
+    return resolved.split("/capsules/")[0] || resolved;
+  }
+  return resolved;
+}
+
+export function isTestEnvironment(): boolean {
+  if (typeof process === "undefined") return false;
+  if (
+    process.env["NODE_ENV"] === "test" ||
+    process.env["BUN_TEST"] !== undefined ||
+    process.env["TEST"] !== undefined
+  ) {
+    return true;
+  }
+  if (Array.isArray(process.argv)) {
+    return process.argv.some(
+      (arg) => typeof arg === "string" && (arg.includes("test") || arg.includes("bun:test")),
+    );
+  }
+  return false;
+}
+
+export function resolveScratchDir(_repoRoot?: string): string {
+  const pid = typeof process !== "undefined" ? process.pid : 0;
+  return join(tmpdir(), "olt-scratch", String(pid));
+}
+
+function resolveSafeRoot(repoRoot?: string): string {
+  if (repoRoot) {
+    const resolved = resolve(repoRoot);
+    if (isTestEnvironment() && resolved === findRepoRoot()) {
+      return resolveScratchDir();
+    }
+    return resolved;
+  }
+  if (isTestEnvironment()) {
+    return resolveScratchDir();
+  }
+  return findRepoRoot();
 }
 
 export function resolveOltDir(repoRoot?: string): string {
@@ -58,48 +104,44 @@ export function resolvePolicyPath(repoRoot?: string, customPath?: string): strin
 
 export function resolveBacklogPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  const root = resolveSafeRoot(repoRoot);
   return join(root, OLT_DIR_NAME, OLT_FILES.BACKLOG);
 }
 
 export function resolveCompletedTasksPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  const root = resolveSafeRoot(repoRoot);
   return join(root, OLT_DIR_NAME, OLT_FILES.COMPLETED_TASKS);
 }
 
 export function resolveDefectsPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  const root = resolveSafeRoot(repoRoot);
   return join(root, OLT_DIR_NAME, OLT_FILES.DEFECTS);
 }
 
 export function resolveCompletedDefectsPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  const root = resolveSafeRoot(repoRoot);
   return join(root, OLT_DIR_NAME, OLT_FILES.COMPLETED_DEFECTS);
 }
 
 export function resolveTelemetryPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  const root = resolveSafeRoot(repoRoot);
   return join(root, OLT_DIR_NAME, OLT_FILES.TELEMETRY);
 }
 
 export function resolveMemoryPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  const root = resolveSafeRoot(repoRoot);
   return join(root, OLT_DIR_NAME, OLT_FILES.MEMORY);
 }
 
 export function resolveWatchdogsPath(repoRoot?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  const root = resolveSafeRoot(repoRoot);
   return join(root, OLT_DIR_NAME, OLT_FILES.WATCHDOGS);
-}
-
-export function resolveScratchDir(_repoRoot?: string): string {
-  return join(tmpdir(), "olt-scratch");
 }
 
 export function resolveEvidenceDir(repoRoot?: string, runRoot?: string): string {

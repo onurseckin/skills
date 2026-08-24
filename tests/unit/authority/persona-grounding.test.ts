@@ -26,6 +26,7 @@ import {
   generateWatchdogPersonaGrounding,
   getAllRoleBoundaryProfiles,
   getRoleBoundaryProfile,
+  invalidatePersonaVerificationCaches,
   isSupervisoryRole,
   normalizeSupervisoryRole,
   SUPERVISORY_ROLE_BOUNDARIES,
@@ -33,6 +34,7 @@ import {
   type ReflexiveAuditContext,
   type SubordinateAgentInfo,
 } from "../../../olt/scripts/src/authority/persona-grounding.ts";
+
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 describe("Cognitive Pillars Subsystem (authority/pillars.ts)", () => {
@@ -640,5 +642,52 @@ describe("Watchdog Audit Prompts and Tick Reminders", () => {
     expect(reminder).toContain("Autonomic Watchdog 3-Minute Persona Grounding [Tick #2]");
     expect(reminder).toContain("---");
     expect(reminder).toContain("Supervisory Reflexive Self-Audit Report: `COORDINATOR`");
+  });
+
+  test("covers edge cases: invalid role error, release spillover, unreviewed findings, and cache invalidation", () => {
+    // 1. evaluateReflexiveSelfAudit with invalid role throws HarnessError
+    expect(() =>
+      evaluateReflexiveSelfAudit({ role: "invalid_supervisor" as unknown as SupervisoryRole }),
+    ).toThrow(HarnessError);
+
+    // 2. Main thread release spillover detection
+    const releaseSpilloverEval = evaluateReflexiveSelfAudit({
+      role: "orchestrator",
+      isMainThreadExecution: true,
+      recentActions: [
+        {
+          timestamp: new Date().toISOString(),
+          actor: "orchestrator",
+          action: "git_commit",
+          description: "commit on main thread",
+        },
+      ],
+    });
+    expect(releaseSpilloverEval.invariantCompliance.background_finalization_confinement).toBe(
+      false,
+    );
+    expect(
+      releaseSpilloverEval.findings.some(
+        (f) => f.code === "MAIN_THREAD_RELEASE_SPILLOVER_VIOLATION",
+      ),
+    ).toBe(true);
+
+    // 3. Accumulated unreviewed findings (> 5)
+    const unreviewedFindingsEval = evaluateReflexiveSelfAudit({
+      role: "coordinator",
+      openFindingsCount: 8,
+    });
+    expect(
+      unreviewedFindingsEval.findings.some((f) => f.code === "ACCUMULATED_UNREVIEWED_FINDINGS"),
+    ).toBe(true);
+
+    // 4. buildWatchdogAuditPrompt with invalid role throws HarnessError
+    expect(() => buildWatchdogAuditPrompt("invalid_role")).toThrow(HarnessError);
+
+    // 5. createWatchdogTickReminder with invalid role throws HarnessError
+    expect(() => createWatchdogTickReminder("invalid_role", 1)).toThrow(HarnessError);
+
+    // 6. invalidatePersonaVerificationCaches runs without errors
+    expect(() => invalidatePersonaVerificationCaches()).not.toThrow();
   });
 });

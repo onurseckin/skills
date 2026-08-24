@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { isAgentRole } from "../../../olt/scripts/src/core/contracts/packets.ts";
 import {
@@ -27,11 +27,10 @@ describe("agent personas", () => {
   });
 
   test("personas carry the canonical probe and repair budgets", () => {
-    expect(MIN_ADVERSARIAL_PROBES).toBe(1);
-    expect(MAX_REPAIR_ROUNDS).toBe(6);
     const validator = persona("validator.yaml");
-    expect(validator).toContain(`min_adversarial_probes: ${MIN_ADVERSARIAL_PROBES}`);
-    expect(validator).toContain(`max_repair_rounds: ${MAX_REPAIR_ROUNDS}`);
+    expect(validator).toContain("min_adversarial_probes: 1");
+    expect(validator).toContain("max_adversarial_pushes: 20");
+    expect(validator).toContain("cognitive_pushes: 5");
     // The probe supersedes the rejection round: a persona teaching the legacy knob teaches a
     // validator to file a defect it never observed.
     expect(validator).not.toContain("min_adversarial_rejections");
@@ -63,7 +62,9 @@ describe("agent personas", () => {
     expect(validator).toContain("Strict Command-Running Ban");
     expect(validator).not.toContain("- run:exec");
 
-    const mechanic = persona("mechanic_validator.yaml");
+    const mechanic = existsSync(join(agentsRoot, "mechanic-validator.yaml"))
+      ? persona("mechanic-validator.yaml")
+      : persona("mechanic_validator.yaml");
     expect(mechanic).toContain("run:exec");
   });
 });

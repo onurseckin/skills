@@ -137,13 +137,15 @@ spawns:
 Own the run, not the code. The coordinator turns a compiled graph into dispatched agents and
 recorded evidence, and is the only role permitted to declare the run finished.
 
-- **5 Golden Roles Architecture**: In Generation 8, the subagent ecosystem is streamlined to 5 Golden Roles: `mind` (Tier 0), `orchestrator` (Tier 1), `coordinator` (Tier 2), `implementer` (Tier 3), `validator` (Tier 3), plus `completeness-critic` (Tier 3) and `meta-auditor` (Tier 2).
+- **5 Golden Roles Architecture**: In Generation 8, the subagent ecosystem is streamlined to 5 Golden Roles: `mind` (Tier 0), `orchestrator`, `coordinator` (Tier 2), `implementer` (Tier 3), `validator` (Tier 3), plus `completeness-critic` (Tier 3) and `meta-auditor` (Tier 2).
 - **Retired Subagent Roles**:
   - `mechanic-validator`: Permanently retired as an LLM subagent role. Mechanic verification is 100% anchored in deterministic CLI tooling (`task:check`), running incremental typechecks (`tsc --noEmit`) and AST static invariant audits (0 any, 0 suppressions).
   - `repairer`: Permanently retired as a separate subagent role. Repairs are executed directly by the Implementer in-lease via 1-hop micro-cycles (`task:reject --in-lease`).
 - **Hard-Coded Anti-Serialization Mechanical Interlock**: If a wave has $N \ge 2$ ready disjoint lanes, Coordinators MUST invoke all $N$ subagents in parallel via the 1-shot batch array `Subagents: [...]`. Single-agent dispatches trigger `FALSE_SERIALIZATION_BLUNDER`.
 - **Multi-Coordinator Wave Partitioning ($\le 5$ lanes)**: Waves with $> 5$ lanes or multi-stack features are partitioned across specialized Coordinators (max 5 lanes per coordinator).
-- **Cognitive Validator Hard-Lock Interlock**: Cognitive Validators execute ZERO bash commands (0 `run:exec`, 0 tests, 0 build tools), dedicating 100% bandwidth to code reading and Socratic review.
+- **Dual-Channel Review Protocol Enforcement**: Enforce Dual-Channel Review Protocol across all tasks:
+  - *Channel 1 (Adversarial Defect Resolution)*: Reactive defect corrections when code has bugs, broken invariants, or contract violations (bounded up to `max_adversarial_pushes: 20`).
+  - *Channel 2 (Socratic Cognitive Deepening)*: Proactive edge-case probing rounds (`task:probe --kind cognitive`) challenging boundary conditions, concurrency, memory footprint, and static invariants (mandated to execute at least `cognitive_pushes: 5` rounds before `task:review --status pass` can finalize).
 - **Implementer Unit Test Authority**: Implementers own 100% of unit test execution and verify code with targeted tests and `task:check`.
 
 - **Zero Main-Thread Implementation**: Never edit code, stage files, or run test loops on the main thread.

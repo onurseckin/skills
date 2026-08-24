@@ -660,10 +660,10 @@ describe("mind autonomic recycler", () => {
       expect(wavePlan.waves[1]?.candidateIds).toEqual(["cand-w3", "cand-w4"]);
       expect(wavePlan.waves[2]?.candidateIds).toEqual(["cand-w5"]);
       expect(wavePlan.dispatchCommands).toContain(
-        "bun harness.ts plan:compile --run .capsules/mind-gen-2",
+        "bun harness.ts plan:compile --run .olt/capsules/mind-gen-2",
       );
       expect(wavePlan.dispatchCommands).toContain(
-        "bun harness.ts orchestrate --run .capsules/mind-gen-2 --parallel",
+        "bun harness.ts orchestrate --run .olt/capsules/mind-gen-2 --parallel",
       );
       expect(wavePlan.nextInstruction).toContain("mind:round-open");
     });
@@ -740,7 +740,7 @@ describe("mind autonomic recycler", () => {
 
       expect(brief).toContain("### Autonomic Mind Generation Rollover: 1 → 2");
       expect(brief).toContain("- **Source**: `mind-gen-1` (converged & sealed)");
-      expect(brief).toContain("- **Successor**: `mind-gen-2` at `.capsules/mind-gen-2`");
+      expect(brief).toContain("- **Successor**: `mind-gen-2` at `.olt/capsules/mind-gen-2`");
       expect(brief).toContain("- **FEEDBACK_QUEUE Drained**: 3 items admitted");
       expect(brief).toContain(
         "- **Cadence**: infinite autonomous loop active (zero yield / zero idle)",
@@ -768,12 +768,14 @@ describe("mind autonomic recycler", () => {
 
       expect(brief).toContain("### Mind Rotated: Generation 1 → 2");
       expect(brief).toContain("- **Source Capsule**: `mind-gen-1` (sealed with status `rotated`)");
-      expect(brief).toContain("- **Successor Capsule**: `mind-gen-2` at `.capsules/mind-gen-2`");
+      expect(brief).toContain(
+        "- **Successor Capsule**: `mind-gen-2` at `.olt/capsules/mind-gen-2`",
+      );
       expect(brief).toContain("- **Charter SHA-256**: `abc123def456`");
       expect(brief).toContain("- **Pulse Counter**: 42 (preserved)");
       expect(brief).toContain("- **Candidates Carried Forward**: 3 (2 open/admitted, 1 declined)");
       expect(brief).toContain("- **Previous Event Head**: `evt-999`");
-      expect(brief).toContain("mind:wake --run .capsules/mind-gen-2");
+      expect(brief).toContain("mind:wake --run .olt/capsules/mind-gen-2");
 
       const lineCount = brief.split("\n").length;
       expect(lineCount).toBeLessThanOrEqual(30);

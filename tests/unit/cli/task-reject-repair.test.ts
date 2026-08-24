@@ -1,14 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { taskAssignRepairerCommand } from "../../../olt/scripts/src/cli/commands/task-assign-repairer.ts";
 import { taskRejectCommand } from "../../../olt/scripts/src/cli/commands/task-reject.ts";
 import { linkBlobIntoView, putBlobFile } from "../../../olt/scripts/src/engine/store/blobs.ts";
 import { recordCaptures } from "../../../olt/scripts/src/engine/store/captures.ts";
-import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { claimSubmitValidateAndReject, setupCompiledRun } from "./file-persistence-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
 
 describe("task:reject", () => {
   test("rejects a submitted task with a structured finding and returns it for repair", async () => {
@@ -393,5 +391,42 @@ describe("task:assign-repairer", () => {
         "attempting to assign validator as repairer",
       ]),
     ).rejects.toThrow(/cannot be a validator of task 'task-core' \(anti-boundary-leak rule\)/);
+  });
+
+  test("task:reject records micro-cycle critique when --micro-cycle or --in-lease is specified", async () => {
+    const { repo, run } = await setupCompiledRun("reject-micro-cycle", roots);
+    const claim = await execute([
+      "task:claim",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+    ]);
+
+    const result = await execute([
+      "task:reject",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--validator",
+      "val-1",
+      "--reason",
+      "Micro-cycle critique: missing type boundary check",
+      "--remediation",
+      "Add explicit type check",
+      "--micro-cycle",
+      "--max-rounds",
+      "5",
+    ]);
+
+    expect(result.micro_cycle).toBe(true);
+    expect(result.round).toBe(1);
+    expect(result.remediation).toBe("Add explicit type check");
+    expect((result.task as { status: string }).status).toBe("leased");
   });
 });

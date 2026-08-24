@@ -15,6 +15,7 @@ import {
 } from "../core/contracts/workflow.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { parseUnifiedAgentManifest } from "../authority/manifest-schema.ts";
 
 const ROLES_ROOT = fileURLToPath(new URL("../../../roles", import.meta.url));
 const SCRIPTS_SRC_ROLES_ROOT = fileURLToPath(new URL("../roles", import.meta.url));
@@ -133,7 +134,7 @@ function requireList(frontmatter: ParsedFrontmatter, field: ListField, source: s
   if (!values) invalid("role contract", source, `missing key: ${field}`);
   if (new Set(values).size !== values.length)
     invalid("role contract", source, `duplicate ${field} entry`);
-  if (field !== "spawns" && values.length === 0)
+  if (field !== "spawns" && field !== "commands" && values.length === 0)
     invalid("role contract", source, `${field} must not be empty`);
   return values;
 }
@@ -171,9 +172,12 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
     invalid("role contract", source, `role is not a canonical agent role: ${role}`);
   const rawTier = frontmatter.scalars.get("tier");
   if (rawTier === undefined) invalid("role contract", source, "missing key: tier");
-  const tier = /^\d+$/u.test(rawTier) ? Number(rawTier) : Number.NaN;
-  if (!Number.isSafeInteger(tier) || tier < 0 || tier > 3)
+  let tier = /^\d+$/u.test(rawTier) ? Number(rawTier) : Number.NaN;
+  if (rawTier === "independent") {
+    tier = 3;
+  } else if (!Number.isSafeInteger(tier) || tier < 0 || tier > 3) {
     invalid("role contract", source, `tier must be an integer from 0 to 3: ${rawTier}`);
+  }
   const rawDomain = frontmatter.scalars.get("domain");
   let domain: ValidatorDomain | undefined;
   if (rawDomain !== undefined) {
@@ -238,21 +242,49 @@ export function resolveRoleContractPath(role: AgentRole): string {
   return join(ROLES_ROOT, `${role}.md`);
 }
 
+const AGENTS_ROOT = fileURLToPath(new URL("../../../agents", import.meta.url));
+
 export function loadRoleContract(
   role: AgentRole,
   read: (path: string) => Uint8Array = readRegularFileNoFollow,
 ): RoleContract {
   const path = resolveRoleContractPath(role);
-  let bytes: Uint8Array;
-  try {
-    bytes = read(path);
-  } catch (error) {
-    throw new HarnessError("INTEGRITY", `role contract is unreadable: ${path}: ${String(error)}`);
+  if (existsSync(path)) {
+    let bytes: Uint8Array;
+    try {
+      bytes = read(path);
+    } catch (error) {
+      throw new HarnessError("INTEGRITY", `role contract is unreadable: ${path}: ${String(error)}`);
+    }
+    const contract = parseRoleContract(bytes, `${role}.md`);
+    if (contract.role !== role)
+      throw new HarnessError("INTEGRITY", `role contract ${path} declares role ${contract.role}`);
+    return contract;
   }
-  const contract = parseRoleContract(bytes, `${role}.md`);
-  if (contract.role !== role)
-    throw new HarnessError("INTEGRITY", `role contract ${path} declares role ${contract.role}`);
-  return contract;
+
+  const yamlPath = join(AGENTS_ROOT, `${role}.yaml`);
+  if (existsSync(yamlPath)) {
+    const rawBytes = read(yamlPath);
+    const content = new TextDecoder("utf-8").decode(rawBytes);
+    const manifest = parseUnifiedAgentManifest(content, yamlPath);
+    const text = manifest.instructions || "";
+    const bytes = new TextEncoder().encode(text);
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
+    const contract: RoleContract = {
+      role,
+      tier: typeof manifest.tier === "number" ? manifest.tier : 3,
+      may: manifest.permissions.may,
+      must_not: manifest.permissions.must_not,
+      commands: manifest.permissions.commands,
+      spawns: manifest.permissions.spawns as AgentRole[],
+      text,
+      bytes,
+      sha256,
+    };
+    return contract;
+  }
+
+  throw new HarnessError("INTEGRITY", `role contract is unreadable: ${path}: ENOENT`);
 }
 
 const CHECKLIST_ITEM_LIST_FIELDS = new Set(["sources"]);

@@ -203,4 +203,48 @@ describe("plan:audit", () => {
     expect(Array.isArray(audited.findings)).toBe(true);
     expect(String(audited.markdown)).toContain("audit-basic");
   });
+
+  test("capsulePlanningStore throws INTEGRITY when mutation returns a Promise", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-plan-store-async-"));
+    roots.push(repo);
+    const promptPath = join(repo, "prompt.txt");
+    await writeFile(promptPath, "Test prompt");
+    const init = await execute([
+      "init",
+      "--repo",
+      repo,
+      "--run-id",
+      "async-mut-run",
+      "--prompt-file",
+      promptPath,
+    ]);
+    const run = init.run_root as string;
+
+    const { capsulePlanningStore } =
+      await import("../../../olt/scripts/src/cli/commands/plan-apply.ts");
+    const store = capsulePlanningStore(run);
+    const loaded = await store.load();
+    expect(loaded.prompt).toBeDefined();
+
+    await expect(
+      store.transact("planner", "plan-test", {}, async () => {
+        await Promise.resolve();
+      }),
+    ).rejects.toThrow(/plan mutation resolved asynchronously/);
+  });
+});
+
+describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
+  test("verifies plan-claim-apply-audit test file contains zero any and zero suppressions", async () => {
+    const testContent = await Bun.file(import.meta.path).text();
+    const forbiddenAnyRegex = new RegExp(":[ \\t]*" + "any\\b");
+    const forbiddenCastRegex = new RegExp("\\bas[ \\t]+" + "any\\b");
+    const forbiddenSuppressionsRegex = new RegExp("@ts-" + "(ignore|expect-error|nocheck)");
+    const forbiddenLintRegex = new RegExp("(eslint|oxlint)" + "-disable");
+
+    expect(testContent).not.toMatch(forbiddenAnyRegex);
+    expect(testContent).not.toMatch(forbiddenCastRegex);
+    expect(testContent).not.toMatch(forbiddenSuppressionsRegex);
+    expect(testContent).not.toMatch(forbiddenLintRegex);
+  });
 });

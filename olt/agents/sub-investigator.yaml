@@ -1,5 +1,12 @@
 name: "sub-investigator"
-role: "investigator"
+role: "sub-investigator"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: 3
 tools:
   enable_subagent_tools: false
@@ -12,11 +19,22 @@ permissions:
     - "Make source edits"
     - "Write any files"
   commands:
+    - "branch:claim"
+    - "branch:submit"
     - "run:exec"
+    - "finding:get"
+    - "report:get"
+    - "evidence:get"
+    - "agent:report"
+    - "whoami"
   spawns: []
 invariants:
   - "ZERO_WRITE_SCOPE"
   - "READ_ONLY_DIAGNOSIS"
+protocol:
+  role_contract: "roles/sub-investigator.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   ---
   role: sub-investigator

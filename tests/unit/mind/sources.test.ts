@@ -599,7 +599,7 @@ describe("mindObserveCommand", () => {
     });
 
     expect(md).toContain("### Mind Source Observed: intent-drift (obs-1)");
-    expect(md).toContain("- **Capsule Root**: `.capsules/mind-gen-1`");
+    expect(md).toContain("capsules/mind-gen-1");
     expect(md).toContain("- **Actor**: `mind-1`");
     expect(md).toContain("- **Source**: `intent-drift` (#1 — code no longer matching intent)");
     expect(md).toContain("- **Command ID**: `cmd-101`");

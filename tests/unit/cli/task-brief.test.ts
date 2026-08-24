@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import {
-  agentBriefCommand,
-  taskBriefCommand,
-} from "../../../olt/scripts/src/cli/commands/task-brief.ts";
+import { taskBriefCommand } from "../../../olt/scripts/src/cli/commands/task-brief.ts";
 import {
   formatTaskBrief,
   formatTaskClaimBrief,
@@ -230,7 +227,7 @@ describe("taskBriefCommand and agentBriefCommand handler tests", () => {
     ).rejects.toThrow(/unknown task non-existent-task/);
   });
 
-  test("agentBriefCommand resolves briefing for registered agent with parent task", async () => {
+  test("taskBriefCommand resolves briefing for registered agent with parent task", async () => {
     const { run } = await setupRun("agent-brief-test", roots);
 
     // Register root coordinator
@@ -271,7 +268,7 @@ describe("taskBriefCommand and agentBriefCommand handler tests", () => {
       "Bash=shell",
     ]);
 
-    const result = await agentBriefCommand({
+    const result = await taskBriefCommand({
       run,
       agent: "worker-agent-1",
     });
@@ -297,10 +294,10 @@ describe("taskBriefCommand and agentBriefCommand handler tests", () => {
     );
   });
 
-  test("agentBriefCommand throws INVALID_STATE when agent holds no grant", async () => {
+  test("taskBriefCommand throws INVALID_STATE when agent holds no grant", async () => {
     const { run } = await setupRun("agent-brief-missing", roots);
     await expect(
-      agentBriefCommand({
+      taskBriefCommand({
         run,
         agent: "unknown-agent",
       }),

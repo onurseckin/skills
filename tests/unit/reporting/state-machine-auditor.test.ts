@@ -328,7 +328,29 @@ describe("StateMachineAuditor", () => {
     it("isPlanValidationApproved evaluates state and events correctly", () => {
       expect(StateMachineAuditor.isPlanValidationApproved({}, [])).toBe(false);
       expect(
-        StateMachineAuditor.isPlanValidationApproved({ plan_review: { status: "approved" } }, []),
+        StateMachineAuditor.isPlanValidationApproved({ plan_review: { verdict: "approved" } }, []),
+      ).toBe(true);
+      expect(
+        StateMachineAuditor.isPlanValidationApproved(
+          { plan_validation: { status: "approved" } },
+          [],
+        ),
+      ).toBe(true);
+      expect(
+        StateMachineAuditor.isPlanValidationApproved(
+          { plan_validation: { verdict: "approved" } },
+          [],
+        ),
+      ).toBe(true);
+      expect(
+        StateMachineAuditor.isPlanValidationApproved({}, [
+          { kind: "plan-validated", status: "approved" },
+        ]),
+      ).toBe(true);
+      expect(
+        StateMachineAuditor.isPlanValidationApproved({}, [
+          { kind: "plan-validated", verdict: "approved" },
+        ]),
       ).toBe(true);
       expect(
         StateMachineAuditor.isPlanValidationApproved({}, [
@@ -337,7 +359,26 @@ describe("StateMachineAuditor", () => {
       ).toBe(true);
       expect(
         StateMachineAuditor.isPlanValidationApproved({}, [
-          { kind: "plan-reviewed", payload: { status: "changes_requested" } },
+          { kind: "plan-reviewed", payload: { verdict: "approved" } },
+        ]),
+      ).toBe(true);
+      expect(
+        StateMachineAuditor.isPlanValidationApproved({ plan_review: { status: "rejected" } }, []),
+      ).toBe(false);
+      expect(
+        StateMachineAuditor.isPlanValidationApproved(
+          { plan_validation: { status: "rejected" } },
+          [],
+        ),
+      ).toBe(false);
+      expect(
+        StateMachineAuditor.isPlanValidationApproved({}, [
+          { kind: "plan-validated", status: "rejected" },
+        ]),
+      ).toBe(false);
+      expect(
+        StateMachineAuditor.isPlanValidationApproved({}, [
+          { kind: "plan-reviewed", payload: { status: "rejected" } },
         ]),
       ).toBe(false);
     });

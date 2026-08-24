@@ -23,61 +23,61 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
   test("assertReviewProtocolSatisfied throws INVALID_STATE when cognitive deepening is incomplete", () => {
     const task: TaskRecord = {
       ...baseTask,
-      probe_round: 0, // 0/3 completed
+      probe_round: 0, // 0/5 completed
     };
 
     expect(() => {
       assertReviewProtocolSatisfied(task, {
-        max_adversarial_pushes: 5,
-        cognitive_pushes: 3,
+        max_adversarial_pushes: 20,
+        cognitive_pushes: 5,
         escalate_on_exhausted_adversarial: true,
       });
     }).toThrow(HarnessError);
 
     try {
       assertReviewProtocolSatisfied(task, {
-        max_adversarial_pushes: 5,
-        cognitive_pushes: 3,
+        max_adversarial_pushes: 20,
+        cognitive_pushes: 5,
         escalate_on_exhausted_adversarial: true,
       });
     } catch (err) {
       const error = err as HarnessError;
       expect(error.code).toBe("INVALID_STATE");
       expect(error.message).toContain("Cognitive deepening protocol not satisfied");
-      expect(error.message).toContain("Completed 0/3 required cognitive rounds");
+      expect(error.message).toContain("Completed 0/5 required cognitive rounds");
     }
   });
 
-  test("assertReviewProtocolSatisfied throws INVALID_STATE when 2 of 3 cognitive rounds are completed", () => {
+  test("assertReviewProtocolSatisfied throws INVALID_STATE when 4 of 5 cognitive rounds are completed", () => {
     const task: TaskRecord = {
       ...baseTask,
-      probe_round: 2, // 2/3 completed
+      probe_round: 4, // 4/5 completed
     };
 
     try {
       assertReviewProtocolSatisfied(task, {
-        max_adversarial_pushes: 5,
-        cognitive_pushes: 3,
+        max_adversarial_pushes: 20,
+        cognitive_pushes: 5,
         escalate_on_exhausted_adversarial: true,
       });
       expect(true).toBe(false); // Should not reach here
     } catch (err) {
       const error = err as HarnessError;
       expect(error.code).toBe("INVALID_STATE");
-      expect(error.message).toContain("Completed 2/3 required cognitive rounds");
+      expect(error.message).toContain("Completed 4/5 required cognitive rounds");
     }
   });
 
-  test("assertReviewProtocolSatisfied succeeds when all 3 cognitive rounds are completed with 0 open defects", () => {
+  test("assertReviewProtocolSatisfied succeeds when all 5 cognitive rounds are completed with 0 open defects", () => {
     const task: TaskRecord = {
       ...baseTask,
-      probe_round: 3, // 3/3 completed
+      probe_round: 5, // 5/5 completed
     };
 
     expect(() => {
       assertReviewProtocolSatisfied(task, {
-        max_adversarial_pushes: 5,
-        cognitive_pushes: 3,
+        max_adversarial_pushes: 20,
+        cognitive_pushes: 5,
         escalate_on_exhausted_adversarial: true,
       });
     }).not.toThrow();
@@ -91,7 +91,7 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
 
     expect(() => {
       assertReviewProtocolSatisfied(task, {
-        max_adversarial_pushes: 5,
+        max_adversarial_pushes: 20,
         cognitive_pushes: 0,
         escalate_on_exhausted_adversarial: true,
       });
@@ -101,7 +101,7 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
   test("assertReviewProtocolSatisfied throws when open defect finding exists even if cognitive rounds are completed", () => {
     const task: TaskRecord = {
       ...baseTask,
-      probe_round: 3,
+      probe_round: 5,
       findings: [
         {
           id: "f-01",
@@ -118,8 +118,8 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
 
     expect(() => {
       assertReviewProtocolSatisfied(task, {
-        max_adversarial_pushes: 5,
-        cognitive_pushes: 3,
+        max_adversarial_pushes: 20,
+        cognitive_pushes: 5,
         escalate_on_exhausted_adversarial: true,
       });
     }).toThrow("1 open finding(s) remain unresolved");
@@ -127,8 +127,8 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
 
   test("adversarial defect resolution followed by cognitive deepening lifecycle progression", () => {
     const engine = new ReviewProtocolEngine({
-      max_adversarial_pushes: 5,
-      cognitive_pushes: 3,
+      max_adversarial_pushes: 20,
+      cognitive_pushes: 5,
     });
 
     const task: TaskRecord = { ...baseTask };
@@ -198,7 +198,7 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
     expect(state.cognitive_rounds_completed).toBe(2);
     expect(state.can_finalize_review).toBe(false);
 
-    // Cognitive Round 3 (Static Invariant Audit)
+    // Cognitive Round 3 (Memory Footprint Probe)
     task.probe_round = 3;
     engine.recordEntry(task, {
       round: 3,
@@ -206,10 +206,38 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
       actor_id: "val-1",
       verdict: "probe",
       probe_demands_count: 1,
-      summary: "Prove 0 any and 0 compiler suppressions.",
+      summary: "What is the memory footprint under 10k items?",
     });
     state = engine.projectState(task);
     expect(state.cognitive_rounds_completed).toBe(3);
+    expect(state.can_finalize_review).toBe(false);
+
+    // Cognitive Round 4 (Static Invariant Audit)
+    task.probe_round = 4;
+    engine.recordEntry(task, {
+      round: 4,
+      channel: "cognitive",
+      actor_id: "val-1",
+      verdict: "probe",
+      probe_demands_count: 1,
+      summary: "Prove 0 any and 0 compiler suppressions.",
+    });
+    state = engine.projectState(task);
+    expect(state.cognitive_rounds_completed).toBe(4);
+    expect(state.can_finalize_review).toBe(false);
+
+    // Cognitive Round 5 (AGP Verification)
+    task.probe_round = 5;
+    engine.recordEntry(task, {
+      round: 5,
+      channel: "cognitive",
+      actor_id: "val-1",
+      verdict: "probe",
+      probe_demands_count: 1,
+      summary: "Verify counterfactual falsifiability gate proof.",
+    });
+    state = engine.projectState(task);
+    expect(state.cognitive_rounds_completed).toBe(5);
     expect(state.current_phase).toBe("completed");
     expect(state.can_finalize_review).toBe(true);
 

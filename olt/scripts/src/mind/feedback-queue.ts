@@ -106,7 +106,7 @@ export const PRIORITY_ORDER: Record<FeedbackPriority, number> = {
   LOW: 5,
 };
 
-export function resolveCanonicalFeedbackQueuePath(customRoot?: string, useTodo = false): string {
+export function resolveCanonicalFeedbackQueuePath(customRoot?: string, _useTodo = false): string {
   return require("path").join(customRoot || process.cwd(), ".olt", "backlog.jsonl");
 }
 
@@ -1051,4 +1051,24 @@ export function reconcilePausedAdmittedFeedbacks(
     reconciled_count: remediated.length,
     remediated_feedbacks: remediated,
   };
+}
+
+export function migrateFeedbackQueue(options: { sourcePath: string; targetPath?: string }): {
+  migrated: boolean;
+  count: number;
+} {
+  const target = resolveFeedbackQueuePath(options.targetPath);
+  if (!existsSync(options.sourcePath) || options.sourcePath === target) {
+    return { migrated: false, count: 0 };
+  }
+  const records = readFeedbackQueue(options.sourcePath);
+  if (records.length === 0) {
+    return { migrated: false, count: 0 };
+  }
+  const existing = readFeedbackQueue(target);
+  const map = new Map<string, FeedbackItem>();
+  for (const r of existing) map.set(r.id, r);
+  for (const r of records) map.set(r.id, r);
+  writeFeedbackQueue(Array.from(map.values()), target);
+  return { migrated: true, count: records.length };
 }

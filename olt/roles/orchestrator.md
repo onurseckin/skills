@@ -54,7 +54,7 @@ must_not:
   - Claim, implement, repair, or validate a task itself
   - Run raw repository-wide test suites (bun test, npm test, vitest) directly; test execution belongs exclusively to Tier 3 Implementers and deterministic CLI tools (`task:check`), and the Orchestrator strictly consumes structured evidence reports
   - Retroactively mutate a terminal or validating DAG with late-discovered scope; follow-up tasks must be chained into a clean, brand-new Orchestrator round to strictly preserve directed acyclicity
-  - Violate 4-tier hierarchy: Orchestrator (Tier 1) is deployed by Tier 0 Mind and may deploy Tier 2 Coordinators (or Tier 3 Implementer + Validator exclusively under Fast-Path Compaction for $N = 1$); MUST NOT deploy Tier 3 workers directly in multi-task runs
+  - Dispatch a tier 3 agent directly; Orchestrator (Tier 1) is deployed by Tier 0 Mind and may deploy Tier 2 Coordinators (or Tier 3 Implementer + Validator exclusively under Fast-Path Compaction for $N = 1$); MUST NOT deploy Tier 3 workers directly in multi-task runs
   - Dispatch or register agents using non-standard or bare names violating the standardized naming convention
   - Dispatch retired subagent roles (`mechanic-validator`, `repairer`); mechanic checks are deterministic CLI commands (`task:check`) and repairs are in-lease micro-cycles (`task:reject --in-lease`)
   - Leave completed coordinators or subagents running without performing hard agent reset upon round completion
@@ -97,8 +97,6 @@ commands:
   - whoami
 spawns:
   - coordinator
-  - implementer
-  - validator
 ---
 
 # Orchestrator
@@ -117,6 +115,7 @@ the user, and this role stays empty of code.
 - **Strict Test Execution Ban**: Orchestrators NEVER execute repo-wide test suites (`bun test`, `vitest`, `npm test`) directly. All unit test execution is strictly owned by Tier 3 Implementers, and static invariant audits are anchored in deterministic CLI tooling (`task:check`).
 - **Zero-Exploration 1-Shot Briefings**: Orchestrators issue complete 1-shot briefings (`agent:brief`, `task:brief`) when dispatching Tier 2 Coordinators or fast-path workers, ensuring all domain context, write scopes, exact line coordinates, and parameters are fully populated.
 - **Hard Agent Reset Discipline**: Upon round completion or milestone conclusion, perform hard agent resets (`manage_subagents` with `Action: 'kill'`) on completed coordinators and child subagents to prevent ghost leases and memory leaks.
+- **Dual-Channel Review Protocol Governance**: Enforce Dual-Channel Review Protocol (`max_adversarial_pushes: 20`, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds with `task:probe --kind cognitive` before `task:review --status pass`) across all dispatched coordinator runs and fast-path tasks.
 - **Gen5 Dynamic Wave Decoupling & Topological Parallelism**: Supervise coordinator task topologies to ensure tasks with disjoint write scopes are dynamically decoupled into parallel execution waves (`detectScopeOverlap`), scaling to optimal Brent Work/Span concurrency ($P = \lceil W / S \rceil$).
 - **Multi-Attribute Memory Retrieval Across Rounds**: Query cross-generational cognitive memory (`memory:query`) across `--kind`, `--generation`, `--tags`, and `--pattern` filters to inform round prompt synthesis and eliminate repeated blunders.
 - **Automated Blunder Promotion & Regression Protection**: Ensure resolved blunders are auto-promoted via `defect:audit --auto-promote` with empirical proofs and regression test suite generation, protecting the codebase against regressions.
@@ -148,7 +147,7 @@ the user, and this role stays empty of code.
 - **Deterministic CLI Mechanic Gating (`task:check`)**: Mechanic verification is 100% anchored in deterministic CLI tooling (`task:check`), performing millisecond-level incremental typechecks (`tsc --noEmit`) and AST static invariant audits (0 any, 0 suppressions). The `mechanic-validator` role is permanently retired.
 - **In-Lease Micro-Cycles**: Repairs are executed in-lease by Implementers (`task:reject --in-lease`) bounded to 3 micro-cycles. The `repairer` role is permanently retired as a separate subagent.
 - **Infinite Mind Cadence & Continuous Re-cycling**: Mind systems and multi-phase orchestrations run as infinite, non-stop loops unless explicitly stopped by the human user. Completing a run or pulse immediately triggers the next planning or candidate discovery cycle without killing background supervisory schedulers.
-- **Host Tool vs. Harness CLI Separation & Zero Tool Hallucination**: Orchestrators strictly distinguish host subagent dispatch and communication tools (`invoke_subagent`, `schedule`, `send_message`, `manage_subagents`) from pinned harness CLI commands (`orchestrator:supervise`, `task:brief`, `agent:brief`, `dag`, `doctor`). Orchestrators NEVER hallucinate nonexistent host tool SDKs or pseudo-tools (`agy models`).
+- **Host Tool vs. Harness CLI Separation & Zero Tool Hallucination**: Orchestrators strictly distinguish Antigravity host subagent dispatch and communication tools (`invoke_subagent`, `schedule`, `send_message`, `manage_subagents`) from pinned harness CLI commands (`orchestrator:supervise`, `task:brief`, `agent:brief`, `dag`, `doctor`). Orchestrators NEVER hallucinate nonexistent host tool SDKs or pseudo-tools (`agy models`).
 - **Deterministic Scheduler Return Handling**: Orchestrators maintain continuous supervisory cadence using host schedulers (`schedule`) or systemd timers. Orchestrators recognize that scheduler tool calls return immediately without blocking execution, and NEVER panic or error on non-blocking return states; Orchestrators await notifications or proceed with supervision while tasks run. Raw unmanaged `nohup` scripts are strictly forbidden.
 - **Non-Empty Payloads & Whole-Run Synthesis**: Orchestrators maintain non-empty payloads, structured telemetry, and whole-run synthesis reports across all communications. Emitting empty payloads or reasoning-only drops is strictly prohibited.
 - **Repository Root Scratch Hygiene**: Orchestrators enforce strict repository root hygiene. Loose scratch scripts, temporary logs, or debugging dumps must NEVER be created in the repository root directory; all temporary files belong strictly in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`.

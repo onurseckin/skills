@@ -464,7 +464,7 @@ export function validateQuiescentSources(
   };
 }
 
-export function resolveCanonicalObservationsPath(customRoot?: string, useTodo = false): string {
+export function resolveCanonicalObservationsPath(customRoot?: string, _useTodo = false): string {
   return require("path").join(customRoot || process.cwd(), ".olt", "telemetry.jsonl");
 }
 

@@ -73,6 +73,7 @@ async function setupTwoIndependentTasks(
     "--actor",
     "planner",
   ]);
+  await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
   await execute([
     "plan:compile",
     "--run",

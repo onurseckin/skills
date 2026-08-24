@@ -4,16 +4,6 @@ import { applicableGates, commandMatchesGate } from "../gates/gate-policy.ts";
 import type { CommandProof, WorkflowState } from "../types.ts";
 
 export function assertValidatorCommands(
-  _state: any,
-  _taskId: any,
-  _validatorId: any,
-  _proofs: any,
-  _field: any,
-  _requireAllGates?: any,
-) {
-  return;
-}
-function IGNORE(
   state: WorkflowState,
   taskId: string,
   validatorId: string,

@@ -268,7 +268,7 @@ export async function runPulseLoop(
         timeout_ms: options.timeoutMs ?? 360_000,
       },
       options.watchdogTarget,
-    );
+    ).watchdog;
   } catch {
     // Non-fatal
   }

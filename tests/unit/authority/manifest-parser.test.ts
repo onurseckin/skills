@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   clearManifestCache,
   findSkillRoot,
@@ -17,6 +19,11 @@ import {
   type UnifiedAgentModel,
 } from "../../../olt/scripts/src/authority/manifest-parser.ts";
 import {
+  parseUnifiedAgentManifest,
+  validateUnifiedAgentManifest,
+  type UnifiedAgentManifest,
+} from "../../../olt/scripts/src/authority/manifest-schema.ts";
+import {
   constructSupervisoryPersonaReminder,
   DECISION_PROTOCOLS,
   evaluateSupervisoryState,
@@ -26,6 +33,7 @@ import {
   type SupervisoryReminderEvaluationContext,
 } from "../../../olt/scripts/src/authority/supervisory-persona-reminder.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("YAML and Markdown Frontmatter Parser (manifest-parser.ts)", () => {
   test("parses plain scalars, booleans, numbers, and nulls correctly", () => {
@@ -549,7 +557,11 @@ describe("Automated State Evaluation & Neglected Responsibility Detection (super
     expect(evalResult.severity).toBe("high");
     const violation = evalResult.violations.find((v) => v.code === "WRITE_SCOPE_COLLISION_BREACH");
     expect(violation).toBeDefined();
-    expect(evalResult.correctiveDirectives.some((d) => d.includes("sequential waves"))).toBe(true);
+    expect(
+      evalResult.correctiveDirectives.some(
+        (d) => d.includes("successive waves") || d.includes("execute sequentially"),
+      ),
+    ).toBe(true);
   });
 
   test("detects queue idling with ready tasks (1:1 anti-batching neglect)", () => {
@@ -827,7 +839,11 @@ describe("Adversarial Counterfactual Falsifiability Verification (Task-p51 Probe
     expect(result.correctiveDirectives.length).toBeGreaterThanOrEqual(6);
     expect(result.correctiveDirectives.some((d) => d.includes("Tier 3 Implementer"))).toBe(true);
     expect(result.correctiveDirectives.some((d) => d.includes("task:release"))).toBe(true);
-    expect(result.correctiveDirectives.some((d) => d.includes("sequential waves"))).toBe(true);
+    expect(
+      result.correctiveDirectives.some(
+        (d) => d.includes("successive waves") || d.includes("execute sequentially"),
+      ),
+    ).toBe(true);
     expect(result.correctiveDirectives.some((d) => d.includes("gate:prove"))).toBe(true);
     expect(result.correctiveDirectives.some((d) => d.includes("coordinator:pushback"))).toBe(true);
     expect(result.correctiveDirectives.some((d) => d.includes("1920x1080"))).toBe(true);
@@ -844,5 +860,732 @@ describe("Adversarial Counterfactual Falsifiability Verification (Task-p51 Probe
     expect(violatedItem?.status).toBe("violated");
     expect(violatedItem?.correctiveDirective).toBeDefined();
     expect(violatedItem?.correctiveDirective).toContain("Tier 3 Implementers");
+  });
+});
+
+describe("Unified Agent Manifest Schema & Parser (manifest-schema.ts)", () => {
+  test("parseUnifiedAgentManifest parses complete agent manifest accurately", () => {
+    const yamlContent = `
+name: coordinator
+role: coordinator
+tier: 2
+provider:
+  - antigravity
+  - claude
+tools:
+  enable_subagent_tools: true
+  enable_write_tools: false
+interface:
+  display_name: "Domain Coordinator"
+  short_description: "Coordinates wave execution"
+permissions:
+  may:
+    - "task:claim"
+    - "task:submit"
+  must_not:
+    - "edit_file"
+  commands:
+    - "harness"
+  spawns:
+    - "implementer"
+    - "validator"
+invariants:
+  - "Never edit files on supervisory thread"
+protocol:
+  cli: "bun scripts/harness.ts"
+  zero_json: true
+instructions: "Coordinate waves cleanly"
+`;
+
+    const manifest = parseUnifiedAgentManifest(yamlContent, "agents/coordinator.yaml");
+    expect(manifest.name).toBe("coordinator");
+    expect(manifest.role).toBe("coordinator");
+    expect(manifest.tier).toBe(2);
+    expect(manifest.provider).toEqual(["antigravity", "claude"]);
+    expect(manifest.tools.enable_subagent_tools).toBe(true);
+    expect(manifest.tools.enable_write_tools).toBe(false);
+    expect(manifest.interface.display_name).toBe("Domain Coordinator");
+    expect(manifest.interface.short_description).toBe("Coordinates wave execution");
+    expect(manifest.permissions.may).toEqual(["task:claim", "task:submit"]);
+    expect(manifest.permissions.must_not).toEqual(["edit_file"]);
+    expect(manifest.permissions.commands).toEqual(["harness"]);
+    expect(manifest.permissions.spawns).toEqual(["implementer", "validator"]);
+    expect(manifest.invariants).toEqual(["Never edit files on supervisory thread"]);
+    expect(manifest.protocol.cli).toBe("bun scripts/harness.ts");
+    expect(manifest.protocol.zero_json).toBe(true);
+    expect(manifest.instructions).toBe("Coordinate waves cleanly");
+  });
+
+  test("parseUnifiedAgentManifest uses sensible defaults when optional fields are omitted", () => {
+    const minimalYaml = `
+name: custom-worker
+tier: independent
+`;
+    const manifest = parseUnifiedAgentManifest(minimalYaml);
+    expect(manifest.name).toBe("custom-worker");
+    expect(manifest.role).toBe("custom-worker");
+    expect(manifest.tier).toBe("independent");
+    expect(manifest.provider.length).toBeGreaterThan(0);
+    expect(manifest.tools.enable_subagent_tools).toBe(false);
+    expect(manifest.tools.enable_write_tools).toBe(false);
+    expect(manifest.interface.display_name).toBe("custom-worker");
+    expect(manifest.permissions.may).toEqual([]);
+    expect(manifest.protocol.zero_json).toBe(true);
+    expect(manifest.instructions).toBe("");
+  });
+
+  test("parseUnifiedAgentManifest throws error on non-object YAML or invalid input", () => {
+    expect(() => parseUnifiedAgentManifest("just a scalar", "manifest.yaml")).toThrow();
+    expect(() => parseUnifiedAgentManifest("{ invalid : : yaml }", "manifest.yaml")).toThrow();
+  });
+
+  test("validateUnifiedAgentManifest validates valid manifests and catches all structural anomalies", () => {
+    const validManifest: UnifiedAgentManifest = {
+      name: "tester",
+      role: "tester",
+      tier: 3,
+      provider: ["antigravity"],
+      tools: {
+        enable_subagent_tools: false,
+        enable_write_tools: true,
+      },
+      interface: {
+        display_name: "Tester",
+        short_description: "Runs tests",
+      },
+      permissions: {
+        may: ["bun test"],
+        must_not: ["git push"],
+        commands: ["test"],
+        spawns: [],
+      },
+      invariants: ["Must pass all assertions"],
+      protocol: {
+        cli: "bun harness.ts",
+        zero_json: true,
+      },
+      instructions: "Execute targeted unit tests",
+    };
+
+    const validResult = validateUnifiedAgentManifest(validManifest);
+    expect(validResult.valid).toBe(true);
+    expect(validResult.errors).toEqual([]);
+
+    // Structural anomaly checks
+    const badManifest = {
+      name: 123 as unknown as string,
+      role: null as unknown as string,
+      tier: "invalid_tier" as unknown as number,
+      provider: ["valid", 456] as unknown as string[],
+      tools: {
+        enable_subagent_tools: "yes" as unknown as boolean,
+        enable_write_tools: 1 as unknown as boolean,
+      },
+      interface: {
+        display_name: 999 as unknown as string,
+        short_description: false as unknown as string,
+      },
+      permissions: {
+        may: "not-an-array" as unknown as string[],
+        must_not: [123] as unknown as string[],
+        commands: "bad" as unknown as string[],
+        spawns: [null] as unknown as string[],
+      },
+      invariants: [123] as unknown as string[],
+      protocol: {
+        cli: 123 as unknown as string,
+        zero_json: "true" as unknown as boolean,
+      },
+      instructions: 123 as unknown as string,
+    } as unknown as UnifiedAgentManifest;
+
+    const invalidResult = validateUnifiedAgentManifest(badManifest);
+    expect(invalidResult.valid).toBe(false);
+    expect(invalidResult.errors.length).toBeGreaterThanOrEqual(10);
+
+    // Null and non-array root fields check
+    const completelyInvalid = {
+      name: null as unknown as string,
+      role: null as unknown as string,
+      tier: "invalid-tier" as unknown as number,
+      provider: "not-array" as unknown as string[],
+      tools: null as unknown as { enable_subagent_tools: boolean; enable_write_tools: boolean },
+      interface: null as unknown as { display_name: string; short_description: string },
+      permissions: null as unknown as {
+        may: string[];
+        must_not: string[];
+        commands: string[];
+        spawns: string[];
+      },
+      invariants: "not-array" as unknown as string[],
+      protocol: null as unknown as { cli: string; zero_json: boolean },
+      instructions: null as unknown as string,
+    } as unknown as UnifiedAgentManifest;
+
+    const nullFieldsResult = validateUnifiedAgentManifest(completelyInvalid);
+    expect(nullFieldsResult.valid).toBe(false);
+    expect(nullFieldsResult.errors.length).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe("Advanced YAML Parsing and Loader Scenarios (manifest-parser.ts)", () => {
+  test("parses complex nested YAML list structures, block scalars, and continuation lines", () => {
+    const complexYaml = `
+nested_structure:
+  -
+    - sub_item_1
+    - sub_item_2
+  -
+  - scalar_item
+  - key_with_scalar: |
+      multi-line text
+      line two
+    key_sibling: sibling_val
+  - key_with_nested:
+      nested_key: nested_val
+  - key_with_scalar_val: simple_val
+    extra_key: extra_val
+  - key_null:
+`;
+
+    const parsed = parseYaml(complexYaml) as Record<string, unknown>;
+    expect(Array.isArray(parsed.nested_structure)).toBe(true);
+    const list = parsed.nested_structure as unknown[];
+    expect(list[0]).toEqual(["sub_item_1", "sub_item_2"]);
+    expect(list[1]).toBeNull();
+    expect(list[2]).toBe("scalar_item");
+    expect(typeof (list[3] as Record<string, unknown>).key_with_scalar).toBe("string");
+    expect((list[3] as Record<string, unknown>).key_sibling).toBe("sibling_val");
+    expect((list[4] as Record<string, unknown>).nested_key).toBe("nested_val");
+    expect((list[5] as Record<string, unknown>).key_with_scalar_val).toBe("simple_val");
+    expect((list[5] as Record<string, unknown>).extra_key).toBe("extra_val");
+    expect((list[6] as Record<string, unknown>).key_null).toBeNull();
+  });
+
+  test("parses block scalar variants: |-, |+, >-, >+ and escaped quotes", () => {
+    const yaml = `
+strip_block: |-
+  stripped text
+keep_block: |+
+  kept text
+folded_strip: >-
+  folded stripped
+folded_keep: >+
+  folded kept
+escaped_text: "line1\\twith tab and \\"quotes\\" and \\\\ backslash"
+`;
+
+    const parsed = parseYaml(yaml) as Record<string, unknown>;
+    expect(parsed.strip_block).toBe("stripped text");
+    expect(parsed.keep_block).toBe("kept text");
+    expect(parsed.folded_strip).toBe("folded stripped");
+    expect(parsed.folded_keep).toBe("folded kept");
+    expect(typeof parsed.escaped_text).toBe("string");
+    expect((parsed.escaped_text as string).includes("\t")).toBe(true);
+    expect((parsed.escaped_text as string).includes('"quotes"')).toBe(true);
+  });
+
+  test("loadRoleContract and loadAgentManifest with custom sandbox directory", () => {
+    const sandboxDir = scratchRoot(import.meta.path, "manifest-loader-sandbox");
+    const rolesDir = join(sandboxDir, "roles");
+    const agentsDir = join(sandboxDir, "agents");
+    mkdirSync(rolesDir, { recursive: true });
+    mkdirSync(agentsDir, { recursive: true });
+
+    // Create a role contract file
+    const contractContent = `---
+role: custom-tester
+tier: 3
+may:
+  - "Run test suites"
+must_not:
+  - "Deploy to prod"
+---
+# Custom Tester Role
+
+Executes contract validation.
+`;
+    writeFileSync(join(rolesDir, "custom-tester.md"), contractContent, "utf8");
+
+    // Create an agent manifest file
+    const manifestContent = `
+name: custom-tester
+role: custom-tester
+tier: 3
+interface:
+  display_name: "Custom Tester"
+  short_description: "Custom tester description"
+permissions:
+  may:
+    - "Run test suites"
+  must_not:
+    - "Deploy to prod"
+`;
+    writeFileSync(join(agentsDir, "custom-tester.yaml"), manifestContent, "utf8");
+
+    // 1. loadRoleContract from custom directory
+    const contract = loadRoleContract("custom-tester", {
+      skillRoot: sandboxDir,
+      rolesDir,
+      bypassCache: true,
+    });
+    expect(contract.role).toBe("custom-tester");
+    expect(contract.tier).toBe(3);
+    expect(contract.may).toEqual(["Run test suites"]);
+
+    // 2. loadAgentManifest from custom directory
+    const manifest = loadAgentManifest("custom-tester", {
+      skillRoot: sandboxDir,
+      agentsDir,
+      bypassCache: true,
+    });
+    expect(manifest.name).toBe("custom-tester");
+    expect(manifest.role).toBe("custom-tester");
+
+    // 3. loadUnifiedAgentModel
+    const unified = loadUnifiedAgentModel("custom-tester", {
+      skillRoot: sandboxDir,
+      rolesDir,
+      agentsDir,
+      bypassCache: true,
+    });
+    expect(unified.role).toBe("custom-tester");
+    expect(unified.displayName).toBe("Custom Tester");
+    expect(unified.may).toEqual(["Run test suites"]);
+
+    // 4. listAvailableRoles and listAvailableManifests
+    const availableRoles = listAvailableRoles({ rolesDir });
+    expect(availableRoles).toContain("custom-tester");
+
+    const availableManifests = listAvailableManifests({ agentsDir });
+    expect(availableManifests).toContain("custom-tester");
+
+    // 5. loadRoleContract fallback synthetic contract when role file is missing
+    const fallback = loadRoleContract("unknown-synthetic-role", {
+      skillRoot: sandboxDir,
+      rolesDir,
+      bypassCache: true,
+    });
+    expect(fallback.role).toBe("unknown-synthetic-role");
+    expect(fallback.tier).toBe(3);
+    expect(fallback.may.length).toBeGreaterThan(0);
+
+    // 6. clearManifestCache
+    expect(() => clearManifestCache()).not.toThrow();
+  });
+
+  test("findSkillRoot resolves correctly for directory containing agents and roles", () => {
+    const sandboxDir = scratchRoot(import.meta.path, "skill-root-sandbox");
+    mkdirSync(join(sandboxDir, "agents"), { recursive: true });
+    mkdirSync(join(sandboxDir, "roles"), { recursive: true });
+
+    const resolved = findSkillRoot(sandboxDir);
+    expect(resolved).toBe(sandboxDir);
+  });
+
+  test("loadRoleContract loads role permissions from unified agent manifest", () => {
+    const sandboxDir = scratchRoot(import.meta.path, "scan-roles-sandbox");
+    const agentsDir = join(sandboxDir, "agents");
+    mkdirSync(agentsDir, { recursive: true });
+
+    const manifestContent = `
+name: scanned-domain-role
+role: scanned-domain-role
+tier: 3
+permissions:
+  may:
+    - "Scanned action"
+`;
+    writeFileSync(join(agentsDir, "scanned-domain-role.yaml"), manifestContent, "utf8");
+
+    const contract = loadRoleContract("scanned-domain-role", {
+      skillRoot: sandboxDir,
+      agentsDir,
+      bypassCache: true,
+    });
+    expect(contract.role).toBe("scanned-domain-role");
+    expect(contract.may).toEqual(["Scanned action"]);
+  });
+
+  test("loadAgentManifest and loadUnifiedAgentModel synthesize default models when manifest is missing", () => {
+    const emptySandbox = scratchRoot(import.meta.path, "empty-manifest-sandbox");
+    const syntheticManifest = loadAgentManifest("non-existent-agent-role-999", {
+      agentsDir: emptySandbox,
+      bypassCache: true,
+    });
+    expect(syntheticManifest.name).toBe("non-existent-agent-role-999");
+    expect(syntheticManifest.role).toBe("non-existent-agent-role-999");
+    expect(syntheticManifest.tier).toBe(3);
+
+    const syntheticModel = loadUnifiedAgentModel("non-existent-agent-role-999", {
+      agentsDir: emptySandbox,
+      rolesDir: emptySandbox,
+      bypassCache: true,
+    });
+    expect(syntheticModel.role).toBe("non-existent-agent-role-999");
+    expect(syntheticModel.tier).toBe(3);
+  });
+
+  test("listAvailableRoles and listAvailableManifests return empty array when directory does not exist", () => {
+    const missingDir = join(scratchRoot(import.meta.path, "missing-dir"), "does-not-exist");
+    expect(listAvailableRoles({ rolesDir: missingDir })).toEqual([]);
+    expect(listAvailableManifests({ agentsDir: missingDir })).toEqual([]);
+  });
+
+  test("parseRoleContract handles non-object frontmatter gracefully and parses trailing frontmatter", () => {
+    const invalidFrontmatter = `---
+- list item instead of object
+---
+# Header
+`;
+    const parsedContract = parseRoleContract(invalidFrontmatter);
+    expect(parsedContract.role).toBe("unknown");
+    expect(parsedContract.tier).toBe(3);
+
+    const noClosingDelimiter = `---
+role: tester
+tier: 3
+No closing delimiter here
+`;
+    const parsedNoClosing = parseMarkdownFrontmatter(noClosingDelimiter);
+    expect(parsedNoClosing.frontmatter).toEqual({});
+  });
+
+  test("evaluateSupervisoryState catches recentActions self-claim, cross-tier spawn, and naming violations", () => {
+    // 1. recentActions with claim_task, implement_task, repair_task on supervisor
+    const claimContext: SupervisoryReminderEvaluationContext = {
+      role: "coordinator",
+      recentActions: [
+        {
+          timestamp: new Date().toISOString(),
+          actor: "coordinator",
+          action: "claim_task",
+          description: "claimed task",
+        },
+        {
+          timestamp: new Date().toISOString(),
+          actor: "coordinator",
+          action: "implement_task",
+          description: "implemented task",
+        },
+        {
+          timestamp: new Date().toISOString(),
+          actor: "coordinator",
+          action: "repair_task",
+          description: "repaired task",
+        },
+      ],
+    };
+    const claimResult = evaluateSupervisoryState(claimContext);
+    expect(
+      claimResult.violations.some((v) => v.code === "SUPERVISOR_TASK_SELF_EXECUTION_BREACH"),
+    ).toBe(true);
+
+    // 2. recentActions with unauthorized cross-tier spawn
+    const spawnContext: SupervisoryReminderEvaluationContext = {
+      role: "mind",
+      recentActions: [
+        {
+          timestamp: new Date().toISOString(),
+          actor: "mind",
+          action: "spawn_subagent",
+          spawnedRole: "implementer",
+          description: "spawned implementer directly",
+        },
+      ],
+    };
+    const spawnResult = evaluateSupervisoryState(spawnContext);
+    expect(spawnResult.violations.some((v) => v.code === "CROSS_TIER_SPAWN_HIERARCHY_BREACH")).toBe(
+      true,
+    );
+
+    // 3. Non-standard agent ID breach
+    const namingContext: SupervisoryReminderEvaluationContext = {
+      role: "implementer",
+      agentId: "unstandardized-agent-name-without-underscore",
+    };
+    const namingResult = evaluateSupervisoryState(namingContext);
+    expect(namingResult.violations.some((v) => v.code === "UNSTANDARDIZED_AGENT_ID_BREACH")).toBe(
+      true,
+    );
+
+    // 4. Medium severity violation (unproven gates)
+    const mediumSeverityContext: SupervisoryReminderEvaluationContext = {
+      role: "coordinator",
+      unprovenGatesCount: 3,
+    };
+    const mediumSeverityResult = evaluateSupervisoryState(mediumSeverityContext);
+    expect(mediumSeverityResult.severity).toBe("medium");
+    expect(mediumSeverityResult.driftScore).toBeGreaterThan(0);
+  });
+
+  test("constructSupervisoryPersonaReminder formats ISO dates, invalid dates, and all checklist statuses", () => {
+    // 1. String ISO date
+    const reminderWithIso = constructSupervisoryPersonaReminder({
+      role: "coordinator",
+      now: "2026-08-24T12:00:00.000Z",
+      startedAt: "2026-08-24T11:50:00.000Z",
+      cadenceMs: 60_000,
+      runId: "run-custom-1",
+      pulseId: "pulse-custom-1",
+      agentId: "coordinator_cli",
+    });
+    expect(reminderWithIso.timestamp).toBe("2026-08-24T12:00:00.000Z");
+    expect(reminderWithIso.renderedMarkdown).toContain("run-custom-1");
+    expect(reminderWithIso.renderedMarkdown).toContain("pulse-custom-1");
+    expect(reminderWithIso.renderedMarkdown).toContain("coordinator_cli");
+
+    // 2. Invalid date string fallback to Date.now()
+    const reminderWithInvalidDate = constructSupervisoryPersonaReminder({
+      role: "mind",
+      now: "not-a-valid-date-string",
+    });
+    expect(reminderWithInvalidDate.timestamp.length).toBeGreaterThan(0);
+
+    // 3. Formats neglected and pending checklist items in output
+    const modifiedEvaluation = {
+      ...reminderWithIso.evaluation,
+      checklist: [
+        {
+          id: "TEST-NEGLECTED",
+          category: "verification" as const,
+          title: "Neglected Responsibility",
+          status: "neglected" as const,
+          reason: "Neglected reason",
+          correctiveDirective: "Execute directive",
+        },
+        {
+          id: "TEST-PENDING",
+          category: "verification" as const,
+          title: "Pending Responsibility",
+          status: "pending" as const,
+        },
+      ],
+    };
+    const reminderWithCustomEval: SupervisoryPersonaReminder = {
+      ...reminderWithIso,
+      evaluation: modifiedEvaluation,
+    };
+    expect(reminderWithCustomEval.evaluation.checklist[0].status).toBe("neglected");
+  });
+
+  test("parseYaml handles nested flow maps, lists with multiple keys, and string escapes", () => {
+    const yaml = `
+flow_section: { a: [1, 2, "three"], b: "colon:value" }
+multi_key_list:
+  - first_key: 100
+    second_key: "two hundred"
+    nested_map:
+      deep_a: true
+      deep_b: false
+  - only_key: "single"
+`;
+
+    const parsed = parseYaml(yaml) as Record<string, unknown>;
+    expect(parsed.flow_section).toBeDefined();
+    const list = parsed.multi_key_list as Array<Record<string, unknown>>;
+    expect(list.length).toBe(2);
+    expect(list[0].first_key).toBe(100);
+    expect(list[0].second_key).toBe("two hundred");
+    expect((list[0].nested_map as Record<string, unknown>).deep_a).toBe(true);
+    expect(list[1].only_key).toBe("single");
+  });
+
+  test("loadAgentManifest scans agentsDir when filename does not match role directly", () => {
+    const sandboxDir = scratchRoot(import.meta.path, "scan-agents-sandbox");
+
+    const agentsDir = join(sandboxDir, "agents");
+    mkdirSync(agentsDir, { recursive: true });
+
+    // File with mismatched filename but matching role inside
+    const manifestContent = `
+name: custom-agent-slug
+role: scanned-agent-role
+tier: 2
+`;
+    writeFileSync(join(agentsDir, "random-file-name.yaml"), manifestContent, "utf8");
+
+    const loaded = loadAgentManifest("scanned-agent-role", {
+      skillRoot: sandboxDir,
+      agentsDir,
+      bypassCache: true,
+    });
+    expect(loaded.role).toBe("scanned-agent-role");
+    expect(loaded.tier).toBe(2);
+  });
+
+  test("loadRoleContract falls through to markdown rolesDir when agent manifest throws", () => {
+    const sandboxDir = scratchRoot(import.meta.path, "fallthrough-sandbox");
+    const agentsDir = join(sandboxDir, "agents");
+    const rolesDir = join(sandboxDir, "roles");
+    mkdirSync(agentsDir, { recursive: true });
+    mkdirSync(rolesDir, { recursive: true });
+
+    // Corrupt YAML file that causes parseAgentManifest to throw HarnessError
+    writeFileSync(join(agentsDir, "corrupt-role.yaml"), "scalar string not an object", "utf8");
+
+    // Valid role contract in rolesDir
+    const contractContent = `---
+role: corrupt-role
+tier: 3
+may:
+  - "Markdown fallback capability"
+---
+# Corrupt Role Contract
+`;
+    writeFileSync(join(rolesDir, "corrupt-role.md"), contractContent, "utf8");
+
+    const contract = loadRoleContract("corrupt-role", {
+      skillRoot: sandboxDir,
+      agentsDir,
+      rolesDir,
+      bypassCache: true,
+    });
+    expect(contract.role).toBe("corrupt-role");
+    expect(contract.may).toEqual(["Markdown fallback capability"]);
+  });
+
+  test("constructSupervisoryPersonaReminder renders violated checklist items with directives in markdown", () => {
+    const reminderWithViolations = constructSupervisoryPersonaReminder({
+      role: "coordinator",
+      context: {
+        role: "coordinator",
+        fileModificationsOnSupervisoryThread: ["src/unauthorized.ts"],
+      },
+    });
+
+    expect(reminderWithViolations.renderedMarkdown).toContain("❌ VIOLATED");
+    expect(reminderWithViolations.renderedMarkdown).toContain("Directive");
+    expect(reminderWithViolations.correctiveDirectives.length).toBeGreaterThan(0);
+  });
+
+  test("loadRoleContract handles validator- prefixes, scanned directory contracts, synthetic fallbacks, and caching", () => {
+    const sandboxDir = scratchRoot(import.meta.path, "role-contract-matrix");
+    const agentsDir = join(sandboxDir, "agents");
+    const rolesDir = join(sandboxDir, "roles");
+    mkdirSync(agentsDir, { recursive: true });
+    mkdirSync(rolesDir, { recursive: true });
+
+    // 1. validator- prefixed role resolution
+    writeFileSync(
+      join(rolesDir, "validator-security.md"),
+      `---\nrole: validator-security\ntier: 3\nmay:\n  - "Audit security"\n---\n# Security Validator`,
+      "utf8",
+    );
+    // Write corrupt yaml in agents so it falls through to rolesDir
+    writeFileSync(join(agentsDir, "validator-security.yaml"), "corrupt scalar", "utf8");
+
+    const validatorContract = loadRoleContract("validator-security", {
+      skillRoot: sandboxDir,
+      agentsDir,
+      rolesDir,
+      bypassCache: false,
+    });
+    expect(validatorContract.role).toBe("validator-security");
+    expect(validatorContract.may).toEqual(["Audit security"]);
+
+    // Test cached hit
+    const cachedValidator = loadRoleContract("validator-security", {
+      skillRoot: sandboxDir,
+      agentsDir,
+      rolesDir,
+      bypassCache: false,
+    });
+    expect(cachedValidator).toBe(validatorContract);
+
+    // 2. Scanned directory contract (filename does not match role)
+    writeFileSync(
+      join(rolesDir, "arbitrary-name.md"),
+      `---\nrole: unique-scanned-role\ntier: 3\nmay:\n  - "Scanned capability"\n---\n# Unique Scanned Role`,
+      "utf8",
+    );
+    writeFileSync(join(agentsDir, "unique-scanned-role.yaml"), "corrupt scalar", "utf8");
+
+    const scannedContract = loadRoleContract("unique-scanned-role", {
+      skillRoot: sandboxDir,
+      agentsDir,
+      rolesDir,
+      bypassCache: true,
+    });
+    expect(scannedContract.role).toBe("unique-scanned-role");
+    expect(scannedContract.may).toEqual(["Scanned capability"]);
+
+    // 3. Fallback synthetic contract when role is not in agents or roles
+    writeFileSync(join(agentsDir, "completely-missing-role.yaml"), "corrupt scalar", "utf8");
+
+    const syntheticContract = loadRoleContract("completely-missing-role", {
+      skillRoot: sandboxDir,
+      agentsDir,
+      rolesDir,
+      bypassCache: false,
+    });
+    expect(syntheticContract.role).toBe("completely-missing-role");
+    expect(syntheticContract.tier).toBe(3);
+    expect(syntheticContract.may.length).toBeGreaterThan(0);
+  });
+
+  test("findSkillRoot resolves parent directory walk when agents/ and roles/ are in ancestor", () => {
+    const sandboxDir = scratchRoot(import.meta.path, "skill-root-parent-walk");
+    const nestedSubDir = join(sandboxDir, "deep", "nested", "child");
+    mkdirSync(nestedSubDir, { recursive: true });
+    mkdirSync(join(sandboxDir, "agents"), { recursive: true });
+    mkdirSync(join(sandboxDir, "roles"), { recursive: true });
+
+    const resolved = findSkillRoot(nestedSubDir);
+    expect(resolved).toBe(sandboxDir);
+  });
+
+  test("parseYaml parses escape sequences: quotes, newlines, carriage returns, tabs, and backslashes", () => {
+    const yaml = `
+all_escapes: "line1\\nline2\\r\\ttab\\\\backslash\\"quote"
+hex_style: "line with \\x20 hex"
+`;
+
+    const parsed = parseYaml(yaml) as Record<string, unknown>;
+    expect(typeof parsed.all_escapes).toBe("string");
+    expect((parsed.all_escapes as string).includes("line1\nline2")).toBe(true);
+    expect((parsed.all_escapes as string).includes("\t")).toBe(true);
+    expect((parsed.all_escapes as string).includes("\\")).toBe(true);
+    expect((parsed.all_escapes as string).includes('"')).toBe(true);
+  });
+
+  test("parseYaml parses list items with secondary block scalars, nested objects, and null fields", () => {
+    const yaml = `
+complex_items:
+  - id: item-1
+    description: |-
+      First line
+      Second line
+    nested:
+      deep_key: deep_value
+    empty_field:
+    stray_line_without_colon
+  - id: item-2
+    flow_arr: [ 'single', "double \\"escaped\\"" ]
+`;
+
+    const parsed = parseYaml(yaml) as Record<string, unknown>;
+    expect(Array.isArray(parsed.complex_items)).toBe(true);
+    const items = parsed.complex_items as Array<Record<string, unknown>>;
+    expect(items[0].id).toBe("item-1");
+    expect(typeof items[0].description).toBe("string");
+    expect((items[0].nested as Record<string, unknown>).deep_key).toBe("deep_value");
+    expect(items[0].empty_field).toBeNull();
+    expect(Array.isArray(items[1].flow_arr)).toBe(true);
+
+    // Top-level flow JSON with single quotes falling through JSON.parse
+    const flowJson = "{ 'key': 'val' }";
+    const parsedFlow = parseYaml(flowJson) as Record<string, unknown>;
+    expect(parsedFlow).toBeDefined();
+
+    // Inline # without space (e.g. hex code)
+    const colorYaml = "color: #ff00ff";
+    expect(parseYaml(colorYaml)).toBeDefined();
+  });
+
+  test("findSkillRoot falls back gracefully when startDir is outside repo hierarchy", () => {
+    const fallbackRoot = findSkillRoot("/completely/unrelated/directory/outside/any/git/repo");
+    expect(typeof fallbackRoot).toBe("string");
+    expect(fallbackRoot.length).toBeGreaterThan(0);
   });
 });

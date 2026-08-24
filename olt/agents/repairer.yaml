@@ -1,5 +1,12 @@
 name: "repairer"
 role: "repairer"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: 3
 tools:
   enable_subagent_tools: false
@@ -16,6 +23,10 @@ permissions:
 invariants:
   - "DISJOINT_WRITE_SCOPE_ISOLATION"
   - "REMEDIATION_ONLY"
+protocol:
+  role_contract: "roles/repairer.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   ---
   role: repairer

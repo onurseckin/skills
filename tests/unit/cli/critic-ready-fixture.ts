@@ -188,6 +188,8 @@ export async function setupReadyRun(name: string, roots: string[]): Promise<Read
     "planner",
   ]);
 
+  await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
+
   await execute([
     "plan:compile",
     "--run",

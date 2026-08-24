@@ -40,14 +40,14 @@ The OLT harness CLI (`bun ~/.agents/skills/olt/scripts/harness.ts`) is the autho
 
 ### 1.3 The Separation Boundary Matrix
 
-| Capability / Concern     | Host Platform Responsibility                                               | OLT Harness Protocol Responsibility                             |
-| :----------------------- | :------------------------------------------------------------------------- | :-------------------------------------------------------------- |
-| **Agent Dispatch**       | Spawns agent contexts via `invoke_subagent` or host equivalent.            | Issues cryptographic lease tokens via `task:claim`.             |
-| **State Tracking**       | Delivers inter-agent messages and process status.                          | Maintains tamper-proof `events.ndjson` and state projections.   |
-| **File Mutation**        | Executes granular file edits via `replace_file_content` / `write_to_file`. | Validates mutations strictly within leased `write_scope`.       |
-| **Command Execution**    | Runs commands in subshells via `run_command`.                              | Tracks command exit codes and enforces shell interlocks.        |
-| **Concurrency**          | Manages OS-level parallel subagent execution.                              | Enforces disjoint write-scope isolation across tasks in a wave. |
-| **Verification & Gates** | Runs test runners and linters on host environment.                         | Mechanically checks gate criteria before advancing states.      |
+| Capability / Concern     | Host Platform Responsibility                                                | OLT Harness Protocol Responsibility                             |
+| :----------------------- | :-------------------------------------------------------------------------- | :-------------------------------------------------------------- |
+| **Agent Dispatch**       | Spawns Antigravity agent contexts via `invoke_subagent` or host equivalent. | Issues cryptographic lease tokens via `task:claim`.             |
+| **State Tracking**       | Delivers inter-agent messages and process status.                           | Maintains tamper-proof `events.ndjson` and state projections.   |
+| **File Mutation**        | Executes granular file edits via `replace_file_content` / `write_to_file`.  | Validates mutations strictly within leased `write_scope`.       |
+| **Command Execution**    | Runs commands in subshells via `run_command`.                               | Tracks command exit codes and enforces shell interlocks.        |
+| **Concurrency**          | Manages OS-level parallel subagent execution.                               | Enforces disjoint write-scope isolation across tasks in a wave. |
+| **Verification & Gates** | Runs test runners and linters on host environment.                          | Mechanically checks gate criteria before advancing states.      |
 
 ---
 
@@ -190,11 +190,11 @@ Schedules a one-shot notification timer or a recurring background cron job.
 
 ---
 
-### 2.4 Agent Lifecycle Tools
+### 2.4 Antigravity Agent Lifecycle Tools
 
-#### `define_subagent`
+#### `define_subagent` (Antigravity)
 
-Defines a reusable subagent archetype.
+Defines a reusable Antigravity subagent archetype.
 
 - **Parameters**:
   - `name` (_string_, required): Unique identifier (letters, digits, `_`, `-`, `.`).
@@ -204,9 +204,9 @@ Defines a reusable subagent archetype.
   - `enable_subagent_tools` (_boolean_, optional): Grants subagent definition and invocation.
   - `enable_mcp_tools` (_boolean_, optional): Grants MCP server tool access.
 
-#### `invoke_subagent`
+#### `invoke_subagent` (Antigravity)
 
-Concurrently launches one or more subagents in background threads.
+Concurrently launches one or more Antigravity subagents in background threads.
 
 - **Parameters**:
   - `Subagents` (_array of objects_, required):
@@ -216,7 +216,7 @@ Concurrently launches one or more subagents in background threads.
     - `Model` (_enum_, optional): `'inherit'` (default), `'pro'`, `'flash'`, `'flash_lite'`.
     - `Workspace` (_enum_, optional): `'inherit'` (default), `'branch'` (isolated clone), `'share'` (git worktree shared repository).
 
-#### `manage_subagents`
+#### `manage_subagents` (Antigravity)
 
 Monitors and manages active subagents.
 

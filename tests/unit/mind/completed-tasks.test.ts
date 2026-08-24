@@ -52,36 +52,34 @@ describe("Completed Tasks Ledger Engine", () => {
 
     const resolved = resolveCompletedTasksLedgerPath();
     expect(typeof resolved).toBe("string");
-    expect(resolved.endsWith(".olt/capsules/COMPLETED_TASKS.jsonl")).toBe(true);
+    expect(resolved.endsWith("completed-tasks.jsonl")).toBe(true);
 
     const defectExplicit = resolveDefectsPath("/custom/path/defects.jsonl");
     expect(defectExplicit).toBe("/custom/path/defects.jsonl");
 
     const defectResolved = resolveDefectsPath();
     expect(typeof defectResolved).toBe("string");
-    expect(defectResolved.endsWith(".olt/capsules/defects.jsonl")).toBe(true);
+    expect(defectResolved.endsWith("defects.jsonl")).toBe(true);
 
     const canonicalTasks = resolveCanonicalCompletedTasksPath("/tmp/test");
-    expect(canonicalTasks).toBe("/tmp/test/.capsules/mind/queue/completed-tasks.jsonl");
+    expect(canonicalTasks).toBe("/tmp/test/.olt/completed-tasks.jsonl");
     const todoTasks = resolveCanonicalCompletedTasksPath("/tmp/test", true);
-    expect(todoTasks).toBe("/tmp/test/.capsules/todo/completed-tasks.jsonl");
+    expect(todoTasks).toBe("/tmp/test/.olt/completed-tasks.jsonl");
 
     const canonicalDefects = resolveCanonicalDefectsPath("/tmp/test");
-    expect(canonicalDefects).toBe("/tmp/test/.capsules/mind/queue/defects.jsonl");
+    expect(canonicalDefects).toBe("/tmp/test/.olt/defects.jsonl");
     const todoDefects = resolveCanonicalDefectsPath("/tmp/test", true);
-    expect(todoDefects).toBe("/tmp/test/.capsules/todo/defects.jsonl");
+    expect(todoDefects).toBe("/tmp/test/.olt/defects.jsonl");
 
     const canonicalCompletedDefects = resolveCanonicalCompletedDefectsPath("/tmp/test");
-    expect(canonicalCompletedDefects).toBe(
-      "/tmp/test/.capsules/mind/queue/completed-defects.jsonl",
-    );
+    expect(canonicalCompletedDefects).toBe("/tmp/test/.olt/completed-defects.jsonl");
     const todoCompletedDefects = resolveCanonicalCompletedDefectsPath("/tmp/test", true);
-    expect(todoCompletedDefects).toBe("/tmp/test/.capsules/todo/completed-defects.jsonl");
+    expect(todoCompletedDefects).toBe("/tmp/test/.olt/completed-defects.jsonl");
 
     const canonicalObs = resolveCanonicalObservationsPath("/tmp/test");
-    expect(canonicalObs).toBe("/tmp/test/.capsules/mind/queue/observations.jsonl");
+    expect(canonicalObs).toBe("/tmp/test/.olt/telemetry.jsonl");
     const todoObs = resolveCanonicalObservationsPath("/tmp/test", true);
-    expect(todoObs).toBe("/tmp/test/.capsules/todo/observations.jsonl");
+    expect(todoObs).toBe("/tmp/test/.olt/telemetry.jsonl");
   });
 
   it("migrates completed tasks ledger from legacy path to canonical path", () => {

@@ -936,7 +936,7 @@ export function auditSupervisoryWatchdog(
   let terminatedCount = 0;
   let orphanedCount = 0;
 
-  const wds = store.active_watchdog ? [store.active_watchdog] : [];
+  const wds = store.watchdogs ?? [];
   for (const wd of wds) {
     if (wd.status === "stale") staleCount++;
     else if (wd.status === "terminated") terminatedCount++;
@@ -1900,7 +1900,7 @@ export class SchedulerEngine {
         now: this.clock.now(),
       },
       this.watchdogTarget,
-    );
+    ).watchdog;
   }
 }
 

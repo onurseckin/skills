@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { nextActionsBlock } from "../cli/formatters/next-actions.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
 import {
   resolveFeedbackQueuePath,
   validateFeedbackResolutionProof,
@@ -50,44 +51,59 @@ export interface RecordCompletedTaskOptions {
   readonly updateDefects?: boolean | undefined;
 }
 
+export const CANONICAL_COMPLETED_TASKS_FILE = "olt/completed-tasks.jsonl";
 export const DEFAULT_COMPLETED_TASKS_FILE = "olt/completed-tasks.jsonl";
 
+export const CANONICAL_DEFECTS_FILE = "olt/defects.jsonl";
 export const DEFAULT_DEFECTS_FILE = "olt/defects.jsonl";
 
-export function resolveCanonicalCompletedTasksPath(customRoot?: string, useTodo = false): string {
-  return require("path").join(customRoot || process.cwd(), ".olt", "completed-tasks.jsonl");
+export const CANONICAL_COMPLETED_DEFECTS_FILE = "olt/completed-defects.jsonl";
+export const DEFAULT_COMPLETED_DEFECTS_FILE = "olt/completed-defects.jsonl";
+
+export const CANONICAL_OBSERVATIONS_FILE = "olt/telemetry.jsonl";
+export const DEFAULT_OBSERVATIONS_FILE = "olt/telemetry.jsonl";
+
+export function resolveCanonicalCompletedTasksPath(customRoot?: string, _useTodo = false): string {
+  const root = customRoot || (isTestEnvironment() ? resolveScratchDir() : process.cwd());
+  return join(root, ".olt", "completed-tasks.jsonl");
 }
 
 export function resolveCompletedTasksLedgerPath(customPath?: string): string {
-  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
-  return require("path").join(process.cwd(), ".olt", "completed-tasks.jsonl");
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  return resolveCanonicalCompletedTasksPath();
 }
 
-export function resolveCanonicalDefectsPath(customRoot?: string, useTodo = false): string {
-  return require("path").join(customRoot || process.cwd(), ".olt", "defects.jsonl");
+export function resolveCanonicalDefectsPath(customRoot?: string, _useTodo = false): string {
+  const root = customRoot || (isTestEnvironment() ? resolveScratchDir() : process.cwd());
+  return join(root, ".olt", "defects.jsonl");
 }
 
 export function resolveDefectsPath(customPath?: string): string {
-  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
-  return require("path").join(process.cwd(), ".olt", "defects.jsonl");
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  return resolveCanonicalDefectsPath();
 }
 
-export function resolveCanonicalCompletedDefectsPath(customRoot?: string, useTodo = false): string {
-  return require("path").join(customRoot || process.cwd(), ".olt", "completed-defects.jsonl");
+export function resolveCanonicalCompletedDefectsPath(
+  customRoot?: string,
+  _useTodo = false,
+): string {
+  const root = customRoot || (isTestEnvironment() ? resolveScratchDir() : process.cwd());
+  return join(root, ".olt", "completed-defects.jsonl");
 }
 
 export function resolveCompletedDefectsPath(customPath?: string): string {
-  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
-  return require("path").join(process.cwd(), ".olt", "completed-defects.jsonl");
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  return resolveCanonicalCompletedDefectsPath();
 }
 
-export function resolveCanonicalObservationsPath(customRoot?: string, useTodo = false): string {
-  return require("path").join(customRoot || process.cwd(), ".olt", "telemetry.jsonl");
+export function resolveCanonicalObservationsPath(customRoot?: string, _useTodo = false): string {
+  const root = customRoot || (isTestEnvironment() ? resolveScratchDir() : process.cwd());
+  return join(root, ".olt", "telemetry.jsonl");
 }
 
 export function resolveObservationsPath(customPath?: string): string {
-  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
-  return require("path").join(process.cwd(), ".olt", "telemetry.jsonl");
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  return resolveCanonicalObservationsPath();
 }
 
 export function validateCompletedTaskSource(val: unknown): CompletedTaskSource {
@@ -479,4 +495,24 @@ export function formatCompletedTasksBrief(
   );
 
   return enforceLineLimit(lines.join("\n"), maxLines);
+}
+
+export function migrateCompletedTasksLedger(options: { sourcePath: string; targetPath?: string }): {
+  migrated: boolean;
+  count: number;
+} {
+  const target = resolveCompletedTasksLedgerPath(options.targetPath);
+  if (!existsSync(options.sourcePath) || options.sourcePath === target) {
+    return { migrated: false, count: 0 };
+  }
+  const records = readCompletedTasksLedger(options.sourcePath);
+  if (records.length === 0) {
+    return { migrated: false, count: 0 };
+  }
+  const existing = readCompletedTasksLedger(target);
+  const map = new Map<string, CompletedTaskRecord>();
+  for (const r of existing) map.set(r.id, r);
+  for (const r of records) map.set(r.id, r);
+  writeCompletedTasksLedger(Array.from(map.values()), target);
+  return { migrated: true, count: records.length };
 }

@@ -8,7 +8,7 @@ import { transact } from "../../engine/store/transaction.ts";
 import { formatPlanApplyBrief, formatPlanClaimBrief } from "../formatters/index.ts";
 import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 
-function capsulePlanningStore(runRoot: string): PlanningStore {
+export function capsulePlanningStore(runRoot: string): PlanningStore {
   return {
     async load() {
       const loaded = loadRun(runRoot);

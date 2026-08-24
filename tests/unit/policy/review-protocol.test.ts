@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  assertReviewProtocolSatisfied,
   canFinalizeReview,
   DEFAULT_REVIEW_PROTOCOL_CONFIG,
   evaluateReviewPhase,
@@ -32,7 +33,7 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
     expect(state.current_phase).toBe("cognitive");
     expect(state.adversarial_rounds_used).toBe(0);
     expect(state.cognitive_rounds_completed).toBe(0);
-    expect(state.cognitive_pushes_required).toBe(3);
+    expect(state.cognitive_pushes_required).toBe(5);
     expect(state.can_finalize_review).toBe(false);
   });
 
@@ -89,13 +90,13 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
   test("completing all required cognitive probes advances phase to completed and unlocks finalization", () => {
     const taskWithCompletedProbes: TaskRecord = {
       ...dummyTask,
-      probe_round: 3,
+      probe_round: 5,
     };
 
     const state = projectTaskReviewState(taskWithCompletedProbes, DEFAULT_REVIEW_PROTOCOL_CONFIG);
 
     expect(state.current_phase).toBe("completed");
-    expect(state.cognitive_rounds_completed).toBe(3);
+    expect(state.cognitive_rounds_completed).toBe(5);
     expect(state.can_finalize_review).toBe(true);
     expect(canFinalizeReview(taskWithCompletedProbes, DEFAULT_REVIEW_PROTOCOL_CONFIG)).toBe(true);
   });
@@ -103,7 +104,7 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
   test("exhausting max adversarial pushes triggers escalation flag", () => {
     const exhaustedTask: TaskRecord = {
       ...dummyTask,
-      repair_round: 5,
+      repair_round: 20,
       findings: [
         {
           id: "finding-05",
@@ -269,6 +270,113 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
     expect(state.cognitive_pushes_required).toBe(0);
     expect(state.current_phase).toBe("completed");
     expect(engine.canFinalize(cleanTask)).toBe(true);
+    expect(engine.evaluatePhase(cleanTask)).toBe("completed");
     expect(() => engine.assertSatisfied(cleanTask)).not.toThrow();
+  });
+
+  test("evaluateReviewPhase evaluates phase from task and history array", () => {
+    expect(evaluateReviewPhase(dummyTask, DEFAULT_REVIEW_PROTOCOL_CONFIG)).toBe("cognitive");
+
+    const taskWithBugs: TaskRecord = {
+      ...dummyTask,
+      findings: [
+        {
+          id: "f-open",
+          requirement_id: "req-1",
+          severity: "critical",
+          observation: "bug",
+          evidence: [],
+          remediation: "fix",
+          revalidation: "test",
+          status: "open",
+        },
+      ],
+    };
+    expect(evaluateReviewPhase(taskWithBugs, DEFAULT_REVIEW_PROTOCOL_CONFIG)).toBe("adversarial");
+
+    const completedHistory: ReviewChannelEntry[] = Array.from({ length: 5 }, (_, i) => ({
+      round: i + 1,
+      channel: "cognitive",
+      actor_id: "val-1",
+      verdict: "pass",
+      timestamp: new Date().toISOString(),
+    }));
+    expect(evaluateReviewPhase(completedHistory, DEFAULT_REVIEW_PROTOCOL_CONFIG)).toBe("completed");
+  });
+
+  test("assertReviewProtocolSatisfied throws on unsatisfied conditions and passes when clean", () => {
+    const exhaustedTask: TaskRecord = {
+      ...dummyTask,
+      repair_round: 20,
+      findings: [
+        {
+          id: "f-open",
+          requirement_id: "req-1",
+          severity: "critical",
+          observation: "bug",
+          evidence: [],
+          remediation: "fix",
+          revalidation: "test",
+          status: "open",
+        },
+      ],
+    };
+
+    expect(() =>
+      assertReviewProtocolSatisfied(exhaustedTask, {
+        max_adversarial_pushes: 10,
+        cognitive_pushes: 2,
+        escalate_on_exhausted_adversarial: true,
+      }),
+    ).toThrow(/Maximum adversarial defect repair rounds/i);
+
+    const taskWithOpenFindings: TaskRecord = {
+      ...dummyTask,
+      repair_round: 1,
+      findings: [
+        {
+          id: "f-1",
+          requirement_id: "req-1",
+          severity: "minor",
+          observation: "typo",
+          evidence: [],
+          remediation: "fix",
+          revalidation: "test",
+          status: "open",
+        },
+      ],
+    };
+
+    expect(() =>
+      assertReviewProtocolSatisfied(taskWithOpenFindings, {
+        max_adversarial_pushes: 10,
+        cognitive_pushes: 2,
+      }),
+    ).toThrow(/open finding\(s\) remain unresolved/i);
+
+    // If resolvedFindingIds includes f-1, open finding check passes, then cognitive check fires
+    expect(() =>
+      assertReviewProtocolSatisfied(
+        taskWithOpenFindings,
+        { max_adversarial_pushes: 10, cognitive_pushes: 2 },
+        ["f-1"],
+      ),
+    ).toThrow(/Cognitive deepening protocol not satisfied/i);
+  });
+
+  test("ReviewProtocolEngine recordEntry supports explicit timestamp and partial config", () => {
+    const engine = new ReviewProtocolEngine();
+    const task: TaskRecord = { ...dummyTask, review_history: [] };
+
+    const entry = engine.recordEntry(task, {
+      round: 1,
+      channel: "adversarial",
+      actor_id: "val-1",
+      verdict: "pass",
+      timestamp: "2026-08-24T00:00:00.000Z",
+    });
+
+    expect(entry.timestamp).toBe("2026-08-24T00:00:00.000Z");
+    expect(entry.verdict).toBe("pass");
   });
 });

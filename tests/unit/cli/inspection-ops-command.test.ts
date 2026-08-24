@@ -12,6 +12,11 @@ afterEach(async () => cleanupRoots(roots));
 
 /** Runs task-core's real, already-on-disk gate script and returns the recorded command id. */
 async function recordGateCommand(run: string, repo: string, actor: string): Promise<string> {
+  try {
+    await execute(["agent:register", "--run", run, "--agent-id", actor, "--role", "implementer"]);
+  } catch {
+    // already registered
+  }
   const result = await execute([
     "run:exec",
     "--run",

@@ -73,6 +73,7 @@ Implementers own 100% of unit test execution. The Mechanic Validator is strictly
 - **Adversarial Gate Proof (AGP) & Falsifiability Verification**: Execute strict Adversarial Gate Proofs. Prove that gate commands are discriminative: removing the fix or reverting the write scope must cause the gate command to fail (exit code != 0). Reject vacuous gates that pass unconditionally.
 - **Static Invariant & Code Metric Enforcement**: Mechanically audit touched files for zero TypeScript `any` types (`: any`, `as any`, `<any>`, `Record<string, any>`), zero compiler/linter suppressions (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`), and clean write scope confinement.
 - **Anti-Rubber-Stamping Floor**: Every verdict must be backed by validator-executed command records (`run:exec`). Boilerplate approvals ("looks good", "lgtm") are strictly prohibited.
+- **Dual-Channel Review Protocol Support**: Support Dual-Channel Review Protocol (`max_adversarial_pushes: 20`, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds with `task:probe --kind cognitive` before `task:review --status pass`), providing deterministic command execution receipts for typechecks (`tsc --noEmit`), AST audits (0 any, 0 suppressions), and AGPs.
 
 ## Socratic Reflexive Self-Questioning Engine for Mechanic Validators
 

@@ -20,6 +20,30 @@ own status in `exit_code`.
 
 ## plan
 
+### `plan:brainstorm`
+
+Expand a prompt against the 8 Socratic vectors across iterative rounds.
+
+Runs Socratic 8-vector brainstorming matrix expansion on prompt.md (or provided prompt), saving brainstorming.json and recording plan-brainstormed event.
+
+- **Aliases**: `brainstorm`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root or run ID. |
+| `--run-id` | string | no | no | - | Run id; interchangeable with --run. |
+| `--prompt` | string | no | no | - | Verbatim prompt text override. |
+| `--rounds` | int | no | no | `3` | Number of iterative brainstorming rounds to execute (default: 3). |
+| `--save` | bool | no | no | `true` | Persist brainstorming.json to capsule root (default: true). |
+| `--actor` | string | no | no | `planner` | Actor recorded on the event. |
+
+```bash
+bun harness.ts plan:brainstorm --run .olt/capsules/<run-id>
+bun harness.ts plan:brainstorm --prompt "Build a fault-tolerant distributed queue" --rounds 3
+```
+
 ### `orchestrate`
 
 The primary entry point: the user's entire prompt in, a running orchestration out.
@@ -540,6 +564,11 @@ Record a validator verdict with its gate evidence.
 | `--checklist-domain` | string | no | no | - | B12.5: the standing checklist (code-quality, product, security, system-design, ui-design) this review reports coverage against. Requires --checklist-report; every item in that domain's checklist must be accounted for. |
 | `--checklist-report` | string | no | no | - | Path to a JSON file: {"items":[{"id":"<checklist-id>","disposition":"checked|not_applicable|could_not_check","reason":"<required unless checked>"}, ...],"adjacent_findings":[{"id","checklist_item_id","severity","observation","remediation","evidence":[...]}]}. Requires --checklist-domain. |
 | `--require-semantic-depth` | bool | no | no | - | Enforce strict semantic depth audits on companion manifest criteria and cognitive questions. |
+| `--kind` | string | no | no | - | Review channel kind: cognitive or adversarial. |
+| `--micro-cycle` | bool | no | no | - | Record micro-cycle feedback within active lease. |
+| `--in-lease` | bool | no | no | - | Alias of --micro-cycle. |
+| `--defect` | string | no | no | - | Identified defect category or description for micro-cycle. |
+| `--max-rounds` | int | no | no | - | Maximum micro-cycle rounds allowed before formal rejection. |
 
 ```bash
 bun harness.ts task:review --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass"
@@ -588,15 +617,19 @@ Records the validator's finding and returns the task to the implementer. The sev
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--task` | string | yes | no | - | Task under validation. |
 | `--validator` | string | yes | no | - | Validator agent id. |
-| `--token` | string | yes | no | - | Validation token. |
+| `--token` | string | no | no | - | Validation token. Required for formal rejection. |
 | `--reason` | string | yes | no | - | What is defective. |
-| `--severity` | string | yes | no | - | critical, important or minor. |
+| `--severity` | string | no | no | - | critical, important or minor. Required for formal rejection. |
 | `--remediation` | string | no | no | - | What would fix the defect. Required unless --finding carries it. |
 | `--finding` | string | no | no | - | Alias of --remediation. |
 | `--finding-id` | string | no | no | - | Explicit finding id. |
 | `--evidence` | string | no | no | - | Comma-separated command ids proving the defect. |
 | `--checks` | string | no | no | - | Alias of --evidence. |
 | `--requirement` | string | no | no | - | Requirement the finding binds to. |
+| `--micro-cycle` | bool | no | no | - | Record micro-cycle feedback within active lease. |
+| `--in-lease` | bool | no | no | - | Alias of --micro-cycle. |
+| `--defect` | string | no | no | - | Identified defect category or description for micro-cycle. |
+| `--max-rounds` | int | no | no | - | Maximum micro-cycle rounds allowed before formal rejection. |
 
 ```bash
 bun harness.ts task:reject --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --reason "Missing input validation" --severity critical --remediation "Validate the payload before the insert"
@@ -645,6 +678,24 @@ The forced counterpart to task:release: it does not require the lease token, onl
 ```bash
 bun harness.ts task:abandon --run .olt/capsules/<run-id> --task task-1 --actor coordinator --reason "agent-1 crashed mid-attempt and will not return"
 ```
+
+### `task:check`
+
+Incremental verification.
+
+Check the files.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--task` | string | no | no | - | Task ID. |
+| `--file` | string | no | yes | - | File path. |
+| `--typecheck` | bool | no | no | - | Run typecheck. |
+| `--lint` | bool | no | no | - | Run lint. |
 
 ### `task:release`
 
@@ -715,7 +766,7 @@ Generates comprehensive unified run report across tasks, topology, agent lifecyc
 
 ```bash
 bun harness.ts report --run .olt/capsules/<run-id>
-bun harness.ts report --run .olt/capsules/<run-id>
+bun harness.ts report:unified --run .olt/capsules/<run-id>
 ```
 
 ### `report:graph-json`
@@ -743,7 +794,7 @@ bun harness.ts report:graph-json --run .olt/capsules/<run-id> --out graph.json
 
 Canonical reporting for DAG status.
 
-Aliases/links to dag to inspect compiled graph or planning buffer DAG topology.
+Aliases/links to dag:view to inspect compiled graph or planning buffer DAG topology.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -927,7 +978,7 @@ Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle dia
 
 Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.
 
-- **Aliases**: `dag`, `dag`, `graph:sugiyama`, `report:sugiyama`, `graph:ascii`, `status:dag`
+- **Aliases**: `dag:render`, `dag:view`, `graph:sugiyama`, `report:sugiyama`, `graph:ascii`, `status:dag`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -937,13 +988,14 @@ Computes Sugiyama layered layout, crossing minimization via barycenter heuristic
 | `--run-id` | string | no | no | - | Alias of --run. |
 | `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 | `--detailed` | bool | no | no | - | Render full write scopes, gate commands, and dependency lists. |
+| `--recommendations` | bool | no | no | - | Include algorithmic parallelization recommendations. |
 | `--box-style` | string | no | no | `rounded` | Box border style: rounded, sharp, or ascii. |
 | `--all` | bool | no | no | - | Do not truncate output lines. |
 | `--json` | bool | no | no | - | Output structured JSON report. |
 
 ```bash
-bun harness.ts dag --run .olt/capsules/<run-id>
-bun harness.ts dag --detailed --box-style rounded
+bun harness.ts dag:render --run .olt/capsules/<run-id>
+bun harness.ts dag:render --detailed --box-style rounded
 ```
 
 ### `dag:trace`
@@ -1663,6 +1715,35 @@ bun harness.ts agent:list --run .olt/capsules/<run-id>
 bun harness.ts agent:list --run .olt/capsules/<run-id> --task task-1
 ```
 
+### `agent:brief`
+
+Generate an exact-anchor subagent briefing.
+
+Assembles the 100% complete, uncompressed 1-Shot Landing Prompt for a subagent.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--role` | string | yes | no | - | The role of the agent to brief. |
+| `--format` | string | no | no | - | Output format. |
+
+```bash
+bun harness.ts agent:brief --role implementer
+```
+
+### `agent:define`
+
+Define a new agent manifest.
+
+Placeholder for defining new agents.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
 ## orphan
 
 ### `orphan:dispose`
@@ -2099,6 +2180,29 @@ B22.6: removes the worktree directories a crashed or abandoned run left behind, 
 bun harness.ts worktree:reclaim --run .olt/capsules/<run-id> --actor coordinator
 ```
 
+### `meta-audit`
+
+Deep behavioral forensics and anomaly detection across all agent telemetry.
+
+Evaluates raw execution traces against 7 behavioral heuristics (TOKEN_BURNING, FALSE_SERIALIZATION, etc.), computes efficiency scores, and injects autonomous remediation proposals.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--format` | string | no | no | - | Output format. |
+| `--inject` | bool | no | no | - | Inject remediation proposals. |
+| `--agent` | string | no | no | - | Agent ID to filter. |
+| `--verbose` | bool | no | no | - | Verbose output. |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts meta-audit --run .olt/capsules/<run-id> --inject
+```
+
 ### `explain`
 
 Explain a HarnessError code: the rule it enforces, common causes and the remedy for each.
@@ -2265,7 +2369,7 @@ Validates the markdown charter file per CONTRACTS.md §7, creates the mind capsu
 | `--capsules-dir` | string | no | no | - | Override .olt/capsules/ directory location. |
 
 ```bash
-bun harness.ts mind:init --repo . --charter docs/mind/CHARTER.md --actor owner
+bun harness.ts mind:init --repo . --charter docs/CHARTER.md --actor owner
 ```
 
 ### `mind:wake`
@@ -2634,4 +2738,135 @@ Expands an external prompt into a structured task with write scope and mandatory
 
 ```bash
 bun harness.ts smart-task:ingest --prompt 'Implement real-time metrics telemetry' --id task-metrics
+```
+
+### `mind:queue:list`
+
+List and inspect mind feedback queue items.
+
+Lists active feedback items from the canonical feedback queue (.olt/backlog.jsonl).
+
+- **Aliases**: `todo:list`, `feedback:list`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--status` | string | no | no | - | Filter by item status. |
+| `--priority` | string | no | no | - | Filter by priority level. |
+| `--category` | string | no | no | - | Filter by category. |
+| `--queue-file` | string | no | no | - | Override queue file path. |
+| `--queue-path` | string | no | no | - | Alias for --queue-file. |
+| `--all` | bool | no | no | - | Show all items without pagination. |
+| `--limit` | int | no | no | - | Maximum items to display. |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts mind:queue:list
+bun harness.ts todo:list
+bun harness.ts feedback:list
+```
+
+### `mind:queue:add`
+
+Add a feedback item to the mind queue.
+
+Appends a new feedback item to .olt/backlog.jsonl.
+
+- **Aliases**: `todo:add`, `feedback:ingest`, `feedback:add`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--title` | string | yes | no | - | Title of the feedback item. |
+| `--content` | string | no | no | - | Content or body of the feedback item. |
+| `--description` | string | no | no | - | Detailed description of the feedback. |
+| `--priority` | string | no | no | - | Priority level: CRITICAL, HIGH, NORMAL, LOW. |
+| `--category` | string | no | no | - | Feedback category. |
+| `--id` | string | no | no | - | Explicit item ID override. |
+| `--queue-file` | string | no | no | - | Override queue file path. |
+| `--queue-path` | string | no | no | - | Alias for --queue-file. |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts mind:queue:add --title 'Fix memory leak' --priority HIGH
+```
+
+### `mind:queue:drain`
+
+Drain and mark pending feedback items for execution.
+
+Drains pending items from .olt/backlog.jsonl in FIFO order.
+
+- **Aliases**: `todo:drain`, `feedback:drain`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--limit` | int | no | no | `5` | Maximum items to drain. |
+| `--mark-as` | string | no | no | - | Target status: PROCESSED, IN_PROGRESS, ADMITTED. |
+| `--category` | string | no | no | - | Filter by category. |
+| `--priority` | string | no | no | - | Filter by priority level. |
+| `--queue-file` | string | no | no | - | Override queue file path. |
+| `--queue-path` | string | no | no | - | Alias for --queue-file. |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts mind:queue:drain
+bun harness.ts todo:drain --limit 3
+```
+
+### `mind:queue:seal`
+
+Seal completed queue items with empirical verification proofs.
+
+Marks queue items completed and attaches proof records.
+
+- **Aliases**: `todo:seal`, `feedback:seal`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--id` | string | yes | no | - | Feedback item ID to seal. |
+| `--proof` | string | no | no | - | Commit SHA or test receipt proving resolution. |
+| `--resolution` | string | no | no | - | Resolution description. |
+| `--commit` | string | no | no | - | Commit SHA proving resolution. |
+| `--test-path` | string | no | no | - | Test file path proving resolution. |
+| `--assertions` | string | no | no | - | Number of test assertions verified. |
+| `--runtime-ms` | string | no | no | - | Execution duration in milliseconds. |
+| `--note` | string | no | no | - | Resolution notes. |
+| `--summary` | string | no | no | - | Summary of resolution. |
+| `--queue-file` | string | no | no | - | Override queue file path. |
+| `--queue-path` | string | no | no | - | Alias for --queue-file. |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts mind:queue:seal --id fb-123 --proof sha-abc
+```
+
+### `mind:queue:clean`
+
+Prune resolved items from queue into completed-tasks archive.
+
+Moves sealed items from .olt/backlog.jsonl to .olt/completed-tasks.jsonl.
+
+- **Aliases**: `todo:clean`, `feedback:clean`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--force` | bool | no | no | - | Force clean all completed items. |
+| `--dry-run` | bool | no | no | - | Simulate clean without mutating files. |
+| `--queue-file` | string | no | no | - | Override queue file path. |
+| `--queue-path` | string | no | no | - | Alias for --queue-file. |
+| `--archive-file` | string | no | no | - | Override archive destination file. |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts mind:queue:clean
+bun harness.ts todo:clean
 ```

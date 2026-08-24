@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
 import {
   auditAdmissionDispatchIntegrity,
   drainPendingFeedbacks,
@@ -192,7 +193,12 @@ export const CANONICAL_COGNITIVE_MEMORY_FILE = ".olt/memory.json";
 export const DEFAULT_COGNITIVE_MEMORY_FILE = ".olt/memory.json";
 
 export function resolveCanonicalCognitiveMemoryPath(customRoot?: string): string {
-  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
+  const root =
+    customRoot && customRoot.trim()
+      ? resolve(customRoot.trim())
+      : isTestEnvironment()
+        ? resolveScratchDir()
+        : process.cwd();
   return join(root, CANONICAL_COGNITIVE_MEMORY_FILE);
 }
 
@@ -200,7 +206,7 @@ export function resolveCognitiveMemoryPath(customPath?: string): string {
   if (customPath && customPath.trim()) {
     return resolve(customPath.trim());
   }
-  return resolveCanonicalCognitiveMemoryPath(process.cwd());
+  return resolveCanonicalCognitiveMemoryPath();
 }
 
 export function readCognitiveMemory(customPath?: string): CognitiveMemoryState {

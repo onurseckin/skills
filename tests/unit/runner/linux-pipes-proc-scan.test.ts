@@ -189,4 +189,92 @@ describe("linuxTokenOwnerIdentities against a fixture procfs", () => {
       /cannot inspect ownership token/,
     );
   });
+
+  test("throws cannot determine process ownership when statSync fails with EACCES", async () => {
+    const root = await fakeProc("token-sameuser-eacces");
+    const sub = join(root, "sub");
+    await mkdir(sub, { recursive: true });
+    await writeFile(join(sub, "target"), "target");
+    await symlink(join(sub, "target"), join(root, "4019"));
+    const { chmod } = await import("node:fs/promises");
+    await chmod(sub, 0o000);
+    try {
+      expect(() => linuxTokenOwnerIdentities("secret-token", root)).toThrow(
+        "cannot determine process ownership during token scan for pid 4019",
+      );
+    } finally {
+      await chmod(sub, 0o755);
+    }
+  });
+
+  test("detects process identity change after reading environment", async () => {
+    const root = await fakeProc("token-identity-change");
+    const marker = `${OWNERSHIP_ENV}=secret-token\0`;
+    await makeProcess(root, 4020, { group: 4020, birth: "1000", environ: marker });
+
+    const origAlloc = Buffer.allocUnsafe;
+    let hooked = false;
+    Buffer.allocUnsafe = function (size: number) {
+      if (!hooked) {
+        hooked = true;
+        const { writeFileSync } = require("node:fs");
+        writeFileSync(join(root, "4020", "stat"), statLine(4020, 1, 4020, "2000"));
+      }
+      return origAlloc.call(Buffer, size);
+    };
+
+    try {
+      expect(() => linuxTokenOwnerIdentities("secret-token", root)).toThrow(
+        "process identity changed during ownership-token scan for pid 4020",
+      );
+    } finally {
+      Buffer.allocUnsafe = origAlloc;
+    }
+  });
+
+  test("detects process identity change when reading environment throws", async () => {
+    const root = await fakeProc("token-identity-change-on-throw");
+    const marker = `${OWNERSHIP_ENV}=secret-token\0`;
+    await makeProcess(root, 4021, { group: 4021, birth: "1000", environ: marker });
+
+    const origAlloc = Buffer.allocUnsafe;
+    let hooked = false;
+    Buffer.allocUnsafe = function (_size: number) {
+      if (!hooked) {
+        hooked = true;
+        const { writeFileSync } = require("node:fs");
+        writeFileSync(join(root, "4021", "stat"), statLine(4021, 1, 4021, "2000"));
+        throw new Error("read error");
+      }
+      return origAlloc.call(Buffer, _size);
+    };
+
+    try {
+      expect(() => linuxTokenOwnerIdentities("secret-token", root)).toThrow(
+        "process identity changed during ownership-token scan for pid 4021",
+      );
+    } finally {
+      Buffer.allocUnsafe = origAlloc;
+    }
+  });
+
+  test("throws cannot enumerate processes when readdirSync fails", async () => {
+    const root = await fakeProc("token-file-not-dir");
+    const filePath = join(root, "file.txt");
+    await writeFile(filePath, "test");
+    expect(() => linuxTokenOwnerIdentities("secret-token", filePath)).toThrow(
+      "cannot enumerate processes for ownership tokens",
+    );
+  });
+
+  test("throws ownership-token process scan is too large when process count exceeds cap", async () => {
+    const root = await fakeProc("token-too-many-pids");
+    const { closeSync, openSync } = await import("node:fs");
+    for (let i = 0; i < 65537; i++) {
+      closeSync(openSync(join(root, String(i)), "w"));
+    }
+    expect(() => linuxTokenOwnerIdentities("secret-token", root)).toThrow(
+      "ownership-token process scan is too large",
+    );
+  }, 15000);
 });

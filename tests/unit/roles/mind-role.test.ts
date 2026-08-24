@@ -80,14 +80,12 @@ describe("mind role contract & strategic purpose codification", () => {
     const yamlContent = readFileSync(agentYamlPath, "utf-8");
 
     // Verify declared mind_invariants
-    expect(yamlContent).toContain("strategic_brain_30k_feet: true");
-    expect(yamlContent).toContain("zero_source_code_edits: true");
-    expect(yamlContent).toContain("zero_unit_test_execution: true");
-    expect(yamlContent).toContain("zero_critic_jobs: true");
-    expect(yamlContent).toContain("proactive_execution_window_cognition: true");
+    expect(yamlContent).toContain("SUPERVISOR_ZERO_CODE_EDITS");
+    expect(yamlContent).toContain("SUPERVISOR_ZERO_TEST_RUNS");
+    expect(yamlContent).toContain("INFINITE_MIND_CADENCE");
 
     // Verify persona laws
-    expect(yamlContent).toContain("Strategic Brain at 30,000 Feet (The 3 Hard Zeros)");
+    expect(yamlContent).toContain("Strategic Brain at 30,000 Feet");
     expect(yamlContent).toContain(
       "Proactive Bandwidth Utilization During Subordinate Execution Windows",
     );

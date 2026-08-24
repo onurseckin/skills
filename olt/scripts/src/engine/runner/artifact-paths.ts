@@ -4,7 +4,7 @@ import { HarnessError } from "../../core/errors/harness-error.ts";
 
 export function portableArtifactPath(runRoot: string, absolutePath: string): string {
   const fromRoot = relative(runRoot, absolutePath);
-  if (!fromRoot || isAbsolute(fromRoot) || fromRoot.split(sep).includes("../..")) {
+  if (!fromRoot || isAbsolute(fromRoot) || fromRoot.split(sep).includes("..")) {
     throw new HarnessError("PATH_SAFETY", `command artifact escapes run root: ${absolutePath}`);
   }
   safeRepoPath(runRoot, fromRoot);

@@ -70,7 +70,9 @@ describe("Autonomous Mind Self-Evolution Loop & Perpetual Cadence", () => {
       expect(guard.allowed).toBe(true);
       expect(guard.closing_permitted).toBe(false);
       expect(guard.message).toBe(NON_STOPPING_RULE);
-      expect(guard.nextInstruction).toContain("bun harness.ts mind:wake --run .capsules/test-run");
+      expect(guard.nextInstruction).toContain(
+        "bun harness.ts mind:wake --run .olt/capsules/test-run",
+      );
     });
 
     it("evaluates cadence as QUEUE_ACTIVE when tasks exist in queue", () => {

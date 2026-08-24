@@ -31,7 +31,7 @@ import { tmpdir } from "node:os";
 // never to the process's working directory — the isolation contract forbids tests reading that to
 // find their scratch space.
 const REPO_ROOT = join(import.meta.dir, "..", "..");
-const SCRATCH_BASE = join(REPO_ROOT, "tests", ".tmp");
+const SCRATCH_BASE = join(REPO_ROOT, "coverage", "scratch");
 
 function slug(value: string): string {
   const cleaned = value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");

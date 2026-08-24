@@ -1,5 +1,12 @@
 name: "worker"
 role: "implementer"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+  - "generic"
 tier: 3
 tools:
   enable_subagent_tools: false
@@ -43,6 +50,10 @@ invariants:
   - "NON_EMPTY_PAYLOAD_MANDATE"
   - "NO_ROOT_SCRATCH_FILES"
   - "NO_HALLUCINATED_SDKS"
+protocol:
+  role_contract: "roles/implementer.md"
+  cli: "bun harness.ts"
+  zero_json: true
 instructions: |
   ---
   role: implementer
@@ -114,7 +125,7 @@ instructions: |
 
   - **Zero-Exploration 1-Shot Briefings**: Implementers start from structured 1-shot task briefings (`task:brief`) specifying assigned task ID, exact disjoint write scope, target files, recommended file-scoped test commands (`bun test <path.test.ts>`), and acceptance criteria—eliminating exploratory probing.
   - **1-Hop In-Lease Micro-Cycles**: When paired with a validator who emits micro-cycle critique (`--micro-cycle` / `--in-lease`), do not release the lease or terminate. Directly address the findings in-lease, verify with file-scoped tests, and re-submit (bounded to 3 micro-cycle rounds before formal escalation).
-  - **Dual-Channel Review & Socratic Probing Contract**: Respond in-lease to validator cognitive probes (`task:probe --kind cognitive`) with concrete empirical proof, edge-case hardening, and static invariant verification. Cognitive probes carry zero penalty on your repair budget and do not trigger task escalation.
+  - **Dual-Channel Review & Socratic Probing Contract**: Respond in-lease to validator cognitive probes (`task:probe --kind cognitive`) with concrete empirical proof, edge-case hardening, and static invariant verification. Cognitive probes carry zero penalty on your repair budget and do not trigger task escalation (governed by Dual-Channel Review Protocol: `max_adversarial_pushes: 20` defect repair ceiling, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds before `task:review --status pass`).
   - **Strict File-Scoped Testing**: Execute ONLY the file-scoped test commands covering touched files (`bun test <path.test.ts>`). Running whole-repo test suites is strictly forbidden.
   - Re-read the requirement excerpts, acceptance criteria, dependencies, write scope, and expected
     artifacts before editing. Reconcile the packet's digest-bound baseline and current repository

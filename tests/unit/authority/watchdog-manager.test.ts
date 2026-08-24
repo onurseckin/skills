@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   cleanupPreviousPhaseWatchdogs,
@@ -912,13 +912,206 @@ describe("WatchdogManager - Lifecycle Invariant Verification", () => {
     expect(result.violations.some((v) => v.includes("heartbeat is overdue"))).toBe(true);
     expect(result.violationDetails.some((d) => d.rule === "heartbeat_timeout_exceeded")).toBe(true);
   });
+
+  test("covers remaining edge cases: default resolution, read errors, legacy store, metadata merge, and glyphs", () => {
+    // 1. resolveWatchdogStorePath with undefined
+    const defaultPath = resolveWatchdogStorePath();
+    expect(defaultPath).toBeDefined();
+    expect(typeof defaultPath).toBe("string");
+
+    // 2. parseTimestamp edge cases
+    const nowFromInvalid = parseTimestamp("not-a-valid-date");
+    expect(Number.isFinite(nowFromInvalid)).toBe(true);
+
+    // 3. createDefaultWatchdogStore with explicit vs default timestamp
+    const storeWithIso = createDefaultWatchdogStore("2026-08-24T12:00:00.000Z");
+    expect(storeWithIso.updated_at).toBe("2026-08-24T12:00:00.000Z");
+
+    // 4. loadWatchdogStore read error (target file is a directory where readFileSync fails)
+    const dir = scratchRoot(import.meta.path, "read-err");
+    mkdirSync(join(dir, "watchdogs.json"), { recursive: true });
+    expect(() => loadWatchdogStore(dir)).toThrow(HarnessError);
+
+    // 5. loadWatchdogStore legacy active_watchdog format
+    const legacyDir = scratchRoot(import.meta.path, "legacy-store");
+    const legacyFile = join(legacyDir, "watchdogs.json");
+    writeFileSync(
+      legacyFile,
+      JSON.stringify({
+        schema: "harness.watchdog_store",
+        version: 1,
+        active_watchdog: {
+          id: "wd-legacy-1",
+          generation: 1,
+          pulse_id: null,
+          phase: "loop",
+          run_id: null,
+          run_root: null,
+          pid: 1,
+          ppid: 1,
+          agent_id: null,
+          started_at: "2026-08-21T18:00:00.000Z",
+          last_heartbeat_at: "2026-08-21T18:00:00.000Z",
+          heartbeat_cadence_ms: 180_000,
+          timeout_ms: 360_000,
+          status: "active",
+          terminated_at: null,
+          termination_reason: null,
+        },
+      }),
+      "utf8",
+    );
+    const loadedLegacy = loadWatchdogStore(legacyDir);
+    expect(loadedLegacy.watchdogs.length).toBe(1);
+    expect(loadedLegacy.watchdogs[0]?.id).toBe("wd-legacy-1");
+
+    // 6. saveWatchdogStore creates missing nested directory
+    const nestedDir = join(scratchRoot(import.meta.path, "nested-save"), "sub1", "sub2");
+    saveWatchdogStore(storeWithIso, join(nestedDir, "watchdogs.json"));
+    expect(loadWatchdogStore(nestedDir).watchdogs).toEqual([]);
+
+    // 7. terminateWatchdog merges existing metadata with termination metadata
+    const metaDir = scratchRoot(import.meta.path, "meta-merge");
+    const regResult = registerWatchdog(
+      {
+        id: "wd-meta-1",
+        generation: 1,
+        phase: "loop",
+        metadata: { initialKey: "initialVal" },
+      },
+      metaDir,
+    );
+    const termResult = terminateWatchdog(
+      "wd-meta-1",
+      {
+        reason: "finished",
+        metadata: { finalKey: "finalVal" },
+      },
+      metaDir,
+    );
+    expect(termResult.metadata).toEqual({
+      initialKey: "initialVal",
+      finalKey: "finalVal",
+    });
+
+    // 8. listWatchdogs with single status string that filters out non-matching
+    const listMatches = listWatchdogs({ status: "active" }, metaDir);
+    expect(listMatches.length).toBe(0);
+    const listTerminated = listWatchdogs({ status: "terminated" }, metaDir);
+    expect(listTerminated.length).toBe(1);
+
+    // 9. cleanupStaleWatchdogs retains active non-expired watchdog
+    const cleanupDir = scratchRoot(import.meta.path, "cleanup-non-expired");
+    registerWatchdog(
+      {
+        id: "wd-active-fresh",
+        generation: 1,
+        phase: "loop",
+        now: "2026-08-24T12:00:00.000Z",
+      },
+      cleanupDir,
+    );
+    registerWatchdog(
+      {
+        id: "wd-active-old",
+        generation: 2,
+        phase: "loop",
+        now: "2026-08-24T10:00:00.000Z",
+      },
+      cleanupDir,
+    );
+    const cleanupRes = cleanupStaleWatchdogs({ now: "2026-08-24T12:01:00.000Z" }, cleanupDir);
+    expect(cleanupRes.activeCount).toBe(1);
+    expect(cleanupRes.cleanedCount).toBe(1);
+
+    // 10. renderAsciiWatchdogTable handles terminated and orphaned glyphs
+    const records: WatchdogRecord[] = [
+      {
+        id: "wd-active",
+        generation: 1,
+        pulse_id: "p1",
+        phase: "phase1",
+        run_id: null,
+        run_root: null,
+        pid: 100,
+        ppid: 10,
+        agent_id: null,
+        started_at: "2026-08-24T12:00:00.000Z",
+        last_heartbeat_at: "2026-08-24T12:00:00.000Z",
+        heartbeat_cadence_ms: 180_000,
+        timeout_ms: 360_000,
+        status: "active",
+        terminated_at: null,
+        termination_reason: null,
+      },
+      {
+        id: "wd-stale",
+        generation: 1,
+        pulse_id: null,
+        phase: "phase2",
+        run_id: null,
+        run_root: null,
+        pid: 101,
+        ppid: 10,
+        agent_id: null,
+        started_at: "2026-08-24T12:00:00.000Z",
+        last_heartbeat_at: "2026-08-24T12:00:00.000Z",
+        heartbeat_cadence_ms: 180_000,
+        timeout_ms: 360_000,
+        status: "stale",
+        terminated_at: null,
+        termination_reason: "timeout",
+      },
+      {
+        id: "wd-terminated",
+        generation: 1,
+        pulse_id: null,
+        phase: "phase3",
+        run_id: null,
+        run_root: null,
+        pid: 102,
+        ppid: 10,
+        agent_id: null,
+        started_at: "2026-08-24T12:00:00.000Z",
+        last_heartbeat_at: "2026-08-24T12:00:00.000Z",
+        heartbeat_cadence_ms: 180_000,
+        timeout_ms: 360_000,
+        status: "terminated",
+        terminated_at: "2026-08-24T12:05:00.000Z",
+        termination_reason: "done",
+      },
+      {
+        id: "wd-orphaned",
+        generation: 1,
+        pulse_id: null,
+        phase: "phase4",
+        run_id: null,
+        run_root: null,
+        pid: 103,
+        ppid: 10,
+        agent_id: null,
+        started_at: "2026-08-24T12:00:00.000Z",
+        last_heartbeat_at: "2026-08-24T12:00:00.000Z",
+        heartbeat_cadence_ms: 180_000,
+        timeout_ms: 360_000,
+        status: "orphaned",
+        terminated_at: null,
+        termination_reason: "missing_parent",
+      },
+    ];
+    const tableStr = renderAsciiWatchdogTable(records);
+    expect(tableStr).toContain("[ACTIVE 🟢]");
+    expect(tableStr).toContain("[STALE ⚠️]");
+    expect(tableStr).toContain("[TERMINATED ⏹️]");
+    expect(tableStr).toContain("[ORPHANED ❌]");
+  });
 });
 
 describe("Invariants & Cleanliness Audit", () => {
   test("zero TypeScript any and zero suppressions across watchdog files", () => {
     const sourceFiles = [
       join(__dirname, "../../../olt/scripts/src/authority/watchdog-manager.ts"),
-      join(__dirname, "../../../olt/scripts/src/runner/watchdog.ts"),
+      join(__dirname, "../../../olt/scripts/src/engine/runner/watchdog.ts"),
       join(__dirname, "../../../olt/scripts/src/orchestrator/watchdog.ts"),
       join(__dirname, "../../../olt/scripts/src/cli/commands/watchdog-ops.ts"),
       __filename,

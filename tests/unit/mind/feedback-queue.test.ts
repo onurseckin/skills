@@ -45,15 +45,15 @@ describe("Feedback Queue Engine", () => {
 
     const resolved = resolveFeedbackQueuePath();
     expect(typeof resolved).toBe("string");
-    expect(resolved.endsWith(".olt/capsules/FEEDBACK_QUEUE.jsonl")).toBe(true);
+    expect(resolved.endsWith("backlog.jsonl")).toBe(true);
   });
 
   it("resolves canonical feedback queue paths with todo and mind layout", () => {
     const canonical = resolveCanonicalFeedbackQueuePath("/tmp/repo");
-    expect(canonical).toBe("/tmp/repo/.capsules/mind/queue/feedback-queue.jsonl");
+    expect(canonical).toBe("/tmp/repo/.olt/backlog.jsonl");
 
     const todo = resolveCanonicalFeedbackQueuePath("/tmp/repo", true);
-    expect(todo).toBe("/tmp/repo/.capsules/todo/feedback-queue.jsonl");
+    expect(todo).toBe("/tmp/repo/.olt/backlog.jsonl");
   });
 
   it("migrates feedback queue from legacy path to canonical path", () => {
