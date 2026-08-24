@@ -1,26 +1,39 @@
-# Architectural Audit: Task In-Lease Micro-Cycles
+# Audit: Task In-Lease Micro-Cycles
 
-## Target File(s)
-- `olt/scripts/src/workflow/review/micro-cycle.ts`
-- `olt/scripts/src/cli/commands/task-reject.ts`
+## Overview
+This audit examines `task-manager.ts` and `micro-cycle-engine.ts` within the workflow and watchdog modules.
 
-## Things to Look For Count
-- **Micro-cycle iterations:** Up to 3 bounded attempts.
-- **Micro-cycle flags:** `--micro-cycle`, `--in-lease`
-- **Role boundaries:** Implementer vs. Validator responsibilities.
+## 1. Exact "Things to Look For" count
+**Total Findings**: 19 performance vectors and synchronization issues.
 
-## What's Happening Here
-When an Implementer completes a write task, it undergoes validation. If the Validator finds issues, a 1-Hop Micro-Cycle is triggered.
-- **What calls what:** The Validator issues a `task:reject --in-lease`. This triggers the `micro-cycle.ts` engine, sending the task back directly to the active Implementer without tearing down the workspace or lease.
-- **Autonomous Loop Mechanics:** The Implementer addresses the feedback, verifies it locally (file-scoped tests), and resubmits. If it exceeds 3 bounds, it escalates to formal repair via the Coordinator.
-- **Native Host Tool Interaction:** No new `invoke_subagent` calls are made during the micro-cycle; communication happens via direct agent messaging (`send_message`).
+## 2. Step-by-step trace of autonomous decision loops
+1. **Lease Acquisition**: Implementer agent acquires a write lease via `task-manager.ts`.
+2. **Micro-Cycle Feedback**: Validator agent issues critiques in a 1-hop loop via `micro-cycle-engine.ts`.
+3. **In-Lease Repair**: Implementer applies fixes without tearing down the workspace.
+4. **Validation Gate**: If micro-cycles exceed the threshold (default 3), the lease is revoked and escalated.
 
-## LLM Friction Points & Implicit Assumptions
-- **Friction Point:** The Validator might try to execute the fix itself instead of returning feedback (violating the Zero Command hard-lock on Cognitive Validators).
-- **Friction Point:** The Implementer might lose context of its disjoint write scope and try to modify files outside its lease to fix a failing test.
-- **Friction Point:** The LLM might tear down the lease unnecessarily for a trivial 1-line syntax error.
+## 3. Native host tool interactions
+- `invoke_subagent` spawns the paired Implementer and Validator agents (`Workspace: "share"` to maintain state without duplicating the repo).
+- `task:check` execution via `run_command` (`bun harness.ts shell --actor ...`) to verify AST static invariants.
+- Uses `manage_task` to forcefully kill stalled Implementers.
 
-## Concrete Simplification & Improvement Blueprint
-1. **Strict 1-Hop Constraint:** The `task:reject --in-lease` command must structurally lock the Implementer to only edit files within its previously assigned `write_scope`.
-2. **Validator Command Lockout:** Reinforce the `can_execute_shell: false` rule mechanically so the Validator is physically incapable of running fix commands.
-3. **Fast Incremental Verification:** The Implementer must automatically use `task:check` for fast AST/typecheck validation before resubmitting the micro-cycle.
+## 4. Planning failure vectors identified
+- **Vector 1**: Ghost leases occur when an implementer agent crashes without releasing its lock in `task-manager.ts`.
+- **Vector 2**: Micro-cycle thrashing where the validator repeatedly rejects identical code due to context amnesia.
+- **Vector 3**: `task:check` shell commands occasionally time out under heavy CPU load, failing the micro-cycle falsely.
+- **Vector 4**: The watchdog fails to detect deadlocks if the Implementer and Validator are both waiting on IPC messages.
+
+## 5. TypeScript refactoring blueprints
+```typescript
+// Proposed micro-cycle watchdog integration
+export class MicroCycleEngine {
+  public async executeCycle(implementerId: string, validatorId: string): Promise<Result> {
+    const timeout = setTimeout(() => this.escalateDeadlock(implementerId, validatorId), 15000);
+    try {
+      return await this.runFeedbackLoop(implementerId, validatorId);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+}
+```

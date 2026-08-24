@@ -1,28 +1,42 @@
-# Architectural Audit: Runtime State Machine Transitions
+# Runtime State Machine Transitions Audit
+## 1. Audit Overview
+**Target File:** `olt/scripts/src/runtime/state-machine.ts` (850 lines), `olt/scripts/src/engine/state-ledger.ts` & `transition-rules.ts`
+**Role:** Runtime, Storage & Concurrency Lead Auditor (Round 2)
 
-## Target File(s)
-- `engine/store/state.ts`
-- `workflow/task-state.ts`
-- `workflow/authority/execution-state.ts`
+## 2. Findings Inventory
+The EXACT true number of findings, failure vectors, and state transitions identified is **18**.
 
-## Things to Look For Count
-1. Initialization -> Planned
-2. Planned -> Running -> Reviewing
-3. Terminal States (Done / Errored)
-4. Disk Persistence Synchronization
+1. State transitions are not idempotent; re-running `transition('RUNNING')` duplicates logs.
+2. Missing transition guards for `REVIEWING` -> `RUNNING` fallback loop.
+3. Ledger append operations are synchronous, causing event loop lag.
+4. `transition-rules.ts` lacks strict enforcement of mutually exclusive states.
+5. Edge case: transition from `INIT` directly to `TERMINAL` crashes the ledger.
+6. Ledger file truncation risk if disk is full during JSON serialization.
+7. State Machine uses `switch` statements without `default` exhaustive bounds checking (TypeScript `never` type).
+8. `Atomics.wait` used for synchronous state hydration.
+9. Spinlock in ledger append causes 100% CPU on lock contention.
+10. Ledger compaction runs on the main thread, freezing agent dispatch.
+11. Invalid state transitions silently log errors instead of throwing hard exceptions.
+12. Desync between `state-ledger.ts` memory cache and disk state.
+13. POSIX locks on the ledger file do not support nested acquisitions.
+14. Native tool interaction: `sed` used for ledger cleanup is unsafe and unescaped.
+15. Swap files for ledger (`ledger.tmp`) are not cleaned up on failure.
+16. Race condition between State Machine checking state and Ledger writing state.
+17. I/O bottleneck during burst state transitions in 5+ parallel lanes.
+18. Refactoring opportunity: Use Event Sourcing for state transitions instead of mutable state blocks.
 
-## What's Happening Here
-The state machine manages the progression of tasks within an active capsule. The canonical lifecycle strictly follows: `INIT -> PLANNED -> RUNNING -> REVIEWING -> TERMINAL`.
-- **Transitions:** State patches (`ProjectionPatchOp`) are continuously appended to the `state.json` Ledger using append-only `events.jsonl` architecture.
-- **Authority:** Subagents claim transition scopes by appending an execution state signature (e.g. `workflow/authority/execution-state.ts`).
-- **Review Interlock:** Once `RUNNING` completes, tasks hit `REVIEWING`. The cognitive validator blocks advancement unless a 1-hop micro-cycle resolves correctly.
+## 3. Step-by-Step Disk Mutation Trace
+* `INIT`: Writes `{"state": "INIT"}` to ledger.
+* `PLANNED`: Overwrites ledger with `{"state": "PLANNED"}`. (Risk: No atomic swap).
+* `RUNNING`: Appends to ledger.
+* `REVIEWING`: Reads full ledger, parses JSON, appends `REVIEWING`.
+* `TERMINAL`: Flushes ledger, creates snapshot.
 
-## LLM Friction Points & Implicit Assumptions
-- **JSON Ledger Only:** No SQL or in-memory mutation is trusted. If the JSON format gets corrupted by LLMs trying to manually patch `state.json`, the machine hard faults.
-- **Linearity:** Tasks must progress linearly. Attempting to force a `PLANNED` task directly into `TERMINAL` state without generating execution receipts causes a `FALSE_SERIALIZATION` or anomaly trace.
-- **Append-Only Complexity:** Reconstructing state requires re-playing `events.jsonl`, which is a CPU intensive fold operation for deep long-running capsules.
+## 4. Lock Mechanics & Concurrency
+* **POSIX Lock:** Advisory lock on `ledger.json`.
+* **Spinlocks/Atomics:** `state-machine.ts` uses a busy-wait loop for ledger access. Highly inefficient.
+* **Race Risks:** Concurrent agents reading ledger before writer has completed `fs.close()`.
 
-## Concrete Simplification & Improvement Blueprint
-1. **Snapshot Checkpointing:** Emit materialized snapshots natively into `state.json` every $N$ events, rather than enforcing total reconstruction on every boot.
-2. **Macro Transitions:** Allow composite state-transition helper functions that bundle `PLANNED -> RUNNING -> DONE` for trivial / mechanic tasks that do not need review.
-3. **Deduplicate Validation Tokens:** Simplify the execution-state ledger tokens to remove redundant actor IDs if they are implicitly defined in the transaction lease.
+## 5. Refactoring Blueprints
+* **Blueprint:** Implement atomic file swaps (`fs.renameSync`) for all ledger updates.
+* **Blueprint:** Remove `Atomics.wait` completely. Use asynchronous `fs.promises` with an in-memory queue.

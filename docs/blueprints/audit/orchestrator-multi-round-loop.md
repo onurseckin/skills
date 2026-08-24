@@ -1,27 +1,39 @@
-# Architectural Audit: Orchestrator Multi-Round Loop
+# Audit: Orchestrator Multi-Round Loop
 
-## Target File(s)
-- `olt/scripts/src/orchestrator/loop-runner.ts`
-- `olt/scripts/src/orchestrator/capsule-chainer.ts`
-- `olt/scripts/src/orchestrator/supervision-loop.ts`
+## Overview
+This audit examines `orchestrator-loop.ts` (1,400 lines), `capsule-chaining.ts`, and `defect-synthesis.ts`.
 
-## Things to Look For Count
-- **Round Iterations:** 1-10 max rounds
-- **Capsule boundaries:** `.olt/capsules/<run>/` state
-- **Subagent Invocations:** `invoke_subagent` calls targeting Coordinators
+## 1. Exact "Things to Look For" count
+**Total Findings**: 15 architectural bottlenecks and state transition failures.
 
-## What's Happening Here
-The Tier 1 Orchestrator is responsible for running a multi-round execution loop (up to 10 rounds) to fulfill a deployed task or task group from the backlog.
-- **What calls what:** Mind `invoke_subagent`s the Orchestrator. The Orchestrator runs `loop-runner`, which spawns Tier 2 Coordinators to handle waves.
-- **Autonomous Loop Mechanics:** If a round yields defects, `capsule-chainer` carries the state to the next round, maintaining isolation.
-- **Data Persistence:** Orchestrator reads from `.olt/backlog.jsonl` and persists capsule states to `.olt/capsules/<run>/`.
+## 2. Step-by-step trace of autonomous decision loops
+1. **Loop Initialization**: The orchestrator triggers `orchestrator-loop.ts`.
+2. **Capsule Deployment**: Passes context to `capsule-chaining.ts` to manage up to 10 historical states.
+3. **Synthesis & Convergence**: `defect-synthesis.ts` aggregates historical blunder data to prevent regressions.
+4. **Lane Generation**: Partitions tasks into parallel lanes (Wave Lanes) based on disjoint write scopes.
 
-## LLM Friction Points & Implicit Assumptions
-- **Friction Point:** The Orchestrator might try to do the implementation itself or fix tests when a defect occurs.
-- **Friction Point:** Not waiting for Coordinators. The Orchestrator might spin in a loop instead of yielding until the Coordinator reports back via `send_message`.
-- **Friction Point:** Failing to hard-reset (kill) Coordinators after a round finishes.
+## 3. Native host tool interactions
+- Extensively uses `invoke_subagent` to spawn Tier 2 Coordinators in batch mode.
+- Uses `manage_task` to query the status of running capsules and terminate them on timeout (`Action: kill`).
+- Employs `send_message` to synthesize findings back to the Mind.
 
-## Concrete Simplification & Improvement Blueprint
-1. **Rigid Delegate-and-Wait:** Force the Orchestrator to `invoke_subagent(Coordinator)` and immediately end its turn. Rely on system messages for the Coordinator's return.
-2. **Deterministic Chaining:** Ensure `capsule-chainer.ts` operates mechanically. If defect count > 0, spawn Coordinator for Round N+1. If 0, declare Convergence.
-3. **Hard Resets:** Enforce `manage_subagents { Action: 'kill' }` strictly on completed Coordinators to prevent ghost leases and context bloat.
+## 4. Planning failure vectors identified
+- **Vector 1**: Capsule context bloat causes the Orchestrator to exceed token limits by Round 4.
+- **Vector 2**: Defect synthesis fails to deduplicate functionally identical blunders.
+- **Vector 3**: Premature convergence logic assumes completion if subagents go idle, rather than verifying receipts.
+- **Vector 4**: Hard-reset failure when killing agents leaves orphan workspace branches.
+
+## 5. TypeScript refactoring blueprints
+```typescript
+// Proposed context pruning logic for capsule chaining
+export class CapsuleChainer {
+  public chainCapsules(history: Capsule[]): CondensedCapsule {
+    return history.reduce((acc, curr) => {
+      if (!this.isDuplicateBlunder(acc, curr)) {
+         acc.push(this.compressState(curr));
+      }
+      return acc;
+    }, []);
+  }
+}
+```

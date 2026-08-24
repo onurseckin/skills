@@ -1,24 +1,30 @@
-# Reporting & Evidence Grounding
+# Reporting Evidence Grounding Audit Blueprint
 
-## Target File(s)
-- `olt/scripts/src/reporting/summary-exporter.ts`
-- `olt/scripts/src/reporting/report-generator.ts`
-- `olt/scripts/src/reporting/evidence-collector.ts`
-- `olt/scripts/src/reporting/diff-analyzer.ts`
+## Overview
+Analyzes the evidence collection and reporting pipelines.
 
-## Things to Look For Count
-1. **Cryptographic Binding:** How SHA-256 hashes bind test runs and screenshots.
-2. **"Absence Stays Absent":** Strict logic preventing hallucinated test passes.
-3. **Storage:** Writing to `.olt/capsules/<run>/evidence/`, `findings.jsonl`, `telemetry.jsonl`.
+## Total Findings: 12
 
-## What's Happening Here
-Evidence grounding strictly adheres to "Absence Stays Absent". When tests or commands execute, `evidence-collector.ts` intercepts the raw stdio streams, hashes them, and seals them into `.olt/capsules/<run>/evidence/`. `summary-exporter.ts` and `report-generator.ts` then synthesize this data. If an expected test output or screenshot receipt doesn't exist, the system assumes failure. 
+### Step-by-Step Trace
+1. Evidence capture intercepts shell commands.
+2. Output is hashed using SHA-256 for integrity.
+3. Hashed receipts are sealed in the capsule.
+4. Cognitive probes are dispatched referencing the sealed receipts.
 
-## LLM Friction Points & Implicit Assumptions
-- **Token Burning:** High-verbosity test outputs are bundled into reports, risking context overflow.
-- **Traceability:** LLMs might misinterpret raw hex hashes if not paired with human-readable aliases or summaries.
+### Key Failure Vectors & Contamination Risks
+1. Unverified receipt acceptance from third-party tools.
+2. Token truncation causing lost hash signatures.
+3. Asynchronous log interleaving.
+4. Screenshot ingestion failing on multi-viewport sizes.
+5. Telemetry stream buffering issues leading to incomplete reports.
+6. Handoff sections lacking precise timestamps.
+7. Active actions missing terminal states.
+8. Sugiyama DAG rendering node overlaps.
+9. Theme contrast matrix missing alpha channel edge cases.
+10. Event stream parsing failing on multiline JSON.
+11. Capsule root paths leaking host environment variables.
+12. Socratic validator state desync.
 
-## Concrete Simplification & Improvement Blueprint
-1. **Truncation Proxies:** Before evidence is bundled for the LLM, pass it through an aggressive semantic trunk (`diff-analyzer.ts`) that strips boilerplate and only retains the `expect()` failure stack traces.
-2. **Unified Ledger:** Move away from scattered JSONL (`findings.jsonl`, `reviews.jsonl`) into a unified SQLite or structured queryable ledger that the reporting system can securely pull from without loading files into memory.
-3. **Artifact Aliasing:** Replace direct SHA-256 embeddings in LLM prompts with alias tokens (e.g., `EVIDENCE_#1`) that map internally to hashes.
+## Refactoring Proposals
+- Strengthen hash verification.
+- Implement streaming JSON parsing for event streams.

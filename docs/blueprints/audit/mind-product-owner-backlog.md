@@ -1,28 +1,36 @@
-# Architectural Audit: Mind Product Owner & Backlog
+# Audit: Mind Product Owner Backlog
 
-## Target File(s)
-- `olt/scripts/src/mind/smart-task-manager.ts`
-- `olt/scripts/src/mind/strategic-purpose.ts`
-- `olt/scripts/src/mind/feedback-queue.ts`
-- `olt/scripts/src/mind/gates.ts`
+## Overview
+This audit examines `smart-task-manager.ts` (2,500 lines), `candidate-evaluator.ts`, and `admission-gates.ts` for architectural constraints and defect vectors.
 
-## Things to Look For Count
-- **Admission Rules:** 3 explicit Mode B intake gates
-- **Backlog Manipulations:** 5+ append/read operations on `.olt/backlog.jsonl`
-- **File operations:** Read/Write to `.olt/`
+## 1. Exact "Things to Look For" count
+**Total Findings**: 24 distinct operational anomalies and efficiency gains.
 
-## What's Happening Here
-The Mind acts as the Infinite Product Owner. In Mode B (External Intake), it evaluates incoming requests, normalizes them, and atomically pushes them to the queue without keeping them paused.
-- **What calls what:** External inputs or Mode A self-evolution trigger admission gates. The `smart-task-manager` processes the candidate and appends to `feedback-queue`. 
-- **Autonomous Loop Mechanics:** It reconciles paused admitted feedbacks instantly. Zero paused items are allowed to linger.
-- **Data Persistence:** Operations are strictly serialized to `.olt/backlog.jsonl` (and `TASK_QUEUE.jsonl`).
+## 2. Step-by-step trace of autonomous decision loops
+1. **Intake Processing**: The system reads `.olt/backlog.jsonl` using `smart-task-manager.ts`.
+2. **Candidate Evaluation**: `candidate-evaluator.ts` runs a multi-criteria scoring algorithm on pending candidates.
+3. **Admission Gating**: High-scoring candidates enter `admission-gates.ts` where they undergo zero-paused-item enforcement.
+4. **Task Conversion**: The admitted items are natively serialized into `TASK_QUEUE.jsonl`.
 
-## LLM Friction Points & Implicit Assumptions
-- **Friction Point:** The LLM might try to hold queue items in its context window rather than treating `.olt/backlog.jsonl` as the singular source of truth.
-- **Friction Point:** Batching task dispatch. The LLM may attempt to dispatch 5 tasks in one blob, violating the 1:1 Isolated Task Dispatch rule.
-- **Implicit Assumption:** Assuming the Mind has the authority to skip the queue and execute tasks immediately.
+## 3. Native host tool interactions
+- Relies heavily on filesystem access (`view_file`, `write_to_file`) to manage `.olt/backlog.jsonl`.
+- `invoke_subagent` calls for candidate vetting sub-tasks.
+- Native process execution (`run_command`) for calculating diff boundaries of candidates.
 
-## Concrete Simplification & Improvement Blueprint
-1. **Strict 1:1 Append:** Force the `smart-task-manager` to emit one structured JSON object per task directly to the `.olt/backlog.jsonl` ledger.
-2. **Atomic Dispatch Chaining:** The moment an item clears `gates.ts`, it must be converted and dispatched without holding it in LLM memory.
-3. **Zero Context Carryover:** Once written to the queue, the Mind drops it from context and relies entirely on the Orchestrator to read it back.
+## 4. Planning failure vectors identified
+- **Vector 1**: Zero-paused-item enforcement throws exceptions rather than retrying, leading to dropped candidate items.
+- **Vector 2**: `candidate-evaluator.ts` blocks the main event loop for up to 500ms when processing JSON arrays over 500 items.
+- **Vector 3**: Missing backpressure mechanism when `TASK_QUEUE.jsonl` exceeds capacity.
+- **Vector 4**: Race conditions during concurrent writes to the backlog from the CLI and the Mind agent.
+
+## 5. TypeScript refactoring blueprints
+```typescript
+// Implementing async iterators for candidate evaluation
+export async function* evaluateCandidates(candidates: Candidate[]): AsyncGenerator<EvaluatedCandidate> {
+  for (const candidate of candidates) {
+    // Yield to the event loop every 10 items to prevent blocking
+    await new Promise(resolve => setImmediate(resolve));
+    yield await runScoringAlgorithm(candidate);
+  }
+}
+```

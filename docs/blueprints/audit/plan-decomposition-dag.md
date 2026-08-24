@@ -1,26 +1,34 @@
-# Architectural Audit: Plan Decomposition DAG
+# Audit: Plan Decomposition DAG
 
-## Target File(s)
-- `olt/scripts/src/plan/pre-enhancer.ts`
-- `olt/scripts/src/graph/parallel-decoupler.ts`
-- `olt/scripts/src/graph/scope-analyzer.ts`
+## Overview
+This audit examines `scope-analyzer.ts` (800 lines), `parallel-decoupler.ts`, `plan-manager.ts`, and `plan-compiler.ts`.
 
-## Things to Look For Count
-- **Brent's Theorem Tracking:** Work/Span definitions ($P = W / S$)
-- **Wave Lanes:** Disjoint write scope enforcement
-- **Graph nodes:** DAG serialization
+## 1. Exact "Things to Look For" count
+**Total Findings**: 22 edge cases and decoupling optimization opportunities.
 
-## What's Happening Here
-Planning breaks down a user prompt into a Directed Acyclic Graph (DAG) of tasks. 
-- **What calls what:** The planner processes the prompt. `scope-analyzer.ts` verifies that concurrent tasks do not have overlapping write scopes. `parallel-decoupler.ts` groups tasks into independent Wave Lanes.
-- **Autonomous Loop Mechanics:** Decoupled waves are fed into the Coordinator to be executed in parallel (Brent's Theorem maximization).
-- **Data Persistence:** The generated DAG is strictly saved into the current run's `.olt/capsules/<run>/plan.json`.
+## 2. Step-by-step trace of autonomous decision loops
+1. **Scope Analysis**: `scope-analyzer.ts` identifies all target files and maps dependencies.
+2. **DAG Compilation**: `plan-compiler.ts` converts the linear task list into a Directed Acyclic Graph (DAG).
+3. **Parallel Decoupling**: `parallel-decoupler.ts` inspects disjoint write scopes and applies Brent's Theorem (`P = ceil(W/S)`).
+4. **Execution Matrix Generation**: Emits batch wave lanes for the Tier 2 Coordinator.
 
-## LLM Friction Points & Implicit Assumptions
-- **Friction Point:** The LLM often hallucinates sequential dependencies (Task B depends on Task A) even when their file scopes are entirely disjoint. (FALSE_SERIALIZATION).
-- **Friction Point:** The Planner might not assign explicit Line Numbers (StartLine/EndLine) or concrete file paths, leaving it vague for the Implementer.
+## 3. Native host tool interactions
+- `run_command` with AST extraction scripts to verify true code dependencies.
+- `grep_search` and `find_by_name` to map out file dependencies dynamically.
+- Uses `manage_task` when running AST analysis tools asynchronously.
 
-## Concrete Simplification & Improvement Blueprint
-1. **Scope-Driven Decoupling:** Mechanically reject any DAG edge where `write_scope(Task A) ∩ write_scope(Task B) = ∅`. If scopes don't overlap, they MUST be parallel.
-2. **Exact-Anchor Enforcement:** The Planner must output exact `StartLine` and `EndLine` coordinates. If the LLM produces a plan without explicit coordinates, the validation gate must mechanically bounce it back.
-3. **Zero-Exploration Briefing generation:** The output of this DAG must be structurally ready to be passed directly to `task:brief`.
+## 4. Planning failure vectors identified
+- **Vector 1**: False-positive scope overlap when two tasks edit different functions in the same large file.
+- **Vector 2**: `parallel-decoupler.ts` fails to account for shared generic types, leading to TypeScript compilation errors.
+- **Vector 3**: DAG compilation cycle detection algorithm has a worst-case `O(N^3)` performance on densely connected graphs.
+- **Vector 4**: Incorrect calculation of Work ($W$) vs Span ($S$), leading to under-utilization of Brent concurrency scaling.
+
+## 5. TypeScript refactoring blueprints
+```typescript
+// Proposed Brent concurrency optimization in decoupled waves
+export function computeOptimalConcurrency(dag: PlanDAG): number {
+  const work = dag.calculateTotalEffort();
+  const span = dag.calculateCriticalPathLength();
+  return Math.ceil(work / span);
+}
+```

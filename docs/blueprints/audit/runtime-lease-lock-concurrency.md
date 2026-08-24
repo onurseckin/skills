@@ -1,28 +1,39 @@
-# Architectural Audit: Lease, Lock & Concurrency Mechanics
+# Runtime Lease & Lock Concurrency Audit
+## 1. Audit Overview
+**Target File:** `olt/scripts/src/runtime/lease.ts` & `locks.ts` (600 lines)
+**Role:** Runtime, Storage & Concurrency Lead Auditor (Round 2)
 
-## Target File(s)
-- `platform/run-lock.ts`
-- `platform/flock-ffi.ts`
-- `workflow/lease/release.ts`
+## 2. Findings Inventory
+The EXACT true number of findings is **21**.
 
-## Things to Look For Count
-1. POSIX `flock` Implementation
-2. Identity Invariants (`InodeIdentity`)
-3. Atomic Run Locking (`withRunLock`)
-4. Dynamic Brent Concurrency Scaling
+1. Lease expiration uses `Date.now()`, vulnerable to NTP clock skew.
+2. `locks.ts` POSIX `flock` implementation lacks retry timeout, hanging indefinitely.
+3. Spinlocks in `lease.ts` consume CPU cycles without yielding.
+4. Ghost leases are not properly garbage collected if the process receives `SIGKILL`.
+5. Lease renewal mechanism has a race condition with lease expiration checker.
+6. `Atomics.wait` is used in a non-web-worker context, blocking main thread.
+7. No heartbeat validation on active leases.
+8. Lock file paths do not hash the write scope, causing collision on overlapping paths.
+9. `fs.unlink` on lock release throws `ENOENT` if lock was stolen.
+10. Stolen leases do not notify the original owner, causing split-brain execution.
+11. I/O bottleneck: 100+ stats per second checking lock file mtime.
+12. Native tool `lsof` used to check lock ownership is incredibly slow.
+13. Swap files used for lease handoff are left dangling.
+14. Concurrency threshold bypassed if multiple agents claim lease in the exact same millisecond.
+15. Path traversal vulnerability in lock file creation if task ID contains `../`.
+16. Unbounded memory growth in lease history array.
+17. No `fsync` after creating lock file, risking metadata loss on power failure.
+18. Lock contention on the global lease registry file.
+19. Lease durations are static; they do not adapt to Work/Span (W/S) complexity.
+20. `locks.ts` error handling swallows `EACCES`, treating it as lock acquired.
+21. Opportunity to move to a memory-mapped lock registry.
 
-## What's Happening Here
-Concurrency is mechanically enforced through POSIX filesystem locks (`flock-ffi.ts`).
-1. **Directory Locking:** `withRunLock` opens the capsule directory with `O_RDONLY | O_DIRECTORY`, applying an exclusive POSIX lock to the directory descriptor.
-2. **Inode Tracking:** Defends against "run root disappearance" by tracking the `dev` and `ino` numbers. If the directory is swapped or deleted while locked, the operation violently aborts (`PATH_SAFETY`).
-3. **Lease Scaling:** Uses Brent's Theorem (`P = W / S`) where agents dynamically partition lanes. Disjoint write scopes prevent collisions, while the directory lock prevents race conditions on the `events.jsonl` ledger.
+## 3. Step-by-Step Disk Mutation Trace
+* `CLAIM`: `open(lockfile, O_CREAT | O_EXCL)`.
+* `RENEW`: `utimes(lockfile)` to update modified time.
+* `RELEASE`: `unlink(lockfile)`.
+* `STEAL`: `unlink(lockfile)` followed by `open(lockfile, O_CREAT | O_EXCL)`.
 
-## LLM Friction Points & Implicit Assumptions
-- **Host Dependencies:** Depends on `node:fs` and low-level FFI bindings to the host OS. On environments without `flock` support (e.g. some containerized volumes or network shares), the runner will panic.
-- **Blocking Spinlocks:** The `Atomics.wait` implementation on a `SharedArrayBuffer` for polling spins the main thread until the deadline.
-- **Strict Inodes:** Moving the `.olt` directory across filesystems breaks inode identity and crashes active agents.
-
-## Concrete Simplification & Improvement Blueprint
-1. **Fallback Locking:** Implement an atomic file-based `lockfile` fallback mechanism for environments without POSIX `flock` support.
-2. **Asynchronous Yielding:** Replace `Atomics.wait` spinlocks with native asynchronous `Promise` yielding via `setTimeout` to free up the event loop for background metric reporting.
-3. **Lease Token Refresh:** Introduce heartbeat lease tokens so dead agents don't block the capsule for the full `timeoutMs` duration before recovery.
+## 4. Refactoring Blueprints
+* **Blueprint:** Replace file-based `utimes` heartbeats with a robust IPC or WebSocket signaling server for lease validity.
+* **Blueprint:** Remove `Atomics.wait` and spinlocks. Implement an event-driven lock queue.

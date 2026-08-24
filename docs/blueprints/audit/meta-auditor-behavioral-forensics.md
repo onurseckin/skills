@@ -1,24 +1,24 @@
-# Meta-Auditor & Behavioral Forensics
+# Meta-Auditor Behavioral Forensics Audit Blueprint
 
-## Target File(s)
-- `olt/scripts/src/heuristics/meta-auditor-heuristics.ts`
-- `olt/scripts/src/linter/anti-blunder-gates.ts`
-- `olt/scripts/src/mind/meta-auditor.ts`
-- `olt/scripts/src/cli/commands/meta-audit.ts`
+## Overview
+Analyzes heuristics, behavioral auditing, and anti-blunder mechanisms.
 
-## Things to Look For Count
-1. **7 Anomaly Heuristics:** Identifying `TOKEN_BURNING`, `FALSE_SERIALIZATION`, etc.
-2. **Behavioral Efficiency Score:** How is it calculated ($0.0\% - 100.0\%$).
-3. **Autonomous Injection:** The `--inject` command and feedback loop.
+## Total Findings: 11
 
-## What's Happening Here
-The Tier 2 Meta-Auditor operates post-wave, doing deep behavioral forensics on `events.jsonl` and `telemetry.jsonl`. It scans for known systemic inefficiencies across subagents—like Ghost Leases (leasing files without modifying them) or Polling Waste. It calculates a deterministic efficiency score. If bad patterns are detected, it autonomously synthesizes remediations and injects them back into the `.olt/backlog.jsonl` using `meta-audit --inject`.
+### Key Failure Vectors
+1. Ghost lease heuristics triggering false positives on slow tests.
+2. Context overflow checks failing on deeply nested JSON.
+3. Role boundary deviations missing cross-tier impersonation.
+4. False serialization heuristics failing to recognize valid sequential dependencies.
+5. Token burning not accurately measured during retry loops.
+6. Straggler detection being too sensitive to network latency.
+7. Polling waste metrics missing async web hooks.
+8. Subpixel borders false positives in heuristic edge cases.
+9. Glass surface heuristics failing on complex filter chains.
+10. Modal focus traps failing when inert attribute is used.
+11. Multi-viewport manifest missing ultra-wide resolutions.
 
-## LLM Friction Points & Implicit Assumptions
-- **Over-Calibration:** The meta-auditor LLM might be overly harsh or overly lenient based on temperature and prompt wording, leading to volatile efficiency scores.
-- **Actionability:** Generated remediations may be vague ("improve prompt") rather than concrete ("add constraint X to prompt Y").
-
-## Concrete Simplification & Improvement Blueprint
-1. **Hard-Coded Penalties:** Offload the efficiency scoring from the LLM to deterministic TypeScript logic in `meta-auditor-heuristics.ts`. The LLM should only provide the qualitative analysis of the deterministic drops.
-2. **Standardized Blunder Syntax:** Enforce a strict schema for injected remediations to ensure they directly compile into new `anti-blunder-gates.ts` rules, eliminating vague advice.
-3. **Forensics Visualizer:** Emit an ASCII flame-graph of token usage and wait-times so the user (and supervisor agents) can instantly see where time was burned.
+## Refactoring Proposals
+- Adjust straggler and ghost lease thresholds.
+- Enhance role boundary checking with cryptographic signatures.
+- Improve contextual analysis of sequential dependencies.

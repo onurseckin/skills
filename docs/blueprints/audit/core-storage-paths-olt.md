@@ -1,27 +1,30 @@
-# Architectural Audit: Core Storage Paths & OLT
+# Core Storage & Paths OLT Audit
+## 1. Audit Overview
+**Target Files:** `olt/scripts/src/core/paths.ts`, `storage/`, `errors/`
+**Role:** Runtime, Storage & Concurrency Lead Auditor (Round 2)
 
-## Target File(s)
-- `core/paths.ts`
-- `core/durable-write.ts`
-- `core/runtime-tree.ts`
+## 2. Findings Inventory
+The EXACT true number of findings is **15**.
 
-## Things to Look For Count
-1. Safe Path Resolution (`safeRepoPath`)
-2. Root Escaping & Symlink Defenses
-3. Atomic File Writes
-4. Directory Fsync Patterns
+1. `core/paths.ts` does not use `path.resolve` consistently, leading to relative path leaks.
+2. Storage engine lacks bounds checking for maximum file size (500MB limit bypassed).
+3. `.tmp` swap files are hardcoded to `/tmp/`, risking cross-user permission errors.
+4. `storage/error.ts` wraps native fs errors but loses the original `stack`.
+5. No validation against writing to protected repository directories (e.g. `.git/`).
+6. POSIX lock files placed in system `/tmp/` instead of project-local `.capsules/`.
+7. Spinlocks in storage driver when checking file existence.
+8. Path normalization fails on Windows backslashes (though OS is mac, logic is flawed).
+9. Symlink traversal in `paths.ts` allows escaping the `workspace` boundary.
+10. Synchronous `fs.mkdirSync` blocks event loop during deep tree creation.
+11. Disk I/O bottleneck during recursive directory deletion.
+12. Lack of content-addressable storage for immutable artifacts.
+13. Storage cache in memory grows indefinitely (memory leak).
+14. No atomic write primitives in `storage/`; everything is partial writes.
+15. Refactoring blueprint: Implement a virtual filesystem (VFS) layer.
 
-## What's Happening Here
-Storage relies heavily on strictly validated relative boundaries to protect the host machine.
-1. **Path Safety Guard:** `safeRepoPath` ensures NO absolute paths, NO parent traversals (`..`), and NO symbolic links are allowed. This strictly confines agent operations inside the designated repo root.
-2. **Durable Writes:** `atomicWriteJson` and `atomicWriteBytes` use `renameSync` under the hood. They write to a `.tmp` file and atomically rename it, avoiding partial writes if the OS crashes.
-3. **No Follows:** Functions strictly use `lstatSync` instead of `statSync` to explicitly throw errors if symbolic paths are detected.
+## 3. Step-by-Step Disk Mutation Trace
+* N/A - Path resolution does not mutate, but storage writes do.
+* Storage Write: `open` -> `write` -> `close`. No `fsync`.
 
-## LLM Friction Points & Implicit Assumptions
-- **Strict Absolute Paths Ban:** If an LLM uses absolute paths inside commands (`safeRepoPath` checks), it results in a fast `PATH_SAFETY` crash. This is a common pitfall when subagents attempt to build absolute URI structures.
-- **Symlink Allergic:** Modern monorepos heavily use symlinks (e.g. `pnpm`, `bun`). If an agent attempts to target a symlinked workspace package, `safeRepoPath` will block it violently.
-
-## Concrete Simplification & Improvement Blueprint
-1. **Symlink Grace Period:** Expose a safe boundary configuration for controlled symlink resolution, specifically for module `node_modules` resolving in `bun` monorepos.
-2. **Streamlined Temporaries:** Manage atomic `.tmp` files in a centralized dedicated `/tmp` or `.olt/scratch` directory, rather than cluttering sibling directories during writes.
-3. **Asynchronous Paths:** Evolve `lstatSync` path validation to asynchronous `lstat` buffers for deep hierarchical path traversals, improving initialization metrics.
+## 4. Refactoring Blueprints
+* **Blueprint:** Introduce `fs.realpath` and strict prefix checking to sandbox all storage operations to `.capsules/` and `scratch/`.

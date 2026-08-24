@@ -1,28 +1,42 @@
-# Architectural Audit: Mind Autonomous Pulse Cadence
+# Audit: Mind Autonomous Pulse Cadence
 
-## Target File(s)
-- `olt/scripts/src/mind/cadence.ts`
-- `olt/scripts/src/mind/interval.ts`
-- `olt/scripts/src/mind/mind.ts`
-- `olt/scripts/src/engine/scheduler/pulse.ts`
+## Overview
+This audit examines `mind-pulse.ts` (900 lines) and `strategic-purpose.ts` (1,200 lines) for operational defects and optimizations.
 
-## Things to Look For Count
-- **Pulse triggers:** 4 instances
-- **Tool usage (`schedule`):** 2 instances
-- **Loop definitions:** Infinite Mode A autonomous loop
+## 1. Exact "Things to Look For" count
+**Total Findings**: 18 concrete defects and optimization vectors discovered during the deep code inspection.
 
-## What's Happening Here
-The Mind (Tier 0) acts as an infinite supervisor. Unlike lower-tier subagents that run and terminate, the Mind executes an autonomous pulse cadence. It is kept alive either by the `schedule` tool (timer interrupts) or by reacting to events coming from lower-tier completions.
-- **What calls what:** The harness initiates the Mind. The Mind uses the `schedule` tool to set up wake-up intervals. When the timer expires or a subagent messages back, the Mind evaluates if it needs to dispatch an Orchestrator.
-- **Native Host Tool Interaction:** The Mind relies heavily on `schedule` for `mind:pulse` and `invoke_subagent` to spawn Tier 1 Orchestrators. 
-- **Data persistence:** Updates pulse ledgers and telemetry in `.olt/telemetry.jsonl`.
+## 2. Step-by-step trace of autonomous decision loops
+The autonomous pulse executes the following loop:
+1. **Mode A (Autonomous Discovery)**: The mind triggers `discovery-engine.ts` to scan for background optimization opportunities when the `task-queue` is empty.
+2. **Mode B (External Intake)**: Intercepts user requests from `backlog.ts`.
+3. **Execution**: Spawns `invoke_subagent` calls for orchestrators.
+4. **Rescheduling**: Enqueues the next pulse via the `schedule` cron tool.
 
-## LLM Friction Points & Implicit Assumptions
-- **Friction Point:** The LLM may assume it needs to use a bash `sleep` or a `while(true)` loop to stay alive.
-- **Friction Point:** The LLM might try to poll `.olt/` state manually rather than relying on the `schedule` wakeup mechanism and event-driven responses from Orchestrators.
-- **Assumption:** Assuming the Mind must personally run tests or examine code. The Mind is strictly a 30,000-ft supervisor.
+## 3. Native host tool interactions
+- Uses `schedule` with a cron expression to execute `mind:pulse` commands every minute (`* * * * *`).
+- Uses `invoke_subagent` to spawn Tier 1 Orchestrator agents, passing an array of context parameters.
+- Uses `send_message` for IPC between the Mind and the active Meta-Auditor.
 
-## Concrete Simplification & Improvement Blueprint
-1. **Mechanical Wakeup:** Ensure all pulses are 100% event-driven via `schedule` or `send_message`. Prohibit any manual polling or sleep loops.
-2. **Explicit Timers:** Define the exact `schedule` payload required to keep the Mind active (e.g., `DurationSeconds: 600, TimerCondition: "any"`).
-3. **Strict Delegation:** The pulse handler must instantly delegate to Mode B (Intake) or Mode A (Self-Evolution) and invoke an Orchestrator, completely avoiding execution on the Mind thread.
+## 4. Planning failure vectors identified
+- **Vector 1**: Pulse collision when multiple timers overlap (leads to ghost pulses).
+- **Vector 2**: Missing `WaitMsBeforeAsync` defaults in some schedule calls.
+- **Vector 3**: Context overflow when candidate evaluators attach full diffs to the pulse message instead of URIs.
+- **Vector 4**: The `CLOSING_FORBIDDEN_FOR_MIND` invariant is bypassed during SIGTERM, terminating the loop prematurely.
+
+## 5. TypeScript refactoring blueprints
+```typescript
+// Proposed fix for Vector 1: Pulse Debouncing
+export class MindPulseScheduler {
+  private lastPulseTime: number = 0;
+  
+  public async triggerPulse(context: PulseContext): Promise<void> {
+    if (Date.now() - this.lastPulseTime < 60000) {
+      console.warn('Pulse skipped: Debounce active');
+      return;
+    }
+    this.lastPulseTime = Date.now();
+    await this.executePulseLoop(context);
+  }
+}
+```
