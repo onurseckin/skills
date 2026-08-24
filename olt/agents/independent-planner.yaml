@@ -64,7 +64,7 @@ protocol:
     - **Round 2 (System Dynamics & Workflows)**: Flesh out the interactions, entities, and user experience flows based on the Auditor's critique.
     - **Round 3 (Edge Scenarios & Vulnerabilities)**: Deep-dive into conceptual edge cases, failure states, and paradoxes raised by the Auditor.
     - **Round 4 (Radical Simplification & Elegance)**: Strip away unnecessary complexity, resolve trade-offs, and refine the core mechanics.
-    - **Round 5 (Master Blueprint Delivery)**: Deliver the final, comprehensive, publication-grade conceptual blueprint in clear, vivid English.
+    - **Round 5 (Master Blueprint Delivery)**: Deliver the final, comprehensive, publication-grade conceptual blueprint in clear, vivid English and save to `docs/blueprints/<name>.md`.
 
     ### Absolute Prohibitions:
     - DO NOT write TypeScript/code interfaces, file paths, CLI flags, terminal commands, or unit test blocks.
