@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { SplitChannelDefectRouter } from "../reporting/split-channel-defect-router.ts";
 import { OrchestratorCompanionAuditor } from "./companion-auditor.ts";
+import type { BehavioralForensicsReport, CompanionPairingResult } from "./types.ts";
 import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
 
 export type CapsuleExecutionStatus =
@@ -88,10 +89,13 @@ export interface MultiCapsuleOrchestratorOptions {
   readonly executor?: CapsuleExecutor | undefined;
   readonly outputDir?: string | undefined;
   readonly actor?: string | undefined;
+  readonly skillAuditorCompanion?: boolean | undefined;
+  readonly strictAuditorPolicy?: boolean | undefined;
   readonly onCapsuleStateChange?: ((event: CapsuleStateChangeEvent) => void) | undefined;
   readonly onAntiSequentialityViolation?:
     | ((violation: AntiSequentialityViolation) => void)
     | undefined;
+  readonly onBehavioralForensics?: ((report: BehavioralForensicsReport) => void) | undefined;
 }
 
 export interface MultiCapsuleSummary {
@@ -109,6 +113,8 @@ export interface MultiCapsuleSummary {
   results: Record<string, CapsuleExecutionResult>;
   antiSequentialityReport: AntiSequentialityReport;
   markdownSummary: string;
+  companionPairing?: CompanionPairingResult | undefined;
+  behavioralForensicsSummary?: BehavioralForensicsReport | undefined;
 }
 
 /**
@@ -514,6 +520,34 @@ export function formatMultiCapsuleSummary(summary: MultiCapsuleSummary): string 
   }
 
   lines.push(``);
+
+  if (summary.companionPairing !== undefined) {
+    lines.push(`## Companion Skill Auditor`);
+    lines.push(`- **Paired**: ${summary.companionPairing.paired ? "✅ Yes" : "❌ No"}`);
+    lines.push(`- **Companion Agent**: \`${summary.companionPairing.companionAgentId}\``);
+    lines.push(
+      `- **Auto-Provisioned**: ${summary.companionPairing.autoProvisioned ? "Yes" : "No"}`,
+    );
+    lines.push(``);
+  }
+
+  if (summary.behavioralForensicsSummary !== undefined) {
+    lines.push(`## Behavioral Forensics Summary`);
+    lines.push(
+      `- **Compliant**: ${summary.behavioralForensicsSummary.compliant ? "✅ Yes" : "❌ No"}`,
+    );
+    lines.push(
+      `- **Token Burning Incidents**: ${summary.behavioralForensicsSummary.tokenBurningCount}`,
+    );
+    lines.push(
+      `- **False Serialization Bottlenecks**: ${summary.behavioralForensicsSummary.falseSerializationCount}`,
+    );
+    lines.push(
+      `- **Role Boundary Deviations**: ${summary.behavioralForensicsSummary.roleBoundaryDeviationsCount}`,
+    );
+    lines.push(``);
+  }
+
   return lines.join("\n");
 }
 
@@ -528,11 +562,16 @@ export class TrueMultiCapsuleOrchestrator {
   public readonly allowScopeOverlapInIsolatedWorktrees: boolean;
   public readonly outputDir: string | undefined;
   public readonly actor: string | undefined;
+  public readonly skillAuditorCompanion: boolean;
+  public readonly strictAuditorPolicy: boolean;
 
   private readonly executor: CapsuleExecutor | undefined;
   private readonly onCapsuleStateChange?: ((event: CapsuleStateChangeEvent) => void) | undefined;
   private readonly onAntiSequentialityViolation?:
     | ((violation: AntiSequentialityViolation) => void)
+    | undefined;
+  private readonly onBehavioralForensics?:
+    | ((report: BehavioralForensicsReport) => void)
     | undefined;
 
   public constructor(options: MultiCapsuleOrchestratorOptions = {}) {
@@ -547,11 +586,14 @@ export class TrueMultiCapsuleOrchestrator {
       options.allowScopeOverlapInIsolatedWorktrees !== undefined
         ? options.allowScopeOverlapInIsolatedWorktrees
         : true;
+    this.skillAuditorCompanion = options.skillAuditorCompanion !== false;
+    this.strictAuditorPolicy = options.strictAuditorPolicy === true;
     this.executor = options.executor;
     this.outputDir = options.outputDir;
     this.actor = options.actor;
     this.onCapsuleStateChange = options.onCapsuleStateChange;
     this.onAntiSequentialityViolation = options.onAntiSequentialityViolation;
+    this.onBehavioralForensics = options.onBehavioralForensics;
   }
 
   /**
@@ -572,7 +614,9 @@ export class TrueMultiCapsuleOrchestrator {
     // 0. Auto-pair companion Skill Auditor
     const firstSpec = specs[0];
     const targetRepoRoot = firstSpec !== undefined ? firstSpec.repoPath : process.cwd();
-    OrchestratorCompanionAuditor.pairCompanion(targetRepoRoot);
+    const companionPairing = OrchestratorCompanionAuditor.pairCompanion(targetRepoRoot, {
+      strictPolicy: this.strictAuditorPolicy,
+    });
 
     // 1. Anti-Sequentiality Validation
     const antiSeqReport = validateAntiSequentiality(specs, {
@@ -864,6 +908,16 @@ export class TrueMultiCapsuleOrchestrator {
       overallStatus = "cancelled";
     }
 
+    const behavioralForensicsSummary = OrchestratorCompanionAuditor.executeForensics(
+      targetRepoRoot,
+      {
+        now: completedAt,
+      },
+    );
+    if (this.onBehavioralForensics !== undefined) {
+      this.onBehavioralForensics(behavioralForensicsSummary);
+    }
+
     const summary: MultiCapsuleSummary = {
       totalCapsules: specs.length,
       convergedCount,
@@ -879,6 +933,8 @@ export class TrueMultiCapsuleOrchestrator {
       results: resultsObj,
       antiSequentialityReport: antiSeqReport,
       markdownSummary: "",
+      companionPairing,
+      behavioralForensicsSummary,
     };
 
     summary.markdownSummary = formatMultiCapsuleSummary(summary);

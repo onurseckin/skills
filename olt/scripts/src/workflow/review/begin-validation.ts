@@ -8,7 +8,7 @@ import { newLeaseToken, tokenDigest } from "../lease/token.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
 import { taskClassificationTexts } from "./role-evidence.ts";
-import { openValidations } from "./validation-state.ts";
+import { archiveOpenValidations, openValidations } from "./validation-state.ts";
 
 const MIN_VALIDATION_WINDOW = 5;
 const MAX_VALIDATION_WINDOW = 86_400;
@@ -71,6 +71,9 @@ export function beginValidation(
     const task = taskIn(draft, taskId);
     if (task.status !== "submitted" && task.status !== "validating") {
       throw new HarnessError("INVALID_STATE", "task is not submitted");
+    }
+    if (task.status === "submitted" && task.validations && task.validations.length > 0) {
+      archiveOpenValidations(task);
     }
     const open = openValidations(task);
     if (

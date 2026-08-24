@@ -1,3 +1,7 @@
+/**
+ * Orchestrator delegation and role confinement invariants.
+ * Auto-pairs companion Skill Auditor alongside Tier 1 Orchestrator.
+ */
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { OrchestratorCompanionAuditor } from "./companion-auditor.ts";
 import type { CompanionPairingResult } from "./types.ts";
@@ -7,6 +11,17 @@ export class OrchestratorDelegation {
    * Delegates execution to a Tier 2 Coordinator and automatically pairs the companion Skill Auditor.
    */
   public delegateToCoordinator(
+    repoRoot: string,
+    taskId: string,
+    coordinatorId: string = "coordinator-1",
+  ): { coordinatorId: string; companionPairing: CompanionPairingResult } {
+    return OrchestratorDelegation.delegateToCoordinator(repoRoot, taskId, coordinatorId);
+  }
+
+  /**
+   * Static helper to delegate execution to a Tier 2 Coordinator and automatically pair the companion Skill Auditor.
+   */
+  public static delegateToCoordinator(
     repoRoot: string,
     taskId: string,
     coordinatorId: string = "coordinator-1",
@@ -42,4 +57,19 @@ export class OrchestratorDelegation {
       );
     }
   }
+}
+
+export function delegateToCoordinator(
+  repoRoot: string,
+  taskId: string,
+  coordinatorId: string = "coordinator-1",
+): { coordinatorId: string; companionPairing: CompanionPairingResult } {
+  return OrchestratorDelegation.delegateToCoordinator(repoRoot, taskId, coordinatorId);
+}
+
+export function assertRoleBoundaryCompliance(
+  role: string,
+  action: "code_edit" | "run_test_suite" | "delegate",
+): void {
+  OrchestratorDelegation.assertRoleBoundaryCompliance(role, action);
 }

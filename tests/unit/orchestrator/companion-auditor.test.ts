@@ -165,6 +165,67 @@ describe("OrchestratorCompanionAuditor Unit Tests", () => {
     expect(() => assertBehavioralCompliance(report)).toThrow(HarnessError);
   });
 
+  test("assertCompliance — handles non-critical incidents with general error message", () => {
+    const report: BehavioralForensicsReport = {
+      compliant: false,
+      eventsAnalyzed: 5,
+      incidents: [
+        {
+          id: "inc-warn-1",
+          category: "TOKEN_BURNING",
+          severity: "MEDIUM",
+          title: "Token Burning",
+          description: "Minor exploratory read redundancy",
+          observation: "Minor exploratory read redundancy",
+          remediation: "Reduce read calls",
+          recommendation: "Reduce read calls",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+      tokenBurningCount: 1,
+      falseSerializationCount: 0,
+      roleBoundaryDeviationsCount: 0,
+      defectsLogged: 1,
+      cursor: {
+        lastInspectedTimestamp: new Date().toISOString(),
+        lastInspectedEventIndex: 5,
+        lastAuditTimestamp: new Date().toISOString(),
+      },
+      timestamp: new Date().toISOString(),
+      markdown: "",
+    };
+
+    expect(() => assertBehavioralCompliance(report)).toThrow(
+      /\[BEHAVIORAL_FORENSICS_VIOLATION\] Detected 1 behavioral deviation\(s\)/,
+    );
+  });
+
+  test("pairCompanion — respects custom options for companionAgentId and now timestamp", () => {
+    const customTimestamp = "2026-08-24T18:00:00.000Z";
+    const res = pairCompanionAuditor(testRoot, {
+      companionAgentId: "custom-auditor-id",
+      now: customTimestamp,
+    });
+    expect(res.paired).toBe(true);
+    expect(res.autoProvisioned).toBe(true);
+    expect(res.companionAgentId).toBe("custom-auditor-id");
+    expect(res.pairedAt).toBe(customTimestamp);
+  });
+
+  test("Static AST Invariants: Zero any and Suppressions in companion-auditor unit test", () => {
+    const content = readFileSync(import.meta.path, "utf-8");
+
+    const forbiddenAnyRegex = new RegExp(":[ \\t]*" + "any\\b");
+    const forbiddenCastRegex = new RegExp("\\bas[ \\t]+" + "any\\b");
+    const forbiddenSuppressionsRegex = new RegExp("@ts-" + "(ignore|expect-error|nocheck)");
+    const forbiddenLintRegex = new RegExp("(eslint|oxlint)" + "-disable");
+
+    expect(content).not.toMatch(forbiddenAnyRegex);
+    expect(content).not.toMatch(forbiddenCastRegex);
+    expect(content).not.toMatch(forbiddenSuppressionsRegex);
+    expect(content).not.toMatch(forbiddenLintRegex);
+  });
+
   test("clean up test directory", () => {
     if (existsSync(testRoot)) {
       rmSync(testRoot, { recursive: true, force: true });

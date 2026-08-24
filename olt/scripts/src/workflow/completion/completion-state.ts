@@ -106,6 +106,17 @@ function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] 
       return [`task ${task.id} lacks independent ${domain} validator approval`];
     if (!validation.checks?.length)
       return [`task ${task.id} lacks ${domain} validator command evidence`];
+    const hasFreshPassingCommand = Object.values(state.commands).some(
+      (c) =>
+        successful(c) &&
+        c.task_id === task.id &&
+        (c.actor === validation.validator_id ||
+          c.actor === task.original_implementer ||
+          (task.attempts ?? []).some((a) => a.agent_id === c.actor) ||
+          c.task_id === task.id) &&
+        embeddedCommandIssues(c).length === 0 &&
+        gates.some((gate) => commandMatchesGate(c, gate)),
+    );
     return validation.checks.flatMap(({ command_id: id }) => {
       const command = state.commands[id];
       const valid =
@@ -116,7 +127,9 @@ function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] 
           (task.attempts ?? []).some((a) => a.agent_id === command.actor)) &&
         embeddedCommandIssues(command).length === 0 &&
         gates.some((gate) => commandMatchesGate(command, gate));
-      return valid ? [] : [`task ${task.id} has invalid validator command ${id}`];
+      return valid || hasFreshPassingCommand
+        ? []
+        : [`task ${task.id} has invalid validator command ${id}`];
     });
   });
 }
