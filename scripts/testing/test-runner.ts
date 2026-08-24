@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { spawnSync } from "node:child_process";
-import { processCoverageArtifacts } from "./coverage-generator.ts";
+import { processCoverageArtifacts } from "./reporting/index.ts";
 import { acquireTestLock } from "./test-mutex.ts";
 
 const rawArgs = process.argv.slice(2);
@@ -33,7 +33,7 @@ try {
     const reportRes = processCoverageArtifacts();
     if (reportRes.lcovExists) {
       console.log(
-        `\n[coverage] Generated coverage/lcov.info, coverage/coverage-summary.json and coverage/REPORT.md across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).`,
+        `\n[coverage] Generated coverage/lcov.info, coverage/coverage-summary.json, coverage/REPORT.md, and coverage/index.html across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).`,
       );
     }
   }

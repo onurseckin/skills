@@ -71,7 +71,7 @@ function resolveAffectedTestFiles(changedFiles: string[]): { all: boolean; testF
     "bunfig.toml",
     "tsconfig.json",
     "lefthook.yml",
-    "scripts/test-changed.ts",
+    "scripts/testing/test-changed.ts",
   ];
 
   for (const file of changedFiles) {

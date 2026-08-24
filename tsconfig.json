@@ -23,7 +23,8 @@
     "olt/scripts/src/**/*.ts",
     "olt/scripts/harness.ts",
     "olt/scripts/generate-cli-manifest.ts",
-    "scripts/verify-gen5.ts"
+    "scripts/verify-gen5.ts",
+    "scripts/testing/**/*.ts"
   ],
   "exclude": ["tests"]
 }

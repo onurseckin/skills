@@ -1,5 +1,9 @@
 import { expect, test, describe, beforeEach, afterEach, spyOn } from "bun:test";
-import { acquireTestLock, isProcessAlive, TestLockData } from "../../../scripts/test-mutex.ts";
+import {
+  acquireTestLock,
+  isProcessAlive,
+  TestLockData,
+} from "../../../scripts/testing/test-mutex.ts";
 import { existsSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
