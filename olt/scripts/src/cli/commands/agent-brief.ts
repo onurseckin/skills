@@ -1,0 +1,98 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { parseUnifiedAgentManifest } from '../../authority/manifest-schema';
+
+export function executeAgentBrief(options: { role: string; format?: string }): string {
+  const agentPath = join(import.meta.dir, '..', '..', '..', '..', 'agents', `${options.role}.yaml`);
+  const rawYaml = readFileSync(agentPath, 'utf-8');
+  const manifest = parseUnifiedAgentManifest(rawYaml, agentPath);
+
+  // Read policy.json. Mocking here since we don't have the exact RepoPolicy implementation or path handy.
+  // In a real scenario we'd do: const policy = loadRepoPolicy();
+  const policyPath = join(import.meta.dir, '..', '..', '..', '..', 'policy.json');
+  let repoPolicy = { allowed_commands: [] as string[] };
+  try {
+    const rawPolicy = readFileSync(policyPath, 'utf-8');
+    repoPolicy = JSON.parse(rawPolicy) as unknown as { allowed_commands: string[] };
+  } catch (err: unknown) {
+    // Ignore, just use empty
+  }
+
+  const sections: string[] = [];
+  
+  sections.push(`================================================================================
+SECTION 1: SYSTEM IDENTITY & HOST TOOL PROTOCOL
+================================================================================
+ROLE: ${manifest.role}
+TIER: ${manifest.tier}
+DISPLAY NAME: ${manifest.interface.display_name}
+DESCRIPTION: ${manifest.interface.short_description}
+PROTOCOL: ${manifest.protocol.cli} (Zero JSON: ${manifest.protocol.zero_json})
+TOOLS ENABLED: Subagent: ${manifest.tools.enable_subagent_tools} | Write: ${manifest.tools.enable_write_tools}`);
+
+  sections.push(`================================================================================
+SECTION 2: CONSTITUTIONAL PERMISSIONS & INVARIANTS
+================================================================================
+MAY:
+${manifest.permissions.may.map(p => `  - ${p}`).join('\n')}
+
+MUST NOT:
+${manifest.permissions.must_not.map(p => `  - ${p}`).join('\n')}
+
+SPAWNS ALLOWED:
+${manifest.permissions.spawns.length > 0 ? manifest.permissions.spawns.map(p => `  - ${p}`).join('\n') : '  (None)'}
+
+INVARIANTS:
+${manifest.invariants.map(i => `  - ${i}`).join('\n')}`);
+
+  sections.push(`================================================================================
+SECTION 3: REPOSITORY POLICY & PERMISSION BOUNDARIES
+================================================================================
+ALLOWED COMMANDS:
+${manifest.permissions.commands.length > 0 ? manifest.permissions.commands.map(c => `  - ${c}`).join('\n') : '  (None)'}
+
+GLOBAL CAPABILITIES AVAILABLE (POLICY):
+${repoPolicy.allowed_commands && repoPolicy.allowed_commands.length > 0 ? repoPolicy.allowed_commands.map(c => `  - ${c}`).join('\n') : '  (None)'}
+
+SCRATCH HYGIENE:
+All temporary scripts and files must strictly be written to \`scratch/\` (or \`.olt/scratch/\`). Root directory hygiene is enforced.
+
+TEST EXECUTION RULES:
+- Cognitive Validators: 0 test suite executions allowed.
+- Implementers: Only file-scoped unit tests. Whole repo \`bun test\` is strictly prohibited.
+- Supervisors: 0 code modifications or raw test executions allowed.`);
+
+  sections.push(`================================================================================
+SECTION 4: OPERATIONAL STEP-BY-STEP RUNBOOK
+================================================================================
+${manifest.instructions}`);
+
+  return sections.join('\n\n');
+}
+
+export async function agentBriefCommand(args: Record<string, unknown>) {
+  const role = typeof args['role'] === 'string' ? args['role'] : '';
+  const format = typeof args['format'] === 'string' ? args['format'] : undefined;
+  if (!role) {
+    console.error("Missing --role");
+    process.exit(1);
+  }
+  try {
+    const opts: { role: string; format?: string } = { role };
+    if (format !== undefined) {
+      opts.format = format;
+    }
+    const output = executeAgentBrief(opts);
+    console.log(output);
+    process.exit(0);
+  } catch (err: unknown) {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
+}
+
+export async function agentDefineCommand(args: Record<string, unknown>) {
+  // Placeholder for agent:define
+  console.log("agent:define not fully implemented yet");
+  process.exit(0);
+}

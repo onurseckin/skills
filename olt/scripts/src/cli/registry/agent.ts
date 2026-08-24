@@ -169,4 +169,59 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     ],
     handler: agentListCommand,
   },
+  {
+    name: "agent:brief",
+    aliases: [],
+    domain: "agent",
+    tier: "internal",
+    internal: true,
+    summary: "Generate an exact-anchor subagent briefing.",
+    description: "Assembles the 100% complete, uncompressed 1-Shot Landing Prompt for a subagent.",
+    flags: [
+      {
+        name: "role",
+        type: "string",
+        required: true,
+        repeatable: false,
+        description: "The role of the agent to brief.",
+      },
+      {
+        name: "format",
+        type: "string",
+        required: false,
+        repeatable: false,
+        description: "Output format.",
+      },
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts agent:brief --role implementer",
+    ],
+    handler: async (args: Record<string, unknown>) => {
+      const { agentBriefCommand } = await import("../commands/agent-brief.ts");
+      await agentBriefCommand(args);
+      return {};
+    },
+  },
+  {
+    name: "agent:define",
+    aliases: [],
+    domain: "agent",
+    tier: "internal",
+    internal: true,
+    summary: "Define a new agent manifest.",
+    description: "Placeholder for defining new agents.",
+    flags: [],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [],
+    handler: async (args: Record<string, unknown>) => {
+      const { agentDefineCommand } = await import("../commands/agent-brief.ts");
+      await agentDefineCommand(args);
+      return {};
+    },
+  }
 ];
