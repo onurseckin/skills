@@ -1942,7 +1942,7 @@ export function synthesizeSmartTasksFromSelfEvolution(
 
   // 3. Charter Gap Analysis & Cognitive Flavor Checks
   const charterGapScope = [
-    "docs/CHARTER.md",
+    "olt/agents/mind.yaml",
     "olt/scripts/src/mind/cognitive-flavor.ts",
     "tests/unit/mind/cognitive-flavor.test.ts",
   ];

@@ -501,7 +501,7 @@ export const MIND_TASK_DISCOVERY_COMMAND_SPEC: CommandSpec = {
     optionalFlag("run", "string", "Mind capsule run root or workspace directory."),
     optionalFlag("source-root", "string", "Source directory to scan; repeat for multiple."),
     optionalFlag("test-root", "string", "Test directory to scan; repeat for multiple."),
-    optionalFlag("charter", "string", "Custom path to CHARTER.md."),
+    optionalFlag("charter", "string", "Custom path to mind.yaml agent manifest."),
     optionalFlag("feedback-queue", "string", "Custom path to FEEDBACK_QUEUE.jsonl."),
     optionalFlag("task-queue", "string", "Custom path to TASK_QUEUE.jsonl."),
     optionalFlag("capsules-dir", "string", "Capsules root directory."),
@@ -533,7 +533,7 @@ export const MIND_SELF_EVOLVE_COMMAND_SPEC: CommandSpec = {
     "Performs an autonomous self-evolution cycle: evaluates perpetual cadence, drains feedback or scans cognitive gaps, synthesizes tasks, enqueues work, and records cycle in evolution ledger.",
   flags: [
     optionalFlag("run", "string", "Mind capsule run root."),
-    optionalFlag("charter", "string", "Custom path to CHARTER.md."),
+    optionalFlag("charter", "string", "Custom path to mind.yaml agent manifest."),
     optionalFlag("feedback-queue", "string", "Custom path to FEEDBACK_QUEUE.jsonl."),
     optionalFlag("task-queue", "string", "Custom path to TASK_QUEUE.jsonl."),
     optionalFlag("history-file", "string", "Custom path to EVOLUTION_HISTORY.jsonl."),

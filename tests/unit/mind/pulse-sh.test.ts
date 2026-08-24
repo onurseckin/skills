@@ -39,25 +39,10 @@ function createTestHarness(root: string): string {
 }
 
 function setupMindCapsule(repo: string, name: string): string {
-  const charterDir = join(repo, "docs");
+  const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
-  const charterContent = [
-    "# CHARTER",
-    "",
-    "## identity",
-    "Pulse Test Mind",
-    "",
-    "## goals",
-    "- G1: Test pulse driver",
-    "",
-    "## non-goals",
-    "- None",
-    "",
-    "## repo_roots",
-    "- `src/`",
-    "",
-  ].join("\n");
+  const charterPath = join(charterDir, "mind.yaml");
+  const charterContent = `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Pulse Test Mind"\n  goals:\n    - id: "G1"\n      statement: "Test pulse driver"\n  non_goals:\n    - "None"\n  repo_roots:\n    - "src/"\n    - "olt/"\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -71,7 +56,7 @@ function setupMindCapsule(repo: string, name: string): string {
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/CHARTER.md",
+      charter_source_path: "olt/agents/mind.yaml",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -79,10 +64,10 @@ function setupMindCapsule(repo: string, name: string): string {
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
           goals: ["G1"],
-          repo_roots: ["docs/"],
+          repo_roots: ["src/", "olt/"],
           evidence_class: "harness_observed",
         },
         actor: "mind-1",

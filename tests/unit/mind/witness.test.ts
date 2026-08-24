@@ -51,12 +51,12 @@ function setupMindCapsule(
   const repo = mkdtempSync(join(tmpdir(), `mind-witness-test-${name}-`));
   roots.push(repo);
 
-  const charterDir = join(repo, "docs");
+  const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
+  const charterPath = join(charterDir, "mind.yaml");
   const charterContent =
     overrides.charterContent ??
-    `# CHARTER\n\n## identity\nTest application for discovery and witness rule\n\n## goals\n- G1: Enforce zero type errors\n- G2: Maintain test suite passing\n\n## non-goals\n- Modifying production credentials\n\n## repo_roots\n- \`src/\`\n- \`tests/\`\n`;
+    `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test application for discovery and witness rule"\n  goals:\n    - id: "G1"\n      statement: "Enforce zero type errors"\n    - id: "G2"\n      statement: "Maintain test suite passing"\n  non_goals:\n    - "Modifying production credentials"\n  repo_roots:\n    - "src/"\n    - "tests/"\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -70,7 +70,7 @@ function setupMindCapsule(
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/CHARTER.md",
+      charter_source_path: "olt/agents/mind.yaml",
       pinned_sha256: charterSha,
       goals: ["G1", "G2"],
       repo_roots: ["src/", "tests/"],
@@ -81,7 +81,7 @@ function setupMindCapsule(
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
           goals: ["G1", "G2"],
           repo_roots: ["src/", "tests/"],

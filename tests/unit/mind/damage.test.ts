@@ -38,12 +38,12 @@ function setupMindDamageCapsule(
   } = {},
 ): MindDamageFixture {
   const repo = scratchRoot(import.meta.path, label);
-  const charterDir = join(repo, ".olt");
+  const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
+  const charterPath = join(charterDir, "mind.yaml");
   const charterContent =
     overrides.charterContent ??
-    `# CHARTER\n\n## identity\nDeliberate Damage Test App\n\n## goals\n- G1: Ensure stability under damage\n\n## non-goals\n- Out of scope\n\n## repo_roots\n- \`src/\`\n- \`.olt/\`\n`;
+    `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Deliberate Damage Test App"\n  goals:\n    - id: "G1"\n      statement: "Ensure stability under damage"\n  non_goals:\n    - "Out of scope"\n  repo_roots:\n    - "src/"\n    - "olt/"\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -57,7 +57,7 @@ function setupMindDamageCapsule(
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: ".olt/CHARTER.md",
+      charter_source_path: "olt/agents/mind.yaml",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -65,10 +65,10 @@ function setupMindDamageCapsule(
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: ".olt/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
           goals: ["G1"],
-          repo_roots: [".olt/"],
+          repo_roots: ["olt/"],
           evidence_class: "harness_observed",
         },
         actor: "mind-1",
@@ -176,7 +176,7 @@ describe("Deliberate-Damage Test Suite (PHASE-2.md §4.1 & VERIFICATION.md §3.4
       // Deliberately tamper with charter bytes on disk
       writeFileSync(
         fixture.charterPath,
-        "# CHARTER\n\n## identity\nTampered identity\n\n## goals\n- G1: Changed goal\n",
+        'name: "mind"\nrole: "mind"\ncharter:\n  identity: "Tampered identity"\n  goals:\n    - id: "G1"\n      statement: "Changed goal"\n',
         "utf-8",
       );
 
@@ -229,7 +229,11 @@ describe("Deliberate-Damage Test Suite (PHASE-2.md §4.1 & VERIFICATION.md §3.4
 
     test("Damage: charter changed bytes halts mind:wake without arming", async () => {
       const fixture = setupMindDamageCapsule("charter-wake-halt");
-      writeFileSync(fixture.charterPath, "# CHARTER\n\nModified charter content\n", "utf-8");
+      writeFileSync(
+        fixture.charterPath,
+        'name: "mind"\nrole: "mind"\ncharter:\n  identity: "Modified charter content"\n',
+        "utf-8",
+      );
 
       const result = await mindWakeCommand({ run: fixture.run });
 

@@ -302,12 +302,12 @@ Repository Root: /path/to/repo/
 ├── olt/                                  <-- SKILL DEFINITION & ROLES (Immutable during runs)
 │   ├── SKILL.md                          <-- Skill entrypoint & tier coordination briefs
 │   ├── AGENTS.md                         <-- Detailed agent instructions & operational rules
-│   ├── agents/                           <-- 21 unified agent manifests (identity + permissions + runbook)
+│   ├── agents/                           <-- 21 unified agent manifests (identity + permissions + charter + runbook)
 │   ├── references/                       <-- Architectural references & host contracts
 │   └── scripts/                          <-- Harness TypeScript source (`harness.ts`, …)
 │
-├── docs/                                 <-- PROJECT DOCUMENTATION & CHARTERS
-│   └── CHARTER.md                        <-- Single Source of Truth for Mind Charter
+├── docs/                                 <-- PROJECT DOCUMENTATION
+│   └── (Architecture, design guidelines, planning archives)
 │
 ├── scratch/                              <-- TEMPORARY & DEBUG SCRATCHPAD
 │   └── (Ephemeral reproduction scripts, debug logs; ignored by git/evidence)
@@ -335,7 +335,7 @@ Repository Root: /path/to/repo/
 
 ### 4.2 Mind Charter: Single Source of Truth
 
-The canonical engineering principles and non-negotiable repository standards are defined in **`docs/CHARTER.md`**:
+The canonical engineering principles and non-negotiable repository standards for the Mind are defined directly in **`olt/agents/mind.yaml`** under the structured `charter:` block:
 
 - **0 `any` Annotations**: Absolute prohibition of TypeScript `any` types.
 - **0 Compiler / Linter Suppressions**: Absolute prohibition of `@ts-ignore`, `@ts-expect-error`, and `eslint-disable`.

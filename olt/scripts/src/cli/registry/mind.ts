@@ -156,7 +156,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts mind:init --repo . --charter docs/CHARTER.md --actor owner"],
+    examples: ["bun harness.ts mind:init --repo . --charter olt/agents/mind.yaml --actor owner"],
     handler: mindInitCommand,
   },
   {

@@ -20,53 +20,50 @@ function scratchRoot(label: string): string {
 }
 
 const SAMPLE_VALID_CHARTER = `
-# System Charter
-
-## identity
-Autonomous Mind supervising long-running task orchestration and maintaining codebase health.
-
-## goals
-- G1: Maintain 100% test coverage across all packages
-- G2: Enforce zero type error regressions and zero prohibited any forms
-- G3: Ensure all background task leases are bounded and monitored
-
-## non-goals
-- Modifying production secrets or ungranted external APIs
-- Deploying releases without explicit owner confirmation
-
-## repo_roots
-- \`olt/\`
-- \`docs/\`
-- \`tests/\`
-
-## stability
-- \`bun run test\` → exit 0
-- \`bun run typecheck\` -> exit 0
-
-## budgets
-- pulses_per_day: 48
-- wall_clock_ms_per_day: 4h
-- max_agents_in_flight: 4
-- max_rounds_per_objective: 5
-- base_interval_ms: 10m
-- max_interval_ms: 2h
-- max_pause_interval_ms: 20m
-- pulse_deadline_ms: 15m
-- max_open_proposals: 3
-- quiet_hours: 23:00-05:00
-
-## prohibitions
-Never modify role contracts or delete git tags unattended.
-
-## escalation
-Ping the on-call engineer when 3 consecutive crashed pulses are observed.
-
-## open_questions
-- Should we expand the supervision pulse window during off-peak hours?
+name: "mind"
+role: "mind"
+tier: 0
+charter:
+  identity: "Autonomous Mind supervising long-running task orchestration and maintaining codebase health."
+  goals:
+    - id: "G1"
+      statement: "Maintain 100% test coverage across all packages"
+    - id: "G2"
+      statement: "Enforce zero type error regressions and zero prohibited any forms"
+    - id: "G3"
+      statement: "Ensure all background task leases are bounded and monitored"
+  non_goals:
+    - "Modifying production secrets or ungranted external APIs"
+    - "Deploying releases without explicit owner confirmation"
+  repo_roots:
+    - "olt/"
+    - "docs/"
+    - "tests/"
+  stability:
+    - command: "bun run test"
+      expectedExit: 0
+    - command: "bun run typecheck"
+      expectedExit: 0
+  budgets:
+    pulses_per_day: 48
+    wall_clock_ms_per_day: "4h"
+    max_agents_in_flight: 4
+    max_rounds_per_objective: 5
+    base_interval_ms: "10m"
+    max_interval_ms: "2h"
+    max_pause_interval_ms: "20m"
+    pulse_deadline_ms: "15m"
+    max_open_proposals: 3
+    quiet_hours: "23:00-05:00"
+  prohibitions: |
+    Never modify role contracts or delete git tags unattended.
+  escalation: "Ping the on-call engineer when 3 consecutive crashed pulses are observed."
+  open_questions:
+    - "Should we expand the supervision pulse window during off-peak hours?"
 `;
 
 describe("parseCharter", () => {
-  test("parses all required and optional sections correctly", () => {
+  test("parses all required and optional sections correctly from YAML manifest", () => {
     const parsed = parseCharter(SAMPLE_VALID_CHARTER);
     expect(parsed.identity).toContain(
       "Autonomous Mind supervising long-running task orchestration",
@@ -106,17 +103,14 @@ describe("parseCharter", () => {
 
   test("parses a minimal charter with only required sections", () => {
     const minimal = `
-## identity
-Minimal Mind
-
-## goals
-- G1: Basic health
-
-## non-goals
-- No out-of-scope work
-
-## repo_roots
-- \`src/\`
+identity: "Minimal Mind"
+goals:
+  - id: "G1"
+    statement: "Basic health"
+non_goals:
+  - "No out-of-scope work"
+repo_roots:
+  - "src/"
 `;
     const parsed = parseCharter(minimal);
     expect(parsed.identity).toBe("Minimal Mind");
@@ -136,89 +130,74 @@ Minimal Mind
 
   test("refuses charter missing identity section", () => {
     const missingIdentity = `
-## goals
-- G1: Goal
-
-## non-goals
-- Non-goal
-
-## repo_roots
-- \`src/\`
+goals:
+  - id: "G1"
+    statement: "Goal"
+non_goals:
+  - "Non-goal"
+repo_roots:
+  - "src/"
 `;
     expect(() => parseCharter(missingIdentity)).toThrow(/missing required section: identity/);
   });
 
   test("refuses charter with empty identity section", () => {
     const emptyIdentity = `
-## identity
-
-## goals
-- G1: Goal
-
-## non-goals
-- Non-goal
-
-## repo_roots
-- \`src/\`
+identity: ""
+goals:
+  - id: "G1"
+    statement: "Goal"
+non_goals:
+  - "Non-goal"
+repo_roots:
+  - "src/"
 `;
-    expect(() => parseCharter(emptyIdentity)).toThrow(/identity.*empty/);
+    expect(() => parseCharter(emptyIdentity)).toThrow(/missing required section: identity/);
   });
 
   test("refuses charter missing goals section", () => {
     const missingGoals = `
-## identity
-Some identity
-
-## non-goals
-- Non-goal
-
-## repo_roots
-- \`src/\`
+identity: "Some identity"
+non_goals:
+  - "Non-goal"
+repo_roots:
+  - "src/"
 `;
     expect(() => parseCharter(missingGoals)).toThrow(/missing required section: goals/);
   });
 
   test("refuses charter with invalid goals format", () => {
     const invalidGoals = `
-## identity
-Some identity
-
-## goals
-Just some text without goal bullets
-
-## non-goals
-- Non-goal
-
-## repo_roots
-- \`src/\`
+identity: "Some identity"
+goals: []
+non_goals:
+  - "Non-goal"
+repo_roots:
+  - "src/"
 `;
-    expect(() => parseCharter(invalidGoals)).toThrow(/contains no valid goal lines/);
+    expect(() => parseCharter(invalidGoals)).toThrow(/missing required section: goals/);
   });
 
   test("refuses charter missing non-goals section", () => {
     const missingNonGoals = `
-## identity
-Some identity
-
-## goals
-- G1: Valid goal
-
-## repo_roots
-- \`src/\`
+identity: "Some identity"
+goals:
+  - id: "G1"
+    statement: "Valid goal"
+repo_roots:
+  - "src/"
 `;
     expect(() => parseCharter(missingNonGoals)).toThrow(/missing required section: non-goals/);
   });
 
   test("refuses charter missing repo_roots section", () => {
     const missingRepoRoots = `
-## identity
-Some identity
-
-## goals
-- G1: Valid goal
-
-## non-goals
-- Non-goal
+identity: "Some identity"
+goals:
+  - id: "G1"
+    statement: "Valid goal"
+non_goals:
+  - "Non-goal"
 `;
     expect(() => parseCharter(missingRepoRoots)).toThrow(/missing required section: repo_roots/);
   });
@@ -227,12 +206,12 @@ Some identity
 describe("mindInitCommand", () => {
   test("initializes a valid mind capsule with charter, manifest, state and last_pulse.json", () => {
     const repo = scratchRoot("mind-init-success");
-    const charterPath = join(repo, "CHARTER.md");
+    const charterPath = join(repo, "mind.yaml");
     writeFileSync(charterPath, SAMPLE_VALID_CHARTER, "utf-8");
 
     const result = mindInitCommand({
       repo,
-      charter: "CHARTER.md",
+      charter: "mind.yaml",
       actor: "owner-alice",
     });
 
@@ -267,7 +246,7 @@ describe("mindInitCommand", () => {
     const mind = state.mind as Record<string, unknown>;
     expect(mind.generation).toBe(1);
     expect(mind.charter).toEqual({
-      source_path: "CHARTER.md",
+      source_path: "mind.yaml",
       pinned_sha256: result.charter_sha256,
       goals: ["G1", "G2", "G3"],
       repo_roots: ["olt/", "docs/", "tests/"],
@@ -309,25 +288,22 @@ describe("mindInitCommand", () => {
 
   test("supports custom generation and seeds default budget when unspecified", () => {
     const repo = scratchRoot("mind-init-custom-gen");
-    const charterPath = join(repo, "custom-charter.md");
+    const charterPath = join(repo, "custom-mind.yaml");
     const minimalCharter = `
-## identity
-Gen 2 Mind
-
-## goals
-- G1: Continuous operation
-
-## non-goals
-- Dangerous operations
-
-## repo_roots
-- \`src/\`
+identity: "Gen 2 Mind"
+goals:
+  - id: "G1"
+    statement: "Continuous operation"
+non_goals:
+  - "Dangerous operations"
+repo_roots:
+  - "src/"
 `;
     writeFileSync(charterPath, minimalCharter, "utf-8");
 
     const result = mindInitCommand({
       repo,
-      charter: "custom-charter.md",
+      charter: "custom-mind.yaml",
       generation: "2",
     });
 
@@ -348,12 +324,12 @@ Gen 2 Mind
 
   test("refuses duplicate initialization without mutating existing capsule", () => {
     const repo = scratchRoot("mind-init-duplicate");
-    const charterPath = join(repo, "CHARTER.md");
+    const charterPath = join(repo, "mind.yaml");
     writeFileSync(charterPath, SAMPLE_VALID_CHARTER, "utf-8");
 
     const result = mindInitCommand({
       repo,
-      charter: "CHARTER.md",
+      charter: "mind.yaml",
     });
     const runRoot = result.run_root as string;
     const loadedFirst = loadRun(runRoot);
@@ -363,14 +339,14 @@ Gen 2 Mind
     expect(() => {
       mindInitCommand({
         repo,
-        charter: "CHARTER.md",
+        charter: "mind.yaml",
       });
     }).toThrow(HarnessError);
 
     try {
       mindInitCommand({
         repo,
-        charter: "CHARTER.md",
+        charter: "mind.yaml",
       });
     } catch (err) {
       expect((err as HarnessError).code).toBe("INVALID_STATE");
@@ -390,7 +366,7 @@ Gen 2 Mind
     expect(() => {
       mindInitCommand({
         repo,
-        charter: "non-existent.md",
+        charter: "non-existent.yaml",
       });
     }).toThrow(HarnessError);
 
@@ -403,24 +379,24 @@ Gen 2 Mind
     }).toThrow(HarnessError);
 
     // Empty file
-    const emptyPath = join(repo, "empty.md");
+    const emptyPath = join(repo, "empty.yaml");
     writeFileSync(emptyPath, "", "utf-8");
     expect(() => {
       mindInitCommand({
         repo,
-        charter: "empty.md",
+        charter: "empty.yaml",
       });
     }).toThrow(/empty/);
 
     // Symlink file (no-follow)
-    const realTarget = join(repo, "real.md");
+    const realTarget = join(repo, "real.yaml");
     writeFileSync(realTarget, SAMPLE_VALID_CHARTER, "utf-8");
-    const symlinkPath = join(repo, "symlink.md");
+    const symlinkPath = join(repo, "symlink.yaml");
     symlinkSync(realTarget, symlinkPath);
     expect(() => {
       mindInitCommand({
         repo,
-        charter: "symlink.md",
+        charter: "symlink.yaml",
       });
     }).toThrow(/cannot read charter file|not a regular file|symlink/i);
   });

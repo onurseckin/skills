@@ -62,27 +62,29 @@ function setupTestWorkspace(name: string): TestWorkspace {
   mkdirSync(runRoot, { recursive: true });
 
   // 1. Charter
-  const charterDir = join(repoRoot, "docs");
+  const charterDir = join(repoRoot, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterContent = `# Mind Charter — Test Core
-
-## identity
-Autonomous Verification Core for test suites and memory indexing.
-
-## goals
-- G1: Continuously ensure 0 TypeScript any across all modules.
-- G2: Maintain strict multi-agent orchestration invariants.
-- G3: Preserve repository integrity and test speed.
-
-## cognitive_pillars
-- Pillar 1: CLI-First Token Leverage
-- Pillar 2: Visual Truth & Radical Observability
-- Pillar 3: Thread Authority & Zero Main-Thread Spillover
-
-## non-goals
-- Unauthorized mutations
+  const charterContent = `name: "mind"
+role: "mind"
+charter:
+  identity: "Autonomous Verification Core for test suites and memory indexing."
+  goals:
+    - id: "G1"
+      statement: "Continuously ensure 0 TypeScript any across all modules."
+    - id: "G2"
+      statement: "Maintain strict multi-agent orchestration invariants."
+    - id: "G3"
+      statement: "Preserve repository integrity and test speed."
+  cognitive_pillars:
+    - "Pillar 1: CLI-First Token Leverage"
+    - "Pillar 2: Visual Truth & Radical Observability"
+    - "Pillar 3: Thread Authority & Zero Main-Thread Spillover"
+  non_goals:
+    - "Unauthorized mutations"
+  repo_roots:
+    - "olt/"
 `;
-  writeFileSync(join(charterDir, "CHARTER.md"), charterContent, "utf-8");
+  writeFileSync(join(charterDir, "mind.yaml"), charterContent, "utf-8");
 
   // 2. References
   const refDir = join(repoRoot, "olt", "references");
@@ -236,7 +238,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
         id: "doc-1",
         kind: "charter",
         title: "Charter Goal G1",
-        source_path: "docs/CHARTER.md",
+        source_path: "olt/agents/mind.yaml",
         content: "Continuously ensure 0 TypeScript any across all codebase modules.",
         metadata: { goal: "G1" },
       });
@@ -244,7 +246,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
       expect(doc.id).toBe("doc-1");
       expect(doc.kind).toBe("charter");
       expect(doc.title).toBe("Charter Goal G1");
-      expect(doc.source_path).toBe("docs/CHARTER.md");
+      expect(doc.source_path).toBe("olt/agents/mind.yaml");
       expect(doc.tokens.length).toBeGreaterThan(0);
       expect(doc.token_counts["typescript"]).toBe(1);
       expect(doc.metadata["goal"]).toBe("G1");
@@ -350,7 +352,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
           kind: "charter",
           title: "Goal G1 Zero Any",
           capsule_id: null,
-          source_path: "docs/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           content: "G1: Zero TypeScript any and 0 compiler suppressions.",
         }),
         createMemoryDocument({
@@ -529,7 +531,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
           kind: "charter" as MemoryKind,
           title: "Goal G1",
           capsule_id: null,
-          source_path: "docs/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           score: 3.5,
           snippet: "0 TypeScript any",
           matched_terms: ["any"],

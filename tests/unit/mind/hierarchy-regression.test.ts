@@ -67,12 +67,12 @@ function createMindTestCapsule(
   } = {},
 ): { repo: string; run: string } {
   const repo = scratchRoot(callerPath, label);
-  const charterDir = join(repo, "docs");
+  const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
+  const charterPath = join(charterDir, "mind.yaml");
   writeFileSync(
     charterPath,
-    `# CHARTER\n\n## identity\nRegression\n\n## goals\n- G1: Stability\n\n## non-goals\n- None\n\n## repo_roots\n- \`src/\`\n`,
+    `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Regression"\n  goals:\n    - id: "G1"\n      statement: "Stability"\n  non_goals:\n    - "None"\n  repo_roots:\n    - "src/"\n`,
     "utf-8",
   );
   const charterSha = createHash("sha256").update(readFileSync(charterPath)).digest("hex");
@@ -82,13 +82,13 @@ function createMindTestCapsule(
     run,
     "mind-init",
     "mind-initialized",
-    { generation: 1, charter_source_path: "docs/CHARTER.md", pinned_sha256: charterSha },
+    { generation: 1, charter_source_path: "olt/agents/mind.yaml", pinned_sha256: charterSha },
     (w) => {
       w.mind = {
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
           goals: ["G1"],
           repo_roots: ["src/"],

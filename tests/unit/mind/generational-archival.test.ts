@@ -49,44 +49,41 @@ function scratchRoot(label: string): string {
 }
 
 const SAMPLE_CHARTER = `
-# System Charter
-
-## identity
-Autonomous Mind supervising generational state archival and long-task orchestration.
-
-## goals
-- G1: Maintain zero type regressions and zero memory state leaks
-- G2: Enforce generational state archival for completed items older than 2 generations
-- G3: Preserve active candidate and recent objective records in active state
-
-## non-goals
-- Modifying production secrets
-
-## repo_roots
-- \`src/\`
-- \`docs/\`
-- \`tests/\`
-
-## stability
-- \`bun test\` -> exit 0
-
-## budgets
-- pulses_per_day: 48
-- wall_clock_ms_per_day: 4h
-- max_agents_in_flight: 4
-- max_rounds_per_objective: 5
-- base_interval_ms: 10m
-- max_interval_ms: 2h
-- max_pause_interval_ms: 20m
-- pulse_deadline_ms: 15m
-- max_open_proposals: 3
-- quiet_hours: 23:00-05:00
-
-## prohibitions
-Never delete active candidate records prematurely.
-
-## escalation
-Ping the on-call engineer on critical failures.
+name: "mind"
+role: "mind"
+tier: 0
+charter:
+  identity: "Autonomous Mind supervising generational state archival and long-task orchestration."
+  goals:
+    - id: "G1"
+      statement: "Maintain zero type regressions and zero memory state leaks"
+    - id: "G2"
+      statement: "Enforce generational state archival for completed items older than 2 generations"
+    - id: "G3"
+      statement: "Preserve active candidate and recent objective records in active state"
+  non_goals:
+    - "Modifying production secrets"
+  repo_roots:
+    - "src/"
+    - "docs/"
+    - "tests/"
+  stability:
+    - command: "bun test"
+      expectedExit: 0
+  budgets:
+    pulses_per_day: 48
+    wall_clock_ms_per_day: "4h"
+    max_agents_in_flight: 4
+    max_rounds_per_objective: 5
+    base_interval_ms: "10m"
+    max_interval_ms: "2h"
+    max_pause_interval_ms: "20m"
+    pulse_deadline_ms: "15m"
+    max_open_proposals: 3
+    quiet_hours: "23:00-05:00"
+  prohibitions: |
+    Never delete active candidate records prematurely.
+  escalation: "Ping the on-call engineer on critical failures."
 `;
 
 function setupMindCapsule(
@@ -101,12 +98,12 @@ function setupMindCapsule(
   } = {},
 ): { repoRoot: string; runRoot: string; charterPath: string } {
   const repo = scratchRoot(label);
-  const charterPath = join(repo, "CHARTER.md");
+  const charterPath = join(repo, "mind.yaml");
   writeFileSync(charterPath, options.charterText ?? SAMPLE_CHARTER, "utf-8");
 
   const initResult = mindInitCommand({
     repo,
-    charter: "CHARTER.md",
+    charter: "mind.yaml",
     actor: "owner-alice",
   });
 
@@ -927,13 +924,13 @@ describe("Generational State Archival (REMED-007)", () => {
       const capsulesDir = join(scratch, ".olt", "capsules");
       mkdirSync(capsulesDir, { recursive: true });
 
-      writeFileSync(join(scratch, "CHARTER.md"), SAMPLE_CHARTER, "utf-8");
+      writeFileSync(join(scratch, "mind.yaml"), SAMPLE_CHARTER, "utf-8");
 
       // Create Gen 1 (legacy), Gen 2 (legacy), Gen 3 (active), Gen 4 (active) capsules
-      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "1" });
-      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "2" });
-      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "3" });
-      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "4" });
+      mindInitCommand({ repo: scratch, charter: "mind.yaml", actor: "test", generation: "1" });
+      mindInitCommand({ repo: scratch, charter: "mind.yaml", actor: "test", generation: "2" });
+      mindInitCommand({ repo: scratch, charter: "mind.yaml", actor: "test", generation: "3" });
+      mindInitCommand({ repo: scratch, charter: "mind.yaml", actor: "test", generation: "4" });
 
       // Add dummy companion files in .capsules to ensure they are preserved
       writeFileSync(join(capsulesDir, "ARCHIVED_OBJECTIVES.jsonl"), '{"id":"test"}\n');
@@ -990,11 +987,11 @@ describe("Generational State Archival (REMED-007)", () => {
       const scratch = scratchRoot("prune-archive-disk-consolidation");
       const capsulesDir = join(scratch, ".olt", "capsules");
       mkdirSync(capsulesDir, { recursive: true });
-      writeFileSync(join(scratch, "CHARTER.md"), SAMPLE_CHARTER, "utf-8");
+      writeFileSync(join(scratch, "mind.yaml"), SAMPLE_CHARTER, "utf-8");
 
       // Setup Gen 1 and Gen 3
-      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "1" });
-      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "3" });
+      mindInitCommand({ repo: scratch, charter: "mind.yaml", actor: "test", generation: "1" });
+      mindInitCommand({ repo: scratch, charter: "mind.yaml", actor: "test", generation: "3" });
 
       const sourceState: Record<string, unknown> = {
         candidates: [],

@@ -57,12 +57,12 @@ function setupMindTest(
   const repo = mkdtempSync(join(tmpdir(), `mind-admission-test-${name}-`));
   roots.push(repo);
 
-  const charterDir = join(repo, "docs");
+  const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
+  const charterPath = join(charterDir, "mind.yaml");
   const charterContent =
     options.charterContent ??
-    `# CHARTER\n\n## identity\nTest application for admission gates\n\n## goals\n- G1: Ensure stability\n- G2: Comprehensive verification\n\n## non-goals\n- Out of scope\n- UI redesign\n\n## repo_roots\n- \`src/\`\n- \`olt/\`\n`;
+    `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test application for admission gates"\n  goals:\n    - id: "G1"\n      statement: "Ensure stability"\n    - id: "G2"\n      statement: "Comprehensive verification"\n  non_goals:\n    - "Out of scope"\n    - "UI redesign"\n  repo_roots:\n    - "src/"\n    - "olt/"\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -76,7 +76,7 @@ function setupMindTest(
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/CHARTER.md",
+      charter_source_path: "olt/agents/mind.yaml",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -84,7 +84,7 @@ function setupMindTest(
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
           goals: ["G1", "G2"],
           non_goals: ["Out of scope", "UI redesign"],

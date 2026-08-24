@@ -26,45 +26,42 @@ function scratchRoot(label: string): string {
 }
 
 const SAMPLE_CHARTER = `
-# System Charter
-
-## identity
-Autonomous Mind supervising long-running task orchestration and codebase health.
-
-## goals
-- G1: Maintain 100% test coverage across all packages
-- G2: Enforce zero type regressions and zero prohibited any forms
-- G3: Ensure all background task leases are bounded and monitored
-
-## non-goals
-- Modifying production secrets or ungranted external APIs
-- Deploying releases without explicit owner confirmation
-
-## repo_roots
-- \`src/\`
-- \`docs/\`
-- \`tests/\`
-
-## stability
-- \`bun test\` -> exit 0
-
-## budgets
-- pulses_per_day: 48
-- wall_clock_ms_per_day: 4h
-- max_agents_in_flight: 4
-- max_rounds_per_objective: 5
-- base_interval_ms: 10m
-- max_interval_ms: 2h
-- max_pause_interval_ms: 20m
-- pulse_deadline_ms: 15m
-- max_open_proposals: 3
-- quiet_hours: 23:00-05:00
-
-## prohibitions
-Never modify role contracts unattended.
-
-## escalation
-Ping the on-call engineer when 3 consecutive crashed pulses are observed.
+name: "mind"
+role: "mind"
+tier: 0
+charter:
+  identity: "Autonomous Mind supervising long-running task orchestration and codebase health."
+  goals:
+    - id: "G1"
+      statement: "Maintain 100% test coverage across all packages"
+    - id: "G2"
+      statement: "Enforce zero type regressions and zero prohibited any forms"
+    - id: "G3"
+      statement: "Ensure all background task leases are bounded and monitored"
+  non_goals:
+    - "Modifying production secrets or ungranted external APIs"
+    - "Deploying releases without explicit owner confirmation"
+  repo_roots:
+    - "src/"
+    - "docs/"
+    - "tests/"
+  stability:
+    - command: "bun test"
+      expectedExit: 0
+  budgets:
+    pulses_per_day: 48
+    wall_clock_ms_per_day: "4h"
+    max_agents_in_flight: 4
+    max_rounds_per_objective: 5
+    base_interval_ms: "10m"
+    max_interval_ms: "2h"
+    max_pause_interval_ms: "20m"
+    pulse_deadline_ms: "15m"
+    max_open_proposals: 3
+    quiet_hours: "23:00-05:00"
+  prohibitions: |
+    Never modify role contracts unattended.
+  escalation: "Ping the on-call engineer when 3 consecutive crashed pulses are observed."
 `;
 
 function setupMindCapsule(
@@ -77,12 +74,12 @@ function setupMindCapsule(
   } = {},
 ): { repoRoot: string; runRoot: string; charterPath: string } {
   const repo = scratchRoot(label);
-  const charterPath = join(repo, "CHARTER.md");
+  const charterPath = join(repo, "mind.yaml");
   writeFileSync(charterPath, options.charterText ?? SAMPLE_CHARTER, "utf-8");
 
   const initResult = mindInitCommand({
     repo,
-    charter: "CHARTER.md",
+    charter: "mind.yaml",
     actor: "owner-alice",
   });
 
@@ -165,7 +162,7 @@ describe("rotateMindGeneration and mindRotateCommand", () => {
     expect(targetMind.generation).toBe(2);
     expect(targetMind.opened_at).toBe("2026-08-21T12:00:00.000Z");
     expect(targetMind.charter).toEqual({
-      source_path: "CHARTER.md",
+      source_path: "mind.yaml",
       pinned_sha256: sourceLoaded.manifest.prompt_sha256,
       goals: ["G1", "G2", "G3"],
       repo_roots: ["src/", "docs/", "tests/"],

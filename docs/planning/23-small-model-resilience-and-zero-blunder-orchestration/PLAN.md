@@ -22,7 +22,7 @@ Plan 23 permanently hardens the entire OLT agent ecosystem, role contracts, YAML
 │ 1. Initiation Paralysis / Prompt Stalls                                     │
 │    ❌ Model wakes up and asks user "How can I help you?" or halts on turn 0.│
 │    ✅ Turn 0 Autonomous Wake-up Invariant: Autonomous discovery from         │
-│       docs/CHARTER.md and .olt/feedback-queue.jsonl without human prompts.  │
+│       olt/agents/mind.yaml and .olt/feedback-queue.jsonl without prompts.   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ 2. Tool & SDK Hallucinations                                                │
 │    ❌ Inventing fictional SDKs (`import { Agy } from 'agy'`, `agy models`). │
@@ -68,7 +68,7 @@ The hardened architecture rests on 7 structural pillars embedded across configur
 │                      PLAN 23 HARDENED ARCHITECTURE                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  [ Tier 0: Mind Supervisor ] ──> Autonomous Wakeup (`docs/CHARTER.md`)      │
+│  [ Tier 0: Mind Supervisor ] ──> Autonomous Wakeup (`olt/agents/mind.yaml`) │
 │         │                                                                   │
 │         ▼                                                                   │
 │  [ Tier 1: Orchestrator ]   ──> 10-Step Deep-Thinking Planning Checklist    │
@@ -92,7 +92,7 @@ The hardened architecture rests on 7 structural pillars embedded across configur
 ### 1. Turn 0 Autonomous Wake-up Invariant
 
 - Supervisory agents (`mind`, `orchestrator`, `coordinator`) are programmed with explicit negative constraints against waiting for user prompts or asking for instructions.
-- Mind automatically reads the project charter at `docs/CHARTER.md` and discovers pending tasks from `.olt/feedback-queue.jsonl`.
+- Mind automatically reads the project charter at `olt/agents/mind.yaml` and discovers pending tasks from `.olt/feedback-queue.jsonl`.
 - If the backlog queue is empty, Mind immediately transitions to **Autonomous Discovery Mode** (auditing 0 `any` types, charter gaps, blunder regression suites, and Brent Work/Span concurrency $P = \lceil W / S \rceil$).
 
 ### 2. Host Tools vs. Harness CLI Separation

@@ -20,12 +20,16 @@ describe("mind/mind.ts Unified Mind Commands and CommandSpecs", () => {
 
   beforeEach(() => {
     scratchDir = scratchRoot(import.meta.path, "mind-commands-test");
-    charterPath = join(scratchDir, "CHARTER.md");
+    charterPath = join(scratchDir, "mind.yaml");
     feedbackQueuePath = join(scratchDir, "FEEDBACK_QUEUE.jsonl");
     taskQueuePath = join(scratchDir, "TASK_QUEUE.jsonl");
     historyPath = join(scratchDir, "EVOLUTION_HISTORY.jsonl");
 
-    writeFileSync(charterPath, "# CHARTER\n\n## identity\nTest\n\n## goals\n- G1\n", "utf-8");
+    writeFileSync(
+      charterPath,
+      'name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test"\n  goals:\n    - id: "G1"\n      statement: "Stability"\n  non_goals:\n    - "None"\n  repo_roots:\n    - "src/"\n',
+      "utf-8",
+    );
     writeFileSync(feedbackQueuePath, "", "utf-8");
     writeFileSync(taskQueuePath, "", "utf-8");
     writeFileSync(historyPath, "", "utf-8");

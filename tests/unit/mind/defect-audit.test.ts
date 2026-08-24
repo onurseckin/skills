@@ -47,11 +47,10 @@ function setupTestWorkspace(name: string): TestWorkspace {
   const capsulesDir = join(repoRoot, ".olt", "capsules");
   mkdirSync(capsulesDir, { recursive: true });
 
-  const charterDir = join(repoRoot, ".olt");
+  const charterDir = join(repoRoot, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
-  const charterContent =
-    "# CHARTER\n\n## identity\nTest Core\n\n## goals\n- G1: Safety\n- G2: Invariants\n\n## repo_roots\n- `src/`\n";
+  const charterPath = join(charterDir, "mind.yaml");
+  const charterContent = `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test Core"\n  goals:\n    - id: "G1"\n      statement: "Safety"\n    - id: "G2"\n      statement: "Invariants"\n  non_goals:\n    - "None"\n  repo_roots:\n    - "src/"\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
   const charterBytes = readFileSync(charterPath);
   const charterSha = createHash("sha256").update(charterBytes).digest("hex");
@@ -64,7 +63,7 @@ function setupTestWorkspace(name: string): TestWorkspace {
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: ".olt/CHARTER.md",
+      charter_source_path: "olt/agents/mind.yaml",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -72,7 +71,7 @@ function setupTestWorkspace(name: string): TestWorkspace {
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: ".olt/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
           goals: ["G1", "G2"],
           repo_roots: ["src/"],

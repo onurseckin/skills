@@ -36,7 +36,7 @@ describe("Autonomous Mind Self-Evolution Loop & Perpetual Cadence", () => {
   const taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
   const feedbackQueueFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
   const historyFile = join(testDir, "EVOLUTION_HISTORY.jsonl");
-  const charterFile = join(testDir, "CHARTER.md");
+  const charterFile = join(testDir, "mind.yaml");
   const srcDir = join(testDir, "src");
   const testsDir = join(testDir, "tests");
 
@@ -48,8 +48,8 @@ describe("Autonomous Mind Self-Evolution Loop & Perpetual Cadence", () => {
     mkdirSync(srcDir, { recursive: true });
     mkdirSync(testsDir, { recursive: true });
 
-    // Seed CHARTER.md
-    const charterContent = `# CHARTER\n\n## identity\nTest Perpetual Mind System\n\n## goals\n- G1: Infinite Stability\n- G2: Continuous Evolution\n- G3: Strict Type Safety\n\n## non-goals\n- Self Termination\n\n## repo_roots\n- \`src/\`\n`;
+    // Seed mind.yaml
+    const charterContent = `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test Perpetual Mind System"\n  goals:\n    - id: "G1"\n      statement: "Infinite Stability"\n    - id: "G2"\n      statement: "Continuous Evolution"\n    - id: "G3"\n      statement: "Strict Type Safety"\n  non_goals:\n    - "Self Termination"\n  repo_roots:\n    - "src/"\n`;
     writeFileSync(charterFile, charterContent, "utf8");
   }
 

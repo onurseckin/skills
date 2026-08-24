@@ -61,12 +61,12 @@ function setupMindCapsule(
   const repo = mkdtempSync(join(tmpdir(), `mind-budget-test-${name}-`));
   roots.push(repo);
 
-  const charterDir = join(repo, "docs");
+  const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
+  const charterPath = join(charterDir, "mind.yaml");
   const charterContent =
     overrides.charterContent ??
-    `# CHARTER\n\n## identity\nTest application for budget ladder\n\n## goals\n- G1: Ensure stability\n\n## non-goals\n- Out of scope\n\n## repo_roots\n- \`src/\`\n`;
+    `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test application for budget ladder"\n  goals:\n    - id: "G1"\n      statement: "Ensure stability"\n  non_goals:\n    - "Out of scope"\n  repo_roots:\n    - "src/"\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -80,7 +80,7 @@ function setupMindCapsule(
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/CHARTER.md",
+      charter_source_path: "olt/agents/mind.yaml",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -88,7 +88,7 @@ function setupMindCapsule(
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
           goals: ["G1"],
           repo_roots: ["src/"],
@@ -796,33 +796,30 @@ describe("mind/budget - strict refusal ladder and outcomes per CONTRACTS §1.3 a
 
     test("parseCharter correctly parses infinite borderless cadence and topological Work/Span notation", () => {
       const infiniteCharter = `
-# System Charter
-
-## identity
-Infinite Borderless Mind with Topological Concurrency
-
-## goals
-- G1: Ensure non-stop autonomic self-evolution
-
-## non-goals
-- Manual intervention bottlenecks
-
-## repo_roots
-- \`olt/\`
-
-## budgets
-- cadence: infinite_borderless
-- concurrency_model: topological_work_span
-- pulses_per_day: infinite
-- wall_clock_ms_per_day: unlimited
-- max_agents_in_flight: topological_work_span (P = W / S)
-- max_rounds_per_objective: infinite
-- base_interval_ms: 0
-- max_interval_ms: infinite
-- max_pause_interval_ms: infinite
-- pulse_deadline_ms: 20m
-- max_open_proposals: infinite
-- quiet_hours: none
+name: "mind"
+role: "mind"
+charter:
+  identity: "Infinite Borderless Mind with Topological Concurrency"
+  goals:
+    - id: "G1"
+      statement: "Ensure non-stop autonomic self-evolution"
+  non_goals:
+    - "Manual intervention bottlenecks"
+  repo_roots:
+    - "olt/"
+  budgets:
+    cadence: "infinite_borderless"
+    concurrency_model: "topological_work_span"
+    pulses_per_day: "infinite"
+    wall_clock_ms_per_day: "unlimited"
+    max_agents_in_flight: "topological_work_span (P = W / S)"
+    max_rounds_per_objective: "infinite"
+    base_interval_ms: 0
+    max_interval_ms: "infinite"
+    max_pause_interval_ms: "infinite"
+    pulse_deadline_ms: "20m"
+    max_open_proposals: "infinite"
+    quiet_hours: "none"
 `;
       const parsed = parseCharter(infiniteCharter);
       expect(parsed.budgets).toBeDefined();

@@ -52,12 +52,12 @@ function setupMindFixture(
   const repo = mkdtempSync(join(tmpdir(), `mind-pulse-perpetual-${name}-`));
   testRoots.push(repo);
 
-  const charterDir = join(repo, "docs");
+  const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
+  const charterPath = join(charterDir, "mind.yaml");
   const charterContent =
     overrides.charterContent ??
-    "# CHARTER\n\n## identity\nTest Perpetual Mind\n\n## goals\n- G1: Infinite Stability\n\n## non-goals\n- Self-termination\n\n## repo_roots\n- `src/`\n";
+    `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test Perpetual Mind"\n  goals:\n    - id: "G1"\n      statement: "Infinite Stability"\n  non_goals:\n    - "Self-termination"\n  repo_roots:\n    - "src/"\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -65,11 +65,33 @@ function setupMindFixture(
 
   const run = initRun(repo, `mind-gen-${name}`, charterBytes, "file", true);
 
-  if (overrides.budget) {
-    transact(run, "owner", "budget-seeded", {}, (working) => {
-      working.budget = overrides.budget as unknown as JsonObject;
-    });
-  }
+  transact(
+    run,
+    "mind-init",
+    "mind-initialized",
+    {
+      generation: 1,
+      charter_source_path: "olt/agents/mind.yaml",
+      pinned_sha256: charterSha,
+    },
+    (working) => {
+      working.mind = {
+        generation: 1,
+        opened_at: new Date().toISOString(),
+        charter: {
+          source_path: "olt/agents/mind.yaml",
+          pinned_sha256: charterSha,
+          goals: ["G1"],
+          repo_roots: ["src/"],
+          evidence_class: "harness_observed",
+        },
+        actor: "mind-1",
+      };
+      if (overrides.budget) {
+        working.budget = overrides.budget as unknown as JsonObject;
+      }
+    },
+  );
 
   return { repo, run, charterPath, charterSha };
 }

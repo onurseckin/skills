@@ -112,24 +112,24 @@ function scratchRoot(label: string): string {
   return dir;
 }
 
-const SAMPLE_CHARTER = `# CHARTER
-
-## identity
-Autonomous Mind supervising remote container operations and health invariants.
-
-## goals
-- G1: Ensure zero ledger gaps and continuous monotonic event sequences
-- G2: Enforce fault-tolerant resumption after mid-flight process termination
-- G3: Maintain budget tracking and generational rotation across boundaries
-
-## non-goals
-- Modifying production secrets
-- Direct pushes to remote git repositories
-
-## repo_roots
-- \`src/\`
-- \`docs/\`
-- \`tests/\`
+const SAMPLE_CHARTER = `name: "mind"
+role: "mind"
+charter:
+  identity: "Autonomous Mind supervising remote container operations and health invariants."
+  goals:
+    - id: "G1"
+      statement: "Ensure zero ledger gaps and continuous monotonic event sequences"
+    - id: "G2"
+      statement: "Enforce fault-tolerant resumption after mid-flight process termination"
+    - id: "G3"
+      statement: "Maintain budget tracking and generational rotation across boundaries"
+  non_goals:
+    - "Modifying production secrets"
+    - "Direct pushes to remote git repositories"
+  repo_roots:
+    - "src/"
+    - "docs/"
+    - "tests/"
 `;
 
 const HARNESS_PATH = resolve(import.meta.dir, "../../../olt/scripts/harness.ts");
@@ -157,9 +157,9 @@ function setupMindCapsule(
   const repoRoot = scratchRoot(label);
   writeFileSync(join(repoRoot, ".gitignore"), ".olt/capsules/\n.tmp/\n", "utf-8");
 
-  const charterDir = join(repoRoot, "docs");
+  const charterDir = join(repoRoot, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
+  const charterPath = join(charterDir, "mind.yaml");
   const charterContent = overrides.charterText ?? SAMPLE_CHARTER;
   writeFileSync(charterPath, charterContent, "utf-8");
 
@@ -176,7 +176,7 @@ function setupMindCapsule(
     "mind-initialized",
     {
       generation: gen,
-      charter_source_path: "docs/CHARTER.md",
+      charter_source_path: "olt/agents/mind.yaml",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -184,10 +184,10 @@ function setupMindCapsule(
         generation: gen,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
           goals: ["G1", "G2", "G3"],
-          repo_roots: ["src/", "docs/", "tests/"],
+          repo_roots: ["src/", "olt/", "tests/"],
           evidence_class: "harness_observed",
         },
         actor: "mind-1",

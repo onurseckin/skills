@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import * as yaml from "js-yaml";
 import { HarnessError } from "../core/errors/harness-error.ts";
 
 export interface CharterGoal {
@@ -72,7 +73,7 @@ export const DEFAULT_PROHIBITIONS = `NEVER, unattended, at any tier:
 - any write outside charter.repo_roots, any delete outside a leased write scope, rm -rf anywhere, chmod/chown outside the capsule
 - package publish, deploy, DB migration, infrastructure change, creating or commenting on issues/PRs, sending mail, any outbound webhook
 - secrets: reading, writing, printing, or moving credentials of any kind
-- self-modification: editing CHARTER.md, editing any role contract, editing budgets, installing/upgrading/relinking the harness runtime
+- self-modification: editing mind.yaml, editing any role contract, editing budgets, installing/upgrading/relinking the harness runtime
 - process termination without ancestry check, and NEVER agy, claude, wezterm-gui, tmux, zsh/bash/login/sh and their subprocesses`;
 
 export interface ParsedCharter {
@@ -90,15 +91,20 @@ export interface ParsedCharter {
   readonly sha256: string;
 }
 
-function normalizeHeading(raw: string): string {
-  return raw
-    .trim()
-    .replace(/^#+\s*/, "")
-    .toLowerCase()
-    .replace(/[\s-]+/g, "_");
-}
-
-function parseDurationOrNumber(raw: string): number | null {
+function parseDurationOrNumber(raw: unknown): number | null {
+  if (typeof raw === "number") {
+    if (Number.isFinite(raw) && raw >= 0) return Math.round(raw);
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `invalid budget value '${raw}'; expected a non-negative number`,
+    );
+  }
+  if (typeof raw !== "string") {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `invalid budget value '${String(raw)}'; expected string or number`,
+    );
+  }
   const trimmed = raw.trim();
   const lower = trimmed.toLowerCase();
   if (
@@ -142,238 +148,224 @@ function parseDurationOrNumber(raw: string): number | null {
   );
 }
 
-function parseBudgetsSection(lines: readonly string[]): MindBudgetOverrides {
+function parseBudgetsObject(raw: unknown): MindBudgetOverrides {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return {};
+  }
+  const obj = raw as Record<string, unknown>;
   const overrides: Record<string, unknown> = {};
-  for (const line of lines) {
-    const trimmed = line.trim().replace(/^[-*+]\s*/, "");
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const colonIdx = trimmed.indexOf(":");
-    const eqIdx = trimmed.indexOf("=");
-    const splitIdx = colonIdx >= 0 ? colonIdx : eqIdx;
-    if (splitIdx < 0) continue;
-    const key = trimmed
-      .slice(0, splitIdx)
-      .trim()
-      .toLowerCase()
-      .replace(/[\s/-]+/g, "_");
-    const value = trimmed.slice(splitIdx + 1).trim();
 
-    if (key === "cadence") {
-      overrides.cadence = value;
-      if (value.toLowerCase().includes("infinite") || value.toLowerCase().includes("borderless")) {
-        overrides.infinite_cadence = true;
-      }
-    } else if (key === "concurrency_model" || key === "concurrency") {
-      overrides.concurrency_model = value;
-    } else if (key === "infinite_cadence") {
-      overrides.infinite_cadence = value.toLowerCase() === "true" || value === "1";
-    } else if (key === "pulses_per_day" || key === "pulses_day") {
-      overrides.pulses_per_day = parseDurationOrNumber(value);
-    } else if (
-      key === "wall_clock_ms_per_day" ||
-      key === "wall_clock_per_day" ||
-      key === "wall_clock_day"
+  if (typeof obj.cadence === "string") {
+    overrides.cadence = obj.cadence;
+    if (
+      obj.cadence.toLowerCase().includes("infinite") ||
+      obj.cadence.toLowerCase().includes("borderless")
     ) {
-      overrides.wall_clock_ms_per_day = parseDurationOrNumber(value);
-    } else if (key === "max_agents_in_flight" || key === "max_concurrent_agents") {
-      overrides.max_agents_in_flight = parseDurationOrNumber(value);
-    } else if (key === "max_rounds_per_objective") {
-      overrides.max_rounds_per_objective = parseDurationOrNumber(value);
-    } else if (key === "base_interval_ms" || key === "base_interval") {
-      overrides.base_interval_ms = parseDurationOrNumber(value);
-    } else if (key === "max_interval_ms" || key === "max_interval") {
-      overrides.max_interval_ms = parseDurationOrNumber(value);
-    } else if (key === "max_pause_interval_ms" || key === "max_pause_interval") {
-      overrides.max_pause_interval_ms = parseDurationOrNumber(value);
-    } else if (key === "pulse_deadline_ms" || key === "pulse_deadline") {
-      overrides.pulse_deadline_ms = parseDurationOrNumber(value);
-    } else if (key === "max_open_proposals") {
-      overrides.max_open_proposals = parseDurationOrNumber(value);
-    } else if (key === "quiet_hours") {
-      overrides.quiet_hours = value === "null" || value === "none" || value === "" ? null : value;
+      overrides.infinite_cadence = true;
     }
   }
+  if (typeof obj.concurrency_model === "string" || typeof obj.concurrency === "string") {
+    overrides.concurrency_model = String(obj.concurrency_model ?? obj.concurrency);
+  }
+  if (typeof obj.infinite_cadence === "boolean") {
+    overrides.infinite_cadence = obj.infinite_cadence;
+  }
+  if (obj.pulses_per_day !== undefined) {
+    overrides.pulses_per_day = parseDurationOrNumber(obj.pulses_per_day);
+  }
+  if (obj.wall_clock_ms_per_day !== undefined) {
+    overrides.wall_clock_ms_per_day = parseDurationOrNumber(obj.wall_clock_ms_per_day);
+  }
+  if (obj.max_agents_in_flight !== undefined) {
+    overrides.max_agents_in_flight = parseDurationOrNumber(obj.max_agents_in_flight);
+  }
+  if (obj.max_rounds_per_objective !== undefined) {
+    overrides.max_rounds_per_objective = parseDurationOrNumber(obj.max_rounds_per_objective);
+  }
+  if (obj.base_interval_ms !== undefined) {
+    overrides.base_interval_ms = parseDurationOrNumber(obj.base_interval_ms);
+  }
+  if (obj.max_interval_ms !== undefined) {
+    overrides.max_interval_ms = parseDurationOrNumber(obj.max_interval_ms);
+  }
+  if (obj.max_pause_interval_ms !== undefined) {
+    overrides.max_pause_interval_ms = parseDurationOrNumber(obj.max_pause_interval_ms);
+  }
+  if (obj.pulse_deadline_ms !== undefined) {
+    overrides.pulse_deadline_ms = parseDurationOrNumber(obj.pulse_deadline_ms);
+  }
+  if (obj.max_open_proposals !== undefined) {
+    overrides.max_open_proposals = parseDurationOrNumber(obj.max_open_proposals);
+  }
+  if (obj.quiet_hours !== undefined) {
+    overrides.quiet_hours =
+      obj.quiet_hours === null || obj.quiet_hours === "none" ? null : String(obj.quiet_hours);
+  }
+
   return overrides as MindBudgetOverrides;
 }
 
-function parseStabilitySection(lines: readonly string[]): StabilityCheck[] {
-  const checks: StabilityCheck[] = [];
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    // Match - `<argv>` → exit <n> or - `<argv>` -> exit <n> or - `<argv>` exit <n>
-    const match = trimmed.match(/^[-*+]?\s*`([^`]+)`\s*(?:→|->|:)?\s*exit\s*(\d+)/i);
-    if (match) {
-      checks.push({
-        command: match[1]!.trim(),
-        expectedExit: parseInt(match[2]!, 10),
-      });
-    }
-  }
-  return checks;
-}
+export function parseCharterFromYaml(
+  doc: Record<string, unknown>,
+  rawText: string,
+  sha256: string,
+): ParsedCharter {
+  const rawCharter = (
+    doc.charter && typeof doc.charter === "object" && !Array.isArray(doc.charter)
+      ? doc.charter
+      : doc
+  ) as Record<string, unknown>;
 
-export function parseCharter(markdown: string): ParsedCharter {
-  if (typeof markdown !== "string" || !markdown.trim()) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      "charter content is empty; provide a non-empty markdown charter per CONTRACTS.md §7",
-    );
-  }
-
-  const sha256 = createHash("sha256").update(markdown).digest("hex");
-  const lines = markdown.split("\n");
-  const sections = new Map<string, string[]>();
-
-  let currentHeading: string | null = null;
-  let currentLines: string[] = [];
-
-  for (const line of lines) {
-    const match = line.match(/^(#{1,3})\s+(.+)$/);
-    if (match) {
-      if (currentHeading !== null) {
-        sections.set(currentHeading, currentLines);
-      }
-      currentHeading = normalizeHeading(match[2]!);
-      currentLines = [];
-    } else if (currentHeading !== null) {
-      currentLines.push(line);
-    }
-  }
-  if (currentHeading !== null) {
-    sections.set(currentHeading, currentLines);
-  }
-
-  // Check mandatory section 1: identity
-  const identityLines = sections.get("identity");
-  if (!identityLines) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      "charter is missing required section: identity. Expected '## identity' heading per CONTRACTS.md §7. To satisfy, add '## identity' with one paragraph describing the application.",
-    );
-  }
-  const identity = identityLines.join("\n").trim();
+  // Mandatory identity
+  const identity = typeof rawCharter.identity === "string" ? rawCharter.identity.trim() : "";
   if (!identity) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
-      "charter '## identity' section is empty. Expected prose describing the application per CONTRACTS.md §7.",
+      "charter is missing required section: identity. Expected 'identity' field in YAML manifest.",
     );
   }
 
-  // Check mandatory section 2: goals
-  const goalsLines = sections.get("goals");
-  if (!goalsLines) {
+  // Mandatory goals
+  const rawGoals = rawCharter.goals;
+  if (!rawGoals || !Array.isArray(rawGoals) || rawGoals.length === 0) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
-      "charter is missing required section: goals. Expected '## goals' heading with '- G<n>: <statement>' lines per CONTRACTS.md §7.",
+      "charter is missing required section: goals. Expected 'goals' array in YAML manifest.",
     );
   }
+
   const goals: CharterGoal[] = [];
-  for (const line of goalsLines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const match = trimmed.match(/^[-*+]?\s*\[?(G[A-Za-z0-9_.-]+)\]?\s*[:\-–]\s*(.+)$/i);
-    if (match) {
-      goals.push({
-        id: match[1]!.toUpperCase(),
-        statement: match[2]!.trim(),
-      });
+  for (const item of rawGoals as unknown[]) {
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      const gObj = item as Record<string, unknown>;
+      if (typeof gObj.id === "string" && typeof gObj.statement === "string") {
+        goals.push({
+          id: gObj.id.toUpperCase().trim(),
+          statement: gObj.statement.trim(),
+        });
+      }
+    } else if (typeof item === "string") {
+      const match = item.trim().match(/^[-*+]?\s*\[?(G[A-Za-z0-9_.-]+)\]?\s*[:\-–]\s*(.+)$/i);
+      if (match) {
+        goals.push({
+          id: match[1]!.toUpperCase(),
+          statement: match[2]!.trim(),
+        });
+      }
     }
   }
+
   if (goals.length === 0) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
-      "charter '## goals' section contains no valid goal lines. Expected format: '- G<n>: <statement>' (e.g. '- G1: Maintain 100% test coverage') per CONTRACTS.md §7.",
+      "charter 'goals' section contains no valid goal items. Expected list of {id, statement} in YAML manifest.",
     );
   }
 
-  // Check mandatory section 3: non-goals
-  const nonGoalsLines = sections.get("non_goals") ?? sections.get("nongoals");
-  if (!nonGoalsLines) {
+  // Mandatory non-goals
+  const rawNonGoals = (rawCharter.non_goals ?? rawCharter.nonGoals) as unknown;
+  if (!rawNonGoals || !Array.isArray(rawNonGoals) || rawNonGoals.length === 0) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
-      "charter is missing required section: non-goals. Expected '## non-goals' heading with '- <statement>' lines per CONTRACTS.md §7.",
+      "charter is missing required section: non-goals. Expected 'non_goals' array in YAML manifest.",
     );
   }
+
   const nonGoals: string[] = [];
-  for (const line of nonGoalsLines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const match = trimmed.match(/^[-*+]\s+(.+)$/);
-    if (match) {
-      nonGoals.push(match[1]!.trim());
+  for (const item of rawNonGoals as unknown[]) {
+    if (typeof item === "string" && item.trim()) {
+      nonGoals.push(item.trim().replace(/^[-*+]\s*/, ""));
     }
   }
+
   if (nonGoals.length === 0) {
+    throw new HarnessError("INVALID_ARGUMENT", "charter 'non_goals' section contains no items.");
+  }
+
+  // Mandatory repo_roots
+  const rawRepoRoots = (rawCharter.repo_roots ?? rawCharter.repoRoots) as unknown;
+  if (!rawRepoRoots || !Array.isArray(rawRepoRoots) || rawRepoRoots.length === 0) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
-      "charter '## non-goals' section contains no items. Expected format: '- <exclusion statement>' per CONTRACTS.md §7.",
+      "charter is missing required section: repo_roots. Expected 'repo_roots' array in YAML manifest.",
     );
   }
 
-  // Check mandatory section 4: repo_roots
-  const repoRootsLines = sections.get("repo_roots") ?? sections.get("reporoots");
-  if (!repoRootsLines) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      "charter is missing required section: repo_roots. Expected '## repo_roots' heading with backticked paths (e.g. - `src/`) per CONTRACTS.md §7.",
-    );
-  }
   const repoRoots: string[] = [];
-  for (const line of repoRootsLines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const backticks = Array.from(trimmed.matchAll(/`([^`]+)`/g)).map((m) => m[1]!.trim());
-    if (backticks.length > 0) {
-      for (const p of backticks) {
-        if (p && !repoRoots.includes(p)) repoRoots.push(p);
-      }
-    } else {
-      const match = trimmed.match(/^[-*+]\s+(.+)$/);
-      if (match) {
-        const p = match[1]!.trim();
-        if (p && !repoRoots.includes(p)) repoRoots.push(p);
+  for (const item of rawRepoRoots as unknown[]) {
+    if (typeof item === "string" && item.trim()) {
+      const clean = item
+        .trim()
+        .replace(/`/g, "")
+        .replace(/^[-*+]\s*/, "");
+      if (clean && !repoRoots.includes(clean)) {
+        repoRoots.push(clean);
       }
     }
   }
+
   if (repoRoots.length === 0) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
-      "charter '## repo_roots' section contains no valid paths. Expected format: '- `path/`' per CONTRACTS.md §7.",
+      "charter 'repo_roots' section contains no valid paths.",
     );
   }
 
-  // Optional section: stability
-  const stabilityLines = sections.get("stability");
-  const stability = stabilityLines ? parseStabilitySection(stabilityLines) : undefined;
-
-  // Optional section: budgets
-  const budgetsLines = sections.get("budgets") ?? sections.get("budget");
-  const budgets = budgetsLines ? parseBudgetsSection(budgetsLines) : undefined;
-
-  // Optional section: prohibitions
-  const prohibitionsLines = sections.get("prohibitions") ?? sections.get("prohibition");
-  const prohibitions = prohibitionsLines ? prohibitionsLines.join("\n").trim() : undefined;
-
-  // Optional section: escalation
-  const escalationLines = sections.get("escalation") ?? sections.get("escalations");
-  const escalation = escalationLines ? escalationLines.join("\n").trim() : undefined;
-
-  // Optional section: open_questions
-  const openQuestionsLines = sections.get("open_questions") ?? sections.get("openquestions");
-  let openQuestions: string[] | undefined;
-  if (openQuestionsLines) {
-    openQuestions = [];
-    for (const line of openQuestionsLines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) continue;
-      const match = trimmed.match(/^[-*+]\s+(.+)$/);
-      if (match) {
-        openQuestions.push(match[1]!.trim());
-      } else if (trimmed) {
-        openQuestions.push(trimmed);
+  // Optional stability
+  let stability: StabilityCheck[] | undefined;
+  const rawStability = rawCharter.stability as unknown;
+  if (Array.isArray(rawStability) && rawStability.length > 0) {
+    stability = [];
+    for (const item of rawStability as unknown[]) {
+      if (item && typeof item === "object" && !Array.isArray(item)) {
+        const sObj = item as Record<string, unknown>;
+        if (typeof sObj.command === "string") {
+          stability.push({
+            command: sObj.command.trim(),
+            expectedExit: typeof sObj.expectedExit === "number" ? sObj.expectedExit : 0,
+          });
+        }
+      } else if (typeof item === "string") {
+        const match = item.trim().match(/^[-*+]?\s*`?([^`→\-:]+)`?\s*(?:→|->|:)?\s*exit\s*(\d+)/i);
+        if (match) {
+          stability.push({
+            command: match[1]!.trim(),
+            expectedExit: parseInt(match[2]!, 10),
+          });
+        }
       }
     }
+  }
+
+  // Optional budgets
+  const rawBudgets = (rawCharter.budgets ?? rawCharter.budget) as unknown;
+  const budgets = rawBudgets ? parseBudgetsObject(rawBudgets) : undefined;
+
+  // Optional prohibitions
+  let prohibitions: string | undefined;
+  const rawProhibitions = rawCharter.prohibitions;
+  if (typeof rawProhibitions === "string") {
+    prohibitions = rawProhibitions.trim();
+  } else if (Array.isArray(rawProhibitions)) {
+    prohibitions = rawProhibitions
+      .filter((p): p is string => typeof p === "string")
+      .map((p) => p.trim())
+      .join("\n");
+  }
+
+  // Optional escalation
+  let escalation: string | undefined;
+  if (typeof rawCharter.escalation === "string") {
+    escalation = rawCharter.escalation.trim();
+  }
+
+  // Optional open questions
+  let openQuestions: string[] | undefined;
+  const rawQuestions = (rawCharter.open_questions ?? rawCharter.openQuestions) as unknown;
+  if (Array.isArray(rawQuestions) && rawQuestions.length > 0) {
+    openQuestions = rawQuestions
+      .filter((q): q is string => typeof q === "string" && q.trim().length > 0)
+      .map((q) => q.trim());
   }
 
   return {
@@ -382,32 +374,98 @@ export function parseCharter(markdown: string): ParsedCharter {
     goalIds: goals.map((g) => g.id),
     nonGoals,
     repoRoots,
-    ...(stability !== undefined ? { stability } : {}),
-    ...(budgets !== undefined ? { budgets } : {}),
-    ...(prohibitions !== undefined ? { prohibitions } : {}),
-    ...(escalation !== undefined ? { escalation } : {}),
+    ...(stability !== undefined && stability.length > 0 ? { stability } : {}),
+    ...(budgets !== undefined && Object.keys(budgets).length > 0 ? { budgets } : {}),
+    ...(prohibitions !== undefined && prohibitions.length > 0 ? { prohibitions } : {}),
+    ...(escalation !== undefined && escalation.length > 0 ? { escalation } : {}),
     ...(openQuestions !== undefined && openQuestions.length > 0 ? { openQuestions } : {}),
-    rawText: markdown,
+    rawText,
     sha256,
   };
 }
 
+export function parseCharter(content: string): ParsedCharter {
+  if (typeof content !== "string" || !content.trim()) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "charter content is empty; provide a valid YAML agent manifest for mind",
+    );
+  }
+
+  const sha256 = createHash("sha256").update(content).digest("hex");
+
+  let parsed: unknown;
+  try {
+    parsed = yaml.load(content);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new HarnessError("INVALID_ARGUMENT", `failed to parse mind YAML manifest: ${message}`);
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "mind manifest must be a YAML object defining agent properties or structured charter",
+    );
+  }
+
+  return parseCharterFromYaml(parsed as Record<string, unknown>, content, sha256);
+}
+
+export const parseCharterYaml = parseCharter;
+
+export const DEFAULT_CHARTER_RELATIVE_PATH = "olt/agents/mind.yaml";
+
 export function resolveCharterPath(
   repoRoot: string,
-  charterSourceRel: string,
+  charterSourceRel?: string,
   charterRepoRoots?: readonly string[],
 ): string {
-  const filename = charterSourceRel.split("/").pop();
-  const candidates = [
-    resolve(repoRoot, charterSourceRel),
-    ...(charterRepoRoots ? charterRepoRoots.map((r) => resolve(r, charterSourceRel)) : []),
-    resolve(repoRoot, charterSourceRel.replace(/^(\.\.\/)+/, "")),
-    ...(filename ? [resolve(repoRoot, "docs", filename)] : []),
-  ];
+  const isDefault = !charterSourceRel || charterSourceRel === DEFAULT_CHARTER_RELATIVE_PATH;
+  const candidates: string[] = [];
+
+  if (charterSourceRel && !isDefault) {
+    const filename = charterSourceRel.split("/").pop() || charterSourceRel;
+    candidates.push(resolve(repoRoot, charterSourceRel));
+    candidates.push(resolve(repoRoot, "olt", "agents", filename));
+    candidates.push(resolve(repoRoot, "agents", filename));
+    if (charterRepoRoots && charterRepoRoots.length > 0) {
+      for (const r of charterRepoRoots) {
+        candidates.push(resolve(repoRoot, r, charterSourceRel));
+        candidates.push(resolve(repoRoot, r, filename));
+      }
+    }
+    candidates.push(resolve(repoRoot, filename));
+    candidates.push(resolve(repoRoot, charterSourceRel.replace(/^(\.\.\/)+/, "")));
+  } else {
+    // Canonical YAML manifest SSoT lookup hierarchy: olt/agents/mind.yaml -> agents/mind.yaml
+    candidates.push(resolve(repoRoot, "olt", "agents", "mind.yaml"));
+    candidates.push(resolve(repoRoot, "agents", "mind.yaml"));
+    if (charterRepoRoots && charterRepoRoots.length > 0) {
+      for (const r of charterRepoRoots) {
+        candidates.push(resolve(repoRoot, r, "olt", "agents", "mind.yaml"));
+        candidates.push(resolve(repoRoot, r, "agents", "mind.yaml"));
+      }
+    }
+  }
+
   for (const candidate of candidates) {
     if (existsSync(candidate) && lstatSync(candidate).isFile()) {
       return candidate;
     }
   }
-  return resolve(repoRoot, charterSourceRel);
+  return resolve(repoRoot, charterSourceRel || DEFAULT_CHARTER_RELATIVE_PATH);
+}
+
+export function loadCharter(
+  repoRoot: string,
+  charterSourceRel?: string,
+  charterRepoRoots?: readonly string[],
+): ParsedCharter {
+  const fullPath = resolveCharterPath(repoRoot, charterSourceRel, charterRepoRoots);
+  if (!existsSync(fullPath) || !lstatSync(fullPath).isFile()) {
+    throw new HarnessError("INVALID_ARGUMENT", `mind manifest at '${fullPath}' does not exist`);
+  }
+  const text = readFileSync(fullPath, "utf-8");
+  return parseCharter(text);
 }

@@ -63,14 +63,16 @@ function setupPlantedAuditCapsule(
   const repo = mkdtempSync(join(tmpdir(), `mind-planted-audit-${name}-`));
   roots.push(repo);
 
-  const charterDir = join(repo, "docs");
+  const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
+  const charterPath = join(charterDir, "mind.yaml");
   const goals = overrides.charterGoals ?? ["G1", "G2"];
-  const goalsSection = goals.map((g) => `- ${g}: Goal description`).join("\n");
+  const goalsYaml = goals
+    .map((g) => `    - id: "${g}"\n      statement: "Goal description"`)
+    .join("\n");
   const charterContent =
     overrides.charterContent ??
-    `# CHARTER\n\n## identity\nApplication under planted ledger audit verification\n\n## goals\n${goalsSection}\n\n## non-goals\n- Modifying production credentials\n\n## repo_roots\n- \`src/\`\n- \`tests/\`\n`;
+    `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Application under planted ledger audit verification"\n  goals:\n${goalsYaml}\n  non_goals:\n    - "Modifying production credentials"\n  repo_roots:\n    - "src/"\n    - "tests/"\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -84,7 +86,7 @@ function setupPlantedAuditCapsule(
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/CHARTER.md",
+      charter_source_path: "olt/agents/mind.yaml",
       pinned_sha256: charterSha,
       goals,
       repo_roots: ["src/", "tests/"],
@@ -95,7 +97,7 @@ function setupPlantedAuditCapsule(
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
           goals,
           repo_roots: ["src/", "tests/"],

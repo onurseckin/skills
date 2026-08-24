@@ -1,13 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import * as yaml from "js-yaml";
 
 describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
   const repoRoot = resolve(import.meta.dir, "../../..");
   const rootDocsDir = join(repoRoot, "docs");
   const skillDocsDir = join(repoRoot, "olt", "docs");
   const capsulesDir = join(repoRoot, ".olt");
-  const mindDir = join(repoRoot, "olt", "mind");
   const mindRolePath = join(repoRoot, "olt", "agents", "mind.yaml");
 
   it("verifies olt/docs directory is completely removed and does not exist", () => {
@@ -20,7 +20,6 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
     const allowedEntries = new Set([
       "README.md",
       "SKILL_COLLECTION_GUIDELINES.md",
-      "CHARTER.md",
       "olt",
       "planning",
       "blueprints",
@@ -34,11 +33,22 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
     }
   });
 
-  it("verifies Mind charter and definitions reside inside repo", () => {
+  it("verifies Mind manifest SSoT resides in olt/agents/mind.yaml with structured charter block and no markdown charters exist", () => {
     expect(existsSync(mindRolePath)).toBe(true);
 
-    const charterPath = join(repoRoot, "docs", "CHARTER.md");
-    expect(existsSync(charterPath)).toBe(true);
+    // Verify zero markdown charter files exist in docs/ or olt/
+    expect(existsSync(join(repoRoot, "docs", "CHARTER.md"))).toBe(false);
+    expect(existsSync(join(repoRoot, "olt", "references", "CHARTER.md"))).toBe(false);
+
+    // Verify mind.yaml contains charter definition
+    const mindContent = readFileSync(mindRolePath, "utf-8");
+    const parsed = yaml.load(mindContent) as Record<string, unknown>;
+    expect(parsed).toBeDefined();
+    expect(parsed.charter).toBeDefined();
+    const charter = parsed.charter as Record<string, unknown>;
+    expect(charter.identity).toBeDefined();
+    expect(Array.isArray(charter.goals)).toBe(true);
+    expect(Array.isArray(charter.repo_roots)).toBe(true);
   });
 
   it("verifies runtime plans and execution state live strictly under .olt/", () => {

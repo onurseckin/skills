@@ -11,14 +11,10 @@ Every skill in this repository must live in its own top-level directory and adhe
 ```text
 <skill-name>/
 ├── SKILL.md                  # Canonical skill entry point with YAML frontmatter
-├── agents/                   # Assistant/client specific descriptors
-│   ├── openai.yaml           # OpenAI / Codex descriptor
-│   └── ...
+├── agents/                   # Unified agent manifests & assistant descriptors (identity + permissions + runbook)
+│   └── *.yaml
 ├── checklists/               # Operational domain checklists (e.g. code-quality, security)
 │   └── *.md
-├── mind/                     # (If applicable) Supervisory mind charter & autonomic loop guides
-│   ├── CHARTER.md
-│   └── ...
 ├── references/               # Deep reference manuals, protocol specs, configuration guides
 │   └── *.md
 ├── roles/                    # Multi-agent role contracts & grant definitions
@@ -47,7 +43,7 @@ description: A clear, high-signal description of the skill, outlining specific a
 Clear overview, activation criteria, step-by-step instructions, and usage examples.
 ```
 
-- **Relative Documentation Links:** All internal links within `SKILL.md` must use relative paths targeting files within the skill's own directory (e.g., `./references/protocol.md`, `./roles/mind.md`, `./mind/CHARTER.md`).
+- **Relative Documentation Links:** All internal links within `SKILL.md` must use relative paths targeting files within the skill's own directory (e.g., `./references/protocol.md`, `./agents/mind.yaml`).
 - **No Cross-Skill Leakage:** A skill must never hardcode runtime dependencies or relative imports pointing to another skill's internal runtime.
 
 ---

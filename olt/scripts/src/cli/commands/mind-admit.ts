@@ -62,7 +62,9 @@ function resolveCharterContext(
 
   // 1. Try reading from charter file on disk
   const charterRel =
-    typeof charterRecord.source_path === "string" ? charterRecord.source_path : "docs/CHARTER.md";
+    typeof charterRecord.source_path === "string"
+      ? charterRecord.source_path
+      : "olt/agents/mind.yaml";
   const charterFullPath = resolve(repoRoot, charterRel);
 
   if (existsSync(charterFullPath)) {

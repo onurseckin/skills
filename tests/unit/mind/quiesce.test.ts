@@ -59,10 +59,10 @@ function setupMindFixture(
   const capsulesDir = join(repo, ".olt", "capsules");
   mkdirSync(capsulesDir, { recursive: true });
 
-  const charterDir = join(repo, "docs");
+  const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
-  const charterContent = `# CHARTER\n\n## identity\nQuiesce Test App\n\n## goals\n- G1: Stability\n\n## non-goals\n- None\n\n## repo_roots\n- \`src/\`\n`;
+  const charterPath = join(charterDir, "mind.yaml");
+  const charterContent = `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Quiesce Test App"\n  goals:\n    - id: "G1"\n      statement: "Stability"\n  non_goals:\n    - "None"\n  repo_roots:\n    - "src/"\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -77,6 +77,45 @@ function setupMindFixture(
     commandIds.push(cmdId);
     const cmdDir = join(mindRun, "commands", cmdId);
     mkdirSync(cmdDir, { recursive: true });
+    writeFileSync(join(cmdDir, "manifest.json"), JSON.stringify({ command_id: cmdId }), "utf-8");
+    writeFileSync(
+      join(cmdDir, "record.json"),
+      JSON.stringify({
+        command_id: cmdId,
+        argv: ["health", "--check", "all"],
+        exit_code: 0,
+        recorded_at: new Date().toISOString(),
+      }),
+      "utf-8",
+    );
+  }
+
+  // If previous pulse closed command record exists, set it up
+  if (options.quiescentStreak !== undefined && options.quiescentStreak > 0) {
+    const cmdDir = join(mindRun, "commands", "cmd-prev-pulse");
+    mkdirSync(cmdDir, { recursive: true });
+    writeFileSync(
+      join(cmdDir, "manifest.json"),
+      JSON.stringify({ command_id: "cmd-prev-pulse" }),
+      "utf-8",
+    );
+    writeFileSync(
+      join(cmdDir, "record.json"),
+      JSON.stringify({
+        command_id: "cmd-prev-pulse",
+        argv: ["health", "--check", "all"],
+        exit_code: 0,
+        recorded_at: new Date().toISOString(),
+      }),
+      "utf-8",
+    );
+  }
+
+  for (let i = 0; i < (options.quiescentStreak ?? 0); i++) {
+    const cmdId = `cmd-health-${i}`;
+    const cmdDir = join(mindRun, "commands", cmdId);
+    mkdirSync(cmdDir, { recursive: true });
+    writeFileSync(join(cmdDir, "manifest.json"), JSON.stringify({ command_id: cmdId }), "utf-8");
     writeFileSync(
       join(cmdDir, "record.json"),
       JSON.stringify({
@@ -95,7 +134,7 @@ function setupMindFixture(
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/CHARTER.md",
+      charter_source_path: "olt/agents/mind.yaml",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -103,7 +142,7 @@ function setupMindFixture(
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
           goals: ["G1"],
           repo_roots: ["src/"],

@@ -2369,7 +2369,7 @@ Validates the markdown charter file per CONTRACTS.md §7, creates the mind capsu
 | `--capsules-dir` | string | no | no | - | Override .olt/capsules/ directory location. |
 
 ```bash
-bun harness.ts mind:init --repo . --charter docs/CHARTER.md --actor owner
+bun harness.ts mind:init --repo . --charter olt/agents/mind.yaml --actor owner
 ```
 
 ### `mind:wake`

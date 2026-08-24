@@ -3,6 +3,7 @@ import { basename, join, resolve } from "node:path";
 import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { resolveCapsulesDir } from "../core/shared/paths.ts";
+import { parseCharter, resolveCharterPath } from "./charter.ts";
 
 export type MemoryKind = "capsule" | "defect" | "decision" | "charter" | "report";
 
@@ -713,74 +714,50 @@ export function searchMemory(
 export const queryMemory = searchMemory;
 
 /**
- * Indexes charter documents from docs/CHARTER.md, references, and docs.
+ * Indexes charter documents from olt/agents/mind.yaml, references, and docs.
  */
 export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
   const documents: MemoryDocument[] = [];
   const visitedPaths = new Set<string>();
 
-  const charterPath = join(repoRoot, "docs", "CHARTER.md");
-  if (existsSync(charterPath)) {
-    visitedPaths.add(resolve(charterPath));
+  const charterFullPath = resolveCharterPath(repoRoot);
+  if (existsSync(charterFullPath)) {
+    visitedPaths.add(resolve(charterFullPath));
     try {
-      const content = readFileSync(charterPath, "utf-8");
+      const content = readFileSync(charterFullPath, "utf-8");
+      const parsed = parseCharter(content);
+      const relPath = "olt/agents/mind.yaml";
+
       // Add root charter document
       documents.push(
         createMemoryDocument({
           id: "charter-root",
           kind: "charter",
           title: "Mind Charter (Core Directives & Invariants)",
-          source_path: "docs/CHARTER.md",
+          source_path: relPath,
           generation: null,
           tags: ["charter", "directive", "invariant", "core"],
           content,
           snippet: content.slice(0, 200),
-          metadata: { file: "docs/CHARTER.md" },
+          metadata: { file: relPath },
         }),
       );
 
-      // Extract goals G1, G2, etc.
-      const goalMatches = content.matchAll(/- (G\d+):\s*([^\n]+)/g);
-      for (const m of goalMatches) {
-        const goalId = m[1];
-        const goalText = m[2];
-        if (goalId !== undefined && goalText !== undefined) {
-          documents.push(
-            createMemoryDocument({
-              id: `charter-goal-${goalId.toLowerCase()}`,
-              kind: "charter",
-              title: `Charter Goal ${goalId}`,
-              source_path: "docs/CHARTER.md",
-              generation: null,
-              tags: ["charter", "goal", goalId.toLowerCase()],
-              content: `${goalId}: ${goalText}`,
-              snippet: goalText,
-              metadata: { goal_id: goalId },
-            }),
-          );
-        }
-      }
-
-      // Extract cognitive pillars
-      const pillarMatches = content.matchAll(/- (Pillar \d+):\s*([^\n]+)/g);
-      for (const m of pillarMatches) {
-        const pillarId = m[1];
-        const pillarText = m[2];
-        if (pillarId !== undefined && pillarText !== undefined) {
-          documents.push(
-            createMemoryDocument({
-              id: `charter-${pillarId.toLowerCase().replace(/\s+/g, "-")}`,
-              kind: "charter",
-              title: `Charter ${pillarId}`,
-              source_path: "docs/CHARTER.md",
-              generation: null,
-              tags: ["charter", "pillar", pillarId.toLowerCase().replace(/\s+/g, "-")],
-              content: `${pillarId}: ${pillarText}`,
-              snippet: pillarText,
-              metadata: { pillar: pillarId },
-            }),
-          );
-        }
+      // Extract parsed goals G1, G2, etc.
+      for (const goal of parsed.goals) {
+        documents.push(
+          createMemoryDocument({
+            id: `charter-goal-${goal.id.toLowerCase()}`,
+            kind: "charter",
+            title: `Charter Goal ${goal.id}`,
+            source_path: relPath,
+            generation: null,
+            tags: ["charter", "goal", goal.id.toLowerCase()],
+            content: `${goal.id}: ${goal.statement}`,
+            snippet: goal.statement,
+            metadata: { goal_id: goal.id },
+          }),
+        );
       }
     } catch {
       // Charter parsing error handled non-fatally

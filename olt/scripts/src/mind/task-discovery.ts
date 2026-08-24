@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { auditDefectLog, type DefectEntry } from "./defects.ts";
-import { parseCharter, type ParsedCharter } from "./charter.ts";
+import { parseCharter, resolveCharterPath, type ParsedCharter } from "./charter.ts";
 import { readFeedbackQueue, type FeedbackItem, type FeedbackPriority } from "./feedback-queue.ts";
 import {
   findSourceDefinition,
@@ -317,16 +317,7 @@ export function resolveDiscoveryCharterPath(customPath?: string): string {
     return resolve(customPath.trim());
   }
   const cwd = process.cwd();
-  const candidates = [
-    join(cwd, "docs", "CHARTER.md"),
-    join(cwd, "CHARTER.md"),
-    join(dirname(cwd), "docs", "CHARTER.md"),
-    join(dirname(cwd), "CHARTER.md"),
-  ];
-  for (const c of candidates) {
-    if (existsSync(c)) return c;
-  }
-  return resolve(cwd, "docs/CHARTER.md");
+  return resolveCharterPath(cwd);
 }
 
 function collectFilesRecursively(
@@ -863,7 +854,7 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
 
 /**
  * Scans charter goals and recent task history to discover dormant criteria:
- * - Goals defined in CHARTER.md that have zero associated tasks or tests
+ * - Goals defined in mind.yaml that have zero associated tasks or tests
  * - Stability checks that have not been exercised
  */
 export function scanDormantCriteria(
@@ -885,7 +876,7 @@ export function scanDormantCriteria(
           statement: "Charter document is missing at expected location",
           severity: "CRITICAL",
           suggestedRemediation:
-            "Create CHARTER.md with valid identity, goals, and repo_roots sections.",
+            "Create olt/agents/mind.yaml with valid identity, goals, and repo_roots sections.",
         },
       ],
       goalsCheckedCount: 0,
@@ -948,7 +939,8 @@ export function scanDormantCriteria(
         source: "charter_goal",
         statement: `Charter validation failed: ${err.message}`,
         severity: "CRITICAL",
-        suggestedRemediation: "Repair CHARTER.md formatting per CONTRACTS.md §7 standards.",
+        suggestedRemediation:
+          "Repair olt/agents/mind.yaml formatting per CONTRACTS.md §7 standards.",
       });
     }
   }

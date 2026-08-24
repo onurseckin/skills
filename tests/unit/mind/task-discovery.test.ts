@@ -40,7 +40,7 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
   const testDir = join(tmpdir(), "tmp-test-task-discovery-" + Date.now().toString());
   const taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
   const feedbackQueueFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
-  const charterFile = join(testDir, "CHARTER.md");
+  const charterFile = join(testDir, "mind.yaml");
   const srcDir = join(testDir, "src");
   const testsDir = join(testDir, "tests");
 
@@ -52,8 +52,8 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
     mkdirSync(srcDir, { recursive: true });
     mkdirSync(testsDir, { recursive: true });
 
-    // Seed valid CHARTER.md
-    const charterContent = `# CHARTER\n\n## identity\nTest Perpetual Mind System\n\n## goals\n- G1: Infinite Stability\n- G2: Continuous Evolution\n- G3: Strict Type Safety\n\n## non-goals\n- Self Termination\n\n## repo_roots\n- \`src/\`\n`;
+    // Seed valid mind.yaml
+    const charterContent = `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test Perpetual Mind System"\n  goals:\n    - id: "G1"\n      statement: "Infinite Stability"\n    - id: "G2"\n      statement: "Continuous Evolution"\n    - id: "G3"\n      statement: "Strict Type Safety"\n  non_goals:\n    - "Self Termination"\n  repo_roots:\n    - "src/"\n`;
     writeFileSync(charterFile, charterContent, "utf8");
   }
 
@@ -271,7 +271,7 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
 
     it("handles missing charter path gracefully", () => {
       const result = scanDormantCriteria({
-        charterPath: "/non/existent/CHARTER.md",
+        charterPath: "/non/existent/mind.yaml",
       });
 
       expect(result.dormantCount).toBe(1);

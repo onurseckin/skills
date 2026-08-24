@@ -54,12 +54,12 @@ function setupMindCapsule(
   const repo = mkdtempSync(join(tmpdir(), `mind-proposals-test-${name}-`));
   roots.push(repo);
 
-  const charterDir = join(repo, "docs");
+  const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "CHARTER.md");
+  const charterPath = join(charterDir, "mind.yaml");
   const charterContent =
     overrides.charterContent ??
-    `# CHARTER\n\n## identity\nDiscovery test mind\n\n## goals\n- G1: Discovery and Judgment\n- G2: High Quality Substrate\n\n## non-goals\n- Unsupervised writes\n\n## repo_roots\n- \`src/\`\n`;
+    `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Discovery test mind"\n  goals:\n    - id: "G1"\n      statement: "Discovery and Judgment"\n    - id: "G2"\n      statement: "High Quality Substrate"\n  non_goals:\n    - "Unsupervised writes"\n  repo_roots:\n    - "src/"\n`;
   writeFileSync(charterPath, charterContent, "utf-8");
 
   const charterBytes = readFileSync(charterPath);
@@ -73,7 +73,7 @@ function setupMindCapsule(
     "mind-initialized",
     {
       generation: 1,
-      charter_source_path: "docs/CHARTER.md",
+      charter_source_path: "olt/agents/mind.yaml",
       pinned_sha256: charterSha,
     },
     (working) => {
@@ -81,7 +81,7 @@ function setupMindCapsule(
         generation: 1,
         opened_at: new Date().toISOString(),
         charter: {
-          source_path: "docs/CHARTER.md",
+          source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
           goals: ["G1", "G2"],
           repo_roots: ["src/"],
