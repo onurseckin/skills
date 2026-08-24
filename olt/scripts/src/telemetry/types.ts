@@ -9,7 +9,7 @@ export interface NormalizedQuotaMetric {
   remainingPercentage: number;
   sourceTier: TierType;
   confidence: ConfidenceLevel;
-  rawPayload: Record<string, any>;
+  rawPayload: Record<string, unknown>;
 }
 
 export interface PlatformProbeResult {
@@ -17,12 +17,12 @@ export interface PlatformProbeResult {
   isDetected: boolean;
   primaryTierUsed: TierType | null;
   metrics: NormalizedQuotaMetric[];
-  rawObservations: Record<string, any>;
+  rawObservations: Record<string, unknown>;
   errors: Error[];
 }
 
 export interface UnifiedTelemetryReport {
   timestamp: string;
   results: PlatformProbeResult[];
-  summary: Record<string, any>;
+  summary: Record<string, unknown>;
 }
