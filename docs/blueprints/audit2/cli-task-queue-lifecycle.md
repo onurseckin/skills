@@ -1,9 +1,11 @@
 # CLI Task & Queue Lifecycle Routing Audit
 
 ## 1. Exact Unconstrained Finding Count
+
 Based on an inspection of the task and queue registries, there are **20 exported command endpoints** orchestrating the Task and Todo lifecycles within the harness.
 
 ### **Task Registry (`TASK_COMMANDS`) - 11 Commands**
+
 1. `task:brief` - Generates zero-exploration exact-anchor briefs.
 2. `task:claim` - Claims a write lease under a role.
 3. `task:heartbeat` - Extends lease duration.
@@ -17,12 +19,14 @@ Based on an inspection of the task and queue registries, there are **20 exported
 11. `task:check` - Executes fast incremental syntax and lint checks.
 
 ### **Queue Registry (`QUEUE_COMMANDS`) - 4 Commands**
+
 12. `queue:next` - Inspects the highest-priority ready task.
 13. `queue:list` - Partitions and displays the whole run queue.
 14. `queue:wave` - Determines concurrent wave dispatches under Brent scaling ($P = W / S$).
 15. `queue:pop` - Atomically claims and mints a lease for the next task.
 
 ### **Todo / Mind Queue (`todo-ops.ts`) - 5 Commands**
+
 16. `todo:list` - Filters and lists items.
 17. `todo:add` - Ingests feedback/requirements.
 18. `todo:drain` - Pops items for processing.
@@ -36,6 +40,7 @@ Based on an inspection of the task and queue registries, there are **20 exported
 The core implementation routing follows a strict Tier 2/Tier 3 state machine:
 
 ### **A. Initial Implementation Loop**
+
 1. **`queue:pop`** (or `task:claim`)
    - Invokes `claimTask` in the core workflow.
    - Evaluates caller's role (`ROLE_CONFINEMENT_VIOLATION` block if `orchestrator`, `coordinator`, or `validator` tries to claim an implementer lease).
@@ -51,6 +56,7 @@ The core implementation routing follows a strict Tier 2/Tier 3 state machine:
    - Transitions task to **`submitted`**.
 
 ### **B. Validation & Micro-Cycle Loop**
+
 4. **`task:validate-start`**
    - Assigns a validator domain.
    - Mints a validation token.
@@ -68,6 +74,7 @@ The core implementation routing follows a strict Tier 2/Tier 3 state machine:
 ## 3. Flag Routing Mechanics
 
 Commands process input through deterministic static extraction (e.g., `textFlag`, `boolFlag`, `listFlag`, `integerFlag`).
+
 - Validation executes in real-time on extraction. Ex: `integerFlag(flags, "lease-duration", { minimum: 5, maximum: 86_400 })`.
 - Unknown or invalid flags trigger immediate runtime `HarnessError` (no unshielded JSON or messy stack traces leak to the agent).
 - `no-op` routing requires explicit coupling with `reason` routing logic.

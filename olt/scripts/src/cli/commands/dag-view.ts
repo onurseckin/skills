@@ -1018,7 +1018,7 @@ export function dagViewCommand(
   }
 
   const fullMarkdown = mdSections.join("\n");
-  const markdown = showAll ? fullMarkdown : enforceLineLimit(fullMarkdown, 80);
+  const markdown = showAll ? fullMarkdown : enforceLineLimit(fullMarkdown, 30);
 
   const result: DagViewReport = {
     markdown,

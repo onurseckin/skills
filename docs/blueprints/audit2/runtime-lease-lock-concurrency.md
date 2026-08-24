@@ -1,12 +1,15 @@
 # Runtime Lease and Lock Concurrency
 
 ## Overview
+
 Analysis of the memory-level concurrency primitives in `runtime/locks.ts` and `runtime/lease.ts`.
 
 ## Unconstrained Finding Count
+
 **Total Findings:** 4
 
 ## Concurrency and Lock Queue Mechanics
+
 1. **AsyncLock (`runtime/locks.ts`)**:
    - Implements a simple promise-based lock.
    - Waiters are queued into an array of resolver functions.
@@ -20,7 +23,9 @@ Analysis of the memory-level concurrency primitives in `runtime/locks.ts` and `r
    - `releaseLease()` resets the heartbeat timestamp to 0.
 
 ## Disk Persistence
+
 There is no direct disk persistence inside these memory constructs.
 
 ## Assessment
+
 The `AsyncLock` effectively serializes async flow in a single process. `LeaseManager` provides a strict monotonic heartbeat check. However, since this operates purely in-memory via `performance.now()`, it does not govern cross-process lease enforcement out-of-the-box.

@@ -356,7 +356,7 @@ export function auditTaskVerificationEvidence(
       superficiality.reason ?? "Verification contains superficial rubber-stamping claim.",
     );
     correctiveGuidance.push(
-      "Provide concrete, task-specific verification observations with file paths, line references, and test command evidence.",
+      "**Resolution Path:**\n1. Review the task requirements and assigned write scope.\n2. Extract concrete, task-specific observations (e.g., file paths, line references).\n3. Execute targeted test commands relevant to the task.\n4. Incorporate the test execution evidence directly into the verification claim.",
     );
   }
 
@@ -374,7 +374,7 @@ export function auditTaskVerificationEvidence(
       rejectionReasons.push(reason);
     }
     correctiveGuidance.push(
-      "Isolate evidence per validator domain. Ensure each domain has distinct checks and does not reuse copy-pasted proofs.",
+      "**Resolution Path:**\n1. Separate the verification evidence for each required domain.\n2. Verify each domain independently with distinct checks.\n3. Ensure the evidence payload for each domain is unique and not copy-pasted.",
     );
   }
 
@@ -393,7 +393,7 @@ export function auditTaskVerificationEvidence(
       "Verification lacks counterfactual falsification proof demonstrating the check fails under negative conditions.",
     );
     correctiveGuidance.push(
-      "Include a counterfactual hypothesis or negative check demonstrating falsifiability.",
+      "**Resolution Path:**\n1. Formulate a negative hypothesis or edge-case scenario.\n2. Execute a check demonstrating that the condition would fail under this scenario.\n3. Document the falsification proof and the observation in the counterfactual evidence section.",
     );
   }
 
@@ -409,7 +409,7 @@ export function auditTaskVerificationEvidence(
       "Verification lacks any executed check commands or tangible evidence artifacts.",
     );
     correctiveGuidance.push(
-      "Execute the task gate check command and record the exit code and output in the verification proof.",
+      "**Resolution Path:**\n1. Identify the task gate check command for this verification.\n2. Execute the command to verify functionality.\n3. Record the exact exit code and relevant output.\n4. Attach this structured proof to the verification verdict.",
     );
   } else {
     for (const check of checks) {

@@ -5,8 +5,8 @@ import {
   healthCommand,
   recoverCommand,
   repairProjectionCommand,
-  taskReleaseCommand,
 } from "../commands/diagnostics-ops.ts";
+import { taskReleaseCommand } from "../commands/task-ops.ts";
 import { worktreeReclaimCommand } from "../commands/worktree-ops.ts";
 import {
   DEFAULT_EXIT_CODES,

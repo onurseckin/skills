@@ -5,11 +5,12 @@ export interface RequirementClause {
 }
 
 export function deconstructPromptBytes(prompt: string): RequirementClause[] {
-  // Very simplistic requirement deconstruction for fidelity checks
-  const lines = prompt.split("\n").filter((l) => l.trim().length > 0);
-  return lines.map((line, index) => ({
+  // Handle multi-line markdown clauses without losing inline link markdown.
+  // Split by double newlines to treat markdown blocks/paragraphs as single clauses.
+  const blocks = prompt.split(/(?:\r?\n){2,}/).filter((b) => b.trim().length > 0);
+  return blocks.map((block, index) => ({
     id: `req-${index + 1}`,
-    clause: line.trim(),
+    clause: block.trim(),
     verified: false,
   }));
 }

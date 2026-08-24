@@ -673,11 +673,11 @@ export function evaluateSupervisoryState(
       severity: "critical",
       message: `Supervisory role ${role.toUpperCase()} directly modified ${modifiedFiles.length} file(s): ${modifiedFiles.slice(0, 3).join(", ")}.`,
       correctiveDirective:
-        "Cease all direct file edits immediately. Delegate code edits to Tier 3 Implementers via host native subagent dispatch.",
+        "**Resolution Path:**\n1. Stop all direct file modification attempts.\n2. Revert any uncommitted changes to repository files.\n3. Delegate code edits to Tier 3 Implementers via host native subagent dispatch.",
       evidence: { modifiedFiles },
     });
     correctiveDirectives.push(
-      "Revert any direct file edits made on supervisory thread and dispatch a Tier 3 Implementer subagent.",
+      "**Resolution Path:**\n1. Revert any direct file edits made on the supervisory thread.\n2. Formulate a task prompt containing the required changes.\n3. Dispatch a Tier 3 Implementer subagent to execute the changes.",
     );
   }
 
@@ -699,11 +699,11 @@ export function evaluateSupervisoryState(
       severity: "critical",
       message: `${role.toUpperCase()} attempted self-implementation actions: ${directExecutionAttempts.join(", ")}.`,
       correctiveDirective:
-        "Release self-claimed tasks with `task:release` and dispatch dedicated Tier 3 workers.",
+        "**Resolution Path:**\n1. Abort the current self-implementation attempt.\n2. Release any self-claimed tasks using `task:release`.\n3. Dispatch dedicated Tier 3 workers to handle the implementation.",
       evidence: { directExecutionAttempts },
     });
     correctiveDirectives.push(
-      "Release self-claimed tasks using `task:release` and reassign to Tier 3 Implementers.",
+      "**Resolution Path:**\n1. Execute `task:release` to relinquish the self-claimed tasks.\n2. Reassign the tasks to appropriately scoped Tier 3 Implementers.",
     );
   }
 
@@ -725,11 +725,11 @@ export function evaluateSupervisoryState(
       rule: "Subagent spawning must strictly adhere to the 4-Tier hierarchy.",
       severity: "critical",
       message: `${role.toUpperCase()} (Tier ${tier}) attempted unauthorized spawns: ${crossTierSpawns.join(", ")}. Permitted: [${model.spawns.join(", ")}].`,
-      correctiveDirective: `Terminate invalid subagent dispatches and route spawning through proper tier channels ([${model.spawns.join(", ")}]).`,
+      correctiveDirective: `**Resolution Path:**\n1. Terminate the invalidly spawned subagent immediately.\n2. Review the permitted spawns for Tier ${tier}: [${model.spawns.join(", ")}].\n3. Re-route the spawning request through the proper tier channels.`,
       evidence: { crossTierSpawns, permittedSpawns: model.spawns },
     });
     correctiveDirectives.push(
-      `Terminate unauthorized subagent dispatches and dispatch only permitted roles ([${model.spawns.join(", ")}]).`,
+      `**Resolution Path:**\n1. Ensure all unauthorized subagents are terminated.\n2. Dispatch only the permitted roles: [${model.spawns.join(", ")}].`,
     );
   }
 
@@ -743,11 +743,11 @@ export function evaluateSupervisoryState(
       severity: "high",
       message: `Detected ${overlaps.length} write scope overlap(s) among active leases: ${overlaps.map((o) => `${o.taskA} vs ${o.taskB}`).join(", ")}.`,
       correctiveDirective:
-        "Enforce write scope exclusivity. Re-partition colliding tasks into sequential waves.",
+        "**Resolution Path:**\n1. Identify the overlapping write scopes among active tasks.\n2. Serialise tasks with identical file targets.\n3. Dispatch these tasks in successive waves to avoid write conflicts.",
       evidence: { overlaps },
     });
     correctiveDirectives.push(
-      "Re-partition colliding tasks so that tasks touching identical files execute in sequential waves.",
+      "**Resolution Path:**\n1. Review active task write scopes for collisions.\n2. Re-partition wave dispatches to ensure tasks touching the same files execute sequentially.",
     );
   }
 
@@ -766,11 +766,11 @@ export function evaluateSupervisoryState(
       severity: "medium",
       message: `Execution queue has ${queue.readyCount} ready task(s), but 0 active workers are dispatched.`,
       correctiveDirective:
-        "Dispatch ready tasks immediately via `queue:wave` up to Work/Span concurrency headroom (P = W / S).",
+        "**Resolution Path:**\n1. Check the Work/Span concurrency headroom (P = W / S).\n2. Dispatch ready tasks immediately via `queue:wave` up to the calculated headroom capacity.",
       evidence: { queue },
     });
     correctiveDirectives.push(
-      "Dispatch ready tasks in parallel wave lanes immediately via `queue:wave`.",
+      "**Resolution Path:**\n1. Analyze available worker concurrency limits.\n2. Execute `queue:wave` to dispatch ready tasks in parallel wave lanes.",
     );
   }
 
@@ -783,11 +783,11 @@ export function evaluateSupervisoryState(
       severity: "medium",
       message: `Found ${unprovenGatesCount} compiled gate(s) that have not been verified via \`gate:prove\`.`,
       correctiveDirective:
-        "Execute `gate:prove` on disposable scratch copies to verify gates can fail on negative defects.",
+        "**Resolution Path:**\n1. Identify the compiled gate that has not been verified.\n2. Create a disposable scratch copy of the gate scenario.\n3. Execute `gate:prove` to verify the gate can fail on negative defects.",
       evidence: { unprovenGatesCount },
     });
     correctiveDirectives.push(
-      "Run `gate:prove` on compiled task gates to verify falsifiability before accepting passes.",
+      "**Resolution Path:**\n1. Run `gate:prove` on compiled task gates.\n2. Record falsifiability evidence before accepting passes.",
     );
   }
 
@@ -800,11 +800,11 @@ export function evaluateSupervisoryState(
       severity: "high",
       message: `Accepted ${qualitativePasses.length} validator pass(es) lacking quantitative proof metrics.`,
       correctiveDirective:
-        "Issue `coordinator:pushback` on unverified passes and mandate DOM bounds, APCA contrast, and screenshot proofs.",
+        "**Resolution Path:**\n1. Review the unverified validator pass.\n2. Issue a `coordinator:pushback` requiring quantitative evidence.\n3. Mandate DOM bounds, APCA contrast, and screenshot proofs in the subsequent review round.",
       evidence: { qualitativePasses },
     });
     correctiveDirectives.push(
-      "Issue `coordinator:pushback` against unverified validator reports and require quantitative DOM/screenshot proof.",
+      "**Resolution Path:**\n1. Execute `coordinator:pushback` against qualitative-only validator reports.\n2. Enforce explicit requirements for quantitative DOM/screenshot proof.",
     );
   }
 
@@ -817,11 +817,11 @@ export function evaluateSupervisoryState(
       severity: "high",
       message: `${uiTasksMissingViewports.length} UI task(s) missing multi-viewport verification: ${uiTasksMissingViewports.join(", ")}.`,
       correctiveDirective:
-        "Mandate dual-channel visual validation across Desktop-Wide, Desktop, Tablet, and Mobile viewports.",
+        "**Resolution Path:**\n1. Identify the missing viewports for the UI task.\n2. Execute dual-channel visual validation captures across the required viewports (Desktop-Wide, Desktop, Tablet, Mobile).\n3. Attach the resulting screenshots and DOM metrics to the task evidence.",
       evidence: { uiTasksMissingViewports },
     });
     correctiveDirectives.push(
-      "Execute multi-viewport captures across all 4 tiers (1920x1080, 1440x900, 768x1024, 390x844) for UI tasks.",
+      "**Resolution Path:**\n1. Run multi-viewport captures across all 4 tiers (1920x1080, 1440x900, 768x1024, 390x844).\n2. Mandate these captures for all visual UI tasks.",
     );
   }
 
@@ -841,7 +841,7 @@ export function evaluateSupervisoryState(
         message:
           "Attempted `run:complete` while active blockers, open findings, or unproven gates remain.",
         correctiveDirective:
-          "Halt run completion. Resolve all open findings, verify gates, and obtain completeness critic sign-off.",
+          "**Resolution Path:**\n1. Halt the run completion attempt immediately.\n2. Check for active leases and wait for them to finish.\n3. Resolve all open findings and verify gates.\n4. Obtain sign-off from the completeness critic before proceeding.",
         evidence: {
           activeLeasesCount: leases.length,
           openFindingsCount: context.openFindingsCount,
@@ -849,7 +849,7 @@ export function evaluateSupervisoryState(
         },
       });
       correctiveDirectives.push(
-        "Resolve all open findings and verify all wave gates before declaring run completion.",
+        "**Resolution Path:**\n1. Address all open findings.\n2. Validate that all wave gates pass.\n3. Declare run completion only when no blockers remain.",
       );
     }
   }
@@ -863,10 +863,10 @@ export function evaluateSupervisoryState(
       message:
         "Validator attempted or issued a review without recording a mandatory adversarial probe round.",
       correctiveDirective:
-        "Execute `task:probe` demanding proof of edge cases or error handling before certifying pass.",
+        "**Resolution Path:**\n1. Halt the pass review process.\n2. Execute `task:probe` demanding proof of edge cases or error handling.\n3. Verify the probe response before certifying the pass.",
     });
     correctiveDirectives.push(
-      "Record an adversarial probe demand with `task:probe` before issuing a pass verdict.",
+      "**Resolution Path:**\n1. Record an adversarial probe demand with `task:probe`.\n2. Ensure a satisfactory response is provided before issuing a pass verdict.",
     );
   }
 
@@ -881,8 +881,8 @@ export function evaluateSupervisoryState(
         severity: "high",
         message: `Agent ID '${context.agentId}' violates standardized naming${reasonDetail}`,
         correctiveDirective: namingValidation.recommendedAgentId
-          ? `Adopt recommended standardized agent ID: ${namingValidation.recommendedAgentId}`
-          : "Adopt standardized agent ID (<role>_<task-id>-<slug> for Tier 3, <role>_<slug> for Tier 1/2).",
+          ? `**Resolution Path:**\n1. Terminate the agent with the non-compliant ID.\n2. Re-register the agent using the recommended standardized ID: ${namingValidation.recommendedAgentId}.`
+          : "**Resolution Path:**\n1. Terminate the agent with the non-compliant ID.\n2. Re-register using a standardized agent ID (<role>_<task-id>-<slug> for Tier 3, <role>_<slug> for Tier 1/2).",
         evidence: {
           agentId: context.agentId,
           reasons: namingValidation.reason ? [namingValidation.reason] : [],
@@ -890,8 +890,8 @@ export function evaluateSupervisoryState(
       });
       correctiveDirectives.push(
         namingValidation.recommendedAgentId
-          ? `Adopt recommended standardized agent ID: ${namingValidation.recommendedAgentId}`
-          : "Adopt standardized agent ID conventions.",
+          ? `**Resolution Path:**\n1. Adopt the recommended standardized agent ID: ${namingValidation.recommendedAgentId}.`
+          : "**Resolution Path:**\n1. Review the agent naming conventions.\n2. Adopt a standardized agent ID for the role and tier.",
       );
     }
   }

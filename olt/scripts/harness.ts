@@ -63,8 +63,21 @@ export async function main(argv: readonly string[]): Promise<void> {
 }
 
 if (import.meta.main) {
-  main(Bun.argv.slice(2)).catch((error: unknown) => {
-    process.stderr.write(`${JSON.stringify({ ok: false, error: normalizeError(error) })}\n`);
+  const argv = Bun.argv.slice(2);
+  main(argv).catch((error: unknown) => {
+    const isJson = stripOutputFormat(argv).json;
+    if (isJson) {
+      process.stderr.write(`${JSON.stringify({ ok: false, error: normalizeError(error) })}\n`);
+    } else {
+      if (error instanceof HarnessError) {
+        process.stderr.write(
+          `**Error (${error.code})**: ${error.message}${error.fix ? `\n> **Fix**: ${error.fix}` : ""}\n`,
+        );
+      } else {
+        const msg = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`**Fatal Internal Error**: ${msg}\n`);
+      }
+    }
     process.exitCode = error instanceof HarnessError ? error.exitCode : 70;
   });
 }

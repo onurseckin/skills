@@ -10,7 +10,7 @@ import { planApplyCommand, planClaimCommand } from "../commands/plan-apply.ts";
 import { planAuditCommand } from "../commands/plan-audit.ts";
 import { planReviewCommand, planValidateStartCommand } from "../commands/plan-validate.ts";
 import { orchestrateCommand } from "../commands/orchestrate.ts";
-import { dagViewCommand } from "../commands/dag-view.ts";
+import { planBrainstormCommand } from "../commands/plan-brainstorm.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,
@@ -20,6 +20,40 @@ import {
 } from "./types.ts";
 
 export const PLAN_COMMANDS: readonly CommandSpec[] = [
+  {
+    name: "plan:brainstorm",
+    aliases: ["brainstorm"],
+    domain: "plan",
+    summary: "Expand a prompt against the 8 Socratic vectors across iterative rounds.",
+    description:
+      "Runs Socratic 8-vector brainstorming matrix expansion on prompt.md (or provided prompt), saving brainstorming.json and recording plan-brainstormed event.",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root or run ID."),
+      optionalFlag("run-id", "string", "Run id; interchangeable with --run."),
+      optionalFlag("prompt", "string", "Verbatim prompt text override."),
+      optionalFlag(
+        "rounds",
+        "int",
+        "Number of iterative brainstorming rounds to execute (default: 3).",
+        3,
+      ),
+      optionalFlag(
+        "save",
+        "bool",
+        "Persist brainstorming.json to capsule root (default: true).",
+        true,
+      ),
+      optionalFlag("actor", "string", "Actor recorded on the event.", "planner"),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts plan:brainstorm --run .olt/capsules/<run-id>",
+      'bun harness.ts plan:brainstorm --prompt "Build a fault-tolerant distributed queue" --rounds 3',
+    ],
+    handler: (flags, context) => planBrainstormCommand(flags, context),
+  },
   {
     name: "orchestrate",
     aliases: [],

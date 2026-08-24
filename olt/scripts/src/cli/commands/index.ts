@@ -10,7 +10,12 @@ export * from "./coverage-check.ts";
 export * from "./critic-ops.ts";
 export * from "./dag-view.ts";
 export * from "./dag.ts";
-export * from "./diagnostics-ops.ts";
+export {
+  doctorCommand,
+  healthCommand,
+  recoverCommand,
+  repairProjectionCommand,
+} from "./diagnostics-ops.ts";
 export * from "./explain-data-path-integrity.ts";
 export * from "./explain-data-platform.ts";
 export * from "./explain-data-state-argument.ts";
@@ -60,7 +65,7 @@ export * from "./task-abandon.ts";
 export * from "./task-assign-repairer.ts";
 export * from "./task-brief.ts";
 export * from "./task-check.ts";
-export * from "./task-claim.ts";
+export { taskClaimCommand, taskHeartbeatCommand } from "./task-claim.ts";
 export * from "./task-finding-input.ts";
 export * from "./task-ops.ts";
 export * from "./task-probe.ts";

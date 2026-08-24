@@ -927,3 +927,12 @@ export function createWatchdogTickReminder(
 
   return lines.join("\n");
 }
+
+import { clearManifestCache } from "./manifest-parser.ts";
+
+/**
+ * Invalidates persona verification caches cleanly when session roles transition.
+ */
+export function invalidatePersonaVerificationCaches(): void {
+  clearManifestCache();
+}

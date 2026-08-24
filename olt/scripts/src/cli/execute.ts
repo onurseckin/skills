@@ -5,56 +5,12 @@ import { assertFlags, type CommandContext } from "./options.ts";
 import { assertGrantedCommand } from "../packets/command-authority.ts";
 import { findCommand, flagShapes, type CommandSpec } from "./registry/index.ts";
 import { autoDeriveCallerIdentity } from "../authority/session-registry.ts";
-import { planBrainstormCommand } from "./commands/plan-brainstorm.ts";
-import { DEFAULT_EXIT_CODES, optionalFlag } from "./registry/types.ts";
-
-export const PLAN_BRAINSTORM_SPEC: CommandSpec = {
-  name: "plan:brainstorm",
-  aliases: ["brainstorm"],
-  domain: "plan",
-  summary: "Expand a prompt against the 8 Socratic vectors across iterative rounds.",
-  description:
-    "Runs Socratic 8-vector brainstorming matrix expansion on prompt.md (or provided prompt), saving brainstorming.json and recording plan-brainstormed event.",
-  flags: [
-    optionalFlag("run", "string", "Capsule run root or run ID."),
-    optionalFlag("run-id", "string", "Run id; interchangeable with --run."),
-    optionalFlag("prompt", "string", "Verbatim prompt text override."),
-    optionalFlag(
-      "rounds",
-      "int",
-      "Number of iterative brainstorming rounds to execute (default: 3).",
-      3,
-    ),
-    optionalFlag(
-      "save",
-      "bool",
-      "Persist brainstorming.json to capsule root (default: true).",
-      true,
-    ),
-    optionalFlag("actor", "string", "Actor recorded on the event.", "planner"),
-  ],
-  readsStdin: false,
-  takesRemainder: false,
-  exitCodes: DEFAULT_EXIT_CODES,
-  examples: [
-    "bun harness.ts plan:brainstorm --run .olt/capsules/<run-id>",
-    'bun harness.ts plan:brainstorm --prompt "Build a fault-tolerant distributed queue" --rounds 3',
-  ],
-  handler: (flags, context) => planBrainstormCommand(flags, context),
-};
-
-function resolveCommandSpec(invocation: string): CommandSpec | undefined {
-  if (invocation === "plan:brainstorm" || invocation === "brainstorm") {
-    return PLAN_BRAINSTORM_SPEC;
-  }
-  return findCommand(invocation);
-}
 
 export async function execute(
   argv: readonly string[],
   context: CommandContext = {},
 ): Promise<JsonObject> {
-  const spec = resolveCommandSpec(argv[0] ?? "");
+  const spec = findCommand(argv[0] ?? "");
   const parsed = parseArguments(argv, spec === undefined ? undefined : flagShapes(spec.flags));
   if (!spec) throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${parsed.command}`);
   if (parsed.remainder.length && !spec.takesRemainder) {

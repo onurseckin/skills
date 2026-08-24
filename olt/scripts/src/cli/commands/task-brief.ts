@@ -307,13 +307,5 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
 
   return {
     markdown: combinedMarkdown,
-    run_root: run,
-    task,
-    grant: agentGrant,
-    briefing: legacyBriefing,
-    agent_briefing: agentBriefing,
-    exact_anchor_briefing: exactAnchorBriefing,
-    anchors: exactAnchorBriefing?.anchors,
-    symbols: exactAnchorBriefing?.symbols,
   };
 }
