@@ -1,8 +1,8 @@
 {
   "userStatus": {
     "disableTelemetry": true,
-    "name": "Alex Developer",
-    "email": "alex.developer@example.com",
+    "name": "Developer",
+    "email": "developer@example.com",
     "planStatus": {
       "planInfo": {
         "teamsTier": "TEAMS_TIER_PRO",

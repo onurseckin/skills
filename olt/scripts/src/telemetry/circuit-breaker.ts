@@ -159,6 +159,9 @@ export class QuotaCircuitBreaker {
     let lowestRemainingQuota: number | null = null;
 
     for (const res of report.results) {
+      if (res.isDetected === false || res.metrics.length === 0) {
+        continue;
+      }
       for (const metric of res.metrics) {
         if (lowestRemainingQuota === null || metric.remainingPercentage < lowestRemainingQuota) {
           lowestRemainingQuota = metric.remainingPercentage;

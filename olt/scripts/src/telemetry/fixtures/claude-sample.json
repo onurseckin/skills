@@ -1,7 +1,7 @@
 {
   "cachedUsageUtilization": {
     "fetchedAtMs": 1787577547632,
-    "accountUuid": "e4b1a870-983c-4df1-bb21-88f15d2a93c4",
+    "accountUuid": "00000000-0000-0000-0000-000000000001",
     "utilization": {
       "five_hour": {
         "utilization": 0,
@@ -105,9 +105,9 @@
     }
   },
   "oauthAccount": {
-    "accountUuid": "e4b1a870-983c-4df1-bb21-88f15d2a93c4",
+    "accountUuid": "00000000-0000-0000-0000-000000000001",
     "emailAddress": "developer@example.com",
-    "organizationUuid": "7c92f140-62e5-4a81-9b57-3100ea74d82b",
+    "organizationUuid": "00000000-0000-0000-0000-000000000002",
     "hasExtraUsageEnabled": false,
     "billingType": "stripe_subscription",
     "accountCreatedAt": "2023-08-09T10:12:27.714624Z",
@@ -127,7 +127,7 @@
     "userRateLimitTier": null
   },
   "overageCreditGrantCache": {
-    "7c92f140-62e5-4a81-9b57-3100ea74d82b": {
+    "00000000-0000-0000-0000-000000000002": {
       "info": {
         "available": false,
         "eligible": false,

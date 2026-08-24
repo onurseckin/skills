@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { BaseTieredCollector, type TierResult } from "../base-collector.ts";
-import type { NormalizedQuotaMetric } from "../types.ts";
+import type { ConfidenceLevel, NormalizedQuotaMetric } from "../types.ts";
 import { DefaultCollectorEnvironment, type CollectorEnvironment } from "./common.ts";
 
 export class AntigravityCollector extends BaseTieredCollector {
@@ -227,7 +227,10 @@ export class AntigravityCollector extends BaseTieredCollector {
     const candidates = [
       join(home, ".gemini", "antigravity-cli", "state.json"),
       join(home, ".gemini", "antigravity-cli", "quota.json"),
+      join(home, ".gemini", "state.json"),
+      join(home, ".gemini", "quota.json"),
       join(home, ".config", "antigravity", "state.json"),
+      join(home, ".config", "antigravity", "quota.json"),
     ];
 
     for (const filePath of candidates) {
@@ -240,38 +243,34 @@ export class AntigravityCollector extends BaseTieredCollector {
               ? parsed.remainingPercentage
               : typeof parsed.quotaRemaining === "number"
                 ? parsed.quotaRemaining
-                : 90;
-          return {
-            sourceTier: "tier2_local_storage",
-            metrics: [
-              {
-                rawMetricName: "local_state_quota",
-                canonicalProvider: "google",
-                windowType: "daily",
-                remainingPercentage: Math.max(0, Math.min(100, remaining)),
-                sourceTier: "tier2_local_storage",
-                confidence: "inferred_metric",
-                rawPayload: parsed,
-              },
-            ],
-            rawObservations: { storagePath: filePath, content: parsed },
-          };
+                : typeof (parsed.quotaInfo as Record<string, unknown> | undefined)
+                      ?.remainingFraction === "number"
+                  ? ((parsed.quotaInfo as Record<string, unknown>).remainingFraction as number) *
+                    100
+                  : undefined;
+
+          if (remaining !== undefined) {
+            return {
+              sourceTier: "tier2_local_storage",
+              metrics: [
+                {
+                  rawMetricName: "local_state_quota",
+                  canonicalProvider: "google",
+                  windowType: "daily",
+                  remainingPercentage: Math.max(
+                    0,
+                    Math.min(100, Math.round(remaining * 100) / 100),
+                  ),
+                  sourceTier: "tier2_local_storage",
+                  confidence: "cached",
+                  rawPayload: parsed,
+                },
+              ],
+              rawObservations: { storagePath: filePath, content: parsed },
+            };
+          }
         } catch {
-          return {
-            sourceTier: "tier2_local_storage",
-            metrics: [
-              {
-                rawMetricName: "local_state_file",
-                canonicalProvider: "google",
-                windowType: "session",
-                remainingPercentage: 100,
-                sourceTier: "tier2_local_storage",
-                confidence: "heuristic",
-                rawPayload: { filePath },
-              },
-            ],
-            rawObservations: { storagePath: filePath },
-          };
+          // JSON parse failed or unreadable, continue to next candidate
         }
       }
     }
@@ -282,8 +281,8 @@ export class AntigravityCollector extends BaseTieredCollector {
     const env = this.env.env;
     const detected: string[] = [];
     if (env.GEMINI_API_KEY) detected.push("GEMINI_API_KEY");
-    if (env.ANTIGRAVITY_APP_DIR) detected.push("ANTIGRAVITY_APP_DIR");
     if (env.GOOGLE_API_KEY) detected.push("GOOGLE_API_KEY");
+    if (env.ANTIGRAVITY_APP_DIR) detected.push("ANTIGRAVITY_APP_DIR");
     if (env.ANTIGRAVITY_CLI_VERSION) detected.push("ANTIGRAVITY_CLI_VERSION");
 
     if (detected.length > 0) {
@@ -296,7 +295,7 @@ export class AntigravityCollector extends BaseTieredCollector {
             windowType: "session",
             remainingPercentage: 100,
             sourceTier: "tier3_runtime",
-            confidence: "heuristic",
+            confidence: "inferred_metric",
             rawPayload: { detectedVariables: detected },
           },
         ],
@@ -304,5 +303,9 @@ export class AntigravityCollector extends BaseTieredCollector {
       };
     }
     return null;
+  }
+
+  protected override getTerminalReason(): string {
+    return "Daemon Offline · No Quota in Storage";
   }
 }

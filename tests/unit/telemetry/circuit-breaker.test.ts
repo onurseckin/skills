@@ -280,6 +280,58 @@ describe("QuotaCircuitBreaker Engine", () => {
     expect(nominalMd).toContain("QUOTA CIRCUIT-BREAKER: STATUS NOMINAL");
     expect(nominalMd).toContain("OK");
   });
+
+  it("treats offline/undetected platforms as non-blocking without triggering circuit breaker", () => {
+    const breaker = new QuotaCircuitBreaker();
+    const offlineReport: UnifiedTelemetryReport = {
+      timestamp: new Date().toISOString(),
+      results: [
+        {
+          platformId: "antigravity",
+          isDetected: false,
+          primaryTierUsed: null,
+          metrics: [],
+          rawObservations: {},
+          errors: [],
+          reason: "Daemon Offline · No Quota in Storage",
+        },
+        {
+          platformId: "claude",
+          isDetected: false,
+          primaryTierUsed: null,
+          metrics: [],
+          rawObservations: {},
+          errors: [],
+          reason: "No Claude Session · No API Key",
+        },
+        {
+          platformId: "codex",
+          isDetected: false,
+          primaryTierUsed: null,
+          metrics: [],
+          rawObservations: {},
+          errors: [],
+          reason: "No Codex Sessions · No API Key",
+        },
+      ],
+      summary: {
+        totalCollectors: 3,
+        detectedPlatforms: 0,
+        lowestRemainingQuota: null,
+        activeWarnings: [],
+      },
+    };
+
+    const result = breaker.evaluate(offlineReport, { now: fixedNow });
+
+    expect(result.status).toBe("OK");
+    expect(result.isTriggered).toBe(false);
+    expect(result.lowestRemainingQuota).toBeNull();
+    expect(result.constrainedModels.length).toBe(0);
+    expect(result.wrapUpDirectives.length).toBe(0);
+    expect(result.autoWakeSchedule).toBeNull();
+    expect(result.summary).toContain("No quota metrics detected; execution running normally.");
+  });
 });
 
 describe("quota:check CLI Command & Registry", () => {

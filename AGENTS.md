@@ -23,7 +23,8 @@ Every agent executing within this repository must adhere to the following non-ne
 5. **1-Hop Implementer <-> Validator Micro-Cycles:**
    - Implementer and paired validator can execute fast in-lease micro-cycles (`--micro-cycle` / `--in-lease` on `task:reject` or `task:review`) without releasing or tearing down the implementation lease.
    - Implementers address validator findings in-lease, verify with file-scoped tests, and resubmit (bounded up to 3 micro-cycles before formal repair escalation).
-6. **Strict Test Execution Ban on Coordinator / Orchestrator:**
+6. **Strict Test Execution Ban on Coordinator / Orchestrator & Turn 1 Dispatch Rule:**
+   - **Turn 1 is strictly reserved for planning, charter decomposition, and 1-shot batch subagent dispatch. 0 broad test runs (`bun test`, `npm test`) are allowed at Turn 1.**
    - Coordinators and Orchestrators are **strictly forbidden** from executing repo-wide test suites (`bun test`, `vitest`, `npm test`) directly.
    - Implementers own 100% of unit test execution. Cognitive Validators execute ZERO commands (0 `run:exec`, 0 terminal commands). Mechanic Validators execute ONLY typechecks (`tsc --noEmit`), AST static invariant audits (0 any, 0 suppressions), and Adversarial Gate Proofs (AGP counterfactuals). Coordinators/Orchestrators strictly consume structured evidence receipts.
 7. **Per-Task/Subgroup Commit, Push & Global Skill Sync:**
@@ -42,7 +43,8 @@ Every agent executing within this repository must adhere to the following non-ne
 11. **Brent Work/Span Dynamic Concurrency Scaling ($P = W / S$):**
     - Dynamic parallel occupancy is computed algorithmically via Brent's Theorem: $P = \lceil W / S \rceil$, where Work $W = \sum \text{effort}$ and Span $S = \text{critical path depth}$.
     - Artificial serialization dependencies between tasks with disjoint write scopes are decoupled automatically unless explicit dataflow/artifact rationale is present.
-12. **Supervisor Zero-File-Edit & Role Boundary Watchdog:**
+12. **Supervisor Zero Direct Code Edits & Role Boundary Watchdog:**
+    - **Supervisor Zero Direct Code Edits:** Supervisors (Mind, Orchestrators, Coordinators) must NEVER directly modify, edit, or create repository source files in their own thread. All code edits must be delegated to leased Tier 3 Implementers.
     - Supervisory tiers (Tier 0 `mind`, Tier 1 `orchestrator`, Tier 2 `coordinator`, Tier 2 `meta-auditor`) must **never** edit repository source files or run unit test suites.
     - Continuous watchdog monitoring (`watchdog:role-boundary`) detects boundary violations, anti-leak/anti-drift defects, and persona duplication using deterministic persona signature hashing.
 13. **Empirical Blunder Logging & Resolution Proofs:**
@@ -262,13 +264,14 @@ To eliminate sycophantic bias and accelerate execution convergence, validation e
 
 To protect repository state and prevent common LLM blunder modes:
 
-1. **Main-Thread Restraint Guard:**
-   - Interactive Tier 1 sessions must never perform direct task implementations or file edits.
+1. **Main-Thread Restraint Guard & Supervisor Zero Direct Code Edits:**
+   - Interactive Tier 1 sessions and supervisors (Mind, Orchestrators, Coordinators) must never perform direct task implementations or file edits in their own thread. All code edits must be delegated to leased Tier 3 Implementers.
    - Unauthorized direct edits trigger automated blunder logging (`defect:audit`) and require delegation to background subagents.
 2. **Zero-Exploration Exact-Anchor Briefing Mandate:**
    - Subagents must never be spawned without complete task context. Always issue `task:brief` or `agent:brief` containing exact target files, line ranges (`StartLine`, `EndLine`), concrete symbols, and drop-in code replacements. Implementers must achieve Turn 1 edits with 0 exploratory discovery reads. Flag $>5$ exploratory reads before first edit as `TOKEN_BURNING`.
-3. **Strict Test Ban on Coordinators / Orchestrators:**
-   - Coordinators and Orchestrators must never execute raw test suites (`bun test`). All test runs must be delegated to Tier 3 Mechanic Validators.
+3. **Strict Test Ban on Coordinators / Orchestrators & Turn 1 Dispatch Invariant:**
+   - **Turn 1 is strictly reserved for planning, charter decomposition, and 1-shot batch subagent dispatch. 0 broad test runs (`bun test`, `npm test`) are allowed at Turn 1.**
+   - Coordinators and Orchestrators must never execute raw test suites (`bun test`). All unit test runs must be delegated to leased Tier 3 Implementers.
 4. **Hard Subagent Reset Discipline:**
    - Always terminate completed subagents (`manage_subagents` Action: 'kill') at wave or subgroup completion to eliminate stale context and ghost leases.
 5. **Per-Task/Subgroup Commit, Push & Global Sync:**

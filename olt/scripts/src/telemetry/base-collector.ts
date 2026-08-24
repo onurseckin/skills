@@ -5,6 +5,7 @@ export interface TierResult {
   sourceTier: TierType;
   metrics: NormalizedQuotaMetric[];
   rawObservations: Record<string, unknown>;
+  reason?: string | undefined;
 }
 
 export abstract class BaseTieredCollector implements TelemetryCollector {
@@ -40,9 +41,11 @@ export abstract class BaseTieredCollector implements TelemetryCollector {
         metrics: result.metrics,
         rawObservations: result.rawObservations,
         errors,
+        reason: result.reason,
       };
     }
 
+    const terminalReason = this.getTerminalReason ? await this.getTerminalReason() : undefined;
     return {
       platformId: this.platformId,
       isDetected: false,
@@ -50,9 +53,11 @@ export abstract class BaseTieredCollector implements TelemetryCollector {
       metrics: [],
       rawObservations: {},
       errors,
+      reason: terminalReason,
     };
   }
 
+  protected getTerminalReason?(): Promise<string | undefined> | string | undefined;
   protected abstract probeTier1Cli(): Promise<TierResult | null>;
   protected abstract probeTier2Storage(): Promise<TierResult | null>;
   protected abstract probeTier3Runtime(): Promise<TierResult | null>;

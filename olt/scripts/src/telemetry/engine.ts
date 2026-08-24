@@ -133,6 +133,9 @@ export class TelemetryNormalizationEngine {
     let lowestMetric: NormalizedQuotaMetric | null = null;
 
     for (const res of results) {
+      if (res.isDetected === false || res.metrics.length === 0) {
+        continue;
+      }
       for (const m of res.metrics) {
         if (lowestRemainingQuota === null || m.remainingPercentage < lowestRemainingQuota) {
           lowestRemainingQuota = m.remainingPercentage;
@@ -187,18 +190,25 @@ export class TelemetryNormalizationEngine {
       const tierShort = formatTierShort(res.primaryTierUsed);
 
       if (res.metrics.length === 0) {
-        const modelPad = "None".padEnd(30).slice(0, 30);
-        const winPad = "-".padEnd(10).slice(0, 10);
-        const barPad = (res.isDetected ? "Detected (No Quota)" : "Not Detected")
-          .padEnd(17)
-          .slice(0, 17);
-        const resetPad = "None".padEnd(16).slice(0, 16);
-        const confPad = (res.isDetected ? `${tierShort} (heur)` : "None (none)")
-          .padEnd(12)
-          .slice(0, 12);
-        lines.push(
-          `│ ${platformPad} │ ${modelPad} │ ${winPad} │ ${barPad} │ ${resetPad} │ ${confPad} │`,
-        );
+        if (!res.isDetected) {
+          const modelPad = "(not detected)".padEnd(30).slice(0, 30);
+          const winPad = "-".padEnd(10).slice(0, 10);
+          const barPad = "[░░░░░░] Not Detected".padEnd(17).slice(0, 17);
+          const resetPad = (res.reason ?? "None").padEnd(16).slice(0, 16);
+          const confPad = "None (none)".padEnd(12).slice(0, 12);
+          lines.push(
+            `│ ${platformPad} │ ${modelPad} │ ${winPad} │ ${barPad} │ ${resetPad} │ ${confPad} │`,
+          );
+        } else {
+          const modelPad = "None".padEnd(30).slice(0, 30);
+          const winPad = "-".padEnd(10).slice(0, 10);
+          const barPad = "Detected (No Quota)".padEnd(17).slice(0, 17);
+          const resetPad = (res.reason ?? "None").padEnd(16).slice(0, 16);
+          const confPad = `${tierShort} (heur)`.padEnd(12).slice(0, 12);
+          lines.push(
+            `│ ${platformPad} │ ${modelPad} │ ${winPad} │ ${barPad} │ ${resetPad} │ ${confPad} │`,
+          );
+        }
       } else {
         for (let mIdx = 0; mIdx < res.metrics.length; mIdx++) {
           const metric = res.metrics[mIdx]!;

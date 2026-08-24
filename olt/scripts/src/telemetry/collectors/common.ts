@@ -186,10 +186,13 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
         }
       }
     } catch {
-      // Fall back to fixture
+      // API unreachable
     }
 
-    // 2. Fall back to bundled fixture
+    return null;
+  }
+
+  public async fetchClaudeFixture(): Promise<Record<string, unknown> | null> {
     try {
       const fixturePath = new URL("../fixtures/claude-sample.json", import.meta.url).pathname;
       const raw = await readFile(fixturePath, "utf8");
@@ -254,7 +257,10 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       // Sessions dir missing or inaccessible
     }
 
-    // 2. Fall back to bundled fixture
+    return null;
+  }
+
+  public async fetchCodexFixture(): Promise<Record<string, unknown> | null> {
     try {
       const fixturePath = new URL("../fixtures/openai-sample.json", import.meta.url).pathname;
       const raw = await readFile(fixturePath, "utf8");

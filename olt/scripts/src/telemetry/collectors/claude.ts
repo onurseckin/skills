@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { BaseTieredCollector, type TierResult } from "../base-collector.ts";
-import type { NormalizedQuotaMetric } from "../types.ts";
+import type { ConfidenceLevel, NormalizedQuotaMetric } from "../types.ts";
 import { DefaultCollectorEnvironment, type CollectorEnvironment } from "./common.ts";
 
 export class ClaudeCollector extends BaseTieredCollector {
@@ -185,6 +185,7 @@ export class ClaudeCollector extends BaseTieredCollector {
   protected async probeTier2Storage(): Promise<TierResult | null> {
     const home = this.env.homedir;
     const candidates = [
+      join(home, ".claude.json"),
       join(home, ".claude", "stats.json"),
       join(home, ".claude", "config.json"),
       join(home, ".config", "claude", "session.json"),
@@ -194,44 +195,135 @@ export class ClaudeCollector extends BaseTieredCollector {
       const content = await this.env.readFile(filePath);
       if (content) {
         try {
-          const parsed = JSON.parse(content) as Record<string, unknown>;
+          const parsedRoot = JSON.parse(content) as Record<string, unknown>;
+          const cached = (parsedRoot.cachedUsageUtilization ?? parsedRoot) as Record<
+            string,
+            unknown
+          >;
+          const utilData = (cached.utilization ?? parsedRoot.utilization ?? parsedRoot) as Record<
+            string,
+            unknown
+          >;
+
+          const metrics: NormalizedQuotaMetric[] = [];
+
+          if (utilData && typeof utilData === "object") {
+            if (utilData.five_hour && typeof utilData.five_hour === "object") {
+              const fh = utilData.five_hour as Record<string, unknown>;
+              const util = typeof fh.utilization === "number" ? fh.utilization : 0;
+              const remaining = Math.max(0, Math.min(100, Math.round((100 - util) * 100) / 100));
+              metrics.push({
+                rawMetricName: "Claude Code (5-Hour Window)",
+                canonicalProvider: "anthropic",
+                windowType: "5_hour",
+                remainingPercentage: remaining,
+                sourceTier: "tier2_local_storage",
+                confidence: "cached",
+                rawPayload: fh,
+              });
+            }
+
+            if (utilData.seven_day && typeof utilData.seven_day === "object") {
+              const sd = utilData.seven_day as Record<string, unknown>;
+              const util = typeof sd.utilization === "number" ? sd.utilization : 0;
+              const remaining = Math.max(0, Math.min(100, Math.round((100 - util) * 100) / 100));
+              metrics.push({
+                rawMetricName: "Claude Code (7-Day Weekly Limit)",
+                canonicalProvider: "anthropic",
+                windowType: "weekly",
+                remainingPercentage: remaining,
+                sourceTier: "tier2_local_storage",
+                confidence: "cached",
+                rawPayload: sd,
+              });
+            }
+
+            if (utilData.seven_day_opus && typeof utilData.seven_day_opus === "object") {
+              const sdo = utilData.seven_day_opus as Record<string, unknown>;
+              if (typeof sdo.utilization === "number") {
+                const remaining = Math.max(
+                  0,
+                  Math.min(100, Math.round((100 - sdo.utilization) * 100) / 100),
+                );
+                metrics.push({
+                  rawMetricName: "Claude Opus (7-Day Limit)",
+                  canonicalProvider: "anthropic",
+                  windowType: "weekly",
+                  remainingPercentage: remaining,
+                  sourceTier: "tier2_local_storage",
+                  confidence: "cached",
+                  rawPayload: sdo,
+                });
+              }
+            }
+
+            if (utilData.seven_day_sonnet && typeof utilData.seven_day_sonnet === "object") {
+              const sds = utilData.seven_day_sonnet as Record<string, unknown>;
+              if (typeof sds.utilization === "number") {
+                const remaining = Math.max(
+                  0,
+                  Math.min(100, Math.round((100 - sds.utilization) * 100) / 100),
+                );
+                metrics.push({
+                  rawMetricName: "Claude Sonnet (7-Day Limit)",
+                  canonicalProvider: "anthropic",
+                  windowType: "weekly",
+                  remainingPercentage: remaining,
+                  sourceTier: "tier2_local_storage",
+                  confidence: "cached",
+                  rawPayload: sds,
+                });
+              }
+            }
+          }
+
+          if (metrics.length > 0) {
+            const oauth = (parsedRoot.oauthAccount ?? cached.oauthAccount) as
+              | Record<string, unknown>
+              | undefined;
+            return {
+              sourceTier: "tier2_local_storage",
+              metrics,
+              rawObservations: {
+                storagePath: filePath,
+                utilization: utilData,
+                oauthAccount: oauth,
+                spend: utilData.spend,
+                limits: utilData.limits,
+                email: oauth?.emailAddress,
+                accountUuid: oauth?.accountUuid,
+                billingType: oauth?.billingType,
+                planTier: oauth?.planTier,
+              },
+            };
+          }
+
           const remaining =
-            typeof parsed.remainingPercentage === "number"
-              ? parsed.remainingPercentage
-              : typeof parsed.quotaRemaining === "number"
-                ? parsed.quotaRemaining
-                : 95;
-          return {
-            sourceTier: "tier2_local_storage",
-            metrics: [
-              {
-                rawMetricName: "local_session_stats",
-                canonicalProvider: "anthropic",
-                windowType: "session",
-                remainingPercentage: Math.max(0, Math.min(100, remaining)),
-                sourceTier: "tier2_local_storage",
-                confidence: "inferred_metric",
-                rawPayload: parsed,
-              },
-            ],
-            rawObservations: { storagePath: filePath, content: parsed },
-          };
+            typeof parsedRoot.remainingPercentage === "number"
+              ? parsedRoot.remainingPercentage
+              : typeof parsedRoot.quotaRemaining === "number"
+                ? parsedRoot.quotaRemaining
+                : undefined;
+
+          if (remaining !== undefined) {
+            return {
+              sourceTier: "tier2_local_storage",
+              metrics: [
+                {
+                  rawMetricName: "local_session_stats",
+                  canonicalProvider: "anthropic",
+                  windowType: "session",
+                  remainingPercentage: Math.max(0, Math.min(100, remaining)),
+                  sourceTier: "tier2_local_storage",
+                  confidence: "cached",
+                  rawPayload: parsedRoot,
+                },
+              ],
+              rawObservations: { storagePath: filePath, content: parsedRoot },
+            };
+          }
         } catch {
-          return {
-            sourceTier: "tier2_local_storage",
-            metrics: [
-              {
-                rawMetricName: "local_config_file",
-                canonicalProvider: "anthropic",
-                windowType: "session",
-                remainingPercentage: 100,
-                sourceTier: "tier2_local_storage",
-                confidence: "heuristic",
-                rawPayload: { filePath },
-              },
-            ],
-            rawObservations: { storagePath: filePath },
-          };
+          // JSON parse failed or unreadable, continue to next candidate
         }
       }
     }
@@ -242,6 +334,7 @@ export class ClaudeCollector extends BaseTieredCollector {
     const env = this.env.env;
     const detected: string[] = [];
     if (env.ANTHROPIC_API_KEY) detected.push("ANTHROPIC_API_KEY");
+    if (env.CLAUDE_API_KEY) detected.push("CLAUDE_API_KEY");
     if (env.CLAUDE_CODE_ENTRYPOINT) detected.push("CLAUDE_CODE_ENTRYPOINT");
     if (env.CLAUDE_SESSION_ID) detected.push("CLAUDE_SESSION_ID");
 
@@ -255,7 +348,7 @@ export class ClaudeCollector extends BaseTieredCollector {
             windowType: "session",
             remainingPercentage: 100,
             sourceTier: "tier3_runtime",
-            confidence: "heuristic",
+            confidence: "inferred_metric",
             rawPayload: { detectedVariables: detected },
           },
         ],
@@ -263,5 +356,9 @@ export class ClaudeCollector extends BaseTieredCollector {
       };
     }
     return null;
+  }
+
+  protected override getTerminalReason(): string {
+    return "No Claude Session · No API Key";
   }
 }

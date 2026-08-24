@@ -1,6 +1,12 @@
 export type TierType = "tier1_cli_command" | "tier2_local_storage" | "tier3_runtime";
 
-export type ConfidenceLevel = "verified_exact" | "inferred_metric" | "heuristic" | "unknown";
+export type ConfidenceLevel =
+  | "verified_exact"
+  | "cached"
+  | "inferred_metric"
+  | "inferred"
+  | "heuristic"
+  | "unknown";
 
 export interface NormalizedQuotaMetric {
   rawMetricName: string;
@@ -19,6 +25,7 @@ export interface PlatformProbeResult {
   metrics: NormalizedQuotaMetric[];
   rawObservations: Record<string, unknown>;
   errors: Error[];
+  reason?: string | undefined;
 }
 
 export interface UnifiedTelemetryReport {

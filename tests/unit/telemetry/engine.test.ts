@@ -161,6 +161,31 @@ describe("TelemetryNormalizationEngine", () => {
     expect(ascii).toContain("Account Badges");
     expect(ascii).toContain("`[codex]` Plan: prolite");
   });
+
+  it("formats ASCII report truthfully for Not Detected platforms with [░░░░░░] Not Detected", async () => {
+    const offlineCollector: TelemetryCollector = {
+      platformId: "claude",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "claude",
+        isDetected: false,
+        primaryTierUsed: null,
+        metrics: [],
+        rawObservations: {},
+        errors: [],
+        reason: "No Claude Session · No API Key",
+      }),
+    };
+
+    const engine = new TelemetryNormalizationEngine([offlineCollector]);
+    const report = await engine.probeAll();
+    const ascii = engine.formatAsciiReport(report);
+
+    expect(ascii).toContain("claude");
+    expect(ascii).toContain("[░░░░░░] Not Dete");
+    expect(ascii).toContain("No Claude Sessio");
+    expect(ascii).not.toContain("100%");
+    expect(report.summary.detectedPlatforms).toBe(0);
+  });
 });
 
 describe("renderProgressBar and formatTierBadge helpers", () => {

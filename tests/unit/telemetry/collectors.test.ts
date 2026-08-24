@@ -217,7 +217,7 @@ describe("AntigravityCollector", () => {
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier2_local_storage");
     expect(result.metrics[0]!.remainingPercentage).toBe(60);
-    expect(result.metrics[0]!.confidence).toBe("inferred_metric");
+    expect(result.metrics[0]!.confidence).toBe("cached");
   });
 
   it("escalates from Tier 2 to Tier 3 runtime environment", async () => {
@@ -232,14 +232,14 @@ describe("AntigravityCollector", () => {
 
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier3_runtime");
-    expect(result.metrics[0]!.confidence).toBe("heuristic");
+    expect(result.metrics[0]!.confidence).toBe("inferred_metric");
     expect(result.rawObservations.detectedVariables).toEqual([
       "GEMINI_API_KEY",
       "ANTIGRAVITY_APP_DIR",
     ]);
   });
 
-  it("returns not detected when all tiers fail", async () => {
+  it("returns not detected with terminal reason when all tiers fail", async () => {
     const env: CollectorEnvironment = {
       exec: async () => null,
       readFile: async () => null,
@@ -252,6 +252,7 @@ describe("AntigravityCollector", () => {
     expect(result.isDetected).toBe(false);
     expect(result.primaryTierUsed).toBeNull();
     expect(result.metrics).toHaveLength(0);
+    expect(result.reason).toBe("Daemon Offline · No Quota in Storage");
   });
 });
 
@@ -264,12 +265,14 @@ describe("ClaudeCollector", () => {
           utilization: {
             five_hour: { utilization: 25.5, resets_at: "2026-08-24T18:00:00Z" },
             seven_day: { utilization: 10.0, resets_at: "2026-08-30T00:00:00Z" },
+            seven_day_opus: { utilization: 50.0 },
+            seven_day_sonnet: { utilization: 15.0 },
             spend: { used: { amount_minor: 500, currency: "USD" } },
           },
         },
         oauthAccount: {
-          emailAddress: "claude.user@example.com",
-          accountUuid: "mock-uuid-123",
+          emailAddress: "developer@example.com",
+          accountUuid: "00000000-0000-0000-0000-000000000001",
           billingType: "stripe_subscription",
         },
       }),
@@ -281,12 +284,17 @@ describe("ClaudeCollector", () => {
     expect(result.platformId).toBe("claude");
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier1_cli_command");
-    expect(result.metrics.length).toBe(2);
+    expect(result.metrics.length).toBe(4);
     expect(result.metrics[0]!.rawMetricName).toBe("Claude Code (5-Hour Window)");
     expect(result.metrics[0]!.remainingPercentage).toBe(74.5);
+    expect(result.metrics[0]!.confidence).toBe("verified_exact");
     expect(result.metrics[1]!.rawMetricName).toBe("Claude Code (7-Day Weekly Limit)");
     expect(result.metrics[1]!.remainingPercentage).toBe(90.0);
-    expect(result.rawObservations.email).toBe("claude.user@example.com");
+    expect(result.metrics[2]!.rawMetricName).toBe("Claude Opus (7-Day Limit)");
+    expect(result.metrics[2]!.remainingPercentage).toBe(50.0);
+    expect(result.metrics[3]!.rawMetricName).toBe("Claude Sonnet (7-Day Limit)");
+    expect(result.metrics[3]!.remainingPercentage).toBe(85.0);
+    expect(result.rawObservations.email).toBe("developer@example.com");
   });
 
   it("probes Tier 1 CLI usage output when OAuth is unavailable", async () => {
@@ -312,9 +320,51 @@ describe("ClaudeCollector", () => {
     expect(result.primaryTierUsed).toBe("tier1_cli_command");
     expect(result.metrics[0]!.remainingPercentage).toBe(82);
     expect(result.metrics[0]!.canonicalProvider).toBe("anthropic");
+    expect(result.metrics[0]!.confidence).toBe("verified_exact");
   });
 
-  it("probes Tier 2 local storage cache", async () => {
+  it("probes Tier 2 local storage ~/.claude.json cached utilization when daemon is offline", async () => {
+    const env: CollectorEnvironment = {
+      exec: async () => null,
+      homedir: "/mock/home",
+      readFile: async (path) => {
+        if (path.endsWith(".claude.json")) {
+          return JSON.stringify({
+            cachedUsageUtilization: {
+              utilization: {
+                five_hour: { utilization: 40.0 },
+                seven_day: { utilization: 20.0 },
+                seven_day_sonnet: { utilization: 10.0 },
+              },
+            },
+            oauthAccount: {
+              emailAddress: "developer@example.com",
+              billingType: "stripe_subscription",
+              planTier: "claude_max",
+            },
+          });
+        }
+        return null;
+      },
+    };
+
+    const collector = new ClaudeCollector(env);
+    const result = await collector.probe();
+
+    expect(result.platformId).toBe("claude");
+    expect(result.isDetected).toBe(true);
+    expect(result.primaryTierUsed).toBe("tier2_local_storage");
+    expect(result.metrics.length).toBe(3);
+    expect(result.metrics[0]!.remainingPercentage).toBe(60.0);
+    expect(result.metrics[0]!.confidence).toBe("cached");
+    expect(result.metrics[1]!.remainingPercentage).toBe(80.0);
+    expect(result.metrics[1]!.confidence).toBe("cached");
+    expect(result.metrics[2]!.remainingPercentage).toBe(90.0);
+    expect(result.metrics[2]!.confidence).toBe("cached");
+    expect(result.rawObservations.email).toBe("developer@example.com");
+  });
+
+  it("probes Tier 2 local storage stats.json cache fallback", async () => {
     const env: CollectorEnvironment = {
       exec: async () => null,
       homedir: "/mock/home",
@@ -332,13 +382,14 @@ describe("ClaudeCollector", () => {
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier2_local_storage");
     expect(result.metrics[0]!.remainingPercentage).toBe(45);
+    expect(result.metrics[0]!.confidence).toBe("cached");
   });
 
-  it("probes Tier 3 runtime environment", async () => {
+  it("probes Tier 3 runtime environment for Claude", async () => {
     const env: CollectorEnvironment = {
       exec: async () => null,
       readFile: async () => null,
-      env: { ANTHROPIC_API_KEY: "sk-ant-mock" },
+      env: { ANTHROPIC_API_KEY: "sk-ant-mock", CLAUDE_API_KEY: "claude-key" },
     };
 
     const collector = new ClaudeCollector(env);
@@ -346,6 +397,27 @@ describe("ClaudeCollector", () => {
 
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier3_runtime");
+    expect(result.metrics[0]!.confidence).toBe("inferred_metric");
+    expect(result.rawObservations.detectedVariables).toEqual([
+      "ANTHROPIC_API_KEY",
+      "CLAUDE_API_KEY",
+    ]);
+  });
+
+  it("returns not detected with terminal reason when all tiers fail for Claude", async () => {
+    const env: CollectorEnvironment = {
+      exec: async () => null,
+      readFile: async () => null,
+      env: {},
+    };
+
+    const collector = new ClaudeCollector(env);
+    const result = await collector.probe();
+
+    expect(result.isDetected).toBe(false);
+    expect(result.primaryTierUsed).toBeNull();
+    expect(result.metrics).toHaveLength(0);
+    expect(result.reason).toBe("No Claude Session · No API Key");
   });
 });
 
@@ -430,6 +502,60 @@ describe("OpenAICollector and CodexCollector", () => {
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier1_cli_command");
     expect(result.metrics[0]!.remainingPercentage).toBe(50);
+  });
+
+  it("probes OpenAI Tier 2 local storage cached fallback", async () => {
+    const env: CollectorEnvironment = {
+      exec: async () => null,
+      homedir: "/mock/home",
+      readFile: async (path) => {
+        if (path.includes(".openai/usage.json")) {
+          return JSON.stringify({ remainingPercentage: 55 });
+        }
+        return null;
+      },
+    };
+
+    const collector = new OpenAICollector(env);
+    const result = await collector.probe();
+
+    expect(result.platformId).toBe("openai");
+    expect(result.isDetected).toBe(true);
+    expect(result.primaryTierUsed).toBe("tier2_local_storage");
+    expect(result.metrics[0]!.remainingPercentage).toBe(55);
+    expect(result.metrics[0]!.confidence).toBe("cached");
+  });
+
+  it("probes OpenAI Tier 3 runtime environment", async () => {
+    const env: CollectorEnvironment = {
+      exec: async () => null,
+      readFile: async () => null,
+      env: { OPENAI_API_KEY: "sk-openai-key" },
+    };
+
+    const collector = new OpenAICollector(env);
+    const result = await collector.probe();
+
+    expect(result.platformId).toBe("openai");
+    expect(result.isDetected).toBe(true);
+    expect(result.primaryTierUsed).toBe("tier3_runtime");
+    expect(result.metrics[0]!.confidence).toBe("inferred_metric");
+  });
+
+  it("returns not detected with terminal reason when all tiers fail for OpenAI", async () => {
+    const env: CollectorEnvironment = {
+      exec: async () => null,
+      readFile: async () => null,
+      env: {},
+    };
+
+    const collector = new OpenAICollector(env);
+    const result = await collector.probe();
+
+    expect(result.isDetected).toBe(false);
+    expect(result.primaryTierUsed).toBeNull();
+    expect(result.metrics).toHaveLength(0);
+    expect(result.reason).toBe("No Codex Sessions · No API Key");
   });
 
   it("probes CodexCollector Tier 1 live rollout token_count with future reset time and weekly window", async () => {
@@ -551,7 +677,29 @@ describe("OpenAICollector and CodexCollector", () => {
     expect(result.metrics[0]!.remainingPercentage).toBe(65);
   });
 
-  it("escalates CodexCollector from Tier 1 to Tier 2 local storage", async () => {
+  it("escalates CodexCollector from Tier 1 to Tier 2 local storage auth.json cache", async () => {
+    const env: CollectorEnvironment = {
+      exec: async () => null,
+      homedir: "/mock/home",
+      readFile: async (path) => {
+        if (path.includes(".codex/auth.json")) {
+          return JSON.stringify({ tokens: { access_token: "mock-token" }, plan_type: "plus" });
+        }
+        return null;
+      },
+    };
+
+    const collector = new CodexCollector(env);
+    const result = await collector.probe();
+
+    expect(result.platformId).toBe("codex");
+    expect(result.isDetected).toBe(true);
+    expect(result.primaryTierUsed).toBe("tier2_local_storage");
+    expect(result.metrics[0]!.confidence).toBe("cached");
+    expect(result.metrics[0]!.rawMetricName).toBe("cached_codex_auth");
+  });
+
+  it("escalates CodexCollector from Tier 1 to Tier 2 local storage usage.json", async () => {
     const env: CollectorEnvironment = {
       exec: async () => null,
       homedir: "/mock/home",
@@ -570,6 +718,7 @@ describe("OpenAICollector and CodexCollector", () => {
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier2_local_storage");
     expect(result.metrics[0]!.remainingPercentage).toBe(40);
+    expect(result.metrics[0]!.confidence).toBe("cached");
   });
 
   it("escalates CodexCollector from Tier 2 to Tier 3 runtime environment", async () => {
@@ -585,10 +734,11 @@ describe("OpenAICollector and CodexCollector", () => {
     expect(result.platformId).toBe("codex");
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier3_runtime");
+    expect(result.metrics[0]!.confidence).toBe("inferred_metric");
     expect(result.rawObservations.detectedVariables).toEqual(["CODEX_API_KEY"]);
   });
 
-  it("returns not detected when all tiers fail for CodexCollector", async () => {
+  it("returns not detected with terminal reason when all tiers fail for CodexCollector", async () => {
     const env: CollectorEnvironment = {
       exec: async () => null,
       readFile: async () => null,
@@ -601,6 +751,7 @@ describe("OpenAICollector and CodexCollector", () => {
     expect(result.isDetected).toBe(false);
     expect(result.primaryTierUsed).toBeNull();
     expect(result.metrics).toHaveLength(0);
+    expect(result.reason).toBe("No Codex Sessions · No API Key");
   });
 });
 

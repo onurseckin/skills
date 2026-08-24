@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { BaseTieredCollector, type TierResult } from "../base-collector.ts";
-import type { NormalizedQuotaMetric } from "../types.ts";
+import type { ConfidenceLevel, NormalizedQuotaMetric } from "../types.ts";
 import { DefaultCollectorEnvironment, type CollectorEnvironment } from "./common.ts";
 
 export class OpenAICollector extends BaseTieredCollector {
@@ -98,38 +98,26 @@ export class OpenAICollector extends BaseTieredCollector {
               ? parsed.remainingPercentage
               : typeof parsed.quotaRemaining === "number"
                 ? parsed.quotaRemaining
-                : 90;
-          return {
-            sourceTier: "tier2_local_storage",
-            metrics: [
-              {
-                rawMetricName: "local_openai_usage",
-                canonicalProvider: "openai",
-                windowType: "monthly",
-                remainingPercentage: Math.max(0, Math.min(100, remaining)),
-                sourceTier: "tier2_local_storage",
-                confidence: "inferred_metric",
-                rawPayload: parsed,
-              },
-            ],
-            rawObservations: { storagePath: filePath, content: parsed },
-          };
+                : undefined;
+          if (remaining !== undefined) {
+            return {
+              sourceTier: "tier2_local_storage",
+              metrics: [
+                {
+                  rawMetricName: "local_openai_usage",
+                  canonicalProvider: "openai",
+                  windowType: "monthly",
+                  remainingPercentage: Math.max(0, Math.min(100, remaining)),
+                  sourceTier: "tier2_local_storage",
+                  confidence: "cached",
+                  rawPayload: parsed,
+                },
+              ],
+              rawObservations: { storagePath: filePath, content: parsed },
+            };
+          }
         } catch {
-          return {
-            sourceTier: "tier2_local_storage",
-            metrics: [
-              {
-                rawMetricName: "local_storage_file",
-                canonicalProvider: "openai",
-                windowType: "session",
-                remainingPercentage: 100,
-                sourceTier: "tier2_local_storage",
-                confidence: "heuristic",
-                rawPayload: { filePath },
-              },
-            ],
-            rawObservations: { storagePath: filePath },
-          };
+          // JSON parse failed or unreadable, continue to next candidate
         }
       }
     }
@@ -154,7 +142,7 @@ export class OpenAICollector extends BaseTieredCollector {
             windowType: "session",
             remainingPercentage: 100,
             sourceTier: "tier3_runtime",
-            confidence: "heuristic",
+            confidence: "inferred_metric",
             rawPayload: { detectedVariables: detected },
           },
         ],
@@ -162,6 +150,10 @@ export class OpenAICollector extends BaseTieredCollector {
       };
     }
     return null;
+  }
+
+  protected override getTerminalReason(): string {
+    return "No Codex Sessions · No API Key";
   }
 }
 
@@ -357,9 +349,10 @@ export class CodexCollector extends BaseTieredCollector {
   protected async probeTier2Storage(): Promise<TierResult | null> {
     const home = this.env.homedir;
     const candidates = [
+      join(home, ".codex", "auth.json"),
+      join(home, ".codex", "config.toml"),
       join(home, ".codex", "usage.json"),
       join(home, ".codex", "session.json"),
-      join(home, ".codex", "auth.json"),
       join(home, ".config", "codex", "usage.json"),
       join(home, ".openai", "usage.json"),
     ];
@@ -374,38 +367,75 @@ export class CodexCollector extends BaseTieredCollector {
               ? parsed.remainingPercentage
               : typeof parsed.quotaRemaining === "number"
                 ? parsed.quotaRemaining
-                : 90;
-          return {
-            sourceTier: "tier2_local_storage",
-            metrics: [
-              {
-                rawMetricName: "local_codex_usage",
-                canonicalProvider: "openai",
-                windowType: "monthly",
-                remainingPercentage: Math.max(0, Math.min(100, remaining)),
-                sourceTier: "tier2_local_storage",
-                confidence: "inferred_metric",
-                rawPayload: parsed,
-              },
-            ],
-            rawObservations: { storagePath: filePath, content: parsed },
-          };
+                : undefined;
+
+          if (remaining !== undefined) {
+            return {
+              sourceTier: "tier2_local_storage",
+              metrics: [
+                {
+                  rawMetricName: "local_codex_usage",
+                  canonicalProvider: "openai",
+                  windowType: "monthly",
+                  remainingPercentage: Math.max(0, Math.min(100, remaining)),
+                  sourceTier: "tier2_local_storage",
+                  confidence: "cached",
+                  rawPayload: parsed,
+                },
+              ],
+              rawObservations: { storagePath: filePath, content: parsed },
+            };
+          }
+
+          if (
+            parsed.tokens ||
+            parsed.session_token ||
+            parsed.auth_token ||
+            parsed.account ||
+            parsed.user_id ||
+            parsed.plan_type
+          ) {
+            return {
+              sourceTier: "tier2_local_storage",
+              metrics: [
+                {
+                  rawMetricName: "cached_codex_auth",
+                  canonicalProvider: "openai",
+                  windowType: "session",
+                  remainingPercentage: 100,
+                  sourceTier: "tier2_local_storage",
+                  confidence: "cached",
+                  rawPayload: parsed,
+                },
+              ],
+              rawObservations: { storagePath: filePath, content: parsed },
+            };
+          }
         } catch {
-          return {
-            sourceTier: "tier2_local_storage",
-            metrics: [
-              {
-                rawMetricName: "local_storage_file",
-                canonicalProvider: "openai",
-                windowType: "session",
-                remainingPercentage: 100,
-                sourceTier: "tier2_local_storage",
-                confidence: "heuristic",
-                rawPayload: { filePath },
-              },
-            ],
-            rawObservations: { storagePath: filePath },
-          };
+          // If it's a TOML or text config file (like config.toml)
+          if (
+            filePath.endsWith(".toml") &&
+            (content.includes("[auth]") ||
+              content.includes("api_key") ||
+              content.includes("session") ||
+              content.includes("model"))
+          ) {
+            return {
+              sourceTier: "tier2_local_storage",
+              metrics: [
+                {
+                  rawMetricName: "cached_codex_config",
+                  canonicalProvider: "openai",
+                  windowType: "session",
+                  remainingPercentage: 100,
+                  sourceTier: "tier2_local_storage",
+                  confidence: "cached",
+                  rawPayload: { rawConfig: content },
+                },
+              ],
+              rawObservations: { storagePath: filePath, rawConfig: content },
+            };
+          }
         }
       }
     }
@@ -415,8 +445,8 @@ export class CodexCollector extends BaseTieredCollector {
   protected async probeTier3Runtime(): Promise<TierResult | null> {
     const env = this.env.env;
     const detected: string[] = [];
-    if (env.CODEX_API_KEY) detected.push("CODEX_API_KEY");
     if (env.OPENAI_API_KEY) detected.push("OPENAI_API_KEY");
+    if (env.CODEX_API_KEY) detected.push("CODEX_API_KEY");
     if (env.CODEX_SESSION_ID) detected.push("CODEX_SESSION_ID");
 
     if (detected.length > 0) {
@@ -429,7 +459,7 @@ export class CodexCollector extends BaseTieredCollector {
             windowType: "session",
             remainingPercentage: 100,
             sourceTier: "tier3_runtime",
-            confidence: "heuristic",
+            confidence: "inferred_metric",
             rawPayload: { detectedVariables: detected },
           },
         ],
@@ -437,5 +467,9 @@ export class CodexCollector extends BaseTieredCollector {
       };
     }
     return null;
+  }
+
+  protected override getTerminalReason(): string {
+    return "No Codex Sessions · No API Key";
   }
 }
