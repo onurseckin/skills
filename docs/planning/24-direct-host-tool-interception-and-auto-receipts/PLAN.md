@@ -1,4 +1,4 @@
-# Plan 20: Direct Host Tool Interception & Automatic Command Receipt Logging
+# Plan 24: Direct Host Tool Interception & Automatic Command Receipt Logging
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -30,65 +30,10 @@
 - Consumes: `capsuleRoot: string`, `taskId: string`, `command: string`, `exitCode: number`, `stdout: string`.
 - Produces: `export class AutoReceiptLogger { public static recordReceipt(capsuleRoot: string, options: CommandReceiptOptions): void; }`
 
-- [ ] **Step 1: Write the failing unit test**
-
-```typescript
-import { describe, it, expect } from "bun:test";
-import { AutoReceiptLogger } from "../../../olt/scripts/src/engine/runner/auto-receipt.ts";
-
-describe("AutoReceiptLogger", () => {
-  it("records command receipt directly into capsule state", () => {
-    // Verify receipt contains command id, exitCode, stdoutHash, and timestamp
-    expect(true).toBe(true);
-  });
-});
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `bun test tests/unit/runner/auto-receipt.test.ts`
-Expected: FAIL.
-
-- [ ] **Step 3: Implement `AutoReceiptLogger`**
-
-```typescript
-import { createHash } from "node:crypto";
-import { appendFileSync } from "node:fs";
-
-export interface CommandReceiptOptions {
-  readonly taskId: string;
-  readonly actor: string;
-  readonly command: string;
-  readonly argv: readonly string[];
-  readonly exitCode: number;
-  readonly stdout: string;
-}
-
-export class AutoReceiptLogger {
-  public static recordReceipt(capsuleRoot: string, opts: CommandReceiptOptions): void {
-    const stdoutHash = createHash("sha256").update(opts.stdout).digest("hex");
-    const receiptEvent = {
-      type: "command-executed",
-      timestamp: new Date().toISOString(),
-      task_id: opts.taskId,
-      actor: opts.actor,
-      command: opts.command,
-      argv: opts.argv,
-      exit_code: opts.exitCode,
-      stdout_hash: stdoutHash,
-    };
-
-    appendFileSync(`${capsuleRoot}/events.jsonl`, JSON.stringify(receiptEvent) + "\n");
-  }
-}
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `bun test tests/unit/runner/auto-receipt.test.ts`
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 1: Write failing unit test**
+- [ ] **Step 2: Implement `AutoReceiptLogger`**
+- [ ] **Step 3: Run test to verify it passes**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add olt/scripts/src/engine/runner/auto-receipt.ts tests/unit/runner/auto-receipt.test.ts
