@@ -22,6 +22,7 @@ __pycache__/
 scratch/
 .scratch/
 .tmp/
+coverage.json
 
 # test temporary sandbox
 tests/.tmp/
