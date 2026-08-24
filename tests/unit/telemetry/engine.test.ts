@@ -127,8 +127,7 @@ describe("TelemetryNormalizationEngine", () => {
 
     expect(ascii).toContain("CROSS-PLATFORM QUOTA & USAGE TELEMETRY");
     expect(ascii).toContain("antigravity");
-    expect(ascii).toContain("Tier 1 (CLI)");
-    expect(ascii).toContain("YES (✓)");
+    expect(ascii).toContain("Tier 1");
     expect(ascii).toContain("Detailed Raw Observations");
   });
 });

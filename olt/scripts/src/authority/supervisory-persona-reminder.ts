@@ -34,7 +34,8 @@ export type DecisionProtocolId =
   | "strict_tier_hierarchy"
   | "infinite_pulse_cadence"
   | "dual_channel_validation"
-  | "standardized_agent_naming";
+  | "standardized_agent_naming"
+  | "quota_freeze_zero_kill_resume";
 
 export interface DecisionProtocolDefinition {
   readonly id: DecisionProtocolId;
@@ -185,6 +186,21 @@ export const DECISION_PROTOCOLS: Readonly<Record<DecisionProtocolId, DecisionPro
         "Register and dispatch all agents with standardized IDs according to role tier and scope binding.",
       applicableTiers: [0, 1, 2, 3],
     },
+    quota_freeze_zero_kill_resume: {
+      id: "quota_freeze_zero_kill_resume",
+      name: "Quota Freeze, Zero-Kill & Auto-Wake Resume",
+      summary:
+        "Upon encountering <5% quota (QUOTA_EXHAUSTED_CIRCUIT_BROKEN), gracefully suspend crons without killing active subagents, entering an IDLE state. Resume on sentinel.",
+      formulaOrRule: "Quota < 5% -> Suspend Crons + Preserve State + Zero-Kill",
+      keyInvariants: [
+        "Zero-Kill Invariant: Active subagents are NEVER terminated during quota freeze (`manage_subagents kill` forbidden during freeze).",
+        "Cron Suspension: Halt recurring background crons (`mind:pulse`, live auditors).",
+        "Auto-Wake Resume: Upon single one-shot auto-wake sentinel notification (+60s buffer), re-register stopped crons and resume execution at exact DAG coordinates from `.olt/quota-dag-snapshot.json`.",
+      ],
+      operationalGuidance:
+        "During Quota Freeze, do not kill any active subagents, pause all supervisory schedules, and await auto-wake sentinel to resume.",
+      applicableTiers: [0, 1, 2],
+    },
   };
 
 // ---------------------------------------------------------------------------
@@ -245,6 +261,16 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     verificationCriteria: "All child spawns belong to Tier 1 (`orchestrator`).",
     protocolKey: "strict_tier_hierarchy",
     targetRoles: ["mind"],
+  },
+  {
+    id: "RESP-MIND-005",
+    category: "governance",
+    title: "Quota Freeze Resilience & Zero-Kill Enforcement",
+    mandate:
+      "Suspend crons on Quota Freeze, never kill active subagents, and resume upon auto-wake sentinel.",
+    verificationCriteria: "No subagents are killed during Quota Freeze; crons are suspended.",
+    protocolKey: "quota_freeze_zero_kill_resume",
+    targetRoles: ["mind", "orchestrator", "coordinator"],
   },
 
   // Orchestrator / Tier 1 Checklists

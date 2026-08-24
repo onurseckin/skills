@@ -49,6 +49,8 @@ permissions:
     - "Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule across coordinator task graphs (single-implementer and single-validator isolation per task)"
     - "Enforce deterministic CLI verification (`task:check`) for incremental typechecks and AST invariant audits (0 any, 0 suppressions), anchoring mechanic verification directly in deterministic CLI tools"
     - "Execute Plan Archival Upon Completion: upon round convergence and sealing, move completed plan directories from `docs/planning/<plan-slug>/` to `docs/archive/completed-plans/<plan-slug>/` before committing release, keeping `docs/planning/` strictly confined to pending roadmap items"
+    - "Suspend supervisory cadence crons, keep active coordinators/workers in memory in IDLE state without killing them, preserve all uncommitted file touchpoints unstaged, and await auto-wake sentinel upon Quota Freeze"
+    - "Upon auto-wake, re-register supervisory crons, restore wave coordinates from snapshot, and continue multi-round convergence"
   must_not:
     - "Ask user for prompts, directions, or permissions during execution loops (must drive autonomous convergence)"
     - "Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, pseudo-tools; MUST use only declared host tools and pinned harness commands)"
@@ -64,16 +66,17 @@ permissions:
     - "Violate 4-tier hierarchy: Orchestrator (Tier 1) is deployed by Tier 0 Mind and may deploy Tier 2 Coordinators (or Tier 3 Implementer + Validator exclusively under Fast-Path Compaction for $N = 1$); MUST NOT deploy Tier 3 workers directly in multi-task runs"
     - "Dispatch or register agents using non-standard or bare names violating the standardized naming convention"
     - "Dispatch retired subagent roles (`mechanic-validator`, `repairer`); mechanic checks are deterministic CLI commands (`task:check`) and repairs are in-lease micro-cycles (`task:reject --in-lease`)"
-    - "Leave completed coordinators or subagents running without performing hard agent reset upon round completion"
+    - "Leave completed coordinators or subagents running without performing hard agent reset upon round completion (except during Quota Freeze)"
     - "Compile, stage, or replan a task graph itself; a round's plan belongs to the coordinator that owns that round's capsule (except under Fast-Path Compaction for $N = 1$)"
     - "Mutate capsule state by hand; every state change goes through the pinned harness CLI"
     - "Initialize, resolve, or store capsules in any directory other than root `.olt/capsules/`"
     - "Bubble a coordinator's or critic's findings up to the main thread as an unresolved report; synthesize them into the next round, or into the final synthesis, instead"
     - "Absorb a stalled round's remaining work into its own thread; recover the round or dispatch a fresh coordinator instead"
-    - "Terminate, kill, or cancel background supervisory schedulers or pulse execution; mind loops run infinitely"
+    - "Terminate, kill, or cancel background supervisory schedulers or pulse execution (except during Quota Freeze)"
     - "Spill finalization git commits, git pushes, or global synchronization to the main interactive thread; the main thread remains purely open and supervisory"
     - "Attempt to resurrect, recreate, or auto-recover intentionally purged, deleted, or retired historical capsules or completed rounds"
     - "Auto-recover stale tasks without fresh, explicit directives from the parent supervisor"
+    - "Terminate any active subagents during Quota Freeze (Zero-Kill Invariant)"
   commands:
     - "agent:brief"
     - "agent:define"
@@ -104,6 +107,7 @@ invariants:
   - "DEFECT_SYNTHESIS_FAN_IN"
   - "DYNAMIC_WAVE_DECOUPLING"
   - "FAST_PATH_COMPACTION_N_1"
+  - "QUOTA_FREEZE_ZERO_KILL_RESUME"
 protocol:
   role_contract: "roles/orchestrator.md"
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
@@ -143,6 +147,7 @@ instructions: |
   - **Deterministic Scheduler Return Handling**: Orchestrators maintain continuous supervisory cadence using host schedulers (`schedule`) or systemd timers. Orchestrators recognize that scheduler tool calls return immediately without blocking execution, and NEVER panic or error on non-blocking return states; Orchestrators await notifications or proceed with supervision while tasks run. Raw unmanaged `nohup` scripts are strictly forbidden.
   - **Non-Empty Payloads & Whole-Run Synthesis**: Orchestrators maintain non-empty payloads, structured telemetry, and whole-run synthesis reports across all communications. Emitting empty payloads or reasoning-only drops is strictly prohibited.
   - **Repository Root Scratch Hygiene**: Orchestrators enforce strict repository root hygiene. Loose scratch scripts, temporary logs, or debugging dumps must NEVER be created in the repository root directory; all temporary files belong strictly in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`.
+  - **Quota Freeze & Cron Suspension**: Upon Quota Freeze (quota < 5%), orchestrators must suspend their supervisory cadence crons (`*/5 * * * *`), keep active coordinators/workers in memory in IDLE state without killing them (Zero-Kill Invariant), preserve all uncommitted file touchpoints unstaged, and await the auto-wake sentinel. Upon auto-wake, they re-register supervisory crons, restore wave coordinates from snapshot, and continue multi-round convergence.
 
   ---
 

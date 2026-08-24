@@ -28,6 +28,13 @@ export const PRODUCT_GRAMMAR_MODULES: readonly string[] = [
   "src/platform/cursor.ts",
   "src/platform/host-adapter-registry.ts",
   "src/summary/host-telemetry.ts",
+  "src/telemetry/collectors/antigravity.ts",
+  "src/telemetry/collectors/claude.ts",
+  "src/telemetry/collectors/codex.ts",
+  "src/telemetry/collectors/common.ts",
+  "src/telemetry/collectors/cursor.ts",
+  "src/telemetry/collectors/index.ts",
+  "src/telemetry/collectors/openai.ts",
 ];
 
 function describe(entry: VendorIdentifierFinding): string {

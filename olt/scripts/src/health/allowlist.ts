@@ -121,6 +121,26 @@ export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
     reason:
       "B37's own resolution note names this file as '(gitignored, 426 lines)' in the same sentence that cites it - it is CLAUDE.md's `.tmp/` ephemeral-scratch convention by design, produced once to drive the real harness for B37's fixture-demo verification and never meant to be checked in. Its absence from the scanned tree is the convention working, not a requirement that went unmet.",
   },
+  {
+    key: "unqualified-dispatch:skill:references/failure-modes.md:159:invoke_subagent",
+    check: "vendor-prose",
+    reason: "Antigravity host failure-mode documentation explaining subagent invocation mechanics.",
+  },
+  {
+    key: "unqualified-dispatch:skill:references/host-environment.md:62:invoke_subagent",
+    check: "vendor-prose",
+    reason: "Antigravity host environment reference describing available subagent dispatch APIs.",
+  },
+  {
+    key: "unqualified-dispatch:skill:references/host-environment.md:62:define_subagent",
+    check: "vendor-prose",
+    reason: "Antigravity host environment reference describing subagent definition APIs.",
+  },
+  {
+    key: "unqualified-dispatch:skill:references/host-environment.md:84:invoke_subagent",
+    check: "vendor-prose",
+    reason: "Antigravity host environment reference describing subagent dispatch semantics.",
+  },
 ];
 
 export function assertAllowancesHaveReasons(

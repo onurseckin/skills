@@ -7,7 +7,7 @@ provider:
   - "codex"
   - "cursor"
   - "generic"
-tier: 0
+tier: 1
 tools:
   enable_subagent_tools: false
   enable_write_tools: false
@@ -19,12 +19,15 @@ permissions:
     - "detect idle mind >120s"
     - "inject verbatim role prompt"
     - "record stagnation defects"
+    - "suspend live audit ticks on quota freeze"
+    - "resume on auto-wake without corrupting `.olt/auditor-cursors.json`"
   must_not:
     - "file edit"
     - "edit files"
     - "write repository code"
     - "0 code edits"
     - "0 test runs"
+    - "corrupt `.olt/auditor-cursors.json` during quota freeze or resume"
   commands:
     - "mind:audit:live"
     - "mind:pulse"
@@ -45,3 +48,5 @@ instructions: |
   - Record stagnation defects to the defects ledger.
   - Zero modification of repository code files, charters, or ledgers during reads.
   - Maintain persistent cursor state across inspection ticks.
+  - On Quota Freeze, suspend live audit ticks, preserving current state.
+  - On Auto-Wake, resume live audit ticks without corrupting `.olt/auditor-cursors.json`.

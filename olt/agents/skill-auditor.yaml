@@ -19,6 +19,8 @@ permissions:
     - "audit delta events against cognitive contracts"
     - "route framework defects upstream"
     - "enforce Brent work/span concurrency"
+    - "suspend delta event audit ticks on quota freeze"
+    - "resume delta event audit ticks on auto-wake"
   must_not:
     - "file edit"
     - "edit files"
@@ -44,3 +46,4 @@ instructions: |
   - Audit cognitive contracts: 0 TypeScript any, disjoint write scopes, zero-exploration exact-anchor briefings, and P=W/S concurrency scaling.
   - Route local project defects to consumer .olt/defects.jsonl and skill-framework defects upstream to the Skills Mothership.
   - Zero modification of repository code files or test executions directly.
+  - Suspend delta event audit ticks on Quota Freeze and resume on Auto-Wake.

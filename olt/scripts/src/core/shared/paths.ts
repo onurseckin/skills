@@ -16,6 +16,7 @@ export const OLT_FILES = {
   MEMORY: "memory.json",
   WATCHDOGS: "watchdogs.json",
   SKILL_CONFIG: "skill-config.json",
+  QUOTA_DAG_SNAPSHOT: "quota-dag-snapshot.json",
 } as const;
 
 function unsafe(message: string): never {
@@ -205,6 +206,12 @@ export function resolveWatchdogsPath(repoRoot?: string, customPath?: string): st
   if (customPath && customPath.trim()) return resolve(customPath.trim());
   const root = resolveSafeRoot(repoRoot);
   return join(root, OLT_DIR_NAME, OLT_FILES.WATCHDOGS);
+}
+
+export function resolveQuotaDagSnapshotPath(repoRoot?: string, customPath?: string): string {
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  const root = resolveSafeRoot(repoRoot);
+  return join(root, OLT_DIR_NAME, OLT_FILES.QUOTA_DAG_SNAPSHOT);
 }
 
 export function resolveEvidenceDir(repoRoot?: string, runRoot?: string): string {

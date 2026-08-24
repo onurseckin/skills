@@ -28,6 +28,57 @@ export function formatTierBadge(tier: TierType | null): string {
   }
 }
 
+export function formatPreciseProgressBar(percentage: number, width = 6): string {
+  const clamped = Math.max(0, Math.min(100, percentage));
+  const filled = Math.round((clamped / 100) * width);
+  const empty = Math.max(0, width - filled);
+  const bar = "█".repeat(filled) + "░".repeat(empty);
+  const formattedPct = percentage % 1 === 0 ? `${percentage}%` : `${percentage.toFixed(2)}%`;
+  return `[${bar}] ${formattedPct}`;
+}
+
+export function formatResetTime(metric: NormalizedQuotaMetric): string {
+  const rawPayload = metric.rawPayload;
+  const quotaInfo =
+    typeof rawPayload?.quotaInfo === "object" && rawPayload?.quotaInfo !== null
+      ? (rawPayload.quotaInfo as Record<string, unknown>)
+      : rawPayload;
+  const resetTimeStr = typeof quotaInfo?.resetTime === "string" ? quotaInfo.resetTime : undefined;
+
+  if (resetTimeStr) {
+    const resetDate = new Date(resetTimeStr);
+    const now = new Date();
+    const diffMs = resetDate.getTime() - now.getTime();
+    if (diffMs > 0) {
+      const diffMins = Math.floor(diffMs / 60000);
+      const hours = Math.floor(diffMins / 60);
+      const mins = diffMins % 60;
+      if (hours > 0) {
+        return `in ${hours}h ${mins}m`;
+      }
+      return `in ${mins}m`;
+    }
+    return "Refreshed";
+  }
+
+  if (metric.windowType === "session") return "Session Active";
+  if (metric.windowType === "daily") return "Daily Cached";
+  return "Available";
+}
+
+export function formatTierShort(tier: TierType | null): string {
+  switch (tier) {
+    case "tier1_cli_command":
+      return "Tier 1";
+    case "tier2_local_storage":
+      return "Tier 2";
+    case "tier3_runtime":
+      return "Tier 3";
+    default:
+      return "None";
+  }
+}
+
 export class TelemetryNormalizationEngine {
   private readonly collectors: Map<string, TelemetryCollector> = new Map();
 
@@ -114,40 +165,72 @@ export class TelemetryNormalizationEngine {
   public formatAsciiReport(report: UnifiedTelemetryReport, detailed = false): string {
     const lines: string[] = [];
 
-    lines.push("┌─────────────────────────────────────────────────────────────────────────────┐");
-    lines.push("│                 CROSS-PLATFORM QUOTA & USAGE TELEMETRY                      │");
-    lines.push("├──────────────┬────────────┬──────────────────┬─────────────────┬────────────┤");
-    lines.push("│ Platform     │ Detected   │ Active Tier      │ Quota / Metric  │ Confidence │");
-    lines.push("├──────────────┼────────────┼──────────────────┼─────────────────┼────────────┤");
+    lines.push(
+      "┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐",
+    );
+    lines.push(
+      "│                                   CROSS-PLATFORM QUOTA & USAGE TELEMETRY                                         │",
+    );
+    lines.push(
+      "├──────────────┬────────────────────────────────┬────────────┬───────────────────┬──────────────────┬──────────────┤",
+    );
+    lines.push(
+      "│ Platform     │ Model / Resource               │ Window     │ Quota Remaining   │ Reset / Status   │ Tier (Conf)  │",
+    );
+    lines.push(
+      "├──────────────┼────────────────────────────────┼────────────┼───────────────────┼──────────────────┼──────────────┤",
+    );
 
-    for (const res of report.results) {
+    for (let rIdx = 0; rIdx < report.results.length; rIdx++) {
+      const res = report.results[rIdx]!;
       const platformPad = res.platformId.padEnd(12).slice(0, 12);
-      const detectedPad = (res.isDetected ? "YES (✓)" : "NO  (·)").padEnd(10).slice(0, 10);
-      const tierPad = formatTierBadge(res.primaryTierUsed).padEnd(16).slice(0, 16);
+      const tierShort = formatTierShort(res.primaryTierUsed);
 
       if (res.metrics.length === 0) {
-        const metricPad = "None".padEnd(15).slice(0, 15);
-        const confPad = (res.isDetected ? "heuristic" : "none").padEnd(10).slice(0, 10);
-        lines.push(`│ ${platformPad} │ ${detectedPad} │ ${tierPad} │ ${metricPad} │ ${confPad} │`);
+        const modelPad = "None".padEnd(30).slice(0, 30);
+        const winPad = "-".padEnd(10).slice(0, 10);
+        const barPad = (res.isDetected ? "Detected (No Quota)" : "Not Detected")
+          .padEnd(17)
+          .slice(0, 17);
+        const resetPad = "None".padEnd(16).slice(0, 16);
+        const confPad = (res.isDetected ? `${tierShort} (heur)` : "None (none)")
+          .padEnd(12)
+          .slice(0, 12);
+        lines.push(
+          `│ ${platformPad} │ ${modelPad} │ ${winPad} │ ${barPad} │ ${resetPad} │ ${confPad} │`,
+        );
       } else {
         for (let mIdx = 0; mIdx < res.metrics.length; mIdx++) {
           const metric = res.metrics[mIdx]!;
-          const bar = renderProgressBar(metric.remainingPercentage, 6);
-          const barPad = bar.padEnd(15).slice(0, 15);
-          const confPad = metric.confidence.padEnd(10).slice(0, 10);
+          const modelName = (metric.rawMetricName || "default").padEnd(30).slice(0, 30);
+          const winPad = (metric.windowType || "-").padEnd(10).slice(0, 10);
+          const bar = formatPreciseProgressBar(metric.remainingPercentage, 6);
+          const barPad = bar.padEnd(17).slice(0, 17);
+          const resetStr = formatResetTime(metric).padEnd(16).slice(0, 16);
+          const confStr = `${tierShort} (${metric.confidence.slice(0, 4)})`.padEnd(12).slice(0, 12);
 
           if (mIdx === 0) {
-            lines.push(`│ ${platformPad} │ ${detectedPad} │ ${tierPad} │ ${barPad} │ ${confPad} │`);
+            lines.push(
+              `│ ${platformPad} │ ${modelName} │ ${winPad} │ ${barPad} │ ${resetStr} │ ${confStr} │`,
+            );
           } else {
             lines.push(
-              `│ ${" ".repeat(12)} │ ${" ".repeat(10)} │ ${" ".repeat(16)} │ ${barPad} │ ${confPad} │`,
+              `│ ${" ".repeat(12)} │ ${modelName} │ ${winPad} │ ${barPad} │ ${resetStr} │ ${confStr} │`,
             );
           }
         }
       }
+
+      if (rIdx < report.results.length - 1) {
+        lines.push(
+          "├──────────────┼────────────────────────────────┼────────────┼───────────────────┼──────────────────┼──────────────┤",
+        );
+      }
     }
 
-    lines.push("└──────────────┴────────────┴──────────────────┴─────────────────┴────────────┘");
+    lines.push(
+      "└──────────────┴────────────────────────────────┴────────────┴───────────────────┴──────────────────┴──────────────┘",
+    );
     lines.push("");
 
     const detected = report.summary.detectedPlatforms ?? 0;
@@ -157,6 +240,39 @@ export class TelemetryNormalizationEngine {
     const lowest = report.summary.lowestRemainingQuota;
     if (typeof lowest === "number") {
       lines.push(`- **Lowest Remaining Quota**: ${lowest}%`);
+    }
+
+    const accountBadges: string[] = [];
+    for (const res of report.results) {
+      if (res.platformId === "antigravity" && res.rawObservations.userTier) {
+        const userTier = res.rawObservations.userTier as Record<string, unknown>;
+        const tierName = userTier.name || "Google AI Ultra";
+        const email = res.rawObservations.email ? `${res.rawObservations.email}` : "";
+        const credits =
+          Array.isArray(userTier.availableCredits) && userTier.availableCredits[0]
+            ? `${(userTier.availableCredits[0] as Record<string, unknown>).creditAmount ?? 0} Credits`
+            : "";
+        const plan = res.rawObservations.plan ? `Plan: ${res.rawObservations.plan}` : "";
+        const parts = [tierName, credits, plan, email].filter(Boolean);
+        accountBadges.push(`\`[antigravity]\` ${parts.join(" · ")}`);
+      }
+
+      if (res.platformId === "claude" && res.rawObservations.email) {
+        const email = String(res.rawObservations.email);
+        const billing = res.rawObservations.billingType
+          ? `Billing: ${res.rawObservations.billingType}`
+          : "";
+        const plan = res.rawObservations.planTier ? `Plan: ${res.rawObservations.planTier}` : "";
+        const parts = [email, plan, billing].filter(Boolean);
+        accountBadges.push(`\`[claude]\` ${parts.join(" · ")}`);
+      }
+    }
+
+    if (accountBadges.length > 0) {
+      lines.push(`- **Account Badges**:`);
+      for (const badge of accountBadges) {
+        lines.push(`  - ${badge}`);
+      }
     }
 
     const warnings = Array.isArray(report.summary.activeWarnings)

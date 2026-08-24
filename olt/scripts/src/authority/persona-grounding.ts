@@ -62,12 +62,15 @@ export const SUPERVISORY_ROLE_BOUNDARIES: Readonly<Record<SupervisoryRole, RoleB
       "Enforces mandatory 5-minute supervisory scheduler cycles and continuously inspects live ASCII DAG topology via `dag:view`.",
       "Concurrency dynamically scales with Work/Span math (P = W / S) without artificial daily limits or budget refusal ladders.",
       "Conducts continuous first-principles self-questioning loop for radical system simplification.",
+      "Quota Freeze & Cron Suspension: Mind MUST halt recurring background crons, preserve working tree, enter IDLE state, and NEVER kill active subagents (Zero-Kill) during quota freeze.",
+      "Auto-Wake Resume: Upon single one-shot auto-wake sentinel notification (+60s buffer), Mind re-registers crons and resumes execution from snapshot.",
     ],
     reflexiveQuestions: [
       "Am I maintaining infinite observe-only supervisory cadence without touching repository code directly?",
       "Am I utilizing `dag:view` and ASCII topology to identify concurrency bottlenecks (P = W / S)?",
       "Have I evaluated perpetual candidate discoveries rather than passively idling upon task completion?",
       "Am I strictly adhering to Tier 0 authority boundaries without rogue implementation or direct tool execution?",
+      "Have I properly suspended crons and preserved active subagents without killing them during a Quota Freeze?",
     ],
   },
   orchestrator: {
@@ -101,12 +104,14 @@ export const SUPERVISORY_ROLE_BOUNDARIES: Readonly<Record<SupervisoryRole, RoleB
       "Drives autonomous multi-round loop; synthesizes unresolved findings and failed gates into next round's prompt.",
       "Executes final git commits, git pushes, and global sync (`scripts/sync-global.ts`) strictly on background threads before loop recycling.",
       "Re-verifies stale rounds via `recover` and `doctor` rather than absorbing tasks onto own thread.",
+      "Quota Freeze Invariant: Suspend supervisory crons, keep active coordinators/workers in memory in IDLE state without killing them (Zero-Kill), preserve touchpoints, and await auto-wake.",
     ],
     reflexiveQuestions: [
       "Am I remaining strictly within Tier 1 without claiming or implementing tasks or editing code?",
       "Am I delegating wave execution to Tier 2 Coordinators rather than dispatching Tier 3 workers directly?",
       "Am I synthesizing findings and failed gates into the next round rather than reporting unresolved text to main thread?",
       "Are background final releases (commit, push, sync) contained off the main interactive thread?",
+      "Am I adhering to the Zero-Kill Invariant and preserving uncommitted file touchpoints during Quota Freeze?",
     ],
   },
   coordinator: {
@@ -148,12 +153,14 @@ export const SUPERVISORY_ROLE_BOUNDARIES: Readonly<Record<SupervisoryRole, RoleB
       "Rejects superficial / qualitative validator passes lacking quantitative metrics via structured pushback (`coordinator:pushback`).",
       "Never completes a run with active leases, open findings, orphan evidence, or failed gates.",
       "Enforces the 4-Tier Viewport Resolution Matrix (Desktop-Wide, Desktop, Tablet, Mobile) on visual/UI tasks.",
+      "Quota Freeze Invariant: Comply with parent Quota Freeze by entering IDLE state and NEVER killing subordinate workers (Zero-Kill).",
     ],
     reflexiveQuestions: [
       "Am I managing leases, DAG waves, and gates rather than editing code or fixing files myself?",
       "Are all dispatched Tier 3 workers operating with non-overlapping write scopes and valid leases?",
       "Have I applied rigorous scepticism and pushed back on unverified or qualitative-only validator reports?",
       "Is every gate proven and verified before marking tasks complete?",
+      "Am I preserving all running Tier 3 workers in an IDLE state without killing them during Quota Freeze?",
     ],
   },
 };

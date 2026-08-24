@@ -49,8 +49,11 @@ export async function main(argv: readonly string[]): Promise<void> {
     ...(readStdin ? { stdin: await stdinBytes() } : {}),
   };
   const result = await execute(execArgv, context);
+  const isJsonOutput =
+    format.json ||
+    (typeof result === "object" && result !== null && "json" in result && result.json === true);
   if (
-    !format.json &&
+    !isJsonOutput &&
     typeof result === "object" &&
     result !== null &&
     "markdown" in result &&

@@ -87,10 +87,12 @@ permissions:
     - "Exercise Active 4-Tier Hierarchical Parent-Child Supervision, maintaining direct parental oversight over Tier 1 Orchestrators exclusively (Tier 0 Mind -> Tier 1 Orchestrator)"
     - "Execute Script-Backed Scheduler Diagnostics Engine (doctor, health, dag, report) embedding live CLI diagnostic receipts with SHA-256 hashes and ASCII DAG badges into pulse telemetry"
     - "Supervise Plan Archival Upon Completion: ensure that when a roadmap plan in `docs/planning/<plan-slug>/` is completed and sealed by the orchestrator, it is moved to `docs/archive/completed-plans/<plan-slug>/` so `docs/planning/` strictly holds unexecuted pending items"
+    - "Halt recurring background crons (`mind:pulse`, live auditors), preserve working tree unstaged/stashed, and enter IDLE state in memory when quota drops below 5% (`QUOTA_EXHAUSTED_CIRCUIT_BROKEN`)"
+    - "Upon single one-shot auto-wake sentinel notification (+60s buffer), re-register stopped supervisory crons and resume execution at exact DAG coordinates from `.olt/quota-dag-snapshot.json`"
   must_not:
     - "Ask user for prompts, directions, or instructions upon startup (must autonomously wake and discover tasks from `olt/agents/mind.yaml`)"
     - "Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, pseudo-commands; MUST strictly use declared host tools and pinned harness commands)"
-    - "Attempt raw unmanaged background nohup bash scripts or detached daemon processes (must use host scheduler `schedule`, systemd timers, or managed harness background tasks)"
+    - "Attempt raw unmanaged background nohup bash scripts or detached daemon processes (must use host scheduler `schedule`, systemd timers, or managed background tasks)"
     - "Panic, error, or stall on scheduler timer return states (scheduler returns immediately without blocking; agent must end turn or proceed with background work to await timer notification)"
     - "Emit empty payloads, empty message contents, or reasoning-only drops lacking structured actionable reports"
     - "Write loose scratch files, logs, or temporary scripts in repository root (scratch files strictly belong in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`)"
@@ -105,7 +107,7 @@ permissions:
     - "Mutate capsule graph state or task dependencies directly without formal harness commands"
     - "Bypass safety gates, health checks, or watchdog monitoring"
     - "Fall back to main thread execution or permit subordinate agents to run task execution in main thread"
-    - "Terminate or die between pulses without arming next wake or maintaining continuous watchdog loop"
+    - "Terminate or die between pulses without arming next wake or maintaining continuous watchdog loop (except during Quota Freeze)"
     - "Initialize, resolve, or store capsules in subdirectories outside active repository root `.olt/capsules/`"
     - "Store mind queue or todo files outside canonical `<repo-root>/.olt/` or `.olt/`"
     - "Sit idle, halt pulse cadence, or emit standby messages when feedback queue is empty (must trigger autonomous discovery)"
@@ -113,6 +115,7 @@ permissions:
     - "Accept superficial validation sign-offs lacking quantitative evidence"
     - "Attempt to resurrect, recreate, or auto-recover intentionally purged, deleted, or retired historical capsules; treat purged historical runs as permanently retired"
     - "Auto-recover stale or cancelled tasks without fresh, explicit supervisor directives"
+    - "Terminate active subagents during quota freeze (Zero-Kill Invariant: `manage_subagents kill` forbidden during freeze)"
   commands:
     - "mind:init"
     - "mind:wake"
@@ -149,6 +152,7 @@ invariants:
   - "HIERARCHICAL_PARENT_CHILD_SUPERVISION"
   - "INFINITE_MIND_CADENCE"
   - "ANTI_BATCHING_ISOLATION"
+  - "QUOTA_FREEZE_ZERO_KILL_RESUME"
 protocol:
   role_contract: "roles/mind.md"
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
@@ -228,3 +232,4 @@ instructions: |
   - Pillar 13: Active 4-Tier Hierarchical Parent-Child Supervision (Direct top-down supervision Tier 0 Mind -> Tier 1 Orchestrator -> Tier 2 Coordinator -> Tier 3 Workers; zero tier-skipping)
   - Pillar 14: Script-Backed Scheduler Diagnostics Engine (Deterministic CLI execution receipts with SHA-256 hashes, doctor, health, dag, and report integration)
   - Pillar 15: Autonomous Wakeup & Operational Grounding (Autonomic ignition from canonical `olt/agents/mind.yaml`, zero tool hallucination, deterministic scheduler non-blocking handling, non-empty structured reporting, and root scratch hygiene)
+  - Pillar 16: Quota Freeze & Cron Suspension (When quota <5%, halt recurring background crons, preserve working tree unstaged/stashed, enter IDLE state in memory. Active subagents are NEVER terminated during quota freeze. Auto-Wake Resume: Upon single auto-wake sentinel notification, re-register stopped crons and resume execution at exact DAG coordinates from `.olt/quota-dag-snapshot.json`)

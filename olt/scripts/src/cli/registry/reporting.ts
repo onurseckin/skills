@@ -16,6 +16,9 @@ import { exportGraphJsonCommand } from "../commands/graph-export.ts";
 import { dagViewCommand } from "../commands/dag-view.ts";
 import { dagRenderCommand, dagTraceCommand } from "../commands/dag.ts";
 import { usageReportCommand } from "../commands/usage-report.ts";
+import { quotaCheckCommand } from "../commands/quota-check.ts";
+import { quotaFreezeCommand } from "../commands/quota-freeze.ts";
+import { quotaResumeCommand } from "../commands/quota-resume.ts";
 import { skillAuditLiveCommand } from "../commands/skill-audit-live.ts";
 
 export {
@@ -34,6 +37,9 @@ export {
   dagRenderCommand,
   dagTraceCommand,
   usageReportCommand,
+  quotaCheckCommand,
+  quotaFreezeCommand,
+  quotaResumeCommand,
   skillAuditLiveCommand,
 };
 
@@ -358,6 +364,94 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts usage:report --detailed",
     ],
     handler: usageReportCommand,
+  },
+  {
+    name: "quota:check",
+    aliases: [
+      "quota:circuit-break",
+      "circuit-breaker:check",
+      "circuit-break",
+      "quota:circuit-breaker",
+    ],
+    domain: "reporting",
+    summary:
+      "Evaluate quota circuit-breaker status, wrap-up directives, and auto-wake timer schedule.",
+    description:
+      "Probes cross-platform quota telemetry, detects exhaustion (<5%), generates wrap-up directives for active agents, and computes one-shot auto-wake scheduler payloads.",
+    flags: [
+      optionalFlag(
+        "platform",
+        "string",
+        "Filter probe to a specific platform ID (antigravity, claude, cursor, openai, codex).",
+      ),
+      optionalFlag(
+        "threshold",
+        "string",
+        "Quota percentage threshold to trigger circuit breaker (default: 5.0).",
+        "5.0",
+      ),
+      optionalFlag(
+        "active-agents",
+        "int",
+        "Number of currently active agents to register in auto-wake schedule.",
+        0,
+      ),
+      optionalFlag("detailed", "bool", "Include full vendor observation payloads."),
+      optionalFlag("json", "bool", "Output structured JSON report."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts quota:check",
+      "bun harness.ts quota:check --threshold 5.0",
+      "bun harness.ts quota:circuit-break --json",
+    ],
+    handler: quotaCheckCommand,
+  },
+  {
+    name: "quota:freeze",
+    aliases: ["quota:suspend", "freeze:quota"],
+    domain: "reporting",
+    summary: "Initiate DAG quota freeze and create a snapshot.",
+    description:
+      "Probes quota telemetry and freezes DAG operations if circuit breaker is triggered or force is applied. Outputs state to a snapshot file.",
+    flags: [
+      optionalFlag("repo", "string", "Repository root path."),
+      optionalFlag("run", "string", "Capsule run root."),
+      optionalFlag("threshold", "string", "Quota percentage threshold (default: 5.0).", "5.0"),
+      optionalFlag("active-agents", "int", "Number of currently active agents.", 0),
+      optionalFlag("force", "bool", "Force freeze even if quota healthy.", false),
+      optionalFlag("json", "bool", "Output structured JSON report."),
+      optionalFlag("detailed", "bool", "Detailed markdown output."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts quota:freeze", "bun harness.ts quota:freeze --force"],
+    handler: quotaFreezeCommand,
+  },
+  {
+    name: "quota:resume",
+    aliases: ["quota:unfreeze", "resume:quota"],
+    domain: "reporting",
+    summary: "Resume DAG operations from a quota freeze snapshot.",
+    description:
+      "Probes quota telemetry and resumes operations from a prior freeze if quota is healthy or force is applied.",
+    flags: [
+      optionalFlag("repo", "string", "Repository root path."),
+      optionalFlag("run", "string", "Capsule run root."),
+      optionalFlag("snapshot", "string", "Custom snapshot file path."),
+      optionalFlag("threshold", "string", "Quota percentage threshold (default: 5.0).", "5.0"),
+      optionalFlag("force", "bool", "Force resume even if quota is still constrained.", false),
+      optionalFlag("json", "bool", "Output structured JSON report."),
+      optionalFlag("detailed", "bool", "Detailed markdown output."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts quota:resume", "bun harness.ts quota:resume --force"],
+    handler: quotaResumeCommand,
   },
   {
     name: "skill:audit:live",

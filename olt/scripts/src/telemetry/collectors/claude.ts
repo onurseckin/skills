@@ -13,6 +13,108 @@ export class ClaudeCollector extends BaseTieredCollector {
   }
 
   protected async probeTier1Cli(): Promise<TierResult | null> {
+    // 1. Claude OAuth / Usage Utilization Discovery
+    const statusPayload = await this.env.fetchClaudeUsage();
+    if (statusPayload) {
+      const parsedRoot = statusPayload as Record<string, unknown>;
+      const cached = (parsedRoot.cachedUsageUtilization ?? parsedRoot) as Record<string, unknown>;
+      const utilData = (cached.utilization ?? parsedRoot.utilization ?? parsedRoot) as Record<
+        string,
+        unknown
+      >;
+
+      const metrics: NormalizedQuotaMetric[] = [];
+
+      if (utilData && typeof utilData === "object") {
+        if (utilData.five_hour && typeof utilData.five_hour === "object") {
+          const fh = utilData.five_hour as Record<string, unknown>;
+          const util = typeof fh.utilization === "number" ? fh.utilization : 0;
+          const remaining = Math.max(0, Math.min(100, Math.round((100 - util) * 100) / 100));
+          metrics.push({
+            rawMetricName: "Claude Code (5-Hour Window)",
+            canonicalProvider: "anthropic",
+            windowType: "5_hour",
+            remainingPercentage: remaining,
+            sourceTier: "tier1_cli_command",
+            confidence: "verified_exact",
+            rawPayload: fh,
+          });
+        }
+
+        if (utilData.seven_day && typeof utilData.seven_day === "object") {
+          const sd = utilData.seven_day as Record<string, unknown>;
+          const util = typeof sd.utilization === "number" ? sd.utilization : 0;
+          const remaining = Math.max(0, Math.min(100, Math.round((100 - util) * 100) / 100));
+          metrics.push({
+            rawMetricName: "Claude Code (7-Day Weekly Limit)",
+            canonicalProvider: "anthropic",
+            windowType: "weekly",
+            remainingPercentage: remaining,
+            sourceTier: "tier1_cli_command",
+            confidence: "verified_exact",
+            rawPayload: sd,
+          });
+        }
+
+        if (utilData.seven_day_opus && typeof utilData.seven_day_opus === "object") {
+          const sdo = utilData.seven_day_opus as Record<string, unknown>;
+          if (typeof sdo.utilization === "number") {
+            const remaining = Math.max(
+              0,
+              Math.min(100, Math.round((100 - sdo.utilization) * 100) / 100),
+            );
+            metrics.push({
+              rawMetricName: "Claude Opus (7-Day Limit)",
+              canonicalProvider: "anthropic",
+              windowType: "weekly",
+              remainingPercentage: remaining,
+              sourceTier: "tier1_cli_command",
+              confidence: "verified_exact",
+              rawPayload: sdo,
+            });
+          }
+        }
+
+        if (utilData.seven_day_sonnet && typeof utilData.seven_day_sonnet === "object") {
+          const sds = utilData.seven_day_sonnet as Record<string, unknown>;
+          if (typeof sds.utilization === "number") {
+            const remaining = Math.max(
+              0,
+              Math.min(100, Math.round((100 - sds.utilization) * 100) / 100),
+            );
+            metrics.push({
+              rawMetricName: "Claude Sonnet (7-Day Limit)",
+              canonicalProvider: "anthropic",
+              windowType: "weekly",
+              remainingPercentage: remaining,
+              sourceTier: "tier1_cli_command",
+              confidence: "verified_exact",
+              rawPayload: sds,
+            });
+          }
+        }
+      }
+
+      if (metrics.length > 0) {
+        const oauth = parsedRoot.oauthAccount as Record<string, unknown> | undefined;
+        return {
+          sourceTier: "tier1_cli_command",
+          metrics,
+          rawObservations: {
+            utilization: utilData,
+            oauthAccount: oauth,
+            spend: utilData.spend,
+            limits: utilData.limits,
+            email: oauth?.emailAddress,
+            accountUuid: oauth?.accountUuid,
+            billingType: oauth?.billingType,
+            planTier: oauth?.planTier,
+          },
+        };
+      }
+    }
+
+    // 2. Legacy / CLI Output Fallbacks
     const usageResult = await this.env.exec("claude", ["/usage", "--json"]);
     if (usageResult && usageResult.stdout.trim()) {
       try {

@@ -10,7 +10,151 @@ import {
 } from "../../../olt/scripts/src/telemetry/collectors/index.ts";
 
 describe("AntigravityCollector", () => {
-  it("probes Tier 1 CLI successfully with structured quota JSON", async () => {
+  it("probes Tier 1 Connect-RPC Language Server successfully with multiple models and user tier", async () => {
+    const env: CollectorEnvironment = {
+      exec: async (cmd, args) => {
+        if (cmd === "lsof" && args.includes("-iTCP")) {
+          return {
+            stdout:
+              "agy 17163 user 11u IPv4 0x166ae5799056f5b7 0t0 TCP 127.0.0.1:56963 (LISTEN)\n" +
+              "agy 17163 user 12u IPv4 0xa123841d0d0af048 0t0 TCP 127.0.0.1:56964 (LISTEN)\n",
+            stderr: "",
+            exitCode: 0,
+          };
+        }
+        return null;
+      },
+      fetchUserStatus: async (port) => {
+        if (port === "56963") {
+          return {
+            userStatus: {
+              email: "developer@example.com",
+              userTier: {
+                id: "g1-ultra-tier",
+                name: "Google AI Ultra",
+                description: "Google AI Ultra",
+                availableCredits: [
+                  {
+                    creditType: "GOOGLE_ONE_AI",
+                    creditAmount: "2980",
+                    minimumCreditAmountForUsage: "50",
+                  },
+                ],
+              },
+              planStatus: {
+                planInfo: {
+                  planName: "Pro",
+                },
+              },
+              quotaInfo: {
+                remainingFraction: 0.85,
+              },
+              cascadeModelConfigData: {
+                clientModelConfigs: [
+                  {
+                    label: "Gemini 3.7 Flash (High)",
+                    quotaInfo: { remainingFraction: 0.15164408, resetTime: "2026-08-24T14:18:42Z" },
+                    modelId: "gemini-3.7-flash-high",
+                    allowedTiers: ["TEAMS_TIER_PRO"],
+                  },
+                  {
+                    label: "Claude Sonnet 4.6 (Thinking)",
+                    quotaInfo: { remainingFraction: 0.9, resetTime: "2026-08-24T17:49:16Z" },
+                    modelId: "claude-sonnet-4.6",
+                    allowedTiers: ["TEAMS_TIER_PRO"],
+                  },
+                  {
+                    label: "GPT-OSS 120B (Medium)",
+                    quotaInfo: { remainingFraction: 1.0, resetTime: "2026-08-24T17:49:16Z" },
+                    modelId: "gpt-oss-120b",
+                    allowedTiers: ["TEAMS_TIER_PRO"],
+                  },
+                ],
+              },
+            },
+          };
+        }
+        return null;
+      },
+    };
+
+    const collector = new AntigravityCollector(env);
+    const result = await collector.probe();
+
+    expect(result.platformId).toBe("antigravity");
+    expect(result.isDetected).toBe(true);
+    expect(result.primaryTierUsed).toBe("tier1_cli_command");
+    expect(result.metrics.length).toBe(4); // 1 overall + 3 models
+
+    const overallMetric = result.metrics.find((m) => m.rawMetricName === "overall_5_hour_quota");
+    expect(overallMetric).toBeDefined();
+    expect(overallMetric?.canonicalProvider).toBe("google");
+    expect(overallMetric?.windowType).toBe("5_hour");
+    expect(overallMetric?.remainingPercentage).toBe(85);
+    expect(overallMetric?.confidence).toBe("verified_exact");
+
+    const geminiMetric = result.metrics.find((m) => m.rawMetricName === "Gemini 3.7 Flash (High)");
+    expect(geminiMetric).toBeDefined();
+    expect(geminiMetric?.canonicalProvider).toBe("google");
+    expect(geminiMetric?.windowType).toBe("5_hour");
+    expect(geminiMetric?.remainingPercentage).toBe(15.16);
+    expect(geminiMetric?.confidence).toBe("verified_exact");
+    expect(geminiMetric?.rawPayload).toBeDefined();
+
+    const claudeMetric = result.metrics.find(
+      (m) => m.rawMetricName === "Claude Sonnet 4.6 (Thinking)",
+    );
+    expect(claudeMetric).toBeDefined();
+    expect(claudeMetric?.canonicalProvider).toBe("anthropic");
+    expect(claudeMetric?.windowType).toBe("5_hour");
+    expect(claudeMetric?.remainingPercentage).toBe(90);
+
+    const gptMetric = result.metrics.find((m) => m.rawMetricName === "GPT-OSS 120B (Medium)");
+    expect(gptMetric).toBeDefined();
+    expect(gptMetric?.canonicalProvider).toBe("openai");
+    expect(gptMetric?.windowType).toBe("5_hour");
+    expect(gptMetric?.remainingPercentage).toBe(100);
+
+    expect(result.rawObservations.email).toBe("developer@example.com");
+    expect(result.rawObservations.plan).toBe("Pro");
+    expect(result.rawObservations.activePort).toBe("56963");
+    expect(result.rawObservations.userTier).toBeDefined();
+    expect(result.rawObservations.availableCredits).toBeDefined();
+  });
+
+  it("calculates remainingPercentage accurately with 2 decimal precision", async () => {
+    const env: CollectorEnvironment = {
+      exec: async () => null,
+      fetchUserStatus: async () => ({
+        cascadeModelConfigData: {
+          clientModelConfigs: [
+            {
+              label: "Model Precision Test",
+              quotaInfo: { remainingFraction: 0.15164408 },
+            },
+            {
+              label: "Model Zero Test",
+              quotaInfo: { remainingFraction: 0 },
+            },
+            {
+              label: "Model Default Test",
+            },
+          ],
+        },
+      }),
+    };
+
+    const collector = new AntigravityCollector(env);
+    const result = await collector.probe();
+
+    expect(result.isDetected).toBe(true);
+    expect(result.metrics).toHaveLength(3);
+    expect(result.metrics[0]?.remainingPercentage).toBe(15.16);
+    expect(result.metrics[1]?.remainingPercentage).toBe(0);
+    expect(result.metrics[2]?.remainingPercentage).toBe(100);
+  });
+
+  it("probes Tier 1 CLI successfully with legacy structured quota JSON when RPC is unavailable", async () => {
     const env: CollectorEnvironment = {
       exec: async (cmd, args) => {
         if (cmd === "agy" && args[0] === "quota") {
@@ -112,8 +256,42 @@ describe("AntigravityCollector", () => {
 });
 
 describe("ClaudeCollector", () => {
-  it("probes Tier 1 CLI usage output", async () => {
+  it("probes Tier 1 Claude OAuth usage data successfully with 5-hour and 7-day limits", async () => {
     const env: CollectorEnvironment = {
+      fetchClaudeUsage: async () => ({
+        cachedUsageUtilization: {
+          fetchedAtMs: Date.now(),
+          utilization: {
+            five_hour: { utilization: 25.5, resets_at: "2026-08-24T18:00:00Z" },
+            seven_day: { utilization: 10.0, resets_at: "2026-08-30T00:00:00Z" },
+            spend: { used: { amount_minor: 500, currency: "USD" } },
+          },
+        },
+        oauthAccount: {
+          emailAddress: "claude.user@example.com",
+          accountUuid: "mock-uuid-123",
+          billingType: "stripe_subscription",
+        },
+      }),
+    };
+
+    const collector = new ClaudeCollector(env);
+    const result = await collector.probe();
+
+    expect(result.platformId).toBe("claude");
+    expect(result.isDetected).toBe(true);
+    expect(result.primaryTierUsed).toBe("tier1_cli_command");
+    expect(result.metrics.length).toBe(2);
+    expect(result.metrics[0]!.rawMetricName).toBe("Claude Code (5-Hour Window)");
+    expect(result.metrics[0]!.remainingPercentage).toBe(74.5);
+    expect(result.metrics[1]!.rawMetricName).toBe("Claude Code (7-Day Weekly Limit)");
+    expect(result.metrics[1]!.remainingPercentage).toBe(90.0);
+    expect(result.rawObservations.email).toBe("claude.user@example.com");
+  });
+
+  it("probes Tier 1 CLI usage output when OAuth is unavailable", async () => {
+    const env: CollectorEnvironment = {
+      fetchClaudeUsage: async () => null,
       exec: async (cmd, args) => {
         if (cmd === "claude" && args[0] === "/usage") {
           return {

@@ -13,6 +13,148 @@ export class AntigravityCollector extends BaseTieredCollector {
   }
 
   protected async probeTier1Cli(): Promise<TierResult | null> {
+    // 1. Connect-RPC Local Language Server Discovery
+    const lsofResult = await this.env.exec("lsof", ["-iTCP", "-sTCP:LISTEN", "-P", "-n"]);
+    const ports: string[] = [];
+    if (lsofResult && lsofResult.stdout) {
+      const lines = lsofResult.stdout.split("\n");
+      for (const line of lines) {
+        if (/agy/i.test(line) && /LISTEN/i.test(line)) {
+          const match = line.match(/127\.0\.0\.1:(\d+)/);
+          if (match && match[1] && !ports.includes(match[1])) {
+            ports.push(match[1]);
+          }
+        }
+      }
+    }
+
+    const targetPorts =
+      ports.length > 0 ? ports : this.env.hasFetchUserStatusOverride ? ["custom_override"] : [];
+    for (const port of targetPorts) {
+      const statusPayload = await this.env.fetchUserStatus(port);
+      if (!statusPayload) continue;
+
+      const userStatus =
+        typeof statusPayload.userStatus === "object" && statusPayload.userStatus !== null
+          ? (statusPayload.userStatus as Record<string, unknown>)
+          : statusPayload;
+
+      const cascadeData =
+        typeof userStatus.cascadeModelConfigData === "object" &&
+        userStatus.cascadeModelConfigData !== null
+          ? (userStatus.cascadeModelConfigData as Record<string, unknown>)
+          : undefined;
+
+      const rawModels =
+        cascadeData?.clientModelConfigs ?? userStatus.models ?? userStatus.clientModelConfigs;
+
+      const models = Array.isArray(rawModels) ? (rawModels as Array<Record<string, unknown>>) : [];
+
+      const metrics: NormalizedQuotaMetric[] = [];
+
+      if (
+        typeof userStatus.quotaInfo === "object" &&
+        userStatus.quotaInfo !== null &&
+        typeof (userStatus.quotaInfo as Record<string, unknown>).remainingFraction === "number"
+      ) {
+        const overallFraction = (userStatus.quotaInfo as Record<string, unknown>)
+          .remainingFraction as number;
+        metrics.push({
+          rawMetricName: "overall_5_hour_quota",
+          canonicalProvider: "google",
+          windowType: "5_hour",
+          remainingPercentage: Math.max(
+            0,
+            Math.min(100, Math.round(overallFraction * 10000) / 100),
+          ),
+          sourceTier: "tier1_cli_command",
+          confidence: "verified_exact",
+          rawPayload: userStatus.quotaInfo as Record<string, unknown>,
+        });
+      }
+
+      for (const model of models) {
+        const label =
+          typeof model.label === "string"
+            ? model.label
+            : typeof model.name === "string"
+              ? model.name
+              : typeof model.modelId === "string"
+                ? model.modelId
+                : "unknown_model";
+
+        const labelLower = label.toLowerCase();
+        const canonicalProvider = labelLower.includes("claude")
+          ? "anthropic"
+          : labelLower.includes("gpt")
+            ? "openai"
+            : "google";
+
+        const quotaInfo =
+          typeof model.quotaInfo === "object" && model.quotaInfo !== null
+            ? (model.quotaInfo as Record<string, unknown>)
+            : undefined;
+
+        const fraction =
+          typeof quotaInfo?.remainingFraction === "number" ? quotaInfo.remainingFraction : 1;
+
+        const remainingPercentage = Math.max(0, Math.min(100, Math.round(fraction * 10000) / 100));
+
+        metrics.push({
+          rawMetricName: label,
+          canonicalProvider,
+          windowType: "5_hour",
+          remainingPercentage,
+          sourceTier: "tier1_cli_command",
+          confidence: "verified_exact",
+          rawPayload: model,
+        });
+      }
+
+      if (metrics.length > 0) {
+        const userTier =
+          typeof userStatus.userTier === "object" && userStatus.userTier !== null
+            ? (userStatus.userTier as Record<string, unknown>)
+            : undefined;
+
+        const planStatus =
+          typeof userStatus.planStatus === "object" && userStatus.planStatus !== null
+            ? (userStatus.planStatus as Record<string, unknown>)
+            : undefined;
+
+        const planInfo =
+          typeof planStatus?.planInfo === "object" && planStatus.planInfo !== null
+            ? (planStatus.planInfo as Record<string, unknown>)
+            : undefined;
+
+        const plan =
+          typeof planInfo?.planName === "string"
+            ? planInfo.planName
+            : typeof planStatus?.planName === "string"
+              ? planStatus.planName
+              : typeof userStatus.plan === "string"
+                ? userStatus.plan
+                : undefined;
+
+        const rawObservations: Record<string, unknown> = {
+          userStatus: statusPayload,
+          userTier: userStatus.userTier,
+          availableCredits: userTier?.availableCredits,
+          plan,
+          email: userStatus.email,
+          activePort: port,
+          queriedAt: new Date().toISOString(),
+        };
+
+        return {
+          sourceTier: "tier1_cli_command",
+          metrics,
+          rawObservations,
+        };
+      }
+    }
+
+    // 2. Fallback: agy quota --json
     const quotaResult = await this.env.exec("agy", ["quota", "--json"]);
     if (quotaResult && quotaResult.stdout.trim()) {
       try {
