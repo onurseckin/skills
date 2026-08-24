@@ -15,7 +15,7 @@ import { initialState } from "./state.ts";
 import { writeIndex } from "./capsule-index.ts";
 import { normalizeRunId } from "./run-id.ts";
 import { writeTrace } from "./trace.ts";
-import { resolveCapsulesDir } from "../../core/shared/paths.ts";
+import { isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
 
 export interface InitRunOptions {
   runtimeSource?: string;
@@ -44,6 +44,12 @@ export function initRun(
   if (!existsSync(repoRoot) || !lstatSync(repoRoot).isDirectory())
     throw new HarnessError("INVALID_ARGUMENT", `repo_root must be a directory: ${repoRoot}`);
   const repo = realpathSync(repoRoot);
+  if (isInsideCapsule(repo)) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      `cannot initialize a capsule inside an existing capsule workspace: ${repo}`,
+    );
+  }
   const capsulesRoot = resolveCapsulesDir(repo);
   mkdirSync(capsulesRoot, { recursive: true, mode: 0o755 });
   fsyncDirectory(repo);

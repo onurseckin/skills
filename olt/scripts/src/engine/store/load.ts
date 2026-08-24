@@ -11,15 +11,23 @@ import { runFilePath } from "./paths.ts";
 import { verifyIntegrity } from "./integrity.ts";
 import { resolveCapsulesDir } from "../../core/shared/paths.ts";
 
+export interface LoadRunOptions extends StoreLimits {
+  capsulesDir?: string;
+  repoRoot?: string;
+}
+
 function loadRunFiles(
   runRoot: string,
   verify: boolean,
-  options: StoreLimits,
+  options: LoadRunOptions,
   collectEvents: boolean,
 ): RunFiles {
   let targetPath = runRoot;
   if (!existsSync(targetPath)) {
-    const candidate = join(resolveCapsulesDir(), runRoot);
+    const baseCapsulesDir =
+      options.capsulesDir ??
+      (options.repoRoot ? resolveCapsulesDir(options.repoRoot) : resolveCapsulesDir());
+    const candidate = join(baseCapsulesDir, runRoot);
     if (existsSync(candidate)) {
       targetPath = candidate;
     }
@@ -63,10 +71,10 @@ function loadRunFiles(
   return { runRoot: root, manifest, prompt, state, events };
 }
 
-export function loadRun(runRoot: string, verify = true, options: StoreLimits = {}): RunFiles {
+export function loadRun(runRoot: string, verify = true, options: LoadRunOptions = {}): RunFiles {
   return loadRunFiles(runRoot, verify, options, true);
 }
 
-export function loadRunProjection(runRoot: string, options: StoreLimits = {}): RunFiles {
+export function loadRunProjection(runRoot: string, options: LoadRunOptions = {}): RunFiles {
   return loadRunFiles(runRoot, true, options, false);
 }

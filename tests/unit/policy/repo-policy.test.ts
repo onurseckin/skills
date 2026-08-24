@@ -8,6 +8,7 @@ import {
   detectRepoEcosystem,
   generateDefaultRepoPolicy,
   initRepoPolicy,
+  inspectRepoPolicy,
   loadRepoPolicy,
   saveRepoPolicy,
   validateRepoPolicy,
@@ -246,5 +247,36 @@ describe("Repo Policy Auto-Detection & Schema Validation", () => {
 
     rmSync(dir, { recursive: true, force: true });
     rmSync(initDir, { recursive: true, force: true });
+  });
+
+  test("inspectRepoPolicy accurately reports auto_detected, valid_custom, and invalid_custom status (Matrix row 13)", () => {
+    const dir = join(scratchBase, "inspect-policy-test");
+    const customPolicyPath = join(dir, ".olt", "policy.json");
+
+    // Case 1: Missing file -> auto_detected
+    const autoDetected = inspectRepoPolicy(dir, customPolicyPath);
+    expect(autoDetected.status).toBe("auto_detected");
+    expect(autoDetected.policy.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
+    expect(autoDetected.error).toBeUndefined();
+
+    // Case 2: Valid custom file -> valid_custom
+    mkdirSync(join(dir, ".olt"), { recursive: true });
+    const samplePolicy = generateDefaultRepoPolicy(dir);
+    writeFileSync(customPolicyPath, JSON.stringify(samplePolicy, null, 2), "utf-8");
+    const validCustom = inspectRepoPolicy(dir, customPolicyPath);
+    expect(validCustom.status).toBe("valid_custom");
+    expect(validCustom.policy.ecosystem).toBe(samplePolicy.ecosystem);
+    expect(validCustom.filePath).toBe(customPolicyPath);
+    expect(validCustom.error).toBeUndefined();
+
+    // Case 3: Corrupted / invalid JSON -> invalid_custom with fallback policy and error message
+    writeFileSync(customPolicyPath, "{ malformed json: true", "utf-8");
+    const invalidCustom = inspectRepoPolicy(dir, customPolicyPath);
+    expect(invalidCustom.status).toBe("invalid_custom");
+    expect(invalidCustom.policy.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
+    expect(invalidCustom.filePath).toBe(customPolicyPath);
+    expect(invalidCustom.error).toBeDefined();
+
+    rmSync(dir, { recursive: true, force: true });
   });
 });

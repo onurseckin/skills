@@ -154,4 +154,20 @@ describe("initRun", () => {
     expect("runtime_sha256" in manifest).toBe(false);
     expect("runtime_entrypoint" in manifest).toBe(false);
   });
+
+  test("rejects initializing a capsule inside an existing capsule workspace", () => {
+    const repo = scratchRoot("rejects-nested-capsule-workspace");
+    const parentRun = initRun(repo, "parent-run", new Uint8Array(), "file", true);
+    expect(() => initRun(parentRun, "child-run", new Uint8Array(), "file", true)).toThrow(
+      HarnessError,
+    );
+    try {
+      initRun(parentRun, "child-run", new Uint8Array(), "file", true);
+    } catch (error) {
+      expect((error as HarnessError).code).toBe("PATH_SAFETY");
+      expect((error as HarnessError).message).toContain(
+        "cannot initialize a capsule inside an existing capsule workspace",
+      );
+    }
+  });
 });

@@ -2,6 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { existsSync } from "node:fs";
 import {
   findRepoRoot,
+  isInsideCapsule,
   resolveOltDir,
   resolveCapsulesDir,
   resolvePolicyPath,
@@ -12,6 +13,7 @@ import {
   resolveTelemetryPath,
   resolveScratchDir,
   resolveEvidenceDir,
+  stripCapsulePath,
 } from "../../../olt/scripts/src/core/shared/paths.ts";
 
 describe("Shared Path Resolvers", () => {
@@ -19,6 +21,16 @@ describe("Shared Path Resolvers", () => {
     const root = findRepoRoot();
     expect(existsSync(root)).toBe(true);
     expect(existsSync(`${root}/package.json`)).toBe(true);
+  });
+
+  it("identifies inside-capsule paths with isInsideCapsule and stripCapsulePath", () => {
+    expect(isInsideCapsule("/mock/repo/.olt/capsules/run-abc")).toBe(true);
+    expect(isInsideCapsule("/mock/repo/.capsules/run-abc")).toBe(true);
+    expect(isInsideCapsule("/mock/repo/src/core/paths.ts")).toBe(false);
+    expect(isInsideCapsule("/mock/repo/src/capsules/test.ts")).toBe(false);
+
+    expect(stripCapsulePath("/mock/repo/.olt/capsules/run-abc/task")).toBe("/mock/repo");
+    expect(stripCapsulePath("/mock/repo/src/core/paths.ts")).toBeUndefined();
   });
 
   it("resolves canonical .olt directory", () => {

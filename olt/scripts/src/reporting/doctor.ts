@@ -13,6 +13,7 @@ import { workflowView } from "./workflow-view.ts";
 import { installationStatus } from "../installer/installation-status.ts";
 import { trustedHostEvidence, trustedHostLimitations } from "../core/contracts/trusted-host.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../packets/repository-git-command.ts";
+import { inspectRepoPolicy } from "../policy/repo-policy.ts";
 import {
   auditBehavioralHealth,
   formatBehavioralRoleHealthSection,
@@ -202,6 +203,14 @@ export async function runDoctor(
   const lifecycleSummary = StateMachineAuditor.summarizeLifecycle(lifecycleFindings);
   const lifecycleIssues = lifecycleSummary.issues;
 
+  const policyInspection = inspectRepoPolicy(repository);
+  const policyIssues =
+    policyInspection.status === "invalid_custom"
+      ? [
+          `policy: .olt/policy.json is corrupted or invalid: ${policyInspection.error ?? "unknown error"}`,
+        ]
+      : [];
+
   const issues = [
     ...integrityIssues.map(({ code, message }) => `${code}: ${message}`),
     ...(gitignored === false ? ["run capsule is not gitignored"] : []),
@@ -213,6 +222,7 @@ export async function runDoctor(
     ...socraticIssues,
     ...lifecycleIssues,
     ...installationIssues,
+    ...policyIssues,
   ];
 
   const healthy = issues.length === 0;
@@ -252,6 +262,7 @@ export async function runDoctor(
     lifecycle_issues: lifecycleIssues,
     installation: installation ?? null,
     installation_issues: installationIssues,
+    policy_inspection: policyInspection,
     issues,
     markdown,
   };

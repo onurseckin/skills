@@ -391,6 +391,41 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
   };
 }
 
+export interface PolicyInspectionResult {
+  readonly status: "valid_custom" | "invalid_custom" | "auto_detected";
+  readonly policy: RepoPolicy;
+  readonly filePath?: string;
+  readonly error?: string;
+}
+
+export function inspectRepoPolicy(repoRoot?: string, customPath?: string): PolicyInspectionResult {
+  const filePath = resolvePolicyPath(repoRoot, customPath);
+  if (!existsSync(filePath)) {
+    return {
+      status: "auto_detected",
+      policy: generateDefaultRepoPolicy(repoRoot),
+    };
+  }
+
+  try {
+    const raw = readFileSync(filePath, "utf-8");
+    const parsed = JSON.parse(raw) as unknown;
+    const policy = validateRepoPolicy(parsed);
+    return {
+      status: "valid_custom",
+      policy,
+      filePath,
+    };
+  } catch (error) {
+    return {
+      status: "invalid_custom",
+      policy: generateDefaultRepoPolicy(repoRoot),
+      filePath,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export function loadRepoPolicy(repoRoot?: string, customPath?: string): RepoPolicy {
   const filePath = resolvePolicyPath(repoRoot, customPath);
   if (!existsSync(filePath)) {

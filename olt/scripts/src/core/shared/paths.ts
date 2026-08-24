@@ -21,35 +21,73 @@ function unsafe(message: string): never {
   throw new HarnessError("PATH_SAFETY", message);
 }
 
+/**
+ * Returns true if the target path is located inside or is a capsule directory.
+ * Matches `/.olt/capsules/`, `/.capsules/`, or paths ending with capsule directory identifiers.
+ */
+export function isInsideCapsule(targetPath: string): boolean {
+  const normalized = resolve(targetPath).split(sep).join("/");
+  return (
+    normalized.includes("/.olt/capsules/") ||
+    normalized.endsWith("/.olt/capsules") ||
+    normalized.includes("/.capsules/") ||
+    normalized.endsWith("/.capsules")
+  );
+}
+
+/**
+ * Extracts the enclosing sovereign repository root prefix if the path is inside a capsule.
+ * Returns undefined if the path is not inside a capsule.
+ */
+export function stripCapsulePath(targetPath: string): string | undefined {
+  const normalized = resolve(targetPath);
+  const oltCapsulesPattern = `${sep}.olt${sep}capsules`;
+  const oltCapsulesIdx = normalized.indexOf(oltCapsulesPattern);
+  if (oltCapsulesIdx !== -1) {
+    return normalized.slice(0, oltCapsulesIdx) || sep;
+  }
+  const dotCapsulesPattern = `${sep}.capsules`;
+  const dotCapsulesIdx = normalized.indexOf(dotCapsulesPattern);
+  if (dotCapsulesIdx !== -1) {
+    return normalized.slice(0, dotCapsulesIdx) || sep;
+  }
+  return undefined;
+}
+
+/**
+ * Deterministically locates the sovereign repository root.
+ * Proactively strips capsule segments and walks up the directory hierarchy.
+ */
 export function findRepoRoot(startDir: string = process.cwd()): string {
-  let current = resolve(startDir);
+  const resolvedStart = resolve(startDir);
+  const stripped = stripCapsulePath(resolvedStart);
+  let current = stripped ?? resolvedStart;
+
   while (true) {
-    if (
-      !current.endsWith("/olt/scripts") &&
-      !current.endsWith("/olt") &&
-      (existsSync(join(current, OLT_DIR_NAME)) ||
-        existsSync(join(current, ".git")) ||
-        existsSync(join(current, "package.json")))
-    ) {
-      return current;
+    const isExcluded =
+      current.endsWith("/olt/scripts") ||
+      current.endsWith("/olt") ||
+      current.endsWith("/.olt") ||
+      isInsideCapsule(current);
+
+    if (!isExcluded) {
+      const hasOlt = existsSync(join(current, OLT_DIR_NAME));
+      const hasGit = existsSync(join(current, ".git"));
+      const hasPkg = existsSync(join(current, "package.json"));
+
+      if (hasOlt || hasGit || hasPkg) {
+        return current;
+      }
     }
+
     const parent = resolve(current, "..");
     if (parent === current) {
       break;
     }
     current = parent;
   }
-  const resolved = resolve(startDir);
-  if (resolved.includes("/.olt/capsules/")) {
-    return resolved.split("/.olt/capsules/")[0] || resolved;
-  }
-  if (resolved.includes("/.capsules/")) {
-    return resolved.split("/.capsules/")[0] || resolved;
-  }
-  if (resolved.includes("/capsules/")) {
-    return resolved.split("/capsules/")[0] || resolved;
-  }
-  return resolved;
+
+  return stripped ?? resolvedStart;
 }
 
 export function isTestEnvironment(): boolean {
@@ -88,13 +126,35 @@ function resolveSafeRoot(repoRoot?: string): string {
   return findRepoRoot();
 }
 
+/**
+ * Idempotently resolves the canonical `.olt` directory for a repository.
+ */
 export function resolveOltDir(repoRoot?: string): string {
-  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  let root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  if (isInsideCapsule(root)) {
+    root = findRepoRoot(root);
+  }
+  if (root.endsWith(`${sep}${OLT_DIR_NAME}`)) {
+    return root;
+  }
   return join(root, OLT_DIR_NAME);
 }
 
+/**
+ * Idempotently resolves the canonical `.olt/capsules` directory.
+ */
 export function resolveCapsulesDir(repoRoot?: string): string {
-  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  let root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  if (isInsideCapsule(root)) {
+    root = findRepoRoot(root);
+  }
+  const canonicalSuffix = `${sep}${OLT_DIR_NAME}${sep}${CAPSULES_DIR_NAME}`;
+  if (root.endsWith(canonicalSuffix)) {
+    return root;
+  }
+  if (root.endsWith(`${sep}${OLT_DIR_NAME}`)) {
+    return join(root, CAPSULES_DIR_NAME);
+  }
   return join(root, OLT_DIR_NAME, CAPSULES_DIR_NAME);
 }
 

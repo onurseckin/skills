@@ -58,14 +58,14 @@ describe("loadRun", () => {
   });
 
   test("resolves a run relative to resolveCapsulesDir when targetPath does not exist directly", () => {
-    const repo = findRepoRoot();
+    const repo = scratchRoot(import.meta.path, "relative-load-test");
     const runId = "test-load-relative-candidate-run";
     const capsulesDir = resolveCapsulesDir(repo);
     const fullPath = join(capsulesDir, runId);
     mkdirSync(capsulesDir, { recursive: true });
     initRun(repo, runId, new TextEncoder().encode("relative body"), "file", true);
     try {
-      const loaded = loadRun(runId);
+      const loaded = loadRun(runId, true, { repoRoot: repo });
       expect(loaded.manifest.run_id).toBe(runId);
     } finally {
       rmSync(fullPath, { recursive: true, force: true });
