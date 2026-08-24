@@ -229,7 +229,7 @@ export async function taskClaimCommand(
 
   const worktree = assignedWorktreeForClaim(run, taskId);
 
-  const markdown = formatTaskClaimBrief({
+  let markdown = formatTaskClaimBrief({
     taskId,
     agent,
     token: result.token,
@@ -237,6 +237,24 @@ export async function taskClaimCommand(
     writeScope: task.write_scope,
     worktreePath: worktree?.worktreePath,
   });
+
+  try {
+    const { buildExactAnchorBriefing } = await import("../../mind/briefing-builder.ts");
+    const briefing = buildExactAnchorBriefing({
+      taskId: task.id,
+      label: typeof task.label === "string" ? task.label : task.id,
+      writeScope: task.write_scope ?? [],
+      targetFiles: [], // Let it derive from writeScope
+      targetSymbols: [],
+      gateCommands: [],
+      acceptanceCriteria: [],
+      recommendedCommands: [],
+      baseDir: repoRoot,
+    });
+    markdown += `\n\n${briefing.markdown}`;
+  } catch (err) {
+    console.error("ExactAnchorBriefing failed:", err);
+  }
 
   const conflicts = probeAtTaskBoundary(run, agent, "task:claim");
 

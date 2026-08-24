@@ -117,6 +117,16 @@ function gateEvidenceSummary(state: WorkflowState, task: TaskRecord): string {
     .join("; ");
 }
 
+export function assertValidReviewer(callerId: string, task: TaskRecord): void {
+  const pairedValidatorId = (task.lease as any)?.paired_validator_id;
+  if (pairedValidatorId && callerId !== pairedValidatorId) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `Reviewer Authorization Failed: Caller '${callerId}' is not the assigned paired validator ('${pairedValidatorId}') for task '${task.id}'.`,
+    );
+  }
+}
+
 export async function taskReviewCommand(flags: Flags): Promise<Record<string, unknown>> {
   const isMicroCycle = boolFlag(flags, "micro-cycle") || boolFlag(flags, "in-lease");
   const [run, taskId, validator, token, status] = [
@@ -181,6 +191,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   const loaded = loadRun(run);
   const taskBefore = ((loaded.state.tasks ?? {}) as Record<string, TaskRecord>)[taskId];
   if (!taskBefore) throw new HarnessError("INVALID_ARGUMENT", `unknown task ${taskId}`);
+  assertValidReviewer(validator, taskBefore);
 
   const explicitEvidence = textFlag(flags, "evidence", false) ?? textFlag(flags, "checks", false);
   const checkIds = resolveCheckIds(
