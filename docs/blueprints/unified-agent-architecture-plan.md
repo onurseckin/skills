@@ -15,7 +15,47 @@ To achieve 100% deterministic quality, this blueprint establishes a **3-Tier Har
 
 ---
 
-## 2. Canonical Unified Agent YAML Schema Specification
+## 2. The 3-Layer Permission Resolution & Policy Ingestion Pipeline
+
+To guarantee that no agent runs unauthorized commands or bypasses repository boundaries, permissions are resolved through a hardened 3-layer pipeline:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     3-LAYER PERMISSION RESOLUTION PIPELINE                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ Layer 1: Repository Policy (`policy.json` / `repo-policy.ts`) ]         │
+│  • Global ecosystem bounds: `allowed_commands`, `forbidden_commands`,      │
+│    `test_runner` patterns, `read_scope_neighborhood_depth`, and scratch     │
+│    hygiene boundaries.                                                      │
+│                                                                             │
+│  [ Layer 2: Agent Unified Permissions (`olt/agents/<role>.yaml`) ]          │
+│  • Agent-specific bounds: `permissions.may`, `permissions.must_not`,        │
+│    `permissions.commands` (CLI whitelist), and `permissions.spawns`.        │
+│                                                                             │
+│  [ Layer 3: Runtime RBAC Guard (`olt/scripts/src/policy/rbac-engine.ts`) ]  │
+│  • Static & dynamic regex denylist: `STATIC_SUPERVISOR_FORBIDDEN_PATTERNS`, │
+│    `STATIC_IMPLEMENTER_FORBIDDEN_PATTERNS`, and subshell guards.            │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                         HOW AND WHEN THEY ARE COMBINED                      │
+│                                                                             │
+│  1. Dispatch Time (`agent:brief` / `task:brief`):                           │
+│     The prompt compiler loads the YAML manifest (Layer 2) and merges it     │
+│     with the active `policy.json` (Layer 1), emitting a dedicated           │
+│     "SECTION 3: REPOSITORY POLICY & PERMISSION BOUNDARIES" inside the       │
+│     compiled landing prompt before calling `define_subagent`.               │
+│                                                                             │
+│  2. Execution Time (`bun harness.ts shell -- <cmd>`):                       │
+│     The RBAC engine intercepts the command and verifies against all 3       │
+│     layers. Any violation throws a signed `PERMISSION_DENIED` defect.       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Canonical Unified Agent YAML Schema Specification
 
 Every agent manifest in `olt/agents/<role>.yaml` MUST strictly conform to this typed schema:
 
