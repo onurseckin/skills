@@ -16,5 +16,5 @@ pre-commit:
 
 pre-push:
   commands:
-    sync-local:
-      run: bun run sync:local
+    sync:
+      run: bun run sync

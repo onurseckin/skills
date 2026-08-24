@@ -19,6 +19,7 @@ __pycache__/
 .olt/capsules/
 .olt/scratch/
 .olt/.sessions/
+.olt/auditor-cursors.json
 /scratch/
 /.scratch/
 /.tmp/

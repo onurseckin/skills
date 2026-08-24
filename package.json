@@ -25,9 +25,9 @@
     "lint": "oxlint --quiet",
     "format": "oxfmt '!**/.olt/capsules/**' '!**/.olt/scratch/**'",
     "format:check": "oxfmt '!**/.olt/capsules/**' '!**/.olt/scratch/**' --check",
-    "sync:local": "bun scripts/sync-global.ts",
-    "sync:remote": "npx skills update olt -g -y",
-    "sync": "bun run sync:local"
+    "sync": "bun scripts/sync/index.ts",
+    "sync:local": "bun run sync",
+    "sync:remote": "npx skills update olt -g -y"
   },
   "dependencies": {
     "js-yaml": "^5.3.0"
