@@ -54,7 +54,6 @@ export interface RotateMindResult {
  *
  * 1. Validates and seals Generation N with status 'rotated' and event 'mind-rotated'.
  * 2. Initializes Generation N+1 carrying forward:
- *    - Charter re-sourced from the live manifest: bytes, digest, goals and repo roots
  *    - All open and admitted candidates
  *    - All declined candidate records (preserving Gate 6 duplicate rejection across generations)
  *    - Pulse counter and budget day key / usage state
