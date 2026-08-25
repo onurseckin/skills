@@ -29,14 +29,24 @@ export interface ParallelismProbes {
 }
 
 function safeParallelism(probes: ParallelismProbes = {}): number {
-  const probeAvailableParallelism = probes.availableParallelism ?? availableParallelism;
+  let probeAvailableParallelism: (() => number) | undefined;
+  if (probes.availableParallelism !== undefined) {
+    probeAvailableParallelism = probes.availableParallelism;
+  } else {
+    probeAvailableParallelism = availableParallelism;
+  }
   try {
     if (typeof probeAvailableParallelism === "function") {
       const detected = probeAvailableParallelism();
       if (Number.isInteger(detected) && detected >= 1) return detected;
     }
   } catch {}
-  const probeCpuCount = probes.cpuCount ?? (() => cpus().length);
+  let probeCpuCount: () => number;
+  if (probes.cpuCount !== undefined) {
+    probeCpuCount = probes.cpuCount;
+  } else {
+    probeCpuCount = () => cpus().length;
+  }
   try {
     const count = probeCpuCount();
     if (Number.isInteger(count) && count >= 1) return count;
@@ -48,6 +58,11 @@ export function deriveGateConcurrencyCeiling(
   cpuCount?: number,
   probes?: ParallelismProbes,
 ): number {
-  const cores = cpuCount ?? safeParallelism(probes);
+  let cores: number;
+  if (cpuCount !== undefined) {
+    cores = cpuCount;
+  } else {
+    cores = safeParallelism(probes);
+  }
   return Math.max(1, Math.floor(cores / 2));
 }

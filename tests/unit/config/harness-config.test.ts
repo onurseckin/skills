@@ -1,25 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   DEFAULT_RESOLVED_CONFIG,
   resolveHarnessConfig,
 } from "../../../olt/scripts/src/core/config/harness-config.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
-// scratchRoot() creates and tears itself down (see tests/support/README.md) — this file no longer
-// needs the tempDirs[] + makeTempDir() + afterEach trio, previously copy-pasted once per describe
-// block below with only the mkdtemp prefix differing between copies.
 function makeTempDir(label: string): string {
   return scratchRoot(import.meta.path, label);
 }
 
 describe("harness-config", () => {
-  // Host discovery (B27.2) reads the live environment, so any test that compares a resolution
-  // against DEFAULT_RESOLVED_CONFIG must pin `hostConcurrency: null` — otherwise a real host that
-  // happens to publish a concurrency ceiling in whatever environment the suite runs under would
-  // make this assertion flaky. Dedicated coverage for the discovery/precedence behaviour itself
-  // lives in the "B27" describe block below and in host-concurrency.test.ts.
   const NO_HOST_CEILING = { hostConcurrency: null } as const;
 
   test("returns DEFAULT_RESOLVED_CONFIG when no config file exists", () => {
@@ -46,8 +39,6 @@ describe("harness-config", () => {
     };
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify(custom));
 
-    // An explicit default_max_parallel in the file always wins over host discovery (B27.2), so
-    // this one is deterministic even without pinning NO_HOST_CEILING — pinned anyway for clarity.
     const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
     expect(config).toEqual({
       ...custom,
@@ -59,6 +50,22 @@ describe("harness-config", () => {
       commit_per_subphase: DEFAULT_RESOLVED_CONFIG.commit_per_subphase,
       max_commit_lines: DEFAULT_RESOLVED_CONFIG.max_commit_lines,
       rebase_on_complete: DEFAULT_RESOLVED_CONFIG.rebase_on_complete,
+      supervisory_cadence_seconds: DEFAULT_RESOLVED_CONFIG.supervisory_cadence_seconds,
+      quota_freeze_threshold_pct: DEFAULT_RESOLVED_CONFIG.quota_freeze_threshold_pct,
+      host_profiles: DEFAULT_RESOLVED_CONFIG.host_profiles,
+      model_by_role: DEFAULT_RESOLVED_CONFIG.model_by_role,
+      fleet_agent_ceiling: DEFAULT_RESOLVED_CONFIG.fleet_agent_ceiling,
+      max_active_grants_per_run: custom.max_agents,
+      config_provenance: {
+        ...DEFAULT_RESOLVED_CONFIG.config_provenance,
+        max_repair_rounds: "config_override",
+        max_branch_depth: "config_override",
+        max_agents: "config_override",
+        max_active_grants_per_run: "config_override",
+        max_output_bytes: "config_override",
+        default_lease_seconds: "config_override",
+        default_max_parallel: "config_override",
+      },
     });
   });
 
@@ -110,28 +117,37 @@ describe("harness-config", () => {
     expect(config.max_repair_rounds).toBe(9);
   });
 
-  test("gracefully recovers from invalid JSON or non-object files", () => {
-    const dir = makeTempDir("invalid-json-recovery");
+  test("refuses malformed JSON or non-object files rather than silently defaulting", () => {
+    const dir = makeTempDir("invalid-json-refusal");
     writeFileSync(join(dir, "harness.config.json"), "{ invalid-json }");
-
-    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
-    expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(/not valid JSON/);
 
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify(["not", "an", "object"]));
-    const configArray = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
-    expect(configArray).toEqual(DEFAULT_RESOLVED_CONFIG);
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(
+      /JSON object at its root/,
+    );
 
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify(null));
-    const configNull = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
-    expect(configNull).toEqual(DEFAULT_RESOLVED_CONFIG);
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(
+      /JSON object at its root/,
+    );
+  });
+
+  test("still returns DEFAULT_RESOLVED_CONFIG when the file is simply absent", () => {
+    const dir = makeTempDir("absent-config-file-is-not-a-refusal");
+    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
   });
 
   test("ignores invalid field types and out-of-bounds values", () => {
     const dir = makeTempDir("invalid-field-types");
     const invalidFields = {
       max_repair_rounds: -1,
-      max_output_bytes: 100, // below 1024 minimum
-      default_lease_seconds: 2, // below 5s minimum
+      max_output_bytes: 100,
+      default_lease_seconds: 2,
       default_max_parallel: 0,
     };
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify(invalidFields));
@@ -255,5 +271,135 @@ describe("B22.7 — worktree-isolation config knobs", () => {
     expect(config.worktree_isolation).toBe(false);
     expect(config.branch_prefix).toBe("harness/");
     expect(config.max_commit_lines).toBe(500);
+  });
+});
+
+describe("provenance generalisation — new config domains", () => {
+  const NO_HOST_CEILING = { hostConcurrency: null } as const;
+
+  test("max_active_grants_per_run mirrors max_agents in value and provenance, additively", () => {
+    const dir = makeTempDir("max-active-grants-default");
+    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(config.max_agents).toBe(100);
+    expect(config.max_active_grants_per_run).toBe(100);
+    expect(config.config_provenance.max_agents).toBe("assumed_default");
+    expect(config.config_provenance.max_active_grants_per_run).toBe("assumed_default");
+
+    writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_agents: 15 }));
+    const configured = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(configured.max_agents).toBe(15);
+    expect(configured.max_active_grants_per_run).toBe(15);
+    expect(configured.config_provenance.max_active_grants_per_run).toBe("config_override");
+  });
+
+  test("fleet_agent_ceiling is absent when nothing configures it, config_override when set — never assumed_default", () => {
+    const dir = makeTempDir("fleet-agent-ceiling-absent");
+    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(config.fleet_agent_ceiling).toEqual({ value: null, source: "absent" });
+
+    writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ fleet_agent_ceiling: 40 }));
+    const configured = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(configured.fleet_agent_ceiling).toEqual({ value: 40, source: "config_override" });
+  });
+
+  test("fleet_agent_ceiling ignores an invalid configured value rather than coercing it — currently reads absent, a known gap since fleetAgentCeilingField does not yet distinguish invalid-but-present from truly-absent", () => {
+    const dir = makeTempDir("fleet-agent-ceiling-invalid");
+    writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ fleet_agent_ceiling: -3 }));
+    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(config.fleet_agent_ceiling).toEqual({ value: null, source: "absent" });
+  });
+
+  test("supervisory_cadence_seconds is structurally unusable without confronting its source", () => {
+    const dir = makeTempDir("supervisory-cadence-default");
+    const defaultConfig = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(defaultConfig.supervisory_cadence_seconds).toEqual({ value: 900, source: "absent" });
+    expect(defaultConfig.config_provenance.supervisory_cadence_seconds).toBe("assumed_default");
+
+    writeFileSync(
+      join(dir, "harness.config.json"),
+      JSON.stringify({ supervisory_cadence_seconds: 600 }),
+    );
+    const configured = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(configured.supervisory_cadence_seconds).toEqual({
+      value: 600,
+      source: "config_override",
+    });
+    expect(configured.config_provenance.supervisory_cadence_seconds).toBe("config_override");
+  });
+
+  test("quota_freeze_threshold_pct is absent, not a fabricated percentage, until configured", () => {
+    const dir = makeTempDir("quota-freeze-threshold-absent");
+    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(config.quota_freeze_threshold_pct).toEqual({ value: null, source: "absent" });
+
+    writeFileSync(
+      join(dir, "harness.config.json"),
+      JSON.stringify({ quota_freeze_threshold_pct: 85 }),
+    );
+    const configured = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(configured.quota_freeze_threshold_pct).toEqual({ value: 85, source: "config_override" });
+    expect(configured.config_provenance.quota_freeze_threshold_pct).toBe("config_override");
+  });
+
+  test("model_by_role keeps recognized roles and drops unrecognized ones without throwing", () => {
+    const dir = makeTempDir("model-by-role");
+    writeFileSync(
+      join(dir, "harness.config.json"),
+      JSON.stringify({ model_by_role: { implementer: "opus", "not-a-real-role": "x" } }),
+    );
+    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(config.model_by_role).toEqual({
+      value: { implementer: "opus" },
+      source: "config_override",
+    });
+    expect(config.config_provenance.model_by_role).toBe("config_override");
+  });
+
+  test("host_profiles configured through resolveHarnessConfig refuses an unknown host id end to end", () => {
+    const dir = makeTempDir("host-profiles-refusal-end-to-end");
+    writeFileSync(
+      join(dir, "harness.config.json"),
+      JSON.stringify({ host_profiles: { generic: { timer_arming_mechanism: "none" } } }),
+    );
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+  });
+
+  test("host_profiles configured through resolveHarnessConfig canonicalizes claude onto claude-code", () => {
+    const dir = makeTempDir("host-profiles-canonicalize-end-to-end");
+    writeFileSync(
+      join(dir, "harness.config.json"),
+      JSON.stringify({ host_profiles: { claude: { self_wake_supported: true } } }),
+    );
+    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(config.host_profiles.source).toBe("config_override");
+    expect(config.host_profiles.value["claude-code"]?.self_wake_supported).toEqual({
+      value: true,
+      source: "config_override",
+    });
+    expect(Object.keys(config.host_profiles.value)).toEqual(["claude-code"]);
+    expect(config.config_provenance.host_profiles).toBe("config_override");
+  });
+
+  test("host_profiles is absent, not a fabricated empty map, until configured", () => {
+    const dir = makeTempDir("host-profiles-default-absent");
+    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(config.host_profiles).toEqual({ value: {}, source: "absent" });
+  });
+
+  test("gate_max_parallel is tagged host_discovered by default, config_override once configured", () => {
+    const dir = makeTempDir("gate-max-parallel-provenance");
+    const discovered = resolveHarnessConfig(dir, undefined, { cpuCount: 10 });
+    expect(discovered.config_provenance.gate_max_parallel).toBe("host_discovered");
+
+    writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ gate_max_parallel: 3 }));
+    const configured = resolveHarnessConfig(dir, undefined, { cpuCount: 10 });
+    expect(configured.config_provenance.gate_max_parallel).toBe("config_override");
+  });
+
+  test("default_max_parallel_source keeps working unchanged for existing 19+ call sites", () => {
+    const dir = makeTempDir("default-max-parallel-source-unchanged");
+    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+    expect(config.default_max_parallel_source).toBe("assumed_default");
+    expect(config.config_provenance.default_max_parallel).toBe("assumed_default");
   });
 });
