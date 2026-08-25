@@ -4,4 +4,6 @@
 export * from "./sync/index";
 import { runSync } from "./sync/index";
 
-await runSync();
+if (import.meta.main) {
+  await runSync();
+}

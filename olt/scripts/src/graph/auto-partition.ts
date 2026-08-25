@@ -4,7 +4,7 @@ import { HarnessError } from "../core/errors/harness-error.ts";
 
 const EXCLUDED_DIRS = new Set([
   ".git",
-  ".capsules",
+  ".olt",
   "node_modules",
   ".bun",
   ".cache",

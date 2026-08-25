@@ -1,5 +1,4 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
@@ -38,16 +37,14 @@ describe("worktree:reclaim", () => {
   });
 
   test("reclaims worktrees on git repo with worktree isolation enabled", async () => {
-    const { repo, run } = await setupCompiledRun("worktree-reclaim-success", roots);
+    const { repo, run } = await setupCompiledRun("worktree-reclaim-success", roots, {
+      worktree_isolation: true,
+    });
     const { spawnSync } = await import("node:child_process");
     spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo });
     spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo });
     spawnSync("git", ["config", "user.name", "Test"], { cwd: repo });
     spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo });
-
-    const configContent = JSON.stringify({ worktree_isolation: true });
-    await Bun.write(join(run, "config.json"), configContent);
-    await Bun.write(join(repo, "harness.config.json"), configContent);
     await seedLedger(run);
 
     const result = await execute(["worktree:reclaim", "--run", run, "--actor", "coordinator"]);
@@ -57,16 +54,14 @@ describe("worktree:reclaim", () => {
   });
 
   test("reclaims worktrees on sealed run", async () => {
-    const { repo, run } = await setupCompiledRun("worktree-reclaim-sealed", roots);
+    const { repo, run } = await setupCompiledRun("worktree-reclaim-sealed", roots, {
+      worktree_isolation: true,
+    });
     const { spawnSync } = await import("node:child_process");
     spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo });
     spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo });
     spawnSync("git", ["config", "user.name", "Test"], { cwd: repo });
     spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo });
-
-    const configContent = JSON.stringify({ worktree_isolation: true });
-    await Bun.write(join(run, "config.json"), configContent);
-    await Bun.write(join(repo, "harness.config.json"), configContent);
     transact(run, "test-seed", "seed-worktree-ledger-and-seal", {}, (state) => {
       state.worktree_ledger = {
         harness_branch: "harness/worktree-ops-test",

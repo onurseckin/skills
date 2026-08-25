@@ -64,6 +64,7 @@ export function resolveHookConfigFile(
       }
       // If it is a directory, check standard candidate locations inside it
       const candidates = [
+        join(resolved, ".olt", "capsules", "hooks.json"),
         join(resolved, ".capsules", "hooks.json"),
         join(resolved, "olt", "hooks.json"),
         join(resolved, "hooks.json"),
@@ -79,6 +80,7 @@ export function resolveHookConfigFile(
   }
 
   const standardLocations = [
+    join(cwd, ".olt", "capsules", "hooks.json"),
     join(cwd, ".capsules", "hooks.json"),
     join(cwd, "olt", "hooks.json"),
     join(cwd, "hooks.json"),

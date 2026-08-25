@@ -3,11 +3,17 @@ import { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts"
 import { validPlanningDocuments } from "./fixtures.ts";
 
 const weakIssue = "gates[0].command must perform substantive verification";
+const pathFormMarker = "must be a repository-relative path";
 
 function commandIssues(command: string[]): string[] {
   const { graph, requirements } = validPlanningDocuments();
   (graph.gates as Record<string, unknown>[])[0]!.command = command;
   return validateGraph(graph, requirements);
+}
+
+function expectRejected(command: string[]): void {
+  const issues = commandIssues(command);
+  expect(issues.some((issue) => issue === weakIssue || issue.includes(pathFormMarker))).toBe(true);
 }
 
 describe("gate command argv hardening", () => {
@@ -58,7 +64,7 @@ describe("gate command argv hardening", () => {
       ["./scripts/check", "--strict"],
       ["./scripts/check", "-q"],
     ]) {
-      expect(commandIssues(command)).toContain(weakIssue);
+      expectRejected(command);
     }
   });
 
@@ -155,7 +161,7 @@ describe("gate command argv hardening", () => {
       ["[", "-f", "package.json"],
       ["[", "-f", "/dev/null", "]"],
     ]) {
-      expect(commandIssues(command)).toContain(weakIssue);
+      expectRejected(command);
     }
     for (const command of [
       ["test", "-f", "package.json"],

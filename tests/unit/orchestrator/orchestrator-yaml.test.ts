@@ -19,6 +19,6 @@ describe("Orchestrator YAML Specification Unit Tests", () => {
     expect(content).toContain("STATE_CAPSULE_CHAINING");
     expect(content).toContain("DEFECT_SYNTHESIS_FAN_IN");
     expect(content).toContain("DYNAMIC_WAVE_DECOUPLING");
-    expect(content).toContain("FAST_PATH_COMPACTION_N_1");
+    expect(content).toContain("QUOTA_FREEZE_ZERO_KILL_RESUME");
   });
 });

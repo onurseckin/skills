@@ -1,6 +1,6 @@
-import { resolve } from "node:path";
 import { getHarnessConfig } from "../../core/config/harness-config.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
 import { reclaimOrphanedWorktrees, recordReclaim } from "../../workflow/worktree/reclaim.ts";
@@ -10,7 +10,7 @@ import { textFlag, type Flags } from "../options.ts";
 export function worktreeReclaimCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const actor = textFlag(flags, "actor")!;
-  const repoRoot = resolve(run, "..", "..");
+  const repoRoot = findRepoRoot(run);
   const config = getHarnessConfig(repoRoot, run);
   const ledger = readWorktreeLedger(loadRun(run).state);
   if (!ledger) {

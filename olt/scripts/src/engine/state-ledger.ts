@@ -9,7 +9,6 @@ export class StateLedger {
     this.cache.push(state);
     const tmpPath = `${this.path}.tmp`;
     const current = this.readAll();
-    current.push(state);
     writeFileSync(tmpPath, JSON.stringify(current), { encoding: "utf8" });
     renameSync(tmpPath, this.path);
   }

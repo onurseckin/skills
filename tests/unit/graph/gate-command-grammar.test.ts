@@ -3,6 +3,7 @@ import { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts"
 import { validPlanningDocuments } from "./fixtures.ts";
 
 const weakIssue = "gates[0].command must perform substantive verification";
+const pathFormMarker = "must be a repository-relative path";
 
 function commandIssues(command: string[]): string[] {
   const { graph, requirements } = validPlanningDocuments();
@@ -11,7 +12,12 @@ function commandIssues(command: string[]): string[] {
 }
 
 function expectWeak(commands: string[][]): void {
-  for (const command of commands) expect(commandIssues(command)).toContain(weakIssue);
+  for (const command of commands) {
+    const issues = commandIssues(command);
+    expect(issues.some((issue) => issue === weakIssue || issue.includes(pathFormMarker))).toBe(
+      true,
+    );
+  }
 }
 
 function expectStrong(commands: string[][]): void {

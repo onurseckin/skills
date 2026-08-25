@@ -15,10 +15,8 @@ describe("Mandatory Supervisory Scheduler Invariant & Rule 16 Contract", () => {
     expect(existsSync(skillPath)).toBe(true);
     const content = readFileSync(skillPath, "utf8");
 
-    expect(content).toContain(
-      "16. Mandatory 3-Minute Supervisory Scheduler & Algorithmic DAG Optimization",
-    );
-    expect(content).toMatch(/(3-minute|3m|5-minute|5m)/);
+    expect(content).toContain("16. Mandatory Supervisory Scheduler & Algorithmic DAG Optimization");
+    expect(content).toMatch(/resolveSupervisoryCadence/);
     expect(content).toContain("schedule");
     expect(content).toMatch(/dag(:view)?/);
   });
@@ -33,7 +31,7 @@ describe("Mandatory Supervisory Scheduler Invariant & Rule 16 Contract", () => {
     expect(existsSync(mindRolePath)).toBe(true);
     const content = readFileSync(mindRolePath, "utf8");
 
-    expect(content).toMatch(/(3-minute|5-minute)/);
+    expect(content).toMatch(/resolveSupervisoryCadence/);
     expect(content).toMatch(/dag(:view)?/);
     expect(content).toContain("schedule");
     expect(content).toContain("commands:");
@@ -44,7 +42,7 @@ describe("Mandatory Supervisory Scheduler Invariant & Rule 16 Contract", () => {
     expect(existsSync(coordinatorRolePath)).toBe(true);
     const content = readFileSync(coordinatorRolePath, "utf8");
 
-    expect(content).toMatch(/(3-minute|5-minute)/);
+    expect(content).toMatch(/resolveSupervisoryCadence/);
     expect(content).toMatch(/dag(:view)?/);
     expect(content).toContain("commands:");
     expect(content).toMatch(/-\s+"?dag"?/);
@@ -54,7 +52,7 @@ describe("Mandatory Supervisory Scheduler Invariant & Rule 16 Contract", () => {
     expect(existsSync(orchestratorRolePath)).toBe(true);
     const content = readFileSync(orchestratorRolePath, "utf8");
 
-    expect(content).toMatch(/(3-minute|5-minute)/);
+    expect(content).toMatch(/resolveSupervisoryCadence/);
     expect(content).toMatch(/dag(:view)?/);
     expect(content).toContain("commands:");
     expect(content).toMatch(/-\s+"?dag"?/);

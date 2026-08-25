@@ -50,7 +50,6 @@ export async function execute(
     (flag) => flag.required && !Object.hasOwn(parsed.flags, flag.name),
   );
   if (missing) throw new HarnessError("INVALID_ARGUMENT", `--${missing.name} is required`);
-  assertGrantedCommand(spec, parsed.flags);
 
   if (typeof parsed.flags["run"] === "string" && parsed.flags["run"].trim() !== "") {
     try {
@@ -64,6 +63,8 @@ export async function execute(
       if (e instanceof HarnessError && e.code === "INVALID_STATE") throw e;
     }
   }
+
+  assertGrantedCommand(spec, parsed.flags);
 
   return (await spec.handler(parsed.flags, context, parsed.remainder)) as JsonObject;
 }

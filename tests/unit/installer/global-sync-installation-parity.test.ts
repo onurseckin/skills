@@ -33,7 +33,11 @@ describe("global skill sync", () => {
     const root = scratchRoot(import.meta.path, "trusted-global-sync");
     const home = join(root, "home");
 
-    await deployCanonicalSkill({ sourceRepoRoot: REPOSITORY_ROOT, homeDir: home });
+    await deployCanonicalSkill({
+      sourceRepoRoot: REPOSITORY_ROOT,
+      homeDir: home,
+      allowDirty: true,
+    });
 
     const destination = join(home, ".agents", "skills", "olt");
     expect(existsSync(join(destination, "installation.json"))).toBe(true);

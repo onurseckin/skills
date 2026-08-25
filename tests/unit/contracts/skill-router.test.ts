@@ -186,14 +186,34 @@ describe("the references the router points at", () => {
     expect(checked).toBeGreaterThan(40);
   });
 
+  const NON_CONFIGURABLE_DEFAULT_KEYS = new Set(["config_provenance"]);
+
+  function isAttestedFact(value: unknown): value is { value: unknown; source: unknown } {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      "value" in value &&
+      "source" in value &&
+      Object.keys(value).length === 2
+    );
+  }
+
+  function defaultDisplayText(value: unknown): string {
+    const unwrapped = isAttestedFact(value) ? value.value : value;
+    if (unwrapped !== null && typeof unwrapped === "object") return JSON.stringify(unwrapped);
+    return String(unwrapped);
+  }
+
   test("configuration.md defaults are the defaults the harness actually resolves", () => {
     const rows = readFileSync(join(referenceDir, "configuration.md"), "utf8").split("\n");
     const wrong: string[] = [];
     for (const [key, value] of Object.entries(DEFAULT_RESOLVED_CONFIG)) {
+      if (NON_CONFIGURABLE_DEFAULT_KEYS.has(key)) continue;
       const row = rows.find((line) => line.startsWith(`| \`${key}\``));
+      const display = defaultDisplayText(value);
       if (row === undefined) wrong.push(`${key} is not documented`);
-      else if (!row.includes(`\`${String(value)}\``))
-        wrong.push(`${key} documents a default other than ${String(value)}`);
+      else if (!row.includes(`\`${display}\``))
+        wrong.push(`${key} documents a default other than ${display}`);
     }
     expect(wrong).toEqual([]);
   });

@@ -54,7 +54,7 @@ function compiledRun(name: string, maxParallel?: number): string {
 
 describe("queue:wave", () => {
   test("lists every claimable task, where queue:next names only the first", () => {
-    const run = compiledRun("wave-batch");
+    const run = compiledRun("wave-batch", 4);
 
     const next = queueNextCommand({ run });
     expect((next.task as { id: string }).id).toBe("t-alpha");

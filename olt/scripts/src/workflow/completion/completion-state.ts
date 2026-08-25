@@ -112,8 +112,7 @@ function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] 
         c.task_id === task.id &&
         (c.actor === validation.validator_id ||
           c.actor === task.original_implementer ||
-          (task.attempts ?? []).some((a) => a.agent_id === c.actor) ||
-          c.task_id === task.id) &&
+          (task.attempts ?? []).some((a) => a.agent_id === c.actor)) &&
         embeddedCommandIssues(c).length === 0 &&
         gates.some((gate) => commandMatchesGate(c, gate)),
     );
