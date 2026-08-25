@@ -96,9 +96,9 @@ describe("role capability documents bind the CLI", () => {
     ]);
   });
 
-  test("dispatch enforcement stays out of the way when no run is named", () => {
+  test("dispatch enforcement denies an authority-bearing command when no run is named", () => {
     const flags: Flags = { agent: "impl-1" };
-    expect(() => assertGrantedCommand(spec("task:submit"), flags)).not.toThrow();
+    expect(() => assertGrantedCommand(spec("task:submit"), flags)).toThrow();
   });
 
   test("dispatch enforcement stays out of the way when no identity is named", () => {

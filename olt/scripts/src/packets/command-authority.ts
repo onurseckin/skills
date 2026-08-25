@@ -8,6 +8,11 @@ import { readAgentLedger } from "../workflow/agents/ledger.ts";
 import type { Flags } from "../cli/options.ts";
 import type { CommandSpec } from "../cli/registry/types.ts";
 import { loadRoleContract, resolveRoleContractPath } from "./role-contract.ts";
+import {
+  declaresRunIdentityFlag,
+  isGrantBootstrapExempt,
+  requiresActingIdentity,
+} from "./grant-bootstrap-allowlist.ts";
 
 export function isMechanicValidatorRole(role: string): boolean {
   const normalized = role.toLowerCase().trim();
@@ -108,7 +113,6 @@ export function validateHierarchicalSpawning(
   const pTier = roleToTier(parentRole);
   const cTier = roleToTier(childRole);
 
-  // Tier 0 Mind -> Tier 1 Orchestrator only
   if (pTier === 0) {
     if (cTier === 1) {
       return { valid: true, parentRole, childRole, parentTier: pTier, childTier: cTier };
@@ -123,7 +127,6 @@ export function validateHierarchicalSpawning(
     };
   }
 
-  // Tier 1 Orchestrator -> Tier 2 Coordinator only
   if (pTier === 1) {
     if (cTier === 2) {
       return { valid: true, parentRole, childRole, parentTier: pTier, childTier: cTier };
@@ -138,7 +141,6 @@ export function validateHierarchicalSpawning(
     };
   }
 
-  // Tier 2 Coordinator -> Tier 3 workers only
   if (pTier === 2) {
     if (cTier === 3) {
       return { valid: true, parentRole, childRole, parentTier: pTier, childTier: cTier };
@@ -153,7 +155,6 @@ export function validateHierarchicalSpawning(
     };
   }
 
-  // Tier 3 Leaf workers -> cannot spawn subagents
   return {
     valid: false,
     parentRole,
@@ -233,6 +234,14 @@ function actingAgent(spec: CommandSpec, flags: Flags): string | undefined {
   return undefined;
 }
 
+const RUN_SCOPED_GRANT_BOOTSTRAP_EXEMPT_COMMANDS: ReadonlySet<string> = new Set([
+  "orchestrator:run",
+]);
+
+function isBootstrapExempt(spec: CommandSpec): boolean {
+  return isGrantBootstrapExempt(spec) || RUN_SCOPED_GRANT_BOOTSTRAP_EXEMPT_COMMANDS.has(spec.name);
+}
+
 function capsuleState(runRoot: string): RunState | undefined {
   if (!existsSync(join(runRoot, "state.json"))) return undefined;
   try {
@@ -253,7 +262,7 @@ export function assertRoleMayInvoke(role: AgentRole, spec: CommandSpec, agentId:
       const contract = loadRoleContract(role);
       grantDetail = `, and the contract at ${resolveRoleContractPath(role)} grants only ${contract.commands.join(", ")}`;
     } catch {
-      // Role contract may be dynamic or virtual
+      grantDetail = "";
     }
     throw new HarnessError(
       "INVALID_STATE",
@@ -272,15 +281,49 @@ export function assertRoleMayInvoke(role: AgentRole, spec: CommandSpec, agentId:
 }
 
 export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
+  if (!requiresActingIdentity(spec)) return;
+
   const runRoot = identity(flags, "run");
-  if (runRoot === undefined) return;
+  if (runRoot === undefined) {
+    if (!declaresRunIdentityFlag(spec)) return;
+    if (isBootstrapExempt(spec)) return;
+    throw new HarnessError(
+      "INVALID_STATE",
+      `${spec.name} carries no resolvable --run and is not on the grant bootstrap allowlist; a capsule root is required before its grant authority can be checked`,
+    );
+  }
   const agentId = actingAgent(spec, flags);
-  if (agentId === undefined) return;
+  if (agentId === undefined) {
+    if (isBootstrapExempt(spec)) return;
+    throw new HarnessError(
+      "INVALID_STATE",
+      `${spec.name} carries no resolvable acting identity (--agent/--validator/--critic/--actor) and is not on the grant bootstrap allowlist; an acting agent is required before its grant authority can be checked`,
+    );
+  }
   const state = capsuleState(runRoot);
-  if (state === undefined) return;
+  if (state === undefined) {
+    if (isBootstrapExempt(spec)) return;
+    throw new HarnessError(
+      "INVALID_STATE",
+      `${spec.name} could not load capsule state at --run ${runRoot} and is not on the grant bootstrap allowlist; an unreadable capsule cannot be treated as one with no grants`,
+    );
+  }
   const ledger = readAgentLedger(state);
-  const grant = ledger.find((entry) => entry.id === agentId);
-  if (!grant) return;
+  const rawGrant = ledger.find((entry) => entry.id === agentId);
+  if (rawGrant && rawGrant.status !== "active") {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `agent ${agentId} holds a ${rawGrant.status} grant, not an active one, and may not invoke ${spec.name}`,
+    );
+  }
+  const grant = rawGrant;
+  if (!grant) {
+    if (isBootstrapExempt(spec)) return;
+    throw new HarnessError(
+      "INVALID_STATE",
+      `agent ${agentId} holds no grant in the capsule at --run ${runRoot} and ${spec.name} is not on the grant bootstrap allowlist`,
+    );
+  }
 
   const toolCat = identity(flags, "tool-category");
   if (
@@ -309,7 +352,6 @@ export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
     );
   }
 
-  // Hierarchical parent-child boundary supervision on agent registration
   if (spec.name === "agent:register") {
     const childRole = identity(flags, "role");
     const parentAgentId = identity(flags, "parent-agent");
@@ -317,7 +359,9 @@ export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
 
     if (childRole) {
       if (parentAgentId) {
-        const parentGrant = ledger.find((entry) => entry.id === parentAgentId);
+        const parentGrant = ledger.find(
+          (entry) => entry.id === parentAgentId && entry.status === "active",
+        );
         if (parentGrant) {
           assertHierarchicalSpawning(parentGrant.role, childRole, parentAgentId, childAgentId);
         }
