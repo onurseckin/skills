@@ -16,12 +16,36 @@ import {
 } from "./host-concurrency.ts";
 import type { CanonicalHost, HostProfile } from "./host-canon.ts";
 import { parseHostProfiles } from "./host-canon.ts";
+import { resolvePolicyPath } from "../shared/paths.ts";
 import type {
   ConfigProvenanceMap,
+  ConfigValueSource,
   ExternallyAttestedFact,
+  ExternallyAttestedSource,
   TrackedConfigKey,
 } from "./provenance.ts";
-import { attestedFact, buildConfigProvenanceMap, unattestedFact } from "./provenance.ts";
+import {
+  attestedFact,
+  buildConfigProvenanceMap,
+  unattestedFact,
+  unreadableFact,
+} from "./provenance.ts";
+
+export const QUOTA_FREEZE_THRESHOLD_FLOOR_PCT = 10;
+
+export interface EffectiveQuotaThreshold {
+  readonly value: number;
+  readonly source: ExternallyAttestedSource;
+}
+
+export function resolveEffectiveQuotaThreshold(
+  fact: ExternallyAttestedFact<number | null>,
+): EffectiveQuotaThreshold {
+  if (fact.source === "config_override" && typeof fact.value === "number") {
+    return { value: fact.value, source: fact.source };
+  }
+  return { value: QUOTA_FREEZE_THRESHOLD_FLOOR_PCT, source: fact.source };
+}
 
 export interface HarnessConfig {
   max_repair_rounds: number;
@@ -222,6 +246,43 @@ export function parseConfigFile(filePath: string): Partial<ResolvedHarnessConfig
   return partial;
 }
 
+function parsePolicyLayer(policyPath: string): Partial<ResolvedHarnessConfig> | null {
+  if (!existsSync(policyPath)) return null;
+  let parsed: Partial<ResolvedHarnessConfig> | null;
+  try {
+    parsed = parseConfigFile(policyPath);
+  } catch {
+    return { quota_freeze_threshold_pct: unreadableFact<number | null>(null) };
+  }
+  if (parsed === null) return null;
+  const threshold = parsed.quota_freeze_threshold_pct;
+  if (threshold === undefined) return null;
+  return { quota_freeze_threshold_pct: threshold };
+}
+
+function quotaProvenanceSource(fact: ExternallyAttestedFact<number | null>): ConfigValueSource {
+  if (fact.source === "config_override") return "config_override";
+  if (fact.source === "unreadable") return "unreadable";
+  return "assumed_default";
+}
+
+function resolveQuotaFreezeThresholdFact(
+  policyConfig: Partial<ResolvedHarnessConfig> | null,
+  capsuleConfig: Partial<ResolvedHarnessConfig> | null,
+  repoConfig: Partial<ResolvedHarnessConfig> | null,
+): ExternallyAttestedFact<number | null> {
+  if (repoConfig?.quota_freeze_threshold_pct !== undefined) {
+    return repoConfig.quota_freeze_threshold_pct;
+  }
+  if (capsuleConfig?.quota_freeze_threshold_pct !== undefined) {
+    return capsuleConfig.quota_freeze_threshold_pct;
+  }
+  if (policyConfig?.quota_freeze_threshold_pct !== undefined) {
+    return policyConfig.quota_freeze_threshold_pct;
+  }
+  return DEFAULT_CONFIG.quota_freeze_threshold_pct;
+}
+
 function resolveConcurrencyCeiling(
   capsuleConfig: Partial<ResolvedHarnessConfig> | null,
   repoConfig: Partial<ResolvedHarnessConfig> | null,
@@ -304,6 +365,9 @@ export function resolveHarnessConfig(
     }
   }
 
+  const policyConfig = parsePolicyLayer(resolvePolicyPath(root));
+  const quotaFact = resolveQuotaFreezeThresholdFact(policyConfig, capsuleConfig, repoConfig);
+
   const discovery =
     options?.hostConcurrency !== undefined
       ? options.hostConcurrency
@@ -321,6 +385,7 @@ export function resolveHarnessConfig(
   const hostDiscoveredKeys = new Set<TrackedConfigKey>(["gate_max_parallel"]);
   const provenance = buildConfigProvenanceMap(capsuleConfig, repoConfig, hostDiscoveredKeys, {
     default_max_parallel: concurrency.default_max_parallel_source,
+    quota_freeze_threshold_pct: quotaProvenanceSource(quotaFact),
   });
 
   let capsuleConfigForMerge: Partial<ResolvedHarnessConfig>;
@@ -341,6 +406,7 @@ export function resolveHarnessConfig(
     ...repoConfigForMerge,
     ...concurrency,
     gate_max_parallel: gateMaxParallel,
+    quota_freeze_threshold_pct: quotaFact,
     config_provenance: provenance,
   };
 
