@@ -29,3 +29,9 @@ export function isGrantBootstrapExempt(spec: CommandSpec): boolean {
     GRANT_BOOTSTRAP_ALLOWLIST.has(invocation),
   );
 }
+
+const RUN_IDENTITY_FLAG_NAMES: ReadonlySet<string> = new Set(["run", "run-id"]);
+
+export function declaresRunIdentityFlag(spec: CommandSpec): boolean {
+  return spec.flags.some((flag) => RUN_IDENTITY_FLAG_NAMES.has(flag.name));
+}

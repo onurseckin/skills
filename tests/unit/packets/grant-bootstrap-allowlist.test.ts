@@ -4,9 +4,10 @@ import {
   CONTEXT_FREE_DIAGNOSTIC_COMMANDS,
   GRANT_BOOTSTRAP_ALLOWLIST,
   GRANT_GENESIS_COMMANDS,
+  declaresRunIdentityFlag,
   isGrantBootstrapExempt,
 } from "../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
-import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+import { COMMAND_REGISTRY, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 
 function spec(invocation: string) {
   const found = findCommand(invocation);
@@ -70,5 +71,39 @@ describe("grant bootstrap allowlist data", () => {
     for (const name of GRANT_BOOTSTRAP_ALLOWLIST) {
       expect(() => spec(name)).not.toThrow();
     }
+  });
+});
+
+describe("declaresRunIdentityFlag: the structural hole 1 predicate", () => {
+  test("is false for commands that declare no --run/--run-id flag at all", () => {
+    expect(declaresRunIdentityFlag(spec("mind:init"))).toBe(false);
+    expect(declaresRunIdentityFlag(spec("health"))).toBe(false);
+    expect(declaresRunIdentityFlag(spec("explain"))).toBe(false);
+    expect(declaresRunIdentityFlag(spec("agent:brief"))).toBe(false);
+    expect(declaresRunIdentityFlag(spec("role:cheat-sheet"))).toBe(false);
+    expect(declaresRunIdentityFlag(spec("install"))).toBe(false);
+    expect(declaresRunIdentityFlag(spec("mind:queue:list"))).toBe(false);
+    expect(declaresRunIdentityFlag(spec("usage:report"))).toBe(false);
+  });
+
+  test("is true for commands that declare a --run/--run-id flag, whether required or optional", () => {
+    expect(declaresRunIdentityFlag(spec("plan:init"))).toBe(true);
+    expect(declaresRunIdentityFlag(spec("orchestrate"))).toBe(true);
+    expect(declaresRunIdentityFlag(spec("agent:register"))).toBe(true);
+    expect(declaresRunIdentityFlag(spec("doctor"))).toBe(true);
+    expect(declaresRunIdentityFlag(spec("whoami"))).toBe(true);
+    expect(declaresRunIdentityFlag(spec("task:check"))).toBe(true);
+  });
+
+  test("is true even when the flag is optional rather than required, distinguishing it from context-free", () => {
+    expect(declaresRunIdentityFlag(spec("shell"))).toBe(true);
+    expect(declaresRunIdentityFlag(spec("scope:expand"))).toBe(true);
+  });
+
+  test("matches the count of commands with no run/run-id flag in the live registry", () => {
+    const commandsWithNoRunFlag = COMMAND_REGISTRY.filter(
+      (candidate) => !declaresRunIdentityFlag(candidate),
+    );
+    expect(commandsWithNoRunFlag.length).toBe(21);
   });
 });
