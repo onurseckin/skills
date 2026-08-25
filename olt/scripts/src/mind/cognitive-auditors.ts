@@ -14,6 +14,7 @@ import {
   resolveOltDir,
   resolveBacklogPath,
   resolveCapsulesDir,
+  resolveSkillHomeRepo,
 } from "../core/shared/paths.ts";
 import { SplitChannelDefectRouter } from "../reporting/split-channel-defect-router.ts";
 import { readLastPulse } from "./last-pulse.ts";
@@ -32,6 +33,7 @@ export interface MindAuditLiveResult {
   readonly remediation: "deploy_mind" | "reconcile_native_mind" | "wake_mind" | "none";
   readonly injectionPrompt?: string | undefined;
   readonly defectCreated?: boolean | undefined;
+  readonly localDefectCount: number;
   readonly cursor: AuditorCursor;
   readonly timestamp: string;
 }
@@ -395,18 +397,21 @@ export class MindAuditorEngine {
     }
 
     // 3. Query unresolved defect count
-    let unresolvedDefectCount = 0;
-    const defectsPath = resolveDefectsPath(repoRoot);
-    if (existsSync(defectsPath)) {
+    const countDefectLines = (defectsPath: string): number => {
+      if (!existsSync(defectsPath)) return 0;
       try {
-        const lines = readFileSync(defectsPath, "utf-8")
+        return readFileSync(defectsPath, "utf-8")
           .split("\n")
-          .filter((l) => l.trim().length > 0);
-        unresolvedDefectCount = lines.length;
+          .filter((l) => l.trim().length > 0).length;
       } catch {
-        // ignore
+        return 0;
       }
-    }
+    };
+    const mothershipDefectsPath = resolveDefectsPath(resolveSkillHomeRepo(repoRoot));
+    const localDefectsPath = resolveDefectsPath(repoRoot);
+    const unresolvedDefectCount = countDefectLines(mothershipDefectsPath);
+    const localDefectCount =
+      localDefectsPath !== mothershipDefectsPath ? countDefectLines(localDefectsPath) : 0;
 
     const telemetry: StagnationTelemetry = {
       agentId: activePulse?.actor ?? activeMindGrant?.actor ?? "unknown",
@@ -426,7 +431,7 @@ export class MindAuditorEngine {
     if (stagnant) {
       injectionPrompt = VerbatimRoleInjector.buildInjectionPrompt(repoRoot, "mind", telemetry);
       if (cursor.lastStagnationSignature !== stagnationSignature) {
-        SplitChannelDefectRouter.routeDefect({
+        const routeResult = SplitChannelDefectRouter.routeDefect({
           currentRepoRoot: repoRoot,
           domain: "skill-framework",
           defect: {
@@ -442,7 +447,7 @@ export class MindAuditorEngine {
             },
           },
         });
-        defectCreated = true;
+        defectCreated = routeResult.routed;
       }
     }
 
@@ -461,6 +466,7 @@ export class MindAuditorEngine {
       remediation,
       injectionPrompt,
       defectCreated,
+      localDefectCount,
       cursor: updatedCursor,
       timestamp: nowIso,
     };
@@ -619,7 +625,7 @@ export class SkillAuditorEngine {
     }
     if (shouldLogDefects) {
       for (const inc of incidents) {
-        SplitChannelDefectRouter.routeDefect({
+        const routeResult = SplitChannelDefectRouter.routeDefect({
           currentRepoRoot: repoRoot,
           domain: "skill-framework",
           defect: {
@@ -634,7 +640,9 @@ export class SkillAuditorEngine {
             },
           },
         });
-        defectsLogged++;
+        if (routeResult.routed) {
+          defectsLogged++;
+        }
       }
     }
 

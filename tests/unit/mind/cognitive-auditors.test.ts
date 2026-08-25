@@ -116,9 +116,11 @@ describe("MindAuditorEngine", () => {
     mkdirSync(join(testDir, ".olt"), { recursive: true });
     mkdirSync(join(testDir, "olt", "agents"), { recursive: true });
     writeFileSync(join(testDir, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML, "utf-8");
+    process.env["OLT_SKILL_HOME_REPO"] = testDir;
   });
 
   afterEach(() => {
+    delete process.env["OLT_SKILL_HOME_REPO"];
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -221,6 +223,41 @@ describe("MindAuditorEngine", () => {
     });
 
     expect(result.telemetry.unresolvedDefectCount).toBe(2);
+    expect(result.localDefectCount).toBe(0);
+  });
+
+  test("auditMindPulse reports localDefectCount distinctly when the mothership repo differs from repoRoot", () => {
+    const now = "2026-08-24T12:05:00.000Z";
+    const cursor: AuditorCursor = {
+      lastInspectedTimestamp: "2026-08-24T12:00:00.000Z",
+      lastInspectedEventIndex: 0,
+    };
+
+    const mothershipDir = join(
+      tmpdir(),
+      `test-mind-auditor-mothership-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    );
+    mkdirSync(join(mothershipDir, ".olt"), { recursive: true });
+    process.env["OLT_SKILL_HOME_REPO"] = mothershipDir;
+
+    const localDefectsPath = join(testDir, ".olt", "defects.jsonl");
+    writeFileSync(localDefectsPath, `${JSON.stringify({ id: "local-1" })}\n`, "utf-8");
+
+    const mothershipDefectsPath = join(mothershipDir, ".olt", "defects.jsonl");
+    const m1 = JSON.stringify({ id: "mothership-1" });
+    const m2 = JSON.stringify({ id: "mothership-2" });
+    writeFileSync(mothershipDefectsPath, `${m1}\n${m2}\n`, "utf-8");
+
+    const result = MindAuditorEngine.auditMindPulse(testDir, {
+      cursor,
+      stagnationThresholdSeconds: 120,
+      now,
+    });
+
+    expect(result.telemetry.unresolvedDefectCount).toBe(2);
+    expect(result.localDefectCount).toBe(1);
+
+    rmSync(mothershipDir, { recursive: true, force: true });
   });
 
   test("auditMindPulse inspects last_pulse.json in active capsule when cursor is absent and prevents false stagnation", () => {

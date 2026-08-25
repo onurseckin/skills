@@ -27,6 +27,7 @@ export async function mindAuditLiveCommand(
     `- Recovery Action: ${result.remediation}`,
     `- Pending Backlog Items: ${result.telemetry.pendingBacklogCount}`,
     `- Unresolved Defects: ${result.telemetry.unresolvedDefectCount}`,
+    `- Local Defects: ${result.localDefectCount}`,
     `- Defect Logged: ${result.defectCreated ? "YES" : "NO"}`,
     `- Cursor Timestamp: ${result.cursor.lastInspectedTimestamp}`,
   ];
@@ -55,6 +56,7 @@ export async function mindAuditLiveCommand(
     idle_duration_seconds: result.idleDurationSeconds,
     pending_backlog_count: result.telemetry.pendingBacklogCount,
     unresolved_defect_count: result.telemetry.unresolvedDefectCount,
+    local_defect_count: result.localDefectCount,
     remediation: result.remediation,
     defect_created: Boolean(result.defectCreated),
     injection_prompt: result.injectionPrompt ?? null,
