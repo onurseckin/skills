@@ -23,6 +23,7 @@ export interface DefectRouteResult {
   readonly targetDefectsPath: string;
   readonly isMothership: boolean;
   readonly routed: boolean;
+  readonly lastError?: string;
 }
 
 export class SplitChannelDefectRouter {
@@ -48,6 +49,7 @@ export class SplitChannelDefectRouter {
 
     const line = JSON.stringify(record) + "\n";
     let routed = false;
+    let lastError: string | undefined;
 
     try {
       const dir = dirname(targetDefectsPath);
@@ -56,8 +58,14 @@ export class SplitChannelDefectRouter {
       }
       appendFileSync(targetDefectsPath, line, "utf-8");
       routed = true;
-    } catch {
+    } catch (primaryWriteError) {
       // If writing to mothership failed, gracefully fall back to local project defects ledger
+      console.error(
+        `SplitChannelDefectRouter: failed to append defect to ${targetDefectsPath}`,
+        primaryWriteError,
+      );
+      lastError =
+        primaryWriteError instanceof Error ? primaryWriteError.message : String(primaryWriteError);
       if (isSkillFramework && targetRepoRoot !== resolve(options.currentRepoRoot)) {
         targetRepoRoot = resolve(options.currentRepoRoot);
         isMothership = false;
@@ -69,7 +77,15 @@ export class SplitChannelDefectRouter {
           }
           appendFileSync(targetDefectsPath, line, "utf-8");
           routed = true;
-        } catch {
+        } catch (fallbackWriteError) {
+          console.error(
+            `SplitChannelDefectRouter: failed to append defect to ${targetDefectsPath}`,
+            fallbackWriteError,
+          );
+          lastError =
+            fallbackWriteError instanceof Error
+              ? fallbackWriteError.message
+              : String(fallbackWriteError);
           routed = false;
         }
       }
@@ -80,6 +96,7 @@ export class SplitChannelDefectRouter {
       targetDefectsPath,
       isMothership,
       routed,
+      ...(routed ? {} : lastError !== undefined ? { lastError } : {}),
     };
   }
 }
