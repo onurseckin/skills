@@ -9,21 +9,23 @@ const skillPath = join(repoRoot, "olt/SKILL.md");
 describe("SKILL.md architectural invariants and cadence specification", () => {
   const content = readFileSync(skillPath, "utf8");
 
-  test("specifies 3-minute watchdog scheduler cadence", () => {
-    expect(content).toContain("Mandatory 3-Minute Supervisory Scheduler");
-    expect(content).toContain("*/3 * * * *");
-    expect(content).toContain("Missing Supervisory Schedule / 3-Minute Watchdog");
-    // Ensure 5-minute supervisory scheduler is no longer the active rule
-    expect(content).not.toContain("Mandatory 5-Minute Supervisory Scheduler");
+  test("specifies a dynamically resolved watchdog scheduler cadence, never a value fixed in the doc", () => {
+    expect(content).toContain("Mandatory Supervisory Scheduler & Algorithmic DAG Optimization");
+    expect(content).toContain("resolveSupervisoryCadence");
+    expect(content).toContain("Missing Supervisory Schedule / Watchdog");
+    // No cron cadence may be hardcoded in the doc; it is always resolved at runtime.
+    expect(content).not.toContain("*/3 * * * *");
     expect(content).not.toContain("*/5 * * * *");
+    expect(content).not.toContain("Mandatory 3-Minute Supervisory Scheduler");
+    expect(content).not.toContain("Mandatory 5-Minute Supervisory Scheduler");
   });
 
-  test("enforces repository root .capsules/ invariant and strict Zero /tmp Ban", () => {
-    expect(content).toContain("Zero `/tmp` Ban");
-    expect(content).toContain("<repo-root>/.capsules/");
-    expect(content).toContain("Temporary Directory Leakage (Zero /tmp Ban)");
-    expect(content).toContain("never `/tmp` or `.tmp/`");
-    expect(content).toContain("reside exclusively in `.capsules/`");
+  test("enforces repository root .olt/capsules/ invariant and strict Zero System /tmp Ban", () => {
+    expect(content).toContain("Zero System /tmp Ban");
+    expect(content).toContain("<repo-root>/.olt/capsules/");
+    expect(content).toContain("Temporary Directory Leakage (Zero System /tmp Ban)");
+    expect(content).toContain("never the system temp dir");
+    expect(content).toContain("reside in `<repo-root>/.olt/capsules/`");
   });
 
   test("documents Main-Thread Containment Invariant and thread authority identification", () => {

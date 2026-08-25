@@ -40,10 +40,10 @@ coordinator per round; only the coordinator ever touches task-level work:
 
 0. **Tier 0 (Main Interactive Thread)**:
    - Remains 100% responsive for user chat.
-   - On standard task runs (`orchestrate`), spawns **exactly one** background orchestrator agent, then stops — it never reads the
+   - Spawns **exactly one** background orchestrator agent on standard task runs (`orchestrate`), then stops — it never reads the
      repository, stages a plan, or dispatches a coordinator or worker itself. See `orchestrate`'s
      brief in `SKILL.md`: dispatching that one orchestrator is the whole of Tier 0's job.
-   - On `/olt mind` (autonomous product owner mode), spawns **both** Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) in a single 1-shot batch dispatch (`invoke_subagent` with `Subagents: [...]`), injecting verbatim manifests. Because Mind cannot self-spawn Mind Auditor under `ALLOWED_TIER_SPAWNS`, both must be deployed together in 1-shot batch by Tier 0.
+   - On `/olt mind` (autonomous product owner mode), spawns **both** Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) in a single 1-shot batch dispatch (Antigravity's `invoke_subagent` with `Subagents: [...]`), injecting verbatim manifests. Because Mind cannot self-spawn Mind Auditor under `ALLOWED_TIER_SPAWNS`, both must be deployed together in 1-shot batch by Tier 0.
    - Never directly executes implementer tool loops or polls state.
 1. **Tier 1 (Background Loop Orchestrator)**:
    - Owns the round scheduler: chains capsule state across rounds, synthesizes a round's unresolved
@@ -332,7 +332,7 @@ Every host adapter implementation must enforce the following guardrails:
 
 - **Anti-Pattern**: Main interactive thread initializing CLI state on `/olt mind` but omitting subagent dispatch, pausing for manual user confirmation, summarizing prompts instead of injecting verbatim YAML manifests, or failing to deploy `mind-auditor` alongside `mind`.
 - **Guardrail**:
-  - The entrypoint on `/olt mind` MUST deploy both `mind` and `mind-auditor` in a single 1-shot batch dispatch (`invoke_subagent` with `Subagents: [...]`).
+  - The entrypoint on `/olt mind` MUST deploy both `mind` and `mind-auditor` in a single 1-shot batch dispatch (Antigravity's `invoke_subagent` with `Subagents: [...]`).
   - Because `mind` (Tier 0) cannot self-spawn `mind-auditor` (Tier 1) under `ALLOWED_TIER_SPAWNS`, Tier 0 Main Thread must dispatch both simultaneously.
   - Verbatim manifests from `agents/mind.yaml` and `agents/mind-auditor.yaml` must be injected into subagent prompts without lossy compression.
   - Register a recurring 3-minute supervisory schedule (`schedule` cron `*/3 * * * *`) and stand down main-thread tool execution.

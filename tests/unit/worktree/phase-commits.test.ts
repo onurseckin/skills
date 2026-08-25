@@ -430,7 +430,7 @@ describe("Phase Commits & Conventional Commit Validation (p09)", () => {
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   test("verifies phase-commits module and test file contain zero any and zero suppressions", () => {
     const filesToAudit = [
-      join(process.cwd(), "olt/scripts/src/worktree/phase-commits.ts"),
+      join(process.cwd(), "olt/scripts/src/engine/worktree/phase-commits.ts"),
       join(process.cwd(), "tests/unit/worktree/phase-commits.test.ts"),
     ];
 

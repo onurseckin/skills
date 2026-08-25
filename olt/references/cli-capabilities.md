@@ -683,7 +683,7 @@ bun harness.ts task:abandon --run .olt/capsules/<run-id> --task task-1 --actor c
 
 Incremental verification.
 
-Check the files.
+Check the files. The AST lint audit (0 `any`, 0 compiler suppressions) always runs and can never be skipped. --typecheck adds the TypeScript typecheck pass on top of that audit; it does not replace it. --lint narrows the run to the AST audit alone, skipping typecheck. Exits non-zero when either check reports a violation.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -694,8 +694,8 @@ Check the files.
 | `--run` | string | no | no | - | Capsule run root. |
 | `--task` | string | no | no | - | Task ID. |
 | `--file` | string | no | yes | - | File path. |
-| `--typecheck` | bool | no | no | - | Run typecheck. |
-| `--lint` | bool | no | no | - | Run lint. |
+| `--typecheck` | bool | no | no | - | Run the TypeScript typecheck pass in addition to the always-on AST lint audit. |
+| `--lint` | bool | no | no | - | Run only the AST lint audit, skipping the typecheck pass (typecheck runs by default). |
 
 ### `task:release`
 
@@ -1128,11 +1128,7 @@ bun harness.ts quota:resume --force
 
 Live Tier 0 out-of-band audit of skill compliance and delta event forensics.
 
-Scans incremental delta events, audits cognitive contracts, and routes defects upstream. Omitting
-`--run` does not skip scanning: it audits the default scope, every capsule this repo can discover
-under `.olt/capsules` (and legacy `.capsules`), each tracked against its own persisted,
-capsule-scoped cursor so one capsule's progress never suppresses another's. Pass `--run` to narrow
-the scope to a single named capsule.
+Scans incremental delta events, audits cognitive contracts, and routes defects upstream.
 
 - **Aliases**: `skill:audit`
 - **Stdin**: not read
@@ -1141,7 +1137,7 @@ the scope to a single named capsule.
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--repo` | string | no | no | - | Repository root path. |
-| `--run` | string | no | no | - | Capsule run root to audit. Omit to audit every capsule discoverable under the repo's `.olt/capsules` (and `.capsules`) directories instead of none. |
+| `--run` | string | no | no | - | Target capsule run root directory. |
 | `--log-defects` | bool | no | no | `true` | Automatically log detected incidents as defects. |
 | `--json` | bool | no | no | - | Output structured JSON. |
 
@@ -1754,6 +1750,7 @@ Spawning happens host-side; this is how the run learns a subagent exists, who de
 | `--agent` | string | yes | no | - | Agent id of the dispatched subagent. |
 | `--role` | string | yes | no | - | Canonical role the agent is granted. |
 | `--host` | string | yes | no | - | Host runtime that spawned the agent. |
+| `--host-address` | string | no | no | - | Host-level routable address of the agent: the spawn name or raw host agent id a message can actually be sent to. --agent is the harness actor id and is not addressable host-side, so omitting this leaves the grant unroutable. |
 | `--parent-agent` | string | no | no | - | Agent id that dispatched it; omit for the root. |
 | `--parent-task` | string | no | no | - | Task or branch sub-task the agent is dispatched onto. |
 | `--actor` | string | no | no | - | Event actor; defaults to the parent agent, else the agent. |
@@ -1766,7 +1763,7 @@ Spawning happens host-side; this is how the run learns a subagent exists, who de
 | `--tool-extra` | string | no | yes | - | One tool-specific fact as <tool>:<key>=<value>, kept verbatim under the reported name. The tool must also be given with --tool. |
 
 ```bash
-bun harness.ts agent:register --run .olt/capsules/<run-id> --agent worker-1 --role implementer --host claude-code --parent-agent coordinator-1 --parent-task task-1 --tool Bash=shell --tool-extra Bash:shell=zsh
+bun harness.ts agent:register --run .olt/capsules/<run-id> --agent worker-1 --role implementer --host claude-code --host-address a35c207176e4bb129 --parent-agent coordinator-1 --parent-task task-1 --tool Bash=shell --tool-extra Bash:shell=zsh
 ```
 
 ### `agent:report`

@@ -3860,6 +3860,13 @@
           "default": null
         },
         {
+          "name": "host-address",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
           "name": "parent-agent",
           "type": "string",
           "required": false,

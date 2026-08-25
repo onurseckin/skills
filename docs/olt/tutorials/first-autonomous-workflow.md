@@ -1,6 +1,6 @@
 # First Autonomous Workflow: End-to-End Feature Run Tutorial
 
-[⬅ Previous: Getting Started](./getting-started.md) | [Master Table of Contents](../README.md) | [Next: CLI Command Reference](../reference/cli-reference.md)
+[⬅ Previous: Getting Started](./getting-started.md) | [Master Table of Contents](../README.md) | [Next: CLI Command Reference](../reference/harness-cli.md)
 
 ---
 
@@ -693,4 +693,4 @@ Congratulations! You have mastered the complete end-to-end OLT autonomous workfl
 
 ---
 
-[⬅ Previous: Getting Started](./getting-started.md) | [Master Table of Contents](../README.md) | [Next: CLI Command Reference](../reference/cli-reference.md)
+[⬅ Previous: Getting Started](./getting-started.md) | [Master Table of Contents](../README.md) | [Next: CLI Command Reference](../reference/harness-cli.md)

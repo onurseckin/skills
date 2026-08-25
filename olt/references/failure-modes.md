@@ -156,7 +156,7 @@ section owns evidence wording only.
 
 ## Small-Model & Zero-Blunder Failure Modes (Plan 23 Benchmark: `8b1c3333-a00c-4dc3-871d-8f72b3b3465a`)
 
-- `SM-1` — Observed loophole: Host Binary Inversion (`agy` in Shell). The model attempts to manage subagents or run tasks by executing the host's interactive terminal executable (`agy agents`, `agy agents list`, `agy orchestrate`) via `run_command` instead of calling native host tools (`manage_subagents`, `invoke_subagent`) or the harness script.
+- `SM-1` — Observed loophole: Host Binary Inversion (`agy` in Shell). The model attempts to manage subagents or run tasks by executing the host's interactive terminal executable (`agy agents`, `agy agents list`, `agy orchestrate`) via `run_command` instead of calling native Antigravity host tools (`manage_subagents`, `invoke_subagent`) or the harness script.
   - Structural countermeasure: Host Binary Execution Deny-List & Native Tool Grounding. `run_command` and shell interlocks reject invocations of `agy`. Manifests explicitly state that `agy` is the interactive host shell for human users and must never be run by agents.
 - `SM-2` — Observed loophole: Interactive TTY Process Freeze & Zombie Proliferation. The model spawns interactive CLI commands in non-interactive background tasks; the commands produce 0 bytes of output and hang indefinitely, leading the model to falsely deduce the target is dead and spawn duplicate zombie tasks.
   - Structural countermeasure: Managed Task Health Watchdog & Non-Interactive Invariant. Background tasks enforce non-interactive flags and automatic timeout termination, while agent manifests mandate checking `manage_subagents list` rather than executing terminal polling.

@@ -308,7 +308,7 @@ describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservatio
   describe("Invariants & TypeScript Strictness Audit", () => {
     test("zero TypeScript any and zero suppressions across zero-destructive-policy files", () => {
       const sourceFiles = [
-        join(__dirname, "../../../olt/scripts/src/worktree/zero-destructive-policy.ts"),
+        join(__dirname, "../../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts"),
         join(__dirname, "../../../olt/scripts/src/workflow/worktree/git.ts"),
         __filename,
       ];

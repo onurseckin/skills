@@ -18,6 +18,7 @@ export interface VendorTree {
 export const PRODUCT_GRAMMAR_MODULES: readonly string[] = [
   "src/authority/manifest-parser.ts",
   "src/authority/thread-identifier.ts",
+  "src/core/config/host-canon.ts",
   "src/graph/gate-runtime-grammar.ts",
   "src/installer/runtime-freshness.ts",
   "src/platform/adapters.ts",

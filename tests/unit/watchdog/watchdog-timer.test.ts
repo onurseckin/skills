@@ -707,7 +707,7 @@ describe("Invariants & Cleanliness Audit - Autonomic Watchdog (p47 & p56)", () =
       join(watchdogDir, "boot-gate-enforcer.ts"),
       join(watchdogDir, "autonomic-watchdog.ts"),
       join(watchdogDir, "index.ts"),
-      join(__dirname, "../../../olt/scripts/src/doctor/tier-confinement.ts"),
+      join(__dirname, "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts"),
       __filename,
     ];
 

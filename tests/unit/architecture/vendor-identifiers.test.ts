@@ -32,6 +32,7 @@ const testsRoot = join(repoRoot, "tests");
 const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/authority/manifest-parser.ts",
   "src/authority/thread-identifier.ts",
+  "src/core/config/host-canon.ts",
   "src/graph/gate-runtime-grammar.ts",
   "src/installer/runtime-freshness.ts",
   "src/platform/adapters.ts",
@@ -41,6 +42,13 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/platform/codex.ts",
   "src/platform/host-adapter-registry.ts",
   "src/summary/host-telemetry.ts",
+  "src/telemetry/collectors/antigravity.ts",
+  "src/telemetry/collectors/claude.ts",
+  "src/telemetry/collectors/codex.ts",
+  "src/telemetry/collectors/common.ts",
+  "src/telemetry/collectors/cursor.ts",
+  "src/telemetry/collectors/index.ts",
+  "src/telemetry/collectors/openai.ts",
 ];
 
 /**
@@ -86,6 +94,8 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/agents/whoami-profiling.test.ts",
   "unit/authority/thread-identifier.test.ts",
   "unit/cli/install-ops-command.test.ts",
+  "unit/config/harness-config.test.ts",
+  "unit/config/host-canon.test.ts",
   "unit/contracts/core-runtime.test.ts",
   "unit/installer/install.test.ts",
   "unit/installer/installation-status.test.ts",
@@ -95,6 +105,9 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/platform/host-adapters.test.ts",
   "unit/policy/repo-policy.test.ts",
   "unit/roles/plan-91-roles.test.ts",
+  "unit/telemetry/collectors.test.ts",
+  "unit/telemetry/engine.test.ts",
+  "unit/telemetry/usage-report.test.ts",
   "unit/workflow/agents/transcript-telemetry.test.ts",
 ];
 

@@ -70,7 +70,6 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["olt/scripts/src/mind/task-discovery.ts", 2],
   ["olt/scripts/src/mind/task-queue.ts", 6],
   ["olt/scripts/src/orchestrator/completion-audio.ts", 2],
-  ["olt/scripts/src/orchestrator/multi-capsule.ts", 2],
   ["olt/scripts/src/orchestrator/recursive-critic-feedback.ts", 2],
   ["olt/scripts/src/orchestrator/watchdog.ts", 1],
   ["olt/scripts/src/platform/antigravity.ts", 3],

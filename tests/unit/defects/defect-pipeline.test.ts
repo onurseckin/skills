@@ -974,7 +974,7 @@ describe("Defect Pipeline - Audit Reporting & Markdown Formatting", () => {
 
 describe("Defect Pipeline - Static Code Invariants", () => {
   it("strictly enforces 0 TypeScript any and 0 compiler/linter suppressions across all defect files", () => {
-    const defectDir = join(process.cwd(), "olt/scripts/src/defects");
+    const defectDir = join(process.cwd(), "olt/scripts/src/mind/defects");
     const defectFiles = readdirSync(defectDir)
       .filter((f) => f.endsWith(".ts"))
       .map((f) => join(defectDir, f));

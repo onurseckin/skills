@@ -51,7 +51,7 @@ exact commands it may invoke, and the roles it may branch into:
 The orchestrator sits above every run: it dispatches exactly one coordinator per round and never a
 tier 3 agent directly. On standard task runs (`orchestrate`), `orchestrator` is the single role the
 main thread dispatches. On `/olt mind` (infinite product owner mode), the main thread dispatches both
-`mind` (Tier 0) and `mind-auditor` (Tier 1) in a single 1-shot batch dispatch via `invoke_subagent`
+`mind` (Tier 0) and `mind-auditor` (Tier 1) in a single 1-shot batch dispatch via Antigravity's `invoke_subagent`
 (`Subagents: [...]`), since `mind` cannot self-spawn `mind-auditor` under `ALLOWED_TIER_SPAWNS`.
 See `agents/orchestrator.yaml`, `agents/mind.yaml`, `agents/mind-auditor.yaml`, and `references/host-adapters.md`.
 

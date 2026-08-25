@@ -49,7 +49,7 @@ The OLT harness CLI (`bun ~/.agents/skills/olt/scripts/harness.ts`) is the autho
 | **Concurrency**          | Manages OS-level parallel subagent execution.                               | Enforces disjoint write-scope isolation across tasks in a wave. |
 | **Verification & Gates** | Runs test runners and linters on host environment.                          | Mechanically checks gate criteria before advancing states.      |
 
-### 1.4 Host Application Binary (`agy`) vs. Native Host Tools vs. Harness Protocol
+### 1.4 Host Application Binary (`agy`) vs. Antigravity Native Host Tools vs. Harness Protocol
 
 A fundamental failure mode in small parameter models is the three-way conflation between the host terminal executable (`agy`), native host tools declared in the context schema, and the harness protocol script (`bun ./olt/scripts/harness.ts`):
 

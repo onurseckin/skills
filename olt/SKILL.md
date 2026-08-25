@@ -25,7 +25,7 @@ When invoked via `/olt mind` or when infinite product owner mode is requested, t
 
 1. Initialize the mind system if uninitialized (`bun ~/.agents/skills/olt/scripts/harness.ts mind:init --repo . --charter olt/agents/mind.yaml --actor owner`).
 2. Register a recurring supervisory watchdog (`schedule` cron) whose arm interval is resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance) rather than a value fixed in this doc.
-3. Deploy **BOTH** Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) in a single 1-shot batch dispatch via `invoke_subagent` (`Subagents: [{ Role: "mind", TypeName: "mind", Prompt: "..." }, { Role: "mind-auditor", TypeName: "mind-auditor", Prompt: "..." }]`).
+3. Deploy **BOTH** Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) in a single 1-shot batch dispatch via Antigravity's `invoke_subagent` (`Subagents: [{ Role: "mind", TypeName: "mind", Prompt: "..." }, { Role: "mind-auditor", TypeName: "mind-auditor", Prompt: "..." }]`).
 4. Inject full verbatim YAML manifests from `agents/mind.yaml` and `agents/mind-auditor.yaml` into their prompts (never ad-hoc summarized prompts).
 5. Stand down and await background milestone messages via `send_message` (zero main-thread tool chatter or code editing).
 
@@ -88,7 +88,7 @@ Do not create a harness for a simple answer, one-file mechanical edit, or short 
 40. Canonical `.olt/` Repository Governance: same ruling as rule 11 above — see [Canonical Location Decisions](#canonical-location-decisions) for the full decision and its verification.
 41. Hard-Coded Mechanical RBAC Engine (`harness.ts shell`): Direct command execution is strictly validated against repository policy via `verifyCommandAuthorization`. Cognitive Validators have `can_execute_shell: false` (0 commands). Implementers are restricted from running un-targeted full-suite test commands (`^npm test$`, `^bun test$`, `^pytest$`, `^cargo test$`) and git mutations. All commands are executed via `bun harness.ts shell --actor <id> -- <cmd>`.
 42. Bounded Read Scope & Dynamic Expansion (`harness.ts scope:expand`): Subagents are bounded to target files and direct neighborhood (depth 2). Expanding read scope requires `bun harness.ts scope:expand --actor <id> --read <path>`.
-43. 1-Shot Batch Auto-Deployment of Mind and Companion Mind-Auditor (`/olt mind`): When `/olt mind` or autonomous mind mode is invoked, the main interactive thread MUST immediately deploy BOTH the Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) subagents in a single 1-shot batch dispatch via `invoke_subagent` (or host subagent array `Subagents: [...]`), injecting verbatim YAML manifests and registering the supervisory schedule (`schedule` cron) whose arm interval is resolved at runtime via `resolveSupervisoryCadence`, not a value fixed in this doc. The main thread MUST NOT stall, emit conversational questionnaires, or serialize dispatches across multiple turns. Because Tier 0 Mind cannot self-spawn Tier 1 Mind Auditor under `ALLOWED_TIER_SPAWNS`, both MUST be deployed together in 1-shot batch dispatch by the entrypoint.
+43. 1-Shot Batch Auto-Deployment of Mind and Companion Mind-Auditor (`/olt mind`): When `/olt mind` or autonomous mind mode is invoked, the main interactive thread MUST immediately deploy BOTH the Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) subagents in a single 1-shot batch dispatch via Antigravity's `invoke_subagent` (or host subagent array `Subagents: [...]`), injecting verbatim YAML manifests and registering the supervisory schedule (`schedule` cron) whose arm interval is resolved at runtime via `resolveSupervisoryCadence`, not a value fixed in this doc. The main thread MUST NOT stall, emit conversational questionnaires, or serialize dispatches across multiple turns. Because Tier 0 Mind cannot self-spawn Tier 1 Mind Auditor under `ALLOWED_TIER_SPAWNS`, both MUST be deployed together in 1-shot batch dispatch by the entrypoint.
 
 ## Route by role
 
@@ -112,7 +112,7 @@ Every agent holds exactly one role; `agents/<role>.yaml` is its binding unified 
 | `sub-validator` (3)       | [agents/sub-validator.yaml](agents/sub-validator.yaml)                                                                                    | Playbook Phase 4 only                                                                          | Verdict commands — it gathers evidence and issues no verdict                                                        |
 | `sub-investigator` (3)    | [agents/sub-investigator.yaml](agents/sub-investigator.yaml)                                                                              | Playbook Phase 4 only                                                                          | Anything that mutates; it reproduces, bisects and reports                                                           |
 
-Host adapters: [agents/antigravity.yaml](agents/antigravity.yaml), [agents/claude.yaml](agents/claude.yaml), [agents/codex.yaml](agents/codex.yaml), [agents/cursor.yaml](agents/cursor.yaml), [agents/generic.yaml](agents/generic.yaml), [agents/openai.yaml](agents/openai.yaml), [agents/meta-auditor.yaml](agents/meta-auditor.yaml), [agents/independent-planner.yaml](agents/independent-planner.yaml), [agents/independent-planner-audit.yaml](agents/independent-planner-audit.yaml). Unified validator domain manifests are consolidated in [agents/validator.yaml](agents/validator.yaml).
+Host adapters: [agents/antigravity.yaml](agents/antigravity.yaml), [agents/claude.yaml](agents/claude.yaml), [agents/codex.yaml](agents/codex.yaml), [agents/cursor.yaml](agents/cursor.yaml), [agents/generic.yaml](agents/generic.yaml), [agents/openai.yaml](agents/openai.yaml), [agents/meta-auditor.yaml](agents/meta-auditor.yaml), [agents/independent-planner.yaml](agents/independent-planner.yaml), [agents/independent-planner-audit.yaml](agents/independent-planner-audit.yaml), [agents/skill-auditor.yaml](agents/skill-auditor.yaml) (Tier 0 out-of-band skill compliance auditor). Unified validator domain manifests are consolidated in [agents/validator.yaml](agents/validator.yaml).
 
 ## Route by phase & references
 
@@ -127,102 +127,23 @@ bun olt/scripts/harness.ts help <command>
 - **Forensics & Audit**: `meta-audit` (with `--run`, `--format`, `--inject`, `--json`), `defect:audit` (with `--auto-promote`, `--generate-tests`), `doctor`, `dag`, `report`.
 - **Branch**: `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`, [`references/state-model.md`](references/state-model.md).
 - **Validate**: `task:validate-start`, `task:probe`, `task:reject` (with `--micro-cycle`), `task:review`, [`references/failure-modes.md`](references/failure-modes.md).
-- **Replan & Seal**: `critic:reject`, `plan:replan`, `critic:start`, `critic:review`, `run:complete`.
-- **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, `dag`, `whoami`, `memory:query`, `defect:audit`, `meta-audit`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities.json`](references/cli-capabilities.json)).
+- **Replan & Seal**: `critic:reject`, `plan:replan`, `critic:start`, `critic:review`, `run:complete`. **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, `dag`, `whoami`, `memory:query`, `defect:audit`, `meta-audit`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities.json`](references/cli-capabilities.json)).
 
 ## Critical Anti-Patterns & Operational Guardrails
 
-- **Main-Thread Fallback & Context Flooding**: Never edit files, run test loops, or ingest massive JSON payloads (such as raw `state.json`) on the main interactive thread. Main thread only orchestrates and dispatches parallel Tier 2 Coordinators and Tier 3 subagents via host-native subagents (Antigravity: `invoke_subagent`, Claude Code: `Agent`, Codex: `spawn_agent`, Cursor: `Task`). Enforce thread boundaries via `whoami`.
-- **Un-Briefed Subagent Spawning**: Never spawn subagents without complete 1-shot briefings (`task:brief`, `agent:brief`). Subagents must receive all necessary context, write scopes, and test commands in their initial prompt to eliminate exploratory probing.
-- **Direct Test Suite Execution by Coordinator / Orchestrator**: Never run raw test suites (`bun test`, `vitest`, `npm test`) from coordinator or orchestrator threads. Test execution belongs exclusively to Tier 3 Mechanic Validators.
-- **Ghost Subagent Accumulation & Dangling Leases**: Never leave finished subagents un-killed; always enforce hard agent reset discipline (`manage_subagents` with `Action: 'kill'`) upon wave or subgroup completion. Stale or orphaned leases are flagged as `GHOST_LEASE` by Meta-Auditor and reclaimed via `recover`.
-- **Uncommitted Verified Tasks**: Never leave verified task groups uncommitted or un-synced; always create Conventional Commits, push to `origin/main`, and run `bun scripts/sync-global.ts`.
-- **Temporary Directory Leakage (Zero System /tmp Ban)**: Never store state, artifacts, scratch files, or reports under the system `/tmp` (including `$TMPDIR` and `mktemp -t`, which resolve to it on macOS) — it is invisible to the repo, other agents, and post-hoc audit. Durable run state, artifacts, reports, and payloads reside in `<repo-root>/.olt/capsules/`; repo-local ephemeral scratch belongs in `<repo-root>/.tmp/` or `<repo-root>/scratch/` (see [Canonical Location Decisions](#canonical-location-decisions)) — never the system temp dir.
-- **Mind Idle / Standby Anti-Pattern**: Never permit Tier 0 Mind to sit idle or emit "waiting in standby" when the feedback queue is empty. Autonomous discovery (0 any checks, charter gap audits, blunder regression tests, Work/Span P = W / S optimizations) must trigger automatically.
-- **Artificial Serialization & False Bottlenecks**: Never chain tasks with disjoint write scopes sequentially when dynamic wave decoupling (`detectScopeOverlap`) can schedule them in parallel. Always inspect and optimize DAG waves via `dag`. Flagged by Meta-Auditor as `FALSE_SERIALIZATION`.
-- **Token Burning & Blind Exploratory Scanning**: Never allow implementers to burn tokens on unguided exploratory repository scans (`find_by_name`, `list_dir`, `grep_search`, $>5$ reads before first write). Coordinators must emit zero-exploration exact-anchor briefings (`task:brief`, `briefing-builder.ts`) with line ranges and drop-in code replacements. Flagged by Meta-Auditor as `TOKEN_BURNING`.
-- **Polling Waste & Active Loop Waiting**: Never poll background task status in tight loops (`manage_task status`, sleep loops). Always set `WaitMsBeforeAsync: 10000` and stop tool execution to await reactive event wakeups. Flagged by Meta-Auditor as `POLLING_WASTE`.
-- **Context Saturation & Session Bloat**: Never allow a subagent session to consume $>150\text{k}$ input tokens. Decompose tasks granularly into atomic work units bounded to 1–2 target files per task. Flagged by Meta-Auditor as `CONTEXT_OVERFLOW`.
-- **Straggler Tasks & Unbalanced Workloads**: Never permit oversized tasks ($>3\times$ run average duration) to dominate wave critical paths. Flagged by Meta-Auditor as `STRAGGLER`.
-- **Unevidenced Blunder Dismissal Anti-Pattern**: Never resolve or ignore blunders without empirical proof (`commit_sha`, `test_assertion`, `task_id`) and automated promotion (`defect:audit --auto-promote`).
-- **Missing Supervisory Schedule / Watchdog**: Never leave background tasks unmonitored or terminate schedulers on idle ticks. Always register a recurring supervisory cron/timer (`schedule` cron, systemd timer, or floor loop) whose arm interval is resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance), not a value fixed in this doc.
-- **Prose-Only or List-Only DAG Reports**: Never represent graph status as flat text lists or generic status adjectives ("satisfied", "done"). Always render True Visual DAGs in ASCII/Unicode boxed format with topological levels and active node indicators (`dag`).
-- **Sequential Execution Simulation**: Never serialize disjoint tasks when parallel wave subagents can be dispatched. Inspect and optimize the DAG via `dag`.
-- **Coordinator Code Pollution**: Never let coordinators or supervisors write code directly. Flagged by Meta-Auditor as `ROLE_BOUNDARY_DEVIATION`.
-- **Viewport Omission**: Never test single viewport. Visual UI tasks require all 4: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844).
-- **Paused Admitted Feedback Items & Non-Atomic Intake**: Never permit admitted feedback items to linger in a paused admitted intermediate state. Every admission must atomically chain into a task queue dispatch (`FEEDBACK_QUEUE.jsonl` -> `TASK_QUEUE.jsonl`).
-- **Hierarchical Tier-Bypassing & Cross-Tier Spawning**: Never bypass intermediate supervisory tiers (e.g. Mind spawning Implementers directly, or Orchestrator spawning Implementers without a Coordinator). All dispatches must respect top-down 4-tier parental supervision.
-- **Cognitive Validator Command Execution Leak**: Never assign or permit terminal, shell, or unit test execution to Cognitive Validators. Cognitive Validators are hard-locked from command execution (0 `run:exec`); all command execution belongs exclusively to Mechanic Validators. Flagged by Meta-Auditor as `ROLE_BOUNDARY_DEVIATION`.
-- **Unverified Telemetry & Prose-Only Status Reports**: Never emit scheduler status without script-backed diagnostic receipts (`doctor`, `health`, `dag`, `report`), cryptographic SHA-256 hashes, and ASCII DAG badges.
-- **Heavyweight Whole-Repo Testing During Iteration**: Never run whole-repo test suites during task implementation or repair; use `task:check` for fast incremental type and lint verification and file-scoped test commands (`bun test <path.test.ts>`).
-- **Nested Capsules**: Never nest `.olt/capsules/` in subdirectories; always anchor to local repo root `<repo-root>/.olt/capsules/`.
-- **Omitted or Serialized Mind / Mind-Auditor Auto-Deployment on `/olt mind`**: Never fail to automatically deploy or serialize the deployment of `mind` and `mind-auditor` when `/olt mind` is entered. Because Mind cannot self-spawn Mind-Auditor under `ALLOWED_TIER_SPAWNS`, the main interactive thread must deploy both in a single 1-shot batch dispatch (`invoke_subagent` with `Subagents: [...]`) with verbatim YAML manifests.
+- **Main-Thread Fallback & Context Flooding**: Never edit files, run test loops, or ingest massive JSON payloads on the main interactive thread — dispatch Tier 2/3 subagents and enforce boundaries via `whoami`.
+- **Temporary Directory Leakage (Zero System /tmp Ban)**: Never store state, artifacts or scratch under system `/tmp`. Durable run state, artifacts, reports, and payloads reside in `<repo-root>/.olt/capsules/`; repo-local ephemeral scratch is `.tmp/` or `scratch/` (see [Canonical Location Decisions](#canonical-location-decisions)) — never the system temp dir.
+- **Missing Supervisory Schedule / Watchdog**: Never leave background tasks unmonitored or terminate schedulers on idle ticks — always register a recurring watchdog whose interval is resolved via `resolveSupervisoryCadence`.
+- **Prose-Only or List-Only DAG Reports**: Never represent graph status as flat text or generic adjectives — always render True Visual DAGs in ASCII/Unicode boxed format via `dag`.
+- **Also never**: spawn subagents without 1-shot briefings; run raw test suites from a coordinator/orchestrator thread; leave subagents un-killed or verified tasks uncommitted/un-synced; let Mind sit idle on an empty queue instead of triggering Autonomous Discovery; serialize disjoint-scope tasks that could run in parallel waves; burn tokens on unguided exploratory scans instead of exact-anchor briefings; poll status in tight loops instead of reactive wakeups; saturate a subagent session past ~150k tokens; let a straggler task dominate a wave; dismiss a blunder without empirical proof; test a UI surface on fewer than all 4 mandatory viewports; leave admitted feedback un-dispatched; bypass a supervisory tier; let a Cognitive Validator execute any command; report scheduler status without script-backed receipts; run whole-repo tests during task iteration; nest `.olt/capsules/` in a subdirectory; or deploy Mind without its companion Mind-Auditor in the same 1-shot batch. Each is flagged by Meta-Auditor under its matching heuristic (`GHOST_LEASE`, `FALSE_SERIALIZATION`, `TOKEN_BURNING`, `POLLING_WASTE`, `CONTEXT_OVERFLOW`, `STRAGGLER`, `ROLE_BOUNDARY_DEVIATION`).
 
 ## Canonical Location Decisions
 
-Two location questions produced conflicting documentation and misled agents in practice. This
-section is the single resolution every hard rule and reference above defers to; there is no
-`olt/docs/` or ADR convention in this repository, so the ruling lives here instead of a new file.
-
-### `.olt/` (dotted) vs `olt/` (undotted) governance storage
-
-**Decision: `.olt/` is authoritative for every runtime and governance artifact — `policy.json`,
-`backlog.jsonl`, `completed-tasks.jsonl`, `defects.jsonl`, `completed-defects.jsonl`,
-`telemetry.jsonl`, and `capsules/`.** The undotted `olt/` directory is the versioned skill package
-(`SKILL.md`, `agents/`, `checklists/`, `references/`, `scripts/`) — static definition checked into
-git, never a runtime write target.
-
-Verified against the code, not assumed: `olt/scripts/src/core/shared/paths.ts` hard-codes
-`OLT_DIR_NAME = ".olt"`, and every resolver built on it (`resolvePolicyPath`, `resolveBacklogPath`,
-`resolveCompletedTasksPath`, `resolveDefectsPath`, `resolveCompletedDefectsPath`,
-`resolveTelemetryPath`, `resolveCapsulesRoot`) joins against that constant — no code path writes to
-an undotted `<repo-root>/olt/*.jsonl` ledger or a bare `capsules/` directory off repo root.
-`olt/scripts/src/mind/completed-tasks.ts`
-still exports legacy string constants named for the undotted path (e.g.
-`CANONICAL_DEFECTS_FILE = "olt/defects.jsonl"`), but nothing dereferences them for path
-resolution — the functions that actually resolve paths (`resolveCanonicalDefectsPath` and
-siblings, lines 57–91) hard-code `join(root, ".olt", "defects.jsonl")` and ignore those constants
-entirely. Git history confirms the move was deliberate, not accidental:
-`2db78df8 feat(olt): rename skill directory to olt and governance storage to .olt`. On disk today,
-`.olt/defects.jsonl` is the live ledger (hundreds of KB, still receiving uncommitted writes) while
-`olt/defects.jsonl` is a 0-byte vestige last touched by a purge commit
-(`f1c1e52d chore(defects): purge defect registries for clean mind test run`) and never written to
-since.
-
-This ambiguity is not academic: it produced a real incident this session — a Tier 0 auditor
-checked candidate ledger paths, missed `.olt/defects.jsonl`, and filed a false CRITICAL defect
-claiming the ledger was empty.
-
-### Scratch and temporary files: system `/tmp` vs repo-local `.tmp/`
-
-**Decision: the system temp directory (`/tmp`, `$TMPDIR`, anything `mktemp -t` produces on macOS)
-is banned absolutely — it is invisible to the repo, other agents, and post-hoc audit.** Repo-local
-ephemeral scratch is not banned. It has three acceptable, non-exclusive homes depending on what is
-being stored: `<repo-root>/.olt/capsules/<run>/evidence/` for run-scoped evidence tied to a
-specific harness run, and `<repo-root>/.tmp/` or `<repo-root>/scratch/` for scratch not tied to any
-run. Pick whichever fits the artifact; none of the three is the sole exclusive location.
-
-Verified, not assumed: `.gitignore` (`/.tmp/`) and `olt/AGENTS.md` ("Temporary testing artifacts
-must be directed to designated `.tmp/` or scratch directories") both already treat `.tmp/` as
-sanctioned, and `.tmp/` is in live use in this repo. A prior draft of the hard rules and
-anti-pattern list banned `/tmp` and `.tmp/` in the same breath, silently contradicting both of
-those sources — that conflict is the defect this section closes.
-
-### Supervisory cadence: resolved at runtime, never hardcoded
-
-**Decision: no cadence interval — no cron literal, no "N-minute" prose — is hardcoded anywhere in
-this skill's docs or manifests.** Every supervisory scheduler cadence (mind pulse, orchestrator
-round watchdog, coordinator wave watchdog) is resolved at runtime via `resolveSupervisoryCadence`
-(`olt/scripts/src/core/config/cadence.ts`), which returns `arm_interval_seconds` alongside an
-`arm_interval_source` provenance field recording where that number came from
-(`config_override`, `host_discovered`, `assumed_default`, or `unreadable`).
-
-Multiple divergent literal cadence values were previously hardcoded in parallel across this
-skill's own docs, `agents/mind.yaml`, and the `mind:pulse` command's default arm duration, with no
-single source of truth between them — that divergence is the defect this section closes.
-
-**This round does not set a concrete default.** This round (`t3-cadence-and-policy-docs`) only
-removes the hardcoded numbers from `olt/SKILL.md`, `olt/AGENTS.md`, `olt/agents/coordinator.yaml`,
-and `olt/agents/mind.yaml`, and points every former hardcoded site at the resolver and its
-`arm_interval_source` provenance field instead. The concrete numeric default actually fed into
-`resolveSupervisoryCadence` at each call site is lane cand-11's in-flight work, not this round's.
+**`.olt/` (dotted) is authoritative for every runtime and governance artifact** (`policy.json`,
+`backlog.jsonl`, `defects.jsonl`, `telemetry.jsonl`, `capsules/`); undotted `olt/` is the versioned
+skill package only, never a runtime write target. **System `/tmp`, `$TMPDIR`, and `mktemp -t` are
+banned absolutely**; repo-local scratch lives in `.olt/capsules/<run>/evidence/`, `.tmp/`, or
+`scratch/`. **No supervisory cadence interval is ever hardcoded**; every scheduler arm interval is
+resolved at runtime via `resolveSupervisoryCadence`, whose `arm_interval_source` records its
+provenance. Full rationale and code-verified citations:
+[`references/canonical-locations.md`](references/canonical-locations.md).

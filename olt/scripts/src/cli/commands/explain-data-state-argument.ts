@@ -121,7 +121,7 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
         [
           example(
             "workflow/agents/ledger.ts",
-            "max_agents budget of ${maxAgents} is exhausted: ${ledger.length} grants already issued and this needs ${additional} more; raise max_agents or narrow the work",
+            "max_agents budget of ${maxAgents} is exhausted: ${activeGrants.length} active grants and this needs ${additional} more; release completed agents or narrow the work",
           ),
           example(
             "workflow/completion/begin-completeness-critic.ts",
