@@ -177,13 +177,20 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
       expect(adapter.capabilities.maxSpawnDepth).toBe(4);
     });
 
-    test("mechanical dispatch formats spawn_agent collaboration payload", () => {
+    test("mechanical dispatch uses Codex's documented spawn_agent contract", () => {
       const res = adapter.dispatchMechanical(samplePacket);
       expect(res.mode).toBe("mechanical");
       expect(res.toolName).toBe("spawn_agent");
-      expect(res.toolArguments.agent_id).toBe("impl-worker-1");
-      expect(res.toolArguments.role).toBe("implementer");
-      expect(res.toolArguments.task_path).toContain("/root/coordinator/impl-worker-1");
+      expect(res.toolArguments.task_name).toBe("impl_worker_1");
+      expect(res.toolArguments.message).toContain("You are Codex worker impl-worker-1");
+      expect(res.toolArguments.fork_turns).toBe("none");
+      expect(res.toolArguments.message).toContain(
+        'agent:release --run .olt/capsules/test-run-1 --agent impl-worker-1 --reason "task submitted"',
+      );
+      expect(res.toolArguments).not.toHaveProperty("agent_id");
+      expect(res.toolArguments).not.toHaveProperty("role");
+      expect(res.toolArguments).not.toHaveProperty("task_path");
+      expect(res.toolArguments).not.toHaveProperty("fork_context");
     });
 
     test("cognitive fallback prompt includes multi_agent feature flag directive", () => {

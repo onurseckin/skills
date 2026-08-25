@@ -22,12 +22,14 @@ export interface AuditorCursor {
   readonly lastInspectedTimestamp: string;
   readonly lastInspectedEventIndex: number;
   readonly lastAuditTimestamp?: string | undefined;
+  readonly lastStagnationSignature?: string | undefined;
 }
 
 export interface MindAuditLiveResult {
   readonly stagnant: boolean;
   readonly idleDurationSeconds: number;
   readonly telemetry: StagnationTelemetry;
+  readonly remediation: "deploy_mind" | "reconcile_native_mind" | "wake_mind" | "none";
   readonly injectionPrompt?: string | undefined;
   readonly defectCreated?: boolean | undefined;
   readonly cursor: AuditorCursor;
@@ -70,10 +72,14 @@ export class AuditorCursorStore {
     const lastIdx = typeof rawIdx === "number" ? rawIdx : -1;
     const rawAuditTs = rec["lastAuditTimestamp"];
     const lastAuditTs = typeof rawAuditTs === "string" ? rawAuditTs : undefined;
+    const rawStagnationSignature = rec["lastStagnationSignature"];
+    const lastStagnationSignature =
+      typeof rawStagnationSignature === "string" ? rawStagnationSignature : undefined;
     return {
       lastInspectedTimestamp: lastTs,
       lastInspectedEventIndex: lastIdx,
       lastAuditTimestamp: lastAuditTs,
+      lastStagnationSignature,
     };
   }
 
@@ -133,6 +139,30 @@ export class AuditorCursorStore {
 }
 
 export class MindAuditorEngine {
+  private static activeMindGrant(capsulePath: string): { actor: string } | null {
+    try {
+      const state = JSON.parse(readFileSync(join(capsulePath, "state.json"), "utf-8")) as unknown;
+      if (!state || typeof state !== "object") return null;
+      const agents = (state as Record<string, unknown>)["agents"];
+      if (!Array.isArray(agents)) return null;
+      for (const agent of agents) {
+        if (!agent || typeof agent !== "object") continue;
+        const record = agent as Record<string, unknown>;
+        if (
+          record["status"] === "active" &&
+          record["role"] === "mind" &&
+          typeof record["id"] === "string" &&
+          record["id"].trim().length > 0
+        ) {
+          return { actor: record["id"] };
+        }
+      }
+    } catch {
+      // A malformed or absent capsule is not native liveness evidence.
+    }
+    return null;
+  }
+
   private static activePulse(
     capsulePath: string,
     nowMs: number,
@@ -183,6 +213,31 @@ export class MindAuditorEngine {
       }
     }
     return active;
+  }
+
+  public static resolveActiveMindGrant(
+    repoRoot: string,
+    capsuleRunRoot?: string | undefined,
+  ): { actor: string } | null {
+    const candidates: string[] = [];
+    if (capsuleRunRoot && existsSync(capsuleRunRoot)) candidates.push(capsuleRunRoot);
+    candidates.push(repoRoot);
+    const capsulesDir = resolveCapsulesDir(repoRoot);
+    for (const parent of [capsulesDir, join(repoRoot, ".capsules")]) {
+      if (!existsSync(parent)) continue;
+      try {
+        for (const entry of readdirSync(parent, { withFileTypes: true })) {
+          if (entry.isDirectory()) candidates.push(join(parent, entry.name));
+        }
+      } catch {
+        // A missing legacy capsule directory is non-fatal.
+      }
+    }
+    for (const candidate of candidates) {
+      const grant = this.activeMindGrant(candidate);
+      if (grant) return grant;
+    }
+    return null;
   }
 
   public static resolveLatestPulseTimestamp(
@@ -286,6 +341,10 @@ export class MindAuditorEngine {
       nowMs,
       options !== undefined ? options.capsuleRunRoot : undefined,
     );
+    const activeMindGrant = MindAuditorEngine.resolveActiveMindGrant(
+      repoRoot,
+      options !== undefined ? options.capsuleRunRoot : undefined,
+    );
 
     // An open, unexpired pulse is an authoritative liveness lease. Its last_pulse snapshot is
     // intentionally written at pulse open and may therefore predate a long running pulse.
@@ -296,7 +355,21 @@ export class MindAuditorEngine {
         : nowMs - (threshold + 1) * 1000; // never pulsed => already stagnant
 
     const idleDurationSeconds = Math.max(0, Math.floor((nowMs - lastActiveMs) / 1000));
-    const stagnant = idleDurationSeconds >= threshold;
+    // An active harness grant alone is not native Codex liveness. Require both a live grant and
+    // prior pulse evidence before declaring a Mind stagnant; otherwise provide deployment or
+    // reconciliation guidance without manufacturing a LIVE_STAGNATION defect.
+    const hasNativeMindEvidence =
+      activePulse !== null || (activeMindGrant !== null && pulseMs !== null);
+    const stagnant = hasNativeMindEvidence && idleDurationSeconds >= threshold;
+    const remediation = activePulse
+      ? "none"
+      : activeMindGrant === null
+        ? "deploy_mind"
+        : pulseMs === null
+          ? "reconcile_native_mind"
+          : stagnant
+            ? "wake_mind"
+            : "none";
 
     // 2. Query pending backlog count
     let pendingBacklogCount = 0;
@@ -336,7 +409,7 @@ export class MindAuditorEngine {
     }
 
     const telemetry: StagnationTelemetry = {
-      agentId: activePulse?.actor ?? "mind-1",
+      agentId: activePulse?.actor ?? activeMindGrant?.actor ?? "unknown",
       conversationId: options !== undefined ? options.conversationId : undefined,
       role: "mind",
       idleDurationSeconds,
@@ -349,31 +422,35 @@ export class MindAuditorEngine {
     let injectionPrompt: string | undefined;
     let defectCreated = false;
 
+    const stagnationSignature = `${telemetry.agentId}|${pulseMs ?? "none"}|${threshold}`;
     if (stagnant) {
       injectionPrompt = VerbatimRoleInjector.buildInjectionPrompt(repoRoot, "mind", telemetry);
-      SplitChannelDefectRouter.routeDefect({
-        currentRepoRoot: repoRoot,
-        domain: "skill-framework",
-        defect: {
-          error_code: "LIVE_STAGNATION_DETECTED",
-          title: "Tier 0 Mind Stagnation Detected (>120s Idle)",
-          description: `Tier 0 Mind has been idle for ${idleDurationSeconds}s (threshold: ${threshold}s). Mode ${pendingBacklogCount === 0 ? "A" : "B"} injection synthesized.`,
-          actor: "mind-auditor",
-          context: {
-            idleDurationSeconds,
-            pendingBacklogCount,
-            unresolvedDefectCount,
-            conversationId: options !== undefined ? options.conversationId : undefined,
+      if (cursor.lastStagnationSignature !== stagnationSignature) {
+        SplitChannelDefectRouter.routeDefect({
+          currentRepoRoot: repoRoot,
+          domain: "skill-framework",
+          defect: {
+            error_code: "LIVE_STAGNATION_DETECTED",
+            title: "Tier 0 Mind Stagnation Detected",
+            description: `Tier 0 Mind has been idle for ${idleDurationSeconds}s (threshold: ${threshold}s). Mode ${pendingBacklogCount === 0 ? "A" : "B"} wakeup injection synthesized.`,
+            actor: "mind-auditor",
+            context: {
+              idleDurationSeconds,
+              pendingBacklogCount,
+              unresolvedDefectCount,
+              conversationId: options !== undefined ? options.conversationId : undefined,
+            },
           },
-        },
-      });
-      defectCreated = true;
+        });
+        defectCreated = true;
+      }
     }
 
     const updatedCursor: AuditorCursor = {
       lastInspectedTimestamp: nowIso,
       lastInspectedEventIndex: cursor.lastInspectedEventIndex,
       lastAuditTimestamp: nowIso,
+      ...(stagnant ? { lastStagnationSignature: stagnationSignature } : {}),
     };
     AuditorCursorStore.saveCursor(repoRoot, "mind", updatedCursor);
 
@@ -381,6 +458,7 @@ export class MindAuditorEngine {
       stagnant,
       idleDurationSeconds,
       telemetry,
+      remediation,
       injectionPrompt,
       defectCreated,
       cursor: updatedCursor,

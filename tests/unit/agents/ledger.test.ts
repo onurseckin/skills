@@ -78,8 +78,17 @@ describe("assertAgentBudget", () => {
   test("refuses to exceed the max_agents budget", () => {
     const ledger = [grant({ id: "agent-1" }), grant({ id: "agent-2" })];
     expect(() => assertAgentBudget(ledger, 1, 2)).toThrow(
-      /max_agents budget of 2 is exhausted: 2 grants already issued and this needs 1 more/,
+      /max_agents budget of 2 is exhausted: 2 active grants and this needs 1 more/,
     );
+  });
+
+  test("does not count released Codex grants against live dispatch capacity", () => {
+    const ledger = [
+      grant({ id: "codex-completed", host: "codex", status: "released" }),
+      grant({ id: "codex-active", host: "codex" }),
+    ];
+
+    expect(() => assertAgentBudget(ledger, 1, 2)).not.toThrow();
   });
 });
 

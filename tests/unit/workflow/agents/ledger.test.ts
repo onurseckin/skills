@@ -97,7 +97,7 @@ describe("workflow/agents/ledger", () => {
     expect(() => assertAgentBudget(ledger, 0, 2)).not.toThrow();
     expect(() => assertAgentBudget(ledger, 2, 3)).toThrow(HarnessError);
     expect(() => assertAgentBudget(ledger, 2, 3)).toThrow(
-      "max_agents budget of 3 is exhausted: 2 grants already issued and this needs 2 more",
+      "max_agents budget of 3 is exhausted: 2 active grants and this needs 2 more",
     );
   });
 

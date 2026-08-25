@@ -18,7 +18,9 @@ export const CODEX_CAPABILITIES: HostCapabilities = {
   supportsMechanicalDispatch: true,
   supportsCognitiveFallback: true,
   maxSpawnDepth: 4,
-  maxConcurrentSubagents: 10,
+  // Codex publishes the real per-session ceiling at runtime. A static guessed value causes
+  // completed/pending-init native threads to be counted as permanently capacity-consuming.
+  maxConcurrentSubagents: null,
   supportedWorkspaceIsolation: ["none"],
   supportsNativeResume: true,
   supportsPerAgentModel: true,
@@ -38,29 +40,38 @@ export class CodexHostAdapter implements HostAdapter {
       packet.role,
       taskId,
     );
+    const releaseCommand = `bun harness.ts agent:release --run ${packet.runRoot} --agent ${packet.agentId} --reason "task submitted"`;
 
+    const taskName =
+      packet.agentId
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "") || "codex_worker";
+    const message = [
+      `You are Codex worker ${packet.agentId} (${packet.role}).`,
+      `Run: ${packet.runRoot} | Task: ${taskId}`,
+      `Write Scope: ${packet.writeScope.join(", ")}`,
+      "",
+      `MANDATORY CLI REGISTRATION:`,
+      cliSeq.registerCommand,
+      cliSeq.claimCommand,
+      "",
+      `TASK MANDATE:`,
+      packet.taskDescription,
+      ...(packet.extraInstructions ? ["", "EXTENDED REQUIREMENTS:", packet.extraInstructions] : []),
+      "",
+      `SUBMISSION:`,
+      cliSeq.submitCommand,
+      releaseCommand,
+    ].join("\n");
     const toolArgs = {
-      agent_id: packet.agentId,
-      role: packet.role,
-      task_path: `/root/${packet.parentAgentId ?? "coordinator"}/${packet.agentId}`,
-      prompt: [
-        `You are Codex worker ${packet.agentId} (${packet.role}).`,
-        `Run: ${packet.runRoot} | Task: ${taskId}`,
-        `Write Scope: ${packet.writeScope.join(", ")}`,
-        "",
-        `MANDATORY CLI REGISTRATION:`,
-        cliSeq.registerCommand,
-        cliSeq.claimCommand,
-        "",
-        `TASK MANDATE:`,
-        packet.taskDescription,
-        "",
-        `SUBMISSION:`,
-        cliSeq.submitCommand,
-      ].join("\n"),
-      ...(packet.modelTier ? { model: packet.modelTier } : {}),
+      task_name: taskName,
+      message,
+      // A packet is the canonical briefing; inheriting a partial parent transcript risks stale
+      // role instructions and burns a native concurrency slot before the worker can register.
+      fork_turns: "none",
       ...(packet.thinkingLevel ? { reasoning_effort: packet.thinkingLevel } : {}),
-      fork_context: false,
     };
 
     const invocationSnippet = `spawn_agent(${JSON.stringify(toolArgs, null, 2)})`;
@@ -85,6 +96,7 @@ export class CodexHostAdapter implements HostAdapter {
       packet.role,
       taskId,
     );
+    const releaseCommand = `bun harness.ts agent:release --run ${packet.runRoot} --agent ${packet.agentId} --reason "task submitted"`;
 
     const mandatoryCliCommands = [
       cliSeq.registerCommand,
@@ -116,6 +128,7 @@ export class CodexHostAdapter implements HostAdapter {
       `## 3. TASK COMPLETION & SUBMISSION`,
       "```bash",
       cliSeq.submitCommand,
+      releaseCommand,
       "```",
     ].join("\n");
 

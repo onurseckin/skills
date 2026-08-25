@@ -144,6 +144,19 @@ describe("Mind liveness is measured from the pulse clock, never the observer's o
       outcome: "active",
       next_wake_at: null,
     });
+    writeCapsuleState(capsuleRoot, {
+      agents: [
+        {
+          id: "mind-live-grant",
+          role: "mind",
+          status: "active",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "codex",
+          granted_at: "2026-08-24T20:00:00.000Z",
+        },
+      ],
+    });
 
     const threshold = 120;
     const tick1 = "2026-08-25T00:05:00.000Z"; // 4h05m after pulseAt
@@ -168,7 +181,7 @@ describe("Mind liveness is measured from the pulse clock, never the observer's o
 
     expect(second.stagnant).toBe(true);
     expect(second.idleDurationSeconds).toBeGreaterThan(threshold);
-    expect(second.defectCreated).toBe(true);
+    expect(second.defectCreated).toBe(false);
   });
 
   test("an unexpired active pulse beats a stale last-pulse snapshot and retains its registered actor", () => {
@@ -202,6 +215,59 @@ describe("Mind liveness is measured from the pulse clock, never the observer's o
     expect(result.stagnant).toBe(false);
     expect(result.defectCreated).toBe(false);
     expect(result.telemetry.agentId).toBe("mind_limo_gen_2");
+  });
+
+  test("does not invent mind-1 or append a stagnation defect when no native Mind is present", () => {
+    const repoRoot = freshRepoRoot("absent-native-mind");
+    mkdirSync(join(repoRoot, "olt", "agents"), { recursive: true });
+    writeFileSync(join(repoRoot, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML, "utf-8");
+
+    const first = MindAuditorEngine.auditMindPulse(repoRoot, {
+      now: "2026-08-25T05:00:00.000Z",
+      stagnationThresholdSeconds: 120,
+    });
+    const second = MindAuditorEngine.auditMindPulse(repoRoot, {
+      now: "2026-08-25T05:03:00.000Z",
+      stagnationThresholdSeconds: 120,
+    });
+
+    expect(first.defectCreated).toBe(false);
+    expect(second.defectCreated).toBe(false);
+    expect(first.injectionPrompt).toBeUndefined();
+    expect(first.remediation).toBe("deploy_mind");
+    expect(first.telemetry.agentId).toBe("unknown");
+  });
+
+  test("treats an active Harness-only Codex grant as recovery work, not native Mind liveness", () => {
+    const repoRoot = freshRepoRoot("harness-only-codex-grant");
+    const capsuleRoot = join(repoRoot, ".olt", "capsules", "mind-gen-3");
+    mkdirSync(join(repoRoot, "olt", "agents"), { recursive: true });
+    writeFileSync(join(repoRoot, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML, "utf-8");
+    writeCapsuleState(capsuleRoot, {
+      agents: [
+        {
+          id: "mind_skills_gen_1",
+          role: "mind",
+          status: "active",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "codex",
+          granted_at: "2026-08-25T04:00:00.000Z",
+        },
+      ],
+    });
+
+    const result = MindAuditorEngine.auditMindPulse(repoRoot, {
+      now: "2026-08-25T05:00:00.000Z",
+      stagnationThresholdSeconds: 120,
+      capsuleRunRoot: capsuleRoot,
+    });
+
+    expect(result.stagnant).toBe(false);
+    expect(result.defectCreated).toBe(false);
+    expect(result.injectionPrompt).toBeUndefined();
+    expect(result.remediation).toBe("reconcile_native_mind");
+    expect(result.telemetry.agentId).toBe("mind_skills_gen_1");
   });
 });
 

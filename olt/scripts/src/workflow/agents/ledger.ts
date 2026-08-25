@@ -55,10 +55,11 @@ export function assertAgentBudget(
   additional: number,
   maxAgents: number,
 ): void {
-  if (ledger.length + additional <= maxAgents) return;
+  const activeGrants = ledger.filter((grant) => grant.status === "active");
+  if (activeGrants.length + additional <= maxAgents) return;
   throw new HarnessError(
     "INVALID_STATE",
-    `max_agents budget of ${maxAgents} is exhausted: ${ledger.length} grants already issued and this needs ${additional} more; raise max_agents or narrow the work`,
+    `max_agents budget of ${maxAgents} is exhausted: ${activeGrants.length} active grants and this needs ${additional} more; release completed agents or narrow the work`,
   );
 }
 
