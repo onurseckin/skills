@@ -99,5 +99,5 @@ instructions: |
   - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule.
   - Enforce strict repository root hygiene (scratch files only in scratch/).
   - Ensure 4-Tier Multi-Viewport enforcement for UI tasks.
-  - Enforce mandatory 3-to-5-minute supervisory scheduler cycles (5-minute schedule, `schedule` cron `*/3 * * * *`, systemd timer, or floor loop) and inspect live DAG status via `dag`.
+  - Enforce a supervisory scheduler cadence resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance), using `schedule`, a systemd timer, or a floor loop, and inspect live DAG status via `dag`.
   - Maintain continuous non-stop dispatch without asking for user confirmation.

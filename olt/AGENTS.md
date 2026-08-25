@@ -81,8 +81,8 @@ Every agent executing within this repository must adhere to the following non-ne
     - Computes deterministic behavioral efficiency scores ($0.0\% - 100.0\%$) and quantitative operational metrics.
     - Autonomously synthesizes structured remediation proposals and injects them directly into the canonical feedback queue (`.olt/backlog.jsonl`) via `meta-audit --inject` and the Mind candidate pool (`mind:candidate`).
     - Strictly prohibited from making direct code edits, claiming leases, running tests, or rubber-stamping unevidenced passes.
-24. **Elastic Dynamic Hierarchy Scaling & Fast-Path Compaction**:
-    - **Fast-Path Compaction ($N = 1$)**: When an active queue or plan has exactly 1 task, the Tier 1 Orchestrator directly supervises the Implementer and Cognitive Validator pair, skipping Tier 2 Coordinator middleman overhead.
+24. **Elastic Dynamic Hierarchy Scaling**:
+    - **Single-Task Round ($N = 1$)**: The Tier 1 Orchestrator still dispatches a single Tier 2 Coordinator to own the round's one-task capsule end to end; the harness enforces Tier 1 -> Tier 2 dispatch only at runtime (`ROLE_CONFINEMENT_VIOLATION` on any attempt to reach Tier 3 directly), so there is no direct-supervision shortcut.
     - **Multi-Coordinator Partitioning ($N > 5$ or Multi-Stack)**: Waves with $> 5$ parallel lanes or distinct domain stacks are partitioned across specialized Tier 2 Coordinators (max 5 lanes per coordinator, e.g. `coordinator_core`, `coordinator_cli`, `coordinator_ui`).
 25. **Hard-Coded Anti-Serialization Mechanical Interlock (`FALSE_SERIALIZATION_BLUNDER`)**:
     - When a wave has $N \ge 2$ ready disjoint lanes, single-subagent dispatches are mechanically blocked. The harness throws `[FALSE_SERIALIZATION_BLUNDER] Wave contains N ready disjoint lanes. You MUST invoke all N subagents in parallel via Subagents: [...]`.
@@ -92,7 +92,7 @@ Every agent executing within this repository must adhere to the following non-ne
     - `mechanic-validator` is permanently retired as an LLM subagent role; all typechecks and AST static invariant audits (0 any, 0 suppressions) are anchored in the deterministic CLI tool `task:check`.
     - `repairer` is permanently retired as a separate subagent role; repairs are executed directly by the active Implementer through 1-hop in-lease micro-cycles (`task:reject --in-lease`).
 27. **1-Shot Batch Auto-Deployment of Mind and Mind-Auditor (`/olt mind`):**
-    - When the user invokes `/olt mind` or enters autonomous product owner mode, the main interactive thread MUST immediately deploy BOTH the Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) subagents in a single 1-shot batch dispatch via `invoke_subagent` (`Subagents: [...]`), injecting verbatim YAML manifests and registering the 3-minute supervisory schedule (`schedule` cron `*/3 * * * *`).
+    - When the user invokes `/olt mind` or enters autonomous product owner mode, the main interactive thread MUST immediately deploy BOTH the Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) subagents in a single 1-shot batch dispatch via `invoke_subagent` (`Subagents: [...]`), injecting verbatim YAML manifests and registering the supervisory schedule (`schedule` cron) whose arm interval is resolved at runtime via `resolveSupervisoryCadence`, not a value fixed in this doc.
     - The main thread MUST NOT stall, emit conversational questionnaires, or serialize dispatches across multiple turns.
     - Because Tier 0 Mind cannot self-spawn Tier 1 Mind Auditor under `ALLOWED_TIER_SPAWNS`, both MUST be deployed together in 1-shot batch dispatch by the entrypoint.
 
@@ -321,6 +321,9 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
    - Harness and scripts must run using native runtime APIs (`bun` / `node` built-ins). No external runtime `node_modules` or runtime `npm install` requirements.
 5. **File-Scoped Falsifiable Test Coverage:**
    - Execute ONLY file-scoped test commands (`bun test <path.test.ts>`) matching the modified scope. Whole-repo test suites are strictly prohibited during task execution.
+6. **Zero-Comments Policy:**
+   - Exactly **0 comments** (line comments, block comments, JSDoc) are permitted in source or test code; a pre-commit script strips them. `.md` and `.yaml` files are explicitly EXEMPT — prose documentation and manifest annotations are not code comments.
+   - **Not delivered by this round**: task `t3-cadence-and-policy-docs` only encodes this policy in the `.md`/`.yaml` governance docs listed above; its write scope is yaml/md only and cannot strip a single comment from source. 229 of the 925 `.ts` files under `olt/scripts/src` still contain comments (1831 leading-`//` lines, 980 block-comment openers), and those 229 files are currently owned by nobody — stripping them is separate, undelivered work.
 
 ---
 
