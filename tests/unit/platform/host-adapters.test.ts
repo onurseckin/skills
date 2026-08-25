@@ -169,6 +169,39 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
   describe("Codex Host Adapter", () => {
     const adapter = new CodexHostAdapter();
 
+    test("uses the canonical role-model policy for native dispatches without overrides", () => {
+      const policy: ReadonlyArray<
+        readonly [SubagentDispatchPacket["role"], string, "high" | "xhigh"]
+      > = [
+        ["mind", "gpt-5.6-sol", "xhigh"],
+        ["orchestrator", "gpt-5.6-sol", "high"],
+        ["coordinator", "gpt-5.6-terra", "xhigh"],
+        ["implementer", "gpt-5.6-terra", "xhigh"],
+        ["sub-implementer", "gpt-5.6-terra", "xhigh"],
+        ["sub-investigator", "gpt-5.6-terra", "xhigh"],
+        ["planner", "gpt-5.6-terra", "xhigh"],
+        ["repairer", "gpt-5.6-terra", "xhigh"],
+        ["completeness-critic", "gpt-5.6-luna", "xhigh"],
+        ["mechanic-validator", "gpt-5.6-luna", "xhigh"],
+        ["meta-auditor", "gpt-5.6-luna", "xhigh"],
+        ["mind-auditor", "gpt-5.6-luna", "xhigh"],
+        ["plan-validator", "gpt-5.6-luna", "xhigh"],
+        ["sub-validator", "gpt-5.6-luna", "xhigh"],
+        ["validator", "gpt-5.6-luna", "xhigh"],
+      ];
+
+      for (const [role, model, reasoningEffort] of policy) {
+        const result = adapter.dispatchMechanical({
+          ...samplePacket,
+          role,
+          modelTier: undefined,
+          thinkingLevel: undefined,
+        });
+        expect(result.toolArguments.model).toBe(model);
+        expect(result.toolArguments.reasoning_effort).toBe(reasoningEffort);
+      }
+    });
+
     test("capabilities reflect Codex specifications", () => {
       expect(adapter.capabilities.provider).toBe("codex");
       expect(adapter.capabilities.mechanicalToolName).toBe("spawn_agent");

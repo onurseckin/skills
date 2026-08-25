@@ -8,9 +8,15 @@ import {
   type ToolCategory,
 } from "./taxonomy.ts";
 
-export type ThinkingLevel = "high" | "low" | "medium" | "unknown";
+export type ThinkingLevel = "high" | "low" | "medium" | "unknown" | "xhigh";
 
-export const THINKING_LEVELS: readonly ThinkingLevel[] = ["low", "medium", "high", "unknown"];
+export const THINKING_LEVELS: readonly ThinkingLevel[] = [
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "unknown",
+];
 
 export type AgentModelTier = "l" | "m" | "s" | "unknown" | "xs";
 

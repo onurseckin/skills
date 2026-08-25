@@ -41,6 +41,8 @@ export interface SubagentDispatchPacket {
   readonly taskDescription: string;
   readonly writeScope: readonly string[];
   readonly parentAgentId?: string;
+  /** Exact host-native model override. `modelTier` remains telemetry, not a model name. */
+  readonly model?: string;
   readonly modelTier?: AgentModelTier;
   readonly thinkingLevel?: ThinkingLevel;
   readonly workspaceMode?: WorkspaceIsolationMode;

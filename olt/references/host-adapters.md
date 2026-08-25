@@ -139,6 +139,17 @@ Claude Code sets them in agent frontmatter (`model:`, `effort:`), resolved as
 `CLAUDE_CODE_SUBAGENT_MODEL` > per-invocation parameter > frontmatter > the session's model.
 No host selects a model by task difficulty; if nothing declares one, the agent inherits.
 
+For Codex native dispatch, Harness declares these role defaults rather than inheriting an accidental
+parent choice. An explicit packet `model` or `thinkingLevel` remains an intentional override; the
+telemetry-only `modelTier` field is never treated as a Codex model name.
+
+| Role class                    | Roles                                                                                                                       | Model           | Reasoning effort |
+| :---------------------------- | :-------------------------------------------------------------------------------------------------------------------------- | :-------------- | :--------------- |
+| Product Mind                  | `mind`                                                                                                                      | `gpt-5.6-sol`   | `xhigh`          |
+| Run leadership                | `orchestrator`                                                                                                              | `gpt-5.6-sol`   | `high`           |
+| Mechanical and implementation | `coordinator`, `implementer`, `planner`, `repairer`, `sub-implementer`, `sub-investigator`                                  | `gpt-5.6-terra` | `xhigh`          |
+| Routine checking and auditing | `completeness-critic`, `mechanic-validator`, `meta-auditor`, `mind-auditor`, `plan-validator`, `sub-validator`, `validator` | `gpt-5.6-luna`  | `xhigh`          |
+
 ---
 
 ### 3.4 Constraints that change how a run must be driven

@@ -13,6 +13,7 @@ describe("core contracts/agents", () => {
     expect(isThinkingLevel("low")).toBe(true);
     expect(isThinkingLevel("medium")).toBe(true);
     expect(isThinkingLevel("high")).toBe(true);
+    expect(isThinkingLevel("xhigh")).toBe(true);
     expect(isThinkingLevel("unknown")).toBe(true);
     expect(isThinkingLevel("none")).toBe(false);
     expect(isThinkingLevel(123)).toBe(false);

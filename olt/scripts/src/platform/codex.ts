@@ -11,6 +11,26 @@ import type {
   SubagentDispatchPacket,
 } from "./types.ts";
 
+const CODEX_ROLE_DISPATCH_DEFAULTS: Readonly<
+  Record<AgentRole, { model: string; reasoningEffort: "high" | "xhigh" }>
+> = {
+  mind: { model: "gpt-5.6-sol", reasoningEffort: "xhigh" },
+  orchestrator: { model: "gpt-5.6-sol", reasoningEffort: "high" },
+  coordinator: { model: "gpt-5.6-terra", reasoningEffort: "xhigh" },
+  implementer: { model: "gpt-5.6-terra", reasoningEffort: "xhigh" },
+  planner: { model: "gpt-5.6-terra", reasoningEffort: "xhigh" },
+  repairer: { model: "gpt-5.6-terra", reasoningEffort: "xhigh" },
+  "sub-implementer": { model: "gpt-5.6-terra", reasoningEffort: "xhigh" },
+  "sub-investigator": { model: "gpt-5.6-terra", reasoningEffort: "xhigh" },
+  "completeness-critic": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+  "mechanic-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+  "meta-auditor": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+  "mind-auditor": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+  "plan-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+  "sub-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+  validator: { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+};
+
 export const CODEX_CAPABILITIES: HostCapabilities = {
   provider: "codex",
   displayName: "Codex Multi-Agent Environment",
@@ -48,6 +68,9 @@ export class CodexHostAdapter implements HostAdapter {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "_")
         .replace(/^_+|_+$/g, "") || "codex_worker";
+    const defaults = CODEX_ROLE_DISPATCH_DEFAULTS[packet.role];
+    const model = packet.model ?? defaults.model;
+    const reasoningEffort = packet.thinkingLevel ?? defaults.reasoningEffort;
     const message = [
       `You are Codex worker ${packet.agentId} (${packet.role}).`,
       `Run: ${packet.runRoot} | Task: ${taskId}`,
@@ -71,7 +94,8 @@ export class CodexHostAdapter implements HostAdapter {
       // A packet is the canonical briefing; inheriting a partial parent transcript risks stale
       // role instructions and burns a native concurrency slot before the worker can register.
       fork_turns: "none",
-      ...(packet.thinkingLevel ? { reasoning_effort: packet.thinkingLevel } : {}),
+      model,
+      reasoning_effort: reasoningEffort,
     };
 
     const invocationSnippet = `spawn_agent(${JSON.stringify(toolArgs, null, 2)})`;
@@ -97,6 +121,9 @@ export class CodexHostAdapter implements HostAdapter {
       taskId,
     );
     const releaseCommand = `bun harness.ts agent:release --run ${packet.runRoot} --agent ${packet.agentId} --reason "task submitted"`;
+    const defaults = CODEX_ROLE_DISPATCH_DEFAULTS[packet.role];
+    const model = packet.model ?? defaults.model;
+    const reasoningEffort = packet.thinkingLevel ?? defaults.reasoningEffort;
 
     const mandatoryCliCommands = [
       cliSeq.registerCommand,
@@ -109,7 +136,7 @@ export class CodexHostAdapter implements HostAdapter {
       `# [AUTHORITATIVE SUBAGENT DISPATCH DIRECTIVE — CODEX HOST]`,
       `[features.multi_agent = true]`,
       `**Agent**: \`${packet.agentId}\` | **Role**: \`${packet.role}\``,
-      `**Model**: \`${packet.modelTier ?? "default"}\` | **Reasoning Effort**: \`${packet.thinkingLevel ?? "high"}\``,
+      `**Model**: \`${model}\` | **Reasoning Effort**: \`${reasoningEffort}\``,
       `**Run Root**: \`${packet.runRoot}\``,
       `**Task**: \`${taskId}\``,
       `**Write Scope**: \`${packet.writeScope.join(", ") || "disjoint-scope"}\``,
