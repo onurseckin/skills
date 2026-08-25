@@ -1,3 +1,5 @@
+import { realpathSync } from "node:fs";
+import { isAbsolute, join, resolve, sep } from "node:path";
 import { CANONICAL_VIEWPORTS } from "../capture/config/default-presets.ts";
 import { readHeader } from "../summary/assets/asset-measure.ts";
 import {
@@ -107,6 +109,18 @@ type PngDimensionRead =
   | { readonly status: "invalid_png" }
   | { readonly status: "measured"; readonly width: number; readonly height: number };
 
+function resolveScreenshotPath(path: string, runRoot: string | undefined): string {
+  if (runRoot === undefined || isAbsolute(path)) return path;
+  try {
+    const root = realpathSync(runRoot);
+    const candidate = resolve(join(root, path));
+    if (candidate !== root && !candidate.startsWith(root + sep)) return path;
+    return candidate;
+  } catch {
+    return path;
+  }
+}
+
 function readPngPixelDimensions(path: string): PngDimensionRead {
   const read = readHeader(path);
   if (read === undefined) return { status: "unreadable" };
@@ -159,11 +173,12 @@ export interface PngVerificationResult {
 function verifyScreenshotPixelDimensions(
   screenshots: readonly ScreenshotMetadata[],
   addFinding: FindingAdder,
+  runRoot?: string,
 ): PngVerificationResult {
   const reads = new Map<ScreenshotMetadata, PngDimensionRead>();
   const verifiedClaims = new Set<ScreenshotMetadata>();
   for (const sc of screenshots) {
-    const pngRead = readPngPixelDimensions(sc.path);
+    const pngRead = readPngPixelDimensions(resolveScreenshotPath(sc.path, runRoot));
     reads.set(sc, pngRead);
     if (pngRead.status === "unreadable") {
       addFinding(
@@ -714,6 +729,7 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
   const { reads: pngReads, verifiedClaims } = verifyScreenshotPixelDimensions(
     sizeValidScreenshots,
     addFinding,
+    input.runRoot,
   );
 
   // Validate manifests: 4 Pillars & Criteria
@@ -735,8 +751,16 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
 
   if (input.domReport) {
     for (const vp of input.domReport.viewports) {
-      coveredVps.add(normalizeViewportName(vp.viewport, vp.width));
-      coveredRawNames.add(vp.viewport.trim().toLowerCase());
+      const norm = normalizeViewportName(vp.viewport, vp.width);
+      const hasMeasuredWidth =
+        typeof vp.width === "number" && Number.isFinite(vp.width) && vp.width > 0;
+      const isUnverifiedCustomFallback = !PROTECTED_VIEWPORT_BANDS.has(norm);
+      if (!isUnverifiedCustomFallback || hasMeasuredWidth) {
+        coveredVps.add(norm);
+      }
+      if (hasMeasuredWidth) {
+        coveredRawNames.add(vp.viewport.trim().toLowerCase());
+      }
     }
     extractDomViolations(input.domReport, addFinding, input.subpixelTolerance);
   }

@@ -20,6 +20,50 @@ import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import type { ScreenshotRecord } from "../../../olt/scripts/src/reporting/screenshot-types.ts";
 import type { CompanionManifestData } from "../../../olt/scripts/src/validation/dual-channel-types.ts";
 import { createAgentMetadata } from "../../../olt/scripts/src/runtime/agent-metadata.ts";
+import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
+
+function createValidScreenshotFixtures(label: string): ScreenshotRecord[] {
+  const dir = scratchRoot(import.meta.path, label);
+  const desktopPath = join(dir, "button-desktop.png");
+  const tabletPath = join(dir, "button-tablet.png");
+  const mobilePath = join(dir, "button-mobile.png");
+  writeFileSync(desktopPath, createSyntheticPngBuffer(1440, 900, 2048));
+  writeFileSync(tabletPath, createSyntheticPngBuffer(768, 1024, 1536));
+  writeFileSync(mobilePath, createSyntheticPngBuffer(390, 844, 1200));
+  return [
+    {
+      kind: "screenshot",
+      name: "button-desktop.png",
+      path: desktopPath,
+      sha256: "sha-desktop",
+      bytes: 2048,
+      blob_path: "/mock/blobs/sha-desktop",
+      storage: "copy",
+      original_path: desktopPath,
+    },
+    {
+      kind: "screenshot",
+      name: "button-tablet.png",
+      path: tabletPath,
+      sha256: "sha-tablet",
+      bytes: 1536,
+      blob_path: "/mock/blobs/sha-tablet",
+      storage: "copy",
+      original_path: tabletPath,
+    },
+    {
+      kind: "screenshot",
+      name: "button-mobile.png",
+      path: mobilePath,
+      sha256: "sha-mobile",
+      bytes: 1200,
+      blob_path: "/mock/blobs/sha-mobile",
+      storage: "copy",
+      original_path: mobilePath,
+    },
+  ];
+}
 
 describe("Task Review Dual-Channel Audit & Companion Manifest Integration", () => {
   const dummyTask: TaskRecord = {
@@ -318,7 +362,7 @@ describe("Task Review Dual-Channel Audit & Companion Manifest Integration", () =
     const audit = runDualChannelAudit(
       "/mock/runRoot",
       dummyTask,
-      validScreenshots,
+      createValidScreenshotFixtures("passes-audit-valid-screenshots"),
       [deepManifest],
       { requireSemanticDepth: true },
     );
@@ -499,9 +543,9 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
     const p1 = join(screenshotsDir, "card-desktop.png");
     const p2 = join(screenshotsDir, "card-tablet.png");
     const p3 = join(screenshotsDir, "card-mobile.png");
-    writeFileSync(p1, Buffer.alloc(2048, 1));
-    writeFileSync(p2, Buffer.alloc(1536, 2));
-    writeFileSync(p3, Buffer.alloc(1200, 3));
+    writeFileSync(p1, createSyntheticPngBuffer(1440, 900, 2048));
+    writeFileSync(p2, createSyntheticPngBuffer(768, 1024, 1536));
+    writeFileSync(p3, createSyntheticPngBuffer(390, 844, 1200));
 
     ingestScreenshots({
       runRoot,

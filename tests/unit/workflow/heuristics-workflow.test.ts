@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import { writeFileSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { scratchRoot } from "../../support/scratch-root.ts";
 import {
   calculateApcaLightness,
   formatManifestFilename,
@@ -627,27 +629,32 @@ describe("Adversarial Edge Cases: Multi-Viewport Companion Manifest Verification
   });
 
   it("passes multi-viewport companion manifest verification with genuine screenshots >= 1024 bytes", () => {
-    const validPngBuffer = createSyntheticPngBuffer(10, 10, 1024);
-    expect(validPngBuffer.byteLength).toBeGreaterThanOrEqual(1024);
+    const shotsDir = scratchRoot(import.meta.path, "header-multi-viewport-screenshots");
+    const mobilePath = join(shotsDir, "header-mobile.png");
+    const tabletPath = join(shotsDir, "header-tablet.png");
+    const desktopPath = join(shotsDir, "header-desktop.png");
+    writeFileSync(mobilePath, createSyntheticPngBuffer(390, 844, 1200));
+    writeFileSync(tabletPath, createSyntheticPngBuffer(768, 1024, 1500));
+    writeFileSync(desktopPath, createSyntheticPngBuffer(1440, 900, 2048));
 
     const input: DualChannelInput = {
       writeScope: ["src/components/Header.tsx"],
       screenshots: [
         {
           name: "header-mobile.png",
-          path: "/mock/header-mobile.png",
+          path: mobilePath,
           viewport: "mobile",
           sizeBytes: 1200,
         },
         {
           name: "header-tablet.png",
-          path: "/mock/header-tablet.png",
+          path: tabletPath,
           viewport: "tablet",
           sizeBytes: 1500,
         },
         {
           name: "header-desktop.png",
-          path: "/mock/header-desktop.png",
+          path: desktopPath,
           viewport: "desktop",
           sizeBytes: 2048,
         },

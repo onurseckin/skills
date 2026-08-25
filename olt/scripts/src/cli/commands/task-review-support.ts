@@ -171,6 +171,7 @@ export function runDualChannelAudit(
     domReport: adaptIngestedVisualReport(getVisualReport(runRoot, task.id)),
     screenshots: adaptScreenshotRecords(screenshots),
     manifests: allManifests,
+    runRoot,
     requireSemanticDepth: options?.requireSemanticDepth,
   });
 }

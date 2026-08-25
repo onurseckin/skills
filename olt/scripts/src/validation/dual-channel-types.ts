@@ -122,6 +122,7 @@ export interface DualChannelInput {
   readonly requiredViewports?: readonly string[] | undefined;
   readonly subpixelTolerance?: number | undefined;
   readonly requireSemanticDepth?: boolean | undefined;
+  readonly runRoot?: string | undefined;
 }
 
 export interface CrossChannelProof {
