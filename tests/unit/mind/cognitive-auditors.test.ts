@@ -128,8 +128,25 @@ describe("MindAuditorEngine", () => {
 
   test("auditMindPulse returns non-stagnant when idle duration is within threshold", () => {
     const now = "2026-08-24T12:02:00.000Z";
+    const capsuleDir = join(testDir, ".olt", "capsules", "mind-gen-within-threshold");
+    mkdirSync(capsuleDir, { recursive: true });
+    writeFileSync(
+      join(capsuleDir, "state.json"),
+      JSON.stringify({ agents: [{ id: "mind-1", role: "mind", status: "active" }] }),
+      "utf-8",
+    );
+    writeFileSync(
+      join(capsuleDir, "last_pulse.json"),
+      JSON.stringify({
+        at: "2026-08-24T12:01:00.000Z",
+        pulse_id: "pulse-1",
+        outcome: "active",
+        next_wake_at: null,
+      }),
+      "utf-8",
+    );
     const cursor: AuditorCursor = {
-      lastInspectedTimestamp: "2026-08-24T12:01:00.000Z", // 60s ago
+      lastInspectedTimestamp: "2026-08-24T12:01:00.000Z",
       lastInspectedEventIndex: 0,
     };
 
@@ -150,13 +167,25 @@ describe("MindAuditorEngine", () => {
 
   test("auditMindPulse detects stagnation (Mode A: empty backlog) and synthesizes injection prompt", () => {
     const now = "2026-08-24T12:05:00.000Z";
-    const cursor: AuditorCursor = {
-      lastInspectedTimestamp: "2026-08-24T12:00:00.000Z", // 300s ago (exceeds 120s)
-      lastInspectedEventIndex: 0,
-    };
+    const capsuleDir = join(testDir, ".olt", "capsules", "mind-gen-mode-a");
+    mkdirSync(capsuleDir, { recursive: true });
+    writeFileSync(
+      join(capsuleDir, "state.json"),
+      JSON.stringify({ agents: [{ id: "mind-1", role: "mind", status: "active" }] }),
+      "utf-8",
+    );
+    writeFileSync(
+      join(capsuleDir, "last_pulse.json"),
+      JSON.stringify({
+        at: "2026-08-24T12:00:00.000Z",
+        pulse_id: "pulse-1",
+        outcome: "active",
+        next_wake_at: null,
+      }),
+      "utf-8",
+    );
 
     const result = MindAuditorEngine.auditMindPulse(testDir, {
-      cursor,
       stagnationThresholdSeconds: 120,
       now,
       conversationId: "conv-456",
@@ -180,12 +209,24 @@ describe("MindAuditorEngine", () => {
 
   test("auditMindPulse detects stagnation (Mode B: pending backlog items)", () => {
     const now = "2026-08-24T12:05:00.000Z";
-    const cursor: AuditorCursor = {
-      lastInspectedTimestamp: "2026-08-24T12:00:00.000Z",
-      lastInspectedEventIndex: 0,
-    };
+    const capsuleDir = join(testDir, ".olt", "capsules", "mind-gen-mode-b");
+    mkdirSync(capsuleDir, { recursive: true });
+    writeFileSync(
+      join(capsuleDir, "state.json"),
+      JSON.stringify({ agents: [{ id: "mind-1", role: "mind", status: "active" }] }),
+      "utf-8",
+    );
+    writeFileSync(
+      join(capsuleDir, "last_pulse.json"),
+      JSON.stringify({
+        at: "2026-08-24T12:00:00.000Z",
+        pulse_id: "pulse-1",
+        outcome: "active",
+        next_wake_at: null,
+      }),
+      "utf-8",
+    );
 
-    // Populate backlog items
     const backlogPath = join(testDir, ".olt", "backlog.jsonl");
     const item1 = JSON.stringify({ id: "item-1", status: "PENDING", title: "Task 1" });
     const item2 = JSON.stringify({ id: "item-2", status: "COMPLETED", title: "Task 2" });
@@ -193,7 +234,6 @@ describe("MindAuditorEngine", () => {
     writeFileSync(backlogPath, `${item1}\n${item2}\n${item3}\n`, "utf-8");
 
     const result = MindAuditorEngine.auditMindPulse(testDir, {
-      cursor,
       stagnationThresholdSeconds: 120,
       now,
     });
@@ -287,18 +327,18 @@ describe("MindAuditorEngine", () => {
     expect(result.cursor.lastInspectedTimestamp).toBe(now);
   });
 
-  test("auditMindPulse falls back to stagnation when cursor is absent and no last_pulse.json exists", () => {
+  test("auditMindPulse does not report stagnation or create a defect when no native Mind evidence exists", () => {
     const now = "2026-08-24T12:01:00.000Z";
-    // No auditor-cursors.json and no last_pulse.json anywhere
     const result = MindAuditorEngine.auditMindPulse(testDir, {
       stagnationThresholdSeconds: 120,
       now,
     });
 
-    expect(result.stagnant).toBe(true);
+    expect(result.stagnant).toBe(false);
     expect(result.idleDurationSeconds).toBe(121);
-    expect(result.defectCreated).toBe(true);
-    expect(result.injectionPrompt).toBeDefined();
+    expect(result.defectCreated).toBe(false);
+    expect(result.injectionPrompt).toBeUndefined();
+    expect(result.remediation).toBe("deploy_mind");
   });
 
   test("auditMindPulse inspects last_pulse.json via explicit capsuleRunRoot option", () => {
@@ -385,13 +425,19 @@ describe("SkillAuditorEngine", () => {
 
   test("auditSkillCompliance detects boundary violations, logs incidents and routes defects", () => {
     const eventsPath = join(runDir, "events.jsonl");
-    const e0 = JSON.stringify({ kind: "tool-called", tool: "view_file", actor: "coordinator" });
-    const e1 = JSON.stringify({
-      type: "boundary_violation",
-      error_code: "ROLE_BOUNDARY_DEVIATION",
-      message: "Coordinator executed direct file write",
+    const e0 = JSON.stringify({
+      kind: "command-executed",
+      sequence: 0,
       actor: "coordinator",
-      command_id: "cmd-write-1",
+      payload: { tool: "view_file", arguments: { TargetFile: "src/foo.ts" } },
+      timestamp: "2026-08-24T12:00:00.000Z",
+    });
+    const e1 = JSON.stringify({
+      kind: "command-executed",
+      sequence: 1,
+      actor: "validator-1",
+      payload: { tool: "write_to_file", arguments: { TargetFile: "forbidden/edit.ts" } },
+      timestamp: "2026-08-24T12:00:01.000Z",
     });
     writeFileSync(eventsPath, `${e0}\n${e1}\n`, "utf-8");
 
@@ -405,43 +451,60 @@ describe("SkillAuditorEngine", () => {
     expect(result.incidents.length).toBe(1);
     const firstIncident = result.incidents[0];
     expect(firstIncident?.category).toBe("ROLE_BOUNDARY_DEVIATION");
-    expect(firstIncident?.severity).toBe("CRITICAL");
-    expect(firstIncident?.description).toBe("Coordinator executed direct file write");
+    expect(firstIncident?.severity).toBe("HIGH");
+    expect(firstIncident?.description).toContain("Validator agent `validator-1`");
     expect(result.defectsLogged).toBe(1);
     expect(result.eventsAnalyzed).toBe(2);
     expect(result.cursor.lastInspectedEventIndex).toBe(1);
 
-    // Verify saved cursor
-    const saved = AuditorCursorStore.loadCursor(testDir, "skill");
+    const saved = AuditorCursorStore.loadCursor(testDir, "skill", runDir);
     expect(saved.lastInspectedEventIndex).toBe(1);
   });
 
   test("auditSkillCompliance inspects only delta events on subsequent runs using cursor", () => {
     const eventsPath = join(runDir, "events.jsonl");
-    const e0 = JSON.stringify({ kind: "tool-called", tool: "view_file" });
-    const e1 = JSON.stringify({ kind: "tool-called", tool: "list_dir" });
+    const e0 = JSON.stringify({
+      kind: "command-executed",
+      sequence: 0,
+      actor: "implementer-1",
+      payload: { tool: "view_file", arguments: { TargetFile: "src/a.ts" } },
+      timestamp: "2026-08-24T12:00:00.000Z",
+    });
+    const e1 = JSON.stringify({
+      kind: "command-executed",
+      sequence: 1,
+      actor: "implementer-1",
+      payload: { tool: "list_dir", arguments: {} },
+      timestamp: "2026-08-24T12:00:01.000Z",
+    });
     writeFileSync(eventsPath, `${e0}\n${e1}\n`, "utf-8");
 
-    // First audit
     const res1 = SkillAuditorEngine.auditSkillCompliance(testDir, {
       capsuleRunRoot: runDir,
     });
     expect(res1.eventsAnalyzed).toBe(2);
     expect(res1.cursor.lastInspectedEventIndex).toBe(1);
 
-    // Append 2 more events
-    const e2 = JSON.stringify({ kind: "tool-called", tool: "read_resource" });
+    const e2 = JSON.stringify({
+      kind: "command-executed",
+      sequence: 2,
+      actor: "implementer-1",
+      payload: { tool: "read_resource", arguments: {} },
+      timestamp: "2026-08-24T12:00:02.000Z",
+    });
     const e3 = JSON.stringify({
-      type: "boundary_violation",
-      message: "Validator executed forbidden command",
+      kind: "command-executed",
+      sequence: 3,
+      actor: "validator-1",
+      payload: { tool: "write_to_file", arguments: { TargetFile: "forbidden/edit.ts" } },
+      timestamp: "2026-08-24T12:00:03.000Z",
     });
     writeFileSync(eventsPath, `${e0}\n${e1}\n${e2}\n${e3}\n`, "utf-8");
 
-    // Second audit using saved cursor
     const res2 = SkillAuditorEngine.auditSkillCompliance(testDir, {
       capsuleRunRoot: runDir,
     });
-    expect(res2.eventsAnalyzed).toBe(2); // Only e2 and e3 analyzed
+    expect(res2.eventsAnalyzed).toBe(2);
     expect(res2.incidents.length).toBe(1);
     expect(res2.cursor.lastInspectedEventIndex).toBe(3);
   });
@@ -449,9 +512,11 @@ describe("SkillAuditorEngine", () => {
   test("auditSkillCompliance respects logDefects: false flag", () => {
     const eventsPath = join(runDir, "events.jsonl");
     const e0 = JSON.stringify({
-      type: "boundary_violation",
-      error_code: "ROLE_BOUNDARY_DEVIATION",
-      message: "Boundary violation",
+      kind: "command-executed",
+      sequence: 0,
+      actor: "validator-1",
+      payload: { tool: "write_to_file", arguments: { TargetFile: "forbidden/edit.ts" } },
+      timestamp: "2026-08-24T12:00:00.000Z",
     });
     writeFileSync(eventsPath, `${e0}\n`, "utf-8");
 

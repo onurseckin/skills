@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { taskAssignRepairerCommand } from "../../../olt/scripts/src/cli/commands/task-assign-repairer.ts";
@@ -41,6 +43,19 @@ describe("task:reject", () => {
 
   test("--finding is accepted as an alias for --remediation", async () => {
     const { repo, run } = await setupCompiledRun("reject-remediation-alias", roots);
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
     const claim = await execute([
       "task:claim",
       "--run",
@@ -82,6 +97,19 @@ describe("task:reject", () => {
       "--summary",
       "did the work",
     ]);
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "val-1",
+      "--role",
+      "validator",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
     const val = await execute([
       "task:validate-start",
       "--run",
@@ -101,7 +129,7 @@ describe("task:reject", () => {
       "--gate",
       "gate-core",
       "--actor",
-      "val-1",
+      "worker-1",
       "--cwd",
       repo,
       "--",
@@ -149,6 +177,19 @@ describe("task:reject", () => {
 
   test("carries screenshots already captured for the task into the rejection report", async () => {
     const { repo, run } = await setupCompiledRun("reject-with-screenshots", roots);
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
     const claim = await execute([
       "task:claim",
       "--run",
@@ -190,6 +231,19 @@ describe("task:reject", () => {
       "--summary",
       "did the work",
     ]);
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "val-1",
+      "--role",
+      "validator",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
     const val = await execute([
       "task:validate-start",
       "--run",
@@ -208,7 +262,7 @@ describe("task:reject", () => {
       "--gate",
       "gate-core",
       "--actor",
-      "val-1",
+      "worker-1",
       "--cwd",
       repo,
       "--",
@@ -258,11 +312,28 @@ describe("task:reject", () => {
     expect(rejected.screenshots).toEqual(["evidence/before-reject.png"]);
     const records = rejected.screenshot_records as Array<{ name: string }>;
     expect(records).toHaveLength(1);
-    expect(records[0]!.name).toBe("before-reject.png");
+    const firstRecord = records[0];
+    if (!firstRecord) {
+      throw new Error("expected at least one screenshot record");
+    }
+    expect(firstRecord.name).toBe("before-reject.png");
   });
 
   test("refuses an unknown task id", async () => {
     const { run } = await setupCompiledRun("reject-unknown-task", roots);
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "val-1",
+      "--role",
+      "validator",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
     await expect(
       execute([
         "task:reject",
@@ -299,6 +370,19 @@ describe("task:assign-repairer", () => {
     });
     expect((rejected.task as { status: string }).status).toBe("changes_requested");
 
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "coordinator",
+      "--role",
+      "coordinator",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
     const reassigned = await execute([
       "task:assign-repairer",
       "--run",
@@ -344,6 +428,19 @@ describe("task:assign-repairer", () => {
       reason: "defect one",
       remediation: "fix it",
     });
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "coordinator",
+      "--role",
+      "coordinator",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
     await expect(
       execute([
         "task:assign-repairer",
@@ -374,6 +471,19 @@ describe("task:assign-repairer", () => {
       reason: "defect detected",
       remediation: "fix the bug",
     });
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "coordinator",
+      "--role",
+      "coordinator",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
     await expect(
       execute([
         "task:assign-repairer",
@@ -395,6 +505,19 @@ describe("task:assign-repairer", () => {
 
   test("task:reject records micro-cycle critique when --micro-cycle or --in-lease is specified", async () => {
     const { repo, run } = await setupCompiledRun("reject-micro-cycle", roots);
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
     const claim = await execute([
       "task:claim",
       "--run",
@@ -407,6 +530,19 @@ describe("task:assign-repairer", () => {
       "implementer",
     ]);
 
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "val-1",
+      "--role",
+      "validator",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
     const result = await execute([
       "task:reject",
       "--run",
@@ -428,5 +564,122 @@ describe("task:assign-repairer", () => {
     expect(result.round).toBe(1);
     expect(result.remediation).toBe("Add explicit type check");
     expect((result.task as { status: string }).status).toBe("leased");
+  });
+
+  test("task:reject --micro-cycle on a lease-less (submitted) task mints and returns a working repair token instead of wedging the task", async () => {
+    const { repo, run } = await setupCompiledRun("reject-micro-cycle-repair-wedge", roots);
+
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
+    const claim = await execute([
+      "task:claim",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+    ]);
+    await mkdir(join(repo, "tests/unit/core"), { recursive: true });
+    await writeFile(join(repo, "tests/unit/core/impl.ts"), "export const x = 1;\n");
+    await execute([
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--actor",
+      "worker-1",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "implementer-work",
+    ]);
+    const submitted = await execute([
+      "task:submit",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--agent",
+      "worker-1",
+      "--token",
+      claim.token as string,
+      "--files-changed",
+      "tests/unit/core/impl.ts",
+      "--summary",
+      "did the work",
+    ]);
+
+    const submittedTask = submitted.task as { status?: string; lease?: unknown };
+    expect(submittedTask.status).toBe("submitted");
+    expect(submittedTask.lease).toBeUndefined();
+
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "val-1",
+      "--role",
+      "validator",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
+    const rejected = await execute([
+      "task:reject",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--validator",
+      "val-1",
+      "--reason",
+      "Missing boundary check on the repaired path",
+      "--remediation",
+      "Add the boundary check",
+      "--micro-cycle",
+    ]);
+
+    const repairToken = rejected.repair_token;
+    expect(typeof repairToken).toBe("string");
+    expect(String(rejected.markdown)).toContain("Repair Lease Token");
+    expect(String(rejected.markdown)).toContain(repairToken as string);
+
+    const taskAfterReject = rejected.task as { status: string; lease?: { agent_id: string } };
+    expect(taskAfterReject.status).toBe("leased");
+    expect(taskAfterReject.lease).toBeDefined();
+    expect(taskAfterReject.lease?.agent_id).toBe("worker-1");
+
+    const released = await execute([
+      "task:release",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--agent",
+      "worker-1",
+      "--token",
+      repairToken as string,
+    ]);
+    const taskAfterRelease = released.task as { status: string; lease?: unknown };
+    expect(taskAfterRelease.status).toBe("changes_requested");
+    expect(taskAfterRelease.lease).toBeUndefined();
   });
 });

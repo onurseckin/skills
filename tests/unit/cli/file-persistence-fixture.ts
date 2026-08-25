@@ -72,6 +72,19 @@ export async function claimSubmitValidateAndReject(options: {
   remediation?: string;
   findingId?: string;
 }): Promise<Record<string, unknown>> {
+  await execute([
+    "agent:register",
+    "--run",
+    options.run,
+    "--agent",
+    options.agent,
+    "--role",
+    options.role ?? "implementer",
+    "--host",
+    "antigravity",
+    "--parent-task",
+    options.taskId,
+  ]);
   const claim = await execute([
     "task:claim",
     "--run",
@@ -123,6 +136,19 @@ export async function claimSubmitValidateAndReject(options: {
     "--summary",
     "Implemented the task under test",
   ]);
+  await execute([
+    "agent:register",
+    "--run",
+    options.run,
+    "--agent",
+    options.validator,
+    "--role",
+    "validator",
+    "--host",
+    "antigravity",
+    "--parent-task",
+    options.taskId,
+  ]);
   const val = await execute([
     "task:validate-start",
     "--run",
@@ -141,7 +167,7 @@ export async function claimSubmitValidateAndReject(options: {
     "--gate",
     "gate-core",
     "--actor",
-    options.validator,
+    options.agent,
     "--cwd",
     options.repo,
     "--",

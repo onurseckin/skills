@@ -53,6 +53,7 @@ permissions:
     - "task:reject"
     - "task:probe"
     - "task:abandon"
+    - "task:assign-repairer"
     - "queue:wave"
     - "queue:list"
     - "finding:get"
