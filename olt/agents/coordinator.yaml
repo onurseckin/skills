@@ -52,6 +52,7 @@ permissions:
     - "task:review"
     - "task:reject"
     - "task:probe"
+    - "task:abandon"
     - "queue:wave"
     - "queue:list"
     - "finding:get"
