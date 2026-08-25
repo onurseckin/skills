@@ -27,7 +27,10 @@ export async function validateSkillSource(
     throw new HarnessError("INVALID_ARGUMENT", "skill source must be a real directory");
   }
   const root = await realpath(requested);
-  const before = await treeDigest(root, new Set(["installation.json"]));
+  const before = await treeDigest(
+    root,
+    new Set(["installation.json", "skill-config.json", "node_modules"]),
+  );
   const skill = readStableText(resolve(root, "SKILL.md"));
   if (!new RegExp(`^---\\r?\\n(?:.|\\r?\\n)*?name:\\s*${SKILL_NAME}\\s*$`, "mu").test(skill)) {
     throw new HarnessError("INTEGRITY", `skill source identity is not ${SKILL_NAME}`);
@@ -58,7 +61,10 @@ export async function validateSkillSource(
   if (!runtimeVersion)
     throw new HarnessError("INTEGRITY", "skill source runtime version is missing");
   await options.beforeSnapshotRecheck?.();
-  const digest = await treeDigest(root, new Set(["installation.json"]));
+  const digest = await treeDigest(
+    root,
+    new Set(["installation.json", "skill-config.json", "node_modules"]),
+  );
   if (digest !== before)
     throw new HarnessError("INTEGRITY", "skill source changed during identity validation");
   return { root, runtimeVersion, digest };

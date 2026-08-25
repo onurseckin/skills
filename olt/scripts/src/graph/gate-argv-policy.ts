@@ -80,11 +80,19 @@ function flagPayload(value: string): string | null {
   return short?.[1] ?? null;
 }
 
-export function hasUnsafeOperands(argv: readonly string[]): boolean {
-  return argv.some((value) => {
+// Named export (rather than folding into a boolean) so callers can report *which* argv entry
+// tripped path-form rejection instead of collapsing it into an undifferentiated weakness verdict.
+export function unsafeOperand(argv: readonly string[]): string | null {
+  for (const value of argv) {
+    if (isUnsafeGatePath(value)) return value;
     const payload = flagPayload(value);
-    return isUnsafeGatePath(value) || (payload !== null && isUnsafeGatePath(payload));
-  });
+    if (payload !== null && isUnsafeGatePath(payload)) return payload;
+  }
+  return null;
+}
+
+export function hasUnsafeOperands(argv: readonly string[]): boolean {
+  return unsafeOperand(argv) !== null;
 }
 
 export function hasOpaquePathOption(argv: readonly string[]): boolean {

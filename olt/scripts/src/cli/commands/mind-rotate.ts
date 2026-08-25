@@ -18,6 +18,7 @@ export interface MindRotateCommandResult {
   readonly open_candidates_count: number;
   readonly declined_candidates_count: number;
   readonly archived_count: number;
+  readonly carried_grants_count: number;
   readonly rotated_at: string;
   readonly [key: string]: unknown;
 }
@@ -34,6 +35,7 @@ export function formatMindRotateBrief(params: {
   readonly openCandidatesCount: number;
   readonly declinedCandidatesCount: number;
   readonly archivedCount?: number | undefined;
+  readonly carriedGrantsCount: number;
   readonly previousEventHead: string | null;
   readonly rotatedAt: string;
 }): string {
@@ -51,6 +53,7 @@ export function formatMindRotateBrief(params: {
     );
   }
   lines.push(
+    `- **Agent Grants Carried Forward**: ${params.carriedGrantsCount}`,
     `- **Previous Event Head**: \`${params.previousEventHead ?? "none"}\``,
     `- **Status**: Successor ready for wake (\`mind:wake --run ${params.targetRunRoot}\`).`,
   );
@@ -87,6 +90,7 @@ export function mindRotateCommand(
     openCandidatesCount: result.openCandidatesCount,
     declinedCandidatesCount: result.declinedCandidatesCount,
     archivedCount: result.archivedCount,
+    carriedGrantsCount: result.carriedGrantsCount,
     previousEventHead: result.previousEventHead,
     rotatedAt: result.rotatedAt,
   });
@@ -107,6 +111,7 @@ export function mindRotateCommand(
     open_candidates_count: result.openCandidatesCount,
     declined_candidates_count: result.declinedCandidatesCount,
     archived_count: result.archivedCount,
+    carried_grants_count: result.carriedGrantsCount,
     rotated_at: result.rotatedAt,
   };
 }

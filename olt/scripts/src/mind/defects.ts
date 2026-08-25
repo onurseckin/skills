@@ -10,7 +10,7 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
-import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
+import { isTestEnvironment, resolveDefectsPath, resolveScratchDir } from "../core/shared/paths.ts";
 export * from "./pushbacks.ts";
 
 export type DefectCategory = "code_defect" | "model_reasoning_error" | "boundary_violation";
@@ -675,14 +675,16 @@ export function resolveDefect(
 
 export const DEFAULT_COMPLETED_DEFECTS_FILE = "olt/completed-defects.jsonl";
 
+// Delegates to the repo-root-anchored resolver so the writer and the reader
+// (defect-audit.ts, cognitive-auditors.ts, split-channel-defect-router.ts, etc.)
+// agree on a single path by construction instead of by cwd coincidence.
+// resolveDefectsPath already folds in the isTestEnvironment()->scratch branch.
 export function resolveCanonicalDefectLogPath(customRoot?: string, _useTodo = false): string {
-  return require("path").join(customRoot || process.cwd(), ".olt", "defects.jsonl");
+  return resolveDefectsPath(customRoot);
 }
 
 export function resolveDefectLogPath(customPath?: string): string {
-  if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = isTestEnvironment() ? resolveScratchDir() : process.cwd();
-  return join(root, ".olt", "defects.jsonl");
+  return resolveDefectsPath(undefined, customPath);
 }
 
 export function resolveCanonicalCompletedDefectsPath(

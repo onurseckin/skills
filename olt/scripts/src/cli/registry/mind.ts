@@ -15,6 +15,8 @@ import { mindAdmitCommand, mindDeclineCommand } from "../commands/mind-admit.ts"
 import { mindAuditReportCommand, mindAuditStartCommand } from "../commands/mind-audit.ts";
 import { mindAuditLiveCommand } from "../commands/mind-audit-live.ts";
 import { mindCandidateCommand } from "../commands/mind-candidate.ts";
+import { mindEscalateCommand } from "../commands/mind-escalate.ts";
+import { mindHaltCommand } from "../commands/mind-halt.ts";
 import { mindInitCommand } from "../commands/mind-init.ts";
 import { mindObserveCommand } from "../commands/mind-observe.ts";
 import { mindPulseCommand } from "../commands/mind-pulse.ts";
@@ -24,7 +26,6 @@ import { mindRotateCommand } from "../commands/mind-rotate.ts";
 import { mindRoundCloseCommand, mindRoundOpenCommand } from "../commands/mind-round.ts";
 import { mindWakeCommand } from "../commands/mind-wake.ts";
 import { smartTaskIngestCommand, smartTaskSynthesizeCommand } from "../commands/smart-task-ops.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,
@@ -41,6 +42,8 @@ export {
   mindAuditStartCommand,
   mindCandidateCommand,
   mindDeclineCommand,
+  mindEscalateCommand,
+  mindHaltCommand,
   mindInitCommand,
   mindObserveCommand,
   mindPulseCommand,
@@ -63,14 +66,6 @@ export {
   todoListCommand,
   todoSealCommand,
 };
-
-export function mindEscalateCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:escalate handler is not implemented yet");
-}
-
-export function mindHaltCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:halt handler is not implemented yet");
-}
 
 const charterGoalFlag: FlagSpec = {
   name: "charter-goal",

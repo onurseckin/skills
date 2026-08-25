@@ -4,6 +4,7 @@ import { verifyCapsuleDeep, verifyIntegrity } from "../engine/store/index.ts";
 import { MINIMUM_BUN_VERSION } from "../core/config/constants.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
 import type { CommandRecord } from "../core/contracts/commands.ts";
+import type { IntegrityIssue } from "../core/contracts/capsule.ts";
 import type { JsonObject } from "../core/contracts/json.ts";
 import { loadRun } from "../engine/store/index.ts";
 import { verifyCommandRecord } from "../engine/runner/verify-command.ts";
@@ -97,6 +98,77 @@ export function ignoredByGit(
   }
 }
 
+export type DoctorIssueSeverity = "critical" | "cosmetic";
+
+// Issue codes an operator can safely ignore: they describe layout/naming noise, not data
+// loss, a broken invariant, or an operational failure. Everything else defaults to
+// "critical" — an issue this classifier does not recognize must never silently vanish
+// from Healthy, only a deliberately reviewed code may downgrade to cosmetic.
+const COSMETIC_ISSUE_CODES: ReadonlySet<string> = new Set(["LAYOUT_UNDECLARED"]);
+
+export function classifyIssueSeverity(issue: string): DoctorIssueSeverity {
+  const code = issue.split(":", 1)[0];
+  if (code !== undefined && COSMETIC_ISSUE_CODES.has(code)) return "cosmetic";
+  // Behavioral/tier-confinement findings embed their own severity as "[critical]",
+  // "[important]" or "[minor]" (see TierViolationSeverity); only "minor" is cosmetic —
+  // "critical" and "important" both keep Healthy false, matching prior behaviour.
+  if (issue.includes("[minor]")) return "cosmetic";
+  return "critical";
+}
+
+export interface DoctorIssueTiering {
+  readonly criticalIssues: readonly string[];
+  readonly cosmeticIssues: readonly string[];
+  readonly healthy: boolean;
+}
+
+export function tierDoctorIssues(issues: readonly string[]): DoctorIssueTiering {
+  const criticalIssues = issues.filter((issue) => classifyIssueSeverity(issue) === "critical");
+  const cosmeticIssues = issues.filter((issue) => classifyIssueSeverity(issue) === "cosmetic");
+  return { criticalIssues, cosmeticIssues, healthy: criticalIssues.length === 0 };
+}
+
+export interface CapsuleDoctorFacts {
+  readonly integrityIssues: readonly IntegrityIssue[];
+  // The subset of integrityIssues serious enough that loading and auditing the rest of
+  // the capsule (state, tier confinement, socratic self-questioning, lifecycle) is unsafe
+  // or meaningless — e.g. a broken hash chain. A cosmetic issue such as an undeclared
+  // capsule entry does NOT belong here: it has no bearing on whether the run is loadable,
+  // and gating the load on it would silently skip every other audit, masking whatever
+  // those audits would have found — trading a false red for a worse false green.
+  readonly criticalIntegrityIssues: readonly IntegrityIssue[];
+  readonly gitignored: boolean | null;
+  readonly bunSupported: boolean;
+  readonly issues: readonly string[];
+  readonly criticalIssues: readonly string[];
+  readonly cosmeticIssues: readonly string[];
+  readonly healthy: boolean;
+}
+
+// The integrity/gitignored/bun-support facts are asked for twice — once by the `doctor`
+// command and once by the `report` (unified) command's embedded doctor section. Both
+// used to call ignoredByGit/verifyIntegrity/verifyCapsuleDeep independently, which let the
+// two surfaces silently disagree about the same capsule. This is the single computation
+// both call, so the fields cannot drift apart by construction.
+export function computeCapsuleDoctorFacts(
+  runRoot: string,
+  gitCommand: RepositoryGitCommand = repositoryGit,
+): CapsuleDoctorFacts {
+  const integrityIssues = [...verifyIntegrity(runRoot), ...verifyCapsuleDeep(runRoot)];
+  const criticalIntegrityIssues = integrityIssues.filter(
+    (issue) => classifyIssueSeverity(`${issue.code}: ${issue.message}`) === "critical",
+  );
+  const gitignored = ignoredByGit(runRoot, gitCommand);
+  const bunSupported = versionAtLeast(Bun.version, MINIMUM_BUN_VERSION);
+  const issues = [
+    ...integrityIssues.map(({ code, message }) => `${code}: ${message}`),
+    ...(gitignored === false ? ["run capsule is not gitignored"] : []),
+    ...(bunSupported ? [] : [`Bun ${Bun.version} is below ${MINIMUM_BUN_VERSION}`]),
+  ];
+  const tiering = tierDoctorIssues(issues);
+  return { integrityIssues, criticalIntegrityIssues, gitignored, bunSupported, issues, ...tiering };
+}
+
 export function formatDoctorReport(params: {
   runRoot: string;
   healthy: boolean;
@@ -135,10 +207,13 @@ export async function runDoctor(
   options: DoctorOptions = {},
   gitCommand: RepositoryGitCommand = repositoryGit,
 ): Promise<Record<string, unknown>> {
-  const integrityIssues = [...verifyIntegrity(runRoot), ...verifyCapsuleDeep(runRoot)];
-  const gitignored = ignoredByGit(runRoot, gitCommand);
-  const bunSupported = versionAtLeast(Bun.version, MINIMUM_BUN_VERSION);
-  const loaded = integrityIssues.length === 0 ? loadRun(runRoot) : undefined;
+  const facts = computeCapsuleDoctorFacts(runRoot, gitCommand);
+  const { integrityIssues, criticalIntegrityIssues, gitignored, bunSupported } = facts;
+  // Gate on CRITICAL integrity issues only: a cosmetic one (e.g. an undeclared capsule
+  // entry) must never suppress loadRun and, with it, every loaded-dependent audit below
+  // (tier confinement, socratic, lifecycle, command/packet/workflow) — see
+  // CapsuleDoctorFacts.criticalIntegrityIssues.
+  const loaded = criticalIntegrityIssues.length === 0 ? loadRun(runRoot) : undefined;
   const commandIssues = loaded
     ? Object.values((loaded.state.commands ?? {}) as Record<string, CommandRecord>).flatMap(
         (record) =>
@@ -212,9 +287,7 @@ export async function runDoctor(
       : [];
 
   const issues = [
-    ...integrityIssues.map(({ code, message }) => `${code}: ${message}`),
-    ...(gitignored === false ? ["run capsule is not gitignored"] : []),
-    ...(bunSupported ? [] : [`Bun ${Bun.version} is below ${MINIMUM_BUN_VERSION}`]),
+    ...facts.issues,
     ...commandIssues,
     ...packetIssues,
     ...workflowIssues,
@@ -225,7 +298,10 @@ export async function runDoctor(
     ...policyIssues,
   ];
 
-  const healthy = issues.length === 0;
+  // Re-tier over the FULL issue set, not just facts.issues: commandIssues/tierIssues/etc.
+  // can themselves carry a "[critical]"/"[minor]" tag (see classifyIssueSeverity) or a
+  // cosmetic layout code, and Healthy must reflect all of them, not only the base facts.
+  const { criticalIssues, cosmeticIssues, healthy } = tierDoctorIssues(issues);
 
   const markdown = formatDoctorReport({
     runRoot,
@@ -264,6 +340,8 @@ export async function runDoctor(
     installation_issues: installationIssues,
     policy_inspection: policyInspection,
     issues,
+    critical_issues: criticalIssues,
+    cosmetic_issues: cosmeticIssues,
     markdown,
   };
 }

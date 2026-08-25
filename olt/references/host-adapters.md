@@ -105,13 +105,13 @@ is a capability gap to be declared, not worked around silently.
 
 ### 3.2 Adapter table
 
-| Host                        | Dispatch                                                   | Definitions                                                               | Messaging                                                                                                                    | Depth                                                                                    | Concurrency                                                           |
-| :-------------------------- | :--------------------------------------------------------- | :------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------- | :-------------------------------------------------------------------- |
-| **Claude Code**             | `Agent` tool                                               | `.claude/agents/*.md` (YAML frontmatter)                                  | `SendMessage` (v2.1.206+); experimental Agent Teams use file mailboxes at `~/.claude/teams/<team>/inboxes/<agent>.json`      | 3 (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`)                                               | 20 (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`)                           |
-| **Antigravity** (CLI + IDE) | `invoke_subagent`                                          | custom agents with `subagent: true`; `define_subagent` for transient ones | `send_message` direct channel                                                                                                | 3                                                                                        | 8                                                                     |
-| **Codex**                   | `collaboration` group `multi_agent_v1`, tool `spawn_agent` | TOML in `~/.codex/agents/` or `.codex/agents/`                            | `send_message`, `followup_task`, `send_input`, `wait_agent`, `interrupt_agent`, `list_agents`, `resume_agent`, `close_agent` | hierarchical task paths from `/root`                                                     | `agents.max_concurrent_threads_per_session` in `~/.codex/config.toml` |
-| **Cursor** (CLI + IDE)      | `Task` tool (SDK policy name `"task"`)                     | —                                                                         | none documented                                                                                                              | main agent and its DIRECT subagents may spawn; a subagent's subagent may not (since 2.5) | no documented limit                                                   |
-| **ChatGPT** (Web / API)     | function calling / `execute_subagent_task`                 | system / developer instructions                                           | single / multi-turn delegation                                                                                               | 2                                                                                        | 4                                                                     |
+| Host                        | Dispatch                                   | Definitions                                                               | Messaging                                                                                                               | Depth                                                                                    | Concurrency                                 |
+| :-------------------------- | :----------------------------------------- | :------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------- | :------------------------------------------ |
+| **Claude Code**             | `Agent` tool                               | `.claude/agents/*.md` (YAML frontmatter)                                  | `SendMessage` (v2.1.206+); experimental Agent Teams use file mailboxes at `~/.claude/teams/<team>/inboxes/<agent>.json` | 3 (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`)                                               | 20 (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`) |
+| **Antigravity** (CLI + IDE) | `invoke_subagent`                          | custom agents with `subagent: true`; `define_subagent` for transient ones | `send_message` direct channel                                                                                           | 3                                                                                        | 8                                           |
+| **Codex**                   | `collaboration` group, tool `spawn_agent`  | TOML in `~/.codex/agents/` or `.codex/agents/`                            | `send_message`, `followup_task`, `wait_agent`, `interrupt_agent`, `list_agents`                                         | hierarchical task paths from `/root`                                                     | session-provided concurrency limit          |
+| **Cursor** (CLI + IDE)      | `Task` tool (SDK policy name `"task"`)     | —                                                                         | none documented                                                                                                         | main agent and its DIRECT subagents may spawn; a subagent's subagent may not (since 2.5) | no documented limit                         |
+| **ChatGPT** (Web / API)     | function calling / `execute_subagent_task` | system / developer instructions                                           | single / multi-turn delegation                                                                                          | 2                                                                                        | 4                                           |
 
 ---
 
@@ -125,13 +125,14 @@ defer to them where available.
 repository directory, "similar to a git worktree"). Where this exists, use it for disjoint write scopes
 rather than provisioning worktrees by hand.
 
-**Resume after a crash.** Antigravity's `ReusedSubagentId` resumes work from a cancelled subagent; Codex
-has `resume_agent`. Where either exists, a supervisor should resume before it replaces.
+**Resume after a crash.** Antigravity's `ReusedSubagentId` resumes work from a cancelled subagent.
+Codex has no resume primitive in this host surface: send a focused `followup_task` to an existing idle
+agent when it remains available; otherwise recover its harness lease and replace it with `spawn_agent`.
 
-**Context control.** Codex's `spawn_agent` takes `fork_turns` / `fork_context`, which decide how much
-parent context propagates. A full-history fork inherits the parent's model and reasoning effort and
-cannot override them; a partial fork can. Everywhere else, a subagent starts fresh and the packet is the
-only channel — which is why the packet carries the round's recorded facts.
+**Context control.** Codex's `spawn_agent` takes `fork_turns`, which decides how much parent context
+propagates. A full-history fork inherits the parent's model and reasoning effort and cannot override them;
+a partial fork can. Everywhere else, a subagent starts fresh and the packet is the only channel — which is
+why the packet carries the round's recorded facts.
 
 **Per-agent model and effort.** Codex's `spawn_agent` accepts `model` and `reasoning_effort` directly.
 Claude Code sets them in agent frontmatter (`model:`, `effort:`), resolved as
@@ -190,7 +191,10 @@ To guarantee deterministic multi-agent execution across heterogeneous hosts, Har
    - **Antigravity CLI/IDE**: Dispatches subagents directly via `invoke_subagent` with explicit `workspace` isolation (`"inherit"` | `"branch"` | `"share"`) and optional `reused_subagent_id` for resume.
    - **Claude Code**: Dispatches subagents directly via `Agent` tool with parameters for `name`, `prompt`, `model`, `effort`, and depth controls.
    - **Cursor CLI/IDE**: Dispatches subagents directly via `Task` tool (`policy: "task"`).
-   - **Codex**: Dispatches subagents directly via `spawn_agent` in the `collaboration` group (`multi_agent_v1`), setting `task_path`, `model`, and `reasoning_effort`.
+   - **Codex**: Dispatches subagents directly via `spawn_agent` in the `collaboration` group, supplying
+     `task_name` and `message`, with optional `fork_turns`, `model`, and `reasoning_effort`. Codex exposes
+     no batch-spawn, resume, close, or input primitive; start disjoint agents without waiting between
+     dispatches and use only the documented lifecycle and messaging tools above.
    - **ChatGPT / OpenAI**: Dispatches subagents directly via structured tool/function calling payload (`chatgpt_subagent_call` / `execute_subagent_task`).
 
 2. **Cognitive Fallback (Automatic Resilient Fallback)**:

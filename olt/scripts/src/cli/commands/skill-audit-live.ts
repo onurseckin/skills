@@ -9,6 +9,11 @@ export async function skillAuditLiveCommand(
   context: CommandContext = {},
 ): Promise<JsonObject> {
   const repoRoot = typeof flags["repo"] === "string" ? String(flags["repo"]) : findRepoRoot();
+  // The documented default invocation (cli-capabilities.md) carries no --run. `runRoot` staying
+  // `undefined` here must not mean "scan nothing": SkillAuditorEngine.auditSkillCompliance treats
+  // an absent capsuleRunRoot as "scan every capsule this repo can discover", the same default
+  // scope MindAuditorEngine already applies for pulse discovery. Do not default this to a single
+  // guessed path -- that would silently narrow the documented default back down to one capsule.
   const runRoot = typeof flags["run"] === "string" ? String(flags["run"]) : undefined;
   const logDefects = flags["log-defects"] !== false;
   const asJson = Boolean(flags["json"]);

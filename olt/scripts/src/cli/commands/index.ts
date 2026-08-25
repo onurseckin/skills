@@ -32,6 +32,8 @@ export * from "./meta-audit.ts";
 export * from "./mind-admit.ts";
 export * from "./mind-audit.ts";
 export * from "./mind-candidate.ts";
+export * from "./mind-escalate.ts";
+export * from "./mind-halt.ts";
 export * from "./mind-init.ts";
 export * from "./mind-observe.ts";
 export * from "./mind-pulse-open.ts";

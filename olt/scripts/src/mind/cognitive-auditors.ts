@@ -1,6 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import type { ForensicsIncident } from "./meta-auditor.ts";
+import { dirname, join, resolve } from "node:path";
+import {
+  analyzeRunForensics,
+  type ForensicsIncident,
+  type RootCauseCategory,
+} from "./meta-auditor.ts";
 import {
   VerbatimRoleInjector,
   type StagnationTelemetry,
@@ -45,68 +49,81 @@ export interface StoredAuditorCursors {
 }
 
 export class AuditorCursorStore {
+  private static readonly GLOBAL_SCOPE = "__global__";
+  private static readonly DEFAULT_CURSOR: AuditorCursor = {
+    lastInspectedTimestamp: "1970-01-01T00:00:00.000Z",
+    lastInspectedEventIndex: -1,
+  };
+
   public static resolveCursorPath(repoRoot: string): string {
     return join(resolveOltDir(repoRoot), "auditor-cursors.json");
   }
 
-  public static loadCursor(repoRoot: string, auditorType: "mind" | "skill"): AuditorCursor {
-    const p = this.resolveCursorPath(repoRoot);
-    if (existsSync(p)) {
-      try {
-        const raw = readFileSync(p, "utf-8");
-        const parsed = JSON.parse(raw) as unknown;
-        if (parsed && typeof parsed === "object" && auditorType in parsed) {
-          const c = (parsed as Record<string, unknown>)[auditorType];
-          if (
-            c &&
-            typeof c === "object" &&
-            "lastInspectedTimestamp" in c &&
-            "lastInspectedEventIndex" in c
-          ) {
-            const rec = c as Record<string, unknown>;
-            const rawTs = rec["lastInspectedTimestamp"];
-            const lastTs =
-              typeof rawTs === "string" && rawTs.length > 0 ? rawTs : "1970-01-01T00:00:00.000Z";
-            const rawIdx = rec["lastInspectedEventIndex"];
-            const lastIdx = typeof rawIdx === "number" ? rawIdx : -1;
-            const rawAuditTs = rec["lastAuditTimestamp"];
-            const lastAuditTs = typeof rawAuditTs === "string" ? rawAuditTs : undefined;
-            return {
-              lastInspectedTimestamp: lastTs,
-              lastInspectedEventIndex: lastIdx,
-              lastAuditTimestamp: lastAuditTs,
-            };
-          }
-        }
-      } catch {
-        // Fall back to default cursor
-      }
-    }
+  private static parseCursorRecord(value: unknown): AuditorCursor | null {
+    if (!value || typeof value !== "object") return null;
+    if (!("lastInspectedTimestamp" in value) || !("lastInspectedEventIndex" in value)) return null;
+    const rec = value as Record<string, unknown>;
+    const rawTs = rec["lastInspectedTimestamp"];
+    const lastTs =
+      typeof rawTs === "string" && rawTs.length > 0 ? rawTs : "1970-01-01T00:00:00.000Z";
+    const rawIdx = rec["lastInspectedEventIndex"];
+    const lastIdx = typeof rawIdx === "number" ? rawIdx : -1;
+    const rawAuditTs = rec["lastAuditTimestamp"];
+    const lastAuditTs = typeof rawAuditTs === "string" ? rawAuditTs : undefined;
     return {
-      lastInspectedTimestamp: "1970-01-01T00:00:00.000Z",
-      lastInspectedEventIndex: -1,
+      lastInspectedTimestamp: lastTs,
+      lastInspectedEventIndex: lastIdx,
+      lastAuditTimestamp: lastAuditTs,
     };
+  }
+
+  private static readAllCursors(repoRoot: string): Record<string, unknown> {
+    const p = this.resolveCursorPath(repoRoot);
+    if (!existsSync(p)) return {};
+    try {
+      const raw = readFileSync(p, "utf-8");
+      const parsed = JSON.parse(raw) as unknown;
+      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Cursor identity is (auditorType, scopeKey) -- the observer AND what it observed. A cursor
+   * keyed by auditorType alone ratchets forward against every capsule sharing that observer, so
+   * a mark left on one capsule silently truncates the scan of the next one. scopeKey defaults to
+   * a single shared slot only for callers that never scan capsule-relative event data.
+   */
+  public static loadCursor(
+    repoRoot: string,
+    auditorType: "mind" | "skill",
+    scopeKey: string = AuditorCursorStore.GLOBAL_SCOPE,
+  ): AuditorCursor {
+    const allCursors = this.readAllCursors(repoRoot);
+    const perType = allCursors[auditorType];
+    if (perType && typeof perType === "object") {
+      const parsed = this.parseCursorRecord((perType as Record<string, unknown>)[scopeKey]);
+      if (parsed) return parsed;
+    }
+    return { ...this.DEFAULT_CURSOR };
   }
 
   public static saveCursor(
     repoRoot: string,
     auditorType: "mind" | "skill",
     cursor: AuditorCursor,
+    scopeKey: string = AuditorCursorStore.GLOBAL_SCOPE,
   ): void {
     const p = this.resolveCursorPath(repoRoot);
-    let allCursors: Record<string, unknown> = {};
-    if (existsSync(p)) {
-      try {
-        const raw = readFileSync(p, "utf-8");
-        const parsed = JSON.parse(raw) as unknown;
-        if (parsed && typeof parsed === "object") {
-          allCursors = parsed as Record<string, unknown>;
-        }
-      } catch {
-        allCursors = {};
-      }
-    }
-    allCursors[auditorType] = cursor;
+    const allCursors = this.readAllCursors(repoRoot);
+    const perTypeRaw = allCursors[auditorType];
+    const perType: Record<string, unknown> =
+      perTypeRaw && typeof perTypeRaw === "object"
+        ? { ...(perTypeRaw as Record<string, unknown>) }
+        : {};
+    perType[scopeKey] = cursor;
+    allCursors[auditorType] = perType;
     const dir = dirname(p);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -201,28 +218,19 @@ export class MindAuditorEngine {
         : new Date().toISOString();
     const nowMs = new Date(nowIso).getTime();
 
-    // 1. Determine last activity timestamp from cursor, last pulse, or fallback
-    const cursorMs = new Date(cursor.lastInspectedTimestamp).getTime();
-    const cursorValid =
-      !isNaN(cursorMs) &&
-      cursorMs > 0 &&
-      cursor.lastInspectedTimestamp !== "1970-01-01T00:00:00.000Z";
-
+    // 1. Determine last activity timestamp from the pulse clock alone. The cursor below tracks
+    // this auditor's OWN last invocation, which advances every time this function runs; folding
+    // it into lastActiveMs (via Math.max or as a same-priority fallback) makes the auditor
+    // measure its own polling cadence instead of the Mind's. Confirmed live in
+    // .olt/defects.jsonl (MIND_AUDIT_LIVE_MEASURES_THE_AUDITOR_CADENCE_NOT_THE_MIND): idle time
+    // tracked the gap between audit ticks, not Mind activity, so a Mind silent for 4h05m read as
+    // healthy whenever the auditor happened to run twice within the threshold.
     const pulseMs = MindAuditorEngine.resolveLatestPulseTimestamp(
       repoRoot,
       options !== undefined ? options.capsuleRunRoot : undefined,
     );
 
-    let lastActiveMs: number;
-    if (cursorValid && pulseMs !== null) {
-      lastActiveMs = Math.max(cursorMs, pulseMs);
-    } else if (cursorValid) {
-      lastActiveMs = cursorMs;
-    } else if (pulseMs !== null) {
-      lastActiveMs = pulseMs;
-    } else {
-      lastActiveMs = nowMs - (threshold + 1) * 1000; // default to threshold exceeded if never inspected and no pulse
-    }
+    const lastActiveMs = pulseMs !== null ? pulseMs : nowMs - (threshold + 1) * 1000; // never pulsed => already stagnant
 
     const idleDurationSeconds = Math.max(0, Math.floor((nowMs - lastActiveMs) / 1000));
     const stagnant = idleDurationSeconds >= threshold;
@@ -318,7 +326,107 @@ export class MindAuditorEngine {
   }
 }
 
+// Skill compliance only ever routed these three of analyzeRunForensics' seven categories (the
+// other four -- POLLING_WASTE, CONTEXT_OVERFLOW, GHOST_LEASE, STRAGGLER -- are the orchestrator's
+// concern, not this auditor's). Kept as literal RootCauseCategory values imported from the same
+// engine that defines them, never invented independently.
+const SKILL_AUDIT_FORENSICS_CATEGORIES: ReadonlySet<RootCauseCategory> = new Set([
+  "TOKEN_BURNING",
+  "FALSE_SERIALIZATION",
+  "ROLE_BOUNDARY_DEVIATION",
+]);
+
 export class SkillAuditorEngine {
+  /**
+   * Every capsule this repo can see, used when the caller omits --run. Omitting --run asks for
+   * the default scope, not zero scope (see skill-audit-live.ts / cli-capabilities.md); mirrors
+   * MindAuditorEngine.resolveLatestPulseTimestamp's own repoRoot / .olt/capsules / .capsules walk.
+   */
+  private static discoverCapsuleRoots(repoRoot: string): string[] {
+    const roots = new Set<string>();
+    const addIfCapsule = (p: string): void => {
+      if (existsSync(join(p, "events.jsonl"))) roots.add(resolve(p));
+    };
+
+    addIfCapsule(repoRoot);
+
+    const capsulesDir = resolveCapsulesDir(repoRoot);
+    if (existsSync(capsulesDir)) {
+      try {
+        for (const entry of readdirSync(capsulesDir, { withFileTypes: true })) {
+          if (entry.isDirectory()) addIfCapsule(join(capsulesDir, entry.name));
+        }
+      } catch {
+        // Non-fatal
+      }
+    }
+
+    const dotCapsules = join(repoRoot, ".capsules");
+    if (existsSync(dotCapsules) && dotCapsules !== capsulesDir) {
+      try {
+        for (const entry of readdirSync(dotCapsules, { withFileTypes: true })) {
+          if (entry.isDirectory()) addIfCapsule(join(dotCapsules, entry.name));
+        }
+      } catch {
+        // Non-fatal
+      }
+    }
+
+    return [...roots];
+  }
+
+  /**
+   * TOKEN_BURNING / FALSE_SERIALIZATION / ROLE_BOUNDARY_DEVIATION are cross-event heuristics
+   * (read/write ratios, task write-scope overlap, agent-role-vs-tool-call mismatches); no single
+   * event line carries any of them as a tag, so per-line predicate matching against evt.type /
+   * evt.error_code / evt.kind can never fire -- `type` and `error_code` are not keys the harness
+   * event envelope has at all, and `kind` never carries these values (verified against 1241 live
+   * events across 20 capsules: 0 matches; `boundary_violation` etc. occur only as
+   * DefectCategory/category values already written to defects.jsonl, never as an event
+   * type/kind/error_code). analyzeRunForensics is the engine orchestrator/companion-auditor.ts
+   * already trusts to derive these same three categories from real tool-call and task-state
+   * signal; reuse it instead of re-deriving a second, structurally-unreachable copy.
+   */
+  private static scanCapsuleForIncidents(
+    capsuleRoot: string,
+    cursor: AuditorCursor,
+    nowIso: string,
+  ): { incidents: ForensicsIncident[]; eventsAnalyzed: number; updatedCursor: AuditorCursor } {
+    const eventsPath = join(capsuleRoot, "events.jsonl");
+    let eventsAnalyzed = 0;
+    let maxEventSeq = cursor.lastInspectedEventIndex;
+    const hasEvents = existsSync(eventsPath);
+
+    if (hasEvents) {
+      try {
+        const lines = readFileSync(eventsPath, "utf-8")
+          .split("\n")
+          .filter((l) => l.trim().length > 0);
+        for (let i = 0; i < lines.length; i++) {
+          if (i <= cursor.lastInspectedEventIndex) continue;
+          eventsAnalyzed++;
+          maxEventSeq = Math.max(maxEventSeq, i);
+        }
+      } catch {
+        // ignore; forensics below still runs against whatever parses
+      }
+    }
+
+    const incidents = hasEvents
+      ? analyzeRunForensics({ runRoot: capsuleRoot, inject: false }).incidents.filter((inc) =>
+          SKILL_AUDIT_FORENSICS_CATEGORIES.has(inc.category),
+        )
+      : [];
+
+    const updatedCursor: AuditorCursor = {
+      lastInspectedTimestamp: nowIso,
+      lastInspectedEventIndex: maxEventSeq,
+      lastAuditTimestamp: nowIso,
+    };
+
+    return { incidents, eventsAnalyzed, updatedCursor };
+  }
+
   public static auditSkillCompliance(
     repoRoot: string,
     options?: {
@@ -328,123 +436,38 @@ export class SkillAuditorEngine {
       now?: string | undefined;
     },
   ): SkillAuditLiveResult {
-    const cursor =
-      options !== undefined && options.cursor !== undefined
-        ? options.cursor
-        : AuditorCursorStore.loadCursor(repoRoot, "skill");
     const nowIso =
       options !== undefined && typeof options.now === "string"
         ? options.now
         : new Date().toISOString();
+    const explicitRunRoot = options !== undefined ? options.capsuleRunRoot : undefined;
+
+    // Mechanism (e): an omitted --run scans the default scope (every discoverable capsule),
+    // never zero capsules.
+    const capsuleRoots = explicitRunRoot
+      ? [resolve(explicitRunRoot)]
+      : SkillAuditorEngine.discoverCapsuleRoots(repoRoot);
+
     const incidents: ForensicsIncident[] = [];
     let eventsAnalyzed = 0;
-    let maxEventSeq = cursor.lastInspectedEventIndex;
+    let rollupMaxSeq = -1;
 
-    // Scan delta events in run or telemetry
-    const runRoot = options !== undefined ? options.capsuleRunRoot : undefined;
-    if (runRoot && existsSync(join(runRoot, "events.jsonl"))) {
-      try {
-        const lines = readFileSync(join(runRoot, "events.jsonl"), "utf-8")
-          .split("\n")
-          .filter((l) => l.trim().length > 0);
-        for (let i = 0; i < lines.length; i++) {
-          if (i <= cursor.lastInspectedEventIndex) continue;
-          eventsAnalyzed++;
-          maxEventSeq = Math.max(maxEventSeq, i);
-          const rawLine = lines[i];
-          if (rawLine === undefined) continue;
-          const evt = JSON.parse(rawLine) as Record<string, unknown>;
-          let isBoundaryViolation = false;
-          if (evt["type"] === "boundary_violation") isBoundaryViolation = true;
-          if (evt["error_code"] === "ROLE_BOUNDARY_DEVIATION") isBoundaryViolation = true;
-          if (evt["kind"] === "role_boundary_deviation") isBoundaryViolation = true;
+    for (const capsuleRoot of capsuleRoots) {
+      // Mechanism (c): cursor identity is (observer="skill", capsule=capsuleRoot). An explicit
+      // cursor override only ever applies to the single explicitly-named capsule; auto-discovered
+      // capsules always use their own persisted, capsule-scoped mark so one capsule's progress
+      // can never suppress another's.
+      const scopedCursor =
+        options !== undefined && options.cursor !== undefined && explicitRunRoot !== undefined
+          ? options.cursor
+          : AuditorCursorStore.loadCursor(repoRoot, "skill", capsuleRoot);
 
-          let isTokenBurning = false;
-          if (evt["type"] === "token_burning") isTokenBurning = true;
-          if (evt["error_code"] === "TOKEN_BURNING") isTokenBurning = true;
-          if (evt["kind"] === "token_burning") isTokenBurning = true;
-
-          let isFalseSerialization = false;
-          if (evt["type"] === "false_serialization") isFalseSerialization = true;
-          if (evt["error_code"] === "FALSE_SERIALIZATION") isFalseSerialization = true;
-          if (evt["kind"] === "false_serialization") isFalseSerialization = true;
-
-          if (isBoundaryViolation) {
-            const rawMsg = evt["message"];
-            const desc =
-              typeof rawMsg === "string" && rawMsg.length > 0
-                ? rawMsg
-                : "Role boundary deviation in event stream";
-            const rec = "Ensure supervisor roles execute zero direct file edits or test commands";
-            const rawTs = evt["timestamp"];
-            const ts = typeof rawTs === "string" && rawTs.length > 0 ? rawTs : nowIso;
-            incidents.push({
-              id: `inc-${Date.now()}-${i}`,
-              category: "ROLE_BOUNDARY_DEVIATION",
-              severity: "CRITICAL",
-              title: `Skill Compliance Incident: ROLE_BOUNDARY_DEVIATION`,
-              description: desc,
-              observation: desc,
-              remediation: rec,
-              recommendation: rec,
-              timestamp: ts,
-              evidence:
-                typeof evt["command_id"] === "string"
-                  ? { command_id: evt["command_id"] }
-                  : undefined,
-            });
-          } else if (isTokenBurning) {
-            const rawMsg = evt["message"];
-            const desc =
-              typeof rawMsg === "string" && rawMsg.length > 0
-                ? rawMsg
-                : "Token burning detected: excessive exploratory browsing before write";
-            const rec = "Provide exact file paths and anchors to minimize exploratory tool calls";
-            const rawTs = evt["timestamp"];
-            const ts = typeof rawTs === "string" && rawTs.length > 0 ? rawTs : nowIso;
-            incidents.push({
-              id: `inc-${Date.now()}-${i}`,
-              category: "TOKEN_BURNING",
-              severity: "HIGH",
-              title: `Skill Compliance Incident: TOKEN_BURNING`,
-              description: desc,
-              observation: desc,
-              remediation: rec,
-              recommendation: rec,
-              timestamp: ts,
-              evidence:
-                typeof evt["details"] === "object" && evt["details"] !== null
-                  ? (evt["details"] as Record<string, unknown>)
-                  : undefined,
-            });
-          } else if (isFalseSerialization) {
-            const rawMsg = evt["message"];
-            const desc =
-              typeof rawMsg === "string" && rawMsg.length > 0
-                ? rawMsg
-                : "False serialization detected: disjoint tasks executed sequentially";
-            const rec = "Dispatch independent tasks concurrently in parallel waves";
-            const rawTs = evt["timestamp"];
-            const ts = typeof rawTs === "string" && rawTs.length > 0 ? rawTs : nowIso;
-            incidents.push({
-              id: `inc-${Date.now()}-${i}`,
-              category: "FALSE_SERIALIZATION",
-              severity: "MEDIUM",
-              title: `Skill Compliance Incident: FALSE_SERIALIZATION`,
-              description: desc,
-              observation: desc,
-              remediation: rec,
-              recommendation: rec,
-              timestamp: ts,
-              evidence:
-                typeof evt["details"] === "object" && evt["details"] !== null
-                  ? (evt["details"] as Record<string, unknown>)
-                  : undefined,
-            });
-          }
-        }
-      } catch {
-        // ignore
+      const scan = SkillAuditorEngine.scanCapsuleForIncidents(capsuleRoot, scopedCursor, nowIso);
+      incidents.push(...scan.incidents);
+      eventsAnalyzed += scan.eventsAnalyzed;
+      AuditorCursorStore.saveCursor(repoRoot, "skill", scan.updatedCursor, capsuleRoot);
+      if (scan.updatedCursor.lastInspectedEventIndex > rollupMaxSeq) {
+        rollupMaxSeq = scan.updatedCursor.lastInspectedEventIndex;
       }
     }
 
@@ -474,18 +497,17 @@ export class SkillAuditorEngine {
       }
     }
 
-    const updatedCursor: AuditorCursor = {
+    const rollupCursor: AuditorCursor = {
       lastInspectedTimestamp: nowIso,
-      lastInspectedEventIndex: maxEventSeq,
+      lastInspectedEventIndex: rollupMaxSeq,
       lastAuditTimestamp: nowIso,
     };
-    AuditorCursorStore.saveCursor(repoRoot, "skill", updatedCursor);
 
     return {
       compliant: incidents.length === 0,
       incidents,
       defectsLogged,
-      cursor: updatedCursor,
+      cursor: rollupCursor,
       eventsAnalyzed,
       timestamp: nowIso,
     };

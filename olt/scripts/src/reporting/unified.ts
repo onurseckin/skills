@@ -1,11 +1,10 @@
 import { dirname } from "node:path";
-import { loadRun, verifyCapsuleDeep, verifyIntegrity } from "../engine/store/index.ts";
+import { loadRun } from "../engine/store/index.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { isRecord } from "../requirements/predicates.ts";
 import { getHarnessConfig } from "../core/config/harness-config.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
-import { MINIMUM_BUN_VERSION } from "../core/config/constants.ts";
 import {
   agentIdToRole,
   agentIdToTier,
@@ -26,7 +25,7 @@ import {
   type SugiyamaNode,
   type SugiyamaWaveMetrics,
 } from "./sugiyama-dag.ts";
-import { ignoredByGit, versionAtLeast } from "./doctor.ts";
+import { computeCapsuleDoctorFacts } from "./doctor.ts";
 
 export { extractLeaseAgentId, extractLeaseRole, extractLeaseAttempt, type LeaseRecordView };
 
@@ -129,6 +128,8 @@ export interface UnifiedReport {
         bun_supported: boolean;
         gitignored: boolean | null;
         issues: readonly string[];
+        critical_issues: readonly string[];
+        cosmetic_issues: readonly string[];
       }
     | undefined;
   metrics?: SugiyamaWaveMetrics | undefined;
@@ -515,22 +516,24 @@ export function generateUnifiedReport(
     boxStyle: "rounded",
   });
 
-  // Live Doctor & Integrity Diagnostics
-  const integrityIssues = [...verifyIntegrity(runRoot), ...verifyCapsuleDeep(runRoot)];
-  const gitignored = ignoredByGit(runRoot);
-  const bunSupported = versionAtLeast(Bun.version, MINIMUM_BUN_VERSION);
-  const doctorIssues = [
-    ...integrityIssues.map(({ code, message }) => `${code}: ${message}`),
-    ...(gitignored === false ? ["run capsule is not gitignored"] : []),
-    ...(bunSupported ? [] : [`Bun ${Bun.version} is below ${MINIMUM_BUN_VERSION}`]),
-  ];
-  const doctorHealthy = doctorIssues.length === 0;
+  // Live Doctor & Integrity Diagnostics — computeCapsuleDoctorFacts is the SAME
+  // computation the `doctor` command uses (see reporting/doctor.ts). Both surfaces used to
+  // call ignoredByGit/verifyIntegrity/verifyCapsuleDeep independently, which let this
+  // report's numbers silently drift from `doctor`'s for the same capsule; now there is
+  // exactly one computation, so the two cannot disagree by construction.
+  const doctorFacts = computeCapsuleDoctorFacts(runRoot);
+  const { gitignored, bunSupported, issues: doctorIssues } = doctorFacts;
+  const doctorCriticalIssues = doctorFacts.criticalIssues;
+  const doctorCosmeticIssues = doctorFacts.cosmeticIssues;
+  const doctorHealthy = doctorFacts.healthy;
   const doctorReport = {
     healthy: doctorHealthy,
     bun_version: Bun.version,
     bun_supported: bunSupported,
     gitignored,
     issues: doctorIssues,
+    critical_issues: doctorCriticalIssues,
+    cosmetic_issues: doctorCosmeticIssues,
   };
 
   // Markdown Construction
@@ -628,13 +631,19 @@ export function generateUnifiedReport(
   mdSections.push(
     `- **Supervisory Invariants**: Strict Tier Hierarchy & Supervisor Zero-File-Edit Rule actively enforced`,
   );
-  if (doctorIssues.length > 0) {
-    mdSections.push("- **Issues**:");
-    for (const issue of doctorIssues) {
+  if (doctorCriticalIssues.length > 0) {
+    mdSections.push("- **Critical Issues**:");
+    for (const issue of doctorCriticalIssues) {
       mdSections.push(`  - ${issue}`);
     }
   } else {
-    mdSections.push("- **Issues**: none");
+    mdSections.push("- **Critical Issues**: none");
+  }
+  if (doctorCosmeticIssues.length > 0) {
+    mdSections.push("- **Notices** (cosmetic — do not affect Healthy):");
+    for (const issue of doctorCosmeticIssues) {
+      mdSections.push(`  - ${issue}`);
+    }
   }
 
   mdSections.push("");

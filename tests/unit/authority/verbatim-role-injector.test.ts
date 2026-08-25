@@ -78,6 +78,27 @@ describe("VerbatimRoleInjector", () => {
         resolve(oltAgentsYamlPath),
       );
     });
+
+    it("falls back to the installed skill role manifest when a product repository has only an owner charter", () => {
+      const productRepo = scratchRoot(import.meta.path, "owner-charter-global-role");
+      const charterPath = join(productRepo, ".olt", "charter.yaml");
+      mkdirSync(join(productRepo, ".olt"), { recursive: true });
+      writeFileSync(charterPath, "identity: Product owner charter\n", "utf-8");
+
+      const resolved = VerbatimRoleInjector.resolveManifestPath(productRepo, "mind");
+      expect(resolved).toBe(resolve(REPO_ROOT, "olt", "agents", "mind.yaml"));
+
+      const prompt = VerbatimRoleInjector.buildInjectionPrompt(productRepo, "mind", {
+        agentId: "mind_limo_gen_3",
+        role: "mind",
+        idleDurationSeconds: 121,
+        pendingBacklogCount: 0,
+        pendingPlanCount: 0,
+        unresolvedDefectCount: 0,
+      });
+      expect(prompt).toContain("=== OWNER MIND CHARTER (.olt/charter.yaml) ===");
+      expect(prompt).toContain("identity: Product owner charter");
+    });
   });
 
   describe("loadVerbatimManifestContent", () => {

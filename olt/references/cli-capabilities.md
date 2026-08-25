@@ -1128,7 +1128,11 @@ bun harness.ts quota:resume --force
 
 Live Tier 0 out-of-band audit of skill compliance and delta event forensics.
 
-Scans incremental delta events, audits cognitive contracts, and routes defects upstream.
+Scans incremental delta events, audits cognitive contracts, and routes defects upstream. Omitting
+`--run` does not skip scanning: it audits the default scope, every capsule this repo can discover
+under `.olt/capsules` (and legacy `.capsules`), each tracked against its own persisted,
+capsule-scoped cursor so one capsule's progress never suppresses another's. Pass `--run` to narrow
+the scope to a single named capsule.
 
 - **Aliases**: `skill:audit`
 - **Stdin**: not read
@@ -1137,7 +1141,7 @@ Scans incremental delta events, audits cognitive contracts, and routes defects u
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--repo` | string | no | no | - | Repository root path. |
-| `--run` | string | no | no | - | Target capsule run root directory. |
+| `--run` | string | no | no | - | Capsule run root to audit. Omit to audit every capsule discoverable under the repo's `.olt/capsules` (and `.capsules`) directories instead of none. |
 | `--log-defects` | bool | no | no | `true` | Automatically log detected incidents as defects. |
 | `--json` | bool | no | no | - | Output structured JSON. |
 

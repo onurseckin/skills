@@ -4,4 +4,4 @@
 export * from "./sync/index";
 import { runSync } from "./sync/index";
 
-runSync();
+await runSync();

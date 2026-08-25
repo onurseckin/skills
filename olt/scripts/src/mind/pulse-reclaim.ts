@@ -1,9 +1,53 @@
+import type { HarnessEvent } from "../core/contracts/capsule.ts";
 import type { JsonObject } from "../core/contracts/json.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { loadRun } from "../engine/store/load.ts";
 import { transact } from "../engine/store/transaction.ts";
 import type { Clock } from "../workflow/types.ts";
 import { writeLastPulse } from "./last-pulse.ts";
+
+/**
+ * Default consecutive-crash halt threshold. Shared so the classifier here, the rescue lane's
+ * duplicate Rung 4 accounting (mind/lanes/rescue.ts), and the lane selector's halted precondition
+ * (mind/lane.ts) cannot drift out of sync with each other.
+ */
+export const DEFAULT_CONSECUTIVE_CRASH_THRESHOLD = 3;
+
+/**
+ * Determines whether a pulse produced observable activity while it was open, derived strictly
+ * from the capsule's own event log (never from wall-clock elapsed time).
+ *
+ * CLOSING_FORBIDDEN_FOR_MIND (mind/cadence.ts) means the Mind can never close a pulse itself, so
+ * every pulse that reaches its deadline is, by construction, "unclosed" -- that alone cannot be
+ * evidence of a crash. What distinguishes a genuine crash from a Mind that was working exactly as
+ * its own invariant requires is whether anything was recorded in the hash chain after the pulse
+ * opened.
+ *
+ * Anchor resolution, in order:
+ * 1. The most recent "mind-pulse-opened" event whose payload.pulse_id matches this pulse. This is
+ *    the precise anchor for the real mind:pulse-open flow.
+ * 2. Fallback: the most recent "mind-initialized" event. Some capsules (including this module's
+ *    own long-standing test fixtures) seed an already-open pulse directly into the founding state
+ *    mutation rather than emitting a separate "mind-pulse-opened" event; treating that founding
+ *    event as the anchor preserves those capsules' existing "no activity recorded" semantics.
+ *
+ * If neither anchor exists, no activity can be attributed to this pulse and it is not classified
+ * as having produced activity.
+ */
+export function pulseProducedActivity(events: readonly HarnessEvent[], pulseId: string): boolean {
+  let anchorSequence = 0;
+  for (const event of events) {
+    const matchesThisPulseOpen =
+      event.kind === "mind-pulse-opened" &&
+      typeof event.payload.pulse_id === "string" &&
+      event.payload.pulse_id === pulseId;
+    if (matchesThisPulseOpen || event.kind === "mind-initialized") {
+      anchorSequence = event.sequence;
+    }
+  }
+  if (anchorSequence === 0) return false;
+  return events.some((event) => event.sequence > anchorSequence);
+}
 
 export interface PulseReclaimOptions {
   readonly actor?: string | undefined;
@@ -24,6 +68,8 @@ export interface PulseReclaimResult {
   readonly deadlinePassedByMs?: number | undefined;
   readonly evidence?: string | undefined;
   readonly reason?: string | undefined;
+  /** Present only when reclaimed is true: the classification actually persisted to pulse.last.outcome. */
+  readonly outcome?: "crashed" | "completed" | undefined;
 }
 
 function parseNowMs(nowInput?: number | Date | string | undefined): number {
@@ -126,13 +172,29 @@ export function reclaimDeadPulse(
     };
   }
 
-  // 4. Deadline expired beyond grace: execute reclaim
+  // 4. Deadline expired beyond grace: classify and execute reclaim.
+  //
+  // An unclosed pulse alone is never evidence of a crash (CLOSING_FORBIDDEN_FOR_MIND makes every
+  // pulse unclosed by design). Whether this pulse actually crashed is decided by pulseId's
+  // activity in the event log: a pulse that produced observable activity is classified
+  // "completed", never "crashed", and does not extend or start a crash streak.
   const deadlinePassedByMs = Math.max(0, nowMs - deadlineMs);
-  const consecutiveCrashCount = currentCrashes + 1;
-  const threshold = options.deterministicCrashThreshold ?? 3;
-  const shouldHalt = consecutiveCrashCount >= threshold;
+  const pulseId = open.pulse_id;
+  const producedActivity = pulseProducedActivity(loaded.events, pulseId);
+
+  const threshold = options.deterministicCrashThreshold ?? DEFAULT_CONSECUTIVE_CRASH_THRESHOLD;
+  const outcome: "crashed" | "completed" = producedActivity ? "completed" : "crashed";
+  const consecutiveCrashCount = producedActivity ? 0 : currentCrashes + 1;
+  const shouldHalt = !producedActivity && consecutiveCrashCount >= threshold;
   const haltReason = shouldHalt ? "consecutive pulse crashes threshold exceeded" : undefined;
-  const evidence = "no close within deadline";
+  const evidence = producedActivity
+    ? "no close within deadline, but activity recorded in the event log after the pulse opened; classified completed, not crashed"
+    : "no close within deadline";
+  const armMechanism = shouldHalt
+    ? null
+    : producedActivity
+      ? "activity-recovery"
+      : "crash-recovery";
 
   const reclaimActor = options.actor ?? (typeof open.actor === "string" ? open.actor : "mind");
 
@@ -141,12 +203,14 @@ export function reclaimDeadPulse(
     reclaimActor,
     "mind-pulse-reclaimed",
     {
-      pulse_id: open.pulse_id,
+      pulse_id: pulseId,
       deadline_passed_by_ms: deadlinePassedByMs,
       consecutive_crash_count: consecutiveCrashCount,
       evidence,
       grace_seconds: graceSeconds,
       halted: shouldHalt,
+      outcome,
+      produced_activity: producedActivity,
     },
     (working) => {
       const workingPulse = (working.pulse ?? {}) as Record<string, unknown>;
@@ -155,18 +219,20 @@ export function reclaimDeadPulse(
 
       workingPulse.last = {
         ...workingLast,
-        pulse_id: open.pulse_id,
+        pulse_id: pulseId,
         opened_at: typeof open.opened_at === "string" ? open.opened_at : nowIso,
         closed_at: nowIso,
-        outcome: "crashed",
+        outcome,
         value: 0,
         armed_interval_ms: shouldHalt
           ? null
           : ((workingLast.armed_interval_ms as number) ?? 900_000),
         armed_at: shouldHalt ? null : nowIso,
-        arm_mechanism: shouldHalt ? null : "crash-recovery",
+        arm_mechanism: armMechanism,
         next_wake_at: null,
-        zero_value_streak: ((workingLast.zero_value_streak as number) ?? 0) + 1,
+        zero_value_streak: producedActivity
+          ? 0
+          : ((workingLast.zero_value_streak as number) ?? 0) + 1,
         consecutive_crashes: consecutiveCrashCount,
         terminal_reason: shouldHalt ? haltReason : null,
       };
@@ -196,8 +262,8 @@ export function reclaimDeadPulse(
   try {
     writeLastPulse(runRoot, {
       at: nowIso,
-      pulse_id: open.pulse_id,
-      outcome: "crashed",
+      pulse_id: pulseId,
+      outcome,
       next_wake_at: null,
     });
   } catch {
@@ -206,11 +272,12 @@ export function reclaimDeadPulse(
 
   return {
     reclaimed: true,
-    pulseId: open.pulse_id,
+    pulseId,
     consecutiveCrashes: consecutiveCrashCount,
     halted: shouldHalt,
     ...(haltReason !== undefined ? { haltReason } : {}),
     deadlinePassedByMs,
     evidence,
+    outcome,
   };
 }

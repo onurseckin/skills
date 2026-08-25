@@ -51,6 +51,8 @@ export class VerbatimRoleInjector {
       join(repoRoot, "olt", "agents", `${role}.yml`),
       join(repoRoot, "agents", `${role}.yaml`),
       join(repoRoot, "agents", `${role}.yml`),
+      resolve(import.meta.dir, "../../../agents", `${role}.yaml`),
+      resolve(import.meta.dir, "../../../agents", `${role}.yml`),
     ];
     for (const p of candidates) {
       if (existsSync(p)) return resolve(p);
@@ -67,12 +69,23 @@ export class VerbatimRoleInjector {
     return readFileSync(p, "utf-8");
   }
 
+  private static loadOwnerMindCharter(
+    repoRoot: string,
+  ): { readonly filename: string; readonly content: string } | undefined {
+    for (const filename of ["charter.yaml", "charter.yml"]) {
+      const path = join(repoRoot, ".olt", filename);
+      if (existsSync(path)) return { filename, content: readFileSync(path, "utf-8") };
+    }
+    return undefined;
+  }
+
   public static buildInjectionPrompt(
     repoRoot: string,
     role: string,
     telemetry: StagnationTelemetry,
   ): string {
     const manifestContent = this.loadVerbatimManifestContent(repoRoot, role);
+    const ownerCharter = role === "mind" ? this.loadOwnerMindCharter(repoRoot) : undefined;
     const isModeA = role === "mind" && telemetry.pendingBacklogCount === 0;
 
     const mandateHeader = isModeA
@@ -105,6 +118,15 @@ ${mandateHeader}
 
 ${instructions}
 
+${
+  ownerCharter
+    ? `================================================================================
+=== OWNER MIND CHARTER (.olt/${ownerCharter.filename}) ===
+================================================================================
+${ownerCharter.content}
+`
+    : ""
+}
 ================================================================================
 === VERBATIM ROLE MANIFEST (olt/agents/${role}.yaml) ===
 ================================================================================

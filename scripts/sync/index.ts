@@ -32,7 +32,7 @@ export const GLOBAL_SYNC_GEN5 = true;
  * Main orchestrator for synchronizing skills, deploying the global olt binary,
  * and configuring the shell environment.
  */
-export function runSync(options?: SyncOptions): SyncSummary {
+export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
   const sourceRepoRoot = options?.sourceRepoRoot ?? process.cwd();
   const home = options?.homeDir ?? homedir();
   const targetOlt = options?.targetOltDir ?? join(home, ".agents", "skills", "olt");
@@ -43,7 +43,7 @@ export function runSync(options?: SyncOptions): SyncSummary {
   }
 
   // 1. Deploy canonical skill files and platform symlinks
-  const skillResult = deployCanonicalSkill(options);
+  const skillResult = await deployCanonicalSkill(options);
 
   // 2. Ensure global olt executable binary
   const binaryResult = ensureGlobalOltBinary(options);
@@ -78,5 +78,5 @@ const isMain =
       process.argv[1].endsWith("scripts/sync")));
 
 if (isMain) {
-  runSync();
+  await runSync();
 }

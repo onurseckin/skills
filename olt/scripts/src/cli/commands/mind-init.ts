@@ -1,5 +1,6 @@
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
+import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
 import type { JsonValue } from "../../core/contracts/json.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
@@ -10,6 +11,7 @@ import { transact } from "../../engine/store/transaction.ts";
 import { enforceLineLimit, mindInitNextActions, nextActionsBlock } from "../formatters/index.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { resolveCapsulesDir } from "../../core/shared/paths.ts";
+import { writeAgentLedger } from "../../workflow/agents/ledger.ts";
 
 export interface MindInitResult {
   markdown: string;
@@ -190,6 +192,17 @@ export function mindInitCommand(
         open: null,
         last: null,
       } as unknown as JsonValue;
+
+      const mindGrant: AgentGrantRecord = {
+        id: mindId,
+        role: "mind",
+        parent_agent_id: null,
+        parent_task_id: null,
+        host: "initialization",
+        granted_at: new Date().toISOString(),
+        status: "active",
+      };
+      writeAgentLedger(state, [mindGrant]);
 
       state.observations = [] as unknown as JsonValue;
       state.candidates = [] as unknown as JsonValue;

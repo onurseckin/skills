@@ -73,19 +73,28 @@ export async function runSupervisionWatch(
       : { maxElapsedMs: options.maxElapsedMsPerTask }),
   };
 
+  // Same unscoped-history bug RunSupervisor.report() has: buildMorningReport's deadAgentsReclaimed
+  // filters the run's ENTIRE persisted event log by kind alone, so a different orchestrator
+  // actor's reclaim from hours earlier on this same run would keep counting on every later watch
+  // report. sessionReclaimedCount instead sums the live per-tick diffs (already correctly scoped
+  // to this actor's own call) this watch loop itself produced, bounded to this invocation.
+  let sessionReclaimedCount = 0;
+
   function report(): MorningReport {
     const loaded = loadRun(options.runRoot);
     const events = (loaded?.events ?? []) as readonly DispatchLogEvent[];
-    return buildMorningReport(port.read(), events, clock.now(), {
+    const built = buildMorningReport(port.read(), events, clock.now(), {
       ...(options.maxParallel === undefined ? {} : { maxParallel: options.maxParallel }),
       ...(options.gateMaxParallel === undefined
         ? {}
         : { gateMaxParallel: options.gateMaxParallel }),
     });
+    return { ...built, deadAgentsReclaimed: sessionReclaimedCount };
   }
 
   function runTick(tickNumber: number): SupervisionTickResult {
     const tick = runSupervisionTick(port, options.actor, tickConfig);
+    sessionReclaimedCount += tick.reclaimed.length;
     options.onTick?.(tick, tickNumber);
     return tick;
   }

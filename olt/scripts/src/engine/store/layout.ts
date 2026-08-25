@@ -63,6 +63,13 @@ export const CAPSULE_LAYOUT: readonly LayoutEntry[] = [
     createdAtInit: false,
   },
   {
+    name: "brainstorming.json",
+    role: "primary",
+    responsibility:
+      "The Socratic 8-vector expansion `plan:brainstorm` saved (its --save default is true); plan:compile reads it from the capsule root.",
+    createdAtInit: false,
+  },
+  {
     name: "planning/",
     role: "primary",
     responsibility: "The plan documents the run was given, frozen when they were accepted.",

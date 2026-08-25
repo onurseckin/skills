@@ -77,8 +77,41 @@ function issueList(value: unknown): string[] {
   return entries.filter((issue): issue is string => typeof issue === "string");
 }
 
+// runDoctor (reporting/doctor.ts) tiers issues into critical_issues/cosmetic_issues so
+// Healthy reflects only critical findings while cosmetic layout noise (e.g. an
+// undeclared capsule entry) stays visible but does not bury the one line that matters.
+// A caller carrying only the legacy flat `issues` field (any older report shape, or a
+// direct unit-test call) still renders exactly as before — this is additive, not a
+// breaking rendering change.
+function hasTieredIssueFields(report: Record<string, unknown>): boolean {
+  if (Array.isArray(report.critical_issues)) return true;
+  if (Array.isArray(report.cosmetic_issues)) return true;
+  return false;
+}
+
+function issueSectionLines(report: Record<string, unknown>): string[] {
+  if (!hasTieredIssueFields(report)) {
+    const issues = issueList(report.issues);
+    return [
+      ...(issues.length > 0 ? ["- **Issues**:"] : ["- **Issues**: none"]),
+      ...issues.map((issue) => `  - ${issue}`),
+    ];
+  }
+  const criticalIssues = issueList(report.critical_issues);
+  const cosmeticIssues = issueList(report.cosmetic_issues);
+  return [
+    ...(criticalIssues.length > 0 ? ["- **Critical Issues**:"] : ["- **Critical Issues**: none"]),
+    ...criticalIssues.map((issue) => `  - ${issue}`),
+    ...(cosmeticIssues.length > 0
+      ? [
+          "- **Notices** (cosmetic — do not affect Healthy):",
+          ...cosmeticIssues.map((issue) => `  - ${issue}`),
+        ]
+      : []),
+  ];
+}
+
 export function formatDoctorBrief(run: string, report: Record<string, unknown>): string {
-  const issues = issueList(report.issues);
   const bunVersion =
     typeof report.bun_version === "string" && report.bun_version.trim()
       ? report.bun_version
@@ -90,8 +123,7 @@ export function formatDoctorBrief(run: string, report: Record<string, unknown>):
     `- **Gitignored**: ${ternary(report.gitignored, "yes", "no")}`,
     `- **Supervisory Invariants**: Strict Tier Hierarchy & Supervisor Zero-File-Edit Rule actively enforced`,
     `- **Git Preservation**: Zero-Destructive Git Invariant & User Edit Preservation actively enforced`,
-    ...(issues.length > 0 ? ["- **Issues**:"] : ["- **Issues**: none"]),
-    ...issues.map((issue) => `  - ${issue}`),
+    ...issueSectionLines(report),
     ...nextActionsBlock(doctorNextActions(run)),
   ];
   return enforceLineLimit(lines.join("\n"));

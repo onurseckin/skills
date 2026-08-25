@@ -9,10 +9,12 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
+import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { DEFAULT_MIND_BUDGET, parseCharter } from "../../../olt/scripts/src/mind/charter.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {
@@ -320,6 +322,36 @@ repo_roots:
 
     const issues = verifyIntegrity(runRoot);
     expect(issues).toEqual([]);
+  });
+
+  test("seeds the configured custom Mind ID with an active grant so its first pulse needs no manual registration", () => {
+    const repo = scratchRoot("mind-init-custom-id-grant");
+    writeFileSync(join(repo, "mind.yaml"), SAMPLE_VALID_CHARTER, "utf-8");
+
+    const result = mindInitCommand({
+      repo,
+      charter: "mind.yaml",
+      "mind-id": "mind_limo_gen_3",
+    });
+    const runRoot = result.run_root as string;
+
+    const seededGrant = readAgentLedger(loadRun(runRoot, false).state).find(
+      (grant) => grant.id === "mind_limo_gen_3",
+    );
+    expect(seededGrant).toMatchObject({
+      id: "mind_limo_gen_3",
+      role: "mind",
+      status: "active",
+    });
+
+    const pulse = mindPulseOpenCommand({
+      run: runRoot,
+      actor: "mind_limo_gen_3",
+      host: "codex",
+      driver: "native-subagent",
+      now: "2026-08-24T12:00:00.000Z",
+    });
+    expect(pulse.actor).toBe("mind_limo_gen_3");
   });
 
   test("refuses duplicate initialization without mutating existing capsule", () => {

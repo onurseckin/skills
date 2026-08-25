@@ -3,25 +3,22 @@ display_name: "OpenAI Codex"
 aliases:
   - "openai-codex"
   - "codex-cli"
-feature_flag: "multi_agent_v1"
 config_path: "~/.codex/config.toml"
 dispatch:
-  collaboration_group: "multi_agent_v1"
+  collaboration_group: "collaboration"
   tool: "spawn_agent"
+  task_name_parameter: "task_name"
+  message_parameter: "message"
   model_parameter: "model"
   reasoning_effort_parameter: "reasoning_effort"
   fork_turns_parameter: "fork_turns"
-  fork_context_parameter: "fork_context"
 messaging:
   tool: "send_message"
   followup_tool: "followup_task"
-  input_tool: "send_input"
 agent_lifecycle:
   wait_tool: "wait_agent"
   interrupt_tool: "interrupt_agent"
   list_tool: "list_agents"
-  resume_tool: "resume_agent"
-  close_tool: "close_agent"
 command_execution:
   tool: "exec"
 supported_tiers:
@@ -34,4 +31,4 @@ capabilities:
   task_path_hierarchy: "/root"
   concurrency_config_key: "agents.max_concurrent_threads_per_session"
   token_reporting: true
-  native_resume: true
+  native_resume: false

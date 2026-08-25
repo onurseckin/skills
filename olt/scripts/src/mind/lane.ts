@@ -1,3 +1,5 @@
+import { DEFAULT_CONSECUTIVE_CRASH_THRESHOLD } from "./pulse-reclaim.ts";
+
 export type MindMode = "work" | "idle" | "paused" | "halted";
 export type MindLane = "rescue" | "repair" | "advance" | "discover" | "quiesce" | "defer";
 export type CharterStatus = "ok" | "DRIFTED" | "missing";
@@ -97,7 +99,8 @@ export function selectLane(facts: LaneSelectorFacts, options?: LaneSelectorOptio
     facts.charterStatus === "missing" ||
     facts.integrityStatus === "FAILED" ||
     (facts.unrepairableIssuesCount !== undefined && facts.unrepairableIssuesCount > 0) ||
-    (facts.consecutiveCrashes !== undefined && facts.consecutiveCrashes >= 3);
+    (facts.consecutiveCrashes !== undefined &&
+      facts.consecutiveCrashes >= DEFAULT_CONSECUTIVE_CRASH_THRESHOLD);
 
   if (isHalted) {
     return {

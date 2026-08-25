@@ -103,6 +103,13 @@ export class RunSupervisor {
   private readonly clock: Clock;
   private readonly sleepFn: (ms: number) => Promise<void>;
   private readonly repoRoot: string;
+  // Live per-tick diffs (reclaim.reclaimed) are already correctly scoped to this call and this
+  // actor; buildMorningReport's deadAgentsReclaimed is not — it filters the run's ENTIRE persisted
+  // event log by kind alone, so a reclaim a different orchestrator actor recorded hours earlier on
+  // this same run keeps counting on every later report. Summing the live per-tick diffs ourselves,
+  // bounded to this RunSupervisor instance's own lifetime, sidesteps that unscoped re-derivation
+  // entirely instead of trying to make the historical scan itself actor/time aware.
+  private sessionReclaimedCount = 0;
 
   public constructor(private readonly options: RunSupervisorOptions) {
     this.port = workflowPort(options.runRoot);
@@ -129,6 +136,7 @@ export class RunSupervisor {
         : { deterministicRepeatThreshold: o.deterministicRepeatThreshold }),
       ...(o.maxElapsedMsPerTask === undefined ? {} : { maxElapsedMs: o.maxElapsedMsPerTask }),
     });
+    this.sessionReclaimedCount += reclaim.reclaimed.length;
 
     const loaded = this.load();
     const freeSlots = Math.max(0, o.maxParallel - reclaim.occupied);
@@ -241,10 +249,11 @@ export class RunSupervisor {
   private report(): MorningReport {
     const loaded = this.load();
     const o = this.options;
-    return buildMorningReport(this.port.read(), loaded.events, this.clock.now(), {
+    const built = buildMorningReport(this.port.read(), loaded.events, this.clock.now(), {
       maxParallel: o.maxParallel,
       ...(o.gateMaxParallel === undefined ? {} : { gateMaxParallel: o.gateMaxParallel }),
     });
+    return { ...built, deadAgentsReclaimed: this.sessionReclaimedCount };
   }
 
   public async run(): Promise<SupervisionRunResult> {

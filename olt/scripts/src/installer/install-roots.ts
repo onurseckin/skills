@@ -30,7 +30,7 @@ export async function validatedHome(source: string, home: string): Promise<strin
   }
   const requestedHome = await canonicalCandidate(requested);
   const sourceRoot = await realpath(source);
-  if (contains(sourceRoot, requestedHome) || contains(requestedHome, sourceRoot)) {
+  if (contains(sourceRoot, requestedHome)) {
     throw new HarnessError("INVALID_ARGUMENT", "skill source and home must not overlap");
   }
   await mkdir(requestedHome, { recursive: true });
@@ -39,7 +39,7 @@ export async function validatedHome(source: string, home: string): Promise<strin
     throw new HarnessError("PATH_SAFETY", "home must be a real directory, not a symlink");
   }
   const homeRoot = await realpath(requestedHome);
-  if (contains(sourceRoot, homeRoot) || contains(homeRoot, sourceRoot)) {
+  if (contains(sourceRoot, homeRoot)) {
     throw new HarnessError("INVALID_ARGUMENT", "skill source and home must not overlap");
   }
   return homeRoot;

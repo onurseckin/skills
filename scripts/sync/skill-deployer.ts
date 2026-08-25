@@ -1,6 +1,7 @@
-import { cpSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { installSkill } from "../../olt/scripts/src/installer/install.ts";
 import { safeRemove, smartEnsureSymlink } from "./fs-helpers";
 
 export interface DeploySkillOptions {
@@ -17,17 +18,6 @@ export interface DeploySkillResult {
 }
 
 const LEGACY_NAME = "orchestrating-long-tasks";
-
-const ENTRIES = [
-  "SKILL.md",
-  "AGENTS.md",
-  ".skillignore",
-  "agents",
-  "checklists",
-  "references",
-  "roles",
-  "scripts",
-];
 
 export function getAssistantSkillDirs(home: string): string[] {
   return [
@@ -47,27 +37,45 @@ export function getAssistantSkillDirs(home: string): string[] {
  * Deploys the canonical olt/ directory to ~/.agents/skills/olt and
  * establishes symlinks across the 9 ecosystem assistant platforms.
  */
-export function deployCanonicalSkill(options?: DeploySkillOptions): DeploySkillResult {
+function isOwnedLegacyDeployment(targetOlt: string, sourceRepoRoot: string): boolean {
+  const legacyConfigPath = join(targetOlt, "skill-config.json");
+  if (!existsSync(legacyConfigPath)) return false;
+  try {
+    const value = JSON.parse(readFileSync(legacyConfigPath, "utf-8")) as unknown;
+    if (!value || typeof value !== "object") return false;
+    const homeRepoRoot = (value as Record<string, unknown>)["home_repo_root"];
+    return typeof homeRepoRoot === "string" && resolve(homeRepoRoot) === resolve(sourceRepoRoot);
+  } catch {
+    return false;
+  }
+}
+
+export async function deployCanonicalSkill(
+  options?: DeploySkillOptions,
+): Promise<DeploySkillResult> {
   const sourceRepoRoot = options?.sourceRepoRoot ?? process.cwd();
   const home = options?.homeDir ?? homedir();
   const targetOlt = options?.targetOltDir ?? join(home, ".agents", "skills", "olt");
   const sourceOlt = join(sourceRepoRoot, "olt");
 
-  // 1. Deploy primary canonical skill to ~/.agents/skills/olt
-  safeRemove(targetOlt);
-  mkdirSync(targetOlt, { recursive: true });
-
-  for (const entry of ENTRIES) {
-    const srcPath = join(sourceOlt, entry);
-    const dstPath = join(targetOlt, entry);
-    if (existsSync(srcPath)) {
-      cpSync(srcPath, dstPath, {
-        recursive: true,
-        filter: (src) => !src.includes(".capsules") && !src.includes("capsules"),
-      });
+  // The pre-manifest deployer wrote skill-config.json but could not produce the signed release
+  // manifest required by `doctor --source --home`. Migrate only a deployment that proves it was
+  // made from this exact source repository; never replace an unrelated untrusted directory.
+  if (existsSync(targetOlt) && !existsSync(join(targetOlt, "installation.json"))) {
+    if (!isOwnedLegacyDeployment(targetOlt, sourceRepoRoot)) {
+      throw new Error(
+        `refusing to replace untrusted global skill directory without installation.json: ${targetOlt}`,
+      );
     }
+    safeRemove(targetOlt);
   }
 
+  // Publish through the hardened installer so the deployed tree and its installation manifest
+  // have a single digest contract with doctor.
+  await installSkill(sourceOlt, home, ["claude", "antigravity", "codex", "chatgpt"]);
+
+  // Preserve the runtime's source-home lookup while installation verification intentionally
+  // excludes this deploy-local metadata file from the release digest.
   const skillConfig = {
     home_repo_root: sourceRepoRoot,
     synced_at: new Date().toISOString(),
@@ -79,13 +87,15 @@ export function deployCanonicalSkill(options?: DeploySkillOptions): DeploySkillR
     "utf-8",
   );
 
-  // 2. Symlink node_modules if present in source repo for module resolution
-  const srcNodeModules = join(sourceRepoRoot, "node_modules");
-  if (existsSync(srcNodeModules)) {
-    smartEnsureSymlink(srcNodeModules, join(targetOlt, "node_modules"));
+  // OLT's runtime package resolves its dependencies relative to the deployed skill. Keep the
+  // same source-owned dependency link that previous deployments used; installer verification
+  // deliberately excludes it because it is host-local runtime plumbing, not release content.
+  const sourceNodeModules = join(sourceRepoRoot, "node_modules");
+  if (existsSync(sourceNodeModules)) {
+    smartEnsureSymlink(sourceNodeModules, join(targetOlt, "node_modules"));
   }
 
-  // 3. Remove legacy name in ~/.agents/skills/
+  // Remove legacy name in ~/.agents/skills/
   safeRemove(join(home, ".agents", "skills", LEGACY_NAME));
 
   // 4. Application Skill Directories across ecosystem platforms

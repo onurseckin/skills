@@ -62,9 +62,10 @@ export async function installationStatus(
   if (!installed) issues.push("not installed");
   else if (!manifest) issues.push("installation manifest is missing, invalid, or untrusted");
   if (installed) {
-    const actual = await treeDigest(destination, new Set(["installation.json"])).catch(
-      () => "invalid",
-    );
+    const actual = await treeDigest(
+      destination,
+      new Set(["installation.json", "skill-config.json", "node_modules"]),
+    ).catch(() => "invalid");
     if (
       actual !== expected.digest ||
       manifest?.source_sha256 !== expected.digest ||

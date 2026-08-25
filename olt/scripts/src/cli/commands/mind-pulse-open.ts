@@ -9,6 +9,7 @@ import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/charter.ts";
 import { loadRun } from "../../engine/store/load.ts";
 import { transact } from "../../engine/store/transaction.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
+import { writeLastPulse } from "../../mind/last-pulse.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
@@ -274,6 +275,17 @@ export function mindPulseOpenCommand(
       working.pulse = workingPulse as unknown as JsonObject;
     },
   );
+
+  // Durably persist the pulse identity outside the transactional store. Callers (including the
+  // mind auditor's liveness clock) read last_pulse.json directly rather than replaying the event
+  // chain, so a pulse that opens without this write is invisible to them for its entire open
+  // window -- the sibling mind:pulse command already does this at the equivalent point.
+  writeLastPulse(run, {
+    at: openedAt,
+    pulse_id: pulseId,
+    outcome: "active",
+    next_wake_at: deadlineAt,
+  });
 
   const markdown = formatMindPulseOpenBrief({
     pulseId,

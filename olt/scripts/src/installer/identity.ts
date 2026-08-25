@@ -43,7 +43,10 @@ export async function identifiedInstallation(root: string): Promise<boolean> {
   if (!manifest) return false;
   try {
     const source = await validateSkillSource(root);
-    const contentDigest = await treeDigest(root, new Set(["installation.json"]));
+    const contentDigest = await treeDigest(
+      root,
+      new Set(["installation.json", "skill-config.json", "node_modules"]),
+    );
     return (
       source.runtimeVersion === manifest.runtime_version && contentDigest === manifest.source_sha256
     );

@@ -58,13 +58,13 @@ describe("validatedHome", () => {
     }
   });
 
-  test("rejects when the source is nested inside the requested home", async () => {
+  test("accepts a source checkout nested inside the requested home", async () => {
     const root = scratchRoot(import.meta.path, "source-inside-home");
     const home = join(root, "home");
     const source = join(home, "source");
     mkdirSync(home);
     mkdirSync(source, { recursive: true });
-    await expect(validatedHome(source, home)).rejects.toThrow(HarnessError);
+    expect(await validatedHome(source, home)).toBe(realpathSync(home));
   });
 
   test("rejects when source and home are the exact same directory", async () => {

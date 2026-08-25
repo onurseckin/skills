@@ -26,6 +26,7 @@ import { findRepoRoot } from "../../core/shared/paths.ts";
 import { getHarnessConfig } from "../../core/config/harness-config.ts";
 import { resolveCharterPath } from "../charter.ts";
 import { writeLastPulse } from "../last-pulse.ts";
+import { DEFAULT_CONSECUTIVE_CRASH_THRESHOLD, pulseProducedActivity } from "../pulse-reclaim.ts";
 
 export interface RescueLaneOptions {
   readonly actor?: string;
@@ -705,13 +706,23 @@ export async function executeRescueLane(
       deadPulseReclaimed = true;
       reclaimedPulseId = openPulse.pulse_id;
       const deadlinePassedByMs = Math.max(0, nowMs - deadlineMs);
-      consecutiveCrashes += 1;
+
+      // Same classifier as mind/pulse-reclaim.ts: CLOSING_FORBIDDEN_FOR_MIND means an unclosed
+      // pulse is not by itself evidence of a crash. A pulse that produced recorded activity in
+      // the event log after it opened is classified "completed", not "crashed", and does not
+      // extend or start a crash streak -- kept in sync with pulse-reclaim.ts's own classifier so
+      // the two independent reclaim paths cannot disagree with each other.
+      const producedActivity = pulseProducedActivity(currentMind.events, openPulse.pulse_id);
+      const outcome: "crashed" | "completed" = producedActivity ? "completed" : "crashed";
+      consecutiveCrashes = producedActivity ? 0 : consecutiveCrashes + 1;
 
       actionsTaken.push(
-        `Rung 4: reclaimed dead pulse ${openPulse.pulse_id} (deadline passed by ${Math.round(deadlinePassedByMs / 1000)}s; consecutive crashes: ${consecutiveCrashes})`,
+        producedActivity
+          ? `Rung 4: reclaimed pulse ${openPulse.pulse_id} (deadline passed by ${Math.round(deadlinePassedByMs / 1000)}s; activity recorded in event log -- classified completed, crash streak reset)`
+          : `Rung 4: reclaimed dead pulse ${openPulse.pulse_id} (deadline passed by ${Math.round(deadlinePassedByMs / 1000)}s; consecutive crashes: ${consecutiveCrashes})`,
       );
 
-      if (consecutiveCrashes >= 3) {
+      if (!producedActivity && consecutiveCrashes >= DEFAULT_CONSECUTIVE_CRASH_THRESHOLD) {
         rung4Halted = true;
         rung4HaltReason = "consecutive pulse crashes threshold exceeded";
         actionsTaken.push(`Rung 4: HALT triggered due to ${rung4HaltReason}`);
@@ -726,6 +737,8 @@ export async function executeRescueLane(
           pulse_id: openPulse.pulse_id,
           deadline_passed_by_ms: deadlinePassedByMs,
           consecutive_crash_count: consecutiveCrashes,
+          outcome,
+          produced_activity: producedActivity,
         },
         (working) => {
           const workingPulse = (working.pulse ?? {}) as Record<string, unknown>;
@@ -736,12 +749,14 @@ export async function executeRescueLane(
             ...workingLast,
             pulse_id: openPulse.pulse_id,
             closed_at: nowIso,
-            outcome: "crashed",
+            outcome,
             value: 0,
             armed_interval_ms: workingLast.armed_interval_ms ?? 900_000,
             armed_at: nowIso,
-            arm_mechanism: "crash-recovery",
-            zero_value_streak: ((workingLast.zero_value_streak as number) ?? 0) + 1,
+            arm_mechanism: producedActivity ? "activity-recovery" : "crash-recovery",
+            zero_value_streak: producedActivity
+              ? 0
+              : ((workingLast.zero_value_streak as number) ?? 0) + 1,
             consecutive_crashes: consecutiveCrashes,
           };
           working.pulse = workingPulse as unknown as JsonObject;
@@ -771,7 +786,7 @@ export async function executeRescueLane(
         writeLastPulse(mindRunRoot, {
           at: nowIso,
           pulse_id: openPulse.pulse_id,
-          outcome: "crashed",
+          outcome,
           next_wake_at: null,
         });
       } catch {

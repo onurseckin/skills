@@ -7,6 +7,7 @@ import { HarnessError } from "../core/errors/harness-error.ts";
 import { chainCapsules } from "../orchestrator/capsule-chainer.ts";
 import { initRun, loadRun } from "../engine/store/index.ts";
 import { transact } from "../engine/store/transaction.ts";
+import { readAgentLedger, writeAgentLedger } from "../workflow/agents/ledger.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";
 import { pruneAndArchiveGenerationalState, type ArchivedObjectiveRecord } from "./archival.ts";
 import type { CandidateRecord } from "./gates.ts";
@@ -38,6 +39,7 @@ export interface RotateMindResult {
   readonly archivedRecords: readonly ArchivedObjectiveRecord[];
   readonly archivedCount: number;
   readonly carriedObjectives: readonly ObjectiveRecord[];
+  readonly carriedGrantsCount: number;
   readonly rotatedAt: string;
 }
 
@@ -246,6 +248,15 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
   const pulseCounter = typeof sourcePulseState.counter === "number" ? sourcePulseState.counter : 0;
   const sourceBudgetState = (sourceState.budget ?? {}) as Record<string, unknown>;
 
+  // Carry forward every currently active agent grant, verbatim (same id, same role, same
+  // everything) -- not just the Mind's. mind:pulse-open enforces the grant at the actor id the
+  // caller passes; whichever id(s) held live grants in the sealed generation must continue to
+  // hold them in the successor, or the very first mind:pulse-open/mind:pulse against the new
+  // capsule throws INVALID_STATE "holds no grant" and the rotation (currently the only sanctioned
+  // escape from a halted generation) hands back a capsule nothing can pulse.
+  const sourceLedger = readAgentLedger(sourceLoaded.state);
+  const carriedGrants = sourceLedger.filter((grant) => grant.status === "active");
+
   transact(
     initializedTargetRoot,
     actor,
@@ -320,6 +331,8 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
         last_verdict: null,
         open_findings: [],
       } as unknown as JsonValue;
+
+      writeAgentLedger(state, carriedGrants);
     },
   );
 
@@ -347,6 +360,7 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
     archivedRecords: archivalResult.archivedRecords,
     archivedCount: archivalResult.archivedCount,
     carriedObjectives,
+    carriedGrantsCount: carriedGrants.length,
     rotatedAt: nowIso,
   };
 }

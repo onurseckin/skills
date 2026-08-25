@@ -10,6 +10,7 @@ import {
 } from "../../mind/gates.ts";
 import { loadRun } from "../../engine/store/load.ts";
 import { transact } from "../../engine/store/transaction.ts";
+import { VALID_PROPOSAL_TRANSITIONS, type ProposalStatus } from "../../mind/proposal.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
@@ -254,6 +255,29 @@ export function mindAdmitCommand(flags: Flags, _context?: CommandContext): Recor
   };
 }
 
+// mind-candidate.ts writes the initial status as "open" while the declared state
+// machine's initial key is "opened" (mind/proposal.ts); normalise at this boundary
+// rather than editing the writer, which is out of scope here.
+function toProposalStatusKey(status: string): string {
+  return status === "open" ? "opened" : status;
+}
+
+function isKnownProposalStatus(status: string): status is ProposalStatus {
+  return Object.hasOwn(VALID_PROPOSAL_TRANSITIONS, status);
+}
+
+// A candidate can be declined iff its current status is unknown to the declared
+// state machine (fail open: refusing by default is what wedged the queue at
+// "open" forever) or the status is known and its declared successor set names
+// "declined" as reachable. Only "completed" and "declined" have an empty
+// successor set, so those are the only two statuses this refuses.
+function canDeclineFromStatus(status: string | undefined): boolean {
+  if (status === undefined) return true;
+  const key = toProposalStatusKey(status);
+  if (!isKnownProposalStatus(key)) return true;
+  return VALID_PROPOSAL_TRANSITIONS[key].includes("declined");
+}
+
 export async function mindDeclineCommand(
   flags: Flags,
   _context?: CommandContext,
@@ -284,11 +308,7 @@ export async function mindDeclineCommand(
   if (!target) {
     throw new HarnessError("INVALID_STATE", `candidate ${candidateId} not found in state`);
   }
-  if (
-    target.status !== "proposed" &&
-    target.status !== "candidate" &&
-    target.status !== undefined
-  ) {
+  if (!canDeclineFromStatus(target.status)) {
     throw new HarnessError(
       "INVALID_STATE",
       `candidate ${candidateId} is already decided (status: ${target.status})`,

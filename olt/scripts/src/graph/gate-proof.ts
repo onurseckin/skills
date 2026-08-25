@@ -40,13 +40,26 @@ export interface GateProveInput {
   readonly maxFiles?: number;
 }
 
+/**
+ * `falsifiable` and `not_falsifiable` mean the gate actually ran against a reverted tree that
+ * carried real prior content. `refused_absent_at_base` means the entire effective write scope
+ * had zero representation at `base` — there was no counterfactual to run the gate against, so
+ * the gate was never spawned and neither boolean verdict would be honest. Callers must branch on
+ * `outcome`, not infer refusal from `falsifiable === false` (that value is also used for a
+ * genuine "gate still passes" result).
+ */
+export type GateProveOutcome = "falsifiable" | "not_falsifiable" | "refused_absent_at_base";
+
 export interface GateProveResult {
+  readonly outcome: GateProveOutcome;
   readonly falsifiable: boolean;
   readonly base: string;
   readonly exitCode: number | null;
   readonly timedOut: boolean;
   readonly restoredPaths: readonly string[];
   readonly deletedPaths: readonly string[];
+  /** The write scope `effectiveRevertScope` actually reverted against, after any test-path exclusion. */
+  readonly revertedScope: readonly string[];
   readonly copiedFileCount: number;
   readonly durationMs: number;
   readonly stdoutTail: string;
@@ -263,15 +276,32 @@ export interface GateProveDependencies {
   spawn?: GateSpawn;
 }
 
+interface EffectiveRevertScope {
+  readonly scope: readonly string[];
+  /**
+   * True only when the gate is a recognized test-runner invocation (`bun test`, `vitest`, `jest`,
+   * `pytest`) whose own test target(s) this function could NOT exclude from the revert — either
+   * the write scope was entirely test-shaped paths with no paired implementation to revert
+   * instead, or the exclusion filter would have emptied the scope outright. In both fallback
+   * cases the caller reverts (and, if the target never existed at `base`, may delete) the exact
+   * file the gate is about to run — the filed-defect shape (an untracked test target proved with
+   * no paired tracked source). `proveGateFalsifiable` uses this flag, together with an empty
+   * `restoredPaths`, to decide when a verdict would be vacuous and must be refused instead.
+   * A non-test-runner gate (this function's first early return) never sets this: there is no
+   * "test target" concept for it to protect, so its outcome is unaffected by this refusal path.
+   */
+  readonly gateTargetUnexcludable: boolean;
+}
+
 function effectiveRevertScope(
   writeScope: readonly string[],
   gateArgv: readonly string[],
-): readonly string[] {
+): EffectiveRevertScope {
   const isBunTest = gateArgv.length >= 2 && gateArgv[0] === "bun" && gateArgv[1] === "test";
   const isOtherTest =
     gateArgv.length >= 2 &&
     (gateArgv[0] === "vitest" || gateArgv[0] === "jest" || gateArgv[0] === "pytest");
-  if (!isBunTest && !isOtherTest) return writeScope;
+  if (!isBunTest && !isOtherTest) return { scope: writeScope, gateTargetUnexcludable: false };
 
   const rawTestPaths = isBunTest ? gateArgv.slice(2) : gateArgv.slice(1);
   const gateTestPaths = rawTestPaths.filter((arg) => !arg.startsWith("-")).map(normalizeScopePath);
@@ -284,14 +314,17 @@ function effectiveRevertScope(
       !raw.includes("__tests__"),
   );
   if (nonTestScope.length === 0) {
-    return writeScope;
+    return { scope: writeScope, gateTargetUnexcludable: true };
   }
 
   const filtered = writeScope.filter((raw) => {
     const norm = normalizeScopePath(raw);
     return !gateTestPaths.some((testPath) => testPath === norm || testPath.startsWith(`${norm}/`));
   });
-  return filtered.length > 0 ? filtered : writeScope;
+  if (filtered.length === 0) {
+    return { scope: writeScope, gateTargetUnexcludable: true };
+  }
+  return { scope: filtered, gateTargetUnexcludable: false };
 }
 
 export function proveGateFalsifiable(
@@ -329,7 +362,10 @@ export function proveGateFalsifiable(
       );
     }
     const copiedFileCount = copyIntoScratch(repoRoot, scratchRoot, files);
-    const revertScope = effectiveRevertScope(input.writeScope, input.gateArgv);
+    const { scope: revertScope, gateTargetUnexcludable } = effectiveRevertScope(
+      input.writeScope,
+      input.gateArgv,
+    );
     const { restoredPaths, deletedPaths } = revertWriteScope(
       repoRoot,
       scratchRoot,
@@ -337,15 +373,43 @@ export function proveGateFalsifiable(
       revertScope,
       git,
     );
+    // The gate is a recognized test runner and its own test target could not be excluded from
+    // the revert (no paired tracked source to revert instead), AND nothing in that revert scope
+    // had any representation at `base`: there is no prior counterfactual to run the gate against.
+    // Running it anyway would measure the deleted-untracked-file's mere absence (module-not-found,
+    // "0 tests discovered", etc.), not the gate's discrimination — exactly the vacuous verdict
+    // this function must refuse to certify. A non-test-runner gate (e.g. a plain filesystem
+    // existence check deliberately probing the revert itself) is unaffected: it never sets
+    // `gateTargetUnexcludable`, so its verdict is computed exactly as before.
+    if (gateTargetUnexcludable && restoredPaths.length === 0) {
+      const startedAt = Date.now();
+      return {
+        outcome: "refused_absent_at_base",
+        falsifiable: false,
+        base,
+        exitCode: null,
+        timedOut: false,
+        restoredPaths,
+        deletedPaths,
+        revertedScope: revertScope,
+        copiedFileCount,
+        durationMs: Date.now() - startedAt,
+        stdoutTail: "",
+        stderrTail: "",
+      };
+    }
     const startedAt = Date.now();
     const run = spawn(input.gateArgv, scratchRoot, input.wallTimeoutMs ?? DEFAULT_GATE_TIMEOUT_MS);
+    const falsifiable = run.status !== null && run.status !== 0;
     return {
-      falsifiable: run.status !== null && run.status !== 0,
+      outcome: falsifiable ? "falsifiable" : "not_falsifiable",
+      falsifiable,
       base,
       exitCode: run.status,
       timedOut: run.timedOut,
       restoredPaths,
       deletedPaths,
+      revertedScope: revertScope,
       copiedFileCount,
       durationMs: Date.now() - startedAt,
       stdoutTail: tail(run.stdout),
@@ -366,16 +430,52 @@ export interface GateProofRecord extends JsonObject {
   timed_out: boolean;
   proved_at: string;
   actor: string;
+  // Additive fields: every record persisted before this fix carried only the nine fields above.
+  // These stay optional so that legacy record still satisfies `isGateProofRecord` and keeps
+  // flowing through `readGateProofs`/`latestGateProof` unchanged.
+  outcome?: GateProveOutcome;
+  restored_paths?: string[];
+  deleted_paths?: string[];
+  reverted_scope?: string[];
+  stdout_tail?: string;
+  stderr_tail?: string;
 }
 
 const GATE_PROOFS_KEY = "gate_proofs";
 
+const GATE_PROVE_OUTCOMES: ReadonlySet<string> = new Set<GateProveOutcome>([
+  "falsifiable",
+  "not_falsifiable",
+  "refused_absent_at_base",
+]);
+
+function isGateProveOutcome(value: JsonValue): value is GateProveOutcome {
+  return typeof value === "string" && GATE_PROVE_OUTCOMES.has(value);
+}
+
+function isOptionalStringArrayField(value: JsonValue | undefined): boolean {
+  return value === undefined || (Array.isArray(value) && value.every((v) => typeof v === "string"));
+}
+
+function isOptionalStringField(value: JsonValue | undefined): boolean {
+  return value === undefined || typeof value === "string";
+}
+
+// Every new field is optional so a nine-field record persisted before this fix — which lacks all
+// six of them — still satisfies this guard exactly as it did before: only the original four
+// checks are mandatory. A field is validated only when the record actually carries it.
 function isGateProofRecord(value: JsonValue): value is GateProofRecord {
   return (
     isJsonObject(value) &&
     typeof value.task_id === "string" &&
     typeof value.falsifiable === "boolean" &&
-    Array.isArray(value.gate_argv)
+    Array.isArray(value.gate_argv) &&
+    (value.outcome === undefined || isGateProveOutcome(value.outcome)) &&
+    isOptionalStringArrayField(value.restored_paths) &&
+    isOptionalStringArrayField(value.deleted_paths) &&
+    isOptionalStringArrayField(value.reverted_scope) &&
+    isOptionalStringField(value.stdout_tail) &&
+    isOptionalStringField(value.stderr_tail)
   );
 }
 
