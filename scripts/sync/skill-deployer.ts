@@ -1,7 +1,15 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { canonicalJsonBytes } from "../../olt/scripts/src/core/json.ts";
 import { installSkill } from "../../olt/scripts/src/installer/install.ts";
+import {
+  INSTALL_SCHEMA,
+  INSTALL_VERSION,
+  SKILL_NAME,
+} from "../../olt/scripts/src/installer/constants.ts";
+import { sealInstallationManifest } from "../../olt/scripts/src/installer/manifest-integrity.ts";
+import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
 import { safeRemove, smartEnsureSymlink } from "./fs-helpers";
 
 export interface DeploySkillOptions {
@@ -50,6 +58,34 @@ function isOwnedLegacyDeployment(targetOlt: string, sourceRepoRoot: string): boo
   }
 }
 
+/**
+ * Give a verified pre-manifest deployment an identity before the hardened installer publishes a
+ * replacement. This keeps the old release available until the installer's atomic swap commits.
+ */
+export async function migrateOwnedLegacyDeployment(
+  targetOlt: string,
+  sourceRepoRoot: string,
+): Promise<boolean> {
+  if (!existsSync(targetOlt) || existsSync(join(targetOlt, "installation.json"))) return false;
+  if (!isOwnedLegacyDeployment(targetOlt, sourceRepoRoot)) {
+    throw new Error(
+      `refusing to replace untrusted global skill directory without installation.json: ${targetOlt}`,
+    );
+  }
+  const legacy = await validateSkillSource(targetOlt);
+  const manifest = sealInstallationManifest({
+    schema: INSTALL_SCHEMA,
+    version: INSTALL_VERSION,
+    skill_name: SKILL_NAME,
+    runtime_version: legacy.runtimeVersion,
+    source_sha256: legacy.digest,
+    installed_at: new Date().toISOString(),
+    clients: ["antigravity", "chatgpt", "claude", "codex"],
+  });
+  writeFileSync(join(targetOlt, "installation.json"), canonicalJsonBytes(manifest));
+  return true;
+}
+
 export async function deployCanonicalSkill(
   options?: DeploySkillOptions,
 ): Promise<DeploySkillResult> {
@@ -60,15 +96,8 @@ export async function deployCanonicalSkill(
 
   // The pre-manifest deployer wrote skill-config.json but could not produce the signed release
   // manifest required by `doctor --source --home`. Migrate only a deployment that proves it was
-  // made from this exact source repository; never replace an unrelated untrusted directory.
-  if (existsSync(targetOlt) && !existsSync(join(targetOlt, "installation.json"))) {
-    if (!isOwnedLegacyDeployment(targetOlt, sourceRepoRoot)) {
-      throw new Error(
-        `refusing to replace untrusted global skill directory without installation.json: ${targetOlt}`,
-      );
-    }
-    safeRemove(targetOlt);
-  }
+  // made from this exact source repository; its identity lets installSkill atomically replace it.
+  await migrateOwnedLegacyDeployment(targetOlt, sourceRepoRoot);
 
   // Publish through the hardened installer so the deployed tree and its installation manifest
   // have a single digest contract with doctor.

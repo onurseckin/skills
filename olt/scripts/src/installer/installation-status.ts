@@ -1,5 +1,5 @@
 import { lstat, readlink, realpath, stat } from "node:fs/promises";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { clientLinkPaths } from "./client-links.ts";
 import { CLIENT_NAMES, SKILL_NAME } from "./constants.ts";
 import { readInstallationManifest } from "./identity.ts";
@@ -53,7 +53,10 @@ export async function installationStatus(
 ) {
   assertInstallerPlatform(options.platform);
   const expected = await validateSkillSource(source);
-  const homeRoot = await realpath(resolve(home)).catch(() => resolve(home));
+  const requestedHome = await realpath(resolve(home)).catch(() => resolve(home));
+  // `~/.agents` is the visible deployed-skill root, so accept it as a convenient
+  // shorthand alongside the canonical user-home argument used by `install`.
+  const homeRoot = basename(requestedHome) === ".agents" ? dirname(requestedHome) : requestedHome;
   const destination = join(homeRoot, ".agents", "skills", SKILL_NAME);
   const issues: string[] = [];
   const destinationStat = await lstat(destination).catch(() => null);

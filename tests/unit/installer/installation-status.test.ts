@@ -79,6 +79,18 @@ describe("installationStatus", () => {
     expect(status.issues).not.toContain("installed release has drifted");
   });
 
+  test("accepts the deployed .agents directory as a home shorthand", async () => {
+    const { source } = await installerFixture();
+    const root = scratchRoot(import.meta.path, "agents-home-shorthand");
+    const home = join(root, "home");
+    const destination = await installRealRelease(source, home);
+
+    const status = await installationStatus(source, join(home, ".agents"), ["codex"]);
+
+    expect(status.destination).toBe(destination);
+    expect(status.issues).toEqual([]);
+  });
+
   test("reports drift when the installed content no longer matches the source digest", async () => {
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "content-drift");
