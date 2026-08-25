@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CAPSULE="${1:-.capsules/mind-gen-1}"
+CAPSULE="${1:-.olt/capsules/mind-gen-1}"
 HOST_CMD="${2:-${PULSE_HOST_CMD:-${HOST_CMD:-}}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HARNESS="${HARNESS_PATH:-$SCRIPT_DIR/harness.ts}"
@@ -9,6 +9,8 @@ BUN="${BUN_PATH:-bun}"
 LOCK_DIR="$CAPSULE/.locks"
 mkdir -p "$LOCK_DIR"
 LOCK_FILE="$LOCK_DIR/mind.pulse"
+EVIDENCE_DIR="$CAPSULE/evidence"
+mkdir -p "$EVIDENCE_DIR"
 
 exec 9>"$LOCK_FILE"
 if command -v flock >/dev/null 2>&1; then
@@ -19,7 +21,7 @@ elif command -v python3 >/dev/null 2>&1; then
   python3 -c 'import fcntl; fcntl.flock(9, fcntl.LOCK_EX | fcntl.LOCK_NB)' 2>/dev/null || exit 0
 fi
 
-BRIEF_FILE="$(mktemp -t mind-brief-XXXXXX 2>/dev/null || mktemp /tmp/mind-brief.XXXXXX)"
+BRIEF_FILE="$EVIDENCE_DIR/mind-brief-$$-$RANDOM$RANDOM"
 cleanup() {
   rm -f "$BRIEF_FILE"
 }
