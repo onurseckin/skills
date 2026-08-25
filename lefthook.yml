@@ -1,6 +1,9 @@
 # Lefthook Git Hooks Configuration
 #
-# Pre-commit runs fast typechecks, lint, and format checks.
+# Pre-commit typechecks the whole tree, because types are global and a
+# staged-only typecheck would be unsound. Lint and format checks run against
+# the staged set only, so a commit is never blocked by unrelated files that a
+# concurrent workstream left dirty.
 # Pre-push runs only the local skill synchronization.
 # Unit tests and build are handled during development by implementers and critics.
 
@@ -10,9 +13,17 @@ pre-commit:
     typecheck:
       run: bun run typecheck
     lint:
-      run: bun run lint
+      glob: "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
+      exclude:
+        - ".olt/capsules/**"
+        - ".olt/scratch/**"
+      run: bunx oxlint --quiet --no-error-on-unmatched-pattern {staged_files}
     format-check:
-      run: bun run format:check
+      glob: "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc,md,yaml,yml}"
+      exclude:
+        - ".olt/capsules/**"
+        - ".olt/scratch/**"
+      run: bunx oxfmt --check --no-error-on-unmatched-pattern {staged_files}
 
 pre-push:
   commands:
