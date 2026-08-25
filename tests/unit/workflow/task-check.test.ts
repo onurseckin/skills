@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   collectSourceFilesRecursively,
+  computeTaskCheckVerdict,
   findNearestTsconfig,
   formatTaskCheckMarkdown,
   isSupportedSourceFile,
@@ -753,10 +754,10 @@ export function createConfig(): ServiceConfig {
     expect(lint.total_violations).toBe(0);
   });
 
-  test("executes only typecheck when --typecheck is true and --lint is omitted", async () => {
+  test("--typecheck adds the typecheck to the always-on AST lint audit, never replaces it", async () => {
     const { repoDir } = createScratchContext("cmd-typecheck-only");
     const tsFile = join(repoDir, "typecheck-only.ts");
-    // Contains an AST lint violation (any) but valid TypeScript
+    // Contains an AST lint violation (any) but valid TypeScript, so only the lint half should fail.
     writeFileSync(tsFile, "export const data: any = 100;\n");
 
     const flags: Flags = {
@@ -765,9 +766,15 @@ export function createConfig(): ServiceConfig {
     };
 
     const result = await taskCheckCommand(flags);
-    expect(result.passed).toBe(true);
     expect(result.typecheck).toBeDefined();
-    expect(result.lint).toBeUndefined();
+    // The always-on AST audit must still run and catch the violation `--typecheck` used to hide.
+    expect(result.lint).toBeDefined();
+    const lint = result.lint as { passed: boolean; total_violations: number };
+    expect(lint.passed).toBe(false);
+    expect(lint.total_violations).toBeGreaterThanOrEqual(1);
+    // A check that ran and failed must never be outvoted into an overall PASS.
+    expect(result.passed).toBe(false);
+    expect(String(result.markdown)).toContain("FAIL");
   });
 
   test("executes only lint when --lint is true and --typecheck is omitted", async () => {
@@ -974,5 +981,117 @@ export const output: TaskOutput = { ready: true };
     expect(result.run_root).toBe(runRoot);
     expect((result.files_checked as string[]).includes(file1)).toBe(true);
     expect((result.files_checked as string[]).includes(file2)).toBe(true);
+  });
+});
+
+describe("task-check: computeTaskCheckVerdict", () => {
+  const failingTypecheck: TypeCheckResult = {
+    passed: false,
+    totalFiles: 1,
+    totalErrors: 1,
+    totalWarnings: 0,
+    diagnostics: [],
+  };
+  const passingTypecheck: TypeCheckResult = {
+    passed: true,
+    totalFiles: 1,
+    totalErrors: 0,
+    totalWarnings: 0,
+    diagnostics: [],
+  };
+  const failingLint: LintCheckResult = {
+    passed: false,
+    totalFiles: 1,
+    totalViolations: 1,
+    violations: [],
+    summaryByRule: {},
+  };
+  const passingLint: LintCheckResult = {
+    passed: true,
+    totalFiles: 1,
+    totalViolations: 0,
+    violations: [],
+    summaryByRule: {},
+  };
+
+  test("both checks passing yields an overall pass", () => {
+    expect(computeTaskCheckVerdict(passingTypecheck, passingLint)).toBe(true);
+  });
+
+  test("a failing typecheck fails the verdict even when lint passed", () => {
+    expect(computeTaskCheckVerdict(failingTypecheck, passingLint)).toBe(false);
+  });
+
+  test("a failing lint fails the verdict even when typecheck passed", () => {
+    expect(computeTaskCheckVerdict(passingTypecheck, failingLint)).toBe(false);
+  });
+
+  test("a skipped typecheck does not count against a passing lint", () => {
+    expect(computeTaskCheckVerdict(undefined, passingLint)).toBe(true);
+  });
+
+  test("neither check having run does not read as a pass", () => {
+    expect(computeTaskCheckVerdict(undefined, undefined)).toBe(false);
+  });
+});
+
+describe("task-check: real CLI subprocess exit code", () => {
+  const repoRoot = join(import.meta.dir, "..", "..", "..");
+  const entrypoint = join(repoRoot, "olt", "scripts", "harness.ts");
+
+  async function spawnTaskCheck(args: readonly string[]): Promise<{
+    readonly exitCode: number;
+    readonly stdout: string;
+  }> {
+    const proc = Bun.spawn(["bun", entrypoint, "task:check", ...args], {
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const stdout = await new Response(proc.stdout).text();
+    const exitCode = await proc.exited;
+    return { exitCode, stdout };
+  }
+
+  test("exits non-zero when the always-on AST lint audit reports violations", async () => {
+    const { repoDir } = createScratchContext("spawn-lint-fail");
+    const violatingFile = join(repoDir, "violation.ts");
+    writeFileSync(violatingFile, "export const leaked: any = 1;\n");
+
+    const { exitCode, stdout } = await spawnTaskCheck(["--file", violatingFile]);
+    expect(exitCode).not.toBe(0);
+    expect(stdout).toContain("FAIL");
+  });
+
+  test("exits zero on a genuinely clean file", async () => {
+    const { repoDir } = createScratchContext("spawn-clean-pass");
+    const cleanFile = join(repoDir, "clean.ts");
+    writeFileSync(cleanFile, "export const value: number = 1;\n");
+
+    const { exitCode, stdout } = await spawnTaskCheck(["--file", cleanFile]);
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("PASS");
+  });
+
+  test("--typecheck still exits non-zero and still reports the AST violation count", async () => {
+    const { repoDir } = createScratchContext("spawn-typecheck-still-audits");
+    const anyOnlyFile = join(repoDir, "any-only.ts");
+    // Valid TypeScript (typecheck alone would pass), but violates the always-on AST audit.
+    writeFileSync(anyOnlyFile, "export const data: any = 100;\n");
+
+    const { exitCode, stdout } = await spawnTaskCheck(["--file", anyOnlyFile, "--typecheck"]);
+    expect(exitCode).not.toBe(0);
+    expect(stdout).toContain("FAIL");
+    expect(stdout).toContain("AST Static Invariant");
+    expect(stdout).not.toContain("0 violations");
+  });
+
+  test("exit-code propagation is not fooled by a --file path containing the substring 'test'", async () => {
+    const { repoDir } = createScratchContext("spawn-path-contains-test-substring");
+    const testNamedFile = join(repoDir, "fixture.test.ts");
+    writeFileSync(testNamedFile, "export const leaked: any = 1;\n");
+
+    const { exitCode } = await spawnTaskCheck(["--file", testNamedFile, "--typecheck"]);
+    expect(exitCode).not.toBe(0);
   });
 });

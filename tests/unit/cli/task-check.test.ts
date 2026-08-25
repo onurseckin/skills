@@ -267,13 +267,14 @@ describe("task:check command and helpers", () => {
     expect(res.passed).toBe(true);
     expect(typeof res.markdown).toBe("string");
 
-    // Command with --typecheck only
+    // Command with --typecheck only: adds the typecheck to the always-on AST lint audit,
+    // it does not replace it, so both are present on a clean file.
     const tcOnly = await taskCheckCommand({
       file: cleanPath,
       typecheck: true,
     });
     expect(tcOnly.typecheck).toBeDefined();
-    expect(tcOnly.lint).toBeUndefined();
+    expect(tcOnly.lint).toBeDefined();
 
     // Command with --lint only
     const lintOnly = await taskCheckCommand({

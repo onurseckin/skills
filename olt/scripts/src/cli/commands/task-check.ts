@@ -673,6 +673,28 @@ export function formatTaskCheckMarkdown(summary: TaskCheckSummary): string {
 }
 
 /**
+ * Combines the typecheck and lint results into a single verdict. A check that never ran must
+ * never silently read as "passed" - that was the root cause behind `--typecheck` suppressing
+ * the AST audit while still reporting PASS: two separate call sites each defaulted an absent
+ * result to `true`, so a check dropped by a flag combination read identically to one that ran
+ * and actually passed. This is the single place that verdict is computed, and only a result
+ * that actually executed can contribute to it.
+ */
+export function computeTaskCheckVerdict(
+  typecheckResult: TypeCheckResult | undefined,
+  lintResult: LintCheckResult | undefined,
+): boolean {
+  const ranResults: boolean[] = [];
+  if (typecheckResult !== undefined) {
+    ranResults.push(typecheckResult.passed);
+  }
+  if (lintResult !== undefined) {
+    ranResults.push(lintResult.passed);
+  }
+  return ranResults.length > 0 && ranResults.every((result) => result);
+}
+
+/**
  * Main command handler for task:check / task-check CLI command.
  */
 export async function taskCheckCommand(
@@ -713,19 +735,14 @@ export async function taskCheckCommand(
     }
   }
 
-  // Determine which checks to run (if neither flag specified, run both by default)
+  // The AST lint audit (0 `any`, 0 compiler suppressions) is the skill's own core invariant and
+  // is never opt-out-able: it always runs regardless of which flags are passed. `--typecheck`
+  // is additive - it requests the (slower) tsc pass IN ADDITION to that always-on audit, never
+  // in place of it. `--lint` alone narrows scope to skip the typecheck pass; that is the only
+  // check a flag combination may legitimately skip.
   let runTypecheck = true;
-  let runLint = true;
-
-  if (requestedTypecheck && !requestedLint) {
-    runTypecheck = true;
-    runLint = false;
-  } else if (!requestedTypecheck && requestedLint) {
+  if (!requestedTypecheck && requestedLint) {
     runTypecheck = false;
-    runLint = true;
-  } else if (requestedTypecheck && requestedLint) {
-    runTypecheck = true;
-    runLint = true;
   }
 
   // Execute type check
@@ -734,23 +751,10 @@ export async function taskCheckCommand(
     typecheckResult = performIncrementalTypecheck(targetFiles);
   }
 
-  // Execute AST lint check
-  let lintResult: LintCheckResult | undefined = undefined;
-  if (runLint) {
-    lintResult = performAstLintCheck(targetFiles);
-  }
+  // Execute AST lint check - unconditional; see the always-on rationale above.
+  const lintResult: LintCheckResult = performAstLintCheck(targetFiles);
 
-  let typecheckPassed = true;
-  if (typecheckResult !== undefined) {
-    typecheckPassed = typecheckResult.passed;
-  }
-
-  let lintPassed = true;
-  if (lintResult !== undefined) {
-    lintPassed = lintResult.passed;
-  }
-
-  const passed = typecheckPassed && lintPassed;
+  const passed = computeTaskCheckVerdict(typecheckResult, lintResult);
   const durationMs = Date.now() - startTime;
 
   const summary: TaskCheckSummary = {
@@ -805,6 +809,19 @@ export async function taskCheckCommand(
     }
   }
 
+  // Propagate the verdict to the real process's exit status - unconditional, unlike the receipt
+  // above, because task:check is used as a gate (validator-engine.ts spawns it; every compiled
+  // plan's `--typecheck` gate form does too). Previously this command only ever resolved, never
+  // threw, so a computed FAIL still exited 0. `Bun.argv[1]` is the resolved entry script for this
+  // whole process, so it scopes the mutation to genuine `bun harness.ts` invocations without
+  // touching `bun:test`'s own process - unlike a NODE_ENV/argv-content heuristic, which would
+  // false-positive on any --file path that happens to contain the substring "test" (e.g. checking
+  // a *.test.ts file) and silently reintroduce this exact defect for that class of invocations.
+  const entryScript = Bun.argv[1];
+  if (entryScript !== undefined && entryScript.endsWith("/harness.ts")) {
+    process.exitCode = passed ? 0 : 1;
+  }
+
   return {
     markdown,
     passed,
@@ -822,16 +839,15 @@ export async function taskCheckCommand(
             diagnostics: typecheckResult.diagnostics,
           }
         : undefined,
-    lint:
-      lintResult !== undefined
-        ? {
-            passed: lintResult.passed,
-            total_files: lintResult.totalFiles,
-            total_violations: lintResult.totalViolations,
-            violations: lintResult.violations,
-            summary_by_rule: lintResult.summaryByRule,
-          }
-        : undefined,
+    // The AST lint audit always runs (see the always-on rationale above), so lintResult is
+    // never undefined here - unlike typecheck, it has no "did not run" state to represent.
+    lint: {
+      passed: lintResult.passed,
+      total_files: lintResult.totalFiles,
+      total_violations: lintResult.totalViolations,
+      violations: lintResult.violations,
+      summary_by_rule: lintResult.summaryByRule,
+    },
     duration_ms: durationMs,
     format: formatOption,
   };

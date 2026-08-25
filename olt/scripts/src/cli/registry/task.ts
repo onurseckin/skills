@@ -17,7 +17,24 @@ import {
   repeatableFlag,
   requiredFlag,
   type CommandSpec,
+  type ExitCodeSpec,
 } from "./types.ts";
+
+// task:check is used as a gate (validator-engine.ts spawns it and inspects the exit status;
+// so does every compiled plan's `--typecheck` gate form), so its exit code must distinguish a
+// computed FAIL from a genuine command error rather than collapsing both into a single meaning.
+const TASK_CHECK_EXIT_CODES: readonly ExitCodeSpec[] = [
+  {
+    code: 0,
+    meaning: "SUCCESS - the AST lint audit, and typecheck if requested, both passed",
+  },
+  {
+    code: 1,
+    meaning:
+      "VERIFICATION_FAILED - the always-on AST lint audit or the requested typecheck reported violations",
+  },
+  ...DEFAULT_EXIT_CODES.slice(1),
+];
 
 export const TASK_COMMANDS: readonly CommandSpec[] = [
   {
@@ -370,17 +387,26 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     aliases: [],
     domain: "task",
     summary: "Incremental verification.",
-    description: "Check the files.",
+    description:
+      "Check the files. The AST lint audit (0 `any`, 0 compiler suppressions) always runs and can never be skipped. --typecheck adds the TypeScript typecheck pass on top of that audit; it does not replace it. --lint narrows the run to the AST audit alone, skipping typecheck. Exits non-zero when either check reports a violation.",
     flags: [
       optionalFlag("run", "string", "Capsule run root."),
       optionalFlag("task", "string", "Task ID."),
       repeatableFlag("file", "string", "File path."),
-      optionalFlag("typecheck", "bool", "Run typecheck."),
-      optionalFlag("lint", "bool", "Run lint."),
+      optionalFlag(
+        "typecheck",
+        "bool",
+        "Run the TypeScript typecheck pass in addition to the always-on AST lint audit.",
+      ),
+      optionalFlag(
+        "lint",
+        "bool",
+        "Run only the AST lint audit, skipping the typecheck pass (typecheck runs by default).",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,
-    exitCodes: DEFAULT_EXIT_CODES,
+    exitCodes: TASK_CHECK_EXIT_CODES,
     examples: [],
     handler: taskCheckCommand,
   },
