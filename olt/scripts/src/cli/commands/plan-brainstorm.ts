@@ -1,12 +1,35 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join, resolve, sep } from "node:path";
 import { isJsonObject } from "../../core/contracts/json.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
+import { isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import { BrainstormEngine, type BrainstormResult } from "../../graph/brainstorm-engine.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/transaction.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { parseArguments } from "../arguments.ts";
+
+/**
+ * A bare capsule NAME (no path separator) must resolve under the canonical
+ * `.olt/capsules/` root, never against CWD -- a bare `--run <name>` used to
+ * `mkdirSync` a stray sibling directory at the repository root instead of
+ * finding the existing capsule. An explicit path (absolute, or relative with
+ * a separator) is honoured as-is, preserving callers that already resolved
+ * a concrete run root (real capsules, test fixtures).
+ */
+export function resolveBrainstormRunRoot(runRoot: string, repoRoot?: string): string {
+  if (isAbsolute(runRoot) || runRoot.includes(sep)) {
+    return resolve(runRoot);
+  }
+  const resolved = resolve(resolveCapsulesDir(repoRoot), runRoot);
+  if (!isInsideCapsule(resolved)) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      `run '${runRoot}' does not resolve inside a capsule root`,
+    );
+  }
+  return resolved;
+}
 
 export interface PlanBrainstormOptions {
   readonly run?: string | undefined;
@@ -105,7 +128,14 @@ export function executePlanBrainstorm(
   input: readonly string[] | Flags | PlanBrainstormOptions,
   _context: CommandContext = {},
 ): PlanBrainstormOutput {
-  const { runRoot, prompt: explicitPrompt, rounds, save, actor } = parseInputOptions(input);
+  const {
+    runRoot: rawRunRoot,
+    prompt: explicitPrompt,
+    rounds,
+    save,
+    actor,
+  } = parseInputOptions(input);
+  const runRoot = rawRunRoot !== undefined ? resolveBrainstormRunRoot(rawRunRoot) : undefined;
 
   let resolvedPrompt = explicitPrompt?.trim() ?? "";
 
@@ -151,7 +181,17 @@ export function executePlanBrainstorm(
     try {
       mkdirSync(runRoot, { recursive: true });
       savedPath = join(runRoot, "brainstorming.json");
-      writeFileSync(savedPath, JSON.stringify(result, null, 2), "utf-8");
+      // expandedItems is dropped by design (owner ruling: unbounded, multiplicative in rounds,
+      // and unused downstream -- plan:compile only checks this file's existence). Persisting it
+      // pretty-printed produced multi-megabyte payloads by default (rounds defaults to 3).
+      const persisted = {
+        prompt: result.prompt,
+        roundsExecuted: result.roundsExecuted,
+        vectors: result.vectors,
+        totalExpandedItems: result.totalExpandedItems,
+        createdAt: result.createdAt,
+      };
+      writeFileSync(savedPath, JSON.stringify(persisted), "utf-8");
     } catch (err: unknown) {
       throw new HarnessError(
         "INVALID_ARGUMENT",

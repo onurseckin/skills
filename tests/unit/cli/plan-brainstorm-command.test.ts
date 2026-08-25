@@ -2,16 +2,30 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   executePlanBrainstorm,
+  resolveBrainstormRunRoot,
   type PlanBrainstormOutput,
 } from "../../../olt/scripts/src/cli/commands/plan-brainstorm.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { freshRun } from "./plan-workflow-fixture.ts";
+
+// Runs `fn` with process.cwd() pointed at an isolated tmpdir with no .git/.olt/package.json
+// ancestry, so findRepoRoot() resolves to that tmpdir itself rather than this repo -- a bug in
+// the bare-name resolver under test can never touch this repo's real .olt/capsules/.
+async function withIsolatedCwd<T>(dir: string, fn: () => T): Promise<T> {
+  const originalCwd = process.cwd();
+  process.chdir(dir);
+  try {
+    return fn();
+  } finally {
+    process.chdir(originalCwd);
+  }
+}
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -58,17 +72,20 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
     expect(output.markdown).toContain("EMPTY_PAYLOAD");
     expect(output.markdown).toContain("TIMEOUT_STAGNATION");
 
-    // Check brainstorming.json
+    // Check brainstorming.json: expandedItems is not persisted (unbounded, multiplicative in
+    // rounds); totalExpandedItems and the 8 vectors are kept.
     const brainstormingFile = join(tempDir, "brainstorming.json");
     expect(existsSync(brainstormingFile)).toBe(true);
     const parsedJson = JSON.parse(await readFile(brainstormingFile, "utf-8")) as {
       roundsExecuted: number;
       totalExpandedItems: number;
-      expandedItems: unknown[];
+      vectors: unknown[];
+      expandedItems?: unknown;
     };
     expect(parsedJson.roundsExecuted).toBe(2);
     expect(parsedJson.totalExpandedItems).toBe(32);
-    expect(parsedJson.expandedItems.length).toBe(32);
+    expect(parsedJson.vectors.length).toBe(8);
+    expect(parsedJson.expandedItems).toBeUndefined();
 
     // Check events.jsonl
     const eventsFile = join(tempDir, "events.jsonl");
@@ -76,6 +93,85 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
     const eventsContent = await readFile(eventsFile, "utf-8");
     expect(eventsContent).toContain("plan-brainstormed");
     expect(eventsContent).toContain("planner-test");
+  });
+
+  test("resolveBrainstormRunRoot resolves a bare run name under the given repo's .olt/capsules/, never repoRoot itself", () => {
+    const repoRoot = "/fixture/repo";
+    expect(resolveBrainstormRunRoot("host-parity-hygiene-r2", repoRoot)).toBe(
+      join(repoRoot, ".olt", "capsules", "host-parity-hygiene-r2"),
+    );
+    expect(resolveBrainstormRunRoot("host-parity-hygiene-r2", repoRoot)).not.toBe(
+      join(repoRoot, "host-parity-hygiene-r2"),
+    );
+  });
+
+  test("resolveBrainstormRunRoot honours an explicit absolute path unchanged", () => {
+    expect(resolveBrainstormRunRoot("/some/absolute/run/root")).toBe("/some/absolute/run/root");
+  });
+
+  test("a bare --run name never escapes to CWD and the persisted payload stays well under 64 KB", async () => {
+    // realpathSync: process.cwd() reports the resolved path after chdir on macOS, where
+    // mkdtemp's /var/folders/... is itself a symlink to /private/var/folders/....
+    const fakeRepo = realpathSync(await mkdtemp(join(tmpdir(), "brainstorm-escape-repo-")));
+    roots.push(fakeRepo);
+
+    // 50 requirement lines * 8 vectors * 3 rounds (default) = 1200 expandedItems if persisted
+    // uncapped -- large enough to reproduce the pre-fix ~1 MB payload.
+    const promptLines = Array.from(
+      { length: 50 },
+      (_, i) => `- Requirement line ${i} describing a concrete engineering task`,
+    );
+
+    const output = await withIsolatedCwd(fakeRepo, () =>
+      executePlanBrainstorm({
+        run: "olt-falsifier-probe",
+        prompt: promptLines.join("\n"),
+        save: true,
+        actor: "planner-escape-test",
+      }),
+    );
+
+    expect(output.success).toBe(true);
+
+    // Bug 2: must never create a sibling directory at the resolved cwd/repo root.
+    const strayPath = join(fakeRepo, "olt-falsifier-probe");
+    expect(existsSync(strayPath)).toBe(false);
+
+    // Must land under the canonical .olt/capsules/<run>/ root instead.
+    const canonicalPath = join(fakeRepo, ".olt", "capsules", "olt-falsifier-probe");
+    const brainstormingFile = join(canonicalPath, "brainstorming.json");
+    expect(existsSync(brainstormingFile)).toBe(true);
+    expect(output.run_root).toBe(canonicalPath);
+    expect(output.brainstorming_path).toBe(brainstormingFile);
+
+    // Bug 1: the persisted file must stay well under 64 KB even with a large prompt and the
+    // default rounds=3, because expandedItems is no longer persisted.
+    const sizeBytes = (await readFile(brainstormingFile, "utf-8")).length;
+    expect(sizeBytes).toBeLessThan(64 * 1024);
+
+    const parsed = JSON.parse(await readFile(brainstormingFile, "utf-8")) as {
+      totalExpandedItems: number;
+      vectors: unknown[];
+      expandedItems?: unknown;
+    };
+    expect(parsed.totalExpandedItems).toBe(1200);
+    expect(parsed.vectors.length).toBe(8);
+    expect(parsed.expandedItems).toBeUndefined();
+  });
+
+  test("a runRoot that is itself a stray non-capsule absolute path is still honoured (backward compatible with existing capsule callers)", async () => {
+    const fakeRepo = await mkdtemp(join(tmpdir(), "brainstorm-explicit-path-"));
+    roots.push(fakeRepo);
+    const explicitRunRoot = join(fakeRepo, "any", "nested", "path");
+
+    const output = executePlanBrainstorm({
+      runRoot: explicitRunRoot,
+      prompt: "Single requirement line",
+      save: true,
+    });
+
+    expect(output.run_root).toBe(explicitRunRoot);
+    expect(existsSync(join(explicitRunRoot, "brainstorming.json"))).toBe(true);
   });
 
   test("CLI execute('plan:brainstorm') on full capsule run updates capsule state and outputs markdown", async () => {
