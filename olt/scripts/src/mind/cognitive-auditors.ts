@@ -133,6 +133,58 @@ export class AuditorCursorStore {
 }
 
 export class MindAuditorEngine {
+  private static activePulse(
+    capsulePath: string,
+    nowMs: number,
+  ): { actor: string; deadlineMs: number } | null {
+    try {
+      const state = JSON.parse(readFileSync(join(capsulePath, "state.json"), "utf-8")) as unknown;
+      if (!state || typeof state !== "object") return null;
+      const pulse = (state as Record<string, unknown>)["pulse"];
+      if (!pulse || typeof pulse !== "object") return null;
+      const open = (pulse as Record<string, unknown>)["open"];
+      if (!open || typeof open !== "object") return null;
+      const actor = (open as Record<string, unknown>)["actor"];
+      const deadlineAt = (open as Record<string, unknown>)["deadline_at"];
+      const deadlineMs =
+        typeof deadlineAt === "string" ? new Date(deadlineAt).getTime() : Number.NaN;
+      if (typeof actor !== "string" || actor.length === 0 || !Number.isFinite(deadlineMs))
+        return null;
+      return deadlineMs > nowMs ? { actor, deadlineMs } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  public static resolveActivePulse(
+    repoRoot: string,
+    nowMs: number,
+    capsuleRunRoot?: string | undefined,
+  ): { actor: string; deadlineMs: number } | null {
+    let active: { actor: string; deadlineMs: number } | null = null;
+    const checkCandidate = (capsulePath: string): void => {
+      const candidate = this.activePulse(capsulePath, nowMs);
+      if (candidate && (active === null || candidate.deadlineMs > active.deadlineMs))
+        active = candidate;
+    };
+
+    if (capsuleRunRoot && existsSync(capsuleRunRoot)) checkCandidate(capsuleRunRoot);
+    checkCandidate(repoRoot);
+
+    const capsulesDir = resolveCapsulesDir(repoRoot);
+    for (const parent of [capsulesDir, join(repoRoot, ".capsules")]) {
+      if (!existsSync(parent)) continue;
+      try {
+        for (const entry of readdirSync(parent, { withFileTypes: true })) {
+          if (entry.isDirectory()) checkCandidate(join(parent, entry.name));
+        }
+      } catch {
+        // Non-fatal: the latest valid active pulse from another capsule remains usable.
+      }
+    }
+    return active;
+  }
+
   public static resolveLatestPulseTimestamp(
     repoRoot: string,
     capsuleRunRoot?: string | undefined,
@@ -229,8 +281,19 @@ export class MindAuditorEngine {
       repoRoot,
       options !== undefined ? options.capsuleRunRoot : undefined,
     );
+    const activePulse = MindAuditorEngine.resolveActivePulse(
+      repoRoot,
+      nowMs,
+      options !== undefined ? options.capsuleRunRoot : undefined,
+    );
 
-    const lastActiveMs = pulseMs !== null ? pulseMs : nowMs - (threshold + 1) * 1000; // never pulsed => already stagnant
+    // An open, unexpired pulse is an authoritative liveness lease. Its last_pulse snapshot is
+    // intentionally written at pulse open and may therefore predate a long running pulse.
+    const lastActiveMs = activePulse
+      ? nowMs
+      : pulseMs !== null
+        ? pulseMs
+        : nowMs - (threshold + 1) * 1000; // never pulsed => already stagnant
 
     const idleDurationSeconds = Math.max(0, Math.floor((nowMs - lastActiveMs) / 1000));
     const stagnant = idleDurationSeconds >= threshold;
@@ -273,7 +336,7 @@ export class MindAuditorEngine {
     }
 
     const telemetry: StagnationTelemetry = {
-      agentId: "mind-1",
+      agentId: activePulse?.actor ?? "mind-1",
       conversationId: options !== undefined ? options.conversationId : undefined,
       role: "mind",
       idleDurationSeconds,

@@ -170,6 +170,39 @@ describe("Mind liveness is measured from the pulse clock, never the observer's o
     expect(second.idleDurationSeconds).toBeGreaterThan(threshold);
     expect(second.defectCreated).toBe(true);
   });
+
+  test("an unexpired active pulse beats a stale last-pulse snapshot and retains its registered actor", () => {
+    const repoRoot = freshRepoRoot("active-pulse-liveness");
+    const capsuleRoot = join(repoRoot, ".olt", "capsules", "mind-gen-2");
+    const now = "2026-08-25T04:42:24.000Z";
+    mkdirSync(capsuleRoot, { recursive: true });
+    writeLastPulse(capsuleRoot, {
+      at: "2026-08-25T04:29:30.952Z",
+      pulse_id: "pulse-7",
+      outcome: "active",
+      next_wake_at: "2026-08-25T04:32:30.952Z",
+    });
+    writeCapsuleState(capsuleRoot, {
+      pulse: {
+        open: {
+          actor: "mind_limo_gen_2",
+          pulse_id: "pulse-7",
+          opened_at: "2026-08-25T04:29:30.952Z",
+          deadline_at: "2026-08-25T04:49:30.952Z",
+        },
+      },
+    });
+
+    const result = MindAuditorEngine.auditMindPulse(repoRoot, {
+      now,
+      stagnationThresholdSeconds: 120,
+      capsuleRunRoot: capsuleRoot,
+    });
+
+    expect(result.stagnant).toBe(false);
+    expect(result.defectCreated).toBe(false);
+    expect(result.telemetry.agentId).toBe("mind_limo_gen_2");
+  });
 });
 
 describe("mind:pulse-open durably persists a non-null pulse_id (mechanism b)", () => {
