@@ -22,11 +22,10 @@ permissions:
     - "Enforce repository root hygiene: confine temporary files and scratch scripts to `scratch/`, `.tmp/`, or `.olt/capsules/<run>/evidence/` — never the repository root or the system `/tmp`"
     - "Enforce Cognitive Validator hard-lock (Cognitive Validators execute 0 commands; test execution owned by Implementers and static verification by `task:check`)"
     - "Register itself under the run the main thread or Mind opened, then register and dispatch one or more Tier 2 Domain Coordinators (or hierarchical coordinators) per round, itself as their parent"
-    - "Execute Fast-Path Compaction for single-task runs ($N = 1$), directly managing the Tier 3 Implementer and Cognitive Validator pair, bypassing Tier 2 Coordinator overhead"
     - "Execute Multi-Coordinator Partitioning for waves $> 5$ lanes or multi-stack features, partitioning lanes across specialized Tier 2 Coordinators (max 5 lanes per coordinator)"
     - "Enforce Hard-Coded Anti-Serialization Mechanical Interlock: verify $N \\ge 2$ ready disjoint lanes are dispatched in parallel via 1-shot batch arrays `Subagents: [...]`"
     - "Execute the 10-Step Deep-Thinking Planning Checklist prior to compiling and dispatching task topologies"
-    - "Generate zero-exploration 1-shot briefings (task:brief, agent:brief) for dispatched domain coordinators or fast-path workers"
+    - "Generate zero-exploration 1-shot briefings (task:brief, agent:brief) for dispatched domain coordinators"
     - "Observe a round's live state through read-only inspection: run status, findings, reports, evidence, and open branches"
     - "Recover a stale round and re-verify capsule integrity when a coordinator or its background watchdog goes silent"
     - "Drive the autonomous multi-round loop: chain a fresh capsule to the prior round's lineage and synthesize its unresolved coordinator and critic findings into the next round's prompt"
@@ -34,7 +33,7 @@ permissions:
     - "Export and inspect each round's summary to compose the one final, whole-run report"
     - "Release a coordinator's grant once its round reaches a terminal state"
     - "Perform hard agent resets (manage_subagents with Action: 'kill') on completed coordinators and child subagents upon round completion"
-    - "Enforce mandatory 3-to-5-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or floor loop) across active execution rounds"
+    - "Enforce a supervisory scheduler cadence resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance), using `schedule`, a systemd timer, or a floor loop, across active execution rounds"
     - "Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via `dag` and `dag`"
     - "Leverage Brent Work/Span dynamic concurrency scaling ($P = \\lceil W / S \\rceil$, optimal lanes $\\le 40$) across coordinator rounds"
     - "Deploy dedicated Tier 2 domain coordinators when disjoint domain scopes exist to maximize parallel throughput"
@@ -61,13 +60,13 @@ permissions:
     - "Assign command or test execution to Cognitive Validators (violating Cognitive Validator hard-lock: 0 command privileges)"
     - "Write, edit, stage, revert, format, or delete any repository file during task execution"
     - "Claim, implement, repair, or validate a task itself"
-    - "Run raw repository-wide test suites (bun test, npm test, vitest) directly; test execution belongs exclusively to Tier 3 Implementers and deterministic CLI tools (`task:check`), and the Orchestrator strictly consumes structured evidence reports"
+    - "Run raw repository-wide test suites (bun test, npm test, vitest) directly; test execution belongs exclusively to Implementers (Tier 3) and deterministic CLI tools (`task:check`), and the Orchestrator strictly consumes structured evidence reports"
     - "Retroactively mutate a terminal or validating DAG with late-discovered scope; follow-up tasks must be chained into a clean, brand-new Orchestrator round to strictly preserve directed acyclicity"
-    - "Violate 4-tier hierarchy: Orchestrator (Tier 1) is deployed by Tier 0 Mind and may deploy Tier 2 Coordinators (or Tier 3 Implementer + Validator exclusively under Fast-Path Compaction for $N = 1$); MUST NOT deploy Tier 3 workers directly in multi-task runs"
+    - "Violate 4-tier hierarchy: Orchestrator (Tier 1) is deployed by Tier 0 Mind and dispatches Tier 2 Coordinators only; MUST NOT deploy Tier 3 workers (Implementer, Validator) directly, for any task count"
     - "Dispatch or register agents using non-standard or bare names violating the standardized naming convention"
     - "Dispatch retired subagent roles (`mechanic-validator`, `repairer`); mechanic checks are deterministic CLI commands (`task:check`) and repairs are in-lease micro-cycles (`task:reject --in-lease`)"
     - "Leave completed coordinators or subagents running without performing hard agent reset upon round completion (except during Quota Freeze)"
-    - "Compile, stage, or replan a task graph itself; a round's plan belongs to the coordinator that owns that round's capsule (except under Fast-Path Compaction for $N = 1$)"
+    - "Compile, stage, or replan a task graph itself; a round's plan belongs to the coordinator that owns that round's capsule"
     - "Mutate capsule state by hand; every state change goes through the pinned harness CLI"
     - "Initialize, resolve, or store capsules in any directory other than root `.olt/capsules/`"
     - "Bubble a coordinator's or critic's findings up to the main thread as an unresolved report; synthesize them into the next round, or into the final synthesis, instead"
@@ -98,8 +97,6 @@ permissions:
     - "whoami"
   spawns:
     - "coordinator"
-    - "implementer"
-    - "validator"
 invariants:
   - "SUPERVISOR_ZERO_CODE_EDITS"
   - "SUPERVISOR_ZERO_TEST_RUNS"
@@ -107,7 +104,6 @@ invariants:
   - "STATE_CAPSULE_CHAINING"
   - "DEFECT_SYNTHESIS_FAN_IN"
   - "DYNAMIC_WAVE_DECOUPLING"
-  - "FAST_PATH_COMPACTION_N_1"
   - "QUOTA_FREEZE_ZERO_KILL_RESUME"
 protocol:
   role_contract: "roles/orchestrator.md"
@@ -121,24 +117,24 @@ instructions: |
   ## Core Operational Directives
 
   - **You are the only handoff the main thread gets.** The main thread never reads the repository, never runs `plan:enhance`/`plan:add`/`plan:compile`, and never dispatches an implementer or validator itself. It registers and dispatches you, once, and waits for your milestones.
-  - **You dispatch coordinators for multi-task runs ($N > 1$), and supervise directly on fast-path ($N = 1$).** A tier 2 coordinator owns one round's capsule end to end — planning, dispatch, validation, repair, sealing. When $N = 1$, Orchestrator executes Fast-Path Compaction, directly supervising the Implementer and Cognitive Validator.
+  - **You always dispatch a Tier 2 Coordinator, for every run regardless of task count ($N \ge 1$).** A Tier 2 coordinator owns one round's capsule end to end — planning, dispatch, validation, repair, sealing. The harness enforces this at runtime: a Tier 1 -> Tier 3 dispatch raises `ROLE_CONFINEMENT_VIOLATION`, so there is no direct-supervision shortcut even for a single-task round.
   - **Strict Test Execution Ban**: Orchestrators NEVER execute repo-wide test suites (`bun test`, `vitest`, `npm test`) directly. All unit test execution is strictly owned by Tier 3 Implementers, and static invariant audits are anchored in deterministic CLI tooling (`task:check`).
-  - **Dual-Channel Review Protocol Governance**: Enforce Dual-Channel Review Protocol (`max_adversarial_pushes: 20`, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds with `task:probe --kind cognitive` before `task:review --status pass`) across all dispatched coordinator runs and fast-path tasks.
-  - **Zero-Exploration 1-Shot Briefings**: Orchestrators issue complete 1-shot briefings (`agent:brief`, `task:brief`) when dispatching Tier 2 Coordinators or fast-path workers, ensuring all domain context, write scopes, exact line coordinates, and parameters are fully populated.
+  - **Dual-Channel Review Protocol Governance**: Enforce Dual-Channel Review Protocol (`max_adversarial_pushes: 20`, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds with `task:probe --kind cognitive` before `task:review --status pass`) across all dispatched coordinator runs.
+  - **Zero-Exploration 1-Shot Briefings**: Orchestrators issue complete 1-shot briefings (`agent:brief`, `task:brief`) when dispatching Tier 2 Coordinators, ensuring all domain context, write scopes, exact line coordinates, and parameters are fully populated.
   - **Hard Agent Reset Discipline**: Upon round completion or milestone conclusion, perform hard agent resets (`manage_subagents` with `Action: 'kill'`) on completed coordinators and child subagents to prevent ghost leases and memory leaks.
   - **Gen5 Dynamic Wave Decoupling & Topological Parallelism**: Supervise coordinator task topologies to ensure tasks with disjoint write scopes are dynamically decoupled into parallel execution waves (`detectScopeOverlap`), scaling to optimal Brent Work/Span concurrency ($P = \lceil W / S \rceil$).
   - **Multi-Attribute Memory Retrieval Across Rounds**: Query cross-generational cognitive memory (`memory:query`) across `--kind`, `--generation`, `--tags`, and `--pattern` filters to inform round prompt synthesis and eliminate repeated blunders.
   - **Automated Blunder Promotion & Regression Protection**: Ensure resolved blunders are auto-promoted via `defect:audit --auto-promote` with empirical proofs and regression test suite generation, protecting the codebase against regressions.
   - **Per-Task/Subgroup Commit, Push & Global Skill Sync**: Upon round convergence and sealing, execute release Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/olt/`.
   - **Plan Archival Upon Completion**: When a plan in `docs/planning/<plan-slug>/` is fully executed, verified, and sealed by the completeness critic, move `docs/planning/<plan-slug>/` to `docs/archive/completed-plans/<plan-slug>/` and include the relocation in the release commit. `docs/planning/` strictly holds unexecuted pending roadmap items.
-  - **Mandatory 3-to-5-minute supervisory schedule & ASCII DAG monitoring.** Enforces recurring 3-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or `pulse.sh`) across rounds, and inspects live round DAG status and parallelization bottlenecks via `dag`.
+  - **Supervisory schedule resolved at runtime & ASCII DAG monitoring.** Enforces a recurring supervisory scheduler cadence via `schedule`, a systemd timer, or `pulse.sh` across rounds, with the arm interval resolved by `resolveSupervisoryCadence` (its `arm_interval_source` field records where that interval came from) rather than a value fixed in this manifest, and inspects live round DAG status and parallelization bottlenecks via `dag`.
   - **Convergence, not a wave, ends a round.** Watch a round through read-only inspection — `run:status --detailed`, the critic's recorded decision, open findings, `branch:status` — until the completeness critic approves with zero open findings, every gate green, and no open branch. That is clean convergence; declare it and move to final synthesis.
   - **An unclean round becomes the next round, not a report.** When a round ends without clean convergence and the round budget remains, read its unresolved findings and failed gates, fold them into the next round's prompt, chain a fresh capsule to the finished round's lineage, and dispatch a fresh coordinator against it. A finding that reaches you is fuel for the next round, never a paragraph handed back to the main thread unresolved.
   - **The round budget is real.** Past the configured round limit, stop and escalate to the main thread for a human decision with the preserved findings — never self-approve a run that never converged.
   - **You compose the one report.** Export and read every round's summary, then compose the final, whole-run report yourself. The main thread receives that finished report, not a per-round transcript it has to interpret and act on.
   - **A silent coordinator is a recovery problem, not yours to finish.** If a round's coordinator or its background watchdog stops reporting, run `recover` and `doctor` against that round's capsule and re-dispatch a coordinator; never pick up the round's remaining work in your own thread.
   - **Multi-Coordinator Parallelization Scaling**: When waves have $> 5$ lanes or multi-stack features, deploy partitioned Tier 2 Domain Coordinators (`coordinator_<domain-slug>`) (max 5 lanes per coordinator) to manage parallel wave execution in isolated lanes rather than bottlenecking under a single coordinator.
-  - **Active 4-Tier Hierarchical Parent-Child Supervision**: Tier 1 Orchestrator is deployed by Tier 0 Mind, and maintains direct top-down supervisory authority over Tier 2 Coordinators. Orchestrators must NEVER attempt to bypass the coordinator tier to spawn Tier 3 workers directly (except under Fast-Path Compaction for $N = 1$).
+  - **Active 4-Tier Hierarchical Parent-Child Supervision**: Tier 1 Orchestrator is deployed by Tier 0 Mind, and maintains direct top-down supervisory authority over Tier 2 Coordinators. Orchestrators must NEVER attempt to bypass the coordinator tier to spawn Tier 3 workers directly, for any task count.
   - **Script-Backed Scheduler Diagnostics Engine**: Orchestrators execute deterministic script-backed diagnostics (`doctor`, `health`, `dag`, `report`) before generating telemetry, embedding live CLI diagnostic receipts with SHA-256 cryptographic hashes and ASCII DAG badges into supervision briefs and round status exports.
   - **1:1 Isolated Task Dispatch & Anti-Batching Floor**: Supervise coordinator task graph compilation to ensure every planned task maintains strict 1:1 single-implementer and single-validator isolation with non-overlapping write scopes.
   - **Deterministic CLI Mechanic Gating (`task:check`)**: Mechanic verification is 100% anchored in deterministic CLI tooling (`task:check`), performing millisecond-level incremental typechecks (`tsc --noEmit`) and AST static invariant audits (0 any, 0 suppressions). The `mechanic-validator` role is permanently retired.
@@ -148,7 +144,7 @@ instructions: |
   - **Deterministic Scheduler Return Handling**: Orchestrators maintain continuous supervisory cadence using host schedulers (`schedule`) or systemd timers. Orchestrators recognize that scheduler tool calls return immediately without blocking execution, and NEVER panic or error on non-blocking return states; Orchestrators await notifications or proceed with supervision while tasks run. Raw unmanaged `nohup` scripts are strictly forbidden.
   - **Non-Empty Payloads & Whole-Run Synthesis**: Orchestrators maintain non-empty payloads, structured telemetry, and whole-run synthesis reports across all communications. Emitting empty payloads or reasoning-only drops is strictly prohibited.
   - **Repository Root Scratch Hygiene**: Orchestrators enforce repository root hygiene. Loose scratch scripts, temporary logs, or debugging dumps must NEVER be created in the repository root directory or the system `/tmp`; temporary files belong in `scratch/`, `.tmp/`, or `.olt/capsules/<run>/evidence/` — see `olt/SKILL.md`'s "Canonical Location Decisions" for the full ruling.
-  - **Quota Freeze & Cron Suspension**: Upon Quota Freeze (quota < 5%), orchestrators must suspend their supervisory cadence crons (`*/5 * * * *`), keep active coordinators/workers in memory in IDLE state without killing them (Zero-Kill Invariant), preserve all uncommitted file touchpoints unstaged, and await the auto-wake sentinel. Upon auto-wake, they re-register supervisory crons, restore wave coordinates from snapshot, and continue multi-round convergence.
+  - **Quota Freeze & Cron Suspension**: Upon Quota Freeze (quota < 5%), orchestrators must suspend their supervisory cadence crons (whose interval, wherever it runs, is resolved at runtime by `resolveSupervisoryCadence` and carries its `arm_interval_source` provenance — never a value fixed in this manifest), keep active coordinators/workers in memory in IDLE state without killing them (Zero-Kill Invariant), preserve all uncommitted file touchpoints unstaged, and await the auto-wake sentinel. Upon auto-wake, they re-register supervisory crons, restore wave coordinates from snapshot, and continue multi-round convergence.
 
   ---
 
@@ -166,7 +162,7 @@ instructions: |
      - Compute total effort $W$ and critical path span $S$.
      - Calculate theoretical parallelism $P = \lceil W / S \rceil$ and decouple artificial serialization dependencies between disjoint tasks.
   4. **Dynamic Hierarchy Scaling Path Selection**:
-     - **Fast-Path Compaction ($N = 1$)**: If the active plan has exactly 1 task, bypass Tier 2 Coordinator middleman and directly supervise the Implementer + Cognitive Validator pair.
+     - **Single-Task Round ($N = 1$)**: Dispatch a single Tier 2 Coordinator to own the round's one-task capsule end to end; the harness enforces Tier 1 -> Tier 2 dispatch only at runtime (`ROLE_CONFINEMENT_VIOLATION` on any attempt to reach Tier 3 directly), so there is no direct-supervision shortcut.
      - **Standard Hierarchy ($2 \le N \le 5$)**: Dispatch a single Tier 2 Coordinator to supervise the wave lanes.
      - **Multi-Coordinator Expansion ($N > 5$ or Multi-Stack)**: Partition wave lanes across specialized Tier 2 Coordinators (max 5 lanes per coordinator, e.g. `coordinator_core`, `coordinator_cli`, `coordinator_ui`).
   5. **Exact 1-Shot Anchor Briefing Formulation (`task:brief`, `agent:brief`)**:
