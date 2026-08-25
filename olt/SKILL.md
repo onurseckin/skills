@@ -56,7 +56,7 @@ Do not create a harness for a simple answer, one-file mechanical edit, or short 
 8. Enforce 4-Tier Viewport Resolution Matrix for UI tasks: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844). Omitting desktop-wide resolution is a mandatory rejection.
 9. Require quantitative proofs over superficial prose: exit codes, DOM metrics, APCA Lc, screenshots (>=1024B) under `--require-semantic-depth`.
 10. Maintain continuous non-stop loops: auto-chain phases without human intervention; use host timers/schedules (`schedule`) and `pulse.sh` floor loops (`|| true`).
-11. Repository root `olt/` governance and `capsules/` runtime invariant: Project governance, active backlog, defect logs, and telemetry MUST live in `<repo-root>/olt/` (`policy.json`, `backlog.jsonl`, `completed-tasks.jsonl`, `defects.jsonl`, `completed-defects.jsonl`, `telemetry.jsonl`). Runtime capsules live in gitignored `<repo-root>/capsules/` (and `.olt/capsules/`). Keeping temporary files or scratch artifacts under `/tmp` or `.tmp/` is strictly prohibited.
+11. Repository root `.olt/` governance and capsule runtime invariant: Project governance, active backlog, defect logs, and telemetry MUST live in `<repo-root>/.olt/` (`policy.json`, `backlog.jsonl`, `completed-tasks.jsonl`, `defects.jsonl`, `completed-defects.jsonl`, `telemetry.jsonl`) — see [Canonical Location Decisions](#canonical-location-decisions). The undotted `<repo-root>/olt/` directory holds only the versioned skill package and receives no runtime writes. Runtime capsules live at `<repo-root>/.olt/capsules/`; a bare, un-dotted `capsules/` directory off repo root does not exist and is never a valid target. Keeping temporary files or scratch artifacts under the system `/tmp` (including `$TMPDIR` and `mktemp -t`, which resolve to it on macOS) is strictly prohibited; `.tmp/`, `scratch/`, and `.olt/capsules/<run>/evidence/` are the prescribed repo-local scratch homes.
 12. Throttle CPU gates to `gate_max_parallel`; reasoners scale to `default_max_parallel` ([`references/configuration.md`](references/configuration.md)).
 13. Scratch workspace isolation: use native host workspace isolation (`Workspace: "branch"` or `"share"`) or git worktrees for disk-mutating concurrent runs.
 14. Consolidation of user pushbacks and self-audits: consolidate all user pushbacks and model self-critiques into canonical documentation.
@@ -85,7 +85,7 @@ Do not create a harness for a simple answer, one-file mechanical edit, or short 
 37. Elastic Dynamic Hierarchy Scaling: On single-task runs ($N = 1$), Fast-Path Compaction allows Tier 1 Orchestrator to directly manage Implementer and Cognitive Validator, eliminating Coordinator middleman overhead. On waves $> 5$ lanes or multi-stack features, lanes are partitioned across specialized Tier 2 Coordinators (max 5 lanes per coordinator).
 38. Hard-Coded Anti-Serialization Mechanical Interlock: When a wave has $N \ge 2$ ready disjoint lanes, single-agent dispatches trigger `FALSE_SERIALIZATION_BLUNDER`. Supervisors must dispatch full parallel arrays via `Subagents: [...]`.
 39. Streamlined 5 Golden Roles: Personas are streamlined to `mind`, `orchestrator`, `coordinator`, `implementer`, `validator` + `completeness-critic` & `meta-auditor`. `mechanic-validator` is retired into CLI tool `task:check`; `repairer` is retired into in-lease micro-cycles (`task:reject --in-lease`).
-40. Canonical `olt/` Repository Governance: Persistent project governance and backlogs live in committed `olt/` (`olt/policy.json`, `olt/backlog.jsonl`, `olt/completed-tasks.jsonl`, `olt/defects.jsonl`, `olt/completed-defects.jsonl`, `olt/telemetry.jsonl`). Runtime capsules live in gitignored `capsules/` (and `.olt/capsules/`).
+40. Canonical `.olt/` Repository Governance: same ruling as rule 11 above — see [Canonical Location Decisions](#canonical-location-decisions) for the full decision and its verification.
 41. Hard-Coded Mechanical RBAC Engine (`harness.ts shell`): Direct command execution is strictly validated against repository policy via `verifyCommandAuthorization`. Cognitive Validators have `can_execute_shell: false` (0 commands). Implementers are restricted from running un-targeted full-suite test commands (`^npm test$`, `^bun test$`, `^pytest$`, `^cargo test$`) and git mutations. All commands are executed via `bun harness.ts shell --actor <id> -- <cmd>`.
 42. Bounded Read Scope & Dynamic Expansion (`harness.ts scope:expand`): Subagents are bounded to target files and direct neighborhood (depth 2). Expanding read scope requires `bun harness.ts scope:expand --actor <id> --read <path>`.
 43. 1-Shot Batch Auto-Deployment of Mind and Companion Mind-Auditor (`/olt mind`): When `/olt mind` or autonomous mind mode is invoked, the main interactive thread MUST immediately deploy BOTH the Tier 0 Mind (`agents/mind.yaml`) and companion Tier 1 Mind Auditor (`agents/mind-auditor.yaml`) subagents in a single 1-shot batch dispatch via `invoke_subagent` (or host subagent array `Subagents: [...]`), injecting verbatim YAML manifests and registering the 3-minute supervisory schedule (`schedule` cron `*/3 * * * *`). The main thread MUST NOT stall, emit conversational questionnaires, or serialize dispatches across multiple turns. Because Tier 0 Mind cannot self-spawn Tier 1 Mind Auditor under `ALLOWED_TIER_SPAWNS`, both MUST be deployed together in 1-shot batch dispatch by the entrypoint.
@@ -137,7 +137,7 @@ bun olt/scripts/harness.ts help <command>
 - **Direct Test Suite Execution by Coordinator / Orchestrator**: Never run raw test suites (`bun test`, `vitest`, `npm test`) from coordinator or orchestrator threads. Test execution belongs exclusively to Tier 3 Mechanic Validators.
 - **Ghost Subagent Accumulation & Dangling Leases**: Never leave finished subagents un-killed; always enforce hard agent reset discipline (`manage_subagents` with `Action: 'kill'`) upon wave or subgroup completion. Stale or orphaned leases are flagged as `GHOST_LEASE` by Meta-Auditor and reclaimed via `recover`.
 - **Uncommitted Verified Tasks**: Never leave verified task groups uncommitted or un-synced; always create Conventional Commits, push to `origin/main`, and run `bun scripts/sync-global.ts`.
-- **Temporary Directory Leakage (Zero /tmp Ban)**: Never store state, artifacts, scratch files, or reports under `/tmp` or `.tmp/`. All skills work, artifacts, reports, and payloads must reside exclusively in `<repo-root>/.olt/capsules/`.
+- **Temporary Directory Leakage (Zero System /tmp Ban)**: Never store state, artifacts, scratch files, or reports under the system `/tmp` (including `$TMPDIR` and `mktemp -t`, which resolve to it on macOS) — it is invisible to the repo, other agents, and post-hoc audit. Durable run state, artifacts, reports, and payloads reside in `<repo-root>/.olt/capsules/`; repo-local ephemeral scratch belongs in `<repo-root>/.tmp/` or `<repo-root>/scratch/` (see [Canonical Location Decisions](#canonical-location-decisions)) — never the system temp dir.
 - **Mind Idle / Standby Anti-Pattern**: Never permit Tier 0 Mind to sit idle or emit "waiting in standby" when the feedback queue is empty. Autonomous discovery (0 any checks, charter gap audits, blunder regression tests, Work/Span P = W / S optimizations) must trigger automatically.
 - **Artificial Serialization & False Bottlenecks**: Never chain tasks with disjoint write scopes sequentially when dynamic wave decoupling (`detectScopeOverlap`) can schedule them in parallel. Always inspect and optimize DAG waves via `dag`. Flagged by Meta-Auditor as `FALSE_SERIALIZATION`.
 - **Token Burning & Blind Exploratory Scanning**: Never allow implementers to burn tokens on unguided exploratory repository scans (`find_by_name`, `list_dir`, `grep_search`, $>5$ reads before first write). Coordinators must emit zero-exploration exact-anchor briefings (`task:brief`, `briefing-builder.ts`) with line ranges and drop-in code replacements. Flagged by Meta-Auditor as `TOKEN_BURNING`.
@@ -157,3 +157,53 @@ bun olt/scripts/harness.ts help <command>
 - **Heavyweight Whole-Repo Testing During Iteration**: Never run whole-repo test suites during task implementation or repair; use `task:check` for fast incremental type and lint verification and file-scoped test commands (`bun test <path.test.ts>`).
 - **Nested Capsules**: Never nest `.olt/capsules/` in subdirectories; always anchor to local repo root `<repo-root>/.olt/capsules/`.
 - **Omitted or Serialized Mind / Mind-Auditor Auto-Deployment on `/olt mind`**: Never fail to automatically deploy or serialize the deployment of `mind` and `mind-auditor` when `/olt mind` is entered. Because Mind cannot self-spawn Mind-Auditor under `ALLOWED_TIER_SPAWNS`, the main interactive thread must deploy both in a single 1-shot batch dispatch (`invoke_subagent` with `Subagents: [...]`) with verbatim YAML manifests.
+
+## Canonical Location Decisions
+
+Two location questions produced conflicting documentation and misled agents in practice. This
+section is the single resolution every hard rule and reference above defers to; there is no
+`olt/docs/` or ADR convention in this repository, so the ruling lives here instead of a new file.
+
+### `.olt/` (dotted) vs `olt/` (undotted) governance storage
+
+**Decision: `.olt/` is authoritative for every runtime and governance artifact — `policy.json`,
+`backlog.jsonl`, `completed-tasks.jsonl`, `defects.jsonl`, `completed-defects.jsonl`,
+`telemetry.jsonl`, and `capsules/`.** The undotted `olt/` directory is the versioned skill package
+(`SKILL.md`, `agents/`, `checklists/`, `references/`, `scripts/`) — static definition checked into
+git, never a runtime write target.
+
+Verified against the code, not assumed: `olt/scripts/src/core/shared/paths.ts` hard-codes
+`OLT_DIR_NAME = ".olt"`, and every resolver built on it (`resolvePolicyPath`, `resolveBacklogPath`,
+`resolveCompletedTasksPath`, `resolveDefectsPath`, `resolveCompletedDefectsPath`,
+`resolveTelemetryPath`, `resolveCapsulesRoot`) joins against that constant — no code path writes to
+an undotted `<repo-root>/olt/*.jsonl` ledger or a bare `capsules/` directory off repo root.
+`olt/scripts/src/mind/completed-tasks.ts`
+still exports legacy string constants named for the undotted path (e.g.
+`CANONICAL_DEFECTS_FILE = "olt/defects.jsonl"`), but nothing dereferences them for path
+resolution — the functions that actually resolve paths (`resolveCanonicalDefectsPath` and
+siblings, lines 57–91) hard-code `join(root, ".olt", "defects.jsonl")` and ignore those constants
+entirely. Git history confirms the move was deliberate, not accidental:
+`2db78df8 feat(olt): rename skill directory to olt and governance storage to .olt`. On disk today,
+`.olt/defects.jsonl` is the live ledger (hundreds of KB, still receiving uncommitted writes) while
+`olt/defects.jsonl` is a 0-byte vestige last touched by a purge commit
+(`f1c1e52d chore(defects): purge defect registries for clean mind test run`) and never written to
+since.
+
+This ambiguity is not academic: it produced a real incident this session — a Tier 0 auditor
+checked candidate ledger paths, missed `.olt/defects.jsonl`, and filed a false CRITICAL defect
+claiming the ledger was empty.
+
+### Scratch and temporary files: system `/tmp` vs repo-local `.tmp/`
+
+**Decision: the system temp directory (`/tmp`, `$TMPDIR`, anything `mktemp -t` produces on macOS)
+is banned absolutely — it is invisible to the repo, other agents, and post-hoc audit.** Repo-local
+ephemeral scratch is not banned. It has three acceptable, non-exclusive homes depending on what is
+being stored: `<repo-root>/.olt/capsules/<run>/evidence/` for run-scoped evidence tied to a
+specific harness run, and `<repo-root>/.tmp/` or `<repo-root>/scratch/` for scratch not tied to any
+run. Pick whichever fits the artifact; none of the three is the sole exclusive location.
+
+Verified, not assumed: `.gitignore` (`/.tmp/`) and `olt/AGENTS.md` ("Temporary testing artifacts
+must be directed to designated `.tmp/` or scratch directories") both already treat `.tmp/` as
+sanctioned, and `.tmp/` is in live use in this repo. A prior draft of the hard rules and
+anti-pattern list banned `/tmp` and `.tmp/` in the same breath, silently contradicting both of
+those sources — that conflict is the defect this section closes.
