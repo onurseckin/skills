@@ -1,15 +1,3 @@
-/**
- * Test Suite: Plan 91 Pillar 2 - Streamlined Persona Ecosystem & Deterministic CLI Tool Anchoring
- *
- * Verifies:
- * 1. Integration of 10-Step Deep-Thinking Planning Checklist into roles/orchestrator.md.
- * 2. 5 Golden Roles architecture (mind, orchestrator, coordinator, implementer, validator).
- * 3. Retirement of mechanic-validator into deterministic CLI tool task:check and repairer into in-lease micro-cycles.
- * 4. Strict 4-tier spawning confinement (orchestrator spawns only coordinator; never Tier 3 directly).
- * 5. Cognitive Validator Hard-Lock Interlock (0 command execution).
- * 6. Strict static code invariants (0 any, 0 compiler/linter suppressions).
- */
-
 import { describe, expect, it } from "bun:test";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -174,7 +162,6 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
 
   describe("6. Adversarial Gate Proofs (AGP) & Counterfactual Falsification", () => {
     it("proves counterfactual falsification: AST linter fails on intentional violations", () => {
-      // Invariant check on linter rules
       const ruleNames = ["no_any", "compiler_suppression", "no_non_null_assertion"];
       for (const rule of ruleNames) {
         expect(rule.length).toBeGreaterThan(0);

@@ -13,7 +13,7 @@ describe("SKILL.md architectural invariants and cadence specification", () => {
     expect(content).toContain("Mandatory Supervisory Scheduler & Algorithmic DAG Optimization");
     expect(content).toContain("resolveSupervisoryCadence");
     expect(content).toContain("Missing Supervisory Schedule / Watchdog");
-    // No cron cadence may be hardcoded in the doc; it is always resolved at runtime.
+
     expect(content).not.toContain("*/3 * * * *");
     expect(content).not.toContain("*/5 * * * *");
     expect(content).not.toContain("Mandatory 3-Minute Supervisory Scheduler");

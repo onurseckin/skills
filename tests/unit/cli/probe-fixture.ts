@@ -14,7 +14,6 @@ export const TASK_ID = "task-core";
 export const VALIDATOR = "val-1";
 export const CHANGED_FILE = "tests/unit/core/probe-target.ts";
 
-/** A compiled single-task run whose one mandatory gate is `bun gate-core.ts`. */
 export async function setupRun(
   name: string,
   roots: string[],
@@ -111,7 +110,6 @@ export async function setupRun(
   return { repo, run };
 }
 
-/** Drives the task to `validating` and returns the task:validate-start result. */
 export async function claimSubmitValidate(
   repo: string,
   run: string,
@@ -141,9 +139,7 @@ export async function claimSubmitValidate(
     "bun",
     "gate-core.ts",
   ]);
-  // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
-  // claim. setupRun already wrote CHANGED_FILE before the task was even claimed, so the implementer
-  // has to actually change it here, not merely declare it.
+
   await writeFile(
     join(repo, CHANGED_FILE),
     "export const probed = true;\nexport const implemented = true;\n",
@@ -176,7 +172,6 @@ export async function claimSubmitValidate(
   ]);
 }
 
-/** Runs `script` as the implementer of record; `gate` binds the record to the gate, `null` leaves it loose. */
 export async function runGate(
   repo: string,
   run: string,
@@ -201,11 +196,6 @@ export async function runGate(
   return executed.command_id as string;
 }
 
-/** C3b: a passing review now requires a recorded falsifiable `gate:prove` proof for the task's
- *  compiled task-scope gate. These fixture repos are plain temp directories, not real Git
- *  repositories, so the real `gate:prove` CLI (which reverts a task's write scope against Git
- *  history to check the gate actually fails without the work) cannot run against them — seed the
- *  same `gate_proofs` record it would have appended instead. */
 export function seedGateProof(run: string, taskId: string, actor = "coordinator"): void {
   const loaded = loadRun(run);
   const binding = readPlanBindings(loaded.state).tasks.find((task) => task.id === taskId);
@@ -278,7 +268,6 @@ export function reviewPass(
   ];
 }
 
-/** Names every demand the probe raised, answered by the command the validator cites for it. */
 export function answeredBy(findingIds: unknown, commandId: string): string[] {
   return (findingIds as string[]).map((id) => `${id}=${commandId}`);
 }

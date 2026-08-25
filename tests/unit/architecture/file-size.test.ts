@@ -7,11 +7,6 @@ const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const scriptsRoot = join(repoRoot, "olt/scripts");
 const testsRoot = join(repoRoot, "tests");
 
-/**
- * A ceiling that catches a file growing past what fits comfortably in one reading, not a target to
- * design against: a file nearing it is split when it has a real seam, and left whole when splitting
- * it would only scatter one idea across two files to satisfy the counter.
- */
 const MAX_LINES = 4000;
 
 async function filesBelow(root: string): Promise<string[]> {
@@ -48,10 +43,6 @@ describe("runtime architecture", () => {
     for (const path of files) {
       const source = await readFile(path, "utf8");
       source.split(/\r?\n/).forEach((line, index) => {
-        // A clock read straight into a module-scope binding is taken when the file is imported,
-        // which under a parallel run is long before the body that depends on it: the window it
-        // names has already passed, and a fixture stamping files against it refuses what it should
-        // accept. A binding that holds a function reading the clock later is not that shape.
         if (
           /^(export )?(const|let|var) [^=]*=\s*(Date\.now\(\)|performance\.now\(\)|new Date\(\s*(\)|Date\.now\(\)|performance\.now\(\)))/.test(
             line,
@@ -67,8 +58,7 @@ describe("runtime architecture", () => {
     const manifest = JSON.parse(await readFile(join(scriptsRoot, "package.json"), "utf8")) as {
       scripts?: Record<string, string>;
     };
-    // The suite lives at the repo root. A `test` script here would have to name a `tests` directory
-    // below `scripts`, which would split the suite and duplicate the runner configuration.
+
     expect(manifest.scripts?.test).toBeUndefined();
   });
 
@@ -89,14 +79,6 @@ describe("runtime architecture", () => {
     ).toEqual([]);
   });
 
-  /**
-   * `telemetry/collectors/common.ts` polls `api.anthropic.com/api/oauth/usage` for the signed-in
-   * user's own live quota/usage numbers — the same host-observed telemetry this file's collectors
-   * already read from CLI-emitted files and env vars elsewhere in this tree, just sourced over
-   * HTTP instead of disk. It is not an inference/completion call and ships no model-provider SDK;
-   * this check exists to keep raw LLM inference transport out of the harness, not to ban reading a
-   * host's own usage endpoint. See commit 2a0d9bcb, where this collector was added.
-   */
   const HARDCODED_TRANSPORT_EXEMPTIONS: readonly string[] = ["src/telemetry/collectors/common.ts"];
 
   test("contains no model-provider SDK or hardcoded API transport", async () => {
