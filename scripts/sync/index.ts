@@ -28,14 +28,21 @@ export interface SyncSummary {
 
 export const GLOBAL_SYNC_GEN5 = true;
 
+function orDefault<T>(value: T | undefined, fallback: T): T {
+  if (value !== undefined) {
+    return value;
+  }
+  return fallback;
+}
+
 /**
  * Main orchestrator for synchronizing skills, deploying the global olt binary,
  * and configuring the shell environment.
  */
 export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
-  const sourceRepoRoot = options?.sourceRepoRoot ?? process.cwd();
-  const home = options?.homeDir ?? homedir();
-  const targetOlt = options?.targetOltDir ?? join(home, ".agents", "skills", "olt");
+  const sourceRepoRoot = orDefault(options?.sourceRepoRoot, process.cwd());
+  const home = orDefault(options?.homeDir, homedir());
+  const targetOlt = orDefault(options?.targetOltDir, join(home, ".agents", "skills", "olt"));
   const sourceOlt = join(sourceRepoRoot, "olt");
 
   if (!options?.silent) {
@@ -59,7 +66,9 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
     if (shellResult.modified) {
       console.log(`✓ Shell PATH: Configured in ${shellResult.targetRc}.`);
     } else {
-      console.log(`✓ Shell PATH: ${shellResult.reason} (${shellResult.targetRc ?? "N/A"}).`);
+      console.log(
+        `✓ Shell PATH: ${shellResult.reason} (${orDefault(shellResult.targetRc, "N/A")}).`,
+      );
     }
   }
 
@@ -71,12 +80,23 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
 }
 
 // Auto-run if executed directly as entry script
-const isMain =
-  import.meta.main ||
-  (process.argv[1] &&
-    (process.argv[1].endsWith("scripts/sync/index.ts") ||
-      process.argv[1].endsWith("scripts/sync")));
+function computeIsMain(): boolean {
+  if (import.meta.main) {
+    return true;
+  }
+  const entryArg = process.argv[1];
+  if (entryArg === undefined) {
+    return false;
+  }
+  if (entryArg.endsWith("scripts/sync/index.ts")) {
+    return true;
+  }
+  return entryArg.endsWith("scripts/sync");
+}
+
+const isMain = computeIsMain();
 
 if (isMain) {
-  await runSync();
+  const allowDirty = process.argv.slice(2).includes("--allow-dirty");
+  await runSync({ allowDirty });
 }

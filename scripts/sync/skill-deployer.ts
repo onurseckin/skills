@@ -11,11 +11,13 @@ import {
 import { sealInstallationManifest } from "../../olt/scripts/src/installer/manifest-integrity.ts";
 import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
 import { safeRemove, smartEnsureSymlink } from "./fs-helpers";
+import { resolveOltSyncSource } from "./git-source";
 
 export interface DeploySkillOptions {
   sourceRepoRoot?: string | undefined;
   targetOltDir?: string | undefined;
   homeDir?: string | undefined;
+  allowDirty?: boolean | undefined;
 }
 
 export interface DeploySkillResult {
@@ -50,7 +52,8 @@ function isOwnedLegacyDeployment(targetOlt: string, sourceRepoRoot: string): boo
   if (!existsSync(legacyConfigPath)) return false;
   try {
     const value = JSON.parse(readFileSync(legacyConfigPath, "utf-8")) as unknown;
-    if (!value || typeof value !== "object") return false;
+    if (!value) return false;
+    if (typeof value !== "object") return false;
     const homeRepoRoot = (value as Record<string, unknown>)["home_repo_root"];
     return typeof homeRepoRoot === "string" && resolve(homeRepoRoot) === resolve(sourceRepoRoot);
   } catch {
@@ -66,7 +69,8 @@ export async function migrateOwnedLegacyDeployment(
   targetOlt: string,
   sourceRepoRoot: string,
 ): Promise<boolean> {
-  if (!existsSync(targetOlt) || existsSync(join(targetOlt, "installation.json"))) return false;
+  if (!existsSync(targetOlt)) return false;
+  if (existsSync(join(targetOlt, "installation.json"))) return false;
   if (!isOwnedLegacyDeployment(targetOlt, sourceRepoRoot)) {
     throw new Error(
       `refusing to replace untrusted global skill directory without installation.json: ${targetOlt}`,
@@ -86,22 +90,40 @@ export async function migrateOwnedLegacyDeployment(
   return true;
 }
 
+function orDefault<T>(value: T | undefined, fallback: T): T {
+  if (value !== undefined) {
+    return value;
+  }
+  return fallback;
+}
+
 export async function deployCanonicalSkill(
   options?: DeploySkillOptions,
 ): Promise<DeploySkillResult> {
-  const sourceRepoRoot = options?.sourceRepoRoot ?? process.cwd();
-  const home = options?.homeDir ?? homedir();
-  const targetOlt = options?.targetOltDir ?? join(home, ".agents", "skills", "olt");
-  const sourceOlt = join(sourceRepoRoot, "olt");
+  const sourceRepoRoot = orDefault(options?.sourceRepoRoot, process.cwd());
+  const home = orDefault(options?.homeDir, homedir());
+  const targetOlt = orDefault(options?.targetOltDir, join(home, ".agents", "skills", "olt"));
+  const allowDirty = orDefault(options?.allowDirty, false);
 
   // The pre-manifest deployer wrote skill-config.json but could not produce the signed release
   // manifest required by `doctor --source --home`. Migrate only a deployment that proves it was
   // made from this exact source repository; its identity lets installSkill atomically replace it.
   await migrateOwnedLegacyDeployment(targetOlt, sourceRepoRoot);
 
-  // Publish through the hardened installer so the deployed tree and its installation manifest
-  // have a single digest contract with doctor.
-  await installSkill(sourceOlt, home, ["claude", "antigravity", "codex", "chatgpt"]);
+  // Resolves to the committed olt/ tree unless --allow-dirty explicitly opts into deploying the
+  // working tree as-is; refuses outright when olt/ is dirty and no override was given.
+  const { sourceOltDir: sourceOlt, cleanup: cleanupSourceOlt } = resolveOltSyncSource(
+    sourceRepoRoot,
+    allowDirty,
+  );
+
+  try {
+    // Publish through the hardened installer so the deployed tree and its installation manifest
+    // have a single digest contract with doctor.
+    await installSkill(sourceOlt, home, ["claude", "antigravity", "codex", "chatgpt"]);
+  } finally {
+    cleanupSourceOlt();
+  }
 
   // Preserve the runtime's source-home lookup while installation verification intentionally
   // excludes this deploy-local metadata file from the release digest.
