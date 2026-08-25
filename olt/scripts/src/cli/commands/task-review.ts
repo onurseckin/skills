@@ -175,8 +175,15 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     const latestRecord = getLatestMicroCycle(updatedTask);
     const round = latestRecord?.round ?? updatedTask.micro_cycle_round ?? 1;
     const markdown = latestRecord
-      ? formatMicroCycleFeedback(taskId, latestRecord, maxRounds ?? DEFAULT_MAX_MICRO_CYCLES)
-      : `### 🔄 Micro-Cycle Feedback (Round ${round})\n\nValidator: ${validator}\nCritique: ${reason}`;
+      ? formatMicroCycleFeedback(
+          taskId,
+          latestRecord,
+          maxRounds ?? DEFAULT_MAX_MICRO_CYCLES,
+          state.repairToken,
+        )
+      : `### 🔄 Micro-Cycle Feedback (Round ${round})\n\nValidator: ${validator}\nCritique: ${reason}${
+          state.repairToken ? `\n\nRepair Lease Token: ${state.repairToken}` : ""
+        }`;
 
     return {
       micro_cycle: true,
@@ -186,6 +193,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
       task: updatedTask,
       ...(latestRecord ? { micro_cycle_record: latestRecord } : {}),
       ...(remediation !== undefined ? { remediation } : {}),
+      ...(state.repairToken !== undefined ? { repair_token: state.repairToken } : {}),
     };
   }
 

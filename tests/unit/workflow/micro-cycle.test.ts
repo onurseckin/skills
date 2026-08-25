@@ -16,6 +16,7 @@ import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { taskRejectCommand } from "../../../olt/scripts/src/cli/commands/task-reject.ts";
 import { taskReviewCommand } from "../../../olt/scripts/src/cli/commands/task-review.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { cleanupRoots } from "../cli/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../cli/file-persistence-fixture.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "./test-port.ts";
@@ -23,6 +24,14 @@ import { at, registerTaskPacket, TestPort, workflowState } from "./test-port.ts"
 const clock = at("2026-08-22T12:00:00.000Z");
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
+
+function requireTask(state: WorkflowState, taskId: string): TaskRecord {
+  const task = state.tasks[taskId];
+  if (!task) {
+    throw new Error(`expected task ${taskId} to exist`);
+  }
+  return task;
+}
 
 function leasedPort(): { port: TestPort; token: string } {
   const state = workflowState();
@@ -35,7 +44,7 @@ function leasedPort(): { port: TestPort; token: string } {
 describe("1-Hop Micro-Cycles (recordMicroCycleCritique & markMicroCycleAddressed)", () => {
   test("recordMicroCycleCritique preserves implementer lease and sets status to leased", () => {
     const { port } = leasedPort();
-    const beforeTask = port.read().tasks["T-1"]!;
+    const beforeTask = requireTask(port.read(), "T-1");
     expect(beforeTask.status).toBe("leased");
     expect(beforeTask.lease).toBeDefined();
     const originalLease = structuredClone(beforeTask.lease);
@@ -52,16 +61,20 @@ describe("1-Hop Micro-Cycles (recordMicroCycleCritique & markMicroCycleAddressed
       },
     );
 
-    const task = afterState.tasks["T-1"]!;
+    const task = requireTask(afterState, "T-1");
     expect(task.status).toBe("leased");
     expect(task.lease).toBeDefined();
     expect(task.lease?.agent_id).toBe(originalLease?.agent_id);
     expect(task.lease?.token_digest).toBe(originalLease?.token_digest);
-    expect(task.repair_round).toBe(0); // repair_round is NOT incremented in micro-cycles
+    expect(task.repair_round).toBe(0);
 
     expect(task.micro_cycle_round).toBe(1);
     expect(task.micro_cycles).toHaveLength(1);
-    const cycle = (task.micro_cycles as MicroCycleRecord[])[0]!;
+    const cycles = task.micro_cycles as MicroCycleRecord[];
+    const cycle = cycles[0];
+    if (!cycle) {
+      throw new Error("expected micro cycle at index 0");
+    }
     expect(cycle.round).toBe(1);
     expect(cycle.validator_id).toBe("val-1");
     expect(cycle.critique).toBe("Edge case in parser when input has trailing whitespace");
@@ -78,11 +91,11 @@ describe("1-Hop Micro-Cycles (recordMicroCycleCritique & markMicroCycleAddressed
 
   test("recordMicroCycleCritique transitions task back to leased from validating or submitted", () => {
     const { port } = leasedPort();
-    // Simulate task moved to validating
     port.transact("test", "status-change", {}, (draft) => {
-      draft.tasks["T-1"]!.status = "validating";
+      const task = requireTask(draft, "T-1");
+      task.status = "validating";
     });
-    expect(port.read().tasks["T-1"]!.status).toBe("validating");
+    expect(requireTask(port.read(), "T-1").status).toBe("validating");
 
     const afterState = recordMicroCycleCritique(
       port,
@@ -92,25 +105,25 @@ describe("1-Hop Micro-Cycles (recordMicroCycleCritique & markMicroCycleAddressed
       { clock },
     );
 
-    expect(afterState.tasks["T-1"]!.status).toBe("leased");
-    expect(afterState.tasks["T-1"]!.micro_cycle_round).toBe(1);
+    expect(requireTask(afterState, "T-1").status).toBe("leased");
+    expect(requireTask(afterState, "T-1").micro_cycle_round).toBe(1);
   });
 
   test("multiple micro-cycle rounds increment counter sequentially", () => {
     const { port } = leasedPort();
 
     recordMicroCycleCritique(port, "T-1", "val-1", "Round 1 feedback", { clock });
-    let task = port.read().tasks["T-1"]!;
+    let task = requireTask(port.read(), "T-1");
     expect(task.micro_cycle_round).toBe(1);
     expect(task.micro_cycles).toHaveLength(1);
 
     recordMicroCycleCritique(port, "T-1", "val-1", "Round 2 feedback", { clock });
-    task = port.read().tasks["T-1"]!;
+    task = requireTask(port.read(), "T-1");
     expect(task.micro_cycle_round).toBe(2);
     expect(task.micro_cycles).toHaveLength(2);
 
     recordMicroCycleCritique(port, "T-1", "val-1", "Round 3 feedback", { clock });
-    task = port.read().tasks["T-1"]!;
+    task = requireTask(port.read(), "T-1");
     expect(task.micro_cycle_round).toBe(3);
     expect(task.micro_cycles).toHaveLength(3);
   });
@@ -164,11 +177,11 @@ describe("1-Hop Micro-Cycles (recordMicroCycleCritique & markMicroCycleAddressed
     recordMicroCycleCritique(port, "T-1", "val-1", "Issue 1", { clock });
     recordMicroCycleCritique(port, "T-1", "val-1", "Issue 2", { clock });
 
-    let task = port.read().tasks["T-1"]!;
+    let task = requireTask(port.read(), "T-1");
     expect(getOpenMicroCycles(task)).toHaveLength(2);
 
     const updatedState = markMicroCycleAddressed(port, "T-1", "worker-1", clock);
-    task = updatedState.tasks["T-1"]!;
+    task = requireTask(updatedState, "T-1");
     expect(getOpenMicroCycles(task)).toHaveLength(0);
     const cycles = task.micro_cycles as MicroCycleRecord[];
     expect(cycles.every((c) => c.status === "addressed")).toBe(true);
@@ -180,12 +193,12 @@ describe("1-Hop Micro-Cycles (recordMicroCycleCritique & markMicroCycleAddressed
 
   test("getLatestMicroCycle returns the most recent micro-cycle", () => {
     const { port } = leasedPort();
-    expect(getLatestMicroCycle(port.read().tasks["T-1"]!)).toBeUndefined();
+    expect(getLatestMicroCycle(requireTask(port.read(), "T-1"))).toBeUndefined();
 
     recordMicroCycleCritique(port, "T-1", "val-1", "First issue", { clock });
     recordMicroCycleCritique(port, "T-1", "val-2", "Second issue", { clock });
 
-    const latest = getLatestMicroCycle(port.read().tasks["T-1"]!);
+    const latest = getLatestMicroCycle(requireTask(port.read(), "T-1"));
     expect(latest?.round).toBe(2);
     expect(latest?.validator_id).toBe("val-2");
     expect(latest?.critique).toBe("Second issue");
@@ -303,6 +316,19 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
   test("taskRejectCommand with --micro-cycle records critique and keeps implementer lease active", async () => {
     const { repo, run } = await setupCompiledRun("micro-cycle-reject-test", roots);
 
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
     const claim = await execute([
       "task:claim",
       "--run",
@@ -366,6 +392,19 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
     const { repo, run } = await setupCompiledRun("micro-cycle-review-fail-test", roots);
 
     await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+      "--host",
+      "antigravity",
+      "--parent-task",
+      "task-core",
+    ]);
+    await execute([
       "task:claim",
       "--run",
       run,
@@ -400,13 +439,16 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
   test("markMicroCycleAddressed integrates with review workflow to clear open micro-cycles", () => {
     const { port } = leasedPort();
     recordMicroCycleCritique(port, "T-1", "val-1", "Minor syntax improvement needed", { clock });
-    expect(getOpenMicroCycles(port.read().tasks["T-1"]!)).toHaveLength(1);
+    expect(getOpenMicroCycles(requireTask(port.read(), "T-1"))).toHaveLength(1);
 
     const updatedState = markMicroCycleAddressed(port, "T-1", "val-1", clock);
-    const task = updatedState.tasks["T-1"]!;
+    const task = requireTask(updatedState, "T-1");
     expect(task.micro_cycles).toBeDefined();
     expect(getOpenMicroCycles(task)).toHaveLength(0);
-    expect(task.micro_cycles?.every((c) => c.status === "addressed")).toBe(true);
+    const rawCycles = task.micro_cycles as MicroCycleRecord[] | undefined;
+    const cycles = rawCycles === undefined ? [] : rawCycles;
+    expect(cycles.length > 0).toBe(true);
+    expect(cycles.every((c: MicroCycleRecord) => c.status === "addressed")).toBe(true);
   });
 
   test("recordMicroCycleCritique rejects concurrent status change during transaction", () => {
@@ -414,7 +456,8 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
     const originalTransact = port.transact.bind(port);
     port.transact = (actor, kind, payload, mutate) => {
       return originalTransact(actor, kind, payload, (draft) => {
-        draft.tasks["T-1"]!.status = "cancelled";
+        const task = requireTask(draft, "T-1");
+        task.status = "cancelled";
         mutate(draft);
       });
     };
@@ -429,13 +472,14 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
     const originalTransact = port.transact.bind(port);
     port.transact = (actor, kind, payload, mutate) => {
       return originalTransact(actor, kind, payload, (draft) => {
-        draft.tasks["T-1"]!.micro_cycle_round = 3;
+        const task = requireTask(draft, "T-1");
+        task.micro_cycle_round = 3;
         mutate(draft);
       });
     };
 
     expect(() =>
-      recordMicroCycleCritique(port, "T-1", "val-1", "critique", { maxMicroCycles: 3, clock }),
+      recordMicroCycleCritique(port, "T-1", "val-1", "critique", { maxRounds: 3, clock }),
     ).toThrow(/MAX_MICRO_CYCLES_EXCEEDED/);
   });
 });
