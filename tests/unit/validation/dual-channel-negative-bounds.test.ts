@@ -1,4 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
 import {
   analyzeDualChannel,
   validateCrossChannelConsistency,
@@ -8,53 +12,108 @@ import {
 
 describe("Dual-Channel Visual Analyzer - Negative Bounds & Custom Viewports", () => {
   describe("Viewport Normalization & Custom Viewports", () => {
-    test("handles custom and non-standard viewports (4k, ultrawide, iphone15)", () => {
-      const domReport: VisualMetricsReport = {
-        renderCacheReset: true,
-        viewports: [
-          { viewport: "4k", width: 3840, height: 2160 },
-          { viewport: "ultrawide", width: 3440, height: 1440 },
-          { viewport: "iphone15", width: 393, height: 852 },
-        ],
-      };
+    test("covers custom, non-canonical required viewports (4k, iphone15) only when real measured PNG bytes corroborate the self-reported dimensions", () => {
+      const dir = mkdtempSync(join(tmpdir(), "dual-channel-custom-viewport-"));
+      try {
+        const fourKPath = join(dir, "4k.png");
+        const iphonePath = join(dir, "iphone15.png");
+        writeFileSync(fourKPath, createSyntheticPngBuffer(3840, 2160, 2000));
+        writeFileSync(iphonePath, createSyntheticPngBuffer(393, 852, 2000));
 
-      const screenshots: ScreenshotMetadata[] = [
-        {
-          name: "4k.png",
-          path: "/screens/4k.png",
-          viewport: "4k",
-          width: 3840,
-          height: 2160,
-          sizeBytes: 50000,
-        },
-        {
-          name: "ultrawide.png",
-          path: "/screens/ultrawide.png",
-          viewport: "ultrawide",
-          width: 3440,
-          height: 1440,
-          sizeBytes: 45000,
-        },
-        {
-          name: "iphone15.png",
-          path: "/screens/iphone15.png",
-          viewport: "iphone15",
-          width: 393,
-          height: 852,
-          sizeBytes: 15000,
-        },
-      ];
+        const screenshots: ScreenshotMetadata[] = [
+          {
+            name: "4k.png",
+            path: fourKPath,
+            viewport: "4k",
+            width: 3840,
+            height: 2160,
+            sizeBytes: 2000,
+          },
+          {
+            name: "iphone15.png",
+            path: iphonePath,
+            viewport: "iphone15",
+            width: 393,
+            height: 852,
+            sizeBytes: 2000,
+          },
+        ];
 
-      const result = analyzeDualChannel({
-        taskFiles: ["src/components/Header.tsx"],
-        domReport,
-        screenshots,
-        requiredViewports: ["4k", "ultrawide", "iphone15"],
-      });
+        const result = analyzeDualChannel({
+          taskFiles: ["src/components/Header.tsx"],
+          screenshots,
+          requiredViewports: ["4k", "iphone15"],
+        });
 
-      expect(result.passed).toBe(true);
-      expect(result.mode).toBe("dual_channel_corroborated");
-      expect(result.proofs).toHaveLength(3);
+        expect(result.passed).toBe(true);
+        expect(result.mode).toBe("screenshot_gap_filled");
+        expect(result.findings).toHaveLength(0);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    test("rejects a custom-viewport screenshot whose self-reported dimensions contradict its real measured PNG bytes (4k label on a 50x50 image)", () => {
+      const dir = mkdtempSync(join(tmpdir(), "dual-channel-custom-viewport-bypass-"));
+      try {
+        const path = join(dir, "fake-4k.png");
+        writeFileSync(path, createSyntheticPngBuffer(50, 50, 2000));
+
+        const result = analyzeDualChannel({
+          taskFiles: ["src/components/Header.tsx"],
+          requiredViewports: ["4k"],
+          screenshots: [
+            {
+              name: "fake-4k.png",
+              path,
+              viewport: "4k",
+              width: 3840,
+              height: 2160,
+              sizeBytes: 2000,
+            },
+          ],
+        });
+
+        expect(result.passed).toBe(false);
+        expect(result.mode).toBe("rejected");
+        expect(result.proofs.some((p) => p.status === "screenshot_only_gap_filled")).toBe(false);
+        const mismatch = result.findings.filter((f) => f.category === "invalid_screenshot_size");
+        expect(mismatch.length).toBeGreaterThan(0);
+        expect(mismatch.some((f) => f.message.includes("50x50"))).toBe(true);
+        expect(mismatch.some((f) => f.message.includes("3840x2160"))).toBe(true);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    test("rejects a custom-viewport screenshot claim with no self-reported dimensions to cross-check against real measured bytes", () => {
+      const dir = mkdtempSync(join(tmpdir(), "dual-channel-custom-viewport-unverifiable-"));
+      try {
+        const path = join(dir, "unlabeled-4k.png");
+        writeFileSync(path, createSyntheticPngBuffer(3840, 2160, 2000));
+
+        const result = analyzeDualChannel({
+          taskFiles: ["src/components/Header.tsx"],
+          requiredViewports: ["4k"],
+          screenshots: [
+            {
+              name: "unlabeled-4k.png",
+              path,
+              viewport: "4k",
+              sizeBytes: 2000,
+            },
+          ],
+        });
+
+        expect(result.passed).toBe(false);
+        expect(result.mode).toBe("rejected");
+        const mismatch = result.findings.filter((f) => f.category === "invalid_screenshot_size");
+        expect(mismatch.some((f) => f.message.includes("no self-reported width/height"))).toBe(
+          true,
+        );
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
     });
 
     test("detects missing custom required viewport", () => {

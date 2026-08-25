@@ -5,6 +5,12 @@ import type {
 } from "./dual-channel-types.ts";
 
 export function normalizeViewportName(name?: string, width?: number): string {
+  if (typeof width === "number" && !isNaN(width) && width > 0) {
+    if (width <= 480) return "mobile";
+    if (width <= 900) return "tablet";
+    if (width <= 1920) return "desktop";
+    return "ultrawide";
+  }
   if (typeof name === "string" && name.trim().length > 0) {
     const trimmed = name.trim();
     const lower = trimmed.toLowerCase();
@@ -12,12 +18,6 @@ export function normalizeViewportName(name?: string, width?: number): string {
     if (lower.includes("tablet") || lower.includes("768")) return "tablet";
     if (lower.includes("desktop") || lower.includes("1280")) return "desktop";
     return lower;
-  }
-  if (typeof width === "number" && !isNaN(width) && width > 0) {
-    if (width <= 480) return "mobile";
-    if (width <= 900) return "tablet";
-    if (width <= 1920) return "desktop";
-    return "ultrawide";
   }
   return "unknown";
 }

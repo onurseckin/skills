@@ -199,6 +199,12 @@ export function resolveViewportsForScreen(
 }
 
 export async function runLiveCapture(options: CaptureRunOptions = {}): Promise<CaptureRunResult> {
+  if (options.browserProvider === undefined) {
+    throw new Error(
+      "runLiveCapture requires an explicit browserProvider that drives a real browser session. No default fabricator is substituted, because a silent synthetic fallback previously produced placeholder screenshots that were indistinguishable from genuine captured evidence.",
+    );
+  }
+
   const config =
     options.config ??
     loadCaptureConfig(options.configPath !== undefined ? { configPath: options.configPath } : {});
@@ -213,7 +219,7 @@ export async function runLiveCapture(options: CaptureRunOptions = {}): Promise<C
     options.targetScreens,
   );
 
-  const provider = options.browserProvider ?? new DefaultFallbackBrowserProvider();
+  const provider = options.browserProvider;
   const browser = await provider.launch({ headless: options.headless ?? true });
 
   const captures: CaptureItemResult[] = [];

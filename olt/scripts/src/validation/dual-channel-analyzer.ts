@@ -1,3 +1,5 @@
+import { CANONICAL_VIEWPORTS } from "../capture/config/default-presets.ts";
+import { readHeader } from "../summary/assets/asset-measure.ts";
 import {
   normalizeViewportName,
   validateCrossChannelConsistency,
@@ -75,6 +77,13 @@ export function isUiScope(paths: readonly string[]): boolean {
 
 const DEFAULT_REQUIRED_VIEWPORTS = ["mobile", "tablet", "desktop"] as const;
 
+const PROTECTED_VIEWPORT_BANDS: ReadonlySet<string> = new Set([
+  "mobile",
+  "tablet",
+  "desktop",
+  "ultrawide",
+]);
+
 function domInvariantsInspected(vp: ViewportMetrics, report: VisualMetricsReport): string[] {
   const inspected: string[] = [];
   if (vp.overflowViolations) inspected.push("no_overflow");
@@ -90,6 +99,144 @@ function domInvariantsInspected(vp: ViewportMetrics, report: VisualMetricsReport
 
 const SCREENSHOT_INVARIANT = "screenshot_non_empty";
 const MANIFEST_INVARIANT = "manifest_4_pillars_certified";
+
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+type PngDimensionRead =
+  | { readonly status: "unreadable" }
+  | { readonly status: "invalid_png" }
+  | { readonly status: "measured"; readonly width: number; readonly height: number };
+
+function readPngPixelDimensions(path: string): PngDimensionRead {
+  const read = readHeader(path);
+  if (read === undefined) return { status: "unreadable" };
+  const header = read.header;
+  if (header.length < 24) return { status: "invalid_png" };
+  if (!header.subarray(0, 8).equals(PNG_SIGNATURE)) return { status: "invalid_png" };
+  if (header.subarray(12, 16).toString("latin1") !== "IHDR") return { status: "invalid_png" };
+  return { status: "measured", width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
+}
+
+function measuredWidthOf(
+  pngReads: ReadonlyMap<ScreenshotMetadata, PngDimensionRead>,
+  sc: ScreenshotMetadata,
+): number | undefined {
+  const read = pngReads.get(sc);
+  return read !== undefined && read.status === "measured" ? read.width : undefined;
+}
+
+const MAX_DEVICE_SCALE_FACTOR = 4;
+
+function selfReportedDimensionsWithinTolerance(
+  measuredWidth: number,
+  measuredHeight: number,
+  claimedWidth: number | undefined,
+  claimedHeight: number | undefined,
+): boolean {
+  if (
+    typeof claimedWidth !== "number" ||
+    typeof claimedHeight !== "number" ||
+    Number.isNaN(claimedWidth) ||
+    Number.isNaN(claimedHeight) ||
+    claimedWidth <= 0 ||
+    claimedHeight <= 0
+  ) {
+    return false;
+  }
+  for (let scale = 1; scale <= MAX_DEVICE_SCALE_FACTOR; scale++) {
+    if (measuredWidth === claimedWidth * scale && measuredHeight === claimedHeight * scale) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export interface PngVerificationResult {
+  readonly reads: ReadonlyMap<ScreenshotMetadata, PngDimensionRead>;
+  readonly verifiedClaims: ReadonlySet<ScreenshotMetadata>;
+}
+
+function verifyScreenshotPixelDimensions(
+  screenshots: readonly ScreenshotMetadata[],
+  addFinding: FindingAdder,
+): PngVerificationResult {
+  const reads = new Map<ScreenshotMetadata, PngDimensionRead>();
+  const verifiedClaims = new Set<ScreenshotMetadata>();
+  for (const sc of screenshots) {
+    const pngRead = readPngPixelDimensions(sc.path);
+    reads.set(sc, pngRead);
+    if (pngRead.status === "unreadable") {
+      addFinding(
+        "invalid_screenshot_size",
+        "error",
+        `Anti-Mocking Invariant Violation: Screenshot '${sc.name}' (${sc.path}) could not be opened to verify its real pixel dimensions (the file is missing or unreadable). A screenshot whose bytes were never inspected cannot count as captured evidence.`,
+        "Ensure the screenshot path points to a PNG file that genuinely exists on disk and was produced by the real browser rendering pipeline, not a fabricated or metadata-only entry.",
+        undefined,
+        sc.viewport,
+      );
+      continue;
+    }
+    if (pngRead.status === "invalid_png") {
+      addFinding(
+        "invalid_screenshot_size",
+        "error",
+        `Anti-Mocking Invariant Violation: Screenshot '${sc.name}' (${sc.path}) is not a valid PNG image (missing PNG signature or IHDR chunk at the expected byte offsets).`,
+        "Ensure the captured evidence file is a genuine PNG rasterization produced by the browser rendering pipeline.",
+        undefined,
+        sc.viewport,
+      );
+      continue;
+    }
+
+    const claimedName = sc.viewport === undefined ? sc.name : sc.viewport;
+    const claimedViewport = normalizeViewportName(claimedName, undefined);
+    const canonical = CANONICAL_VIEWPORTS[claimedViewport];
+    if (canonical === undefined) {
+      const consistent = selfReportedDimensionsWithinTolerance(
+        pngRead.width,
+        pngRead.height,
+        sc.width,
+        sc.height,
+      );
+      if (consistent) {
+        verifiedClaims.add(sc);
+      } else {
+        const hasSelfReportedDims = typeof sc.width === "number" && typeof sc.height === "number";
+        addFinding(
+          "invalid_screenshot_size",
+          "error",
+          hasSelfReportedDims
+            ? `Anti-Mocking Invariant Violation: Screenshot '${sc.name}' (${sc.path}) claims custom viewport '${claimedViewport}' with self-reported dimensions ${sc.width}x${sc.height}, but its real measured pixel dimensions (${pngRead.width}x${pngRead.height}) are not a consistent match at any 1x-${MAX_DEVICE_SCALE_FACTOR}x device pixel ratio.`
+            : `Anti-Mocking Invariant Violation: Screenshot '${sc.name}' (${sc.path}) claims non-canonical viewport '${claimedViewport}' with real measured pixel dimensions (${pngRead.width}x${pngRead.height}) but supplies no self-reported width/height to cross-check the claim against. A custom viewport whose correctness cannot be established must not count as captured evidence.`,
+          "Provide self-reported width/height metadata that matches the real captured pixel dimensions for custom, non-canonical viewports, or capture at one of the canonical viewport presets.",
+          undefined,
+          sc.viewport,
+        );
+      }
+      continue;
+    }
+
+    const scaleFactor = canonical.deviceScaleFactor === undefined ? 1 : canonical.deviceScaleFactor;
+    const widthOk =
+      pngRead.width >= canonical.width && pngRead.width <= canonical.width * scaleFactor;
+    const heightOk =
+      pngRead.height >= canonical.height && pngRead.height <= canonical.height * scaleFactor;
+    const matches = widthOk && heightOk;
+    if (matches) {
+      verifiedClaims.add(sc);
+    } else {
+      addFinding(
+        "invalid_screenshot_size",
+        "error",
+        `Anti-Mocking Invariant Violation: Screenshot '${sc.name}' (${sc.path}) claims viewport '${claimedViewport}' but its real pixel dimensions (${pngRead.width}x${pngRead.height}) do not match the canonical '${claimedViewport}' viewport (${canonical.width}x${canonical.height}, up to ${scaleFactor}x device pixel ratio).`,
+        `Capture genuine '${claimedViewport}' viewport evidence at ${canonical.width}x${canonical.height} (or an integer device-pixel-ratio multiple of it) rather than a placeholder image.`,
+        undefined,
+        sc.viewport,
+      );
+    }
+  }
+  return { reads, verifiedClaims };
+}
 
 export interface ManifestCriteriaValidationResult {
   readonly valid: boolean;
@@ -561,6 +708,14 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
     }
   }
 
+  const sizeValidScreenshots = screenshots.filter(
+    (sc) => typeof sc.sizeBytes === "number" && !isNaN(sc.sizeBytes) && sc.sizeBytes >= 1024,
+  );
+  const { reads: pngReads, verifiedClaims } = verifyScreenshotPixelDimensions(
+    sizeValidScreenshots,
+    addFinding,
+  );
+
   // Validate manifests: 4 Pillars & Criteria
   let manifestProofsValid = false;
   if (hasManifests) {
@@ -576,25 +731,37 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
 
   const requiredVps = input.requiredViewports ?? DEFAULT_REQUIRED_VIEWPORTS;
   const coveredVps = new Set<string>();
+  const coveredRawNames = new Set<string>();
 
   if (input.domReport) {
     for (const vp of input.domReport.viewports) {
       coveredVps.add(normalizeViewportName(vp.viewport, vp.width));
+      coveredRawNames.add(vp.viewport.trim().toLowerCase());
     }
     extractDomViolations(input.domReport, addFinding, input.subpixelTolerance);
   }
 
-  const validScreenshots = screenshots.filter(
-    (s) => typeof s.sizeBytes === "number" && s.sizeBytes >= 1024 && !isNaN(s.sizeBytes),
-  );
+  const validScreenshots = screenshots.filter((s) => {
+    if (typeof s.sizeBytes !== "number" || isNaN(s.sizeBytes) || s.sizeBytes < 1024) return false;
+    const read = pngReads.get(s);
+    return read !== undefined && read.status === "measured";
+  });
 
   for (const sc of validScreenshots) {
-    coveredVps.add(normalizeViewportName(sc.viewport ?? sc.name, sc.width));
+    const rawLabel = sc.viewport === undefined ? sc.name : sc.viewport;
+    coveredVps.add(normalizeViewportName(rawLabel, measuredWidthOf(pngReads, sc)));
+    if (verifiedClaims.has(sc)) {
+      coveredRawNames.add(rawLabel.trim().toLowerCase());
+    }
   }
 
   for (const reqVp of requiredVps) {
     const normReq = normalizeViewportName(reqVp);
-    if (!coveredVps.has(normReq)) {
+    const rawReq = reqVp.trim().toLowerCase();
+    const isStandardBand = PROTECTED_VIEWPORT_BANDS.has(normReq);
+    const customNameCovered = !isStandardBand && coveredRawNames.has(rawReq);
+    const isMissing = !coveredVps.has(normReq) && !customNameCovered;
+    if (isMissing) {
       addFinding(
         "missing_viewport",
         "error",
@@ -625,7 +792,7 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
     for (const vp of input.domReport!.viewports) {
       const norm = normalizeViewportName(vp.viewport, vp.width);
       const sc = validScreenshots.find(
-        (s) => normalizeViewportName(s.viewport ?? s.name, s.width) === norm,
+        (s) => normalizeViewportName(s.viewport ?? s.name, measuredWidthOf(pngReads, s)) === norm,
       );
       const hasViolations = findings.some(
         (f) => f.viewport === vp.viewport && f.severity === "error",
@@ -669,7 +836,7 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
   } else {
     mode = "screenshot_gap_filled";
     for (const sc of validScreenshots) {
-      const vpName = sc.viewport ?? normalizeViewportName(sc.name, sc.width);
+      const vpName = sc.viewport ?? normalizeViewportName(sc.name, measuredWidthOf(pngReads, sc));
       const hasViolations = findings.some((f) => f.viewport === vpName && f.severity === "error");
       const verifiedInvariants = [SCREENSHOT_INVARIANT];
       if (manifestProofsValid) {

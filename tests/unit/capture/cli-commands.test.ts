@@ -2,8 +2,13 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { captureInitCommand } from "../../../olt/scripts/src/cli/commands/capture-init.ts";
-import { captureRunCommand } from "../../../olt/scripts/src/cli/commands/capture-run.ts";
+import {
+  CAPTURE_RUN_MISSING_PROVIDER_FIX,
+  CAPTURE_RUN_MISSING_PROVIDER_MESSAGE,
+  captureRunCommand,
+} from "../../../olt/scripts/src/cli/commands/capture-run.ts";
 import { captureEvalCommand } from "../../../olt/scripts/src/cli/commands/capture-eval.ts";
 
 describe("T-CAP-CLI-TESTS: Harness CLI Capture Commands Integration", () => {
@@ -65,7 +70,7 @@ describe("T-CAP-CLI-TESTS: Harness CLI Capture Commands Integration", () => {
   });
 
   describe("capture:run", () => {
-    it("executes multi-viewport capture and persists companion manifests", async () => {
+    it("refuses to execute without a real browser automation driver, reporting a clear actionable error instead of fabricating evidence", async () => {
       const tempDir = join(tmpdir(), `cli-run-test-${Date.now()}`);
       mkdirSync(tempDir, { recursive: true });
 
@@ -94,23 +99,25 @@ screens:
         writeFileSync(configPath, configContent, "utf-8");
 
         const outDir = join(tempDir, "output");
-        const res = await captureRunCommand({
-          config: configPath,
-          "out-dir": outDir,
-        });
 
-        expect(res.success).toBe(true);
-        expect(res.total_captures).toBe(2);
+        let caught: unknown;
+        try {
+          await captureRunCommand({
+            config: configPath,
+            "out-dir": outDir,
+          });
+        } catch (err) {
+          caught = err;
+        }
 
-        const desktopPng = join(outDir, "home-desktop.png");
-        const desktopManifest = join(outDir, "home-desktop.manifest.json");
-        const mobilePng = join(outDir, "home-mobile.png");
-        const mobileManifest = join(outDir, "home-mobile.manifest.json");
+        expect(caught).toBeInstanceOf(HarnessError);
+        const harnessErr = caught as HarnessError;
+        expect(harnessErr.code).toBe("NOT_IMPLEMENTED");
+        expect(harnessErr.message).toBe(CAPTURE_RUN_MISSING_PROVIDER_MESSAGE);
+        expect(harnessErr.fix).toBe(CAPTURE_RUN_MISSING_PROVIDER_FIX);
 
-        expect(existsSync(desktopPng)).toBe(true);
-        expect(existsSync(desktopManifest)).toBe(true);
-        expect(existsSync(mobilePng)).toBe(true);
-        expect(existsSync(mobileManifest)).toBe(true);
+        expect(existsSync(join(outDir, "home-desktop.png"))).toBe(false);
+        expect(existsSync(join(outDir, "home-mobile.png"))).toBe(false);
       } finally {
         rmSync(tempDir, { recursive: true, force: true });
       }

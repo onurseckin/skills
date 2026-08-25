@@ -1,6 +1,8 @@
-import { describe, expect, test, it } from "bun:test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { afterAll, beforeAll, describe, expect, test, it } from "bun:test";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
 import {
   analyzeDualChannel,
   isUiScope,
@@ -196,38 +198,58 @@ describe("Dual-Channel Visual Analyzer", () => {
     const cleanDomReport: VisualMetricsReport = {
       renderCacheReset: true,
       viewports: [
-        { viewport: "mobile", width: 375, height: 667 },
+        { viewport: "mobile", width: 390, height: 844 },
         { viewport: "tablet", width: 768, height: 1024 },
-        { viewport: "desktop", width: 1280, height: 800 },
+        { viewport: "desktop", width: 1440, height: 900 },
       ],
     };
 
-    const validScreenshots: ScreenshotMetadata[] = [
-      {
-        name: "mobile.png",
-        path: "/screens/mobile.png",
-        viewport: "mobile",
-        width: 375,
-        height: 667,
-        sizeBytes: 5000,
-      },
-      {
-        name: "tablet.png",
-        path: "/screens/tablet.png",
-        viewport: "tablet",
-        width: 768,
-        height: 1024,
-        sizeBytes: 12000,
-      },
-      {
-        name: "desktop.png",
-        path: "/screens/desktop.png",
-        viewport: "desktop",
-        width: 1280,
-        height: 800,
-        sizeBytes: 25000,
-      },
-    ];
+    let gapFillDir: string;
+    let validScreenshots: ScreenshotMetadata[];
+
+    beforeAll(() => {
+      gapFillDir = mkdtempSync(join(tmpdir(), "dual-channel-gap-fill-"));
+      const mobilePath = join(gapFillDir, "mobile.png");
+      const tabletPath = join(gapFillDir, "tablet.png");
+      const desktopPath = join(gapFillDir, "desktop.png");
+      const mobileBuf = createSyntheticPngBuffer(390, 844, 5000);
+      const tabletBuf = createSyntheticPngBuffer(768, 1024, 12000);
+      const desktopBuf = createSyntheticPngBuffer(1440, 900, 25000);
+      writeFileSync(mobilePath, mobileBuf);
+      writeFileSync(tabletPath, tabletBuf);
+      writeFileSync(desktopPath, desktopBuf);
+
+      validScreenshots = [
+        {
+          name: "mobile.png",
+          path: mobilePath,
+          viewport: "mobile",
+          width: 390,
+          height: 844,
+          sizeBytes: mobileBuf.byteLength,
+        },
+        {
+          name: "tablet.png",
+          path: tabletPath,
+          viewport: "tablet",
+          width: 768,
+          height: 1024,
+          sizeBytes: tabletBuf.byteLength,
+        },
+        {
+          name: "desktop.png",
+          path: desktopPath,
+          viewport: "desktop",
+          width: 1440,
+          height: 900,
+          sizeBytes: desktopBuf.byteLength,
+        },
+      ];
+    });
+
+    afterAll(() => {
+      rmSync(gapFillDir, { recursive: true, force: true });
+    });
 
     test("when screenshots missing -> DOM metrics fill gap (dom_gap_filled)", () => {
       const result = analyzeDualChannel({
@@ -287,6 +309,120 @@ describe("Dual-Channel Visual Analyzer", () => {
       expect(mismatchFindings[0]?.message).toContain("Cross-Channel Discrepancy");
       expect(mismatchFindings[0]?.message).toContain("Dimension mismatch for viewport 'mobile'");
     });
+  });
+});
+
+describe("Real PNG IHDR Anti-Mocking Verification", () => {
+  const withTempDir = (run: (dir: string) => void): void => {
+    const dir = mkdtempSync(join(tmpdir(), "dual-channel-ihdr-"));
+    try {
+      run(dir);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+
+  test("rejects a fabricated placeholder PNG whose real dimensions contradict its claimed viewport", () => {
+    withTempDir((dir) => {
+      const path = join(dir, "something-mobile.png");
+      writeFileSync(path, createSyntheticPngBuffer(128, 128, 1200));
+
+      const result = analyzeDualChannel({
+        taskFiles: ["src/components/Foo.tsx"],
+        requiredViewports: ["mobile"],
+        screenshots: [{ name: "something-mobile.png", path, sizeBytes: 1200, viewport: "mobile" }],
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.mode).toBe("rejected");
+      const mismatch = result.findings.filter((f) => f.category === "invalid_screenshot_size");
+      expect(mismatch).toHaveLength(1);
+      expect(mismatch[0]?.message).toContain("128x128");
+      expect(mismatch[0]?.message).toContain("390x844");
+    });
+  });
+
+  test("passes a genuine 390x844 mobile screenshot verified against real IHDR bytes", () => {
+    withTempDir((dir) => {
+      const path = join(dir, "genuine-mobile.png");
+      writeFileSync(path, createSyntheticPngBuffer(390, 844, 2000));
+
+      const result = analyzeDualChannel({
+        taskFiles: ["src/components/Foo.tsx"],
+        requiredViewports: ["mobile"],
+        screenshots: [{ name: "genuine-mobile.png", path, sizeBytes: 2000, viewport: "mobile" }],
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.findings).toHaveLength(0);
+    });
+  });
+
+  test("does not let a genuine mobile screenshot satisfy desktop coverage via a fabricated width metadata field", () => {
+    withTempDir((dir) => {
+      const path = join(dir, "split-brain-mobile.png");
+      writeFileSync(path, createSyntheticPngBuffer(390, 844, 2000));
+
+      const result = analyzeDualChannel({
+        taskFiles: ["src/components/Foo.tsx"],
+        requiredViewports: ["desktop"],
+        screenshots: [
+          {
+            name: "split-brain-mobile.png",
+            path,
+            sizeBytes: 2000,
+            viewport: "mobile",
+            width: 1280,
+          },
+        ],
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.mode).toBe("rejected");
+      expect(result.findings.some((f) => f.category === "missing_viewport")).toBe(true);
+      expect(result.findings.some((f) => f.category === "invalid_screenshot_size")).toBe(false);
+    });
+  });
+
+  test("rejects a file that reports PNG-sized bytes but is not really a PNG", () => {
+    withTempDir((dir) => {
+      const path = join(dir, "fake-desktop.png");
+      writeFileSync(path, Buffer.alloc(1200, 0x41));
+
+      const result = analyzeDualChannel({
+        taskFiles: ["src/components/Foo.tsx"],
+        requiredViewports: ["desktop"],
+        screenshots: [{ name: "fake-desktop.png", path, sizeBytes: 1200, viewport: "desktop" }],
+      });
+
+      expect(result.passed).toBe(false);
+      const invalid = result.findings.filter((f) => f.category === "invalid_screenshot_size");
+      expect(invalid.some((f) => f.message.includes("not a valid PNG image"))).toBe(true);
+    });
+  });
+
+  test("rejects a screenshot naming a nonexistent path with fabricated metadata (does not satisfy coverage)", () => {
+    const result = analyzeDualChannel({
+      taskFiles: ["src/components/Foo.tsx"],
+      requiredViewports: ["mobile"],
+      screenshots: [
+        {
+          name: "unreachable-mobile.png",
+          path: "/unreachable/unreachable-mobile.png",
+          sizeBytes: 5000,
+          viewport: "mobile",
+        },
+      ],
+    });
+
+    expect(result.passed).toBe(false);
+    expect(result.mode).toBe("rejected");
+    const unreadableFindings = result.findings.filter(
+      (f) => f.category === "invalid_screenshot_size",
+    );
+    expect(unreadableFindings.length).toBeGreaterThan(0);
+    expect(unreadableFindings.some((f) => f.message.includes("could not be opened"))).toBe(true);
+    expect(result.findings.some((f) => f.category === "missing_viewport")).toBe(true);
   });
 });
 
@@ -680,27 +816,38 @@ describe("Semantic Depth Quality Checks & requireSemanticDepth Enforcement", () 
   });
 
   it("passes analyzeDualChannel when requireSemanticDepth is active and manifests provide deep quantitative proof", () => {
+    const semanticDepthDir = mkdtempSync(join(tmpdir(), "dual-channel-semantic-depth-"));
+    const desktopPath = join(semanticDepthDir, "header-desktop.png");
+    const tabletPath = join(semanticDepthDir, "header-tablet.png");
+    const mobilePath = join(semanticDepthDir, "header-mobile.png");
+    const desktopBuf = createSyntheticPngBuffer(1440, 900, 4096);
+    const tabletBuf = createSyntheticPngBuffer(768, 1024, 3072);
+    const mobileBuf = createSyntheticPngBuffer(390, 844, 2048);
+    writeFileSync(desktopPath, desktopBuf);
+    writeFileSync(tabletPath, tabletBuf);
+    writeFileSync(mobilePath, mobileBuf);
+
     const input: DualChannelInput = {
       writeScope: ["src/components/Header.tsx"],
       requireSemanticDepth: true,
       screenshots: [
         {
           name: "header-desktop.png",
-          path: "/tmp/header-desktop.png",
+          path: desktopPath,
           viewport: "desktop",
-          sizeBytes: 4096,
+          sizeBytes: desktopBuf.byteLength,
         },
         {
           name: "header-tablet.png",
-          path: "/tmp/header-tablet.png",
+          path: tabletPath,
           viewport: "tablet",
-          sizeBytes: 3072,
+          sizeBytes: tabletBuf.byteLength,
         },
         {
           name: "header-mobile.png",
-          path: "/tmp/header-mobile.png",
+          path: mobilePath,
           viewport: "mobile",
-          sizeBytes: 2048,
+          sizeBytes: mobileBuf.byteLength,
         },
       ],
       manifests: [
@@ -754,10 +901,14 @@ describe("Semantic Depth Quality Checks & requireSemanticDepth Enforcement", () 
       ],
     };
 
-    const result = analyzeDualChannel(input);
-    expect(result.isUiTask).toBe(true);
-    expect(result.passed).toBe(true);
-    expect(result.findings.filter((f) => f.severity === "error")).toHaveLength(0);
+    try {
+      const result = analyzeDualChannel(input);
+      expect(result.isUiTask).toBe(true);
+      expect(result.passed).toBe(true);
+      expect(result.findings.filter((f) => f.severity === "error")).toHaveLength(0);
+    } finally {
+      rmSync(semanticDepthDir, { recursive: true, force: true });
+    }
   });
 
   it("fails analyzeDualChannel when requireSemanticDepth is active and manifest has superficial details", () => {

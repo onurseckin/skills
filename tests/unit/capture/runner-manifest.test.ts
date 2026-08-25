@@ -6,6 +6,7 @@ import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/type
 import {
   computeLayoutMetrics,
   createEmptyDomPhysicsSnapshot,
+  DefaultFallbackBrowserProvider,
   extractDomPhysics,
   filterScreens,
   resolveCaptureOutputDir,
@@ -208,7 +209,11 @@ describe("Capture Runner & Companion Manifest Writer", () => {
           ],
         };
 
-        const result = await runLiveCapture({ config: testConfig, outDir: tempDir });
+        const result = await runLiveCapture({
+          config: testConfig,
+          outDir: tempDir,
+          browserProvider: new DefaultFallbackBrowserProvider(),
+        });
         expect(result.success).toBe(true);
         expect(result.totalCaptures).toBe(2);
 
@@ -226,6 +231,30 @@ describe("Capture Runner & Companion Manifest Writer", () => {
           expect(manifest.imageSizeBytes).toBeGreaterThan(0);
           expect(manifest.imageSha256).toBeDefined();
         }
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    test("refuses to silently fabricate evidence when no browserProvider is supplied", async () => {
+      const tempDir = join(tmpdir(), `test-capture-no-provider-${Date.now()}`);
+      mkdirSync(tempDir, { recursive: true });
+      const testConfig: CaptureConfig = {
+        version: "1.0",
+        baseUrl: "http://localhost:3000",
+        viewports: { desktop: { name: "desktop", width: 1440, height: 900 } },
+        screens: [{ id: "index", name: "Default Screen", path: "/" }],
+      };
+
+      try {
+        let threw = false;
+        try {
+          await runLiveCapture({ config: testConfig, outDir: tempDir });
+        } catch {
+          threw = true;
+        }
+        expect(threw).toBe(true);
+        expect(existsSync(join(tempDir, "index-desktop.png"))).toBe(false);
       } finally {
         rmSync(tempDir, { recursive: true, force: true });
       }
@@ -309,7 +338,11 @@ describe("Capture Runner & Companion Manifest Writer", () => {
         viewports: { desktop: { name: "desktop", width: 1440, height: 900 } },
         screens: [{ id: "runner-visual-proof", name: "Runner Visual Proof", path: "/proof" }],
       };
-      const result = await runLiveCapture({ config: testConfig, outDir: tempDir });
+      const result = await runLiveCapture({
+        config: testConfig,
+        outDir: tempDir,
+        browserProvider: new DefaultFallbackBrowserProvider(),
+      });
       expect(result.success).toBe(true);
       const proofPng = join(tempDir, "runner-visual-proof-desktop.png");
       const proofManifest = join(tempDir, "runner-visual-proof-desktop.manifest.json");

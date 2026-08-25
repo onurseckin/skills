@@ -21,6 +21,18 @@ describe("normalizeViewportName", () => {
     expect(normalizeViewportName("", Number.NaN)).toBe("unknown");
     expect(normalizeViewportName("   ", -10)).toBe("unknown");
   });
+
+  test("prefers a real measured width over a misleading name when both are present", () => {
+    expect(normalizeViewportName("desktop-preview.png", 375)).toBe("mobile");
+    expect(normalizeViewportName("mobile-thumbnail.png", 1280)).toBe("desktop");
+    expect(normalizeViewportName("tablet-shot.png", 3000)).toBe("ultrawide");
+  });
+
+  test("falls back to name-based classification only when width is unusable", () => {
+    expect(normalizeViewportName("desktop-preview.png", undefined)).toBe("desktop");
+    expect(normalizeViewportName("desktop-preview.png", Number.NaN)).toBe("desktop");
+    expect(normalizeViewportName("desktop-preview.png", -1)).toBe("desktop");
+  });
 });
 
 describe("validateCrossChannelConsistency", () => {
