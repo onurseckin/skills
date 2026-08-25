@@ -147,7 +147,7 @@ export class TelemetryNormalizationEngine {
     const activeWarnings: string[] = [];
     if (lowestRemainingQuota !== null && lowestRemainingQuota < 20) {
       activeWarnings.push(
-        `Low quota warning: ${lowestMetric?.canonicalProvider ?? "platform"} (${lowestMetric?.rawMetricName ?? "metric"}) at ${lowestRemainingQuota}%`,
+        `Low quota warning: ${lowestMetric?.canonicalProvider ?? "unknown"} (${lowestMetric?.rawMetricName ?? "unknown"}) at ${lowestRemainingQuota}%`,
       );
     }
 
@@ -212,7 +212,7 @@ export class TelemetryNormalizationEngine {
       } else {
         for (let mIdx = 0; mIdx < res.metrics.length; mIdx++) {
           const metric = res.metrics[mIdx]!;
-          const modelName = (metric.rawMetricName || "default").padEnd(30).slice(0, 30);
+          const modelName = (metric.rawMetricName || "unknown").padEnd(30).slice(0, 30);
           const winPad = (metric.windowType || "-").padEnd(10).slice(0, 10);
           const bar = formatPreciseProgressBar(metric.remainingPercentage, 6);
           const barPad = bar.padEnd(17).slice(0, 17);
@@ -256,7 +256,7 @@ export class TelemetryNormalizationEngine {
     for (const res of report.results) {
       if (res.platformId === "antigravity" && res.rawObservations.userTier) {
         const userTier = res.rawObservations.userTier as Record<string, unknown>;
-        const tierName = userTier.name || "Google AI Ultra";
+        const tierName = userTier.name || "unknown";
         const email = res.rawObservations.email ? `${res.rawObservations.email}` : "";
         const credits =
           Array.isArray(userTier.availableCredits) && userTier.availableCredits[0]

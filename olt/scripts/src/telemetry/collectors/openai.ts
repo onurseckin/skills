@@ -182,7 +182,7 @@ export class CodexCollector extends BaseTieredCollector {
       const planType = (rateLimits?.plan_type ??
         payload.plan_type ??
         root.plan_type ??
-        "prolite") as string;
+        "unknown") as string;
 
       const primary = (rateLimits?.primary ?? rateLimits) as Record<string, unknown> | undefined;
       const usedPercent =

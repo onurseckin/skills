@@ -41,7 +41,7 @@ export class SplitChannelDefectRouter {
       error_code: options.defect.error_code,
       title: options.defect.title,
       description: options.defect.description,
-      actor: options.defect.actor ?? "split-channel-router",
+      actor: options.defect.actor ?? "unknown",
       timestamp: options.defect.timestamp ?? new Date().toISOString(),
       source_repo: resolve(options.currentRepoRoot),
       ...(options.defect.context ? { context: options.defect.context } : {}),

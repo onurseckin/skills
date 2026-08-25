@@ -161,8 +161,8 @@ describe("Thread Identifier - 4-Tier Authority & Spawning Rules", () => {
     expect(mainCtx.is_main_thread).toBe(true);
     expect(mainCtx.compliance_state).toBe("restrained");
     expect(mainCtx.advisory).toContain("MAIN THREAD RESTRAINT ACTIVE");
-    // In test environments, defects are suppressed to avoid pollution, so defect will be null.
-    expect(mainCtx.defect).toBeNull();
+    expect(mainCtx.defect).not.toBeNull();
+    expect(mainCtx.defect?.type).toBe("main_thread_direct_execution");
 
     // Session-based main thread without subagent headers
     const sessionCtx = identifyExecutionContext({

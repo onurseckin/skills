@@ -232,7 +232,7 @@ describe("VerbatimRoleInjector", () => {
       expect(prompt).toContain(
         "CRITICAL SUPERVISORY INITIALIZATION: Mind Autonomous Consciousness Ignition",
       );
-      expect(prompt).toContain("Mind ID: mind-gen-1 | Generation: 1");
+      expect(prompt).toContain("Mind ID: unknown | Generation: 1");
       expect(prompt).toContain("MODE A: AUTONOMOUS SELF-EVOLUTION MANDATE (Backlog Queue Empty)");
       expect(prompt).toContain("INITIALIZATION DIRECTIVES:");
       expect(prompt).toContain(

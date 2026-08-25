@@ -371,7 +371,6 @@ export function identifyExecutionContext(
 
   if (
     isMainThread &&
-    !isTestEnvironment() &&
     (options.isInteractiveMainThread === true || (!isPassive && isMutationOrTest))
   ) {
     const defectId = `defect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -392,10 +391,12 @@ export function identifyExecutionContext(
         indicators,
       },
     };
-    recordDefect(defect, {
-      ...(options.runRoot !== undefined ? { runRoot: options.runRoot } : {}),
-      cwd,
-    });
+    if (!isTestEnvironment()) {
+      recordDefect(defect, {
+        ...(options.runRoot !== undefined ? { runRoot: options.runRoot } : {}),
+        cwd,
+      });
+    }
   }
 
   const host_profile: HostProfile = {

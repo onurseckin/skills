@@ -116,7 +116,7 @@ describe("SplitChannelDefectRouter", () => {
 
     expect(typeof record["id"]).toBe("string");
     expect((record["id"] as string).startsWith("defect-")).toBe(true);
-    expect(record["actor"]).toBe("split-channel-router");
+    expect(record["actor"]).toBe("unknown");
     expect(typeof record["timestamp"]).toBe("string");
     expect(record["context"]).toBeUndefined();
   });

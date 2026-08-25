@@ -164,7 +164,7 @@ Execute your verbatim role instructions immediately.`;
 4. Direct Tier 1 Orchestrator exclusively; enforce 1:1 isolated task allocations (Anti-Batching Rule).
 5. Supervise active execution runs and enforce 1-hop micro-cycle repairs.`;
 
-    const mindId = options.mindId ?? "mind-gen-1";
+    const mindId = options.mindId ?? "unknown";
     const generation = options.generation ?? 1;
     const runRoot = options.runRoot ? ` | Capsule Root: ${options.runRoot}` : "";
     const charterSource = options.charterSourcePath
