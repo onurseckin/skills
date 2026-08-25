@@ -51,6 +51,9 @@ export interface AgentGrantRecord extends JsonObject {
   host: string;
   granted_at: string;
   status: AgentGrantStatus;
+  // `id` lives in the harness actor namespace, which no host can route a message to;
+  // `host_address` is the same agent's address in the spawning host's own namespace.
+  host_address?: string;
   released_at?: string;
   release_reason?: string;
   provider?: Evidenced<string>;
@@ -149,6 +152,7 @@ export function isAgentGrantRecord(value: unknown): value is AgentGrantRecord {
   if (!optionalString(value, "released_at") || !optionalString(value, "release_reason")) {
     return false;
   }
+  if (!optionalString(value, "host_address")) return false;
   if (!optionalString(value, "last_reported_at")) return false;
   if (value.report_count !== undefined && !isSafeInteger(value.report_count)) return false;
   if (!optionalEvidenced(value, "provider", isNonBlankString)) return false;

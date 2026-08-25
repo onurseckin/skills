@@ -92,6 +92,7 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
   const derivedTelemetry = probeAgentTelemetry(agent);
   const role = roleFlag(flags);
   const host = textFlag(flags, "host")!;
+  const hostAddress = textFlag(flags, "host-address", false);
   const outcome = registerAgentGrant({
     runRoot: run,
     agentId: agent,
@@ -99,6 +100,7 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
     parentAgentId: parentAgent,
     parentTaskId: parentTask,
     host,
+    ...(hostAddress === undefined ? {} : { hostAddress }),
     actor,
     maxAgents: getHarnessConfig(findRepoRoot(run), run).max_agents,
     telemetry: telemetryFlags(flags),

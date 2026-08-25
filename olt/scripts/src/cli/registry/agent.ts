@@ -45,6 +45,11 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
       requiredFlag("agent", "string", "Agent id of the dispatched subagent."),
       requiredFlag("role", "string", "Canonical role the agent is granted."),
       requiredFlag("host", "string", "Host runtime that spawned the agent."),
+      optionalFlag(
+        "host-address",
+        "string",
+        "Host-level routable address of the agent: the spawn name or raw host agent id a message can actually be sent to. --agent is the harness actor id and is not addressable host-side, so omitting this leaves the grant unroutable.",
+      ),
       optionalFlag("parent-agent", "string", "Agent id that dispatched it; omit for the root."),
       optionalFlag(
         "parent-task",
@@ -84,7 +89,7 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts agent:register --run .olt/capsules/<run-id> --agent worker-1 --role implementer --host claude-code --parent-agent coordinator-1 --parent-task task-1 --tool Bash=shell --tool-extra Bash:shell=zsh",
+      "bun harness.ts agent:register --run .olt/capsules/<run-id> --agent worker-1 --role implementer --host claude-code --host-address a35c207176e4bb129 --parent-agent coordinator-1 --parent-task task-1 --tool Bash=shell --tool-extra Bash:shell=zsh",
     ],
     handler: agentRegisterCommand,
   },

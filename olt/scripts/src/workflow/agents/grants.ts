@@ -48,6 +48,7 @@ export interface RegisterAgentInput {
   parentAgentId: null | string;
   parentTaskId: null | string;
   host: string;
+  hostAddress?: string;
   actor: string;
   maxAgents: number;
   telemetry: GrantTelemetryInput;
@@ -169,6 +170,7 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
       parent_agent_id: input.parentAgentId,
       parent_task_id: input.parentTaskId,
       host: input.host,
+      ...(input.hostAddress === undefined ? {} : { host_address: input.hostAddress }),
       granted_at: grantedAt,
       telemetry_recorded: Object.keys(fields),
       ...(input.derivedTelemetry?.capabilities === undefined
@@ -199,6 +201,7 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
         parent_agent_id: input.parentAgentId,
         parent_task_id: input.parentTaskId,
         host: input.host,
+        ...(input.hostAddress === undefined ? {} : { host_address: input.hostAddress }),
         granted_at: grantedAt,
         status: "active",
         ...fields,
