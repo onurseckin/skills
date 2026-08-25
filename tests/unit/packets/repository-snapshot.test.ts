@@ -37,6 +37,21 @@ describe("repository-snapshot", () => {
     expect(snapshot.tool_versions.git).toBe("unavailable");
   });
 
+  test("excludes .olt capsule state from the walk, including vendored instruction/convention copies", () => {
+    const repo = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-olt-")));
+    writeFileSync(join(repo, "CLAUDE.md"), "# Root instructions");
+    writeFileSync(join(repo, "package.json"), "{}");
+
+    const vendored = join(repo, ".olt", "capsules", "run-1", "runtime", "src");
+    mkdirSync(vendored, { recursive: true });
+    writeFileSync(join(vendored, "CLAUDE.md"), "# Vendored capsule copy");
+    writeFileSync(join(vendored, "package.json"), "{}");
+
+    const snapshot = inspectRepository(repo, "baseline", new Date("2026-08-14T00:00:00.000Z"));
+    expect(snapshot.instruction_files).toEqual([expect.objectContaining({ path: "CLAUDE.md" })]);
+    expect(snapshot.convention_files).toEqual([expect.objectContaining({ path: "package.json" })]);
+  });
+
   test("rejects when repo root is not a directory", () => {
     const tempDir = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-")));
     const filePath = join(tempDir, "file.txt");

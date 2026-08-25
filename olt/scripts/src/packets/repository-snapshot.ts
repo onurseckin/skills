@@ -3,13 +3,17 @@ import { relative, resolve, sep } from "node:path";
 import type { JsonObject } from "../core/contracts/json.ts";
 import { collectBoundedDirectoryEntries } from "../core/bounded-directory.ts";
 import { readBoundedBytes, sha256Bytes } from "../core/json.ts";
+import { OLT_DIR_NAME } from "../core/shared/paths.ts";
 import { repositoryGit, type RepositoryGitCommand } from "./repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "./repository-git-metadata.ts";
 import { inspectRepositoryBinding } from "./repository-identity.ts";
 
+// Runtime capsule state (task leases, evidence, vendored per-run mirrors) lives under this
+// directory; it must never be walked or its files surfaced as repository instructions/conventions.
 const ignored = new Set([
   ".git",
   ".capsules",
+  OLT_DIR_NAME,
   "node_modules",
   "dist",
   "build",
