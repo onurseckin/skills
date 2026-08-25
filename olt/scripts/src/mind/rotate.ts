@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, realpathSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
@@ -8,7 +8,13 @@ import { chainCapsules } from "../orchestrator/capsule-chainer.ts";
 import { initRun, loadRun } from "../engine/store/index.ts";
 import { transact } from "../engine/store/transaction.ts";
 import { readAgentLedger, writeAgentLedger } from "../workflow/agents/ledger.ts";
-import { DEFAULT_MIND_BUDGET } from "./charter.ts";
+import {
+  DEFAULT_CHARTER_RELATIVE_PATH,
+  DEFAULT_MIND_BUDGET,
+  parseCharter,
+  resolveCharterPath,
+  type ParsedCharter,
+} from "./charter.ts";
 import { pruneAndArchiveGenerationalState, type ArchivedObjectiveRecord } from "./archival.ts";
 import type { CandidateRecord } from "./gates.ts";
 import type { ObjectiveRecord } from "./rounds.ts";
@@ -97,34 +103,6 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
   const targetGeneration = sourceGeneration + 1;
   const sourceRunId = sourceLoaded.manifest.run_id || basename(realSourceRunRoot);
 
-  const sourceCharter = (sourceMind.charter ?? {}) as Record<string, unknown>;
-  const charterSourcePath =
-    typeof sourceCharter.source_path === "string"
-      ? sourceCharter.source_path
-      : "olt/agents/mind.yaml";
-  const charterGoals = Array.isArray(sourceCharter.goals)
-    ? (sourceCharter.goals as readonly string[])
-    : [];
-  const charterRepoRoots = Array.isArray(sourceCharter.repo_roots)
-    ? (sourceCharter.repo_roots as readonly string[])
-    : [];
-
-  const sourcePromptPath = join(realSourceRunRoot, "prompt.md");
-  let promptBytes: Uint8Array;
-  try {
-    promptBytes = readRegularFileNoFollow(sourcePromptPath);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new HarnessError("INTEGRITY", `cannot read prompt.md in source capsule: ${message}`);
-  }
-
-  if (promptBytes.byteLength === 0) {
-    throw new HarnessError(
-      "INTEGRITY",
-      `prompt.md in source capsule is empty: ${sourcePromptPath}`,
-    );
-  }
-
   const capsulesParent = options.capsulesDir
     ? resolve(options.capsulesDir)
     : dirname(realSourceRunRoot);
@@ -132,6 +110,56 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
     basename(capsulesParent) === "capsules" && basename(dirname(capsulesParent)) === ".olt"
       ? dirname(dirname(capsulesParent))
       : dirname(capsulesParent);
+
+  const sourceCharter = (sourceMind.charter ?? {}) as Record<string, unknown>;
+  const declaredCharterSourcePath =
+    typeof sourceCharter.source_path === "string"
+      ? sourceCharter.source_path
+      : DEFAULT_CHARTER_RELATIVE_PATH;
+  const declaredCharterRepoRoots = Array.isArray(sourceCharter.repo_roots)
+    ? (sourceCharter.repo_roots as readonly unknown[]).filter(
+        (entry): entry is string => typeof entry === "string",
+      )
+    : undefined;
+
+  const liveCharterPath = resolveCharterPath(
+    repoRoot,
+    declaredCharterSourcePath,
+    declaredCharterRepoRoots,
+  );
+
+  let promptBytes: Uint8Array;
+  try {
+    promptBytes = readRegularFileNoFollow(liveCharterPath);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new HarnessError(
+      "INTEGRITY",
+      `cannot read live charter at ${liveCharterPath} for generational rotation: ${message}`,
+    );
+  }
+
+  if (promptBytes.byteLength === 0) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `live charter at ${liveCharterPath} is empty; refusing to rotate onto an empty charter`,
+    );
+  }
+
+  let parsedCharter: ParsedCharter;
+  try {
+    parsedCharter = parseCharter(new TextDecoder("utf-8", { fatal: true }).decode(promptBytes));
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new HarnessError(
+      "INTEGRITY",
+      `live charter at ${liveCharterPath} is not a parseable mind manifest: ${message}`,
+    );
+  }
+
+  const charterSourcePath = relative(repoRoot, liveCharterPath) || declaredCharterSourcePath;
+  const charterGoals: readonly string[] = parsedCharter.goalIds;
+  const charterRepoRoots: readonly string[] = parsedCharter.repoRoots;
 
   let targetRunId: string;
   let targetRunRoot: string;
@@ -215,6 +243,14 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
 
   // 2. Initialize Generation N+1
   const initializedTargetRoot = initRun(repoRoot, targetRunId, promptBytes, "file", true);
+  const rotatedCharterSha256 = loadRun(initializedTargetRoot, false).manifest.prompt_sha256;
+
+  if (rotatedCharterSha256 !== parsedCharter.sha256) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `rotated charter digest mismatch: successor capsule manifest records ${rotatedCharterSha256} but the live charter at ${liveCharterPath} hashes to ${parsedCharter.sha256}`,
+    );
+  }
 
   chainCapsules({
     sourceRunId,
@@ -264,7 +300,7 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
     {
       generation: targetGeneration,
       charter_source_path: charterSourcePath,
-      pinned_digest: sealedSourceLoaded.manifest.prompt_sha256,
+      pinned_digest: rotatedCharterSha256,
       previous_generation: {
         run_id: sourceRunId,
         event_head: previousEventHead,
@@ -277,7 +313,7 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
         opened_at: nowIso,
         charter: {
           source_path: charterSourcePath,
-          pinned_sha256: sealedSourceLoaded.manifest.prompt_sha256,
+          pinned_sha256: rotatedCharterSha256,
           goals: charterGoals,
           repo_roots: charterRepoRoots,
           evidence_class: "harness_observed",
@@ -350,7 +386,7 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
     targetRunId,
     sourceGeneration,
     targetGeneration,
-    charterSha256: sealedSourceLoaded.manifest.prompt_sha256,
+    charterSha256: rotatedCharterSha256,
     charterSourcePath,
     previousEventHead,
     pulseCounter,
