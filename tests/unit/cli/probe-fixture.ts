@@ -87,6 +87,27 @@ export async function setupRun(
     "--completion-gate",
     "bun test tests",
   ]);
+  const roster: readonly { agent: string; role: string }[] = [
+    { agent: "worker-core", role: "implementer" },
+    { agent: "worker-1", role: "implementer" },
+    { agent: "worker-2", role: "implementer" },
+    { agent: "orch-lead", role: "implementer" },
+    { agent: "coord-dispatcher", role: "implementer" },
+    { agent: VALIDATOR, role: "validator" },
+  ];
+  for (const { agent, role } of roster) {
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      agent,
+      "--role",
+      role,
+      "--host",
+      "antigravity",
+    ]);
+  }
   return { repo, run };
 }
 
@@ -155,7 +176,7 @@ export async function claimSubmitValidate(
   ]);
 }
 
-/** Runs `script` as the validator; `gate` binds the record to the gate, `null` leaves it loose. */
+/** Runs `script` as the implementer of record; `gate` binds the record to the gate, `null` leaves it loose. */
 export async function runGate(
   repo: string,
   run: string,
@@ -170,7 +191,7 @@ export async function runGate(
     TASK_ID,
     ...(gate === null ? [] : ["--gate", gate]),
     "--actor",
-    VALIDATOR,
+    "worker-core",
     "--cwd",
     repo,
     "--",

@@ -83,6 +83,19 @@ async function setupTwoIndependentTasks(
     "--completion-gate",
     "bun test src",
   ]);
+  for (const agent of ["worker-1", "worker-2"]) {
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      agent,
+      "--role",
+      "implementer",
+      "--host",
+      "antigravity",
+    ]);
+  }
   return { repo, run };
 }
 

@@ -372,6 +372,18 @@ async function setupCompiledRunUncompiled(
 
   await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
 
+  await execute([
+    "agent:register",
+    "--run",
+    run,
+    "--agent",
+    "coordinator",
+    "--role",
+    name.startsWith("replan-") ? "planner" : "coordinator",
+    "--host",
+    "antigravity",
+  ]);
+
   return { repo, run };
 }
 

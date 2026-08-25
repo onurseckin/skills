@@ -10,6 +10,20 @@ import { requirementsDocument } from "../requirements/fixtures.ts";
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
 
+async function registerPlanner(run: string, agent = "planner"): Promise<void> {
+  await execute([
+    "agent:register",
+    "--run",
+    run,
+    "--agent",
+    agent,
+    "--role",
+    "planner",
+    "--host",
+    "antigravity",
+  ]);
+}
+
 describe("plan:claim / plan:apply", () => {
   test("plan:claim issues a planner packet naming the planning write scope", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-plan-claim-"));
@@ -27,6 +41,7 @@ describe("plan:claim / plan:apply", () => {
     ]);
     const run = init.run_root as string;
 
+    await registerPlanner(run, "planner-1");
     const claimed = await execute(["plan:claim", "--run", run, "--agent", "planner-1"]);
     expect(claimed.packet_id).toBeDefined();
     expect(typeof claimed.role_contract_sha256).toBe("string");
@@ -57,6 +72,7 @@ describe("plan:claim / plan:apply", () => {
       promptPath,
     ]);
     const run = init.run_root as string;
+    await registerPlanner(run);
 
     const applied = await execute([
       "plan:apply",
@@ -99,6 +115,7 @@ describe("plan:claim / plan:apply", () => {
       promptPath,
     ]);
     const run = init.run_root as string;
+    await registerPlanner(run);
 
     await expect(
       execute([
@@ -134,6 +151,7 @@ describe("plan:claim / plan:apply", () => {
       promptPath,
     ]);
     const run = init.run_root as string;
+    await registerPlanner(run);
     const requirements = requirementsDocument(prompt);
     const graph = graphDocument(requirements);
     for (const gate of graph.gates as Record<string, unknown>[]) {
@@ -163,6 +181,7 @@ describe("plan:audit", () => {
       "--prompt-file",
       promptPath,
     ]);
+    await registerPlanner(init.run_root as string);
     await expect(
       execute(["plan:audit", "--run", init.run_root as string, "--actor", "planner"]),
     ).rejects.toThrow(/cannot audit empty planning buffer/);
@@ -183,6 +202,7 @@ describe("plan:audit", () => {
       promptPath,
     ]);
     const run = init.run_root as string;
+    await registerPlanner(run);
     await execute([
       "plan:add",
       "--run",

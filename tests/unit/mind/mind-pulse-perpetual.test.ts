@@ -359,6 +359,17 @@ describe("P43 Unified Perpetual mind:pulse Command", () => {
 
     test("CLI execute successfully dispatches unified mind:pulse", async () => {
       const fixture = setupMindFixture("cli-dispatch");
+      await execute([
+        "agent:register",
+        "--run",
+        fixture.run,
+        "--agent",
+        "mind-1",
+        "--role",
+        "mind",
+        "--host",
+        "antigravity",
+      ]);
 
       const res = await execute(["mind:pulse", "--run", fixture.run, "--actor", "mind-1"]);
       expect(res.status).toBe("opened");

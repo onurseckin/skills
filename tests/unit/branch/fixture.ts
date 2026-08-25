@@ -104,6 +104,17 @@ export async function branchCapsule(
     "--parent-task",
     "task-1",
   ]);
+  await execute([
+    "agent:register",
+    "--run",
+    run,
+    "--agent",
+    "coordinator",
+    "--role",
+    "coordinator",
+    "--host",
+    "antigravity",
+  ]);
   const claimed = await execute([
     "task:claim",
     "--run",

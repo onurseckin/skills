@@ -118,6 +118,26 @@ describe("harness output format scan", () => {
     );
     expect(await compile.exited).toBe(0);
 
+    const registerImplementer = Bun.spawn(
+      [
+        "bun",
+        entrypoint,
+        "agent:register",
+        "--run",
+        runRoot,
+        "--agent",
+        "implementer-1",
+        "--role",
+        "implementer",
+        "--host",
+        "antigravity",
+        "--parent-task",
+        "task-1",
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    expect(await registerImplementer.exited).toBe(0);
+
     const exec = Bun.spawn(
       [
         "bun",
@@ -126,7 +146,7 @@ describe("harness output format scan", () => {
         "--run",
         join(repo, ".olt", "capsules", "format-run"),
         "--actor",
-        "coordinator",
+        "implementer-1",
         "--format",
         "json",
         "--",

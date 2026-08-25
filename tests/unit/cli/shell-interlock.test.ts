@@ -160,6 +160,17 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
         "bun gate.ts",
       ]);
       await execute([
+        "agent:register",
+        "--run",
+        runRoot,
+        "--agent",
+        "worker-1",
+        "--role",
+        "implementer",
+        "--host",
+        "antigravity",
+      ]);
+      await execute([
         "task:claim",
         "--run",
         runRoot,

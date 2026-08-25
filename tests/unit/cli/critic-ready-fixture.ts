@@ -41,6 +41,23 @@ export const TASK_ID = "task-1";
 export const TASK_GATE_ID = "gate-1";
 export const RUN_GATE_ID = "gate-run-completion";
 
+const CRITIC_ID_BY_FIXTURE_NAME: Readonly<Record<string, string>> = {
+  "critic-approve-run": "critic-alpha",
+  "critic-changes-run": "critic-beta",
+  "critic-no-findings": "critic-delta",
+  "critic-integrity-evidence": "critic-epsilon",
+  "critic-reject-flow": "critic-gamma",
+  "critic-repo-ids-widen": "critic-zeta",
+  "critic-repo-ids-bogus": "critic-theta",
+  "critic-review-approve-findings": "critic-kappa",
+  "critic-review-empty-findings": "critic-lambda",
+  "critic-review-no-assignment": "critic-never-started",
+  "critic-review-file": "critic-file",
+  "run-complete-bad-token": "critic-2",
+};
+
+const PLANNER_COORDINATOR_FIXTURE_NAMES: ReadonlySet<string> = new Set(["critic-reject-flow"]);
+
 export interface ReadyRun {
   repo: string;
   run: string;
@@ -199,6 +216,31 @@ export async function setupReadyRun(name: string, roots: string[]): Promise<Read
     "--completion-gate",
     "bun test tests",
   ]);
+  await execute([
+    "agent:register",
+    "--run",
+    run,
+    "--agent",
+    "coordinator",
+    "--role",
+    PLANNER_COORDINATOR_FIXTURE_NAMES.has(name) ? "planner" : "coordinator",
+    "--host",
+    "antigravity",
+  ]);
+  const criticId = CRITIC_ID_BY_FIXTURE_NAME[name];
+  if (criticId !== undefined) {
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      criticId,
+      "--role",
+      "completeness-critic",
+      "--host",
+      "antigravity",
+    ]);
+  }
 
   // Computed once, after every fixture file is in place and before any CLI call that would read
   // it back (critic:review re-derives this live from disk and refuses if it has drifted).

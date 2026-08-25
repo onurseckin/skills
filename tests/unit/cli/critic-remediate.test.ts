@@ -83,6 +83,17 @@ async function reviewedFindingsRun(
     state.graph = { revision: 1, gates: [] };
     state.requirements = { requirements: [] };
     state.tasks = {};
+    state.agents = [
+      {
+        id: "coordinator",
+        role: "coordinator",
+        parent_agent_id: null,
+        parent_task_id: null,
+        host: "antigravity",
+        granted_at: new Date().toISOString(),
+        status: "active",
+      },
+    ];
     state.commands = {
       "C-FIX": commandRecord("C-FIX", { task_id: null, actor: "coordinator" }),
     };

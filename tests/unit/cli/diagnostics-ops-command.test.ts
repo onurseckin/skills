@@ -119,6 +119,21 @@ describe("recover", () => {
     const opened = await openBranchVia(fixture);
     const branchId = String(opened.branch_id);
     await execute([
+      "agent:register",
+      "--run",
+      fixture.run,
+      "--agent",
+      "sub-1",
+      "--role",
+      "sub-implementer",
+      "--host",
+      "antigravity",
+      "--parent-agent",
+      "worker-1",
+      "--parent-task",
+      "S-1",
+    ]);
+    await execute([
       "branch:claim",
       "--run",
       fixture.run,

@@ -202,6 +202,17 @@ describe("gate:prove (command layer)", () => {
     }).stdout.trim();
 
     await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+      "--host",
+      "antigravity",
+    ]);
+    await execute([
       "task:claim",
       "--run",
       run,

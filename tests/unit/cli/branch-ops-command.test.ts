@@ -24,6 +24,29 @@ async function withFixture(name: string): Promise<BranchFixture> {
   return branchCapsule(roots, name);
 }
 
+async function registerSubAgent(
+  fixture: BranchFixture,
+  agent: string,
+  parentAgent: string,
+  parentTask: string,
+): Promise<void> {
+  await execute([
+    "agent:register",
+    "--run",
+    fixture.run,
+    "--agent",
+    agent,
+    "--role",
+    "sub-implementer",
+    "--host",
+    "antigravity",
+    "--parent-agent",
+    parentAgent,
+    "--parent-task",
+    parentTask,
+  ]);
+}
+
 describe("branch:open", () => {
   test("subdivides the parent's lease into sub-tasks a sub-agent can claim", async () => {
     const fixture = await withFixture("branch-open-basic");
@@ -142,6 +165,7 @@ describe("branch:claim", () => {
   test("leases a sub-task, publishes its role packet and returns the bearer token", async () => {
     const fixture = await withFixture("branch-claim");
     const opened = await openBranchVia(fixture);
+    await registerSubAgent(fixture, "sub-1", "worker-1", "S-1");
     const claimed = await execute([
       "branch:claim",
       "--run",
@@ -189,6 +213,7 @@ describe("branch:submit and branch:collect", () => {
   test("submit records what the sub-agent reports, then collect resumes the top-level parent task", async () => {
     const fixture = await withFixture("branch-submit-collect");
     const opened = await openBranchVia(fixture);
+    await registerSubAgent(fixture, "sub-1", "worker-1", "S-1");
     const claimed = await execute([
       "branch:claim",
       "--run",
@@ -252,6 +277,7 @@ describe("branch:submit and branch:collect", () => {
       reason: "the parser itself needs to be split further",
       subTasks: [{ id: "S-1-1", label: "Split the tokenizer", scopes: ["src/one/parser/tokens"] }],
     });
+    await registerSubAgent(fixture, "sub-inner", outer.agent, "S-1-1");
     const claimed = await execute([
       "branch:claim",
       "--run",
