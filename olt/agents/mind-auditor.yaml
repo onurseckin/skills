@@ -7,7 +7,7 @@ provider:
   - "codex"
   - "cursor"
   - "generic"
-tier: 1
+tier: 0
 tools:
   enable_subagent_tools: false
   enable_write_tools: false

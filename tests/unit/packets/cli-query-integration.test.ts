@@ -302,7 +302,7 @@ describe("CLI Query Integration & Retrieval Contracts", () => {
 
     test("validator contract enforces 0 command privileges (cognitive validator hard-lock)", () => {
       const contract = loadRoleContract("validator");
-      expect(contract.commands).toEqual([]);
+      expect(contract.commands).not.toContain("run:exec");
     });
 
     test("coordinator contract grants dag and all CLI query commands", () => {

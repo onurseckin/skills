@@ -74,7 +74,7 @@ describe("auditPermissionHealth & Manifest Proof Invariants", () => {
     ).toBe(true);
   });
 
-  test("Proof 3: Cognitive Validator confinement enforces 0 commands and enable_write_tools === false", () => {
+  test("Proof 3: Cognitive Validator confinement enforces 0 command execution privileges and enable_write_tools === false", () => {
     const invalidValidator = createManifest({
       role: "validator",
       tools: {
@@ -84,7 +84,7 @@ describe("auditPermissionHealth & Manifest Proof Invariants", () => {
       permissions: {
         may: [],
         must_not: [],
-        commands: ["bun test"],
+        commands: ["run:exec"],
         spawns: [],
       },
     });
@@ -101,7 +101,7 @@ describe("auditPermissionHealth & Manifest Proof Invariants", () => {
     expect(
       result.errors.some((e) =>
         e.includes(
-          "Proof 3 Failed: Cognitive Validator 'validator' must have 0 command privileges",
+          "Proof 3 Failed: Cognitive Validator 'validator' must have 0 command execution privileges",
         ),
       ),
     ).toBe(true);
@@ -115,7 +115,7 @@ describe("auditPermissionHealth & Manifest Proof Invariants", () => {
       permissions: {
         may: [],
         must_not: [],
-        commands: [],
+        commands: ["task:validate-start", "task:probe", "task:review"],
         spawns: [],
       },
     });

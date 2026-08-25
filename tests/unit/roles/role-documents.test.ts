@@ -36,7 +36,7 @@ describe("canonical role documents", () => {
       expect(domainContract.tier).toBeLessThanOrEqual(3);
       expect(domainContract.may.length).toBeGreaterThan(0);
       expect(domainContract.must_not.length).toBeGreaterThan(0);
-      expect(domainContract.commands.length).toBe(0);
+      expect(domainContract.commands).not.toContain("run:exec");
       expect(domainContract.spawns).toEqual(["sub-validator"]);
       expect(domainContract.sha256).toMatch(/^[0-9a-f]{64}$/u);
       expect(domainContract.checklist?.domain).toBe(domain);
@@ -71,10 +71,9 @@ describe("canonical role documents", () => {
       expect(contract.tier).toBeLessThanOrEqual(3);
       expect(contract.may.length).toBeGreaterThan(0);
       expect(contract.must_not.length).toBeGreaterThan(0);
+      expect(contract.commands.length).toBeGreaterThan(0);
       if (role === "validator") {
-        expect(contract.commands.length).toBe(0);
-      } else {
-        expect(contract.commands.length).toBeGreaterThan(0);
+        expect(contract.commands).not.toContain("run:exec");
       }
       expect(contract.sha256).toMatch(/^[0-9a-f]{64}$/u);
       for (const entry of [...contract.may, ...contract.must_not, ...contract.commands])

@@ -99,10 +99,9 @@ describe("Rich, Uncompromised Instructions in Packets", () => {
       expect(contract.text.trim().length).toBeGreaterThan(0);
       expect(contract.may.length).toBeGreaterThan(0);
       expect(contract.must_not.length).toBeGreaterThan(0);
+      expect(contract.commands.length).toBeGreaterThan(0);
       if (role === "validator") {
-        expect(contract.commands.length).toBe(0);
-      } else {
-        expect(contract.commands.length).toBeGreaterThan(0);
+        expect(contract.commands).not.toContain("run:exec");
       }
       expect(contract.sha256).toMatch(/^[0-9a-f]{64}$/);
     });

@@ -16,7 +16,7 @@ describe("Directive p06: Agent Triad Architecture & Host Provider Taxonomy", () 
   test("all canonical agent entity profiles in agents/ declare provider taxonomy and unified configuration", () => {
     const canonicalAgentFiles = [
       { file: "mind.yaml", expectedRole: "mind", tier: 0 },
-      { file: "mind-auditor.yaml", expectedRole: "mind-auditor", tier: 1 },
+      { file: "mind-auditor.yaml", expectedRole: "mind-auditor", tier: 0 },
       { file: "orchestrator.yaml", expectedRole: "orchestrator", tier: 1 },
       { file: "coordinator.yaml", expectedRole: "coordinator", tier: 2 },
       { file: "planner.yaml", expectedRole: "planner", tier: 3 },

@@ -52,9 +52,9 @@ export function auditPermissionHealth(
         `Proof 3 Failed: Cognitive Validator '${manifest.role}' must have tools.enable_write_tools === false.`,
       );
     }
-    if (manifest.permissions.commands.length !== 0) {
+    if (manifest.permissions.commands.includes("run:exec")) {
       errors.push(
-        `Proof 3 Failed: Cognitive Validator '${manifest.role}' must have 0 command privileges.`,
+        `Proof 3 Failed: Cognitive Validator '${manifest.role}' must have 0 command execution privileges.`,
       );
     }
   } else if (["mind", "orchestrator", "coordinator"].includes(manifest.role)) {

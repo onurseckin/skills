@@ -233,6 +233,7 @@ const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
   implementer: taskSubmission,
   mind: mindRecord,
   "mind-auditor": mindAuditorRecord,
+  "skill-auditor": mindAuditorRecord,
   "meta-auditor": metaAuditorRecord,
   orchestrator: loopSynthesisRecord,
   "plan-validator": planValidatorReview,

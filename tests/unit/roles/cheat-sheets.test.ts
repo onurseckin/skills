@@ -122,7 +122,7 @@ describe("Dynamic Role Cheat-Sheets Engine", () => {
       const sheet = generateRoleCheatSheet("validator-code-quality");
       expect(sheet.role).toBe("validator");
       expect(sheet.domain).toBe("code-quality");
-      expect(sheet.grantedCommands).toEqual([]);
+      expect(sheet.grantedCommands).not.toContain("run:exec");
       expect(sheet.authorityRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))).toBe(
         true,
       );

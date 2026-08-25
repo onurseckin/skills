@@ -5,7 +5,7 @@
  * 1. Integration of 10-Step Deep-Thinking Planning Checklist into roles/orchestrator.md.
  * 2. 5 Golden Roles architecture (mind, orchestrator, coordinator, implementer, validator).
  * 3. Retirement of mechanic-validator into deterministic CLI tool task:check and repairer into in-lease micro-cycles.
- * 4. Fast-Path Compaction spawning permissions (orchestrator spawns coordinator, implementer, validator).
+ * 4. Strict 4-tier spawning confinement (orchestrator spawns only coordinator; never Tier 3 directly).
  * 5. Cognitive Validator Hard-Lock Interlock (0 command execution).
  * 6. Strict static code invariants (0 any, 0 compiler/linter suppressions).
  */
@@ -63,13 +63,13 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
       expect(roles).toContain("meta-auditor");
     });
 
-    it("verifies orchestrator role contract permits coordinator, implementer, and validator spawning", () => {
+    it("verifies orchestrator role contract permits only coordinator spawning, never Tier 3 directly", () => {
       const orchContract = loadRoleContract("orchestrator");
       expect(orchContract.role).toBe("orchestrator");
       expect(orchContract.tier).toBe(1);
       expect(orchContract.spawns).toContain("coordinator");
-      expect(orchContract.spawns).toContain("implementer");
-      expect(orchContract.spawns).toContain("validator");
+      expect(orchContract.spawns).not.toContain("implementer");
+      expect(orchContract.spawns).not.toContain("validator");
       expect(orchContract.commands).toContain("task:check");
     });
 

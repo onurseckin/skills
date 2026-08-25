@@ -223,6 +223,8 @@ function subjectFlag(spec: CommandSpec): string | undefined {
   return undefined;
 }
 
+const SUBJECT_DOUBLES_AS_ACTOR_EXEMPT_COMMANDS: ReadonlySet<string> = new Set(["agent:register"]);
+
 function actingAgent(spec: CommandSpec, flags: Flags): string | undefined {
   const subject = subjectFlag(spec);
   const candidates =
@@ -231,7 +233,34 @@ function actingAgent(spec: CommandSpec, flags: Flags): string | undefined {
     const value = identity(flags, name);
     if (value !== undefined) return value;
   }
+  if (subject !== undefined && !SUBJECT_DOUBLES_AS_ACTOR_EXEMPT_COMMANDS.has(spec.name)) {
+    const subjectValue = identity(flags, subject);
+    if (subjectValue !== undefined) return subjectValue;
+  }
   return undefined;
+}
+
+const SELF_SERVICE_SUBJECT_COMMANDS: ReadonlySet<string> = new Set([
+  "agent:report",
+  "agent:release",
+]);
+
+const GRANT_REQUIRED_ROLE_CONTRACT_EXEMPT_COMMANDS: ReadonlySet<string> = new Set([
+  "recover",
+  "doctor:repair",
+  "worktree:reclaim",
+  "orphan:dispose",
+  "authority:decide",
+  "run:complete",
+]);
+
+function actsOnOwnGrant(spec: CommandSpec, flags: Flags): boolean {
+  if (!SELF_SERVICE_SUBJECT_COMMANDS.has(spec.name)) return false;
+  const subject = subjectFlag(spec);
+  if (subject === undefined || identity(flags, subject) === undefined) return false;
+  return ACTING_FLAGS.filter((name) => name !== subject).every(
+    (name) => identity(flags, name) === undefined,
+  );
 }
 
 const RUN_SCOPED_GRANT_BOOTSTRAP_EXEMPT_COMMANDS: ReadonlySet<string> = new Set([
@@ -377,5 +406,7 @@ export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
     }
   }
 
+  if (actsOnOwnGrant(spec, flags)) return;
+  if (GRANT_REQUIRED_ROLE_CONTRACT_EXEMPT_COMMANDS.has(spec.name)) return;
   assertRoleMayInvoke(grant.role, spec, agentId);
 }

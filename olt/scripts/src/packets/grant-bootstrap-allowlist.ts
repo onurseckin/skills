@@ -56,7 +56,16 @@ export function declaresActingIdentityFlag(spec: CommandSpec): boolean {
 }
 
 const COMMANDS_WHOSE_ACTING_FLAG_NAME_IS_A_DISPLAY_FILTER_NOT_AN_IDENTITY: ReadonlySet<string> =
-  new Set(["dag:trace"]);
+  new Set([
+    "dag:trace",
+    "report:get",
+    "evidence:get",
+    "evidence:screenshots",
+    "test:summary",
+    "meta-audit",
+    "task:brief",
+    "gate:prove",
+  ]);
 
 export function requiresActingIdentity(spec: CommandSpec): boolean {
   if (

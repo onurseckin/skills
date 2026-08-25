@@ -4,6 +4,7 @@ import {
   CONTEXT_FREE_DIAGNOSTIC_COMMANDS,
   GRANT_BOOTSTRAP_ALLOWLIST,
   GRANT_GENESIS_COMMANDS,
+  PRE_COMPILE_PLAN_CONSTRUCTION_COMMANDS,
   declaresRunIdentityFlag,
   isGrantBootstrapExempt,
 } from "../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
@@ -40,11 +41,18 @@ describe("grant bootstrap allowlist data", () => {
     );
   });
 
-  test("the combined allowlist is the union of its three named categories with no extra entries", () => {
+  test("pre-compile plan construction commands are the plan-shaping commands callable before compile mints any task grant", () => {
+    expect([...PRE_COMPILE_PLAN_CONSTRUCTION_COMMANDS].sort()).toEqual(
+      ["plan:add", "plan:brainstorm", "plan:compile", "plan:enhance"].sort(),
+    );
+  });
+
+  test("the combined allowlist is the union of its four named categories with no extra entries", () => {
     const union = new Set([
       ...CAPSULE_GENESIS_COMMANDS,
       ...GRANT_GENESIS_COMMANDS,
       ...CONTEXT_FREE_DIAGNOSTIC_COMMANDS,
+      ...PRE_COMPILE_PLAN_CONSTRUCTION_COMMANDS,
     ]);
     expect(GRANT_BOOTSTRAP_ALLOWLIST.size).toBe(union.size);
     for (const entry of union) expect(GRANT_BOOTSTRAP_ALLOWLIST.has(entry)).toBe(true);

@@ -25,14 +25,14 @@ describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {
 
     const rawContent = readFileSync(resolvedPath, "utf-8");
     expect(rawContent).toContain("mind-auditor");
-    expect(rawContent).toContain("tier: 1");
+    expect(rawContent).toContain("tier: 0");
   });
 
   test("mind-auditor contract parses with exact PLAN §12.2 and PHASE-5 §3.1 specifications", () => {
     const contract = loadRoleContract("mind-auditor");
 
     expect(contract.role).toBe("mind-auditor");
-    expect(contract.tier).toBe(1);
+    expect(contract.tier).toBe(0);
     expect(contract.spawns).toEqual([]);
 
     expect(contract.may.length).toBeGreaterThan(0);
@@ -42,9 +42,9 @@ describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {
     expect(contract.text.length).toBeGreaterThan(0);
   });
 
-  test("mind-auditor is strictly tier 1 and has no child spawns", () => {
+  test("mind-auditor is strictly tier 0 and has no child spawns", () => {
     const contract = loadRoleContract("mind-auditor");
-    expect(contract.tier).toBe(1);
+    expect(contract.tier).toBe(0);
     expect(contract.spawns).toEqual([]);
   });
 
@@ -82,7 +82,7 @@ describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {
   test("mind-auditor enforces the independence invariant against reading mind narrative prose", () => {
     const contract = loadRoleContract("mind-auditor");
     expect(contract.role).toBe("mind-auditor");
-    expect(contract.tier).toBe(1);
+    expect(contract.tier).toBe(0);
     expect(contract.must_not).toContain("0 code edits");
     expect(contract.must_not).toContain("0 test runs");
   });

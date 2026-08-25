@@ -23,6 +23,7 @@ import {
  */
 export const ROLE_TIER_MAP: Readonly<Record<AgentRole, number>> = {
   mind: 0,
+  "skill-auditor": 0,
   orchestrator: 1,
   "mind-auditor": 1,
   coordinator: 2,
@@ -49,6 +50,7 @@ export const ROLE_TIER_MAP: Readonly<Record<AgentRole, number>> = {
  */
 export const ALLOWED_TIER_SPAWNS: Readonly<Record<AgentRole, readonly AgentRole[]>> = {
   mind: ["orchestrator"],
+  "skill-auditor": [],
   orchestrator: ["coordinator"],
   "mind-auditor": [],
   coordinator: [

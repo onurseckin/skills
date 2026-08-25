@@ -54,6 +54,7 @@ permissions:
     - "task:probe"
     - "task:abandon"
     - "task:assign-repairer"
+    - "critic:remediate"
     - "queue:wave"
     - "queue:list"
     - "finding:get"

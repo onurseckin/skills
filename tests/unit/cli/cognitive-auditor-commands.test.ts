@@ -97,10 +97,23 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
     });
 
     test("detects stagnation and returns formatted brief with injection prompt", async () => {
-      AuditorCursorStore.saveCursor(testDir, "mind", {
-        lastInspectedTimestamp: "2026-08-24T00:00:00.000Z",
-        lastInspectedEventIndex: 0,
-      });
+      const capsuleDir = join(testDir, ".olt", "capsules", "mind-gen-cli-stagnant");
+      mkdirSync(capsuleDir, { recursive: true });
+      writeFileSync(
+        join(capsuleDir, "state.json"),
+        JSON.stringify({ agents: [{ id: "mind-1", role: "mind", status: "active" }] }),
+        "utf-8",
+      );
+      writeFileSync(
+        join(capsuleDir, "last_pulse.json"),
+        JSON.stringify({
+          at: "2020-01-01T00:00:00.000Z",
+          pulse_id: "pulse-1",
+          outcome: "active",
+          next_wake_at: null,
+        }),
+        "utf-8",
+      );
 
       const result = await mindAuditLiveCommand(
         {
@@ -168,9 +181,11 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
     test("detects violations, logs defects, and formats incident list", async () => {
       const eventsPath = join(runDir, "events.jsonl");
       const e1 = JSON.stringify({
-        type: "boundary_violation",
-        error_code: "ROLE_BOUNDARY_DEVIATION",
-        message: "Coordinator executed direct file write",
+        sequence: 0,
+        kind: "tool-called",
+        actor: "coordinator-1",
+        timestamp: "2026-08-24T00:00:00.000Z",
+        payload: { tool: "write_to_file", arguments: { AbsolutePath: "/repo/src/file.ts" } },
       });
       writeFileSync(eventsPath, `${e1}\n`, "utf-8");
 
@@ -187,7 +202,9 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
       expect(output).toContain("# Tier 0 Skill Compliance Live Audit: NON_COMPLIANT");
       expect(output).toContain("⚠️ 1 INCIDENTS");
       expect(output).toContain("## Forensics Incidents Detected:");
-      expect(output).toContain("ROLE_BOUNDARY_DEVIATION: Coordinator executed direct file write");
+      expect(output).toContain(
+        "ROLE_BOUNDARY_DEVIATION: Coordinator agent `coordinator-1` directly invoked write tool",
+      );
       const lineCount = output.split("\n").length;
       expect(lineCount).toBeLessThanOrEqual(30);
     });
@@ -195,9 +212,11 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
     test("respects --log-defects false flag", async () => {
       const eventsPath = join(runDir, "events.jsonl");
       const e1 = JSON.stringify({
-        type: "boundary_violation",
-        error_code: "ROLE_BOUNDARY_DEVIATION",
-        message: "Validator executed test suite",
+        sequence: 0,
+        kind: "tool-called",
+        actor: "coordinator-2",
+        timestamp: "2026-08-24T00:00:00.000Z",
+        payload: { tool: "write_to_file", arguments: { AbsolutePath: "/repo/src/other.ts" } },
       });
       writeFileSync(eventsPath, `${e1}\n`, "utf-8");
 

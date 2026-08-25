@@ -28,6 +28,7 @@ permissions:
   commands:
     - "task:brief"
     - "task:claim"
+    - "queue:pop"
     - "task:check"
     - "task:heartbeat"
     - "run:exec"
@@ -99,6 +100,7 @@ instructions: |
   commands:
     - task:brief
     - task:claim
+    - queue:pop
     - task:check
     - task:heartbeat
     - shell

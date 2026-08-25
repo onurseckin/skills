@@ -11,6 +11,7 @@ import type { ValidatorDomain } from "../../core/contracts/workflow.ts";
 export type NodeRole =
   | "mind"
   | "mind-auditor"
+  | "skill-auditor"
   | "coordinator"
   | "meta-auditor"
   | "orchestrator"

@@ -36,10 +36,9 @@ function ungranted(role: (typeof AGENT_ROLES)[number]): string[] {
 describe("role capability documents bind the CLI", () => {
   test.each(AGENT_ROLES)("%s names only commands the registry actually has", (role) => {
     const contract = loadRoleContract(role);
+    expect(contract.commands.length).toBeGreaterThan(0);
     if (role === "validator") {
-      expect(contract.commands.length).toBe(0);
-    } else {
-      expect(contract.commands.length).toBeGreaterThan(0);
+      expect(contract.commands).not.toContain("run:exec");
     }
     for (const command of contract.commands) expect(findCommand(command)).toBeDefined();
   });

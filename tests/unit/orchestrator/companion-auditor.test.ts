@@ -62,24 +62,47 @@ describe("OrchestratorCompanionAuditor Unit Tests", () => {
     const runRoot = join(testRoot, "run-forensics-events");
     mkdirSync(runRoot, { recursive: true });
 
-    const eventLines = [
-      JSON.stringify({
-        type: "boundary_violation",
-        message: "Coordinator executed direct write operation",
-        timestamp: "2026-08-24T12:00:00.000Z",
-      }),
-      JSON.stringify({
-        type: "token_burning",
-        message: "Excessive exploratory read calls (12 reads before first write)",
-        timestamp: "2026-08-24T12:01:00.000Z",
-      }),
-      JSON.stringify({
-        type: "false_serialization",
-        message: "Disjoint write scope tasks task-1 and task-2 executed sequentially",
-        timestamp: "2026-08-24T12:02:00.000Z",
-      }),
-    ];
+    const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
+    const readEvents = Array.from({ length: 6 }, (_, i) => ({
+      kind: "tool-called",
+      sequence: i + 1,
+      actor: "worker-1",
+      timestamp: new Date(nowMs + i * 1000).toISOString(),
+      payload: { tool: "read_file", arguments: { AbsolutePath: `src/file-${i}.ts` } },
+    }));
+    const coordinatorWriteEvent = {
+      kind: "tool-called",
+      sequence: readEvents.length + 1,
+      actor: "coordinator-1",
+      timestamp: new Date(nowMs + readEvents.length * 1000).toISOString(),
+      payload: { tool: "write_file", arguments: { TargetFile: "src/forbidden.ts" } },
+    };
+    const eventLines = [...readEvents, coordinatorWriteEvent].map((event) => JSON.stringify(event));
     writeFileSync(join(runRoot, "events.jsonl"), eventLines.join("\n") + "\n", "utf-8");
+
+    const state = {
+      tasks: {
+        "task-a": {
+          write_scope: ["src/aaa.ts"],
+          attempts: [
+            { started_at: "2026-08-24T10:00:00.000Z", completed_at: "2026-08-24T10:05:00.000Z" },
+          ],
+        },
+        "task-b": {
+          write_scope: ["src/bbb.ts"],
+          attempts: [
+            { started_at: "2026-08-24T10:05:00.000Z", completed_at: "2026-08-24T10:10:00.000Z" },
+          ],
+        },
+        "task-c": {
+          write_scope: ["src/ccc.ts"],
+          attempts: [
+            { started_at: "2026-08-24T10:10:00.000Z", completed_at: "2026-08-24T10:15:00.000Z" },
+          ],
+        },
+      },
+    };
+    writeFileSync(join(runRoot, "state.json"), JSON.stringify(state), "utf-8");
 
     const report: BehavioralForensicsReport = executeBehavioralForensics(testRoot, {
       capsuleRunRoot: runRoot,

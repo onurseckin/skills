@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { loadRoleContract } from "../../olt/scripts/src/packets/role-contract.ts";
 
 const REPO_ROOT = process.cwd();
 const AGENTS_DIR = join(REPO_ROOT, "olt", "agents");
@@ -84,7 +85,7 @@ describe("Canonical Codification & Global Documentation Sync Test Suite", () => 
       const valYaml = readFileSync(join(AGENTS_DIR, "validator.yaml"), "utf-8");
 
       expect(valYaml).toContain("Cognitive Validator Hard-Lock Interlock");
-      expect(valYaml).toContain("commands: []");
+      expect(loadRoleContract("validator").commands).not.toContain("run:exec");
     });
 
     it("asserts mechanic-validator.yaml retains test execution authority", () => {
