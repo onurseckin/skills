@@ -22,15 +22,15 @@ export class OpenAICollector extends BaseTieredCollector {
             ? parsed.remaining_percentage
             : typeof parsed.remainingPercentage === "number"
               ? parsed.remainingPercentage
-              : 100;
+              : null;
         const metrics: NormalizedQuotaMetric[] = [
           {
             rawMetricName: "openai_tokens_remaining",
             canonicalProvider: "openai",
             windowType: "monthly",
-            remainingPercentage: Math.max(0, Math.min(100, remaining)),
+            remainingPercentage: remaining === null ? null : Math.max(0, Math.min(100, remaining)),
             sourceTier: "tier1_cli_command",
-            confidence: "verified_exact",
+            confidence: remaining === null ? "unknown" : "verified_exact",
             rawPayload: parsed,
           },
         ];
@@ -47,9 +47,9 @@ export class OpenAICollector extends BaseTieredCollector {
               rawMetricName: "cli_presence",
               canonicalProvider: "openai",
               windowType: "session",
-              remainingPercentage: 100,
+              remainingPercentage: null,
               sourceTier: "tier1_cli_command",
-              confidence: "inferred_metric",
+              confidence: "unknown",
               rawPayload: { rawOutput: quotaResult.stdout.trim() },
             },
           ],
@@ -67,9 +67,9 @@ export class OpenAICollector extends BaseTieredCollector {
             rawMetricName: "cli_presence",
             canonicalProvider: "openai",
             windowType: "session",
-            remainingPercentage: 100,
+            remainingPercentage: null,
             sourceTier: "tier1_cli_command",
-            confidence: "inferred_metric",
+            confidence: "unknown",
             rawPayload: { version: verResult.stdout.trim() },
           },
         ],
@@ -140,9 +140,9 @@ export class OpenAICollector extends BaseTieredCollector {
             rawMetricName: "runtime_environment",
             canonicalProvider: "openai",
             windowType: "session",
-            remainingPercentage: 100,
+            remainingPercentage: null,
             sourceTier: "tier3_runtime",
-            confidence: "inferred_metric",
+            confidence: "unknown",
             rawPayload: { detectedVariables: detected },
           },
         ],
@@ -288,15 +288,15 @@ export class CodexCollector extends BaseTieredCollector {
             ? parsed.remaining_percentage
             : typeof parsed.remainingPercentage === "number"
               ? parsed.remainingPercentage
-              : 100;
+              : null;
         const metrics: NormalizedQuotaMetric[] = [
           {
             rawMetricName: "codex_tokens_remaining",
             canonicalProvider: "openai",
             windowType: "monthly",
-            remainingPercentage: Math.max(0, Math.min(100, remaining)),
+            remainingPercentage: remaining === null ? null : Math.max(0, Math.min(100, remaining)),
             sourceTier: "tier1_cli_command",
-            confidence: "verified_exact",
+            confidence: remaining === null ? "unknown" : "verified_exact",
             rawPayload: parsed,
           },
         ];
@@ -313,9 +313,9 @@ export class CodexCollector extends BaseTieredCollector {
               rawMetricName: "cli_presence",
               canonicalProvider: "openai",
               windowType: "session",
-              remainingPercentage: 100,
+              remainingPercentage: null,
               sourceTier: "tier1_cli_command",
-              confidence: "inferred_metric",
+              confidence: "unknown",
               rawPayload: { rawOutput: quotaResult.stdout.trim() },
             },
           ],
@@ -333,9 +333,9 @@ export class CodexCollector extends BaseTieredCollector {
             rawMetricName: "cli_presence",
             canonicalProvider: "openai",
             windowType: "session",
-            remainingPercentage: 100,
+            remainingPercentage: null,
             sourceTier: "tier1_cli_command",
-            confidence: "inferred_metric",
+            confidence: "unknown",
             rawPayload: { version: verResult.stdout.trim() },
           },
         ],
@@ -402,9 +402,9 @@ export class CodexCollector extends BaseTieredCollector {
                   rawMetricName: "cached_codex_auth",
                   canonicalProvider: "openai",
                   windowType: "session",
-                  remainingPercentage: 100,
+                  remainingPercentage: null,
                   sourceTier: "tier2_local_storage",
-                  confidence: "cached",
+                  confidence: "unknown",
                   rawPayload: parsed,
                 },
               ],
@@ -427,9 +427,9 @@ export class CodexCollector extends BaseTieredCollector {
                   rawMetricName: "cached_codex_config",
                   canonicalProvider: "openai",
                   windowType: "session",
-                  remainingPercentage: 100,
+                  remainingPercentage: null,
                   sourceTier: "tier2_local_storage",
-                  confidence: "cached",
+                  confidence: "unknown",
                   rawPayload: { rawConfig: content },
                 },
               ],
@@ -457,9 +457,9 @@ export class CodexCollector extends BaseTieredCollector {
             rawMetricName: "runtime_environment",
             canonicalProvider: "openai",
             windowType: "session",
-            remainingPercentage: 100,
+            remainingPercentage: null,
             sourceTier: "tier3_runtime",
-            confidence: "inferred_metric",
+            confidence: "unknown",
             rawPayload: { detectedVariables: detected },
           },
         ],

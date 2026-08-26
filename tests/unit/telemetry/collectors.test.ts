@@ -115,7 +115,8 @@ describe("AntigravityCollector", () => {
     expect(gptMetric?.windowType).toBe("5_hour");
     expect(gptMetric?.remainingPercentage).toBe(100);
 
-    expect(result.rawObservations.email).toBe("developer@example.com");
+    expect(result.rawObservations.email).toBe("[REDACTED]");
+    expect(JSON.stringify(result)).not.toContain("developer@example.com");
     expect(result.rawObservations.plan).toBe("Pro");
     expect(result.rawObservations.activePort).toBe("56963");
     expect(result.rawObservations.userTier).toBeDefined();
@@ -137,7 +138,7 @@ describe("AntigravityCollector", () => {
               quotaInfo: { remainingFraction: 0 },
             },
             {
-              label: "Model Default Test",
+              label: "Model Missing QuotaInfo Test",
             },
           ],
         },
@@ -150,8 +151,11 @@ describe("AntigravityCollector", () => {
     expect(result.isDetected).toBe(true);
     expect(result.metrics).toHaveLength(3);
     expect(result.metrics[0]?.remainingPercentage).toBe(15.16);
+    expect(result.metrics[0]?.confidence).toBe("verified_exact");
     expect(result.metrics[1]?.remainingPercentage).toBe(0);
-    expect(result.metrics[2]?.remainingPercentage).toBe(100);
+    expect(result.metrics[1]?.confidence).toBe("verified_exact");
+    expect(result.metrics[2]?.remainingPercentage).toBe(null);
+    expect(result.metrics[2]?.confidence).toBe("unknown");
   });
 
   it("probes Tier 1 CLI successfully with legacy structured quota JSON when RPC is unavailable", async () => {
@@ -195,7 +199,8 @@ describe("AntigravityCollector", () => {
 
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier1_cli_command");
-    expect(result.metrics[0]!.confidence).toBe("inferred_metric");
+    expect(result.metrics[0]!.remainingPercentage).toBeNull();
+    expect(result.metrics[0]!.confidence).toBe("unknown");
     expect(result.rawObservations.version).toBe("agy v2.1.0");
   });
 
@@ -232,7 +237,8 @@ describe("AntigravityCollector", () => {
 
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier3_runtime");
-    expect(result.metrics[0]!.confidence).toBe("inferred_metric");
+    expect(result.metrics[0]!.remainingPercentage).toBeNull();
+    expect(result.metrics[0]!.confidence).toBe("unknown");
     expect(result.rawObservations.detectedVariables).toEqual([
       "GEMINI_API_KEY",
       "ANTIGRAVITY_APP_DIR",
@@ -294,7 +300,8 @@ describe("ClaudeCollector", () => {
     expect(result.metrics[2]!.remainingPercentage).toBe(50.0);
     expect(result.metrics[3]!.rawMetricName).toBe("Claude Sonnet (7-Day Limit)");
     expect(result.metrics[3]!.remainingPercentage).toBe(85.0);
-    expect(result.rawObservations.email).toBe("developer@example.com");
+    expect(result.rawObservations.email).toBe("[REDACTED]");
+    expect(JSON.stringify(result)).not.toContain("developer@example.com");
   });
 
   it("probes Tier 1 CLI usage output when OAuth is unavailable", async () => {
@@ -361,7 +368,11 @@ describe("ClaudeCollector", () => {
     expect(result.metrics[1]!.confidence).toBe("cached");
     expect(result.metrics[2]!.remainingPercentage).toBe(90.0);
     expect(result.metrics[2]!.confidence).toBe("cached");
-    expect(result.rawObservations.email).toBe("developer@example.com");
+    expect(result.rawObservations.email).toBe("[REDACTED]");
+    expect(result.rawObservations.billingType).toBe("[REDACTED]");
+    expect(result.rawObservations.planTier).toBe("[REDACTED]");
+    expect(JSON.stringify(result)).not.toContain("developer@example.com");
+    expect(JSON.stringify(result)).not.toContain("stripe_subscription");
   });
 
   it("probes Tier 2 local storage stats.json cache fallback", async () => {
@@ -397,7 +408,8 @@ describe("ClaudeCollector", () => {
 
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier3_runtime");
-    expect(result.metrics[0]!.confidence).toBe("inferred_metric");
+    expect(result.metrics[0]!.remainingPercentage).toBeNull();
+    expect(result.metrics[0]!.confidence).toBe("unknown");
     expect(result.rawObservations.detectedVariables).toEqual([
       "ANTHROPIC_API_KEY",
       "CLAUDE_API_KEY",
@@ -539,7 +551,8 @@ describe("OpenAICollector and CodexCollector", () => {
     expect(result.platformId).toBe("openai");
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier3_runtime");
-    expect(result.metrics[0]!.confidence).toBe("inferred_metric");
+    expect(result.metrics[0]!.remainingPercentage).toBeNull();
+    expect(result.metrics[0]!.confidence).toBe("unknown");
   });
 
   it("returns not detected with terminal reason when all tiers fail for OpenAI", async () => {
@@ -695,7 +708,8 @@ describe("OpenAICollector and CodexCollector", () => {
     expect(result.platformId).toBe("codex");
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier2_local_storage");
-    expect(result.metrics[0]!.confidence).toBe("cached");
+    expect(result.metrics[0]!.remainingPercentage).toBeNull();
+    expect(result.metrics[0]!.confidence).toBe("unknown");
     expect(result.metrics[0]!.rawMetricName).toBe("cached_codex_auth");
   });
 
@@ -734,7 +748,8 @@ describe("OpenAICollector and CodexCollector", () => {
     expect(result.platformId).toBe("codex");
     expect(result.isDetected).toBe(true);
     expect(result.primaryTierUsed).toBe("tier3_runtime");
-    expect(result.metrics[0]!.confidence).toBe("inferred_metric");
+    expect(result.metrics[0]!.remainingPercentage).toBeNull();
+    expect(result.metrics[0]!.confidence).toBe("unknown");
     expect(result.rawObservations.detectedVariables).toEqual(["CODEX_API_KEY"]);
   });
 

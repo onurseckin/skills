@@ -22,15 +22,15 @@ export class CursorCollector extends BaseTieredCollector {
             ? parsed.remaining_percentage
             : typeof parsed.remainingPercentage === "number"
               ? parsed.remainingPercentage
-              : 100;
+              : null;
         const metrics: NormalizedQuotaMetric[] = [
           {
             rawMetricName: "cursor_fast_requests",
             canonicalProvider: "cursor",
             windowType: "monthly",
-            remainingPercentage: Math.max(0, Math.min(100, remaining)),
+            remainingPercentage: remaining === null ? null : Math.max(0, Math.min(100, remaining)),
             sourceTier: "tier1_cli_command",
-            confidence: "verified_exact",
+            confidence: remaining === null ? "unknown" : "verified_exact",
             rawPayload: parsed,
           },
         ];
@@ -47,9 +47,9 @@ export class CursorCollector extends BaseTieredCollector {
               rawMetricName: "cli_presence",
               canonicalProvider: "cursor",
               windowType: "session",
-              remainingPercentage: 100,
+              remainingPercentage: null,
               sourceTier: "tier1_cli_command",
-              confidence: "inferred_metric",
+              confidence: "unknown",
               rawPayload: { rawOutput: statusResult.stdout.trim() },
             },
           ],
@@ -67,9 +67,9 @@ export class CursorCollector extends BaseTieredCollector {
             rawMetricName: "cli_presence",
             canonicalProvider: "cursor",
             windowType: "session",
-            remainingPercentage: 100,
+            remainingPercentage: null,
             sourceTier: "tier1_cli_command",
-            confidence: "inferred_metric",
+            confidence: "unknown",
             rawPayload: { version: verResult.stdout.trim() },
           },
         ],
@@ -106,7 +106,7 @@ export class CursorCollector extends BaseTieredCollector {
               ? parsed.remainingPercentage
               : typeof parsed.quotaRemaining === "number"
                 ? parsed.quotaRemaining
-                : 80;
+                : null;
           return {
             sourceTier: "tier2_local_storage",
             metrics: [
@@ -114,9 +114,10 @@ export class CursorCollector extends BaseTieredCollector {
                 rawMetricName: "local_cursor_storage",
                 canonicalProvider: "cursor",
                 windowType: "monthly",
-                remainingPercentage: Math.max(0, Math.min(100, remaining)),
+                remainingPercentage:
+                  remaining === null ? null : Math.max(0, Math.min(100, remaining)),
                 sourceTier: "tier2_local_storage",
-                confidence: "inferred_metric",
+                confidence: remaining === null ? "unknown" : "inferred_metric",
                 rawPayload: parsed,
               },
             ],
@@ -130,9 +131,9 @@ export class CursorCollector extends BaseTieredCollector {
                 rawMetricName: "local_storage_file",
                 canonicalProvider: "cursor",
                 windowType: "session",
-                remainingPercentage: 100,
+                remainingPercentage: null,
                 sourceTier: "tier2_local_storage",
-                confidence: "heuristic",
+                confidence: "unknown",
                 rawPayload: { filePath },
               },
             ],
@@ -160,9 +161,9 @@ export class CursorCollector extends BaseTieredCollector {
             rawMetricName: "runtime_environment",
             canonicalProvider: "cursor",
             windowType: "session",
-            remainingPercentage: 100,
+            remainingPercentage: null,
             sourceTier: "tier3_runtime",
-            confidence: "heuristic",
+            confidence: "unknown",
             rawPayload: { detectedVariables: detected },
           },
         ],

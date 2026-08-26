@@ -12,7 +12,7 @@ export interface NormalizedQuotaMetric {
   rawMetricName: string;
   canonicalProvider: string;
   windowType: string;
-  remainingPercentage: number;
+  remainingPercentage: number | null;
   sourceTier: TierType;
   confidence: ConfidenceLevel;
   rawPayload: Record<string, unknown>;

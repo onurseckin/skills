@@ -124,15 +124,15 @@ export class ClaudeCollector extends BaseTieredCollector {
             ? parsed.remaining_percentage
             : typeof parsed.remainingPercentage === "number"
               ? parsed.remainingPercentage
-              : 100;
+              : null;
         const metrics: NormalizedQuotaMetric[] = [
           {
             rawMetricName: "claude_session_tokens",
             canonicalProvider: "anthropic",
             windowType: "session",
-            remainingPercentage: Math.max(0, Math.min(100, remaining)),
+            remainingPercentage: remaining === null ? null : Math.max(0, Math.min(100, remaining)),
             sourceTier: "tier1_cli_command",
-            confidence: "verified_exact",
+            confidence: remaining === null ? "unknown" : "verified_exact",
             rawPayload: parsed,
           },
         ];
@@ -149,9 +149,9 @@ export class ClaudeCollector extends BaseTieredCollector {
               rawMetricName: "cli_presence",
               canonicalProvider: "anthropic",
               windowType: "session",
-              remainingPercentage: 100,
+              remainingPercentage: null,
               sourceTier: "tier1_cli_command",
-              confidence: "inferred_metric",
+              confidence: "unknown",
               rawPayload: { rawOutput: usageResult.stdout.trim() },
             },
           ],
@@ -169,9 +169,9 @@ export class ClaudeCollector extends BaseTieredCollector {
             rawMetricName: "cli_presence",
             canonicalProvider: "anthropic",
             windowType: "session",
-            remainingPercentage: 100,
+            remainingPercentage: null,
             sourceTier: "tier1_cli_command",
-            confidence: "inferred_metric",
+            confidence: "unknown",
             rawPayload: { version: verResult.stdout.trim() },
           },
         ],
@@ -346,9 +346,9 @@ export class ClaudeCollector extends BaseTieredCollector {
             rawMetricName: "runtime_environment",
             canonicalProvider: "anthropic",
             windowType: "session",
-            remainingPercentage: 100,
+            remainingPercentage: null,
             sourceTier: "tier3_runtime",
-            confidence: "inferred_metric",
+            confidence: "unknown",
             rawPayload: { detectedVariables: detected },
           },
         ],

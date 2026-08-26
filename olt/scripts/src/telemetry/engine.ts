@@ -137,6 +137,9 @@ export class TelemetryNormalizationEngine {
         continue;
       }
       for (const m of res.metrics) {
+        if (m.remainingPercentage === null) {
+          continue;
+        }
         if (lowestRemainingQuota === null || m.remainingPercentage < lowestRemainingQuota) {
           lowestRemainingQuota = m.remainingPercentage;
           lowestMetric = m;
@@ -214,9 +217,16 @@ export class TelemetryNormalizationEngine {
           const metric = res.metrics[mIdx]!;
           const modelName = (metric.rawMetricName || "unknown").padEnd(30).slice(0, 30);
           const winPad = (metric.windowType || "-").padEnd(10).slice(0, 10);
-          const bar = formatPreciseProgressBar(metric.remainingPercentage, 6);
+          const bar =
+            metric.remainingPercentage === null
+              ? "[??????] Unknown"
+              : formatPreciseProgressBar(metric.remainingPercentage, 6);
           const barPad = bar.padEnd(17).slice(0, 17);
-          const resetStr = formatResetTime(metric).padEnd(16).slice(0, 16);
+          const resetStr = (
+            metric.remainingPercentage === null ? "Not Measured" : formatResetTime(metric)
+          )
+            .padEnd(16)
+            .slice(0, 16);
           const confStr = `${tierShort} (${metric.confidence.slice(0, 4)})`.padEnd(12).slice(0, 12);
 
           if (mIdx === 0) {
@@ -257,24 +267,13 @@ export class TelemetryNormalizationEngine {
       if (res.platformId === "antigravity" && res.rawObservations.userTier) {
         const userTier = res.rawObservations.userTier as Record<string, unknown>;
         const tierName = userTier.name || "unknown";
-        const email = res.rawObservations.email ? `${res.rawObservations.email}` : "";
         const credits =
           Array.isArray(userTier.availableCredits) && userTier.availableCredits[0]
             ? `${(userTier.availableCredits[0] as Record<string, unknown>).creditAmount ?? 0} Credits`
             : "";
         const plan = res.rawObservations.plan ? `Plan: ${res.rawObservations.plan}` : "";
-        const parts = [tierName, credits, plan, email].filter(Boolean);
+        const parts = [tierName, credits, plan].filter(Boolean);
         accountBadges.push(`\`[antigravity]\` ${parts.join(" · ")}`);
-      }
-
-      if (res.platformId === "claude" && res.rawObservations.email) {
-        const email = String(res.rawObservations.email);
-        const billing = res.rawObservations.billingType
-          ? `Billing: ${res.rawObservations.billingType}`
-          : "";
-        const plan = res.rawObservations.planTier ? `Plan: ${res.rawObservations.planTier}` : "";
-        const parts = [email, plan, billing].filter(Boolean);
-        accountBadges.push(`\`[claude]\` ${parts.join(" · ")}`);
       }
 
       if (
@@ -283,9 +282,7 @@ export class TelemetryNormalizationEngine {
       ) {
         const plan =
           res.rawObservations.planType ?? res.rawObservations.plan_type ?? res.rawObservations.plan;
-        const email = res.rawObservations.email ? `${res.rawObservations.email}` : "";
-        const parts = [`Plan: ${plan}`, email].filter(Boolean);
-        accountBadges.push(`\`[${res.platformId}]\` ${parts.join(" · ")}`);
+        accountBadges.push(`\`[${res.platformId}]\` Plan: ${plan}`);
       }
     }
 

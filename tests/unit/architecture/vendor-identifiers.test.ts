@@ -39,6 +39,7 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/platform/antigravity.ts",
   "src/platform/chatgpt.ts",
   "src/platform/claude-code.ts",
+  "src/platform/code-edit-tools.ts",
   "src/platform/codex.ts",
   "src/platform/host-adapter-registry.ts",
   "src/summary/host-telemetry.ts",
@@ -107,6 +108,8 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/roles/plan-91-roles.test.ts",
   "unit/telemetry/collectors.test.ts",
   "unit/telemetry/engine.test.ts",
+  "unit/telemetry/quota-unknown-safety.test.ts",
+  "unit/telemetry/secret-redaction.test.ts",
   "unit/telemetry/usage-report.test.ts",
   "unit/workflow/agents/transcript-telemetry.test.ts",
 ];

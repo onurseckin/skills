@@ -163,6 +163,10 @@ export class QuotaCircuitBreaker {
         continue;
       }
       for (const metric of res.metrics) {
+        if (metric.remainingPercentage === null) {
+          continue;
+        }
+
         if (lowestRemainingQuota === null || metric.remainingPercentage < lowestRemainingQuota) {
           lowestRemainingQuota = metric.remainingPercentage;
         }
