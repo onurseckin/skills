@@ -1,0 +1,45 @@
+{
+  "name": "authority:decide",
+  "aliases": [],
+  "domain": "authority",
+  "summary": "Grant or decline a needs_authority requirement.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "requirement",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "decision",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "rationale",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

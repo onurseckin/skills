@@ -1,0 +1,52 @@
+{
+  "name": "mind:round-open",
+  "aliases": [],
+  "domain": "mind",
+  "summary": "Open a multi-pulse round for an objective.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "objective",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "candidate",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "round",
+      "type": "int",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "target-run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

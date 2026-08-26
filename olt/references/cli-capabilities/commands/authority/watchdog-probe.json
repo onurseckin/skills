@@ -1,0 +1,55 @@
+{
+  "name": "watchdog:probe",
+  "aliases": [
+    "watchdog:supervise",
+    "watchdog:health-probe"
+  ],
+  "domain": "authority",
+  "summary": "Execute 2-way supervisory health probe and doctor diagnostics to top leader.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "capsules-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "generation",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "pulse-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "all",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "now",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

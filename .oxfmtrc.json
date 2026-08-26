@@ -6,6 +6,6 @@
     "olt/checklists/**",
     "olt/roles/**",
     "olt/references/cli-capabilities.md",
-    "olt/references/cli-capabilities.json"
+    "olt/references/cli-capabilities/**"
   ]
 }

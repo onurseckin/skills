@@ -1,0 +1,45 @@
+{
+  "name": "plan:apply",
+  "aliases": [],
+  "domain": "plan",
+  "summary": "Validate and commit the requirements and graph the planner wrote to planning/.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "requirements",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "graph",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "expected-revision",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

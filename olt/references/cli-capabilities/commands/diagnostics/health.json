@@ -1,0 +1,45 @@
+{
+  "name": "health",
+  "aliases": [],
+  "domain": "diagnostics",
+  "summary": "Check whether the code still does what the requirements said.",
+  "flags": [
+    {
+      "name": "scripts",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "consumer",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "check",
+      "type": "string",
+      "required": false,
+      "repeatable": true,
+      "default": null
+    },
+    {
+      "name": "all",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "strict",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

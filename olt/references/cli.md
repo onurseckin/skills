@@ -6,18 +6,22 @@ entrypoint `~/.agents/skills/olt/scripts/harness.ts`).
 **This file documents no command.** The command surface is generated from the command registry, so
 there is exactly one description of every command, its flags, its stdin rule and its exit codes:
 
-| Where                                            | What it is                                                                    |
-| :----------------------------------------------- | :---------------------------------------------------------------------------- |
-| [`cli-capabilities.md`](cli-capabilities.md)     | The full manifest, rendered from `scripts/src/cli/registry`. Read this.       |
-| [`cli-capabilities.json`](cli-capabilities.json) | The same manifest as data, for anything that checks a flag before writing it. |
-| `bun harness.ts help`                            | Every command grouped by domain.                                              |
-| `bun harness.ts help <command>`                  | One command: summary, flags, stdin rule, exit codes, examples.                |
-| `bun harness.ts <command> --help`                | The same page, from the command you were about to run.                        |
+| Where                                                          | What it is                                                                           |
+| :------------------------------------------------------------- | :----------------------------------------------------------------------------------- |
+| [`cli-capabilities.md`](cli-capabilities.md)                   | Index: exit codes, the domain list, and every command's one-line summary. Read this. |
+| [`cli-capabilities/domains/`](cli-capabilities/domains/)       | One file per domain with the full detail: flags, stdin rule, examples.               |
+| [`cli-capabilities/index.jsonl`](cli-capabilities/index.jsonl) | One compact, self-contained JSON record per command — the fast grep target.          |
+| [`cli-capabilities/commands/`](cli-capabilities/commands/)     | One pretty-printed JSON file per command with its complete flag definitions.         |
+| `bun harness.ts help`                                          | Every command grouped by domain.                                                     |
+| `bun harness.ts help <command>`                                | One command: summary, flags, stdin rule, exit codes, examples.                       |
+| `bun harness.ts <command> --help`                              | The same page, from the command you were about to run.                               |
 
-A unit test asserts the checked-in manifest is byte-identical to what the registry renders, so the
-manifest cannot drift from the code. Hand-written command documentation can, which is why none lives
-here. Before writing a command invocation into any document, check the flag exists in
-`cli-capabilities.json`.
+A unit test asserts the checked-in tree is byte-identical to what the registry renders, so it cannot
+drift from the code. Hand-written command documentation can, which is why none lives here. Before
+writing a command invocation into any document, check the flag exists in
+`cli-capabilities/index.jsonl` (`grep '"name":"<command>"' cli-capabilities/index.jsonl`) or run
+`bun harness.ts help <command>`. Never read the whole split tree into context at once — grep the one
+record or file you need.
 
 ## Conventions that hold for every command
 

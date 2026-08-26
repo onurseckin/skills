@@ -1,0 +1,40 @@
+{
+  "name": "report:graph-json",
+  "aliases": [
+    "dag:export-json"
+  ],
+  "domain": "reporting",
+  "summary": "Export DAG telemetry and metrics to JSON.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "out",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "pretty",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

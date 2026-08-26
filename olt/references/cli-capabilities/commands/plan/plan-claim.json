@@ -1,0 +1,31 @@
+{
+  "name": "plan:claim",
+  "aliases": [],
+  "domain": "plan",
+  "summary": "Issue a planner's role packet: the sole way a planner agent gets its contract.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "agent",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "expected-revision",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

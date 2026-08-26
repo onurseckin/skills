@@ -1,0 +1,38 @@
+{
+  "name": "mind:audit-start",
+  "aliases": [],
+  "domain": "mind",
+  "summary": "Start an independent audit cycle over recent pulses.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "audit-id",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "window-start",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

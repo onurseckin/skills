@@ -1,0 +1,45 @@
+{
+  "name": "mind:init",
+  "aliases": [],
+  "domain": "mind",
+  "summary": "Initialize a mind capsule from an owner charter.",
+  "flags": [
+    {
+      "name": "repo",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "charter",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "mind-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "mind-gen-1"
+    },
+    {
+      "name": "capsules-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

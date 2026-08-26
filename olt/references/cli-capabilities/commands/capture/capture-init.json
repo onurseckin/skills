@@ -1,0 +1,38 @@
+{
+  "name": "capture:init",
+  "aliases": [],
+  "domain": "capture",
+  "summary": "Initialize standard capture configuration in repository.",
+  "flags": [
+    {
+      "name": "config-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "format",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "yaml"
+    },
+    {
+      "name": "preset",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "standard-dashboard"
+    },
+    {
+      "name": "force",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

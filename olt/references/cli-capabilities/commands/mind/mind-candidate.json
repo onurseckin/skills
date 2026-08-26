@@ -1,0 +1,73 @@
+{
+  "name": "mind:candidate",
+  "aliases": [],
+  "domain": "mind",
+  "summary": "Record a discovery candidate (defect or proposal).",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "kind",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "statement",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "witness",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "charter-goal",
+      "type": "string",
+      "required": true,
+      "repeatable": true,
+      "default": null
+    },
+    {
+      "name": "falsifier",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "write-scope",
+      "type": "string",
+      "required": true,
+      "repeatable": true,
+      "default": null
+    },
+    {
+      "name": "rationale",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

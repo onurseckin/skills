@@ -1,0 +1,38 @@
+{
+  "name": "doctor:certify",
+  "aliases": [],
+  "domain": "diagnostics",
+  "summary": "Certify doctor's own checks are falsifiable via counterfactual mutation testing.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "write-scope",
+      "type": "string",
+      "required": false,
+      "repeatable": true,
+      "default": null
+    },
+    {
+      "name": "mutation-kind",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "strict",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

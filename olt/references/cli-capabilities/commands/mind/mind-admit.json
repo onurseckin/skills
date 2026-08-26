@@ -1,0 +1,31 @@
+{
+  "name": "mind:admit",
+  "aliases": [],
+  "domain": "mind",
+  "summary": "Run admission gates on a candidate and admit it.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "candidate",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

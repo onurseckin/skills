@@ -1,0 +1,38 @@
+{
+  "name": "queue:pop",
+  "aliases": [],
+  "domain": "queue",
+  "summary": "Claim the highest-priority ready task and mint a lease token.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "agent",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "lease-duration",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "lease-seconds",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": 1200
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

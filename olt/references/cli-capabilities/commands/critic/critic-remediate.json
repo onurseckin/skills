@@ -1,0 +1,45 @@
+{
+  "name": "critic:remediate",
+  "aliases": [],
+  "domain": "critic",
+  "summary": "Close out a critic findings review with command-backed remediation evidence.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "review-sha256",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "resolve",
+      "type": "string",
+      "required": false,
+      "repeatable": true,
+      "default": null
+    },
+    {
+      "name": "resolution-method",
+      "type": "string",
+      "required": false,
+      "repeatable": true,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

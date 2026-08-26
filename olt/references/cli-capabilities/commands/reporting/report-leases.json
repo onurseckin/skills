@@ -1,0 +1,17 @@
+{
+  "name": "report:leases",
+  "aliases": [],
+  "domain": "reporting",
+  "summary": "Active lease and agent matrix.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

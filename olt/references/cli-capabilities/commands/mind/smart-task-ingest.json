@@ -1,0 +1,33 @@
+{
+  "name": "smart-task:ingest",
+  "aliases": [
+    "smart-task:expand"
+  ],
+  "domain": "mind",
+  "summary": "Ingest and enhance an external prompt into a gate-verifiable task plan.",
+  "flags": [
+    {
+      "name": "prompt",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "goal",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

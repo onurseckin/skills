@@ -1,0 +1,59 @@
+{
+  "name": "mind:pulse",
+  "aliases": [],
+  "domain": "mind",
+  "summary": "Unified perpetual mind pulse: report active telemetry or open a new pulse.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "mind-1"
+    },
+    {
+      "name": "host",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "antigravity"
+    },
+    {
+      "name": "driver",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "perpetual-loop"
+    },
+    {
+      "name": "arm",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "arm-mechanism",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "now",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

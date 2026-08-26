@@ -1,0 +1,40 @@
+{
+  "name": "run:status",
+  "aliases": [
+    "status"
+  ],
+  "domain": "run",
+  "summary": "Show phase, per-task status and progress for the run.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "repo",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "."
+    },
+    {
+      "name": "detailed",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

@@ -1,0 +1,40 @@
+{
+  "name": "scope:expand",
+  "aliases": [
+    "scope-expand"
+  ],
+  "domain": "agent",
+  "summary": "Dynamically expand the declared read scope neighborhood for an active actor.",
+  "flags": [
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "read",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

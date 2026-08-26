@@ -1,0 +1,54 @@
+{
+  "name": "plan:brainstorm",
+  "aliases": [
+    "brainstorm"
+  ],
+  "domain": "plan",
+  "summary": "Expand a prompt against the 8 Socratic vectors across iterative rounds.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "prompt",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "rounds",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": 3
+    },
+    {
+      "name": "save",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": true
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "planner"
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

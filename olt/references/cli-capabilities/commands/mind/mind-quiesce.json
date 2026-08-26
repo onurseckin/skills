@@ -1,0 +1,31 @@
+{
+  "name": "mind:quiesce",
+  "aliases": [],
+  "domain": "mind",
+  "summary": "Record a verified quiescent observation across all ten discovery sources.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "required": true,
+      "repeatable": true,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

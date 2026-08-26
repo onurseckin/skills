@@ -1,0 +1,38 @@
+{
+  "name": "mind:wake",
+  "aliases": [],
+  "domain": "mind",
+  "summary": "Produce the Tier A orientation brief and reclaim expired pulses.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "depth",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "brief"
+    },
+    {
+      "name": "target-run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

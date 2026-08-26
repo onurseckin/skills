@@ -1,0 +1,38 @@
+{
+  "name": "plan:compile",
+  "aliases": [],
+  "domain": "plan",
+  "summary": "Compile the planning buffer into requirements, the DAG, and revision 1.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "completion-gate",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "accept-audit",
+      "type": "string",
+      "required": false,
+      "repeatable": true,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

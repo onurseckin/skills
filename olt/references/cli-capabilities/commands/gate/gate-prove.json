@@ -1,0 +1,52 @@
+{
+  "name": "gate:prove",
+  "aliases": [],
+  "domain": "gate",
+  "summary": "Prove a compiled task's gate can actually fail, on a disposable scratch copy.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "task",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "base",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "the claimed base sha, else HEAD"
+    },
+    {
+      "name": "timeout-ms",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "max-files",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

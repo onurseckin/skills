@@ -1,0 +1,33 @@
+{
+  "name": "smart-task:plan",
+  "aliases": [
+    "task:synthesize"
+  ],
+  "domain": "mind",
+  "summary": "Autonomously synthesize self-evolution tasks or plan from feedback queue.",
+  "flags": [
+    {
+      "name": "capsules-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "max-tasks",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "goal",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

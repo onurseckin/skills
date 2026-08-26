@@ -1,0 +1,31 @@
+{
+  "name": "critic:start",
+  "aliases": [],
+  "domain": "critic",
+  "summary": "Authorise a completeness critic against the immutable prompt bytes.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "critic",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "repository-command-ids",
+      "type": "string",
+      "required": false,
+      "repeatable": true,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

@@ -1,0 +1,31 @@
+{
+  "name": "plan:validate-start",
+  "aliases": [],
+  "domain": "plan",
+  "summary": "Assign the plan-validator and mint the token required by plan:review.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "validator",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "lease-duration",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": 1200
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

@@ -4,7 +4,6 @@ import {
   COMMAND_REGISTRY,
   DEFAULT_EXIT_CODES,
   type CommandSpec,
-  type ExitCodeSpec,
   type FlagSpec,
 } from "./registry/index.ts";
 
@@ -70,11 +69,7 @@ export function domainSlice(domain: CommandSpec["domain"]): CapabilityManifest {
   };
 }
 
-export function renderManifestJson(): string {
-  return `${JSON.stringify(capabilityManifest(), null, 2)}\n`;
-}
-
-function commandSection(spec: CommandSpec): string[] {
+export function commandSection(spec: CommandSpec): string[] {
   const lines = [
     `### \`${spec.name}\``,
     "",
@@ -109,15 +104,40 @@ function commandSection(spec: CommandSpec): string[] {
   return lines;
 }
 
+export function domainCommandSpecs(domain: CommandSpec["domain"]): readonly CommandSpec[] {
+  return COMMAND_REGISTRY.filter((spec) => spec.domain === domain);
+}
+
+export function renderDomainMarkdown(domain: CommandSpec["domain"]): string {
+  const specs = domainCommandSpecs(domain);
+  const lines = [
+    `# CLI Capability Manifest — ${domain}`,
+    "",
+    `Generated from \`olt/scripts/src/cli/registry\` by \`olt/scripts/generate-cli-manifest.ts\`. Do not edit by`,
+    "hand. Index: [`../cli-capabilities.md`](../cli-capabilities.md).",
+    "",
+  ];
+  for (const spec of specs) lines.push(...commandSection(spec));
+  return `${lines.join("\n").trimEnd()}\n`;
+}
+
 export function renderManifestMarkdown(): string {
   const lines = [
     "# CLI Capability Manifest",
     "",
-    "Generated from `olt/scripts/src/cli/registry` by `scripts/generate-cli-manifest.ts`. Do not edit by hand.",
+    "Generated from `olt/scripts/src/cli/registry` by `olt/scripts/generate-cli-manifest.ts`. Do not edit by",
+    "hand.",
     "",
     "Every command runs as `bun olt/scripts/harness.ts <command> [--flag value]`.",
     "Output is a markdown brief of at most 30 lines; `--format json` returns the structured result instead.",
     "`bun harness.ts help` lists the commands and `bun harness.ts help <command>` prints this detail for one of them.",
+    "",
+    "Full per-command detail (flags, stdin rule, exit codes, examples) lives one file per domain under",
+    "[`cli-capabilities/domains/`](cli-capabilities/). The structured equivalent — one JSONL record per command",
+    "plus one pretty-printed JSON file per command — lives under",
+    "[`cli-capabilities/`](cli-capabilities/): read `cli-capabilities/index.jsonl` for a single self-contained",
+    "record per command, or `cli-capabilities/commands/<domain>/<command>.json` for one command's complete flag",
+    "definitions. `cli-capabilities/manifest.json` maps domains to both.",
     "",
     "## Exit codes",
     "",
@@ -129,12 +149,27 @@ export function renderManifestMarkdown(): string {
     "`run:exec` is the one exception: it exits 0 whenever the child ran at all, and reports the child's",
     "own status in `exit_code`.",
     "",
+    "## Domains",
+    "",
+    ...formatTable(
+      ["Domain", "Commands", "Detail"],
+      COMMAND_DOMAINS.map((domain) => {
+        const count = domainCommandSpecs(domain).length;
+        return [
+          domain,
+          String(count),
+          `[cli-capabilities/domains/${domain}.md](cli-capabilities/domains/${domain}.md)`,
+        ];
+      }).filter((row) => row[1] !== "0"),
+    ),
+    "",
+    "## Commands",
+    "",
+    ...formatTable(
+      ["Command", "Domain", "Summary"],
+      COMMAND_REGISTRY.map((spec) => [`\`${spec.name}\``, spec.domain, spec.summary]),
+    ),
+    "",
   ];
-  for (const domain of COMMAND_DOMAINS) {
-    const specs = COMMAND_REGISTRY.filter((spec) => spec.domain === domain);
-    if (specs.length === 0) continue;
-    lines.push(`## ${domain}`, "");
-    for (const spec of specs) lines.push(...commandSection(spec));
-  }
   return `${lines.join("\n").trimEnd()}\n`;
 }

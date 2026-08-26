@@ -1,0 +1,17 @@
+{
+  "name": "queue:next",
+  "aliases": [],
+  "domain": "queue",
+  "summary": "Show the highest-priority ready task without claiming it.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

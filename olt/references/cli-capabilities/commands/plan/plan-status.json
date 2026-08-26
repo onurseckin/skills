@@ -1,0 +1,17 @@
+{
+  "name": "plan:status",
+  "aliases": [],
+  "domain": "plan",
+  "summary": "Show the planning buffer or the compiled plan summary.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

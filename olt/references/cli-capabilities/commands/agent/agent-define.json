@@ -1,0 +1,9 @@
+{
+  "name": "agent:define",
+  "aliases": [],
+  "domain": "agent",
+  "summary": "Define a new agent manifest.",
+  "flags": [],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

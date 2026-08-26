@@ -1,0 +1,31 @@
+{
+  "name": "recover",
+  "aliases": [],
+  "domain": "diagnostics",
+  "summary": "Release expired leases and interrupted validations.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "grace-seconds",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": 30
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

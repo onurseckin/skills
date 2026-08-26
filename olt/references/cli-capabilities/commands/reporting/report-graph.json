@@ -1,0 +1,24 @@
+{
+  "name": "report:graph",
+  "aliases": [],
+  "domain": "reporting",
+  "summary": "Visual/ASCII and graph overview.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "detailed",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

@@ -1,0 +1,24 @@
+{
+  "name": "explain",
+  "aliases": [],
+  "domain": "diagnostics",
+  "summary": "Explain a HarnessError code: the rule it enforces, common causes and the remedy for each.",
+  "flags": [
+    {
+      "name": "code",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "command",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

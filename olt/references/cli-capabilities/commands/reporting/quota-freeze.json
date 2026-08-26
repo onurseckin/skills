@@ -1,0 +1,62 @@
+{
+  "name": "quota:freeze",
+  "aliases": [
+    "quota:suspend",
+    "freeze:quota"
+  ],
+  "domain": "reporting",
+  "summary": "Initiate DAG quota freeze and create a snapshot.",
+  "flags": [
+    {
+      "name": "repo",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "threshold",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "5.0"
+    },
+    {
+      "name": "active-agents",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": 0
+    },
+    {
+      "name": "force",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": false
+    },
+    {
+      "name": "json",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "detailed",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

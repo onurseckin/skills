@@ -1,0 +1,117 @@
+{
+  "schema": "olt/cli-capabilities-split@1",
+  "source": "olt/scripts/src/cli/registry",
+  "index_file": "index.jsonl",
+  "command_count": 127,
+  "domains": [
+    {
+      "domain": "plan",
+      "command_count": 13,
+      "commands_dir": "commands/plan",
+      "markdown_file": "domains/plan.md"
+    },
+    {
+      "domain": "queue",
+      "command_count": 4,
+      "commands_dir": "commands/queue",
+      "markdown_file": "domains/queue.md"
+    },
+    {
+      "domain": "task",
+      "command_count": 13,
+      "commands_dir": "commands/task",
+      "markdown_file": "domains/task.md"
+    },
+    {
+      "domain": "reporting",
+      "command_count": 17,
+      "commands_dir": "commands/reporting",
+      "markdown_file": "domains/reporting.md"
+    },
+    {
+      "domain": "run",
+      "command_count": 4,
+      "commands_dir": "commands/run",
+      "markdown_file": "domains/run.md"
+    },
+    {
+      "domain": "critic",
+      "command_count": 4,
+      "commands_dir": "commands/critic",
+      "markdown_file": "domains/critic.md"
+    },
+    {
+      "domain": "summary",
+      "command_count": 3,
+      "commands_dir": "commands/summary",
+      "markdown_file": "domains/summary.md"
+    },
+    {
+      "domain": "inspection",
+      "command_count": 4,
+      "commands_dir": "commands/inspection",
+      "markdown_file": "domains/inspection.md"
+    },
+    {
+      "domain": "orchestrator",
+      "command_count": 2,
+      "commands_dir": "commands/orchestrator",
+      "markdown_file": "domains/orchestrator.md"
+    },
+    {
+      "domain": "branch",
+      "command_count": 6,
+      "commands_dir": "commands/branch",
+      "markdown_file": "domains/branch.md"
+    },
+    {
+      "domain": "agent",
+      "command_count": 7,
+      "commands_dir": "commands/agent",
+      "markdown_file": "domains/agent.md"
+    },
+    {
+      "domain": "orphan",
+      "command_count": 1,
+      "commands_dir": "commands/orphan",
+      "markdown_file": "domains/orphan.md"
+    },
+    {
+      "domain": "authority",
+      "command_count": 8,
+      "commands_dir": "commands/authority",
+      "markdown_file": "domains/authority.md"
+    },
+    {
+      "domain": "install",
+      "command_count": 2,
+      "commands_dir": "commands/install",
+      "markdown_file": "domains/install.md"
+    },
+    {
+      "domain": "diagnostics",
+      "command_count": 10,
+      "commands_dir": "commands/diagnostics",
+      "markdown_file": "domains/diagnostics.md"
+    },
+    {
+      "domain": "gate",
+      "command_count": 1,
+      "commands_dir": "commands/gate",
+      "markdown_file": "domains/gate.md"
+    },
+    {
+      "domain": "capture",
+      "command_count": 3,
+      "commands_dir": "commands/capture",
+      "markdown_file": "domains/capture.md"
+    },
+    {
+      "domain": "mind",
+      "command_count": 25,
+      "commands_dir": "commands/mind",
+      "markdown_file": "domains/mind.md"
+    }
+  ],
+  "digest": "fdb8a055f9a4c4e8bcf20a5173e3cf28a91e62568d14cf7b1a9e1d23f7a92d83"
+}

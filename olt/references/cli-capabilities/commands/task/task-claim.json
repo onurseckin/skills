@@ -1,0 +1,52 @@
+{
+  "name": "task:claim",
+  "aliases": [],
+  "domain": "task",
+  "summary": "Lease a specific ready task under a declared role.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "task",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "agent",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "role",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "lease-duration",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "lease-seconds",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": 1200
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

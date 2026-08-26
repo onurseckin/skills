@@ -1,0 +1,40 @@
+{
+  "name": "skill:audit:live",
+  "aliases": [
+    "skill:audit"
+  ],
+  "domain": "reporting",
+  "summary": "Live Tier 0 out-of-band audit of skill compliance and delta event forensics.",
+  "flags": [
+    {
+      "name": "repo",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "log-defects",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": true
+    },
+    {
+      "name": "json",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}
