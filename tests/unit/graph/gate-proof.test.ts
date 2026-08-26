@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -219,6 +227,30 @@ describe("proveGateFalsifiable", () => {
     ).toThrow(HarnessError);
   });
 
+  test("refuses to let a write-scope traversal escape the scratch root during revert-side deletion", () => {
+    const repo = repoWithoutRealGit("scratch-traversal-escape");
+    const victimName = `gate-prove-victim-${process.pid}-${Date.now()}`;
+    const victimDir = join(realpathSync(tmpdir()), victimName);
+    mkdirSync(victimDir, { recursive: true });
+    const canaryPath = join(victimDir, "canary.txt");
+    writeFileSync(canaryPath, "do not delete me\n");
+    try {
+      const git = fakeGit({
+        "ls-files": { status: 0, bytes: Buffer.from("") },
+        "ls-tree": { status: 0, bytes: Buffer.from("") },
+      });
+      expect(() =>
+        proveGateFalsifiable(
+          { repoRoot: repo, writeScope: [`../${victimName}`], gateArgv: ["true"] },
+          { git, spawn: noopSpawn },
+        ),
+      ).toThrow(HarnessError);
+      expect(existsSync(canaryPath)).toBe(true);
+    } finally {
+      rmSync(victimDir, { recursive: true, force: true });
+    }
+  });
+
   test("refuses a tree over --max-files instead of proving an unexpectedly expensive copy", () => {
     const repo = repoWithoutRealGit("max-files-refusal");
     writeFileSync(join(repo, "README.md"), "hi\n");
@@ -310,6 +342,35 @@ describe("nodeSpawnGate", () => {
     const result = nodeSpawnGate(["node", "-e", "setTimeout(() => {}, 10000)"], cwd, 50);
     expect(result.timedOut).toBe(true);
     expect(result.status).toBeNull();
+  });
+
+  test("a compound gate command quotes non-operator tokens so a spaced argument is not word-split", () => {
+    const cwd = scratchRoot(import.meta.path, "compound-quoting");
+    const result = nodeSpawnGate(["mkdir", "-p", "a directory", "&&", "true"], cwd, 5_000);
+    expect(result.status).toBe(0);
+    expect(existsSync(join(cwd, "a directory"))).toBe(true);
+    expect(existsSync(join(cwd, "a"))).toBe(false);
+  });
+
+  test("a compound gate command quotes tokens so embedded shell metacharacters are not interpreted", () => {
+    const cwd = scratchRoot(import.meta.path, "compound-metachar-safety");
+    const result = nodeSpawnGate(["echo", "safe$(echo INJECTED)", "&&", "true"], cwd, 5_000);
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("safe$(echo INJECTED)");
+  });
+
+  test("a compound gate command still treats && as a real operator between quoted commands", () => {
+    const cwd = scratchRoot(import.meta.path, "compound-operator-preserved");
+    const result = nodeSpawnGate(["true", "&&", "echo", "second stage"], cwd, 5_000);
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("second stage");
+  });
+
+  test("a compound gate command escapes a literal single quote inside a token", () => {
+    const cwd = scratchRoot(import.meta.path, "compound-single-quote-escaping");
+    const result = nodeSpawnGate(["echo", "it's a test", "&&", "true"], cwd, 5_000);
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("it's a test");
   });
 });
 

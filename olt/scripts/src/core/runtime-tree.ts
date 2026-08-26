@@ -11,13 +11,13 @@ import {
   openSync,
   readSync,
   readdirSync,
-  rmSync,
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { createHash } from "node:crypto";
 import { canonicalJsonBytes, sha256Bytes } from "./json.ts";
 import { fsyncDirectory } from "./durable-write.ts";
 import { includeRuntimeSourceEntry } from "./runtime-filter.ts";
+import { safeRmSync } from "./shared/safe-fs.ts";
 
 type Identity = readonly [string, string, bigint, bigint, bigint, bigint, bigint];
 export interface RuntimeSnapshot {
@@ -191,7 +191,7 @@ export function copyPinnedRuntime(
     syncTree(destination);
     return copied;
   } catch (error) {
-    if (existsSync(destination)) rmSync(destination, { recursive: true, force: true });
+    safeRmSync(destination, { allowedRoots: [dirname(destination)], missingOk: true });
     throw error;
   }
 }

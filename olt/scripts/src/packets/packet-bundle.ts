@@ -1,18 +1,11 @@
 import { randomUUID } from "node:crypto";
-import {
-  chmodSync,
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readdirSync,
-  renameSync,
-  rmSync,
-} from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { atomicWriteBytes, fsyncDirectory } from "../core/durable-write.ts";
 import { canonicalJsonBytes } from "../core/json.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { safeRmSync } from "../core/shared/safe-fs.ts";
 import type { BuiltPacket } from "./types.ts";
 
 export interface PacketPaths {
@@ -76,7 +69,7 @@ export function createPacketBundle(
     fsyncDirectory(root);
     return paths(root, id);
   } catch (error) {
-    if (existsSync(temporary)) rmSync(temporary, { recursive: true });
+    safeRmSync(temporary, { allowedRoots: [root], missingOk: true });
     throw error;
   }
 }

@@ -6,10 +6,14 @@ import { tmpdir } from "node:os";
  * safe process environment mutation & restoration, and ephemeral port allocation.
  */
 
-import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:net";
+import { findRepoRoot } from "../core/shared/paths.ts";
+import { safeRmSync } from "../core/shared/safe-fs.ts";
+
+export { findRepoRoot };
 
 export interface IsolatedTempDirOptions {
   prefix?: string | undefined;
@@ -58,29 +62,8 @@ export interface TestIsolationContext {
 
 const reservedPorts = new Set<number>();
 
-/**
- * Resolves the root directory of the repository by walking up from the current file
- * or a specified starting path until repository anchors are found.
- */
-export function findRepoRoot(startDir?: string | undefined): string {
-  let current = resolve(startDir ?? import.meta.dir ?? process.cwd());
-  while (true) {
-    if (
-      !current.endsWith("/olt/scripts") &&
-      !current.endsWith("/olt") &&
-      (existsSync(join(current, ".git")) ||
-        existsSync(join(current, ".olt")) ||
-        existsSync(join(current, "package.json")))
-    ) {
-      return current;
-    }
-    const parent = dirname(current);
-    if (parent === current) {
-      break;
-    }
-    current = parent;
-  }
-  return resolve(process.cwd());
+function resolveTestIsolationRoot(): string {
+  return join(findRepoRoot(), "coverage", "test-isolation");
 }
 
 /**
@@ -91,16 +74,14 @@ export function getIsolatedTempDir(options?: string | IsolatedTempDirOptions | u
   const opts: IsolatedTempDirOptions =
     typeof options === "string" ? { prefix: options } : (options ?? {});
 
-  const baseDir = opts.baseDir
-    ? resolve(opts.baseDir)
-    : join(findRepoRoot(), "coverage", "test-isolation");
+  const baseDir = opts.baseDir ? resolve(opts.baseDir) : resolveTestIsolationRoot();
 
   const id = opts.uuid ?? randomUUID();
   const folderName = opts.prefix ? `${opts.prefix}-${id}` : id;
   const fullPath = opts.subDir ? join(baseDir, folderName, opts.subDir) : join(baseDir, folderName);
 
   if (opts.create !== false) {
-    rmSync(fullPath, { recursive: true, force: true });
+    safeRmSync(fullPath, { allowedRoots: [resolveTestIsolationRoot()], missingOk: true });
     mkdirSync(fullPath, { recursive: true });
   }
 
@@ -111,9 +92,7 @@ export function getIsolatedTempDir(options?: string | IsolatedTempDirOptions | u
  * Recursively removes an isolated temporary directory.
  */
 export function removeIsolatedTempDir(dirPath: string): void {
-  if (existsSync(dirPath)) {
-    rmSync(dirPath, { recursive: true, force: true });
-  }
+  safeRmSync(dirPath, { allowedRoots: [resolveTestIsolationRoot()], missingOk: true });
 }
 
 /**
@@ -379,9 +358,7 @@ export function createTestIsolationContext(
 
   const removeTempFileMethod = (filename: string): void => {
     const filePath = join(tempDir, filename);
-    if (existsSync(filePath)) {
-      rmSync(filePath, { recursive: true, force: true });
-    }
+    safeRmSync(filePath, { allowedRoots: [resolveTestIsolationRoot()], missingOk: true });
   };
 
   const tempFileExistsMethod = (filename: string): boolean => {
@@ -404,13 +381,7 @@ export function createTestIsolationContext(
       releaseIsolatedPort(port);
     }
 
-    try {
-      if (existsSync(tempDir)) {
-        rmSync(tempDir, { recursive: true, force: true });
-      }
-    } catch {
-      // Non-fatal filesystem cleanup
-    }
+    safeRmSync(tempDir, { allowedRoots: [resolveTestIsolationRoot()], missingOk: true });
   };
 
   const cleanupMethod = async (): Promise<void> => {

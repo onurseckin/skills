@@ -8,7 +8,6 @@ import {
   mkdtempSync,
   readdirSync,
   realpathSync,
-  rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -16,6 +15,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { isJsonObject, type JsonObject, type JsonValue } from "../core/contracts/json.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { safeRmSync } from "../core/shared/safe-fs.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../packets/repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "../packets/repository-git-metadata.ts";
 import { normalizeScopePath } from "./scope-analyzer.ts";
@@ -194,7 +194,10 @@ function revertWriteScope(
     }
     for (const currentPath of filesUnderScope(scratchRoot, scopeEntry)) {
       if (keep.has(currentPath)) continue;
-      rmSync(join(scratchRoot, currentPath), { force: true });
+      safeRmSync(join(scratchRoot, currentPath), {
+        allowedRoots: [scratchRoot],
+        missingOk: true,
+      });
       deleted.add(currentPath);
     }
   }
@@ -241,10 +244,17 @@ function gateEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
   return env;
 }
 
+const SHELL_COMPOUND_OPERATORS: ReadonlySet<string> = new Set(["&&", "||", ";"]);
+
+function shellQuoteCompoundToken(token: string): string {
+  if (SHELL_COMPOUND_OPERATORS.has(token)) return token;
+  return `'${token.replace(/'/g, `'\\''`)}'`;
+}
+
 export const nodeSpawnGate: GateSpawn = (argv, cwd, timeoutMs) => {
-  const isCompound = argv.includes("&&") || argv.includes("||") || argv.includes(";");
+  const isCompound = argv.some((token) => SHELL_COMPOUND_OPERATORS.has(token));
   const execFile = isCompound ? "/bin/sh" : argv[0]!;
-  const execArgs = isCompound ? ["-c", argv.join(" ")] : argv.slice(1);
+  const execArgs = isCompound ? ["-c", argv.map(shellQuoteCompoundToken).join(" ")] : argv.slice(1);
   const result = spawnSync(execFile, execArgs, {
     cwd,
     env: gateEnvironment(process.env),
@@ -416,7 +426,7 @@ export function proveGateFalsifiable(
       stderrTail: tail(run.stderr),
     };
   } finally {
-    rmSync(scratchRoot, { recursive: true, force: true });
+    safeRmSync(scratchRoot, { allowedRoots: [dirname(scratchRoot)], missingOk: true });
   }
 }
 

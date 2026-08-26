@@ -1,9 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, resolve } from "node:path";
 import { MINIMUM_BUN_VERSION } from "../../core/config/constants.ts";
 import type { JsonObject } from "../../core/contracts/json.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { safeWriteFileSync } from "../../core/shared/safe-fs.ts";
 import { verifyCapsuleDeep, verifyIntegrity } from "../../engine/store/index.ts";
 import { verifyStrictRepositoryCapsuleRoot } from "./capsule-root.ts";
 import { verifyUnifiedEvidenceLocation } from "./evidence-location.ts";
@@ -37,6 +40,7 @@ export interface MutationOptions {
   readonly customMutator?: (content: string) => string;
   readonly description?: string;
   readonly now?: string | number | Date;
+  readonly allowedRoots?: readonly string[];
 }
 
 export interface AdversarialCheckResult {
@@ -98,6 +102,7 @@ export interface AdversarialCheckOptions {
   readonly mutationKind?: MutationKind;
   readonly customMutator?: (content: string) => string;
   readonly timeoutMs?: number;
+  readonly allowedRoots?: readonly string[];
   readonly testRunner?: (
     filePath: string,
   ) =>
@@ -278,9 +283,12 @@ export function mutateWriteScopeForCounterfactual(
     }
   }
 
+  const allowedRoots = options.allowedRoots ?? [findRepoRoot(), resolve(tmpdir())];
+
   try {
-    writeFileSync(resolvedPath, mutatedContent, "utf-8");
+    safeWriteFileSync(resolvedPath, mutatedContent, { allowedRoots });
   } catch (err: unknown) {
+    if (err instanceof HarnessError) throw err;
     throw new HarnessError(
       "INVALID_STATE",
       `Failed to write mutated content to "${resolvedPath}": ${err instanceof Error ? err.message : String(err)}`,
@@ -306,8 +314,9 @@ export function mutateWriteScopeForCounterfactual(
 
   const revert = (): void => {
     try {
-      writeFileSync(resolvedPath, originalContent, "utf-8");
+      safeWriteFileSync(resolvedPath, originalContent, { allowedRoots });
     } catch (err: unknown) {
+      if (err instanceof HarnessError) throw err;
       throw new HarnessError(
         "INVALID_STATE",
         `Failed to revert counterfactual mutation on "${resolvedPath}": ${err instanceof Error ? err.message : String(err)}`,
@@ -462,6 +471,7 @@ export async function runAdversarialCounterfactualCheck(
     const mutResult = mutateWriteScopeForCounterfactual(resolvedPath, {
       kind: mutationKind,
       ...(options.customMutator !== undefined ? { customMutator: options.customMutator } : {}),
+      ...(options.allowedRoots !== undefined ? { allowedRoots: options.allowedRoots } : {}),
     });
     mutation = mutResult.mutation;
     revertFn = mutResult.revert;
@@ -788,6 +798,11 @@ export async function certifyHarnessDoctor(
           options.mutationKind !== undefined ? options.mutationKind : "syntax_error";
         const check = await runAdversarialCounterfactualCheck(scopePath, {
           mutationKind,
+          allowedRoots: [
+            typeof options.repoRoot === "string" && options.repoRoot.length > 0
+              ? options.repoRoot
+              : findRepoRoot(),
+          ],
           ...(options.adversarialTestRunner !== undefined
             ? { testRunner: options.adversarialTestRunner }
             : {}),

@@ -4,11 +4,14 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   realpathSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs.ts";
 import {
   createPacketBundle,
   verifyPacketBundle,
@@ -71,6 +74,43 @@ describe("createPacketBundle", () => {
     );
     // No leftover .pkt-1.<uuid>.tmp directory, and no partial "pkt-1" bundle either.
     expect(readdirSync(bundleRoot)).toEqual([]);
+  });
+
+  test("the failure-cleanup path refuses to remove its temp directory when the bundle root is itself a git repository", () => {
+    const bundleRoot = root("packet-bundle-cleanup-git-guard-");
+    mkdirSync(join(bundleRoot, ".git"), { recursive: true });
+    const broken = { markdown: "# x", metadata: { value: Number.NaN } } as unknown as BuiltPacket;
+
+    let caught: unknown;
+    try {
+      createPacketBundle(bundleRoot, "pkt-1", broken, false);
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(HarnessError);
+    expect((caught as HarnessError).code).toBe("PATH_SAFETY");
+    expect((caught as HarnessError).message).toContain("REPOSITORY_INTERLOCK");
+    const leftover = readdirSync(bundleRoot).filter((entry) => entry !== ".git");
+    expect(leftover.length).toBe(1);
+    expect(leftover[0]!.startsWith(".pkt-1.")).toBe(true);
+  });
+
+  test("the failure-cleanup path refuses to delete anything outside the bundle root instead of deleting it", () => {
+    const bundleRoot = root("packet-bundle-cleanup-containment-");
+    const outsideTarget = join(bundleRoot, "..", "not-a-bundle-root");
+    mkdirSync(outsideTarget, { recursive: true });
+    writeFileSync(join(outsideTarget, "keep.txt"), "still-here");
+
+    expect(() => safeRmSync(outsideTarget, { allowedRoots: [bundleRoot] })).toThrow(HarnessError);
+    try {
+      safeRmSync(outsideTarget, { allowedRoots: [bundleRoot] });
+    } catch (error) {
+      expect((error as HarnessError).code).toBe("PATH_SAFETY");
+      expect((error as HarnessError).message).toContain("CONTAINMENT");
+    }
+
+    expect(readFileSync(join(outsideTarget, "keep.txt"), "utf-8")).toBe("still-here");
   });
 });
 

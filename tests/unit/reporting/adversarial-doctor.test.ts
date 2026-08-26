@@ -44,6 +44,32 @@ describe("doctor/adversarial-doctor", () => {
       );
     });
 
+    it("refuses to mutate a file outside the caller-declared allowedRoots", () => {
+      const outsideDir = resolve(join(SCRATCH_DIR, "..", "adversarial-doctor-outside-scope"));
+      mkdirSync(outsideDir, { recursive: true });
+      const outsidePath = join(outsideDir, "outside.ts");
+      writeFileSync(outsidePath, "export const outside = true;\n", "utf-8");
+
+      try {
+        expect(() =>
+          mutateWriteScopeForCounterfactual(outsidePath, { allowedRoots: [SCRATCH_DIR] }),
+        ).toThrow(HarnessError);
+
+        try {
+          mutateWriteScopeForCounterfactual(outsidePath, { allowedRoots: [SCRATCH_DIR] });
+        } catch (err: unknown) {
+          expect(err).toBeInstanceOf(HarnessError);
+          expect((err as HarnessError).code).toBe("PATH_SAFETY");
+        }
+
+        expect(require("node:fs").readFileSync(outsidePath, "utf-8")).toBe(
+          "export const outside = true;\n",
+        );
+      } finally {
+        rmSync(outsideDir, { recursive: true, force: true });
+      }
+    });
+
     it("throws HarnessError if path is a directory rather than a file", () => {
       const dirPath = join(SCRATCH_DIR, "some-dir");
       mkdirSync(dirPath, { recursive: true });

@@ -116,6 +116,14 @@ describe("durable runtime files", () => {
     expect(existsSync(destination)).toBeFalse();
   });
 
+  test("copy pinning refuses to delete a pre-existing destination that contains a .git entry", () => {
+    const { source, destination } = fixture();
+    mkdirSync(join(destination, ".git"), { recursive: true });
+    expect(() => copyPinnedRuntime(source, destination)).toThrow(/REPOSITORY_INTERLOCK/);
+    expect(existsSync(destination)).toBeTrue();
+    expect(existsSync(join(destination, ".git"))).toBeTrue();
+  });
+
   test("atomicWriteBytes cleans up temporary file and descriptor when writing fails", () => {
     const { root } = fixture();
     const target = join(root, "failed-file");
