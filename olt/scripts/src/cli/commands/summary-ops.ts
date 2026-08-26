@@ -1,7 +1,7 @@
 import { basename, join } from "node:path";
 import { generateSummarySuite } from "../../summary/generate-summary.ts";
 import { generateUnifiedReport } from "../../reporting/unified.ts";
-import { textFlag, type Flags } from "../options.ts";
+import { boolFlag, textFlag, type Flags } from "../options.ts";
 
 export function summaryExportCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
@@ -44,6 +44,7 @@ export function summaryExportCommand(flags: Flags): Record<string, unknown> {
 
 export function summaryViewCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
+  const asJson = boolFlag(flags, "json");
 
   const suite = generateSummarySuite({
     capsulePath: run,
@@ -62,5 +63,6 @@ export function summaryViewCommand(flags: Flags): Record<string, unknown> {
     dag: unified.dag,
     doctor: unified.doctor,
     occupancy: unified.occupancy,
+    ...(asJson ? { json: true } : {}),
   };
 }

@@ -96,7 +96,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     domain: "reporting",
     summary: "Canonical reporting for DAG status.",
     description:
-      "Aliases/links to dag:view to inspect compiled graph or planning buffer DAG topology.",
+      "Thin wrapper around the same renderer as `dag` (aliased dag:render/dag:view), kept discoverable under the report: namespace. Prefer `dag` directly: it accepts the full flag set (--recommendations, --box-style, --json) this wrapper does not expose.",
     flags: [
       optionalFlag(
         "run",
@@ -128,7 +128,8 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     aliases: [],
     domain: "reporting",
     summary: "Visual/ASCII and graph overview.",
-    description: "Renders the task graph.",
+    description:
+      "Another thin wrapper around the same renderer as `dag` (same as report:dag), kept discoverable under the report: namespace. Prefer `dag` directly: it accepts the full flag set (--recommendations, --box-style, --json) this wrapper does not expose.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       optionalFlag("detailed", "bool", "Detailed output."),
@@ -218,7 +219,6 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("report", "string", "Explicit report file name."),
       optionalFlag("id", "string", "Alias of --report."),
       optionalFlag("screenshots", "bool", "Include screenshot records."),
-      optionalFlag("json", "bool", "Output JSON."),
     ],
     readsStdin: false,
     takesRemainder: false,
@@ -277,7 +277,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     summary:
       "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",
     description:
-      "Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.",
+      "Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors. This is the canonical DAG view — report:dag and report:graph render the same graph through this same command but expose fewer flags; use this one directly rather than either of those.",
     flags: [
       optionalFlag(
         "run",
@@ -315,7 +315,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     domain: "reporting",
     summary: "Real-time step tracer and dynamic living DAG expansion timeline.",
     description:
-      "Replays events.jsonl to construct dynamic branch expansions and renders a chronological vertical step timeline with status glyphs and telemetry.",
+      "Replays events.jsonl to construct dynamic branch expansions and renders a chronological vertical step timeline with status glyphs and telemetry. Distinct from `dag`: this is a time-ordered event trace, not the current graph layout — use `dag` for the current wave/lane state of the graph itself.",
     flags: [
       optionalFlag("run", "string", "Capsule run root."),
       optionalFlag("run-id", "string", "Capsule run identifier."),
@@ -328,7 +328,6 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("filter-type", "string", "Filter steps by event kind."),
       optionalFlag("detailed", "bool", "Detailed step inspection."),
       optionalFlag("all", "bool", "Return all steps without line truncation."),
-      optionalFlag("json", "bool", "Output JSON."),
     ],
     readsStdin: false,
     takesRemainder: false,

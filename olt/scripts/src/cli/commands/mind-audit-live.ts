@@ -6,7 +6,7 @@ import type { CommandContext } from "../options.ts";
 
 export async function mindAuditLiveCommand(
   flags: Record<string, unknown>,
-  context: CommandContext = {},
+  _context: CommandContext = {},
 ): Promise<JsonObject> {
   const repoRoot = typeof flags["repo"] === "string" ? String(flags["repo"]) : findRepoRoot();
   const threshold = typeof flags["threshold"] === "number" ? Number(flags["threshold"]) : 120;
@@ -43,13 +43,6 @@ export async function mindAuditLiveCommand(
   }
 
   const output = enforceLineLimit(lines.join("\n"), 30);
-  const suppressStdout =
-    "suppressStdout" in context
-      ? Boolean((context as Record<string, unknown>)["suppressStdout"])
-      : false;
-  if (!asJson && !suppressStdout) {
-    console.log(output);
-  }
 
   return {
     stagnant: result.stagnant,
@@ -62,5 +55,7 @@ export async function mindAuditLiveCommand(
     injection_prompt: result.injectionPrompt ?? null,
     cursor: result.cursor as unknown as JsonObject,
     output,
+    markdown: output,
+    ...(asJson ? { json: true } : {}),
   };
 }

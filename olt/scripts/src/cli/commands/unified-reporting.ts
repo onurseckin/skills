@@ -14,10 +14,14 @@ export function reportUnifiedCommand(flags: Flags): Record<string, unknown> {
   const runFlag = textFlag(flags, "run", false);
   const runIdFlag = textFlag(flags, "run-id", false);
   const detailed = boolFlag(flags, "detailed");
+  const asJson = boolFlag(flags, "json");
 
   const run = resolveCapsuleRun(repo, runFlag, runIdFlag);
   const report = generateUnifiedReport(run, { detailed });
-  return report as unknown as Record<string, unknown>;
+  return {
+    ...(report as unknown as Record<string, unknown>),
+    ...(asJson ? { json: true } : {}),
+  };
 }
 
 export function reportDagCommand(

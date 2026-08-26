@@ -6,7 +6,7 @@ import type { CommandContext } from "../options.ts";
 
 export async function skillAuditLiveCommand(
   flags: Record<string, unknown>,
-  context: CommandContext = {},
+  _context: CommandContext = {},
 ): Promise<JsonObject> {
   const repoRoot = typeof flags["repo"] === "string" ? String(flags["repo"]) : findRepoRoot();
   // The documented default invocation (cli-capabilities.md) carries no --run. `runRoot` staying
@@ -41,13 +41,6 @@ export async function skillAuditLiveCommand(
   }
 
   const output = enforceLineLimit(lines.join("\n"), 30);
-  const suppressStdout =
-    "suppressStdout" in context
-      ? Boolean((context as Record<string, unknown>)["suppressStdout"])
-      : false;
-  if (!asJson && !suppressStdout) {
-    console.log(output);
-  }
 
   return {
     compliant: result.compliant,
@@ -56,5 +49,7 @@ export async function skillAuditLiveCommand(
     defects_logged: result.defectsLogged,
     cursor: result.cursor as unknown as JsonObject,
     output,
+    markdown: output,
+    ...(asJson ? { json: true } : {}),
   };
 }

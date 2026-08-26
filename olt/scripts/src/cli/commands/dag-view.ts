@@ -140,6 +140,7 @@ export interface DagViewReport {
   readonly serialization_analysis: readonly SerializationAnalysisItem[];
   readonly multi_coordinator_opportunities: readonly MultiCoordinatorOpportunity[];
   readonly nodes: readonly DagNodeSummary[];
+  readonly json?: boolean;
 }
 
 export type DagViewResult = DagViewReport;
@@ -575,6 +576,7 @@ export function dagViewCommand(
   const detailed = boolFlag(flags, "detailed");
   const showAll = boolFlag(flags, "all");
   const showRecommendationsOnly = boolFlag(flags, "recommendations");
+  const asJson = boolFlag(flags, "json");
 
   const runRoot = loaded?.runRoot ?? run;
   const harnessConfig = getHarnessConfig(findRepoRoot(runRoot), runRoot);
@@ -1037,6 +1039,7 @@ export function dagViewCommand(
     serialization_analysis: serializationAnalysis,
     multi_coordinator_opportunities: multiCoordinatorOpportunities,
     nodes: updatedNodes,
+    ...(asJson ? { json: true } : {}),
   };
 
   return result as unknown as Record<string, unknown>;

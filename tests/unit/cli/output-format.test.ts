@@ -3,6 +3,17 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stripOutputFormat } from "../../../olt/scripts/src/cli/output-format.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
+
+const MIN_MIND_MANIFEST_YAML = `role: mind
+tier: 0
+spawns:
+  - orchestrator
+may:
+  - Coordinate strategic goals
+must_not:
+  - Implement code directly
+`;
 
 const roots: string[] = [];
 const entrypoint = join(import.meta.dir, "..", "..", "..", "olt", "scripts", "harness.ts");
@@ -163,5 +174,43 @@ describe("harness output format scan", () => {
     expect(parsed.ok).toBeTrue();
     expect(parsed.result.command.argv).toEqual(["echo", "--format=json"]);
     expect(parsed.result.exit_code).toBe(0);
+  });
+
+  test("mind:audit:live --format json emits exactly one JSON value on stdout", async () => {
+    const repo = scratchRoot(import.meta.path, "mind-audit-live-format-json");
+    await mkdir(join(repo, ".olt"), { recursive: true });
+    await mkdir(join(repo, "olt", "agents"), { recursive: true });
+    await writeFile(join(repo, "olt", "agents", "mind.yaml"), MIN_MIND_MANIFEST_YAML);
+
+    const proc = Bun.spawn(
+      ["bun", entrypoint, "mind:audit:live", "--repo", repo, "--format", "json"],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    expect(await proc.exited).toBe(0);
+    const stdout = await new Response(proc.stdout).text();
+    const nonEmptyLines = stdout.split("\n").filter((line) => line.trim() !== "");
+    expect(nonEmptyLines).toHaveLength(1);
+    expect(() => JSON.parse(stdout)).not.toThrow();
+    const parsed = JSON.parse(stdout) as { ok: boolean; result: { stagnant: boolean } };
+    expect(parsed.ok).toBeTrue();
+    expect(typeof parsed.result.stagnant).toBe("boolean");
+  });
+
+  test("skill:audit:live --format json emits exactly one JSON value on stdout", async () => {
+    const repo = scratchRoot(import.meta.path, "skill-audit-live-format-json");
+    await mkdir(join(repo, ".olt"), { recursive: true });
+
+    const proc = Bun.spawn(
+      ["bun", entrypoint, "skill:audit:live", "--repo", repo, "--format", "json"],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    expect(await proc.exited).toBe(0);
+    const stdout = await new Response(proc.stdout).text();
+    const nonEmptyLines = stdout.split("\n").filter((line) => line.trim() !== "");
+    expect(nonEmptyLines).toHaveLength(1);
+    expect(() => JSON.parse(stdout)).not.toThrow();
+    const parsed = JSON.parse(stdout) as { ok: boolean; result: { compliant: boolean } };
+    expect(parsed.ok).toBeTrue();
+    expect(typeof parsed.result.compliant).toBe("boolean");
   });
 });
