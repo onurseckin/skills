@@ -683,7 +683,7 @@ bun harness.ts task:abandon --run .olt/capsules/<run-id> --task task-1 --actor c
 
 Incremental verification.
 
-Check the files. The AST lint audit (0 `any`, 0 compiler suppressions) always runs and can never be skipped. --typecheck adds the TypeScript typecheck pass on top of that audit; it does not replace it. --lint narrows the run to the AST audit alone, skipping typecheck. Exits non-zero when either check reports a violation.
+Check the files. The AST lint audit (0 `any`, 0 compiler suppressions) always runs and can never be skipped; the TypeScript typecheck pass also runs by default alongside it. --lint narrows the run to the AST audit alone, skipping typecheck. --typecheck only matters combined with --lint: it cancels that narrowing so typecheck runs anyway; passed alone it has no effect, since typecheck already runs by default. Exits non-zero when either check reports a violation.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -694,8 +694,9 @@ Check the files. The AST lint audit (0 `any`, 0 compiler suppressions) always ru
 | `--run` | string | no | no | - | Capsule run root. |
 | `--task` | string | no | no | - | Task ID. |
 | `--file` | string | no | yes | - | File path. |
-| `--typecheck` | bool | no | no | - | Run the TypeScript typecheck pass in addition to the always-on AST lint audit. |
-| `--lint` | bool | no | no | - | Run only the AST lint audit, skipping the typecheck pass (typecheck runs by default). |
+| `--actor` | string | no | no | - | Who is running the check; recorded on the evidence receipt. Omit to use the caller's auto-derived identity — never pass a placeholder or another role's name. |
+| `--typecheck` | bool | no | no | - | Force the typecheck pass to run even when --lint is also given. No effect without --lint, since typecheck already runs by default. |
+| `--lint` | bool | no | no | - | Run only the AST lint audit, skipping the typecheck pass that runs by default. Combine with --typecheck to cancel this narrowing. |
 
 ### `task:release`
 
@@ -794,7 +795,7 @@ bun harness.ts report:graph-json --run .olt/capsules/<run-id> --out graph.json
 
 Canonical reporting for DAG status.
 
-Aliases/links to dag:view to inspect compiled graph or planning buffer DAG topology.
+Thin wrapper around the same renderer as `dag` (aliased dag:render/dag:view), kept discoverable under the report: namespace. Prefer `dag` directly: it accepts the full flag set (--recommendations, --box-style, --json) this wrapper does not expose.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -817,7 +818,7 @@ bun harness.ts report:dag --run .olt/capsules/<run-id>
 
 Visual/ASCII and graph overview.
 
-Renders the task graph.
+Another thin wrapper around the same renderer as `dag` (same as report:dag), kept discoverable under the report: namespace. Prefer `dag` directly: it accepts the full flag set (--recommendations, --box-style, --json) this wrapper does not expose.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -931,7 +932,6 @@ Extracts and formats full task report evidence including verification outcomes, 
 | `--report` | string | no | no | - | Explicit report file name. |
 | `--id` | string | no | no | - | Alias of --report. |
 | `--screenshots` | bool | no | no | - | Include screenshot records. |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts report:task --run .olt/capsules/<run-id> --task task-1
@@ -976,7 +976,7 @@ bun harness.ts stream:events --run .olt/capsules/<run-id> --filter-type task-cla
 
 Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.
 
-Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.
+Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors. This is the canonical DAG view — report:dag and report:graph render the same graph through this same command but expose fewer flags; use this one directly rather than either of those.
 
 - **Aliases**: `dag:render`, `dag:view`, `graph:sugiyama`, `report:sugiyama`, `graph:ascii`, `status:dag`
 - **Stdin**: not read
@@ -1002,7 +1002,7 @@ bun harness.ts dag:render --detailed --box-style rounded
 
 Real-time step tracer and dynamic living DAG expansion timeline.
 
-Replays events.jsonl to construct dynamic branch expansions and renders a chronological vertical step timeline with status glyphs and telemetry.
+Replays events.jsonl to construct dynamic branch expansions and renders a chronological vertical step timeline with status glyphs and telemetry. Distinct from `dag`: this is a time-ordered event trace, not the current graph layout — use `dag` for the current wave/lane state of the graph itself.
 
 - **Aliases**: `trace:dag`, `stream:trace`
 - **Stdin**: not read
@@ -1021,7 +1021,6 @@ Replays events.jsonl to construct dynamic branch expansions and renders a chrono
 | `--filter-type` | string | no | no | - | Filter steps by event kind. |
 | `--detailed` | bool | no | no | - | Detailed step inspection. |
 | `--all` | bool | no | no | - | Return all steps without line truncation. |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts dag:trace --run .olt/capsules/<run-id>
@@ -1930,7 +1929,6 @@ Inspects the calling thread's OS process ID, parent PID, execution tier, active 
 | `--tier` | string | no | no | - | Explicit execution tier override to inspect. |
 | `--pid` | int | no | no | - | Process ID override for testing. |
 | `--ppid` | int | no | no | - | Parent Process ID override for testing. |
-| `--json` | bool | no | no | - | Output JSON format. |
 
 ```bash
 bun harness.ts whoami
@@ -1953,7 +1951,6 @@ Renders ASCII tables and formatted markdown cheat sheets detailing tier, granted
 | `--roles-dir` | string | no | no | - | Override roles directory path. |
 | `--all` | bool | no | no | - | Render full cheat sheets for all available roles. |
 | `--compact` | bool | no | no | - | Render compact summary format. |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts role:cheat-sheet
@@ -1983,7 +1980,6 @@ Inspects background watchdog monitors across runs and generations, reporting act
 | `--dry-run` | bool | no | no | - | Simulate cleanup without disk mutation. |
 | `--all` | bool | no | no | - | Show all watchdog monitors. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts watchdog:status
@@ -2013,7 +2009,6 @@ Scans registered watchdog monitors across generations and pulses, transitioning 
 | `--dry-run` | bool | no | no | - | Simulate cleanup without disk mutation. |
 | `--all` | bool | no | no | - | Show all cleaned monitors in report. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts watchdog:cleanup
@@ -2044,7 +2039,6 @@ Terminates active watchdog monitors belonging to completed or superseded phases,
 | `--dry-run` | bool | no | no | - | Simulate phase cleanup. |
 | `--all` | bool | no | no | - | Show all terminated monitors. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts watchdog:phase-cleanup --phase planning --generation 1
@@ -2070,7 +2064,6 @@ Audits the watchdog registry against architectural constraints (max 1 active mon
 | `--phase` | string | no | no | - | Filter by phase. |
 | `--all` | bool | no | no | - | Show all monitors in table. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts watchdog:verify
@@ -2095,7 +2088,6 @@ Audits the live capsule across 5 supervisory health points ((a) Work/Span parall
 | `--pulse-id` | string | no | no | - | Target pulse ID. |
 | `--all` | bool | no | no | - | Show verbose report details. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
-| `--json` | bool | no | no | - | Output JSON format. |
 
 ```bash
 bun harness.ts watchdog:probe
@@ -2258,6 +2250,28 @@ The repair counterpart to `doctor`: `doctor` only reports a torn tail or a state
 
 ```bash
 bun harness.ts doctor:repair --run .olt/capsules/<run-id> --actor coordinator
+```
+
+### `doctor:certify`
+
+Certify doctor's own checks are falsifiable via counterfactual mutation testing.
+
+Runs the full harness health diagnostic suite (bun version, capsule root confinement, unified evidence location, tier confinement, integrity) that `doctor` folds into every run, plus -- for each --write-scope test file -- an adversarial counterfactual check: it mutates the file (flips an assertion, injects a syntax error, etc.), reruns it, and verifies the mutation actually makes it fail, proving the gate is falsifiable rather than vacuous, then reverts the mutation. Slower than `doctor` and gated behind this explicit command because it mutates files and runs real test commands. Each --write-scope path must be a .test.ts or .spec.ts file; anything else is rejected up front rather than silently skipped.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--write-scope` | string | no | yes | - | A .test.ts or .spec.ts file to adversarially mutate and verify falsifiability for. Omit to run only the non-adversarial health diagnostics. |
+| `--mutation-kind` | string | no | no | - | syntax_error | assertion_flip | return_override | empty_file | exception_injection. Defaults to syntax_error. |
+| `--strict` | bool | no | no | - | Exit nonzero when the report is not certified. |
+
+```bash
+bun harness.ts doctor:certify --run .olt/capsules/<run-id>
+bun harness.ts doctor:certify --run .olt/capsules/<run-id> --write-scope tests/unit/doctor/capsule-root.test.ts --strict
 ```
 
 ### `recover`
@@ -2459,10 +2473,8 @@ Performs full-text retrieval and ranking across knowledge base, charter, finding
 | `--kind` | string | no | no | - | Filter by document kind. |
 | `--limit` | int | no | no | `10` | Maximum number of search results. |
 | `--min-score` | string | no | no | - | Minimum similarity/match score threshold. |
-| `--format` | string | no | no | - | Output format: markdown or json. |
 | `--all` | bool | no | no | - | Display all matching documents without truncation. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts memory:query --query "authentication refactor"
@@ -2878,7 +2890,6 @@ Lists active feedback items from the canonical feedback queue (.olt/backlog.json
 | `--queue-path` | string | no | no | - | Alias for --queue-file. |
 | `--all` | bool | no | no | - | Show all items without pagination. |
 | `--limit` | int | no | no | - | Maximum items to display. |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts mind:queue:list
@@ -2906,7 +2917,6 @@ Appends a new feedback item to .olt/backlog.jsonl.
 | `--id` | string | no | no | - | Explicit item ID override. |
 | `--queue-file` | string | no | no | - | Override queue file path. |
 | `--queue-path` | string | no | no | - | Alias for --queue-file. |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts mind:queue:add --title 'Fix memory leak' --priority HIGH
@@ -2930,7 +2940,6 @@ Drains pending items from .olt/backlog.jsonl in FIFO order.
 | `--priority` | string | no | no | - | Filter by priority level. |
 | `--queue-file` | string | no | no | - | Override queue file path. |
 | `--queue-path` | string | no | no | - | Alias for --queue-file. |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts mind:queue:drain
@@ -2960,7 +2969,6 @@ Marks queue items completed and attaches proof records.
 | `--summary` | string | no | no | - | Summary of resolution. |
 | `--queue-file` | string | no | no | - | Override queue file path. |
 | `--queue-path` | string | no | no | - | Alias for --queue-file. |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts mind:queue:seal --id fb-123 --proof sha-abc
@@ -2983,7 +2991,6 @@ Moves sealed items from .olt/backlog.jsonl to .olt/completed-tasks.jsonl.
 | `--queue-file` | string | no | no | - | Override queue file path. |
 | `--queue-path` | string | no | no | - | Alias for --queue-file. |
 | `--archive-file` | string | no | no | - | Override archive destination file. |
-| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
 bun harness.ts mind:queue:clean

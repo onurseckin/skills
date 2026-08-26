@@ -1564,6 +1564,13 @@
           "default": null
         },
         {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
           "name": "typecheck",
           "type": "bool",
           "required": false,
@@ -1922,13 +1929,6 @@
           "required": false,
           "repeatable": false,
           "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
-          "required": false,
-          "repeatable": false,
-          "default": null
         }
       ],
       "reads_stdin": false,
@@ -2206,13 +2206,6 @@
         },
         {
           "name": "all",
-          "type": "bool",
-          "required": false,
-          "repeatable": false,
-          "default": null
-        },
-        {
-          "name": "json",
           "type": "bool",
           "required": false,
           "repeatable": false,
@@ -4259,13 +4252,6 @@
           "required": false,
           "repeatable": false,
           "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
-          "required": false,
-          "repeatable": false,
-          "default": null
         }
       ],
       "reads_stdin": false,
@@ -4303,13 +4289,6 @@
         },
         {
           "name": "compact",
-          "type": "bool",
-          "required": false,
-          "repeatable": false,
-          "default": null
-        },
-        {
-          "name": "json",
           "type": "bool",
           "required": false,
           "repeatable": false,
@@ -4393,13 +4372,6 @@
         {
           "name": "now",
           "type": "string",
-          "required": false,
-          "repeatable": false,
-          "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
           "required": false,
           "repeatable": false,
           "default": null
@@ -4489,13 +4461,6 @@
         {
           "name": "now",
           "type": "string",
-          "required": false,
-          "repeatable": false,
-          "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
           "required": false,
           "repeatable": false,
           "default": null
@@ -4596,13 +4561,6 @@
           "required": false,
           "repeatable": false,
           "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
-          "required": false,
-          "repeatable": false,
-          "default": null
         }
       ],
       "reads_stdin": false,
@@ -4665,13 +4623,6 @@
           "required": false,
           "repeatable": false,
           "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
-          "required": false,
-          "repeatable": false,
-          "default": null
         }
       ],
       "reads_stdin": false,
@@ -4724,13 +4675,6 @@
         {
           "name": "now",
           "type": "string",
-          "required": false,
-          "repeatable": false,
-          "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
           "required": false,
           "repeatable": false,
           "default": null
@@ -5014,6 +4958,44 @@
           "name": "actor",
           "type": "string",
           "required": true,
+          "repeatable": false,
+          "default": null
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false
+    },
+    {
+      "name": "doctor:certify",
+      "aliases": [],
+      "domain": "diagnostics",
+      "summary": "Certify doctor's own checks are falsifiable via counterfactual mutation testing.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "write-scope",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null
+        },
+        {
+          "name": "mutation-kind",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "strict",
+          "type": "bool",
+          "required": false,
           "repeatable": false,
           "default": null
         }
@@ -5494,13 +5476,6 @@
           "default": null
         },
         {
-          "name": "format",
-          "type": "string",
-          "required": false,
-          "repeatable": false,
-          "default": null
-        },
-        {
           "name": "all",
           "type": "bool",
           "required": false,
@@ -5510,13 +5485,6 @@
         {
           "name": "now",
           "type": "string",
-          "required": false,
-          "repeatable": false,
-          "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
           "required": false,
           "repeatable": false,
           "default": null
@@ -6340,13 +6308,6 @@
           "required": false,
           "repeatable": false,
           "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
-          "required": false,
-          "repeatable": false,
-          "default": null
         }
       ],
       "reads_stdin": false,
@@ -6417,13 +6378,6 @@
           "required": false,
           "repeatable": false,
           "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
-          "required": false,
-          "repeatable": false,
-          "default": null
         }
       ],
       "reads_stdin": false,
@@ -6476,13 +6430,6 @@
         {
           "name": "queue-path",
           "type": "string",
-          "required": false,
-          "repeatable": false,
-          "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
           "required": false,
           "repeatable": false,
           "default": null
@@ -6576,13 +6523,6 @@
           "required": false,
           "repeatable": false,
           "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
-          "required": false,
-          "repeatable": false,
-          "default": null
         }
       ],
       "reads_stdin": false,
@@ -6628,13 +6568,6 @@
         {
           "name": "archive-file",
           "type": "string",
-          "required": false,
-          "repeatable": false,
-          "default": null
-        },
-        {
-          "name": "json",
-          "type": "bool",
           "required": false,
           "repeatable": false,
           "default": null
