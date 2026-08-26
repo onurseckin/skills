@@ -28,7 +28,7 @@ export interface DefectRouteResult {
 
 export class SplitChannelDefectRouter {
   public static routeDefect(options: RouteDefectOptions): DefectRouteResult {
-    const homeRepo = resolveSkillHomeRepo(options.currentRepoRoot);
+    const homeRepo = resolveSkillHomeRepo();
     const isSkillFramework = options.domain === "skill-framework";
 
     let targetRepoRoot = isSkillFramework ? homeRepo : resolve(options.currentRepoRoot);

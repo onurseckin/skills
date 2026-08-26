@@ -407,7 +407,7 @@ export class MindAuditorEngine {
         return 0;
       }
     };
-    const mothershipDefectsPath = resolveDefectsPath(resolveSkillHomeRepo(repoRoot));
+    const mothershipDefectsPath = resolveDefectsPath(resolveSkillHomeRepo());
     const localDefectsPath = resolveDefectsPath(repoRoot);
     const unresolvedDefectCount = countDefectLines(mothershipDefectsPath);
     const localDefectCount =

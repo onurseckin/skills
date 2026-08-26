@@ -237,7 +237,15 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   const env = options.env ?? (typeof process !== "undefined" ? process.env : {});
   const pid = options.pid ?? (typeof process !== "undefined" ? process.pid : 0);
   const ppid = options.ppid ?? (typeof process !== "undefined" ? process.ppid : 0);
-  const repoRoot = findRepoRoot(cwd);
+  let repoRoot: string;
+  try {
+    repoRoot = findRepoRoot(cwd);
+  } catch (error) {
+    if (error instanceof HarnessError && error.code === "PATH_SAFETY") {
+      return null;
+    }
+    throw error;
+  }
   const mechanisms: string[] = [];
 
   let detectedAgentId: string | null = null;

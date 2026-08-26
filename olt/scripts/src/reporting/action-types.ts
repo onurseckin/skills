@@ -62,14 +62,23 @@ export function mergeActions(...parts: readonly NextActions[]): NextActions {
 }
 
 export const LEASE_TOKEN = placeholder("lease-token-returned-by:task:claim");
-import { findRepoRoot } from "../core/shared/paths.ts";
+import { resolve } from "node:path";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import { findRepoRoot, stripCapsulePath } from "../core/shared/paths.ts";
 
 export const VALIDATION_TOKEN = placeholder("validation-token-returned-by:task:validate-start");
 export const CRITIC_TOKEN = placeholder("critic-token-returned-by:critic:start");
 export const SUB_TASK_TOKEN = placeholder("sub-task-token-returned-by:branch:claim");
 
 export function repositoryOf(runRoot: string): string {
-  return findRepoRoot(runRoot);
+  try {
+    return findRepoRoot(runRoot);
+  } catch (error) {
+    if (error instanceof HarnessError && error.code === "PATH_SAFETY") {
+      return stripCapsulePath(runRoot) ?? resolve(runRoot);
+    }
+    throw error;
+  }
 }
 
 export function gateArgv(

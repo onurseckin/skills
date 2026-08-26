@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { verifyCapsuleDeep, verifyIntegrity } from "../engine/store/index.ts";
 import { MINIMUM_BUN_VERSION } from "../core/config/constants.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
 import type { CommandRecord } from "../core/contracts/commands.ts";
 import type { IntegrityIssue } from "../core/contracts/capsule.ts";
@@ -92,7 +93,13 @@ export function ignoredByGit(
   runRoot: string,
   command: RepositoryGitCommand = repositoryGit,
 ): boolean | null {
-  const repository = findRepoRoot(runRoot);
+  let repository: string;
+  try {
+    repository = findRepoRoot(runRoot);
+  } catch (error) {
+    if (error instanceof HarnessError && error.code === "PATH_SAFETY") return null;
+    throw error;
+  }
   if (!existsSync(join(repository, ".git"))) return null;
   try {
     return command(repository, ["check-ignore", "--quiet", runRoot], 1024, [0, 1]).status === 0;
@@ -267,8 +274,13 @@ export async function runDoctor(
   const installationIssues = (installation?.issues ?? []).map((issue) => `installation: ${issue}`);
 
   let gitDiffs: string[] | undefined = undefined;
-  const repository = findRepoRoot(runRoot);
-  if (existsSync(join(repository, ".git"))) {
+  let repository: string | undefined;
+  try {
+    repository = findRepoRoot(runRoot);
+  } catch (error) {
+    if (!(error instanceof HarnessError && error.code === "PATH_SAFETY")) throw error;
+  }
+  if (repository !== undefined && existsSync(join(repository, ".git"))) {
     try {
       const diffOutput = gitCommand(repository, ["diff", "--name-only"], 1024 * 64, [0]);
       if (diffOutput.status === 0) {
@@ -315,7 +327,7 @@ export async function runDoctor(
 
   const diagnosticChecks = await runDoctorDiagnostics({
     runRoot,
-    repoRoot: repository,
+    ...(repository !== undefined ? { repoRoot: repository } : {}),
     state: (loaded?.state as Record<string, unknown> | undefined) ?? null,
     checkBunVersion: false,
     checkCapsuleRoot: true,

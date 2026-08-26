@@ -100,7 +100,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         schema_version: CURRENT_POLICY_SCHEMA_VERSION,
         ecosystem: "bun",
         package_manager: "bun",
-        skill_home_repo_root: resolveSkillHomeRepo(root),
+        skill_home_repo_root: resolveSkillHomeRepo(),
         test_runner: {
           default_command: "bun test",
           targeted_pattern: "bun test <path>",
@@ -132,7 +132,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         schema_version: CURRENT_POLICY_SCHEMA_VERSION,
         ecosystem: "cargo",
         package_manager: "cargo",
-        skill_home_repo_root: resolveSkillHomeRepo(root),
+        skill_home_repo_root: resolveSkillHomeRepo(),
         test_runner: {
           default_command: "cargo test",
           targeted_pattern: "cargo test -- <path>",
@@ -164,7 +164,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
           : existsSync(join(root, "Pipfile"))
             ? "pipenv"
             : "pip",
-        skill_home_repo_root: resolveSkillHomeRepo(root),
+        skill_home_repo_root: resolveSkillHomeRepo(),
         test_runner: {
           default_command: "pytest",
           targeted_pattern: "pytest <path>",
@@ -199,7 +199,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         schema_version: CURRENT_POLICY_SCHEMA_VERSION,
         ecosystem: "node",
         package_manager: pm,
-        skill_home_repo_root: resolveSkillHomeRepo(root),
+        skill_home_repo_root: resolveSkillHomeRepo(),
         test_runner: {
           default_command: `${pm} test`,
           targeted_pattern: `${runner} <path>`,
@@ -219,7 +219,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
       return {
         schema_version: CURRENT_POLICY_SCHEMA_VERSION,
         ecosystem: "unknown",
-        skill_home_repo_root: resolveSkillHomeRepo(root),
+        skill_home_repo_root: resolveSkillHomeRepo(),
         test_runner: {
           default_command: "test",
           targeted_pattern: "test <path>",
