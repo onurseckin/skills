@@ -7,6 +7,7 @@ import { HarnessError } from "../../core/errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
 import { constructSupervisoryPersonaReminder } from "../../authority/supervisory-persona-reminder.ts";
+import { isJsonObject } from "../../core/contracts/json.ts";
 import { loadRun, recoverProjection } from "../../engine/store/index.ts";
 import { recoverStale } from "../../workflow/lease/recover-stale.ts";
 import { releaseLease } from "../../workflow/lease/release.ts";
@@ -16,8 +17,38 @@ import {
   enforceLineLimit,
   nextActionsBlock,
   recoverNextActions,
+  type DoctorCriticalFinding,
 } from "../formatters/index.ts";
 import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
+
+function runPlanVerified(run: string): boolean {
+  try {
+    const { state } = loadRun(run);
+    const tasks = isJsonObject(state.tasks) ? state.tasks : undefined;
+    const hasTasks = tasks !== undefined && Object.keys(tasks).length > 0;
+    return hasTasks || Boolean(state.graph) || Boolean(state.completion_review);
+  } catch {
+    return false;
+  }
+}
+
+function criticalTierFindings(report: Record<string, unknown>): DoctorCriticalFinding[] {
+  const raw = report.tier_confinement_findings;
+  if (!Array.isArray(raw)) return [];
+  const findings: DoctorCriticalFinding[] = [];
+  for (const entry of raw) {
+    if (!isJsonObject(entry)) continue;
+    if (entry.severity === "minor") continue;
+    const role = typeof entry.role === "string" ? entry.role : "";
+    const agentId = typeof entry.agent_id === "string" ? entry.agent_id : "";
+    const remediation = typeof entry.remediation === "string" ? entry.remediation : "";
+    if (!role || !agentId || !remediation) continue;
+    const evidence = isJsonObject(entry.evidence) ? entry.evidence : undefined;
+    const taskId = typeof evidence?.task_id === "string" ? evidence.task_id : undefined;
+    findings.push({ role, agentId, remediation, taskId });
+  }
+  return findings;
+}
 
 export async function doctorCommand(flags: Flags): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
@@ -45,6 +76,7 @@ export async function doctorCommand(flags: Flags): Promise<Record<string, unknow
       : {};
 
   const report = await runDoctor(run, installation);
+  const planVerified = runPlanVerified(run);
   const personaReminder = constructSupervisoryPersonaReminder({
     role,
     agentId: actor,
@@ -58,10 +90,12 @@ export async function doctorCommand(flags: Flags): Promise<Record<string, unknow
     },
   });
 
+  const reportWithReadiness = { ...report, plan_verified: planVerified };
+
   return {
-    ...report,
+    ...reportWithReadiness,
     persona_reminder: personaReminder,
-    markdown: formatDoctorBrief(run, { ...report, persona_reminder: personaReminder }),
+    markdown: formatDoctorBrief(run, { ...reportWithReadiness, persona_reminder: personaReminder }),
   };
 }
 
@@ -124,7 +158,13 @@ export function formatDoctorBrief(run: string, report: Record<string, unknown>):
     `- **Supervisory Invariants**: Strict Tier Hierarchy & Supervisor Zero-File-Edit Rule actively enforced`,
     `- **Git Preservation**: Zero-Destructive Git Invariant & User Edit Preservation actively enforced`,
     ...issueSectionLines(report),
-    ...nextActionsBlock(doctorNextActions(run)),
+    ...nextActionsBlock(
+      doctorNextActions(run, {
+        healthy: report.healthy === true,
+        planVerified: typeof report.plan_verified === "boolean" ? report.plan_verified : true,
+        criticalFindings: criticalTierFindings(report),
+      }),
+    ),
   ];
   return enforceLineLimit(lines.join("\n"));
 }

@@ -784,7 +784,28 @@ export function branchStatusNextActions(run: string): NextActionItem[] {
   ];
 }
 
-export function whoamiNextActions(runRoot?: string | null, isMainThread = false): NextActionItem[] {
+export interface WhoamiLeaseContext {
+  readonly taskId: string;
+  readonly role: string;
+}
+
+export interface WhoamiValidationContext {
+  readonly taskId: string;
+}
+
+export interface WhoamiRoleContext {
+  readonly role?: string | undefined;
+  readonly agentId?: string | null | undefined;
+  readonly hasGrant?: boolean | undefined;
+  readonly leases?: readonly WhoamiLeaseContext[] | undefined;
+  readonly openValidations?: readonly WhoamiValidationContext[] | undefined;
+}
+
+export function whoamiNextActions(
+  runRoot?: string | null,
+  isMainThread = false,
+  context: WhoamiRoleContext = {},
+): NextActionItem[] {
   if (isMainThread) {
     return [
       {
@@ -799,37 +820,171 @@ export function whoamiNextActions(runRoot?: string | null, isMainThread = false)
       },
     ];
   }
-  if (runRoot) {
+  if (!runRoot) {
     return [
+      {
+        command: `bun harness.ts orchestrate "<PROMPT>"`,
+        role: "Orchestrator",
+        description: "Open new orchestration run",
+      },
+      {
+        command: `bun harness.ts doctor`,
+        role: "Operator",
+        description: "Verify harness environment health",
+      },
+    ];
+  }
+
+  const agent = context.agentId ?? "<AGENT_ID>";
+
+  const openValidations = context.openValidations ?? [];
+  if (openValidations.length > 0) {
+    const validation = openValidations[0]!;
+    return [
+      {
+        command: `bun harness.ts task:probe --run ${runRoot} --task ${validation.taskId} --validator ${agent} --token <TOKEN> --demand "<WHAT_MUST_BE_PROVEN>"`,
+        role: "Validator",
+        description: "Record the mandatory adversarial probe demand before a verdict",
+      },
+      {
+        command: `bun harness.ts task:review --run ${runRoot} --task ${validation.taskId} --validator ${agent} --token <TOKEN> --status pass --checks <COMMAND_ID> --summary "<SUMMARY>"`,
+        role: "Validator",
+        description: "Record the validator verdict once every probe is answered",
+      },
+    ];
+  }
+
+  const leases = context.leases ?? [];
+  if (leases.length > 0) {
+    const lease = leases[0]!;
+    const role = lease.role === "repairer" ? "Repairer" : "Implementer";
+    return [
+      {
+        command: `bun harness.ts task:heartbeat --run ${runRoot} --task ${lease.taskId} --agent ${agent} --token <TOKEN>`,
+        role,
+        description: "Extend the lease deadline during active implementation",
+      },
+      {
+        command: `bun harness.ts task:submit --run ${runRoot} --task ${lease.taskId} --agent ${agent} --token <TOKEN> --summary "<WHAT_CHANGED>"`,
+        role,
+        description: "Submit completed task for validation",
+      },
+    ];
+  }
+
+  if (context.hasGrant === false) {
+    return [
+      {
+        command: `bun harness.ts agent:register --run ${runRoot} --agent ${agent} --role ${context.role ?? "<ROLE>"} --host <HOST>`,
+        role: "Coordinator",
+        description: "Register agent grant before claiming or validating work",
+      },
+    ];
+  }
+
+  const role = context.role ?? "";
+  if (role === "orchestrator" || role.startsWith("orch")) {
+    return [
+      {
+        command: `bun harness.ts queue:wave --run ${runRoot}`,
+        role: "Coordinator",
+        description: "Dispatch next wave of eligible tasks",
+      },
       {
         command: `bun harness.ts run:status --run ${runRoot}`,
         role: "Orchestrator",
         description: "Inspect execution progress and active leases",
       },
+    ];
+  }
+  if (role === "coordinator" || role.startsWith("coord")) {
+    return [
+      {
+        command: `bun harness.ts queue:wave --run ${runRoot}`,
+        role: "Coordinator",
+        description: "Dispatch next wave of eligible tasks",
+      },
       {
         command: `bun harness.ts queue:next --run ${runRoot}`,
-        role: "Implementer",
-        description: "Claim next ready task in queue",
+        role: "Coordinator",
+        description: "Preview next ready task in queue",
       },
     ];
   }
+  if (role.startsWith("critic")) {
+    return [
+      {
+        command: `bun harness.ts critic:start --run ${runRoot} --critic ${agent}`,
+        role: "Critic",
+        description: "Initialize completeness critic review session",
+      },
+      {
+        command: `bun harness.ts run:status --run ${runRoot}`,
+        role: "Orchestrator",
+        description: "Check run execution status",
+      },
+    ];
+  }
+
   return [
     {
-      command: `bun harness.ts orchestrate "<PROMPT>"`,
+      command: `bun harness.ts run:status --run ${runRoot}`,
       role: "Orchestrator",
-      description: "Open new orchestration run",
+      description: "Inspect execution progress and active leases",
     },
     {
-      command: `bun harness.ts doctor`,
-      role: "Operator",
-      description: "Verify harness environment health",
+      command: `bun harness.ts queue:next --run ${runRoot}`,
+      role: "Implementer",
+      description: "Claim next ready task in queue",
     },
   ];
 }
 
-export function doctorNextActions(run?: string): NextActionItem[] {
+export interface DoctorCriticalFinding {
+  readonly role: string;
+  readonly agentId: string;
+  readonly remediation: string;
+  readonly taskId?: string | undefined;
+}
+
+export interface DoctorNextActionsOptions {
+  readonly healthy?: boolean | undefined;
+  readonly planVerified?: boolean | undefined;
+  readonly criticalFindings?: readonly DoctorCriticalFinding[] | undefined;
+}
+
+export function doctorNextActions(
+  run?: string,
+  options: DoctorNextActionsOptions = {},
+): NextActionItem[] {
+  const healthy = options.healthy ?? true;
+  const planVerified = options.planVerified ?? true;
+  const criticalFindings = options.criticalFindings ?? [];
   const runArg = run ? ` --run ${run}` : "";
-  return [
+
+  if (run && !planVerified) {
+    return planInitNextActions(run);
+  }
+
+  const actions: NextActionItem[] = [];
+  const leadFinding = criticalFindings.find((finding) => finding.taskId !== undefined);
+  if (run && leadFinding) {
+    actions.push({
+      command: `bun harness.ts task:release --run ${run} --task ${leadFinding.taskId} --agent ${leadFinding.agentId} --token <TOKEN>`,
+      role: leadFinding.role,
+      description: leadFinding.remediation,
+    });
+  }
+
+  if (!healthy && actions.length === 0) {
+    actions.push({
+      command: `bun harness.ts report:unified${runArg}`,
+      role: "Auditor",
+      description: "Critical issue found with no direct CLI remedy; review full evidence report",
+    });
+  }
+
+  actions.push(
     {
       command: `bun harness.ts run:status${runArg}`,
       role: "Orchestrator",
@@ -840,7 +995,8 @@ export function doctorNextActions(run?: string): NextActionItem[] {
       role: "Coordinator",
       description: "Inspect ready task wave",
     },
-  ];
+  );
+  return actions;
 }
 
 export function recoverNextActions(run: string): NextActionItem[] {

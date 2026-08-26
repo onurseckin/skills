@@ -11,8 +11,10 @@ import {
   type HostProfile,
 } from "../../../olt/scripts/src/authority/thread-identifier";
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami";
+import { execute } from "../../../olt/scripts/src/cli/execute";
 import { cleanupRoots } from "../cli/full-lifecycle-fixture";
 import { setupCompiledRun } from "../cli/task-ops-fixture";
+import { TASK_ID, VALIDATOR, claimSubmitValidate, setupRun } from "../cli/probe-fixture";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
@@ -324,6 +326,60 @@ describe("Agent Whoami Profiling Engine", () => {
       });
       expect(mindResult.tier).toBe(0);
       expect(mindResult.role).toBe("mind");
+    });
+  });
+
+  describe("whoami Next Actions are role and state aware", () => {
+    it("tells an implementer holding a lease to heartbeat and submit that exact task", async () => {
+      const { run } = await setupCompiledRun("whoami-lease-aware", roots);
+      const claim = await execute([
+        "task:claim",
+        "--run",
+        run,
+        "--task",
+        "task-core",
+        "--agent",
+        "worker-1",
+        "--role",
+        "implementer",
+      ]);
+      expect(claim.token).toBeDefined();
+
+      const result = whoamiCommand({ run, agent: "worker-1" });
+      const md = String(result.markdown);
+      expect(md).toContain(
+        `bun harness.ts task:heartbeat --run ${run} --task task-core --agent worker-1`,
+      );
+      expect(md).toContain(
+        `bun harness.ts task:submit --run ${run} --task task-core --agent worker-1`,
+      );
+      expect(md).not.toContain("agent:register");
+    });
+
+    it("tells an unregistered agent to agent:register with its exact declared role", async () => {
+      const { run } = await setupCompiledRun("whoami-no-grant", roots);
+
+      const result = whoamiCommand({ run, agent: "nobody-1", role: "implementer" });
+      const md = String(result.markdown);
+      expect(md).toContain(
+        `bun harness.ts agent:register --run ${run} --agent nobody-1 --role implementer --host <HOST>`,
+      );
+      expect(md).not.toContain("task:heartbeat");
+    });
+
+    it("tells a validator holding an open validation to probe and review that exact task", async () => {
+      const { repo, run } = await setupRun("whoami-validator-aware", roots);
+      await claimSubmitValidate(repo, run);
+
+      const result = whoamiCommand({ run, agent: VALIDATOR });
+      const md = String(result.markdown);
+      expect(md).toContain(
+        `bun harness.ts task:probe --run ${run} --task ${TASK_ID} --validator ${VALIDATOR}`,
+      );
+      expect(md).toContain(
+        `bun harness.ts task:review --run ${run} --task ${TASK_ID} --validator ${VALIDATOR}`,
+      );
+      expect(md).not.toContain("agent:register");
     });
   });
 });

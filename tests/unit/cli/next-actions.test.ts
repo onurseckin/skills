@@ -335,6 +335,86 @@ describe("Next Actions Helper Generators", () => {
   });
 });
 
+describe("doctorNextActions is derived from the report doctor just produced", () => {
+  test("recommends plan:enhance instead of run:status/queue:wave when the run is unplanned", () => {
+    const actions = doctorNextActions("run-1", { healthy: false, planVerified: false });
+    expect(actions[0]!.command).toContain("plan:enhance --run run-1");
+    expect(actions.some((a) => a.command.includes("run:status"))).toBeFalse();
+    expect(actions.some((a) => a.command.includes("queue:wave"))).toBeFalse();
+  });
+
+  test("leads with a critical finding's own remediation as a task:release command", () => {
+    const actions = doctorNextActions("run-1", {
+      healthy: false,
+      planVerified: true,
+      criticalFindings: [
+        {
+          role: "coordinator",
+          agentId: "coordinator",
+          taskId: "task-core",
+          remediation:
+            "Coordinators must not claim or lease implementation tasks. Implementation leases are exclusively for Tier 3 Implementers.",
+        },
+      ],
+    });
+    expect(actions[0]!.command).toBe(
+      "bun harness.ts task:release --run run-1 --task task-core --agent coordinator --token <TOKEN>",
+    );
+    expect(actions[0]!.role).toBe("coordinator");
+    expect(actions[0]!.description).toBe(
+      "Coordinators must not claim or lease implementation tasks. Implementation leases are exclusively for Tier 3 Implementers.",
+    );
+    expect(actions.some((a) => a.command.includes("run:status"))).toBeTrue();
+  });
+
+  test("falls back to run:status/queue:wave when healthy and no findings are present", () => {
+    const actions = doctorNextActions("run-1", { healthy: true, planVerified: true });
+    expect(actions[0]!.command).toContain("run:status --run run-1");
+    expect(actions[1]!.command).toContain("queue:wave --run run-1");
+  });
+
+  test("formatDoctorBrief renders the finding's remediation as the top Next Action from a real report shape", () => {
+    const brief = formatDoctorBrief("run-1", {
+      healthy: false,
+      bun_version: "1.3.0",
+      bun_supported: true,
+      gitignored: true,
+      plan_verified: true,
+      issues: ["tier-confinement [critical] (Tier 2 coordinator/coordinator): illegal lease"],
+      tier_confinement_findings: [
+        {
+          agent_id: "coordinator",
+          role: "coordinator",
+          tier: 2,
+          violation_type: "coordinator_code_writing",
+          severity: "critical",
+          observation: 'Tier 2 Coordinator agent "coordinator" holds direct implementation lease',
+          remediation:
+            "Coordinators must not claim or lease implementation tasks. Implementation leases are exclusively for Tier 3 Implementers.",
+          evidence: { task_id: "task-core" },
+        },
+      ],
+    });
+    expect(brief).toContain(
+      "1. `bun harness.ts task:release --run run-1 --task task-core --agent coordinator --token <TOKEN>` [coordinator] — Coordinators must not claim or lease implementation tasks. Implementation leases are exclusively for Tier 3 Implementers.",
+    );
+  });
+
+  test("formatDoctorBrief recommends plan:enhance, not run:status, when plan_verified is false", () => {
+    const brief = formatDoctorBrief("run-1", {
+      healthy: true,
+      bun_version: "1.3.0",
+      bun_supported: true,
+      gitignored: true,
+      plan_verified: false,
+      issues: [],
+    });
+    expect(brief).not.toContain("run:status --run run-1");
+    expect(brief).not.toContain("queue:wave --run run-1");
+    expect(brief).toContain("plan:enhance --run run-1");
+  });
+});
+
 describe("Formatter Integration with ⚡ Next Actions GPS blocks", () => {
   test("every brief includes ⚡ Next Actions and satisfies <= 30 line limit", () => {
     const briefs = [

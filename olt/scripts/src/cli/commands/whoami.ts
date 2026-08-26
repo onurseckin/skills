@@ -18,6 +18,13 @@ export interface TaskLeaseSummary {
   status: string;
 }
 
+export interface TaskValidationSummary {
+  task_id: string;
+  validator_id: string;
+  domain: string;
+  deadline_at: string;
+}
+
 function parseOptionalInt(flags: Flags, name: string, minimum = 0): number | undefined {
   const raw: unknown = flags[name];
   if (raw === undefined) return undefined;
@@ -56,6 +63,8 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
 
   let activeGrants: AgentGrantRecord[] = [];
   const activeLeases: TaskLeaseSummary[] = [];
+  const activeValidations: TaskValidationSummary[] = [];
+  let runStateLoaded = false;
 
   if (run !== null) {
     try {
@@ -63,6 +72,7 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
       const state = loaded.state;
       const ledger = readAgentLedger(state);
       activeGrants = ledger.filter((grant) => grant.status === "active");
+      runStateLoaded = true;
 
       if (isJsonObject(state.tasks)) {
         for (const [taskId, rawTask] of Object.entries(state.tasks)) {
@@ -81,6 +91,20 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
               status: taskStatus,
             });
           }
+          if (Array.isArray(rawTask.validations)) {
+            for (const rawValidation of rawTask.validations) {
+              if (!isJsonObject(rawValidation)) continue;
+              const validatorId =
+                typeof rawValidation.validator_id === "string" ? rawValidation.validator_id : "";
+              activeValidations.push({
+                task_id: taskId,
+                validator_id: validatorId,
+                domain: typeof rawValidation.domain === "string" ? rawValidation.domain : "",
+                deadline_at:
+                  typeof rawValidation.deadline_at === "string" ? rawValidation.deadline_at : "",
+              });
+            }
+          }
         }
       }
     } catch {
@@ -95,6 +119,10 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
   const filteredLeases = activeAgentId
     ? activeLeases.filter((lease) => lease.agent_id === activeAgentId)
     : activeLeases;
+
+  const filteredValidations = activeAgentId
+    ? activeValidations.filter((validation) => validation.validator_id === activeAgentId)
+    : activeValidations;
 
   const effectiveRole =
     roleOverride ??
@@ -198,9 +226,25 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
     if (filteredLeases.length > 0) {
       mdLines.push(`- **Held Tasks**: ${filteredLeases.map((l) => `\`${l.task_id}\``).join(", ")}`);
     }
+
+    if (filteredValidations.length > 0) {
+      mdLines.push(
+        `- **Open Validations**: ${filteredValidations.map((v) => `\`${v.task_id}\``).join(", ")}`,
+      );
+    }
   }
 
-  mdLines.push(...nextActionsBlock(whoamiNextActions(run, thread.is_main_thread)));
+  mdLines.push(
+    ...nextActionsBlock(
+      whoamiNextActions(run, thread.is_main_thread, {
+        role: effectiveRole,
+        agentId: activeAgentId ?? thread.agent_id ?? undefined,
+        hasGrant: runStateLoaded ? filteredGrants.length > 0 : undefined,
+        leases: filteredLeases.map((l) => ({ taskId: l.task_id, role: l.role })),
+        openValidations: filteredValidations.map((v) => ({ taskId: v.task_id })),
+      }),
+    ),
+  );
 
   return {
     markdown: enforceLineLimit(mdLines.join("\n"), 35),
@@ -217,6 +261,7 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
     advisory: thread.advisory,
     active_grants: filteredGrants,
     active_leases: filteredLeases,
+    active_validations: filteredValidations,
     defect: thread.defect,
     host_profile: thread.host_profile,
     capabilities: thread.capabilities,

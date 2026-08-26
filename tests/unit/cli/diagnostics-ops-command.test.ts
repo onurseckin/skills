@@ -72,6 +72,84 @@ describe("doctor", () => {
     ]);
     expect(result.installation).toBeDefined();
   });
+
+  test("recommends plan:enhance instead of run:status/queue:wave on an unplanned run", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "doctor-unplanned-"));
+    roots.push(repo);
+    const promptPath = join(repo, "prompt.txt");
+    await writeFile(promptPath, "Do the thing");
+    const init = await execute([
+      "plan:init",
+      "--repo",
+      repo,
+      "--run",
+      "doctor-unplanned",
+      "--prompt-file",
+      promptPath,
+    ]);
+    const run = init.run_root as string;
+
+    const result = await execute(["doctor", "--run", run]);
+    const markdown = String(result.markdown);
+    expect(markdown).not.toContain("run:status --run");
+    expect(markdown).not.toContain("queue:wave --run");
+    expect(markdown).toContain(`bun harness.ts plan:enhance --run ${run}`);
+  });
+
+  test("computes plan_verified true for a compiled run, false for a freshly initialized one", async () => {
+    const { run: compiledRun } = await setupCompiledRun("doctor-plan-verified-true", roots);
+    const compiledResult = await execute(["doctor", "--run", compiledRun]);
+    expect(compiledResult.plan_verified).toBe(true);
+
+    const repo = await mkdtemp(join(tmpdir(), "doctor-plan-verified-false-"));
+    roots.push(repo);
+    const promptPath = join(repo, "prompt.txt");
+    await writeFile(promptPath, "Do the thing");
+    const init = await execute([
+      "plan:init",
+      "--repo",
+      repo,
+      "--run",
+      "doctor-plan-verified-false",
+      "--prompt-file",
+      promptPath,
+    ]);
+    const unplannedRun = init.run_root as string;
+    const unplannedResult = await execute(["doctor", "--run", unplannedRun]);
+    expect(unplannedResult.plan_verified).toBe(false);
+  });
+
+  test("surfaces a critical tier-confinement finding's own remediation via the report's findings", async () => {
+    const { run } = await setupCompiledRun("doctor-tier-confinement", roots);
+    transact(run, "test-setup", "illegal-coordinator-lease-for-test", {}, (draft) => {
+      const tasks = draft.tasks as JsonObject;
+      const task = tasks["task-core"] as JsonObject;
+      task.lease = {
+        agent_id: "coordinator",
+        role: "coordinator",
+        attempt: 1,
+        token_digest: "test-digest",
+        issued_at: "2020-01-01T00:00:00.000Z",
+        expires_at: "2099-01-01T00:00:00.000Z",
+        heartbeat_at: "2020-01-01T00:00:00.000Z",
+        duration_seconds: 1200,
+      };
+    });
+
+    const result = await execute(["doctor", "--run", run]);
+    expect(result.healthy).toBe(false);
+    const findings = result.tier_confinement_findings as Record<string, unknown>[];
+    const leaseFinding = findings.find(
+      (finding) =>
+        finding.violation_type === "coordinator_code_writing" &&
+        (finding.evidence as Record<string, unknown> | undefined)?.task_id === "task-core",
+    );
+    expect(leaseFinding).toBeDefined();
+    expect(leaseFinding?.remediation).toBe(
+      "Coordinators must not claim or lease implementation tasks. Implementation leases are exclusively for Tier 3 Implementers.",
+    );
+    expect(leaseFinding?.agent_id).toBe("coordinator");
+  });
 });
 
 describe("recover", () => {
