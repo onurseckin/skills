@@ -22,7 +22,7 @@
  */
 import { afterEach } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 import { tmpdir } from "node:os";
@@ -32,6 +32,8 @@ import { tmpdir } from "node:os";
 // find their scratch space.
 const REPO_ROOT = join(import.meta.dir, "..", "..");
 const SCRATCH_BASE = join(REPO_ROOT, "coverage", "scratch");
+const OWNERS_DIR = join(SCRATCH_BASE, ".owners");
+const MAX_SLOT_ATTEMPTS = 1000;
 
 function slug(value: string): string {
   const cleaned = value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
@@ -56,6 +58,29 @@ function shortDigest(value: string): string {
 // afterEach per call below instead of relying on one hook shared module-wide.
 const callsPerKey = new Map<string, number>();
 
+function isPidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ownerMarkerPath(dirName: string): string {
+  return join(OWNERS_DIR, `${dirName}.json`);
+}
+
+function claimedByLiveOwner(dirName: string): boolean {
+  try {
+    const raw = readFileSync(ownerMarkerPath(dirName), "utf-8");
+    const parsed = JSON.parse(raw) as { pid?: unknown };
+    return typeof parsed.pid === "number" && isPidAlive(parsed.pid);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Returns a scratch directory that is:
  *  - deterministic: the same (callerPath, label) call sequence produces the same path on every
@@ -63,9 +88,15 @@ const callsPerKey = new Map<string, number>();
  *  - unique: derived from the caller's own file path plus a label plus a per-(file, label) call
  *    counter, so no two calls anywhere in the suite — same file or different — can ever resolve
  *    to the same path.
- *  - clean: force-removed before creation, so even a directory a prior *crashed* run left behind
- *    at the same deterministic path (killed before its afterEach ran) can't leak stale content
- *    into this test — the one thing mkdtemp's random suffix used to give for free.
+ *  - collision-safe: the directory is claimed with a non-recursive `mkdirSync`, which the OS
+ *    only lets one caller win. A slot that already exists and carries a live owner marker (a
+ *    separate process, not this one, still alive) is left untouched and the next call number is
+ *    tried instead — this is what keeps two independent bun-test worker processes that both
+ *    compute the same deterministic slot (their in-memory call counters can't see each other)
+ *    from tearing down each other's directory mid-test. A slot whose owner marker names a dead
+ *    pid (a prior run crashed before its own `afterEach` ran) is force-cleaned and reclaimed at
+ *    that same slot, so no stale content leaks in — the one thing mkdtemp's random suffix used to
+ *    give for free.
  *  - self-cleaning: this call registers its own one-shot `afterEach` for this one root before
  *    returning it. Callers never write their own roots array or cleanup hook. Registering fresh
  *    per call (rather than once, at module load, into a shared array) is deliberate: a hook
@@ -86,14 +117,36 @@ const callsPerKey = new Map<string, number>();
 export function scratchRoot(callerPath: string, label: string): string {
   const fileTag = slug(relative(REPO_ROOT, callerPath).split(sep).join("-"));
   const key = `${fileTag}::${label}`;
-  const call = (callsPerKey.get(key) ?? 0) + 1;
-  callsPerKey.set(key, call);
-  const dirName = `${fileTag}--${slug(label)}--${call}--${shortDigest(key)}`;
-  const root = join(SCRATCH_BASE, dirName);
-  rmSync(root, { recursive: true, force: true });
-  mkdirSync(root, { recursive: true });
-  afterEach(() => {
-    rmSync(root, { recursive: true, force: true });
-  });
-  return root;
+  const digest = shortDigest(key);
+  mkdirSync(SCRATCH_BASE, { recursive: true });
+  mkdirSync(OWNERS_DIR, { recursive: true });
+
+  for (let attempt = 0; attempt < MAX_SLOT_ATTEMPTS; attempt += 1) {
+    const call = (callsPerKey.get(key) ?? 0) + 1;
+    const dirName = `${fileTag}--${slug(label)}--${call}--${digest}`;
+    const root = join(SCRATCH_BASE, dirName);
+
+    try {
+      mkdirSync(root);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      if (claimedByLiveOwner(dirName)) {
+        callsPerKey.set(key, call);
+        continue;
+      }
+      rmSync(root, { recursive: true, force: true });
+      continue;
+    }
+
+    callsPerKey.set(key, call);
+    const markerPath = ownerMarkerPath(dirName);
+    writeFileSync(markerPath, JSON.stringify({ pid: process.pid }), "utf-8");
+    afterEach(() => {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(markerPath, { force: true });
+    });
+    return root;
+  }
+
+  throw new Error(`scratchRoot: exhausted ${MAX_SLOT_ATTEMPTS} slot attempts for key ${key}`);
 }
