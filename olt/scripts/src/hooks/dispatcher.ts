@@ -1,6 +1,69 @@
 import { spawnSync } from "node:child_process";
+import { findRepoRoot } from "../core/shared/paths.ts";
+import { loadRepoPolicy } from "../policy/repo-policy.ts";
 import { DEFAULT_DARWIN_SOUND_PATH, loadHookConfig } from "./config.ts";
 import type { HookConfig, HookDefinition, HookResult, LifecycleEvent } from "./types.ts";
+
+const RECURSIVE_DELETE_TOKENS = new Set(["rm", "rmdir", "del", "rd"]);
+
+function stripShellEscapes(token: string): string {
+  return token
+    .replace(/\\/g, "")
+    .replace(/^['"]+/, "")
+    .replace(/['"]+$/, "");
+}
+
+export function commandContainsRecursiveDelete(command: string): boolean {
+  const segments = command.split(/[;&|\n]+/);
+  for (const segment of segments) {
+    const tokens = segment
+      .trim()
+      .split(/\s+/)
+      .filter((t) => t.length > 0);
+    for (let i = 0; i < tokens.length; i++) {
+      const base = stripShellEscapes(tokens[i]!).replace(/^.*\//, "").toLowerCase();
+      if (!RECURSIVE_DELETE_TOKENS.has(base)) {
+        continue;
+      }
+      let hasRecursive = false;
+      let hasForce = false;
+      for (const rawFlag of tokens.slice(i + 1, i + 12)) {
+        const flag = stripShellEscapes(rawFlag);
+        if (!flag.startsWith("-")) {
+          continue;
+        }
+        if (flag === "--recursive" || /^-[a-zA-Z]*[rR][a-zA-Z]*$/.test(flag)) {
+          hasRecursive = true;
+        }
+        if (flag === "--force" || /^-[a-zA-Z]*[fF][a-zA-Z]*$/.test(flag)) {
+          hasForce = true;
+        }
+      }
+      if (hasRecursive && hasForce) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+export function findForbiddenCommandMatch(
+  command: string,
+  forbiddenCommands: readonly string[],
+): string | undefined {
+  const normalized = stripShellEscapes(command).toLowerCase();
+  for (const entry of forbiddenCommands) {
+    const needle = entry.trim().toLowerCase();
+    if (needle.length > 0 && normalized.includes(needle)) {
+      return entry;
+    }
+  }
+  return undefined;
+}
+
+export function resolvePinnedHookCwd(hook: HookDefinition, repoRoot: string): string {
+  return hook.cwd !== undefined && hook.cwd.trim().length > 0 ? hook.cwd : repoRoot;
+}
 
 /**
  * Evaluates whether an event name matches a hook event pattern.
@@ -124,6 +187,23 @@ export async function executeShellAction(
     return { success: false, error: "Missing shell command in hook definition" };
   }
 
+  if (commandContainsRecursiveDelete(hook.command)) {
+    return {
+      success: false,
+      error: `Refused hook command: recursive delete detected in "${hook.command}"`,
+    };
+  }
+
+  const repoRoot = findRepoRoot();
+  const forbiddenCommands = loadRepoPolicy(repoRoot).forbidden_commands ?? [];
+  const forbiddenMatch = findForbiddenCommandMatch(hook.command, forbiddenCommands);
+  if (forbiddenMatch !== undefined) {
+    return {
+      success: false,
+      error: `Refused hook command: matches forbidden_commands entry "${forbiddenMatch}"`,
+    };
+  }
+
   try {
     const processEnv: Record<string, string> = {};
     for (const [key, value] of Object.entries(process.env)) {
@@ -140,7 +220,7 @@ export async function executeShellAction(
     };
 
     const result = spawnSync("sh", ["-c", hook.command], {
-      cwd: hook.cwd ?? process.cwd(),
+      cwd: resolvePinnedHookCwd(hook, repoRoot),
       env,
       timeout: hook.timeout_ms ?? 10_000,
       stdio: "pipe",

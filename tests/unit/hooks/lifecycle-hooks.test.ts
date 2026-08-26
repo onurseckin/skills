@@ -7,12 +7,14 @@ import {
   DEFAULT_HOOK_CONFIG,
   DEFAULT_HOOK_SCHEMA,
   DEFAULT_HOOK_VERSION,
+  commandContainsRecursiveDelete,
   dispatchLifecycleHook,
   dispatchSingleHook,
   executeAudioAction,
   executeCustomAction,
   executeShellAction,
   executeWebhookAction,
+  findForbiddenCommandMatch,
   isPlatformSupported,
   loadHookConfig,
   matchesEvent,
@@ -20,11 +22,13 @@ import {
   parseHookDefinition,
   resolveAudioSoundPath,
   resolveHookConfigFile,
+  resolvePinnedHookCwd,
   saveHookConfig,
   type HookConfig,
   type HookDefinition,
   type LifecycleEvent,
 } from "../../../olt/scripts/src/hooks/index.ts";
+import { findRepoRoot } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Lifecycle Hooks - Event Pattern Matching", () => {
@@ -185,6 +189,118 @@ describe("Lifecycle Hooks - Shell Action Execution", () => {
     const result = await executeShellAction(hook, "run:start");
     expect(result.success).toBe(false);
     expect(result.error).toContain("Missing shell command");
+  });
+});
+
+describe("Lifecycle Hooks - Destructive Command Hardening", () => {
+  test("commandContainsRecursiveDelete flags combined and split rm flags", () => {
+    expect(commandContainsRecursiveDelete("rm -rf /tmp/whatever")).toBe(true);
+    expect(commandContainsRecursiveDelete("rm -fr ./build")).toBe(true);
+    expect(commandContainsRecursiveDelete("rm -r -f ./build")).toBe(true);
+    expect(commandContainsRecursiveDelete("rm --recursive --force ./build")).toBe(true);
+    expect(commandContainsRecursiveDelete("echo hi && rm -rf /tmp/x")).toBe(true);
+    expect(commandContainsRecursiveDelete("/bin/rm -rf /tmp/x")).toBe(true);
+  });
+
+  test("commandContainsRecursiveDelete does not flag benign rm usage", () => {
+    expect(commandContainsRecursiveDelete("rm ./one-file.txt")).toBe(false);
+    expect(commandContainsRecursiveDelete("rm -r ./dir-only")).toBe(false);
+    expect(commandContainsRecursiveDelete("rm -f ./file-only")).toBe(false);
+    expect(commandContainsRecursiveDelete("echo removing rf stuff")).toBe(false);
+  });
+
+  test("commandContainsRecursiveDelete flags backslash- and quote-escaped rm tokens", () => {
+    expect(commandContainsRecursiveDelete("\\rm -rf ../other-sibling")).toBe(true);
+    expect(commandContainsRecursiveDelete("r\\m -rf ../other-sibling")).toBe(true);
+    expect(commandContainsRecursiveDelete("'rm' -rf ../other-sibling")).toBe(true);
+    expect(commandContainsRecursiveDelete('"rm" -rf ../other-sibling')).toBe(true);
+    expect(commandContainsRecursiveDelete("\\rm -RF ../other-sibling")).toBe(true);
+  });
+
+  test("findForbiddenCommandMatch matches case-insensitively as a substring", () => {
+    const forbidden = ["git commit", "git push", "git reset", "rm -rf /"];
+    expect(findForbiddenCommandMatch("git push origin main", forbidden)).toBe("git push");
+    expect(findForbiddenCommandMatch("GIT COMMIT -m x", forbidden)).toBe("git commit");
+    expect(findForbiddenCommandMatch("echo safe", forbidden)).toBeUndefined();
+  });
+
+  test("resolvePinnedHookCwd prefers explicit hook.cwd over the pinned root", () => {
+    const explicit: HookDefinition = { events: ["*"], action: "shell", cwd: "/explicit/path" };
+    expect(resolvePinnedHookCwd(explicit, "/pinned/root")).toBe("/explicit/path");
+
+    const implicit: HookDefinition = { events: ["*"], action: "shell" };
+    expect(resolvePinnedHookCwd(implicit, "/pinned/root")).toBe("/pinned/root");
+  });
+
+  test("executeShellAction refuses a recursive delete without running it", async () => {
+    const marker = join(scratchRoot(import.meta.path, "shell-rm-refused"), "marker.txt");
+    const hook: HookDefinition = {
+      id: "shell-rm-refused",
+      events: ["task:complete"],
+      action: "shell",
+      command: `rm -rf /tmp/should-not-run && touch ${marker}`,
+    };
+
+    const result = await executeShellAction(hook, "task:complete");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("recursive delete");
+    expect(existsSync(marker)).toBe(false);
+  });
+
+  test("executeShellAction refuses a backslash-escaped recursive delete targeting a relative sibling", async () => {
+    const scratchDir = scratchRoot(import.meta.path, "shell-rm-backslash-refused");
+    const victim = join(scratchDir, "other-sibling");
+    mkdirSync(victim, { recursive: true });
+    writeFileSync(join(victim, "keep.txt"), "still here");
+    const marker = join(scratchDir, "marker.txt");
+    const hook: HookDefinition = {
+      id: "shell-rm-backslash-refused",
+      events: ["task:complete"],
+      action: "shell",
+      cwd: scratchDir,
+      command: `\\rm -rf ./other-sibling && touch ${marker}`,
+    };
+
+    const result = await executeShellAction(hook, "task:complete");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("recursive delete");
+    expect(existsSync(marker)).toBe(false);
+    expect(existsSync(join(victim, "keep.txt"))).toBe(true);
+  });
+
+  test("executeShellAction refuses a command matching the repository forbidden_commands policy", async () => {
+    const hook: HookDefinition = {
+      id: "shell-forbidden-policy",
+      events: ["task:complete"],
+      action: "shell",
+      command: "git push origin main",
+    };
+
+    const result = await executeShellAction(hook, "task:complete");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("forbidden_commands");
+    expect(result.error).toContain("git push");
+  });
+
+  test("executeShellAction pins cwd to the repo root when hook.cwd is not set, ignoring ambient process.cwd()", async () => {
+    const repoRoot = findRepoRoot();
+    const otherDir = scratchRoot(import.meta.path, "shell-cwd-pin-ambient");
+    const originalCwd = process.cwd();
+    process.chdir(otherDir);
+    try {
+      const hook: HookDefinition = {
+        id: "shell-cwd-pin",
+        events: ["task:complete"],
+        action: "shell",
+        command: "pwd",
+      };
+      const result = await executeShellAction(hook, "task:complete");
+      expect(result.success).toBe(true);
+      expect(result.output).toContain(repoRoot);
+      expect(result.output).not.toContain(otherDir);
+    } finally {
+      process.chdir(originalCwd);
+    }
   });
 });
 

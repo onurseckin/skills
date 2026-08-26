@@ -15,15 +15,18 @@ export {
   saveHookConfig,
 } from "./config.ts";
 export {
+  commandContainsRecursiveDelete,
   dispatchLifecycleHook,
   dispatchSingleHook,
   executeAudioAction,
   executeCustomAction,
   executeShellAction,
   executeWebhookAction,
+  findForbiddenCommandMatch,
   isPlatformSupported,
   matchesEvent,
   resolveAudioSoundPath,
+  resolvePinnedHookCwd,
 } from "./dispatcher.ts";
 export type {
   CustomHookHandler,
