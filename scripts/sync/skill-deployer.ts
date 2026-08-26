@@ -25,6 +25,7 @@ export interface DeploySkillResult {
   skippedCount: number;
   targetDir: string;
   assistantDirsCount: number;
+  legacyHomePurged: boolean;
 }
 
 const LEGACY_NAME = "orchestrating-long-tasks";
@@ -143,11 +144,20 @@ export async function deployCanonicalSkill(
     });
   }
 
-  guardedRemoveSync(join(home, ".agents", "skills", LEGACY_NAME), {
-    allowedRoots: [join(home, ".agents", "skills")],
-    missingOk: true,
-    onAudit: logDestructiveOp,
-  });
+  let legacyHomePurged = true;
+  try {
+    guardedRemoveSync(join(home, ".agents", "skills", LEGACY_NAME), {
+      allowedRoots: [join(home, ".agents", "skills")],
+      missingOk: true,
+      onAudit: logDestructiveOp,
+    });
+  } catch (err) {
+    legacyHomePurged = false;
+    console.warn(
+      `[sync] Left ${join(home, ".agents", "skills", LEGACY_NAME)} in place (best-effort legacy cleanup):`,
+      err,
+    );
+  }
 
   const assistantSkillDirs = getAssistantSkillDirs(home);
   let syncedCount = 0;
@@ -184,5 +194,6 @@ export async function deployCanonicalSkill(
     skippedCount,
     targetDir: targetOlt,
     assistantDirsCount: assistantSkillDirs.length,
+    legacyHomePurged,
   };
 }

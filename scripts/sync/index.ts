@@ -53,7 +53,7 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
 
   if (!options?.silent) {
     console.log(
-      `✓ Global skill sync complete: ~/.agents/skills/olt deployed. Ecosystem symlinks verified across ${skillResult.assistantDirsCount} assistant platforms (${skillResult.syncedCount} synced, ${skillResult.skippedCount} verified/skipped). Legacy 'orchestrating-long-tasks' purged.`,
+      `✓ Global skill sync complete: ~/.agents/skills/olt deployed. Ecosystem symlinks verified across ${skillResult.assistantDirsCount} assistant platforms (${skillResult.syncedCount} synced, ${skillResult.skippedCount} verified/skipped). Legacy 'orchestrating-long-tasks' ${skillResult.legacyHomePurged ? "purged" : "left in place (see warning above)"}.`,
     );
     console.log(`✓ Global binary: ${binaryResult.binaryPath} (${binaryResult.status}).`);
     if (shellResult.modified) {
