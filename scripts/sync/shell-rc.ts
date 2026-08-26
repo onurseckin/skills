@@ -16,9 +16,6 @@ export interface EnsureShellRcResult {
   reason: string;
 }
 
-/**
- * Detects the appropriate shell RC configuration file for the user's active shell.
- */
 export function detectShellRcPath(options?: {
   shell?: string | undefined;
   homeDir?: string | undefined;
@@ -45,7 +42,6 @@ export function detectShellRcPath(options?: {
     return join(home, ".bashrc");
   }
 
-  // Fallback: check existing files in precedence order
   const zshrc = join(home, ".zshrc");
   if (existsSync(zshrc)) return zshrc;
   const bashrc = join(home, ".bashrc");
@@ -55,14 +51,9 @@ export function detectShellRcPath(options?: {
   const fishConfig = join(home, ".config", "fish", "config.fish");
   if (existsSync(fishConfig)) return fishConfig;
 
-  // Default to .zshrc on Darwin, .bashrc on Linux
   return process.platform === "darwin" ? zshrc : bashrc;
 }
 
-/**
- * Determines whether the target directory or its common shell expressions
- * are already declared inside the given shell RC content.
- */
 export function isPathDeclaredInContent(content: string, binDir: string, home: string): boolean {
   if (content.includes(binDir)) {
     return true;
@@ -82,9 +73,6 @@ export function isPathDeclaredInContent(content: string, binDir: string, home: s
   return false;
 }
 
-/**
- * Generates the shell export statement block.
- */
 export function generateExportLine(targetRc: string, binDir: string, home: string): string {
   const isFish = targetRc.endsWith("config.fish");
   let formattedPath = binDir;
@@ -102,10 +90,6 @@ export function generateExportLine(targetRc: string, binDir: string, home: strin
   return `\n# Added by @onurseckin/skills (OLT CLI)\nexport PATH=${formattedPath}\n`;
 }
 
-/**
- * Checks and idempotently adds ~/.local/bin to the user's active shell RC file.
- * Wrapped in try/catch to ensure zero-blocker courtesy invariant.
- */
 export function ensurePathInShellRc(options?: EnsureShellRcOptions): EnsureShellRcResult {
   try {
     const home = options?.homeDir ?? homedir();

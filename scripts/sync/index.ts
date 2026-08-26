@@ -35,10 +35,6 @@ function orDefault<T>(value: T | undefined, fallback: T): T {
   return fallback;
 }
 
-/**
- * Main orchestrator for synchronizing skills, deploying the global olt binary,
- * and configuring the shell environment.
- */
 export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
   const sourceRepoRoot = orDefault(options?.sourceRepoRoot, process.cwd());
   const home = orDefault(options?.homeDir, homedir());
@@ -49,13 +45,10 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
     console.log(`[sync] Deploying ${sourceOlt} -> ${targetOlt}...`);
   }
 
-  // 1. Deploy canonical skill files and platform symlinks
   const skillResult = await deployCanonicalSkill(options);
 
-  // 2. Ensure global olt executable binary
   const binaryResult = ensureGlobalOltBinary(options);
 
-  // 3. Ensure ~/.local/bin is in active shell RC
   const shellResult = ensurePathInShellRc(options);
 
   if (!options?.silent) {
@@ -79,7 +72,6 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
   };
 }
 
-// Auto-run if executed directly as entry script
 function computeIsMain(): boolean {
   if (import.meta.main) {
     return true;

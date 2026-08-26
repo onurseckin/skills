@@ -10,7 +10,7 @@ import {
 } from "../../olt/scripts/src/installer/constants.ts";
 import { sealInstallationManifest } from "../../olt/scripts/src/installer/manifest-integrity.ts";
 import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
-import { safeRemove, smartEnsureSymlink } from "./fs-helpers";
+import { guardedRemoveSync, logDestructiveOp, smartEnsureSymlink } from "./fs-helpers";
 import { resolveOltSyncSource } from "./git-source";
 
 export interface DeploySkillOptions {
@@ -43,10 +43,20 @@ export function getAssistantSkillDirs(home: string): string[] {
   ];
 }
 
-/**
- * Deploys the canonical olt/ directory to ~/.agents/skills/olt and
- * establishes symlinks across the 9 ecosystem assistant platforms.
- */
+function assertIsSkillsRepoRoot(sourceRepoRoot: string): string {
+  const resolved = resolve(sourceRepoRoot);
+  const hasOlt = existsSync(join(resolved, "olt"));
+  const hasGit = existsSync(join(resolved, ".git"));
+  if (!hasOlt || !hasGit) {
+    throw new Error(
+      `refusing to sync from '${resolved}': it does not look like the skills repository ` +
+        `(expected both 'olt/' and '.git' to exist here). Pass an explicit sourceRepoRoot ` +
+        `pointing at the skills checkout.`,
+    );
+  }
+  return resolved;
+}
+
 function isOwnedLegacyDeployment(targetOlt: string, sourceRepoRoot: string): boolean {
   const legacyConfigPath = join(targetOlt, "skill-config.json");
   if (!existsSync(legacyConfigPath)) return false;
@@ -61,10 +71,6 @@ function isOwnedLegacyDeployment(targetOlt: string, sourceRepoRoot: string): boo
   }
 }
 
-/**
- * Give a verified pre-manifest deployment an identity before the hardened installer publishes a
- * replacement. This keeps the old release available until the installer's atomic swap commits.
- */
 export async function migrateOwnedLegacyDeployment(
   targetOlt: string,
   sourceRepoRoot: string,
@@ -100,33 +106,24 @@ function orDefault<T>(value: T | undefined, fallback: T): T {
 export async function deployCanonicalSkill(
   options?: DeploySkillOptions,
 ): Promise<DeploySkillResult> {
-  const sourceRepoRoot = orDefault(options?.sourceRepoRoot, process.cwd());
+  const sourceRepoRoot = assertIsSkillsRepoRoot(orDefault(options?.sourceRepoRoot, process.cwd()));
   const home = orDefault(options?.homeDir, homedir());
   const targetOlt = orDefault(options?.targetOltDir, join(home, ".agents", "skills", "olt"));
   const allowDirty = orDefault(options?.allowDirty, false);
 
-  // The pre-manifest deployer wrote skill-config.json but could not produce the signed release
-  // manifest required by `doctor --source --home`. Migrate only a deployment that proves it was
-  // made from this exact source repository; its identity lets installSkill atomically replace it.
   await migrateOwnedLegacyDeployment(targetOlt, sourceRepoRoot);
 
-  // Resolves to the committed olt/ tree unless --allow-dirty explicitly opts into deploying the
-  // working tree as-is; refuses outright when olt/ is dirty and no override was given.
   const { sourceOltDir: sourceOlt, cleanup: cleanupSourceOlt } = resolveOltSyncSource(
     sourceRepoRoot,
     allowDirty,
   );
 
   try {
-    // Publish through the hardened installer so the deployed tree and its installation manifest
-    // have a single digest contract with doctor.
     await installSkill(sourceOlt, home, ["claude", "antigravity", "codex", "chatgpt"]);
   } finally {
     cleanupSourceOlt();
   }
 
-  // Preserve the runtime's source-home lookup while installation verification intentionally
-  // excludes this deploy-local metadata file from the release digest.
   const skillConfig = {
     home_repo_root: sourceRepoRoot,
     synced_at: new Date().toISOString(),
@@ -138,18 +135,20 @@ export async function deployCanonicalSkill(
     "utf-8",
   );
 
-  // OLT's runtime package resolves its dependencies relative to the deployed skill. Keep the
-  // same source-owned dependency link that previous deployments used; installer verification
-  // deliberately excludes it because it is host-local runtime plumbing, not release content.
   const sourceNodeModules = join(sourceRepoRoot, "node_modules");
   if (existsSync(sourceNodeModules)) {
-    smartEnsureSymlink(sourceNodeModules, join(targetOlt, "node_modules"));
+    smartEnsureSymlink(sourceNodeModules, join(targetOlt, "node_modules"), {
+      allowedRoots: [targetOlt],
+      onAudit: logDestructiveOp,
+    });
   }
 
-  // Remove legacy name in ~/.agents/skills/
-  safeRemove(join(home, ".agents", "skills", LEGACY_NAME));
+  guardedRemoveSync(join(home, ".agents", "skills", LEGACY_NAME), {
+    allowedRoots: [join(home, ".agents", "skills")],
+    missingOk: true,
+    onAudit: logDestructiveOp,
+  });
 
-  // 4. Application Skill Directories across ecosystem platforms
   const assistantSkillDirs = getAssistantSkillDirs(home);
   let syncedCount = 0;
   let skippedCount = 0;
@@ -158,13 +157,18 @@ export async function deployCanonicalSkill(
     try {
       mkdirSync(dir, { recursive: true });
 
-      // Always purge obsolete legacy name from app directories
       const legacyPath = join(dir, LEGACY_NAME);
-      safeRemove(legacyPath);
+      guardedRemoveSync(legacyPath, {
+        allowedRoots: [dir],
+        missingOk: true,
+        onAudit: logDestructiveOp,
+      });
 
-      // Smart symlink for olt
       const oltPath = join(dir, "olt");
-      const status = smartEnsureSymlink(targetOlt, oltPath);
+      const status = smartEnsureSymlink(targetOlt, oltPath, {
+        allowedRoots: [dir],
+        onAudit: logDestructiveOp,
+      });
       if (status === "created") {
         syncedCount++;
       } else {

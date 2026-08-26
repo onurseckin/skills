@@ -1,7 +1,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { smartEnsureSymlink } from "./fs-helpers";
+import { logDestructiveOp, smartEnsureSymlink } from "./fs-helpers";
 
 export interface EnsureBinaryOptions {
   targetBinDir?: string | undefined;
@@ -15,9 +15,6 @@ export interface EnsureBinaryResult {
   bunBinaryCreated?: boolean | undefined;
 }
 
-/**
- * Builds the bash executable script for the `olt` global command.
- */
 export function buildOltBinaryContent(harnessPath: string): string {
   return `#!/usr/bin/env bash
 set -e
@@ -34,10 +31,6 @@ exec bun "\${GLOBAL_HARNESS}" "$@"
 `;
 }
 
-/**
- * Ensures ~/.local/bin/olt (and optionally ~/.bun/bin/olt) exists, is executable (0o755),
- * and strictly delegates execution to the canonical global harness.
- */
 export function ensureGlobalOltBinary(options?: EnsureBinaryOptions): EnsureBinaryResult {
   const home = options?.homeDir ?? homedir();
   const targetBinDir = options?.targetBinDir ?? join(home, ".local", "bin");
@@ -74,16 +67,18 @@ export function ensureGlobalOltBinary(options?: EnsureBinaryOptions): EnsureBina
     status = "created";
   }
 
-  // Ensure ~/.bun/bin/olt is also linked if ~/.bun/bin exists
   let bunBinaryCreated = false;
   const bunBinDir = join(home, ".bun", "bin");
   if (existsSync(bunBinDir)) {
     try {
       const bunOltPath = join(bunBinDir, "olt");
-      const symlinkStatus = smartEnsureSymlink(binaryPath, bunOltPath);
+      const symlinkStatus = smartEnsureSymlink(binaryPath, bunOltPath, {
+        allowedRoots: [bunBinDir],
+        onAudit: logDestructiveOp,
+      });
       bunBinaryCreated = symlinkStatus === "created";
-    } catch {
-      // Ignored for resilience
+    } catch (err) {
+      console.warn(`[sync] Could not link ${join(bunBinDir, "olt")}:`, err);
     }
   }
 

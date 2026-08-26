@@ -1,7 +1,9 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { safeRmSync } from "../../olt/scripts/src/core/shared/safe-fs.ts";
+import { logDestructiveOp } from "./fs-helpers.ts";
 
 export type SyncSourceDecision =
   | { readonly mode: "head" }
@@ -73,20 +75,29 @@ export function materializeOltFromHead(repoRoot: string, tmpParentDir?: string):
     tmpParent = tmpdir();
   }
   mkdirSync(tmpParent, { recursive: true });
-  const extractDir = mkdtempSync(join(tmpParent, "olt-sync-head-"));
+  const resolvedTmpParent = resolve(tmpParent);
+  const extractDir = mkdtempSync(join(resolvedTmpParent, "olt-sync-head-"));
+
+  const removeExtractDir = (): void => {
+    safeRmSync(extractDir, {
+      allowedRoots: [resolvedTmpParent],
+      missingOk: true,
+      onAudit: logDestructiveOp,
+    });
+  };
 
   const archiveResult = spawnSync("git", ["archive", "--format=tar", "HEAD", "--", "olt/"], {
     cwd: repoRoot,
     maxBuffer: 1024 * 1024 * 256,
   });
   if (archiveResult.status !== 0) {
-    rmSync(extractDir, { recursive: true, force: true });
+    removeExtractDir();
     throw new Error(
       `git archive HEAD -- olt/ failed in ${repoRoot}: ${firstNonEmpty(archiveResult.stderr?.toString(), archiveResult.error?.message)}`,
     );
   }
   if (!archiveResult.stdout) {
-    rmSync(extractDir, { recursive: true, force: true });
+    removeExtractDir();
     throw new Error(`git archive HEAD -- olt/ produced no output in ${repoRoot}`);
   }
 
@@ -94,7 +105,7 @@ export function materializeOltFromHead(repoRoot: string, tmpParentDir?: string):
     input: archiveResult.stdout,
   });
   if (extractResult.status !== 0) {
-    rmSync(extractDir, { recursive: true, force: true });
+    removeExtractDir();
     throw new Error(
       `failed to extract HEAD olt/ archive into ${extractDir}: ${firstNonEmpty(extractResult.stderr?.toString(), extractResult.error?.message)}`,
     );
@@ -102,7 +113,7 @@ export function materializeOltFromHead(repoRoot: string, tmpParentDir?: string):
 
   return {
     sourceOltDir: join(extractDir, "olt"),
-    cleanup: () => rmSync(extractDir, { recursive: true, force: true }),
+    cleanup: removeExtractDir,
   };
 }
 
