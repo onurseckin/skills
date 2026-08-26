@@ -3,6 +3,10 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import {
+  establishSupervisorChain,
+  registerUnderChain,
+} from "../../support/agent-supervisor-chain.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 import { requirementIds } from "./critic-run-fixture.ts";
@@ -83,18 +87,9 @@ async function setupTwoIndependentTasks(
     "--completion-gate",
     "bun test src",
   ]);
+  const chain = await establishSupervisorChain(run);
   for (const agent of ["worker-1", "worker-2"]) {
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      agent,
-      "--role",
-      "implementer",
-      "--host",
-      "antigravity",
-    ]);
+    await registerUnderChain(run, chain, agent, "implementer");
   }
   return { repo, run };
 }

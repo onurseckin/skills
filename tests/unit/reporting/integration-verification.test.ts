@@ -5,6 +5,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import {
+  establishSupervisorChain,
+  registerUnderChain,
+} from "../../support/agent-supervisor-chain.ts";
 import { transact, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
 import { isolateValidatorContext } from "../../../olt/scripts/src/packets/validator-context.ts";
@@ -119,29 +123,9 @@ describe("P52 & P53 End-to-End Integration Verification", () => {
     ]);
 
     // 2. Register Agents across tiers
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "impl-eng-1",
-      "--role",
-      "implementer",
-      "--host",
-      "antigravity",
-    ]);
-
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "val-eng-1",
-      "--role",
-      "validator",
-      "--host",
-      "antigravity",
-    ]);
+    const chain = await establishSupervisorChain(run);
+    await registerUnderChain(run, chain, "impl-eng-1", "implementer");
+    await registerUnderChain(run, chain, "val-eng-1", "validator");
 
     // 3. Claim task-engine
     const claimRes = (await execute([

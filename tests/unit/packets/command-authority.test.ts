@@ -260,7 +260,205 @@ describe("assertGrantedCommand", () => {
       role: "orchestrator",
       agent: "orch-1",
     };
-    expect(() => assertGrantedCommand(spec("agent:register"), unparentedTier1)).not.toThrow();
+    expect(() => assertGrantedCommand(spec("agent:register"), unparentedTier1)).toThrow(
+      "may only dispatch Tier 3 workers",
+    );
+  });
+
+  test("CRITICAL 1: --parent-agent given but no acting identity resolves no longer bypasses the hierarchy check", async () => {
+    const { run } = await emptyGrantRun("command-authority-critical1-repro-");
+    const bootstrapOrchestrator: Flags = {
+      run,
+      agent: "orchestrator-1",
+      role: "orchestrator",
+      host: "claude-code",
+    };
+    expect(() => assertGrantedCommand(spec("agent:register"), bootstrapOrchestrator)).not.toThrow();
+    transact(run, "test-setup", "grant-agent", {}, (draft) => {
+      draft.agents = [
+        {
+          id: "orchestrator-1",
+          role: "orchestrator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: new Date().toISOString(),
+          status: "active",
+        },
+      ];
+    });
+
+    const noActorGiven: Flags = {
+      run,
+      agent: "impl-skip-tier",
+      role: "implementer",
+      host: "claude-code",
+      "parent-agent": "orchestrator-1",
+    };
+    expect(() => assertGrantedCommand(spec("agent:register"), noActorGiven)).toThrow(
+      "may only dispatch Tier 2 Coordinators",
+    );
+  });
+
+  test("HIGH 4: an unresolvable or inactive --parent-agent is an error, never a silent skip", async () => {
+    const { run } = await emptyGrantRun("command-authority-high4-");
+    transact(run, "test-setup", "grant-agent", {}, (draft) => {
+      draft.agents = [
+        {
+          id: "released-coord",
+          role: "coordinator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: new Date().toISOString(),
+          status: "released",
+        },
+      ];
+    });
+
+    const nonexistentParent: Flags = {
+      run,
+      agent: "impl-1",
+      role: "implementer",
+      host: "claude-code",
+      "parent-agent": "ghost-parent-not-in-ledger",
+    };
+    expect(() => assertGrantedCommand(spec("agent:register"), nonexistentParent)).toThrow(
+      "does not resolve to any grant",
+    );
+
+    const inactiveParent: Flags = {
+      run,
+      agent: "impl-2",
+      role: "implementer",
+      host: "claude-code",
+      "parent-agent": "released-coord",
+    };
+    expect(() => assertGrantedCommand(spec("agent:register"), inactiveParent)).toThrow(
+      "holds a released grant, not an active one",
+    );
+  });
+
+  test("CRITICAL 2/HIGH 3: registering an unparented Tier 0/1 agent requires a resolvable, granted acting identity once genesis has passed", async () => {
+    const { run } = await emptyGrantRun("command-authority-critical2-");
+    expect(() =>
+      assertGrantedCommand(spec("agent:register"), {
+        run,
+        agent: "mind-1",
+        role: "mind",
+        host: "claude-code",
+      }),
+    ).not.toThrow();
+    transact(run, "test-setup", "grant-agent", {}, (draft) => {
+      draft.agents = [
+        {
+          id: "mind-1",
+          role: "mind",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: new Date().toISOString(),
+          status: "active",
+        },
+      ];
+    });
+
+    expect(() =>
+      assertGrantedCommand(spec("agent:register"), {
+        run,
+        agent: "orchestrator-2",
+        role: "orchestrator",
+        host: "claude-code",
+      }),
+    ).toThrow("no resolvable acting identity");
+
+    expect(() =>
+      assertGrantedCommand(spec("agent:register"), {
+        run,
+        actor: "nobody-registered",
+        agent: "orchestrator-3",
+        role: "orchestrator",
+        host: "claude-code",
+      }),
+    ).toThrow("holds no active grant in this run");
+
+    transact(run, "test-setup", "grant-agent", {}, (draft) => {
+      const agents = Array.isArray(draft.agents) ? draft.agents : [];
+      draft.agents = [
+        ...agents,
+        {
+          id: "impl-escalator",
+          role: "implementer",
+          parent_agent_id: "mind-1",
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: new Date().toISOString(),
+          status: "active",
+        },
+      ];
+    });
+    expect(() =>
+      assertGrantedCommand(spec("agent:register"), {
+        run,
+        actor: "impl-escalator",
+        agent: "self-minted-mind",
+        role: "mind",
+        host: "claude-code",
+      }),
+    ).toThrow(HarnessError);
+
+    expect(() =>
+      assertGrantedCommand(spec("agent:register"), {
+        run,
+        actor: "mind-1",
+        agent: "orchestrator-legit",
+        role: "orchestrator",
+        host: "claude-code",
+      }),
+    ).not.toThrow();
+  });
+
+  test("HIGH 5: branch-worker roles are exempt from the tier ladder, but only for Tier 3 parents", () => {
+    expect(() => assertHierarchicalSpawning("implementer", "sub-implementer")).toThrow(
+      HarnessError,
+    );
+  });
+
+  test("HIGH 5: a coordinator's declared spawns allowlist narrows what agent:register permits, even for a tier-legal role", async () => {
+    const { run } = await emptyGrantRun("command-authority-high5-narrowing-");
+    transact(run, "test-setup", "grant-agent", {}, (draft) => {
+      draft.agents = [
+        {
+          id: "coord-narrow",
+          role: "coordinator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: new Date().toISOString(),
+          status: "active",
+        },
+      ];
+    });
+
+    const undeclaredButTierLegal: Flags = {
+      run,
+      agent: "repairer-1",
+      role: "repairer",
+      host: "claude-code",
+      "parent-agent": "coord-narrow",
+    };
+    expect(() => assertGrantedCommand(spec("agent:register"), undeclaredButTierLegal)).toThrow(
+      "Declared spawn allowlist violation",
+    );
+
+    const declaredAndTierLegal: Flags = {
+      run,
+      agent: "impl-declared",
+      role: "implementer",
+      host: "claude-code",
+      "parent-agent": "coord-narrow",
+    };
+    expect(() => assertGrantedCommand(spec("agent:register"), declaredAndTierLegal)).not.toThrow();
   });
 
   test("excludes a command's own subject flag from the candidates it reads the acting agent from", async () => {

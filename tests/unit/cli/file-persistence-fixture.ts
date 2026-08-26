@@ -3,6 +3,10 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import {
+  establishSupervisorChain,
+  registerUnderChain,
+} from "../../support/agent-supervisor-chain.ts";
 
 export async function setupCompiledRun(
   name: string,
@@ -72,19 +76,16 @@ export async function claimSubmitValidateAndReject(options: {
   remediation?: string;
   findingId?: string;
 }): Promise<Record<string, unknown>> {
-  await execute([
-    "agent:register",
-    "--run",
+  const chain = await establishSupervisorChain(options.run);
+  await registerUnderChain(
     options.run,
-    "--agent",
+    chain,
     options.agent,
-    "--role",
     options.role ?? "implementer",
-    "--host",
     "antigravity",
-    "--parent-task",
+    undefined,
     options.taskId,
-  ]);
+  );
   const claim = await execute([
     "task:claim",
     "--run",
@@ -136,19 +137,15 @@ export async function claimSubmitValidateAndReject(options: {
     "--summary",
     "Implemented the task under test",
   ]);
-  await execute([
-    "agent:register",
-    "--run",
+  await registerUnderChain(
     options.run,
-    "--agent",
+    chain,
     options.validator,
-    "--role",
     "validator",
-    "--host",
     "antigravity",
-    "--parent-task",
+    undefined,
     options.taskId,
-  ]);
+  );
   const val = await execute([
     "task:validate-start",
     "--run",

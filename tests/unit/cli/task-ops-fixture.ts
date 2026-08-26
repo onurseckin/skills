@@ -2,6 +2,10 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import {
+  establishSupervisorChain,
+  registerUnderChain,
+} from "../../support/agent-supervisor-chain.ts";
 
 /** Two tasks, one depending on the other, compiled and ready to be claimed. */
 export async function setupCompiledRun(
@@ -123,18 +127,10 @@ function standardRoster(coordinatorRole: string): readonly { agent: string; role
 }
 
 async function registerStandardRoster(run: string, coordinatorRole: string): Promise<void> {
+  const chain = await establishSupervisorChain(run);
   for (const { agent, role } of standardRoster(coordinatorRole)) {
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      agent,
-      "--role",
-      role,
-      "--host",
-      "antigravity",
-    ]);
+    const parentAgent = role === "sub-implementer" ? "worker-1" : undefined;
+    await registerUnderChain(run, chain, agent, role, "antigravity", parentAgent);
   }
 }
 

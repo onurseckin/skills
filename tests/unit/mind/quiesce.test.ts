@@ -391,12 +391,12 @@ describe("Quiesce Module: Specifications & Pure Functions", () => {
 describe("CLI Command: mindQuiesceCommand (PLAN.md §7.5 / PHASE-3.md §3.5)", () => {
   test("enforces role 'mind' on acting agent", async () => {
     const fixture = setupMindFixture("role-check");
-    // Register another agent with role 'implementer'
     agentRegisterCommand({
       run: fixture.mindRun,
       agent: "impl-1",
-      role: "implementer",
+      role: "orchestrator",
       host: "antigravity",
+      "parent-agent": "mind-1",
     });
 
     const sources = buildValid10SourceFlags(fixture.commandIds);

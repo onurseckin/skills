@@ -11,6 +11,10 @@ import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/g
 import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/gate-path-bindings.ts";
 import { canonicalCommandFingerprint } from "../../../olt/scripts/src/engine/runner/command-id.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import {
+  establishSupervisorChain,
+  registerUnderChain,
+} from "../../support/agent-supervisor-chain.ts";
 
 /**
  * critic:start's readiness gate (completionReadinessIssues) demands a task done with validator
@@ -216,30 +220,16 @@ export async function setupReadyRun(name: string, roots: string[]): Promise<Read
     "--completion-gate",
     "bun test tests",
   ]);
-  await execute([
-    "agent:register",
-    "--run",
+  const chain = await establishSupervisorChain(run);
+  await registerUnderChain(
     run,
-    "--agent",
+    chain,
     "coordinator",
-    "--role",
     PLANNER_COORDINATOR_FIXTURE_NAMES.has(name) ? "planner" : "coordinator",
-    "--host",
-    "antigravity",
-  ]);
+  );
   const criticId = CRITIC_ID_BY_FIXTURE_NAME[name];
   if (criticId !== undefined) {
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      criticId,
-      "--role",
-      "completeness-critic",
-      "--host",
-      "antigravity",
-    ]);
+    await registerUnderChain(run, chain, criticId, "completeness-critic");
   }
 
   // Computed once, after every fixture file is in place and before any CLI call that would read

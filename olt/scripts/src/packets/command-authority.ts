@@ -7,7 +7,7 @@ import { loadRun } from "../engine/store/index.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
 import type { Flags } from "../cli/options.ts";
 import type { CommandSpec } from "../cli/registry/types.ts";
-import { loadRoleContract, resolveRoleContractPath } from "./role-contract.ts";
+import { loadRoleContract, resolveRoleContractPath, type RoleContract } from "./role-contract.ts";
 import {
   declaresRunIdentityFlag,
   isGrantBootstrapExempt,
@@ -182,6 +182,49 @@ export function assertHierarchicalSpawning(
   }
 }
 
+export const BRANCH_WORKER_ROLES: ReadonlySet<string> = new Set([
+  "sub-implementer",
+  "sub-investigator",
+  "sub-validator",
+]);
+
+export function isBranchWorkerSpawn(parentRole: string, childRole: string): boolean {
+  return roleToTier(parentRole) === 3 && BRANCH_WORKER_ROLES.has(childRole);
+}
+
+function assertDeclaredSpawnAllowed(
+  parentRole: AgentRole,
+  childRole: string,
+  parentAgentId?: string,
+  childAgentId?: string,
+): void {
+  if (roleToTier(parentRole) === 3) return;
+  let contract: RoleContract | undefined;
+  try {
+    contract = loadRoleContract(parentRole);
+  } catch {
+    return;
+  }
+  if (contract.spawns.some((declared) => declared === childRole)) return;
+  const parentDisplay = parentAgentId ? `'${parentAgentId}' (${parentRole})` : `'${parentRole}'`;
+  const childDisplay = childAgentId ? `'${childAgentId}' (${childRole})` : `'${childRole}'`;
+  throw new HarnessError(
+    "ROLE_CONFINEMENT_VIOLATION",
+    `Declared spawn allowlist violation: supervisor ${parentDisplay} may not dispatch subagent ${childDisplay}; the role contract at ${resolveRoleContractPath(parentRole)} restricts spawns to [${contract.spawns.join(", ")}], and '${childRole}' is not declared among them.`,
+  );
+}
+
+export function assertSpawnAuthorized(
+  parentRole: AgentRole,
+  childRole: string,
+  parentAgentId?: string,
+  childAgentId?: string,
+): void {
+  if (isBranchWorkerSpawn(parentRole, childRole)) return;
+  assertHierarchicalSpawning(parentRole, childRole, parentAgentId, childAgentId);
+  assertDeclaredSpawnAllowed(parentRole, childRole, parentAgentId, childAgentId);
+}
+
 export function assertCognitiveValidatorHardlock(
   role: string,
   invocationOrTool: string,
@@ -309,6 +352,69 @@ export function assertRoleMayInvoke(role: AgentRole, spec: CommandSpec, agentId:
   );
 }
 
+function assertAgentRegisterHierarchy(
+  flags: Flags,
+  runRoot: string,
+  agentId: string | undefined,
+): void {
+  const childRole = identity(flags, "role");
+  if (childRole === undefined) return;
+  const parentAgentId = identity(flags, "parent-agent");
+  const childAgentId = identity(flags, "agent");
+  const state = capsuleState(runRoot);
+  const ledger = state === undefined ? [] : readAgentLedger(state);
+
+  if (parentAgentId !== undefined) {
+    const parentGrant = ledger.find((entry) => entry.id === parentAgentId);
+    if (!parentGrant) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `--parent-agent ${parentAgentId} does not resolve to any grant in this run; an unresolvable parent cannot supervise agent:register`,
+      );
+    }
+    if (parentGrant.status !== "active") {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `parent agent ${parentAgentId} holds a ${parentGrant.status} grant, not an active one, and cannot supervise agent:register`,
+      );
+    }
+    if (agentId !== undefined && agentId !== parentAgentId) {
+      throw new HarnessError(
+        "AUTHENTICATION_FAILURE",
+        `acting identity '${agentId}' does not match --parent-agent '${parentAgentId}'; agent:register may only be invoked by the parent agent itself, on its own behalf, not by naming an unrelated agent's grant as the parent to borrow its spawn authority`,
+      );
+    }
+    assertSpawnAuthorized(parentGrant.role, childRole, parentAgentId, childAgentId);
+    return;
+  }
+
+  const genesis = ledger.length === 0;
+  if (genesis) return;
+
+  const childTier = roleToTier(childRole);
+  if (childTier > 1) {
+    throw new HarnessError(
+      "ROLE_CONFINEMENT_VIOLATION",
+      `Hierarchical supervision violation: Role '${childRole}' (Tier ${childTier}) cannot be dispatched without a supervising parent agent. Tier 2 Coordinators must be spawned by Tier 1 Orchestrators, and Tier 3 workers must be spawned by Tier 2 Coordinators.`,
+    );
+  }
+
+  if (agentId === undefined) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `agent:register carries no resolvable acting identity (--actor/--validator/--critic) and the run's agent ledger already holds an active grant; registering an unparented Tier ${childTier} agent as root is only legitimate on an empty ledger`,
+    );
+  }
+  const actingGrant = ledger.find((entry) => entry.id === agentId && entry.status === "active");
+  if (!actingGrant) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `acting agent ${agentId} holds no active grant in this run, and the agent ledger already holds other active grants; it cannot register an unparented (root) agent`,
+    );
+  }
+  assertSpawnAuthorized(actingGrant.role, childRole, agentId, childAgentId);
+}
+
 export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
   if (!requiresActingIdentity(spec)) return;
 
@@ -322,6 +428,11 @@ export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
     );
   }
   const agentId = actingAgent(spec, flags);
+
+  if (spec.name === "agent:register") {
+    assertAgentRegisterHierarchy(flags, runRoot, agentId);
+  }
+
   if (agentId === undefined) {
     if (isBootstrapExempt(spec)) return;
     throw new HarnessError(
@@ -384,24 +495,14 @@ export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
   if (spec.name === "agent:register") {
     const childRole = identity(flags, "role");
     const parentAgentId = identity(flags, "parent-agent");
-    const childAgentId = identity(flags, "agent");
 
-    if (childRole) {
-      if (parentAgentId) {
-        const parentGrant = ledger.find(
-          (entry) => entry.id === parentAgentId && entry.status === "active",
+    if (childRole !== undefined && parentAgentId === undefined) {
+      const childTier = roleToTier(childRole);
+      if (childTier > 1) {
+        throw new HarnessError(
+          "ROLE_CONFINEMENT_VIOLATION",
+          `Hierarchical supervision violation: Role '${childRole}' (Tier ${childTier}) cannot be dispatched without a supervising parent agent. Tier 2 Coordinators must be spawned by Tier 1 Orchestrators, and Tier 3 workers must be spawned by Tier 2 Coordinators.`,
         );
-        if (parentGrant) {
-          assertHierarchicalSpawning(parentGrant.role, childRole, parentAgentId, childAgentId);
-        }
-      } else {
-        const childTier = roleToTier(childRole);
-        if (childTier > 1) {
-          throw new HarnessError(
-            "ROLE_CONFINEMENT_VIOLATION",
-            `Hierarchical supervision violation: Role '${childRole}' (Tier ${childTier}) cannot be dispatched without a supervising parent agent. Tier 2 Coordinators must be spawned by Tier 1 Orchestrators, and Tier 3 workers must be spawned by Tier 2 Coordinators.`,
-          );
-        }
       }
     }
   }

@@ -493,8 +493,9 @@ describe("Phase 5 W5.2 - Mind Audit Questionnaire & Verification", () => {
       agentRegisterCommand({
         run: fixture.run,
         agent: "impl-1",
-        role: "implementer",
+        role: "orchestrator",
         host: "antigravity",
+        "parent-agent": "mind-1",
       });
 
       expect(() =>

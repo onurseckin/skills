@@ -9,6 +9,10 @@ import {
 } from "../../../olt/scripts/src/graph/gate-proof.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import {
+  establishSupervisorChain,
+  registerUnderChain,
+} from "../../support/agent-supervisor-chain.ts";
 
 export const TASK_ID = "task-core";
 export const VALIDATOR = "val-1";
@@ -94,18 +98,9 @@ export async function setupRun(
     { agent: "coord-dispatcher", role: "implementer" },
     { agent: VALIDATOR, role: "validator" },
   ];
+  const chain = await establishSupervisorChain(run);
   for (const { agent, role } of roster) {
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      agent,
-      "--role",
-      role,
-      "--host",
-      "antigravity",
-    ]);
+    await registerUnderChain(run, chain, agent, role);
   }
   return { repo, run };
 }

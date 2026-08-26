@@ -564,8 +564,9 @@ describe("mindObserveCommand", () => {
     agentRegisterCommand({
       run: mindRun,
       agent: "worker-1",
-      role: "implementer",
+      role: "orchestrator",
       host: "antigravity",
+      "parent-agent": "mind-1",
     });
 
     try {

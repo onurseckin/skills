@@ -7,6 +7,10 @@ import { taskRejectCommand } from "../../../olt/scripts/src/cli/commands/task-re
 import { linkBlobIntoView, putBlobFile } from "../../../olt/scripts/src/engine/store/blobs.ts";
 import { recordCaptures } from "../../../olt/scripts/src/engine/store/captures.ts";
 import { claimSubmitValidateAndReject, setupCompiledRun } from "./file-persistence-fixture.ts";
+import {
+  establishSupervisorChain,
+  registerUnderChain,
+} from "../../support/agent-supervisor-chain.ts";
 
 const roots: string[] = [];
 
@@ -43,19 +47,16 @@ describe("task:reject", () => {
 
   test("--finding is accepted as an alias for --remediation", async () => {
     const { repo, run } = await setupCompiledRun("reject-remediation-alias", roots);
-    await execute([
-      "agent:register",
-      "--run",
+    const chain = await establishSupervisorChain(run);
+    await registerUnderChain(
       run,
-      "--agent",
+      chain,
       "worker-1",
-      "--role",
       "implementer",
-      "--host",
       "antigravity",
-      "--parent-task",
+      undefined,
       "task-core",
-    ]);
+    );
     const claim = await execute([
       "task:claim",
       "--run",
@@ -97,19 +98,15 @@ describe("task:reject", () => {
       "--summary",
       "did the work",
     ]);
-    await execute([
-      "agent:register",
-      "--run",
+    await registerUnderChain(
       run,
-      "--agent",
+      chain,
       "val-1",
-      "--role",
       "validator",
-      "--host",
       "antigravity",
-      "--parent-task",
+      undefined,
       "task-core",
-    ]);
+    );
     const val = await execute([
       "task:validate-start",
       "--run",
@@ -177,19 +174,16 @@ describe("task:reject", () => {
 
   test("carries screenshots already captured for the task into the rejection report", async () => {
     const { repo, run } = await setupCompiledRun("reject-with-screenshots", roots);
-    await execute([
-      "agent:register",
-      "--run",
+    const chain = await establishSupervisorChain(run);
+    await registerUnderChain(
       run,
-      "--agent",
+      chain,
       "worker-1",
-      "--role",
       "implementer",
-      "--host",
       "antigravity",
-      "--parent-task",
+      undefined,
       "task-core",
-    ]);
+    );
     const claim = await execute([
       "task:claim",
       "--run",
@@ -231,19 +225,15 @@ describe("task:reject", () => {
       "--summary",
       "did the work",
     ]);
-    await execute([
-      "agent:register",
-      "--run",
+    await registerUnderChain(
       run,
-      "--agent",
+      chain,
       "val-1",
-      "--role",
       "validator",
-      "--host",
       "antigravity",
-      "--parent-task",
+      undefined,
       "task-core",
-    ]);
+    );
     const val = await execute([
       "task:validate-start",
       "--run",
@@ -380,6 +370,8 @@ describe("task:assign-repairer", () => {
       "coordinator",
       "--host",
       "antigravity",
+      "--parent-agent",
+      "fixture-orch-root",
       "--parent-task",
       "task-core",
     ]);
@@ -438,6 +430,8 @@ describe("task:assign-repairer", () => {
       "coordinator",
       "--host",
       "antigravity",
+      "--parent-agent",
+      "fixture-orch-root",
       "--parent-task",
       "task-core",
     ]);
@@ -481,6 +475,8 @@ describe("task:assign-repairer", () => {
       "coordinator",
       "--host",
       "antigravity",
+      "--parent-agent",
+      "fixture-orch-root",
       "--parent-task",
       "task-core",
     ]);
@@ -505,19 +501,16 @@ describe("task:assign-repairer", () => {
 
   test("task:reject records micro-cycle critique when --micro-cycle or --in-lease is specified", async () => {
     const { repo, run } = await setupCompiledRun("reject-micro-cycle", roots);
-    await execute([
-      "agent:register",
-      "--run",
+    const chain = await establishSupervisorChain(run);
+    await registerUnderChain(
       run,
-      "--agent",
+      chain,
       "worker-1",
-      "--role",
       "implementer",
-      "--host",
       "antigravity",
-      "--parent-task",
+      undefined,
       "task-core",
-    ]);
+    );
     const claim = await execute([
       "task:claim",
       "--run",
@@ -530,19 +523,15 @@ describe("task:assign-repairer", () => {
       "implementer",
     ]);
 
-    await execute([
-      "agent:register",
-      "--run",
+    await registerUnderChain(
       run,
-      "--agent",
+      chain,
       "val-1",
-      "--role",
       "validator",
-      "--host",
       "antigravity",
-      "--parent-task",
+      undefined,
       "task-core",
-    ]);
+    );
     const result = await execute([
       "task:reject",
       "--run",
@@ -569,19 +558,16 @@ describe("task:assign-repairer", () => {
   test("task:reject --micro-cycle on a lease-less (submitted) task mints and returns a working repair token instead of wedging the task", async () => {
     const { repo, run } = await setupCompiledRun("reject-micro-cycle-repair-wedge", roots);
 
-    await execute([
-      "agent:register",
-      "--run",
+    const chain = await establishSupervisorChain(run);
+    await registerUnderChain(
       run,
-      "--agent",
+      chain,
       "worker-1",
-      "--role",
       "implementer",
-      "--host",
       "antigravity",
-      "--parent-task",
+      undefined,
       "task-core",
-    ]);
+    );
     const claim = await execute([
       "task:claim",
       "--run",
@@ -629,19 +615,15 @@ describe("task:assign-repairer", () => {
     expect(submittedTask.status).toBe("submitted");
     expect(submittedTask.lease).toBeUndefined();
 
-    await execute([
-      "agent:register",
-      "--run",
+    await registerUnderChain(
       run,
-      "--agent",
+      chain,
       "val-1",
-      "--role",
       "validator",
-      "--host",
       "antigravity",
-      "--parent-task",
+      undefined,
       "task-core",
-    ]);
+    );
     const rejected = await execute([
       "task:reject",
       "--run",

@@ -119,6 +119,53 @@ describe("agent:register", () => {
     ).rejects.toThrow("--model-tier must be one of");
   });
 
+  test("CRITICAL 1/HIGH 4 end to end: agent:register with an explicit --parent-agent that violates the hierarchy is refused even with no --actor", async () => {
+    const { run } = await setupCompiledRun("agent-register-e2e-hierarchy", roots);
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "orchestrator-1",
+      "--role",
+      "orchestrator",
+      "--host",
+      "claude-code",
+    ]);
+
+    await expect(
+      execute([
+        "agent:register",
+        "--run",
+        run,
+        "--agent",
+        "impl-skip-tier",
+        "--role",
+        "implementer",
+        "--host",
+        "claude-code",
+        "--parent-agent",
+        "orchestrator-1",
+      ]),
+    ).rejects.toThrow("may only dispatch Tier 2 Coordinators");
+
+    await expect(
+      execute([
+        "agent:register",
+        "--run",
+        run,
+        "--agent",
+        "impl-ghost-parent",
+        "--role",
+        "implementer",
+        "--host",
+        "claude-code",
+        "--parent-agent",
+        "no-such-agent",
+      ]),
+    ).rejects.toThrow("does not resolve to any grant");
+  });
+
   test("rejects an unrecognized --thinking-level", async () => {
     const { run } = await setupCompiledRun("agent-register-bad-thinking", roots);
     await expect(

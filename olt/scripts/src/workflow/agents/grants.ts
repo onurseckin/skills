@@ -11,6 +11,11 @@ import type { JsonObject } from "../../core/contracts/json.ts";
 import type { AgentRole } from "../../core/contracts/packets.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 import { transact } from "../../engine/store/index.ts";
+import {
+  assertHierarchicalSpawning,
+  isBranchWorkerSpawn,
+  roleToTier,
+} from "../../packets/command-authority.ts";
 import { requireText } from "../task-state.ts";
 import {
   assertAgentBudget,
@@ -192,7 +197,28 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
           `agent ${input.agentId} already holds a grant in this run`,
         );
       }
-      if (input.parentAgentId !== null) requireGrant(ledger, input.parentAgentId);
+      if (input.parentAgentId !== null) {
+        const parentGrant = requireGrant(ledger, input.parentAgentId);
+        if (parentGrant.status !== "active") {
+          throw new HarnessError(
+            "INVALID_STATE",
+            `parent agent ${input.parentAgentId} holds a ${parentGrant.status} grant, not an active one, and cannot supervise a new spawn`,
+          );
+        }
+        if (!isBranchWorkerSpawn(parentGrant.role, input.role)) {
+          assertHierarchicalSpawning(
+            parentGrant.role,
+            input.role,
+            input.parentAgentId,
+            input.agentId,
+          );
+        }
+      } else if (roleToTier(input.role) > 1 && ledger.length > 0) {
+        throw new HarnessError(
+          "ROLE_CONFINEMENT_VIOLATION",
+          `Role '${input.role}' (Tier ${roleToTier(input.role)}) cannot be registered without a supervising parent agent (--parent-agent). Tier 2 Coordinators must be spawned by Tier 1 Orchestrators, and Tier 3 workers must be spawned by Tier 2 Coordinators.`,
+        );
+      }
       requireKnownTask(draft, input.parentTaskId);
       assertAgentBudget(ledger, 1, input.maxAgents);
       const grant: AgentGrantRecord = {
