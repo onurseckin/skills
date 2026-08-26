@@ -754,8 +754,7 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
       const norm = normalizeViewportName(vp.viewport, vp.width);
       const hasMeasuredWidth =
         typeof vp.width === "number" && Number.isFinite(vp.width) && vp.width > 0;
-      const isUnverifiedCustomFallback = !PROTECTED_VIEWPORT_BANDS.has(norm);
-      if (!isUnverifiedCustomFallback || hasMeasuredWidth) {
+      if (hasMeasuredWidth) {
         coveredVps.add(norm);
       }
       if (hasMeasuredWidth) {

@@ -107,6 +107,27 @@ describe("Dual-Channel Visual Analyzer", () => {
       expect(result.passed).toBe(false);
       expect(result.findings.some((f) => f.category === "missing_viewport")).toBe(true);
     });
+
+    test("rejects a DOM report entry that claims a standard band viewport by name alone with no measured width", () => {
+      const domReport: VisualMetricsReport = {
+        renderCacheReset: true,
+        viewports: [
+          { viewport: "mobile" },
+          { viewport: "tablet", width: 768, height: 1024 },
+          { viewport: "desktop", width: 1280, height: 800 },
+        ],
+      };
+
+      const result = analyzeDualChannel({
+        taskFiles: ["src/components/Modal.tsx"],
+        domReport,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(
+        result.findings.some((f) => f.category === "missing_viewport" && f.viewport === "mobile"),
+      ).toBe(true);
+    });
   });
 
   describe("Subpixel Overflow Boundary Tolerances", () => {
