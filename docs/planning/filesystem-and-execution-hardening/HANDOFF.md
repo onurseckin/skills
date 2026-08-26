@@ -107,7 +107,7 @@ error swallowed by the old `safeRemove`'s empty `catch {}`.
 ### 3. Arbitrary command execution
 
 A guarded `rmSync` is worth little if the harness will run any shell string an agent writes into a
-config file. Three separate `sh -c` paths existed:
+config file. Four separate shell-execution paths existed:
 
 - **Hook dispatcher** (`olt/scripts/src/hooks/dispatcher.ts`) — now requires `commandArgv` as an argv
   array, spawned with `shell: false`, against `ALLOWED_SHELL_EXECUTABLES` resolved to trusted absolute
@@ -120,6 +120,19 @@ config file. Three separate `sh -c` paths existed:
 - **Completion audio** (`olt/scripts/src/orchestrator/completion-audio.ts`) — an independent
   `spawnSync("sh", ["-c", command])` that no lane owned, because no lane owned `orchestrator/`. Now
   argv-only against an allowlist of audio players, with an injectable player for tests.
+- **DAG snapshot telemetry** (`olt/scripts/src/telemetry/dag-snapshot.ts`) — `execSync`, which _always_
+  spawns through `/bin/sh`. The argument was a hardcoded literal with no interpolation, so nothing was
+  injectable, but it was still a shell and it would have become a real hazard the moment a variable was
+  interpolated into it. Now `spawnSync("git", ["status", "--porcelain"], { shell: false })`.
+
+The main command runner used by `run:exec` and `shell` was never a shell path: it goes through
+`Bun.spawn({ cmd: argv })`, argv-only.
+
+**There are now zero shell-execution paths in harness source**, enforced by
+`tests/unit/architecture/shell-execution-guard.test.ts`, which scans `olt/scripts/src` and `scripts` for
+`execSync`, `shell: true`, `/bin/sh`, `sh -c`, and `Bun.$`. It carries its own falsification test proving
+the scan detects a real shell invocation and does not flag argv spawning, `can_execute_shell` permission
+flags, or comments.
 
 ### 4. Authority
 
@@ -180,6 +193,7 @@ any package-runner script all can. An allowlist entry that shells out is a denyl
 bun run test                    # full suite; 9144 pass / 1 skip / 0 fail at close
 bun run typecheck
 bun scripts/testing/test-runner.ts tests/unit/architecture/destructive-fs-guard.test.ts
+bun scripts/testing/test-runner.ts tests/unit/architecture/shell-execution-guard.test.ts
 bun scripts/testing/test-runner.ts tests/unit/core/safe-fs.test.ts
 bun scripts/testing/test-runner.ts tests/unit/hooks tests/unit/graph tests/unit/packets
 ```

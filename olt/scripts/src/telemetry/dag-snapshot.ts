@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { resolveQuotaDagSnapshotPath } from "../core/shared/paths.ts";
 import { emitTelemetryEvent } from "../reporting/telemetry-stream.ts";
@@ -149,11 +149,16 @@ export async function captureDagSnapshot(
 
   let uncommittedFiles: string[] = [];
   try {
-    const gitOutput = execSync("git status --porcelain", {
+    const gitResult = spawnSync("git", ["status", "--porcelain"], {
       encoding: "utf-8",
       stdio: ["ignore", "pipe", "ignore"],
       cwd: runRoot || process.cwd(),
+      shell: false,
     });
+    if (gitResult.status !== 0) {
+      throw new Error(`git status --porcelain exited with ${gitResult.status}`);
+    }
+    const gitOutput = gitResult.stdout ?? "";
     uncommittedFiles = gitOutput
       .split("\n")
       .filter((line) => line.trim().length > 0)
