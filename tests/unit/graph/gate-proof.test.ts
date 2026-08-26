@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -344,33 +345,48 @@ describe("nodeSpawnGate", () => {
     expect(result.status).toBeNull();
   });
 
-  test("a compound gate command quotes non-operator tokens so a spaced argument is not word-split", () => {
-    const cwd = scratchRoot(import.meta.path, "compound-quoting");
-    const result = nodeSpawnGate(["mkdir", "-p", "a directory", "&&", "true"], cwd, 5_000);
-    expect(result.status).toBe(0);
-    expect(existsSync(join(cwd, "a directory"))).toBe(true);
-    expect(existsSync(join(cwd, "a"))).toBe(false);
+  test("rejects a gate argv containing && before spawning anything", () => {
+    const cwd = scratchRoot(import.meta.path, "compound-rejected-and");
+    expect(() => nodeSpawnGate(["true", "&&", "false"], cwd, 5_000)).toThrow(HarnessError);
+    expect(() => nodeSpawnGate(["true", "&&", "false"], cwd, 5_000)).toThrow(
+      'gate argv contains "&&"',
+    );
   });
 
-  test("a compound gate command quotes tokens so embedded shell metacharacters are not interpreted", () => {
-    const cwd = scratchRoot(import.meta.path, "compound-metachar-safety");
-    const result = nodeSpawnGate(["echo", "safe$(echo INJECTED)", "&&", "true"], cwd, 5_000);
+  test("rejects a gate argv containing || before spawning anything", () => {
+    const cwd = scratchRoot(import.meta.path, "compound-rejected-or");
+    expect(() => nodeSpawnGate(["true", "||", "false"], cwd, 5_000)).toThrow(
+      'gate argv contains "||"',
+    );
+  });
+
+  test("rejects a gate argv containing ; before spawning anything", () => {
+    const cwd = scratchRoot(import.meta.path, "compound-rejected-semicolon");
+    expect(() => nodeSpawnGate(["true", ";", "false"], cwd, 5_000)).toThrow(
+      'gate argv contains ";"',
+    );
+  });
+
+  test("rejecting a compound argv never lets its trailing tokens execute, closing the cwd-escape a shelled-out absolute path had", () => {
+    const cwd = scratchRoot(import.meta.path, "compound-rejected-no-side-effect");
+    const outsideDir = scratchRoot(import.meta.path, "compound-rejected-no-side-effect-outside");
+    const outsideMarker = join(outsideDir, "escaped.txt");
+    const script = `require("node:fs").writeFileSync(${JSON.stringify(outsideMarker)}, "x")`;
+    expect(() => nodeSpawnGate(["true", "&&", "node", "-e", script], cwd, 5_000)).toThrow(
+      HarnessError,
+    );
+    expect(existsSync(outsideMarker)).toBe(false);
+  });
+
+  test("a token containing shell metacharacters is passed through literally, since no shell is ever invoked", () => {
+    const cwd = scratchRoot(import.meta.path, "no-shell-metachar-passthrough");
+    const result = nodeSpawnGate(
+      ["node", "-e", "console.log(process.argv[1])", "safe$(echo INJECTED)"],
+      cwd,
+      5_000,
+    );
     expect(result.status).toBe(0);
     expect(result.stdout.trim()).toBe("safe$(echo INJECTED)");
-  });
-
-  test("a compound gate command still treats && as a real operator between quoted commands", () => {
-    const cwd = scratchRoot(import.meta.path, "compound-operator-preserved");
-    const result = nodeSpawnGate(["true", "&&", "echo", "second stage"], cwd, 5_000);
-    expect(result.status).toBe(0);
-    expect(result.stdout.trim()).toBe("second stage");
-  });
-
-  test("a compound gate command escapes a literal single quote inside a token", () => {
-    const cwd = scratchRoot(import.meta.path, "compound-single-quote-escaping");
-    const result = nodeSpawnGate(["echo", "it's a test", "&&", "true"], cwd, 5_000);
-    expect(result.status).toBe(0);
-    expect(result.stdout.trim()).toBe("it's a test");
   });
 });
 
@@ -444,6 +460,49 @@ describe("proveGateFalsifiable revert scope and copy edge cases", () => {
       { git, spawn: noopSpawn },
     );
     expect(result.exitCode).toBe(0);
+  });
+
+  test("node_modules is a real copy in the scratch tree, not a symlink back into the repo", () => {
+    const repo = repoWithoutRealGit("node-modules-real-copy");
+    mkdirSync(join(repo, "node_modules/dep"), { recursive: true });
+    writeFileSync(join(repo, "node_modules/dep/index.js"), "module.exports = 1;\n");
+    writeFileSync(join(repo, "tracked.ts"), "export const x = 1;\n");
+    const git = fakeGit({
+      "ls-files": { status: 0, bytes: Buffer.from("tracked.ts\0") },
+      "ls-tree": { status: 0, bytes: Buffer.from("100644 blob abc123\ttracked.ts\n") },
+      show: { status: 0, bytes: Buffer.from("export const x = 0;\n") },
+    });
+    let scratchNodeModulesIsSymlink: boolean | undefined;
+    const spawn: GateSpawn = (_argv, cwd) => {
+      scratchNodeModulesIsSymlink = lstatSync(join(cwd, "node_modules")).isSymbolicLink();
+      return { status: 0, stdout: "", stderr: "", timedOut: false };
+    };
+    proveGateFalsifiable(
+      { repoRoot: repo, writeScope: ["tracked.ts"], gateArgv: ["true"] },
+      { git, spawn },
+    );
+    expect(scratchNodeModulesIsSymlink).toBe(false);
+  });
+
+  test("a gate writing into its scratch node_modules never reaches the real repo's node_modules", () => {
+    const repo = repoWithoutRealGit("node-modules-write-isolation");
+    mkdirSync(join(repo, "node_modules/dep"), { recursive: true });
+    writeFileSync(join(repo, "node_modules/dep/index.js"), "original");
+    writeFileSync(join(repo, "tracked.ts"), "export const x = 1;\n");
+    const git = fakeGit({
+      "ls-files": { status: 0, bytes: Buffer.from("tracked.ts\0") },
+      "ls-tree": { status: 0, bytes: Buffer.from("100644 blob abc123\ttracked.ts\n") },
+      show: { status: 0, bytes: Buffer.from("export const x = 0;\n") },
+    });
+    const spawn: GateSpawn = (_argv, cwd) => {
+      writeFileSync(join(cwd, "node_modules/dep/index.js"), "mutated-by-gate");
+      return { status: 0, stdout: "", stderr: "", timedOut: false };
+    };
+    proveGateFalsifiable(
+      { repoRoot: repo, writeScope: ["tracked.ts"], gateArgv: ["true"] },
+      { git, spawn },
+    );
+    expect(readFileSync(join(repo, "node_modules/dep/index.js"), "utf8")).toBe("original");
   });
 });
 

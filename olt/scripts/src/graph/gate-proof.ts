@@ -8,7 +8,6 @@ import {
   mkdtempSync,
   readdirSync,
   realpathSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -100,15 +99,31 @@ function copyIntoScratch(repoRoot: string, scratchRoot: string, files: readonly 
     chmodSync(to, stat.mode & 0o777);
     count += 1;
   }
-  const nm = join(repoRoot, "node_modules");
-  if (existsSync(nm)) {
-    try {
-      symlinkSync(nm, join(scratchRoot, "node_modules"), "dir");
-    } catch {
-      // ignore
-    }
-  }
+  copyNodeModules(repoRoot, scratchRoot);
   return count;
+}
+
+function copyDirRecursive(from: string, to: string): void {
+  mkdirSync(to, { recursive: true });
+  for (const entry of readdirSync(from, { withFileTypes: true })) {
+    const fromPath = join(from, entry.name);
+    const toPath = join(to, entry.name);
+    if (entry.isSymbolicLink()) continue;
+    if (entry.isDirectory()) {
+      copyDirRecursive(fromPath, toPath);
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    const stat = lstatSync(fromPath);
+    copyFileSync(fromPath, toPath);
+    chmodSync(toPath, stat.mode & 0o777);
+  }
+}
+
+function copyNodeModules(repoRoot: string, scratchRoot: string): void {
+  const nm = join(repoRoot, "node_modules");
+  if (!existsSync(nm)) return;
+  copyDirRecursive(nm, join(scratchRoot, "node_modules"));
 }
 
 function refEntriesAt(
@@ -246,16 +261,18 @@ function gateEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
 
 const SHELL_COMPOUND_OPERATORS: ReadonlySet<string> = new Set(["&&", "||", ";"]);
 
-function shellQuoteCompoundToken(token: string): string {
-  if (SHELL_COMPOUND_OPERATORS.has(token)) return token;
-  return `'${token.replace(/'/g, `'\\''`)}'`;
-}
-
 export const nodeSpawnGate: GateSpawn = (argv, cwd, timeoutMs) => {
-  const isCompound = argv.some((token) => SHELL_COMPOUND_OPERATORS.has(token));
-  const execFile = isCompound ? "/bin/sh" : argv[0]!;
-  const execArgs = isCompound ? ["-c", argv.map(shellQuoteCompoundToken).join(" ")] : argv.slice(1);
-  const result = spawnSync(execFile, execArgs, {
+  const compoundToken = argv.find((token) => SHELL_COMPOUND_OPERATORS.has(token));
+  if (compoundToken !== undefined) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `gate argv contains "${compoundToken}", a shell compound operator; gate:prove runs argv ` +
+        "directly with no shell (shell:false), so it cannot honor a compound command. Split it " +
+        "into separate gates, or move it into an explicit script file that is itself part of the " +
+        "task's write scope so gate:prove reverts it along with the rest of the change.",
+    );
+  }
+  const result = spawnSync(argv[0]!, argv.slice(1), {
     cwd,
     env: gateEnvironment(process.env),
     encoding: "utf8",
