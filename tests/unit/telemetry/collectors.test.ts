@@ -115,7 +115,7 @@ describe("AntigravityCollector", () => {
     expect(gptMetric?.windowType).toBe("5_hour");
     expect(gptMetric?.remainingPercentage).toBe(100);
 
-    expect(result.rawObservations.email).toBe("[REDACTED]");
+    expect(result.rawObservations.email).toBeUndefined();
     expect(JSON.stringify(result)).not.toContain("developer@example.com");
     expect(result.rawObservations.plan).toBe("Pro");
     expect(result.rawObservations.activePort).toBe("56963");
@@ -300,7 +300,7 @@ describe("ClaudeCollector", () => {
     expect(result.metrics[2]!.remainingPercentage).toBe(50.0);
     expect(result.metrics[3]!.rawMetricName).toBe("Claude Sonnet (7-Day Limit)");
     expect(result.metrics[3]!.remainingPercentage).toBe(85.0);
-    expect(result.rawObservations.email).toBe("[REDACTED]");
+    expect(result.rawObservations.email).toBeUndefined();
     expect(JSON.stringify(result)).not.toContain("developer@example.com");
   });
 
@@ -368,9 +368,9 @@ describe("ClaudeCollector", () => {
     expect(result.metrics[1]!.confidence).toBe("cached");
     expect(result.metrics[2]!.remainingPercentage).toBe(90.0);
     expect(result.metrics[2]!.confidence).toBe("cached");
-    expect(result.rawObservations.email).toBe("[REDACTED]");
-    expect(result.rawObservations.billingType).toBe("[REDACTED]");
-    expect(result.rawObservations.planTier).toBe("[REDACTED]");
+    expect(result.rawObservations.email).toBeUndefined();
+    expect(result.rawObservations.billingType).toBeUndefined();
+    expect(result.rawObservations.planTier).toBe("claude_max");
     expect(JSON.stringify(result)).not.toContain("developer@example.com");
     expect(JSON.stringify(result)).not.toContain("stripe_subscription");
   });

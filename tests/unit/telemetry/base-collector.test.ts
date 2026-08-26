@@ -28,7 +28,7 @@ class Tier1SuccessCollector extends BaseTieredCollector {
           rawPayload: { cli_raw: true },
         },
       ],
-      rawObservations: { cli_version: "1.0.0" },
+      rawObservations: { version: "1.0.0", internal_debug_blob: "unlisted-should-be-dropped" },
     };
   }
   protected async probeTier2Storage(): Promise<TierResult | null> {
@@ -159,7 +159,7 @@ describe("BaseTieredCollector", () => {
     expect(result.metrics[0]?.rawMetricName).toBe("CLI Quota");
     expect(result.metrics[0]?.remainingPercentage).toBe(88);
     expect(result.metrics[0]?.confidence).toBe("verified_exact");
-    expect(result.rawObservations).toEqual({ cli_version: "1.0.0" });
+    expect(result.rawObservations).toEqual({ version: "1.0.0" });
     expect(result.errors).toEqual([]);
   });
 

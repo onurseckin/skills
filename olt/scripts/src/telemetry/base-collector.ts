@@ -1,6 +1,10 @@
 import type { TelemetryCollector } from "./probe-interface.ts";
 import type { PlatformProbeResult, TierType, NormalizedQuotaMetric } from "./types.ts";
-import { redactRecord } from "./redact.ts";
+import { allowlistRecord, redactRecord } from "./redact.ts";
+
+function projectRawRecord(value: Record<string, unknown>): Record<string, unknown> {
+  return redactRecord(allowlistRecord(value));
+}
 
 export interface TierResult {
   sourceTier: TierType;
@@ -37,14 +41,14 @@ export abstract class BaseTieredCollector implements TelemetryCollector {
     if (result) {
       const redactedMetrics: NormalizedQuotaMetric[] = result.metrics.map((metric) => ({
         ...metric,
-        rawPayload: redactRecord(metric.rawPayload),
+        rawPayload: projectRawRecord(metric.rawPayload),
       }));
       return {
         platformId: this.platformId,
         isDetected: true,
         primaryTierUsed: result.sourceTier,
         metrics: redactedMetrics,
-        rawObservations: redactRecord(result.rawObservations),
+        rawObservations: projectRawRecord(result.rawObservations),
         errors,
         reason: result.reason,
       };

@@ -2,7 +2,6 @@ const SENSITIVE_KEY_EXACT_NAMES = new Set([
   "rawconfig",
   "accountuuid",
   "billingtype",
-  "plantier",
   "oauthaccount",
 ]);
 
@@ -77,4 +76,76 @@ export function deepRedact(value: unknown, depth = 0): unknown {
 
 export function redactRecord(value: Record<string, unknown>): Record<string, unknown> {
   return deepRedact(value) as Record<string, unknown>;
+}
+
+const ALLOWED_RAW_FIELD_NAMES: readonly string[] = [
+  "canonicalprovider",
+  "plan",
+  "plantype",
+  "plantier",
+  "planname",
+  "usertier",
+  "availablecredits",
+  "creditamount",
+  "name",
+  "resettime",
+  "resetsat",
+  "quotainfo",
+  "remainingfraction",
+  "remainingpercentage",
+  "quotaremaining",
+  "usedpercent",
+  "utilization",
+  "fivehour",
+  "sevenday",
+  "sevendayopus",
+  "sevendaysonnet",
+  "windowminutes",
+  "totaltokenusage",
+  "modelcontextwindow",
+  "inputtokens",
+  "cachedinputtokens",
+  "outputtokens",
+  "reasoningoutputtokens",
+  "totaltokens",
+  "version",
+  "detectedvariables",
+  "activeport",
+  "queriedat",
+  "storagepath",
+  "command",
+  "filepath",
+];
+
+const MAX_ALLOWLIST_DEPTH = 16;
+
+export function isAllowedRawField(key: string): boolean {
+  return ALLOWED_RAW_FIELD_NAMES.includes(normalizeKey(key));
+}
+
+export function allowlistProject(value: unknown, depth = 0): unknown {
+  if (depth > MAX_ALLOWLIST_DEPTH) return undefined;
+
+  if (Array.isArray(value)) {
+    return value.map((item) => allowlistProject(item, depth + 1));
+  }
+
+  if (value !== null && typeof value === "object") {
+    const source = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(source)) {
+      if (!isAllowedRawField(key)) continue;
+      const projected = allowlistProject(source[key], depth + 1);
+      if (projected !== undefined) {
+        out[key] = projected;
+      }
+    }
+    return out;
+  }
+
+  return value;
+}
+
+export function allowlistRecord(value: Record<string, unknown>): Record<string, unknown> {
+  return allowlistProject(value) as Record<string, unknown>;
 }
