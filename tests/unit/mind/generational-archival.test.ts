@@ -11,6 +11,7 @@ import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error
 import {
   appendArchivedObjectives,
   archiveCapsule,
+  assertCapsuleCopyComplete,
   consolidateCapsules,
   extractItemGeneration,
   isArchivedItemType,
@@ -1040,6 +1041,49 @@ describe("Generational State Archival (REMED-007)", () => {
         dryRun: true,
       });
       expect(dryRunRes.runId).toBe("capsule-1");
+    });
+
+    test("archiveCapsule refuses a source directory that itself contains a .git entry, unless overridden", () => {
+      const scratch = scratchRoot("archive-capsule-repo-interlock");
+      const capDir = join(scratch, "capsule-with-git");
+      mkdirSync(join(capDir, ".git"), { recursive: true });
+      writeFileSync(join(capDir, "manifest.json"), "{}", "utf-8");
+
+      expect(() => archiveCapsule(capDir)).toThrow(HarnessError);
+      expect(existsSync(capDir)).toBe(true);
+      expect(existsSync(join(scratch, "archive", "capsule-with-git"))).toBe(false);
+
+      const overridden = archiveCapsule(capDir, { allowGitRepositoryDeletion: true });
+      expect(existsSync(capDir)).toBe(false);
+      expect(existsSync(overridden.archivedPath)).toBe(true);
+    });
+
+    test("assertCapsuleCopyComplete refuses a target missing files or carrying mismatched sizes, passes a faithful copy", () => {
+      const scratch = scratchRoot("archive-capsule-copy-verification");
+      const source = join(scratch, "source-capsule");
+      mkdirSync(join(source, "nested"), { recursive: true });
+      writeFileSync(join(source, "manifest.json"), '{"a":1}', "utf-8");
+      writeFileSync(join(source, "nested", "deep.txt"), "hello world", "utf-8");
+
+      const missingFileTarget = join(scratch, "target-missing-file");
+      mkdirSync(missingFileTarget, { recursive: true });
+      writeFileSync(join(missingFileTarget, "manifest.json"), '{"a":1}', "utf-8");
+      expect(() => assertCapsuleCopyComplete(source, missingFileTarget)).toThrow(HarnessError);
+
+      const mismatchedSizeTarget = join(scratch, "target-size-mismatch");
+      mkdirSync(join(mismatchedSizeTarget, "nested"), { recursive: true });
+      writeFileSync(join(mismatchedSizeTarget, "manifest.json"), '{"a":1}', "utf-8");
+      writeFileSync(join(mismatchedSizeTarget, "nested", "deep.txt"), "short", "utf-8");
+      expect(() => assertCapsuleCopyComplete(source, mismatchedSizeTarget)).toThrow(HarnessError);
+
+      const missingTargetDir = join(scratch, "target-does-not-exist");
+      expect(() => assertCapsuleCopyComplete(source, missingTargetDir)).toThrow(HarnessError);
+
+      const completeTarget = join(scratch, "target-complete");
+      mkdirSync(join(completeTarget, "nested"), { recursive: true });
+      writeFileSync(join(completeTarget, "manifest.json"), '{"a":1}', "utf-8");
+      writeFileSync(join(completeTarget, "nested", "deep.txt"), "hello world", "utf-8");
+      expect(() => assertCapsuleCopyComplete(source, completeTarget)).not.toThrow();
     });
 
     test("consolidateCapsules identifies legacy capsules by reading activeRunIds list", () => {

@@ -1,17 +1,16 @@
 import {
-  cpSync,
   existsSync,
   lstatSync,
   mkdirSync,
   readdirSync,
   readFileSync,
-  renameSync,
-  rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { isTestEnvironment, resolveCapsulesDir, resolveScratchDir } from "../core/shared/paths.ts";
+import { safeCpSync, safeRenameSync, safeRmSync } from "../core/shared/safe-fs.ts";
 import type { CandidateRecord } from "./gates.ts";
 import type { ObjectiveRecord } from "./rounds.ts";
 
@@ -68,6 +67,7 @@ export interface ArchiveCapsuleOptions {
   readonly pruneBoilerplate?: boolean | undefined;
   readonly overwrite?: boolean | undefined;
   readonly dryRun?: boolean | undefined;
+  readonly allowGitRepositoryDeletion?: boolean | undefined;
 }
 
 export interface ArchiveCapsuleResult {
@@ -666,7 +666,7 @@ export function pruneCapsuleBoilerplate(
       }
       if (isEffectivelyEmptyDirectory(targetPath)) {
         if (!options.dryRun) {
-          rmSync(targetPath, { recursive: true, force: true });
+          safeRmSync(targetPath, { allowedRoots: [resolved], missingOk: true });
         }
         prunedDirectories.push(subdir);
       } else {
@@ -682,6 +682,52 @@ export function pruneCapsuleBoilerplate(
     prunedDirectories,
     preservedDirectories,
   };
+}
+
+function collectCapsuleFileManifest(root: string): Map<string, number> {
+  const manifest = new Map<string, number>();
+  const walk = (absDir: string, relDir: string): void => {
+    for (const entry of readdirSync(absDir, { withFileTypes: true })) {
+      const relPath = relDir === "" ? entry.name : `${relDir}/${entry.name}`;
+      const absPath = join(absDir, entry.name);
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) {
+        walk(absPath, relPath);
+        continue;
+      }
+      if (entry.isFile()) {
+        manifest.set(relPath, statSync(absPath).size);
+      }
+    }
+  };
+  walk(root, "");
+  return manifest;
+}
+
+export function assertCapsuleCopyComplete(sourceRoot: string, targetRoot: string): void {
+  const sourceManifest = collectCapsuleFileManifest(sourceRoot);
+  if (!existsSync(targetRoot)) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `archiveCapsule: copy target does not exist after cpSync: '${targetRoot}'; refusing to delete source '${sourceRoot}'`,
+    );
+  }
+  const targetManifest = collectCapsuleFileManifest(targetRoot);
+  for (const [relPath, size] of sourceManifest) {
+    const copiedSize = targetManifest.get(relPath);
+    if (copiedSize === undefined) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `archiveCapsule: cross-device copy of '${sourceRoot}' is missing '${relPath}' in '${targetRoot}'; refusing to delete the source until the copy is verified complete`,
+      );
+    }
+    if (copiedSize !== size) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `archiveCapsule: cross-device copy of '${relPath}' has size ${copiedSize}, expected ${size}; refusing to delete source '${sourceRoot}' until the copy is verified complete`,
+      );
+    }
+  }
 }
 
 /**
@@ -713,11 +759,13 @@ export function archiveCapsule(
     ? resolve(options.targetArchiveDir)
     : join(parentDir, "archive");
   const targetPath = join(archiveDir, runId);
+  const allowedRoots = [...new Set([parentDir, archiveDir])];
+  const allowGitRepositoryDeletion = options.allowGitRepositoryDeletion ?? false;
 
   if (existsSync(targetPath)) {
     if (options.overwrite) {
       if (!options.dryRun) {
-        rmSync(targetPath, { recursive: true, force: true });
+        safeRmSync(targetPath, { allowedRoots, allowGitRepositoryDeletion, missingOk: true });
       }
     } else {
       throw new HarnessError(
@@ -734,11 +782,12 @@ export function archiveCapsule(
       mkdirSync(archiveDir, { recursive: true, mode: 0o755 });
     }
     try {
-      renameSync(resolvedSource, targetPath);
-    } catch {
-      // Fallback across file systems / devices
-      cpSync(resolvedSource, targetPath, { recursive: true });
-      rmSync(resolvedSource, { recursive: true, force: true });
+      safeRenameSync(resolvedSource, targetPath, { allowedRoots, allowGitRepositoryDeletion });
+    } catch (error) {
+      if (error instanceof HarnessError) throw error;
+      safeCpSync(resolvedSource, targetPath, { allowedRoots });
+      assertCapsuleCopyComplete(resolvedSource, targetPath);
+      safeRmSync(resolvedSource, { allowedRoots, allowGitRepositoryDeletion, missingOk: true });
     }
 
     if (options.pruneBoilerplate !== false) {
