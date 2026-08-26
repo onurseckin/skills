@@ -3,6 +3,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { taskReviewCommand } from "../../../olt/scripts/src/cli/commands/task-review.ts";
 import { taskValidateStartCommand } from "../../../olt/scripts/src/cli/commands/task-validation-start.ts";
 import { loadChecklist } from "../../../olt/scripts/src/packets/role-contract.ts";
@@ -292,32 +293,38 @@ describe("task:review", () => {
     ).rejects.toThrow(/--checklist-report is not valid JSON/);
   });
 
-  test("with no --evidence/--checks given, the check ids are auto-derived from the validator's own recorded commands", async () => {
-    const { repo, run } = await setupRun("review-auto-derived-evidence", roots);
+  test("with no --evidence/--checks given, a cognitive validator's task:review is refused instead of auto-deriving an empty check set", async () => {
+    const { repo, run } = await setupRun("review-no-evidence-cognitive", roots);
     const validation = await claimSubmitValidate(repo, run);
     const gateCmd = await runGate(repo, run, "gate-core.ts");
     const probed = await recordProbe(run, validation.token as string, "Prove it");
     seedGateProof(run, TASK_ID);
 
-    const passed = await execute([
-      "task:review",
-      "--run",
-      run,
-      "--task",
-      TASK_ID,
-      "--validator",
-      VALIDATOR,
-      "--token",
-      validation.token as string,
-      "--resolve",
-      `${(probed.finding_ids as string[])[0]!}=${gateCmd}`,
-      "--status",
-      "pass",
-      "--summary",
-      "All unit tests pass",
-    ]);
-    expect(passed.verdict).toBe("pass");
-    expect((passed.task as { status: string }).status).toBe("done");
+    let thrown: unknown;
+    try {
+      await execute([
+        "task:review",
+        "--run",
+        run,
+        "--task",
+        TASK_ID,
+        "--validator",
+        VALIDATOR,
+        "--token",
+        validation.token as string,
+        "--resolve",
+        `${(probed.finding_ids as string[])[0]!}=${gateCmd}`,
+        "--status",
+        "pass",
+        "--summary",
+        "All unit tests pass",
+      ]);
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect(thrown).toBeInstanceOf(HarnessError);
+    expect((thrown as HarnessError).code).toBe("INVALID_ARGUMENT");
   });
 
   test("a valid --checklist-domain/--checklist-report pair is accepted and reported", async () => {
