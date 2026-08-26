@@ -9,6 +9,7 @@ import { basename, extname, join, resolve } from "node:path";
 const ARGS = process.argv.slice(2);
 const RUN_ALL = ARGS.includes("--all");
 const WITH_COVERAGE = ARGS.includes("--coverage");
+const SHOW_HELP = ARGS.includes("--help") || ARGS.includes("-h");
 
 function gitOutput(args: string[]): string {
   try {
@@ -143,6 +144,14 @@ function parseCoverageOutput(output: string): FileCoverageSummary[] {
 }
 
 async function run(): Promise<void> {
+  if (SHOW_HELP) {
+    console.log(
+      "Usage: bun scripts/testing/test-changed.ts [--all] [--help]\n" +
+        "  --all       run every test file under tests/unit, not just affected ones\n" +
+        "  --help, -h  print this usage and exit",
+    );
+    process.exit(0);
+  }
   const changed = getChangedFiles();
   const { all, testFiles } = resolveAffectedTestFiles(changed);
 
