@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, realpathSync, rmSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, realpathSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import type { CapsuleMode, Manifest } from "../../core/contracts/capsule.ts";
@@ -16,6 +16,7 @@ import { writeIndex } from "./capsule-index.ts";
 import { normalizeRunId } from "./run-id.ts";
 import { writeTrace } from "./trace.ts";
 import { isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
+import { safeRmSync } from "../../core/shared/safe-fs.ts";
 
 export interface InitRunOptions {
   runtimeSource?: string;
@@ -54,7 +55,9 @@ export function initRun(
   mkdirSync(capsulesRoot, { recursive: true, mode: 0o755 });
   fsyncDirectory(repo);
   const runRoot = join(capsulesRoot, runId);
+  const runRootExistedBeforeInit = existsSync(runRoot);
   mkdirSync(runRoot, { mode: 0o755 });
+  const createdRunRootInThisCall = !runRootExistedBeforeInit;
   fsyncDirectory(capsulesRoot);
   try {
     for (const directory of initialCapsuleDirectories())
@@ -106,7 +109,9 @@ export function initRun(
     writeTrace(runRoot, []);
     return runRoot;
   } catch (error) {
-    rmSync(runRoot, { recursive: true, force: true });
+    if (createdRunRootInThisCall) {
+      safeRmSync(runRoot, { allowedRoots: [capsulesRoot], missingOk: true });
+    }
     fsyncDirectory(capsulesRoot);
     throw error;
   }

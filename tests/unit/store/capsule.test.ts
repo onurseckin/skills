@@ -1,9 +1,18 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { CAPSULE_LAYOUT } from "../../../olt/scripts/src/engine/store/layout.ts";
+import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
+import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {
@@ -153,6 +162,38 @@ describe("initRun", () => {
     const manifest = JSON.parse(readFileSync(join(runRoot, "manifest.json"), "utf-8"));
     expect("runtime_sha256" in manifest).toBe(false);
     expect("runtime_entrypoint" in manifest).toBe(false);
+  });
+
+  test("never deletes a pre-existing run directory when init fails because the run_id is a duplicate", () => {
+    const repo = scratchRoot("never-deletes-a-pre-existing-run-directory-when-in");
+    const runRoot = initRun(repo, "existing-run", new Uint8Array(), "file", true);
+    const marker = join(runRoot, "marker.txt");
+    writeFileSync(marker, "keep-me");
+
+    expect(() => initRun(repo, "existing-run", new Uint8Array(), "file", true)).toThrow();
+
+    expect(existsSync(runRoot)).toBe(true);
+    expect(readFileSync(marker, "utf-8")).toBe("keep-me");
+  });
+
+  test("the failure-cleanup path refuses to delete anything outside the capsules root instead of deleting it", () => {
+    const repo = scratchRoot("failure-cleanup-refuses-targets-outside-capsules-r");
+    const capsulesRoot = resolveCapsulesDir(realpathSync(repo));
+    mkdirSync(capsulesRoot, { recursive: true });
+    const outsideTarget = join(repo, "not-a-capsule-run");
+    mkdirSync(outsideTarget, { recursive: true });
+    writeFileSync(join(outsideTarget, "keep.txt"), "still-here");
+
+    expect(() => safeRmSync(outsideTarget, { allowedRoots: [capsulesRoot] })).toThrow(HarnessError);
+    try {
+      safeRmSync(outsideTarget, { allowedRoots: [capsulesRoot] });
+    } catch (error) {
+      expect((error as HarnessError).code).toBe("PATH_SAFETY");
+      expect((error as HarnessError).message).toContain("CONTAINMENT");
+    }
+
+    expect(existsSync(outsideTarget)).toBe(true);
+    expect(readFileSync(join(outsideTarget, "keep.txt"), "utf-8")).toBe("still-here");
   });
 
   test("rejects initializing a capsule inside an existing capsule workspace", () => {
