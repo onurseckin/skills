@@ -89,7 +89,9 @@ export function findRepoRoot(startDir: string = process.cwd()): string {
     current = parent;
   }
 
-  return stripped ?? resolvedStart;
+  unsafe(
+    `findRepoRoot: no repository anchor (.git, .olt, or package.json) found walking up from '${resolvedStart}'; refusing to guess a repo root`,
+  );
 }
 
 export function isTestEnvironment(): boolean {
@@ -253,6 +255,9 @@ export function loadSkillGlobalConfig(): SkillGlobalConfig | null {
 }
 
 export function resolveSkillHomeRepo(currentRepoRoot?: string): string {
+  if (currentRepoRoot) {
+    return resolve(currentRepoRoot);
+  }
   if (process.env["OLT_SKILL_HOME_REPO"] && existsSync(process.env["OLT_SKILL_HOME_REPO"])) {
     return resolve(process.env["OLT_SKILL_HOME_REPO"]);
   }
@@ -260,9 +265,5 @@ export function resolveSkillHomeRepo(currentRepoRoot?: string): string {
   if (cfg && existsSync(cfg.home_repo_root)) {
     return resolve(cfg.home_repo_root);
   }
-  const root = currentRepoRoot ? resolve(currentRepoRoot) : findRepoRoot();
-  if (existsSync(join(root, "olt", "agents")) || existsSync(join(root, "olt", "scripts"))) {
-    return root;
-  }
-  return root;
+  return findRepoRoot();
 }

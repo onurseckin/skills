@@ -123,12 +123,23 @@ describe("core shared/paths contract and resolution", () => {
     mkdirSync(oltSub, { recursive: true });
     expect(findRepoRoot(oltSub)).toBe(resolve(oltRoot));
 
-    // Root-level termination fallback
-    expect(findRepoRoot("/")).toBe(resolve("/"));
+    expect(() => findRepoRoot("/")).toThrow(/no repository anchor/);
 
-    // Capsule subfolder heuristics (Matrix rows 1-6)
-    expect(findRepoRoot("/fake/repo/.olt/capsules/run-123/task-1")).toBe(resolve("/fake/repo"));
-    expect(findRepoRoot("/fake/repo/.capsules/run-123/task-1")).toBe(resolve("/fake/repo"));
+    const oltCapsuleMatrixRoot = join(scratchBase, "olt-capsule-matrix-repo");
+    mkdirSync(join(oltCapsuleMatrixRoot, ".olt", "capsules", "run-123", "task-1"), {
+      recursive: true,
+    });
+    writeFileSync(join(oltCapsuleMatrixRoot, "package.json"), "{}", "utf-8");
+    expect(findRepoRoot(join(oltCapsuleMatrixRoot, ".olt", "capsules", "run-123", "task-1"))).toBe(
+      resolve(oltCapsuleMatrixRoot),
+    );
+
+    const dotCapsuleMatrixRoot = join(scratchBase, "dot-capsule-matrix-repo");
+    mkdirSync(join(dotCapsuleMatrixRoot, ".capsules", "run-123", "task-1"), { recursive: true });
+    writeFileSync(join(dotCapsuleMatrixRoot, "package.json"), "{}", "utf-8");
+    expect(findRepoRoot(join(dotCapsuleMatrixRoot, ".capsules", "run-123", "task-1"))).toBe(
+      resolve(dotCapsuleMatrixRoot),
+    );
 
     // In-capsule markers do not trick findRepoRoot into anchoring inside the capsule (Matrix rows 3, 4, 5)
     const testRepo = join(scratchBase, "sovereign-repo");
@@ -165,16 +176,23 @@ describe("core shared/paths contract and resolution", () => {
     rmSync(testRepo, { recursive: true, force: true });
     rmSync(worktreeRoot, { recursive: true, force: true });
     rmSync(normalCapsulesRoot, { recursive: true, force: true });
+    rmSync(oltCapsuleMatrixRoot, { recursive: true, force: true });
+    rmSync(dotCapsuleMatrixRoot, { recursive: true, force: true });
   });
 
   test("resolveCapsulesDir and resolveOltDir are idempotent and never double-nest (Matrix rows 9-10)", () => {
-    const base = resolve("/fake/repo");
+    const base = join(scratchBase, "idempotent-repo");
+    mkdirSync(join(base, ".olt", "capsules"), { recursive: true });
+    writeFileSync(join(base, "package.json"), "{}", "utf-8");
+
     expect(resolveCapsulesDir(base)).toBe(join(base, ".olt", "capsules"));
     expect(resolveCapsulesDir(join(base, ".olt"))).toBe(join(base, ".olt", "capsules"));
     expect(resolveCapsulesDir(join(base, ".olt", "capsules"))).toBe(join(base, ".olt", "capsules"));
 
     expect(resolveOltDir(base)).toBe(join(base, ".olt"));
     expect(resolveOltDir(join(base, ".olt"))).toBe(join(base, ".olt"));
+
+    rmSync(base, { recursive: true, force: true });
   });
 
   test("resolveScratchDir creates predictable process-isolated scratch paths", () => {
@@ -311,7 +329,7 @@ describe("core shared/paths contract and resolution", () => {
     }
   });
 
-  test("resolveSkillHomeRepo resolves via OLT_SKILL_HOME_REPO env, global config, or repo root fallback", () => {
+  test("resolveSkillHomeRepo: an explicit currentRepoRoot always wins; only an omitted argument falls through env, then global config, then findRepoRoot", () => {
     const testDir = join(scratchBase, "skill-home-test");
     const customHome = join(scratchBase, "custom-home-repo");
     const globalHome = join(scratchBase, "global-home-repo");
@@ -325,12 +343,6 @@ describe("core shared/paths contract and resolution", () => {
     const oldEnv = process.env["OLT_SKILL_HOME_REPO"];
 
     try {
-      // 1. OLT_SKILL_HOME_REPO env var takes highest precedence when directory exists
-      process.env["OLT_SKILL_HOME_REPO"] = customHome;
-      expect(resolveSkillHomeRepo(testDir)).toBe(resolve(customHome));
-
-      // 2. If OLT_SKILL_HOME_REPO points to nonexistent dir, falls through
-      process.env["OLT_SKILL_HOME_REPO"] = join(scratchBase, "nonexistent-dir");
       mkdirSync(configDir, { recursive: true });
       writeFileSync(
         configPath,
@@ -341,9 +353,15 @@ describe("core shared/paths contract and resolution", () => {
         }),
         "utf-8",
       );
-      expect(resolveSkillHomeRepo(testDir)).toBe(resolve(globalHome));
 
-      // 3. If global config has nonexistent home_repo_root, falls through
+      process.env["OLT_SKILL_HOME_REPO"] = customHome;
+      expect(resolveSkillHomeRepo(testDir)).toBe(resolve(testDir));
+
+      expect(resolveSkillHomeRepo()).toBe(resolve(customHome));
+
+      process.env["OLT_SKILL_HOME_REPO"] = join(scratchBase, "nonexistent-dir");
+      expect(resolveSkillHomeRepo()).toBe(resolve(globalHome));
+
       writeFileSync(
         configPath,
         JSON.stringify({
@@ -354,18 +372,8 @@ describe("core shared/paths contract and resolution", () => {
         "utf-8",
       );
       delete process.env["OLT_SKILL_HOME_REPO"];
-      expect(resolveSkillHomeRepo(testDir)).toBe(resolve(testDir));
+      expect(resolveSkillHomeRepo()).toBe(findRepoRoot());
 
-      // 4. If currentRepoRoot has olt/agents or olt/scripts, returns root
-      const repoWithAgents = join(scratchBase, "repo-with-agents");
-      mkdirSync(join(repoWithAgents, "olt", "agents"), { recursive: true });
-      expect(resolveSkillHomeRepo(repoWithAgents)).toBe(resolve(repoWithAgents));
-
-      const repoWithScripts = join(scratchBase, "repo-with-scripts");
-      mkdirSync(join(repoWithScripts, "olt", "scripts"), { recursive: true });
-      expect(resolveSkillHomeRepo(repoWithScripts)).toBe(resolve(repoWithScripts));
-
-      // 5. Default with no currentRepoRoot falls back to findRepoRoot()
       rmSync(configPath, { force: true });
       expect(resolveSkillHomeRepo()).toBe(findRepoRoot());
     } finally {

@@ -114,6 +114,7 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
     // mkdtemp's /var/folders/... is itself a symlink to /private/var/folders/....
     const fakeRepo = realpathSync(await mkdtemp(join(tmpdir(), "brainstorm-escape-repo-")));
     roots.push(fakeRepo);
+    await writeFile(join(fakeRepo, "package.json"), "{}", "utf-8");
 
     // 50 requirement lines * 8 vectors * 3 rounds (default) = 1200 expandedItems if persisted
     // uncapped -- large enough to reproduce the pre-fix ~1 MB payload.
