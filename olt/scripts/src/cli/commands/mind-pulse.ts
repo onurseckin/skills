@@ -13,6 +13,7 @@ import { loadRun } from "../../engine/store/load.ts";
 import { transact } from "../../engine/store/transaction.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
+import { resolveHostProviderLoose } from "../../core/config/host-canon.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
 import {
@@ -245,7 +246,7 @@ export function computeMindCognitiveTelemetry(
     if (a.status === "active") {
       const agentId = typeof a.id === "string" ? a.id : "unknown";
       const role = typeof a.role === "string" ? a.role : "agent";
-      const host = typeof a.host === "string" ? a.host : "antigravity";
+      const host = typeof a.host === "string" ? a.host : "unknown";
 
       let assignedTask: { id: string; wave: number; lane: number; status: string } | null = null;
       for (const wg of waveGroups) {
@@ -487,7 +488,7 @@ export async function mindPulseCommand(
 ): Promise<MindPulseResult> {
   const run = textFlag(flags, "run", true)!;
   const actor = textFlag(flags, "actor", false) ?? "mind-1";
-  const host = textFlag(flags, "host", false) ?? "antigravity";
+  const host = resolveHostProviderLoose(textFlag(flags, "host", false));
   const driver = textFlag(flags, "driver", false) ?? "perpetual-loop";
   const arm = textFlag(flags, "arm", false);
   const now = textFlag(flags, "now", false);

@@ -2,6 +2,15 @@ import type { AgentMetadata } from "../runtime/agent-metadata.ts";
 import { inferCanExecuteShell } from "../runtime/agent-metadata.ts";
 import type { RepoPolicy } from "./repo-policy.ts";
 import { loadRepoPolicy } from "./repo-policy.ts";
+import { CODE_EDIT_TOOLS } from "../platform/code-edit-tools.ts";
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const CODE_EDIT_TOOL_PATTERNS: readonly RegExp[] = [...CODE_EDIT_TOOLS].map(
+  (name) => new RegExp(`\\b${escapeRegex(name)}\\b`, "i"),
+);
 
 export interface AuthorizationResult {
   readonly authorized: boolean;
@@ -17,8 +26,7 @@ export interface AuthorizationResult {
 
 export const STATIC_SUPERVISOR_FORBIDDEN_PATTERNS: readonly RegExp[] = [
   /^git\s+(commit|push|reset|checkout\s+-b|merge|rebase)/i,
-  /write_to_file/i,
-  /replace_file/i,
+  ...CODE_EDIT_TOOL_PATTERNS,
   /^bun\s+test\b/i,
   /^npm\s+test\b/i,
   /^vitest\b/i,
@@ -401,8 +409,7 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
   ) {
     patterns = [
       /^git\s+(commit|push|reset|checkout(\s+-b)?|merge|rebase)/i,
-      /write_to_file/i,
-      /replace_file/i,
+      ...CODE_EDIT_TOOL_PATTERNS,
       /^bun\s+harness.*task:review/i,
       /^bun\s+harness.*run:complete/i,
     ];
@@ -422,10 +429,6 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
 
   regexCache.set(cacheKey, patterns);
   return patterns;
-}
-
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function verifyCommandAuthorization(

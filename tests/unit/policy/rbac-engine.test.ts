@@ -366,7 +366,9 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
       );
       expect(mechanicPatterns.some((p) => p.test("git commit -m 'test'"))).toBe(true);
       expect(mechanicPatterns.some((p) => p.test("write_to_file"))).toBe(true);
-      expect(mechanicPatterns.some((p) => p.test("replace_file"))).toBe(true);
+      expect(mechanicPatterns.some((p) => p.test("replace_file_content"))).toBe(true);
+      expect(mechanicPatterns.some((p) => p.test("apply_patch"))).toBe(true);
+      expect(mechanicPatterns.some((p) => p.test("Edit"))).toBe(true);
 
       const subValidatorPatterns = compileEffectiveForbiddenPatterns("sub_validator", samplePolicy);
       expect(subValidatorPatterns.some((p) => p.test("git reset"))).toBe(true);

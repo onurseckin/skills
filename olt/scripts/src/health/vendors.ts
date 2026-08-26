@@ -25,6 +25,7 @@ export const PRODUCT_GRAMMAR_MODULES: readonly string[] = [
   "src/platform/antigravity.ts",
   "src/platform/chatgpt.ts",
   "src/platform/claude-code.ts",
+  "src/platform/code-edit-tools.ts",
   "src/platform/codex.ts",
   "src/platform/cursor.ts",
   "src/platform/host-adapter-registry.ts",

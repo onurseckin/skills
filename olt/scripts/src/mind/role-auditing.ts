@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { logBoundaryViolationDefect, type DefectEntry } from "./defects.ts";
+import { CODE_EDIT_TOOLS } from "../platform/code-edit-tools.ts";
 import {
   type DynamicRoleContract,
   type DynamicRoleRegistry,
@@ -979,20 +980,7 @@ export function formatNonDuplicatePersonaSummary(result: NonDuplicateRoleSynthes
   return lines.join("\n").trim();
 }
 
-/**
- * Known tool and command subsets for Zero-Tolerance boundary invariant enforcement.
- */
-export const CODE_EDIT_TOOLS: ReadonlySet<string> = new Set([
-  "write_to_file",
-  "replace_file_content",
-  "edit_file",
-  "apply_diff",
-  "patch",
-  "create_file",
-  "delete_file",
-  "file_writer",
-  "code_editor",
-]);
+export { CODE_EDIT_TOOLS };
 
 export const GRAPH_MUTATION_COMMANDS: ReadonlySet<string> = new Set([
   "plan:init",

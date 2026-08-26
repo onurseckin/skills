@@ -212,6 +212,14 @@ To guarantee deterministic multi-agent execution across heterogeneous hosts, Har
    - If a host environment lacks native subagent tool execution or encounters tool call refusal, the CLI generates an authoritative, structured prompt.
    - This prompt forces the LLM to adopt the strict role persona, execute the subagent instructions directly, maintain strict disjoint write-scope confinement, and execute the mandatory atomic CLI registration sequence.
 
+**Where this lives.** The logic above is implemented in `src/platform/adapters.ts`
+(`dispatchWithFallback` / `MechanicalFirstDispatcher.dispatch`), backed by one adapter class per host
+provider in `src/platform/{antigravity,claude-code,codex,cursor,chatgpt}.ts` and resolved through
+`getHostAdapter` in `src/platform/host-adapter-registry.ts`. Calling `dispatchWithFallback(provider, packet)`
+for the caller's own detected host returns the correct `toolName` and a ready-to-use `invocationSnippet` —
+that call is what a coordinator or briefing path should make to learn its host's own dispatch tool instead
+of a document naming one vendor's tool as though it were universal.
+
 ---
 
 ### 3.7 Mandatory CLI Action Registration Protocol

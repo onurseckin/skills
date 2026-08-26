@@ -7,6 +7,7 @@ import type { TaskRecord, ValidationAttempt } from "../workflow/types.ts";
 import type { RunState } from "../core/contracts/capsule.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
 import { loadRun } from "../engine/store/index.ts";
+import { CODE_EDIT_TOOLS } from "../platform/code-edit-tools.ts";
 
 export type BehavioralViolationType =
   | "coordinator_code_writing"
@@ -35,17 +36,7 @@ export interface BehavioralHealthSummary {
   issues: string[];
 }
 
-export const FILE_EDIT_TOOLS: ReadonlySet<string> = new Set([
-  "write_to_file",
-  "replace_file_content",
-  "edit_file",
-  "apply_diff",
-  "patch",
-  "create_file",
-  "delete_file",
-  "file_writer",
-  "code_editor",
-]);
+export const FILE_EDIT_TOOLS: ReadonlySet<string> = CODE_EDIT_TOOLS;
 
 export const GRAPH_MUTATION_COMMANDS: ReadonlySet<string> = new Set([
   "plan:init",

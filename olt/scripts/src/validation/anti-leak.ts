@@ -1,4 +1,5 @@
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { CODE_EDIT_TOOLS } from "../platform/code-edit-tools.ts";
 
 export type BoundaryViolationType =
   | "role_confinement_violation"
@@ -73,17 +74,7 @@ export interface DelegateRepairTaskParams {
   readonly runRoot?: string | undefined;
 }
 
-export const CODE_MUTATION_ACTIONS: ReadonlySet<string> = new Set([
-  "write_to_file",
-  "replace_file_content",
-  "edit_file",
-  "apply_diff",
-  "patch",
-  "create_file",
-  "delete_file",
-  "file_writer",
-  "code_editor",
-]);
+export const CODE_MUTATION_ACTIONS: ReadonlySet<string> = CODE_EDIT_TOOLS;
 
 export const SUPERVISORY_ROLES: ReadonlySet<string> = new Set([
   "mind",

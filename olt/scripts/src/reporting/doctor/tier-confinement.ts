@@ -13,6 +13,7 @@ import {
   roleToTier,
   validateTierSpawning,
 } from "../../authority/thread-identifier.ts";
+import { CODE_EDIT_TOOLS } from "../../platform/code-edit-tools.ts";
 
 export const DOCTOR_SUPERVISOR_CODE_CONTAMINATION = "DOCTOR_SUPERVISOR_CODE_CONTAMINATION";
 
@@ -46,17 +47,7 @@ export interface TierConfinementSummary {
   readonly issues: readonly string[];
 }
 
-export const CODE_EDIT_TOOLS: ReadonlySet<string> = new Set([
-  "write_to_file",
-  "replace_file_content",
-  "edit_file",
-  "apply_diff",
-  "patch",
-  "create_file",
-  "delete_file",
-  "file_writer",
-  "code_editor",
-]);
+export { CODE_EDIT_TOOLS };
 
 export const GRAPH_MUTATION_COMMANDS: ReadonlySet<string> = new Set([
   "plan:init",

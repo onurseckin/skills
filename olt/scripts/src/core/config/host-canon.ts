@@ -56,6 +56,42 @@ export function canonicalizeHostId(
   return { kind: "unrecognized", rawId: normalized };
 }
 
+export function resolveHostProviderLoose(
+  rawHost: string | null | undefined,
+): CanonicalHost | "unknown" {
+  if (typeof rawHost !== "string" || rawHost.trim().length === 0) {
+    return "unknown";
+  }
+  const normalized = rawHost.trim().toLowerCase();
+  if (isHostProvider(normalized)) {
+    return normalized;
+  }
+  const alias = HOST_ID_ALIASES[normalized];
+  if (alias !== undefined) {
+    return alias;
+  }
+  if (normalized.includes("claude") || normalized.includes("anthropic")) {
+    return "claude-code";
+  }
+  if (normalized.includes("cursor")) {
+    return "cursor";
+  }
+  if (normalized.includes("codex")) {
+    return "codex";
+  }
+  if (
+    normalized.includes("chatgpt") ||
+    normalized.includes("gpt") ||
+    normalized.includes("openai")
+  ) {
+    return "chatgpt";
+  }
+  if (normalized.includes("antigravity") || normalized.includes("gemini")) {
+    return "antigravity";
+  }
+  return "unknown";
+}
+
 export function canonicalHostFromOutcome(
   outcome: HostCanonicalizationOutcome,
 ): ExternallyAttestedFact<CanonicalHost | null> {

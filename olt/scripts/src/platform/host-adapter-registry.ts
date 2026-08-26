@@ -1,4 +1,5 @@
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { resolveHostProviderLoose } from "../core/config/host-canon.ts";
 import { AntigravityHostAdapter } from "./antigravity.ts";
 import { ClaudeCodeHostAdapter } from "./claude-code.ts";
 import { CursorHostAdapter } from "./cursor.ts";
@@ -6,7 +7,6 @@ import { CodexHostAdapter } from "./codex.ts";
 import { ChatGptHostAdapter } from "./chatgpt.ts";
 import {
   HOST_PROVIDERS,
-  isHostProvider,
   type DispatchResult,
   type HostAdapter,
   type HostCapabilities,
@@ -41,37 +41,8 @@ export function listHostCapabilities(): readonly HostCapabilities[] {
   return HOST_PROVIDERS.map((provider) => getHostAdapter(provider).capabilities);
 }
 
-export function resolveHostProvider(rawHost?: string | null): HostProvider {
-  if (!rawHost || typeof rawHost !== "string" || !rawHost.trim()) {
-    return "antigravity";
-  }
-
-  const normalized = rawHost.trim().toLowerCase();
-  if (isHostProvider(normalized)) {
-    return normalized;
-  }
-
-  if (normalized.includes("claude") || normalized.includes("anthropic")) {
-    return "claude-code";
-  }
-  if (normalized.includes("cursor")) {
-    return "cursor";
-  }
-  if (normalized.includes("codex") || normalized.includes("openai-codex")) {
-    return "codex";
-  }
-  if (
-    normalized.includes("chatgpt") ||
-    normalized.includes("gpt") ||
-    normalized.includes("openai")
-  ) {
-    return "chatgpt";
-  }
-  if (normalized.includes("antigravity") || normalized.includes("gemini")) {
-    return "antigravity";
-  }
-
-  return "antigravity";
+export function resolveHostProvider(rawHost?: string | null): HostProvider | "unknown" {
+  return resolveHostProviderLoose(rawHost);
 }
 
 export function dispatchSubagent(

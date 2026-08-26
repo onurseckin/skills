@@ -6,6 +6,7 @@ import { installedRuntimeFreshness } from "../installer/runtime-freshness.ts";
 import { validateSkillSource } from "../installer/source-validation.ts";
 import { loadRun, verifyIntegrity } from "../engine/store/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
+import { resolveHostProviderLoose } from "../core/config/host-canon.ts";
 import { resolveCharterPath } from "./charter.ts";
 import { reconcileLastPulse } from "./last-pulse.ts";
 
@@ -543,7 +544,7 @@ export async function buildWakeBrief(
     (typeof openPulse?.actor === "string" ? openPulse.actor : undefined) ??
     (typeof mindState.actor === "string" ? mindState.actor : "mind-1");
 
-  const host = options.host ?? "antigravity";
+  const host = resolveHostProviderLoose(options.host);
   const driver = options.driver ?? "manual";
 
   // 13. Determine NEXT and THEN argv

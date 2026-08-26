@@ -52,8 +52,13 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
     expect(resolveHostProvider("openai-codex")).toBe("codex");
     expect(resolveHostProvider("chatgpt")).toBe("chatgpt");
     expect(resolveHostProvider("openai-gpt4")).toBe("chatgpt");
-    expect(resolveHostProvider("")).toBe("antigravity");
-    expect(resolveHostProvider(null)).toBe("antigravity");
+  });
+
+  test("resolveHostProvider never silently defaults absent or unrecognized input to a specific vendor", () => {
+    expect(resolveHostProvider("")).toBe("unknown");
+    expect(resolveHostProvider(null)).toBe("unknown");
+    expect(resolveHostProvider(undefined)).toBe("unknown");
+    expect(resolveHostProvider("some-future-host-nobody-has-heard-of")).toBe("unknown");
   });
 
   describe("Antigravity Host Adapter", () => {
