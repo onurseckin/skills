@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   COMMAND_DOMAINS,
@@ -8,6 +10,14 @@ import {
   findCommand,
 } from "../../../olt/scripts/src/cli/registry/index.ts";
 import { shouldReadPromptStdin } from "../../../olt/scripts/src/cli/prompt-input.ts";
+import { taskCheckCommand } from "../../../olt/scripts/src/cli/commands/task-check.ts";
+import { reportUnifiedCommand } from "../../../olt/scripts/src/cli/commands/unified-reporting.ts";
+import { summaryViewCommand } from "../../../olt/scripts/src/cli/commands/summary-ops.ts";
+import { dagViewCommand } from "../../../olt/scripts/src/cli/commands/dag-view.ts";
+import { autoDeriveCallerIdentity } from "../../../olt/scripts/src/authority/session-registry.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 const EXPECTED_INVOCATIONS = [
   "plan:brainstorm",
@@ -142,6 +152,7 @@ const EXPECTED_INVOCATIONS = [
   "health",
   "doctor",
   "doctor:repair",
+  "doctor:certify",
   "recover",
   "task:release",
   "worktree:reclaim",
@@ -274,5 +285,93 @@ describe("CLI command registry", () => {
     for (const name of ["install", "installation-status", "recover", "doctor"]) {
       expect(findCommand(name)?.handler).toBeInstanceOf(Function);
     }
+  });
+
+  test("task:check declares --actor so a caller can supply its real identity", () => {
+    const spec = findCommand("task:check");
+    expect(spec).toBeDefined();
+    expect(spec?.flags.map((flag) => flag.name)).toContain("actor");
+  });
+
+  test("task:check never attributes an omitted --actor to a fabricated role-name literal", async () => {
+    const repo = scratchRoot(import.meta.path, "task-check-actor-attribution-repo");
+    const cleanPath = join(repo, "clean.ts");
+    writeFileSync(cleanPath, "export const cleanVal = 10;\n");
+    const runRoot = initRun(
+      repo,
+      "actor-attribution-run",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
+
+    const result = await taskCheckCommand({ file: cleanPath, run: runRoot, lint: true });
+    expect(result.passed).toBe(true);
+
+    const loaded = loadRun(runRoot);
+    const receipts = (loaded.state.receipts ?? {}) as Record<string, Record<string, unknown>>;
+    const receiptKeys = Object.keys(receipts);
+    expect(receiptKeys.length).toBe(1);
+    const receiptEntry = receipts[receiptKeys[0] as string];
+    expect(receiptEntry?.actor).not.toBe("mechanic-validator");
+    expect(receiptEntry?.actor).toBe(autoDeriveCallerIdentity().actor);
+  });
+
+  test("a declared --json flag actually changes what the handler returns, for every command this lane owns", () => {
+    const repo = scratchRoot(import.meta.path, "declared-json-flag-is-live-repo");
+    const run = initRun(
+      repo,
+      "declared-json-flag-run",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
+
+    const liveJsonCommands: {
+      name: string;
+      handler: (flags: Record<string, unknown>) => Record<string, unknown>;
+    }[] = [
+      { name: "report", handler: reportUnifiedCommand },
+      { name: "report:summary", handler: summaryViewCommand },
+      { name: "dag", handler: dagViewCommand },
+    ];
+
+    for (const { name, handler } of liveJsonCommands) {
+      const spec = findCommand(name);
+      expect(spec?.flags.map((flag) => flag.name)).toContain("json");
+
+      const withoutFlag = handler({ run });
+      const withFlag = handler({ run, json: true });
+      expect(withoutFlag["json"]).not.toBe(true);
+      expect(withFlag["json"]).toBe(true);
+    }
+  });
+
+  test("removes --json from commands whose handler never read it, instead of leaving a flag that silently does nothing", () => {
+    const deadJsonCommands = [
+      "whoami",
+      "role:cheat-sheet",
+      "watchdog:status",
+      "watchdog:cleanup",
+      "watchdog:phase-cleanup",
+      "watchdog:verify",
+      "watchdog:probe",
+      "mind:queue:list",
+      "mind:queue:add",
+      "mind:queue:drain",
+      "mind:queue:seal",
+      "mind:queue:clean",
+      "report:task",
+      "dag:trace",
+    ];
+    for (const name of deadJsonCommands) {
+      const spec = findCommand(name);
+      expect(spec).toBeDefined();
+      expect(spec?.flags.map((flag) => flag.name)).not.toContain("json");
+    }
+
+    const memoryQuerySpec = findCommand("memory:query");
+    expect(memoryQuerySpec?.flags.map((flag) => flag.name)).not.toContain("json");
+    expect(memoryQuerySpec?.flags.map((flag) => flag.name)).not.toContain("format");
   });
 });

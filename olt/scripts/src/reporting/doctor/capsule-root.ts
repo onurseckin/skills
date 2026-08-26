@@ -10,9 +10,6 @@ export interface CapsuleRootAuditResult {
   readonly issues: readonly string[];
 }
 
-/**
- * Finds the repository root by walking upwards looking for .git or package.json.
- */
 export function findRepositoryRoot(startPath: string): string {
   let current = resolve(startPath);
   while (true) {
@@ -25,7 +22,6 @@ export function findRepositoryRoot(startPath: string): string {
     }
     current = parent;
   }
-  // Fallback if .git not found: walk looking for .capsules at top-most directory
   current = resolve(startPath);
   if (current.includes(".capsules")) {
     const parts = current.split(`${sep}.capsules`);
@@ -36,9 +32,10 @@ export function findRepositoryRoot(startPath: string): string {
   return process.cwd();
 }
 
-/**
- * Scans repository subdirectories to detect any illegal nested .capsules directories.
- */
+const CAPSULES_SUBDIR_NAME = "capsules";
+const LEGACY_CAPSULES_NAME = ".capsules";
+const OLT_DIR_NAME = ".olt";
+
 export function scanMisplacedCapsulesDirectories(
   repoRoot: string,
   maxDepth = 4,
@@ -51,32 +48,43 @@ export function scanMisplacedCapsulesDirectories(
     const entries = readdirSync(repoRoot, { withFileTypes: true });
     for (const entry of entries) {
       const name = entry.name;
-      if (name === "node_modules" || name === ".git" || name === ".tmp") {
+      if (name === "node_modules" || name === ".git" || name === ".tmp" || name === "coverage") {
         continue;
       }
 
       const fullPath = join(repoRoot, name);
-      if (entry.isDirectory()) {
-        if (name === ".capsules") {
-          // If currentDepth > 0, this .capsules is nested inside a subdirectory, which violates repository-root policy!
-          if (currentDepth > 0) {
-            misplaced.push(fullPath);
-          }
-        } else {
-          misplaced.push(...scanMisplacedCapsulesDirectories(fullPath, maxDepth, currentDepth + 1));
-        }
+      if (!entry.isDirectory()) {
+        continue;
       }
+
+      if (name === CAPSULES_SUBDIR_NAME) {
+        misplaced.push(fullPath);
+        continue;
+      }
+
+      if (name === LEGACY_CAPSULES_NAME) {
+        if (currentDepth > 0) {
+          misplaced.push(fullPath);
+        }
+        continue;
+      }
+
+      if (name === OLT_DIR_NAME) {
+        const nestedCapsules = join(fullPath, CAPSULES_SUBDIR_NAME);
+        if (currentDepth > 0 && existsSync(nestedCapsules)) {
+          misplaced.push(nestedCapsules);
+        }
+        continue;
+      }
+
+      misplaced.push(...scanMisplacedCapsulesDirectories(fullPath, maxDepth, currentDepth + 1));
     }
   } catch {
-    // Ignore read errors during filesystem scanning
+    return misplaced;
   }
-
   return misplaced;
 }
 
-/**
- * Verifies that .capsules strictly and exclusively resides at repository root (<repo-root>/.capsules/).
- */
 export function verifyStrictRepositoryCapsuleRoot(
   runRoot: string,
   explicitRepoRoot?: string,
@@ -87,27 +95,34 @@ export function verifyStrictRepositoryCapsuleRoot(
     ? resolve(explicitRepoRoot)
     : findRepositoryRoot(resolvedRunRoot);
 
-  const expectedCapsulesDir = join(repoRoot, ".capsules");
+  const canonicalCapsulesDir = join(repoRoot, OLT_DIR_NAME, CAPSULES_SUBDIR_NAME);
+  const legacyCapsulesDir = join(repoRoot, LEGACY_CAPSULES_NAME);
   const relFromRepo = relative(repoRoot, resolvedRunRoot).replace(/\\/g, "/");
 
-  // Check 1: runRoot must be directly inside <repo-root>/.capsules/<run-id>
-  const isDirectChildOfRootCapsules =
-    relFromRepo.startsWith(".capsules/") &&
-    !relFromRepo.slice(".capsules/".length).includes("/.capsules");
+  const isDirectChildOf = (prefix: string): boolean =>
+    relFromRepo.startsWith(prefix) &&
+    !relFromRepo.slice(prefix.length).includes("/.capsules") &&
+    !relFromRepo.slice(prefix.length).includes("/.olt");
 
-  const isAtRepoRoot = isDirectChildOfRootCapsules && !relFromRepo.startsWith("../../");
+  const isAtRepoRoot =
+    isDirectChildOf(`${OLT_DIR_NAME}/${CAPSULES_SUBDIR_NAME}/`) ||
+    isDirectChildOf(`${LEGACY_CAPSULES_NAME}/`);
 
   if (!isAtRepoRoot) {
     issues.push(
-      `Run capsule path "${resolvedRunRoot}" violates repository root confinement: .capsules must exclusively reside at repository root "${expectedCapsulesDir}"`,
+      `Run capsule path "${resolvedRunRoot}" violates repository root confinement: capsules must reside directly under the canonical "${canonicalCapsulesDir}" (or legacy "${legacyCapsulesDir}") directory`,
     );
   }
 
-  // Check 2: Scan for misplaced/nested .capsules directories
   const misplacedCapsules = scanMisplacedCapsulesDirectories(repoRoot);
   for (const misplaced of misplacedCapsules) {
+    const leaf = misplaced.split(sep).pop() ?? misplaced;
+    const parentName = dirname(misplaced).split(sep).pop();
+    const isBare = leaf === CAPSULES_SUBDIR_NAME && parentName !== OLT_DIR_NAME;
     issues.push(
-      `Misplaced nested .capsules directory detected at "${misplaced}": all capsules must reside strictly in "<repo-root>/.capsules/"`,
+      isBare
+        ? `Bare, undotted "${misplaced}" directory detected: capsule storage must be dot-prefixed ("${canonicalCapsulesDir}" or legacy "${legacyCapsulesDir}"), a bare "capsules/" directory must never exist`
+        : `Misplaced nested .capsules directory detected at "${misplaced}": all capsules must reside strictly in "${canonicalCapsulesDir}" (or legacy "${legacyCapsulesDir}")`,
     );
   }
 

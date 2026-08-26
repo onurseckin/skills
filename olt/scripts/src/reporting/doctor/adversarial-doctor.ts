@@ -566,7 +566,8 @@ export async function runDoctorDiagnostics(
           category: "capsule_root",
           status: "pass",
           passed: true,
-          message: "Capsule root resides strictly under repository root .capsules/",
+          message:
+            "Capsule root resides strictly under repository root .olt/capsules/ (or legacy .capsules/)",
           details: { runRoot: rootAudit.runRoot, repoRoot: rootAudit.repoRoot },
         });
       } else {
@@ -581,7 +582,7 @@ export async function runDoctorDiagnostics(
             issues: rootAudit.issues,
           },
           remediation:
-            "Ensure run capsules are stored exclusively at <repo-root>/.capsules/<run-id>",
+            "Ensure run capsules are stored exclusively at <repo-root>/.olt/capsules/<run-id> (or legacy <repo-root>/.capsules/<run-id>)",
         });
       }
     } catch (err: unknown) {
@@ -626,7 +627,7 @@ export async function runDoctorDiagnostics(
             invalidPaths: evidenceAudit.invalidPaths,
             issues: evidenceAudit.issues,
           },
-          remediation: "Relocate all evidence and screenshots into .capsules/<run>/evidence/",
+          remediation: "Relocate all evidence and screenshots into <run-root>/evidence/",
         });
       }
     } catch (err: unknown) {

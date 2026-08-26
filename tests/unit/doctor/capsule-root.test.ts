@@ -7,6 +7,7 @@ import {
   scanMisplacedCapsulesDirectories,
   verifyStrictRepositoryCapsuleRoot,
 } from "../../../olt/scripts/src/reporting/doctor/capsule-root.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -71,5 +72,63 @@ describe("Capsule Root Doctor Checks - p18 strict repository root confinement", 
     expect(
       audit.issues.some((i) => i.includes("Misplaced nested .capsules directory detected")),
     ).toBe(true);
+  });
+
+  test("verifyStrictRepositoryCapsuleRoot passes when runRoot is in <repo-root>/.olt/capsules/<run-id> (canonical location)", async () => {
+    const repo = scratchRoot(import.meta.path, "olt-valid");
+    await mkdir(join(repo, ".git"));
+    const runRoot = join(repo, ".olt", "capsules", "run-olt-1");
+    await mkdir(runRoot, { recursive: true });
+
+    const audit = verifyStrictRepositoryCapsuleRoot(runRoot, repo);
+    expect(audit.valid).toBe(true);
+    expect(audit.isAtRepoRoot).toBe(true);
+    expect(audit.misplacedCapsules).toHaveLength(0);
+    expect(audit.issues).toHaveLength(0);
+  });
+
+  test("scanMisplacedCapsulesDirectories flags a bare, undotted capsules/ directory at repo root", async () => {
+    const repo = scratchRoot(import.meta.path, "bare-capsules");
+    await mkdir(join(repo, ".git"));
+    await mkdir(join(repo, "capsules", "run-1"), { recursive: true });
+    const runRoot = join(repo, ".olt", "capsules", "run-canonical");
+    await mkdir(runRoot, { recursive: true });
+
+    const misplaced = scanMisplacedCapsulesDirectories(repo);
+    expect(misplaced.some((p) => p === join(repo, "capsules"))).toBe(true);
+
+    const audit = verifyStrictRepositoryCapsuleRoot(runRoot, repo);
+    expect(audit.valid).toBe(false);
+    expect(audit.issues.some((i) => i.includes("Bare") && i.includes(join(repo, "capsules")))).toBe(
+      true,
+    );
+  });
+
+  test("verifyStrictRepositoryCapsuleRoot still accepts the legacy <repo-root>/.capsules/<run-id> location", async () => {
+    const repo = scratchRoot(import.meta.path, "legacy-valid");
+    await mkdir(join(repo, ".git"));
+    const runRoot = join(repo, ".capsules", "run-legacy-1");
+    await mkdir(runRoot, { recursive: true });
+
+    const audit = verifyStrictRepositoryCapsuleRoot(runRoot, repo);
+    expect(audit.valid).toBe(true);
+    expect(audit.isAtRepoRoot).toBe(true);
+  });
+
+  test("scanMisplacedCapsulesDirectories does not flag capsule-shaped test fixtures left under coverage/scratch/", async () => {
+    const repo = scratchRoot(import.meta.path, "coverage-scratch-noise");
+    await mkdir(join(repo, ".git"));
+    await mkdir(join(repo, "coverage", "scratch", "some-test--fixture", ".olt", "capsules"), {
+      recursive: true,
+    });
+    await mkdir(join(repo, "coverage", "scratch", "other-test--fixture", "capsules"), {
+      recursive: true,
+    });
+    const runRoot = join(repo, ".olt", "capsules", "run-real");
+    await mkdir(runRoot, { recursive: true });
+
+    const audit = verifyStrictRepositoryCapsuleRoot(runRoot, repo);
+    expect(audit.valid).toBe(true);
+    expect(audit.misplacedCapsules).toHaveLength(0);
   });
 });

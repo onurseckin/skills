@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { isTestEnvironment, resolveCapsulesDir, resolveScratchDir } from "../core/shared/paths.ts";
 import { drainPendingFeedbacks, readFeedbackQueue, type FeedbackItem } from "./feedback-queue.ts";
 import {
   applyIntervalJitter,
@@ -229,17 +230,14 @@ export interface SelfEvolutionCycleResult {
   readonly durationMs: number;
 }
 
-const DEFAULT_HISTORY_FILE = ".capsules/EVOLUTION_HISTORY.jsonl";
-
 export function resolveEvolutionHistoryPath(customPath?: string): string {
   if (customPath && customPath.trim()) {
     return resolve(customPath.trim());
   }
-  const cwd = process.cwd();
-  if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, DEFAULT_HISTORY_FILE);
+  if (isTestEnvironment()) {
+    return join(resolveScratchDir(), "EVOLUTION_HISTORY.jsonl");
   }
-  return resolve(cwd, DEFAULT_HISTORY_FILE);
+  return join(resolveCapsulesDir(), "EVOLUTION_HISTORY.jsonl");
 }
 
 export function readEvolutionHistory(customPath?: string): readonly EvolutionLedgerEntry[] {

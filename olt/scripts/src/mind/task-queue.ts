@@ -127,7 +127,7 @@ export interface TaskQueueStats {
   readonly expired_leases: number;
 }
 
-export const DEFAULT_TASK_QUEUE_FILE = ".capsules/TASK_QUEUE.jsonl";
+export const DEFAULT_TASK_QUEUE_FILE = ".olt/capsules/TASK_QUEUE.jsonl";
 
 const DEFAULT_LEASE_DURATION_SECONDS = 1800; // 30 minutes
 const DEFAULT_MAX_RETRIES = 3;

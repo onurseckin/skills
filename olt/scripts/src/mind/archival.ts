@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
-import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
+import { isTestEnvironment, resolveCapsulesDir, resolveScratchDir } from "../core/shared/paths.ts";
 import type { CandidateRecord } from "./gates.ts";
 import type { ObjectiveRecord } from "./rounds.ts";
 
@@ -119,7 +119,7 @@ export interface PruneAndArchiveResult {
   readonly prunedBoilerplateDirectories?: readonly string[] | undefined;
 }
 
-export const DEFAULT_ARCHIVED_OBJECTIVES_FILE = ".capsules/ARCHIVED_OBJECTIVES.jsonl";
+export const DEFAULT_ARCHIVED_OBJECTIVES_FILE = ".olt/capsules/ARCHIVED_OBJECTIVES.jsonl";
 
 /**
  * Resolves the canonical path to the archived objectives ledger.
@@ -142,7 +142,7 @@ export function resolveArchivedObjectivesPath(capsulesDir?: string, customPath?:
   if (isTestEnvironment()) {
     return join(resolveScratchDir(), "ARCHIVED_OBJECTIVES.jsonl");
   }
-  return join(process.cwd(), ".capsules", "ARCHIVED_OBJECTIVES.jsonl");
+  return join(resolveCapsulesDir(), "ARCHIVED_OBJECTIVES.jsonl");
 }
 
 /**

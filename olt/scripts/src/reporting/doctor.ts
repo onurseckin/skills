@@ -43,6 +43,7 @@ import {
   type LifecycleFinding,
   type LifecycleAuditSummary,
 } from "./doctor/state-machine-auditor.ts";
+import { runDoctorDiagnostics, type HarnessHealthCheck } from "./doctor/adversarial-doctor.ts";
 
 export {
   auditBehavioralHealth,
@@ -65,6 +66,8 @@ export {
   StateMachineAuditor,
   type LifecycleFinding,
   type LifecycleAuditSummary,
+  runDoctorDiagnostics,
+  type HarnessHealthCheck,
 };
 
 export interface DoctorOptions {
@@ -202,6 +205,30 @@ export function formatDoctorReport(params: {
   return lines.join("\n");
 }
 
+export interface DoctorRemedialAction {
+  readonly issueCode: string;
+  readonly command: string;
+  readonly description: string;
+}
+
+const STATE_PROJECTION_ISSUE_CODE = "STATE_PROJECTION";
+
+export function remedialActionsForIntegrityIssues(
+  runRoot: string,
+  integrityIssues: readonly IntegrityIssue[],
+): readonly DoctorRemedialAction[] {
+  const actions: DoctorRemedialAction[] = [];
+  if (integrityIssues.some((issue) => issue.code === STATE_PROJECTION_ISSUE_CODE)) {
+    actions.push({
+      issueCode: STATE_PROJECTION_ISSUE_CODE,
+      command: `bun harness.ts doctor:repair --run ${runRoot} --actor <ACTOR>`,
+      description:
+        "state.json no longer matches the event chain's final projection; doctor:repair re-derives it from the last complete event, quarantining any torn tail.",
+    });
+  }
+  return actions;
+}
+
 export async function runDoctor(
   runRoot: string,
   options: DoctorOptions = {},
@@ -286,6 +313,20 @@ export async function runDoctor(
         ]
       : [];
 
+  const diagnosticChecks = await runDoctorDiagnostics({
+    runRoot,
+    repoRoot: repository,
+    state: (loaded?.state as Record<string, unknown> | undefined) ?? null,
+    checkBunVersion: false,
+    checkCapsuleRoot: true,
+    checkUnifiedEvidence: true,
+    checkTierConfinement: false,
+    checkIntegrity: false,
+  });
+  const diagnosticIssues = diagnosticChecks
+    .filter((check) => check.status === "fail")
+    .map((check) => `${check.category}: ${check.message}`);
+
   const issues = [
     ...facts.issues,
     ...commandIssues,
@@ -296,6 +337,7 @@ export async function runDoctor(
     ...lifecycleIssues,
     ...installationIssues,
     ...policyIssues,
+    ...diagnosticIssues,
   ];
 
   // Re-tier over the FULL issue set, not just facts.issues: commandIssues/tierIssues/etc.
@@ -339,6 +381,9 @@ export async function runDoctor(
     installation: installation ?? null,
     installation_issues: installationIssues,
     policy_inspection: policyInspection,
+    diagnostic_checks: diagnosticChecks,
+    diagnostic_issues: diagnosticIssues,
+    remedial_actions: remedialActionsForIntegrityIssues(runRoot, integrityIssues),
     issues,
     critical_issues: criticalIssues,
     cosmetic_issues: cosmeticIssues,

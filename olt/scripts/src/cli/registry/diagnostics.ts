@@ -8,6 +8,7 @@ import {
 } from "../commands/diagnostics-ops.ts";
 import { taskReleaseCommand } from "../commands/task-ops.ts";
 import { worktreeReclaimCommand } from "../commands/worktree-ops.ts";
+import { doctorCertifyCommand } from "../../reporting/doctor/certify-command.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,
@@ -157,6 +158,38 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: ["bun harness.ts doctor:repair --run .olt/capsules/<run-id> --actor coordinator"],
     handler: repairProjectionCommand,
+  },
+  {
+    name: "doctor:certify",
+    aliases: [],
+    domain: "diagnostics",
+    tier: "internal",
+    internal: true,
+    summary: "Certify doctor's own checks are falsifiable via counterfactual mutation testing.",
+    description:
+      "Runs the full harness health diagnostic suite (bun version, capsule root confinement, unified evidence location, tier confinement, integrity) that `doctor` folds into every run, plus -- for each --write-scope test file -- an adversarial counterfactual check: it mutates the file (flips an assertion, injects a syntax error, etc.), reruns it, and verifies the mutation actually makes it fail, proving the gate is falsifiable rather than vacuous, then reverts the mutation. Slower than `doctor` and gated behind this explicit command because it mutates files and runs real test commands. Each --write-scope path must be a .test.ts or .spec.ts file; anything else is rejected up front rather than silently skipped.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      repeatableFlag(
+        "write-scope",
+        "string",
+        "A .test.ts or .spec.ts file to adversarially mutate and verify falsifiability for. Omit to run only the non-adversarial health diagnostics.",
+      ),
+      optionalFlag(
+        "mutation-kind",
+        "string",
+        "syntax_error | assertion_flip | return_override | empty_file | exception_injection. Defaults to syntax_error.",
+      ),
+      optionalFlag("strict", "bool", "Exit nonzero when the report is not certified."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts doctor:certify --run .olt/capsules/<run-id>",
+      "bun harness.ts doctor:certify --run .olt/capsules/<run-id> --write-scope tests/unit/doctor/capsule-root.test.ts --strict",
+    ],
+    handler: doctorCertifyCommand,
   },
   {
     name: "recover",

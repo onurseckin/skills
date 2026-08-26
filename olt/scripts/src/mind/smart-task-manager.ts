@@ -1,7 +1,7 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
-import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
+import { isTestEnvironment, resolveCapsulesDir, resolveScratchDir } from "../core/shared/paths.ts";
 import {
   auditAdmissionDispatchIntegrity,
   drainPendingFeedbacks,
@@ -1862,7 +1862,9 @@ export function synthesizeSmartTasksFromSelfEvolution(
   } = {},
 ): SmartTaskSynthesisResult {
   const maxTasks = options.maxTasks ?? 5;
-  const targetRoots = options.capsulesDir ? [options.capsulesDir] : [".capsules/"];
+  const targetRoots = options.capsulesDir
+    ? [options.capsulesDir]
+    : [isTestEnvironment() ? resolveScratchDir() : resolveCapsulesDir()];
   const defectAudit = auditDefectLog(targetRoots);
   const openDefects = defectAudit.defects.filter((b) => b.status === "open");
 
