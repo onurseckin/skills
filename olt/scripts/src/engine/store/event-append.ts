@@ -97,10 +97,22 @@ function refreshDerived(
   event: HarnessEvent,
   next: RunState,
 ): void {
+  const failures: string[] = [];
   try {
     appendTraceStep(runRoot, event);
-  } catch {}
+  } catch (error) {
+    failures.push(`trace.md: ${String(error)}`);
+  }
   try {
     writeIndex(runRoot, next, manifest.run_id);
-  } catch {}
+  } catch (error) {
+    failures.push(`index.json: ${String(error)}`);
+  }
+  if (failures.length > 0) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `event ${event.sequence} committed to events.jsonl and state.json, but derived views ` +
+        `failed to refresh: ${failures.join("; ")}`,
+    );
+  }
 }

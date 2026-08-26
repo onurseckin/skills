@@ -366,10 +366,10 @@ describe("refreshIndex", () => {
     expect(onDisk.run_id).toBe("run-1");
   });
 
-  test("does nothing when state.json is missing or malformed, swallowing the error", () => {
-    const root = scratchRoot("does-nothing-when-state-json-is-missing-or-malform");
-    expect(() => refreshIndex(root)).not.toThrow();
+  test("throws instead of silently leaving index.json stale when state.json is missing or malformed", () => {
+    const root = scratchRoot("throws-instead-of-silently-leaving-index-json-stal");
+    expect(() => refreshIndex(root)).toThrow(/state\.json/);
     writeFileSync(join(root, "state.json"), "not json");
-    expect(() => refreshIndex(root)).not.toThrow();
+    expect(() => refreshIndex(root)).toThrow(/state\.json/);
   });
 });

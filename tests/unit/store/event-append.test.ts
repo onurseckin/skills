@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
@@ -119,5 +119,27 @@ describe("appendProjectionEvent checkpoints", () => {
         { op: "unset", path: ["stale"] },
       ]),
     );
+  });
+
+  test("propagates instead of silently leaving trace.md stale when the derived-view write fails", () => {
+    const { runRoot, manifest } = freshRun("refresh-derived-propagates-failure");
+    rmSync(join(runRoot, "trace.md"), { force: true });
+    mkdirSync(join(runRoot, "trace.md"));
+    const current = initialState();
+    const draft = { ...cloneObject(current), counter: 1 } as RunState;
+    expect(() =>
+      appendProjectionEvent(
+        runRoot,
+        manifest,
+        current,
+        "tester",
+        "counted",
+        { index: 1 },
+        draft,
+        limits(),
+      ),
+    ).toThrow(/trace\.md/);
+    const events = eventObjects(runRoot);
+    expect(events).toHaveLength(1);
   });
 });

@@ -131,7 +131,11 @@ export function ingestScreenshots(options: ScreenshotIngestOptions): ScreenshotR
     });
   }
 
-  if (recordCaptures(runRoot, ingested)) refreshIndex(runRoot);
+  if (recordCaptures(runRoot, ingested)) {
+    try {
+      refreshIndex(runRoot);
+    } catch {}
+  }
   return ingested;
 }
 

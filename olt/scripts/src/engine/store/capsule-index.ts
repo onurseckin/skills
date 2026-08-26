@@ -369,8 +369,14 @@ export function indexFreshness(runRoot: string, index: CapsuleIndex): IndexFresh
 }
 
 export function refreshIndex(runRoot: string): void {
+  let state: RunState;
   try {
-    const state = JSON.parse(readFileSync(runFilePath(runRoot, "state.json"), "utf-8")) as RunState;
-    writeIndex(runRoot, state);
-  } catch {}
+    state = JSON.parse(readFileSync(runFilePath(runRoot, "state.json"), "utf-8")) as RunState;
+  } catch (error) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `refreshIndex could not read state.json at ${runRoot}: ${String(error)}`,
+    );
+  }
+  writeIndex(runRoot, state);
 }
