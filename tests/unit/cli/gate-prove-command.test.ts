@@ -1,9 +1,11 @@
 import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { isJsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
@@ -80,6 +82,17 @@ async function compiledSingleTaskRun(
     "coordinator",
     "--completion-gate",
     "bun test tests",
+  ]);
+  await execute([
+    "agent:register",
+    "--run",
+    run,
+    "--agent",
+    "coordinator",
+    "--role",
+    "coordinator",
+    "--host",
+    "antigravity",
   ]);
   return { repo, run };
 }
@@ -211,6 +224,10 @@ describe("gate:prove (command layer)", () => {
       "implementer",
       "--host",
       "antigravity",
+      "--parent-agent",
+      "coordinator",
+      "--actor",
+      "coordinator",
     ]);
     await execute([
       "task:claim",
@@ -264,5 +281,80 @@ describe("gate:prove (command layer)", () => {
     ]);
     expect(result.base).toBe("HEAD");
     expect(result.falsifiable).toBe(true);
+  });
+
+  test("refuses to spawn a compiled gate that fails the gate-command-policy re-check at execution time, even though it passed plan:compile", async () => {
+    const marker = join(tmpdir(), `gate-prove-policy-escape-${Date.now()}.txt`);
+    const { repo, run } = await compiledSingleTaskRun("policy-escape", "test -f feature.ts");
+    writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
+
+    transact(run, "coordinator", "test-corrupt-compiled-gate", {}, (draft) => {
+      if (!isJsonObject(draft.graph) || !Array.isArray(draft.graph.gates)) {
+        throw new Error("expected draft.graph.gates to be an array");
+      }
+      draft.graph.gates = draft.graph.gates.map((gate) =>
+        isJsonObject(gate) && gate.id === "gate-1"
+          ? { ...gate, command: ["bash", "-c", `: > ${JSON.stringify(marker)}`] }
+          : gate,
+      );
+    });
+
+    await expect(
+      execute(["gate:prove", "--run", run, "--task", "task-1", "--actor", "coordinator"]),
+    ).rejects.toThrow(/fails the gate-command-policy re-check/);
+    expect(existsSync(marker)).toBe(false);
+  });
+
+  test("refuses an --actor with no registered grant instead of treating it as a display label", async () => {
+    const repo = realpathSync(mkdtempSync(join(tmpdir(), "gate-prove-cmd-no-grant-")));
+    gitRoots.push(repo);
+    git(repo, ["init", "--quiet", "--initial-branch", "main"]);
+    git(repo, ["config", "user.email", "harness@example.test"]);
+    git(repo, ["config", "user.name", "Harness Test"]);
+    writeFileSync(join(repo, ".gitignore"), ".olt/capsules/\nprompt.txt\n");
+    writeFileSync(join(repo, "README.md"), "hi\n");
+    git(repo, ["add", "-A"]);
+    git(repo, ["commit", "--quiet", "-m", "base"]);
+    writeFileSync(join(repo, "prompt.txt"), "Add a feature file.\n");
+    const init = await execute([
+      "plan:init",
+      "--repo",
+      repo,
+      "--run-id",
+      "no-grant",
+      "--prompt-file",
+      join(repo, "prompt.txt"),
+    ]);
+    const run = String(init.run_root);
+    await execute([
+      "plan:add",
+      "--run",
+      run,
+      "--id",
+      "task-1",
+      "--label",
+      "Add feature file",
+      "--scope",
+      "feature.ts",
+      "--gate",
+      "test -f feature.ts",
+      "--actor",
+      "planner",
+    ]);
+    await execute(["plan:brainstorm", "--run", run, "--actor", "coordinator"]);
+    await execute([
+      "plan:compile",
+      "--run",
+      run,
+      "--actor",
+      "coordinator",
+      "--completion-gate",
+      "bun test tests",
+    ]);
+    writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
+
+    await expect(
+      execute(["gate:prove", "--run", run, "--task", "task-1", "--actor", "an-unregistered-actor"]),
+    ).rejects.toThrow("agent an-unregistered-actor holds no grant");
   });
 });

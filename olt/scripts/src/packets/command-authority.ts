@@ -298,6 +298,7 @@ const GRANT_REQUIRED_ROLE_CONTRACT_EXEMPT_COMMANDS: ReadonlySet<string> = new Se
   "orphan:dispose",
   "authority:decide",
   "run:complete",
+  "gate:prove",
 ]);
 
 function actsOnOwnGrant(spec: CommandSpec, flags: Flags): boolean {

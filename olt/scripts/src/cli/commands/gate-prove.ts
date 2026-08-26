@@ -10,6 +10,7 @@ import {
   type GateProofRecord,
   type GateProveOutcome,
 } from "../../graph/gate-proof.ts";
+import { commandIsWeak } from "../../graph/gate-command-policy.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 import { loadRun, transact } from "../../engine/store/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
@@ -69,6 +70,12 @@ export function gateProveCommand(flags: Flags): Record<string, unknown> {
     throw new HarnessError(
       "INVALID_STATE",
       `task ${taskId} has no write scope to revert; nothing for gate:prove to falsify`,
+    );
+  }
+  if (commandIsWeak(binding.gate)) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `task ${taskId}'s compiled gate ${JSON.stringify(binding.gate)} fails the gate-command-policy re-check at execution time; gate:prove refuses to spawn it. Re-run plan:compile to regenerate a compliant gate.`,
     );
   }
 

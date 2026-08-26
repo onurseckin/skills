@@ -64,7 +64,6 @@ const COMMANDS_WHOSE_ACTING_FLAG_NAME_IS_A_DISPLAY_FILTER_NOT_AN_IDENTITY: Reado
     "test:summary",
     "meta-audit",
     "task:brief",
-    "gate:prove",
   ]);
 
 export function requiresActingIdentity(spec: CommandSpec): boolean {
