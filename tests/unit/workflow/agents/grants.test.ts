@@ -75,6 +75,60 @@ describe("workflow/agents/grants", () => {
     });
   });
 
+  test("registerAgentGrant enforces the parent's declared spawn allowlist directly, not only through the CLI gate", () => {
+    withRun((runRoot) => {
+      registerAgentGrant({
+        runRoot,
+        agentId: "mind-auditor-1",
+        role: "mind-auditor",
+        parentAgentId: null,
+        parentTaskId: null,
+        host: "local",
+        actor: "mind-auditor-1",
+        maxAgents: 5,
+        telemetry: {},
+      });
+
+      expect(() =>
+        registerAgentGrant({
+          runRoot,
+          agentId: "orch-illegit",
+          role: "orchestrator",
+          parentAgentId: "mind-auditor-1",
+          parentTaskId: null,
+          host: "local",
+          actor: "mind-auditor-1",
+          maxAgents: 5,
+          telemetry: {},
+        }),
+      ).toThrow("Declared spawn allowlist violation");
+
+      registerAgentGrant({
+        runRoot,
+        agentId: "orch-1",
+        role: "orchestrator",
+        parentAgentId: null,
+        parentTaskId: null,
+        host: "local",
+        actor: "orch-1",
+        maxAgents: 5,
+        telemetry: {},
+      });
+      const legit = registerAgentGrant({
+        runRoot,
+        agentId: "coord-1",
+        role: "coordinator",
+        parentAgentId: "orch-1",
+        parentTaskId: null,
+        host: "local",
+        actor: "orch-1",
+        maxAgents: 5,
+        telemetry: {},
+      });
+      expect(legit.grant.id).toBe("coord-1");
+    });
+  });
+
   test("registerAgentGrant mints grant with full telemetry, derived capabilities, and transcript", () => {
     withRun((runRoot) => {
       const outcome = registerAgentGrant({
@@ -158,7 +212,7 @@ describe("workflow/agents/grants", () => {
         registerAgentGrant({
           runRoot,
           agentId: "agent-3",
-          role: "worker",
+          role: "implementer",
           parentAgentId: "agent-root",
           parentTaskId: null,
           host: "local",

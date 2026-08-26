@@ -11,11 +11,7 @@ import type { JsonObject } from "../../core/contracts/json.ts";
 import type { AgentRole } from "../../core/contracts/packets.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 import { transact } from "../../engine/store/index.ts";
-import {
-  assertHierarchicalSpawning,
-  isBranchWorkerSpawn,
-  roleToTier,
-} from "../../packets/command-authority.ts";
+import { assertSpawnAuthorized, roleToTier } from "../../packets/command-authority.ts";
 import { requireText } from "../task-state.ts";
 import {
   assertAgentBudget,
@@ -211,14 +207,7 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
             `actor '${input.actor}' does not match parent agent '${input.parentAgentId}'; registering a grant under a named parent requires acting as that parent, not borrowing its spawn authority from an unrelated caller`,
           );
         }
-        if (!isBranchWorkerSpawn(parentGrant.role, input.role)) {
-          assertHierarchicalSpawning(
-            parentGrant.role,
-            input.role,
-            input.parentAgentId,
-            input.agentId,
-          );
-        }
+        assertSpawnAuthorized(parentGrant.role, input.role, input.parentAgentId, input.agentId);
       } else if (roleToTier(input.role) > 1 && ledger.length > 0) {
         throw new HarnessError(
           "ROLE_CONFINEMENT_VIOLATION",
