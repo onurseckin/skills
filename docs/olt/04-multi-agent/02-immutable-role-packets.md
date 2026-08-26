@@ -202,15 +202,15 @@ spawns: []
 
 ### Frontmatter Schema Definition
 
-| Key                 | Type       | Validation & Constraints                                | Meaning                                                |
-| :------------------ | :--------- | :------------------------------------------------------ | :----------------------------------------------------- |
-| `role`              | `string`   | Must be one of the closed canonical role names.         | The unique formal identifier of the role.              |
-| `tier`              | `number`   | Must be an integer `0`, `1`, `2`, or `3`.               | The hierarchical level in the supervision tree.        |
-| `can_execute_shell` | `boolean`  | Must be `false` for `validator`, `critic`, `planner`.   | Controls shell gate access in the RBAC engine.         |
-| `may`               | `string[]` | Must be a non-empty array of strings.                   | Explicitly authorized activities for the role.         |
-| `must_not`          | `string[]` | Must be a non-empty array of strings.                   | Non-negotiable structural prohibitions.                |
-| `commands`          | `string[]` | Must match CLI capabilities in `cli-capabilities.json`. | The exact CLI commands this role is allowed to invoke. |
-| `spawns`            | `string[]` | Must contain valid lower-tier roles (or empty `[]`).    | Roles this agent is authorized to spawn.               |
+| Key                 | Type       | Validation & Constraints                                       | Meaning                                                |
+| :------------------ | :--------- | :------------------------------------------------------------- | :----------------------------------------------------- |
+| `role`              | `string`   | Must be one of the closed canonical role names.                | The unique formal identifier of the role.              |
+| `tier`              | `number`   | Must be an integer `0`, `1`, `2`, or `3`.                      | The hierarchical level in the supervision tree.        |
+| `can_execute_shell` | `boolean`  | Must be `false` for `validator`, `critic`, `planner`.          | Controls shell gate access in the RBAC engine.         |
+| `may`               | `string[]` | Must be a non-empty array of strings.                          | Explicitly authorized activities for the role.         |
+| `must_not`          | `string[]` | Must be a non-empty array of strings.                          | Non-negotiable structural prohibitions.                |
+| `commands`          | `string[]` | Must match CLI capabilities in `cli-capabilities/index.jsonl`. | The exact CLI commands this role is allowed to invoke. |
+| `spawns`            | `string[]` | Must contain valid lower-tier roles (or empty `[]`).           | Roles this agent is authorized to spawn.               |
 
 ### Contract Digest Verification (`role_contract_sha256`)
 

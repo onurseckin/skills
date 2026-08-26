@@ -127,7 +127,7 @@ bun olt/scripts/harness.ts help <command>
 - **Forensics & Audit**: `meta-audit` (with `--run`, `--format`, `--inject`, `--json`), `defect:audit` (with `--auto-promote`, `--generate-tests`), `doctor`, `dag`, `report`.
 - **Branch**: `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`, [`references/state-model.md`](references/state-model.md).
 - **Validate**: `task:validate-start`, `task:probe`, `task:reject` (with `--micro-cycle`), `task:review`, [`references/failure-modes.md`](references/failure-modes.md).
-- **Replan & Seal**: `critic:reject`, `plan:replan`, `critic:start`, `critic:review`, `run:complete`. **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, `dag`, `whoami`, `memory:query`, `defect:audit`, `meta-audit`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities.json`](references/cli-capabilities.json)).
+- **Replan & Seal**: `critic:reject`, `plan:replan`, `critic:start`, `critic:review`, `run:complete`. **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, `dag`, `whoami`, `memory:query`, `defect:audit`, `meta-audit`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities/index.jsonl`](references/cli-capabilities/index.jsonl)).
 
 ## Critical Anti-Patterns & Operational Guardrails
 

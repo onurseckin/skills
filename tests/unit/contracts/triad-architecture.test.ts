@@ -109,7 +109,7 @@ describe("Directive p06: Agent Triad Architecture & Host Provider Taxonomy", () 
       "parity-matrix.md",
       "host-adapters.md",
       "cli-capabilities.md",
-      "cli-capabilities.json",
+      "cli-capabilities",
       "cli.md",
       "protocol.md",
       "state-model.md",

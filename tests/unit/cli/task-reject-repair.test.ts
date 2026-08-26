@@ -372,6 +372,8 @@ describe("task:assign-repairer", () => {
       "antigravity",
       "--parent-agent",
       "fixture-orch-root",
+      "--actor",
+      "fixture-orch-root",
       "--parent-task",
       "task-core",
     ]);
@@ -432,6 +434,8 @@ describe("task:assign-repairer", () => {
       "antigravity",
       "--parent-agent",
       "fixture-orch-root",
+      "--actor",
+      "fixture-orch-root",
       "--parent-task",
       "task-core",
     ]);
@@ -476,6 +480,8 @@ describe("task:assign-repairer", () => {
       "--host",
       "antigravity",
       "--parent-agent",
+      "fixture-orch-root",
+      "--actor",
       "fixture-orch-root",
       "--parent-task",
       "task-core",

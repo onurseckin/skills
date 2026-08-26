@@ -29,6 +29,7 @@ permissions:
     - "run:exec"
     - "finding:get"
     - "evidence:get"
+    - "agent:register"
     - "agent:report"
     - "whoami"
   spawns: []

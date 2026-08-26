@@ -208,6 +208,8 @@ describe("recover", () => {
       "antigravity",
       "--parent-agent",
       "worker-1",
+      "--actor",
+      "worker-1",
       "--parent-task",
       "S-1",
     ]);

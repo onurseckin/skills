@@ -40,6 +40,9 @@ permissions:
     - "finding:get"
     - "report:get"
     - "evidence:get"
+    - "agent:register"
+    - "agent:report"
+    - "agent:release"
     - "doctor"
     - "whoami"
   spawns:

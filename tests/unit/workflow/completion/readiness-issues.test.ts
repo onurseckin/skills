@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { completionReadinessIssues } from "../../../../olt/scripts/src/workflow/completion/readiness-issues.ts";
 import { BRANCH_LEDGER_KEY } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
 import { branchRecord } from "../branch/fixture.ts";
-import { workflowState } from "../test-port.ts";
+import { commandRecord, workflowState } from "../test-port.ts";
 
 describe("completionReadinessIssues: requirements shapes beyond a plain array", () => {
   test("reads requirements nested under a { requirements: [...] } wrapper object", () => {
@@ -41,6 +41,36 @@ describe("completionReadinessIssues: transition summary chain (B21.2)", () => {
     expect(completionReadinessIssues(state)).toContain(
       "branch B-1 is collected with no recorded outcome summary",
     );
+  });
+});
+
+describe("completionReadinessIssues: validator command evidence must come from an authorized actor", () => {
+  test("rejects code-quality validator evidence whose command was run by an unrelated actor", () => {
+    const state = workflowState();
+    Object.assign(state.tasks["T-1"]!, {
+      status: "done",
+      report: { summary: "done" },
+      original_implementer: "impl-1",
+      validations: [
+        {
+          validator_id: "validator-legit",
+          domain: "code-quality",
+          token_digest: "digest",
+          attempt: 1,
+          started_at: "2026-08-13T12:00:00.000Z",
+          deadline_at: "2026-08-13T12:20:00.000Z",
+          verdict: "pass",
+          reviewed_requirement_ids: ["R-1"],
+          checks: [{ command_id: "C-OUTSIDER" }],
+        },
+      ],
+    });
+    state.commands["C-OUTSIDER"] = commandRecord("C-OUTSIDER", {
+      actor: "outsider-actor",
+      gate_id: "G-1",
+    });
+    const issues = completionReadinessIssues(state);
+    expect(issues).toContain("task T-1 has invalid validator command C-OUTSIDER");
   });
 });
 

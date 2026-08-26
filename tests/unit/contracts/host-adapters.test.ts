@@ -95,7 +95,7 @@ describe("host adapters & two-tier architecture specifications", () => {
     const content = readFileSync(cliDocPath, "utf8");
 
     expect(content).toContain("cli-capabilities.md");
-    expect(content).toContain("cli-capabilities.json");
+    expect(content).toContain("cli-capabilities/index.jsonl");
     expect(content).toContain("bun harness.ts help <command>");
     // A per-command flag table is the drift the generated manifest exists to prevent.
     expect(content).not.toContain("| Flag | Type |");

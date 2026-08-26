@@ -351,7 +351,7 @@ When developing or updating skills locally:
 3. **Strict Type Safety**: `bun run typecheck` (zero TypeScript `any`, zero `@ts-ignore`)
 4. **Code Formatting**: `bun run format` (using `oxfmt`)
 5. **Zero Runtime Dependencies**: All runtime scripts must run directly via `bun` standard libraries and Node built-ins without requiring runtime `node_modules`.
-6. **The CLI Manifest Is Generated**: `references/cli-capabilities.md` and `.json` are rendered from `src/cli/registry/` by `scripts/generate-cli-manifest.ts`, and a unit test asserts the checked-in files still match the registry. Change the registry, regenerate, never hand-edit.
+6. **The CLI Manifest Is Generated**: `references/cli-capabilities.md` (an index) plus the `references/cli-capabilities/` tree (per-domain markdown, an `index.jsonl` record per command, and one pretty-printed JSON file per command) are all rendered from `src/cli/registry/` by `scripts/generate-cli-manifest.ts`, and a unit test asserts every checked-in file in that tree still matches the registry. Change the registry, regenerate, never hand-edit.
 7. **Role Contracts Are Checked**: every `commands:` entry in `olt/roles/*.md` must name a command that exists in the manifest, and the frontmatter is parsed and hashed at runtime — a malformed contract is an `INTEGRITY` error.
 
 ---

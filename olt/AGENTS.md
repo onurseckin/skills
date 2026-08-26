@@ -264,8 +264,8 @@ To protect repository state and prevent common LLM blunder modes:
 5. **Per-Task/Subgroup Commit, Push & Global Sync:**
    - Keep working tree clean and synchronized by executing Conventional Commits, `git push origin main`, and `bun scripts/sync-global.ts` upon task verification.
 6. **Compact CLI Help Over Giant JSON Dumps:**
-   - **Never** read, parse, or inject massive raw JSON dumps (e.g. `cli-capabilities.json`).
-   - Always discover commands via targeted CLI help: `bun harness.ts help <command>` or error diagnostics via `bun harness.ts explain <ERROR_CODE>`.
+   - **Never** read, parse, or inject a whole reference tree at once (e.g. every file under `references/cli-capabilities/`).
+   - Always discover commands via targeted CLI help: `bun harness.ts help <command>`, a single grep of `references/cli-capabilities/index.jsonl`, or error diagnostics via `bun harness.ts explain <ERROR_CODE>`.
 7. **Monolithic Default Output & Step Guidance:**
    - Rely on unified status views (`summary:view` / `report` / `run:status`) which automatically integrate the Sugiyama DAG, live doctor checks, task metrics, and subagent allocations.
    - Always follow the structured `nextRecommendedCommand` guidance emitted in CLI briefs.

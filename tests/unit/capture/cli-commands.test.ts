@@ -10,6 +10,7 @@ import {
   captureRunCommand,
 } from "../../../olt/scripts/src/cli/commands/capture-run.ts";
 import { captureEvalCommand } from "../../../olt/scripts/src/cli/commands/capture-eval.ts";
+import { loadCapabilitySplit } from "../../../olt/scripts/src/cli/manifest-split.ts";
 
 describe("T-CAP-CLI-TESTS: Harness CLI Capture Commands Integration", () => {
   describe("capture:init", () => {
@@ -238,11 +239,9 @@ screens:
   });
 
   describe("cli-capabilities contracts", () => {
-    it("validates cli-capabilities.json contains standardized mind:queue commands", () => {
-      const jsonPath = join(__dirname, "../../../olt/references/cli-capabilities.json");
-      const content = readFileSync(jsonPath, "utf-8");
-      const parsed = JSON.parse(content);
-      const commandNames = new Set(parsed.commands.map((c: { name: string }) => c.name));
+    it("validates the cli-capabilities split tree contains standardized mind:queue commands", () => {
+      const manifest = loadCapabilitySplit();
+      const commandNames = new Set(manifest.commands.map((c) => c.name));
       expect(commandNames.has("mind:queue:list")).toBe(true);
       expect(commandNames.has("mind:queue:add")).toBe(true);
       expect(commandNames.has("mind:queue:drain")).toBe(true);
