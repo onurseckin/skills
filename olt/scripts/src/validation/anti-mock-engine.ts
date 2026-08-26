@@ -93,7 +93,8 @@ export function formatAntiMockReport(report: AntiMockDiagnosticReport): string {
       }
     }
   } else {
-    lines.push(` │ Status: ⚪ SKIPPED (No test runner or implementation source provided)   │`);
+    lines.push(` │ Status: ❌ mutation gate was not run (no test runner supplied); a report │`);
+    lines.push(` │ cannot certify falsifiability without executing mutation survival tests │`);
   }
   lines.push(` └──────────────────────────────────────────────────────────────────────────┘`);
   lines.push("================================================================================");
@@ -144,7 +145,7 @@ export async function evaluateAntiMock(
     pillar3 = await runMutationGate(targetSource, input.testRunner, mutationOpts);
   }
 
-  const pillar3Passed = pillar3 !== undefined ? pillar3.passed : true;
+  const pillar3Passed = pillar3 !== undefined && pillar3.passed;
   const passed = pillar1.passed && pillar2.passed && pillar3Passed;
 
   const totalViolationsCount =

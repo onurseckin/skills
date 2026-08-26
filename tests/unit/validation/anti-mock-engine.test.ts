@@ -598,6 +598,34 @@ describe("Unified AntiMockEngine & Diagnostics", () => {
     expect(report.summary).toContain("trivial_constant_assertion");
   });
 
+  test("withholds a PASSED verdict when no test runner is supplied to prove mutation survival was checked", async () => {
+    const cleanTestSource = `
+      test("adds two numbers", () => {
+        expect(add(2, 3)).toBe(5);
+      });
+    `;
+
+    const input: AntiMockEvaluationInput = {
+      testSource: cleanTestSource,
+      implementationSource: `
+        export function add(a: number, b: number): number {
+          return a + b;
+        }
+      `,
+      testFileName: "tests/add.test.ts",
+      implementationFileName: "src/add.ts",
+    };
+
+    const report = await evaluateAntiMock(input);
+
+    expect(report.pillar1AstLinter.passed).toBe(true);
+    expect(report.pillar2AssertionFloor.passed).toBe(true);
+    expect(report.pillar3MutationGate).toBeUndefined();
+    expect(report.passed).toBe(false);
+    expect(report.summary).toContain("Overall Verdict: ❌ FAILED");
+    expect(report.summary).toContain("mutation gate was not run");
+  });
+
   test("formats reports with survived mutants and diagnostic summaries", () => {
     const dummyReport: AntiMockDiagnosticReport = {
       passed: false,
