@@ -199,15 +199,18 @@ function assertDeclaredSpawnAllowed(
   childAgentId?: string,
 ): void {
   if (roleToTier(parentRole) === 3) return;
-  let contract: RoleContract | undefined;
-  try {
-    contract = loadRoleContract(parentRole);
-  } catch {
-    return;
-  }
-  if (contract.spawns.some((declared) => declared === childRole)) return;
   const parentDisplay = parentAgentId ? `'${parentAgentId}' (${parentRole})` : `'${parentRole}'`;
   const childDisplay = childAgentId ? `'${childAgentId}' (${childRole})` : `'${childRole}'`;
+  let contract: RoleContract;
+  try {
+    contract = loadRoleContract(parentRole);
+  } catch (error) {
+    throw new HarnessError(
+      "ROLE_CONFINEMENT_VIOLATION",
+      `Declared spawn allowlist could not be verified: the role contract for supervisor ${parentDisplay} at ${resolveRoleContractPath(parentRole)} could not be loaded (${String(error)}); dispatch of subagent ${childDisplay} is refused, because an unreadable or unparseable role contract does not waive the declared-spawn allowlist`,
+    );
+  }
+  if (contract.spawns.some((declared) => declared === childRole)) return;
   throw new HarnessError(
     "ROLE_CONFINEMENT_VIOLATION",
     `Declared spawn allowlist violation: supervisor ${parentDisplay} may not dispatch subagent ${childDisplay}; the role contract at ${resolveRoleContractPath(parentRole)} restricts spawns to [${contract.spawns.join(", ")}], and '${childRole}' is not declared among them.`,
@@ -378,10 +381,12 @@ function assertAgentRegisterHierarchy(
         `parent agent ${parentAgentId} holds a ${parentGrant.status} grant, not an active one, and cannot supervise agent:register`,
       );
     }
-    if (agentId !== undefined && agentId !== parentAgentId) {
+    if (agentId === undefined || agentId !== parentAgentId) {
       throw new HarnessError(
         "AUTHENTICATION_FAILURE",
-        `acting identity '${agentId}' does not match --parent-agent '${parentAgentId}'; agent:register may only be invoked by the parent agent itself, on its own behalf, not by naming an unrelated agent's grant as the parent to borrow its spawn authority`,
+        agentId === undefined
+          ? `agent:register with --parent-agent '${parentAgentId}' carries no resolvable acting identity (--actor/--agent/--validator/--critic); registering under a named parent means claiming that parent's spawn authority, and an absent identity cannot prove that claim, so it is refused rather than passed`
+          : `acting identity '${agentId}' does not match --parent-agent '${parentAgentId}'; agent:register may only be invoked by the parent agent itself, on its own behalf, not by naming an unrelated agent's grant as the parent to borrow its spawn authority`,
       );
     }
     assertSpawnAuthorized(parentGrant.role, childRole, parentAgentId, childAgentId);

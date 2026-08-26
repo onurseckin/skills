@@ -244,6 +244,8 @@ describe("taskBriefCommand and agentBriefCommand handler tests", () => {
       "claude-code",
       "--parent-agent",
       FIXTURE_ORCH_ROOT,
+      "--actor",
+      FIXTURE_ORCH_ROOT,
     ]);
 
     // Register subagent under TASK_ID
@@ -258,6 +260,8 @@ describe("taskBriefCommand and agentBriefCommand handler tests", () => {
       "--host",
       "claude-code",
       "--parent-agent",
+      "coordinator-1",
+      "--actor",
       "coordinator-1",
       "--parent-task",
       TASK_ID,

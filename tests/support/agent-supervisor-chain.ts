@@ -41,6 +41,8 @@ export async function establishSupervisorChain(
     host,
     "--parent-agent",
     mind,
+    "--actor",
+    mind,
   ]);
   await execute([
     "agent:register",
@@ -53,6 +55,8 @@ export async function establishSupervisorChain(
     "--host",
     host,
     "--parent-agent",
+    orchestrator,
+    "--actor",
     orchestrator,
   ]);
   return { mind, orchestrator, coordinator };
@@ -74,6 +78,7 @@ export async function registerUnderChain(
   parentAgent?: string,
   parentTask?: string,
 ): Promise<void> {
+  const resolvedParent = parentAgent ?? parentForRole(chain, role);
   await execute([
     "agent:register",
     "--run",
@@ -85,7 +90,9 @@ export async function registerUnderChain(
     "--host",
     host,
     "--parent-agent",
-    parentAgent ?? parentForRole(chain, role),
+    resolvedParent,
+    "--actor",
+    resolvedParent,
     ...(parentTask === undefined ? [] : ["--parent-task", parentTask]),
   ]);
 }

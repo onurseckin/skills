@@ -143,7 +143,7 @@ describe("workflow/agents/grants", () => {
         parentAgentId: "agent-root",
         parentTaskId: "T-1",
         host: "local",
-        actor: "coordinator",
+        actor: "agent-root",
         maxAgents: 3,
         telemetry: {
           modelTier: "unknown" as const,
@@ -162,7 +162,7 @@ describe("workflow/agents/grants", () => {
           parentAgentId: "agent-root",
           parentTaskId: null,
           host: "local",
-          actor: "coordinator",
+          actor: "agent-root",
           maxAgents: 2, // maxAgents is 2, but ledger already has 2
           telemetry: {},
         }),

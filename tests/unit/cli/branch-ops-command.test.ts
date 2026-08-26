@@ -42,6 +42,8 @@ async function registerSubAgent(
     "antigravity",
     "--parent-agent",
     parentAgent,
+    "--actor",
+    parentAgent,
     "--parent-task",
     parentTask,
   ]);

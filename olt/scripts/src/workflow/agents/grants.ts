@@ -205,6 +205,12 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
             `parent agent ${input.parentAgentId} holds a ${parentGrant.status} grant, not an active one, and cannot supervise a new spawn`,
           );
         }
+        if (input.actor !== input.parentAgentId) {
+          throw new HarnessError(
+            "AUTHENTICATION_FAILURE",
+            `actor '${input.actor}' does not match parent agent '${input.parentAgentId}'; registering a grant under a named parent requires acting as that parent, not borrowing its spawn authority from an unrelated caller`,
+          );
+        }
         if (!isBranchWorkerSpawn(parentGrant.role, input.role)) {
           assertHierarchicalSpawning(
             parentGrant.role,

@@ -55,6 +55,8 @@ describe("agent:register", () => {
       "claude-code",
       "--parent-agent",
       "coordinator-1",
+      "--actor",
+      "coordinator-1",
       "--parent-task",
       "task-core",
       "--provider",
@@ -119,7 +121,7 @@ describe("agent:register", () => {
     ).rejects.toThrow("--model-tier must be one of");
   });
 
-  test("CRITICAL 1/HIGH 4 end to end: agent:register with an explicit --parent-agent that violates the hierarchy is refused even with no --actor", async () => {
+  test("CRITICAL 1/HIGH 4 end to end: agent:register with an explicit --parent-agent is refused without a matching --actor, and still refused for a hierarchy violation once one is proven", async () => {
     const { run } = await setupCompiledRun("agent-register-e2e-hierarchy", roots);
     await execute([
       "agent:register",
@@ -145,6 +147,24 @@ describe("agent:register", () => {
         "--host",
         "claude-code",
         "--parent-agent",
+        "orchestrator-1",
+      ]),
+    ).rejects.toThrow("no resolvable acting identity");
+
+    await expect(
+      execute([
+        "agent:register",
+        "--run",
+        run,
+        "--agent",
+        "impl-skip-tier",
+        "--role",
+        "implementer",
+        "--host",
+        "claude-code",
+        "--parent-agent",
+        "orchestrator-1",
+        "--actor",
         "orchestrator-1",
       ]),
     ).rejects.toThrow("may only dispatch Tier 2 Coordinators");
@@ -276,6 +296,8 @@ describe("agent:release", () => {
       "claude-code",
       "--parent-agent",
       "coordinator-1",
+      "--actor",
+      "coordinator-1",
     ]);
 
     const result = await execute([
@@ -320,6 +342,8 @@ describe("agent:list", () => {
       "claude-code",
       "--parent-agent",
       "coordinator-1",
+      "--actor",
+      "coordinator-1",
     ]);
     await execute(["agent:release", "--run", run, "--agent", "worker-1", "--reason", "done"]);
 
@@ -355,6 +379,8 @@ describe("agent:list", () => {
       "claude-code",
       "--parent-agent",
       "coordinator-1",
+      "--actor",
+      "coordinator-1",
     ]);
     await execute(["agent:release", "--run", run, "--agent", "worker-1", "--reason", "done"]);
 
@@ -389,6 +415,8 @@ describe("agent:list", () => {
       "--host",
       "claude-code",
       "--parent-agent",
+      "coordinator-1",
+      "--actor",
       "coordinator-1",
       "--parent-task",
       "task-core",

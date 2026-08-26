@@ -114,6 +114,8 @@ export async function branchCapsule(
     "antigravity",
     "--parent-agent",
     "coordinator",
+    "--actor",
+    "coordinator",
     "--parent-task",
     "task-1",
   ]);
@@ -212,6 +214,8 @@ export async function openChainLevel(
     "--host",
     "antigravity",
     "--parent-agent",
+    parent.agent,
+    "--actor",
     parent.agent,
     "--parent-task",
     subTaskId,

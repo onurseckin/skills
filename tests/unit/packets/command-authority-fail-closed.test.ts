@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { assertGrantedCommand } from "../../../olt/scripts/src/packets/command-authority.ts";
+import {
+  assertGrantedCommand,
+  assertSpawnAuthorized,
+} from "../../../olt/scripts/src/packets/command-authority.ts";
 import {
   GRANT_BOOTSTRAP_ALLOWLIST,
   PRE_COMPILE_PLAN_CONSTRUCTION_COMMANDS,
@@ -10,6 +13,7 @@ import {
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
 import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
+import type { AgentRole } from "../../../olt/scripts/src/core/contracts/packets.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { emptyGrantRun } from "./grant-run-fixture.ts";
@@ -420,5 +424,132 @@ describe("assertGrantedCommand: the false-positive repair does not widen into a 
     expect(() => assertGrantedCommand(syntheticSpec, { run: "/nonexistent/probe-run" })).toThrow(
       "not on the grant bootstrap allowlist",
     );
+  });
+});
+
+describe("assertGrantedCommand hole 6: agent:register --parent-agent binding fails open when the actor is absent", () => {
+  async function seedActiveMind(run: string): Promise<void> {
+    transact(run, "test-setup", "grant-agent", {}, (draft) => {
+      draft.agents = [
+        {
+          id: "mind-1",
+          role: "mind",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: new Date().toISOString(),
+          status: "active",
+        },
+      ];
+    });
+  }
+
+  test("denies minting a Tier 1 orchestrator under a named --parent-agent when no acting identity is supplied at all", async () => {
+    const { run } = await emptyGrantRun("fail-closed-hole6-no-actor-");
+    await seedActiveMind(run);
+
+    const flags: Flags = {
+      run,
+      agent: "orch-stolen",
+      role: "orchestrator",
+      host: "claude-code",
+      "parent-agent": "mind-1",
+    };
+    let thrown: unknown;
+    try {
+      assertGrantedCommand(spec("agent:register"), flags);
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(HarnessError);
+    const error = thrown as HarnessError;
+    expect(error.code).toBe("AUTHENTICATION_FAILURE");
+    expect(error.message).toContain("mind-1");
+    expect(error.message).not.toContain("Agent Granted");
+  });
+
+  test("still denies the same escalation when the caller supplies a wrong --actor instead of an absent one, as a control", async () => {
+    const { run } = await emptyGrantRun("fail-closed-hole6-wrong-actor-");
+    await seedActiveMind(run);
+
+    const flags: Flags = {
+      run,
+      agent: "orch-x",
+      role: "orchestrator",
+      host: "claude-code",
+      "parent-agent": "mind-1",
+      actor: "orch-stolen",
+    };
+    expect(() => assertGrantedCommand(spec("agent:register"), flags)).toThrow(
+      "does not match --parent-agent",
+    );
+  });
+
+  test("permits the same registration once --actor proves the caller really is the named parent", async () => {
+    const { run } = await emptyGrantRun("fail-closed-hole6-legit-actor-");
+    await seedActiveMind(run);
+
+    const flags: Flags = {
+      run,
+      agent: "orch-legit",
+      role: "orchestrator",
+      host: "claude-code",
+      "parent-agent": "mind-1",
+      actor: "mind-1",
+    };
+    expect(() => assertGrantedCommand(spec("agent:register"), flags)).not.toThrow();
+  });
+
+  test("omitting the actor is denied identically whichever acting-identity flag would have carried it", async () => {
+    const { run } = await emptyGrantRun("fail-closed-hole6-no-actor-variants-");
+    await seedActiveMind(run);
+
+    for (const flags of [
+      {
+        run,
+        agent: "orch-stolen-a",
+        role: "orchestrator",
+        host: "claude-code",
+        "parent-agent": "mind-1",
+      },
+      {
+        run,
+        agent: "orch-stolen-b",
+        role: "orchestrator",
+        host: "claude-code",
+        "parent-agent": "mind-1",
+        validator: undefined,
+      },
+    ] satisfies Flags[]) {
+      let thrown: unknown;
+      try {
+        assertGrantedCommand(spec("agent:register"), flags);
+      } catch (error) {
+        thrown = error;
+      }
+      expect(thrown).toBeInstanceOf(HarnessError);
+      expect((thrown as HarnessError).code).toBe("AUTHENTICATION_FAILURE");
+    }
+  });
+});
+
+describe("assertSpawnAuthorized: an unreadable declared-spawn role contract denies rather than waives the allowlist", () => {
+  test("denies dispatch when the parent role's contract file cannot be loaded from disk", () => {
+    const unregisteredParentRole = "orchestrator-ghost-contract" as unknown as AgentRole;
+    let thrown: unknown;
+    try {
+      assertSpawnAuthorized(unregisteredParentRole, "coordinator");
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(HarnessError);
+    const error = thrown as HarnessError;
+    expect(error.code).toBe("ROLE_CONFINEMENT_VIOLATION");
+    expect(error.message).toContain("could not be loaded");
+    expect(error.message).toContain("does not waive the declared-spawn allowlist");
+  });
+
+  test("a readable contract that declares the child role still passes, as a control", () => {
+    expect(() => assertSpawnAuthorized("orchestrator", "coordinator")).not.toThrow();
   });
 });

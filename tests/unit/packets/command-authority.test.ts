@@ -265,7 +265,7 @@ describe("assertGrantedCommand", () => {
     );
   });
 
-  test("CRITICAL 1: --parent-agent given but no acting identity resolves no longer bypasses the hierarchy check", async () => {
+  test("CRITICAL 1: --parent-agent given but no acting identity resolves is refused outright, never routed on into the hierarchy check", async () => {
     const { run } = await emptyGrantRun("command-authority-critical1-repro-");
     const bootstrapOrchestrator: Flags = {
       run,
@@ -296,8 +296,26 @@ describe("assertGrantedCommand", () => {
       "parent-agent": "orchestrator-1",
     };
     expect(() => assertGrantedCommand(spec("agent:register"), noActorGiven)).toThrow(
-      "may only dispatch Tier 2 Coordinators",
+      "no resolvable acting identity",
     );
+
+    const wrongActorGiven: Flags = {
+      ...noActorGiven,
+      agent: "impl-skip-tier-2",
+      actor: "someone-unrelated",
+    };
+    expect(() => assertGrantedCommand(spec("agent:register"), wrongActorGiven)).toThrow(
+      "does not match --parent-agent",
+    );
+
+    const provenActorButIllegalTierJump: Flags = {
+      ...noActorGiven,
+      agent: "impl-skip-tier-3",
+      actor: "orchestrator-1",
+    };
+    expect(() =>
+      assertGrantedCommand(spec("agent:register"), provenActorButIllegalTierJump),
+    ).toThrow("may only dispatch Tier 2 Coordinators");
   });
 
   test("HIGH 4: an unresolvable or inactive --parent-agent is an error, never a silent skip", async () => {
@@ -446,6 +464,7 @@ describe("assertGrantedCommand", () => {
       role: "repairer",
       host: "claude-code",
       "parent-agent": "coord-narrow",
+      actor: "coord-narrow",
     };
     expect(() => assertGrantedCommand(spec("agent:register"), undeclaredButTierLegal)).toThrow(
       "Declared spawn allowlist violation",
@@ -457,8 +476,20 @@ describe("assertGrantedCommand", () => {
       role: "implementer",
       host: "claude-code",
       "parent-agent": "coord-narrow",
+      actor: "coord-narrow",
     };
     expect(() => assertGrantedCommand(spec("agent:register"), declaredAndTierLegal)).not.toThrow();
+
+    const declaredButNoActingIdentity: Flags = {
+      run,
+      agent: "impl-declared-2",
+      role: "implementer",
+      host: "claude-code",
+      "parent-agent": "coord-narrow",
+    };
+    expect(() => assertGrantedCommand(spec("agent:register"), declaredButNoActingIdentity)).toThrow(
+      "no resolvable acting identity",
+    );
   });
 
   test("excludes a command's own subject flag from the candidates it reads the acting agent from", async () => {
