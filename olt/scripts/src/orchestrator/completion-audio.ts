@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { accessSync, constants as fsConstants } from "node:fs";
 import { DEFAULT_DARWIN_AUDIO_COMMAND, DEFAULT_DARWIN_SOUND_PATH } from "../hooks/config.ts";
 import { resolveAudioSoundPath } from "../hooks/dispatcher.ts";
 
@@ -84,6 +85,8 @@ export interface CompletionAudioConfig {
   readonly sound?: string | undefined;
   readonly soundFile?: string | undefined;
   readonly command?: string | undefined;
+  readonly commandArgv?: readonly string[] | undefined;
+  readonly player?: AudioPlayer | undefined;
   readonly cooldownMs?: number | undefined;
   readonly allowedTiers?: readonly string[] | undefined;
   readonly allowedEvents?: readonly string[] | undefined;
@@ -241,7 +244,7 @@ export function evaluateCompletionAudio(
   }
 
   const platform = config?.platform ?? process.platform;
-  if (platform !== "darwin" && platform !== "linux" && !config?.command) {
+  if (platform !== "darwin" && platform !== "linux" && !config?.command && !config?.commandArgv) {
     return { shouldPlay: false, reason: "platform_unsupported" };
   }
 
@@ -324,14 +327,67 @@ export interface SoundExecutionOptions {
   readonly sound?: string | undefined;
   readonly file?: string | undefined;
   readonly command?: string | undefined;
+  readonly commandArgv?: readonly string[] | undefined;
+  readonly player?: AudioPlayer | undefined;
   readonly platform?: string | undefined;
   readonly timeoutMs?: number | undefined;
   readonly silent?: boolean | undefined;
 }
 
-/**
- * Safely plays the completion audio sound across platforms.
- */
+export interface AudioPlayResult {
+  readonly status: number | null;
+  readonly stdout?: string | undefined;
+  readonly stderr?: string | undefined;
+}
+
+export type AudioPlayer = (
+  executablePath: string,
+  args: readonly string[],
+  options: { readonly timeoutMs: number; readonly silent: boolean },
+) => AudioPlayResult;
+
+const AUDIO_PLAYER_CANDIDATE_PATHS: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  afplay: ["/usr/bin/afplay"],
+  paplay: ["/usr/bin/paplay", "/bin/paplay"],
+  aplay: ["/usr/bin/aplay", "/bin/aplay"],
+});
+
+export const ALLOWED_AUDIO_PLAYERS: readonly string[] = Object.freeze(
+  Object.keys(AUDIO_PLAYER_CANDIDATE_PATHS),
+);
+
+const AUDIO_FILE_EXTENSIONS: readonly string[] = Object.freeze([
+  ".aiff",
+  ".aif",
+  ".wav",
+  ".mp3",
+  ".m4a",
+  ".ogg",
+  ".flac",
+]);
+
+function resolveAudioPlayerPath(executable: string): string | undefined {
+  for (const candidate of AUDIO_PLAYER_CANDIDATE_PATHS[executable] ?? []) {
+    try {
+      accessSync(candidate, fsConstants.X_OK);
+      return candidate;
+    } catch {
+      continue;
+    }
+  }
+  return undefined;
+}
+
+function isValidAudioFilePath(candidate: string): boolean {
+  if (!candidate.startsWith("/")) return false;
+  const lowered = candidate.toLowerCase();
+  return AUDIO_FILE_EXTENSIONS.some((extension) => lowered.endsWith(extension));
+}
+
+function renderArgv(argv: readonly string[]): string {
+  return argv.join(" ");
+}
+
 export function playCompletionAudioSync(options?: SoundExecutionOptions | undefined): {
   success: boolean;
   command: string;
@@ -342,58 +398,112 @@ export function playCompletionAudioSync(options?: SoundExecutionOptions | undefi
   const timeoutMs = options?.timeoutMs ?? 5000;
   const silent = options?.silent ?? false;
 
-  let command = options?.command;
-  let soundPath = options?.file;
+  if (options?.command !== undefined && options.command.trim().length > 0) {
+    return {
+      success: false,
+      command: options.command,
+      error: `completion audio no longer accepts a raw "command" shell string ("${options.command}"); declare "commandArgv" as an argv array whose first element is an allowlisted audio player (${ALLOWED_AUDIO_PLAYERS.join(", ")}), or pass "sound"/"file" and let the platform default apply.`,
+    };
+  }
 
-  if (!command) {
-    if (platform === "darwin") {
-      soundPath = resolveAudioSoundPath(options?.sound ?? "Bottle", options?.file);
-      command = `afplay "${soundPath}"`;
-    } else if (platform === "linux") {
-      const file =
-        options?.file ?? (options?.sound ? `/usr/share/sounds/${options.sound}` : undefined);
-      command = file ? `paplay "${file}" || aplay "${file}"` : `printf '\\a'`;
-    } else {
+  const attempts: string[][] = [];
+
+  if (options?.commandArgv !== undefined) {
+    if (options.commandArgv.length === 0) {
+      return {
+        success: false,
+        command: "",
+        error: "commandArgv must not be empty",
+      };
+    }
+    attempts.push([...options.commandArgv]);
+  } else if (platform === "darwin") {
+    attempts.push(["afplay", resolveAudioSoundPath(options?.sound ?? "Bottle", options?.file)]);
+  } else if (platform === "linux") {
+    const file =
+      options?.file ?? (options?.sound ? `/usr/share/sounds/${options.sound}` : undefined);
+    if (file === undefined) {
       return {
         success: true,
         command: "noop",
-        output: `Platform ${platform} audio skipped gracefully`,
+        output: "No audio file resolved for linux; audio skipped gracefully",
       };
     }
+    attempts.push(["paplay", file], ["aplay", file]);
+  } else {
+    return {
+      success: true,
+      command: "noop",
+      output: `Platform ${platform} audio skipped gracefully`,
+    };
   }
 
-  try {
-    const result = spawnSync("sh", ["-c", command], {
-      timeout: timeoutMs,
-      stdio: silent ? "ignore" : "pipe",
-      encoding: "utf8",
-    });
+  let lastError = "Audio playback failed";
+  let lastCommand = "";
 
-    if (result.status === 0) {
+  for (const argv of attempts) {
+    const executable = argv[0]!;
+    lastCommand = renderArgv(argv);
+
+    if (!ALLOWED_AUDIO_PLAYERS.includes(executable)) {
       return {
-        success: true,
-        command,
-        output: result.stdout
-          ? result.stdout.trim()
-          : soundPath
-            ? `Played audio: ${soundPath}`
-            : "Audio notification played",
+        success: false,
+        command: lastCommand,
+        error: `"${executable}" is not an allowlisted audio player. Allowed: ${ALLOWED_AUDIO_PLAYERS.join(", ")}.`,
       };
     }
 
-    const err = result.stderr ? result.stderr.trim() : `Exited with code ${result.status}`;
-    return {
-      success: false,
-      command,
-      error: err.length > 0 ? err : "Audio playback failed",
-    };
-  } catch (err) {
-    return {
-      success: false,
-      command,
-      error: err instanceof Error ? err.message : String(err),
-    };
+    const soundPath = argv[1];
+    if (soundPath === undefined || !isValidAudioFilePath(soundPath)) {
+      return {
+        success: false,
+        command: lastCommand,
+        error: `audio path "${soundPath ?? ""}" is not an absolute path ending in a recognized audio extension (${AUDIO_FILE_EXTENSIONS.join(", ")}).`,
+      };
+    }
+
+    const resolved =
+      options?.player === undefined ? resolveAudioPlayerPath(executable) : executable;
+    if (resolved === undefined) {
+      lastError = `no trusted absolute path could be resolved for allowlisted audio player "${executable}" on this system; refusing to fall back to a PATH-based lookup`;
+      continue;
+    }
+
+    const play: AudioPlayer =
+      options?.player ??
+      ((executablePath, args, opts) => {
+        const spawned = spawnSync(executablePath, [...args], {
+          timeout: opts.timeoutMs,
+          stdio: opts.silent ? "ignore" : "pipe",
+          encoding: "utf8",
+          shell: false,
+        });
+        return { status: spawned.status, stdout: spawned.stdout, stderr: spawned.stderr };
+      });
+
+    try {
+      const result = play(resolved, argv.slice(1), { timeoutMs, silent });
+
+      if (result.status === 0) {
+        return {
+          success: true,
+          command: lastCommand,
+          output: result.stdout ? result.stdout.trim() : `Played audio: ${soundPath}`,
+        };
+      }
+
+      const err = result.stderr ? result.stderr.trim() : `Exited with code ${result.status}`;
+      lastError = err.length > 0 ? err : "Audio playback failed";
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+    }
   }
+
+  return {
+    success: false,
+    command: lastCommand,
+    error: lastError,
+  };
 }
 
 /**
@@ -473,7 +583,9 @@ export class CompletionAudioManager {
     const execResult = playCompletionAudioSync({
       sound,
       file,
-      command: this.config.command,
+      ...(this.config.command === undefined ? {} : { command: this.config.command }),
+      ...(this.config.commandArgv === undefined ? {} : { commandArgv: this.config.commandArgv }),
+      ...(this.config.player === undefined ? {} : { player: this.config.player }),
       platform: this.config.platform,
       silent: this.config.silent,
     });

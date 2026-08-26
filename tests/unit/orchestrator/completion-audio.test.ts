@@ -228,13 +228,50 @@ describe("Orchestrator-Tier Completion Audio & Subagent Anti-Noise Filter", () =
   });
 
   describe("playCompletionAudioSync", () => {
-    test("executes custom shell command safely in test mode", () => {
+    test("refuses a raw shell command string and names the argv replacement", () => {
       const result = playCompletionAudioSync({
         command: "echo 'orchestrator chime'",
         silent: true,
       });
-      expect(result.success).toBe(true);
-      expect(result.command).toBe("echo 'orchestrator chime'");
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("no longer accepts a raw");
+      expect(result.error).toContain("commandArgv");
+    });
+
+    test("refuses a shell string that would have executed arbitrary code", () => {
+      const result = playCompletionAudioSync({
+        command: "exit 42",
+        silent: true,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("no longer accepts a raw");
+    });
+
+    test("refuses an argv whose executable is not an allowlisted audio player", () => {
+      const result = playCompletionAudioSync({
+        commandArgv: ["rm", "-rf", "/tmp/whatever.wav"],
+        silent: true,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not an allowlisted audio player");
+    });
+
+    test("refuses an allowlisted player pointed at a non-audio path", () => {
+      const result = playCompletionAudioSync({
+        commandArgv: ["afplay", "/etc/passwd"],
+        silent: true,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("recognized audio extension");
+    });
+
+    test("refuses a relative audio path", () => {
+      const result = playCompletionAudioSync({
+        commandArgv: ["afplay", "sounds/chime.wav"],
+        silent: true,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("absolute path");
     });
 
     test("gracefully handles unknown non-supported platforms without crashing", () => {
@@ -244,15 +281,6 @@ describe("Orchestrator-Tier Completion Audio & Subagent Anti-Noise Filter", () =
       expect(result.success).toBe(true);
       expect(result.command).toBe("noop");
       expect(result.output).toContain("freebsd audio skipped");
-    });
-
-    test("captures command failures gracefully", () => {
-      const result = playCompletionAudioSync({
-        command: "exit 42",
-        silent: true,
-      });
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("42");
     });
   });
 
@@ -291,7 +319,8 @@ describe("Orchestrator-Tier Completion Audio & Subagent Anti-Noise Filter", () =
     test("suppresses subagent notifications and prevents sound playback", async () => {
       const manager = new CompletionAudioManager({
         platform: "darwin",
-        command: "echo 'mock chime'",
+        commandArgv: ["afplay", "/System/Library/Sounds/Bottle.aiff"],
+        player: () => ({ status: 0, stdout: "mock chime" }),
       });
 
       const result = await manager.notifyCompletion("task:complete", {
@@ -307,7 +336,8 @@ describe("Orchestrator-Tier Completion Audio & Subagent Anti-Noise Filter", () =
     test("plays audio chime for orchestrator completion and sets lastPlayedAt", async () => {
       const manager = new CompletionAudioManager({
         platform: "darwin",
-        command: "echo 'mock chime'",
+        commandArgv: ["afplay", "/System/Library/Sounds/Bottle.aiff"],
+        player: () => ({ status: 0, stdout: "mock chime" }),
         silent: true,
       });
 
@@ -326,7 +356,8 @@ describe("Orchestrator-Tier Completion Audio & Subagent Anti-Noise Filter", () =
     test("throttles rapid subsequent orchestrator notifications within cooldown", async () => {
       const manager = new CompletionAudioManager({
         platform: "darwin",
-        command: "echo 'mock chime'",
+        commandArgv: ["afplay", "/System/Library/Sounds/Bottle.aiff"],
+        player: () => ({ status: 0, stdout: "mock chime" }),
         cooldownMs: 3000,
         silent: true,
       });
@@ -352,7 +383,8 @@ describe("Orchestrator-Tier Completion Audio & Subagent Anti-Noise Filter", () =
     test("resetCooldown allows immediate notification", async () => {
       const manager = new CompletionAudioManager({
         platform: "darwin",
-        command: "echo 'mock chime'",
+        commandArgv: ["afplay", "/System/Library/Sounds/Bottle.aiff"],
+        player: () => ({ status: 0, stdout: "mock chime" }),
         cooldownMs: 10000,
         silent: true,
       });
