@@ -14,6 +14,7 @@ import {
   resolveScratchDir,
 } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", () => {
   let sandboxDir: string;
@@ -533,6 +534,136 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
     expect(fallbackWithToken.actor).toBe("some-agent-id");
     expect(fallbackWithToken.token).toBe("tok-explicit-123");
     expect(fallbackWithToken.mechanisms).toContain("interactive_terminal_fallback");
+  });
+
+  it("marks a bare env-var-declared 'mind' identity as unverified, since it has no registry corroboration", () => {
+    const spoofed = autoDeriveCallerIdentity({
+      cwd: sandboxDir,
+      pid: 0,
+      ppid: 0,
+      env: { ROLE: "mind" },
+    });
+
+    expect(spoofed.role).toBe("mind");
+    expect(spoofed.tier).toBe(0);
+    expect(spoofed.mechanisms).toContain("environment_variables");
+    expect(spoofed.verified).toBe(false);
+  });
+
+  it("does NOT mark a bare registered-session-file caller as verified when no active ledger grant backs it (CRITICAL-1: a session file is just a filesystem-writable JSON blob, forgeable by any caller without ever going through agent:register)", () => {
+    const granted = registerSessionGrant({
+      runRoot: sandboxDir,
+      agentId: "coord-verified",
+      role: "coordinator",
+      pid: 55123,
+    });
+
+    const derived = autoDeriveCallerIdentity({
+      cwd: sandboxDir,
+      pid: 55123,
+      env: {},
+    });
+
+    expect(derived.actor).toBe("coord-verified");
+    expect(derived.token).toBe(granted.token);
+    expect(derived.mechanisms.some((m) => m.startsWith("process_ancestry_pid_"))).toBe(true);
+    expect(derived.verified).toBe(false);
+  });
+
+  it("marks a caller resolved from a registered session file as verified once it is cross-validated against an active, role-matching grant in the run's own agent ledger", () => {
+    const repo = scratchRoot(import.meta.path, "ledger-backed-repo");
+    const run = initRun(
+      repo,
+      "grant-run",
+      new TextEncoder().encode("Build the thing"),
+      "file",
+      true,
+    );
+    transact(run, "test-setup", "grant-agent", {}, (draft) => {
+      draft.agents = [
+        {
+          id: "coord-ledger-backed",
+          role: "coordinator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: new Date().toISOString(),
+          status: "active",
+        },
+      ];
+    });
+
+    const granted = registerSessionGrant({
+      runRoot: run,
+      agentId: "coord-ledger-backed",
+      role: "coordinator",
+      pid: 55124,
+    });
+
+    const derived = autoDeriveCallerIdentity({
+      cwd: run,
+      pid: 55124,
+      env: {},
+      runRoot: run,
+    });
+
+    expect(derived.actor).toBe("coord-ledger-backed");
+    expect(derived.token).toBe(granted.token);
+    expect(derived.mechanisms.some((m) => m.startsWith("process_ancestry_pid_"))).toBe(true);
+    expect(derived.verified).toBe(true);
+  });
+
+  it("does NOT mark a session file as verified when it names an agent absent from the run's ledger, even though a ledger and other active grants exist", () => {
+    const repo = scratchRoot(import.meta.path, "ledger-mismatch-repo");
+    const run = initRun(
+      repo,
+      "grant-run",
+      new TextEncoder().encode("Build the thing"),
+      "file",
+      true,
+    );
+    transact(run, "test-setup", "grant-agent", {}, (draft) => {
+      draft.agents = [
+        {
+          id: "some-other-agent",
+          role: "orchestrator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: new Date().toISOString(),
+          status: "active",
+        },
+      ];
+    });
+
+    registerSessionGrant({
+      runRoot: run,
+      agentId: "impostor-mind",
+      role: "mind",
+      pid: 55125,
+    });
+
+    const derived = autoDeriveCallerIdentity({
+      cwd: run,
+      pid: 55125,
+      env: {},
+      runRoot: run,
+    });
+
+    expect(derived.actor).toBe("impostor-mind");
+    expect(derived.verified).toBe(false);
+  });
+
+  it("marks the total-fallback identity (no session, no explicit actor) as unverified", () => {
+    const noSignal = autoDeriveCallerIdentity({
+      cwd: sandboxDir,
+      pid: 0,
+      ppid: 0,
+      env: {},
+    });
+
+    expect(noSignal.actor).toBe("mind");
+    expect(noSignal.verified).toBe(false);
   });
 
   it("resolveActiveSession handles empty options and resolves global sessions dir with fallback", () => {

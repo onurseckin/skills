@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "nod
 import { dirname, join, resolve } from "node:path";
 import ts from "typescript";
 import { HarnessError } from "../../core/errors/harness-error.ts";
+import { autoDeriveCallerIdentity } from "../../authority/session-registry.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import {
   ALL_AST_LINT_RULES,
@@ -793,7 +794,7 @@ export async function taskCheckCommand(
         "utf-8",
       );
       const actorFlagVal = textFlag(flags, "actor", false);
-      const actor = actorFlagVal !== undefined ? actorFlagVal : "mechanic-validator";
+      const actor = actorFlagVal !== undefined ? actorFlagVal : autoDeriveCallerIdentity().actor;
       const taskIdVal = taskId !== undefined ? taskId : "task:check";
       AutoReceiptLogger.recordReceipt(resolve(runRoot), {
         taskId: taskIdVal,

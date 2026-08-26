@@ -18,6 +18,8 @@ import {
   resolveCapsulesDir,
   resolveScratchDir,
 } from "../core/shared/paths.ts";
+import { loadRun } from "../engine/store/load.ts";
+import { readAgentLedger } from "../workflow/agents/ledger.ts";
 import {
   agentIdToRole,
   agentIdToTier,
@@ -378,6 +380,29 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   };
 }
 
+function isSessionLedgerBacked(
+  runRoot: string | undefined,
+  agentId: string,
+  role: string,
+): boolean {
+  const trimmed = runRoot?.trim();
+  if (!trimmed) return false;
+  try {
+    const repoRoot = findRepoRoot(trimmed);
+    const resolved =
+      isAbsolute(trimmed) || isInsideCapsule(trimmed)
+        ? resolve(trimmed)
+        : join(resolveCapsulesDir(repoRoot), trimmed);
+    if (!existsSync(join(resolved, "state.json"))) return false;
+    const ledger = readAgentLedger(loadRun(resolved).state);
+    return ledger.some(
+      (entry) => entry.id === agentId && entry.status === "active" && entry.role === role,
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Auto-derives caller credentials for any CLI command, ensuring agents never have
  * to pass manual --actor flags while mechanically blocking unauthorized identity spoofing.
@@ -390,16 +415,27 @@ export function autoDeriveCallerIdentity(
   tier: ExecutionTier;
   token?: string | undefined;
   mechanisms: readonly string[];
+  verified: boolean;
 } {
   const session = resolveActiveSession(options);
 
   if (session) {
+    const fileBased = session.mechanisms_detected.some(
+      (mechanism) =>
+        mechanism.startsWith("process_ancestry_pid_") ||
+        mechanism === "workspace_directory_session",
+    );
+    const envBased = session.mechanisms_detected.includes("environment_variables");
+    const verified = fileBased
+      ? isSessionLedgerBacked(options.runRoot, session.agent_id, session.role)
+      : !envBased;
     return {
       actor: session.agent_id,
       role: session.role,
       tier: session.tier,
       token: session.token,
       mechanisms: session.mechanisms_detected,
+      verified,
     };
   }
 
@@ -416,5 +452,6 @@ export function autoDeriveCallerIdentity(
     tier: fallbackTier,
     token: options.explicitToken,
     mechanisms: ["interactive_terminal_fallback"],
+    verified: false,
   };
 }

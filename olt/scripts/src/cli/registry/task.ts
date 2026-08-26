@@ -388,20 +388,25 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     domain: "task",
     summary: "Incremental verification.",
     description:
-      "Check the files. The AST lint audit (0 `any`, 0 compiler suppressions) always runs and can never be skipped. --typecheck adds the TypeScript typecheck pass on top of that audit; it does not replace it. --lint narrows the run to the AST audit alone, skipping typecheck. Exits non-zero when either check reports a violation.",
+      "Check the files. The AST lint audit (0 `any`, 0 compiler suppressions) always runs and can never be skipped; the TypeScript typecheck pass also runs by default alongside it. --lint narrows the run to the AST audit alone, skipping typecheck. --typecheck only matters combined with --lint: it cancels that narrowing so typecheck runs anyway; passed alone it has no effect, since typecheck already runs by default. Exits non-zero when either check reports a violation.",
     flags: [
       optionalFlag("run", "string", "Capsule run root."),
       optionalFlag("task", "string", "Task ID."),
       repeatableFlag("file", "string", "File path."),
       optionalFlag(
+        "actor",
+        "string",
+        "Who is running the check; recorded on the evidence receipt. Omit to use the caller's auto-derived identity — never pass a placeholder or another role's name.",
+      ),
+      optionalFlag(
         "typecheck",
         "bool",
-        "Run the TypeScript typecheck pass in addition to the always-on AST lint audit.",
+        "Force the typecheck pass to run even when --lint is also given. No effect without --lint, since typecheck already runs by default.",
       ),
       optionalFlag(
         "lint",
         "bool",
-        "Run only the AST lint audit, skipping the typecheck pass (typecheck runs by default).",
+        "Run only the AST lint audit, skipping the typecheck pass that runs by default. Combine with --typecheck to cancel this narrowing.",
       ),
     ],
     readsStdin: false,

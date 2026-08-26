@@ -148,6 +148,8 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
         "src/task01",
         "--gate",
         "bun gate.ts",
+        "--actor",
+        "planner",
       ]);
       await execute(["plan:brainstorm", "--run", runRoot, "--actor", "planner"]);
       await execute([

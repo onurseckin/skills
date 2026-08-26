@@ -40,6 +40,8 @@ describe("CLI dag:render and dag:trace commands", () => {
         "src/a",
         "--gate",
         "bun test src/a",
+        "--actor",
+        "planner",
       ]);
 
       await execute([
@@ -58,6 +60,8 @@ describe("CLI dag:render and dag:trace commands", () => {
         "task-1",
         "--dep-reason",
         "task-1:data dependency",
+        "--actor",
+        "planner",
       ]);
 
       const resRounded = dagRenderCommand({ run: runRoot, "box-style": "rounded", all: true });
@@ -108,6 +112,8 @@ describe("CLI dag:render and dag:trace commands", () => {
         "src/core",
         "--gate",
         "bun gate-core.ts",
+        "--actor",
+        "planner",
       ]);
 
       await execute(["plan:brainstorm", "--run", runRoot, "--actor", "planner"]);
@@ -182,6 +188,8 @@ describe("CLI dag:render and dag:trace commands", () => {
         "src/trace",
         "--gate",
         "echo ok",
+        "--actor",
+        "planner",
       ]);
 
       const resDefault = dagTraceCommand({ run: runRoot, all: true });

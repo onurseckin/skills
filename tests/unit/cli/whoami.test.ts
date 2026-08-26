@@ -18,15 +18,17 @@ const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
 
 describe("Thread Authority Identifier", () => {
-  test("identifies Tier 0 human user interactive shell by default", () => {
+  test("defaults to Tier 3 (fail-closed) rather than Tier 0 when no identity signal is present", () => {
     const identified = identifyExecutionContext({
       pid: 1001,
       ppid: 1000,
       env: {},
     });
 
-    expect(identified.tier).toBe(0);
-    expect(identified.tier_name).toBe("Tier 0: Mind Lead (Observe-Only Supervisor & Human Shell)");
+    expect(identified.tier).toBe(3);
+    expect(identified.tier_name).toBe(
+      "Tier 3: Implementer / Validator / Repairer / Completeness Critic",
+    );
     expect(identified.is_main_thread).toBeFalse();
     expect(identified.compliance_state).toBe("compliant");
     expect(identified.advisory).toBeNull();

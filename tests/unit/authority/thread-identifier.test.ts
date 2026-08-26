@@ -591,7 +591,7 @@ describe("Standardized Agent Naming System (AGENT_NAMING_STANDARDS)", () => {
 
     // 3. Fallback when neither tier nor main thread indicator is set
     const fallbackCtx = identifyExecutionContext({ isInteractiveMainThread: false, env: {} });
-    expect(fallbackCtx.tier).toBe(0);
+    expect(fallbackCtx.tier).toBe(3);
     expect(fallbackCtx.compliance_state).toBe("compliant");
 
     // 4. formatThreadIdentificationBrief with defect and environment_grants

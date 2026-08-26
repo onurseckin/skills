@@ -104,7 +104,15 @@ describe("CLI help", () => {
   });
 
   test("runs the command instead of printing help when --help is a flag value", async () => {
-    const run = await harness(["plan:add", "--label", "--help", "--run", "/tmp/run"]);
+    const run = await harness([
+      "plan:add",
+      "--label",
+      "--help",
+      "--run",
+      "/tmp/run",
+      "--actor",
+      "planner",
+    ]);
     expect(run.exit).toBe(3);
     expect(run.stdout).toBe("");
     expect(run.stderr).toContain("INVALID_ARGUMENT");

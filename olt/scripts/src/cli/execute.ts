@@ -20,19 +20,29 @@ export async function execute(
     );
   }
 
-  const identity = autoDeriveCallerIdentity();
+  const identity = autoDeriveCallerIdentity({
+    runRoot: typeof parsed.flags["run"] === "string" ? parsed.flags["run"] : undefined,
+  });
   for (const flag of spec.flags) {
-    if (flag.required && !Object.hasOwn(parsed.flags, flag.name)) {
-      if (
-        flag.name === "agent" ||
+    if (
+      flag.required &&
+      !Object.hasOwn(parsed.flags, flag.name) &&
+      (flag.name === "agent" ||
         flag.name === "actor" ||
         flag.name === "validator" ||
-        flag.name === "critic"
-      ) {
-        parsed.flags[flag.name] = identity.actor;
-      } else if (flag.name === "role") {
-        parsed.flags[flag.name] = identity.role;
+        flag.name === "critic" ||
+        flag.name === "role")
+    ) {
+      if (!identity.verified) {
+        throw new HarnessError(
+          "AUTHENTICATION_FAILURE",
+          `--${flag.name} is required to run '${spec.name}' but no verified caller identity is available; refusing to auto-fill it from an unauthenticated source (mechanisms: ${identity.mechanisms.join(", ") || "none"}).`,
+          [],
+          3,
+          `Pass --${flag.name} explicitly, or run this command from a registered session (see agent:register) so the caller's identity can be verified.`,
+        );
       }
+      parsed.flags[flag.name] = flag.name === "role" ? identity.role : identity.actor;
     }
   }
 
@@ -120,6 +130,15 @@ export class DeductiveStateMachine {
   }
 }
 
+const PHASE_REMEDIAL_COMMAND: Readonly<Record<string, string>> = {
+  plan: "plan:compile",
+  queue: "queue:wave",
+  task: "queue:wave",
+  critic: "critic:start",
+};
+
+const READ_ONLY_INSPECTOR_COMMANDS: ReadonlySet<string> = new Set(["run:status"]);
+
 export class CumulativePhaseInvariantEngine {
   public static verify(spec: CommandSpec, state: Record<string, unknown>): void {
     const machine = new DeductiveStateMachine(state);
@@ -130,6 +149,11 @@ export class CumulativePhaseInvariantEngine {
         throw new HarnessError(
           "INVALID_STATE",
           `Cumulative Phase Invariant Violation: cannot execute command '${spec.name}' because higher prerequisite phase '${prereq}' is unverified.`,
+          [],
+          3,
+          PHASE_REMEDIAL_COMMAND[prereq]
+            ? `Run '${PHASE_REMEDIAL_COMMAND[prereq]}' first to verify the '${prereq}' phase, then retry '${spec.name}'.`
+            : undefined,
         );
       }
     }
@@ -137,12 +161,14 @@ export class CumulativePhaseInvariantEngine {
 
   private static getPrerequisitePhases(spec: CommandSpec): readonly string[] {
     const name = spec.name;
+    if (READ_ONLY_INSPECTOR_COMMANDS.has(name)) {
+      return [];
+    }
     if (name === "run:complete") {
       return ["plan", "queue", "task", "critic"];
     }
     if (
       name === "run:exec" ||
-      name === "run:status" ||
       name === "shell" ||
       spec.domain === "critic" ||
       name.startsWith("critic:")

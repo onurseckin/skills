@@ -320,7 +320,7 @@ export function identifyExecutionContext(
           explicitRole === null &&
           explicitAgentId === null)));
 
-  let tier: ExecutionTier = 0;
+  let tier: ExecutionTier = 3;
   let inferredRole: string | null = explicitRole;
   let inferredAgentId: string | null = explicitAgentId;
 
@@ -351,7 +351,7 @@ export function identifyExecutionContext(
   } else if (hasInteractiveMainIndicator) {
     tier = 0;
   } else {
-    tier = 0;
+    tier = 3;
   }
 
   const isMainThread = hasInteractiveMainIndicator;
