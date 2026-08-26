@@ -1,7 +1,3 @@
-/**
- * P41 Declarative Mechanical Harness Lifecycle Hook Engine
- */
-
 export {
   DEFAULT_DARWIN_AUDIO_COMMAND,
   DEFAULT_DARWIN_SOUND_PATH,
@@ -15,7 +11,9 @@ export {
   saveHookConfig,
 } from "./config.ts";
 export {
+  ALLOWED_SHELL_EXECUTABLES,
   commandContainsRecursiveDelete,
+  defaultProcessRunner,
   dispatchLifecycleHook,
   dispatchSingleHook,
   executeAudioAction,
@@ -23,10 +21,18 @@ export {
   executeShellAction,
   executeWebhookAction,
   findForbiddenCommandMatch,
+  isAllowedShellExecutable,
   isPlatformSupported,
   matchesEvent,
   resolveAudioSoundPath,
   resolvePinnedHookCwd,
+} from "./dispatcher.ts";
+export type {
+  HookAudioRefusalRule,
+  HookCwdResolution,
+  HookShellRefusalRule,
+  ProcessRunner,
+  ProcessRunResult,
 } from "./dispatcher.ts";
 export type {
   CustomHookHandler,

@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  ALLOWED_SHELL_EXECUTABLES,
   DEFAULT_DARWIN_AUDIO_COMMAND,
   DEFAULT_DARWIN_SOUND_PATH,
   DEFAULT_HOOK_CONFIG,
@@ -15,6 +16,7 @@ import {
   executeShellAction,
   executeWebhookAction,
   findForbiddenCommandMatch,
+  isAllowedShellExecutable,
   isPlatformSupported,
   loadHookConfig,
   matchesEvent,
@@ -26,10 +28,31 @@ import {
   saveHookConfig,
   type HookConfig,
   type HookDefinition,
-  type LifecycleEvent,
+  type ProcessRunner,
+  type ProcessRunResult,
 } from "../../../olt/scripts/src/hooks/index.ts";
 import { findRepoRoot } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
+
+function fakeRunner(handler: (executable: string, args: readonly string[]) => ProcessRunResult): {
+  runner: ProcessRunner;
+  calls: Array<{
+    executable: string;
+    args: readonly string[];
+    env?: Readonly<Record<string, string>>;
+  }>;
+} {
+  const calls: Array<{
+    executable: string;
+    args: readonly string[];
+    env?: Readonly<Record<string, string>>;
+  }> = [];
+  const runner: ProcessRunner = (executable, args, options) => {
+    calls.push({ executable, args, env: options.env });
+    return handler(executable, args);
+  };
+  return { runner, calls };
+}
 
 describe("Lifecycle Hooks - Event Pattern Matching", () => {
   test("exact matches succeed for standard and custom events", () => {
@@ -107,18 +130,57 @@ describe("Lifecycle Hooks - Audio Action Resolution & Handling", () => {
     expect(resolveAudioSoundPath()).toBe(DEFAULT_DARWIN_SOUND_PATH);
   });
 
-  test("executes audio action with custom command safely", async () => {
+  test("invokes afplay directly via argv, never through a shell, for a valid sound path", async () => {
     const hook: HookDefinition = {
       id: "test-audio",
       events: ["orchestrator:complete"],
       action: "audio",
-      command: "echo 'mock audio played'",
+      sound: "Bottle",
       platforms: ["darwin"],
     };
 
-    const result = await executeAudioAction(hook, "darwin");
+    const { runner, calls } = fakeRunner(() => ({ status: 0, stdout: "", stderr: "" }));
+    const result = await executeAudioAction(hook, "darwin", runner);
+
     expect(result.success).toBe(true);
     expect(result.output).toContain("Played audio");
+    expect(calls.length).toBe(1);
+    expect(calls[0]?.executable).toBe("afplay");
+    expect(calls[0]?.args).toEqual([DEFAULT_DARWIN_SOUND_PATH]);
+  });
+
+  test("refuses an audio hook that still supplies a legacy shell command string", async () => {
+    const hook: HookDefinition = {
+      id: "test-audio-legacy-command",
+      events: ["orchestrator:complete"],
+      action: "audio",
+      command: "afplay /System/Library/Sounds/Bottle.aiff; rm -rf /",
+      platforms: ["darwin"],
+    };
+
+    const { runner, calls } = fakeRunner(() => ({ status: 0, stdout: "", stderr: "" }));
+    const result = await executeAudioAction(hook, "darwin", runner);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("AUDIO_COMMAND_STRING_REJECTED");
+    expect(calls.length).toBe(0);
+  });
+
+  test("refuses an audio hook whose resolved file path is not a recognized audio file", async () => {
+    const hook: HookDefinition = {
+      id: "test-audio-bad-path",
+      events: ["orchestrator:complete"],
+      action: "audio",
+      file: "/etc/passwd",
+      platforms: ["darwin"],
+    };
+
+    const { runner, calls } = fakeRunner(() => ({ status: 0, stdout: "", stderr: "" }));
+    const result = await executeAudioAction(hook, "darwin", runner);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("AUDIO_FILE_PATH_INVALID");
+    expect(calls.length).toBe(0);
   });
 
   test("skips audio action gracefully on unsupported platform", async () => {
@@ -135,29 +197,36 @@ describe("Lifecycle Hooks - Audio Action Resolution & Handling", () => {
   });
 });
 
-describe("Lifecycle Hooks - Shell Action Execution", () => {
-  test("executes shell command capturing stdout and environment variables", async () => {
+describe("Lifecycle Hooks - Shell Action Execution (argv-only)", () => {
+  test("executes an allowlisted argv command capturing stdout and passing environment through", async () => {
     const hook: HookDefinition = {
       id: "shell-test-1",
       events: ["gate:pass"],
       action: "shell",
-      command: 'echo "EV=$LIFECYCLE_EVENT CUST=$CUSTOM_VAR"',
+      commandArgv: ["echo", "hello"],
       env: { CUSTOM_VAR: "custom_value_123" },
     };
 
-    const result = await executeShellAction(hook, "gate:pass", { sample: "data" });
+    const { runner, calls } = fakeRunner(() => ({ status: 0, stdout: "hello\n", stderr: "" }));
+    const result = await executeShellAction(hook, "gate:pass", { sample: "data" }, runner);
+
     expect(result.success).toBe(true);
-    expect(result.output).toContain("EV=gate:pass");
-    expect(result.output).toContain("CUST=custom_value_123");
+    expect(result.output).toBe("hello");
+    expect(calls.length).toBe(1);
+    expect(calls[0]?.executable).toBe("echo");
+    expect(calls[0]?.args).toEqual(["hello"]);
+    expect(calls[0]?.env?.CUSTOM_VAR).toBe("custom_value_123");
+    expect(calls[0]?.env?.LIFECYCLE_EVENT).toBe("gate:pass");
+    expect(calls[0]?.env?.LIFECYCLE_PAYLOAD).toBe(JSON.stringify({ sample: "data" }));
   });
 
-  test("handles command execution in custom working directory", async () => {
+  test("executes a real allowlisted binary end to end with no shell involved", async () => {
     const dir = scratchRoot(import.meta.path, "shell-cwd");
     const hook: HookDefinition = {
       id: "shell-cwd-test",
       events: ["task:complete"],
       action: "shell",
-      command: "pwd",
+      commandArgv: ["pwd"],
       cwd: dir,
     };
 
@@ -166,20 +235,22 @@ describe("Lifecycle Hooks - Shell Action Execution", () => {
     expect(result.output).toContain(dir);
   });
 
-  test("captures shell exit code failure safely without throwing", async () => {
+  test("captures nonzero exit status and stderr without throwing", async () => {
     const hook: HookDefinition = {
       id: "shell-fail-test",
       events: ["task:fail"],
       action: "shell",
-      command: "sh -c 'echo \"failure-detail\" >&2; exit 42'",
+      commandArgv: ["date", "--bogus-flag-xyz"],
     };
 
-    const result = await executeShellAction(hook, "task:fail");
+    const { runner } = fakeRunner(() => ({ status: 42, stdout: "", stderr: "failure-detail" }));
+    const result = await executeShellAction(hook, "task:fail", undefined, runner);
+
     expect(result.success).toBe(false);
     expect(result.error).toContain("failure-detail");
   });
 
-  test("returns failure for missing command", async () => {
+  test("returns failure for a missing commandArgv", async () => {
     const hook: HookDefinition = {
       id: "shell-empty",
       events: ["run:start"],
@@ -188,23 +259,236 @@ describe("Lifecycle Hooks - Shell Action Execution", () => {
 
     const result = await executeShellAction(hook, "run:start");
     expect(result.success).toBe(false);
-    expect(result.error).toContain("Missing shell command");
+    expect(result.error).toContain("MISSING_COMMAND_ARGV");
+  });
+
+  test("rejects an empty commandArgv array", async () => {
+    const hook: HookDefinition = {
+      id: "shell-empty-argv",
+      events: ["run:start"],
+      action: "shell",
+      commandArgv: [],
+    };
+
+    const result = await executeShellAction(hook, "run:start");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("MISSING_COMMAND_ARGV");
   });
 });
 
-describe("Lifecycle Hooks - Destructive Command Hardening", () => {
-  test("commandContainsRecursiveDelete flags combined and split rm flags", () => {
+describe("Lifecycle Hooks - Legacy Shell String Migration Path", () => {
+  test("rejects a legacy shell string outright and shows the correct argv form", async () => {
+    const hook: HookDefinition = {
+      id: "shell-legacy-string",
+      events: ["task:complete"],
+      action: "shell",
+      command: "echo hello",
+    };
+
+    const { runner, calls } = fakeRunner(() => ({ status: 0, stdout: "hello\n", stderr: "" }));
+    const result = await executeShellAction(hook, "task:complete", undefined, runner);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("SHELL_STRING_COMMAND_REJECTED");
+    expect(result.error).toContain('["echo","hello"]');
+    expect(calls.length).toBe(0);
+  });
+});
+
+describe("Lifecycle Hooks - Executable Allowlist", () => {
+  test("only a small, justified set of executables is allowlisted", () => {
+    expect(ALLOWED_SHELL_EXECUTABLES).toEqual(["echo", "printf", "pwd", "date"]);
+    expect(isAllowedShellExecutable("echo")).toBe(true);
+    expect(isAllowedShellExecutable("printf")).toBe(true);
+    expect(isAllowedShellExecutable("pwd")).toBe(true);
+    expect(isAllowedShellExecutable("date")).toBe(true);
+  });
+
+  test("refuses code-execution interpreters, VCS mutators, and delete tools outright", () => {
+    expect(isAllowedShellExecutable("rm")).toBe(false);
+    expect(isAllowedShellExecutable("sh")).toBe(false);
+    expect(isAllowedShellExecutable("bash")).toBe(false);
+    expect(isAllowedShellExecutable("git")).toBe(false);
+    expect(isAllowedShellExecutable("node")).toBe(false);
+    expect(isAllowedShellExecutable("python3")).toBe(false);
+    expect(isAllowedShellExecutable("find")).toBe(false);
+    expect(isAllowedShellExecutable("xargs")).toBe(false);
+    expect(isAllowedShellExecutable("eval")).toBe(false);
+    expect(isAllowedShellExecutable("curl")).toBe(false);
+  });
+
+  const evasions: ReadonlyArray<{ label: string; argv: readonly string[] }> = [
+    { label: "plain rm -r without -f", argv: ["rm", "-r", "x"] },
+    { label: "find -delete", argv: ["find", ".", "-delete"] },
+    { label: "git clean -xfd", argv: ["git", "clean", "-xfd"] },
+    { label: "python3 shutil.rmtree", argv: ["python3", "-c", "import shutil;shutil.rmtree('x')"] },
+    {
+      label: "node fs.rmSync",
+      argv: ["node", "-e", "require('fs').rmSync('x',{recursive:true,force:true})"],
+    },
+    { label: "command substitution disguising rm", argv: ["$(echo rm)", "-rf", "x"] },
+    { label: "quote-injected rm token", argv: ['r""m', "-rf", "x"] },
+    { label: "backslash-escaped rm token", argv: ["\\rm", "-rf", "x"] },
+    { label: "absolute path to rm", argv: ["/bin/rm", "-rf", "x"] },
+    { label: "shell nested via sh -c", argv: ["sh", "-c", "rm -rf x"] },
+    { label: "eval wrapper", argv: ["eval", "rm -rf x"] },
+    { label: "xargs wrapper", argv: ["xargs", "rm", "-rf"] },
+  ];
+
+  for (const { label, argv } of evasions) {
+    test(`refuses at the allowlist gate: ${label}`, async () => {
+      const hook: HookDefinition = {
+        id: `evasion-${label}`,
+        events: ["task:complete"],
+        action: "shell",
+        commandArgv: argv,
+      };
+
+      const { runner, calls } = fakeRunner(() => ({ status: 0, stdout: "ran", stderr: "" }));
+      const result = await executeShellAction(hook, "task:complete", undefined, runner);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("EXECUTABLE_NOT_ALLOWLISTED");
+      expect(calls.length).toBe(0);
+    });
+  }
+});
+
+describe("Lifecycle Hooks - PATH Poisoning Hardening", () => {
+  test("hook.env cannot redirect an allowlisted executable to an attacker binary via PATH poisoning", async () => {
+    const dir = scratchRoot(import.meta.path, "path-poison");
+    const binDir = join(dir, "bin");
+    mkdirSync(binDir, { recursive: true });
+    const markerPath = join(dir, "PWNED_PATH_POISON");
+    const maliciousEcho = join(binDir, "echo");
+    writeFileSync(
+      maliciousEcho,
+      ["#!/bin/bash", `: > "${markerPath}"`, "printf 'MALICIOUS ECHO RAN: %s\\n' \"$*\"", ""].join(
+        "\n",
+      ),
+    );
+    chmodSync(maliciousEcho, 0o755);
+
+    const hook: HookDefinition = {
+      id: "attacker-path-poison",
+      events: ["orchestrator:complete"],
+      action: "shell",
+      commandArgv: ["echo", "hi"],
+      env: { PATH: binDir },
+    };
+
+    const result = await executeShellAction(hook, "orchestrator:complete");
+
+    expect(existsSync(markerPath)).toBe(false);
+    expect(result.output).not.toContain("MALICIOUS ECHO RAN");
+    expect(result.success).toBe(true);
+    expect(result.output).toBe("hi");
+  });
+
+  test("hook.env's PATH key is stripped from the child environment even when a custom runner is supplied", async () => {
+    const hook: HookDefinition = {
+      id: "path-env-stripped",
+      events: ["task:complete"],
+      action: "shell",
+      commandArgv: ["echo", "hi"],
+      env: { PATH: "/attacker/controlled/bin", SAFE_VAR: "kept" },
+    };
+
+    const { runner, calls } = fakeRunner(() => ({ status: 0, stdout: "hi\n", stderr: "" }));
+    const result = await executeShellAction(hook, "task:complete", undefined, runner);
+
+    expect(result.success).toBe(true);
+    expect(calls[0]?.env?.PATH).not.toBe("/attacker/controlled/bin");
+    expect(calls[0]?.env?.SAFE_VAR).toBe("kept");
+  });
+});
+
+describe("Lifecycle Hooks - Working Directory Containment", () => {
+  test("resolvePinnedHookCwd pins to the repo root when hook.cwd is not set", () => {
+    const resolution = resolvePinnedHookCwd({ events: ["*"], action: "shell" }, "/pinned/root");
+    expect(resolution).toEqual({ ok: true, cwd: "/pinned/root" });
+  });
+
+  test("resolvePinnedHookCwd accepts an explicit hook.cwd nested inside the repository root", () => {
+    const resolution = resolvePinnedHookCwd(
+      { events: ["*"], action: "shell", cwd: "/pinned/root/.capsules/x" },
+      "/pinned/root",
+    );
+    expect(resolution).toEqual({ ok: true, cwd: "/pinned/root/.capsules/x" });
+  });
+
+  test("resolvePinnedHookCwd refuses a hook.cwd that escapes the repository root", () => {
+    const resolution = resolvePinnedHookCwd(
+      { events: ["*"], action: "shell", cwd: "/etc" },
+      "/pinned/root",
+    );
+    expect(resolution.ok).toBe(false);
+    if (!resolution.ok) {
+      expect(resolution.reason).toContain("outside the repository root");
+    }
+  });
+
+  test("resolvePinnedHookCwd refuses a relative traversal that escapes the repository root", () => {
+    const resolution = resolvePinnedHookCwd(
+      { events: ["*"], action: "shell", cwd: "../../etc" },
+      "/pinned/root",
+    );
+    expect(resolution.ok).toBe(false);
+  });
+
+  test("executeShellAction refuses a hook.cwd outside the repository before spawning anything", async () => {
+    const hook: HookDefinition = {
+      id: "shell-cwd-escape",
+      events: ["task:complete"],
+      action: "shell",
+      commandArgv: ["pwd"],
+      cwd: "/etc",
+    };
+
+    const { runner, calls } = fakeRunner(() => ({ status: 0, stdout: "/etc\n", stderr: "" }));
+    const result = await executeShellAction(hook, "task:complete", undefined, runner);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("CWD_OUTSIDE_REPOSITORY");
+    expect(calls.length).toBe(0);
+  });
+
+  test("executeShellAction pins cwd to the repo root when hook.cwd is not set, ignoring ambient process.cwd()", async () => {
+    const repoRoot = findRepoRoot();
+    const otherDir = scratchRoot(import.meta.path, "shell-cwd-pin-ambient");
+    const originalCwd = process.cwd();
+    process.chdir(otherDir);
+    try {
+      const hook: HookDefinition = {
+        id: "shell-cwd-pin",
+        events: ["task:complete"],
+        action: "shell",
+        commandArgv: ["pwd"],
+      };
+      const result = await executeShellAction(hook, "task:complete");
+      expect(result.success).toBe(true);
+      expect(result.output).toContain(repoRoot);
+      expect(result.output).not.toContain(otherDir);
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+});
+
+describe("Lifecycle Hooks - Destructive Command Hardening (second layer)", () => {
+  test("commandContainsRecursiveDelete flags recursive rm even without -f", () => {
     expect(commandContainsRecursiveDelete("rm -rf /tmp/whatever")).toBe(true);
     expect(commandContainsRecursiveDelete("rm -fr ./build")).toBe(true);
     expect(commandContainsRecursiveDelete("rm -r -f ./build")).toBe(true);
     expect(commandContainsRecursiveDelete("rm --recursive --force ./build")).toBe(true);
     expect(commandContainsRecursiveDelete("echo hi && rm -rf /tmp/x")).toBe(true);
     expect(commandContainsRecursiveDelete("/bin/rm -rf /tmp/x")).toBe(true);
+    expect(commandContainsRecursiveDelete("rm -r ./dir-only")).toBe(true);
+    expect(commandContainsRecursiveDelete("rm --recursive ./dir-only")).toBe(true);
   });
 
   test("commandContainsRecursiveDelete does not flag benign rm usage", () => {
     expect(commandContainsRecursiveDelete("rm ./one-file.txt")).toBe(false);
-    expect(commandContainsRecursiveDelete("rm -r ./dir-only")).toBe(false);
     expect(commandContainsRecursiveDelete("rm -f ./file-only")).toBe(false);
     expect(commandContainsRecursiveDelete("echo removing rf stuff")).toBe(false);
   });
@@ -224,83 +508,25 @@ describe("Lifecycle Hooks - Destructive Command Hardening", () => {
     expect(findForbiddenCommandMatch("echo safe", forbidden)).toBeUndefined();
   });
 
-  test("resolvePinnedHookCwd prefers explicit hook.cwd over the pinned root", () => {
-    const explicit: HookDefinition = { events: ["*"], action: "shell", cwd: "/explicit/path" };
-    expect(resolvePinnedHookCwd(explicit, "/pinned/root")).toBe("/explicit/path");
-
-    const implicit: HookDefinition = { events: ["*"], action: "shell" };
-    expect(resolvePinnedHookCwd(implicit, "/pinned/root")).toBe("/pinned/root");
-  });
-
-  test("executeShellAction refuses a recursive delete without running it", async () => {
-    const marker = join(scratchRoot(import.meta.path, "shell-rm-refused"), "marker.txt");
-    const hook: HookDefinition = {
-      id: "shell-rm-refused",
-      events: ["task:complete"],
-      action: "shell",
-      command: `rm -rf /tmp/should-not-run && touch ${marker}`,
-    };
-
-    const result = await executeShellAction(hook, "task:complete");
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("recursive delete");
-    expect(existsSync(marker)).toBe(false);
-  });
-
-  test("executeShellAction refuses a backslash-escaped recursive delete targeting a relative sibling", async () => {
-    const scratchDir = scratchRoot(import.meta.path, "shell-rm-backslash-refused");
-    const victim = join(scratchDir, "other-sibling");
-    mkdirSync(victim, { recursive: true });
-    writeFileSync(join(victim, "keep.txt"), "still here");
-    const marker = join(scratchDir, "marker.txt");
-    const hook: HookDefinition = {
-      id: "shell-rm-backslash-refused",
-      events: ["task:complete"],
-      action: "shell",
-      cwd: scratchDir,
-      command: `\\rm -rf ./other-sibling && touch ${marker}`,
-    };
-
-    const result = await executeShellAction(hook, "task:complete");
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("recursive delete");
-    expect(existsSync(marker)).toBe(false);
-    expect(existsSync(join(victim, "keep.txt"))).toBe(true);
-  });
-
-  test("executeShellAction refuses a command matching the repository forbidden_commands policy", async () => {
+  test("executeShellAction refuses a commandArgv matching the repository forbidden_commands policy even though echo is allowlisted", async () => {
     const hook: HookDefinition = {
       id: "shell-forbidden-policy",
       events: ["task:complete"],
       action: "shell",
-      command: "git push origin main",
+      commandArgv: ["echo", "git", "push", "origin", "main"],
     };
 
-    const result = await executeShellAction(hook, "task:complete");
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("forbidden_commands");
-    expect(result.error).toContain("git push");
-  });
+    const { runner, calls } = fakeRunner(() => ({
+      status: 0,
+      stdout: "git push origin main",
+      stderr: "",
+    }));
+    const result = await executeShellAction(hook, "task:complete", undefined, runner);
 
-  test("executeShellAction pins cwd to the repo root when hook.cwd is not set, ignoring ambient process.cwd()", async () => {
-    const repoRoot = findRepoRoot();
-    const otherDir = scratchRoot(import.meta.path, "shell-cwd-pin-ambient");
-    const originalCwd = process.cwd();
-    process.chdir(otherDir);
-    try {
-      const hook: HookDefinition = {
-        id: "shell-cwd-pin",
-        events: ["task:complete"],
-        action: "shell",
-        command: "pwd",
-      };
-      const result = await executeShellAction(hook, "task:complete");
-      expect(result.success).toBe(true);
-      expect(result.output).toContain(repoRoot);
-      expect(result.output).not.toContain(otherDir);
-    } finally {
-      process.chdir(originalCwd);
-    }
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("FORBIDDEN_COMMANDS_POLICY");
+    expect(result.error).toContain("git push");
+    expect(calls.length).toBe(0);
   });
 });
 
@@ -453,7 +679,7 @@ describe("Lifecycle Hooks - Non-Blocking Resilience & Single Dispatch", () => {
       id: "disabled-hook",
       events: ["gate:pass"],
       action: "shell",
-      command: "echo test",
+      commandArgv: ["echo", "test"],
       enabled: false,
     };
 
@@ -465,7 +691,7 @@ describe("Lifecycle Hooks - Non-Blocking Resilience & Single Dispatch", () => {
       id: "linux-only-hook",
       events: ["gate:pass"],
       action: "shell",
-      command: "echo test",
+      commandArgv: ["echo", "test"],
       platforms: ["linux"],
     };
 
@@ -486,7 +712,7 @@ describe("Lifecycle Hooks - Non-Blocking Resilience & Single Dispatch", () => {
           id: "failing-shell-hook",
           events: ["orchestrator:complete"],
           action: "shell",
-          command: "sh -c 'exit 1'",
+          commandArgv: ["rm", "-rf", "x"],
         },
         {
           id: "succeeding-custom-hook",
@@ -501,7 +727,7 @@ describe("Lifecycle Hooks - Non-Blocking Resilience & Single Dispatch", () => {
           id: "non-matching-hook",
           events: ["gate:pass"],
           action: "shell",
-          command: "echo 'should not run'",
+          commandArgv: ["echo", "should not run"],
         },
       ],
     };
@@ -515,6 +741,7 @@ describe("Lifecycle Hooks - Non-Blocking Resilience & Single Dispatch", () => {
     expect(results.length).toBe(2);
     expect(results[0]?.hookId).toBe("failing-shell-hook");
     expect(results[0]?.success).toBe(false);
+    expect(results[0]?.error).toContain("EXECUTABLE_NOT_ALLOWLISTED");
 
     expect(results[1]?.hookId).toBe("succeeding-custom-hook");
     expect(results[1]?.success).toBe(true);
@@ -532,7 +759,7 @@ describe("Lifecycle Hooks - Non-Blocking Resilience & Single Dispatch", () => {
           id: "ignored-hook",
           events: ["*"],
           action: "shell",
-          command: "echo 'ignored'",
+          commandArgv: ["echo", "ignored"],
         },
       ],
     };
@@ -551,7 +778,7 @@ describe("Lifecycle Hooks - Non-Blocking Resilience & Single Dispatch", () => {
           id: "gate-only",
           events: ["gate:*"],
           action: "shell",
-          command: "echo 'gate'",
+          commandArgv: ["echo", "gate"],
         },
       ],
     };
@@ -562,7 +789,7 @@ describe("Lifecycle Hooks - Non-Blocking Resilience & Single Dispatch", () => {
 });
 
 describe("Lifecycle Hooks - Declarative Config Parsing & Loading", () => {
-  test("DEFAULT_HOOK_CONFIG includes audio hooks for orchestrator and run complete on darwin", () => {
+  test("DEFAULT_HOOK_CONFIG includes audio hooks for orchestrator and run complete on darwin with no shell command", () => {
     expect(DEFAULT_HOOK_CONFIG.schema).toBe(DEFAULT_HOOK_SCHEMA);
     expect(DEFAULT_HOOK_CONFIG.version).toBe(DEFAULT_HOOK_VERSION);
     expect(DEFAULT_HOOK_CONFIG.enabled).toBe(true);
@@ -575,12 +802,15 @@ describe("Lifecycle Hooks - Declarative Config Parsing & Loading", () => {
     expect(orchHook?.action).toBe("audio");
     expect(orchHook?.sound).toBe("Bottle");
     expect(orchHook?.platforms).toEqual(["darwin"]);
-    expect(orchHook?.command).toBe(DEFAULT_DARWIN_AUDIO_COMMAND);
+    expect(orchHook?.command).toBeUndefined();
 
     const runHook = DEFAULT_HOOK_CONFIG.hooks.find((h) => h.events.includes("run:complete"));
     expect(runHook).toBeDefined();
     expect(runHook?.action).toBe("audio");
     expect(runHook?.platforms).toEqual(["darwin"]);
+    expect(runHook?.command).toBeUndefined();
+
+    expect(DEFAULT_DARWIN_AUDIO_COMMAND).toBe(`afplay ${DEFAULT_DARWIN_SOUND_PATH}`);
   });
 
   test("parseHookDefinition handles single event and array of events", () => {
@@ -589,13 +819,14 @@ describe("Lifecycle Hooks - Declarative Config Parsing & Loading", () => {
         id: "hook-single",
         event: "gate:pass",
         action: "shell",
-        command: "echo single",
+        commandArgv: ["echo", "single"],
       },
       "default-1",
     );
     expect(single?.events).toEqual(["gate:pass"]);
     expect(single?.action).toBe("shell");
     expect(single?.id).toBe("hook-single");
+    expect(single?.commandArgv).toEqual(["echo", "single"]);
 
     const multi = parseHookDefinition(
       {
@@ -609,6 +840,26 @@ describe("Lifecycle Hooks - Declarative Config Parsing & Loading", () => {
     expect(multi?.events).toEqual(["gate:pass", "gate:fail"]);
     expect(multi?.action).toBe("audio");
     expect(multi?.sound).toBe("Glass");
+  });
+
+  test("parseHookDefinition normalizes commandArgv only when every element is a non-empty string", () => {
+    const valid = parseHookDefinition(
+      { events: ["task:complete"], action: "shell", commandArgv: ["echo", "hi"] },
+      "def",
+    );
+    expect(valid?.commandArgv).toEqual(["echo", "hi"]);
+
+    const invalid = parseHookDefinition(
+      { events: ["task:complete"], action: "shell", commandArgv: ["echo", 42] },
+      "def",
+    );
+    expect(invalid?.commandArgv).toBeUndefined();
+
+    const empty = parseHookDefinition(
+      { events: ["task:complete"], action: "shell", commandArgv: [] },
+      "def",
+    );
+    expect(empty?.commandArgv).toBeUndefined();
   });
 
   test("parseHookDefinition handles platform and headers normalization", () => {
@@ -631,7 +882,7 @@ describe("Lifecycle Hooks - Declarative Config Parsing & Loading", () => {
   });
 
   test("parseHookDefinition returns null for missing events or invalid action", () => {
-    expect(parseHookDefinition({ action: "shell", command: "ls" }, "def")).toBeNull();
+    expect(parseHookDefinition({ action: "shell", commandArgv: ["ls"] }, "def")).toBeNull();
     expect(
       parseHookDefinition({ events: ["gate:pass"], action: "invalid_action" }, "def"),
     ).toBeNull();
@@ -659,7 +910,7 @@ describe("Lifecycle Hooks - Declarative Config Parsing & Loading", () => {
           id: "custom-capsule-hook",
           events: ["orchestrator:complete"],
           action: "shell",
-          command: "echo capsule-complete",
+          commandArgv: ["echo", "capsule-complete"],
         },
       ],
     };
@@ -669,6 +920,7 @@ describe("Lifecycle Hooks - Declarative Config Parsing & Loading", () => {
     const loaded = loadHookConfig(dir);
     expect(loaded.hooks.length).toBe(1);
     expect(loaded.hooks[0]?.id).toBe("custom-capsule-hook");
+    expect(loaded.hooks[0]?.commandArgv).toEqual(["echo", "capsule-complete"]);
   });
 
   test("loads hook configuration from olt/hooks.json in target directory", () => {
@@ -685,7 +937,7 @@ describe("Lifecycle Hooks - Declarative Config Parsing & Loading", () => {
           id: "custom-olt-hook",
           events: ["run:complete"],
           action: "shell",
-          command: "echo olt-complete",
+          commandArgv: ["echo", "olt-complete"],
         },
       ],
     };
@@ -760,6 +1012,21 @@ describe("Lifecycle Hooks - Invariant & Type Cleanliness Audit", () => {
       expect(content.includes(tsNoCheck)).toBe(false);
       expect(content.includes(suppressionDirectiveA)).toBe(false);
       expect(content.includes(suppressionDirectiveB)).toBe(false);
+    }
+  });
+
+  test("zero comments across the hook source files", () => {
+    const sourceFiles = [
+      join(__dirname, "../../../olt/scripts/src/hooks/types.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/dispatcher.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/index.ts"),
+    ];
+
+    for (const filePath of sourceFiles) {
+      const content = readFileSync(filePath, "utf8");
+      expect(content).not.toMatch(/\/\*/);
+      expect(content).not.toMatch(/(^|[^:"])\/\/[^"]*$/m);
     }
   });
 });

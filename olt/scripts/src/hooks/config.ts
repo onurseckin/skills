@@ -13,10 +13,6 @@ export const DEFAULT_DARWIN_AUDIO_COMMAND = `afplay ${DEFAULT_DARWIN_SOUND_PATH}
 export const DEFAULT_HOOK_SCHEMA = "harness.hooks_config";
 export const DEFAULT_HOOK_VERSION = 1;
 
-/**
- * Built-in default lifecycle hook configuration.
- * Binds `orchestrator:complete` and `run:complete` to macOS chime while subagents remain silent.
- */
 export const DEFAULT_HOOK_CONFIG: HookConfig = {
   schema: DEFAULT_HOOK_SCHEMA,
   version: DEFAULT_HOOK_VERSION,
@@ -29,7 +25,6 @@ export const DEFAULT_HOOK_CONFIG: HookConfig = {
       action: "audio",
       sound: "Bottle",
       file: DEFAULT_DARWIN_SOUND_PATH,
-      command: DEFAULT_DARWIN_AUDIO_COMMAND,
       platforms: ["darwin"],
       enabled: true,
     },
@@ -40,7 +35,6 @@ export const DEFAULT_HOOK_CONFIG: HookConfig = {
       action: "audio",
       sound: "Bottle",
       file: DEFAULT_DARWIN_SOUND_PATH,
-      command: DEFAULT_DARWIN_AUDIO_COMMAND,
       platforms: ["darwin"],
       enabled: true,
     },
@@ -48,9 +42,6 @@ export const DEFAULT_HOOK_CONFIG: HookConfig = {
   defaultAudioDarwin: DEFAULT_DARWIN_SOUND_PATH,
 };
 
-/**
- * Resolves the path to the declarative hook configuration file if one exists.
- */
 export function resolveHookConfigFile(
   explicitPathOrDir?: string | undefined,
   cwd: string = process.cwd(),
@@ -62,7 +53,6 @@ export function resolveHookConfigFile(
       if (stat.isFile()) {
         return resolved;
       }
-      // If it is a directory, check standard candidate locations inside it
       const candidates = [
         join(resolved, ".olt", "capsules", "hooks.json"),
         join(resolved, ".capsules", "hooks.json"),
@@ -95,9 +85,6 @@ export function resolveHookConfigFile(
   return null;
 }
 
-/**
- * Parses and validates an individual declarative hook definition from raw JSON/object data.
- */
 export function parseHookDefinition(raw: unknown, defaultId: string): HookDefinition | null {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     return null;
@@ -105,7 +92,6 @@ export function parseHookDefinition(raw: unknown, defaultId: string): HookDefini
 
   const record = raw as Record<string, unknown>;
 
-  // Normalize events list from 'events' or 'event' properties
   const events: LifecycleEvent[] = [];
 
   if (Array.isArray(record.events)) {
@@ -136,7 +122,6 @@ export function parseHookDefinition(raw: unknown, defaultId: string): HookDefini
     return null;
   }
 
-  // Normalize action
   let action: HookAction = "shell";
   if (
     record.action === "shell" ||
@@ -149,7 +134,6 @@ export function parseHookDefinition(raw: unknown, defaultId: string): HookDefini
     return null;
   }
 
-  // Normalize platforms
   let platforms: string[] | undefined;
   if (Array.isArray(record.platforms)) {
     platforms = record.platforms.filter((p): p is string => typeof p === "string" && p.length > 0);
@@ -159,7 +143,6 @@ export function parseHookDefinition(raw: unknown, defaultId: string): HookDefini
     platforms = record.platform.filter((p): p is string => typeof p === "string" && p.length > 0);
   }
 
-  // Normalize HTTP method
   let method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | undefined;
   if (
     record.method === "GET" ||
@@ -171,7 +154,6 @@ export function parseHookDefinition(raw: unknown, defaultId: string): HookDefini
     method = record.method;
   }
 
-  // Normalize headers
   let headers: Record<string, string> | undefined;
   if (
     typeof record.headers === "object" &&
@@ -187,7 +169,6 @@ export function parseHookDefinition(raw: unknown, defaultId: string): HookDefini
     }
   }
 
-  // Normalize env
   let env: Record<string, string> | undefined;
   if (typeof record.env === "object" && record.env !== null && !Array.isArray(record.env)) {
     const rawEnv = record.env as Record<string, unknown>;
@@ -196,6 +177,16 @@ export function parseHookDefinition(raw: unknown, defaultId: string): HookDefini
       if (typeof v === "string") {
         env[k] = v;
       }
+    }
+  }
+
+  let commandArgv: string[] | undefined;
+  if (Array.isArray(record.commandArgv) && record.commandArgv.length > 0) {
+    const items = record.commandArgv.filter(
+      (p): p is string => typeof p === "string" && p.length > 0,
+    );
+    if (items.length === record.commandArgv.length) {
+      commandArgv = items;
     }
   }
 
@@ -223,6 +214,7 @@ export function parseHookDefinition(raw: unknown, defaultId: string): HookDefini
     file,
     volume,
     command,
+    commandArgv,
     cwd,
     env,
     url,
@@ -236,9 +228,6 @@ export function parseHookDefinition(raw: unknown, defaultId: string): HookDefini
   };
 }
 
-/**
- * Parses full declarative HookConfig from raw JSON or object representation.
- */
 export function parseHookConfig(raw: unknown): HookConfig {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     return DEFAULT_HOOK_CONFIG;
@@ -277,9 +266,6 @@ export function parseHookConfig(raw: unknown): HookConfig {
   };
 }
 
-/**
- * Loads and parses hook configuration from disk or returns default built-in configuration.
- */
 export function loadHookConfig(
   target?: string | undefined,
   cwd: string = process.cwd(),
@@ -301,9 +287,6 @@ export function loadHookConfig(
   }
 }
 
-/**
- * Durably saves hook configuration to a target JSON file path.
- */
 export function saveHookConfig(config: HookConfig, targetPath: string): void {
   const dir = dirname(targetPath);
   if (!existsSync(dir)) {

@@ -1,10 +1,165 @@
 import { spawnSync } from "node:child_process";
+import { accessSync, constants as fsConstants } from "node:fs";
+import { resolve, sep } from "node:path";
 import { findRepoRoot } from "../core/shared/paths.ts";
 import { loadRepoPolicy } from "../policy/repo-policy.ts";
 import { DEFAULT_DARWIN_SOUND_PATH, loadHookConfig } from "./config.ts";
 import type { HookConfig, HookDefinition, HookResult, LifecycleEvent } from "./types.ts";
 
 const RECURSIVE_DELETE_TOKENS = new Set(["rm", "rmdir", "del", "rd"]);
+
+export const ALLOWED_SHELL_EXECUTABLES: readonly string[] = Object.freeze([
+  "echo",
+  "printf",
+  "pwd",
+  "date",
+]);
+
+const ALLOWED_SHELL_EXECUTABLE_SET = new Set(ALLOWED_SHELL_EXECUTABLES);
+
+const TRUSTED_EXECUTABLE_CANDIDATE_PATHS: Readonly<Record<string, readonly string[]>> =
+  Object.freeze({
+    echo: ["/bin/echo", "/usr/bin/echo"],
+    printf: ["/usr/bin/printf", "/bin/printf"],
+    pwd: ["/bin/pwd", "/usr/bin/pwd"],
+    date: ["/bin/date", "/usr/bin/date"],
+  });
+
+const resolvedTrustedExecutablePathCache = new Map<string, string | null>();
+
+function isHardenedShellExecutableName(executable: string): boolean {
+  return Object.prototype.hasOwnProperty.call(TRUSTED_EXECUTABLE_CANDIDATE_PATHS, executable);
+}
+
+export function resolveTrustedExecutablePath(executable: string): string | undefined {
+  const cached = resolvedTrustedExecutablePathCache.get(executable);
+  if (cached !== undefined) {
+    return cached === null ? undefined : cached;
+  }
+  const candidates = TRUSTED_EXECUTABLE_CANDIDATE_PATHS[executable] ?? [];
+  for (const candidate of candidates) {
+    try {
+      accessSync(candidate, fsConstants.X_OK);
+      resolvedTrustedExecutablePathCache.set(executable, candidate);
+      return candidate;
+    } catch {
+      continue;
+    }
+  }
+  resolvedTrustedExecutablePathCache.set(executable, null);
+  return undefined;
+}
+
+const AUDIO_FILE_EXTENSIONS: readonly string[] = Object.freeze([
+  ".aiff",
+  ".wav",
+  ".mp3",
+  ".m4a",
+  ".caf",
+  ".au",
+]);
+
+export type HookShellRefusalRule =
+  | "SHELL_STRING_COMMAND_REJECTED"
+  | "MISSING_COMMAND_ARGV"
+  | "EXECUTABLE_NOT_ALLOWLISTED"
+  | "RECURSIVE_DELETE_DETECTED"
+  | "FORBIDDEN_COMMANDS_POLICY"
+  | "CWD_OUTSIDE_REPOSITORY";
+
+export type HookAudioRefusalRule = "AUDIO_COMMAND_STRING_REJECTED" | "AUDIO_FILE_PATH_INVALID";
+
+export interface ProcessRunResult {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}
+
+export type ProcessRunner = (
+  executable: string,
+  args: readonly string[],
+  options: {
+    readonly cwd?: string | undefined;
+    readonly env?: Readonly<Record<string, string>> | undefined;
+    readonly timeoutMs: number;
+    readonly captureOutput: boolean;
+  },
+) => ProcessRunResult;
+
+function runSpawnSync(
+  executable: string,
+  args: readonly string[],
+  options: {
+    readonly cwd?: string | undefined;
+    readonly env?: Readonly<Record<string, string>> | undefined;
+    readonly timeoutMs: number;
+    readonly captureOutput: boolean;
+  },
+): ProcessRunResult {
+  const result = spawnSync(executable, [...args], {
+    cwd: options.cwd,
+    env: options.env,
+    timeout: options.timeoutMs,
+    stdio: options.captureOutput ? "pipe" : "ignore",
+    encoding: "utf8",
+    shell: false,
+  });
+
+  return {
+    status: result.status,
+    stdout: typeof result.stdout === "string" ? result.stdout : "",
+    stderr:
+      typeof result.stderr === "string"
+        ? result.stderr
+        : result.error !== undefined
+          ? result.error.message
+          : "",
+  };
+}
+
+export const defaultProcessRunner: ProcessRunner = (executable, args, options) => {
+  if (isHardenedShellExecutableName(executable)) {
+    const trustedPath = resolveTrustedExecutablePath(executable);
+    if (trustedPath === undefined) {
+      return {
+        status: null,
+        stdout: "",
+        stderr: `no trusted absolute path could be resolved for allowlisted executable "${executable}" on this system; refusing to fall back to a PATH-based lookup`,
+      };
+    }
+    return runSpawnSync(trustedPath, args, options);
+  }
+  return runSpawnSync(executable, args, options);
+};
+
+function formatArgvLiteral(argv: readonly string[]): string {
+  return JSON.stringify(argv);
+}
+
+function formatHookRefusal(
+  rule: HookShellRefusalRule | HookAudioRefusalRule,
+  message: string,
+): string {
+  return `Refused hook [${rule}]: ${message}`;
+}
+
+function tokenizeLegacyCommandForDisplay(command: string): string[] {
+  const pattern = /'[^']*'|"[^"]*"|\S+/g;
+  const matches = command.match(pattern) ?? [];
+  return matches.map((raw) => {
+    if (
+      raw.length >= 2 &&
+      ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"')))
+    ) {
+      return raw.slice(1, -1);
+    }
+    return raw;
+  });
+}
+
+export function isAllowedShellExecutable(executable: string): boolean {
+  return ALLOWED_SHELL_EXECUTABLE_SET.has(executable);
+}
 
 function stripShellEscapes(token: string): string {
   return token
@@ -26,7 +181,6 @@ export function commandContainsRecursiveDelete(command: string): boolean {
         continue;
       }
       let hasRecursive = false;
-      let hasForce = false;
       for (const rawFlag of tokens.slice(i + 1, i + 12)) {
         const flag = stripShellEscapes(rawFlag);
         if (!flag.startsWith("-")) {
@@ -35,11 +189,8 @@ export function commandContainsRecursiveDelete(command: string): boolean {
         if (flag === "--recursive" || /^-[a-zA-Z]*[rR][a-zA-Z]*$/.test(flag)) {
           hasRecursive = true;
         }
-        if (flag === "--force" || /^-[a-zA-Z]*[fF][a-zA-Z]*$/.test(flag)) {
-          hasForce = true;
-        }
       }
-      if (hasRecursive && hasForce) {
+      if (hasRecursive) {
         return true;
       }
     }
@@ -61,14 +212,26 @@ export function findForbiddenCommandMatch(
   return undefined;
 }
 
-export function resolvePinnedHookCwd(hook: HookDefinition, repoRoot: string): string {
-  return hook.cwd !== undefined && hook.cwd.trim().length > 0 ? hook.cwd : repoRoot;
+export type HookCwdResolution =
+  | { readonly ok: true; readonly cwd: string }
+  | { readonly ok: false; readonly reason: string };
+
+export function resolvePinnedHookCwd(hook: HookDefinition, repoRoot: string): HookCwdResolution {
+  const root = resolve(repoRoot);
+  if (hook.cwd === undefined || hook.cwd.trim().length === 0) {
+    return { ok: true, cwd: root };
+  }
+
+  const resolved = resolve(root, hook.cwd);
+  if (resolved !== root && !resolved.startsWith(root + sep)) {
+    return {
+      ok: false,
+      reason: `hook.cwd "${hook.cwd}" resolves to "${resolved}", which is outside the repository root "${root}"`,
+    };
+  }
+  return { ok: true, cwd: resolved };
 }
 
-/**
- * Evaluates whether an event name matches a hook event pattern.
- * Supports exact match, universal wildcard (*), prefix wildcard (gate:*), and suffix wildcard (*:complete).
- */
 export function matchesEvent(pattern: string, event: string): boolean {
   if (pattern === "*" || pattern === event) {
     return true;
@@ -83,9 +246,6 @@ export function matchesEvent(pattern: string, event: string): boolean {
   return false;
 }
 
-/**
- * Checks if the current operating platform is included in the hook's platform whitelist.
- */
 export function isPlatformSupported(
   platforms?: readonly (NodeJS.Platform | string)[] | undefined,
   currentPlatform: string = process.platform,
@@ -96,9 +256,6 @@ export function isPlatformSupported(
   return platforms.includes(currentPlatform);
 }
 
-/**
- * Resolves the absolute or system sound path for an audio notification.
- */
 export function resolveAudioSoundPath(
   sound?: string | undefined,
   file?: string | undefined,
@@ -116,30 +273,51 @@ export function resolveAudioSoundPath(
   return DEFAULT_DARWIN_SOUND_PATH;
 }
 
-/**
- * Executes an audio notification action safely across platforms.
- */
+function isValidAudioFilePath(candidate: string): boolean {
+  if (!candidate.startsWith("/")) {
+    return false;
+  }
+  const lower = candidate.toLowerCase();
+  return AUDIO_FILE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
 export async function executeAudioAction(
   hook: HookDefinition,
   currentPlatform: string = process.platform,
+  runner: ProcessRunner = defaultProcessRunner,
 ): Promise<{ success: boolean; output?: string | undefined; error?: string | undefined }> {
+  if (hook.command !== undefined && hook.command.trim().length > 0) {
+    return {
+      success: false,
+      error: formatHookRefusal(
+        "AUDIO_COMMAND_STRING_REJECTED",
+        `audio hooks no longer accept a raw "command" shell string ("${hook.command}"); declare "sound" and/or "file" instead, e.g. { "action": "audio", "sound": "Bottle" }.`,
+      ),
+    };
+  }
+
   if (currentPlatform === "darwin") {
     const soundPath = resolveAudioSoundPath(hook.sound, hook.file);
-    const command = hook.command ?? `afplay "${soundPath}"`;
+    if (!isValidAudioFilePath(soundPath)) {
+      return {
+        success: false,
+        error: formatHookRefusal(
+          "AUDIO_FILE_PATH_INVALID",
+          `resolved audio path "${soundPath}" is not an absolute path ending in a recognized audio extension (${AUDIO_FILE_EXTENSIONS.join(", ")}).`,
+        ),
+      };
+    }
     try {
-      const result = spawnSync("sh", ["-c", command], {
-        timeout: hook.timeout_ms ?? 5000,
-        stdio: hook.silent === true ? "ignore" : "pipe",
-        encoding: "utf8",
+      const result = runner("afplay", [soundPath], {
+        timeoutMs: hook.timeout_ms ?? 5000,
+        captureOutput: hook.silent !== true,
       });
 
       if (result.status === 0) {
         return { success: true, output: `Played audio: ${soundPath}` };
       }
-      const err = result.stderr
-        ? result.stderr.trim()
-        : `Process exited with code ${result.status}`;
-      return { success: false, error: err && err.length > 0 ? err : "Audio playback failed" };
+      const err = result.stderr.trim();
+      return { success: false, error: err.length > 0 ? err : "Audio playback failed" };
     } catch (err) {
       return {
         success: false,
@@ -149,18 +327,39 @@ export async function executeAudioAction(
   }
 
   if (currentPlatform === "linux") {
-    const file = hook.file ?? (hook.sound ? `/usr/share/sounds/${hook.sound}` : undefined);
-    const command = hook.command ?? (file ? `paplay "${file}" || aplay "${file}"` : `printf '\\a'`);
-    try {
-      const result = spawnSync("sh", ["-c", command], {
-        timeout: hook.timeout_ms ?? 5000,
-        stdio: "ignore",
-      });
+    const file =
+      hook.file !== undefined
+        ? hook.file
+        : hook.sound !== undefined
+          ? `/usr/share/sounds/${hook.sound}`
+          : undefined;
+
+    if (file === undefined) {
+      process.stdout.write("");
+      return { success: true, output: "Played terminal bell" };
+    }
+
+    if (!isValidAudioFilePath(file)) {
       return {
-        success: result.status === 0,
-        output: result.status === 0 ? "Played Linux audio notification" : undefined,
-        error: result.status !== 0 ? `Process exited with code ${result.status}` : undefined,
+        success: false,
+        error: formatHookRefusal(
+          "AUDIO_FILE_PATH_INVALID",
+          `resolved audio path "${file}" is not an absolute path ending in a recognized audio extension (${AUDIO_FILE_EXTENSIONS.join(", ")}).`,
+        ),
       };
+    }
+
+    try {
+      for (const player of ["paplay", "aplay"]) {
+        const result = runner(player, [file], {
+          timeoutMs: hook.timeout_ms ?? 5000,
+          captureOutput: false,
+        });
+        if (result.status === 0) {
+          return { success: true, output: "Played Linux audio notification" };
+        }
+      }
+      return { success: false, error: "Audio playback failed on paplay and aplay" };
     } catch (err) {
       return {
         success: false,
@@ -175,32 +374,75 @@ export async function executeAudioAction(
   };
 }
 
-/**
- * Executes a shell command action safely with execution timeout and isolated environment.
- */
 export async function executeShellAction(
   hook: HookDefinition,
   event: LifecycleEvent,
   payload?: Readonly<Record<string, unknown>> | undefined,
+  runner: ProcessRunner = defaultProcessRunner,
 ): Promise<{ success: boolean; output?: string | undefined; error?: string | undefined }> {
-  if (hook.command === undefined || hook.command.trim().length === 0) {
-    return { success: false, error: "Missing shell command in hook definition" };
-  }
-
-  if (commandContainsRecursiveDelete(hook.command)) {
+  if (hook.command !== undefined && hook.command.trim().length > 0) {
+    const suggestion = tokenizeLegacyCommandForDisplay(hook.command);
     return {
       success: false,
-      error: `Refused hook command: recursive delete detected in "${hook.command}"`,
+      error: formatHookRefusal(
+        "SHELL_STRING_COMMAND_REJECTED",
+        `shell hooks no longer accept a "command" shell string ("${hook.command}"); declare "commandArgv" as an argv array instead, e.g. commandArgv: ${formatArgvLiteral(suggestion)} (only these executables are allowlisted: ${ALLOWED_SHELL_EXECUTABLES.join(", ")}).`,
+      ),
+    };
+  }
+
+  if (hook.commandArgv === undefined || hook.commandArgv.length === 0) {
+    return {
+      success: false,
+      error: formatHookRefusal(
+        "MISSING_COMMAND_ARGV",
+        `shell hooks require a non-empty "commandArgv" array, e.g. commandArgv: ["echo", "hello"].`,
+      ),
+    };
+  }
+
+  const argv = hook.commandArgv;
+  const executable = argv[0]!;
+
+  if (!isAllowedShellExecutable(executable)) {
+    return {
+      success: false,
+      error: formatHookRefusal(
+        "EXECUTABLE_NOT_ALLOWLISTED",
+        `"${executable}" is not an allowlisted hook executable. Allowed: ${ALLOWED_SHELL_EXECUTABLES.join(", ")}. Got commandArgv: ${formatArgvLiteral(argv)}.`,
+      ),
+    };
+  }
+
+  const reconstructed = argv.join(" ");
+  if (commandContainsRecursiveDelete(reconstructed)) {
+    return {
+      success: false,
+      error: formatHookRefusal(
+        "RECURSIVE_DELETE_DETECTED",
+        `recursive delete detected in commandArgv ${formatArgvLiteral(argv)}.`,
+      ),
     };
   }
 
   const repoRoot = findRepoRoot();
   const forbiddenCommands = loadRepoPolicy(repoRoot).forbidden_commands ?? [];
-  const forbiddenMatch = findForbiddenCommandMatch(hook.command, forbiddenCommands);
+  const forbiddenMatch = findForbiddenCommandMatch(reconstructed, forbiddenCommands);
   if (forbiddenMatch !== undefined) {
     return {
       success: false,
-      error: `Refused hook command: matches forbidden_commands entry "${forbiddenMatch}"`,
+      error: formatHookRefusal(
+        "FORBIDDEN_COMMANDS_POLICY",
+        `commandArgv ${formatArgvLiteral(argv)} matches forbidden_commands entry "${forbiddenMatch}".`,
+      ),
+    };
+  }
+
+  const cwdResolution = resolvePinnedHookCwd(hook, repoRoot);
+  if (!cwdResolution.ok) {
+    return {
+      success: false,
+      error: formatHookRefusal("CWD_OUTSIDE_REPOSITORY", cwdResolution.reason),
     };
   }
 
@@ -212,28 +454,32 @@ export async function executeShellAction(
       }
     }
 
+    const sanitizedHookEnv: Record<string, string> = {};
+    for (const [key, value] of Object.entries(hook.env ?? {})) {
+      if (key === "PATH") continue;
+      sanitizedHookEnv[key] = value;
+    }
+
     const env: Record<string, string> = {
       ...processEnv,
-      ...(hook.env ?? {}),
+      ...sanitizedHookEnv,
       LIFECYCLE_EVENT: event,
       LIFECYCLE_PAYLOAD: JSON.stringify(payload ?? {}),
     };
 
-    const result = spawnSync("sh", ["-c", hook.command], {
-      cwd: resolvePinnedHookCwd(hook, repoRoot),
+    const result = runner(executable, argv.slice(1), {
+      cwd: cwdResolution.cwd,
       env,
-      timeout: hook.timeout_ms ?? 10_000,
-      stdio: "pipe",
-      encoding: "utf8",
+      timeoutMs: hook.timeout_ms ?? 10_000,
+      captureOutput: true,
     });
 
     if (result.status === 0) {
-      const stdout = result.stdout ? result.stdout.trim() : "";
-      return { success: true, output: stdout };
+      return { success: true, output: result.stdout.trim() };
     }
 
-    const stderr = result.stderr ? result.stderr.trim() : "";
-    const stdout = result.stdout ? result.stdout.trim() : "";
+    const stderr = result.stderr.trim();
+    const stdout = result.stdout.trim();
     return {
       success: false,
       output: stdout.length > 0 ? stdout : undefined,
@@ -247,9 +493,6 @@ export async function executeShellAction(
   }
 }
 
-/**
- * Executes a webhook HTTP notification action safely with timeout.
- */
 export async function executeWebhookAction(
   hook: HookDefinition,
   event: LifecycleEvent,
@@ -300,9 +543,6 @@ export async function executeWebhookAction(
   }
 }
 
-/**
- * Executes an in-process custom handler action safely.
- */
 export async function executeCustomAction(
   hook: HookDefinition,
   event: LifecycleEvent,
@@ -329,9 +569,6 @@ export async function executeCustomAction(
   }
 }
 
-/**
- * Dispatches an individual hook definition safely, recording duration, status, and output.
- */
 export async function dispatchSingleHook(
   hook: HookDefinition,
   event: LifecycleEvent,
@@ -411,10 +648,6 @@ export async function dispatchSingleHook(
   };
 }
 
-/**
- * Dispatches all registered lifecycle hooks matching the event.
- * Non-blocking: errors in one hook never stop other hooks or throw to the caller.
- */
 export async function dispatchLifecycleHook(
   event: LifecycleEvent,
   payload?: Record<string, unknown> | undefined,
