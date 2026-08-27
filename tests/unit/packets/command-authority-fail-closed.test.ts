@@ -280,13 +280,15 @@ describe("assertGrantedCommand hole 3: capsule state cannot load", () => {
     );
   });
 
-  test("permits agent:register against an unreadable capsule, the grant-genesis bootstrap case", async () => {
+  test("denies agent:register against an unreadable capsule because genesis requires a readable empty ledger", async () => {
     const { repo } = await emptyGrantRun("fail-closed-hole3-permit-");
     const brokenRoot = join(repo, "not-a-capsule");
     await mkdir(brokenRoot);
     await writeFile(join(brokenRoot, "state.json"), "{}");
     const flags: Flags = { run: brokenRoot, actor: "first-orchestrator" };
-    expect(() => assertGrantedCommand(spec("agent:register"), flags)).not.toThrow();
+    expect(() => assertRawGrantedCommand(spec("agent:register"), flags)).toThrow(
+      "first-grant genesis requires a readable empty agent ledger",
+    );
   });
 
   test("permits plan:brainstorm without an agent grant only for a readable capsule", async () => {
@@ -670,7 +672,7 @@ describe("assertGrantedCommand hole 6: agent:register --parent-agent binding fai
     expect(error.message).not.toContain("Agent Granted");
   });
 
-  test("still denies the same escalation when the caller supplies a wrong --actor instead of an absent one, as a control", async () => {
+  test("denies an unverified explicit --actor instead of treating its value as parent proof", async () => {
     const { run } = await emptyGrantRun("fail-closed-hole6-wrong-actor-");
     await seedActiveMind(run);
 
@@ -682,9 +684,14 @@ describe("assertGrantedCommand hole 6: agent:register --parent-agent binding fai
       "parent-agent": "mind-1",
       actor: "orch-stolen",
     };
-    expect(() => assertGrantedCommand(spec("agent:register"), flags)).toThrow(
-      "does not match --parent-agent",
-    );
+    let thrown: unknown;
+    try {
+      assertRawGrantedCommand(spec("agent:register"), flags);
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(HarnessError);
+    expect((thrown as HarnessError).code).toBe("AUTHENTICATION_FAILURE");
   });
 
   test("permits the same registration once --actor proves the caller really is the named parent", async () => {
@@ -699,7 +706,13 @@ describe("assertGrantedCommand hole 6: agent:register --parent-agent binding fai
       "parent-agent": "mind-1",
       actor: "mind-1",
     };
-    expect(() => assertGrantedCommand(spec("agent:register"), flags)).not.toThrow();
+    expect(() =>
+      assertRawGrantedCommand(spec("agent:register"), flags, {
+        actor: "mind-1",
+        role: "mind",
+        verified: true,
+      }),
+    ).not.toThrow();
   });
 
   test("omitting the actor is denied identically whichever acting-identity flag would have carried it", async () => {

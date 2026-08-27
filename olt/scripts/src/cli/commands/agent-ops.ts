@@ -12,7 +12,7 @@ import { getHarnessConfig } from "../../core/config/harness-config.ts";
 import { AGENT_ROLES, isAgentRole, type AgentRole } from "../../core/contracts/packets.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
-import { registerSessionGrant, revokeSessionGrant } from "../../authority/session-registry.ts";
+import { rollbackStagedSessionGrant, stageSessionGrant } from "../../authority/session-registry.ts";
 import {
   isCommittedWithRecoveryPending,
   loadRun,
@@ -25,6 +25,7 @@ import {
   registerAgentGrant,
   releaseAgentGrant,
   type GrantTelemetryInput,
+  type RegistrationAuthority,
 } from "../../workflow/agents/grants.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { ancestorChain, taskLineage } from "../../workflow/agents/lineage.ts";
@@ -36,7 +37,7 @@ import {
   formatAgentReportBrief,
 } from "../formatters/agent-formatter.ts";
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
-import { boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
+import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { tokenExtraFlags, toolRefFlags } from "../taxonomy-flags.ts";
 
 function roleFlag(flags: Flags): AgentRole {
@@ -114,19 +115,27 @@ function assertReleaseTargetPolicy(run: string, agent: string, actor: string): v
   }
 }
 
-export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
+export function agentRegisterCommand(
+  flags: Flags,
+  context: CommandContext = {},
+): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const agent = textFlag(flags, "agent")!;
   const parentAgent = textFlag(flags, "parent-agent", false) ?? null;
   const parentTask = textFlag(flags, "parent-task", false) ?? null;
-  const actor = textFlag(flags, "actor", false) ?? parentAgent ?? agent;
+  const caller = context.authenticatedCaller;
+  const authority: RegistrationAuthority =
+    caller?.verified === true
+      ? { kind: "verified_parent", actorId: caller.actor }
+      : { kind: "conditional_genesis" };
+  const eventActor = authority.kind === "verified_parent" ? authority.actorId : agent;
   const derivedTelemetry = probeAgentTelemetry(agent);
   const role = roleFlag(flags);
   const host = textFlag(flags, "host")!;
   const hostAddress = textFlag(flags, "host-address", false);
   const pendingPhase = transactionRecoveryStatus(run);
   if (pendingPhase !== undefined) {
-    const recovered = recoverProjection(run, actor);
+    const recovered = recoverProjection(run, eventActor);
     const existing = readAgentLedger(recovered).find(
       (grant) => grant.id === agent && grant.status === "active",
     );
@@ -144,7 +153,8 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
   }
   // Stage session authority first, then commit the active grant. If grant admission
   // rejects, compensate the staged required PID records before exposing an outcome.
-  const session = registerSessionGrant({ runRoot: run, agentId: agent, role, host });
+  const stagedSession = stageSessionGrant({ runRoot: run, agentId: agent, role, host });
+  const session = stagedSession.session;
   let outcome;
   try {
     outcome = registerAgentGrant({
@@ -155,7 +165,7 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
       parentTaskId: parentTask,
       host,
       ...(hostAddress === undefined ? {} : { hostAddress }),
-      actor,
+      authority,
       maxAgents: getHarnessConfig(findRepoRoot(run), run).max_agents,
       telemetry: telemetryFlags(flags),
       ...(Object.keys(derivedTelemetry).length === 0 ? {} : { derivedTelemetry }),
@@ -185,7 +195,7 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
       );
     }
     try {
-      revokeSessionGrant({ runRoot: run, agentId: agent, pid: session.pid, ppid: session.ppid });
+      rollbackStagedSessionGrant(stagedSession);
     } catch {
       // The grant failure is primary and must not leak an authority token through cleanup.
     }

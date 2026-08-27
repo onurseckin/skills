@@ -11,8 +11,10 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import {
+  rollbackStagedSessionGrant,
   registerSessionGrant,
   resolveActiveSession,
+  stageSessionGrant,
   autoDeriveCallerIdentity,
   pruneStaleSessions,
   setSessionLockCleanupFailureForTesting,
@@ -67,6 +69,33 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
 
     expect(existsSync(join(sandboxDir, ".olt", ".sessions", "12345.json"))).toBe(true);
     expect(existsSync(join(sandboxDir, ".olt", ".sessions", "12344.json"))).toBe(true);
+  });
+
+  it("does not roll back a newer PID or PPID session record", () => {
+    const staged = stageSessionGrant({
+      runRoot: sandboxDir,
+      agentId: "staged-agent",
+      role: "implementer",
+      customToken: "tok_staged",
+      pid: 12355,
+      ppid: 12354,
+    });
+    registerSessionGrant({
+      runRoot: sandboxDir,
+      agentId: "newer-agent",
+      role: "implementer",
+      customToken: "tok_newer",
+      pid: 12355,
+      ppid: 12354,
+    });
+
+    rollbackStagedSessionGrant(staged);
+
+    for (const id of [12355, 12354]) {
+      expect(readFileSync(join(sandboxDir, ".olt", ".sessions", `${id}.json`), "utf8")).toContain(
+        "tok_newer",
+      );
+    }
   });
 
   it("rejects traversal-shaped agent identities before creating any process session record", () => {

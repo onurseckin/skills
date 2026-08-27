@@ -50,12 +50,18 @@ export interface RegisterAgentInput {
   parentTaskId: null | string;
   host: string;
   hostAddress?: string;
-  actor: string;
+  /** Legacy trusted workflow caller; CLI registration must supply authority instead. */
+  actor?: string;
+  authority?: RegistrationAuthority;
   maxAgents: number;
   telemetry: GrantTelemetryInput;
   derivedTelemetry?: DerivedTelemetryInput;
   now?: Date;
 }
+
+export type RegistrationAuthority =
+  | { readonly kind: "conditional_genesis" }
+  | { readonly kind: "verified_parent"; readonly actorId: string };
 
 export interface AgentReportInput {
   runRoot: string;
@@ -159,11 +165,14 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
   const fields = mergeTelemetry(input.telemetry, input.derivedTelemetry, conflicts, grantedAt);
   checkParentAgentConflict(input.parentAgentId, input.derivedTelemetry?.transcript, conflicts);
   const transcriptContext = transcriptAuditContext(input.derivedTelemetry?.transcript);
+  const authority = input.authority;
+  const eventActor =
+    authority?.kind === "verified_parent" ? authority.actorId : (input.actor ?? input.agentId);
   let minted: AgentGrantRecord | undefined;
   let ledgerAfter: AgentGrantRecord[] = [];
   const state = transact(
     input.runRoot,
-    input.actor,
+    eventActor,
     "agent-registered",
     {
       agent_id: input.agentId,
@@ -187,6 +196,27 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
     },
     (draft) => {
       const ledger = readAgentLedger(draft);
+      if (authority?.kind === "conditional_genesis") {
+        if (ledger.length !== 0 || input.parentAgentId !== null) {
+          throw new HarnessError(
+            "AUTHENTICATION_FAILURE",
+            "conditional agent genesis is valid only for the first grant in an empty ledger without --parent-agent",
+          );
+        }
+      } else if (authority?.kind === "verified_parent") {
+        if (ledger.length === 0 || input.parentAgentId === null) {
+          throw new HarnessError(
+            "AUTHENTICATION_FAILURE",
+            "verified parent registration requires a nonempty ledger and a named parent agent",
+          );
+        }
+        if (authority.actorId !== input.parentAgentId) {
+          throw new HarnessError(
+            "AUTHENTICATION_FAILURE",
+            `actor '${authority.actorId}' does not match parent agent '${input.parentAgentId}'; registering a grant under a named parent requires acting as that parent, not borrowing its spawn authority from an unrelated caller`,
+          );
+        }
+      }
       if (findGrant(ledger, input.agentId)) {
         throw new HarnessError(
           "INVALID_STATE",
@@ -199,12 +229,6 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
           throw new HarnessError(
             "INVALID_STATE",
             `parent agent ${input.parentAgentId} holds a ${parentGrant.status} grant, not an active one, and cannot supervise a new spawn`,
-          );
-        }
-        if (input.actor !== input.parentAgentId) {
-          throw new HarnessError(
-            "AUTHENTICATION_FAILURE",
-            `actor '${input.actor}' does not match parent agent '${input.parentAgentId}'; registering a grant under a named parent requires acting as that parent, not borrowing its spawn authority from an unrelated caller`,
           );
         }
         assertSpawnAuthorized(parentGrant.role, input.role, input.parentAgentId, input.agentId);

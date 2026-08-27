@@ -85,7 +85,11 @@ export async function execute(
 
   assertGrantedCommand(spec, parsed.flags, identity);
 
-  return (await spec.handler(parsed.flags, context, parsed.remainder)) as JsonObject;
+  return (await spec.handler(
+    parsed.flags,
+    { ...context, authenticatedCaller: identity },
+    parsed.remainder,
+  )) as JsonObject;
 }
 
 export class DeductiveStateMachine {

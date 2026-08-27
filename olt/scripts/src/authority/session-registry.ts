@@ -472,26 +472,36 @@ function assertSessionPid(value: number, field: string): number {
   return value;
 }
 
-function restoreSessionSnapshots(
-  snapshots: readonly { path: string; bytes: string | null }[],
-): void {
-  for (const snapshot of snapshots) {
-    try {
-      if (snapshot.bytes === null) {
-        if (existsSync(snapshot.path)) unlinkSync(snapshot.path);
-      } else {
-        writeFileSync(snapshot.path, snapshot.bytes, "utf8");
-      }
-    } catch {
-      // The original persistence failure remains authoritative; restore is best effort.
-    }
+interface SessionSnapshot {
+  readonly path: string;
+  readonly bytes: string | null;
+}
+
+export interface StagedSessionGrant {
+  readonly session: SessionIdentity;
+  readonly repoRoot: string;
+  readonly globalDir: string;
+  readonly payload: string;
+  readonly processSnapshots: readonly SessionSnapshot[];
+  readonly capsuleSnapshot?: SessionSnapshot;
+}
+
+function snapshotSession(path: string): SessionSnapshot {
+  return { path, bytes: existsSync(path) ? secureReadSession(path) : null };
+}
+
+function restoreSnapshotIfUnchanged(snapshot: SessionSnapshot, payload: string): void {
+  const current = existsSync(snapshot.path) ? secureReadSession(snapshot.path) : null;
+  if (current !== payload) return;
+  if (snapshot.bytes === null) {
+    unlinkSync(snapshot.path);
+  } else {
+    writeFileSync(snapshot.path, snapshot.bytes, "utf8");
   }
 }
 
-/**
- * Registers an authenticated session grant on disk and binds process ancestry.
- */
-export function registerSessionGrant(options: RegisterSessionOptions): SessionIdentity {
+/** Stages process and capsule session records with byte snapshots for CAS rollback. */
+export function stageSessionGrant(options: RegisterSessionOptions): StagedSessionGrant {
   const repoRoot = findRepoRoot(options.runRoot);
   const agentId = assertSafeSessionComponent(options.agentId, "agentId");
   const role = assertSafeSessionComponent(options.role, "role");
@@ -541,26 +551,21 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
 
   const payload = JSON.stringify(session, null, 2);
 
-  // 1. Atomically stage the required global PID/PPID authority set. A failed second
-  // write restores every prior byte and removes newly-created grants.
   const globalDir = resolveGlobalSessionsDir(repoRoot);
+  const paths = [...new Set([pid, ppid])].map((processId) => join(globalDir, `${processId}.json`));
+  let processSnapshots: readonly SessionSnapshot[] = [];
+  let capsuleSnapshot: SessionSnapshot | undefined;
   try {
     mkdirSync(globalDir, { recursive: true });
-    const paths = [...new Set([pid, ppid])].map((processId) =>
-      join(globalDir, `${processId}.json`),
-    );
-    const snapshots = paths.map((path) => ({
-      path,
-      bytes: existsSync(path) ? readFileSync(path, "utf8") : null,
-    }));
-    try {
-      withSessionAuthorityLock(repoRoot, globalDir, () => {
+    withSessionAuthorityLock(repoRoot, globalDir, () => {
+      processSnapshots = paths.map(snapshotSession);
+      try {
         for (const path of paths) atomicSessionWrite(path, payload);
-      });
-    } catch (error) {
-      restoreSessionSnapshots(snapshots);
-      throw error;
-    }
+      } catch (error) {
+        for (const snapshot of processSnapshots) restoreSnapshotIfUnchanged(snapshot, payload);
+        throw error;
+      }
+    });
   } catch (error: unknown) {
     throw new HarnessError(
       "INTEGRITY",
@@ -568,27 +573,53 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
     );
   }
 
-  // 2. Write Capsule Runtime Session
   if (resolvedRunRoot) {
     const runtimeSessionsDir = join(resolvedRunRoot, "runtime", "sessions");
     try {
       mkdirSync(runtimeSessionsDir, { recursive: true });
-      writeFileSync(join(runtimeSessionsDir, `${agentId}.json`), payload, "utf8");
+      const path = join(runtimeSessionsDir, `${agentId}.json`);
+      capsuleSnapshot = snapshotSession(path);
+      writeFileSync(path, payload, "utf8");
     } catch {
       // Best-effort
     }
   }
 
-  // 3. Write Worktree Local Session
+  return {
+    session,
+    repoRoot,
+    globalDir,
+    payload,
+    processSnapshots,
+    ...(capsuleSnapshot === undefined ? {} : { capsuleSnapshot }),
+  };
+}
+
+/** Restores only records that still contain this stage's exact bytes. */
+export function rollbackStagedSessionGrant(stage: StagedSessionGrant): void {
+  withSessionAuthorityLock(stage.repoRoot, stage.globalDir, () => {
+    for (const snapshot of stage.processSnapshots) {
+      restoreSnapshotIfUnchanged(snapshot, stage.payload);
+    }
+    if (stage.capsuleSnapshot !== undefined) {
+      restoreSnapshotIfUnchanged(stage.capsuleSnapshot, stage.payload);
+    }
+  });
+}
+
+/** Registers an authenticated session grant and retains the staged records. */
+export function registerSessionGrant(options: RegisterSessionOptions): SessionIdentity {
+  const stage = stageSessionGrant(options);
+
   if (options.worktreeDir && existsSync(options.worktreeDir)) {
     try {
-      writeFileSync(join(options.worktreeDir, ".session.json"), payload, "utf8");
+      writeFileSync(join(options.worktreeDir, ".session.json"), stage.payload, "utf8");
     } catch {
       // Best-effort
     }
   }
 
-  return session;
+  return stage.session;
 }
 
 /** Removes only the required process-session records created for a failed higher-level grant. */

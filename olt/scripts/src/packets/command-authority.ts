@@ -363,15 +363,13 @@ export function assertRoleMayInvoke(role: AgentRole, spec: CommandSpec, agentId:
 
 function assertAgentRegisterHierarchy(
   flags: Flags,
-  runRoot: string,
+  ledger: ReturnType<typeof readAgentLedger>,
   agentId: string | undefined,
 ): void {
   const childRole = identity(flags, "role");
   if (childRole === undefined) return;
   const parentAgentId = identity(flags, "parent-agent");
   const childAgentId = identity(flags, "agent");
-  const state = capsuleState(runRoot);
-  const ledger = state === undefined ? [] : readAgentLedger(state);
 
   if (parentAgentId !== undefined) {
     const parentGrant = ledger.find((entry) => entry.id === parentAgentId);
@@ -485,7 +483,29 @@ export function assertGrantedCommand(
   const agentId = caller?.actor;
 
   if (spec.name === "agent:register") {
-    assertAgentRegisterHierarchy(flags, runRoot, agentId);
+    const state = capsuleState(runRoot);
+    if (state === undefined) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `agent:register could not load capsule state at --run ${runRoot}; first-grant genesis requires a readable empty agent ledger, and an unreadable capsule cannot be treated as one`,
+      );
+    }
+    const ledger = readAgentLedger(state);
+    const genesis = ledger.length === 0;
+    const verifiedCaller = caller?.verified === true && agentId !== undefined;
+    const parentAgentId = identity(flags, "parent-agent");
+
+    if (!verifiedCaller && (parentAgentId !== undefined || !genesis)) {
+      throw new HarnessError(
+        "AUTHENTICATION_FAILURE",
+        parentAgentId === undefined
+          ? "agent:register requires a verified caller session backed by an active run grant before it may register into a nonempty agent ledger; explicit identity flags cannot establish authority"
+          : `agent:register requires a verified caller session backed by an active run grant before it may claim --parent-agent '${parentAgentId}' spawn authority; explicit identity flags cannot establish authority`,
+      );
+    }
+
+    assertAgentRegisterHierarchy(flags, ledger, verifiedCaller ? agentId : undefined);
+    if (genesis) return;
   }
 
   if (agentId === undefined || !caller?.verified) {

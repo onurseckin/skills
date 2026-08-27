@@ -19,6 +19,12 @@ export interface CommandContext {
   stdin?: Uint8Array;
   executingRuntime?: string;
   inlinePrompt?: string;
+  /** Internal identity injected by execute after caller-provided context is spread. */
+  authenticatedCaller?: {
+    readonly actor: string;
+    readonly role: string;
+    readonly verified: boolean;
+  };
 }
 
 export function assertFlags(flags: Flags, allowed: readonly string[]): void {

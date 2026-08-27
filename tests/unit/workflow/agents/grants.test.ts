@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { estimated, evidenced } from "../../../../olt/scripts/src/core/contracts/evidence.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/harness-error.ts";
-import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import { initRun, loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import {
   recordAgentReport,
   registerAgentGrant,
@@ -26,6 +26,93 @@ function withRun<T>(body: (runRoot: string) => T): T {
 }
 
 describe("workflow/agents/grants", () => {
+  test("admits exactly one conditional-genesis grant under the transaction lock", () => {
+    for (const [firstId, secondId] of [
+      ["genesis-a", "genesis-b"],
+      ["genesis-same", "genesis-same"],
+    ]) {
+      withRun((runRoot) => {
+        const input = (agentId: string) => ({
+          runRoot,
+          agentId,
+          role: "coordinator" as const,
+          parentAgentId: null,
+          parentTaskId: null,
+          host: "local",
+          authority: { kind: "conditional_genesis" as const },
+          maxAgents: 5,
+          telemetry: {},
+        });
+        expect(registerAgentGrant(input(firstId)).grant.id).toBe(firstId);
+        expect(() => registerAgentGrant(input(secondId))).toThrow("conditional agent genesis");
+        expect(
+          loadRun(runRoot).events.filter((event) => event.kind === "agent-registered"),
+        ).toHaveLength(1);
+      });
+    }
+  });
+
+  test("enforces verified-parent identity, active status, and tier checks in the locked mutator", () => {
+    withRun((runRoot) => {
+      const register = (
+        agentId: string,
+        role: "coordinator" | "implementer",
+        parent: string | null,
+        actor?: string,
+      ) =>
+        registerAgentGrant({
+          runRoot,
+          agentId,
+          role,
+          parentAgentId: parent,
+          parentTaskId: null,
+          host: "local",
+          authority:
+            actor === undefined
+              ? { kind: "conditional_genesis" }
+              : { kind: "verified_parent", actorId: actor },
+          maxAgents: 5,
+          telemetry: {},
+        });
+
+      register("coord-1", "coordinator", null);
+      expect(() => register("impl-unrelated", "implementer", "coord-1", "other")).toThrow(
+        "does not match parent agent",
+      );
+      releaseAgentGrant({ runRoot, agentId: "coord-1", actor: "coord-1", reason: "released" });
+      expect(() => register("impl-released", "implementer", "coord-1", "coord-1")).toThrow(
+        "holds a released grant",
+      );
+    });
+
+    withRun((runRoot) => {
+      registerAgentGrant({
+        runRoot,
+        agentId: "orch-1",
+        role: "orchestrator",
+        parentAgentId: null,
+        parentTaskId: null,
+        host: "local",
+        authority: { kind: "conditional_genesis" },
+        maxAgents: 5,
+        telemetry: {},
+      });
+      expect(() =>
+        registerAgentGrant({
+          runRoot,
+          agentId: "impl-tier-jump",
+          role: "implementer",
+          parentAgentId: "orch-1",
+          parentTaskId: null,
+          host: "local",
+          authority: { kind: "verified_parent", actorId: "orch-1" },
+          maxAgents: 5,
+          telemetry: {},
+        }),
+      ).toThrow("may only dispatch Tier 2 Coordinators");
+    });
+  });
+
   test("registerAgentGrant validates parent agent and parent task constraints", () => {
     withRun((runRoot) => {
       // Self-parenting throws INVALID_ARGUMENT
@@ -243,7 +330,7 @@ describe("workflow/agents/grants", () => {
         recordAgentReport({
           runRoot,
           agentId: "agent-1",
-          actor: "worker",
+          actor: "agent-1",
           tools: [],
           tokensEstimated: false,
         }),
@@ -255,7 +342,7 @@ describe("workflow/agents/grants", () => {
       const r1 = recordAgentReport({
         runRoot,
         agentId: "agent-1",
-        actor: "worker",
+        actor: "agent-1",
         tools: [{ name: "view_file", category: "fs", extras: { count: 1 } }],
         tokensIn: 500,
         tokensOut: 100,
@@ -281,7 +368,7 @@ describe("workflow/agents/grants", () => {
       const r2 = recordAgentReport({
         runRoot,
         agentId: "agent-1",
-        actor: "worker",
+        actor: "agent-1",
         tools: [{ name: "view_file", category: "fs_updated", extras: { extra_metric: 2 } }],
         tokensIn: 1000,
         tokensEstimated: true,
@@ -313,7 +400,7 @@ describe("workflow/agents/grants", () => {
         releaseAgentGrant({
           runRoot,
           agentId: "agent-rel",
-          actor: "worker",
+          actor: "agent-rel",
           reason: "   ",
         }),
       ).toThrow(HarnessError);
@@ -322,7 +409,7 @@ describe("workflow/agents/grants", () => {
       const rel = releaseAgentGrant({
         runRoot,
         agentId: "agent-rel",
-        actor: "worker",
+        actor: "agent-rel",
         reason: "work completed successfully",
         now: new Date("2026-08-20T12:00:00.000Z"),
       });
@@ -335,7 +422,7 @@ describe("workflow/agents/grants", () => {
         releaseAgentGrant({
           runRoot,
           agentId: "agent-rel",
-          actor: "worker",
+          actor: "agent-rel",
           reason: "try releasing again",
         }),
       ).toThrow("already released its grant");
@@ -345,7 +432,7 @@ describe("workflow/agents/grants", () => {
         recordAgentReport({
           runRoot,
           agentId: "agent-rel",
-          actor: "worker",
+          actor: "agent-rel",
           tools: [{ name: "view_file" }],
           tokensEstimated: false,
         }),
