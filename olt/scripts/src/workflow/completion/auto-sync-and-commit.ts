@@ -327,10 +327,18 @@ export async function executePhaseCompletionSyncAndCommit(
     // Non-blocking
   }
 
+  const releaseFailureLogs = result.logs.filter(
+    (log) =>
+      (!result.committed && log.startsWith("[commit]")) ||
+      (autoPush && !result.pushed && log.startsWith("[push]")) ||
+      (!result.synced && log.startsWith("[sync]")),
+  );
+
   return {
     synced: result.synced,
     committed: result.committed,
     pushed: result.pushed,
     commitSha: result.commitSha,
+    ...(releaseFailureLogs.length === 0 ? {} : { error: releaseFailureLogs.join(" ") }),
   };
 }

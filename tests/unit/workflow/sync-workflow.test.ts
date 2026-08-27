@@ -701,6 +701,36 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
       expect(res.commitSha).toBe("sha-phase-999");
       expect(res.pushed).toBeFalse();
     });
+
+    test("reports mandatory release-step failures while preserving disabled push behavior", async () => {
+      const mockGitRunner: GitRunner = (args) => {
+        if (args[0] === "commit") {
+          return { status: 1, stdout: "", stderr: "commit rejected" };
+        }
+        return { status: 0, stdout: "", stderr: "" };
+      };
+      const mockSyncRunner: SyncRunner = () => ({
+        status: 1,
+        stdout: "sync rejected",
+        stderr: "",
+      });
+
+      const res = await executePhaseCompletionSyncAndCommit(
+        {
+          phaseName: "test-phase",
+          autoPush: false,
+        },
+        mockGitRunner,
+        mockSyncRunner,
+      );
+
+      expect(res.committed).toBeFalse();
+      expect(res.pushed).toBeFalse();
+      expect(res.synced).toBeFalse();
+      expect(res.error).toContain("[commit] Git commit failed (status 1): commit rejected");
+      expect(res.error).toContain("[sync] Global skill sync failed (status 1): sync rejected");
+      expect(res.error).not.toContain("[push]");
+    });
   });
 });
 

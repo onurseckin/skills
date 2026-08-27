@@ -1,4 +1,7 @@
-import { executePhaseCompletionSyncAndCommit } from "../../workflow/completion/auto-sync-and-commit.ts";
+import {
+  executePhaseCompletionSyncAndCommit,
+  type PhaseCompletionResult,
+} from "../../workflow/completion/auto-sync-and-commit.ts";
 import {
   createAgentMetadata,
   readAgentMetadata,
@@ -105,7 +108,28 @@ function consolidateIfProvisioned(
   return result;
 }
 
-export function runCompleteCommand(flags: Flags): Record<string, unknown> {
+export async function resolvePhaseCompletionResult(
+  execute: () => Promise<PhaseCompletionResult>,
+): Promise<PhaseCompletionResult> {
+  try {
+    return await execute();
+  } catch (error) {
+    return {
+      synced: false,
+      committed: false,
+      pushed: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+export function appendReleaseFailureWarning(markdown: string, error: string | undefined): string {
+  return error === undefined
+    ? markdown
+    : `${markdown}\n- **Warning**: Release completion failed: ${error}`;
+}
+
+export async function runCompleteCommand(flags: Flags): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const actor = textFlag(flags, "actor")!;
   const authToken = textFlag(flags, "auth-token")!;
@@ -145,17 +169,14 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
   }
 
   // Execute automatic local skill sync, git commit, and git push on run completion
-  let autoSyncCommitResult: unknown;
-  try {
-    const repoRoot = findRepoRoot(run);
-    autoSyncCommitResult = executePhaseCompletionSyncAndCommit({
+  const repoRoot = findRepoRoot(run);
+  const autoSyncCommitResult = await resolvePhaseCompletionResult(() =>
+    executePhaseCompletionSyncAndCommit({
       phaseName: "run:complete",
       runId: basename(run),
       repoRoot,
-    });
-  } catch (err) {
-    // Non-blocking
-  }
+    }),
+  );
 
   let prunedSubdirectories: readonly string[] = [];
   try {
@@ -165,7 +186,7 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
     // Non-blocking
   }
 
-  const markdown = formatRunCompleteBrief({
+  const completeBrief = formatRunCompleteBrief({
     runId: basename(run),
     capsulePath: run,
     tasksCount: tasks.length,
@@ -187,6 +208,8 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
         }),
   });
 
+  const markdown = appendReleaseFailureWarning(completeBrief, autoSyncCommitResult.error);
+
   return {
     markdown,
     run_root: run,
@@ -194,7 +217,7 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
     ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
     ...(consolidation === undefined ? {} : { worktree_consolidation: consolidation }),
     ...(summaryWarning === undefined ? {} : { summary_warning: summaryWarning }),
-    ...(autoSyncCommitResult === undefined ? {} : { auto_sync_commit: autoSyncCommitResult }),
+    auto_sync_commit: autoSyncCommitResult,
     ...(prunedSubdirectories.length > 0 ? { pruned_subdirectories: prunedSubdirectories } : {}),
   };
 }
