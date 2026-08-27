@@ -219,3 +219,10 @@ Two behaviours worth preserving in future work:
   control.
 
 Self-reported green is worth very little here. Ask for the command that was run and the output observed.
+
+## Round25 reconciliation
+
+- Phase A source evidence: `d4acd38ac56a97c997da8586417a4b2880f7a0f6` (`fix(agents): require transactional registration authority`) exports the conditional-genesis versus verified-parent registration authority shape, rejects missing authority, and adds same-run race evidence for a single active genesis grant and registration event.
+- Phase B source evidence: `2455851e3b820542b5121d06659e9b02131ceada` (`fix(governance): authenticate lifecycle mutations`) requires an authority run for governed mutations, constrains those mutations to active authorized callers and roles, rejects unsupported aliases, and physically canonicalizes constrained paths to refuse symlink escape.
+
+Round26 only: modularity guardrail + OLT/tests refactor; resume healing after Round26.
