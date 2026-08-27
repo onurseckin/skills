@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -65,6 +73,53 @@ describe("Logging subsystem: Keyed Defect Logger & Compaction", () => {
     expect(entries.length).toBe(1);
     expect(entries[0]?.count).toBe(2);
     expect(entries[0]?.type).toBe("main_thread_direct_execution");
+  });
+
+  test("serializes cross-process keyed records without losing distinct defects or duplicate occurrences", async () => {
+    const dir = createTempDir();
+    const filePath = join(dir, "defects.jsonl");
+    const start = join(dir, "start");
+    const moduleUrl = new URL("../../../olt/scripts/src/logging/defect-logger.ts", import.meta.url)
+      .href;
+    const childScript = (label: string, type: string, observation: string): string => `
+      import { existsSync, writeFileSync } from "node:fs";
+      import { recordKeyedDefect } from ${JSON.stringify(moduleUrl)};
+      writeFileSync(${JSON.stringify(join(dir, `ready-${label}`))}, "ready");
+      while (!existsSync(${JSON.stringify(start)}))
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+      recordKeyedDefect({ id: ${JSON.stringify(label)}, type: ${JSON.stringify(type)}, observation: ${JSON.stringify(observation)} }, { filePath: ${JSON.stringify(filePath)} });
+    `;
+    const children = [
+      Bun.spawn([process.execPath, "--eval", childScript("duplicate-a", "race", "same")], {
+        stdout: "pipe",
+        stderr: "pipe",
+      }),
+      Bun.spawn([process.execPath, "--eval", childScript("duplicate-b", "race", "same")], {
+        stdout: "pipe",
+        stderr: "pipe",
+      }),
+      Bun.spawn([process.execPath, "--eval", childScript("distinct", "other", "different")], {
+        stdout: "pipe",
+        stderr: "pipe",
+      }),
+    ];
+    for (
+      let attempt = 0;
+      attempt < 100 &&
+      (!existsSync(join(dir, "ready-duplicate-a")) ||
+        !existsSync(join(dir, "ready-duplicate-b")) ||
+        !existsSync(join(dir, "ready-distinct")));
+      attempt += 1
+    ) {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+    }
+    writeFileSync(start, "go");
+    expect(await Promise.all(children.map((child) => child.exited))).toEqual([0, 0, 0]);
+
+    const entries = readDefectLogFile(filePath);
+    expect(entries).toHaveLength(2);
+    expect(entries.find((entry) => entry.type === "race")?.count).toBe(2);
+    expect(entries.find((entry) => entry.type === "other")?.count).toBe(1);
   });
 
   test("compacts existing noisy defect files into aggregated format", () => {
@@ -292,5 +347,22 @@ describe("Logging subsystem: Keyed Defect Logger & Compaction", () => {
       expect(recordError.message).toContain("EISDIR");
     }
     expect(readFileSync(sentinelPath, "utf-8")).toBe(sentinelBytes);
+  });
+
+  test("refuses a symlinked defect ledger without changing its external target", () => {
+    const dir = createTempDir();
+    const external = join(createTempDir(), "external-defects.jsonl");
+    const filePath = join(dir, "defects.jsonl");
+    const bytes = "";
+    writeFileSync(external, bytes, "utf8");
+    symlinkSync(external, filePath);
+
+    expect(() =>
+      recordKeyedDefect(
+        { id: "symlink-refused", type: "filesystem_failure", observation: "must not follow" },
+        { filePath },
+      ),
+    ).toThrow(HarnessError);
+    expect(readFileSync(external, "utf8")).toBe(bytes);
   });
 });

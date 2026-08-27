@@ -1,20 +1,17 @@
-import { existsSync, readFileSync } from "node:fs";
-import {
-  parseAndDeduplicateDefectJsonl,
-  serializeAggregatedDefectLog,
-} from "../../mind/defects/index.ts";
+import { serializeAggregatedDefectLog } from "../../mind/defects/index.ts";
 import type {
   AggregatedDefect,
   DefectRecordInput,
   DefectResolutionProof,
   LiveDeduplicationOptions,
 } from "../../mind/defects/types.ts";
-import { atomicWriteBytes } from "../../core/durable-write.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 import {
   compactDefectLogFile,
   readDefectLogFile,
   recordKeyedDefect,
+  replaceDefectLogFileUnlocked,
+  withDefectLogMutationLock,
 } from "../../logging/defect-logger.ts";
 import type { DefectLogOptions } from "../../logging/types.ts";
 import { resolveDefect } from "../../mind/defects.ts";
@@ -73,32 +70,26 @@ export function resolveCapsuleDefect(
   }
 
   const defectPath = runFilePath(runRoot, "defects.jsonl");
-  if (!existsSync(defectPath)) {
-    return null;
-  }
+  return withDefectLogMutationLock(defectPath, () => {
+    const entries = readDefectLogFile(defectPath, { strategy: "aggregate_synchronous" });
+    const index = entries.findIndex((e) => e.id === defectIdOrKey || e.dedup_key === defectIdOrKey);
+    if (index < 0) {
+      return null;
+    }
 
-  const entries = loadCapsuleDefects(runRoot, { strategy: "aggregate_synchronous" });
-  const index = entries.findIndex((e) => e.id === defectIdOrKey || e.dedup_key === defectIdOrKey);
-  if (index < 0) {
-    return null;
-  }
+    const target = entries[index];
+    if (!target) {
+      return null;
+    }
 
-  const target = entries[index];
-  if (!target) {
-    return null;
-  }
-
-  const resolvedMind = resolveDefect(target, proof);
-  const updated: AggregatedDefect = {
-    ...target,
-    status: "resolved",
-    resolution: resolvedMind.resolution,
-  };
-  entries[index] = updated;
-
-  const serialized = serializeAggregatedDefectLog(entries);
-  const encoded = new TextEncoder().encode(serialized);
-  atomicWriteBytes(defectPath, encoded);
-
-  return updated;
+    const resolvedMind = resolveDefect(target, proof);
+    const updated: AggregatedDefect = {
+      ...target,
+      status: "resolved",
+      resolution: resolvedMind.resolution,
+    };
+    entries[index] = updated;
+    replaceDefectLogFileUnlocked(defectPath, serializeAggregatedDefectLog(entries));
+    return updated;
+  });
 }
