@@ -16,7 +16,7 @@ import {
 } from "../../validation/report-adapter.ts";
 import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";
-import { applicableGates } from "../../workflow/gates/gate-policy.ts";
+import { applicableGates, taskHasPassedGate } from "../../workflow/gates/gate-policy.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import type { TaskRecord, TransactionPort, WorkflowState } from "../../workflow/types.ts";
 
@@ -253,8 +253,22 @@ export function gateProofCommand(
   return checkIds.find((id) => commands[id]?.gate_id === gateId);
 }
 
-function isExpectedConcurrentFinalizeRace(error: unknown): boolean {
-  return error instanceof HarnessError && error.code === "INVALID_STATE";
+function rereadTask(port: TransactionPort, taskId: string): [WorkflowState, TaskRecord] {
+  const state = port.read();
+  const task = state.tasks[taskId];
+  if (!task) throw new HarnessError("INVALID_ARGUMENT", `unknown task: ${taskId}`);
+  return [state, task];
+}
+
+function hasDurablePassedApplicableGate(
+  state: WorkflowState,
+  task: TaskRecord,
+  gateId: string,
+): boolean {
+  return (
+    applicableGates(state, task).some((gate) => gate.id === gateId) &&
+    taskHasPassedGate(task, gateId)
+  );
 }
 
 export function finalizePassingTask(
@@ -268,22 +282,34 @@ export function finalizePassingTask(
   const activePort = port ?? workflowPort(run);
   let curState = state;
   const currentTask = curState.tasks[taskId];
-  if (currentTask) {
-    for (const gate of applicableGates(curState, currentTask)) {
-      const matchingCmd = gateProofCommand(curState.commands, gate.id, checkIds);
-      if (matchingCmd) {
-        try {
-          curState = attachGateResult(activePort, taskId, gate.id, matchingCmd, validator);
-        } catch (error) {
-          if (!isExpectedConcurrentFinalizeRace(error)) throw error;
-        }
-      }
+  if (!currentTask) throw new HarnessError("INVALID_ARGUMENT", `unknown task: ${taskId}`);
+
+  for (const gate of applicableGates(curState, currentTask)) {
+    const matchingCmd = gateProofCommand(curState.commands, gate.id, checkIds);
+    if (!matchingCmd) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `no matching proof command for mandatory gate ${gate.id}`,
+      );
     }
     try {
-      curState = finishTask(activePort, taskId, validator);
+      curState = attachGateResult(activePort, taskId, gate.id, matchingCmd, validator);
     } catch (error) {
-      if (!isExpectedConcurrentFinalizeRace(error)) throw error;
+      const [freshState, freshTask] = rereadTask(activePort, taskId);
+      if (!hasDurablePassedApplicableGate(freshState, freshTask, gate.id)) {
+        throw error;
+      }
+      curState = freshState;
     }
+  }
+  try {
+    curState = finishTask(activePort, taskId, validator);
+  } catch (error) {
+    const [freshState, freshTask] = rereadTask(activePort, taskId);
+    if (freshTask.status !== "done") {
+      throw error;
+    }
+    curState = freshState;
   }
   return curState;
 }

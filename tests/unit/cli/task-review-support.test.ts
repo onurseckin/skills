@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 import { attachGateResult } from "../../../olt/scripts/src/workflow/gates/attach-result.ts";
 import { finalizePassingTask } from "../../../olt/scripts/src/cli/commands/task-review-support.ts";
+import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { at, commandRecord, TestPort, workflowState } from "../workflow/test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
@@ -25,8 +28,53 @@ function validatedPort(): TestPort {
     ],
   });
   state.commands["C-1"] = commandRecord("C-1", { task_id: "T-1", gate_id: "G-1" });
-  state.commands["C-VALIDATE"] = commandRecord("C-VALIDATE");
+  state.commands["C-VALIDATE"] = commandRecord("C-VALIDATE", { gate_id: null });
   return new TestPort(state);
+}
+
+class ConcurrentPostconditionPort implements TransactionPort {
+  public constructor(
+    private readonly delegate: TestPort,
+    private readonly racingKind: "gate-attached" | "task-finished",
+  ) {}
+
+  public read(): WorkflowState {
+    return this.delegate.read();
+  }
+
+  public transact(
+    actor: string,
+    kind: string,
+    payload: JsonObject,
+    mutate: (draft: WorkflowState) => void,
+  ): WorkflowState {
+    if (kind !== this.racingKind) return this.delegate.transact(actor, kind, payload, mutate);
+    this.delegate.transact(actor, kind, payload, mutate);
+    throw new HarnessError("INVALID_STATE", `concurrent ${kind}`);
+  }
+}
+
+class MismatchedConcurrentGatePort implements TransactionPort {
+  public constructor(private readonly delegate: TestPort) {}
+
+  public read(): WorkflowState {
+    return this.delegate.read();
+  }
+
+  public transact(
+    actor: string,
+    kind: string,
+    payload: JsonObject,
+    mutate: (draft: WorkflowState) => void,
+  ): WorkflowState {
+    if (kind !== "gate-attached") return this.delegate.transact(actor, kind, payload, mutate);
+    this.delegate.transact(actor, "different-gate-attached", {}, (draft) => {
+      const task = draft.tasks["T-1"]!;
+      task.status = "gating";
+      task.gate_results = [{ gate_id: "G-2", command_id: "C-1", status: "passed" }];
+    });
+    throw new HarnessError("INVALID_STATE", "concurrent different gate");
+  }
 }
 
 describe("finalizePassingTask", () => {
@@ -46,42 +94,81 @@ describe("finalizePassingTask", () => {
     ]);
   });
 
-  test("returns the state unchanged when the task is not in it", () => {
+  test("refuses an unknown task id", () => {
     const port = validatedPort();
-    const before = port.read();
-    const state = finalizePassingTask(
-      "unused-run-root",
-      "no-such-task",
-      "coordinator",
-      ["C-1"],
-      before,
-      port,
-    );
-    expect(state).toBe(before);
+    expect(() =>
+      finalizePassingTask(
+        "unused-run-root",
+        "no-such-task",
+        "coordinator",
+        ["C-1"],
+        port.read(),
+        port,
+      ),
+    ).toThrow("unknown task");
   });
 
-  test("swallows the expected race of a gate already attached by a concurrent pass, and still finishes", () => {
+  test("refuses a mandatory gate with no matching proof command", () => {
     const port = validatedPort();
-    attachGateResult(port, "T-1", "G-1", "C-1", "other-validator", clock);
-    expect(port.read().tasks["T-1"]!.status).toBe("gating");
+    expect(() =>
+      finalizePassingTask(
+        "unused-run-root",
+        "T-1",
+        "coordinator",
+        ["C-VALIDATE"],
+        port.read(),
+        port,
+      ),
+    ).toThrow("no matching proof command");
+    expect(port.read().tasks["T-1"]!.status).toBe("validated");
+  });
 
-    port.transact("test", "second-command-recorded", {}, (draft) => {
-      draft.commands["C-2"] = commandRecord("C-2", { task_id: "T-1", gate_id: "G-1" });
-    });
-
+  test("accepts only a durable passed result for the exact concurrent gate", () => {
+    const port = validatedPort();
+    const racingPort = new ConcurrentPostconditionPort(port, "gate-attached");
     const state = finalizePassingTask(
       "unused-run-root",
       "T-1",
       "coordinator",
-      ["C-2"],
+      ["C-1"],
       port.read(),
-      port,
+      racingPort,
     );
 
     expect(state.tasks["T-1"]!.status).toBe("done");
     expect(state.tasks["T-1"]!.gate_results).toEqual([
       { gate_id: "G-1", command_id: "C-1", status: "passed" },
     ]);
+  });
+
+  test("does not suppress a mismatched concurrent gate result", () => {
+    const port = validatedPort();
+    const racingPort = new MismatchedConcurrentGatePort(port);
+    expect(() =>
+      finalizePassingTask(
+        "unused-run-root",
+        "T-1",
+        "coordinator",
+        ["C-1"],
+        port.read(),
+        racingPort,
+      ),
+    ).toThrow("concurrent different gate");
+  });
+
+  test("returns the freshly reread state only after a concurrent finish is durably done", () => {
+    const port = validatedPort();
+    const racingPort = new ConcurrentPostconditionPort(port, "task-finished");
+    const state = finalizePassingTask(
+      "unused-run-root",
+      "T-1",
+      "coordinator",
+      ["C-1"],
+      port.read(),
+      racingPort,
+    );
+    expect(state).toEqual(port.read());
+    expect(state.tasks["T-1"]!.status).toBe("done");
   });
 
   test("propagates a raw exception out of the gate-attach transaction instead of swallowing it", () => {
@@ -118,6 +205,72 @@ describe("finalizePassingTask", () => {
         port,
       ),
     ).toThrow("gate is not mandatory and applicable");
+  });
+
+  test("does not swallow a broad INVALID_STATE without a durable concurrent postcondition", () => {
+    const port = validatedPort();
+    const invalidStatePort: TransactionPort = {
+      read: () => port.read(),
+      transact: () => {
+        throw new HarnessError("INVALID_STATE", "unrelated state failure");
+      },
+    };
+    expect(() =>
+      finalizePassingTask(
+        "unused-run-root",
+        "T-1",
+        "coordinator",
+        ["C-1"],
+        port.read(),
+        invalidStatePort,
+      ),
+    ).toThrow("unrelated state failure");
+  });
+
+  test("keeps finish precondition failures visible instead of leaving the task silently unfinished", () => {
+    const cases: Array<{ name: string; prepare: (state: WorkflowState) => void }> = [
+      { name: "missing report", prepare: (state) => delete state.tasks["T-1"]!.report },
+      {
+        name: "missing passing review",
+        prepare: (state) => {
+          state.tasks["T-1"]!.validations![0]!.verdict = "reject";
+        },
+      },
+      {
+        name: "open finding",
+        prepare: (state) => {
+          state.tasks["T-1"]!.findings = [
+            {
+              id: "F-1",
+              requirement_id: "R-1",
+              task_id: "T-1",
+              status: "open",
+              severity: "P1",
+              description: "unresolved",
+              created_at: clock.now().toISOString(),
+              created_by: "validator",
+              round: 1,
+            },
+          ];
+        },
+      },
+      {
+        name: "open attempt",
+        prepare: (state) => {
+          state.tasks["T-1"]!.attempts = [{ status: "running" }];
+        },
+      },
+    ];
+
+    for (const { name, prepare } of cases) {
+      const state = validatedPort().read();
+      prepare(state);
+      const port = new TestPort(state);
+      expect(() =>
+        finalizePassingTask("unused-run-root", "T-1", "coordinator", ["C-1"], state, port),
+      ).toThrow(HarnessError);
+      expect(port.read().tasks["T-1"]!.status).not.toBe("done");
+    }
   });
 });
 
