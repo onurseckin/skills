@@ -11,6 +11,7 @@ import { loadRoleContract, resolveRoleContractPath, type RoleContract } from "./
 import {
   declaresRunIdentityFlag,
   isGrantBootstrapExempt,
+  isMissingCapsuleBootstrapExempt,
   requiresActingIdentity,
 } from "./grant-bootstrap-allowlist.ts";
 
@@ -319,6 +320,18 @@ function isBootstrapExempt(spec: CommandSpec): boolean {
   return isGrantBootstrapExempt(spec) || RUN_SCOPED_GRANT_BOOTSTRAP_EXEMPT_COMMANDS.has(spec.name);
 }
 
+function isMissingCapsuleExempt(spec: CommandSpec): boolean {
+  return (
+    isMissingCapsuleBootstrapExempt(spec) ||
+    RUN_SCOPED_GRANT_BOOTSTRAP_EXEMPT_COMMANDS.has(spec.name)
+  );
+}
+
+function isNoRunBootstrapExempt(spec: CommandSpec, flags: Flags): boolean {
+  if (spec.name === "plan:brainstorm") return identity(flags, "prompt") !== undefined;
+  return isBootstrapExempt(spec);
+}
+
 function capsuleState(runRoot: string): RunState | undefined {
   if (!existsSync(join(runRoot, "state.json"))) return undefined;
   try {
@@ -428,7 +441,7 @@ export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
   const runRoot = identity(flags, "run");
   if (runRoot === undefined) {
     if (!declaresRunIdentityFlag(spec)) return;
-    if (isBootstrapExempt(spec)) return;
+    if (isNoRunBootstrapExempt(spec, flags)) return;
     throw new HarnessError(
       "INVALID_STATE",
       `${spec.name} carries no resolvable --run and is not on the grant bootstrap allowlist; a capsule root is required before its grant authority can be checked`,
@@ -449,10 +462,10 @@ export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
   }
   const state = capsuleState(runRoot);
   if (state === undefined) {
-    if (isBootstrapExempt(spec)) return;
+    if (isMissingCapsuleExempt(spec)) return;
     throw new HarnessError(
       "INVALID_STATE",
-      `${spec.name} could not load capsule state at --run ${runRoot} and is not on the grant bootstrap allowlist; an unreadable capsule cannot be treated as one with no grants`,
+      `${spec.name} could not load capsule state at --run ${runRoot} and is not on the grant bootstrap allowlist for missing capsules; an unreadable capsule cannot be treated as one with no grants`,
     );
   }
   const ledger = readAgentLedger(state);

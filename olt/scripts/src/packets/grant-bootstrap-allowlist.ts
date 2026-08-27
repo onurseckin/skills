@@ -38,6 +38,18 @@ export function isGrantBootstrapExempt(spec: CommandSpec): boolean {
   );
 }
 
+/**
+ * Creating a capsule or its first grant is the only reason a command may
+ * proceed without readable capsule state. Plan construction is grant-free,
+ * not capsule-free: it must still operate on an existing verified capsule.
+ */
+export function isMissingCapsuleBootstrapExempt(spec: CommandSpec): boolean {
+  return [spec.name, ...spec.aliases].some(
+    (invocation) =>
+      CAPSULE_GENESIS_COMMANDS.has(invocation) || GRANT_GENESIS_COMMANDS.has(invocation),
+  );
+}
+
 const RUN_IDENTITY_FLAG_NAMES: ReadonlySet<string> = new Set(["run", "run-id"]);
 
 export function declaresRunIdentityFlag(spec: CommandSpec): boolean {

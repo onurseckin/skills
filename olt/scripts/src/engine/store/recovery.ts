@@ -18,6 +18,11 @@ import { cloneObject } from "./state.ts";
 import { limits } from "./constants.ts";
 import { writeIndex } from "./capsule-index.ts";
 import { writeTrace } from "./trace.ts";
+import {
+  materializedProjectionDigests,
+  materializeProjections,
+} from "./materialized-projections.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../core/json.ts";
 
 function quarantineDirectory(runRoot: string): string {
   const path = runFilePath(runRoot, "quarantine");
@@ -42,45 +47,43 @@ export function recoverProjection(runRoot: string, actor: string): RunState {
   if (!metadata.isDirectory() || metadata.isSymbolicLink())
     throw new HarnessError("INVALID_ARGUMENT", `run_root must be a real directory: ${runRoot}`);
   const root = realpathSync(runRoot);
-  return withRunLock(root, () => {
-    const immutable = checkManifest(root);
-    if (immutable.issues.length > 0 || !immutable.manifest) throwIntegrity(immutable.issues);
-    const marker = readTransactionMarker(root);
-    if (marker === undefined) assertRecoverableStatePath(root);
-    const eventsPath = runFilePath(root, "events.jsonl");
-    const chain = validateEventChain(
-      eventsPath,
-      { runId: immutable.manifest.run_id, capsuleId: immutable.manifest.capsule_id },
-      {},
-      false,
-      true,
-    );
-    if (chain.issues.length > 0) throwIntegrity(chain.issues);
-    if (chain.eventCount === 0)
-      throw new HarnessError("INTEGRITY", "cannot recover state because there is no valid event");
-    if (marker !== undefined) {
-      return recoverCommittedTransaction(root, immutable.manifest, chain, marker);
-    }
-    const quarantined = chain.tornTail !== undefined;
-    if (quarantined) {
-      quarantineAndTruncateTail(eventsPath, chain.completeBytes, quarantineDirectory(root));
-    }
-    // Legacy repair remains an auditable event. Marker-based recovery intentionally does not
-    // append another event because the already-durable event is the transaction's sole commit.
-    return appendProjectionEvent(
-      root,
-      immutable.manifest,
-      chain.finalState,
-      actor,
-      "projection-recovered",
-      {
-        recovered_sequence: chain.eventCount,
-        quarantined_torn_tail: quarantined,
-      },
-      cloneObject(chain.finalState),
-      limits(),
-    );
-  });
+  return withRunLock(root, () => recoverProjectionLocked(root, actor));
+}
+
+/** Internal only: callers already holding the exclusive capsule lock use this to
+ * prevent a recovery/repair window between the marker check and materialization. */
+export function recoverProjectionLocked(root: string, actor: string): RunState {
+  const immutable = checkManifest(root);
+  if (immutable.issues.length > 0 || !immutable.manifest) throwIntegrity(immutable.issues);
+  const marker = readTransactionMarker(root);
+  if (marker === undefined) assertRecoverableStatePath(root);
+  const eventsPath = runFilePath(root, "events.jsonl");
+  const chain = validateEventChain(
+    eventsPath,
+    { runId: immutable.manifest.run_id, capsuleId: immutable.manifest.capsule_id },
+    {},
+    false,
+    true,
+  );
+  if (chain.issues.length > 0) throwIntegrity(chain.issues);
+  if (chain.eventCount === 0)
+    throw new HarnessError("INTEGRITY", "cannot recover state because there is no valid event");
+  if (marker !== undefined)
+    return recoverCommittedTransaction(root, immutable.manifest, chain, marker);
+  const quarantined = chain.tornTail !== undefined;
+  if (quarantined) {
+    quarantineAndTruncateTail(eventsPath, chain.completeBytes, quarantineDirectory(root));
+  }
+  return appendProjectionEvent(
+    root,
+    immutable.manifest,
+    chain.finalState,
+    actor,
+    "projection-recovered",
+    { recovered_sequence: chain.eventCount, quarantined_torn_tail: quarantined },
+    cloneObject(chain.finalState),
+    limits(),
+  );
 }
 
 function recoverCommittedTransaction(
@@ -102,7 +105,47 @@ function recoverCommittedTransaction(
       "transaction marker does not match one unambiguous canonical event-chain head",
     );
   }
+  const committed = chain.events.at(-1);
+  if (
+    committed === undefined ||
+    sha256Bytes(canonicalJsonBytes(committed.payload)) !== marker.payload_sha256 ||
+    (Object.hasOwn(committed.payload, "request_key") &&
+      committed.payload["request_key"] !== marker.request_key) ||
+    (marker.semantic_schema !== "" && committed.payload["schema"] !== marker.semantic_schema) ||
+    (marker.semantic_version !== 0 &&
+      committed.payload["semantic_version"] !== marker.semantic_version) ||
+    committed.actor !== marker.authority_actor ||
+    (marker.artifact_sha256 !== null &&
+      committed.payload["artifact_sha256"] !== marker.artifact_sha256)
+  ) {
+    throw new HarnessError(
+      "INTEGRITY",
+      "transaction marker authoritative identity does not match the canonical committed event",
+    );
+  }
+  const expectedProjections = materializedProjectionDigests(chain.finalState);
+  if (
+    marker.artifact_sha256 !== null &&
+    !expectedProjections.some((projection) => projection["sha256"] === marker.artifact_sha256)
+  ) {
+    throw new HarnessError(
+      "INTEGRITY",
+      "transaction marker artifact digest does not match canonical final state",
+    );
+  }
+  if (
+    Buffer.compare(
+      Buffer.from(canonicalJsonBytes(marker.materialized_projections)),
+      Buffer.from(canonicalJsonBytes([...expectedProjections])),
+    ) !== 0
+  ) {
+    throw new HarnessError(
+      "INTEGRITY",
+      "transaction marker materialized projections do not match canonical final state",
+    );
+  }
   atomicWriteJson(runFilePath(runRoot, "state.json"), chain.finalState);
+  materializeProjections(runRoot, chain.finalState);
   writeTrace(runRoot, chain.events);
   writeIndex(runRoot, chain.finalState, manifest.run_id);
   clearTransactionMarker(runRoot);

@@ -10,6 +10,14 @@ export {
 } from "./event-append.ts";
 export { verifyIntegrity } from "./integrity.ts";
 export { verifyCapsuleDeep } from "./layout-integrity.ts";
+export {
+  BRAINSTORMING_PATH,
+  BRAINSTORMING_SCHEMA,
+  BRAINSTORMING_VERSION,
+  brainstormingProjection,
+  materializeProjections,
+  materializedProjections,
+} from "./materialized-projections.ts";
 export { indexFreshness, loadIndex } from "./capsule-index.ts";
 export {
   appendCapsuleDefect,

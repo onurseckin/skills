@@ -21,6 +21,10 @@ import { runFilePath } from "./paths.ts";
 import { diffProjection } from "./projection-patch.ts";
 import { businessFields, cloneObject, isTerminalState } from "./state.ts";
 import { appendTraceStep } from "./trace.ts";
+import {
+  materializeProjections,
+  materializedProjectionDigests,
+} from "./materialized-projections.ts";
 
 export const TRANSACTION_MARKER_FILE = ".transaction.json";
 const TRANSACTION_SCHEMA = "harness.transaction";
@@ -41,12 +45,22 @@ export interface TransactionMarker extends JsonObject {
   sequence: number;
   event_hash: string;
   phase: TransactionPhase;
+  request_key: string;
+  payload_sha256: string;
+  semantic_schema: string;
+  semantic_version: number;
+  authority_actor: string;
+  artifact_sha256: string | null;
+  materialized_projections: JsonObject[];
 }
 
 /** Narrow fault seam for transaction-boundary tests; omitted in every production caller. */
 export interface AppendProjectionDependencies {
   beforeEventAppend?: () => void;
+  afterEventCommit?: () => void;
   writeState?: (path: string, state: RunState) => void;
+  materialize?: (runRoot: string, state: RunState) => void;
+  clearMarker?: (runRoot: string) => void;
 }
 
 /** The only error that proves an event passed the canonical durability boundary. */
@@ -99,9 +113,20 @@ function markerIsValid(value: Record<string, unknown>): value is TransactionMark
     typeof value.event_hash === "string" &&
     /^[0-9a-f]{64}$/u.test(value.event_hash) &&
     typeof value.phase === "string" &&
+    typeof value.request_key === "string" &&
+    /^[0-9a-f]{64}$/u.test(value.request_key) &&
+    /^[0-9a-f]{64}$/u.test(value.payload_sha256 as string) &&
+    typeof value.semantic_schema === "string" &&
+    Number.isSafeInteger(value.semantic_version) &&
+    typeof value.authority_actor === "string" &&
+    value.authority_actor.length > 0 &&
+    (value.artifact_sha256 === null ||
+      (typeof value.artifact_sha256 === "string" &&
+        /^[0-9a-f]{64}$/u.test(value.artifact_sha256))) &&
     ["PREPARED", "EVENT_COMMITTED", "STATE_PENDING", "PROJECTIONS_PENDING", "COMMITTED"].includes(
       value.phase,
-    )
+    ) &&
+    Array.isArray(value.materialized_projections)
   );
 }
 
@@ -171,8 +196,14 @@ function refreshDerived(
   manifest: Manifest,
   event: HarnessEvent,
   next: RunState,
+  dependencies: AppendProjectionDependencies,
 ): void {
   const failures: string[] = [];
+  try {
+    (dependencies.materialize ?? materializeProjections)(runRoot, next);
+  } catch (error) {
+    failures.push(`${"materialized projections"}: ${String(error)}`);
+  }
   try {
     appendTraceStep(runRoot, event);
   } catch (error) {
@@ -242,6 +273,8 @@ export function appendProjectionEvent(
   if (lstatSync(eventPath).size + line.byteLength > configured.maxEventLogBytes)
     throw new HarnessError("INVALID_STATE", "event log size exceeds configured limit");
 
+  const next = { ...projection, event_head: event.hash };
+
   let marker = writeTransactionMarker(runRoot, {
     schema: TRANSACTION_SCHEMA,
     version: TRANSACTION_VERSION,
@@ -250,6 +283,16 @@ export function appendProjectionEvent(
     sequence,
     event_hash: event.hash,
     phase: "PREPARED",
+    request_key:
+      typeof payload.request_key === "string"
+        ? payload.request_key
+        : sha256Bytes(canonicalJsonBytes(payload)),
+    payload_sha256: sha256Bytes(canonicalJsonBytes(payload)),
+    semantic_schema: typeof payload.schema === "string" ? payload.schema : "",
+    semantic_version: typeof payload.semantic_version === "number" ? payload.semantic_version : 0,
+    authority_actor: typeof payload.authority_actor === "string" ? payload.authority_actor : actor,
+    artifact_sha256: typeof payload.artifact_sha256 === "string" ? payload.artifact_sha256 : null,
+    materialized_projections: [...materializedProjectionDigests(next)],
   });
   try {
     dependencies.beforeEventAppend?.();
@@ -264,8 +307,6 @@ export function appendProjectionEvent(
     }
     throw error;
   }
-
-  const next = { ...projection, event_head: event.hash };
   const pending = (phase: TransactionPhase, cause: unknown): never => {
     try {
       marker = writeTransactionMarker(runRoot, { ...marker, phase });
@@ -276,6 +317,7 @@ export function appendProjectionEvent(
   };
   try {
     marker = writeTransactionMarker(runRoot, { ...marker, phase: "EVENT_COMMITTED" });
+    dependencies.afterEventCommit?.();
     marker = writeTransactionMarker(runRoot, { ...marker, phase: "STATE_PENDING" });
     (dependencies.writeState ?? atomicWriteJson)(runFilePath(runRoot, "state.json"), next);
   } catch (error) {
@@ -283,9 +325,9 @@ export function appendProjectionEvent(
   }
   try {
     marker = writeTransactionMarker(runRoot, { ...marker, phase: "PROJECTIONS_PENDING" });
-    refreshDerived(runRoot, manifest, event, next);
+    refreshDerived(runRoot, manifest, event, next, dependencies);
     marker = writeTransactionMarker(runRoot, { ...marker, phase: "COMMITTED" });
-    clearTransactionMarker(runRoot);
+    (dependencies.clearMarker ?? clearTransactionMarker)(runRoot);
   } catch (error) {
     return pending(marker.phase === "COMMITTED" ? "COMMITTED" : "PROJECTIONS_PENDING", error);
   }

@@ -7,6 +7,7 @@ import {
   PRE_COMPILE_PLAN_CONSTRUCTION_COMMANDS,
   declaresRunIdentityFlag,
   isGrantBootstrapExempt,
+  isMissingCapsuleBootstrapExempt,
 } from "../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
 import { COMMAND_REGISTRY, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 
@@ -73,6 +74,14 @@ describe("grant bootstrap allowlist data", () => {
     expect(isGrantBootstrapExempt(spec("task:submit"))).toBe(false);
     expect(isGrantBootstrapExempt(spec("task:heartbeat"))).toBe(false);
     expect(isGrantBootstrapExempt(spec("queue:pop"))).toBe(false);
+  });
+
+  test("missing-capsule permission is restricted to capsule and grant genesis, not grant-free plan construction", () => {
+    const trueGenesis = new Set([...CAPSULE_GENESIS_COMMANDS, ...GRANT_GENESIS_COMMANDS]);
+    for (const name of GRANT_BOOTSTRAP_ALLOWLIST) {
+      expect(isMissingCapsuleBootstrapExempt(spec(name))).toBe(trueGenesis.has(name));
+    }
+    expect(isMissingCapsuleBootstrapExempt(spec("plan:brainstorm"))).toBe(false);
   });
 
   test("every allowlisted command actually exists in the live registry", () => {

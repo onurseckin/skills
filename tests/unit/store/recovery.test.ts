@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
-import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { recoverProjection } from "../../../olt/scripts/src/engine/store/recovery.ts";
@@ -157,8 +157,46 @@ describe("recoverProjection", () => {
       }),
     );
     expect(() => recoverProjection(runRoot, "recovery-actor")).toThrow(
-      /does not match one unambiguous canonical event-chain head/,
+      /invalid \.transaction\.json schema/,
     );
+    expect(existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(true);
+  });
+
+  test("fails closed for a stale or unknown materialized projection marker before changing files", () => {
+    const runRoot = freshRun("unknown-projection-marker");
+    transact(runRoot, "tester", "task-created", {}, (draft) => {
+      (draft as unknown as { tasks: Record<string, unknown> }).tasks = { "T-1": {} };
+    });
+    const manifest = JSON.parse(readFileSync(join(runRoot, "manifest.json"), "utf8")) as {
+      run_id: string;
+      capsule_id: string;
+    };
+    const [event] = readFileSync(join(runRoot, "events.jsonl"), "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { hash: string });
+    const stateBefore = readFileSync(join(runRoot, "state.json"));
+    writeFileSync(
+      join(runRoot, TRANSACTION_MARKER_FILE),
+      canonicalJsonBytes({
+        schema: "harness.transaction",
+        version: 1,
+        run_id: manifest.run_id,
+        capsule_id: manifest.capsule_id,
+        sequence: 1,
+        event_hash: event!.hash,
+        phase: "PROJECTIONS_PENDING",
+        request_key: sha256Bytes(canonicalJsonBytes({})),
+        payload_sha256: sha256Bytes(canonicalJsonBytes({})),
+        semantic_schema: "",
+        semantic_version: 0,
+        authority_actor: "tester",
+        artifact_sha256: null,
+        materialized_projections: [{ path: "unknown.json", sha256: "0".repeat(64) }],
+      }),
+    );
+    expect(() => recoverProjection(runRoot, "recovery")).toThrow(/materialized projections/);
+    expect(readFileSync(join(runRoot, "state.json"))).toEqual(stateBefore);
     expect(existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(true);
   });
 });

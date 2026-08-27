@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { link, mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { existsSync, realpathSync } from "node:fs";
@@ -11,6 +11,7 @@ import {
 } from "../../../olt/scripts/src/cli/commands/plan-brainstorm.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { freshRun } from "./plan-workflow-fixture.ts";
 
@@ -43,20 +44,14 @@ afterEach(async () => {
 });
 
 describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
-  test("executePlanBrainstorm with temp dir creates brainstorming.json and appends event", async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), "brainstorm-temp-"));
-    roots.push(tempDir);
-
-    const promptText = [
-      "# High-Performance Task Engine",
-      "- Implement deterministic DAG wave scheduler",
-      "- Handle atomic lease timeouts and worker heartbeat",
-    ].join("\n");
-
-    await writeFile(join(tempDir, "prompt.md"), promptText, "utf-8");
+  test("persists a brainstorming result only in a verified capsule and appends one canonical event", async () => {
+    const { run } = await freshRun("brainstorm-persist", roots, [
+      "Implement deterministic DAG wave scheduler",
+      "Handle atomic lease timeouts and worker heartbeat",
+    ]);
 
     const output: PlanBrainstormOutput = executePlanBrainstorm({
-      runRoot: tempDir,
+      runRoot: run,
       rounds: 2,
       save: true,
       actor: "planner-test",
@@ -74,24 +69,28 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
 
     // Check brainstorming.json: expandedItems is not persisted (unbounded, multiplicative in
     // rounds); totalExpandedItems and the 8 vectors are kept.
-    const brainstormingFile = join(tempDir, "brainstorming.json");
+    const brainstormingFile = join(run, "brainstorming.json");
     expect(existsSync(brainstormingFile)).toBe(true);
     const parsedJson = JSON.parse(await readFile(brainstormingFile, "utf-8")) as {
-      roundsExecuted: number;
-      totalExpandedItems: number;
+      schema: string;
+      version: number;
+      rounds: number;
+      total_expanded_items: number;
       vectors: unknown[];
       expandedItems?: unknown;
     };
-    expect(parsedJson.roundsExecuted).toBe(2);
-    expect(parsedJson.totalExpandedItems).toBe(32);
+    expect(parsedJson.schema).toBe("harness.brainstorming");
+    expect(parsedJson.version).toBe(1);
+    expect(parsedJson.rounds).toBe(2);
+    expect(parsedJson.total_expanded_items).toBe(32);
     expect(parsedJson.vectors.length).toBe(8);
     expect(parsedJson.expandedItems).toBeUndefined();
 
     // Check events.jsonl
-    const eventsFile = join(tempDir, "events.jsonl");
+    const eventsFile = join(run, "events.jsonl");
     expect(existsSync(eventsFile)).toBe(true);
     const eventsContent = await readFile(eventsFile, "utf-8");
-    expect(eventsContent).toContain("plan-brainstormed");
+    expect(eventsContent.match(/\"kind\":\"plan-brainstormed\"/g)).toHaveLength(1);
     expect(eventsContent).toContain("planner-test");
   });
 
@@ -109,70 +108,147 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
     expect(resolveBrainstormRunRoot("/some/absolute/run/root")).toBe("/some/absolute/run/root");
   });
 
-  test("a bare --run name never escapes to CWD and the persisted payload stays well under 64 KB", async () => {
+  test("rejects traversal and separator aliases before any capsule lookup", () => {
+    for (const alias of ["..", "./run", "nested/run", "nested\\run", "/tmp/../outside"]) {
+      expect(() => resolveBrainstormRunRoot(alias)).toThrow(HarnessError);
+    }
+  });
+
+  test("a nonexistent bare --run name creates nothing outside or inside canonical capsules", async () => {
     // realpathSync: process.cwd() reports the resolved path after chdir on macOS, where
     // mkdtemp's /var/folders/... is itself a symlink to /private/var/folders/....
     const fakeRepo = realpathSync(await mkdtemp(join(tmpdir(), "brainstorm-escape-repo-")));
     roots.push(fakeRepo);
     await writeFile(join(fakeRepo, "package.json"), "{}", "utf-8");
 
-    // 50 requirement lines * 8 vectors * 3 rounds (default) = 1200 expandedItems if persisted
-    // uncapped -- large enough to reproduce the pre-fix ~1 MB payload.
-    const promptLines = Array.from(
-      { length: 50 },
-      (_, i) => `- Requirement line ${i} describing a concrete engineering task`,
-    );
+    await expect(
+      withIsolatedCwd(fakeRepo, () =>
+        executePlanBrainstorm({
+          run: "olt-falsifier-probe",
+          prompt: "A prompt must not bootstrap a capsule",
+          save: true,
+          actor: "planner-escape-test",
+        }),
+      ),
+    ).rejects.toBeInstanceOf(HarnessError);
 
-    const output = await withIsolatedCwd(fakeRepo, () =>
-      executePlanBrainstorm({
-        run: "olt-falsifier-probe",
-        prompt: promptLines.join("\n"),
-        save: true,
-        actor: "planner-escape-test",
-      }),
-    );
-
-    expect(output.success).toBe(true);
-
-    // Bug 2: must never create a sibling directory at the resolved cwd/repo root.
     const strayPath = join(fakeRepo, "olt-falsifier-probe");
-    expect(existsSync(strayPath)).toBe(false);
-
-    // Must land under the canonical .olt/capsules/<run>/ root instead.
     const canonicalPath = join(fakeRepo, ".olt", "capsules", "olt-falsifier-probe");
-    const brainstormingFile = join(canonicalPath, "brainstorming.json");
-    expect(existsSync(brainstormingFile)).toBe(true);
-    expect(output.run_root).toBe(canonicalPath);
-    expect(output.brainstorming_path).toBe(brainstormingFile);
-
-    // Bug 1: the persisted file must stay well under 64 KB even with a large prompt and the
-    // default rounds=3, because expandedItems is no longer persisted.
-    const sizeBytes = (await readFile(brainstormingFile, "utf-8")).length;
-    expect(sizeBytes).toBeLessThan(64 * 1024);
-
-    const parsed = JSON.parse(await readFile(brainstormingFile, "utf-8")) as {
-      totalExpandedItems: number;
-      vectors: unknown[];
-      expandedItems?: unknown;
-    };
-    expect(parsed.totalExpandedItems).toBe(1200);
-    expect(parsed.vectors.length).toBe(8);
-    expect(parsed.expandedItems).toBeUndefined();
+    expect(existsSync(strayPath)).toBe(false);
+    expect(existsSync(canonicalPath)).toBe(false);
   });
 
-  test("a runRoot that is itself a stray non-capsule absolute path is still honoured (backward compatible with existing capsule callers)", async () => {
+  test("an initialized bare run ID resolves only through its canonical capsule root", async () => {
+    const { repo } = await freshRun("brainstorm-bare-canonical", roots, ["Canonical prompt"]);
+    const output = await withIsolatedCwd(repo, () =>
+      executePlanBrainstorm({ run: "brainstorm-bare-canonical", prompt: "Canonical prompt" }),
+    );
+    expect(output.run_root).toBe(
+      realpathSync(join(repo, ".olt", "capsules", "brainstorm-bare-canonical")),
+    );
+    expect(existsSync(join(repo, "brainstorm-bare-canonical"))).toBe(false);
+  });
+
+  test("absolute and separator run paths that are not capsules leave their existing bytes untouched", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brainstorm-noncapsule-"));
+    roots.push(root);
+    const nested = join(root, "nested", "not-a-capsule");
+    await mkdir(join(root, "nested"));
+    await writeFile(nested, "sentinel", "utf-8");
+
+    expect(() => executePlanBrainstorm({ runRoot: nested, prompt: "Valid prompt" })).toThrow(
+      HarnessError,
+    );
+    expect(await readFile(nested, "utf-8")).toBe("sentinel");
+  });
+
+  test("a runRoot that is itself a stray non-capsule absolute path is rejected without creating it", async () => {
     const fakeRepo = await mkdtemp(join(tmpdir(), "brainstorm-explicit-path-"));
     roots.push(fakeRepo);
     const explicitRunRoot = join(fakeRepo, "any", "nested", "path");
 
-    const output = executePlanBrainstorm({
-      runRoot: explicitRunRoot,
-      prompt: "Single requirement line",
-      save: true,
-    });
+    expect(() =>
+      executePlanBrainstorm({
+        runRoot: explicitRunRoot,
+        prompt: "Single requirement line",
+        save: true,
+      }),
+    ).toThrow(HarnessError);
+    expect(existsSync(explicitRunRoot)).toBe(false);
+  });
 
-    expect(output.run_root).toBe(explicitRunRoot);
-    expect(existsSync(join(explicitRunRoot, "brainstorming.json"))).toBe(true);
+  test("refuses symlinked and hard-linked brainstorming targets without changing sentinels", async () => {
+    const { run } = await freshRun("brainstorm-target-links", roots);
+    const target = join(run, "brainstorming.json");
+    const sentinel = join(run, "sentinel.json");
+    await writeFile(sentinel, "sentinel", "utf-8");
+
+    await symlink(sentinel, target);
+    expect(() => executePlanBrainstorm({ runRoot: run, prompt: "Valid prompt" })).toThrow(
+      HarnessError,
+    );
+    expect(await readFile(sentinel, "utf-8")).toBe("sentinel");
+    await rm(target);
+
+    await link(sentinel, target);
+    expect(() => executePlanBrainstorm({ runRoot: run, prompt: "Valid prompt" })).toThrow(
+      HarnessError,
+    );
+    expect(await readFile(sentinel, "utf-8")).toBe("sentinel");
+  });
+
+  test("rejects symlinked capsule roots and unsafe manifest or state files before persistence", async () => {
+    const { run } = await freshRun("brainstorm-unsafe-capsule", roots);
+    const moved = `${run}-moved`;
+    await rename(run, moved);
+    await symlink(moved, run);
+    expect(() => executePlanBrainstorm({ runRoot: run, prompt: "Valid prompt" })).toThrow(
+      HarnessError,
+    );
+
+    const { run: manifestRun } = await freshRun("brainstorm-hardlink-manifest", roots);
+    const manifest = join(manifestRun, "manifest.json");
+    const manifestSentinel = join(manifestRun, "manifest-sentinel.json");
+    await writeFile(manifestSentinel, "sentinel", "utf-8");
+    await rm(manifest);
+    await link(manifestSentinel, manifest);
+    expect(() => executePlanBrainstorm({ runRoot: manifestRun, prompt: "Valid prompt" })).toThrow(
+      HarnessError,
+    );
+    expect(await readFile(manifestSentinel, "utf-8")).toBe("sentinel");
+
+    const { run: stateRun } = await freshRun("brainstorm-nonfile-state", roots);
+    await rm(join(stateRun, "state.json"));
+    await mkdir(join(stateRun, "state.json"));
+    expect(() => executePlanBrainstorm({ runRoot: stateRun, prompt: "Valid prompt" })).toThrow(
+      HarnessError,
+    );
+    expect(existsSync(join(stateRun, "brainstorming.json"))).toBe(false);
+  });
+
+  test("persists before a rejected transaction without appending a fallback event", async () => {
+    const { run } = await freshRun("brainstorm-terminal-transaction", roots);
+    transact(run, "test-setup", "complete-run", {}, (state) => {
+      state.completion_result = { status: "complete" };
+    });
+    const eventsPath = join(run, "events.jsonl");
+    const eventsBefore = await readFile(eventsPath, "utf-8");
+
+    expect(() => executePlanBrainstorm({ runRoot: run, prompt: "Valid prompt" })).toThrow(
+      "completed runs are terminal",
+    );
+    expect(await readFile(eventsPath, "utf-8")).toBe(eventsBefore);
+    expect(existsSync(join(run, "brainstorming.json"))).toBe(false);
+  });
+
+  test("rejects a reused brainstorming request key whose actor authority identity differs", async () => {
+    const { run } = await freshRun("brainstorm-request-key-collision", roots, ["Same prompt"]);
+    executePlanBrainstorm({ runRoot: run, prompt: "Same prompt", actor: "planner-a" });
+    const eventsBefore = await readFile(join(run, "events.jsonl"), "utf8");
+    expect(() =>
+      executePlanBrainstorm({ runRoot: run, prompt: "Same prompt", actor: "planner-b" }),
+    ).toThrow(/request_key collision does not match authoritative identity/);
+    expect(await readFile(join(run, "events.jsonl"), "utf8")).toBe(eventsBefore);
   });
 
   test("CLI execute('plan:brainstorm') on full capsule run updates capsule state and outputs markdown", async () => {
@@ -211,6 +287,50 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
     expect(planning?.brainstorming).toBeDefined();
     expect(planning?.brainstorming?.rounds).toBe(3);
     expect(planning?.brainstorming?.total_expanded_items).toBe(48);
+    expect(loaded.events.filter((event) => event.kind === "plan-brainstormed")).toHaveLength(1);
+  });
+
+  test("repairs a deleted derived artifact for an identical request without appending another event", async () => {
+    const { run } = await freshRun("brainstorm-idempotent-repair", roots, ["Same request"]);
+    executePlanBrainstorm({ runRoot: run, prompt: "Same request" });
+    const artifact = join(run, "brainstorming.json");
+    await rm(artifact);
+    const retried = executePlanBrainstorm({ runRoot: run, prompt: "Same request" });
+    expect(retried.success).toBe(true);
+    expect(existsSync(artifact)).toBe(true);
+    expect(loadRun(run).events.filter((event) => event.kind === "plan-brainstormed")).toHaveLength(
+      1,
+    );
+  });
+
+  test("synchronized identical requests create exactly one event and one valid derived artifact", async () => {
+    const { run } = await freshRun("brainstorm-identical-concurrent", roots, ["Same request"]);
+    await Promise.all([
+      Promise.resolve().then(() => executePlanBrainstorm({ runRoot: run, prompt: "Same request" })),
+      Promise.resolve().then(() => executePlanBrainstorm({ runRoot: run, prompt: "Same request" })),
+    ]);
+    const loaded = loadRun(run);
+    expect(loaded.events.filter((event) => event.kind === "plan-brainstormed")).toHaveLength(1);
+    expect(JSON.parse(await readFile(join(run, "brainstorming.json"), "utf8"))).toEqual(
+      (loaded.state.planning as { brainstorming: object }).brainstorming,
+    );
+  });
+
+  test("synchronized different requests create two events and materialize the final canonical state", async () => {
+    const { run } = await freshRun("brainstorm-different-concurrent", roots, ["First request"]);
+    await Promise.all([
+      Promise.resolve().then(() =>
+        executePlanBrainstorm({ runRoot: run, prompt: "First request" }),
+      ),
+      Promise.resolve().then(() =>
+        executePlanBrainstorm({ runRoot: run, prompt: "Second request" }),
+      ),
+    ]);
+    const loaded = loadRun(run);
+    expect(loaded.events.filter((event) => event.kind === "plan-brainstormed")).toHaveLength(2);
+    expect(JSON.parse(await readFile(join(run, "brainstorming.json"), "utf8"))).toEqual(
+      (loaded.state.planning as { brainstorming: object }).brainstorming,
+    );
   });
 
   test("executePlanBrainstorm with explicit prompt string and save=false", () => {
@@ -227,6 +347,14 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
     expect(output.totalExpandedItems).toBe(8);
     expect(output.result.expandedItems.length).toBe(8);
     expect(output.markdown).toContain("CONCURRENCY_MUTATION");
+  });
+
+  test("prompt-only brainstorming performs no durable filesystem operation", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brainstorm-prompt-only-"));
+    roots.push(root);
+    const output = executePlanBrainstorm({ prompt: "In-memory only" });
+    expect(output.success).toBe(true);
+    expect(existsSync(join(root, "brainstorming.json"))).toBe(false);
   });
 
   test("throws HarnessError INVALID_ARGUMENT when neither run nor prompt is provided", () => {
@@ -255,13 +383,12 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
     expect(output.totalExpandedItems).toBe(8);
   });
 
-  test("executePlanBrainstorm parses string array tokens and handles prompt.txt fallback", async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), "brainstorm-txt-"));
-    roots.push(tempDir);
+  test("executePlanBrainstorm parses string array tokens against a verified capsule", async () => {
+    const { run } = await freshRun("brainstorm-token-input", roots, [
+      "Single prompt fallback line",
+    ]);
 
-    await writeFile(join(tempDir, "prompt.txt"), "Single prompt.txt fallback line", "utf-8");
-
-    const outputFromTokens = executePlanBrainstorm(["--run", tempDir, "--rounds", "1"]);
+    const outputFromTokens = executePlanBrainstorm(["--run", run, "--rounds", "1"]);
     expect(outputFromTokens.success).toBe(true);
     expect(outputFromTokens.roundsExecuted).toBe(1);
 
@@ -276,7 +403,7 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
     expect(outputPromptTokens.roundsExecuted).toBe(3);
 
     const outputFlagsWithRunId = executePlanBrainstorm({
-      "run-id": tempDir,
+      "run-id": run,
       rounds: "2",
       actor: "custom-planner",
     });
@@ -284,7 +411,7 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm", () => {
     expect(outputFlagsWithRunId.roundsExecuted).toBe(2);
   });
 
-  test("throws HarnessError INVALID_ARGUMENT when writing brainstorming.json fails", () => {
+  test("throws HarnessError when an invalid run cannot be verified before persistence", () => {
     expect(() => {
       executePlanBrainstorm({
         runRoot: "/dev/null/impossible/path",

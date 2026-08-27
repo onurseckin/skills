@@ -1,25 +1,38 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { lstatSync } from "node:fs";
 import { isAbsolute, join, resolve, sep } from "node:path";
-import { isJsonObject } from "../../core/contracts/json.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../core/json.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 import { isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import { BrainstormEngine, type BrainstormResult } from "../../graph/brainstorm-engine.ts";
-import { loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { BRAINSTORMING_SCHEMA, BRAINSTORMING_VERSION, loadRun } from "../../engine/store/index.ts";
+import { transactIdempotent } from "../../engine/store/transaction.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { parseArguments } from "../arguments.ts";
 
 /**
  * A bare capsule NAME (no path separator) must resolve under the canonical
- * `.olt/capsules/` root, never against CWD -- a bare `--run <name>` used to
- * `mkdirSync` a stray sibling directory at the repository root instead of
- * finding the existing capsule. An explicit path (absolute, or relative with
- * a separator) is honoured as-is, preserving callers that already resolved
- * a concrete run root (real capsules, test fixtures).
+ * `.olt/capsules/` root, never against CWD. Resolution alone has no side
+ * effects; execution verifies the resolved root as an existing capsule before
+ * it can read a prompt, write an artifact, or append an event.
  */
 export function resolveBrainstormRunRoot(runRoot: string, repoRoot?: string): string {
-  if (isAbsolute(runRoot) || runRoot.includes(sep)) {
+  if (
+    !runRoot.trim() ||
+    runRoot === "." ||
+    runRoot === ".." ||
+    runRoot.split(/[\\/]/).includes("..")
+  ) {
+    throw new HarnessError("PATH_SAFETY", `run '${runRoot}' is not a canonical capsule identity`);
+  }
+  if (isAbsolute(runRoot)) {
     return resolve(runRoot);
+  }
+  if (runRoot.includes(sep) || runRoot.includes("\\")) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      `run '${runRoot}' must be a bare capsule ID or an absolute capsule path`,
+    );
   }
   const resolved = resolve(resolveCapsulesDir(repoRoot), runRoot);
   if (!isInsideCapsule(resolved)) {
@@ -50,8 +63,41 @@ export interface PlanBrainstormOutput {
   readonly brainstorming_path?: string | undefined;
 }
 
+function assertSafeCapsuleEntry(runRoot: string, name: string): void {
+  const path = join(runRoot, name);
+  const metadata = lstatSync(path);
+  if (metadata.isSymbolicLink() || !metadata.isFile() || metadata.nlink !== 1) {
+    throw new HarnessError("PATH_SAFETY", `capsule ${name} must be a single-link regular file`);
+  }
+}
+
+function assertSafeCapsuleFiles(runRoot: string): void {
+  const root = lstatSync(runRoot);
+  if (!root.isDirectory() || root.isSymbolicLink()) {
+    throw new HarnessError("PATH_SAFETY", `capsule root must be a real directory`);
+  }
+  for (const name of ["manifest.json", "state.json", "prompt.md", "events.jsonl"]) {
+    assertSafeCapsuleEntry(runRoot, name);
+  }
+}
+
 function promptFromBytes(bytes: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+}
+
+function loadVerifiedBrainstormRun(runRoot: string): ReturnType<typeof loadRun> {
+  try {
+    assertSafeCapsuleFiles(runRoot);
+    const loaded = loadRun(runRoot);
+    assertSafeCapsuleFiles(runRoot);
+    return loaded;
+  } catch (error) {
+    if (error instanceof HarnessError) throw error;
+    throw new HarnessError(
+      "INTEGRITY",
+      `plan:brainstorm requires an existing verified capsule at ${runRoot}: ${String(error)}`,
+    );
+  }
 }
 
 function parseInputOptions(input: readonly string[] | Flags | PlanBrainstormOptions): {
@@ -136,37 +182,12 @@ export function executePlanBrainstorm(
     actor,
   } = parseInputOptions(input);
   const runRoot = rawRunRoot !== undefined ? resolveBrainstormRunRoot(rawRunRoot) : undefined;
+  const loadedRun = runRoot === undefined ? undefined : loadVerifiedBrainstormRun(runRoot);
 
   let resolvedPrompt = explicitPrompt?.trim() ?? "";
 
-  if (!resolvedPrompt && runRoot) {
-    const promptMdPath = join(runRoot, "prompt.md");
-    const promptTxtPath = join(runRoot, "prompt.txt");
-
-    if (existsSync(promptMdPath)) {
-      try {
-        resolvedPrompt = readFileSync(promptMdPath, "utf-8").trim();
-      } catch {
-        // Fall back to other prompt sources
-      }
-    }
-
-    if (!resolvedPrompt && existsSync(promptTxtPath)) {
-      try {
-        resolvedPrompt = readFileSync(promptTxtPath, "utf-8").trim();
-      } catch {
-        // Fall back to store
-      }
-    }
-
-    if (!resolvedPrompt) {
-      try {
-        const loaded = loadRun(runRoot, false);
-        resolvedPrompt = promptFromBytes(loaded.prompt).trim();
-      } catch {
-        // Run may not be a full capsule
-      }
-    }
+  if (!resolvedPrompt && loadedRun) {
+    resolvedPrompt = promptFromBytes(loadedRun.prompt).trim();
   }
 
   if (!resolvedPrompt && !runRoot) {
@@ -178,75 +199,57 @@ export function executePlanBrainstorm(
 
   let savedPath: string | undefined;
   if (save && runRoot) {
-    try {
-      mkdirSync(runRoot, { recursive: true });
-      savedPath = join(runRoot, "brainstorming.json");
-      // expandedItems is dropped by design (owner ruling: unbounded, multiplicative in rounds,
-      // and unused downstream -- plan:compile only checks this file's existence). Persisting it
-      // pretty-printed produced multi-megabyte payloads by default (rounds defaults to 3).
-      const persisted = {
-        prompt: result.prompt,
-        roundsExecuted: result.roundsExecuted,
-        vectors: result.vectors,
-        totalExpandedItems: result.totalExpandedItems,
-        createdAt: result.createdAt,
-      };
-      writeFileSync(savedPath, JSON.stringify(persisted), "utf-8");
-    } catch (err: unknown) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        `Failed to write brainstorming.json to ${runRoot}: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-
-    let eventTransacted = false;
-    try {
-      transact(
-        runRoot,
-        actor,
-        "plan-brainstormed",
-        {
-          prompt_length: resolvedPrompt.length,
-          rounds: result.roundsExecuted,
-          total_expanded_items: result.totalExpandedItems,
-          brainstorming_file: "brainstorming.json",
-        },
-        (state) => {
-          const planning = isJsonObject(state.planning) ? state.planning : {};
-          state.planning = {
-            ...planning,
-            brainstorming: {
-              rounds: result.roundsExecuted,
-              total_expanded_items: result.totalExpandedItems,
-              created_at: result.createdAt,
-            },
-          };
-        },
-      );
-      eventTransacted = true;
-    } catch {
-      // If transact fails (e.g. temp dir without manifest.json / state.json), fallback to direct events.jsonl append
-    }
-
-    if (!eventTransacted) {
-      const eventsPath = join(runRoot, "events.jsonl");
-      try {
-        const eventRecord = {
-          kind: "plan-brainstormed",
-          actor,
-          timestamp: new Date().toISOString(),
-          payload: {
-            prompt_length: resolvedPrompt.length,
-            rounds: result.roundsExecuted,
-            total_expanded_items: result.totalExpandedItems,
-            brainstorming_file: "brainstorming.json",
-          },
+    savedPath = join(runRoot, "brainstorming.json");
+    const requestBody: JsonObject = {
+      schema: BRAINSTORMING_SCHEMA,
+      version: BRAINSTORMING_VERSION,
+      prompt: result.prompt,
+      rounds: result.roundsExecuted,
+      vectors: result.vectors.map((vector) => ({ ...vector })),
+      total_expanded_items: result.totalExpandedItems,
+    };
+    const requestKey = sha256Bytes(canonicalJsonBytes(requestBody));
+    const documentBody: JsonObject = {
+      ...requestBody,
+      request_key: requestKey,
+      content_digest: requestKey,
+      authority_actor: actor,
+      projection_destinations: ["brainstorming.json"],
+      created_at: result.createdAt,
+    };
+    const artifactSha256 = sha256Bytes(canonicalJsonBytes(documentBody));
+    const document: JsonObject = { ...documentBody, artifact_sha256: artifactSha256 };
+    transactIdempotent(
+      runRoot,
+      actor,
+      "plan-brainstormed",
+      {
+        requestKey,
+        contentDigest: requestKey,
+        semanticVersion: BRAINSTORMING_VERSION,
+        authorityActor: actor,
+        destinations: ["brainstorming.json"],
+      },
+      {
+        prompt_length: resolvedPrompt.length,
+        rounds: result.roundsExecuted,
+        total_expanded_items: result.totalExpandedItems,
+        brainstorming_file: "brainstorming.json",
+        request_key: requestKey,
+        content_digest: requestKey,
+        semantic_version: BRAINSTORMING_VERSION,
+        authority_actor: actor,
+        projection_destinations: ["brainstorming.json"],
+        artifact_sha256: artifactSha256,
+      },
+      (state) => {
+        const planning = isJsonObject(state.planning) ? state.planning : {};
+        state.planning = {
+          ...planning,
+          brainstorming: document,
         };
-        appendFileSync(eventsPath, JSON.stringify(eventRecord) + "\n", "utf-8");
-      } catch {
-        // Event append is best-effort for mock directories
-      }
-    }
+      },
+    );
   }
 
   return {

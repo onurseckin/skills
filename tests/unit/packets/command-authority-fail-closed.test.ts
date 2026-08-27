@@ -223,6 +223,15 @@ describe("assertGrantedCommand hole 2: no acting identity resolves", () => {
     const flags: Flags = { run: "/nonexistent/capsule" };
     expect(() => assertGrantedCommand(spec("doctor"), flags)).not.toThrow();
   });
+
+  test("permits plan:brainstorm without --run only for the prompt-only in-memory form", () => {
+    expect(() => assertGrantedCommand(spec("plan:brainstorm"), {})).toThrow(
+      "not on the grant bootstrap allowlist",
+    );
+    expect(() =>
+      assertGrantedCommand(spec("plan:brainstorm"), { prompt: "in-memory prompt" }),
+    ).not.toThrow();
+  });
 });
 
 describe("assertGrantedCommand hole 3: capsule state cannot load", () => {
@@ -244,6 +253,23 @@ describe("assertGrantedCommand hole 3: capsule state cannot load", () => {
     await writeFile(join(brokenRoot, "state.json"), "{}");
     const flags: Flags = { run: brokenRoot, actor: "first-orchestrator" };
     expect(() => assertGrantedCommand(spec("agent:register"), flags)).not.toThrow();
+  });
+
+  test("permits plan:brainstorm without an agent grant only for a readable capsule", async () => {
+    const { run } = await emptyGrantRun("fail-closed-brainstorm-empty-grant-");
+    expect(() =>
+      assertGrantedCommand(spec("plan:brainstorm"), { run, actor: "planner-no-grant" }),
+    ).not.toThrow();
+  });
+
+  test("denies plan:brainstorm against an unreadable capsule even though it is grant-bootstrap exempt", async () => {
+    const { repo } = await emptyGrantRun("fail-closed-brainstorm-unreadable-");
+    const brokenRoot = join(repo, "not-a-capsule");
+    await mkdir(brokenRoot);
+    await writeFile(join(brokenRoot, "state.json"), "{}");
+    expect(() =>
+      assertGrantedCommand(spec("plan:brainstorm"), { run: brokenRoot, actor: "planner-no-grant" }),
+    ).toThrow("not on the grant bootstrap allowlist for missing capsules");
   });
 });
 
