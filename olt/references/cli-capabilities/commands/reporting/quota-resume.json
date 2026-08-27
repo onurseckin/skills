@@ -17,14 +17,14 @@
     {
       "name": "run",
       "type": "string",
-      "required": false,
+      "required": true,
       "repeatable": false,
       "default": null
     },
     {
-      "name": "snapshot",
+      "name": "actor",
       "type": "string",
-      "required": false,
+      "required": true,
       "repeatable": false,
       "default": null
     },

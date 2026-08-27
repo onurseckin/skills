@@ -9,6 +9,9 @@ import {
   createDefaultCollectors,
   type CollectorEnvironment,
 } from "../../telemetry/collectors/index.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { loadRun } from "../../engine/store/load.ts";
 import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export async function quotaFreezeCommand(
@@ -17,8 +20,16 @@ export async function quotaFreezeCommand(
   _remainder?: readonly string[],
   env?: CollectorEnvironment,
 ): Promise<Record<string, unknown>> {
-  const repo = textFlag(flags, "repo", false) ?? process.cwd();
-  const run = textFlag(flags, "run", false);
+  const run = textFlag(flags, "run")!;
+  const loaded = loadRun(run, false);
+  const repo = findRepoRoot(loaded.runRoot);
+  const requestedRepo = textFlag(flags, "repo", false);
+  if (requestedRepo !== undefined && findRepoRoot(requestedRepo) !== repo) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      "quota:freeze --repo must resolve to the verified run repository",
+    );
+  }
   const rawThreshold = textFlag(flags, "threshold", false);
   const threshold = rawThreshold !== undefined ? Number(rawThreshold) : 5.0;
   const activeAgentsCount = integerFlag(flags, "active-agents", { required: false }) ?? 0;
@@ -47,12 +58,13 @@ export async function quotaFreezeCommand(
   }
 
   const snapshot = await captureDagSnapshot({
-    runRoot: run || undefined,
-    lowestQuotaObserved: evaluation.lowestRemainingQuota ?? 0,
+    runRoot: loaded.runRoot,
+    repositoryRoot: repo,
+    lowestQuotaObserved: evaluation.lowestRemainingQuota,
     constrainedModels: evaluation.constrainedModels.map((m) => m.modelName),
     resetTime: evaluation.autoWakeSchedule?.targetWakeupIso ?? new Date().toISOString(),
   });
-  persistDagSnapshot(snapshot, { repo: repo });
+  persistDagSnapshot(snapshot);
 
   const markdown = formatDagSnapshotMarkdown(snapshot, evaluation, detailed);
 

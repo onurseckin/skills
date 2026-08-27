@@ -5,6 +5,9 @@ import {
   createDefaultCollectors,
   type CollectorEnvironment,
 } from "../../telemetry/collectors/index.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { loadRun } from "../../engine/store/load.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export async function quotaResumeCommand(
@@ -13,9 +16,16 @@ export async function quotaResumeCommand(
   _remainder?: readonly string[],
   env?: CollectorEnvironment,
 ): Promise<Record<string, unknown>> {
-  const repo = textFlag(flags, "repo", false) ?? process.cwd();
-  const run = textFlag(flags, "run", false);
-  const snapshotPath = textFlag(flags, "snapshot", false);
+  const run = textFlag(flags, "run")!;
+  const loaded = loadRun(run, false);
+  const repo = findRepoRoot(loaded.runRoot);
+  const requestedRepo = textFlag(flags, "repo", false);
+  if (requestedRepo !== undefined && findRepoRoot(requestedRepo) !== repo) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      "quota:resume --repo must resolve to the verified run repository",
+    );
+  }
   const rawThreshold = textFlag(flags, "threshold", false);
   const threshold = rawThreshold !== undefined ? Number(rawThreshold) : 5.0;
   const force = boolFlag(flags, "force");
@@ -44,7 +54,7 @@ export async function quotaResumeCommand(
     }
   }
 
-  const snapshot = await resumeDagSnapshot({ repoRoot: repo, customPath: snapshotPath });
+  const snapshot = await resumeDagSnapshot({ repoRoot: repo, runRoot: loaded.runRoot });
   const markdown = formatDagResumeMarkdown(snapshot, detailed);
 
   return {

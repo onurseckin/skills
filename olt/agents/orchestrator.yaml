@@ -87,6 +87,8 @@ permissions:
     - "run:status"
     - "run:complete"
     - "dag"
+    - "quota:freeze"
+    - "quota:resume"
     - "doctor"
     - "orchestrator:supervise"
     - "summary:export"

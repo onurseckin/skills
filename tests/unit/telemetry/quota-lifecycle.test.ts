@@ -1,14 +1,17 @@
 import { describe, expect, it, mock, beforeEach, afterEach } from "bun:test";
 import { existsSync, writeFileSync, rmSync, mkdirSync, readFileSync } from "fs";
 import { join } from "path";
+import { spawnSync } from "node:child_process";
 import { quotaFreezeCommand } from "../../../olt/scripts/src/cli/commands/quota-freeze.ts";
 import { quotaResumeCommand } from "../../../olt/scripts/src/cli/commands/quota-resume.ts";
 import { QuotaCircuitBreaker } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
 import { loadDagSnapshot } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
 import { readTelemetryStream } from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("Quota Lifecycle", () => {
   const TMP_DIR = join(process.cwd(), "tests-tmp-quota-lifecycle");
+  let runRoot: string;
 
   beforeEach(() => {
     if (!existsSync(TMP_DIR)) {
@@ -18,6 +21,15 @@ describe("Quota Lifecycle", () => {
     if (!existsSync(targetDir)) {
       mkdirSync(targetDir, { recursive: true });
     }
+    const git = spawnSync("git", ["init", "--quiet", TMP_DIR]);
+    if (git.status !== 0) throw new Error("could not initialize quota lifecycle test repository");
+    runRoot = initRun(
+      TMP_DIR,
+      "quota-run",
+      new TextEncoder().encode("quota lifecycle"),
+      "file",
+      true,
+    );
   });
 
   afterEach(() => {
@@ -35,6 +47,7 @@ describe("Quota Lifecycle", () => {
             platformId: "antigravity",
             tier: "tier1-rpc",
             isDetected: true,
+            errors: [],
             metrics: [{ remainingPercentage: 10, requestsRemaining: 100 }],
           },
         ],
@@ -45,7 +58,7 @@ describe("Quota Lifecycle", () => {
 
     expect(evaluation.isTriggered).toBe(false);
 
-    const forcedResult = await quotaFreezeCommand({ repo: TMP_DIR, force: true });
+    const forcedResult = await quotaFreezeCommand({ repo: TMP_DIR, run: runRoot, force: true });
     expect(forcedResult.status).toBe("frozen");
   });
 
@@ -58,6 +71,7 @@ describe("Quota Lifecycle", () => {
             platformId: "antigravity",
             tier: "tier1-rpc",
             isDetected: true,
+            errors: [],
             metrics: [
               {
                 remainingPercentage: 2,
@@ -81,6 +95,7 @@ describe("Quota Lifecycle", () => {
   it("quota:freeze executes, snapshots DAG, writes file, emits event", async () => {
     const result = await quotaFreezeCommand({
       repo: TMP_DIR,
+      run: runRoot,
       force: true,
       json: true,
       "active-agents": "2",
@@ -107,11 +122,12 @@ describe("Quota Lifecycle", () => {
 
   it("quota:resume executes, restores DAG coordinates, re-registers crons, emits event", async () => {
     // First freeze
-    await quotaFreezeCommand({ repo: TMP_DIR, force: true });
+    await quotaFreezeCommand({ repo: TMP_DIR, run: runRoot, force: true });
 
     // Then resume with force (since quota is mocked and we might not recover naturally in tests without mock env)
     const result = await quotaResumeCommand({
       repo: TMP_DIR,
+      run: runRoot,
       force: true,
       detailed: true,
       json: true,

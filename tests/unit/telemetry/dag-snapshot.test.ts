@@ -1,5 +1,13 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { existsSync, writeFileSync, rmSync, mkdirSync, readFileSync } from "fs";
+import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "fs";
 import { join } from "path";
 import {
   captureDagSnapshot,
@@ -9,9 +17,11 @@ import {
   formatDagSnapshotMarkdown,
   formatDagResumeMarkdown,
   STANDARD_SUPERVISORY_CRONS,
+  __setDagSnapshotPersistenceTestHook,
   type QuotaDagSnapshot,
 } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
 import { resolveQuotaDagSnapshotPath } from "../../../olt/scripts/src/core/shared/paths.ts";
+import { readTelemetryStream } from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
 
 describe("DAG Snapshot", () => {
   const TMP_DIR = join(process.cwd(), "tests-tmp-dag-snapshot");
@@ -23,15 +33,41 @@ describe("DAG Snapshot", () => {
   });
 
   afterEach(() => {
+    __setDagSnapshotPersistenceTestHook(undefined);
     if (existsSync(TMP_DIR)) {
       rmSync(TMP_DIR, { recursive: true, force: true });
     }
   });
 
+  function frozenSnapshot(
+    repositoryRoot = TMP_DIR,
+    runRoot = TMP_DIR,
+    lowestQuotaObserved = 1,
+  ): QuotaDagSnapshot {
+    return {
+      version: "2",
+      repositoryRoot,
+      runRoot,
+      frozenAt: "2024-01-01T00:00:00Z",
+      status: "frozen",
+      tasks: [],
+      agents: [],
+      cronsSuspended: [],
+      uncommittedFiles: [],
+      lowestQuotaObserved,
+      constrainedModels: [],
+      autoWakeSchedule: {
+        resetTime: "2024-01-01T01:00:00Z",
+        resumeTime: "2024-01-01T01:01:00Z",
+      },
+    };
+  }
+
   describe("captureDagSnapshot", () => {
     it("should capture basic state without memory.json", async () => {
       const snapshot = await captureDagSnapshot({
         runRoot: TMP_DIR,
+        repositoryRoot: process.cwd(),
         lowestQuotaObserved: 2,
         constrainedModels: ["gemini-pro"],
         resetTime: new Date().toISOString(),
@@ -42,6 +78,9 @@ describe("DAG Snapshot", () => {
       expect(snapshot.tasks).toEqual([]);
       expect(snapshot.agents).toEqual([]);
       expect(snapshot.activeWave).toBeUndefined();
+      expect(snapshot.lowestQuotaObserved).toBe(2);
+      expect(snapshot.constrainedModels).toEqual(["gemini-pro"]);
+      expect(snapshot.autoWakeSchedule.resetTime).toBeDefined();
     });
 
     it("should parse memory.json if available", async () => {
@@ -63,6 +102,7 @@ describe("DAG Snapshot", () => {
 
       const snapshot = await captureDagSnapshot({
         runRoot: TMP_DIR,
+        repositoryRoot: process.cwd(),
         lowestQuotaObserved: 3,
         constrainedModels: [],
         resetTime: new Date().toISOString(),
@@ -83,7 +123,9 @@ describe("DAG Snapshot", () => {
   describe("persistDagSnapshot & loadDagSnapshot", () => {
     it("should load correctly after manually writing a snapshot file", () => {
       const snapshot: QuotaDagSnapshot = {
-        version: "1.0.0",
+        version: "2",
+        repositoryRoot: TMP_DIR,
+        runRoot: TMP_DIR,
         frozenAt: "2024-01-01T00:00:00Z",
         status: "frozen",
         tasks: [],
@@ -95,38 +137,93 @@ describe("DAG Snapshot", () => {
         autoWakeSchedule: { resetTime: "2024-01-01T01:00:00Z", resumeTime: "2024-01-01T01:01:00Z" },
       };
 
-      const customPath = join(TMP_DIR, "test-snapshot.json");
-      writeFileSync(customPath, JSON.stringify(snapshot, null, 2), "utf-8");
-
-      const loaded = loadDagSnapshot(undefined, customPath);
-      expect(loaded).not.toBeNull();
+      persistDagSnapshot(snapshot);
+      const loaded = loadDagSnapshot(TMP_DIR);
+      expect(loaded).toBeDefined();
       expect(loaded?.frozenAt).toBe(snapshot.frozenAt);
       expect(loaded?.status).toBe("frozen");
     });
 
-    it("loadDagSnapshot should return null if file missing", () => {
-      const loaded = loadDagSnapshot(undefined, join(TMP_DIR, "missing.json"));
-      expect(loaded).toBeNull();
+    it("rejects a corrupted canonical snapshot instead of treating it as absent", () => {
+      const snapshotPath = join(TMP_DIR, ".olt", "quota-dag-snapshot.json");
+      mkdirSync(join(TMP_DIR, ".olt"), { recursive: true });
+      writeFileSync(snapshotPath, "{ bad json }");
+      expect(() => loadDagSnapshot(TMP_DIR)).toThrow("quota snapshot contains invalid JSON");
     });
 
-    it("loadDagSnapshot should return null if file is corrupted JSON", () => {
-      const customPath = join(TMP_DIR, "corrupt.json");
-      writeFileSync(customPath, "{ bad json }");
-      const loaded = loadDagSnapshot(undefined, customPath);
-      expect(loaded).toBeNull();
+    it("refuses a symlinked canonical snapshot without touching its external target", () => {
+      const external = join(TMP_DIR, "external-snapshot.json");
+      const snapshotPath = join(TMP_DIR, ".olt", "quota-dag-snapshot.json");
+      mkdirSync(join(TMP_DIR, ".olt"), { recursive: true });
+      writeFileSync(external, "external sentinel", "utf8");
+      symlinkSync(external, snapshotPath);
+
+      expect(() => loadDagSnapshot(TMP_DIR)).toThrow();
+      expect(readFileSync(external, "utf8")).toBe("external sentinel");
+    });
+
+    it("refuses a hardlinked canonical snapshot without touching its external inode", () => {
+      const external = join(TMP_DIR, "external-snapshot.json");
+      const snapshotPath = join(TMP_DIR, ".olt", "quota-dag-snapshot.json");
+      mkdirSync(join(TMP_DIR, ".olt"), { recursive: true });
+      writeFileSync(external, "external sentinel", "utf8");
+      linkSync(external, snapshotPath);
+
+      expect(() => loadDagSnapshot(TMP_DIR)).toThrow();
+      expect(readFileSync(external, "utf8")).toBe("external sentinel");
+    });
+
+    it("preserves the prior bytes when write, file-fsync, or rename fails before commit", () => {
+      persistDagSnapshot(frozenSnapshot());
+      const path = join(TMP_DIR, ".olt", "quota-dag-snapshot.json");
+      const before = readFileSync(path, "utf8");
+
+      for (const stage of ["before_write", "before_file_fsync", "before_rename"] as const) {
+        __setDagSnapshotPersistenceTestHook((observed) => {
+          if (observed === stage) throw new Error(`fault:${stage}`);
+        });
+        expect(() => persistDagSnapshot(frozenSnapshot(TMP_DIR, TMP_DIR, 2))).toThrow(
+          `fault:${stage}`,
+        );
+        __setDagSnapshotPersistenceTestHook(undefined);
+        expect(readFileSync(path, "utf8")).toBe(before);
+      }
+    });
+
+    it("reports post-rename durability uncertainty without false success telemetry and restarts from a whole state", () => {
+      persistDagSnapshot(frozenSnapshot());
+      for (const stage of ["after_rename", "before_directory_fsync"] as const) {
+        const repo = join(TMP_DIR, stage);
+        mkdirSync(repo);
+        persistDagSnapshot(frozenSnapshot(repo, TMP_DIR, 1));
+        __setDagSnapshotPersistenceTestHook((observed) => {
+          if (observed === stage) throw new Error(`fault:${stage}`);
+        });
+        expect(() => persistDagSnapshot(frozenSnapshot(repo, TMP_DIR, 2))).toThrow(
+          "outcome is uncertain after atomic rename",
+        );
+        __setDagSnapshotPersistenceTestHook(undefined);
+        expect(loadDagSnapshot(repo)?.lowestQuotaObserved).toBe(2);
+        expect(
+          readTelemetryStream(repo).filter((event) => event.action === "QUOTA_FREEZE_SNAPSHOT"),
+        ).toHaveLength(1);
+      }
     });
   });
 
   describe("resumeDagSnapshot", () => {
-    it("should return empty state if no snapshot exists", async () => {
-      const result = await resumeDagSnapshot({ repoRoot: join(TMP_DIR, "missing-repo") });
-      expect(result.restoredWaveLanes).toEqual([]);
-      expect(result.cronsToReRegister).toEqual([]);
+    it("rejects a missing snapshot instead of reporting an empty resume", async () => {
+      mkdirSync(join(TMP_DIR, "missing-repo"));
+      expect(
+        resumeDagSnapshot({ repoRoot: join(TMP_DIR, "missing-repo"), runRoot: TMP_DIR }),
+      ).rejects.toThrow("no quota snapshot is available");
     });
 
     it("should resume and mark snapshot as resumed", async () => {
       const snapshot: QuotaDagSnapshot = {
-        version: "1.0.0",
+        version: "2",
+        repositoryRoot: join(TMP_DIR, "resume-repo"),
+        runRoot: TMP_DIR,
         frozenAt: "2024-01-01T00:00:00Z",
         status: "frozen",
         tasks: [],
@@ -145,7 +242,7 @@ describe("DAG Snapshot", () => {
       const customPath = join(targetDir, "quota-dag-snapshot.json");
       writeFileSync(customPath, JSON.stringify(snapshot));
 
-      const result = await resumeDagSnapshot({ repoRoot: repoPath });
+      const result = await resumeDagSnapshot({ repoRoot: repoPath, runRoot: TMP_DIR });
 
       expect(result.restoredWaveLanes).toEqual(["lane-1", "lane-2"]);
       expect(result.cronsToReRegister.length).toBeGreaterThan(0);
@@ -156,9 +253,80 @@ describe("DAG Snapshot", () => {
       expect(updated.resumedAt).toBeDefined();
     });
 
+    it("refuses a snapshot bound to another run without mutating its bytes", async () => {
+      const repoPath = join(TMP_DIR, "wrong-run-repo");
+      mkdirSync(repoPath);
+      const snapshot: QuotaDagSnapshot = {
+        version: "2",
+        repositoryRoot: repoPath,
+        runRoot: TMP_DIR,
+        frozenAt: "2024-01-01T00:00:00Z",
+        status: "frozen",
+        tasks: [],
+        agents: [],
+        cronsSuspended: [],
+        uncommittedFiles: [],
+        lowestQuotaObserved: 1,
+        constrainedModels: [],
+        autoWakeSchedule: {
+          resetTime: "2024-01-01T01:00:00Z",
+          resumeTime: "2024-01-01T01:01:00Z",
+        },
+      };
+      persistDagSnapshot(snapshot);
+      const path = join(repoPath, ".olt", "quota-dag-snapshot.json");
+      const before = readFileSync(path, "utf8");
+
+      await expect(
+        resumeDagSnapshot({ repoRoot: repoPath, runRoot: join(TMP_DIR, "other-run") }),
+      ).rejects.toThrow("bound to another repository or run");
+      expect(readFileSync(path, "utf8")).toBe(before);
+    });
+
+    it("serializes two independent resume processes into one lifecycle transition", async () => {
+      const repo = join(TMP_DIR, "cross-process-repo");
+      mkdirSync(repo);
+      persistDagSnapshot(frozenSnapshot(repo));
+      const modulePath = new URL(
+        "../../../olt/scripts/src/telemetry/dag-snapshot.ts",
+        import.meta.url,
+      ).pathname;
+      const child = `
+        import { resumeDagSnapshot } from ${JSON.stringify(modulePath)};
+        try {
+          await resumeDagSnapshot({ repoRoot: process.env.QUOTA_REPO, runRoot: process.env.QUOTA_RUN });
+          console.log("success");
+        } catch (error) {
+          console.log(error && typeof error === "object" && "code" in error ? error.code : "error");
+        }
+      `;
+      const environment = { ...process.env, QUOTA_REPO: repo, QUOTA_RUN: TMP_DIR };
+      const first = Bun.spawn([process.execPath, "-e", child], {
+        env: environment,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const second = Bun.spawn([process.execPath, "-e", child], {
+        env: environment,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      await Promise.all([first.exited, second.exited]);
+      const outcomes = await Promise.all([
+        new Response(first.stdout).text(),
+        new Response(second.stdout).text(),
+      ]);
+
+      expect(outcomes.filter((outcome) => outcome.trim() === "success")).toHaveLength(1);
+      expect(outcomes.filter((outcome) => outcome.trim() === "INVALID_STATE")).toHaveLength(1);
+      expect(loadDagSnapshot(repo)?.status).toBe("resumed");
+    });
+
     it("should clear snapshot if clearAfterResume is true", async () => {
       const snapshot: QuotaDagSnapshot = {
-        version: "1.0.0",
+        version: "2",
+        repositoryRoot: join(TMP_DIR, "resume-clear-repo"),
+        runRoot: TMP_DIR,
         frozenAt: "2024-01-01T00:00:00Z",
         status: "frozen",
         tasks: [],
@@ -176,14 +344,18 @@ describe("DAG Snapshot", () => {
       const customPath = join(targetDir, "quota-dag-snapshot.json");
       writeFileSync(customPath, JSON.stringify(snapshot));
 
-      await resumeDagSnapshot({ repoRoot: repoPath, clearAfterResume: true });
-      expect(existsSync(customPath)).toBe(false);
+      await expect(
+        resumeDagSnapshot({ repoRoot: repoPath, runRoot: TMP_DIR, clearAfterResume: true }),
+      ).rejects.toThrow("quota snapshot must remain as durable evidence");
+      expect(existsSync(customPath)).toBe(true);
     });
   });
 
   describe("Markdown formatting", () => {
     const snapshot: QuotaDagSnapshot = {
-      version: "1.0.0",
+      version: "2",
+      repositoryRoot: TMP_DIR,
+      runRoot: TMP_DIR,
       frozenAt: "2024-01-01T00:00:00Z",
       status: "frozen",
       tasks: [{ id: "t1", status: "running", effortMath: "1 Work", dependencies: [] }],

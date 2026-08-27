@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import {
   assertGrantedCommand,
@@ -19,6 +21,7 @@ import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error
 import { emptyGrantRun } from "./grant-run-fixture.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { registerSessionGrant } from "../../../olt/scripts/src/authority/session-registry.ts";
+import { loadDagSnapshot } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
 
 function spec(invocation: string) {
   const found = findCommand(invocation);
@@ -109,6 +112,57 @@ describe("meta-audit execute authority", () => {
     await expect(execute(["meta-audit", "--run", run, "--inject"])).rejects.toThrow(
       "--actor is required",
     );
+  });
+});
+
+describe("quota lifecycle execute authority", () => {
+  test("requires a run and a verified actor before any quota snapshot can be written", async () => {
+    const { repo, run } = await emptyGrantRun("quota-identity-required-");
+    const snapshot = join(repo, ".olt", "quota-dag-snapshot.json");
+    await expect(execute(["quota:freeze", "--run", run, "--force"])).rejects.toThrow(
+      "--actor is required",
+    );
+    await expect(execute(["quota:freeze", "--actor", "ghost", "--force"])).rejects.toThrow(
+      "--run is required",
+    );
+    expect(existsSync(snapshot)).toBe(false);
+  });
+
+  test("denies ghost, released, and implementer actors even with --force", async () => {
+    for (const [id, role, status] of [
+      ["ghost", undefined, undefined],
+      ["released", "mind", "released"],
+      ["worker", "implementer", "active"],
+    ] as const) {
+      const { repo, run } = await emptyGrantRun(`quota-denied-${id}-`);
+      if (role !== undefined && status !== undefined) installMetaAuditGrant(run, id, role, status);
+      await expect(
+        execute(["quota:freeze", "--run", run, "--actor", id, "--force"]),
+      ).rejects.toThrow();
+      expect(existsSync(join(repo, ".olt", "quota-dag-snapshot.json"))).toBe(false);
+    }
+  });
+
+  test("permits only active mind and orchestrator grants to freeze and resume the bound run", async () => {
+    const { repo, run } = await emptyGrantRun("quota-allowed-");
+    const initialized = spawnSync("git", ["init", "--quiet", repo]);
+    if (initialized.status !== 0)
+      throw new Error("could not initialize quota authority test repository");
+    installMetaAuditGrant(run, "mind", "mind");
+    const frozen = await execute(["quota:freeze", "--run", run, "--actor", "mind", "--force"]);
+    expect(frozen.status).toBe("frozen");
+    expect(loadDagSnapshot(repo)?.runRoot).toBe(run);
+    installMetaAuditGrant(run, "orchestrator", "orchestrator");
+    const resumed = await execute([
+      "quota:resume",
+      "--run",
+      run,
+      "--actor",
+      "orchestrator",
+      "--force",
+    ]);
+    expect(resumed.status).toBe("resumed");
+    expect(loadDagSnapshot(repo)?.status).toBe("resumed");
   });
 });
 

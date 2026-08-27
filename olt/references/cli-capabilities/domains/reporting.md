@@ -341,17 +341,17 @@ Probes quota telemetry and freezes DAG operations if circuit breaker is triggere
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--repo` | string | no | no | - | Repository root path. |
-| `--run` | string | no | no | - | Capsule run root. |
+| `--repo` | string | no | no | - | Must resolve to the verified run repository. |
+| `--run` | string | yes | no | - | Verified capsule run root. |
+| `--actor` | string | yes | no | - | Acting mind or orchestrator agent ID. |
 | `--threshold` | string | no | no | `5.0` | Quota percentage threshold (default: 5.0). |
 | `--active-agents` | int | no | no | `0` | Number of currently active agents. |
-| `--force` | bool | no | no | `false` | Force freeze even if quota healthy. |
+| `--force` | bool | no | no | `false` | Override quota policy only; never bypasses quota evidence. |
 | `--json` | bool | no | no | - | Output structured JSON report. |
 | `--detailed` | bool | no | no | - | Detailed markdown output. |
 
 ```bash
-bun harness.ts quota:freeze
-bun harness.ts quota:freeze --force
+bun harness.ts quota:freeze --run .olt/capsules/<run-id> --actor mind_1
 ```
 
 ### `quota:resume`
@@ -366,17 +366,16 @@ Probes quota telemetry and resumes operations from a prior freeze if quota is he
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--repo` | string | no | no | - | Repository root path. |
-| `--run` | string | no | no | - | Capsule run root. |
-| `--snapshot` | string | no | no | - | Custom snapshot file path. |
+| `--repo` | string | no | no | - | Must resolve to the verified run repository. |
+| `--run` | string | yes | no | - | Verified capsule run root. |
+| `--actor` | string | yes | no | - | Acting mind or orchestrator agent ID. |
 | `--threshold` | string | no | no | `5.0` | Quota percentage threshold (default: 5.0). |
-| `--force` | bool | no | no | `false` | Force resume even if quota is still constrained. |
+| `--force` | bool | no | no | `false` | Override quota policy only; does not bypass run or grant authority. |
 | `--json` | bool | no | no | - | Output structured JSON report. |
 | `--detailed` | bool | no | no | - | Detailed markdown output. |
 
 ```bash
-bun harness.ts quota:resume
-bun harness.ts quota:resume --force
+bun harness.ts quota:resume --run .olt/capsules/<run-id> --actor mind_1
 ```
 
 ### `skill:audit:live`

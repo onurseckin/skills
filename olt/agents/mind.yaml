@@ -142,6 +142,8 @@ permissions:
     - "agent:release"
     - "agent:list"
     - "dag"
+    - "quota:freeze"
+    - "quota:resume"
     - "doctor"
     - "whoami"
   spawns:
