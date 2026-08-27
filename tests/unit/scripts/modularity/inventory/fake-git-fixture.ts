@@ -1,66 +1,43 @@
-import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { delimiter, join } from "node:path";
+import { join } from "node:path";
+import type { GitCommandPrefix } from "../../../../../scripts/modularity/inventory/index.ts";
 
-interface FakeGitBehavior {
+export interface FakeGitBehavior {
   readonly lsFilesOutput: string;
   readonly lsFilesStatus?: number;
   readonly catFileOutput?: string;
   readonly catFileStatus?: number;
 }
 
-export interface FakeGitResult {
-  readonly status: number;
-  readonly stdout: string;
-  readonly stderr: string;
-}
-
-const INVENTORY_ENTRY =
-  "/Users/onurseckinsenoglu/repos/skills/scripts/modularity/inventory/index.ts";
-
-function executableSource(behavior: FakeGitBehavior): string {
-  const lsFilesStatus = behavior.lsFilesStatus ?? 0;
-  const catFileStatus = behavior.catFileStatus ?? 0;
-  return `#!/bin/sh
-if [ "$3" = "ls-files" ]; then
-  printf '${behavior.lsFilesOutput}'
-  exit ${lsFilesStatus}
-fi
-if [ "$3" = "cat-file" ]; then
-  printf '${behavior.catFileOutput ?? ""}'
-  exit ${catFileStatus}
-fi
-exit 99
+const FAKE_GIT_SOURCE = `import { readFile } from "node:fs/promises";
+const [configPath, ...gitArgs] = process.argv.slice(2);
+const config = JSON.parse(await readFile(configPath, "utf8"));
+const response = gitArgs.includes("ls-files") ? config.lsFiles : config.catFile;
+process.stdout.write(response.output);
+process.exitCode = response.status;
 `;
-}
 
-export async function runInventoryWithFakeGit(
-  repoRoot: string,
+export async function withFakeGit<T>(
   behavior: FakeGitBehavior,
-): Promise<FakeGitResult> {
-  const bin = await mkdtemp(join(tmpdir(), "modularity-fake-git-"));
-  const executable = join(bin, "git");
-  await writeFile(executable, executableSource(behavior));
-  await chmod(executable, 0o755);
-
-  const script = `import { readIndexedBlobs } from ${JSON.stringify(INVENTORY_ENTRY)};
-try { console.log(JSON.stringify((await readIndexedBlobs(${JSON.stringify(repoRoot)})).map(({ path }) => path))); } catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-}`;
+  operation: (command: GitCommandPrefix) => Promise<T>,
+): Promise<T> {
+  const root = await mkdtemp(join(tmpdir(), "modularity-fake-git-"));
+  const scriptPath = join(root, "fake-git.mjs");
+  const configPath = join(root, "config.json");
+  await Promise.all([
+    writeFile(scriptPath, FAKE_GIT_SOURCE),
+    writeFile(
+      configPath,
+      JSON.stringify({
+        lsFiles: { output: behavior.lsFilesOutput, status: behavior.lsFilesStatus ?? 0 },
+        catFile: { output: behavior.catFileOutput ?? "", status: behavior.catFileStatus ?? 0 },
+      }),
+    ),
+  ]);
   try {
-    const child = Bun.spawn(["bun", "--eval", script], {
-      stdout: "pipe",
-      stderr: "pipe",
-      env: { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH ?? ""}` },
-    });
-    const [status, stdout, stderr] = await Promise.all([
-      child.exited,
-      new Response(child.stdout).text(),
-      new Response(child.stderr).text(),
-    ]);
-    return { status, stdout, stderr };
+    return await operation([process.execPath, scriptPath, configPath]);
   } finally {
-    await rm(bin, { recursive: true, force: true });
+    await rm(root, { recursive: true, force: true });
   }
 }

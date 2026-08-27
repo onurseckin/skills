@@ -6,6 +6,8 @@ export interface IndexedBlob {
   readonly bytes: Uint8Array;
 }
 
+export type GitCommandPrefix = readonly [string, ...string[]];
+
 interface IndexEntry {
   readonly path: string;
   readonly oid: string;
@@ -13,6 +15,7 @@ interface IndexEntry {
 
 const INDEX_RECORD = /^(100644|100755|120000) ([0-9a-f]{40}|[0-9a-f]{64}) [0-3]\t([\s\S]+)$/;
 const BATCH_HEADER = /^([0-9a-f]{40}|[0-9a-f]{64}) blob ([0-9]+)$/;
+const DEFAULT_GIT_COMMAND: GitCommandPrefix = ["git"];
 
 async function collect(process: Bun.Subprocess<"pipe", "pipe", "ignore">): Promise<{
   readonly status: number;
@@ -33,6 +36,14 @@ function failure(message: string): never {
 
 function comparePaths(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function gitArguments(
+  gitCommand: GitCommandPrefix,
+  repoRoot: string,
+  args: readonly string[],
+): string[] {
+  return [...gitCommand, "-C", repoRoot, ...args];
 }
 
 function parseIndexRecords(output: Uint8Array): readonly IndexEntry[] {
@@ -77,8 +88,11 @@ function parseBatch(output: Uint8Array, entries: readonly IndexEntry[]): readonl
   return blobs;
 }
 
-export async function readIndexedBlobs(repoRoot: string): Promise<readonly IndexedBlob[]> {
-  const list = Bun.spawn(["git", "-C", repoRoot, "ls-files", "-s", "-z"], {
+export async function readIndexedBlobs(
+  repoRoot: string,
+  gitCommand: GitCommandPrefix = DEFAULT_GIT_COMMAND,
+): Promise<readonly IndexedBlob[]> {
+  const list = Bun.spawn(gitArguments(gitCommand, repoRoot, ["ls-files", "-s", "-z"]), {
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -87,7 +101,7 @@ export async function readIndexedBlobs(repoRoot: string): Promise<readonly Index
   const entries = parseIndexRecords(listed.stdout);
   if (entries.length === 0) return [];
 
-  const batch = Bun.spawn(["git", "-C", repoRoot, "cat-file", "--batch"], {
+  const batch = Bun.spawn(gitArguments(gitCommand, repoRoot, ["cat-file", "--batch"]), {
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
