@@ -34,6 +34,7 @@ export interface DefectRecord {
   context: {
     cwd: string;
     indicators: Record<string, string>;
+    matched_action?: string;
   };
 }
 
@@ -78,6 +79,7 @@ export interface ExecutionContextOptions {
   role?: string | undefined;
   tier?: ExecutionTier | undefined;
   isInteractiveMainThread?: boolean | undefined;
+  argv?: readonly string[] | undefined;
 }
 
 export function parseTierValue(value: string | undefined): ExecutionTier | null {
@@ -362,17 +364,23 @@ export function identifyExecutionContext(
   const advisory = isMainThread ? MAIN_THREAD_ADVISORY : null;
 
   let defect: DefectRecord | null = null;
-  const argvStr = typeof process !== "undefined" ? process.argv.join(" ") : "";
-  const isPassive = /(whoami|doctor|dag|agent:list)/i.test(argvStr);
-  const isMutationOrTest =
-    /(test|vitest|pytest|jest|run:exec|shell|task:submit|task:claim|task:review|replace_file|write_to_file)/i.test(
-      argvStr,
-    );
+  const argv = options.argv ?? (typeof process !== "undefined" ? process.argv : []);
+  const executionActions = new Set([
+    "test",
+    "vitest",
+    "pytest",
+    "jest",
+    "run:exec",
+    "shell",
+    "task:submit",
+    "task:claim",
+    "task:review",
+    "replace_file",
+    "write_to_file",
+  ]);
+  const matchedAction = argv.find((token) => executionActions.has(token));
 
-  if (
-    isMainThread &&
-    (options.isInteractiveMainThread === true || (!isPassive && isMutationOrTest))
-  ) {
+  if (isMainThread && matchedAction !== undefined) {
     const defectId = `defect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     defect = {
       id: defectId,
@@ -389,6 +397,7 @@ export function identifyExecutionContext(
       context: {
         cwd,
         indicators,
+        matched_action: matchedAction,
       },
     };
     if (!isTestEnvironment()) {

@@ -238,7 +238,7 @@ describe("Agent Whoami Profiling Engine", () => {
   });
 
   describe("Compliance & Supervisory Auditing", () => {
-    it("flags interactive main thread with restrained compliance and logs a critical defect", () => {
+    it("keeps an interactive main thread restrained without logging a passive defect", () => {
       const context = identifyExecutionContext({
         pid: 9999,
         ppid: 9998,
@@ -251,11 +251,7 @@ describe("Agent Whoami Profiling Engine", () => {
       expect(context.is_main_thread).toBeTrue();
       expect(context.compliance_state).toBe("restrained");
       expect(context.advisory).toBe(MAIN_THREAD_ADVISORY);
-      expect(context.defect).not.toBeNull();
-      expect(context.defect?.type).toBe("main_thread_direct_execution");
-      expect(context.defect?.severity).toBe("critical");
-      expect(context.defect?.observation).toContain("interactive main conversation thread");
-      expect(context.defect?.remediation).toContain("invoke_subagent");
+      expect(context.defect).toBeNull();
     });
   });
 

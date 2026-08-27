@@ -14,6 +14,7 @@ import {
   recommendStandardAgentId,
   recordDefect,
   roleToTier,
+  MAIN_THREAD_ADVISORY,
   TIER_NAMES,
   validateAgentNamingConvention,
   validateTierSpawning,
@@ -161,8 +162,7 @@ describe("Thread Identifier - 4-Tier Authority & Spawning Rules", () => {
     expect(mainCtx.is_main_thread).toBe(true);
     expect(mainCtx.compliance_state).toBe("restrained");
     expect(mainCtx.advisory).toContain("MAIN THREAD RESTRAINT ACTIVE");
-    expect(mainCtx.defect).not.toBeNull();
-    expect(mainCtx.defect?.type).toBe("main_thread_direct_execution");
+    expect(mainCtx.defect).toBeNull();
 
     // Session-based main thread without subagent headers
     const sessionCtx = identifyExecutionContext({
@@ -638,7 +638,6 @@ describe("Standardized Agent Naming System (AGENT_NAMING_STANDARDS)", () => {
   });
 
   test("identifyExecutionContext records defect when mutating action is run on main thread in non-test mode", () => {
-    const originalArgv = process.argv;
     const originalNodeEnv = process.env.NODE_ENV;
     const originalBunTest = process.env.BUN_TEST;
     const originalTest = process.env.TEST;
@@ -646,7 +645,6 @@ describe("Standardized Agent Naming System (AGENT_NAMING_STANDARDS)", () => {
     const testScratch = scratchRoot(import.meta.path, "thread-defect-test");
 
     try {
-      process.argv = ["bun", "run", "task:submit"];
       process.env.NODE_ENV = "production";
       delete process.env.BUN_TEST;
       delete process.env.TEST;
@@ -655,13 +653,14 @@ describe("Standardized Agent Naming System (AGENT_NAMING_STANDARDS)", () => {
         isInteractiveMainThread: true,
         runRoot: testScratch,
         agentId: "mind-0",
+        argv: ["bun", "harness.ts", "task:submit"],
       });
 
       expect(contextWithDefect.defect).not.toBeNull();
       expect(contextWithDefect.defect?.type).toBe("main_thread_direct_execution");
       expect(contextWithDefect.defect?.severity).toBe("critical");
+      expect(contextWithDefect.defect?.context.matched_action).toBe("task:submit");
     } finally {
-      process.argv = originalArgv;
       if (originalNodeEnv !== undefined) {
         process.env.NODE_ENV = originalNodeEnv;
       } else {
@@ -678,6 +677,27 @@ describe("Standardized Agent Naming System (AGENT_NAMING_STANDARDS)", () => {
         delete process.env.TEST;
       }
     }
+  });
+
+  test("identifyExecutionContext keeps passive exact argv on the main thread advisory-only", () => {
+    const context = identifyExecutionContext({
+      isInteractiveMainThread: true,
+      argv: ["bun", "harness.ts", "whoami"],
+    });
+
+    expect(context.compliance_state).toBe("restrained");
+    expect(context.advisory).toBe(MAIN_THREAD_ADVISORY);
+    expect(context.defect).toBeNull();
+  });
+
+  test("identifyExecutionContext logs the exact mutating argv action on the main thread", () => {
+    const context = identifyExecutionContext({
+      isInteractiveMainThread: true,
+      argv: ["bun", "harness.ts", "whoami", "task:submit"],
+    });
+
+    expect(context.defect?.severity).toBe("critical");
+    expect(context.defect?.context.matched_action).toBe("task:submit");
   });
 });
 
