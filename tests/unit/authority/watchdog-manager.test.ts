@@ -76,11 +76,13 @@ describe("WatchdogManager - Store Lifecycle & Resolution", () => {
     };
 
     saveWatchdogStore(store, dir);
+    const persistedBeforeLoad = readFileSync(join(dir, "watchdogs.json"), "utf8");
     const loaded = loadWatchdogStore(dir);
     expect(loaded.watchdogs.length).toBe(1);
     expect(loaded.watchdogs[0]?.id).toBe("wd-test-1");
     expect(loaded.watchdogs[0]?.status).toBe("active");
     expect(loaded.watchdogs[0]?.metadata).toEqual({ note: "test-save" });
+    expect(readFileSync(join(dir, "watchdogs.json"), "utf8")).toBe(persistedBeforeLoad);
   });
 
   test("throws HarnessError when loading a corrupted store", () => {
@@ -89,6 +91,312 @@ describe("WatchdogManager - Store Lifecycle & Resolution", () => {
     writeFileSync(storePath, "INVALID_JSON_CONTENT", "utf8");
 
     expect(() => loadWatchdogStore(dir)).toThrow(HarnessError);
+  });
+
+  test("rejects malformed persisted stores without normalizing them", () => {
+    const validRecord = {
+      id: "wd-strict-1",
+      generation: 1,
+      pulse_id: null,
+      phase: "loop",
+      run_id: null,
+      run_root: null,
+      pid: 100,
+      ppid: 1,
+      agent_id: null,
+      started_at: "2026-08-21T20:00:00.000Z",
+      last_heartbeat_at: "2026-08-21T20:00:00.000Z",
+      heartbeat_cadence_ms: 180_000,
+      timeout_ms: 360_000,
+      status: "active",
+      terminated_at: null,
+      termination_reason: null,
+      metadata: { source: "test" },
+    };
+    const malformedStores: readonly [string, Record<string, unknown>][] = [
+      [
+        "wrong-schema",
+        { schema: "wrong", version: 1, updated_at: validRecord.started_at, watchdogs: [] },
+      ],
+      [
+        "wrong-version",
+        {
+          schema: "harness.watchdog_store",
+          version: 2,
+          updated_at: validRecord.started_at,
+          watchdogs: [],
+        },
+      ],
+      [
+        "invalid-updated-at",
+        { schema: "harness.watchdog_store", version: 1, updated_at: "not-a-date", watchdogs: [] },
+      ],
+      [
+        "missing-watchdogs",
+        { schema: "harness.watchdog_store", version: 1, updated_at: validRecord.started_at },
+      ],
+      [
+        "wrong-watchdogs",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: {},
+        },
+      ],
+      [
+        "blank-id",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, id: "" }],
+        },
+      ],
+      [
+        "bad-generation",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, generation: 0 }],
+        },
+      ],
+      [
+        "blank-phase",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, phase: "" }],
+        },
+      ],
+      [
+        "bad-pid",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, pid: 0 }],
+        },
+      ],
+      [
+        "bad-ppid",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, ppid: 0 }],
+        },
+      ],
+      [
+        "bad-started-at",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, started_at: "not-a-date" }],
+        },
+      ],
+      [
+        "bad-status",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, status: "healthy" }],
+        },
+      ],
+      [
+        "bad-heartbeat",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, last_heartbeat_at: "not-a-date" }],
+        },
+      ],
+      [
+        "bad-cadence",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, heartbeat_cadence_ms: 0 }],
+        },
+      ],
+      [
+        "bad-timeout",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, timeout_ms: 0 }],
+        },
+      ],
+      [
+        "bad-nullable",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, run_id: 1 }],
+        },
+      ],
+      [
+        "bad-termination-time",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, terminated_at: "not-a-date" }],
+        },
+      ],
+      [
+        "bad-metadata",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [{ ...validRecord, metadata: [] }],
+        },
+      ],
+      [
+        "duplicate-id",
+        {
+          schema: "harness.watchdog_store",
+          version: 1,
+          updated_at: validRecord.started_at,
+          watchdogs: [validRecord, { ...validRecord }],
+        },
+      ],
+    ];
+
+    for (const [label, malformed] of malformedStores) {
+      const dir = scratchRoot(import.meta.path, `strict-store-${label}`);
+      const storePath = join(dir, "watchdogs.json");
+      const bytes = JSON.stringify(malformed, null, 2) + "\n";
+      writeFileSync(storePath, bytes, "utf8");
+
+      try {
+        loadWatchdogStore(dir);
+        throw new Error(`expected ${label} to fail`);
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(HarnessError);
+        expect((error as HarnessError).code).toBe("INTEGRITY");
+      }
+      expect(readFileSync(storePath, "utf8")).toBe(bytes);
+    }
+  });
+
+  test("adapts only a fully valid legacy singleton and rejects malformed legacy data", () => {
+    const record = {
+      id: "wd-legacy-strict",
+      generation: 1,
+      pulse_id: null,
+      phase: "loop",
+      run_id: null,
+      run_root: null,
+      pid: 101,
+      ppid: 1,
+      agent_id: null,
+      started_at: "2026-08-21T20:00:00.000Z",
+      last_heartbeat_at: "2026-08-21T20:00:00.000Z",
+      heartbeat_cadence_ms: 180_000,
+      timeout_ms: 360_000,
+      status: "active",
+      terminated_at: null,
+      termination_reason: null,
+    };
+    const validDir = scratchRoot(import.meta.path, "strict-legacy-valid");
+    writeFileSync(
+      join(validDir, "watchdogs.json"),
+      JSON.stringify({
+        schema: "harness.watchdog_store",
+        version: 1,
+        updated_at: record.started_at,
+        active_watchdog: record,
+      }),
+      "utf8",
+    );
+    expect(loadWatchdogStore(validDir).watchdogs).toEqual([record]);
+
+    const malformedDir = scratchRoot(import.meta.path, "strict-legacy-invalid");
+    writeFileSync(
+      join(malformedDir, "watchdogs.json"),
+      JSON.stringify({
+        schema: "harness.watchdog_store",
+        version: 1,
+        updated_at: record.started_at,
+        active_watchdog: { ...record, pid: 0 },
+      }),
+      "utf8",
+    );
+    expect(() => loadWatchdogStore(malformedDir)).toThrow(HarnessError);
+  });
+
+  test("rejects present-invalid API now values before heartbeat mutation while omitted now defaults", () => {
+    const dir = scratchRoot(import.meta.path, "strict-api-now");
+    const initial = registerWatchdog({ id: "wd-now", now: "2026-08-21T20:00:00.000Z" }, dir);
+    const storePath = join(dir, "watchdogs.json");
+    const before = readFileSync(storePath, "utf8");
+
+    try {
+      heartbeatWatchdog("wd-now", { now: "not-a-date" }, dir);
+      throw new Error("expected invalid now to fail");
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INVALID_ARGUMENT");
+    }
+    expect(readFileSync(storePath, "utf8")).toBe(before);
+
+    const absentStoreDir = scratchRoot(import.meta.path, "strict-api-now-register");
+    try {
+      registerWatchdog({ now: "not-a-date" }, absentStoreDir);
+      throw new Error("expected invalid now to fail registration");
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INVALID_ARGUMENT");
+    }
+    expect(() => readFileSync(join(absentStoreDir, "watchdogs.json"), "utf8")).toThrow();
+
+    const omittedNow = registerWatchdog({ id: "wd-now-default", generation: 2 }, dir);
+    expect(Number.isFinite(Date.parse(omittedNow.watchdog.last_heartbeat_at))).toBe(true);
+    expect(initial.watchdog.id).toBe("wd-now");
+  });
+
+  test("refuses an invalid persisted heartbeat before a mutator can write it as fresh", () => {
+    const dir = scratchRoot(import.meta.path, "strict-invalid-heartbeat-mutation");
+    const storePath = join(dir, "watchdogs.json");
+    const bytes = JSON.stringify({
+      schema: "harness.watchdog_store",
+      version: 1,
+      updated_at: "2026-08-21T20:00:00.000Z",
+      watchdogs: [
+        {
+          id: "wd-invalid-heartbeat",
+          generation: 1,
+          pulse_id: null,
+          phase: "loop",
+          run_id: null,
+          run_root: null,
+          pid: 100,
+          ppid: 1,
+          agent_id: null,
+          started_at: "2026-08-21T20:00:00.000Z",
+          last_heartbeat_at: "not-a-date",
+          heartbeat_cadence_ms: 180_000,
+          timeout_ms: 360_000,
+          status: "active",
+          terminated_at: null,
+          termination_reason: null,
+        },
+      ],
+    });
+    writeFileSync(storePath, bytes, "utf8");
+
+    expect(() => heartbeatWatchdog("wd-invalid-heartbeat", {}, dir)).toThrow(HarnessError);
+    expect(readFileSync(storePath, "utf8")).toBe(bytes);
   });
 });
 
@@ -978,6 +1286,7 @@ describe("WatchdogManager - Lifecycle Invariant Verification", () => {
       JSON.stringify({
         schema: "harness.watchdog_store",
         version: 1,
+        updated_at: "2026-08-21T18:00:00.000Z",
         active_watchdog: {
           id: "wd-legacy-1",
           generation: 1,

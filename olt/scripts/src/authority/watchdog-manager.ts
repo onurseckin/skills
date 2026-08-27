@@ -147,6 +147,168 @@ export function parseTimestamp(input?: string | number | Date | undefined): numb
   return Date.now();
 }
 
+const WATCHDOG_STATUSES = new Set<WatchdogStatus>(["active", "stale", "terminated", "orphaned"]);
+
+function failStoreIntegrity(message: string): never {
+  throw new HarnessError("INTEGRITY", `invalid watchdog store: ${message}`);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isWatchdogStatus(value: unknown): value is WatchdogStatus {
+  return typeof value === "string" && WATCHDOG_STATUSES.has(value as WatchdogStatus);
+}
+
+function isJsonValue(value: unknown): value is JsonValue {
+  if (value === null || typeof value === "boolean" || typeof value === "string") return true;
+  if (typeof value === "number") return Number.isFinite(value);
+  if (Array.isArray(value)) return value.every(isJsonValue);
+  if (!isRecord(value)) return false;
+  return Object.values(value).every(isJsonValue);
+}
+
+function requireNonEmptyString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    failStoreIntegrity(`${field} must be a nonempty string`);
+  }
+  return value;
+}
+
+function requireNullableString(value: unknown, field: string): string | null {
+  if (value === null) return null;
+  return requireNonEmptyString(value, field);
+}
+
+function timestampMilliseconds(value: unknown, field: string): number {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    failStoreIntegrity(`${field} must be a timestamp string`);
+  }
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) {
+    failStoreIntegrity(`${field} must be a valid timestamp`);
+  }
+  return parsed;
+}
+
+function requireTimestamp(value: unknown, field: string): string {
+  const timestamp = requireNonEmptyString(value, field);
+  timestampMilliseconds(timestamp, field);
+  return timestamp;
+}
+
+function requirePositiveSafeInteger(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) {
+    failStoreIntegrity(`${field} must be a positive safe integer`);
+  }
+  return value;
+}
+
+function validateMetadata(
+  value: unknown,
+  field: string,
+): Readonly<Record<string, unknown>> | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    failStoreIntegrity(`${field} must be an object`);
+  }
+  return { ...value };
+}
+
+function validateWatchdogRecord(value: unknown, field: string): WatchdogRecord {
+  if (!isRecord(value)) {
+    failStoreIntegrity(`${field} must be an object`);
+  }
+  const status = value.status;
+  if (!isWatchdogStatus(status)) {
+    failStoreIntegrity(`${field}.status must be a supported watchdog status`);
+  }
+  const metadata = validateMetadata(value.metadata, `${field}.metadata`);
+  return {
+    id: requireNonEmptyString(value.id, `${field}.id`),
+    generation: requirePositiveSafeInteger(value.generation, `${field}.generation`),
+    pulse_id: requireNullableString(value.pulse_id, `${field}.pulse_id`),
+    phase: requireNonEmptyString(value.phase, `${field}.phase`),
+    run_id: requireNullableString(value.run_id, `${field}.run_id`),
+    run_root: requireNullableString(value.run_root, `${field}.run_root`),
+    pid: requirePositiveSafeInteger(value.pid, `${field}.pid`),
+    ppid: requirePositiveSafeInteger(value.ppid, `${field}.ppid`),
+    agent_id: requireNullableString(value.agent_id, `${field}.agent_id`),
+    started_at: requireTimestamp(value.started_at, `${field}.started_at`),
+    last_heartbeat_at: requireTimestamp(value.last_heartbeat_at, `${field}.last_heartbeat_at`),
+    heartbeat_cadence_ms: requirePositiveSafeInteger(
+      value.heartbeat_cadence_ms,
+      `${field}.heartbeat_cadence_ms`,
+    ),
+    timeout_ms: requirePositiveSafeInteger(value.timeout_ms, `${field}.timeout_ms`),
+    status,
+    terminated_at:
+      value.terminated_at === null
+        ? null
+        : requireTimestamp(value.terminated_at, `${field}.terminated_at`),
+    termination_reason: requireNullableString(
+      value.termination_reason,
+      `${field}.termination_reason`,
+    ),
+    ...(metadata === undefined ? {} : { metadata }),
+  };
+}
+
+function validateWatchdogStore(value: unknown): WatchdogStore {
+  if (!isRecord(value)) {
+    failStoreIntegrity("root must be an object");
+  }
+  if (value.schema !== "harness.watchdog_store") {
+    failStoreIntegrity("schema must be harness.watchdog_store");
+  }
+  if (value.version !== 1) {
+    failStoreIntegrity("version must be 1");
+  }
+  const updatedAt = requireTimestamp(value.updated_at, "updated_at");
+
+  let rawWatchdogs: readonly unknown[];
+  if (Object.hasOwn(value, "watchdogs")) {
+    if (!Array.isArray(value.watchdogs)) {
+      failStoreIntegrity("watchdogs must be an array");
+    }
+    rawWatchdogs = value.watchdogs;
+  } else if (Object.hasOwn(value, "active_watchdog")) {
+    rawWatchdogs = [value.active_watchdog];
+  } else {
+    failStoreIntegrity("watchdogs must be present");
+  }
+
+  const watchdogs = rawWatchdogs.map((watchdog, index) =>
+    validateWatchdogRecord(watchdog, `watchdogs[${index}]`),
+  );
+  const ids = new Set<string>();
+  for (const watchdog of watchdogs) {
+    if (ids.has(watchdog.id)) {
+      failStoreIntegrity(`duplicate watchdog id: ${watchdog.id}`);
+    }
+    ids.add(watchdog.id);
+  }
+
+  return {
+    schema: "harness.watchdog_store",
+    version: 1,
+    updated_at: updatedAt,
+    watchdogs,
+  };
+}
+
+function resolveApiNow(input: string | number | Date | undefined): number {
+  if (input === undefined) return Date.now();
+  if (typeof input === "number" && Number.isFinite(input)) return input;
+  if (input instanceof Date && Number.isFinite(input.getTime())) return input.getTime();
+  if (typeof input === "string") {
+    const parsed = Date.parse(input);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  throw new HarnessError("INVALID_ARGUMENT", "now must be a valid timestamp");
+}
+
 export function resolveWatchdogStorePath(target?: string): string {
   if (!target) {
     return resolveWatchdogsPath();
@@ -176,40 +338,35 @@ export function loadWatchdogStore(target?: string): WatchdogStore {
   let raw: string;
   try {
     raw = readFileSync(storePath, "utf8");
-  } catch (err: unknown) {
-    throw new HarnessError("INVALID_ARGUMENT", `failed to read watchdog store: ${String(err)}`);
+  } catch {
+    throw new HarnessError("INTEGRITY", "failed to read watchdog store");
   }
 
-  let parsed: Record<string, unknown>;
+  let parsed: unknown;
   try {
-    parsed = JSON.parse(raw) as Record<string, unknown>;
-  } catch (err: unknown) {
-    throw new HarnessError("INVALID_ARGUMENT", `corrupted watchdog store JSON: ${String(err)}`);
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    throw new HarnessError("INTEGRITY", "corrupted watchdog store JSON");
   }
-
-  let watchdogs: WatchdogRecord[] = [];
-  if (Array.isArray(parsed.watchdogs)) {
-    watchdogs = parsed.watchdogs as unknown as WatchdogRecord[];
-  } else if (parsed.active_watchdog && typeof parsed.active_watchdog === "object") {
-    watchdogs = [parsed.active_watchdog as unknown as WatchdogRecord];
-  }
-
-  return {
-    schema: "harness.watchdog_store",
-    version: 1,
-    updated_at:
-      typeof parsed.updated_at === "string" ? parsed.updated_at : new Date().toISOString(),
-    watchdogs,
-  };
+  return validateWatchdogStore(parsed);
 }
 
 export function saveWatchdogStore(store: WatchdogStore, target?: string): void {
+  const validatedStore = validateWatchdogStore(store);
+  let serialized: unknown;
+  try {
+    serialized = JSON.parse(JSON.stringify(validatedStore));
+  } catch {
+    failStoreIntegrity("must be JSON serializable");
+  }
+  if (!isJsonValue(serialized)) {
+    failStoreIntegrity("must contain finite JSON values");
+  }
   const storePath = resolveWatchdogStorePath(target);
   const dir = dirname(storePath);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  const serialized = JSON.parse(JSON.stringify(store)) as unknown as JsonValue;
   atomicWriteJson(storePath, serialized);
 }
 
@@ -223,7 +380,7 @@ export function registerWatchdog(
   params: RegisterWatchdogOptions = {},
   target?: string,
 ): RegisterWatchdogResult {
-  const nowMs = parseTimestamp(params.now);
+  const nowMs = resolveApiNow(params.now);
   const nowIso = new Date(nowMs).toISOString();
 
   const currentStore = loadWatchdogStore(target);
@@ -235,7 +392,7 @@ export function registerWatchdog(
 
   for (const existing of currentStore.watchdogs) {
     if (existing.status === "active") {
-      const lastHbMs = parseTimestamp(existing.last_heartbeat_at);
+      const lastHbMs = timestampMilliseconds(existing.last_heartbeat_at, "last_heartbeat_at");
       const isOverdue = nowMs - lastHbMs > existing.timeout_ms;
 
       if (isOverdue) {
@@ -313,7 +470,7 @@ export function heartbeatWatchdog(
   options: HeartbeatOptions = {},
   target?: string,
 ): WatchdogRecord {
-  const nowMs = parseTimestamp(options.now);
+  const nowMs = resolveApiNow(options.now);
   const nowIso = new Date(nowMs).toISOString();
   const currentStore = loadWatchdogStore(target);
 
@@ -361,7 +518,7 @@ export function terminateWatchdog(
   options: TerminateOptions = {},
   target?: string,
 ): WatchdogRecord {
-  const nowMs = parseTimestamp(options.now);
+  const nowMs = resolveApiNow(options.now);
   const nowIso = new Date(nowMs).toISOString();
   const currentStore = loadWatchdogStore(target);
 
@@ -430,7 +587,7 @@ export function cleanupStaleWatchdogs(
   options: CleanupStaleOptions = {},
   target?: string,
 ): CleanupStaleResult {
-  const nowMs = parseTimestamp(options.now);
+  const nowMs = resolveApiNow(options.now);
   const store = loadWatchdogStore(target);
 
   const cleanedWatchdogs: WatchdogRecord[] = [];
@@ -438,7 +595,7 @@ export function cleanupStaleWatchdogs(
 
   for (const w of store.watchdogs) {
     if (w.status === "active") {
-      const lastHbMs = parseTimestamp(w.last_heartbeat_at);
+      const lastHbMs = timestampMilliseconds(w.last_heartbeat_at, "last_heartbeat_at");
       const timeout = options.maxAgeMs ?? w.timeout_ms;
       if (nowMs - lastHbMs > timeout) {
         const cleaned: WatchdogRecord = {
@@ -483,7 +640,7 @@ export function terminatePhaseWatchdogs(
   options: TerminatePhaseOptions,
   target?: string,
 ): TerminatePhaseResult {
-  const nowMs = parseTimestamp(options.now);
+  const nowMs = resolveApiNow(options.now);
   const nowIso = new Date(nowMs).toISOString();
   const store = loadWatchdogStore(target);
 
@@ -537,7 +694,7 @@ export function cleanupPreviousPhaseWatchdogs(
   options: CleanupPreviousPhaseOptions,
   target?: string,
 ): TerminatePhaseResult {
-  const nowMs = parseTimestamp(options.now);
+  const nowMs = resolveApiNow(options.now);
   const nowIso = new Date(nowMs).toISOString();
   const store = loadWatchdogStore(target);
 
@@ -612,7 +769,7 @@ export function verifyWatchdogLifecycle(
         activeByPulse.set(w.pulse_id, pulseList);
       }
 
-      const lastHbMs = parseTimestamp(w.last_heartbeat_at);
+      const lastHbMs = timestampMilliseconds(w.last_heartbeat_at, "last_heartbeat_at");
       if (nowMs - lastHbMs > w.timeout_ms) {
         const diff = nowMs - lastHbMs;
         const msg = `Watchdog '${w.id}' heartbeat is overdue by ${diff}ms (timeout: ${w.timeout_ms}ms)`;
