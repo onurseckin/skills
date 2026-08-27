@@ -129,10 +129,7 @@ export function classifyPath(path: string): ScopeDecision {
 
 export function assertRootConvention(paths: readonly string[]): Violation[] {
   return paths
-    .filter(
-      (path) =>
-        !path.includes("/") && classifyPath(path).included && !APPROVED_ROOT_PATHS.has(path),
-    )
+    .filter((path) => !path.includes("/") && !LOCKFILES.has(path) && !APPROVED_ROOT_PATHS.has(path))
     .sort()
     .map((path) => ({
       rule: "root_no_growth" as const,

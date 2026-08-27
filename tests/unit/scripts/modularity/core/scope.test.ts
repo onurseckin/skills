@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
 import {
+  assertRepositoryRelativePosixPath,
   assertRootConvention,
   classifyPath,
+  ModularityScopeError,
 } from "../../../../../scripts/modularity/core/index.ts";
 
 test("includes production runtime but excludes runtime output", () => {
@@ -58,4 +60,26 @@ test("permits the ten approved root paths and ignores the lockfile", () => {
       "tsconfig.json",
     ]),
   ).toEqual([]);
+});
+
+test("exports scope validation errors from the public facade", () => {
+  expect(ModularityScopeError).toBeDefined();
+  expect(() => assertRepositoryRelativePosixPath("../outside.ts")).toThrow(ModularityScopeError);
+});
+
+test("rejects unapproved root entries even when their extension is out of scope", () => {
+  expect(assertRootConvention([".env", "Makefile", "bun.lock", "README.md"])).toEqual([
+    {
+      rule: "root_no_growth",
+      path: ".env",
+      observed: ".env",
+      detail: "Root path is not in the approved conventional set.",
+    },
+    {
+      rule: "root_no_growth",
+      path: "Makefile",
+      observed: "Makefile",
+      detail: "Root path is not in the approved conventional set.",
+    },
+  ]);
 });
