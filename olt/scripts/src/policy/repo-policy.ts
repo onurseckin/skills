@@ -439,18 +439,15 @@ export function inspectRepoPolicy(repoRoot?: string, customPath?: string): Polic
 }
 
 export function loadRepoPolicy(repoRoot?: string, customPath?: string): RepoPolicy {
-  const filePath = resolvePolicyPath(repoRoot, customPath);
-  if (!existsSync(filePath)) {
-    return generateDefaultRepoPolicy(repoRoot);
+  const inspection = inspectRepoPolicy(repoRoot, customPath);
+  if (inspection.status === "invalid_custom") {
+    throw new HarnessError(
+      "INTEGRITY",
+      `Repository policy at '${inspection.filePath}' is invalid: ${inspection.error ?? "unknown error"}`,
+    );
   }
 
-  try {
-    const raw = readFileSync(filePath, "utf-8");
-    const parsed = JSON.parse(raw) as unknown;
-    return validateRepoPolicy(parsed);
-  } catch {
-    return generateDefaultRepoPolicy(repoRoot);
-  }
+  return inspection.policy;
 }
 
 export function saveRepoPolicy(policy: RepoPolicy, repoRoot?: string, customPath?: string): string {

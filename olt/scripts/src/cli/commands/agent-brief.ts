@@ -2,21 +2,20 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseUnifiedAgentManifest } from "../../authority/manifest-schema.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import type { Flags } from "../options.ts";
 
-export function executeAgentBrief(options: { role: string; format?: string }): string {
+export function executeAgentBrief(options: {
+  role: string;
+  format?: string;
+  repoRoot?: string;
+}): string {
   const agentPath = join(import.meta.dir, "..", "..", "..", "..", "agents", `${options.role}.yaml`);
   const rawYaml = readFileSync(agentPath, "utf-8");
   const manifest = parseUnifiedAgentManifest(rawYaml, agentPath);
 
-  const policyPath = join(import.meta.dir, "..", "..", "..", "..", "policy.json");
-  let repoPolicy = { allowed_commands: [] as string[] };
-  try {
-    const rawPolicy = readFileSync(policyPath, "utf-8");
-    repoPolicy = JSON.parse(rawPolicy) as unknown as { allowed_commands: string[] };
-  } catch (err: unknown) {
-    // Ignore, just use empty
-  }
+  const repoPolicy = loadRepoPolicy(options.repoRoot);
 
   const sections: string[] = [];
 
@@ -70,13 +69,19 @@ ${manifest.instructions}`);
   return sections.join("\n\n");
 }
 
-export async function agentBriefCommand(flags: Flags): Promise<Record<string, unknown>> {
+export async function agentBriefCommand(
+  flags: Flags,
+  cwd = process.cwd(),
+): Promise<Record<string, unknown>> {
   const role = typeof flags["role"] === "string" ? flags["role"] : "";
   const format = typeof flags["format"] === "string" ? flags["format"] : undefined;
   if (!role) {
     throw new HarnessError("INVALID_ARGUMENT", "Missing --role");
   }
-  const opts: { role: string; format?: string } = { role };
+  const opts: { role: string; format?: string; repoRoot?: string } = {
+    role,
+    repoRoot: findRepoRoot(cwd),
+  };
   if (format !== undefined) {
     opts.format = format;
   }

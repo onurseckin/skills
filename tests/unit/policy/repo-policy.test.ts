@@ -217,7 +217,7 @@ describe("Repo Policy Auto-Detection & Schema Validation", () => {
     );
   });
 
-  test("saves, loads and initializes repo policy reliably with error recovery", () => {
+  test("saves, loads and initializes repo policy while distinguishing missing and invalid policy", () => {
     const dir = join(scratchBase, "save-load-init");
     const policyPath = join(dir, "nested", "policy.json");
 
@@ -225,11 +225,21 @@ describe("Repo Policy Auto-Detection & Schema Validation", () => {
     const fallbackPolicy = loadRepoPolicy(dir, policyPath);
     expect(fallbackPolicy.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
 
-    // Corrupted file returns default policy
+    // Corrupted file fails closed with the path and parsing diagnosis
     mkdirSync(join(dir, "nested"), { recursive: true });
     writeFileSync(policyPath, "{ invalid json", "utf-8");
-    const corruptedFallback = loadRepoPolicy(dir, policyPath);
-    expect(corruptedFallback.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
+    expect(() => loadRepoPolicy(dir, policyPath)).toThrow(/Repository policy.*invalid/i);
+    try {
+      loadRepoPolicy(dir, policyPath);
+      throw new Error("expected invalid policy to throw");
+    } catch (error) {
+      expect(error).toHaveProperty("code", "INTEGRITY");
+      expect(error).toHaveProperty("message");
+      expect(String((error as Error).message)).toContain(policyPath);
+    }
+
+    writeFileSync(policyPath, "true", "utf-8");
+    expect(() => loadRepoPolicy(dir, policyPath)).toThrow(/must be an object/i);
 
     // Save policy creates directories and validates
     const policy = generateDefaultRepoPolicy(process.cwd());
@@ -247,6 +257,24 @@ describe("Repo Policy Auto-Detection & Schema Validation", () => {
 
     rmSync(dir, { recursive: true, force: true });
     rmSync(initDir, { recursive: true, force: true });
+  });
+
+  test("fails closed when an existing canonical policy path is unreadable", () => {
+    const dir = join(scratchBase, "unreadable-policy");
+    const policyPath = join(dir, ".olt", "policy.json");
+    mkdirSync(policyPath, { recursive: true });
+
+    expect(() => loadRepoPolicy(dir)).toThrow(/Repository policy.*invalid/i);
+    try {
+      loadRepoPolicy(dir);
+      throw new Error("expected unreadable policy to throw");
+    } catch (error) {
+      expect(error).toHaveProperty("code", "INTEGRITY");
+      expect(String((error as Error).message)).toContain(policyPath);
+      expect(String((error as Error).message)).toMatch(/directory|EISDIR/i);
+    }
+
+    rmSync(dir, { recursive: true, force: true });
   });
 
   test("inspectRepoPolicy accurately reports auto_detected, valid_custom, and invalid_custom status (Matrix row 13)", () => {
