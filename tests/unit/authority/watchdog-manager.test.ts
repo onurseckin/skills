@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import {
   cleanupPreviousPhaseWatchdogs,
@@ -15,6 +22,7 @@ import {
   renderAsciiWatchdogTable,
   resolveWatchdogStorePath,
   saveWatchdogStore,
+  setWatchdogLockTimingForTesting,
   terminatePhaseWatchdogs,
   terminateWatchdog,
   verifyWatchdogLifecycle,
@@ -91,6 +99,46 @@ describe("WatchdogManager - Store Lifecycle & Resolution", () => {
     writeFileSync(storePath, "INVALID_JSON_CONTENT", "utf8");
 
     expect(() => loadWatchdogStore(dir)).toThrow(HarnessError);
+  });
+
+  test("refuses a symlinked watchdog store without touching its external target", () => {
+    const dir = scratchRoot(import.meta.path, "symlinked-store");
+    const external = join(
+      scratchRoot(import.meta.path, "symlinked-store-external"),
+      "outside.json",
+    );
+    const bytes = JSON.stringify({
+      schema: "harness.watchdog_store",
+      version: 1,
+      updated_at: "2026-08-21T20:00:00.000Z",
+      watchdogs: [],
+    });
+    writeFileSync(external, bytes, "utf8");
+    symlinkSync(external, join(dir, "watchdogs.json"));
+
+    expect(() => loadWatchdogStore(dir)).toThrow(HarnessError);
+    expect(() => registerWatchdog({ id: "must-not-write" }, dir)).toThrow(HarnessError);
+    expect(readFileSync(external, "utf8")).toBe(bytes);
+  });
+
+  test("refuses a symlinked watchdog parent without touching its external store", () => {
+    const externalDir = scratchRoot(import.meta.path, "symlinked-parent-external");
+    const linkedParent = join(scratchRoot(import.meta.path, "symlinked-parent"), "linked");
+    const externalStore = join(externalDir, "watchdogs.json");
+    const bytes = JSON.stringify({
+      schema: "harness.watchdog_store",
+      version: 1,
+      updated_at: "2026-08-21T20:00:00.000Z",
+      watchdogs: [],
+    });
+    writeFileSync(externalStore, bytes, "utf8");
+    symlinkSync(externalDir, linkedParent);
+
+    expect(() => loadWatchdogStore(linkedParent)).toThrow(HarnessError);
+    expect(() => registerWatchdog({ id: "must-not-write-parent" }, linkedParent)).toThrow(
+      HarnessError,
+    );
+    expect(readFileSync(externalStore, "utf8")).toBe(bytes);
   });
 
   test("rejects malformed persisted stores without normalizing them", () => {
@@ -401,6 +449,216 @@ describe("WatchdogManager - Store Lifecycle & Resolution", () => {
 });
 
 describe("WatchdogManager - Registration & Single Active Invariant", () => {
+  test("fails a same-process nested mutation and recovers for the next mutation", () => {
+    const dir = scratchRoot(import.meta.path, "same-process-reentry");
+    const metadata = Object.defineProperty({}, "nested", {
+      enumerable: true,
+      get(): string {
+        registerWatchdog({ id: "wd-nested", generation: 2 }, dir);
+        return "unreachable";
+      },
+    });
+
+    expect(() => registerWatchdog({ id: "wd-outer", metadata }, dir)).toThrow(HarnessError);
+    const recovered = registerWatchdog({ id: "wd-recovered", generation: 1 }, dir);
+    expect(recovered.watchdog.id).toBe("wd-recovered");
+    expect(loadWatchdogStore(dir).watchdogs.map((watchdog) => watchdog.id)).toEqual([
+      "wd-recovered",
+    ]);
+  });
+
+  test("times out without changing bytes while another process owns the parent inode", async () => {
+    const dir = scratchRoot(import.meta.path, "lock-timeout");
+    const ready = join(dir, "holder-ready");
+    const flockUrl = new URL("../../../olt/scripts/src/platform/flock-ffi.ts", import.meta.url)
+      .href;
+    const script = `
+      import { closeSync, constants, openSync, writeFileSync } from "node:fs";
+      import { releaseFlock, tryExclusiveFlock } from ${JSON.stringify(flockUrl)};
+      const descriptor = openSync(${JSON.stringify(dir)}, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+      if (!tryExclusiveFlock(descriptor)) process.exit(31);
+      writeFileSync(${JSON.stringify(ready)}, "ready");
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200);
+      releaseFlock(descriptor);
+      closeSync(descriptor);
+    `;
+    const child = Bun.spawn([process.execPath, "--eval", script], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    for (let attempt = 0; attempt < 100 && !existsSync(ready); attempt += 1) {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+    }
+    expect(existsSync(ready)).toBe(true);
+    const restore = setWatchdogLockTimingForTesting(25, 1);
+    try {
+      expect(() => registerWatchdog({ id: "wd-blocked" }, dir)).toThrow(HarnessError);
+    } finally {
+      restore();
+    }
+    expect(existsSync(join(dir, "watchdogs.json"))).toBe(false);
+    expect(await child.exited).toBe(0);
+  });
+
+  test("repository-root lock prevents split authority after the .olt parent is replaced", async () => {
+    const repositoryRoot = scratchRoot(import.meta.path, "root-authority-replacement");
+    const oltDir = join(repositoryRoot, ".olt");
+    const displacedOltDir = join(repositoryRoot, ".olt-displaced");
+    const ready = join(repositoryRoot, "root-holder-ready");
+    mkdirSync(oltDir, { recursive: true });
+    const initialBytes = JSON.stringify({
+      schema: "harness.watchdog_store",
+      version: 1,
+      updated_at: "2026-08-21T20:00:00.000Z",
+      watchdogs: [],
+    });
+    writeFileSync(join(oltDir, "watchdogs.json"), initialBytes, "utf8");
+    const flockUrl = new URL("../../../olt/scripts/src/platform/flock-ffi.ts", import.meta.url)
+      .href;
+    const script = `
+      import { closeSync, constants, openSync, writeFileSync } from "node:fs";
+      import { releaseFlock, tryExclusiveFlock } from ${JSON.stringify(flockUrl)};
+      const descriptor = openSync(${JSON.stringify(repositoryRoot)}, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+      if (!tryExclusiveFlock(descriptor)) process.exit(31);
+      writeFileSync(${JSON.stringify(ready)}, "ready");
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200);
+      releaseFlock(descriptor);
+      closeSync(descriptor);
+    `;
+    const child = Bun.spawn([process.execPath, "--eval", script], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    for (let attempt = 0; attempt < 100 && !existsSync(ready); attempt += 1) {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+    }
+    expect(existsSync(ready)).toBe(true);
+    renameSync(oltDir, displacedOltDir);
+    mkdirSync(oltDir, { recursive: true });
+    writeFileSync(join(oltDir, "watchdogs.json"), initialBytes, "utf8");
+    const replacementBytes = readFileSync(join(oltDir, "watchdogs.json"), "utf8");
+
+    const restore = setWatchdogLockTimingForTesting(25, 1);
+    try {
+      expect(() => registerWatchdog({ id: "wd-split-refused" }, oltDir)).toThrow(HarnessError);
+    } finally {
+      restore();
+    }
+    expect(readFileSync(join(oltDir, "watchdogs.json"), "utf8")).toBe(replacementBytes);
+    expect(readFileSync(join(displacedOltDir, "watchdogs.json"), "utf8")).toBe(initialBytes);
+    expect(await child.exited).toBe(0);
+
+    expect(registerWatchdog({ id: "wd-after-root-release" }, oltDir).watchdog.id).toBe(
+      "wd-after-root-release",
+    );
+  });
+
+  test("releases a crashed child holder before the next mutation", async () => {
+    const dir = scratchRoot(import.meta.path, "crash-release");
+    const flockUrl = new URL("../../../olt/scripts/src/platform/flock-ffi.ts", import.meta.url)
+      .href;
+    const script = `
+      import { constants, openSync } from "node:fs";
+      import { tryExclusiveFlock } from ${JSON.stringify(flockUrl)};
+      const descriptor = openSync(${JSON.stringify(dir)}, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+      if (!tryExclusiveFlock(descriptor)) process.exit(31);
+      process.exit(0);
+    `;
+    const child = Bun.spawn([process.execPath, "--eval", script], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(await child.exited).toBe(0);
+
+    expect(registerWatchdog({ id: "wd-after-crash" }, dir).watchdog.id).toBe("wd-after-crash");
+  });
+
+  test("serializes two child registrations without losing either generation", async () => {
+    const dir = scratchRoot(import.meta.path, "cross-process-register");
+    const start = join(dir, "start");
+    const moduleUrl = new URL(
+      "../../../olt/scripts/src/authority/watchdog-manager.ts",
+      import.meta.url,
+    ).href;
+    const childScript = (id: string, generation: number): string => `
+      import { existsSync, writeFileSync } from "node:fs";
+      import { registerWatchdog } from ${JSON.stringify(moduleUrl)};
+      writeFileSync(${JSON.stringify(join(dir, `ready-${id}`))}, "ready");
+      while (!existsSync(${JSON.stringify(start)}))
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+      registerWatchdog({ id: ${JSON.stringify(id)}, generation: ${generation} }, ${JSON.stringify(dir)});
+    `;
+    const children = [
+      Bun.spawn([process.execPath, "--eval", childScript("wd-child-a", 1)], {
+        stdout: "pipe",
+        stderr: "pipe",
+      }),
+      Bun.spawn([process.execPath, "--eval", childScript("wd-child-b", 2)], {
+        stdout: "pipe",
+        stderr: "pipe",
+      }),
+    ];
+    for (
+      let attempt = 0;
+      attempt < 100 &&
+      (!existsSync(join(dir, "ready-wd-child-a")) || !existsSync(join(dir, "ready-wd-child-b")));
+      attempt += 1
+    ) {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+    }
+    writeFileSync(start, "go");
+    expect(await Promise.all(children.map((child) => child.exited))).toEqual([0, 0]);
+
+    const store = loadWatchdogStore(dir);
+    expect(store.watchdogs.map((watchdog) => watchdog.id).sort()).toEqual([
+      "wd-child-a",
+      "wd-child-b",
+    ]);
+    expect(store.watchdogs.filter((watchdog) => watchdog.status === "active")).toHaveLength(2);
+  });
+
+  test("serializes same-generation child registrations into one active and one superseded watchdog", async () => {
+    const dir = scratchRoot(import.meta.path, "cross-process-same-generation");
+    const start = join(dir, "start");
+    const moduleUrl = new URL(
+      "../../../olt/scripts/src/authority/watchdog-manager.ts",
+      import.meta.url,
+    ).href;
+    const childScript = (id: string): string => `
+      import { existsSync, writeFileSync } from "node:fs";
+      import { registerWatchdog } from ${JSON.stringify(moduleUrl)};
+      writeFileSync(${JSON.stringify(join(dir, `ready-${id}`))}, "ready");
+      while (!existsSync(${JSON.stringify(start)}))
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+      registerWatchdog({ id: ${JSON.stringify(id)}, generation: 1 }, ${JSON.stringify(dir)});
+    `;
+    const children = [
+      Bun.spawn([process.execPath, "--eval", childScript("wd-same-a")], {
+        stdout: "pipe",
+        stderr: "pipe",
+      }),
+      Bun.spawn([process.execPath, "--eval", childScript("wd-same-b")], {
+        stdout: "pipe",
+        stderr: "pipe",
+      }),
+    ];
+    for (
+      let attempt = 0;
+      attempt < 100 &&
+      (!existsSync(join(dir, "ready-wd-same-a")) || !existsSync(join(dir, "ready-wd-same-b")));
+      attempt += 1
+    ) {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+    }
+    writeFileSync(start, "go");
+    expect(await Promise.all(children.map((child) => child.exited))).toEqual([0, 0]);
+
+    const store = loadWatchdogStore(dir);
+    expect(store.watchdogs).toHaveLength(2);
+    expect(store.watchdogs.filter((watchdog) => watchdog.status === "active")).toHaveLength(1);
+    expect(store.watchdogs.filter((watchdog) => watchdog.status === "terminated")).toHaveLength(1);
+  });
+
   test("registers a watchdog with default cadence and timeout", () => {
     const dir = scratchRoot(import.meta.path, "reg-defaults");
     const result = registerWatchdog(

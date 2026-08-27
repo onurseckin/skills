@@ -1,9 +1,20 @@
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fstatSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  type Stats,
+} from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import type { JsonValue } from "../core/contracts/json.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { resolveWatchdogsPath } from "../core/shared/paths.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
 
 export type WatchdogStatus = "active" | "stale" | "terminated" | "orphaned";
 
@@ -148,6 +159,15 @@ export function parseTimestamp(input?: string | number | Date | undefined): numb
 }
 
 const WATCHDOG_STATUSES = new Set<WatchdogStatus>(["active", "stale", "terminated", "orphaned"]);
+const activeWatchdogLockPaths = new Set<string>();
+const activeWatchdogLockInodes = new Set<string>();
+const activeWatchdogLockParents = new Map<string, Pick<Stats, "dev" | "ino">>();
+const activeWatchdogRootPaths = new Set<string>();
+const activeWatchdogRootInodes = new Set<string>();
+const activeWatchdogLockRoots = new Map<string, Pick<Stats, "dev" | "ino">>();
+const activeWatchdogAuthorityPaths = new Map<string, string>();
+let watchdogLockTimeoutMs = 10_000;
+let watchdogLockRetryMs = 10;
 
 function failStoreIntegrity(message: string): never {
   throw new HarnessError("INTEGRITY", `invalid watchdog store: ${message}`);
@@ -309,6 +329,275 @@ function resolveApiNow(input: string | number | Date | undefined): number {
   throw new HarnessError("INVALID_ARGUMENT", "now must be a valid timestamp");
 }
 
+function requiredNoFollowFlag(): number {
+  const flag = constants.O_NOFOLLOW;
+  if (!Number.isInteger(flag) || flag === 0) {
+    throw new HarnessError(
+      "UNSUPPORTED_PLATFORM",
+      "watchdog store access requires final-component O_NOFOLLOW protection",
+    );
+  }
+  return flag;
+}
+
+function delay(milliseconds: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
+function sameInode(left: Pick<Stats, "dev" | "ino">, right: Pick<Stats, "dev" | "ino">): boolean {
+  return left.dev === right.dev && left.ino === right.ino;
+}
+
+function assertRealDirectory(path: string, label: string): Stats {
+  let metadata: Stats;
+  try {
+    metadata = lstatSync(path);
+  } catch {
+    throw new HarnessError("INTEGRITY", `${label} is unavailable: ${path}`);
+  }
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+    throw new HarnessError("PATH_SAFETY", `${label} must be a real directory: ${path}`);
+  }
+  return metadata;
+}
+
+function openVerifiedParent(
+  parent: string,
+  create: boolean,
+): { descriptor: number; metadata: Stats } {
+  if (!existsSync(parent)) {
+    if (!create) {
+      throw new HarnessError("INTEGRITY", `watchdog store parent is unavailable: ${parent}`);
+    }
+    mkdirSync(parent, { recursive: true, mode: 0o700 });
+  }
+  const before = assertRealDirectory(parent, "watchdog store parent");
+  let descriptor: number | undefined;
+  try {
+    descriptor = openSync(
+      parent,
+      constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | requiredNoFollowFlag(),
+    );
+    const opened = fstatSync(descriptor);
+    if (!opened.isDirectory()) {
+      throw new HarnessError(
+        "PATH_SAFETY",
+        `opened watchdog store parent is not a directory: ${parent}`,
+      );
+    }
+    const after = assertRealDirectory(parent, "watchdog store parent");
+    if (!sameInode(before, opened) || !sameInode(opened, after)) {
+      throw new HarnessError("INTEGRITY", `watchdog store parent changed while opening: ${parent}`);
+    }
+    return { descriptor, metadata: opened };
+  } catch (error) {
+    if (descriptor !== undefined) closeSync(descriptor);
+    throw error;
+  }
+}
+
+function watchdogAuthorityRoot(storePath: string): string {
+  const parent = dirname(storePath);
+  if (basename(parent) === ".olt") return dirname(parent);
+  let candidate = parent;
+  while (!existsSync(candidate)) {
+    const ancestor = dirname(candidate);
+    if (ancestor === candidate) {
+      throw new HarnessError("INTEGRITY", `watchdog authority root is unavailable: ${parent}`);
+    }
+    candidate = ancestor;
+  }
+  return candidate;
+}
+
+function acquireExclusiveLock(descriptor: number, path: string): void {
+  const deadline = performance.now() + watchdogLockTimeoutMs;
+  while (!tryExclusiveFlock(descriptor)) {
+    const remaining = deadline - performance.now();
+    if (remaining <= 0) {
+      throw new HarnessError("LOCK_TIMEOUT", `timed out waiting for watchdog store lock: ${path}`);
+    }
+    delay(Math.min(watchdogLockRetryMs, remaining));
+  }
+}
+
+function withWatchdogStoreLock<T>(storePath: string, operation: () => T): T {
+  const parent = dirname(storePath);
+  const authorityRoot = watchdogAuthorityRoot(storePath);
+  const pathIdentity = resolve(parent);
+  const rootPathIdentity = resolve(authorityRoot);
+  if (activeWatchdogLockPaths.has(pathIdentity) || activeWatchdogRootPaths.has(rootPathIdentity)) {
+    throw new HarnessError(
+      "LOCK_TIMEOUT",
+      `watchdog store is already active in this process: ${storePath}`,
+    );
+  }
+
+  let rootDescriptor: number | undefined;
+  let rootAcquired = false;
+  let rootInodeIdentity: string | undefined;
+  let rootTracked = false;
+  let parentDescriptor: number | undefined;
+  let parentAcquired = false;
+  let parentInodeIdentity: string | undefined;
+  let parentTracked = false;
+  let hasPrimary = false;
+  let primary: unknown;
+  let hasCleanupFailure = false;
+  let cleanupFailure: unknown;
+  let result!: T;
+  activeWatchdogLockPaths.add(pathIdentity);
+  activeWatchdogRootPaths.add(rootPathIdentity);
+  activeWatchdogAuthorityPaths.set(pathIdentity, rootPathIdentity);
+  try {
+    const openedRoot = openVerifiedParent(authorityRoot, false);
+    rootDescriptor = openedRoot.descriptor;
+    rootInodeIdentity = `${openedRoot.metadata.dev}:${openedRoot.metadata.ino}`;
+    if (activeWatchdogRootInodes.has(rootInodeIdentity)) {
+      throw new HarnessError(
+        "LOCK_TIMEOUT",
+        `watchdog authority root is already active: ${authorityRoot}`,
+      );
+    }
+    activeWatchdogRootInodes.add(rootInodeIdentity);
+    rootTracked = true;
+    activeWatchdogLockRoots.set(rootPathIdentity, openedRoot.metadata);
+    acquireExclusiveLock(rootDescriptor, authorityRoot);
+    rootAcquired = true;
+    if (
+      !sameInode(openedRoot.metadata, assertRealDirectory(authorityRoot, "watchdog authority root"))
+    ) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `watchdog authority root changed while locked: ${authorityRoot}`,
+      );
+    }
+
+    if (pathIdentity === rootPathIdentity) {
+      activeWatchdogLockParents.set(pathIdentity, openedRoot.metadata);
+    } else {
+      const openedParent = openVerifiedParent(parent, true);
+      parentDescriptor = openedParent.descriptor;
+      parentInodeIdentity = `${openedParent.metadata.dev}:${openedParent.metadata.ino}`;
+      if (activeWatchdogLockInodes.has(parentInodeIdentity)) {
+        throw new HarnessError(
+          "LOCK_TIMEOUT",
+          `watchdog store parent is already active: ${parent}`,
+        );
+      }
+      activeWatchdogLockInodes.add(parentInodeIdentity);
+      parentTracked = true;
+      activeWatchdogLockParents.set(pathIdentity, openedParent.metadata);
+      acquireExclusiveLock(parentDescriptor, parent);
+      parentAcquired = true;
+      if (!sameInode(openedParent.metadata, assertRealDirectory(parent, "watchdog store parent"))) {
+        throw new HarnessError(
+          "INTEGRITY",
+          `watchdog store parent changed while locked: ${parent}`,
+        );
+      }
+    }
+
+    result = operation();
+    const expectedRoot = activeWatchdogLockRoots.get(rootPathIdentity);
+    if (
+      expectedRoot === undefined ||
+      !sameInode(expectedRoot, assertRealDirectory(authorityRoot, "watchdog authority root"))
+    ) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `watchdog authority root changed after mutation: ${authorityRoot}`,
+      );
+    }
+  } catch (error) {
+    hasPrimary = true;
+    primary = error;
+  }
+
+  for (const cleanup of [
+    () => {
+      if (parentDescriptor !== undefined && parentAcquired) releaseFlock(parentDescriptor);
+    },
+    () => {
+      if (parentDescriptor !== undefined) closeSync(parentDescriptor);
+    },
+    () => {
+      if (rootDescriptor !== undefined && rootAcquired) releaseFlock(rootDescriptor);
+    },
+    () => {
+      if (rootDescriptor !== undefined) closeSync(rootDescriptor);
+    },
+  ]) {
+    try {
+      cleanup();
+    } catch (error) {
+      if (!hasCleanupFailure) {
+        hasCleanupFailure = true;
+        cleanupFailure = error;
+      }
+    }
+  }
+  activeWatchdogLockPaths.delete(pathIdentity);
+  activeWatchdogRootPaths.delete(rootPathIdentity);
+  activeWatchdogLockParents.delete(pathIdentity);
+  activeWatchdogLockRoots.delete(rootPathIdentity);
+  activeWatchdogAuthorityPaths.delete(pathIdentity);
+  if (parentTracked && parentInodeIdentity !== undefined)
+    activeWatchdogLockInodes.delete(parentInodeIdentity);
+  if (rootTracked && rootInodeIdentity !== undefined)
+    activeWatchdogRootInodes.delete(rootInodeIdentity);
+  if (hasPrimary) throw primary;
+  if (hasCleanupFailure) throw cleanupFailure;
+  return result;
+}
+
+/** Test-only seam for deterministic watchdog lock-contention coverage. */
+export function setWatchdogLockTimingForTesting(timeoutMs: number, retryMs: number): () => void {
+  if (!Number.isFinite(timeoutMs) || timeoutMs < 0 || !Number.isFinite(retryMs) || retryMs < 0) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "watchdog lock timing must be finite and non-negative",
+    );
+  }
+  const previousTimeoutMs = watchdogLockTimeoutMs;
+  const previousRetryMs = watchdogLockRetryMs;
+  watchdogLockTimeoutMs = timeoutMs;
+  watchdogLockRetryMs = retryMs;
+  return () => {
+    watchdogLockTimeoutMs = previousTimeoutMs;
+    watchdogLockRetryMs = previousRetryMs;
+  };
+}
+
+function assertCurrentLockAuthority(storePath: string): void {
+  const parent = dirname(storePath);
+  const pathIdentity = resolve(parent);
+  const rootPathIdentity = activeWatchdogAuthorityPaths.get(pathIdentity);
+  const expected = activeWatchdogLockParents.get(pathIdentity);
+  const expectedRoot =
+    rootPathIdentity === undefined ? undefined : activeWatchdogLockRoots.get(rootPathIdentity);
+  if (expected === undefined) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `watchdog store write has no active lock authority: ${storePath}`,
+    );
+  }
+  const current = assertRealDirectory(parent, "watchdog store parent");
+  if (!sameInode(expected, current)) {
+    throw new HarnessError("INTEGRITY", `watchdog store parent changed before write: ${parent}`);
+  }
+  if (
+    expectedRoot === undefined ||
+    rootPathIdentity === undefined ||
+    !sameInode(expectedRoot, assertRealDirectory(rootPathIdentity, "watchdog authority root"))
+  ) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `watchdog authority root changed before write: ${rootPathIdentity ?? "unknown"}`,
+    );
+  }
+}
+
 export function resolveWatchdogStorePath(target?: string): string {
   if (!target) {
     return resolveWatchdogsPath();
@@ -329,17 +618,39 @@ export function createDefaultWatchdogStore(nowIso?: string): WatchdogStore {
   };
 }
 
-export function loadWatchdogStore(target?: string): WatchdogStore {
+function loadWatchdogStoreUnlocked(target?: string): WatchdogStore {
   const storePath = resolveWatchdogStorePath(target);
   if (!existsSync(storePath)) {
+    const parent = dirname(storePath);
+    if (existsSync(parent)) {
+      const openedParent = openVerifiedParent(parent, false);
+      closeSync(openedParent.descriptor);
+    }
     return createDefaultWatchdogStore();
   }
 
   let raw: string;
+  let parentDescriptor: number | undefined;
+  let descriptor: number | undefined;
   try {
-    raw = readFileSync(storePath, "utf8");
-  } catch {
+    const parent = openVerifiedParent(dirname(storePath), false);
+    parentDescriptor = parent.descriptor;
+    const before = lstatSync(storePath);
+    if (before.isSymbolicLink() || !before.isFile()) {
+      throw new HarnessError("PATH_SAFETY", `watchdog store is not a regular file: ${storePath}`);
+    }
+    descriptor = openSync(storePath, constants.O_RDONLY | requiredNoFollowFlag());
+    const opened = fstatSync(descriptor);
+    if (!opened.isFile() || !sameInode(before, opened)) {
+      throw new HarnessError("INTEGRITY", `watchdog store changed while opening: ${storePath}`);
+    }
+    raw = readFileSync(descriptor, "utf8");
+  } catch (error) {
+    if (error instanceof HarnessError) throw error;
     throw new HarnessError("INTEGRITY", "failed to read watchdog store");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+    if (parentDescriptor !== undefined) closeSync(parentDescriptor);
   }
 
   let parsed: unknown;
@@ -351,7 +662,11 @@ export function loadWatchdogStore(target?: string): WatchdogStore {
   return validateWatchdogStore(parsed);
 }
 
-export function saveWatchdogStore(store: WatchdogStore, target?: string): void {
+export function loadWatchdogStore(target?: string): WatchdogStore {
+  return loadWatchdogStoreUnlocked(target);
+}
+
+function saveWatchdogStoreUnlocked(store: WatchdogStore, target?: string): void {
   const validatedStore = validateWatchdogStore(store);
   let serialized: unknown;
   try {
@@ -363,11 +678,13 @@ export function saveWatchdogStore(store: WatchdogStore, target?: string): void {
     failStoreIntegrity("must contain finite JSON values");
   }
   const storePath = resolveWatchdogStorePath(target);
-  const dir = dirname(storePath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
+  assertCurrentLockAuthority(storePath);
   atomicWriteJson(storePath, serialized);
+}
+
+export function saveWatchdogStore(store: WatchdogStore, target?: string): void {
+  const storePath = resolveWatchdogStorePath(target);
+  withWatchdogStoreLock(storePath, () => saveWatchdogStoreUnlocked(store, target));
 }
 
 function generateWatchdogId(generation: number): string {
@@ -376,14 +693,14 @@ function generateWatchdogId(generation: number): string {
   return `wd-gen${generation}-${nowStr}-${rand}`;
 }
 
-export function registerWatchdog(
+function registerWatchdogUnlocked(
   params: RegisterWatchdogOptions = {},
   target?: string,
 ): RegisterWatchdogResult {
   const nowMs = resolveApiNow(params.now);
   const nowIso = new Date(nowMs).toISOString();
 
-  const currentStore = loadWatchdogStore(target);
+  const currentStore = loadWatchdogStoreUnlocked(target);
   const targetGen = params.generation ?? 1;
   const watchdogId = params.id ?? generateWatchdogId(targetGen);
 
@@ -456,7 +773,7 @@ export function registerWatchdog(
     watchdogs: updatedWatchdogs,
   };
 
-  saveWatchdogStore(updatedStore, target);
+  saveWatchdogStoreUnlocked(updatedStore, target);
 
   return {
     watchdog: newWatchdog,
@@ -465,14 +782,23 @@ export function registerWatchdog(
   };
 }
 
-export function heartbeatWatchdog(
+export function registerWatchdog(
+  params: RegisterWatchdogOptions = {},
+  target?: string,
+): RegisterWatchdogResult {
+  return withWatchdogStoreLock(resolveWatchdogStorePath(target), () =>
+    registerWatchdogUnlocked(params, target),
+  );
+}
+
+function heartbeatWatchdogUnlocked(
   id: string,
   options: HeartbeatOptions = {},
   target?: string,
 ): WatchdogRecord {
   const nowMs = resolveApiNow(options.now);
   const nowIso = new Date(nowMs).toISOString();
-  const currentStore = loadWatchdogStore(target);
+  const currentStore = loadWatchdogStoreUnlocked(target);
 
   const existingIndex = currentStore.watchdogs.findIndex((w) => w.id === id);
   if (existingIndex === -1) {
@@ -509,18 +835,28 @@ export function heartbeatWatchdog(
     watchdogs: updatedWatchdogs,
   };
 
-  saveWatchdogStore(updatedStore, target);
+  saveWatchdogStoreUnlocked(updatedStore, target);
   return updatedWd;
 }
 
-export function terminateWatchdog(
+export function heartbeatWatchdog(
+  id: string,
+  options: HeartbeatOptions = {},
+  target?: string,
+): WatchdogRecord {
+  return withWatchdogStoreLock(resolveWatchdogStorePath(target), () =>
+    heartbeatWatchdogUnlocked(id, options, target),
+  );
+}
+
+function terminateWatchdogUnlocked(
   id: string,
   options: TerminateOptions = {},
   target?: string,
 ): WatchdogRecord {
   const nowMs = resolveApiNow(options.now);
   const nowIso = new Date(nowMs).toISOString();
-  const currentStore = loadWatchdogStore(target);
+  const currentStore = loadWatchdogStoreUnlocked(target);
 
   const existingIndex = currentStore.watchdogs.findIndex((w) => w.id === id);
   if (existingIndex === -1) {
@@ -557,8 +893,18 @@ export function terminateWatchdog(
     watchdogs: updatedWatchdogs,
   };
 
-  saveWatchdogStore(updatedStore, target);
+  saveWatchdogStoreUnlocked(updatedStore, target);
   return updatedWd;
+}
+
+export function terminateWatchdog(
+  id: string,
+  options: TerminateOptions = {},
+  target?: string,
+): WatchdogRecord {
+  return withWatchdogStoreLock(resolveWatchdogStorePath(target), () =>
+    terminateWatchdogUnlocked(id, options, target),
+  );
 }
 
 export function listWatchdogs(
@@ -583,12 +929,12 @@ export function listWatchdogs(
   });
 }
 
-export function cleanupStaleWatchdogs(
+function cleanupStaleWatchdogsUnlocked(
   options: CleanupStaleOptions = {},
   target?: string,
 ): CleanupStaleResult {
   const nowMs = resolveApiNow(options.now);
-  const store = loadWatchdogStore(target);
+  const store = loadWatchdogStoreUnlocked(target);
 
   const cleanedWatchdogs: WatchdogRecord[] = [];
   const updatedWatchdogs: WatchdogRecord[] = [];
@@ -622,7 +968,7 @@ export function cleanupStaleWatchdogs(
   };
 
   if (!dryRun) {
-    saveWatchdogStore(updatedStore, target);
+    saveWatchdogStoreUnlocked(updatedStore, target);
   }
 
   const activeCount = updatedWatchdogs.filter((w) => w.status === "active").length;
@@ -636,13 +982,22 @@ export function cleanupStaleWatchdogs(
   };
 }
 
-export function terminatePhaseWatchdogs(
+export function cleanupStaleWatchdogs(
+  options: CleanupStaleOptions = {},
+  target?: string,
+): CleanupStaleResult {
+  return withWatchdogStoreLock(resolveWatchdogStorePath(target), () =>
+    cleanupStaleWatchdogsUnlocked(options, target),
+  );
+}
+
+function terminatePhaseWatchdogsUnlocked(
   options: TerminatePhaseOptions,
   target?: string,
 ): TerminatePhaseResult {
   const nowMs = resolveApiNow(options.now);
   const nowIso = new Date(nowMs).toISOString();
-  const store = loadWatchdogStore(target);
+  const store = loadWatchdogStoreUnlocked(target);
 
   const terminatedWatchdogs: WatchdogRecord[] = [];
   const updatedWatchdogs: WatchdogRecord[] = [];
@@ -676,7 +1031,7 @@ export function terminatePhaseWatchdogs(
   };
 
   if (!dryRun) {
-    saveWatchdogStore(updatedStore, target);
+    saveWatchdogStoreUnlocked(updatedStore, target);
   }
 
   const activeCount = updatedWatchdogs.filter((w) => w.status === "active").length;
@@ -690,13 +1045,22 @@ export function terminatePhaseWatchdogs(
   };
 }
 
-export function cleanupPreviousPhaseWatchdogs(
+export function terminatePhaseWatchdogs(
+  options: TerminatePhaseOptions,
+  target?: string,
+): TerminatePhaseResult {
+  return withWatchdogStoreLock(resolveWatchdogStorePath(target), () =>
+    terminatePhaseWatchdogsUnlocked(options, target),
+  );
+}
+
+function cleanupPreviousPhaseWatchdogsUnlocked(
   options: CleanupPreviousPhaseOptions,
   target?: string,
 ): TerminatePhaseResult {
   const nowMs = resolveApiNow(options.now);
   const nowIso = new Date(nowMs).toISOString();
-  const store = loadWatchdogStore(target);
+  const store = loadWatchdogStoreUnlocked(target);
 
   const terminatedWatchdogs: WatchdogRecord[] = [];
   const updatedWatchdogs: WatchdogRecord[] = [];
@@ -730,7 +1094,7 @@ export function cleanupPreviousPhaseWatchdogs(
   };
 
   if (!dryRun) {
-    saveWatchdogStore(updatedStore, target);
+    saveWatchdogStoreUnlocked(updatedStore, target);
   }
 
   const activeCount = updatedWatchdogs.filter((w) => w.status === "active").length;
@@ -742,6 +1106,15 @@ export function cleanupPreviousPhaseWatchdogs(
     dryRun,
     store: dryRun ? store : updatedStore,
   };
+}
+
+export function cleanupPreviousPhaseWatchdogs(
+  options: CleanupPreviousPhaseOptions,
+  target?: string,
+): TerminatePhaseResult {
+  return withWatchdogStoreLock(resolveWatchdogStorePath(target), () =>
+    cleanupPreviousPhaseWatchdogsUnlocked(options, target),
+  );
 }
 
 export function verifyWatchdogLifecycle(
