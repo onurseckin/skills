@@ -11,9 +11,11 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { recoverProjection } from "../../../olt/scripts/src/engine/store/recovery.ts";
+import { TRANSACTION_MARKER_FILE } from "../../../olt/scripts/src/engine/store/event-append.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function makeTempDir(label: string): string {
@@ -112,5 +114,51 @@ describe("recoverProjection", () => {
     rmSync(join(runRoot, "state.json"));
     mkdirSync(join(runRoot, "state.json"));
     expect(() => recoverProjection(runRoot, "actor")).toThrow(/state\.json is not a regular file/);
+  });
+
+  test("rebuilds state and every derived projection from a committed marker without a duplicate event", () => {
+    const runRoot = freshRun("committed-marker-recovery");
+    rmSync(join(runRoot, "trace.md"));
+    mkdirSync(join(runRoot, "trace.md"));
+    expect(() =>
+      transact(runRoot, "tester", "task-created", {}, (draft) => {
+        (draft as unknown as { tasks: Record<string, unknown> }).tasks = { "T-1": {} };
+      }),
+    ).toThrow(/recovery pending/);
+    expect(readFileSync(join(runRoot, "events.jsonl"), "utf8").trim().split("\n")).toHaveLength(1);
+    rmSync(join(runRoot, "trace.md"), { recursive: true });
+    const recovered = recoverProjection(runRoot, "recovery-actor");
+    expect(recovered.event_sequence).toBe(1);
+    expect(existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(false);
+    expect(readFileSync(join(runRoot, "events.jsonl"), "utf8").trim().split("\n")).toHaveLength(1);
+    expect(readFileSync(join(runRoot, "trace.md"), "utf8")).toContain("task-created");
+    expect(existsSync(join(runRoot, "index.json"))).toBe(true);
+  });
+
+  test("fails closed when a marker cannot identify the canonical chain head", () => {
+    const runRoot = freshRun("ambiguous-marker");
+    transact(runRoot, "tester", "task-created", {}, (draft) => {
+      (draft as unknown as { tasks: Record<string, unknown> }).tasks = { "T-1": {} };
+    });
+    const manifest = JSON.parse(readFileSync(join(runRoot, "manifest.json"), "utf8")) as {
+      run_id: string;
+      capsule_id: string;
+    };
+    writeFileSync(
+      join(runRoot, TRANSACTION_MARKER_FILE),
+      canonicalJsonBytes({
+        schema: "harness.transaction",
+        version: 1,
+        run_id: manifest.run_id,
+        capsule_id: manifest.capsule_id,
+        sequence: 1,
+        event_hash: "0".repeat(64),
+        phase: "PROJECTIONS_PENDING",
+      }),
+    );
+    expect(() => recoverProjection(runRoot, "recovery-actor")).toThrow(
+      /does not match one unambiguous canonical event-chain head/,
+    );
+    expect(existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(true);
   });
 });

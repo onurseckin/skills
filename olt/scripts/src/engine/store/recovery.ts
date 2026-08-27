@@ -1,15 +1,23 @@
 import { lstatSync, mkdirSync, realpathSync } from "node:fs";
-import type { RunState } from "../../core/contracts/capsule.ts";
+import type { Manifest, RunState } from "../../core/contracts/capsule.ts";
+import { atomicWriteJson } from "../../core/durable-write.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 import { withRunLock } from "../../platform/run-lock.ts";
 import { validateEventChain } from "./event-stream.ts";
-import { appendProjectionEvent } from "./event-append.ts";
+import {
+  appendProjectionEvent,
+  clearTransactionMarker,
+  readTransactionMarker,
+  type TransactionMarker,
+} from "./event-append.ts";
 import { quarantineAndTruncateTail } from "./forensic-tail.ts";
 import { throwIntegrity } from "./issues.ts";
 import { checkManifest } from "./manifest.ts";
 import { runFilePath } from "./paths.ts";
 import { cloneObject } from "./state.ts";
 import { limits } from "./constants.ts";
+import { writeIndex } from "./capsule-index.ts";
+import { writeTrace } from "./trace.ts";
 
 function quarantineDirectory(runRoot: string): string {
   const path = runFilePath(runRoot, "quarantine");
@@ -37,31 +45,66 @@ export function recoverProjection(runRoot: string, actor: string): RunState {
   return withRunLock(root, () => {
     const immutable = checkManifest(root);
     if (immutable.issues.length > 0 || !immutable.manifest) throwIntegrity(immutable.issues);
-    assertRecoverableStatePath(root);
+    const marker = readTransactionMarker(root);
+    if (marker === undefined) assertRecoverableStatePath(root);
     const eventsPath = runFilePath(root, "events.jsonl");
     const chain = validateEventChain(
       eventsPath,
       { runId: immutable.manifest.run_id, capsuleId: immutable.manifest.capsule_id },
       {},
       false,
-      false,
+      true,
     );
     if (chain.issues.length > 0) throwIntegrity(chain.issues);
     if (chain.eventCount === 0)
       throw new HarnessError("INTEGRITY", "cannot recover state because there is no valid event");
+    if (marker !== undefined) {
+      return recoverCommittedTransaction(root, immutable.manifest, chain, marker);
+    }
     const quarantined = chain.tornTail !== undefined;
     if (quarantined) {
       quarantineAndTruncateTail(eventsPath, chain.completeBytes, quarantineDirectory(root));
     }
+    // Legacy repair remains an auditable event. Marker-based recovery intentionally does not
+    // append another event because the already-durable event is the transaction's sole commit.
     return appendProjectionEvent(
       root,
       immutable.manifest,
       chain.finalState,
       actor,
       "projection-recovered",
-      { recovered_sequence: chain.eventCount, quarantined_torn_tail: quarantined },
+      {
+        recovered_sequence: chain.eventCount,
+        quarantined_torn_tail: quarantined,
+      },
       cloneObject(chain.finalState),
       limits(),
     );
   });
+}
+
+function recoverCommittedTransaction(
+  runRoot: string,
+  manifest: Manifest,
+  chain: ReturnType<typeof validateEventChain>,
+  marker: TransactionMarker,
+): RunState {
+  if (
+    marker.run_id !== manifest.run_id ||
+    marker.capsule_id !== manifest.capsule_id ||
+    marker.sequence !== chain.eventCount ||
+    chain.finalState.event_head !== marker.event_hash ||
+    chain.events.at(-1)?.hash !== marker.event_hash ||
+    chain.tornTail !== undefined
+  ) {
+    throw new HarnessError(
+      "INTEGRITY",
+      "transaction marker does not match one unambiguous canonical event-chain head",
+    );
+  }
+  atomicWriteJson(runFilePath(runRoot, "state.json"), chain.finalState);
+  writeTrace(runRoot, chain.events);
+  writeIndex(runRoot, chain.finalState, manifest.run_id);
+  clearTransactionMarker(runRoot);
+  return cloneObject(chain.finalState);
 }

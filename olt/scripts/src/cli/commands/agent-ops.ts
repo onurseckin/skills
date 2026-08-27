@@ -13,7 +13,12 @@ import { AGENT_ROLES, isAgentRole, type AgentRole } from "../../core/contracts/p
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 import { registerSessionGrant, revokeSessionGrant } from "../../authority/session-registry.ts";
-import { loadRun } from "../../engine/store/index.ts";
+import {
+  isCommittedWithRecoveryPending,
+  loadRun,
+  recoverProjection,
+  transactionRecoveryStatus,
+} from "../../engine/store/index.ts";
 import {
   recordAgentReport,
   refreshAgentDerivedTelemetry,
@@ -93,6 +98,24 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
   const role = roleFlag(flags);
   const host = textFlag(flags, "host")!;
   const hostAddress = textFlag(flags, "host-address", false);
+  const pendingPhase = transactionRecoveryStatus(run);
+  if (pendingPhase !== undefined) {
+    const recovered = recoverProjection(run, actor);
+    const existing = readAgentLedger(recovered).find(
+      (grant) => grant.id === agent && grant.status === "active",
+    );
+    if (existing !== undefined) {
+      return {
+        markdown: formatAgentRegisterBrief(existing, run),
+        run_root: run,
+        agent: existing,
+        active_grants: readAgentLedger(recovered).filter((grant) => grant.status === "active")
+          .length,
+        transaction_status: "committed_recovered",
+        recovered_phase: pendingPhase,
+      };
+    }
+  }
   // Stage session authority first, then commit the active grant. If grant admission
   // rejects, compensate the staged required PID records before exposing an outcome.
   const session = registerSessionGrant({ runRoot: run, agentId: agent, role, host });
@@ -112,6 +135,29 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
       ...(Object.keys(derivedTelemetry).length === 0 ? {} : { derivedTelemetry }),
     });
   } catch (error) {
+    if (isCommittedWithRecoveryPending(error)) {
+      const grant = readAgentLedger(error.state).find(
+        (entry) => entry.id === agent && entry.status === "active",
+      );
+      if (grant === undefined)
+        throw new HarnessError(
+          "INTEGRITY",
+          `committed agent registration for ${agent} has no active grant in its event projection`,
+        );
+      return withHostTelemetryConflicts(
+        {
+          markdown: formatAgentRegisterBrief(grant, run),
+          run_root: run,
+          agent: grant,
+          session_token: session.token,
+          active_grants: readAgentLedger(error.state).filter((entry) => entry.status === "active")
+            .length,
+          transaction_status: "committed_with_recovery_pending",
+          recovery_phase: error.marker.phase,
+        },
+        undefined,
+      );
+    }
     try {
       revokeSessionGrant({ runRoot: run, agentId: agent, pid: session.pid, ppid: session.ppid });
     } catch {

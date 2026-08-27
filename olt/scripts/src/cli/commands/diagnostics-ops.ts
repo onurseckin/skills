@@ -8,7 +8,7 @@ import { workflowPort } from "../../integration/store-ports.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
 import { constructSupervisoryPersonaReminder } from "../../authority/supervisory-persona-reminder.ts";
 import { isJsonObject } from "../../core/contracts/json.ts";
-import { loadRun, recoverProjection } from "../../engine/store/index.ts";
+import { loadRun, recoverProjection, transactionRecoveryStatus } from "../../engine/store/index.ts";
 import { recoverStale } from "../../workflow/lease/recover-stale.ts";
 import { releaseLease } from "../../workflow/lease/release.ts";
 import { systemClock, type WorkflowState } from "../../workflow/types.ts";
@@ -180,6 +180,7 @@ export function recoverCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const actor = textFlag(flags, "actor")!;
   const graceSeconds = integerFlag(flags, "grace-seconds", { minimum: 0, maximum: 86_400 });
+  const pendingPhase = transactionRecoveryStatus(run);
 
   const port = workflowPort(run);
   const before = port.read();
@@ -200,6 +201,7 @@ export function recoverCommand(flags: Flags): Record<string, unknown> {
   const lines = [
     `### Stale Lease Recovery: \`${run}\``,
     `- **Actor**: ${actor}`,
+    `- **Transaction Recovery**: ${pendingPhase === undefined ? "not pending" : pendingPhase}`,
     `- **Leases Released**: ${recovered.length}`,
     ...recovered.map((id) => `  - \`${id}\` -> ${state.tasks[id]?.status ?? "unknown"}`),
     `- **Branch Sub-leases Reclaimed**: ${recoveredSubTasks.length}`,
@@ -211,6 +213,7 @@ export function recoverCommand(flags: Flags): Record<string, unknown> {
     run_root: run,
     recovered,
     recovered_sub_tasks: recoveredSubTasks,
+    transaction_recovery_phase: pendingPhase,
     tasks: state.tasks,
   };
 }
@@ -218,6 +221,7 @@ export function recoverCommand(flags: Flags): Record<string, unknown> {
 export function repairProjectionCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const actor = textFlag(flags, "actor")!;
+  const pendingPhase = transactionRecoveryStatus(run);
   const state = recoverProjection(run, actor);
   const lastEvent = loadRun(run).events.at(-1);
   const quarantined = lastEvent?.payload.quarantined_torn_tail === true;
@@ -225,6 +229,7 @@ export function repairProjectionCommand(flags: Flags): Record<string, unknown> {
     `### Projection Repaired: \`${run}\``,
     `- **Actor**: ${actor}`,
     `- **Event Sequence**: ${state.event_sequence}`,
+    `- **Transaction Recovery**: ${pendingPhase === undefined ? "not pending" : pendingPhase}`,
     `- **Torn Tail Quarantined**: ${quarantined ? "yes" : "no"}`,
     ...nextActionsBlock([
       {
@@ -238,6 +243,7 @@ export function repairProjectionCommand(flags: Flags): Record<string, unknown> {
     markdown: enforceLineLimit(lines.join("\n")),
     run_root: run,
     state,
+    transaction_recovery_phase: pendingPhase,
     quarantined_torn_tail: quarantined,
   };
 }

@@ -1,8 +1,13 @@
-import { closeSync, constants, fsyncSync, lstatSync, openSync, writeSync } from "node:fs";
+import { existsSync, lstatSync, unlinkSync } from "node:fs";
 import type { HarnessEvent, Manifest, RunState } from "../../core/contracts/capsule.ts";
 import type { JsonObject } from "../../core/contracts/json.ts";
-import { atomicWriteJson } from "../../core/durable-write.ts";
-import { canonicalJsonBytes, normalizeJson, sha256Bytes } from "../../core/json.ts";
+import { atomicWriteJson, durableAppendBytes, fsyncDirectory } from "../../core/durable-write.ts";
+import {
+  canonicalJsonBytes,
+  normalizeJson,
+  readCanonicalObject,
+  sha256Bytes,
+} from "../../core/json.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 import { writeIndex } from "./capsule-index.ts";
 import {
@@ -11,24 +16,175 @@ import {
   isCheckpointSequence,
   type StoreLimits,
 } from "./constants.ts";
+import { validateEventChain } from "./event-stream.ts";
 import { runFilePath } from "./paths.ts";
 import { diffProjection } from "./projection-patch.ts";
 import { businessFields, cloneObject, isTerminalState } from "./state.ts";
 import { appendTraceStep } from "./trace.ts";
 
-function append(path: string, data: Uint8Array): void {
-  const descriptor = openSync(
-    path,
-    constants.O_WRONLY | constants.O_APPEND | (constants.O_NOFOLLOW ?? 0),
-  );
-  try {
-    let offset = 0;
-    while (offset < data.byteLength)
-      offset += writeSync(descriptor, data, offset, data.byteLength - offset);
-    fsyncSync(descriptor);
-  } finally {
-    closeSync(descriptor);
+export const TRANSACTION_MARKER_FILE = ".transaction.json";
+const TRANSACTION_SCHEMA = "harness.transaction";
+const TRANSACTION_VERSION = 1;
+
+export type TransactionPhase =
+  | "PREPARED"
+  | "EVENT_COMMITTED"
+  | "STATE_PENDING"
+  | "PROJECTIONS_PENDING"
+  | "COMMITTED";
+
+export interface TransactionMarker extends JsonObject {
+  schema: typeof TRANSACTION_SCHEMA;
+  version: typeof TRANSACTION_VERSION;
+  run_id: string;
+  capsule_id: string;
+  sequence: number;
+  event_hash: string;
+  phase: TransactionPhase;
+}
+
+/** Narrow fault seam for transaction-boundary tests; omitted in every production caller. */
+export interface AppendProjectionDependencies {
+  beforeEventAppend?: () => void;
+  writeState?: (path: string, state: RunState) => void;
+}
+
+/** The only error that proves an event passed the canonical durability boundary. */
+export class CommittedWithRecoveryPendingError extends HarnessError {
+  public readonly committed = true;
+
+  public constructor(
+    public readonly marker: TransactionMarker,
+    public readonly state: RunState,
+    cause: unknown,
+  ) {
+    super(
+      "INTEGRITY",
+      `event ${marker.sequence} (${marker.event_hash}) is committed with recovery pending at ${marker.phase}: ${String(cause)}`,
+    );
+    this.name = "CommittedWithRecoveryPendingError";
   }
+}
+
+export function isCommittedWithRecoveryPending(
+  error: unknown,
+): error is CommittedWithRecoveryPendingError {
+  return error instanceof CommittedWithRecoveryPendingError;
+}
+
+function markerPath(runRoot: string): string {
+  return runFilePath(runRoot, TRANSACTION_MARKER_FILE);
+}
+
+function assertMarkerPath(path: string): void {
+  if (!existsSync(path)) return;
+  const metadata = lstatSync(path);
+  if (!metadata.isFile() || metadata.isSymbolicLink())
+    throw new HarnessError("PATH_SAFETY", `${TRANSACTION_MARKER_FILE} must be a regular file`);
+  if (metadata.nlink !== 1)
+    throw new HarnessError(
+      "INTEGRITY",
+      `${TRANSACTION_MARKER_FILE} must have exactly one hard link`,
+    );
+}
+
+function markerIsValid(value: Record<string, unknown>): value is TransactionMarker {
+  return (
+    value.schema === TRANSACTION_SCHEMA &&
+    value.version === TRANSACTION_VERSION &&
+    typeof value.run_id === "string" &&
+    typeof value.capsule_id === "string" &&
+    Number.isSafeInteger(value.sequence) &&
+    (value.sequence as number) > 0 &&
+    typeof value.event_hash === "string" &&
+    /^[0-9a-f]{64}$/u.test(value.event_hash) &&
+    typeof value.phase === "string" &&
+    ["PREPARED", "EVENT_COMMITTED", "STATE_PENDING", "PROJECTIONS_PENDING", "COMMITTED"].includes(
+      value.phase,
+    )
+  );
+}
+
+export function readTransactionMarker(runRoot: string): TransactionMarker | undefined {
+  const path = markerPath(runRoot);
+  if (!existsSync(path)) return undefined;
+  assertMarkerPath(path);
+  let value: Record<string, unknown>;
+  try {
+    value = readCanonicalObject(path, TRANSACTION_MARKER_FILE);
+  } catch (error) {
+    throw new HarnessError("INTEGRITY", `invalid ${TRANSACTION_MARKER_FILE}: ${String(error)}`);
+  }
+  if (!markerIsValid(value))
+    throw new HarnessError("INTEGRITY", `invalid ${TRANSACTION_MARKER_FILE} schema`);
+  return value;
+}
+
+export function transactionRecoveryStatus(runRoot: string): TransactionPhase | undefined {
+  return readTransactionMarker(runRoot)?.phase;
+}
+
+function writeTransactionMarker(runRoot: string, marker: TransactionMarker): TransactionMarker {
+  assertMarkerPath(markerPath(runRoot));
+  atomicWriteJson(markerPath(runRoot), marker, 0o600);
+  return marker;
+}
+
+export function clearTransactionMarker(runRoot: string): void {
+  const path = markerPath(runRoot);
+  if (!existsSync(path)) return;
+  assertMarkerPath(path);
+  unlinkSync(path);
+  fsyncDirectory(runRoot);
+}
+
+function checkedEventCommit(
+  runRoot: string,
+  manifest: Manifest,
+  event: HarnessEvent,
+  sequence: number,
+): void {
+  const chain = validateEventChain(
+    runFilePath(runRoot, "events.jsonl"),
+    { runId: manifest.run_id, capsuleId: manifest.capsule_id },
+    {},
+    false,
+    true,
+  );
+  const matching = chain.events.at(-1);
+  if (
+    chain.issues.length > 0 ||
+    chain.tornTail !== undefined ||
+    chain.eventCount !== sequence ||
+    chain.finalState.event_head !== event.hash ||
+    matching?.hash !== event.hash
+  ) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `event ${sequence} did not validate as the durable canonical commit point`,
+    );
+  }
+}
+
+function refreshDerived(
+  runRoot: string,
+  manifest: Manifest,
+  event: HarnessEvent,
+  next: RunState,
+): void {
+  const failures: string[] = [];
+  try {
+    appendTraceStep(runRoot, event);
+  } catch (error) {
+    failures.push(`trace.md: ${String(error)}`);
+  }
+  try {
+    writeIndex(runRoot, next, manifest.run_id);
+  } catch (error) {
+    failures.push(`index.json: ${String(error)}`);
+  }
+  if (failures.length > 0)
+    throw new HarnessError("INTEGRITY", `derived views failed to refresh: ${failures.join("; ")}`);
 }
 
 export function appendProjectionEvent(
@@ -40,6 +196,7 @@ export function appendProjectionEvent(
   payload: JsonObject,
   draft: RunState,
   configured: Required<StoreLimits>,
+  dependencies: AppendProjectionDependencies = {},
 ): RunState {
   const sequence = current.event_sequence + 1;
   if (sequence > configured.maxEventCount)
@@ -84,35 +241,53 @@ export function appendProjectionEvent(
   const eventPath = runFilePath(runRoot, "events.jsonl");
   if (lstatSync(eventPath).size + line.byteLength > configured.maxEventLogBytes)
     throw new HarnessError("INVALID_STATE", "event log size exceeds configured limit");
-  append(eventPath, line);
-  const next = { ...projection, event_head: event.hash };
-  atomicWriteJson(runFilePath(runRoot, "state.json"), next);
-  refreshDerived(runRoot, manifest, event, next);
-  return cloneObject(next);
-}
 
-function refreshDerived(
-  runRoot: string,
-  manifest: Manifest,
-  event: HarnessEvent,
-  next: RunState,
-): void {
-  const failures: string[] = [];
+  let marker = writeTransactionMarker(runRoot, {
+    schema: TRANSACTION_SCHEMA,
+    version: TRANSACTION_VERSION,
+    run_id: manifest.run_id,
+    capsule_id: manifest.capsule_id,
+    sequence,
+    event_hash: event.hash,
+    phase: "PREPARED",
+  });
   try {
-    appendTraceStep(runRoot, event);
+    dependencies.beforeEventAppend?.();
+    durableAppendBytes(eventPath, line);
+    checkedEventCommit(runRoot, manifest, event, sequence);
   } catch (error) {
-    failures.push(`trace.md: ${String(error)}`);
+    // No acknowledged event fsync+validation means callers receive the original rejection.
+    try {
+      clearTransactionMarker(runRoot);
+    } catch {
+      // Cleanup cannot turn a pre-commit failure into a committed outcome.
+    }
+    throw error;
+  }
+
+  const next = { ...projection, event_head: event.hash };
+  const pending = (phase: TransactionPhase, cause: unknown): never => {
+    try {
+      marker = writeTransactionMarker(runRoot, { ...marker, phase });
+    } catch {
+      // The most recently durable marker remains authoritative.
+    }
+    throw new CommittedWithRecoveryPendingError(marker, cloneObject(next), cause);
+  };
+  try {
+    marker = writeTransactionMarker(runRoot, { ...marker, phase: "EVENT_COMMITTED" });
+    marker = writeTransactionMarker(runRoot, { ...marker, phase: "STATE_PENDING" });
+    (dependencies.writeState ?? atomicWriteJson)(runFilePath(runRoot, "state.json"), next);
+  } catch (error) {
+    return pending("STATE_PENDING", error);
   }
   try {
-    writeIndex(runRoot, next, manifest.run_id);
+    marker = writeTransactionMarker(runRoot, { ...marker, phase: "PROJECTIONS_PENDING" });
+    refreshDerived(runRoot, manifest, event, next);
+    marker = writeTransactionMarker(runRoot, { ...marker, phase: "COMMITTED" });
+    clearTransactionMarker(runRoot);
   } catch (error) {
-    failures.push(`index.json: ${String(error)}`);
+    return pending(marker.phase === "COMMITTED" ? "COMMITTED" : "PROJECTIONS_PENDING", error);
   }
-  if (failures.length > 0) {
-    throw new HarnessError(
-      "INTEGRITY",
-      `event ${event.sequence} committed to events.jsonl and state.json, but derived views ` +
-        `failed to refresh: ${failures.join("; ")}`,
-    );
-  }
+  return cloneObject(next);
 }

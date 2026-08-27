@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
@@ -27,6 +31,22 @@ describe("agent:register", () => {
     expect(agent.role).toBe("coordinator");
     expect(agent.status).toBe("active");
     expect(result.active_grants).toBe(1);
+  });
+
+  test("keeps the staged session and makes retry idempotent when the grant event commits before index refresh", async () => {
+    const { run } = await setupCompiledRun("agent-register-committed-pending", roots);
+    const eventCountBefore = loadRun(run).events.length;
+    rmSync(join(run, "index.json"));
+    mkdirSync(join(run, "index.json"));
+    const flags = { run, agent: "coordinator-1", role: "coordinator", host: "claude-code" };
+    const pending = agentRegisterCommand(flags);
+    expect(pending.transaction_status).toBe("committed_with_recovery_pending");
+    expect(pending.active_grants).toBe(1);
+    rmSync(join(run, "index.json"), { recursive: true });
+    const retried = agentRegisterCommand(flags);
+    expect(retried.transaction_status).toBe("committed_recovered");
+    expect(retried.active_grants).toBe(1);
+    expect(loadRun(run).events).toHaveLength(eventCountBefore + 1);
   });
 
   test("registers a subagent under a parent, task and full telemetry set", async () => {
