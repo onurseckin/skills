@@ -6,7 +6,10 @@ import {
   isUntargetedTestCommand,
   verifyCommandAuthorization,
 } from "../../../olt/scripts/src/policy/rbac-engine.ts";
-import type { RepoPolicy } from "../../../olt/scripts/src/policy/repo-policy.ts";
+import {
+  parseAuthorityRepoPolicy,
+  type RepoPolicy,
+} from "../../../olt/scripts/src/policy/repo-policy.ts";
 import type { AgentMetadata } from "../../../olt/scripts/src/runtime/agent-metadata.ts";
 
 describe("RBAC Engine & Hybrid Deny-List", () => {
@@ -128,9 +131,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         spawned_at: new Date().toISOString(),
       };
 
-      const result = verifyCommandAuthorization(coordinatorActor, "bun test", {
-        test_runner: { targeted_pattern: "bun test <path>" },
-      } as RepoPolicy);
+      const result = verifyCommandAuthorization(coordinatorActor, "bun test", samplePolicy);
 
       expect(result.authorized).toBe(false);
       expect(result.error_code).toBe("SUPERVISOR_TEST_EXECUTION_FORBIDDEN");
@@ -306,6 +307,53 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
       );
       expect(result.authorized).toBe(false);
       expect(result.error_code).toBe("PERMISSION_DENIED");
+    });
+
+    test("uses the verified forbidden command snapshot for authorization", () => {
+      const actor: AgentMetadata = {
+        agent_id: "imp-policy-snapshot",
+        role: "implementer",
+        tier: 3,
+        write_scope: ["src/foo.ts"],
+        allowed_read_scope: [],
+        can_execute_shell: true,
+        spawned_at: new Date().toISOString(),
+      };
+      const policy: RepoPolicy = {
+        schema_version: 1,
+        ecosystem: "bun",
+        test_runner: {
+          default_command: "bun test",
+          targeted_pattern: "bun test <path>",
+          full_suite_command: "bun test",
+        },
+        forbidden_commands: ["curl"],
+      };
+
+      const result = verifyCommandAuthorization(actor, ["curl", "https://example.test"], policy);
+      expect(result.authorized).toBe(false);
+      expect(result.error_code).toBe("PERMISSION_DENIED");
+    });
+
+    test("forbidden_commands scalar cannot authorize curl because unverified snapshots fail closed", () => {
+      const actor: AgentMetadata = {
+        agent_id: "imp-invalid-policy",
+        role: "implementer",
+        tier: 3,
+        write_scope: ["src/foo.ts"],
+        allowed_read_scope: [],
+        can_execute_shell: true,
+        spawned_at: new Date().toISOString(),
+      };
+      const malformed = { ...samplePolicy, forbidden_commands: "curl" } as unknown as RepoPolicy;
+
+      expect(() =>
+        verifyCommandAuthorization(
+          actor,
+          ["curl", "https://example.test"],
+          parseAuthorityRepoPolicy(malformed),
+        ),
+      ).toThrow(/forbidden_commands/i);
     });
 
     test("authorizes implementer reading git status and diagnostics", () => {
@@ -606,10 +654,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         expect(patterns[0]!.test("anything")).toBe(true);
       }
 
-      const emptyPolicy: RepoPolicy = {
-        schema_version: 1,
-        ecosystem: "bun",
-      };
+      const emptyPolicy: RepoPolicy = samplePolicy;
 
       const supervisorRoles = [
         "mind",
@@ -671,14 +716,10 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         expect(res.error_code).toBe("COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN");
       }
 
-      const untargetedEmptyPatternPolicy: RepoPolicy = {
-        schema_version: 1,
-        ecosystem: "bun",
-      };
       const resUntargeted = verifyCommandAuthorization(
         { role: "implementer", can_execute_shell: true },
         "bun test",
-        untargetedEmptyPatternPolicy,
+        samplePolicy,
       );
       expect(resUntargeted.authorized).toBe(false);
       expect(resUntargeted.error_code).toBe("UNBOUNDED_TEST_RUNNER_FORBIDDEN");
