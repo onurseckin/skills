@@ -82,7 +82,7 @@ export const KNOWN_TEST_RUNNERS: readonly TestRunnerSpec[] = [
     flagsWithValue: ["--tests", "-P", "-D"],
   },
   {
-    prefixTokens: ["./gradlew", "test"],
+    prefixTokens: ["gradlew", "test"],
     flagsWithValue: ["--tests", "-P", "-D"],
   },
   {
@@ -120,27 +120,229 @@ export const KNOWN_TEST_RUNNERS: readonly TestRunnerSpec[] = [
   },
 ];
 
+interface CommandDispatch {
+  readonly tokens: readonly string[];
+  readonly denialReason?: string | undefined;
+}
+
+interface GitDispatchCheck {
+  readonly errorCode: "PERMISSION_DENIED" | "UNSHIELDED_COMMAND_DEFECT";
+  readonly reason: string;
+}
+
+const SHELL_EXECUTABLES = new Set(["sh", "bash", "zsh", "fish", "ksh", "csh", "tcsh", "dash"]);
+
+const AMBIGUOUS_WRAPPERS = new Set([
+  "command",
+  "nohup",
+  "nice",
+  "timeout",
+  "xargs",
+  "find",
+  "parallel",
+  "setsid",
+  "stdbuf",
+  "ionice",
+  "chronic",
+  "daemonize",
+]);
+
+const READ_ONLY_GIT_SUBCOMMANDS = new Set([
+  "status",
+  "diff",
+  "show",
+  "log",
+  "grep",
+  "ls-files",
+  "rev-parse",
+]);
+
+const GIT_MUTATING_SUBCOMMANDS = new Set([
+  "add",
+  "am",
+  "apply",
+  "bisect",
+  "branch",
+  "checkout",
+  "cherry-pick",
+  "clean",
+  "commit",
+  "fetch",
+  "merge",
+  "mv",
+  "pull",
+  "push",
+  "rebase",
+  "reset",
+  "restore",
+  "rm",
+  "stash",
+  "switch",
+  "tag",
+  "update-ref",
+  "worktree",
+]);
+
+function isOutputWritingGitOption(token: string): boolean {
+  return token === "--output" || token.startsWith("--output=");
+}
+
+function normalizeExecutable(token: string): string {
+  const basename = token.trim().split(/[\\/]/).pop() ?? "";
+  return basename.replace(/\.exe$/i, "").toLowerCase();
+}
+
+function normalizeDispatchTokens(tokens: readonly string[]): readonly string[] {
+  if (tokens.length === 0) return tokens;
+  return [normalizeExecutable(tokens[0]!), ...tokens.slice(1)];
+}
+
+function isEnvironmentAssignment(token: string): boolean {
+  return /^[A-Za-z_][A-Za-z0-9_]*=.*/.test(token);
+}
+
+function analyzeCommandDispatch(argv: readonly string[], depth = 0): CommandDispatch {
+  if (depth > 4 || argv.length === 0 || !argv[0]?.trim()) {
+    return { tokens: [], denialReason: "Command dispatch is empty or recursively wrapped." };
+  }
+
+  const tokens = normalizeDispatchTokens(argv);
+  const executable = tokens[0]!;
+
+  if (executable === "env") {
+    let index = 1;
+    while (index < tokens.length) {
+      const token = tokens[index]!;
+      if (token === "--") {
+        index++;
+        break;
+      }
+      if (token === "-S" || token.startsWith("--split-string")) {
+        return { tokens, denialReason: "env split-string semantics are not authorized." };
+      }
+      if (token === "-i" || token === "--ignore-environment") {
+        index++;
+        continue;
+      }
+      if (token === "-u" || token === "--unset") {
+        if (!tokens[index + 1] || tokens[index + 1]!.startsWith("-")) {
+          return { tokens, denialReason: `env option '${token}' requires an environment name.` };
+        }
+        index += 2;
+        continue;
+      }
+      if (token.startsWith("--unset=") && token.length > "--unset=".length) {
+        index++;
+        continue;
+      }
+      if (isEnvironmentAssignment(token)) {
+        index++;
+        continue;
+      }
+      if (token.startsWith("-")) {
+        return { tokens, denialReason: `Unsupported env option '${token}' is ambiguous.` };
+      }
+      break;
+    }
+
+    if (index >= tokens.length) {
+      return { tokens, denialReason: "env invocation does not contain a command." };
+    }
+    return analyzeCommandDispatch(tokens.slice(index), depth + 1);
+  }
+
+  if (AMBIGUOUS_WRAPPERS.has(executable)) {
+    return {
+      tokens,
+      denialReason: `Wrapper '${executable}' has execution semantics that cannot be safely authorized.`,
+    };
+  }
+
+  return { tokens };
+}
+
+function inspectGitDispatch(tokens: readonly string[]): GitDispatchCheck | undefined {
+  if (tokens[0] !== "git") return undefined;
+
+  let index = 1;
+  while (index < tokens.length) {
+    const token = tokens[index]!;
+    if (token === "-C" || token === "--git-dir" || token === "--work-tree") {
+      if (!tokens[index + 1] || tokens[index + 1]!.startsWith("-")) {
+        return {
+          errorCode: "UNSHIELDED_COMMAND_DEFECT",
+          reason: `Git global option '${token}' requires a literal path value.`,
+        };
+      }
+      index += 2;
+      continue;
+    }
+    if (
+      (token.startsWith("-C") && token.length > 2) ||
+      (token.startsWith("--git-dir=") && token.length > "--git-dir=".length) ||
+      (token.startsWith("--work-tree=") && token.length > "--work-tree=".length)
+    ) {
+      index++;
+      continue;
+    }
+    if (token === "-c" || token.startsWith("-c") || token === "--config-env") {
+      return {
+        errorCode: "UNSHIELDED_COMMAND_DEFECT",
+        reason: `Git configuration option '${token}' can activate aliases or extensions.`,
+      };
+    }
+    if (token.startsWith("-")) {
+      return {
+        errorCode: "UNSHIELDED_COMMAND_DEFECT",
+        reason: `Unsupported Git global option '${token}' is ambiguous.`,
+      };
+    }
+    break;
+  }
+
+  const subcommand = tokens[index]?.toLowerCase();
+  if (!subcommand) {
+    return { errorCode: "UNSHIELDED_COMMAND_DEFECT", reason: "Git command has no subcommand." };
+  }
+  if (GIT_MUTATING_SUBCOMMANDS.has(subcommand)) {
+    return {
+      errorCode: "PERMISSION_DENIED",
+      reason: `Git mutation '${subcommand}' is prohibited for constrained roles.`,
+    };
+  }
+  if (!READ_ONLY_GIT_SUBCOMMANDS.has(subcommand)) {
+    return {
+      errorCode: "UNSHIELDED_COMMAND_DEFECT",
+      reason: `Git extension or unrecognized subcommand '${subcommand}' is not authorized.`,
+    };
+  }
+  if (tokens.slice(index + 1).some(isOutputWritingGitOption)) {
+    return {
+      errorCode: "UNSHIELDED_COMMAND_DEFECT",
+      reason: `Git '${subcommand}' output redirection can write external files.`,
+    };
+  }
+  return undefined;
+}
+
+function isKnownTestRunner(tokens: readonly string[]): boolean {
+  return KNOWN_TEST_RUNNERS.some((runner) =>
+    runner.prefixTokens.every((token, index) => tokens[index]?.toLowerCase() === token),
+  );
+}
+
 export function hasUnshieldedSubshellOrChaining(
-  commandStr: string,
+  _commandStr: string,
   argv: readonly string[],
 ): { detected: boolean; reason?: string } {
-  const firstToken = (argv[0] ?? "").toLowerCase();
+  const dispatch = analyzeCommandDispatch(argv);
+  if (dispatch.denialReason) {
+    return { detected: true, reason: dispatch.denialReason };
+  }
+  const tokens = dispatch.tokens;
+  const firstToken = tokens[0] ?? "";
 
-  const subshellBinaries = new Set([
-    "sh",
-    "bash",
-    "zsh",
-    "fish",
-    "ksh",
-    "csh",
-    "tcsh",
-    "dash",
-    "sh.exe",
-    "bash.exe",
-    "zsh.exe",
-  ]);
-
-  if (subshellBinaries.has(firstToken)) {
+  if (SHELL_EXECUTABLES.has(firstToken)) {
     return {
       detected: true,
       reason: `Subshell binary invocation detected: '${firstToken}'`,
@@ -155,12 +357,10 @@ export function hasUnshieldedSubshellOrChaining(
   }
 
   if (
-    (firstToken === "node" ||
-      firstToken === "bun" ||
-      firstToken === "deno" ||
-      firstToken === "node.exe" ||
-      firstToken === "bun.exe") &&
-    argv.some((a) => a === "-e" || a === "--eval" || a.startsWith("-e=") || a.startsWith("--eval="))
+    (firstToken === "node" || firstToken === "bun" || firstToken === "deno") &&
+    tokens.some(
+      (a) => a === "-e" || a === "--eval" || a.startsWith("-e=") || a.startsWith("--eval="),
+    )
   ) {
     return {
       detected: true,
@@ -173,7 +373,7 @@ export function hasUnshieldedSubshellOrChaining(
       firstToken === "python3" ||
       firstToken === "perl" ||
       firstToken === "ruby") &&
-    argv.some((a) => a === "-c" || a === "-e" || a.startsWith("-c=") || a.startsWith("-e="))
+    tokens.some((a) => a === "-c" || a === "-e" || a.startsWith("-c=") || a.startsWith("-e="))
   ) {
     return {
       detected: true,
@@ -181,20 +381,11 @@ export function hasUnshieldedSubshellOrChaining(
     };
   }
 
-  for (const arg of argv) {
+  for (const arg of tokens) {
     if (arg === "&&" || arg === "||" || arg === ";" || arg === "|" || arg === "&") {
       return {
         detected: true,
         reason: `Command chaining operator detected in argv: '${arg}'`,
-      };
-    }
-  }
-
-  for (const pattern of FORBIDDEN_SUBSHELL_AND_EVAL_PATTERNS) {
-    if (pattern.test(commandStr)) {
-      return {
-        detected: true,
-        reason: `Command matched subshell/evaluator pattern: ${pattern.toString()}`,
       };
     }
   }
@@ -277,7 +468,10 @@ export function isUntargetedTestCommand(
   policy?: RepoPolicy,
 ): boolean {
   const trimmed = commandStr.trim();
-  const tokens = argvInput && argvInput.length > 0 ? argvInput : trimmed.split(/\s+/);
+  const rawTokens = argvInput && argvInput.length > 0 ? argvInput : trimmed.split(/\s+/);
+  const dispatch = analyzeCommandDispatch(rawTokens);
+  if (dispatch.denialReason) return false;
+  const tokens = dispatch.tokens;
   if (tokens.length === 0 || tokens[0] === "") return false;
 
   for (const runner of KNOWN_TEST_RUNNERS) {
@@ -453,7 +647,20 @@ export function verifyCommandAuthorization(
       : true;
 
   const commandStr = typeof command === "string" ? command.trim() : command.join(" ").trim();
-  const argv = typeof command === "string" ? command.trim().split(/\s+/) : command;
+  const rawArgv = typeof command === "string" ? command.trim().split(/\s+/) : command;
+  const dispatch = analyzeCommandDispatch(rawArgv);
+  if (dispatch.denialReason) {
+    return {
+      authorized: false,
+      error_code: "UNSHIELDED_COMMAND_DEFECT",
+      reason: dispatch.denialReason,
+      message:
+        `[UNSHIELDED_COMMAND_DEFECT] Command dispatch could not be safely normalized: '${commandStr}'.\n` +
+        `Wrappers and ambiguous command forms are prohibited unless their nested argv is fully parsed and authorized.`,
+    };
+  }
+  const argv = dispatch.tokens;
+  const normalizedCommandStr = argv.join(" ");
   const activePolicy = policy ?? loadRepoPolicy();
 
   const isCognitiveValidator =
@@ -479,7 +686,7 @@ export function verifyCommandAuthorization(
     normalizedRole === "mind_auditor";
 
   // 1. Check Subshell and Chaining Escapes
-  const subshellCheck = hasUnshieldedSubshellOrChaining(commandStr, argv);
+  const subshellCheck = hasUnshieldedSubshellOrChaining(normalizedCommandStr, argv);
   if (subshellCheck.detected) {
     return {
       authorized: false,
@@ -505,9 +712,7 @@ export function verifyCommandAuthorization(
   }
 
   // 3. Supervisor strict ban on tests
-  const isTestCommand =
-    /^(bun\s+test|vitest|npm\s+test|pytest|cargo\s+test)\b/i.test(commandStr) ||
-    /\.(test|spec)\.ts\b/.test(commandStr);
+  const isTestCommand = isKnownTestRunner(argv) || /\.(test|spec)\.[a-z0-9]+$/i.test(argv[0] ?? "");
   if (isSupervisor && isTestCommand) {
     return {
       authorized: false,
@@ -530,7 +735,7 @@ export function verifyCommandAuthorization(
   }
 
   // 5. Check Un-Targeted Test Suite Executions (Implementer / Worker)
-  if (isUntargetedTestCommand(commandStr, argv, activePolicy)) {
+  if (isUntargetedTestCommand(normalizedCommandStr, argv, activePolicy)) {
     const targetedExample = activePolicy.test_runner?.targeted_pattern ?? "bun test <path>";
     return {
       authorized: false,
@@ -543,10 +748,21 @@ export function verifyCommandAuthorization(
     };
   }
 
-  // 6. Check Forbidden Regex Patterns
+  // 6. Parse git globally before string policy matching so options cannot hide mutations.
+  const gitCheck = inspectGitDispatch(argv);
+  if (gitCheck) {
+    return {
+      authorized: false,
+      error_code: gitCheck.errorCode,
+      reason: gitCheck.reason,
+      message: `[${gitCheck.errorCode}] Command '${commandStr}' is prohibited for role '${role}': ${gitCheck.reason}`,
+    };
+  }
+
+  // 7. Check Forbidden Regex Patterns against normalized dispatch tokens.
   const forbiddenPatterns = compileEffectiveForbiddenPatterns(role, activePolicy);
   for (const pattern of forbiddenPatterns) {
-    if (pattern.test(commandStr)) {
+    if (pattern.test(normalizedCommandStr)) {
       return {
         authorized: false,
         error_code: "PERMISSION_DENIED",

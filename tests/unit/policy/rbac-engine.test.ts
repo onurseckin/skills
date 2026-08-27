@@ -467,10 +467,9 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
       expect(isUntargetedTestCommand("cargo test SomeTest.java")).toBe(false);
     });
 
-    test("hasUnshieldedSubshellOrChaining matches pattern when custom argv is provided", () => {
+    test("hasUnshieldedSubshellOrChaining uses argv rather than ambiguous raw command text", () => {
       const match = hasUnshieldedSubshellOrChaining("eval something", ["custom_token"]);
-      expect(match.detected).toBe(true);
-      expect(match.reason).toContain("evaluator pattern");
+      expect(match.detected).toBe(false);
     });
 
     test("hasUnshieldedSubshellOrChaining exhaustively covers subshells, evaluators, and flags", () => {
@@ -730,6 +729,121 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         ["git", "status"],
       );
       expect(resAllowed.authorized).toBe(true);
+    });
+
+    test("normalizes absolute executables and env wrappers before enforcing test and forbidden-command policy", () => {
+      const actor: AgentMetadata = {
+        agent_id: "imp-dispatch-normalization",
+        role: "implementer",
+        tier: 3,
+        write_scope: ["src/foo.ts"],
+        allowed_read_scope: [],
+        can_execute_shell: true,
+        spawned_at: new Date().toISOString(),
+      };
+      const curlPolicy = { ...samplePolicy, forbidden_commands: ["curl"] };
+
+      for (const command of [
+        ["/bin/sh", "-c", "git push"],
+        ["/usr/bin/env", "CI=1", "/usr/bin/bun", "test"],
+        ["/usr/bin/env", "CI=1", "/usr/bin/git", "push", "origin", "main"],
+        ["/usr/bin/curl", "https://example.test"],
+      ]) {
+        const result = verifyCommandAuthorization(actor, command, curlPolicy);
+        expect(result.authorized).toBe(false);
+      }
+
+      expect(
+        verifyCommandAuthorization(
+          actor,
+          ["/usr/bin/env", "CI=1", "/usr/bin/bun", "test"],
+          samplePolicy,
+        ).error_code,
+      ).toBe("UNBOUNDED_TEST_RUNNER_FORBIDDEN");
+      expect(
+        verifyCommandAuthorization(actor, ["/usr/bin/curl", "https://example.test"], curlPolicy)
+          .error_code,
+      ).toBe("PERMISSION_DENIED");
+      expect(
+        verifyCommandAuthorization(actor, ["/usr/bin/env", "-S", "git status"], samplePolicy)
+          .error_code,
+      ).toBe("UNSHIELDED_COMMAND_DEFECT");
+    });
+
+    test("fails closed for ambiguous wrappers and parses git globals before subcommands", () => {
+      const actor: AgentMetadata = {
+        agent_id: "imp-git-dispatch",
+        role: "implementer",
+        tier: 3,
+        write_scope: ["src/foo.ts"],
+        allowed_read_scope: [],
+        can_execute_shell: true,
+        spawned_at: new Date().toISOString(),
+      };
+
+      for (const command of [
+        ["command", "git", "push"],
+        ["nohup", "git", "push"],
+        ["nice", "git", "push"],
+        ["timeout", "5", "git", "push"],
+        ["xargs", "git", "push"],
+        ["find", ".", "-exec", "git", "push", "{}", ";"],
+        ["git", "-c", "alias.status=!git push", "status"],
+        ["git", "unknown-extension", "status"],
+      ]) {
+        const result = verifyCommandAuthorization(actor, command, samplePolicy);
+        expect(result.authorized).toBe(false);
+        expect(result.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+      }
+
+      for (const command of [
+        ["git", "-C", "packages/olt", "status"],
+        ["git", "--git-dir", ".git", "--work-tree", ".", "diff", "--", "notes/git-commit.md"],
+        ["git", "show", "HEAD:notes/git-push.md"],
+        ["git", "log", "--", "git-reset-notes.md"],
+        ["git", "grep", "commit", "--", "README.md"],
+        ["git", "ls-files", "--", "git-merge-notes.md"],
+        ["git", "rev-parse", "--show-toplevel"],
+      ]) {
+        expect(verifyCommandAuthorization(actor, command, samplePolicy).authorized).toBe(true);
+      }
+    });
+
+    test("rejects output-writing options on otherwise read-only git commands", () => {
+      const actor: AgentMetadata = {
+        agent_id: "imp-git-output-options",
+        role: "implementer",
+        tier: 3,
+        write_scope: ["src/foo.ts"],
+        allowed_read_scope: [],
+        can_execute_shell: true,
+        spawned_at: new Date().toISOString(),
+      };
+
+      for (const command of [
+        ["git", "diff", "--output=outside.patch"],
+        ["git", "diff", "--output", "outside.patch"],
+        ["git", "diff", "--output"],
+        ["git", "-C", "packages/olt", "diff", "--output=outside.patch"],
+        ["git", "-C", "packages/olt", "show", "--output", "outside.patch", "HEAD"],
+        ["git", "--git-dir=.git", "log", "-p", "--output=outside.patch"],
+        ["git", "show", "--output=outside.patch", "HEAD"],
+        ["git", "log", "--output=outside.patch", "-p"],
+        ["git", "archive", "--output=archive.tar", "HEAD"],
+      ]) {
+        const result = verifyCommandAuthorization(actor, command, samplePolicy);
+        expect(result.authorized).toBe(false);
+      }
+
+      expect(
+        verifyCommandAuthorization(actor, ["git", "diff", "HEAD"], samplePolicy).authorized,
+      ).toBe(true);
+      expect(
+        verifyCommandAuthorization(actor, ["git", "show", "HEAD"], samplePolicy).authorized,
+      ).toBe(true);
+      expect(verifyCommandAuthorization(actor, ["git", "log", "-p"], samplePolicy).authorized).toBe(
+        true,
+      );
     });
   });
 });
