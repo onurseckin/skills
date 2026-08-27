@@ -243,19 +243,23 @@ const GATE_ENV_PASSTHROUGH = [
 ] as const;
 
 function gateEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
-  const env: Record<string, string> = {
-    ...(source as Record<string, string>),
-    GIT_TERMINAL_PROMPT: "0",
-    CI: "1",
-    TERM: "dumb",
-    FORCE_COLOR: "0",
-    GIT_CONFIG_NOSYSTEM: "1",
-    GIT_CONFIG_GLOBAL: "/dev/null",
-    GIT_AUTHOR_NAME: "test",
-    GIT_AUTHOR_EMAIL: "test@example.com",
-    GIT_COMMITTER_NAME: "test",
-    GIT_COMMITTER_EMAIL: "test@example.com",
-  };
+  const env: Record<string, string> = {};
+  for (const key of GATE_ENV_PASSTHROUGH) {
+    const value = source[key];
+    if (typeof value === "string") {
+      env[key] = value;
+    }
+  }
+  env.GIT_TERMINAL_PROMPT = "0";
+  env.CI = "1";
+  env.TERM = "dumb";
+  env.FORCE_COLOR = "0";
+  env.GIT_CONFIG_NOSYSTEM = "1";
+  env.GIT_CONFIG_GLOBAL = "/dev/null";
+  env.GIT_AUTHOR_NAME = "test";
+  env.GIT_AUTHOR_EMAIL = "test@example.com";
+  env.GIT_COMMITTER_NAME = "test";
+  env.GIT_COMMITTER_EMAIL = "test@example.com";
   return env;
 }
 

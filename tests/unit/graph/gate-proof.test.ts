@@ -338,6 +338,36 @@ describe("nodeSpawnGate", () => {
     expect(result.timedOut).toBe(false);
   });
 
+  test("passes only the allowlisted environment into a gate process", () => {
+    const previousSecret = process.env.OLT_GATE_PROOF_SECRET;
+    process.env.OLT_GATE_PROOF_SECRET = "must-not-leak";
+    try {
+      const cwd = scratchRoot(import.meta.path, "environment-allowlist");
+      const result = nodeSpawnGate(
+        [
+          "node",
+          "-e",
+          "console.log(JSON.stringify({ secret: process.env.OLT_GATE_PROOF_SECRET ?? null, pathType: typeof process.env.PATH, ci: process.env.CI, term: process.env.TERM }))",
+        ],
+        cwd,
+        5_000,
+      );
+      expect(result.status).toBe(0);
+      expect(JSON.parse(result.stdout)).toEqual({
+        secret: null,
+        pathType: "string",
+        ci: "1",
+        term: "dumb",
+      });
+    } finally {
+      if (previousSecret === undefined) {
+        delete process.env.OLT_GATE_PROOF_SECRET;
+      } else {
+        process.env.OLT_GATE_PROOF_SECRET = previousSecret;
+      }
+    }
+  });
+
   test("reports timedOut when a command exceeds its timeout", () => {
     const cwd = scratchRoot(import.meta.path, "timeout-binary");
     const result = nodeSpawnGate(["node", "-e", "setTimeout(() => {}, 10000)"], cwd, 50);
