@@ -1,8 +1,13 @@
 import { tmpdir } from "node:os";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import {
+  createAgentMetadata,
+  writeAgentMetadata,
+} from "../../../olt/scripts/src/runtime/agent-metadata.ts";
 import {
   taskClaimCommand,
   taskSubmitCommand,
@@ -12,6 +17,17 @@ import { TASK_ID, claimSubmitValidate, setupRun } from "./probe-fixture.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
+
+async function installRuntimeMetadata(run: string, agent: string): Promise<void> {
+  writeAgentMetadata(
+    createAgentMetadata({
+      agent_id: agent,
+      role: "implementer",
+      allowed_read_scope: ["tests/unit/core"],
+    }),
+    run,
+  );
+}
 
 describe("task:claim / task:heartbeat / task:submit", () => {
   test("refuses an unrecognised --role", async () => {
@@ -190,6 +206,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
 
   test("a full claim → submit → validate-start round trip via --files-changed and --evidence", async () => {
     const { repo, run } = await setupRun("full-round-trip", roots);
+    await installRuntimeMetadata(run, "worker-core");
     const validation = await claimSubmitValidate(repo, run);
     expect(typeof validation.token).toBe("string");
     expect((validation.task as { status: string }).status).toBe("validating");
@@ -257,6 +274,34 @@ describe("task:claim / task:heartbeat / task:submit", () => {
     expect(contents).toContain("coord-dispatcher");
   });
 
+  test("task:claim surfaces defect persistence failure and never reports a recorded violation", async () => {
+    const { repo, run } = await setupRun("claim-persistence-failure", roots);
+    const external = join(repo, "external-defects.jsonl");
+    const externalBytes = '{"id":"external-sentinel"}\n';
+    writeFileSync(external, externalBytes, "utf8");
+    symlinkSync(external, join(run, "defects.jsonl"));
+
+    let caught: unknown;
+    try {
+      await execute([
+        "task:claim",
+        "--run",
+        run,
+        "--task",
+        TASK_ID,
+        "--agent",
+        "orch-lead",
+        "--role",
+        "orchestrator",
+      ]);
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(HarnessError);
+    expect((caught as HarnessError).code).toBe("INTEGRITY");
+    expect(readFileSync(external, "utf8")).toBe(externalBytes);
+  });
+
   test("task:claim with explicit --lease-duration and --lease-seconds", async () => {
     const { run } = await setupRun("claim-duration", roots);
     const claim = await execute([
@@ -298,7 +343,9 @@ describe("task:claim / task:heartbeat / task:submit", () => {
     });
 
     const { spawnSync } = await import("node:child_process");
-    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo });
+    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], {
+      cwd: repo,
+    });
     spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo });
     spawnSync("git", ["config", "user.name", "Test"], { cwd: repo });
     spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo });
@@ -372,8 +419,12 @@ describe("task:claim / task:heartbeat / task:submit", () => {
       command: "git rev-parse",
     });
     const { repo: repo3, run: run3 } = await setupRun("claim-git-fail", roots);
-    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo3 });
-    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo3 });
+    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], {
+      cwd: repo3,
+    });
+    spawnSync("git", ["config", "user.email", "test@test.test"], {
+      cwd: repo3,
+    });
     spawnSync("git", ["config", "user.name", "Test"], { cwd: repo3 });
     spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo3 });
     const claim3 = await taskClaimCommand(
@@ -392,8 +443,12 @@ describe("task:claim / task:heartbeat / task:submit", () => {
       throw new Error("git error");
     };
     const { repo: repo4, run: run4 } = await setupRun("claim-git-throw", roots);
-    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo4 });
-    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo4 });
+    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], {
+      cwd: repo4,
+    });
+    spawnSync("git", ["config", "user.email", "test@test.test"], {
+      cwd: repo4,
+    });
     spawnSync("git", ["config", "user.name", "Test"], { cwd: repo4 });
     spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo4 });
     const claim4 = await taskClaimCommand(
@@ -410,6 +465,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
 
   test("task:submit with --no-op and --reason when write scope is unchanged", async () => {
     const { repo, run } = await setupRun("submit-noop", roots);
+    await installRuntimeMetadata(run, "worker-1");
     const claim = await execute([
       "task:claim",
       "--run",
@@ -459,6 +515,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
 
   test("task:submit with --report file payload", async () => {
     const { repo, run } = await setupRun("submit-report-file", roots);
+    await installRuntimeMetadata(run, "worker-1");
     const claim = await execute([
       "task:claim",
       "--run",
@@ -529,6 +586,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
       worktree_isolation: true,
       commit_per_subphase: true,
     });
+    await installRuntimeMetadata(run, "worker-1");
 
     const { resolve } = await import("node:path");
     await Bun.write(
@@ -628,6 +686,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
 
   test("taskSubmitCommand and taskReleaseCommand from task-ops.ts wrapper", async () => {
     const { repo, run } = await setupRun("task-ops-wrappers", roots);
+    await installRuntimeMetadata(run, "worker-1");
     const { taskSubmitCommand: opsSubmit, taskReleaseCommand: opsRelease } =
       await import("../../../olt/scripts/src/cli/commands/task-ops.ts");
 

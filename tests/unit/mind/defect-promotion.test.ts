@@ -155,7 +155,9 @@ describe("Defect Promotion Engine", () => {
         ...proofWithoutSha,
         commit_sha: "abcd123",
       };
-      const result = validateResolutionProof(proofWithValidSha, { requireCommitSha: true });
+      const result = validateResolutionProof(proofWithValidSha, {
+        requireCommitSha: true,
+      });
       expect(result.commit_sha).toBe("abcd123");
     });
 
@@ -191,15 +193,24 @@ describe("Defect Promotion Engine", () => {
         resolved_at: new Date().toISOString(),
       };
 
-      const openDefect = createSampleDefect({ status: "open", resolution: proof });
+      const openDefect = createSampleDefect({
+        status: "open",
+        resolution: proof,
+      });
       expect(isDefectEligibleForPromotion(openDefect)).toBe(false);
 
-      const wontfixDefect = createSampleDefect({ status: "wontfix", resolution: proof });
+      const wontfixDefect = createSampleDefect({
+        status: "wontfix",
+        resolution: proof,
+      });
       expect(isDefectEligibleForPromotion(wontfixDefect)).toBe(false);
     });
 
     test("rejects resolved defects missing resolution proof or with invalid proof", () => {
-      const noProof = createSampleDefect({ status: "resolved", resolution: null });
+      const noProof = createSampleDefect({
+        status: "resolved",
+        resolution: null,
+      });
       expect(isDefectEligibleForPromotion(noProof)).toBe(false);
 
       const badProof = createSampleDefect({
@@ -223,12 +234,16 @@ describe("Defect Promotion Engine", () => {
         },
       });
 
-      expect(isDefectEligibleForPromotion(resolvedWithoutSha, { requireCommitSha: false })).toBe(
-        true,
-      );
-      expect(isDefectEligibleForPromotion(resolvedWithoutSha, { requireCommitSha: true })).toBe(
-        false,
-      );
+      expect(
+        isDefectEligibleForPromotion(resolvedWithoutSha, {
+          requireCommitSha: false,
+        }),
+      ).toBe(true);
+      expect(
+        isDefectEligibleForPromotion(resolvedWithoutSha, {
+          requireCommitSha: true,
+        }),
+      ).toBe(false);
 
       const resolvedWithSha = createSampleDefect({
         status: "resolved",
@@ -239,7 +254,11 @@ describe("Defect Promotion Engine", () => {
           commit_sha: "abcd1234567",
         },
       });
-      expect(isDefectEligibleForPromotion(resolvedWithSha, { requireCommitSha: true })).toBe(true);
+      expect(
+        isDefectEligibleForPromotion(resolvedWithSha, {
+          requireCommitSha: true,
+        }),
+      ).toBe(true);
     });
   });
 
@@ -478,7 +497,7 @@ describe("Defect Promotion Engine", () => {
       expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
     });
 
-    test("retries a target-only partial promotion without duplicating the completed defect", () => {
+    test("recovers a target-only partial promotion without replacing its durable completed record", () => {
       const tempDir = createTempDir("defect-promo-target-only-retry-");
       const sourcePath = join(tempDir, "defects.jsonl");
       const targetPath = join(tempDir, "COMPLETED_DEFECTS.jsonl");
@@ -497,7 +516,6 @@ describe("Defect Promotion Engine", () => {
         observation: "Stale completed record",
       });
       const sourceBytes = serializeDefectLog([resolved]);
-      const intendedCompleted = parseDefectLog(sourceBytes);
       writeFileSync(sourcePath, sourceBytes, "utf8");
       writeFileSync(targetPath, serializeDefectLog([staleResolved]), "utf8");
 
@@ -506,7 +524,7 @@ describe("Defect Promotion Engine", () => {
       expect(readCompletedDefectsLog(targetPath).map((entry) => entry.id)).toEqual([
         "target-only-partial",
       ]);
-      expect(readFileSync(targetPath, "utf8")).toBe(serializeDefectLog(intendedCompleted));
+      expect(readFileSync(targetPath, "utf8")).toBe(serializeDefectLog([staleResolved]));
       expect(parseDefectLog(readFileSync(sourcePath, "utf8"))).toEqual([]);
     });
 
@@ -665,7 +683,11 @@ describe("Defect Promotion Engine", () => {
       const sourceBytes = serializeDefectLog([resolved]);
       writeFileSync(sourcePath, sourceBytes, "utf8");
 
-      promoteResolvedDefects({ sourcePath, targetPath, updateSourceFile: false });
+      promoteResolvedDefects({
+        sourcePath,
+        targetPath,
+        updateSourceFile: false,
+      });
 
       expect(readFileSync(targetPath, "utf8")).toBe(
         serializeDefectLog(parseDefectLog(sourceBytes)),
@@ -732,7 +754,7 @@ describe("Defect Promotion Engine", () => {
       expect(sourceRemaining).toHaveLength(0);
     });
 
-    test("auto-promotes synthetic defect when ID does not exist in active log", () => {
+    test("refuses auto-promotion when ID does not exist in active log", () => {
       const tempDir = createTempDir("defect-auto-synth-");
       const sourcePath = join(tempDir, "defects.jsonl");
       const targetPath = join(tempDir, "COMPLETED_DEFECTS.jsonl");
@@ -749,19 +771,14 @@ describe("Defect Promotion Engine", () => {
         resolved_at: new Date().toISOString(),
       };
 
-      const result = autoPromoteDefect({
-        id: "new-synthetic-id",
-        proof,
-        options: { sourcePath, targetPath },
-      });
-
-      expect(result.promoted).toBe(true);
-      expect(result.defect.id).toBe("new-synthetic-id");
-      expect(result.defect.status).toBe("resolved");
-
-      const completed = readCompletedDefectsLog(targetPath);
-      expect(completed).toHaveLength(1);
-      expect(completed[0]!.id).toBe("new-synthetic-id");
+      expect(() =>
+        autoPromoteDefect({
+          id: "new-synthetic-id",
+          proof,
+          options: { sourcePath, targetPath },
+        }),
+      ).toThrow(HarnessError);
+      expect(existsSync(targetPath)).toBeFalse();
     });
 
     test("throws HarnessError when trying to auto-promote with invalid proof", () => {

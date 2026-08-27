@@ -3,12 +3,15 @@ import {
   constants,
   existsSync,
   fstatSync,
+  fsyncSync,
   lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
+  unlinkSync,
   type Stats,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
 import {
   aggregateDefectEntries,
@@ -132,7 +135,7 @@ function acquireExclusiveLock(descriptor: number, label: string): void {
 function assertRegularDefectLog(filePath: string): void {
   if (!existsSync(filePath)) return;
   const metadata = lstatSync(filePath);
-  if (metadata.isSymbolicLink() || !metadata.isFile()) {
+  if (metadata.isSymbolicLink() || !metadata.isFile() || metadata.nlink !== 1) {
     const reason = metadata.isDirectory() ? "EISDIR" : "not a regular file";
     throw new HarnessError("INTEGRITY", `failed to read defect log at '${filePath}': ${reason}`);
   }
@@ -445,5 +448,374 @@ export function compactDefectLogFile(
     const totalAfter = aggregated.length;
     replaceDefectLogFileUnlocked(filePath, serializeAggregatedDefectLog(aggregated));
     return { totalBefore, totalAfter, filePath };
+  });
+}
+
+/** A raw JSONL entry used by the transaction layer.  `line` is deliberately
+ * retained verbatim so a mutation never normalizes an older schema. */
+export interface StrictDefectLedgerEntry {
+  readonly id: string;
+  readonly value: Readonly<Record<string, unknown>>;
+  readonly line: string;
+}
+
+interface DefectPromotionJournal {
+  readonly version: 1;
+  readonly state: "PREPARED" | "COMMITTED";
+  readonly sourcePath: string;
+  readonly targetPath: string;
+  readonly ids: readonly string[];
+  readonly sourceHash: string;
+  readonly targetHash: string;
+}
+
+export type DefectPromotionPersistenceStage =
+  | "PREPARED"
+  | "TARGET_DURABLE"
+  | "SOURCE_DURABLE"
+  | "COMMITTED";
+
+let defectPromotionPersistenceHook: ((stage: DefectPromotionPersistenceStage) => void) | undefined;
+
+/** @internal deterministic crash seam for transaction recovery tests. */
+export function __setDefectPromotionPersistenceTestHook(
+  hook: ((stage: DefectPromotionPersistenceStage) => void) | undefined,
+): void {
+  defectPromotionPersistenceHook = hook;
+}
+
+function observeDefectPromotionStage(stage: DefectPromotionPersistenceStage): void {
+  defectPromotionPersistenceHook?.(stage);
+}
+
+function strictLedgerIntegrity(message: string): HarnessError {
+  return new HarnessError("INTEGRITY", message);
+}
+
+function readStrictLedgerUnlocked(filePath: string): StrictDefectLedgerEntry[] {
+  assertRegularDefectLog(filePath);
+  if (!existsSync(filePath)) return [];
+  let descriptor: number | undefined;
+  try {
+    const before = lstatSync(filePath);
+    descriptor = openSync(filePath, constants.O_RDONLY | requiredNoFollowFlag());
+    const opened = fstatSync(descriptor);
+    if (
+      !opened.isFile() ||
+      opened.nlink !== 1 ||
+      opened.dev !== before.dev ||
+      opened.ino !== before.ino
+    ) {
+      throw strictLedgerIntegrity(`defect ledger changed while opening: ${filePath}`);
+    }
+    const raw = readFileSync(descriptor, "utf8");
+    const after = lstatSync(filePath);
+    if (
+      after.dev !== opened.dev ||
+      after.ino !== opened.ino ||
+      !after.isFile() ||
+      after.nlink !== 1
+    )
+      throw strictLedgerIntegrity(`defect ledger changed while reading: ${filePath}`);
+    const seen = new Set<string>();
+    const entries: StrictDefectLedgerEntry[] = [];
+    for (const line of raw.split("\n")) {
+      if (!line.trim()) continue;
+      let value: unknown;
+      try {
+        value = JSON.parse(line);
+      } catch {
+        throw strictLedgerIntegrity(`defect ledger contains malformed JSON: ${filePath}`);
+      }
+      if (typeof value !== "object" || value === null || Array.isArray(value))
+        throw strictLedgerIntegrity(`defect ledger contains a non-object record: ${filePath}`);
+      const id = (value as Record<string, unknown>).id;
+      if (typeof id !== "string" || !id.trim())
+        throw strictLedgerIntegrity(`defect ledger record requires a non-blank id: ${filePath}`);
+      if (seen.has(id))
+        throw strictLedgerIntegrity(`defect ledger contains duplicate id '${id}': ${filePath}`);
+      seen.add(id);
+      entries.push({
+        id,
+        value: value as Readonly<Record<string, unknown>>,
+        line,
+      });
+    }
+    return entries;
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
+function serializedRawEntries(entries: readonly StrictDefectLedgerEntry[]): string {
+  return entries.length === 0 ? "" : `${entries.map((entry) => entry.line).join("\n")}\n`;
+}
+
+function hashLedger(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex");
+}
+
+/**
+ * Performs a coordinated ledger mutation.  All authority roots are acquired
+ * before the lexically-sorted set of distinct parents; this eliminates the
+ * lock-order inversion that previously lost append/promotion updates.
+ */
+export function withDefectLedgerTransaction<T>(
+  filePaths: readonly string[],
+  operation: () => T,
+): T {
+  const targets = [...new Set(filePaths.map((path) => resolve(path)))].sort();
+  if (targets.length === 0)
+    throw new HarnessError("INVALID_ARGUMENT", "defect transaction needs a ledger");
+  const roots = [...new Set(targets.map(defectAuthorityRoot))].sort();
+  const parents = [...new Set(targets.map((path) => dirname(path)))].sort();
+  const parentAuthorities = new Map<string, string>();
+  for (const target of targets)
+    parentAuthorities.set(resolve(dirname(target)), resolve(defectAuthorityRoot(target)));
+  const handles: Array<{ descriptor: number; locked: boolean }> = [];
+  const openedRoots = new Map<string, Stats>();
+  const activePaths = [...roots, ...parents];
+  for (const path of activePaths) {
+    if (activeDefectLockPaths.has(resolve(path)) || activeDefectRootPaths.has(resolve(path)))
+      throw new HarnessError(
+        "LOCK_TIMEOUT",
+        `defect ledger transaction is already active: ${path}`,
+      );
+  }
+  try {
+    for (const root of roots) {
+      const opened = openVerifiedDirectory(root, false);
+      acquireExclusiveLock(opened.descriptor, root);
+      handles.push({ descriptor: opened.descriptor, locked: true });
+      openedRoots.set(resolve(root), opened.metadata);
+      activeDefectRootPaths.add(resolve(root));
+      activeDefectRootInodes.add(`${opened.metadata.dev}:${opened.metadata.ino}`);
+      activeDefectRoots.set(resolve(root), opened.metadata);
+      if (!sameInode(opened.metadata, assertRealDirectory(root, "defect authority root")))
+        throw strictLedgerIntegrity(`defect authority root changed while locked: ${root}`);
+    }
+    for (const parent of parents) {
+      if (roots.includes(parent)) continue;
+      const opened = openVerifiedDirectory(parent, true);
+      acquireExclusiveLock(opened.descriptor, parent);
+      handles.push({ descriptor: opened.descriptor, locked: true });
+      activeDefectLockPaths.add(resolve(parent));
+      activeDefectLockInodes.add(`${opened.metadata.dev}:${opened.metadata.ino}`);
+      activeDefectParents.set(resolve(parent), opened.metadata);
+      const authority = parentAuthorities.get(resolve(parent));
+      if (!authority) throw strictLedgerIntegrity(`missing authority root for parent: ${parent}`);
+      activeDefectAuthorityPaths.set(resolve(parent), authority);
+      if (!sameInode(opened.metadata, assertRealDirectory(parent, "defect ledger parent")))
+        throw strictLedgerIntegrity(`defect ledger parent changed while locked: ${parent}`);
+    }
+    for (const parent of parents) {
+      if (!roots.includes(parent)) continue;
+      const authority = parentAuthorities.get(resolve(parent));
+      if (!authority) throw strictLedgerIntegrity(`missing authority root for parent: ${parent}`);
+      const metadata = openedRoots.get(resolve(parent));
+      if (!metadata) throw strictLedgerIntegrity(`missing authority root metadata: ${parent}`);
+      activeDefectLockPaths.add(resolve(parent));
+      activeDefectParents.set(resolve(parent), metadata);
+      activeDefectAuthorityPaths.set(resolve(parent), authority);
+    }
+    for (const target of targets) assertRegularDefectLog(target);
+    return operation();
+  } finally {
+    let cleanup: unknown;
+    for (const handle of handles.reverse()) {
+      try {
+        if (handle.locked) releaseFlock(handle.descriptor);
+        closeSync(handle.descriptor);
+      } catch (error) {
+        cleanup ??= error;
+      }
+    }
+    for (const parent of parents) {
+      const parentPath = resolve(parent);
+      const metadata = activeDefectParents.get(parentPath);
+      activeDefectLockPaths.delete(parentPath);
+      activeDefectParents.delete(parentPath);
+      activeDefectAuthorityPaths.delete(parentPath);
+      if (metadata) activeDefectLockInodes.delete(`${metadata.dev}:${metadata.ino}`);
+    }
+    for (const root of roots) {
+      const rootPath = resolve(root);
+      const metadata = activeDefectRoots.get(rootPath);
+      activeDefectRootPaths.delete(rootPath);
+      activeDefectRoots.delete(rootPath);
+      if (metadata) activeDefectRootInodes.delete(`${metadata.dev}:${metadata.ino}`);
+    }
+    if (cleanup !== undefined) throw cleanup;
+  }
+}
+
+export function appendDefectLedgerRecord(
+  filePath: string,
+  record: Readonly<Record<string, unknown>>,
+): string {
+  const id = record.id;
+  if (typeof id !== "string" || !id.trim())
+    throw strictLedgerIntegrity("defect ledger append requires a non-blank id");
+  return withDefectLedgerTransaction([filePath], () => {
+    const entries = readStrictLedgerUnlocked(filePath);
+    if (entries.some((entry) => entry.id === id))
+      throw strictLedgerIntegrity(`defect ledger already contains id '${id}'`);
+    const next = [...entries, { id, value: record, line: JSON.stringify(record) }];
+    replaceDefectLogFileUnlocked(filePath, serializedRawEntries(next));
+    return resolve(filePath);
+  });
+}
+
+export function pruneDefectLedgerRecords(
+  filePath: string,
+  remove: (entry: StrictDefectLedgerEntry) => boolean,
+): void {
+  withDefectLedgerTransaction([filePath], () => {
+    const next = readStrictLedgerUnlocked(filePath).filter((entry) => !remove(entry));
+    replaceDefectLogFileUnlocked(filePath, serializedRawEntries(next));
+  });
+}
+
+function promotionJournalPath(targetPath: string): string {
+  return join(dirname(targetPath), `.${basename(targetPath)}.defect-promotion.journal.json`);
+}
+
+function writePromotionJournal(path: string, journal: DefectPromotionJournal): void {
+  atomicWriteBytes(path, new TextEncoder().encode(`${JSON.stringify(journal)}\n`), { mode: 0o600 });
+}
+
+function readPromotionJournal(path: string): DefectPromotionJournal | undefined {
+  if (!existsSync(path)) return undefined;
+  assertRegularDefectLog(path);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    throw strictLedgerIntegrity(`defect promotion journal is malformed: ${path}`);
+  }
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    Array.isArray(parsed) ||
+    (parsed as Record<string, unknown>).version !== 1 ||
+    ((parsed as Record<string, unknown>).state !== "PREPARED" &&
+      (parsed as Record<string, unknown>).state !== "COMMITTED") ||
+    !Array.isArray((parsed as Record<string, unknown>).ids)
+  )
+    throw strictLedgerIntegrity(`defect promotion journal is invalid: ${path}`);
+  return parsed as DefectPromotionJournal;
+}
+
+function verifyPromotionJournal(
+  journal: DefectPromotionJournal,
+  source: readonly StrictDefectLedgerEntry[],
+  target: readonly StrictDefectLedgerEntry[],
+): void {
+  if (
+    !/^[a-f0-9]{64}$/.test(journal.sourceHash) ||
+    !/^[a-f0-9]{64}$/.test(journal.targetHash) ||
+    journal.ids.some((id) => typeof id !== "string" || !id.trim()) ||
+    new Set(journal.ids).size !== journal.ids.length
+  )
+    throw strictLedgerIntegrity("defect promotion journal hashes or ids are invalid");
+  const sourceIds = new Set(source.map((entry) => entry.id));
+  const targetIds = new Set(target.map((entry) => entry.id));
+  const targetContainsAll = journal.ids.every((id) => targetIds.has(id));
+  const sourceContainsAll = journal.ids.every((id) => sourceIds.has(id));
+  if (!targetContainsAll && !sourceContainsAll)
+    throw strictLedgerIntegrity("defect promotion journal records are missing from both ledgers");
+}
+
+/** Deterministically finishes an interrupted promotion without duplicating IDs. */
+export function recoverDefectPromotion(sourcePath: string, targetPath: string): void {
+  const journalPath = promotionJournalPath(targetPath);
+  withDefectLedgerTransaction([sourcePath, targetPath, journalPath], () => {
+    const journal = readPromotionJournal(journalPath);
+    if (!journal) return;
+    if (
+      resolve(journal.sourcePath) !== resolve(sourcePath) ||
+      resolve(journal.targetPath) !== resolve(targetPath)
+    )
+      throw strictLedgerIntegrity(`defect promotion journal targets do not match: ${journalPath}`);
+    const ids = new Set(journal.ids);
+    const source = readStrictLedgerUnlocked(sourcePath);
+    const target = readStrictLedgerUnlocked(targetPath);
+    verifyPromotionJournal(journal, source, target);
+    const targetIds = new Set(target.map((entry) => entry.id));
+    if ([...ids].some((id) => !targetIds.has(id))) {
+      // PREPARED means no durable target proof; leave the source untouched.
+      if (journal.state === "COMMITTED")
+        throw strictLedgerIntegrity(
+          `committed promotion journal is missing target records: ${journalPath}`,
+        );
+      unlinkSync(journalPath);
+      return;
+    }
+    const remaining = source.filter((entry) => !ids.has(entry.id));
+    replaceDefectLogFileUnlocked(sourcePath, serializedRawEntries(remaining));
+    if (journal.state === "PREPARED") {
+      writePromotionJournal(journalPath, { ...journal, state: "COMMITTED" });
+    }
+    unlinkSync(journalPath);
+    const directoryDescriptor = openSync(
+      dirname(targetPath),
+      constants.O_RDONLY | constants.O_DIRECTORY | requiredNoFollowFlag(),
+    );
+    try {
+      fsyncSync(directoryDescriptor);
+    } finally {
+      closeSync(directoryDescriptor);
+    }
+  });
+}
+
+export function promoteDefectLedgerRecords(
+  sourcePath: string,
+  targetPath: string,
+  ids: readonly string[],
+): void {
+  if (resolve(sourcePath) === resolve(targetPath))
+    throw strictLedgerIntegrity("active and completed defect ledgers must be distinct");
+  const selected = [...new Set(ids)];
+  if (selected.length === 0) return;
+  const journalPath = promotionJournalPath(targetPath);
+  if (existsSync(journalPath)) recoverDefectPromotion(sourcePath, targetPath);
+  withDefectLedgerTransaction([sourcePath, targetPath, journalPath], () => {
+    if (readPromotionJournal(journalPath))
+      throw strictLedgerIntegrity(
+        `defect promotion journal appeared during mutation: ${journalPath}`,
+      );
+    const source = readStrictLedgerUnlocked(sourcePath);
+    const target = readStrictLedgerUnlocked(targetPath);
+    const sourceById = new Map(source.map((entry) => [entry.id, entry]));
+    const missing = selected.find((id) => !sourceById.has(id));
+    if (missing !== undefined) throw strictLedgerIntegrity(`active defect '${missing}' is absent`);
+    const targetById = new Map(target.map((entry) => [entry.id, entry]));
+    const additions = selected.map((id) => sourceById.get(id)!);
+    // A target-only partial commit is a valid recovery state: identity, not
+    // re-serialization, establishes exactly-once promotion.  The source is
+    // pruned below while the already durable target record is left untouched.
+    const merged = [...target, ...additions.filter((entry) => !targetById.has(entry.id))];
+    const journal: DefectPromotionJournal = {
+      version: 1,
+      state: "PREPARED",
+      sourcePath: resolve(sourcePath),
+      targetPath: resolve(targetPath),
+      ids: selected,
+      sourceHash: hashLedger(serializedRawEntries(source)),
+      targetHash: hashLedger(serializedRawEntries(merged)),
+    };
+    writePromotionJournal(journalPath, journal);
+    observeDefectPromotionStage("PREPARED");
+    replaceDefectLogFileUnlocked(targetPath, serializedRawEntries(merged));
+    observeDefectPromotionStage("TARGET_DURABLE");
+    replaceDefectLogFileUnlocked(
+      sourcePath,
+      serializedRawEntries(source.filter((entry) => !selected.includes(entry.id))),
+    );
+    observeDefectPromotionStage("SOURCE_DURABLE");
+    writePromotionJournal(journalPath, { ...journal, state: "COMMITTED" });
+    observeDefectPromotionStage("COMMITTED");
+    unlinkSync(journalPath);
   });
 }

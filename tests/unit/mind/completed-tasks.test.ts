@@ -485,7 +485,9 @@ describe("Completed Tasks Ledger Engine", () => {
     const dupItem = read.find((r) => r.id === "batch-dup");
     expect(dupItem?.title).toBe("Batch Dup Second");
 
-    const emptyResult = recordCompletedTasksBatch([], { customPath: ledgerFile });
+    const emptyResult = recordCompletedTasksBatch([], {
+      customPath: ledgerFile,
+    });
     expect(emptyResult).toEqual([]);
 
     teardown();
@@ -578,7 +580,11 @@ describe("Completed Tasks Ledger Engine", () => {
         proof_summary: "archive",
         completed_at: "2026-08-22T00:00:00.000Z",
       },
-      { customPath: ledgerFile, updateFeedbackQueue: true, feedbackQueuePath: feedbackFile },
+      {
+        customPath: ledgerFile,
+        updateFeedbackQueue: true,
+        feedbackQueuePath: feedbackFile,
+      },
     );
     expect(await child.exited).toBe(0);
     expect(readFeedbackQueue(feedbackFile).map((item) => item.id)).toEqual([
@@ -755,6 +761,46 @@ describe("Completed Tasks Ledger Engine", () => {
     const untouchedDefect100 = defectLines.find((b) => b["id"] === "defect-100");
     expect(untouchedDefect100?.["status"]).toBe("open");
 
+    teardown();
+  });
+
+  it("completed-task prune contention preserves a newly appended active defect", async () => {
+    setup();
+    writeFileSync(defectsFile, '{"id":"remove-me","status":"open"}\n', "utf8");
+    const start = join(testDir, "defect-prune-start");
+    const completedModule = new URL(
+      "../../../olt/scripts/src/mind/completed-tasks.ts",
+      import.meta.url,
+    ).href;
+    const loggerModule = new URL(
+      "../../../olt/scripts/src/logging/defect-logger.ts",
+      import.meta.url,
+    ).href;
+    const recordScript = `
+      import { recordCompletedTask } from ${JSON.stringify(completedModule)};
+      import { existsSync, writeFileSync } from "node:fs";
+      writeFileSync(${JSON.stringify(join(testDir, "defect-prune-ready-record"))}, "ready");
+      while (!existsSync(${JSON.stringify(start)})) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+      recordCompletedTask({ id: "remove-me", source: "defect", title: "remove", status: "RESOLVED", proof_summary: "proof", completed_at: "2026-08-22T02:30:00.000Z" }, { customPath: ${JSON.stringify(ledgerFile)}, defectsPath: ${JSON.stringify(defectsFile)}, updateDefects: true });
+    `;
+    const appendScript = `
+      import { appendDefectLedgerRecord } from ${JSON.stringify(loggerModule)};
+      import { existsSync, writeFileSync } from "node:fs";
+      writeFileSync(${JSON.stringify(join(testDir, "defect-prune-ready-append"))}, "ready");
+      while (!existsSync(${JSON.stringify(start)})) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+      appendDefectLedgerRecord(${JSON.stringify(defectsFile)}, { id: "new-active", status: "open", unknown: { preserve: true } });
+    `;
+    const record = Bun.spawn([process.execPath, "--eval", recordScript]);
+    const append = Bun.spawn([process.execPath, "--eval", appendScript]);
+    for (const ready of ["defect-prune-ready-record", "defect-prune-ready-append"]) {
+      for (let attempt = 0; attempt < 100 && !existsSync(join(testDir, ready)); attempt += 1)
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+    }
+    writeFileSync(start, "go");
+    expect(await Promise.all([record.exited, append.exited])).toEqual([0, 0]);
+    expect(readFileSync(defectsFile, "utf8")).toBe(
+      '{"id":"new-active","status":"open","unknown":{"preserve":true}}\n',
+    );
     teardown();
   });
 

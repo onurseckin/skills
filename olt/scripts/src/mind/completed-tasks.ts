@@ -17,6 +17,7 @@ import { dirname, join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { nextActionsBlock } from "../cli/formatters/next-actions.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { pruneDefectLedgerRecords } from "../logging/defect-logger.ts";
 import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
 import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
 import {
@@ -556,37 +557,11 @@ function updateDefectItems(records: readonly CompletedTaskRecord[], customPath?:
     idMap.set(r.id.toLowerCase().trim(), r);
   }
 
-  const raw = readFileSync(filePath, "utf8");
-  const lines = raw
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const remainingLines: string[] = [];
-
-  for (const line of lines) {
-    try {
-      const parsed = JSON.parse(line) as Record<string, unknown>;
-      const id = typeof parsed["id"] === "string" ? parsed["id"].toLowerCase().trim() : undefined;
-      const isResolved =
-        (id && idMap.has(id)) ||
-        parsed["status"] === "resolved" ||
-        parsed["status"] === "RESOLVED" ||
-        parsed["status"] === "CLOSED";
-
-      if (!isResolved) {
-        remainingLines.push(line);
-      }
-    } catch {
-      remainingLines.push(line);
-    }
-  }
-
-  writeFileSync(
-    filePath,
-    remainingLines.join("\n") + (remainingLines.length > 0 ? "\n" : ""),
-    "utf8",
-  );
-  return;
+  pruneDefectLedgerRecords(filePath, (entry) => {
+    const id = entry.id.toLowerCase().trim();
+    const status = entry.value.status;
+    return idMap.has(id) || status === "resolved" || status === "RESOLVED" || status === "CLOSED";
+  });
 }
 
 export function recordCompletedTasksBatch(
@@ -603,6 +578,9 @@ export function recordCompletedTasksBatch(
   );
   if (options?.updateFeedbackQueue) {
     updateFeedbackQueueItems(recorded, options.feedbackQueuePath);
+  }
+  if (options?.updateDefects) {
+    updateDefectItems(recorded, options.defectsPath);
   }
   return recorded;
 }
@@ -628,10 +606,6 @@ function recordCompletedTasksBatchUnlocked(
 
   const merged = Array.from(ledgerMap.values());
   writeCompletedTasksLedgerUnlocked(merged, filePath);
-
-  if (options?.updateDefects) {
-    updateDefectItems(validatedRecords, options?.defectsPath);
-  }
 
   return validatedRecords;
 }

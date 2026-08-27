@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
@@ -184,7 +184,11 @@ describe("Core Defect Categorization & Resolution Tracking Engine", () => {
     test("skips malformed JSON and non-object lines gracefully", () => {
       const content = [
         "not valid json",
-        JSON.stringify({ id: "valid-1", type: "lint_error", observation: "Unused var" }),
+        JSON.stringify({
+          id: "valid-1",
+          type: "lint_error",
+          observation: "Unused var",
+        }),
         "42",
         "null",
         JSON.stringify({
@@ -522,7 +526,11 @@ describe("Core Defect Categorization & Resolution Tracking Engine", () => {
         open_count: 0,
         resolved_count: 0,
         wontfix_count: 0,
-        by_category: { code_defect: 0, model_reasoning_error: 0, boundary_violation: 0 },
+        by_category: {
+          code_defect: 0,
+          model_reasoning_error: 0,
+          boundary_violation: 0,
+        },
         by_severity: {},
         defects: [],
         capsules_audited: ["/capsules/run-1"],
@@ -541,7 +549,11 @@ describe("Core Defect Categorization & Resolution Tracking Engine", () => {
         open_count: 1,
         resolved_count: 1,
         wontfix_count: 0,
-        by_category: { code_defect: 1, model_reasoning_error: 0, boundary_violation: 1 },
+        by_category: {
+          code_defect: 1,
+          model_reasoning_error: 0,
+          boundary_violation: 1,
+        },
         by_severity: { critical: 1, warning: 1 },
         defects: [
           {
@@ -596,7 +608,11 @@ describe("Core Defect Categorization & Resolution Tracking Engine", () => {
         open_count: 50,
         resolved_count: 0,
         wontfix_count: 0,
-        by_category: { code_defect: 50, model_reasoning_error: 0, boundary_violation: 0 },
+        by_category: {
+          code_defect: 50,
+          model_reasoning_error: 0,
+          boundary_violation: 0,
+        },
         by_severity: { warning: 50 },
         defects: entries,
         capsules_audited: ["/capsules/big-run"],
@@ -844,6 +860,21 @@ describe("Core Defect Categorization & Resolution Tracking Engine", () => {
       const completed = readCompletedDefectsLog(targetPath);
       expect(completed.length).toBe(1);
       expect(completed[0]?.id).toBe("b-single-1");
+    });
+
+    test("rejects invalid resolution without changing either defect ledger", () => {
+      const testDir = createTempDir("defect-invalid-resolution-");
+      const sourcePath = join(testDir, "defects.jsonl");
+      const targetPath = join(testDir, "completed.jsonl");
+      const sourceBytes =
+        '{"id":"invalid-proof","status":"resolved","resolution":{"task_id":""},"unknown":{"preserve":true}}\n';
+      const targetBytes = '{"id":"existing-completed","unknown":{"preserve":true}}\n';
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+      writeFileSync(targetPath, targetBytes, "utf8");
+
+      expect(() => promoteResolvedDefects({ sourcePath, targetPath })).toThrow(HarnessError);
+      expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+      expect(readFileSync(targetPath, "utf8")).toBe(targetBytes);
     });
   });
 });

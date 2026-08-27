@@ -1,10 +1,11 @@
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { CommandRecord } from "../../core/contracts/commands.ts";
 import { AGENT_ROLES, isAgentRole } from "../../core/contracts/packets.ts";
 import { evidenced, type Evidenced } from "../../core/contracts/evidence.ts";
 import { getHarnessConfig } from "../../core/config/harness-config.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
+import { appendDefectLedgerRecord } from "../../logging/defect-logger.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
@@ -132,7 +133,9 @@ function probeAtTaskBoundary(
 
 export async function taskClaimCommand(
   flags: Flags,
-  context: CommandContext & { repositoryGitCommand?: RepositoryGitCommand } = {},
+  context: CommandContext & {
+    repositoryGitCommand?: RepositoryGitCommand;
+  } = {},
 ): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const taskId = textFlag(flags, "task")!;
@@ -162,12 +165,11 @@ export async function taskClaimCommand(
       timestamp: new Date().toISOString(),
       details: `${roleTitle} are mechanically confined from claiming code execution tasks.`,
     };
-    try {
-      const defectsPath = join(run, "defects.jsonl");
-      appendFileSync(defectsPath, JSON.stringify(defect) + "\n", "utf-8");
-    } catch {
-      // ignore
-    }
+    const defectsPath = join(run, "defects.jsonl");
+    appendDefectLedgerRecord(defectsPath, {
+      id: `defect-role-confinement-${Date.now()}-${agent}-${taskId}`,
+      ...defect,
+    });
 
     if (isOrchestrator) {
       throw new HarnessError(
@@ -283,7 +285,10 @@ export async function taskClaimCommand(
       packet_path: published.markdownPath,
       role_contract_sha256: published.packet.metadata.role_contract_sha256,
       ...(worktree
-        ? { worktree_path: worktree.worktreePath, worktree_id: worktree.worktreeId }
+        ? {
+            worktree_path: worktree.worktreePath,
+            worktree_id: worktree.worktreeId,
+          }
         : {}),
     },
     conflicts,
