@@ -147,6 +147,8 @@ export function watchdogCleanupCommand(
   _context?: CommandContext,
 ): Record<string, unknown> {
   const allowedFlags = [
+    "authority-run",
+    "actor",
     "run",
     "capsules-dir",
     "generation",
@@ -249,6 +251,8 @@ export function watchdogPhaseCleanupCommand(
   _context?: CommandContext,
 ): Record<string, unknown> {
   const allowedFlags = [
+    "authority-run",
+    "actor",
     "run",
     "capsules-dir",
     "phase",

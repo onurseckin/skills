@@ -125,7 +125,21 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     description:
       "Scans registered watchdog monitors across generations and pulses, transitioning timed-out monitors to stale or terminated status to prevent monitor accumulation.",
     flags: [
-      optionalFlag("run", "string", "Capsule run root."),
+      requiredFlag(
+        "authority-run",
+        "string",
+        "Capsule run whose active Mind grant authorizes this mutation.",
+      ),
+      requiredFlag(
+        "run",
+        "string",
+        "Target watchdog run root to clean; may equal --authority-run.",
+      ),
+      optionalFlag(
+        "actor",
+        "string",
+        "Explicit acting Mind identity; must match the verified session when supplied.",
+      ),
       optionalFlag("capsules-dir", "string", "Capsules root directory."),
       optionalFlag("generation", "int", "Target generation."),
       optionalFlag("pulse-id", "string", "Target pulse ID."),
@@ -141,9 +155,15 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts watchdog:cleanup",
-      "bun harness.ts watchdog:cleanup --generation 1 --dry-run",
+      "bun harness.ts watchdog:cleanup --authority-run <run> --run <target-run>",
+      "bun harness.ts watchdog:cleanup --authority-run <run> --run <target-run> --generation 1 --dry-run",
     ],
+    authority: {
+      requiresActingIdentity: true,
+      authorityRunFlag: "authority-run",
+      allowedRoles: ["mind"],
+      constrainedPathFlags: ["run", "capsules-dir"],
+    },
     handler: watchdogCleanupCommand,
   },
   {
@@ -154,7 +174,21 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     description:
       "Terminates active watchdog monitors belonging to completed or superseded phases, ensuring old monitors never accumulate across phase transitions.",
     flags: [
-      optionalFlag("run", "string", "Capsule run root."),
+      requiredFlag(
+        "authority-run",
+        "string",
+        "Capsule run whose active Mind grant authorizes this mutation.",
+      ),
+      requiredFlag(
+        "run",
+        "string",
+        "Target watchdog run root to clean; may equal --authority-run.",
+      ),
+      optionalFlag(
+        "actor",
+        "string",
+        "Explicit acting Mind identity; must match the verified session when supplied.",
+      ),
       optionalFlag("capsules-dir", "string", "Capsules root directory."),
       optionalFlag("phase", "string", "Phase to terminate."),
       optionalFlag("current-phase", "string", "New phase (terminates all prior phases)."),
@@ -171,9 +205,15 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts watchdog:phase-cleanup --phase planning --generation 1",
-      "bun harness.ts watchdog:phase-cleanup --current-phase execution --generation 1",
+      "bun harness.ts watchdog:phase-cleanup --authority-run <run> --run <target-run> --phase planning --generation 1",
+      "bun harness.ts watchdog:phase-cleanup --authority-run <run> --run <target-run> --current-phase execution --generation 1",
     ],
+    authority: {
+      requiresActingIdentity: true,
+      authorityRunFlag: "authority-run",
+      allowedRoles: ["mind"],
+      constrainedPathFlags: ["run", "capsules-dir"],
+    },
     handler: watchdogPhaseCleanupCommand,
   },
   {

@@ -20,7 +20,14 @@ import {
 } from "../../mind/feedback-queue.ts";
 import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
 import { nextActionsBlock } from "../formatters/next-actions.ts";
-import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import {
+  assertFlags,
+  boolFlag,
+  integerFlag,
+  textFlag,
+  type CommandContext,
+  type Flags,
+} from "../options.ts";
 
 export interface TodoListResult {
   readonly markdown: string;
@@ -227,6 +234,16 @@ export function todoDrainCommand(flags: Flags, _context?: CommandContext): TodoD
   const categoryRaw = textFlag(flags, "category", false);
   const priorityRaw = textFlag(flags, "priority", false);
   const queuePath = textFlag(flags, "queue-file", false) ?? textFlag(flags, "queue-path", false);
+  assertFlags(flags, [
+    "authority-run",
+    "actor",
+    "limit",
+    "mark-as",
+    "category",
+    "priority",
+    "queue-file",
+    "queue-path",
+  ]);
 
   const markAs: FeedbackStatus =
     markAsRaw && markAsRaw.trim()
@@ -303,6 +320,24 @@ export function todoDrainCommand(flags: Flags, _context?: CommandContext): TodoD
 }
 
 export function todoSealCommand(flags: Flags, _context?: CommandContext): TodoSealResult {
+  assertFlags(flags, [
+    "authority-run",
+    "actor",
+    "id",
+    "resolution",
+    "note",
+    "summary",
+    "proof",
+    "commit",
+    "commit-sha",
+    "test-path",
+    "assertions",
+    "runtime-ms",
+    "queue-file",
+    "queue-path",
+    "require-commit-sha",
+    "require-test-path",
+  ]);
   const id = textFlag(flags, "id", true)!.trim();
   const resolution = (textFlag(flags, "resolution", false) ??
     textFlag(flags, "note", false) ??
@@ -367,9 +402,17 @@ export function todoSealCommand(flags: Flags, _context?: CommandContext): TodoSe
 }
 
 export function todoCleanCommand(flags: Flags, _context?: CommandContext): TodoCleanResult {
+  assertFlags(flags, [
+    "authority-run",
+    "actor",
+    "force",
+    "dry-run",
+    "queue-file",
+    "queue-path",
+    "archive-file",
+  ]);
   const queuePath = textFlag(flags, "queue-file", false) ?? textFlag(flags, "queue-path", false);
-  const archivePath =
-    textFlag(flags, "archive-file", false) ?? textFlag(flags, "completed-file", false);
+  const archivePath = textFlag(flags, "archive-file", false);
   const dryRun = boolFlag(flags, "dry-run");
 
   const resolvedQueuePath = resolveFeedbackQueuePath(queuePath);

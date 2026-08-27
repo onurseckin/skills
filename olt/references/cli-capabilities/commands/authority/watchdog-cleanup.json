@@ -7,7 +7,21 @@
   "summary": "Purge stale or legacy watchdog monitors exceeding heartbeat timeout.",
   "flags": [
     {
+      "name": "authority-run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
       "type": "string",
       "required": false,
       "repeatable": false,

@@ -8,7 +8,21 @@
   "summary": "Terminate legacy phase watchdog monitors upon phase rollover or completion.",
   "flags": [
     {
+      "name": "authority-run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
       "type": "string",
       "required": false,
       "repeatable": false,

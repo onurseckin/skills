@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   mindQueueAddCommand,
@@ -20,7 +20,28 @@ import {
   type FeedbackItem,
 } from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import { readCompletedTasksLedger } from "../../../olt/scripts/src/mind/completed-tasks.ts";
+import { registerSessionGrant } from "../../../olt/scripts/src/authority/session-registry.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
+
+function authorizeMind(repo: string): string {
+  const run = initRun(repo, "todo-authority", new TextEncoder().encode("prompt"), "file", true);
+  transact(run, "test-setup", "grant-agent", {}, (draft) => {
+    draft.agents = [
+      {
+        id: "mind",
+        role: "mind",
+        parent_agent_id: null,
+        parent_task_id: null,
+        host: "test",
+        granted_at: new Date().toISOString(),
+        status: "active",
+      },
+    ];
+  });
+  registerSessionGrant({ runRoot: run, agentId: "mind", role: "mind" });
+  return run;
+}
 
 describe("CLI todo-ops and mind:queue commands", () => {
   it("verifies direct function aliases match between mindQueue* and todo*", () => {
@@ -459,6 +480,46 @@ describe("CLI todo-ops and mind:queue commands", () => {
   });
 
   describe("todoCleanCommand and mindQueueCleanCommand", () => {
+    it("rejects the direct completed-file alias before mutating canonical or outside files", () => {
+      const testDir = scratchRoot(import.meta.path, "clean-reject-completed-file-alias");
+      const canonicalQueueFile = join(testDir, "feedback-queue.jsonl");
+      const canonicalArchiveFile = join(testDir, "completed-tasks.jsonl");
+      const outsideSentinelFile = join(testDir, "outside-sentinel.jsonl");
+
+      writeFeedbackQueue(
+        [
+          {
+            id: "canonical-pending",
+            timestamp: "2026-08-27T00:00:00.000Z",
+            priority: "NORMAL",
+            status: "PENDING",
+            category: "GENERAL",
+            title: "Canonical pending item",
+            content: "Must remain unchanged",
+          },
+        ],
+        canonicalQueueFile,
+      );
+      writeFileSync(canonicalArchiveFile, "canonical archive sentinel\\n", "utf-8");
+      writeFileSync(outsideSentinelFile, "outside sentinel\\n", "utf-8");
+
+      const canonicalQueueBefore = readFileSync(canonicalQueueFile, "utf-8");
+      const canonicalArchiveBefore = readFileSync(canonicalArchiveFile, "utf-8");
+      const outsideSentinelBefore = readFileSync(outsideSentinelFile, "utf-8");
+
+      let thrown: unknown;
+      try {
+        todoCleanCommand({ "completed-file": outsideSentinelFile });
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toMatchObject({ code: "INVALID_ARGUMENT" });
+      expect(readFileSync(canonicalQueueFile, "utf-8")).toBe(canonicalQueueBefore);
+      expect(readFileSync(canonicalArchiveFile, "utf-8")).toBe(canonicalArchiveBefore);
+      expect(readFileSync(outsideSentinelFile, "utf-8")).toBe(outsideSentinelBefore);
+    });
+
     it("todo clean preserves a concurrent transactional addition", async () => {
       const testDir = scratchRoot(import.meta.path, "todo-clean-concurrent-add");
       const queueFile = join(testDir, "feedback-queue.jsonl");
@@ -600,7 +661,7 @@ describe("CLI todo-ops and mind:queue commands", () => {
 
       const cleanRes = todoCleanCommand({
         "queue-path": queueFile,
-        "completed-file": archiveFile,
+        "archive-file": archiveFile,
       });
 
       expect(cleanRes.dryRun).toBe(false);
@@ -631,6 +692,7 @@ describe("CLI todo-ops and mind:queue commands", () => {
   describe("execute CLI harness integration for mind:queue:* and todo:* commands", () => {
     it("executes mind:queue:add, todo:list, todo:drain, mind:queue:seal, and todo:clean via CLI execute harness", async () => {
       const testDir = scratchRoot(import.meta.path, "cli-execute-harness");
+      const authorityRun = authorizeMind(testDir);
       const queueFile = join(testDir, "feedback-queue.jsonl");
       const archiveFile = join(testDir, "completed-tasks.jsonl");
 
@@ -668,6 +730,8 @@ describe("CLI todo-ops and mind:queue commands", () => {
       // 3. todo:drain
       const drainRes = await execute([
         "todo:drain",
+        "--authority-run",
+        authorityRun,
         "--limit",
         "1",
         "--mark-as",
@@ -680,6 +744,8 @@ describe("CLI todo-ops and mind:queue commands", () => {
       // 4. mind:queue:seal
       const sealRes = await execute([
         "mind:queue:seal",
+        "--authority-run",
+        authorityRun,
         "--id",
         addedItem.id,
         "--resolution",
@@ -700,6 +766,8 @@ describe("CLI todo-ops and mind:queue commands", () => {
       // 5. todo:clean
       const cleanRes = await execute([
         "todo:clean",
+        "--authority-run",
+        authorityRun,
         "--queue-file",
         queueFile,
         "--archive-file",
@@ -715,6 +783,7 @@ describe("CLI todo-ops and mind:queue commands", () => {
 
     it("handles alias feedback:list, feedback:ingest, feedback:drain through execute", async () => {
       const testDir = scratchRoot(import.meta.path, "cli-aliases");
+      const authorityRun = authorizeMind(testDir);
       const queueFile = join(testDir, "feedback-queue.jsonl");
 
       const addRes = await execute([
@@ -731,7 +800,13 @@ describe("CLI todo-ops and mind:queue commands", () => {
       const listRes = await execute(["feedback:list", "--queue-file", queueFile]);
       expect(listRes["count"]).toBe(1);
 
-      const drainRes = await execute(["feedback:drain", "--queue-file", queueFile]);
+      const drainRes = await execute([
+        "feedback:drain",
+        "--authority-run",
+        authorityRun,
+        "--queue-file",
+        queueFile,
+      ]);
       expect(drainRes["drainedCount"]).toBe(1);
     });
   });

@@ -8,6 +8,20 @@
   "summary": "Prune resolved items from queue into completed-tasks archive.",
   "flags": [
     {
+      "name": "authority-run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "force",
       "type": "bool",
       "required": false,

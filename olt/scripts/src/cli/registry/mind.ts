@@ -589,6 +589,16 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     summary: "Drain and mark pending feedback items for execution.",
     description: "Drains pending items from .olt/backlog.jsonl in FIFO order.",
     flags: [
+      requiredFlag(
+        "authority-run",
+        "string",
+        "Capsule run whose active Mind grant authorizes this mutation.",
+      ),
+      optionalFlag(
+        "actor",
+        "string",
+        "Explicit acting Mind identity; must match the verified session when supplied.",
+      ),
       optionalFlag("limit", "int", "Maximum items to drain.", 5),
       optionalFlag("mark-as", "string", "Target status: PROCESSED, IN_PROGRESS, ADMITTED."),
       optionalFlag("category", "string", "Filter by category."),
@@ -599,7 +609,16 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts mind:queue:drain", "bun harness.ts todo:drain --limit 3"],
+    examples: [
+      "bun harness.ts mind:queue:drain --authority-run <run>",
+      "bun harness.ts todo:drain --authority-run <run> --limit 3",
+    ],
+    authority: {
+      requiresActingIdentity: true,
+      authorityRunFlag: "authority-run",
+      allowedRoles: ["mind"],
+      constrainedPathFlags: ["queue-file", "queue-path"],
+    },
     handler: mindQueueDrainCommand,
   },
   {
@@ -609,6 +628,16 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     summary: "Seal completed queue items with empirical verification proofs.",
     description: "Marks queue items completed and attaches proof records.",
     flags: [
+      requiredFlag(
+        "authority-run",
+        "string",
+        "Capsule run whose active Mind grant authorizes this mutation.",
+      ),
+      optionalFlag(
+        "actor",
+        "string",
+        "Explicit acting Mind identity; must match the verified session when supplied.",
+      ),
       requiredFlag("id", "string", "Feedback item ID to seal."),
       optionalFlag("proof", "string", "Commit SHA or test receipt proving resolution."),
       optionalFlag("resolution", "string", "Resolution description."),
@@ -624,7 +653,13 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts mind:queue:seal --id fb-123 --proof sha-abc"],
+    examples: ["bun harness.ts mind:queue:seal --authority-run <run> --id fb-123 --proof sha-abc"],
+    authority: {
+      requiresActingIdentity: true,
+      authorityRunFlag: "authority-run",
+      allowedRoles: ["mind"],
+      constrainedPathFlags: ["queue-file", "queue-path"],
+    },
     handler: mindQueueSealCommand,
   },
   {
@@ -634,6 +669,16 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     summary: "Prune resolved items from queue into completed-tasks archive.",
     description: "Moves sealed items from .olt/backlog.jsonl to .olt/completed-tasks.jsonl.",
     flags: [
+      requiredFlag(
+        "authority-run",
+        "string",
+        "Capsule run whose active Mind grant authorizes this mutation.",
+      ),
+      optionalFlag(
+        "actor",
+        "string",
+        "Explicit acting Mind identity; must match the verified session when supplied.",
+      ),
       optionalFlag("force", "bool", "Force clean all completed items."),
       optionalFlag("dry-run", "bool", "Simulate clean without mutating files."),
       optionalFlag("queue-file", "string", "Override queue file path."),
@@ -643,7 +688,16 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts mind:queue:clean", "bun harness.ts todo:clean"],
+    examples: [
+      "bun harness.ts mind:queue:clean --authority-run <run>",
+      "bun harness.ts todo:clean --authority-run <run>",
+    ],
+    authority: {
+      requiresActingIdentity: true,
+      authorityRunFlag: "authority-run",
+      allowedRoles: ["mind"],
+      constrainedPathFlags: ["queue-file", "queue-path", "archive-file"],
+    },
     handler: mindQueueCleanCommand,
   },
   {

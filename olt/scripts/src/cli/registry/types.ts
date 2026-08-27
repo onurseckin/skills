@@ -50,6 +50,17 @@ export type CommandHandler = (
   remainder: readonly string[],
 ) => Promise<Record<string, unknown>> | Record<string, unknown>;
 
+/** Declarative grant requirements for commands that mutate governed repository state. */
+export interface CommandAuthoritySpec {
+  readonly requiresActingIdentity: true;
+  /** The run whose active grant authorizes the command, distinct from a target --run. */
+  readonly authorityRunFlag: "authority-run";
+  /** Exact active grant roles permitted to make this mutation. */
+  readonly allowedRoles: readonly string[];
+  /** CLI target flags whose values must remain inside the authority-run repository. */
+  readonly constrainedPathFlags?: readonly string[];
+}
+
 export interface CommandSpec {
   readonly name: string;
   readonly aliases: readonly string[];
@@ -63,6 +74,7 @@ export interface CommandSpec {
   readonly takesRemainder: boolean;
   readonly exitCodes: readonly ExitCodeSpec[];
   readonly examples: readonly string[];
+  readonly authority?: CommandAuthoritySpec;
   readonly handler: CommandHandler;
 }
 

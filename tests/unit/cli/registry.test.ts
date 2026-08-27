@@ -206,6 +206,27 @@ const EXPECTED_INVOCATIONS = [
 ];
 
 describe("CLI command registry", () => {
+  test("declares a distinct authority run and Mind-only grant policy for governed mutations", () => {
+    for (const name of [
+      "mind:queue:drain",
+      "mind:queue:seal",
+      "mind:queue:clean",
+      "watchdog:cleanup",
+      "watchdog:phase-cleanup",
+    ]) {
+      const spec = findCommand(name);
+      expect(spec?.authority).toEqual({
+        requiresActingIdentity: true,
+        authorityRunFlag: "authority-run",
+        allowedRoles: ["mind"],
+        constrainedPathFlags: expect.any(Array),
+      });
+      expect(spec?.flags.some((flag) => flag.name === "authority-run" && flag.required)).toBe(true);
+    }
+    expect(findCommand("mind:queue:list")?.authority).toBeUndefined();
+    expect(findCommand("mind:queue:add")?.authority).toBeUndefined();
+  });
+
   test("exposes every command name and alias exactly once", () => {
     expect(commandInvocations()).toEqual(EXPECTED_INVOCATIONS);
     const names = COMMAND_REGISTRY.map((spec) => spec.name);

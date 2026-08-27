@@ -112,7 +112,9 @@ Scans registered watchdog monitors across generations and pulses, transitioning 
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | no | no | - | Capsule run root. |
+| `--authority-run` | string | yes | no | - | Capsule run whose active Mind grant authorizes this mutation. |
+| `--run` | string | yes | no | - | Target watchdog run root to clean; may equal --authority-run. |
+| `--actor` | string | no | no | - | Explicit acting Mind identity; must match the verified session when supplied. |
 | `--capsules-dir` | string | no | no | - | Capsules root directory. |
 | `--generation` | int | no | no | - | Target generation. |
 | `--pulse-id` | string | no | no | - | Target pulse ID. |
@@ -125,8 +127,8 @@ Scans registered watchdog monitors across generations and pulses, transitioning 
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
-bun harness.ts watchdog:cleanup
-bun harness.ts watchdog:cleanup --generation 1 --dry-run
+bun harness.ts watchdog:cleanup --authority-run <run> --run <target-run>
+bun harness.ts watchdog:cleanup --authority-run <run> --run <target-run> --generation 1 --dry-run
 ```
 
 ### `watchdog:phase-cleanup`
@@ -141,7 +143,9 @@ Terminates active watchdog monitors belonging to completed or superseded phases,
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | no | no | - | Capsule run root. |
+| `--authority-run` | string | yes | no | - | Capsule run whose active Mind grant authorizes this mutation. |
+| `--run` | string | yes | no | - | Target watchdog run root to clean; may equal --authority-run. |
+| `--actor` | string | no | no | - | Explicit acting Mind identity; must match the verified session when supplied. |
 | `--capsules-dir` | string | no | no | - | Capsules root directory. |
 | `--phase` | string | no | no | - | Phase to terminate. |
 | `--current-phase` | string | no | no | - | New phase (terminates all prior phases). |
@@ -155,8 +159,8 @@ Terminates active watchdog monitors belonging to completed or superseded phases,
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
-bun harness.ts watchdog:phase-cleanup --phase planning --generation 1
-bun harness.ts watchdog:phase-cleanup --current-phase execution --generation 1
+bun harness.ts watchdog:phase-cleanup --authority-run <run> --run <target-run> --phase planning --generation 1
+bun harness.ts watchdog:phase-cleanup --authority-run <run> --run <target-run> --current-phase execution --generation 1
 ```
 
 ### `watchdog:verify`

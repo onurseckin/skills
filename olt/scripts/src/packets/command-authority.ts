@@ -464,7 +464,14 @@ export function assertGrantedCommand(
 ): void {
   if (!requiresActingIdentity(spec)) return;
 
-  const runRoot = identity(flags, "run");
+  const authorityRun = identity(flags, "authority-run");
+  if (spec.authority !== undefined && authorityRun === undefined) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `${spec.name} requires --authority-run; repository-global and cross-run mutations must name the distinct run whose active grant authorizes them`,
+    );
+  }
+  const runRoot = authorityRun ?? identity(flags, "run");
   if (runRoot === undefined) {
     if (!declaresRunIdentityFlag(spec)) return;
     if (isNoRunBootstrapExempt(spec, flags)) return;
@@ -512,7 +519,9 @@ export function assertGrantedCommand(
     if (isBootstrapExempt(spec)) return;
     throw new HarnessError(
       "AUTHENTICATION_FAILURE",
-      `${spec.name} requires a verified caller session backed by an active run grant; explicit identity flags cannot establish authority`,
+      spec.authority === undefined
+        ? `${spec.name} requires a verified caller session backed by an active run grant; explicit identity flags cannot establish authority`
+        : "governed mutation requires a verified caller session backed by an active authority-run grant; explicit identity flags cannot establish authority",
     );
   }
   const state = capsuleState(runRoot);
@@ -586,5 +595,11 @@ export function assertGrantedCommand(
 
   if (actsOnOwnGrant(spec, flags, agentId)) return;
   if (GRANT_REQUIRED_ROLE_CONTRACT_EXEMPT_COMMANDS.has(spec.name)) return;
+  if (spec.authority !== undefined && !spec.authority.allowedRoles.includes(grant.role)) {
+    throw new HarnessError(
+      "ROLE_CONFINEMENT_VIOLATION",
+      `role ${grant.role} may not invoke ${spec.name}: agent ${agentId} holds a ${grant.role} grant, but this governed mutation is reserved for ${spec.authority.allowedRoles.join(", ")}`,
+    );
+  }
   assertRoleMayInvoke(grant.role, spec, agentId);
 }

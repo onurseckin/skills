@@ -483,6 +483,8 @@ Drains pending items from .olt/backlog.jsonl in FIFO order.
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| `--authority-run` | string | yes | no | - | Capsule run whose active Mind grant authorizes this mutation. |
+| `--actor` | string | no | no | - | Explicit acting Mind identity; must match the verified session when supplied. |
 | `--limit` | int | no | no | `5` | Maximum items to drain. |
 | `--mark-as` | string | no | no | - | Target status: PROCESSED, IN_PROGRESS, ADMITTED. |
 | `--category` | string | no | no | - | Filter by category. |
@@ -491,8 +493,8 @@ Drains pending items from .olt/backlog.jsonl in FIFO order.
 | `--queue-path` | string | no | no | - | Alias for --queue-file. |
 
 ```bash
-bun harness.ts mind:queue:drain
-bun harness.ts todo:drain --limit 3
+bun harness.ts mind:queue:drain --authority-run <run>
+bun harness.ts todo:drain --authority-run <run> --limit 3
 ```
 
 ### `mind:queue:seal`
@@ -507,6 +509,8 @@ Marks queue items completed and attaches proof records.
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| `--authority-run` | string | yes | no | - | Capsule run whose active Mind grant authorizes this mutation. |
+| `--actor` | string | no | no | - | Explicit acting Mind identity; must match the verified session when supplied. |
 | `--id` | string | yes | no | - | Feedback item ID to seal. |
 | `--proof` | string | no | no | - | Commit SHA or test receipt proving resolution. |
 | `--resolution` | string | no | no | - | Resolution description. |
@@ -520,7 +524,7 @@ Marks queue items completed and attaches proof records.
 | `--queue-path` | string | no | no | - | Alias for --queue-file. |
 
 ```bash
-bun harness.ts mind:queue:seal --id fb-123 --proof sha-abc
+bun harness.ts mind:queue:seal --authority-run <run> --id fb-123 --proof sha-abc
 ```
 
 ### `mind:queue:clean`
@@ -535,6 +539,8 @@ Moves sealed items from .olt/backlog.jsonl to .olt/completed-tasks.jsonl.
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| `--authority-run` | string | yes | no | - | Capsule run whose active Mind grant authorizes this mutation. |
+| `--actor` | string | no | no | - | Explicit acting Mind identity; must match the verified session when supplied. |
 | `--force` | bool | no | no | - | Force clean all completed items. |
 | `--dry-run` | bool | no | no | - | Simulate clean without mutating files. |
 | `--queue-file` | string | no | no | - | Override queue file path. |
@@ -542,8 +548,8 @@ Moves sealed items from .olt/backlog.jsonl to .olt/completed-tasks.jsonl.
 | `--archive-file` | string | no | no | - | Override archive destination file. |
 
 ```bash
-bun harness.ts mind:queue:clean
-bun harness.ts todo:clean
+bun harness.ts mind:queue:clean --authority-run <run>
+bun harness.ts todo:clean --authority-run <run>
 ```
 
 ### `mind:audit:live`

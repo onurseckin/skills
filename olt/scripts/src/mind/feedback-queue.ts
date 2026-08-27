@@ -16,6 +16,7 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
 import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
 import { resolveTaskQueuePath } from "./task-queue.ts";
 
@@ -149,7 +150,8 @@ function noFollowFlag(): number {
 }
 
 export function resolveCanonicalFeedbackQueuePath(customRoot?: string, _useTodo = false): string {
-  return require("path").join(customRoot || process.cwd(), ".olt", "backlog.jsonl");
+  const root = customRoot || (isTestEnvironment() ? resolveScratchDir() : process.cwd());
+  return require("path").join(root, ".olt", "backlog.jsonl");
 }
 
 export function resolveFeedbackQueuePath(customPath?: string): string {

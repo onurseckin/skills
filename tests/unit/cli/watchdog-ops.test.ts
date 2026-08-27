@@ -9,8 +9,28 @@ import {
 } from "../../../olt/scripts/src/authority/watchdog-manager.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { registerSessionGrant } from "../../../olt/scripts/src/authority/session-registry.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
+
+function authorizeMind(dir: string): string {
+  const run = initRun(dir, "watchdog-authority", new TextEncoder().encode("prompt"), "file", true);
+  transact(run, "test-setup", "grant-agent", {}, (draft) => {
+    draft.agents = [
+      {
+        id: "mind",
+        role: "mind",
+        parent_agent_id: null,
+        parent_task_id: null,
+        host: "test",
+        granted_at: new Date().toISOString(),
+        status: "active",
+      },
+    ];
+  });
+  registerSessionGrant({ runRoot: run, agentId: "mind", role: "mind" });
+  return run;
+}
 
 describe("CLI - watchdog:status", () => {
   test("renders empty state table when no watchdogs exist", async () => {
@@ -81,8 +101,41 @@ describe("CLI - watchdog:status", () => {
 });
 
 describe("CLI - watchdog:cleanup", () => {
+  test("allows a Mind to clean active watchdog state in its own authority run", async () => {
+    const dir = scratchRoot(import.meta.path, "cli-cleanup-own-authority-run");
+    const authorityRun = authorizeMind(dir);
+
+    registerWatchdog(
+      { id: "wd-own-authority-run", generation: 1, phase: "self-cleanup" },
+      authorityRun,
+    );
+
+    const result = await execute([
+      "watchdog:cleanup",
+      "--authority-run",
+      authorityRun,
+      "--run",
+      authorityRun,
+      "--phase",
+      "self-cleanup",
+    ]);
+
+    expect(result.cleaned_count).toBe(1);
+    expect(result.remaining_active).toBe(0);
+
+    const status = await execute([
+      "watchdog:status",
+      "--run",
+      authorityRun,
+      "--filter-status",
+      "active",
+    ]);
+    expect((status.watchdogs as unknown as WatchdogRecord[]).length).toBe(0);
+  });
+
   test("cleans stale monitors with dry-run and live modes", async () => {
     const dir = scratchRoot(import.meta.path, "cli-cleanup-modes");
+    const authorityRun = authorizeMind(dir);
 
     const seedStore: WatchdogStore = {
       schema: "harness.watchdog_store",
@@ -114,6 +167,8 @@ describe("CLI - watchdog:cleanup", () => {
     // Dry run
     const dryResult = await execute([
       "watchdog:cleanup",
+      "--authority-run",
+      authorityRun,
       "--run",
       dir,
       "--now",
@@ -127,6 +182,8 @@ describe("CLI - watchdog:cleanup", () => {
     // Live run
     const liveResult = await execute([
       "watchdog:cleanup",
+      "--authority-run",
+      authorityRun,
       "--run",
       dir,
       "--now",
@@ -139,12 +196,15 @@ describe("CLI - watchdog:cleanup", () => {
 
   test("executes phase cleanup via --phase flag in watchdog:cleanup", async () => {
     const dir = scratchRoot(import.meta.path, "cli-cleanup-phase-flag");
+    const authorityRun = authorizeMind(dir);
 
     registerWatchdog({ id: "wd-phase-clean-1", generation: 1, phase: "init-phase" }, dir);
     registerWatchdog({ id: "wd-phase-clean-2", generation: 2, phase: "exec-phase" }, dir);
 
     const result = await execute([
       "watchdog:cleanup",
+      "--authority-run",
+      authorityRun,
       "--run",
       dir,
       "--phase",
@@ -160,7 +220,8 @@ describe("CLI - watchdog:cleanup", () => {
 
   test("supports watchdog:clean alias", async () => {
     const dir = scratchRoot(import.meta.path, "cli-cleanup-alias");
-    const result = await execute(["watchdog:clean", "--run", dir]);
+    const authorityRun = authorizeMind(dir);
+    const result = await execute(["watchdog:clean", "--authority-run", authorityRun, "--run", dir]);
     expect(String(result.markdown)).toContain("### Watchdog Stale Cleanup Engine");
     expect(result.cleaned_count).toBe(0);
   });
@@ -169,11 +230,20 @@ describe("CLI - watchdog:cleanup", () => {
 describe("CLI - watchdog:phase-cleanup", () => {
   test("terminates active monitors for a specific phase", async () => {
     const dir = scratchRoot(import.meta.path, "cli-phase-cleanup-spec");
+    const authorityRun = authorizeMind(dir);
 
     registerWatchdog({ id: "wd-plan-phase", generation: 1, phase: "planning" }, dir);
     registerWatchdog({ id: "wd-exec-phase", generation: 2, phase: "execution" }, dir);
 
-    const result = await execute(["watchdog:phase-cleanup", "--run", dir, "--phase", "planning"]);
+    const result = await execute([
+      "watchdog:phase-cleanup",
+      "--authority-run",
+      authorityRun,
+      "--run",
+      dir,
+      "--phase",
+      "planning",
+    ]);
 
     expect(typeof result.markdown).toBe("string");
     expect(String(result.markdown)).toContain("### Watchdog Automatic Phase Cleanup Engine");
@@ -184,12 +254,15 @@ describe("CLI - watchdog:phase-cleanup", () => {
 
   test("terminates prior phase monitors on rollover with --current-phase", async () => {
     const dir = scratchRoot(import.meta.path, "cli-phase-rollover-spec");
+    const authorityRun = authorizeMind(dir);
 
     registerWatchdog({ id: "wd-old-step", generation: 1, phase: "step-1" }, dir);
     registerWatchdog({ id: "wd-new-step", generation: 2, phase: "step-2" }, dir);
 
     const result = await execute([
       "watchdog:phase-cleanup",
+      "--authority-run",
+      authorityRun,
       "--run",
       dir,
       "--current-phase",
@@ -205,9 +278,18 @@ describe("CLI - watchdog:phase-cleanup", () => {
 
   test("supports watchdog:cleanup-phase and watchdog:phase-clean aliases", async () => {
     const dir = scratchRoot(import.meta.path, "cli-phase-clean-alias");
+    const authorityRun = authorizeMind(dir);
     registerWatchdog({ id: "wd-alias-test", generation: 1, phase: "draft" }, dir);
 
-    const result = await execute(["watchdog:cleanup-phase", "--run", dir, "--phase", "draft"]);
+    const result = await execute([
+      "watchdog:cleanup-phase",
+      "--authority-run",
+      authorityRun,
+      "--run",
+      dir,
+      "--phase",
+      "draft",
+    ]);
     expect(result.terminated_count).toBe(1);
   });
 });

@@ -8,6 +8,20 @@
   "summary": "Drain and mark pending feedback items for execution.",
   "flags": [
     {
+      "name": "authority-run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "limit",
       "type": "int",
       "required": false,

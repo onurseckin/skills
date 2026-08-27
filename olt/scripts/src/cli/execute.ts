@@ -1,3 +1,5 @@
+import { lstatSync, realpathSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { JsonObject } from "../core/contracts/json.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { parseArguments } from "./arguments.ts";
@@ -5,6 +7,98 @@ import { assertFlags, type CommandContext } from "./options.ts";
 import { assertGrantedCommand, explicitActingClaim } from "../packets/command-authority.ts";
 import { findCommand, flagShapes, type CommandSpec } from "./registry/index.ts";
 import { autoDeriveCallerIdentity } from "../authority/session-registry.ts";
+import { findRepoRoot } from "../core/shared/paths.ts";
+
+function isEnoent(error: unknown): boolean {
+  return (
+    error instanceof Error && Object.getOwnPropertyDescriptor(error, "code")?.value === "ENOENT"
+  );
+}
+
+function canonicalizePhysicalPath(path: string, description: string): string {
+  let existingPath = resolve(path);
+  const missingSuffix: string[] = [];
+
+  while (true) {
+    try {
+      lstatSync(existingPath);
+    } catch (error) {
+      if (!isEnoent(error)) {
+        throw new HarnessError("PATH_SAFETY", `cannot inspect ${description}: ${existingPath}`);
+      }
+      const parent = dirname(existingPath);
+      if (parent === existingPath) {
+        throw new HarnessError("PATH_SAFETY", `cannot resolve ${description}: ${path}`);
+      }
+      missingSuffix.push(basename(existingPath));
+      existingPath = parent;
+      continue;
+    }
+
+    let canonicalExistingPath: string;
+    try {
+      canonicalExistingPath = realpathSync(existingPath);
+    } catch {
+      throw new HarnessError("PATH_SAFETY", `cannot resolve ${description}: ${existingPath}`);
+    }
+    return missingSuffix.length === 0
+      ? canonicalExistingPath
+      : join(canonicalExistingPath, ...missingSuffix.reverse());
+  }
+}
+
+function isOutside(root: string, target: string): boolean {
+  const relation = relative(root, target);
+  return (
+    relation === ".." ||
+    relation.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) ||
+    isAbsolute(relation)
+  );
+}
+
+function assertAuthorityBoundTargets(spec: CommandSpec, flags: Record<string, unknown>): void {
+  const authority = spec.authority;
+  if (authority?.constrainedPathFlags === undefined) return;
+  const authorityRun = flags[authority.authorityRunFlag];
+  if (typeof authorityRun !== "string" || authorityRun.trim() === "") return;
+  const repositoryRoot = resolve(findRepoRoot(authorityRun));
+  const physicalRepositoryRoot = canonicalizePhysicalPath(
+    repositoryRoot,
+    "authority-run repository",
+  );
+  const constrained = new Set(authority.constrainedPathFlags);
+  if (
+    constrained.has("queue-file") &&
+    typeof flags["queue-file"] !== "string" &&
+    typeof flags["queue-path"] !== "string"
+  ) {
+    flags["queue-file"] = join(repositoryRoot, ".olt", "backlog.jsonl");
+  }
+  if (constrained.has("archive-file") && typeof flags["archive-file"] !== "string") {
+    flags["archive-file"] = join(repositoryRoot, ".olt", "completed-tasks.jsonl");
+  }
+  for (const name of authority.constrainedPathFlags) {
+    const target = flags[name];
+    if (typeof target !== "string" || target.trim() === "") continue;
+    const resolvedTarget = resolve(target);
+    if (isOutside(repositoryRoot, resolvedTarget)) {
+      throw new HarnessError(
+        "PATH_SAFETY",
+        `${spec.name} rejects --${name} outside the authority-run repository: ${resolvedTarget}`,
+      );
+    }
+    const physicalTarget = canonicalizePhysicalPath(
+      resolvedTarget,
+      `${spec.name} --${name} target`,
+    );
+    if (isOutside(physicalRepositoryRoot, physicalTarget)) {
+      throw new HarnessError(
+        "PATH_SAFETY",
+        `${spec.name} rejects --${name} outside the authority-run repository: ${physicalTarget}`,
+      );
+    }
+  }
+}
 
 export async function execute(
   argv: readonly string[],
@@ -26,8 +120,12 @@ export async function execute(
     parsed.flags["run-id"] = parsed.flags["run"];
   }
 
+  const authorityRun =
+    typeof parsed.flags["authority-run"] === "string"
+      ? parsed.flags["authority-run"]
+      : parsed.flags["run"];
   const identity = autoDeriveCallerIdentity({
-    runRoot: typeof parsed.flags["run"] === "string" ? parsed.flags["run"] : undefined,
+    runRoot: typeof authorityRun === "string" ? authorityRun : undefined,
     explicitActor: explicitActingClaim(spec, parsed.flags),
   });
   for (const flag of spec.flags) {
@@ -84,6 +182,7 @@ export async function execute(
   }
 
   assertGrantedCommand(spec, parsed.flags, identity);
+  assertAuthorityBoundTargets(spec, parsed.flags);
 
   return (await spec.handler(
     parsed.flags,
