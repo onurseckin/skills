@@ -61,10 +61,56 @@ function skipRegex(source: string, offset: number): number {
   return source.length;
 }
 
-function skipSpace(source: string, offset: number): number {
+function skipTrivia(source: string, offset: number): number {
   let index = offset;
-  while (/\s/.test(source[index] ?? "")) index += 1;
+  while (index < source.length) {
+    if (/\s/.test(source[index])) index += 1;
+    else if (source[index] === "/" && (source[index + 1] === "/" || source[index + 1] === "*")) {
+      index = skipComment(source, index);
+    } else break;
+  }
   return index;
+}
+
+function malformedSpecifier(detail: string): never {
+  throw new Error(`Malformed module specifier: ${detail}`);
+}
+
+function decodeEscape(
+  source: string,
+  offset: number,
+): { readonly value: string; readonly end: number } {
+  const escaped = source[offset];
+  const simple: Record<string, string> = {
+    b: "\b",
+    f: "\f",
+    n: "\n",
+    r: "\r",
+    t: "\t",
+    v: "\v",
+  };
+  if (escaped === undefined) malformedSpecifier("unfinished escape");
+  if (escaped === "x" || escaped === "u") {
+    const braced = escaped === "u" && source[offset + 1] === "{";
+    const start = offset + (braced ? 2 : 1);
+    const close = braced ? source.indexOf("}", start) : start + (escaped === "x" ? 2 : 4);
+    const digits = source.slice(start, close);
+    if (!/^[0-9a-f]+$/i.test(digits) || (!braced && digits.length !== close - start)) {
+      malformedSpecifier("invalid hexadecimal escape");
+    }
+    const value = Number.parseInt(digits, 16);
+    if (value > 0x10ffff || (braced && source[close] !== "}")) {
+      malformedSpecifier("invalid Unicode code point");
+    }
+    return { value: String.fromCodePoint(value), end: braced ? close + 1 : close };
+  }
+  if (escaped === "0" && /[0-9]/.test(source[offset + 1] ?? "")) {
+    malformedSpecifier("legacy octal escape");
+  }
+  if (escaped === "\n") return { value: "", end: offset + 1 };
+  if (escaped === "\r")
+    return { value: "", end: source[offset + 1] === "\n" ? offset + 2 : offset + 1 };
+  return { value: simple[escaped] ?? (escaped === "0" ? "\0" : escaped), end: offset + 1 };
 }
 
 function readString(
@@ -73,9 +119,22 @@ function readString(
 ): { readonly value: string; readonly end: number } | null {
   const quote = source[offset];
   if (quote !== "'" && quote !== '"') return null;
-  const end = skipQuoted(source, offset, quote);
-  if (end === source.length && source[end - 1] !== quote) return null;
-  return { value: source.slice(offset + 1, end - 1), end };
+  let index = offset + 1;
+  let value = "";
+  while (index < source.length) {
+    const character = source[index];
+    if (character === quote) return { value, end: index + 1 };
+    if (character === "\\") {
+      const decoded = decodeEscape(source, index + 1);
+      value += decoded.value;
+      index = decoded.end;
+    } else {
+      if (character === "\n" || character === "\r") malformedSpecifier("unterminated string");
+      value += character;
+      index += 1;
+    }
+  }
+  return malformedSpecifier("unterminated string");
 }
 
 function readReference(
@@ -83,21 +142,31 @@ function readReference(
   offset: number,
   kind: ImportReference["kind"],
 ): ImportReference | null {
-  let index = skipSpace(source, offset);
+  let index = skipTrivia(source, offset);
   if (kind === "import" && source[index] === "(") return null;
   const direct = readString(source, index);
   if (direct) return { specifier: direct.value, typeOnly: false, kind };
 
   const typeOnly = isWordAt(source, index, "type");
-  if (typeOnly) index = skipSpace(source, index + 4);
-  while (index < source.length && source[index] !== ";" && source[index] !== "\n") {
+  if (typeOnly) index = skipTrivia(source, index + 4);
+  let depth = 0;
+  while (index < source.length && source[index] !== ";") {
+    index = skipTrivia(source, index);
+    if (source[index] === ";") return null;
     if (isWordAt(source, index, "from")) {
-      const specifier = readString(source, skipSpace(source, index + 4));
+      const specifier = readString(source, skipTrivia(source, index + 4));
       return specifier ? { specifier: specifier.value, typeOnly, kind } : null;
     }
     if (source[index] === "'" || source[index] === '"' || source[index] === "`") {
       index = skipQuoted(source, index, source[index]);
-    } else index += 1;
+    } else if ("({[".includes(source[index])) {
+      depth += 1;
+      index += 1;
+    } else if (")}]".includes(source[index])) {
+      depth = Math.max(0, depth - 1);
+      index += 1;
+    } else if (depth === 0 && isWordAt(source, index, "import")) return null;
+    else index += 1;
   }
   return null;
 }
@@ -134,7 +203,7 @@ function scan(source: string): ScanResult {
         const reference = readReference(source, end, "import");
         if (reference) references.push(reference);
       } else if (word === "export") {
-        const next = skipSpace(source, end);
+        const next = skipTrivia(source, end);
         if (source[next] === "*") exportStars += 1;
         const reference = readReference(source, end, "export");
         if (reference) references.push(reference);

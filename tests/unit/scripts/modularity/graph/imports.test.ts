@@ -61,6 +61,17 @@ test("permits a cross-directory facade target", () => {
   expect(findFacadeViolations(edges)).toEqual([]);
 });
 
+test("resolves a decoded escaped module specifier", () => {
+  const edges = buildImportEdges([
+    blob("slice/source.ts", 'import "./\\u0066oo.ts";'),
+    blob("slice/foo.ts", "export const value = 1;"),
+  ]);
+
+  expect(edges).toEqual([
+    expect.objectContaining({ from: "slice/source.ts", to: "slice/foo.ts", typeOnly: false }),
+  ]);
+});
+
 test("reports export-star separately", () => {
   expect(
     findExportStarViolations([blob("slice/index.ts", 'export * from "./private.ts";')]),
