@@ -6,6 +6,7 @@ import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts
 import { CHECKPOINT_INTERVAL, limits } from "../../../olt/scripts/src/engine/store/constants.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { appendProjectionEvent } from "../../../olt/scripts/src/engine/store/event-append.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
 import { cloneObject, initialState } from "../../../olt/scripts/src/engine/store/state.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
@@ -119,6 +120,35 @@ describe("appendProjectionEvent checkpoints", () => {
         { op: "unset", path: ["stale"] },
       ]),
     );
+  });
+
+  test("stores an appended array item as a suffix-only patch and reloads the final state", () => {
+    const { runRoot, manifest } = freshRun("append-array-suffix");
+    const prefix = Array.from({ length: 100 }, (_, index) => index);
+    const seeded = appendProjectionEvent(
+      runRoot,
+      manifest,
+      initialState(),
+      "tester",
+      "seed-array",
+      {},
+      { ...cloneObject(initialState()), list: prefix } as RunState,
+      limits(),
+    );
+    const finalState = appendProjectionEvent(
+      runRoot,
+      manifest,
+      seeded,
+      "tester",
+      "append-array-item",
+      {},
+      { ...cloneObject(seeded), list: [...prefix, 100] } as RunState,
+      limits(),
+    );
+    const events = eventObjects(runRoot);
+    expect(events[1]!.projection_patch).toEqual([{ op: "set", path: ["list", "100"], value: 100 }]);
+    expect(loadRun(runRoot).state).toEqual(finalState);
+    expect(verifyIntegrity(runRoot)).toEqual([]);
   });
 
   test("propagates instead of silently leaving trace.md stale when the derived-view write fails", () => {
