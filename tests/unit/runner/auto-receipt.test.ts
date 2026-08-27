@@ -1,7 +1,11 @@
 import { describe, it, expect } from "bun:test";
-import { AutoReceiptLogger } from "../../../olt/scripts/src/engine/runner/auto-receipt.ts";
+import {
+  AutoReceiptLogger,
+  setAutoReceiptDependenciesForTesting,
+} from "../../../olt/scripts/src/engine/runner/auto-receipt.ts";
 import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("AutoReceiptLogger", () => {
@@ -44,6 +48,8 @@ describe("AutoReceiptLogger", () => {
     expect(event.stdout_hash).toBe(
       "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
     ); // sha256 of "hello\n"
+    expect(existsSync(`${capsuleRoot}/manifest.json`)).toBe(false);
+    expect(existsSync(`${capsuleRoot}/state.json`)).toBe(false);
   });
 
   it("records command receipt via state transaction when capsule ledger is active", () => {
@@ -82,5 +88,83 @@ describe("AutoReceiptLogger", () => {
     const lastEvent = JSON.parse(events[events.length - 1] as string);
     expect(lastEvent.kind).toBe("command-executed");
     expect(lastEvent.actor).toBe("mechanic-validator");
+    expect(typeof lastEvent.sequence).toBe("number");
+    expect(typeof lastEvent.revision).toBe("number");
+    expect(typeof lastEvent.hash).toBe("string");
+  });
+
+  it("propagates canonical transaction failures without appending an unsequenced legacy event", () => {
+    const testRepo = scratchRoot(import.meta.path, "auto-receipt-transaction-failure");
+    const runRoot = initRun(
+      testRepo,
+      "test-capsule",
+      new TextEncoder().encode("test prompt"),
+      "file",
+      true,
+    );
+    const eventsPath = `${runRoot}/events.jsonl`;
+    const before = readFileSync(eventsPath, "utf8");
+    const restore = setAutoReceiptDependenciesForTesting({
+      transact: () => {
+        throw new HarnessError("LOCK_TIMEOUT", "forced transaction contention");
+      },
+    });
+    try {
+      expect(() =>
+        AutoReceiptLogger.recordReceipt(runRoot, {
+          taskId: "task-failure",
+          actor: "validator",
+          command: "task:check",
+          argv: ["task:check"],
+          exitCode: 0,
+          stdout: "ok",
+          updateState: true,
+        }),
+      ).toThrow(/forced transaction contention/);
+    } finally {
+      restore();
+    }
+    expect(readFileSync(eventsPath, "utf8")).toBe(before);
+  });
+
+  it("refuses updateState receipts without a canonical ledger and leaves no legacy event", () => {
+    const ledgerlessRoot = scratchRoot(import.meta.path, "auto-receipt-update-state-ledgerless");
+    expect(() =>
+      AutoReceiptLogger.recordReceipt(ledgerlessRoot, {
+        taskId: "task-ledgerless",
+        actor: "validator",
+        command: "task:check",
+        argv: ["task:check"],
+        exitCode: 0,
+        stdout: "ok",
+        updateState: true,
+      }),
+    ).toThrow();
+    expect(existsSync(`${ledgerlessRoot}/events.jsonl`)).toBe(false);
+  });
+
+  it("propagates corrupt canonical state failures without changing events", () => {
+    const testRepo = scratchRoot(import.meta.path, "auto-receipt-corrupt-state");
+    const runRoot = initRun(
+      testRepo,
+      "test-capsule",
+      new TextEncoder().encode("test prompt"),
+      "file",
+      true,
+    );
+    const eventsPath = `${runRoot}/events.jsonl`;
+    const before = readFileSync(eventsPath, "utf8");
+    writeFileSync(`${runRoot}/state.json`, "{ corrupt");
+    expect(() =>
+      AutoReceiptLogger.recordReceipt(runRoot, {
+        taskId: "task-corrupt",
+        actor: "validator",
+        command: "task:check",
+        argv: ["task:check"],
+        exitCode: 0,
+        stdout: "ok",
+      }),
+    ).toThrow();
+    expect(readFileSync(eventsPath, "utf8")).toBe(before);
   });
 });

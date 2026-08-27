@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
@@ -15,6 +15,9 @@ import {
   taskCheckCommand,
   type TaskCheckSummary,
 } from "../../../olt/scripts/src/cli/commands/task-check.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { setAutoReceiptDependenciesForTesting } from "../../../olt/scripts/src/engine/runner/auto-receipt.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
@@ -293,4 +296,40 @@ describe("task:check command and helpers", () => {
     const dispatched = await execute(["task:check", "--file", cleanPath]);
     expect(dispatched.passed).toBe(true);
   }, 30_000);
+
+  test("explicit --run propagates mandatory receipt failures without recording an event", async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), "task-check-receipt-failure-"));
+    roots.push(repositoryRoot);
+    const runRoot = initRun(
+      repositoryRoot,
+      "receipt-failure-run",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
+    const sourceFile = join(repositoryRoot, "clean.ts");
+    await writeFile(sourceFile, "export const cleanValue = 1;\n");
+    const eventsPath = join(runRoot, "events.jsonl");
+    const eventsBefore = await readFile(eventsPath, "utf-8");
+    const restoreDependencies = setAutoReceiptDependenciesForTesting({
+      transact: () => {
+        throw new HarnessError("LOCK_TIMEOUT", "forced receipt transaction failure");
+      },
+    });
+
+    try {
+      await expect(
+        taskCheckCommand({
+          run: runRoot,
+          file: sourceFile,
+          lint: true,
+          actor: "task-check-receipt-test",
+        }),
+      ).rejects.toThrow("forced receipt transaction failure");
+    } finally {
+      restoreDependencies();
+    }
+
+    expect(await readFile(eventsPath, "utf-8")).toBe(eventsBefore);
+  });
 });

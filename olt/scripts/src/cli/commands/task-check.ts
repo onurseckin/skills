@@ -774,8 +774,9 @@ export async function taskCheckCommand(
 
   let evidencePath: string | undefined = undefined;
   if (runRoot && typeof runRoot === "string" && runRoot.trim().length > 0) {
+    const canonicalRunRoot = resolve(runRoot);
     try {
-      const evidenceDir = join(resolve(runRoot), "evidence");
+      const evidenceDir = join(canonicalRunRoot, "evidence");
       if (!existsSync(evidenceDir)) {
         mkdirSync(evidenceDir, { recursive: true });
       }
@@ -793,21 +794,22 @@ export async function taskCheckCommand(
         ) + "\n",
         "utf-8",
       );
-      const actorFlagVal = textFlag(flags, "actor", false);
-      const actor = actorFlagVal !== undefined ? actorFlagVal : autoDeriveCallerIdentity().actor;
-      const taskIdVal = taskId !== undefined ? taskId : "task:check";
-      AutoReceiptLogger.recordReceipt(resolve(runRoot), {
-        taskId: taskIdVal,
-        actor,
-        command: "task:check",
-        argv: ["task:check", ...(taskId ? ["--task", taskId] : []), ...targetFiles],
-        exitCode: passed ? 0 : 1,
-        stdout: markdown,
-        updateState: true,
-      });
     } catch {
-      // Non-fatal if evidence or receipt write fails
+      // Presentation artifacts are optional; canonical receipt evidence is not.
     }
+
+    const actorFlagVal = textFlag(flags, "actor", false);
+    const actor = actorFlagVal !== undefined ? actorFlagVal : autoDeriveCallerIdentity().actor;
+    const taskIdVal = taskId !== undefined ? taskId : "task:check";
+    AutoReceiptLogger.recordReceipt(canonicalRunRoot, {
+      taskId: taskIdVal,
+      actor,
+      command: "task:check",
+      argv: ["task:check", ...(taskId ? ["--task", taskId] : []), ...targetFiles],
+      exitCode: passed ? 0 : 1,
+      stdout: markdown,
+      updateState: true,
+    });
   }
 
   // Propagate the verdict to the real process's exit status - unconditional, unlike the receipt

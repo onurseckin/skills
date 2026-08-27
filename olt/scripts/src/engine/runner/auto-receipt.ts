@@ -4,6 +4,23 @@ import { join } from "node:path";
 import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
 import { transact } from "../store/index.ts";
 
+interface AutoReceiptDependencies {
+  readonly transact: typeof transact;
+}
+
+let autoReceiptDependencies: AutoReceiptDependencies = { transact };
+
+/** Test-only seam for proving canonical transaction failures cannot fall back to legacy events. */
+export function setAutoReceiptDependenciesForTesting(
+  overrides: Partial<AutoReceiptDependencies>,
+): () => void {
+  const previous = autoReceiptDependencies;
+  autoReceiptDependencies = { ...autoReceiptDependencies, ...overrides };
+  return () => {
+    autoReceiptDependencies = previous;
+  };
+}
+
 export interface CommandReceiptOptions {
   readonly taskId: string;
   readonly actor: string;
@@ -26,19 +43,18 @@ export class AutoReceiptLogger {
       stdout_hash: stdoutHash,
     };
 
-    let hasCapsuleLedger = false;
-    if (opts.updateState === true) {
-      hasCapsuleLedger = true;
-    } else if (
-      existsSync(join(capsuleRoot, "manifest.json")) &&
-      existsSync(join(capsuleRoot, "state.json"))
-    ) {
-      hasCapsuleLedger = true;
-    }
+    const hasCapsuleLedger =
+      opts.updateState === true ||
+      existsSync(join(capsuleRoot, "manifest.json")) ||
+      existsSync(join(capsuleRoot, "state.json"));
 
     if (hasCapsuleLedger) {
-      try {
-        transact(capsuleRoot, opts.actor, "command-executed", payload, (draft) => {
+      autoReceiptDependencies.transact(
+        capsuleRoot,
+        opts.actor,
+        "command-executed",
+        payload,
+        (draft) => {
           let receipts: JsonObject = {};
           if (isJsonObject(draft.receipts)) {
             receipts = { ...draft.receipts };
@@ -49,13 +65,12 @@ export class AutoReceiptLogger {
             timestamp: new Date().toISOString(),
           };
           draft.receipts = receipts;
-        });
-        return;
-      } catch {
-        // Fall back to direct event append if transaction fails
-      }
+        },
+      );
+      return;
     }
 
+    // A direct event is retained only for an explicitly ledgerless legacy destination.
     const receiptEvent = {
       type: "command-executed",
       timestamp: new Date().toISOString(),
