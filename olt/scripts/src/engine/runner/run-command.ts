@@ -9,8 +9,20 @@ import { readAgentMetadata } from "../../runtime/agent-metadata.ts";
 import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { resolveScratchDir } from "../../core/shared/paths.ts";
-import { join } from "node:path";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { releaseFlock, tryExclusiveFlock } from "../../platform/flock-ffi.ts";
+import { join, resolve } from "node:path";
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fstatSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  type Stats,
+  writeFileSync,
+} from "node:fs";
 import { createHash } from "node:crypto";
 
 const authoritativeRunner = createInternalCommandRunner({
@@ -18,16 +30,45 @@ const authoritativeRunner = createInternalCommandRunner({
   attempt: runAttempt,
 });
 
-// `runner` is an injection seam for tests only: every production caller invokes these with a
-// single argument, so it always resolves to the real, repository/process-backed runner above.
+interface ExecutionLockDependencies {
+  readonly mkdirLockDirectory: (
+    path: string,
+    options: { readonly recursive: true; readonly mode: number },
+  ) => void;
+  readonly lstat: (path: string) => Stats;
+  readonly openRepositoryRoot: (path: string, flags: number) => number;
+  readonly openLockFile: (path: string, flags: number, mode: number) => number;
+  readonly fstat: (descriptor: number) => Stats;
+  readonly close: (descriptor: number) => void;
+  readonly tryExclusiveFlock: (descriptor: number) => boolean;
+  readonly releaseFlock: (descriptor: number) => void;
+}
 
-import {
-  readFileSync as _readFileSync,
-  writeFileSync as _writeFileSync,
-  rmSync as _rmSync,
-  existsSync as _existsSync,
-  mkdirSync as _mkdirSync,
-} from "node:fs";
+const defaultExecutionLockDependencies: ExecutionLockDependencies = {
+  mkdirLockDirectory: mkdirSync,
+  lstat: lstatSync,
+  openRepositoryRoot: openSync,
+  openLockFile: openSync,
+  fstat: fstatSync,
+  close: closeSync,
+  tryExclusiveFlock,
+  releaseFlock,
+};
+
+let executionLockDependencies = defaultExecutionLockDependencies;
+const activeExecutionLockPaths = new Set<string>();
+const activeExecutionRootInodes = new Set<string>();
+
+/** Test-only seam for deterministic lock filesystem and flock failures. */
+export function setExecutionLockDependenciesForTesting(
+  overrides: Partial<ExecutionLockDependencies>,
+): () => void {
+  const previous = executionLockDependencies;
+  executionLockDependencies = { ...executionLockDependencies, ...overrides };
+  return () => {
+    executionLockDependencies = previous;
+  };
+}
 
 function isBroadScopeTest(argv: string[]): boolean {
   if (argv.length === 0) return false;
@@ -58,59 +99,271 @@ function isBroadScopeTest(argv: string[]): boolean {
   return !hasFilePath;
 }
 
-function acquireMutexLock(repositoryRoot: string, argv: string[]) {
-  if (!isBroadScopeTest(argv)) return () => {};
-
-  const lockDir = join(repositoryRoot, ".olt", ".locks");
-  if (!_existsSync(lockDir)) {
-    _mkdirSync(lockDir, { recursive: true });
+function readOwnDataString(error: unknown, property: "code" | "message"): string | null {
+  if (error === null || (typeof error !== "object" && typeof error !== "function")) {
+    return null;
   }
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(error, property);
+    return descriptor && "value" in descriptor && typeof descriptor.value === "string"
+      ? descriptor.value
+      : null;
+  } catch {
+    return null;
+  }
+}
 
-  const lockFile = join(lockDir, "execution.lock");
-  if (_existsSync(lockFile)) {
+function isTrustedEnoent(error: unknown): boolean {
+  try {
+    return error instanceof Error && readOwnDataString(error, "code") === "ENOENT";
+  } catch {
+    return false;
+  }
+}
+
+function safeLockCause(error: unknown): string {
+  const message = readOwnDataString(error, "message");
+  if (message !== null) return message;
+  if (error === null || (typeof error !== "object" && typeof error !== "function")) {
     try {
-      const pidStr = _readFileSync(lockFile, "utf-8");
-      const pid = parseInt(pidStr, 10);
-      if (!isNaN(pid)) {
-        let isAlive = false;
-        try {
-          process.kill(pid, 0);
-          isAlive = true;
-        } catch (e) {
-          // dead
-        }
-        if (isAlive && pid !== process.pid) {
-          throw new Error(
-            `[ENGINE_MUTEX_LOCKED] Concurrent duplicate broad run blocked. PID ${pid} is already executing a broad command.`,
-          );
-        }
-      }
-    } catch (e: unknown) {
-      if (e instanceof Error && e.message.includes("[ENGINE_MUTEX_LOCKED]")) throw e;
+      return String(error);
+    } catch {
+      return "unknown error";
     }
   }
+  return "unknown error";
+}
 
-  _writeFileSync(lockFile, process.pid.toString());
+function lockFailure(operation: string, path: string, error: unknown): HarnessError {
+  if (error instanceof HarnessError) return error;
+  return new HarnessError(
+    "INTEGRITY",
+    `failed to ${operation} execution lock '${path}': ${safeLockCause(error)}`,
+  );
+}
 
-  let released = false;
-  const cleanup = () => {
-    if (released) return;
-    released = true;
+function requiredNoFollowFlag(): number {
+  const noFollow = constants.O_NOFOLLOW;
+  if (!Number.isInteger(noFollow) || noFollow === 0) {
+    throw new HarnessError(
+      "UNSUPPORTED_PLATFORM",
+      "execution locking requires final-component O_NOFOLLOW protection",
+    );
+  }
+  return noFollow;
+}
+
+function lstatLockPath(path: string): Stats | undefined {
+  try {
+    return executionLockDependencies.lstat(path);
+  } catch (error) {
+    if (isTrustedEnoent(error)) return undefined;
+    throw lockFailure("inspect", path, error);
+  }
+}
+
+function assertRealDirectory(path: string, label: string): Stats {
+  const metadata = lstatLockPath(path);
+  if (metadata === undefined) {
+    throw new HarnessError("INTEGRITY", `${label} disappeared: ${path}`);
+  }
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+    throw new HarnessError("PATH_SAFETY", `${label} is not a real directory: ${path}`);
+  }
+  return metadata;
+}
+
+function assertRegularLockFile(path: string): void {
+  const metadata = lstatLockPath(path);
+  if (metadata === undefined) return;
+  if (metadata.isSymbolicLink() || !metadata.isFile()) {
+    throw new HarnessError("PATH_SAFETY", `execution lock is not a regular file: ${path}`);
+  }
+}
+
+function sameDirectoryIdentity(left: Stats, right: Stats): boolean {
+  return left.dev === right.dev && left.ino === right.ino;
+}
+
+function acquireMutexLock(repositoryRoot: string, argv: string[]): () => void {
+  if (!isBroadScopeTest(argv)) return () => {};
+
+  const resolvedRepositoryRoot = resolve(repositoryRoot);
+  const lockDir = join(resolvedRepositoryRoot, ".olt", ".locks");
+  const lockFile = join(lockDir, "execution.lock");
+  const identity = resolve(lockFile);
+  if (activeExecutionLockPaths.has(identity)) {
+    throw new HarnessError(
+      "LOCK_TIMEOUT",
+      `execution lock is already active in this process: ${lockFile}`,
+    );
+  }
+
+  let rootDescriptor: number | undefined;
+  let rootAcquired = false;
+  let rootInodeIdentity: string | undefined;
+  let rootInodeTracked = false;
+  let descriptor: number | undefined;
+  let acquired = false;
+  activeExecutionLockPaths.add(identity);
+  try {
+    const repositoryBefore = assertRealDirectory(resolvedRepositoryRoot, "repository root");
+    rootDescriptor = executionLockDependencies.openRepositoryRoot(
+      resolvedRepositoryRoot,
+      constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | requiredNoFollowFlag(),
+    );
+    const openedRepository = executionLockDependencies.fstat(rootDescriptor);
+    if (!openedRepository.isDirectory()) {
+      throw new HarnessError(
+        "PATH_SAFETY",
+        `opened repository root is not a directory: ${resolvedRepositoryRoot}`,
+      );
+    }
+    if (!sameDirectoryIdentity(repositoryBefore, openedRepository)) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `repository root changed while opening execution authority: ${resolvedRepositoryRoot}`,
+      );
+    }
+    const repositoryAfter = assertRealDirectory(resolvedRepositoryRoot, "repository root");
+    if (!sameDirectoryIdentity(openedRepository, repositoryAfter)) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `repository root changed while opening execution authority: ${resolvedRepositoryRoot}`,
+      );
+    }
+    rootInodeIdentity = `${openedRepository.dev}:${openedRepository.ino}`;
+    if (activeExecutionRootInodes.has(rootInodeIdentity)) {
+      throw new HarnessError(
+        "LOCK_TIMEOUT",
+        `repository execution authority is already active in this process: ${resolvedRepositoryRoot}`,
+      );
+    }
+    activeExecutionRootInodes.add(rootInodeIdentity);
+    rootInodeTracked = true;
+    rootAcquired = executionLockDependencies.tryExclusiveFlock(rootDescriptor);
+    if (!rootAcquired) {
+      throw new HarnessError(
+        "LOCK_TIMEOUT",
+        `repository execution authority is already held: ${resolvedRepositoryRoot}`,
+      );
+    }
     try {
-      if (_existsSync(lockFile)) {
-        const pidStr = _readFileSync(lockFile, "utf-8");
-        if (parseInt(pidStr, 10) === process.pid) {
-          _rmSync(lockFile, { force: true });
+      executionLockDependencies.mkdirLockDirectory(lockDir, { recursive: true, mode: 0o700 });
+    } catch (error) {
+      throw lockFailure("create directory for", lockDir, error);
+    }
+    const directoryBefore = assertRealDirectory(lockDir, "execution lock directory");
+    assertRegularLockFile(lockFile);
+    descriptor = executionLockDependencies.openLockFile(
+      lockFile,
+      constants.O_RDWR | constants.O_CREAT | requiredNoFollowFlag(),
+      0o600,
+    );
+    const opened = executionLockDependencies.fstat(descriptor);
+    if (!opened.isFile()) {
+      throw new HarnessError(
+        "PATH_SAFETY",
+        `opened execution lock is not a regular file: ${lockFile}`,
+      );
+    }
+    const directoryAfter = assertRealDirectory(lockDir, "execution lock directory");
+    if (!sameDirectoryIdentity(directoryBefore, directoryAfter)) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `execution lock directory changed while opening: ${lockDir}`,
+      );
+    }
+    acquired = executionLockDependencies.tryExclusiveFlock(descriptor);
+    if (!acquired) {
+      throw new HarnessError("LOCK_TIMEOUT", `execution lock is already held: ${lockFile}`);
+    }
+  } catch (error) {
+    if (descriptor !== undefined) {
+      if (acquired) {
+        try {
+          executionLockDependencies.releaseFlock(descriptor);
+        } catch {
+          // A pre-existing acquisition failure remains authoritative; descriptor close still runs.
         }
       }
-    } catch {}
+      try {
+        executionLockDependencies.close(descriptor);
+      } catch {
+        // A pre-existing acquisition failure remains authoritative.
+      }
+    }
+    if (rootDescriptor !== undefined) {
+      if (rootAcquired) {
+        try {
+          executionLockDependencies.releaseFlock(rootDescriptor);
+        } catch {
+          // A pre-existing acquisition failure remains authoritative; descriptor close still runs.
+        }
+      }
+      try {
+        executionLockDependencies.close(rootDescriptor);
+      } catch {
+        // A pre-existing acquisition failure remains authoritative.
+      }
+    }
+    activeExecutionLockPaths.delete(identity);
+    if (rootInodeTracked && rootInodeIdentity !== undefined) {
+      activeExecutionRootInodes.delete(rootInodeIdentity);
+    }
+    throw lockFailure("acquire", lockFile, error);
+  }
+
+  if (descriptor === undefined || rootDescriptor === undefined || rootInodeIdentity === undefined) {
+    activeExecutionLockPaths.delete(identity);
+    if (rootInodeTracked && rootInodeIdentity !== undefined) {
+      activeExecutionRootInodes.delete(rootInodeIdentity);
+    }
+    throw new HarnessError("INTEGRITY", `execution lock opened without a descriptor: ${lockFile}`);
+  }
+  const heldDescriptor: number = descriptor;
+  const heldRootDescriptor: number = rootDescriptor;
+  const heldRootInodeIdentity: string = rootInodeIdentity;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    let hasReleaseError = false;
+    let releaseError: unknown;
+    try {
+      executionLockDependencies.releaseFlock(heldDescriptor);
+    } catch (error) {
+      hasReleaseError = true;
+      releaseError = error;
+    }
+    try {
+      executionLockDependencies.close(heldDescriptor);
+    } catch (error) {
+      if (!hasReleaseError) {
+        hasReleaseError = true;
+        releaseError = error;
+      }
+    }
+    try {
+      executionLockDependencies.releaseFlock(heldRootDescriptor);
+    } catch (error) {
+      if (!hasReleaseError) {
+        hasReleaseError = true;
+        releaseError = error;
+      }
+    }
+    try {
+      executionLockDependencies.close(heldRootDescriptor);
+    } catch (error) {
+      if (!hasReleaseError) {
+        hasReleaseError = true;
+        releaseError = error;
+      }
+    }
+    activeExecutionLockPaths.delete(identity);
+    activeExecutionRootInodes.delete(heldRootInodeIdentity);
+    if (hasReleaseError) throw lockFailure("release", lockFile, releaseError);
   };
-
-  process.on("exit", cleanup);
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
-
-  return cleanup;
 }
 
 export async function prepareCommand(
@@ -163,9 +416,24 @@ export async function executePreparedCommand(
   runner: InternalCommandRunner = authoritativeRunner,
 ): Promise<CommandResult> {
   const cleanup = acquireMutexLock(prepared.options.repositoryRoot, prepared.options.argv);
+  let result!: CommandResult;
+  let hasPrimary = false;
+  let primary: unknown;
+  let hasCleanupFailure = false;
+  let cleanupFailure: unknown;
   try {
-    return await runner.executePreparedCommand(prepared);
-  } finally {
-    cleanup();
+    result = await runner.executePreparedCommand(prepared);
+  } catch (error) {
+    hasPrimary = true;
+    primary = error;
   }
+  try {
+    cleanup();
+  } catch (error) {
+    hasCleanupFailure = true;
+    cleanupFailure = error;
+  }
+  if (hasPrimary) throw primary;
+  if (hasCleanupFailure) throw cleanupFailure;
+  return result;
 }
