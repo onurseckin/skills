@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
@@ -142,7 +142,7 @@ describe("harness-config", () => {
     expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
   });
 
-  test("ignores invalid field types and out-of-bounds values", () => {
+  test("rejects present invalid field types and out-of-bounds values", () => {
     const dir = makeTempDir("invalid-field-types");
     const invalidFields = {
       max_repair_rounds: -1,
@@ -152,8 +152,10 @@ describe("harness-config", () => {
     };
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify(invalidFields));
 
-    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
-    expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(
+      /harness\.config\.json.*max_repair_rounds/i,
+    );
   });
 });
 
@@ -257,20 +259,16 @@ describe("B22.7 — worktree-isolation config knobs", () => {
     expect(config.max_commit_lines).toBe(200);
   });
 
-  test("ignores wrong-typed values and keeps the default for that field alone", () => {
+  test("rejects present wrong-typed worktree values rather than treating them as absent", () => {
     const dir = makeTempDir("worktree-wrong-types");
     writeFileSync(
       join(dir, "harness.config.json"),
       JSON.stringify({
         worktree_isolation: "yes",
-        branch_prefix: "",
-        max_commit_lines: 0,
       }),
     );
-    const config = resolveHarnessConfig(dir);
-    expect(config.worktree_isolation).toBe(false);
-    expect(config.branch_prefix).toBe("harness/");
-    expect(config.max_commit_lines).toBe(500);
+    expect(() => resolveHarnessConfig(dir)).toThrow(HarnessError);
+    expect(() => resolveHarnessConfig(dir)).toThrow(/worktree_isolation/i);
   });
 });
 
@@ -302,11 +300,13 @@ describe("provenance generalisation — new config domains", () => {
     expect(configured.fleet_agent_ceiling).toEqual({ value: 40, source: "config_override" });
   });
 
-  test("fleet_agent_ceiling ignores an invalid configured value rather than coercing it — currently reads absent, a known gap since fleetAgentCeilingField does not yet distinguish invalid-but-present from truly-absent", () => {
+  test("fleet_agent_ceiling rejects an invalid configured value rather than claiming it is absent", () => {
     const dir = makeTempDir("fleet-agent-ceiling-invalid");
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ fleet_agent_ceiling: -3 }));
-    const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
-    expect(config.fleet_agent_ceiling).toEqual({ value: null, source: "absent" });
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(
+      /fleet_agent_ceiling/i,
+    );
   });
 
   test("supervisory_cadence_seconds is structurally unusable without confronting its source", () => {
@@ -341,18 +341,43 @@ describe("provenance generalisation — new config domains", () => {
     expect(configured.config_provenance.quota_freeze_threshold_pct).toBe("config_override");
   });
 
-  test("model_by_role keeps recognized roles and drops unrecognized ones without throwing", () => {
+  test("model_by_role rejects every map when any role or model member is invalid", () => {
     const dir = makeTempDir("model-by-role");
     writeFileSync(
       join(dir, "harness.config.json"),
       JSON.stringify({ model_by_role: { implementer: "opus", "not-a-real-role": "x" } }),
     );
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(/model_by_role/i);
+  });
+
+  test("rejects unknown harness keys while allowing valid partial configuration and policy schema keys", () => {
+    const dir = makeTempDir("strict-unknown-key");
+    writeFileSync(
+      join(dir, "harness.config.json"),
+      JSON.stringify({ max_agents: 12, typo_max_agnts: 13 }),
+    );
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+    expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(/typo_max_agnts/i);
+
+    writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_agents: 12 }));
+    expect(resolveHarnessConfig(dir, undefined, NO_HOST_CEILING).max_agents).toBe(12);
+
+    mkdirSync(join(dir, ".olt"), { recursive: true });
+    writeFileSync(
+      join(dir, ".olt", "policy.json"),
+      JSON.stringify({ schema_version: 1, ecosystem: "bun", quota_freeze_threshold_pct: 22 }),
+    );
     const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
-    expect(config.model_by_role).toEqual({
-      value: { implementer: "opus" },
-      source: "config_override",
+    expect(config.quota_freeze_threshold_pct).toEqual({ value: 22, source: "config_override" });
+
+    writeFileSync(join(dir, ".olt", "policy.json"), "{ malformed");
+    expect(
+      resolveHarnessConfig(dir, undefined, NO_HOST_CEILING).quota_freeze_threshold_pct,
+    ).toEqual({
+      value: null,
+      source: "unreadable",
     });
-    expect(config.config_provenance.model_by_role).toBe("config_override");
   });
 
   test("host_profiles configured through resolveHarnessConfig refuses an unknown host id end to end", () => {
