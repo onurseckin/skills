@@ -1,6 +1,8 @@
-import { existsSync, appendFileSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { mkdirSync } from "node:fs";
+import { join, dirname, resolve } from "node:path";
 import os from "node:os";
+import { durableAppendBytes } from "../core/durable-write.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { isTestEnvironment, resolveDefectsPath } from "../core/shared/paths.ts";
 
 export type ExecutionTier = 0 | 1 | 2 | 3;
@@ -80,6 +82,28 @@ export interface ExecutionContextOptions {
   tier?: ExecutionTier | undefined;
   isInteractiveMainThread?: boolean | undefined;
   argv?: readonly string[] | undefined;
+}
+
+function safeErrorDetail(value: unknown): string {
+  if (value === null) return "null";
+  if (value === undefined) return "undefined";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint")
+    return `${value}`;
+  if (typeof value === "symbol") return "symbol error";
+  try {
+    const message = Object.getOwnPropertyDescriptor(value, "message");
+    if (message && "value" in message && typeof message.value === "string") return message.value;
+  } catch {}
+  return "unavailable error detail";
+}
+
+function safeDefectId(defect: DefectRecord): string {
+  try {
+    const id = Object.getOwnPropertyDescriptor(defect, "id");
+    if (id && "value" in id && typeof id.value === "string") return id.value;
+  } catch {}
+  return "<unavailable defect id>";
 }
 
 export function parseTierValue(value: string | undefined): ExecutionTier | null {
@@ -212,18 +236,24 @@ export function recordDefect(
   defect: DefectRecord,
   options: { runRoot?: string | undefined; cwd?: string | undefined } = {},
 ): DefectRecord {
-  const targetFile = options.runRoot
-    ? join(options.runRoot, "defects.jsonl")
-    : resolveDefectsPath(options.cwd);
-
+  let targetFile = "<unresolved defects ledger>";
+  const defectId = safeDefectId(defect);
   try {
+    targetFile = resolve(
+      options.runRoot ? join(options.runRoot, "defects.jsonl") : resolveDefectsPath(options.cwd),
+    );
     const dir = dirname(targetFile);
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
-    }
-    appendFileSync(targetFile, `${JSON.stringify(defect)}\n`, "utf8");
-  } catch {
-    // Disk recording is best-effort and non-fatal
+    mkdirSync(dir, { recursive: true });
+    const serialized = JSON.stringify(defect);
+    if (typeof serialized !== "string")
+      throw new HarnessError("INTEGRITY", "defect serialization produced no JSON record");
+    durableAppendBytes(targetFile, new TextEncoder().encode(`${serialized}\n`));
+  } catch (error) {
+    const reason = safeErrorDetail(error);
+    throw new HarnessError(
+      "INTEGRITY",
+      `failed to durably persist defect '${defectId}' to '${targetFile}': ${reason}`,
+    );
   }
   return defect;
 }

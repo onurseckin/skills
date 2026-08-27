@@ -70,10 +70,15 @@ function loadBindings(): FlockBindings {
   );
 }
 
-const bindings = loadBindings();
+let cachedBindings: FlockBindings | undefined;
+
+function bindings(): FlockBindings {
+  cachedBindings ??= loadBindings();
+  return cachedBindings;
+}
 
 function lastErrno(): number {
-  return read.i32(bindings.errno());
+  return read.i32(bindings().errno());
 }
 
 function wouldBlock(errno: number): boolean {
@@ -81,8 +86,9 @@ function wouldBlock(errno: number): boolean {
 }
 
 export function tryExclusiveFlock(descriptor: number): boolean {
+  const native = bindings();
   for (;;) {
-    if (bindings.flock(descriptor, LOCK_EX | LOCK_NB) === 0) return true;
+    if (native.flock(descriptor, LOCK_EX | LOCK_NB) === 0) return true;
     const errno = lastErrno();
     if (errno === EINTR) continue;
     if (wouldBlock(errno)) return false;
@@ -91,8 +97,9 @@ export function tryExclusiveFlock(descriptor: number): boolean {
 }
 
 export function releaseFlock(descriptor: number): void {
+  const native = bindings();
   for (;;) {
-    if (bindings.flock(descriptor, LOCK_UN) === 0) return;
+    if (native.flock(descriptor, LOCK_UN) === 0) return;
     const errno = lastErrno();
     if (errno !== EINTR) {
       throw new HarnessError("INVALID_STATE", `flock release failed with errno ${errno}`);

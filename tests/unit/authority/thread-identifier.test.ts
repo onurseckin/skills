@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   agentIdToRole,
@@ -18,10 +18,44 @@ import {
   TIER_NAMES,
   validateAgentNamingConvention,
   validateTierSpawning,
+  type DefectRecord,
   type ExecutionTier,
 } from "../../../olt/scripts/src/authority/thread-identifier.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 import { scratchRoot } from "../../support/scratch-root.ts";
+
+function defectFixture(cwd: string, id: string) {
+  return {
+    id,
+    type: "main_thread_direct_execution" as const,
+    severity: "critical" as const,
+    timestamp: new Date().toISOString(),
+    pid: 1234,
+    ppid: 1,
+    agent_id: "main-user",
+    observation: "Direct file modification on main thread",
+    remediation: "Dispatch Tier 2 coordinator",
+    context: {
+      cwd,
+      indicators: { TEST: "1" },
+    },
+  };
+}
+
+function expectIntegrityDefectWriteFailure(action: () => void, defectId: string): void {
+  try {
+    action();
+    throw new Error("expected defect write to fail");
+  } catch (error) {
+    expect(error).toBeInstanceOf(HarnessError);
+    if (error instanceof HarnessError) {
+      expect(error.code).toBe("INTEGRITY");
+      expect(error.message).toContain(defectId);
+      expect(error.message).toContain("defects.jsonl");
+    }
+  }
+}
 
 describe("Thread Identifier - 4-Tier Authority & Spawning Rules", () => {
   test("TIER_NAMES explicitly defines all 4 execution tiers", () => {
@@ -295,31 +329,129 @@ describe("Thread Identifier - 4-Tier Authority & Spawning Rules", () => {
 
   test("recordDefect persists defect log into runRoot or capsules dir", () => {
     const dir = scratchRoot(import.meta.path, "defect-log");
-    const defectRecord = {
-      id: "defect-test-123",
-      type: "main_thread_direct_execution" as const,
-      severity: "critical" as const,
-      timestamp: new Date().toISOString(),
-      pid: 1234,
-      ppid: 1,
-      agent_id: "main-user",
-      observation: "Direct file modification on main thread",
-      remediation: "Dispatch Tier 2 coordinator",
-      context: {
-        cwd: dir,
-        indicators: { TEST: "1" },
-      },
-    };
+    const defectRecord = defectFixture(dir, "defect-test-123");
 
+    recordDefect(defectRecord, { runRoot: dir });
     recordDefect(defectRecord, { runRoot: dir });
     const defectsFile = join(dir, "defects.jsonl");
     expect(existsSync(defectsFile)).toBe(true);
     const content = readFileSync(defectsFile, "utf8");
+    expect(content.split("\n").filter(Boolean)).toHaveLength(2);
     expect(content).toContain("defect-test-123");
     expect(content).toContain("main_thread_direct_execution");
 
-    // Default defects path when options omitted
-    expect(() => recordDefect(defectRecord)).not.toThrow();
+    const defaultCwd = scratchRoot(import.meta.path, "defect-log-default-cwd");
+    expect(() => recordDefect(defectRecord, { cwd: defaultCwd })).not.toThrow();
+    expect(existsSync(join(defaultCwd, ".olt", "defects.jsonl"))).toBeTrue();
+  });
+
+  test("recordDefect fails closed when the resolved ledger is a directory", () => {
+    const dir = scratchRoot(import.meta.path, "defect-directory");
+    const ledger = join(dir, "defects.jsonl");
+    mkdirSync(ledger);
+    const defectRecord = defectFixture(dir, "defect-directory-123");
+
+    expectIntegrityDefectWriteFailure(
+      () => recordDefect(defectRecord, { runRoot: dir }),
+      defectRecord.id,
+    );
+  });
+
+  test("recordDefect rejects final symlinks without changing an external ledger", () => {
+    if (process.platform === "win32") return;
+    const dir = scratchRoot(import.meta.path, "defect-symlink");
+    const external = join(dir, "external-defects.jsonl");
+    const ledger = join(dir, "defects.jsonl");
+    writeFileSync(external, "external\n");
+    symlinkSync(external, ledger);
+    const defectRecord = defectFixture(dir, "defect-symlink-123");
+
+    expectIntegrityDefectWriteFailure(
+      () => recordDefect(defectRecord, { runRoot: dir }),
+      defectRecord.id,
+    );
+    expect(readFileSync(external, "utf8")).toBe("external\n");
+  });
+
+  test("recordDefect wraps cyclic and BigInt serialization failures as INTEGRITY", () => {
+    const dir = scratchRoot(import.meta.path, "defect-serialization");
+    const cyclic = defectFixture(dir, "defect-cyclic-123") as DefectRecord & { loop?: unknown };
+    cyclic.loop = cyclic;
+    expectIntegrityDefectWriteFailure(() => recordDefect(cyclic, { runRoot: dir }), cyclic.id);
+
+    const bigint = defectFixture(dir, "defect-bigint-123") as DefectRecord & { sequence?: unknown };
+    bigint.sequence = 1n;
+    expectIntegrityDefectWriteFailure(() => recordDefect(bigint, { runRoot: dir }), bigint.id);
+  });
+
+  test("recordDefect refuses serialization that produces no JSON record", () => {
+    const dir = scratchRoot(import.meta.path, "defect-empty-serialization");
+    const defect = defectFixture(dir, "defect-empty-123") as DefectRecord & {
+      toJSON?: () => undefined;
+    };
+    defect.toJSON = () => undefined;
+    expectIntegrityDefectWriteFailure(() => recordDefect(defect, { runRoot: dir }), defect.id);
+    expect(existsSync(join(dir, "defects.jsonl"))).toBeFalse();
+  });
+
+  test("recordDefect does not invoke hostile error getters while reporting serialization failure", () => {
+    const dir = scratchRoot(import.meta.path, "defect-hostile-error");
+    const hostile = Object.create(null) as { message?: unknown };
+    Object.defineProperty(hostile, "message", {
+      get() {
+        throw new Error("hostile getter must not run");
+      },
+    });
+    const defect = defectFixture(dir, "defect-hostile-123") as DefectRecord & {
+      toJSON?: () => never;
+    };
+    defect.toJSON = () => {
+      throw hostile;
+    };
+    try {
+      recordDefect(defect, { runRoot: dir });
+      throw new Error("expected hostile serialization to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(HarnessError);
+      if (error instanceof HarnessError) {
+        expect(error.code).toBe("INTEGRITY");
+        expect(error.message).toContain("unavailable error detail");
+      }
+    }
+  });
+
+  test("identifyExecutionContext propagates durable defect persistence failures without a success result", () => {
+    if (process.platform === "win32") return;
+    const runRoot = scratchRoot(import.meta.path, "thread-defect-durability-failure");
+    const external = join(runRoot, "external-defects.jsonl");
+    const ledger = join(runRoot, "defects.jsonl");
+    writeFileSync(external, "external\n");
+    symlinkSync(external, ledger);
+    const moduleUrl = new URL(
+      "../../../olt/scripts/src/authority/thread-identifier.ts",
+      import.meta.url,
+    ).href;
+    const script = `
+      import { identifyExecutionContext } from ${JSON.stringify(moduleUrl)};
+      try {
+        identifyExecutionContext({
+          isInteractiveMainThread: true,
+          runRoot: ${JSON.stringify(runRoot)},
+          agentId: "mind-0",
+          argv: ["bun", "harness.ts", "task:submit"],
+        });
+        process.exit(91);
+      } catch (error) {
+        process.exit(error && error.code === "INTEGRITY" ? 0 : 92);
+      }
+    `;
+    const child = Bun.spawnSync([process.execPath, "--eval", script], {
+      env: { PATH: process.env.PATH ?? "", NODE_ENV: "production" },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(child.exitCode).toBe(0);
+    expect(readFileSync(external, "utf8")).toBe("external\n");
   });
 
   test("validateTierSpawning returns detailed rejection reasons across role boundaries", () => {
