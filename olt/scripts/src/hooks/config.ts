@@ -1,5 +1,15 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import { findRepoRoot } from "../core/shared/paths.ts";
 import type {
   CustomHookHandler,
   HookAction,
@@ -42,47 +52,106 @@ export const DEFAULT_HOOK_CONFIG: HookConfig = {
   defaultAudioDarwin: DEFAULT_DARWIN_SOUND_PATH,
 };
 
+function isInsideRepo(repoRoot: string, targetPath: string): boolean {
+  const pathFromRoot = relative(repoRoot, targetPath);
+  return (
+    pathFromRoot === "" ||
+    (!pathFromRoot.startsWith(`..${sep}`) && pathFromRoot !== ".." && !isAbsolute(pathFromRoot))
+  );
+}
+
+function canonicalHookConfigPath(repoRoot: string): string {
+  return join(repoRoot, ".olt", "capsules", "hooks.json");
+}
+
+function assertTrustedHookConfig(filePath: string, repoRoot: string): void {
+  const fileInfo = lstatSync(filePath);
+  if (!fileInfo.isFile()) {
+    throw new HarnessError("PATH_SAFETY", `hook config is not a regular file: '${filePath}'`);
+  }
+
+  const realRepoRoot = realpathSync(repoRoot);
+  const realConfigPath = realpathSync(filePath);
+  if (!isInsideRepo(realRepoRoot, realConfigPath)) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      `hook config resolves outside repository root: '${filePath}'`,
+    );
+  }
+
+  if (process.platform !== "win32") {
+    const fileStat = statSync(filePath);
+    if (typeof process.getuid === "function" && fileStat.uid !== process.getuid()) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `hook config is not owned by the current user: '${filePath}'`,
+      );
+    }
+    if ((fileStat.mode & 0o022) !== 0) {
+      throw new HarnessError("INTEGRITY", `hook config is group or world writable: '${filePath}'`);
+    }
+  }
+}
+
 export function resolveHookConfigFile(
   explicitPathOrDir?: string | undefined,
   cwd: string = process.cwd(),
 ): string | null {
   if (explicitPathOrDir !== undefined && explicitPathOrDir.trim().length > 0) {
-    const resolved = resolve(explicitPathOrDir);
+    const resolved = resolve(cwd, explicitPathOrDir.trim());
     if (existsSync(resolved)) {
-      const stat = statSync(resolved);
+      const stat = lstatSync(resolved);
+      if (stat.isSymbolicLink()) {
+        throw new HarnessError(
+          "PATH_SAFETY",
+          `hook config path must not be a symlink: '${resolved}'`,
+        );
+      }
       if (stat.isFile()) {
+        const repoRoot = findRepoRoot(cwd);
+        if (!isInsideRepo(repoRoot, resolved)) {
+          throw new HarnessError(
+            "PATH_SAFETY",
+            `hook config is outside repository root: '${resolved}'`,
+          );
+        }
+        assertTrustedHookConfig(resolved, repoRoot);
         return resolved;
       }
-      const candidates = [
-        join(resolved, ".olt", "capsules", "hooks.json"),
-        join(resolved, ".capsules", "hooks.json"),
-        join(resolved, "olt", "hooks.json"),
-        join(resolved, "hooks.json"),
-      ];
-      for (const candidate of candidates) {
-        if (existsSync(candidate)) {
-          return candidate;
-        }
+      if (!stat.isDirectory()) {
+        throw new HarnessError(
+          "PATH_SAFETY",
+          `hook config path is not a directory or file: '${resolved}'`,
+        );
       }
-    } else if (resolved.endsWith(".json")) {
+      const repoRoot = findRepoRoot(resolved);
+      const candidate = canonicalHookConfigPath(repoRoot);
+      if (!existsSync(candidate)) {
+        return null;
+      }
+      assertTrustedHookConfig(candidate, repoRoot);
+      return candidate;
+    }
+
+    if (resolved.endsWith(".json")) {
+      const repoRoot = findRepoRoot(cwd);
+      if (!isInsideRepo(repoRoot, resolved)) {
+        throw new HarnessError(
+          "PATH_SAFETY",
+          `hook config is outside repository root: '${resolved}'`,
+        );
+      }
       return resolved;
     }
   }
 
-  const standardLocations = [
-    join(cwd, ".olt", "capsules", "hooks.json"),
-    join(cwd, ".capsules", "hooks.json"),
-    join(cwd, "olt", "hooks.json"),
-    join(cwd, "hooks.json"),
-  ];
-
-  for (const candidate of standardLocations) {
-    if (existsSync(candidate)) {
-      return candidate;
-    }
+  const repoRoot = findRepoRoot(cwd);
+  const candidate = canonicalHookConfigPath(repoRoot);
+  if (!existsSync(candidate)) {
+    return null;
   }
-
-  return null;
+  assertTrustedHookConfig(candidate, repoRoot);
+  return candidate;
 }
 
 export function parseHookDefinition(raw: unknown, defaultId: string): HookDefinition | null {
