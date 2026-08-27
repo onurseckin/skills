@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { runAndRecordCommand } from "../../integration/record-command.ts";
@@ -10,9 +10,9 @@ import { formatRunExecBrief } from "../formatters/index.ts";
 import { actorFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
-import { createAgentMetadata, readAgentMetadata } from "../../runtime/agent-metadata.ts";
+import { readAgentMetadata } from "../../runtime/agent-metadata.ts";
 import { emitTelemetryEvent } from "../../reporting/telemetry-stream.ts";
-import { findRepoRoot, resolveEvidenceDir } from "../../core/shared/paths.ts";
+import { findRepoRoot, resolveEvidenceDir, resolveScratchDir } from "../../core/shared/paths.ts";
 
 export interface ShellExecutionResult {
   readonly markdown: string;
@@ -47,18 +47,24 @@ export async function shellCommand(
     );
   }
 
-  const repoRoot = findRepoRoot(cwd);
-  const policy = loadRepoPolicy(repoRoot);
-
-  // 1. Resolve agent metadata
-  let metadata = readAgentMetadata(actor, run ? resolve(run) : undefined);
+  const loaded = run ? loadRun(run) : undefined;
+  const repoRoot = findRepoRoot(loaded?.runRoot ?? cwd);
+  const metadataRoot = loaded?.runRoot ?? resolveScratchDir(repoRoot);
+  const metadata = readAgentMetadata(actor, metadataRoot);
   if (!metadata) {
-    metadata = createAgentMetadata({
-      agent_id: actor,
-      role: explicitRole ?? "implementer",
-      can_execute_shell: explicitRole ? undefined : true,
-    });
+    throw new HarnessError(
+      "ROLE_CONFINEMENT_VIOLATION",
+      `[MISSING_AGENT_METADATA] No durable metadata grant exists for actor '${actor}'.`,
+    );
   }
+  if (explicitRole !== undefined && explicitRole !== metadata.role) {
+    throw new HarnessError(
+      "ROLE_CONFINEMENT_VIOLATION",
+      `[ROLE_ASSERTION_MISMATCH] --role '${explicitRole}' does not match durable role '${metadata.role}'.`,
+    );
+  }
+
+  const policy = loadRepoPolicy(repoRoot);
 
   // 2. Perform Hard-Coded Mechanical RBAC Authorization
   const auth = verifyCommandAuthorization(metadata, remainder, policy);
@@ -77,8 +83,7 @@ export async function shellCommand(
   const commandStr = remainder.join(" ");
 
   // 3. Execution under capsule record if run is provided
-  if (run) {
-    const loaded = loadRun(run);
+  if (loaded) {
     const declared = declaredToolFlags(flags);
     const commandDir = join(loaded.runRoot, "commands");
 

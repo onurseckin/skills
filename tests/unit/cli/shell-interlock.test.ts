@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { shellCommand } from "../../../olt/scripts/src/cli/commands/shell.ts";
 import { scopeExpandCommand } from "../../../olt/scripts/src/cli/commands/scope-expand.ts";
 import {
@@ -6,10 +7,26 @@ import {
   isWithinNeighborhood,
 } from "../../../olt/scripts/src/runtime/read-scope-guard.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import {
+  createAgentMetadata,
+  getAgentMetadataPath,
+  writeAgentMetadata,
+} from "../../../olt/scripts/src/runtime/agent-metadata.ts";
+
+function registerStandaloneActor(actor: string, role: string): void {
+  writeAgentMetadata(
+    createAgentMetadata({
+      agent_id: actor,
+      role,
+      can_execute_shell: role === "implementer",
+    }),
+  );
+}
 
 describe("CLI Shell Interlock & Read Scope Expansion", () => {
   describe("shellCommand", () => {
     test("instantly blocks un-targeted whole-repo test run for implementer", async () => {
+      registerStandaloneActor("imp-test", "implementer");
       let thrown: unknown;
       try {
         await shellCommand({ actor: "imp-test", role: "implementer" }, {}, ["bun", "test"]);
@@ -25,6 +42,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
     });
 
     test("instantly blocks cognitive validator from running any shell commands", async () => {
+      registerStandaloneActor("val-test", "validator");
       let thrown: unknown;
       try {
         await shellCommand({ actor: "val-test", role: "validator" }, {}, ["git", "status"]);
@@ -42,6 +60,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
     });
 
     test("instantly blocks unshielded subshells and chaining attempts", async () => {
+      registerStandaloneActor("imp-test", "implementer");
       let thrownSh: unknown;
       try {
         await shellCommand({ actor: "imp-test", role: "implementer" }, {}, [
@@ -72,6 +91,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
     });
 
     test("executes authorized diagnostic command and outputs cryptographic receipt with evidence file", async () => {
+      registerStandaloneActor("imp-test", "implementer");
       const result = await shellCommand({ actor: "imp-test", role: "implementer" }, {}, [
         "echo",
         "harness-shell-ok",
@@ -103,6 +123,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
     });
 
     test("formats stderr in standalone direct execution when command writes to stderr", async () => {
+      registerStandaloneActor("imp-test", "implementer");
       const result = await shellCommand({ actor: "imp-test", role: "implementer" }, {}, [
         "git",
         "invalid-git-command-for-test",
@@ -110,6 +131,23 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
 
       expect(result.exit_code).not.toBe(0);
       expect(result.markdown).toContain("#### Stderr (last lines):");
+    });
+
+    test("refuses unknown standalone authority even when --role claims implementer", async () => {
+      const actor = "impl-no-durable-grant";
+      const metadataPath = getAgentMetadataPath(actor);
+      expect(existsSync(metadataPath)).toBe(false);
+      await expect(
+        shellCommand({ actor, role: "implementer" }, {}, ["echo", "must-not-run"]),
+      ).rejects.toMatchObject({ code: "ROLE_CONFINEMENT_VIOLATION" });
+      expect(existsSync(metadataPath)).toBe(false);
+    });
+
+    test("treats --role only as a consistency assertion against durable metadata", async () => {
+      registerStandaloneActor("impl-role-assertion", "implementer");
+      await expect(
+        shellCommand({ actor: "impl-role-assertion", role: "validator" }, {}, ["echo", "nope"]),
+      ).rejects.toMatchObject({ code: "ROLE_CONFINEMENT_VIOLATION" });
     });
 
     test("executes command under capsule record with --run, --task, --wave, and --gate", async () => {

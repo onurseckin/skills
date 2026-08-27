@@ -2,12 +2,9 @@ import {
   executePhaseCompletionSyncAndCommit,
   type PhaseCompletionResult,
 } from "../../workflow/completion/auto-sync-and-commit.ts";
-import {
-  createAgentMetadata,
-  readAgentMetadata,
-  writeAgentMetadata,
-} from "../../runtime/agent-metadata.ts";
+import { readAgentMetadata } from "../../runtime/agent-metadata.ts";
 import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
+import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import type { JsonObject } from "../../core/contracts/json.ts";
@@ -393,29 +390,15 @@ export async function runExecCommand(
   const declared = declaredToolFlags(flags);
   const commandDir = `${loaded.runRoot}/commands`;
 
-  let metadata = readAgentMetadata(actor, loaded.runRoot);
+  const metadata = readAgentMetadata(actor, loaded.runRoot);
   if (!metadata) {
-    const rawRole = (loaded.state as Record<string, unknown>).agents
-      ? ((loaded.state as Record<string, unknown>).agents as Record<string, { role?: string }>)[
-          actor
-        ]?.role
-      : undefined;
-    const role =
-      rawRole ??
-      (actor.startsWith("worker") || actor.startsWith("impl") ? "implementer" : "implementer");
-    metadata = createAgentMetadata({
-      agent_id: actor,
-      role,
-      run_id: typeof loaded.manifest.id === "string" ? loaded.manifest.id : undefined,
-    });
-    try {
-      writeAgentMetadata(metadata, loaded.runRoot);
-    } catch {
-      // ignore write error
-    }
+    throw new HarnessError(
+      "ROLE_CONFINEMENT_VIOLATION",
+      `[MISSING_AGENT_METADATA] No durable run-scoped metadata grant exists for actor '${actor}'.`,
+    );
   }
 
-  const auth = verifyCommandAuthorization(metadata, argv);
+  const auth = verifyCommandAuthorization(metadata, argv, loadRepoPolicy(repoRoot));
   if (!auth.authorized) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
