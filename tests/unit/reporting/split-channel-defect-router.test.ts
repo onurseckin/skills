@@ -1,11 +1,20 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import {
   SplitChannelDefectRouter,
   type DefectRouteResult,
 } from "../../../olt/scripts/src/reporting/split-channel-defect-router.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 const scratchRoots: string[] = [];
 
@@ -121,7 +130,7 @@ describe("SplitChannelDefectRouter", () => {
     expect(record["context"]).toBeUndefined();
   });
 
-  test("gracefully falls back to local project defects ledger if mothership write fails", () => {
+  test("throws INTEGRITY without routing a framework defect to the project ledger when mothership is unavailable", () => {
     const projectRoot = createScratchDir("fallback-project");
     mkdirSync(join(projectRoot, ".olt"), { recursive: true });
 
@@ -131,50 +140,153 @@ describe("SplitChannelDefectRouter", () => {
     writeFileSync(badMothership, "not a directory", "utf-8");
     process.env["OLT_SKILL_HOME_REPO"] = badMothership;
 
-    const result = SplitChannelDefectRouter.routeDefect({
-      currentRepoRoot: projectRoot,
-      domain: "skill-framework",
-      defect: {
-        id: "DEF-FALLBACK-001",
-        error_code: "BLUNDER_DETECTED",
-        title: "Test blunder",
-        description: "Blunder description",
-      },
-    });
-
-    expect(result.routed).toBe(true);
-    expect(result.isMothership).toBe(false);
-    expect(result.targetRepoRoot).toBe(resolve(projectRoot));
-    expect(existsSync(result.targetDefectsPath)).toBe(true);
-
-    const content = readFileSync(result.targetDefectsPath, "utf-8");
-    const record = JSON.parse(content.trim()) as Record<string, unknown>;
-    expect(record["id"]).toBe("DEF-FALLBACK-001");
-    expect(record["domain"]).toBe("skill-framework");
-    expect(record["source_repo"]).toBe(resolve(projectRoot));
+    let firstFailure: unknown;
+    try {
+      SplitChannelDefectRouter.routeDefect({
+        currentRepoRoot: projectRoot,
+        domain: "skill-framework",
+        defect: {
+          id: "DEF-FALLBACK-001",
+          error_code: "BLUNDER_DETECTED",
+          title: "Test blunder",
+          description: "Blunder description",
+        },
+      });
+    } catch (error) {
+      firstFailure = error;
+    }
+    expect(firstFailure).toBeInstanceOf(HarnessError);
+    expect((firstFailure as HarnessError).code).toBe("INTEGRITY");
+    expect(existsSync(join(projectRoot, ".olt", "defects.jsonl"))).toBe(false);
   });
 
-  test("handles catastrophic failure when both mothership and local project writes fail", () => {
-    const projectRoot = createScratchDir("double-fail");
-    const projectFile = join(projectRoot, "blocked-project");
-    writeFileSync(projectFile, "not a directory", "utf-8");
+  test("refuses a final symlink without changing its target", () => {
+    const projectRoot = createScratchDir("symlink");
+    const target = join(projectRoot, "target.jsonl");
+    const defectsPath = join(projectRoot, ".olt", "defects.jsonl");
+    writeFileSync(target, "preserve\n", "utf-8");
+    mkdirSync(dirname(defectsPath), { recursive: true });
+    symlinkSync(target, defectsPath);
 
-    const mothershipFile = join(projectRoot, "blocked-mothership");
-    writeFileSync(mothershipFile, "not a directory", "utf-8");
-    process.env["OLT_SKILL_HOME_REPO"] = mothershipFile;
+    expect(() =>
+      SplitChannelDefectRouter.routeDefect({
+        currentRepoRoot: projectRoot,
+        domain: "project",
+        defect: {
+          error_code: "SYMLINK",
+          title: "refuse",
+          description: "must not follow final symlink",
+        },
+      }),
+    ).toThrow(HarnessError);
+    expect(readFileSync(target, "utf-8")).toBe("preserve\n");
+  });
 
-    const result = SplitChannelDefectRouter.routeDefect({
-      currentRepoRoot: projectFile,
-      domain: "skill-framework",
-      defect: {
-        error_code: "UNWRITABLE_DEFECT",
-        title: "Unwritable test",
-        description: "Cannot write anywhere",
+  test("fails serialization before creating a ledger row for cyclic and BigInt contexts", () => {
+    const cyclicRoot = createScratchDir("cyclic");
+    const cyclic: Record<string, unknown> = {};
+    cyclic["self"] = cyclic;
+
+    let cyclicFailure: unknown;
+    try {
+      SplitChannelDefectRouter.routeDefect({
+        currentRepoRoot: cyclicRoot,
+        domain: "project",
+        defect: { error_code: "CYCLIC", title: "cyclic", description: "cyclic", context: cyclic },
+      });
+    } catch (error) {
+      cyclicFailure = error;
+    }
+    expect(cyclicFailure).toBeInstanceOf(HarnessError);
+    expect((cyclicFailure as HarnessError).code).toBe("INTEGRITY");
+    expect(existsSync(join(cyclicRoot, ".olt", "defects.jsonl"))).toBe(false);
+
+    const bigintRoot = createScratchDir("bigint");
+    let bigintFailure: unknown;
+    try {
+      SplitChannelDefectRouter.routeDefect({
+        currentRepoRoot: bigintRoot,
+        domain: "project",
+        defect: {
+          error_code: "BIGINT",
+          title: "bigint",
+          description: "bigint",
+          context: { value: BigInt(1) },
+        },
+      });
+    } catch (error) {
+      bigintFailure = error;
+    }
+    expect(bigintFailure).toBeInstanceOf(HarnessError);
+    expect((bigintFailure as HarnessError).code).toBe("INTEGRITY");
+    expect(existsSync(join(bigintRoot, ".olt", "defects.jsonl"))).toBe(false);
+  });
+
+  test("formats hostile serialization errors without accessing hostile getters or coercion", () => {
+    const projectRoot = createScratchDir("hostile");
+    const hostile = Object.create(null) as Record<string, unknown>;
+    Object.defineProperty(hostile, "message", {
+      get: () => {
+        throw new Error("message getter accessed");
+      },
+    });
+    Object.defineProperty(hostile, "toString", {
+      get: () => {
+        throw new Error("toString getter accessed");
+      },
+    });
+    const context = {} as Record<string, unknown>;
+    Object.defineProperty(context, "toJSON", {
+      get: () => {
+        throw hostile;
       },
     });
 
-    expect(result.routed).toBe(false);
-    expect(result.isMothership).toBe(false);
+    let hostileFailure: unknown;
+    try {
+      SplitChannelDefectRouter.routeDefect({
+        currentRepoRoot: projectRoot,
+        domain: "project",
+        defect: { error_code: "HOSTILE", title: "hostile", description: "hostile", context },
+      });
+    } catch (error) {
+      hostileFailure = error;
+    }
+    expect(hostileFailure).toBeInstanceOf(HarnessError);
+    expect((hostileFailure as HarnessError).code).toBe("INTEGRITY");
+    expect((hostileFailure as Error).message).toContain("unknown error");
+    expect(existsSync(join(projectRoot, ".olt", "defects.jsonl"))).toBe(false);
+  });
+
+  test("rejects a supplied context that JSON serialization would silently omit before directory creation", () => {
+    const projectRoot = createScratchDir("omitted-context");
+    let serializations = 0;
+    const context = {} as Record<string, unknown>;
+    context["toJSON"] = () => {
+      serializations += 1;
+      return undefined;
+    };
+
+    let failure: unknown;
+    try {
+      SplitChannelDefectRouter.routeDefect({
+        currentRepoRoot: projectRoot,
+        domain: "project",
+        defect: {
+          error_code: "OMITTED_CONTEXT",
+          title: "omitted",
+          description: "context must persist",
+          context,
+        },
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toBeInstanceOf(HarnessError);
+    expect((failure as HarnessError).code).toBe("INTEGRITY");
+    expect(serializations).toBe(1);
+    expect(existsSync(join(projectRoot, ".olt"))).toBe(false);
   });
 
   test("appends multiple defects sequentially without overwriting previous records", () => {
