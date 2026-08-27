@@ -271,19 +271,13 @@ function subjectFlag(spec: CommandSpec): string | undefined {
   return undefined;
 }
 
-const SUBJECT_DOUBLES_AS_ACTOR_EXEMPT_COMMANDS: ReadonlySet<string> = new Set(["agent:register"]);
-
-function actingAgent(spec: CommandSpec, flags: Flags): string | undefined {
+export function explicitActingClaim(spec: CommandSpec, flags: Flags): string | undefined {
   const subject = subjectFlag(spec);
   const candidates =
     subject === undefined ? ACTING_FLAGS : ACTING_FLAGS.filter((name) => name !== subject);
   for (const name of candidates) {
     const value = identity(flags, name);
     if (value !== undefined) return value;
-  }
-  if (subject !== undefined && !SUBJECT_DOUBLES_AS_ACTOR_EXEMPT_COMMANDS.has(spec.name)) {
-    const subjectValue = identity(flags, subject);
-    if (subjectValue !== undefined) return subjectValue;
   }
   return undefined;
 }
@@ -303,13 +297,10 @@ const GRANT_REQUIRED_ROLE_CONTRACT_EXEMPT_COMMANDS: ReadonlySet<string> = new Se
   "gate:prove",
 ]);
 
-function actsOnOwnGrant(spec: CommandSpec, flags: Flags): boolean {
+function actsOnOwnGrant(spec: CommandSpec, flags: Flags, caller: string): boolean {
   if (!SELF_SERVICE_SUBJECT_COMMANDS.has(spec.name)) return false;
   const subject = subjectFlag(spec);
-  if (subject === undefined || identity(flags, subject) === undefined) return false;
-  return ACTING_FLAGS.filter((name) => name !== subject).every(
-    (name) => identity(flags, name) === undefined,
-  );
+  return subject !== undefined && identity(flags, subject) === caller;
 }
 
 const RUN_SCOPED_GRANT_BOOTSTRAP_EXEMPT_COMMANDS: ReadonlySet<string> = new Set([
@@ -435,7 +426,44 @@ function assertAgentRegisterHierarchy(
   assertSpawnAuthorized(actingGrant.role, childRole, agentId, childAgentId);
 }
 
-export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
+export interface AuthenticatedCaller {
+  readonly actor: string;
+  readonly role: string;
+  readonly verified: boolean;
+}
+
+function assertSubjectTargetPolicy(
+  spec: CommandSpec,
+  flags: Flags,
+  caller: string,
+  ledger: ReturnType<typeof readAgentLedger>,
+): void {
+  if (!SELF_SERVICE_SUBJECT_COMMANDS.has(spec.name)) return;
+  const subject = subjectFlag(spec);
+  const target = subject === undefined ? undefined : identity(flags, subject);
+  if (target === undefined) return;
+  if (spec.name === "agent:report" && caller !== target) {
+    throw new HarnessError(
+      "AUTHENTICATION_FAILURE",
+      `agent:report target '${target}' does not match authenticated caller '${caller}'; agents may report only their own grant`,
+    );
+  }
+  if (spec.name === "agent:release" && caller !== target) {
+    const targetGrant = ledger.find((grant) => grant.id === target);
+    if (targetGrant?.parent_agent_id !== caller) {
+      throw new HarnessError(
+        "AUTHENTICATION_FAILURE",
+        `agent:release target '${target}' is not the authenticated caller '${caller}' or its active direct child`,
+      );
+    }
+  }
+}
+
+export function assertGrantedCommand(
+  spec: CommandSpec,
+  flags: Flags,
+  caller?: AuthenticatedCaller,
+): void {
   if (!requiresActingIdentity(spec)) return;
 
   const runRoot = identity(flags, "run");
@@ -447,17 +475,24 @@ export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
       `${spec.name} carries no resolvable --run and is not on the grant bootstrap allowlist; a capsule root is required before its grant authority can be checked`,
     );
   }
-  const agentId = actingAgent(spec, flags);
+  const claim = explicitActingClaim(spec, flags);
+  if (caller !== undefined && claim !== undefined && claim !== caller.actor) {
+    throw new HarnessError(
+      "AUTHENTICATION_FAILURE",
+      `explicit acting identity '${claim}' does not match authenticated caller '${caller.actor}'`,
+    );
+  }
+  const agentId = caller?.actor;
 
   if (spec.name === "agent:register") {
     assertAgentRegisterHierarchy(flags, runRoot, agentId);
   }
 
-  if (agentId === undefined) {
+  if (agentId === undefined || !caller?.verified) {
     if (isBootstrapExempt(spec)) return;
     throw new HarnessError(
-      "INVALID_STATE",
-      `${spec.name} carries no resolvable acting identity (--agent/--validator/--critic/--actor) and is not on the grant bootstrap allowlist; an acting agent is required before its grant authority can be checked`,
+      "AUTHENTICATION_FAILURE",
+      `${spec.name} requires a verified caller session backed by an active run grant; explicit identity flags cannot establish authority`,
     );
   }
   const state = capsuleState(runRoot);
@@ -484,6 +519,8 @@ export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
       `agent ${agentId} holds no grant in the capsule at --run ${runRoot} and ${spec.name} is not on the grant bootstrap allowlist`,
     );
   }
+
+  assertSubjectTargetPolicy(spec, flags, agentId, ledger);
 
   const toolCat = identity(flags, "tool-category");
   if (
@@ -527,7 +564,7 @@ export function assertGrantedCommand(spec: CommandSpec, flags: Flags): void {
     }
   }
 
-  if (actsOnOwnGrant(spec, flags)) return;
+  if (actsOnOwnGrant(spec, flags, agentId)) return;
   if (GRANT_REQUIRED_ROLE_CONTRACT_EXEMPT_COMMANDS.has(spec.name)) return;
   assertRoleMayInvoke(grant.role, spec, agentId);
 }

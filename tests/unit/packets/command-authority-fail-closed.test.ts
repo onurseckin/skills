@@ -4,8 +4,9 @@ import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import {
-  assertGrantedCommand,
+  assertGrantedCommand as assertRawGrantedCommand,
   assertSpawnAuthorized,
+  type AuthenticatedCaller,
 } from "../../../olt/scripts/src/packets/command-authority.ts";
 import {
   GRANT_BOOTSTRAP_ALLOWLIST,
@@ -20,13 +21,36 @@ import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { emptyGrantRun } from "./grant-run-fixture.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { registerSessionGrant } from "../../../olt/scripts/src/authority/session-registry.ts";
+import {
+  registerSessionGrant,
+  revokeSessionGrant,
+} from "../../../olt/scripts/src/authority/session-registry.ts";
 import { loadDagSnapshot } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
 
 function spec(invocation: string) {
   const found = findCommand(invocation);
   if (!found) throw new Error(`the registry has no command named ${invocation}`);
   return found;
+}
+
+function testCaller(specification: CommandSpec, flags: Flags): AuthenticatedCaller | undefined {
+  const callerFlag = ["actor", "validator", "critic", "agent"].find((name) => {
+    if (
+      (specification.name === "agent:register" ||
+        specification.name === "agent:report" ||
+        specification.name === "agent:release") &&
+      name === "agent"
+    ) {
+      return false;
+    }
+    return typeof flags[name] === "string" && flags[name].trim() !== "";
+  });
+  if (callerFlag === undefined) return undefined;
+  return { actor: flags[callerFlag] as string, role: "test", verified: true };
+}
+
+function assertGrantedCommand(specification: CommandSpec, flags: Flags): void {
+  assertRawGrantedCommand(specification, flags, testCaller(specification, flags));
 }
 
 function installMetaAuditGrant(
@@ -68,6 +92,7 @@ describe("meta-audit execute authority", () => {
   test("accepts active coordinator actor and never treats --agent filter as actor", async () => {
     const { run } = await emptyGrantRun("meta-audit-coordinator-");
     installMetaAuditGrant(run, "coordinator", "coordinator");
+    registerSessionGrant({ runRoot: run, agentId: "coordinator", role: "coordinator" });
     const result = await execute([
       "meta-audit",
       "--run",
@@ -78,6 +103,12 @@ describe("meta-audit execute authority", () => {
       "victim",
     ]);
     expect(result.run_root).toBe(run);
+    revokeSessionGrant({
+      runRoot: run,
+      agentId: "coordinator",
+      pid: process.pid,
+      ppid: process.ppid,
+    });
     await expect(
       execute(["meta-audit", "--run", run, "--agent", "victim", "--inject"]),
     ).rejects.toThrow("--actor is required");
@@ -86,6 +117,7 @@ describe("meta-audit execute authority", () => {
   test("accepts an active meta-auditor actor through execute", async () => {
     const { run } = await emptyGrantRun("meta-audit-meta-auditor-");
     installMetaAuditGrant(run, "meta-auditor", "meta-auditor");
+    registerSessionGrant({ runRoot: run, agentId: "meta-auditor", role: "meta-auditor" });
     const result = await execute(["meta-audit", "--run", run, "--actor", "meta-auditor"]);
     expect(result.run_root).toBe(run);
   });
@@ -149,10 +181,12 @@ describe("quota lifecycle execute authority", () => {
     if (initialized.status !== 0)
       throw new Error("could not initialize quota authority test repository");
     installMetaAuditGrant(run, "mind", "mind");
+    registerSessionGrant({ runRoot: run, agentId: "mind", role: "mind" });
     const frozen = await execute(["quota:freeze", "--run", run, "--actor", "mind", "--force"]);
     expect(frozen.status).toBe("frozen");
     expect(loadDagSnapshot(repo)?.runRoot).toBe(run);
     installMetaAuditGrant(run, "orchestrator", "orchestrator");
+    registerSessionGrant({ runRoot: run, agentId: "orchestrator", role: "orchestrator" });
     const resumed = await execute([
       "quota:resume",
       "--run",
@@ -210,7 +244,7 @@ describe("assertGrantedCommand hole 2: no acting identity resolves", () => {
   test("denies a non-allowlisted command with --run but no identity flag", () => {
     const flags: Flags = { run: "/nonexistent/capsule" };
     expect(() => assertGrantedCommand(spec("task:heartbeat"), flags)).toThrow(
-      "not on the grant bootstrap allowlist",
+      "verified caller session",
     );
   });
 
@@ -313,7 +347,7 @@ describe("assertGrantedCommand fail-closed does not flip open for legitimate run
   test("still denies a command that declares an identity flag even when it goes unsupplied against a real run", async () => {
     const { run } = await emptyGrantRun("fail-closed-identity-declared-");
     expect(() => assertGrantedCommand(spec("task:submit"), { run })).toThrow(
-      "not on the grant bootstrap allowlist",
+      "verified caller session",
     );
   });
 });
@@ -590,7 +624,7 @@ describe("assertGrantedCommand: the false-positive repair does not widen into a 
       "not on the grant bootstrap allowlist",
     );
     expect(() => assertGrantedCommand(syntheticSpec, { run: "/nonexistent/probe-run" })).toThrow(
-      "not on the grant bootstrap allowlist",
+      "verified caller session",
     );
   });
 });

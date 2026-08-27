@@ -4,11 +4,28 @@ import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import {
+  registerSessionGrant,
+  revokeSessionGrant,
+} from "../../../olt/scripts/src/authority/session-registry.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
+
+function installCallerSession(run: string, agentId: string, role: string): void {
+  registerSessionGrant({ runRoot: run, agentId, role, host: "claude-code" });
+}
+
+function clearCallerSession(run: string): void {
+  revokeSessionGrant({
+    runRoot: run,
+    agentId: "test-session",
+    pid: process.pid,
+    ppid: process.ppid,
+  });
+}
 
 describe("agent:register", () => {
   test("registers a root agent and reports zero prior active grants", async () => {
@@ -141,7 +158,7 @@ describe("agent:register", () => {
     ).rejects.toThrow("--model-tier must be one of");
   });
 
-  test("CRITICAL 1/HIGH 4 end to end: agent:register with an explicit --parent-agent is refused without a matching --actor, and still refused for a hierarchy violation once one is proven", async () => {
+  test("agent:register authenticates an omitted actor from the caller session before applying hierarchy policy", async () => {
     const { run } = await setupCompiledRun("agent-register-e2e-hierarchy", roots);
     await execute([
       "agent:register",
@@ -169,7 +186,7 @@ describe("agent:register", () => {
         "--parent-agent",
         "orchestrator-1",
       ]),
-    ).rejects.toThrow("no resolvable acting identity");
+    ).rejects.toThrow("may only dispatch Tier 2 Coordinators");
 
     await expect(
       execute([
@@ -243,7 +260,7 @@ describe("agent:report", () => {
 
     const result = await execute([
       "agent:report",
-      "--run",
+      "--run-id",
       run,
       "--agent",
       "worker-1",
@@ -261,6 +278,49 @@ describe("agent:report", () => {
     expect(result.run_root).toBe(run);
     const agent = result.agent as { id: string };
     expect(agent.id).toBe("worker-1");
+  });
+
+  test("authorizes report against the authenticated caller, not the named target", async () => {
+    const { run } = await setupCompiledRun("agent-report-caller-binding", roots);
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "coordinator-1",
+      "--role",
+      "coordinator",
+      "--host",
+      "claude-code",
+    ]);
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+      "--host",
+      "claude-code",
+      "--parent-agent",
+      "coordinator-1",
+      "--actor",
+      "coordinator-1",
+    ]);
+    installCallerSession(run, "worker-1", "implementer");
+
+    await expect(
+      execute([
+        "agent:report",
+        "--run",
+        run,
+        "--agent",
+        "coordinator-1",
+        "--tool",
+        "Read=file-edit",
+      ]),
+    ).rejects.toThrow("authenticated caller");
   });
 
   test("records estimated token counts when --tokens-estimated is given", async () => {
@@ -333,6 +393,84 @@ describe("agent:release", () => {
     expect(agent.id).toBe("worker-1");
     expect(agent.status).toBe("released");
     expect(result.active_grants).toBe(1);
+  });
+
+  test("denies a caller from releasing an unrelated target but permits its active direct parent", async () => {
+    const { run } = await setupCompiledRun("agent-release-caller-binding", roots);
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "coordinator-1",
+      "--role",
+      "coordinator",
+      "--host",
+      "claude-code",
+    ]);
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+      "--host",
+      "claude-code",
+      "--parent-agent",
+      "coordinator-1",
+      "--actor",
+      "coordinator-1",
+    ]);
+    installCallerSession(run, "coordinator-1", "coordinator");
+    await execute([
+      "agent:register",
+      "--run",
+      run,
+      "--agent",
+      "worker-2",
+      "--role",
+      "implementer",
+      "--host",
+      "claude-code",
+      "--parent-agent",
+      "coordinator-1",
+      "--actor",
+      "coordinator-1",
+    ]);
+    installCallerSession(run, "worker-1", "implementer");
+    await expect(
+      execute(["agent:release", "--run", run, "--agent", "coordinator-1", "--reason", "no"]),
+    ).rejects.toThrow("authenticated caller");
+    await expect(
+      execute(["agent:release", "--run", run, "--agent", "worker-2", "--reason", "no"]),
+    ).rejects.toThrow("authenticated caller");
+
+    installCallerSession(run, "coordinator-1", "coordinator");
+    await expect(
+      execute(["agent:release", "--run", run, "--agent", "worker-1", "--reason", "done"]),
+    ).resolves.toMatchObject({ active_grants: 2 });
+  });
+
+  test("refuses an explicit identity claim without a registered caller session", async () => {
+    const { run } = await setupCompiledRun("agent-release-no-session", roots);
+    clearCallerSession(run);
+    const before = JSON.stringify(loadRun(run));
+    await expect(
+      execute([
+        "agent:release",
+        "--run",
+        run,
+        "--agent",
+        "someone-else",
+        "--actor",
+        "someone-else",
+        "--reason",
+        "no-session",
+      ]),
+    ).rejects.toThrow("verified caller");
+    expect(JSON.stringify(loadRun(run))).toBe(before);
   });
 });
 

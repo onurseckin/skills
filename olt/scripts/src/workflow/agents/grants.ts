@@ -287,6 +287,12 @@ function tokenCount(value: number | undefined, isEstimate: boolean): Evidenced<n
 }
 
 export function recordAgentReport(input: AgentReportInput): AgentGrantOutcome {
+  if (input.actor !== input.agentId) {
+    throw new HarnessError(
+      "AUTHENTICATION_FAILURE",
+      `agent:report target '${input.agentId}' does not match authenticated actor '${input.actor}'; agents may report only their own grant`,
+    );
+  }
   const reportedExtras = Object.keys(input.tokenExtras ?? {}).length;
   if (
     input.tools.length === 0 &&
@@ -366,6 +372,15 @@ export function releaseAgentGrant(input: ReleaseAgentInput): AgentGrantOutcome {
     (draft) => {
       const ledger = readAgentLedger(draft);
       const grant = requireGrant(ledger, input.agentId);
+      if (input.actor !== input.agentId) {
+        const actorGrant = requireGrant(ledger, input.actor);
+        if (actorGrant.status !== "active" || grant.parent_agent_id !== input.actor) {
+          throw new HarnessError(
+            "AUTHENTICATION_FAILURE",
+            `agent:release target '${input.agentId}' is not authenticated actor '${input.actor}' or its active direct child`,
+          );
+        }
+      }
       if (grant.status === "released") {
         throw new HarnessError(
           "INVALID_STATE",

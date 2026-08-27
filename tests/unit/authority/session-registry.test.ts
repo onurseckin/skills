@@ -791,7 +791,7 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
     expect(resolved?.mechanisms_detected).toEqual(["workspace_directory_session"]);
   });
 
-  it("allows matching explicitActor variants (agent_id, role, or agent-role) and token delegation", () => {
+  it("allows matching explicitActor variants but refuses token-only delegation", () => {
     registerSessionGrant({
       runRoot: sandboxDir,
       agentId: "impl-wave-1",
@@ -825,14 +825,14 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
     });
     expect(matchAgentRole?.agent_id).toBe("impl-wave-1");
 
-    // Delegation: explicitActor differs, but matching explicitToken is supplied
-    const delegated = resolveActiveSession({
-      cwd: sandboxDir,
-      ppid: 60001,
-      explicitActor: "coordinator-1",
-      explicitToken: "tok_delegated_secret",
-    });
-    expect(delegated?.agent_id).toBe("impl-wave-1");
+    expect(() =>
+      resolveActiveSession({
+        cwd: sandboxDir,
+        ppid: 60001,
+        explicitActor: "coordinator-1",
+        explicitToken: "tok_delegated_secret",
+      }),
+    ).toThrow("cannot delegate another agent's durable grant");
   });
 
   it("mechanically blocks Actor Spoofing when caller tries to pass another role flag without credentials", () => {

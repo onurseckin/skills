@@ -2,7 +2,7 @@ import type { JsonObject } from "../core/contracts/json.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { parseArguments } from "./arguments.ts";
 import { assertFlags, type CommandContext } from "./options.ts";
-import { assertGrantedCommand } from "../packets/command-authority.ts";
+import { assertGrantedCommand, explicitActingClaim } from "../packets/command-authority.ts";
 import { findCommand, flagShapes, type CommandSpec } from "./registry/index.ts";
 import { autoDeriveCallerIdentity } from "../authority/session-registry.ts";
 
@@ -20,8 +20,15 @@ export async function execute(
     );
   }
 
+  if (parsed.flags["run-id"] !== undefined && parsed.flags["run"] === undefined) {
+    parsed.flags["run"] = parsed.flags["run-id"];
+  } else if (parsed.flags["run"] !== undefined && parsed.flags["run-id"] === undefined) {
+    parsed.flags["run-id"] = parsed.flags["run"];
+  }
+
   const identity = autoDeriveCallerIdentity({
     runRoot: typeof parsed.flags["run"] === "string" ? parsed.flags["run"] : undefined,
+    explicitActor: explicitActingClaim(spec, parsed.flags),
   });
   for (const flag of spec.flags) {
     if (
@@ -46,10 +53,12 @@ export async function execute(
     }
   }
 
-  if (parsed.flags["run-id"] !== undefined && parsed.flags["run"] === undefined) {
-    parsed.flags["run"] = parsed.flags["run-id"];
-  } else if (parsed.flags["run"] !== undefined && parsed.flags["run-id"] === undefined) {
-    parsed.flags["run-id"] = parsed.flags["run"];
+  if (
+    identity.verified &&
+    spec.flags.some((flag) => flag.name === "actor") &&
+    parsed.flags["actor"] === undefined
+  ) {
+    parsed.flags["actor"] = identity.actor;
   }
 
   assertFlags(
@@ -74,7 +83,7 @@ export async function execute(
     }
   }
 
-  assertGrantedCommand(spec, parsed.flags);
+  assertGrantedCommand(spec, parsed.flags, identity);
 
   return (await spec.handler(parsed.flags, context, parsed.remainder)) as JsonObject;
 }

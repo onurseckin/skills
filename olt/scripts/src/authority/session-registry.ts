@@ -731,13 +731,10 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
       requestedActor !== finalRole &&
       requestedActor !== `agent-${finalRole}`
     ) {
-      // If tokens match, allow delegation; otherwise reject spoofing attempt
-      if (!options.explicitToken || options.explicitToken !== detectedToken) {
-        throw new HarnessError(
-          "AUTHENTICATION_FAILURE",
-          `Actor spoofing blocked: caller verified as '${finalAgentId}' (${finalRole}) cannot execute as '${requestedActor}' without matching credentials.`,
-        );
-      }
+      throw new HarnessError(
+        "AUTHENTICATION_FAILURE",
+        `Actor spoofing blocked: caller verified as '${finalAgentId}' (${finalRole}) cannot execute as '${requestedActor}'. Session tokens authenticate their holder and cannot delegate another agent's durable grant.`,
+      );
     }
   }
 

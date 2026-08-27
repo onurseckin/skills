@@ -88,6 +88,32 @@ function telemetryFlags(flags: Flags): GrantTelemetryInput {
   };
 }
 
+function assertReportTargetPolicy(agent: string, actor: string): void {
+  if (actor !== agent) {
+    throw new HarnessError(
+      "AUTHENTICATION_FAILURE",
+      `agent:report target '${agent}' does not match authenticated actor '${actor}'; agents may report only their own grant`,
+    );
+  }
+}
+
+function assertReleaseTargetPolicy(run: string, agent: string, actor: string): void {
+  if (actor === agent) return;
+  const ledger = readAgentLedger(loadRun(run).state);
+  const targetGrant = ledger.find((grant) => grant.id === agent);
+  const actorGrant = ledger.find((grant) => grant.id === actor);
+  if (
+    targetGrant?.parent_agent_id !== actor ||
+    actorGrant === undefined ||
+    actorGrant.status !== "active"
+  ) {
+    throw new HarnessError(
+      "AUTHENTICATION_FAILURE",
+      `agent:release target '${agent}' is not authenticated actor '${actor}' or its active direct child`,
+    );
+  }
+}
+
 export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const agent = textFlag(flags, "agent")!;
@@ -181,13 +207,15 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
 export function agentReportCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const agent = textFlag(flags, "agent")!;
+  const actor = textFlag(flags, "actor", false) ?? agent;
+  assertReportTargetPolicy(agent, actor);
   const tokensIn = integerFlag(flags, "tokens-in", { minimum: 0 });
   const tokensOut = integerFlag(flags, "tokens-out", { minimum: 0 });
   const tokenExtras = tokenExtraFlags(flags);
   const outcome = recordAgentReport({
     runRoot: run,
     agentId: agent,
-    actor: textFlag(flags, "actor", false) ?? agent,
+    actor,
     tools: toolRefFlags(flags) ?? [],
     ...(tokensIn === undefined ? {} : { tokensIn }),
     ...(tokensOut === undefined ? {} : { tokensOut }),
@@ -206,6 +234,7 @@ export function agentReleaseCommand(flags: Flags): Record<string, unknown> {
   const agent = textFlag(flags, "agent")!;
   const reason = textFlag(flags, "reason")!;
   const actor = textFlag(flags, "actor", false) ?? agent;
+  assertReleaseTargetPolicy(run, agent, actor);
   const derivedTelemetry = probeAgentTelemetry(agent);
   const refreshed =
     Object.keys(derivedTelemetry).length === 0
