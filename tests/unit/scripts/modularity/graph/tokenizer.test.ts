@@ -93,3 +93,26 @@ test("scans multiline named imports and exports", () => {
     { specifier: "./contracts/index.ts", typeOnly: true, kind: "export" },
   ]);
 });
+
+test("recognizes from only after nested named bindings close", () => {
+  expect(
+    scanImports(
+      blob(
+        "slice/source.ts",
+        'import { from as imported } from "./target.ts"; export { from as exported } from "./export.ts";',
+      ),
+    ),
+  ).toEqual([
+    { specifier: "./target.ts", typeOnly: false, kind: "import" },
+    { specifier: "./export.ts", typeOnly: false, kind: "export" },
+  ]);
+});
+
+test("counts export type-star while preserving its type-only reference", () => {
+  const target = blob("slice/index.ts", 'export type * from "./types.ts";');
+
+  expect(scanImports(target)).toEqual([
+    { specifier: "./types.ts", typeOnly: true, kind: "export" },
+  ]);
+  expect(countExportStars(target)).toBe(1);
+});

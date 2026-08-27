@@ -153,7 +153,7 @@ function readReference(
   while (index < source.length && source[index] !== ";") {
     index = skipTrivia(source, index);
     if (source[index] === ";") return null;
-    if (isWordAt(source, index, "from")) {
+    if (depth === 0 && isWordAt(source, index, "from")) {
       const specifier = readString(source, skipTrivia(source, index + 4));
       return specifier ? { specifier: specifier.value, typeOnly, kind } : null;
     }
@@ -204,7 +204,8 @@ function scan(source: string): ScanResult {
         if (reference) references.push(reference);
       } else if (word === "export") {
         const next = skipTrivia(source, end);
-        if (source[next] === "*") exportStars += 1;
+        const star = isWordAt(source, next, "type") ? skipTrivia(source, next + 4) : next;
+        if (source[star] === "*") exportStars += 1;
         const reference = readReference(source, end, "export");
         if (reference) references.push(reference);
       }
