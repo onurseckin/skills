@@ -81,12 +81,7 @@ export function pruneStaleSessions(maxAgeMs = 86400000): void {
           try {
             process.kill(pid, 0);
           } catch (e: unknown) {
-            if (
-              typeof e === "object" &&
-              e !== null &&
-              "code" in e &&
-              (e as { code?: unknown }).code === "ESRCH"
-            ) {
+            if (readOwnDataString(e, "code") === "ESRCH") {
               unlinkSync(filePath);
             }
           }
@@ -108,6 +103,7 @@ export interface ResolveSessionOptions {
   explicitActor?: string | undefined;
   explicitToken?: string | undefined;
   runRoot?: string | undefined;
+  readPersistedSessionFile?: ((path: string, encoding: "utf8") => string) | undefined;
 }
 
 function resolveGlobalSessionsDir(repoRoot?: string): string {
@@ -122,6 +118,88 @@ function resolveGlobalSessionsDir(repoRoot?: string): string {
     return join(resolveScratchDir(), ".sessions");
   }
   return join(findRepoRoot(), ".olt", ".sessions");
+}
+
+function readOwnDataString(error: unknown, key: "code" | "message"): string | null {
+  if ((typeof error !== "object" && typeof error !== "function") || error === null) {
+    return null;
+  }
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(error, key);
+    return descriptor && "value" in descriptor && typeof descriptor.value === "string"
+      ? descriptor.value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatSafeErrorCause(error: unknown): string {
+  const message = readOwnDataString(error, "message");
+  if (message !== null) return message;
+  if (error === null || (typeof error !== "object" && typeof error !== "function")) {
+    try {
+      return String(error);
+    } catch {
+      return "unknown error";
+    }
+  }
+  return "unknown error";
+}
+
+function readPersistedSession(
+  path: string,
+  mechanism: string,
+  readSessionFile: (path: string, encoding: "utf8") => string,
+): JsonObject | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readSessionFile(path, "utf8"));
+  } catch (error: unknown) {
+    if (readOwnDataString(error, "code") === "ENOENT") {
+      return null;
+    }
+    throw new HarnessError(
+      "INTEGRITY",
+      `failed to read persisted ${mechanism} session evidence at ${path}: ${formatSafeErrorCause(error)}`,
+    );
+  }
+
+  const invalid = (cause: string): never => {
+    throw new HarnessError(
+      "INTEGRITY",
+      `invalid persisted ${mechanism} session evidence at ${path}: ${cause}`,
+    );
+  };
+
+  const session: JsonObject = isJsonObject(parsed) ? parsed : invalid("expected a JSON object");
+  if (typeof session.agent_id !== "string" || !session.agent_id.trim()) {
+    invalid("agent_id must be a nonempty string");
+  }
+  for (const field of ["role", "token"] as const) {
+    if (field in session && (typeof session[field] !== "string" || !session[field].trim())) {
+      invalid(`${field} must be a nonempty string when present`);
+    }
+  }
+  for (const field of ["can_execute_shell", "can_edit_files"] as const) {
+    if (field in session && typeof session[field] !== "boolean") {
+      invalid(`${field} must be a boolean when present`);
+    }
+  }
+  if (
+    "write_scope" in session &&
+    (!Array.isArray(session.write_scope) ||
+      session.write_scope.some((entry) => typeof entry !== "string"))
+  ) {
+    invalid("write_scope must be an array of strings when present");
+  }
+  for (const field of ["task_id", "granted_at"] as const) {
+    if (field in session && typeof session[field] !== "string") {
+      invalid(`${field} must be a string when present`);
+    }
+  }
+
+  return session;
 }
 
 function inferCanExecute(role: string): { can_execute_shell: boolean; can_edit_files: boolean } {
@@ -202,10 +280,9 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
     if (pid > 0) writeFileSync(join(globalDir, `${pid}.json`), payload, "utf8");
     if (ppid > 0) writeFileSync(join(globalDir, `${ppid}.json`), payload, "utf8");
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
     throw new HarnessError(
       "INTEGRITY",
-      `failed to persist process-ancestry session grant in ${globalDir}: ${message}`,
+      `failed to persist process-ancestry session grant in ${globalDir}: ${formatSafeErrorCause(error)}`,
     );
   }
 
@@ -239,6 +316,8 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
 export function resolveActiveSession(options: ResolveSessionOptions = {}): SessionIdentity | null {
   const cwd = resolve(options.cwd ?? (typeof process !== "undefined" ? process.cwd() : "."));
   const env = options.env ?? (typeof process !== "undefined" ? process.env : {});
+  const readSessionFile: (path: string, encoding: "utf8") => string =
+    options.readPersistedSessionFile ?? ((path, encoding) => readFileSync(path, encoding));
   const pid = options.pid ?? (typeof process !== "undefined" ? process.pid : 0);
   const ppid = options.ppid ?? (typeof process !== "undefined" ? process.ppid : 0);
   let repoRoot: string;
@@ -281,29 +360,19 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
 
   for (const checkPid of checkPids) {
     const sessionFile = join(globalSessionsDir, `${checkPid}.json`);
-    if (existsSync(sessionFile)) {
-      try {
-        const parsed = JSON.parse(readFileSync(sessionFile, "utf8")) as JsonObject;
-        if (isJsonObject(parsed) && typeof parsed.agent_id === "string") {
-          mechanisms.push(`process_ancestry_pid_${checkPid}`);
-          if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
-          if (!detectedRole && typeof parsed.role === "string")
-            detectedRole = parsed.role as string;
-          if (!detectedToken && typeof parsed.token === "string")
-            detectedToken = parsed.token as string;
-          if (typeof parsed.can_execute_shell === "boolean")
-            detectedCanShell = parsed.can_execute_shell;
-          if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
-          if (Array.isArray(parsed.write_scope))
-            detectedWriteScope = parsed.write_scope as string[];
-          if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id as string;
-          if (typeof parsed.granted_at === "string") grantedAt = parsed.granted_at as string;
-          break;
-        }
-      } catch {
-        // Continue
-      }
-    }
+    const mechanism = `process_ancestry_pid_${checkPid}`;
+    const parsed = readPersistedSession(sessionFile, mechanism, readSessionFile);
+    if (!parsed) continue;
+    mechanisms.push(mechanism);
+    if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
+    if (!detectedRole && typeof parsed.role === "string") detectedRole = parsed.role;
+    if (!detectedToken && typeof parsed.token === "string") detectedToken = parsed.token;
+    if (typeof parsed.can_execute_shell === "boolean") detectedCanShell = parsed.can_execute_shell;
+    if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
+    if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
+    if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
+    if (typeof parsed.granted_at === "string") grantedAt = parsed.granted_at;
+    break;
   }
 
   // Mechanism 3: Directory / Workspace Anchoring (.session.json or .olt-identity.json)
@@ -311,33 +380,26 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   while (true) {
     const sessionPath = join(currentDir, ".session.json");
     const identityPath = join(currentDir, ".olt-identity.json");
-    const targetPath = existsSync(sessionPath)
-      ? sessionPath
-      : existsSync(identityPath)
-        ? identityPath
-        : null;
+    const session = readPersistedSession(
+      sessionPath,
+      "workspace_directory_session",
+      readSessionFile,
+    );
+    const parsed =
+      session ?? readPersistedSession(identityPath, "workspace_directory_session", readSessionFile);
 
-    if (targetPath) {
-      try {
-        const parsed = JSON.parse(readFileSync(targetPath, "utf8")) as JsonObject;
-        if (isJsonObject(parsed) && typeof parsed.agent_id === "string") {
-          mechanisms.push("workspace_directory_session");
-          if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
-          if (!detectedRole && typeof parsed.role === "string")
-            detectedRole = parsed.role as string;
-          if (!detectedToken && typeof parsed.token === "string")
-            detectedToken = parsed.token as string;
-          if (typeof parsed.can_execute_shell === "boolean")
-            detectedCanShell = parsed.can_execute_shell;
-          if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
-          if (Array.isArray(parsed.write_scope))
-            detectedWriteScope = parsed.write_scope as string[];
-          if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id as string;
-          break;
-        }
-      } catch {
-        // Continue
-      }
+    if (parsed) {
+      mechanisms.push("workspace_directory_session");
+      if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
+      if (!detectedRole && typeof parsed.role === "string") detectedRole = parsed.role;
+      if (!detectedToken && typeof parsed.token === "string") detectedToken = parsed.token;
+      if (typeof parsed.can_execute_shell === "boolean")
+        detectedCanShell = parsed.can_execute_shell;
+      if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
+      if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
+      if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
+      if (typeof parsed.granted_at === "string") grantedAt = parsed.granted_at;
+      break;
     }
 
     const parent = dirname(currentDir);

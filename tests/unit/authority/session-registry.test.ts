@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, utimesSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
   registerSessionGrant,
   resolveActiveSession,
@@ -15,6 +15,18 @@ import {
 } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+
+type PersistedSessionReader = (path: string, encoding: "utf8") => string;
+
+function resolveWithInjectedRead(
+  options: Parameters<typeof resolveActiveSession>[0],
+  readPersistedSessionFile: PersistedSessionReader,
+) {
+  return resolveActiveSession({
+    ...options,
+    readPersistedSessionFile,
+  });
+}
 
 describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", () => {
   let sandboxDir: string;
@@ -294,7 +306,7 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
     expect(resolved?.mechanisms_detected).toContain("workspace_directory_session");
   });
 
-  it("returns null when no session identity can be detected", () => {
+  it("returns null when persisted and environment session evidence is absent", () => {
     const emptyDir = scratchRoot(import.meta.path, "empty-session");
     const resolved = resolveActiveSession({
       cwd: emptyDir,
@@ -305,20 +317,254 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
     expect(resolved).toBeNull();
   });
 
-  it("handles corrupted JSON in process session files and workspace session files gracefully", () => {
-    const corruptDir = scratchRoot(import.meta.path, "corrupt-sessions");
+  it("fails closed when a corrupt process record precedes valid workspace evidence", () => {
+    const corruptDir = scratchRoot(import.meta.path, "corrupt-process-workspace");
     const sessionsDir = join(corruptDir, ".olt", ".sessions");
     mkdirSync(sessionsDir, { recursive: true });
     writeFileSync(join(sessionsDir, "55555.json"), "NOT_JSON", "utf8");
-    writeFileSync(join(corruptDir, ".session.json"), "{ broken json", "utf8");
+    writeFileSync(
+      join(corruptDir, ".session.json"),
+      JSON.stringify({ agent_id: "workspace-agent", role: "implementer" }),
+      "utf8",
+    );
 
-    const resolved = resolveActiveSession({
-      cwd: corruptDir,
-      pid: 55555,
-      ppid: 0,
-      env: {},
-    });
+    expect(() => resolveActiveSession({ cwd: corruptDir, pid: 55555, ppid: 0, env: {} })).toThrow(
+      HarnessError,
+    );
+
+    try {
+      resolveActiveSession({ cwd: corruptDir, pid: 55555, ppid: 0, env: {} });
+    } catch (error: unknown) {
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect((error as HarnessError).message).toContain("process_ancestry_pid_55555");
+      expect((error as HarnessError).message).toContain(join(sessionsDir, "55555.json"));
+    }
+  });
+
+  it("fails closed when a corrupt process record precedes valid environment evidence", () => {
+    const corruptDir = scratchRoot(import.meta.path, "corrupt-process-environment");
+    const sessionsDir = join(corruptDir, ".olt", ".sessions");
+    mkdirSync(sessionsDir, { recursive: true });
+    writeFileSync(join(sessionsDir, "55556.json"), "NOT_JSON", "utf8");
+
+    expect(() =>
+      resolveActiveSession({
+        cwd: corruptDir,
+        pid: 55556,
+        ppid: 0,
+        env: { AGENT_ID: "environment-agent", ROLE: "implementer" },
+      }),
+    ).toThrow(HarnessError);
+
+    try {
+      resolveActiveSession({
+        cwd: corruptDir,
+        pid: 55556,
+        ppid: 0,
+        env: { AGENT_ID: "environment-agent", ROLE: "implementer" },
+      });
+    } catch (error: unknown) {
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect((error as HarnessError).message).toContain("process_ancestry_pid_55556");
+      expect((error as HarnessError).message).toContain(join(sessionsDir, "55556.json"));
+    }
+  });
+
+  it("fails closed when the nearest workspace session is corrupt despite a valid parent identity", () => {
+    const workspaceDir = join(scratchRoot(import.meta.path, "corrupt-nearest-workspace"), "child");
+    mkdirSync(workspaceDir, { recursive: true });
+    writeFileSync(join(workspaceDir, ".session.json"), "{ broken json", "utf8");
+    writeFileSync(
+      join(dirname(workspaceDir), ".olt-identity.json"),
+      JSON.stringify({ agent_id: "parent-agent", role: "implementer" }),
+      "utf8",
+    );
+
+    expect(() => resolveActiveSession({ cwd: workspaceDir, pid: 0, ppid: 0, env: {} })).toThrow(
+      HarnessError,
+    );
+
+    try {
+      resolveActiveSession({ cwd: workspaceDir, pid: 0, ppid: 0, env: {} });
+    } catch (error: unknown) {
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect((error as HarnessError).message).toContain("workspace_directory_session");
+      expect((error as HarnessError).message).toContain(join(workspaceDir, ".session.json"));
+    }
+  });
+
+  it("fails closed when persisted session evidence has an empty agent_id", () => {
+    const corruptDir = scratchRoot(import.meta.path, "empty-session-agent-id");
+    const sessionsDir = join(corruptDir, ".olt", ".sessions");
+    mkdirSync(sessionsDir, { recursive: true });
+    const sessionPath = join(sessionsDir, "55557.json");
+    writeFileSync(sessionPath, JSON.stringify({ agent_id: "" }), "utf8");
+
+    expect(() => resolveActiveSession({ cwd: corruptDir, pid: 55557, ppid: 0, env: {} })).toThrow(
+      HarnessError,
+    );
+
+    try {
+      resolveActiveSession({ cwd: corruptDir, pid: 55557, ppid: 0, env: {} });
+    } catch (error: unknown) {
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect((error as HarnessError).message).toContain("agent_id");
+      expect((error as HarnessError).message).toContain(sessionPath);
+    }
+  });
+
+  it("fails closed when the parent process session is corrupt before a valid child PID record", () => {
+    const corruptDir = scratchRoot(import.meta.path, "corrupt-parent-process-precedence");
+    const sessionsDir = join(corruptDir, ".olt", ".sessions");
+    mkdirSync(sessionsDir, { recursive: true });
+    const parentPath = join(sessionsDir, "55558.json");
+    writeFileSync(parentPath, "NOT_JSON", "utf8");
+    writeFileSync(
+      join(sessionsDir, "55559.json"),
+      JSON.stringify({ agent_id: "child-agent", role: "implementer" }),
+      "utf8",
+    );
+
+    try {
+      resolveActiveSession({ cwd: corruptDir, pid: 55559, ppid: 55558, env: {} });
+      expect.unreachable("corrupt parent process evidence must take precedence");
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect((error as HarnessError).message).toContain("process_ancestry_pid_55558");
+      expect((error as HarnessError).message).toContain(parentPath);
+    }
+  });
+
+  it("treats an injected own-data ENOENT read failure as absent evidence", () => {
+    let reads = 0;
+    const missing = Object.create(null) as { code?: string; message?: string };
+    Object.defineProperty(missing, "code", { value: "ENOENT" });
+    Object.defineProperty(missing, "message", { value: "gone" });
+
+    const resolved = resolveWithInjectedRead(
+      { cwd: sandboxDir, pid: 55560, ppid: 0, env: {} },
+      () => {
+        reads += 1;
+        throw missing;
+      },
+    );
+
+    expect(reads).toBeGreaterThan(0);
     expect(resolved).toBeNull();
+  });
+
+  it("fails closed for unsafe injected persisted-read error shapes", () => {
+    const corruptDir = scratchRoot(import.meta.path, "unreadable-process-record");
+    const sessionsDir = join(corruptDir, ".olt", ".sessions");
+    const sessionPath = join(sessionsDir, "55560.json");
+    mkdirSync(sessionsDir, { recursive: true });
+    let getterRead = false;
+    const getterCode = {};
+    Object.defineProperty(getterCode, "code", {
+      get() {
+        getterRead = true;
+        return "ENOENT";
+      },
+    });
+    const errorCases: ReadonlyArray<readonly [string, unknown, string]> = [
+      ["inherited code", Object.create({ code: "ENOENT" }), "unknown error"],
+      ["getter code", getterCode, "unknown error"],
+      [
+        "proxy descriptor trap",
+        new Proxy(
+          {},
+          {
+            getOwnPropertyDescriptor() {
+              throw new Error("descriptor trap");
+            },
+          },
+        ),
+        "unknown error",
+      ],
+      ["primitive error", "primitive read failure", "primitive read failure"],
+      ["EACCES", { code: "EACCES", message: "permission denied" }, "permission denied"],
+    ];
+
+    for (const [name, readError, cause] of errorCases) {
+      try {
+        resolveWithInjectedRead({ cwd: corruptDir, pid: 55560, ppid: 0, env: {} }, () => {
+          throw readError;
+        });
+        expect.unreachable(`${name} must not be treated as absent`);
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(HarnessError);
+        expect((error as HarnessError).code).toBe("INTEGRITY");
+        expect((error as HarnessError).message).toContain("process_ancestry_pid_55560");
+        expect((error as HarnessError).message).toContain(sessionPath);
+        expect((error as HarnessError).message).toContain(cause);
+      }
+    }
+
+    expect(getterRead).toBe(false);
+  });
+
+  it("fails closed for every malformed optional persisted session field", () => {
+    const malformedFields: ReadonlyArray<readonly [string, unknown]> = [
+      ["role", ""],
+      ["role", "   "],
+      ["role", null],
+      ["role", false],
+      ["token", ""],
+      ["token", "   "],
+      ["token", null],
+      ["token", ["tok_hidden_value"]],
+      ["can_execute_shell", null],
+      ["can_execute_shell", "true"],
+      ["can_edit_files", null],
+      ["can_edit_files", "false"],
+      ["write_scope", "tests/unit"],
+      ["write_scope", ["tests/unit", 1]],
+      ["task_id", null],
+      ["task_id", false],
+      ["granted_at", null],
+      ["granted_at", false],
+    ];
+    const corruptDir = scratchRoot(import.meta.path, "malformed-optional-session-fields");
+    const sessionsDir = join(corruptDir, ".olt", ".sessions");
+    mkdirSync(sessionsDir, { recursive: true });
+
+    for (const [index, [field, value]] of malformedFields.entries()) {
+      const pid = 55600 + index;
+      const sessionPath = join(sessionsDir, `${pid}.json`);
+      writeFileSync(
+        sessionPath,
+        JSON.stringify({ agent_id: "valid-agent", [field]: value }),
+        "utf8",
+      );
+
+      try {
+        resolveActiveSession({ cwd: corruptDir, pid, ppid: 0, env: {} });
+        expect.unreachable(`malformed ${field} must be rejected`);
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(HarnessError);
+        expect((error as HarnessError).code).toBe("INTEGRITY");
+        expect((error as HarnessError).message).toContain("process_ancestry_pid_");
+        expect((error as HarnessError).message).toContain(sessionPath);
+        expect((error as HarnessError).message).not.toContain("tok_hidden_value");
+      }
+    }
+  });
+
+  it("accepts legacy persisted identity records with every optional field omitted", () => {
+    const legacyDir = scratchRoot(import.meta.path, "legacy-identity-optional-fields");
+    writeFileSync(
+      join(legacyDir, ".olt-identity.json"),
+      JSON.stringify({ agent_id: "legacy-agent" }),
+      "utf8",
+    );
+
+    const resolved = resolveActiveSession({ cwd: legacyDir, pid: 0, ppid: 0, env: {} });
+
+    expect(resolved?.agent_id).toBe("legacy-agent");
+    expect(resolved?.role).toBe("implementer");
+    expect(resolved?.token).toBe("unauthenticated");
+    expect(resolved?.mechanisms_detected).toEqual(["workspace_directory_session"]);
   });
 
   it("allows matching explicitActor variants (agent_id, role, or agent-role) and token delegation", () => {
