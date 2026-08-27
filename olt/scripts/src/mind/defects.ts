@@ -5,10 +5,12 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
-  writeFileSync,
+  realpathSync,
+  statSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
+import { atomicWriteBytes } from "../core/durable-write.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { isTestEnvironment, resolveDefectsPath, resolveScratchDir } from "../core/shared/paths.ts";
 export * from "./pushbacks.ts";
@@ -700,17 +702,101 @@ export function resolveCompletedDefectsPath(customPath?: string): string {
   return resolveCanonicalCompletedDefectsPath();
 }
 
+function integrityError(operation: string, path: string, cause: unknown): HarnessError {
+  const detail = cause instanceof Error ? cause.message : String(cause);
+  return new HarnessError("INTEGRITY", `${operation} failed for ${path}: ${detail}`);
+}
+
+function readExistingDefectLog(path: string, operation: string): DefectEntry[] {
+  if (!existsSync(path)) return [];
+  try {
+    return parseDefectLog(readFileSync(path, "utf8"));
+  } catch (cause) {
+    throw integrityError(operation, path, cause);
+  }
+}
+
+function atomicWriteDefectLog(
+  defects: readonly DefectEntry[],
+  path: string,
+  operation: string,
+): void {
+  try {
+    const parentDir = dirname(path);
+    if (!existsSync(parentDir)) mkdirSync(parentDir, { recursive: true });
+    atomicWriteBytes(path, new TextEncoder().encode(serializeDefectLog(defects)));
+  } catch (cause) {
+    throw integrityError(operation, path, cause);
+  }
+}
+
+function mergeDefectsById(
+  existing: readonly DefectEntry[],
+  additions: readonly DefectEntry[],
+): DefectEntry[] {
+  const completed = new Map<string, DefectEntry>();
+  for (const entry of existing) completed.set(entry.id, entry);
+  for (const entry of additions) completed.set(entry.id, entry);
+  return Array.from(completed.values());
+}
+
+function requireDistinctLedgerPaths(sourcePath: string, targetPath: string): void {
+  if (sourcePath === targetPath) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `Active and completed defect ledgers must use distinct paths: ${sourcePath}`,
+    );
+  }
+
+  if (!existsSync(sourcePath) || !existsSync(targetPath)) return;
+
+  try {
+    if (realpathSync(sourcePath) === realpathSync(targetPath)) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `Active and completed defect ledgers resolve to the same path: ${sourcePath}`,
+      );
+    }
+
+    const sourceStats = statSync(sourcePath);
+    const targetStats = statSync(targetPath);
+    if (sourceStats.dev === targetStats.dev && sourceStats.ino === targetStats.ino) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `Active and completed defect ledgers reference the same file: ${sourcePath}`,
+      );
+    }
+  } catch (cause) {
+    if (cause instanceof HarnessError) throw cause;
+    throw integrityError("Compare defect ledger paths", `${sourcePath} and ${targetPath}`, cause);
+  }
+}
+
+function verifyCompletedDefects(
+  expected: readonly DefectEntry[],
+  actual: readonly DefectEntry[],
+): void {
+  const completedById = new Map<string, DefectEntry>();
+  for (const entry of actual) completedById.set(entry.id, entry);
+
+  for (const expectedEntry of expected) {
+    const actualEntry = completedById.get(expectedEntry.id);
+    if (
+      actualEntry === undefined ||
+      serializeDefectLog(parseDefectLog(serializeDefectLog([actualEntry]))) !==
+        serializeDefectLog(parseDefectLog(serializeDefectLog([expectedEntry])))
+    ) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `Completed defects log did not persist the expected record for ${expectedEntry.id}`,
+      );
+    }
+  }
+}
+
 export function readCompletedDefectsLog(customPath?: string): DefectEntry[] {
   const filePath = resolveCompletedDefectsPath(customPath);
-  if (!existsSync(filePath)) {
-    return [];
-  }
-  try {
-    const content = readFileSync(filePath, "utf8");
-    return parseDefectLog(content);
-  } catch {
-    return [];
-  }
+  return readExistingDefectLog(filePath, "Read completed defects log");
 }
 
 export function writeCompletedDefectsLog(
@@ -718,31 +804,16 @@ export function writeCompletedDefectsLog(
   customPath?: string,
 ): string {
   const targetPath = resolveCompletedDefectsPath(customPath);
-  try {
-    const parentDir = dirname(targetPath);
-    if (!existsSync(parentDir)) {
-      mkdirSync(parentDir, { recursive: true });
-    }
-    const content = serializeDefectLog(defects);
-    writeFileSync(targetPath, content, "utf8");
-  } catch {
-    // Non-fatal if restricted
-  }
+  atomicWriteDefectLog(defects, targetPath, "Write completed defects log");
   return targetPath;
 }
 
 export function appendCompletedDefectLogEntry(entry: DefectEntry, customPath?: string): string {
   const targetPath = resolveCompletedDefectsPath(customPath);
-  try {
-    const parentDir = dirname(targetPath);
-    if (!existsSync(parentDir)) {
-      mkdirSync(parentDir, { recursive: true });
-    }
-    const line = `${JSON.stringify(entry)}\n`;
-    appendFileSync(targetPath, line, "utf8");
-  } catch {
-    // Non-fatal if restricted
-  }
+  writeCompletedDefectsLog(
+    mergeDefectsById(readCompletedDefectsLog(targetPath), [entry]),
+    targetPath,
+  );
   return targetPath;
 }
 
@@ -952,16 +1023,13 @@ export function promoteResolvedDefects(
       ? resolveCanonicalCompletedDefectsPath(options.capsuleRoot)
       : resolveCompletedDefectsPath();
 
+  requireDistinctLedgerPaths(sourcePath, targetPath);
+
   let activeDefects: DefectEntry[] = [];
   if (entries !== undefined) {
     activeDefects = [...entries];
   } else if (existsSync(sourcePath)) {
-    try {
-      const content = readFileSync(sourcePath, "utf8");
-      activeDefects = parseDefectLog(content, { capsuleRoot: options.capsuleRoot });
-    } catch {
-      activeDefects = [];
-    }
+    activeDefects = readExistingDefectLog(sourcePath, "Read active defects log");
   }
 
   const requireProof = options.requireResolutionProof !== false;
@@ -996,25 +1064,16 @@ export function promoteResolvedDefects(
   }
 
   if (!options.dryRun && eligibleToPromote.length > 0) {
-    // 1. Merge into target completed defects
     const existingCompleted = readCompletedDefectsLog(targetPath);
-    const completedMap = new Map<string, DefectEntry>();
-    for (const c of existingCompleted) {
-      completedMap.set(c.id, c);
-    }
-    for (const p of eligibleToPromote) {
-      completedMap.set(p.id, p);
-    }
-    const mergedCompleted = Array.from(completedMap.values());
+    const mergedCompleted = mergeDefectsById(existingCompleted, eligibleToPromote);
+    requireDistinctLedgerPaths(sourcePath, targetPath);
     writeCompletedDefectsLog(mergedCompleted, targetPath);
+    const verifiedCompleted = readCompletedDefectsLog(targetPath);
+    verifyCompletedDefects(mergedCompleted, verifiedCompleted);
 
-    // 2. Update source defects file if requested
     if (options.updateSourceFile !== false && existsSync(sourcePath)) {
-      try {
-        writeFileSync(sourcePath, serializeDefectLog(remaining), "utf8");
-      } catch {
-        // Non-fatal if filesystem write fails in mock/restricted
-      }
+      requireDistinctLedgerPaths(sourcePath, targetPath);
+      atomicWriteDefectLog(remaining, sourcePath, "Write active defects log");
     }
   }
 
@@ -1052,14 +1111,11 @@ export function autoPromoteDefect(params: AutoPromoteDefectParams): {
       ? resolveCanonicalCompletedDefectsPath(params.options.capsuleRoot)
       : resolveCompletedDefectsPath();
 
+  requireDistinctLedgerPaths(sourcePath, targetPath);
+
   let existingActive: DefectEntry[] = [];
   if (existsSync(sourcePath)) {
-    try {
-      const content = readFileSync(sourcePath, "utf8");
-      existingActive = parseDefectLog(content);
-    } catch {
-      existingActive = [];
-    }
+    existingActive = readExistingDefectLog(sourcePath, "Read active defects log");
   }
 
   let foundDefect = existingActive.find((b) => b.id === params.id);
@@ -1088,17 +1144,16 @@ export function autoPromoteDefect(params: AutoPromoteDefectParams): {
     };
   }
 
-  // Append or merge to completed log
-  appendCompletedDefectLogEntry(resolved, targetPath);
+  const mergedCompleted = mergeDefectsById(readCompletedDefectsLog(targetPath), [resolved]);
+  requireDistinctLedgerPaths(sourcePath, targetPath);
+  writeCompletedDefectsLog(mergedCompleted, targetPath);
+  const verifiedCompleted = readCompletedDefectsLog(targetPath);
+  verifyCompletedDefects(mergedCompleted, verifiedCompleted);
 
-  // Remove from active log
   if (params.options?.updateSourceFile !== false && existsSync(sourcePath)) {
     const remainingActive = existingActive.filter((b) => b.id !== params.id);
-    try {
-      writeFileSync(sourcePath, serializeDefectLog(remainingActive), "utf8");
-    } catch {
-      // Non-fatal
-    }
+    requireDistinctLedgerPaths(sourcePath, targetPath);
+    atomicWriteDefectLog(remainingActive, sourcePath, "Write active defects log");
   }
 
   return {

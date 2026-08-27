@@ -1,7 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   appendCompletedDefectLogEntry,
@@ -439,6 +448,248 @@ describe("Defect Promotion Engine", () => {
       expect(ids).toContain("b-res-1");
       expect(ids).toContain("b-res-2");
     });
+
+    test("fails closed when the completed target is a directory and preserves the active ledger", () => {
+      const tempDir = createTempDir("defect-promo-directory-target-");
+      const sourcePath = join(tempDir, "defects.jsonl");
+      const targetPath = join(tempDir, "completed-directory");
+      const resolved = createSampleDefect({
+        id: "directory-target-bulk",
+        status: "resolved",
+        resolution: {
+          task_id: "task-directory-target",
+          test_assertion: "expect(targetWrite).toBeTrue()",
+          resolved_at: new Date().toISOString(),
+        },
+      });
+      const sourceBytes = serializeDefectLog([resolved]);
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+      mkdirSync(targetPath);
+
+      let error: unknown;
+      try {
+        promoteResolvedDefects({ sourcePath, targetPath });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+    });
+
+    test("retries a target-only partial promotion without duplicating the completed defect", () => {
+      const tempDir = createTempDir("defect-promo-target-only-retry-");
+      const sourcePath = join(tempDir, "defects.jsonl");
+      const targetPath = join(tempDir, "COMPLETED_DEFECTS.jsonl");
+      const resolved = createSampleDefect({
+        id: "target-only-partial",
+        status: "resolved",
+        resolution: {
+          task_id: "task-target-only-retry",
+          test_assertion: "expect(retryConverges).toBeTrue()",
+          resolved_at: new Date().toISOString(),
+        },
+      });
+      const staleResolved = createSampleDefect({
+        ...resolved,
+        type: "stale_resolution",
+        observation: "Stale completed record",
+      });
+      const sourceBytes = serializeDefectLog([resolved]);
+      const intendedCompleted = parseDefectLog(sourceBytes);
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+      writeFileSync(targetPath, serializeDefectLog([staleResolved]), "utf8");
+
+      promoteResolvedDefects({ sourcePath, targetPath });
+
+      expect(readCompletedDefectsLog(targetPath).map((entry) => entry.id)).toEqual([
+        "target-only-partial",
+      ]);
+      expect(readFileSync(targetPath, "utf8")).toBe(serializeDefectLog(intendedCompleted));
+      expect(parseDefectLog(readFileSync(sourcePath, "utf8"))).toEqual([]);
+    });
+
+    test("rejects identical active and completed paths before mutating either ledger", () => {
+      const tempDir = createTempDir("defect-promo-identical-paths-");
+      const sourcePath = join(tempDir, "defects.jsonl");
+      const resolved = createSampleDefect({
+        id: "identical-path-bulk",
+        status: "resolved",
+        resolution: {
+          task_id: "task-identical-path",
+          test_assertion: "expect(pathsAreDistinct).toBeTrue()",
+          resolved_at: new Date().toISOString(),
+        },
+      });
+      const sourceBytes = serializeDefectLog([resolved]);
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+
+      let error: unknown;
+      try {
+        promoteResolvedDefects({ sourcePath, targetPath: sourcePath });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+    });
+
+    test("rejects a relative target alias for the active ledger before mutation", () => {
+      const tempDir = createTempDir("defect-promo-relative-alias-");
+      const sourcePath = join(tempDir, "defects.jsonl");
+      const resolved = createSampleDefect({
+        id: "relative-alias-bulk",
+        status: "resolved",
+        resolution: {
+          task_id: "task-relative-alias",
+          test_assertion: "expect(aliasRejected).toBeTrue()",
+          resolved_at: new Date().toISOString(),
+        },
+      });
+      const sourceBytes = serializeDefectLog([resolved]);
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+
+      let error: unknown;
+      try {
+        promoteResolvedDefects({
+          sourcePath,
+          targetPath: relative(process.cwd(), sourcePath),
+        });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+    });
+
+    test("rejects a symbolic-link target alias for the active ledger before mutation", () => {
+      const tempDir = createTempDir("defect-promo-symlink-alias-");
+      const sourcePath = join(tempDir, "defects.jsonl");
+      const targetPath = join(tempDir, "completed-link.jsonl");
+      const resolved = createSampleDefect({
+        id: "symlink-alias-bulk",
+        status: "resolved",
+        resolution: {
+          task_id: "task-symlink-alias",
+          test_assertion: "expect(aliasRejected).toBeTrue()",
+          resolved_at: new Date().toISOString(),
+        },
+      });
+      const sourceBytes = serializeDefectLog([resolved]);
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+      symlinkSync(sourcePath, targetPath);
+
+      let error: unknown;
+      try {
+        promoteResolvedDefects({ sourcePath, targetPath });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+    });
+
+    test("rejects a hard-link target alias for the active ledger before mutation", () => {
+      const tempDir = createTempDir("defect-promo-hardlink-alias-");
+      const sourcePath = join(tempDir, "defects.jsonl");
+      const targetPath = join(tempDir, "completed-hardlink.jsonl");
+      const resolved = createSampleDefect({
+        id: "hardlink-alias-bulk",
+        status: "resolved",
+        resolution: {
+          task_id: "task-hardlink-alias",
+          test_assertion: "expect(aliasRejected).toBeTrue()",
+          resolved_at: new Date().toISOString(),
+        },
+      });
+      const sourceBytes = serializeDefectLog([resolved]);
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+      linkSync(sourcePath, targetPath);
+
+      let error: unknown;
+      try {
+        promoteResolvedDefects({ sourcePath, targetPath });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+    });
+
+    test("dry runs without mutating either ledger", () => {
+      const tempDir = createTempDir("defect-promo-dry-run-");
+      const sourcePath = join(tempDir, "defects.jsonl");
+      const targetPath = join(tempDir, "COMPLETED_DEFECTS.jsonl");
+      const resolved = createSampleDefect({
+        id: "dry-run-bulk",
+        status: "resolved",
+        resolution: {
+          task_id: "task-dry-run",
+          test_assertion: "expect(dryRun).toBeTrue()",
+          resolved_at: new Date().toISOString(),
+        },
+      });
+      const sourceBytes = serializeDefectLog([resolved]);
+      const targetBytes = serializeDefectLog([createSampleDefect({ id: "existing-completed" })]);
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+      writeFileSync(targetPath, targetBytes, "utf8");
+
+      promoteResolvedDefects({ sourcePath, targetPath, dryRun: true });
+
+      expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+      expect(readFileSync(targetPath, "utf8")).toBe(targetBytes);
+    });
+
+    test("keeps the active ledger when source updates are disabled", () => {
+      const tempDir = createTempDir("defect-promo-preserve-active-");
+      const sourcePath = join(tempDir, "defects.jsonl");
+      const targetPath = join(tempDir, "COMPLETED_DEFECTS.jsonl");
+      const resolved = createSampleDefect({
+        id: "preserve-active-bulk",
+        status: "resolved",
+        resolution: {
+          task_id: "task-preserve-active",
+          test_assertion: "expect(activePreserved).toBeTrue()",
+          resolved_at: new Date().toISOString(),
+        },
+      });
+      const sourceBytes = serializeDefectLog([resolved]);
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+
+      promoteResolvedDefects({ sourcePath, targetPath, updateSourceFile: false });
+
+      expect(readFileSync(targetPath, "utf8")).toBe(
+        serializeDefectLog(parseDefectLog(sourceBytes)),
+      );
+      expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+    });
+
+    test("fails closed when the existing bulk source path cannot be read", () => {
+      const tempDir = createTempDir("defect-promo-source-directory-");
+      const sourcePath = join(tempDir, "active-directory");
+      const targetPath = join(tempDir, "COMPLETED_DEFECTS.jsonl");
+      mkdirSync(sourcePath);
+
+      let error: unknown;
+      try {
+        promoteResolvedDefects({ sourcePath, targetPath });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect(existsSync(targetPath)).toBe(false);
+    });
   });
 
   describe("Single Defect Auto-Promotion (autoPromoteDefect)", () => {
@@ -532,12 +783,140 @@ describe("Defect Promotion Engine", () => {
         }),
       ).toThrow(HarnessError);
     });
+
+    test("fails closed when auto-promotion receives a completed target directory", () => {
+      const tempDir = createTempDir("defect-auto-directory-target-");
+      const sourcePath = join(tempDir, "defects.jsonl");
+      const targetPath = join(tempDir, "completed-directory");
+      const defect = createSampleDefect({ id: "directory-target-auto" });
+      const sourceBytes = serializeDefectLog([defect]);
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+      mkdirSync(targetPath);
+
+      let error: unknown;
+      try {
+        autoPromoteDefect({
+          id: defect.id,
+          proof: {
+            task_id: "task-auto-directory-target",
+            test_assertion: "expect(targetWrite).toBeTrue()",
+            resolved_at: new Date().toISOString(),
+          },
+          options: { sourcePath, targetPath },
+        });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+    });
+
+    test("rejects identical auto-promotion paths before mutating the active ledger", () => {
+      const tempDir = createTempDir("defect-auto-identical-paths-");
+      const sourcePath = join(tempDir, "defects.jsonl");
+      const defect = createSampleDefect({ id: "identical-path-auto" });
+      const sourceBytes = serializeDefectLog([defect]);
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+
+      let error: unknown;
+      try {
+        autoPromoteDefect({
+          id: defect.id,
+          proof: {
+            task_id: "task-auto-identical-path",
+            test_assertion: "expect(pathsAreDistinct).toBeTrue()",
+            resolved_at: new Date().toISOString(),
+          },
+          options: { sourcePath, targetPath: sourcePath },
+        });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+    });
+
+    test("rejects a symbolic-link auto-promotion target alias before mutation", () => {
+      const tempDir = createTempDir("defect-auto-symlink-alias-");
+      const sourcePath = join(tempDir, "defects.jsonl");
+      const targetPath = join(tempDir, "completed-link.jsonl");
+      const defect = createSampleDefect({ id: "symlink-alias-auto" });
+      const sourceBytes = serializeDefectLog([defect]);
+      writeFileSync(sourcePath, sourceBytes, "utf8");
+      symlinkSync(sourcePath, targetPath);
+
+      let error: unknown;
+      try {
+        autoPromoteDefect({
+          id: defect.id,
+          proof: {
+            task_id: "task-auto-symlink-alias",
+            test_assertion: "expect(aliasRejected).toBeTrue()",
+            resolved_at: new Date().toISOString(),
+          },
+          options: { sourcePath, targetPath },
+        });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+    });
+
+    test("fails closed when the existing auto-promotion source path cannot be read", () => {
+      const tempDir = createTempDir("defect-auto-source-directory-");
+      const sourcePath = join(tempDir, "active-directory");
+      const targetPath = join(tempDir, "COMPLETED_DEFECTS.jsonl");
+      mkdirSync(sourcePath);
+
+      let error: unknown;
+      try {
+        autoPromoteDefect({
+          id: "source-read-failure-auto",
+          proof: {
+            task_id: "task-auto-source-read",
+            test_assertion: "expect(sourceRead).toBeTrue()",
+            resolved_at: new Date().toISOString(),
+          },
+          options: { sourcePath, targetPath },
+        });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect(existsSync(targetPath)).toBe(false);
+    });
   });
 
   describe("Completed Defects Log Persistence Utilities", () => {
     test("handles reading from non-existent file gracefully returning empty array", () => {
       const missingPath = join(tmpdir(), `non-existent-${Date.now()}.jsonl`);
       expect(readCompletedDefectsLog(missingPath)).toEqual([]);
+    });
+
+    test("fails closed when an existing completed path cannot be read", () => {
+      const tempDir = createTempDir("defect-completed-read-directory-");
+      const targetPath = join(tempDir, "completed-directory");
+      mkdirSync(targetPath);
+
+      let error: unknown;
+      try {
+        readCompletedDefectsLog(targetPath);
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect((error as Error).message).toContain(targetPath);
     });
 
     test("appendCompletedDefectLogEntry appends a new completed defect", () => {
