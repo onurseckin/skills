@@ -11,7 +11,7 @@ interface IndexEntry {
   readonly oid: string;
 }
 
-const INDEX_RECORD = /^(100[0-7]{3}|120000) ([0-9a-f]{40}|[0-9a-f]{64}) [0-3]\t([\s\S]+)$/;
+const INDEX_RECORD = /^(100644|100755|120000) ([0-9a-f]{40}|[0-9a-f]{64}) [0-3]\t([\s\S]+)$/;
 const BATCH_HEADER = /^([0-9a-f]{40}|[0-9a-f]{64}) blob ([0-9]+)$/;
 
 async function collect(process: Bun.Subprocess<"pipe", "pipe", "ignore">): Promise<{
@@ -31,6 +31,10 @@ function failure(message: string): never {
   throw new Error(`Unable to read Git index: ${message}`);
 }
 
+function comparePaths(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function parseIndexRecords(output: Uint8Array): readonly IndexEntry[] {
   const records = new TextDecoder("utf-8", { fatal: true }).decode(output).split("\0");
   if (records.pop() !== "") failure("ls-files output was not NUL-terminated");
@@ -46,7 +50,7 @@ function parseIndexRecords(output: Uint8Array): readonly IndexEntry[] {
       paths.add(path);
       return { oid, path };
     })
-    .sort((left, right) => left.path.localeCompare(right.path));
+    .sort((left, right) => comparePaths(left.path, right.path));
 }
 
 function parseBatch(output: Uint8Array, entries: readonly IndexEntry[]): readonly IndexedBlob[] {
