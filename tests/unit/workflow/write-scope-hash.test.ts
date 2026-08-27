@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, symlink, utimes, writeFile } from "node:fs/promises";
+import { lstatSync } from "node:fs";
+import { mkdir, mkdtemp, realpath, rm, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
@@ -14,6 +15,20 @@ async function repo(name: string): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), `write-scope-hash-${name}-`));
   roots.push(dir);
   return dir;
+}
+
+function expectIntegrity(operation: () => void, path: string, cause: string): void {
+  let received: unknown;
+  try {
+    operation();
+  } catch (error) {
+    received = error;
+  }
+  expect(received).toBeInstanceOf(HarnessError);
+  expect(received).toMatchObject({
+    code: "INTEGRITY",
+    message: `write scope entry could not be inspected: ${path}: ${cause}`,
+  });
 }
 
 describe("hashWriteScope", () => {
@@ -88,6 +103,226 @@ describe("hashWriteScope", () => {
     const afterCreation = hashWriteScope(root, ["src/planned.ts"]);
 
     expect(afterCreation).not.toBe(beforeCreation);
+  });
+
+  test.each(["EACCES", "EIO"])(
+    "refuses a write scope entry that lstat cannot inspect: %s",
+    async (code) => {
+      const root = await repo(`unreadable-${code.toLowerCase()}`);
+      await mkdir(join(root, "src"), { recursive: true });
+      await writeFile(join(root, "src", "blocked.ts"), "export const blocked = true;\n");
+      const blockedPath = join(await realpath(root), "src", "blocked.ts");
+      const cause = `simulated ${code.toLowerCase()}`;
+
+      try {
+        hashWriteScope(root, ["src/blocked.ts"], {
+          lstat(path) {
+            if (path !== blockedPath) return lstatSync(path);
+            const error = Object.assign(new Error(cause), { code });
+            throw error;
+          },
+        });
+        throw new Error("expected hashWriteScope to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(HarnessError);
+        expect(error).toMatchObject({
+          code: "INTEGRITY",
+          message: `write scope entry could not be inspected: ${blockedPath}: ${cause}`,
+        });
+      }
+    },
+  );
+
+  test("accepts an ENOENT lstat result identically to an absent scope path", async () => {
+    const root = await repo("enoent");
+    await mkdir(join(root, "src"), { recursive: true });
+    const missingPath = join(await realpath(root), "src", "planned.ts");
+    const expected = hashWriteScope(root, ["src/planned.ts"]);
+
+    const actual = hashWriteScope(root, ["src/planned.ts"], {
+      lstat(path) {
+        if (path !== missingPath) return lstatSync(path);
+        throw Object.assign(new Error("simulated missing path"), { code: "ENOENT" });
+      },
+    });
+
+    expect(actual).toBe(expected);
+  });
+
+  test.each([
+    [17, "17"],
+    [Object.create({ code: "ENOENT" }), "unknown error"],
+  ])("refuses an lstat throw without an own ENOENT data property", async (thrown, cause) => {
+    const root = await repo("unsafe-lstat-throw");
+    await mkdir(join(root, "src"), { recursive: true });
+    const scopedPath = join(await realpath(root), "src", "planned.ts");
+
+    expectIntegrity(
+      () =>
+        hashWriteScope(root, ["src/planned.ts"], {
+          lstat() {
+            throw thrown;
+          },
+        }),
+      scopedPath,
+      cause,
+    );
+  });
+
+  test("refuses an lstat throw whose code getter cannot be inspected", async () => {
+    const root = await repo("getter-lstat-code");
+    await mkdir(join(root, "src"), { recursive: true });
+    const scopedPath = join(await realpath(root), "src", "planned.ts");
+    const thrown = {};
+    Object.defineProperty(thrown, "code", {
+      get() {
+        throw new Error("code getter was invoked");
+      },
+    });
+    Object.defineProperty(thrown, "message", { value: "uninspectable code" });
+
+    expectIntegrity(
+      () =>
+        hashWriteScope(root, ["src/planned.ts"], {
+          lstat() {
+            throw thrown;
+          },
+        }),
+      scopedPath,
+      "uninspectable code",
+    );
+  });
+
+  test("refuses an lstat proxy that cannot be inspected", async () => {
+    const root = await repo("proxy-lstat-code");
+    await mkdir(join(root, "src"), { recursive: true });
+    const scopedPath = join(await realpath(root), "src", "planned.ts");
+    const thrown = new Proxy(
+      { message: "hidden" },
+      {
+        get() {
+          throw new Error("proxy get trap was invoked");
+        },
+        getOwnPropertyDescriptor() {
+          throw new Error("proxy descriptor trap was invoked");
+        },
+      },
+    );
+
+    expectIntegrity(
+      () =>
+        hashWriteScope(root, ["src/planned.ts"], {
+          lstat() {
+            throw thrown;
+          },
+        }),
+      scopedPath,
+      "unknown error",
+    );
+  });
+
+  test("refuses an ENOTDIR lstat failure", async () => {
+    const root = await repo("enotdir-lstat");
+    await mkdir(join(root, "src"), { recursive: true });
+    const scopedPath = join(await realpath(root), "src", "planned.ts");
+
+    expectIntegrity(
+      () =>
+        hashWriteScope(root, ["src/planned.ts"], {
+          lstat() {
+            throw Object.assign(new Error("simulated enotdir"), { code: "ENOTDIR" });
+          },
+        }),
+      scopedPath,
+      "simulated enotdir",
+    );
+  });
+
+  test("refuses an EIO lstat failure in a scoped directory child", async () => {
+    const root = await repo("recursive-eio");
+    await mkdir(join(root, "src"), { recursive: true });
+    await writeFile(join(root, "src", "blocked.ts"), "export const blocked = true;\n");
+    const canonicalRoot = await realpath(root);
+    const blockedPath = join(canonicalRoot, "src", "blocked.ts");
+
+    expectIntegrity(
+      () =>
+        hashWriteScope(root, ["src"], {
+          lstat(path) {
+            if (path === blockedPath)
+              throw Object.assign(new Error("simulated child eio"), { code: "EIO" });
+            return lstatSync(path);
+          },
+        }),
+      blockedPath,
+      "simulated child eio",
+    );
+  });
+
+  test("accepts an open ENOENT race identically to an absent scope path", async () => {
+    const root = await repo("open-enoent");
+    await mkdir(join(root, "src"), { recursive: true });
+    await writeFile(join(root, "fixture.ts"), "export const fixture = true;\n");
+    const canonicalRoot = await realpath(root);
+    const scopedPath = join(canonicalRoot, "src", "planned.ts");
+    const expected = hashWriteScope(root, ["src/planned.ts"]);
+
+    const actual = hashWriteScope(root, ["src/planned.ts"], {
+      lstat(path) {
+        if (path === scopedPath) return lstatSync(join(canonicalRoot, "fixture.ts"));
+        return lstatSync(path);
+      },
+      open() {
+        throw Object.assign(new Error("simulated open race"), { code: "ENOENT" });
+      },
+    });
+
+    expect(actual).toBe(expected);
+  });
+
+  test("accepts a read ENOENT race identically to an absent scope path", async () => {
+    const root = await repo("read-enoent");
+    await mkdir(join(root, "src"), { recursive: true });
+    await writeFile(join(root, "src", "entry.ts"), "export const entry = true;\n");
+    const expected = hashWriteScope(root, ["src/planned.ts"]);
+
+    const actual = hashWriteScope(root, ["src/entry.ts"], {
+      read() {
+        throw Object.assign(new Error("simulated read race"), { code: "ENOENT" });
+      },
+    });
+
+    expect(actual).toBe(expected);
+  });
+
+  test.each([
+    ["open", "EACCES", "simulated open access"],
+    ["read", "EIO", "simulated read io"],
+  ])("refuses a non-ENOENT %s failure while hashing", async (operation, code, cause) => {
+    const root = await repo(`hash-${operation}-${code.toLowerCase()}`);
+    await mkdir(join(root, "src"), { recursive: true });
+    await writeFile(join(root, "src", "entry.ts"), "export const entry = true;\n");
+    const scopedPath = join(await realpath(root), "src", "entry.ts");
+    const error = Object.assign(new Error(cause), { code });
+
+    expectIntegrity(
+      () =>
+        hashWriteScope(root, ["src/entry.ts"], {
+          ...(operation === "open"
+            ? {
+                open() {
+                  throw error;
+                },
+              }
+            : {
+                read() {
+                  throw error;
+                },
+              }),
+        }),
+      scopedPath,
+      cause,
+    );
   });
 
   test("is independent of directory traversal order", async () => {
