@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
@@ -657,6 +657,37 @@ describe("Mind Admission Gates (W3.3 / PLAN.md §7.3)", () => {
       "duplicate of permanently declined candidate 'cand-declined-yesterday'",
     );
     expect(verdict.reason).toContain("out of scope busywork refactor");
+  });
+
+  test("Gate 6 (Not a duplicate): fails closed when an archived ledger cannot be securely read", () => {
+    const { repo, run } = setupMindTest("gate6-archival-unreadable");
+    const archivedFile = join(run, "..", "ARCHIVED_OBJECTIVES.jsonl");
+    const backingFile = join(repo, "untrusted-archive.jsonl");
+    writeFileSync(
+      backingFile,
+      `${JSON.stringify({ id: "archived", statement: "untrusted" })}\n`,
+      "utf8",
+    );
+    symlinkSync(backingFile, archivedFile);
+
+    const candidate: CandidateRecord = {
+      id: "cand-new",
+      kind: "defect",
+      statement: "unrelated defect",
+      charter_goal_ids: ["G1"],
+      write_scope: ["src/parser.ts"],
+      status: "opened",
+    };
+    const verdict = evaluateGate6NotADuplicate(candidate, {
+      runRoot: run,
+      repoRoot: repo,
+      actor: "mind-1",
+      state: {},
+    });
+
+    expect(verdict.passed).toBe(false);
+    expect(verdict.reason).toContain("could not be securely scanned");
+    expect(verdict.reason).toContain("single-link regular file");
   });
 
   test("Admission evaluation stops at first failure", () => {

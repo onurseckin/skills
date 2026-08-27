@@ -1,16 +1,26 @@
 import {
+  closeSync,
+  constants,
   existsSync,
+  fstatSync,
+  fsyncSync,
   lstatSync,
   mkdirSync,
+  openSync,
   readdirSync,
   readFileSync,
+  renameSync,
   statSync,
+  unlinkSync,
   writeFileSync,
+  writeSync,
 } from "node:fs";
+import { randomBytes } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { isTestEnvironment, resolveCapsulesDir, resolveScratchDir } from "../core/shared/paths.ts";
 import { safeCpSync, safeRenameSync, safeRmSync } from "../core/shared/safe-fs.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
 import type { CandidateRecord } from "./gates.ts";
 import type { ObjectiveRecord } from "./rounds.ts";
 
@@ -121,6 +131,41 @@ export interface PruneAndArchiveResult {
 
 export const DEFAULT_ARCHIVED_OBJECTIVES_FILE = ".olt/capsules/ARCHIVED_OBJECTIVES.jsonl";
 
+type ArchivedObjectivesPersistenceStage =
+  | "before_write"
+  | "before_file_fsync"
+  | "before_rename"
+  | "after_rename"
+  | "before_directory_fsync";
+let archivedObjectivesPersistenceTestHook:
+  | ((stage: ArchivedObjectivesPersistenceStage) => void)
+  | undefined;
+
+/** @internal deterministic persistence seam for the unit suite. */
+export function __setArchivedObjectivesPersistenceTestHook(
+  hook: ((stage: ArchivedObjectivesPersistenceStage) => void) | undefined,
+): void {
+  archivedObjectivesPersistenceTestHook = hook;
+}
+
+function invokeArchivedObjectivesPersistenceHook(stage: ArchivedObjectivesPersistenceStage): void {
+  archivedObjectivesPersistenceTestHook?.(stage);
+}
+
+function hasOwnErrorCode(error: unknown, code: string): boolean {
+  return error instanceof Error && Object.getOwnPropertyDescriptor(error, "code")?.value === code;
+}
+
+function noFollowFlag(): number {
+  if (typeof constants.O_NOFOLLOW !== "number") {
+    throw new HarnessError(
+      "UNSUPPORTED_PLATFORM",
+      "archived objectives ledger requires O_NOFOLLOW protection",
+    );
+  }
+  return constants.O_NOFOLLOW;
+}
+
 /**
  * Resolves the canonical path to the archived objectives ledger.
  */
@@ -163,38 +208,55 @@ export function validateArchivedObjectiveRecord(raw: unknown): ArchivedObjective
     throw new HarnessError("INVALID_ARGUMENT", "ArchivedObjectiveRecord requires non-empty id");
   }
 
-  const rawType = r["type"];
-  const type: ArchivedItemType = isArchivedItemType(rawType) ? rawType : "objective";
+  const valueString = (key: string): string | undefined =>
+    typeof r[key] === "string" && r[key].trim() ? r[key].trim() : undefined;
+  const isLegacyV1 = r["schema_version"] === 1;
+  let type: ArchivedItemType;
+  let statement: string;
+  let generation: number;
+  let completedAt: string;
+  let result: string;
 
-  const statement =
-    typeof r["statement"] === "string" && r["statement"].trim()
-      ? r["statement"].trim()
-      : typeof r["title"] === "string" && r["title"].trim()
-        ? r["title"].trim()
-        : `Item ${id}`;
-
-  const generation =
-    typeof r["generation"] === "number" && Number.isFinite(r["generation"])
-      ? r["generation"]
-      : typeof r["generation_id"] === "number" && Number.isFinite(r["generation_id"])
+  if (isLegacyV1) {
+    const legacyType = r["type"];
+    type = isArchivedItemType(legacyType) ? legacyType : "objective";
+    statement = valueString("title") ?? valueString("statement") ?? "";
+    generation =
+      typeof r["generation_id"] === "number" && Number.isFinite(r["generation_id"])
         ? (r["generation_id"] as number)
-        : 1;
-
-  const completedAt =
-    typeof r["completed_at"] === "string" && r["completed_at"].trim()
-      ? r["completed_at"].trim()
-      : typeof r["closed_at"] === "string" && r["closed_at"].trim()
-        ? r["closed_at"].trim()
-        : typeof r["decided_at"] === "string" && r["decided_at"].trim()
-          ? r["decided_at"].trim()
-          : new Date().toISOString();
-
-  const result =
-    typeof r["result"] === "string" && r["result"].trim()
-      ? r["result"].trim()
-      : typeof r["status"] === "string" && r["status"].trim()
-        ? r["status"].trim()
-        : "completed";
+        : typeof r["generation"] === "number" && Number.isFinite(r["generation"])
+          ? (r["generation"] as number)
+          : Number.NaN;
+    completedAt =
+      valueString("closed_at") ?? valueString("decided_at") ?? valueString("completed_at") ?? "";
+    result = valueString("status") ?? valueString("result") ?? "";
+  } else {
+    if (r["schema_version"] !== undefined && r["schema_version"] !== 2) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        "ArchivedObjectiveRecord has unsupported schema_version",
+      );
+    }
+    if (!isArchivedItemType(r["type"])) {
+      throw new HarnessError("INVALID_ARGUMENT", "ArchivedObjectiveRecord requires a valid type");
+    }
+    type = r["type"];
+    statement = valueString("statement") ?? "";
+    generation =
+      typeof r["generation"] === "number" && Number.isFinite(r["generation"])
+        ? (r["generation"] as number)
+        : Number.NaN;
+    completedAt = valueString("completed_at") ?? "";
+    result = valueString("result") ?? "";
+  }
+  if (!statement || !Number.isFinite(generation) || !completedAt || !result) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      isLegacyV1
+        ? "legacy ArchivedObjectiveRecord v1 is missing a required explicit legacy field"
+        : "ArchivedObjectiveRecord is missing a required current field",
+    );
+  }
 
   const candidateId =
     typeof r["candidate_id"] === "string"
@@ -223,7 +285,7 @@ export function validateArchivedObjectiveRecord(raw: unknown): ArchivedObjective
 
   const charterGoals = Array.isArray(r["charter_goals"])
     ? (r["charter_goals"] as readonly string[])
-    : Array.isArray(r["charter_goal_ids"])
+    : isLegacyV1 && Array.isArray(r["charter_goal_ids"])
       ? (r["charter_goal_ids"] as readonly string[])
       : undefined;
 
@@ -259,30 +321,335 @@ export function validateArchivedObjectiveRecord(raw: unknown): ArchivedObjective
  */
 export function readArchivedObjectives(customPath?: string): ArchivedObjectiveRecord[] {
   const filePath = resolveArchivedObjectivesPath(undefined, customPath);
-  if (!existsSync(filePath)) {
-    return [];
+  return parseArchivedObjectives(readArchivedObjectivesFile(filePath).raw);
+}
+
+interface ArchivedObjectivesSnapshot {
+  readonly raw: string;
+  readonly identity?: { readonly dev: number; readonly ino: number } | undefined;
+}
+
+function readArchivedObjectivesFile(filePath: string): ArchivedObjectivesSnapshot {
+  let descriptor: number | undefined;
+  try {
+    const before = lstatSync(filePath);
+    if (!before.isFile() || before.nlink !== 1) {
+      throw new HarnessError(
+        "INTEGRITY",
+        "archived objectives ledger must be a single-link regular file",
+      );
+    }
+    descriptor = openSync(filePath, constants.O_RDONLY | noFollowFlag());
+    const opened = fstatSync(descriptor);
+    if (
+      !opened.isFile() ||
+      opened.nlink !== 1 ||
+      opened.dev !== before.dev ||
+      opened.ino !== before.ino
+    ) {
+      throw new HarnessError("INTEGRITY", "archived objectives ledger changed while being opened");
+    }
+    const raw = readFileSync(descriptor, "utf8");
+    const after = lstatSync(filePath);
+    if (
+      !after.isFile() ||
+      after.nlink !== 1 ||
+      after.dev !== opened.dev ||
+      after.ino !== opened.ino
+    ) {
+      throw new HarnessError("INTEGRITY", "archived objectives ledger changed while being read");
+    }
+    return { raw, identity: { dev: opened.dev, ino: opened.ino } };
+  } catch (error) {
+    if (hasOwnErrorCode(error, "ENOENT")) return { raw: "" };
+    if (error instanceof HarnessError) throw error;
+    throw new HarnessError(
+      "INTEGRITY",
+      `could not securely read archived objectives ledger: ${filePath}`,
+    );
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
   }
+}
 
-  const raw = readFileSync(filePath, "utf8");
-  const lines = raw
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
+function parseArchivedObjectives(raw: string): ArchivedObjectiveRecord[] {
   const items: ArchivedObjectiveRecord[] = [];
+  const ids = new Set<string>();
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line) continue;
+  for (const [index, line] of raw.split("\n").entries()) {
+    if (!line.trim()) continue;
     try {
       const parsed = JSON.parse(line) as unknown;
       const validated = validateArchivedObjectiveRecord(parsed);
+      if (ids.has(validated.id)) {
+        throw new HarnessError(
+          "INTEGRITY",
+          `archived objectives ledger line ${index + 1} duplicates id '${validated.id}'`,
+        );
+      }
+      ids.add(validated.id);
       items.push(validated);
-    } catch {
-      // Skip malformed individual line in log
+    } catch (error) {
+      if (error instanceof HarnessError) throw error;
+      throw new HarnessError(
+        "INTEGRITY",
+        `archived objectives ledger line ${index + 1} is malformed`,
+      );
     }
   }
 
   return items;
+}
+
+function assertUniqueArchivedObjectives(
+  items: readonly ArchivedObjectiveRecord[],
+): ArchivedObjectiveRecord[] {
+  const canonical: ArchivedObjectiveRecord[] = [];
+  const ids = new Set<string>();
+  for (const item of items) {
+    const validated = validateArchivedObjectiveRecord(item);
+    if (ids.has(validated.id)) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `archived objectives ledger duplicates id '${validated.id}'`,
+      );
+    }
+    ids.add(validated.id);
+    canonical.push(validated);
+  }
+  return canonical;
+}
+
+function acquireArchivedObjectivesFlock(descriptor: number, label: string): void {
+  const sleep = new Int32Array(new SharedArrayBuffer(4));
+  for (let attempt = 0; attempt < 200; attempt++) {
+    if (tryExclusiveFlock(descriptor)) return;
+    Atomics.wait(sleep, 0, 0, 5);
+  }
+  throw new HarnessError("LOCK_TIMEOUT", `${label} is already locked`);
+}
+
+function assertStableArchivedObjectivesDirectory(
+  path: string,
+  descriptor: number,
+  label: string,
+): void {
+  const pathStat = lstatSync(path);
+  const opened = fstatSync(descriptor);
+  if (
+    !pathStat.isDirectory() ||
+    !opened.isDirectory() ||
+    pathStat.dev !== opened.dev ||
+    pathStat.ino !== opened.ino
+  ) {
+    throw new HarnessError("INTEGRITY", `${label} directory changed while being opened`);
+  }
+}
+
+interface StableArchivedObjectivesDirectoryChain {
+  readonly paths: readonly string[];
+  readonly descriptors: readonly number[];
+}
+
+/** Opens every absolute path component with O_DIRECTORY|O_NOFOLLOW and revalidates it by inode. */
+function openStableArchivedObjectivesDirectoryChain(
+  directory: string,
+  label: string,
+): StableArchivedObjectivesDirectoryChain {
+  const paths: string[] = [];
+  const descriptors: number[] = [];
+  try {
+    let current = "/";
+    paths.push(current);
+    for (const component of resolve(directory).split("/").filter(Boolean)) {
+      current = join(current, component);
+      paths.push(current);
+    }
+    for (const path of paths) {
+      const before = lstatSync(path);
+      if (!before.isDirectory()) {
+        throw new HarnessError(
+          "PATH_SAFETY",
+          `${label} path component is not a directory: ${path}`,
+        );
+      }
+      const descriptor = openSync(
+        path,
+        constants.O_RDONLY | constants.O_DIRECTORY | noFollowFlag(),
+      );
+      descriptors.push(descriptor);
+      assertStableArchivedObjectivesDirectory(path, descriptor, label);
+      for (let index = 0; index < descriptors.length; index++) {
+        assertStableArchivedObjectivesDirectory(paths[index]!, descriptors[index]!, label);
+      }
+    }
+    return { paths, descriptors };
+  } catch (error) {
+    for (const descriptor of descriptors.reverse()) {
+      try {
+        closeSync(descriptor);
+      } catch {}
+    }
+    if (error instanceof HarnessError) throw error;
+    throw new HarnessError("PATH_SAFETY", `${label} cannot be securely traversed`);
+  }
+}
+
+function assertStableArchivedObjectivesDirectoryChain(
+  chain: StableArchivedObjectivesDirectoryChain,
+  label: string,
+): void {
+  for (let index = 0; index < chain.descriptors.length; index++) {
+    assertStableArchivedObjectivesDirectory(chain.paths[index]!, chain.descriptors[index]!, label);
+  }
+}
+
+function closeStableArchivedObjectivesDirectoryChain(
+  chain: StableArchivedObjectivesDirectoryChain | undefined,
+): void {
+  if (!chain) return;
+  let cleanup: unknown;
+  for (const descriptor of [...chain.descriptors].reverse()) {
+    try {
+      closeSync(descriptor);
+    } catch (error) {
+      cleanup ??= error;
+    }
+  }
+  if (cleanup !== undefined) throw cleanup;
+}
+
+function withArchivedObjectivesTransaction<T>(
+  customPath: string | undefined,
+  mutation: (items: readonly ArchivedObjectiveRecord[]) => {
+    readonly items: readonly ArchivedObjectiveRecord[];
+    readonly result: T;
+  },
+): T {
+  const filePath = resolveArchivedObjectivesPath(undefined, customPath);
+  const parent = dirname(filePath);
+  const root = dirname(parent);
+  let rootChain: StableArchivedObjectivesDirectoryChain | undefined;
+  let parentChain: StableArchivedObjectivesDirectoryChain | undefined;
+  let rootLocked = false;
+  let parentLocked = false;
+  let result!: T;
+  let primary: unknown;
+  try {
+    if (!existsSync(parent)) mkdirSync(parent, { recursive: true, mode: 0o700 });
+    rootChain = openStableArchivedObjectivesDirectoryChain(root, "archived objectives root");
+    const rootFd = rootChain.descriptors.at(-1)!;
+    acquireArchivedObjectivesFlock(rootFd, "archived objectives root");
+    rootLocked = true;
+    assertStableArchivedObjectivesDirectoryChain(rootChain, "archived objectives root");
+    parentChain = openStableArchivedObjectivesDirectoryChain(parent, "archived objectives parent");
+    const parentFd = parentChain.descriptors.at(-1)!;
+    acquireArchivedObjectivesFlock(parentFd, "archived objectives parent");
+    parentLocked = true;
+    assertStableArchivedObjectivesDirectoryChain(rootChain, "archived objectives root");
+    assertStableArchivedObjectivesDirectoryChain(parentChain, "archived objectives parent");
+    const snapshot = readArchivedObjectivesFile(filePath);
+    const next = mutation(parseArchivedObjectives(snapshot.raw));
+    atomicWriteArchivedObjectives(filePath, next.items, snapshot.identity);
+    result = next.result;
+  } catch (error) {
+    primary = error;
+  }
+  let cleanup: unknown;
+  const tryCleanup = (action: () => void): void => {
+    try {
+      action();
+    } catch (error) {
+      if (cleanup === undefined) cleanup = error;
+    }
+  };
+  if (parentLocked && parentChain) tryCleanup(() => releaseFlock(parentChain!.descriptors.at(-1)!));
+  if (rootLocked && rootChain) tryCleanup(() => releaseFlock(rootChain!.descriptors.at(-1)!));
+  tryCleanup(() => closeStableArchivedObjectivesDirectoryChain(parentChain));
+  tryCleanup(() => closeStableArchivedObjectivesDirectoryChain(rootChain));
+  if (primary !== undefined) throw primary;
+  if (cleanup !== undefined) throw cleanup;
+  return result;
+}
+
+function atomicWriteArchivedObjectives(
+  filePath: string,
+  items: readonly ArchivedObjectiveRecord[],
+  expectedPrevious: { readonly dev: number; readonly ino: number } | undefined,
+): void {
+  const canonical = assertUniqueArchivedObjectives(items);
+  const raw =
+    canonical.map((item) => JSON.stringify(item)).join("\n") + (canonical.length ? "\n" : "");
+  const parent = dirname(filePath);
+  const temporary = join(
+    parent,
+    `.archived-objectives.${process.pid}.${randomBytes(12).toString("hex")}.tmp`,
+  );
+  let tempFd: number | undefined;
+  let parentChain: StableArchivedObjectivesDirectoryChain | undefined;
+  let renamed = false;
+  try {
+    tempFd = openSync(
+      temporary,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | noFollowFlag(),
+      0o600,
+    );
+    const bytes = Buffer.from(raw, "utf8");
+    for (let offset = 0; offset < bytes.length;) {
+      invokeArchivedObjectivesPersistenceHook("before_write");
+      const written = writeSync(tempFd, bytes, offset, bytes.length - offset);
+      if (written <= 0)
+        throw new HarnessError("INTEGRITY", "could not write archived objectives ledger");
+      offset += written;
+    }
+    invokeArchivedObjectivesPersistenceHook("before_file_fsync");
+    fsyncSync(tempFd);
+    closeSync(tempFd);
+    tempFd = undefined;
+    try {
+      const current = lstatSync(filePath);
+      if (
+        !expectedPrevious ||
+        !current.isFile() ||
+        current.nlink !== 1 ||
+        current.dev !== expectedPrevious.dev ||
+        current.ino !== expectedPrevious.ino
+      ) {
+        throw new HarnessError(
+          "INTEGRITY",
+          "archived objectives ledger changed before replacement",
+        );
+      }
+    } catch (error) {
+      if (!(expectedPrevious === undefined && hasOwnErrorCode(error, "ENOENT"))) throw error;
+    }
+    invokeArchivedObjectivesPersistenceHook("before_rename");
+    parentChain = openStableArchivedObjectivesDirectoryChain(parent, "archived objectives parent");
+    renameSync(temporary, filePath);
+    renamed = true;
+    invokeArchivedObjectivesPersistenceHook("after_rename");
+    assertStableArchivedObjectivesDirectoryChain(parentChain, "archived objectives parent");
+    invokeArchivedObjectivesPersistenceHook("before_directory_fsync");
+    fsyncSync(parentChain.descriptors.at(-1)!);
+  } catch (error) {
+    if (renamed) {
+      throw new HarnessError(
+        "INTEGRITY",
+        "archived objectives ledger mutation outcome is uncertain and possibly committed after rename",
+      );
+    }
+    throw error;
+  } finally {
+    if (tempFd !== undefined) closeSync(tempFd);
+    closeStableArchivedObjectivesDirectoryChain(parentChain);
+    if (!renamed) {
+      try {
+        unlinkSync(temporary);
+      } catch (error) {
+        if (!hasOwnErrorCode(error, "ENOENT")) throw error;
+      }
+    }
+  }
 }
 
 /**
@@ -292,14 +659,7 @@ export function writeArchivedObjectives(
   items: readonly ArchivedObjectiveRecord[],
   customPath?: string,
 ): void {
-  const filePath = resolveArchivedObjectivesPath(undefined, customPath);
-  const dir = dirname(filePath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-
-  const lines = items.map((item) => JSON.stringify(item));
-  writeFileSync(filePath, lines.join("\n") + (lines.length > 0 ? "\n" : ""), "utf8");
+  withArchivedObjectivesTransaction(customPath, () => ({ items, result: undefined }));
 }
 
 /**
@@ -312,22 +672,32 @@ export function appendArchivedObjectives(
   if (records.length === 0) {
     return readArchivedObjectives(customPath);
   }
+  return withArchivedObjectivesTransaction(customPath, (existing) => {
+    const recordMap = new Map<string, ArchivedObjectiveRecord>();
+    for (const item of existing) recordMap.set(item.id, item);
+    for (const record of records) {
+      const validated = validateArchivedObjectiveRecord(record);
+      recordMap.set(validated.id, validated);
+    }
+    const merged = Array.from(recordMap.values());
+    return { items: merged, result: merged };
+  });
+}
 
-  const existing = readArchivedObjectives(customPath);
-  const recordMap = new Map<string, ArchivedObjectiveRecord>();
-
-  for (const item of existing) {
-    recordMap.set(item.id, item);
-  }
-
-  for (const r of records) {
-    const validated = validateArchivedObjectiveRecord(r);
-    recordMap.set(validated.id, validated);
-  }
-
-  const merged = Array.from(recordMap.values());
-  writeArchivedObjectives(merged, customPath);
-  return merged;
+/**
+ * Persists required global/local copies in one canonical order. Each copy owns a separate
+ * transaction: root is always locked before its parent, and parents are visited in sorted
+ * absolute-path order, so no operation can form an inverse parent-lock cycle.
+ */
+function appendArchivedObjectivesCopies(
+  records: readonly ArchivedObjectiveRecord[],
+  paths: readonly string[],
+): void {
+  const orderedPaths = [...new Set(paths.map((path) => resolve(path)))].sort((left, right) => {
+    const parentOrder = dirname(left).localeCompare(dirname(right));
+    return parentOrder === 0 ? left.localeCompare(right) : parentOrder;
+  });
+  for (const path of orderedPaths) appendArchivedObjectives(records, path);
 }
 
 /**
@@ -560,13 +930,13 @@ export function pruneAndArchiveGenerationalState(
   );
 
   if (toArchive.length > 0) {
-    appendArchivedObjectives(toArchive, archivalPath);
-
-    // Also persist inside source capsule directory if available
+    const requiredArchiveCopies = [archivalPath];
+    // Also persist inside source capsule directory if available. Both copies are mandatory
+    // once selected; appendArchivedObjectivesCopies intentionally propagates any failure.
     if (options.sourceRunRoot && existsSync(options.sourceRunRoot)) {
-      const sourceCapsuleArchivalPath = join(options.sourceRunRoot, "ARCHIVED_OBJECTIVES.jsonl");
-      appendArchivedObjectives(toArchive, sourceCapsuleArchivalPath);
+      requiredArchiveCopies.push(join(options.sourceRunRoot, "ARCHIVED_OBJECTIVES.jsonl"));
     }
+    appendArchivedObjectivesCopies(toArchive, requiredArchiveCopies);
   }
 
   // 5. Prune boilerplate subdirectories & consolidate legacy capsule roots if requested

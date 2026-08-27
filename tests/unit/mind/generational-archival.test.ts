@@ -1,5 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
 import {
@@ -10,6 +21,7 @@ import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contra
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   appendArchivedObjectives,
+  __setArchivedObjectivesPersistenceTestHook,
   archiveCapsule,
   assertCapsuleCopyComplete,
   consolidateCapsules,
@@ -47,6 +59,26 @@ import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
+}
+
+function appendFromChild(targetFile: string, record: ArchivedObjectiveRecord): Promise<void> {
+  const modulePath = join(process.cwd(), "olt", "scripts", "src", "mind", "archival.ts");
+  const source = [
+    `import { appendArchivedObjectives } from ${JSON.stringify(modulePath)};`,
+    `appendArchivedObjectives([${JSON.stringify(record)}], ${JSON.stringify(targetFile)});`,
+  ].join("\n");
+  return new Promise((resolveChild, reject) => {
+    const child = spawn(process.execPath, ["-e", source], { stdio: ["ignore", "ignore", "pipe"] });
+    let stderr = "";
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+    child.once("error", reject);
+    child.once("exit", (code) => {
+      if (code === 0) resolveChild();
+      else reject(new Error(`archival child exited ${code}: ${stderr}`));
+    });
+  });
 }
 
 const SAMPLE_CHARTER = `
@@ -191,6 +223,7 @@ describe("Generational State Archival (REMED-007)", () => {
 
     test("validateArchivedObjectiveRecord falls back to title, generation_id, closed_at, decided_at, and status", () => {
       const fallbackObj = {
+        schema_version: 1,
         id: "cand-10",
         title: "Title Fallback",
         generation_id: 2,
@@ -206,6 +239,35 @@ describe("Generational State Archival (REMED-007)", () => {
       expect(parsed.completed_at).toBe("2026-08-21T10:00:00.000Z");
       expect(parsed.result).toBe("declined");
       expect(parsed.charter_goals).toEqual(["G2"]);
+    });
+
+    test("legacy aliases require an explicit legacy schema version and malformed current records never fall through", () => {
+      expect(() =>
+        validateArchivedObjectiveRecord({
+          id: "current-with-legacy-alias",
+          title: "must not silently become legacy",
+          generation_id: 1,
+          closed_at: "2026-08-21T10:00:00.000Z",
+          status: "declined",
+        }),
+      ).toThrow(HarnessError);
+
+      expect(
+        validateArchivedObjectiveRecord({
+          schema_version: 1,
+          id: "legacy-v1",
+          title: "explicit legacy record",
+          generation_id: 1,
+          decided_at: "2026-08-21T10:00:00.000Z",
+          status: "declined",
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          id: "legacy-v1",
+          statement: "explicit legacy record",
+          result: "declined",
+        }),
+      );
     });
 
     test("validateArchivedObjectiveRecord throws on non-object or missing id", () => {
@@ -288,6 +350,189 @@ describe("Generational State Archival (REMED-007)", () => {
       expect(updated.length).toBe(3);
       expect(updated.find((r) => r.id === "obj-gen1-1")?.statement).toBe("Gen 1 objective updated");
       expect(updated.find((r) => r.id === "task-gen1-3")).toBeDefined();
+    });
+
+    test("readArchivedObjectives rejects malformed middle and final records without discarding evidence", () => {
+      const scratch = scratchRoot("archival-malformed-records");
+      const targetFile = join(scratch, "ARCHIVED_OBJECTIVES.jsonl");
+      const valid = {
+        id: "first",
+        type: "objective",
+        statement: "first",
+        generation: 1,
+        completed_at: "2026-08-20T00:00:00.000Z",
+        result: "completed",
+      };
+      writeFileSync(
+        targetFile,
+        `${JSON.stringify(valid)}\nnot-json\n${JSON.stringify({ ...valid, id: "last", statement: "last" })}\n`,
+        "utf8",
+      );
+      expect(() => readArchivedObjectives(targetFile)).toThrow("line 2");
+
+      writeFileSync(targetFile, `${JSON.stringify(valid)}\n{`, "utf8");
+      expect(() => readArchivedObjectives(targetFile)).toThrow("line 2");
+    });
+
+    test("archival ledger rejects symlink and hard-link targets", () => {
+      const scratch = scratchRoot("archival-link-safety");
+      const targetFile = join(scratch, "ARCHIVED_OBJECTIVES.jsonl");
+      const backing = join(scratch, "backing.jsonl");
+      writeFileSync(
+        backing,
+        `${JSON.stringify({ id: "backing", statement: "backing" })}\n`,
+        "utf8",
+      );
+      symlinkSync(backing, targetFile);
+      expect(() => readArchivedObjectives(targetFile)).toThrow(HarnessError);
+
+      const hardLinked = join(scratch, "hard-linked.jsonl");
+      linkSync(backing, hardLinked);
+      expect(() => readArchivedObjectives(hardLinked)).toThrow(HarnessError);
+    });
+
+    test("archival transaction rejects a non-cooperating parent replacement race", () => {
+      const scratch = scratchRoot("archival-parent-race");
+      const attacker = scratchRoot("archival-parent-race-attacker");
+      const targetFile = join(scratch, "ARCHIVED_OBJECTIVES.jsonl");
+      const parkedParent = `${scratch}.parked`;
+      const original: ArchivedObjectiveRecord = {
+        id: "original",
+        type: "objective",
+        statement: "original record",
+        generation: 1,
+        completed_at: "2026-08-20T00:00:00.000Z",
+        result: "completed",
+      };
+      writeArchivedObjectives([original], targetFile);
+
+      __setArchivedObjectivesPersistenceTestHook((stage) => {
+        if (stage !== "before_rename") return;
+        renameSync(scratch, parkedParent);
+        symlinkSync(attacker, scratch);
+      });
+      try {
+        expect(() =>
+          writeArchivedObjectives([{ ...original, id: "replacement" }], targetFile),
+        ).toThrow(HarnessError);
+      } finally {
+        __setArchivedObjectivesPersistenceTestHook(undefined);
+        unlinkSync(scratch);
+        renameSync(parkedParent, scratch);
+      }
+
+      expect(readArchivedObjectives(targetFile)).toEqual([original]);
+      expect(existsSync(join(attacker, "ARCHIVED_OBJECTIVES.jsonl"))).toBe(false);
+    });
+
+    test("archival write preserves the prior file before rename failures and reports uncertainty after rename", () => {
+      const scratch = scratchRoot("archival-persistence-faults");
+      const targetFile = join(scratch, "ARCHIVED_OBJECTIVES.jsonl");
+      const original: ArchivedObjectiveRecord = {
+        id: "original",
+        type: "objective",
+        statement: "original record",
+        generation: 1,
+        completed_at: "2026-08-20T00:00:00.000Z",
+        result: "completed",
+      };
+      writeArchivedObjectives([original], targetFile);
+
+      __setArchivedObjectivesPersistenceTestHook((stage) => {
+        if (stage === "before_rename") throw new Error("injected pre-rename failure");
+      });
+      try {
+        expect(() =>
+          writeArchivedObjectives([{ ...original, id: "replacement" }], targetFile),
+        ).toThrow("injected pre-rename failure");
+      } finally {
+        __setArchivedObjectivesPersistenceTestHook(undefined);
+      }
+      expect(readArchivedObjectives(targetFile)).toEqual([original]);
+
+      __setArchivedObjectivesPersistenceTestHook((stage) => {
+        if (stage === "after_rename") throw new Error("injected post-rename failure");
+      });
+      try {
+        expect(() =>
+          writeArchivedObjectives([{ ...original, id: "replacement" }], targetFile),
+        ).toThrow("outcome is uncertain");
+      } finally {
+        __setArchivedObjectivesPersistenceTestHook(undefined);
+      }
+      expect(readArchivedObjectives(targetFile).map((item) => item.id)).toEqual(["replacement"]);
+      expect(() =>
+        writeArchivedObjectives([{ ...original, id: "replacement" }], targetFile),
+      ).not.toThrow();
+      expect(readArchivedObjectives(targetFile).map((item) => item.id)).toEqual(["replacement"]);
+
+      __setArchivedObjectivesPersistenceTestHook((stage) => {
+        if (stage === "before_directory_fsync") throw new Error("injected directory fsync failure");
+      });
+      try {
+        expect(() =>
+          writeArchivedObjectives([{ ...original, id: "replacement" }], targetFile),
+        ).toThrow("outcome is uncertain");
+      } finally {
+        __setArchivedObjectivesPersistenceTestHook(undefined);
+      }
+      expect(() =>
+        writeArchivedObjectives([{ ...original, id: "replacement" }], targetFile),
+      ).not.toThrow();
+      expect(readArchivedObjectives(targetFile).map((item) => item.id)).toEqual(["replacement"]);
+    });
+
+    test("concurrent child appends preserve each distinct record exactly once", async () => {
+      const scratch = scratchRoot("archival-distinct-child-appends");
+      const targetFile = join(scratch, "ARCHIVED_OBJECTIVES.jsonl");
+      const records: readonly ArchivedObjectiveRecord[] = [
+        {
+          id: "child-a",
+          type: "candidate",
+          statement: "first child record",
+          generation: 1,
+          completed_at: "2026-08-20T00:00:00.000Z",
+          result: "completed",
+        },
+        {
+          id: "child-b",
+          type: "candidate",
+          statement: "second child record",
+          generation: 1,
+          completed_at: "2026-08-20T00:00:00.000Z",
+          result: "completed",
+        },
+      ];
+
+      await Promise.all(records.map((record) => appendFromChild(targetFile, record)));
+
+      expect(
+        readArchivedObjectives(targetFile)
+          .map((record) => record.id)
+          .sort(),
+      ).toEqual(["child-a", "child-b"]);
+    });
+
+    test("concurrent same-id appends leave one complete deterministic record", async () => {
+      const scratch = scratchRoot("archival-same-id-child-appends");
+      const targetFile = join(scratch, "ARCHIVED_OBJECTIVES.jsonl");
+      const base = {
+        id: "shared-id",
+        type: "task" as const,
+        generation: 1,
+        completed_at: "2026-08-20T00:00:00.000Z",
+        result: "completed",
+      };
+
+      await Promise.all([
+        appendFromChild(targetFile, { ...base, statement: "writer A" }),
+        appendFromChild(targetFile, { ...base, statement: "writer B" }),
+      ]);
+
+      const records = readArchivedObjectives(targetFile);
+      expect(records).toHaveLength(1);
+      expect(records[0]).toEqual(expect.objectContaining({ id: "shared-id" }));
+      expect(["writer A", "writer B"]).toContain(records[0]?.statement);
     });
 
     test("isItemCompleted identifies completed and active items correctly", () => {

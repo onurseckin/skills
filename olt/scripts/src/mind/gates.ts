@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, normalize, resolve } from "node:path";
 import { scopeConflict } from "../engine/scheduler/conflicts.ts";
-import { readArchivedObjectives } from "./archival.ts";
+import { readArchivedObjectives, type ArchivedObjectiveRecord } from "./archival.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";
 
 export interface CandidateRecord {
@@ -866,42 +866,48 @@ export function evaluateGate6NotADuplicate(
   const archivedFiles = [archivedCapsulesPath, capsuleLocalArchived];
 
   for (const archFile of archivedFiles) {
-    if (existsSync(archFile)) {
-      try {
-        const archivedRecords = readArchivedObjectives(archFile);
-        for (const arch of archivedRecords) {
-          if (arch.id === candidate.id) continue;
-          if (arch.result === "declined") {
-            const archScope = (arch.write_scope ?? []) as readonly string[];
-            const archStatementLower = arch.statement.trim().toLowerCase();
-            const archDetails = (arch.details ?? {}) as Record<string, unknown>;
-            const archKind = archDetails["kind"] ?? arch.type;
-            const declineReason =
-              typeof archDetails["decline_reason"] === "string"
-                ? archDetails["decline_reason"]
-                : arch.result;
+    let archivedRecords: ArchivedObjectiveRecord[];
+    try {
+      archivedRecords = readArchivedObjectives(archFile);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "unknown archival ledger error";
+      return {
+        gateId,
+        gateNumber,
+        name,
+        passed: false,
+        reason: `archived objectives ledger could not be securely scanned: ${reason}`,
+        repairArgv: `bun harness.ts mind:candidate --run ${context.runRoot} --actor ${context.actor}`,
+      };
+    }
+    for (const arch of archivedRecords) {
+      if (arch.id === candidate.id) continue;
+      if (arch.result !== "declined") continue;
+      const archScope = (arch.write_scope ?? []) as readonly string[];
+      const archStatementLower = arch.statement.trim().toLowerCase();
+      const archDetails = (arch.details ?? {}) as Record<string, unknown>;
+      const archKind = archDetails["kind"] ?? arch.type;
+      const declineReason =
+        typeof archDetails["decline_reason"] === "string"
+          ? archDetails["decline_reason"]
+          : arch.result;
 
-            const isStatementScopeDup =
-              statementLower === archStatementLower && scopeConflict(scope, archScope);
-            const isProposalDup =
-              candidate.kind === "proposal" &&
-              archKind === "proposal" &&
-              statementLower === archStatementLower;
+      const isStatementScopeDup =
+        statementLower === archStatementLower && scopeConflict(scope, archScope);
+      const isProposalDup =
+        candidate.kind === "proposal" &&
+        archKind === "proposal" &&
+        statementLower === archStatementLower;
 
-            if (isStatementScopeDup || isProposalDup) {
-              return {
-                gateId,
-                gateNumber,
-                name,
-                passed: false,
-                reason: `candidate is a duplicate of permanently declined candidate '${arch.id}' (declined reason: '${declineReason}')`,
-                repairArgv: `bun harness.ts mind:candidate --run ${context.runRoot} --actor ${context.actor}`,
-              };
-            }
-          }
-        }
-      } catch {
-        // Non-fatal archival scan error
+      if (isStatementScopeDup || isProposalDup) {
+        return {
+          gateId,
+          gateNumber,
+          name,
+          passed: false,
+          reason: `candidate is a duplicate of permanently declined candidate '${arch.id}' (declined reason: '${declineReason}')`,
+          repairArgv: `bun harness.ts mind:candidate --run ${context.runRoot} --actor ${context.actor}`,
+        };
       }
     }
   }
