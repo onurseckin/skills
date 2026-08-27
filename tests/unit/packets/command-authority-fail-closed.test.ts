@@ -17,12 +17,100 @@ import type { AgentRole } from "../../../olt/scripts/src/core/contracts/packets.
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { emptyGrantRun } from "./grant-run-fixture.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { registerSessionGrant } from "../../../olt/scripts/src/authority/session-registry.ts";
 
 function spec(invocation: string) {
   const found = findCommand(invocation);
   if (!found) throw new Error(`the registry has no command named ${invocation}`);
   return found;
 }
+
+function installMetaAuditGrant(
+  run: string,
+  id: string,
+  role: string,
+  status: "active" | "released" = "active",
+): void {
+  transact(run, "test-setup", "grant-agent", {}, (draft) => {
+    draft.agents = [
+      {
+        id,
+        role,
+        parent_agent_id: null,
+        parent_task_id: null,
+        host: "test",
+        granted_at: new Date().toISOString(),
+        status,
+      },
+    ];
+  });
+}
+
+describe("meta-audit execute authority", () => {
+  test("denies ghost, released, and implementer actors through execute", async () => {
+    for (const [id, role, status] of [
+      ["ghost", undefined, undefined],
+      ["released", "coordinator", "released"],
+      ["worker", "implementer", "active"],
+    ] as const) {
+      const { run } = await emptyGrantRun(`meta-audit-${id}-`);
+      if (role !== undefined && status !== undefined) installMetaAuditGrant(run, id, role, status);
+      await expect(
+        execute(["meta-audit", "--run", run, "--actor", id, "--inject"]),
+      ).rejects.toThrow();
+    }
+  });
+
+  test("accepts active coordinator actor and never treats --agent filter as actor", async () => {
+    const { run } = await emptyGrantRun("meta-audit-coordinator-");
+    installMetaAuditGrant(run, "coordinator", "coordinator");
+    const result = await execute([
+      "meta-audit",
+      "--run",
+      run,
+      "--actor",
+      "coordinator",
+      "--agent",
+      "victim",
+    ]);
+    expect(result.run_root).toBe(run);
+    await expect(
+      execute(["meta-audit", "--run", run, "--agent", "victim", "--inject"]),
+    ).rejects.toThrow("--actor is required");
+  });
+
+  test("accepts an active meta-auditor actor through execute", async () => {
+    const { run } = await emptyGrantRun("meta-audit-meta-auditor-");
+    installMetaAuditGrant(run, "meta-auditor", "meta-auditor");
+    const result = await execute(["meta-audit", "--run", run, "--actor", "meta-auditor"]);
+    expect(result.run_root).toBe(run);
+  });
+
+  test("auto-fills a verified durable coordinator session through execute", async () => {
+    const { run } = await emptyGrantRun("meta-audit-session-");
+    installMetaAuditGrant(run, "session-coordinator", "coordinator");
+    registerSessionGrant({ runRoot: run, agentId: "session-coordinator", role: "coordinator" });
+    const result = await execute(["meta-audit", "--run", run]);
+    expect(result.run_root).toBe(run);
+  });
+
+  test("does not auto-fill a meta-audit actor from fake PID or PPID session records", async () => {
+    const { run } = await emptyGrantRun("meta-audit-fake-process-");
+    installMetaAuditGrant(run, "fake-process-coordinator", "coordinator");
+    registerSessionGrant({
+      runRoot: run,
+      agentId: "fake-process-coordinator",
+      role: "coordinator",
+      pid: 812345,
+      ppid: 812344,
+    });
+
+    await expect(execute(["meta-audit", "--run", run, "--inject"])).rejects.toThrow(
+      "--actor is required",
+    );
+  });
+});
 
 describe("assertGrantedCommand hole 1: no --run resolves", () => {
   test("denies a non-allowlisted command with no --run", () => {

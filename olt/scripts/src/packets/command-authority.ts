@@ -254,6 +254,7 @@ const SUBJECT_FLAGS: ReadonlyMap<string, string> = new Map([
   ["queue:pop", "agent"],
   ["critic:start", "critic"],
   ["coordinator:pushback", "validator"],
+  ["meta-audit", "agent"],
 ]);
 
 function identity(flags: Flags, name: string): string | undefined {

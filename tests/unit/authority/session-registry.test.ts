@@ -329,6 +329,82 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
     expect(resolved?.mechanisms_detected).toContain("process_ancestry_pid_20001");
   });
 
+  it("anchors process-session lookup to the target run repository when cwd is another repository", () => {
+    const repoA = join(sandboxDir, "repo-a");
+    const repoB = join(sandboxDir, "repo-b");
+    mkdirSync(join(repoA, ".olt"), { recursive: true });
+    mkdirSync(join(repoB, ".olt"), { recursive: true });
+
+    registerSessionGrant({
+      runRoot: repoA,
+      agentId: "repo-a-coordinator",
+      role: "coordinator",
+      pid: process.pid,
+      ppid: process.ppid,
+    });
+
+    const resolved = resolveActiveSession({
+      cwd: repoB,
+      runRoot: repoA,
+      pid: process.pid,
+      ppid: process.ppid,
+      env: {},
+    });
+
+    expect(resolved?.agent_id).toBe("repo-a-coordinator");
+    expect(resolved?.role).toBe("coordinator");
+  });
+
+  it("does not authenticate a session registered in cwd repository B for target repository A", () => {
+    const repoA = join(sandboxDir, "repo-a");
+    const repoB = join(sandboxDir, "repo-b");
+    mkdirSync(join(repoA, ".olt"), { recursive: true });
+    mkdirSync(join(repoB, ".olt"), { recursive: true });
+
+    registerSessionGrant({
+      runRoot: repoB,
+      agentId: "repo-b-coordinator",
+      role: "coordinator",
+      pid: process.pid,
+      ppid: process.ppid,
+    });
+
+    expect(
+      resolveActiveSession({
+        cwd: repoB,
+        runRoot: repoA,
+        pid: process.pid,
+        ppid: process.ppid,
+        env: {},
+      }),
+    ).toBeNull();
+  });
+
+  it("resolves a relative target runRoot against the supplied cwd", () => {
+    const repoA = join(sandboxDir, "repo-a");
+    const repoB = join(sandboxDir, "repo-b");
+    mkdirSync(join(repoA, ".olt"), { recursive: true });
+    mkdirSync(join(repoB, ".olt"), { recursive: true });
+
+    registerSessionGrant({
+      runRoot: repoA,
+      agentId: "relative-run-coordinator",
+      role: "coordinator",
+      pid: process.pid,
+      ppid: process.ppid,
+    });
+
+    const resolved = resolveActiveSession({
+      cwd: repoB,
+      runRoot: "../repo-a",
+      pid: process.pid,
+      ppid: process.ppid,
+      env: {},
+    });
+
+    expect(resolved?.agent_id).toBe("relative-run-coordinator");
+  });
+
   it("auto-derives caller identity from Workspace Directory Anchoring (.session.json)", () => {
     const workspaceDir = join(sandboxDir, "worktrees", "impl-engine-workspace");
     mkdirSync(workspaceDir, { recursive: true });

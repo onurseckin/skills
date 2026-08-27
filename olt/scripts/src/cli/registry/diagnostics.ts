@@ -275,13 +275,16 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("format", "string", "Output format."),
       optionalFlag("inject", "bool", "Inject remediation proposals."),
       optionalFlag("agent", "string", "Agent ID to filter."),
+      requiredFlag("actor", "string", "Acting coordinator or meta-auditor authorizing injection."),
       optionalFlag("verbose", "bool", "Verbose output."),
       optionalFlag("json", "bool", "Output JSON."),
     ],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts meta-audit --run .olt/capsules/<run-id> --inject"],
+    examples: [
+      "bun harness.ts meta-audit --run .olt/capsules/<run-id> --actor coordinator --inject",
+    ],
     handler: async (flags, context, remainder) => {
       const { metaAuditCommand } = await import("../commands/meta-audit.ts");
       return (await metaAuditCommand(flags, context)) as unknown as Record<string, unknown>;

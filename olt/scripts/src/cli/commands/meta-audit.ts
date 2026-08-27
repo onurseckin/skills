@@ -192,13 +192,14 @@ export async function metaAuditCommand(
   flags: Flags,
   _context?: CommandContext,
 ): Promise<MetaAuditCommandResult> {
-  assertFlags(flags, ["run", "format", "inject", "agent", "verbose", "json"]);
+  assertFlags(flags, ["run", "format", "inject", "agent", "actor", "verbose", "json"]);
 
   const run = textFlag(flags, "run", true)!;
   const formatFlag = textFlag(flags, "format", false);
   const jsonFlag = boolFlag(flags, "json");
   const inject = boolFlag(flags, "inject");
   const agent = textFlag(flags, "agent", false);
+  const actor = textFlag(flags, "actor", false);
   const verbose = boolFlag(flags, "verbose");
 
   const normalizedFormat =
@@ -230,6 +231,7 @@ export async function metaAuditCommand(
 
   const markdown = formatMetaAuditReport({
     report,
+    ...(actor === undefined ? {} : { actor }),
     ...(injectionResult !== undefined ? { injection: injectionResult } : {}),
     ...(verbose ? { verbose } : {}),
   });

@@ -160,6 +160,15 @@ function resolveGlobalSessionsDir(repoRoot?: string): string {
   return join(findRepoRoot(), ".olt", ".sessions");
 }
 
+function resolveSessionRepositoryRoot(runRoot: string | undefined, cwd: string): string {
+  if (runRoot !== undefined && runRoot.trim() !== "") {
+    const raw = runRoot.trim();
+    const anchor = isAbsolute(raw) ? resolve(raw) : resolve(cwd, raw);
+    return findRepoRoot(anchor);
+  }
+  return findRepoRoot(cwd);
+}
+
 function noFollow(): number {
   const flag = constants.O_NOFOLLOW;
   if (!Number.isInteger(flag) || flag === 0)
@@ -617,7 +626,7 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   const ppid = options.ppid ?? (typeof process !== "undefined" ? process.ppid : 0);
   let repoRoot: string;
   try {
-    repoRoot = findRepoRoot(cwd);
+    repoRoot = resolveSessionRepositoryRoot(options.runRoot, cwd);
   } catch (error) {
     if (error instanceof HarnessError && error.code === "PATH_SAFETY") {
       return null;

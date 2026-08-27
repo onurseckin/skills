@@ -33,6 +33,13 @@
       "default": null
     },
     {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "verbose",
       "type": "bool",
       "required": false,

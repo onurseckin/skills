@@ -194,11 +194,12 @@ Evaluates raw execution traces against 7 behavioral heuristics (TOKEN_BURNING, F
 | `--format` | string | no | no | - | Output format. |
 | `--inject` | bool | no | no | - | Inject remediation proposals. |
 | `--agent` | string | no | no | - | Agent ID to filter. |
+| `--actor` | string | yes | no | - | Acting coordinator or meta-auditor authorizing injection. |
 | `--verbose` | bool | no | no | - | Verbose output. |
 | `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
-bun harness.ts meta-audit --run .olt/capsules/<run-id> --inject
+bun harness.ts meta-audit --run .olt/capsules/<run-id> --actor coordinator --inject
 ```
 
 ### `explain`
