@@ -1,6 +1,22 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
-import { shellCommand } from "../../../olt/scripts/src/cli/commands/shell.ts";
+import {
+  existsSync,
+  fsyncSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  persistStandaloneReceipt,
+  setShellCommandDependenciesForTesting,
+  shellCommand,
+} from "../../../olt/scripts/src/cli/commands/shell.ts";
+import { runExecCommand } from "../../../olt/scripts/src/cli/commands/run-ops.ts";
 import { scopeExpandCommand } from "../../../olt/scripts/src/cli/commands/scope-expand.ts";
 import {
   checkReadScopeAuthorization,
@@ -12,6 +28,8 @@ import {
   getAgentMetadataPath,
   writeAgentMetadata,
 } from "../../../olt/scripts/src/runtime/agent-metadata.ts";
+import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
+import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 function registerStandaloneActor(actor: string, role: string): void {
   writeAgentMetadata(
@@ -106,6 +124,58 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
       expect(result.markdown).toContain("harness-shell-ok");
       expect(result.markdown).toContain("Cryptographic Receipt SHA-256");
       expect(result.markdown).toContain("Evidence Receipt Path");
+      expect(statSync(result.evidence_path!).mode & 0o777).toBe(0o600);
+    });
+
+    test("preserves a prior receipt and removes the exclusive temporary file on pre-rename failure", () => {
+      const evidenceDir = mkdtempSync(join(tmpdir(), "shell-receipt-pre-rename-"));
+      const receiptPath = join(evidenceDir, "receipt.json");
+      try {
+        const priorBody = "prior-receipt\n";
+        writeFileSync(receiptPath, priorBody, "utf-8");
+        const restore = setShellCommandDependenciesForTesting({
+          fsyncSync: () => {
+            throw new Error("forced pre-rename fsync failure");
+          },
+        });
+        try {
+          expect(() => persistStandaloneReceipt(evidenceDir, receiptPath, "new-receipt\n")).toThrow(
+            "receipt persistence failed before atomic rename",
+          );
+        } finally {
+          restore();
+        }
+        expect(readFileSync(receiptPath, "utf-8")).toBe(priorBody);
+        expect(readdirSync(evidenceDir)).toEqual(["receipt.json"]);
+      } finally {
+        rmSync(evidenceDir, { recursive: true, force: true });
+      }
+    });
+
+    test("reports outcome uncertainty and removes no temporary file after post-rename failure", () => {
+      const evidenceDir = mkdtempSync(join(tmpdir(), "shell-receipt-post-rename-"));
+      const receiptPath = join(evidenceDir, "receipt.json");
+      try {
+        let fsyncCalls = 0;
+        const restore = setShellCommandDependenciesForTesting({
+          fsyncSync: (fd) => {
+            fsyncCalls += 1;
+            if (fsyncCalls === 2) throw new Error("forced directory fsync failure");
+            fsyncSync(fd);
+          },
+        });
+        try {
+          expect(() =>
+            persistStandaloneReceipt(evidenceDir, receiptPath, "durable-receipt\n"),
+          ).toThrow("receipt persistence outcome uncertain after atomic rename");
+        } finally {
+          restore();
+        }
+        expect(readFileSync(receiptPath, "utf-8")).toBe("durable-receipt\n");
+        expect(readdirSync(evidenceDir)).toEqual(["receipt.json"]);
+      } finally {
+        rmSync(evidenceDir, { recursive: true, force: true });
+      }
     });
 
     test("throws INVALID_ARGUMENT when remainder is empty", async () => {
@@ -122,11 +192,57 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
       );
     });
 
+    test("refuses a standalone gate before it can execute", async () => {
+      registerStandaloneActor("imp-standalone-gate", "implementer");
+
+      await expect(
+        shellCommand({ actor: "imp-standalone-gate", role: "implementer", gate: "G-1" }, {}, [
+          "echo",
+          "must-not-run",
+        ]),
+      ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
+    });
+
+    test("refuses unknown capsule gate before recording command evidence", async () => {
+      const { setupCompiledRun } = await import("./task-ops-fixture.ts");
+      const { writeAgentMetadata, createAgentMetadata } =
+        await import("../../../olt/scripts/src/runtime/agent-metadata.ts");
+      const { join } = await import("node:path");
+      const { run: runRoot } = await setupCompiledRun("shell-unknown-gate", []);
+      writeAgentMetadata(
+        createAgentMetadata({
+          agent_id: "impl-shell-unknown-gate",
+          role: "implementer",
+          write_scope: ["src/"],
+          can_execute_shell: true,
+        }),
+        runRoot,
+      );
+
+      await expect(
+        shellCommand(
+          {
+            actor: "impl-shell-unknown-gate",
+            role: "implementer",
+            run: runRoot,
+            task: "missing-task",
+            gate: "G-1",
+          },
+          {},
+          ["echo", "must-not-run"],
+        ),
+      ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
+      expect(readdirSync(join(runRoot, "commands"))).toEqual([]);
+    });
+
     test("formats stderr in standalone direct execution when command writes to stderr", async () => {
       registerStandaloneActor("imp-test", "implementer");
       const result = await shellCommand({ actor: "imp-test", role: "implementer" }, {}, [
         "git",
-        "invalid-git-command-for-test",
+        "diff",
+        "--no-index",
+        "package.json",
+        ".missing-shell-interlock-input",
       ]);
 
       expect(result.exit_code).not.toBe(0);
@@ -150,7 +266,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
       ).rejects.toMatchObject({ code: "ROLE_CONFINEMENT_VIOLATION" });
     });
 
-    test("executes command under capsule record with --run, --task, --wave, and --gate", async () => {
+    test("records task-only command evidence through the capsule lifecycle", async () => {
       const { join } = await import("node:path");
       const { writeFile } = await import("node:fs/promises");
       const { execute } = await import("../../../olt/scripts/src/cli/execute.ts");
@@ -234,24 +350,37 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
         runRoot,
       );
 
-      const result = await shellCommand(
-        {
-          actor: "worker-1",
-          role: "implementer",
-          run: runRoot,
-          cwd: scratch,
-          task: "task-01",
-          wave: "1",
-          gate: "gate-01",
-          "tool-category": "test-runner",
+      let runExecCalls = 0;
+      const restore = setShellCommandDependenciesForTesting({
+        runExecCommand: async (...args) => {
+          runExecCalls += 1;
+          return runExecCommand(...args);
         },
-        {},
-        ["echo", "capsule-shell-recorded"],
-      );
+      });
+      let result: Awaited<ReturnType<typeof shellCommand>>;
+      try {
+        result = await shellCommand(
+          {
+            actor: "worker-1",
+            role: "implementer",
+            run: runRoot,
+            cwd: scratch,
+            task: "task-01",
+            wave: "1",
+            "tool-category": "test-runner",
+          },
+          {},
+          ["echo", "capsule-shell-recorded"],
+        );
+      } finally {
+        restore();
+      }
 
       expect(result.exit_code).toBe(0);
+      expect(runExecCalls).toBe(1);
       expect(result.command).toBe("echo capsule-shell-recorded");
       expect(result.evidence_path).toBeDefined();
+      expect(result.evidence_path).toContain(join(runRoot, "commands"));
       expect(result.markdown).toContain("Command completed successfully");
 
       const failResult = await shellCommand(
@@ -263,11 +392,127 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
           task: "task-01",
         },
         {},
-        ["git", "invalid-git-subcommand-xyz"],
+        ["git", "diff", "--no-index", "prompt.txt", "missing-shell-input"],
       );
 
       expect(failResult.exit_code).not.toBe(0);
-      expect(failResult.markdown).toContain("Command failed");
+      expect(failResult.markdown).toContain("Command returned non-zero exit code");
+    });
+
+    test("delegates gates to run execution lifecycle with canonical output hashes", async () => {
+      const { run: runRoot } = await setupCompiledRun("shell-gate-lifecycle", []);
+      const actor = "impl-shell-gate-lifecycle";
+      writeAgentMetadata(
+        createAgentMetadata({
+          agent_id: actor,
+          role: "implementer",
+          write_scope: ["src/"],
+          can_execute_shell: true,
+        }),
+        runRoot,
+      );
+      const port = workflowPort(runRoot);
+      port.transact("test", "shell-gate-setup", {}, (state) => {
+        state.tasks["T-1"] = {
+          id: "T-1",
+          status: "validated",
+          requirement_ids: ["R-1"],
+          write_scope: ["src/owned"],
+          dependencies: [],
+          attempts: [],
+          history: [],
+          repair_round: 0,
+          report: { summary: "shell gate fixture" },
+          validations: [
+            {
+              validator_id: "validator",
+              domain: "code-quality",
+              token_digest: "digest",
+              attempt: 1,
+              started_at: "2026-08-01T00:00:00.000Z",
+              deadline_at: "2026-08-01T01:00:00.000Z",
+              verdict: "pass",
+              reviewed_requirement_ids: ["R-1"],
+              checks: [],
+            },
+          ],
+        };
+        state.requirements = [
+          {
+            id: "R-1",
+            status: "planned",
+            evidence: [],
+            disposition: "actionable",
+            dependencies: [],
+          },
+        ];
+        state.gates = [
+          {
+            id: "G-1",
+            command: ["echo", "gate"],
+            cwd: ".",
+            scope: "task",
+            requirement_ids: ["R-1"],
+            mandatory: true,
+          },
+          {
+            id: "G-2",
+            command: ["echo", "gate"],
+            cwd: ".",
+            scope: "task",
+            requirement_ids: ["R-1"],
+            mandatory: true,
+          },
+        ];
+      });
+
+      await expect(
+        shellCommand(
+          { actor, role: "implementer", run: runRoot, task: "T-1", gate: "not-applicable" },
+          {},
+          ["echo", "must-not-run"],
+        ),
+      ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
+      expect(Object.values(port.read().commands)).toHaveLength(0);
+
+      const first = await shellCommand(
+        { actor, role: "implementer", run: runRoot, task: "T-1", gate: "G-1" },
+        {},
+        ["echo", "nonempty-shell-output"],
+      );
+      const firstState = port.read();
+      const firstRecord = Object.values(firstState.commands)[0]!;
+      expect(firstState.tasks["T-1"]).toMatchObject({
+        status: "gating",
+        gate_results: [{ gate_id: "G-1", status: "passed" }],
+      });
+      expect(first.stdout_sha256).toBe(firstRecord.logs?.stdout.sha256);
+      expect(first.stdout_sha256).not.toBe(
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      );
+
+      await expect(
+        shellCommand({ actor, role: "implementer", run: runRoot, task: "T-1", gate: "G-1" }, {}, [
+          "echo",
+          "duplicate-gate",
+        ]),
+      ).rejects.toMatchObject({ code: "INVALID_STATE" });
+      expect(Object.values(port.read().commands)).toHaveLength(2);
+      expect(port.read().tasks["T-1"]?.gate_results).toHaveLength(1);
+
+      const final = await shellCommand(
+        { actor, role: "implementer", run: runRoot, task: "T-1", gate: "G-2" },
+        {},
+        ["echo", "final-gate"],
+      );
+      expect(final.exit_code).toBe(0);
+      expect(port.read().tasks["T-1"]?.status).toBe("done");
+      await expect(
+        shellCommand({ actor, role: "implementer", run: runRoot, task: "T-1", gate: "G-2" }, {}, [
+          "echo",
+          "idempotent-gate",
+        ]),
+      ).resolves.toMatchObject({ exit_code: 0 });
     });
   });
 
