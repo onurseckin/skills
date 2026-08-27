@@ -1,7 +1,17 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
 import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import {
+  __setCompletedTasksPersistenceTestHook,
   formatCompletedTasksBrief,
   getCompletedTasksStats,
   migrateCompletedTasksLedger,
@@ -44,6 +54,23 @@ describe("Completed Tasks Ledger Engine", () => {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
+  }
+
+  function spawnLedgerChild(id: string): Bun.Subprocess<"pipe", "pipe", "inherit"> {
+    const modulePath = resolve(process.cwd(), "olt/scripts/src/mind/completed-tasks.ts");
+    return Bun.spawn(
+      [
+        "bun",
+        "-e",
+        `import { recordCompletedTask } from ${JSON.stringify(modulePath)}; recordCompletedTask({ id: process.env.ID, source: 'direct', title: process.env.ID, status: 'COMPLETED', proof_summary: 'proof', completed_at: '2026-08-22T00:00:00.000Z' }, { customPath: process.env.LEDGER });`,
+      ],
+      {
+        cwd: process.cwd(),
+        env: { ...process.env, ID: id, LEDGER: ledgerFile },
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
   }
 
   it("resolves completed tasks ledger path correctly", () => {
@@ -154,7 +181,141 @@ describe("Completed Tasks Ledger Engine", () => {
     teardown();
   });
 
-  it("skips malformed lines when reading ledger", () => {
+  it("preserves bytes before rename and reports uncertainty after rename", () => {
+    setup();
+    const base: CompletedTaskRecord = {
+      id: "prior",
+      source: "direct",
+      title: "Prior",
+      status: "COMPLETED",
+      proof_summary: "proof",
+      completed_at: "2026-08-22T00:00:00.000Z",
+    };
+    recordCompletedTask(base, { customPath: ledgerFile });
+    const prior = readFileSync(ledgerFile, "utf8");
+    for (const stage of ["before_write", "before_file_fsync", "before_rename"] as const) {
+      __setCompletedTasksPersistenceTestHook((actual) => {
+        if (actual === stage) throw new Error(stage);
+      });
+      expect(() =>
+        recordCompletedTask({ ...base, id: stage }, { customPath: ledgerFile }),
+      ).toThrow();
+      expect(readFileSync(ledgerFile, "utf8")).toBe(prior);
+    }
+    for (const stage of ["after_rename", "before_directory_fsync"] as const) {
+      __setCompletedTasksPersistenceTestHook((actual) => {
+        if (actual === stage) throw new Error(stage);
+      });
+      expect(() => recordCompletedTask({ ...base, id: stage }, { customPath: ledgerFile })).toThrow(
+        "outcome is uncertain",
+      );
+      __setCompletedTasksPersistenceTestHook(undefined);
+      expect(readCompletedTasksLedger(ledgerFile).some((item) => item.id === stage)).toBe(true);
+    }
+    __setCompletedTasksPersistenceTestHook(undefined);
+    teardown();
+  });
+
+  it("refuses final symlink and hardlink ledgers without changing sentinels", () => {
+    setup();
+    const sentinel = join(testDir, "sentinel.jsonl");
+    writeFileSync(sentinel, "sentinel\n", "utf8");
+    symlinkSync(sentinel, ledgerFile);
+    expect(() => readCompletedTasksLedger(ledgerFile)).toThrow(HarnessError);
+    expect(readFileSync(sentinel, "utf8")).toBe("sentinel\n");
+    rmSync(ledgerFile);
+    writeFileSync(ledgerFile, "sentinel\n", "utf8");
+    const alias = join(testDir, "ledger-alias.jsonl");
+    linkSync(ledgerFile, alias);
+    expect(() => readCompletedTasksLedger(ledgerFile)).toThrow(HarnessError);
+    expect(readFileSync(alias, "utf8")).toBe("sentinel\n");
+    teardown();
+  });
+
+  it("retains distinct child records and leaves same-ID races as one whole record", async () => {
+    setup();
+    const distinct = [spawnLedgerChild("child-one"), spawnLedgerChild("child-two")];
+    expect(await distinct[0].exited).toBe(0);
+    expect(await distinct[1].exited).toBe(0);
+    expect(
+      readCompletedTasksLedger(ledgerFile)
+        .map((item) => item.id)
+        .sort(),
+    ).toEqual(["child-one", "child-two"]);
+    rmSync(ledgerFile, { force: true });
+    const duplicate = [spawnLedgerChild("same"), spawnLedgerChild("same")];
+    expect(await duplicate[0].exited).toBe(0);
+    expect(await duplicate[1].exited).toBe(0);
+    const raw = readFileSync(ledgerFile, "utf8");
+    expect(() => JSON.parse(raw.trim())).not.toThrow();
+    expect(readCompletedTasksLedger(ledgerFile).map((item) => item.id)).toEqual(["same"]);
+    teardown();
+  });
+
+  it("refuses a symlinked ledger parent without touching its external sentinel", () => {
+    setup();
+    const external = join(testDir, "external");
+    const linkedParent = join(testDir, "linked-parent");
+    mkdirSync(external);
+    const sentinel = join(external, "ledger.jsonl");
+    writeFileSync(sentinel, "sentinel\n", "utf8");
+    symlinkSync(external, linkedParent);
+    expect(() =>
+      recordCompletedTask(
+        {
+          id: "blocked",
+          source: "direct",
+          title: "Blocked",
+          status: "COMPLETED",
+          proof_summary: "proof",
+          completed_at: "2026-08-22T00:00:00.000Z",
+        },
+        { customPath: join(linkedParent, "ledger.jsonl") },
+      ),
+    ).toThrow();
+    expect(readFileSync(sentinel, "utf8")).toBe("sentinel\n");
+    teardown();
+  });
+
+  it("merges migration and batch updates through the target ledger lock", () => {
+    setup();
+    const source = join(testDir, "source.jsonl");
+    writeCompletedTasksLedger(
+      [
+        {
+          id: "migrated",
+          source: "direct",
+          title: "Migrated",
+          status: "COMPLETED",
+          proof_summary: "proof",
+          completed_at: "2026-08-22T00:00:00.000Z",
+        },
+      ],
+      source,
+    );
+    recordCompletedTasksBatch(
+      [
+        {
+          id: "batch",
+          source: "direct",
+          title: "Batch",
+          status: "COMPLETED",
+          proof_summary: "proof",
+          completed_at: "2026-08-22T00:00:00.000Z",
+        },
+      ],
+      { customPath: ledgerFile },
+    );
+    migrateCompletedTasksLedger({ sourcePath: source, targetPath: ledgerFile });
+    expect(
+      readCompletedTasksLedger(ledgerFile)
+        .map((item) => item.id)
+        .sort(),
+    ).toEqual(["batch", "migrated"]);
+    teardown();
+  });
+
+  it("refuses malformed lines when reading ledger", () => {
     setup();
     const content = [
       JSON.stringify({
@@ -179,10 +340,7 @@ describe("Completed Tasks Ledger Engine", () => {
 
     writeFileSync(ledgerFile, content, "utf8");
 
-    const items = readCompletedTasksLedger(ledgerFile);
-    expect(items).toHaveLength(2);
-    expect(items[0]?.id).toBe("task-valid");
-    expect(items[1]?.id).toBe("task-valid-2");
+    expect(() => readCompletedTasksLedger(ledgerFile)).toThrow(HarnessError);
 
     teardown();
   });
@@ -198,12 +356,12 @@ describe("Completed Tasks Ledger Engine", () => {
     expect(validateCompletedTaskSource("plan")).toBe("mind_plan");
     expect(validateCompletedTaskSource("external")).toBe("external");
     expect(validateCompletedTaskSource("direct")).toBe("direct");
-    expect(validateCompletedTaskSource("unknown")).toBe("direct");
+    expect(() => validateCompletedTaskSource("unknown")).toThrow(HarnessError);
 
     expect(validateCompletedTaskStatus("RESOLVED")).toBe("RESOLVED");
     expect(validateCompletedTaskStatus("resolved")).toBe("RESOLVED");
     expect(validateCompletedTaskStatus("COMPLETED")).toBe("COMPLETED");
-    expect(validateCompletedTaskStatus("other")).toBe("COMPLETED");
+    expect(() => validateCompletedTaskStatus("other")).toThrow(HarnessError);
 
     expect(() => validateCompletedTaskRecord(null)).toThrow(
       "CompletedTaskRecord must be an object",
@@ -211,9 +369,16 @@ describe("Completed Tasks Ledger Engine", () => {
     expect(() => validateCompletedTaskRecord({ id: "", proof_summary: "test" })).toThrow(
       "requires non-empty id",
     );
-    expect(() => validateCompletedTaskRecord({ id: "t1", proof_summary: "" })).toThrow(
-      "requires non-empty proof_summary",
-    );
+    expect(() =>
+      validateCompletedTaskRecord({
+        id: "t1",
+        source: "direct",
+        title: "Title",
+        status: "COMPLETED",
+        completed_at: "2026-08-22T00:00:00.000Z",
+        proof_summary: "",
+      }),
+    ).toThrow("requires non-empty proof_summary");
   });
 
   it("handles duplicate recording by updating existing entry in ledger", () => {
@@ -604,17 +769,41 @@ describe("Completed Tasks Ledger Engine", () => {
         {
           id: "task-done-1",
           title: "Finished Task",
+          description: "Finished Task",
+          priority: "MEDIUM",
           status: "COMPLETED",
+          write_scope: ["done.ts"],
+          gate: "gate",
+          charter_goals: ["G1"],
+          acceptance_criteria: [],
           completed_at: "2026-08-22T01:00:00.000Z",
           dependencies: [],
-          attempts: 0,
+          blocked_by: [],
+          lease: null,
+          source_type: "direct_prompt",
+          created_at: "2026-08-22T00:00:00.000Z",
+          updated_at: "2026-08-22T01:00:00.000Z",
+          retry_count: 0,
+          max_retries: 3,
         },
         {
           id: "task-ready-2",
           title: "Pending Ready Task",
+          description: "Pending Ready Task",
+          priority: "MEDIUM",
           status: "PENDING",
+          write_scope: ["ready.ts"],
+          gate: "gate",
+          charter_goals: ["G1"],
+          acceptance_criteria: [],
           dependencies: [],
-          attempts: 0,
+          blocked_by: [],
+          lease: null,
+          source_type: "direct_prompt",
+          created_at: "2026-08-22T00:00:00.000Z",
+          updated_at: "2026-08-22T00:00:00.000Z",
+          retry_count: 0,
+          max_retries: 3,
         },
       ],
       queueFile,

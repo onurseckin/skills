@@ -1,8 +1,23 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fstatSync,
+  fsyncSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+  writeSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { nextActionsBlock } from "../cli/formatters/next-actions.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
 import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
 import {
   resolveFeedbackQueuePath,
@@ -63,6 +78,25 @@ export const DEFAULT_COMPLETED_DEFECTS_FILE = "olt/completed-defects.jsonl";
 export const CANONICAL_OBSERVATIONS_FILE = "olt/telemetry.jsonl";
 export const DEFAULT_OBSERVATIONS_FILE = "olt/telemetry.jsonl";
 
+type LedgerPersistenceStage =
+  | "before_write"
+  | "before_file_fsync"
+  | "before_rename"
+  | "after_rename"
+  | "before_directory_fsync";
+let ledgerPersistenceTestHook: ((stage: LedgerPersistenceStage) => void) | undefined;
+
+/** @internal deterministic persistence seam for the unit suite. */
+export function __setCompletedTasksPersistenceTestHook(
+  hook: ((stage: LedgerPersistenceStage) => void) | undefined,
+): void {
+  ledgerPersistenceTestHook = hook;
+}
+
+function invokeLedgerPersistenceHook(stage: LedgerPersistenceStage): void {
+  ledgerPersistenceTestHook?.(stage);
+}
+
 export function resolveCanonicalCompletedTasksPath(customRoot?: string, _useTodo = false): string {
   const root = customRoot || (isTestEnvironment() ? resolveScratchDir() : process.cwd());
   return join(root, ".olt", "completed-tasks.jsonl");
@@ -106,6 +140,206 @@ export function resolveObservationsPath(customPath?: string): string {
   return resolveCanonicalObservationsPath();
 }
 
+function isOwnCode(error: unknown, code: string): boolean {
+  if (!(error instanceof Error)) return false;
+  return Object.getOwnPropertyDescriptor(error, "code")?.value === code;
+}
+
+function readLedgerFile(filePath: string): string | undefined {
+  let descriptor: number | undefined;
+  try {
+    const before = lstatSync(filePath);
+    if (!before.isFile() || before.nlink !== 1) {
+      throw new HarnessError(
+        "INTEGRITY",
+        "completed tasks ledger must be a single-link regular file",
+      );
+    }
+    descriptor = openSync(filePath, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const opened = fstatSync(descriptor);
+    if (
+      !opened.isFile() ||
+      opened.nlink !== 1 ||
+      opened.dev !== before.dev ||
+      opened.ino !== before.ino
+    ) {
+      throw new HarnessError("INTEGRITY", "completed tasks ledger changed while being opened");
+    }
+    const raw = readFileSync(descriptor, "utf8");
+    const after = lstatSync(filePath);
+    if (
+      after.dev !== opened.dev ||
+      after.ino !== opened.ino ||
+      !after.isFile() ||
+      after.nlink !== 1
+    ) {
+      throw new HarnessError("INTEGRITY", "completed tasks ledger changed while being read");
+    }
+    return raw;
+  } catch (error) {
+    if (isOwnCode(error, "ENOENT")) return undefined;
+    if (error instanceof HarnessError) throw error;
+    throw new HarnessError("INTEGRITY", "could not securely read completed tasks ledger");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
+function withLedgerTransaction<T>(filePath: string, mutation: () => T): T {
+  const parent = dirname(filePath);
+  const candidateRoot = dirname(parent);
+  const root = candidateRoot === "/" ? parent : candidateRoot;
+  let rootFd: number | undefined;
+  let parentFd: number | undefined;
+  let rootLocked = false;
+  let parentLocked = false;
+  let primary: unknown;
+  let primaryThrown = false;
+  let result!: T;
+  try {
+    rootFd = openSync(root, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    const rootStat = fstatSync(rootFd);
+    const rootPath = lstatSync(root);
+    if (!rootStat.isDirectory() || rootStat.dev !== rootPath.dev || rootStat.ino !== rootPath.ino)
+      throw new HarnessError("INTEGRITY", "ledger root changed");
+    for (let attempt = 0; attempt < 200 && !rootLocked; attempt++) {
+      rootLocked = tryExclusiveFlock(rootFd);
+      if (!rootLocked) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
+    }
+    if (!rootLocked)
+      throw new HarnessError("LOCK_TIMEOUT", "completed tasks ledger root is locked");
+    try {
+      mkdirSync(parent);
+    } catch (error) {
+      if (!isOwnCode(error, "EEXIST")) throw error;
+    }
+    parentFd = openSync(parent, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    const parentStat = fstatSync(parentFd);
+    const parentPath = lstatSync(parent);
+    if (
+      !parentStat.isDirectory() ||
+      parentStat.dev !== parentPath.dev ||
+      parentStat.ino !== parentPath.ino
+    )
+      throw new HarnessError("INTEGRITY", "ledger parent changed");
+    for (let attempt = 0; attempt < 200 && !parentLocked; attempt++) {
+      parentLocked = tryExclusiveFlock(parentFd);
+      if (!parentLocked) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
+    }
+    if (!parentLocked)
+      throw new HarnessError("LOCK_TIMEOUT", "completed tasks ledger parent is locked");
+    result = mutation();
+  } catch (error) {
+    primaryThrown = true;
+    primary = error;
+  }
+  let cleanup: unknown;
+  let cleanupThrown = false;
+  for (const action of [
+    () => {
+      if (parentLocked && parentFd !== undefined) releaseFlock(parentFd);
+    },
+    () => {
+      if (rootLocked && rootFd !== undefined) releaseFlock(rootFd);
+    },
+    () => {
+      if (parentFd !== undefined) closeSync(parentFd);
+    },
+    () => {
+      if (rootFd !== undefined) closeSync(rootFd);
+    },
+  ]) {
+    try {
+      action();
+    } catch (error) {
+      if (!cleanupThrown) {
+        cleanupThrown = true;
+        cleanup = error;
+      }
+    }
+  }
+  if (primaryThrown) throw primary;
+  if (cleanupThrown) throw cleanup;
+  return result;
+}
+
+function atomicWriteLedger(filePath: string, raw: string): void {
+  const parent = dirname(filePath);
+  let old: { dev: number; ino: number } | undefined;
+  try {
+    const stat = lstatSync(filePath);
+    if (!stat.isFile() || stat.nlink !== 1)
+      throw new HarnessError(
+        "INTEGRITY",
+        "completed tasks ledger must be a single-link regular file",
+      );
+    old = stat;
+  } catch (error) {
+    if (!isOwnCode(error, "ENOENT")) throw error;
+  }
+  const temporary = join(parent, `.completed-tasks.${process.pid}.${Date.now()}.tmp`);
+  let fd: number | undefined;
+  let dirFd: number | undefined;
+  let renamed = false;
+  try {
+    fd = openSync(
+      temporary,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
+      0o600,
+    );
+    const bytes = Buffer.from(raw);
+    let offset = 0;
+    while (offset < bytes.length) {
+      invokeLedgerPersistenceHook("before_write");
+      const written = writeSync(fd, bytes, offset, bytes.length - offset);
+      if (written <= 0)
+        throw new HarnessError("INTEGRITY", "could not write completed tasks ledger");
+      offset += written;
+    }
+    invokeLedgerPersistenceHook("before_file_fsync");
+    fsyncSync(fd);
+    closeSync(fd);
+    fd = undefined;
+    try {
+      const current = lstatSync(filePath);
+      if (
+        !old ||
+        !current.isFile() ||
+        current.nlink !== 1 ||
+        current.dev !== old.dev ||
+        current.ino !== old.ino
+      )
+        throw new HarnessError("INTEGRITY", "completed tasks ledger changed before replacement");
+    } catch (error) {
+      if (!(old === undefined && isOwnCode(error, "ENOENT"))) throw error;
+    }
+    invokeLedgerPersistenceHook("before_rename");
+    renameSync(temporary, filePath);
+    renamed = true;
+    invokeLedgerPersistenceHook("after_rename");
+    dirFd = openSync(parent, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    invokeLedgerPersistenceHook("before_directory_fsync");
+    fsyncSync(dirFd);
+  } catch (error) {
+    if (renamed)
+      throw new HarnessError(
+        "INTEGRITY",
+        "completed tasks ledger mutation outcome is uncertain and possibly committed after rename",
+      );
+    throw error;
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+    if (dirFd !== undefined) closeSync(dirFd);
+    if (!renamed) {
+      try {
+        unlinkSync(temporary);
+      } catch (error) {
+        if (!isOwnCode(error, "ENOENT")) throw error;
+      }
+    }
+  }
+}
+
 export function validateCompletedTaskSource(val: unknown): CompletedTaskSource {
   if (typeof val === "string") {
     const lower = val.trim().toLowerCase();
@@ -116,7 +350,7 @@ export function validateCompletedTaskSource(val: unknown): CompletedTaskSource {
     if (lower === "direct") return "direct";
     if (lower === "external") return "external";
   }
-  return "direct";
+  throw new HarnessError("INTEGRITY", "CompletedTaskRecord requires valid source");
 }
 
 export function validateCompletedTaskStatus(val: unknown): CompletedTaskStatus {
@@ -125,7 +359,7 @@ export function validateCompletedTaskStatus(val: unknown): CompletedTaskStatus {
     if (upper === "RESOLVED") return "RESOLVED";
     if (upper === "COMPLETED") return "COMPLETED";
   }
-  return "COMPLETED";
+  throw new HarnessError("INTEGRITY", "CompletedTaskRecord requires valid status");
 }
 
 export function validateCompletedTaskRecord(raw: unknown): CompletedTaskRecord {
@@ -141,8 +375,8 @@ export function validateCompletedTaskRecord(raw: unknown): CompletedTaskRecord {
 
   const source = validateCompletedTaskSource(r["source"]);
   const status = validateCompletedTaskStatus(r["status"]);
-  const title =
-    typeof r["title"] === "string" && r["title"].trim() ? r["title"].trim() : `Task ${id}`;
+  const title = typeof r["title"] === "string" && r["title"].trim() ? r["title"].trim() : "";
+  if (!title) throw new HarnessError("INTEGRITY", `CompletedTaskRecord for '${id}' requires title`);
   const proofSummary = typeof r["proof_summary"] === "string" ? r["proof_summary"].trim() : "";
   if (!proofSummary) {
     throw new HarnessError(
@@ -154,7 +388,13 @@ export function validateCompletedTaskRecord(raw: unknown): CompletedTaskRecord {
   const completedAt =
     typeof r["completed_at"] === "string" && r["completed_at"].trim()
       ? r["completed_at"].trim()
-      : new Date().toISOString();
+      : "";
+  if (!completedAt || !Number.isFinite(Date.parse(completedAt))) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `CompletedTaskRecord for '${id}' requires valid completed_at`,
+    );
+  }
 
   const generationId =
     typeof r["generation_id"] === "string"
@@ -208,11 +448,9 @@ export function validateCompletedTaskRecord(raw: unknown): CompletedTaskRecord {
     r["resolution"] !== null &&
     !Array.isArray(r["resolution"])
   ) {
-    try {
-      resolution = validateFeedbackResolutionProof(r["resolution"]);
-    } catch {
-      resolution = undefined;
-    }
+    resolution = validateFeedbackResolutionProof(r["resolution"]);
+  } else if (r["resolution"] !== undefined && r["resolution"] !== null) {
+    throw new HarnessError("INTEGRITY", `CompletedTaskRecord for '${id}' has invalid resolution`);
   } else if (r["resolution"] === null) {
     resolution = null;
   }
@@ -242,11 +480,8 @@ export function validateCompletedTaskRecord(raw: unknown): CompletedTaskRecord {
 
 export function readCompletedTasksLedger(customPath?: string): CompletedTaskRecord[] {
   const filePath = resolveCompletedTasksLedgerPath(customPath);
-  if (!existsSync(filePath)) {
-    return [];
-  }
-
-  const raw = readFileSync(filePath, "utf8");
+  const raw = readLedgerFile(filePath);
+  if (raw === undefined) return [];
   const lines = raw
     .split("\n")
     .map((l) => l.trim())
@@ -260,8 +495,14 @@ export function readCompletedTasksLedger(customPath?: string): CompletedTaskReco
       const parsed = JSON.parse(line) as unknown;
       const validated = validateCompletedTaskRecord(parsed);
       items.push(validated);
-    } catch {
-      // Skip malformed individual line in log
+    } catch (error) {
+      if (error instanceof HarnessError) {
+        throw new HarnessError(
+          "INTEGRITY",
+          `completed tasks ledger line ${i + 1}: ${error.message}`,
+        );
+      }
+      throw new HarnessError("INTEGRITY", `completed tasks ledger line ${i + 1} is malformed`);
     }
   }
 
@@ -273,13 +514,15 @@ export function writeCompletedTasksLedger(
   customPath?: string,
 ): void {
   const filePath = resolveCompletedTasksLedgerPath(customPath);
-  const dir = dirname(filePath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
+  withLedgerTransaction(filePath, () => writeCompletedTasksLedgerUnlocked(items, filePath));
+}
 
-  const lines = items.map((item) => JSON.stringify(item));
-  writeFileSync(filePath, lines.join("\n") + (lines.length > 0 ? "\n" : ""), "utf8");
+function writeCompletedTasksLedgerUnlocked(
+  items: readonly CompletedTaskRecord[],
+  filePath: string,
+): void {
+  const lines = items.map((item) => JSON.stringify(validateCompletedTaskRecord(item)));
+  atomicWriteLedger(filePath, lines.join("\n") + (lines.length > 0 ? "\n" : ""));
 }
 
 function updateFeedbackQueueItems(
@@ -383,7 +626,18 @@ export function recordCompletedTasksBatch(
     return [];
   }
 
-  const existing = readCompletedTasksLedger(options?.customPath);
+  const filePath = resolveCompletedTasksLedgerPath(options?.customPath);
+  return withLedgerTransaction(filePath, () =>
+    recordCompletedTasksBatchUnlocked(records, options, filePath),
+  );
+}
+
+function recordCompletedTasksBatchUnlocked(
+  records: readonly CompletedTaskRecord[],
+  options: RecordCompletedTaskOptions | undefined,
+  filePath: string,
+): CompletedTaskRecord[] {
+  const existing = readCompletedTasksLedger(filePath);
   const ledgerMap = new Map<string, CompletedTaskRecord>();
 
   for (const item of existing) {
@@ -398,7 +652,7 @@ export function recordCompletedTasksBatch(
   }
 
   const merged = Array.from(ledgerMap.values());
-  writeCompletedTasksLedger(merged, options?.customPath);
+  writeCompletedTasksLedgerUnlocked(merged, filePath);
 
   if (options?.updateFeedbackQueue) {
     updateFeedbackQueueItems(validatedRecords, options?.feedbackQueuePath);
@@ -509,10 +763,12 @@ export function migrateCompletedTasksLedger(options: { sourcePath: string; targe
   if (records.length === 0) {
     return { migrated: false, count: 0 };
   }
-  const existing = readCompletedTasksLedger(target);
-  const map = new Map<string, CompletedTaskRecord>();
-  for (const r of existing) map.set(r.id, r);
-  for (const r of records) map.set(r.id, r);
-  writeCompletedTasksLedger(Array.from(map.values()), target);
-  return { migrated: true, count: records.length };
+  return withLedgerTransaction(target, () => {
+    const existing = readCompletedTasksLedger(target);
+    const map = new Map<string, CompletedTaskRecord>();
+    for (const r of existing) map.set(r.id, r);
+    for (const r of records) map.set(r.id, r);
+    writeCompletedTasksLedgerUnlocked(Array.from(map.values()), target);
+    return { migrated: true, count: records.length };
+  });
 }
