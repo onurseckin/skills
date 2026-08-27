@@ -1,5 +1,13 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  type Dirent,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { findRepoRoot, resolveCapsulesDir, resolveScratchDir } from "../core/shared/paths.ts";
 import type { ReviewProtocolPolicy } from "../policy/repo-policy.ts";
 
@@ -15,6 +23,38 @@ export interface AgentMetadata {
   readonly task_id?: string | undefined;
   readonly review_config?: ReviewProtocolPolicy | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+interface AgentMetadataDependencies {
+  readonly findRepoRoot: () => string;
+  readonly resolveCapsulesDir: (repoRoot?: string) => string;
+  readonly resolveScratchDir: (repoRoot?: string) => string;
+  readonly readDirectory: (
+    path: string,
+    options: { readonly withFileTypes: true },
+  ) => readonly Dirent[];
+  readonly readFile: (path: string, encoding: "utf-8") => string;
+}
+
+const defaultAgentMetadataDependencies: AgentMetadataDependencies = {
+  findRepoRoot,
+  resolveCapsulesDir,
+  resolveScratchDir,
+  readDirectory: (path, options) => readdirSync(path, options),
+  readFile: readFileSync,
+};
+
+let agentMetadataDependencies = defaultAgentMetadataDependencies;
+
+/** Test-only dependency seam for deterministic metadata-discovery failures and ordering. */
+export function setAgentMetadataDependenciesForTesting(
+  overrides: Partial<AgentMetadataDependencies>,
+): () => void {
+  const previousDependencies = agentMetadataDependencies;
+  agentMetadataDependencies = { ...agentMetadataDependencies, ...overrides };
+  return () => {
+    agentMetadataDependencies = previousDependencies;
+  };
 }
 
 export function inferTierFromRole(role: string): number {
@@ -112,10 +152,11 @@ export function createAgentMetadata(params: {
 }
 
 export function getAgentMetadataPath(agentId: string, runRoot?: string): string {
-  const repoRoot = findRepoRoot();
-  if (runRoot && existsSync(runRoot) && resolve(runRoot) !== resolve(repoRoot)) {
-    return join(runRoot, "runtime", `agent-${agentId}.json`);
+  assertSafeAgentId(agentId);
+  if (runRoot !== undefined) {
+    return join(resolve(runRoot), "runtime", `agent-${agentId}.json`);
   }
+  const repoRoot = findRepoRoot();
   return join(resolveScratchDir(repoRoot), "runtime", `agent-${agentId}.json`);
 }
 
@@ -129,60 +170,274 @@ export function writeAgentMetadata(metadata: AgentMetadata, runRoot?: string): s
   return filePath;
 }
 
+function readOwnDataString(error: unknown, property: "code" | "message"): string | null {
+  if (error === null || (typeof error !== "object" && typeof error !== "function")) {
+    return null;
+  }
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(error, property);
+    return descriptor && "value" in descriptor && typeof descriptor.value === "string"
+      ? descriptor.value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function isTrustedEnoent(error: unknown): boolean {
+  try {
+    return error instanceof Error && readOwnDataString(error, "code") === "ENOENT";
+  } catch {
+    return false;
+  }
+}
+
+function formatSafeErrorCause(error: unknown): string {
+  const message = readOwnDataString(error, "message");
+  if (message !== null) return message;
+  if (error === null || (typeof error !== "object" && typeof error !== "function")) {
+    try {
+      return String(error);
+    } catch {
+      return "unknown error";
+    }
+  }
+  return "unknown error";
+}
+
+function metadataIntegrityError(filePath: string, reason: string): never {
+  throw new HarnessError("INTEGRITY", `invalid agent metadata at '${filePath}': ${reason}`);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function assertSafeAgentId(agentId: string): void {
+  if (
+    !isNonEmptyString(agentId) ||
+    agentId === "." ||
+    agentId === ".." ||
+    /[\\/\0]/.test(agentId)
+  ) {
+    throw new HarnessError("PATH_SAFETY", "agent_id must be a safe single path component");
+  }
+}
+
+function isStringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string");
+}
+
+function parseReviewConfig(value: unknown, filePath: string): ReviewProtocolPolicy {
+  if (!isRecord(value)) {
+    metadataIntegrityError(filePath, "review_config must be an object");
+  }
+  const maxAdversarialPushes = value["max_adversarial_pushes"];
+  if (
+    typeof maxAdversarialPushes !== "number" ||
+    !Number.isSafeInteger(maxAdversarialPushes) ||
+    maxAdversarialPushes < 1
+  ) {
+    metadataIntegrityError(
+      filePath,
+      "review_config.max_adversarial_pushes must be a safe integer greater than zero",
+    );
+  }
+  const cognitivePushes = value["cognitive_pushes"];
+  if (
+    typeof cognitivePushes !== "number" ||
+    !Number.isSafeInteger(cognitivePushes) ||
+    cognitivePushes < 0
+  ) {
+    metadataIntegrityError(
+      filePath,
+      "review_config.cognitive_pushes must be a nonnegative safe integer",
+    );
+  }
+  const escalation = value["escalate_on_exhausted_adversarial"];
+  if (escalation !== undefined && typeof escalation !== "boolean") {
+    metadataIntegrityError(
+      filePath,
+      "review_config.escalate_on_exhausted_adversarial must be a boolean when present",
+    );
+  }
+  return {
+    max_adversarial_pushes: maxAdversarialPushes,
+    cognitive_pushes: cognitivePushes,
+    ...(escalation === undefined ? {} : { escalate_on_exhausted_adversarial: escalation }),
+  };
+}
+
+function validateAgentMetadata(
+  value: unknown,
+  expectedAgentId: string,
+  filePath: string,
+): AgentMetadata {
+  if (!isRecord(value)) metadataIntegrityError(filePath, "expected a JSON object");
+  const agentId = value["agent_id"];
+  if (!isNonEmptyString(agentId))
+    metadataIntegrityError(filePath, "agent_id must be a nonempty string");
+  if (agentId !== expectedAgentId) {
+    metadataIntegrityError(
+      filePath,
+      `agent_id '${agentId}' does not match requested '${expectedAgentId}'`,
+    );
+  }
+  const role = value["role"];
+  if (!isNonEmptyString(role)) metadataIntegrityError(filePath, "role must be a nonempty string");
+  const tier = value["tier"];
+  if (typeof tier !== "number" || !Number.isSafeInteger(tier) || tier < 0 || tier > 3) {
+    metadataIntegrityError(filePath, "tier must be a safe integer in the range 0 through 3");
+  }
+  const writeScope = value["write_scope"];
+  if (!isStringArray(writeScope))
+    metadataIntegrityError(filePath, "write_scope must be an array of strings");
+  const allowedReadScope = value["allowed_read_scope"];
+  if (!isStringArray(allowedReadScope)) {
+    metadataIntegrityError(filePath, "allowed_read_scope must be an array of strings");
+  }
+  const canExecuteShell = value["can_execute_shell"];
+  if (typeof canExecuteShell !== "boolean") {
+    metadataIntegrityError(filePath, "can_execute_shell must be a boolean");
+  }
+  const spawnedAt = value["spawned_at"];
+  if (!isNonEmptyString(spawnedAt))
+    metadataIntegrityError(filePath, "spawned_at must be a nonempty string");
+
+  const runId = value["run_id"];
+  if (runId !== undefined && !isNonEmptyString(runId)) {
+    metadataIntegrityError(filePath, "run_id must be a nonempty string when present");
+  }
+  const taskId = value["task_id"];
+  if (taskId !== undefined && !isNonEmptyString(taskId)) {
+    metadataIntegrityError(filePath, "task_id must be a nonempty string when present");
+  }
+  const reviewConfig = value["review_config"];
+  const metadata = value["metadata"];
+  if (metadata !== undefined && !isRecord(metadata)) {
+    metadataIntegrityError(filePath, "metadata must be an object when present");
+  }
+
+  return {
+    agent_id: agentId,
+    role,
+    tier,
+    write_scope: writeScope,
+    allowed_read_scope: allowedReadScope,
+    can_execute_shell: canExecuteShell,
+    spawned_at: spawnedAt,
+    ...(runId === undefined ? {} : { run_id: runId }),
+    ...(taskId === undefined ? {} : { task_id: taskId }),
+    ...(reviewConfig === undefined
+      ? {}
+      : { review_config: parseReviewConfig(reviewConfig, filePath) }),
+    ...(metadata === undefined ? {} : { metadata }),
+  };
+}
+
+function readAgentMetadataFile(
+  agentId: string,
+  filePath: string,
+): { metadata: AgentMetadata; filePath: string } | undefined {
+  let raw: string;
+  try {
+    raw = agentMetadataDependencies.readFile(filePath, "utf-8");
+  } catch (error) {
+    if (isTrustedEnoent(error)) return undefined;
+    throw new HarnessError(
+      "INTEGRITY",
+      `failed to read agent metadata at '${filePath}': ${formatSafeErrorCause(error)}`,
+    );
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `failed to parse agent metadata at '${filePath}': ${formatSafeErrorCause(error)}`,
+    );
+  }
+  return { metadata: validateAgentMetadata(parsed, agentId, filePath), filePath };
+}
+
+function readAgentMetadataAtRoot(
+  agentId: string,
+  runRoot: string,
+): { metadata: AgentMetadata; runRoot: string; filePath: string } | undefined {
+  const canonicalPath = join(runRoot, "runtime", `agent-${agentId}.json`);
+  const canonical = readAgentMetadataFile(agentId, canonicalPath);
+  if (canonical !== undefined) return { ...canonical, runRoot };
+
+  const legacyPath = join(runRoot, "runtime", `${agentId}.json`);
+  const legacy = readAgentMetadataFile(agentId, legacyPath);
+  return legacy === undefined ? undefined : { ...legacy, runRoot };
+}
+
+function readCapsuleRoots(capsulesDir: string): readonly string[] {
+  let entries: readonly Dirent[];
+  try {
+    entries = agentMetadataDependencies.readDirectory(capsulesDir, { withFileTypes: true });
+  } catch (error) {
+    if (isTrustedEnoent(error)) return [];
+    throw new HarnessError(
+      "INTEGRITY",
+      `failed to read capsule metadata directory '${capsulesDir}': ${formatSafeErrorCause(error)}`,
+    );
+  }
+
+  try {
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => join(capsulesDir, entry.name))
+      .sort((left, right) => left.localeCompare(right));
+  } catch (error) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `failed to enumerate capsule metadata directory '${capsulesDir}': ${formatSafeErrorCause(error)}`,
+    );
+  }
+}
+
 export function findAgentMetadataLocation(
   agentId: string,
   preferredRunRoot?: string,
 ): { metadata: AgentMetadata; runRoot: string; filePath: string } | undefined {
-  const repoRoot = findRepoRoot();
-  const searchRoots: string[] = [];
-
-  if (preferredRunRoot && existsSync(preferredRunRoot)) {
-    searchRoots.push(resolve(preferredRunRoot));
+  assertSafeAgentId(agentId);
+  if (preferredRunRoot !== undefined) {
+    const root = resolve(preferredRunRoot);
+    return readAgentMetadataAtRoot(agentId, root);
   }
 
-  // Scan capsule directories under .olt/capsules/
-  const capsulesDir = resolveCapsulesDir(repoRoot);
-  if (existsSync(capsulesDir)) {
-    try {
-      const entries = readdirSync(capsulesDir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          searchRoots.push(join(capsulesDir, entry.name));
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }
+  const repoRoot = agentMetadataDependencies.findRepoRoot();
+  const capsulesDir = agentMetadataDependencies.resolveCapsulesDir(repoRoot);
+  const searchRoots = [
+    ...readCapsuleRoots(capsulesDir),
+    resolve(agentMetadataDependencies.resolveScratchDir(repoRoot)),
+  ];
+  const uniqueRoots = [...new Set(searchRoots.map((root) => resolve(root)))].sort((left, right) =>
+    left.localeCompare(right),
+  );
+  const matches = uniqueRoots.flatMap((root) => {
+    const match = readAgentMetadataAtRoot(agentId, root);
+    return match === undefined ? [] : [match];
+  });
 
-  // Add scratch dir
-  searchRoots.push(resolveScratchDir(repoRoot));
+  if (matches.length === 0) return undefined;
+  if (matches.length === 1) return matches[0];
 
-  for (const root of searchRoots) {
-    const directPath = join(root, "runtime", `agent-${agentId}.json`);
-    if (existsSync(directPath)) {
-      try {
-        const raw = readFileSync(directPath, "utf-8");
-        const metadata = JSON.parse(raw) as AgentMetadata;
-        return { metadata, runRoot: root, filePath: directPath };
-      } catch {
-        // ignore parse error
-      }
-    }
-
-    const altPath = join(root, "runtime", `${agentId}.json`);
-    if (existsSync(altPath)) {
-      try {
-        const raw = readFileSync(altPath, "utf-8");
-        const metadata = JSON.parse(raw) as AgentMetadata;
-        return { metadata, runRoot: root, filePath: altPath };
-      } catch {
-        // ignore
-      }
-    }
-  }
-
-  return undefined;
+  const locations = matches
+    .map((match) => match.filePath)
+    .sort((left, right) => left.localeCompare(right));
+  throw new HarnessError(
+    "INTEGRITY",
+    `agent metadata for '${agentId}' is ambiguous across multiple run roots: ${locations.join(", ")}`,
+  );
 }
 
 export function readAgentMetadata(agentId: string, runRoot?: string): AgentMetadata | undefined {
