@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { estimated, evidenced } from "../../../../olt/scripts/src/core/contracts/evidence.ts";
@@ -10,6 +10,7 @@ import {
   registerAgentGrant,
   releaseAgentGrant,
 } from "../../../../olt/scripts/src/workflow/agents/grants.ts";
+import { readAgentLedger } from "../../../../olt/scripts/src/workflow/agents/ledger.ts";
 
 function withRun<T>(body: (runRoot: string) => T): T {
   const repo = mkdtempSync(join(tmpdir(), "grants-run-"));
@@ -25,7 +26,96 @@ function withRun<T>(body: (runRoot: string) => T): T {
   }
 }
 
+const REGISTRATION_RACER = join(
+  import.meta.dir,
+  "../../../support/fixtures/agent-registration-racer.fixture.ts",
+);
+
+async function waitForBarrier(path: string): Promise<void> {
+  for (let attempt = 0; attempt < 500; attempt += 1) {
+    if (existsSync(path)) return;
+    await Bun.sleep(10);
+  }
+  throw new Error(`registration racer did not reach start barrier: ${path}`);
+}
+
+async function raceConditionalGenesis(
+  firstId: string,
+  secondId: string,
+): Promise<readonly { readonly ok: boolean; readonly code?: string }[]> {
+  const repo = mkdtempSync(join(tmpdir(), "grants-race-"));
+  try {
+    const runRoot = initRun(repo, "test-run", new TextEncoder().encode("task"), "file", true);
+    const barrier = join(repo, "registration-race");
+    mkdirSync(barrier);
+    const racers = [
+      ["first", firstId],
+      ["second", secondId],
+    ].map(([label, agentId]) =>
+      Bun.spawn(["bun", REGISTRATION_RACER, runRoot, barrier, label!, agentId!], {
+        stdout: "pipe",
+        stderr: "pipe",
+      }),
+    );
+    await Promise.all(
+      racers.map((_, index) =>
+        waitForBarrier(join(barrier, `${index === 0 ? "first" : "second"}.ready`)),
+      ),
+    );
+    writeFileSync(join(barrier, "start"), "go", "utf8");
+    const results = await Promise.all(
+      racers.map(async (racer) => {
+        const [exit, stdout] = await Promise.all([racer.exited, new Response(racer.stdout).text()]);
+        expect(exit).toBe(0);
+        const line = stdout.split("\n").find((entry) => entry.startsWith("RESULT::"));
+        expect(line).toBeDefined();
+        return JSON.parse(line!.slice("RESULT::".length)) as { ok: boolean; code?: string };
+      }),
+    );
+    expect(
+      readAgentLedger(loadRun(runRoot).state).filter((grant) => grant.status === "active"),
+    ).toHaveLength(1);
+    expect(
+      loadRun(runRoot).events.filter((event) => event.kind === "agent-registered"),
+    ).toHaveLength(1);
+    return results;
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+}
+
 describe("workflow/agents/grants", () => {
+  test("rejects an untyped registration request that omits transactional authority", () => {
+    withRun((runRoot) => {
+      expect(() =>
+        registerAgentGrant({
+          runRoot,
+          agentId: "missing-authority",
+          role: "coordinator",
+          parentAgentId: null,
+          parentTaskId: null,
+          host: "local",
+          maxAgents: 5,
+          telemetry: {},
+        } as unknown as Parameters<typeof registerAgentGrant>[0]),
+      ).toThrow("registration authority is required");
+      expect(readAgentLedger(loadRun(runRoot).state)).toHaveLength(0);
+    });
+  });
+
+  test("serializes real same-run conditional-genesis racers for distinct and identical agent ids", async () => {
+    for (const [firstId, secondId] of [
+      ["genesis-distinct-a", "genesis-distinct-b"],
+      ["genesis-same", "genesis-same"],
+    ]) {
+      const results = await raceConditionalGenesis(firstId, secondId);
+      expect(results.filter((result) => result.ok)).toHaveLength(1);
+      expect(results.filter((result) => !result.ok)[0]?.code).toBe(
+        firstId === secondId ? "INVALID_STATE" : "AUTHENTICATION_FAILURE",
+      );
+    }
+  }, 15000);
+
   test("admits exactly one conditional-genesis grant under the transaction lock", () => {
     for (const [firstId, secondId] of [
       ["genesis-a", "genesis-b"],
@@ -44,7 +134,9 @@ describe("workflow/agents/grants", () => {
           telemetry: {},
         });
         expect(registerAgentGrant(input(firstId)).grant.id).toBe(firstId);
-        expect(() => registerAgentGrant(input(secondId))).toThrow("conditional agent genesis");
+        expect(() => registerAgentGrant(input(secondId))).toThrow(
+          firstId === secondId ? "already holds a grant" : "conditional agent genesis",
+        );
         expect(
           loadRun(runRoot).events.filter((event) => event.kind === "agent-registered"),
         ).toHaveLength(1);
@@ -59,21 +151,28 @@ describe("workflow/agents/grants", () => {
         role: "coordinator" | "implementer",
         parent: string | null,
         actor?: string,
-      ) =>
-        registerAgentGrant({
+      ) => {
+        const base = {
           runRoot,
           agentId,
           role,
-          parentAgentId: parent,
           parentTaskId: null,
           host: "local",
-          authority:
-            actor === undefined
-              ? { kind: "conditional_genesis" }
-              : { kind: "verified_parent", actorId: actor },
           maxAgents: 5,
           telemetry: {},
-        });
+        };
+        return parent === null
+          ? registerAgentGrant({
+              ...base,
+              parentAgentId: null,
+              authority: { kind: "conditional_genesis" },
+            })
+          : registerAgentGrant({
+              ...base,
+              parentAgentId: parent,
+              authority: { kind: "verified_parent", actorId: actor ?? parent },
+            });
+      };
 
       register("coord-1", "coordinator", null);
       expect(() => register("impl-unrelated", "implementer", "coord-1", "other")).toThrow(
@@ -124,12 +223,25 @@ describe("workflow/agents/grants", () => {
           parentAgentId: "agent-self",
           parentTaskId: null,
           host: "local",
-          actor: "user",
+          authority: { kind: "verified_parent", actorId: "agent-self" },
           maxAgents: 5,
           telemetry: {},
         }),
       ).toThrow("an agent cannot be its own parent");
+    });
 
+    withRun((runRoot) => {
+      registerAgentGrant({
+        runRoot,
+        agentId: "coordinator-1",
+        role: "coordinator",
+        parentAgentId: null,
+        parentTaskId: null,
+        host: "local",
+        authority: { kind: "conditional_genesis" },
+        maxAgents: 5,
+        telemetry: {},
+      });
       // Non-existent parent agent throws INVALID_STATE
       expect(() =>
         registerAgentGrant({
@@ -139,22 +251,35 @@ describe("workflow/agents/grants", () => {
           parentAgentId: "nonexistent-parent",
           parentTaskId: null,
           host: "local",
-          actor: "user",
+          authority: { kind: "verified_parent", actorId: "nonexistent-parent" },
           maxAgents: 5,
           telemetry: {},
         }),
       ).toThrow("agent nonexistent-parent holds no grant");
+    });
 
+    withRun((runRoot) => {
+      registerAgentGrant({
+        runRoot,
+        agentId: "coordinator-1",
+        role: "coordinator",
+        parentAgentId: null,
+        parentTaskId: null,
+        host: "local",
+        authority: { kind: "conditional_genesis" },
+        maxAgents: 5,
+        telemetry: {},
+      });
       // Unknown parent task throws INVALID_STATE
       expect(() =>
         registerAgentGrant({
           runRoot,
           agentId: "agent-task-child",
           role: "implementer",
-          parentAgentId: null,
+          parentAgentId: "coordinator-1",
           parentTaskId: "unknown-task-99",
           host: "local",
-          actor: "user",
+          authority: { kind: "verified_parent", actorId: "coordinator-1" },
           maxAgents: 5,
           telemetry: {},
         }),
@@ -171,7 +296,7 @@ describe("workflow/agents/grants", () => {
         parentAgentId: null,
         parentTaskId: null,
         host: "local",
-        actor: "mind-auditor-1",
+        authority: { kind: "conditional_genesis" },
         maxAgents: 5,
         telemetry: {},
       });
@@ -184,12 +309,14 @@ describe("workflow/agents/grants", () => {
           parentAgentId: "mind-auditor-1",
           parentTaskId: null,
           host: "local",
-          actor: "mind-auditor-1",
+          authority: { kind: "verified_parent", actorId: "mind-auditor-1" },
           maxAgents: 5,
           telemetry: {},
         }),
       ).toThrow("Declared spawn allowlist violation");
+    });
 
+    withRun((runRoot) => {
       registerAgentGrant({
         runRoot,
         agentId: "orch-1",
@@ -197,7 +324,7 @@ describe("workflow/agents/grants", () => {
         parentAgentId: null,
         parentTaskId: null,
         host: "local",
-        actor: "orch-1",
+        authority: { kind: "conditional_genesis" },
         maxAgents: 5,
         telemetry: {},
       });
@@ -208,7 +335,7 @@ describe("workflow/agents/grants", () => {
         parentAgentId: "orch-1",
         parentTaskId: null,
         host: "local",
-        actor: "orch-1",
+        authority: { kind: "verified_parent", actorId: "orch-1" },
         maxAgents: 5,
         telemetry: {},
       });
@@ -225,7 +352,7 @@ describe("workflow/agents/grants", () => {
         parentAgentId: null,
         parentTaskId: "T-1",
         host: "local",
-        actor: "coordinator",
+        authority: { kind: "conditional_genesis" },
         maxAgents: 3,
         telemetry: {
           provider: "anthropic",
@@ -270,7 +397,7 @@ describe("workflow/agents/grants", () => {
           parentAgentId: null,
           parentTaskId: null,
           host: "local",
-          actor: "coordinator",
+          authority: { kind: "conditional_genesis" },
           maxAgents: 3,
           telemetry: {},
         }),
@@ -284,7 +411,7 @@ describe("workflow/agents/grants", () => {
         parentAgentId: "agent-root",
         parentTaskId: "T-1",
         host: "local",
-        actor: "agent-root",
+        authority: { kind: "verified_parent", actorId: "agent-root" },
         maxAgents: 3,
         telemetry: {
           modelTier: "unknown" as const,
@@ -303,7 +430,7 @@ describe("workflow/agents/grants", () => {
           parentAgentId: "agent-root",
           parentTaskId: null,
           host: "local",
-          actor: "agent-root",
+          authority: { kind: "verified_parent", actorId: "agent-root" },
           maxAgents: 2, // maxAgents is 2, but ledger already has 2
           telemetry: {},
         }),
@@ -320,7 +447,7 @@ describe("workflow/agents/grants", () => {
         parentAgentId: null,
         parentTaskId: null,
         host: "local",
-        actor: "coordinator",
+        authority: { kind: "conditional_genesis" },
         maxAgents: 5,
         telemetry: {},
       });
@@ -390,7 +517,7 @@ describe("workflow/agents/grants", () => {
         parentAgentId: null,
         parentTaskId: null,
         host: "local",
-        actor: "coordinator",
+        authority: { kind: "conditional_genesis" },
         maxAgents: 5,
         telemetry: {},
       });

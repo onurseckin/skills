@@ -27,7 +27,7 @@ function register(
     parentAgentId: parentAgent,
     parentTaskId: parentTask,
     host: "claude-code",
-    actor: parentAgent,
+    authority: { kind: "verified_parent", actorId: parentAgent },
     maxAgents: 50,
     telemetry: {},
   });
@@ -78,7 +78,7 @@ describe("agent lineage", () => {
     releaseAgentGrant({
       runRoot: run,
       agentId: "sub-1",
-      actor: "coordinator-1",
+      actor: "sub-1",
       reason: "lineage check done",
     });
     const afterRelease = agentListCommand({ run });

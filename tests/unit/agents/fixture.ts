@@ -47,7 +47,7 @@ export function registerCoordinator(run: string, id = "coordinator-1"): void {
     parentAgentId: null,
     parentTaskId: null,
     host: "claude-code",
-    actor: id,
+    authority: { kind: "conditional_genesis" },
     maxAgents: 50,
     telemetry: {},
   });

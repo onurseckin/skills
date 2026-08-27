@@ -157,19 +157,36 @@ export function agentRegisterCommand(
   const session = stagedSession.session;
   let outcome;
   try {
-    outcome = registerAgentGrant({
+    const registration = {
       runRoot: run,
       agentId: agent,
       role,
-      parentAgentId: parentAgent,
       parentTaskId: parentTask,
       host,
       ...(hostAddress === undefined ? {} : { hostAddress }),
-      authority,
       maxAgents: getHarnessConfig(findRepoRoot(run), run).max_agents,
       telemetry: telemetryFlags(flags),
       ...(Object.keys(derivedTelemetry).length === 0 ? {} : { derivedTelemetry }),
-    });
+    };
+    if (authority.kind === "conditional_genesis") {
+      outcome = registerAgentGrant({
+        ...registration,
+        parentAgentId: null,
+        authority,
+      });
+    } else {
+      if (parentAgent === null) {
+        throw new HarnessError(
+          "AUTHENTICATION_FAILURE",
+          "verified parent registration requires a named parent agent",
+        );
+      }
+      outcome = registerAgentGrant({
+        ...registration,
+        parentAgentId: parentAgent,
+        authority,
+      });
+    }
   } catch (error) {
     if (isCommittedWithRecoveryPending(error)) {
       const grant = readAgentLedger(error.state).find(

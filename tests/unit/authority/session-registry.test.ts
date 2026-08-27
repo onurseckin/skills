@@ -71,7 +71,7 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
     expect(existsSync(join(sandboxDir, ".olt", ".sessions", "12344.json"))).toBe(true);
   });
 
-  it("does not roll back a newer PID or PPID session record", () => {
+  it("does not let shared-PPID loser compensation delete winner session bytes", () => {
     const staged = stageSessionGrant({
       runRoot: sandboxDir,
       agentId: "staged-agent",
@@ -85,17 +85,18 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
       agentId: "newer-agent",
       role: "implementer",
       customToken: "tok_newer",
-      pid: 12355,
+      pid: 12356,
       ppid: 12354,
     });
 
     rollbackStagedSessionGrant(staged);
 
-    for (const id of [12355, 12354]) {
+    for (const id of [12356, 12354]) {
       expect(readFileSync(join(sandboxDir, ".olt", ".sessions", `${id}.json`), "utf8")).toContain(
         "tok_newer",
       );
     }
+    expect(existsSync(join(sandboxDir, ".olt", ".sessions", "12355.json"))).toBe(false);
   });
 
   it("rejects traversal-shaped agent identities before creating any process session record", () => {

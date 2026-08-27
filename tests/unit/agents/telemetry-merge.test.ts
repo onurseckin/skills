@@ -258,7 +258,7 @@ describe("refreshAgentDerivedTelemetry", () => {
       parentAgentId: null,
       parentTaskId: null,
       host: "some-host",
-      actor: "coordinator",
+      authority: { kind: "conditional_genesis" },
       maxAgents: 10,
       telemetry: {},
     });
@@ -298,7 +298,7 @@ describe("refreshAgentDerivedTelemetry", () => {
       parentAgentId: null,
       parentTaskId: null,
       host: "some-host",
-      actor: "coordinator",
+      authority: { kind: "conditional_genesis" },
       maxAgents: 10,
       telemetry: {},
     });

@@ -13,7 +13,7 @@ describe("registerAgentGrant: hierarchical spawning is enforced at the state-mut
       parentAgentId: null,
       parentTaskId: null,
       host: "claude-code",
-      actor: "orchestrator-1",
+      authority: { kind: "conditional_genesis" },
       maxAgents: 10,
       telemetry: {},
     });
@@ -26,7 +26,7 @@ describe("registerAgentGrant: hierarchical spawning is enforced at the state-mut
         parentAgentId: "orchestrator-1",
         parentTaskId: null,
         host: "claude-code",
-        actor: "orchestrator-1",
+        authority: { kind: "verified_parent", actorId: "orchestrator-1" },
         maxAgents: 10,
         telemetry: {},
       }),
@@ -44,7 +44,7 @@ describe("registerAgentGrant: hierarchical spawning is enforced at the state-mut
       parentAgentId: null,
       parentTaskId: null,
       host: "claude-code",
-      actor: "coord-1",
+      authority: { kind: "conditional_genesis" },
       maxAgents: 10,
       telemetry: {},
     });
@@ -63,7 +63,7 @@ describe("registerAgentGrant: hierarchical spawning is enforced at the state-mut
         parentAgentId: "coord-1",
         parentTaskId: null,
         host: "claude-code",
-        actor: "coord-1",
+        authority: { kind: "verified_parent", actorId: "coord-1" },
         maxAgents: 10,
         telemetry: {},
       }),
@@ -79,7 +79,7 @@ describe("registerAgentGrant: hierarchical spawning is enforced at the state-mut
       parentAgentId: null,
       parentTaskId: null,
       host: "claude-code",
-      actor: "coord-1",
+      authority: { kind: "conditional_genesis" },
       maxAgents: 10,
       telemetry: {},
     });
@@ -90,7 +90,7 @@ describe("registerAgentGrant: hierarchical spawning is enforced at the state-mut
       parentAgentId: "coord-1",
       parentTaskId: null,
       host: "claude-code",
-      actor: "coord-1",
+      authority: { kind: "verified_parent", actorId: "coord-1" },
       maxAgents: 10,
       telemetry: {},
     });
@@ -102,7 +102,7 @@ describe("registerAgentGrant: hierarchical spawning is enforced at the state-mut
       parentAgentId: "impl-1",
       parentTaskId: null,
       host: "claude-code",
-      actor: "impl-1",
+      authority: { kind: "verified_parent", actorId: "impl-1" },
       maxAgents: 10,
       telemetry: {},
     });
@@ -115,7 +115,7 @@ describe("registerAgentGrant: hierarchical spawning is enforced at the state-mut
       parentAgentId: "sub-1",
       parentTaskId: null,
       host: "claude-code",
-      actor: "sub-1",
+      authority: { kind: "verified_parent", actorId: "sub-1" },
       maxAgents: 10,
       telemetry: {},
     });
