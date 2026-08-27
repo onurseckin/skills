@@ -59,6 +59,18 @@ const AUDIO_FILE_EXTENSIONS: readonly string[] = Object.freeze([
   ".au",
 ]);
 
+const AMBIENT_HOOK_ENVIRONMENT_KEYS: readonly string[] = Object.freeze([
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "TZ",
+  "TMPDIR",
+  "TMP",
+  "TEMP",
+  "SYSTEMROOT",
+  "WINDIR",
+]);
+
 export type HookShellRefusalRule =
   | "SHELL_STRING_COMMAND_REJECTED"
   | "MISSING_COMMAND_ARGV"
@@ -273,6 +285,31 @@ export function resolveAudioSoundPath(
   return DEFAULT_DARWIN_SOUND_PATH;
 }
 
+export function buildHookChildEnvironment(
+  hook: HookDefinition,
+  event: LifecycleEvent,
+  payload?: Readonly<Record<string, unknown>> | undefined,
+  parentEnv: Readonly<Record<string, string | undefined>> = process.env,
+): Record<string, string> {
+  const environment: Record<string, string> = {};
+  for (const key of AMBIENT_HOOK_ENVIRONMENT_KEYS) {
+    const value = parentEnv[key];
+    if (typeof value === "string") {
+      environment[key] = value;
+    }
+  }
+
+  for (const [key, value] of Object.entries(hook.env ?? {})) {
+    if (key.toUpperCase() !== "PATH") {
+      environment[key] = value;
+    }
+  }
+
+  environment.LIFECYCLE_EVENT = event;
+  environment.LIFECYCLE_PAYLOAD = JSON.stringify(payload ?? {});
+  return environment;
+}
+
 function isValidAudioFilePath(candidate: string): boolean {
   if (!candidate.startsWith("/")) {
     return false;
@@ -447,25 +484,7 @@ export async function executeShellAction(
   }
 
   try {
-    const processEnv: Record<string, string> = {};
-    for (const [key, value] of Object.entries(process.env)) {
-      if (typeof value === "string") {
-        processEnv[key] = value;
-      }
-    }
-
-    const sanitizedHookEnv: Record<string, string> = {};
-    for (const [key, value] of Object.entries(hook.env ?? {})) {
-      if (key === "PATH") continue;
-      sanitizedHookEnv[key] = value;
-    }
-
-    const env: Record<string, string> = {
-      ...processEnv,
-      ...sanitizedHookEnv,
-      LIFECYCLE_EVENT: event,
-      LIFECYCLE_PAYLOAD: JSON.stringify(payload ?? {}),
-    };
+    const env = buildHookChildEnvironment(hook, event, payload);
 
     const result = runner(executable, argv.slice(1), {
       cwd: cwdResolution.cwd,

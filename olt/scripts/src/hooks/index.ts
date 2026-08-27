@@ -12,6 +12,7 @@ export {
 } from "./config.ts";
 export {
   ALLOWED_SHELL_EXECUTABLES,
+  buildHookChildEnvironment,
   commandContainsRecursiveDelete,
   defaultProcessRunner,
   dispatchLifecycleHook,
