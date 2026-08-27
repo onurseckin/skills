@@ -1,5 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   createAgentMetadata,
   writeAgentMetadata,
@@ -125,6 +127,48 @@ describe("Runtime Agent Metadata & Read Scope Guard", () => {
 
       const checkAfter = checkReadScopeAuthorization(expanded.metadata, "src/unrelated/other.ts");
       expect(checkAfter.authorized).toBe(true);
+    });
+
+    it("retains both concurrent read-scope expansions", async () => {
+      const scratch = scratchRoot(caller, "scope-expand-concurrent");
+      const agentId = "imp-expand-concurrent";
+      writeAgentMetadata(
+        createAgentMetadata({ agent_id: agentId, role: "implementer", allowed_read_scope: [] }),
+        scratch,
+      );
+      const metadataModule = resolve(process.cwd(), "olt/scripts/src/runtime/read-scope-guard.ts");
+      const child = (path: string) =>
+        Bun.spawn(
+          [
+            process.execPath,
+            "--eval",
+            `import { expandReadScope } from ${JSON.stringify(metadataModule)}; expandReadScope(${JSON.stringify(agentId)}, ${JSON.stringify(path)}, ${JSON.stringify(scratch)});`,
+          ],
+          { stdout: "pipe", stderr: "pipe" },
+        );
+      const first = child("src/concurrent/one.ts");
+      const second = child("src/concurrent/two.ts");
+      expect(await first.exited).toBe(0);
+      expect(await second.exited).toBe(0);
+      const stored = readAgentMetadata(agentId, scratch);
+      expect(stored?.allowed_read_scope).toContain("src/concurrent/one.ts");
+      expect(stored?.allowed_read_scope).toContain("src/concurrent/two.ts");
+    });
+
+    it("refuses scope expansion through a hard-linked metadata authority", () => {
+      const scratch = scratchRoot(caller, "scope-expand-hard-link");
+      const agentId = "imp-expand-hard-link";
+      const runtime = resolve(scratch, "runtime");
+      const external = resolve(scratch, "external-metadata.json");
+      const bytes = JSON.stringify(
+        createAgentMetadata({ agent_id: agentId, role: "implementer", allowed_read_scope: [] }),
+      );
+      mkdirSync(runtime, { recursive: true });
+      writeFileSync(external, bytes, "utf8");
+      linkSync(external, resolve(runtime, `agent-${agentId}.json`));
+
+      expect(() => expandReadScope(agentId, "src/forbidden.ts", scratch)).toThrow(HarnessError);
+      expect(readFileSync(external, "utf8")).toBe(bytes);
     });
   });
 });

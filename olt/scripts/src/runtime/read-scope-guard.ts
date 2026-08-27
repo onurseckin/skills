@@ -1,5 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, join, normalize, relative, resolve } from "node:path";
+import { dirname, isAbsolute, normalize, relative, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
 import type { AgentMetadata } from "./agent-metadata.ts";
@@ -7,8 +6,8 @@ import {
   createAgentMetadata,
   findAgentMetadataLocation,
   getAgentMetadataPath,
-  readAgentMetadata,
-  writeAgentMetadata,
+  withAgentMetadataMutationLock,
+  writeAgentMetadataUnlocked,
 } from "./agent-metadata.ts";
 
 export interface ReadScopeCheckResult {
@@ -179,27 +178,29 @@ export function expandReadScope(
   runRoot?: string,
 ): { success: boolean; allowed_read_scope: readonly string[]; metadata: AgentMetadata } {
   const discovered = findAgentMetadataLocation(agentId, runRoot);
-  let metadata: AgentMetadata;
   const targetRunRoot = runRoot ?? discovered?.runRoot ?? findRepoRoot();
-
-  if (!discovered) {
-    // Create new metadata entry if not found
-    metadata = createAgentMetadata({
-      agent_id: agentId,
-      role: "implementer",
-      allowed_read_scope: [additionalPath],
-      run_id: runRoot ? dirname(runRoot) : undefined,
-    });
-  } else {
-    const existing = new Set(discovered.metadata.allowed_read_scope);
+  const canonicalPath = getAgentMetadataPath(agentId, targetRunRoot);
+  const metadata = withAgentMetadataMutationLock(canonicalPath, () => {
+    const current = findAgentMetadataLocation(agentId, targetRunRoot);
+    if (!current) {
+      const created = createAgentMetadata({
+        agent_id: agentId,
+        role: "implementer",
+        allowed_read_scope: [additionalPath],
+        run_id: runRoot ? dirname(runRoot) : undefined,
+      });
+      writeAgentMetadataUnlocked(created, targetRunRoot);
+      return created;
+    }
+    const existing = new Set(current.metadata.allowed_read_scope);
     existing.add(additionalPath);
-    metadata = {
-      ...discovered.metadata,
+    const expanded: AgentMetadata = {
+      ...current.metadata,
       allowed_read_scope: [...existing],
     };
-  }
-
-  writeAgentMetadata(metadata, targetRunRoot);
+    writeAgentMetadataUnlocked(expanded, targetRunRoot);
+    return expanded;
+  });
 
   return {
     success: true,

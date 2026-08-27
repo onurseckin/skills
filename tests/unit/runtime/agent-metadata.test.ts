@@ -1,6 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { join, resolve } from "node:path";
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   createAgentMetadata,
@@ -39,6 +47,74 @@ describe("agent metadata discovery", () => {
     expect(getAgentMetadataPath("impl-uncreated", root)).toBe(
       join(resolve(root), "runtime", "agent-impl-uncreated.json"),
     );
+  });
+
+  it("refuses a symlinked canonical metadata file without changing its external target", () => {
+    const root = scratchRoot(caller, "metadata-final-symlink");
+    const agentId = "impl-final-symlink";
+    const runtime = join(root, "runtime");
+    const external = join(root, "external-sentinel.json");
+    const target = join(runtime, `agent-${agentId}.json`);
+    mkdirSync(runtime, { recursive: true });
+    writeFileSync(external, "sentinel", "utf8");
+    symlinkSync(external, target);
+
+    expect(() =>
+      writeAgentMetadata(createAgentMetadata({ agent_id: agentId, role: "implementer" }), root),
+    ).toThrow(HarnessError);
+    expect(readFileSync(external, "utf8")).toBe("sentinel");
+  });
+
+  it("refuses a symlinked runtime directory without changing its external target", () => {
+    const root = scratchRoot(caller, "metadata-runtime-symlink");
+    const agentId = "impl-runtime-symlink";
+    const externalRuntime = join(root, "external-runtime");
+    const runtime = join(root, "runtime");
+    const externalFile = join(externalRuntime, `agent-${agentId}.json`);
+    mkdirSync(externalRuntime, { recursive: true });
+    writeFileSync(externalFile, "sentinel", "utf8");
+    symlinkSync(externalRuntime, runtime);
+
+    expect(() =>
+      writeAgentMetadata(createAgentMetadata({ agent_id: agentId, role: "implementer" }), root),
+    ).toThrow(HarnessError);
+    expect(readFileSync(externalFile, "utf8")).toBe("sentinel");
+  });
+
+  it("refuses canonical and legacy hard-linked metadata without changing the external inode", () => {
+    const root = scratchRoot(caller, "metadata-hard-links");
+    const runtime = join(root, "runtime");
+    mkdirSync(runtime, { recursive: true });
+    for (const [agentId, name] of [
+      ["impl-canonical-hard-link", "agent-impl-canonical-hard-link.json"],
+      ["impl-legacy-hard-link", "impl-legacy-hard-link.json"],
+    ]) {
+      const external = join(root, `external-${agentId}.json`);
+      const bytes = JSON.stringify(metadata(agentId));
+      writeFileSync(external, bytes, "utf8");
+      linkSync(external, join(runtime, name));
+
+      expect(() => findAgentMetadataLocation(agentId, root)).toThrow(HarnessError);
+      expect(() =>
+        writeAgentMetadata(createAgentMetadata({ agent_id: agentId, role: "implementer" }), root),
+      ).toThrow(HarnessError);
+      expect(readFileSync(external, "utf8")).toBe(bytes);
+    }
+  });
+
+  it("rejects cyclic metadata before creating a runtime directory or partial metadata file", () => {
+    const root = scratchRoot(caller, "metadata-serialization");
+    const agentId = "impl-cyclic";
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    const record = createAgentMetadata({
+      agent_id: agentId,
+      role: "implementer",
+      metadata: cyclic,
+    });
+
+    expect(() => writeAgentMetadata(record, root)).toThrow(HarnessError);
+    expect(existsSync(join(root, "runtime"))).toBe(false);
   });
 
   it("does not fall through from corrupt preferred metadata", () => {

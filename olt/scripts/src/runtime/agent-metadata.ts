@@ -1,14 +1,25 @@
 import {
+  closeSync,
+  constants,
   existsSync,
+  fstatSync,
+  fsyncSync,
+  lstatSync,
   mkdirSync,
+  openSync,
   readdirSync,
   readFileSync,
+  renameSync,
+  rmSync,
+  writeSync,
   type Dirent,
-  writeFileSync,
+  type Stats,
 } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { findRepoRoot, resolveCapsulesDir, resolveScratchDir } from "../core/shared/paths.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
 import type { ReviewProtocolPolicy } from "../policy/repo-policy.ts";
 
 export interface AgentMetadata {
@@ -45,6 +56,13 @@ const defaultAgentMetadataDependencies: AgentMetadataDependencies = {
 };
 
 let agentMetadataDependencies = defaultAgentMetadataDependencies;
+const activeAgentMetadataParents = new Set<string>();
+const activeAgentMetadataParentInodes = new Set<string>();
+const activeAgentMetadataRoots = new Set<string>();
+const activeAgentMetadataRootInodes = new Set<string>();
+const activeAgentMetadataParentIdentity = new Map<string, Pick<Stats, "dev" | "ino">>();
+const activeAgentMetadataRootIdentity = new Map<string, Pick<Stats, "dev" | "ino">>();
+const activeAgentMetadataAuthority = new Map<string, string>();
 
 /** Test-only dependency seam for deterministic metadata-discovery failures and ordering. */
 export function setAgentMetadataDependenciesForTesting(
@@ -162,12 +180,326 @@ export function getAgentMetadataPath(agentId: string, runRoot?: string): string 
 
 export function writeAgentMetadata(metadata: AgentMetadata, runRoot?: string): string {
   const filePath = getAgentMetadataPath(metadata.agent_id, runRoot);
-  const dir = dirname(filePath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-  writeFileSync(filePath, JSON.stringify(metadata, null, 2) + "\n", "utf-8");
+  const serialized = serializeValidatedAgentMetadata(metadata, filePath);
+  withAgentMetadataMutationLock(filePath, () => replaceAgentMetadataUnlocked(filePath, serialized));
   return filePath;
+}
+
+/** Writes metadata while the caller already holds the matching metadata mutation lock. */
+export function writeAgentMetadataUnlocked(metadata: AgentMetadata, runRoot?: string): string {
+  const filePath = getAgentMetadataPath(metadata.agent_id, runRoot);
+  const serialized = serializeValidatedAgentMetadata(metadata, filePath);
+  replaceAgentMetadataUnlocked(filePath, serialized);
+  return filePath;
+}
+
+function requiredNoFollowFlag(): number {
+  const flag = constants.O_NOFOLLOW;
+  if (!Number.isInteger(flag) || flag === 0)
+    throw new HarnessError("UNSUPPORTED_PLATFORM", "agent metadata storage requires O_NOFOLLOW");
+  return flag;
+}
+
+function delay(milliseconds: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
+function sameInode(left: Pick<Stats, "dev" | "ino">, right: Pick<Stats, "dev" | "ino">): boolean {
+  return left.dev === right.dev && left.ino === right.ino;
+}
+
+function safeFailureCause(error: unknown): string {
+  return readOwnDataString(error, "message") ?? "unknown error";
+}
+
+function assertRealDirectory(path: string, label: string): Stats {
+  let metadata: Stats;
+  try {
+    metadata = lstatSync(path);
+  } catch (error) {
+    throw new HarnessError("INTEGRITY", `${label} is unavailable: ${safeFailureCause(error)}`);
+  }
+  if (!metadata.isDirectory() || metadata.isSymbolicLink())
+    throw new HarnessError("PATH_SAFETY", `${label} must be a real directory: ${path}`);
+  return metadata;
+}
+
+function openVerifiedDirectory(
+  path: string,
+  create: boolean,
+  label: string,
+): { descriptor: number; metadata: Stats } {
+  if (!existsSync(path)) {
+    if (!create) throw new HarnessError("INTEGRITY", `${label} is unavailable: ${path}`);
+    try {
+      mkdirSync(path, { recursive: true, mode: 0o700 });
+    } catch (error) {
+      throw new HarnessError("INTEGRITY", `failed to create ${label}: ${safeFailureCause(error)}`);
+    }
+  }
+  const before = assertRealDirectory(path, label);
+  let descriptor: number | undefined;
+  try {
+    descriptor = openSync(
+      path,
+      constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | requiredNoFollowFlag(),
+    );
+    const opened = fstatSync(descriptor);
+    const after = assertRealDirectory(path, label);
+    if (!opened.isDirectory() || !sameInode(before, opened) || !sameInode(opened, after))
+      throw new HarnessError("INTEGRITY", `${label} changed while opening: ${path}`);
+    return { descriptor, metadata: opened };
+  } catch (error) {
+    if (descriptor !== undefined) closeSync(descriptor);
+    throw error;
+  }
+}
+
+function acquireExclusiveLock(descriptor: number, path: string): void {
+  const deadline = performance.now() + 10_000;
+  while (!tryExclusiveFlock(descriptor)) {
+    const remaining = deadline - performance.now();
+    if (remaining <= 0)
+      throw new HarnessError("LOCK_TIMEOUT", `timed out waiting for agent metadata lock: ${path}`);
+    delay(Math.min(10, remaining));
+  }
+}
+
+function serializeValidatedAgentMetadata(metadata: AgentMetadata, filePath: string): string {
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(metadata, null, 2) + "\n";
+  } catch (error) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `failed to serialize agent metadata at '${filePath}': ${safeFailureCause(error)}`,
+    );
+  }
+  try {
+    validateAgentMetadata(JSON.parse(serialized) as unknown, metadata.agent_id, filePath);
+  } catch (error) {
+    if (error instanceof HarnessError) throw error;
+    throw new HarnessError(
+      "INTEGRITY",
+      `failed to validate serialized agent metadata at '${filePath}': ${safeFailureCause(error)}`,
+    );
+  }
+  return serialized;
+}
+
+function assertActiveMetadataAuthority(filePath: string): void {
+  const parent = resolve(dirname(filePath));
+  const root = activeAgentMetadataAuthority.get(parent);
+  const expectedParent = activeAgentMetadataParentIdentity.get(parent);
+  const expectedRoot = root === undefined ? undefined : activeAgentMetadataRootIdentity.get(root);
+  if (
+    root === undefined ||
+    expectedParent === undefined ||
+    expectedRoot === undefined ||
+    !sameInode(expectedParent, assertRealDirectory(parent, "agent metadata runtime directory")) ||
+    !sameInode(expectedRoot, assertRealDirectory(root, "agent metadata root"))
+  ) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `agent metadata authority changed before write: ${filePath}`,
+    );
+  }
+}
+
+function assertRegularMetadataFile(filePath: string): void {
+  if (!existsSync(filePath)) return;
+  const metadata = lstatSync(filePath);
+  if (metadata.isSymbolicLink() || !metadata.isFile())
+    throw new HarnessError("PATH_SAFETY", `agent metadata must be a regular file: ${filePath}`);
+  if (metadata.nlink > 1) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `agent metadata must not have multiple hard links: ${filePath}`,
+    );
+  }
+}
+
+function assertExistingMetadataAuthorityFiles(filePath: string): void {
+  assertRegularMetadataFile(filePath);
+  const name = filePath.slice(filePath.lastIndexOf("/") + 1);
+  const canonical = /^agent-(.+)\.json$/.exec(name);
+  if (canonical?.[1]) {
+    assertRegularMetadataFile(join(dirname(filePath), `${canonical[1]}.json`));
+  }
+}
+
+function fsyncDirectory(path: string): void {
+  const descriptor = openSync(
+    path,
+    constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | requiredNoFollowFlag(),
+  );
+  try {
+    fsyncSync(descriptor);
+  } finally {
+    closeSync(descriptor);
+  }
+}
+
+/** Writes a prevalidated JSON document while an agent-metadata mutation lock is held. */
+export function replaceAgentMetadataUnlocked(filePath: string, serialized: string): void {
+  assertActiveMetadataAuthority(filePath);
+  assertExistingMetadataAuthorityFiles(filePath);
+  const parent = dirname(filePath);
+  const temporary = join(parent, `.${filePath.slice(parent.length + 1)}.${randomUUID()}.tmp`);
+  let descriptor: number | undefined;
+  let hasPrimary = false;
+  let primary: unknown;
+  try {
+    descriptor = openSync(
+      temporary,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | requiredNoFollowFlag(),
+      0o600,
+    );
+    const bytes = Buffer.from(serialized, "utf8");
+    let offset = 0;
+    while (offset < bytes.byteLength) {
+      const written = writeSync(descriptor, bytes, offset, bytes.byteLength - offset);
+      if (written <= 0)
+        throw new HarnessError("INTEGRITY", "agent metadata write made no progress");
+      offset += written;
+    }
+    fsyncSync(descriptor);
+    closeSync(descriptor);
+    descriptor = undefined;
+    assertActiveMetadataAuthority(filePath);
+    assertExistingMetadataAuthorityFiles(filePath);
+    renameSync(temporary, filePath);
+    fsyncDirectory(parent);
+    assertActiveMetadataAuthority(filePath);
+  } catch (error) {
+    hasPrimary = true;
+    primary = error;
+  }
+  if (descriptor !== undefined) {
+    try {
+      closeSync(descriptor);
+    } catch (error) {
+      if (!hasPrimary) {
+        hasPrimary = true;
+        primary = error;
+      }
+    }
+  }
+  if (existsSync(temporary)) {
+    try {
+      rmSync(temporary);
+    } catch (error) {
+      if (!hasPrimary) {
+        hasPrimary = true;
+        primary = error;
+      }
+    }
+  }
+  if (hasPrimary) throw primary;
+}
+
+/** Serializes metadata read/modify/write operations through stable run-root and runtime-directory locks. */
+export function withAgentMetadataMutationLock<T>(filePath: string, operation: () => T): T {
+  const parent = resolve(dirname(filePath));
+  const root = resolve(dirname(parent));
+  if (activeAgentMetadataParents.has(parent) || activeAgentMetadataRoots.has(root)) {
+    throw new HarnessError(
+      "LOCK_TIMEOUT",
+      `agent metadata is already active in this process: ${filePath}`,
+    );
+  }
+  let rootDescriptor: number | undefined;
+  let parentDescriptor: number | undefined;
+  let rootAcquired = false;
+  let parentAcquired = false;
+  let rootInode: string | undefined;
+  let parentInode: string | undefined;
+  let hasPrimary = false;
+  let primary: unknown;
+  let hasCleanup = false;
+  let cleanupFailure: unknown;
+  let result!: T;
+  activeAgentMetadataParents.add(parent);
+  activeAgentMetadataRoots.add(root);
+  activeAgentMetadataAuthority.set(parent, root);
+  try {
+    const openedRoot = openVerifiedDirectory(root, true, "agent metadata root");
+    rootDescriptor = openedRoot.descriptor;
+    rootInode = `${openedRoot.metadata.dev}:${openedRoot.metadata.ino}`;
+    if (activeAgentMetadataRootInodes.has(rootInode))
+      throw new HarnessError("LOCK_TIMEOUT", `agent metadata root is already active: ${root}`);
+    activeAgentMetadataRootInodes.add(rootInode);
+    activeAgentMetadataRootIdentity.set(root, openedRoot.metadata);
+    acquireExclusiveLock(rootDescriptor, root);
+    rootAcquired = true;
+    if (!sameInode(openedRoot.metadata, assertRealDirectory(root, "agent metadata root")))
+      throw new HarnessError("INTEGRITY", `agent metadata root changed while locked: ${root}`);
+
+    const openedParent = openVerifiedDirectory(parent, true, "agent metadata runtime directory");
+    parentDescriptor = openedParent.descriptor;
+    parentInode = `${openedParent.metadata.dev}:${openedParent.metadata.ino}`;
+    if (activeAgentMetadataParentInodes.has(parentInode)) {
+      throw new HarnessError(
+        "LOCK_TIMEOUT",
+        `agent metadata runtime directory is already active: ${parent}`,
+      );
+    }
+    activeAgentMetadataParentInodes.add(parentInode);
+    activeAgentMetadataParentIdentity.set(parent, openedParent.metadata);
+    acquireExclusiveLock(parentDescriptor, parent);
+    parentAcquired = true;
+    if (
+      !sameInode(
+        openedParent.metadata,
+        assertRealDirectory(parent, "agent metadata runtime directory"),
+      )
+    ) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `agent metadata runtime directory changed while locked: ${parent}`,
+      );
+    }
+    result = operation();
+    if (!sameInode(openedRoot.metadata, assertRealDirectory(root, "agent metadata root"))) {
+      throw new HarnessError("INTEGRITY", `agent metadata root changed after mutation: ${root}`);
+    }
+  } catch (error) {
+    hasPrimary = true;
+    primary = error;
+  }
+  for (const cleanup of [
+    () => {
+      if (parentDescriptor !== undefined && parentAcquired) releaseFlock(parentDescriptor);
+    },
+    () => {
+      if (parentDescriptor !== undefined) closeSync(parentDescriptor);
+    },
+    () => {
+      if (rootDescriptor !== undefined && rootAcquired) releaseFlock(rootDescriptor);
+    },
+    () => {
+      if (rootDescriptor !== undefined) closeSync(rootDescriptor);
+    },
+  ]) {
+    try {
+      cleanup();
+    } catch (error) {
+      if (!hasCleanup) {
+        hasCleanup = true;
+        cleanupFailure = error;
+      }
+    }
+  }
+  activeAgentMetadataParents.delete(parent);
+  activeAgentMetadataRoots.delete(root);
+  activeAgentMetadataAuthority.delete(parent);
+  activeAgentMetadataParentIdentity.delete(parent);
+  activeAgentMetadataRootIdentity.delete(root);
+  if (parentInode !== undefined) activeAgentMetadataParentInodes.delete(parentInode);
+  if (rootInode !== undefined) activeAgentMetadataRootInodes.delete(rootInode);
+  if (hasPrimary) throw primary;
+  if (hasCleanup) throw cleanupFailure;
+  return result;
 }
 
 function readOwnDataString(error: unknown, property: "code" | "message"): string | null {
@@ -339,13 +671,60 @@ function validateAgentMetadata(
   };
 }
 
+function readAgentMetadataFileSecure(filePath: string): string {
+  const root = resolve(dirname(dirname(filePath)));
+  const parent = dirname(filePath);
+  const before = lstatSync(filePath);
+  const rootMetadata = lstatSync(root);
+  if (!rootMetadata.isDirectory() || rootMetadata.isSymbolicLink()) {
+    throw new HarnessError("PATH_SAFETY", `agent metadata root must be a real directory: ${root}`);
+  }
+  const parentMetadata = lstatSync(parent);
+  if (!parentMetadata.isDirectory() || parentMetadata.isSymbolicLink()) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      `agent metadata runtime directory must be a real directory: ${parent}`,
+    );
+  }
+  if (before.isSymbolicLink() || !before.isFile()) {
+    throw new HarnessError("PATH_SAFETY", `agent metadata must be a regular file: ${filePath}`);
+  }
+  if (before.nlink > 1) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `agent metadata must not have multiple hard links: ${filePath}`,
+    );
+  }
+  let descriptor: number | undefined;
+  try {
+    descriptor = openSync(filePath, constants.O_RDONLY | requiredNoFollowFlag());
+    const opened = fstatSync(descriptor);
+    const after = lstatSync(filePath);
+    if (
+      !opened.isFile() ||
+      opened.nlink > 1 ||
+      after.nlink > 1 ||
+      !sameInode(before, opened) ||
+      !sameInode(opened, after)
+    ) {
+      throw new HarnessError("INTEGRITY", `agent metadata changed while opening: ${filePath}`);
+    }
+    return readFileSync(descriptor, "utf8");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
 function readAgentMetadataFile(
   agentId: string,
   filePath: string,
 ): { metadata: AgentMetadata; filePath: string } | undefined {
   let raw: string;
   try {
-    raw = agentMetadataDependencies.readFile(filePath, "utf-8");
+    raw =
+      agentMetadataDependencies.readFile === defaultAgentMetadataDependencies.readFile
+        ? readAgentMetadataFileSecure(filePath)
+        : agentMetadataDependencies.readFile(filePath, "utf-8");
   } catch (error) {
     if (isTrustedEnoent(error)) return undefined;
     throw new HarnessError(
