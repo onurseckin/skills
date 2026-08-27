@@ -50,6 +50,57 @@ describe("behavioral role predicate helpers", () => {
   });
 });
 
+describe("behavioral evidence availability", () => {
+  test("reports unavailable evidence for a corrupt claimed capsule instead of trusting caller state", async () => {
+    const corruptRoot = await mkdtemp(join(tmpdir(), "harness-corrupt-capsule-"));
+    roots.push(corruptRoot);
+    const findings = auditBehavioralHealth(corruptRoot, { agents: [], tasks: {}, commands: {} });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.violation_type).toBe("behavioral_evidence_unavailable");
+    expect(findings[0]?.severity).toBe("critical");
+  });
+
+  test("reports malformed agent authority explicitly", () => {
+    const findings = auditBehavioralHealth("", {
+      agents: [{ id: 7, role: "coordinator" }],
+      tasks: {},
+      commands: {},
+    });
+    expect(
+      findings.some((finding) => finding.violation_type === "behavioral_evidence_unavailable"),
+    ).toBe(true);
+  });
+
+  test("bounds a hostile authority failure without invoking its accessors", () => {
+    const hostileError = new Proxy(
+      {},
+      {
+        get: () => {
+          throw new Error("hostile getter invoked");
+        },
+        getOwnPropertyDescriptor: () => {
+          throw new Error("hostile descriptor invoked");
+        },
+      },
+    );
+    const hostileAgents = new Proxy([{}], {
+      get: (_target, property) => {
+        if (property === "0") throw hostileError;
+        return Reflect.get(_target, property);
+      },
+    });
+    const findings = auditBehavioralHealth("", {
+      agents: hostileAgents,
+      tasks: {},
+      commands: {},
+    } as unknown as JsonObject);
+    const unavailable = findings.find(
+      (finding) => finding.violation_type === "behavioral_evidence_unavailable",
+    );
+    expect(unavailable?.observation).toContain("unknown error");
+  });
+});
+
 describe("behavioral health auditor - coordinator violations", () => {
   test("reports clean on compliant coordinator with no code editing or task leases", () => {
     const state: JsonObject = {

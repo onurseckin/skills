@@ -9,6 +9,7 @@ import {
 } from "../../../olt/scripts/src/authority/watchdog-manager.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("CLI - watchdog:status", () => {
@@ -307,11 +308,36 @@ describe("CLI - watchdog:probe", () => {
   });
 
   test("executes supervisory health probe with run target", async () => {
-    const dir = scratchRoot(import.meta.path, "cli-probe-run");
-    const result = await execute(["watchdog:probe", "--run", dir]);
+    const repo = scratchRoot(import.meta.path, "cli-probe-repository");
+    const runRoot = initRun(repo, "cli-probe-run", new TextEncoder().encode("probe"), "file", true);
+    const result = await execute(["watchdog:probe", "--run", runRoot]);
     expect(typeof result.markdown).toBe("string");
     expect(result.markdown).toContain("Two-Way Supervisory Watchdog 5-Point Health Probe");
-    expect(result.run_root).toBe(dir);
+    expect(result.run_root).toBe(runRoot);
+  });
+
+  test("refuses a missing claimed run instead of substituting in-memory evidence", async () => {
+    const missing = scratchRoot(import.meta.path, "cli-probe-missing-run");
+    await expect(execute(["watchdog:probe", "--run", missing])).rejects.toMatchObject({
+      code: "INTEGRITY",
+    });
+  });
+
+  test("refuses empty and corrupt claimed run evidence", async () => {
+    await expect(execute(["watchdog:probe", "--run", ""])).rejects.toThrow(HarnessError);
+
+    const repo = scratchRoot(import.meta.path, "cli-probe-corrupt-repository");
+    const runRoot = initRun(
+      repo,
+      "cli-probe-corrupt-run",
+      new TextEncoder().encode("probe"),
+      "file",
+      true,
+    );
+    await Bun.write(join(runRoot, "state.json"), "{");
+    await expect(execute(["watchdog:probe", "--run", runRoot])).rejects.toMatchObject({
+      code: "INTEGRITY",
+    });
   });
 });
 

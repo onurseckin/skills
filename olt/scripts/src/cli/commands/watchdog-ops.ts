@@ -30,6 +30,27 @@ import {
 
 const VALID_FILTER_STATUSES = new Set(["active", "stale", "terminated", "orphaned", "all"]);
 
+function boundedEvidenceCause(error: unknown): string {
+  if (typeof error === "string") return error.slice(0, 240);
+  if (
+    typeof error === "number" ||
+    typeof error === "boolean" ||
+    typeof error === "bigint" ||
+    typeof error === "symbol" ||
+    error === null ||
+    error === undefined
+  ) {
+    return String(error).slice(0, 240);
+  }
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(error, "message");
+    if (descriptor && "value" in descriptor && typeof descriptor.value === "string") {
+      return descriptor.value.slice(0, 240);
+    }
+  } catch {}
+  return "unknown error";
+}
+
 export function watchdogStatusCommand(
   flags: Flags,
   _context?: CommandContext,
@@ -422,8 +443,11 @@ export async function watchdogProbeCommand(
       const loaded = loadRun(run);
       state = loaded.state as Record<string, unknown>;
       doctorResult = await runDoctor(run);
-    } catch {
-      // Fallback
+    } catch (error) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `watchdog probe cannot load supervisory evidence for ${run}: ${boundedEvidenceCause(error)}`,
+      );
     }
   }
 

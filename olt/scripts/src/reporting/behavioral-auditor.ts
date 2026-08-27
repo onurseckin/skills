@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import type { AgentGrantRecord, AgentToolRef, AgentToolUse } from "../core/contracts/agents.ts";
 import { isAgentRole } from "../core/contracts/packets.ts";
 import type { CommandRecord } from "../core/contracts/commands.ts";
@@ -15,7 +14,8 @@ export type BehavioralViolationType =
   | "implementer_self_grading"
   | "implementer_graph_mutation"
   | "subagent_pulse_termination"
-  | "role_confinement_violation";
+  | "role_confinement_violation"
+  | "behavioral_evidence_unavailable";
 
 export type BehavioralSeverity = "critical" | "important" | "minor";
 
@@ -68,6 +68,38 @@ export const TERMINAL_PULSE_OUTCOMES: ReadonlySet<string> = new Set([
   "stopped",
   "completed",
 ]);
+
+function boundedEvidenceCause(error: unknown): string {
+  if (typeof error === "string") return error.slice(0, 240);
+  if (
+    typeof error === "number" ||
+    typeof error === "boolean" ||
+    typeof error === "bigint" ||
+    typeof error === "symbol" ||
+    error === null ||
+    error === undefined
+  ) {
+    return String(error).slice(0, 240);
+  }
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(error, "message");
+    if (descriptor && "value" in descriptor && typeof descriptor.value === "string") {
+      return descriptor.value.slice(0, 240);
+    }
+  } catch {}
+  return "unknown error";
+}
+
+function evidenceUnavailable(error: unknown): BehavioralFinding {
+  return {
+    agent_id: "system",
+    role: "auditor",
+    violation_type: "behavioral_evidence_unavailable",
+    severity: "critical",
+    observation: `Behavioral evidence is unavailable: ${boundedEvidenceCause(error)}`,
+    remediation: "Restore a valid claimed capsule and rerun the behavioral audit.",
+  };
+}
 
 export function isCoordinatorRole(role: string): boolean {
   return role === "coordinator" || role.startsWith("coordinator-");
@@ -713,22 +745,19 @@ export function auditBehavioralHealth(
   let resolvedState: JsonObject | null = isJsonObject(state) ? (state as JsonObject) : null;
   let loadedEvents: JsonObject[] = [];
 
-  if (capsuleRoot && existsSync(capsuleRoot)) {
+  if (capsuleRoot) {
     try {
       const loaded = loadRun(capsuleRoot, false);
-      if (!resolvedState) {
-        // Bridge safely from RunState to JsonObject
-        resolvedState = loaded.state as unknown as JsonObject;
-      }
-      // Bridge loaded events safely to JsonObject array
+      resolvedState = loaded.state as unknown as JsonObject;
       loadedEvents = (loaded.events ?? []) as unknown as JsonObject[];
-    } catch {
-      // In tests or offline probes where directory is not a full run, fall back to resolvedState
+    } catch (error) {
+      return [evidenceUnavailable(error)];
     }
   }
 
   if (!resolvedState) return [];
 
+  const findings: BehavioralFinding[] = [];
   const roleMap = new Map<string, string>();
   let grants: AgentGrantRecord[] = [];
   try {
@@ -736,8 +765,8 @@ export function auditBehavioralHealth(
     for (const grant of grants) {
       roleMap.set(grant.id, grant.role);
     }
-  } catch {
-    // Graceful fallback on missing/malformed agent ledger
+  } catch (error) {
+    findings.push(evidenceUnavailable(error));
   }
 
   const rawTasks = resolvedState.tasks;
@@ -753,8 +782,6 @@ export function auditBehavioralHealth(
         .filter(isJsonObject)
         .map((c) => c as unknown as CommandRecord)
     : [];
-
-  const findings: BehavioralFinding[] = [];
 
   auditCoordinatorCodeWriting(roleMap, grants, commands, tasks, findings);
   auditOrchestratorDirectImplementation(roleMap, grants, commands, tasks, findings);

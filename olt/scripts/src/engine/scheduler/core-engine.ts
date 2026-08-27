@@ -268,6 +268,27 @@ export interface Supervisory5PointOptions {
   readonly doctorResult?: Record<string, unknown> | undefined;
 }
 
+function boundedEvidenceCause(error: unknown): string {
+  if (typeof error === "string") return error.slice(0, 240);
+  if (
+    typeof error === "number" ||
+    typeof error === "boolean" ||
+    typeof error === "bigint" ||
+    typeof error === "symbol" ||
+    error === null ||
+    error === undefined
+  ) {
+    return String(error).slice(0, 240);
+  }
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(error, "message");
+    if (descriptor && "value" in descriptor && typeof descriptor.value === "string") {
+      return descriptor.value.slice(0, 240);
+    }
+  } catch {}
+  return "unknown error";
+}
+
 export interface TaskRecoveryRecord {
   readonly taskId: string;
   readonly fromStatus: TaskStatus;
@@ -1382,8 +1403,10 @@ export function probeRoleBoundaryAdherence(
         tierConfinementViolations.push(msg);
         details.push(msg);
       }
-    } catch {
-      // In-memory fallback
+    } catch (error) {
+      const msg = `[CRITICAL] behavioral_evidence_unavailable (auditor/system): ${boundedEvidenceCause(error)}`;
+      tierConfinementViolations.push(msg);
+      details.push(msg);
     }
   }
 
@@ -1438,13 +1461,22 @@ export function probeDoctorErrorResolution(
   const repairRecommendations: string[] = [];
 
   if (doctorResult !== undefined) {
-    const issues = Array.isArray(doctorResult.issues) ? (doctorResult.issues as string[]) : [];
-    for (const issue of issues) {
-      unresolvedErrors.push(issue);
-      details.push(issue);
+    const issues = doctorResult.issues;
+    if (doctorResult.healthy !== true || !Array.isArray(issues) || !issues.every(isNonblank)) {
+      const msg = "Doctor evidence is unavailable, unhealthy, or malformed.";
+      unresolvedErrors.push(msg);
+      details.push(msg);
       repairRecommendations.push(
-        `Run 'bun harness.ts doctor:repair --run ${runRoot ?? "."}' or resolve: ${issue}`,
+        `Run 'bun harness.ts doctor --run ${runRoot ?? "."}' to obtain a healthy doctor result.`,
       );
+    } else {
+      for (const issue of issues) {
+        unresolvedErrors.push(issue);
+        details.push(issue);
+        repairRecommendations.push(
+          `Run 'bun harness.ts doctor:repair --run ${runRoot ?? "."}' or resolve: ${issue}`,
+        );
+      }
     }
   } else if (runRoot !== undefined) {
     try {
@@ -1455,8 +1487,11 @@ export function probeDoctorErrorResolution(
         details.push(msg);
         repairRecommendations.push(`Resolve capsule integrity issue at ${runRoot}: ${err.message}`);
       }
-    } catch {
-      // In-memory fallback
+    } catch (error) {
+      const msg = `Integrity verification unavailable: ${boundedEvidenceCause(error)}`;
+      unresolvedErrors.push(msg);
+      details.push(msg);
+      repairRecommendations.push(`Repair or restore capsule integrity evidence at ${runRoot}.`);
     }
   }
 

@@ -473,6 +473,31 @@ describe("Core Scheduler Engine — Structured 5-Point Supervisory Health Audit 
     const formattedMd = formatSupervisoryHealthMarkdown(report);
     expect(formattedMd).toContain("Two-Way Supervisory Watchdog 5-Point Health Probe");
   });
+
+  test("fails closed when supplied doctor evidence is unhealthy, malformed, or unavailable", () => {
+    const state = schedulerState();
+    const healthy = auditSupervisory5PointHealth(state, {
+      doctorResult: { healthy: true, issues: [] },
+    });
+    expect(healthy.doctorResolution.passed).toBeTrue();
+    for (const doctorResult of [
+      { healthy: false, issues: [] },
+      { healthy: true, issues: ["valid", 3] },
+    ]) {
+      const report = auditSupervisory5PointHealth(state, { doctorResult });
+      expect(report.healthy).toBeFalse();
+      expect(report.doctorResolution.passed).toBeFalse();
+    }
+
+    const unavailable = auditSupervisory5PointHealth(state, {
+      runRoot: "/definitely-missing-supervisory-capsule",
+    });
+    expect(unavailable.healthy).toBeFalse();
+    expect(unavailable.roleBoundaryAdherence.details.join(" ")).toContain(
+      "behavioral_evidence_unavailable",
+    );
+    expect(unavailable.markdown).not.toContain("🟢 HEALTHY");
+  });
 });
 
 describe("Core Scheduler Engine — Zero-Tolerance Doctor Gate Enforcement (p25)", () => {
@@ -732,11 +757,20 @@ describe("Core Scheduler Engine — Complete SchedulerEngine Instance Methods", 
   });
 
   test("SchedulerEngine executes complete suite of methods", async () => {
+    const heartbeatRepo = scratchRoot("engine-watchdog-test");
+    const heartbeatRun = initRun(
+      heartbeatRepo,
+      "run-engine-watchdog",
+      Buffer.from("Test prompt for engine watchdog"),
+      "argv",
+      true,
+    );
     const engine = new SchedulerEngine({
       heartbeatCadenceMs: 5000,
       timeoutMs: 10000,
       maxRepairRounds: 3,
       maxParallel: 4,
+      watchdogTarget: heartbeatRun,
     });
 
     const state = schedulerState();
