@@ -58,6 +58,21 @@ export interface RepoPolicy {
 
 export const CURRENT_POLICY_SCHEMA_VERSION = 1;
 
+const SUPPORTED_TOP_LEVEL_POLICY_KEYS = new Set<keyof RepoPolicy>([
+  "schema_version",
+  "ecosystem",
+  "package_manager",
+  "skill_home_repo_root",
+  "test_runner",
+  "typecheck_command",
+  "lint_command",
+  "allowed_commands",
+  "forbidden_commands",
+  "read_scope_neighborhood_depth",
+  "review_protocol",
+  "planning",
+]);
+
 export function detectRepoEcosystem(repoRoot?: string): RepoEcosystem {
   const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
 
@@ -238,6 +253,14 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
   }
 
   const rec = raw as Record<string, unknown>;
+  for (const key of Object.keys(rec)) {
+    if (!SUPPORTED_TOP_LEVEL_POLICY_KEYS.has(key as keyof RepoPolicy)) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `Repo policy contains unknown top-level key '${key}'`,
+      );
+    }
+  }
   const schemaVersion =
     typeof rec["schema_version"] === "number"
       ? rec["schema_version"]

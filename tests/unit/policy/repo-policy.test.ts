@@ -217,6 +217,31 @@ describe("Repo Policy Auto-Detection & Schema Validation", () => {
     );
   });
 
+  test("rejects unsupported top-level keys while retaining partial defaults for documented keys", () => {
+    const partial = validateRepoPolicy({ forbidden_commands: ["git push"] });
+    expect(partial.forbidden_commands).toEqual(["git push"]);
+    expect(partial.test_runner.default_command).toBe("bun test");
+
+    expect(() => validateRepoPolicy({ timeout_ms: 45_000 })).toThrow(/unknown.*timeout_ms/i);
+    expect(() => validateRepoPolicy({ forbidden_commands: [], typo_policy_flag: true })).toThrow(
+      /unknown.*typo_policy_flag/i,
+    );
+
+    const dir = join(scratchBase, "unknown-top-level-policy");
+    const policyPath = join(dir, ".olt", "policy.json");
+    mkdirSync(join(dir, ".olt"), { recursive: true });
+    writeFileSync(policyPath, JSON.stringify({ timeout_ms: 45_000 }), "utf-8");
+    try {
+      loadRepoPolicy(dir);
+      throw new Error("expected invalid custom policy to throw");
+    } catch (error) {
+      expect(error).toHaveProperty("code", "INTEGRITY");
+      expect((error as Error).message).toContain(policyPath);
+      expect((error as Error).message).toMatch(/unknown.*timeout_ms/i);
+    }
+    rmSync(dir, { recursive: true, force: true });
+  });
+
   test("saves, loads and initializes repo policy while distinguishing missing and invalid policy", () => {
     const dir = join(scratchBase, "save-load-init");
     const policyPath = join(dir, "nested", "policy.json");

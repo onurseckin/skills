@@ -7,6 +7,7 @@ import { runAttempt } from "./run-attempt.ts";
 import type { CommandOptions, CommandResult, PreparedCommand } from "./types.ts";
 import { readAgentMetadata } from "../../runtime/agent-metadata.ts";
 import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
+import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { resolveScratchDir } from "../../core/shared/paths.ts";
 import { join } from "node:path";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
@@ -116,23 +117,13 @@ export async function prepareCommand(
   input: CommandOptions,
   runner: InternalCommandRunner = authoritativeRunner,
 ): Promise<PreparedCommand> {
-  const repoRoot = input.repositoryRoot || process.cwd();
-  let timeoutMs = 30000;
-  try {
-    const policyPath = join(repoRoot, ".olt", "policy.json");
-    if (_existsSync(policyPath)) {
-      const policyContent = _readFileSync(policyPath, "utf-8");
-      const policy = JSON.parse(policyContent);
-      if (typeof policy.timeout_ms === "number") {
-        timeoutMs = policy.timeout_ms;
-      }
-    }
-  } catch (e) {}
-  input.wallTimeoutMs = input.wallTimeoutMs ?? timeoutMs;
-
+  const repositoryRoot = input.repositoryRoot ?? process.cwd();
+  // Load and validate exactly the target repository policy before any runner
+  // preparation can create command artifacts or a receipt is emitted.
+  const policy = loadRepoPolicy(repositoryRoot);
+  // normalizeCommandOptions owns timeout defaults and establishes the canonical
+  // run root before any metadata path is read.
   const prepared = await runner.prepareCommand(input);
-
-  // Verify Authorization
   const metadata = readAgentMetadata(input.actor, prepared.options.runRoot);
   if (!metadata) {
     throw new Error(
@@ -140,7 +131,7 @@ export async function prepareCommand(
     );
   }
 
-  const auth = verifyCommandAuthorization(metadata, input.argv);
+  const auth = verifyCommandAuthorization(metadata, prepared.options.argv, policy);
   if (!auth.authorized) {
     throw new Error(auth.message || `[${auth.error_code}] Command authorization failed`);
   }
@@ -155,7 +146,7 @@ export async function prepareCommand(
   const receipt = {
     actor: metadata.agent_id,
     role: metadata.role,
-    command: input.argv.join(" "),
+    command: prepared.options.argv.join(" "),
     timestamp: new Date().toISOString(),
     authorized: true,
   };
