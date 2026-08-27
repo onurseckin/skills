@@ -26,6 +26,7 @@ import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
 import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";
+import { applicableGates, taskHasPassedGate } from "../../workflow/gates/gate-policy.ts";
 import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/consolidate.ts";
@@ -369,6 +370,42 @@ function catalogueSummary(catalogue: CapsuleCatalogue): string {
   return `${commands} commands, ${captures} captures over ${blobs} blobs (${bytes}), ${open_findings} open findings — index ${catalogue.freshness}`;
 }
 
+interface RunExecGatePreflight {
+  readonly alreadyFinished: boolean;
+}
+
+function preflightRunExecGate(
+  state: WorkflowState,
+  taskId: string,
+  gateId: string,
+): RunExecGatePreflight {
+  const task = state.tasks[taskId];
+  if (!task) throw new HarnessError("INVALID_ARGUMENT", `unknown task: ${taskId}`);
+
+  const gate = applicableGates(state, task).find((candidate) => candidate.id === gateId);
+  if (!gate) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `gate is not mandatory and applicable to task ${taskId}: ${gateId}`,
+    );
+  }
+
+  if (task.status === "done") {
+    if (taskHasPassedGate(task, gateId)) return { alreadyFinished: true };
+    throw new HarnessError(
+      "INVALID_STATE",
+      `finished task ${taskId} only permits its exact already-passed gate: ${gateId}`,
+    );
+  }
+  if (task.status !== "validated" && task.status !== "gating") {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `task ${taskId} must be validated or gating before a gate command runs`,
+    );
+  }
+  return { alreadyFinished: false };
+}
+
 export async function runExecCommand(
   flags: Flags,
   _context: CommandContext,
@@ -406,6 +443,14 @@ export async function runExecCommand(
     );
   }
 
+  if (gate && !task) {
+    throw new HarnessError("INVALID_ARGUMENT", "--gate requires --task");
+  }
+  const gatePreflight =
+    task && gate
+      ? preflightRunExecGate(workflowPort(loaded.runRoot).read(), task, gate)
+      : undefined;
+
   const cmdOpts = {
     runRoot: loaded.runRoot,
     commandDir,
@@ -433,13 +478,18 @@ export async function runExecCommand(
         ? "Command completed successfully"
         : "Command returned non-zero exit code";
 
-  if (task && gate && exitCode === 0) {
-    try {
-      const port = workflowPort(loaded.runRoot);
-      attachGateResult(port, task, gate, record.id, actor);
+  if (task && gate && exitCode === 0 && !gatePreflight?.alreadyFinished) {
+    const port = workflowPort(loaded.runRoot);
+    attachGateResult(port, task, gate, record.id, actor);
+    const state = port.read();
+    const currentTask = state.tasks[task];
+    if (!currentTask) throw new HarnessError("INVALID_ARGUMENT", `unknown task: ${task}`);
+    if (
+      applicableGates(state, currentTask).every((candidate) =>
+        taskHasPassedGate(currentTask, candidate.id),
+      )
+    ) {
       finishTask(port, task, actor);
-    } catch {
-      // Non-blocking if state already gated/finished
     }
   }
 
