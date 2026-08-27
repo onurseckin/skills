@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -8,6 +8,8 @@ import {
   loadCapsuleDefects,
   resolveCapsuleDefect,
 } from "../../../olt/scripts/src/engine/store/defect-store.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { setDefectLogDependenciesForTesting } from "../../../olt/scripts/src/logging/defect-logger.ts";
 
 const tempRoots: string[] = [];
 
@@ -56,6 +58,64 @@ describe("Store Layer Capsule Defect Engine", () => {
     const loaded = loadCapsuleDefects(runRoot);
     expect(loaded.length).toBe(1);
     expect(loaded[0]?.count).toBe(2);
+  });
+
+  test("refuses an existing defects directory instead of returning an aggregated defect", () => {
+    const runRoot = createTempRunDir();
+    const defectsPath = join(runRoot, "defects.jsonl");
+    const sentinelPath = join(defectsPath, "sentinel.txt");
+    const sentinelBytes = "preserve-capsule-directory";
+    mkdirSync(defectsPath);
+    writeFileSync(sentinelPath, sentinelBytes);
+
+    let caught: unknown;
+    try {
+      appendCapsuleDefect(runRoot, {
+        id: "defect-directory-path",
+        type: "filesystem_failure",
+        observation: "defects log path is a directory",
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(HarnessError);
+    if (caught instanceof HarnessError) {
+      expect(caught.code).toBe("INTEGRITY");
+      expect(caught.message).toContain("read defect log");
+      expect(caught.message).toContain(defectsPath);
+      expect(caught.message).toContain("EISDIR");
+    }
+    expect(readFileSync(sentinelPath, "utf-8")).toBe(sentinelBytes);
+  });
+
+  test("propagates a structured atomic-write failure without a fabricated capsule defect", () => {
+    const runRoot = createTempRunDir();
+    const defectsPath = join(runRoot, "defects.jsonl");
+    const originalBytes = "prior capsule bytes\n";
+    const expected = new HarnessError("INTEGRITY", "durable write failed");
+    writeFileSync(defectsPath, originalBytes);
+    const restore = setDefectLogDependenciesForTesting({
+      atomicWrite: () => {
+        throw expected;
+      },
+    });
+
+    let caught: unknown;
+    try {
+      appendCapsuleDefect(runRoot, {
+        id: "defect-atomic-failure",
+        type: "filesystem_failure",
+        observation: "capsule defect write failed",
+      });
+    } catch (error) {
+      caught = error;
+    } finally {
+      restore();
+    }
+
+    expect(caught).toBe(expected);
+    expect(readFileSync(defectsPath, "utf-8")).toBe(originalBytes);
   });
 
   test("resolves a defect by ID or dedup key with resolution proof", () => {

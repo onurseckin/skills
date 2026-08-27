@@ -1,12 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   compactDefectLogFile,
   readDefectLogFile,
   recordKeyedDefect,
+  setDefectLogDependenciesForTesting,
 } from "../../../olt/scripts/src/logging/defect-logger.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 const tempRoots: string[] = [];
 
@@ -110,5 +112,185 @@ describe("Logging subsystem: Keyed Defect Logger & Compaction", () => {
   test("handles nonexistent file reading gracefully", () => {
     const entries = readDefectLogFile("/path/does/not/exist/defects.jsonl");
     expect(entries).toEqual([]);
+  });
+
+  test("classifies an own-code ENOENT read as an absent log only after attempting the read", () => {
+    const dir = createTempDir();
+    const filePath = join(dir, "missing-defects.jsonl");
+    const missing = Object.assign(new Error("missing log"), { code: "ENOENT" });
+    let reads = 0;
+    const restore = setDefectLogDependenciesForTesting({
+      readFile: () => {
+        reads += 1;
+        throw missing;
+      },
+    });
+
+    try {
+      expect(readDefectLogFile(filePath)).toEqual([]);
+      expect(reads).toBe(1);
+    } finally {
+      restore();
+    }
+  });
+
+  test("does not treat an inherited ENOENT code as an absent defect log", () => {
+    const dir = createTempDir();
+    const filePath = join(dir, "inherited-code.jsonl");
+    const inheritedCode = Object.assign(new Error("inherited missing"), { code: "ENOENT" });
+    const readFailure: object = Object.create(inheritedCode);
+    const restore = setDefectLogDependenciesForTesting({
+      readFile: () => {
+        throw readFailure;
+      },
+    });
+
+    let caught: unknown;
+    try {
+      readDefectLogFile(filePath);
+    } catch (error) {
+      caught = error;
+    } finally {
+      restore();
+    }
+
+    expect(caught).toBeInstanceOf(HarnessError);
+    if (caught instanceof HarnessError) {
+      expect(caught.code).toBe("INTEGRITY");
+      expect(caught.message).toContain("read defect log");
+      expect(caught.message).toContain(filePath);
+      expect(caught.message).toContain("unknown error");
+    }
+  });
+
+  test("does not invoke accessor-shaped read-error fields", () => {
+    const dir = createTempDir();
+    const filePath = join(dir, "accessor-code.jsonl");
+    let codeReads = 0;
+    let messageReads = 0;
+    const readFailure: object = Object.create(Error.prototype, {
+      code: {
+        configurable: true,
+        get: () => {
+          codeReads += 1;
+          return "ENOENT";
+        },
+      },
+      message: {
+        configurable: true,
+        get: () => {
+          messageReads += 1;
+          return "untrusted message";
+        },
+      },
+    });
+    const restore = setDefectLogDependenciesForTesting({
+      readFile: () => {
+        throw readFailure;
+      },
+    });
+
+    let caught: unknown;
+    try {
+      readDefectLogFile(filePath);
+    } catch (error) {
+      caught = error;
+    } finally {
+      restore();
+    }
+
+    expect(codeReads).toBe(0);
+    expect(messageReads).toBe(0);
+    expect(caught).toBeInstanceOf(HarnessError);
+    if (caught instanceof HarnessError) {
+      expect(caught.code).toBe("INTEGRITY");
+      expect(caught.message).toContain("read defect log");
+      expect(caught.message).toContain(filePath);
+      expect(caught.message).toContain("unknown error");
+    }
+  });
+
+  test("refuses an atomic-write failure without changing prior bytes or reporting success", () => {
+    const dir = createTempDir();
+    const filePath = join(dir, "defects.jsonl");
+    const originalBytes = "malformed prior bytes stay unchanged\n";
+    const writeFailure = new HarnessError("INVALID_STATE", "atomic write denied");
+    writeFileSync(filePath, originalBytes);
+    const restore = setDefectLogDependenciesForTesting({
+      atomicWrite: () => {
+        throw writeFailure;
+      },
+    });
+
+    let caught: unknown;
+    try {
+      recordKeyedDefect(
+        {
+          id: "b-write-failure",
+          type: "filesystem_failure",
+          observation: "atomic write failed",
+        },
+        { filePath },
+      );
+    } catch (error) {
+      caught = error;
+    } finally {
+      restore();
+    }
+
+    expect(caught).toBeInstanceOf(HarnessError);
+    if (caught instanceof HarnessError) {
+      expect(caught).not.toBe(writeFailure);
+      expect(caught.code).toBe("INTEGRITY");
+      expect(caught.message).toContain("write defect log");
+      expect(caught.message).toContain(filePath);
+      expect(caught.message).toContain("atomic write denied");
+    }
+    expect(readFileSync(filePath, "utf-8")).toBe(originalBytes);
+  });
+
+  test("refuses an existing defect-log directory without fabricating an empty log or record", () => {
+    const dir = createTempDir();
+    const filePath = join(dir, "defects.jsonl");
+    const sentinelPath = join(filePath, "sentinel.txt");
+    const sentinelBytes = "preserve-existing-directory";
+    mkdirSync(filePath);
+    writeFileSync(sentinelPath, sentinelBytes);
+
+    let readError: unknown;
+    try {
+      readDefectLogFile(filePath);
+    } catch (error) {
+      readError = error;
+    }
+    expect(readError).toBeInstanceOf(HarnessError);
+    if (readError instanceof HarnessError) {
+      expect(readError.code).toBe("INTEGRITY");
+      expect(readError.message).toContain("read defect log");
+      expect(readError.message).toContain(filePath);
+      expect(readError.message).toContain("EISDIR");
+    }
+
+    let recordError: unknown;
+    try {
+      recordKeyedDefect(
+        {
+          id: "b-directory-log",
+          type: "filesystem_failure",
+          observation: "defects log path is a directory",
+        },
+        { filePath },
+      );
+    } catch (error) {
+      recordError = error;
+    }
+    expect(recordError).toBeInstanceOf(HarnessError);
+    if (recordError instanceof HarnessError) {
+      expect(recordError.code).toBe("INTEGRITY");
+      expect(recordError.message).toContain("read defect log");
+      expect(recordError.message).toContain(filePath);
+      expect(recordError.message).toContain("EISDIR");
+    }
+    expect(readFileSync(sentinelPath, "utf-8")).toBe(sentinelBytes);
   });
 });
