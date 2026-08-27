@@ -12,7 +12,7 @@ import { getHarnessConfig } from "../../core/config/harness-config.ts";
 import { AGENT_ROLES, isAgentRole, type AgentRole } from "../../core/contracts/packets.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
-import { registerSessionGrant } from "../../authority/session-registry.ts";
+import { registerSessionGrant, revokeSessionGrant } from "../../authority/session-registry.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import {
   recordAgentReport,
@@ -93,27 +93,32 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
   const role = roleFlag(flags);
   const host = textFlag(flags, "host")!;
   const hostAddress = textFlag(flags, "host-address", false);
-  const outcome = registerAgentGrant({
-    runRoot: run,
-    agentId: agent,
-    role,
-    parentAgentId: parentAgent,
-    parentTaskId: parentTask,
-    host,
-    ...(hostAddress === undefined ? {} : { hostAddress }),
-    actor,
-    maxAgents: getHarnessConfig(findRepoRoot(run), run).max_agents,
-    telemetry: telemetryFlags(flags),
-    ...(Object.keys(derivedTelemetry).length === 0 ? {} : { derivedTelemetry }),
-  });
-
-  // Automatically register session token and bind process ancestry
-  const session = registerSessionGrant({
-    runRoot: run,
-    agentId: agent,
-    role,
-    host,
-  });
+  // Stage session authority first, then commit the active grant. If grant admission
+  // rejects, compensate the staged required PID records before exposing an outcome.
+  const session = registerSessionGrant({ runRoot: run, agentId: agent, role, host });
+  let outcome;
+  try {
+    outcome = registerAgentGrant({
+      runRoot: run,
+      agentId: agent,
+      role,
+      parentAgentId: parentAgent,
+      parentTaskId: parentTask,
+      host,
+      ...(hostAddress === undefined ? {} : { hostAddress }),
+      actor,
+      maxAgents: getHarnessConfig(findRepoRoot(run), run).max_agents,
+      telemetry: telemetryFlags(flags),
+      ...(Object.keys(derivedTelemetry).length === 0 ? {} : { derivedTelemetry }),
+    });
+  } catch (error) {
+    try {
+      revokeSessionGrant({ runRoot: run, agentId: agent, pid: session.pid, ppid: session.ppid });
+    } catch {
+      // The grant failure is primary and must not leak an authority token through cleanup.
+    }
+    throw error;
+  }
 
   return withHostTelemetryConflicts(
     {

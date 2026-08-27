@@ -1,14 +1,25 @@
 import {
+  closeSync,
+  constants,
   existsSync,
+  fstatSync,
+  fsyncSync,
+  lstatSync,
   readFileSync,
   writeFileSync,
   mkdirSync,
   unlinkSync,
   readdirSync,
   statSync,
+  openSync,
+  renameSync,
+  rmSync,
+  writeSync,
+  type Stats,
 } from "node:fs";
 import { join, resolve, dirname, basename, isAbsolute } from "node:path";
 import { randomBytes } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
 import {
@@ -20,6 +31,35 @@ import {
 } from "../core/shared/paths.ts";
 import { loadRun } from "../engine/store/load.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+
+let sessionPersistenceObserver:
+  | ((step: "file-fsync" | "rename" | "directory-fsync", path: string) => void)
+  | undefined;
+let sessionLockCleanupFault: { enabled: boolean; value: unknown } = {
+  enabled: false,
+  value: undefined,
+};
+
+/** Test-only durable-write observer. */
+export function setSessionPersistenceObserverForTesting(
+  observer: ((step: "file-fsync" | "rename" | "directory-fsync", path: string) => void) | undefined,
+): () => void {
+  const previous = sessionPersistenceObserver;
+  sessionPersistenceObserver = observer;
+  return () => {
+    sessionPersistenceObserver = previous;
+  };
+}
+
+/** Test-only cleanup fault seam for primary-error precedence. */
+export function setSessionLockCleanupFailureForTesting(value: unknown): () => void {
+  const previous = sessionLockCleanupFault;
+  sessionLockCleanupFault = { enabled: true, value };
+  return () => {
+    sessionLockCleanupFault = previous;
+  };
+}
 import {
   agentIdToRole,
   agentIdToTier,
@@ -118,6 +158,184 @@ function resolveGlobalSessionsDir(repoRoot?: string): string {
     return join(resolveScratchDir(), ".sessions");
   }
   return join(findRepoRoot(), ".olt", ".sessions");
+}
+
+function noFollow(): number {
+  const flag = constants.O_NOFOLLOW;
+  if (!Number.isInteger(flag) || flag === 0)
+    throw new HarnessError("UNSUPPORTED_PLATFORM", "session authority requires O_NOFOLLOW");
+  return flag;
+}
+
+function sameInode(left: Pick<Stats, "dev" | "ino">, right: Pick<Stats, "dev" | "ino">): boolean {
+  return left.dev === right.dev && left.ino === right.ino;
+}
+
+function assertRealDirectory(path: string, label: string): Stats {
+  const metadata = lstatSync(path);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink())
+    throw new HarnessError("PATH_SAFETY", `${label} must be a real directory: ${path}`);
+  return metadata;
+}
+
+function openVerifiedDirectory(
+  path: string,
+  create: boolean,
+  label: string,
+): { fd: number; stat: Stats } {
+  if (!existsSync(path)) {
+    if (!create) throw new HarnessError("INTEGRITY", `${label} is unavailable: ${path}`);
+    mkdirSync(path, { recursive: true, mode: 0o700 });
+  }
+  const before = assertRealDirectory(path, label);
+  const fd = openSync(path, constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | noFollow());
+  try {
+    const opened = fstatSync(fd);
+    const after = assertRealDirectory(path, label);
+    if (!opened.isDirectory() || !sameInode(before, opened) || !sameInode(opened, after))
+      throw new HarnessError("INTEGRITY", `${label} changed while opening: ${path}`);
+    return { fd, stat: opened };
+  } catch (error) {
+    closeSync(fd);
+    throw error;
+  }
+}
+
+function assertSingleLinkRegular(path: string): Stats | undefined {
+  if (!existsSync(path)) return undefined;
+  const stat = lstatSync(path);
+  if (stat.isSymbolicLink() || !stat.isFile())
+    throw new HarnessError("PATH_SAFETY", `session authority must be a regular file: ${path}`);
+  if (stat.nlink !== 1)
+    throw new HarnessError(
+      "INTEGRITY",
+      `session authority must have exactly one hard link: ${path}`,
+    );
+  return stat;
+}
+
+function secureReadSession(path: string): string {
+  const before = assertSingleLinkRegular(path);
+  if (!before) {
+    const error = Object.assign(new Error("missing session"), { code: "ENOENT" });
+    throw error;
+  }
+  const fd = openSync(path, constants.O_RDONLY | noFollow());
+  try {
+    const opened = fstatSync(fd);
+    const after = assertSingleLinkRegular(path);
+    if (
+      !opened.isFile() ||
+      opened.nlink !== 1 ||
+      !after ||
+      !sameInode(before, opened) ||
+      !sameInode(opened, after)
+    )
+      throw new HarnessError("INTEGRITY", `session authority changed while opening: ${path}`);
+    return readFileSync(fd, "utf8");
+  } finally {
+    closeSync(fd);
+  }
+}
+
+function atomicSessionWrite(path: string, payload: string): void {
+  assertSingleLinkRegular(path);
+  const parent = dirname(path);
+  const temporary = join(parent, `.${basename(path)}.${randomUUID()}.tmp`);
+  let fd: number | undefined;
+  try {
+    fd = openSync(
+      temporary,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | noFollow(),
+      0o600,
+    );
+    const bytes = Buffer.from(payload);
+    let offset = 0;
+    while (offset < bytes.byteLength) {
+      const wrote = writeSync(fd, bytes, offset, bytes.byteLength - offset);
+      if (wrote <= 0)
+        throw new HarnessError("INTEGRITY", "session authority write made no progress");
+      offset += wrote;
+    }
+    fsyncSync(fd);
+    sessionPersistenceObserver?.("file-fsync", path);
+    closeSync(fd);
+    fd = undefined;
+    assertSingleLinkRegular(path);
+    renameSync(temporary, path);
+    sessionPersistenceObserver?.("rename", path);
+    const directory = openSync(
+      parent,
+      constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | noFollow(),
+    );
+    try {
+      fsyncSync(directory);
+      sessionPersistenceObserver?.("directory-fsync", path);
+    } finally {
+      closeSync(directory);
+    }
+  } catch (error) {
+    if (fd !== undefined) closeSync(fd);
+    if (existsSync(temporary)) rmSync(temporary);
+    throw error;
+  }
+}
+
+function withSessionAuthorityLock<T>(repoRoot: string, directory: string, operation: () => T): T {
+  const root = openVerifiedDirectory(repoRoot, false, "session repository root");
+  let session: { fd: number; stat: Stats } | undefined;
+  let rootLocked = false;
+  let sessionLocked = false;
+  let primary: unknown;
+  let hasPrimary = false;
+  let cleanup: unknown;
+  let hasCleanup = false;
+  let result!: T;
+  try {
+    if (!tryExclusiveFlock(root.fd))
+      throw new HarnessError("LOCK_TIMEOUT", "session repository lock is busy");
+    rootLocked = true;
+    const olt = dirname(directory);
+    assertRealDirectory(olt, "session authority parent");
+    session = openVerifiedDirectory(directory, true, "session authority directory");
+    if (!tryExclusiveFlock(session.fd))
+      throw new HarnessError("LOCK_TIMEOUT", "session directory lock is busy");
+    sessionLocked = true;
+    if (
+      !sameInode(root.stat, assertRealDirectory(repoRoot, "session repository root")) ||
+      !sameInode(session.stat, assertRealDirectory(directory, "session authority directory"))
+    )
+      throw new HarnessError("INTEGRITY", "session authority changed while locked");
+    result = operation();
+  } catch (error) {
+    hasPrimary = true;
+    primary = error;
+  }
+  for (const action of [
+    () => {
+      if (sessionLockCleanupFault.enabled) throw sessionLockCleanupFault.value;
+      if (session && sessionLocked) releaseFlock(session.fd);
+    },
+    () => {
+      if (session) closeSync(session.fd);
+    },
+    () => {
+      if (rootLocked) releaseFlock(root.fd);
+    },
+    () => closeSync(root.fd),
+  ]) {
+    try {
+      action();
+    } catch (error) {
+      if (!hasCleanup) {
+        hasCleanup = true;
+        cleanup = error;
+      }
+    }
+  }
+  if (hasPrimary) throw primary;
+  if (hasCleanup) throw cleanup;
+  return result;
 }
 
 function readOwnDataString(error: unknown, key: "code" | "message"): string | null {
@@ -230,16 +448,57 @@ function inferCanExecute(role: string): { can_execute_shell: boolean; can_edit_f
   return { can_execute_shell: true, can_edit_files: true };
 }
 
+function assertSafeSessionComponent(value: string, field: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "." || trimmed === ".." || /[\\/\0]/.test(trimmed)) {
+    throw new HarnessError("INVALID_ARGUMENT", `${field} must be a safe single path component`);
+  }
+  return trimmed;
+}
+
+function assertSessionPid(value: number, field: string): number {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new HarnessError("INVALID_ARGUMENT", `${field} must be a positive safe integer`);
+  }
+  return value;
+}
+
+function restoreSessionSnapshots(
+  snapshots: readonly { path: string; bytes: string | null }[],
+): void {
+  for (const snapshot of snapshots) {
+    try {
+      if (snapshot.bytes === null) {
+        if (existsSync(snapshot.path)) unlinkSync(snapshot.path);
+      } else {
+        writeFileSync(snapshot.path, snapshot.bytes, "utf8");
+      }
+    } catch {
+      // The original persistence failure remains authoritative; restore is best effort.
+    }
+  }
+}
+
 /**
  * Registers an authenticated session grant on disk and binds process ancestry.
  */
 export function registerSessionGrant(options: RegisterSessionOptions): SessionIdentity {
   const repoRoot = findRepoRoot(options.runRoot);
+  const agentId = assertSafeSessionComponent(options.agentId, "agentId");
+  const role = assertSafeSessionComponent(options.role, "role");
   const token = options.customToken ?? `tok_live_${randomBytes(24).toString("hex")}`;
-  const pid = options.pid ?? (typeof process !== "undefined" ? process.pid : 0);
-  const ppid = options.ppid ?? (typeof process !== "undefined" ? process.ppid : 0);
-  const role = options.role.trim();
-  const tier = (roleToTier(role) ?? agentIdToTier(options.agentId) ?? 3) as ExecutionTier;
+  if (typeof token !== "string" || !token.trim()) {
+    throw new HarnessError("INVALID_ARGUMENT", "customToken must be a nonempty string");
+  }
+  const pid = assertSessionPid(
+    options.pid ?? (typeof process !== "undefined" ? process.pid : 0),
+    "pid",
+  );
+  const ppid = assertSessionPid(
+    options.ppid ?? (typeof process !== "undefined" ? process.ppid : 0),
+    "ppid",
+  );
+  const tier = (roleToTier(role) ?? agentIdToTier(agentId) ?? 3) as ExecutionTier;
   const { can_execute_shell, can_edit_files } = inferCanExecute(role);
   const host = options.host ?? detectHostApp(process.env);
   const granted_at = new Date().toISOString();
@@ -255,7 +514,7 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
   }
 
   const session: SessionIdentity = {
-    agent_id: options.agentId.trim(),
+    agent_id: agentId,
     role,
     tier,
     token,
@@ -273,12 +532,26 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
 
   const payload = JSON.stringify(session, null, 2);
 
-  // 1. Write Global Sessions Registry by PID & PPID
+  // 1. Atomically stage the required global PID/PPID authority set. A failed second
+  // write restores every prior byte and removes newly-created grants.
   const globalDir = resolveGlobalSessionsDir(repoRoot);
   try {
     mkdirSync(globalDir, { recursive: true });
-    if (pid > 0) writeFileSync(join(globalDir, `${pid}.json`), payload, "utf8");
-    if (ppid > 0) writeFileSync(join(globalDir, `${ppid}.json`), payload, "utf8");
+    const paths = [...new Set([pid, ppid])].map((processId) =>
+      join(globalDir, `${processId}.json`),
+    );
+    const snapshots = paths.map((path) => ({
+      path,
+      bytes: existsSync(path) ? readFileSync(path, "utf8") : null,
+    }));
+    try {
+      withSessionAuthorityLock(repoRoot, globalDir, () => {
+        for (const path of paths) atomicSessionWrite(path, payload);
+      });
+    } catch (error) {
+      restoreSessionSnapshots(snapshots);
+      throw error;
+    }
   } catch (error: unknown) {
     throw new HarnessError(
       "INTEGRITY",
@@ -291,7 +564,7 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
     const runtimeSessionsDir = join(resolvedRunRoot, "runtime", "sessions");
     try {
       mkdirSync(runtimeSessionsDir, { recursive: true });
-      writeFileSync(join(runtimeSessionsDir, `${options.agentId}.json`), payload, "utf8");
+      writeFileSync(join(runtimeSessionsDir, `${agentId}.json`), payload, "utf8");
     } catch {
       // Best-effort
     }
@@ -309,6 +582,28 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
   return session;
 }
 
+/** Removes only the required process-session records created for a failed higher-level grant. */
+export function revokeSessionGrant(options: {
+  readonly runRoot?: string | undefined;
+  readonly agentId: string;
+  readonly pid: number;
+  readonly ppid: number;
+}): void {
+  const repoRoot = findRepoRoot(options.runRoot);
+  const agentId = assertSafeSessionComponent(options.agentId, "agentId");
+  const pid = assertSessionPid(options.pid, "pid");
+  const ppid = assertSessionPid(options.ppid, "ppid");
+  for (const processId of new Set([pid, ppid])) {
+    const path = join(resolveGlobalSessionsDir(repoRoot), `${processId}.json`);
+    if (existsSync(path)) unlinkSync(path);
+  }
+  if (options.runRoot && options.runRoot.trim()) {
+    const runRoot = resolve(options.runRoot);
+    const path = join(runRoot, "runtime", "sessions", `${agentId}.json`);
+    if (existsSync(path)) unlinkSync(path);
+  }
+}
+
 /**
  * Executes all 3 identity detection mechanisms simultaneously, aggregating
  * detected agent attributes and enforcing cryptographic anti-spoofing interlocks.
@@ -317,7 +612,7 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   const cwd = resolve(options.cwd ?? (typeof process !== "undefined" ? process.cwd() : "."));
   const env = options.env ?? (typeof process !== "undefined" ? process.env : {});
   const readSessionFile: (path: string, encoding: "utf8") => string =
-    options.readPersistedSessionFile ?? ((path, encoding) => readFileSync(path, encoding));
+    options.readPersistedSessionFile ?? ((path) => secureReadSession(path));
   const pid = options.pid ?? (typeof process !== "undefined" ? process.pid : 0);
   const ppid = options.ppid ?? (typeof process !== "undefined" ? process.ppid : 0);
   let repoRoot: string;

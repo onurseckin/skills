@@ -1,11 +1,22 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, utimesSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  utimesSync,
+  rmSync,
+  symlinkSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import {
   registerSessionGrant,
   resolveActiveSession,
   autoDeriveCallerIdentity,
   pruneStaleSessions,
+  setSessionLockCleanupFailureForTesting,
+  setSessionPersistenceObserverForTesting,
 } from "../../../olt/scripts/src/authority/session-registry.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
@@ -57,6 +68,143 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
     expect(existsSync(join(sandboxDir, ".olt", ".sessions", "12345.json"))).toBe(true);
     expect(existsSync(join(sandboxDir, ".olt", ".sessions", "12344.json"))).toBe(true);
   });
+
+  it("rejects traversal-shaped agent identities before creating any process session record", () => {
+    const sessions = join(sandboxDir, ".olt", ".sessions");
+    expect(() =>
+      registerSessionGrant({
+        runRoot: sandboxDir,
+        agentId: "../escape",
+        role: "implementer",
+        pid: 74321,
+        ppid: 74320,
+      }),
+    ).toThrow(HarnessError);
+    expect(existsSync(join(sessions, "74321.json"))).toBe(false);
+    expect(existsSync(join(sandboxDir, "runtime", "sessions", "..", "escape.json"))).toBe(false);
+  });
+
+  it("refuses a symlinked required session record without changing its sentinel", () => {
+    const sessions = join(sandboxDir, ".olt", ".sessions");
+    const external = join(sandboxDir, "session-sentinel.json");
+    writeFileSync(external, "sentinel", "utf8");
+    symlinkSync(external, join(sessions, "81231.json"));
+    expect(() =>
+      registerSessionGrant({
+        runRoot: sandboxDir,
+        agentId: "impl-link",
+        role: "implementer",
+        pid: 81231,
+        ppid: 81230,
+      }),
+    ).toThrow(HarnessError);
+    expect(readFileSync(external, "utf8")).toBe("sentinel");
+  });
+
+  it("rejects a hard-linked required session authority", () => {
+    const sessions = join(sandboxDir, ".olt", ".sessions");
+    const external = join(sandboxDir, "external-session.json");
+    writeFileSync(external, "sentinel", "utf8");
+    linkSync(external, join(sessions, "81241.json"));
+    expect(() =>
+      registerSessionGrant({
+        runRoot: sandboxDir,
+        agentId: "impl-hard",
+        role: "implementer",
+        pid: 81241,
+        ppid: 81240,
+      }),
+    ).toThrow(HarnessError);
+    expect(readFileSync(external, "utf8")).toBe("sentinel");
+  });
+
+  it("refuses a symlinked .olt authority parent without touching its external tree", () => {
+    const external = join(sandboxDir, "external-olt");
+    const sentinel = join(external, ".sessions", "sentinel");
+    rmSync(join(sandboxDir, ".olt"), { recursive: true, force: true });
+    mkdirSync(dirname(sentinel), { recursive: true });
+    writeFileSync(sentinel, "unchanged", "utf8");
+    symlinkSync(external, join(sandboxDir, ".olt"));
+    expect(() =>
+      registerSessionGrant({
+        runRoot: sandboxDir,
+        agentId: "impl-parent-link",
+        role: "implementer",
+        pid: 81245,
+        ppid: 81244,
+      }),
+    ).toThrow(HarnessError);
+    expect(readFileSync(sentinel, "utf8")).toBe("unchanged");
+  });
+
+  it("rolls back both required PID records when the second durable record fails", () => {
+    const sessions = join(sandboxDir, ".olt", ".sessions");
+    const first = join(sessions, "81251.json");
+    const second = join(sessions, "81250.json");
+    writeFileSync(first, "first-before", "utf8");
+    writeFileSync(second, "second-before", "utf8");
+    let fsyncs = 0;
+    const restore = setSessionPersistenceObserverForTesting((step) => {
+      if (step === "file-fsync" && ++fsyncs === 2) throw new Error("second fail");
+    });
+    try {
+      expect(() =>
+        registerSessionGrant({
+          runRoot: sandboxDir,
+          agentId: "impl-rollback",
+          role: "implementer",
+          pid: 81251,
+          ppid: 81250,
+        }),
+      ).toThrow("second fail");
+    } finally {
+      restore();
+    }
+    expect(readFileSync(first, "utf8")).toBe("first-before");
+    expect(readFileSync(second, "utf8")).toBe("second-before");
+  });
+
+  it("uses one PID record when pid equals ppid and durably orders fsync, rename, then directory fsync", () => {
+    const seen: string[] = [];
+    const restore = setSessionPersistenceObserverForTesting((step) => seen.push(step));
+    try {
+      registerSessionGrant({
+        runRoot: sandboxDir,
+        agentId: "impl-same-pid",
+        role: "implementer",
+        pid: 81261,
+        ppid: 81261,
+      });
+    } finally {
+      restore();
+    }
+    expect(existsSync(join(sandboxDir, ".olt", ".sessions", "81261.json"))).toBe(true);
+    expect(seen).toEqual(["file-fsync", "rename", "directory-fsync"]);
+  });
+
+  for (const cleanupFault of [undefined, null]) {
+    it(`preserves the primary persistence error when cleanup throws ${String(cleanupFault)}`, () => {
+      const primary = new Error("primary durable failure");
+      const restoreWrite = setSessionPersistenceObserverForTesting(() => {
+        throw primary;
+      });
+      const restoreCleanup = setSessionLockCleanupFailureForTesting(cleanupFault);
+      try {
+        expect(() =>
+          registerSessionGrant({
+            runRoot: sandboxDir,
+            agentId: `impl-cleanup-${String(cleanupFault)}`,
+            role: "implementer",
+            pid: cleanupFault === null ? 81271 : 81272,
+            ppid: cleanupFault === null ? 81270 : 81273,
+          }),
+        ).toThrow("primary durable failure");
+      } finally {
+        restoreCleanup();
+        restoreWrite();
+      }
+    });
+  }
 
   it("fails registration when process-ancestry session persistence is blocked", () => {
     const globalDir = join(sandboxDir, ".olt", ".sessions");
