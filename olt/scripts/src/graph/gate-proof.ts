@@ -17,6 +17,7 @@ import { HarnessError } from "../core/errors/harness-error.ts";
 import { safeRmSync } from "../core/shared/safe-fs.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../packets/repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "../packets/repository-git-metadata.ts";
+import { commandIsWeak } from "./gate-command-policy.ts";
 import { normalizeScopePath } from "./scope-analyzer.ts";
 
 export const DEFAULT_BASE_REF = "HEAD";
@@ -370,6 +371,12 @@ export function proveGateFalsifiable(
   }
   if (input.gateArgv.length === 0) {
     throw new HarnessError("INVALID_ARGUMENT", "gate:prove needs a gate command to run");
+  }
+  if (commandIsWeak(input.gateArgv)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `gate argv ${JSON.stringify(input.gateArgv)} fails the gate-command-policy at the execution boundary; gate:prove refuses to spawn it`,
+    );
   }
   const git = deps.git ?? repositoryGit;
   const spawn = deps.spawn ?? nodeSpawnGate;

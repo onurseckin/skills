@@ -4,6 +4,7 @@ import {
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -99,7 +100,7 @@ describe("proveGateFalsifiable", () => {
       readFileSync(join(cwd, "shared.ts"), "utf8").includes("safe"),
     );
     const result = proveGateFalsifiable(
-      { repoRoot: repo, writeScope: ["shared.ts"], gateArgv: ["grep", "-q", "safe", "shared.ts"] },
+      { repoRoot: repo, writeScope: ["shared.ts"], gateArgv: ["test", "-f", "README.md"] },
       { git, spawn },
     );
     expect(result.falsifiable).toBe(true);
@@ -116,7 +117,7 @@ describe("proveGateFalsifiable", () => {
     // The gate is `test ! -f legacy.ts`: it passes (status 0) only while the file stays gone.
     const spawn = fsCheckSpawn((cwd) => !existsSync(join(cwd, "legacy.ts")));
     const result = proveGateFalsifiable(
-      { repoRoot: repo, writeScope: ["legacy.ts"], gateArgv: ["test", "!", "-f", "legacy.ts"] },
+      { repoRoot: repo, writeScope: ["legacy.ts"], gateArgv: ["test", "-f", "README.md"] },
       { git, spawn },
     );
     expect(result.falsifiable).toBe(true);
@@ -155,7 +156,7 @@ describe("proveGateFalsifiable", () => {
       "ls-tree": { status: 0, bytes: Buffer.from("") },
     });
     const result = proveGateFalsifiable(
-      { repoRoot: repo, writeScope: ["feature.ts"], gateArgv: ["true"] },
+      { repoRoot: repo, writeScope: ["feature.ts"], gateArgv: ["test", "-f", "README.md"] },
       { git, spawn: noopSpawn },
     );
     expect(result.falsifiable).toBe(false);
@@ -176,7 +177,7 @@ describe("proveGateFalsifiable", () => {
     });
     const spawn = fsCheckSpawn((cwd) => !existsSync(join(cwd, "ignored.txt")));
     const result = proveGateFalsifiable(
-      { repoRoot: repo, writeScope: ["README.md"], gateArgv: ["test", "!", "-f", "ignored.txt"] },
+      { repoRoot: repo, writeScope: ["README.md"], gateArgv: ["test", "-f", "README.md"] },
       { git, spawn },
     );
     expect(result.exitCode).toBe(0);
@@ -191,7 +192,7 @@ describe("proveGateFalsifiable", () => {
       show: { status: 0, bytes: Buffer.from("export const status = 'broken';\n") },
     });
     proveGateFalsifiable(
-      { repoRoot: repo, writeScope: ["shared.ts"], gateArgv: ["grep", "-q", "safe", "shared.ts"] },
+      { repoRoot: repo, writeScope: ["shared.ts"], gateArgv: ["test", "-f", "README.md"] },
       { git, spawn: noopSpawn },
     );
     expect(readFileSync(join(repo, "shared.ts"), "utf8")).toBe("export const status = 'safe';\n");
@@ -207,7 +208,11 @@ describe("proveGateFalsifiable", () => {
     try {
       writeFileSync(join(plain, "a.ts"), "export const a = 1;\n");
       expect(() =>
-        proveGateFalsifiable({ repoRoot: plain, writeScope: ["a.ts"], gateArgv: ["true"] }),
+        proveGateFalsifiable({
+          repoRoot: plain,
+          writeScope: ["a.ts"],
+          gateArgv: ["test", "-f", "README.md"],
+        }),
       ).toThrow(HarnessError);
     } finally {
       rmSync(plain, { recursive: true, force: true });
@@ -217,15 +222,104 @@ describe("proveGateFalsifiable", () => {
   test("throws on an empty write scope rather than reverting nothing silently", () => {
     const repo = scratchRoot(import.meta.path, "empty-write-scope");
     expect(() =>
-      proveGateFalsifiable({ repoRoot: repo, writeScope: [], gateArgv: ["true"] }),
+      proveGateFalsifiable({
+        repoRoot: repo,
+        writeScope: [],
+        gateArgv: ["test", "-f", "README.md"],
+      }),
     ).toThrow(HarnessError);
   });
 
-  test("throws on an empty gate argv", () => {
-    const repo = scratchRoot(import.meta.path, "empty-gate-argv");
+  test("rejects an empty gate argv before invoking injected dependencies", () => {
+    const repo = repoWithoutRealGit("empty-gate-argv");
+    let gitCalled = false;
+    let spawnCalled = false;
+    let error: unknown;
+    try {
+      proveGateFalsifiable(
+        { repoRoot: repo, writeScope: ["README.md"], gateArgv: [] },
+        {
+          git: () => {
+            gitCalled = true;
+            throw new Error("Git must not be invoked for an empty gate argv");
+          },
+          spawn: () => {
+            spawnCalled = true;
+            throw new Error("spawn must not be invoked for an empty gate argv");
+          },
+        },
+      );
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(HarnessError);
+    expect((error as HarnessError).code).toBe("INVALID_ARGUMENT");
+    expect((error as Error).message).toBe("gate:prove needs a gate command to run");
+    expect((error as Error).message).not.toContain("gate-command-policy");
+    expect(gitCalled).toBe(false);
+    expect(spawnCalled).toBe(false);
+  });
+
+  test("refuses a weak gate command before creating a scratch workspace or invoking dependencies", () => {
+    const repo = repoWithoutRealGit("weak-gate-command");
+    let gitCalled = false;
+    let spawnCalled = false;
+    const scratchRootsBefore = readdirSync(tmpdir())
+      .filter((entry) => entry.startsWith("gate-prove-"))
+      .sort();
     expect(() =>
-      proveGateFalsifiable({ repoRoot: repo, writeScope: ["README.md"], gateArgv: [] }),
-    ).toThrow(HarnessError);
+      proveGateFalsifiable(
+        { repoRoot: repo, writeScope: ["README.md"], gateArgv: ["bash", "-c", "exit 0"] },
+        {
+          git: () => {
+            gitCalled = true;
+            throw new Error("Git must not be invoked for a weak gate");
+          },
+          spawn: () => {
+            spawnCalled = true;
+            throw new Error("spawn must not be invoked for a weak gate");
+          },
+        },
+      ),
+    ).toThrow(/fails the gate-command-policy/);
+    expect(gitCalled).toBe(false);
+    expect(spawnCalled).toBe(false);
+    expect(
+      readdirSync(tmpdir())
+        .filter((entry) => entry.startsWith("gate-prove-"))
+        .sort(),
+    ).toEqual(scratchRootsBefore);
+  });
+
+  test("lets a policy-valid gate argv reach the injected Git and spawn path", () => {
+    const repo = repoWithoutRealGit("policy-valid-gate-command");
+    writeFileSync(join(repo, "README.md"), "current\n");
+    const gitCalls: string[] = [];
+    let spawnCalled = false;
+    const git: RepositoryGitCommand = (_repo, argv) => {
+      const verb = argv[0] ?? "";
+      gitCalls.push(verb);
+      if (verb === "ls-files") return { status: 0, bytes: Buffer.from("README.md\0") };
+      if (verb === "ls-tree")
+        return { status: 0, bytes: Buffer.from("100644 blob abc123\tREADME.md\n") };
+      if (verb === "show") return { status: 0, bytes: Buffer.from("base\n") };
+      throw new Error(`unexpected Git command: ${argv.join(" ")}`);
+    };
+    const result = proveGateFalsifiable(
+      { repoRoot: repo, writeScope: ["README.md"], gateArgv: ["test", "-f", "README.md"] },
+      {
+        git,
+        spawn: (argv, cwd) => {
+          spawnCalled = true;
+          expect(argv).toEqual(["test", "-f", "README.md"]);
+          expect(readFileSync(join(cwd, "README.md"), "utf8")).toBe("base\n");
+          return { status: 0, stdout: "", stderr: "", timedOut: false };
+        },
+      },
+    );
+    expect(gitCalls).toEqual(["ls-files", "ls-tree", "show"]);
+    expect(spawnCalled).toBe(true);
+    expect(result.outcome).toBe("not_falsifiable");
   });
 
   test("refuses to let a write-scope traversal escape the scratch root during revert-side deletion", () => {
@@ -242,7 +336,11 @@ describe("proveGateFalsifiable", () => {
       });
       expect(() =>
         proveGateFalsifiable(
-          { repoRoot: repo, writeScope: [`../${victimName}`], gateArgv: ["true"] },
+          {
+            repoRoot: repo,
+            writeScope: [`../${victimName}`],
+            gateArgv: ["test", "-f", "README.md"],
+          },
           { git, spawn: noopSpawn },
         ),
       ).toThrow(HarnessError);
@@ -260,7 +358,12 @@ describe("proveGateFalsifiable", () => {
     });
     expect(() =>
       proveGateFalsifiable(
-        { repoRoot: repo, writeScope: ["README.md"], gateArgv: ["true"], maxFiles: 0 },
+        {
+          repoRoot: repo,
+          writeScope: ["README.md"],
+          gateArgv: ["test", "-f", "README.md"],
+          maxFiles: 0,
+        },
         { git, spawn: noopSpawn },
       ),
     ).toThrow(HarnessError);
@@ -275,7 +378,11 @@ describe("proveGateFalsifiable with a scripted git dependency", () => {
       "ls-tree": { status: 0, bytes: Buffer.from("") },
     });
     const result = proveGateFalsifiable(
-      { repoRoot: repo, writeScope: ["never-existed"], gateArgv: ["true"] },
+      {
+        repoRoot: repo,
+        writeScope: ["never-existed"],
+        gateArgv: ["test", "-f", "README.md"],
+      },
       { git, spawn: noopSpawn },
     );
     expect(result.restoredPaths).toEqual([]);
@@ -297,7 +404,7 @@ describe("proveGateFalsifiable with a scripted git dependency", () => {
       show: { status: 0, bytes: Buffer.from("export const a = 1;\n") },
     });
     const result = proveGateFalsifiable(
-      { repoRoot: repo, writeScope: ["src/db"], gateArgv: ["true"] },
+      { repoRoot: repo, writeScope: ["src/db"], gateArgv: ["test", "-f", "README.md"] },
       { git, spawn: noopSpawn },
     );
     expect(result.restoredPaths).toEqual(["src/db/index.ts"]);
@@ -312,7 +419,7 @@ describe("proveGateFalsifiable with a scripted git dependency", () => {
     });
     expect(() =>
       proveGateFalsifiable(
-        { repoRoot: repo, writeScope: ["src/link"], gateArgv: ["true"] },
+        { repoRoot: repo, writeScope: ["src/link"], gateArgv: ["test", "-f", "README.md"] },
         { git, spawn: noopSpawn },
       ),
     ).toThrow(/symlink or submodule/);
@@ -468,7 +575,7 @@ describe("proveGateFalsifiable revert scope and copy edge cases", () => {
       {
         repoRoot: repo,
         writeScope: ["src/service.ts", "tests/service.spec.ts"],
-        gateArgv: ["vitest", "tests/service.spec.ts"],
+        gateArgv: ["vitest", "run", "tests/service.spec.ts"],
       },
       { git, spawn },
     );
@@ -486,7 +593,7 @@ describe("proveGateFalsifiable revert scope and copy edge cases", () => {
       show: { status: 0, bytes: Buffer.from("export const ok = false;\n") },
     });
     const result = proveGateFalsifiable(
-      { repoRoot: repo, writeScope: ["existing.ts"], gateArgv: ["true"] },
+      { repoRoot: repo, writeScope: ["existing.ts"], gateArgv: ["test", "-f", "README.md"] },
       { git, spawn: noopSpawn },
     );
     expect(result.exitCode).toBe(0);
@@ -508,7 +615,7 @@ describe("proveGateFalsifiable revert scope and copy edge cases", () => {
       return { status: 0, stdout: "", stderr: "", timedOut: false };
     };
     proveGateFalsifiable(
-      { repoRoot: repo, writeScope: ["tracked.ts"], gateArgv: ["true"] },
+      { repoRoot: repo, writeScope: ["tracked.ts"], gateArgv: ["test", "-f", "README.md"] },
       { git, spawn },
     );
     expect(scratchNodeModulesIsSymlink).toBe(false);
@@ -529,7 +636,7 @@ describe("proveGateFalsifiable revert scope and copy edge cases", () => {
       return { status: 0, stdout: "", stderr: "", timedOut: false };
     };
     proveGateFalsifiable(
-      { repoRoot: repo, writeScope: ["tracked.ts"], gateArgv: ["true"] },
+      { repoRoot: repo, writeScope: ["tracked.ts"], gateArgv: ["test", "-f", "README.md"] },
       { git, spawn },
     );
     expect(readFileSync(join(repo, "node_modules/dep/index.js"), "utf8")).toBe("original");
