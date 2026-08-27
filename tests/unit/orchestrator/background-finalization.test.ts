@@ -314,6 +314,54 @@ describe("Zero Main-Thread Spillover Invariants", () => {
 });
 
 describe("Autonomous Loop Recycling Transition", () => {
+  it("refuses a missing explicit run instead of fabricating a discovery wake", () => {
+    expect(() =>
+      transitionSupervisionLoopToDiscovery({
+        runRoot: "/definitely-missing-continuation-run",
+        actor: "orchestrator-tier1",
+      }),
+    ).toThrow(HarnessError);
+  });
+
+  it("marks finalization unsuccessful when an explicit recycling state source cannot load", async () => {
+    const testDir = scratchRoot(import.meta.path, "finalization-unavailable-state");
+    const { runner: gitRunner } = createMockGitRunner();
+    const { runner: syncRunner } = createMockSyncRunner();
+    const result = await executeBackgroundFinalization({
+      repoPath: testDir,
+      runRoot: "/definitely-missing-finalization-run",
+      gitRunner,
+      syncRunner,
+    });
+    expect(result.success).toBeFalse();
+    expect(result.error).toContain("recycling assessment unavailable");
+    expect(result.recyclingAssessment).toBeUndefined();
+
+    await expect(
+      executeBackgroundFinalization({
+        repoPath: testDir,
+        runRoot: "/definitely-missing-finalization-run",
+        gitRunner,
+        syncRunner,
+        throwOnError: true,
+      }),
+    ).rejects.toMatchObject({ code: "INTEGRITY" });
+  });
+
+  it("does not invent critic sign-off or a recycling assessment without a state source", async () => {
+    const testDir = scratchRoot(import.meta.path, "finalization-state-free");
+    const { runner: gitRunner } = createMockGitRunner();
+    const { runner: syncRunner } = createMockSyncRunner();
+    const result = await executeBackgroundFinalization({
+      repoPath: testDir,
+      gitRunner,
+      syncRunner,
+    });
+    expect(result.success).toBeTrue();
+    expect(result.recyclingAssessment).toBeUndefined();
+    expect(result.markdown).not.toContain("Autonomous Recycling");
+  });
+
   it("transitions completeness critic sign-off to admitted candidate round opening", async () => {
     const testDir = scratchRoot(import.meta.path, "recycling-admitted");
     const charterBytes = new TextEncoder().encode("# Charter\n## goals\n- G1");
@@ -449,8 +497,9 @@ describe("SupervisionLoopRunner - Integrated Background Finalization & Recycling
     expect(summary.finalization?.pushed).toBe(true);
     expect(summary.finalization?.synced).toBe(true);
     expect(summary.finalization?.commitSha).toBe("sha-final-converge");
-    expect(summary.recyclingAssessment).toBeDefined();
-    expect(summary.recyclingAssessment?.infiniteCadence).toBe(true);
+    expect(summary.finalization?.success).toBeFalse();
+    expect(summary.finalization?.error).toContain("recycling assessment unavailable");
+    expect(summary.recyclingAssessment).toBeUndefined();
     expect(finalizationCaptured).toBe(true);
 
     expect(gitCommands.length).toBeGreaterThan(0);

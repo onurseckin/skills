@@ -13,6 +13,7 @@ import {
   type FeedbackItem,
 } from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import type { CandidateRecord } from "../../../olt/scripts/src/mind/gates.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   assessRecyclingState,
   compileAutonomicWavePlan,
@@ -332,6 +333,21 @@ describe("mind autonomic recycler", () => {
       expect(assessment.pendingFeedbackCount).toBe(1);
       expect(assessment.nextRecommendedCommand).toContain("mind:rotate");
       expect(assessment.reason).toContain("generation 1 converged with 1 pending feedback items");
+    });
+
+    test("refuses malformed feedback evidence when it decides the lifecycle transition", () => {
+      const repo = scratchRoot(import.meta.path, "assess-malformed-feedback-test");
+      const queuePath = join(repo, "FEEDBACK_QUEUE.jsonl");
+      writeFileSync(queuePath, "{not-json}\n", "utf8");
+      const state: Record<string, unknown> = {
+        completion_review: { status: "clean", summary: "Gen converged." },
+      };
+      expect(() =>
+        assessRecyclingState(state, runRoot, {
+          feedbackQueuePath: queuePath,
+          checkFeedbackQueue: true,
+        }),
+      ).toThrow(HarnessError);
     });
 
     test("critic findings: opens successor round when round budget is available", () => {
@@ -846,6 +862,17 @@ describe("mind autonomic recycler", () => {
       expect(resHigher.generation).toBe(2);
       expect(resHigher.targetGeneration).toBe(3);
       expect(resHigher.reason).toContain("ready to transition from generation 2 to 3");
+    });
+
+    test("validateRolloverReadiness refuses malformed feedback queue evidence", () => {
+      const repo = scratchRoot(import.meta.path, "rollover-malformed-feedback-test");
+      const queuePath = join(repo, "FEEDBACK_QUEUE.jsonl");
+      writeFileSync(queuePath, "{not-json}\n", "utf8");
+      expect(() =>
+        validateRolloverReadiness({ mind: { generation: 1, status: "active" } }, undefined, {
+          feedbackQueuePath: queuePath,
+        }),
+      ).toThrow(HarnessError);
     });
   });
 });

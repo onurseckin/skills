@@ -4,7 +4,12 @@ import { HarnessError } from "../core/errors/harness-error.ts";
 import { loadRun } from "../engine/store/load.ts";
 import { transact } from "../engine/store/transaction.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";
-import { drainPendingFeedbacks, readFeedbackQueue, type FeedbackItem } from "./feedback-queue.ts";
+import {
+  drainPendingFeedbacks,
+  readFeedbackQueue,
+  readFeedbackQueueStrict,
+  type FeedbackItem,
+} from "./feedback-queue.ts";
 import type { CandidateRecord } from "./gates.ts";
 import { getAllProposals, type MindProposal } from "./proposal.ts";
 import { rotateMindGeneration, type RotateMindResult } from "./rotate.ts";
@@ -247,13 +252,9 @@ export function assessRecyclingState(
 
       // Check if feedback queue has pending items when checking queue
       if (options.checkFeedbackQueue === true || options.feedbackQueuePath !== undefined) {
-        let pendingFeedbacks: FeedbackItem[] = [];
-        try {
-          const queueItems = readFeedbackQueue(options.feedbackQueuePath);
-          pendingFeedbacks = queueItems.filter((i) => i.status === "PENDING");
-        } catch {
-          pendingFeedbacks = [];
-        }
+        const pendingFeedbacks = readFeedbackQueueStrict(options.feedbackQueuePath).filter(
+          (item) => item.status === "PENDING",
+        );
 
         if (pendingFeedbacks.length > 0) {
           const targetGen = currentGen + 1;
@@ -396,13 +397,9 @@ export function assessRecyclingState(
     allRounds.every((r) => r.status === "closed" && r.result === "converged") &&
     (options.checkFeedbackQueue === true || options.feedbackQueuePath !== undefined)
   ) {
-    let pendingFeedbacks: FeedbackItem[] = [];
-    try {
-      const queueItems = readFeedbackQueue(options.feedbackQueuePath);
-      pendingFeedbacks = queueItems.filter((i) => i.status === "PENDING");
-    } catch {
-      pendingFeedbacks = [];
-    }
+    const pendingFeedbacks = readFeedbackQueueStrict(options.feedbackQueuePath).filter(
+      (item) => item.status === "PENDING",
+    );
 
     if (pendingFeedbacks.length > 0) {
       const targetGen = currentGen + 1;
@@ -896,13 +893,9 @@ export function validateRolloverReadiness(
     (c) => c.status === "opened" || c.status === "open" || c.status === "admitted",
   );
 
-  let pendingCount = 0;
-  try {
-    const feedbackItems = readFeedbackQueue(options?.feedbackQueuePath);
-    pendingCount = feedbackItems.filter((i) => i.status === "PENDING").length;
-  } catch {
-    pendingCount = 0;
-  }
+  const pendingCount = readFeedbackQueueStrict(options?.feedbackQueuePath).filter(
+    (item) => item.status === "PENDING",
+  ).length;
 
   return {
     ready: true,

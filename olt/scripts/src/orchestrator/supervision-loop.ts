@@ -130,6 +130,27 @@ export interface SupervisionLoopSummary extends LoopSummary {
   readonly zeroMainThreadSpillover: boolean;
 }
 
+function boundedEvidenceCause(error: unknown): string {
+  if (typeof error === "string") return error.slice(0, 240);
+  if (
+    typeof error === "number" ||
+    typeof error === "boolean" ||
+    typeof error === "bigint" ||
+    typeof error === "symbol" ||
+    error === null ||
+    error === undefined
+  ) {
+    return String(error).slice(0, 240);
+  }
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(error, "message");
+    if (descriptor && "value" in descriptor && typeof descriptor.value === "string") {
+      return descriptor.value.slice(0, 240);
+    }
+  } catch {}
+  return "unknown error";
+}
+
 const defaultGitRunner: GitRunner = (args: readonly string[], cwd: string): GitRunnerResult => {
   try {
     const result = spawnSync("git", [...args], {
@@ -147,7 +168,7 @@ const defaultGitRunner: GitRunner = (args: readonly string[], cwd: string): GitR
     return {
       status: 1,
       stdout: "",
-      stderr: error instanceof Error ? error.message : String(error),
+      stderr: boundedEvidenceCause(error),
     };
   }
 };
@@ -178,7 +199,7 @@ const defaultSyncRunner: SyncRunner = (command: string, cwd: string): GitRunnerR
     return {
       status: 1,
       stdout: "",
-      stderr: error instanceof Error ? error.message : String(error),
+      stderr: boundedEvidenceCause(error),
     };
   }
 };
@@ -572,9 +593,7 @@ export async function executeBackgroundFinalization(
 
   // Step 6: autonomous recycling assessment
   let recyclingAssessment: RecycleAssessment | undefined;
-  let hasRecyclingStateSource = false;
-  if (runRoot !== undefined) hasRecyclingStateSource = true;
-  if (options.state !== undefined) hasRecyclingStateSource = true;
+  const hasRecyclingStateSource = runRoot !== undefined || options.state !== undefined;
 
   if (hasRecyclingStateSource) {
     try {
@@ -588,29 +607,10 @@ export async function executeBackgroundFinalization(
         const rootPath = runRoot !== undefined ? runRoot : repoPath;
         recyclingAssessment = assessRecyclingState(stateToAssess, rootPath, { now });
       }
-    } catch {
-      // If state cannot be read, fallback to clean discovery recycling below
+    } catch (error) {
+      overallSuccess = false;
+      firstError ??= `recycling assessment unavailable: ${boundedEvidenceCause(error)}`;
     }
-  }
-
-  if (recyclingAssessment === undefined) {
-    const rootPath = runRoot !== undefined ? runRoot : repoPath;
-    recyclingAssessment = {
-      canRecycle: true,
-      phase: "critic_signed_off",
-      transition: "critic_to_discovery",
-      objectiveId: null,
-      candidateId: null,
-      roundNumber: null,
-      nextRecommendedCommand: `bun harness.ts mind:wake --run ${rootPath}`,
-      suggestedCommands: [
-        `bun harness.ts mind:wake --run ${rootPath}`,
-        `bun harness.ts mind:candidate --run ${rootPath} --actor ${actor} --kind defect --statement "Autonomous candidate discovery"`,
-      ],
-      reason:
-        "Completeness critic sign-off passed; autonomous background finalization complete. Recycling to perpetual discovery wave.",
-      infiniteCadence: true,
-    };
   }
 
   const durationMs = Date.now() - startTime;
@@ -662,16 +662,16 @@ export function transitionSupervisionLoopToDiscovery(
 ): RecycleAssessment {
   let state = options.state;
   if (state === undefined) {
-    if (options.runRoot !== undefined) {
-      try {
-        state = loadRun(options.runRoot).state;
-      } catch {
-        state = {};
-      }
+    try {
+      state = loadRun(options.runRoot).state as Record<string, unknown>;
+    } catch (error) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `supervision loop continuation evidence unavailable: ${boundedEvidenceCause(error)}`,
+      );
     }
   }
-  const targetState = state !== undefined ? state : {};
-  return assessRecyclingState(targetState, options.runRoot, { now: options.now });
+  return assessRecyclingState(state, options.runRoot, { now: options.now });
 }
 
 /**

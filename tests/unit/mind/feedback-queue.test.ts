@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   appendFeedbackItem,
   backpropagateFeedbackResolution,
@@ -8,6 +9,7 @@ import {
   getFeedbackStats,
   migrateFeedbackQueue,
   readFeedbackQueue,
+  readFeedbackQueueStrict,
   resolveFeedbackQueuePath,
   resolveCanonicalFeedbackQueuePath,
   TODO_FEEDBACK_FILE,
@@ -87,6 +89,18 @@ describe("Feedback Queue Engine", () => {
     setup();
     const items = readFeedbackQueue(queueFile);
     expect(items).toEqual([]);
+    expect(readFeedbackQueueStrict(queueFile)).toEqual([]);
+    teardown();
+  });
+
+  it("refuses malformed or unreadable authoritative queue evidence", () => {
+    setup();
+    writeFileSync(queueFile, "{not-json}\n", "utf8");
+    expect(() => readFeedbackQueueStrict(queueFile)).toThrow(HarnessError);
+
+    const directoryPath = join(testDir, "queue-directory");
+    mkdirSync(directoryPath);
+    expect(() => readFeedbackQueueStrict(directoryPath)).toThrow(HarnessError);
     teardown();
   });
 

@@ -356,6 +356,88 @@ export function readFeedbackQueue(customPath?: string): FeedbackItem[] {
   return sortFeedbackByPriority(items);
 }
 
+function isOwnEnoent(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(error, "code");
+    return descriptor !== undefined && "value" in descriptor && descriptor.value === "ENOENT";
+  } catch {
+    return false;
+  }
+}
+
+function strictFeedbackItem(parsed: unknown, lineNumber: number): FeedbackItem {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new HarnessError("INTEGRITY", `feedback queue line ${lineNumber} is not an object`);
+  }
+  const record = parsed as Record<string, unknown>;
+  const id = typeof record.id === "string" ? record.id.trim() : "";
+  const timestamp = typeof record.timestamp === "string" ? record.timestamp.trim() : "";
+  const title = typeof record.title === "string" ? record.title : "";
+  const content = typeof record.content === "string" ? record.content : "";
+  const priority = validatePriority(record.priority);
+  const status = validateStatus(record.status);
+  const category = validateCategory(record.category);
+  const validPriority =
+    typeof record.priority === "string" &&
+    [
+      "CRITICAL_USER_FEEDBACK",
+      "CRITICAL",
+      "HIGH_ARCHITECTURAL_FEATURE",
+      "HIGH",
+      "USER_DIRECTIVE",
+      "USER",
+      "NORMAL",
+      "LOW",
+    ].includes(record.priority.toUpperCase());
+  const validStatus =
+    typeof record.status === "string" &&
+    ["PENDING", "ADMITTED", "DECLINED", "PROCESSED", "COMPLETED"].includes(
+      record.status.toUpperCase(),
+    );
+  const validCategory =
+    typeof record.category === "string" &&
+    [
+      "DOCUMENTATION",
+      "AGENT_CONTRACTS",
+      "CLI_TOOLING",
+      "WATCHDOG",
+      "SCALING",
+      "ARCHITECTURE",
+      "CORE_ENGINE",
+      "REPAIR",
+      "GENERAL",
+    ].includes(record.category.toUpperCase());
+  if (!id || !timestamp || !title || !content || !validPriority || !validStatus || !validCategory) {
+    throw new HarnessError("INTEGRITY", `feedback queue line ${lineNumber} is malformed`);
+  }
+  return { id, timestamp, priority, status, category, title, content };
+}
+
+/** Strict evidence reader for lifecycle decisions; diagnostic consumers keep readFeedbackQueue. */
+export function readFeedbackQueueStrict(customPath?: string): FeedbackItem[] {
+  const filePath = resolveFeedbackQueuePath(customPath);
+  let raw: string;
+  try {
+    raw = readFileSync(filePath, "utf8");
+  } catch (error) {
+    if (isOwnEnoent(error)) return [];
+    throw new HarnessError("INTEGRITY", `feedback queue cannot be read: ${filePath}`);
+  }
+  const items: FeedbackItem[] = [];
+  for (const [index, line] of raw.split("\n").entries()) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    try {
+      items.push(strictFeedbackItem(JSON.parse(trimmed), index + 1));
+    } catch (error) {
+      if (error instanceof HarnessError) throw error;
+      throw new HarnessError("INTEGRITY", `feedback queue line ${index + 1} is malformed`);
+    }
+  }
+  return sortFeedbackByPriority(items);
+}
+
 export function writeFeedbackQueue(items: readonly FeedbackItem[], customPath?: string): void {
   const filePath = resolveFeedbackQueuePath(customPath);
   const dir = dirname(filePath);
