@@ -1,7 +1,21 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fstatSync,
+  fsyncSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
 import {
   recordCompletedTask,
   recordCompletedTasksBatch,
@@ -132,6 +146,26 @@ export const DEFAULT_TASK_QUEUE_FILE = ".olt/capsules/TASK_QUEUE.jsonl";
 const DEFAULT_LEASE_DURATION_SECONDS = 1800; // 30 minutes
 const DEFAULT_MAX_RETRIES = 3;
 
+type TaskQueuePersistenceStage =
+  | "before_write"
+  | "before_fsync"
+  | "before_rename"
+  | "after_rename"
+  | "before_directory_fsync";
+let taskQueuePersistenceTestHook: ((stage: TaskQueuePersistenceStage) => void) | undefined;
+const taskQueueLockSleep = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
+
+/** @internal Narrow deterministic durability seam for unit tests. */
+export function __setTaskQueuePersistenceTestHook(
+  hook: ((stage: TaskQueuePersistenceStage) => void) | undefined,
+): void {
+  taskQueuePersistenceTestHook = hook;
+}
+
+function invokeTaskQueuePersistenceHook(stage: TaskQueuePersistenceStage): void {
+  taskQueuePersistenceTestHook?.(stage);
+}
+
 /**
  * Resolves the canonical path for the task queue storage file.
  */
@@ -156,27 +190,61 @@ export function resolveTaskQueuePath(customPath?: string): string {
  */
 export function readTaskQueue(customPath?: string): TaskQueueItem[] {
   const filePath = resolveTaskQueuePath(customPath);
-  if (!existsSync(filePath)) {
-    return [];
-  }
+  return readTaskQueueFile(filePath);
+}
 
-  const raw = readFileSync(filePath, "utf8");
+function readTaskQueueFile(filePath: string): TaskQueueItem[] {
+  let descriptor: number | undefined;
+  try {
+    const before = lstatSync(filePath);
+    if (!before.isFile() || before.nlink !== 1) {
+      throw new HarnessError("INTEGRITY", "task queue must be a single-link regular file");
+    }
+    descriptor = openSync(filePath, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const opened = fstatSync(descriptor);
+    if (
+      !opened.isFile() ||
+      opened.nlink !== 1 ||
+      opened.dev !== before.dev ||
+      opened.ino !== before.ino
+    ) {
+      throw new HarnessError("INTEGRITY", "task queue changed while being opened");
+    }
+    const raw = readFileSync(descriptor, "utf8");
+    const after = lstatSync(filePath);
+    if (
+      after.dev !== opened.dev ||
+      after.ino !== opened.ino ||
+      !after.isFile() ||
+      after.nlink !== 1
+    ) {
+      throw new HarnessError("INTEGRITY", "task queue changed while being read");
+    }
+    return parseTaskQueue(raw);
+  } catch (error) {
+    if (isOwnEnoent(error)) return [];
+    if (error instanceof HarnessError) throw error;
+    throw new HarnessError("INTEGRITY", "could not securely read task queue");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
+function parseTaskQueue(raw: string): TaskQueueItem[] {
   const lines = raw
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
   const items: TaskQueueItem[] = [];
 
-  for (const line of lines) {
+  for (const [index, line] of lines.entries()) {
     if (!line) continue;
     try {
       const parsed = JSON.parse(line) as Record<string, unknown>;
-      if (!parsed["id"] || typeof parsed["id"] !== "string") {
-        continue;
-      }
       items.push(deserializeTaskQueueItem(parsed));
-    } catch {
-      // Ignore individual malformed log lines
+    } catch (error) {
+      if (error instanceof HarnessError) throw error;
+      throw new HarnessError("INTEGRITY", `task queue line ${index + 1} is malformed`);
     }
   }
 
@@ -188,13 +256,22 @@ export function readTaskQueue(customPath?: string): TaskQueueItem[] {
  */
 export function writeTaskQueue(items: readonly TaskQueueItem[], customPath?: string): void {
   const filePath = resolveTaskQueuePath(customPath);
-  const dir = dirname(filePath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
+  withTaskQueueTransaction(filePath, () => writeTaskQueueUnlocked(items, filePath));
+}
 
-  const lines = items.map((item) => JSON.stringify(item));
-  writeFileSync(filePath, lines.join("\n") + (lines.length > 0 ? "\n" : ""), "utf8");
+function writeTaskQueueUnlocked(items: readonly TaskQueueItem[], filePath: string): void {
+  const raw = serializeTaskQueue(items);
+  atomicReplaceTaskQueue(filePath, raw);
+}
+
+function serializeTaskQueue(items: readonly TaskQueueItem[]): string {
+  return (
+    items
+      .map((item) =>
+        JSON.stringify(deserializeTaskQueueItem(item as unknown as Record<string, unknown>)),
+      )
+      .join("\n") + (items.length > 0 ? "\n" : "")
+  );
 }
 
 /**
@@ -202,8 +279,175 @@ export function writeTaskQueue(items: readonly TaskQueueItem[], customPath?: str
  */
 export function clearTaskQueue(customPath?: string): void {
   const filePath = resolveTaskQueuePath(customPath);
-  if (existsSync(filePath)) {
-    writeFileSync(filePath, "", "utf8");
+  withTaskQueueTransaction(filePath, () => writeTaskQueueUnlocked([], filePath));
+}
+
+function isOwnEnoent(error: unknown): boolean {
+  return isOwnCode(error, "ENOENT");
+}
+
+function isOwnCode(error: unknown, code: string): boolean {
+  if (!(error instanceof Error)) return false;
+  const descriptor = Object.getOwnPropertyDescriptor(error, "code");
+  return descriptor?.value === code;
+}
+
+function assertStableDirectory(path: string, descriptor: number, label: string): void {
+  const before = lstatSync(path);
+  const opened = fstatSync(descriptor);
+  if (
+    !before.isDirectory() ||
+    !opened.isDirectory() ||
+    before.dev !== opened.dev ||
+    before.ino !== opened.ino
+  ) {
+    throw new HarnessError("INTEGRITY", `${label} directory changed while being opened`);
+  }
+}
+
+function acquireTaskQueueFlock(descriptor: number, label: string): void {
+  for (let attempt = 0; attempt < 200; attempt++) {
+    if (tryExclusiveFlock(descriptor)) return;
+    Atomics.wait(taskQueueLockSleep, 0, 0, 5);
+  }
+  throw new HarnessError("LOCK_TIMEOUT", `${label} is already locked`);
+}
+
+/** Runs a queue mutation under stable repository and queue-parent inode locks. */
+function withTaskQueueTransaction<T>(filePath: string, mutation: () => T): T {
+  const parent = dirname(filePath);
+  const parentRoot = dirname(parent);
+  const root = parentRoot === parent || parentRoot === "/" ? parent : parentRoot;
+  let rootFd: number | undefined;
+  let parentFd: number | undefined;
+  let rootLocked = false;
+  let parentLocked = false;
+  let primaryThrown = false;
+  let primary: unknown;
+  let result!: T;
+  try {
+    rootFd = openSync(root, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    assertStableDirectory(root, rootFd, "task queue root");
+    acquireTaskQueueFlock(rootFd, "task queue root");
+    rootLocked = true;
+    assertStableDirectory(root, rootFd, "task queue root");
+    try {
+      mkdirSync(parent);
+    } catch (error) {
+      if (!isOwnCode(error, "EEXIST")) throw error;
+    }
+    assertStableDirectory(root, rootFd, "task queue root");
+    parentFd = openSync(parent, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    assertStableDirectory(parent, parentFd, "task queue parent");
+    acquireTaskQueueFlock(parentFd, "task queue parent");
+    parentLocked = true;
+    assertStableDirectory(parent, parentFd, "task queue parent");
+    result = mutation();
+  } catch (error) {
+    primaryThrown = true;
+    primary = error;
+  }
+
+  let cleanupThrown = false;
+  let cleanup: unknown;
+  const attemptCleanup = (action: () => void): void => {
+    try {
+      action();
+    } catch (error) {
+      if (!cleanupThrown) {
+        cleanupThrown = true;
+        cleanup = error;
+      }
+    }
+  };
+  if (parentLocked && parentFd !== undefined) attemptCleanup(() => releaseFlock(parentFd!));
+  if (rootLocked && rootFd !== undefined) attemptCleanup(() => releaseFlock(rootFd!));
+  if (parentFd !== undefined) attemptCleanup(() => closeSync(parentFd!));
+  if (rootFd !== undefined) attemptCleanup(() => closeSync(rootFd!));
+  if (primaryThrown) throw primary;
+  if (cleanupThrown) throw cleanup;
+  return result;
+}
+
+function atomicReplaceTaskQueue(filePath: string, raw: string): void {
+  const parent = dirname(filePath);
+  let previous: { readonly dev: number; readonly ino: number } | undefined;
+  try {
+    const existing = lstatSync(filePath);
+    if (!existing.isFile() || existing.nlink !== 1) {
+      throw new HarnessError("INTEGRITY", "task queue must be a single-link regular file");
+    }
+    previous = { dev: existing.dev, ino: existing.ino };
+  } catch (error) {
+    if (!isOwnEnoent(error)) throw error;
+  }
+
+  const temporary = join(
+    parent,
+    `.task-queue.${process.pid}.${randomBytes(12).toString("hex")}.tmp`,
+  );
+  let tempFd: number | undefined;
+  let dirFd: number | undefined;
+  let renamed = false;
+  try {
+    tempFd = openSync(
+      temporary,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
+      0o600,
+    );
+    const bytes = Buffer.from(raw, "utf8");
+    let offset = 0;
+    while (offset < bytes.length) {
+      invokeTaskQueuePersistenceHook("before_write");
+      const written = writeSync(tempFd, bytes, offset, bytes.length - offset);
+      if (written <= 0)
+        throw new HarnessError("INTEGRITY", "could not completely write task queue");
+      offset += written;
+    }
+    invokeTaskQueuePersistenceHook("before_fsync");
+    fsyncSync(tempFd);
+    closeSync(tempFd);
+    tempFd = undefined;
+    try {
+      const current = lstatSync(filePath);
+      if (
+        !previous ||
+        !current.isFile() ||
+        current.nlink !== 1 ||
+        current.dev !== previous.dev ||
+        current.ino !== previous.ino
+      ) {
+        throw new HarnessError("INTEGRITY", "task queue changed before replacement");
+      }
+    } catch (error) {
+      if (!(previous === undefined && isOwnEnoent(error))) throw error;
+    }
+    invokeTaskQueuePersistenceHook("before_rename");
+    renameSync(temporary, filePath);
+    renamed = true;
+    invokeTaskQueuePersistenceHook("after_rename");
+    dirFd = openSync(parent, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    assertStableDirectory(parent, dirFd, "task queue parent");
+    invokeTaskQueuePersistenceHook("before_directory_fsync");
+    fsyncSync(dirFd);
+  } catch (error) {
+    if (renamed) {
+      throw new HarnessError(
+        "INTEGRITY",
+        "task queue mutation outcome is uncertain and possibly committed after rename",
+      );
+    }
+    throw error;
+  } finally {
+    if (tempFd !== undefined) closeSync(tempFd);
+    if (dirFd !== undefined) closeSync(dirFd);
+    if (!renamed) {
+      try {
+        unlinkSync(temporary);
+      } catch (error) {
+        if (!isOwnEnoent(error)) throw error;
+      }
+    }
   }
 }
 
@@ -265,7 +509,12 @@ export function validateTaskQueueDag(items: readonly TaskQueueItem[]): {
  * Enqueues a single new task into the task queue with dependency resolution.
  */
 export function enqueueTask(input: NewTaskQueueInput, customPath?: string): TaskQueueItem {
-  const existing = readTaskQueue(customPath);
+  const filePath = resolveTaskQueuePath(customPath);
+  return withTaskQueueTransaction(filePath, () => enqueueTaskUnlocked(input, filePath));
+}
+
+function enqueueTaskUnlocked(input: NewTaskQueueInput, filePath: string): TaskQueueItem {
+  const existing = readTaskQueueFile(filePath);
   const duplicate = existing.find((e) => e.id === input.id);
   if (duplicate) {
     throw new HarnessError(
@@ -326,7 +575,7 @@ export function enqueueTask(input: NewTaskQueueInput, customPath?: string): Task
     );
   }
 
-  writeTaskQueue(updatedQueue, customPath);
+  writeTaskQueueUnlocked(updatedQueue, filePath);
   return newItem;
 }
 
@@ -337,7 +586,15 @@ export function enqueueTasksBatch(
   inputs: readonly NewTaskQueueInput[],
   customPath?: string,
 ): readonly TaskQueueItem[] {
-  const existing = readTaskQueue(customPath);
+  const filePath = resolveTaskQueuePath(customPath);
+  return withTaskQueueTransaction(filePath, () => enqueueTasksBatchUnlocked(inputs, filePath));
+}
+
+function enqueueTasksBatchUnlocked(
+  inputs: readonly NewTaskQueueInput[],
+  filePath: string,
+): readonly TaskQueueItem[] {
+  const existing = readTaskQueueFile(filePath);
   const existingIds = new Set(existing.map((e) => e.id));
   const newIds = new Set<string>();
 
@@ -409,7 +666,7 @@ export function enqueueTasksBatch(
     );
   }
 
-  writeTaskQueue(updatedQueue, customPath);
+  writeTaskQueueUnlocked(updatedQueue, filePath);
   return newItems;
 }
 
@@ -422,7 +679,19 @@ export function admitTask(params: {
   readonly customPath?: string | undefined;
   readonly nowIso?: string | undefined;
 }): TaskQueueItem {
-  const queue = readTaskQueue(params.customPath);
+  const filePath = resolveTaskQueuePath(params.customPath);
+  return withTaskQueueTransaction(filePath, () => admitTaskUnlocked(params, filePath));
+}
+
+function admitTaskUnlocked(
+  params: {
+    readonly taskId: string;
+    readonly admittedBy?: string | undefined;
+    readonly nowIso?: string | undefined;
+  },
+  filePath: string,
+): TaskQueueItem {
+  const queue = readTaskQueueFile(filePath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
     throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
@@ -452,7 +721,7 @@ export function admitTask(params: {
   };
 
   queue[index] = admittedTask;
-  writeTaskQueue(queue, params.customPath);
+  writeTaskQueueUnlocked(queue, filePath);
   return admittedTask;
 }
 
@@ -466,7 +735,20 @@ export function claimTaskLease(params: {
   readonly customPath?: string | undefined;
   readonly nowIso?: string | undefined;
 }): { readonly task: TaskQueueItem; readonly leaseToken: string } {
-  const queue = readTaskQueue(params.customPath);
+  const filePath = resolveTaskQueuePath(params.customPath);
+  return withTaskQueueTransaction(filePath, () => claimTaskLeaseUnlocked(params, filePath));
+}
+
+function claimTaskLeaseUnlocked(
+  params: {
+    readonly taskId: string;
+    readonly agentId: string;
+    readonly durationSeconds?: number | undefined;
+    readonly nowIso?: string | undefined;
+  },
+  filePath: string,
+): { readonly task: TaskQueueItem; readonly leaseToken: string } {
+  const queue = readTaskQueueFile(filePath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
     throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
@@ -527,7 +809,7 @@ export function claimTaskLease(params: {
   };
 
   queue[index] = leasedTask;
-  writeTaskQueue(queue, params.customPath);
+  writeTaskQueueUnlocked(queue, filePath);
 
   return {
     task: leasedTask,
@@ -544,10 +826,22 @@ export function popNextEligibleTask(params: {
   readonly customPath?: string | undefined;
   readonly nowIso?: string | undefined;
 }): { readonly task: TaskQueueItem; readonly leaseToken: string } | null {
-  const nowMs = params.nowIso ? Date.parse(params.nowIso) : Date.now();
-  reclaimExpiredLeases({ customPath: params.customPath, nowMs });
+  const filePath = resolveTaskQueuePath(params.customPath);
+  return withTaskQueueTransaction(filePath, () => popNextEligibleTaskUnlocked(params, filePath));
+}
 
-  const queue = readTaskQueue(params.customPath);
+function popNextEligibleTaskUnlocked(
+  params: {
+    readonly agentId: string;
+    readonly durationSeconds?: number | undefined;
+    readonly nowIso?: string | undefined;
+  },
+  filePath: string,
+): { readonly task: TaskQueueItem; readonly leaseToken: string } | null {
+  const nowMs = params.nowIso ? Date.parse(params.nowIso) : Date.now();
+  reclaimExpiredLeasesUnlocked({ nowMs }, filePath);
+
+  const queue = readTaskQueueFile(filePath);
   const eligible = queue.filter((t) => {
     if (t.status !== "PENDING" && t.status !== "ADMITTED") return false;
     if (t.blocked_by.length > 0) return false;
@@ -570,13 +864,15 @@ export function popNextEligibleTask(params: {
   });
 
   const selected = eligible[0]!;
-  return claimTaskLease({
-    taskId: selected.id,
-    agentId: params.agentId,
-    durationSeconds: params.durationSeconds,
-    customPath: params.customPath,
-    nowIso: params.nowIso,
-  });
+  return claimTaskLeaseUnlocked(
+    {
+      taskId: selected.id,
+      agentId: params.agentId,
+      durationSeconds: params.durationSeconds,
+      nowIso: params.nowIso,
+    },
+    filePath,
+  );
 }
 
 /**
@@ -590,7 +886,21 @@ export function renewTaskLease(params: {
   readonly customPath?: string | undefined;
   readonly nowIso?: string | undefined;
 }): TaskQueueItem {
-  const queue = readTaskQueue(params.customPath);
+  const filePath = resolveTaskQueuePath(params.customPath);
+  return withTaskQueueTransaction(filePath, () => renewTaskLeaseUnlocked(params, filePath));
+}
+
+function renewTaskLeaseUnlocked(
+  params: {
+    readonly taskId: string;
+    readonly agentId: string;
+    readonly leaseToken: string;
+    readonly extensionSeconds?: number | undefined;
+    readonly nowIso?: string | undefined;
+  },
+  filePath: string,
+): TaskQueueItem {
+  const queue = readTaskQueueFile(filePath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
     throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
@@ -624,7 +934,7 @@ export function renewTaskLease(params: {
   };
 
   queue[index] = renewedTask;
-  writeTaskQueue(queue, params.customPath);
+  writeTaskQueueUnlocked(queue, filePath);
   return renewedTask;
 }
 
@@ -638,7 +948,20 @@ export function releaseTaskLease(params: {
   readonly customPath?: string | undefined;
   readonly nowIso?: string | undefined;
 }): TaskQueueItem {
-  const queue = readTaskQueue(params.customPath);
+  const filePath = resolveTaskQueuePath(params.customPath);
+  return withTaskQueueTransaction(filePath, () => releaseTaskLeaseUnlocked(params, filePath));
+}
+
+function releaseTaskLeaseUnlocked(
+  params: {
+    readonly taskId: string;
+    readonly agentId: string;
+    readonly leaseToken?: string | undefined;
+    readonly nowIso?: string | undefined;
+  },
+  filePath: string,
+): TaskQueueItem {
+  const queue = readTaskQueueFile(filePath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
     throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
@@ -666,7 +989,7 @@ export function releaseTaskLease(params: {
   };
 
   queue[index] = releasedTask;
-  writeTaskQueue(queue, params.customPath);
+  writeTaskQueueUnlocked(queue, filePath);
   return releasedTask;
 }
 
@@ -680,7 +1003,20 @@ export function startTaskValidation(params: {
   readonly customPath?: string | undefined;
   readonly nowIso?: string | undefined;
 }): TaskQueueItem {
-  const queue = readTaskQueue(params.customPath);
+  const filePath = resolveTaskQueuePath(params.customPath);
+  return withTaskQueueTransaction(filePath, () => startTaskValidationUnlocked(params, filePath));
+}
+
+function startTaskValidationUnlocked(
+  params: {
+    readonly taskId: string;
+    readonly agentId?: string | undefined;
+    readonly leaseToken?: string | undefined;
+    readonly nowIso?: string | undefined;
+  },
+  filePath: string,
+): TaskQueueItem {
+  const queue = readTaskQueueFile(filePath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
     throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
@@ -710,7 +1046,7 @@ export function startTaskValidation(params: {
   };
 
   queue[index] = validatingTask;
-  writeTaskQueue(queue, params.customPath);
+  writeTaskQueueUnlocked(queue, filePath);
   return validatingTask;
 }
 
@@ -736,7 +1072,32 @@ export function completeTask(params: {
   readonly unblockedTasks: readonly TaskQueueItem[];
   readonly archivedRecord?: CompletedTaskRecord | undefined;
 } {
-  const queue = readTaskQueue(params.customPath);
+  const filePath = resolveTaskQueuePath(params.customPath);
+  return withTaskQueueTransaction(filePath, () => completeTaskUnlocked(params, filePath));
+}
+
+function completeTaskUnlocked(
+  params: {
+    readonly taskId: string;
+    readonly agentId?: string | undefined;
+    readonly leaseToken?: string | undefined;
+    readonly nowIso?: string | undefined;
+    readonly proofSummary?: string | undefined;
+    readonly testPath?: string | undefined;
+    readonly assertions?: number | string | readonly string[] | null | undefined;
+    readonly runtimeMs?: number | string | null | undefined;
+    readonly commitSha?: string | null | undefined;
+    readonly autoArchive?: boolean | undefined;
+    readonly completedTasksPath?: string | undefined;
+    readonly autoPrune?: boolean | undefined;
+  },
+  filePath: string,
+): {
+  readonly completedTask: TaskQueueItem;
+  readonly unblockedTasks: readonly TaskQueueItem[];
+  readonly archivedRecord?: CompletedTaskRecord | undefined;
+} {
+  const queue = readTaskQueueFile(filePath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
     throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
@@ -826,9 +1187,9 @@ export function completeTask(params: {
 
   if (params.autoPrune) {
     const remainingQueue = queue.filter((t) => t.id !== completedTask.id);
-    writeTaskQueue(remainingQueue, params.customPath);
+    writeTaskQueueUnlocked(remainingQueue, filePath);
   } else {
-    writeTaskQueue(queue, params.customPath);
+    writeTaskQueueUnlocked(queue, filePath);
   }
 
   return {
@@ -853,7 +1214,22 @@ export function escalateTask(params: {
   readonly task: TaskQueueItem;
   readonly affectedDependents: readonly string[];
 } {
-  const queue = readTaskQueue(params.customPath);
+  const filePath = resolveTaskQueuePath(params.customPath);
+  return withTaskQueueTransaction(filePath, () => escalateTaskUnlocked(params, filePath));
+}
+
+function escalateTaskUnlocked(
+  params: {
+    readonly taskId: string;
+    readonly reason: string;
+    readonly escalationTier?: string | undefined;
+    readonly agentId?: string | undefined;
+    readonly leaseToken?: string | undefined;
+    readonly nowIso?: string | undefined;
+  },
+  filePath: string,
+): { readonly task: TaskQueueItem; readonly affectedDependents: readonly string[] } {
+  const queue = readTaskQueueFile(filePath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
     throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
@@ -918,7 +1294,7 @@ export function escalateTask(params: {
     }
   }
 
-  writeTaskQueue(queue, params.customPath);
+  writeTaskQueueUnlocked(queue, filePath);
 
   return {
     task: escalatedTask,
@@ -944,7 +1320,28 @@ export function failTask(params: {
   readonly affectedDependents: readonly string[];
   readonly escalated?: boolean | undefined;
 } {
-  const queue = readTaskQueue(params.customPath);
+  const filePath = resolveTaskQueuePath(params.customPath);
+  return withTaskQueueTransaction(filePath, () => failTaskUnlocked(params, filePath));
+}
+
+function failTaskUnlocked(
+  params: {
+    readonly taskId: string;
+    readonly errorMessage: string;
+    readonly agentId?: string | undefined;
+    readonly leaseToken?: string | undefined;
+    readonly canRetry?: boolean | undefined;
+    readonly escalateOnMaxRetries?: boolean | undefined;
+    readonly nowIso?: string | undefined;
+  },
+  filePath: string,
+): {
+  readonly task: TaskQueueItem;
+  readonly retried: boolean;
+  readonly affectedDependents: readonly string[];
+  readonly escalated?: boolean | undefined;
+} {
+  const queue = readTaskQueueFile(filePath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
     throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
@@ -968,7 +1365,7 @@ export function failTask(params: {
       updated_at: nowIso,
     };
     queue[index] = retriedTask;
-    writeTaskQueue(queue, params.customPath);
+    writeTaskQueueUnlocked(queue, filePath);
     return {
       task: retriedTask,
       retried: true,
@@ -978,14 +1375,16 @@ export function failTask(params: {
   }
 
   if (params.escalateOnMaxRetries) {
-    const escResult = escalateTask({
-      taskId: params.taskId,
-      reason: `Max retries (${task.max_retries}) exceeded: ${params.errorMessage}`,
-      agentId: params.agentId,
-      leaseToken: params.leaseToken,
-      customPath: params.customPath,
-      nowIso: params.nowIso,
-    });
+    const escResult = escalateTaskUnlocked(
+      {
+        taskId: params.taskId,
+        reason: `Max retries (${task.max_retries}) exceeded: ${params.errorMessage}`,
+        agentId: params.agentId,
+        leaseToken: params.leaseToken,
+        nowIso: params.nowIso,
+      },
+      filePath,
+    );
     return {
       task: escResult.task,
       retried: false,
@@ -1036,7 +1435,7 @@ export function failTask(params: {
     }
   }
 
-  writeTaskQueue(queue, params.customPath);
+  writeTaskQueueUnlocked(queue, filePath);
 
   return {
     task: failedTask,
@@ -1058,7 +1457,15 @@ export function reclaimExpiredLeases(
   readonly reclaimedCount: number;
   readonly tasks: readonly TaskQueueItem[];
 } {
-  const queue = readTaskQueue(params.customPath);
+  const filePath = resolveTaskQueuePath(params.customPath);
+  return withTaskQueueTransaction(filePath, () => reclaimExpiredLeasesUnlocked(params, filePath));
+}
+
+function reclaimExpiredLeasesUnlocked(
+  params: { readonly nowMs?: number | undefined },
+  filePath: string,
+): { readonly reclaimedCount: number; readonly tasks: readonly TaskQueueItem[] } {
+  const queue = readTaskQueueFile(filePath);
   const nowMs = params.nowMs ?? Date.now();
   const nowIso = new Date(nowMs).toISOString();
 
@@ -1107,7 +1514,7 @@ export function reclaimExpiredLeases(
   }
 
   if (modified) {
-    writeTaskQueue(queue, params.customPath);
+    writeTaskQueueUnlocked(queue, filePath);
   }
 
   return {
@@ -1246,7 +1653,24 @@ export function pruneCompletedTasks(
   readonly remainingCount: number;
   readonly archivedCount?: number | undefined;
 } {
-  const all = readTaskQueue(customPath);
+  const filePath = resolveTaskQueuePath(customPath);
+  return withTaskQueueTransaction(filePath, () => pruneCompletedTasksUnlocked(options, filePath));
+}
+
+function pruneCompletedTasksUnlocked(
+  options:
+    | {
+        readonly completedTasksPath?: string | undefined;
+        readonly autoArchive?: boolean | undefined;
+      }
+    | undefined,
+  filePath: string,
+): {
+  readonly prunedCount: number;
+  readonly remainingCount: number;
+  readonly archivedCount?: number | undefined;
+} {
+  const all = readTaskQueueFile(filePath);
   const completed = all.filter((t) => t.status === "COMPLETED");
   const remaining = all.filter((t) => t.status !== "COMPLETED");
   const prunedCount = completed.length;
@@ -1275,7 +1699,7 @@ export function pruneCompletedTasks(
   }
 
   if (prunedCount > 0) {
-    writeTaskQueue(remaining, customPath);
+    writeTaskQueueUnlocked(remaining, filePath);
   }
 
   return {
@@ -1299,102 +1723,134 @@ export function popNextEligibleTaskWithCleanup(params: {
   readonly leaseToken: string;
   readonly prunedCount: number;
 } | null {
-  const pruneRes = pruneCompletedTasks(params.customPath, {
-    completedTasksPath: params.completedTasksPath,
-    autoArchive: true,
+  const filePath = resolveTaskQueuePath(params.customPath);
+  return withTaskQueueTransaction(filePath, () => {
+    const pruneRes = pruneCompletedTasksUnlocked(
+      { completedTasksPath: params.completedTasksPath, autoArchive: true },
+      filePath,
+    );
+    const popped = popNextEligibleTaskUnlocked(
+      { agentId: params.agentId, durationSeconds: params.durationSeconds, nowIso: params.nowIso },
+      filePath,
+    );
+    return popped ? { ...popped, prunedCount: pruneRes.prunedCount } : null;
   });
-  const popped = popNextEligibleTask({
-    agentId: params.agentId,
-    durationSeconds: params.durationSeconds,
-    customPath: params.customPath,
-    nowIso: params.nowIso,
-  });
-  if (!popped) return null;
-  return {
-    ...popped,
-    prunedCount: pruneRes.prunedCount,
-  };
 }
 
 function deserializeTaskQueueItem(raw: Record<string, unknown>): TaskQueueItem {
-  const statusRaw = String(raw["status"] ?? "PENDING").toUpperCase();
-  const status: TaskQueueStatus = TASK_QUEUE_STATUSES.includes(statusRaw as TaskQueueStatus)
-    ? (statusRaw as TaskQueueStatus)
-    : "PENDING";
-
-  const priorityRaw = String(raw["priority"] ?? "MEDIUM").toUpperCase();
-  const priority: TaskPriority = TASK_PRIORITIES.includes(priorityRaw as TaskPriority)
-    ? (priorityRaw as TaskPriority)
-    : "MEDIUM";
-
-  const writeScope = Array.isArray(raw["write_scope"])
-    ? raw["write_scope"].filter((s): s is string => typeof s === "string")
-    : [];
-
-  const charterGoals = Array.isArray(raw["charter_goals"])
-    ? raw["charter_goals"].filter((g): g is string => typeof g === "string")
-    : ["G1"];
-
-  const acceptanceCriteria = Array.isArray(raw["acceptance_criteria"])
-    ? raw["acceptance_criteria"].filter((c): c is string => typeof c === "string")
-    : [];
-
-  const dependencies = Array.isArray(raw["dependencies"])
-    ? raw["dependencies"].filter((d): d is string => typeof d === "string")
-    : [];
-
-  const blockedBy = Array.isArray(raw["blocked_by"])
-    ? raw["blocked_by"].filter((b): b is string => typeof b === "string")
-    : [];
-
-  let lease: TaskLease | null = null;
-  if (raw["lease"] && typeof raw["lease"] === "object") {
-    const l = raw["lease"] as Record<string, unknown>;
-    if (typeof l["agent_id"] === "string" && typeof l["expires_at"] === "string") {
-      lease = {
-        agent_id: l["agent_id"],
-        leased_at: typeof l["leased_at"] === "string" ? l["leased_at"] : new Date().toISOString(),
-        expires_at: l["expires_at"],
-        attempt: typeof l["attempt"] === "number" ? l["attempt"] : 1,
-        lease_duration_seconds:
-          typeof l["lease_duration_seconds"] === "number"
-            ? l["lease_duration_seconds"]
-            : DEFAULT_LEASE_DURATION_SECONDS,
-        token: typeof l["token"] === "string" ? l["token"] : "unknown-token",
-      };
+  const requiredString = (key: string): string => {
+    const value = raw[key];
+    if (typeof value !== "string" || value.trim().length === 0) {
+      throw new HarnessError("INTEGRITY", `task queue record has invalid ${key}`);
     }
+    return value;
+  };
+  const stringArray = (key: string, nonEmpty = false): string[] => {
+    const value = raw[key];
+    if (
+      !Array.isArray(value) ||
+      (nonEmpty && value.length === 0) ||
+      !value.every((entry) => typeof entry === "string" && entry.trim())
+    ) {
+      throw new HarnessError("INTEGRITY", `task queue record has invalid ${key}`);
+    }
+    return [...value];
+  };
+  const id = requiredString("id");
+  const status = requiredString("status") as TaskQueueStatus;
+  const priority = requiredString("priority") as TaskPriority;
+  if (!TASK_QUEUE_STATUSES.includes(status) || !TASK_PRIORITIES.includes(priority)) {
+    throw new HarnessError("INTEGRITY", `task queue record has invalid status or priority`);
   }
-
+  const sourceType = validateSourceType(raw["source_type"]);
+  if (raw["source_type"] !== sourceType) {
+    throw new HarnessError("INTEGRITY", "task queue record has invalid source_type");
+  }
+  const retryCount = raw["retry_count"];
+  const maxRetries = raw["max_retries"];
+  if (
+    typeof retryCount !== "number" ||
+    !Number.isSafeInteger(retryCount) ||
+    retryCount < 0 ||
+    typeof maxRetries !== "number" ||
+    !Number.isSafeInteger(maxRetries) ||
+    maxRetries < 0
+  ) {
+    throw new HarnessError("INTEGRITY", "task queue record has invalid retry counters");
+  }
+  let lease: TaskLease | null = null;
+  if (raw["lease"] !== null && raw["lease"] !== undefined) {
+    const value = raw["lease"];
+    if (typeof value !== "object" || Array.isArray(value)) {
+      throw new HarnessError("INTEGRITY", "task queue record has invalid lease");
+    }
+    const rawLease = value as Record<string, unknown>;
+    const agentId = rawLease.agent_id;
+    const token = rawLease.token;
+    const leasedAt = rawLease.leased_at;
+    const expiresAt = rawLease.expires_at;
+    const attempt = rawLease.attempt;
+    const duration = rawLease.lease_duration_seconds;
+    if (
+      typeof agentId !== "string" ||
+      !agentId.trim() ||
+      typeof token !== "string" ||
+      !token.trim() ||
+      typeof leasedAt !== "string" ||
+      !Number.isFinite(Date.parse(leasedAt)) ||
+      typeof expiresAt !== "string" ||
+      !Number.isFinite(Date.parse(expiresAt)) ||
+      typeof attempt !== "number" ||
+      !Number.isSafeInteger(attempt) ||
+      attempt < 1 ||
+      typeof duration !== "number" ||
+      !Number.isSafeInteger(duration) ||
+      duration < 1
+    )
+      throw new HarnessError("INTEGRITY", "task queue record has invalid lease");
+    lease = {
+      agent_id: agentId,
+      token,
+      leased_at: leasedAt,
+      expires_at: expiresAt,
+      attempt,
+      lease_duration_seconds: duration,
+    };
+  }
+  const createdAt = requiredString("created_at");
+  const updatedAt = requiredString("updated_at");
+  if (!Number.isFinite(Date.parse(createdAt)) || !Number.isFinite(Date.parse(updatedAt))) {
+    throw new HarnessError("INTEGRITY", "task queue record has invalid timestamps");
+  }
   return {
-    id: String(raw["id"]),
-    title: typeof raw["title"] === "string" ? raw["title"] : `Task ${raw["id"]}`,
-    description: typeof raw["description"] === "string" ? raw["description"] : "",
+    id,
+    title: requiredString("title"),
+    description: requiredString("description"),
     priority,
     status,
-    write_scope: writeScope,
-    gate:
-      typeof raw["gate"] === "string" ? raw["gate"] : "bun test tests/unit && bun run typecheck",
-    charter_goals: charterGoals,
-    acceptance_criteria: acceptanceCriteria,
-    dependencies,
-    blocked_by: blockedBy,
+    write_scope: stringArray("write_scope", true),
+    gate: requiredString("gate"),
+    charter_goals: stringArray("charter_goals", true),
+    acceptance_criteria: stringArray("acceptance_criteria"),
+    dependencies: stringArray("dependencies"),
+    blocked_by: stringArray("blocked_by"),
     lease,
-    source_type: validateSourceType(raw["source_type"]),
-    created_at:
-      typeof raw["created_at"] === "string" ? raw["created_at"] : new Date().toISOString(),
-    updated_at:
-      typeof raw["updated_at"] === "string" ? raw["updated_at"] : new Date().toISOString(),
+    source_type: sourceType,
+    created_at: createdAt,
+    updated_at: updatedAt,
     started_at: typeof raw["started_at"] === "string" ? raw["started_at"] : null,
     completed_at: typeof raw["completed_at"] === "string" ? raw["completed_at"] : null,
     failed_at: typeof raw["failed_at"] === "string" ? raw["failed_at"] : null,
     escalated_at: typeof raw["escalated_at"] === "string" ? raw["escalated_at"] : null,
-    retry_count: typeof raw["retry_count"] === "number" ? raw["retry_count"] : 0,
-    max_retries: typeof raw["max_retries"] === "number" ? raw["max_retries"] : DEFAULT_MAX_RETRIES,
+    retry_count: retryCount,
+    max_retries: maxRetries,
     error_message: typeof raw["error_message"] === "string" ? raw["error_message"] : null,
     assigned_tier: typeof raw["assigned_tier"] === "string" ? raw["assigned_tier"] : null,
     assigned_role: typeof raw["assigned_role"] === "string" ? raw["assigned_role"] : null,
     metadata:
-      typeof raw["metadata"] === "object" && raw["metadata"] !== null
+      typeof raw["metadata"] === "object" &&
+      raw["metadata"] !== null &&
+      !Array.isArray(raw["metadata"])
         ? (raw["metadata"] as Record<string, unknown>)
         : undefined,
   };
@@ -1413,5 +1869,5 @@ function validateSourceType(val: unknown): TaskSourceType {
       return val;
     }
   }
-  return "direct_prompt";
+  throw new HarnessError("INTEGRITY", "task queue record has invalid source_type");
 }
