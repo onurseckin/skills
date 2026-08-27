@@ -10,6 +10,7 @@ import {
   deriveWriteScopeForCategory,
   detectScopeCollisions,
   detectScopeOverlap,
+  executeAtomicAdmissionToDispatch,
   expandExternalPromptToPlan,
   expandExternalPromptToWavePlan,
   partitionCandidatesStrictly,
@@ -21,6 +22,7 @@ import {
   processAutonomousDualIntake,
   rebalanceTasksWithBrentLimits,
   runAutonomousDualIntakeCycle,
+  reconcileAdmissionToDispatchState,
   sanitizeSlug,
   synthesizeAutonomousTasks,
   synthesizeSmartTasksFromFeedbackQueue,
@@ -31,6 +33,7 @@ import {
 } from "../../../olt/scripts/src/mind/smart-task-manager.ts";
 import {
   admitFeedbackToQueue,
+  __setFeedbackQueuePersistenceTestHook,
   appendFeedbackItem,
   backpropagateFeedbackResolution,
   clearFeedbackQueue,
@@ -1001,6 +1004,51 @@ describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
       });
       expect(enhancedWave.total_waves).toBe(1);
     });
+  });
+
+  it("leaves a PREPARED receipt after feedback commit fault and reconciles it exactly once", () => {
+    setup();
+    appendFeedbackItem(
+      {
+        id: "fb-prepared-recovery",
+        title: "Prepared recovery",
+        content: "Exercise durable admission recovery",
+        priority: "HIGH_ARCHITECTURAL_FEATURE",
+        category: "CORE_ENGINE",
+        status: "PENDING",
+      },
+      feedbackFile,
+    );
+    let renames = 0;
+    __setFeedbackQueuePersistenceTestHook((stage) => {
+      if (stage === "before_rename" && ++renames === 2)
+        throw new Error("forced feedback commit failure");
+    });
+    try {
+      expect(() =>
+        executeAtomicAdmissionToDispatch({
+          capsulesDir: feedbackFile,
+          queuePath: taskQueueFile,
+          maxTasks: 1,
+        }),
+      ).toThrow("forced feedback commit failure");
+    } finally {
+      __setFeedbackQueuePersistenceTestHook(undefined);
+    }
+    const prepared = readFeedbackQueue(feedbackFile)[0];
+    expect(prepared?.status).toBe("PENDING");
+    expect(prepared?.metadata?.["feedback_dispatch_state"]).toBe("PREPARED");
+    expect(readTaskQueue(taskQueueFile)).toHaveLength(1);
+    expect(
+      reconcileAdmissionToDispatchState({ capsulesDir: feedbackFile, queuePath: taskQueueFile })
+        .reconciled_feedbacks_count,
+    ).toBe(1);
+    expect(readFeedbackQueue(feedbackFile)[0]?.status).toBe("ADMITTED");
+    expect(
+      reconcileAdmissionToDispatchState({ capsulesDir: feedbackFile, queuePath: taskQueueFile })
+        .reconciled_feedbacks_count,
+    ).toBe(0);
+    teardown();
   });
 
   describe("5. Static Invariant Verification: 0 TypeScript any & 0 Suppressions", () => {

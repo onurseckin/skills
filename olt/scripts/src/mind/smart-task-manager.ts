@@ -7,7 +7,7 @@ import {
   drainPendingFeedbacks,
   readFeedbackQueue,
   resolveFeedbackQueuePath,
-  writeFeedbackQueue,
+  updateOrPruneFeedbackItems,
   type AdmissionDispatchIntegrityReport,
   type AtomicAdmissionDispatchResult,
   type FeedbackCategory,
@@ -3033,10 +3033,30 @@ export function executeAtomicAdmissionToDispatch(
     metadata: t.metadata,
   }));
 
+  const taskByFeedbackId = new Map<string, string>();
+  for (const task of finalTasks) {
+    if (task.feedback_id) taskByFeedbackId.set(task.feedback_id, task.id);
+  }
+  const preparedAt = new Date().toISOString();
+  // Persist the recovery receipt before task enqueue. If enqueue succeeds but feedback
+  // commit faults, reconciliation can deterministically promote this marker exactly once.
+  updateOrPruneFeedbackItems((feedback) => {
+    const taskId = taskByFeedbackId.get(feedback.id);
+    if (!taskId) return feedback;
+    return {
+      ...feedback,
+      metadata: {
+        ...(feedback.metadata ?? {}),
+        feedback_dispatch_state: "PREPARED",
+        feedback_dispatch_task_id: taskId,
+        feedback_dispatch_prepared_at: preparedAt,
+      },
+    };
+  }, options.capsulesDir);
+
   const enqueuedTasks = enqueueTasksBatch(batchInputs, options.queuePath);
 
   // 2. Atomically update feedback queue status to ADMITTED with linked task ID
-  const allFeedbacks = readFeedbackQueue(options.capsulesDir);
   const nowIso = new Date().toISOString();
   const admittedMap = new Map<string, string>();
   for (const t of finalTasks) {
@@ -3045,11 +3065,11 @@ export function executeAtomicAdmissionToDispatch(
     }
   }
 
-  const newlyAdmitted: FeedbackItem[] = [];
-  const updatedFeedbacks = allFeedbacks.map((fb) => {
-    const matchedTaskId = admittedMap.get(fb.id);
-    if (matchedTaskId) {
-      const updated: FeedbackItem = {
+  const newlyAdmitted = updateOrPruneFeedbackItems(
+    (fb) => {
+      const matchedTaskId = admittedMap.get(fb.id);
+      if (!matchedTaskId) return fb;
+      return {
         ...fb,
         status: "ADMITTED",
         processed_at: nowIso,
@@ -3057,15 +3077,15 @@ export function executeAtomicAdmissionToDispatch(
           ...(fb.metadata ?? {}),
           dispatched_task_id: matchedTaskId,
           atomic_dispatched_at: nowIso,
+          feedback_dispatch_state: "COMMITTED",
+          feedback_dispatch_task_id: matchedTaskId,
+          feedback_dispatch_committed_at: nowIso,
         },
       };
-      newlyAdmitted.push(updated);
-      return updated;
-    }
-    return fb;
-  });
-
-  writeFeedbackQueue(updatedFeedbacks, options.capsulesDir);
+    },
+    options.capsulesDir,
+    (items) => items.filter((item) => admittedMap.has(item.id) && item.status === "ADMITTED"),
+  ) as readonly FeedbackItem[];
 
   // 3. Verify zero paused admitted items invariant
   const auditReport = verifyAdmissionToDispatchInvariants(options);
@@ -3116,15 +3136,6 @@ export function reconcileAdmissionToDispatchState(
   readonly newly_enqueued_tasks_count: number;
   readonly audit_report: AdmissionToDispatchAuditReport;
 } {
-  const audit = verifyAdmissionToDispatchInvariants(options);
-  if (audit.zero_paused_admitted) {
-    return {
-      reconciled_feedbacks_count: 0,
-      newly_enqueued_tasks_count: 0,
-      audit_report: audit,
-    };
-  }
-
   const allFeedbacks = readFeedbackQueue(options.capsulesDir);
   const tasks = readTaskQueue(options.queuePath);
   const taskMap = new Map<string, TaskQueueItem>();
@@ -3134,6 +3145,50 @@ export function reconcileAdmissionToDispatchState(
     if (typeof fbId === "string") {
       taskMap.set(fbId, t);
     }
+  }
+
+  const preparedWithTask = allFeedbacks.filter((feedback) => {
+    const taskId = feedback.metadata?.["feedback_dispatch_task_id"];
+    return (
+      feedback.metadata?.["feedback_dispatch_state"] === "PREPARED" &&
+      typeof taskId === "string" &&
+      taskMap.has(taskId)
+    );
+  });
+  if (preparedWithTask.length > 0) {
+    const preparedIds = new Set(preparedWithTask.map((feedback) => feedback.id));
+    const committedAt = new Date().toISOString();
+    updateOrPruneFeedbackItems((feedback) => {
+      if (!preparedIds.has(feedback.id)) return feedback;
+      const taskId = String(feedback.metadata?.["feedback_dispatch_task_id"]);
+      return {
+        ...feedback,
+        status: "ADMITTED",
+        processed_at: committedAt,
+        metadata: {
+          ...(feedback.metadata ?? {}),
+          dispatched_task_id: taskId,
+          atomic_dispatched_at: committedAt,
+          feedback_dispatch_state: "COMMITTED",
+          feedback_dispatch_committed_at: committedAt,
+        },
+      };
+    }, options.capsulesDir);
+    const auditReport = verifyAdmissionToDispatchInvariants(options);
+    return {
+      reconciled_feedbacks_count: preparedWithTask.length,
+      newly_enqueued_tasks_count: 0,
+      audit_report: auditReport,
+    };
+  }
+
+  const audit = verifyAdmissionToDispatchInvariants(options);
+  if (audit.zero_paused_admitted) {
+    return {
+      reconciled_feedbacks_count: 0,
+      newly_enqueued_tasks_count: 0,
+      audit_report: audit,
+    };
   }
 
   const orphanedFeedbacks = allFeedbacks.filter(
@@ -3387,7 +3442,6 @@ export function drainBacklogOnRunCompletion(params: {
 
   const completedIds = new Set(params.completedTasks ?? []);
   const toDrain: FeedbackItem[] = [];
-  const toKeep: FeedbackItem[] = [];
 
   for (const item of backlogItems) {
     const isExplicitlyCompleted =
@@ -3400,8 +3454,6 @@ export function drainBacklogOnRunCompletion(params: {
 
     if (isExplicitlyCompleted || isStatusDone) {
       toDrain.push(item);
-    } else {
-      toKeep.push(item);
     }
   }
 
@@ -3435,12 +3487,13 @@ export function drainBacklogOnRunCompletion(params: {
 
   if (toDrain.length > 0) {
     recordCompletedTasksBatch(archivedRecords, { customPath: completedPath });
-    writeFeedbackQueue(toKeep, backlogPath);
+    const drainedIds = new Set(toDrain.map((item) => item.id));
+    updateOrPruneFeedbackItems((item) => (drainedIds.has(item.id) ? null : item), backlogPath);
   }
 
   return {
     drainedCount: toDrain.length,
-    remainingBacklogCount: toKeep.length,
+    remainingBacklogCount: readFeedbackQueue(backlogPath).length,
     archivedRecords,
   };
 }

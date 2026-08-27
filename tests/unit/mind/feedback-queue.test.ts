@@ -1,5 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
@@ -16,9 +24,11 @@ import {
   CANONICAL_FEEDBACK_FILE,
   sealFeedbackResolution,
   updateFeedbackItem,
+  updateOrPruneFeedbackItems,
   validateFeedbackResolutionProof,
   verifyFeedbackEmpiricalSealing,
   writeFeedbackQueue,
+  __setFeedbackQueuePersistenceTestHook,
   type FeedbackItem,
   type FeedbackResolutionProof,
 } from "../../../olt/scripts/src/mind/feedback-queue.ts";
@@ -101,6 +111,160 @@ describe("Feedback Queue Engine", () => {
     const directoryPath = join(testDir, "queue-directory");
     mkdirSync(directoryPath);
     expect(() => readFeedbackQueueStrict(directoryPath)).toThrow(HarnessError);
+    teardown();
+  });
+
+  it("preserves malformed, duplicate, and invalid-resolution ledger bytes", () => {
+    setup();
+    const invalidRecords = [
+      "{not-json}\n",
+      `${JSON.stringify({ id: "dup", timestamp: "2026-08-22T00:00:00.000Z", priority: "NORMAL", status: "PENDING", category: "GENERAL", title: "one", content: "one" })}\n${JSON.stringify({ id: "dup", timestamp: "2026-08-22T00:00:00.000Z", priority: "NORMAL", status: "PENDING", category: "GENERAL", title: "two", content: "two" })}\n`,
+      `${JSON.stringify({ id: "bad-resolution", timestamp: "2026-08-22T00:00:00.000Z", priority: "NORMAL", status: "COMPLETED", category: "GENERAL", title: "bad", content: "bad", resolution: { task_id: "", resolved_at: "invalid" } })}\n`,
+    ];
+    for (const raw of invalidRecords) {
+      writeFileSync(queueFile, raw, "utf8");
+      expect(() =>
+        appendFeedbackItem(
+          {
+            id: "new",
+            title: "new",
+            content: "new",
+            priority: "NORMAL",
+            category: "GENERAL",
+            status: "PENDING",
+          },
+          queueFile,
+        ),
+      ).toThrow(HarnessError);
+      expect(readFileSync(queueFile, "utf8")).toBe(raw);
+    }
+    teardown();
+  });
+
+  it("rejects symlink and hardlink queue targets without touching their sentinels", () => {
+    setup();
+    const sentinel = join(testDir, "sentinel.jsonl");
+    writeFileSync(sentinel, "sentinel\n", "utf8");
+    symlinkSync(sentinel, queueFile);
+    expect(() => readFeedbackQueueStrict(queueFile)).toThrow(HarnessError);
+    expect(readFileSync(sentinel, "utf8")).toBe("sentinel\n");
+    rmSync(queueFile);
+    linkSync(sentinel, queueFile);
+    expect(() =>
+      appendFeedbackItem(
+        {
+          id: "nope",
+          title: "nope",
+          content: "nope",
+          priority: "NORMAL",
+          category: "GENERAL",
+          status: "PENDING",
+        },
+        queueFile,
+      ),
+    ).toThrow(HarnessError);
+    expect(readFileSync(sentinel, "utf8")).toBe("sentinel\n");
+    teardown();
+  });
+
+  it("cleans temporary bytes before rename and reports uncertain state after rename", () => {
+    setup();
+    writeFeedbackQueue([], queueFile);
+    const before = readFileSync(queueFile, "utf8");
+    __setFeedbackQueuePersistenceTestHook((stage) => {
+      if (stage === "before_rename") throw new Error("forced pre-rename failure");
+    });
+    expect(() =>
+      appendFeedbackItem(
+        {
+          id: "pre",
+          title: "pre",
+          content: "pre",
+          priority: "NORMAL",
+          category: "GENERAL",
+          status: "PENDING",
+        },
+        queueFile,
+      ),
+    ).toThrow("forced pre-rename failure");
+    expect(readFileSync(queueFile, "utf8")).toBe(before);
+    __setFeedbackQueuePersistenceTestHook((stage) => {
+      if (stage === "after_rename") throw new Error("forced post-rename failure");
+    });
+    expect(() =>
+      appendFeedbackItem(
+        {
+          id: "post",
+          title: "post",
+          content: "post",
+          priority: "NORMAL",
+          category: "GENERAL",
+          status: "PENDING",
+        },
+        queueFile,
+      ),
+    ).toThrow("outcome is uncertain");
+    __setFeedbackQueuePersistenceTestHook(undefined);
+    teardown();
+  });
+
+  it("retains both distinct synchronized child-process appends", async () => {
+    setup();
+    const latch = join(testDir, "append-go");
+    const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback-queue.ts");
+    const child = (id: string) =>
+      Bun.spawn({
+        cmd: [
+          "bun",
+          "-e",
+          `import { appendFeedbackItem } from ${JSON.stringify(modulePath)}; import { existsSync } from "node:fs"; const [id, queue, latch] = process.argv.slice(-3); while (!existsSync(latch)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1); appendFeedbackItem({ id, title: id, content: "child", priority: "NORMAL", category: "GENERAL", status: "PENDING" }, queue);`,
+          id,
+          queueFile,
+          latch,
+        ],
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+    const first = child("fb-child-one");
+    const second = child("fb-child-two");
+    writeFileSync(latch, "go", "utf8");
+    expect(await first.exited).toBe(0);
+    expect(await second.exited).toBe(0);
+    expect(
+      readFeedbackQueue(queueFile)
+        .map((item) => item.id)
+        .sort(),
+    ).toEqual(["fb-child-one", "fb-child-two"]);
+    teardown();
+  });
+
+  it("preserves a concurrent append when a predicate prune commits", async () => {
+    setup();
+    appendFeedbackItem(
+      {
+        id: "fb-prune",
+        title: "prune",
+        content: "done",
+        priority: "NORMAL",
+        category: "GENERAL",
+        status: "COMPLETED",
+      },
+      queueFile,
+    );
+    const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback-queue.ts");
+    const child = Bun.spawn({
+      cmd: [
+        "bun",
+        "-e",
+        `import { appendFeedbackItem } from ${JSON.stringify(modulePath)}; appendFeedbackItem({ id: "fb-concurrent", title: "concurrent", content: "new", priority: "NORMAL", category: "GENERAL", status: "PENDING" }, process.argv.at(-1));`,
+        queueFile,
+      ],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    updateOrPruneFeedbackItems((item) => (item.id === "fb-prune" ? null : item), queueFile);
+    expect(await child.exited).toBe(0);
+    expect(readFeedbackQueue(queueFile).map((item) => item.id)).toEqual(["fb-concurrent"]);
     teardown();
   });
 

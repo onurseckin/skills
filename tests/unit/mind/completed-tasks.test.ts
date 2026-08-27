@@ -35,6 +35,10 @@ import {
   readTaskQueue,
   writeTaskQueue,
 } from "../../../olt/scripts/src/mind/task-queue.ts";
+import {
+  appendFeedbackItem,
+  readFeedbackQueue,
+} from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Completed Tasks Ledger Engine", () => {
@@ -539,6 +543,48 @@ describe("Completed Tasks Ledger Engine", () => {
     expect(emptyStats.total).toBe(0);
     expect(emptyStats.by_source).toEqual({});
     expect(emptyStats.by_category).toEqual({});
+  });
+
+  it("completed-task archival does not erase a concurrent feedback append", async () => {
+    setup();
+    appendFeedbackItem(
+      {
+        id: "fb-archive",
+        title: "archive",
+        content: "done",
+        priority: "NORMAL",
+        category: "GENERAL",
+        status: "COMPLETED",
+      },
+      feedbackFile,
+    );
+    const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback-queue.ts");
+    const child = Bun.spawn({
+      cmd: [
+        "bun",
+        "-e",
+        `import { appendFeedbackItem } from ${JSON.stringify(modulePath)}; appendFeedbackItem({ id: "fb-archive-concurrent", title: "concurrent", content: "keep", priority: "NORMAL", category: "GENERAL", status: "PENDING" }, process.argv.at(-1));`,
+        feedbackFile,
+      ],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    recordCompletedTask(
+      {
+        id: "fb-archive",
+        source: "feedback_queue",
+        title: "archive",
+        status: "COMPLETED",
+        proof_summary: "archive",
+        completed_at: "2026-08-22T00:00:00.000Z",
+      },
+      { customPath: ledgerFile, updateFeedbackQueue: true, feedbackQueuePath: feedbackFile },
+    );
+    expect(await child.exited).toBe(0);
+    expect(readFeedbackQueue(feedbackFile).map((item) => item.id)).toEqual([
+      "fb-archive-concurrent",
+    ]);
+    teardown();
   });
 
   it("seamlessly updates FEEDBACK_QUEUE.jsonl with empirical sealing when resolving items", () => {

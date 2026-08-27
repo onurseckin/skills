@@ -1,6 +1,22 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fstatSync,
+  fsyncSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  unlinkSync,
+  writeSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/harness-error.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
 import { resolveTaskQueuePath } from "./task-queue.ts";
 
 export type FeedbackPriority =
@@ -106,6 +122,32 @@ export const PRIORITY_ORDER: Record<FeedbackPriority, number> = {
   LOW: 5,
 };
 
+type FeedbackQueuePersistenceStage =
+  | "before_write"
+  | "before_file_fsync"
+  | "before_rename"
+  | "after_rename"
+  | "before_directory_fsync";
+let feedbackQueuePersistenceTestHook: ((stage: FeedbackQueuePersistenceStage) => void) | undefined;
+const feedbackQueueLockSleep = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
+
+/** @internal Narrow deterministic durability seam for the unit suite. */
+export function __setFeedbackQueuePersistenceTestHook(
+  hook: ((stage: FeedbackQueuePersistenceStage) => void) | undefined,
+): void {
+  feedbackQueuePersistenceTestHook = hook;
+}
+
+function invokeFeedbackQueuePersistenceHook(stage: FeedbackQueuePersistenceStage): void {
+  feedbackQueuePersistenceTestHook?.(stage);
+}
+
+function noFollowFlag(): number {
+  if (typeof constants.O_NOFOLLOW !== "number")
+    throw new HarnessError("UNSUPPORTED_PLATFORM", "feedback queue requires O_NOFOLLOW protection");
+  return constants.O_NOFOLLOW;
+}
+
 export function resolveCanonicalFeedbackQueuePath(customRoot?: string, _useTodo = false): string {
   return require("path").join(customRoot || process.cwd(), ".olt", "backlog.jsonl");
 }
@@ -136,9 +178,13 @@ export function validateFeedbackResolutionProof(
   }
 
   const resolvedAt =
-    typeof p["resolved_at"] === "string" && p["resolved_at"].trim()
-      ? p["resolved_at"].trim()
-      : new Date().toISOString();
+    typeof p["resolved_at"] === "string" && p["resolved_at"].trim() ? p["resolved_at"].trim() : "";
+  if (!resolvedAt) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Feedback resolution proof requires non-empty resolved_at",
+    );
+  }
 
   const parsedDate = Date.parse(resolvedAt);
   if (!Number.isFinite(parsedDate)) {
@@ -154,6 +200,9 @@ export function validateFeedbackResolutionProof(
       : p["test_path"] === null
         ? null
         : undefined;
+  if ("test_path" in p && p["test_path"] !== undefined && testPath === undefined) {
+    throw new HarnessError("INVALID_ARGUMENT", "Feedback resolution proof has invalid test_path");
+  }
 
   if (options.requireTestPath && (!testPath || testPath.length < 3)) {
     throw new HarnessError(
@@ -168,6 +217,12 @@ export function validateFeedbackResolutionProof(
       : p["test_assertion"] === null
         ? null
         : undefined;
+  if ("test_assertion" in p && p["test_assertion"] !== undefined && testAssertion === undefined) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Feedback resolution proof has invalid test_assertion",
+    );
+  }
 
   let assertions: number | string | readonly string[] | null | undefined = undefined;
   if (typeof p["assertions"] === "number" || typeof p["assertions"] === "string") {
@@ -176,6 +231,8 @@ export function validateFeedbackResolutionProof(
     assertions = p["assertions"].map((a) => String(a));
   } else if (p["assertions"] === null) {
     assertions = null;
+  } else if ("assertions" in p && p["assertions"] !== undefined) {
+    throw new HarnessError("INVALID_ARGUMENT", "Feedback resolution proof has invalid assertions");
   }
 
   let runtimeMs: number | string | null | undefined = undefined;
@@ -185,6 +242,11 @@ export function validateFeedbackResolutionProof(
     runtimeMs = p["runtime"] as number | string;
   } else if (p["runtime_ms"] === null || p["runtime"] === null) {
     runtimeMs = null;
+  } else if (
+    ("runtime_ms" in p && p["runtime_ms"] !== undefined) ||
+    ("runtime" in p && p["runtime"] !== undefined)
+  ) {
+    throw new HarnessError("INVALID_ARGUMENT", "Feedback resolution proof has invalid runtime_ms");
   }
 
   const commitSha =
@@ -193,6 +255,9 @@ export function validateFeedbackResolutionProof(
       : p["commit_sha"] === null
         ? null
         : undefined;
+  if ("commit_sha" in p && p["commit_sha"] !== undefined && commitSha === undefined) {
+    throw new HarnessError("INVALID_ARGUMENT", "Feedback resolution proof has invalid commit_sha");
+  }
 
   if (options.requireCommitSha && (!commitSha || commitSha.length < 7)) {
     throw new HarnessError(
@@ -207,6 +272,12 @@ export function validateFeedbackResolutionProof(
       : p["proof_summary"] === null
         ? null
         : undefined;
+  if ("proof_summary" in p && p["proof_summary"] !== undefined && proofSummary === undefined) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Feedback resolution proof has invalid proof_summary",
+    );
+  }
 
   const verifiedBy =
     typeof p["verified_by"] === "string" && p["verified_by"].trim()
@@ -214,6 +285,9 @@ export function validateFeedbackResolutionProof(
       : p["verified_by"] === null
         ? null
         : undefined;
+  if ("verified_by" in p && p["verified_by"] !== undefined && verifiedBy === undefined) {
+    throw new HarnessError("INVALID_ARGUMENT", "Feedback resolution proof has invalid verified_by");
+  }
 
   const remediationNotes =
     typeof p["remediation_notes"] === "string" && p["remediation_notes"].trim()
@@ -221,11 +295,24 @@ export function validateFeedbackResolutionProof(
       : p["remediation_notes"] === null
         ? null
         : undefined;
+  if (
+    "remediation_notes" in p &&
+    p["remediation_notes"] !== undefined &&
+    remediationNotes === undefined
+  ) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Feedback resolution proof has invalid remediation_notes",
+    );
+  }
 
   const metadata =
     typeof p["metadata"] === "object" && p["metadata"] !== null && !Array.isArray(p["metadata"])
       ? (p["metadata"] as Readonly<Record<string, unknown>>)
       : undefined;
+  if ("metadata" in p && p["metadata"] !== undefined && metadata === undefined) {
+    throw new HarnessError("INVALID_ARGUMENT", "Feedback resolution proof has invalid metadata");
+  }
 
   return {
     task_id: taskId,
@@ -267,95 +354,6 @@ export function verifyFeedbackEmpiricalSealing(
   }
 }
 
-export function readFeedbackQueue(customPath?: string): FeedbackItem[] {
-  const filePath = resolveFeedbackQueuePath(customPath);
-  if (!existsSync(filePath)) {
-    return [];
-  }
-
-  const raw = readFileSync(filePath, "utf8");
-  const lines = raw
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const items: FeedbackItem[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line) continue;
-    try {
-      const parsed = JSON.parse(line) as Record<string, unknown>;
-      if (!parsed["id"] || typeof parsed["id"] !== "string") {
-        continue;
-      }
-
-      let resolution: FeedbackResolutionProof | null | undefined = undefined;
-      if (
-        typeof parsed["resolution"] === "object" &&
-        parsed["resolution"] !== null &&
-        !Array.isArray(parsed["resolution"])
-      ) {
-        try {
-          resolution = validateFeedbackResolutionProof(parsed["resolution"]);
-        } catch {
-          resolution = undefined;
-        }
-      } else if (parsed["resolution"] === null) {
-        resolution = null;
-      }
-
-      let assertions: number | string | readonly string[] | null | undefined = undefined;
-      if (typeof parsed["assertions"] === "number" || typeof parsed["assertions"] === "string") {
-        assertions = parsed["assertions"];
-      } else if (Array.isArray(parsed["assertions"])) {
-        assertions = parsed["assertions"].map((a) => String(a));
-      } else if (parsed["assertions"] === null) {
-        assertions = null;
-      }
-
-      let runtimeMs: number | string | null | undefined = undefined;
-      if (typeof parsed["runtime_ms"] === "number" || typeof parsed["runtime_ms"] === "string") {
-        runtimeMs = parsed["runtime_ms"];
-      } else if (typeof parsed["runtime"] === "number" || typeof parsed["runtime"] === "string") {
-        runtimeMs = parsed["runtime"] as number | string;
-      } else if (parsed["runtime_ms"] === null || parsed["runtime"] === null) {
-        runtimeMs = null;
-      }
-
-      const item: FeedbackItem = {
-        id: String(parsed["id"]),
-        timestamp:
-          typeof parsed["timestamp"] === "string" ? parsed["timestamp"] : new Date().toISOString(),
-        priority: validatePriority(parsed["priority"]),
-        status: validateStatus(parsed["status"]),
-        category: validateCategory(parsed["category"]),
-        title: typeof parsed["title"] === "string" ? parsed["title"] : `Feedback ${parsed["id"]}`,
-        content: typeof parsed["content"] === "string" ? parsed["content"] : "",
-        candidate_id: typeof parsed["candidate_id"] === "string" ? parsed["candidate_id"] : null,
-        resolution_note:
-          typeof parsed["resolution_note"] === "string" ? parsed["resolution_note"] : null,
-        processed_at: typeof parsed["processed_at"] === "string" ? parsed["processed_at"] : null,
-        ...(resolution !== undefined ? { resolution } : {}),
-        ...(typeof parsed["test_path"] === "string" ? { test_path: parsed["test_path"] } : {}),
-        ...(assertions !== undefined ? { assertions } : {}),
-        ...(runtimeMs !== undefined ? { runtime_ms: runtimeMs } : {}),
-        ...(typeof parsed["commit_sha"] === "string" ? { commit_sha: parsed["commit_sha"] } : {}),
-        metadata:
-          typeof parsed["metadata"] === "object" &&
-          parsed["metadata"] !== null &&
-          !Array.isArray(parsed["metadata"])
-            ? (parsed["metadata"] as Record<string, unknown>)
-            : undefined,
-      };
-      items.push(item);
-    } catch {
-      // Skip malformed individual line in log
-    }
-  }
-
-  return sortFeedbackByPriority(items);
-}
-
 function isOwnEnoent(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   try {
@@ -375,61 +373,120 @@ function strictFeedbackItem(parsed: unknown, lineNumber: number): FeedbackItem {
   const timestamp = typeof record.timestamp === "string" ? record.timestamp.trim() : "";
   const title = typeof record.title === "string" ? record.title : "";
   const content = typeof record.content === "string" ? record.content : "";
+  if (!id || !timestamp || !Number.isFinite(Date.parse(timestamp)) || !title || !content) {
+    throw new HarnessError("INTEGRITY", `feedback queue line ${lineNumber} is malformed`);
+  }
   const priority = validatePriority(record.priority);
   const status = validateStatus(record.status);
   const category = validateCategory(record.category);
-  const validPriority =
-    typeof record.priority === "string" &&
-    [
-      "CRITICAL_USER_FEEDBACK",
-      "CRITICAL",
-      "HIGH_ARCHITECTURAL_FEATURE",
-      "HIGH",
-      "USER_DIRECTIVE",
-      "USER",
-      "NORMAL",
-      "LOW",
-    ].includes(record.priority.toUpperCase());
-  const validStatus =
-    typeof record.status === "string" &&
-    ["PENDING", "ADMITTED", "DECLINED", "PROCESSED", "COMPLETED"].includes(
-      record.status.toUpperCase(),
-    );
-  const validCategory =
-    typeof record.category === "string" &&
-    [
-      "DOCUMENTATION",
-      "AGENT_CONTRACTS",
-      "CLI_TOOLING",
-      "WATCHDOG",
-      "SCALING",
-      "ARCHITECTURE",
-      "CORE_ENGINE",
-      "REPAIR",
-      "GENERAL",
-    ].includes(record.category.toUpperCase());
-  if (!id || !timestamp || !title || !content || !validPriority || !validStatus || !validCategory) {
-    throw new HarnessError("INTEGRITY", `feedback queue line ${lineNumber} is malformed`);
+  for (const key of [
+    "candidate_id",
+    "resolution_note",
+    "processed_at",
+    "test_path",
+    "commit_sha",
+  ]) {
+    if (
+      key in record &&
+      record[key] !== undefined &&
+      record[key] !== null &&
+      typeof record[key] !== "string"
+    )
+      throw new HarnessError("INTEGRITY", `feedback queue line ${lineNumber} has invalid ${key}`);
   }
-  return { id, timestamp, priority, status, category, title, content };
+  if (
+    "processed_at" in record &&
+    typeof record.processed_at === "string" &&
+    !Number.isFinite(Date.parse(record.processed_at))
+  ) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `feedback queue line ${lineNumber} has invalid processed_at`,
+    );
+  }
+  if ("resolution" in record && record.resolution !== null)
+    validateFeedbackResolutionProof(record.resolution);
+  if (
+    "metadata" in record &&
+    record.metadata !== undefined &&
+    (typeof record.metadata !== "object" ||
+      record.metadata === null ||
+      Array.isArray(record.metadata))
+  ) {
+    throw new HarnessError("INTEGRITY", `feedback queue line ${lineNumber} has invalid metadata`);
+  }
+  const normalized: FeedbackItem = {
+    ...(record as unknown as FeedbackItem),
+    id,
+    timestamp,
+    priority,
+    status,
+    category,
+    title,
+    content,
+  };
+  return normalized;
 }
 
 /** Strict evidence reader for lifecycle decisions; diagnostic consumers keep readFeedbackQueue. */
 export function readFeedbackQueueStrict(customPath?: string): FeedbackItem[] {
   const filePath = resolveFeedbackQueuePath(customPath);
-  let raw: string;
+  return parseFeedbackQueue(readFeedbackQueueFile(filePath));
+}
+
+/** Strict reader retained as the default public diagnostic reader: invalid bytes are never skipped. */
+export function readFeedbackQueue(customPath?: string): FeedbackItem[] {
+  return readFeedbackQueueStrict(customPath);
+}
+
+function readFeedbackQueueFile(filePath: string): string {
+  let descriptor: number | undefined;
   try {
-    raw = readFileSync(filePath, "utf8");
+    const before = lstatSync(filePath);
+    if (!before.isFile() || before.nlink !== 1)
+      throw new HarnessError("INTEGRITY", "feedback queue must be a single-link regular file");
+    descriptor = openSync(filePath, constants.O_RDONLY | noFollowFlag());
+    const opened = fstatSync(descriptor);
+    if (
+      !opened.isFile() ||
+      opened.nlink !== 1 ||
+      opened.dev !== before.dev ||
+      opened.ino !== before.ino
+    )
+      throw new HarnessError("INTEGRITY", "feedback queue changed while being opened");
+    const raw = readFileSync(descriptor, "utf8");
+    const after = lstatSync(filePath);
+    if (
+      !after.isFile() ||
+      after.nlink !== 1 ||
+      after.dev !== opened.dev ||
+      after.ino !== opened.ino
+    )
+      throw new HarnessError("INTEGRITY", "feedback queue changed while being read");
+    return raw;
   } catch (error) {
-    if (isOwnEnoent(error)) return [];
-    throw new HarnessError("INTEGRITY", `feedback queue cannot be read: ${filePath}`);
+    if (isOwnEnoent(error)) return "";
+    if (error instanceof HarnessError) throw error;
+    throw new HarnessError("INTEGRITY", `feedback queue cannot be securely read: ${filePath}`);
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
   }
+}
+
+function parseFeedbackQueue(raw: string): FeedbackItem[] {
   const items: FeedbackItem[] = [];
+  const ids = new Set<string>();
   for (const [index, line] of raw.split("\n").entries()) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
+    if (!line.trim()) continue;
     try {
-      items.push(strictFeedbackItem(JSON.parse(trimmed), index + 1));
+      const item = strictFeedbackItem(JSON.parse(line), index + 1);
+      if (ids.has(item.id))
+        throw new HarnessError(
+          "INTEGRITY",
+          `feedback queue line ${index + 1} duplicates id '${item.id}'`,
+        );
+      ids.add(item.id);
+      items.push(item);
     } catch (error) {
       if (error instanceof HarnessError) throw error;
       throw new HarnessError("INTEGRITY", `feedback queue line ${index + 1} is malformed`);
@@ -439,44 +496,248 @@ export function readFeedbackQueueStrict(customPath?: string): FeedbackItem[] {
 }
 
 export function writeFeedbackQueue(items: readonly FeedbackItem[], customPath?: string): void {
-  const filePath = resolveFeedbackQueuePath(customPath);
-  const dir = dirname(filePath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
+  withFeedbackQueueTransaction(customPath, () => ({ items, result: undefined }));
+}
 
-  const lines = items.map((item) => JSON.stringify(item));
-  writeFileSync(filePath, lines.join("\n") + (lines.length > 0 ? "\n" : ""), "utf8");
+function writeFeedbackQueueUnlocked(items: readonly FeedbackItem[], filePath: string): void {
+  const canonical = items.map((item, index) => strictFeedbackItem(item, index + 1));
+  const ids = new Set<string>();
+  for (const item of canonical) {
+    if (ids.has(item.id))
+      throw new HarnessError("INTEGRITY", `feedback queue duplicates id '${item.id}'`);
+    ids.add(item.id);
+  }
+  atomicReplaceFeedbackQueue(
+    filePath,
+    canonical.map((item) => JSON.stringify(item)).join("\n") + (canonical.length ? "\n" : ""),
+  );
+}
+
+function assertStableFeedbackDirectory(path: string, descriptor: number, label: string): void {
+  const pathStat = lstatSync(path);
+  const opened = fstatSync(descriptor);
+  if (
+    !pathStat.isDirectory() ||
+    !opened.isDirectory() ||
+    pathStat.dev !== opened.dev ||
+    pathStat.ino !== opened.ino
+  )
+    throw new HarnessError("INTEGRITY", `${label} directory changed while being opened`);
+}
+
+function acquireFeedbackQueueFlock(descriptor: number, label: string): void {
+  for (let attempt = 0; attempt < 200; attempt++) {
+    if (tryExclusiveFlock(descriptor)) return;
+    Atomics.wait(feedbackQueueLockSleep, 0, 0, 5);
+  }
+  throw new HarnessError("LOCK_TIMEOUT", `${label} is already locked`);
+}
+
+/** Runs one feedback-ledger mutation under stable root and parent inode locks. */
+export function withFeedbackQueueTransaction<T>(
+  customPath: string | undefined,
+  mutation: (items: readonly FeedbackItem[]) => {
+    readonly items: readonly FeedbackItem[];
+    readonly result: T;
+  },
+): T {
+  const filePath = resolveFeedbackQueuePath(customPath);
+  const parent = dirname(filePath);
+  const candidateRoot = dirname(parent);
+  const root = candidateRoot === parent || candidateRoot === "/" ? parent : candidateRoot;
+  let rootFd: number | undefined;
+  let parentFd: number | undefined;
+  let rootLocked = false;
+  let parentLocked = false;
+  let result!: T;
+  let primary: unknown;
+  try {
+    rootFd = openSync(root, constants.O_RDONLY | constants.O_DIRECTORY | noFollowFlag());
+    assertStableFeedbackDirectory(root, rootFd, "feedback queue root");
+    acquireFeedbackQueueFlock(rootFd, "feedback queue root");
+    rootLocked = true;
+    assertStableFeedbackDirectory(root, rootFd, "feedback queue root");
+    try {
+      mkdirSync(parent, { recursive: true });
+    } catch (error) {
+      if (
+        !(
+          error instanceof Error &&
+          Object.getOwnPropertyDescriptor(error, "code")?.value === "EEXIST"
+        )
+      )
+        throw error;
+    }
+    parentFd = openSync(parent, constants.O_RDONLY | constants.O_DIRECTORY | noFollowFlag());
+    assertStableFeedbackDirectory(parent, parentFd, "feedback queue parent");
+    acquireFeedbackQueueFlock(parentFd, "feedback queue parent");
+    parentLocked = true;
+    assertStableFeedbackDirectory(parent, parentFd, "feedback queue parent");
+    const existing = parseFeedbackQueue(readFeedbackQueueFile(filePath));
+    const next = mutation(existing);
+    writeFeedbackQueueUnlocked(next.items, filePath);
+    result = next.result;
+  } catch (error) {
+    primary = error;
+  }
+  let cleanup: unknown;
+  const tryCleanup = (action: () => void): void => {
+    try {
+      action();
+    } catch (error) {
+      if (cleanup === undefined) cleanup = error;
+    }
+  };
+  if (parentLocked && parentFd !== undefined) tryCleanup(() => releaseFlock(parentFd!));
+  if (rootLocked && rootFd !== undefined) tryCleanup(() => releaseFlock(rootFd!));
+  if (parentFd !== undefined) tryCleanup(() => closeSync(parentFd!));
+  if (rootFd !== undefined) tryCleanup(() => closeSync(rootFd!));
+  if (primary !== undefined) throw primary;
+  if (cleanup !== undefined) throw cleanup;
+  return result;
+}
+
+function atomicReplaceFeedbackQueue(filePath: string, raw: string): void {
+  const parent = dirname(filePath);
+  let previous: { readonly dev: number; readonly ino: number } | undefined;
+  try {
+    const existing = lstatSync(filePath);
+    if (!existing.isFile() || existing.nlink !== 1)
+      throw new HarnessError("INTEGRITY", "feedback queue must be a single-link regular file");
+    previous = { dev: existing.dev, ino: existing.ino };
+  } catch (error) {
+    if (!isOwnEnoent(error)) throw error;
+  }
+  const temporary = join(
+    parent,
+    `.feedback-queue.${process.pid}.${randomBytes(12).toString("hex")}.tmp`,
+  );
+  let tempFd: number | undefined;
+  let parentFd: number | undefined;
+  let renamed = false;
+  try {
+    tempFd = openSync(
+      temporary,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | noFollowFlag(),
+      0o600,
+    );
+    const bytes = Buffer.from(raw, "utf8");
+    for (let offset = 0; offset < bytes.length;) {
+      invokeFeedbackQueuePersistenceHook("before_write");
+      const written = writeSync(tempFd, bytes, offset, bytes.length - offset);
+      if (written <= 0)
+        throw new HarnessError("INTEGRITY", "could not completely write feedback queue");
+      offset += written;
+    }
+    invokeFeedbackQueuePersistenceHook("before_file_fsync");
+    fsyncSync(tempFd);
+    closeSync(tempFd);
+    tempFd = undefined;
+    try {
+      const current = lstatSync(filePath);
+      if (
+        !previous ||
+        !current.isFile() ||
+        current.nlink !== 1 ||
+        current.dev !== previous.dev ||
+        current.ino !== previous.ino
+      )
+        throw new HarnessError("INTEGRITY", "feedback queue changed before replacement");
+    } catch (error) {
+      if (!(previous === undefined && isOwnEnoent(error))) throw error;
+    }
+    invokeFeedbackQueuePersistenceHook("before_rename");
+    renameSync(temporary, filePath);
+    renamed = true;
+    invokeFeedbackQueuePersistenceHook("after_rename");
+    parentFd = openSync(parent, constants.O_RDONLY | constants.O_DIRECTORY | noFollowFlag());
+    assertStableFeedbackDirectory(parent, parentFd, "feedback queue parent");
+    invokeFeedbackQueuePersistenceHook("before_directory_fsync");
+    fsyncSync(parentFd);
+  } catch (error) {
+    if (renamed)
+      throw new HarnessError(
+        "INTEGRITY",
+        "feedback queue mutation outcome is uncertain and possibly committed after rename",
+      );
+    throw error;
+  } finally {
+    if (tempFd !== undefined) closeSync(tempFd);
+    if (parentFd !== undefined) closeSync(parentFd);
+    if (!renamed) {
+      try {
+        unlinkSync(temporary);
+      } catch (error) {
+        if (!isOwnEnoent(error)) throw error;
+      }
+    }
+  }
 }
 
 export function clearFeedbackQueue(customPath?: string): void {
-  const filePath = resolveFeedbackQueuePath(customPath);
-  if (existsSync(filePath)) {
-    rmSync(filePath, { force: true });
-  }
+  withFeedbackQueueTransaction(customPath, () => ({ items: [], result: undefined }));
 }
 
 export function appendFeedbackItem(
   item: Omit<FeedbackItem, "timestamp"> & { timestamp?: string },
   customPath?: string,
 ): FeedbackItem {
-  const existing = readFeedbackQueue(customPath);
-  const duplicate = existing.find((e) => e.id === item.id);
-  if (duplicate) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Feedback item with id '${item.id}' already exists in the queue`,
-    );
-  }
+  return withFeedbackQueueTransaction(customPath, (existing) => {
+    if (existing.some((entry) => entry.id === item.id))
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `Feedback item with id '${item.id}' already exists in the queue`,
+      );
+    const newItem: FeedbackItem = {
+      ...item,
+      timestamp: item.timestamp ?? new Date().toISOString(),
+    };
+    return { items: [...existing, newItem], result: newItem };
+  });
+}
 
-  const newItem: FeedbackItem = {
-    ...item,
-    timestamp: item.timestamp ?? new Date().toISOString(),
-  };
+/** Appends items atomically, skipping titles already present or duplicated in the supplied batch. */
+export function appendFeedbackItemsDedupedByTitle(
+  items: readonly (Omit<FeedbackItem, "timestamp"> & { readonly timestamp?: string | undefined })[],
+  customPath?: string,
+): readonly FeedbackItem[] {
+  return withFeedbackQueueTransaction(customPath, (existing) => {
+    const titles = new Set(existing.map((item) => item.title.trim().toLowerCase()));
+    const ids = new Set(existing.map((item) => item.id));
+    const appended: FeedbackItem[] = [];
+    for (const input of items) {
+      const title = input.title.trim().toLowerCase();
+      if (titles.has(title)) continue;
+      if (ids.has(input.id))
+        throw new HarnessError(
+          "INTEGRITY",
+          `Feedback item with id '${input.id}' already exists in the queue`,
+        );
+      const item: FeedbackItem = {
+        ...input,
+        timestamp: input.timestamp ?? new Date().toISOString(),
+      };
+      titles.add(title);
+      ids.add(item.id);
+      appended.push(item);
+    }
+    return { items: [...existing, ...appended], result: appended };
+  });
+}
 
-  const updated = [...existing, newItem];
-  writeFeedbackQueue(updated, customPath);
-  return newItem;
+/** Predicate-scoped atomic update/prune primitive for callers that must avoid whole-ledger RMW. */
+export function updateOrPruneFeedbackItems<T>(
+  mutation: (item: FeedbackItem) => FeedbackItem | null,
+  customPath?: string,
+  result?: (items: readonly FeedbackItem[]) => T,
+): T | readonly FeedbackItem[] {
+  return withFeedbackQueueTransaction(customPath, (existing) => {
+    const next = existing.flatMap((item) => {
+      const updated = mutation(item);
+      return updated === null ? [] : [updated];
+    });
+    return { items: next, result: result ? result(next) : next };
+  });
 }
 
 export function ingestFeedbackItem(
@@ -517,52 +778,47 @@ export function admitFeedbackToQueue(
   customPath?: string,
 ): FeedbackItem {
   if (typeof idOrItem === "string") {
-    const existing = readFeedbackQueue(customPath);
-    const index = existing.findIndex((e) => e.id === idOrItem);
-    if (index === -1) {
-      throw new HarnessError(
-        "INVALID_STATE",
-        `Feedback item with id '${idOrItem}' not found in queue`,
-      );
+    return withFeedbackQueueTransaction(customPath, (existing) => {
+      const index = existing.findIndex((entry) => entry.id === idOrItem);
+      if (index === -1)
+        throw new HarnessError(
+          "INVALID_STATE",
+          `Feedback item with id '${idOrItem}' not found in queue`,
+        );
+      const updatedItem = {
+        ...existing[index]!,
+        status: "ADMITTED" as const,
+        processed_at: existing[index]!.processed_at ?? new Date().toISOString(),
+      };
+      const items = [...existing];
+      items[index] = updatedItem;
+      return { items, result: updatedItem };
+    });
+  }
+  return withFeedbackQueueTransaction(customPath, (existing) => {
+    const index = existing.findIndex((entry) => entry.id === idOrItem.id);
+    const now = new Date().toISOString();
+    if (index !== -1) {
+      const current = existing[index]!;
+      const updatedItem: FeedbackItem = {
+        ...current,
+        ...idOrItem,
+        timestamp: idOrItem.timestamp ?? current.timestamp,
+        status: idOrItem.status ?? "ADMITTED",
+        processed_at: current.processed_at ?? now,
+      };
+      const items = [...existing];
+      items[index] = updatedItem;
+      return { items, result: updatedItem };
     }
-    const current = existing[index]!;
-    const updatedItem: FeedbackItem = {
-      ...current,
-      status: "ADMITTED",
-      processed_at: current.processed_at ?? new Date().toISOString(),
-    };
-    const updatedList = [...existing];
-    updatedList[index] = updatedItem;
-    writeFeedbackQueue(updatedList, customPath);
-    return updatedItem;
-  }
-
-  const existing = readFeedbackQueue(customPath);
-  const existingIndex = existing.findIndex((e) => e.id === idOrItem.id);
-  if (existingIndex !== -1) {
-    const current = existing[existingIndex]!;
-    const updatedItem: FeedbackItem = {
-      ...current,
+    const newItem: FeedbackItem = {
       ...idOrItem,
-      timestamp: idOrItem.timestamp ?? current.timestamp,
       status: idOrItem.status ?? "ADMITTED",
-      processed_at: current.processed_at ?? new Date().toISOString(),
+      timestamp: idOrItem.timestamp ?? now,
+      processed_at: now,
     };
-    const updatedList = [...existing];
-    updatedList[existingIndex] = updatedItem;
-    writeFeedbackQueue(updatedList, customPath);
-    return updatedItem;
-  }
-
-  const newItem: FeedbackItem = {
-    ...idOrItem,
-    status: idOrItem.status ?? "ADMITTED",
-    timestamp: idOrItem.timestamp ?? new Date().toISOString(),
-    processed_at: new Date().toISOString(),
-  };
-  const updatedList = [...existing, newItem];
-  writeFeedbackQueue(updatedList, customPath);
-  return newItem;
+    return { items: [...existing, newItem], result: newItem };
+  });
 }
 
 export function updateFeedbackItem(
@@ -570,24 +826,21 @@ export function updateFeedbackItem(
   update: Partial<FeedbackItem>,
   customPath?: string,
 ): FeedbackItem {
-  const existing = readFeedbackQueue(customPath);
-  const index = existing.findIndex((e) => e.id === id);
-  if (index === -1) {
-    throw new HarnessError("INVALID_STATE", `Feedback item with id '${id}' not found in queue`);
-  }
-
-  const current = existing[index]!;
-  const updatedItem: FeedbackItem = {
-    ...current,
-    ...update,
-    id: current.id,
-    timestamp: current.timestamp,
-  };
-
-  const updatedList = [...existing];
-  updatedList[index] = updatedItem;
-  writeFeedbackQueue(updatedList, customPath);
-  return updatedItem;
+  return withFeedbackQueueTransaction(customPath, (existing) => {
+    const index = existing.findIndex((entry) => entry.id === id);
+    if (index === -1)
+      throw new HarnessError("INVALID_STATE", `Feedback item with id '${id}' not found in queue`);
+    const current = existing[index]!;
+    const updatedItem: FeedbackItem = {
+      ...current,
+      ...update,
+      id: current.id,
+      timestamp: current.timestamp,
+    };
+    const items = [...existing];
+    items[index] = updatedItem;
+    return { items, result: updatedItem };
+  });
 }
 
 export function sealFeedbackResolution(
@@ -599,167 +852,148 @@ export function sealFeedbackResolution(
     readonly requireTestPath?: boolean | undefined;
   },
 ): FeedbackItem {
-  const filePath = resolveFeedbackQueuePath(options?.customPath);
-  const existing = readFeedbackQueue(filePath);
-  const index = existing.findIndex(
-    (e) => e.id === idOrTaskId || (e.candidate_id && e.candidate_id === idOrTaskId),
-  );
-  if (index === -1) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `Feedback item matching id or candidate_id '${idOrTaskId}' not found in queue`,
-    );
-  }
-
   const validatedProof = validateFeedbackResolutionProof(proof, {
     requireCommitSha: options?.requireCommitSha,
     requireTestPath: options?.requireTestPath,
   });
-
-  const current = existing[index]!;
-  const proofSummary =
-    validatedProof.proof_summary ??
-    validatedProof.test_assertion ??
-    current.resolution_note ??
-    `Empirically resolved by ${validatedProof.task_id}`;
-
-  const updatedItem: FeedbackItem = {
-    ...current,
-    status: "COMPLETED",
-    processed_at: validatedProof.resolved_at,
-    resolution_note: proofSummary,
-    resolution: validatedProof,
-    ...(validatedProof.test_path !== undefined && validatedProof.test_path !== null
-      ? { test_path: validatedProof.test_path }
-      : current.test_path !== undefined
-        ? { test_path: current.test_path }
-        : {}),
-    ...(validatedProof.assertions !== undefined && validatedProof.assertions !== null
-      ? { assertions: validatedProof.assertions }
-      : current.assertions !== undefined
-        ? { assertions: current.assertions }
-        : {}),
-    ...(validatedProof.runtime_ms !== undefined && validatedProof.runtime_ms !== null
-      ? { runtime_ms: validatedProof.runtime_ms }
-      : current.runtime_ms !== undefined
-        ? { runtime_ms: current.runtime_ms }
-        : {}),
-    ...(validatedProof.commit_sha !== undefined && validatedProof.commit_sha !== null
-      ? { commit_sha: validatedProof.commit_sha }
-      : current.commit_sha !== undefined
-        ? { commit_sha: current.commit_sha }
-        : {}),
-  };
-
-  const updatedList = [...existing];
-  updatedList[index] = updatedItem;
-  writeFeedbackQueue(updatedList, filePath);
-  return updatedItem;
+  return withFeedbackQueueTransaction(options?.customPath, (existing) => {
+    const index = existing.findIndex(
+      (entry) => entry.id === idOrTaskId || entry.candidate_id === idOrTaskId,
+    );
+    if (index === -1)
+      throw new HarnessError(
+        "INVALID_STATE",
+        `Feedback item matching id or candidate_id '${idOrTaskId}' not found in queue`,
+      );
+    const current = existing[index]!;
+    const proofSummary =
+      validatedProof.proof_summary ??
+      validatedProof.test_assertion ??
+      current.resolution_note ??
+      `Empirically resolved by ${validatedProof.task_id}`;
+    const updatedItem: FeedbackItem = {
+      ...current,
+      status: "COMPLETED",
+      processed_at: validatedProof.resolved_at,
+      resolution_note: proofSummary,
+      resolution: validatedProof,
+      ...(validatedProof.test_path !== undefined && validatedProof.test_path !== null
+        ? { test_path: validatedProof.test_path }
+        : current.test_path !== undefined
+          ? { test_path: current.test_path }
+          : {}),
+      ...(validatedProof.assertions !== undefined && validatedProof.assertions !== null
+        ? { assertions: validatedProof.assertions }
+        : current.assertions !== undefined
+          ? { assertions: current.assertions }
+          : {}),
+      ...(validatedProof.runtime_ms !== undefined && validatedProof.runtime_ms !== null
+        ? { runtime_ms: validatedProof.runtime_ms }
+        : current.runtime_ms !== undefined
+          ? { runtime_ms: current.runtime_ms }
+          : {}),
+      ...(validatedProof.commit_sha !== undefined && validatedProof.commit_sha !== null
+        ? { commit_sha: validatedProof.commit_sha }
+        : current.commit_sha !== undefined
+          ? { commit_sha: current.commit_sha }
+          : {}),
+    };
+    const items = [...existing];
+    items[index] = updatedItem;
+    return { items, result: updatedItem };
+  });
 }
 
 export function backpropagateFeedbackResolution(
   records: readonly BackpropagationRecord[],
   customPath?: string,
 ): FeedbackItem[] {
-  const filePath = resolveFeedbackQueuePath(customPath);
-  if (!existsSync(filePath) || records.length === 0) {
+  if (records.length === 0) {
     return [];
   }
-
-  const existing = readFeedbackQueue(filePath);
-  if (existing.length === 0) {
-    return [];
-  }
-
   const taskMap = new Map<string, BackpropagationRecord>();
   for (const r of records) {
     taskMap.set(r.id, r);
   }
 
-  const updatedItems: FeedbackItem[] = [];
-  const nextList: FeedbackItem[] = [];
-  let changed = false;
+  return withFeedbackQueueTransaction(customPath, (existing) => {
+    const updatedItems: FeedbackItem[] = [];
+    const nextList: FeedbackItem[] = [];
+    for (const item of existing) {
+      const matchedRecord =
+        taskMap.get(item.id) ?? (item.candidate_id ? taskMap.get(item.candidate_id) : undefined);
+      if (matchedRecord) {
+        const resolvedAt = matchedRecord.completed_at || new Date().toISOString();
+        const testPath =
+          matchedRecord.test_path ??
+          (matchedRecord.metadata?.["test_path"] as string | undefined) ??
+          item.test_path;
+        const assertions =
+          matchedRecord.assertions ??
+          (matchedRecord.metadata?.["assertions"] as
+            | number
+            | string
+            | readonly string[]
+            | undefined) ??
+          (matchedRecord.metadata?.["test_assertions"] as
+            | number
+            | string
+            | readonly string[]
+            | undefined) ??
+          item.assertions;
+        const runtimeMs =
+          matchedRecord.runtime_ms ??
+          (matchedRecord.metadata?.["runtime_ms"] as number | string | undefined) ??
+          (matchedRecord.metadata?.["runtime"] as number | string | undefined) ??
+          item.runtime_ms;
+        const commitSha =
+          matchedRecord.commit_sha ??
+          (matchedRecord.metadata?.["commit_sha"] as string | undefined) ??
+          item.commit_sha;
+        const proofSummary =
+          matchedRecord.proof_summary ??
+          item.resolution_note ??
+          `Resolved by task ${matchedRecord.id}`;
 
-  for (const item of existing) {
-    const matchedRecord =
-      taskMap.get(item.id) ?? (item.candidate_id ? taskMap.get(item.candidate_id) : undefined);
-    if (matchedRecord) {
-      const resolvedAt = matchedRecord.completed_at || new Date().toISOString();
-      const testPath =
-        matchedRecord.test_path ??
-        (matchedRecord.metadata?.["test_path"] as string | undefined) ??
-        item.test_path;
-      const assertions =
-        matchedRecord.assertions ??
-        (matchedRecord.metadata?.["assertions"] as
-          | number
-          | string
-          | readonly string[]
-          | undefined) ??
-        (matchedRecord.metadata?.["test_assertions"] as
-          | number
-          | string
-          | readonly string[]
-          | undefined) ??
-        item.assertions;
-      const runtimeMs =
-        matchedRecord.runtime_ms ??
-        (matchedRecord.metadata?.["runtime_ms"] as number | string | undefined) ??
-        (matchedRecord.metadata?.["runtime"] as number | string | undefined) ??
-        item.runtime_ms;
-      const commitSha =
-        matchedRecord.commit_sha ??
-        (matchedRecord.metadata?.["commit_sha"] as string | undefined) ??
-        item.commit_sha;
-      const proofSummary =
-        matchedRecord.proof_summary ??
-        item.resolution_note ??
-        `Resolved by task ${matchedRecord.id}`;
+        let proof: FeedbackResolutionProof;
+        if (matchedRecord.resolution) {
+          proof = validateFeedbackResolutionProof({
+            ...matchedRecord.resolution,
+            task_id: matchedRecord.resolution.task_id || matchedRecord.id,
+            resolved_at: matchedRecord.resolution.resolved_at || resolvedAt,
+          });
+        } else {
+          proof = {
+            task_id: matchedRecord.id,
+            resolved_at: resolvedAt,
+            ...(testPath ? { test_path: testPath } : {}),
+            ...(assertions !== undefined && assertions !== null ? { assertions } : {}),
+            ...(runtimeMs !== undefined && runtimeMs !== null ? { runtime_ms: runtimeMs } : {}),
+            ...(commitSha ? { commit_sha: commitSha } : {}),
+            ...(proofSummary ? { proof_summary: proofSummary, test_assertion: proofSummary } : {}),
+          };
+        }
 
-      let proof: FeedbackResolutionProof;
-      if (matchedRecord.resolution) {
-        proof = validateFeedbackResolutionProof({
-          ...matchedRecord.resolution,
-          task_id: matchedRecord.resolution.task_id || matchedRecord.id,
-          resolved_at: matchedRecord.resolution.resolved_at || resolvedAt,
-        });
-      } else {
-        proof = {
-          task_id: matchedRecord.id,
-          resolved_at: resolvedAt,
-          ...(testPath ? { test_path: testPath } : {}),
+        const updated: FeedbackItem = {
+          ...item,
+          status: "COMPLETED",
+          processed_at: resolvedAt,
+          resolution_note: proofSummary,
+          resolution: proof,
+          ...(testPath !== undefined && testPath !== null ? { test_path: testPath } : {}),
           ...(assertions !== undefined && assertions !== null ? { assertions } : {}),
           ...(runtimeMs !== undefined && runtimeMs !== null ? { runtime_ms: runtimeMs } : {}),
-          ...(commitSha ? { commit_sha: commitSha } : {}),
-          ...(proofSummary ? { proof_summary: proofSummary, test_assertion: proofSummary } : {}),
+          ...(commitSha !== undefined && commitSha !== null ? { commit_sha: commitSha } : {}),
         };
+
+        updatedItems.push(updated);
+        nextList.push(updated);
+      } else {
+        nextList.push(item);
       }
-
-      const updated: FeedbackItem = {
-        ...item,
-        status: "COMPLETED",
-        processed_at: resolvedAt,
-        resolution_note: proofSummary,
-        resolution: proof,
-        ...(testPath !== undefined && testPath !== null ? { test_path: testPath } : {}),
-        ...(assertions !== undefined && assertions !== null ? { assertions } : {}),
-        ...(runtimeMs !== undefined && runtimeMs !== null ? { runtime_ms: runtimeMs } : {}),
-        ...(commitSha !== undefined && commitSha !== null ? { commit_sha: commitSha } : {}),
-      };
-
-      updatedItems.push(updated);
-      nextList.push(updated);
-      changed = true;
-    } else {
-      nextList.push(item);
     }
-  }
-
-  if (changed) {
-    writeFeedbackQueue(nextList, filePath);
-  }
-
-  return updatedItems;
+    return { items: nextList, result: updatedItems };
+  });
 }
 
 export function drainPendingFeedbacks(
@@ -771,35 +1005,35 @@ export function drainPendingFeedbacks(
   } = {},
   customPath?: string,
 ): FeedbackItem[] {
-  const existing = readFeedbackQueue(customPath);
   const markAs = options.markAs !== undefined ? options.markAs : "PROCESSED";
   const limit = options.limit ?? Number.POSITIVE_INFINITY;
   const nowIso = new Date().toISOString();
 
-  const selected: FeedbackItem[] = [];
-  const updatedList: FeedbackItem[] = [];
-
-  for (const item of existing) {
-    const matchesCategory = !options.category || item.category === options.category;
-    const matchesCustom = !options.filter || options.filter(item);
-    if (item.status === "PENDING" && matchesCategory && matchesCustom && selected.length < limit) {
-      const processed: FeedbackItem = {
-        ...item,
-        status: markAs,
-        processed_at: nowIso,
-      };
-      selected.push(processed);
-      updatedList.push(processed);
-    } else {
-      updatedList.push(item);
+  return withFeedbackQueueTransaction(customPath, (existing) => {
+    const selected: FeedbackItem[] = [];
+    const updatedList: FeedbackItem[] = [];
+    for (const item of existing) {
+      const matchesCategory = !options.category || item.category === options.category;
+      const matchesCustom = !options.filter || options.filter(item);
+      if (
+        item.status === "PENDING" &&
+        matchesCategory &&
+        matchesCustom &&
+        selected.length < limit
+      ) {
+        const processed: FeedbackItem = {
+          ...item,
+          status: markAs,
+          processed_at: nowIso,
+        };
+        selected.push(processed);
+        updatedList.push(processed);
+      } else {
+        updatedList.push(item);
+      }
     }
-  }
-
-  if (selected.length > 0) {
-    writeFeedbackQueue(updatedList, customPath);
-  }
-
-  return selected;
+    return { items: updatedList, result: selected };
+  });
 }
 
 export function compareFeedbackPriority(
@@ -870,7 +1104,7 @@ function validatePriority(val: unknown): FeedbackPriority {
     if (upper === "NORMAL" || upper === "MEDIUM") return "NORMAL";
     if (upper === "LOW") return "LOW";
   }
-  return "NORMAL";
+  throw new HarnessError("INTEGRITY", "Feedback item requires valid priority");
 }
 
 function validateStatus(val: unknown): FeedbackStatus {
@@ -882,7 +1116,7 @@ function validateStatus(val: unknown): FeedbackStatus {
     if (upper === "PROCESSED") return "PROCESSED";
     if (upper === "COMPLETED") return "COMPLETED";
   }
-  return "PENDING";
+  throw new HarnessError("INTEGRITY", "Feedback item requires valid status");
 }
 
 function validateCategory(val: unknown): FeedbackCategory {
@@ -896,8 +1130,9 @@ function validateCategory(val: unknown): FeedbackCategory {
     if (upper === "ARCHITECTURE") return "ARCHITECTURE";
     if (upper === "CORE_ENGINE") return "CORE_ENGINE";
     if (upper === "REPAIR") return "REPAIR";
+    if (upper === "GENERAL") return "GENERAL";
   }
-  return "GENERAL";
+  throw new HarnessError("INTEGRITY", "Feedback item requires valid category");
 }
 
 /**
@@ -919,80 +1154,81 @@ export function admitAndDispatchFeedbackAtomically(
   },
   customPath?: string,
 ): AtomicAdmissionDispatchResult {
-  const filePath = resolveFeedbackQueuePath(customPath);
-  const existing = readFeedbackQueue(filePath);
-  const nowIso = new Date().toISOString();
+  return withFeedbackQueueTransaction(customPath, (existing) => {
+    const nowIso = new Date().toISOString();
 
-  let targetItem: FeedbackItem;
-  let targetIndex = -1;
+    let targetItem: FeedbackItem;
+    let targetIndex = -1;
 
-  if (typeof idOrItem === "string") {
-    targetIndex = existing.findIndex((e) => e.id === idOrItem);
-    if (targetIndex === -1) {
+    if (typeof idOrItem === "string") {
+      targetIndex = existing.findIndex((e) => e.id === idOrItem);
+      if (targetIndex === -1) {
+        throw new HarnessError(
+          "INVALID_STATE",
+          `Feedback item with id '${idOrItem}' not found in queue`,
+        );
+      }
+      targetItem = existing[targetIndex]!;
+    } else {
+      targetIndex = existing.findIndex((e) => e.id === idOrItem.id);
+      if (targetIndex !== -1) {
+        targetItem = {
+          ...existing[targetIndex]!,
+          ...idOrItem,
+          status: idOrItem.status ?? existing[targetIndex]!.status,
+          timestamp: idOrItem.timestamp ?? existing[targetIndex]!.timestamp,
+        };
+      } else {
+        const initialStatus: FeedbackStatus =
+          idOrItem.status !== undefined ? idOrItem.status : "PENDING";
+        targetItem = {
+          ...idOrItem,
+          status: initialStatus,
+          timestamp: idOrItem.timestamp ?? nowIso,
+        };
+      }
+    }
+
+    // Execute dispatcher callback atomically BEFORE persisting the ADMITTED state
+    const dispatchRes = dispatcher(targetItem);
+    if (!dispatchRes.taskId || !dispatchRes.taskId.trim()) {
       throw new HarnessError(
-        "INVALID_STATE",
-        `Feedback item with id '${idOrItem}' not found in queue`,
+        "INTEGRITY",
+        "Atomic admission-to-dispatch failure: dispatcher did not return a valid taskId",
       );
     }
-    targetItem = existing[targetIndex]!;
-  } else {
-    targetIndex = existing.findIndex((e) => e.id === idOrItem.id);
+
+    const updatedMetadata: Record<string, unknown> = {
+      ...(targetItem.metadata ?? {}),
+      ...(dispatchRes.metadata ?? {}),
+      dispatched_task_id: dispatchRes.taskId.trim(),
+      atomic_dispatched_at: nowIso,
+    };
+
+    const admittedItem: FeedbackItem = {
+      ...targetItem,
+      status: "ADMITTED",
+      processed_at: nowIso,
+      metadata: updatedMetadata,
+    };
+
+    const updatedList = [...existing];
     if (targetIndex !== -1) {
-      targetItem = {
-        ...existing[targetIndex]!,
-        ...idOrItem,
-        status: idOrItem.status ?? existing[targetIndex]!.status,
-        timestamp: idOrItem.timestamp ?? existing[targetIndex]!.timestamp,
-      };
+      updatedList[targetIndex] = admittedItem;
     } else {
-      const initialStatus: FeedbackStatus =
-        idOrItem.status !== undefined ? idOrItem.status : "PENDING";
-      targetItem = {
-        ...idOrItem,
-        status: initialStatus,
-        timestamp: idOrItem.timestamp ?? nowIso,
-      };
+      updatedList.push(admittedItem);
     }
-  }
 
-  // Execute dispatcher callback atomically BEFORE persisting the ADMITTED state
-  const dispatchRes = dispatcher(targetItem);
-  if (!dispatchRes.taskId || !dispatchRes.taskId.trim()) {
-    throw new HarnessError(
-      "INTEGRITY",
-      "Atomic admission-to-dispatch failure: dispatcher did not return a valid taskId",
-    );
-  }
-
-  const updatedMetadata: Record<string, unknown> = {
-    ...(targetItem.metadata ?? {}),
-    ...(dispatchRes.metadata ?? {}),
-    dispatched_task_id: dispatchRes.taskId.trim(),
-    atomic_dispatched_at: nowIso,
-  };
-
-  const admittedItem: FeedbackItem = {
-    ...targetItem,
-    status: "ADMITTED",
-    processed_at: nowIso,
-    metadata: updatedMetadata,
-  };
-
-  const updatedList = [...existing];
-  if (targetIndex !== -1) {
-    updatedList[targetIndex] = admittedItem;
-  } else {
-    updatedList.push(admittedItem);
-  }
-
-  writeFeedbackQueue(updatedList, filePath);
-
-  return {
-    feedback_item: admittedItem,
-    dispatched_task_id: dispatchRes.taskId.trim(),
-    admitted_at: nowIso,
-    auto_enqueued: dispatchRes.autoEnqueued ?? true,
-  };
+    return {
+      items: updatedList,
+      result: {
+        feedback_item: admittedItem,
+        dispatched_task_id: dispatchRes.taskId.trim(),
+        admitted_at: nowIso,
+        auto_enqueued: dispatchRes.autoEnqueued ?? true,
+      },
+    };
+  });
 }
 
 /**
@@ -1109,30 +1345,24 @@ export function reconcilePausedAdmittedFeedbacks(
     };
   }
 
-  const filePath = resolveFeedbackQueuePath(options.feedbackPath);
-  const existing = readFeedbackQueue(filePath);
   const pausedIds = new Set(audit.paused_admitted_feedbacks.map((f) => f.id));
-  const remediated: FeedbackItem[] = [];
-
-  const updatedList = existing.map((item) => {
-    if (pausedIds.has(item.id)) {
-      const resetStatus: FeedbackStatus = options.resetToPending ? "PENDING" : "ADMITTED";
+  return withFeedbackQueueTransaction(options.feedbackPath, (existing) => {
+    const remediated: FeedbackItem[] = [];
+    const items = existing.map((item) => {
+      if (!pausedIds.has(item.id)) return item;
       const updated: FeedbackItem = {
         ...item,
-        status: resetStatus,
+        status: options.resetToPending ? "PENDING" : "ADMITTED",
         processed_at: null,
       };
       remediated.push(updated);
       return updated;
-    }
-    return item;
+    });
+    return {
+      items,
+      result: { reconciled_count: remediated.length, remediated_feedbacks: remediated },
+    };
   });
-
-  writeFeedbackQueue(updatedList, filePath);
-  return {
-    reconciled_count: remediated.length,
-    remediated_feedbacks: remediated,
-  };
 }
 
 export function migrateFeedbackQueue(options: { sourcePath: string; targetPath?: string }): {
@@ -1147,10 +1377,10 @@ export function migrateFeedbackQueue(options: { sourcePath: string; targetPath?:
   if (records.length === 0) {
     return { migrated: false, count: 0 };
   }
-  const existing = readFeedbackQueue(target);
-  const map = new Map<string, FeedbackItem>();
-  for (const r of existing) map.set(r.id, r);
-  for (const r of records) map.set(r.id, r);
-  writeFeedbackQueue(Array.from(map.values()), target);
-  return { migrated: true, count: records.length };
+  return withFeedbackQueueTransaction(target, (existing) => {
+    const map = new Map<string, FeedbackItem>();
+    for (const item of existing) map.set(item.id, item);
+    for (const item of records) map.set(item.id, item);
+    return { items: Array.from(map.values()), result: { migrated: true, count: records.length } };
+  });
 }

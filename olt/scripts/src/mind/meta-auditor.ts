@@ -6,11 +6,9 @@ import type { HarnessEvent, Manifest, RunState } from "../core/contracts/capsule
 import { isJsonObject } from "../core/contracts/json.ts";
 import { HarnessError } from "../core/errors/harness-error.ts";
 import {
-  appendFeedbackItem,
-  readFeedbackQueue,
+  appendFeedbackItemsDedupedByTitle,
   resolveCanonicalFeedbackQueuePath,
   resolveFeedbackQueuePath,
-  writeFeedbackQueue,
   type FeedbackCategory,
   type FeedbackItem,
   type FeedbackPriority,
@@ -849,18 +847,8 @@ export function injectRemediationToFeedbackQueue(
         customRoot ? resolveCanonicalFeedbackQueuePath(customRoot) : undefined,
       );
 
-  const existingItems = readFeedbackQueue(queuePath);
-  const existingTitles = new Set(existingItems.map((item) => item.title.trim().toLowerCase()));
-
-  const itemIds: string[] = [];
-  const injectedItems: FeedbackItem[] = [];
-
+  const candidates: FeedbackItem[] = [];
   for (const prop of proposals) {
-    const titleNorm = prop.title.trim().toLowerCase();
-    if (existingTitles.has(titleNorm)) {
-      continue;
-    }
-
     const newItem: FeedbackItem = {
       id: `fb-${Date.now()}-${randomBytes(3).toString("hex")}`,
       timestamp: new Date().toISOString(),
@@ -876,20 +864,12 @@ export function injectRemediationToFeedbackQueue(
         ...prop.metadata,
       },
     };
-
-    try {
-      appendFeedbackItem(newItem, queuePath);
-      itemIds.push(newItem.id);
-      injectedItems.push(newItem);
-      existingTitles.add(titleNorm);
-    } catch {
-      const current = readFeedbackQueue(queuePath);
-      writeFeedbackQueue([...current, newItem], queuePath);
-      itemIds.push(newItem.id);
-      injectedItems.push(newItem);
-      existingTitles.add(titleNorm);
-    }
+    candidates.push(newItem);
   }
+  // This single transaction dedupes and appends. A persistence failure is propagated;
+  // callers never receive a success count for records that were not committed.
+  const injectedItems = appendFeedbackItemsDedupedByTitle(candidates, queuePath);
+  const itemIds = injectedItems.map((item) => item.id);
 
   return {
     injectedCount: itemIds.length,

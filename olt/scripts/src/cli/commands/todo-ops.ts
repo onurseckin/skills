@@ -10,7 +10,7 @@ import {
   readFeedbackQueue,
   resolveFeedbackQueuePath,
   sealFeedbackResolution,
-  writeFeedbackQueue,
+  updateOrPruneFeedbackItems,
   type FeedbackCategory,
   type FeedbackItem,
   type FeedbackPriority,
@@ -412,7 +412,11 @@ export function todoCleanCommand(flags: Flags, _context?: CommandContext): TodoC
 
   if (!dryRun && toPrune.length > 0) {
     recordCompletedTasksBatch(archivedRecords, { customPath: resolvedArchivePath });
-    writeFeedbackQueue(remaining, resolvedQueuePath);
+    const pruneIds = new Set(toPrune.map((item) => item.id));
+    updateOrPruneFeedbackItems(
+      (item) => (pruneIds.has(item.id) && isCompletedOrResolved(item) ? null : item),
+      resolvedQueuePath,
+    );
   }
 
   const lines: string[] = [

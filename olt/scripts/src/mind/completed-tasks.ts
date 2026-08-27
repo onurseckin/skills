@@ -21,6 +21,7 @@ import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
 import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
 import {
   resolveFeedbackQueuePath,
+  updateOrPruneFeedbackItems,
   validateFeedbackResolutionProof,
   type FeedbackResolutionProof,
 } from "./feedback-queue.ts";
@@ -529,50 +530,20 @@ function updateFeedbackQueueItems(
   records: readonly CompletedTaskRecord[],
   customPath?: string,
 ): void {
-  const filePath = resolveFeedbackQueuePath(customPath);
-  if (!existsSync(filePath)) {
-    return;
-  }
   const idMap = new Map<string, CompletedTaskRecord>();
   for (const r of records) {
     idMap.set(r.id.toLowerCase().trim(), r);
   }
 
-  const raw = readFileSync(filePath, "utf8");
-  const lines = raw
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const remainingLines: string[] = [];
-
-  for (const line of lines) {
-    try {
-      const parsed = JSON.parse(line) as Record<string, unknown>;
-      const id = typeof parsed["id"] === "string" ? parsed["id"].toLowerCase().trim() : undefined;
-      const candidateId =
-        typeof parsed["candidate_id"] === "string"
-          ? parsed["candidate_id"].toLowerCase().trim()
-          : undefined;
-      const isCompleted =
-        (id && idMap.has(id)) ||
-        (candidateId && idMap.has(candidateId)) ||
-        parsed["status"] === "COMPLETED" ||
-        parsed["status"] === "RESOLVED";
-
-      if (!isCompleted) {
-        remainingLines.push(line);
-      }
-    } catch {
-      remainingLines.push(line);
-    }
-  }
-
-  writeFileSync(
-    filePath,
-    remainingLines.join("\n") + (remainingLines.length > 0 ? "\n" : ""),
-    "utf8",
-  );
-  return;
+  updateOrPruneFeedbackItems((item) => {
+    const id = item.id.toLowerCase().trim();
+    const candidateId = item.candidate_id?.toLowerCase().trim();
+    const isCompleted =
+      idMap.has(id) ||
+      (candidateId !== undefined && idMap.has(candidateId)) ||
+      item.status === "COMPLETED";
+    return isCompleted ? null : item;
+  }, resolveFeedbackQueuePath(customPath));
 }
 
 function updateDefectItems(records: readonly CompletedTaskRecord[], customPath?: string): void {
@@ -627,9 +598,13 @@ export function recordCompletedTasksBatch(
   }
 
   const filePath = resolveCompletedTasksLedgerPath(options?.customPath);
-  return withLedgerTransaction(filePath, () =>
+  const recorded = withLedgerTransaction(filePath, () =>
     recordCompletedTasksBatchUnlocked(records, options, filePath),
   );
+  if (options?.updateFeedbackQueue) {
+    updateFeedbackQueueItems(recorded, options.feedbackQueuePath);
+  }
+  return recorded;
 }
 
 function recordCompletedTasksBatchUnlocked(
@@ -653,10 +628,6 @@ function recordCompletedTasksBatchUnlocked(
 
   const merged = Array.from(ledgerMap.values());
   writeCompletedTasksLedgerUnlocked(merged, filePath);
-
-  if (options?.updateFeedbackQueue) {
-    updateFeedbackQueueItems(validatedRecords, options?.feedbackQueuePath);
-  }
 
   if (options?.updateDefects) {
     updateDefectItems(validatedRecords, options?.defectsPath);

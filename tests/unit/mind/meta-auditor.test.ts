@@ -30,7 +30,10 @@ import {
 } from "../../../olt/scripts/src/cli/commands/meta-audit.ts";
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
 import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
-import { readFeedbackQueue } from "../../../olt/scripts/src/mind/feedback-queue.ts";
+import {
+  __setFeedbackQueuePersistenceTestHook,
+  readFeedbackQueue,
+} from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
@@ -488,6 +491,58 @@ describe("Deep Behavioral Forensics Engine (meta-auditor)", () => {
       const result = injectRemediationToFeedbackQueue([incident], scratchDir);
       expect(result.injectedCount).toBe(1);
       expect(result.queue_path).toBeDefined();
+    });
+
+    it("does not fallback-count a remediation injection when persistence fails", () => {
+      const scratchDir = scratchRoot(import.meta.path, "test-injection-persistence-failure");
+      const queuePath = join(scratchDir, "FEEDBACK_QUEUE.jsonl");
+      const incident: ForensicsIncident = {
+        id: "inc-persist-failure",
+        category: "TOKEN_BURNING",
+        severity: "HIGH",
+        title: "Persistence Failure",
+        description: "Test",
+        observation: "Test",
+        remediation: "Test",
+        recommendation: "Test",
+      };
+      __setFeedbackQueuePersistenceTestHook((stage) => {
+        if (stage === "before_rename") throw new Error("forced persistence failure");
+      });
+      try {
+        expect(() =>
+          injectRemediationToFeedbackQueue([incident], { queue_path: queuePath }),
+        ).toThrow("forced persistence failure");
+        expect(existsSync(queuePath)).toBe(false);
+      } finally {
+        __setFeedbackQueuePersistenceTestHook(undefined);
+      }
+    });
+
+    it("keeps one record when synchronized meta-audit injections share a title", async () => {
+      const scratchDir = scratchRoot(import.meta.path, "test-concurrent-meta-dedupe");
+      const queuePath = join(scratchDir, "FEEDBACK_QUEUE.jsonl");
+      const latch = join(scratchDir, "inject-go");
+      mkdirSync(scratchDir, { recursive: true });
+      const modulePath = join(process.cwd(), "olt/scripts/src/mind/meta-auditor.ts");
+      const child = () =>
+        Bun.spawn({
+          cmd: [
+            "bun",
+            "-e",
+            `import { injectRemediationToFeedbackQueue } from ${JSON.stringify(modulePath)}; import { existsSync } from "node:fs"; const [queue, latch] = process.argv.slice(-2); while (!existsSync(latch)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1); injectRemediationToFeedbackQueue([{ id: "prop-shared", title: "Shared dedupe title", content: "content", priority: "NORMAL", category: "GENERAL", rootCause: "TOKEN_BURNING", remediationDirective: "directive" }], { queue_path: queue });`,
+            queuePath,
+            latch,
+          ],
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+      const first = child();
+      const second = child();
+      writeFileSync(latch, "go", "utf8");
+      expect(await first.exited).toBe(0);
+      expect(await second.exited).toBe(0);
+      expect(readFeedbackQueue(queuePath)).toHaveLength(1);
     });
   });
 

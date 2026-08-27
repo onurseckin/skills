@@ -459,6 +459,40 @@ describe("CLI todo-ops and mind:queue commands", () => {
   });
 
   describe("todoCleanCommand and mindQueueCleanCommand", () => {
+    it("todo clean preserves a concurrent transactional addition", async () => {
+      const testDir = scratchRoot(import.meta.path, "todo-clean-concurrent-add");
+      const queueFile = join(testDir, "feedback-queue.jsonl");
+      const archiveFile = join(testDir, "completed-tasks.jsonl");
+      writeFeedbackQueue(
+        [
+          {
+            id: "todo-prune",
+            timestamp: "2026-08-22T00:00:00.000Z",
+            priority: "NORMAL",
+            status: "COMPLETED",
+            category: "GENERAL",
+            title: "prune",
+            content: "done",
+          },
+        ],
+        queueFile,
+      );
+      const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback-queue.ts");
+      const child = Bun.spawn({
+        cmd: [
+          "bun",
+          "-e",
+          `import { appendFeedbackItem } from ${JSON.stringify(modulePath)}; appendFeedbackItem({ id: "todo-concurrent", title: "keep", content: "keep", priority: "NORMAL", category: "GENERAL", status: "PENDING" }, process.argv.at(-1));`,
+          queueFile,
+        ],
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      todoCleanCommand({ "queue-file": queueFile, "archive-file": archiveFile });
+      expect(await child.exited).toBe(0);
+      expect(readFeedbackQueue(queueFile).map((item) => item.id)).toEqual(["todo-concurrent"]);
+    });
+
     it("handles clean on empty or all-pending queue", () => {
       const testDir = scratchRoot(import.meta.path, "clean-noop");
       const queueFile = join(testDir, "feedback-queue.jsonl");
