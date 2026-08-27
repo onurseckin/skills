@@ -9,7 +9,10 @@
 import type { TelemetryNormalizationEngine } from "./engine.ts";
 import type { NormalizedQuotaMetric, UnifiedTelemetryReport } from "./types.ts";
 
-export type CircuitBreakerStatus = "OK" | "QUOTA_EXHAUSTED_CIRCUIT_BROKEN";
+export type CircuitBreakerStatus =
+  | "OK"
+  | "QUOTA_EXHAUSTED_CIRCUIT_BROKEN"
+  | "QUOTA_UNKNOWN_CIRCUIT_BROKEN";
 
 export const DEFAULT_QUOTA_THRESHOLD = 5.0; // 5.0%
 export const DEFAULT_SAFE_WINDOW_SECONDS = 18000; // 5 hours in seconds (18,000s)
@@ -17,6 +20,9 @@ export const DEFAULT_AUTO_WAKE_BUFFER_SECONDS = 60; // 60 seconds (+1m buffer)
 
 export const CRITICAL_WRAP_UP_MESSAGE =
   "CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<5%). Wrap up current micro-step immediately. Do not claim or start new tasks. Keep working tree changes unstaged/stashed safely without destructive actions. Enter idle state.";
+
+export const UNMEASURED_QUOTA_WRAP_UP_MESSAGE =
+  "Quota availability is unavailable or unmeasured. Wrap up current micro-step immediately. Do not claim or start new tasks until a measured quota observation is available. Keep working tree changes unstaged/stashed safely without destructive actions. Enter idle state.";
 
 export const AUTO_WAKE_PROMPT =
   "Quota limit refreshed (+1m buffer). Resuming autonomous execution from idle state.";
@@ -157,25 +163,32 @@ export class QuotaCircuitBreaker {
 
     const constrainedModels: ConstrainedModelInfo[] = [];
     let lowestRemainingQuota: number | null = null;
+    let measuredObservationCount = 0;
+    let hasUnmeasuredObservation = report.results.length === 0;
 
     for (const res of report.results) {
-      if (res.isDetected === false || res.metrics.length === 0) {
+      if (res.isDetected !== true) {
+        hasUnmeasuredObservation = true;
         continue;
       }
+      if (res.errors.length > 0 || res.metrics.length === 0) hasUnmeasuredObservation = true;
       for (const metric of res.metrics) {
-        if (metric.remainingPercentage === null) {
+        const remainingPercentage = metric.remainingPercentage;
+        if (typeof remainingPercentage !== "number" || !Number.isFinite(remainingPercentage)) {
+          hasUnmeasuredObservation = true;
           continue;
         }
+        measuredObservationCount += 1;
 
-        if (lowestRemainingQuota === null || metric.remainingPercentage < lowestRemainingQuota) {
-          lowestRemainingQuota = metric.remainingPercentage;
+        if (lowestRemainingQuota === null || remainingPercentage < lowestRemainingQuota) {
+          lowestRemainingQuota = remainingPercentage;
         }
 
-        if (metric.remainingPercentage < threshold) {
+        if (remainingPercentage < threshold) {
           constrainedModels.push({
             platformId: res.platformId,
             modelName: metric.rawMetricName,
-            remainingPercentage: metric.remainingPercentage,
+            remainingPercentage,
             resetTime: extractResetTime(metric),
             sourceTier: metric.sourceTier,
             confidence: metric.confidence,
@@ -184,16 +197,21 @@ export class QuotaCircuitBreaker {
       }
     }
 
+    const summaryRemainingQuota = report.summary?.lowestRemainingQuota;
+    const summaryShowsExhaustion =
+      typeof summaryRemainingQuota === "number" &&
+      Number.isFinite(summaryRemainingQuota) &&
+      summaryRemainingQuota < threshold;
     if (
-      typeof report.summary?.lowestRemainingQuota === "number" &&
-      (lowestRemainingQuota === null || report.summary.lowestRemainingQuota < lowestRemainingQuota)
+      summaryShowsExhaustion &&
+      (lowestRemainingQuota === null || summaryRemainingQuota < lowestRemainingQuota)
     ) {
-      lowestRemainingQuota = report.summary.lowestRemainingQuota;
+      lowestRemainingQuota = summaryRemainingQuota;
     }
 
-    const isTriggered =
-      (lowestRemainingQuota !== null && lowestRemainingQuota < threshold) ||
-      constrainedModels.length > 0;
+    const isExhausted = constrainedModels.length > 0 || summaryShowsExhaustion;
+    const isUnknown = !isExhausted && (measuredObservationCount === 0 || hasUnmeasuredObservation);
+    const isTriggered = isExhausted || isUnknown;
 
     if (!isTriggered) {
       const summary =
@@ -215,22 +233,26 @@ export class QuotaCircuitBreaker {
     }
 
     // 1. Generate Wrap-Up Directives
+    const wrapUpMessage = isUnknown ? UNMEASURED_QUOTA_WRAP_UP_MESSAGE : CRITICAL_WRAP_UP_MESSAGE;
+    const wrapUpReason = isUnknown
+      ? "Quota availability is unavailable or unmeasured; fail closed."
+      : `Quota threshold breached (<${threshold}%).`;
     const wrapUpDirectives: WrapUpDirective[] =
       options?.activeAgentIds && options.activeAgentIds.length > 0
         ? options.activeAgentIds.map((agentId) => ({
             recipient: agentId,
-            message: CRITICAL_WRAP_UP_MESSAGE,
+            message: wrapUpMessage,
             action: "idle" as const,
             forbidKill: true as const,
-            reason: `Quota threshold breached (<${threshold}%).`,
+            reason: wrapUpReason,
           }))
         : [
             {
               recipient: "all_active_agents",
-              message: CRITICAL_WRAP_UP_MESSAGE,
+              message: wrapUpMessage,
               action: "idle" as const,
               forbidKill: true as const,
-              reason: `Quota threshold breached (<${threshold}%).`,
+              reason: wrapUpReason,
             },
           ];
 
@@ -272,12 +294,18 @@ export class QuotaCircuitBreaker {
       activeAgentsCount,
     };
 
-    const summary = `🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<${threshold}%). Lowest quota: ${
-      lowestRemainingQuota !== null ? `${lowestRemainingQuota.toFixed(2)}%` : "unknown"
-    }. ${constrainedModels.length} constrained models. Auto-wake in ${durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`;
+    const summary = isUnknown
+      ? `⚠️ Quota availability is unavailable or unmeasured. ${
+          lowestRemainingQuota !== null
+            ? `Lowest measured quota: ${lowestRemainingQuota.toFixed(2)}%. `
+            : "No trustworthy quota percentage was observed. "
+        }Auto-wake in ${durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`
+      : `🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<${threshold}%). Lowest quota: ${
+          lowestRemainingQuota !== null ? `${lowestRemainingQuota.toFixed(2)}%` : "unknown"
+        }. ${constrainedModels.length} constrained models. Auto-wake in ${durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`;
 
     return {
-      status: "QUOTA_EXHAUSTED_CIRCUIT_BROKEN",
+      status: isUnknown ? "QUOTA_UNKNOWN_CIRCUIT_BROKEN" : "QUOTA_EXHAUSTED_CIRCUIT_BROKEN",
       isTriggered: true,
       thresholdPercentage: threshold,
       lowestRemainingQuota,
@@ -319,18 +347,21 @@ export function formatCircuitBreakerMarkdown(
   const lines: string[] = [];
 
   if (evaluation.isTriggered) {
+    const quotaUnknown = evaluation.status === "QUOTA_UNKNOWN_CIRCUIT_BROKEN";
     lines.push(
       "┌──────────────────────────────────────────────────────────────────────────────────────────────────┐",
     );
     lines.push(
-      "│                         🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<5%) 🚨                      │",
+      quotaUnknown
+        ? "│                    ⚠️ QUOTA AVAILABILITY UNAVAILABLE / UNMEASURED ⚠️                            │"
+        : "│                         🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<5%) 🚨                      │",
     );
     lines.push(
       "├──────────────────────────────┬───────────────────────────────────────────────────────────────────┤",
     );
     lines.push(`│ State Status                 │ ${evaluation.status.padEnd(65).slice(0, 65)} │`);
     lines.push(
-      `│ Lowest Remaining Quota       │ ${(evaluation.lowestRemainingQuota !== null ? `${evaluation.lowestRemainingQuota.toFixed(2)}%` : "None").padEnd(65).slice(0, 65)} │`,
+      `│ ${quotaUnknown ? "Lowest Measured Quota" : "Lowest Remaining Quota"}       │ ${(evaluation.lowestRemainingQuota !== null ? `${evaluation.lowestRemainingQuota.toFixed(2)}%` : "Unavailable").padEnd(65).slice(0, 65)} │`,
     );
     lines.push(
       `│ Trigger Threshold            │ ${`${evaluation.thresholdPercentage.toFixed(2)}%`.padEnd(65).slice(0, 65)} │`,

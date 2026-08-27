@@ -281,7 +281,7 @@ describe("QuotaCircuitBreaker Engine", () => {
     expect(nominalMd).toContain("OK");
   });
 
-  it("treats offline/undetected platforms as non-blocking without triggering circuit breaker", () => {
+  it("fails closed for offline or undetected platforms", () => {
     const breaker = new QuotaCircuitBreaker();
     const offlineReport: UnifiedTelemetryReport = {
       timestamp: new Date().toISOString(),
@@ -324,13 +324,13 @@ describe("QuotaCircuitBreaker Engine", () => {
 
     const result = breaker.evaluate(offlineReport, { now: fixedNow });
 
-    expect(result.status).toBe("OK");
-    expect(result.isTriggered).toBe(false);
+    expect(result.status).toBe("QUOTA_UNKNOWN_CIRCUIT_BROKEN");
+    expect(result.isTriggered).toBe(true);
     expect(result.lowestRemainingQuota).toBeNull();
     expect(result.constrainedModels.length).toBe(0);
-    expect(result.wrapUpDirectives.length).toBe(0);
-    expect(result.autoWakeSchedule).toBeNull();
-    expect(result.summary).toContain("No quota metrics detected; execution running normally.");
+    expect(result.wrapUpDirectives.length).toBe(1);
+    expect(result.autoWakeSchedule).not.toBeNull();
+    expect(result.summary).toContain("unavailable or unmeasured");
   });
 });
 

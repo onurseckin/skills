@@ -67,7 +67,7 @@ describe("unknown quota readings must never masquerade as healthy", () => {
     expect(report.summary.lowestRemainingQuota).toBeNull();
   });
 
-  it("an unknown-only platform does not block the circuit breaker from freezing when another platform is genuinely low", async () => {
+  it("keeps the exhausted circuit status when a genuinely low observation accompanies an unknown one", async () => {
     const engine = new TelemetryNormalizationEngine([
       unknownOnlyCollector("presence_only"),
       realLowQuotaCollector("genuinely_low", 2),
@@ -78,10 +78,11 @@ describe("unknown quota readings must never masquerade as healthy", () => {
     const evaluation = breaker.evaluate(report, { thresholdPercentage: 5, activeAgentsCount: 0 });
 
     expect(evaluation.isTriggered).toBe(true);
+    expect(evaluation.status).toBe("QUOTA_EXHAUSTED_CIRCUIT_BROKEN");
     expect(evaluation.lowestRemainingQuota).toBe(2);
   });
 
-  it("does not trigger the circuit breaker purely because a reading is unknown", async () => {
+  it("fails closed with idle directives and safe-window wakeup when every detected reading is unknown", async () => {
     const engine = new TelemetryNormalizationEngine([
       unknownOnlyCollector("presence_only_a"),
       unknownOnlyCollector("presence_only_b"),
@@ -89,10 +90,137 @@ describe("unknown quota readings must never masquerade as healthy", () => {
     const report = await engine.probeAll();
 
     const breaker = new QuotaCircuitBreaker();
-    const evaluation = breaker.evaluate(report, { thresholdPercentage: 5, activeAgentsCount: 0 });
+    const evaluation = breaker.evaluate(report, {
+      thresholdPercentage: 5,
+      activeAgentIds: ["worker-a"],
+      now: "2026-08-24T12:00:00.000Z",
+    });
 
-    expect(evaluation.isTriggered).toBe(false);
+    expect(evaluation.status).toBe("QUOTA_UNKNOWN_CIRCUIT_BROKEN");
+    expect(evaluation.isTriggered).toBe(true);
     expect(evaluation.lowestRemainingQuota).toBeNull();
+    expect(evaluation.wrapUpDirectives).toHaveLength(1);
+    expect(evaluation.wrapUpDirectives[0]!.recipient).toBe("worker-a");
+    expect(evaluation.wrapUpDirectives[0]!.action).toBe("idle");
+    expect(evaluation.autoWakeSchedule?.durationSeconds).toBe(18_060);
+    const markdown = QuotaCircuitBreaker.formatMarkdown(evaluation);
+    expect(markdown).toContain("QUOTA AVAILABILITY UNAVAILABLE / UNMEASURED");
+    expect(markdown).not.toMatch(/healthy|nominal|exhausted/i);
+  });
+
+  it("fails closed when a healthy numeric reading is accompanied by an unmeasured observation", async () => {
+    const engine = new TelemetryNormalizationEngine([
+      realLowQuotaCollector("healthy", 80),
+      unknownOnlyCollector("unknown"),
+    ]);
+    const evaluation = new QuotaCircuitBreaker().evaluate(await engine.probeAll(), {
+      thresholdPercentage: 5,
+    });
+
+    expect(evaluation.status).toBe("QUOTA_UNKNOWN_CIRCUIT_BROKEN");
+    expect(evaluation.isTriggered).toBe(true);
+    expect(evaluation.lowestRemainingQuota).toBe(80);
+    expect(evaluation.constrainedModels).toHaveLength(0);
+    expect(evaluation.autoWakeSchedule).not.toBeNull();
+  });
+
+  it("fails closed for empty, undetected, errored, and null-only reports", () => {
+    const breaker = new QuotaCircuitBreaker();
+    const cases: UnifiedTelemetryReport[] = [
+      { timestamp: new Date().toISOString(), results: [], summary: {} },
+      {
+        timestamp: new Date().toISOString(),
+        results: [
+          {
+            platformId: "undetected",
+            isDetected: false,
+            primaryTierUsed: null,
+            metrics: [],
+            rawObservations: {},
+            errors: [],
+          },
+        ],
+        summary: {},
+      },
+      {
+        timestamp: new Date().toISOString(),
+        results: [
+          {
+            platformId: "errored",
+            isDetected: true,
+            primaryTierUsed: null,
+            metrics: [],
+            rawObservations: {},
+            errors: ["probe failed"],
+          },
+        ],
+        summary: {},
+      },
+      {
+        timestamp: new Date().toISOString(),
+        results: [
+          {
+            platformId: "null-only",
+            isDetected: true,
+            primaryTierUsed: null,
+            metrics: [
+              {
+                rawMetricName: "unmeasured",
+                canonicalProvider: "mock",
+                windowType: "session",
+                remainingPercentage: null,
+                sourceTier: "tier3_runtime",
+                confidence: "unknown",
+                rawPayload: {},
+              },
+            ],
+            rawObservations: {},
+            errors: [],
+          },
+        ],
+        summary: {},
+      },
+    ];
+
+    for (const report of cases) {
+      const evaluation = breaker.evaluate(report);
+      expect(evaluation.status).toBe("QUOTA_UNKNOWN_CIRCUIT_BROKEN");
+      expect(evaluation.isTriggered).toBe(true);
+      expect(evaluation.autoWakeSchedule).not.toBeNull();
+    }
+  });
+
+  it("uses a finite low summary as lower-bound exhaustion evidence without treating a high summary as healthy", () => {
+    const incomplete = (lowestRemainingQuota: number | null): UnifiedTelemetryReport => ({
+      timestamp: new Date().toISOString(),
+      results: [
+        {
+          platformId: "errored",
+          isDetected: true,
+          primaryTierUsed: null,
+          metrics: [],
+          rawObservations: {},
+          errors: ["quota probe unavailable"],
+        },
+      ],
+      summary: { lowestRemainingQuota },
+    });
+    const breaker = new QuotaCircuitBreaker();
+
+    const low = breaker.evaluate(incomplete(2), { thresholdPercentage: 5 });
+    expect(low.status).toBe("QUOTA_EXHAUSTED_CIRCUIT_BROKEN");
+    expect(low.isTriggered).toBe(true);
+    expect(low.lowestRemainingQuota).toBe(2);
+
+    const high = breaker.evaluate(incomplete(80), { thresholdPercentage: 5 });
+    expect(high.status).toBe("QUOTA_UNKNOWN_CIRCUIT_BROKEN");
+    expect(high.isTriggered).toBe(true);
+    expect(high.lowestRemainingQuota).toBeNull();
+
+    const nonfinite = breaker.evaluate(incomplete(Number.NaN), { thresholdPercentage: 5 });
+    expect(nonfinite.status).toBe("QUOTA_UNKNOWN_CIRCUIT_BROKEN");
+    expect(nonfinite.isTriggered).toBe(true);
+    expect(nonfinite.lowestRemainingQuota).toBeNull();
   });
 
   it("renders an unknown metric as Unknown rather than a full progress bar in the ASCII report", async () => {
@@ -128,6 +256,7 @@ describe("unknown quota readings must never masquerade as healthy", () => {
       { thresholdPercentage: 5, activeAgentsCount: 0 },
     );
     expect(evaluation.lowestRemainingQuota).toBeNull();
-    expect(evaluation.isTriggered).toBe(false);
+    expect(evaluation.status).toBe("QUOTA_UNKNOWN_CIRCUIT_BROKEN");
+    expect(evaluation.isTriggered).toBe(true);
   });
 });
