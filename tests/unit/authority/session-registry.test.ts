@@ -46,6 +46,36 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
     expect(existsSync(join(sandboxDir, ".olt", ".sessions", "12344.json"))).toBe(true);
   });
 
+  it("fails registration when process-ancestry session persistence is blocked", () => {
+    const globalDir = join(sandboxDir, ".olt", ".sessions");
+    const capsuleSessionFile = join(
+      sandboxDir,
+      "runtime",
+      "sessions",
+      "impl-persistence-failure.json",
+    );
+    rmSync(globalDir, { recursive: true, force: true });
+    writeFileSync(globalDir, "blocked", "utf8");
+
+    try {
+      registerSessionGrant({
+        runRoot: sandboxDir,
+        agentId: "impl-persistence-failure",
+        role: "implementer",
+        pid: 42345,
+        ppid: 42344,
+      });
+      expect.unreachable("registration should fail when the process registry cannot be persisted");
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("INTEGRITY");
+      expect((error as HarnessError).message).toContain(globalDir);
+      expect((error as HarnessError).message).toContain("EEXIST");
+    }
+
+    expect(existsSync(capsuleSessionFile)).toBe(false);
+  });
+
   it("registers session grant with customToken, runRoot runtime dir, and host override", () => {
     const session = registerSessionGrant({
       runRoot: sandboxDir,

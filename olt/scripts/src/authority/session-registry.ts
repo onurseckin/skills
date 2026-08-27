@@ -201,8 +201,12 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
     mkdirSync(globalDir, { recursive: true });
     if (pid > 0) writeFileSync(join(globalDir, `${pid}.json`), payload, "utf8");
     if (ppid > 0) writeFileSync(join(globalDir, `${ppid}.json`), payload, "utf8");
-  } catch {
-    // Best-effort
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new HarnessError(
+      "INTEGRITY",
+      `failed to persist process-ancestry session grant in ${globalDir}: ${message}`,
+    );
   }
 
   // 2. Write Capsule Runtime Session
