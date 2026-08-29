@@ -86,13 +86,21 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
 
       const inboxLines = readFileSync(recipientPaths.inboxPath, "utf8").trim().split("\n");
       expect(inboxLines.length).toBe(1);
-      const parsedInbox = JSON.parse(inboxLines[0]!) as MailboxEnvelope<{ task: string }>;
-      expect(parsedInbox.id).toBe(envelope.id);
-      expect(parsedInbox.payload.task).toBe("process-chunk");
+      const firstInbox = inboxLines[0];
+      expect(firstInbox).toBeDefined();
+      if (firstInbox !== undefined) {
+        const parsedInbox = JSON.parse(firstInbox) as MailboxEnvelope<{ task: string }>;
+        expect(parsedInbox.id).toBe(envelope.id);
+        expect(parsedInbox.payload.task).toBe("process-chunk");
+      }
 
       const outboxLines = readFileSync(senderPaths.outboxPath, "utf8").trim().split("\n");
       expect(outboxLines.length).toBe(1);
-      expect((JSON.parse(outboxLines[0]!) as MailboxEnvelope).id).toBe(envelope.id);
+      const firstOutbox = outboxLines[0];
+      expect(firstOutbox).toBeDefined();
+      if (firstOutbox !== undefined) {
+        expect((JSON.parse(firstOutbox) as MailboxEnvelope).id).toBe(envelope.id);
+      }
     });
 
     it("resolves role name to agent ID on dispatch", () => {
