@@ -1,14 +1,8 @@
 /**
- * Defect Remediation: Orchestrator and worker subagents auto-terminating upon task completion without enforcing commits, upstream push, and global skill sync
+ * Defect Remediation: Subagent premature termination without commit, push, and sync
  * Defect Ref: defect-subagent-premature-termination-without-commit-push
  * Error Code: PREMATURE_TERMINATION_WITHOUT_COMMIT_PUSH
- *
- * Invariant 1.9:
- * Subagent and orchestrator teardown is strictly blocked until the 4-step pre-termination
- * release gate (verification receipt, conventional commit, git push, global skill sync)
- * completes with exit code 0.
  */
-
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import type {
@@ -17,19 +11,15 @@ import type {
   DefectSeverity,
 } from "../mind/contracts/defect-contracts.ts";
 
-// ---------------------------------------------------------------------------
-// Defect Metadata & Constants
-// ---------------------------------------------------------------------------
 export const DEFECT_REF = "defect-subagent-premature-termination-without-commit-push" as const;
 export const DEFECT_ERROR_CODE = "PREMATURE_TERMINATION_WITHOUT_COMMIT_PUSH" as const;
 export const ERROR_CODE = "PREMATURE_TERMINATION_WITHOUT_COMMIT_PUSH" as const;
 export const PREMATURE_TERMINATION_WITHOUT_COMMIT_PUSH =
   "PREMATURE_TERMINATION_WITHOUT_COMMIT_PUSH" as const;
-
 export const INVARIANT_NUMBER = 9 as const;
 export const INVARIANT_REF = "Invariant 1.9" as const;
 export const INVARIANT_DESCRIPTION =
-  "Subagent and orchestrator teardown is strictly blocked until the 4-step pre-termination release gate (verification receipt, conventional commit, git push, global skill sync) completes with exit code 0." as const;
+  "Subagent teardown is strictly blocked until the 4-step pre-termination release gate (receipt, commit, push, sync) completes with exit code 0." as const;
 
 export const CANONICAL_GLOBAL_SYNC_SCRIPT = "scripts/sync-global.ts" as const;
 export const CANONICAL_DEFAULT_REMOTE = "origin" as const;
@@ -40,7 +30,6 @@ export type ReleaseGateStep =
   | "conventional_commit"
   | "git_push"
   | "global_skill_sync";
-
 export const CANONICAL_RELEASE_GATE_STEPS: readonly ReleaseGateStep[] = Object.freeze([
   "verification_receipt",
   "conventional_commit",
@@ -48,9 +37,6 @@ export const CANONICAL_RELEASE_GATE_STEPS: readonly ReleaseGateStep[] = Object.f
   "global_skill_sync",
 ]);
 
-// ---------------------------------------------------------------------------
-// Execution Output & Runner Interfaces
-// ---------------------------------------------------------------------------
 export interface GitExecutionOutput {
   readonly exitCode: number;
   readonly stdout: string;
@@ -71,15 +57,11 @@ export type GitRunner = (
   cmd: string,
   cwd: string,
 ) => GitExecutionOutput | Promise<GitExecutionOutput>;
-
 export type SyncRunner = (
   scriptPath: string,
   cwd: string,
 ) => SyncExecutionOutput | Promise<SyncExecutionOutput>;
 
-// ---------------------------------------------------------------------------
-// Verification Receipt Interfaces
-// ---------------------------------------------------------------------------
 export interface VerificationReceipt {
   readonly receiptId: string;
   readonly taskId: string;
@@ -106,9 +88,6 @@ export interface GenerateReceiptOptions {
   readonly timestamp?: string | undefined;
 }
 
-// ---------------------------------------------------------------------------
-// Release Gate Interfaces & Types
-// ---------------------------------------------------------------------------
 export type StepStatus = "passed" | "failed" | "skipped";
 
 export interface ReleaseGateStepResult {
@@ -175,9 +154,6 @@ export interface ReleaseGateAuditReport {
   readonly timestamp: string;
 }
 
-// ---------------------------------------------------------------------------
-// Custom Guard Error Class
-// ---------------------------------------------------------------------------
 export interface SubagentTerminationGuardErrorOptions {
   readonly code?: string | undefined;
   readonly defectRef?: string | undefined;
@@ -212,43 +188,35 @@ export class SubagentTerminationGuardError extends Error {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Default Runners (Git & Global Sync)
-// ---------------------------------------------------------------------------
 export function defaultGitRunner(cmd: string, cwd: string): GitExecutionOutput {
-  const startTime = Date.now();
+  const start = Date.now();
   try {
     const parts = cmd.match(/(?:[^\s"]+|"[^"]*")+/g) ?? [];
     const command = parts[0];
-    if (!command) {
+    if (!command)
       return {
         exitCode: 1,
         stdout: "",
-        stderr: "Empty command string provided to git runner",
+        stderr: "Empty command",
         command: cmd,
         durationMs: 0,
       };
-    }
     const args = parts
       .slice(1)
-      .map((arg) => (arg.startsWith('"') && arg.endsWith('"') ? arg.slice(1, -1) : arg));
-    const result = spawnSync(command, args, {
+      .map((a) => (a.startsWith('"') && a.endsWith('"') ? a.slice(1, -1) : a));
+    const res = spawnSync(command, args, {
       cwd,
       encoding: "utf-8",
       stdio: ["ignore", "pipe", "pipe"],
       shell: false,
     });
     return {
-      exitCode: result.status !== null ? result.status : result.error ? 1 : 0,
-      stdout: typeof result.stdout === "string" ? result.stdout.trim() : "",
+      exitCode: res.status !== null ? res.status : res.error ? 1 : 0,
+      stdout: typeof res.stdout === "string" ? res.stdout.trim() : "",
       stderr:
-        typeof result.stderr === "string"
-          ? result.stderr.trim()
-          : result.error !== undefined
-            ? result.error.message
-            : "",
+        typeof res.stderr === "string" ? res.stderr.trim() : res.error ? res.error.message : "",
       command: cmd,
-      durationMs: Date.now() - startTime,
+      durationMs: Date.now() - start,
     };
   } catch (err) {
     return {
@@ -256,31 +224,27 @@ export function defaultGitRunner(cmd: string, cwd: string): GitExecutionOutput {
       stdout: "",
       stderr: err instanceof Error ? err.message : String(err),
       command: cmd,
-      durationMs: Date.now() - startTime,
+      durationMs: Date.now() - start,
     };
   }
 }
 
 export function defaultSyncRunner(scriptPath: string, cwd: string): SyncExecutionOutput {
-  const startTime = Date.now();
+  const start = Date.now();
   try {
-    const result = spawnSync("bun", [scriptPath], {
+    const res = spawnSync("bun", [scriptPath], {
       cwd,
       encoding: "utf-8",
       stdio: ["ignore", "pipe", "pipe"],
       shell: false,
     });
     return {
-      exitCode: result.status !== null ? result.status : result.error ? 1 : 0,
-      stdout: typeof result.stdout === "string" ? result.stdout.trim() : "",
+      exitCode: res.status !== null ? res.status : res.error ? 1 : 0,
+      stdout: typeof res.stdout === "string" ? res.stdout.trim() : "",
       stderr:
-        typeof result.stderr === "string"
-          ? result.stderr.trim()
-          : result.error !== undefined
-            ? result.error.message
-            : "",
+        typeof res.stderr === "string" ? res.stderr.trim() : res.error ? res.error.message : "",
       scriptPath,
-      durationMs: Date.now() - startTime,
+      durationMs: Date.now() - start,
     };
   } catch (err) {
     return {
@@ -288,14 +252,11 @@ export function defaultSyncRunner(scriptPath: string, cwd: string): SyncExecutio
       stdout: "",
       stderr: err instanceof Error ? err.message : String(err),
       scriptPath,
-      durationMs: Date.now() - startTime,
+      durationMs: Date.now() - start,
     };
   }
 }
 
-// ---------------------------------------------------------------------------
-// Step 1: Verification Receipt Generation
-// ---------------------------------------------------------------------------
 export function generateVerificationReceipt(options: GenerateReceiptOptions): VerificationReceipt {
   const timestamp = options.timestamp ?? new Date().toISOString();
   const testPassed =
@@ -305,8 +266,7 @@ export function generateVerificationReceipt(options: GenerateReceiptOptions): Ve
         ? options.exitCode === 0
         : true;
   const exitCode = options.exitCode !== undefined ? options.exitCode : testPassed ? 0 : 1;
-
-  const contentForHash = [
+  const raw = [
     options.taskId,
     options.subagentId ?? "",
     options.testFile ?? "",
@@ -315,10 +275,8 @@ export function generateVerificationReceipt(options: GenerateReceiptOptions): Ve
     String(exitCode),
     timestamp,
   ].join("::");
-
-  const checksum = createHash("sha256").update(contentForHash).digest("hex");
+  const checksum = createHash("sha256").update(raw).digest("hex");
   const receiptId = `rcpt-${createHash("sha1").update(checksum).digest("hex").slice(0, 12)}`;
-
   return {
     receiptId,
     taskId: options.taskId,
@@ -331,61 +289,50 @@ export function generateVerificationReceipt(options: GenerateReceiptOptions): Ve
     checksum,
     summary:
       options.summary ??
-      (testPassed
-        ? "Verification suite passed with 100% success and exit code 0."
-        : "Verification suite failed or produced non-zero exit code."),
+      (testPassed ? "Verification suite passed (exit code 0)." : "Verification suite failed."),
     details: options.details,
   };
 }
 
-// ---------------------------------------------------------------------------
-// Step 2-4 & Orchestration: executePreTerminationReleaseGate
-// ---------------------------------------------------------------------------
 export async function executePreTerminationReleaseGate(
   options: ReleaseGateOptions,
 ): Promise<ReleaseGateResult> {
-  const gateStartTime = Date.now();
+  const gateStart = Date.now();
   const steps: ReleaseGateStepResult[] = [];
   const errors: string[] = [];
   let failedStep: ReleaseGateStep | undefined;
-
   const repoRoot = options.repoRoot ?? process.cwd();
   const gitRunner = options.customGitRunner ?? defaultGitRunner;
   const syncRunner = options.customSyncRunner ?? defaultSyncRunner;
   const remote = options.remote ?? CANONICAL_DEFAULT_REMOTE;
   const branch = options.branch ?? CANONICAL_DEFAULT_BRANCH;
-  const syncScriptPath = options.syncScriptPath ?? CANONICAL_GLOBAL_SYNC_SCRIPT;
+  const syncScript = options.syncScriptPath ?? CANONICAL_GLOBAL_SYNC_SCRIPT;
 
-  // -------------------------------------------------------------------------
-  // STEP 1: Verification Receipt Generation & Validation
-  // -------------------------------------------------------------------------
-  const step1Start = Date.now();
+  // Step 1: Verification Receipt
+  const s1Start = Date.now();
   let receipt: VerificationReceipt;
   try {
-    if (options.customReceiptGenerator) {
-      receipt = await options.customReceiptGenerator({
-        taskId: options.taskId,
-        subagentId: options.subagentId,
-        testFile: options.testFile,
-        testCommand: options.testCommand,
-        testPassed: options.testPassed,
-        summary: options.testSummary,
-        details: options.testDetails,
-      });
-    } else {
-      receipt = generateVerificationReceipt({
-        taskId: options.taskId,
-        subagentId: options.subagentId,
-        testFile: options.testFile,
-        testCommand: options.testCommand,
-        testPassed: options.testPassed,
-        summary: options.testSummary,
-        details: options.testDetails,
-      });
-    }
-
+    receipt = options.customReceiptGenerator
+      ? await options.customReceiptGenerator({
+          taskId: options.taskId,
+          subagentId: options.subagentId,
+          testFile: options.testFile,
+          testCommand: options.testCommand,
+          testPassed: options.testPassed,
+          summary: options.testSummary,
+          details: options.testDetails,
+        })
+      : generateVerificationReceipt({
+          taskId: options.taskId,
+          subagentId: options.subagentId,
+          testFile: options.testFile,
+          testCommand: options.testCommand,
+          testPassed: options.testPassed,
+          summary: options.testSummary,
+          details: options.testDetails,
+        });
     if (!receipt.testPassed || receipt.exitCode !== 0) {
-      const msg = `Verification receipt failed: tests did not pass (exit code ${receipt.exitCode}).`;
+      const msg = `Verification receipt failed (exit code ${receipt.exitCode}).`;
       errors.push(msg);
       failedStep = "verification_receipt";
       steps.push({
@@ -393,7 +340,7 @@ export async function executePreTerminationReleaseGate(
         status: "failed",
         exitCode: receipt.exitCode,
         message: msg,
-        durationMs: Date.now() - step1Start,
+        durationMs: Date.now() - s1Start,
         output: receipt.summary,
       });
     } else {
@@ -401,14 +348,13 @@ export async function executePreTerminationReleaseGate(
         step: "verification_receipt",
         status: "passed",
         exitCode: 0,
-        message: `Verification receipt generated: ${receipt.receiptId} (checksum: ${receipt.checksum.slice(0, 8)})`,
-        durationMs: Date.now() - step1Start,
+        message: `Receipt generated: ${receipt.receiptId}`,
+        durationMs: Date.now() - s1Start,
         output: receipt.summary,
       });
     }
   } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    const msg = `Verification receipt generation exception: ${errMsg}`;
+    const msg = `Receipt generation exception: ${err instanceof Error ? err.message : String(err)}`;
     errors.push(msg);
     failedStep = "verification_receipt";
     receipt = generateVerificationReceipt({
@@ -423,256 +369,218 @@ export async function executePreTerminationReleaseGate(
       status: "failed",
       exitCode: 1,
       message: msg,
-      durationMs: Date.now() - step1Start,
-      output: errMsg,
+      durationMs: Date.now() - s1Start,
     });
   }
 
-  // -------------------------------------------------------------------------
-  // STEP 2: Conventional Commit
-  // -------------------------------------------------------------------------
-  const step2Start = Date.now();
+  // Step 2: Conventional Commit
+  const s2Start = Date.now();
   let commitSha: string | undefined;
-
   if (failedStep) {
     steps.push({
       step: "conventional_commit",
       status: "skipped",
       exitCode: 0,
-      message: `Skipped due to prior step failure: ${failedStep}`,
-      durationMs: Date.now() - step2Start,
+      message: `Skipped due to: ${failedStep}`,
+      durationMs: 0,
     });
   } else if (options.allowUncommitted) {
     steps.push({
       step: "conventional_commit",
       status: "skipped",
       exitCode: 0,
-      message: "Conventional commit skipped (allowUncommitted = true)",
-      durationMs: Date.now() - step2Start,
+      message: "Conventional commit skipped",
+      durationMs: Date.now() - s2Start,
     });
   } else {
     try {
-      const commitType = options.commitType ?? "feat";
-      const commitScope = options.commitScope ? `(${options.commitScope})` : "";
-      const commitDescription = options.commitDescription ?? `complete task ${options.taskId}`;
-      const defaultCommitMessage = `${commitType}${commitScope}: ${commitDescription}`;
-      const messageToUse = options.commitMessage ?? defaultCommitMessage;
-
-      // Staging files
+      const type = options.commitType ?? "feat";
+      const scope = options.commitScope ? `(${options.commitScope})` : "";
+      const desc = options.commitDescription ?? `complete task ${options.taskId}`;
+      const msg = options.commitMessage ?? `${type}${scope}: ${desc}`;
       const stageCmd =
         options.writeScope && options.writeScope.length > 0
           ? `git add ${options.writeScope.map((f) => `"${f}"`).join(" ")}`
           : "git add -A";
-
       const stageOut = await gitRunner(stageCmd, repoRoot);
       if (stageOut.exitCode !== 0) {
-        const stageErrMsg = stageOut.stderr || stageOut.stdout || "Unknown git add error";
-        const msg = `Git stage failed (exit code ${stageOut.exitCode}): ${stageErrMsg}`;
-        errors.push(msg);
-        if (!failedStep) failedStep = "conventional_commit";
+        const errStr = `Git stage failed: ${stageOut.stderr || stageOut.stdout}`;
+        errors.push(errStr);
+        failedStep = "conventional_commit";
         steps.push({
           step: "conventional_commit",
           status: "failed",
           exitCode: stageOut.exitCode,
-          message: msg,
-          durationMs: Date.now() - step2Start,
+          message: errStr,
+          durationMs: Date.now() - s2Start,
           output: stageOut,
         });
       } else {
-        // Commit execution
-        const commitCmd = `git commit -m "${messageToUse}"`;
-        const commitOut = await gitRunner(commitCmd, repoRoot);
-
+        const commitOut = await gitRunner(`git commit -m "${msg}"`, repoRoot);
         const isClean =
           commitOut.stdout.includes("nothing to commit") ||
           commitOut.stderr.includes("nothing to commit") ||
-          commitOut.stdout.includes("working tree clean") ||
-          commitOut.stderr.includes("working tree clean");
-
+          commitOut.stdout.includes("clean") ||
+          commitOut.stderr.includes("clean");
         if (commitOut.exitCode === 0 || isClean) {
-          // Retrieve HEAD commit SHA
           const revOut = await gitRunner("git rev-parse HEAD", repoRoot);
-          if (revOut.exitCode === 0 && revOut.stdout) {
-            commitSha = revOut.stdout;
-          }
+          if (revOut.exitCode === 0 && revOut.stdout) commitSha = revOut.stdout;
           steps.push({
             step: "conventional_commit",
             status: "passed",
             exitCode: 0,
-            message: isClean
-              ? "Working tree clean; no uncommitted changes."
-              : `Git commit succeeded: "${messageToUse}" (SHA: ${commitSha ?? "unknown"})`,
-            durationMs: Date.now() - step2Start,
+            message: isClean ? "Working tree clean" : `Commit succeeded (${commitSha ?? ""})`,
+            durationMs: Date.now() - s2Start,
             output: commitOut,
           });
         } else {
-          const commitErrMsg = commitOut.stderr || commitOut.stdout || "Unknown git commit error";
-          const msg = `Git commit failed (exit code ${commitOut.exitCode}): ${commitErrMsg}`;
-          errors.push(msg);
-          if (!failedStep) failedStep = "conventional_commit";
+          const errStr = `Git commit failed: ${commitOut.stderr || commitOut.stdout}`;
+          errors.push(errStr);
+          failedStep = "conventional_commit";
           steps.push({
             step: "conventional_commit",
             status: "failed",
             exitCode: commitOut.exitCode,
-            message: msg,
-            durationMs: Date.now() - step2Start,
+            message: errStr,
+            durationMs: Date.now() - s2Start,
             output: commitOut,
           });
         }
       }
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      const msg = `Git commit execution exception: ${errMsg}`;
-      errors.push(msg);
-      if (!failedStep) failedStep = "conventional_commit";
+      const errStr = `Commit exception: ${err instanceof Error ? err.message : String(err)}`;
+      errors.push(errStr);
+      failedStep = "conventional_commit";
       steps.push({
         step: "conventional_commit",
         status: "failed",
         exitCode: 1,
-        message: msg,
-        durationMs: Date.now() - step2Start,
-        output: errMsg,
+        message: errStr,
+        durationMs: Date.now() - s2Start,
       });
     }
   }
 
-  // -------------------------------------------------------------------------
-  // STEP 3: Git Push to Origin/Main
-  // -------------------------------------------------------------------------
-  const step3Start = Date.now();
+  // Step 3: Git Push
+  const s3Start = Date.now();
   let pushed = false;
-
   if (failedStep) {
     steps.push({
       step: "git_push",
       status: "skipped",
       exitCode: 0,
-      message: `Skipped due to prior step failure: ${failedStep}`,
-      durationMs: Date.now() - step3Start,
+      message: `Skipped due to: ${failedStep}`,
+      durationMs: 0,
     });
   } else if (options.skipPush) {
     steps.push({
       step: "git_push",
       status: "skipped",
       exitCode: 0,
-      message: "Git push skipped (skipPush = true)",
-      durationMs: Date.now() - step3Start,
+      message: "Git push skipped",
+      durationMs: Date.now() - s3Start,
     });
   } else {
     try {
-      const pushCmd = `git push ${remote} ${branch}`;
-      const pushOut = await gitRunner(pushCmd, repoRoot);
-
+      const pushOut = await gitRunner(`git push ${remote} ${branch}`, repoRoot);
       if (pushOut.exitCode === 0) {
         pushed = true;
         steps.push({
           step: "git_push",
           status: "passed",
           exitCode: 0,
-          message: `Successfully pushed to ${remote}/${branch}`,
-          durationMs: Date.now() - step3Start,
+          message: `Pushed to ${remote}/${branch}`,
+          durationMs: Date.now() - s3Start,
           output: pushOut,
         });
       } else {
-        const pushErrMsg = pushOut.stderr || pushOut.stdout || "Unknown git push error";
-        const msg = `Git push failed (exit code ${pushOut.exitCode}): ${pushErrMsg}`;
-        errors.push(msg);
-        if (!failedStep) failedStep = "git_push";
+        const errStr = `Git push failed: ${pushOut.stderr || pushOut.stdout}`;
+        errors.push(errStr);
+        failedStep = "git_push";
         steps.push({
           step: "git_push",
           status: "failed",
           exitCode: pushOut.exitCode,
-          message: msg,
-          durationMs: Date.now() - step3Start,
+          message: errStr,
+          durationMs: Date.now() - s3Start,
           output: pushOut,
         });
       }
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      const msg = `Git push execution exception: ${errMsg}`;
-      errors.push(msg);
-      if (!failedStep) failedStep = "git_push";
+      const errStr = `Push exception: ${err instanceof Error ? err.message : String(err)}`;
+      errors.push(errStr);
+      failedStep = "git_push";
       steps.push({
         step: "git_push",
         status: "failed",
         exitCode: 1,
-        message: msg,
-        durationMs: Date.now() - step3Start,
-        output: errMsg,
+        message: errStr,
+        durationMs: Date.now() - s3Start,
       });
     }
   }
 
-  // -------------------------------------------------------------------------
-  // STEP 4: Global Skill Sync
-  // -------------------------------------------------------------------------
-  const step4Start = Date.now();
+  // Step 4: Global Skill Sync
+  const s4Start = Date.now();
   let synced = false;
-
   if (failedStep) {
     steps.push({
       step: "global_skill_sync",
       status: "skipped",
       exitCode: 0,
-      message: `Skipped due to prior step failure: ${failedStep}`,
-      durationMs: Date.now() - step4Start,
+      message: `Skipped due to: ${failedStep}`,
+      durationMs: 0,
     });
   } else if (options.skipSync) {
     steps.push({
       step: "global_skill_sync",
       status: "skipped",
       exitCode: 0,
-      message: "Global skill sync skipped (skipSync = true)",
-      durationMs: Date.now() - step4Start,
+      message: "Skill sync skipped",
+      durationMs: Date.now() - s4Start,
     });
   } else {
     try {
-      const syncOut = await syncRunner(syncScriptPath, repoRoot);
-
+      const syncOut = await syncRunner(syncScript, repoRoot);
       if (syncOut.exitCode === 0) {
         synced = true;
         steps.push({
           step: "global_skill_sync",
           status: "passed",
           exitCode: 0,
-          message: `Global skill sync (${syncScriptPath}) succeeded with exit code 0`,
-          durationMs: Date.now() - step4Start,
+          message: "Skill sync succeeded",
+          durationMs: Date.now() - s4Start,
           output: syncOut,
         });
       } else {
-        const syncErrMsg = syncOut.stderr || syncOut.stdout || "Unknown sync error";
-        const msg = `Global skill sync failed (exit code ${syncOut.exitCode}): ${syncErrMsg}`;
-        errors.push(msg);
-        if (!failedStep) failedStep = "global_skill_sync";
+        const errStr = `Skill sync failed: ${syncOut.stderr || syncOut.stdout}`;
+        errors.push(errStr);
+        failedStep = "global_skill_sync";
         steps.push({
           step: "global_skill_sync",
           status: "failed",
           exitCode: syncOut.exitCode,
-          message: msg,
-          durationMs: Date.now() - step4Start,
+          message: errStr,
+          durationMs: Date.now() - s4Start,
           output: syncOut,
         });
       }
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      const msg = `Global skill sync execution exception: ${errMsg}`;
-      errors.push(msg);
-      if (!failedStep) failedStep = "global_skill_sync";
+      const errStr = `Sync exception: ${err instanceof Error ? err.message : String(err)}`;
+      errors.push(errStr);
+      failedStep = "global_skill_sync";
       steps.push({
         step: "global_skill_sync",
         status: "failed",
         exitCode: 1,
-        message: msg,
-        durationMs: Date.now() - step4Start,
-        output: errMsg,
+        message: errStr,
+        durationMs: Date.now() - s4Start,
       });
     }
   }
 
-  const allowed = errors.length === 0 && failedStep === undefined;
-
   return {
-    allowed,
+    allowed: errors.length === 0 && failedStep === undefined,
     defectRef: DEFECT_REF,
     taskId: options.taskId,
     subagentId: options.subagentId,
@@ -683,14 +591,11 @@ export async function executePreTerminationReleaseGate(
     steps: Object.freeze(steps),
     failedStep,
     errors: Object.freeze(errors),
-    durationMs: Date.now() - gateStartTime,
+    durationMs: Date.now() - gateStart,
     timestamp: new Date().toISOString(),
   };
 }
 
-// ---------------------------------------------------------------------------
-// Assertion Guard: assertSubagentTerminationAllowed
-// ---------------------------------------------------------------------------
 export async function assertSubagentTerminationAllowed(
   optionsOrResult: ReleaseGateOptions | ReleaseGateResult,
 ): Promise<ReleaseGateResult> {
@@ -698,14 +603,12 @@ export async function assertSubagentTerminationAllowed(
     "allowed" in optionsOrResult && typeof optionsOrResult.allowed === "boolean"
       ? optionsOrResult
       : await executePreTerminationReleaseGate(optionsOrResult);
-
   if (!result.allowed) {
-    const errorSummary =
+    const errSummary =
       result.errors.length > 0
         ? result.errors.join("; ")
-        : `Pre-termination release gate failed on step '${result.failedStep ?? "unknown"}'`;
-
-    throw new SubagentTerminationGuardError(`Subagent teardown strictly blocked: ${errorSummary}`, {
+        : `Release gate failed on '${result.failedStep ?? "unknown"}'`;
+    throw new SubagentTerminationGuardError(`Subagent teardown blocked: ${errSummary}`, {
       code: PREMATURE_TERMINATION_WITHOUT_COMMIT_PUSH,
       defectRef: DEFECT_REF,
       taskId: result.taskId,
@@ -715,13 +618,9 @@ export async function assertSubagentTerminationAllowed(
       gateResult: result,
     });
   }
-
   return result;
 }
 
-// ---------------------------------------------------------------------------
-// Audit Function: auditSubagentTerminationReleaseGates
-// ---------------------------------------------------------------------------
 export function auditSubagentTerminationReleaseGates(
   gateResults: readonly ReleaseGateResult[],
 ): ReleaseGateAuditReport {
@@ -729,25 +628,20 @@ export function auditSubagentTerminationReleaseGates(
   let passedCount = 0;
   let failedCount = 0;
   const violations: string[] = [];
-
   for (const r of gateResults) {
     if (r.allowed) {
       passedCount++;
     } else {
       failedCount++;
-      const stepStr = r.failedStep ? ` [failed step: ${r.failedStep}]` : "";
-      const subagentStr = r.subagentId ? ` (subagent: ${r.subagentId})` : "";
-      const errStr = r.errors.length > 0 ? ` -> ${r.errors.join("; ")}` : "";
-      violations.push(`Task '${r.taskId}'${subagentStr}${stepStr}${errStr}`);
+      const stepStr = r.failedStep ? ` [failed: ${r.failedStep}]` : "";
+      const subStr = r.subagentId ? ` (${r.subagentId})` : "";
+      violations.push(`Task '${r.taskId}'${subStr}${stepStr} -> ${r.errors.join("; ")}`);
     }
   }
-
-  const resolved = failedCount === 0 && totalAudited > 0;
-
   return {
     defectRef: DEFECT_REF,
     errorCode: PREMATURE_TERMINATION_WITHOUT_COMMIT_PUSH,
-    resolved,
+    resolved: failedCount === 0 && totalAudited > 0,
     totalAudited,
     passedCount,
     failedCount,
@@ -757,9 +651,6 @@ export function auditSubagentTerminationReleaseGates(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Defect Proof & Entry Generators
-// ---------------------------------------------------------------------------
 export function createSubagentTerminationDefectProof(
   reportOrResult?: ReleaseGateAuditReport | ReleaseGateResult,
 ): DefectResolutionProof {
@@ -768,16 +659,13 @@ export function createSubagentTerminationDefectProof(
       ? reportOrResult.resolved
       : reportOrResult.allowed
     : true;
-
   return {
     commit_sha: "e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
     task_id: `task-remediate-${DEFECT_REF}`,
     test_assertion: "expect((await executePreTerminationReleaseGate(options)).allowed).toBeTrue()",
     resolved_at: new Date().toISOString(),
     explanation:
-      "Remediated subagent premature termination by establishing a strict 4-step pre-termination release gate " +
-      "(verification receipt, conventional commit, git push to origin/main, and global skill sync). " +
-      "Subagent teardown is strictly blocked via SubagentTerminationGuardError if any release gate step fails.",
+      "Remediated subagent premature termination by enforcing a strict 4-step pre-termination release gate (receipt, commit, push, sync).",
     verified: isResolved,
     empirical_command:
       "bun test tests/unit/tooling/defect-subagent-premature-termination-without-commit-push.test.ts",
@@ -800,15 +688,13 @@ export function createSubagentTerminationDefectEntry(
 ): DefectEntry {
   const errors = options?.errors ?? [];
   const taskId = options?.taskId ?? "task-subagent-release";
-
   return {
     id: options?.id ?? `${DEFECT_REF}-${Date.now()}`,
     domain: "tooling",
     error_code: PREMATURE_TERMINATION_WITHOUT_COMMIT_PUSH,
     title: `Subagent premature termination without commit and push: ${taskId}`,
     description:
-      "Subagents and Tier 1 orchestrators terminated without executing the mandatory end-of-run release pipeline " +
-      "(verification receipt, conventional commit, git push to origin/main, and global skill sync).",
+      "Subagents and orchestrators terminated without executing the mandatory end-of-run release pipeline.",
     message:
       errors.length > 0
         ? errors.join("; ")
@@ -819,7 +705,7 @@ export function createSubagentTerminationDefectEntry(
     severity: options?.severity ?? "high",
     observation: `Found ${errors.length} release gate error(s) preventing subagent termination for ${taskId}.`,
     remediation:
-      "Enforce executePreTerminationReleaseGate and assertSubagentTerminationAllowed in subagent termination lifecycle.",
+      "Enforce executePreTerminationReleaseGate and assertSubagentTerminationAllowed prior to subagent teardown.",
     context: {
       taskId,
       subagentId: options?.subagentId,
