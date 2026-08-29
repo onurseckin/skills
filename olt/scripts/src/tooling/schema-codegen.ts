@@ -35,13 +35,14 @@ export function toolParameterToJsonSchemaProperty(param: ToolParameter): JsonSch
   if (param.maximum !== undefined) prop.maximum = param.maximum;
 
   if (param.type === "array" && param.itemType) {
-    const itemTypeStr =
-      typeof param.itemType === "string" ? param.itemType : param.itemType.type;
+    const itemTypeStr = typeof param.itemType === "string" ? param.itemType : param.itemType.type;
     prop.items = { type: itemTypeStr };
   }
 
   if (param.type === "object" && param.properties) {
-    const propsList: readonly (ToolParameter | ToolParameterSchema)[] = Array.isArray(param.properties)
+    const propsList: readonly (ToolParameter | ToolParameterSchema)[] = Array.isArray(
+      param.properties,
+    )
       ? (param.properties as readonly (ToolParameter | ToolParameterSchema)[])
       : Object.entries(param.properties).map(([name, p]) => ({
           name,
@@ -55,7 +56,9 @@ export function toolParameterToJsonSchemaProperty(param: ToolParameter): JsonSch
       const nestedProps: Record<string, JsonSchemaProperty> = {};
       const nestedRequired: string[] = [];
       for (const nestedParam of propsList) {
-        nestedProps[nestedParam.name] = toolParameterToJsonSchemaProperty(nestedParam as ToolParameter);
+        nestedProps[nestedParam.name] = toolParameterToJsonSchemaProperty(
+          nestedParam as ToolParameter,
+        );
         if (nestedParam.required) nestedRequired.push(nestedParam.name);
       }
       prop.properties = nestedProps;
@@ -177,7 +180,9 @@ function parameterToTypeScriptType(param: ToolParameter): string {
     }
     case "object": {
       if (param.properties) {
-        const propsList: readonly (ToolParameter | ToolParameterSchema)[] = Array.isArray(param.properties)
+        const propsList: readonly (ToolParameter | ToolParameterSchema)[] = Array.isArray(
+          param.properties,
+        )
           ? (param.properties as readonly (ToolParameter | ToolParameterSchema)[])
           : Object.entries(param.properties).map(([name, p]) => ({
               name,
@@ -187,7 +192,10 @@ function parameterToTypeScriptType(param: ToolParameter): string {
             }));
         if (propsList.length > 0) {
           const fields = propsList
-            .map((p) => `  ${p.name}${p.required ? "" : "?"}: ${parameterToTypeScriptType(p as ToolParameter)};`)
+            .map(
+              (p) =>
+                `  ${p.name}${p.required ? "" : "?"}: ${parameterToTypeScriptType(p as ToolParameter)};`,
+            )
             .join("\n");
           return `{\n${fields}\n}`;
         }
@@ -214,7 +222,10 @@ export function toolParametersToTypeScriptFields(
 
 export function toolDefinitionToTypeScript(
   tool: ToolDefinition,
-  options?: CodegenOptions & { readonly includeHandler?: boolean; readonly includeHandlerSignature?: boolean },
+  options?: CodegenOptions & {
+    readonly includeHandler?: boolean;
+    readonly includeHandlerSignature?: boolean;
+  },
 ): string {
   const typeName = `${toPascalCase(tool.name)}Args`;
   const exportKind = options?.exportType ?? "interface";
@@ -243,9 +254,7 @@ export function generateToolCatalogTypeScript(
   const definitions = tools
     .map((t) => toolDefinitionToTypeScript(t, { includeHandlerSignature: true }))
     .join("\n\n");
-  const mapEntries = tools
-    .map((t) => `  "${t.name}": ${toPascalCase(t.name)}Args;`)
-    .join("\n");
+  const mapEntries = tools.map((t) => `  "${t.name}": ${toPascalCase(t.name)}Args;`).join("\n");
   const catalogMap = `export interface ${catalogName}Map {\n${mapEntries}\n}\n\nexport type ${catalogName}Name = keyof ${catalogName}Map;`;
   return `${definitions}\n\n${catalogMap}`;
 }

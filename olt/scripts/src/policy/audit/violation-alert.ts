@@ -88,8 +88,7 @@ export class ViolationAlertDispatcher {
     for (const subscriber of this.subscribers) {
       try {
         await subscriber(alert);
-      } catch {
-      }
+      } catch {}
     }
   }
 

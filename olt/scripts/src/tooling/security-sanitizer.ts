@@ -146,10 +146,7 @@ export function sanitizeHtmlContent(input: string): string {
     .replace(/\//g, "&#x2F;");
 }
 
-export function sanitizeValueByPolicy(
-  value: unknown,
-  policy: SanitizationPolicyType,
-): unknown {
+export function sanitizeValueByPolicy(value: unknown, policy: SanitizationPolicyType): unknown {
   if (typeof value !== "string") return value;
 
   switch (policy) {

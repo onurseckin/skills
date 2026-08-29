@@ -101,7 +101,8 @@ export function computeOptimizedLayout(
     }
   }
 
-  const totalBreadth = maxLayerNodeCount * dims.nodeWidth + Math.max(0, maxLayerNodeCount - 1) * dims.nodeSpacing;
+  const totalBreadth =
+    maxLayerNodeCount * dims.nodeWidth + Math.max(0, maxLayerNodeCount - 1) * dims.nodeSpacing;
 
   const layoutNodes: DagLayoutNodePoint[] = [];
   const nodePositionMap = new Map<string, DagLayoutNodePoint>();
@@ -239,9 +240,7 @@ export function computeOptimizedLayout(
     maxParallelLanes: maxLayerNodeCount,
     criticalPathLength: optimizedLayers.length,
     averageWaveConcurrency:
-      optimizedLayers.length > 0
-        ? Number((nodes.length / optimizedLayers.length).toFixed(2))
-        : 0,
+      optimizedLayers.length > 0 ? Number((nodes.length / optimizedLayers.length).toFixed(2)) : 0,
     serialBottlenecks: optimizedLayers.filter((l) => l.nodes.length === 1).length,
     parallelEligibleChains: maxLayerNodeCount > 1 ? maxLayerNodeCount : 0,
     totalWork,

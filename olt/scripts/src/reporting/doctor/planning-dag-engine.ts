@@ -105,7 +105,6 @@ function findCycles(
       if (scc.length > 1) {
         sccs.push(scc);
       } else if (scc.length === 1 && (adjacency.get(scc[0]!) ?? []).includes(scc[0]!)) {
-
         sccs.push(scc);
       }
     }

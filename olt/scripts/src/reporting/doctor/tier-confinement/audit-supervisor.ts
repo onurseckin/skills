@@ -74,7 +74,11 @@ export function auditCoordinatorConfinement(
           observation: `Tier 2 Coordinator agent "${grant.id}" recorded usage of code-editing tool "${tool.name}" (category: ${tool.category ?? "file-edit"})`,
           remediation:
             "Coordinators must never write code or edit files directly. Delegate all implementation tasks to Tier 3 Implementers via host native subagents.",
-          evidence: { tool_name: tool.name, category: tool.category, first_reported_at: tool.first_reported_at },
+          evidence: {
+            tool_name: tool.name,
+            category: tool.category,
+            first_reported_at: tool.first_reported_at,
+          },
         });
       }
     }
@@ -113,7 +117,11 @@ export function auditCoordinatorConfinement(
         observation: `Tier 2 Coordinator agent "${cmd.actor}" executed file modification in command "${cmd.id}"`,
         remediation:
           "Coordinators must never execute file-editing commands or tools directly. Assign implementation tasks to Tier 3 Implementers.",
-        evidence: { command_id: cmd.id, argv: [...(cmd.argv ?? [])], ...(cmd.tool ? { tool: cmd.tool } : {}) },
+        evidence: {
+          command_id: cmd.id,
+          argv: [...(cmd.argv ?? [])],
+          ...(cmd.tool ? { tool: cmd.tool } : {}),
+        },
       });
     }
     if (isFullTestSuiteCommand(cmd.argv ?? [])) {
@@ -176,7 +184,11 @@ export function auditSupervisorCodeContamination(
           observation: `[${DOCTOR_SUPERVISOR_CODE_CONTAMINATION}] Tier ${tier} supervisor "${grant.id}" (${role}) used code-editing tool "${tool.name}"`,
           remediation:
             "Supervisors must maintain zero source code file mutations and delegate all implementation exclusively to Tier 3 Implementers.",
-          evidence: { check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION, tool_name: tool.name, category: tool.category },
+          evidence: {
+            check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
+            tool_name: tool.name,
+            category: tool.category,
+          },
         });
       }
     }
@@ -199,7 +211,12 @@ export function auditSupervisorCodeContamination(
         observation: `[${DOCTOR_SUPERVISOR_CODE_CONTAMINATION}] Tier ${tier} supervisor "${cmd.actor}" executed file modification tool/command in "${cmd.id}"`,
         remediation:
           "Supervisors must never edit code directly. Delegate all file edits to Tier 3 Implementers.",
-        evidence: { check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION, command_id: cmd.id, argv: [...(cmd.argv ?? [])], ...(cmd.tool ? { tool: cmd.tool } : {}) },
+        evidence: {
+          check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
+          command_id: cmd.id,
+          argv: [...(cmd.argv ?? [])],
+          ...(cmd.tool ? { tool: cmd.tool } : {}),
+        },
       });
     }
     if (
@@ -216,7 +233,12 @@ export function auditSupervisorCodeContamination(
         observation: `[${DOCTOR_SUPERVISOR_CODE_CONTAMINATION}] Tier ${tier} supervisor "${cmd.actor}" caused direct repository content mutation in command "${cmd.id}" (before: ${cmd.repository_before.content_sha256.slice(0, 8)}, after: ${cmd.repository_after.content_sha256.slice(0, 8)})`,
         remediation:
           "Supervisors must not mutate repository source files during command execution.",
-        evidence: { check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION, command_id: cmd.id, repo_before_sha: cmd.repository_before.content_sha256, repo_after_sha: cmd.repository_after.content_sha256 },
+        evidence: {
+          check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
+          command_id: cmd.id,
+          repo_before_sha: cmd.repository_before.content_sha256,
+          repo_after_sha: cmd.repository_after.content_sha256,
+        },
       });
     }
   }
@@ -224,7 +246,8 @@ export function auditSupervisorCodeContamination(
   for (const task of tasks) {
     if (!task.lease) continue;
     const leaseRole = task.lease.role;
-    const agentRole = roleMap.get(task.lease.agent_id) ?? inferRole(task.lease.agent_id, roleMap, {});
+    const agentRole =
+      roleMap.get(task.lease.agent_id) ?? inferRole(task.lease.agent_id, roleMap, {});
     const isSup =
       isMindRole(leaseRole) ||
       isOrchestratorRole(leaseRole) ||
@@ -249,7 +272,11 @@ export function auditSupervisorCodeContamination(
         observation: `[${DOCTOR_SUPERVISOR_CODE_CONTAMINATION}] Tier ${tier} supervisor "${task.lease.agent_id}" holds active implementation lease for task "${task.id}"`,
         remediation:
           "Supervisors must not hold implementation task leases. Implementation tasks must be claimed only by Tier 3 Implementers.",
-        evidence: { check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION, task_id: task.id, lease_role: leaseRole },
+        evidence: {
+          check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
+          task_id: task.id,
+          lease_role: leaseRole,
+        },
       });
     }
   }
@@ -261,7 +288,11 @@ export function auditSupervisorCodeContamination(
       const diffRole = typeof diff === "object" && diff.role ? diff.role : undefined;
       if (isSourceCodeFile(diffPath) && diffActor) {
         const actorRole = diffRole ?? roleMap.get(diffActor) ?? inferRole(diffActor, roleMap, {});
-        if (isMindRole(actorRole) || isOrchestratorRole(actorRole) || isCoordinatorRole(actorRole)) {
+        if (
+          isMindRole(actorRole) ||
+          isOrchestratorRole(actorRole) ||
+          isCoordinatorRole(actorRole)
+        ) {
           const tier = roleToTier(actorRole);
           resultFindings.push({
             agent_id: diffActor,
@@ -272,7 +303,12 @@ export function auditSupervisorCodeContamination(
             observation: `[${DOCTOR_SUPERVISOR_CODE_CONTAMINATION}] Tier ${tier} supervisor "${diffActor}" modified source code file "${diffPath}" in git diff`,
             remediation:
               "Zero direct source code file mutations are permitted by supervisors. Revert changes and delegate to Tier 3 Implementers.",
-            evidence: { check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION, file_path: diffPath, actor: diffActor, role: actorRole },
+            evidence: {
+              check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
+              file_path: diffPath,
+              actor: diffActor,
+              role: actorRole,
+            },
           });
         }
       }

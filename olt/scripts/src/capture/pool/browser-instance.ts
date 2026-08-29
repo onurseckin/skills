@@ -89,7 +89,6 @@ export class PooledBrowserInstance implements IPooledBrowserInstance {
     this._status = "DISPOSED";
     try {
       await this._driver.close();
-    } catch {
-    }
+    } catch {}
   }
 }

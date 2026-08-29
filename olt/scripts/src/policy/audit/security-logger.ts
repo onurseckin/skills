@@ -33,14 +33,22 @@ export class SecurityAuditLogger {
   }
 
   public async logEvent(
-    eventInput: Omit<AuditEvent, "id" | "timestamp" | "sequenceNumber" | "hash" | "previousHash"> & {
+    eventInput: Omit<
+      AuditEvent,
+      "id" | "timestamp" | "sequenceNumber" | "hash" | "previousHash"
+    > & {
       readonly id?: string | undefined;
       readonly timestamp?: string | undefined;
     },
     durationMs = 0,
   ): Promise<AuditEvent> {
     const event = this.writer.record(eventInput);
-    this.telemetryCollector.recordEvaluation(durationMs, event.outcome, event.category, event.severity);
+    this.telemetryCollector.recordEvaluation(
+      durationMs,
+      event.outcome,
+      event.category,
+      event.severity,
+    );
     if (event.outcome === "denied" || event.severity === "high" || event.severity === "critical") {
       await this.alertDispatcher.createAlert({
         category: event.category,
@@ -75,7 +83,8 @@ export class SecurityAuditLogger {
       details: {
         command: params.command,
         allowed: params.allowed,
-        reason: params.reason ?? (params.allowed ? "Command authorized" : "Command forbidden by RBAC"),
+        reason:
+          params.reason ?? (params.allowed ? "Command authorized" : "Command forbidden by RBAC"),
         violations: params.violations ?? [],
       },
     });
@@ -106,7 +115,9 @@ export class SecurityAuditLogger {
   }): Promise<AuditEvent> {
     const outcome: AuditOutcome = params.allowed ? "allowed" : "denied";
     const severity: AuditSeverity = params.allowed
-      ? (params.warnings && params.warnings.length > 0 ? "warning" : "info")
+      ? params.warnings && params.warnings.length > 0
+        ? "warning"
+        : "info"
       : "high";
     const catMap: Record<string, AuditEventCategory> = {
       worktree: "worktree",
@@ -239,7 +250,12 @@ export class SecurityAuditLogger {
       outcome,
       details: { healthy: params.healthy, issues: params.issues ?? [] },
     });
-    this.telemetryCollector.recordEvaluation(params.durationMs ?? 0, outcome, "permission_health", severity);
+    this.telemetryCollector.recordEvaluation(
+      params.durationMs ?? 0,
+      outcome,
+      "permission_health",
+      severity,
+    );
     if (!params.healthy && params.issues && params.issues.length > 0) {
       await this.alertDispatcher.createAlert({
         category: "permission_health",

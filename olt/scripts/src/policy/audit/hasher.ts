@@ -1,9 +1,7 @@
 import { createHash } from "node:crypto";
 import type { AuditEvent, IntegrityCheckResult } from "./types.ts";
 
-export function computeAuditRecordHash(
-  event: Omit<AuditEvent, "hash">,
-): string {
+export function computeAuditRecordHash(event: Omit<AuditEvent, "hash">): string {
   const payload = JSON.stringify({
     id: event.id,
     timestamp: event.timestamp,
@@ -21,9 +19,7 @@ export function computeAuditRecordHash(
   return createHash("sha256").update(payload).digest("hex");
 }
 
-export function verifyAuditTrailChain(
-  events: readonly AuditEvent[],
-): IntegrityCheckResult {
+export function verifyAuditTrailChain(events: readonly AuditEvent[]): IntegrityCheckResult {
   if (events.length === 0) {
     return {
       valid: true,

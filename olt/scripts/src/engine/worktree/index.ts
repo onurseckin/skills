@@ -44,9 +44,7 @@ export {
   isDomainSyncEligible,
 } from "./domain-sync.ts";
 
-export {
-  landHermeticWorktree,
-} from "./landing-ops.ts";
+export { landHermeticWorktree } from "./landing-ops.ts";
 
 export {
   syncDomainToGlobal,

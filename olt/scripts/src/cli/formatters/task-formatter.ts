@@ -35,34 +35,30 @@ export function formatTaskBrief(params: TaskBriefParams): string {
   if (params.role !== undefined || params.agent !== undefined) {
     const rolePart = params.role !== undefined ? `Role: \`${params.role}\`` : "";
     const agentPart = params.agent !== undefined ? `Agent: \`${params.agent}\`` : "";
-    const combined = [rolePart, agentPart].filter((s) => s.length > 0).join(" · ");
-    mdLines.push(`- **Assignment**: ${combined}`);
+    mdLines.push(
+      `- **Assignment**: ${[rolePart, agentPart].filter((s) => s.length > 0).join(" · ")}`,
+    );
   }
   mdLines.push(`- **Assigned Write Scope**: ${scopeStr}`);
   if (params.worktreePath !== undefined) {
     mdLines.push(`- **Isolated Worktree**: \`${params.worktreePath}\``);
   }
   if (params.targetFiles !== undefined && params.targetFiles.length > 0) {
-    const filesStr = params.targetFiles.map((f) => `\`${f}\``).join(", ");
-    mdLines.push(`- **Suggested Target Files**: ${filesStr}`);
+    mdLines.push(
+      `- **Suggested Target Files**: ${params.targetFiles.map((f) => `\`${f}\``).join(", ")}`,
+    );
   }
   if (params.recommendedCommands !== undefined && params.recommendedCommands.length > 0) {
     mdLines.push(`- **Recommended Commands**:`);
-    for (const cmd of params.recommendedCommands) {
-      mdLines.push(`  - \`${cmd}\``);
-    }
+    for (const cmd of params.recommendedCommands) mdLines.push(`  - \`${cmd}\``);
   }
   if (params.gateCommands !== undefined && params.gateCommands.length > 0) {
     mdLines.push(`- **Gate Commands**:`);
-    for (const cmd of params.gateCommands) {
-      mdLines.push(`  - \`${cmd}\``);
-    }
+    for (const cmd of params.gateCommands) mdLines.push(`  - \`${cmd}\``);
   }
   if (params.acceptanceCriteria !== undefined && params.acceptanceCriteria.length > 0) {
     mdLines.push(`- **Acceptance Criteria**:`);
-    for (const ac of params.acceptanceCriteria) {
-      mdLines.push(`  - ${ac}`);
-    }
+    for (const ac of params.acceptanceCriteria) mdLines.push(`  - ${ac}`);
   }
   if (params.nextSteps !== undefined && params.nextSteps.length > 0) {
     mdLines.push(...nextActionsBlock(params.nextSteps));
@@ -90,11 +86,11 @@ export function formatTaskClaimBrief(params: TaskClaimParams): string {
     `- **Lease Token**: \`${params.token}\``,
     `- **Duration**: ${params.durationMinutes} minutes`,
     `- **Assigned Write Scope**: ${scopeStr}`,
-    ...(params.worktreePath === undefined
-      ? []
-      : [
+    ...(params.worktreePath
+      ? [
           `- **Isolated Worktree**: \`${params.worktreePath}\` — do all editing there, not in the shared repo checkout.`,
-        ]),
+        ]
+      : []),
     ...(params.targetFiles && params.targetFiles.length > 0
       ? [`- **Suggested Target Files**: ${params.targetFiles.map((f) => `\`${f}\``).join(", ")}`]
       : []),
@@ -187,11 +183,11 @@ export function formatValidationStartBrief(params: ValidationStartParams): strin
           ...params.recommendedCommands.map((cmd) => `  - \`${cmd}\``),
         ]
       : []),
-    ...(params.minProbes === undefined || params.minProbes === 0
-      ? []
-      : [
+    ...(params.minProbes
+      ? [
           `- **Before Sign-off**: record ${params.minProbes} adversarial probe(s) with \`task:probe\`; a pass is refused without them.`,
-        ]),
+        ]
+      : []),
     ...nextActionsBlock(
       validationStartNextActions(
         undefined,
@@ -233,9 +229,9 @@ export function formatTaskReviewPassBrief(params: TaskReviewPassParams): string 
           `- **Outstanding Domains**: ${params.outstandingDomains.join(", ")} still need an independent pass before ${params.taskId} is validated`,
         ]
       : []),
-    ...(params.probeRounds === undefined
-      ? []
-      : [`- **Adversarial Probes**: ${params.probeRounds} answered before sign-off`]),
+    ...(params.probeRounds !== undefined
+      ? [`- **Adversarial Probes**: ${params.probeRounds} answered before sign-off`]
+      : []),
     `- **Gate Results**: ${params.gateSummary}`,
     `- **Downstream Impact**: ${unblockedStr}`,
     `- **Review Report**: \`${params.reportPath}\``,
@@ -253,13 +249,12 @@ export interface TaskRejectParams {
 }
 
 export function formatTaskRejectBrief(params: TaskRejectParams): string {
-  const actionStr = `Task recorded as \`${params.status}\`.`;
   const md = [
     `### Task Rejected: ${params.taskId}`,
     `- **Validator**: \`${params.validator}\` | Verdict: ❌ REJECTED`,
     `- **Finding ID**: \`${params.findingId}\``,
     `- **Issue**: \`${params.issue}\``,
-    `- **Action**: ${actionStr}`,
+    `- **Action**: Task recorded as \`${params.status}\`.`,
     ...nextActionsBlock(taskRejectNextActions(undefined, params.taskId)),
   ].join("\n");
   return enforceLineLimit(md, 30);

@@ -22,7 +22,9 @@ describe("Sandbox Policy & Quota Resolution Unit Test Suite", () => {
 
       expect(STRICT_QUOTA.maxMemoryRssBytes!).toBeLessThan(BALANCED_QUOTA.maxMemoryRssBytes!);
       expect(BALANCED_QUOTA.maxMemoryRssBytes!).toBeLessThan(PERMISSIVE_QUOTA.maxMemoryRssBytes!);
-      expect(PERMISSIVE_QUOTA.maxMemoryRssBytes!).toBeLessThan(UNCONSTRAINED_QUOTA.maxMemoryRssBytes!);
+      expect(PERMISSIVE_QUOTA.maxMemoryRssBytes!).toBeLessThan(
+        UNCONSTRAINED_QUOTA.maxMemoryRssBytes!,
+      );
 
       expect(STRICT_QUOTA.maxCpuPercent!).toBeLessThan(BALANCED_QUOTA.maxCpuPercent!);
       expect(BALANCED_QUOTA.maxCpuPercent!).toBeLessThan(PERMISSIVE_QUOTA.maxCpuPercent!);

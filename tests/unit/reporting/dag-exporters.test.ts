@@ -174,8 +174,8 @@ describe("Visual DAG Layout Optimizer & Exporters (dag-exporters)", () => {
       expect(svg.mimeType).toBe("image/svg+xml");
       expect(svg.content).toContain("<svg");
       expect(svg.content).toContain("Sample DAG");
-      expect(svg.content).toContain("id=\"node-alpha\"");
-      expect(svg.content).toContain("id=\"node-beta\"");
+      expect(svg.content).toContain('id="node-alpha"');
+      expect(svg.content).toContain('id="node-beta"');
       expect(svg.nodeCount).toBe(3);
       expect(svg.edgeCount).toBe(2);
     });

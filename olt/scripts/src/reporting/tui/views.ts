@@ -114,7 +114,9 @@ export function renderMailboxStreamView(
 ): void {
   const startRow = 4;
   canvas.writeString(startRow, 2, "INTER-AGENT FLOCK MAILBOX STREAM", { bold: true });
-  canvas.writeString(startRow + 1, 2, "─".repeat(Math.max(0, canvas.getWidth() - 4)), { dim: true });
+  canvas.writeString(startRow + 1, 2, "─".repeat(Math.max(0, canvas.getWidth() - 4)), {
+    dim: true,
+  });
 
   const mailboxEvents = events.filter((e) => e.channel === "mailbox").slice(-12);
   for (let i = 0; i < mailboxEvents.length; i++) {
@@ -136,9 +138,13 @@ export function renderTelemetryStreamView(
 ): void {
   const startRow = 4;
   canvas.writeString(startRow, 2, "TELEMETRY & HEALTH PULSE STREAM", { bold: true });
-  canvas.writeString(startRow + 1, 2, "─".repeat(Math.max(0, canvas.getWidth() - 4)), { dim: true });
+  canvas.writeString(startRow + 1, 2, "─".repeat(Math.max(0, canvas.getWidth() - 4)), {
+    dim: true,
+  });
 
-  const telemEvents = events.filter((e) => e.channel === "telemetry" || e.channel === "heartbeat").slice(-12);
+  const telemEvents = events
+    .filter((e) => e.channel === "telemetry" || e.channel === "heartbeat")
+    .slice(-12);
   for (let i = 0; i < telemEvents.length; i++) {
     const ev = telemEvents[i];
     if (!ev) continue;

@@ -7,7 +7,13 @@ export interface TimeoutWatcherOptions {
   readonly onHeartbeat?: ((lastHeartbeatTime: number) => void) | undefined;
 }
 
-export type WatcherState = "idle" | "running" | "timed_out" | "grace_period" | "cancelled" | "disposed";
+export type WatcherState =
+  | "idle"
+  | "running"
+  | "timed_out"
+  | "grace_period"
+  | "cancelled"
+  | "disposed";
 
 export class TimeoutWatcher {
   private readonly timeoutMs: number;

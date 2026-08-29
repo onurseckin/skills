@@ -84,9 +84,24 @@ describe("Bayesian Belief Inference & Log-Odds Math", () => {
 
   it("fuses multiple evidence sources deterministically", () => {
     const evidenceBatch: BayesianEvidence[] = [
-      { id: "e1", likelihoodGivenHypothesis: 0.8, likelihoodGivenNotHypothesis: 0.2, observed: true },
-      { id: "e2", likelihoodGivenHypothesis: 0.7, likelihoodGivenNotHypothesis: 0.3, observed: true },
-      { id: "e3", likelihoodGivenHypothesis: 0.2, likelihoodGivenNotHypothesis: 0.8, observed: false },
+      {
+        id: "e1",
+        likelihoodGivenHypothesis: 0.8,
+        likelihoodGivenNotHypothesis: 0.2,
+        observed: true,
+      },
+      {
+        id: "e2",
+        likelihoodGivenHypothesis: 0.7,
+        likelihoodGivenNotHypothesis: 0.3,
+        observed: true,
+      },
+      {
+        id: "e3",
+        likelihoodGivenHypothesis: 0.2,
+        likelihoodGivenNotHypothesis: 0.8,
+        observed: false,
+      },
     ];
 
     const fusedProbability = fuseEvidenceSources(evidenceBatch, 0.5);

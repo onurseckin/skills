@@ -141,6 +141,7 @@ graph TD
 | Inverted Defect Store        | `DEF-DEFECT-04`  | `task-arch-05`                 | `tests/unit/engine/recovery/defect-store.test.ts`                       |
 | Task Queue Mind Confinement  | `DEF-QUEUE-05`   | `task-arch-03`                 | `tests/unit/task/queue/*.test.ts`                                       |
 | Mind PO Strategic Facade     | `DEF-MIND-06`    | `task-arch-07`                 | `tests/unit/mind/**/*.test.ts`                                          |
+
 # Blueprint 02: Lifecycle & Scheduling Consolidation
 
 **Domain:** `mind` / `watchdog` / `scheduling`  
@@ -280,6 +281,7 @@ graph TD
 | Anti-Idle Scheduling   | Role-biased fields in interval calculator | `task-sched-05`                  | `tests/unit/core/scheduling/anti-idle.test.ts`      |
 | Adaptive Timers        | Timer logic trapped in watchdog engine    | `task-sched-06`                  | `tests/unit/core/scheduling/adaptive-timer.test.ts` |
 | Watchdog Persistence   | Broken mock stubs and uncoordinated store | `task-sched-08`, `task-sched-09` | `tests/unit/watchdog/watchdog-store-sync.test.ts`   |
+
 # Blueprint 03: Role Profiles & Authority Unification
 
 **Domain:** `roles` / `mind` / `authority`  
@@ -419,6 +421,7 @@ graph TD
 | Duplicate Dynamic Sheet | Mind dynamic cheatsheet duplicates markdown formatter | `task-role-06`, `task-role-08`                 | `tests/unit/mind/roles/dynamic-cheatsheet.test.ts` |
 | Role Profile Isolation  | Model tier mapping isolated inside Mind               | `task-role-02`, `task-role-07`                 | `tests/unit/roles/profiles.test.ts`                |
 | Cognitive Hard-Locks    | Validator execution tools not strictly validated      | `task-role-03`                                 | `tests/unit/roles/authority.test.ts`               |
+
 # Blueprint 04: Task Queue & Preplanning Harmonization
 
 **Domain:** `task` / `mind` / `health` / `defects`  
@@ -579,6 +582,7 @@ graph TD
 | Inverted Defect Store     | Engine depends on Mind defect subsystem       | `task-defect-01` through `task-defect-05`   | `tests/unit/engine/recovery/defect-store.test.ts`  |
 | Monotonic Lease Fencing   | Stale workers corrupting reclaimed tasks      | `task-queue-07`                             | `tests/unit/task/queue/lease-fencing.test.ts`      |
 | Work/Span Preplanning     | Mind PO DAG compiling and wave partitioning   | `task-queue-09`                             | `tests/unit/mind/preplanning/plan-factory.test.ts` |
+
 # Blueprint 05: Observability & CLI Registry Migration
 
 **Domain:** `cli` / `observability` / `telemetry`  
@@ -717,6 +721,7 @@ graph TD
 | Task CLI Ops         | Missing first-class task queue commands     | `task-cli-04`, `task-cli-05` | `tests/unit/cli/task-commands.test.ts`              |
 | Scheduling CLI Ops   | Internal backoff math inaccessible to CLI   | `task-cli-06`                | `tests/unit/cli/sched-commands.test.ts`             |
 | Schema Parity        | Drift between implementations and JSON docs | `task-cli-09`                | `tests/unit/cli/capabilities-schema-parity.test.ts` |
+
 # Blueprint 06: Traceability Matrix & Wave Dispatch
 
 **Domain:** `planning` / `dispatch` / `traceability`  
@@ -880,6 +885,7 @@ graph TD
 **Total Deleted Lines**: $2{,}594$ lines  
 **Total New Consolidated Lines**: $1{,}320$ lines  
 **Net Codebase Reduction**: $-1{,}274$ physical lines ($\approx 49\%$ reduction)
+
 # Blueprint 07: Host-Tool Bypass Prevention, Shielded Shell Execution & Hierarchical Dispatch Interlock
 
 **Domain:** `authority` / `communication` / `capsule` / `governance` / `security`  
@@ -1032,6 +1038,7 @@ Across multi-agent execution in host environments (e.g. Antigravity CLI), critic
 | `fb-1788021600000-mandatory-mailbox`    | `task-lock-01 & 07` | `olt/agents/*.yaml`, `src/reporting/doctor/`       | `tests/unit/doctor/mailbox-health-engine.test.ts`      | Complete ($\le 240$ lines, 0 comments) |
 | `defect-unshielded-code-running-drift`  | `task-lock-02 & 06` | `src/authority/rbac/`, `src/reporting/doctor/`     | `tests/unit/authority/rbac/command-authorizer.test.ts` | Complete ($\le 240$ lines, 0 comments) |
 | `defect-vague-conversational-dispatch`  | `task-lock-03`      | `olt/agents/orchestrator.yaml`, `coordinator.yaml` | `tests/unit/authority/manifest-parser.test.ts`         | Complete ($\le 200$ lines, 0 comments) |
+
 # Blueprint 08: Unified CLI Taxonomy, Colon-Namespace Harmonization & Zero-Alias Invariant
 
 **Domain:** `cli` / `tooling` / `reporting` / `queue` / `governance`  
@@ -1194,6 +1201,7 @@ Across the Harness CLI registry (54 commands), a critical taxonomy dissonance an
 **Validator:** `validator_05` (5-Round Full Adversarial Clearance Approved)
 
 ### Summary of Completed Deliverables
+
 1. **Mind Pre-Planning Engine (`olt/scripts/src/mind/preplanning/`)**:
    - `types.ts`: Comprehensive types for thematic clustering, domain categorization, Brent concurrency, and plan generation ($\le 180$ lines).
    - `backlog-clusterer.ts`: Domain classification, eligibility filters, and thematic clustering across backlog items and defects ($\le 260$ lines).
@@ -1212,4 +1220,3 @@ Across the Harness CLI registry (54 commands), a critical taxonomy dissonance an
    - **Line Density**: All files $\le 300$ lines.
    - **Directory Density**: $\le 10$ files per directory.
    - **File-Scoped Test Verification**: All preplanning unit tests passing 100% green (`backlog-clusterer.test.ts`, `continuous-preplanner.test.ts`, `plan-factory.test.ts`, `cycle-cutting.test.ts`).
-

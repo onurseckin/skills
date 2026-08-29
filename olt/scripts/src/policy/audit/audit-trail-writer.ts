@@ -44,18 +44,19 @@ export class AuditTrailWriter {
             this.sequenceCounter = Math.max(this.sequenceCounter, parsed.sequenceNumber ?? 0);
             this.lastHash = parsed.hash;
           }
-        } catch {
-        }
+        } catch {}
       }
       if (this.events.length > this.maxInMemoryEvents) {
         this.events.splice(0, this.events.length - this.maxInMemoryEvents);
       }
-    } catch {
-    }
+    } catch {}
   }
 
   public record(
-    eventInput: Omit<AuditEvent, "id" | "timestamp" | "sequenceNumber" | "hash" | "previousHash"> & {
+    eventInput: Omit<
+      AuditEvent,
+      "id" | "timestamp" | "sequenceNumber" | "hash" | "previousHash"
+    > & {
       readonly id?: string | undefined;
       readonly timestamp?: string | undefined;
     },
@@ -80,9 +81,7 @@ export class AuditTrailWriter {
       previousHash,
     };
 
-    const hash = this.enableTamperEvidentHashing
-      ? computeAuditRecordHash(baseEvent)
-      : "";
+    const hash = this.enableTamperEvidentHashing ? computeAuditRecordHash(baseEvent) : "";
 
     const event: AuditEvent = {
       ...baseEvent,

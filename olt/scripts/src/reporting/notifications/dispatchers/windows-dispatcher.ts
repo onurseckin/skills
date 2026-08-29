@@ -16,7 +16,8 @@ export class WindowsNotificationDispatcher implements INotificationDispatcher {
   ): PlatformNotificationDeliveryResult {
     const spawner = options?.customSpawn ?? defaultNotificationSpawner;
     const timeoutMs = options?.timeoutMs ?? 5000;
-    const iconType = options?.priority === "critical" ? "Error" : options?.priority === "low" ? "None" : "Info";
+    const iconType =
+      options?.priority === "critical" ? "Error" : options?.priority === "low" ? "None" : "Info";
 
     const titleEsc = escapePowerShellString(payload.title);
     const msgEsc = escapePowerShellString(

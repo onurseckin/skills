@@ -138,7 +138,10 @@ export function recoverDiskState(
 
   let indexRebuilt = false;
   if (options.rebuildIndexIfMissing !== false && capsulePaths.sparseIndexPath) {
-    if (!existsSync(capsulePaths.sparseIndexPath) || statSync(capsulePaths.sparseIndexPath).size === 0) {
+    if (
+      !existsSync(capsulePaths.sparseIndexPath) ||
+      statSync(capsulePaths.sparseIndexPath).size === 0
+    ) {
       rebuildSparseIndex(capsulePaths.eventsPath, capsulePaths.sparseIndexPath);
       indexRebuilt = true;
     }
@@ -170,12 +173,7 @@ export function recoverDiskState(
       };
     }
 
-    const state = fastForwardProjection(
-      validSnapshot.payload,
-      baseSeq,
-      targetSeq,
-      capsulePaths,
-    );
+    const state = fastForwardProjection(validSnapshot.payload, baseSeq, targetSeq, capsulePaths);
 
     return {
       recoveredState: state,

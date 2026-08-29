@@ -8,10 +8,12 @@ import type {
 
 export function getNodeStatusGlyph(status: string, hasDeps = false): string {
   const s = status.toLowerCase();
-  if (s === "pass" || s === "done" || s === "satisfied" || s === "passed" || s === "completed") return "✓";
+  if (s === "pass" || s === "done" || s === "satisfied" || s === "passed" || s === "completed")
+    return "✓";
   if (s === "active" || s === "leased" || s === "running" || s === "in_progress") return "●";
   if (s === "probing" || s === "probe" || s === "investigating") return "🔍";
-  if (s === "repairing" || s === "repair" || s === "remediation" || s === "changes_requested") return "⟳";
+  if (s === "repairing" || s === "repair" || s === "remediation" || s === "changes_requested")
+    return "⟳";
   if (s === "validating") return "🔄";
   if (s === "validated") return "🟣";
   if (s === "ready" || s === "retry_ready") return "○";
@@ -21,11 +23,27 @@ export function getNodeStatusGlyph(status: string, hasDeps = false): string {
 
 export function formatNodeBadges(task: SugiyamaNode): string {
   const parts: string[] = [];
-  const badge = "badge" in task && typeof task.badge === "object" && task.badge !== null ? (task.badge as SugiyamaNodeBadge) : undefined;
+  const badge =
+    "badge" in task && typeof task.badge === "object" && task.badge !== null
+      ? (task.badge as SugiyamaNodeBadge)
+      : undefined;
   const role = task.assignedRole?.toLowerCase();
-  const implementerId = task.implementerAgent?.trim() || badge?.implementerId?.trim() || (role !== "validator" && role !== "coordinator" ? task.assignedAgent?.trim() : undefined) || undefined;
-  const validatorId = task.validatorAgent?.trim() || task.validatorId?.trim() || badge?.validatorId?.trim() || (role === "validator" ? task.assignedAgent?.trim() : undefined) || undefined;
-  const coordinatorId = task.coordinatorId?.trim() || badge?.coordinatorId?.trim() || (role === "coordinator" ? task.assignedAgent?.trim() : undefined) || undefined;
+  const implementerId =
+    task.implementerAgent?.trim() ||
+    badge?.implementerId?.trim() ||
+    (role !== "validator" && role !== "coordinator" ? task.assignedAgent?.trim() : undefined) ||
+    undefined;
+  const validatorId =
+    task.validatorAgent?.trim() ||
+    task.validatorId?.trim() ||
+    badge?.validatorId?.trim() ||
+    (role === "validator" ? task.assignedAgent?.trim() : undefined) ||
+    undefined;
+  const coordinatorId =
+    task.coordinatorId?.trim() ||
+    badge?.coordinatorId?.trim() ||
+    (role === "coordinator" ? task.assignedAgent?.trim() : undefined) ||
+    undefined;
 
   if (implementerId) parts.push(`[I: ${implementerId}]`);
   if (validatorId) parts.push(`[V: ${validatorId}]`);
@@ -42,8 +60,18 @@ export function formatNodeBadges(task: SugiyamaNode): string {
     parts.push(`[P${probeRound}]`);
   }
 
-  const work = typeof task.effort === "number" ? task.effort : typeof badge?.effort === "number" ? badge.effort : 1;
-  const span = typeof task.criticalDepth === "number" ? task.criticalDepth + 1 : typeof badge?.span === "number" ? badge.span : 1;
+  const work =
+    typeof task.effort === "number"
+      ? task.effort
+      : typeof badge?.effort === "number"
+        ? badge.effort
+        : 1;
+  const span =
+    typeof task.criticalDepth === "number"
+      ? task.criticalDepth + 1
+      : typeof badge?.span === "number"
+        ? badge.span
+        : 1;
   parts.push(`W:${work} S:${span}`);
   return parts.join(" ");
 }
@@ -72,10 +100,13 @@ export function getStatusGlyph(status: string, hasDeps = false): string {
 
 export function formatStatusBadge(status: string, hasDeps = false): string {
   const s = status.toLowerCase();
-  if (s === "active" || s === "leased" || s === "running" || s === "in_progress") return "[● ACTIVE]";
-  if (s === "pass" || s === "done" || s === "satisfied" || s === "passed" || s === "completed") return "[✓ PASS]";
+  if (s === "active" || s === "leased" || s === "running" || s === "in_progress")
+    return "[● ACTIVE]";
+  if (s === "pass" || s === "done" || s === "satisfied" || s === "passed" || s === "completed")
+    return "[✓ PASS]";
   if (s === "ready" || s === "retry_ready") return "[○ READY]";
-  if (s === "repairing" || s === "repair" || s === "changes_requested" || s === "remediation") return "[⟳ REPAIRING]";
+  if (s === "repairing" || s === "repair" || s === "changes_requested" || s === "remediation")
+    return "[⟳ REPAIRING]";
   if (s === "probing" || s === "probe" || s === "investigating") return "[🔍 PROBING]";
   if (s === "validating") return "[🔄 VALIDATING]";
   if (s === "validated") return "[🟣 VALIDATED]";
@@ -132,12 +163,19 @@ export function formatImplementerValidatorTracking(task: SugiyamaNode): string[]
   const pushesCount = task.pushes ?? 0;
   const probesCount = task.probes ?? (task.probeRound !== undefined ? task.probeRound : 0);
   const attemptsCount = task.attempt ?? 1;
-  const inLeaseRepairsCount = task.inLeaseRepairs ?? (task.round !== undefined && task.round > 1 ? task.round - 1 : 0);
+  const inLeaseRepairsCount =
+    task.inLeaseRepairs ?? (task.round !== undefined && task.round > 1 ? task.round - 1 : 0);
 
-  lines.push(`Tracking: Pushes: ${pushesCount}/5 | Probes: ${probesCount}/5 | Attempts: ${attemptsCount}/3 | In-Lease Repairs: ${inLeaseRepairsCount}/3`);
+  lines.push(
+    `Tracking: Pushes: ${pushesCount}/5 | Probes: ${probesCount}/5 | Attempts: ${attemptsCount}/3 | In-Lease Repairs: ${inLeaseRepairsCount}/3`,
+  );
   if (task.coordinatorId) {
-    const pctStr = task.coordinatorOwnershipPct !== undefined ? ` (${task.coordinatorOwnershipPct}%)` : "";
-    const leaseTimerStr = task.activeLeaseTimerSeconds !== undefined ? ` | Active Lease Timer: ${task.activeLeaseTimerSeconds}s` : "";
+    const pctStr =
+      task.coordinatorOwnershipPct !== undefined ? ` (${task.coordinatorOwnershipPct}%)` : "";
+    const leaseTimerStr =
+      task.activeLeaseTimerSeconds !== undefined
+        ? ` | Active Lease Timer: ${task.activeLeaseTimerSeconds}s`
+        : "";
     lines.push(`Coordinator: ${task.coordinatorId}${pctStr}${leaseTimerStr}`);
   }
   return lines;
@@ -165,14 +203,35 @@ export function renderSubagentExpandedItems(
     } else {
       const subId = sub.id;
       const subStatus = formatStatusBadge(sub.status ?? "ready");
-      const subRole = "assignedRole" in sub && typeof sub.assignedRole === "string" ? sub.assignedRole : "role" in sub && typeof sub.role === "string" ? sub.role : undefined;
-      const subImpl = "assignedAgent" in sub && subRole !== "validator" ? sub.assignedAgent : "implementerAgent" in sub && typeof sub.implementerAgent === "string" ? sub.implementerAgent : null;
-      const subVal = "validatorId" in sub && typeof sub.validatorId === "string" ? sub.validatorId : "validatorAgent" in sub && typeof sub.validatorAgent === "string" ? sub.validatorAgent : "assignedAgent" in sub && subRole === "validator" ? sub.assignedAgent : null;
+      const subRole =
+        "assignedRole" in sub && typeof sub.assignedRole === "string"
+          ? sub.assignedRole
+          : "role" in sub && typeof sub.role === "string"
+            ? sub.role
+            : undefined;
+      const subImpl =
+        "assignedAgent" in sub && subRole !== "validator"
+          ? sub.assignedAgent
+          : "implementerAgent" in sub && typeof sub.implementerAgent === "string"
+            ? sub.implementerAgent
+            : null;
+      const subVal =
+        "validatorId" in sub && typeof sub.validatorId === "string"
+          ? sub.validatorId
+          : "validatorAgent" in sub && typeof sub.validatorAgent === "string"
+            ? sub.validatorAgent
+            : "assignedAgent" in sub && subRole === "validator"
+              ? sub.assignedAgent
+              : null;
       const childAlloc = formatSubagentAllocation(subImpl, subVal, subRole ?? "IMPLEMENTER");
       const allocSuffix = childAlloc ? ` ${childAlloc}` : "";
       rows.push(`${connector} [${subId}] ${subStatus}${allocSuffix}`);
 
-      if ("expandedSubtasks" in sub && Array.isArray(sub.expandedSubtasks) && sub.expandedSubtasks.length > 0) {
+      if (
+        "expandedSubtasks" in sub &&
+        Array.isArray(sub.expandedSubtasks) &&
+        sub.expandedSubtasks.length > 0
+      ) {
         const nested = renderSubagentExpandedItems(
           sub.expandedSubtasks as readonly (SugiyamaNode | SugiyamaSubtask | string)[],
           "branchId" in sub && typeof sub.branchId === "string" ? sub.branchId : undefined,

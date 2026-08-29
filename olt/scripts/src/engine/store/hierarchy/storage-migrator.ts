@@ -189,8 +189,7 @@ export function migrateLegacyCapsules(repoRoot?: string): MigrationResult {
       if (readdirSync(legacyDir).length === 0) {
         safeRmSync(legacyDir, { allowedRoots: [paths.repoRoot], missingOk: true });
       }
-    } catch {
-    }
+    } catch {}
   }
 
   return { migratedCount, errors: Object.freeze(errors) };

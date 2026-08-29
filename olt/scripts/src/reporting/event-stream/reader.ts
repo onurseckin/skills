@@ -65,8 +65,7 @@ export function readCapsuleEvents(
           manifestCapsuleId = manifestObj.capsule_id;
         }
       }
-    } catch {
-    }
+    } catch {}
   }
 
   const fileContent = readFileSync(eventsFile, "utf8");

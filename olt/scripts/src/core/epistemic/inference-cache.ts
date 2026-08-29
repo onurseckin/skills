@@ -1,9 +1,5 @@
 import { createHash } from "node:crypto";
-import type {
-  EpistemicCacheEntry,
-  EpistemicCacheOptions,
-  EpistemicCacheStats,
-} from "./types.ts";
+import type { EpistemicCacheEntry, EpistemicCacheOptions, EpistemicCacheStats } from "./types.ts";
 
 export class EpistemicInferenceCache<T> {
   private readonly entries = new Map<string, EpistemicCacheEntry<T>>();
@@ -21,8 +17,11 @@ export class EpistemicInferenceCache<T> {
   }
 
   public computeKey(payload: unknown, prefix = "epistemic"): string {
-    const serialized = JSON.stringify(payload, Object.keys(payload as object || {}).sort());
-    const hash = createHash("sha256").update(serialized ?? "").digest("hex").slice(0, 16);
+    const serialized = JSON.stringify(payload, Object.keys((payload as object) || {}).sort());
+    const hash = createHash("sha256")
+      .update(serialized ?? "")
+      .digest("hex")
+      .slice(0, 16);
     return `${prefix}:${hash}`;
   }
 

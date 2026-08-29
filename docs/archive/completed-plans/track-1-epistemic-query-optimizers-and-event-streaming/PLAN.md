@@ -6,7 +6,7 @@
 > **Implementer:** `implementer_11`  
 > **Validator:** `validator_06`  
 > **Created:** 2026-08-29  
-> **Completed:** 2026-08-29  
+> **Completed:** 2026-08-29
 
 ---
 
@@ -36,20 +36,20 @@ This extension elevates the OLT Epistemic Engine with two high-performance capab
 
 ## 2. File Topology & Physical Density
 
-| File Path | Physical LOC | Invariant Status |
-| :--- | :--- | :--- |
-| `olt/scripts/src/core/epistemic/types.ts` | 253 LOC | 0 comments, 0 any, $\le 300$ LOC |
-| `olt/scripts/src/core/epistemic/math.ts` | 152 LOC | 0 comments, 0 any, $\le 300$ LOC |
-| `olt/scripts/src/core/epistemic/evaluator.ts` | 113 LOC | 0 comments, 0 any, $\le 300$ LOC |
-| `olt/scripts/src/core/epistemic/bayesian-inference.ts` | 129 LOC | 0 comments, 0 any, $\le 300$ LOC |
-| `olt/scripts/src/core/epistemic/inference-cache.ts` | 227 LOC | 0 comments, 0 any, $\le 300$ LOC |
-| `olt/scripts/src/core/epistemic/inference-graph.ts` | 290 LOC | 0 comments, 0 any, $\le 300$ LOC |
-| `olt/scripts/src/core/epistemic/query.ts` | 277 LOC | 0 comments, 0 any, $\le 300$ LOC |
-| `olt/scripts/src/core/epistemic/streaming.ts` | 270 LOC | 0 comments, 0 any, $\le 300$ LOC |
-| `olt/scripts/src/core/epistemic/index.ts` | 56 LOC | 0 comments, 0 any, $\le 300$ LOC |
-| `olt/scripts/src/engine/worktree/domain-sync-ops.ts` | 231 LOC | 0 comments, 0 any, $\le 300$ LOC |
-| `olt/scripts/src/engine/worktree/landing-ops.ts` | 113 LOC | 0 comments, 0 any, $\le 300$ LOC |
-| `olt/scripts/src/engine/worktree/zero-destructive-policy.ts` | 193 LOC | 0 comments, 0 any, $\le 300$ LOC |
+| File Path                                                    | Physical LOC | Invariant Status                 |
+| :----------------------------------------------------------- | :----------- | :------------------------------- |
+| `olt/scripts/src/core/epistemic/types.ts`                    | 253 LOC      | 0 comments, 0 any, $\le 300$ LOC |
+| `olt/scripts/src/core/epistemic/math.ts`                     | 152 LOC      | 0 comments, 0 any, $\le 300$ LOC |
+| `olt/scripts/src/core/epistemic/evaluator.ts`                | 113 LOC      | 0 comments, 0 any, $\le 300$ LOC |
+| `olt/scripts/src/core/epistemic/bayesian-inference.ts`       | 129 LOC      | 0 comments, 0 any, $\le 300$ LOC |
+| `olt/scripts/src/core/epistemic/inference-cache.ts`          | 227 LOC      | 0 comments, 0 any, $\le 300$ LOC |
+| `olt/scripts/src/core/epistemic/inference-graph.ts`          | 290 LOC      | 0 comments, 0 any, $\le 300$ LOC |
+| `olt/scripts/src/core/epistemic/query.ts`                    | 277 LOC      | 0 comments, 0 any, $\le 300$ LOC |
+| `olt/scripts/src/core/epistemic/streaming.ts`                | 270 LOC      | 0 comments, 0 any, $\le 300$ LOC |
+| `olt/scripts/src/core/epistemic/index.ts`                    | 56 LOC       | 0 comments, 0 any, $\le 300$ LOC |
+| `olt/scripts/src/engine/worktree/domain-sync-ops.ts`         | 231 LOC      | 0 comments, 0 any, $\le 300$ LOC |
+| `olt/scripts/src/engine/worktree/landing-ops.ts`             | 113 LOC      | 0 comments, 0 any, $\le 300$ LOC |
+| `olt/scripts/src/engine/worktree/zero-destructive-policy.ts` | 193 LOC      | 0 comments, 0 any, $\le 300$ LOC |
 
 ---
 

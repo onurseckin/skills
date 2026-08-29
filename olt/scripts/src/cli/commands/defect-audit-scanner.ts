@@ -6,11 +6,7 @@ import {
   resolveDefectsPath,
   resolveCompletedDefectsPath,
 } from "../../core/shared/paths.ts";
-import type {
-  AuditedDefect,
-  DefectFileDiscovery,
-  DefectStatus,
-} from "./defect-audit-types.ts";
+import type { AuditedDefect, DefectFileDiscovery, DefectStatus } from "./defect-audit-types.ts";
 
 export function discoverDefectFiles(
   capsulesDir: string,
@@ -57,8 +53,7 @@ export function discoverDefectFiles(
           }
         }
       }
-    } catch {
-    }
+    } catch {}
   }
 
   if (explicitRunRoot !== undefined) {
@@ -135,8 +130,7 @@ export function parseDefectsFromFile(
           }
         }
       }
-    } catch {
-    }
+    } catch {}
   }
 
   const lines = fileContent.split("\n");
@@ -214,8 +208,7 @@ export function parseDefectsFromFile(
           ...(resolution !== undefined ? { resolution } : {}),
         });
       }
-    } catch {
-    }
+    } catch {}
   }
 
   return defects;

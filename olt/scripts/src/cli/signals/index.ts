@@ -24,8 +24,4 @@ export {
   withSignalTrap,
 } from "./signal-trap.ts";
 
-export {
-  formatCliError,
-  mapErrorToExitCode,
-  propagateCliExitCode,
-} from "./error-propagation.ts";
+export { formatCliError, mapErrorToExitCode, propagateCliExitCode } from "./error-propagation.ts";

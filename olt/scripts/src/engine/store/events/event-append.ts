@@ -199,15 +199,13 @@ export function appendProjectionEvent(
   } catch (error) {
     try {
       clearTransactionMarker(runRoot);
-    } catch (_ignored) {
-    }
+    } catch (_ignored) {}
     throw error;
   }
   const pending = (phase: TransactionPhase, cause: unknown): never => {
     try {
       marker = writeTransactionMarker(runRoot, { ...marker, phase });
-    } catch (_ignored) {
-    }
+    } catch (_ignored) {}
     throw new CommittedWithRecoveryPendingError(marker, cloneObject(next), cause);
   };
   try {

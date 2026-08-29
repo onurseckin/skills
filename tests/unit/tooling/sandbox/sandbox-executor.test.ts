@@ -4,7 +4,12 @@ import { SandboxedToolExecutor } from "../../../../olt/scripts/src/tooling/sandb
 import type { ResourceQuota } from "../../../../olt/scripts/src/tooling/sandbox/types.ts";
 
 class MockMetricsProvider implements SystemMetricsProvider {
-  public memory = { rss: 50 * 1024 * 1024, heapUsed: 20 * 1024 * 1024, heapTotal: 30 * 1024 * 1024, external: 0 };
+  public memory = {
+    rss: 50 * 1024 * 1024,
+    heapUsed: 20 * 1024 * 1024,
+    heapTotal: 30 * 1024 * 1024,
+    external: 0,
+  };
   public cpuUsageValue = { user: 1000, system: 500 };
   public cpuCount = 4;
 
@@ -28,7 +33,11 @@ describe("SandboxedToolExecutor Unit Test Suite", () => {
       return `Processed ${args.input}`;
     };
 
-    const result = await executor.execute(handler, { input: "test-data" }, { toolName: "echo_tool" });
+    const result = await executor.execute(
+      handler,
+      { input: "test-data" },
+      { toolName: "echo_tool" },
+    );
 
     expect(result.success).toBe(true);
     expect(result.output).toBe("Processed test-data");
@@ -40,7 +49,10 @@ describe("SandboxedToolExecutor Unit Test Suite", () => {
 
   it("terminates execution when timeout quota is exceeded", async () => {
     const executor = new SandboxedToolExecutor();
-    const hangingHandler = async (_args: Record<string, unknown>, ctx?: { abortSignal?: AbortSignal }) => {
+    const hangingHandler = async (
+      _args: Record<string, unknown>,
+      ctx?: { abortSignal?: AbortSignal },
+    ) => {
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(resolve, 500);
         ctx?.abortSignal?.addEventListener("abort", () => {
@@ -124,7 +136,8 @@ describe("SandboxedToolExecutor Unit Test Suite", () => {
 
     const hasSuccess = r1.success || r2.success;
     const hasConcurrencyExceeded =
-      r1.terminationReason === "concurrency_exceeded" || r2.terminationReason === "concurrency_exceeded";
+      r1.terminationReason === "concurrency_exceeded" ||
+      r2.terminationReason === "concurrency_exceeded";
 
     expect(hasSuccess).toBe(true);
     expect(hasConcurrencyExceeded).toBe(true);

@@ -1,10 +1,7 @@
 import { existsSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../core/errors/index.ts";
-import {
-  writeAtomicSnapshot,
-  type SnapshotRecord,
-} from "./snapshot-manager.ts";
+import { writeAtomicSnapshot, type SnapshotRecord } from "./snapshot-manager.ts";
 
 export interface CheckpointMetrics {
   readonly sequence: number;

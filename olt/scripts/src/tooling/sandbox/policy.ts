@@ -1,9 +1,4 @@
-import type {
-  IsolationLevel,
-  ResourceQuota,
-  SandboxPolicyConfig,
-  SandboxTier,
-} from "./types.ts";
+import type { IsolationLevel, ResourceQuota, SandboxPolicyConfig, SandboxTier } from "./types.ts";
 
 export const STRICT_QUOTA: ResourceQuota = {
   timeoutMs: 5000,
@@ -254,10 +249,8 @@ export function createCustomSandboxPolicy(
     allowedDirectories: overrides.allowedDirectories ?? base.allowedDirectories ?? [],
     blockedDirectories: overrides.blockedDirectories ?? base.blockedDirectories ?? [],
     readOnlyDirectories: overrides.readOnlyDirectories ?? base.readOnlyDirectories ?? [],
-    allowedEnvironmentKeys:
-      overrides.allowedEnvironmentKeys ?? base.allowedEnvironmentKeys ?? [],
-    blockedEnvironmentKeys:
-      overrides.blockedEnvironmentKeys ?? base.blockedEnvironmentKeys ?? [],
+    allowedEnvironmentKeys: overrides.allowedEnvironmentKeys ?? base.allowedEnvironmentKeys ?? [],
+    blockedEnvironmentKeys: overrides.blockedEnvironmentKeys ?? base.blockedEnvironmentKeys ?? [],
     maxMemoryMb: overrides.maxMemoryMb ?? base.maxMemoryMb ?? 1024,
     maxExecutionTimeMs: overrides.maxExecutionTimeMs ?? base.maxExecutionTimeMs ?? 30000,
     allowSubprocess: overrides.allowSubprocess ?? base.allowSubprocess ?? true,

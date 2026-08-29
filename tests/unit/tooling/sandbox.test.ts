@@ -176,10 +176,9 @@ describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
 
     it("enforces timeout on hanging in-memory functions", async () => {
       const sandbox = new DynamicExecutionSandbox();
-      const res = await sandbox.executeFunction(
-        () => new Promise((r) => setTimeout(r, 500)),
-        { timeoutMs: 50 },
-      );
+      const res = await sandbox.executeFunction(() => new Promise((r) => setTimeout(r, 500)), {
+        timeoutMs: 50,
+      });
       expect(res.success).toBe(false);
       expect(res.timedOut).toBe(true);
       expect(res.error).toContain("timed out");

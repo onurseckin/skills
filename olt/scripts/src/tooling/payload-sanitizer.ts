@@ -53,9 +53,8 @@ export function coerceValue(value: unknown, targetType: ToolParameterType): unkn
       if (typeof value === "string") {
         try {
           const parsed = JSON.parse(value);
-          if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+          if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed))
             return parsed;
-          }
         } catch {}
       }
       return value;
@@ -80,12 +79,20 @@ export function validateParameter(
   rawValue: unknown,
   options: SanitizationOptions = {},
   pathPrefix = "",
-): { readonly valid: boolean; readonly value: unknown; readonly errors: readonly ToolValidationError[] } {
+): {
+  readonly valid: boolean;
+  readonly value: unknown;
+  readonly errors: readonly ToolValidationError[];
+} {
   const errors: ToolValidationError[] = [];
   const fieldName = pathPrefix ? `${pathPrefix}.${param.name}` : param.name;
-
   let value = rawValue;
-  if ((value === undefined || value === null) && options.applyDefaults !== false && param.defaultValue !== undefined) {
+
+  if (
+    (value === undefined || value === null) &&
+    options.applyDefaults !== false &&
+    param.defaultValue !== undefined
+  ) {
     value = param.defaultValue;
   }
 
@@ -101,10 +108,7 @@ export function validateParameter(
     return { valid: errors.length === 0, value, errors };
   }
 
-  const expectedType = param.type === "integer" ? "number" : param.type;
-  if (options.coerceTypes) {
-    value = coerceValue(value, param.type);
-  }
+  if (options.coerceTypes) value = coerceValue(value, param.type);
 
   if (!validateTypeOnly(param.type, value)) {
     errors.push({
@@ -161,8 +165,7 @@ export function validateParameter(
     }
     if (param.pattern) {
       try {
-        const re = new RegExp(param.pattern);
-        if (!re.test(value)) {
+        if (!new RegExp(param.pattern).test(value)) {
           errors.push({
             field: fieldName,
             code: "PATTERN_MISMATCH",
@@ -217,14 +220,17 @@ export function validateParameter(
       }
       sanitizedItems.push(itemVal);
     }
-    if (itemErrors.length > 0) {
-      errors.push(...itemErrors);
-    } else {
-      value = sanitizedItems;
-    }
+    if (itemErrors.length > 0) errors.push(...itemErrors);
+    else value = sanitizedItems;
   }
 
-  if (param.type === "object" && typeof value === "object" && value !== null && !Array.isArray(value) && param.properties) {
+  if (
+    param.type === "object" &&
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    param.properties
+  ) {
     const propsList: readonly ToolParameter[] = Array.isArray(param.properties)
       ? (param.properties as readonly ToolParameter[])
       : Object.entries(param.properties).map(([pName, p]) => ({
@@ -243,10 +249,7 @@ export function validateParameter(
     if (!nestedRes.valid && nestedRes.errors) {
       for (const nestedErr of nestedRes.errors) {
         if (typeof nestedErr === "object" && nestedErr !== null) {
-          errors.push({
-            ...nestedErr,
-            field: `${fieldName}.${nestedErr.field ?? ""}`,
-          });
+          errors.push({ ...nestedErr, field: `${fieldName}.${nestedErr.field ?? ""}` });
         }
       }
     } else if (nestedRes.sanitized) {

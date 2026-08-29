@@ -39,7 +39,9 @@ export interface KeyStroke {
   readonly raw: string;
 }
 
-const SPECIAL_SEQUENCES: Readonly<Record<string, { special: SpecialKey; ctrl?: boolean; alt?: boolean; shift?: boolean }>> = {
+const SPECIAL_SEQUENCES: Readonly<
+  Record<string, { special: SpecialKey; ctrl?: boolean; alt?: boolean; shift?: boolean }>
+> = {
   "\x1b[A": { special: "up" },
   "\x1b[B": { special: "down" },
   "\x1b[C": { special: "right" },

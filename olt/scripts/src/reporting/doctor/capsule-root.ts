@@ -93,16 +93,12 @@ export function verifyStrictRepositoryCapsuleRoot(
   let resolvedRunRoot = resolve(runRoot);
   try {
     if (existsSync(resolvedRunRoot)) resolvedRunRoot = realpathSync(resolvedRunRoot);
-  } catch {
-
-  }
+  } catch {}
 
   let repoRoot = explicitRepoRoot ? resolve(explicitRepoRoot) : findRepositoryRoot(resolvedRunRoot);
   try {
     if (existsSync(repoRoot)) repoRoot = realpathSync(repoRoot);
-  } catch {
-
-  }
+  } catch {}
 
   const canonicalCapsulesDir = join(repoRoot, OLT_DIR_NAME, CAPSULES_SUBDIR_NAME);
   const legacyCapsulesDir = join(repoRoot, LEGACY_CAPSULES_NAME);

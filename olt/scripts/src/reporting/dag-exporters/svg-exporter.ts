@@ -28,7 +28,11 @@ function renderClusterSvg(cluster: DagLayoutCluster, strokeColor: string): strin
   </g>`;
 }
 
-function renderEdgeSvg(edge: DagLayoutEdgePoint, strokeColor: string, isHorizontal: boolean): string {
+function renderEdgeSvg(
+  edge: DagLayoutEdgePoint,
+  strokeColor: string,
+  isHorizontal: boolean,
+): string {
   const { fromX, fromY, toX, toY } = edge;
   let pathData = "";
 

@@ -72,14 +72,20 @@ export function exportDagToDot(
 
   const lines: string[] = [];
   lines.push("digraph VisualDag {");
-  lines.push(`  graph [rankdir="${rankdir}", bgcolor="${theme.background}", fontname="${theme.fontFamily}", pad="0.5", nodesep="0.4", ranksep="0.6"];`);
+  lines.push(
+    `  graph [rankdir="${rankdir}", bgcolor="${theme.background}", fontname="${theme.fontFamily}", pad="0.5", nodesep="0.4", ranksep="0.6"];`,
+  );
   lines.push(`  node [fontname="${theme.fontFamily}"];`);
-  lines.push(`  edge [fontname="${theme.fontFamily}", color="${theme.edgeColor}", penwidth="1.5", arrowsize="0.8"];`);
+  lines.push(
+    `  edge [fontname="${theme.fontFamily}", color="${theme.edgeColor}", penwidth="1.5", arrowsize="0.8"];`,
+  );
 
   if (options.title || layout.title) {
     const title = escapeDotHtml(options.title || layout.title || "");
     lines.push(`  labelloc="t";`);
-    lines.push(`  label=<<font point-size="14" color="${theme.textPrimary}"><b>${title}</b></font><br/><br/>>;`);
+    lines.push(
+      `  label=<<font point-size="14" color="${theme.textPrimary}"><b>${title}</b></font><br/><br/>>;`,
+    );
   }
 
   const showClusters = options.showClusters !== false;
@@ -98,7 +104,9 @@ export function exportDagToDot(
     for (const wave of sortedWaves) {
       const waveNodes = nodesByWave.get(wave) ?? [];
       lines.push(`  subgraph cluster_wave_${wave} {`);
-      lines.push(`    label=<<font point-size="10" color="${theme.textSecondary}">Wave ${wave}</font>>;`);
+      lines.push(
+        `    label=<<font point-size="10" color="${theme.textSecondary}">Wave ${wave}</font>>;`,
+      );
       lines.push(`    style="dashed,rounded";`);
       lines.push(`    color="${theme.border}";`);
       for (const node of waveNodes) {

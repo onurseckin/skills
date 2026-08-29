@@ -31,6 +31,10 @@ export * from "./socratic-validator.ts";
 export * from "./lease-agent-extractor.ts";
 export * from "./unified/index.ts";
 export * from "./dag-exporters/index.ts";
+export * from "./event-stream/index.ts";
+export * from "./telemetry-stream.ts";
+export * from "./time-telemetry/index.ts";
+export * from "./tui/index.ts";
 export {
   buildPhaseNotificationPayload,
   DEFAULT_DARWIN_NOTIFICATION_SOUND,

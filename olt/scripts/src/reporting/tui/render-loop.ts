@@ -84,10 +84,13 @@ export class ReactiveRenderLoop {
     if (this.timer !== null) {
       clearTimeout(this.timer);
     }
-    this.timer = setTimeout(() => {
-      this.timer = null;
-      this.tick();
-    }, Math.max(0, delayMs));
+    this.timer = setTimeout(
+      () => {
+        this.timer = null;
+        this.tick();
+      },
+      Math.max(0, delayMs),
+    );
   }
 
   private tick(): void {

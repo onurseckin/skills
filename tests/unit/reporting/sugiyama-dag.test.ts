@@ -350,7 +350,9 @@ describe("Sugiyama Visual DAG Engine", () => {
       expect(report.totalTasks).toBe(4);
       expect(report.totalLayers).toBe(3);
       expect(report.metrics.totalWaves).toBe(3);
-      expect(report.markdown).toContain("### Sugiyama Hierarchical DAG Visualization: pipeline-run-42");
+      expect(report.markdown).toContain(
+        "### Sugiyama Hierarchical DAG Visualization: pipeline-run-42",
+      );
       expect(buildSugiyamaDagReport(nodes, edges).totalTasks).toBe(4);
     });
   });

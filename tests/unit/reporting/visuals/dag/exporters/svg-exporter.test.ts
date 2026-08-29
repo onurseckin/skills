@@ -39,11 +39,11 @@ describe("SVG Exporter (exportDagToSvg)", () => {
     expect(result.edgeCount).toBe(1);
     expect(result.layerCount).toBeGreaterThanOrEqual(1);
     expect(result.content).toContain("Pipeline DAG");
-    expect(result.content).toContain("id=\"node-task-1\"");
-    expect(result.content).toContain("id=\"node-task-2\"");
+    expect(result.content).toContain('id="node-task-1"');
+    expect(result.content).toContain('id="node-task-2"');
     expect(result.content).toContain("Agent: implementer_14");
     expect(result.content).toContain("Gate: bun test");
-    expect(result.content).toContain("marker-end=\"url(#arrowhead)\"");
+    expect(result.content).toContain('marker-end="url(#arrowhead)"');
   });
 
   it("renders diamond DAG with horizontal orientation", () => {
@@ -72,11 +72,11 @@ describe("SVG Exporter (exportDagToSvg)", () => {
   it("supports custom theme and light theme options", () => {
     const nodes: SugiyamaNode[] = [createNode("N1", { status: "failed" })];
     const resultLight = exportDagToSvg(nodes, [], { theme: "light" });
-    expect(resultLight.content).toContain("fill=\"#ffffff\"");
+    expect(resultLight.content).toContain('fill="#ffffff"');
 
     const resultCustom = exportDagToSvg(nodes, [], {
       customTheme: { background: "#123456" },
     });
-    expect(resultCustom.content).toContain("fill=\"#123456\"");
+    expect(resultCustom.content).toContain('fill="#123456"');
   });
 });

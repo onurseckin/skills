@@ -90,7 +90,9 @@ export function checkAntiMockMutation(
   if (options.targetFiles && options.targetFiles.length > 0) {
     for (const p of options.targetFiles) {
       const relPath = String(p);
-      const fullPath = options.repoRoot ? resolve(String(options.repoRoot), relPath) : resolve(relPath);
+      const fullPath = options.repoRoot
+        ? resolve(String(options.repoRoot), relPath)
+        : resolve(relPath);
       if (existsSync(fullPath)) {
         try {
           const stat = statSync(fullPath);

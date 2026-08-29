@@ -37,7 +37,10 @@ export class EpistemicEventStream<T = EpistemicStreamEvent> {
   >();
   private closed = false;
 
-  public subscribe(subscriber: StreamSubscriber<T>, onError?: StreamErrorHandler): StreamSubscription {
+  public subscribe(
+    subscriber: StreamSubscriber<T>,
+    onError?: StreamErrorHandler,
+  ): StreamSubscription {
     if (this.closed) return { id: "closed", unsubscribe: () => {}, active: false };
     const id = `sub_${Date.now()}_${(subscriptionCounter += 1)}`;
     const record = { subscriber, onError, active: true };
@@ -194,7 +197,10 @@ export class EpistemicEventJournal {
     this.buffer.push(event);
   }
 
-  public getHistory(count?: number, filterType?: EpistemicEventType): readonly EpistemicStreamEvent[] {
+  public getHistory(
+    count?: number,
+    filterType?: EpistemicEventType,
+  ): readonly EpistemicStreamEvent[] {
     let list = this.buffer;
     if (filterType) list = list.filter((e) => e.type === filterType);
     if (count !== undefined && count > 0) return list.slice(-count);
@@ -211,7 +217,10 @@ export class EpistemicEventJournal {
 
 export class EpistemicEventBus {
   private readonly masterStream = new EpistemicEventStream<EpistemicStreamEvent>();
-  private readonly typeStreams = new Map<EpistemicEventType, EpistemicEventStream<EpistemicStreamEvent>>();
+  private readonly typeStreams = new Map<
+    EpistemicEventType,
+    EpistemicEventStream<EpistemicStreamEvent>
+  >();
   private readonly journal: EpistemicEventJournal;
 
   constructor(journalCapacity = 1000) {

@@ -1,8 +1,9 @@
 import { synthesizeSmartTasksFromSelfEvolution } from "./evolution.ts";
 import type { SmartTaskSynthesisResult } from "../planner/models.ts";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../core/errors/index.ts";
+
 export function scanCodeQuality(repoRoot?: string): {
   readonly issues: readonly string[];
   readonly suggestions: readonly string[];
@@ -14,9 +15,6 @@ export function scanCodeQuality(repoRoot?: string): {
   return { issues, suggestions };
 }
 
-/**
- * Autonomous Test Coverage Scanner (discovers untested target files and test gaps).
- */
 export function scanTestCoverage(repoRoot?: string): {
   readonly testedFiles: number;
   readonly untestedFiles: readonly string[];
@@ -27,9 +25,6 @@ export function scanTestCoverage(repoRoot?: string): {
   };
 }
 
-/**
- * Autonomous Charter Gap Scanner (detects unaddressed charter roadmap milestones).
- */
 export function scanCharterGaps(repoRoot?: string): {
   readonly openGaps: readonly string[];
 } {
@@ -38,9 +33,6 @@ export function scanCharterGaps(repoRoot?: string): {
   };
 }
 
-/**
- * Autonomous Creative Overload Cadence: Populates olt/backlog.jsonl with high-leverage parallel tasks ($P > 1$).
- */
 export function autonomousCreativeOverload(
   repoRoot?: string,
   options: {
@@ -65,15 +57,16 @@ export function autonomousCreativeOverload(
 }
 
 export function assertMindModeAllowed(runRoot: string, commandName: string): void {
-  const manifestPath = require("node:path").join(runRoot, "manifest.json");
-  if (!require("node:fs").existsSync(manifestPath)) {
+  const manifestPath = join(runRoot, "manifest.json");
+  if (!existsSync(manifestPath)) {
     throw new HarnessError("INVALID_STATE", `manifest.json not found for run ${runRoot}`);
   }
-  const manifest = JSON.parse(require("node:fs").readFileSync(manifestPath, "utf-8"));
+  const rawContent = readFileSync(manifestPath, "utf-8");
+  const manifest = JSON.parse(rawContent) as { mode?: string; run_id?: string };
   if (manifest.mode !== "mind") {
     throw new HarnessError(
       "INVALID_STATE",
-      `command '${commandName}' is exclusive to Tier 0 Mind capsules. Current capsule '${manifest.run_id}' is running in feature mode.`,
+      `command '${commandName}' is exclusive to Tier 0 Mind capsules. Current capsule '${manifest.run_id ?? "unknown"}' is running in feature mode.`,
     );
   }
 }

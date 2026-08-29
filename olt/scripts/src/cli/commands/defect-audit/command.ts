@@ -391,7 +391,9 @@ export function defectAuditCommand(
     summary,
     auto_admitted_count: autoAdmittedCount,
     auto_admitted_candidates: autoAdmittedCandidates,
-    ...(promotedCount > 0 ? { promoted_count: promotedCount, promoted_defects: promotedDefects } : {}),
+    ...(promotedCount > 0
+      ? { promoted_count: promotedCount, promoted_defects: promotedDefects }
+      : {}),
     ...(generatedTestsList !== undefined ? { generated_tests: generatedTestsList } : {}),
     ...(generatedTestSuite !== undefined ? { generated_test_suite: generatedTestSuite } : {}),
   };

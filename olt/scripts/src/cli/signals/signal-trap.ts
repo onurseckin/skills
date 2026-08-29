@@ -109,7 +109,9 @@ export async function withSignalTrap<T>(
   action: () => Promise<T>,
   cleanup?: () => void | Promise<void>,
 ): Promise<T> {
-  const cleanupRegistered = cleanup ? (await import("./shutdown-registry.ts")).registerShutdownHook(cleanup) : undefined;
+  const cleanupRegistered = cleanup
+    ? (await import("./shutdown-registry.ts")).registerShutdownHook(cleanup)
+    : undefined;
   const teardown = setupSignalTraps({ exitOnSignal: false });
 
   try {

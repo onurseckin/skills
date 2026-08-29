@@ -10,11 +10,7 @@ import {
   shouldAutoReadOrchestrateStdin,
   shouldReadPromptStdin,
 } from "./src/cli/prompt-input.ts";
-import {
-  formatCliError,
-  propagateCliExitCode,
-  setupSignalTraps,
-} from "./src/cli/signals/index.ts";
+import { formatCliError, propagateCliExitCode, setupSignalTraps } from "./src/cli/signals/index.ts";
 
 async function stdinBytes(maximum = 64 * 1024 * 1024): Promise<Uint8Array> {
   const chunks: Buffer[] = [];
@@ -74,4 +70,3 @@ if (import.meta.main) {
     propagateCliExitCode(error);
   });
 }
-

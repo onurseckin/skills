@@ -1,10 +1,4 @@
-export type TuiViewMode =
-  | "dashboard"
-  | "dag"
-  | "tasks"
-  | "mailboxes"
-  | "telemetry"
-  | "help";
+export type TuiViewMode = "dashboard" | "dag" | "tasks" | "mailboxes" | "telemetry" | "help";
 
 export interface TuiTaskItem {
   readonly id: string;
@@ -60,7 +54,8 @@ export class TuiStateStore {
   }
 
   public setState(updater: Partial<TuiState> | ((prev: TuiState) => TuiState)): void {
-    const nextState = typeof updater === "function" ? updater(this.state) : { ...this.state, ...updater };
+    const nextState =
+      typeof updater === "function" ? updater(this.state) : { ...this.state, ...updater };
     this.state = nextState;
     this.notify();
   }
@@ -138,8 +133,7 @@ export class TuiStateStore {
     for (const listener of this.listeners) {
       try {
         listener(this.state);
-      } catch {
-      }
+      } catch {}
     }
   }
 }

@@ -170,20 +170,17 @@ export function writeAtomicSnapshot(
       } finally {
         closeSync(dirDescriptor);
       }
-    } catch {
-    }
+    } catch {}
   } catch (error) {
     if (descriptor !== undefined) {
       try {
         closeSync(descriptor);
-      } catch {
-      }
+      } catch {}
     }
     if (existsSync(tempPath)) {
       try {
         rmSync(tempPath, { force: true });
-      } catch {
-      }
+      } catch {}
     }
     throw error;
   }

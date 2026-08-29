@@ -98,9 +98,7 @@ export class StreamMultiplexer {
   }
 
   public getEvents(channel?: string, limit?: number): readonly MuxEnvelope[] {
-    let filtered = channel
-      ? this.ringBuffer.filter((e) => e.channel === channel)
-      : this.ringBuffer;
+    let filtered = channel ? this.ringBuffer.filter((e) => e.channel === channel) : this.ringBuffer;
 
     if (limit !== undefined && limit > 0 && filtered.length > limit) {
       filtered = filtered.slice(-limit);
@@ -151,16 +149,14 @@ export class StreamMultiplexer {
       for (const sub of channelSubs) {
         try {
           sub(envelope);
-        } catch {
-        }
+        } catch {}
       }
     }
 
     for (const sub of this.globalSubscribers) {
       try {
         sub(envelope);
-      } catch {
-      }
+      } catch {}
     }
   }
 }

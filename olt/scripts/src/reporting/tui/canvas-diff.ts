@@ -148,9 +148,7 @@ export class DoubleBufferedCanvas {
             break;
           }
 
-          if (
-            !this.areStylesEqual(currCell, nextCurr)
-          ) {
+          if (!this.areStylesEqual(currCell, nextCurr)) {
             break;
           }
 
@@ -247,11 +245,7 @@ export class DoubleBufferedCanvas {
   }
 
   private areCellsEqual(a: CanvasCell, b: CanvasCell): boolean {
-    return (
-      a.char === b.char &&
-      a.width === b.width &&
-      this.areStylesEqual(a, b)
-    );
+    return a.char === b.char && a.width === b.width && this.areStylesEqual(a, b);
   }
 
   private areStylesEqual(a: CanvasCell, b: CanvasCell): boolean {

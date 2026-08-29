@@ -1,10 +1,4 @@
-export type ToolParameterType =
-  | "string"
-  | "number"
-  | "boolean"
-  | "object"
-  | "array"
-  | "integer";
+export type ToolParameterType = "string" | "number" | "boolean" | "object" | "array" | "integer";
 
 export type SanitizationPolicyType =
   | "none"
@@ -245,7 +239,10 @@ export interface DiscoveryReport {
   invalid?: number | undefined;
   discoveredCount?: number | undefined;
   registeredCount?: number | undefined;
-  errors?: readonly string[] | readonly { readonly path: string; readonly error: string }[] | undefined;
+  errors?:
+    | readonly string[]
+    | readonly { readonly path: string; readonly error: string }[]
+    | undefined;
   tools: readonly DiscoveredTool[];
 }
 

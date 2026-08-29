@@ -1,8 +1,4 @@
-export {
-  DynamicToolRegistry,
-  getGlobalToolRegistry,
-  resetGlobalToolRegistry,
-} from "./registry.ts";
+export { DynamicToolRegistry, getGlobalToolRegistry, resetGlobalToolRegistry } from "./registry.ts";
 
 export {
   discoverToolsFromDirectory,

@@ -16,10 +16,7 @@ export {
   renderAsciiDefectTable,
 } from "./apca.ts";
 
-export {
-  discoverDefectFiles,
-  parseDefectsFromFile,
-} from "./discovery.ts";
+export { discoverDefectFiles, parseDefectsFromFile } from "./discovery.ts";
 
 export { formatDefectAuditReport } from "./formatter.ts";
 

@@ -1,8 +1,5 @@
 import { spawn } from "node:child_process";
-import {
-  interpolateHookCommand,
-  type HookVariableContext,
-} from "./interpolator.ts";
+import { interpolateHookCommand, type HookVariableContext } from "./interpolator.ts";
 import type { LifecycleHooksConfig } from "../types/index.ts";
 
 export type PolicyLifecycleEvent =

@@ -6,10 +6,7 @@ import type {
   ValidationOptions,
 } from "./types.ts";
 
-export function validateParameterType(
-  type: string,
-  value: unknown,
-): boolean {
+export function validateParameterType(type: string, value: unknown): boolean {
   switch (type) {
     case "string":
       return typeof value === "string";
@@ -233,7 +230,11 @@ export function validateToolArguments(
 
   for (const param of parameters) {
     let value = args[param.name];
-    if (value === undefined && options.applyDefaults !== false && param.defaultValue !== undefined) {
+    if (
+      value === undefined &&
+      options.applyDefaults !== false &&
+      param.defaultValue !== undefined
+    ) {
       value = param.defaultValue;
     }
 

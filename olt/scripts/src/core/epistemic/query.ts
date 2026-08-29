@@ -23,7 +23,11 @@ export type {
 };
 
 const GRADE_RANKS: Readonly<Record<EpistemicGrade, number>> = {
-  VERY_LOW: 1, LOW: 2, MEDIUM: 3, HIGH: 4, VERY_HIGH: 5,
+  VERY_LOW: 1,
+  LOW: 2,
+  MEDIUM: 3,
+  HIGH: 4,
+  VERY_HIGH: 5,
 };
 
 export class EpistemicIndexStore {
@@ -71,11 +75,20 @@ export class EpistemicIndexStore {
     this.tagIdx.clear();
   }
 
-  public size(): number { return this.records.size; }
-  public get(id: string): EpistemicRecord | undefined { return this.records.get(id); }
-  public getAll(): readonly EpistemicRecord[] { return Array.from(this.records.values()); }
+  public size(): number {
+    return this.records.size;
+  }
+  public get(id: string): EpistemicRecord | undefined {
+    return this.records.get(id);
+  }
+  public getAll(): readonly EpistemicRecord[] {
+    return Array.from(this.records.values());
+  }
 
-  public queryCandidates(where?: EpistemicQueryPredicate): { candidateIds?: Set<string>; usedIndices: string[] } {
+  public queryCandidates(where?: EpistemicQueryPredicate): {
+    candidateIds?: Set<string>;
+    usedIndices: string[];
+  } {
     if (!where) return { usedIndices: [] };
     const usedIndices: string[] = [];
     const sets: Set<string>[] = [];
@@ -119,7 +132,10 @@ export class EpistemicIndexStore {
   }
 }
 
-export function matchesEpistemicPredicate(record: EpistemicRecord, where?: EpistemicQueryPredicate): boolean {
+export function matchesEpistemicPredicate(
+  record: EpistemicRecord,
+  where?: EpistemicQueryPredicate,
+): boolean {
   if (!where) return true;
   if (where.minConfidence !== undefined && record.score < where.minConfidence) return false;
   if (where.maxConfidence !== undefined && record.score > where.maxConfidence) return false;
@@ -135,28 +151,46 @@ export function matchesEpistemicPredicate(record: EpistemicRecord, where?: Epist
       if (where.contradictions && record.contradictionCount === 0) return false;
       if (!where.contradictions && record.contradictionCount > 0) return false;
     } else {
-      if (where.contradictions.min !== undefined && record.contradictionCount < where.contradictions.min) return false;
-      if (where.contradictions.max !== undefined && record.contradictionCount > where.contradictions.max) return false;
+      if (
+        where.contradictions.min !== undefined &&
+        record.contradictionCount < where.contradictions.min
+      )
+        return false;
+      if (
+        where.contradictions.max !== undefined &&
+        record.contradictionCount > where.contradictions.max
+      )
+        return false;
     }
   }
-  if (where.tags && where.tags.length > 0 && !where.tags.every((t) => record.tags.includes(t))) return false;
+  if (where.tags && where.tags.length > 0 && !where.tags.every((t) => record.tags.includes(t)))
+    return false;
   return true;
 }
 
-export function computeEpistemicAggregate(records: readonly EpistemicRecord[]): EpistemicQueryAggregate {
+export function computeEpistemicAggregate(
+  records: readonly EpistemicRecord[],
+): EpistemicQueryAggregate {
   const count = records.length;
   if (count === 0) {
     return {
-      count: 0, meanScore: 0, medianScore: 0, stdDevScore: 0, minScore: 0, maxScore: 0,
+      count: 0,
+      meanScore: 0,
+      medianScore: 0,
+      stdDevScore: 0,
+      minScore: 0,
+      maxScore: 0,
       gradeDistribution: { VERY_LOW: 0, LOW: 0, MEDIUM: 0, HIGH: 0, VERY_HIGH: 0 },
-      groundedCount: 0, meanEntropy: 0,
+      groundedCount: 0,
+      meanEntropy: 0,
     };
   }
   const scores = records.map((r) => r.score).sort((a, b) => a - b);
   const totalScore = scores.reduce((sum, s) => sum + s, 0);
   const meanScore = Number((totalScore / count).toFixed(6));
   const mid = Math.floor(count / 2);
-  const medianScore = count % 2 !== 0 ? scores[mid]! : Number(((scores[mid - 1]! + scores[mid]!) / 2).toFixed(6));
+  const medianScore =
+    count % 2 !== 0 ? scores[mid]! : Number(((scores[mid - 1]! + scores[mid]!) / 2).toFixed(6));
   const minScore = scores[0]!;
   const maxScore = scores[scores.length - 1]!;
   const variance = records.reduce((sum, r) => sum + Math.pow(r.score - meanScore, 2), 0) / count;
@@ -164,7 +198,11 @@ export function computeEpistemicAggregate(records: readonly EpistemicRecord[]): 
   const totalEntropy = records.reduce((sum, r) => sum + r.entropy, 0);
   const meanEntropy = Number((totalEntropy / count).toFixed(6));
   const gradeDistribution: Record<EpistemicGrade, number> = {
-    VERY_LOW: 0, LOW: 0, MEDIUM: 0, HIGH: 0, VERY_HIGH: 0,
+    VERY_LOW: 0,
+    LOW: 0,
+    MEDIUM: 0,
+    HIGH: 0,
+    VERY_HIGH: 0,
   };
   let groundedCount = 0;
   for (const r of records) {
@@ -172,8 +210,15 @@ export function computeEpistemicAggregate(records: readonly EpistemicRecord[]): 
     if (r.grounded) groundedCount += 1;
   }
   return {
-    count, meanScore, medianScore, stdDevScore, minScore, maxScore,
-    gradeDistribution, groundedCount, meanEntropy,
+    count,
+    meanScore,
+    medianScore,
+    stdDevScore,
+    minScore,
+    maxScore,
+    gradeDistribution,
+    groundedCount,
+    meanEntropy,
   };
 }
 
@@ -186,7 +231,9 @@ export class EpistemicQueryOptimizer {
     if (cached && Date.now() - cached.timestamp < 30000) {
       return { ...cached.plan, cacheHit: true };
     }
-    const { candidateIds, usedIndices } = store?.queryCandidates(query.where) ?? { usedIndices: [] };
+    const { candidateIds, usedIndices } = store?.queryCandidates(query.where) ?? {
+      usedIndices: [],
+    };
     let executionStrategy: EpistemicQueryPlan["executionStrategy"] = "COLLECTION_SCAN";
     let estimatedCost = store ? store.size() : 100;
     if (candidateIds) {
@@ -194,8 +241,12 @@ export class EpistemicQueryOptimizer {
       estimatedCost = candidateIds.size;
     }
     const plan: EpistemicQueryPlan = {
-      executionStrategy, usedIndices, estimatedCost,
-      actualScanCount: 0, executionTimeMs: 0, cacheHit: false,
+      executionStrategy,
+      usedIndices,
+      estimatedCost,
+      actualScanCount: 0,
+      executionTimeMs: 0,
+      cacheHit: false,
     };
     this.planCache.set(cacheKey, { plan, timestamp: Date.now() });
     return plan;
@@ -238,7 +289,8 @@ export class EpistemicQueryOptimizer {
           let cmp = 0;
           if (ord.field === "confidence") cmp = a.score - b.score;
           else if (ord.field === "entropy") cmp = a.entropy - b.entropy;
-          else if (ord.field === "contradictions") cmp = a.contradictionCount - b.contradictionCount;
+          else if (ord.field === "contradictions")
+            cmp = a.contradictionCount - b.contradictionCount;
           else if (ord.field === "timestamp") cmp = a.timestamp - b.timestamp;
           else if (ord.field === "grade") cmp = GRADE_RANKS[a.grade] - GRADE_RANKS[b.grade];
           if (cmp !== 0) return ord.direction === "desc" ? -cmp : cmp;
@@ -256,21 +308,34 @@ export class EpistemicQueryOptimizer {
     const executionTimeMs = Number((performance.now() - startTime).toFixed(3));
 
     return {
-      records: projected, totalMatched, plan: { ...queryPlan, actualScanCount, executionTimeMs }, aggregate,
+      records: projected,
+      totalMatched,
+      plan: { ...queryPlan, actualScanCount, executionTimeMs },
+      aggregate,
     };
   }
 
   private projectRecord<T>(record: EpistemicRecord, projection?: EpistemicQueryProjection): T {
     if (!projection || projection === "full") return record as unknown as T;
     if (projection === "score_only") {
-      return { id: record.id, score: record.score, grade: record.grade, level: record.level } as unknown as T;
+      return {
+        id: record.id,
+        score: record.score,
+        grade: record.grade,
+        level: record.level,
+      } as unknown as T;
     }
     if (projection === "vector") {
       return { id: record.id, vector: record.vector, score: record.score } as unknown as T;
     }
     return {
-      id: record.id, timestamp: record.timestamp, score: record.score, grade: record.grade,
-      level: record.level, grounded: record.grounded, contradictionCount: record.contradictionCount,
+      id: record.id,
+      timestamp: record.timestamp,
+      score: record.score,
+      grade: record.grade,
+      level: record.level,
+      grounded: record.grounded,
+      contradictionCount: record.contradictionCount,
       tags: record.tags,
     } as unknown as T;
   }

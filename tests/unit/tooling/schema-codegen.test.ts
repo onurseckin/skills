@@ -240,7 +240,9 @@ describe("Tool Schema Codegen & Converter Suite", () => {
           name: "tool_alpha",
           description: "Tool Alpha",
           category: "test",
-          parameters: [{ name: "alphaVal", type: "string", description: "Alpha val", required: true }],
+          parameters: [
+            { name: "alphaVal", type: "string", description: "Alpha val", required: true },
+          ],
         },
         {
           name: "tool_beta",

@@ -11,10 +11,7 @@ import type {
   MutationOptions,
 } from "./types.ts";
 
-export {
-  runAdversarialCounterfactualCheck,
-  runAdversarialDoctorCheck,
-} from "./check-runner.ts";
+export { runAdversarialCounterfactualCheck, runAdversarialDoctorCheck } from "./check-runner.ts";
 
 export function compareSemver(actual: string, minimum: string): boolean {
   const left = actual.split(".").map((part) => Number.parseInt(part, 10));

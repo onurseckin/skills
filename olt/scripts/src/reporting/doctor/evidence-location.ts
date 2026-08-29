@@ -100,9 +100,7 @@ export function verifyUnifiedEvidenceLocation(
       for (const ent of entries) {
         checkedCount++;
       }
-    } catch {
-
-    }
+    } catch {}
   }
 
   return {

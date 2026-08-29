@@ -82,8 +82,7 @@ async function deliverSingleBatch(
               else if (typeof obj.receiptId === "string") receiptId = obj.receiptId;
               else if (typeof obj.id === "string") receiptId = obj.id;
             }
-          } catch {
-          }
+          } catch {}
         }
         if (!receiptId) {
           receiptId = `rcpt_${randomUUID().slice(0, 12)}`;
@@ -118,9 +117,7 @@ async function deliverSingleBatch(
 
     if (attempt <= maxRetries) {
       const delay =
-        retryAfterDelay !== undefined
-          ? retryAfterDelay
-          : backoffBase * Math.pow(2, attempt - 1);
+        retryAfterDelay !== undefined ? retryAfterDelay : backoffBase * Math.pow(2, attempt - 1);
       await new Promise((resolveSleep) => setTimeout(resolveSleep, delay));
     }
   }

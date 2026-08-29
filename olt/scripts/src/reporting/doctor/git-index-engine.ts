@@ -49,9 +49,7 @@ export function checkGitIndexIntegrity(
         if (Number.isInteger(parsed) && parsed > 0) {
           lockPid = parsed;
         }
-      } catch {
-
-      }
+      } catch {}
 
       if (lockPid !== undefined) {
         if (!isProcessAlive(lockPid)) {
@@ -59,7 +57,6 @@ export function checkGitIndexIntegrity(
           staleIndexLockPresent = true;
         }
       } else if (ageSeconds > 120) {
-
         staleIndexLockPresent = true;
       }
 
@@ -72,9 +69,7 @@ export function checkGitIndexIntegrity(
           details: { indexLockPath, ageSeconds, deadLockPid },
         });
       }
-    } catch {
-
-    }
+    } catch {}
   }
 
   const uncommittedArtifacts: string[] = [];
@@ -91,9 +86,7 @@ export function checkGitIndexIntegrity(
         if (file) uncommittedArtifacts.push(file);
       }
     }
-  } catch {
-
-  }
+  } catch {}
 
   let stashCorrupted = false;
   try {
@@ -118,9 +111,7 @@ export function checkGitIndexIntegrity(
         });
       }
     }
-  } catch {
-
-  }
+  } catch {}
 
   const healthy = findings.filter((f) => f.severity === "ERROR").length === 0;
 
@@ -167,17 +158,13 @@ export function autoHealGitState(options: AutoHealGitStateOptions = {}): {
               shouldUnlink = true;
             }
           }
-        } catch {
-
-        }
+        } catch {}
 
         if (ageSeconds > 120 || shouldUnlink) {
           unlinkSync(indexLockPath);
           indexLockCleaned = true;
         }
-      } catch {
-
-      }
+      } catch {}
     }
   }
 
@@ -202,9 +189,7 @@ export function autoHealGitState(options: AutoHealGitStateOptions = {}): {
           stagedFiles.push(...lines);
         }
       }
-    } catch {
-
-    }
+    } catch {}
   }
 
   return { indexLockCleaned, stagedFiles };

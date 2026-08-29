@@ -202,4 +202,3 @@ export {
   type IPooledBrowserInstance,
   type PoolState,
 } from "./pool/index.ts";
-

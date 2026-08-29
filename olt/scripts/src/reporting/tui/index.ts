@@ -20,11 +20,7 @@ export {
   type CanvasDiffSpan,
 } from "./canvas-diff.ts";
 
-export {
-  ReactiveRenderLoop,
-  type RenderCallback,
-  type RenderLoopOptions,
-} from "./render-loop.ts";
+export { ReactiveRenderLoop, type RenderCallback, type RenderLoopOptions } from "./render-loop.ts";
 
 export {
   CapsuleEventSource,
@@ -61,7 +57,4 @@ export {
   renderTelemetryStreamView,
 } from "./views.ts";
 
-export {
-  TuiController,
-  type TuiControllerOptions,
-} from "./controller.ts";
+export { TuiController, type TuiControllerOptions } from "./controller.ts";

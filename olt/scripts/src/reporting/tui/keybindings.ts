@@ -103,11 +103,31 @@ export class KeyBindingRegistry {
     this.register({ special: "page_down", action: "page_down", description: "Page down" });
     this.register({ special: "home", action: "home", description: "Jump to start" });
     this.register({ special: "end", action: "end", description: "Jump to end" });
-    this.register({ key: "1", action: "switch_view", targetView: "dashboard", description: "Dashboard view" });
+    this.register({
+      key: "1",
+      action: "switch_view",
+      targetView: "dashboard",
+      description: "Dashboard view",
+    });
     this.register({ key: "2", action: "switch_view", targetView: "dag", description: "DAG view" });
-    this.register({ key: "3", action: "switch_view", targetView: "tasks", description: "Task matrix view" });
-    this.register({ key: "4", action: "switch_view", targetView: "mailboxes", description: "Mailbox stream view" });
-    this.register({ key: "5", action: "switch_view", targetView: "telemetry", description: "Telemetry stream view" });
+    this.register({
+      key: "3",
+      action: "switch_view",
+      targetView: "tasks",
+      description: "Task matrix view",
+    });
+    this.register({
+      key: "4",
+      action: "switch_view",
+      targetView: "mailboxes",
+      description: "Mailbox stream view",
+    });
+    this.register({
+      key: "5",
+      action: "switch_view",
+      targetView: "telemetry",
+      description: "Telemetry stream view",
+    });
     this.register({ key: "p", action: "toggle_pause", description: "Pause/Resume live feed" });
     this.register({ key: "?", action: "toggle_help", description: "Toggle help overlay" });
     this.register({ key: "/", action: "search", description: "Search / filter tasks" });

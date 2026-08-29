@@ -64,9 +64,30 @@ describe("Epistemic State Replayer", () => {
   test("performs point-in-time state reconstruction (time-travel replay)", () => {
     const replayer = new EpistemicStateReplayer();
     const events: EpistemicStreamEvent[] = [
-      createMockStreamEvent({ id: "e1", type: "claim:registered", timestamp: 1000, confidence: 0.4, grade: "LOW", payload: { recordId: "c1" } }),
-      createMockStreamEvent({ id: "e2", type: "score:recalculated", timestamp: 2000, confidence: 0.8, grade: "HIGH", payload: { recordId: "c1" } }),
-      createMockStreamEvent({ id: "e3", type: "score:recalculated", timestamp: 3000, confidence: 0.95, grade: "VERY_HIGH", payload: { recordId: "c1" } }),
+      createMockStreamEvent({
+        id: "e1",
+        type: "claim:registered",
+        timestamp: 1000,
+        confidence: 0.4,
+        grade: "LOW",
+        payload: { recordId: "c1" },
+      }),
+      createMockStreamEvent({
+        id: "e2",
+        type: "score:recalculated",
+        timestamp: 2000,
+        confidence: 0.8,
+        grade: "HIGH",
+        payload: { recordId: "c1" },
+      }),
+      createMockStreamEvent({
+        id: "e3",
+        type: "score:recalculated",
+        timestamp: 3000,
+        confidence: 0.95,
+        grade: "VERY_HIGH",
+        payload: { recordId: "c1" },
+      }),
     ];
 
     const pastState = replayer.replayToTimestamp(events, 2000);
@@ -121,14 +142,38 @@ describe("Epistemic State Diffing & Reconstruct Helper", () => {
   test("detects added, removed, modified records and grade transitions", () => {
     const replayerA = new EpistemicStateReplayer();
     replayerA.applyBatch([
-      createMockStreamEvent({ id: "e1", type: "claim:registered", confidence: 0.5, grade: "MEDIUM", payload: { recordId: "c1" } }),
-      createMockStreamEvent({ id: "e2", type: "claim:registered", confidence: 0.7, grade: "MEDIUM", payload: { recordId: "c2" } }),
+      createMockStreamEvent({
+        id: "e1",
+        type: "claim:registered",
+        confidence: 0.5,
+        grade: "MEDIUM",
+        payload: { recordId: "c1" },
+      }),
+      createMockStreamEvent({
+        id: "e2",
+        type: "claim:registered",
+        confidence: 0.7,
+        grade: "MEDIUM",
+        payload: { recordId: "c2" },
+      }),
     ]);
 
     const replayerB = new EpistemicStateReplayer();
     replayerB.applyBatch([
-      createMockStreamEvent({ id: "e1", type: "claim:registered", confidence: 0.9, grade: "VERY_HIGH", payload: { recordId: "c1" } }),
-      createMockStreamEvent({ id: "e3", type: "claim:registered", confidence: 0.6, grade: "MEDIUM", payload: { recordId: "c3" } }),
+      createMockStreamEvent({
+        id: "e1",
+        type: "claim:registered",
+        confidence: 0.9,
+        grade: "VERY_HIGH",
+        payload: { recordId: "c1" },
+      }),
+      createMockStreamEvent({
+        id: "e3",
+        type: "claim:registered",
+        confidence: 0.6,
+        grade: "MEDIUM",
+        payload: { recordId: "c3" },
+      }),
     ]);
 
     const diff = diffEpistemicStates(replayerA.getState(), replayerB.getState());
@@ -181,8 +226,20 @@ describe("Epistemic State Diffing & Reconstruct Helper", () => {
   test("buildSparseIndexFromState produces a queryable index store", () => {
     const replayer = new EpistemicStateReplayer();
     replayer.applyBatch([
-      createMockStreamEvent({ id: "e1", type: "claim:registered", confidence: 0.9, grade: "VERY_HIGH", payload: { recordId: "c1", tags: ["t1"] } }),
-      createMockStreamEvent({ id: "e2", type: "claim:registered", confidence: 0.3, grade: "VERY_LOW", payload: { recordId: "c2", tags: ["t2"] } }),
+      createMockStreamEvent({
+        id: "e1",
+        type: "claim:registered",
+        confidence: 0.9,
+        grade: "VERY_HIGH",
+        payload: { recordId: "c1", tags: ["t1"] },
+      }),
+      createMockStreamEvent({
+        id: "e2",
+        type: "claim:registered",
+        confidence: 0.3,
+        grade: "VERY_LOW",
+        payload: { recordId: "c2", tags: ["t2"] },
+      }),
     ]);
 
     const state = replayer.getState();

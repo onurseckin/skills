@@ -165,14 +165,23 @@ describe("CLI Signal Trapping, Shutdown Hooks & Error Propagation", () => {
     });
 
     it("formats error messages as JSON and markdown", () => {
-      const harnessErr = new HarnessError("INTEGRITY", "Hash mismatch", [], 3, "Re-run integrity check");
+      const harnessErr = new HarnessError(
+        "INTEGRITY",
+        "Hash mismatch",
+        [],
+        3,
+        "Re-run integrity check",
+      );
 
       const mdOutput = formatCliError(harnessErr, { json: false });
       expect(mdOutput).toContain("**Error (INTEGRITY)**: Hash mismatch");
       expect(mdOutput).toContain("> **Fix**: Re-run integrity check");
 
       const jsonOutput = formatCliError(harnessErr, { json: true });
-      const parsed = JSON.parse(jsonOutput) as { ok: boolean; error: { code: string; message: string } };
+      const parsed = JSON.parse(jsonOutput) as {
+        ok: boolean;
+        error: { code: string; message: string };
+      };
       expect(parsed.ok).toBe(false);
       expect(parsed.error.code).toBe("INTEGRITY");
       expect(parsed.error.message).toBe("Hash mismatch");

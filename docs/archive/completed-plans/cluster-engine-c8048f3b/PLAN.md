@@ -7,7 +7,7 @@
 > **Author:** Pipeline Pre-Planning Meta-Orchestrator (`orchestrator_pipeline_preplanning`)  
 > **Implementer:** `implementer_01`  
 > **Validator:** `validator_01`  
-> **Certification Date:** 2026-08-29  
+> **Certification Date:** 2026-08-29
 
 ---
 
@@ -72,18 +72,18 @@ Scaling multi-agent orchestration to high-throughput parallel tracks requires he
 
 ## Level 4: Atomic Implementation Tasks Matrix
 
-| Task ID        | Target File Path                                     | Exact TypeScript Symbols / Signatures                                             | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                            |
-| :------------- | :--------------------------------------------------- | :-------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
-| `task-eng-1.1` | `olt/scripts/src/engine/worktree/domain-sync.ts`     | `createHermeticWorktree(trackId: string): Promise<WorktreeContext>`               | Provision isolated Git worktree in `.olt/worktrees/<trackId>`, attach tracking branch, and isolate staging index.               |
-| `task-eng-1.2` | `olt/scripts/src/engine/worktree/landing-ops.ts`     | `landHermeticWorktree(ctx: WorktreeContext): Promise<LandingResult>`              | Perform atomic upstream rebase, verify gates, commit via conventional commit format, push to `origin/main`, and clean teardown. |
-| `task-eng-1.3` | `olt/scripts/src/cli/commands/worktree-ops.ts`       | `worktreeCreateCommand`, `worktreeLandCommand`, `worktreeCleanCommand`            | CLI command handlers for worktree management and status reporting.                                                              |
-| `task-eng-1.4` | `tests/unit/engine/worktree-isolation.test.ts`       | `describe("Hermetic Worktree Pipeline", ...)`                                     | Unit tests for worktree creation, isolated staging, conflict detection, and clean teardown.                                     |
-| `task-eng-2.1` | `olt/scripts/src/policy/repo-policy.ts`              | `loadRepoPolicy(repoRoot: string): RepoPolicy`                                    | Parse authoritative `.olt/policy.json` with strict schema validation, provenance tagging, and fail-closed error handling.       |
-| `task-eng-2.2` | `olt/scripts/src/policy/hooks/lifecycle-hooks.ts`    | `executePolicyHook(event: PolicyLifecycleEvent, ctx: HookContext): Promise<void>` | Event-driven hook executor firing configured shell actions and OS notifications on wave completion and release push.            |
-| `task-eng-2.3` | `tests/unit/policy/central-policy-engine.test.ts`    | `describe("Central Policy & Lifecycle Hooks Engine", ...)`                        | Unit tests verifying configuration loading, override precedence, and lifecycle hook dispatch.                                   |
-| `task-eng-3.1` | `olt/scripts/src/engine/runner/subagent-pool.ts`     | `acquireSubagentSlot(): Promise<SubagentSlotReceipt>`                             | Fleet-wide concurrency throttle enforcing hard cap of $\le 50$ active subagents across all tiers with FIFO queueing.            |
-| `task-eng-3.2` | `olt/scripts/src/telemetry/circuit-breaker.ts`       | `checkQuotaCircuitBreaker(quota: QuotaState): CircuitBreakerVerdict`              | Low-latency quota circuit breaker tripping at $\le 10\%$ remaining quota to eliminate 429 errors.                               |
-| `task-eng-3.3` | `tests/unit/engine/concurrency-cap.test.ts`          | `describe("Fleet Concurrency Cap & Quota Breaker", ...)`                          | Unit tests for 50-agent concurrency limit enforcement and latency-aware quota breaker trips.                                    |
+| Task ID        | Target File Path                                  | Exact TypeScript Symbols / Signatures                                             | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                            |
+| :------------- | :------------------------------------------------ | :-------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| `task-eng-1.1` | `olt/scripts/src/engine/worktree/domain-sync.ts`  | `createHermeticWorktree(trackId: string): Promise<WorktreeContext>`               | Provision isolated Git worktree in `.olt/worktrees/<trackId>`, attach tracking branch, and isolate staging index.               |
+| `task-eng-1.2` | `olt/scripts/src/engine/worktree/landing-ops.ts`  | `landHermeticWorktree(ctx: WorktreeContext): Promise<LandingResult>`              | Perform atomic upstream rebase, verify gates, commit via conventional commit format, push to `origin/main`, and clean teardown. |
+| `task-eng-1.3` | `olt/scripts/src/cli/commands/worktree-ops.ts`    | `worktreeCreateCommand`, `worktreeLandCommand`, `worktreeCleanCommand`            | CLI command handlers for worktree management and status reporting.                                                              |
+| `task-eng-1.4` | `tests/unit/engine/worktree-isolation.test.ts`    | `describe("Hermetic Worktree Pipeline", ...)`                                     | Unit tests for worktree creation, isolated staging, conflict detection, and clean teardown.                                     |
+| `task-eng-2.1` | `olt/scripts/src/policy/repo-policy.ts`           | `loadRepoPolicy(repoRoot: string): RepoPolicy`                                    | Parse authoritative `.olt/policy.json` with strict schema validation, provenance tagging, and fail-closed error handling.       |
+| `task-eng-2.2` | `olt/scripts/src/policy/hooks/lifecycle-hooks.ts` | `executePolicyHook(event: PolicyLifecycleEvent, ctx: HookContext): Promise<void>` | Event-driven hook executor firing configured shell actions and OS notifications on wave completion and release push.            |
+| `task-eng-2.3` | `tests/unit/policy/central-policy-engine.test.ts` | `describe("Central Policy & Lifecycle Hooks Engine", ...)`                        | Unit tests verifying configuration loading, override precedence, and lifecycle hook dispatch.                                   |
+| `task-eng-3.1` | `olt/scripts/src/engine/runner/subagent-pool.ts`  | `acquireSubagentSlot(): Promise<SubagentSlotReceipt>`                             | Fleet-wide concurrency throttle enforcing hard cap of $\le 50$ active subagents across all tiers with FIFO queueing.            |
+| `task-eng-3.2` | `olt/scripts/src/telemetry/circuit-breaker.ts`    | `checkQuotaCircuitBreaker(quota: QuotaState): CircuitBreakerVerdict`              | Low-latency quota circuit breaker tripping at $\le 10\%$ remaining quota to eliminate 429 errors.                               |
+| `task-eng-3.3` | `tests/unit/engine/concurrency-cap.test.ts`       | `describe("Fleet Concurrency Cap & Quota Breaker", ...)`                          | Unit tests for 50-agent concurrency limit enforcement and latency-aware quota breaker trips.                                    |
 
 ---
 
@@ -116,13 +116,13 @@ bun test tests/unit/engine/concurrency-cap.test.ts
 
 ### 7.1 Adversarial Validation Summary
 
-| Round | Reviewer / Actor | Finding / Critique | Remediation Applied | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| **Round 1** | `validator_01` | Initial architecture review of worktree isolation & policy engine | Aligned with disjoint write scopes and clean interfaces | **APPROVED** |
-| **Round 2** | `validator_01` | Concurrency throttle timeout error code alignment | Updated `subagent-pool.ts` timeout rejection error | **APPROVED** |
-| **Round 3** | `validator_01` | Verification of schema validation and fail-closed policy parsing | Verified `loadRepoPolicy` and test coverage | **APPROVED** |
-| **Round 4** | `validator_01` | Density and comment audit: `domain-sync-ops.ts` (336 LOC) and comments in `zero-destructive-policy.ts` | Separated `landing-ops.ts` (114 LOC) from `domain-sync-ops.ts` (232 LOC); stripped all comments | **REMEDIATED** |
-| **Round 5** | `validator_01` | Final invariant verification and full gate execution | Confirmed 0 comments, 0 `any`, $\le 300$ LOC, all tests 100% green | **FINAL SIGN-OFF** |
+| Round       | Reviewer / Actor | Finding / Critique                                                                                     | Remediation Applied                                                                             | Status             |
+| :---------- | :--------------- | :----------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------- | :----------------- |
+| **Round 1** | `validator_01`   | Initial architecture review of worktree isolation & policy engine                                      | Aligned with disjoint write scopes and clean interfaces                                         | **APPROVED**       |
+| **Round 2** | `validator_01`   | Concurrency throttle timeout error code alignment                                                      | Updated `subagent-pool.ts` timeout rejection error                                              | **APPROVED**       |
+| **Round 3** | `validator_01`   | Verification of schema validation and fail-closed policy parsing                                       | Verified `loadRepoPolicy` and test coverage                                                     | **APPROVED**       |
+| **Round 4** | `validator_01`   | Density and comment audit: `domain-sync-ops.ts` (336 LOC) and comments in `zero-destructive-policy.ts` | Separated `landing-ops.ts` (114 LOC) from `domain-sync-ops.ts` (232 LOC); stripped all comments | **REMEDIATED**     |
+| **Round 5** | `validator_01`   | Final invariant verification and full gate execution                                                   | Confirmed 0 comments, 0 `any`, $\le 300$ LOC, all tests 100% green                              | **FINAL SIGN-OFF** |
 
 ### 7.2 Gate Verification Evidence
 

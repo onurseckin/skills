@@ -91,9 +91,12 @@ describe("Track 2 Extensions - Terminal Dashboard Keybindings & Live TUI Streams
   describe("Reactive Render Loop", () => {
     it("schedules frames on demand and marks dirty state", async () => {
       let renderCount = 0;
-      const loop = new ReactiveRenderLoop(() => {
-        renderCount += 1;
-      }, { targetFps: 30 });
+      const loop = new ReactiveRenderLoop(
+        () => {
+          renderCount += 1;
+        },
+        { targetFps: 30 },
+      );
 
       expect(loop.isRunning()).toBe(false);
       loop.start();

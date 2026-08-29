@@ -3,10 +3,18 @@ import {
   ResourceGovernor,
   type SystemMetricsProvider,
 } from "../../../../olt/scripts/src/tooling/sandbox/resource-governor.ts";
-import type { QuotaViolation, ResourceQuota } from "../../../../olt/scripts/src/tooling/sandbox/types.ts";
+import type {
+  QuotaViolation,
+  ResourceQuota,
+} from "../../../../olt/scripts/src/tooling/sandbox/types.ts";
 
 class MockSystemMetricsProvider implements SystemMetricsProvider {
-  public memory = { rss: 50 * 1024 * 1024, heapUsed: 20 * 1024 * 1024, heapTotal: 30 * 1024 * 1024, external: 0 };
+  public memory = {
+    rss: 50 * 1024 * 1024,
+    heapUsed: 20 * 1024 * 1024,
+    heapTotal: 30 * 1024 * 1024,
+    external: 0,
+  };
   public cpuUsageValue = { user: 1000, system: 500 };
   public cpuCount = 4;
 
@@ -87,7 +95,9 @@ describe("ResourceGovernor Unit Test Suite", () => {
     expect(fatalTriggered).toBe(true);
     expect(governor.hasFatalViolation()).toBe(true);
     const report = governor.stop();
-    expect(report.violations.some((v) => v.severity === "fatal" && v.type === "memory_rss")).toBe(true);
+    expect(report.violations.some((v) => v.severity === "fatal" && v.type === "memory_rss")).toBe(
+      true,
+    );
     governor.dispose();
   });
 

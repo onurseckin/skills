@@ -16,7 +16,13 @@ function createMockRecord(partial: Partial<EpistemicRecord> = {}): EpistemicReco
     grade: partial.grade ?? "HIGH",
     level: partial.level ?? "HIGH_CONFIDENCE",
     grounded: partial.grounded ?? true,
-    vector: partial.vector ?? { empirical: 0.8, coherence: 1, falsifiability: 0.9, stability: 0.9, coverage: 0.8 },
+    vector: partial.vector ?? {
+      empirical: 0.8,
+      coherence: 1,
+      falsifiability: 0.9,
+      stability: 0.9,
+      coverage: 0.8,
+    },
     entropy: partial.entropy ?? 0.2,
     contradictionCount: partial.contradictionCount ?? 0,
     tags: partial.tags ?? ["unit-test", "core"],
@@ -45,9 +51,27 @@ describe("Epistemic Index Store", () => {
 
   test("indexes by grade, level, grounded, and tags with set intersection", () => {
     const store = new EpistemicIndexStore();
-    const r1 = createMockRecord({ id: "r1", grade: "VERY_HIGH", level: "CERTAIN", grounded: true, tags: ["t1", "t2"] });
-    const r2 = createMockRecord({ id: "r2", grade: "HIGH", level: "HIGH_CONFIDENCE", grounded: true, tags: ["t2"] });
-    const r3 = createMockRecord({ id: "r3", grade: "LOW", level: "LOW_CONFIDENCE", grounded: false, tags: ["t3"] });
+    const r1 = createMockRecord({
+      id: "r1",
+      grade: "VERY_HIGH",
+      level: "CERTAIN",
+      grounded: true,
+      tags: ["t1", "t2"],
+    });
+    const r2 = createMockRecord({
+      id: "r2",
+      grade: "HIGH",
+      level: "HIGH_CONFIDENCE",
+      grounded: true,
+      tags: ["t2"],
+    });
+    const r3 = createMockRecord({
+      id: "r3",
+      grade: "LOW",
+      level: "LOW_CONFIDENCE",
+      grounded: false,
+      tags: ["t3"],
+    });
 
     store.addMany([r1, r2, r3]);
 

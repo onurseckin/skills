@@ -48,9 +48,7 @@ describe("Markdown Formatters", () => {
   test("formatTable handles column overflow, raw pipes, and newlines cleanly", () => {
     const rows = formatTable(
       ["Header | With Pipe", "Long Header Column"],
-      [
-        ["Line 1\nLine 2", "This is an extremely long string that exceeds column limits"],
-      ],
+      [["Line 1\nLine 2", "This is an extremely long string that exceeds column limits"]],
       { maxColumnWidth: 20, truncate: true },
     );
     expect(rows[0]).toBe("| Header \\| With Pipe | Long Header Column |");

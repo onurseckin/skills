@@ -133,8 +133,7 @@ export function checkAstPurity(options: AstPurityCheckOptions = {}): DoctorCheck
             const content = readFileSync(fullPath, "utf-8");
             recordFindings(scanFileForAstPurity(relPath, content));
           }
-        } catch {
-        }
+        } catch {}
       }
     }
   }

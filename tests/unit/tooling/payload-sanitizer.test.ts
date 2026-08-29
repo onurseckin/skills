@@ -64,7 +64,7 @@ describe("Runtime Payload Sanitizer & Type Validator Suite", () => {
 
     it("coerces JSON strings into objects and arrays", () => {
       expect(coerceValue('{"key": "value"}', "object")).toEqual({ key: "value" });
-      expect(coerceValue('[1, 2, 3]', "array")).toEqual([1, 2, 3]);
+      expect(coerceValue("[1, 2, 3]", "array")).toEqual([1, 2, 3]);
     });
   });
 

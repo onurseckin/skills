@@ -68,7 +68,6 @@ export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[]
           shouldClean = true;
           reason = `stale lock age (${Math.round(ageSeconds)}s > ${staleSeconds}s)`;
         } else {
-
           try {
             const content = readFileSync(fullPath, "utf-8").trim();
             if (content.startsWith("{") && content.endsWith("}")) {
@@ -88,7 +87,6 @@ export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[]
               }
             }
           } catch {
-
             if (ageSeconds > 60) {
               shouldClean = true;
               reason = `unparseable lock file with age ${Math.round(ageSeconds)}s`;
@@ -100,13 +98,9 @@ export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[]
           try {
             unlinkSync(fullPath);
             cleared.push(`${fullPath} (${reason})`);
-          } catch {
-
-          }
+          } catch {}
         }
-      } catch {
-
-      }
+      } catch {}
     }
   }
 
@@ -147,9 +141,7 @@ export function recoverStaleLeases(runRoot: string, options: StaleLeaseOptions =
         recovered.push(...reclaimed);
       }
     }
-  } catch {
-
-  }
+  } catch {}
 
   return recovered;
 }

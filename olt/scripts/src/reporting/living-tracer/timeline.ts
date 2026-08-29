@@ -100,8 +100,7 @@ export function inspectCapsuleAuxiliary(runRoot: string): {
             roundsFound.push(e.name);
           }
         }
-      } catch {
-      }
+      } catch {}
     }
 
     const leasesDir = join(runRoot, "leases");
@@ -114,8 +113,7 @@ export function inspectCapsuleAuxiliary(runRoot: string): {
             activeLeaseFiles.push(e.name);
           }
         }
-      } catch {
-      }
+      } catch {}
     }
   }
 

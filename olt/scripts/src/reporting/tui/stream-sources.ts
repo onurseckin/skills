@@ -57,8 +57,7 @@ export class CapsuleEventSource implements StreamSource<HarnessEvent> {
               payload: parsed,
             });
           }
-        } catch {
-        }
+        } catch {}
       }
 
       this.lastReadOffset = lines.length;
@@ -107,8 +106,7 @@ export class TelemetryStreamSource implements StreamSource<TelemetryEvent> {
               payload: parsed,
             });
           }
-        } catch {
-        }
+        } catch {}
       }
 
       this.lastReadOffset = lines.length;

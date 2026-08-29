@@ -36,9 +36,7 @@ export function auditTierConfinement(
         resolvedState = loaded.state as unknown as JsonObject;
       }
       loadedEvents = (loaded.events ?? []) as unknown as JsonObject[];
-    } catch {
-
-    }
+    } catch {}
   }
 
   if (!resolvedState) return [];
@@ -50,9 +48,7 @@ export function auditTierConfinement(
     for (const grant of grants) {
       roleMap.set(grant.id, grant.role);
     }
-  } catch {
-
-  }
+  } catch {}
 
   const rawTasks = resolvedState.tasks;
   const tasks: TaskRecord[] = isJsonObject(rawTasks)

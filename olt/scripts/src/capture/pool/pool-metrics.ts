@@ -32,14 +32,10 @@ export function computePoolStats(input: PoolMetricsInput): BrowserPoolStats {
   };
 }
 
-export function dispatchPoolEvent(
-  options: BrowserPoolOptions,
-  event: BrowserPoolEvent,
-): void {
+export function dispatchPoolEvent(options: BrowserPoolOptions, event: BrowserPoolEvent): void {
   if (options.onEvent) {
     try {
       options.onEvent(event);
-    } catch {
-    }
+    } catch {}
   }
 }

@@ -35,7 +35,10 @@ export class EpistemicStateReplayer {
         timestamp: event.timestamp,
         score,
         grade,
-        level: typeof payload.level === "string" ? (payload.level as EpistemicRecord["level"]) : "MODERATE_CONFIDENCE",
+        level:
+          typeof payload.level === "string"
+            ? (payload.level as EpistemicRecord["level"])
+            : "MODERATE_CONFIDENCE",
         grounded: typeof payload.grounded === "boolean" ? payload.grounded : true,
         vector: (payload.vector as EpistemicRecord["vector"]) ?? {
           empirical: score,
@@ -45,7 +48,8 @@ export class EpistemicStateReplayer {
           coverage: 1,
         },
         entropy: typeof payload.entropy === "number" ? payload.entropy : 0,
-        contradictionCount: typeof payload.contradictionCount === "number" ? payload.contradictionCount : 0,
+        contradictionCount:
+          typeof payload.contradictionCount === "number" ? payload.contradictionCount : 0,
         tags: Array.isArray(payload.tags) ? (payload.tags as string[]) : [],
         metadata: payload.metadata as Record<string, unknown> | undefined,
       };
@@ -53,7 +57,8 @@ export class EpistemicStateReplayer {
     } else if (event.type === "score:recalculated" || event.type === "grade:transition") {
       const existing = this.records.get(targetId);
       if (existing) {
-        const score = typeof event.confidence === "number" ? clamp(event.confidence, 0, 1) : existing.score;
+        const score =
+          typeof event.confidence === "number" ? clamp(event.confidence, 0, 1) : existing.score;
         const grade = event.grade ?? calculateEpistemicGrade(score);
         this.records.set(targetId, {
           ...existing,
@@ -65,7 +70,8 @@ export class EpistemicStateReplayer {
     } else if (event.type === "contradiction:detected") {
       const existing = this.records.get(targetId);
       if (existing) {
-        const addCount = typeof payload.contradictionCount === "number" ? payload.contradictionCount : 1;
+        const addCount =
+          typeof payload.contradictionCount === "number" ? payload.contradictionCount : 1;
         this.records.set(targetId, {
           ...existing,
           contradictionCount: existing.contradictionCount + addCount,
@@ -168,7 +174,11 @@ export function diffEpistemicStates(
     if (!recA) {
       addedRecordIds.push(id);
     } else {
-      if (recA.score !== recB.score || recA.grade !== recB.grade || recA.contradictionCount !== recB.contradictionCount) {
+      if (
+        recA.score !== recB.score ||
+        recA.grade !== recB.grade ||
+        recA.contradictionCount !== recB.contradictionCount
+      ) {
         modifiedRecordIds.push(id);
         scoreDeltas[id] = Number((recB.score - recA.score).toFixed(6));
         if (recA.grade !== recB.grade) {

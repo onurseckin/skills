@@ -25,7 +25,11 @@ export function formatTable(
 ): string[] {
   const sanitize = (cell: string): string => {
     let text = cell.replace(/\r?\n/g, " ").replace(/(?<!\\)\|/g, "\\|");
-    if (options?.maxColumnWidth && options.maxColumnWidth > 0 && text.length > options.maxColumnWidth) {
+    if (
+      options?.maxColumnWidth &&
+      options.maxColumnWidth > 0 &&
+      text.length > options.maxColumnWidth
+    ) {
       text = options.truncate
         ? `${text.slice(0, Math.max(0, options.maxColumnWidth - 3))}...`
         : text;

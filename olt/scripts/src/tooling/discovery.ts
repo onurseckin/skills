@@ -2,19 +2,12 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseToolSchema } from "./schema-parser.ts";
 import type { DynamicToolRegistry } from "./registry.ts";
-import type {
-  DiscoveredTool,
-  DiscoveryOptions,
-  DiscoveryReport,
-  ToolDefinition,
-} from "./types.ts";
+import type { DiscoveredTool, DiscoveryOptions, DiscoveryReport, ToolDefinition } from "./types.ts";
 
 export { type DiscoveredTool, type DiscoveryOptions, type DiscoveryReport };
 
 function stripJsonComments(input: string): string {
-  return input
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/.*/g, "");
+  return input.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*/g, "");
 }
 
 export function validateToolSpec(raw: unknown): {

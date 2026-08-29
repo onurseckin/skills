@@ -30,8 +30,7 @@ export function emitTelemetryEvent(
     }
     const line = JSON.stringify(event) + "\n";
     appendFileSync(filePath, line, "utf-8");
-  } catch {
-  }
+  } catch {}
 }
 
 export function readTelemetryStream(
@@ -57,8 +56,7 @@ export function readTelemetryStream(
         if (parsed && typeof parsed === "object" && parsed.timestamp && parsed.actor) {
           events.push(parsed);
         }
-      } catch {
-      }
+      } catch {}
     }
 
     return events;

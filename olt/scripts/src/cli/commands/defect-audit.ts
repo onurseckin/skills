@@ -13,10 +13,7 @@ import {
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
-import {
-  resolveCapsulesDir,
-  resolveCompletedDefectsPath,
-} from "../../core/shared/paths.ts";
+import { resolveCapsulesDir, resolveCompletedDefectsPath } from "../../core/shared/paths.ts";
 import {
   getApcaBadgeInfo,
   type ApcaBadgeInfo,
@@ -250,8 +247,7 @@ export function defectAuditCommand(
         if (index !== -1) {
           allDefects[index] = updatedDefect;
         }
-      } catch {
-      }
+      } catch {}
     }
   }
 
@@ -340,8 +336,7 @@ export function defectAuditCommand(
           mkdirSync(parent, { recursive: true });
         }
         writeFileSync(outPath, generatedTestSuiteStr, "utf8");
-      } catch {
-      }
+      } catch {}
     }
   }
 

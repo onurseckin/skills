@@ -24,7 +24,12 @@ afterEach(() => {
   rmSync(TEST_ROOT, { recursive: true, force: true });
 });
 
-function createTestEvent(seq: number, prevHash: string | null, patch: unknown, projection: unknown = null): string {
+function createTestEvent(
+  seq: number,
+  prevHash: string | null,
+  patch: unknown,
+  projection: unknown = null,
+): string {
   const payload = {
     schema: "harness.event",
     version: 1,
@@ -117,7 +122,9 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
           eventLines.push(createTestEvent(i, `hash-seq-${i - 1}`, null, { counter: i }));
         } else {
           eventLines.push(
-            createTestEvent(i, i === 1 ? null : `hash-seq-${i - 1}`, [{ op: "set", path: ["counter"], value: i }]),
+            createTestEvent(i, i === 1 ? null : `hash-seq-${i - 1}`, [
+              { op: "set", path: ["counter"], value: i },
+            ]),
           );
         }
       }
@@ -150,7 +157,10 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
     it("returns early when no snapshot or sequence <= 1", () => {
       const paths = resolveCapsulePaths("run-compact-02", TEST_ROOT);
       mkdirSync(paths.runRoot, { recursive: true });
-      writeFileSync(paths.eventsPath, createTestEvent(1, null, [{ op: "set", path: ["x"], value: 1 }]) + "\n");
+      writeFileSync(
+        paths.eventsPath,
+        createTestEvent(1, null, [{ op: "set", path: ["x"], value: 1 }]) + "\n",
+      );
 
       const result = compactWalLog(paths);
       expect(result.success).toBe(true);
@@ -170,7 +180,9 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
           eventLines.push(createTestEvent(i, `hash-seq-${i - 1}`, null, { total: 200 }));
         } else {
           eventLines.push(
-            createTestEvent(i, i === 1 ? null : `hash-seq-${i - 1}`, [{ op: "set", path: ["total"], value: i }]),
+            createTestEvent(i, i === 1 ? null : `hash-seq-${i - 1}`, [
+              { op: "set", path: ["total"], value: i },
+            ]),
           );
         }
       }
@@ -219,7 +231,9 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
           eventLines.push(createTestEvent(i, `hash-seq-${i - 1}`, null, { num: i }));
         } else {
           eventLines.push(
-            createTestEvent(i, i === 1 ? null : `hash-seq-${i - 1}`, [{ op: "set", path: ["num"], value: i }]),
+            createTestEvent(i, i === 1 ? null : `hash-seq-${i - 1}`, [
+              { op: "set", path: ["num"], value: i },
+            ]),
           );
         }
       }

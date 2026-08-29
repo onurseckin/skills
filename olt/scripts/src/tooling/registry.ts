@@ -143,7 +143,8 @@ export class DynamicToolRegistry {
       };
     }
 
-    const securityPolicy = context?.securityPolicy ?? tool.securityPolicy ?? tool.metadata?.securityPolicy;
+    const securityPolicy =
+      context?.securityPolicy ?? tool.securityPolicy ?? tool.metadata?.securityPolicy;
     if (securityPolicy) {
       const sanResult = sanitizeToolInput(args, securityPolicy);
       if (!sanResult.safe) {

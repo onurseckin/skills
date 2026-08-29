@@ -61,7 +61,11 @@ export async function runAdversarialCounterfactualCheck(
           exitCode: proc.status ?? (proc.error ? 1 : 0),
         };
       } catch (err: unknown) {
-        return { success: false, output: err instanceof Error ? err.message : String(err), exitCode: 1 };
+        return {
+          success: false,
+          output: err instanceof Error ? err.message : String(err),
+          exitCode: 1,
+        };
       }
     }
 
@@ -77,11 +81,19 @@ export async function runAdversarialCounterfactualCheck(
           exitCode: proc.status ?? (proc.error ? 1 : 0),
         };
       } catch (err: unknown) {
-        return { success: false, output: err instanceof Error ? err.message : String(err), exitCode: 1 };
+        return {
+          success: false,
+          output: err instanceof Error ? err.message : String(err),
+          exitCode: 1,
+        };
       }
     }
 
-    return { success: true, output: "No test runner configured; baseline assumed clean", exitCode: 0 };
+    return {
+      success: true,
+      output: "No test runner configured; baseline assumed clean",
+      exitCode: 0,
+    };
   };
 
   let baselineResult: { success: boolean; output?: string; exitCode?: number };
@@ -111,7 +123,8 @@ export async function runAdversarialCounterfactualCheck(
       baselinePassed: false,
       output: baselineResult.output,
       exitCode: baselineResult.exitCode,
-      message: "Baseline test failed before adversarial mutation was applied; target is currently failing",
+      message:
+        "Baseline test failed before adversarial mutation was applied; target is currently failing",
       durationMs: Date.now() - startTime,
     };
   }

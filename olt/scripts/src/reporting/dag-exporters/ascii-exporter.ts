@@ -42,7 +42,8 @@ function renderAsciiCard(
   const topText = `${node.id} ${coordsStr}`;
   const firstLine = padRight(` ${topText} ${statusStr}`, innerWidth);
 
-  let labelStr = node.label.length > innerWidth - 2 ? `${node.label.slice(0, innerWidth - 5)}...` : node.label;
+  let labelStr =
+    node.label.length > innerWidth - 2 ? `${node.label.slice(0, innerWidth - 5)}...` : node.label;
   const secondLine = padRight(` ${labelStr}`, innerWidth);
 
   let agentStr = "";
@@ -106,7 +107,9 @@ export function exportDagToAscii(
     const wave = sortedWaves[wIdx]!;
     const waveNodes = nodesByWave.get(wave) ?? [];
 
-    lines.push(`── Wave ${wave} (${waveNodes.length} task${waveNodes.length === 1 ? "" : "s"}) ──────────────────────────────────────`);
+    lines.push(
+      `── Wave ${wave} (${waveNodes.length} task${waveNodes.length === 1 ? "" : "s"}) ──────────────────────────────────────`,
+    );
     lines.push("");
 
     const renderedCards = waveNodes.map((n) => renderAsciiCard(n, box));
@@ -140,8 +143,12 @@ export function exportDagToAscii(
   }
 
   lines.push("── Wave Metrics ───────────────────────────────────────────");
-  lines.push(`  Total Waves: ${layout.metrics.totalWaves} | Span: ${layout.metrics.span} | Max Parallel Lanes: ${layout.metrics.maxParallelLanes}`);
-  lines.push(`  Total Work: ${layout.metrics.totalWork} | Parallelism Factor: ${layout.metrics.parallelismFactor}x | Optimal Concurrency: ${layout.metrics.optimalConcurrency}`);
+  lines.push(
+    `  Total Waves: ${layout.metrics.totalWaves} | Span: ${layout.metrics.span} | Max Parallel Lanes: ${layout.metrics.maxParallelLanes}`,
+  );
+  lines.push(
+    `  Total Work: ${layout.metrics.totalWork} | Parallelism Factor: ${layout.metrics.parallelismFactor}x | Optimal Concurrency: ${layout.metrics.optimalConcurrency}`,
+  );
   lines.push("───────────────────────────────────────────────────────────");
 
   const content = lines.join("\n");

@@ -203,7 +203,11 @@ describe("Tool Schemas & Security Validation Unit Test Suite", () => {
       expect(res1.valid).toBe(true);
       expect(res1.sanitizedArgs.timeout).toBe(5000);
 
-      const res2 = validateToolArguments(params, { id: "item-1", extraneous: "bad" }, { strictUnknownProperties: true });
+      const res2 = validateToolArguments(
+        params,
+        { id: "item-1", extraneous: "bad" },
+        { strictUnknownProperties: true },
+      );
       expect(res2.valid).toBe(false);
       expect(res2.errors[0].code).toBe("UNKNOWN_PARAMETER");
     });
@@ -251,9 +255,7 @@ describe("Tool Schemas & Security Validation Unit Test Suite", () => {
 
       const nestedMalicious = {
         data: {
-          items: [
-            { constructor: { name: "Fake" } },
-          ],
+          items: [{ constructor: { name: "Fake" } }],
         },
       };
       const nestedViolation = detectPrototypePollution(nestedMalicious);
