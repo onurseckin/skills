@@ -97,16 +97,13 @@ export {
 
 export {
   type ConsolidateWorktreesInput,
-  consolidateWorktrees,
-  recordConsolidation,
-} from "../../workflow/worktree/consolidate.ts";
-
-export {
   type ReclaimWorktreesInput,
   type ReclaimWorktreesResult,
+  consolidateWorktrees,
+  recordConsolidation,
   reclaimOrphanedWorktrees,
   recordReclaim,
-} from "../../workflow/worktree/reclaim.ts";
+} from "../../workflow/worktree/consolidate.ts";
 
 export {
   type ProvisionWorktreesConfig,

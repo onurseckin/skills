@@ -15,6 +15,15 @@ tools:
 interface:
   display_name: "Skill Auditor"
   short_description: "Tier 0 Out-of-Band Skill Compliance & Telemetry Auditor"
+communication_contract:
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
+  ban_raw_jsonl_reading: true
 permissions:
   may:
     - "audit delta events against cognitive contracts"
@@ -41,6 +50,7 @@ permissions:
     - "read or consume implementer self-grading narratives or confidence prose"
     - "suppress or ignore detected root cause incidents"
     - "echo, log, copy, or persist sensitive tokens or credentials"
+    - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "skill:audit:live"
     - "meta-audit"

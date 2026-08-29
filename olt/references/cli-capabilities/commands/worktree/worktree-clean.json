@@ -1,0 +1,38 @@
+{
+  "name": "worktree:clean",
+  "aliases": [],
+  "domain": "worktree",
+  "summary": "Clean up and remove track worktrees and branches.",
+  "flags": [
+    {
+      "name": "track",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "all",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "no-force",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "repo-root",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

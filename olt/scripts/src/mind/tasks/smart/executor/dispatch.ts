@@ -3,7 +3,7 @@ import {
   enqueueTasksBatch,
   type NewTaskQueueInput,
   type TaskQueueItem,
-} from "../../queue/index.ts";
+} from "../../../../task/queue/index.ts";
 import {
   readFeedbackQueue,
   updateOrPruneFeedbackItems,

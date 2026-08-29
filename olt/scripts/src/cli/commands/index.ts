@@ -345,8 +345,14 @@ export {
   watchdogProbeCommand,
 } from "./watchdog-ops.ts";
 export type { TaskLeaseSummary, TaskValidationSummary } from "./whoami.ts";
-export { whoamiCommand } from "./whoami.ts";
-export { worktreeReclaimCommand } from "./worktree-ops.ts";
+export {
+  worktreeCreateCommand,
+  worktreeLandCommand,
+  worktreeListCommand,
+  worktreeCleanCommand,
+  worktreeStatusCommand,
+  worktreeReclaimCommand,
+} from "./worktree-ops.ts";
 export { quotaFreezeCommand } from "./quota-freeze.ts";
 export { quotaResumeCommand } from "./quota-resume.ts";
 export {
@@ -363,3 +369,5 @@ export type { MsgRecvResult } from "./msg-recv.ts";
 export { msgRecvCommand } from "./msg-recv.ts";
 export type { MsgPollResult } from "./msg-poll.ts";
 export { msgPollCommand } from "./msg-poll.ts";
+export type { MailboxSummary, MsgListResult } from "./msg-list.ts";
+export { msgListCommand } from "./msg-list.ts";

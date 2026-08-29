@@ -15,5 +15,9 @@ describe("workflow/worktree index exports", () => {
     expect(WorktreeIndex.provisionWorktrees).toBeFunction();
     expect(WorktreeIndex.reclaimOrphanedWorktrees).toBeFunction();
     expect(WorktreeIndex.recordReclaim).toBeFunction();
+    expect(WorktreeIndex.createTrackWorktree).toBeFunction();
+    expect(WorktreeIndex.cleanupTrackWorktree).toBeFunction();
+    expect(WorktreeIndex.listTrackWorktrees).toBeFunction();
+    expect(WorktreeIndex.landTrackToMain).toBeFunction();
   });
 });

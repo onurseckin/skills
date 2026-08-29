@@ -1,4 +1,4 @@
-import { resolveTaskQueuePath } from "../../tasks/queue/index.ts";
+import { resolveTaskQueuePath } from "../../../task/queue/index.ts";
 import { readFileSync } from "node:fs";
 import { existsSync } from "node:fs";
 import { HarnessError } from "../../../core/errors/index.ts";

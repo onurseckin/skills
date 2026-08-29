@@ -14,7 +14,7 @@ import type {
   DefectEntry,
   FeedbackItem,
 } from "../types.ts";
-import type { TaskPriority } from "../../queue/index.ts";
+import type { TaskPriority } from "../../../../task/queue/index.ts";
 import type { FeedbackPriority } from "../../../feedback/queue/index.ts";
 import { collectFilesRecursively, sanitizeSlug } from "./quality-scanner.ts";
 

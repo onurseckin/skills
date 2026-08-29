@@ -6,7 +6,7 @@ import {
   deriveGateForCategory,
 } from "../executor/orchestrator.ts";
 import type { SmartTaskPlan, ScopeCollision } from "./models.ts";
-import type { TaskPriority } from "../../queue/index.ts";
+import type { TaskPriority } from "../../../../task/queue/index.ts";
 export function partitionCandidatesStrictly(
   candidates: readonly {
     readonly id: string;

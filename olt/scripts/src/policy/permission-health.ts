@@ -25,7 +25,6 @@ export function auditPermissionHealth(
 ): { healthy: boolean; errors: string[] } {
   const errors: string[] = [];
 
-  // Proof 1: Disjoint Set Invariant (allowed_commands ∩ forbidden_commands = ∅)
   const mustNotSet = new Set(manifest.permissions.must_not);
   if (manifest.permissions.commands) {
     for (const cmd of manifest.permissions.commands) {
@@ -37,7 +36,6 @@ export function auditPermissionHealth(
     }
   }
 
-  // Proof 2: Registry Whitelist Resolution
   const validRegistry = new Set<string>([
     ...(repoPolicy.allowed_commands || []),
     ...(repoPolicy.registered_cli_specs || []),
@@ -81,6 +79,9 @@ export function auditPermissionHealth(
     "mind:rotate",
     "mind:round",
     "mind:wake",
+    "msg:send",
+    "msg:recv",
+    "msg:poll",
     "orphan:list",
     "orphan:claim",
     "orphan:sweep",
@@ -128,7 +129,6 @@ export function auditPermissionHealth(
     }
   }
 
-  // Proof 3: Role-Hierarchy Boundary Confinement
   const isCognitiveCodeValidator =
     (manifest.role === "validator" || manifest.role === "ui-validator") &&
     !manifest.role.includes("mechanic");
@@ -187,7 +187,6 @@ export function auditPermissionHealth(
     }
   }
 
-  // Proof 4: Spawning Authority DAG Validation (an agent can only spawn roles declared in permissions.spawns).
   for (const spawn of manifest.permissions.spawns ?? []) {
     if (typeof spawn !== "string" || spawn.trim() === "") {
       errors.push("Proof 4 Failed: Invalid spawn target in permissions.spawns.");

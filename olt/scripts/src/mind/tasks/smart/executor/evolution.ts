@@ -1,5 +1,5 @@
 import { detectScopeOverlap } from "../planner/collisions.ts";
-import { enqueueTasksBatch, type NewTaskQueueInput, type TaskPriority } from "../../queue/index.ts";
+import { enqueueTasksBatch, type NewTaskQueueInput, type TaskPriority } from "../../../../task/queue/index.ts";
 import { evaluateHierarchyScaling } from "../../../../graph/parallel-decoupler.ts";
 import { drainPendingFeedbacks } from "../../../feedback/index.ts";
 import { assertAntiBatchingRule } from "../planner/partitioning.ts";

@@ -3,6 +3,35 @@
 Generated from `olt/scripts/src/cli/registry` by `olt/scripts/generate-cli-manifest.ts`. Do not edit by
 hand. Index: [`../cli-capabilities.md`](../cli-capabilities.md).
 
+### `run:init`
+
+Initialize a capsule run root and write its initial manifest.
+
+Deterministic auto-initialization ensuring .olt/capsules/<run_id>/ exists on disk before any subagent work.
+
+- **Aliases**: none
+- **Stdin**: reads stdin when `--prompt-stdin` is set
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root or run ID. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root. |
+| `--prompt` | string | no | no | - | Prompt string for run initialization. |
+| `--mode` | string | no | no | - | Capsule mode (feature, bugfix, investigation, etc.). |
+| `--actor` | string | no | no | - | Agent or actor initializing the run. |
+| `--capture-mode` | string | no | no | - | Capture mode (file, stdin, argv). |
+| `--source-verified` | bool | no | no | - | Whether source is verified. |
+| `--no-runtime-pin` | bool | no | no | - | Do not pin runtime code. |
+| `--runtime-source` | string | no | no | - | Runtime source directory to pin. |
+| `--allow-existing` | bool | no | no | `true` | Allow initializing an already existing run. |
+
+```bash
+bun harness.ts run:init --run <run-id>
+bun harness.ts init --run <run-id>
+```
+
 ### `run:exec`
 
 Run a gate command under process isolation and record the evidence.

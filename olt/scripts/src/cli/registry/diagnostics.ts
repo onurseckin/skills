@@ -7,7 +7,6 @@ import {
   repairProjectionCommand,
 } from "../commands/diagnostics-ops.ts";
 import { taskReleaseCommand } from "../commands/task-ops.ts";
-import { worktreeReclaimCommand } from "../commands/worktree-ops.ts";
 import { doctorCertifyCommand } from "../../reporting/doctor/certify-command.ts";
 import { findingFileCommand } from "../commands/finding-ops.ts";
 import {
@@ -238,29 +237,6 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts task:release --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>",
     ],
     handler: taskReleaseCommand,
-  },
-  {
-    name: "worktree:reclaim",
-    aliases: [],
-    domain: "diagnostics",
-    tier: "internal",
-    internal: true,
-    summary: "Free an abandoned run's worktree directories.",
-    description:
-      "B22.6: removes the worktree directories a crashed or abandoned run left behind, after a human has looked and decided the run is not being resumed. The harness branch and every per-task worktree branch are left untouched — only the disposable worktree checkouts are removed. Refuses if worktree isolation is currently off for this run's config.",
-    flags: [
-      requiredFlag("run", "string", "Capsule run root."),
-      requiredFlag(
-        "actor",
-        "string",
-        "Who is running the reclaim. Recorded on the event; there is no default actor.",
-      ),
-    ],
-    readsStdin: false,
-    takesRemainder: false,
-    exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts worktree:reclaim --run .olt/capsules/<run-id> --actor coordinator"],
-    handler: worktreeReclaimCommand,
   },
   {
     name: "meta-audit",

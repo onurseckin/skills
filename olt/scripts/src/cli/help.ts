@@ -30,10 +30,11 @@ export function helpRequest(argv: readonly string[]): HelpRequest | null {
   const isHelpCommand = first === "help";
   if (isHelpCommand) {
     const rest = scanned.slice(1);
-    const internal = rest.includes("--internal") || rest.includes("-i");
+    const internal = rest.includes("--internal") ? true : rest.includes("-i");
     const nonFlagArgs = rest.filter((arg) => !arg.startsWith("-"));
+    const commandArg = nonFlagArgs[0];
     return {
-      command: nonFlagArgs[0] ?? null,
+      command: commandArg !== undefined ? commandArg : null,
       ...(internal ? { internal: true } : {}),
     };
   }
@@ -65,7 +66,12 @@ export function helpRequest(argv: readonly string[]): HelpRequest | null {
 }
 
 export function renderHelp(command: string | null, options?: RenderHelpOptions | boolean): string {
-  const internal = typeof options === "boolean" ? options : (options?.internal ?? false);
+  let internal = false;
+  if (typeof options === "boolean") {
+    internal = options;
+  } else if (options !== undefined && options.internal !== undefined) {
+    internal = options.internal;
+  }
   if (command === null) return renderOverview(internal);
   const spec = findCommand(command);
   if (!spec) throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${command}`);
@@ -102,13 +108,15 @@ function renderOverview(internal: boolean): string {
   const rows = PRIMARY_VERBS.map((verb) => {
     const commands =
       verb === "doctor"
-        ? COMMAND_REGISTRY.filter(
-            (spec) =>
-              (spec.name === "doctor" ||
-                spec.name.startsWith("doctor:") ||
-                spec.domain === "doctor") &&
-              !isInternalCommand(spec),
-          )
+        ? COMMAND_REGISTRY.filter((spec) => {
+            const isDoc =
+              spec.name === "doctor"
+                ? true
+                : spec.name.startsWith("doctor:")
+                  ? true
+                  : spec.domain === "doctor";
+            return isDoc && !isInternalCommand(spec);
+          })
         : COMMAND_REGISTRY.filter(
             (spec) =>
               spec.domain === verb &&

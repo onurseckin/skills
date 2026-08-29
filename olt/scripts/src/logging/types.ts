@@ -2,13 +2,18 @@ import type {
   AggregatedDefect,
   DefectCategory,
   DefectEntry,
+  DefectHypothesis,
   DefectKeyOptions,
   DefectOccurrence,
   DefectRecordInput,
+  DefectRemediationAction,
   DefectResolutionProof,
   DefectSeverity,
   DefectStatus,
-} from "../mind/defects/core/index.ts";
+  HistoricalOccurrence,
+  LiveDeduplicationOptions,
+  ParseDefectLogOptions,
+} from "./defects/index.ts";
 import type { atomicWriteBytes } from "../core/durable-write.ts";
 
 export type DeduplicationStrategy =
@@ -16,19 +21,6 @@ export type DeduplicationStrategy =
   | "exact_dedup"
   | "windowed"
   | "sliding_window_hash";
-
-export interface LiveDeduplicationOptions {
-  readonly strategy?: DeduplicationStrategy | undefined;
-  readonly windowMs?: number | undefined;
-  readonly maxEntries?: number | undefined;
-  readonly maxOccurrences?: number | undefined;
-  readonly maxOccurrencesTracked?: number | undefined;
-  readonly keyOptions?: DefectKeyOptions | undefined;
-  readonly onDefectDeduplicated?:
-    | ((defect: AggregatedDefect, incoming: DefectRecordInput) => void)
-    | undefined;
-  readonly onNewDefect?: ((defect: AggregatedDefect) => void) | undefined;
-}
 
 export interface DefectLogOptions {
   readonly runRoot?: string | undefined;
@@ -80,10 +72,15 @@ export type {
   AggregatedDefect,
   DefectCategory,
   DefectEntry,
+  DefectHypothesis,
   DefectKeyOptions,
   DefectOccurrence,
   DefectRecordInput,
+  DefectRemediationAction,
   DefectResolutionProof,
   DefectSeverity,
   DefectStatus,
+  HistoricalOccurrence,
+  LiveDeduplicationOptions,
+  ParseDefectLogOptions,
 };

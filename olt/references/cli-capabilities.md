@@ -34,7 +34,7 @@ own status in `exit_code`.
 | queue | 4 | [cli-capabilities/domains/queue.md](cli-capabilities/domains/queue.md) |
 | task | 13 | [cli-capabilities/domains/task.md](cli-capabilities/domains/task.md) |
 | reporting | 19 | [cli-capabilities/domains/reporting.md](cli-capabilities/domains/reporting.md) |
-| run | 4 | [cli-capabilities/domains/run.md](cli-capabilities/domains/run.md) |
+| run | 5 | [cli-capabilities/domains/run.md](cli-capabilities/domains/run.md) |
 | critic | 4 | [cli-capabilities/domains/critic.md](cli-capabilities/domains/critic.md) |
 | summary | 3 | [cli-capabilities/domains/summary.md](cli-capabilities/domains/summary.md) |
 | inspection | 4 | [cli-capabilities/domains/inspection.md](cli-capabilities/domains/inspection.md) |
@@ -44,11 +44,13 @@ own status in `exit_code`.
 | orphan | 1 | [cli-capabilities/domains/orphan.md](cli-capabilities/domains/orphan.md) |
 | authority | 8 | [cli-capabilities/domains/authority.md](cli-capabilities/domains/authority.md) |
 | install | 2 | [cli-capabilities/domains/install.md](cli-capabilities/domains/install.md) |
-| diagnostics | 11 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
+| diagnostics | 10 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
 | gate | 1 | [cli-capabilities/domains/gate.md](cli-capabilities/domains/gate.md) |
 | capture | 3 | [cli-capabilities/domains/capture.md](cli-capabilities/domains/capture.md) |
 | mind | 27 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
 | policy | 4 | [cli-capabilities/domains/policy.md](cli-capabilities/domains/policy.md) |
+| msg | 4 | [cli-capabilities/domains/msg.md](cli-capabilities/domains/msg.md) |
+| worktree | 6 | [cli-capabilities/domains/worktree.md](cli-capabilities/domains/worktree.md) |
 
 ## Commands
 
@@ -101,6 +103,7 @@ own status in `exit_code`.
 | `skill:audit:live` | reporting | Live Tier 0 out-of-band audit of skill compliance and delta event forensics. |
 | `notify:phase` | reporting | Trigger cross-platform native OS push notification and audio chime upon phase landing. |
 | `notify:test` | reporting | Send a test native OS notification and Glass chime to verify desktop integration. |
+| `run:init` | run | Initialize a capsule run root and write its initial manifest. |
 | `run:exec` | run | Run a gate command under process isolation and record the evidence. |
 | `run:status` | run | Show phase, per-task status and progress for the run. |
 | `run:complete` | run | Seal the capsule after verifying every completion artifact. |
@@ -150,7 +153,6 @@ own status in `exit_code`.
 | `doctor:certify` | diagnostics | Certify doctor's own checks are falsifiable via counterfactual mutation testing. |
 | `recover` | diagnostics | Release expired leases and interrupted validations. |
 | `task:release` | task | Hand a live lease back without waiting for it to expire. |
-| `worktree:reclaim` | diagnostics | Free an abandoned run's worktree directories. |
 | `meta-audit` | diagnostics | Deep behavioral forensics and anomaly detection across all agent telemetry. |
 | `finding:file` | diagnostics | Record a diagnostic finding or defect directly into the flock-locked defect store. |
 | `explain` | diagnostics | Explain a HarnessError code: the rule it enforces, common causes and the remedy for each. |
@@ -190,3 +192,13 @@ own status in `exit_code`.
 | `policy:check-drift` | policy | Check for policy file drift against a known SHA-256 checksum. |
 | `factory:preplan` | mind | Execute continuous pre-planning factory tick to cluster backlog and emit blueprints. |
 | `factory:status` | mind | Inspect factory pre-planning queue health, stagnation status, and concurrency saturation. |
+| `msg:send` | msg | Send an authenticated mailbox message to an agent or role. |
+| `msg:recv` | msg | Receive unread mailbox messages from the agent inbox. |
+| `msg:poll` | msg | Poll mailbox for messages at regular intervals until received or timeout. |
+| `msg:list` | msg | List mailbox summaries and unread counts across agents. |
+| `worktree:create` | worktree | Create a hermetic track worktree with lock acquisition. |
+| `worktree:land` | worktree | Land a completed track worktree to main with immediate teardown. |
+| `worktree:list` | worktree | List all active track worktrees. |
+| `worktree:clean` | worktree | Clean up and remove track worktrees and branches. |
+| `worktree:status` | worktree | Check status of active track worktrees. |
+| `worktree:reclaim` | worktree | Reclaim abandoned worktrees from a completed or crashed run. |

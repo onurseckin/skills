@@ -5,7 +5,7 @@ import { scanCognitiveGaps, scanDormantCriteria } from "../scanners/index.ts";
 import { scanArchitecturalHealth } from "../scanners/index.ts";
 import { readFeedbackQueue } from "../../../feedback/queue/index.ts";
 import { auditDefectLog } from "../../../defects/index.ts";
-import { readTaskQueue } from "../../queue/index.ts";
+import { readTaskQueue } from "../../../../task/queue/index.ts";
 import type {
   TaskDiscoveryOptions,
   DiscoveryItem,
@@ -15,9 +15,9 @@ import type {
   DormantCriteriaFinding,
   ArchitecturalHealthFinding,
   TaskQueueItem,
+  DefectEntry,
 } from "../types.ts";
 import type { FeedbackItem } from "../../../feedback/queue/index.ts";
-import type { DefectEntry } from "../../../contracts/defect-contracts.ts";
 import { mapPriority, mapFeedbackPriorityToTaskPriority, sanitizeSlug } from "../scanners/index.ts";
 import { transformFindingsToDiscoveries } from "./transformers.ts";
 

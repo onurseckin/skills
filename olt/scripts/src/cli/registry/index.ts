@@ -22,6 +22,7 @@ import { RUN_COMMANDS } from "./run.ts";
 import { SHELL_COMMANDS } from "./shell.ts";
 import { SUMMARY_COMMANDS } from "./summary.ts";
 import { TASK_COMMANDS } from "./task.ts";
+import { WORKTREE_COMMANDS } from "./worktree.ts";
 import {
   DEFAULT_EXIT_CODES,
   PRIMARY_VERBS,
@@ -65,6 +66,7 @@ export {
 };
 export { SHELL_COMMANDS } from "./shell.ts";
 export { MSG_COMMANDS } from "./msg.ts";
+export { WORKTREE_COMMANDS } from "./worktree.ts";
 
 export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...PLAN_COMMANDS,
@@ -91,6 +93,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...POLICY_COMMANDS,
   ...FACTORY_COMMANDS,
   ...MSG_COMMANDS,
+  ...WORKTREE_COMMANDS,
 ];
 
 export const COMMAND_DOMAINS: readonly CommandDomain[] = [
@@ -114,6 +117,7 @@ export const COMMAND_DOMAINS: readonly CommandDomain[] = [
   "mind",
   "policy",
   "msg",
+  "worktree",
 ];
 
 const BY_INVOCATION: ReadonlyMap<string, CommandSpec> = (() => {

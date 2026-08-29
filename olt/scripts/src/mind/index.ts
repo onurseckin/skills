@@ -75,13 +75,12 @@ import * as proposal from "./proposals/proposal/index.ts";
 import * as roles from "./roles/index.ts";
 import * as dynamicRoles from "./roles/dynamic/index.ts";
 import * as profiles from "./roles/index.ts";
-import * as rootHygiene from "./root-hygiene.ts";
 
 import * as tasks from "./tasks/index.ts";
 import * as taskDiscovery from "./tasks/discovery/index.ts";
 import * as taskDrainage from "./tasks/drainage/index.ts";
 import * as taskLookahead from "./tasks/lookahead/index.ts";
-import * as taskQueue from "./tasks/queue/index.ts";
+import * as taskQueue from "../task/queue/index.ts";
 import * as smartTaskManager from "./tasks/smart/index.ts";
 
 export {
@@ -141,7 +140,6 @@ export {
   rescue,
   roleAuditing,
   roles,
-  rootHygiene,
   rotate,
   rounds,
   selfEvolution,

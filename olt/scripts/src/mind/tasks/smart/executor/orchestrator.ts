@@ -1,7 +1,7 @@
 import { detectScopeOverlap } from "../planner/collisions.ts";
 import { enrichTaskPlanWithExactAnchors } from "../planner/anti-batching.ts";
 import type { SmartTaskPlan, SmartWavePlanResult } from "../planner/models.ts";
-import type { TaskPriority } from "../../queue/index.ts";
+import type { TaskPriority } from "../../../../task/queue/index.ts";
 import type { FeedbackItem } from "../../../feedback/queue/index.ts";
 import { planWaveExecution } from "../planner/waves.ts";
 import { HarnessError } from "../../../../core/errors/index.ts";

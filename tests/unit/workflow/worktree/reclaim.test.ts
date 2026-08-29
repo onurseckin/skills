@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   reclaimOrphanedWorktrees,
   recordReclaim,
-} from "../../../../olt/scripts/src/workflow/worktree/reclaim.ts";
+} from "../../../../olt/scripts/src/workflow/worktree/consolidate.ts";
 import { readWorktreeLedger } from "../../../../olt/scripts/src/workflow/worktree/ledger.ts";
 import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
 import { FakeRunStore, baseLedger, seedLedger } from "./fake-transact.ts";

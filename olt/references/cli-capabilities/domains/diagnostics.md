@@ -159,25 +159,6 @@ Returns tasks whose lease expired to retry_ready (or changes_requested after a r
 bun harness.ts recover --run .olt/capsules/<run-id> --actor coordinator
 ```
 
-### `worktree:reclaim`
-
-Free an abandoned run's worktree directories.
-
-B22.6: removes the worktree directories a crashed or abandoned run left behind, after a human has looked and decided the run is not being resumed. The harness branch and every per-task worktree branch are left untouched — only the disposable worktree checkouts are removed. Refuses if worktree isolation is currently off for this run's config.
-
-- **Aliases**: none
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Who is running the reclaim. Recorded on the event; there is no default actor. |
-
-```bash
-bun harness.ts worktree:reclaim --run .olt/capsules/<run-id> --actor coordinator
-```
-
 ### `meta-audit`
 
 Deep behavioral forensics and anomaly detection across all agent telemetry.

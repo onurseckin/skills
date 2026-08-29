@@ -22,3 +22,15 @@ capabilities:
   concurrency_ceiling: 16
   token_reporting: false
   native_resume: false
+communication_contract:
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
+  ban_raw_jsonl_reading: true
+permissions:
+  must_not:
+    - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"

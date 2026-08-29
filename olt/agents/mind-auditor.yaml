@@ -14,6 +14,15 @@ tools:
 interface:
   display_name: "Mind Auditor"
   short_description: "Tier 0 Out-of-Band Stagnation & Mind Pulse Auditor"
+communication_contract:
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
+  ban_raw_jsonl_reading: true
 permissions:
   may:
     - "detect idle mind >120s"
@@ -28,6 +37,7 @@ permissions:
     - "0 code edits"
     - "0 test runs"
     - "corrupt `.olt/auditor-cursors.json` during quota freeze or resume"
+    - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "mind:audit:live"
     - "mind:pulse"

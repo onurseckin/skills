@@ -214,12 +214,13 @@ export {
   createDefaultWatchdogStore,
 } from "./watchdog/index.ts";
 
-export {
-  executeWatchdogStatus,
-  executeWatchdogCleanup,
-  executeWatchdogPhaseCleanup,
-  executeWatchdogVerify,
-  executeWatchdogProbe,
+export type {
+  HeartbeatOptions,
+  RegisterWatchdogOptions,
+  TerminateOptions as WatchdogTerminateOptions,
+  WatchdogRecord,
+  WatchdogStatus,
+  WatchdogStore,
 } from "./watchdog/index.ts";
 
 export {

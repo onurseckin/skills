@@ -40,7 +40,7 @@ import {
   enqueueTasksBatch,
   getQueueStats,
   readTaskQueue,
-} from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
+} from "../../../olt/scripts/src/task/queue/index.ts";
 
 describe("Mind Product Owner Mode & Atomic Dispatch Chaining Test Suite", () => {
   const testRoot = join(

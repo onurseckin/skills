@@ -1,0 +1,73 @@
+{
+  "name": "msg:send",
+  "aliases": [],
+  "domain": "msg",
+  "summary": "Send an authenticated mailbox message to an agent or role.",
+  "flags": [
+    {
+      "name": "to",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "body",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "payload",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "role",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "correlation-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "secret",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "base-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

@@ -1,0 +1,73 @@
+{
+  "name": "msg:recv",
+  "aliases": [],
+  "domain": "msg",
+  "summary": "Receive unread mailbox messages from the agent inbox.",
+  "flags": [
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "wait",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "timeout",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "advance-cursor",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "no-advance-cursor",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "correlation-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "secret",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "base-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

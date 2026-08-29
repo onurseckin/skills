@@ -6,6 +6,7 @@ export type {
   AgentManifestInterface,
   AgentManifestProtocol,
   AgentManifestPermissions,
+  AgentManifestCommunicationContract,
   AgentManifest,
   UnifiedAgentModel,
   ManifestLoaderOptions,

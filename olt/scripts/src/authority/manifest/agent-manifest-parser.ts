@@ -2,6 +2,7 @@ import { basename, extname } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import type {
   AgentManifest,
+  AgentManifestCommunicationContract,
   AgentManifestInterface,
   AgentManifestPermissions,
   AgentManifestProtocol,
@@ -12,10 +13,23 @@ import { parseYaml } from "./yaml-parser.ts";
 
 export function parseAgentManifest(content: string, filePath?: string): AgentManifest {
   const parsed = parseYaml(content);
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+  const fileLabel = filePath !== undefined ? filePath : "in-memory";
+  if (typeof parsed !== "object") {
     throw new HarnessError(
       "INVALID_ARGUMENT",
-      `Failed to parse agent manifest YAML: output is not an object (file: ${filePath ?? "in-memory"})`,
+      `Failed to parse agent manifest YAML: output is not an object (file: ${fileLabel})`,
+    );
+  }
+  if (parsed === null) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `Failed to parse agent manifest YAML: output is not an object (file: ${fileLabel})`,
+    );
+  }
+  if (Array.isArray(parsed)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `Failed to parse agent manifest YAML: output is not an object (file: ${fileLabel})`,
     );
   }
 
@@ -67,6 +81,23 @@ export function parseAgentManifest(content: string, filePath?: string): AgentMan
       ? (record.protocol as AgentManifestProtocol)
       : undefined;
 
+  const rawComm =
+    typeof record.communication_contract === "object" && record.communication_contract !== null
+      ? (record.communication_contract as Record<string, unknown>)
+      : undefined;
+
+  const communication_contract: AgentManifestCommunicationContract | undefined = rawComm
+    ? {
+        protocol: typeof rawComm.protocol === "string" ? rawComm.protocol : "",
+        mailbox_path: typeof rawComm.mailbox_path === "string" ? rawComm.mailbox_path : "",
+        lock_path: typeof rawComm.lock_path === "string" ? rawComm.lock_path : "",
+        allowed_channels: Array.isArray(rawComm.allowed_channels)
+          ? rawComm.allowed_channels.map((c) => String(c).trim()).filter(Boolean)
+          : [],
+        ban_raw_jsonl_reading: Boolean(rawComm.ban_raw_jsonl_reading),
+      }
+    : undefined;
+
   return {
     name,
     role,
@@ -80,6 +111,7 @@ export function parseAgentManifest(content: string, filePath?: string): AgentMan
     invariants,
     instructions,
     protocol,
+    communication_contract,
     filePath,
     raw: content,
   };

@@ -1,6 +1,6 @@
 import { discoverTasks } from "../../tasks/discovery/index.ts";
 import { drainPendingFeedbacks } from "../../feedback/queue/index.ts";
-import type { TaskQueueItem } from "../../tasks/queue/index.ts";
+import type { TaskQueueItem } from "../../../task/queue/index.ts";
 import type {
   CandidateEvolutionProposal,
   DiscoveredTaskPlan,
@@ -15,9 +15,6 @@ import { calculateHierarchyCapacity, evaluateHierarchyScaling } from "./cadence.
 import { balanceOrchestratorLoad, synthesizeDynamicPlanRevisions } from "./proposal.ts";
 import { evaluatePerpetualCadence } from "./pipeline.ts";
 
-/**
- * Executes a full self-evolution cycle in an idle Mind loop.
- */
 export function runSelfEvolutionCycle(
   options: SelfEvolutionCycleOptions = {},
 ): SelfEvolutionCycleResult {
@@ -29,7 +26,6 @@ export function runSelfEvolutionCycle(
   const maxTasks = options.maxTasksPerCycle ?? 5;
   const cycleId = `cycle-gen${generation}-${cycleNumber}-${Date.now().toString().slice(-6)}`;
 
-  // Evaluate cadence
   const evaluation = evaluatePerpetualCadence({
     taskQueuePath: options.taskQueuePath,
     feedbackQueuePath: options.feedbackQueuePath,
@@ -104,7 +100,6 @@ export function runSelfEvolutionCycle(
     }
   }
 
-  // Synthesize dynamic plan revisions
   const planRevisionSynthesis = synthesizeDynamicPlanRevisions({
     signals: options.externalSignals,
     activePlans: synthesizedTasks,
@@ -112,7 +107,6 @@ export function runSelfEvolutionCycle(
   });
   const planRevisions = planRevisionSynthesis.revisions;
 
-  // Calculate hierarchy metrics and scaling decision
   const hierarchyMetrics =
     evaluation.hierarchyMetrics ??
     calculateHierarchyCapacity({
@@ -131,7 +125,6 @@ export function runSelfEvolutionCycle(
 
   const summary = `Self-Evolution Cycle ${cycleId} (${mode}): synthesized ${synthesizedTasks.length} task(s), proposed ${candidateProposals.length} evolution(s), generated ${planRevisions.length} plan revision(s), scaling action [${scalingDecision.action}], enqueued ${enqueuedTasks.length} into queue in ${durationMs}ms.`;
 
-  // Update cadence state
   const cadenceState: SelfEvolutionCadenceState = {
     generation,
     cycle: cycleNumber,
@@ -147,7 +140,6 @@ export function runSelfEvolutionCycle(
     infiniteCadenceEnforced: true,
   };
 
-  // Record ledger entry
   const ledgerEntry: EvolutionLedgerEntry = {
     cycleId,
     generation,

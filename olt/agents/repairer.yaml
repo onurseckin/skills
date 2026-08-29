@@ -11,12 +11,22 @@ tier: 3
 tools:
   enable_subagent_tools: false
   enable_write_tools: true
+communication_contract:
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
+  ban_raw_jsonl_reading: true
 permissions:
   may:
     - "Targeted remediation of validator findings"
     - "Run micro-cycles"
   must_not:
     - "Edit files outside scope"
+    - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "run:exec"
     - "msg:send"

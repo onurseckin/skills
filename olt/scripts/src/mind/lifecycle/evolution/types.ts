@@ -3,7 +3,7 @@ import type {
   CandidateEvolutionProposal,
   DiscoveredTaskPlan,
 } from "../../tasks/discovery/index.ts";
-import type { TaskQueueItem } from "../../tasks/queue/index.ts";
+import type { TaskQueueItem } from "../../../task/queue/index.ts";
 
 export type {
   PlanRevisionProposal,
@@ -41,9 +41,7 @@ export const CLOSING_FORBIDDEN_IDLE_MIND =
   "Mind loop cannot be closed or terminated when idle; self-evolution engine must engage" as const;
 
 export const DEFAULT_EVOLUTION_BASE_INTERVAL_MS = 900_000;
-// 15 minutes
 export const DEFAULT_EVOLUTION_MAX_INTERVAL_MS = 14_400_000;
-// 4 hours
 
 export type SelfEvolutionMode =
   | "MODE_A_AUTONOMIC_DISCOVERY"

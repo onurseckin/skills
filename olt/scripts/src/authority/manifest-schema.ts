@@ -1,5 +1,13 @@
 import * as yaml from "js-yaml";
 
+export interface AgentManifestCommunicationContract {
+  readonly protocol: string;
+  readonly mailbox_path: string;
+  readonly lock_path: string;
+  readonly allowed_channels: readonly string[];
+  readonly ban_raw_jsonl_reading: boolean;
+}
+
 export interface UnifiedAgentManifest {
   readonly name: string;
   readonly role: string;
@@ -26,6 +34,15 @@ export interface UnifiedAgentManifest {
     readonly zero_json: boolean;
   };
   readonly instructions: string;
+  readonly communication_contract?: AgentManifestCommunicationContract | undefined;
+}
+
+function isObjectRecord(val: unknown): val is Record<string, unknown> {
+  if (val === null) return false;
+  if (val === undefined) return false;
+  if (typeof val !== "object") return false;
+  if (Array.isArray(val)) return false;
+  return true;
 }
 
 export function parseUnifiedAgentManifest(
@@ -34,42 +51,92 @@ export function parseUnifiedAgentManifest(
 ): UnifiedAgentManifest {
   try {
     const doc = yaml.load(rawYaml) as Record<string, unknown>;
-    if (!doc || typeof doc !== "object" || Array.isArray(doc)) {
+    if (!doc) {
+      throw new Error("YAML document must be an object");
+    }
+    if (typeof doc !== "object") {
+      throw new Error("YAML document must be an object");
+    }
+    if (Array.isArray(doc)) {
       throw new Error("YAML document must be an object");
     }
 
-    const rawPerms = (
-      doc.permissions && typeof doc.permissions === "object" ? doc.permissions : {}
-    ) as Record<string, unknown>;
-    const rawTools = (doc.tools && typeof doc.tools === "object" ? doc.tools : {}) as Record<
-      string,
-      unknown
-    >;
-    const rawInterface = (
-      doc.interface && typeof doc.interface === "object" ? doc.interface : {}
-    ) as Record<string, unknown>;
-    const rawProtocol = (
-      doc.protocol && typeof doc.protocol === "object" ? doc.protocol : {}
-    ) as Record<string, unknown>;
+    const rawPerms = isObjectRecord(doc.permissions) ? doc.permissions : {};
+    const rawTools = isObjectRecord(doc.tools) ? doc.tools : {};
+    const rawInterface = isObjectRecord(doc.interface) ? doc.interface : {};
+    const rawProtocol = isObjectRecord(doc.protocol) ? doc.protocol : {};
+    const rawComm = isObjectRecord(doc.communication_contract)
+      ? doc.communication_contract
+      : undefined;
+
+    const commProtocol =
+      rawComm && typeof rawComm.protocol === "string" && rawComm.protocol.length > 0
+        ? rawComm.protocol
+        : "mailbox_ipc";
+    const commMailbox =
+      rawComm && typeof rawComm.mailbox_path === "string" && rawComm.mailbox_path.length > 0
+        ? rawComm.mailbox_path
+        : ".olt/mailboxes/{agent_id}/";
+    const commLock =
+      rawComm && typeof rawComm.lock_path === "string" && rawComm.lock_path.length > 0
+        ? rawComm.lock_path
+        : ".olt/locks/mailboxes/{agent_id}.lock";
+    const commChannels =
+      rawComm && Array.isArray(rawComm.allowed_channels)
+        ? (rawComm.allowed_channels as readonly string[])
+        : ["msg:send", "msg:recv", "msg:poll"];
+    const commBan = rawComm ? rawComm.ban_raw_jsonl_reading !== false : true;
+
+    const communication_contract: AgentManifestCommunicationContract | undefined = rawComm
+      ? {
+          protocol: commProtocol,
+          mailbox_path: commMailbox,
+          lock_path: commLock,
+          allowed_channels: commChannels,
+          ban_raw_jsonl_reading: commBan,
+        }
+      : undefined;
+
+    const manifestName = typeof doc.name === "string" ? doc.name : "";
+    const manifestRole =
+      typeof doc.role === "string" ? doc.role : typeof doc.name === "string" ? doc.name : "";
+    let manifestTier: number | "independent" = 3;
+    if (doc.tier === "independent") {
+      manifestTier = "independent";
+    } else if (typeof doc.tier === "number") {
+      manifestTier = doc.tier;
+    }
+    const manifestProvider = Array.isArray(doc.provider)
+      ? doc.provider
+      : ["antigravity", "agy", "claude", "codex", "cursor", "generic"];
+
+    const ifaceDisplayName =
+      typeof rawInterface.display_name === "string" && rawInterface.display_name.length > 0
+        ? rawInterface.display_name
+        : manifestName;
+    const ifaceShortDesc =
+      typeof rawInterface.short_description === "string" &&
+      rawInterface.short_description.length > 0
+        ? rawInterface.short_description
+        : manifestRole;
+
+    const protoCli =
+      typeof rawProtocol.cli === "string" && rawProtocol.cli.length > 0
+        ? rawProtocol.cli
+        : "bun ~/.agents/skills/olt/scripts/harness.ts";
 
     const manifest: UnifiedAgentManifest = {
-      name: String(doc.name || ""),
-      role: String(doc.role || doc.name || ""),
-      tier: (doc.tier === "independent"
-        ? "independent"
-        : typeof doc.tier === "number"
-          ? doc.tier
-          : 3) as number | "independent",
-      provider: Array.isArray(doc.provider)
-        ? doc.provider
-        : ["antigravity", "agy", "claude", "codex", "cursor", "generic"],
+      name: manifestName,
+      role: manifestRole,
+      tier: manifestTier,
+      provider: manifestProvider,
       tools: {
         enable_subagent_tools: Boolean(rawTools.enable_subagent_tools),
         enable_write_tools: Boolean(rawTools.enable_write_tools),
       },
       interface: {
-        display_name: String(rawInterface.display_name || doc.name || ""),
-        short_description: String(rawInterface.short_description || doc.role || ""),
+        display_name: ifaceDisplayName,
+        short_description: ifaceShortDesc,
       },
       permissions: {
         may: Array.isArray(rawPerms.may) ? rawPerms.may : [],
@@ -84,16 +151,18 @@ export function parseUnifiedAgentManifest(
       invariants: Array.isArray(doc.invariants) ? doc.invariants : [],
       domain: typeof doc.domain === "string" ? doc.domain : undefined,
       protocol: {
-        cli: String(rawProtocol.cli || "bun ~/.agents/skills/olt/scripts/harness.ts"),
+        cli: protoCli,
         zero_json: rawProtocol.zero_json !== false,
       },
       instructions: typeof doc.instructions === "string" ? doc.instructions : "",
+      communication_contract,
     };
 
     return manifest;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to parse manifest${filePath ? ` at ${filePath}` : ""}: ${msg}`);
+    const atPath = filePath ? ` at ${filePath}` : "";
+    throw new Error(`Failed to parse manifest${atPath}: ${msg}`);
   }
 }
 
@@ -115,7 +184,7 @@ export function validateUnifiedAgentManifest(manifest: UnifiedAgentManifest): {
     errors.push("Field 'provider' array must only contain strings");
   }
 
-  if (!manifest.tools || typeof manifest.tools !== "object") {
+  if (!isObjectRecord(manifest.tools)) {
     errors.push("Field 'tools' must be an object");
   } else {
     if (typeof manifest.tools.enable_subagent_tools !== "boolean") {
@@ -126,7 +195,7 @@ export function validateUnifiedAgentManifest(manifest: UnifiedAgentManifest): {
     }
   }
 
-  if (!manifest.interface || typeof manifest.interface !== "object") {
+  if (!isObjectRecord(manifest.interface)) {
     errors.push("Field 'interface' must be an object");
   } else {
     if (typeof manifest.interface.display_name !== "string") {
@@ -137,7 +206,7 @@ export function validateUnifiedAgentManifest(manifest: UnifiedAgentManifest): {
     }
   }
 
-  if (!manifest.permissions || typeof manifest.permissions !== "object") {
+  if (!isObjectRecord(manifest.permissions)) {
     errors.push("Field 'permissions' must be an object");
   } else {
     const checkStringArray = (val: unknown, path: string) => {
@@ -165,7 +234,7 @@ export function validateUnifiedAgentManifest(manifest: UnifiedAgentManifest): {
     }
   }
 
-  if (!manifest.protocol || typeof manifest.protocol !== "object") {
+  if (!isObjectRecord(manifest.protocol)) {
     errors.push("Field 'protocol' must be an object");
   } else {
     if (typeof manifest.protocol.cli !== "string") {
@@ -178,6 +247,36 @@ export function validateUnifiedAgentManifest(manifest: UnifiedAgentManifest): {
 
   if (typeof manifest.instructions !== "string") {
     errors.push("Field 'instructions' must be a string");
+  }
+
+  if (manifest.communication_contract !== undefined) {
+    if (!isObjectRecord(manifest.communication_contract)) {
+      errors.push("Field 'communication_contract' must be an object");
+    } else {
+      if (typeof manifest.communication_contract.protocol !== "string") {
+        errors.push("Field 'communication_contract.protocol' must be a string");
+      }
+      if (typeof manifest.communication_contract.mailbox_path !== "string") {
+        errors.push("Field 'communication_contract.mailbox_path' must be a string");
+      }
+      if (typeof manifest.communication_contract.lock_path !== "string") {
+        errors.push("Field 'communication_contract.lock_path' must be a string");
+      }
+      if (!Array.isArray(manifest.communication_contract.allowed_channels)) {
+        errors.push("Field 'communication_contract.allowed_channels' must be an array of strings");
+      } else if (
+        !manifest.communication_contract.allowed_channels.every(
+          (c: unknown) => typeof c === "string",
+        )
+      ) {
+        errors.push(
+          "Field 'communication_contract.allowed_channels' array must only contain strings",
+        );
+      }
+      if (typeof manifest.communication_contract.ban_raw_jsonl_reading !== "boolean") {
+        errors.push("Field 'communication_contract.ban_raw_jsonl_reading' must be a boolean");
+      }
+    }
   }
 
   return {

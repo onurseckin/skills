@@ -9,6 +9,11 @@ export {
 } from "./health-auditor.ts";
 export { normalizeReactiveTrigger, resolveTimestampMs } from "./reactive-dispatcher.ts";
 export { AutonomicWatchdog } from "./watchdog-engine.ts";
+export {
+  loadWatchdogStore,
+  saveWatchdogStore,
+  syncWatchdogStore,
+} from "./watchdog-store-sync.ts";
 
 export type {
   AdaptiveAdjustmentReason,

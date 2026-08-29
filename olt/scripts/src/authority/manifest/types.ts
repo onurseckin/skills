@@ -60,6 +60,14 @@ export interface AgentManifestProtocol {
   readonly [key: string]: unknown;
 }
 
+export interface AgentManifestCommunicationContract {
+  readonly protocol: string;
+  readonly mailbox_path: string;
+  readonly lock_path: string;
+  readonly allowed_channels: readonly string[];
+  readonly ban_raw_jsonl_reading: boolean;
+}
+
 export interface AgentManifestPermissions {
   readonly may?: readonly string[] | undefined;
   readonly must_not?: readonly string[] | undefined;
@@ -80,6 +88,7 @@ export interface AgentManifest {
   readonly invariants?: readonly string[] | undefined;
   readonly instructions?: string | undefined;
   readonly protocol?: AgentManifestProtocol | undefined;
+  readonly communication_contract?: AgentManifestCommunicationContract | undefined;
   readonly filePath?: string | undefined;
   readonly raw?: string | undefined;
   readonly [key: string]: unknown;

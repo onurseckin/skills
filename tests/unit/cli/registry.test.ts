@@ -31,7 +31,7 @@ const EXPECTED_INVOCATIONS: readonly string[] = `
   quota:report quota:check quota:circuit-break circuit-breaker:check circuit-break
   quota:circuit-breaker quota:freeze quota:suspend freeze:quota quota:resume quota:unfreeze
   resume:quota skill:audit:live skill:audit notify:phase notify phase:notify notify:test
-  test:notify run:exec run:status status run:complete shell sh exec:safe
+  test:notify run:init run:exec run:status status run:complete shell sh exec:safe
   scope:expand scope-expand critic:start critic:review critic:reject critic:remediate
   summary:export summary:view test:summary finding:get report:get evidence:get
   evidence:screenshots orchestrator:run orchestrator orchestrator:supervise branch:open
@@ -52,7 +52,7 @@ const EXPECTED_INVOCATIONS: readonly string[] = `
   feedback:drain mind:queue:seal todo:seal feedback:seal mind:queue:clean todo:clean
   feedback:clean mind:audit:live mind:audit policy:init policy:get policy:set
   policy:check-drift policy:drift factory:preplan mind:preplan preplan:run factory:status
-  mind:factory:status preplan:status
+  mind:factory:status preplan:status msg:send msg:recv msg:poll msg:list
 `
   .trim()
   .split(/\s+/);

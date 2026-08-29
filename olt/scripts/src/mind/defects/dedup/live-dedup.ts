@@ -1,22 +1,23 @@
-import { computeDefectDiscriminator } from "../core/discriminator.ts";
 import {
   aggregateDefectEntries,
+  computeDefectDiscriminator,
+  parseAndDeduplicateDefectJsonl,
+  resolveDefect,
+  serializeAggregatedDefectLog,
   toAggregatedDefect,
   withinDeduplicationWindow,
-} from "../aggregator/aggregator.ts";
+} from "../../../logging/defects/index.ts";
 import {
   calculateDefectAggregateMetrics,
   type DefectMetricsResult,
 } from "../aggregator/metrics.ts";
-import { resolveDefect } from "../loop/resolution.ts";
-import { parseAndDeduplicateDefectJsonl, serializeAggregatedDefectLog } from "./dedup-stream.ts";
 import type {
   AggregatedDefect,
   DefectCategory,
   DefectRecordInput,
   DefectResolutionProof,
   LiveDeduplicationOptions,
-} from "../core/types.ts";
+} from "../../../logging/defects/index.ts";
 
 export class LiveDefectDeduplicator {
   private readonly entries = new Map<string, AggregatedDefect>();

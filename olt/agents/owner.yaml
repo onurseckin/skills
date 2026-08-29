@@ -14,6 +14,15 @@ tools:
 interface:
   display_name: "Genesis Authority & Repository Owner"
   short_description: "Genesis authority and repository governor holding genesis decision and registration rights"
+communication_contract:
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
+  ban_raw_jsonl_reading: true
 permissions:
   may:
     - "Execute genesis authority decisions via authority:decide"
@@ -24,6 +33,7 @@ permissions:
     - "Confer or decline needs_authority requirements"
   must_not:
     - "Violate witness isolation during admission"
+    - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "agent:register"
     - "authority:decide"

@@ -4,7 +4,7 @@ import {
   type ExactAnchor,
 } from "../../../proposals/builder/index.ts";
 import { deriveGateForCategory } from "../executor/orchestrator.ts";
-import type { TaskQueueItem } from "../../queue/index.ts";
+import type { TaskQueueItem } from "../../../../task/queue/index.ts";
 import type {
   ExactAnchorBriefing,
   ExactFileAnchor,

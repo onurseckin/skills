@@ -1,23 +1,24 @@
-import { join } from "node:path";
 import { HarnessError } from "../../../core/errors/index.ts";
+import {
+  DEFAULT_BASE_INTERVAL_MS,
+  DEFAULT_MAX_INTERVAL_MS,
+  QUIESCENCE_INTERVAL_MULTIPLIER,
+} from "../../../core/scheduling/index.ts";
 import {
   findSourceDefinition,
   MIND_DISCOVERY_SOURCES,
   resolveCommandRecord,
   type EvidenceClass,
-  type MindSourceDefinition,
   type MindSourceId,
 } from "../../memory/sources/index.ts";
 
 export const QUIESCENT_DIGEST_STREAK_THRESHOLD = 8;
 
-export const DEFAULT_BASE_INTERVAL_MS = 900_000;
-
-// 15 minutes
-export const DEFAULT_MAX_INTERVAL_MS = 14_400_000;
-
-// 4 hours
-export const QUIESCENCE_INTERVAL_MULTIPLIER = 1.5;
+export {
+  DEFAULT_BASE_INTERVAL_MS,
+  DEFAULT_MAX_INTERVAL_MS,
+  QUIESCENCE_INTERVAL_MULTIPLIER,
+};
 
 export interface QuiescentSourceObservation {
   readonly source: MindSourceId;
@@ -56,9 +57,6 @@ export interface QuiescentDigest {
   readonly markdown: string;
 }
 
-/**
- * Parses a raw source spec in the format `<source>:<command-id>:<count>`.
- */
 export function parseQuiescentSourceSpec(spec: string): QuiescentSourceInput {
   if (typeof spec !== "string" || !spec.trim()) {
     throw new HarnessError(
@@ -105,9 +103,6 @@ export function parseQuiescentSourceSpec(spec: string): QuiescentSourceInput {
   return { source, commandId, count };
 }
 
-/**
- * Safely attempts to parse a raw source spec without throwing.
- */
 export function tryParseQuiescentSourceSpec(
   spec: string,
 ):
@@ -124,10 +119,6 @@ export function tryParseQuiescentSourceSpec(
   }
 }
 
-/**
- * Validates that all 10 discovery sources are present, have count == 0,
- * and cite valid recorded command evidence under .capsules/.
- */
 export function validateQuiescentScan(
   inputs: readonly (string | QuiescentSourceInput)[],
   options: {
@@ -208,7 +199,6 @@ export function validateQuiescentScan(
     }
   }
 
-  // Sort observations deterministically in source number order (1..10)
   const sortedObservations = MIND_DISCOVERY_SOURCES.map((def) => observationMap.get(def.id)).filter(
     (obs): obs is QuiescentSourceObservation => obs !== undefined,
   );

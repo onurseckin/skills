@@ -1,7 +1,7 @@
 import { pathsOverlap } from "./collisions.ts";
 import type { SmartTaskPlan, SmartWavePlanResult, ScopeCollision } from "./models.ts";
 import type { MacroMetrics } from "./types.ts";
-import type { TaskQueueItem } from "../../queue/index.ts";
+import type { TaskQueueItem } from "../../../../task/queue/index.ts";
 import { detectScopeCollisions } from "./collisions.ts";
 
 export function computeMacroMetrics(

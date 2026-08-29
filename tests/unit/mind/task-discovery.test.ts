@@ -33,7 +33,7 @@ import {
   clearTaskQueue,
   enqueueTask,
   readTaskQueue,
-} from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
+} from "../../../olt/scripts/src/task/queue/index.ts";
 
 describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Validation Loops", () => {
   afterAll(teardownWorkspace);

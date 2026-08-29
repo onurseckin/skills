@@ -1,0 +1,24 @@
+{
+  "name": "msg:list",
+  "aliases": [],
+  "domain": "msg",
+  "summary": "List mailbox summaries and unread counts across agents.",
+  "flags": [
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "base-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

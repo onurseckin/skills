@@ -1,4 +1,4 @@
-import type { TaskQueueItem } from "../../tasks/queue/index.ts";
+import type { TaskQueueItem } from "../../../task/queue/index.ts";
 import { DEFAULT_SCALING_THRESHOLDS } from "./types.ts";
 import type {
   HierarchyCapacityMetrics,
@@ -10,9 +10,6 @@ import type {
   SupervisoryRoleTier,
 } from "./types.ts";
 
-/**
- * Calculates current supervisory hierarchy capacity across Tier 1 Orchestrators and Tier 2 Coordinators.
- */
 export function calculateHierarchyCapacity(params: {
   readonly taskQueue?: readonly TaskQueueItem[] | undefined;
   readonly orchestrators?: readonly OrchestratorNodeInfo[] | undefined;
@@ -91,7 +88,6 @@ export function calculateHierarchyCapacity(params: {
       `Tier 1 orchestrator load ratio (${tier1LoadRatio}) is below scale-in threshold (${thresholds.scaleInLoadThreshold}); recommend scaling down to ${recommendedTier1Count} orchestrator(s)`,
     );
   } else {
-    // Check load variance across active nodes
     if (orchestratorList.length > 1) {
       const loads = orchestratorList.map((o) => o.currentLoad);
       const minLoad = Math.min(...loads);
@@ -129,9 +125,6 @@ export function calculateHierarchyCapacity(params: {
   };
 }
 
-/**
- * Evaluates hierarchy scaling metrics and generates concrete spawn or drain directives.
- */
 export function evaluateHierarchyScaling(
   metrics: HierarchyCapacityMetrics,
   customThresholds?: Partial<ScalingThresholds>,

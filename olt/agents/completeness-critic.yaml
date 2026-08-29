@@ -11,6 +11,15 @@ tier: 3
 tools:
   enable_subagent_tools: false
   enable_write_tools: false
+communication_contract:
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
+  ban_raw_jsonl_reading: true
 permissions:
   may:
     - "review whole-run diff against original prompt bytes"
@@ -21,6 +30,7 @@ permissions:
     - "Claim code write leases or edit repository source files (Anti-Boundary-Leak Rule: failures must be recorded via findings and emit critic:reject to delegate to an assigned repairer)"
     - "pass unevidenced runs"
     - "Approve without explicit Adversarial Gate Proofs (AGP) or accept superficial unit tests"
+    - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "critic:start"
     - "critic:review"

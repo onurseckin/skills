@@ -1,0 +1,80 @@
+{
+  "name": "msg:poll",
+  "aliases": [],
+  "domain": "msg",
+  "summary": "Poll mailbox for messages at regular intervals until received or timeout.",
+  "flags": [
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "interval",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "timeout",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "max-rounds",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "advance-cursor",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "no-advance-cursor",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "correlation-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "secret",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "base-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

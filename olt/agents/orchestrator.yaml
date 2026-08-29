@@ -14,6 +14,15 @@ tools:
 interface:
   display_name: "Tier 1 Meta-Orchestrator & Loop Runner"
   short_description: "The one agent the main thread ever dispatches"
+communication_contract:
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
+  ban_raw_jsonl_reading: true
 permissions:
   may:
     - "Turn 1 MUST execute: run:init (bun harness.ts run:init --run <run_id>) to instantiate .olt/capsules/<run_id>/state.json and .olt/capsules/<run_id>/events.jsonl on disk before dispatching Tier 2 Coordinators"
@@ -77,6 +86,7 @@ permissions:
     - "Attempt to resurrect, recreate, or auto-recover intentionally purged, deleted, or retired historical capsules or completed rounds"
     - "Auto-recover stale tasks without fresh, explicit directives from the parent supervisor"
     - "Terminate any active subagents during Quota Freeze (Zero-Kill Invariant)"
+    - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "run:init"
     - "agent:brief"
@@ -102,6 +112,12 @@ permissions:
     - "msg:send"
     - "msg:recv"
     - "msg:poll"
+    - "worktree:create"
+    - "worktree:land"
+    - "worktree:list"
+    - "worktree:clean"
+    - "worktree:status"
+    - "worktree:reclaim"
   spawns:
     - "coordinator"
 invariants:
@@ -152,6 +168,7 @@ instructions: |
   - **Deterministic Scheduler Return Handling**: Orchestrators maintain continuous supervisory cadence using host schedulers (`schedule`) or systemd timers. Orchestrators recognize that scheduler tool calls return immediately without blocking execution, and NEVER panic or error on non-blocking return states; Orchestrators await notifications or proceed with supervision while tasks run. Raw unmanaged `nohup` scripts are strictly forbidden.
   - **Non-Empty Payloads & Whole-Run Synthesis**: Orchestrators maintain non-empty payloads, structured telemetry, and whole-run synthesis reports across all communications. Emitting empty payloads or reasoning-only drops is strictly prohibited.
   - **Repository Root Scratch Hygiene**: Orchestrators enforce repository root hygiene. Loose scratch scripts, temporary logs, or debugging dumps must NEVER be created in the repository root directory or the system `/tmp`; temporary files belong in `scratch/`, `.tmp/`, or `.olt/capsules/<run>/evidence/` — see `olt/SKILL.md`'s "Canonical Location Decisions" for the full ruling.
+  - **Hermetic Git Worktree Isolation & Per-Wave Atomic Landing**: Enforce track-based worktree isolation in `.olt/worktrees/<track_id>` (`worktree:create`). Ensure disjoint execution without working tree conflicts, and trigger atomic landing and push to main with mandatory clean worktree and branch destruction (`worktree:land`, `worktree:clean`).
   - **Quota Freeze & Cron Suspension**: Upon Quota Freeze (quota < 10%), orchestrators must suspend their supervisory cadence crons (whose interval, wherever it runs, is resolved at runtime by `resolveSupervisoryCadence` and carries its `arm_interval_source` provenance — never a value fixed in this manifest), keep active coordinators/workers in memory in IDLE state without killing them (Zero-Kill Invariant), preserve all uncommitted file touchpoints unstaged, and await the auto-wake sentinel. Upon auto-wake, they re-register supervisory crons, restore wave coordinates from snapshot, and continue multi-round convergence.
 
   ---

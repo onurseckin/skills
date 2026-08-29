@@ -42,6 +42,7 @@ export {
   isAbstractProfile,
   roleToProfile,
   resolveProfile,
+  resolveRoleArchetype,
   formatHostDegradation,
   isPerAgentModelSelectionSupported,
   resolveAgentProfile,
@@ -50,4 +51,4 @@ export {
   type ProfileBindings,
   type ResolvedProfile,
   type AgentProfileResolution,
-} from "./profiles.ts";
+} from "../../roles/index.ts";

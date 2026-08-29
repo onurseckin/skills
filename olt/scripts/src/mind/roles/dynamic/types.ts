@@ -2,11 +2,8 @@ export type {
   RoleCheatSheet,
   RoleCheatSheetOptions,
   RoleCommandCheatSheet,
-} from "../../../roles/cheat-sheets.ts";
+} from "../../../roles/index.ts";
 
-/**
- * Fundamental role archetypes spanning the 4-tier autonomous hierarchy.
- */
 export type RoleArchetype =
   | "tier_0_mind"
   | "tier_1_orchestrator"
@@ -17,9 +14,6 @@ export type RoleArchetype =
   | "tier_3_critic"
   | "tier_3_specialist";
 
-/**
- * Domain specializations for dynamic role synthesis.
- */
 export type RoleSpecializationDomain =
   | "code-quality"
   | "security"
@@ -34,14 +28,8 @@ export type RoleSpecializationDomain =
   | "type-safety"
   | "general";
 
-/**
- * Policy governing write scope access for a synthesized role.
- */
 export type WriteScopePolicy = "forbidden" | "lease_bounded" | "unrestricted" | "domain_isolated";
 
-/**
- * Lineage tracking entry for evolved dynamic roles.
- */
 export interface RoleLineageEntry {
   readonly version: number;
   readonly timestamp: string;
@@ -50,9 +38,6 @@ export interface RoleLineageEntry {
   readonly changedFields: readonly string[];
 }
 
-/**
- * Specification for a dynamic role.
- */
 export interface DynamicRoleSpec {
   readonly name: string;
   readonly archetype: RoleArchetype;
@@ -73,9 +58,6 @@ export interface DynamicRoleSpec {
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
-/**
- * Complete synthesized role contract object with parsed data, raw markdown, and sha256.
- */
 export interface DynamicRoleContract {
   readonly role: string;
   readonly tier: number;
@@ -95,9 +77,6 @@ export interface DynamicRoleContract {
   readonly sha256: string;
 }
 
-/**
- * Result of validating a dynamic role specification.
- */
 export interface DynamicRoleValidationResult {
   readonly valid: boolean;
   readonly errors: readonly string[];
@@ -106,9 +85,6 @@ export interface DynamicRoleValidationResult {
   readonly tier: number;
 }
 
-/**
- * Options for synthesizing a dynamic role.
- */
 export interface SynthesizeRoleOptions {
   readonly name: string;
   readonly archetype: RoleArchetype;
@@ -128,9 +104,6 @@ export interface SynthesizeRoleOptions {
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
-/**
- * Input parameters for synthesizing roles from task requirements.
- */
 export interface TaskRoleSynthesisParams {
   readonly taskId: string;
   readonly taskTitle: string;
@@ -144,9 +117,6 @@ export interface TaskRoleSynthesisParams {
   readonly charterGoals?: readonly string[] | undefined;
 }
 
-/**
- * Dual role synthesis plan ensuring 1:1 implementer-validator pairing and anti-batching compliance.
- */
 export interface DynamicRoleSynthesisPlan {
   readonly taskId: string;
   readonly implementerRole: DynamicRoleContract;
@@ -156,9 +126,6 @@ export interface DynamicRoleSynthesisPlan {
   readonly antiBoundaryLeakGuaranteed: boolean;
 }
 
-/**
- * Parameters for synthesizing roles from a defect remediation context.
- */
 export interface DefectRoleSynthesisParams {
   readonly defectId: string;
   readonly defectType: string;
@@ -168,9 +135,6 @@ export interface DefectRoleSynthesisParams {
   readonly requiredInvariants?: readonly string[] | undefined;
 }
 
-/**
- * Role mutation options for evolutionary feedback integration.
- */
 export interface RoleMutationFeedback {
   readonly mutationReason: string;
   readonly newInvariants?: readonly string[] | undefined;
@@ -181,18 +145,12 @@ export interface RoleMutationFeedback {
   readonly metadataUpdate?: Readonly<Record<string, unknown>> | undefined;
 }
 
-/**
- * Export structure for dynamic role catalogs.
- */
 export interface DynamicRoleCatalogExport {
   readonly exportedAt: string;
   readonly totalRoles: number;
   readonly roles: readonly DynamicRoleSpec[];
 }
 
-/**
- * Filter options for role registry queries.
- */
 export interface DynamicRoleFilter {
   readonly tier?: number | undefined;
   readonly domain?: string | undefined;
@@ -200,7 +158,6 @@ export interface DynamicRoleFilter {
   readonly writeScopePolicy?: WriteScopePolicy | undefined;
 }
 
-// Canonical defaults by archetype
 export const ARCHETYPE_TIER_MAP: Readonly<Record<RoleArchetype, number>> = {
   tier_0_mind: 0,
   tier_1_orchestrator: 1,
@@ -280,7 +237,3 @@ export const ARCHETYPE_DEFAULT_WRITE_POLICY: Readonly<Record<RoleArchetype, Writ
 export const FORBIDDEN_COMMANDS = new Set<string>(["orchestrator:run"]);
 
 export const ROLE_NAME_PATTERN = /^[a-z][a-z0-9_-]*$/u;
-
-/**
- * Formats command syntax for cheat-sheet generation.
- */

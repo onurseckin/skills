@@ -2,7 +2,7 @@
   "schema": "olt/cli-capabilities-split@1",
   "source": "olt/scripts/src/cli/registry",
   "index_file": "index.jsonl",
-  "command_count": 136,
+  "command_count": 146,
   "domains": [
     {
       "domain": "plan",
@@ -30,7 +30,7 @@
     },
     {
       "domain": "run",
-      "command_count": 4,
+      "command_count": 5,
       "commands_dir": "commands/run",
       "markdown_file": "domains/run.md"
     },
@@ -90,7 +90,7 @@
     },
     {
       "domain": "diagnostics",
-      "command_count": 11,
+      "command_count": 10,
       "commands_dir": "commands/diagnostics",
       "markdown_file": "domains/diagnostics.md"
     },
@@ -117,7 +117,19 @@
       "command_count": 4,
       "commands_dir": "commands/policy",
       "markdown_file": "domains/policy.md"
+    },
+    {
+      "domain": "msg",
+      "command_count": 4,
+      "commands_dir": "commands/msg",
+      "markdown_file": "domains/msg.md"
+    },
+    {
+      "domain": "worktree",
+      "command_count": 6,
+      "commands_dir": "commands/worktree",
+      "markdown_file": "domains/worktree.md"
     }
   ],
-  "digest": "4ade6aa0de94d6b8f523bf04550eabb18cc99da75d63f28d1bbcc60598ef40b9"
+  "digest": "f62d94edc8ca798a2037f37c4a13a698100a9fefefe30d394ad767815323b915"
 }

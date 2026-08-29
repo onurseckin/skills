@@ -11,6 +11,15 @@ tier: "independent"
 tools:
   enable_subagent_tools: false
   enable_write_tools: false
+communication_contract:
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
+  ban_raw_jsonl_reading: true
 permissions:
   may:
     - "Act as devil's advocate and critical thinking partner in pure English"
@@ -20,6 +29,7 @@ permissions:
     - "Write code or technical syntax"
     - "Interact with execution harnesses"
     - "Invoke any OLT harness CLI command: this is a deliberate zero-command grant, not an unfinished one — Socratic devil's-advocate critique under COMPLETE_HARNESS_DECOUPLING never touches the harness CLI, which is a different reason than a cognitive validator's execution hard-lock"
+    - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "msg:send"
     - "msg:recv"

@@ -6,7 +6,7 @@ import { readAgentLedger } from "../../../../workflow/agents/ledger.ts";
 import { isAttemptOpen } from "../../../../workflow/lease/attempt-state.ts";
 import { abandonAttempt } from "../../../../workflow/lease/abandon.ts";
 import { readWorktreeLedger } from "../../../../workflow/worktree/ledger.ts";
-import { reclaimOrphanedWorktrees, recordReclaim } from "../../../../workflow/worktree/reclaim.ts";
+import { reclaimOrphanedWorktrees, recordReclaim } from "../../../../workflow/worktree/consolidate.ts";
 import { getHarnessConfig } from "../../../../core/config/index.ts";
 import type { Clock, TaskRecord, WorkflowState } from "../../../../workflow/types.ts";
 import type { Rung2Result } from "../types.ts";
@@ -33,7 +33,6 @@ export function executeRung2(params: {
       const state = loadedRun.state as unknown as WorkflowState;
       const agents = readAgentLedger(state);
 
-      // 1. Open attempts whose agent is gone
       const tasks = Object.values(state.tasks ?? {});
       for (const task of tasks) {
         const taskRecord = task as TaskRecord;
@@ -68,7 +67,6 @@ export function executeRung2(params: {
         }
       }
 
-      // 2. Orphan evidence escalation
       const orphanEv = (state.orphan_evidence ?? []) as readonly Record<string, unknown>[];
       if (orphanEv.length > 0) {
         orphanEvidenceEscalated.push({
@@ -105,7 +103,6 @@ export function executeRung2(params: {
         );
       }
 
-      // 3. Abandoned worktree reclaim
       const wtLedger = readWorktreeLedger(state);
       if (wtLedger) {
         const runRepoRoot = resolve(runPath, "..", "..");
@@ -136,9 +133,7 @@ export function executeRung2(params: {
           }
         }
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   return {

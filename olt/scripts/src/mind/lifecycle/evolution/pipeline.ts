@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { readTaskQueue } from "../../tasks/queue/index.ts";
+import { readTaskQueue } from "../../../task/queue/index.ts";
 import { readFeedbackQueue } from "../../feedback/queue/index.ts";
 import {
   DEFAULT_EVOLUTION_BASE_INTERVAL_MS,
@@ -16,9 +16,6 @@ import type {
 } from "./types.ts";
 import { calculateHierarchyCapacity } from "./cadence.ts";
 
-/**
- * Evaluates current Mind cadence state to decide whether self-evolution should engage.
- */
 export function evaluatePerpetualCadence(params: {
   readonly taskQueuePath?: string | undefined;
   readonly feedbackQueuePath?: string | undefined;
@@ -106,9 +103,6 @@ export function evaluatePerpetualCadence(params: {
   };
 }
 
-/**
- * Formats a concise markdown brief of self-evolution cycle execution.
- */
 export function formatSelfEvolutionBrief(result: SelfEvolutionCycleResult): string {
   const lines: string[] = [
     `### Self-Evolution Cycle: ${result.cycleId}`,

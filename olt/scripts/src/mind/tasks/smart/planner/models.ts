@@ -7,7 +7,7 @@ import type {
   HierarchyScalingResult,
   MultiCoordinatorWavePartitionResult,
 } from "./types.ts";
-import type { TaskPriority, TaskQueueItem, TaskQueueStats } from "../../queue/index.ts";
+import type { TaskPriority, TaskQueueItem, TaskQueueStats } from "../../../../task/queue/index.ts";
 import type {
   FeedbackItem,
   FeedbackPriority,

@@ -5,7 +5,7 @@ import { join } from "node:path";
 const REPO_ROOT = join(import.meta.dir, "..", "..", "..");
 
 const FILES_THAT_MUST_NOT_DEFAULT_TO_BARE_DOT_CAPSULES = [
-  "olt/scripts/src/mind/tasks/queue/index.ts",
+  "olt/scripts/src/task/queue/index.ts",
   "olt/scripts/src/mind/archival/index.ts",
   "olt/scripts/src/mind/lifecycle/evolution/index.ts",
   "olt/scripts/src/mind/tasks/smart/index.ts",

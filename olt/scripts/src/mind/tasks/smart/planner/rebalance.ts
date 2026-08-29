@@ -112,8 +112,8 @@ export function rebalanceTasksWithBrentLimits(
     warnings,
   };
 }
-import { readTaskQueue } from "../../queue/index.ts";
-import type { TaskQueueItem } from "../../queue/types.ts";
+import { readTaskQueue } from "../../../../task/queue/index.ts";
+import type { TaskQueueItem } from "../../../../task/queue/index.ts";
 
 export function integrateMacroMetricsIntoMemory(
   tasksOrQueue?: readonly (SmartTaskPlan | TaskQueueItem)[] | undefined,

@@ -18,7 +18,6 @@ import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("Mailbox Stream IO & Paths Engine", () => {
   let testRoot: string;
-
   beforeEach(() => {
     testRoot = join(
       process.cwd(),

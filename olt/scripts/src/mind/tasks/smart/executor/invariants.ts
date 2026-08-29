@@ -7,7 +7,7 @@ import type {
 } from "../planner/models.ts";
 import { preplanMultiOrchestratorTasks } from "./execution.ts";
 import { readFeedbackQueue } from "../../../feedback/index.ts";
-import { readTaskQueue, type TaskQueueItem } from "../../queue/index.ts";
+import { readTaskQueue, type TaskQueueItem } from "../../../../task/queue/index.ts";
 import { HarnessError } from "../../../../core/errors/index.ts";
 export function planMultiOrchestratorExecution(
   tasks: readonly SmartTaskPlan[],

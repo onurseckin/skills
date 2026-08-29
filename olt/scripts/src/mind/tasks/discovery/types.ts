@@ -5,7 +5,7 @@ import type {
   TaskPriority,
   TaskQueueItem,
   TaskSourceType,
-} from "../queue/index.ts";
+} from "../../../task/queue/index.ts";
 
 export type { NewTaskQueueInput, TaskPriority, TaskQueueItem, TaskSourceType };
 export type { DefectEntry, FeedbackItem };

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { computeDefectDiscriminator } from "../mind/defects/core/index.ts";
-import type { AggregatedDefect, DefectRecordInput } from "../mind/defects/core/index.ts";
+import { computeDefectDiscriminator } from "./defects/index.ts";
+import type { AggregatedDefect, DefectRecordInput } from "./defects/index.ts";
 import { resolveDefectsPath } from "../core/shared/paths.ts";
 import type {
   DefectLogOptions,

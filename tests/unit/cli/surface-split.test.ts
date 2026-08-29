@@ -27,9 +27,9 @@ async function harness(args: readonly string[]) {
 }
 
 describe("2-Tier CLI Surface Split (REMED-005)", () => {
-  test("exposes exactly the 6 high-level primary verbs", () => {
-    expect(PRIMARY_VERBS).toEqual(["plan", "queue", "task", "run", "doctor", "mind"]);
-    expect(PRIMARY_VERBS.length).toBe(6);
+  test("exposes exactly the 7 high-level primary verbs", () => {
+    expect(PRIMARY_VERBS).toEqual(["plan", "queue", "task", "run", "doctor", "mind", "msg"]);
+    expect(PRIMARY_VERBS.length).toBe(7);
   });
 
   test("classifies commands into primary vs internal tiers cleanly", () => {

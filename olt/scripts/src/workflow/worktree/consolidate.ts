@@ -1,4 +1,4 @@
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type {
   WorktreeConsolidationRecord,
@@ -11,6 +11,7 @@ import {
   deleteBranch,
   diffStat,
   mergeBranch,
+  pruneWorktrees,
   rebaseOnto,
   removeWorktree,
   runGit,
@@ -114,6 +115,51 @@ export function recordConsolidation(
         (worktree) => !result.removed_worktree_ids.includes(worktree.id),
       );
       writeWorktreeLedger(draft, { ...ledger, worktrees: remaining, consolidation: result });
+    },
+  );
+}
+
+export interface ReclaimWorktreesInput {
+  repoRoot: string;
+  ledger: WorktreeLedgerState;
+  runner?: GitRunner;
+}
+
+export interface ReclaimWorktreesResult {
+  reclaimed_worktree_ids: string[];
+}
+
+export function reclaimOrphanedWorktrees(input: ReclaimWorktreesInput): ReclaimWorktreesResult {
+  const { repoRoot, ledger } = input;
+  const runner = input.runner ?? runGit;
+  const reclaimed: string[] = [];
+  for (const worktree of ledger.worktrees) {
+    if (!existsSync(worktree.path)) continue;
+    removeWorktree(repoRoot, worktree.path, runner);
+    reclaimed.push(worktree.id);
+  }
+  pruneWorktrees(repoRoot, runner);
+  return { reclaimed_worktree_ids: reclaimed };
+}
+
+export function recordReclaim(
+  runRoot: string,
+  actor: string,
+  result: ReclaimWorktreesResult,
+  transactFn: typeof transact = transact,
+): void {
+  transactFn(
+    runRoot,
+    actor,
+    "worktrees-reclaimed",
+    { reclaimed_worktree_ids: result.reclaimed_worktree_ids },
+    (draft) => {
+      const ledger = readWorktreeLedger(draft);
+      if (!ledger) throw new HarnessError("INVALID_STATE", "no worktree ledger to reclaim");
+      const remaining = ledger.worktrees.filter(
+        (worktree) => !result.reclaimed_worktree_ids.includes(worktree.id),
+      );
+      writeWorktreeLedger(draft, { ...ledger, worktrees: remaining });
     },
   );
 }

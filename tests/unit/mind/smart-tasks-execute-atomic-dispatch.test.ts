@@ -15,7 +15,7 @@ import {
   ingestFeedbackItem,
   readFeedbackQueue,
 } from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
-import { readTaskQueue } from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
+import { readTaskQueue } from "../../../olt/scripts/src/task/queue/index.ts";
 
 describe("Smart Tasks Execute Atomic Dispatch Test Suite", () => {
   const testRoot = join(

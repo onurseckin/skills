@@ -11,6 +11,15 @@ tier: 2
 tools:
   enable_subagent_tools: true
   enable_write_tools: false
+communication_contract:
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
+  ban_raw_jsonl_reading: true
 permissions:
   may:
     - "Turn 1 MUST execute: plan:compile (bun harness.ts plan:compile --run <run_id>) to compile and persist the task DAG into capsule state before dispatching implementers"
@@ -33,6 +42,7 @@ permissions:
     - "Execute unit test suites (bun test) directly (0 test runs; implementers own 100% of test runs)"
     - "Simulate parallel waves sequentially in one thread (must invoke full parallel arrays via `Subagents: [...]`)"
     - "Assign commands or test execution to Cognitive Validators (violating Cognitive Validator hard-lock: 0 command privileges)"
+    - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "agent:brief"
     - "agent:define"
@@ -70,6 +80,12 @@ permissions:
     - "msg:send"
     - "msg:recv"
     - "msg:poll"
+    - "worktree:create"
+    - "worktree:land"
+    - "worktree:list"
+    - "worktree:clean"
+    - "worktree:status"
+    - "worktree:reclaim"
   spawns:
     - "planner"
     - "plan-validator"
@@ -106,5 +122,6 @@ instructions: |
   - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule.
   - Enforce strict repository root hygiene (scratch files only in scratch/).
   - Ensure 4-Tier Multi-Viewport enforcement for UI tasks.
+  - Enforce hermetic git worktree isolation in `.olt/worktrees/<track_id>` (`worktree:create`, `worktree:land`, `worktree:clean`), ensuring zero working tree collisions and immediate branch and worktree destruction upon landing.
   - Enforce a supervisory scheduler cadence resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance), using `schedule`, a systemd timer, or a floor loop, and inspect live DAG status via `dag`.
   - Maintain continuous non-stop dispatch without asking for user confirmation.

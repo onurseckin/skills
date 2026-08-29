@@ -13,7 +13,7 @@ import {
   smartTaskQueueReclaimCommand,
   smartTaskSynthesizeCommand,
 } from "../../../olt/scripts/src/cli/commands/smart-task-ops.ts";
-import { enqueueTasksBatch } from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
+import { enqueueTasksBatch } from "../../../olt/scripts/src/task/queue/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];

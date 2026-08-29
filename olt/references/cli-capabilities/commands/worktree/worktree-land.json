@@ -1,0 +1,45 @@
+{
+  "name": "worktree:land",
+  "aliases": [],
+  "domain": "worktree",
+  "summary": "Land a completed track worktree to main with immediate teardown.",
+  "flags": [
+    {
+      "name": "track",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "remote",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "origin"
+    },
+    {
+      "name": "target-branch",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "main"
+    },
+    {
+      "name": "repo-root",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "no-release-hook",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

@@ -54,7 +54,7 @@ import {
   enqueueTasksBatch,
   getQueueStats,
   readTaskQueue,
-} from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
+} from "../../../olt/scripts/src/task/queue/index.ts";
 
 describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
   const testDir = join(tmpdir(), `test-bench-smart-task-${Date.now()}`);

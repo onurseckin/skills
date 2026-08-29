@@ -34,7 +34,7 @@ import {
   popNextEligibleTaskWithCleanup,
   readTaskQueue,
   writeTaskQueue,
-} from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
+} from "../../../olt/scripts/src/task/queue/index.ts";
 import {
   appendFeedbackItem,
   readFeedbackQueue,

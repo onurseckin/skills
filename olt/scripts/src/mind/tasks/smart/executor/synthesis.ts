@@ -10,7 +10,7 @@ import {
 } from "./evolution.ts";
 import { assertAntiBatchingRule } from "../planner/partitioning.ts";
 import { enrichTaskPlanWithExactAnchors } from "../planner/anti-batching.ts";
-import { getQueueStats, readTaskQueue, type TaskPriority } from "../../queue/index.ts";
+import { getQueueStats, readTaskQueue, type TaskPriority } from "../../../../task/queue/index.ts";
 import { readFeedbackQueue, type FeedbackItem } from "../../../feedback/index.ts";
 import type {
   SmartTaskPlan,

@@ -1,0 +1,24 @@
+{
+  "name": "worktree:reclaim",
+  "aliases": [],
+  "domain": "worktree",
+  "summary": "Reclaim abandoned worktrees from a completed or crashed run.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

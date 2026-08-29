@@ -55,7 +55,6 @@ export function auditDefectLog(
     }
   }
 
-  // Deduplicate by ID, prioritizing resolved status updates
   const defectMap = new Map<string, DefectEntry>();
   for (const b of rawDefects) {
     const existing = defectMap.get(b.id);

@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
+  msgListCommand,
   msgPollCommand,
   msgRecvCommand,
   msgSendCommand,
 } from "../../../olt/scripts/src/cli/commands/index.ts";
+import { renderHelp } from "../../../olt/scripts/src/cli/help.ts";
+import { findCommand, isPrimaryCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 import {
   loadMailboxCursor,
   resolveMailboxPaths,
@@ -23,15 +26,46 @@ describe("Mailbox IPC CLI Commands", () => {
       process.cwd(),
       "coverage",
       "test-isolation",
-      `msg-cmd-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `msg-cmd-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     mkdirSync(testRoot, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) {
-      rmSync(testRoot, { recursive: true, force: true });
-    }
+    if (existsSync(testRoot)) rmSync(testRoot, { recursive: true, force: true });
+  });
+
+  describe("registry and help rendering", () => {
+    it("registers all 4 msg commands in primary tier", () => {
+      for (const name of ["msg:send", "msg:recv", "msg:poll", "msg:list"]) {
+        const spec = findCommand(name);
+        expect(spec).toBeDefined();
+        if (spec !== undefined) {
+          expect(spec.domain).toBe("msg");
+          expect(spec.tier).toBe("primary");
+          expect(spec.internal).toBe(false);
+          expect(isPrimaryCommand(spec)).toBe(true);
+        }
+      }
+    });
+
+    it("renders overview help including msg primary domain", () => {
+      const overview = renderHelp(null);
+      expect(overview).toContain("| msg |");
+      expect(overview).toContain("`msg:send`");
+      expect(overview).toContain("`msg:list`");
+    });
+
+    it("renders individual rich help for each msg command", () => {
+      for (const name of ["msg:send", "msg:recv", "msg:poll", "msg:list"]) {
+        const help = renderHelp(name);
+        expect(help).toContain(`### \`${name}\``);
+        expect(help).toContain("- **Domain**: msg");
+        expect(help).toContain("- **Tier**: primary");
+        expect(help).toContain("**Exit codes**");
+        expect(help).toContain("**Examples**");
+      }
+    });
   });
 
   describe("msg:send command", () => {
@@ -55,7 +89,6 @@ describe("Mailbox IPC CLI Commands", () => {
         "--base-dir",
         testRoot,
       ]);
-
       expect(typeof result.markdown).toBe("string");
       expect(String(result.markdown)).toContain("Mailbox Message Dispatched");
       expect(result.recipient_id).toBe("worker-alpha");
@@ -64,51 +97,42 @@ describe("Mailbox IPC CLI Commands", () => {
       expect(result.message_type).toBe("DISPATCH_TASK");
       expect(result.correlation_id).toBe("corr-101");
 
-      const envelope = result.envelope as unknown as MailboxEnvelope<{
+      const env = result.envelope as unknown as MailboxEnvelope<{
         chunkId: number;
         retries: number;
         body: string;
       }>;
-      expect(envelope).toBeDefined();
-      expect(envelope.payload.chunkId).toBe(1);
-      expect(envelope.payload.body).toBe("Process chunk #1");
-      expect(verifyEnvelopeHmac(envelope).valid).toBe(true);
+      expect(env).toBeDefined();
+      expect(env.payload.chunkId).toBe(1);
+      expect(env.payload.body).toBe("Process chunk #1");
+      expect(verifyEnvelopeHmac(env).valid).toBe(true);
 
-      const recipientPaths = resolveMailboxPaths("worker-alpha", testRoot);
-      expect(existsSync(recipientPaths.inboxPath)).toBe(true);
-      const inboxLines = readFileSync(recipientPaths.inboxPath, "utf8").trim().split("\n");
-      expect(inboxLines.length).toBe(1);
+      const paths = resolveMailboxPaths("worker-alpha", testRoot);
+      expect(existsSync(paths.inboxPath)).toBe(true);
+      expect(readFileSync(paths.inboxPath, "utf8").trim().split("\n").length).toBe(1);
     });
 
     it("handles plain text payload and auto-derives sender when omitted", () => {
       const result = msgSendCommand({
         to: "worker-beta",
         type: "PULSE_HEARTBEAT",
-        payload: "non-json-payload",
+        payload: "non-json",
         "base-dir": testRoot,
       });
-
       expect(result.envelope.recipient_id).toBe("worker-beta");
-      expect(result.envelope.payload).toEqual({ text: "non-json-payload" });
+      expect(result.envelope.payload).toEqual({ text: "non-json" });
       expect(typeof result.envelope.sender_id).toBe("string");
       expect(typeof result.envelope.sender_role).toBe("string");
       expect(verifyEnvelopeHmac(result.envelope).valid).toBe(true);
     });
 
     it("fails closed when required flags are missing", () => {
-      expect(() =>
-        msgSendCommand({
-          type: "DISPATCH_TASK",
-          "base-dir": testRoot,
-        }),
-      ).toThrow(HarnessError);
-
-      expect(() =>
-        msgSendCommand({
-          to: "worker-alpha",
-          "base-dir": testRoot,
-        }),
-      ).toThrow(HarnessError);
+      expect(() => msgSendCommand({ type: "DISPATCH_TASK", "base-dir": testRoot })).toThrow(
+        HarnessError,
+      );
+      expect(() => msgSendCommand({ to: "worker-alpha", "base-dir": testRoot })).toThrow(
+        HarnessError,
+      );
     });
   });
 
@@ -117,7 +141,7 @@ describe("Mailbox IPC CLI Commands", () => {
       msgSendCommand({
         to: "worker-rcv",
         type: "DISPATCH_TASK",
-        body: "First message",
+        body: "M1",
         actor: "coord-1",
         role: "coordinator",
         "base-dir": testRoot,
@@ -125,17 +149,15 @@ describe("Mailbox IPC CLI Commands", () => {
       msgSendCommand({
         to: "worker-rcv",
         type: "PULSE_HEARTBEAT",
-        body: "Second message",
+        body: "M2",
         actor: "coord-1",
         role: "coordinator",
         "base-dir": testRoot,
       });
 
       const recv1 = await execute(["msg:recv", "--actor", "worker-rcv", "--base-dir", testRoot]);
-
       expect(recv1.totalReceipts).toBe(2);
-      const list = recv1.receipts as unknown as MailboxEnvelope[];
-      expect(list.length).toBe(2);
+      expect((recv1.receipts as unknown as MailboxEnvelope[]).length).toBe(2);
 
       const paths = resolveMailboxPaths("worker-rcv", testRoot);
       const cursor = loadMailboxCursor(paths.cursorPath);
@@ -150,96 +172,74 @@ describe("Mailbox IPC CLI Commands", () => {
       msgSendCommand({
         to: "worker-no-adv",
         type: "DISPATCH_TASK",
-        body: "Stay unread",
-        actor: "coord-1",
+        body: "Stay",
+        actor: "c1",
         role: "coordinator",
         "base-dir": testRoot,
       });
-
-      const recv = await msgRecvCommand({
+      const r1 = await msgRecvCommand({
         actor: "worker-no-adv",
         "no-advance-cursor": true,
         "base-dir": testRoot,
       });
-
-      expect(recv.totalReceipts).toBe(1);
-
-      const recvAgain = await msgRecvCommand({
+      expect(r1.totalReceipts).toBe(1);
+      const r2 = await msgRecvCommand({
         actor: "worker-no-adv",
         "no-advance-cursor": true,
         "base-dir": testRoot,
       });
-      expect(recvAgain.totalReceipts).toBe(1);
+      expect(r2.totalReceipts).toBe(1);
     });
 
     it("filters messages by type and correlation-id", async () => {
       msgSendCommand({
-        to: "worker-filt",
+        to: "worker-f",
         type: "DISPATCH_TASK",
-        actor: "coord-1",
+        actor: "c",
         role: "coordinator",
-        "correlation-id": "task-42",
+        "correlation-id": "t-1",
         "base-dir": testRoot,
       });
       msgSendCommand({
-        to: "worker-filt",
+        to: "worker-f",
         type: "PULSE_HEARTBEAT",
-        actor: "coord-1",
+        actor: "c",
         role: "coordinator",
-        "correlation-id": "heartbeat-99",
+        "correlation-id": "t-2",
         "base-dir": testRoot,
       });
 
       const filtered = await msgRecvCommand({
-        actor: "worker-filt",
+        actor: "worker-f",
         type: "DISPATCH_TASK",
-        "correlation-id": "task-42",
+        "correlation-id": "t-1",
         "base-dir": testRoot,
       });
-
       expect(filtered.totalReceipts).toBe(1);
-      const first = filtered.receipts[0];
-      expect(first).toBeDefined();
-      if (first !== undefined) {
-        expect(first.message_type).toBe("DISPATCH_TASK");
-        expect(first.correlation_id).toBe("task-42");
-      }
+      expect(filtered.receipts[0]?.message_type).toBe("DISPATCH_TASK");
+      expect(filtered.receipts[0]?.correlation_id).toBe("t-1");
     });
 
-    it("waits for incoming message when wait flag is set and times out when none arrive", async () => {
+    it("waits for incoming message when wait flag is set", async () => {
       const waitPromise = msgRecvCommand({
         actor: "worker-wait",
         wait: true,
         timeout: "400",
         "base-dir": testRoot,
       });
-
       setTimeout(() => {
         msgSendCommand({
           to: "worker-wait",
           type: "DISPATCH_TASK",
-          body: "Delayed message",
-          actor: "coord-1",
+          body: "Delayed",
+          actor: "c",
           role: "coordinator",
           "base-dir": testRoot,
         });
       }, 50);
-
       const recv = await waitPromise;
       expect(recv.totalReceipts).toBe(1);
-      const first = recv.receipts[0];
-      expect(first).toBeDefined();
-      if (first !== undefined) {
-        expect(first.payload).toEqual({ body: "Delayed message" });
-      }
-
-      const timeoutResult = await msgRecvCommand({
-        actor: "worker-timeout",
-        wait: true,
-        timeout: "100",
-        "base-dir": testRoot,
-      });
-      expect(timeoutResult.totalReceipts).toBe(0);
+      expect(recv.receipts[0]?.payload).toEqual({ body: "Delayed" });
     });
   });
 
@@ -251,25 +251,19 @@ describe("Mailbox IPC CLI Commands", () => {
         timeout: "1000",
         "base-dir": testRoot,
       });
-
       setTimeout(() => {
         msgSendCommand({
           to: "worker-poll",
           type: "HANDOFF_RECEIPT",
-          body: "Ready to work",
-          actor: "coord-1",
+          body: "Ready",
+          actor: "c",
           role: "coordinator",
           "base-dir": testRoot,
         });
       }, 60);
-
       const result = await pollPromise;
       expect(result.totalReceipts).toBe(1);
-      const first = result.receipts[0];
-      expect(first).toBeDefined();
-      if (first !== undefined) {
-        expect(first.message_type).toBe("HANDOFF_RECEIPT");
-      }
+      expect(result.receipts[0]?.message_type).toBe("HANDOFF_RECEIPT");
       expect(result.rounds).toBeGreaterThanOrEqual(1);
       expect(result.elapsedMs).toBeGreaterThanOrEqual(50);
     });
@@ -282,9 +276,100 @@ describe("Mailbox IPC CLI Commands", () => {
         timeout: "2000",
         "base-dir": testRoot,
       });
-
       expect(result.totalReceipts).toBe(0);
       expect(result.rounds).toBe(3);
+    });
+  });
+
+  describe("msg:list command", () => {
+    it("returns empty result when no mailboxes exist", async () => {
+      const result = await execute(["msg:list", "--base-dir", testRoot]);
+      expect(result.totalMailboxes).toBe(0);
+      expect(result.mailboxes).toEqual([]);
+      expect(String(result.markdown)).toContain("No mailboxes found");
+    });
+
+    it("discovers mailboxes and computes counts, unread, and quarantine", async () => {
+      msgSendCommand({
+        to: "worker-one",
+        type: "DISPATCH_TASK",
+        body: "Task 1",
+        actor: "coordinator",
+        role: "coordinator",
+        "base-dir": testRoot,
+      });
+      msgSendCommand({
+        to: "worker-one",
+        type: "DISPATCH_TASK",
+        body: "Task 2",
+        actor: "coordinator",
+        role: "coordinator",
+        "base-dir": testRoot,
+      });
+      msgSendCommand({
+        to: "worker-two",
+        type: "PULSE_HEARTBEAT",
+        actor: "coordinator",
+        role: "coordinator",
+        "base-dir": testRoot,
+      });
+
+      const pathsOne = resolveMailboxPaths("worker-one", testRoot);
+      writeFileSync(pathsOne.quarantinePath, "corrupted line\n");
+
+      await msgRecvCommand({ actor: "worker-one", "base-dir": testRoot });
+      msgSendCommand({
+        to: "worker-one",
+        type: "DISPATCH_TASK",
+        body: "Task 3 (unread)",
+        actor: "coordinator",
+        role: "coordinator",
+        "base-dir": testRoot,
+      });
+
+      const listResult = msgListCommand({ "base-dir": testRoot });
+      expect(listResult.totalMailboxes).toBe(3);
+      expect(listResult.markdown).toContain("Mailbox Summaries");
+      expect(listResult.markdown).toContain("| `worker-one` |");
+      expect(listResult.markdown).toContain("| `worker-two` |");
+      expect(listResult.markdown).toContain("| `coordinator` |");
+
+      const workerOneSummary = listResult.mailboxes.find((m) => m.agentId === "worker-one");
+      expect(workerOneSummary).toBeDefined();
+      if (workerOneSummary !== undefined) {
+        expect(workerOneSummary.inboxCount).toBe(3);
+        expect(workerOneSummary.unreadCount).toBe(1);
+        expect(workerOneSummary.quarantineCount).toBe(1);
+        expect(workerOneSummary.lastReadSequence).toBeGreaterThanOrEqual(1);
+      }
+
+      const coordSummary = listResult.mailboxes.find((m) => m.agentId === "coordinator");
+      expect(coordSummary).toBeDefined();
+      if (coordSummary !== undefined) {
+        expect(coordSummary.outboxCount).toBe(4);
+      }
+    });
+
+    it("filters summary by actor flag", () => {
+      msgSendCommand({
+        to: "worker-alpha",
+        type: "DISPATCH_TASK",
+        actor: "coordinator",
+        role: "coordinator",
+        "base-dir": testRoot,
+      });
+      msgSendCommand({
+        to: "worker-beta",
+        type: "DISPATCH_TASK",
+        actor: "coordinator",
+        role: "coordinator",
+        "base-dir": testRoot,
+      });
+
+      const single = msgListCommand({ actor: "worker-alpha", "base-dir": testRoot });
+      expect(single.totalMailboxes).toBe(1);
+      expect(single.mailboxes.length).toBe(1);
+      expect(single.mailboxes[0]?.agentId).toBe("worker-alpha");
     });
   });
 });

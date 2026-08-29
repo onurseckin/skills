@@ -15,6 +15,7 @@ import {
   type LifecycleHookExecutionResult,
   type RepoPolicy,
 } from "../policy/index.ts";
+import { landTrackToMain } from "../workflow/worktree/index.ts";
 
 export interface StationLandingOptions extends GitStagingOptions {
   readonly phaseName?: string | undefined;
@@ -23,9 +24,8 @@ export interface StationLandingOptions extends GitStagingOptions {
   readonly taskCount?: number | undefined;
   readonly soundEnabled?: boolean | undefined;
   readonly notify?: boolean | undefined;
-  readonly customNotifier?:
-    | ((opts: PhaseCompletionNotificationOptions) => NotificationResult)
-    | undefined;
+  readonly trackId?: string | undefined;
+  readonly customNotifier?: ((opts: PhaseCompletionNotificationOptions) => NotificationResult) | undefined;
   readonly policy?: RepoPolicy | undefined;
   readonly customHookExecutor?: typeof executeLifecycleHooks | undefined;
 }
@@ -37,9 +37,8 @@ export interface PhaseLandingOptions {
   readonly taskCount?: number | undefined;
   readonly soundEnabled?: boolean | undefined;
   readonly notify?: boolean | undefined;
-  readonly customNotifier?:
-    | ((opts: PhaseCompletionNotificationOptions) => NotificationResult)
-    | undefined;
+  readonly trackId?: string | undefined;
+  readonly customNotifier?: ((opts: PhaseCompletionNotificationOptions) => NotificationResult) | undefined;
   readonly policy?: RepoPolicy | undefined;
   readonly customHookExecutor?: typeof executeLifecycleHooks | undefined;
   readonly rootDir?: string | undefined;
@@ -114,11 +113,7 @@ export function claimStation(station: AssemblyStation): AssemblyStation {
   if (station.status !== "PENDING") {
     throw new Error(`Cannot claim station ${station.station_id} with status ${station.status}`);
   }
-  return {
-    ...station,
-    status: "IN_PROGRESS",
-    claimed_at: new Date().toISOString(),
-  };
+  return { ...station, status: "IN_PROGRESS", claimed_at: new Date().toISOString() };
 }
 
 export function verifyStation(
@@ -128,14 +123,8 @@ export function verifyStation(
   if (station.status !== "IN_PROGRESS") {
     throw new Error(`Cannot verify station ${station.station_id} with status ${station.status}`);
   }
-  if (testProof && !testProof.passed) {
-    return { ...station, status: "FAILED" };
-  }
-  return {
-    ...station,
-    status: "VERIFIED",
-    verified_at: new Date().toISOString(),
-  };
+  if (testProof && !testProof.passed) return { ...station, status: "FAILED" };
+  return { ...station, status: "VERIFIED", verified_at: new Date().toISOString() };
 }
 
 export function landStation(
@@ -143,9 +132,7 @@ export function landStation(
   stagingOptions?: StationLandingOptions | undefined,
 ): LandStationResult {
   if (station.status !== "VERIFIED") {
-    throw new Error(
-      `Cannot land station ${station.station_id} before verification (current status: ${station.status})`,
-    );
+    throw new Error(`Cannot land station ${station.station_id} before verification (status: ${station.status})`);
   }
 
   const stagingRecord = executeGitStagingInvariant({
@@ -163,10 +150,7 @@ export function landStation(
     staging_record: stagingRecord,
   };
 
-  const rawStartedAt =
-    stagingOptions?.startedAt ??
-    (station.claimed_at ? Date.parse(station.claimed_at) : undefined) ??
-    Date.now();
+  const rawStartedAt = stagingOptions?.startedAt ?? (station.claimed_at ? Date.parse(station.claimed_at) : undefined) ?? Date.now();
   const startedAt = Number.isFinite(rawStartedAt) ? rawStartedAt : Date.now();
   const durationMs = Math.max(0, Date.now() - startedAt);
   const phaseName = stagingOptions?.phaseName ?? `${station.domain} (${station.milestone_id})`;
@@ -183,6 +167,12 @@ export function landStation(
       durationMs,
       soundEnabled: stagingOptions.soundEnabled ?? true,
     });
+  }
+
+  if (stagingOptions?.trackId) {
+    try {
+      landTrackToMain({ trackId: stagingOptions.trackId, repoRoot: stagingOptions.rootDir });
+    } catch {}
   }
 
   const hookExecutionResult = dispatchPhaseCompletionHook(
@@ -216,15 +206,15 @@ export function landPhaseRelease(options: PhaseLandingOptions): PhaseLandingResu
     });
   }
 
+  if (options.trackId) {
+    try {
+      landTrackToMain({ trackId: options.trackId, repoRoot: options.rootDir });
+    } catch {}
+  }
+
   const hookExecutionResult = dispatchPhaseCompletionHook(
     options.customHookExecutor,
-    {
-      phaseName: options.phaseName,
-      commitSha: options.commitSha,
-      taskCount: options.taskCount,
-      durationMs,
-      status: "SUCCESS",
-    },
+    { phaseName: options.phaseName, commitSha: options.commitSha, taskCount: options.taskCount, durationMs, status: "SUCCESS" },
     options.rootDir,
     options.policy,
   );

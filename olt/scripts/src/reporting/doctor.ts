@@ -65,6 +65,7 @@ import {
   autoHealGitState,
   cleanseDanglingLocks,
   autoHealCapsule,
+  checkMailboxHealth,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
   type DoctorSeverity,
@@ -83,6 +84,7 @@ import {
   type RepositoryHygieneOptions,
   type GitIndexCheckOptions,
   type AutoHealOptions,
+  type MailboxHealthOptions,
 } from "./doctor/engines.ts";
 
 export {
@@ -123,6 +125,7 @@ export {
   autoHealGitState,
   cleanseDanglingLocks,
   autoHealCapsule,
+  checkMailboxHealth,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
   type DoctorSeverity,
@@ -141,6 +144,7 @@ export {
   type RepositoryHygieneOptions,
   type GitIndexCheckOptions,
   type AutoHealOptions,
+  type MailboxHealthOptions,
 };
 
 export interface DoctorOptions {
@@ -510,6 +514,8 @@ export async function runDoctor(
     findings: gitIndexResult.findings,
   };
 
+  const engine12 = checkMailboxHealth({ repoRoot: repository });
+
   const allEngineFindings = [
     ...engine1.findings,
     ...engine2.findings,
@@ -522,6 +528,7 @@ export async function runDoctor(
     ...engine9.findings,
     ...engine10.findings,
     ...engine11.findings,
+    ...engine12.findings,
   ];
 
   const engineErrorIssues = allEngineFindings
@@ -621,6 +628,7 @@ export async function runDoctor(
       checkPolicyDoctor: engine9,
       checkRepositoryHygiene: engine10,
       checkGitIndexIntegrity: engine11,
+      checkMailboxHealth: engine12,
     },
     doctor_findings: allEngineFindings,
     errors,

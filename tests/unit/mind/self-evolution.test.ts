@@ -28,7 +28,7 @@ import {
   clearTaskQueue,
   enqueueTask,
   readTaskQueue,
-} from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
+} from "../../../olt/scripts/src/task/queue/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Autonomous Mind Self-Evolution Loop & Perpetual Cadence", () => {

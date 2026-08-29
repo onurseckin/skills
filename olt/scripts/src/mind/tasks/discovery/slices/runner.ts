@@ -8,7 +8,7 @@ import type {
 import { performDiscoveryScans } from "./scans.ts";
 import { proposeCandidateEvolutions } from "../scanners/index.ts";
 import { synthesizeTaskFromDiscovery } from "./engine.ts";
-import { enqueueTasksBatch } from "../../queue/index.ts";
+import { enqueueTasksBatch } from "../../../../task/queue/index.ts";
 
 export type { TaskQueueItem, NewTaskQueueInput };
 

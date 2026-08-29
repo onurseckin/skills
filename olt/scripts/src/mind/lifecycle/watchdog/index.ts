@@ -7,18 +7,12 @@ export {
   saveMindWatchdogStore,
   auditProcessLiveness,
   createDefaultWatchdogStore,
-  type HeartbeatOptions,
-  type RegisterWatchdogOptions,
-  type TerminateOptions,
-  type WatchdogRecord,
-  type WatchdogStatus,
-  type WatchdogStore,
 } from "./watchdog-manager.ts";
-
-export {
-  executeWatchdogStatus,
-  executeWatchdogCleanup,
-  executeWatchdogPhaseCleanup,
-  executeWatchdogVerify,
-  executeWatchdogProbe,
-} from "./watchdog-ops.ts";
+export type {
+  HeartbeatOptions,
+  RegisterWatchdogOptions,
+  TerminateOptions,
+  WatchdogRecord,
+  WatchdogStatus,
+  WatchdogStore,
+} from "./watchdog-manager.ts";

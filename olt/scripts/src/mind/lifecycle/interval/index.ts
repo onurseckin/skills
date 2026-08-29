@@ -40,6 +40,7 @@ export {
   computeAntiIdleInterval as computeNextInterval,
   projectIntervalProgression,
   formatIntervalDuration,
+  parseDuration,
   parseIntervalDuration,
   generateTrailingValueSeries,
   extractTrailingValueSeriesFromState,

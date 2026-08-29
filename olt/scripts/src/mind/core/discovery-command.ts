@@ -178,7 +178,7 @@ import {
   type TaskPriority,
   type TaskSourceType,
   type TaskLease,
-} from "../tasks/queue/index.ts";
+} from "../../task/queue/index.ts";
 
 // Re-export canonical task queue facilities
 export {

@@ -47,6 +47,19 @@ export {
 } from "./lock-cleaner.ts";
 export { checkPolicyDoctor, auditPolicyDoctor, type PolicyDoctorOptions } from "./policy-doctor.ts";
 export { autoHealCapsule, quarantineTornTail, type AutoHealOptions } from "./auto-heal.ts";
+export {
+  checkMailboxHealth,
+  autoHealMailboxState,
+  healCorruptedCursor,
+  pruneOrphanedMailboxes,
+  type MailboxHealthOptions,
+} from "./mailbox-health-engine.ts";
+export {
+  checkWorktreeHealth,
+  autoHealWorktreeState,
+  type DoctorWorktreeHealthReport,
+  type WorktreeHealthOptions,
+} from "./worktree-health-engine.ts";
 export type {
   DoctorSeverity,
   DoctorDiagnosticFinding,

@@ -212,15 +212,15 @@ export function validateCategory(val: unknown): FeedbackCategory {
     const upper = val.toUpperCase();
     if (upper === "DOCUMENTATION") return "DOCUMENTATION";
     if (upper === "AGENT_CONTRACTS") return "AGENT_CONTRACTS";
-    if (upper === "CLI_TOOLING") return "CLI_TOOLING";
+    if (upper === "CLI_TOOLING" || upper === "COMMUNICATION") return "CLI_TOOLING";
     if (upper === "WATCHDOG") return "WATCHDOG";
     if (upper === "SCALING") return "SCALING";
     if (upper === "ARCHITECTURE") return "ARCHITECTURE";
-    if (upper === "CORE_ENGINE") return "CORE_ENGINE";
+    if (upper === "CORE_ENGINE" || upper === "ENGINE") return "CORE_ENGINE";
     if (upper === "REPAIR") return "REPAIR";
     if (upper === "GENERAL") return "GENERAL";
     if (upper === "GOVERNANCE" || upper === "POLICY") return "GOVERNANCE";
-    if (upper === "ORCHESTRATION") return "ORCHESTRATION";
+    if (upper === "ORCHESTRATION" || upper === "WORKFLOW") return "ORCHESTRATION";
     if (upper === "AUDITING") return "AUDITING";
     if (upper === "NOTIFICATION" || upper === "NOTIFICATIONS") return "CLI_TOOLING";
   }

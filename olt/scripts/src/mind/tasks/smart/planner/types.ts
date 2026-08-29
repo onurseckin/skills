@@ -30,7 +30,7 @@ import {
   type TaskPriority,
   type TaskQueueItem,
   type TaskQueueStats,
-} from "../../queue/index.ts";
+} from "../../../../task/queue/index.ts";
 import {
   recordCompletedTask,
   recordCompletedTasksBatch,

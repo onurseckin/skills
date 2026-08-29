@@ -1,5 +1,5 @@
 import type { SmartTaskPlan } from "../planner/models.ts";
-import type { TaskPriority } from "../../queue/types.ts";
+import type { TaskPriority } from "../../../../task/queue/index.ts";
 import { mapFeedbackPriorityToTaskPriority } from "./orchestrator.ts";
 
 export interface TaskPrioritySynthesisOptions {
@@ -89,31 +89,28 @@ function resolveInitialTaskPriority(
   return options?.defaultPriority ?? "MEDIUM";
 }
 
-function applyGoalBoost(
-  priority: TaskPriority,
-  task: SmartTaskPlan,
-  boostGoals?: readonly string[],
-): TaskPriority {
-  if (!boostGoals || boostGoals.length === 0) return priority;
-  const hasMatchingGoal = task.charter_goals.some((g: string) => boostGoals.includes(g));
-  if (!hasMatchingGoal) return priority;
-  if (priority === "BACKGROUND") return "LOW";
-  if (priority === "LOW") return "MEDIUM";
-  if (priority === "MEDIUM") return "HIGH";
-  return "CRITICAL";
-}
-
 export function synthesizeTaskPriorities(
   tasks: readonly SmartTaskPlan[],
-  options?: TaskPrioritySynthesisOptions,
+  options?: TaskPrioritySynthesisOptions | undefined,
 ): readonly SmartTaskPlan[] {
   if (tasks.length === 0) return [];
 
   const taskMap = new Map<string, TaskPriority>();
   for (const t of tasks) {
-    const initPri = resolveInitialTaskPriority(t, options);
-    const boosted = applyGoalBoost(initPri, t, options?.boostGoals);
-    taskMap.set(t.id, boosted);
+    taskMap.set(t.id, resolveInitialTaskPriority(t, options));
+  }
+
+  const boostGoals = options?.boostGoals ?? [];
+  if (boostGoals.length > 0) {
+    for (const t of tasks) {
+      if (t.charter_goals && t.charter_goals.some((g) => boostGoals.includes(g))) {
+        const cur = taskMap.get(t.id)!;
+        if (cur === "BACKGROUND") taskMap.set(t.id, "LOW");
+        else if (cur === "LOW") taskMap.set(t.id, "MEDIUM");
+        else if (cur === "MEDIUM") taskMap.set(t.id, "HIGH");
+        else if (cur === "HIGH") taskMap.set(t.id, "CRITICAL");
+      }
+    }
   }
 
   const propagate = options?.propagateDependencies !== false;

@@ -1,0 +1,31 @@
+{
+  "name": "worktree:create",
+  "aliases": [],
+  "domain": "worktree",
+  "summary": "Create a hermetic track worktree with lock acquisition.",
+  "flags": [
+    {
+      "name": "track",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "base-branch",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "main"
+    },
+    {
+      "name": "repo-root",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

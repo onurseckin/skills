@@ -1,12 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { roleCheatSheetCommand } from "../../../olt/scripts/src/cli/commands/role-cheat-sheet.ts";
 import {
+  formatUniversalCheatSheet,
   generateRoleCheatSheet,
   listAvailableRoles,
   parseRoleContract,
   renderAsciiRoleTable,
   type RoleSummary,
-} from "../../../olt/scripts/src/roles/cheat-sheets.ts";
+  type UniversalRoleSpec,
+} from "../../../olt/scripts/src/roles/index.ts";
 
 const SAMPLE_CONTRACT = `---
 role: implementer
@@ -67,6 +69,35 @@ describe("Dynamic Role Cheat-Sheets Engine", () => {
       expect(() => listAvailableRoles("/non/existent/roles/dir")).toThrow(
         /roles directory does not exist/,
       );
+    });
+  });
+
+  describe("formatUniversalCheatSheet", () => {
+    test("formats universal cheat sheet for generic dynamic role spec", () => {
+      const spec: UniversalRoleSpec = {
+        name: "custom-worker",
+        tier: 3,
+        title: "Custom Worker",
+        summary: "Custom dynamic worker role",
+        domain: "system-design",
+        archetype: "tier_3_specialist",
+        writeScopePolicy: "lease_bounded",
+        grantedCommands: ["task:claim", "task:submit"],
+        permittedActivities: ["Claim task", "Submit task"],
+        prohibitedActions: ["Touch outside scope"],
+        invariants: ["Must adhere to isolation"],
+        spawns: [],
+        cognitivePillars: ["Zero leakage", "High fidelity"],
+      };
+
+      const sheet = formatUniversalCheatSheet(spec);
+      expect(sheet.role).toBe("custom-worker");
+      expect(sheet.tier).toBe(3);
+      expect(sheet.markdown).toContain("### 🛡️ Role Contract: `custom-worker` (Tier 3)");
+      expect(sheet.markdown).toContain("Specialization Domain");
+      expect(sheet.markdown).toContain("Archetype");
+      expect(sheet.markdown).toContain("Write Scope Policy");
+      expect(sheet.markdown).toContain("#### 🧠 Cognitive Pillars");
     });
   });
 

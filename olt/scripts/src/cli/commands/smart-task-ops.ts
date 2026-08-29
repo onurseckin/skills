@@ -19,7 +19,7 @@ import {
   type TaskQueueItem,
   type TaskQueueStats,
   type TaskQueueStatus,
-} from "../../mind/tasks/queue/index.ts";
+} from "../../task/queue/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 

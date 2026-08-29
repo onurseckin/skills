@@ -172,7 +172,7 @@ export function isProgressNarration(text: string): boolean {
 
 export function classifyChatter(text: string): ChatterClassification {
   if (typeof text !== "string") throw new HarnessError("INVALID_ARGUMENT", "Text must be a string");
-  if (isActionableError(text)) {
+  if (isActionableError(text))
     return makeClassification(
       "ACTIONABLE_ERROR",
       false,
@@ -180,8 +180,7 @@ export function classifyChatter(text: string): ChatterClassification {
       "Actionable error or defect escalation requires immediate owner attention",
       "critical",
     );
-  }
-  if (isHighPriorityMilestone(text)) {
+  if (isHighPriorityMilestone(text))
     return makeClassification(
       "HIGH_PRIORITY_MILESTONE",
       false,
@@ -189,8 +188,7 @@ export function classifyChatter(text: string): ChatterClassification {
       "High priority milestone or final deliverable admitted to owner context",
       "high",
     );
-  }
-  if (isRoutinePulse(text)) {
+  if (isRoutinePulse(text))
     return makeClassification(
       "ROUTINE_PULSE",
       true,
@@ -198,8 +196,7 @@ export function classifyChatter(text: string): ChatterClassification {
       "Routine pulse / heartbeat tick suppressed to preserve owner context",
       "low",
     );
-  }
-  if (isCompanionAuditorOutput(text)) {
+  if (isCompanionAuditorOutput(text))
     return makeClassification(
       "COMPANION_AUDIT",
       true,
@@ -207,8 +204,7 @@ export function classifyChatter(text: string): ChatterClassification {
       "Companion auditor / witness chatter suppressed from main thread",
       "low",
     );
-  }
-  if (isProgressNarration(text)) {
+  if (isProgressNarration(text))
     return makeClassification(
       "PROGRESS_NARRATION",
       true,
@@ -216,7 +212,6 @@ export function classifyChatter(text: string): ChatterClassification {
       "Mid-flight progress narration suppressed from main thread",
       "medium",
     );
-  }
   return makeClassification(
     "STANDARD_PAYLOAD",
     false,
@@ -239,9 +234,8 @@ export function filterOwnerContextMessage(
   text: string,
   options?: ChatterGuardFilterOptions,
 ): ChatterFilterResult {
-  if (typeof text !== "string") {
+  if (typeof text !== "string")
     throw new HarnessError("INVALID_ARGUMENT", "Message text must be a string");
-  }
   const classification = classifyChatter(text);
   const suppressed = shouldSuppressForOwner(text, options);
   const mask = options?.maskSuppressedText ?? true;
@@ -268,9 +262,8 @@ export function assertNonChatterOwnerContext(
   text: string,
   context?: AssertOwnerSafetyContext,
 ): void {
-  if (typeof text !== "string") {
+  if (typeof text !== "string")
     throw new HarnessError("INVALID_ARGUMENT", "Context payload text must be a string");
-  }
   const isOwner =
     context?.isOwnerSeat === true ||
     (context?.isOwnerSeat === undefined &&

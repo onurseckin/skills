@@ -3,10 +3,6 @@
   "domain": "diagnostics",
   "entries": [
     {
-      "id": "worktree:reclaim",
-      "path": "worktree-reclaim.json"
-    },
-    {
       "id": "explain",
       "path": "explain.json"
     }

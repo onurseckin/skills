@@ -3,10 +3,10 @@ import { join } from "node:path";
 import { HarnessError } from "../core/errors/index.ts";
 import { resolveCapsulesDir } from "../core/shared/paths.ts";
 import { normalizeRunId } from "../engine/store/index.ts";
-import { OrchestratorCompanionAuditor } from "./companion-auditor.ts";
-import { OrchestratorWatchdog } from "./watchdog.ts";
-import { synthesizeNextRoundPrompt } from "./defect-synthesizer.ts";
+import { cleanupTrackWorktree, createTrackWorktree, landTrackToMain, type TrackWorktreeInfo } from "../workflow/worktree/index.ts";
 import { chainCapsules } from "./capsule-chainer.ts";
+import { OrchestratorCompanionAuditor } from "./companion-auditor.ts";
+import { synthesizeNextRoundPrompt } from "./defect-synthesizer.ts";
 import { loopGateStatus, roundGateStatus } from "./gate-status.ts";
 import { formatLoopMarkdownSummary } from "./loop-summary-brief.ts";
 import type {
@@ -22,6 +22,7 @@ import type {
   RoundTelemetry,
   WatchdogEvent,
 } from "./types.ts";
+import { OrchestratorWatchdog } from "./watchdog.ts";
 
 export class AutonomousLoopRunner {
   public static readonly MAX_ALLOWED_ROUNDS = 10;
@@ -32,55 +33,34 @@ export class AutonomousLoopRunner {
   public readonly initialPrompt: string;
   public readonly maxRoundsConfigured: number;
   public readonly capsulesDir: string;
-  public readonly actor: string | undefined;
+  public readonly actor?: string | undefined;
   public readonly strictAuditorPolicy: boolean;
-
+  public readonly worktreeIsolation: boolean;
+  public readonly trackId?: string | undefined;
   private readonly executor?: RoundExecutor | undefined;
   private readonly watchdog: OrchestratorWatchdog;
-
   private readonly onRoundStart?: ((round: number, runId: string) => void) | undefined;
   private readonly onRoundComplete?: ((telemetry: RoundTelemetry) => void) | undefined;
   private readonly onDefectSynthesis?: ((synthesis: DefectSynthesis) => void) | undefined;
   private readonly onCapsuleChained?: ((manifest: CapsuleChainManifest) => void) | undefined;
   private readonly onStall?: ((event: WatchdogEvent) => void) | undefined;
   private readonly onLoopComplete?: ((summary: LoopSummary) => void) | undefined;
-  private readonly onBehavioralForensics?:
-    | ((report: BehavioralForensicsReport) => void)
-    | undefined;
+  private readonly onBehavioralForensics?: ((report: BehavioralForensicsReport) => void) | undefined;
 
   public constructor(options: LoopRunnerOptions) {
-    if (options.baseRunId === undefined) {
-      throw new HarnessError("INVALID_ARGUMENT", "baseRunId is required");
+    if (!options.baseRunId?.trim() || !options.repoPath?.trim() || !options.initialPrompt?.trim()) {
+      throw new HarnessError("INVALID_ARGUMENT", "baseRunId, repoPath, and initialPrompt are required");
     }
-    if (options.baseRunId.trim().length === 0) {
-      throw new HarnessError("INVALID_ARGUMENT", "baseRunId is required");
-    }
-    if (options.repoPath === undefined) {
-      throw new HarnessError("INVALID_ARGUMENT", "repoPath is required");
-    }
-    if (options.repoPath.trim().length === 0) {
-      throw new HarnessError("INVALID_ARGUMENT", "repoPath is required");
-    }
-    if (options.initialPrompt === undefined) {
-      throw new HarnessError("INVALID_ARGUMENT", "initialPrompt is required");
-    }
-    if (options.initialPrompt.trim().length === 0) {
-      throw new HarnessError("INVALID_ARGUMENT", "initialPrompt is required");
-    }
-
-    const requestedMax =
-      options.maxRounds !== undefined ? options.maxRounds : AutonomousLoopRunner.DEFAULT_MAX_ROUNDS;
-    this.maxRoundsConfigured = Math.min(
-      AutonomousLoopRunner.MAX_ALLOWED_ROUNDS,
-      Math.max(1, requestedMax),
-    );
+    const requestedMax = options.maxRounds ?? AutonomousLoopRunner.DEFAULT_MAX_ROUNDS;
+    this.maxRoundsConfigured = Math.min(AutonomousLoopRunner.MAX_ALLOWED_ROUNDS, Math.max(1, requestedMax));
     this.baseRunId = normalizeRunId(options.baseRunId);
     this.repoPath = options.repoPath.trim();
     this.initialPrompt = options.initialPrompt;
-    this.capsulesDir =
-      options.capsulesDir !== undefined ? options.capsulesDir : resolveCapsulesDir(this.repoPath);
+    this.capsulesDir = options.capsulesDir ?? resolveCapsulesDir(this.repoPath);
     this.actor = options.actor;
     this.strictAuditorPolicy = options.strictAuditorPolicy === true;
+    this.worktreeIsolation = options.worktreeIsolation === true;
+    this.trackId = options.trackId;
     this.executor = options.executor;
     this.onRoundStart = options.onRoundStart;
     this.onRoundComplete = options.onRoundComplete;
@@ -90,10 +70,8 @@ export class AutonomousLoopRunner {
     this.onLoopComplete = options.onLoopComplete;
     this.onBehavioralForensics = options.onBehavioralForensics;
 
-    this.watchdog = new OrchestratorWatchdog(
-      options.watchdogConfig !== undefined ? options.watchdogConfig : {},
-    );
-    if (this.onStall !== undefined) {
+    this.watchdog = new OrchestratorWatchdog(options.watchdogConfig ?? {});
+    if (this.onStall) {
       this.watchdog.on("stall_detected", this.onStall);
       this.watchdog.on("auto_wake", this.onStall);
     }
@@ -117,18 +95,9 @@ export class AutonomousLoopRunner {
 
   public async run(): Promise<LoopSummary> {
     const executor = this.executor;
-    if (executor === undefined) {
-      throw new HarnessError(
-        "INVALID_STATE",
-        "autonomous loop has no round executor; the host must inject one before orchestrator:run can execute a round",
-      );
-    }
+    if (!executor) throw new HarnessError("INVALID_STATE", "autonomous loop has no round executor");
 
-    // 1. Auto-pair companion Skill Auditor out-of-band alongside Orchestrator
-    const companionPairing = OrchestratorCompanionAuditor.pairCompanion(this.repoPath, {
-      strictPolicy: this.strictAuditorPolicy,
-    });
-
+    const companionPairing = OrchestratorCompanionAuditor.pairCompanion(this.repoPath, { strictPolicy: this.strictAuditorPolicy });
     const loopStartTime = Date.now();
     const startedAt = new Date(loopStartTime).toISOString();
     const roundTelemetryList: RoundTelemetry[] = [];
@@ -136,7 +105,18 @@ export class AutonomousLoopRunner {
     let priorSynthesis: DefectSynthesis | undefined;
     let finalStatus: LoopExecutionStatus = "running";
     let totalSynthesizedFindings = 0;
-    let lastCriticDecision: RoundTelemetry["criticDecision"] = undefined;
+    let lastCriticDecision: RoundTelemetry["criticDecision"];
+
+    let activeTrackRecord: TrackWorktreeInfo | undefined;
+    const effectiveTrackId = this.trackId ?? (this.worktreeIsolation ? this.baseRunId : undefined);
+
+    if (this.worktreeIsolation && effectiveTrackId) {
+      try {
+        activeTrackRecord = createTrackWorktree({ trackId: effectiveTrackId, repoRoot: this.repoPath });
+      } catch (err) {
+        throw new HarnessError("INTEGRITY", `failed to initialize track worktree: ${String(err)}`);
+      }
+    }
 
     if (!existsSync(this.capsulesDir)) mkdirSync(this.capsulesDir, { recursive: true });
     this.watchdog.start();
@@ -149,19 +129,14 @@ export class AutonomousLoopRunner {
         this.onRoundStart?.(round, roundRunId);
 
         const monitorId = `round-${round}-${roundRunId}`;
-        this.watchdog.registerMonitor(monitorId, {
-          agentId: `coordinator-r${round}`,
-          runId: roundRunId,
-          initialStartedAt: roundStartTime,
-        });
+        this.watchdog.registerMonitor(monitorId, { agentId: `coordinator-r${round}`, runId: roundRunId, initialStartedAt: roundStartTime });
 
         if (round > 1) {
           const prevRunId = this.getRoundRunId(round - 1);
-          const prevCapsulePath = this.getCapsulePath(prevRunId);
           const chainManifest = chainCapsules({
             sourceRunId: prevRunId,
             targetRunId: roundRunId,
-            sourceCapsulePath: prevCapsulePath,
+            sourceCapsulePath: this.getCapsulePath(prevRunId),
             targetCapsulePath: roundCapsulePath,
             roundNumber: round,
             defectSynthesis: priorSynthesis,
@@ -180,15 +155,15 @@ export class AutonomousLoopRunner {
           isFirstRound: round === 1,
           previousRoundRunId: round > 1 ? this.getRoundRunId(round - 1) : undefined,
           priorDefects: priorSynthesis,
+          worktreePath: activeTrackRecord?.worktreePath,
+          trackId: effectiveTrackId,
         };
 
         const result: RoundExecutionResult = await executor.executeRound(executionInput);
-
         const roundEndTime = Date.now();
         const durationMs = roundEndTime - roundStartTime;
         this.watchdog.unregisterMonitor(monitorId);
 
-        // Run behavioral forensics for the completed round
         const behavioralForensics = OrchestratorCompanionAuditor.executeForensics(this.repoPath, {
           capsuleRunRoot: roundCapsulePath,
           now: new Date(roundEndTime).toISOString(),
@@ -210,11 +185,7 @@ export class AutonomousLoopRunner {
           durationMs,
           criticDecision: result.criticDecision,
           taskCount: result.tasks.length,
-          completedTaskCount: result.tasks.filter((t) => {
-            if (t.status === "done") return true;
-            if (t.status === "validated") return true;
-            return false;
-          }).length,
+          completedTaskCount: result.tasks.filter((t) => t.status === "done" || t.status === "validated").length,
           openFindingsCount: openFindings.length,
           resolvedFindingsCount: resolvedFindings.length,
           gateStatus,
@@ -226,32 +197,15 @@ export class AutonomousLoopRunner {
         roundTelemetryList.push(telemetry);
         this.onRoundComplete?.(telemetry);
 
-        if (
-          result.status === "completed" &&
-          isApprovedByCritic &&
-          gateStatus === "passed" &&
-          openFindings.length === 0
-        ) {
+        if (result.status === "completed" && isApprovedByCritic && gateStatus === "passed" && openFindings.length === 0) {
           finalStatus = "converged_success";
           break;
         }
-        if (result.status === "failed") {
-          finalStatus = "failed";
-          break;
-        }
-        if (result.status === "escalated") {
-          finalStatus = "stalled";
-          break;
-        }
-        if (round === this.maxRoundsConfigured) {
-          finalStatus = "max_rounds_reached";
-          break;
-        }
+        if (result.status === "failed") { finalStatus = "failed"; break; }
+        if (result.status === "escalated") { finalStatus = "stalled"; break; }
+        if (round === this.maxRoundsConfigured) { finalStatus = "max_rounds_reached"; break; }
 
-        const failedGates = result.gateResults
-          .filter((g) => g.status !== "passed")
-          .map((g) => g.gate_id);
-
+        const failedGates = result.gateResults.filter((g) => g.status !== "passed").map((g) => g.gate_id);
         priorSynthesis = synthesizeNextRoundPrompt({
           roundNumber: round + 1,
           priorRunId: roundRunId,
@@ -269,20 +223,23 @@ export class AutonomousLoopRunner {
       }
     } finally {
       this.watchdog.dispose();
+      if (this.worktreeIsolation && effectiveTrackId) {
+        if (finalStatus === "converged_success") {
+          try { landTrackToMain({ trackId: effectiveTrackId, repoRoot: this.repoPath }); } catch {}
+        } else {
+          try { cleanupTrackWorktree({ trackId: effectiveTrackId, repoRoot: this.repoPath, force: true }); } catch {}
+        }
+      }
     }
 
     const loopEndTime = Date.now();
     const completedAt = new Date(loopEndTime).toISOString();
     const overallDurationMs = loopEndTime - loopStartTime;
     const gateStatus = loopGateStatus(roundTelemetryList);
-
-    const behavioralForensicsSummary = OrchestratorCompanionAuditor.executeForensics(
-      this.repoPath,
-      {
-        capsuleRunRoot: this.getCapsulePath(this.baseRunId),
-        now: completedAt,
-      },
-    );
+    const behavioralForensicsSummary = OrchestratorCompanionAuditor.executeForensics(this.repoPath, {
+      capsuleRunRoot: this.getCapsulePath(this.baseRunId),
+      now: completedAt,
+    });
 
     const markdownSummary = formatLoopMarkdownSummary({
       loopId: `loop-${this.baseRunId}`,
@@ -313,7 +270,7 @@ export class AutonomousLoopRunner {
       finalMarkdownSummary: markdownSummary,
       companionPairing,
       behavioralForensicsSummary,
-      ...(this.actor !== undefined ? { actor: this.actor } : {}),
+      ...(this.actor ? { actor: this.actor } : {}),
     };
 
     const summaryPath = join(this.capsulesDir, `${this.baseRunId}-loop-summary.json`);

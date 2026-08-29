@@ -1,8 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { findCommand } from "../cli/registry/index.ts";
-import type { CommandSpec } from "../cli/registry/types.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { isAgentRole } from "../core/contracts/index.ts";
@@ -13,50 +11,12 @@ import {
   type RoleContract as BaseRoleContract,
   type ValidatorDomain,
 } from "../packets/role-contract.ts";
+import { buildCommandCheatSheet } from "./syntax.ts";
+import type { RoleCheatSheet, RoleCheatSheetOptions, UniversalRoleSpec } from "./types.ts";
+
+export { renderAsciiRoleTable } from "./ascii-table.ts";
 
 const DEFAULT_AGENTS_ROOT = fileURLToPath(new URL("../../../agents", import.meta.url));
-
-export interface RoleCheatSheetOptions {
-  readonly compact?: boolean | undefined;
-  readonly rolesDir?: string | undefined;
-  readonly agentsDir?: string | undefined;
-}
-
-export interface RoleCommandCheatSheet {
-  readonly name: string;
-  readonly summary: string;
-  readonly syntax: string;
-  readonly requiredFlags: readonly string[];
-  readonly optionalFlags: readonly string[];
-  readonly examples: readonly string[];
-}
-
-export interface RoleCheatSheet {
-  readonly role: string;
-  readonly tier: number;
-  readonly title: string;
-  readonly summary: string;
-  readonly domain?: string | undefined;
-  readonly grantedCommands: readonly string[];
-  readonly commandDetails: readonly RoleCommandCheatSheet[];
-  readonly permittedActivities: readonly string[];
-  readonly forbiddenActions: readonly string[];
-  readonly invariants: readonly string[];
-  readonly authorityRules: readonly string[];
-  readonly spawns: readonly string[];
-  readonly cognitivePillars?: readonly string[] | undefined;
-  readonly markdown: string;
-}
-
-export interface RoleSummary {
-  readonly role: string;
-  readonly tier: number;
-  readonly commandCount: number;
-  readonly spawnsCount: number;
-  readonly spawns: readonly string[];
-  readonly invariantsCount: number;
-  readonly domain?: string | undefined;
-}
 
 export function parseRoleContract(
   content: Uint8Array | string,
@@ -68,18 +28,15 @@ export function parseRoleContract(
 
 export function listAvailableRoles(rolesDir?: string | undefined): readonly string[] {
   const dir = rolesDir !== undefined ? resolve(rolesDir) : DEFAULT_AGENTS_ROOT;
-  if (!existsSync(dir)) {
+  if (!existsSync(dir))
     throw new HarnessError("PATH_SAFETY", `roles directory does not exist: ${dir}`);
-  }
-  const entries = readdirSync(dir);
-  const roles = entries
-    .filter(
-      (entry) =>
-        (entry.endsWith(".yaml") || entry.endsWith(".yml") || entry.endsWith(".md")) &&
-        !entry.startsWith("."),
-    )
-    .map((entry) => entry.replace(/\.(yaml|yml|md)$/, ""))
-    .filter((entry) => rolesDir !== undefined || isAgentRole(entry))
+  const roles = readdirSync(dir)
+    .filter((e) => {
+      const isExt = e.endsWith(".yaml") ? true : e.endsWith(".yml") ? true : e.endsWith(".md");
+      return isExt && !e.startsWith(".");
+    })
+    .map((e) => e.replace(/\.(yaml|yml|md)$/, ""))
+    .filter((e) => (rolesDir !== undefined ? true : isAgentRole(e)))
     .sort();
   if (roles.includes("validator") && !roles.includes("validator-code-quality")) {
     roles.push(
@@ -102,79 +59,19 @@ function resolveRoleFile(role: string, rolesDir?: string | undefined): string {
     join(dir, `${role}.md`),
     join(dir, role),
   ];
-  if (role.startsWith("validator-")) {
+  if (role.startsWith("validator-"))
     candidates.push(
       join(dir, "validator.yaml"),
       join(dir, "validator.yml"),
       join(dir, "validator.md"),
     );
-  }
   for (const cand of candidates) {
-    if (existsSync(cand)) {
-      return cand;
-    }
+    if (existsSync(cand)) return cand;
   }
   throw new HarnessError(
     "INVALID_ARGUMENT",
     `role contract not found for role '${role}' at ${join(dir, role)}`,
   );
-}
-
-function formatCommandSyntax(spec: CommandSpec): {
-  syntax: string;
-  requiredFlags: string[];
-  optionalFlags: string[];
-} {
-  const requiredFlags: string[] = [];
-  const optionalFlags: string[] = [];
-  const parts: string[] = [`bun harness.ts ${spec.name}`];
-
-  for (const flag of spec.flags) {
-    const isBool = flag.type === "bool";
-    const valuePlaceholder = isBool ? "" : ` <${flag.type}>`;
-    const flagStr = `--${flag.name}${valuePlaceholder}`;
-
-    if (flag.required) {
-      requiredFlags.push(flag.name);
-      parts.push(flagStr);
-    } else {
-      optionalFlags.push(flag.name);
-    }
-  }
-
-  if (optionalFlags.length > 0) {
-    parts.push(`[--flags...]`);
-  }
-
-  return {
-    syntax: parts.join(" "),
-    requiredFlags,
-    optionalFlags,
-  };
-}
-
-function buildCommandCheatSheet(commandName: string): RoleCommandCheatSheet {
-  const spec = findCommand(commandName);
-  if (!spec) {
-    return {
-      name: commandName,
-      summary: `Harness command: ${commandName}`,
-      syntax: `bun harness.ts ${commandName}`,
-      requiredFlags: [],
-      optionalFlags: [],
-      examples: [`bun harness.ts ${commandName}`],
-    };
-  }
-
-  const { syntax, requiredFlags, optionalFlags } = formatCommandSyntax(spec);
-  return {
-    name: spec.name,
-    summary: spec.summary,
-    syntax,
-    requiredFlags,
-    optionalFlags,
-    examples: spec.examples.length > 0 ? spec.examples : [syntax],
-  };
 }
 
 function extractProseDetails(body: string): {
@@ -183,16 +80,13 @@ function extractProseDetails(body: string): {
   cognitivePillars: string[];
   proseRules: string[];
 } {
-  const lines = body.split("\n");
   let title = "Role";
-  let summary = "";
   const cognitivePillars: string[] = [];
   const proseRules: string[] = [];
-
   let inPillars = false;
   const leadParagraphs: string[] = [];
 
-  for (const line of lines) {
+  for (const line of body.split("\n")) {
     const trimmed = line.trim();
     if (trimmed.startsWith("# ") && title === "Role") {
       title = trimmed.slice(2).trim();
@@ -222,92 +116,128 @@ function extractProseDetails(body: string): {
       leadParagraphs.push(trimmed);
     }
   }
-
-  summary = leadParagraphs.join(" ");
-  return { title, summary, cognitivePillars, proseRules };
+  return { title, summary: leadParagraphs.join(" "), cognitivePillars, proseRules };
 }
 
-function formatFullMarkdownCheatSheet(sheet: Omit<RoleCheatSheet, "markdown">): string {
-  const lines: string[] = [];
-  lines.push(`### 🛡️ Role Contract: \`${sheet.role}\` (Tier ${sheet.tier})`);
-  lines.push(`**${sheet.title}** — ${sheet.summary}`);
+function formatCompactMarkdown(sheet: Omit<RoleCheatSheet, "markdown">): string {
+  const lines: string[] = [
+    `### ⚡ Compact Cheat-Sheet: \`${sheet.role}\` (Tier ${sheet.tier})`,
+    `**Granted Commands (${sheet.grantedCommands.length})**: ${sheet.grantedCommands.map((c) => `\`${c}\``).join(", ")}`,
+    `**Spawns (${sheet.spawns.length})**: ${sheet.spawns.length > 0 ? sheet.spawns.map((s) => `\`${s}\``).join(", ") : "none"}`,
+    "",
+    "```text",
+    ...sheet.commandDetails.map((cmd) => `${cmd.name.padEnd(22)} -> ${cmd.syntax}`),
+    "```",
+    "",
+    "**Key Invariants**:",
+  ];
+  const invList = sheet.invariants.length > 0 ? sheet.invariants : sheet.forbiddenActions;
+  for (const inv of invList.slice(0, 5)) lines.push(`- 🔴 ${inv}`);
+  if (invList.length > 5)
+    lines.push(`- *(+${invList.length - 5} more prohibitions in full contract)*`);
   lines.push("");
+  return lines.join("\n");
+}
 
+function formatFullMarkdown(
+  sheet: Omit<RoleCheatSheet, "markdown">,
+  spec: UniversalRoleSpec,
+): string {
+  const lines: string[] = [
+    `### 🛡️ Role Contract: \`${sheet.role}\` (Tier ${sheet.tier})`,
+    `**${sheet.title}** — ${sheet.summary}`,
+    "",
+  ];
   if (sheet.domain !== undefined) {
-    lines.push(`- **Validator Domain**: \`${sheet.domain}\``);
+    const domainLabel = spec.archetype !== undefined ? "Specialization Domain" : "Validator Domain";
+    lines.push(`- **${domainLabel}**: \`${sheet.domain}\``);
   }
   lines.push(`- **Authority Tier**: Tier ${sheet.tier}`);
+  if (spec.archetype !== undefined) lines.push(`- **Archetype**: \`${spec.archetype}\``);
+  if (spec.writeScopePolicy !== undefined)
+    lines.push(`- **Write Scope Policy**: \`${spec.writeScopePolicy}\``);
   lines.push(
     `- **Spawns Allowed**: ${sheet.spawns.length > 0 ? sheet.spawns.map((s) => `\`${s}\``).join(", ") : "*(None — Leaf Worker)*"}`,
   );
-  lines.push("");
-
-  lines.push("#### ⚡ Granted CLI Verbs & Syntax");
-  lines.push("| Command | Summary | Syntax Template |");
-  lines.push("| :--- | :--- | :--- |");
-  for (const cmd of sheet.commandDetails) {
+  lines.push(
+    "",
+    "#### ⚡ Granted CLI Verbs & Syntax",
+    "| Command | Summary | Syntax Template |",
+    "| :--- | :--- | :--- |",
+  );
+  for (const cmd of sheet.commandDetails)
     lines.push(`| \`${cmd.name}\` | ${cmd.summary} | \`${cmd.syntax}\` |`);
-  }
+  lines.push("", "#### 🚫 Invariants & Absolute Prohibitions (`must_not`)");
+  const prohibitedItems =
+    sheet.forbiddenActions.length > 0 ? sheet.forbiddenActions : sheet.invariants;
+  for (const inv of prohibitedItems) lines.push(`- 🔴 ${inv}`);
+  lines.push("", "#### ✅ Permitted Activities (`may`)");
+  for (const may of sheet.permittedActivities) lines.push(`- 🟢 ${may}`);
   lines.push("");
-
-  lines.push("#### 🚫 Invariants & Absolute Prohibitions (`must_not`)");
-  for (const inv of sheet.invariants) {
-    lines.push(`- 🔴 ${inv}`);
-  }
-  lines.push("");
-
-  lines.push("#### ✅ Permitted Activities (`may`)");
-  for (const may of sheet.permittedActivities) {
-    lines.push(`- 🟢 ${may}`);
-  }
-  lines.push("");
-
   if (sheet.cognitivePillars !== undefined && sheet.cognitivePillars.length > 0) {
     lines.push("#### 🧠 Cognitive Pillars");
-    for (const pillar of sheet.cognitivePillars) {
-      lines.push(`- 🔷 ${pillar}`);
-    }
+    for (const pillar of sheet.cognitivePillars) lines.push(`- 🔷 ${pillar}`);
     lines.push("");
   }
-
   return lines.join("\n");
 }
 
-function formatCompactMarkdownCheatSheet(sheet: Omit<RoleCheatSheet, "markdown">): string {
-  const lines: string[] = [];
-  lines.push(`### ⚡ Compact Cheat-Sheet: \`${sheet.role}\` (Tier ${sheet.tier})`);
-  lines.push(
-    `**Granted Commands (${sheet.grantedCommands.length})**: ${sheet.grantedCommands.map((c) => `\`${c}\``).join(", ")}`,
-  );
-  lines.push(
-    `**Spawns (${sheet.spawns.length})**: ${sheet.spawns.length > 0 ? sheet.spawns.map((s) => `\`${s}\``).join(", ") : "none"}`,
-  );
-  lines.push("");
-  lines.push("```text");
-  for (const cmd of sheet.commandDetails) {
-    lines.push(`${cmd.name.padEnd(22)} -> ${cmd.syntax}`);
+export function formatUniversalCheatSheet(
+  spec: UniversalRoleSpec,
+  options?: RoleCheatSheetOptions | undefined,
+): RoleCheatSheet {
+  const commandDetails = spec.grantedCommands.map(buildCommandCheatSheet);
+  let forbiddenActions: readonly string[] = [];
+  if (spec.prohibitedActions !== undefined) {
+    forbiddenActions = spec.prohibitedActions;
+  } else if (spec.forbiddenActions !== undefined) {
+    forbiddenActions = spec.forbiddenActions;
   }
-  lines.push("```");
-  lines.push("");
-  lines.push("**Key Invariants**:");
-  for (const inv of sheet.invariants.slice(0, 5)) {
-    lines.push(`- 🔴 ${inv}`);
+  const invariants = [...spec.invariants];
+  let authorityRules = spec.authorityRules;
+  if (authorityRules === undefined) {
+    authorityRules = [
+      `Tier ${spec.tier} authority`,
+      ...(spec.archetype !== undefined ? [`Archetype: ${spec.archetype}`] : []),
+      ...(spec.writeScopePolicy !== undefined ? [`Write Policy: ${spec.writeScopePolicy}`] : []),
+    ];
   }
-  if (sheet.invariants.length > 5) {
-    lines.push(`- *(+${sheet.invariants.length - 5} more prohibitions in full contract)*`);
-  }
-  lines.push("");
-  return lines.join("\n");
+
+  const baseSheet: Omit<RoleCheatSheet, "markdown"> = {
+    role: spec.name,
+    tier: spec.tier,
+    title: spec.title,
+    summary: spec.summary,
+    domain: spec.domain,
+    grantedCommands: spec.grantedCommands,
+    commandDetails,
+    permittedActivities: spec.permittedActivities,
+    forbiddenActions,
+    invariants,
+    authorityRules,
+    spawns: spec.spawns,
+    ...(spec.cognitivePillars && spec.cognitivePillars.length > 0
+      ? { cognitivePillars: spec.cognitivePillars }
+      : {}),
+  };
+
+  const markdown = options?.compact
+    ? formatCompactMarkdown(baseSheet)
+    : formatFullMarkdown(baseSheet, spec);
+  return { ...baseSheet, markdown };
 }
 
 export function generateRoleCheatSheet(
   role: string,
   options?: RoleCheatSheetOptions | undefined,
 ): RoleCheatSheet {
-  const filePath = resolveRoleFile(role, options?.rolesDir ?? options?.agentsDir);
+  let chosenDir = options?.rolesDir;
+  if (chosenDir === undefined) {
+    chosenDir = options?.agentsDir;
+  }
+  const filePath = resolveRoleFile(role, chosenDir);
   const bytes = readRegularFileNoFollow(filePath);
   const rawText = new TextDecoder("utf-8").decode(bytes);
-
   let contract: BaseRoleContract;
   let body: string;
 
@@ -324,23 +254,25 @@ export function generateRoleCheatSheet(
   }
 
   const prose = extractProseDetails(body);
-
-  const commandDetails = contract.commands.map(buildCommandCheatSheet);
   const invariants = [...contract.must_not];
   const antiLeakRules: string[] = [];
+
+  const isTargetRole =
+    contract.role === "validator" ? true : contract.role === "completeness-critic";
   if (
-    (contract.role === "validator" || contract.role === "completeness-critic") &&
+    isTargetRole &&
     !prose.proseRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))
   ) {
-    antiLeakRules.push(
-      "**Anti-Boundary-Leak Rule**: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.",
-    );
+    const rule =
+      "**Anti-Boundary-Leak Rule**: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.";
+    antiLeakRules.push(rule);
     if (!invariants.some((i) => i.toLowerCase().includes("anti-boundary-leak"))) {
       invariants.push(
         "Anti-Boundary-Leak Rule: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.",
       );
     }
   }
+
   const authorityRules = [
     `Tier ${contract.tier} execution authority`,
     `Spawns: ${contract.spawns.length > 0 ? contract.spawns.join(", ") : "none"}`,
@@ -348,8 +280,8 @@ export function generateRoleCheatSheet(
     ...prose.proseRules,
   ];
 
-  const baseSheet = {
-    role: contract.role,
+  const spec: UniversalRoleSpec = {
+    name: contract.role,
     tier: contract.tier,
     title:
       prose.title.length > 0 && prose.title !== "Role"
@@ -358,8 +290,8 @@ export function generateRoleCheatSheet(
     summary: prose.summary.length > 0 ? prose.summary : `Role contract for ${contract.role}`,
     domain: contract.domain,
     grantedCommands: contract.commands,
-    commandDetails,
     permittedActivities: contract.may,
+    prohibitedActions: invariants,
     forbiddenActions: contract.must_not,
     invariants,
     authorityRules,
@@ -367,58 +299,5 @@ export function generateRoleCheatSheet(
     ...(prose.cognitivePillars.length > 0 ? { cognitivePillars: prose.cognitivePillars } : {}),
   };
 
-  const markdown = options?.compact
-    ? formatCompactMarkdownCheatSheet(baseSheet)
-    : formatFullMarkdownCheatSheet(baseSheet);
-
-  return {
-    ...baseSheet,
-    markdown,
-  };
-}
-
-export function renderAsciiRoleTable(roles: readonly (RoleSummary | RoleCheatSheet)[]): string {
-  if (roles.length === 0) {
-    return "(no roles found)";
-  }
-
-  const rows = roles.map((r) => {
-    const roleName = r.role;
-    const tierStr = String(r.tier);
-    const cmdCount =
-      "commandCount" in r ? String(r.commandCount) : String(r.grantedCommands.length);
-    const spawnsList = r.spawns.length > 0 ? r.spawns.join(", ") : "(none)";
-    const invCount =
-      "invariantsCount" in r ? String(r.invariantsCount) : String(r.invariants.length);
-
-    return {
-      role: roleName,
-      tier: tierStr,
-      commands: cmdCount,
-      spawns: spawnsList,
-      invariants: invCount,
-    };
-  });
-
-  const colRoleWidth = Math.max(4, ...rows.map((r) => r.role.length), "Role".length);
-  const colTierWidth = Math.max(4, ...rows.map((r) => r.tier.length), "Tier".length);
-  const colCmdWidth = Math.max(8, ...rows.map((r) => r.commands.length), "Commands".length);
-  const colSpawnsWidth = Math.min(
-    32,
-    Math.max(6, ...rows.map((r) => r.spawns.length), "Spawns".length),
-  );
-  const colInvWidth = Math.max(10, ...rows.map((r) => r.invariants.length), "Invariants".length);
-
-  const topBorder = `┌${"─".repeat(colRoleWidth + 2)}┬${"─".repeat(colTierWidth + 2)}┬${"─".repeat(colCmdWidth + 2)}┬${"─".repeat(colSpawnsWidth + 2)}┬${"─".repeat(colInvWidth + 2)}┐`;
-  const header = `│ ${"Role".padEnd(colRoleWidth)} │ ${"Tier".padEnd(colTierWidth)} │ ${"Commands".padEnd(colCmdWidth)} │ ${"Spawns".padEnd(colSpawnsWidth)} │ ${"Invariants".padEnd(colInvWidth)} │`;
-  const midBorder = `├${"─".repeat(colRoleWidth + 2)}┼${"─".repeat(colTierWidth + 2)}┼${"─".repeat(colCmdWidth + 2)}┼${"─".repeat(colSpawnsWidth + 2)}┼${"─".repeat(colInvWidth + 2)}┤`;
-  const botBorder = `└${"─".repeat(colRoleWidth + 2)}┴${"─".repeat(colTierWidth + 2)}┴${"─".repeat(colCmdWidth + 2)}┴${"─".repeat(colSpawnsWidth + 2)}┴${"─".repeat(colInvWidth + 2)}┘`;
-
-  const dataLines = rows.map((r) => {
-    const spawnsTruncated =
-      r.spawns.length > colSpawnsWidth ? `${r.spawns.slice(0, colSpawnsWidth - 3)}...` : r.spawns;
-    return `│ ${r.role.padEnd(colRoleWidth)} │ ${r.tier.padEnd(colTierWidth)} │ ${r.commands.padEnd(colCmdWidth)} │ ${spawnsTruncated.padEnd(colSpawnsWidth)} │ ${r.invariants.padEnd(colInvWidth)} │`;
-  });
-
-  return [topBorder, header, midBorder, ...dataLines, botBorder].join("\n");
+  return formatUniversalCheatSheet(spec, options);
 }

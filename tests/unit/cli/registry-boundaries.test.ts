@@ -172,7 +172,9 @@ describe("CLI registry boundaries and behavioral characterization", () => {
 
     test("enforces stdin reading contract exclusively on authoring commands", () => {
       const stdinCommands = COMMAND_REGISTRY.filter((spec) => spec.readsStdin).map((s) => s.name);
-      expect(stdinCommands.sort()).toEqual(["orchestrate", "orchestrator:run", "plan:init"].sort());
+      expect(stdinCommands.sort()).toEqual(
+        ["orchestrate", "orchestrator:run", "plan:init", "run:init"].sort(),
+      );
     });
 
     test("enforces remainder arguments contract exclusively on execution commands", () => {

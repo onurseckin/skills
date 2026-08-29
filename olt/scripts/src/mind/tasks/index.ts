@@ -7,7 +7,7 @@ export type {
   TaskQueueStats,
   TaskQueueStatus,
   TaskSourceType,
-} from "./queue/index.ts";
+} from "../../task/queue/index.ts";
 
 export {
   DEFAULT_LEASE_DURATION_SECONDS,
@@ -65,7 +65,7 @@ export {
   withTaskQueueTransaction,
   writeTaskQueue,
   writeTaskQueueUnlocked,
-} from "./queue/index.ts";
+} from "../../task/queue/index.ts";
 
 export type {
   ArchitecturalHealthFinding,

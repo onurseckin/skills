@@ -15,6 +15,7 @@ import {
   parseRoleContract,
   parseYaml,
   type AgentManifest,
+  type AgentManifestCommunicationContract,
   type RoleContract,
   type UnifiedAgentModel,
 } from "../../../olt/scripts/src/authority/manifest/index.ts";
@@ -1679,5 +1680,102 @@ mapping:
         expect(commands).toContain("msg:poll");
       }
     }
+  });
+
+  describe("Agent Manifest Communication Contracts & Strict Ban on Raw JSONL Reading (task-msg-8)", () => {
+    const BAN_JSONL_CLAUSE =
+      "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands";
+
+    test("all 28 manifests in olt/agents load cleanly with valid communication_contract and ban clause", () => {
+      const agentsDir = join(findSkillRoot(), "agents");
+      const manifestFiles = readdirSync(agentsDir)
+        .filter((f) => f.endsWith(".yaml"))
+        .sort();
+      expect(manifestFiles.length).toBe(28);
+
+      for (const file of manifestFiles) {
+        const fullPath = join(agentsDir, file);
+        const content = readFileSync(fullPath, "utf-8");
+        const manifest = parseAgentManifest(content, fullPath);
+
+        expect(manifest.communication_contract).toBeDefined();
+        expect(manifest.communication_contract?.protocol).toBe("mailbox_ipc");
+        expect(manifest.communication_contract?.mailbox_path).toBe(".olt/mailboxes/{agent_id}/");
+        expect(manifest.communication_contract?.lock_path).toBe(
+          ".olt/locks/mailboxes/{agent_id}.lock",
+        );
+        expect(manifest.communication_contract?.allowed_channels).toEqual([
+          "msg:send",
+          "msg:recv",
+          "msg:poll",
+        ]);
+        expect(manifest.communication_contract?.ban_raw_jsonl_reading).toBe(true);
+
+        expect(manifest.permissions).toBeDefined();
+        expect(manifest.permissions?.must_not).toBeDefined();
+        expect(manifest.permissions?.must_not).toContain(BAN_JSONL_CLAUSE);
+      }
+    });
+
+    test("all 28 manifests parse and pass schema validation via parseUnifiedAgentManifest", () => {
+      const agentsDir = join(findSkillRoot(), "agents");
+      const manifestFiles = readdirSync(agentsDir)
+        .filter((f) => f.endsWith(".yaml"))
+        .sort();
+
+      for (const file of manifestFiles) {
+        const fullPath = join(agentsDir, file);
+        const content = readFileSync(fullPath, "utf-8");
+        const unified = parseUnifiedAgentManifest(content, fullPath);
+
+        expect(unified.communication_contract).toBeDefined();
+        expect(unified.communication_contract?.protocol).toBe("mailbox_ipc");
+        expect(unified.communication_contract?.mailbox_path).toBe(".olt/mailboxes/{agent_id}/");
+        expect(unified.communication_contract?.lock_path).toBe(
+          ".olt/locks/mailboxes/{agent_id}.lock",
+        );
+        expect(unified.communication_contract?.allowed_channels).toEqual([
+          "msg:send",
+          "msg:recv",
+          "msg:poll",
+        ]);
+        expect(unified.communication_contract?.ban_raw_jsonl_reading).toBe(true);
+        expect(unified.permissions.must_not).toContain(BAN_JSONL_CLAUSE);
+
+        const validation = validateUnifiedAgentManifest(unified);
+        expect(validation.valid).toBe(true);
+        expect(validation.errors).toHaveLength(0);
+      }
+    });
+
+    test("validateUnifiedAgentManifest catches invalid communication_contract structures", () => {
+      const baseManifest: UnifiedAgentManifest = {
+        name: "test-agent",
+        role: "test-agent",
+        tier: 3,
+        provider: ["generic"],
+        tools: { enable_subagent_tools: true, enable_write_tools: false },
+        interface: { display_name: "Test", short_description: "Test Agent" },
+        permissions: { may: [], must_not: [BAN_JSONL_CLAUSE], spawns: [] },
+        invariants: [],
+        protocol: { cli: "bun harness.ts", zero_json: true },
+        instructions: "test",
+        communication_contract: {
+          protocol: 123 as unknown as string,
+          mailbox_path: 456 as unknown as string,
+          lock_path: 789 as unknown as string,
+          allowed_channels: "not-array" as unknown as readonly string[],
+          ban_raw_jsonl_reading: "not-bool" as unknown as boolean,
+        },
+      };
+
+      const result = validateUnifiedAgentManifest(baseManifest);
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.includes("protocol"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("mailbox_path"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("lock_path"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("allowed_channels"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("ban_raw_jsonl_reading"))).toBe(true);
+    });
   });
 });

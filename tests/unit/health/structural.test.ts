@@ -15,8 +15,6 @@ const CONSUMER = new URL("../../../../gvui/", import.meta.url).pathname;
  */
 const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["olt/scripts/src/authority/guards/singleton-auditor-guard.ts", 1],
-  ["olt/scripts/src/authority/manifest-schema.ts", 1],
-  ["olt/scripts/src/authority/manifest/agent-manifest-parser.ts", 1],
   ["olt/scripts/src/authority/persona/eval-invariants.ts", 1],
   ["olt/scripts/src/authority/review/audit.ts", 2],
   ["olt/scripts/src/authority/session/resolver.ts", 3],
@@ -53,7 +51,7 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["olt/scripts/src/graph/dag-expansion.ts", 1],
   ["olt/scripts/src/graph/parallel-decoupler.ts", 5],
   ["olt/scripts/src/installer/tree-digest.ts", 1],
-  ["olt/scripts/src/logging/dedup.ts", 1],
+  ["olt/scripts/src/logging/defects/dedup.ts", 4],
   ["olt/scripts/src/mind/archival/quiesce/evaluator.ts", 1],
   ["olt/scripts/src/mind/archival/recycler/collector.ts", 1],
   ["olt/scripts/src/mind/archival/recycler/pruner.ts", 1],
@@ -71,9 +69,6 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["olt/scripts/src/mind/concurrency-cap.ts", 4],
   ["olt/scripts/src/mind/core/discovery-command.ts", 1],
   ["olt/scripts/src/mind/core/evolution-command.ts", 1],
-  ["olt/scripts/src/mind/defects/aggregator/aggregator.ts", 6],
-  ["olt/scripts/src/mind/defects/core/discriminator.ts", 3],
-  ["olt/scripts/src/mind/defects/dedup/dedup-stream.ts", 1],
   ["olt/scripts/src/mind/defects/dedup/live-dedup.ts", 1],
   ["olt/scripts/src/mind/defects/loop/audit.ts", 3],
   ["olt/scripts/src/mind/defects/loop/candidates.ts", 2],
@@ -93,7 +88,6 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["olt/scripts/src/mind/lifecycle/deploy/types.ts", 1],
   ["olt/scripts/src/mind/lifecycle/evolution/proposal.ts", 3],
   ["olt/scripts/src/mind/lifecycle/ghost-reconciler.ts", 1],
-  ["olt/scripts/src/mind/lifecycle/interval/scheduler.ts", 1],
   ["olt/scripts/src/mind/lifecycle/liveness/probe.ts", 1],
   ["olt/scripts/src/mind/lifecycle/liveness/types.ts", 2],
   ["olt/scripts/src/mind/lifecycle/observe/index.ts", 1],
@@ -115,8 +109,8 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["olt/scripts/src/mind/tasks/discovery/scanners/health-scanner.ts", 1],
   ["olt/scripts/src/mind/tasks/discovery/scanners/remediation-scanner.ts", 5],
   ["olt/scripts/src/mind/tasks/discovery/slices/scans.ts", 1],
-  ["olt/scripts/src/mind/tasks/queue/transitions.ts", 3],
-  ["olt/scripts/src/mind/tasks/queue/types.ts", 3],
+  ["olt/scripts/src/task/queue/transitions.ts", 3],
+  ["olt/scripts/src/task/queue/types.ts", 3],
   ["olt/scripts/src/mind/tasks/smart/executor/dispatch.ts", 1],
   ["olt/scripts/src/mind/tasks/smart/executor/evolution.ts", 3],
   ["olt/scripts/src/mind/tasks/smart/executor/priorities.ts", 4],
@@ -141,7 +135,6 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["olt/scripts/src/policy/rbac/authorizer.ts", 1],
   ["olt/scripts/src/reporting/dag-view.ts", 2],
   ["olt/scripts/src/reporting/doctor/anti-mock-engine.ts", 2],
-  ["olt/scripts/src/reporting/doctor/auto-heal.ts", 1],
   ["olt/scripts/src/reporting/doctor/git-index-engine.ts", 1],
   ["olt/scripts/src/reporting/doctor/lock-cleaner.ts", 2],
   ["olt/scripts/src/reporting/doctor/tier-confinement/audit-supervisor.ts", 2],
@@ -161,6 +154,8 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["olt/scripts/src/watchdog/boot-gate-enforcer/enforcer.ts", 2],
   ["olt/scripts/src/watchdog/boot-gate-enforcer/recorder.ts", 4],
   ["olt/scripts/src/workflow/scope-partitioner.ts", 1],
+  ["olt/scripts/src/workflow/worktree/landing.ts", 1],
+  ["olt/scripts/src/workflow/worktree/manager.ts", 1],
 ]);
 
 // Empty now that the health check's own vendor sweep carries the same PRODUCT_GRAMMAR_MODULES

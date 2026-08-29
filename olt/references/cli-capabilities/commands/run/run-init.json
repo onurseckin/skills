@@ -1,0 +1,87 @@
+{
+  "name": "run:init",
+  "aliases": [],
+  "domain": "run",
+  "summary": "Initialize a capsule run root and write its initial manifest.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": true,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "repo",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "."
+    },
+    {
+      "name": "prompt",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "mode",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "capture-mode",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "source-verified",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "no-runtime-pin",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "runtime-source",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "allow-existing",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": true
+    }
+  ],
+  "reads_stdin": true,
+  "takes_remainder": false
+}

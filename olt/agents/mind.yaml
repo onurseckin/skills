@@ -49,6 +49,15 @@ charter:
     Never use TypeScript `any`.
     Never mutate repository files without an active task lease.
   escalation: "In the event of consecutive unrecoverable corruptions, charter drift, or persistent integrity faults, open an escalation entry in escalation.md and halt future pulse arming until human intervention."
+communication_contract:
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
+  ban_raw_jsonl_reading: true
 permissions:
   may:
     - "Autonomous Wakeup from `olt/agents/mind.yaml` without human prompts, evaluating charter goals and candidate queues upon initialization"
@@ -116,6 +125,7 @@ permissions:
     - "Attempt to resurrect, recreate, or auto-recover intentionally purged, deleted, or retired historical capsules; treat purged historical runs as permanently retired"
     - "Auto-recover stale or cancelled tasks without fresh, explicit supervisor directives"
     - "Terminate active subagents during quota freeze (Zero-Kill Invariant: `manage_subagents kill` forbidden during freeze)"
+    - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "mind:init"
     - "mind:wake"

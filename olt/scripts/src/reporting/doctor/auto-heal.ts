@@ -8,6 +8,7 @@ import { atomicWriteBytes } from "../../core/durable-write.ts";
 import { createSha256Hash } from "../../mind/defects/core/discriminator.ts";
 import { cleanseDanglingLocks } from "./lock-cleaner.ts";
 import { autoHealGitState } from "./git-index-engine.ts";
+import { autoHealMailboxState } from "./mailbox-health-engine.ts";
 import { cleanupVestigialDefectsFile } from "../../mind/defects/sync/lifecycle-sync.ts";
 import type { AutoHealOptions, DoctorAutoHealResult } from "./types.ts";
 
@@ -16,9 +17,6 @@ export type { AutoHealOptions };
 const STATE_PROJECTION_ISSUE_CODE = "STATE_PROJECTION";
 const TORN_EVENT_TAIL_CODE = "TORN_EVENT_TAIL";
 
-/**
- * Quarantines torn trailing bytes into `.olt/quarantine/<timestamp>-torn-tail-<sha256>.json`.
- */
 export function quarantineTornTail(runRoot: string, tornBytes: Buffer): string {
   const quarantineDir = join(runRoot, "quarantine");
   if (!existsSync(quarantineDir)) {
@@ -31,15 +29,11 @@ export function quarantineTornTail(runRoot: string, tornBytes: Buffer): string {
   return fileName;
 }
 
-/**
- * Automatically inspects the capsule for state projection mismatches,
- * torn event tails, stale leases, dangling locks, vestigial ledgers, and git index locks.
- */
 export function autoHealCapsule(
   runRoot: string,
   options: AutoHealOptions = {},
 ): DoctorAutoHealResult {
-  const actor = options.actor ?? "doctor-auto-heal";
+  const actor = typeof options.actor === "string" ? options.actor : "doctor-auto-heal";
   const autoHealed: string[] = [];
   const recoveredLeases: string[] = [];
   const quarantinedFragments: string[] = [];
@@ -49,9 +43,9 @@ export function autoHealCapsule(
   let gitIndexHealed = false;
   const gitArtifactsStaged: string[] = [];
 
-  const repoRoot = options.repoRoot ?? resolve(runRoot, "..", "..");
+  const repoRoot =
+    typeof options.repoRoot === "string" ? options.repoRoot : resolve(runRoot, "..", "..");
 
-  // 1. Clean dangling locks
   const clearedLocks = cleanseDanglingLocks({ repoRoot });
   if (clearedLocks.length > 0) {
     danglingLocksCleared.push(...clearedLocks);
@@ -60,7 +54,6 @@ export function autoHealCapsule(
     );
   }
 
-  // 2. Clean vestigial runtime ledgers in static package root
   try {
     const vestigialOlt = join(repoRoot, "olt", "defects.jsonl");
     if (existsSync(vestigialOlt)) {
@@ -70,11 +63,8 @@ export function autoHealCapsule(
         "Migrated vestigial ledger olt/defects.jsonl to canonical .olt/defects.jsonl",
       );
     }
-  } catch {
-    // Best effort migration
-  }
+  } catch {}
 
-  // 3. Git index healing & auto-staging
   try {
     const gitHeal = autoHealGitState({ repoRoot, cleanIndexLock: true, stageModified: false });
     if (gitHeal.indexLockCleaned) {
@@ -85,28 +75,31 @@ export function autoHealCapsule(
       gitArtifactsStaged.push(...gitHeal.stagedFiles);
       autoHealed.push(`Auto-staged ${gitHeal.stagedFiles.length} file(s) for reflog safety`);
     }
-  } catch {
-    // Best effort git healing
-  }
+  } catch {}
 
-  // 4. Check for state projection mismatch, torn event tail, or state corruption
+  try {
+    const mailboxHealed = autoHealMailboxState({ repoRoot });
+    if (mailboxHealed.length > 0) {
+      autoHealed.push(...mailboxHealed);
+    }
+  } catch {}
+
   let needsProjectionRecovery = false;
   try {
     const integrityIssues = verifyIntegrity(runRoot);
     if (
-      integrityIssues.some(
-        (issue) =>
-          issue.code === STATE_PROJECTION_ISSUE_CODE ||
-          issue.code === TORN_EVENT_TAIL_CODE ||
-          issue.code === "STATE_JSON" ||
-          issue.code.startsWith("EVENT_") ||
-          issue.code === "EVENT_PATH",
-      )
+      integrityIssues.some((issue) => {
+        if (issue.code === STATE_PROJECTION_ISSUE_CODE) return true;
+        if (issue.code === TORN_EVENT_TAIL_CODE) return true;
+        if (issue.code === "STATE_JSON") return true;
+        if (issue.code.startsWith("EVENT_")) return true;
+        if (issue.code === "EVENT_PATH") return true;
+        return false;
+      })
     ) {
       needsProjectionRecovery = true;
     }
   } catch {
-    // If verifyIntegrity threw or failed, attempt recovery
     needsProjectionRecovery = true;
   }
 
@@ -119,22 +112,25 @@ export function autoHealCapsule(
         try {
           const files = readdirSync(quarantineDir);
           quarantinedFragments.push(...files);
-        } catch {
-          // ignore directory read error
-        }
+        } catch {}
       }
       autoHealed.push(
         `Recovered state projection from event chain (event_sequence=${recoveredState.event_sequence}) and quarantined torn fragments under quarantine/`,
       );
-    } catch {
-      // Auto-heal best-effort; failures will remain as integrity issues
-    }
+    } catch {}
   }
 
-  // 5. Check for stale leases or torn ledger states
   try {
     const loaded = loadRun(runRoot);
-    const tasks = (loaded.state?.tasks ?? {}) as Record<string, Record<string, unknown>>;
+    const stateObj = loaded.state;
+    const rawTasks =
+      typeof stateObj === "object" && stateObj !== null
+        ? (stateObj as Record<string, unknown>).tasks
+        : undefined;
+    const tasks = (typeof rawTasks === "object" && rawTasks !== null ? rawTasks : {}) as Record<
+      string,
+      Record<string, unknown>
+    >;
     const now = systemClock.now().getTime();
     const hasStaleTasks = Object.values(tasks).some((task) => {
       const lease = task["lease"] as Record<string, unknown> | undefined;
@@ -153,7 +149,7 @@ export function autoHealCapsule(
         .map((t) => t.id);
 
       const afterState = recoverStale(port, actor, systemClock, {
-        graceSeconds: options.graceSeconds ?? 0,
+        graceSeconds: typeof options.graceSeconds === "number" ? options.graceSeconds : 0,
       });
 
       const reclaimed = leasedBefore.filter((id) => afterState.tasks[id]?.lease === undefined);
@@ -164,9 +160,7 @@ export function autoHealCapsule(
         );
       }
     }
-  } catch {
-    // Best-effort stale lease recovery
-  }
+  } catch {}
 
   return {
     autoHealed,

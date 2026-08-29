@@ -200,6 +200,8 @@ export interface RoundExecutionInput {
   readonly isFirstRound: boolean;
   readonly previousRoundRunId?: string | undefined;
   readonly priorDefects?: DefectSynthesis | undefined;
+  readonly worktreePath?: string | undefined;
+  readonly trackId?: string | undefined;
 }
 
 export interface RoundGateResult {
@@ -238,6 +240,8 @@ export interface LoopRunnerOptions {
   readonly capsulesDir?: string | undefined;
   readonly harnessCli?: string | undefined;
   readonly actor?: string | undefined;
+  readonly worktreeIsolation?: boolean | undefined;
+  readonly trackId?: string | undefined;
   readonly executor?: RoundExecutor | undefined;
   readonly watchdogConfig?: WatchdogConfig | undefined;
   readonly skillAuditorCompanion?: boolean | undefined;

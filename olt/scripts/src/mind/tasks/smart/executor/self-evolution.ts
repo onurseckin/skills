@@ -22,7 +22,7 @@ import {
   resolveScratchDir,
   resolveCapsulesDir,
 } from "../../../../core/shared/paths.ts";
-import { enqueueTasksBatch, type NewTaskQueueInput } from "../../queue/index.ts";
+import { enqueueTasksBatch, type NewTaskQueueInput } from "../../../../task/queue/index.ts";
 import {
   sanitizeSlug,
   deriveWriteScopeForCategory,

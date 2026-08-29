@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { HarnessError } from "../../../../core/errors/index.ts";
 import type { SmartTaskPlan, AntiBatchingValidationReport } from "./models.ts";
 import type { FeedbackItem } from "../../../feedback/queue/index.ts";
-import { enqueueTasksBatch, type NewTaskQueueInput } from "../../queue/index.ts";
+import { enqueueTasksBatch, type NewTaskQueueInput } from "../../../../task/queue/index.ts";
 export function validateAntiBatchingRule(
   plans: readonly SmartTaskPlan[],
 ): AntiBatchingValidationReport {

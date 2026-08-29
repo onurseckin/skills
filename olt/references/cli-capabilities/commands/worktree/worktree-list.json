@@ -1,0 +1,17 @@
+{
+  "name": "worktree:list",
+  "aliases": [],
+  "domain": "worktree",
+  "summary": "List all active track worktrees.",
+  "flags": [
+    {
+      "name": "repo-root",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

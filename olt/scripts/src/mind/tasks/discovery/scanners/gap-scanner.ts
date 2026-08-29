@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { parseCharter } from "../../../lifecycle/charter/index.ts";
-import { readTaskQueue } from "../../queue/index.ts";
+import { readTaskQueue } from "../../../../task/queue/index.ts";
 import { DEFAULT_SOURCE_EXTENSIONS, DEFAULT_EXCLUDE_PATTERNS } from "../types.ts";
 import { resolveDiscoveryCharterPath, sanitizeSlug } from "./quality-scanner.ts";
 import { existsSync, readFileSync } from "node:fs";
