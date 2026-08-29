@@ -59,7 +59,6 @@ export {
 } from "./guidance.ts";
 export {
   checkPreCompletionDiagnostics,
-  executePreCompletionDoctorHook,
   type PreCompletionDiagnosticsOptions,
   type PreCompletionDiagnosticsResult,
   type PreCompletionBlocker,

@@ -35,4 +35,4 @@ export {
   resolveValidatorDomainContractPath,
   extractValidatorDomainSection,
   loadValidatorDomainContract,
-} from "./roles/index.ts";
+} from "./role-contract.ts";

@@ -1,3 +1,7 @@
+/**
+ * Tarjan Cycle Detection, Feedback Arc Inversion & Bypass Diagnostics Engine
+ * Detects strongly connected components (SCCs), extracts feedback arcs, and identifies transitive bypasses.
+ */
 import type {
   BypassDiagnostic,
   BypassDiagnosticItem,
@@ -65,6 +69,9 @@ function computeTarjanSccs(
   return { adj, sccs };
 }
 
+/**
+ * Extracts feedback arc set by identifying back-edges within Tarjan SCCs.
+ */
 export function extractFeedbackArcSet(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],
@@ -122,6 +129,9 @@ export function extractFeedbackArcSet(
   return { feedbackArcs, acyclicEdges };
 }
 
+/**
+ * Reverses the direction of feedback arcs in the edge set to produce a strict DAG.
+ */
 export function reverseCycleEdges(
   edges: readonly SugiyamaEdge[],
   feedbackArcs: readonly { readonly from: string; readonly to: string }[],
@@ -130,6 +140,9 @@ export function reverseCycleEdges(
   return edges.map((e) => (faSet.has(`${e.from}->${e.to}`) ? { ...e, from: e.to, to: e.from } : e));
 }
 
+/**
+ * Tarjan cycle detection to find all strongly connected components (SCCs) and cycles.
+ */
 export function detectCyclesTarjan(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],
@@ -209,6 +222,9 @@ export function detectCyclesTarjan(
   };
 }
 
+/**
+ * Detects illegal transitive bypasses and layering violations.
+ */
 export function detectIllegalBypasses(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],
@@ -259,6 +275,9 @@ export function detectIllegalBypasses(
   };
 }
 
+/**
+ * Validates overall diagnostic health of a DAG.
+ */
 export function validateDiagnosticHealth(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],

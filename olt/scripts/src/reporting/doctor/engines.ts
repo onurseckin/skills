@@ -73,7 +73,6 @@ import {
 } from "./registry-engine.ts";
 import {
   checkPreCompletionDiagnostics,
-  executePreCompletionDoctorHook,
   type PreCompletionDiagnosticsOptions,
   type PreCompletionDiagnosticsResult,
   type PreCompletionBlocker,
@@ -118,7 +117,6 @@ export {
   checkEpistemicConfidence,
   checkCliRegistryTaxonomy,
   checkPreCompletionDiagnostics,
-  executePreCompletionDoctorHook,
   generateRemedialGuidance,
   remedialActionsForIntegrityIssues,
   MIN_ADVERSARIAL_PROBES,

@@ -73,7 +73,6 @@ export {
 } from "./doctor/engines.ts";
 export {
   checkPreCompletionDiagnostics,
-  executePreCompletionDoctorHook,
   type PreCompletionDiagnosticsOptions,
   type PreCompletionDiagnosticsResult,
   type PreCompletionBlocker,

@@ -23,10 +23,16 @@ export {
   CHECKLIST_SEVERITIES,
   CHECKLIST_ID,
   CHECKLIST_DOMAIN_LINE,
+} from "./role-contract-types.ts";
+
+export {
   readFrontmatter,
   requireList,
   parseRoleContract,
   parseChecklist,
+} from "./role-contract-rules.ts";
+
+export {
   resolveRoleContractPath,
   normalizeRoleName,
   loadRoleContract,
@@ -35,4 +41,4 @@ export {
   resolveValidatorDomainContractPath,
   extractValidatorDomainSection,
   loadValidatorDomainContract,
-} from "./roles/index.ts";
+} from "./role-contract-evaluator.ts";

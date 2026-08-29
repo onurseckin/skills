@@ -279,10 +279,3 @@ export function checkPreCompletionDiagnostics(
     findings,
   };
 }
-
-export function executePreCompletionDoctorHook(
-  runRoot: string,
-  options: Omit<PreCompletionDiagnosticsOptions, "runRoot"> = {},
-): PreCompletionDiagnosticsResult {
-  return checkPreCompletionDiagnostics({ runRoot, ...options });
-}
