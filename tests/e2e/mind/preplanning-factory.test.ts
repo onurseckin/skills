@@ -25,38 +25,121 @@ describe("Mind Pre-Planning Factory End-to-End Suite (Task 3.2)", () => {
 
       // 1. Simulate 10 realistic backlog items across diverse domains
       const backlogItems: readonly RawBacklogItem[] = [
-        { id: "fb-core-01", title: "Global type registry synchronization", category: "core", status: "PENDING" },
-        { id: "fb-core-02", title: "Immutable state projection cache", category: "core", status: "PENDING" },
-        { id: "fb-mind-01", title: "Cognitive pulse frequency coordinator", category: "mind", status: "PENDING" },
-        { id: "fb-mind-02", title: "Charter goal divergence watcher", category: "mind", status: "PENDING" },
-        { id: "fb-val-01", title: "APCA contrast ratio assertion gate", category: "validation", status: "PENDING" },
-        { id: "fb-val-02", title: "Flock lock contention stress tests", category: "validation", status: "PENDING" },
-        { id: "fb-tool-01", title: "CLI preplan command integration", category: "tooling", status: "PENDING" },
-        { id: "fb-tool-02", title: "Telemetry inspection formatter", category: "tooling", status: "PENDING" },
-        { id: "fb-eng-01", title: "RocksDB KV storage engine driver", category: "engine", status: "PENDING" },
-        { id: "fb-rep-01", title: "Doctor health check diagnostics report", category: "reporting", status: "PENDING" },
+        {
+          id: "fb-core-01",
+          title: "Global type registry synchronization",
+          category: "core",
+          status: "PENDING",
+        },
+        {
+          id: "fb-core-02",
+          title: "Immutable state projection cache",
+          category: "core",
+          status: "PENDING",
+        },
+        {
+          id: "fb-mind-01",
+          title: "Cognitive pulse frequency coordinator",
+          category: "mind",
+          status: "PENDING",
+        },
+        {
+          id: "fb-mind-02",
+          title: "Charter goal divergence watcher",
+          category: "mind",
+          status: "PENDING",
+        },
+        {
+          id: "fb-val-01",
+          title: "APCA contrast ratio assertion gate",
+          category: "validation",
+          status: "PENDING",
+        },
+        {
+          id: "fb-val-02",
+          title: "Flock lock contention stress tests",
+          category: "validation",
+          status: "PENDING",
+        },
+        {
+          id: "fb-tool-01",
+          title: "CLI preplan command integration",
+          category: "tooling",
+          status: "PENDING",
+        },
+        {
+          id: "fb-tool-02",
+          title: "Telemetry inspection formatter",
+          category: "tooling",
+          status: "PENDING",
+        },
+        {
+          id: "fb-eng-01",
+          title: "RocksDB KV storage engine driver",
+          category: "engine",
+          status: "PENDING",
+        },
+        {
+          id: "fb-rep-01",
+          title: "Doctor health check diagnostics report",
+          category: "reporting",
+          status: "PENDING",
+        },
       ];
 
       // 2. Simulate 5 realistic defect entries across diverse domains
       const defectItems: readonly RawDefectItem[] = [
-        { id: "def-mind-01", title: "Mind pulse starvation under load", category: "mind", status: "OPEN", error_code: "MIND_STARVATION" },
-        { id: "def-val-01", title: "Flaky assertion in lease verifier", category: "validation", status: "OPEN", error_code: "VERIFIER_FLAKE" },
-        { id: "def-tool-01", title: "CLI argument parser flag drop", category: "tooling", status: "OPEN", error_code: "CLI_FLAG_DROP" },
-        { id: "def-eng-01", title: "Stale file descriptor leak on abort", category: "engine", status: "OPEN", error_code: "FD_LEAK" },
-        { id: "def-rep-01", title: "Doctor summary table markdown wrap error", category: "reporting", status: "OPEN", error_code: "MD_WRAP" },
+        {
+          id: "def-mind-01",
+          title: "Mind pulse starvation under load",
+          category: "mind",
+          status: "OPEN",
+          error_code: "MIND_STARVATION",
+        },
+        {
+          id: "def-val-01",
+          title: "Flaky assertion in lease verifier",
+          category: "validation",
+          status: "OPEN",
+          error_code: "VERIFIER_FLAKE",
+        },
+        {
+          id: "def-tool-01",
+          title: "CLI argument parser flag drop",
+          category: "tooling",
+          status: "OPEN",
+          error_code: "CLI_FLAG_DROP",
+        },
+        {
+          id: "def-eng-01",
+          title: "Stale file descriptor leak on abort",
+          category: "engine",
+          status: "OPEN",
+          error_code: "FD_LEAK",
+        },
+        {
+          id: "def-rep-01",
+          title: "Doctor summary table markdown wrap error",
+          category: "reporting",
+          status: "OPEN",
+          error_code: "MD_WRAP",
+        },
       ];
 
       writeFileSync(
         backlogPath,
         backlogItems.map((item) => JSON.stringify(item)).join("\n") + "\n",
       );
-      writeFileSync(
-        defectsPath,
-        defectItems.map((def) => JSON.stringify(def)).join("\n") + "\n",
-      );
+      writeFileSync(defectsPath, defectItems.map((def) => JSON.stringify(def)).join("\n") + "\n");
 
       // 3. Assert initial state: preplanning needed, stagnation auditor detects backlog
-      expect(isPreplanningNeeded({ rootDir: tempDir, backlogFile: backlogPath, defectsFile: defectsPath })).toBe(true);
+      expect(
+        isPreplanningNeeded({
+          rootDir: tempDir,
+          backlogFile: backlogPath,
+          defectsFile: defectsPath,
+        }),
+      ).toBe(true);
 
       const preAudit = auditMindPreplanningStagnation({
         rootDir: tempDir,
@@ -114,7 +197,11 @@ describe("Mind Pre-Planning Factory End-to-End Suite (Task 3.2)", () => {
         .map((l) => JSON.parse(l) as RawBacklogItem);
       expect(postBacklog.length).toBe(10);
       expect(postBacklog.every((item) => item.status === "PLANNED")).toBe(true);
-      expect(postBacklog.every((item) => typeof item.plan_path === "string" && item.plan_path.endsWith("PLAN.md"))).toBe(true);
+      expect(
+        postBacklog.every(
+          (item) => typeof item.plan_path === "string" && item.plan_path.endsWith("PLAN.md"),
+        ),
+      ).toBe(true);
       expect(postBacklog.every((item) => typeof item.planned_at === "string")).toBe(true);
 
       const postDefects = readFileSync(defectsPath, "utf-8")
@@ -123,7 +210,11 @@ describe("Mind Pre-Planning Factory End-to-End Suite (Task 3.2)", () => {
         .map((l) => JSON.parse(l) as RawDefectItem);
       expect(postDefects.length).toBe(5);
       expect(postDefects.every((d) => d.status === "PLANNED")).toBe(true);
-      expect(postDefects.every((d) => typeof d.plan_path === "string" && d.plan_path.endsWith("PLAN.md"))).toBe(true);
+      expect(
+        postDefects.every(
+          (d) => typeof d.plan_path === "string" && d.plan_path.endsWith("PLAN.md"),
+        ),
+      ).toBe(true);
 
       // 8. Assert Stagnation Auditor reports healthy status post-run
       const postAudit = auditMindPreplanningStagnation({
@@ -143,15 +234,23 @@ describe("Mind Pre-Planning Factory End-to-End Suite (Task 3.2)", () => {
       });
       expect(cliStatusResult).toBeDefined();
       expect(typeof (cliStatusResult as { markdown?: string }).markdown).toBe("string");
-      expect((cliStatusResult as { markdown: string }).markdown).toContain("Factory Engine & Assembly Pipeline Status");
-      expect((cliStatusResult as { markdown: string }).markdown).toContain("Pre-Planning Needed**: NO");
+      expect((cliStatusResult as { markdown: string }).markdown).toContain(
+        "Factory Engine & Assembly Pipeline Status",
+      );
+      expect((cliStatusResult as { markdown: string }).markdown).toContain(
+        "Pre-Planning Needed**: NO",
+      );
 
       const cliPreplanResult = await execute(["factory:preplan", "--repo", tempDir], {
         executingRuntime: tempDir,
       });
       expect(cliPreplanResult).toBeDefined();
-      expect((cliPreplanResult as { markdown: string }).markdown).toContain("Continuous Pre-Planning Factory Run Summary");
-      expect((cliPreplanResult as { markdown: string }).markdown).toContain("Clusters Created**: 0");
+      expect((cliPreplanResult as { markdown: string }).markdown).toContain(
+        "Continuous Pre-Planning Factory Run Summary",
+      );
+      expect((cliPreplanResult as { markdown: string }).markdown).toContain(
+        "Clusters Created**: 0",
+      );
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }

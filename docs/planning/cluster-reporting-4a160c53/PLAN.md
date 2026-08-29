@@ -60,6 +60,6 @@ Execution Order: [Task 1.1] ──► [Verification] ──► [Git Staging: git
 
 ## 5. Exhaustive Traceability Matrix
 
-| Defect / Backlog ID | Resolved By Task | Verification Test File |
-| :--- | :--- | :--- |
-| `defect-reporting-theme-duplicate-declarations` | Task 1.x | `tests/unit/reporting/defect-reporting-theme-duplicate-declarations.test.ts` |
+| Defect / Backlog ID                             | Resolved By Task | Verification Test File                                                       |
+| :---------------------------------------------- | :--------------- | :--------------------------------------------------------------------------- |
+| `defect-reporting-theme-duplicate-declarations` | Task 1.x         | `tests/unit/reporting/defect-reporting-theme-duplicate-declarations.test.ts` |

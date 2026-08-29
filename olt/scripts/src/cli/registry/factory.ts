@@ -1,12 +1,5 @@
-import {
-  factoryPreplanCommand,
-  factoryStatusCommand,
-} from "../commands/factory-ops.ts";
-import {
-  DEFAULT_EXIT_CODES,
-  optionalFlag,
-  type CommandSpec,
-} from "./types.ts";
+import { factoryPreplanCommand, factoryStatusCommand } from "../commands/factory-ops.ts";
+import { DEFAULT_EXIT_CODES, optionalFlag, type CommandSpec } from "./types.ts";
 
 export { factoryPreplanCommand, factoryStatusCommand };
 
@@ -52,10 +45,7 @@ export const FACTORY_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts factory:status",
-      "bun harness.ts factory:status --repo .",
-    ],
+    examples: ["bun harness.ts factory:status", "bun harness.ts factory:status --repo ."],
     handler: factoryStatusCommand,
   },
 ];

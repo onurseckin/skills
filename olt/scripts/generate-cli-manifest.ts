@@ -24,15 +24,14 @@ export function manifestPaths(): { markdown: string; splitRoot: string } {
     splitRoot: fileURLToPath(new URL("cli-capabilities/", references)),
   };
 }
-function getShardKey(commandName: string, domain: string): string {
+export function getShardKey(commandName: string, domain: string): string {
   if (domain === "mind") {
     if (commandName.includes("queue")) return "queue";
     if (commandName.includes("audit")) return "audit";
     if (["memory", "smart-task"].some((k) => commandName.includes(k))) return "knowledge";
     if (commandName.includes("pulse")) return "pulse";
     if (commandName.includes("round")) return "round";
-    if (["admit", "decline", "candidate"].some((k) => commandName.includes(k)))
-      return "admission";
+    if (["admit", "decline", "candidate"].some((k) => commandName.includes(k))) return "admission";
     return "lifecycle";
   }
   if (domain === "reporting") {
@@ -54,19 +53,13 @@ function getShardKey(commandName: string, domain: string): string {
   }
   if (domain === "task") {
     if (["review", "validate"].some((k) => commandName.includes(k))) return "review";
-    if (["claim", "submit", "assign"].some((k) => commandName.includes(k)))
-      return "lifecycle";
+    if (["claim", "submit", "assign"].some((k) => commandName.includes(k))) return "lifecycle";
     if (["abandon", "release"].some((k) => commandName.includes(k))) return "terminal";
     return "ops";
   }
   if (domain === "diagnostics") {
-    if (["doctor", "health", "recover"].some((k) => commandName.includes(k)))
-      return "doctor";
-    if (
-      ["finding", "defect", "audit", "coverage"].some((k) =>
-        commandName.includes(k),
-      )
-    )
+    if (["doctor", "health", "recover"].some((k) => commandName.includes(k))) return "doctor";
+    if (["finding", "defect", "audit", "coverage"].some((k) => commandName.includes(k)))
       return "audit";
     return "tools";
   }

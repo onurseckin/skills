@@ -25,7 +25,8 @@ export interface StagnationAuditOptions {
 export function auditMindPreplanningStagnation(
   options?: StagnationAuditOptions | undefined,
 ): StagnationAuditResult {
-  const root = options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
+  const root =
+    options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
   const customBacklog = options !== undefined ? options.backlogFile : undefined;
   const customDefects = options !== undefined ? options.defectsFile : undefined;
 

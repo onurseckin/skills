@@ -61,8 +61,7 @@ export function generatePlanMarkdown(
   if (matchedItems.length === 0 && matchedDefects.length === 0) {
     const backlogSummary =
       cluster.backlog_item_ids.length > 0 ? cluster.backlog_item_ids.join(", ") : "None";
-    const defectSummary =
-      cluster.defect_ids.length > 0 ? cluster.defect_ids.join(", ") : "None";
+    const defectSummary = cluster.defect_ids.length > 0 ? cluster.defect_ids.join(", ") : "None";
 
     lines.push(`### Task 1.1: ${cluster.title} Implementation`);
     lines.push("");

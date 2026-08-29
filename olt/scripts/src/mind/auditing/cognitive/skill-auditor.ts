@@ -189,6 +189,7 @@ export class SkillAuditorEngine {
       lastInspectedEventIndex: rollupMaxSeq,
       lastAuditTimestamp: nowIso,
     };
+    AuditorCursorStore.saveCursor(repoRoot, "skill", rollupCursor);
 
     return {
       compliant: incidents.length === 0,

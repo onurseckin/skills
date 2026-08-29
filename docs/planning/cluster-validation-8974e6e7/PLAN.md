@@ -192,18 +192,18 @@ Execution Order: [Task 1.1] ──► [Verification] ──► [Git Staging: git
 
 ## 5. Exhaustive Traceability Matrix
 
-| Defect / Backlog ID | Resolved By Task | Verification Test File |
-| :--- | :--- | :--- |
-| `fb-enforce-singleton-skill-auditor-fleet-constraint` | Task 1.x | `tests/unit/validation/fb-enforce-singleton-skill-auditor-fleet-constraint.test.ts` |
-| `defect-cli-diagnostics-unresolved-certify-import` | Task 1.x | `tests/unit/validation/defect-cli-diagnostics-unresolved-certify-import.test.ts` |
-| `defect-html-reporter-escaped-backtick-unterminated-literal` | Task 1.x | `tests/unit/validation/defect-html-reporter-escaped-backtick-unterminated-literal.test.ts` |
-| `defect-reporting-behavioral-auditor-missing-coordinator-behavior` | Task 1.x | `tests/unit/validation/defect-reporting-behavioral-auditor-missing-coordinator-behavior.test.ts` |
-| `defect-agent-triad-and-naming-unterminated-template-literals` | Task 1.x | `tests/unit/validation/defect-agent-triad-and-naming-unterminated-template-literals.test.ts` |
-| `defect-doctor-reporting-theme-resolve-is-large-text-undefined` | Task 1.x | `tests/unit/validation/defect-doctor-reporting-theme-resolve-is-large-text-undefined.test.ts` |
-| `defect-authority-session-unresolved-paths-and-io` | Task 1.x | `tests/unit/validation/defect-authority-session-unresolved-paths-and-io.test.ts` |
-| `defect-validation-unresolved-anti-mock-types` | Task 1.x | `tests/unit/validation/defect-validation-unresolved-anti-mock-types.test.ts` |
-| `defect-validation-index-missing-mutation-candidate-export` | Task 1.x | `tests/unit/validation/defect-validation-index-missing-mutation-candidate-export.test.ts` |
-| `defect-doctor-ast-purity-test-regex-false-positive` | Task 1.x | `tests/unit/validation/defect-doctor-ast-purity-test-regex-false-positive.test.ts` |
-| `defect-skill-audit-live-missing-analyze-run-forensics` | Task 1.x | `tests/unit/validation/defect-skill-audit-live-missing-analyze-run-forensics.test.ts` |
-| `defect-mechanical-chunk-naming-anti-pattern` | Task 1.x | `tests/unit/validation/defect-mechanical-chunk-naming-anti-pattern.test.ts` |
-| `defect-plan-granularity-monolithic-docs-orchestrator` | Task 1.x | `tests/unit/validation/defect-plan-granularity-monolithic-docs-orchestrator.test.ts` |
+| Defect / Backlog ID                                                | Resolved By Task | Verification Test File                                                                           |
+| :----------------------------------------------------------------- | :--------------- | :----------------------------------------------------------------------------------------------- |
+| `fb-enforce-singleton-skill-auditor-fleet-constraint`              | Task 1.x         | `tests/unit/validation/fb-enforce-singleton-skill-auditor-fleet-constraint.test.ts`              |
+| `defect-cli-diagnostics-unresolved-certify-import`                 | Task 1.x         | `tests/unit/validation/defect-cli-diagnostics-unresolved-certify-import.test.ts`                 |
+| `defect-html-reporter-escaped-backtick-unterminated-literal`       | Task 1.x         | `tests/unit/validation/defect-html-reporter-escaped-backtick-unterminated-literal.test.ts`       |
+| `defect-reporting-behavioral-auditor-missing-coordinator-behavior` | Task 1.x         | `tests/unit/validation/defect-reporting-behavioral-auditor-missing-coordinator-behavior.test.ts` |
+| `defect-agent-triad-and-naming-unterminated-template-literals`     | Task 1.x         | `tests/unit/validation/defect-agent-triad-and-naming-unterminated-template-literals.test.ts`     |
+| `defect-doctor-reporting-theme-resolve-is-large-text-undefined`    | Task 1.x         | `tests/unit/validation/defect-doctor-reporting-theme-resolve-is-large-text-undefined.test.ts`    |
+| `defect-authority-session-unresolved-paths-and-io`                 | Task 1.x         | `tests/unit/validation/defect-authority-session-unresolved-paths-and-io.test.ts`                 |
+| `defect-validation-unresolved-anti-mock-types`                     | Task 1.x         | `tests/unit/validation/defect-validation-unresolved-anti-mock-types.test.ts`                     |
+| `defect-validation-index-missing-mutation-candidate-export`        | Task 1.x         | `tests/unit/validation/defect-validation-index-missing-mutation-candidate-export.test.ts`        |
+| `defect-doctor-ast-purity-test-regex-false-positive`               | Task 1.x         | `tests/unit/validation/defect-doctor-ast-purity-test-regex-false-positive.test.ts`               |
+| `defect-skill-audit-live-missing-analyze-run-forensics`            | Task 1.x         | `tests/unit/validation/defect-skill-audit-live-missing-analyze-run-forensics.test.ts`            |
+| `defect-mechanical-chunk-naming-anti-pattern`                      | Task 1.x         | `tests/unit/validation/defect-mechanical-chunk-naming-anti-pattern.test.ts`                      |
+| `defect-plan-granularity-monolithic-docs-orchestrator`             | Task 1.x         | `tests/unit/validation/defect-plan-granularity-monolithic-docs-orchestrator.test.ts`             |

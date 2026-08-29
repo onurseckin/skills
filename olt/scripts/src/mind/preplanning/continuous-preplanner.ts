@@ -23,7 +23,8 @@ export interface PreplannerOptions extends ClusterOptions {
 }
 
 export function isPreplanningNeeded(options?: PreplannerOptions): boolean {
-  const root = options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
+  const root =
+    options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
   const customBacklog = options !== undefined ? options.backlogFile : undefined;
   const customDefects = options !== undefined ? options.defectsFile : undefined;
 
@@ -47,7 +48,8 @@ export function runPreplanningTick(options?: PreplannerOptions): PreplanningRunR
   const startedAt = new Date().toISOString();
   const startMs = Date.now();
 
-  const root = options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
+  const root =
+    options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
   const customBacklog = options !== undefined ? options.backlogFile : undefined;
   const customDefects = options !== undefined ? options.defectsFile : undefined;
 
@@ -92,8 +94,12 @@ export function runPreplanningTick(options?: PreplannerOptions): PreplanningRunR
       writtenPlanFiles.push(planResult.planPath);
 
       const bridgeResult = updateBridgeState(cluster, {
-        ...(options !== undefined && options.backlogFile !== undefined ? { backlogFile: options.backlogFile } : {}),
-        ...(options !== undefined && options.defectsFile !== undefined ? { defectsFile: options.defectsFile } : {}),
+        ...(options !== undefined && options.backlogFile !== undefined
+          ? { backlogFile: options.backlogFile }
+          : {}),
+        ...(options !== undefined && options.defectsFile !== undefined
+          ? { defectsFile: options.defectsFile }
+          : {}),
         rootDir: root,
       });
 
@@ -127,8 +133,7 @@ export async function startPreplanningDaemon(
 ): Promise<{ totalTicks: number; totalPlanned: number }> {
   const interval =
     options !== undefined && options.intervalMs !== undefined ? options.intervalMs : 5000;
-  const maxTicks =
-    options !== undefined && options.maxTicks !== undefined ? options.maxTicks : 1;
+  const maxTicks = options !== undefined && options.maxTicks !== undefined ? options.maxTicks : 1;
   let totalTicks = 0;
   let totalPlanned = 0;
 

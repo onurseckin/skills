@@ -148,14 +148,14 @@ Execution Order: [Task 1.1] ──► [Verification] ──► [Git Staging: git
 
 ## 5. Exhaustive Traceability Matrix
 
-| Defect / Backlog ID | Resolved By Task | Verification Test File |
-| :--- | :--- | :--- |
-| `defect-cli-watchdog-ops-unresolved-core-engine-import` | Task 1.x | `tests/unit/tooling/defect-cli-watchdog-ops-unresolved-core-engine-import.test.ts` |
-| `defect-exact-optional-property-types-in-watchdog-and-telemetry` | Task 1.x | `tests/unit/tooling/defect-exact-optional-property-types-in-watchdog-and-telemetry.test.ts` |
-| `defect-reporting-unified-sections-missing-sugiyama-export` | Task 1.x | `tests/unit/tooling/defect-reporting-unified-sections-missing-sugiyama-export.test.ts` |
-| `defect-engine-scheduler-core-export-types-as-values` | Task 1.x | `tests/unit/tooling/defect-engine-scheduler-core-export-types-as-values.test.ts` |
-| `defect-engine-store-unresolved-write-blob-export` | Task 1.x | `tests/unit/tooling/defect-engine-store-unresolved-write-blob-export.test.ts` |
-| `defect-workflow-integrity-evidence-unresolved-store-import` | Task 1.x | `tests/unit/tooling/defect-workflow-integrity-evidence-unresolved-store-import.test.ts` |
-| `defect-living-tracer-unresolved-replay-context` | Task 1.x | `tests/unit/tooling/defect-living-tracer-unresolved-replay-context.test.ts` |
-| `defect-engine-runner-models-modularization-import-paths` | Task 1.x | `tests/unit/tooling/defect-engine-runner-models-modularization-import-paths.test.ts` |
-| `defect-subagent-premature-termination-without-commit-push` | Task 1.x | `tests/unit/tooling/defect-subagent-premature-termination-without-commit-push.test.ts` |
+| Defect / Backlog ID                                              | Resolved By Task | Verification Test File                                                                      |
+| :--------------------------------------------------------------- | :--------------- | :------------------------------------------------------------------------------------------ |
+| `defect-cli-watchdog-ops-unresolved-core-engine-import`          | Task 1.x         | `tests/unit/tooling/defect-cli-watchdog-ops-unresolved-core-engine-import.test.ts`          |
+| `defect-exact-optional-property-types-in-watchdog-and-telemetry` | Task 1.x         | `tests/unit/tooling/defect-exact-optional-property-types-in-watchdog-and-telemetry.test.ts` |
+| `defect-reporting-unified-sections-missing-sugiyama-export`      | Task 1.x         | `tests/unit/tooling/defect-reporting-unified-sections-missing-sugiyama-export.test.ts`      |
+| `defect-engine-scheduler-core-export-types-as-values`            | Task 1.x         | `tests/unit/tooling/defect-engine-scheduler-core-export-types-as-values.test.ts`            |
+| `defect-engine-store-unresolved-write-blob-export`               | Task 1.x         | `tests/unit/tooling/defect-engine-store-unresolved-write-blob-export.test.ts`               |
+| `defect-workflow-integrity-evidence-unresolved-store-import`     | Task 1.x         | `tests/unit/tooling/defect-workflow-integrity-evidence-unresolved-store-import.test.ts`     |
+| `defect-living-tracer-unresolved-replay-context`                 | Task 1.x         | `tests/unit/tooling/defect-living-tracer-unresolved-replay-context.test.ts`                 |
+| `defect-engine-runner-models-modularization-import-paths`        | Task 1.x         | `tests/unit/tooling/defect-engine-runner-models-modularization-import-paths.test.ts`        |
+| `defect-subagent-premature-termination-without-commit-push`      | Task 1.x         | `tests/unit/tooling/defect-subagent-premature-termination-without-commit-push.test.ts`      |

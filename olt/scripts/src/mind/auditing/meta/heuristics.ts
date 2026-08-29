@@ -142,7 +142,7 @@ export function runForensicsHeuristics(ctx: HeuristicsContext): {
   for (const call of allToolCalls) {
     const role = String(call.agentRole || call.agentId || "").toLowerCase();
     const tool = String(call.toolName || call.name || "").toLowerCase();
-    const isCoord = role.includes("coord");
+    const isCoord = role.includes("coord") || role.includes("orch") || role.includes("superv");
     const isVal = role.includes("val");
     const isWrite =
       tool.includes("write") ||
@@ -197,6 +197,35 @@ export function runForensicsHeuristics(ctx: HeuristicsContext): {
           agentId: call.agentId,
         });
       }
+    }
+  }
+
+  for (const evt of events) {
+    const isViolation =
+      evt["type"] === "boundary_violation" ||
+      evt["error_code"] === "ROLE_BOUNDARY_DEVIATION" ||
+      evt["category"] === "ROLE_BOUNDARY_DEVIATION";
+    if (isViolation) {
+      addIncident({
+        id: generateIncidentId(
+          "ROLE_BOUNDARY_DEVIATION",
+          String(evt["command_id"] || evt["message"] || "event"),
+        ),
+        category: "ROLE_BOUNDARY_DEVIATION",
+        severity: "CRITICAL",
+        title: "Role Boundary Deviation: Supervisor Direct Code Modification",
+        observation: String(
+          evt["message"] || "Supervisor executed write command without delegation",
+        ),
+        description: String(
+          evt["message"] || "Supervisor executed write command without delegation",
+        ),
+        remediation:
+          "Supervisors and orchestrators must delegate code edits exclusively to Tier 3 Implementers.",
+        recommendation:
+          "Supervisors and orchestrators must delegate code edits exclusively to Tier 3 Implementers.",
+        agentId: String(evt["actor"] || "orchestrator"),
+      });
     }
   }
 

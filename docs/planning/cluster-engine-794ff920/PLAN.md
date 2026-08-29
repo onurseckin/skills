@@ -148,14 +148,14 @@ Execution Order: [Task 1.1] ──► [Verification] ──► [Git Staging: git
 
 ## 5. Exhaustive Traceability Matrix
 
-| Defect / Backlog ID | Resolved By Task | Verification Test File |
-| :--- | :--- | :--- |
-| `defect-engine-store-barrel-unresolved-subdirectories` | Task 1.x | `tests/unit/engine/defect-engine-store-barrel-unresolved-subdirectories.test.ts` |
-| `defect-mind-archival-rotate-stale-relative-import` | Task 1.x | `tests/unit/engine/defect-mind-archival-rotate-stale-relative-import.test.ts` |
-| `defect-plan-granularity-monolithic-central-policy` | Task 1.x | `tests/unit/engine/defect-plan-granularity-monolithic-central-policy.test.ts` |
-| `defect-plan-granularity-straggler-central-policy` | Task 1.x | `tests/unit/engine/defect-plan-granularity-straggler-central-policy.test.ts` |
-| `defect-plan-granularity-straggler-docs-orchestrator` | Task 1.x | `tests/unit/engine/defect-plan-granularity-straggler-docs-orchestrator.test.ts` |
-| `defect-plan-granularity-monolithic-master-doctor` | Task 1.x | `tests/unit/engine/defect-plan-granularity-monolithic-master-doctor.test.ts` |
-| `defect-plan-granularity-straggler-master-doctor` | Task 1.x | `tests/unit/engine/defect-plan-granularity-straggler-master-doctor.test.ts` |
-| `defect-plan-granularity-monolithic-storage-tui-revamp` | Task 1.x | `tests/unit/engine/defect-plan-granularity-monolithic-storage-tui-revamp.test.ts` |
-| `defect-plan-granularity-straggler-storage-tui-revamp` | Task 1.x | `tests/unit/engine/defect-plan-granularity-straggler-storage-tui-revamp.test.ts` |
+| Defect / Backlog ID                                     | Resolved By Task | Verification Test File                                                            |
+| :------------------------------------------------------ | :--------------- | :-------------------------------------------------------------------------------- |
+| `defect-engine-store-barrel-unresolved-subdirectories`  | Task 1.x         | `tests/unit/engine/defect-engine-store-barrel-unresolved-subdirectories.test.ts`  |
+| `defect-mind-archival-rotate-stale-relative-import`     | Task 1.x         | `tests/unit/engine/defect-mind-archival-rotate-stale-relative-import.test.ts`     |
+| `defect-plan-granularity-monolithic-central-policy`     | Task 1.x         | `tests/unit/engine/defect-plan-granularity-monolithic-central-policy.test.ts`     |
+| `defect-plan-granularity-straggler-central-policy`      | Task 1.x         | `tests/unit/engine/defect-plan-granularity-straggler-central-policy.test.ts`      |
+| `defect-plan-granularity-straggler-docs-orchestrator`   | Task 1.x         | `tests/unit/engine/defect-plan-granularity-straggler-docs-orchestrator.test.ts`   |
+| `defect-plan-granularity-monolithic-master-doctor`      | Task 1.x         | `tests/unit/engine/defect-plan-granularity-monolithic-master-doctor.test.ts`      |
+| `defect-plan-granularity-straggler-master-doctor`       | Task 1.x         | `tests/unit/engine/defect-plan-granularity-straggler-master-doctor.test.ts`       |
+| `defect-plan-granularity-monolithic-storage-tui-revamp` | Task 1.x         | `tests/unit/engine/defect-plan-granularity-monolithic-storage-tui-revamp.test.ts` |
+| `defect-plan-granularity-straggler-storage-tui-revamp`  | Task 1.x         | `tests/unit/engine/defect-plan-granularity-straggler-storage-tui-revamp.test.ts`  |

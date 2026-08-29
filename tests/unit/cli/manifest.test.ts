@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { writeManifest } from "../../../olt/scripts/generate-cli-manifest.ts";
+import { writeManifest, getShardKey } from "../../../olt/scripts/generate-cli-manifest.ts";
 import {
   capabilityManifest,
   commandSlice,
@@ -48,71 +48,6 @@ describe("CLI capability manifest", () => {
     const onDisk = readFileSync(join(splitRoot, "index.jsonl"), "utf-8");
 
     const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
-    function getShardKey(commandName: string, domain: string): string {
-      if (domain === "mind") {
-        if (commandName.includes("queue")) return "queue";
-        if (commandName.includes("audit")) return "audit";
-        if (commandName.includes("memory") || commandName.includes("smart-task"))
-          return "knowledge";
-        if (commandName.includes("pulse")) return "pulse";
-        if (commandName.includes("round")) return "round";
-        if (
-          commandName.includes("admit") ||
-          commandName.includes("decline") ||
-          commandName.includes("candidate")
-        )
-          return "admission";
-        return "lifecycle";
-      }
-      if (domain === "reporting") {
-        if (commandName.includes("quota")) return "quota";
-        if (commandName.includes("dag")) return "dag";
-        if (
-          commandName.includes("report-") ||
-          commandName.includes("test-summary") ||
-          commandName === "report"
-        )
-          return "reports";
-        if (commandName.includes("stream")) return "stream";
-        return "telemetry";
-      }
-      if (domain === "plan") {
-        if (
-          commandName.includes("validate") ||
-          commandName.includes("audit") ||
-          commandName.includes("review") ||
-          commandName.includes("claim") ||
-          commandName.includes("apply") ||
-          commandName.includes("replan")
-        )
-          return "validation";
-        return "authoring";
-      }
-      if (domain === "task") {
-        if (commandName.includes("review") || commandName.includes("validate")) return "review";
-        if (
-          commandName.includes("claim") ||
-          commandName.includes("submit") ||
-          commandName.includes("assign")
-        )
-          return "lifecycle";
-        if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
-        return "ops";
-      }
-      if (domain === "diagnostics") {
-        if (commandName.includes("doctor") || commandName.includes("health") || commandName.includes("recover"))
-          return "doctor";
-        if (
-          commandName.includes("finding") ||
-          commandName.includes("defect") ||
-          commandName.includes("audit") ||
-          commandName.includes("coverage")
-        )
-          return "audit";
-        return "tools";
-      }
-      return "core";
-    }
 
     let expected = renderCommandIndexJsonl();
     const manifest = capabilityManifest();
@@ -132,71 +67,6 @@ describe("CLI capability manifest", () => {
     const manifest = capabilityManifest();
 
     const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
-    function getShardKey(commandName: string, domain: string): string {
-      if (domain === "mind") {
-        if (commandName.includes("queue")) return "queue";
-        if (commandName.includes("audit")) return "audit";
-        if (commandName.includes("memory") || commandName.includes("smart-task"))
-          return "knowledge";
-        if (commandName.includes("pulse")) return "pulse";
-        if (commandName.includes("round")) return "round";
-        if (
-          commandName.includes("admit") ||
-          commandName.includes("decline") ||
-          commandName.includes("candidate")
-        )
-          return "admission";
-        return "lifecycle";
-      }
-      if (domain === "reporting") {
-        if (commandName.includes("quota")) return "quota";
-        if (commandName.includes("dag")) return "dag";
-        if (
-          commandName.includes("report-") ||
-          commandName.includes("test-summary") ||
-          commandName === "report"
-        )
-          return "reports";
-        if (commandName.includes("stream")) return "stream";
-        return "telemetry";
-      }
-      if (domain === "plan") {
-        if (
-          commandName.includes("validate") ||
-          commandName.includes("audit") ||
-          commandName.includes("review") ||
-          commandName.includes("claim") ||
-          commandName.includes("apply") ||
-          commandName.includes("replan")
-        )
-          return "validation";
-        return "authoring";
-      }
-      if (domain === "task") {
-        if (commandName.includes("review") || commandName.includes("validate")) return "review";
-        if (
-          commandName.includes("claim") ||
-          commandName.includes("submit") ||
-          commandName.includes("assign")
-        )
-          return "lifecycle";
-        if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
-        return "ops";
-      }
-      if (domain === "diagnostics") {
-        if (commandName.includes("doctor") || commandName.includes("health") || commandName.includes("recover"))
-          return "doctor";
-        if (
-          commandName.includes("finding") ||
-          commandName.includes("defect") ||
-          commandName.includes("audit") ||
-          commandName.includes("coverage")
-        )
-          return "audit";
-        return "tools";
-      }
-      return "core";
-    }
 
     for (const command of manifest.commands) {
       const slug = command.name.replaceAll(":", "-");
@@ -214,71 +84,6 @@ describe("CLI capability manifest", () => {
     const expected = new Set<string>(["manifest.json", "index.jsonl"]);
 
     const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
-    function getShardKey(commandName: string, domain: string): string {
-      if (domain === "mind") {
-        if (commandName.includes("queue")) return "queue";
-        if (commandName.includes("audit")) return "audit";
-        if (commandName.includes("memory") || commandName.includes("smart-task"))
-          return "knowledge";
-        if (commandName.includes("pulse")) return "pulse";
-        if (commandName.includes("round")) return "round";
-        if (
-          commandName.includes("admit") ||
-          commandName.includes("decline") ||
-          commandName.includes("candidate")
-        )
-          return "admission";
-        return "lifecycle";
-      }
-      if (domain === "reporting") {
-        if (commandName.includes("quota")) return "quota";
-        if (commandName.includes("dag")) return "dag";
-        if (
-          commandName.includes("report-") ||
-          commandName.includes("test-summary") ||
-          commandName === "report"
-        )
-          return "reports";
-        if (commandName.includes("stream")) return "stream";
-        return "telemetry";
-      }
-      if (domain === "plan") {
-        if (
-          commandName.includes("validate") ||
-          commandName.includes("audit") ||
-          commandName.includes("review") ||
-          commandName.includes("claim") ||
-          commandName.includes("apply") ||
-          commandName.includes("replan")
-        )
-          return "validation";
-        return "authoring";
-      }
-      if (domain === "task") {
-        if (commandName.includes("review") || commandName.includes("validate")) return "review";
-        if (
-          commandName.includes("claim") ||
-          commandName.includes("submit") ||
-          commandName.includes("assign")
-        )
-          return "lifecycle";
-        if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
-        return "ops";
-      }
-      if (domain === "diagnostics") {
-        if (commandName.includes("doctor") || commandName.includes("health") || commandName.includes("recover"))
-          return "doctor";
-        if (
-          commandName.includes("finding") ||
-          commandName.includes("defect") ||
-          commandName.includes("audit") ||
-          commandName.includes("coverage")
-        )
-          return "audit";
-        return "tools";
-      }
-      return "core";
-    }
 
     for (const domain of COMMAND_DOMAINS) {
       expected.add(`domains/${domain}.md`);
@@ -348,71 +153,6 @@ describe("CLI capability manifest", () => {
 
   test("every generated command file stays small enough to read in one grep hit", () => {
     const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
-    function getShardKey(commandName: string, domain: string): string {
-      if (domain === "mind") {
-        if (commandName.includes("queue")) return "queue";
-        if (commandName.includes("audit")) return "audit";
-        if (commandName.includes("memory") || commandName.includes("smart-task"))
-          return "knowledge";
-        if (commandName.includes("pulse")) return "pulse";
-        if (commandName.includes("round")) return "round";
-        if (
-          commandName.includes("admit") ||
-          commandName.includes("decline") ||
-          commandName.includes("candidate")
-        )
-          return "admission";
-        return "lifecycle";
-      }
-      if (domain === "reporting") {
-        if (commandName.includes("quota")) return "quota";
-        if (commandName.includes("dag")) return "dag";
-        if (
-          commandName.includes("report-") ||
-          commandName.includes("test-summary") ||
-          commandName === "report"
-        )
-          return "reports";
-        if (commandName.includes("stream")) return "stream";
-        return "telemetry";
-      }
-      if (domain === "plan") {
-        if (
-          commandName.includes("validate") ||
-          commandName.includes("audit") ||
-          commandName.includes("review") ||
-          commandName.includes("claim") ||
-          commandName.includes("apply") ||
-          commandName.includes("replan")
-        )
-          return "validation";
-        return "authoring";
-      }
-      if (domain === "task") {
-        if (commandName.includes("review") || commandName.includes("validate")) return "review";
-        if (
-          commandName.includes("claim") ||
-          commandName.includes("submit") ||
-          commandName.includes("assign")
-        )
-          return "lifecycle";
-        if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
-        return "ops";
-      }
-      if (domain === "diagnostics") {
-        if (commandName.includes("doctor") || commandName.includes("health") || commandName.includes("recover"))
-          return "doctor";
-        if (
-          commandName.includes("finding") ||
-          commandName.includes("defect") ||
-          commandName.includes("audit") ||
-          commandName.includes("coverage")
-        )
-          return "audit";
-        return "tools";
-      }
-      return "core";
-    }
 
     for (const command of capabilityManifest().commands) {
       const slug = command.name.replaceAll(":", "-");

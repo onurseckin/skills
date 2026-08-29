@@ -131,7 +131,10 @@ export function extractToolCallsFromEvents(events: readonly HarnessEvent[]): Ext
   for (const event of events) {
     const actor = event.actor;
     const kind = event.kind;
-    const payload = event.payload;
+    const rawPayload = (event as unknown as Record<string, unknown>)["payload"];
+    const payload = isJsonObject(rawPayload)
+      ? rawPayload
+      : (event as unknown as Record<string, unknown>);
 
     if (kind === "command-started" || kind === "command-executed" || kind === "tool-called") {
       const toolName =

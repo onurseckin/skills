@@ -34,10 +34,26 @@ describe("Diagnostics Defect Ingestion Engine", () => {
           expect(typeof item.type).toBe("string");
           expect(typeof item.severity).toBe("string");
           expect(typeof item.timestamp).toBe("string");
-          expect(["code_defect", "model_reasoning_error", "boundary_violation"]).toContain(
-            item.category,
-          );
-          expect(["open", "resolved", "wontfix"]).toContain(item.status);
+          expect([
+            "code_defect",
+            "model_reasoning_error",
+            "boundary_violation",
+            "documentation",
+            "security_risk",
+            "modularity_violation",
+          ]).toContain(item.category);
+          expect([
+            "open",
+            "in_progress",
+            "resolved",
+            "completed",
+            "closed",
+            "declined",
+            "wontfix",
+            "wont_fix",
+            "reopened",
+            "planned",
+          ]).toContain(item.status);
           expect(typeof item.observation).toBe("string");
           expect(typeof item.remediation).toBe("string");
         }

@@ -290,11 +290,7 @@ export function parseEventsFile(filePath: string): HarnessEvent[] {
       const trimmed = line.trim();
       if (!trimmed) continue;
       const parsed = safeParseJson(trimmed);
-      if (
-        isJsonObject(parsed) &&
-        typeof parsed["kind"] === "string" &&
-        typeof parsed["sequence"] === "number"
-      ) {
+      if (isJsonObject(parsed)) {
         events.push(parsed as unknown as HarnessEvent);
       }
     }

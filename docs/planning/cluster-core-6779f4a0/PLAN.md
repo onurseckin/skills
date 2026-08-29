@@ -60,6 +60,6 @@ Execution Order: [Task 1.1] ──► [Verification] ──► [Git Staging: git
 
 ## 5. Exhaustive Traceability Matrix
 
-| Defect / Backlog ID | Resolved By Task | Verification Test File |
-| :--- | :--- | :--- |
-| `defect-mind-pushbacks-and-rotate-syntax-errors` | Task 1.x | `tests/unit/core/defect-mind-pushbacks-and-rotate-syntax-errors.test.ts` |
+| Defect / Backlog ID                              | Resolved By Task | Verification Test File                                                   |
+| :----------------------------------------------- | :--------------- | :----------------------------------------------------------------------- |
+| `defect-mind-pushbacks-and-rotate-syntax-errors` | Task 1.x         | `tests/unit/core/defect-mind-pushbacks-and-rotate-syntax-errors.test.ts` |

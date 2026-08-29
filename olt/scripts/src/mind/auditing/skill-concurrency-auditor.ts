@@ -67,12 +67,9 @@ export function auditConcurrencySaturation(
   const activeSlots =
     options?.activeSlots !== undefined
       ? options.activeSlots
-      : stations.filter(
-          (s) => s.status === "IN_PROGRESS" || s.status === "VERIFIED",
-        ).length;
+      : stations.filter((s) => s.status === "IN_PROGRESS" || s.status === "VERIFIED").length;
 
-  const saturationRatio =
-    totalSlots === 0 ? 1 : Number((activeSlots / totalSlots).toFixed(2));
+  const saturationRatio = totalSlots === 0 ? 1 : Number((activeSlots / totalSlots).toFixed(2));
 
   const findings: string[] = [];
   const warnings: string[] = [];
@@ -101,10 +98,7 @@ export function auditConcurrencySaturation(
       } else if (stations.length > 0) {
         const pendingStations = stations
           .filter(
-            (s) =>
-              s.status !== "IN_PROGRESS" &&
-              s.status !== "VERIFIED" &&
-              s.status !== "LANDED",
+            (s) => s.status !== "IN_PROGRESS" && s.status !== "VERIFIED" && s.status !== "LANDED",
           )
           .map((s) => s.station_id);
         underParallelizedTasks.push(...pendingStations);

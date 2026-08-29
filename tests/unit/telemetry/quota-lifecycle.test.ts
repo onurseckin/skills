@@ -65,10 +65,10 @@ describe("Quota Lifecycle", () => {
       ],
       summary: {},
     };
-    const evaluation = breaker.evaluate(
-      normalReport,
-      { thresholdPercentage: 10, activeAgentsCount: 0 },
-    );
+    const evaluation = breaker.evaluate(normalReport, {
+      thresholdPercentage: 10,
+      activeAgentsCount: 0,
+    });
 
     expect(evaluation.isTriggered).toBe(false);
 
@@ -106,10 +106,10 @@ describe("Quota Lifecycle", () => {
       ],
       summary: {},
     };
-    const evaluation = breaker.evaluate(
-      breachReport,
-      { thresholdPercentage: 10, activeAgentsCount: 1 },
-    );
+    const evaluation = breaker.evaluate(breachReport, {
+      thresholdPercentage: 10,
+      activeAgentsCount: 1,
+    });
 
     expect(evaluation.isTriggered).toBe(true);
     // Reset time logic sets resumeTime to resetTime + 60s

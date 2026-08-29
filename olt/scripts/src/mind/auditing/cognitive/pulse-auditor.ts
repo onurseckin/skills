@@ -67,14 +67,22 @@ export function auditMindPulseHelper(
     ? nowMs
     : pulseMs !== null
       ? pulseMs
-      : nowMs - (threshold + 1) * 1000; // never pulsed => already stagnant
+      : options !== undefined &&
+          options.cursor !== undefined &&
+          typeof options.cursor.lastInspectedTimestamp === "string"
+        ? new Date(options.cursor.lastInspectedTimestamp).getTime()
+        : nowMs - (threshold + 1) * 1000; // never pulsed => already stagnant
 
   const idleDurationSeconds = Math.max(0, Math.floor((nowMs - lastActiveMs) / 1000));
   // An active harness grant alone is not native Codex liveness. Require both a live grant and
   // prior pulse evidence before declaring a Mind stagnant; otherwise provide deployment or
   // reconciliation guidance without manufacturing a LIVE_STAGNATION defect.
   const hasNativeMindEvidence =
-    activePulse !== null || (activeMindGrant !== null && pulseMs !== null);
+    activePulse !== null ||
+    (activeMindGrant !== null && pulseMs !== null) ||
+    (options !== undefined &&
+      options.cursor !== undefined &&
+      typeof options.cursor.lastInspectedTimestamp === "string");
   const stagnant = hasNativeMindEvidence && idleDurationSeconds >= threshold;
   const remediation = activePulse
     ? "none"

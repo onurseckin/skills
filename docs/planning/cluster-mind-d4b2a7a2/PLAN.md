@@ -55,7 +55,7 @@ It addresses 8 backlog requirement(s) and 43 defect remediation(s) under the zer
 - **Write Scope:** `olt/scripts/src/mind/fb-olt-unified-master-doctor-engine.ts`
 - **Read-Only Scope:** `olt/scripts/src/mind/`
 - **Acceptance Criteria (Stub Must Fail):**
-  - Implement: Transform 'bun harness.ts doctor' into a comprehensive, self-healing Master Diagnostic & Standards Engine: 1) Default Auto-Healing: 'doctor' runs auto-repair by default for all repairable state (re-deriving state projections, quarantining torn event tails, restoring missing runtime ledgers and indices). 2) Severity-Tiered Reporting: Non-repairable findings are surfaced with explicit severity levels (INFO for advisory metrics, WARN for approaching quota thresholds, ERROR for hard invariant violations). 3) Autonomous Defect Lifecycle & Regression Re-Opening: Doctor automatically pushes non-repaired findings to .olt/defects.jsonl. It deduplicates existing defects in-place without duplicate row churn. If a defect was previously COMPLETED but recurs, doctor automatically re-opens the defect (COMPLETED -> OPEN) with empirical failure proofs so the self-evolution Mind picks it up immediately. 4) Aggregate All Internal Verification Systems: Wires all 8 check engines into Doctor (Planning DAG Acyclic/Gate/Node validation via graph/validate-*.ts, AST-based zero-any/zero-suppression linter via validation/ast/ast-linter.ts, Anti-Mock & Mutation Gates via validation/mutation/mutation-gate.ts, Anti-Batching & 1:1 Isolation via validation/batching/anti-batching.ts, Dual-Channel UI validation via validation/channel/dual-channel-analyzer.ts, Cognitive Validator Command Hard-Lock via packets/command-authority-*.ts, Role Boundary Interlock via validation/leak/anti-leak.ts, and Mandatory Pushback Quotas MIN_ADVERSARIAL_PROBES=5 / MANDATORY_COGNITIVE_PUSHBACKS=5). 5) Sequential Lifecycle Command Ordering: Doctor enforces strict phase prerequisites (e.g. plan:init -> plan:enhance -> plan:add -> plan:compile).
+  - Implement: Transform 'bun harness.ts doctor' into a comprehensive, self-healing Master Diagnostic & Standards Engine: 1) Default Auto-Healing: 'doctor' runs auto-repair by default for all repairable state (re-deriving state projections, quarantining torn event tails, restoring missing runtime ledgers and indices). 2) Severity-Tiered Reporting: Non-repairable findings are surfaced with explicit severity levels (INFO for advisory metrics, WARN for approaching quota thresholds, ERROR for hard invariant violations). 3) Autonomous Defect Lifecycle & Regression Re-Opening: Doctor automatically pushes non-repaired findings to .olt/defects.jsonl. It deduplicates existing defects in-place without duplicate row churn. If a defect was previously COMPLETED but recurs, doctor automatically re-opens the defect (COMPLETED -> OPEN) with empirical failure proofs so the self-evolution Mind picks it up immediately. 4) Aggregate All Internal Verification Systems: Wires all 8 check engines into Doctor (Planning DAG Acyclic/Gate/Node validation via graph/validate-_.ts, AST-based zero-any/zero-suppression linter via validation/ast/ast-linter.ts, Anti-Mock & Mutation Gates via validation/mutation/mutation-gate.ts, Anti-Batching & 1:1 Isolation via validation/batching/anti-batching.ts, Dual-Channel UI validation via validation/channel/dual-channel-analyzer.ts, Cognitive Validator Command Hard-Lock via packets/command-authority-_.ts, Role Boundary Interlock via validation/leak/anti-leak.ts, and Mandatory Pushback Quotas MIN_ADVERSARIAL_PROBES=5 / MANDATORY_COGNITIVE_PUSHBACKS=5). 5) Sequential Lifecycle Command Ordering: Doctor enforces strict phase prerequisites (e.g. plan:init -> plan:enhance -> plan:add -> plan:compile).
   - Zero TypeScript `any`, zero compiler suppressions.
   - Command: `bun test tests/unit/mind/fb-olt-unified-master-doctor-engine.test.ts` (100% PASS).
 
@@ -610,56 +610,56 @@ Execution Order: [Task 1.1] ──► [Verification] ──► [Git Staging: git
 
 ## 5. Exhaustive Traceability Matrix
 
-| Defect / Backlog ID | Resolved By Task | Verification Test File |
-| :--- | :--- | :--- |
-| `fb-1787971784118-1aghp` | Task 1.x | `tests/unit/mind/fb-1787971784118-1aghp.test.ts` |
-| `fb-olt-unified-master-doctor-engine` | Task 1.x | `tests/unit/mind/fb-olt-unified-master-doctor-engine.test.ts` |
-| `fb-central-repo-policy-json-engine` | Task 1.x | `tests/unit/mind/fb-central-repo-policy-json-engine.test.ts` |
-| `fb-1787995932981-yc49l` | Task 1.x | `tests/unit/mind/fb-1787995932981-yc49l.test.ts` |
-| `fb-mind-plan-efficiency-optimization-and-auditor-granularity-gate` | Task 1.x | `tests/unit/mind/fb-mind-plan-efficiency-optimization-and-auditor-granularity-gate.test.ts` |
-| `fb-mind-orchestrator-lifecycle-reconciliation-and-ghost-detection` | Task 1.x | `tests/unit/mind/fb-mind-orchestrator-lifecycle-reconciliation-and-ghost-detection.test.ts` |
-| `fb-1788010306731-r4apu` | Task 1.x | `tests/unit/mind/fb-1788010306731-r4apu.test.ts` |
-| `fb-1788014300272-djnhy` | Task 1.x | `tests/unit/mind/fb-1788014300272-djnhy.test.ts` |
-| `defect-main-thread-chatter-burns-owner-context` | Task 1.x | `tests/unit/mind/defect-main-thread-chatter-burns-owner-context.test.ts` |
-| `defect-root-hygiene-loose-files-detected` | Task 1.x | `tests/unit/mind/defect-root-hygiene-loose-files-detected.test.ts` |
-| `defect-engine-store-unresolved-mind-archival-import` | Task 1.x | `tests/unit/mind/defect-engine-store-unresolved-mind-archival-import.test.ts` |
-| `defect-mind-defects-unresolved-aggregator-import` | Task 1.x | `tests/unit/mind/defect-mind-defects-unresolved-aggregator-import.test.ts` |
-| `defect-cli-mind-pulse-unresolved-diagnostics-import` | Task 1.x | `tests/unit/mind/defect-cli-mind-pulse-unresolved-diagnostics-import.test.ts` |
-| `defect-core-config-constants-unresolved-module` | Task 1.x | `tests/unit/mind/defect-core-config-constants-unresolved-module.test.ts` |
-| `defect-auditing-slices-missing-node-path-imports` | Task 1.x | `tests/unit/mind/defect-auditing-slices-missing-node-path-imports.test.ts` |
-| `defect-verify-gen5-unresolved-role-boundary-watchdog` | Task 1.x | `tests/unit/mind/defect-verify-gen5-unresolved-role-boundary-watchdog.test.ts` |
-| `defect-mind-task-discovery-defective-property-access` | Task 1.x | `tests/unit/mind/defect-mind-task-discovery-defective-property-access.test.ts` |
-| `defect-doctor-planning-dag-implicit-any` | Task 1.x | `tests/unit/mind/defect-doctor-planning-dag-implicit-any.test.ts` |
-| `defect-task-discovery-optional-observation-guard` | Task 1.x | `tests/unit/mind/defect-task-discovery-optional-observation-guard.test.ts` |
-| `defect-mind-auditing-cognitive-unresolved-relative-imports` | Task 1.x | `tests/unit/mind/defect-mind-auditing-cognitive-unresolved-relative-imports.test.ts` |
-| `defect-mind-facade-missing-pulse-reclaim-and-value` | Task 1.x | `tests/unit/mind/defect-mind-facade-missing-pulse-reclaim-and-value.test.ts` |
-| `defect-mind-tasks-partitioning-syntax-errors` | Task 1.x | `tests/unit/mind/defect-mind-tasks-partitioning-syntax-errors.test.ts` |
-| `defect-mind-archival-quiesce-missing-export` | Task 1.x | `tests/unit/mind/defect-mind-archival-quiesce-missing-export.test.ts` |
-| `defect-mind-smart-task-duplicate-identifier-rebalance-tasks` | Task 1.x | `tests/unit/mind/defect-mind-smart-task-duplicate-identifier-rebalance-tasks.test.ts` |
-| `defect-mind-lifecycle-deploy-missing-export` | Task 1.x | `tests/unit/mind/defect-mind-lifecycle-deploy-missing-export.test.ts` |
-| `defect-mind-tasks-smart-duplicate-export-atomic-admission` | Task 1.x | `tests/unit/mind/defect-mind-tasks-smart-duplicate-export-atomic-admission.test.ts` |
-| `defect-mind-smart-task-missing-map-feedback-priority` | Task 1.x | `tests/unit/mind/defect-mind-smart-task-missing-map-feedback-priority.test.ts` |
-| `defect-mind-auditing-cognitive-missing-audit-live-mind-stagnation` | Task 1.x | `tests/unit/mind/defect-mind-auditing-cognitive-missing-audit-live-mind-stagnation.test.ts` |
-| `defect-mind-auditing-cognitive-missing-skill-auditor-engine` | Task 1.x | `tests/unit/mind/defect-mind-auditing-cognitive-missing-skill-auditor-engine.test.ts` |
-| `defect-cli-commands-stale-mind-modularization-imports` | Task 1.x | `tests/unit/mind/defect-cli-commands-stale-mind-modularization-imports.test.ts` |
-| `defect-mind-duplicate-exports-auditor-cursor-and-proposal-limits` | Task 1.x | `tests/unit/mind/defect-mind-duplicate-exports-auditor-cursor-and-proposal-limits.test.ts` |
-| `defect-mind-subchunk-missing-partitions` | Task 1.x | `tests/unit/mind/defect-mind-subchunk-missing-partitions.test.ts` |
-| `defect-mind-feedback-queue-syntax-error` | Task 1.x | `tests/unit/mind/defect-mind-feedback-queue-syntax-error.test.ts` |
-| `defect-mind-task-queue-chunk-split-errors` | Task 1.x | `tests/unit/mind/defect-mind-task-queue-chunk-split-errors.test.ts` |
-| `defect-mind-core-missing-is-record-export` | Task 1.x | `tests/unit/mind/defect-mind-core-missing-is-record-export.test.ts` |
-| `defect-mind-proposals-semantic-renaming-missing-files` | Task 1.x | `tests/unit/mind/defect-mind-proposals-semantic-renaming-missing-files.test.ts` |
-| `defect-mind-similarity-syntax-and-storage-export` | Task 1.x | `tests/unit/mind/defect-mind-similarity-syntax-and-storage-export.test.ts` |
-| `defect-mind-brief-missing-format-citation-export` | Task 1.x | `tests/unit/mind/defect-mind-brief-missing-format-citation-export.test.ts` |
-| `defect-mind-tasks-discovery-missing-quality-scanner` | Task 1.x | `tests/unit/mind/defect-mind-tasks-discovery-missing-quality-scanner.test.ts` |
-| `defect-mind-lifecycle-evolution-missing-constant` | Task 1.x | `tests/unit/mind/defect-mind-lifecycle-evolution-missing-constant.test.ts` |
-| `defect-1787994561107-294wxo` | Task 1.x | `tests/unit/mind/defect-1787994561107-294wxo.test.ts` |
-| `defect-quota-lifecycle-test-ast-any-suppression` | Task 1.x | `tests/unit/mind/defect-quota-lifecycle-test-ast-any-suppression.test.ts` |
-| `defect-mind-monolithic-plan-clustering-and-auditor-blindness` | Task 1.x | `tests/unit/mind/defect-mind-monolithic-plan-clustering-and-auditor-blindness.test.ts` |
-| `defect-plan-granularity-monolithic-preplanning-factory` | Task 1.x | `tests/unit/mind/defect-plan-granularity-monolithic-preplanning-factory.test.ts` |
-| `defect-plan-granularity-straggler-preplanning-factory` | Task 1.x | `tests/unit/mind/defect-plan-granularity-straggler-preplanning-factory.test.ts` |
-| `defect-mind-detached-orchestrator-drop-and-capsule-isolation-gap` | Task 1.x | `tests/unit/mind/defect-mind-detached-orchestrator-drop-and-capsule-isolation-gap.test.ts` |
-| `defect-redundant-multi-instance-skill-auditor-spawning` | Task 1.x | `tests/unit/mind/defect-redundant-multi-instance-skill-auditor-spawning.test.ts` |
-| `defect-mind-stagnation-auditor-shock-failure` | Task 1.x | `tests/unit/mind/defect-mind-stagnation-auditor-shock-failure.test.ts` |
-| `defect-mind-pulse-disk-state-desync` | Task 1.x | `tests/unit/mind/defect-mind-pulse-disk-state-desync.test.ts` |
-| `defect-chronic-mind-stagnation-low-quality-auditor-loop` | Task 1.x | `tests/unit/mind/defect-chronic-mind-stagnation-low-quality-auditor-loop.test.ts` |
-| `defect-doctor-stagnation-unactionable-gap` | Task 1.x | `tests/unit/mind/defect-doctor-stagnation-unactionable-gap.test.ts` |
+| Defect / Backlog ID                                                 | Resolved By Task | Verification Test File                                                                      |
+| :------------------------------------------------------------------ | :--------------- | :------------------------------------------------------------------------------------------ |
+| `fb-1787971784118-1aghp`                                            | Task 1.x         | `tests/unit/mind/fb-1787971784118-1aghp.test.ts`                                            |
+| `fb-olt-unified-master-doctor-engine`                               | Task 1.x         | `tests/unit/mind/fb-olt-unified-master-doctor-engine.test.ts`                               |
+| `fb-central-repo-policy-json-engine`                                | Task 1.x         | `tests/unit/mind/fb-central-repo-policy-json-engine.test.ts`                                |
+| `fb-1787995932981-yc49l`                                            | Task 1.x         | `tests/unit/mind/fb-1787995932981-yc49l.test.ts`                                            |
+| `fb-mind-plan-efficiency-optimization-and-auditor-granularity-gate` | Task 1.x         | `tests/unit/mind/fb-mind-plan-efficiency-optimization-and-auditor-granularity-gate.test.ts` |
+| `fb-mind-orchestrator-lifecycle-reconciliation-and-ghost-detection` | Task 1.x         | `tests/unit/mind/fb-mind-orchestrator-lifecycle-reconciliation-and-ghost-detection.test.ts` |
+| `fb-1788010306731-r4apu`                                            | Task 1.x         | `tests/unit/mind/fb-1788010306731-r4apu.test.ts`                                            |
+| `fb-1788014300272-djnhy`                                            | Task 1.x         | `tests/unit/mind/fb-1788014300272-djnhy.test.ts`                                            |
+| `defect-main-thread-chatter-burns-owner-context`                    | Task 1.x         | `tests/unit/mind/defect-main-thread-chatter-burns-owner-context.test.ts`                    |
+| `defect-root-hygiene-loose-files-detected`                          | Task 1.x         | `tests/unit/mind/defect-root-hygiene-loose-files-detected.test.ts`                          |
+| `defect-engine-store-unresolved-mind-archival-import`               | Task 1.x         | `tests/unit/mind/defect-engine-store-unresolved-mind-archival-import.test.ts`               |
+| `defect-mind-defects-unresolved-aggregator-import`                  | Task 1.x         | `tests/unit/mind/defect-mind-defects-unresolved-aggregator-import.test.ts`                  |
+| `defect-cli-mind-pulse-unresolved-diagnostics-import`               | Task 1.x         | `tests/unit/mind/defect-cli-mind-pulse-unresolved-diagnostics-import.test.ts`               |
+| `defect-core-config-constants-unresolved-module`                    | Task 1.x         | `tests/unit/mind/defect-core-config-constants-unresolved-module.test.ts`                    |
+| `defect-auditing-slices-missing-node-path-imports`                  | Task 1.x         | `tests/unit/mind/defect-auditing-slices-missing-node-path-imports.test.ts`                  |
+| `defect-verify-gen5-unresolved-role-boundary-watchdog`              | Task 1.x         | `tests/unit/mind/defect-verify-gen5-unresolved-role-boundary-watchdog.test.ts`              |
+| `defect-mind-task-discovery-defective-property-access`              | Task 1.x         | `tests/unit/mind/defect-mind-task-discovery-defective-property-access.test.ts`              |
+| `defect-doctor-planning-dag-implicit-any`                           | Task 1.x         | `tests/unit/mind/defect-doctor-planning-dag-implicit-any.test.ts`                           |
+| `defect-task-discovery-optional-observation-guard`                  | Task 1.x         | `tests/unit/mind/defect-task-discovery-optional-observation-guard.test.ts`                  |
+| `defect-mind-auditing-cognitive-unresolved-relative-imports`        | Task 1.x         | `tests/unit/mind/defect-mind-auditing-cognitive-unresolved-relative-imports.test.ts`        |
+| `defect-mind-facade-missing-pulse-reclaim-and-value`                | Task 1.x         | `tests/unit/mind/defect-mind-facade-missing-pulse-reclaim-and-value.test.ts`                |
+| `defect-mind-tasks-partitioning-syntax-errors`                      | Task 1.x         | `tests/unit/mind/defect-mind-tasks-partitioning-syntax-errors.test.ts`                      |
+| `defect-mind-archival-quiesce-missing-export`                       | Task 1.x         | `tests/unit/mind/defect-mind-archival-quiesce-missing-export.test.ts`                       |
+| `defect-mind-smart-task-duplicate-identifier-rebalance-tasks`       | Task 1.x         | `tests/unit/mind/defect-mind-smart-task-duplicate-identifier-rebalance-tasks.test.ts`       |
+| `defect-mind-lifecycle-deploy-missing-export`                       | Task 1.x         | `tests/unit/mind/defect-mind-lifecycle-deploy-missing-export.test.ts`                       |
+| `defect-mind-tasks-smart-duplicate-export-atomic-admission`         | Task 1.x         | `tests/unit/mind/defect-mind-tasks-smart-duplicate-export-atomic-admission.test.ts`         |
+| `defect-mind-smart-task-missing-map-feedback-priority`              | Task 1.x         | `tests/unit/mind/defect-mind-smart-task-missing-map-feedback-priority.test.ts`              |
+| `defect-mind-auditing-cognitive-missing-audit-live-mind-stagnation` | Task 1.x         | `tests/unit/mind/defect-mind-auditing-cognitive-missing-audit-live-mind-stagnation.test.ts` |
+| `defect-mind-auditing-cognitive-missing-skill-auditor-engine`       | Task 1.x         | `tests/unit/mind/defect-mind-auditing-cognitive-missing-skill-auditor-engine.test.ts`       |
+| `defect-cli-commands-stale-mind-modularization-imports`             | Task 1.x         | `tests/unit/mind/defect-cli-commands-stale-mind-modularization-imports.test.ts`             |
+| `defect-mind-duplicate-exports-auditor-cursor-and-proposal-limits`  | Task 1.x         | `tests/unit/mind/defect-mind-duplicate-exports-auditor-cursor-and-proposal-limits.test.ts`  |
+| `defect-mind-subchunk-missing-partitions`                           | Task 1.x         | `tests/unit/mind/defect-mind-subchunk-missing-partitions.test.ts`                           |
+| `defect-mind-feedback-queue-syntax-error`                           | Task 1.x         | `tests/unit/mind/defect-mind-feedback-queue-syntax-error.test.ts`                           |
+| `defect-mind-task-queue-chunk-split-errors`                         | Task 1.x         | `tests/unit/mind/defect-mind-task-queue-chunk-split-errors.test.ts`                         |
+| `defect-mind-core-missing-is-record-export`                         | Task 1.x         | `tests/unit/mind/defect-mind-core-missing-is-record-export.test.ts`                         |
+| `defect-mind-proposals-semantic-renaming-missing-files`             | Task 1.x         | `tests/unit/mind/defect-mind-proposals-semantic-renaming-missing-files.test.ts`             |
+| `defect-mind-similarity-syntax-and-storage-export`                  | Task 1.x         | `tests/unit/mind/defect-mind-similarity-syntax-and-storage-export.test.ts`                  |
+| `defect-mind-brief-missing-format-citation-export`                  | Task 1.x         | `tests/unit/mind/defect-mind-brief-missing-format-citation-export.test.ts`                  |
+| `defect-mind-tasks-discovery-missing-quality-scanner`               | Task 1.x         | `tests/unit/mind/defect-mind-tasks-discovery-missing-quality-scanner.test.ts`               |
+| `defect-mind-lifecycle-evolution-missing-constant`                  | Task 1.x         | `tests/unit/mind/defect-mind-lifecycle-evolution-missing-constant.test.ts`                  |
+| `defect-1787994561107-294wxo`                                       | Task 1.x         | `tests/unit/mind/defect-1787994561107-294wxo.test.ts`                                       |
+| `defect-quota-lifecycle-test-ast-any-suppression`                   | Task 1.x         | `tests/unit/mind/defect-quota-lifecycle-test-ast-any-suppression.test.ts`                   |
+| `defect-mind-monolithic-plan-clustering-and-auditor-blindness`      | Task 1.x         | `tests/unit/mind/defect-mind-monolithic-plan-clustering-and-auditor-blindness.test.ts`      |
+| `defect-plan-granularity-monolithic-preplanning-factory`            | Task 1.x         | `tests/unit/mind/defect-plan-granularity-monolithic-preplanning-factory.test.ts`            |
+| `defect-plan-granularity-straggler-preplanning-factory`             | Task 1.x         | `tests/unit/mind/defect-plan-granularity-straggler-preplanning-factory.test.ts`             |
+| `defect-mind-detached-orchestrator-drop-and-capsule-isolation-gap`  | Task 1.x         | `tests/unit/mind/defect-mind-detached-orchestrator-drop-and-capsule-isolation-gap.test.ts`  |
+| `defect-redundant-multi-instance-skill-auditor-spawning`            | Task 1.x         | `tests/unit/mind/defect-redundant-multi-instance-skill-auditor-spawning.test.ts`            |
+| `defect-mind-stagnation-auditor-shock-failure`                      | Task 1.x         | `tests/unit/mind/defect-mind-stagnation-auditor-shock-failure.test.ts`                      |
+| `defect-mind-pulse-disk-state-desync`                               | Task 1.x         | `tests/unit/mind/defect-mind-pulse-disk-state-desync.test.ts`                               |
+| `defect-chronic-mind-stagnation-low-quality-auditor-loop`           | Task 1.x         | `tests/unit/mind/defect-chronic-mind-stagnation-low-quality-auditor-loop.test.ts`           |
+| `defect-doctor-stagnation-unactionable-gap`                         | Task 1.x         | `tests/unit/mind/defect-doctor-stagnation-unactionable-gap.test.ts`                         |

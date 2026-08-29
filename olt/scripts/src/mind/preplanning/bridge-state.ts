@@ -168,7 +168,8 @@ export function updateBridgeState(
       }
     | undefined,
 ): { itemsUpdated: number; defectsUpdated: number } {
-  const root = options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
+  const root =
+    options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
   const customBacklog = options !== undefined ? options.backlogFile : undefined;
   const customDefects = options !== undefined ? options.defectsFile : undefined;
 

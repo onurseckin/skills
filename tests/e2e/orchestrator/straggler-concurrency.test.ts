@@ -156,16 +156,37 @@ describe("5-Minute Straggler SLA & Brent Concurrency Engine E2E Suite (Wave 4)",
     }
 
     expect(getHostSchedulerConfig("antigravity").default_cadence_seconds).toBe(300);
-    expect(resolveModelForTier("antigravity", "tier_0_2")).toEqual({ model: "gemini-3.7-flash", thinking: "high" });
-    expect(resolveModelForTier("antigravity", "tier_3")).toEqual({ model: "gemini-3.7-flash", thinking: "high" });
+    expect(resolveModelForTier("antigravity", "tier_0_2")).toEqual({
+      model: "gemini-3.7-flash",
+      thinking: "high",
+    });
+    expect(resolveModelForTier("antigravity", "tier_3")).toEqual({
+      model: "gemini-3.7-flash",
+      thinking: "high",
+    });
     expect(getHostSchedulerConfig("claude_code").default_cadence_seconds).toBe(900);
-    expect(resolveModelForTier("claude_code", "tier_0_2")).toEqual({ model: "claude-5-opus", thinking: "high" });
-    expect(resolveModelForTier("claude_code", "tier_3")).toEqual({ model: "claude-5-sonnet", thinking: "high" });
+    expect(resolveModelForTier("claude_code", "tier_0_2")).toEqual({
+      model: "claude-5-opus",
+      thinking: "high",
+    });
+    expect(resolveModelForTier("claude_code", "tier_3")).toEqual({
+      model: "claude-5-sonnet",
+      thinking: "high",
+    });
     expect(getHostSchedulerConfig("codex").default_cadence_seconds).toBe(900);
-    expect(resolveModelForTier("codex", "tier_0_2")).toEqual({ model: "gpt-5.6-sol", thinking: "high" });
-    expect(resolveModelForTier("codex", "tier_3")).toEqual({ model: "gpt-5.6-terra", thinking: "high" });
+    expect(resolveModelForTier("codex", "tier_0_2")).toEqual({
+      model: "gpt-5.6-sol",
+      thinking: "high",
+    });
+    expect(resolveModelForTier("codex", "tier_3")).toEqual({
+      model: "gpt-5.6-terra",
+      thinking: "high",
+    });
     expect(getHostSchedulerConfig("cursor").default_cadence_seconds).toBe(300);
-    expect(resolveModelForTier("cursor", "tier_0_2")).toEqual({ model: "cursor-latest", thinking: "high" });
+    expect(resolveModelForTier("cursor", "tier_0_2")).toEqual({
+      model: "cursor-latest",
+      thinking: "high",
+    });
   });
 
   it("audits concurrency saturation transition from under-saturated queue to fully saturated lifecycle convergence", () => {
@@ -184,14 +205,24 @@ describe("5-Minute Straggler SLA & Brent Concurrency Engine E2E Suite (Wave 4)",
       activeStations: initialStations,
       totalWorkUnits: 8,
       spanLength: 1,
-      queuedTasks: ["sublane-2", "sublane-3", "sublane-4", "sublane-5", "sublane-6", "sublane-7", "sublane-8"],
+      queuedTasks: [
+        "sublane-2",
+        "sublane-3",
+        "sublane-4",
+        "sublane-5",
+        "sublane-6",
+        "sublane-7",
+        "sublane-8",
+      ],
     });
 
     expect(underSaturatedReport.isSaturated).toBe(false);
     expect(underSaturatedReport.totalSlots).toBe(8);
     expect(underSaturatedReport.activeSlots).toBe(1);
     expect(underSaturatedReport.saturationRatio).toBeLessThan(0.8);
-    expect(underSaturatedReport.findings.some((f) => f.includes(SKILL_CONCURRENCY_UNDER_SATURATED))).toBe(true);
+    expect(
+      underSaturatedReport.findings.some((f) => f.includes(SKILL_CONCURRENCY_UNDER_SATURATED)),
+    ).toBe(true);
 
     // Stage 2: Saturated parallel deployment (8 workers actively assigned across all 8 sub-lanes)
     const saturatedStations: readonly AssemblyStation[] = scopeFiles.map((file, idx) => ({

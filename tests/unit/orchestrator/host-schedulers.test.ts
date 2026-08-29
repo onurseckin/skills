@@ -8,7 +8,10 @@ import {
   resolveModelForTier,
   validateHostSchedulerConfig,
 } from "../../../olt/scripts/src/orchestrator/host-schedulers.ts";
-import type { HostSchedulerConfig, HostSchedulerId } from "../../../olt/scripts/src/orchestrator/host-schedulers.ts";
+import type {
+  HostSchedulerConfig,
+  HostSchedulerId,
+} from "../../../olt/scripts/src/orchestrator/host-schedulers.ts";
 
 describe("Host Schedulers Matrix & Thinking Configuration (Wave 3 Task 3.1)", () => {
   it("contains exactly 4 canonical host scheduler configurations", () => {
@@ -177,11 +180,19 @@ describe("Host Schedulers Matrix & Thinking Configuration (Wave 3 Task 3.1)", ()
     const validation = validateHostSchedulerConfig(invalidConfig);
     expect(validation.isValid).toBe(false);
     expect(validation.errors.length).toBe(6);
-    expect(validation.errors.some((e) => e.includes('Tier 0-2 thinking must be "high"'))).toBe(true);
+    expect(validation.errors.some((e) => e.includes('Tier 0-2 thinking must be "high"'))).toBe(
+      true,
+    );
     expect(validation.errors.some((e) => e.includes('Tier 3 thinking must be "high"'))).toBe(true);
-    expect(validation.errors.some((e) => e.includes("max_single_task_seconds must not exceed 300s"))).toBe(true);
-    expect(validation.errors.some((e) => e.includes("default_cadence_seconds must be positive"))).toBe(true);
-    expect(validation.errors.some((e) => e.includes("tier_0_2_model must not be empty"))).toBe(true);
+    expect(
+      validation.errors.some((e) => e.includes("max_single_task_seconds must not exceed 300s")),
+    ).toBe(true);
+    expect(
+      validation.errors.some((e) => e.includes("default_cadence_seconds must be positive")),
+    ).toBe(true);
+    expect(validation.errors.some((e) => e.includes("tier_0_2_model must not be empty"))).toBe(
+      true,
+    );
     expect(validation.errors.some((e) => e.includes("tier_3_model must not be empty"))).toBe(true);
   });
 });
