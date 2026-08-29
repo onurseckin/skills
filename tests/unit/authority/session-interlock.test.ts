@@ -38,6 +38,11 @@ describe("Session Capsule Interlock & Turn 1 Registration", () => {
       expect(() => assertActiveCapsuleLease(emptyRun, "impl-1")).toThrow(HarnessError);
     });
 
+    it("rejects when capsule state.json is corrupted", () => {
+      writeFileSync(join(capsuleDir, "state.json"), "{invalid-json", "utf8");
+      expect(() => assertActiveCapsuleLease(capsuleDir, "impl-1")).toThrow(HarnessError);
+    });
+
     it("rejects agent with no active grant in capsule state", () => {
       const state = { schema_version: 1, run_id: "run-session-interlock-1", tasks: {}, agents: [] };
       writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
@@ -132,6 +137,10 @@ describe("Session Capsule Interlock & Turn 1 Registration", () => {
   });
 
   describe("requireTurn1Registration", () => {
+    it("rejects null or undefined session identity", () => {
+      expect(() => requireTurn1Registration(null as unknown as SessionIdentity)).toThrow(HarnessError);
+    });
+
     it("rejects unauthenticated session token", () => {
       const session: SessionIdentity = {
         agent_id: "impl-1",

@@ -31,9 +31,9 @@ own status in `exit_code`.
 | Domain | Commands | Detail |
 | :--- | :--- | :--- |
 | plan | 13 | [cli-capabilities/domains/plan.md](cli-capabilities/domains/plan.md) |
-| queue | 4 | [cli-capabilities/domains/queue.md](cli-capabilities/domains/queue.md) |
+| queue | 9 | [cli-capabilities/domains/queue.md](cli-capabilities/domains/queue.md) |
 | task | 19 | [cli-capabilities/domains/task.md](cli-capabilities/domains/task.md) |
-| reporting | 19 | [cli-capabilities/domains/reporting.md](cli-capabilities/domains/reporting.md) |
+| reporting | 17 | [cli-capabilities/domains/reporting.md](cli-capabilities/domains/reporting.md) |
 | run | 5 | [cli-capabilities/domains/run.md](cli-capabilities/domains/run.md) |
 | critic | 4 | [cli-capabilities/domains/critic.md](cli-capabilities/domains/critic.md) |
 | summary | 3 | [cli-capabilities/domains/summary.md](cli-capabilities/domains/summary.md) |
@@ -47,7 +47,7 @@ own status in `exit_code`.
 | diagnostics | 10 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
 | gate | 1 | [cli-capabilities/domains/gate.md](cli-capabilities/domains/gate.md) |
 | capture | 3 | [cli-capabilities/domains/capture.md](cli-capabilities/domains/capture.md) |
-| mind | 27 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
+| mind | 22 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
 | policy | 4 | [cli-capabilities/domains/policy.md](cli-capabilities/domains/policy.md) |
 | msg | 4 | [cli-capabilities/domains/msg.md](cli-capabilities/domains/msg.md) |
 | worktree | 6 | [cli-capabilities/domains/worktree.md](cli-capabilities/domains/worktree.md) |
@@ -77,6 +77,11 @@ own status in `exit_code`.
 | `queue:list` | queue | Partition every task by queue status. |
 | `queue:wave` | queue | Show every task claimable right now, ranked by critical depth — for display only. |
 | `queue:pop` | queue | Claim the highest-priority ready task and mint a lease token. |
+| `queue:add` | queue | Add a feedback item to the mind queue. |
+| `queue:drain` | queue | Drain and mark pending feedback items for execution. |
+| `queue:status` | queue | List and inspect mind feedback queue items. |
+| `queue:seal` | queue | Seal completed queue items with empirical verification proofs. |
+| `queue:clean` | queue | Prune resolved items from queue into completed-tasks archive. |
 | `task:brief` | task | Generate a zero-exploration 1-shot briefing for a task. |
 | `task:claim` | task | Lease a specific ready task under a declared role. |
 | `task:heartbeat` | task | Extend a live lease so a long edit does not expire. |
@@ -95,18 +100,16 @@ own status in `exit_code`.
 | `task:fail` | task | Mark a task as failed in the queue. |
 | `task:prune` | task | Prune completed tasks from the queue. |
 | `report` | reporting | Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps. |
-| `report:graph-json` | reporting | Export DAG telemetry and metrics to JSON. |
-| `report:dag` | reporting | Canonical reporting for DAG status. |
-| `report:graph` | reporting | Visual/ASCII and graph overview. |
+| `report:summary` | reporting | Render executive summary brief of capsule run. |
+| `report:task` | reporting | Read and render a task submission, review or critic report. |
 | `report:health` | reporting | Canonical reporting for health/doctor status. |
 | `report:leases` | reporting | Active lease and agent matrix. |
 | `report:decisions` | reporting | Inspection of authority decisions and governance audit. |
-| `report:summary` | reporting | Render executive summary brief of capsule run. |
-| `report:task` | reporting | Read and render a task submission, review or critic report. |
-| `stream:events` | reporting | Stream, query, and tail structured capsule events. |
-| `dag` | reporting | Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics. |
-| `dag:trace` | reporting | Real-time step tracer and dynamic living DAG expansion timeline. |
-| `usage:report` | reporting | Discover and report cross-platform quota, rate limit, and token usage telemetry. |
+| `report:usage` | reporting | Discover and report cross-platform quota, rate limit, and token usage telemetry. |
+| `report:dag` | reporting | Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics. |
+| `report:graph-json` | reporting | Export DAG telemetry and metrics to JSON. |
+| `events:stream` | reporting | Stream, query, and tail structured capsule events. |
+| `events:trace` | reporting | Real-time step tracer and dynamic living DAG expansion timeline. |
 | `quota:check` | reporting | Evaluate quota circuit-breaker status, wrap-up directives, and auto-wake timer schedule. |
 | `quota:freeze` | reporting | Initiate DAG quota freeze and create a snapshot. |
 | `quota:resume` | reporting | Resume DAG operations from a quota freeze snapshot. |
@@ -189,11 +192,6 @@ own status in `exit_code`.
 | `mind:rotate` | mind | Rotate generation N capsule into generation N+1. |
 | `smart-task:plan` | mind | Autonomously synthesize self-evolution tasks or plan from feedback queue. |
 | `smart-task:ingest` | mind | Ingest and enhance an external prompt into a gate-verifiable task plan. |
-| `mind:queue:list` | mind | List and inspect mind feedback queue items. |
-| `mind:queue:add` | mind | Add a feedback item to the mind queue. |
-| `mind:queue:drain` | mind | Drain and mark pending feedback items for execution. |
-| `mind:queue:seal` | mind | Seal completed queue items with empirical verification proofs. |
-| `mind:queue:clean` | mind | Prune resolved items from queue into completed-tasks archive. |
 | `mind:audit:live` | mind | Live Tier 0 out-of-band audit of mind liveness, stagnation, and Mode A/B injection. |
 | `policy:init` | policy | Initialize canonical .olt/policy.json with auto-detected ecosystem defaults. |
 | `policy:get` | policy | Inspect repo policy or retrieve a specific policy key value. |

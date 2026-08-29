@@ -3,8 +3,8 @@
   "domain": "reporting",
   "entries": [
     {
-      "id": "stream:events",
-      "path": "stream-events.json"
+      "id": "events:stream",
+      "path": "events-stream.json"
     }
   ]
 }

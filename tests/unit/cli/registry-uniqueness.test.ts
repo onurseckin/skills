@@ -1,30 +1,59 @@
 import { describe, expect, test } from "bun:test";
 import {
+  COMMAND_DOMAINS,
   COMMAND_REGISTRY,
   commandInvocations,
   findCommand,
+  type CommandSpec,
 } from "../../../olt/scripts/src/cli/registry/index.ts";
+
+export interface DuplicateCollision {
+  readonly invocation: string;
+  readonly originalSpec: string;
+  readonly collidingSpec: string;
+}
+
+export function detectDuplicateInvocations(specs: readonly CommandSpec[]): readonly DuplicateCollision[] {
+  const seen = new Map<string, string>();
+  const duplicates: DuplicateCollision[] = [];
+
+  for (const spec of specs) {
+    const invocations = [spec.name, ...spec.aliases];
+    for (const invocation of invocations) {
+      const existing = seen.get(invocation);
+      if (existing !== undefined) {
+        duplicates.push({
+          invocation,
+          originalSpec: existing,
+          collidingSpec: spec.name,
+        });
+      } else {
+        seen.set(invocation, spec.name);
+      }
+    }
+  }
+
+  return duplicates;
+}
+
+export function detectDuplicateFlags(spec: CommandSpec): readonly string[] {
+  const seen = new Set<string>();
+  const duplicates: string[] = [];
+
+  for (const flag of spec.flags) {
+    if (seen.has(flag.name)) {
+      duplicates.push(flag.name);
+    } else {
+      seen.add(flag.name);
+    }
+  }
+
+  return duplicates;
+}
 
 describe("CLI Registry Uniqueness", () => {
   test("asserts zero duplicate command names or aliases across the entire COMMAND_REGISTRY", () => {
-    const seen = new Map<string, string>();
-    const duplicates: Array<{ invocation: string; originalSpec: string; collidingSpec: string }> = [];
-
-    for (const spec of COMMAND_REGISTRY) {
-      const invocations = [spec.name, ...spec.aliases];
-      for (const invocation of invocations) {
-        if (seen.has(invocation)) {
-          duplicates.push({
-            invocation,
-            originalSpec: seen.get(invocation)!,
-            collidingSpec: spec.name,
-          });
-        } else {
-          seen.set(invocation, spec.name);
-        }
-      }
-    }
-
+    const duplicates = detectDuplicateInvocations(COMMAND_REGISTRY);
     expect(duplicates).toEqual([]);
   });
 
@@ -77,17 +106,43 @@ describe("CLI Registry Uniqueness", () => {
     expect(uniqueSet.size).toBe(invocations.length);
   });
 
+  test("every command spec has unique flags with zero flag collisions", () => {
+    for (const spec of COMMAND_REGISTRY) {
+      const flagDuplicates = detectDuplicateFlags(spec);
+      expect(flagDuplicates).toEqual([]);
+    }
+  });
+
   test("every command spec in registry has non-empty name, non-empty summary, and valid domain", () => {
     for (const spec of COMMAND_REGISTRY) {
       expect(typeof spec.name).toBe("string");
       expect(spec.name.trim().length).toBeGreaterThan(0);
       expect(typeof spec.summary).toBe("string");
       expect(spec.summary.trim().length).toBeGreaterThan(0);
+      expect(typeof spec.description).toBe("string");
+      expect(spec.description.trim().length).toBeGreaterThan(0);
       expect(typeof spec.domain).toBe("string");
-      expect(spec.domain.trim().length).toBeGreaterThan(0);
+      expect(COMMAND_DOMAINS).toContain(spec.domain);
       expect(typeof spec.handler).toBe("function");
       expect(Array.isArray(spec.aliases)).toBe(true);
       expect(Array.isArray(spec.flags)).toBe(true);
+      expect(Array.isArray(spec.exitCodes)).toBe(true);
+      expect(spec.exitCodes.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("findCommand returns undefined for non-existent commands and arbitrary whitespace", () => {
+    const unknownQueries = [
+      "",
+      "   ",
+      "nonexistent",
+      "plan:fake",
+      "run:invalid",
+      "null",
+      "undefined",
+    ];
+    for (const query of unknownQueries) {
+      expect(findCommand(query)).toBeUndefined();
     }
   });
 });

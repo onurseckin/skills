@@ -1,6 +1,10 @@
 {
   "name": "queue:clean",
-  "aliases": [],
+  "aliases": [
+    "mind:queue:clean",
+    "todo:clean",
+    "feedback:clean"
+  ],
   "domain": "queue",
   "summary": "Prune resolved items from queue into completed-tasks archive.",
   "flags": [

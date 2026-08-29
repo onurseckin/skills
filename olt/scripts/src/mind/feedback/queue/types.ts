@@ -155,12 +155,12 @@ export function noFollowFlag(): number {
 
 export function resolveCanonicalFeedbackQueuePath(customRoot?: string, _useTodo = false): string {
   const root = customRoot || (isTestEnvironment() ? resolveScratchDir() : process.cwd());
-  return require("path").join(root, ".olt", "backlog.jsonl");
+  return join(root, ".olt", "backlog.jsonl");
 }
 
 export function resolveFeedbackQueuePath(customPath?: string): string {
-  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
-  return require("path").join(process.cwd(), ".olt", "backlog.jsonl");
+  if (customPath && customPath.trim()) return resolve(customPath.trim());
+  return join(process.cwd(), ".olt", "backlog.jsonl");
 }
 
 export function compareFeedbackPriority(

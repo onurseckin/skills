@@ -112,10 +112,10 @@ Every agent executing within this repository must adhere to the following non-ne
     - Writing, creating, or leaving temporary `.ts`, `.js`, `.cjs`, `.json`, `.py`, or `.log` scratch files in the repository root is strictly prohibited (`ROOT_HYGIENE_VIOLATION`). Subagents must keep the repository root clean.
 31. **4 Canonical Hosts, Models, Thinking Levels & Schedulers:**
     - The monorepo strictly standardizes across 4 Canonical Hosts:
-      - **`antigravity`**: `gemini-3.7-flash` (high thinking) for all agents (supervisory and worker tiers); 5m scheduler.
-      - **`claude_code`**: `claude-5-opus` / `claude-opus-5` (high thinking) for supervisory tiers (Tier 0 Mind, Tier 1 Orchestrator, Tier 2 Coordinator); `claude-5-sonnet` / `claude-sonnet-5` (high thinking) for worker/execution tiers (Tier 3 Implementers, Validators, Critics); 15m scheduler. (Zero references to 3.7 for Claude Code).
-      - **`codex`**: `gpt-5.6-sol` (high thinking) for supervisory tiers (Tier 0 Mind, Tier 1 Orchestrator, Tier 2 Coordinator); `gpt-5.6-terra` (high thinking) for worker/execution tiers (Tier 3 Implementers, Validators, Critics); 15m scheduler.
-      - **`cursor`**: Cursor latest stable model (high thinking) for all agents (supervisory and worker tiers); 5m scheduler.
+      - **`antigravity`**: `gemini-3.7-flash` (high thinking supervisory, medium thinking execution/implementer); 5m scheduler.
+      - **`claude_code`**: `claude-5-opus` / `claude-opus-5` (high thinking supervisory); `claude-5-sonnet` / `claude-sonnet-5` (medium thinking execution/implementer); 15m scheduler. (Zero references to 3.7 for Claude Code).
+      - **`codex`**: `gpt-5.6-sol` (high thinking supervisory); `gpt-5.6-terra` (medium thinking execution/implementer); 15m scheduler.
+      - **`cursor`**: Cursor latest stable model (high thinking supervisory, medium thinking execution/implementer); 5m scheduler.
     - **No Generic Fallback Invariant**: Host configurations must strictly resolve to one of the 4 canonical hosts. Generic fallback models, heuristic fallbacks, and speculative aliases are strictly forbidden.
     - **CLI and IDE Parity**: CLI and IDE environments share 100% identical configuration.
 32. **Subdomain Staging Safety Check (Reflog Protection) & Crash Resilience:**
@@ -199,16 +199,16 @@ The repository standardizes across 4 Canonical Host Platforms with strict model,
 
 | Host Platform     | Supervisory Tier Roles (Tier 0 Mind, Tier 1 Orchestrator, Tier 2 Coordinator) | Execution Tier Roles (Tier 3 Implementer, Validator, Critic, Subagents) | Thinking Level | Scheduler Cadence              | Consistency Contract                                        |
 | :---------------- | :---------------------------------------------------------------------------- | :---------------------------------------------------------------------- | :------------- | :----------------------------- | :---------------------------------------------------------- |
-| **`antigravity`** | `gemini-3.7-flash`                                                            | `gemini-3.7-flash`                                                      | High Thinking  | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
-| **`claude_code`** | `claude-5-opus` (`claude-opus-5`)                                             | `claude-5-sonnet` (`claude-sonnet-5`)                                   | High Thinking  | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration (No 3.7 references) |
-| **`codex`**       | `gpt-5.6-sol`                                                                 | `gpt-5.6-terra`                                                         | High Thinking  | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration                     |
-| **`cursor`**      | Cursor latest stable model                                                    | Cursor latest stable model                                              | High Thinking  | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
+| **`antigravity`** | `gemini-3.7-flash` (High Thinking)                                            | `gemini-3.7-flash` (Medium Thinking)                                    | High (Supervisory) / Medium (Execution) | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
+| **`claude_code`** | `claude-5-opus` (`claude-opus-5`) (High Thinking)                             | `claude-5-sonnet` (`claude-sonnet-5`) (Medium Thinking)                 | High (Supervisory) / Medium (Execution) | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration (No 3.7 references) |
+| **`codex`**       | `gpt-5.6-sol` (High Thinking)                                                 | `gpt-5.6-terra` (Medium Thinking)                                       | High (Supervisory) / Medium (Execution) | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration                     |
+| **`cursor`**      | Cursor latest stable model (High Thinking)                                    | Cursor latest stable model (Medium Thinking)                            | High (Supervisory) / Medium (Execution) | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
 
 #### Canonical Host Directives:
 
 1. **Zero Generic Fallback Invariant:** Every agent deployment must explicitly bind to one of the 4 canonical host platforms (`antigravity`, `claude_code`, `codex`, `cursor`) and its prescribed model tier. Falling back to generic, un-versioned, or heuristic default models is strictly prohibited.
 2. **CLI / IDE Configuration Parity:** Host configurations in CLI environments (e.g. `antigravity-cli`, `cursor-cli`, `codex-cli`) and IDE extensions (e.g. `antigravity-ide`, `cursor-ide`) must maintain identical model strings, thinking budgets, and scheduler intervals without configuration drift.
-3. **High Thinking Enforcement:** All agents across all 4 canonical hosts must operate with High Thinking enabled to prevent shallow reasoning shortcuts and superficial validation.
+3. **Thinking Effort Governance:** Supervisory tiers operate with High Thinking enabled for deep strategic reasoning, while Execution and Implementer tiers operate with Medium Thinking for fast, cost-efficient, high-precision code and validation cycles.
 
 ### Role Contracts & Prohibitions
 
@@ -381,7 +381,7 @@ To protect repository state and prevent common LLM blunder modes:
 23. **Supervisor Zero Direct Code Edits & Zero Main-Thread Implementation Policy:**
     - Main thread and supervisory tiers strictly refrain from direct source file modifications and test suite executions. Zero main-thread implementation is an absolute repository invariant.
 24. **4 Canonical Hosts, Models & Thinking Levels Governance:**
-    - Strictly use the 4 canonical host configurations (`antigravity`: `gemini-3.7-flash` high thinking, 5m; `claude_code`: `claude-5-opus` high thinking supervisory / `claude-5-sonnet` high thinking worker, 15m; `codex`: `gpt-5.6-sol` high thinking supervisory / `gpt-5.6-terra` high thinking worker, 15m; `cursor`: latest stable model high thinking, 5m). Generic fallbacks are strictly banned.
+    - Strictly use the 4 canonical host configurations (`antigravity`: `gemini-3.7-flash` (high thinking supervisory, medium thinking execution/implementer), 5m; `claude_code`: `claude-5-opus` (high thinking supervisory) / `claude-5-sonnet` (medium thinking execution/implementer), 15m; `codex`: `gpt-5.6-sol` (high thinking supervisory) / `gpt-5.6-terra` (medium thinking execution/implementer), 15m; `cursor`: Cursor latest stable model (high thinking supervisory, medium thinking execution/implementer), 5m). Generic fallbacks are strictly banned.
 25. **Zero Backwards-Compatibility Code & Dead Code Elimination Invariant (`ZERO_BACKWARDS_COMPATIBILITY_INVARIANT`):**
     - When modernizing, modularizing, or refactoring features, agents must **never** leave backwards-compatibility shims, deprecated forwarding files, wrapper aliases, or dead code behind.
     - All call sites, imports, tests, and CLI consumers across the repository must be updated directly to target the new canonical modular structure.

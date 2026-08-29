@@ -8,7 +8,7 @@ platform_mapping:
   supervisory_model: "generic-supervisory"
   supervisory_thinking: "high"
   worker_model: "generic-worker"
-  worker_thinking: "high"
+  worker_thinking: "medium"
   supervisory_cadence_seconds: 300
   supervisory_cron: "*/5 * * * *"
   max_single_task_seconds: 300
@@ -67,4 +67,4 @@ instructions: |
   Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via subprocess execution to execute ready wave lanes in parallel worktrees.
 
   ## Canonical 4-Host Platform Reference
-  - Generic CLI fallback follows canonical host parameters (`antigravity`: 3.7-flash high thinking; `claude_code`: claude-5-opus supervisory / sonnet worker; `codex`: gpt-5.6-sol supervisory / terra worker; `cursor`: latest).
+  - Generic CLI fallback follows canonical host parameters (`antigravity`: 3.7-flash high supervisory / medium worker; `claude_code`: claude-5-opus high supervisory / claude-5-sonnet medium worker; `codex`: gpt-5.6-sol high supervisory / gpt-5.6-terra medium worker; `cursor`: latest high supervisory / medium worker).

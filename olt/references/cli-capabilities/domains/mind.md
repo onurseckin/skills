@@ -10,5 +10,4 @@ hand. Index: [`../cli-capabilities.md`](../cli-capabilities.md).
 - [knowledge](mind/knowledge.md)
 - [lifecycle](mind/lifecycle.md)
 - [pulse](mind/pulse.md)
-- [queue](mind/queue.md)
 - [round](mind/round.md)

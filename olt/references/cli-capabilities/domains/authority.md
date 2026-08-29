@@ -55,7 +55,7 @@ Query watchdog lifecycle, monitor cadence, and health status.
 
 Inspects background watchdog monitors across runs and generations, reporting active, stale, terminated, and orphaned monitors.
 
-- **Aliases**: `watchdog:list`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -83,7 +83,7 @@ Purge stale or legacy watchdog monitors exceeding heartbeat timeout.
 
 Scans registered watchdog monitors across generations and pulses, transitioning timed-out monitors to stale or terminated status.
 
-- **Aliases**: `watchdog:clean`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -113,7 +113,7 @@ Terminate legacy phase watchdog monitors upon phase rollover or completion.
 
 Terminates active watchdog monitors belonging to completed or superseded phases.
 
-- **Aliases**: `watchdog:phase-clean`, `watchdog:cleanup-phase`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -144,7 +144,7 @@ Verify watchdog lifecycle invariants and single-monitor constraints.
 
 Audits the watchdog registry against architectural constraints.
 
-- **Aliases**: `watchdog:check`, `watchdog:lint`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -169,7 +169,7 @@ Execute 2-way supervisory health probe and doctor diagnostics to top leader.
 
 Audits the live capsule across 5 supervisory health points and dispatches active probe report.
 
-- **Aliases**: `watchdog:supervise`, `watchdog:health-probe`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

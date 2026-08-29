@@ -85,19 +85,26 @@ describe("host-bindings", () => {
       );
     });
 
-    test("resolves implementer and worker alias bindings across hosts", () => {
-      expect(resolveAgentHostConfiguration("implementer", "antigravity", defaultPolicy).model).toBe(
-        "gemini-3.7-flash",
-      );
-      expect(resolveAgentHostConfiguration("worker", "claude_code", defaultPolicy).model).toBe(
-        "claude-5-sonnet",
-      );
-      expect(resolveAgentHostConfiguration("repairer", "codex", defaultPolicy).model).toBe(
-        "gpt-5.6-terra",
-      );
-      expect(resolveAgentHostConfiguration("implementer", "cursor", defaultPolicy).model).toBe(
-        "cursor-latest",
-      );
+    test("resolves implementer and worker alias bindings across hosts with medium thinking effort", () => {
+      const agConfig = resolveAgentHostConfiguration("implementer", "antigravity", defaultPolicy);
+      expect(agConfig.model).toBe("gemini-3.7-flash");
+      expect(agConfig.model_tier).toBe("medium");
+      expect(agConfig.thinking_effort).toBe("medium");
+
+      const claudeConfig = resolveAgentHostConfiguration("worker", "claude_code", defaultPolicy);
+      expect(claudeConfig.model).toBe("claude-5-sonnet");
+      expect(claudeConfig.model_tier).toBe("medium");
+      expect(claudeConfig.thinking_effort).toBe("medium");
+
+      const codexConfig = resolveAgentHostConfiguration("repairer", "codex", defaultPolicy);
+      expect(codexConfig.model).toBe("gpt-5.6-terra");
+      expect(codexConfig.model_tier).toBe("medium");
+      expect(codexConfig.thinking_effort).toBe("medium");
+
+      const cursorConfig = resolveAgentHostConfiguration("implementer", "cursor", defaultPolicy);
+      expect(cursorConfig.model).toBe("cursor-latest");
+      expect(cursorConfig.model_tier).toBe("medium");
+      expect(cursorConfig.thinking_effort).toBe("medium");
     });
   });
 
@@ -190,6 +197,13 @@ describe("host-bindings", () => {
       expect(brief).toContain("ACTIVE HOST: claude_code");
       expect(brief).toContain("MODEL BINDING: claude-5-opus (Tier: xhigh)");
       expect(brief).toContain("THINKING EFFORT: high");
+    });
+
+    test("renders specific active host binding for implementer with medium thinking", () => {
+      const brief = executeAgentBrief({ role: "implementer", host: "claude_code" });
+      expect(brief).toContain("ACTIVE HOST: claude_code");
+      expect(brief).toContain("MODEL BINDING: claude-5-sonnet (Tier: medium)");
+      expect(brief).toContain("THINKING EFFORT: medium");
     });
 
     test("agentBriefCommand accepts --host flag and outputs valid markdown", async () => {

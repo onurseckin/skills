@@ -9,7 +9,7 @@ Query indexed cross-run knowledge, decisions, and memory documents.
 
 Performs full-text retrieval and ranking across knowledge base, charter, findings, decisions, and past run summaries with zero external file reads required.
 
-- **Aliases**: `memory:search`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -27,7 +27,6 @@ Performs full-text retrieval and ranking across knowledge base, charter, finding
 
 ```bash
 bun harness.ts memory:query --query "authentication refactor"
-bun harness.ts memory:query --query "rate limit" --limit 5
 ```
 
 ### `smart-task:plan`
@@ -36,7 +35,7 @@ Autonomously synthesize self-evolution tasks or plan from feedback queue.
 
 Smart task planner: prioritizes feedback intake, or synthesizes autonomic self-evolution tasks on empty queue.
 
-- **Aliases**: `task:synthesize`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -57,7 +56,7 @@ Ingest and enhance an external prompt into a gate-verifiable task plan.
 
 Expands an external prompt into a structured task with write scope and mandatory gate.
 
-- **Aliases**: `smart-task:expand`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

@@ -7,12 +7,12 @@
       "path": "report.json"
     },
     {
-      "id": "report:graph-json",
-      "path": "report-graph-json.json"
+      "id": "report:summary",
+      "path": "report-summary.json"
     },
     {
-      "id": "report:graph",
-      "path": "report-graph.json"
+      "id": "report:task",
+      "path": "report-task.json"
     },
     {
       "id": "report:health",
@@ -27,16 +27,12 @@
       "path": "report-decisions.json"
     },
     {
-      "id": "report:summary",
-      "path": "report-summary.json"
+      "id": "report:usage",
+      "path": "report-usage.json"
     },
     {
-      "id": "report:task",
-      "path": "report-task.json"
-    },
-    {
-      "id": "usage:report",
-      "path": "usage-report.json"
+      "id": "report:graph-json",
+      "path": "report-graph-json.json"
     }
   ]
 }

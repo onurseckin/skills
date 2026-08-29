@@ -52,7 +52,7 @@ Live Tier 0 out-of-band audit of mind liveness, stagnation, and Mode A/B injecti
 
 Evaluates idle duration against >120s stagnation threshold and builds verbatim role prompt.
 
-- **Aliases**: `mind:audit`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

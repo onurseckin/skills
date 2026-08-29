@@ -81,7 +81,7 @@ export function extractSpanHierarchy(context: TraceContext): SpanHierarchy {
   return {
     traceId: context.traceId,
     spanId: context.spanId,
-    parentSpanId: context.parentSpanId,
+    ...(context.parentSpanId !== undefined ? { parentSpanId: context.parentSpanId } : {}),
     depth: context.parentSpanId !== undefined ? 1 : 0,
   };
 }

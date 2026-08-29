@@ -224,15 +224,17 @@ export function executePolicyLifecycleHooks(options: PolicyHooksExecutionOptions
   const records: HookExecutionRecord[] = [];
   const errors: string[] = [];
 
-  for (const template of commands) {
-    const record = executeHookCommand(template, options.context, {
-      repoRoot: options.repoRoot,
-      customSpawn: options.customSpawn,
-      nonBlocking: options.nonBlocking,
-    });
-    records.push(record);
-    if (record.success) executedCommands.push(record.command);
-    else if (record.error) errors.push(record.error);
+  if (commands && Array.isArray(commands)) {
+    for (const template of commands) {
+      const record = executeHookCommand(template, options.context, {
+        repoRoot: options.repoRoot,
+        customSpawn: options.customSpawn,
+        nonBlocking: options.nonBlocking,
+      });
+      records.push(record);
+      if (record.success) executedCommands.push(record.command);
+      else if (record.error) errors.push(record.error);
+    }
   }
 
   return {

@@ -9,7 +9,7 @@ platform_mapping:
   supervisory_model: "gpt-5.6-sol"
   supervisory_thinking: "high"
   worker_model: "gpt-5.6-terra"
-  worker_thinking: "high"
+  worker_thinking: "medium"
   supervisory_cadence_seconds: 900
   supervisory_cron: "*/15 * * * *"
   max_single_task_seconds: 300
@@ -78,7 +78,7 @@ instructions: |
 
   ## Canonical 4-Host Platform Mapping: OpenAI Codex
   - Tier 0-2 Supervisory Model: `gpt-5.6-sol` (Thinking: `high` / `xhigh`)
-  - Tier 3 Worker Model: `gpt-5.6-terra` (Thinking: `high` / `xhigh`)
+  - Tier 3 Worker Model: `gpt-5.6-terra` (Thinking: `medium`)
   - Supervisory Cadence: 15 minutes / 900s scheduler (`*/15 * * * *`)
   - Max Single Task SLA: 300s (5 minutes)
   - Concurrency Control: Configured via `~/.codex/config.toml` (`agents.max_concurrent_threads_per_session`)

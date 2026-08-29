@@ -2,12 +2,15 @@ import {
   appendFeedbackItem,
   drainPendingFeedbacks,
   getFeedbackStats,
+  normalizeFeedbackCategory,
+  normalizeFeedbackPriority,
+  normalizeFeedbackStatus,
   readFeedbackQueue,
   type FeedbackCategory,
   type FeedbackItem,
   type FeedbackPriority,
   type FeedbackStatus,
-} from "../../mind/feedback/queue/index.ts";
+} from "../../mind/feedback/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
@@ -50,11 +53,11 @@ export function feedbackListCommand(flags: Flags, _context?: CommandContext): Fe
 
   let filtered = allItems;
   if (statusFilter && statusFilter.trim()) {
-    const s = statusFilter.trim().toUpperCase();
+    const s = normalizeFeedbackStatus(statusFilter.trim());
     filtered = filtered.filter((item) => item.status === s);
   }
   if (categoryFilter && categoryFilter.trim()) {
-    const c = categoryFilter.trim().toUpperCase();
+    const c = normalizeFeedbackCategory(categoryFilter.trim());
     filtered = filtered.filter((item) => item.category === c);
   }
 
@@ -109,11 +112,11 @@ export function feedbackIngestCommand(
       content: content.trim(),
       priority:
         priorityRaw !== undefined && priorityRaw.trim().length > 0
-          ? (priorityRaw.trim().toUpperCase() as FeedbackPriority)
+          ? normalizeFeedbackPriority(priorityRaw.trim())
           : "CRITICAL_USER_FEEDBACK",
       category:
         categoryRaw !== undefined && categoryRaw.trim().length > 0
-          ? (categoryRaw.trim().toUpperCase() as FeedbackCategory)
+          ? normalizeFeedbackCategory(categoryRaw.trim())
           : "GENERAL",
       status: "PENDING",
     },
@@ -145,9 +148,12 @@ export function feedbackDrainCommand(flags: Flags, _context?: CommandContext): F
 
   const markAs: FeedbackStatus =
     markAsRaw !== undefined && markAsRaw.trim().length > 0
-      ? (markAsRaw.trim().toUpperCase() as FeedbackStatus)
+      ? normalizeFeedbackStatus(markAsRaw.trim())
       : "PROCESSED";
-  const category = categoryRaw?.trim().toUpperCase() as FeedbackCategory | undefined;
+  const category =
+    categoryRaw !== undefined && categoryRaw.trim().length > 0
+      ? normalizeFeedbackCategory(categoryRaw.trim())
+      : undefined;
 
   const drained = drainPendingFeedbacks(
     {

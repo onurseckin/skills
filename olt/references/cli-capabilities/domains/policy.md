@@ -81,7 +81,7 @@ Check for policy file drift against a known SHA-256 checksum.
 
 Computes SHA-256 hash of .olt/policy.json and detects configuration drift.
 
-- **Aliases**: `policy:drift`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

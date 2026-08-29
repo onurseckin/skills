@@ -3,13 +3,41 @@
 Generated from `olt/scripts/src/cli/registry` by `olt/scripts/generate-cli-manifest.ts`. Do not edit by
 hand. Index: [`../../cli-capabilities.md`](../../cli-capabilities.md).
 
+### `events:trace`
+
+Real-time step tracer and dynamic living DAG expansion timeline.
+
+Replays events.jsonl to construct dynamic branch expansions and renders a chronological vertical step timeline with status glyphs and telemetry.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Capsule run identifier. |
+| `--repo` | string | no | no | - | Repository root. |
+| `--from-seq` | int | no | no | - | Starting event sequence number. |
+| `--to-seq` | int | no | no | - | Ending event sequence number. |
+| `--max-steps` | int | no | no | `50` | Maximum step entries to display. |
+| `--task` | string | no | no | - | Filter steps by task ID. |
+| `--actor` | string | no | no | - | Filter steps by agent ID. |
+| `--filter-type` | string | no | no | - | Filter steps by event kind. |
+| `--detailed` | bool | no | no | - | Detailed step inspection. |
+| `--all` | bool | no | no | - | Return all steps without line truncation. |
+
+```bash
+bun harness.ts events:trace --run .olt/capsules/<run-id>
+```
+
 ### `skill:audit:live`
 
 Live Tier 0 out-of-band audit of skill compliance and delta event forensics.
 
 Scans incremental delta events, audits cognitive contracts, and routes defects upstream.
 
-- **Aliases**: `skill:audit`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -22,7 +50,6 @@ Scans incremental delta events, audits cognitive contracts, and routes defects u
 
 ```bash
 bun harness.ts skill:audit:live
-bun harness.ts skill:audit:live --run .olt/capsules/run-1 --json
 ```
 
 ### `notify:phase`
@@ -31,7 +58,7 @@ Trigger cross-platform native OS push notification and audio chime upon phase la
 
 Dispatches native desktop banner notifications and plays the macOS Glass chime upon successful upstream release landings.
 
-- **Aliases**: `notify`, `phase:notify`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -51,7 +78,6 @@ Dispatches native desktop banner notifications and plays the macOS Glass chime u
 
 ```bash
 bun harness.ts notify:phase --phase 'Core Architecture' --tasks 12 --duration-ms 272000
-bun harness.ts notify:phase --phase 'Subdomain Staging' --commit 89a5042 --json
 ```
 
 ### `notify:test`
@@ -60,7 +86,7 @@ Send a test native OS notification and Glass chime to verify desktop integration
 
 Triggers a non-blocking test notification and Glass audio chime on macOS or standard alert chime on Linux/Windows.
 
-- **Aliases**: `test:notify`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -71,5 +97,4 @@ Triggers a non-blocking test notification and Glass audio chime on macOS or stan
 
 ```bash
 bun harness.ts notify:test
-bun harness.ts notify:test --no-sound
 ```

@@ -14,7 +14,7 @@ export const HOST_SCHEDULERS_MATRIX: Readonly<Record<HostSchedulerId, HostSchedu
       tier_0_2_model: "gemini-3.7-flash",
       tier_0_2_thinking: "high",
       tier_3_model: "gemini-3.7-flash",
-      tier_3_thinking: "high",
+      tier_3_thinking: "medium",
       max_single_task_seconds: 300, // 5 minutes SLA boundary
       heartbeat_tick_seconds: 60,
       watchdog_timeout_seconds: 300,
@@ -25,7 +25,7 @@ export const HOST_SCHEDULERS_MATRIX: Readonly<Record<HostSchedulerId, HostSchedu
       tier_0_2_model: "claude-5-opus",
       tier_0_2_thinking: "high",
       tier_3_model: "claude-5-sonnet",
-      tier_3_thinking: "high",
+      tier_3_thinking: "medium",
       max_single_task_seconds: 300, // 5 minutes SLA boundary
       heartbeat_tick_seconds: 180,
       watchdog_timeout_seconds: 900,
@@ -36,7 +36,7 @@ export const HOST_SCHEDULERS_MATRIX: Readonly<Record<HostSchedulerId, HostSchedu
       tier_0_2_model: "gpt-5.6-sol",
       tier_0_2_thinking: "high",
       tier_3_model: "gpt-5.6-terra",
-      tier_3_thinking: "high",
+      tier_3_thinking: "medium",
       max_single_task_seconds: 300, // 5 minutes SLA boundary
       heartbeat_tick_seconds: 180,
       watchdog_timeout_seconds: 900,
@@ -47,7 +47,7 @@ export const HOST_SCHEDULERS_MATRIX: Readonly<Record<HostSchedulerId, HostSchedu
       tier_0_2_model: "cursor-latest",
       tier_0_2_thinking: "high",
       tier_3_model: "cursor-latest",
-      tier_3_thinking: "high",
+      tier_3_thinking: "medium",
       max_single_task_seconds: 300, // 5 minutes SLA boundary
       heartbeat_tick_seconds: 60,
       watchdog_timeout_seconds: 300,
@@ -67,7 +67,10 @@ export function getAllHostSchedulers(): readonly HostSchedulerConfig[] {
 }
 
 export function isHighThinkingEnforced(config: HostSchedulerConfig): boolean {
-  return config.tier_0_2_thinking === "high" && config.tier_3_thinking === "high";
+  return (
+    config.tier_0_2_thinking === "high" &&
+    (config.tier_3_thinking === "medium" || config.tier_3_thinking === "high")
+  );
 }
 
 export function assertHostThinkingPolicy(config: HostSchedulerConfig): void {
@@ -76,9 +79,9 @@ export function assertHostThinkingPolicy(config: HostSchedulerConfig): void {
       `Host ${config.host_id} violates high thinking policy: Tier 0-2 expected "high", received "${config.tier_0_2_thinking}"`,
     );
   }
-  if (config.tier_3_thinking !== "high") {
+  if (config.tier_3_thinking !== "medium" && config.tier_3_thinking !== "high") {
     throw new Error(
-      `Host ${config.host_id} violates high thinking policy: Tier 3 expected "high", received "${config.tier_3_thinking}"`,
+      `Host ${config.host_id} violates thinking policy: Tier 3 expected "medium" or "high", received "${config.tier_3_thinking}"`,
     );
   }
 }
@@ -93,8 +96,10 @@ export function validateHostSchedulerConfig(config: HostSchedulerConfig): {
     errors.push(`Tier 0-2 thinking must be "high", received "${config.tier_0_2_thinking}"`);
   }
 
-  if (config.tier_3_thinking !== "high") {
-    errors.push(`Tier 3 thinking must be "high", received "${config.tier_3_thinking}"`);
+  if (config.tier_3_thinking !== "medium" && config.tier_3_thinking !== "high") {
+    errors.push(
+      `Tier 3 thinking must be "medium" or "high", received "${config.tier_3_thinking}"`,
+    );
   }
 
   if (config.max_single_task_seconds > 300) {
@@ -126,12 +131,13 @@ export function validateHostSchedulerConfig(config: HostSchedulerConfig): {
 export function resolveModelForTier(
   hostId: HostSchedulerId,
   tier: "tier_0_2" | "tier_3",
-): { readonly model: string; readonly thinking: "high" } {
+): { readonly model: string; readonly thinking: ThinkingLevel } {
   const config = getHostSchedulerConfig(hostId);
   assertHostThinkingPolicy(config);
   const model = tier === "tier_0_2" ? config.tier_0_2_model : config.tier_3_model;
+  const thinking = tier === "tier_0_2" ? config.tier_0_2_thinking : config.tier_3_thinking;
   return {
     model,
-    thinking: "high",
+    thinking,
   };
 }

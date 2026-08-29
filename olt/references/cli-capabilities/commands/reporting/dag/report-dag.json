@@ -1,6 +1,11 @@
 {
   "name": "report:dag",
-  "aliases": [],
+  "aliases": [
+    "dag",
+    "dag:render",
+    "dag:view",
+    "graph:render"
+  ],
   "domain": "reporting",
   "summary": "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",
   "flags": [

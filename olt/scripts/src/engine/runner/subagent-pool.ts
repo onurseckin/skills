@@ -83,7 +83,7 @@ export class SubagentPool {
         agentId: slotAgentId,
         role: slotRole,
         tier: slotTier,
-        taskId: slotTaskId,
+        ...(slotTaskId ? { taskId: slotTaskId } : {}),
         acquiredAt: new Date().toISOString(),
         activeCount: this.activeSlots.size + 1,
         release: () => {
@@ -107,7 +107,7 @@ export class SubagentPool {
             this.waitQueue.splice(index, 1);
             reject(
               new HarnessError(
-                "CAPACITY_EXCEEDED",
+                "LOCK_TIMEOUT",
                 `Subagent concurrency slot acquisition timed out after ${options.timeoutMs}ms (max capacity: ${this.maxCapacity}, queue depth: ${this.waitQueue.length})`,
               ),
             );
@@ -153,7 +153,7 @@ export class SubagentPool {
         agentId: nextAgentId,
         role: nextRole,
         tier: nextTier,
-        taskId: nextTaskId,
+        ...(nextTaskId ? { taskId: nextTaskId } : {}),
         acquiredAt: new Date().toISOString(),
         activeCount: this.activeSlots.size + 1,
         release: () => {

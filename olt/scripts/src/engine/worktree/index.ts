@@ -12,6 +12,9 @@ export {
 export {
   CONVENTIONAL_COMMIT_TYPES,
   type CreateHermeticWorktreeOptions,
+  type LandHermeticWorktreeOptions,
+  type LandingResult,
+  type WorktreeContext,
   type DomainWorktreeConfig,
   type DomainCommitRecord,
   type DomainSyncConflict,
@@ -26,7 +29,12 @@ export {
   type DomainScopeEntry,
   type DomainScopeConflict,
   type DomainIsolationCheckResult,
-  type WorktreeContext,
+  recordDomainCommit,
+  recordDomainSync,
+  recordGlobalSync,
+} from "./domain-sync-types.ts";
+
+export {
   createDomainLedger,
   createHermeticWorktree,
   provisionDomainWorktree,
@@ -34,14 +42,9 @@ export {
   validateDomainIsolation,
   assertDomainIsolation,
   isDomainSyncEligible,
-  recordDomainCommit,
-  recordDomainSync,
-  recordGlobalSync,
 } from "./domain-sync.ts";
 
 export {
-  type LandHermeticWorktreeOptions,
-  type LandingResult,
   landHermeticWorktree,
   syncDomainToGlobal,
   syncGlobalToDomain,

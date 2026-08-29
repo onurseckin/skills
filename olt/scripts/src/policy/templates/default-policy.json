@@ -208,26 +208,26 @@
       "hosts": {
         "antigravity": {
           "model": "gemini-3.7-flash",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "claude_code": {
           "model": "claude-5-sonnet",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "codex": {
           "model": "gpt-5.6-terra",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "cursor": {
           "model": "cursor-latest",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         }
       }
@@ -248,26 +248,26 @@
       "hosts": {
         "antigravity": {
           "model": "gemini-3.7-flash",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "claude_code": {
           "model": "claude-5-sonnet",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "codex": {
           "model": "gpt-5.6-terra",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "cursor": {
           "model": "cursor-latest",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         }
       }
@@ -288,26 +288,26 @@
       "hosts": {
         "antigravity": {
           "model": "gemini-3.7-flash",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "claude_code": {
           "model": "claude-5-sonnet",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "codex": {
           "model": "gpt-5.6-terra",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "cursor": {
           "model": "cursor-latest",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         }
       }
@@ -328,26 +328,26 @@
       "hosts": {
         "antigravity": {
           "model": "gemini-3.7-flash",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "claude_code": {
           "model": "claude-5-sonnet",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "codex": {
           "model": "gpt-5.6-terra",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "cursor": {
           "model": "cursor-latest",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         }
       }
@@ -368,26 +368,26 @@
       "hosts": {
         "antigravity": {
           "model": "gemini-3.7-flash",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "claude_code": {
           "model": "claude-5-sonnet",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "codex": {
           "model": "gpt-5.6-terra",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "cursor": {
           "model": "cursor-latest",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         }
       }
@@ -408,26 +408,26 @@
       "hosts": {
         "antigravity": {
           "model": "gemini-3.7-flash",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "claude_code": {
           "model": "claude-5-sonnet",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "codex": {
           "model": "gpt-5.6-terra",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "cursor": {
           "model": "cursor-latest",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         }
       }
@@ -448,26 +448,26 @@
       "hosts": {
         "antigravity": {
           "model": "gemini-3.7-flash",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "claude_code": {
           "model": "claude-5-sonnet",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "codex": {
           "model": "gpt-5.6-terra",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         },
         "cursor": {
           "model": "cursor-latest",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         }
       }
@@ -482,8 +482,8 @@
       "hosts": {
         "antigravity": {
           "model": "gemini-3.7-flash",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192,
           "scheduler": {
             "enabled": true,
@@ -492,8 +492,8 @@
         },
         "claude_code": {
           "model": "claude-5-sonnet",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192,
           "scheduler": {
             "enabled": true,
@@ -502,8 +502,8 @@
         },
         "codex": {
           "model": "gpt-5.6-terra",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192,
           "scheduler": {
             "enabled": true,
@@ -512,8 +512,8 @@
         },
         "cursor": {
           "model": "cursor-latest",
-          "model_tier": "high",
-          "thinking_effort": "high",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192,
           "scheduler": {
             "enabled": true,

@@ -23,10 +23,6 @@
       "path": "pulse/index.json"
     },
     {
-      "id": "queue",
-      "path": "queue/index.json"
-    },
-    {
       "id": "round",
       "path": "round/index.json"
     }

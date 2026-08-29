@@ -234,4 +234,27 @@ describe("Worktree Manager & Landing", () => {
     expect(result.cleaned).toBe(true);
     expect(existsSync(worktreeDir)).toBe(false);
   });
+
+  test("createTrackWorktree attaches existing branch if already present", () => {
+    const executed: string[][] = [];
+    const mockRunner: GitRunner = (_cwd, argv) => {
+      executed.push([...argv]);
+      if (argv[0] === "show-ref" && argv.includes("refs/heads/track/track-existing")) {
+        return { status: 0, stdout: "abc\n", stderr: "" };
+      }
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+    const record = createTrackWorktree({
+      trackId: "track-existing",
+      repoRoot: TEST_DIR,
+      runner: mockRunner,
+    });
+
+    expect(record.trackId).toBe("track-existing");
+    expect(executed.some((c) => c[0] === "worktree" && c[1] === "add" && !c.includes("-b"))).toBe(
+      true,
+    );
+  });
 });
+

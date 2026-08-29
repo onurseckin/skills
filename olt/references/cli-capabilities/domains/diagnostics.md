@@ -9,7 +9,7 @@ Audit, deduplicate, and auto-admit defects across capsules.
 
 Discovers defects.jsonl files across .olt/capsules/ and active run, deduplicates entries, displays an ASCII summary matrix, and optionally auto-admits candidate remediations.
 
-- **Aliases**: `defects`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -189,7 +189,7 @@ Record a diagnostic finding or defect directly into the flock-locked defect stor
 
 Universal diagnostic finding ingestion command accessible to all companion and auditor roles. Appends or updates defects in .olt/defects.jsonl under flock lock.
 
-- **Aliases**: `finding`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

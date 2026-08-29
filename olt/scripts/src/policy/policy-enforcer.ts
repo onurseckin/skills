@@ -161,7 +161,7 @@ export function enforceRepoPolicy(
   };
   if (options.assert !== false && !result.allowed) {
     throw new HarnessError(
-      "POLICY_VIOLATION",
+      "PERMISSION_DENIED",
       `Central policy enforcement failed: ${result.violations.join("; ")}`,
       result.violations.map((v) => ({ violation: v })),
       3,

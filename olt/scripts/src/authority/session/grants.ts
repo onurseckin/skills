@@ -233,7 +233,7 @@ export function assertActiveCapsuleLease(runRoot: string, agentId: string): void
       `failed to load capsule state at ${resolved}: ${formatSafeErrorCause(error)}`,
     );
   }
-  const ledger = readAgentLedger(state);
+  const ledger = readAgentLedger(state as Parameters<typeof readAgentLedger>[0]);
   const activeGrant = ledger.find((entry) => entry.id === agent && entry.status === "active");
   if (activeGrant) return;
   const tasks = state.tasks;

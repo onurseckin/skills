@@ -155,7 +155,7 @@ Execute continuous pre-planning factory tick to cluster backlog and emit bluepri
 
 Scans .olt/backlog.jsonl and .olt/defects.jsonl, groups eligible items into thematic domain clusters, writes Phase 1 master plan blueprints, and updates bridge states under flock protection.
 
-- **Aliases**: `mind:preplan`, `preplan:run`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -177,7 +177,7 @@ Inspect factory pre-planning queue health, stagnation status, and concurrency sa
 
 Audits the pre-planning backlog queue against stagnation thresholds, evaluates skill concurrency saturation, and reports readiness for blueprint assembly.
 
-- **Aliases**: `mind:factory:status`, `preplan:status`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

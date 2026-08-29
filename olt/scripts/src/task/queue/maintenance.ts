@@ -18,7 +18,7 @@ export function getQueueStats(customPathOrItems?: string | readonly TaskQueueIte
     ? customPathOrItems
     : readTaskQueue(typeof customPathOrItems === "string" ? customPathOrItems : undefined);
   const nowMs = Date.now();
-  const stats: TaskQueueStats = {
+  const mutableStats = {
     total: items.length,
     pending: 0,
     admitted: 0,
@@ -33,22 +33,22 @@ export function getQueueStats(customPathOrItems?: string | readonly TaskQueueIte
     expired_leases: 0,
   };
   for (const item of items) {
-    if (item.status === "PENDING") stats.pending++;
-    else if (item.status === "ADMITTED") stats.admitted++;
-    else if (item.status === "IN_PROGRESS") stats.in_progress++;
-    else if (item.status === "RUNNING") { stats.running++; stats.in_progress++; }
-    else if (item.status === "VALIDATING") stats.validating++;
-    else if (item.status === "COMPLETED") stats.completed++;
-    else if (item.status === "FAILED") stats.failed++;
-    else if (item.status === "BLOCKED") stats.blocked++;
-    else if (item.status === "ESCALATED") stats.escalated++;
+    if (item.status === "PENDING") mutableStats.pending++;
+    else if (item.status === "ADMITTED") mutableStats.admitted++;
+    else if (item.status === "IN_PROGRESS") mutableStats.in_progress++;
+    else if (item.status === "RUNNING") { mutableStats.running++; mutableStats.in_progress++; }
+    else if (item.status === "VALIDATING") mutableStats.validating++;
+    else if (item.status === "COMPLETED") mutableStats.completed++;
+    else if (item.status === "FAILED") mutableStats.failed++;
+    else if (item.status === "BLOCKED") mutableStats.blocked++;
+    else if (item.status === "ESCALATED") mutableStats.escalated++;
     if (item.lease) {
       const expMs = Date.parse(item.lease.expires_at);
-      if (Number.isFinite(expMs) && expMs > nowMs) stats.active_leases++;
-      else stats.expired_leases++;
+      if (Number.isFinite(expMs) && expMs > nowMs) mutableStats.active_leases++;
+      else mutableStats.expired_leases++;
     }
   }
-  return stats;
+  return mutableStats;
 }
 
 export function getTaskQueueStats(tasksOrPath?: readonly TaskQueueItem[] | string): TaskQueueStats {

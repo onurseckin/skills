@@ -123,7 +123,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     handler: usageReportCommand,
   },
   {
-    name: "report:dag", aliases: ["dag", "dag:render", "dag:view", "graph:render"], domain: "reporting",
+    name: "report:dag", aliases: [], domain: "reporting",
     summary: "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",
     description: "Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.",
     flags: [

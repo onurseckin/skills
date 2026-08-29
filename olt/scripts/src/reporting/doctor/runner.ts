@@ -171,7 +171,7 @@ export async function runDoctor(
     runRoot,
     repoRoot: repository,
     state: (loaded?.state as Record<string, unknown> | undefined) ?? null,
-    events: (loaded?.events as readonly Record<string, unknown>[] | undefined) ?? null,
+    events: (loaded?.events as readonly Record<string, unknown>[] | undefined) ?? undefined,
     autoHeal: autoHealEnabled,
   });
 

@@ -9,7 +9,7 @@ Expand a prompt against the 8 Socratic vectors across iterative rounds.
 
 Runs Socratic 8-vector brainstorming matrix expansion on prompt.md (or provided prompt), saving brainstorming.json and recording plan-brainstormed event.
 
-- **Aliases**: `brainstorm`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -61,7 +61,7 @@ Create a run capsule and capture the prompt bytes immutably.
 
 Initialises <repo>/.olt/capsules/<run-id>, records the verbatim prompt with its sha256, and ensures the capsule is gitignored.
 
-- **Aliases**: `init`
+- **Aliases**: `plan-init`, `init-plan`
 - **Stdin**: reads stdin when `--prompt-stdin` is set
 - **Arguments after `--`**: rejected
 

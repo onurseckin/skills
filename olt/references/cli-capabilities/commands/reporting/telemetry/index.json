@@ -3,6 +3,10 @@
   "domain": "reporting",
   "entries": [
     {
+      "id": "events:trace",
+      "path": "events-trace.json"
+    },
+    {
       "id": "skill:audit:live",
       "path": "skill-audit-live.json"
     },

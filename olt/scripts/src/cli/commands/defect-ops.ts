@@ -12,18 +12,18 @@ import {
 } from "../../logging/defects/index.ts";
 import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
-export interface DefectRecordResult {
+export interface DefectRecordResult extends Record<string, unknown> {
   readonly defects: readonly AggregatedDefect[];
   readonly serialized: string;
   readonly count: number;
 }
 
-export interface DefectResolveResult {
+export interface DefectResolveResult extends Record<string, unknown> {
   readonly defect: DefectEntry | AggregatedDefect;
   readonly status: "resolved";
 }
 
-export interface DefectListResult {
+export interface DefectListResult extends Record<string, unknown> {
   readonly defects: readonly DefectEntry[];
   readonly count: number;
 }

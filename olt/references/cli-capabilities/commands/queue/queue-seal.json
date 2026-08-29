@@ -1,6 +1,10 @@
 {
   "name": "queue:seal",
-  "aliases": [],
+  "aliases": [
+    "mind:queue:seal",
+    "todo:seal",
+    "feedback:seal"
+  ],
   "domain": "queue",
   "summary": "Seal completed queue items with empirical verification proofs.",
   "flags": [

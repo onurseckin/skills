@@ -88,7 +88,7 @@ export function verifyMutationInterlock(
     return { allowed: false, reason: `LEASE_REQUIRED: failed to read capsule state for run ${runId}: ${msg}`, runId, agentId, taskId: opObj.taskId, operation: opObj.type };
   }
 
-  const ledger = readAgentLedger(state);
+  const ledger = readAgentLedger(state as Parameters<typeof readAgentLedger>[0]);
   const agentGrant = ledger.find((g) => g.id === agentId);
 
   if (agentGrant) {

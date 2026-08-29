@@ -112,7 +112,15 @@ export function popNextEligibleTaskUnlocked(
   });
   if (eligible.length === 0) return null;
   eligible.sort((a, b) => (PRIORITY_WEIGHTS[b.priority] - PRIORITY_WEIGHTS[a.priority]) || a.created_at.localeCompare(b.created_at));
-  return claimTaskLeaseUnlocked({ taskId: eligible[0]!.id, agentId: params.agentId, durationSeconds: params.durationSeconds, nowIso: params.nowIso }, filePath);
+  return claimTaskLeaseUnlocked(
+    {
+      taskId: eligible[0]!.id,
+      agentId: params.agentId,
+      ...(params.durationSeconds !== undefined ? { durationSeconds: params.durationSeconds } : {}),
+      ...(params.nowIso !== undefined ? { nowIso: params.nowIso } : {}),
+    },
+    filePath,
+  );
 }
 
 export function popNextEligibleTask(params: { readonly agentId: string; readonly durationSeconds?: number; readonly customPath?: string; readonly nowIso?: string }): { readonly task: TaskQueueItem; readonly leaseToken: string } | null {
@@ -130,7 +138,14 @@ export function popNextEligibleTaskWithCleanup(params: {
   const filePath = resolveTaskQueuePath(params.customPath);
   return withTaskQueueTransaction(filePath, () => {
     const pruneRes = pruneCompletedTasksUnlocked({ completedTasksPath: params.completedTasksPath, autoArchive: true }, filePath);
-    const popped = popNextEligibleTaskUnlocked({ agentId: params.agentId, durationSeconds: params.durationSeconds, nowIso: params.nowIso }, filePath);
+    const popped = popNextEligibleTaskUnlocked(
+      {
+        agentId: params.agentId,
+        ...(params.durationSeconds !== undefined ? { durationSeconds: params.durationSeconds } : {}),
+        ...(params.nowIso !== undefined ? { nowIso: params.nowIso } : {}),
+      },
+      filePath,
+    );
     return popped ? { ...popped, prunedCount: pruneRes.prunedCount } : null;
   });
 }
@@ -142,7 +157,14 @@ export function dequeueTask(
 ): TaskQueueItem | null {
   const filePath = resolveTaskQueuePath(options?.customPath);
   return withTaskQueueTransaction(filePath, () => {
-    const popped = popNextEligibleTaskUnlocked({ agentId, durationSeconds, nowIso: options?.nowIso }, filePath);
+    const popped = popNextEligibleTaskUnlocked(
+      {
+        agentId,
+        durationSeconds,
+        ...(options?.nowIso !== undefined ? { nowIso: options.nowIso } : {}),
+      },
+      filePath,
+    );
     return popped ? popped.task : null;
   });
 }

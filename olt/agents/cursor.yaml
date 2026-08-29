@@ -8,7 +8,7 @@ platform_mapping:
   supervisory_model: "cursor-latest"
   supervisory_thinking: "high"
   worker_model: "cursor-latest"
-  worker_thinking: "high"
+  worker_thinking: "medium"
   supervisory_cadence_seconds: 300
   supervisory_cron: "*/5 * * * *"
   max_single_task_seconds: 300
@@ -68,7 +68,7 @@ instructions: |
 
   ## Canonical 4-Host Platform Mapping: Cursor
   - Tier 0-2 Supervisory Model: `cursor-latest` (Thinking: `high`)
-  - Tier 3 Worker Model: `cursor-latest` (Thinking: `high`)
+  - Tier 3 Worker Model: `cursor-latest` (Thinking: `medium`)
   - Supervisory Cadence: 5 minutes / 300s scheduler (`*/5 * * * *`)
   - Max Single Task SLA: 300s (5 minutes)
   - Nesting Limit: 1 level (main agent and direct subagents only)

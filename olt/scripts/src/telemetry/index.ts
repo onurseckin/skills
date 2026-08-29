@@ -7,7 +7,6 @@ export type {
 } from "./types.ts";
 export type { TelemetryCollector } from "./probe-interface.ts";
 export {
-  BaseTelemetryCollector,
   BaseTieredCollector,
   type TierResult,
 } from "./base-collector.ts";

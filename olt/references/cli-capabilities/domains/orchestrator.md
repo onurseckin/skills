@@ -9,7 +9,7 @@ Run the autonomous coordination loop over a fresh capsule.
 
 Drives plan, execute, validate and critic rounds until the critic approves or the round budget is spent. The host must inject a round executor; without one the command fails with INVALID_STATE.
 
-- **Aliases**: `orchestrator`
+- **Aliases**: none
 - **Stdin**: reads stdin when `--prompt-stdin` is set
 - **Arguments after `--`**: rejected
 

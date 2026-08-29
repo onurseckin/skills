@@ -50,11 +50,11 @@ export class AutonomicWatchdog {
   private readonly emitter = new WatchdogEventEmitter();
   private readonly adaptiveController: AdaptiveTimerController;
   private readonly healthAuditor: HealthAuditor;
-  private readonly onHeartbeatCallback?: (tick: WatchdogTickReport) => void | Promise<void>;
-  private readonly onHealthAuditCallback?: (audit: WatchdogHealthAuditReport) => void | Promise<void>;
-  private readonly onViolationCallback?: (finding: WatchdogFinding) => void | Promise<void>;
-  private readonly onReactiveWakeupCallback?: (t: ReactiveEvent, r: WatchdogTickReport) => void | Promise<void>;
-  private readonly onIntervalAdjustedCallback?: (state: AdaptiveTimerState) => void | Promise<void>;
+  private readonly onHeartbeatCallback?: ((tick: WatchdogTickReport) => void | Promise<void>) | undefined;
+  private readonly onHealthAuditCallback?: ((audit: WatchdogHealthAuditReport) => void | Promise<void>) | undefined;
+  private readonly onViolationCallback?: ((finding: WatchdogFinding) => void | Promise<void>) | undefined;
+  private readonly onReactiveWakeupCallback?: ((t: ReactiveEvent, r: WatchdogTickReport) => void | Promise<void>) | undefined;
+  private readonly onIntervalAdjustedCallback?: ((state: AdaptiveTimerState) => void | Promise<void>) | undefined;
 
   private activeEventCountSinceLastTick = 0;
   private timer: ReturnType<typeof setTimeout> | null = null;

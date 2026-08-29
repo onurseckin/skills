@@ -9,7 +9,7 @@ Evaluate quota circuit-breaker status, wrap-up directives, and auto-wake timer s
 
 Probes cross-platform quota telemetry, detects exhaustion (<10%), generates wrap-up directives for active agents, and computes one-shot auto-wake scheduler payloads.
 
-- **Aliases**: `quota:circuit-break`, `circuit-breaker:check`, `circuit-break`, `quota:circuit-breaker`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -23,8 +23,6 @@ Probes cross-platform quota telemetry, detects exhaustion (<10%), generates wrap
 
 ```bash
 bun harness.ts quota:check
-bun harness.ts quota:check --threshold 10.0
-bun harness.ts quota:circuit-break --json
 ```
 
 ### `quota:freeze`
@@ -33,7 +31,7 @@ Initiate DAG quota freeze and create a snapshot.
 
 Probes quota telemetry and freezes DAG operations if circuit breaker is triggered or force is applied. Outputs state to a snapshot file.
 
-- **Aliases**: `quota:suspend`, `freeze:quota`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -58,7 +56,7 @@ Resume DAG operations from a quota freeze snapshot.
 
 Probes quota telemetry and resumes operations from a prior freeze if quota is healthy or force is applied.
 
-- **Aliases**: `quota:unfreeze`, `resume:quota`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

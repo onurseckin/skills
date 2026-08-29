@@ -8,7 +8,7 @@ platform_mapping:
   supervisory_model: "gemini-3.7-flash"
   supervisory_thinking: "high"
   worker_model: "gemini-3.7-flash"
-  worker_thinking: "high"
+  worker_thinking: "medium"
   supervisory_cadence_seconds: 300
   supervisory_cron: "*/5 * * * *"
   max_single_task_seconds: 300
@@ -91,7 +91,7 @@ instructions: |
 
   ## Canonical 4-Host Platform Mapping: Antigravity
   - Tier 0-2 Supervisory Model: `gemini-3.7-flash` (Thinking: `high`)
-  - Tier 3 Worker Model: `gemini-3.7-flash` (Thinking: `high`)
+  - Tier 3 Worker Model: `gemini-3.7-flash` (Thinking: `medium`)
   - Supervisory Cadence: 5 minutes / 300s scheduler (`*/5 * * * *`)
   - Max Single Task SLA: 300s (5 minutes)
   - Concurrency Ceiling: 20 subagents

@@ -9,7 +9,7 @@ Dynamically expand the declared read scope neighborhood for an active actor.
 
 Appends the specified target path or directory to the agent's allowed read scope manifest and logs the expansion.
 
-- **Aliases**: `scope-expand`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

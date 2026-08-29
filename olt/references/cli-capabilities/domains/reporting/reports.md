@@ -9,7 +9,7 @@ Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timest
 
 Generates comprehensive unified run report across tasks, topology, agent lifecycle tiers, and audit trail.
 
-- **Aliases**: `report:all`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -23,35 +23,13 @@ Generates comprehensive unified run report across tasks, topology, agent lifecyc
 
 ```bash
 bun harness.ts report --run .olt/capsules/<run-id>
-bun harness.ts report:unified --run .olt/capsules/<run-id>
 ```
 
-### `report:graph-json`
+### `report:summary`
 
-Export DAG telemetry and metrics to JSON.
+Render executive summary brief of capsule run.
 
-Export DAG telemetry and metrics to JSON.
-
-- **Aliases**: `dag:export-json`
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | no | no | - | Path to capsule run directory |
-| `--run-id` | string | no | no | - | Capsule run identifier |
-| `--out` | string | no | no | - | Path to save JSON |
-| `--pretty` | bool | no | no | - | Format output JSON nicely |
-
-```bash
-bun harness.ts report:graph-json --run .olt/capsules/<run-id> --out graph.json
-```
-
-### `report:graph`
-
-Visual/ASCII and graph overview.
-
-Another thin wrapper around the same renderer as `dag` (same as report:dag), kept discoverable under the report: namespace. Prefer `dag` directly: it accepts the full flag set (--recommendations, --box-style, --json) this wrapper does not expose.
+Renders the executive brief in markdown or JSON directly to terminal.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -60,10 +38,39 @@ Another thin wrapper around the same renderer as `dag` (same as report:dag), kep
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
-| `--detailed` | bool | no | no | - | Detailed output. |
+| `--out` | string | no | no | - | Directory for viewer registry export. |
+| `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
-bun harness.ts report:graph --run .olt/capsules/<run-id>
+bun harness.ts report:summary --run .olt/capsules/<run-id>
+```
+
+### `report:task`
+
+Read and render a task submission, review or critic report.
+
+Extracts and formats full task report evidence including verification outcomes, gate executions, and screenshot records without requiring raw file inspection.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--task` | string | no | no | - | Task whose report is wanted. |
+| `--critic` | bool | no | no | - | Read the critic review report. |
+| `--submission` | bool | no | no | - | Force the submission report. |
+| `--review` | bool | no | no | - | Force the review report. |
+| `--type` | string | no | no | - | submission, review or critic. |
+| `--stage` | string | no | no | - | Alias of --type. |
+| `--report` | string | no | no | - | Explicit report file name. |
+| `--id` | string | no | no | - | Alias of --report. |
+| `--screenshots` | bool | no | no | - | Include screenshot records. |
+
+```bash
+bun harness.ts report:task --run .olt/capsules/<run-id> --task task-1
+bun harness.ts report:task --run .olt/capsules/<run-id> --task task-1 --type review
 ```
 
 ### `report:health`
@@ -123,61 +130,13 @@ Reports the decisions audit matrix.
 bun harness.ts report:decisions --run .olt/capsules/<run-id>
 ```
 
-### `report:summary`
-
-Render executive summary brief of capsule run.
-
-Renders the executive brief in markdown or JSON directly to terminal.
-
-- **Aliases**: none
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--out` | string | no | no | - | Directory for viewer registry export. |
-| `--json` | bool | no | no | - | Output JSON. |
-
-```bash
-bun harness.ts report:summary --run .olt/capsules/<run-id>
-```
-
-### `report:task`
-
-Read and render a task submission, review or critic report.
-
-Extracts and formats full task report evidence including verification outcomes, gate executions, and screenshot records without requiring raw file inspection.
-
-- **Aliases**: none
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | no | no | - | Task whose report is wanted. |
-| `--critic` | bool | no | no | - | Read the critic review report. |
-| `--submission` | bool | no | no | - | Force the submission report. |
-| `--review` | bool | no | no | - | Force the review report. |
-| `--type` | string | no | no | - | submission, review or critic. |
-| `--stage` | string | no | no | - | Alias of --type. |
-| `--report` | string | no | no | - | Explicit report file name. |
-| `--id` | string | no | no | - | Alias of --report. |
-| `--screenshots` | bool | no | no | - | Include screenshot records. |
-
-```bash
-bun harness.ts report:task --run .olt/capsules/<run-id> --task task-1
-bun harness.ts report:task --run .olt/capsules/<run-id> --task task-1 --type review
-```
-
-### `usage:report`
+### `report:usage`
 
 Discover and report cross-platform quota, rate limit, and token usage telemetry.
 
 Autonomously probes frontier LLM platforms (Antigravity, Claude, Cursor, OpenAI/Codex) using a 3-tier fallback strategy and generates unified ASCII telemetry tables.
 
-- **Aliases**: `telemetry:usage`, `quota:report`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -188,7 +147,28 @@ Autonomously probes frontier LLM platforms (Antigravity, Claude, Cursor, OpenAI/
 | `--json` | bool | no | no | - | Output structured JSON report. |
 
 ```bash
-bun harness.ts usage:report
-bun harness.ts usage:report --platform antigravity
-bun harness.ts usage:report --detailed
+bun harness.ts report:usage
+bun harness.ts report:usage --platform antigravity
+bun harness.ts report:usage --detailed
+```
+
+### `report:graph-json`
+
+Export DAG telemetry and metrics to JSON.
+
+Export DAG telemetry and metrics to JSON.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Path to capsule run directory |
+| `--run-id` | string | no | no | - | Capsule run identifier |
+| `--out` | string | no | no | - | Path to save JSON |
+| `--pretty` | bool | no | no | - | Format output JSON nicely |
+
+```bash
+bun harness.ts report:graph-json --run .olt/capsules/<run-id> --out graph.json
 ```

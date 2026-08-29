@@ -34,7 +34,7 @@ describe("CLI capability manifest", () => {
   test("checked-in per-domain markdown matches the registry render, for every domain", () => {
     const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
     for (const domain of COMMAND_DOMAINS) {
-      if (largeDomains.includes(domain)) continue; // large domains are sharded
+      if (largeDomains.includes(domain)) continue;
       const onDisk = readFileSync(join(splitRoot, `domains/${domain}.md`), "utf-8");
       expect(onDisk).toBe(renderDomainMarkdown(domain));
     }
@@ -139,7 +139,7 @@ describe("CLI capability manifest", () => {
     expect(exec?.flags.map((flag) => flag.name)).toContain("gate");
     const init = manifest.commands.find((entry) => entry.name === "plan:init");
     expect(init?.reads_stdin).toBeTrue();
-    expect(init?.aliases).toEqual(["init"]);
+    expect(init?.aliases).toEqual(["plan-init", "init-plan"]);
   });
 
   test("contains mind command domain registrations", () => {
@@ -173,7 +173,7 @@ describe("CLI capability manifest", () => {
     expect(execSlice?.name).toBe("run:exec");
     expect(execSlice?.takes_remainder).toBeTrue();
 
-    const initAliasSlice = commandSlice("init");
+    const initAliasSlice = commandSlice("plan-init");
     expect(initAliasSlice).toBeDefined();
     expect(initAliasSlice?.name).toBe("plan:init");
 

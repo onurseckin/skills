@@ -9,7 +9,7 @@ Initialize a capsule run root and write its initial manifest.
 
 Deterministic auto-initialization ensuring .olt/capsules/<run_id>/ exists on disk before any subagent work.
 
-- **Aliases**: none
+- **Aliases**: `run-init`, `capsule-init`
 - **Stdin**: reads stdin when `--prompt-stdin` is set
 - **Arguments after `--`**: rejected
 
@@ -29,7 +29,6 @@ Deterministic auto-initialization ensuring .olt/capsules/<run_id>/ exists on dis
 
 ```bash
 bun harness.ts run:init --run <run-id>
-bun harness.ts init --run <run-id>
 ```
 
 ### `run:exec`
@@ -63,7 +62,7 @@ Show phase, per-task status and progress for the run.
 
 Reads the capsule without mutating it and renders the execution table.
 
-- **Aliases**: `status`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -76,7 +75,6 @@ Reads the capsule without mutating it and renders the execution table.
 
 ```bash
 bun harness.ts run:status --run .olt/capsules/<run-id>
-bun harness.ts status --run .olt/capsules/<run-id>
 ```
 
 ### `run:complete`
@@ -105,7 +103,7 @@ Execute direct non-interactive CLI commands under mechanical RBAC policy with si
 
 Validates actor role capabilities against repository policy (blocking un-targeted whole-suite runs and cognitive validator commands) and emits cryptographic receipts into evidence/ and telemetry.
 
-- **Aliases**: `sh`, `exec:safe`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: forwarded to the child process
 

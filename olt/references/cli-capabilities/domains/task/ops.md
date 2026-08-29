@@ -156,6 +156,8 @@ Queries and lists queue items with filtering and queue statistics.
 | `--agent-id` | string | no | no | - | Filter tasks by assigned agent ID. |
 | `--search` | string | no | no | - | Filter tasks by substring in ID or title. |
 | `--limit` | int | no | no | - | Maximum number of tasks to return. |
+| `--offset` | int | no | no | - | Pagination offset. |
+| `--page` | int | no | no | - | Pagination page number. |
 | `--queue-path` | string | no | no | - | Custom task queue file path. |
 | `--path` | string | no | no | - | Alias for queue-path. |
 | `--stats` | bool | no | no | - | Include queue statistics in output. |

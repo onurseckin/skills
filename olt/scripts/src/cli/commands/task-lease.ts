@@ -46,8 +46,8 @@ export function taskLeaseCommand(flags: Flags, _context?: CommandContext): Recor
   const result = claimTaskLease({
     taskId,
     agentId,
-    durationSeconds,
-    customPath: queuePath,
+    ...(durationSeconds !== undefined ? { durationSeconds } : {}),
+    ...(queuePath !== undefined ? { customPath: queuePath } : {}),
   });
 
   return {

@@ -46,5 +46,4 @@ Unified perpetual mind pulse command. If a pulse is open, outputs active pulse t
 
 ```bash
 bun harness.ts mind:pulse --run .olt/capsules/mind-gen-1 --actor mind-1
-bun harness.ts mind:pulse --run .olt/capsules/mind-gen-1 --arm 15m
 ```
