@@ -16,6 +16,13 @@ export {
   type MultiThemeComparisonReport,
 } from "./types.ts";
 export {
+  NAMED_COLORS,
+  clampByte,
+  clampAlpha,
+  parseChannelValue,
+  parseAlphaValue,
+  parseHue,
+  parsePercentage,
   isValidColor,
   parseRgb,
   compositeRgb,
@@ -23,5 +30,11 @@ export {
   calculateWcagContrast,
   calculateApcaContrast,
 } from "./color-space.ts";
-export { evaluateThemeContrastMatrix } from "./evaluation.ts";
+export {
+  resolveIsLargeText,
+  getRequiredThreshold,
+  evaluateSingleStandard,
+  evaluateThemeContrastMatrix,
+} from "./evaluation.ts";
 export { formatThemeContrastMatrixMarkdown } from "./render.ts";
+

@@ -39,6 +39,8 @@ export interface BlobPutResult extends BlobDescriptor {
   created: boolean;
 }
 
+export type BlobWriteResult = BlobPutResult;
+
 export type ViewStorage = "hardlink" | "copy";
 
 export interface ViewLink extends BlobDescriptor {
@@ -124,6 +126,10 @@ export function putBlobFile(runRoot: string, sourcePath: string): BlobPutResult 
   renameSync(temporary, target);
   fsyncDirectory(parent);
   return { sha256: hashed.sha256, bytes: hashed.bytes, path: relative, created: true };
+}
+
+export function writeBlob(runRoot: string, sourcePath: string): BlobWriteResult {
+  return putBlobFile(runRoot, sourcePath);
 }
 
 function sameInode(left: string, right: string): boolean {

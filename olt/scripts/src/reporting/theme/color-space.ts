@@ -191,20 +191,24 @@ export function parseHue(hueStr: string): number {
   const trimmed = hueStr.trim().toLowerCase();
   if (trimmed.endsWith("turn")) {
     const turns = parseFloat(trimmed.slice(0, -4));
+    if (Number.isNaN(turns)) return 0;
     return (((turns * 360) % 360) + 360) % 360;
-  }
-  if (trimmed.endsWith("rad")) {
-    const rad = parseFloat(trimmed.slice(0, -3));
-    const deg = (rad * 180) / Math.PI;
-    return ((deg % 360) + 360) % 360;
   }
   if (trimmed.endsWith("grad")) {
     const grad = parseFloat(trimmed.slice(0, -4));
+    if (Number.isNaN(grad)) return 0;
     const deg = (grad * 360) / 400;
+    return ((deg % 360) + 360) % 360;
+  }
+  if (trimmed.endsWith("rad")) {
+    const rad = parseFloat(trimmed.slice(0, -3));
+    if (Number.isNaN(rad)) return 0;
+    const deg = (rad * 180) / Math.PI;
     return ((deg % 360) + 360) % 360;
   }
   if (trimmed.endsWith("deg")) {
     const deg = parseFloat(trimmed.slice(0, -3));
+    if (Number.isNaN(deg)) return 0;
     return ((deg % 360) + 360) % 360;
   }
   const deg = parseFloat(trimmed);

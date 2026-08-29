@@ -1,22 +1,70 @@
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
 
-export interface PlanningDagCheckOptions {
-  readonly tasks?: Readonly<Record<string, unknown>> | null | undefined;
-  readonly graph?:
-    | {
-        readonly nodes?:
-          | readonly { readonly id: string; readonly dependencies?: readonly string[] }[]
-          | undefined;
-        readonly edges?: readonly { readonly from: string; readonly to: string }[] | undefined;
-      }
-    | null
-    | undefined;
+export type PlanningDagDependencyItem =
+  | string
+  | { readonly id?: string | undefined; readonly optional?: boolean | undefined };
+
+export interface PlanningDagNodeInput {
+  readonly id: string;
+  readonly dependencies?: readonly PlanningDagDependencyItem[] | undefined;
+  readonly deps?: readonly PlanningDagDependencyItem[] | undefined;
+  readonly status?: string | undefined;
 }
 
-interface TaskNodeInfo {
+export interface PlanningDagEdgeInput {
+  readonly from: string;
+  readonly to: string;
+}
+
+export interface PlanningDagGraphInput {
+  readonly nodes?: readonly (PlanningDagNodeInput | unknown)[] | undefined;
+  readonly edges?: readonly (PlanningDagEdgeInput | unknown)[] | undefined;
+}
+
+export interface PlanningDagCheckOptions {
+  readonly tasks?: Readonly<Record<string, unknown>> | null | undefined;
+  readonly graph?: PlanningDagGraphInput | null | undefined;
+}
+
+export interface TaskNodeInfo {
   readonly id: string;
   readonly dependencies: readonly string[];
   readonly status?: string | undefined;
+}
+
+/**
+ * Type guard for extracting dependency IDs from string or object dependency items.
+ */
+export function extractDependencyId(item: unknown): string | undefined {
+  if (typeof item === "string") {
+    const trimmed = item.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (typeof item === "object" && item !== null && "id" in item) {
+    const raw = (item as { readonly id?: unknown }).id;
+    if (typeof raw === "string") {
+      const trimmed = raw.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Extracts and filters a clean list of string dependency IDs from any raw dependency array.
+ */
+export function extractDependencyList(rawDeps: unknown): readonly string[] {
+  if (!Array.isArray(rawDeps)) {
+    return [];
+  }
+  const result: string[] = [];
+  for (const item of rawDeps) {
+    const depId = extractDependencyId(item);
+    if (depId !== undefined) {
+      result.push(depId);
+    }
+  }
+  return result;
 }
 
 /**
@@ -95,11 +143,7 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
       if (value && typeof value === "object") {
         const rec = value as Record<string, unknown>;
         const id = typeof rec.id === "string" ? rec.id : key;
-        const deps = Array.isArray(rec.dependencies)
-          ? rec.dependencies.filter((d): d is string => typeof d === "string")
-          : Array.isArray(rec.deps)
-            ? rec.deps.filter((d): d is string => typeof d === "string")
-            : [];
+        const deps = extractDependencyList(rec.dependencies ?? rec.deps);
         const status = typeof rec.status === "string" ? rec.status : undefined;
         nodesMap.set(id, { id, dependencies: deps, status });
       }
@@ -110,17 +154,23 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
   if (options.graph && typeof options.graph === "object") {
     if (Array.isArray(options.graph.nodes)) {
       for (const node of options.graph.nodes) {
-        if (node && typeof node === "object" && typeof node.id === "string") {
-          const existing = nodesMap.get(node.id);
-          const deps = Array.isArray(node.dependencies)
-            ? (node.dependencies as readonly (string | { id?: string })[])
-                .map((d: { id?: string } | string) => (typeof d === "string" ? d : d?.id))
-                .filter((d): d is string => typeof d === "string")
+        if (node && typeof node === "object" && "id" in node && typeof (node as { readonly id?: unknown }).id === "string") {
+          const rawNode = node as {
+            readonly id: string;
+            readonly dependencies?: unknown;
+            readonly deps?: unknown;
+            readonly status?: unknown;
+          };
+          const existing = nodesMap.get(rawNode.id);
+          const rawDependencies = rawNode.dependencies ?? rawNode.deps;
+          const deps = rawDependencies !== undefined
+            ? extractDependencyList(rawDependencies)
             : (existing?.dependencies ?? []);
-          nodesMap.set(node.id, {
-            id: node.id,
+          const status = typeof rawNode.status === "string" ? rawNode.status : existing?.status;
+          nodesMap.set(rawNode.id, {
+            id: rawNode.id,
             dependencies: deps,
-            status: existing?.status,
+            status,
           });
         }
       }
@@ -130,15 +180,18 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
         if (
           edge &&
           typeof edge === "object" &&
-          typeof edge.from === "string" &&
-          typeof edge.to === "string"
+          "from" in edge &&
+          "to" in edge &&
+          typeof (edge as { readonly from?: unknown }).from === "string" &&
+          typeof (edge as { readonly to?: unknown }).to === "string"
         ) {
-          const target = nodesMap.get(edge.to);
+          const typedEdge = edge as { readonly from: string; readonly to: string };
+          const target = nodesMap.get(typedEdge.to);
           if (target) {
-            if (!target.dependencies.includes(edge.from)) {
-              nodesMap.set(edge.to, {
+            if (!target.dependencies.includes(typedEdge.from)) {
+              nodesMap.set(typedEdge.to, {
                 ...target,
-                dependencies: [...target.dependencies, edge.from],
+                dependencies: [...target.dependencies, typedEdge.from],
               });
             }
           }
@@ -210,7 +263,7 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
 
   return {
     engine: "checkPlanningDag",
-    passed: findings.filter((f) => f.severity === "ERROR").length === 0,
+    passed: findings.filter((f: DoctorDiagnosticFinding) => f.severity === "ERROR").length === 0,
     findings,
   };
 }

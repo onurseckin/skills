@@ -93,6 +93,11 @@ export function renderSugiyamaNodeBox(
     rows.push(`Coordinates: ${coords}`);
   }
 
+  const badges = formatNodeBadges(task);
+  if (badges) {
+    rows.push(`Badges: ${badges}`);
+  }
+
   const trackingLines = formatImplementerValidatorTracking(task);
   for (const tl of trackingLines) {
     rows.push(tl);

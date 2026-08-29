@@ -28,11 +28,13 @@ export {
 
 export {
   runAttempt,
+  cleanupAfterAttemptFailure,
   raceWithTimeout,
   settleBounded,
   settleTrackerBeforeOutcome,
   activityMetadata,
   writeSuccessfulAttemptEvidence,
+  finalizeSuccessfulAttempt,
   finalizeGateAttempt,
 } from "./attempt/index.ts";
 

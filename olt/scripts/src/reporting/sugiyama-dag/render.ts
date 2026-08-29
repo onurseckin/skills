@@ -197,7 +197,7 @@ export function generateSugiyamaDagReport(
     0,
   );
   const maxCriticalPath = Math.max(
-    1,
+    layers.length > 0 ? layers.length : 1,
     ...nodes.map((n) => (typeof n.criticalDepth === "number" ? n.criticalDepth + 1 : 1)),
   );
   const span = maxCriticalPath;

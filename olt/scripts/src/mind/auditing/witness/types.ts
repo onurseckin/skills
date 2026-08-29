@@ -53,7 +53,7 @@ function scanCapsulesDir(dir: string, roots: Set<string>): void {
   }
 }
 
-function collectCapsuleSearchRoots(startPath?: string): string[] {
+export function collectCapsuleSearchRoots(startPath?: string): string[] {
   const roots = new Set<string>();
 
   if (typeof startPath === "string" && startPath.trim().length > 0) {

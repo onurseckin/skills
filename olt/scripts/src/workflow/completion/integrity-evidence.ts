@@ -1,6 +1,6 @@
 import type { EvidenceClass } from "../../core/contracts/index.ts";
 import type { JsonObject } from "../../core/contracts/index.ts";
-import { verifyIntegrity } from "../../engine/store/index.ts";
+import { verifyIntegrity } from "../../engine/store/integrity/integrity.ts";
 
 export interface CapsuleIntegrityEvidence extends JsonObject {
   kind: "capsule_integrity";

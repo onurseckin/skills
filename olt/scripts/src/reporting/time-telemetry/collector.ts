@@ -42,7 +42,7 @@ export class OmnipresentTelemetryCollector {
     options?: StartActionSpanOptions,
   ): ActionSpan {
     const span = new ActionSpan(actionName, actor, {
-      timezone: this._defaultTimezone,
+      ...(this._defaultTimezone !== undefined ? { timezone: this._defaultTimezone } : {}),
       ...options,
     });
     this._activeSpans.set(span.actionId, span);
