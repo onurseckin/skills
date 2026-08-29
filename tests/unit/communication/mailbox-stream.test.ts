@@ -9,9 +9,11 @@ import {
   readUnreadMessages,
   resolveMailboxPaths,
   rotateMailboxMessages,
-  type MailboxCursor,
-  type MailboxEnvelope,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
+import type {
+  MailboxCursor,
+  MailboxEnvelope,
+} from "../../../olt/scripts/src/communication/types.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("Mailbox Stream IO & Paths Engine", () => {
@@ -117,8 +119,14 @@ describe("Mailbox Stream IO & Paths Engine", () => {
       appendMailboxMessage(paths.inboxPath, env2, paths.lockPath);
       const lines = readFileSync(paths.inboxPath, "utf8").trim().split("\n");
       expect(lines.length).toBe(2);
-      expect(JSON.parse(lines[0]!).id).toBe(env1.id);
-      expect(JSON.parse(lines[1]!).id).toBe(env2.id);
+      const line0 = lines[0];
+      const line1 = lines[1];
+      expect(line0).toBeDefined();
+      expect(line1).toBeDefined();
+      if (line0 !== undefined && line1 !== undefined) {
+        expect(JSON.parse(line0).id).toBe(env1.id);
+        expect(JSON.parse(line1).id).toBe(env2.id);
+      }
     });
 
     it("fails closed on invalid arguments", () => {
@@ -171,7 +179,11 @@ describe("Mailbox Stream IO & Paths Engine", () => {
       const r1 = readUnreadMessages(paths.inboxPath, cursor, { lockPath: paths.lockPath });
       expect(r1.quarantinedCount).toBe(0);
       expect(r1.messages.length).toBe(1);
-      expect(r1.messages[0]!.id).toBe(env3.id);
+      const firstMsg = r1.messages[0];
+      expect(firstMsg).toBeDefined();
+      if (firstMsg !== undefined) {
+        expect(firstMsg.id).toBe(env3.id);
+      }
 
       const advancedCursor: MailboxCursor = {
         last_read_sequence: 3,
@@ -215,10 +227,18 @@ describe("Mailbox Stream IO & Paths Engine", () => {
       expect(rotatedCount).toBe(2);
       const inboxLines = readFileSync(paths.inboxPath, "utf8").trim().split("\n");
       expect(inboxLines.length).toBe(3);
-      expect(JSON.parse(inboxLines[0]!).sequence).toBe(3);
+      const firstInbox = inboxLines[0];
+      expect(firstInbox).toBeDefined();
+      if (firstInbox !== undefined) {
+        expect(JSON.parse(firstInbox).sequence).toBe(3);
+      }
       const archiveLines = readFileSync(paths.archivePath, "utf8").trim().split("\n");
       expect(archiveLines.length).toBe(2);
-      expect(JSON.parse(archiveLines[0]!).sequence).toBe(1);
+      const firstArchive = archiveLines[0];
+      expect(firstArchive).toBeDefined();
+      if (firstArchive !== undefined) {
+        expect(JSON.parse(firstArchive).sequence).toBe(1);
+      }
     });
 
     it("handles rotation boundary conditions and default 1000 limit", () => {

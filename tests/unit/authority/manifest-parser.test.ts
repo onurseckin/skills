@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   clearManifestCache,
@@ -1652,5 +1652,32 @@ mapping:
         d.includes("Review the agent naming conventions"),
       ),
     ).toBe(true);
+  });
+
+  test("all agent manifests in olt/agents declaring commands contain msg:send, msg:recv, msg:poll", () => {
+    const agentsDir = join(findSkillRoot(), "agents");
+    const manifestFiles = readdirSync(agentsDir).filter((f) => f.endsWith(".yaml"));
+    expect(manifestFiles.length).toBe(28);
+
+    for (const file of manifestFiles) {
+      const content = readFileSync(join(agentsDir, file), "utf-8");
+      const parsed = parseYaml(content) as Record<string, unknown>;
+      const permissions =
+        parsed && "permissions" in parsed
+          ? (parsed.permissions as Record<string, unknown> | undefined)
+          : undefined;
+      let commands =
+        permissions && "commands" in permissions
+          ? (permissions.commands as string[] | undefined)
+          : undefined;
+      if (!commands && parsed && "commands" in parsed) {
+        commands = parsed.commands as string[] | undefined;
+      }
+      if (commands && Array.isArray(commands)) {
+        expect(commands).toContain("msg:send");
+        expect(commands).toContain("msg:recv");
+        expect(commands).toContain("msg:poll");
+      }
+    }
   });
 });

@@ -100,7 +100,20 @@ export function ensureDir(root: string, target: string): void {
   let cur = root;
   for (const part of parts) {
     cur = join(cur, part);
-    if (!existsSync(cur)) mkdirSync(cur, { recursive: false, mode: 0o700 });
+    if (!existsSync(cur)) {
+      try {
+        mkdirSync(cur, { recursive: false, mode: 0o700 });
+      } catch (e: unknown) {
+        if (
+          typeof e !== "object" ||
+          e === null ||
+          !("code" in e) ||
+          (e as { code: string }).code !== "EEXIST"
+        ) {
+          throw e;
+        }
+      }
+    }
     assertRealDir(cur, "repository policy parent");
   }
 }
