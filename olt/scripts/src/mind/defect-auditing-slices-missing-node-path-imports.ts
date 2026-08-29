@@ -344,9 +344,9 @@ export function extractPathImports(sourceCode: string): ExistingPathImportsInfo 
   let namespaceIdentifier: string | undefined;
   let defaultIdentifier: string | undefined;
 
-  // ES Import regex: matches `import ... from "node:path"` or `from "path"`
+  // ES Import regex: matches `import ... from "node:path"` or `from "path"` strictly
   const esImportRegex =
-    /(?:^|\n)[ \t]*(import\s+([\s\S]*?)\s+from\s+["'](node:path|path)["'][ \t]*;?)/gu;
+    /(?:^|\n)[ \t]*(import\s+((?:(?!\bimport\b|\bfrom\b)[\s\S])*?)\s+from\s+["'](node:path|path)["'][ \t]*;?)/gu;
 
   let match: RegExpExecArray | null;
   while ((match = esImportRegex.exec(sourceCode)) !== null) {
