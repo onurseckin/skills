@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary & Conceptual Overview
 
-Large-scale multi-agent software engineering swarms consume significant token throughput across prompt evaluation and code generation. When an LLM API provider's rate limit is reached (e.g. hitting Tokens Per Minute [TPM] ceilings or sliding-window quota drops below 5%), naive multi-agent systems often fail catastrophically:
+Large-scale multi-agent software engineering swarms consume significant token throughput across prompt evaluation and code generation. When an LLM API provider's rate limit is reached (e.g. hitting Tokens Per Minute [TPM] ceilings or sliding-window quota drops below 10%), naive multi-agent systems often fail catastrophically:
 
 1. **Blind Worker Termination**: Supervisors kill subagents mid-turn, losing uncommitted in-memory edits, torn AST modifications, and test scratch states.
 2. **Lease Expiration / Reaper Cascades**: Inactive workers get flagged as "dead" or "stale", causing leases to be reaped and assigned to other agents who overwrite half-finished work.
@@ -16,12 +16,12 @@ Large-scale multi-agent software engineering swarms consume significant token th
 
 The OLT engine resolves token exhaustion through **Pillar 16: Quota Freeze & Auto-Wake Mechanics**.
 
-When quota drops below $5\%$ or a `429 Too Many Requests` circuit breaker trips, OLT executes an orderly, non-destructive **Quota Freeze (`quota:freeze`)**. Active subagents are preserved in memory under the **Zero-Kill Invariant**, lease clocks are paused, unstaged files remain untouched on disk, and a single non-polling **Sentinel Timer** is registered to resume execution automatically once provider quotas replenish.
+When quota drops below $10\%$ or a `429 Too Many Requests` circuit breaker trips, OLT executes an orderly, non-destructive **Quota Freeze (`quota:freeze`)**. Active subagents are preserved in memory under the **Zero-Kill Invariant**, lease clocks are paused, unstaged files remain untouched on disk, and a single non-polling **Sentinel Timer** is registered to resume execution automatically once provider quotas replenish.
 
 ```
                    Token Quota Telemetry / 429 Trigger
                                   │
-                                  ▼ (Quota < 5%)
+                                  ▼ (Quota < 10%)
          ┌──────────────────────────────────────────────────┐
          │              Quota Freeze Triggered              │
          │  1. Halt recurring background crons              │
@@ -78,7 +78,7 @@ The foundational principle of OLT quota resilience is the **Zero-Kill Invariant*
 The Quota Freeze lifecycle is governed by a deterministic 5-state automaton:
 
 ```
-  ┌─────────────┐       Quota < 5% / 429        ┌──────────────┐
+  ┌─────────────┐       Quota < 10% / 429       ┌──────────────┐
   │   RUNNING   │ ────────────────────────────> │   FREEZING   │
   └─────────────┘                               └──────────────┘
          ▲                                             │ Snapshot Saved
@@ -189,7 +189,7 @@ sequenceDiagram
     participant API as LLM Provider Gateway
     participant Sub as Suspended Subagents
 
-    Runtime->>Runtime: Detect Rate Limit (Quota < 5%)
+    Runtime->>Runtime: Detect Rate Limit (Quota < 10%)
     Runtime->>Sub: Enter In-Memory IDLE (Zero-Kill)
     Runtime->>OS: Schedule One-Shot Timer (Duration: 600s, Prompt: "Quota auto-wake")
     Note over Runtime,Sub: System Sleeps in RAM (Zero Token Consumption)

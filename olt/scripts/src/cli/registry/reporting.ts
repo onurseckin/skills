@@ -376,7 +376,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     summary:
       "Evaluate quota circuit-breaker status, wrap-up directives, and auto-wake timer schedule.",
     description:
-      "Probes cross-platform quota telemetry, detects exhaustion (<5%), generates wrap-up directives for active agents, and computes one-shot auto-wake scheduler payloads.",
+      "Probes cross-platform quota telemetry, detects exhaustion (<10%), generates wrap-up directives for active agents, and computes one-shot auto-wake scheduler payloads.",
     flags: [
       optionalFlag(
         "platform",
@@ -386,8 +386,8 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       optionalFlag(
         "threshold",
         "string",
-        "Quota percentage threshold to trigger circuit breaker (default: 5.0).",
-        "5.0",
+        "Quota percentage threshold to trigger circuit breaker (default: 10.0).",
+        "10.0",
       ),
       optionalFlag(
         "active-agents",
@@ -403,7 +403,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
       "bun harness.ts quota:check",
-      "bun harness.ts quota:check --threshold 5.0",
+      "bun harness.ts quota:check --threshold 10.0",
       "bun harness.ts quota:circuit-break --json",
     ],
     handler: quotaCheckCommand,
@@ -419,7 +419,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("repo", "string", "Must resolve to the verified run repository."),
       requiredFlag("run", "string", "Verified capsule run root."),
       requiredFlag("actor", "string", "Acting mind or orchestrator agent ID."),
-      optionalFlag("threshold", "string", "Quota percentage threshold (default: 5.0).", "5.0"),
+      optionalFlag("threshold", "string", "Quota percentage threshold (default: 10.0).", "10.0"),
       optionalFlag("active-agents", "int", "Number of currently active agents.", 0),
       optionalFlag(
         "force",
@@ -447,7 +447,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("repo", "string", "Must resolve to the verified run repository."),
       requiredFlag("run", "string", "Verified capsule run root."),
       requiredFlag("actor", "string", "Acting mind or orchestrator agent ID."),
-      optionalFlag("threshold", "string", "Quota percentage threshold (default: 5.0).", "5.0"),
+      optionalFlag("threshold", "string", "Quota percentage threshold (default: 10.0).", "10.0"),
       optionalFlag(
         "force",
         "bool",

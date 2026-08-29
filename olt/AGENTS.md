@@ -126,6 +126,10 @@ Every agent executing within this repository must adhere to the following non-ne
     - Oversized implementations must be partitioned into atomic sub-tasks bounded to 1–2 target files per subagent.
 34. **Supervisor Zero Direct Code Edits & Zero Main-Thread Implementation:**
     - Strict prohibition against main thread or supervisory tiers doing code edits or taking on worker tasks. All code modifications must be delegated to leased Tier 3 Implementers with exact-anchor briefings and disjoint write scopes.
+35. **Quota Freeze & Cron Suspension (Zero-Kill Invariant & <10% Circuit-Breaker):**
+    - When remaining quota drops below 10% (`QUOTA_EXHAUSTED_CIRCUIT_BROKEN`) or provider rate limit (429) is encountered, supervisory agents gracefully suspend recurring background crons (`mind:pulse`, live auditors, round supervisors).
+    - **Zero-Kill Invariant:** Active subagents are NEVER terminated or killed (`manage_subagents kill` strictly forbidden during freeze). Subprocesses sleep in RAM in an IDLE state, preserving uncommitted working tree changes and in-memory epistemic context.
+    - **Auto-Wake Resume:** A single one-shot sentinel timer is scheduled (`resetTime + 60s` buffer). Upon sentinel wakeup, supervisory agents re-register stopped crons, restore DAG coordinates from `.olt/quota-dag-snapshot.json`, and resume multi-round convergence.
 
 ---
 

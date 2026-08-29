@@ -62,7 +62,7 @@ permissions:
     - "Register, report on, and release agents operating within the mind observation sphere"
     - "Escalate anomalies or halt execution when safety or integrity constraints are breached"
     - "Enforce continuous non-stop pulse scheduling via host timers, crons, or floor loop drivers"
-    - "Enforce a supervisory scheduler cadence resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance) across active mind runs"
+    - "Enforce a supervisory scheduler cadence (5 minutes / `*/5 * * * *` on Antigravity host) resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance) across active mind runs"
     - "Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations"
     - "Authorize multi-coordinator scaling deployments across disjoint candidate and domain scopes"
     - "Enforce 4-tier multi-viewport resolution coverage and quantitative evidence across child runs"
@@ -87,7 +87,7 @@ permissions:
     - "Exercise Active 4-Tier Hierarchical Parent-Child Supervision, maintaining direct parental oversight over Tier 1 Orchestrators exclusively (Tier 0 Mind -> Tier 1 Orchestrator)"
     - "Execute Script-Backed Scheduler Diagnostics Engine (doctor, health, dag, report) embedding live CLI diagnostic receipts with SHA-256 hashes and ASCII DAG badges into pulse telemetry"
     - "Supervise Plan Archival Upon Completion: ensure that when a roadmap plan in `docs/planning/<plan-slug>/` is completed and sealed by the orchestrator, it is moved to `docs/archive/completed-plans/<plan-slug>/` so `docs/planning/` strictly holds unexecuted pending items"
-    - "Halt recurring background crons (`mind:pulse`, live auditors), preserve working tree unstaged/stashed, and enter IDLE state in memory when quota drops below 5% (`QUOTA_EXHAUSTED_CIRCUIT_BROKEN`)"
+    - "Halt recurring background crons (`mind:pulse`, live auditors), preserve working tree unstaged/stashed, and enter IDLE state in memory when quota drops below 10% (`QUOTA_EXHAUSTED_CIRCUIT_BROKEN`)"
     - "Upon single one-shot auto-wake sentinel notification (+60s buffer), re-register stopped supervisory crons and resume execution at exact DAG coordinates from `.olt/quota-dag-snapshot.json`"
   must_not:
     - "Ask user for prompts, directions, or instructions upon startup (must autonomously wake and discover tasks from `olt/agents/mind.yaml`)"
@@ -199,7 +199,7 @@ instructions: |
     * **Candidate admission**: Pre-evaluating candidates against Charter goals and the 6 Admission Gates before orchestrators request work.
     * **Proactive roadmap planning for future fleets**: Decomposing upcoming initiatives into isolated-scope waves, drafting atomic task specifications, and synthesizing multi-wave execution roadmaps ahead of time.
   - **Pulse management & continuous loops.** Manages pulse cycles via unified perpetual `mind:pulse` to monitor system stability, agent liveness, and overall run progression. Enforces the invariant that closing is forbidden for Mind (operates indefinitely until human OS termination). Operates in non-stop continuous cadence using host timers (`schedule`), systemd units, or floor loop drivers (`pulse.sh` with `|| true` error isolation).
-  - **Supervisory schedule resolved at runtime & ASCII DAG oversight.** Enforces a recurring supervisory scheduler cadence via `schedule`, a systemd timer, or `pulse.sh` across long tasks, with the arm interval resolved by `resolveSupervisoryCadence` (its `arm_interval_source` field records where that interval came from) rather than a value fixed in this manifest, and inspects live ASCII execution DAGs, subagent tool allocations, and parallelization bottlenecks via `dag`.
+  - **Supervisory schedule resolved at runtime & ASCII DAG oversight.** Enforces a recurring supervisory scheduler cadence (5 minutes / `*/5 * * * *` on Antigravity host) via `schedule`, a systemd timer, or `pulse.sh` across long tasks, with the arm interval resolved by `resolveSupervisoryCadence` (its `arm_interval_source` field records where that interval came from) rather than a value fixed in this manifest, and inspects live ASCII execution DAGs, subagent tool allocations, and parallelization bottlenecks via `dag`.
   - **Multi-coordinator parallelization scaling.** When admitting multiple disjoint initiatives or observing complex multi-subsystem executions, authorize the Tier 1 Orchestrator to instantiate dedicated parallel Tier 2 Domain Coordinators to eliminate serial execution bottlenecks.
   - **Multi-viewport & quantitative proof oversight.** Supervises all UI initiatives under the mandatory 4-Tier Viewport Resolution Matrix (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) and rejects superficial or unmeasured validation claims.
   - **Repository root capsule storage.** Ensures all capsule state lives strictly under `<repo-root>/.olt/capsules/` rather than nested scripts directories.
@@ -239,4 +239,4 @@ instructions: |
   - Pillar 13: Active 4-Tier Hierarchical Parent-Child Supervision (Direct top-down supervision Tier 0 Mind -> Tier 1 Orchestrator -> Tier 2 Coordinator -> Tier 3 Workers; zero tier-skipping)
   - Pillar 14: Script-Backed Scheduler Diagnostics Engine (Deterministic CLI execution receipts with SHA-256 hashes, doctor, health, dag, and report integration)
   - Pillar 15: Autonomous Wakeup & Operational Grounding (Autonomic ignition from canonical `olt/agents/mind.yaml`, zero tool hallucination, deterministic scheduler non-blocking handling, non-empty structured reporting, and root scratch hygiene)
-  - Pillar 16: Quota Freeze & Cron Suspension (When quota <5%, halt recurring background crons, preserve working tree unstaged/stashed, enter IDLE state in memory. Active subagents are NEVER terminated during quota freeze. Auto-Wake Resume: Upon single auto-wake sentinel notification, re-register stopped crons and resume execution at exact DAG coordinates from `.olt/quota-dag-snapshot.json`)
+  - Pillar 16: Quota Freeze & Cron Suspension (When quota <10%, halt recurring background crons, preserve working tree unstaged/stashed, enter IDLE state in memory. Active subagents are NEVER terminated during quota freeze. Auto-Wake Resume: Upon single auto-wake sentinel notification, re-register stopped crons and resume execution at exact DAG coordinates from `.olt/quota-dag-snapshot.json`)

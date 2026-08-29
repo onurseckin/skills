@@ -143,8 +143,8 @@ export const DECISION_PROTOCOLS: Readonly<Record<DecisionProtocolId, DecisionPro
       id: "quota_freeze_zero_kill_resume",
       name: "Quota Freeze, Zero-Kill & Auto-Wake Resume",
       summary:
-        "Upon encountering <5% quota (QUOTA_EXHAUSTED_CIRCUIT_BROKEN), gracefully suspend crons without killing active subagents, entering an IDLE state. Resume on sentinel.",
-      formulaOrRule: "Quota < 5% -> Suspend Crons + Preserve State + Zero-Kill",
+        "Upon encountering <10% quota (QUOTA_EXHAUSTED_CIRCUIT_BROKEN), gracefully suspend crons without killing active subagents, entering an IDLE state. Resume on sentinel.",
+      formulaOrRule: "Quota < 10% -> Suspend Crons + Preserve State + Zero-Kill",
       keyInvariants: [
         "Zero-Kill Invariant: Active subagents are NEVER terminated during quota freeze (`manage_subagents kill` forbidden during freeze).",
         "Cron Suspension: Halt recurring background crons (`mind:pulse`, live auditors).",

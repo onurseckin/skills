@@ -38,7 +38,7 @@ describe("Quota Lifecycle", () => {
     }
   });
 
-  it("Normal state (quota > 5%) -> quota:check is OK and quota:freeze skips unless forced", async () => {
+  it("Normal state (quota > 10%) -> quota:check is OK and quota:freeze skips unless forced", async () => {
     const breaker = new QuotaCircuitBreaker();
     const evaluation = breaker.evaluate(
       {
@@ -48,12 +48,12 @@ describe("Quota Lifecycle", () => {
             tier: "tier1-rpc",
             isDetected: true,
             errors: [],
-            metrics: [{ remainingPercentage: 10, requestsRemaining: 100 }],
+            metrics: [{ remainingPercentage: 20, requestsRemaining: 100 }],
           },
         ],
         timestamp: new Date().toISOString(),
       } as any,
-      { thresholdPercentage: 5, activeAgentsCount: 0 },
+      { thresholdPercentage: 10, activeAgentsCount: 0 },
     );
 
     expect(evaluation.isTriggered).toBe(false);
@@ -62,7 +62,7 @@ describe("Quota Lifecycle", () => {
     expect(forcedResult.status).toBe("frozen");
   });
 
-  it("Quota breach (<5%) -> triggers circuit breaker, computes resetTime + 60s auto-wake", () => {
+  it("Quota breach (<10%) -> triggers circuit breaker, computes resetTime + 60s auto-wake", () => {
     const breaker = new QuotaCircuitBreaker();
     const evaluation = breaker.evaluate(
       {
@@ -74,7 +74,7 @@ describe("Quota Lifecycle", () => {
             errors: [],
             metrics: [
               {
-                remainingPercentage: 2,
+                remainingPercentage: 5,
                 requestsRemaining: 100,
                 resetTime: "2024-01-01T12:00:00Z",
               },
@@ -83,7 +83,7 @@ describe("Quota Lifecycle", () => {
         ],
         timestamp: "2024-01-01T10:00:00Z",
       } as any,
-      { thresholdPercentage: 5, activeAgentsCount: 1 },
+      { thresholdPercentage: 10, activeAgentsCount: 1 },
     );
 
     expect(evaluation.isTriggered).toBe(true);

@@ -60,3 +60,5 @@ export {
   isCodeEditTool,
   codeEditToolNamesForHost,
 } from "./host/code-edit-tools.ts";
+export { detectActiveHost, CANONICAL_HOST_TYPES, isHostType } from "./host-autodetect.ts";
+export type { HostType } from "./host-autodetect.ts";

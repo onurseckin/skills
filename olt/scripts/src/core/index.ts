@@ -40,6 +40,7 @@ export * from "./durable-write.ts";
 export * from "./json.ts";
 export * from "./no-follow.ts";
 export * from "./paths.ts";
+export * from "./shared/paths.ts";
 export * from "./restricted-git.ts";
 export * from "./runtime-filter.ts";
 export * from "./runtime-tree.ts";

@@ -50,8 +50,8 @@ describe("resolved harness config", () => {
       join(dir, "harness.config.json"),
       JSON.stringify({ min_adversarial_probes: -1, max_repair_rounds: 1.5 }),
     );
-    expect(resolveHarnessConfig(dir, undefined, { hostConcurrency: null })).toEqual(
-      DEFAULT_RESOLVED_CONFIG,
+    expect(() => resolveHarnessConfig(dir, undefined, { hostConcurrency: null })).toThrow(
+      /min_adversarial_probes/,
     );
   });
 

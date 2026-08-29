@@ -17,7 +17,7 @@ export async function quotaCheckCommand(
 ): Promise<Record<string, unknown>> {
   const platformFilter = textFlag(flags, "platform", false);
   const rawThreshold = textFlag(flags, "threshold", false);
-  const threshold = rawThreshold !== undefined ? Number(rawThreshold) : 5.0;
+  const threshold = rawThreshold !== undefined ? Number(rawThreshold) : 10.0;
   const activeAgentsCount = integerFlag(flags, "active-agents", { required: false }) ?? 0;
   const jsonOutput = boolFlag(flags, "json");
   const detailed = boolFlag(flags, "detailed");
@@ -34,7 +34,7 @@ export async function quotaCheckCommand(
 
   const breaker = new QuotaCircuitBreaker();
   const evaluation = breaker.evaluate(report, {
-    thresholdPercentage: isNaN(threshold) ? 5.0 : threshold,
+    thresholdPercentage: isNaN(threshold) ? 10.0 : threshold,
     activeAgentsCount,
   });
 

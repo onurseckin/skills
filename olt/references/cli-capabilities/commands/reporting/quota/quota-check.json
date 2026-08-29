@@ -21,7 +21,7 @@
       "type": "string",
       "required": false,
       "repeatable": false,
-      "default": "5.0"
+      "default": "10.0"
     },
     {
       "name": "active-agents",

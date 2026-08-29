@@ -88,8 +88,8 @@ describe("Documentation Structure, Diátaxis Modules & Semantic Mirroring Invari
       expect(existsSync(testDir)).toBe(true);
       expect(statSync(testDir).isDirectory()).toBe(true);
 
-      const testFiles = readdirSync(testDir).filter(
-        (f) => f.endsWith(".test.ts") || f.endsWith(".ts"),
+      const testFiles = (readdirSync(testDir, { recursive: true }) as string[]).filter(
+        (f) => typeof f === "string" && (f.endsWith(".test.ts") || f.endsWith(".ts")),
       );
       expect(testFiles.length).toBeGreaterThan(0);
     }

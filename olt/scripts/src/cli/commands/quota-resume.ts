@@ -27,7 +27,7 @@ export async function quotaResumeCommand(
     );
   }
   const rawThreshold = textFlag(flags, "threshold", false);
-  const threshold = rawThreshold !== undefined ? Number(rawThreshold) : 5.0;
+  const threshold = rawThreshold !== undefined ? Number(rawThreshold) : 10.0;
   const force = boolFlag(flags, "force");
   const jsonOutput = boolFlag(flags, "json");
   const detailed = boolFlag(flags, "detailed");
@@ -39,7 +39,7 @@ export async function quotaResumeCommand(
 
     const breaker = new QuotaCircuitBreaker();
     const evaluation = breaker.evaluate(report, {
-      thresholdPercentage: isNaN(threshold) ? 5.0 : threshold,
+      thresholdPercentage: isNaN(threshold) ? 10.0 : threshold,
       activeAgentsCount: 0,
     });
 

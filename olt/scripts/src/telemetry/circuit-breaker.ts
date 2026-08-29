@@ -1,7 +1,7 @@
 /**
  * Quota Circuit-Breaker & Dynamic Auto-Wake Scheduler Engine
  *
- * Provides autonomous quota threshold monitoring (<5%), wrap-up directive generation
+ * Provides autonomous quota threshold monitoring (<10%), wrap-up directive generation
  * for active agents (preserving memory/state without terminating), and precise
  * reset-time-based one-shot auto-wake schedule computation with safe-window fallback.
  */
@@ -14,12 +14,12 @@ export type CircuitBreakerStatus =
   | "QUOTA_EXHAUSTED_CIRCUIT_BROKEN"
   | "QUOTA_UNKNOWN_CIRCUIT_BROKEN";
 
-export const DEFAULT_QUOTA_THRESHOLD = 5.0; // 5.0%
+export const DEFAULT_QUOTA_THRESHOLD = 10.0; // 10.0%
 export const DEFAULT_SAFE_WINDOW_SECONDS = 18000; // 5 hours in seconds (18,000s)
 export const DEFAULT_AUTO_WAKE_BUFFER_SECONDS = 60; // 60 seconds (+1m buffer)
 
 export const CRITICAL_WRAP_UP_MESSAGE =
-  "CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<5%). Wrap up current micro-step immediately. Do not claim or start new tasks. Keep working tree changes unstaged/stashed safely without destructive actions. Enter idle state.";
+  "CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<10%). Wrap up current micro-step immediately. Do not claim or start new tasks. Keep working tree changes unstaged/stashed safely without destructive actions. Enter idle state.";
 
 export const UNMEASURED_QUOTA_WRAP_UP_MESSAGE =
   "Quota availability is unavailable or unmeasured. Wrap up current micro-step immediately. Do not claim or start new tasks until a measured quota observation is available. Keep working tree changes unstaged/stashed safely without destructive actions. Enter idle state.";
@@ -354,7 +354,7 @@ export function formatCircuitBreakerMarkdown(
     lines.push(
       quotaUnknown
         ? "│                    ⚠️ QUOTA AVAILABILITY UNAVAILABLE / UNMEASURED ⚠️                            │"
-        : "│                         🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<5%) 🚨                      │",
+        : "│                         🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<10%) 🚨                     │",
     );
     lines.push(
       "├──────────────────────────────┬───────────────────────────────────────────────────────────────────┤",

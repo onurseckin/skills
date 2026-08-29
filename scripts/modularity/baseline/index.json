@@ -451,6 +451,13 @@
     },
     {
       "rule": "line_limit",
+      "path": "olt/scripts/src/policy/generator.ts",
+      "observed": 463,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
       "path": "olt/scripts/src/policy/rbac-engine.ts",
       "observed": 776,
       "limit": 300,
@@ -459,7 +466,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/policy/repo-policy.ts",
-      "observed": 1130,
+      "observed": 396,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -467,6 +474,13 @@
       "rule": "line_limit",
       "path": "olt/scripts/src/policy/review-protocol.ts",
       "observed": 301,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "olt/scripts/src/policy/schema.ts",
+      "observed": 593,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -1732,6 +1746,13 @@
     },
     {
       "rule": "line_limit",
+      "path": "tests/unit/policy/policy-schema.test.ts",
+      "observed": 398,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
       "path": "tests/unit/policy/rbac-engine.test.ts",
       "observed": 849,
       "limit": 300,
@@ -1852,7 +1873,7 @@
     {
       "rule": "line_limit",
       "path": "tests/unit/telemetry/circuit-breaker.test.ts",
-      "observed": 386,
+      "observed": 385,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -2090,7 +2111,7 @@
     {
       "rule": "directory_fanout",
       "path": "olt/scripts/src/authority",
-      "observed": 12,
+      "observed": 13,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -2509,12 +2530,6 @@
     },
     {
       "rule": "missing_facade",
-      "path": "olt/scripts/src/policy",
-      "observed": "missing index.ts",
-      "detail": "TypeScript directory requires an explicit index.ts facade."
-    },
-    {
-      "rule": "missing_facade",
       "path": "olt/scripts/src/reporting/theme",
       "observed": "missing index.ts",
       "detail": "TypeScript directory requires an explicit index.ts facade."
@@ -2582,7 +2597,7 @@
     {
       "rule": "export_star",
       "path": "olt/scripts/src/core/index.ts",
-      "observed": 8,
+      "observed": 9,
       "detail": "Facade must use explicit named exports instead of export-star."
     },
     {
@@ -3199,6 +3214,30 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "olt/scripts/src/authority/host-bindings.ts",
+      "observed": "olt/scripts/src/platform/host-autodetect.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/authority/host-bindings.ts",
+      "observed": "olt/scripts/src/policy/generator.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/authority/host-bindings.ts",
+      "observed": "olt/scripts/src/policy/repo-policy.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/authority/host-bindings.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "olt/scripts/src/authority/persona/constants.ts",
       "observed": "olt/scripts/src/authority/watchdog-manager.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -3806,6 +3845,12 @@
     {
       "rule": "facade_bypass",
       "path": "olt/scripts/src/cli/commands/agent-brief.ts",
+      "observed": "olt/scripts/src/authority/host-bindings.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/agent-brief.ts",
       "observed": "olt/scripts/src/authority/manifest-schema.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
@@ -3824,7 +3869,19 @@
     {
       "rule": "facade_bypass",
       "path": "olt/scripts/src/cli/commands/agent-brief.ts",
+      "observed": "olt/scripts/src/platform/host-autodetect.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/agent-brief.ts",
       "observed": "olt/scripts/src/policy/repo-policy.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/agent-brief.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -7059,6 +7116,12 @@
       "rule": "facade_bypass",
       "path": "olt/scripts/src/core/errors/harness-error.ts",
       "observed": "olt/scripts/src/core/contracts/json.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/core/index.ts",
+      "observed": "olt/scripts/src/core/shared/paths.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -12577,12 +12640,6 @@
     },
     {
       "rule": "facade_bypass",
-      "path": "olt/scripts/src/policy/repo-policy.ts",
-      "observed": "olt/scripts/src/core/shared/paths.ts",
-      "detail": "Cross-directory import must target the destination index.ts facade."
-    },
-    {
-      "rule": "facade_bypass",
       "path": "olt/scripts/src/policy/review-protocol.ts",
       "observed": "olt/scripts/src/workflow/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -16041,6 +16098,30 @@
       "rule": "facade_bypass",
       "path": "tests/unit/architecture/vendor-scanner.test.ts",
       "observed": "olt/scripts/src/health/vendor-identifiers.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/authority/host-bindings.test.ts",
+      "observed": "olt/scripts/src/authority/host-bindings.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/authority/host-bindings.test.ts",
+      "observed": "olt/scripts/src/cli/commands/agent-brief.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/authority/host-bindings.test.ts",
+      "observed": "olt/scripts/src/policy/generator.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/authority/host-bindings.test.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {

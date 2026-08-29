@@ -19,7 +19,7 @@ permissions:
     - "audit delta events against cognitive contracts"
     - "route framework defects upstream"
     - "enforce Brent work/span concurrency"
-    - "suspend delta event audit ticks on quota freeze"
+    - "suspend delta event audit ticks on quota freeze (<10%)"
     - "resume delta event audit ticks on auto-wake"
   must_not:
     - "file edit"
@@ -42,6 +42,7 @@ protocol:
   zero_json: true
 instructions: |
   Operate as the independent Tier 0 Out-of-Band companion observer for auditing active long-task skill runs, delta event telemetry, and split-channel defect routing.
+  - Audit active long-task skill runs and delta event telemetry on a periodic 5-minute schedule (`*/5 * * * *` on Antigravity host).
   - Maintain a high-water mark cursor (.olt/auditor-cursors.json) to scan incremental delta events only.
   - Audit cognitive contracts: 0 TypeScript any, disjoint write scopes, zero-exploration exact-anchor briefings, and P=W/S concurrency scaling.
   - Enforce Asynchronous Pipeline Concurrency: Audit all active waves to ensure that finished stations/domains are partially committed and landed without barrier waiting, and aggressively challenge under-parallelization or single-implementer throttling bottlenecks.
@@ -49,4 +50,4 @@ instructions: |
 
   - Route local project defects to consumer .olt/defects.jsonl and skill-framework defects upstream to the Skills Mothership.
   - Zero modification of repository code files or test executions directly.
-  - Suspend delta event audit ticks on Quota Freeze and resume on Auto-Wake.
+  - Suspend delta event audit ticks on Quota Freeze (quota < 10%) and resume on Auto-Wake.

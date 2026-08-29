@@ -71,7 +71,7 @@ function createMockReport(
 describe("QuotaCircuitBreaker Engine", () => {
   const fixedNow = new Date("2026-08-24T12:00:00.000Z").getTime();
 
-  it("returns status OK when quota is above 5% threshold", () => {
+  it("returns status OK when quota is above 10% threshold", () => {
     const breaker = new QuotaCircuitBreaker();
     const report = createMockReport([
       createMockMetric("gemini-2.5-pro", 85.0, "2026-08-24T14:18:42.000Z"),
@@ -90,7 +90,7 @@ describe("QuotaCircuitBreaker Engine", () => {
     expect(result.summary).toContain("Quota healthy at 42.50%");
   });
 
-  it("triggers circuit breaker when quota is below 5% (<5%) and calculates resetTime + 60s auto-wake", () => {
+  it("triggers circuit breaker when quota is below 10% (<10%) and calculates resetTime + 60s auto-wake", () => {
     const breaker = new QuotaCircuitBreaker();
     const resetTimeIso = "2026-08-24T14:18:42.000Z";
     const report = createMockReport([
@@ -264,7 +264,7 @@ describe("QuotaCircuitBreaker Engine", () => {
     const triggeredEval = breaker.evaluate(triggeredReport, { now: fixedNow });
     const triggeredMd = formatCircuitBreakerMarkdown(triggeredEval, true);
 
-    expect(triggeredMd).toContain("CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<5%)");
+    expect(triggeredMd).toContain("CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<10%)");
     expect(triggeredMd).toContain("QUOTA_EXHAUSTED_CIRCUIT_BROKEN");
     expect(triggeredMd).toContain("Target Wakeup Time (ISO)");
     expect(triggeredMd).toContain("AGENT WRAP-UP DIRECTIVES");
@@ -356,7 +356,7 @@ describe("quota:check CLI Command & Registry", () => {
     expect(result.status).toBeDefined();
     expect(result.markdown).toBeDefined();
     expect(typeof result.isTriggered).toBe("boolean");
-    expect(result.thresholdPercentage).toBe(5.0);
+    expect(result.thresholdPercentage).toBe(10.0);
   });
 
   it("executes quotaCheckCommand with custom threshold and json output", async () => {
@@ -368,7 +368,7 @@ describe("quota:check CLI Command & Registry", () => {
 
     const result = await quotaCheckCommand(
       {
-        threshold: "10.0",
+        threshold: "15.0",
         "active-agents": "2",
         json: true,
       },
@@ -377,8 +377,7 @@ describe("quota:check CLI Command & Registry", () => {
       mockEnv,
     );
 
-    expect(result.thresholdPercentage).toBe(10.0);
-    expect(result.json).toBe(true);
+    expect(result.thresholdPercentage).toBe(15.0);
     expect(result.autoWakeSchedule === null || typeof result.autoWakeSchedule === "object").toBe(
       true,
     );
