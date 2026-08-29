@@ -24,7 +24,12 @@
     "cat",
     "wc"
   ],
-  "forbidden_commands": ["git commit", "git push", "git reset", "rm -rf /"],
+  "forbidden_commands": [
+    "git commit",
+    "git push",
+    "git reset",
+    "rm -rf /"
+  ],
   "read_scope_neighborhood_depth": 2,
   "review_protocol": {
     "max_adversarial_pushes": 20,
@@ -46,7 +51,12 @@
       "rbac": {
         "can_execute_shell": false,
         "can_edit_code": false,
-        "allowed_spawns": ["orchestrator", "mind_auditor", "skill_auditor", "autonomic_watchdog"]
+        "allowed_spawns": [
+          "orchestrator",
+          "mind_auditor",
+          "skill_auditor",
+          "autonomic_watchdog"
+        ]
       },
       "hosts": {
         "antigravity": {
@@ -100,8 +110,17 @@
       "rbac": {
         "can_execute_shell": true,
         "can_edit_code": false,
-        "allowed_commands": ["bun harness.ts *", "git status", "git diff", "git log"],
-        "forbidden_patterns": ["^bun\\s+test\\b", "^npm\\s+test\\b", "^git\\s+(commit|push|reset)"],
+        "allowed_commands": [
+          "bun harness.ts *",
+          "git status",
+          "git diff",
+          "git log"
+        ],
+        "forbidden_patterns": [
+          "^bun\\s+test\\b",
+          "^npm\\s+test\\b",
+          "^git\\s+(commit|push|reset)"
+        ],
         "allowed_spawns": [
           "coordinator",
           "implementer",
@@ -150,7 +169,10 @@
           "git push",
           "git log"
         ],
-        "forbidden_patterns": ["^bun\\s+test\\b", "^npm\\s+test\\b"],
+        "forbidden_patterns": [
+          "^bun\\s+test\\b",
+          "^npm\\s+test\\b"
+        ],
         "allowed_spawns": [
           "implementer",
           "validator_code_quality",
@@ -571,7 +593,9 @@
       "web_app": {
         "container_name": "app-web-test",
         "image": "node:20-alpine",
-        "ports": ["3000:3000"],
+        "ports": [
+          "3000:3000"
+        ],
         "health_endpoint": "http://localhost:3000/api/health",
         "ready_timeout_ms": 30000,
         "env": {
@@ -587,7 +611,9 @@
         "password_env_var": "OLT_TEST_ADMIN_PASSWORD",
         "display_name": "Test Admin",
         "tenant_id": "tenant-corp-001",
-        "permissions": ["*"],
+        "permissions": [
+          "*"
+        ],
         "mock_session_cookie": "olt_session_admin_mock_token_sec991823"
       },
       "standard_user": {
@@ -596,7 +622,10 @@
         "password_env_var": "OLT_TEST_USER_PASSWORD",
         "display_name": "Standard User",
         "tenant_id": "tenant-corp-001",
-        "permissions": ["read", "write"],
+        "permissions": [
+          "read",
+          "write"
+        ],
         "mock_session_cookie": "olt_session_user_mock_token_usr102938"
       },
       "invited_member": {
@@ -605,7 +634,9 @@
         "password_env_var": "OLT_TEST_INVITED_PASSWORD",
         "display_name": "Invited Member",
         "tenant_id": "tenant-corp-001",
-        "permissions": ["read"],
+        "permissions": [
+          "read"
+        ],
         "mock_session_cookie": "olt_session_invited_mock_token_inv482019"
       },
       "guest": {
@@ -614,7 +645,9 @@
         "password_env_var": "OLT_TEST_GUEST_PASSWORD",
         "display_name": "Guest Visitor",
         "tenant_id": "tenant-corp-001",
-        "permissions": ["public_read"]
+        "permissions": [
+          "public_read"
+        ]
       }
     },
     "auth_paths": {

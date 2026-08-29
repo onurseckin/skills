@@ -383,3 +383,27 @@ Sequential Execution Order:
 | `defect-mind-smart-task-duplicate-identifier-rebalance-tasks` | Tasks 2.2, 2.4      | `tests/unit/orchestrator/velocity-rebalancer.test.ts` |
 | `fb-subdomain-git-staging-reflog-safety`                      | Task 2.3            | `tests/unit/orchestrator/station-landing.test.ts`     |
 | `fb-host-schedulers-matrix-cadence-thinking`                  | Task 2.4            | `tests/unit/orchestrator/host-schedulers.test.ts`     |
+| `defect-chronic-mind-stagnation-low-quality-auditor-loop`     | Tasks 1.1, 3.1      | `tests/unit/mind/mind-stagnation-auditor.test.ts`     |
+| `defect-mind-pulse-disk-state-desync`                         | Tasks 3.1, 4.1      | `tests/unit/mind/mind-stagnation-auditor.test.ts`     |
+| `defect-doctor-stagnation-unactionable-gap`                   | Tasks 2.1, 3.1      | `tests/unit/watchdog/straggler-watchdog.test.ts`      |
+| `defect-subagent-premature-termination-without-commit-push`   | Tasks 2.3, 4.2      | `tests/unit/orchestrator/station-landing.test.ts`     |
+
+---
+
+## 6. Root-Cause Anti-Stagnation & Autonomous Mind Invariants
+
+### 6.1 Proactive Forward-Looking Mind Lifecycle Engine (`auto_preplan_on_idle`)
+- **Root Cause Eliminated**: Mind historically entered passive chat loops when waiting for waves to converge, rather than proactively grooming backlog items and converting open defects into blueprints.
+- **Architectural Solution**: Whenever Mind enters `waiting_for_dependents` or queue size equals 0, the `ContinuousPreplanningFactory` automatically executes Mode B thematic clustering across `.olt/backlog.jsonl` and `.olt/defects.jsonl`, generating structured `docs/planning/<topic>/PLAN.md` files ahead of execution.
+
+### 6.2 Active Execution Interlock for Doctor & Auditor Diagnostics
+- **Root Cause Eliminated**: Harness CLI doctor and Mind Auditor previously logged stagnation solely to disk files without an operational bridge to execute CLI tools or restart stalled supervisory state machines.
+- **Architectural Solution**: The Doctor engine transitions from passive reporting to an active execution interlock. If 3 consecutive stagnant pulses are detected ($T_{\text{idle}} > 300\text{s}$), Doctor automatically executes `mind:pulse` and forces state-machine recovery via CLI hooks.
+
+### 6.3 Hard Pre-Termination Release Gate (Verify -> Commit -> Push -> Sync)
+- **Root Cause Eliminated**: Subagents and orchestrators previously self-terminated upon completing code logic without ensuring that changes were committed, pushed to `origin/main`, and globally synchronized.
+- **Architectural Solution**: The orchestrator lifecycle enforces a strict 4-step landing pipeline: (1) Empirical verification receipt check, (2) Conventional Commit, (3) Git push to upstream `main`, and (4) Global skill sync (`bun scripts/sync/index.ts`). Subagent termination (`manage_subagents kill`) is mechanically blocked until all 4 steps exit with code 0.
+
+### 6.4 Continuous Singleton Skill Auditor & Mind Auditor Runtime Surveillance
+- **Root Cause Eliminated**: Auditors firing a single tick and returning to sleep without maintaining continuous runtime inspection over fleets.
+- **Architectural Solution**: Exactly 1 Singleton Skill Auditor runs alongside all Tier 1 Orchestrators to audit telemetry against the 7 Behavioral Forensics heuristics in real time, while Mind Auditor continuously audits Tier 0 Mind disk-state transitions.

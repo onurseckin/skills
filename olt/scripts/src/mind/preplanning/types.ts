@@ -160,3 +160,18 @@ export interface ConcurrencyAuditResult {
   readonly findings: readonly string[];
   readonly warnings: readonly string[];
 }
+
+export interface PlanGenerationOptions {
+  readonly cluster: ThematicCluster;
+  readonly targetSubsystems?: readonly string[] | undefined;
+  readonly author?: string | undefined;
+  readonly repoRoot?: string | undefined;
+}
+
+export interface MindAuditorStagnationReport {
+  readonly isStagnant: boolean;
+  readonly unclusteredBacklogCount: number;
+  readonly unclusteredDefectCount: number;
+  readonly idleDurationSeconds: number;
+  readonly violationCode?: "MIND_PREPLANNING_STAGNATION" | undefined;
+}

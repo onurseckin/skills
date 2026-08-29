@@ -5,13 +5,12 @@ import {
   loadDefectItems,
 } from "./backlog-clusterer.ts";
 import { resolveLedgerPath, updateBridgeState } from "./bridge-state.ts";
-import { generateAndWritePlan, generatePlanMarkdown } from "./plan-factory.ts";
+import { generateAndWritePlan } from "./plan-factory.ts";
 import type {
   ClusterOptions,
   PreplanningRunResult,
   RawBacklogItem,
   RawDefectItem,
-  ThematicCluster,
 } from "./types.ts";
 
 export interface PreplannerOptions extends ClusterOptions {
@@ -24,12 +23,21 @@ export interface PreplannerOptions extends ClusterOptions {
 }
 
 export function isPreplanningNeeded(options?: PreplannerOptions): boolean {
-  const root = options?.rootDir ?? process.cwd();
-  const backlogPath = resolveLedgerPath(join(".olt", "backlog.jsonl"), options?.backlogFile, root);
-  const defectsPath = resolveLedgerPath(join(".olt", "defects.jsonl"), options?.defectsFile, root);
+  const root = options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
+  const customBacklog = options !== undefined ? options.backlogFile : undefined;
+  const customDefects = options !== undefined ? options.defectsFile : undefined;
 
-  const backlogItems = options?.explicitBacklog ?? loadBacklogItems(backlogPath);
-  const defectItems = options?.explicitDefects ?? loadDefectItems(defectsPath);
+  const backlogPath = resolveLedgerPath(join(".olt", "backlog.jsonl"), customBacklog, root);
+  const defectsPath = resolveLedgerPath(join(".olt", "defects.jsonl"), customDefects, root);
+
+  const backlogItems =
+    options !== undefined && options.explicitBacklog !== undefined
+      ? options.explicitBacklog
+      : loadBacklogItems(backlogPath);
+  const defectItems =
+    options !== undefined && options.explicitDefects !== undefined
+      ? options.explicitDefects
+      : loadDefectItems(defectsPath);
 
   const clusters = clusterBacklogAndDefects(backlogItems, defectItems, options);
   return clusters.length > 0;
@@ -39,12 +47,21 @@ export function runPreplanningTick(options?: PreplannerOptions): PreplanningRunR
   const startedAt = new Date().toISOString();
   const startMs = Date.now();
 
-  const root = options?.rootDir ?? process.cwd();
-  const backlogPath = resolveLedgerPath(join(".olt", "backlog.jsonl"), options?.backlogFile, root);
-  const defectsPath = resolveLedgerPath(join(".olt", "defects.jsonl"), options?.defectsFile, root);
+  const root = options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
+  const customBacklog = options !== undefined ? options.backlogFile : undefined;
+  const customDefects = options !== undefined ? options.defectsFile : undefined;
 
-  const backlogItems = options?.explicitBacklog ?? loadBacklogItems(backlogPath);
-  const defectItems = options?.explicitDefects ?? loadDefectItems(defectsPath);
+  const backlogPath = resolveLedgerPath(join(".olt", "backlog.jsonl"), customBacklog, root);
+  const defectsPath = resolveLedgerPath(join(".olt", "defects.jsonl"), customDefects, root);
+
+  const backlogItems =
+    options !== undefined && options.explicitBacklog !== undefined
+      ? options.explicitBacklog
+      : loadBacklogItems(backlogPath);
+  const defectItems =
+    options !== undefined && options.explicitDefects !== undefined
+      ? options.explicitDefects
+      : loadDefectItems(defectsPath);
 
   const clusters = clusterBacklogAndDefects(backlogItems, defectItems, options);
 
@@ -66,7 +83,7 @@ export function runPreplanningTick(options?: PreplannerOptions): PreplanningRunR
   let totalDefectsPlanned = 0;
 
   for (const cluster of clusters) {
-    if (options?.dryRun) {
+    if (options !== undefined && options.dryRun) {
       writtenPlanFiles.push(cluster.plan_path);
       totalItemsPlanned += cluster.backlog_item_ids.length;
       totalDefectsPlanned += cluster.defect_ids.length;
@@ -75,8 +92,8 @@ export function runPreplanningTick(options?: PreplannerOptions): PreplanningRunR
       writtenPlanFiles.push(planResult.planPath);
 
       const bridgeResult = updateBridgeState(cluster, {
-        ...(options?.backlogFile !== undefined ? { backlogFile: options.backlogFile } : {}),
-        ...(options?.defectsFile !== undefined ? { defectsFile: options.defectsFile } : {}),
+        ...(options !== undefined && options.backlogFile !== undefined ? { backlogFile: options.backlogFile } : {}),
+        ...(options !== undefined && options.defectsFile !== undefined ? { defectsFile: options.defectsFile } : {}),
         rootDir: root,
       });
 
@@ -96,4 +113,33 @@ export function runPreplanningTick(options?: PreplannerOptions): PreplanningRunR
     completed_at: completedAt,
     duration_ms: Date.now() - startMs,
   };
+}
+
+export const runContinuousPreplanningTick = runPreplanningTick;
+
+export interface DaemonOptions extends PreplannerOptions {
+  readonly intervalMs?: number | undefined;
+  readonly maxTicks?: number | undefined;
+}
+
+export async function startPreplanningDaemon(
+  options?: DaemonOptions | undefined,
+): Promise<{ totalTicks: number; totalPlanned: number }> {
+  const interval =
+    options !== undefined && options.intervalMs !== undefined ? options.intervalMs : 5000;
+  const maxTicks =
+    options !== undefined && options.maxTicks !== undefined ? options.maxTicks : 1;
+  let totalTicks = 0;
+  let totalPlanned = 0;
+
+  for (let i = 0; i < maxTicks; i++) {
+    totalTicks++;
+    const res = runPreplanningTick(options);
+    totalPlanned += res.items_planned + res.defects_planned;
+    if (i < maxTicks - 1) {
+      await new Promise((resolve) => setTimeout(resolve, interval));
+    }
+  }
+
+  return { totalTicks, totalPlanned };
 }

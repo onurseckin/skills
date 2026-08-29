@@ -8,22 +8,51 @@ import { calculateBrentDecomposition } from "../../orchestrator/velocity-rebalan
 export const SKILL_CONCURRENCY_UNDER_SATURATED = "SKILL_CONCURRENCY_UNDER_SATURATED" as const;
 export const UNSTAGED_STATION_DURABILITY_RISK = "UNSTAGED_STATION_DURABILITY_RISK" as const;
 
+export type { ConcurrencyAuditResult };
+
+export interface ConcurrencySaturationReport {
+  readonly totalSlots: number;
+  readonly activeSlots: number;
+  readonly saturationRatio: number;
+  readonly underParallelizedTasks: readonly string[];
+  readonly isSaturated: boolean;
+  readonly findings: readonly string[];
+  readonly warnings: readonly string[];
+  readonly unstagedStations: readonly string[];
+  readonly stragglingTasks: readonly string[];
+}
+
 export interface ConcurrencyAuditOptions {
   readonly activeStations?: readonly AssemblyStation[] | undefined;
   readonly totalWorkUnits?: number | undefined;
   readonly spanLength?: number | undefined;
   readonly stragglingAssessments?: readonly StragglerAssessment[] | undefined;
   readonly minSaturationRatio?: number | undefined;
+  readonly queuedTasks?: number | readonly string[] | undefined;
+  readonly underParallelizedTasks?: readonly string[] | undefined;
+  readonly totalSlots?: number | undefined;
+  readonly activeSlots?: number | undefined;
 }
 
-export function auditSkillConcurrencySaturation(
+export function auditConcurrencySaturation(
   options?: ConcurrencyAuditOptions | undefined,
-): ConcurrencyAuditResult {
+): ConcurrencySaturationReport {
   const stations = options?.activeStations ?? [];
   const remainingWorkUnits = stations.filter(
     (s) => s.status !== "LANDED" && s.status !== "FAILED",
   ).length;
-  const totalWorkUnits = Math.max(0, options?.totalWorkUnits ?? remainingWorkUnits);
+
+  const queuedCount =
+    typeof options?.queuedTasks === "number"
+      ? options.queuedTasks
+      : Array.isArray(options?.queuedTasks)
+        ? options.queuedTasks.length
+        : 0;
+
+  const totalWorkUnits = Math.max(
+    0,
+    options?.totalWorkUnits ?? (queuedCount > 0 ? queuedCount : remainingWorkUnits),
+  );
   const spanLength = Math.max(1, options?.spanLength ?? 1);
   const minRatio = options?.minSaturationRatio ?? 0.8;
 
@@ -32,26 +61,58 @@ export function auditSkillConcurrencySaturation(
     spanLength,
   });
 
-  const optimalConcurrency = optimalPlan.optimal_parallelism;
+  const optimalConcurrency = options?.totalSlots ?? optimalPlan.optimal_parallelism;
+  const totalSlots = optimalConcurrency;
 
-  // Active workers are stations currently in progress
-  const activeWorkers = stations.filter(
-    (s) => s.status === "IN_PROGRESS" || s.status === "VERIFIED",
-  ).length;
+  const activeSlots =
+    options?.activeSlots !== undefined
+      ? options.activeSlots
+      : stations.filter(
+          (s) => s.status === "IN_PROGRESS" || s.status === "VERIFIED",
+        ).length;
 
   const saturationRatio =
-    optimalConcurrency === 0 ? 1 : Number((activeWorkers / optimalConcurrency).toFixed(2));
+    totalSlots === 0 ? 1 : Number((activeSlots / totalSlots).toFixed(2));
 
   const findings: string[] = [];
   const warnings: string[] = [];
   const unstagedStations: string[] = [];
   const stragglingTasks: string[] = [];
+  const underParallelizedTasks: string[] = options?.underParallelizedTasks
+    ? [...options.underParallelizedTasks]
+    : [];
 
-  // 1. Concurrency Saturation Check
-  if (totalWorkUnits >= 5 && activeWorkers < optimalConcurrency && saturationRatio < minRatio) {
-    findings.push(
-      `${SKILL_CONCURRENCY_UNDER_SATURATED}: Workload of ${totalWorkUnits} units requires ${optimalConcurrency} parallel workers (P = ⌈W/S⌉), but only ${activeWorkers} active (${(saturationRatio * 100).toFixed(0)}% saturation).`,
-    );
+  // Anti-stub failure criteria:
+  // Emits warning / finding SKILL_CONCURRENCY_UNDER_SATURATED if:
+  // 1) > 5 tasks/work units are queued/needed while active worker slots < optimal concurrency (P = ceil(W/S)) and saturationRatio < minRatio
+  // 2) or active slots < 2 when queued/work units > 5
+  const isUnderSaturated =
+    (totalWorkUnits > 5 && activeSlots < 2) ||
+    (totalWorkUnits >= 5 && activeSlots < optimalConcurrency && saturationRatio < minRatio);
+
+  if (isUnderSaturated) {
+    const msg = `${SKILL_CONCURRENCY_UNDER_SATURATED}: Workload of ${totalWorkUnits} units requires ${optimalConcurrency} parallel workers (P = ⌈W/S⌉), but only ${activeSlots} active (${(saturationRatio * 100).toFixed(0)}% saturation).`;
+    findings.push(msg);
+    warnings.push(msg);
+
+    if (underParallelizedTasks.length === 0) {
+      if (Array.isArray(options?.queuedTasks)) {
+        underParallelizedTasks.push(...options.queuedTasks);
+      } else if (stations.length > 0) {
+        const pendingStations = stations
+          .filter(
+            (s) =>
+              s.status !== "IN_PROGRESS" &&
+              s.status !== "VERIFIED" &&
+              s.status !== "LANDED",
+          )
+          .map((s) => s.station_id);
+        underParallelizedTasks.push(...pendingStations);
+      }
+      if (underParallelizedTasks.length === 0 && totalWorkUnits > 0) {
+        underParallelizedTasks.push(`workload-${totalWorkUnits}-units`);
+      }
+    }
   }
 
   // 2. Subdomain Git Staging Durability Check
@@ -59,9 +120,9 @@ export function auditSkillConcurrencySaturation(
     if (station.status === "LANDED" || station.status === "VERIFIED") {
       if (!station.staging_record || !station.staging_record.git_index_sha) {
         unstagedStations.push(station.station_id);
-        findings.push(
-          `${UNSTAGED_STATION_DURABILITY_RISK}: Station ${station.station_id} in domain ${station.domain} reached ${station.status} without Git staging invariant record.`,
-        );
+        const msg = `${UNSTAGED_STATION_DURABILITY_RISK}: Station ${station.station_id} in domain ${station.domain} reached ${station.status} without Git staging invariant record.`;
+        findings.push(msg);
+        warnings.push(msg);
       }
     }
   }
@@ -79,6 +140,7 @@ export function auditSkillConcurrencySaturation(
   }
 
   const isSaturated =
+    !isUnderSaturated &&
     (optimalConcurrency === 0 || saturationRatio >= minRatio) &&
     unstagedStations.length === 0 &&
     stragglingTasks.length === 0;
@@ -90,13 +152,31 @@ export function auditSkillConcurrencySaturation(
   }
 
   return {
-    is_saturated: isSaturated,
-    active_workers: activeWorkers,
-    optimal_concurrency: optimalConcurrency,
-    saturation_ratio: saturationRatio,
-    unstaged_stations: Object.freeze(unstagedStations),
-    straggling_tasks: Object.freeze(stragglingTasks),
+    totalSlots,
+    activeSlots,
+    saturationRatio,
+    underParallelizedTasks: Object.freeze(underParallelizedTasks),
+    isSaturated,
     findings: Object.freeze(findings),
     warnings: Object.freeze(warnings),
+    unstagedStations: Object.freeze(unstagedStations),
+    stragglingTasks: Object.freeze(stragglingTasks),
+  };
+}
+
+export function auditSkillConcurrencySaturation(
+  options?: ConcurrencyAuditOptions | undefined,
+): ConcurrencyAuditResult {
+  const report = auditConcurrencySaturation(options);
+
+  return {
+    is_saturated: report.isSaturated,
+    active_workers: report.activeSlots,
+    optimal_concurrency: report.totalSlots,
+    saturation_ratio: report.saturationRatio,
+    unstaged_stations: report.unstagedStations,
+    straggling_tasks: report.stragglingTasks,
+    findings: report.findings,
+    warnings: report.warnings,
   };
 }

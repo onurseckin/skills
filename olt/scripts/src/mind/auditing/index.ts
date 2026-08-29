@@ -181,10 +181,13 @@ export {
 } from "./orchestrator-liveness-auditor.ts";
 
 export {
+  auditConcurrencySaturation,
   auditSkillConcurrencySaturation,
   SKILL_CONCURRENCY_UNDER_SATURATED,
   UNSTAGED_STATION_DURABILITY_RISK,
   type ConcurrencyAuditOptions,
+  type ConcurrencyAuditResult,
+  type ConcurrencySaturationReport,
 } from "./skill-concurrency-auditor.ts";
 
 export {

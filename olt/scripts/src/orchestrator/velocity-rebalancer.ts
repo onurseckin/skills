@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type { BrentConcurrencyPlan, BrentPartition } from "../mind/preplanning/types.ts";
 
+export type { BrentConcurrencyPlan, BrentPartition };
+
 export interface BrentDecompositionOptions {
   readonly workUnits: number;
   readonly spanLength?: number | undefined;
@@ -8,6 +10,12 @@ export interface BrentDecompositionOptions {
   readonly maxParallelism?: number | undefined;
   readonly scopeFiles?: readonly string[] | undefined;
   readonly parentTaskId?: string | undefined;
+  readonly targetDurationSeconds?: number | undefined;
+}
+
+export interface RebalanceStragglerOptions {
+  readonly minParallelism?: number | undefined;
+  readonly maxParallelism?: number | undefined;
   readonly targetDurationSeconds?: number | undefined;
 }
 
@@ -50,7 +58,7 @@ export function calculateBrentDecomposition(
   // Brent's Theorem: P = ceil(W / S)
   const theoreticalParallelism = Math.ceil(workUnits / spanLength);
 
-  // If workUnits is very small (less than minP), we scale parallelism to workUnits (at least 1 if workUnits > 0)
+  // If workUnits is small (< minP), scale parallelism to workUnits (at least 1 if workUnits > 0)
   const optimalParallelism =
     workUnits === 0
       ? 0
@@ -81,8 +89,12 @@ export function calculateBrentDecomposition(
     subPartitions = Array.from({ length: optimalParallelism }, (_, index) => {
       const startUnit = index * unitsPerPartition + 1;
       const endUnit = Math.min(workUnits, (index + 1) * unitsPerPartition);
+      const hash = createHash("sha256")
+        .update(`${parentId}:${index}:${startUnit}-${endUnit}`)
+        .digest("hex")
+        .slice(0, 6);
       return {
-        subtask_id: `${parentId}-sublane-${index + 1}`,
+        subtask_id: `${parentId}-sublane-${index + 1}-${hash}`,
         assigned_scope: Object.freeze([`unit-range-${startUnit}-to-${endUnit}`]),
         target_duration_seconds: targetDuration,
       };
@@ -121,13 +133,7 @@ export interface RebalancedTaskPackage {
 
 export function rebalanceStragglerTask(
   task: StragglingTask,
-  options?:
-    | {
-        minParallelism?: number | undefined;
-        maxParallelism?: number | undefined;
-        targetDurationSeconds?: number | undefined;
-      }
-    | undefined,
+  options?: RebalanceStragglerOptions | undefined,
 ): RebalancedTaskPackage {
   const scopeFiles = task.scope_files ?? [];
   const workUnits = task.work_units ?? Math.max(1, scopeFiles.length);
@@ -155,4 +161,11 @@ export function rebalanceStragglerTask(
     rebalanced_at: new Date().toISOString(),
     spawned_subtasks: Object.freeze(spawnedSubtasks),
   };
+}
+
+export function decomposeStragglingTask(
+  task: StragglingTask,
+  options?: RebalanceStragglerOptions | undefined,
+): RebalancedTaskPackage {
+  return rebalanceStragglerTask(task, options);
 }

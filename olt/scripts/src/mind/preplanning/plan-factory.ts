@@ -59,15 +59,19 @@ export function generatePlanMarkdown(
   let taskIndex = 1;
 
   if (matchedItems.length === 0 && matchedDefects.length === 0) {
-    // Fallback template task if raw arrays were not provided
+    const backlogSummary =
+      cluster.backlog_item_ids.length > 0 ? cluster.backlog_item_ids.join(", ") : "None";
+    const defectSummary =
+      cluster.defect_ids.length > 0 ? cluster.defect_ids.join(", ") : "None";
+
     lines.push(`### Task 1.1: ${cluster.title} Implementation`);
     lines.push("");
     lines.push("- **Owner / Tier:** Tier 3 Implementer + Independent Validator");
     lines.push(`- **Write Scope:** \`olt/scripts/src/${cluster.domain}/${cluster.cluster_id}.ts\``);
     lines.push(`- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\``);
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
-    lines.push(`  - Resolves backlog items: ${cluster.backlog_item_ids.join(", ") || "None"}.`);
-    lines.push(`  - Resolves defects: ${cluster.defect_ids.join(", ") || "None"}.`);
+    lines.push(`  - Resolves backlog items: ${backlogSummary}.`);
+    lines.push(`  - Resolves defects: ${defectSummary}.`);
     lines.push("  - Zero TypeScript `any`, zero compiler suppressions.");
     lines.push(
       `  - Command: \`bun test tests/unit/${cluster.domain}/${cluster.cluster_id}.test.ts\` (100% PASS).`,
@@ -76,7 +80,14 @@ export function generatePlanMarkdown(
   }
 
   for (const item of matchedItems) {
-    const taskName = item.title ?? item.id;
+    const taskName = item.title !== undefined ? item.title : item.id;
+    const itemDetail =
+      item.content !== undefined && item.content.length > 0
+        ? item.content
+        : item.title !== undefined && item.title.length > 0
+          ? item.title
+          : item.id;
+
     lines.push(`### Task 1.${taskIndex}: Feature: ${taskName}`);
     lines.push("");
     lines.push("- **Owner / Tier:** Tier 3 Implementer + Independent Validator");
@@ -84,7 +95,7 @@ export function generatePlanMarkdown(
     lines.push(`- **Write Scope:** \`olt/scripts/src/${cluster.domain}/${item.id}.ts\``);
     lines.push(`- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\``);
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
-    lines.push(`  - Implement: ${item.content || item.title || item.id}`);
+    lines.push(`  - Implement: ${itemDetail}`);
     lines.push("  - Zero TypeScript `any`, zero compiler suppressions.");
     lines.push(
       `  - Command: \`bun test tests/unit/${cluster.domain}/${item.id}.test.ts\` (100% PASS).`,
@@ -94,19 +105,30 @@ export function generatePlanMarkdown(
   }
 
   for (const defect of matchedDefects) {
-    const defectName = defect.title ?? defect.message ?? defect.id;
+    const defectName =
+      defect.title !== undefined
+        ? defect.title
+        : defect.message !== undefined
+          ? defect.message
+          : defect.id;
+    const errCode = defect.error_code !== undefined ? defect.error_code : "N/A";
+    const defectDetail =
+      defect.description !== undefined && defect.description.length > 0
+        ? defect.description
+        : defect.message !== undefined && defect.message.length > 0
+          ? defect.message
+          : defect.title !== undefined && defect.title.length > 0
+            ? defect.title
+            : defect.id;
+
     lines.push(`### Task 1.${taskIndex}: Defect Remediation: ${defectName}`);
     lines.push("");
     lines.push("- **Owner / Tier:** Tier 3 Implementer + Independent Validator");
-    lines.push(
-      `- **Defect Ref:** \`${defect.id}\` (Error Code: \`${defect.error_code ?? "N/A"}\`)`,
-    );
+    lines.push(`- **Defect Ref:** \`${defect.id}\` (Error Code: \`${errCode}\`)`);
     lines.push(`- **Write Scope:** \`olt/scripts/src/${cluster.domain}/${defect.id}.ts\``);
     lines.push(`- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\``);
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
-    lines.push(
-      `  - Remediate: ${defect.description || defect.message || defect.title || defect.id}`,
-    );
+    lines.push(`  - Remediate: ${defectDetail}`);
     lines.push("  - Zero TypeScript `any`, zero compiler suppressions.");
     lines.push(
       `  - Command: \`bun test tests/unit/${cluster.domain}/${defect.id}.test.ts\` (100% PASS).`,
@@ -144,11 +166,12 @@ export function generatePlanMarkdown(
 }
 
 export function writePlanFile(targetPath: string, markdown: string, rootDir?: string): string {
-  const fullPath = rootDir
-    ? isAbsolute(targetPath)
-      ? targetPath
-      : resolve(rootDir, targetPath)
-    : resolve(targetPath);
+  const fullPath =
+    rootDir !== undefined
+      ? isAbsolute(targetPath)
+        ? targetPath
+        : resolve(rootDir, targetPath)
+      : resolve(targetPath);
 
   const parentDir = dirname(fullPath);
   mkdirSync(parentDir, { recursive: true });
@@ -166,3 +189,25 @@ export function generateAndWritePlan(
   const writtenPath = writePlanFile(cluster.plan_path, markdown, rootDir);
   return { planPath: writtenPath, markdown };
 }
+
+export function assertValidBlueprintStructure(markdown: string): boolean {
+  if (typeof markdown !== "string") {
+    return false;
+  }
+  if (markdown.trim().length === 0) {
+    return false;
+  }
+  const requiredMarkers = [
+    "# ",
+    "> **Tracking ID:**",
+    "> **Status:**",
+    "## 1. Executive Summary",
+    "## 2. Core Architectural Pillars",
+    "## 3. Work Breakdown",
+    "## 4. Sequential Execution Order",
+    "## 5. Exhaustive Traceability Matrix",
+  ];
+  return requiredMarkers.every((marker) => markdown.includes(marker));
+}
+
+export const generatePlanBlueprint = generateAndWritePlan;

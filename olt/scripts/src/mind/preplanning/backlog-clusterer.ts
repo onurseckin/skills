@@ -24,14 +24,11 @@ export function filterEligibleBacklogItems(
     if (item.plan_path && item.plan_path.trim() !== "") {
       return false;
     }
-    const status = (item.status || "PENDING").toUpperCase();
-    return (
-      status !== "PLANNED" &&
-      status !== "PROCESSED" &&
-      status !== "COMPLETED" &&
-      status !== "DECLINED" &&
-      status !== "BLOCKED"
-    );
+    const rawStatus =
+      item.status !== undefined && item.status !== null ? String(item.status) : "PENDING";
+    const status = rawStatus.toUpperCase();
+    const ineligible = ["PLANNED", "PROCESSED", "COMPLETED", "DECLINED", "BLOCKED"];
+    return !ineligible.includes(status);
   });
 }
 
@@ -40,14 +37,11 @@ export function filterEligibleDefects(defects: readonly RawDefectItem[]): readon
     if (defect.plan_path && defect.plan_path.trim() !== "") {
       return false;
     }
-    const status = (defect.status || "OPEN").toUpperCase();
-    return (
-      status !== "PLANNED" &&
-      status !== "RESOLVED" &&
-      status !== "COMPLETED" &&
-      status !== "CLOSED" &&
-      status !== "DECLINED"
-    );
+    const rawStatus =
+      defect.status !== undefined && defect.status !== null ? String(defect.status) : "OPEN";
+    const status = rawStatus.toUpperCase();
+    const ineligible = ["PLANNED", "RESOLVED", "COMPLETED", "CLOSED", "DECLINED"];
+    return !ineligible.includes(status);
   });
 }
 
@@ -57,8 +51,10 @@ export function classifyDomain(
   category?: string,
   errorCode?: string,
 ): DomainCategory {
-  const combined =
-    `${title} ${description ?? ""} ${category ?? ""} ${errorCode ?? ""}`.toLowerCase();
+  const descStr = description !== undefined ? description : "";
+  const catStr = category !== undefined ? category : "";
+  const errStr = errorCode !== undefined ? errorCode : "";
+  const combined = `${title} ${descStr} ${catStr} ${errStr}`.toLowerCase();
 
   // Explicit domain category override if exact match
   if (category && CANONICAL_DOMAINS.includes(category.toLowerCase() as DomainCategory)) {
@@ -66,68 +62,66 @@ export function classifyDomain(
   }
 
   // Domain classification heuristics based on priority and domain patterns
-  if (
-    combined.includes("mind") ||
-    combined.includes("cognitive") ||
-    combined.includes("feedback") ||
-    combined.includes("hyper-cognition") ||
-    combined.includes("pulse") ||
-    combined.includes("brainstorm") ||
-    combined.includes("charter")
-  ) {
+  const mindKeywords = [
+    "mind",
+    "cognitive",
+    "feedback",
+    "hyper-cognition",
+    "pulse",
+    "brainstorm",
+    "charter",
+  ];
+  if (mindKeywords.some((w) => combined.includes(w))) {
     return "mind";
   }
 
-  if (
-    combined.includes("validat") ||
-    combined.includes("test") ||
-    combined.includes("assert") ||
-    combined.includes("coverage") ||
-    combined.includes("apca") ||
-    combined.includes("contrast") ||
-    combined.includes("audit") ||
-    combined.includes("verifier") ||
-    combined.includes("spec")
-  ) {
+  const valKeywords = [
+    "validat",
+    "test",
+    "assert",
+    "coverage",
+    "apca",
+    "contrast",
+    "audit",
+    "verifier",
+    "spec",
+  ];
+  if (valKeywords.some((w) => combined.includes(w))) {
     return "validation";
   }
 
-  if (
-    combined.includes("cli") ||
-    combined.includes("command") ||
-    combined.includes("tool") ||
-    combined.includes("script") ||
-    combined.includes("shell") ||
-    combined.includes("harness") ||
-    combined.includes("flags") ||
-    combined.includes("factory-ops")
-  ) {
+  const toolKeywords = [
+    "cli",
+    "command",
+    "tool",
+    "script",
+    "shell",
+    "harness",
+    "flags",
+    "factory-ops",
+  ];
+  if (toolKeywords.some((w) => combined.includes(w))) {
     return "tooling";
   }
 
-  if (
-    combined.includes("engine") ||
-    combined.includes("store") ||
-    combined.includes("storage") ||
-    combined.includes("ledger") ||
-    combined.includes("cache") ||
-    combined.includes("kv") ||
-    combined.includes("scheduler") ||
-    combined.includes("queue") ||
-    combined.includes("pipeline") ||
-    combined.includes("bridge")
-  ) {
+  const engKeywords = [
+    "engine",
+    "store",
+    "storage",
+    "ledger",
+    "cache",
+    "kv",
+    "scheduler",
+    "queue",
+    "pipeline",
+    "bridge",
+  ];
+  if (engKeywords.some((w) => combined.includes(w))) {
     return "engine";
   }
 
-  if (
-    combined.includes("report") ||
-    combined.includes("brief") ||
-    combined.includes("summary") ||
-    combined.includes("metrics") ||
-    combined.includes("telemetry") ||
-    combined.includes("doctor")
-  ) {
+  const repKeywords = ["report", "brief", "summary", "metrics", "telemetry", "doctor"];
+  if (repKeywords.some((w) => combined.includes(w))) {
     return "reporting";
   }
 
@@ -141,16 +135,14 @@ export function generateClusterId(
   timestamp?: string,
 ): string {
   const combined = [...itemIds, ...defectIds].slice().sort().join(",");
-  const hash = createHash("sha256")
-    .update(combined || domain)
-    .digest("hex")
-    .slice(0, 8);
+  const hashTarget = combined.length > 0 ? combined : domain;
+  const hash = createHash("sha256").update(hashTarget).digest("hex").slice(0, 8);
   const ts = timestamp ? `-${timestamp.replace(/[:.]/g, "-").slice(0, 10)}` : "";
   return `cluster-${domain}-${hash}${ts}`;
 }
 
 export function generatePlanPath(clusterId: string, customDir?: string): string {
-  const baseDir = customDir ?? "docs/planning";
+  const baseDir = customDir !== undefined && customDir !== null ? customDir : "docs/planning";
   return `${baseDir}/${clusterId}/PLAN.md`;
 }
 
@@ -176,44 +168,58 @@ export function clusterBacklogAndDefects(
   }
 
   for (const item of eligibleItems) {
+    const titleVal = item.title !== undefined ? item.title : item.id;
     const domain =
       item.domain && CANONICAL_DOMAINS.includes(item.domain.toLowerCase() as DomainCategory)
         ? (item.domain.toLowerCase() as DomainCategory)
-        : classifyDomain(item.title ?? item.id, item.content, item.category);
+        : classifyDomain(titleVal, item.content, item.category);
 
-    const group = domainGroups.get(domain)!;
-    group.itemIds.push(item.id);
-    if (item.title) group.titles.push(item.title);
+    const group = domainGroups.get(domain);
+    if (group !== undefined) {
+      group.itemIds.push(item.id);
+      if (item.title) group.titles.push(item.title);
+    }
   }
 
   for (const defect of eligibleDefects) {
+    const defectTitle =
+      defect.title !== undefined
+        ? defect.title
+        : defect.message !== undefined
+          ? defect.message
+          : defect.id;
     const domain =
       defect.domain && CANONICAL_DOMAINS.includes(defect.domain.toLowerCase() as DomainCategory)
         ? (defect.domain.toLowerCase() as DomainCategory)
-        : classifyDomain(
-            defect.title ?? defect.message ?? defect.id,
-            defect.description,
-            defect.category,
-            defect.error_code,
-          );
+        : classifyDomain(defectTitle, defect.description, defect.category, defect.error_code);
 
-    const group = domainGroups.get(domain)!;
-    group.defectIds.push(defect.id);
-    if (defect.title) group.titles.push(defect.title);
+    const group = domainGroups.get(domain);
+    if (group !== undefined) {
+      group.defectIds.push(defect.id);
+      if (defect.title) group.titles.push(defect.title);
+    }
   }
 
-  const plannedAt = options?.timestamp ?? new Date().toISOString();
+  const plannedAt =
+    options !== undefined && options.timestamp !== undefined
+      ? options.timestamp
+      : new Date().toISOString();
   const clusters: ThematicCluster[] = [];
 
   for (const domain of CANONICAL_DOMAINS) {
-    const group = domainGroups.get(domain)!;
+    const group = domainGroups.get(domain);
+    if (group === undefined) {
+      continue;
+    }
     if (group.itemIds.length === 0 && group.defectIds.length === 0) {
       continue;
     }
 
-    const clusterId = generateClusterId(domain, group.itemIds, group.defectIds, options?.timestamp);
+    const tsOpt = options !== undefined ? options.timestamp : undefined;
+    const targetDirOpt = options !== undefined ? options.targetDir : undefined;
+    const clusterId = generateClusterId(domain, group.itemIds, group.defectIds, tsOpt);
 
-    const planPath = generatePlanPath(clusterId, options?.targetDir);
+    const planPath = generatePlanPath(clusterId, targetDirOpt);
     const domainCapitalized = domain.charAt(0).toUpperCase() + domain.slice(1);
     const title = `${domainCapitalized} Continuous Pre-Planning Domain Cluster`;
 
@@ -273,3 +279,5 @@ export function loadDefectItems(filePath: string): readonly RawDefectItem[] {
   }
   return Object.freeze(defects);
 }
+
+export const computeClusterId = generateClusterId;

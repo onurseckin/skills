@@ -6,6 +6,7 @@ import { COORDINATOR_COMMANDS } from "./coordinator.ts";
 import { CRITIC_COMMANDS } from "./critic.ts";
 import { DIAGNOSTICS_COMMANDS } from "./diagnostics.ts";
 import { EXPLAIN_COMMANDS } from "./explain.ts";
+import { FACTORY_COMMANDS } from "./factory.ts";
 import { GATE_COMMANDS } from "./gate.ts";
 import { INSPECTION_COMMANDS } from "./inspection.ts";
 import { INSTALL_COMMANDS } from "./install.ts";
@@ -53,6 +54,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...CAPTURE_COMMANDS,
   ...MIND_COMMANDS,
   ...POLICY_COMMANDS,
+  ...FACTORY_COMMANDS,
 ];
 
 export const COMMAND_DOMAINS: readonly CommandDomain[] = [

@@ -8,6 +8,7 @@ import type {
 import { calculateBrentDecomposition } from "../orchestrator/velocity-rebalancer.ts";
 
 export const STRAGGLER_SLA_SECONDS = 300; // 5 minutes boundary
+export const PROGRESS_SILENCE_THRESHOLD_SECONDS = 120; // 2 minutes progress heartbeat boundary
 export const TASK_STRAGGLER_OVERBURDEN_DEFECT = "TASK_STRAGGLER_OVERBURDEN_DEFECT" as const;
 
 export interface MonitoredTask {
@@ -15,6 +16,8 @@ export interface MonitoredTask {
   readonly agent_id?: string | undefined;
   readonly status: "PENDING" | "RUNNING" | "LEASED" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
   readonly claimed_at: string | number; // ISO string or timestamp in ms
+  readonly last_progress?: string | number | undefined;
+  readonly last_progress_at?: string | number | undefined;
   readonly scope_files?: readonly string[] | undefined;
   readonly work_units?: number | undefined;
   readonly span_length?: number | undefined;
@@ -24,6 +27,7 @@ export interface MonitoredTask {
 
 export interface StragglerWatchdogOptions {
   readonly slaSeconds?: number | undefined;
+  readonly progressGraceSeconds?: number | undefined;
   readonly recordDefects?: boolean | undefined;
   readonly defectsFilePath?: string | undefined;
   readonly minParallelism?: number | undefined;
@@ -53,6 +57,7 @@ export function assessTaskStraggler(
   options?: StragglerWatchdogOptions | undefined,
 ): StragglerAssessment {
   const slaSeconds = options?.slaSeconds ?? STRAGGLER_SLA_SECONDS;
+  const progressGraceSeconds = options?.progressGraceSeconds ?? PROGRESS_SILENCE_THRESHOLD_SECONDS;
   const claimedAtMs = parseTimestampMs(task.claimed_at);
   const elapsedSeconds = Math.max(0, (nowMs - claimedAtMs) / 1000);
 
@@ -70,6 +75,23 @@ export function assessTaskStraggler(
   }
 
   if (elapsedSeconds > slaSeconds) {
+    const lastProgressRaw = task.last_progress ?? task.last_progress_at;
+    const lastProgressMs =
+      lastProgressRaw !== undefined ? parseTimestampMs(lastProgressRaw) : claimedAtMs;
+    const silenceSeconds = Math.max(0, (nowMs - lastProgressMs) / 1000);
+
+    // If recent progress was reported within 120s, the task is active and not a straggler
+    // Resolves: hb-s7-coordinator-diagnosed-live-agent-as-dead
+    if (silenceSeconds <= progressGraceSeconds) {
+      return {
+        task_id: task.id,
+        agent_id: task.agent_id ?? "unknown",
+        elapsed_seconds: elapsedSeconds,
+        is_straggler: false,
+        recommended_action: "CONTINUE",
+      };
+    }
+
     const isDeadOrAbandoned = task.is_abandoned === true || task.is_dead === true;
     const recommendedAction = isDeadOrAbandoned ? "RECLAIM_LEASE" : "DECOMPOSE_PARALLEL";
 
@@ -105,6 +127,14 @@ export function assessTaskStraggler(
     is_straggler: false,
     recommended_action: "CONTINUE",
   };
+}
+
+export function assessTaskStragglerStatus(
+  task: MonitoredTask,
+  nowMs: number = Date.now(),
+  options?: StragglerWatchdogOptions | undefined,
+): StragglerAssessment {
+  return assessTaskStraggler(task, nowMs, options);
 }
 
 function appendDefectsAtomic(filePath: string, defects: readonly RawDefectItem[]): void {
@@ -166,3 +196,13 @@ export function evaluateActiveTasks(
     timestamp: new Date(nowMs).toISOString(),
   };
 }
+
+export function checkActiveTaskStragglers(
+  tasks: readonly MonitoredTask[],
+  nowMs: number = Date.now(),
+  options?: StragglerWatchdogOptions | undefined,
+): StragglerWatchdogReport {
+  return evaluateActiveTasks(tasks, nowMs, options);
+}
+
+export type { StragglerAssessment, BrentConcurrencyPlan, RawDefectItem };

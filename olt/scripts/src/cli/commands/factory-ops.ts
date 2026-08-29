@@ -13,12 +13,13 @@ import {
   loadDefectItems,
 } from "../../mind/preplanning/backlog-clusterer.ts";
 import { resolveLedgerPath } from "../../mind/preplanning/bridge-state.ts";
-import type { PreplanningRunResult, ThematicCluster } from "../../mind/preplanning/types.ts";
+import type { PreplanningRunResult } from "../../mind/preplanning/types.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export interface FactoryPreplanCommandResult {
   readonly markdown: string;
   readonly result: PreplanningRunResult;
+  readonly [key: string]: unknown;
 }
 
 export interface FactoryStatusCommandResult {
@@ -30,6 +31,7 @@ export interface FactoryStatusCommandResult {
     readonly is_concurrency_saturated: boolean;
     readonly preplanning_needed: boolean;
   };
+  readonly [key: string]: unknown;
 }
 
 export function formatFactoryPreplanBrief(result: PreplanningRunResult): string {
@@ -88,7 +90,9 @@ export function factoryPreplanCommand(
   flags: Flags,
   _context?: CommandContext | undefined,
 ): FactoryPreplanCommandResult {
-  const repoFlag = textFlag(flags, "repo", false) ?? textFlag(flags, "root", false);
+  const explicitRepo = textFlag(flags, "repo", false);
+  const explicitRoot = textFlag(flags, "root", false);
+  const repoFlag = explicitRepo !== undefined ? explicitRepo : explicitRoot;
   const repoRoot = repoFlag ? resolve(repoFlag) : findRepoRoot(process.cwd());
   const dryRun = boolFlag(flags, "dry-run");
 
@@ -108,7 +112,9 @@ export function factoryStatusCommand(
   flags: Flags,
   _context?: CommandContext | undefined,
 ): FactoryStatusCommandResult {
-  const repoFlag = textFlag(flags, "repo", false) ?? textFlag(flags, "root", false);
+  const explicitRepo = textFlag(flags, "repo", false);
+  const explicitRoot = textFlag(flags, "root", false);
+  const repoFlag = explicitRepo !== undefined ? explicitRepo : explicitRoot;
   const repoRoot = repoFlag ? resolve(repoFlag) : findRepoRoot(process.cwd());
 
   const backlogPath = resolveLedgerPath(join(".olt", "backlog.jsonl"), undefined, repoRoot);
@@ -160,3 +166,6 @@ export function factoryStatusCommand(
     },
   };
 }
+
+export const executeFactoryPreplanCommand = factoryPreplanCommand;
+export const executeFactoryStatusCommand = factoryStatusCommand;

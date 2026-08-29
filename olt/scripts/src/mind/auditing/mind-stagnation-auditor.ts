@@ -25,35 +25,53 @@ export interface StagnationAuditOptions {
 export function auditMindPreplanningStagnation(
   options?: StagnationAuditOptions | undefined,
 ): StagnationAuditResult {
-  const root = options?.rootDir ?? process.cwd();
-  const backlogPath = resolveLedgerPath(join(".olt", "backlog.jsonl"), options?.backlogFile, root);
-  const defectsPath = resolveLedgerPath(join(".olt", "defects.jsonl"), options?.defectsFile, root);
+  const root = options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
+  const customBacklog = options !== undefined ? options.backlogFile : undefined;
+  const customDefects = options !== undefined ? options.defectsFile : undefined;
 
-  const backlogItems = options?.explicitBacklog ?? loadBacklogItems(backlogPath);
-  const defectItems = options?.explicitDefects ?? loadDefectItems(defectsPath);
+  const backlogPath = resolveLedgerPath(join(".olt", "backlog.jsonl"), customBacklog, root);
+  const defectsPath = resolveLedgerPath(join(".olt", "defects.jsonl"), customDefects, root);
+
+  const backlogItems =
+    options !== undefined && options.explicitBacklog !== undefined
+      ? options.explicitBacklog
+      : loadBacklogItems(backlogPath);
+  const defectItems =
+    options !== undefined && options.explicitDefects !== undefined
+      ? options.explicitDefects
+      : loadDefectItems(defectsPath);
 
   const eligibleBacklog = filterEligibleBacklogItems(backlogItems);
   const eligibleDefects = filterEligibleDefects(defectItems);
 
-  const nowMs = options?.nowMs ?? Date.now();
+  const nowMs = options !== undefined && options.nowMs !== undefined ? options.nowMs : Date.now();
   const thresholdSeconds =
-    options?.stagnationThresholdSeconds ?? DEFAULT_STAGNATION_THRESHOLD_SECONDS;
+    options !== undefined && options.stagnationThresholdSeconds !== undefined
+      ? options.stagnationThresholdSeconds
+      : DEFAULT_STAGNATION_THRESHOLD_SECONDS;
 
-  const lastPreplanMs = options?.lastPreplanTimestamp
-    ? Date.parse(options.lastPreplanTimestamp)
-    : 0;
+  const lastPreplanMs =
+    options !== undefined &&
+    options.lastPreplanTimestamp !== undefined &&
+    options.lastPreplanTimestamp !== null
+      ? Date.parse(options.lastPreplanTimestamp)
+      : 0;
 
   const idleDurationSeconds =
     lastPreplanMs > 0 ? Math.max(0, (nowMs - lastPreplanMs) / 1000) : Number.POSITIVE_INFINITY;
 
   const totalUnplanned = eligibleBacklog.length + eligibleDefects.length;
+  const recordedTimestamp =
+    options !== undefined && options.lastPreplanTimestamp !== undefined
+      ? options.lastPreplanTimestamp
+      : null;
 
   if (totalUnplanned === 0) {
     return {
       is_stagnant: false,
       pending_backlog_count: 0,
       open_defects_count: 0,
-      last_preplan_timestamp: options?.lastPreplanTimestamp ?? null,
+      last_preplan_timestamp: recordedTimestamp,
       idle_duration_seconds:
         idleDurationSeconds === Number.POSITIVE_INFINITY ? 0 : idleDurationSeconds,
       findings: Object.freeze([
@@ -64,19 +82,20 @@ export function auditMindPreplanningStagnation(
 
   // If there are unplanned items and idle time exceeds threshold (or never preplanned)
   if (idleDurationSeconds > thresholdSeconds) {
+    const formattedDuration =
+      idleDurationSeconds === Number.POSITIVE_INFINITY
+        ? "untracked duration"
+        : `${idleDurationSeconds.toFixed(1)}s`;
+
     const findings: string[] = [
-      `Mind pre-planning engine has stagnated for ${
-        idleDurationSeconds === Number.POSITIVE_INFINITY
-          ? "untracked duration"
-          : `${idleDurationSeconds.toFixed(1)}s`
-      } while ${eligibleBacklog.length} backlog item(s) and ${eligibleDefects.length} defect(s) remain unplanned.`,
+      `Mind pre-planning engine has stagnated for ${formattedDuration} while ${eligibleBacklog.length} backlog item(s) and ${eligibleDefects.length} defect(s) remain unplanned.`,
     ];
 
     return {
       is_stagnant: true,
       pending_backlog_count: eligibleBacklog.length,
       open_defects_count: eligibleDefects.length,
-      last_preplan_timestamp: options?.lastPreplanTimestamp ?? null,
+      last_preplan_timestamp: recordedTimestamp,
       idle_duration_seconds:
         idleDurationSeconds === Number.POSITIVE_INFINITY ? 999999 : idleDurationSeconds,
       error_code: MIND_PREPLANNING_STAGNATION,
@@ -89,10 +108,13 @@ export function auditMindPreplanningStagnation(
     is_stagnant: false,
     pending_backlog_count: eligibleBacklog.length,
     open_defects_count: eligibleDefects.length,
-    last_preplan_timestamp: options?.lastPreplanTimestamp ?? null,
+    last_preplan_timestamp: recordedTimestamp,
     idle_duration_seconds: idleDurationSeconds,
     findings: Object.freeze([
       `Unplanned items exist (${totalUnplanned}), but idle duration (${idleDurationSeconds.toFixed(1)}s) is within the allowable window (${thresholdSeconds}s).`,
     ]),
   };
 }
+
+export const auditMindPreplanningLiveness = auditMindPreplanningStagnation;
+export type { MindAuditorStagnationReport } from "../preplanning/types.ts";

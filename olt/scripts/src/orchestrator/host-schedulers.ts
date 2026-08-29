@@ -4,6 +4,8 @@ import type {
   ThinkingLevel,
 } from "../mind/preplanning/types.ts";
 
+export type { HostSchedulerConfig, HostSchedulerId, ThinkingLevel };
+
 export const HOST_SCHEDULERS_MATRIX: Readonly<Record<HostSchedulerId, HostSchedulerConfig>> =
   Object.freeze({
     antigravity: Object.freeze({
@@ -68,9 +70,22 @@ export function isHighThinkingEnforced(config: HostSchedulerConfig): boolean {
   return config.tier_0_2_thinking === "high" && config.tier_3_thinking === "high";
 }
 
+export function assertHostThinkingPolicy(config: HostSchedulerConfig): void {
+  if (config.tier_0_2_thinking !== "high") {
+    throw new Error(
+      `Host ${config.host_id} violates high thinking policy: Tier 0-2 expected "high", received "${config.tier_0_2_thinking}"`,
+    );
+  }
+  if (config.tier_3_thinking !== "high") {
+    throw new Error(
+      `Host ${config.host_id} violates high thinking policy: Tier 3 expected "high", received "${config.tier_3_thinking}"`,
+    );
+  }
+}
+
 export function validateHostSchedulerConfig(config: HostSchedulerConfig): {
-  isValid: boolean;
-  errors: readonly string[];
+  readonly isValid: boolean;
+  readonly errors: readonly string[];
 } {
   const errors: string[] = [];
 
@@ -111,8 +126,9 @@ export function validateHostSchedulerConfig(config: HostSchedulerConfig): {
 export function resolveModelForTier(
   hostId: HostSchedulerId,
   tier: "tier_0_2" | "tier_3",
-): { model: string; thinking: "high" } {
+): { readonly model: string; readonly thinking: "high" } {
   const config = getHostSchedulerConfig(hostId);
+  assertHostThinkingPolicy(config);
   const model = tier === "tier_0_2" ? config.tier_0_2_model : config.tier_3_model;
   return {
     model,
