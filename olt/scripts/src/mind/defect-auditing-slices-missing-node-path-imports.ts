@@ -346,13 +346,13 @@ export function extractPathImports(sourceCode: string): ExistingPathImportsInfo 
 
   // ES Import regex: matches `import ... from "node:path"` or `from "path"` strictly
   const esImportRegex =
-    /(?:^|\n)[ \t]*(import\s+((?:(?!\bimport\b|\bfrom\b)[\s\S])*?)\s+from\s+["'](node:path|path)["'][ \t]*;?)/gu;
+    /^[ \t]*import\s+((?:(?!\bimport\b|\bfrom\b)[\s\S])*?)\s+from\s+["'](node:path|path)["'][ \t]*;?/gmu;
 
   let match: RegExpExecArray | null;
   while ((match = esImportRegex.exec(sourceCode)) !== null) {
-    const raw = match[1]!;
-    const clause = match[2]!.trim();
-    const specifier = match[3]!;
+    const raw = match[0]!;
+    const clause = match[1]!.trim();
+    const specifier = match[2]!;
     const isNodePath = specifier === "node:path";
     const isLegacy = specifier === "path";
 
@@ -360,7 +360,7 @@ export function extractPathImports(sourceCode: string): ExistingPathImportsInfo 
     if (isLegacy) hasLegacyPath = true;
 
     const startOffset = match.index;
-    const endOffset = startOffset + match[0]!.length;
+    const endOffset = startOffset + raw.length;
     const lineNumber = sourceCode.slice(0, startOffset).split("\n").length;
 
     const currentNamed: string[] = [];
@@ -421,7 +421,7 @@ export function extractPathImports(sourceCode: string): ExistingPathImportsInfo 
 
   // CommonJS require regex: const ... = require("node:path" | "path")
   const requireRegex =
-    /(?:^|\n)[ \t]*(?:const|let|var)\s+(?:([a-zA-Z_$][\w$]*)|(?:\{([\s\S]*?)\}))\s*=\s*require\(\s*["'](node:path|path)["']\s*\)[ \t]*;?/gu;
+    /^[ \t]*(?:const|let|var)\s+(?:([a-zA-Z_$][\w$]*)|(?:\{([\s\S]*?)\}))\s*=\s*require\(\s*["'](node:path|path)["']\s*\)[ \t]*;?/gmu;
 
   let reqMatch: RegExpExecArray | null;
   while ((reqMatch = requireRegex.exec(sourceCode)) !== null) {
@@ -668,11 +668,22 @@ export function remediateSourceCodePathImports(
     new Set([...usedFunctions, ...missingFromOptions]),
   ).sort();
 
+  const preferredSpecifier = options?.preferredSpecifier ?? CANONICAL_NODE_PATH_SPECIFIER;
+
+  // If already fully compliant with existing path import, return unchanged
+  if (existingImports.importStatements.length === 1) {
+    const firstStmt = existingImports.importStatements[0]!;
+    const isCanonical = firstStmt.specifier === preferredSpecifier;
+    const hasAllFunctions = allNeededFunctions.every((fn) => firstStmt.namedImports.includes(fn));
+
+    if (isCanonical && hasAllFunctions) {
+      return sourceCode;
+    }
+  }
+
   if (allNeededFunctions.length === 0 && !existingImports.hasLegacyPath) {
     return sourceCode;
   }
-
-  const preferredSpecifier = options?.preferredSpecifier ?? CANONICAL_NODE_PATH_SPECIFIER;
 
   // Case 1: Existing node:path or path import statement exists -> update it
   if (existingImports.importStatements.length > 0) {
@@ -700,7 +711,7 @@ export function remediateSourceCodePathImports(
     result =
       result.slice(0, firstStmt.startOffset) +
       newImportLine +
-      result.slice(firstStmt.startOffset + firstStmt.raw.length);
+      result.slice(firstStmt.endOffset);
 
     for (let i = existingImports.importStatements.length - 1; i >= 1; i--) {
       const stmt = existingImports.importStatements[i]!;

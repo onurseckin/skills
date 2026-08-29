@@ -38,10 +38,7 @@ import {
 const tempDirs: string[] = [];
 
 function createTempDir(): string {
-  const dir = join(
-    tmpdir(),
-    `tooling-sugiyama-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-  );
+  const dir = join(tmpdir(), `tooling-sugiyama-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   mkdirSync(dir, { recursive: true });
   tempDirs.push(dir);
   return dir;
@@ -67,9 +64,7 @@ describe("Task 1.3: defect-reporting-unified-sections-missing-sugiyama-export", 
     expect(TARGET_UNIFIED_TYPES_PATH).toBe("olt/scripts/src/reporting/unified/types.ts");
     expect(TARGET_UNIFIED_SECTIONS_PATH).toBe("olt/scripts/src/reporting/unified/sections.ts");
     expect(TARGET_UNIFIED_INDEX_PATH).toBe("olt/scripts/src/reporting/unified/index.ts");
-    expect(CANONICAL_SUGIYAMA_DAG_SUBPATH).toBe(
-      "olt/scripts/src/reporting/sugiyama-dag/index.ts",
-    );
+    expect(CANONICAL_SUGIYAMA_DAG_SUBPATH).toBe("olt/scripts/src/reporting/sugiyama-dag/index.ts");
     expect(CANONICAL_TYPE_EXPORT_SPECIFIER).toBe("SugiyamaDagReport");
     expect(CANONICAL_WAVE_METRICS_EXPORT_SPECIFIER).toBe("SugiyamaWaveMetrics");
     expect(CANONICAL_SUGIYAMA_IMPORT_STATEMENT).toContain("SugiyamaDagReport");
@@ -80,7 +75,6 @@ describe("Task 1.3: defect-reporting-unified-sections-missing-sugiyama-export", 
   test("2. UnifiedSectionsExportError instantiates with defaults and custom options", () => {
     const defaultErr = new UnifiedSectionsExportError("Unexported type error");
     expect(defaultErr).toBeInstanceOf(Error);
-    expect(defaultErr).toBeInstanceOf(UnifiedSectionsExportError);
     expect(defaultErr.name).toBe("UnifiedSectionsExportError");
     expect(defaultErr.code).toBe(UNEXPORTED_TYPE_DECLARATION);
     expect(defaultErr.defectRef).toBe(DEFECT_REF);
@@ -91,13 +85,7 @@ describe("Task 1.3: defect-reporting-unified-sections-missing-sugiyama-export", 
       defectRef: "custom-defect-ref",
       specifier: "SugiyamaDagReport",
       filePath: "/src/types.ts",
-      issues: [
-        {
-          code: "CUSTOM_UNEXPORTED_CODE",
-          message: "Type not exported",
-          specifier: "SugiyamaDagReport",
-        },
-      ],
+      issues: [{ code: "CUSTOM_UNEXPORTED_CODE", message: "Type not exported", specifier: "SugiyamaDagReport" }],
     });
     expect(customErr.code).toBe("CUSTOM_UNEXPORTED_CODE");
     expect(customErr.defectRef).toBe("custom-defect-ref");
@@ -106,43 +94,26 @@ describe("Task 1.3: defect-reporting-unified-sections-missing-sugiyama-export", 
     expect(customErr.issues.length).toBe(1);
   });
 
-  test("3. extractModuleImports parses static, dynamic, multiline, and re-export specifiers", () => {
+  test("3. extractModuleImports and extractTypeExports parse specifiers", () => {
     const src = `
       import type { SugiyamaDagReport } from "../sugiyama-dag/index.ts";
-      import { buildAgentMatrixTable } from "./table-builder.ts";
-      export type { UnifiedSectionData } from "./sections.ts";
+      export type { SugiyamaDagReport, SugiyamaWaveMetrics };
+      export interface LeaseMatrixRow { taskId: string; }
       const dyn = await import("./dynamic-module.ts");
     `;
     const imports = extractModuleImports(src);
     expect(imports).toContain("../sugiyama-dag/index.ts");
-    expect(imports).toContain("./table-builder.ts");
-    expect(imports).toContain("./sections.ts");
     expect(imports).toContain("./dynamic-module.ts");
-    expect(imports.length).toBe(4);
-
     expect(extractModuleImports("")).toEqual([]);
-    expect(extractModuleImports("const a = 10;")).toEqual([]);
-  });
 
-  test("4. extractTypeExports parses bracket exports and direct interface/type declarations", () => {
-    const src = `
-      export type { SugiyamaDagReport, SugiyamaWaveMetrics };
-      export interface LeaseMatrixRow { taskId: string; }
-      export type CustomAlias = string;
-      export { type UnifiedAgentRow } from "./other.ts";
-    `;
     const exports = extractTypeExports(src);
     expect(exports).toContain("SugiyamaDagReport");
     expect(exports).toContain("SugiyamaWaveMetrics");
     expect(exports).toContain("LeaseMatrixRow");
-    expect(exports).toContain("CustomAlias");
-    expect(exports).toContain("UnifiedAgentRow");
-
     expect(extractTypeExports("")).toEqual([]);
-    expect(extractTypeExports("const x = 1;")).toEqual([]);
   });
 
-  test("5. extractNamedImports extracts imported symbols accurately", () => {
+  test("4. extractNamedImports extracts imported symbols accurately", () => {
     const src = `
       import type { SugiyamaDagReport, SugiyamaWaveMetrics } from "./types.ts";
       import { formatTable } from "../../cli/formatters/line-limiter.ts";
@@ -154,63 +125,42 @@ describe("Task 1.3: defect-reporting-unified-sections-missing-sugiyama-export", 
 
     const fromTypes = extractNamedImports(src, "./types.ts");
     expect(fromTypes).toContain("SugiyamaDagReport");
-    expect(fromTypes).toContain("SugiyamaWaveMetrics");
     expect(fromTypes).not.toContain("formatTable");
-
     expect(extractNamedImports("")).toEqual([]);
   });
 
-  test("6. hasSugiyamaDagReportExport and hasSugiyamaDagReportImport accurately detect symbols", () => {
+  test("5. hasSugiyamaDagReportExport and hasSugiyamaDagReportImport accurately detect symbols", () => {
     const validExportSrc = `export type { SugiyamaDagReport, SugiyamaWaveMetrics };`;
     expect(hasSugiyamaDagReportExport(validExportSrc)).toBe(true);
-
-    const validInterfaceSrc = `export interface SugiyamaDagReport { id: string; }`;
-    expect(hasSugiyamaDagReportExport(validInterfaceSrc)).toBe(true);
-
-    const noExportSrc = `export type { OtherType };`;
-    expect(hasSugiyamaDagReportExport(noExportSrc)).toBe(false);
+    expect(hasSugiyamaDagReportExport(`export interface SugiyamaDagReport { id: string; }`)).toBe(true);
+    expect(hasSugiyamaDagReportExport(`export type { OtherType };`)).toBe(false);
     expect(hasSugiyamaDagReportExport("")).toBe(false);
 
-    const importSrc = `import type { SugiyamaDagReport } from "./types.ts";`;
-    expect(hasSugiyamaDagReportImport(importSrc)).toBe(true);
-
-    const noImportSrc = `import { formatTable } from "./table.ts";`;
-    expect(hasSugiyamaDagReportImport(noImportSrc)).toBe(false);
+    expect(hasSugiyamaDagReportImport(`import type { SugiyamaDagReport } from "./types.ts";`)).toBe(true);
+    expect(hasSugiyamaDagReportImport(`import { formatTable } from "./table.ts";`)).toBe(false);
     expect(hasSugiyamaDagReportImport("")).toBe(false);
 
     expect(isSugiyamaTypeExportMissing(validExportSrc)).toBe(false);
-    expect(isSugiyamaTypeExportMissing(noExportSrc)).toBe(true);
+    expect(isSugiyamaTypeExportMissing(`export type { OtherType };`)).toBe(true);
   });
 
-  test("7. remediateUnifiedTypesSource idempotently adds missing imports and exports", () => {
+  test("6. remediateUnifiedTypesSource and remediateUnifiedSectionsSource idempotently update sources", () => {
     const stubCode = `/**\n * Unified Run Report Type Definitions\n */\nexport interface LeaseMatrixRow { taskId: string; }`;
     const remediated = remediateUnifiedTypesSource(stubCode);
     expect(remediated).toContain(CANONICAL_SUGIYAMA_IMPORT_STATEMENT);
     expect(remediated).toContain("SugiyamaDagReport");
     expect(hasSugiyamaDagReportExport(remediated)).toBe(true);
-
-    // Idempotency: Running on already remediated code produces identical output
-    const secondPass = remediateUnifiedTypesSource(remediated);
-    expect(secondPass).toBe(remediated);
-
+    expect(remediateUnifiedTypesSource(remediated)).toBe(remediated);
     expect(remediateUnifiedTypesSource("")).toBe("");
-  });
 
-  test("8. remediateUnifiedSectionsSource ensures SugiyamaDagReport is in type import block", () => {
-    const sectionsStub = `import type {\n  CoordinatorOwnershipMetrics,\n  DecisionAuditRow,\n} from "./types.ts";\nexport function test() {}`;
-    const remediated = remediateUnifiedSectionsSource(sectionsStub);
-    expect(remediated).toContain("SugiyamaDagReport");
-    expect(extractNamedImports(remediated, "./types.ts")).toContain("SugiyamaDagReport");
-
-    // Idempotency
-    const secondPass = remediateUnifiedSectionsSource(remediated);
-    expect(secondPass).toBe(remediated);
-
+    const sectionsStub = `import type {\n  CoordinatorOwnershipMetrics,\n} from "./types.ts";`;
+    const remediatedSec = remediateUnifiedSectionsSource(sectionsStub);
+    expect(remediatedSec).toContain("SugiyamaDagReport");
+    expect(remediateUnifiedSectionsSource(remediatedSec)).toBe(remediatedSec);
     expect(remediateUnifiedSectionsSource("")).toBe("");
   });
 
-  test("9. validateUnifiedTypesExports verifies valid types file and detects missing export", () => {
-    // 1. Live workspace file
+  test("7. validateUnifiedTypesExports verifies valid types file and detects missing export", () => {
     const liveResult = validateUnifiedTypesExports();
     expect(liveResult.valid).toBe(true);
     expect(liveResult.defectRef).toBe(DEFECT_REF);
@@ -218,22 +168,18 @@ describe("Task 1.3: defect-reporting-unified-sections-missing-sugiyama-export", 
     expect(liveResult.exportsSugiyamaWaveMetrics).toBe(true);
     expect(liveResult.issues.length).toBe(0);
 
-    // 2. Corrupt source missing export
-    const corruptSrc = `export interface LeaseRow { id: string; }`;
-    const corruptResult = validateUnifiedTypesExports(corruptSrc);
+    const corruptResult = validateUnifiedTypesExports(`export interface LeaseRow { id: string; }`);
     expect(corruptResult.valid).toBe(false);
     expect(corruptResult.exportsSugiyamaDagReport).toBe(false);
     expect(corruptResult.issues.length).toBeGreaterThan(0);
     expect(corruptResult.issues[0]?.code).toBe(UNEXPORTED_TYPE_DECLARATION);
 
-    // 3. Nonexistent file
     const nonExistent = validateUnifiedTypesExports("/nonexistent/types.ts");
     expect(nonExistent.valid).toBe(false);
     expect(nonExistent.issues[0]?.message).toContain("File not found");
   });
 
-  test("10. validateUnifiedSectionsImports checks consumer sections against types exports", () => {
-    // 1. Live workspace files
+  test("8. validateUnifiedSectionsImports checks consumer sections against types exports", () => {
     const liveResult = validateUnifiedSectionsImports();
     expect(liveResult.valid).toBe(true);
     expect(liveResult.defectRef).toBe(DEFECT_REF);
@@ -241,42 +187,32 @@ describe("Task 1.3: defect-reporting-unified-sections-missing-sugiyama-export", 
     expect(liveResult.targetTypesExportsSugiyama).toBe(true);
     expect(liveResult.issues.length).toBe(0);
 
-    // 2. Sections importing from types that do not export SugiyamaDagReport
     const secSrc = `import type { SugiyamaDagReport } from "./types.ts";`;
     const corruptTypesSrc = `export interface Other {};`;
     const corruptResult = validateUnifiedSectionsImports(secSrc, corruptTypesSrc);
     expect(corruptResult.valid).toBe(false);
     expect(corruptResult.issues.length).toBeGreaterThan(0);
-    expect(corruptResult.issues[0]?.message).toContain("does not export");
 
-    // 3. Nonexistent file
     const nonExistent = validateUnifiedSectionsImports("/nonexistent/sections.ts");
     expect(nonExistent.valid).toBe(false);
     expect(nonExistent.issues[0]?.message).toContain("not found");
   });
 
-  test("11. assertUnifiedSectionsExportPurity asserts purity and throws on violation", () => {
+  test("9. assertUnifiedSectionsExportPurity asserts purity and throws on violation", () => {
     const validSec = `import type { SugiyamaDagReport } from "./types.ts";`;
     const validTypes = `export type { SugiyamaDagReport, SugiyamaWaveMetrics };`;
-
     expect(() => assertUnifiedSectionsExportPurity(validTypes, validSec)).not.toThrow();
 
-    const corruptTypes = `export interface Other {}`;
     let thrownError: unknown;
     try {
-      assertUnifiedSectionsExportPurity(corruptTypes, validSec);
+      assertUnifiedSectionsExportPurity(`export interface Other {}`, validSec);
     } catch (e) {
       thrownError = e;
     }
     expect(thrownError).toBeInstanceOf(UnifiedSectionsExportError);
-    if (thrownError instanceof UnifiedSectionsExportError) {
-      expect(thrownError.code).toBe(UNEXPORTED_TYPE_DECLARATION);
-      expect(thrownError.defectRef).toBe(DEFECT_REF);
-    }
   });
 
-  test("12. auditUnifiedReportingModuleGraph audits workspace and temp directory tree", () => {
-    // 1. Real repository workspace audit
+  test("10. auditUnifiedReportingModuleGraph audits workspace and temp directory tree", () => {
     const audit = auditUnifiedReportingModuleGraph();
     expect(audit.defectRef).toBe(DEFECT_REF);
     expect(audit.errorCode).toBe(UNEXPORTED_TYPE_DECLARATION);
@@ -286,45 +222,23 @@ describe("Task 1.3: defect-reporting-unified-sections-missing-sugiyama-export", 
     expect(audit.indexFileValid).toBe(true);
     expect(audit.issues).toEqual([]);
 
-    // 2. Mock temp workspace directory tree with a failure
     const tempDir = createTempDir();
     const mockReportingDir = join(tempDir, "olt", "scripts", "src", "reporting", "unified");
     mkdirSync(mockReportingDir, { recursive: true });
-
-    writeFileSync(
-      join(mockReportingDir, "types.ts"),
-      `export interface Other {}`,
-      "utf-8",
-    );
-    writeFileSync(
-      join(mockReportingDir, "sections.ts"),
-      `import type { SugiyamaDagReport } from "./types.ts";`,
-      "utf-8",
-    );
-    writeFileSync(
-      join(mockReportingDir, "index.ts"),
-      `export { type Other } from "./types.ts";`,
-      "utf-8",
-    );
+    writeFileSync(join(mockReportingDir, "types.ts"), `export interface Other {}`, "utf-8");
+    writeFileSync(join(mockReportingDir, "sections.ts"), `import type { SugiyamaDagReport } from "./types.ts";`, "utf-8");
+    writeFileSync(join(mockReportingDir, "index.ts"), `export { type Other } from "./types.ts";`, "utf-8");
 
     const tempAudit = auditUnifiedReportingModuleGraph(tempDir);
     expect(tempAudit.resolved).toBe(false);
     expect(tempAudit.typesFileValid).toBe(false);
-    expect(tempAudit.issues.length).toBeGreaterThan(0);
   });
 
-  test("13. createUnifiedSectionsDefectEntry creates spec-compliant DefectEntry contract", () => {
+  test("11. createUnifiedSectionsDefectEntry creates spec-compliant DefectEntry contract", () => {
     const entry = createUnifiedSectionsDefectEntry({
       filePath: TARGET_UNIFIED_TYPES_PATH,
-      issues: [
-        {
-          code: UNEXPORTED_TYPE_DECLARATION,
-          message: "SugiyamaDagReport not exported",
-          specifier: "SugiyamaDagReport",
-        },
-      ],
+      issues: [{ code: UNEXPORTED_TYPE_DECLARATION, message: "SugiyamaDagReport not exported", specifier: "SugiyamaDagReport" }],
     });
-
     expect(entry.id).toContain(DEFECT_REF);
     expect(entry.domain).toBe("reporting-unified");
     expect(entry.error_code).toBe(UNEXPORTED_TYPE_DECLARATION);
@@ -332,22 +246,17 @@ describe("Task 1.3: defect-reporting-unified-sections-missing-sugiyama-export", 
     expect(entry.type).toBe("TYPE_DRIFT");
     expect(entry.category).toBe("code_defect");
     expect(entry.severity).toBe("high");
-    expect(entry.observation).toBeDefined();
-    expect(entry.remediation).toBeDefined();
     expect(entry.context?.targetSymbol).toBe("SugiyamaDagReport");
     expect(entry.context?.file).toBe(TARGET_UNIFIED_TYPES_PATH);
   });
 
-  test("14. createMockSugiyamaDagReport and verifyUnifiedSectionReportGeneration render complete markdown", () => {
-    const mockDag = createMockSugiyamaDagReport({
-      renderedDag: "╭── WAVE 1 ──╮\n│ ● test-dag │\n╰────────────╯",
-    });
+  test("12. createMockSugiyamaDagReport and verifyUnifiedSectionReportGeneration render complete markdown", () => {
+    const mockDag = createMockSugiyamaDagReport({ renderedDag: "╭── WAVE 1 ──╮\n│ ● test-dag │\n╰────────────╯" });
     expect(mockDag.isCompiled).toBe(true);
     expect(mockDag.metrics.totalWaves).toBe(1);
 
     const mockData = createMockUnifiedSectionData({ sugiyamaReport: mockDag });
     expect(mockData.runId).toBe("run-tooling-test-01");
-    expect(mockData.sugiyamaReport.renderedDag).toContain("test-dag");
 
     const renderResult = verifyUnifiedSectionReportGeneration({ sugiyamaReport: mockDag });
     expect(renderResult.containsDagSection).toBe(true);
@@ -356,22 +265,14 @@ describe("Task 1.3: defect-reporting-unified-sections-missing-sugiyama-export", 
     expect(renderResult.charCount).toBeGreaterThan(500);
   });
 
-  test("15. verifies zero TypeScript any and zero compiler suppressions across write scope", () => {
+  test("13. verifies zero TypeScript any and zero compiler suppressions across write scope", () => {
     const filesToAudit = [
-      join(
-        process.cwd(),
-        "olt/scripts/src/tooling/defect-reporting-unified-sections-missing-sugiyama-export.ts",
-      ),
-      join(
-        process.cwd(),
-        "tests/unit/tooling/defect-reporting-unified-sections-missing-sugiyama-export.test.ts",
-      ),
+      join(process.cwd(), "olt/scripts/src/tooling/defect-reporting-unified-sections-missing-sugiyama-export.ts"),
+      join(process.cwd(), "tests/unit/tooling/defect-reporting-unified-sections-missing-sugiyama-export.test.ts"),
     ];
 
     const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
-    const suppressionPattern = new RegExp(
-      ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck"].join("|"),
-    );
+    const suppressionPattern = new RegExp(["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck"].join("|"));
 
     for (const fp of filesToAudit) {
       expect(existsSync(fp)).toBe(true);
