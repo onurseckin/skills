@@ -1,6 +1,3 @@
-/**
- * Living Tracer Chronological Step Trace Extractor
- */
 import type { HarnessEvent } from "../../core/contracts/index.ts";
 import {
   parsePayloadNumber,
@@ -9,9 +6,6 @@ import {
   type StepTraceEntry,
 } from "./types.ts";
 
-/**
- * Parses events into structured chronological step traces with precise execution glyphs.
- */
 export function buildStepTraceEntries(
   events: readonly HarnessEvent[],
   options: LivingTracerOptions = {},

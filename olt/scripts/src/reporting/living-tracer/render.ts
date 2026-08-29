@@ -1,6 +1,3 @@
-/**
- * Living Tracer ASCII DAG Renderer & Report Builder
- */
 import { formatTable } from "../../cli/formatters/line-limiter.ts";
 import { readCapsuleEvents } from "../event-stream.ts";
 import {
@@ -20,9 +17,6 @@ import {
 } from "./types.ts";
 import type { HarnessEvent } from "../../core/contracts/index.ts";
 
-/**
- * Renders the living dynamic DAG expansion with round-by-round branches and real-time execution states as connected ASCII.
- */
 export function renderDynamicDagAscii(dynamicDag: DynamicDagState): string {
   if (dynamicDag.tasks.size === 0) {
     return "  ┌────────────────────────────────────────────────────────┐\n  │  (No dynamic DAG tasks discovered in telemetry events) │\n  └────────────────────────────────────────────────────────┘";
@@ -155,9 +149,6 @@ export function renderDynamicDagAscii(dynamicDag: DynamicDagState): string {
   return lines.join("\n");
 }
 
-/**
- * Builds the complete Living Tracer report.
- */
 export function buildLivingTracerReport(
   events: readonly HarnessEvent[],
   options: LivingTracerOptions & { runId?: string | undefined; runRoot?: string | undefined } = {},
