@@ -30,8 +30,14 @@ export function performDiscoveryScans(options: TaskDiscoveryOptions) {
   const nowIso = new Date().toISOString();
   const maxTasks = options.maxTasks ? options.maxTasks : 5;
   const existingQueue = readTaskQueue(options.taskQueuePath);
-  const existingTaskIds = new Set(existingQueue.map((t: import("../queue/index.ts").TaskQueueItem): string => t.id));
-  const existingTaskLabels = new Set(existingQueue.map((t: import("../queue/index.ts").TaskQueueItem): string => t.title.toLowerCase().trim()));
+  const existingTaskIds = new Set(
+    existingQueue.map((t: import("../queue/index.ts").TaskQueueItem): string => t.id),
+  );
+  const existingTaskLabels = new Set(
+    existingQueue.map((t: import("../queue/index.ts").TaskQueueItem): string =>
+      t.title.toLowerCase().trim(),
+    ),
+  );
 
   // Step 1: Scan Code Quality
   const codeQualityResult =
@@ -94,7 +100,8 @@ export function performDiscoveryScans(options: TaskDiscoveryOptions) {
   const pendingFeedback =
     options.enableFeedbackQueueScan !== false
       ? readFeedbackQueue(options.feedbackQueuePath).filter(
-          (f: import("../../feedback/queue/index.ts").FeedbackItem): boolean => f.status === "PENDING",
+          (f: import("../../feedback/queue/index.ts").FeedbackItem): boolean =>
+            f.status === "PENDING",
         )
       : [];
 
@@ -102,7 +109,8 @@ export function performDiscoveryScans(options: TaskDiscoveryOptions) {
   const openDefects =
     options.enableDefectScan !== false
       ? auditDefectLog(options.capsulesDir ? [options.capsulesDir] : [".capsules/"]).defects.filter(
-          (b: import("../../contracts/defect-contracts.ts").DefectEntry): boolean => b.status === "open",
+          (b: import("../../contracts/defect-contracts.ts").DefectEntry): boolean =>
+            b.status === "open",
         )
       : [];
 

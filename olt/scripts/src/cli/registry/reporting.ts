@@ -20,7 +20,7 @@ import { quotaCheckCommand } from "../commands/quota-check.ts";
 import { quotaFreezeCommand } from "../commands/quota-freeze.ts";
 import { quotaResumeCommand } from "../commands/quota-resume.ts";
 import { skillAuditLiveCommand } from "../commands/skill-audit-live.ts";
-import { notifyPhaseCommand, notifyTestCommand } from "../commands/notify-ops.ts";
+import { notifyPhaseCommand, notifyTestCommand } from "../commands/index.ts";
 
 export {
   reportUnifiedCommand,

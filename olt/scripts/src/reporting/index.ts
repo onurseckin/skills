@@ -30,4 +30,22 @@ export * from "./dag-view.ts";
 export * from "./socratic-validator.ts";
 export * from "./lease-agent-extractor.ts";
 export * from "./unified/index.ts";
-export * from "./notifications/index.ts";
+export {
+  buildPhaseNotificationPayload,
+  DEFAULT_DARWIN_NOTIFICATION_SOUND,
+  DEFAULT_LINUX_NOTIFICATION_SOUND,
+  defaultNotificationSpawner,
+  displaySystemNotification,
+  escapeAppleScriptString,
+  escapePowerShellString,
+  formatElapsedDuration,
+  notifyPhaseCompletion,
+  playCompletionChime,
+  sendSystemNotification,
+  type NotificationPayload,
+  type NotificationPlatform,
+  type NotificationProcessSpawner,
+  type NotificationProcessSpawnResult,
+  type NotificationResult,
+  type PhaseCompletionNotificationOptions,
+} from "./notifications/index.ts";

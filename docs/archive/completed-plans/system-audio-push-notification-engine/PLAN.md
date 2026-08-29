@@ -5,6 +5,7 @@
 The Native OS Audio and Visual Push Notification Engine provides non-blocking, cross-platform notifications and auditory feedback (macOS `Glass.aiff` chime) upon completion and upstream landing of orchestrator phases and release stations.
 
 ### Key Goals
+
 - **Zero Blocking Latency**: Notification processes (`osascript`, `afplay`, `notify-send`, PowerShell) are spawned asynchronously with `detached: true` and `unref()`, ensuring the orchestrator release pipeline incurs 0ms execution blocking.
 - **Cross-Platform Delivery**:
   - **macOS (`darwin`)**: `osascript -e 'display notification ... with title ... subtitle ...'` + `afplay /System/Library/Sounds/Glass.aiff`
@@ -65,6 +66,7 @@ export interface NotificationResult {
 ---
 
 ## 4. Verification & Testing Strategy
+
 - Unit tests validating duration formatting edge cases (0ms, ms, seconds, minutes, hours, negative).
 - Unit tests mocking process spawning for Darwin, Linux, Windows, and unsupported platforms.
 - Non-blocking background verification with error isolation.

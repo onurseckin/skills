@@ -154,7 +154,12 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
   if (options.graph && typeof options.graph === "object") {
     if (Array.isArray(options.graph.nodes)) {
       for (const node of options.graph.nodes) {
-        if (node && typeof node === "object" && "id" in node && typeof (node as { readonly id?: unknown }).id === "string") {
+        if (
+          node &&
+          typeof node === "object" &&
+          "id" in node &&
+          typeof (node as { readonly id?: unknown }).id === "string"
+        ) {
           const rawNode = node as {
             readonly id: string;
             readonly dependencies?: unknown;
@@ -163,9 +168,10 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
           };
           const existing = nodesMap.get(rawNode.id);
           const rawDependencies = rawNode.dependencies ?? rawNode.deps;
-          const deps = rawDependencies !== undefined
-            ? extractDependencyList(rawDependencies)
-            : (existing?.dependencies ?? []);
+          const deps =
+            rawDependencies !== undefined
+              ? extractDependencyList(rawDependencies)
+              : (existing?.dependencies ?? []);
           const status = typeof rawNode.status === "string" ? rawNode.status : existing?.status;
           nodesMap.set(rawNode.id, {
             id: rawNode.id,

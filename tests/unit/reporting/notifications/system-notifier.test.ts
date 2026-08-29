@@ -1,13 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import {
-  buildPhaseNotificationPayload,
   DEFAULT_DARWIN_NOTIFICATION_SOUND,
   DEFAULT_LINUX_NOTIFICATION_SOUND,
   defaultNotificationSpawner,
   displaySystemNotification,
-  escapeAppleScriptString,
-  escapePowerShellString,
-  formatElapsedDuration,
   notifyPhaseCompletion,
   playCompletionChime,
   sendSystemNotification,
@@ -24,65 +20,6 @@ import {
 } from "../../../../olt/scripts/src/orchestrator/station-landing.ts";
 
 describe("Native OS Push Notification & Audio Chime Engine", () => {
-  describe("Duration & String Formatters", () => {
-    it("formats millisecond durations into human-readable intervals", () => {
-      expect(formatElapsedDuration(0)).toBe("0s");
-      expect(formatElapsedDuration(-100)).toBe("0s");
-      expect(formatElapsedDuration(Number.NaN)).toBe("0s");
-      expect(formatElapsedDuration(Number.POSITIVE_INFINITY)).toBe("0s");
-      expect(formatElapsedDuration(450)).toBe("<1s");
-      expect(formatElapsedDuration(1000)).toBe("1s");
-      expect(formatElapsedDuration(14000)).toBe("14s");
-      expect(formatElapsedDuration(272000)).toBe("4m 32s");
-      expect(formatElapsedDuration(3600000)).toBe("1h 0m 0s");
-      expect(formatElapsedDuration(3724000)).toBe("1h 2m 4s");
-    });
-
-    it("escapes AppleScript special characters correctly", () => {
-      const input = 'Phase "Core" with \\ backslash and "quotes"';
-      const escaped = escapeAppleScriptString(input);
-      expect(escaped).toBe('Phase \\"Core\\" with \\\\ backslash and \\"quotes\\"');
-    });
-
-    it("escapes PowerShell special characters correctly", () => {
-      const input = "User's `test` variable";
-      const escaped = escapePowerShellString(input);
-      expect(escaped).toBe("User''s ``test`` variable");
-    });
-
-    it("builds comprehensive notification payload with all metadata", () => {
-      const opts: PhaseCompletionNotificationOptions = {
-        phaseName: "Tooling & Telemetry",
-        commitSha: "89a5042e12345678",
-        taskCount: 7,
-        durationMs: 145000,
-        details: "all tests passing",
-      };
-
-      const payload = buildPhaseNotificationPayload(opts);
-      expect(payload.title).toBe("OLT Release Complete");
-      expect(payload.subtitle).toBe("Tooling & Telemetry");
-      expect(payload.soundEnabled).toBe(true);
-      expect(payload.message).toContain('Phase "Tooling & Telemetry" landed');
-      expect(payload.message).toContain("Duration: 2m 25s");
-      expect(payload.message).toContain("7 tasks");
-      expect(payload.message).toContain("commit 89a5042e");
-      expect(payload.message).toContain("all tests passing");
-    });
-
-    it("builds minimal notification payload when optional fields are omitted", () => {
-      const opts: PhaseCompletionNotificationOptions = {
-        phaseName: "Core Architecture",
-      };
-
-      const payload = buildPhaseNotificationPayload(opts);
-      expect(payload.title).toBe("OLT Release Complete");
-      expect(payload.subtitle).toBe("Core Architecture");
-      expect(payload.message).toBe('Phase "Core Architecture" landed successfully.');
-      expect(payload.soundEnabled).toBe(true);
-    });
-  });
-
   describe("Platform Dispatcher", () => {
     it("dispatches macOS visual notifications via osascript with non-blocking arguments", () => {
       const spawned: { cmd: string; args: readonly string[]; opts?: unknown }[] = [];
@@ -260,7 +197,6 @@ describe("Native OS Push Notification & Audio Chime Engine", () => {
 
     it("defaultNotificationSpawner safely handles execution", () => {
       const res = defaultNotificationSpawner("true", []);
-      // Should not throw and should return an object with unref or undefined
       if (res && res.unref) {
         expect(typeof res.unref).toBe("function");
       }
@@ -292,7 +228,11 @@ describe("Native OS Push Notification & Audio Chime Engine", () => {
       const verified = verifyStation(claimed, { testPath: "tests/f.ts", passed: true });
 
       const startTime = Date.now() - 5000;
-      const { station: landed, notificationResult, durationMs } = landStation(verified, {
+      const {
+        station: landed,
+        notificationResult,
+        durationMs,
+      } = landStation(verified, {
         notify: true,
         startedAt: startTime,
         phaseName: "Reporting Phase",

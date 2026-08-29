@@ -7,10 +7,7 @@ export type {
   PhaseCompletionNotificationOptions,
 } from "./types.ts";
 
-export {
-  DEFAULT_DARWIN_NOTIFICATION_SOUND,
-  DEFAULT_LINUX_NOTIFICATION_SOUND,
-} from "./types.ts";
+export { DEFAULT_DARWIN_NOTIFICATION_SOUND, DEFAULT_LINUX_NOTIFICATION_SOUND } from "./types.ts";
 
 export {
   buildPhaseNotificationPayload,

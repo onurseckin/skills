@@ -5,10 +5,11 @@ import {
   sendSystemNotification,
   type NotificationResult,
 } from "../../reporting/notifications/index.ts";
-import { boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
+import { boolFlag, integerFlag, textFlag, type Flags } from "../index.ts";
 
 export function notifyPhaseCommand(flags: Flags): Record<string, unknown> {
-  const phaseName = textFlag(flags, "phase", false) ?? "OLT Release";
+  const phaseName = textFlag(flags, "phase", false);
+  const effectivePhase = phaseName !== undefined ? phaseName : "";
   const durationMs = integerFlag(flags, "duration-ms", { required: false });
   const taskCount = integerFlag(flags, "tasks", { required: false });
   const commitSha = textFlag(flags, "commit", false);
@@ -23,7 +24,7 @@ export function notifyPhaseCommand(flags: Flags): Record<string, unknown> {
   const soundEnabled = !noSound && (soundFlag || true);
 
   const result: NotificationResult = notifyPhaseCompletion({
-    phaseName,
+    phaseName: effectivePhase,
     ...(durationMs !== undefined ? { durationMs } : {}),
     ...(taskCount !== undefined ? { taskCount } : {}),
     ...(commitSha !== undefined ? { commitSha } : {}),
@@ -35,7 +36,7 @@ export function notifyPhaseCommand(flags: Flags): Record<string, unknown> {
   });
 
   const lines: string[] = [];
-  lines.push(`### Native OS Notification Dispatched: \`${phaseName}\``);
+  lines.push(`### Native OS Notification Dispatched: \`${effectivePhase}\``);
   lines.push(`- **Platform**: \`${result.platform}\``);
   lines.push(`- **Visual Delivered**: \`${result.visualDelivered}\``);
   lines.push(`- **Audio Delivered**: \`${result.audioDelivered}\``);
@@ -57,7 +58,7 @@ export function notifyPhaseCommand(flags: Flags): Record<string, unknown> {
 
   return {
     markdown: lines.join("\n"),
-    phase: phaseName,
+    phase: effectivePhase,
     result,
     ...(asJson ? { json: true } : {}),
   };
@@ -78,8 +79,12 @@ export function notifyTestCommand(flags: Flags): Record<string, unknown> {
   const lines: string[] = [];
   lines.push(`### Native Notification Engine Test: Complete`);
   lines.push(`- **Platform**: \`${result.platform}\``);
-  lines.push(`- **Visual Notification**: \`${result.visualDelivered ? "Delivered" : "Skipped/Failed"}\``);
-  lines.push(`- **Glass Audio Chime**: \`${result.audioDelivered ? "Delivered" : "Skipped/Disabled"}\``);
+  lines.push(
+    `- **Visual Notification**: \`${result.visualDelivered ? "Delivered" : "Skipped/Failed"}\``,
+  );
+  lines.push(
+    `- **Glass Audio Chime**: \`${result.audioDelivered ? "Delivered" : "Skipped/Disabled"}\``,
+  );
 
   return {
     markdown: lines.join("\n"),

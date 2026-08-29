@@ -18,7 +18,9 @@ export interface StationLandingOptions extends GitStagingOptions {
   readonly taskCount?: number | undefined;
   readonly soundEnabled?: boolean | undefined;
   readonly notify?: boolean | undefined;
-  readonly customNotifier?: ((opts: PhaseCompletionNotificationOptions) => NotificationResult) | undefined;
+  readonly customNotifier?:
+    | ((opts: PhaseCompletionNotificationOptions) => NotificationResult)
+    | undefined;
 }
 
 export interface PhaseLandingResult {
@@ -111,7 +113,8 @@ export function landStation(
   let durationMs: number | undefined;
 
   if (stagingOptions?.notify) {
-    const startedAt = stagingOptions.startedAt ?? Date.parse(station.claimed_at ?? "") ?? Date.now();
+    const startedAt =
+      stagingOptions.startedAt ?? Date.parse(station.claimed_at ?? "") ?? Date.now();
     durationMs = Math.max(0, Date.now() - (Number.isFinite(startedAt) ? startedAt : Date.now()));
     const notifier = stagingOptions.customNotifier ?? notifyPhaseCompletion;
 
@@ -139,7 +142,9 @@ export function landPhaseRelease(options: {
   readonly taskCount?: number | undefined;
   readonly soundEnabled?: boolean | undefined;
   readonly notify?: boolean | undefined;
-  readonly customNotifier?: ((opts: PhaseCompletionNotificationOptions) => NotificationResult) | undefined;
+  readonly customNotifier?:
+    | ((opts: PhaseCompletionNotificationOptions) => NotificationResult)
+    | undefined;
 }): PhaseLandingResult {
   const durationMs = Math.max(0, Date.now() - options.startedAt);
   let notificationResult: NotificationResult | undefined;

@@ -1,7 +1,4 @@
-import type {
-  NotificationPayload,
-  PhaseCompletionNotificationOptions,
-} from "./types.ts";
+import type { NotificationPayload, PhaseCompletionNotificationOptions } from "./types.ts";
 
 /**
  * Formats a millisecond duration into a human-readable elapsed duration string.
@@ -89,6 +86,6 @@ export function buildPhaseNotificationPayload(
     subtitle,
     message,
     soundFile: options.soundFile,
-    soundEnabled: options.soundEnabled ?? true,
+    soundEnabled: options.soundEnabled !== false,
   };
 }

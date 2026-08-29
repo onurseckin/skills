@@ -28,10 +28,13 @@ export function defaultNotificationSpawner(
   },
 ): NotificationProcessSpawnResult | void {
   try {
+    const isDetached = options?.detached !== false;
+    const stdioMode = options?.stdio !== undefined ? options.stdio : "ignore";
+    const useShell = options?.shell === true;
     const child = spawn(command, [...args], {
-      detached: options?.detached ?? true,
-      stdio: options?.stdio ?? "ignore",
-      shell: options?.shell ?? false,
+      detached: isDetached,
+      stdio: stdioMode,
+      shell: useShell,
     });
 
     if ("unref" in child && typeof child.unref === "function") {
@@ -61,8 +64,8 @@ export function displaySystemNotification(
     customSpawn?: NotificationProcessSpawner | undefined;
   },
 ): { delivered: boolean; command?: string | undefined } {
-  const platform = options?.platform ?? process.platform;
-  const spawner = options?.customSpawn ?? defaultNotificationSpawner;
+  const platform = options?.platform !== undefined ? options.platform : process.platform;
+  const spawner = options?.customSpawn !== undefined ? options.customSpawn : defaultNotificationSpawner;
 
   switch (platform) {
     case "darwin": {
@@ -103,11 +106,10 @@ export function displaySystemNotification(
       const cmd = `powershell -NoProfile -NonInteractive -Command "${psCommand}"`;
 
       try {
-        spawner(
-          "powershell",
-          ["-NoProfile", "-NonInteractive", "-Command", psCommand],
-          { detached: true, stdio: "ignore" },
-        );
+        spawner("powershell", ["-NoProfile", "-NonInteractive", "-Command", psCommand], {
+          detached: true,
+          stdio: "ignore",
+        });
         return { delivered: true, command: cmd };
       } catch {
         return { delivered: false, command: cmd };
@@ -129,12 +131,12 @@ export function playCompletionChime(
     customSpawn?: NotificationProcessSpawner | undefined;
   },
 ): { delivered: boolean; command?: string | undefined } {
-  const platform = options?.platform ?? process.platform;
-  const spawner = options?.customSpawn ?? defaultNotificationSpawner;
+  const platform = options?.platform !== undefined ? options.platform : process.platform;
+  const spawner = options?.customSpawn !== undefined ? options.customSpawn : defaultNotificationSpawner;
 
   switch (platform) {
     case "darwin": {
-      const resolvedSound = soundFile ?? DEFAULT_DARWIN_NOTIFICATION_SOUND;
+      const resolvedSound = soundFile !== undefined ? soundFile : DEFAULT_DARWIN_NOTIFICATION_SOUND;
       const cmd = `afplay "${resolvedSound}"`;
 
       try {
@@ -146,7 +148,7 @@ export function playCompletionChime(
     }
 
     case "linux": {
-      const resolvedSound = soundFile ?? DEFAULT_LINUX_NOTIFICATION_SOUND;
+      const resolvedSound = soundFile !== undefined ? soundFile : DEFAULT_LINUX_NOTIFICATION_SOUND;
       const cmd = `paplay "${resolvedSound}"`;
 
       try {
@@ -162,11 +164,10 @@ export function playCompletionChime(
       const cmd = `powershell -NoProfile -NonInteractive -Command "${psCommand}"`;
 
       try {
-        spawner(
-          "powershell",
-          ["-NoProfile", "-NonInteractive", "-Command", psCommand],
-          { detached: true, stdio: "ignore" },
-        );
+        spawner("powershell", ["-NoProfile", "-NonInteractive", "-Command", psCommand], {
+          detached: true,
+          stdio: "ignore",
+        });
         return { delivered: true, command: cmd };
       } catch {
         return { delivered: false, command: cmd };
@@ -189,7 +190,7 @@ export function sendSystemNotification(
     silent?: boolean | undefined;
   },
 ): NotificationResult {
-  const platform = options?.platform ?? process.platform;
+  const platform = options?.platform !== undefined ? options.platform : process.platform;
 
   let visualResult: { delivered: boolean; command?: string | undefined } = { delivered: false };
   let audioResult: { delivered: boolean; command?: string | undefined } = { delivered: false };
