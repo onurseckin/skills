@@ -17,10 +17,10 @@ export const DEFECT_REF = "defect-cli-diagnostics-unresolved-certify-import" as 
 export const UNRESOLVED_MODULE_IMPORT_IN_CLI = "UNRESOLVED_MODULE_IMPORT_IN_CLI" as const;
 
 export interface CliImportResolutionErrorOptions {
-  readonly code?: string;
-  readonly defectRef?: string;
-  readonly specifier?: string;
-  readonly filePath?: string;
+  readonly code?: string | undefined;
+  readonly defectRef?: string | undefined;
+  readonly specifier?: string | undefined;
+  readonly filePath?: string | undefined;
   readonly cause?: unknown;
 }
 
@@ -47,7 +47,7 @@ export interface CliDiagnosticsImportValidationResult {
   readonly canonicalImportPresent: boolean;
   readonly imports: readonly string[];
   readonly issues: readonly string[];
-  readonly targetPath?: string;
+  readonly targetPath?: string | undefined;
 }
 
 export interface CliRegistryGraphAuditResult {

@@ -5,17 +5,11 @@
  * Error Code: UNRESOLVED_MODULE_IMPORT_IN_REPORTING
  */
 
-import {
-  FILE_EDIT_TOOLS,
-  type BehavioralSeverity,
-} from "../reporting/behavioral-auditor/types.ts";
+import { FILE_EDIT_TOOLS, type BehavioralSeverity } from "../reporting/behavioral-auditor/types.ts";
 
-export const DEFECT_REF =
-  "defect-reporting-behavioral-auditor-missing-coordinator-behavior" as const;
-export const KNOWN_MISSING_COORDINATOR_BEHAVIOR_MODULE =
-  "./doctor/rules/behavioral/coordinator-behavior.ts" as const;
-export const UNRESOLVED_MODULE_IMPORT_IN_REPORTING =
-  "UNRESOLVED_MODULE_IMPORT_IN_REPORTING" as const;
+export const DEFECT_REF = "defect-reporting-behavioral-auditor-missing-coordinator-behavior" as const;
+export const KNOWN_MISSING_COORDINATOR_BEHAVIOR_MODULE = "./doctor/rules/behavioral/coordinator-behavior.ts" as const;
+export const UNRESOLVED_MODULE_IMPORT_IN_REPORTING = "UNRESOLVED_MODULE_IMPORT_IN_REPORTING" as const;
 
 export interface CoordinatorBehaviorRuleDefinition {
   readonly id: string;
@@ -30,90 +24,71 @@ export interface CoordinatorBehaviorRuleDefinition {
   readonly requiredDelegationRole?: string | undefined;
 }
 
-export const CANONICAL_COORDINATOR_RULES: readonly CoordinatorBehaviorRuleDefinition[] =
-  Object.freeze([
-    {
-      id: "coordinator_no_file_edit_tools",
-      name: "Coordinator File Edit Tool Ban",
-      description:
-        "Coordinators must not be provisioned with or execute code-editing tools.",
-      severity: "critical",
-      category: "tool_confinement",
-      remediation:
-        "Coordinators must never write code or edit files directly. Delegate all implementation tasks to Tier 3 Implementers.",
-      enabled: true,
-      prohibitedTools: Array.from(FILE_EDIT_TOOLS),
-      prohibitedCommands: undefined,
-      requiredDelegationRole: undefined,
-    },
-    {
-      id: "coordinator_no_file_edit_commands",
-      name: "Coordinator File Modification Command Ban",
-      description:
-        "Coordinators must never execute file modification commands directly.",
-      severity: "critical",
-      category: "command_confinement",
-      remediation:
-        "Coordinators must never execute file-editing commands directly. Assign implementation tasks to Tier 3 Implementers.",
-      enabled: true,
-      prohibitedTools: undefined,
-      prohibitedCommands: ["sed", "awk", "tee", "echo >", "cat >"],
-      requiredDelegationRole: undefined,
-    },
-    {
-      id: "coordinator_no_full_test_suites",
-      name: "Coordinator Full Test Suite Execution Ban",
-      description:
-        "Coordinators are strictly prohibited from running full test suites.",
-      severity: "critical",
-      category: "test_isolation",
-      remediation:
-        "Coordinators coordinate task evidence without running tests; full tests belong exclusively to Completeness Critics.",
-      enabled: true,
-      prohibitedTools: undefined,
-      prohibitedCommands: [
-        "bun test",
-        "bun run test:unit",
-        "npm test",
-        "yarn test",
-        "pytest",
-        "vitest",
-      ],
-      requiredDelegationRole: undefined,
-    },
-    {
-      id: "coordinator_no_direct_task_leases",
-      name: "Coordinator Direct Task Lease Ban",
-      description:
-        "Coordinators must not hold direct implementation leases on work tasks.",
-      severity: "critical",
-      category: "task_topology",
-      remediation:
-        "Coordinators must not claim or lease implementation tasks. Implementation leases are exclusively for Tier 3 Implementers.",
-      enabled: true,
-      prohibitedTools: undefined,
-      prohibitedCommands: undefined,
-      requiredDelegationRole: "implementer",
-    },
-    {
-      id: "coordinator_enforce_subagent_delegation",
-      name: "Coordinator Subagent Delegation Enforcement",
-      description:
-        "Coordinators must delegate implementation to Tier 3 Implementers via subagent dispatches.",
-      severity: "important",
-      category: "delegation_policy",
-      remediation:
-        "Dispatch subagent tasks via invoke_subagent to preserve role boundaries.",
-      enabled: true,
-      prohibitedTools: undefined,
-      prohibitedCommands: undefined,
-      requiredDelegationRole: "implementer",
-    },
-  ]);
+export const CANONICAL_COORDINATOR_RULES: readonly CoordinatorBehaviorRuleDefinition[] = Object.freeze([
+  {
+    id: "coordinator_no_file_edit_tools",
+    name: "Coordinator File Edit Tool Ban",
+    description: "Coordinators must not be provisioned with or execute code-editing tools.",
+    severity: "critical",
+    category: "tool_confinement",
+    remediation: "Coordinators must never write code or edit files directly. Delegate all implementation tasks to Tier 3 Implementers.",
+    enabled: true,
+    prohibitedTools: Array.from(FILE_EDIT_TOOLS),
+    prohibitedCommands: undefined,
+    requiredDelegationRole: undefined,
+  },
+  {
+    id: "coordinator_no_file_edit_commands",
+    name: "Coordinator File Modification Command Ban",
+    description: "Coordinators must never execute file modification commands directly.",
+    severity: "critical",
+    category: "command_confinement",
+    remediation: "Coordinators must never execute file-editing commands directly. Assign implementation tasks to Tier 3 Implementers.",
+    enabled: true,
+    prohibitedTools: undefined,
+    prohibitedCommands: ["sed", "awk", "tee", "echo >", "cat >"],
+    requiredDelegationRole: undefined,
+  },
+  {
+    id: "coordinator_no_full_test_suites",
+    name: "Coordinator Full Test Suite Execution Ban",
+    description: "Coordinators are strictly prohibited from running full test suites.",
+    severity: "critical",
+    category: "test_isolation",
+    remediation: "Coordinators coordinate task evidence without running tests; full tests belong exclusively to Completeness Critics.",
+    enabled: true,
+    prohibitedTools: undefined,
+    prohibitedCommands: ["bun test", "bun run test:unit", "npm test", "yarn test", "pytest", "vitest"],
+    requiredDelegationRole: undefined,
+  },
+  {
+    id: "coordinator_no_direct_task_leases",
+    name: "Coordinator Direct Task Lease Ban",
+    description: "Coordinators must not hold direct implementation leases on work tasks.",
+    severity: "critical",
+    category: "task_topology",
+    remediation: "Coordinators must not claim or lease implementation tasks. Implementation leases are exclusively for Tier 3 Implementers.",
+    enabled: true,
+    prohibitedTools: undefined,
+    prohibitedCommands: undefined,
+    requiredDelegationRole: "implementer",
+  },
+  {
+    id: "coordinator_enforce_subagent_delegation",
+    name: "Coordinator Subagent Delegation Enforcement",
+    description: "Coordinators must delegate implementation to Tier 3 Implementers via subagent dispatches.",
+    severity: "important",
+    category: "delegation_policy",
+    remediation: "Dispatch subagent tasks via invoke_subagent to preserve role boundaries.",
+    enabled: true,
+    prohibitedTools: undefined,
+    prohibitedCommands: undefined,
+    requiredDelegationRole: "implementer",
+  },
+]);
 
 export class UnresolvedBehavioralModuleError extends Error {
-  readonly code: typeof UNRESOLVED_MODULE_IMPORT_IN_REPORTING =
-    UNRESOLVED_MODULE_IMPORT_IN_REPORTING;
+  readonly code: typeof UNRESOLVED_MODULE_IMPORT_IN_REPORTING = UNRESOLVED_MODULE_IMPORT_IN_REPORTING;
   readonly defectRef: typeof DEFECT_REF = DEFECT_REF;
   readonly modulePath: string;
 
@@ -128,64 +103,35 @@ export class UnresolvedBehavioralModuleError extends Error {
 export function createDefaultCoordinatorBehaviorRules(
   overrides?: readonly Partial<CoordinatorBehaviorRuleDefinition>[],
 ): CoordinatorBehaviorRuleDefinition[] {
-  const baseRules: CoordinatorBehaviorRuleDefinition[] =
-    CANONICAL_COORDINATOR_RULES.map((rule) => ({ ...rule }));
-  if (!overrides || overrides.length === 0) {
-    return baseRules;
-  }
+  const baseRules: CoordinatorBehaviorRuleDefinition[] = CANONICAL_COORDINATOR_RULES.map((rule) => ({ ...rule }));
+  if (!overrides || overrides.length === 0) return baseRules;
 
   for (const override of overrides) {
     const overrideId = override.id;
     if (!overrideId) continue;
-    const existingIndex = baseRules.findIndex((r) => r.id === overrideId);
-    if (existingIndex >= 0) {
-      const existing = baseRules[existingIndex]!;
-      baseRules[existingIndex] = {
+    const idx = baseRules.findIndex((r) => r.id === overrideId);
+    if (idx >= 0) {
+      const existing = baseRules[idx]!;
+      baseRules[idx] = {
         id: existing.id,
         name: override.name !== undefined ? override.name : existing.name,
-        description:
-          override.description !== undefined
-            ? override.description
-            : existing.description,
-        severity:
-          override.severity !== undefined
-            ? override.severity
-            : existing.severity,
-        category:
-          override.category !== undefined
-            ? override.category
-            : existing.category,
-        remediation:
-          override.remediation !== undefined
-            ? override.remediation
-            : existing.remediation,
-        enabled:
-          override.enabled !== undefined ? override.enabled : existing.enabled,
-        prohibitedTools:
-          override.prohibitedTools !== undefined
-            ? override.prohibitedTools
-            : existing.prohibitedTools,
-        prohibitedCommands:
-          override.prohibitedCommands !== undefined
-            ? override.prohibitedCommands
-            : existing.prohibitedCommands,
-        requiredDelegationRole:
-          override.requiredDelegationRole !== undefined
-            ? override.requiredDelegationRole
-            : existing.requiredDelegationRole,
+        description: override.description !== undefined ? override.description : existing.description,
+        severity: override.severity !== undefined ? override.severity : existing.severity,
+        category: override.category !== undefined ? override.category : existing.category,
+        remediation: override.remediation !== undefined ? override.remediation : existing.remediation,
+        enabled: override.enabled !== undefined ? override.enabled : existing.enabled,
+        prohibitedTools: override.prohibitedTools !== undefined ? override.prohibitedTools : existing.prohibitedTools,
+        prohibitedCommands: override.prohibitedCommands !== undefined ? override.prohibitedCommands : existing.prohibitedCommands,
+        requiredDelegationRole: override.requiredDelegationRole !== undefined ? override.requiredDelegationRole : existing.requiredDelegationRole,
       };
     } else {
       baseRules.push({
         id: overrideId,
         name: override.name !== undefined ? override.name : overrideId,
-        description:
-          override.description !== undefined ? override.description : "",
-        severity:
-          override.severity !== undefined ? override.severity : "important",
-        category:
-          override.category !== undefined ? override.category : "custom",
-        remediation:
-          override.remediation !== undefined ? override.remediation : "",
+        description: override.description !== undefined ? override.description : "",
+        severity: override.severity !== undefined ? override.severity : "important",
+        category: override.category !== undefined ? override.category : "custom",
+        remediation: override.remediation !== undefined ? override.remediation : "",
         enabled: override.enabled !== undefined ? override.enabled : true,
         prohibitedTools: override.prohibitedTools,
         prohibitedCommands: override.prohibitedCommands,
@@ -193,7 +139,6 @@ export function createDefaultCoordinatorBehaviorRules(
       });
     }
   }
-
   return baseRules;
 }
 
@@ -207,13 +152,10 @@ export interface ResolveCoordinatorRulesOptions {
 export function resolveCoordinatorBehaviorRules(
   options?: ResolveCoordinatorRulesOptions | string,
 ): readonly CoordinatorBehaviorRuleDefinition[] {
-  const opts: ResolveCoordinatorRulesOptions =
-    typeof options === "string" ? { modulePath: options } : (options ?? {});
+  const opts: ResolveCoordinatorRulesOptions = typeof options === "string" ? { modulePath: options } : (options ?? {});
 
   if (opts.customRules && opts.customRules.length > 0) {
-    return opts.customRules.map((rule) =>
-      opts.enableAll ? { ...rule, enabled: true } : { ...rule },
-    );
+    return opts.customRules.map((rule) => (opts.enableAll ? { ...rule, enabled: true } : { ...rule }));
   }
 
   if (
@@ -228,10 +170,7 @@ export function resolveCoordinatorBehaviorRules(
   }
 
   const rules = createDefaultCoordinatorBehaviorRules();
-  if (opts.enableAll) {
-    return rules.map((r) => ({ ...r, enabled: true }));
-  }
-  return rules;
+  return opts.enableAll ? rules.map((r) => ({ ...r, enabled: true })) : rules;
 }
 
 export interface BehavioralAuditorDependencyReport {
@@ -260,29 +199,20 @@ export function validateBehavioralAuditorDependencies(
   const missing: string[] = [];
 
   for (const mod of targetModules) {
-    if (mod === KNOWN_MISSING_COORDINATOR_BEHAVIOR_MODULE) {
-      missing.push(mod);
-    } else if (mod.includes("non-existent") || mod.includes("unknown-module")) {
+    if (mod === KNOWN_MISSING_COORDINATOR_BEHAVIOR_MODULE || mod.includes("non-existent") || mod.includes("unknown-module")) {
       missing.push(mod);
     }
   }
 
-  const allResolved = missing.length === 0;
-  const fallbackApplied = missing.includes(
-    KNOWN_MISSING_COORDINATOR_BEHAVIOR_MODULE,
-  );
-
   return {
-    allResolved,
+    allResolved: missing.length === 0,
     checkedModules: [...targetModules],
     missingModules: missing,
-    fallbackApplied,
+    fallbackApplied: missing.includes(KNOWN_MISSING_COORDINATOR_BEHAVIOR_MODULE),
   };
 }
 
-export function assertBehavioralAuditorDependencies(
-  modules?: readonly string[],
-): void {
+export function assertBehavioralAuditorDependencies(modules?: readonly string[]): void {
   const report = validateBehavioralAuditorDependencies(modules);
   if (!report.allResolved) {
     const firstMissing = report.missingModules[0] ?? "unknown module";
@@ -305,9 +235,7 @@ export interface BehavioralModuleTreeAudit {
   readonly timestamp: string;
 }
 
-export function auditBehavioralModuleTree(
-  targetModules?: readonly string[],
-): BehavioralModuleTreeAudit {
+export function auditBehavioralModuleTree(targetModules?: readonly string[]): BehavioralModuleTreeAudit {
   const modulesToCheck = targetModules ?? STANDARD_BEHAVIORAL_AUDITOR_MODULES;
   const rules = resolveCoordinatorBehaviorRules({
     modulePath: KNOWN_MISSING_COORDINATOR_BEHAVIOR_MODULE,
