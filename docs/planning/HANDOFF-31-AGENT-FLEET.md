@@ -4,7 +4,7 @@
 > **Trigger:** Quota Circuit-Breaker Triggered (10% remaining quota limit).  
 > **Repository Head:** Commit `a250dfe1` on `origin/main`.  
 > **Working Tree State:** `clean` (0 uncommitted changes, all tests & typechecks 100% green).  
-> **Resume Prompt:** *"Resume the 31-agent high-throughput pipeline from docs/planning/HANDOFF-31-AGENT-FLEET.md"*
+> **Resume Prompt:** _"Resume the 31-agent high-throughput pipeline from docs/planning/HANDOFF-31-AGENT-FLEET.md"_
 
 ---
 
@@ -13,6 +13,7 @@
 The **31-Agent Custom Fleet** is a high-throughput, deterministic multi-agent pipeline designed to autonomously execute, modularize, and verify complex plans while bypassing internal agent instabilities.
 
 ### Roster Architecture:
+
 - **1 Master Fleet Orchestrator (`custom_fleet_orchestrator`)**:
   - **100% Pure Coordination**: Strictly prohibited from running `tsc`, whole-suite tests, git commands, or editing files.
   - **1-Minute Cadence Engine**: Polls active subagents; if active worker count $< 30$, immediately decomposes backlog items from `docs/planning/` and spawns pairs to maintain 100% saturation.
@@ -31,18 +32,18 @@ The **31-Agent Custom Fleet** is a high-throughput, deterministic multi-agent pi
 
 ## 2. 1:2 Pairing Matrix
 
-| Validator | Paired Implementers | Refactoring & Verification Scope |
-|---|---|---|
+| Validator      | Paired Implementers                | Refactoring & Verification Scope                                   |
+| -------------- | ---------------------------------- | ------------------------------------------------------------------ |
 | `validator_01` | `implementer_01`, `implementer_02` | `src/reporting/` & `src/reporting/doctor/` fanout & modularization |
-| `validator_02` | `implementer_03`, `implementer_04` | `src/packets/capsule-memory/` & `src/graph/` fanout & acyclicity |
+| `validator_02` | `implementer_03`, `implementer_04` | `src/packets/capsule-memory/` & `src/graph/` fanout & acyclicity   |
 | `validator_03` | `implementer_05`, `implementer_06` | `src/packets/` & `src/orchestrator/` modularization & tool sandbox |
-| `validator_04` | `implementer_07`, `implementer_08` | `socratic-validator/` & `command-lock/` doctor submodules |
-| `validator_05` | `implementer_09`, `implementer_10` | `role-contract/` & `topology-synthesis/` Kahn DAG submodules |
-| `validator_06` | `implementer_11`, `implementer_12` | `worktree/` & `domain-sync/` hermetic git isolation & rollback |
-| `validator_07` | `implementer_13`, `implementer_14` | `mailbox/` & `subagent-pool/` cursor tracking & queue eviction |
-| `validator_08` | `implementer_15`, `implementer_16` | Forensics critical-span/bottlenecks & whole-repo AST purity audit |
-| `validator_09` | `implementer_17`, `implementer_18` | Telemetry snapshot persistence & 209 barrel facade verification |
-| `validator_10` | `implementer_19`, `implementer_20` | Central Policy Engine & Dedicated Release / Landing Worker |
+| `validator_04` | `implementer_07`, `implementer_08` | `socratic-validator/` & `command-lock/` doctor submodules          |
+| `validator_05` | `implementer_09`, `implementer_10` | `role-contract/` & `topology-synthesis/` Kahn DAG submodules       |
+| `validator_06` | `implementer_11`, `implementer_12` | `worktree/` & `domain-sync/` hermetic git isolation & rollback     |
+| `validator_07` | `implementer_13`, `implementer_14` | `mailbox/` & `subagent-pool/` cursor tracking & queue eviction     |
+| `validator_08` | `implementer_15`, `implementer_16` | Forensics critical-span/bottlenecks & whole-repo AST purity audit  |
+| `validator_09` | `implementer_17`, `implementer_18` | Telemetry snapshot persistence & 209 barrel facade verification    |
+| `validator_10` | `implementer_19`, `implementer_20` | Central Policy Engine & Dedicated Release / Landing Worker         |
 
 ---
 
@@ -61,6 +62,7 @@ The following 5 major release commits were verified across 5-round adversarial r
 ## 4. Completed & Archived Plans
 
 The following plans were fully implemented, certified across 5 rounds of validator critique, and archived to `docs/archive/completed-plans/`:
+
 - `docs/archive/completed-plans/capsule-connectivity-and-turn1-registration/`
 - `docs/archive/completed-plans/remediation-audit-invariants-and-cli-registry/`
 - `docs/archive/completed-plans/mandatory-mailbox-communication-engine-and-cli-ops/`
