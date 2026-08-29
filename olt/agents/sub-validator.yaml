@@ -27,6 +27,9 @@ permissions:
     - "evidence:screenshots"
     - "agent:report"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns: []
 invariants:
   - "NO_VERDICT_RENDERING"
@@ -67,6 +70,9 @@ instructions: |
     - evidence:screenshots
     - agent:report
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns: []
   ---
 

@@ -32,6 +32,9 @@ permissions:
     - "agent:register"
     - "agent:report"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns: []
 invariants:
   - "DISJOINT_WRITE_SCOPE_ISOLATION"
@@ -70,6 +73,9 @@ instructions: |
     - evidence:get
     - agent:report
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns: []
   ---
 

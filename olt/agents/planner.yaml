@@ -36,6 +36,9 @@ permissions:
     - "plan:replan"
     - "doctor"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns: []
 invariants:
   - "EIGHT_VECTOR_SOCRATIC_EXPANSION"

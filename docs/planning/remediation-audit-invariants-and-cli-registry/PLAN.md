@@ -43,11 +43,13 @@ During the deep architectural audit of the last 10 completed plans in `docs/arch
 ### Wave 1: Immediate Critical Operational Fixes
 
 #### Task 1.1: CLI Registry Alias Conflict Disambiguation
+
 - **Files:** `olt/scripts/src/cli/registry/run.ts`, `olt/scripts/src/cli/registry/plan.ts`
 - **Action:** Remove duplicate `"init"` alias from `run.ts` or disambiguate to `"orchestrate-init"`. Ensure every command name and alias in `COMMAND_REGISTRY` is globally unique.
 - **Verification Gate:** `bun test tests/unit/workflow/task-check.test.ts` (subprocess spawn tests pass 100%).
 
 #### Task 1.2: Feedback Category Schema & Normalization Extension
+
 - **Files:** `olt/scripts/src/mind/feedback/queue/types.ts`
 - **Action:** Add `"ENGINE"`, `"COMMUNICATION"`, `"VALIDATION"`, `"TOOLING"` to `FeedbackCategory` and `validateCategory()`.
 - **Verification Gate:** `bun test tests/unit/cli/smart-task-ops.test.ts` (100% PASS).
@@ -55,17 +57,20 @@ During the deep architectural audit of the last 10 completed plans in `docs/arch
 ### Wave 2: Facade & Density Modularization
 
 #### Task 2.1: Named Index Facades Conversion
+
 - **Files:** `olt/scripts/src/mind/preplanning/index.ts`, `olt/scripts/src/graph/index.ts`, `olt/scripts/src/telemetry/index.ts`, `olt/scripts/src/telemetry/collectors/index.ts`
 - **Action:** Convert all `export *` statements to explicit named exports.
 - **Verification Gate:** `bun test tests/unit/validation/coding-conventions.test.ts`.
 
 #### Task 2.2: Large File & Directory Decomposition
+
 - **Files:** Top oversized files in `cli/commands/`, `orchestrator/`, `packets/`, `summary/`, `reporting/`
 - **Action:** Split into domain-semantic sub-modules adhering to $\le 300$ physical lines and $\le 10$ files per directory.
 
 ### Wave 3: Zero-Comment Invariant Alignment
 
 #### Task 3.1: Repository TypeScript Comment Purge
+
 - **Files:** All `.ts` files under `olt/scripts/src/`
 - **Action:** Strip all code comments while preserving non-code documentation files (.md, .yaml, .json).
 - **Verification Gate:** `validateZeroCommentsInCode` on all `.ts` files passes with 0 violations.
@@ -74,10 +79,10 @@ During the deep architectural audit of the last 10 completed plans in `docs/arch
 
 ## 3. Exhaustive Traceability Matrix
 
-| Finding / Gap ID                                       | Target Subsystem               | Remediation Task | Verification Gate                                           |
-| :----------------------------------------------------- | :----------------------------- | :--------------- | :---------------------------------------------------------- |
-| `fb-cli-registry-duplicate-init-alias`                 | `cli/registry/`                | Task 1.1         | `bun test tests/unit/workflow/task-check.test.ts`           |
-| `fb-feedback-category-engine-communication-validation` | `mind/feedback/queue/`         | Task 1.2         | `bun test tests/unit/cli/smart-task-ops.test.ts`             |
-| `fb-facade-wildcard-export-elimination`                | `mind/preplanning/`, `graph/`  | Task 2.1         | `bun test tests/unit/validation/coding-conventions.test.ts` |
-| `fb-density-budget-oversized-file-decomposition`       | `cli/`, `orchestrator/`        | Task 2.2         | Density budget scanner ($\le 300$ lines, $\le 10$ files)    |
-| `fb-zero-comment-invariant-repo-purge`                 | `olt/scripts/src/`             | Task 3.1         | Zero-comment scanner (0 violations across all `.ts`)        |
+| Finding / Gap ID                                       | Target Subsystem              | Remediation Task | Verification Gate                                           |
+| :----------------------------------------------------- | :---------------------------- | :--------------- | :---------------------------------------------------------- |
+| `fb-cli-registry-duplicate-init-alias`                 | `cli/registry/`               | Task 1.1         | `bun test tests/unit/workflow/task-check.test.ts`           |
+| `fb-feedback-category-engine-communication-validation` | `mind/feedback/queue/`        | Task 1.2         | `bun test tests/unit/cli/smart-task-ops.test.ts`            |
+| `fb-facade-wildcard-export-elimination`                | `mind/preplanning/`, `graph/` | Task 2.1         | `bun test tests/unit/validation/coding-conventions.test.ts` |
+| `fb-density-budget-oversized-file-decomposition`       | `cli/`, `orchestrator/`       | Task 2.2         | Density budget scanner ($\le 300$ lines, $\le 10$ files)    |
+| `fb-zero-comment-invariant-repo-purge`                 | `olt/scripts/src/`            | Task 3.1         | Zero-comment scanner (0 violations across all `.ts`)        |

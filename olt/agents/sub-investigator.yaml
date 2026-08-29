@@ -27,6 +27,9 @@ permissions:
     - "evidence:get"
     - "agent:report"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns: []
 invariants:
   - "ZERO_WRITE_SCOPE"
@@ -60,6 +63,9 @@ instructions: |
     - evidence:get
     - agent:report
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns: []
   ---
 
