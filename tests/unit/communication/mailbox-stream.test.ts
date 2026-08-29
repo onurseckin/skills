@@ -180,9 +180,7 @@ describe("Mailbox Stream IO & Paths Engine", () => {
       expect(r1.messages.length).toBe(1);
       const firstMsg = r1.messages[0];
       expect(firstMsg).toBeDefined();
-      if (firstMsg !== undefined) {
-        expect(firstMsg.id).toBe(env3.id);
-      }
+      if (firstMsg !== undefined) expect(firstMsg.id).toBe(env3.id);
 
       const advancedCursor: MailboxCursor = {
         last_read_sequence: 3,
@@ -228,16 +226,13 @@ describe("Mailbox Stream IO & Paths Engine", () => {
       expect(inboxLines.length).toBe(3);
       const firstInbox = inboxLines[0];
       expect(firstInbox).toBeDefined();
-      if (firstInbox !== undefined) {
-        expect(JSON.parse(firstInbox).sequence).toBe(3);
-      }
+      if (firstInbox !== undefined) expect(JSON.parse(firstInbox).sequence).toBe(3);
+
       const archiveLines = readFileSync(paths.archivePath, "utf8").trim().split("\n");
       expect(archiveLines.length).toBe(2);
       const firstArchive = archiveLines[0];
       expect(firstArchive).toBeDefined();
-      if (firstArchive !== undefined) {
-        expect(JSON.parse(firstArchive).sequence).toBe(1);
-      }
+      if (firstArchive !== undefined) expect(JSON.parse(firstArchive).sequence).toBe(1);
     });
 
     it("handles rotation boundary conditions and default 1000 limit", () => {

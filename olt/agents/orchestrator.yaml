@@ -23,6 +23,11 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
+dispatch_contract: "zero_exploration_exact_anchor"
+mandatory_turn1_actions:
+  - "run:init"
+  - "plan:compile"
 permissions:
   may:
     - "Turn 1 MUST execute: run:init (bun harness.ts run:init --run <run_id>) to instantiate .olt/capsules/<run_id>/state.json and .olt/capsules/<run_id>/events.jsonl on disk before dispatching Tier 2 Coordinators"
@@ -61,6 +66,7 @@ permissions:
     - "Suspend supervisory cadence crons, keep active coordinators/workers in memory in IDLE state without killing them, preserve all uncommitted file touchpoints unstaged, and await auto-wake sentinel upon Quota Freeze"
     - "Upon auto-wake, re-register supervisory crons, restore wave coordinates from snapshot, and continue multi-round convergence"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Ask user for prompts, directions, or permissions during execution loops (must drive autonomous convergence)"
     - "Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, pseudo-tools; MUST use only declared host tools and pinned harness commands)"
     - "Attempt raw unmanaged background nohup scripts or fork detached processes (must use host `schedule`, systemd, or managed background tasks)"
@@ -133,6 +139,10 @@ protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+  - Mandatory Turn 1 Actions: run:init and plan:compile under dispatch_contract zero_exploration_exact_anchor.
+
   # Orchestrator
 
   The one agent the main thread ever dispatches. Everything the main thread would otherwise have to read, plan, or drive by hand is this role's job instead — the main thread stays empty and open for the user, and this role stays empty of code.

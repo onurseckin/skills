@@ -31,7 +31,9 @@ export type DefectCurationClass = "FIRST_PARTY" | "FOREIGN_REPO" | "BENIGN_NOISE
 export interface DefectDiscriminatorOptions {
   readonly includeAgent?: boolean | undefined;
   readonly includeCategory?: boolean | undefined;
-  readonly customExtractor?: ((entry: import("../../logging/defects/index.ts").DefectEntry) => string) | undefined;
+  readonly customExtractor?:
+    | ((entry: import("../../logging/defects/index.ts").DefectEntry) => string)
+    | undefined;
 }
 
 export interface DefectAggregateMetrics {
@@ -52,7 +54,9 @@ export interface SyncDoctorDefectOptions {
   readonly commitSha?: string | undefined;
   readonly timestamp?: string | undefined;
   readonly autoReopen?: boolean | undefined;
-  readonly failureProof?: import("../../logging/defects/index.ts").EmpiricalFailureProof | undefined;
+  readonly failureProof?:
+    | import("../../logging/defects/index.ts").EmpiricalFailureProof
+    | undefined;
   readonly dryRun?: boolean | undefined;
   readonly requireStrictProof?: boolean | undefined;
 }

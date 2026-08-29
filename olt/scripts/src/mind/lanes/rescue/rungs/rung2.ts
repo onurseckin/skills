@@ -6,7 +6,10 @@ import { readAgentLedger } from "../../../../workflow/agents/ledger.ts";
 import { isAttemptOpen } from "../../../../workflow/lease/attempt-state.ts";
 import { abandonAttempt } from "../../../../workflow/lease/abandon.ts";
 import { readWorktreeLedger } from "../../../../workflow/worktree/ledger.ts";
-import { reclaimOrphanedWorktrees, recordReclaim } from "../../../../workflow/worktree/consolidate.ts";
+import {
+  reclaimOrphanedWorktrees,
+  recordReclaim,
+} from "../../../../workflow/worktree/consolidate.ts";
 import { getHarnessConfig } from "../../../../core/config/index.ts";
 import type { Clock, TaskRecord, WorkflowState } from "../../../../workflow/types.ts";
 import type { Rung2Result } from "../types.ts";

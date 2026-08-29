@@ -104,7 +104,6 @@ export class HealthAuditor {
 
     const findings: WatchdogFinding[] = [];
 
-    // 1. Audit Subagents in state if capsuleRoot is present
     let rawState: JsonObject | null = null;
     if (this.options.capsuleRoot && existsSync(this.options.capsuleRoot)) {
       try {
@@ -113,16 +112,13 @@ export class HealthAuditor {
           const loaded = storeModule.loadRun(this.options.capsuleRoot, false);
           rawState = isJsonObject(loaded.state) ? (loaded.state as JsonObject) : null;
         }
-      } catch {
-        // Fallback in memory
-      }
+      } catch {}
     }
 
     if (rawState) {
       this.options.bootGateEnforcer.auditSubagentBootGatesFromState(rawState, timestamp);
     }
 
-    // 2. Audit Boot Gate compliance
     const allRecords = this.options.bootGateEnforcer.getAllRecords();
     const bootGateFindings = this.options.bootGateEnforcer.auditFindings(allRecords, timestamp);
     findings.push(...bootGateFindings);
@@ -130,7 +126,6 @@ export class HealthAuditor {
     const bootGateCompliantCount = allRecords.filter((r) => r.bootGatePassed).length;
     const bootGateViolationsCount = allRecords.length - bootGateCompliantCount;
 
-    // 3. Audit Stalled / Inactive Agents
     let stalledAgentsCount = 0;
     let activeLeasesCount = 0;
 
@@ -166,7 +161,6 @@ export class HealthAuditor {
       }
     }
 
-    // 4. Audit Live Process Health
     let deadProcessesCount = 0;
     for (const rec of allRecords) {
       if (rec.pid !== undefined) {
@@ -207,7 +201,6 @@ export class HealthAuditor {
       }
     }
 
-    // 5. Audit Tier Confinement if capsuleRoot is available
     let tierViolationsCount = 0;
     if (this.options.capsuleRoot && existsSync(this.options.capsuleRoot)) {
       try {
@@ -237,9 +230,7 @@ export class HealthAuditor {
             });
           }
         }
-      } catch {
-        // Continue with local audit
-      }
+      } catch {}
     }
 
     const healthy =

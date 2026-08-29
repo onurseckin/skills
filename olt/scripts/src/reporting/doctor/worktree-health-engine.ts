@@ -1,7 +1,8 @@
-import { existsSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, unlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { isProcessAlive } from "./lock-cleaner.ts";
 import type { DoctorDiagnosticFinding } from "./types.ts";
+import { safeRmSync } from "../../core/shared/safe-fs/index.ts";
 import {
   cleanupTrackWorktree,
   listTrackWorktrees,
@@ -39,12 +40,15 @@ function parseTrackLock(lockPath: string): ParsedLockFile | null {
   }
 }
 
-function isBranchMerged(repoRoot: string, branch: string, baseBranch = "main", runner = runGit): boolean {
+function isBranchMerged(
+  repoRoot: string,
+  branch: string,
+  baseBranch = "main",
+  runner = runGit,
+): boolean {
   const result = runner(repoRoot, ["branch", "--merged", baseBranch]);
   if (result.status !== 0) return false;
-  const branches = result.stdout
-    .split("\n")
-    .map((b) => b.trim().replace(/^[*+]\s+/, ""));
+  const branches = result.stdout.split("\n").map((b) => b.trim().replace(/^[*+]\s+/, ""));
   return branches.includes(branch);
 }
 
@@ -54,7 +58,7 @@ export function checkWorktreeHealth(
   const options: WorktreeHealthOptions =
     typeof optionsOrRepoRoot === "string"
       ? { repoRoot: optionsOrRepoRoot }
-      : optionsOrRepoRoot ?? {};
+      : (optionsOrRepoRoot ?? {});
 
   const repoRoot = resolve(options.repoRoot ?? process.cwd());
   const runner = options.runner ?? runGit;
@@ -183,7 +187,11 @@ export function checkWorktreeHealth(
           });
           if (autoHeal) {
             try {
-              rmSync(itemPath, { recursive: true, force: true });
+              safeRmSync(itemPath, {
+                allowedRoots: [worktreesDir],
+                allowGitRepositoryDeletion: true,
+                missingOk: true,
+              });
               repaired.push(`Removed orphaned worktree dir '${item}'`);
             } catch {}
           }
@@ -207,6 +215,8 @@ export function checkWorktreeHealth(
   };
 }
 
-export function autoHealWorktreeState(options: WorktreeHealthOptions = {}): DoctorWorktreeHealthReport {
+export function autoHealWorktreeState(
+  options: WorktreeHealthOptions = {},
+): DoctorWorktreeHealthReport {
   return checkWorktreeHealth({ ...options, autoHeal: true });
 }

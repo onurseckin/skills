@@ -1,15 +1,38 @@
-import { AdaptiveTimerController, type IntervalAdjustmentResult } from "../../core/scheduling/index.ts";
+import {
+  AdaptiveTimerController,
+  type IntervalAdjustmentResult,
+} from "../../core/scheduling/index.ts";
 import { BootGateEnforcer } from "../boot-gate-enforcer/index.ts";
-import { DEFAULT_ADAPTIVE_ACTIVITY_BOOST, DEFAULT_ADAPTIVE_BACKOFF_FACTOR, DEFAULT_ADAPTIVE_MAX_INTERVAL_MS, DEFAULT_ADAPTIVE_MIN_INTERVAL_MS, DEFAULT_HEALTH_AUDIT_INTERVAL_MS, DEFAULT_PROCESS_HEALTH_CHECK_INTERVAL_MS, DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS, DEFAULT_WATCHDOG_TIMEOUT_MS } from "../constants.ts";
+import {
+  DEFAULT_ADAPTIVE_ACTIVITY_BOOST,
+  DEFAULT_ADAPTIVE_BACKOFF_FACTOR,
+  DEFAULT_ADAPTIVE_MAX_INTERVAL_MS,
+  DEFAULT_ADAPTIVE_MIN_INTERVAL_MS,
+  DEFAULT_HEALTH_AUDIT_INTERVAL_MS,
+  DEFAULT_PROCESS_HEALTH_CHECK_INTERVAL_MS,
+  DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS,
+  DEFAULT_WATCHDOG_TIMEOUT_MS,
+} from "../constants.ts";
 import { ActivityTracker } from "./activity-tracker.ts";
 import { formatCliStatusReport } from "./cli-reporter.ts";
 import { WatchdogEventEmitter } from "./event-emitter.ts";
 import { defaultProcessLivenessChecker, HealthAuditor } from "./health-auditor.ts";
 import { normalizeReactiveTrigger, resolveTimestampMs } from "./reactive-dispatcher.ts";
 import type {
-  AdaptiveAdjustmentReason, AdaptiveTimerConfig, AdaptiveTimerState, AutonomicWatchdogConfig, LiveCliProof,
-  ProcessHealthStatus, ReactiveEvent, ReactiveWakeupTrigger, SubagentBootGateRecord, SubagentRegistrationOptions,
-  WatchdogEventListener, WatchdogFinding, WatchdogHealthAuditReport, WatchdogTickReport,
+  AdaptiveAdjustmentReason,
+  AdaptiveTimerConfig,
+  AdaptiveTimerState,
+  AutonomicWatchdogConfig,
+  LiveCliProof,
+  ProcessHealthStatus,
+  ReactiveEvent,
+  ReactiveWakeupTrigger,
+  SubagentBootGateRecord,
+  SubagentRegistrationOptions,
+  WatchdogEventListener,
+  WatchdogFinding,
+  WatchdogHealthAuditReport,
+  WatchdogTickReport,
 } from "./types.ts";
 
 export class AutonomicWatchdog {
@@ -27,11 +50,21 @@ export class AutonomicWatchdog {
   private readonly emitter = new WatchdogEventEmitter();
   private readonly adaptiveController: AdaptiveTimerController;
   private readonly healthAuditor: HealthAuditor;
-  private readonly onHeartbeatCallback?: ((tick: WatchdogTickReport) => void | Promise<void>) | undefined;
-  private readonly onHealthAuditCallback?: ((audit: WatchdogHealthAuditReport) => void | Promise<void>) | undefined;
-  private readonly onViolationCallback?: ((finding: WatchdogFinding) => void | Promise<void>) | undefined;
-  private readonly onReactiveWakeupCallback?: ((trigger: ReactiveEvent, tick: WatchdogTickReport) => void | Promise<void>) | undefined;
-  private readonly onIntervalAdjustedCallback?: ((state: AdaptiveTimerState) => void | Promise<void>) | undefined;
+  private readonly onHeartbeatCallback?:
+    | ((tick: WatchdogTickReport) => void | Promise<void>)
+    | undefined;
+  private readonly onHealthAuditCallback?:
+    | ((audit: WatchdogHealthAuditReport) => void | Promise<void>)
+    | undefined;
+  private readonly onViolationCallback?:
+    | ((finding: WatchdogFinding) => void | Promise<void>)
+    | undefined;
+  private readonly onReactiveWakeupCallback?:
+    | ((trigger: ReactiveEvent, tick: WatchdogTickReport) => void | Promise<void>)
+    | undefined;
+  private readonly onIntervalAdjustedCallback?:
+    | ((state: AdaptiveTimerState) => void | Promise<void>)
+    | undefined;
 
   private activeEventCountSinceLastTick = 0;
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -44,7 +77,8 @@ export class AutonomicWatchdog {
     this.heartbeatIntervalMs = config.heartbeatIntervalMs ?? DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS;
     this.timeoutMs = config.timeoutMs ?? DEFAULT_WATCHDOG_TIMEOUT_MS;
     this.healthAuditIntervalMs = config.healthAuditIntervalMs ?? DEFAULT_HEALTH_AUDIT_INTERVAL_MS;
-    this.processHealthCheckIntervalMs = config.processHealthCheckIntervalMs ?? DEFAULT_PROCESS_HEALTH_CHECK_INTERVAL_MS;
+    this.processHealthCheckIntervalMs =
+      config.processHealthCheckIntervalMs ?? DEFAULT_PROCESS_HEALTH_CHECK_INTERVAL_MS;
     this.capsuleRoot = config.capsuleRoot ?? null;
     this.generation = config.generation ?? 1;
     this.pulseId = config.pulseId ?? null;
@@ -58,13 +92,26 @@ export class AutonomicWatchdog {
     this.onIntervalAdjustedCallback = config.onIntervalAdjusted;
     this.hasExplicitInitialStartedAt = config.initialStartedAt !== undefined;
     this.startedAtMs = resolveTimestampMs(config.initialStartedAt);
-    const nested = typeof config.adaptive === "object" && config.adaptive !== null ? config.adaptive : undefined;
-    const timerConfig: Partial<AdaptiveTimerConfig> & { heartbeatIntervalMs?: number; initialStartedAt?: number } = {
-      minIntervalMs: nested?.minIntervalMs ?? config.minIntervalMs ?? DEFAULT_ADAPTIVE_MIN_INTERVAL_MS,
-      maxIntervalMs: nested?.maxIntervalMs ?? config.maxIntervalMs ?? Math.max(DEFAULT_ADAPTIVE_MAX_INTERVAL_MS, this.heartbeatIntervalMs),
-      backoffFactor: nested?.backoffFactor ?? config.backoffFactor ?? DEFAULT_ADAPTIVE_BACKOFF_FACTOR,
-      activityBoost: nested?.activityBoost ?? config.activityBoost ?? DEFAULT_ADAPTIVE_ACTIVITY_BOOST,
-      initialIntervalMs: nested?.initialIntervalMs ?? config.heartbeatIntervalMs ?? DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS,
+    const nested =
+      typeof config.adaptive === "object" && config.adaptive !== null ? config.adaptive : undefined;
+    const timerConfig: Partial<AdaptiveTimerConfig> & {
+      heartbeatIntervalMs?: number;
+      initialStartedAt?: number;
+    } = {
+      minIntervalMs:
+        nested?.minIntervalMs ?? config.minIntervalMs ?? DEFAULT_ADAPTIVE_MIN_INTERVAL_MS,
+      maxIntervalMs:
+        nested?.maxIntervalMs ??
+        config.maxIntervalMs ??
+        Math.max(DEFAULT_ADAPTIVE_MAX_INTERVAL_MS, this.heartbeatIntervalMs),
+      backoffFactor:
+        nested?.backoffFactor ?? config.backoffFactor ?? DEFAULT_ADAPTIVE_BACKOFF_FACTOR,
+      activityBoost:
+        nested?.activityBoost ?? config.activityBoost ?? DEFAULT_ADAPTIVE_ACTIVITY_BOOST,
+      initialIntervalMs:
+        nested?.initialIntervalMs ??
+        config.heartbeatIntervalMs ??
+        DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS,
       heartbeatIntervalMs: this.heartbeatIntervalMs,
       enabled: config.adaptive !== false,
       initialStartedAt: this.startedAtMs,
@@ -76,44 +123,120 @@ export class AutonomicWatchdog {
       bootGateEnforcer: this.bootGateEnforcer,
       activities: this.activityTracker.activities,
       processLivenessChecker: config.processLivenessChecker ?? defaultProcessLivenessChecker,
-      onStallDetected: (agentId, finding) => this.emitter.emit({ type: "stall_detected", agentId, finding }),
-      onProcessFailureDetected: (agentId, pid, finding) => this.emitter.emit({ type: "process_failure_detected", agentId, pid, finding }),
+      onStallDetected: (agentId, finding) =>
+        this.emitter.emit({ type: "stall_detected", agentId, finding }),
+      onProcessFailureDetected: (agentId, pid, finding) =>
+        this.emitter.emit({ type: "process_failure_detected", agentId, pid, finding }),
     });
   }
 
-  public getBootGateEnforcer(): BootGateEnforcer { return this.bootGateEnforcer; }
-  public registerSubagent(o: SubagentRegistrationOptions, now?: string | number | Date): SubagentBootGateRecord { return this.activityTracker.registerSubagent(o, now); }
-  public recordWhoami(a: string, n?: string | number | Date, p?: Partial<LiveCliProof>): SubagentBootGateRecord { return this.activityTracker.recordWhoami(a, n, p); }
-  public recordDoctor(a: string, n?: string | number | Date, p?: Partial<LiveCliProof>): SubagentBootGateRecord { return this.activityTracker.recordDoctor(a, n, p); }
-  public recordCliProof(p: LiveCliProof, n?: string | number | Date): SubagentBootGateRecord | undefined { return this.activityTracker.recordCliProof(p, n); }
-  public recordCommand(a: string, argv: readonly string[], n?: string | number | Date, exit?: number, pid?: number, s?: string): void { this.activityTracker.recordCommand(a, argv, n, exit, pid, s); }
-  public recordHeartbeat(a: string, t?: string, n?: string | number | Date): void { this.activityTracker.recordHeartbeat(a, t, n); }
-  public recordActivity(a: string, t?: string, n?: string | number | Date): void { this.activityTracker.recordActivity(a, t, n); }
-  public checkProcessHealth(pid: number, a?: string, n?: string | number | Date): ProcessHealthStatus { return this.healthAuditor.checkProcessHealth(pid, a, n); }
-  public auditProcessHealth(n?: string | number | Date): readonly ProcessHealthStatus[] { return this.healthAuditor.auditProcessHealth(n); }
-  public assertBootGatesPassed(a: string, desc = "performing task operations", proof = false): void { this.bootGateEnforcer.assertBootGatesPassed(a, desc, proof); }
+  public getBootGateEnforcer(): BootGateEnforcer {
+    return this.bootGateEnforcer;
+  }
+  public registerSubagent(
+    o: SubagentRegistrationOptions,
+    now?: string | number | Date,
+  ): SubagentBootGateRecord {
+    return this.activityTracker.registerSubagent(o, now);
+  }
+  public recordWhoami(
+    a: string,
+    n?: string | number | Date,
+    p?: Partial<LiveCliProof>,
+  ): SubagentBootGateRecord {
+    return this.activityTracker.recordWhoami(a, n, p);
+  }
+  public recordDoctor(
+    a: string,
+    n?: string | number | Date,
+    p?: Partial<LiveCliProof>,
+  ): SubagentBootGateRecord {
+    return this.activityTracker.recordDoctor(a, n, p);
+  }
+  public recordCliProof(
+    p: LiveCliProof,
+    n?: string | number | Date,
+  ): SubagentBootGateRecord | undefined {
+    return this.activityTracker.recordCliProof(p, n);
+  }
+  public recordCommand(
+    a: string,
+    argv: readonly string[],
+    n?: string | number | Date,
+    exit?: number,
+    pid?: number,
+    s?: string,
+  ): void {
+    this.activityTracker.recordCommand(a, argv, n, exit, pid, s);
+  }
+  public recordHeartbeat(a: string, t?: string, n?: string | number | Date): void {
+    this.activityTracker.recordHeartbeat(a, t, n);
+  }
+  public recordActivity(a: string, t?: string, n?: string | number | Date): void {
+    this.activityTracker.recordActivity(a, t, n);
+  }
+  public checkProcessHealth(
+    pid: number,
+    a?: string,
+    n?: string | number | Date,
+  ): ProcessHealthStatus {
+    return this.healthAuditor.checkProcessHealth(pid, a, n);
+  }
+  public auditProcessHealth(n?: string | number | Date): readonly ProcessHealthStatus[] {
+    return this.healthAuditor.auditProcessHealth(n);
+  }
+  public assertBootGatesPassed(
+    a: string,
+    desc = "performing task operations",
+    proof = false,
+  ): void {
+    this.bootGateEnforcer.assertBootGatesPassed(a, desc, proof);
+  }
 
-  public async runHealthAudit(currentTime?: string | number | Date): Promise<WatchdogHealthAuditReport> {
+  public async runHealthAudit(
+    currentTime?: string | number | Date,
+  ): Promise<WatchdogHealthAuditReport> {
     const report = await this.healthAuditor.auditHealth(currentTime);
     this.emitter.emit({ type: "health_audit", report });
     if (this.onHealthAuditCallback) await this.onHealthAuditCallback(report);
     for (const finding of report.findings) {
-      if (finding.severity === "critical") this.emitter.emit({ type: "critical_violation", finding });
+      if (finding.severity === "critical")
+        this.emitter.emit({ type: "critical_violation", finding });
       if (this.onViolationCallback) await this.onViolationCallback(finding);
     }
     return report;
   }
 
-  public get currentIntervalMs(): number { return this.adaptiveController.currentIntervalMs; }
-  public get minIntervalMs(): number { return this.adaptiveController.minIntervalMs; }
-  public get maxIntervalMs(): number { return this.adaptiveController.maxIntervalMs; }
-  public get backoffFactor(): number { return this.adaptiveController.backoffFactor; }
-  public get activityBoost(): number { return this.adaptiveController.activityBoost; }
-  public isAdaptive(): boolean { return this.adaptiveController.isAdaptive(); }
-  public getCurrentIntervalMs(): number { return this.adaptiveController.currentIntervalMs; }
-  public getAdaptiveState(): AdaptiveTimerState { return this.adaptiveController.getAdaptiveState(); }
-  public configureAdaptiveTimers(config: Partial<AdaptiveTimerConfig>): void { this.adaptiveController.configureAdaptiveTimers(config); }
-  public setAdaptiveBounds(bounds: Partial<AdaptiveTimerConfig>): void { this.adaptiveController.setAdaptiveBounds(bounds); }
+  public get currentIntervalMs(): number {
+    return this.adaptiveController.currentIntervalMs;
+  }
+  public get minIntervalMs(): number {
+    return this.adaptiveController.minIntervalMs;
+  }
+  public get maxIntervalMs(): number {
+    return this.adaptiveController.maxIntervalMs;
+  }
+  public get backoffFactor(): number {
+    return this.adaptiveController.backoffFactor;
+  }
+  public get activityBoost(): number {
+    return this.adaptiveController.activityBoost;
+  }
+  public isAdaptive(): boolean {
+    return this.adaptiveController.isAdaptive();
+  }
+  public getCurrentIntervalMs(): number {
+    return this.adaptiveController.currentIntervalMs;
+  }
+  public getAdaptiveState(): AdaptiveTimerState {
+    return this.adaptiveController.getAdaptiveState();
+  }
+  public configureAdaptiveTimers(config: Partial<AdaptiveTimerConfig>): void {
+    this.adaptiveController.configureAdaptiveTimers(config);
+  }
+  public setAdaptiveBounds(bounds: Partial<AdaptiveTimerConfig>): void {
+    this.adaptiveController.setAdaptiveBounds(bounds);
+  }
 
   private handleIntervalAdjustment(result: IntervalAdjustmentResult): number {
     if (result.changed) {
@@ -130,23 +253,46 @@ export class AutonomicWatchdog {
     return result.newIntervalMs;
   }
 
-  public boostActivity(multiplier?: number, now?: string | number | Date, reason: AdaptiveAdjustmentReason = "activity_burst"): number {
-    return this.handleIntervalAdjustment(this.adaptiveController.boostActivity(multiplier, now, reason));
+  public boostActivity(
+    multiplier?: number,
+    now?: string | number | Date,
+    reason: AdaptiveAdjustmentReason = "activity_burst",
+  ): number {
+    return this.handleIntervalAdjustment(
+      this.adaptiveController.boostActivity(multiplier, now, reason),
+    );
   }
 
-  public decayIdle(multiplier?: number, now?: string | number | Date, reason: AdaptiveAdjustmentReason = "idle_backoff"): number {
-    return this.handleIntervalAdjustment(this.adaptiveController.decayIdle(multiplier, now, reason));
+  public decayIdle(
+    multiplier?: number,
+    now?: string | number | Date,
+    reason: AdaptiveAdjustmentReason = "idle_backoff",
+  ): number {
+    return this.handleIntervalAdjustment(
+      this.adaptiveController.decayIdle(multiplier, now, reason),
+    );
   }
 
   public resetInterval(intervalMs?: number, now?: string | number | Date): void {
-    this.handleIntervalAdjustment(this.adaptiveController.resetInterval(this.heartbeatIntervalMs, intervalMs, now));
+    this.handleIntervalAdjustment(
+      this.adaptiveController.resetInterval(this.heartbeatIntervalMs, intervalMs, now),
+    );
   }
 
-  public async triggerReactiveWakeup(trigger?: ReactiveWakeupTrigger, currentTime?: string | number | Date): Promise<WatchdogTickReport> {
+  public async triggerReactiveWakeup(
+    trigger?: ReactiveWakeupTrigger,
+    currentTime?: string | number | Date,
+  ): Promise<WatchdogTickReport> {
     const { normalized, resolvedMs } = normalizeReactiveTrigger(trigger, currentTime);
-    if (normalized.agentId) this.activityTracker.recordActivity(normalized.agentId, normalized.taskId ?? undefined, resolvedMs);
+    if (normalized.agentId)
+      this.activityTracker.recordActivity(
+        normalized.agentId,
+        normalized.taskId ?? undefined,
+        resolvedMs,
+      );
     this.activeEventCountSinceLastTick++;
-    if (this.adaptiveController.isAdaptive()) this.boostActivity(undefined, resolvedMs, "event_wakeup");
+    if (this.adaptiveController.isAdaptive())
+      this.boostActivity(undefined, resolvedMs, "event_wakeup");
     const tickReport = await this.tick(resolvedMs);
     if (this.isRunningState) this.scheduleNextTick();
     this.emitter.emit({ type: "reactive_wakeup", trigger: normalized, tickReport });
@@ -154,7 +300,10 @@ export class AutonomicWatchdog {
     return tickReport;
   }
 
-  public async notifyEvent(event: ReactiveWakeupTrigger, currentTime?: string | number | Date): Promise<WatchdogTickReport> {
+  public async notifyEvent(
+    event: ReactiveWakeupTrigger,
+    currentTime?: string | number | Date,
+  ): Promise<WatchdogTickReport> {
     const { normalized, resolvedMs } = normalizeReactiveTrigger(event, currentTime);
     this.emitter.emit({ type: "event_notified", event: normalized });
     if (normalized.type !== "event_notified") this.emitter.emitCustom(normalized.type, normalized);
@@ -172,7 +321,11 @@ export class AutonomicWatchdog {
     const health = await this.runHealthAudit(resolvedMs);
 
     if (this.adaptiveController.isAdaptive()) {
-      if (this.activeEventCountSinceLastTick === 0 && health.healthy && health.activeLeasesCount === 0) {
+      if (
+        this.activeEventCountSinceLastTick === 0 &&
+        health.healthy &&
+        health.activeLeasesCount === 0
+      ) {
         this.decayIdle(undefined, resolvedMs, "idle_backoff");
       }
     }
@@ -239,11 +392,25 @@ export class AutonomicWatchdog {
     this.bootGateEnforcer.reset();
   }
 
-  public isRunning(): boolean { return this.isRunningState; }
-  public getTickCount(): number { return this.tickCount; }
-  public on(event: string, listener: WatchdogEventListener): () => void { return this.emitter.on(event, listener); }
-  public off(event: string, listener: WatchdogEventListener): void { this.emitter.off(event, listener); }
-  public addEventListener(event: string, listener: WatchdogEventListener): () => void { return this.on(event, listener); }
-  public removeEventListener(event: string, listener: WatchdogEventListener): void { this.off(event, listener); }
-  public emitCustomEvent(event: ReactiveEvent): void { this.emitter.emitCustomEvent(event); }
+  public isRunning(): boolean {
+    return this.isRunningState;
+  }
+  public getTickCount(): number {
+    return this.tickCount;
+  }
+  public on(event: string, listener: WatchdogEventListener): () => void {
+    return this.emitter.on(event, listener);
+  }
+  public off(event: string, listener: WatchdogEventListener): void {
+    this.emitter.off(event, listener);
+  }
+  public addEventListener(event: string, listener: WatchdogEventListener): () => void {
+    return this.on(event, listener);
+  }
+  public removeEventListener(event: string, listener: WatchdogEventListener): void {
+    this.off(event, listener);
+  }
+  public emitCustomEvent(event: ReactiveEvent): void {
+    this.emitter.emitCustomEvent(event);
+  }
 }

@@ -20,11 +20,13 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "Targeted remediation of validator findings"
     - "Run micro-cycles"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Edit files outside scope"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
@@ -41,6 +43,9 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   # Generation 8 Retirement Notice
   > **RETIREMENT NOTICE (Generation 8)**: `repairer` is permanently retired as a separate subagent role in Generation 8. Repairs are executed directly by the active Implementer through 1-hop micro-cycles (`task:reject --in-lease`).
   ---

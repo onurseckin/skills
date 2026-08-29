@@ -7,10 +7,6 @@
       "path": "task-brief.json"
     },
     {
-      "id": "task:heartbeat",
-      "path": "task-heartbeat.json"
-    },
-    {
       "id": "task:probe",
       "path": "task-probe.json"
     },
@@ -21,6 +17,14 @@
     {
       "id": "task:check",
       "path": "task-check.json"
+    },
+    {
+      "id": "task:add",
+      "path": "task-add.json"
+    },
+    {
+      "id": "task:list",
+      "path": "task-list.json"
     },
     {
       "id": "coordinator:pushback",

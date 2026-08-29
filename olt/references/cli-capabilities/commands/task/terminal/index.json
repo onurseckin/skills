@@ -7,8 +7,16 @@
       "path": "task-abandon.json"
     },
     {
-      "id": "task:release",
-      "path": "task-release.json"
+      "id": "task:complete",
+      "path": "task-complete.json"
+    },
+    {
+      "id": "task:fail",
+      "path": "task-fail.json"
+    },
+    {
+      "id": "task:prune",
+      "path": "task-prune.json"
     }
   ]
 }

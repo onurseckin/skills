@@ -119,7 +119,11 @@ describe("track worktree manager", () => {
 
     const mockRunner: GitRunner = (cwd, argv) => {
       if (argv[0] === "worktree" && argv[1] === "list") {
-        return { status: 0, stdout: `worktree ${worktreeDir}\nHEAD 111\nbranch refs/heads/track/track-1\n`, stderr: "" };
+        return {
+          status: 0,
+          stdout: `worktree ${worktreeDir}\nHEAD 111\nbranch refs/heads/track/track-1\n`,
+          stderr: "",
+        };
       }
       return { status: 0, stdout: "", stderr: "" };
     };

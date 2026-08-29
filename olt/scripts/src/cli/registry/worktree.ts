@@ -6,12 +6,7 @@ import {
   worktreeReclaimCommand,
   worktreeStatusCommand,
 } from "../commands/worktree-ops.ts";
-import {
-  DEFAULT_EXIT_CODES,
-  optionalFlag,
-  requiredFlag,
-  type CommandSpec,
-} from "./types.ts";
+import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const WORKTREE_COMMANDS: readonly CommandSpec[] = [
   {
@@ -71,15 +66,11 @@ export const WORKTREE_COMMANDS: readonly CommandSpec[] = [
     summary: "List all active track worktrees.",
     description:
       "Queries git porcelain and .olt/worktrees to report all currently active track worktrees.",
-    flags: [
-      optionalFlag("repo-root", "string", "Repository root path."),
-    ],
+    flags: [optionalFlag("repo-root", "string", "Repository root path.")],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts worktree:list",
-    ],
+    examples: ["bun harness.ts worktree:list"],
     handler: worktreeListCommand,
   },
   {
@@ -113,8 +104,7 @@ export const WORKTREE_COMMANDS: readonly CommandSpec[] = [
     tier: "primary",
     internal: false,
     summary: "Check status of active track worktrees.",
-    description:
-      "Reports active track worktree path, lock status, and branch information.",
+    description: "Reports active track worktree path, lock status, and branch information.",
     flags: [
       optionalFlag("track", "string", "Optional track identifier to check."),
       optionalFlag("repo-root", "string", "Repository root path."),
@@ -122,10 +112,7 @@ export const WORKTREE_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts worktree:status",
-      "bun harness.ts worktree:status --track track-1",
-    ],
+    examples: ["bun harness.ts worktree:status", "bun harness.ts worktree:status --track track-1"],
     handler: worktreeStatusCommand,
   },
   {

@@ -20,12 +20,14 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "Audit compiled plan topologies against A1-A8 invariants (plan:audit)"
     - "Perform adversarial falsification of DAG edges and gates"
     - "Emit plan review verdict (plan:review)"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Approve shallow umbrella compression [SHALLOW_PLAN_BLUNDER] (8-vector expansion, EMPTY_PAYLOAD, socratic_expansion_depth, mandatory_brainstorming_rounds, max_files_per_task)"
     - "Write repository code files (0 source edits)"
     - "Execute unit test suites (0 test runs)"
@@ -54,6 +56,9 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   # Plan validator
 
   The coordinator's own adversary. FORENSICS.md documents a run where nothing in the loop ever told

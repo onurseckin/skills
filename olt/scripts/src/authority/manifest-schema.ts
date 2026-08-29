@@ -6,6 +6,7 @@ export interface AgentManifestCommunicationContract {
   readonly lock_path: string;
   readonly allowed_channels: readonly string[];
   readonly ban_raw_jsonl_reading: boolean;
+  readonly forbid_native_messaging?: boolean | undefined;
 }
 
 export interface UnifiedAgentManifest {
@@ -35,14 +36,12 @@ export interface UnifiedAgentManifest {
   };
   readonly instructions: string;
   readonly communication_contract?: AgentManifestCommunicationContract | undefined;
+  readonly mandatory_turn1_actions?: readonly string[] | undefined;
+  readonly dispatch_contract?: string | undefined;
 }
 
 function isObjectRecord(val: unknown): val is Record<string, unknown> {
-  if (val === null) return false;
-  if (val === undefined) return false;
-  if (typeof val !== "object") return false;
-  if (Array.isArray(val)) return false;
-  return true;
+  return val !== null && val !== undefined && typeof val === "object" && !Array.isArray(val);
 }
 
 export function parseUnifiedAgentManifest(
@@ -51,15 +50,8 @@ export function parseUnifiedAgentManifest(
 ): UnifiedAgentManifest {
   try {
     const doc = yaml.load(rawYaml) as Record<string, unknown>;
-    if (!doc) {
+    if (!doc || typeof doc !== "object" || Array.isArray(doc))
       throw new Error("YAML document must be an object");
-    }
-    if (typeof doc !== "object") {
-      throw new Error("YAML document must be an object");
-    }
-    if (Array.isArray(doc)) {
-      throw new Error("YAML document must be an object");
-    }
 
     const rawPerms = isObjectRecord(doc.permissions) ? doc.permissions : {};
     const rawTools = isObjectRecord(doc.tools) ? doc.tools : {};
@@ -86,6 +78,10 @@ export function parseUnifiedAgentManifest(
         ? (rawComm.allowed_channels as readonly string[])
         : ["msg:send", "msg:recv", "msg:poll"];
     const commBan = rawComm ? rawComm.ban_raw_jsonl_reading !== false : true;
+    const commForbidNative =
+      rawComm && rawComm.forbid_native_messaging !== undefined
+        ? Boolean(rawComm.forbid_native_messaging)
+        : undefined;
 
     const communication_contract: AgentManifestCommunicationContract | undefined = rawComm
       ? {
@@ -94,6 +90,7 @@ export function parseUnifiedAgentManifest(
           lock_path: commLock,
           allowed_channels: commChannels,
           ban_raw_jsonl_reading: commBan,
+          forbid_native_messaging: commForbidNative,
         }
       : undefined;
 
@@ -101,11 +98,8 @@ export function parseUnifiedAgentManifest(
     const manifestRole =
       typeof doc.role === "string" ? doc.role : typeof doc.name === "string" ? doc.name : "";
     let manifestTier: number | "independent" = 3;
-    if (doc.tier === "independent") {
-      manifestTier = "independent";
-    } else if (typeof doc.tier === "number") {
-      manifestTier = doc.tier;
-    }
+    if (doc.tier === "independent") manifestTier = "independent";
+    else if (typeof doc.tier === "number") manifestTier = doc.tier;
     const manifestProvider = Array.isArray(doc.provider)
       ? doc.provider
       : ["antigravity", "agy", "claude", "codex", "cursor", "generic"];
@@ -119,13 +113,19 @@ export function parseUnifiedAgentManifest(
       rawInterface.short_description.length > 0
         ? rawInterface.short_description
         : manifestRole;
-
     const protoCli =
       typeof rawProtocol.cli === "string" && rawProtocol.cli.length > 0
         ? rawProtocol.cli
         : "bun ~/.agents/skills/olt/scripts/harness.ts";
+    const mandatoryTurn1 = Array.isArray(doc.mandatory_turn1_actions)
+      ? (doc.mandatory_turn1_actions as readonly string[])
+      : undefined;
+    const dispatchContract =
+      typeof doc.dispatch_contract === "string" && doc.dispatch_contract.length > 0
+        ? doc.dispatch_contract
+        : undefined;
 
-    const manifest: UnifiedAgentManifest = {
+    return {
       name: manifestName,
       role: manifestRole,
       tier: manifestTier,
@@ -134,10 +134,7 @@ export function parseUnifiedAgentManifest(
         enable_subagent_tools: Boolean(rawTools.enable_subagent_tools),
         enable_write_tools: Boolean(rawTools.enable_write_tools),
       },
-      interface: {
-        display_name: ifaceDisplayName,
-        short_description: ifaceShortDesc,
-      },
+      interface: { display_name: ifaceDisplayName, short_description: ifaceShortDesc },
       permissions: {
         may: Array.isArray(rawPerms.may) ? rawPerms.may : [],
         must_not: Array.isArray(rawPerms.must_not) ? rawPerms.must_not : [],
@@ -150,19 +147,15 @@ export function parseUnifiedAgentManifest(
       },
       invariants: Array.isArray(doc.invariants) ? doc.invariants : [],
       domain: typeof doc.domain === "string" ? doc.domain : undefined,
-      protocol: {
-        cli: protoCli,
-        zero_json: rawProtocol.zero_json !== false,
-      },
+      protocol: { cli: protoCli, zero_json: rawProtocol.zero_json !== false },
       instructions: typeof doc.instructions === "string" ? doc.instructions : "",
       communication_contract,
+      mandatory_turn1_actions: mandatoryTurn1,
+      dispatch_contract: dispatchContract,
     };
-
-    return manifest;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    const atPath = filePath ? ` at ${filePath}` : "";
-    throw new Error(`Failed to parse manifest${atPath}: ${msg}`);
+    throw new Error(`Failed to parse manifest${filePath ? ` at ${filePath}` : ""}: ${msg}`);
   }
 }
 
@@ -171,116 +164,107 @@ export function validateUnifiedAgentManifest(manifest: UnifiedAgentManifest): {
   errors: string[];
 } {
   const errors: string[] = [];
-
   if (typeof manifest.name !== "string") errors.push("Field 'name' must be a string");
   if (typeof manifest.role !== "string") errors.push("Field 'role' must be a string");
-  if (typeof manifest.tier !== "number" && manifest.tier !== "independent") {
+  if (typeof manifest.tier !== "number" && manifest.tier !== "independent")
     errors.push("Field 'tier' must be a number or 'independent'");
-  }
 
-  if (!Array.isArray(manifest.provider)) {
+  if (!Array.isArray(manifest.provider))
     errors.push("Field 'provider' must be an array of strings");
-  } else if (!manifest.provider.every((p: unknown) => typeof p === "string")) {
+  else if (!manifest.provider.every((p: unknown) => typeof p === "string"))
     errors.push("Field 'provider' array must only contain strings");
-  }
 
-  if (!isObjectRecord(manifest.tools)) {
-    errors.push("Field 'tools' must be an object");
-  } else {
-    if (typeof manifest.tools.enable_subagent_tools !== "boolean") {
+  if (!isObjectRecord(manifest.tools)) errors.push("Field 'tools' must be an object");
+  else {
+    if (typeof manifest.tools.enable_subagent_tools !== "boolean")
       errors.push("Field 'tools.enable_subagent_tools' must be a boolean");
-    }
-    if (typeof manifest.tools.enable_write_tools !== "boolean") {
+    if (typeof manifest.tools.enable_write_tools !== "boolean")
       errors.push("Field 'tools.enable_write_tools' must be a boolean");
-    }
   }
 
-  if (!isObjectRecord(manifest.interface)) {
-    errors.push("Field 'interface' must be an object");
-  } else {
-    if (typeof manifest.interface.display_name !== "string") {
+  if (!isObjectRecord(manifest.interface)) errors.push("Field 'interface' must be an object");
+  else {
+    if (typeof manifest.interface.display_name !== "string")
       errors.push("Field 'interface.display_name' must be a string");
-    }
-    if (typeof manifest.interface.short_description !== "string") {
+    if (typeof manifest.interface.short_description !== "string")
       errors.push("Field 'interface.short_description' must be a string");
-    }
   }
 
-  if (!isObjectRecord(manifest.permissions)) {
-    errors.push("Field 'permissions' must be an object");
-  } else {
+  if (!isObjectRecord(manifest.permissions)) errors.push("Field 'permissions' must be an object");
+  else {
     const checkStringArray = (val: unknown, path: string) => {
-      if (!Array.isArray(val)) {
-        errors.push(`Field '${path}' must be an array of strings`);
-      } else if (!val.every((p: unknown) => typeof p === "string")) {
+      if (!Array.isArray(val)) errors.push(`Field '${path}' must be an array of strings`);
+      else if (!val.every((p: unknown) => typeof p === "string"))
         errors.push(`Field '${path}' array must only contain strings`);
-      }
     };
     checkStringArray(manifest.permissions.may, "permissions.may");
     checkStringArray(manifest.permissions.must_not, "permissions.must_not");
-    if (manifest.permissions.commands !== undefined) {
+    if (manifest.permissions.commands !== undefined)
       checkStringArray(manifest.permissions.commands, "permissions.commands");
-    }
     checkStringArray(manifest.permissions.spawns, "permissions.spawns");
   }
 
-  if (!Array.isArray(manifest.invariants)) {
+  if (!Array.isArray(manifest.invariants))
     errors.push("Field 'invariants' must be an array of strings");
-  } else {
+  else {
     for (const inv of manifest.invariants as unknown[]) {
-      if (typeof inv !== "string") {
+      if (typeof inv !== "string")
         errors.push(`Field 'invariants' array must only contain strings, found ${typeof inv}`);
-      }
     }
   }
 
-  if (!isObjectRecord(manifest.protocol)) {
-    errors.push("Field 'protocol' must be an object");
-  } else {
-    if (typeof manifest.protocol.cli !== "string") {
+  if (!isObjectRecord(manifest.protocol)) errors.push("Field 'protocol' must be an object");
+  else {
+    if (typeof manifest.protocol.cli !== "string")
       errors.push("Field 'protocol.cli' must be a string");
-    }
-    if (typeof manifest.protocol.zero_json !== "boolean") {
+    if (typeof manifest.protocol.zero_json !== "boolean")
       errors.push("Field 'protocol.zero_json' must be a boolean");
-    }
   }
 
-  if (typeof manifest.instructions !== "string") {
+  if (typeof manifest.instructions !== "string")
     errors.push("Field 'instructions' must be a string");
-  }
 
   if (manifest.communication_contract !== undefined) {
-    if (!isObjectRecord(manifest.communication_contract)) {
+    if (!isObjectRecord(manifest.communication_contract))
       errors.push("Field 'communication_contract' must be an object");
-    } else {
-      if (typeof manifest.communication_contract.protocol !== "string") {
+    else {
+      if (typeof manifest.communication_contract.protocol !== "string")
         errors.push("Field 'communication_contract.protocol' must be a string");
-      }
-      if (typeof manifest.communication_contract.mailbox_path !== "string") {
+      if (typeof manifest.communication_contract.mailbox_path !== "string")
         errors.push("Field 'communication_contract.mailbox_path' must be a string");
-      }
-      if (typeof manifest.communication_contract.lock_path !== "string") {
+      if (typeof manifest.communication_contract.lock_path !== "string")
         errors.push("Field 'communication_contract.lock_path' must be a string");
-      }
-      if (!Array.isArray(manifest.communication_contract.allowed_channels)) {
+      if (!Array.isArray(manifest.communication_contract.allowed_channels))
         errors.push("Field 'communication_contract.allowed_channels' must be an array of strings");
-      } else if (
+      else if (
         !manifest.communication_contract.allowed_channels.every(
           (c: unknown) => typeof c === "string",
         )
-      ) {
+      )
         errors.push(
           "Field 'communication_contract.allowed_channels' array must only contain strings",
         );
-      }
-      if (typeof manifest.communication_contract.ban_raw_jsonl_reading !== "boolean") {
+      if (typeof manifest.communication_contract.ban_raw_jsonl_reading !== "boolean")
         errors.push("Field 'communication_contract.ban_raw_jsonl_reading' must be a boolean");
+      if (
+        manifest.communication_contract.forbid_native_messaging !== undefined &&
+        typeof manifest.communication_contract.forbid_native_messaging !== "boolean"
+      ) {
+        errors.push("Field 'communication_contract.forbid_native_messaging' must be a boolean");
       }
     }
   }
 
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  if (manifest.mandatory_turn1_actions !== undefined) {
+    if (!Array.isArray(manifest.mandatory_turn1_actions))
+      errors.push("Field 'mandatory_turn1_actions' must be an array of strings");
+    else if (!manifest.mandatory_turn1_actions.every((a: unknown) => typeof a === "string"))
+      errors.push("Field 'mandatory_turn1_actions' array must only contain strings");
+  }
+
+  if (manifest.dispatch_contract !== undefined && typeof manifest.dispatch_contract !== "string") {
+    errors.push("Field 'dispatch_contract' must be a string");
+  }
+
+  return { valid: errors.length === 0, errors };
 }

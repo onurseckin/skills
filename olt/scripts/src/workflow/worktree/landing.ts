@@ -3,13 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { executeLifecycleHooks } from "../../policy/index.ts";
-import {
-  currentBranch,
-  headSha,
-  rebaseOnto,
-  runGit,
-  type GitRunner,
-} from "./git-ops.ts";
+import { currentBranch, headSha, rebaseOnto, runGit, type GitRunner } from "./git-ops.ts";
 import { git } from "./git.ts";
 import { cleanupTrackWorktree } from "./manager.ts";
 

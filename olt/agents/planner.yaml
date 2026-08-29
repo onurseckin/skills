@@ -20,6 +20,7 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "Execute plan:brainstorm across the 8-Vector Expansion Matrix before compiling"
@@ -28,6 +29,7 @@ permissions:
     - "Map prompt line coordinates to requirements in plan:add"
     - "Compile DAG revision 1 via plan:compile"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Compile plan without prior plan:brainstorm execution (EMPTY_PAYLOAD, socratic_expansion_depth, mandatory_brainstorming_rounds)"
     - "Write or edit repository code files (0 source edits)"
     - "Execute unit test suites (0 test runs)"
@@ -60,6 +62,9 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   # Planner
 
   Convert the immutable prompt into a lossless execution contract.

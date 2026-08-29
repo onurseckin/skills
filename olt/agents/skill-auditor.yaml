@@ -24,6 +24,7 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "audit delta events against cognitive contracts"
@@ -39,6 +40,7 @@ permissions:
     - "issue zero-exploration exact-anchor task briefings to prevent exploratory tool calling and token burning"
     - "record and report forensics findings to parent orchestrator and mind supervisory loop"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "file edit"
     - "edit files"
     - "write repository code"
@@ -75,6 +77,9 @@ protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   # Skill Auditor Manifest & 2-Auditor Paradigm Specifications
 
   Operate as the independent Tier 0 Out-of-Band companion observer and consolidated fleet auditor for Tiers 1-3, governing active long-task skill runs, delta event telemetry, behavioral heuristics forensics (`meta-audit`), and split-channel defect routing.

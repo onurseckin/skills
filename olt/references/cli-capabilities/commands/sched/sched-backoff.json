@@ -1,0 +1,59 @@
+{
+  "name": "sched:backoff",
+  "aliases": [],
+  "domain": "sched",
+  "summary": "Calculate backoff interval using specified strategy.",
+  "flags": [
+    {
+      "name": "base-interval",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "base-interval-ms",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "max-interval",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "max-interval-ms",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "streak",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "strategy",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "multiplier",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

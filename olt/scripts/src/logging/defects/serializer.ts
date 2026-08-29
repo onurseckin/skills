@@ -19,7 +19,7 @@ export function normalizeText(text: unknown): string {
 
 export function parseDefectLog(
   rawContent: string,
-  options: { capsuleRoot?: string; capsule_root?: string } = {},
+  options: { capsuleRoot?: string | undefined; capsule_root?: string | undefined } = {},
 ): DefectEntry[] {
   if (!rawContent || !rawContent.trim()) return [];
   const lines = rawContent.split("\n");
@@ -48,15 +48,25 @@ export function parseDefectLog(
 
       const obs = (item["observation"] || item["message"] || "") as string;
       const rem = (item["remediation"] || item["prescribed_remediation"] || "") as string;
+      const id = (item["id"] || item["defect_id"] || "") as string;
+      const type = (item["type"] || item["error_code"] || item["category"] || "") as string;
+      const timestamp = (item["timestamp"] ||
+        item["created_at"] ||
+        new Date().toISOString()) as string;
       const category = categorizeDefect(item as unknown as DefectEntry);
 
       const record: DefectEntry = {
         ...item,
+        id,
+        type,
+        timestamp,
         status: status as DefectEntry["status"],
         severity: severity as DefectEntry["severity"],
         category: category as DefectEntry["category"],
-        ...(obs ? { observation: obs, message: obs } : {}),
-        ...(rem ? { remediation: rem, prescribed_remediation: rem } : {}),
+        observation: obs,
+        message: obs,
+        remediation: rem,
+        prescribed_remediation: rem,
         ...(options.capsule_root || options.capsuleRoot
           ? {
               capsule_root: options.capsule_root || options.capsuleRoot,

@@ -20,6 +20,7 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "Deconstruct user ideas into pure-English conceptual blueprints"
@@ -27,6 +28,7 @@ permissions:
     - "Engage in 5-round Socratic refinement dialogue with independent-planner-audit"
     - "Save master blueprints to docs/blueprints/<name>.md"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Write or inject TypeScript/code interfaces or syntax"
     - "Specify file paths, directories, or line numbers"
     - "Generate CLI commands, flags, or shell scripts"
@@ -48,6 +50,9 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   # Independent Planner
 
   The Independent Planner is a dedicated product visionary, architectural deep-thinker, and idea expansion partner.

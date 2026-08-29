@@ -25,7 +25,9 @@ export interface StationLandingOptions extends GitStagingOptions {
   readonly soundEnabled?: boolean | undefined;
   readonly notify?: boolean | undefined;
   readonly trackId?: string | undefined;
-  readonly customNotifier?: ((opts: PhaseCompletionNotificationOptions) => NotificationResult) | undefined;
+  readonly customNotifier?:
+    | ((opts: PhaseCompletionNotificationOptions) => NotificationResult)
+    | undefined;
   readonly policy?: RepoPolicy | undefined;
   readonly customHookExecutor?: typeof executeLifecycleHooks | undefined;
 }
@@ -38,7 +40,9 @@ export interface PhaseLandingOptions {
   readonly soundEnabled?: boolean | undefined;
   readonly notify?: boolean | undefined;
   readonly trackId?: string | undefined;
-  readonly customNotifier?: ((opts: PhaseCompletionNotificationOptions) => NotificationResult) | undefined;
+  readonly customNotifier?:
+    | ((opts: PhaseCompletionNotificationOptions) => NotificationResult)
+    | undefined;
   readonly policy?: RepoPolicy | undefined;
   readonly customHookExecutor?: typeof executeLifecycleHooks | undefined;
   readonly rootDir?: string | undefined;
@@ -132,7 +136,9 @@ export function landStation(
   stagingOptions?: StationLandingOptions | undefined,
 ): LandStationResult {
   if (station.status !== "VERIFIED") {
-    throw new Error(`Cannot land station ${station.station_id} before verification (status: ${station.status})`);
+    throw new Error(
+      `Cannot land station ${station.station_id} before verification (status: ${station.status})`,
+    );
   }
 
   const stagingRecord = executeGitStagingInvariant({
@@ -150,7 +156,10 @@ export function landStation(
     staging_record: stagingRecord,
   };
 
-  const rawStartedAt = stagingOptions?.startedAt ?? (station.claimed_at ? Date.parse(station.claimed_at) : undefined) ?? Date.now();
+  const rawStartedAt =
+    stagingOptions?.startedAt ??
+    (station.claimed_at ? Date.parse(station.claimed_at) : undefined) ??
+    Date.now();
   const startedAt = Number.isFinite(rawStartedAt) ? rawStartedAt : Date.now();
   const durationMs = Math.max(0, Date.now() - startedAt);
   const phaseName = stagingOptions?.phaseName ?? `${station.domain} (${station.milestone_id})`;
@@ -214,7 +223,13 @@ export function landPhaseRelease(options: PhaseLandingOptions): PhaseLandingResu
 
   const hookExecutionResult = dispatchPhaseCompletionHook(
     options.customHookExecutor,
-    { phaseName: options.phaseName, commitSha: options.commitSha, taskCount: options.taskCount, durationMs, status: "SUCCESS" },
+    {
+      phaseName: options.phaseName,
+      commitSha: options.commitSha,
+      taskCount: options.taskCount,
+      durationMs,
+      status: "SUCCESS",
+    },
     options.rootDir,
     options.policy,
   );

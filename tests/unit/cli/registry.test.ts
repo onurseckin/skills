@@ -24,7 +24,8 @@ const EXPECTED_INVOCATIONS: readonly string[] = `
   plan:compile plan:validate-start plan:review plan:replan plan:claim plan:apply plan:status
   queue:next queue:list queue:wave queue:pop task:brief task:claim task:heartbeat task:submit
   task:validate-start task:review task:probe task:reject task:assign-repairer task:abandon
-  task:check report report:all report:graph-json dag:export-json report:dag report:graph
+  task:check task:add task:list task:lease task:complete task:fail task:prune
+  report report:all report:graph-json dag:export-json report:dag report:graph
   report:health report:leases report:decisions report:summary report:task stream:events
   events:stream events:tail dag dag:render dag:view graph:sugiyama report:sugiyama
   graph:ascii status:dag dag:trace trace:dag stream:trace usage:report telemetry:usage
@@ -37,12 +38,12 @@ const EXPECTED_INVOCATIONS: readonly string[] = `
   evidence:screenshots orchestrator:run orchestrator orchestrator:supervise branch:open
   branch:claim branch:submit branch:collect branch:abandon branch:status agent:register
   agent:report agent:release agent:list agent:brief agent:define orphan:dispose
-  authority:decide whoami role:cheat-sheet role:contract role:cheat watchdog:status
+  authority:decide whoami watchdog:status
   watchdog:list watchdog:cleanup watchdog:clean watchdog:phase-cleanup watchdog:phase-clean
   watchdog:cleanup-phase watchdog:verify watchdog:check watchdog:lint watchdog:probe
   watchdog:supervise watchdog:health-probe install installation-status defect:audit
   defects coverage:check health doctor doctor:repair doctor:certify recover
-  task:release worktree:reclaim meta-audit finding:file finding explain gate:prove
+  task:release meta-audit finding:file finding explain gate:prove
   coordinator:pushback capture:init capture:run capture:eval memory:query memory:search
   mind:init mind:wake mind:pulse-open mind:pulse mind:observe mind:candidate mind:admit
   mind:decline mind:quiesce mind:escalate mind:halt mind:round-open mind:round-close
@@ -53,6 +54,11 @@ const EXPECTED_INVOCATIONS: readonly string[] = `
   feedback:clean mind:audit:live mind:audit policy:init policy:get policy:set
   policy:check-drift policy:drift factory:preplan mind:preplan preplan:run factory:status
   mind:factory:status preplan:status msg:send msg:recv msg:poll msg:list
+  worktree:create worktree:land worktree:list worktree:clean worktree:status worktree:reclaim
+  sched:eval sched:backoff sched:jitter
+  role:list role:profile role:cheat-sheet role:contract role:cheat
+  hygiene:audit hygiene:fix
+  defect:record defect:resolve defect:list
 `
   .trim()
   .split(/\s+/);
@@ -87,11 +93,6 @@ describe("CLI command registry", () => {
 
   test("dispatches every registered invocation", async () => {
     for (const invocation of commandInvocations()) {
-      // Every command rejects on an empty flag set, but never as an unknown command. `health`
-      // alone declares no required flags, so left alone it would actually run its real,
-      // multi-second structural scan against this harness's own source tree; pointing --scripts
-      // at a plain directory makes it fail its own fast "no src directory" check instead, which
-      // is still a rejection and still not "unknown command".
       const argv =
         invocation === "health"
           ? [invocation, "--scripts", tmpdir()]
@@ -145,6 +146,7 @@ describe("CLI command registry", () => {
     expect(COMMAND_REGISTRY.filter((spec) => spec.readsStdin).map((spec) => spec.name)).toEqual([
       "orchestrate",
       "plan:init",
+      "run:init",
       "orchestrator:run",
     ]);
     expect(shouldReadPromptStdin(["orchestrate", "--prompt-stdin"])).toBeTrue();

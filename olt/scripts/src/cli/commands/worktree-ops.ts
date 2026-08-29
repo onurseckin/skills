@@ -82,9 +82,7 @@ export function worktreeListCommand(flags: Flags): Record<string, unknown> {
 
   const lines = [
     `### Active Track Worktrees (${worktrees.length})`,
-    ...worktrees.map(
-      (wt) => `- \`${wt.trackId}\` (\`${wt.branch}\`) -> \`${wt.worktreePath}\``,
-    ),
+    ...worktrees.map((wt) => `- \`${wt.trackId}\` (\`${wt.branch}\`) -> \`${wt.worktreePath}\``),
   ];
 
   return {
@@ -115,9 +113,7 @@ export function worktreeCleanCommand(flags: Flags): Record<string, unknown> {
 
   const lines = [
     `### Track Worktrees Cleaned (${cleanedRecords.length})`,
-    ...cleanedRecords.map(
-      (c) => `- Cleaned track \`${c.trackId}\``,
-    ),
+    ...cleanedRecords.map((c) => `- Cleaned track \`${c.trackId}\``),
   ];
 
   return {
@@ -142,7 +138,9 @@ export function worktreeStatusCommand(flags: Flags): Record<string, unknown> {
       };
     }
     return {
-      markdown: enforceLineLimit(`Track worktree \`${trackId}\` is active at \`${match.worktreePath}\`.`),
+      markdown: enforceLineLimit(
+        `Track worktree \`${trackId}\` is active at \`${match.worktreePath}\`.`,
+      ),
       active: true,
       worktree: match,
     };

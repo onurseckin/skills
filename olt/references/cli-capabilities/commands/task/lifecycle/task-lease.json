@@ -1,0 +1,59 @@
+{
+  "name": "task:lease",
+  "aliases": [],
+  "domain": "task",
+  "summary": "Claim an active lease on a task in the queue.",
+  "flags": [
+    {
+      "name": "task",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "task-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "agent-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "lease-duration",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "duration-seconds",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "queue-path",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "path",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

@@ -32,7 +32,7 @@ own status in `exit_code`.
 | :--- | :--- | :--- |
 | plan | 13 | [cli-capabilities/domains/plan.md](cli-capabilities/domains/plan.md) |
 | queue | 4 | [cli-capabilities/domains/queue.md](cli-capabilities/domains/queue.md) |
-| task | 13 | [cli-capabilities/domains/task.md](cli-capabilities/domains/task.md) |
+| task | 19 | [cli-capabilities/domains/task.md](cli-capabilities/domains/task.md) |
 | reporting | 19 | [cli-capabilities/domains/reporting.md](cli-capabilities/domains/reporting.md) |
 | run | 5 | [cli-capabilities/domains/run.md](cli-capabilities/domains/run.md) |
 | critic | 4 | [cli-capabilities/domains/critic.md](cli-capabilities/domains/critic.md) |
@@ -42,7 +42,7 @@ own status in `exit_code`.
 | branch | 6 | [cli-capabilities/domains/branch.md](cli-capabilities/domains/branch.md) |
 | agent | 7 | [cli-capabilities/domains/agent.md](cli-capabilities/domains/agent.md) |
 | orphan | 1 | [cli-capabilities/domains/orphan.md](cli-capabilities/domains/orphan.md) |
-| authority | 8 | [cli-capabilities/domains/authority.md](cli-capabilities/domains/authority.md) |
+| authority | 7 | [cli-capabilities/domains/authority.md](cli-capabilities/domains/authority.md) |
 | install | 2 | [cli-capabilities/domains/install.md](cli-capabilities/domains/install.md) |
 | diagnostics | 10 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
 | gate | 1 | [cli-capabilities/domains/gate.md](cli-capabilities/domains/gate.md) |
@@ -51,6 +51,10 @@ own status in `exit_code`.
 | policy | 4 | [cli-capabilities/domains/policy.md](cli-capabilities/domains/policy.md) |
 | msg | 4 | [cli-capabilities/domains/msg.md](cli-capabilities/domains/msg.md) |
 | worktree | 6 | [cli-capabilities/domains/worktree.md](cli-capabilities/domains/worktree.md) |
+| sched | 3 | [cli-capabilities/domains/sched.md](cli-capabilities/domains/sched.md) |
+| role | 3 | [cli-capabilities/domains/role.md](cli-capabilities/domains/role.md) |
+| hygiene | 2 | [cli-capabilities/domains/hygiene.md](cli-capabilities/domains/hygiene.md) |
+| defect | 3 | [cli-capabilities/domains/defect.md](cli-capabilities/domains/defect.md) |
 
 ## Commands
 
@@ -84,6 +88,12 @@ own status in `exit_code`.
 | `task:assign-repairer` | task | Replace the original implementer as a task's repairer, with a recorded reason. |
 | `task:abandon` | task | Close an open attempt nobody submitted or released, on the coordinator's authority. |
 | `task:check` | task | Incremental verification. |
+| `task:add` | task | Enqueue a task in the task queue. |
+| `task:list` | task | List tasks in the task queue. |
+| `task:lease` | task | Claim an active lease on a task in the queue. |
+| `task:complete` | task | Mark a task as completed in the queue. |
+| `task:fail` | task | Mark a task as failed in the queue. |
+| `task:prune` | task | Prune completed tasks from the queue. |
 | `report` | reporting | Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps. |
 | `report:graph-json` | reporting | Export DAG telemetry and metrics to JSON. |
 | `report:dag` | reporting | Canonical reporting for DAG status. |
@@ -137,7 +147,6 @@ own status in `exit_code`.
 | `orphan:dispose` | orphan | Close out a command record that arrived without a live owner. |
 | `authority:decide` | authority | Grant or decline a needs_authority requirement. |
 | `whoami` | authority | Inspect thread execution tier, PID, active agent, grants, and main-thread compliance. |
-| `role:cheat-sheet` | authority | Display compact terminal cheat sheets and command matrices for system roles. |
 | `watchdog:status` | authority | Query watchdog lifecycle, monitor cadence, and health status. |
 | `watchdog:cleanup` | authority | Purge stale or legacy watchdog monitors exceeding heartbeat timeout. |
 | `watchdog:phase-cleanup` | authority | Terminate legacy phase watchdog monitors upon phase rollover or completion. |
@@ -202,3 +211,14 @@ own status in `exit_code`.
 | `worktree:clean` | worktree | Clean up and remove track worktrees and branches. |
 | `worktree:status` | worktree | Check status of active track worktrees. |
 | `worktree:reclaim` | worktree | Reclaim abandoned worktrees from a completed or crashed run. |
+| `sched:eval` | sched | Calculate anti-idle scheduling intervals. |
+| `sched:backoff` | sched | Calculate backoff interval using specified strategy. |
+| `sched:jitter` | sched | Apply interval jitter to a base duration. |
+| `role:list` | role | List available system roles. |
+| `role:profile` | role | Resolve agent model profile binding. |
+| `role:cheat-sheet` | role | Display compact terminal cheat sheets and command matrices for system roles. |
+| `hygiene:audit` | hygiene | Audit repository root hygiene invariants. |
+| `hygiene:fix` | hygiene | Quarantine repository root hygiene violations. |
+| `defect:record` | defect | Ingest and deduplicate defect records. |
+| `defect:resolve` | defect | Resolve a defect record with empirical proof. |
+| `defect:list` | defect | List and parse structured defect log entries. |

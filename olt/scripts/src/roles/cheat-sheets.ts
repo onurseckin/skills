@@ -89,16 +89,20 @@ function extractProseDetails(body: string): {
   for (const line of body.split("\n")) {
     const trimmed = line.trim();
     if (trimmed.startsWith("# ") && title === "Role") {
-      title = trimmed.slice(2).trim();
+      const heading = trimmed.slice(2).trim();
+      if (
+        !heading.toLowerCase().includes("host-tool") &&
+        !heading.toLowerCase().includes("interlock")
+      ) {
+        title = heading;
+      }
       continue;
     }
     if (trimmed.startsWith("## Cognitive Pillars")) {
       inPillars = true;
       continue;
     }
-    if (inPillars && trimmed.startsWith("## ")) {
-      inPillars = false;
-    }
+    if (inPillars && trimmed.startsWith("## ")) inPillars = false;
     if (inPillars && trimmed.startsWith("- ")) {
       cognitivePillars.push(trimmed.slice(2).trim());
       continue;

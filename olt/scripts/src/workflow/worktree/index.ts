@@ -55,11 +55,7 @@ export {
   type CleanupWorktreeOptions,
   type ListWorktreesOptions,
 } from "./manager.ts";
-export {
-  landTrackToMain,
-  type LandTrackOptions,
-  type LandTrackResult,
-} from "./landing.ts";
+export { landTrackToMain, type LandTrackOptions, type LandTrackResult } from "./landing.ts";
 export {
   provisionWorktrees,
   type ProvisionWorktreesConfig,

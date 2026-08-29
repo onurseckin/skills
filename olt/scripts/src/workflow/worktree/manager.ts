@@ -1,7 +1,15 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
+import { safeRmSync } from "../../core/shared/safe-fs/index.ts";
 import {
   branchExists,
   deleteBranch as gitDeleteBranch,
@@ -81,10 +89,14 @@ function acquireTrackLock(lockPath: string, trackId: string, timeoutMs = 5000): 
         const raw = readFileSync(lockPath, "utf-8");
         const payload: LockPayload = JSON.parse(raw);
         if (!isProcessAlive(payload.pid)) {
-          rmSync(lockPath, { force: true });
+          try {
+            unlinkSync(lockPath);
+          } catch {}
         }
       } catch {
-        rmSync(lockPath, { force: true });
+        try {
+          unlinkSync(lockPath);
+        } catch {}
       }
     }
 
@@ -109,7 +121,9 @@ function acquireTrackLock(lockPath: string, trackId: string, timeoutMs = 5000): 
 
 function releaseTrackLock(lockPath: string): void {
   if (existsSync(lockPath)) {
-    rmSync(lockPath, { force: true });
+    try {
+      unlinkSync(lockPath);
+    } catch {}
   }
 }
 
@@ -173,9 +187,10 @@ export function createTrackWorktree(options: CreateWorktreeOptions): TrackWorktr
   }
 }
 
-export function cleanupTrackWorktree(
-  options: CleanupWorktreeOptions,
-): { cleaned: boolean; trackId: string } {
+export function cleanupTrackWorktree(options: CleanupWorktreeOptions): {
+  cleaned: boolean;
+  trackId: string;
+} {
   const repo = resolveRepo(options.repoRoot);
   const worktreesRoot = join(repo, ".olt", "worktrees");
   const worktreePath = join(worktreesRoot, options.trackId);
@@ -189,7 +204,11 @@ export function cleanupTrackWorktree(
       try {
         removeWorktree(repo, worktreePath, runner);
       } catch {
-        rmSync(worktreePath, { recursive: true, force: true });
+        safeRmSync(worktreePath, {
+          allowedRoots: [worktreesRoot],
+          allowGitRepositoryDeletion: true,
+          missingOk: true,
+        });
       }
     }
 
@@ -200,7 +219,11 @@ export function cleanupTrackWorktree(
     pruneWorktrees(repo, runner);
   } finally {
     if (existsSync(worktreePath)) {
-      rmSync(worktreePath, { recursive: true, force: true });
+      safeRmSync(worktreePath, {
+        allowedRoots: [worktreesRoot],
+        allowGitRepositoryDeletion: true,
+        missingOk: true,
+      });
     }
     releaseTrackLock(lockPath);
   }
@@ -208,9 +231,7 @@ export function cleanupTrackWorktree(
   return { cleaned: true, trackId: options.trackId };
 }
 
-export function listTrackWorktrees(
-  options?: ListWorktreesOptions,
-): readonly TrackWorktreeInfo[] {
+export function listTrackWorktrees(options?: ListWorktreesOptions): readonly TrackWorktreeInfo[] {
   const repo = resolveRepo(options?.repoRoot);
   const worktreesRoot = join(repo, ".olt", "worktrees");
   if (!existsSync(worktreesRoot)) return [];

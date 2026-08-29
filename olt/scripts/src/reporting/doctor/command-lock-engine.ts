@@ -1,3 +1,5 @@
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
 
 export interface CognitiveValidatorCommandLockOptions {
@@ -7,7 +9,7 @@ export interface CognitiveValidatorCommandLockOptions {
   readonly grants?: readonly unknown[] | null | undefined;
 }
 
-const BANNED_VALIDATOR_ROLES = new Set([
+const BANNED_ROLES = new Set([
   "validator",
   "cognitive-validator",
   "cognitive_validator",
@@ -25,27 +27,19 @@ function normalizeRole(role: string): string {
 function isBannedValidatorRole(role: string): boolean {
   const norm = normalizeRole(role);
   return (
-    BANNED_VALIDATOR_ROLES.has(norm) ||
-    BANNED_VALIDATOR_ROLES.has(role.trim().toLowerCase()) ||
+    BANNED_ROLES.has(norm) ||
+    BANNED_ROLES.has(role.trim().toLowerCase()) ||
     norm.startsWith("validator") ||
     norm.includes("validator") ||
     norm.includes("critic")
   );
 }
 
-/**
- * Engine 6: checkCognitiveValidatorCommandLock
- * Enforces Cognitive Validator Command Hard-Lock. Scans recorded commands and events:
- * agents with roles validator, cognitive-validator, critic, completeness-critic MUST have 0 executed commands / tests.
- * Any command is an immediate ERROR.
- */
 export function checkCognitiveValidatorCommandLock(
   options: CognitiveValidatorCommandLockOptions = {},
 ): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
   const agentRoleMap = new Map<string, string>();
-
-  // 1. Build agent -> role mapping from state / grants
   const rawGrants = options.grants ?? (options.state?.grants as readonly unknown[] | undefined);
   if (Array.isArray(rawGrants)) {
     for (const grant of rawGrants) {
@@ -54,9 +48,7 @@ export function checkCognitiveValidatorCommandLock(
         const id =
           typeof g.id === "string" ? g.id : typeof g.agent_id === "string" ? g.agent_id : undefined;
         const role = typeof g.role === "string" ? g.role : undefined;
-        if (id && role) {
-          agentRoleMap.set(id, role);
-        }
+        if (id && role) agentRoleMap.set(id, role);
       }
     }
   }
@@ -69,14 +61,11 @@ export function checkCognitiveValidatorCommandLock(
           typeof (agent as Record<string, unknown>).role === "string"
             ? ((agent as Record<string, unknown>).role as string)
             : undefined;
-        if (role) {
-          agentRoleMap.set(id, role);
-        }
+        if (role) agentRoleMap.set(id, role);
       }
     }
   }
 
-  // Also infer from agent ID naming conventions (e.g. validator_xxx, critic_xxx)
   function inferRole(agentId?: string, explicitRole?: string): string {
     if (explicitRole) return explicitRole;
     if (!agentId) return "";
@@ -97,7 +86,6 @@ export function checkCognitiveValidatorCommandLock(
     return "";
   }
 
-  // 2. Scan state.commands / options.commands
   const rawCommands =
     options.commands ?? (options.state?.commands as Record<string, unknown> | undefined);
   if (rawCommands && typeof rawCommands === "object") {
@@ -127,19 +115,13 @@ export function checkCognitiveValidatorCommandLock(
             severity: "ERROR",
             engine: "checkCognitiveValidatorCommandLock",
             message: `Cognitive Validator Command Hard-Lock breached: Agent "${agentId ?? "unknown"}" with role "${role}" executed command: "${commandText}"`,
-            details: {
-              agentId,
-              role,
-              command: commandText,
-              recordId: cmd.id,
-            },
+            details: { agentId, role, command: commandText, recordId: cmd.id },
           });
         }
       }
     }
   }
 
-  // 3. Scan events for executed commands / tools by validator roles
   if (Array.isArray(options.events)) {
     for (const event of options.events) {
       if (event && typeof event === "object") {
@@ -156,7 +138,6 @@ export function checkCognitiveValidatorCommandLock(
           agentId,
           typeof payload.role === "string" ? payload.role : undefined,
         );
-
         const isCommandEvent =
           eventName === "command-executed" ||
           eventName === "command-recorded" ||
@@ -168,12 +149,7 @@ export function checkCognitiveValidatorCommandLock(
             severity: "ERROR",
             engine: "checkCognitiveValidatorCommandLock",
             message: `Cognitive Validator Command Hard-Lock breached in event "${eventName}": Agent "${agentId ?? "unknown"}" with role "${role}" executed command: "${commandText}"`,
-            details: {
-              eventName,
-              agentId,
-              role,
-              command: commandText,
-            },
+            details: { eventName, agentId, role, command: commandText },
           });
         }
       }
@@ -183,6 +159,63 @@ export function checkCognitiveValidatorCommandLock(
   return {
     engine: "checkCognitiveValidatorCommandLock",
     passed: findings.length === 0,
+    findings,
+  };
+}
+
+export function checkCommandLockIntegrity(oltDir: string): DoctorCheckEngineResult {
+  const findings: DoctorDiagnosticFinding[] = [];
+  const baseDir = existsSync(oltDir) ? oltDir : join(process.cwd(), oltDir);
+  const capsulesDir = existsSync(join(baseDir, "capsules"))
+    ? join(baseDir, "capsules")
+    : existsSync(join(baseDir, ".olt", "capsules"))
+      ? join(baseDir, ".olt", "capsules")
+      : existsSync(baseDir) && baseDir.endsWith("capsules")
+        ? baseDir
+        : join(baseDir, "capsules");
+
+  if (existsSync(capsulesDir)) {
+    try {
+      const entries = readdirSync(capsulesDir);
+      for (const entry of entries) {
+        const capDir = join(capsulesDir, entry);
+        try {
+          if (!statSync(capDir).isDirectory()) continue;
+          const statePath = join(capDir, "state.json");
+          const eventsPath = join(capDir, "events.jsonl");
+          let state: Record<string, unknown> | null = null;
+          const events: unknown[] = [];
+          if (existsSync(statePath)) {
+            try {
+              state = JSON.parse(readFileSync(statePath, "utf-8")) as Record<string, unknown>;
+            } catch {
+              findings.push({
+                code: "COMMAND_LOCK_STATE_CORRUPT",
+                severity: "ERROR",
+                engine: "checkCommandLockIntegrity",
+                message: `Corrupted state.json in capsule ${entry}`,
+                details: { capsule: entry, statePath },
+              });
+            }
+          }
+          if (existsSync(eventsPath)) {
+            try {
+              for (const line of readFileSync(eventsPath, "utf-8").split("\n")) {
+                if (line.trim().length > 0) events.push(JSON.parse(line));
+              }
+            } catch {}
+          }
+          if (state || events.length > 0) {
+            findings.push(...checkCognitiveValidatorCommandLock({ state, events }).findings);
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
+  return {
+    engine: "checkCommandLockIntegrity",
+    passed: findings.filter((f) => f.severity === "ERROR").length === 0,
     findings,
   };
 }

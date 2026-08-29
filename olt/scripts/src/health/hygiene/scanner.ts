@@ -48,17 +48,25 @@ export function scanRepoRoot(
             ? "LOOSE_EXECUTABLE"
             : "UNAPPROVED_ROOT_FILE";
         findings.push({
-          path: fullPath, relativePath: entry, scope: "repo_root",
-          violationType, severity: "ERROR",
+          path: fullPath,
+          relativePath: entry,
+          scope: "repo_root",
+          violationType,
+          severity: "ERROR",
           message: `Unapproved file '${entry}' in root.`,
-          isExecutable: isExec, sizeBytes: stats.size,
+          isExecutable: isExec,
+          sizeBytes: stats.size,
         });
       } else if (stats.isDirectory() && !allowedDirs.has(entry)) {
         findings.push({
-          path: fullPath, relativePath: entry, scope: "repo_root",
-          violationType: "UNAPPROVED_ROOT_DIR", severity: "ERROR",
+          path: fullPath,
+          relativePath: entry,
+          scope: "repo_root",
+          violationType: "UNAPPROVED_ROOT_DIR",
+          severity: "ERROR",
           message: `Unapproved directory '${entry}' in root.`,
-          isExecutable: false, sizeBytes: 0,
+          isExecutable: false,
+          sizeBytes: 0,
         });
       }
     } catch {
@@ -96,17 +104,25 @@ export function scanScriptsRoot(
             ? "LOOSE_EXECUTABLE"
             : "MISPLACED_FILE";
         findings.push({
-          path: fullPath, relativePath: relPath, scope: "scripts_root",
-          violationType, severity: "ERROR",
+          path: fullPath,
+          relativePath: relPath,
+          scope: "scripts_root",
+          violationType,
+          severity: "ERROR",
           message: `Loose executable or test artifact '${entry}' in scripts/ root.`,
-          isExecutable: isExec, sizeBytes: stats.size,
+          isExecutable: isExec,
+          sizeBytes: stats.size,
         });
       } else if (stats.isDirectory() && !allowedDirs.has(entry)) {
         findings.push({
-          path: fullPath, relativePath: relPath, scope: "scripts_root",
-          violationType: "UNAPPROVED_ROOT_DIR", severity: "ERROR",
+          path: fullPath,
+          relativePath: relPath,
+          scope: "scripts_root",
+          violationType: "UNAPPROVED_ROOT_DIR",
+          severity: "ERROR",
           message: `Unapproved directory '${entry}' in scripts/ root.`,
-          isExecutable: false, sizeBytes: 0,
+          isExecutable: false,
+          sizeBytes: 0,
         });
       }
     } catch {
@@ -139,10 +155,14 @@ export function scanStaticPackage(
         if (stats.isDirectory()) {
           if (["coverage", ".coverage", "logs", "quarantine"].includes(entry)) {
             findings.push({
-              path: fullPath, relativePath: relPath, scope: "static_package",
-              violationType: "STATIC_PACKAGE_RUNTIME_POLLUTION", severity: "ERROR",
+              path: fullPath,
+              relativePath: relPath,
+              scope: "static_package",
+              violationType: "STATIC_PACKAGE_RUNTIME_POLLUTION",
+              severity: "ERROR",
               message: `Runtime directory '${entry}' in static package 'olt/'.`,
-              isExecutable: false, sizeBytes: 0,
+              isExecutable: false,
+              sizeBytes: 0,
             });
           } else if (entry !== "references") {
             traverse(fullPath);
@@ -152,10 +172,14 @@ export function scanStaticPackage(
           (entry.endsWith(".jsonl") || entry.endsWith(".log") || entry === "defects.jsonl")
         ) {
           findings.push({
-            path: fullPath, relativePath: relPath, scope: "static_package",
-            violationType: "STATIC_PACKAGE_RUNTIME_POLLUTION", severity: "ERROR",
+            path: fullPath,
+            relativePath: relPath,
+            scope: "static_package",
+            violationType: "STATIC_PACKAGE_RUNTIME_POLLUTION",
+            severity: "ERROR",
             message: `Runtime file '${entry}' in static package 'olt/'.`,
-            isExecutable: false, sizeBytes: stats.size,
+            isExecutable: false,
+            sizeBytes: stats.size,
           });
         }
       } catch {
@@ -176,21 +200,27 @@ export function scanRootHygiene(options: RootHygieneOptions = {}): RootHygieneSc
     options.allowedRootDirNames ?? ALLOWED_ROOT_DIRS,
   );
   const scriptsRes = scanScriptsRoot(
-    join(repoRoot, "scripts"), repoRoot,
+    join(repoRoot, "scripts"),
+    repoRoot,
     options.allowedScriptsFiles ?? DEFAULT_ALLOWED_SCRIPTS_FILES,
     options.allowedScriptsDirs ?? DEFAULT_ALLOWED_SCRIPTS_DIRS,
   );
   const oltRes = scanStaticPackage(join(repoRoot, "olt"), repoRoot);
   const violations: RootHygieneFinding[] = [
-    ...rootRes.findings, ...scriptsRes.findings, ...oltRes.findings,
+    ...rootRes.findings,
+    ...scriptsRes.findings,
+    ...oltRes.findings,
   ];
-  const quarantinedFiles = options.fix === true && violations.length > 0
-    ? quarantineViolations(repoRoot, violations, options.quarantineDir)
-    : [];
+  const quarantinedFiles =
+    options.fix === true && violations.length > 0
+      ? quarantineViolations(repoRoot, violations, options.quarantineDir)
+      : [];
   return {
-    passed: violations.length === 0, repoRoot,
+    passed: violations.length === 0,
+    repoRoot,
     totalEntriesScanned: rootRes.count + scriptsRes.count + oltRes.count,
-    violations, quarantinedFiles,
+    violations,
+    quarantinedFiles,
     scanDurationMs: Date.now() - startTime,
   };
 }
@@ -199,7 +229,8 @@ export function assertCleanRootHygiene(options: RootHygieneOptions = {}): void {
   const result = scanRootHygiene(options);
   if (!result.passed) {
     const summary = result.violations
-      .map((v) => `[${v.scope}] ${v.violationType}: ${v.relativePath}`).join(", ");
+      .map((v) => `[${v.scope}] ${v.violationType}: ${v.relativePath}`)
+      .join(", ");
     throw new HarnessError(
       "PATH_SAFETY",
       `[ROOT_HYGIENE_VIOLATION] Hygiene violations detected: ${summary}`,
@@ -212,9 +243,14 @@ export class RootHygieneEngine {
   public scan(overrides?: RootHygieneOptions): RootHygieneScanResult {
     return scanRootHygiene({ ...this.options, ...overrides });
   }
-  public quarantine(violations: readonly RootHygieneFinding[], qDir?: string): QuarantinedFileRecord[] {
+  public quarantine(
+    violations: readonly RootHygieneFinding[],
+    qDir?: string,
+  ): QuarantinedFileRecord[] {
     return quarantineViolations(
-      resolve(this.options.repoRoot ?? process.cwd()), violations, qDir ?? this.options.quarantineDir,
+      resolve(this.options.repoRoot ?? process.cwd()),
+      violations,
+      qDir ?? this.options.quarantineDir,
     );
   }
   public assertClean(overrides?: RootHygieneOptions): void {
@@ -224,7 +260,9 @@ export class RootHygieneEngine {
     return scanRootHygiene(options);
   }
   public static quarantine(
-    repoRoot: string, violations: readonly RootHygieneFinding[], targetQuarantineDir?: string,
+    repoRoot: string,
+    violations: readonly RootHygieneFinding[],
+    targetQuarantineDir?: string,
   ): QuarantinedFileRecord[] {
     return quarantineViolations(repoRoot, violations, targetQuarantineDir);
   }

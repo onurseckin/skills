@@ -24,7 +24,6 @@ function spec(invocation: string): CommandSpec {
   return found;
 }
 
-/** Every invocation the registry knows, minus the ones this role's contract grants. */
 function ungranted(role: (typeof AGENT_ROLES)[number]): string[] {
   const granted = new Set(loadRoleContract(role).commands);
   return commandInvocations().filter((invocation) => {
@@ -82,7 +81,6 @@ describe("role capability documents bind the CLI", () => {
         "may not invoke",
       );
     }
-    // What it may do is read, run and report — the whole of its contract.
     expect(loadRoleContract("sub-investigator").commands).toEqual([
       "branch:claim",
       "branch:submit",
@@ -92,6 +90,9 @@ describe("role capability documents bind the CLI", () => {
       "evidence:get",
       "agent:report",
       "whoami",
+      "msg:send",
+      "msg:recv",
+      "msg:poll",
     ]);
   });
 

@@ -20,12 +20,14 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "review whole-run diff against original prompt bytes"
     - "emit critic:review"
     - "Execute Adversarial Gate Proofs (AGP) and direct end-to-end command execution"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "0 source edits"
     - "Claim code write leases or edit repository source files (Anti-Boundary-Leak Rule: failures must be recorded via findings and emit critic:reject to delegate to an assigned repairer)"
     - "pass unevidenced runs"
@@ -54,6 +56,9 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   # Anti-Boundary-Leak Rule & Repairer Delegation
   - Anti-Boundary-Leak Rule: Strictly prohibited from claiming code write leases or editing source files. Failures must be recorded via findings and delegated via task:assign-repairer or critic:reject to an assigned repairer.
   ---

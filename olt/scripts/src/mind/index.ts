@@ -14,6 +14,7 @@ import * as roleAuditing from "./auditing/roles/index.ts";
 import * as witness from "./auditing/witness/index.ts";
 
 import * as chatterGuard from "./chatter-guard.ts";
+import * as chatterPatterns from "./chatter-patterns.ts";
 import * as concurrencyCap from "./concurrency-cap.ts";
 import * as contracts from "./contracts/index.ts";
 import * as core from "./core/index.ts";
@@ -93,6 +94,7 @@ export {
   cadence,
   charter,
   chatterGuard,
+  chatterPatterns,
   cognition,
   cognitiveFlavor,
   completedTasks,

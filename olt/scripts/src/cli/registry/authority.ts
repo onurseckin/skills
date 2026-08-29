@@ -1,5 +1,4 @@
 import { authorityDecideCommand } from "../commands/authority-ops.ts";
-import { roleCheatSheetCommand } from "../commands/role-cheat-sheet.ts";
 import {
   watchdogCleanupCommand,
   watchdogPhaseCleanupCommand,
@@ -17,7 +16,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     domain: "authority",
     summary: "Grant or decline a needs_authority requirement.",
     description:
-      "A requirement disposed needs_authority holds every task built on it non-executable until this is recorded. Granting makes it actionable; declining disposes it out_of_scope and cancels every dormant task that depends on it alone, refusing instead if that would invalidate an active or completed one. The decision is permanent: a second call with the same actor and rationale is idempotent, any other call against an already-decided requirement is refused.",
+      "A requirement disposed needs_authority holds every task built on it non-executable until this is recorded. Granting makes it actionable; declining disposes it out_of_scope and cancels every dormant task that depends on it alone, refusing instead if that would invalidate an active or completed one.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       requiredFlag("requirement", "string", "Requirement id, currently disposed needs_authority."),
@@ -29,7 +28,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts authority:decide --run .olt/capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Human approved the production deploy in the review thread"',
+      'bun harness.ts authority:decide --run .olt/capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Approved"',
     ],
     handler: authorityDecideCommand,
   },
@@ -40,7 +39,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     summary:
       "Inspect thread execution tier, PID, active agent, grants, and main-thread compliance.",
     description:
-      "Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases. When executed on the interactive main thread, enforces the Main-Thread Restraint Guard advisory and logs structured defect records for unauthorized direct implementations.",
+      "Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases.",
     flags: [
       optionalFlag(
         "run",
@@ -61,29 +60,6 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts whoami --run .olt/capsules/<run-id> --agent coordinator-lead",
     ],
     handler: whoamiCommand,
-  },
-  {
-    name: "role:cheat-sheet",
-    aliases: ["role:contract", "role:cheat"],
-    domain: "authority",
-    summary: "Display compact terminal cheat sheets and command matrices for system roles.",
-    description:
-      "Renders ASCII tables and formatted markdown cheat sheets detailing tier, granted commands, forbidden actions, spawn rights, and architectural invariants.",
-    flags: [
-      optionalFlag("role", "string", "Specific role name to inspect."),
-      optionalFlag("roles-dir", "string", "Override roles directory path."),
-      optionalFlag("all", "bool", "Render full cheat sheets for all available roles."),
-      optionalFlag("compact", "bool", "Render compact summary format."),
-    ],
-    readsStdin: false,
-    takesRemainder: false,
-    exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts role:cheat-sheet",
-      "bun harness.ts role:cheat-sheet --role implementer",
-      "bun harness.ts role:cheat-sheet --all",
-    ],
-    handler: roleCheatSheetCommand,
   },
   {
     name: "watchdog:status",
@@ -123,7 +99,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     domain: "authority",
     summary: "Purge stale or legacy watchdog monitors exceeding heartbeat timeout.",
     description:
-      "Scans registered watchdog monitors across generations and pulses, transitioning timed-out monitors to stale or terminated status to prevent monitor accumulation.",
+      "Scans registered watchdog monitors across generations and pulses, transitioning timed-out monitors to stale or terminated status.",
     flags: [
       requiredFlag(
         "authority-run",
@@ -154,10 +130,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts watchdog:cleanup --authority-run <run> --run <target-run>",
-      "bun harness.ts watchdog:cleanup --authority-run <run> --run <target-run> --generation 1 --dry-run",
-    ],
+    examples: ["bun harness.ts watchdog:cleanup --authority-run <run> --run <target-run>"],
     authority: {
       requiresActingIdentity: true,
       authorityRunFlag: "authority-run",
@@ -171,8 +144,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     aliases: ["watchdog:phase-clean", "watchdog:cleanup-phase"],
     domain: "authority",
     summary: "Terminate legacy phase watchdog monitors upon phase rollover or completion.",
-    description:
-      "Terminates active watchdog monitors belonging to completed or superseded phases, ensuring old monitors never accumulate across phase transitions.",
+    description: "Terminates active watchdog monitors belonging to completed or superseded phases.",
     flags: [
       requiredFlag(
         "authority-run",
@@ -184,19 +156,15 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
         "string",
         "Target watchdog run root to clean; may equal --authority-run.",
       ),
-      optionalFlag(
-        "actor",
-        "string",
-        "Explicit acting Mind identity; must match the verified session when supplied.",
-      ),
+      optionalFlag("actor", "string", "Explicit acting Mind identity."),
       optionalFlag("capsules-dir", "string", "Capsules root directory."),
       optionalFlag("phase", "string", "Phase to terminate."),
-      optionalFlag("current-phase", "string", "New phase (terminates all prior phases)."),
+      optionalFlag("current-phase", "string", "New phase."),
       optionalFlag("generation", "int", "Target generation."),
       optionalFlag("pulse-id", "string", "Target pulse ID."),
       optionalFlag("exclude-id", "string", "Watchdog ID to preserve."),
       optionalFlag("reason", "string", "Termination reason."),
-      optionalFlag("mark-as", "string", "Status to mark (default: terminated)."),
+      optionalFlag("mark-as", "string", "Status to mark."),
       optionalFlag("dry-run", "bool", "Simulate phase cleanup."),
       optionalFlag("all", "bool", "Show all terminated monitors."),
       optionalFlag("now", "string", "Timestamp override (ISO8601)."),
@@ -206,7 +174,6 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
       "bun harness.ts watchdog:phase-cleanup --authority-run <run> --run <target-run> --phase planning --generation 1",
-      "bun harness.ts watchdog:phase-cleanup --authority-run <run> --run <target-run> --current-phase execution --generation 1",
     ],
     authority: {
       requiresActingIdentity: true,
@@ -221,8 +188,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     aliases: ["watchdog:check", "watchdog:lint"],
     domain: "authority",
     summary: "Verify watchdog lifecycle invariants and single-monitor constraints.",
-    description:
-      "Audits the watchdog registry against architectural constraints (max 1 active monitor per generation/pulse, no overdue heartbeats, no legacy phase orphans).",
+    description: "Audits the watchdog registry against architectural constraints.",
     flags: [
       optionalFlag("run", "string", "Capsule run root."),
       optionalFlag("capsules-dir", "string", "Capsules root directory."),
@@ -244,7 +210,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     domain: "authority",
     summary: "Execute 2-way supervisory health probe and doctor diagnostics to top leader.",
     description:
-      "Audits the live capsule across 5 supervisory health points ((a) Work/Span parallelization, (b) Plan enhancement, (c) 100% agent registry accuracy, (d) Strict role boundary adherence, (e) Doctor error resolution) and dispatches active probe report to the top leader.",
+      "Audits the live capsule across 5 supervisory health points and dispatches active probe report.",
     flags: [
       optionalFlag("run", "string", "Capsule run root."),
       optionalFlag("capsules-dir", "string", "Capsules root directory."),

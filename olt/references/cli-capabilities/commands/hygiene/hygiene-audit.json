@@ -1,36 +1,33 @@
 {
-  "name": "role:cheat-sheet",
-  "aliases": [
-    "role:contract",
-    "role:cheat"
-  ],
-  "domain": "authority",
-  "summary": "Display compact terminal cheat sheets and command matrices for system roles.",
+  "name": "hygiene:audit",
+  "aliases": [],
+  "domain": "hygiene",
+  "summary": "Audit repository root hygiene invariants.",
   "flags": [
     {
-      "name": "role",
+      "name": "repo-root",
       "type": "string",
       "required": false,
       "repeatable": false,
       "default": null
     },
     {
-      "name": "roles-dir",
+      "name": "root",
       "type": "string",
       "required": false,
       "repeatable": false,
       "default": null
     },
     {
-      "name": "all",
+      "name": "fix",
       "type": "bool",
       "required": false,
       "repeatable": false,
       "default": null
     },
     {
-      "name": "compact",
-      "type": "bool",
+      "name": "quarantine-dir",
+      "type": "string",
       "required": false,
       "repeatable": false,
       "default": null

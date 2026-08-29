@@ -20,6 +20,12 @@ function resolveTimestampMs(now?: string | number | Date): number {
   return Date.now();
 }
 
+type AdaptiveConfigInput = Partial<AdaptiveTimerConfig> & {
+  readonly heartbeatIntervalMs?: number;
+  readonly adaptive?: boolean | Partial<AdaptiveTimerConfig>;
+  readonly initialStartedAt?: number | string | Date;
+};
+
 export class AdaptiveTimerController {
   private adaptiveEnabled: boolean;
   private minIntervalMsState: number;
@@ -30,17 +36,9 @@ export class AdaptiveTimerController {
   private lastAdjustmentReasonState: AdaptiveAdjustmentReason = "initial";
   private lastAdjustedAtState: string;
 
-  public constructor(
-    config: Partial<AdaptiveTimerConfig> & {
-      readonly heartbeatIntervalMs?: number | undefined;
-      readonly adaptive?: boolean | Partial<AdaptiveTimerConfig> | undefined;
-      readonly initialStartedAt?: number | string | Date | undefined;
-    } = {},
-    initialStartedAt?: number | string | Date,
-  ) {
+  public constructor(config: AdaptiveConfigInput = {}, initialStartedAt?: number | string | Date) {
     const startedMs = resolveTimestampMs(initialStartedAt ?? config.initialStartedAt);
     this.lastAdjustedAtState = new Date(startedMs).toISOString();
-
     const nested =
       typeof config.adaptive === "object" && config.adaptive !== null ? config.adaptive : undefined;
     this.adaptiveEnabled =
@@ -49,7 +47,6 @@ export class AdaptiveTimerController {
         : typeof config.adaptive === "boolean"
           ? config.adaptive
           : (nested?.enabled ?? true);
-
     const heartbeatMs = config.heartbeatIntervalMs ?? DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS;
     const minBound =
       nested?.minIntervalMs ?? config.minIntervalMs ?? DEFAULT_ADAPTIVE_MIN_INTERVAL_MS;
@@ -57,14 +54,12 @@ export class AdaptiveTimerController {
       nested?.maxIntervalMs ??
       config.maxIntervalMs ??
       Math.max(DEFAULT_ADAPTIVE_MAX_INTERVAL_MS, heartbeatMs);
-
     this.minIntervalMsState = Math.min(minBound, maxBound);
     this.maxIntervalMsState = Math.max(minBound, maxBound);
     this.backoffFactorState =
       nested?.backoffFactor ?? config.backoffFactor ?? DEFAULT_ADAPTIVE_BACKOFF_FACTOR;
     this.activityBoostState =
       nested?.activityBoost ?? config.activityBoost ?? DEFAULT_ADAPTIVE_ACTIVITY_BOOST;
-
     const initial =
       nested?.initialIntervalMs ??
       config.initialIntervalMs ??

@@ -23,10 +23,6 @@ export interface TrailingValueSeries {
   readonly markdown: string;
 }
 
-/**
- * Generates trailing value series from recorded pulse points.
- * Ensures the owner digest can render raw unmasked series rather than hiding zeroes behind summaries.
- */
 export function generateTrailingValueSeries(
   pulses: readonly TrailingValuePoint[],
   windowSize: number = 20,
@@ -74,9 +70,6 @@ export function generateTrailingValueSeries(
   };
 }
 
-/**
- * Extracts trailing value series from capsule state object.
- */
 export function extractTrailingValueSeriesFromState(
   state: Record<string, unknown>,
   windowSize: number = 20,
@@ -131,9 +124,6 @@ export function extractTrailingValueSeriesFromState(
   return generateTrailingValueSeries(points, windowSize);
 }
 
-/**
- * Extracts trailing value series from capsule event stream.
- */
 export function extractTrailingValueSeriesFromEvents(
   events: readonly Record<string, unknown>[],
   windowSize: number = 20,
@@ -163,9 +153,6 @@ export function extractTrailingValueSeriesFromEvents(
   return generateTrailingValueSeries(points, windowSize);
 }
 
-/**
- * Formats a raw number array into `[0, 1, 2, ...]` string.
- */
 export function formatRawValueSeries(values: readonly number[]): string {
   return `[${values.join(", ")}]`;
 }

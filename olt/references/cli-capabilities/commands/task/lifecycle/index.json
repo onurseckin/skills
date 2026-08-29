@@ -7,12 +7,24 @@
       "path": "task-claim.json"
     },
     {
+      "id": "task:heartbeat",
+      "path": "task-heartbeat.json"
+    },
+    {
       "id": "task:submit",
       "path": "task-submit.json"
     },
     {
       "id": "task:assign-repairer",
       "path": "task-assign-repairer.json"
+    },
+    {
+      "id": "task:lease",
+      "path": "task-lease.json"
+    },
+    {
+      "id": "task:release",
+      "path": "task-release.json"
     }
   ]
 }

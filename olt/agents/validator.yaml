@@ -20,6 +20,7 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "Claim validation leases (task:validate-start)"
@@ -29,6 +30,7 @@ permissions:
     - "Emit probe demands (task:probe)"
     - "Adversarial Gate Proofs (AGP) and direct end-to-end integration reviews"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Execute ANY bash, test, or terminal commands (0 command execution privileges)"
     - "Write, edit, format, or delete repository files (0 source edits)"
     - "Claim code write leases or edit repository source files (Anti-Boundary-Leak Rule: failures must be recorded via findings and emit task:reject to delegate to an assigned repairer)"
@@ -67,6 +69,9 @@ min_adversarial_probes: 1
 max_adversarial_pushes: 20
 cognitive_pushes: 5
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   # Strict Command-Running Ban & Cognitive Validation Invariant
   - Strict Command-Running Ban: Cognitive Validators execute 0 commands (no run:exec).
   - Anti-Boundary-Leak Rule: Strictly prohibited from claiming code write leases or editing source files. Failures must be recorded via structured findings and delegated via task:assign-repairer or task:reject to an assigned repairer.

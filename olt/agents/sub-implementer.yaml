@@ -20,11 +20,13 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "Execute narrow sub-scope tasks"
     - "Run file-scoped tests"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Edit outside write scope"
     - "Self-validate work"
     - "Run whole-repository test suites (bun test)"
@@ -54,6 +56,9 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   ---
   role: sub-implementer
   tier: 3

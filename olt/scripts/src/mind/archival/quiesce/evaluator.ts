@@ -4,13 +4,8 @@ import {
   DEFAULT_MAX_INTERVAL_MS,
   QUIESCENCE_INTERVAL_MULTIPLIER,
 } from "../../../core/scheduling/index.ts";
-import type {
-  QuiescentDigest,
-  QuiescentSourceObservation,
-} from "./types.ts";
-import {
-  QUIESCENT_DIGEST_STREAK_THRESHOLD,
-} from "./types.ts";
+import type { QuiescentDigest, QuiescentSourceObservation } from "./types.ts";
+import { QUIESCENT_DIGEST_STREAK_THRESHOLD } from "./types.ts";
 
 export function computeQuiescentStreak(previousStreak?: number | null): number {
   if (
@@ -31,12 +26,7 @@ export function calculateQuiescentInterval(
   const safeBase = Math.max(1000, baseIntervalMs || DEFAULT_BASE_INTERVAL_MS);
   const safeMax = Math.max(safeBase, maxIntervalMs || DEFAULT_MAX_INTERVAL_MS);
   const safeStreak = Math.max(0, streak);
-  return calculateExponentialBackoff(
-    safeBase,
-    safeMax,
-    safeStreak,
-    QUIESCENCE_INTERVAL_MULTIPLIER,
-  );
+  return calculateExponentialBackoff(safeBase, safeMax, safeStreak, QUIESCENCE_INTERVAL_MULTIPLIER);
 }
 
 export function shouldTriggerQuiescentDigest(

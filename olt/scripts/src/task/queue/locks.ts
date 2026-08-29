@@ -1,11 +1,4 @@
-import {
-  openSync,
-  closeSync,
-  lstatSync,
-  fstatSync,
-  mkdirSync,
-  constants,
-} from "node:fs";
+import { openSync, closeSync, lstatSync, fstatSync, mkdirSync, constants } from "node:fs";
 import { dirname } from "node:path";
 import { releaseFlock, tryExclusiveFlock } from "../../platform/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
@@ -98,7 +91,8 @@ export function withTaskQueueTransaction<T>(filePath: string, mutation: () => T)
       }
     }
   };
-  if (parentLocked && parentFd !== undefined) attemptCleanup(() => releaseTaskQueueFlock(parentFd!));
+  if (parentLocked && parentFd !== undefined)
+    attemptCleanup(() => releaseTaskQueueFlock(parentFd!));
   if (rootLocked && rootFd !== undefined) attemptCleanup(() => releaseTaskQueueFlock(rootFd!));
   if (parentFd !== undefined) attemptCleanup(() => closeSync(parentFd!));
   if (rootFd !== undefined) attemptCleanup(() => closeSync(rootFd!));
@@ -107,9 +101,6 @@ export function withTaskQueueTransaction<T>(filePath: string, mutation: () => T)
   return result;
 }
 
-export async function withTaskQueueLock<T>(
-  filePath: string,
-  fn: () => T | Promise<T>,
-): Promise<T> {
+export async function withTaskQueueLock<T>(filePath: string, fn: () => T | Promise<T>): Promise<T> {
   return withTaskQueueTransaction(filePath, () => fn());
 }

@@ -7,7 +7,7 @@ hand. Index: [`../../cli-capabilities.md`](../../cli-capabilities.md).
 
 Close an open attempt nobody submitted or released, on the coordinator's authority.
 
-The forced counterpart to task:release: it does not require the lease token, only --actor and --reason, because it exists for a coordinator to unstick a task whose attempt is open but whose agent is gone or unresponsive. The task returns to retry_ready, or to changes_requested when the abandoned attempt was a repair. Refuses if the task's most recent attempt is already closed - there is nothing left open to abandon.
+Forced counterpart to task:release for unsticking abandoned tasks.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -17,18 +17,18 @@ The forced counterpart to task:release: it does not require the lease token, onl
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--task` | string | yes | no | - | Task with an open attempt. |
-| `--actor` | string | yes | no | - | Who is abandoning the attempt. Recorded on the event. |
+| `--actor` | string | yes | no | - | Who is abandoning the attempt. |
 | `--reason` | string | yes | no | - | Why the attempt is being abandoned. |
 
 ```bash
-bun harness.ts task:abandon --run .olt/capsules/<run-id> --task task-1 --actor coordinator --reason "agent-1 crashed mid-attempt and will not return"
+bun harness.ts task:abandon --run .olt/capsules/<run-id> --task task-1 --actor coordinator --reason "agent crashed"
 ```
 
-### `task:release`
+### `task:complete`
 
-Hand a live lease back without waiting for it to expire.
+Mark a task as completed in the queue.
 
-The voluntary counterpart to `recover`. Requires the live lease token; the task returns to retry_ready, or to changes_requested when the released attempt was a repair. A branched task cannot be released - collect or abandon the branch first.
+Records task completion, unblocks downstream dependents, and optionally archives the task.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -36,11 +36,72 @@ The voluntary counterpart to `recover`. Requires the live lease token; the task 
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Leased task id. |
-| `--agent` | string | yes | no | - | Agent holding the lease. |
-| `--token` | string | yes | no | - | Lease bearer token. |
+| `--task` | string | no | no | - | Task ID to complete. |
+| `--task-id` | string | no | no | - | Alias of task ID. |
+| `--agent-id` | string | no | no | - | Agent ID completing the task. |
+| `--lease-token` | string | no | no | - | Active lease token. |
+| `--token` | string | no | no | - | Alias of lease token. |
+| `--proof-summary` | string | no | no | - | Summary proof of task completion. |
+| `--test-path` | string | no | no | - | Test file path demonstrating completion. |
+| `--commit-sha` | string | no | no | - | Commit SHA associated with completion. |
+| `--auto-archive` | bool | no | no | - | Automatically archive completed task. |
+| `--auto-prune` | bool | no | no | - | Automatically prune completed task from queue. |
+| `--completed-tasks-path` | string | no | no | - | Completed tasks archive file path. |
+| `--archive-path` | string | no | no | - | Alias of completed tasks archive path. |
+| `--queue-path` | string | no | no | - | Custom task queue file path. |
+| `--path` | string | no | no | - | Alias for queue-path. |
 
 ```bash
-bun harness.ts task:release --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>
+bun harness.ts task:complete --task task-1 --proof-summary "All tests pass"
+```
+
+### `task:fail`
+
+Mark a task as failed in the queue.
+
+Transitions task to failed or increments retry count if retries remain.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--task` | string | no | no | - | Task ID to fail. |
+| `--task-id` | string | no | no | - | Alias of task ID. |
+| `--message` | string | no | no | - | Failure error message. |
+| `--error` | string | no | no | - | Alias of error message. |
+| `--reason` | string | no | no | - | Alias of error message. |
+| `--agent-id` | string | no | no | - | Agent ID recording failure. |
+| `--lease-token` | string | no | no | - | Active lease token. |
+| `--token` | string | no | no | - | Alias of lease token. |
+| `--can-retry` | bool | no | no | - | Allow task retry if retry count permits. |
+| `--escalate` | bool | no | no | - | Escalate task upon reaching max retries. |
+| `--queue-path` | string | no | no | - | Custom task queue file path. |
+| `--path` | string | no | no | - | Alias for queue-path. |
+
+```bash
+bun harness.ts task:fail --task task-1 --message "Test failure"
+```
+
+### `task:prune`
+
+Prune completed tasks from the queue.
+
+Removes completed tasks from the active queue and archives them to completed log.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--completed-tasks-path` | string | no | no | - | Completed tasks archive file path. |
+| `--archive-path` | string | no | no | - | Alias of completed tasks archive path. |
+| `--auto-archive` | bool | no | no | - | Archive completed tasks before pruning. |
+| `--queue-path` | string | no | no | - | Custom task queue file path. |
+| `--path` | string | no | no | - | Alias for queue-path. |
+
+```bash
+bun harness.ts task:prune
 ```

@@ -192,7 +192,10 @@ describe("watchdog-store-sync File-Backed Synchronization", () => {
 
 describe("watchdog-store-sync Invariants & Cleanliness", () => {
   it("verifies zero any and zero suppressions in watchdog-store-sync.ts", () => {
-    const syncPath = join(__dirname, "../../../olt/scripts/src/watchdog/autonomic-watchdog/watchdog-store-sync.ts");
+    const syncPath = join(
+      __dirname,
+      "../../../olt/scripts/src/watchdog/autonomic-watchdog/watchdog-store-sync.ts",
+    );
     const content = readFileSync(syncPath, "utf8");
 
     expect(content).not.toMatch(new RegExp(":\\s*any\\b"));

@@ -14,19 +14,7 @@ import { parseYaml } from "./yaml-parser.ts";
 export function parseAgentManifest(content: string, filePath?: string): AgentManifest {
   const parsed = parseYaml(content);
   const fileLabel = filePath !== undefined ? filePath : "in-memory";
-  if (typeof parsed !== "object") {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Failed to parse agent manifest YAML: output is not an object (file: ${fileLabel})`,
-    );
-  }
-  if (parsed === null) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Failed to parse agent manifest YAML: output is not an object (file: ${fileLabel})`,
-    );
-  }
-  if (Array.isArray(parsed)) {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
       `Failed to parse agent manifest YAML: output is not an object (file: ${fileLabel})`,
@@ -95,8 +83,19 @@ export function parseAgentManifest(content: string, filePath?: string): AgentMan
           ? rawComm.allowed_channels.map((c) => String(c).trim()).filter(Boolean)
           : [],
         ban_raw_jsonl_reading: Boolean(rawComm.ban_raw_jsonl_reading),
+        forbid_native_messaging:
+          rawComm.forbid_native_messaging !== undefined
+            ? Boolean(rawComm.forbid_native_messaging)
+            : undefined,
       }
     : undefined;
+
+  const mandatory_turn1_actions = Array.isArray(record.mandatory_turn1_actions)
+    ? record.mandatory_turn1_actions.map((a) => String(a).trim()).filter(Boolean)
+    : undefined;
+
+  const dispatch_contract =
+    typeof record.dispatch_contract === "string" ? record.dispatch_contract : undefined;
 
   return {
     name,
@@ -112,6 +111,8 @@ export function parseAgentManifest(content: string, filePath?: string): AgentMan
     instructions,
     protocol,
     communication_contract,
+    mandatory_turn1_actions,
+    dispatch_contract,
     filePath,
     raw: content,
   };

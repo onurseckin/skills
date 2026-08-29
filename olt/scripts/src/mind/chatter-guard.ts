@@ -1,4 +1,13 @@
 import { HarnessError } from "../core/errors/index.ts";
+import {
+  ACTIONABLE_ERROR_PATTERNS,
+  COMPANION_AUDIT_PATTERNS,
+  HIGH_PRIORITY_MILESTONE_PATTERNS,
+  PROGRESS_NARRATION_PATTERNS,
+  ROUTINE_PULSE_PATTERNS,
+  isOwnerInteractiveRecipient,
+  matchesAny,
+} from "./chatter-patterns.ts";
 
 export const DEFECT_MAIN_THREAD_CHATTER_BURNS_OWNER_CONTEXT =
   "defect-main-thread-chatter-burns-owner-context";
@@ -67,158 +76,43 @@ export interface AssertOwnerSafetyContext {
   readonly isOwnerSeat?: boolean;
 }
 
-const OWNER_INTERACTIVE_RECIPIENTS = new Set([
-  "human",
-  "user",
-  "stdout",
-  "interactive",
-  "console",
-  "terminal",
-  "owner",
-  "main-thread",
-  "root",
-]);
-
-const ROUTINE_PULSE_PATTERNS: readonly RegExp[] = [
-  /^\s*\[?(?:pulse|heartbeat|tick|liveness|cadence|interval|poll)\s*(?:tick|update|check|ping|ack|beat)?\]?\s*:/i,
-  /\b(?:routine\s+pulse|background\s+tick|liveness\s+ping|heartbeat\s+pulse|cadence\s+poll|scheduled\s+tick)\b/i,
-  /\bpulse\s+#?\d+\s+(?:nominal|quiescent|idle|ticking|alive|active|started|finished)\b/i,
-  /\bheartbeat\s+(?:nominal|ok|ping|pong|alive|ticking)\b/i,
-  /\bperiodic\s+(?:scan|poll|check|inspection)\s+(?:nominal|running|completed)\b/i,
-  /\bbackground\s+liveness\s+check\b/i,
-];
-
-const COMPANION_AUDIT_PATTERNS: readonly RegExp[] = [
-  /^\s*\[?(?:companion|witness|auditor|cognitive-witness|meta-auditor)\s*(?:audit|trace|scan|finding|observation)?\]?\s*:/i,
-  /\b(?:companion\s+auditor|cognitive\s+witness|meta-auditor|routine\s+audit\s+scan|witness\s+trace)\b/i,
-  /\baudit\s+cycle\s+#?\d+\s+(?:nominal|passed|observing|in\s+progress|clean)\b/i,
-  /\bcognitive\s+flavor\s+(?:evaluation|score|vector|matrix|poll)\b/i,
-  /\broutine\s+questionnaire\s+evaluation\b/i,
-  /\bwitness\s+observation\s+recorded\b/i,
-];
-
-const PROGRESS_NARRATION_PATTERNS: readonly RegExp[] = [
-  /^\s*\[?(?:status|progress|mid-flight)\s*(?:update|report|notice|ping)?\]?\s*:/i,
-  /\b(?:status|progress|mid-flight)\s+(?:update|report|ping|check|notice)\b/i,
-  /\bstep\s+\d+\s*(?:\/|\s+of\s+)\s*\d+/i,
-  /\bstep\s+\d+\s*:\s*(?:in\s+progress|started|starting|executing|complete|done)/i,
-  /\b(?:now\s+)?executing\s+step\b/i,
-  /\b(?:i am|i'm|currently)\s+(?:now\s+)?(?:executing|running|dispatching|processing|working\s+on)\b/i,
-  /\b(?:dispatching|spawning)\s+(?:subagent|worker|agent|task)\b/i,
-  /\bwaiting\s+for\s+(?:subagent|worker|agent|task\s+completion)\b/i,
-  /\bworker\s+(?:dispatched|assigned|spawned|started|running|working)\b/i,
-];
-
-const ACTIONABLE_ERROR_PATTERNS: readonly RegExp[] = [
-  /^\s*\[?(?:fatal|critical|panic|alert|escalation|fatal_trap)\]?\s*:/i,
-  /\b(?:fatal\s+trap|critical\s+fault|panic|unrecoverable\s+error|invariant\s+violation|role_confinement_violation|crash_threshold_exceeded|defect\s+escalation|hardware_fault)\b/i,
-  /\bactionable\s+error\s+detected\b/i,
-];
-
-const HIGH_PRIORITY_MILESTONE_PATTERNS: readonly RegExp[] = [
-  /^\s*\[?(?:milestone|deliverable|handoff|final\s+output|completion|release)\]?\s*:/i,
-  /\b(?:milestone\s+achieved|task\s+completed\s+successfully|objective\s+fulfilled|deliverable\s+ready|all\s+\d+\s+tests\s+pass(?:ing)?\s+with\s+0\s+failures)\b/i,
-  /\bfinal\s+deliverable\b/i,
-  /\bmission\s+accomplished\b/i,
-];
-
-function isOwnerInteractiveRecipient(recipient?: string): boolean {
-  return (
-    typeof recipient === "string" &&
-    recipient.trim().length > 0 &&
-    OWNER_INTERACTIVE_RECIPIENTS.has(recipient.trim().toLowerCase())
-  );
-}
-
-function matchesAny(text: string, patterns: readonly RegExp[]): boolean {
-  return (
-    typeof text === "string" && text.trim().length > 0 && patterns.some((p) => p.test(text.trim()))
-  );
-}
-
-function makeClassification(
+const classify = (
   category: ChatterCategory,
   isChatter: boolean,
   isSuppressed: boolean,
   reason: string,
   severity: ChatterSeverity,
-): ChatterClassification {
-  return { category, isChatter, isSuppressed, reason, severity };
-}
+): ChatterClassification => ({ category, isChatter, isSuppressed, reason, severity });
 
-export function estimateTokenSavings(text: string): number {
-  return typeof text === "string" && text.length > 0 ? Math.max(1, Math.ceil(text.length / 4)) : 0;
-}
+export const estimateTokenSavings = (text: string): number =>
+  typeof text === "string" && text.length > 0 ? Math.max(1, Math.ceil(text.length / 4)) : 0;
 
-export function isActionableError(text: string): boolean {
-  return matchesAny(text, ACTIONABLE_ERROR_PATTERNS);
-}
+export const isActionableError = (text: string): boolean =>
+  matchesAny(text, ACTIONABLE_ERROR_PATTERNS);
+export const isHighPriorityMilestone = (text: string): boolean =>
+  matchesAny(text, HIGH_PRIORITY_MILESTONE_PATTERNS);
+export const isRoutinePulse = (text: string): boolean => matchesAny(text, ROUTINE_PULSE_PATTERNS);
+export const isCompanionAuditorOutput = (text: string): boolean =>
+  matchesAny(text, COMPANION_AUDIT_PATTERNS);
+export const isProgressNarration = (text: string): boolean =>
+  matchesAny(text, PROGRESS_NARRATION_PATTERNS);
 
-export function isHighPriorityMilestone(text: string): boolean {
-  return matchesAny(text, HIGH_PRIORITY_MILESTONE_PATTERNS);
-}
-
-export function isRoutinePulse(text: string): boolean {
-  return matchesAny(text, ROUTINE_PULSE_PATTERNS);
-}
-
-export function isCompanionAuditorOutput(text: string): boolean {
-  return matchesAny(text, COMPANION_AUDIT_PATTERNS);
-}
-
-export function isProgressNarration(text: string): boolean {
-  return matchesAny(text, PROGRESS_NARRATION_PATTERNS);
-}
+const R_ACT = "Actionable error or defect escalation requires immediate owner attention";
+const R_MLS = "High priority milestone or final deliverable admitted to owner context";
+const R_PLS = "Routine pulse / heartbeat tick suppressed to preserve owner context";
+const R_AUD = "Companion auditor / witness chatter suppressed from main thread";
+const R_PRG = "Mid-flight progress narration suppressed from main thread";
+const R_STD = "Standard payload passes through without suppression";
 
 export function classifyChatter(text: string): ChatterClassification {
   if (typeof text !== "string") throw new HarnessError("INVALID_ARGUMENT", "Text must be a string");
-  if (isActionableError(text))
-    return makeClassification(
-      "ACTIONABLE_ERROR",
-      false,
-      false,
-      "Actionable error or defect escalation requires immediate owner attention",
-      "critical",
-    );
+  if (isActionableError(text)) return classify("ACTIONABLE_ERROR", false, false, R_ACT, "critical");
   if (isHighPriorityMilestone(text))
-    return makeClassification(
-      "HIGH_PRIORITY_MILESTONE",
-      false,
-      false,
-      "High priority milestone or final deliverable admitted to owner context",
-      "high",
-    );
-  if (isRoutinePulse(text))
-    return makeClassification(
-      "ROUTINE_PULSE",
-      true,
-      true,
-      "Routine pulse / heartbeat tick suppressed to preserve owner context",
-      "low",
-    );
-  if (isCompanionAuditorOutput(text))
-    return makeClassification(
-      "COMPANION_AUDIT",
-      true,
-      true,
-      "Companion auditor / witness chatter suppressed from main thread",
-      "low",
-    );
-  if (isProgressNarration(text))
-    return makeClassification(
-      "PROGRESS_NARRATION",
-      true,
-      true,
-      "Mid-flight progress narration suppressed from main thread",
-      "medium",
-    );
-  return makeClassification(
-    "STANDARD_PAYLOAD",
-    false,
-    false,
-    "Standard payload passes through without suppression",
-    "low",
-  );
+    return classify("HIGH_PRIORITY_MILESTONE", false, false, R_MLS, "high");
+  if (isRoutinePulse(text)) return classify("ROUTINE_PULSE", true, true, R_PLS, "low");
+  if (isCompanionAuditorOutput(text)) return classify("COMPANION_AUDIT", true, true, R_AUD, "low");
+  if (isProgressNarration(text)) return classify("PROGRESS_NARRATION", true, true, R_PRG, "medium");
+  return classify("STANDARD_PAYLOAD", false, false, R_STD, "low");
 }
 
 export function shouldSuppressForOwner(text: string, options?: ChatterGuardFilterOptions): boolean {
@@ -258,6 +152,9 @@ export function filterOwnerContextMessage(
   };
 }
 
+const CHATTER_VIOLATION_MSG =
+  "Main thread chatter policy violation: routine pulses, background ticking, and companion auditor outputs must not burn owner context";
+
 export function assertNonChatterOwnerContext(
   text: string,
   context?: AssertOwnerSafetyContext,
@@ -270,33 +167,35 @@ export function assertNonChatterOwnerContext(
       (context?.recipientRoleOrId === undefined ||
         isOwnerInteractiveRecipient(context.recipientRoleOrId)));
   if (isOwner && shouldSuppressForOwner(text)) {
-    throw new HarnessError(
-      "ROLE_CONFINEMENT_VIOLATION",
-      "Main thread chatter policy violation: routine pulses, background ticking, and companion auditor outputs must not burn owner context",
-    );
+    throw new HarnessError("ROLE_CONFINEMENT_VIOLATION", CHATTER_VIOLATION_MSG);
   }
 }
 
-const createCategoryCounters = (): Record<ChatterCategory, number> => ({
-  ROUTINE_PULSE: 0,
-  BACKGROUND_TICK: 0,
-  COMPANION_AUDIT: 0,
-  WITNESS_TRACE: 0,
-  PROGRESS_NARRATION: 0,
-  HIGH_PRIORITY_MILESTONE: 0,
-  ACTIONABLE_ERROR: 0,
-  STANDARD_PAYLOAD: 0,
+const CATEGORIES: readonly ChatterCategory[] = [
+  "ROUTINE_PULSE",
+  "BACKGROUND_TICK",
+  "COMPANION_AUDIT",
+  "WITNESS_TRACE",
+  "PROGRESS_NARRATION",
+  "HIGH_PRIORITY_MILESTONE",
+  "ACTIONABLE_ERROR",
+  "STANDARD_PAYLOAD",
+];
+
+const createCategoryCounters = (): Record<ChatterCategory, number> =>
+  Object.fromEntries(CATEGORIES.map((c) => [c, 0])) as Record<ChatterCategory, number>;
+
+const createInitialMetrics = (): ChatterGuardMetrics => ({
+  totalEvaluated: 0,
+  totalSuppressed: 0,
+  totalAllowed: 0,
+  suppressedBytes: 0,
+  estimatedSavedTokens: 0,
+  suppressedByCategory: createCategoryCounters(),
 });
 
 export class ChatterGuardEngine {
-  private metrics: ChatterGuardMetrics = {
-    totalEvaluated: 0,
-    totalSuppressed: 0,
-    totalAllowed: 0,
-    suppressedBytes: 0,
-    estimatedSavedTokens: 0,
-    suppressedByCategory: createCategoryCounters(),
-  };
+  private metrics: ChatterGuardMetrics = createInitialMetrics();
 
   public evaluate(text: string, options?: ChatterGuardFilterOptions): ChatterFilterResult {
     const result = filterOwnerContextMessage(text, options);
@@ -321,14 +220,7 @@ export class ChatterGuardEngine {
   }
 
   public resetMetrics(): void {
-    this.metrics = {
-      totalEvaluated: 0,
-      totalSuppressed: 0,
-      totalAllowed: 0,
-      suppressedBytes: 0,
-      estimatedSavedTokens: 0,
-      suppressedByCategory: createCategoryCounters(),
-    };
+    this.metrics = createInitialMetrics();
   }
 }
 

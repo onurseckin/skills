@@ -14,11 +14,7 @@ import {
 
 export const QUIESCENT_DIGEST_STREAK_THRESHOLD = 8;
 
-export {
-  DEFAULT_BASE_INTERVAL_MS,
-  DEFAULT_MAX_INTERVAL_MS,
-  QUIESCENCE_INTERVAL_MULTIPLIER,
-};
+export { DEFAULT_BASE_INTERVAL_MS, DEFAULT_MAX_INTERVAL_MS, QUIESCENCE_INTERVAL_MULTIPLIER };
 
 export interface QuiescentSourceObservation {
   readonly source: MindSourceId;

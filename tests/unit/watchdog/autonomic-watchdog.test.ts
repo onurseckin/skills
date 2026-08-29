@@ -52,10 +52,18 @@ describe("AutonomicWatchdog Core Lifecycle & Configuration", () => {
       capsuleRoot: "/tmp/capsule-test",
       enforcePreFlightGates: false,
       initialStartedAt: 1700000000000,
-      onHeartbeat: (t) => { tickReportReceived = t; },
-      onHealthAudit: (a) => { auditReceived = a; },
-      onViolation: (f) => { findingReceived = f; },
-      onReactiveWakeup: (_, t) => { wakeupReceived = t; },
+      onHeartbeat: (t) => {
+        tickReportReceived = t;
+      },
+      onHealthAudit: (a) => {
+        auditReceived = a;
+      },
+      onViolation: (f) => {
+        findingReceived = f;
+      },
+      onReactiveWakeup: (_, t) => {
+        wakeupReceived = t;
+      },
     });
 
     expect(watchdog.heartbeatIntervalMs).toBe(60_000);
@@ -101,9 +109,13 @@ describe("AutonomicWatchdog Adaptive Timers & Event Dispatching", () => {
   it("tracks event listeners and custom event emissions", () => {
     const watchdog = new AutonomicWatchdog();
     const events: WatchdogEvent[] = [];
-    const unsubscribe = watchdog.on("tick", (e) => { events.push(e); });
+    const unsubscribe = watchdog.on("tick", (e) => {
+      events.push(e);
+    });
 
-    const remove = watchdog.addEventListener("stall_detected", (e) => { events.push(e); });
+    const remove = watchdog.addEventListener("stall_detected", (e) => {
+      events.push(e);
+    });
     expect(typeof unsubscribe).toBe("function");
     expect(typeof remove).toBe("function");
 
@@ -146,7 +158,10 @@ describe("AutonomicWatchdog Adaptive Timers & Event Dispatching", () => {
 
   it("notifies events and records agent activities during reactive wakeups", async () => {
     const watchdog = new AutonomicWatchdog({ heartbeatIntervalMs: 100_000 });
-    watchdog.registerSubagent({ agentId: "impl-node-01", role: "implementer", taskId: "task-01" }, 1700000000000);
+    watchdog.registerSubagent(
+      { agentId: "impl-node-01", role: "implementer", taskId: "task-01" },
+      1700000000000,
+    );
     watchdog.recordWhoami("impl-node-01", 1700000000000);
     watchdog.recordDoctor("impl-node-01", 1700000000000);
 
@@ -163,7 +178,11 @@ describe("AutonomicWatchdog Adaptive Timers & Event Dispatching", () => {
 describe("AutonomicWatchdog Subagent Verification & CLI Status Report", () => {
   it("records command, heartbeat, proof, and generates status report", async () => {
     const watchdog = new AutonomicWatchdog({ heartbeatIntervalMs: 180_000 });
-    watchdog.registerSubagent({ agentId: "subagent-alpha", role: "implementer", taskId: "task-alpha" });
+    watchdog.registerSubagent({
+      agentId: "subagent-alpha",
+      role: "implementer",
+      taskId: "task-alpha",
+    });
     watchdog.recordWhoami("subagent-alpha");
     watchdog.recordDoctor("subagent-alpha");
     watchdog.recordCommand("subagent-alpha", ["whoami"], undefined, 0, 1234, "whoami");
@@ -179,7 +198,10 @@ describe("AutonomicWatchdog Subagent Verification & CLI Status Report", () => {
 
 describe("AutonomicWatchdog Invariants & Cleanliness", () => {
   it("enforces zero any and zero suppression directives in test and target files", () => {
-    const enginePath = join(__dirname, "../../../olt/scripts/src/watchdog/autonomic-watchdog/watchdog-engine.ts");
+    const enginePath = join(
+      __dirname,
+      "../../../olt/scripts/src/watchdog/autonomic-watchdog/watchdog-engine.ts",
+    );
     const content = readFileSync(enginePath, "utf8");
 
     expect(content).not.toMatch(new RegExp(":\\s*any\\b"));

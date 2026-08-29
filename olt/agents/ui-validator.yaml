@@ -23,6 +23,7 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "Claim validation leases (task:validate-start)"
@@ -31,6 +32,7 @@ permissions:
     - "Emit task approval (task:review --status approved)"
     - "Emit probe demands (task:probe)"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Execute ANY bash, test, or terminal commands (0 command execution privileges)"
     - "Write, edit, format, or delete repository files (0 source edits)"
     - "Pass work without probe round or Socratic critique"
@@ -55,6 +57,9 @@ min_adversarial_probes: 1
 max_adversarial_pushes: 20
 cognitive_pushes: 5
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   ---
   role: validator
   tier: 3

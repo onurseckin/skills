@@ -17,7 +17,16 @@ export interface ExitCodeSpec {
   readonly meaning: string;
 }
 
-export const PRIMARY_VERBS = ["plan", "queue", "task", "run", "doctor", "mind", "msg", "worktree"] as const;
+export const PRIMARY_VERBS = [
+  "plan",
+  "queue",
+  "task",
+  "run",
+  "doctor",
+  "mind",
+  "msg",
+  "worktree",
+] as const;
 
 export type PrimaryVerb = (typeof PRIMARY_VERBS)[number];
 
@@ -45,7 +54,11 @@ export type CommandDomain =
   | "doctor"
   | "policy"
   | "msg"
-  | "worktree";
+  | "worktree"
+  | "sched"
+  | "role"
+  | "hygiene"
+  | "defect";
 
 export type CommandHandler = (
   flags: Flags,

@@ -1,0 +1,41 @@
+{
+  "name": "role:cheat-sheet",
+  "aliases": [
+    "role:contract",
+    "role:cheat"
+  ],
+  "domain": "role",
+  "summary": "Display compact terminal cheat sheets and command matrices for system roles.",
+  "flags": [
+    {
+      "name": "role",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "roles-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "all",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "compact",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

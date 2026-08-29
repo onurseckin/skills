@@ -4,4 +4,3 @@ export {
   validateResolutionProof,
   verifyResolutionProofEmpirical,
 } from "../../../logging/defects/index.ts";
-

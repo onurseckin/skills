@@ -1,0 +1,31 @@
+{
+  "name": "hygiene:fix",
+  "aliases": [],
+  "domain": "hygiene",
+  "summary": "Quarantine repository root hygiene violations.",
+  "flags": [
+    {
+      "name": "repo-root",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "root",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "quarantine-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

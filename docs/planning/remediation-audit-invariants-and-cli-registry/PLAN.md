@@ -1,88 +1,165 @@
-# Remediation Plan: CLI Registry Conflict, Feedback Category Normalization, and Architecture Invariants Compliance
+# Master Plan: CLI Registry Disambiguation, Feedback Category Normalization & Repository Invariant Remediation
 
 > **Tracking ID:** `fb-1788022000000-remediation-cli-registry-and-invariants-compliance`  
-> **Status:** `PLANNED`  
-> **Priority:** `HIGH`  
-> **Target Subsystems:** `olt/scripts/src/cli/registry/`, `olt/scripts/src/mind/feedback/`, `olt/scripts/src/mind/preplanning/`, `olt/scripts/src/graph/`, `olt/scripts/src/telemetry/`  
-> **Author:** Independent Plan Implementation & Archive Auditor  
+> **Status:** `PLANNED - READY FOR COORDINATOR DISPATCH`  
+> **Priority:** `CRITICAL_USER_FEEDBACK`  
+> **Target Subsystems:** `olt/scripts/src/cli/registry/`, `olt/scripts/src/mind/feedback/`, `olt/scripts/src/mind/preplanning/`, `olt/scripts/src/graph/`, `olt/scripts/src/telemetry/`, `olt/scripts/src/validation/`  
+> **Author:** Pipeline Pre-Planning Meta-Orchestrator (`orchestrator_pipeline_preplanning`)  
 > **Created:** 2026-08-29
 
 ---
 
-## 1. Executive Summary & Audit Findings
+## Level 1: Executive Context & Problem Statement
 
-During the deep architectural audit of the last 10 completed plans in `docs/archive/completed-plans/`, five critical operational and invariant gaps were discovered in the codebase:
+### 1.1 Architectural Context & Root Causes
 
-1. **CLI Registry Duplicate Alias Conflict (`init` duplicate)**:
-   - `olt/scripts/src/cli/registry/run.ts` (orchestrate) and `olt/scripts/src/cli/registry/plan.ts` (plan:init) both claim the alias `"init"`.
-   - `BY_INVOCATION` indexing in `cli/registry/index.ts` throws `Error: duplicate CLI command name: init`, breaking CLI subprocess execution and commands using the registry.
-   - **Remediation**: Disambiguate command aliases so that `plan:init` retains `aliases: ["plan-init", "init-plan"]` while `orchestrate` retains `aliases: ["run", "run:init"]` or canonical unique aliases.
+During multi-agent continuous execution, forensic analysis and archive audits identified five structural invariant regressions and operational friction points:
 
-2. **Feedback Category Validation Gap (`ENGINE` & `COMMUNICATION`)**:
-   - `.olt/backlog.jsonl` contains items with `category: "ENGINE"` and `category: "COMMUNICATION"`.
-   - `validateCategory()` in `olt/scripts/src/mind/feedback/queue/types.ts` does not recognize these categories, throwing `HarnessError("INTEGRITY", "Feedback item requires valid category")` during `smart:synthesize`.
-   - **Remediation**: Extend `FeedbackCategory` union and `validateCategory()` mapping to accept `"ENGINE"` (maps to `"CORE_ENGINE"` or `"ENGINE"`) and `"COMMUNICATION"` (maps to `"CLI_TOOLING"` or `"COMMUNICATION"`).
+1. **CLI Registry Collision on Duplicate Alias (`init`)**:
+   `olt/scripts/src/cli/registry/run.ts` and `olt/scripts/src/cli/registry/plan.ts` both declared alias `"init"`. `BY_INVOCATION` indexing in `olt/scripts/src/cli/registry/index.ts` enforces unique command and alias registration and throws `Error: duplicate CLI command name: init`, crashing any harness invocation indexing the registry.
+   _Root Cause:_ Lack of compile-time alias disambiguation between `plan:init` and `run:init`.
 
-3. **Wildcard Facade Exports (`export *`) Elimination**:
-   - `olt/scripts/src/mind/preplanning/index.ts`, `graph/index.ts`, `telemetry/index.ts`, and `telemetry/collectors/index.ts` use wildcard `export *` re-exports, violating Invariant 3 (Explicit Named Exports in index.ts Facades).
-   - **Remediation**: Replace all `export *` with explicit named exports (`export { ... } from "..."`).
+2. **Feedback Category Validation Failure for `ENGINE` and `COMMUNICATION`**:
+   Active `.olt/backlog.jsonl` contains backlog entries with `category: "ENGINE"`, `"COMMUNICATION"`, `"VALIDATION"`, `"NOTIFICATION"`, `"GOVERNANCE"`, `"ORCHESTRATION"`, and `"AUDITING"`. In `olt/scripts/src/mind/feedback/queue/types.ts`, `validateCategory()` throws `HarnessError("INTEGRITY", "Feedback item requires valid category")` when encountering these unmapped categories during `smart:synthesize` and task admission.
+   _Root Cause:_ Incomplete category enum union and normalization mappings in feedback ingestion.
 
-4. **Source Density Budget Remediation (<= 300 Lines/File, <= 10 Files/Dir)**:
-   - 101 `.ts` source files exceed 300 physical lines (e.g. `defect-audit.ts` 955 lines, `mind-pulse.ts` 944 lines, `dag-view.ts` 1062 lines, `topology-synthesis.ts` 1008 lines, `multi-capsule.ts` 963 lines).
-   - 18 directories contain > 10 files (e.g. `cli/commands` 91 files, `reporting` 33 files, `graph` 34 files, `packets` 46 files).
-   - **Remediation**: Decompose oversized monolithic files into cohesive domain sub-modules under dedicated subdirectories with <= 10 files each.
+3. **Wildcard Facade Exports (`export *`)**:
+   Multiple facade modules (`mind/preplanning/index.ts`, `graph/index.ts`, `telemetry/index.ts`, `telemetry/collectors/index.ts`) violate the repository's explicit named exports invariant by using wildcard `export *` re-exports, degrading IDE symbol resolution and tree-shaking guarantees.
 
-5. **Zero Code Comments in TypeScript Files Enforcement**:
-   - 468 `.ts` source files contain 2,387 comments (single-line, block, docblock), violating the ZERO_COMMENTS_INVARIANT.
-   - **Remediation**: Execute an AST-preserving comment purge across all `.ts` source files while exempting markdown, YAML, and jsonl documentation.
+4. **Source Density Budget Violations**:
+   Oversized monolithic files (>300 physical lines) and directories containing >10 files exist across `cli/commands/`, `reporting/doctor/`, and `packets/`, violating density budgets.
+
+5. **Code Comments Invariant Violations**:
+   Source files in `olt/scripts/src/` contain non-documentation comments, violating the ZERO_CODE_COMMENTS invariant across all executable `.ts` files.
 
 ---
 
-## 2. Work Breakdown & Remediation Tasks
+## Level 2: Target Architecture & ASCII Unicode Topology
 
-### Wave 1: Immediate Critical Operational Fixes
-
-#### Task 1.1: CLI Registry Alias Conflict Disambiguation
-
-- **Files:** `olt/scripts/src/cli/registry/run.ts`, `olt/scripts/src/cli/registry/plan.ts`
-- **Action:** Remove duplicate `"init"` alias from `run.ts` or disambiguate to `"orchestrate-init"`. Ensure every command name and alias in `COMMAND_REGISTRY` is globally unique.
-- **Verification Gate:** `bun test tests/unit/workflow/task-check.test.ts` (subprocess spawn tests pass 100%).
-
-#### Task 1.2: Feedback Category Schema & Normalization Extension
-
-- **Files:** `olt/scripts/src/mind/feedback/queue/types.ts`
-- **Action:** Add `"ENGINE"`, `"COMMUNICATION"`, `"VALIDATION"`, `"TOOLING"` to `FeedbackCategory` and `validateCategory()`.
-- **Verification Gate:** `bun test tests/unit/cli/smart-task-ops.test.ts` (100% PASS).
-
-### Wave 2: Facade & Density Modularization
-
-#### Task 2.1: Named Index Facades Conversion
-
-- **Files:** `olt/scripts/src/mind/preplanning/index.ts`, `olt/scripts/src/graph/index.ts`, `olt/scripts/src/telemetry/index.ts`, `olt/scripts/src/telemetry/collectors/index.ts`
-- **Action:** Convert all `export *` statements to explicit named exports.
-- **Verification Gate:** `bun test tests/unit/validation/coding-conventions.test.ts`.
-
-#### Task 2.2: Large File & Directory Decomposition
-
-- **Files:** Top oversized files in `cli/commands/`, `orchestrator/`, `packets/`, `summary/`, `reporting/`
-- **Action:** Split into domain-semantic sub-modules adhering to $\le 300$ physical lines and $\le 10$ files per directory.
-
-### Wave 3: Zero-Comment Invariant Alignment
-
-#### Task 3.1: Repository TypeScript Comment Purge
-
-- **Files:** All `.ts` files under `olt/scripts/src/`
-- **Action:** Strip all code comments while preserving non-code documentation files (.md, .yaml, .json).
-- **Verification Gate:** `validateZeroCommentsInCode` on all `.ts` files passes with 0 violations.
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                   INVARIANT REMEDIATION & REGISTRY NORMALIZATION TOPOLOGY                   │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+                                            │
+               ┌────────────────────────────┼────────────────────────────┐
+               ▼                            ▼                            ▼
+┌─────────────────────────────┐┌─────────────────────────────┐┌─────────────────────────────┐
+│     CLI Registry Layer      ││    Feedback Queue Layer     ││    Facade & Index Layer     │
+│ ─────────────────────────── ││ ─────────────────────────── ││ ─────────────────────────── │
+│ • Unique Invocation Map     ││ • Extended Category Union   ││ • Explicit Named Exports    │
+│ • Disambiguated Aliases     ││ • Bidirectional Normalize   ││ • Zero Wildcard "export *"  │
+│ • Deterministic Handlers    ││ • Atomic Ingestion Parser   ││ • Strict Surface Facades   │
+└─────────────────────────────┘└─────────────────────────────┘└─────────────────────────────┘
+               │                            │                            │
+               └────────────────────────────┼────────────────────────────┘
+                                            ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              DENSITY & QUALITY RATTER GATES                                 │
+│ ─────────────────────────────────────────────────────────────────────────────────────────── │
+│ • Density Budget: ≤ 300 Physical Lines / File, ≤ 10 Files / Subsystem Directory             │
+│ • Code Hygiene: Zero Code Comments in all TypeScript files (Exempt: *.md, *.yaml, *.jsonl)  │
+│ • Zero TypeScript 'any' and Zero Compiler Suppressions                                      │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 3. Exhaustive Traceability Matrix
+## Level 3: Disjoint Scope Boundaries
 
-| Finding / Gap ID                                       | Target Subsystem              | Remediation Task | Verification Gate                                           |
-| :----------------------------------------------------- | :---------------------------- | :--------------- | :---------------------------------------------------------- |
-| `fb-cli-registry-duplicate-init-alias`                 | `cli/registry/`               | Task 1.1         | `bun test tests/unit/workflow/task-check.test.ts`           |
-| `fb-feedback-category-engine-communication-validation` | `mind/feedback/queue/`        | Task 1.2         | `bun test tests/unit/cli/smart-task-ops.test.ts`            |
-| `fb-facade-wildcard-export-elimination`                | `mind/preplanning/`, `graph/` | Task 2.1         | `bun test tests/unit/validation/coding-conventions.test.ts` |
-| `fb-density-budget-oversized-file-decomposition`       | `cli/`, `orchestrator/`       | Task 2.2         | Density budget scanner ($\le 300$ lines, $\le 10$ files)    |
-| `fb-zero-comment-invariant-repo-purge`                 | `olt/scripts/src/`            | Task 3.1         | Zero-comment scanner (0 violations across all `.ts`)        |
+| Scope Domain             | Path Specification                                                                                                                                                   | Access Contract       |
+| :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------- |
+| **Write Scope (Lane A)** | `olt/scripts/src/cli/registry/plan.ts`, `olt/scripts/src/cli/registry/run.ts`, `olt/scripts/src/cli/registry/index.ts`, `tests/unit/cli/registry-uniqueness.test.ts` | Exclusive Write Lease |
+| **Write Scope (Lane B)** | `olt/scripts/src/mind/feedback/queue/types.ts`, `olt/scripts/src/mind/feedback/queue/validator.ts`, `tests/unit/mind/feedback-category.test.ts`                      | Exclusive Write Lease |
+| **Write Scope (Lane C)** | `olt/scripts/src/mind/preplanning/index.ts`, `olt/scripts/src/graph/index.ts`, `olt/scripts/src/telemetry/index.ts`, `olt/scripts/src/telemetry/collectors/index.ts` | Exclusive Write Lease |
+| **Read-Only Scope**      | `olt/scripts/src/core/`, `olt/scripts/src/authority/`, `.olt/backlog.jsonl`, `.olt/defects.jsonl`                                                                    | Read-Only             |
+
+---
+
+## Level 4: Atomic Implementation Tasks Matrix
+
+| Task ID        | Target File Path                                | Exact TypeScript Symbols / Signatures                                  | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                                                                                         |
+| :------------- | :---------------------------------------------- | :--------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `task-rem-1.1` | `olt/scripts/src/cli/registry/plan.ts`          | `PLAN_COMMANDS: readonly CommandSpec[]`                                | Disambiguate `plan:init` alias from `"init"` to `["plan-init", "init-plan"]`. Ensure zero overlap with `run:init`.                                                                           |
+| `task-rem-1.2` | `olt/scripts/src/cli/registry/run.ts`           | `RUN_COMMANDS: readonly CommandSpec[]`                                 | Disambiguate `run:init` alias to `["run-init", "capsule-init"]` or canonical empty alias list.                                                                                               |
+| `task-rem-1.3` | `tests/unit/cli/registry-uniqueness.test.ts`    | `describe("CLI Registry Uniqueness", ...)`                             | Unit test verifying zero duplicate command names/aliases across `COMMAND_REGISTRY` and asserting `findCommand("plan:init")` and `findCommand("run:init")` resolve deterministically.         |
+| `task-rem-2.1` | `olt/scripts/src/mind/feedback/queue/types.ts`  | `FeedbackCategory`, `validateCategory(val: unknown): FeedbackCategory` | Extend `FeedbackCategory` union with `"ENGINE"`, `"COMMUNICATION"`, `"VALIDATION"`, `"NOTIFICATION"`, `"GOVERNANCE"`, `"ORCHESTRATION"`, `"AUDITING"`. Normalize synonyms deterministically. |
+| `task-rem-2.2` | `tests/unit/mind/feedback-category.test.ts`     | `describe("Feedback Category Normalization", ...)`                     | Unit test validating all backlog categories parse without throwing `HarnessError("INTEGRITY")`.                                                                                              |
+| `task-rem-3.1` | `olt/scripts/src/mind/preplanning/index.ts`     | `export { ... }` (Named Exports)                                       | Replace `export * from "./types.ts"`, etc., with explicit named exports.                                                                                                                     |
+| `task-rem-3.2` | `olt/scripts/src/graph/index.ts`                | `export { ... }` (Named Exports)                                       | Replace `export *` statements with explicit named exports for graph components, validators, and renderers.                                                                                   |
+| `task-rem-3.3` | `olt/scripts/src/telemetry/index.ts`            | `export { ... }` (Named Exports)                                       | Convert telemetry facade to explicit named exports.                                                                                                                                          |
+| `task-rem-3.4` | `olt/scripts/src/telemetry/collectors/index.ts` | `export { ... }` (Named Exports)                                       | Convert collector facade to explicit named exports.                                                                                                                                          |
+
+---
+
+## Level 5: Falsifiable Gate Verification Commands
+
+```bash
+# Gate 1: CLI Registry Uniqueness & Deterministic Resolution
+bun test tests/unit/cli/registry-uniqueness.test.ts
+
+# Gate 2: Feedback Category Normalization & Backlog Parsing
+bun test tests/unit/mind/feedback-category.test.ts
+
+# Gate 3: Facade Typechecking & Coding Conventions
+bun test tests/unit/validation/coding-conventions.test.ts
+
+# Gate 4: Repository Static Verification Interlock
+bun ~/.agents/skills/olt/scripts/harness.ts task:check --repo .
+```
+
+---
+
+## Level 6: Strict Invariant Enforcement
+
+1. **Zero Code Comments**: No inline `//`, multiline `/* */`, or docblock `/** */` comments permitted in any `.ts` file.
+2. **Density Budget**: Every modified file must remain $\le 300$ physical lines. Subdirectories must contain $\le 10$ files.
+3. **Ban Defect-Prefix Source Files**: No `defect-*.ts` or `fb-*.ts` files permitted in source or test directories.
+4. **Explicit Named Exports**: No `export *` wildcard re-exports. Every symbol must be explicitly named in `index.ts`.
+5. **Zero Backwards-Compatibility Shims**: No deprecated type aliases, dead shims, or polyfill fallbacks.
+
+---
+
+## Level 7: Sequential Critical Path DAG & Work/Span Optimization
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                             CRITICAL PATH DAG (KAHN SORT)                                   │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  [Wave 1: Registry & Category Fixes]
+      ├── Task rem-1.1 (Plan Registry Alias) ────────┐
+      ├── Task rem-1.2 (Run Registry Alias)  ────────┼──► [Gate 1: Registry Uniqueness Test]
+      ├── Task rem-1.3 (Registry Unit Test)  ────────┘
+      │
+      ├── Task rem-2.1 (Category Types Extension) ───┐
+      └── Task rem-2.2 (Category Unit Test)      ────┴──► [Gate 2: Category Validation Test]
+                                                                  │
+                                                                  ▼
+  [Wave 2: Facade Explicit Named Exports]
+      ├── Task rem-3.1 (Preplanning Facade) ─────────┐
+      ├── Task rem-3.2 (Graph Facade)       ─────────┼──► [Gate 3: Coding Conventions Test]
+      ├── Task rem-3.3 (Telemetry Facade)   ─────────┤
+      └── Task rem-3.4 (Collectors Facade)  ─────────┘
+                                                                  │
+                                                                  ▼
+  [Wave 3: Full Invariant Seal & Clean Release]
+      └── Task rem-4.1 (Clean Release & Verification) ──► [Gate 4: task:check & Skill Sync]
+```
+
+**Work/Span Calculation**:
+
+- Total Work ($W$): 9 discrete tasks $\approx 18$ minutes.
+- Critical Path Span ($S$): 3 sequential wave barriers $\approx 6$ minutes.
+- Optimal Concurrency: $P = \lceil W / S \rceil = \lceil 18 / 6 \rceil = 3$ concurrent implementers.
+- Hard Concurrency Cap: Never exceed 50 active subagents across all tiers.
+
+---
+
+## Level 8: Exhaustive Traceability Matrix
+
+| Backlog / Defect ID                                                   | Title / Requirement                          | Resolved By Tasks                                              | Falsifiable Gate Verification Target                              |
+| :-------------------------------------------------------------------- | :------------------------------------------- | :------------------------------------------------------------- | :---------------------------------------------------------------- |
+| `fb-1788022000000-remediation-cli-registry-and-invariants-compliance` | CLI Registry `init` Duplicate Alias Conflict | `task-rem-1.1`, `task-rem-1.2`, `task-rem-1.3`                 | `bun test tests/unit/cli/registry-uniqueness.test.ts`             |
+| `fb-1788022000000-remediation-cli-registry-and-invariants-compliance` | Feedback Category Schema Normalization       | `task-rem-2.1`, `task-rem-2.2`                                 | `bun test tests/unit/mind/feedback-category.test.ts`              |
+| `defect-modularity-facade-and-zero-comments-violation`                | Wildcard `export *` Elimination in Facades   | `task-rem-3.1`, `task-rem-3.2`, `task-rem-3.3`, `task-rem-3.4` | `bun test tests/unit/validation/coding-conventions.test.ts`       |
+| `defect-modularity-facade-and-zero-comments-violation`                | Strict Zero Comments Invariant Enforcement   | All Tasks                                                      | `bun ~/.agents/skills/olt/scripts/harness.ts task:check --repo .` |

@@ -52,7 +52,10 @@ export function validateTaskQueueDag(items: readonly TaskQueueItem[]): {
 export function enqueueTaskUnlocked(input: NewTaskQueueInput, filePath: string): TaskQueueItem {
   const existing = readTaskQueueFile(filePath);
   if (existing.some((e) => e.id === input.id)) {
-    throw new HarnessError("INVALID_ARGUMENT", `Task with id '${input.id}' already exists in the queue`);
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `Task with id '${input.id}' already exists in the queue`,
+    );
   }
 
   const rawDeps = input.dependencies ?? [];
@@ -74,7 +77,8 @@ export function enqueueTaskUnlocked(input: NewTaskQueueInput, filePath: string):
     status: initialStatus,
     write_scope: [...input.write_scope],
     gate: input.gate.trim(),
-    charter_goals: input.charter_goals && input.charter_goals.length > 0 ? [...input.charter_goals] : ["G1"],
+    charter_goals:
+      input.charter_goals && input.charter_goals.length > 0 ? [...input.charter_goals] : ["G1"],
     acceptance_criteria: input.acceptance_criteria ? [...input.acceptance_criteria] : [],
     dependencies: [...rawDeps],
     blocked_by: blockedBy,
@@ -98,7 +102,10 @@ export function enqueueTaskUnlocked(input: NewTaskQueueInput, filePath: string):
   const dagCheck = validateTaskQueueDag(updatedQueue);
   if (!dagCheck.ok) {
     const cycleStr = dagCheck.cycles.map((c) => c.join(" -> ")).join("; ");
-    throw new HarnessError("INTEGRITY", `Cannot enqueue task '${newItem.id}': circular dependency detected (${cycleStr})`);
+    throw new HarnessError(
+      "INTEGRITY",
+      `Cannot enqueue task '${newItem.id}': circular dependency detected (${cycleStr})`,
+    );
   }
 
   writeTaskQueueUnlocked(updatedQueue, filePath);
@@ -120,7 +127,10 @@ export function enqueueTasksBatchUnlocked(
 
   for (const input of inputs) {
     if (existingIds.has(input.id) || newIds.has(input.id)) {
-      throw new HarnessError("INVALID_ARGUMENT", `Duplicate task id '${input.id}' detected in batch enqueue`);
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `Duplicate task id '${input.id}' detected in batch enqueue`,
+      );
     }
     newIds.add(input.id);
   }
@@ -137,7 +147,11 @@ export function enqueueTasksBatchUnlocked(
 
     const blockedBy = rawDeps.filter((depId) => !completedIds.has(depId));
     const initialStatus: TaskQueueStatus =
-      typeof input.status === "string" ? input.status : blockedBy.length > 0 ? "BLOCKED" : "PENDING";
+      typeof input.status === "string"
+        ? input.status
+        : blockedBy.length > 0
+          ? "BLOCKED"
+          : "PENDING";
 
     newItems.push({
       id: input.id.trim(),
@@ -147,7 +161,8 @@ export function enqueueTasksBatchUnlocked(
       status: initialStatus,
       write_scope: [...input.write_scope],
       gate: input.gate.trim(),
-      charter_goals: input.charter_goals && input.charter_goals.length > 0 ? [...input.charter_goals] : ["G1"],
+      charter_goals:
+        input.charter_goals && input.charter_goals.length > 0 ? [...input.charter_goals] : ["G1"],
       acceptance_criteria: input.acceptance_criteria ? [...input.acceptance_criteria] : [],
       dependencies: [...rawDeps],
       blocked_by: blockedBy,
@@ -172,7 +187,10 @@ export function enqueueTasksBatchUnlocked(
   const dagCheck = validateTaskQueueDag(updatedQueue);
   if (!dagCheck.ok) {
     const cycleStr = dagCheck.cycles.map((c) => c.join(" -> ")).join("; ");
-    throw new HarnessError("INTEGRITY", `Cannot enqueue batch: circular dependency detected (${cycleStr})`);
+    throw new HarnessError(
+      "INTEGRITY",
+      `Cannot enqueue batch: circular dependency detected (${cycleStr})`,
+    );
   }
 
   writeTaskQueueUnlocked(updatedQueue, filePath);

@@ -2,7 +2,7 @@
   "schema": "olt/cli-capabilities-split@1",
   "source": "olt/scripts/src/cli/registry",
   "index_file": "index.jsonl",
-  "command_count": 146,
+  "command_count": 162,
   "domains": [
     {
       "domain": "plan",
@@ -18,7 +18,7 @@
     },
     {
       "domain": "task",
-      "command_count": 13,
+      "command_count": 19,
       "commands_dir": "commands/task",
       "markdown_file": "domains/task.md"
     },
@@ -78,7 +78,7 @@
     },
     {
       "domain": "authority",
-      "command_count": 8,
+      "command_count": 7,
       "commands_dir": "commands/authority",
       "markdown_file": "domains/authority.md"
     },
@@ -129,7 +129,31 @@
       "command_count": 6,
       "commands_dir": "commands/worktree",
       "markdown_file": "domains/worktree.md"
+    },
+    {
+      "domain": "sched",
+      "command_count": 3,
+      "commands_dir": "commands/sched",
+      "markdown_file": "domains/sched.md"
+    },
+    {
+      "domain": "role",
+      "command_count": 3,
+      "commands_dir": "commands/role",
+      "markdown_file": "domains/role.md"
+    },
+    {
+      "domain": "hygiene",
+      "command_count": 2,
+      "commands_dir": "commands/hygiene",
+      "markdown_file": "domains/hygiene.md"
+    },
+    {
+      "domain": "defect",
+      "command_count": 3,
+      "commands_dir": "commands/defect",
+      "markdown_file": "domains/defect.md"
     }
   ],
-  "digest": "f62d94edc8ca798a2037f37c4a13a698100a9fefefe30d394ad767815323b915"
+  "digest": "8431fda38e9a64cb701f0653cc524ffbd6f8ab196d10ef1d0071fdbc297a14a7"
 }

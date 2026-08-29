@@ -1,0 +1,82 @@
+import {
+  defectListCommand,
+  defectRecordCommand,
+  defectResolveCommand,
+} from "../commands/defect-ops.ts";
+import { DEFAULT_EXIT_CODES, optionalFlag, type CommandSpec } from "./types.ts";
+
+export const DEFECT_COMMANDS: readonly CommandSpec[] = [
+  {
+    name: "defect:record",
+    aliases: [],
+    domain: "defect",
+    summary: "Ingest and deduplicate defect records.",
+    description:
+      "Parses structured defect JSONL streams, performs windowed deduplication, and serializes aggregated defect entries.",
+    flags: [
+      optionalFlag("file", "string", "Path to defect JSONL log file."),
+      optionalFlag("path", "string", "Alias for file."),
+      optionalFlag("content", "string", "Raw JSONL content string."),
+      optionalFlag("json", "string", "Alias for content."),
+      optionalFlag("jsonl", "string", "Alias for content."),
+      optionalFlag("window-ms", "int", "Deduplication window in milliseconds."),
+      optionalFlag("dedup-window", "int", "Alias for window-ms."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ['bun harness.ts defect:record --content \'{"observation":"Bug"}\''],
+    handler: defectRecordCommand,
+  },
+  {
+    name: "defect:resolve",
+    aliases: [],
+    domain: "defect",
+    summary: "Resolve a defect record with empirical proof.",
+    description:
+      "Applies empirical resolution proof including task ID and test assertions to transition a defect record to resolved.",
+    flags: [
+      optionalFlag("defect", "string", "Defect JSON string to resolve."),
+      optionalFlag("defect-json", "string", "Alias for defect."),
+      optionalFlag("file", "string", "Path to file containing defect record."),
+      optionalFlag("task-id", "string", "Task ID that resolved the defect."),
+      optionalFlag("task", "string", "Alias for task-id."),
+      optionalFlag("test-assertion", "string", "Test assertion proving defect resolution."),
+      optionalFlag("assertion", "string", "Alias for test-assertion."),
+      optionalFlag("commit-sha", "string", "Commit SHA proving the resolution."),
+      optionalFlag("commit", "string", "Alias for commit-sha."),
+      optionalFlag("notes", "string", "Remediation explanation notes."),
+      optionalFlag("remediation-notes", "string", "Alias for notes."),
+      optionalFlag("verified-by", "string", "Identity of verifying agent."),
+      optionalFlag("resolved-at", "string", "Timestamp override (ISO 8601)."),
+      optionalFlag("require-commit-sha", "bool", "Require commit SHA for resolution."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      'bun harness.ts defect:resolve --task task-1 --assertion "bun test tests/unit/parser.test.ts"',
+    ],
+    handler: defectResolveCommand,
+  },
+  {
+    name: "defect:list",
+    aliases: [],
+    domain: "defect",
+    summary: "List and parse structured defect log entries.",
+    description: "Parses and filters defect entries from a JSONL log file or direct stream.",
+    flags: [
+      optionalFlag("file", "string", "Path to defect log file."),
+      optionalFlag("path", "string", "Alias for file."),
+      optionalFlag("content", "string", "Raw JSONL content string."),
+      optionalFlag("jsonl", "string", "Alias for content."),
+      optionalFlag("capsule-root", "string", "Capsule run root path."),
+      optionalFlag("run", "string", "Alias for capsule-root."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts defect:list --file .olt/defects.jsonl"],
+    handler: defectListCommand,
+  },
+];

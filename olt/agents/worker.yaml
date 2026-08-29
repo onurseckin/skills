@@ -20,6 +20,9 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
+mandatory_turn1_actions:
+  - "task:claim"
 permissions:
   may:
     - "Claim ready or retry-ready tasks holding exactly one lease token"
@@ -28,6 +31,7 @@ permissions:
     - "Run fast incremental typechecks and AST audits via task:check"
     - "Run focused file-scoped tests (bun test <file>)"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Ask user for prompts or instructions during execution"
     - "Hallucinate nonexistent host tool SDKs or pseudo-commands"
     - "Touch or modify any file outside leased write scope"
@@ -68,6 +72,10 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+  - Mandatory Turn 1 Actions: task:claim.
+
   ---
   role: implementer
   tier: 3

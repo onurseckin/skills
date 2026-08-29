@@ -23,7 +23,8 @@ describe("track worktree landing pipeline", () => {
       executed.push([...argv]);
       if (argv[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
       if (argv[0] === "rebase") return { status: 0, stdout: "", stderr: "" };
-      if (argv[0] === "rev-parse" && argv[1] === "HEAD") return { status: 0, stdout: "abc123def456\n", stderr: "" };
+      if (argv[0] === "rev-parse" && argv[1] === "HEAD")
+        return { status: 0, stdout: "abc123def456\n", stderr: "" };
       if (argv[0] === "push") return { status: 0, stdout: "", stderr: "" };
       if (argv[0] === "worktree") return { status: 0, stdout: "", stderr: "" };
       if (argv[0] === "branch") return { status: 0, stdout: "", stderr: "" };
@@ -34,7 +35,11 @@ describe("track worktree landing pipeline", () => {
     const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "track-landing-1.lock");
     mkdirSync(worktreeDir, { recursive: true });
     mkdirSync(join(TEST_DIR, ".olt", "worktrees", "locks"), { recursive: true });
-    writeFileSync(lockPath, JSON.stringify({ pid: process.pid, trackId: "track-landing-1" }), "utf8");
+    writeFileSync(
+      lockPath,
+      JSON.stringify({ pid: process.pid, trackId: "track-landing-1" }),
+      "utf8",
+    );
 
     let hookCalled = false;
     const result = landTrackToMain({
@@ -70,7 +75,8 @@ describe("track worktree landing pipeline", () => {
 
   test("landTrackToMain handles local-only repository gracefully", () => {
     const mockRunner: GitRunner = (cwd, argv) => {
-      if (argv[0] === "rev-parse" && argv[1] === "HEAD") return { status: 0, stdout: "localsha123\n", stderr: "" };
+      if (argv[0] === "rev-parse" && argv[1] === "HEAD")
+        return { status: 0, stdout: "localsha123\n", stderr: "" };
       if (argv[0] === "branch" && argv[1] === "-f") return { status: 0, stdout: "", stderr: "" };
       return { status: 0, stdout: "", stderr: "" };
     };
@@ -90,6 +96,8 @@ describe("track worktree landing pipeline", () => {
   });
 
   test("landTrackToMain throws INVALID_STATE when worktree does not exist", () => {
-    expect(() => landTrackToMain({ trackId: "missing-track", repoRoot: TEST_DIR })).toThrow(HarnessError);
+    expect(() => landTrackToMain({ trackId: "missing-track", repoRoot: TEST_DIR })).toThrow(
+      HarnessError,
+    );
   });
 });

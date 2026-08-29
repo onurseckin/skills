@@ -20,12 +20,14 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "Run typechecks (tsc --noEmit)"
     - "AST static audits"
     - "AGPs"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Re-run implementer unit tests"
     - "Write application code"
     - "Validate without execution receipts"
@@ -48,6 +50,9 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   # Generation 8 Retirement Notice
   > **RETIREMENT NOTICE (Generation 8)**: `mechanic-validator` is permanently retired as an LLM subagent role in Generation 8. All mechanical invariant checks (TypeScript typechecks, AST static invariant audits for 0 any and 0 suppressions) are anchored in the deterministic CLI tool `task:check`.
   ---

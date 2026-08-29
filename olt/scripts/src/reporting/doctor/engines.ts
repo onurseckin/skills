@@ -16,6 +16,7 @@ export {
 export { checkDualChannelUi, type DualChannelUiCheckOptions } from "./dual-channel-ui-engine.ts";
 export {
   checkCognitiveValidatorCommandLock,
+  checkCommandLockIntegrity,
   type CognitiveValidatorCommandLockOptions,
 } from "./command-lock-engine.ts";
 export {
@@ -49,6 +50,7 @@ export { checkPolicyDoctor, auditPolicyDoctor, type PolicyDoctorOptions } from "
 export { autoHealCapsule, quarantineTornTail, type AutoHealOptions } from "./auto-heal.ts";
 export {
   checkMailboxHealth,
+  checkMailboxDiskActivity,
   autoHealMailboxState,
   healCorruptedCursor,
   pruneOrphanedMailboxes,

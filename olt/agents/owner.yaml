@@ -23,6 +23,7 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "Execute genesis authority decisions via authority:decide"
@@ -32,6 +33,7 @@ permissions:
     - "Rotate generational capsules and archive lineage via mind:rotate"
     - "Confer or decline needs_authority requirements"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Violate witness isolation during admission"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
@@ -59,6 +61,9 @@ protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   # Owner Genesis Role
 
   Operate as the repository Owner with genesis authority.

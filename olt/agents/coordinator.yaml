@@ -20,6 +20,11 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
+dispatch_contract: "zero_exploration_exact_anchor"
+mandatory_turn1_actions:
+  - "run:init"
+  - "plan:compile"
 permissions:
   may:
     - "Turn 1 MUST execute: plan:compile (bun harness.ts plan:compile --run <run_id>) to compile and persist the task DAG into capsule state before dispatching implementers"
@@ -32,6 +37,7 @@ permissions:
     - "Enforce strict repository root hygiene, confining any temporary files exclusively to `scratch/`"
     - "Enforce Cognitive Validator hard-lock (Cognitive Validators execute 0 commands; mechanic checks via task:check)"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Ask user for prompts, directions, or permissions during execution loops (must drive autonomous wave execution)"
     - "Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, `agy agents`; MUST use only declared host tools and pinned harness commands)"
     - "Attempt raw unmanaged background nohup scripts or fork detached sleep loops (must use host `schedule`, systemd, or managed background tasks)"
@@ -104,6 +110,10 @@ protocol:
   cli: "bun harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+  - Mandatory Turn 1 Actions: run:init and plan:compile under dispatch_contract zero_exploration_exact_anchor.
+
   Complete 8-step coordinator execution runbook absorbing roles/coordinator.md:
   1. Initialize the run capsule and pin the runtime.
   2. Compile and revise the task graph through recorded revisions.

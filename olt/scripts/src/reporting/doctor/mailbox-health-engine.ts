@@ -21,26 +21,23 @@ export interface MailboxHealthOptions {
   readonly activeAgentIds?: readonly string[] | undefined;
   readonly state?: Readonly<Record<string, unknown>> | null | undefined;
 }
-
 function isValidCursorObject(val: unknown): val is MailboxCursor {
-  if (typeof val !== "object") return false;
-  if (val === null) return false;
-  if (Array.isArray(val)) return false;
+  if (typeof val !== "object" || val === null || Array.isArray(val)) return false;
   const obj = val as Record<string, unknown>;
-  const seq =
+  return Boolean(
     typeof obj.last_read_sequence === "number" &&
     Number.isFinite(obj.last_read_sequence) &&
-    obj.last_read_sequence >= 0;
-  const id = typeof obj.last_read_id === "string" && typeof obj.updated_at === "string";
-  const seen = Array.isArray(obj.seen_ids) && obj.seen_ids.every((i) => typeof i === "string");
-  return seq && id && seen;
+    obj.last_read_sequence >= 0 &&
+    typeof obj.last_read_id === "string" &&
+    typeof obj.updated_at === "string" &&
+    Array.isArray(obj.seen_ids) &&
+    obj.seen_ids.every((i) => typeof i === "string"),
+  );
 }
-
 function isValidEnvelopeObject(val: unknown): val is MailboxEnvelope<unknown> {
-  if (typeof val !== "object") return false;
-  if (val === null) return false;
+  if (typeof val !== "object" || val === null || Array.isArray(val)) return false;
   const obj = val as Record<string, unknown>;
-  return (
+  return Boolean(
     typeof obj.id === "string" &&
     obj.id.trim().length > 0 &&
     typeof obj.sequence === "number" &&
@@ -49,10 +46,9 @@ function isValidEnvelopeObject(val: unknown): val is MailboxEnvelope<unknown> {
     typeof obj.message_type === "string" &&
     typeof obj.timestamp === "string" &&
     typeof obj.correlation_id === "string" &&
-    typeof obj.hmac_signature === "string"
+    typeof obj.hmac_signature === "string",
   );
 }
-
 function readJsonlEnvelopes(filePath: string): {
   readonly envelopes: readonly MailboxEnvelope<unknown>[];
   readonly rawEntries: readonly { readonly line: string; readonly parsed: unknown }[];
@@ -73,12 +69,13 @@ function readJsonlEnvelopes(filePath: string): {
   } catch {}
   return { envelopes, rawEntries };
 }
-
 function resolveMailboxRoot(options: MailboxHealthOptions): string {
-  const root = typeof options.repoRoot === "string" ? options.repoRoot : process.cwd();
-  return join(resolve(root), ".olt", "mailboxes");
+  return join(
+    resolve(typeof options.repoRoot === "string" ? options.repoRoot : process.cwd()),
+    ".olt",
+    "mailboxes",
+  );
 }
-
 function listAgentDirs(mailboxesDir: string): readonly string[] {
   if (!existsSync(mailboxesDir)) return [];
   try {
@@ -93,7 +90,6 @@ function listAgentDirs(mailboxesDir: string): readonly string[] {
     return [];
   }
 }
-
 function inspectCursor(cursorPath: string): {
   readonly isCorrupt: boolean;
   readonly cursor: MailboxCursor | null;
@@ -105,7 +101,6 @@ function inspectCursor(cursorPath: string): {
   } catch {}
   return { isCorrupt: true, cursor: null };
 }
-
 export function healCorruptedCursor(cursorPath: string, inboxPath: string): boolean {
   try {
     let lastReadSeq = 0;
@@ -136,7 +131,6 @@ export function healCorruptedCursor(cursorPath: string, inboxPath: string): bool
     return false;
   }
 }
-
 export function pruneOrphanedMailboxes(options: MailboxHealthOptions = {}): readonly string[] {
   const pruned: string[] = [];
   const mailboxesDir = resolveMailboxRoot(options);
@@ -150,17 +144,13 @@ export function pruneOrphanedMailboxes(options: MailboxHealthOptions = {}): read
     } catch {
       continue;
     }
-    let isOrphaned = false;
-    if (activeSet !== null) {
-      isOrphaned = !activeSet.has(agentId);
-    } else if (options.state && typeof options.state === "object") {
+    let isOrphaned = activeSet !== null ? !activeSet.has(agentId) : (now - mtimeMs) / 1000 > 3600;
+    if (activeSet === null && options.state && typeof options.state === "object") {
       const agents = options.state.agents as Record<string, unknown> | undefined;
       const tasks = options.state.tasks as Record<string, unknown> | undefined;
-      const inState =
-        agents !== undefined && agentId in agents ? true : tasks !== undefined && agentId in tasks;
-      if (!inState && (now - mtimeMs) / 1000 > 3600) isOrphaned = true;
-    } else if ((now - mtimeMs) / 1000 > 3600) {
-      isOrphaned = true;
+      isOrphaned =
+        !((agents && agentId in agents) || (tasks && agentId in tasks)) &&
+        (now - mtimeMs) / 1000 > 3600;
     }
     if (isOrphaned) {
       const toArchive: string[] = [];
@@ -189,7 +179,6 @@ export function pruneOrphanedMailboxes(options: MailboxHealthOptions = {}): read
   }
   return pruned;
 }
-
 export function autoHealMailboxState(options: MailboxHealthOptions = {}): readonly string[] {
   const healed: string[] = [];
   const mailboxesDir = resolveMailboxRoot(options);
@@ -199,38 +188,91 @@ export function autoHealMailboxState(options: MailboxHealthOptions = {}): readon
     if (
       isCorrupt &&
       healCorruptedCursor(join(agentDir, "cursor.json"), join(agentDir, "inbox.jsonl"))
-    ) {
+    )
       healed.push(`Rebuilt corrupted cursor for mailbox '${agentId}'`);
-    }
   }
   healed.push(...pruneOrphanedMailboxes(options));
   return healed;
 }
-
-export function checkMailboxHealth(
-  options: MailboxHealthOptions = {},
-): DoctorCheckEngineResult & { readonly autoHealed?: readonly string[] } {
+export function checkMailboxDiskActivity(oltDir: string): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
-  const autoHealed: string[] = [];
-  const mailboxesDir = resolveMailboxRoot(options);
-  const sla = typeof options.slaThresholdSeconds === "number" ? options.slaThresholdSeconds : 120;
-  const now = Date.now();
-  const allRequests: MailboxEnvelope<unknown>[] = [];
-  const verdictCorrelations = new Set<string>();
-
+  const baseDir = existsSync(oltDir) ? oltDir : join(process.cwd(), oltDir);
+  const mailboxesDir = existsSync(join(baseDir, "mailboxes"))
+    ? join(baseDir, "mailboxes")
+    : existsSync(join(baseDir, ".olt", "mailboxes"))
+      ? join(baseDir, ".olt", "mailboxes")
+      : existsSync(baseDir) && baseDir.endsWith("mailboxes")
+        ? baseDir
+        : join(baseDir, "mailboxes");
+  if (!existsSync(mailboxesDir))
+    return { engine: "checkMailboxDiskActivity", passed: true, findings };
   for (const agentId of listAgentDirs(mailboxesDir)) {
     const agentDir = join(mailboxesDir, agentId);
-    const inboxPath = join(agentDir, "inbox.jsonl");
-    const outboxPath = join(agentDir, "outbox.jsonl");
-    const cursorPath = join(agentDir, "cursor.json");
     const quarantinePath = join(agentDir, "quarantine.log");
-
     if (existsSync(quarantinePath)) {
       try {
         const lines = readFileSync(quarantinePath, "utf8")
           .split("\n")
           .filter((l) => l.trim().length > 0);
-        if (lines.length > 0) {
+        if (lines.length > 0)
+          findings.push({
+            code: "MAILBOX_QUARANTINE_PRESENT",
+            severity: "WARN",
+            engine: "checkMailboxDiskActivity",
+            message: `Mailbox '${agentId}' contains ${lines.length} quarantined record(s)`,
+            details: { agentId, quarantinePath, count: lines.length },
+          });
+      } catch {}
+    }
+    const { isCorrupt } = inspectCursor(join(agentDir, "cursor.json"));
+    if (isCorrupt)
+      findings.push({
+        code: "MAILBOX_CURSOR_CORRUPTED",
+        severity: "ERROR",
+        engine: "checkMailboxDiskActivity",
+        message: `Mailbox '${agentId}' has a missing or corrupted cursor.json`,
+        details: { agentId, cursorPath: join(agentDir, "cursor.json") },
+      });
+    const inboxData = readJsonlEnvelopes(join(agentDir, "inbox.jsonl"));
+    const outboxData = readJsonlEnvelopes(join(agentDir, "outbox.jsonl"));
+    for (const item of [...inboxData.rawEntries, ...outboxData.rawEntries]) {
+      if (!isValidEnvelopeObject(item.parsed))
+        findings.push({
+          code: "MAILBOX_DISK_CORRUPT_ENVELOPE",
+          severity: "ERROR",
+          engine: "checkMailboxDiskActivity",
+          message: `Malformed envelope syntax on disk for mailbox '${agentId}'`,
+          details: { agentId, line: item.line },
+        });
+    }
+  }
+  return {
+    engine: "checkMailboxDiskActivity",
+    passed: findings.filter((f) => f.severity === "ERROR").length === 0,
+    findings,
+  };
+}
+export function checkMailboxHealth(
+  options: MailboxHealthOptions = {},
+): DoctorCheckEngineResult & { readonly autoHealed?: readonly string[] } {
+  const findings: DoctorDiagnosticFinding[] = [];
+  const mailboxesDir = resolveMailboxRoot(options);
+  const sla = typeof options.slaThresholdSeconds === "number" ? options.slaThresholdSeconds : 120;
+  const now = Date.now();
+  const allRequests: MailboxEnvelope<unknown>[] = [];
+  const verdictCorrelations = new Set<string>();
+  const autoHealList: string[] = [];
+
+  for (const agentId of listAgentDirs(mailboxesDir)) {
+    const agentDir = join(mailboxesDir, agentId);
+    const inboxPath = join(agentDir, "inbox.jsonl");
+    const quarantinePath = join(agentDir, "quarantine.log");
+    if (existsSync(quarantinePath)) {
+      try {
+        const lines = readFileSync(quarantinePath, "utf8")
+          .split("\n")
+          .filter((l) => l.trim().length > 0);
+        if (lines.length > 0)
           findings.push({
             code: "MAILBOX_QUARANTINE_PRESENT",
             severity: "WARN",
@@ -238,15 +280,12 @@ export function checkMailboxHealth(
             message: `Mailbox '${agentId}' contains ${lines.length} quarantined record(s) in quarantine.log`,
             details: { agentId, quarantinePath, count: lines.length },
           });
-        }
       } catch {}
     }
-
     const inboxData = readJsonlEnvelopes(inboxPath);
-    const outboxData = readJsonlEnvelopes(outboxPath);
-
+    const outboxData = readJsonlEnvelopes(join(agentDir, "outbox.jsonl"));
     for (const item of [...inboxData.rawEntries, ...outboxData.rawEntries]) {
-      if (!isValidEnvelopeObject(item.parsed)) {
+      if (!isValidEnvelopeObject(item.parsed))
         findings.push({
           code: "MAILBOX_HMAC_INTEGRITY_FAILURES",
           severity: "ERROR",
@@ -254,9 +293,9 @@ export function checkMailboxHealth(
           message: `HMAC signature verification failed for mailbox '${agentId}': malformed envelope syntax`,
           details: { agentId, line: item.line },
         });
-      } else {
+      else {
         const res = verifyEnvelopeHmac(item.parsed);
-        if (!res.valid) {
+        if (!res.valid)
           findings.push({
             code: "MAILBOX_HMAC_INTEGRITY_FAILURES",
             severity: "ERROR",
@@ -264,31 +303,26 @@ export function checkMailboxHealth(
             message: `HMAC signature verification failed for mailbox '${agentId}' message '${item.parsed.id}'`,
             details: { agentId, messageId: item.parsed.id, error: res.error },
           });
-        }
       }
     }
-
     for (const env of [...inboxData.envelopes, ...outboxData.envelopes]) {
       if (env.message_type === "VALIDATION_REQUEST") allRequests.push(env);
       else if (env.message_type === "VALIDATION_VERDICT")
         verdictCorrelations.add(env.correlation_id);
     }
-
-    const { isCorrupt, cursor: cursorObj } = inspectCursor(cursorPath);
+    const { isCorrupt, cursor: cursorObj } = inspectCursor(join(agentDir, "cursor.json"));
     if (isCorrupt) {
-      if (options.autoHeal && healCorruptedCursor(cursorPath, inboxPath)) {
-        autoHealed.push(`Rebuilt corrupted cursor for mailbox '${agentId}'`);
-      } else {
+      if (options.autoHeal && healCorruptedCursor(join(agentDir, "cursor.json"), inboxPath))
+        autoHealList.push(`Rebuilt corrupted cursor for mailbox '${agentId}'`);
+      else
         findings.push({
           code: "MAILBOX_CURSOR_CORRUPTED",
           severity: "ERROR",
           engine: "checkMailboxHealth",
           message: `Mailbox '${agentId}' has a missing or corrupted cursor.json`,
-          details: { agentId, cursorPath },
+          details: { agentId, cursorPath: join(agentDir, "cursor.json") },
         });
-      }
     }
-
     const lastReadSeq = cursorObj ? cursorObj.last_read_sequence : 0;
     const seenIds = new Set(cursorObj ? cursorObj.seen_ids : []);
     for (const msg of inboxData.envelopes) {
@@ -303,7 +337,7 @@ export function checkMailboxHealth(
             message: `Mailbox '${agentId}' has unread message '${msg.id}' (type: ${msg.message_type}) exceeding SLA (${Math.round(age)}s > ${sla}s)`,
             details: { agentId, messageId: msg.id, ageSeconds: age },
           });
-          if (age > 300) {
+          if (age > 300)
             findings.push({
               code: "MAILBOX_MESSAGE_STARVATION",
               severity: "ERROR",
@@ -311,43 +345,37 @@ export function checkMailboxHealth(
               message: `Mailbox '${agentId}' is experiencing message starvation for message '${msg.id}' (${Math.round(age)}s > 300s)`,
               details: { agentId, messageId: msg.id, ageSeconds: age },
             });
-          }
         }
       }
     }
   }
-
   const seenLoopCorrelations = new Set<string>();
   for (const req of allRequests) {
-    const corrId = req.correlation_id;
-    if (!seenLoopCorrelations.has(corrId)) {
-      seenLoopCorrelations.add(corrId);
-      if (!verdictCorrelations.has(corrId)) {
+    if (!seenLoopCorrelations.has(req.correlation_id)) {
+      seenLoopCorrelations.add(req.correlation_id);
+      if (!verdictCorrelations.has(req.correlation_id)) {
         const reqTime = Date.parse(req.timestamp);
         const age = !Number.isNaN(reqTime) ? Math.max(0, (now - reqTime) / 1000) : 0;
-        if (age > sla) {
+        if (age > sla)
           findings.push({
             code: "MAILBOX_BROKEN_COMMUNICATION_LOOP",
             severity: "WARN",
             engine: "checkMailboxHealth",
-            message: `Unresponded VALIDATION_REQUEST '${req.id}' for correlation '${corrId}' between '${req.sender_id}' and '${req.recipient_id}'`,
+            message: `Unresponded VALIDATION_REQUEST '${req.id}' for correlation '${req.correlation_id}' between '${req.sender_id}' and '${req.recipient_id}'`,
             details: {
-              correlationId: corrId,
+              correlationId: req.correlation_id,
               senderId: req.sender_id,
               recipientId: req.recipient_id,
             },
           });
-        }
       }
     }
   }
-
-  if (options.autoHeal) autoHealed.push(...pruneOrphanedMailboxes(options));
-
+  if (options.autoHeal) autoHealList.push(...pruneOrphanedMailboxes(options));
   return {
     engine: "checkMailboxHealth",
     passed: findings.filter((f) => f.severity === "ERROR").length === 0,
     findings,
-    ...(autoHealed.length > 0 ? { autoHealed } : {}),
+    ...(autoHealList.length > 0 ? { autoHealed: autoHealList } : {}),
   };
 }

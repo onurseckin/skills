@@ -3,7 +3,11 @@ import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { AutonomousLoopRunner } from "../../../../olt/scripts/src/orchestrator/loop-runner.ts";
 import { landPhaseRelease } from "../../../../olt/scripts/src/orchestrator/station-landing.ts";
-import type { RoundExecutionInput, RoundExecutionResult, RoundExecutor } from "../../../../olt/scripts/src/orchestrator/types.ts";
+import type {
+  RoundExecutionInput,
+  RoundExecutionResult,
+  RoundExecutor,
+} from "../../../../olt/scripts/src/orchestrator/types.ts";
 
 const TEST_DIR = join(process.cwd(), ".olt", "scratch", "test-orch-worktree");
 

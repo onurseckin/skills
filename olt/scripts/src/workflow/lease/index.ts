@@ -11,6 +11,7 @@ export {
   checkActiveLease,
   assertActiveLease,
   verifyLeaseGuard,
+  verifyDiskCapsuleLease,
   type LeaseGuardOptions,
   type LeaseGuardResult,
 } from "./guard.ts";

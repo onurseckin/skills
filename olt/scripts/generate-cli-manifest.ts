@@ -24,6 +24,7 @@ export function manifestPaths(): { markdown: string; splitRoot: string } {
     splitRoot: fileURLToPath(new URL("cli-capabilities/", references)),
   };
 }
+
 export function getShardKey(commandName: string, domain: string): string {
   if (domain === "mind") {
     if (commandName.includes("queue")) return "queue";
@@ -53,8 +54,10 @@ export function getShardKey(commandName: string, domain: string): string {
   }
   if (domain === "task") {
     if (["review", "validate"].some((k) => commandName.includes(k))) return "review";
-    if (["claim", "submit", "assign"].some((k) => commandName.includes(k))) return "lifecycle";
-    if (["abandon", "release"].some((k) => commandName.includes(k))) return "terminal";
+    if (["claim", "submit", "assign", "lease", "heartbeat"].some((k) => commandName.includes(k)))
+      return "lifecycle";
+    if (["abandon", "release", "fail", "complete", "prune"].some((k) => commandName.includes(k)))
+      return "terminal";
     return "ops";
   }
   if (domain === "diagnostics") {
@@ -107,7 +110,6 @@ export function writeManifest(): { markdown: string; splitFiles: string[] } {
     let domainMarkdown = renderDomainMarkdown(domain);
     const domainLines = domainMarkdown.split("\n");
 
-    // Markdown sharding
     if (domainLines.length > 300 && largeDomains.includes(domain)) {
       const shards = new Map<string, string[]>();
       for (const spec of specs) {
@@ -163,7 +165,6 @@ export function writeManifest(): { markdown: string; splitFiles: string[] } {
       splitFiles.push(target);
     }
 
-    // JSON Sharding
     if (largeDomains.includes(domain)) {
       const entries: Array<{ id: string; path: string }> = [];
       const shards = new Map<string, Array<{ id: string; path: string }>>();

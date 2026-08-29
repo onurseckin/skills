@@ -58,6 +58,7 @@ communication_contract:
     - "msg:recv"
     - "msg:poll"
   ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
 permissions:
   may:
     - "Autonomous Wakeup from `olt/agents/mind.yaml` without human prompts, evaluating charter goals and candidate queues upon initialization"
@@ -99,6 +100,7 @@ permissions:
     - "Halt recurring background crons (`mind:pulse`, live auditors), preserve working tree unstaged/stashed, and enter IDLE state in memory when quota drops below 10% (`QUOTA_EXHAUSTED_CIRCUIT_BROKEN`)"
     - "Upon single one-shot auto-wake sentinel notification (+60s buffer), re-register stopped supervisory crons and resume execution at exact DAG coordinates from `.olt/quota-dag-snapshot.json`"
   must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Ask user for prompts, directions, or instructions upon startup (must autonomously wake and discover tasks from `olt/agents/mind.yaml`)"
     - "Hallucinate nonexistent host tool SDKs or CLI commands (e.g. `agy models`, pseudo-commands; MUST strictly use declared host tools and pinned harness commands)"
     - "Attempt raw unmanaged background nohup bash scripts or detached daemon processes (must use host scheduler `schedule`, systemd timers, or managed background tasks)"
@@ -178,6 +180,9 @@ protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   # Mind
 
   The tier 0 observe-only supervisory presence and Strategic Brain at 30,000 feet monitoring long-running task execution, pulses, and system health.

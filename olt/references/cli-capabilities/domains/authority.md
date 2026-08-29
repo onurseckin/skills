@@ -7,7 +7,7 @@ hand. Index: [`../cli-capabilities.md`](../cli-capabilities.md).
 
 Grant or decline a needs_authority requirement.
 
-A requirement disposed needs_authority holds every task built on it non-executable until this is recorded. Granting makes it actionable; declining disposes it out_of_scope and cancels every dormant task that depends on it alone, refusing instead if that would invalidate an active or completed one. The decision is permanent: a second call with the same actor and rationale is idempotent, any other call against an already-decided requirement is refused.
+A requirement disposed needs_authority holds every task built on it non-executable until this is recorded. Granting makes it actionable; declining disposes it out_of_scope and cancels every dormant task that depends on it alone, refusing instead if that would invalidate an active or completed one.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -22,14 +22,14 @@ A requirement disposed needs_authority holds every task built on it non-executab
 | `--rationale` | string | yes | no | - | Why this decision is correct. |
 
 ```bash
-bun harness.ts authority:decide --run .olt/capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Human approved the production deploy in the review thread"
+bun harness.ts authority:decide --run .olt/capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Approved"
 ```
 
 ### `whoami`
 
 Inspect thread execution tier, PID, active agent, grants, and main-thread compliance.
 
-Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases. When executed on the interactive main thread, enforces the Main-Thread Restraint Guard advisory and logs structured defect records for unauthorized direct implementations.
+Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -47,29 +47,6 @@ Inspects the calling thread's OS process ID, parent PID, execution tier, active 
 ```bash
 bun harness.ts whoami
 bun harness.ts whoami --run .olt/capsules/<run-id> --agent coordinator-lead
-```
-
-### `role:cheat-sheet`
-
-Display compact terminal cheat sheets and command matrices for system roles.
-
-Renders ASCII tables and formatted markdown cheat sheets detailing tier, granted commands, forbidden actions, spawn rights, and architectural invariants.
-
-- **Aliases**: `role:contract`, `role:cheat`
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--role` | string | no | no | - | Specific role name to inspect. |
-| `--roles-dir` | string | no | no | - | Override roles directory path. |
-| `--all` | bool | no | no | - | Render full cheat sheets for all available roles. |
-| `--compact` | bool | no | no | - | Render compact summary format. |
-
-```bash
-bun harness.ts role:cheat-sheet
-bun harness.ts role:cheat-sheet --role implementer
-bun harness.ts role:cheat-sheet --all
 ```
 
 ### `watchdog:status`
@@ -104,7 +81,7 @@ bun harness.ts watchdog:status --generation 1 --filter-status active
 
 Purge stale or legacy watchdog monitors exceeding heartbeat timeout.
 
-Scans registered watchdog monitors across generations and pulses, transitioning timed-out monitors to stale or terminated status to prevent monitor accumulation.
+Scans registered watchdog monitors across generations and pulses, transitioning timed-out monitors to stale or terminated status.
 
 - **Aliases**: `watchdog:clean`
 - **Stdin**: not read
@@ -128,14 +105,13 @@ Scans registered watchdog monitors across generations and pulses, transitioning 
 
 ```bash
 bun harness.ts watchdog:cleanup --authority-run <run> --run <target-run>
-bun harness.ts watchdog:cleanup --authority-run <run> --run <target-run> --generation 1 --dry-run
 ```
 
 ### `watchdog:phase-cleanup`
 
 Terminate legacy phase watchdog monitors upon phase rollover or completion.
 
-Terminates active watchdog monitors belonging to completed or superseded phases, ensuring old monitors never accumulate across phase transitions.
+Terminates active watchdog monitors belonging to completed or superseded phases.
 
 - **Aliases**: `watchdog:phase-clean`, `watchdog:cleanup-phase`
 - **Stdin**: not read
@@ -145,29 +121,28 @@ Terminates active watchdog monitors belonging to completed or superseded phases,
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--authority-run` | string | yes | no | - | Capsule run whose active Mind grant authorizes this mutation. |
 | `--run` | string | yes | no | - | Target watchdog run root to clean; may equal --authority-run. |
-| `--actor` | string | no | no | - | Explicit acting Mind identity; must match the verified session when supplied. |
+| `--actor` | string | no | no | - | Explicit acting Mind identity. |
 | `--capsules-dir` | string | no | no | - | Capsules root directory. |
 | `--phase` | string | no | no | - | Phase to terminate. |
-| `--current-phase` | string | no | no | - | New phase (terminates all prior phases). |
+| `--current-phase` | string | no | no | - | New phase. |
 | `--generation` | int | no | no | - | Target generation. |
 | `--pulse-id` | string | no | no | - | Target pulse ID. |
 | `--exclude-id` | string | no | no | - | Watchdog ID to preserve. |
 | `--reason` | string | no | no | - | Termination reason. |
-| `--mark-as` | string | no | no | - | Status to mark (default: terminated). |
+| `--mark-as` | string | no | no | - | Status to mark. |
 | `--dry-run` | bool | no | no | - | Simulate phase cleanup. |
 | `--all` | bool | no | no | - | Show all terminated monitors. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts watchdog:phase-cleanup --authority-run <run> --run <target-run> --phase planning --generation 1
-bun harness.ts watchdog:phase-cleanup --authority-run <run> --run <target-run> --current-phase execution --generation 1
 ```
 
 ### `watchdog:verify`
 
 Verify watchdog lifecycle invariants and single-monitor constraints.
 
-Audits the watchdog registry against architectural constraints (max 1 active monitor per generation/pulse, no overdue heartbeats, no legacy phase orphans).
+Audits the watchdog registry against architectural constraints.
 
 - **Aliases**: `watchdog:check`, `watchdog:lint`
 - **Stdin**: not read
@@ -192,7 +167,7 @@ bun harness.ts watchdog:verify --generation 1
 
 Execute 2-way supervisory health probe and doctor diagnostics to top leader.
 
-Audits the live capsule across 5 supervisory health points ((a) Work/Span parallelization, (b) Plan enhancement, (c) 100% agent registry accuracy, (d) Strict role boundary adherence, (e) Doctor error resolution) and dispatches active probe report to the top leader.
+Audits the live capsule across 5 supervisory health points and dispatches active probe report.
 
 - **Aliases**: `watchdog:supervise`, `watchdog:health-probe`
 - **Stdin**: not read

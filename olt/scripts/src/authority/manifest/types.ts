@@ -66,6 +66,7 @@ export interface AgentManifestCommunicationContract {
   readonly lock_path: string;
   readonly allowed_channels: readonly string[];
   readonly ban_raw_jsonl_reading: boolean;
+  readonly forbid_native_messaging?: boolean | undefined;
 }
 
 export interface AgentManifestPermissions {
@@ -89,6 +90,8 @@ export interface AgentManifest {
   readonly instructions?: string | undefined;
   readonly protocol?: AgentManifestProtocol | undefined;
   readonly communication_contract?: AgentManifestCommunicationContract | undefined;
+  readonly mandatory_turn1_actions?: readonly string[] | undefined;
+  readonly dispatch_contract?: string | undefined;
   readonly filePath?: string | undefined;
   readonly raw?: string | undefined;
   readonly [key: string]: unknown;
@@ -115,6 +118,9 @@ export interface UnifiedAgentModel {
   };
   readonly manifest: AgentManifest;
   readonly contract: RoleContract;
+  readonly mandatory_turn1_actions?: readonly string[] | undefined;
+  readonly dispatch_contract?: string | undefined;
+  readonly forbidNativeMessaging?: boolean | undefined;
 }
 
 export interface ManifestLoaderOptions {

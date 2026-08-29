@@ -28,7 +28,11 @@ import type {
 } from "../planner/models.ts";
 import { readCognitiveMemory } from "../planner/memory.ts";
 import { readFeedbackQueue, resolveFeedbackQueuePath } from "../../../feedback/queue/index.ts";
-import { readTaskQueue, resolveTaskQueuePath, type TaskQueueItem } from "../../../../task/queue/index.ts";
+import {
+  readTaskQueue,
+  resolveTaskQueuePath,
+  type TaskQueueItem,
+} from "../../../../task/queue/index.ts";
 import { executeAtomicAdmissionToDispatch } from "./dispatch.ts";
 export function runInfiniteProductOwnerCycle(
   options: InfiniteProductOwnerOptions = {},
