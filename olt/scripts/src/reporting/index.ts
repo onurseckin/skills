@@ -39,6 +39,7 @@ export {
   escapeAppleScriptString,
   escapePowerShellString,
   formatElapsedDuration,
+  isTestEnvironment,
   notifyPhaseCompletion,
   playCompletionChime,
   sendSystemNotification,

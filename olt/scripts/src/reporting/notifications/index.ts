@@ -19,6 +19,7 @@ export {
 export {
   defaultNotificationSpawner,
   displaySystemNotification,
+  isTestEnvironment,
   notifyPhaseCompletion,
   playCompletionChime,
   sendSystemNotification,

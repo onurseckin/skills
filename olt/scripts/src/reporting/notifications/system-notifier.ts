@@ -16,6 +16,18 @@ import {
 } from "./types.ts";
 
 /**
+ * Checks whether the current process is executing under a unit test runner.
+ */
+export function isTestEnvironment(): boolean {
+  return (
+    process.env.NODE_ENV === "test" ||
+    process.env.BUN_ENV === "test" ||
+    Boolean(process.env.BUN_TEST) ||
+    typeof (globalThis as unknown as { describe?: unknown }).describe === "function"
+  );
+}
+
+/**
  * Default non-blocking child process spawner using detached and unref.
  */
 export function defaultNotificationSpawner(
@@ -27,6 +39,13 @@ export function defaultNotificationSpawner(
     shell?: boolean | undefined;
   },
 ): NotificationProcessSpawnResult | void {
+  if (isTestEnvironment()) {
+    return {
+      pid: 99999,
+      unref: () => {},
+    };
+  }
+
   try {
     const isDetached = options?.detached !== false;
     const stdioMode = options?.stdio !== undefined ? options.stdio : "ignore";

@@ -51,35 +51,40 @@ export function escapePowerShellString(input: string): string {
 export function buildPhaseNotificationPayload(
   options: PhaseCompletionNotificationOptions,
 ): NotificationPayload {
-  const title = options.title ?? "OLT Release Complete";
-  const subtitle = options.subtitle ?? options.phaseName;
+  const resolvedPhase =
+    options.phaseName && options.phaseName.trim().length > 0
+      ? options.phaseName.trim()
+      : "OLT Release";
 
-  const parts: string[] = [];
+  const title = options.title !== undefined ? options.title : "OLT Release Deployed";
+  const subtitle = options.subtitle !== undefined ? options.subtitle : `Phase: ${resolvedPhase}`;
 
-  if (options.durationMs !== undefined && options.durationMs >= 0) {
-    parts.push(`Duration: ${formatElapsedDuration(options.durationMs)}`);
+  const messageSegments: string[] = [];
+  if (options.commitSha && options.commitSha.trim().length > 0) {
+    messageSegments.push(`✓ Pushed ${options.commitSha.trim().slice(0, 8)}`);
   }
+  if (options.durationMs !== undefined && options.durationMs >= 0) {
+    messageSegments.push(formatElapsedDuration(options.durationMs));
+  }
+
+  let message = messageSegments.join(" | ");
 
   if (options.taskCount !== undefined && options.taskCount >= 0) {
     const taskWord = options.taskCount === 1 ? "task" : "tasks";
-    parts.push(`${options.taskCount} ${taskWord}`);
+    message =
+      message.length > 0
+        ? `${message} (${options.taskCount} ${taskWord})`
+        : `${options.taskCount} ${taskWord}`;
   }
 
-  if (options.commitSha) {
-    const shortSha = options.commitSha.trim().slice(0, 8);
-    if (shortSha.length > 0) {
-      parts.push(`commit ${shortSha}`);
-    }
+  if (options.details && options.details.trim().length > 0) {
+    message =
+      message.length > 0 ? `${message} - ${options.details.trim()}` : options.details.trim();
   }
 
-  if (options.details) {
-    parts.push(options.details.trim());
+  if (message.length === 0) {
+    message = `Phase "${resolvedPhase}" completed successfully.`;
   }
-
-  const message =
-    parts.length > 0
-      ? `Phase "${options.phaseName}" landed (${parts.join(", ")})`
-      : `Phase "${options.phaseName}" landed successfully.`;
 
   return {
     title,
