@@ -1,9 +1,6 @@
 {
   "name": "shell",
-  "aliases": [
-    "sh",
-    "exec:safe"
-  ],
+  "aliases": [],
   "domain": "run",
   "summary": "Execute direct non-interactive CLI commands under mechanical RBAC policy with signed evidence.",
   "flags": [

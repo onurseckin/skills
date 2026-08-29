@@ -1,9 +1,6 @@
 {
   "name": "role:cheat-sheet",
-  "aliases": [
-    "role:contract",
-    "role:cheat"
-  ],
+  "aliases": [],
   "domain": "role",
   "summary": "Display compact terminal cheat sheets and command matrices for system roles.",
   "flags": [

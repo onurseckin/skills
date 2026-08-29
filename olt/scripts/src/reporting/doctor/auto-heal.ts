@@ -9,6 +9,7 @@ import { createSha256Hash } from "../../mind/defects/core/discriminator.ts";
 import { cleanseDanglingLocks } from "./lock-cleaner.ts";
 import { autoHealGitState } from "./git-index-engine.ts";
 import { autoHealMailboxState } from "./mailbox-health-engine.ts";
+import { autoHealWorktreeState } from "./worktree-health-engine.ts";
 import { cleanupVestigialDefectsFile } from "../../mind/defects/sync/lifecycle-sync.ts";
 import type { AutoHealOptions, DoctorAutoHealResult } from "./types.ts";
 
@@ -81,6 +82,13 @@ export function autoHealCapsule(
     const mailboxHealed = autoHealMailboxState({ repoRoot });
     if (mailboxHealed.length > 0) {
       autoHealed.push(...mailboxHealed);
+    }
+  } catch {}
+
+  try {
+    const wtHeal = autoHealWorktreeState({ repoRoot });
+    if (wtHeal.repaired.length > 0) {
+      autoHealed.push(...wtHeal.repaired);
     }
   } catch {}
 

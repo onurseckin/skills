@@ -127,7 +127,14 @@ function releaseTrackLock(lockPath: string): void {
   }
 }
 
-export function createTrackWorktree(options: CreateWorktreeOptions): TrackWorktreeInfo {
+export function createTrackWorktree(trackId: string): string;
+export function createTrackWorktree(options: CreateWorktreeOptions): TrackWorktreeInfo;
+export function createTrackWorktree(
+  trackIdOrOptions: string | CreateWorktreeOptions,
+): string | TrackWorktreeInfo {
+  const options: CreateWorktreeOptions =
+    typeof trackIdOrOptions === "string" ? { trackId: trackIdOrOptions } : trackIdOrOptions;
+
   if (!options.trackId || !TRACK_ID_REGEX.test(options.trackId)) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
@@ -180,6 +187,10 @@ export function createTrackWorktree(options: CreateWorktreeOptions): TrackWorktr
     mkdirSync(worktreePath, { recursive: true });
     const metaPath = join(worktreePath, ".worktree-meta.json");
     writeFileSync(metaPath, JSON.stringify(info, null, 2), "utf-8");
+
+    if (typeof trackIdOrOptions === "string") {
+      return worktreePath;
+    }
     return info;
   } catch (error) {
     releaseTrackLock(lockPath);
@@ -187,10 +198,17 @@ export function createTrackWorktree(options: CreateWorktreeOptions): TrackWorktr
   }
 }
 
-export function cleanupTrackWorktree(options: CleanupWorktreeOptions): {
+export function destroyTrackWorktree(trackId: string): void;
+export function destroyTrackWorktree(options: CleanupWorktreeOptions): {
   cleaned: boolean;
   trackId: string;
-} {
+};
+export function destroyTrackWorktree(
+  trackIdOrOptions: string | CleanupWorktreeOptions,
+): void | { cleaned: boolean; trackId: string } {
+  const options: CleanupWorktreeOptions =
+    typeof trackIdOrOptions === "string" ? { trackId: trackIdOrOptions } : trackIdOrOptions;
+
   const repo = resolveRepo(options.repoRoot);
   const worktreesRoot = join(repo, ".olt", "worktrees");
   const worktreePath = join(worktreesRoot, options.trackId);
@@ -228,8 +246,13 @@ export function cleanupTrackWorktree(options: CleanupWorktreeOptions): {
     releaseTrackLock(lockPath);
   }
 
+  if (typeof trackIdOrOptions === "string") {
+    return;
+  }
   return { cleaned: true, trackId: options.trackId };
 }
+
+export const cleanupTrackWorktree = destroyTrackWorktree;
 
 export function listTrackWorktrees(options?: ListWorktreesOptions): readonly TrackWorktreeInfo[] {
   const repo = resolveRepo(options?.repoRoot);

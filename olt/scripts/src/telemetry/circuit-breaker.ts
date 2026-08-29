@@ -1,126 +1,125 @@
-/**
- * Quota Circuit-Breaker & Dynamic Auto-Wake Scheduler Engine
- *
- * Provides autonomous quota threshold monitoring (<10%), wrap-up directive generation
- * for active agents (preserving memory/state without terminating), and precise
- * reset-time-based one-shot auto-wake schedule computation with safe-window fallback.
- */
-
 import type { TelemetryNormalizationEngine } from "./engine.ts";
 import type { NormalizedQuotaMetric, UnifiedTelemetryReport } from "./types.ts";
+import { formatCircuitBreakerMarkdown } from "./circuit-breaker-markdown.ts";
+import {
+  AUTO_WAKE_PROMPT,
+  CRITICAL_WRAP_UP_MESSAGE,
+  DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
+  DEFAULT_QUOTA_THRESHOLD,
+  DEFAULT_SAFE_WINDOW_SECONDS,
+  UNMEASURED_QUOTA_WRAP_UP_MESSAGE,
+  evaluateCircuitBreaker,
+  extractResetTime,
+  type AutoWakeSchedulePayload,
+  type CircuitBreakerEvaluation,
+  type CircuitBreakerStatus,
+  type ConstrainedModelInfo,
+  type QuotaCircuitBreakerOptions,
+  type WrapUpDirective,
+} from "./circuit-breaker-evaluator.ts";
 
-export type CircuitBreakerStatus =
-  | "OK"
-  | "QUOTA_EXHAUSTED_CIRCUIT_BROKEN"
-  | "QUOTA_UNKNOWN_CIRCUIT_BROKEN";
+export type {
+  AutoWakeSchedulePayload,
+  CircuitBreakerEvaluation,
+  CircuitBreakerStatus,
+  ConstrainedModelInfo,
+  QuotaCircuitBreakerOptions,
+  WrapUpDirective,
+};
 
-export const DEFAULT_QUOTA_THRESHOLD = 10.0; // 10.0%
-export const DEFAULT_SAFE_WINDOW_SECONDS = 18000; // 5 hours in seconds (18,000s)
-export const DEFAULT_AUTO_WAKE_BUFFER_SECONDS = 60; // 60 seconds (+1m buffer)
+export {
+  AUTO_WAKE_PROMPT,
+  CRITICAL_WRAP_UP_MESSAGE,
+  DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
+  DEFAULT_QUOTA_THRESHOLD,
+  DEFAULT_SAFE_WINDOW_SECONDS,
+  UNMEASURED_QUOTA_WRAP_UP_MESSAGE,
+  extractResetTime,
+  formatCircuitBreakerMarkdown,
+};
 
-export const CRITICAL_WRAP_UP_MESSAGE =
-  "CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<10%). Wrap up current micro-step immediately. Do not claim or start new tasks. Keep working tree changes unstaged/stashed safely without destructive actions. Enter idle state.";
-
-export const UNMEASURED_QUOTA_WRAP_UP_MESSAGE =
-  "Quota availability is unavailable or unmeasured. Wrap up current micro-step immediately. Do not claim or start new tasks until a measured quota observation is available. Keep working tree changes unstaged/stashed safely without destructive actions. Enter idle state.";
-
-export const AUTO_WAKE_PROMPT =
-  "Quota limit refreshed (+1m buffer). Resuming autonomous execution from idle state.";
-
-export interface WrapUpDirective {
-  readonly recipient: string;
-  readonly message: string;
-  readonly action: "idle";
-  readonly forbidKill: true;
-  readonly reason: string;
-}
-
-export interface AutoWakeSchedulePayload {
-  readonly type: "one_shot_timer";
-  readonly durationSeconds: number;
-  readonly targetWakeupIso: string;
-  readonly prompt: string;
-  readonly timerCondition: "never";
-  readonly activeAgentsCount: number;
-}
-
-export interface ConstrainedModelInfo {
-  readonly platformId: string;
-  readonly modelName: string;
-  readonly remainingPercentage: number;
+export interface QuotaState {
+  readonly remainingPercentage?: number | undefined;
+  readonly remainingFraction?: number | undefined;
+  readonly remainingPercent?: number | undefined;
+  readonly remaining?: number | undefined;
+  readonly total?: number | undefined;
+  readonly used?: number | undefined;
   readonly resetTime?: string | undefined;
-  readonly sourceTier?: string | undefined;
-  readonly confidence?: string | undefined;
+  readonly platformId?: string | undefined;
+  readonly modelName?: string | undefined;
 }
 
-export interface CircuitBreakerEvaluation {
-  readonly status: CircuitBreakerStatus;
-  readonly isTriggered: boolean;
+export interface CircuitBreakerVerdict {
+  readonly tripped: boolean;
+  readonly remainingPercentage: number;
   readonly thresholdPercentage: number;
-  readonly lowestRemainingQuota: number | null;
-  readonly constrainedModels: readonly ConstrainedModelInfo[];
-  readonly wrapUpDirectives: readonly WrapUpDirective[];
-  readonly autoWakeSchedule: AutoWakeSchedulePayload | null;
-  readonly summary: string;
-  readonly evaluatedAt: string;
+  readonly status: "OK" | "TRIPPED";
+  readonly reason?: string | undefined;
+  readonly wrapUpMessage?: string | undefined;
+  readonly resetTime?: string | undefined;
+  readonly checkedAt: string;
 }
 
-export interface QuotaCircuitBreakerOptions {
-  readonly thresholdPercentage?: number | undefined;
-  readonly activeAgentsCount?: number | undefined;
-  readonly activeAgentIds?: readonly string[] | undefined;
-  readonly now?: number | Date | string | undefined;
-  readonly defaultSafeWindowSeconds?: number | undefined;
-  readonly bufferSeconds?: number | undefined;
-}
+export function checkQuotaCircuitBreaker(
+  quota: QuotaState | number | unknown,
+  thresholdPercentage = DEFAULT_QUOTA_THRESHOLD,
+): CircuitBreakerVerdict {
+  let remaining: number;
+  let resetTime: string | undefined;
 
-/**
- * Extracts ISO resetTime string from a normalized quota metric's raw payload,
- * inspecting standard Connect-RPC structures, quotaInfo, and userStatus.
- */
-export function extractResetTime(metric: NormalizedQuotaMetric): string | undefined {
-  const payload = metric.rawPayload;
-  if (!payload || typeof payload !== "object") return undefined;
-
-  const record = payload as Record<string, unknown>;
-
-  // 1. Direct resetTime / reset_time on rawPayload
-  if (typeof record.resetTime === "string" && record.resetTime.trim()) {
-    return record.resetTime.trim();
-  }
-  if (typeof record.reset_time === "string" && record.reset_time.trim()) {
-    return record.reset_time.trim();
-  }
-
-  // 2. Inside quotaInfo
-  if (typeof record.quotaInfo === "object" && record.quotaInfo !== null) {
-    const quotaInfo = record.quotaInfo as Record<string, unknown>;
-    if (typeof quotaInfo.resetTime === "string" && quotaInfo.resetTime.trim()) {
-      return quotaInfo.resetTime.trim();
+  if (typeof quota === "number") {
+    remaining = quota <= 1.0 && quota > 0 ? quota * 100 : quota;
+  } else if (typeof quota === "object" && quota !== null) {
+    const record = quota as Record<string, unknown>;
+    if (typeof record.remainingPercentage === "number") {
+      remaining = record.remainingPercentage;
+    } else if (typeof record.remainingPercent === "number") {
+      remaining = record.remainingPercent;
+    } else if (typeof record.remainingFraction === "number") {
+      remaining = record.remainingFraction * 100;
+    } else if (
+      typeof record.remaining === "number" &&
+      typeof record.total === "number" &&
+      record.total > 0
+    ) {
+      remaining = (record.remaining / record.total) * 100;
+    } else if (
+      typeof record.used === "number" &&
+      typeof record.total === "number" &&
+      record.total > 0
+    ) {
+      remaining = Math.max(0, ((record.total - record.used) / record.total) * 100);
+    } else {
+      remaining = 0;
     }
-    if (typeof quotaInfo.reset_time === "string" && quotaInfo.reset_time.trim()) {
-      return quotaInfo.reset_time.trim();
-    }
-  }
 
-  // 3. Nested inside userStatus
-  if (typeof record.userStatus === "object" && record.userStatus !== null) {
-    const userStatus = record.userStatus as Record<string, unknown>;
-    if (typeof userStatus.quotaInfo === "object" && userStatus.quotaInfo !== null) {
-      const qInfo = userStatus.quotaInfo as Record<string, unknown>;
-      if (typeof qInfo.resetTime === "string" && qInfo.resetTime.trim()) {
-        return qInfo.resetTime.trim();
-      }
-      if (typeof qInfo.reset_time === "string" && qInfo.reset_time.trim()) {
-        return qInfo.reset_time.trim();
-      }
+    if (typeof record.resetTime === "string") {
+      resetTime = record.resetTime;
+    } else if (typeof record.reset_time === "string") {
+      resetTime = record.reset_time;
     }
-    if (typeof userStatus.resetTime === "string" && userStatus.resetTime.trim()) {
-      return userStatus.resetTime.trim();
-    }
+  } else {
+    remaining = 0;
   }
 
-  return undefined;
+  const tripped = remaining <= thresholdPercentage;
+  const status: "OK" | "TRIPPED" = tripped ? "TRIPPED" : "OK";
+  const reason = tripped
+    ? `Remaining quota ${remaining.toFixed(2)}% is at or below threshold ${thresholdPercentage.toFixed(2)}%`
+    : undefined;
+  const wrapUpMessage = tripped ? CRITICAL_WRAP_UP_MESSAGE : undefined;
+
+  return {
+    tripped,
+    remainingPercentage: remaining,
+    thresholdPercentage,
+    status,
+    reason,
+    wrapUpMessage,
+    resetTime,
+    checkedAt: new Date().toISOString(),
+  };
 }
 
 export class QuotaCircuitBreaker {
@@ -136,190 +135,22 @@ export class QuotaCircuitBreaker {
     } = {},
   ) {
     this.defaultThreshold = options.thresholdPercentage ?? DEFAULT_QUOTA_THRESHOLD;
-    this.defaultSafeWindowSeconds = options.defaultSafeWindowSeconds ?? DEFAULT_SAFE_WINDOW_SECONDS;
+    this.defaultSafeWindowSeconds =
+      options.defaultSafeWindowSeconds ?? DEFAULT_SAFE_WINDOW_SECONDS;
     this.defaultBufferSeconds = options.bufferSeconds ?? DEFAULT_AUTO_WAKE_BUFFER_SECONDS;
   }
 
-  /**
-   * Evaluates a UnifiedTelemetryReport synchronously against quota threshold limits.
-   */
   public evaluate(
     report: UnifiedTelemetryReport,
     options?: QuotaCircuitBreakerOptions,
   ): CircuitBreakerEvaluation {
-    const threshold = options?.thresholdPercentage ?? this.defaultThreshold;
-    const defaultSafeWindow = options?.defaultSafeWindowSeconds ?? this.defaultSafeWindowSeconds;
-    const bufferSec = options?.bufferSeconds ?? this.defaultBufferSeconds;
-    const activeAgentsCount = options?.activeAgentsCount ?? options?.activeAgentIds?.length ?? 0;
-
-    const nowMs =
-      options?.now !== undefined
-        ? options.now instanceof Date
-          ? options.now.getTime()
-          : typeof options.now === "string"
-            ? new Date(options.now).getTime()
-            : options.now
-        : Date.now();
-
-    const constrainedModels: ConstrainedModelInfo[] = [];
-    let lowestRemainingQuota: number | null = null;
-    let measuredObservationCount = 0;
-    let hasUnmeasuredObservation = report.results.length === 0;
-
-    for (const res of report.results) {
-      if (res.isDetected !== true) {
-        hasUnmeasuredObservation = true;
-        continue;
-      }
-      if (res.errors.length > 0 || res.metrics.length === 0) hasUnmeasuredObservation = true;
-      for (const metric of res.metrics) {
-        const remainingPercentage = metric.remainingPercentage;
-        if (typeof remainingPercentage !== "number" || !Number.isFinite(remainingPercentage)) {
-          hasUnmeasuredObservation = true;
-          continue;
-        }
-        measuredObservationCount += 1;
-
-        if (lowestRemainingQuota === null || remainingPercentage < lowestRemainingQuota) {
-          lowestRemainingQuota = remainingPercentage;
-        }
-
-        if (remainingPercentage < threshold) {
-          constrainedModels.push({
-            platformId: res.platformId,
-            modelName: metric.rawMetricName,
-            remainingPercentage,
-            resetTime: extractResetTime(metric),
-            sourceTier: metric.sourceTier,
-            confidence: metric.confidence,
-          });
-        }
-      }
-    }
-
-    const summaryRemainingQuota = report.summary?.lowestRemainingQuota;
-    const summaryShowsExhaustion =
-      typeof summaryRemainingQuota === "number" &&
-      Number.isFinite(summaryRemainingQuota) &&
-      summaryRemainingQuota < threshold;
-    if (
-      summaryShowsExhaustion &&
-      (lowestRemainingQuota === null || summaryRemainingQuota < lowestRemainingQuota)
-    ) {
-      lowestRemainingQuota = summaryRemainingQuota;
-    }
-
-    const isExhausted = constrainedModels.length > 0 || summaryShowsExhaustion;
-    const isUnknown = !isExhausted && (measuredObservationCount === 0 || hasUnmeasuredObservation);
-    const isTriggered = isExhausted || isUnknown;
-
-    if (!isTriggered) {
-      const summary =
-        lowestRemainingQuota !== null
-          ? `Quota healthy at ${lowestRemainingQuota.toFixed(2)}% (threshold: ${threshold.toFixed(2)}%). Circuit breaker inactive.`
-          : "No quota metrics detected; execution running normally.";
-
-      return {
-        status: "OK",
-        isTriggered: false,
-        thresholdPercentage: threshold,
-        lowestRemainingQuota,
-        constrainedModels: [],
-        wrapUpDirectives: [],
-        autoWakeSchedule: null,
-        summary,
-        evaluatedAt: new Date(nowMs).toISOString(),
-      };
-    }
-
-    // 1. Generate Wrap-Up Directives
-    const wrapUpMessage = isUnknown ? UNMEASURED_QUOTA_WRAP_UP_MESSAGE : CRITICAL_WRAP_UP_MESSAGE;
-    const wrapUpReason = isUnknown
-      ? "Quota availability is unavailable or unmeasured; fail closed."
-      : `Quota threshold breached (<${threshold}%).`;
-    const wrapUpDirectives: WrapUpDirective[] =
-      options?.activeAgentIds && options.activeAgentIds.length > 0
-        ? options.activeAgentIds.map((agentId) => ({
-            recipient: agentId,
-            message: wrapUpMessage,
-            action: "idle" as const,
-            forbidKill: true as const,
-            reason: wrapUpReason,
-          }))
-        : [
-            {
-              recipient: "all_active_agents",
-              message: wrapUpMessage,
-              action: "idle" as const,
-              forbidKill: true as const,
-              reason: wrapUpReason,
-            },
-          ];
-
-    // 2. Dynamic Auto-Wake Scheduler Calculation
-    // Find earliest upcoming resetTime among constrained models
-    const validResetDates: Date[] = [];
-    for (const model of constrainedModels) {
-      if (model.resetTime) {
-        const parsed = new Date(model.resetTime);
-        if (!isNaN(parsed.getTime())) {
-          validResetDates.push(parsed);
-        }
-      }
-    }
-
-    let targetWakeupMs: number;
-    let durationSeconds: number;
-
-    if (validResetDates.length > 0) {
-      // Sort ascending to pick the earliest relevant reset time
-      validResetDates.sort((a, b) => a.getTime() - b.getTime());
-      const earliestResetDate = validResetDates[0]!;
-
-      targetWakeupMs = earliestResetDate.getTime() + bufferSec * 1000;
-      const diffSeconds = Math.ceil((targetWakeupMs - nowMs) / 1000);
-      durationSeconds = Math.max(bufferSec, diffSeconds);
-    } else {
-      // Fall back to default 5-hour safe window (18000s + 60s)
-      durationSeconds = defaultSafeWindow + bufferSec;
-      targetWakeupMs = nowMs + durationSeconds * 1000;
-    }
-
-    const autoWakeSchedule: AutoWakeSchedulePayload = {
-      type: "one_shot_timer",
-      durationSeconds,
-      targetWakeupIso: new Date(targetWakeupMs).toISOString(),
-      prompt: AUTO_WAKE_PROMPT,
-      timerCondition: "never",
-      activeAgentsCount,
-    };
-
-    const summary = isUnknown
-      ? `⚠️ Quota availability is unavailable or unmeasured. ${
-          lowestRemainingQuota !== null
-            ? `Lowest measured quota: ${lowestRemainingQuota.toFixed(2)}%. `
-            : "No trustworthy quota percentage was observed. "
-        }Auto-wake in ${durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`
-      : `🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<${threshold}%). Lowest quota: ${
-          lowestRemainingQuota !== null ? `${lowestRemainingQuota.toFixed(2)}%` : "unknown"
-        }. ${constrainedModels.length} constrained models. Auto-wake in ${durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`;
-
-    return {
-      status: isUnknown ? "QUOTA_UNKNOWN_CIRCUIT_BROKEN" : "QUOTA_EXHAUSTED_CIRCUIT_BROKEN",
-      isTriggered: true,
-      thresholdPercentage: threshold,
-      lowestRemainingQuota,
-      constrainedModels,
-      wrapUpDirectives,
-      autoWakeSchedule,
-      summary,
-      evaluatedAt: new Date(nowMs).toISOString(),
-    };
+    return evaluateCircuitBreaker(report, options, {
+      threshold: this.defaultThreshold,
+      safeWindow: this.defaultSafeWindowSeconds,
+      buffer: this.defaultBufferSeconds,
+    });
   }
 
-  /**
-   * Asynchronously probes the normalization engine and evaluates the resulting report.
-   */
   public async evaluateAsync(
     engine: TelemetryNormalizationEngine,
     options?: QuotaCircuitBreakerOptions,
@@ -338,132 +169,4 @@ export class QuotaCircuitBreaker {
   public static formatMarkdown(evaluation: CircuitBreakerEvaluation, detailed = false): string {
     return formatCircuitBreakerMarkdown(evaluation, detailed);
   }
-}
-
-export function formatCircuitBreakerMarkdown(
-  evaluation: CircuitBreakerEvaluation,
-  detailed = false,
-): string {
-  const lines: string[] = [];
-
-  if (evaluation.isTriggered) {
-    const quotaUnknown = evaluation.status === "QUOTA_UNKNOWN_CIRCUIT_BROKEN";
-    lines.push(
-      "┌──────────────────────────────────────────────────────────────────────────────────────────────────┐",
-    );
-    lines.push(
-      quotaUnknown
-        ? "│                    ⚠️ QUOTA AVAILABILITY UNAVAILABLE / UNMEASURED ⚠️                            │"
-        : "│                         🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<10%) 🚨                     │",
-    );
-    lines.push(
-      "├──────────────────────────────┬───────────────────────────────────────────────────────────────────┤",
-    );
-    lines.push(`│ State Status                 │ ${evaluation.status.padEnd(65).slice(0, 65)} │`);
-    lines.push(
-      `│ ${quotaUnknown ? "Lowest Measured Quota" : "Lowest Remaining Quota"}       │ ${(evaluation.lowestRemainingQuota !== null ? `${evaluation.lowestRemainingQuota.toFixed(2)}%` : "Unavailable").padEnd(65).slice(0, 65)} │`,
-    );
-    lines.push(
-      `│ Trigger Threshold            │ ${`${evaluation.thresholdPercentage.toFixed(2)}%`.padEnd(65).slice(0, 65)} │`,
-    );
-    lines.push(
-      `│ Constrained Models Count     │ ${String(evaluation.constrainedModels.length).padEnd(65).slice(0, 65)} │`,
-    );
-
-    if (evaluation.autoWakeSchedule) {
-      lines.push(
-        `│ Target Wakeup Time (ISO)     │ ${evaluation.autoWakeSchedule.targetWakeupIso.padEnd(65).slice(0, 65)} │`,
-      );
-      lines.push(
-        `│ Auto-Wake Timer Duration     │ ${`${evaluation.autoWakeSchedule.durationSeconds}s (${Math.floor(evaluation.autoWakeSchedule.durationSeconds / 60)}m ${evaluation.autoWakeSchedule.durationSeconds % 60}s)`.padEnd(65).slice(0, 65)} │`,
-      );
-      lines.push(
-        `│ Scheduler Timer Condition    │ ${evaluation.autoWakeSchedule.timerCondition.padEnd(65).slice(0, 65)} │`,
-      );
-      lines.push(
-        `│ Active Agents Retained       │ ${String(evaluation.autoWakeSchedule.activeAgentsCount).padEnd(65).slice(0, 65)} │`,
-      );
-    }
-
-    lines.push(
-      "├──────────────────────────────┴───────────────────────────────────────────────────────────────────┤",
-    );
-    lines.push(
-      "│                                    AGENT WRAP-UP DIRECTIVES                                       │",
-    );
-    lines.push(
-      "├──────────────────────────────────────────────────────────────────────────────────────────────────┤",
-    );
-    lines.push(
-      "│ • Directives Broadcast: Wrap up current micro-step immediately. Do not claim or start new tasks. │",
-    );
-    lines.push(
-      "│ • Preservation Rule: Keep working tree changes unstaged/stashed safely without destructive actions│",
-    );
-    lines.push(
-      "│ • Non-Destructive Invariant: Do NOT kill active subagents (manage_subagents kill forbidden).     │",
-    );
-    lines.push(
-      "│ • State Action: All active subagents transition to IDLE state in memory.                         │",
-    );
-    lines.push(
-      "└──────────────────────────────────────────────────────────────────────────────────────────────────┘",
-    );
-    lines.push("");
-    lines.push(`> ⚠️ **${evaluation.summary}**`);
-
-    if (evaluation.constrainedModels.length > 0) {
-      lines.push("");
-      lines.push("### Constrained Models Breakdown");
-      for (const m of evaluation.constrainedModels) {
-        const resetNote = m.resetTime
-          ? `(Resets at \`${m.resetTime}\`)`
-          : "(No reset time detected; default safe window applied)";
-        lines.push(
-          `- **\`${m.platformId}\` / \`${m.modelName}\`**: ${m.remainingPercentage.toFixed(2)}% remaining ${resetNote}`,
-        );
-      }
-    }
-
-    if (evaluation.autoWakeSchedule) {
-      lines.push("");
-      lines.push("### One-Shot Scheduler Registration Payload");
-      lines.push("```json");
-      lines.push(JSON.stringify(evaluation.autoWakeSchedule, null, 2));
-      lines.push("```");
-    }
-  } else {
-    lines.push(
-      "┌──────────────────────────────────────────────────────────────────────────────────────────────────┐",
-    );
-    lines.push(
-      "│                                QUOTA CIRCUIT-BREAKER: STATUS NOMINAL                             │",
-    );
-    lines.push(
-      "├──────────────────────────────┬───────────────────────────────────────────────────────────────────┤",
-    );
-    lines.push(`│ State Status                 │ ${evaluation.status.padEnd(65).slice(0, 65)} │`);
-    lines.push(
-      `│ Lowest Remaining Quota       │ ${(evaluation.lowestRemainingQuota !== null ? `${evaluation.lowestRemainingQuota.toFixed(2)}%` : "None").padEnd(65).slice(0, 65)} │`,
-    );
-    lines.push(
-      `│ Trigger Threshold            │ ${`${evaluation.thresholdPercentage.toFixed(2)}%`.padEnd(65).slice(0, 65)} │`,
-    );
-    lines.push(`│ Circuit-Breaker Triggered    │ ${"false (Nominal)".padEnd(65).slice(0, 65)} │`);
-    lines.push(
-      "└──────────────────────────────┴───────────────────────────────────────────────────────────────────┘",
-    );
-    lines.push("");
-    lines.push(`> ✅ **${evaluation.summary}**`);
-  }
-
-  if (detailed && evaluation.wrapUpDirectives.length > 0) {
-    lines.push("");
-    lines.push("### Wrap-Up Directives JSON");
-    lines.push("```json");
-    lines.push(JSON.stringify(evaluation.wrapUpDirectives, null, 2));
-    lines.push("```");
-  }
-
-  return lines.join("\n");
 }

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   validateCapsuleDiskHygiene,
   validateDensityBudgets,
@@ -7,6 +9,7 @@ import {
   validateRepositoryCodingConventions,
   validateZeroCommentsInCode,
 } from "../../../olt/scripts/src/validation/coding-conventions.ts";
+
 
 describe("Coding Conventions Validation", () => {
   describe("validateZeroCommentsInCode", () => {
@@ -134,7 +137,25 @@ describe("Coding Conventions Validation", () => {
       expect(res.namedExports).toContain("DELTA");
       expect(res.namedExports).toContain("executeRun");
     });
+
+    it("verifies key subsystem facades have zero wildcard exports", () => {
+      const facades = [
+        "olt/scripts/src/mind/preplanning/index.ts",
+        "olt/scripts/src/graph/index.ts",
+        "olt/scripts/src/telemetry/index.ts",
+        "olt/scripts/src/telemetry/collectors/index.ts",
+      ];
+      for (const relPath of facades) {
+        const fullPath = join(process.cwd(), relPath);
+        const content = readFileSync(fullPath, "utf8");
+        const res = validateFacadeExports(content, relPath);
+        expect(res.valid).toBe(true);
+        expect(res.hasWildcardExport).toBe(false);
+        expect(res.violations.length).toBe(0);
+      }
+    });
   });
+
 
   describe("validateNoBackwardsCompatibilityShims", () => {
     it("detects deprecation annotations and shim identifiers", () => {
@@ -229,6 +250,45 @@ describe("Coding Conventions Validation", () => {
       expect(result.facadeResults[0]?.valid).toBe(false);
       expect(result.shimResults[0]?.valid).toBe(false);
       expect(result.capsuleHygieneResult.valid).toBe(false);
+    });
+  });
+
+  describe("Mind Purge & Deduplication Invariants", () => {
+    it("verifies zero backwards compatibility shims in consolidated packages", () => {
+      const keyFiles = [
+        "olt/scripts/src/health/hygiene/index.ts",
+        "olt/scripts/src/health/hygiene/scanner.ts",
+        "olt/scripts/src/health/hygiene/quarantine.ts",
+        "olt/scripts/src/core/scheduling/index.ts",
+        "olt/scripts/src/core/scheduling/backoff.ts",
+        "olt/scripts/src/core/scheduling/duration.ts",
+        "olt/scripts/src/logging/defects/index.ts",
+        "olt/scripts/src/engine/store/recovery/defect-store.ts",
+      ];
+      for (const relPath of keyFiles) {
+        const fullPath = join(process.cwd(), relPath);
+        const content = readFileSync(fullPath, "utf8");
+        const res = validateNoBackwardsCompatibilityShims(content, relPath);
+        expect(res.valid).toBe(true);
+        expect(res.violations).toHaveLength(0);
+      }
+    });
+
+    it("verifies zero code comments across consolidated package files", () => {
+      const files = [
+        "olt/scripts/src/health/hygiene/scanner.ts",
+        "olt/scripts/src/core/scheduling/backoff.ts",
+        "olt/scripts/src/core/scheduling/duration.ts",
+        "olt/scripts/src/engine/store/recovery/defect-store.ts",
+        "olt/scripts/src/reporting/doctor/hygiene-engine.ts",
+      ];
+      for (const relPath of files) {
+        const fullPath = join(process.cwd(), relPath);
+        const content = readFileSync(fullPath, "utf8");
+        const res = validateZeroCommentsInCode(content, relPath);
+        expect(res.valid).toBe(true);
+        expect(res.violations).toHaveLength(0);
+      }
     });
   });
 });

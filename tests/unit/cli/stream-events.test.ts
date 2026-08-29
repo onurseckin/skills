@@ -80,13 +80,10 @@ describe("stream:events CLI command", () => {
     expect(webhookResult.markdown).toContain("FAILED");
   });
 
-  test("dispatches stream:events and aliases via execute", async () => {
+  test("dispatches events:stream via execute", async () => {
     const { repo, run } = await setupCompiledRun("stream-dispatch-test", roots);
 
-    const execRes = await execute(["stream:events", "--run", run]);
+    const execRes = await execute(["events:stream", "--run", run]);
     expect(execRes.total_events).toBeDefined();
-
-    const aliasRes = await execute(["events:stream", "--run", run]);
-    expect(aliasRes.run_id).toBe(execRes.run_id);
   });
 });

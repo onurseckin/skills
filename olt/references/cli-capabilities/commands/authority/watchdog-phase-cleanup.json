@@ -1,9 +1,6 @@
 {
   "name": "watchdog:phase-cleanup",
-  "aliases": [
-    "watchdog:phase-clean",
-    "watchdog:cleanup-phase"
-  ],
+  "aliases": [],
   "domain": "authority",
   "summary": "Terminate legacy phase watchdog monitors upon phase rollover or completion.",
   "flags": [

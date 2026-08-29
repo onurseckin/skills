@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { helpRequest, renderHelp } from "../../../olt/scripts/src/cli/help.ts";
 import {
+  COMMAND_DOMAINS,
   COMMAND_REGISTRY,
   INTERNAL_COMMANDS,
   PRIMARY_COMMANDS,
@@ -26,17 +28,27 @@ async function harness(args: readonly string[]) {
   };
 }
 
-describe("2-Tier CLI Surface Split (REMED-005)", () => {
+describe("2-Tier CLI Surface Split & Taxonomy Invariants", () => {
+  test("enforces zero-alias invariant across 100% of registered commands", () => {
+    expect(COMMAND_REGISTRY.length).toBeGreaterThan(0);
+    for (const spec of COMMAND_REGISTRY) {
+      expect(spec.aliases).toEqual([]);
+      expect(spec.aliases.length).toBe(0);
+    }
+  });
+
+  test("enforces strict colon-namespace hierarchy and domain boundaries", () => {
+    for (const spec of COMMAND_REGISTRY) {
+      expect(COMMAND_DOMAINS).toContain(spec.domain);
+      const isTopLevel = /^[a-z]+(-[a-z]+)*$/.test(spec.name);
+      const isColonScoped = /^[a-z0-9-]+:[a-z0-9-]+(:[a-z0-9-]+)*$/.test(spec.name);
+      expect(isTopLevel || isColonScoped).toBeTrue();
+    }
+  });
+
   test("exposes exactly the 8 high-level primary verbs", () => {
     expect(PRIMARY_VERBS).toEqual([
-      "plan",
-      "queue",
-      "task",
-      "run",
-      "doctor",
-      "mind",
-      "msg",
-      "worktree",
+      "plan", "queue", "task", "run", "doctor", "mind", "msg", "worktree",
     ]);
     expect(PRIMARY_VERBS.length).toBe(8);
   });
@@ -45,7 +57,6 @@ describe("2-Tier CLI Surface Split (REMED-005)", () => {
     expect(PRIMARY_COMMANDS.length).toBeGreaterThan(0);
     expect(INTERNAL_COMMANDS.length).toBeGreaterThan(0);
     expect(PRIMARY_COMMANDS.length + INTERNAL_COMMANDS.length).toBe(COMMAND_REGISTRY.length);
-
     expect(getPrimaryCommands()).toEqual(PRIMARY_COMMANDS);
     expect(getInternalCommands()).toEqual(INTERNAL_COMMANDS);
 
@@ -54,7 +65,6 @@ describe("2-Tier CLI Surface Split (REMED-005)", () => {
       expect(isInternalCommand(spec)).toBeFalse();
       expect(commandTier(spec)).toBe("primary");
     }
-
     for (const spec of INTERNAL_COMMANDS) {
       expect(isInternalCommand(spec)).toBeTrue();
       expect(isPrimaryCommand(spec)).toBeFalse();
@@ -64,23 +74,10 @@ describe("2-Tier CLI Surface Split (REMED-005)", () => {
 
   test("correctly assigns known workflow commands to the primary tier", () => {
     const primaryNames = [
-      "orchestrate",
-      "plan:init",
-      "plan:enhance",
-      "plan:add",
-      "plan:compile",
-      "queue:next",
-      "queue:wave",
-      "task:claim",
-      "task:submit",
-      "run:exec",
-      "run:status",
-      "doctor",
-      "doctor:repair",
-      "mind:init",
-      "mind:pulse",
+      "orchestrate", "plan:init", "plan:enhance", "plan:add", "plan:compile",
+      "queue:next", "queue:wave", "task:claim", "task:submit", "run:exec",
+      "run:status", "doctor", "doctor:repair", "mind:init", "mind:pulse",
     ];
-
     for (const name of primaryNames) {
       const spec = findCommand(name);
       expect(spec).toBeDefined();
@@ -93,30 +90,12 @@ describe("2-Tier CLI Surface Split (REMED-005)", () => {
 
   test("correctly assigns lower-level/diagnostic utilities to the internal tier", () => {
     const internalNames = [
-      "agent:register",
-      "agent:list",
-      "authority:decide",
-      "whoami",
-      "branch:open",
-      "branch:claim",
-      "capture:init",
-      "critic:review",
-      "diagnostics",
-      "defect:audit",
-      "coverage:check",
-      "health",
-      "recover",
-      "explain",
-      "gate:prove",
-      "finding:get",
-      "install",
-      "orchestrator:supervise",
-      "orphan:dispose",
-      "report",
-      "summary:export",
+      "agent:register", "agent:list", "authority:decide", "whoami", "branch:open",
+      "branch:claim", "capture:init", "critic:review", "diagnostics", "defect:audit",
+      "coverage:check", "health", "recover", "explain", "gate:prove", "finding:get",
+      "install", "orchestrator:supervise", "orphan:dispose", "report", "summary:export",
       "coordinator:pushback",
     ];
-
     for (const name of internalNames) {
       const spec = findCommand(name);
       if (spec) {
@@ -131,23 +110,14 @@ describe("2-Tier CLI Surface Split (REMED-005)", () => {
     expect(helpRequest(["help", "--internal"])).toEqual({ command: null, internal: true });
     expect(helpRequest(["help", "-i"])).toEqual({ command: null, internal: true });
     expect(helpRequest(["help", "task:claim"])).toEqual({ command: "task:claim" });
-    expect(helpRequest(["help", "task:claim", "--internal"])).toEqual({
-      command: "task:claim",
-      internal: true,
-    });
-    expect(helpRequest(["help", "--internal", "task:claim"])).toEqual({
-      command: "task:claim",
-      internal: true,
-    });
+    expect(helpRequest(["help", "task:claim", "--internal"])).toEqual({ command: "task:claim", internal: true });
+    expect(helpRequest(["help", "--internal", "task:claim"])).toEqual({ command: "task:claim", internal: true });
     expect(helpRequest(["--help"])).toEqual({ command: null });
     expect(helpRequest(["--help", "--internal"])).toEqual({ command: null, internal: true });
     expect(helpRequest(["--internal", "--help"])).toEqual({ command: null, internal: true });
     expect(helpRequest(["--internal"])).toEqual({ command: null, internal: true });
     expect(helpRequest(["task:claim", "--help"])).toEqual({ command: "task:claim" });
-    expect(helpRequest(["task:claim", "--help", "--internal"])).toEqual({
-      command: "task:claim",
-      internal: true,
-    });
+    expect(helpRequest(["task:claim", "--help", "--internal"])).toEqual({ command: "task:claim", internal: true });
   });
 
   test("renders default overview presenting only the clean 2-tier primary surface", () => {
@@ -155,20 +125,15 @@ describe("2-Tier CLI Surface Split (REMED-005)", () => {
     const lines = overview.split("\n");
     expect(lines.length).toBeLessThanOrEqual(30);
     expect(lines[0]).toBe("### Harness CLI");
-
     for (const verb of PRIMARY_VERBS) {
       expect(overview).toContain(`| ${verb} |`);
     }
-
     expect(overview).not.toContain("| authority |");
     expect(overview).not.toContain("| branch |");
     expect(overview).not.toContain("| orphan |");
     expect(overview).not.toContain("| capture |");
     expect(overview).not.toContain("| critic |");
-
-    expect(overview).toContain(
-      "Pass `--internal` to view lower-level internal and diagnostic commands.",
-    );
+    expect(overview).toContain("Pass `--internal` to view lower-level internal and diagnostic commands.");
   });
 
   test("renders internal tier overview when internal option is true", () => {
@@ -178,24 +143,12 @@ describe("2-Tier CLI Surface Split (REMED-005)", () => {
     expect(lines[0]).toBe("### Harness CLI (Internal Tier)");
 
     const internalDomains = [
-      "agent",
-      "authority",
-      "branch",
-      "capture",
-      "critic",
-      "diagnostics",
-      "gate",
-      "inspection",
-      "install",
-      "orchestrator",
-      "orphan",
-      "reporting",
-      "summary",
+      "agent", "authority", "branch", "capture", "critic", "diagnostics",
+      "gate", "inspection", "install", "orchestrator", "orphan", "reporting", "summary",
     ];
     for (const domain of internalDomains) {
       expect(internalOverview).toContain(`| ${domain} |`);
     }
-
     const boolOptionOverview = renderHelp(null, true);
     expect(boolOptionOverview).toBe(internalOverview);
   });
@@ -245,55 +198,37 @@ describe("2-Tier CLI Surface Split (REMED-005)", () => {
 
   test("custom/synthetic CommandSpec classification works with explicit tier flags and defaults", () => {
     const primarySpec: CommandSpec = {
-      name: "custom:primary",
-      aliases: [],
-      domain: "plan",
-      tier: "primary",
-      summary: "custom primary",
-      description: "custom primary",
-      flags: [],
-      readsStdin: false,
-      takesRemainder: false,
-      exitCodes: [],
-      examples: [],
-      handler: () => ({ ok: true }),
+      name: "custom:primary", aliases: [], domain: "plan", tier: "primary",
+      summary: "custom primary", description: "custom primary", flags: [],
+      readsStdin: false, takesRemainder: false, exitCodes: [], examples: [], handler: () => ({ ok: true }),
     };
     expect(isPrimaryCommand(primarySpec)).toBeTrue();
     expect(isInternalCommand(primarySpec)).toBeFalse();
     expect(commandTier(primarySpec)).toBe("primary");
 
     const explicitInternalInPlanDomain: CommandSpec = {
-      name: "plan:internal-helper",
-      aliases: [],
-      domain: "plan",
-      internal: true,
-      summary: "plan helper",
-      description: "plan helper",
-      flags: [],
-      readsStdin: false,
-      takesRemainder: false,
-      exitCodes: [],
-      examples: [],
-      handler: () => ({ ok: true }),
+      name: "plan:internal-helper", aliases: [], domain: "plan", internal: true,
+      summary: "plan helper", description: "plan helper", flags: [],
+      readsStdin: false, takesRemainder: false, exitCodes: [], examples: [], handler: () => ({ ok: true }),
     };
     expect(isPrimaryCommand(explicitInternalInPlanDomain)).toBeFalse();
     expect(isInternalCommand(explicitInternalInPlanDomain)).toBeTrue();
     expect(commandTier(explicitInternalInPlanDomain)).toBe("internal");
 
     const doctorNamedSpec: CommandSpec = {
-      name: "doctor:sub-check",
-      aliases: [],
-      domain: "diagnostics",
-      summary: "doctor sub check",
-      description: "doctor sub check",
-      flags: [],
-      readsStdin: false,
-      takesRemainder: false,
-      exitCodes: [],
-      examples: [],
-      handler: () => ({ ok: true }),
+      name: "doctor:sub-check", aliases: [], domain: "diagnostics",
+      summary: "doctor sub check", description: "doctor sub check", flags: [],
+      readsStdin: false, takesRemainder: false, exitCodes: [], examples: [], handler: () => ({ ok: true }),
     };
     expect(isPrimaryCommand(doctorNamedSpec)).toBeTrue();
     expect(commandTier(doctorNamedSpec)).toBe("primary");
+  });
+
+  test("verifies surface-split test file contains zero any and zero suppressions", () => {
+    const testFile = readFileSync(__filename, "utf-8");
+    expect(testFile).not.toContain("@ts-" + "ignore");
+    expect(testFile).not.toContain("@ts-" + "expect-error");
+    expect(testFile).not.toContain("eslint-" + "disable");
+    expect(testFile).not.toContain(": " + "any");
   });
 });

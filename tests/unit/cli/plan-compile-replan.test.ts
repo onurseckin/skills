@@ -22,7 +22,7 @@ describe("plan:compile", () => {
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Do one thing");
     const init = await execute([
-      "init",
+      "plan:init",
       "--repo",
       repo,
       "--run-id",
@@ -50,7 +50,7 @@ describe("plan:compile", () => {
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Do one thing\n\nDo another thing");
     const init = await execute([
-      "init",
+      "plan:init",
       "--repo",
       repo,
       "--run-id",

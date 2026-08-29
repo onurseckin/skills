@@ -207,8 +207,32 @@ export function readVerifiedFile(
   }
 }
 
+export function resolveSystemLockPath(lockName: string, repoRoot?: string): string {
+  if (typeof lockName !== "string") {
+    throw new HarnessError("INVALID_ARGUMENT", "lockName must be a non-empty string");
+  }
+  if (lockName.trim().length === 0) {
+    throw new HarnessError("INVALID_ARGUMENT", "lockName must be a non-empty string");
+  }
+  const trimmed = lockName.trim();
+  if (
+    trimmed === "." ||
+    trimmed.includes("..") ||
+    trimmed.includes("/") ||
+    trimmed.includes("\\") ||
+    trimmed.includes("\0")
+  ) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      `Invalid lockName '${lockName}': cannot contain path separators or traversal elements`,
+    );
+  }
+  const root = resolve(repoRoot ?? findRepoRoot());
+  return join(root, ".olt", "locks", trimmed);
+}
+
 export function withLock<T>(loc: Location, fn: () => T): T {
-  const lockPath = join(loc.root, ".olt", "locks", "policy.lock");
+  const lockPath = resolveSystemLockPath("policy.lock", loc.root);
   ensureDir(loc.root, dirname(lockPath));
   if (activeLocks.has(loc.root)) {
     throw new HarnessError("LOCK_TIMEOUT", `Repository policy lock is already active: ${loc.root}`);

@@ -1,11 +1,5 @@
-import type {
-  AggregatedDefect,
-  DefectCategory,
-  DefectEntry,
-  DefectRecordInput,
-  LiveDeduplicationOptions,
-} from "./types.ts";
-import { categorizeDefect, deduplicateDefectLog } from "./dedup.ts";
+import type { AggregatedDefect, DefectEntry, DefectRecordInput, LiveDeduplicationOptions } from "./types.ts";
+import { categorizeDefect, deduplicateDefectLog, toAggregatedDefect } from "./dedup.ts";
 
 export { categorizeDefect };
 
@@ -32,27 +26,19 @@ export function parseDefectLog(
       const parsed = JSON.parse(trimmed) as unknown;
       if (!isRecord(parsed)) continue;
       const item = parsed;
-      const rawStatus =
-        typeof item["status"] === "string" ? item["status"].toLowerCase().trim() : "open";
+      const rawStatus = typeof item["status"] === "string" ? item["status"].toLowerCase().trim() : "open";
       let status: "open" | "resolved" | "wontfix" = "open";
       if (rawStatus === "resolved") status = "resolved";
-      else if (rawStatus === "wontfix" || rawStatus === "wont_fix" || rawStatus === "wont-fix")
-        status = "wontfix";
+      else if (rawStatus === "wontfix" || rawStatus === "wont_fix" || rawStatus === "wont-fix") status = "wontfix";
       else status = "open";
 
-      const rawSeverity =
-        typeof item["severity"] === "string" ? item["severity"].toLowerCase().trim() : "warning";
-      const severity = ["critical", "high", "warning", "low", "info"].includes(rawSeverity)
-        ? rawSeverity
-        : "warning";
-
+      const rawSeverity = typeof item["severity"] === "string" ? item["severity"].toLowerCase().trim() : "warning";
+      const severity = ["critical", "high", "warning", "low", "info"].includes(rawSeverity) ? rawSeverity : "warning";
       const obs = (item["observation"] || item["message"] || "") as string;
       const rem = (item["remediation"] || item["prescribed_remediation"] || "") as string;
       const id = (item["id"] || item["defect_id"] || "") as string;
       const type = (item["type"] || item["error_code"] || item["category"] || "") as string;
-      const timestamp = (item["timestamp"] ||
-        item["created_at"] ||
-        new Date().toISOString()) as string;
+      const timestamp = (item["timestamp"] || item["created_at"] || new Date().toISOString()) as string;
       const category = categorizeDefect(item as unknown as DefectEntry);
 
       const record: DefectEntry = {
@@ -68,10 +54,7 @@ export function parseDefectLog(
         remediation: rem,
         prescribed_remediation: rem,
         ...(options.capsule_root || options.capsuleRoot
-          ? {
-              capsule_root: options.capsule_root || options.capsuleRoot,
-              capsuleRoot: options.capsule_root || options.capsuleRoot,
-            }
+          ? { capsule_root: options.capsule_root || options.capsuleRoot, capsuleRoot: options.capsule_root || options.capsuleRoot }
           : {}),
       } as unknown as DefectEntry;
 
@@ -84,20 +67,20 @@ export function parseDefectLog(
   return entries;
 }
 
-export function deserializeDefectRecord(raw: string | Record<string, unknown>): DefectEntry | null {
+export function deserializeDefectRecord(raw: unknown): AggregatedDefect | null {
   if (typeof raw === "string") {
     const trimmed = raw.trim();
     if (!trimmed) return null;
     try {
       const parsed = JSON.parse(trimmed);
       if (!isRecord(parsed)) return null;
-      return parseDefectLog(trimmed)[0] ?? null;
+      return toAggregatedDefect(parsed as DefectRecordInput);
     } catch {
       return null;
     }
   }
   if (isRecord(raw)) {
-    return parseDefectLog(JSON.stringify(raw))[0] ?? null;
+    return toAggregatedDefect(raw as DefectRecordInput);
   }
   return null;
 }
@@ -125,9 +108,7 @@ export function parseAndDeduplicateDefectJsonl(
     if (!trimmed) continue;
     try {
       const parsed: unknown = JSON.parse(trimmed);
-      if (isRecord(parsed)) {
-        inputs.push(parsed as DefectRecordInput);
-      }
+      if (isRecord(parsed)) inputs.push(parsed as DefectRecordInput);
     } catch {
       continue;
     }

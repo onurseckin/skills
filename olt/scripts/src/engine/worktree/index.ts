@@ -11,6 +11,7 @@ export {
 
 export {
   CONVENTIONAL_COMMIT_TYPES,
+  type CreateHermeticWorktreeOptions,
   type DomainWorktreeConfig,
   type DomainCommitRecord,
   type DomainSyncConflict,
@@ -25,12 +26,11 @@ export {
   type DomainScopeEntry,
   type DomainScopeConflict,
   type DomainIsolationCheckResult,
+  type WorktreeContext,
   createDomainLedger,
+  createHermeticWorktree,
   provisionDomainWorktree,
   commitAndPushDomainSubphase,
-  syncDomainToGlobal,
-  syncGlobalToDomain,
-  synchronizeAllDomains,
   validateDomainIsolation,
   assertDomainIsolation,
   isDomainSyncEligible,
@@ -38,6 +38,15 @@ export {
   recordDomainSync,
   recordGlobalSync,
 } from "./domain-sync.ts";
+
+export {
+  type LandHermeticWorktreeOptions,
+  type LandingResult,
+  landHermeticWorktree,
+  syncDomainToGlobal,
+  syncGlobalToDomain,
+  synchronizeAllDomains,
+} from "./domain-sync-ops.ts";
 
 export {
   type UpstreamPushPolicy,
@@ -120,3 +129,21 @@ export {
   writeWorktreeLedger,
   findAssignedWorktree,
 } from "../../workflow/worktree/ledger.ts";
+
+export {
+  createTrackWorktree,
+  destroyTrackWorktree,
+  cleanupTrackWorktree,
+  listTrackWorktrees,
+  type TrackWorktreeInfo,
+  type CreateWorktreeOptions,
+  type CleanupWorktreeOptions,
+  type ListWorktreesOptions,
+} from "../../workflow/worktree/manager.ts";
+
+export {
+  landTrackToMain,
+  type LandTrackOptions,
+  type LandTrackResult,
+} from "../../workflow/worktree/landing.ts";
+

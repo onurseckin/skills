@@ -1,9 +1,6 @@
 {
   "name": "quota:resume",
-  "aliases": [
-    "quota:unfreeze",
-    "resume:quota"
-  ],
+  "aliases": [],
   "domain": "reporting",
   "summary": "Resume DAG operations from a quota freeze snapshot.",
   "flags": [

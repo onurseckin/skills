@@ -20,7 +20,7 @@ import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const EXPECTED_INVOCATIONS: readonly string[] = `
-  plan:brainstorm brainstorm orchestrate plan:init init plan:enhance plan:add plan:audit
+  plan:brainstorm orchestrate plan:init plan:enhance plan:add plan:audit
   plan:compile plan:validate-start plan:review plan:replan plan:claim plan:apply plan:status
   queue:next queue:list queue:wave queue:pop task:brief task:claim task:heartbeat task:submit
   task:validate-start task:review task:probe task:reject task:assign-repairer task:abandon
@@ -32,7 +32,7 @@ const EXPECTED_INVOCATIONS: readonly string[] = `
   quota:report quota:check quota:circuit-break circuit-breaker:check circuit-break
   quota:circuit-breaker quota:freeze quota:suspend freeze:quota quota:resume quota:unfreeze
   resume:quota skill:audit:live skill:audit notify:phase notify phase:notify notify:test
-  test:notify run:init run:exec run:status status run:complete shell sh exec:safe
+  test:notify run:init run:exec run:status run:complete shell sh exec:safe
   scope:expand scope-expand critic:start critic:review critic:reject critic:remediate
   summary:export summary:view test:summary finding:get report:get evidence:get
   evidence:screenshots orchestrator:run orchestrator orchestrator:supervise branch:open

@@ -1,9 +1,6 @@
 {
   "name": "quota:freeze",
-  "aliases": [
-    "quota:suspend",
-    "freeze:quota"
-  ],
+  "aliases": [],
   "domain": "reporting",
   "summary": "Initiate DAG quota freeze and create a snapshot.",
   "flags": [

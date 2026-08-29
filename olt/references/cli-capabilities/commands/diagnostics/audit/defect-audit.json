@@ -1,8 +1,6 @@
 {
   "name": "defect:audit",
-  "aliases": [
-    "defects"
-  ],
+  "aliases": [],
   "domain": "diagnostics",
   "summary": "Audit, deduplicate, and auto-admit defects across capsules.",
   "flags": [

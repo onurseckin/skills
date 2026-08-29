@@ -48,28 +48,38 @@ function str(val: unknown): string {
 }
 
 export function interpolateHookCommand(template: string, context: HookVariableContext): string {
-  const phaseName = str(context.phase_name ?? context.phaseName);
-  const commitSha = str(context.commit_sha ?? context.commitSha);
-  const rawMs = context.duration_ms ?? context.durationMs;
-  const numMs =
-    typeof rawMs === "number"
-      ? rawMs
-      : typeof rawMs === "string" && !Number.isNaN(Number(rawMs)) && rawMs.trim() !== ""
-        ? Number(rawMs)
-        : undefined;
-  const durationFormatted =
-    str(context.duration_formatted ?? context.durationFormatted) ||
-    (numMs !== undefined ? formatDuration(numMs) : "0s");
+  const rawPhase = context.phase_name !== undefined ? context.phase_name : context.phaseName;
+  const phaseName = str(rawPhase);
+  const rawCommit = context.commit_sha !== undefined ? context.commit_sha : context.commitSha;
+  const commitSha = str(rawCommit);
+  const rawMs = context.duration_ms !== undefined ? context.duration_ms : context.durationMs;
+  let numMs: number | undefined;
+  if (typeof rawMs === "number") {
+    numMs = rawMs;
+  } else if (typeof rawMs === "string" && !Number.isNaN(Number(rawMs)) && rawMs.trim() !== "") {
+    numMs = Number(rawMs);
+  }
+  const rawDuration = context.duration_formatted !== undefined ? context.duration_formatted : context.durationFormatted;
+  let durationFormatted = str(rawDuration);
+  if (durationFormatted === "") {
+    durationFormatted = numMs !== undefined ? formatDuration(numMs) : "0s";
+  }
   const durationMs = numMs !== undefined ? String(numMs) : "0";
-  const rawCount = context.task_count ?? context.taskCount;
-  const taskCount =
-    typeof rawCount === "number" || (typeof rawCount === "string" && rawCount.trim() !== "")
-      ? String(rawCount)
-      : "0";
-  const repoRoot = str(context.repo_root ?? context.repoRoot);
-  const errorMessage = str(context.error_message ?? context.errorMessage);
-  const taskId = str(context.task_id ?? context.taskId);
-  const status = str(context.status) || "SUCCESS";
+  const rawCount = context.task_count !== undefined ? context.task_count : context.taskCount;
+  let taskCount = "0";
+  if (typeof rawCount === "number") {
+    taskCount = String(rawCount);
+  } else if (typeof rawCount === "string" && rawCount.trim() !== "") {
+    taskCount = rawCount;
+  }
+  const rawRepoRoot = context.repo_root !== undefined ? context.repo_root : context.repoRoot;
+  const repoRoot = str(rawRepoRoot);
+  const rawErr = context.error_message !== undefined ? context.error_message : context.errorMessage;
+  const errorMessage = str(rawErr);
+  const rawTaskId = context.task_id !== undefined ? context.task_id : context.taskId;
+  const taskId = str(rawTaskId);
+  const rawStatus = str(context.status);
+  const status = rawStatus !== "" ? rawStatus : "SUCCESS";
 
   const replacements: Record<string, string> = {
     "{phase_name}": phaseName,

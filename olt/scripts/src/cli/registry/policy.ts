@@ -92,7 +92,7 @@ export const POLICY_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "policy:check-drift",
-    aliases: ["policy:drift"],
+    aliases: [],
     domain: "policy",
     tier: "internal",
     internal: true,

@@ -1,8 +1,6 @@
 {
   "name": "plan:brainstorm",
-  "aliases": [
-    "brainstorm"
-  ],
+  "aliases": [],
   "domain": "plan",
   "summary": "Expand a prompt against the 8 Socratic vectors across iterative rounds.",
   "flags": [

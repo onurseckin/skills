@@ -26,7 +26,11 @@ export {
   isSupervisorRole,
 } from "./checks.ts";
 
-export { assertNoBoundaryLeak, validateBoundaryIntegrity } from "./validator.ts";
+export {
+  assertLeaseTokenForFileMutation,
+  assertNoBoundaryLeak,
+  validateBoundaryIntegrity,
+} from "./validator.ts";
 
 export {
   assertAcyclicPushbackDelegation,

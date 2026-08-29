@@ -40,6 +40,20 @@
       "default": null
     },
     {
+      "name": "offset",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "page",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "queue-path",
       "type": "string",
       "required": false,

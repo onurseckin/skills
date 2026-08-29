@@ -52,58 +52,23 @@ export interface RootHygieneScanResult {
 }
 
 export const DEFAULT_ALLOWED_SCRIPTS_DIRS: ReadonlySet<string> = new Set([
-  "modularity",
-  "sync",
-  "testing",
-  "src",
-  "tools",
-  "bin",
-  "lib",
-  "config",
+  "modularity", "sync", "testing", "src", "tools", "bin", "lib", "config",
 ]);
 
 export const DEFAULT_ALLOWED_SCRIPTS_FILES: ReadonlySet<string> = new Set([
-  "README.md",
-  ".gitkeep",
-  "index.ts",
-  "package.json",
-  "tsconfig.json",
+  "README.md", ".gitkeep", "index.ts", "package.json", "tsconfig.json",
 ]);
 
 export const SCRATCH_PATTERNS: readonly RegExp[] = [
-  /^fix-.*\.ts$/u,
-  /^refactor-.*\.ts$/u,
-  /^temp-.*\.ts$/u,
-  /^test-.*\.ts$/u,
-  /^scratch.*\.ts$/u,
-  /.*\.tmp$/u,
-  /.*\.log$/u,
-  /.*\.coverage$/u,
+  /^fix-.*\.ts$/u, /^refactor-.*\.ts$/u, /^temp-.*\.ts$/u, /^test-.*\.ts$/u,
+  /^scratch.*\.ts$/u, /.*\.tmp$/u, /.*\.log$/u, /.*\.coverage$/u,
 ];
 
 export const TEST_ARTIFACT_PATTERNS: readonly RegExp[] = [
-  /\.test\.[a-z]+$/u,
-  /\.spec\.[a-z]+$/u,
-  /^test-.*$/u,
-  /^temp-.*$/u,
-  /^scratch-.*$/u,
-  /^fix-.*$/u,
-  /.*\.tmp$/u,
-  /.*\.log$/u,
-  /.*\.coverage$/u,
+  /\.test\.[a-z]+$/u, /\.spec\.[a-z]+$/u, /^test-.*$/u, /^temp-.*$/u,
+  /^scratch-.*$/u, /^fix-.*$/u, /.*\.tmp$/u, /.*\.log$/u, /.*\.coverage$/u,
 ];
 
 export const EXECUTABLE_EXTENSIONS: ReadonlySet<string> = new Set([
-  ".sh",
-  ".bash",
-  ".zsh",
-  ".bin",
-  ".exe",
-  ".cmd",
-  ".py",
-  ".rb",
-  ".ts",
-  ".js",
-  ".mjs",
-  ".cjs",
+  ".sh", ".bash", ".zsh", ".bin", ".exe", ".cmd", ".py", ".rb", ".ts", ".js", ".mjs", ".cjs",
 ]);

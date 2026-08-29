@@ -4,6 +4,7 @@ export const CAPSULE_GENESIS_COMMANDS: ReadonlySet<string> = new Set([
   "plan:init",
   "orchestrate",
   "mind:init",
+  "run:init",
 ]);
 
 export const GRANT_GENESIS_COMMANDS: ReadonlySet<string> = new Set(["agent:register"]);
@@ -38,11 +39,6 @@ export function isGrantBootstrapExempt(spec: CommandSpec): boolean {
   );
 }
 
-/**
- * Creating a capsule or its first grant is the only reason a command may
- * proceed without readable capsule state. Plan construction is grant-free,
- * not capsule-free: it must still operate on an existing verified capsule.
- */
 export function isMissingCapsuleBootstrapExempt(spec: CommandSpec): boolean {
   return [spec.name, ...spec.aliases].some(
     (invocation) =>

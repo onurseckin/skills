@@ -1,8 +1,6 @@
 {
   "name": "memory:query",
-  "aliases": [
-    "memory:search"
-  ],
+  "aliases": [],
   "domain": "mind",
   "summary": "Query indexed cross-run knowledge, decisions, and memory documents.",
   "flags": [

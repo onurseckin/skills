@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { findRepoRoot } from "../../core/index.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 import type { RepoEcosystem } from "../types/index.ts";
 
 export function detectRepoEcosystem(repoRoot?: string): RepoEcosystem {

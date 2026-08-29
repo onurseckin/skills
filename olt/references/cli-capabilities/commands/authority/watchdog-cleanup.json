@@ -1,8 +1,6 @@
 {
   "name": "watchdog:cleanup",
-  "aliases": [
-    "watchdog:clean"
-  ],
+  "aliases": [],
   "domain": "authority",
   "summary": "Purge stale or legacy watchdog monitors exceeding heartbeat timeout.",
   "flags": [

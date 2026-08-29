@@ -149,6 +149,7 @@ export type LifecycleEventType =
   | "on_release_push"
   | "on_task_completion"
   | "on_wave_completion"
+  | "on_wave_complete"
   | "on_error";
 
 export interface LifecycleHooksConfig {
@@ -156,6 +157,7 @@ export interface LifecycleHooksConfig {
   readonly on_release_push?: readonly string[] | undefined;
   readonly on_task_completion?: readonly string[] | undefined;
   readonly on_wave_completion?: readonly string[] | undefined;
+  readonly on_wave_complete?: readonly string[] | undefined;
   readonly on_error?: readonly string[] | undefined;
 }
 
@@ -175,6 +177,7 @@ export interface RepoPolicy {
   readonly agents?: Record<string, AgentPolicy> | undefined;
   readonly docker_environment?: DockerTestProfile | undefined;
   readonly hooks?: LifecycleHooksConfig | undefined;
+  readonly provenance?: string | undefined;
 }
 
 export const CURRENT_POLICY_SCHEMA_VERSION = 1;

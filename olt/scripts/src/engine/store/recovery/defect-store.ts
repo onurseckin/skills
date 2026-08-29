@@ -1,9 +1,3 @@
-import { serializeAggregatedDefectLog } from "../../../logging/defects/index.ts";
-import type {
-  AggregatedDefect,
-  DefectRecordInput,
-  DefectResolutionProof,
-} from "../../../logging/defects/index.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
 import {
   compactDefectLogFile,
@@ -12,8 +6,14 @@ import {
   replaceDefectLogFileUnlocked,
   withDefectLogMutationLock,
 } from "../../../logging/defect-logger.ts";
+import {
+  resolveDefect,
+  serializeAggregatedDefectLog,
+  type AggregatedDefect,
+  type DefectRecordInput,
+  type DefectResolutionProof,
+} from "../../../logging/defects/index.ts";
 import type { DefectLogOptions, LiveDeduplicationOptions } from "../../../logging/types.ts";
-import { resolveDefect } from "../../../logging/defects/index.ts";
 import { runFilePath } from "../capsule/paths.ts";
 
 export function appendCapsuleDefect(

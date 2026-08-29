@@ -1,8 +1,6 @@
 {
   "name": "mind:audit:live",
-  "aliases": [
-    "mind:audit"
-  ],
+  "aliases": [],
   "domain": "mind",
   "summary": "Live Tier 0 out-of-band audit of mind liveness, stagnation, and Mode A/B injection.",
   "flags": [

@@ -9,7 +9,7 @@ export const DEFAULT_WATCH_INTERVAL_SECONDS = 30;
 export const ORCHESTRATOR_COMMANDS: readonly CommandSpec[] = [
   {
     name: "orchestrator:run",
-    aliases: ["orchestrator"],
+    aliases: [],
     domain: "orchestrator",
     summary: "Run the autonomous coordination loop over a fresh capsule.",
     description:

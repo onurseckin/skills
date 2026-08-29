@@ -7,7 +7,6 @@ export let sessionLockCleanupFault: { enabled: boolean; value: unknown } = {
   value: undefined,
 };
 
-/** Test-only durable-write observer. */
 export function setSessionPersistenceObserverForTesting(
   observer: ((step: "file-fsync" | "rename" | "directory-fsync", path: string) => void) | undefined,
 ): () => void {
@@ -18,7 +17,6 @@ export function setSessionPersistenceObserverForTesting(
   };
 }
 
-/** Test-only cleanup fault seam for primary-error precedence. */
 export function setSessionLockCleanupFailureForTesting(value: unknown): () => void {
   const previous = sessionLockCleanupFault;
   sessionLockCleanupFault = { enabled: true, value };

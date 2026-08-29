@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, isAbsolute, join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot, isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
+import { readAgentLedger } from "../../workflow/agents/ledger.ts";
 import {
   agentIdToRole,
   agentIdToTier,
@@ -111,9 +112,7 @@ export function stageSessionGrant(options: RegisterSessionOptions): StagedSessio
       const path = join(runtimeSessionsDir, `${agentId}.json`);
       capsuleSnapshot = snapshotSession(path);
       writeFileSync(path, payload, "utf8");
-    } catch {
-      // Best-effort
-    }
+    } catch {}
   }
 
   return {
@@ -143,9 +142,7 @@ export function registerSessionGrant(options: RegisterSessionOptions): SessionId
   if (options.worktreeDir && existsSync(options.worktreeDir)) {
     try {
       writeFileSync(join(options.worktreeDir, ".session.json"), stage.payload, "utf8");
-    } catch {
-      // Best-effort
-    }
+    } catch {}
   }
 
   return stage.session;
@@ -200,11 +197,58 @@ export function pruneStaleSessions(maxAgeMs = 86400000): void {
             }
           }
         }
-      } catch {
-        // Best-effort removal
-      }
+      } catch {}
     }
-  } catch {
-    // Best-effort directory read
+  } catch {}
+}
+
+export function assertActiveCapsuleLease(runRoot: string, agentId: string): void {
+  if (!runRoot || !runRoot.trim()) {
+    throw new HarnessError("INVALID_STATE", "capsule runRoot is required");
   }
+  const agent = assertSafeSessionComponent(agentId, "agentId");
+  const trimmed = runRoot.trim();
+  let statePath = join(trimmed, "state.json");
+  let resolved = trimmed;
+  if (!existsSync(statePath)) {
+    try {
+      const repoRoot = findRepoRoot(trimmed);
+      resolved =
+        isAbsolute(trimmed) || isInsideCapsule(trimmed)
+          ? resolve(trimmed)
+          : join(resolveCapsulesDir(repoRoot), trimmed);
+      statePath = join(resolved, "state.json");
+    } catch {}
+  }
+  if (!existsSync(statePath)) {
+    throw new HarnessError("INVALID_STATE", `capsule state not found at ${resolved}`);
+  }
+  let state: Record<string, unknown>;
+  try {
+    const raw = readFileSync(statePath, "utf8");
+    state = JSON.parse(raw) as Record<string, unknown>;
+  } catch (error) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `failed to load capsule state at ${resolved}: ${formatSafeErrorCause(error)}`,
+    );
+  }
+  const ledger = readAgentLedger(state);
+  const activeGrant = ledger.find((entry) => entry.id === agent && entry.status === "active");
+  if (activeGrant) return;
+  const tasks = state.tasks;
+  if (tasks && typeof tasks === "object") {
+    const hasActiveTaskLease = Object.values(tasks).some((t) => {
+      if (!t || typeof t !== "object") return false;
+      const lease = (t as { lease?: { agent_id?: string; expires_at?: string } }).lease;
+      if (!lease || lease.agent_id !== agent) return false;
+      if (lease.expires_at && Date.parse(lease.expires_at) <= Date.now()) return false;
+      return true;
+    });
+    if (hasActiveTaskLease) return;
+  }
+  throw new HarnessError(
+    "INVALID_STATE",
+    `agent '${agent}' does not hold an active lease in capsule '${resolved}'`,
+  );
 }

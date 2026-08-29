@@ -1,8 +1,6 @@
 {
   "name": "finding:file",
-  "aliases": [
-    "finding"
-  ],
+  "aliases": [],
   "domain": "diagnostics",
   "summary": "Record a diagnostic finding or defect directly into the flock-locked defect store.",
   "flags": [

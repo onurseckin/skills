@@ -6,7 +6,7 @@ import {
 import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
 
 describe("Roles CLI syntax formatting", () => {
-  test("formats command syntax from CommandSpec", () => {
+  test("formats command syntax from CommandSpec with required and optional flags", () => {
     const spec: CommandSpec = {
       name: "task:claim",
       summary: "Claims a task",
@@ -15,16 +15,37 @@ describe("Roles CLI syntax formatting", () => {
       aliases: [],
       flags: [
         { name: "task-id", type: "string", required: true, summary: "Task ID" },
+        { name: "force", type: "bool", required: true, summary: "Force flag" },
         { name: "dry-run", type: "bool", required: false, summary: "Dry run" },
       ],
-      examples: ["bun harness.ts task:claim --task-id task-1"],
+      examples: ["bun harness.ts task:claim --task-id task-1 --force"],
       handler: async () => ({}),
     };
 
     const formatted = formatCommandSyntax(spec);
-    expect(formatted.syntax).toBe("bun harness.ts task:claim --task-id <string> [--flags...]");
-    expect(formatted.requiredFlags).toEqual(["task-id"]);
+    expect(formatted.syntax).toBe(
+      "bun harness.ts task:claim --task-id <string> --force [--flags...]",
+    );
+    expect(formatted.requiredFlags).toEqual(["task-id", "force"]);
     expect(formatted.optionalFlags).toEqual(["dry-run"]);
+  });
+
+  test("formats command syntax when no optional flags are present", () => {
+    const spec: CommandSpec = {
+      name: "plan:status",
+      summary: "Show plan status",
+      domain: "plan",
+      tier: 1,
+      aliases: [],
+      flags: [{ name: "run", type: "string", required: true, summary: "Run ID" }],
+      examples: [],
+      handler: async () => ({}),
+    };
+
+    const formatted = formatCommandSyntax(spec);
+    expect(formatted.syntax).toBe("bun harness.ts plan:status --run <string>");
+    expect(formatted.requiredFlags).toEqual(["run"]);
+    expect(formatted.optionalFlags).toEqual([]);
   });
 
   test("builds command cheat sheet for existing command", () => {

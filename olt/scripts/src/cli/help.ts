@@ -65,6 +65,69 @@ export function helpRequest(argv: readonly string[]): HelpRequest | null {
   return null;
 }
 
+export function formatCommandTable(
+  headers: readonly string[],
+  rows: readonly (readonly string[])[],
+): string[] {
+  return formatTable(headers, rows);
+}
+
+export function formatDomainSummary(
+  domain: string,
+  commands: readonly CommandSpec[] | readonly string[],
+): string {
+  const names = commands.map((c) => (typeof c === "string" ? c : c.name));
+  return `| ${domain} | ${names.map((name) => `\`${name}\``).join(", ")} |`;
+}
+
+function flagRow(flag: FlagSpec): string[] {
+  return [
+    `\`--${flag.name}\``,
+    flag.type,
+    flag.required ? "yes" : "no",
+    flag.repeatable ? "yes" : "no",
+    flag.default === undefined ? "-" : `\`${String(flag.default)}\``,
+    flag.description,
+  ];
+}
+
+export function formatCommandHelp(specOrName: CommandSpec | string): string {
+  const spec = typeof specOrName === "string" ? findCommand(specOrName) : specOrName;
+  if (!spec) {
+    throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${specOrName}`);
+  }
+
+  const lines = [
+    `### \`${spec.name}\``,
+    "",
+    spec.summary,
+    "",
+    spec.description,
+    "",
+    `- **Domain**: ${spec.domain}`,
+    `- **Tier**: ${commandTier(spec)}`,
+    `- **Aliases**: ${spec.aliases.length === 0 ? "none" : spec.aliases.map((alias) => `\`${alias}\``).join(", ")}`,
+    `- **Stdin**: ${spec.readsStdin ? "reads stdin when `--prompt-stdin` is set" : "not read"}`,
+    `- **Arguments after \`--\`**: ${spec.takesRemainder ? "forwarded to the child process" : "rejected"}`,
+    "",
+  ];
+  if (spec.flags.length > 0) {
+    lines.push(
+      ...formatCommandTable(
+        ["Flag", "Type", "Required", "Repeatable", "Default", "Description"],
+        spec.flags.map(flagRow),
+      ),
+      "",
+    );
+  }
+  lines.push("**Exit codes**", "");
+  lines.push(...spec.exitCodes.map((exit) => `- \`${exit.code}\`: ${exit.meaning}`));
+  if (spec.examples.length > 0) {
+    lines.push("", "**Examples**", "", "```bash", ...spec.examples, "```");
+  }
+  return lines.join("\n");
+}
+
 export function renderHelp(command: string | null, options?: RenderHelpOptions | boolean): string {
   let internal = false;
   if (typeof options === "boolean") {
@@ -73,9 +136,7 @@ export function renderHelp(command: string | null, options?: RenderHelpOptions |
     internal = options.internal;
   }
   if (command === null) return renderOverview(internal);
-  const spec = findCommand(command);
-  if (!spec) throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${command}`);
-  return renderCommand(spec);
+  return formatCommandHelp(command);
 }
 
 function renderOverview(internal: boolean): string {
@@ -94,7 +155,7 @@ function renderOverview(internal: boolean): string {
       "",
       "`bun harness.ts <command> [--flag value]` prints a markdown brief; `--format json` prints the structured result.",
       "",
-      ...formatTable(
+      ...formatCommandTable(
         ["Domain", "Commands"],
         rows.map((entry) => [entry.domain, entry.names.map((name) => `\`${name}\``).join(", ")]),
       ),
@@ -135,7 +196,7 @@ function renderOverview(internal: boolean): string {
     "",
     "`bun harness.ts <command> [--flag value]` prints a markdown brief; `--format json` prints the structured result.",
     "",
-    ...formatTable(
+    ...formatCommandTable(
       ["Domain", "Commands"],
       rows.map((entry) => [entry.domain, entry.names.map((name) => `\`${name}\``).join(", ")]),
     ),
@@ -145,47 +206,4 @@ function renderOverview(internal: boolean): string {
     "Full manifest: `olt/references/cli-capabilities.md`.",
   ];
   return enforceLineLimit(lines.join("\n"));
-}
-
-function flagRow(flag: FlagSpec): string[] {
-  return [
-    `\`--${flag.name}\``,
-    flag.type,
-    flag.required ? "yes" : "no",
-    flag.repeatable ? "yes" : "no",
-    flag.default === undefined ? "-" : `\`${String(flag.default)}\``,
-    flag.description,
-  ];
-}
-
-function renderCommand(spec: CommandSpec): string {
-  const lines = [
-    `### \`${spec.name}\``,
-    "",
-    spec.summary,
-    "",
-    spec.description,
-    "",
-    `- **Domain**: ${spec.domain}`,
-    `- **Tier**: ${commandTier(spec)}`,
-    `- **Aliases**: ${spec.aliases.length === 0 ? "none" : spec.aliases.map((alias) => `\`${alias}\``).join(", ")}`,
-    `- **Stdin**: ${spec.readsStdin ? "reads stdin when `--prompt-stdin` is set" : "not read"}`,
-    `- **Arguments after \`--\`**: ${spec.takesRemainder ? "forwarded to the child process" : "rejected"}`,
-    "",
-  ];
-  if (spec.flags.length > 0) {
-    lines.push(
-      ...formatTable(
-        ["Flag", "Type", "Required", "Repeatable", "Default", "Description"],
-        spec.flags.map(flagRow),
-      ),
-      "",
-    );
-  }
-  lines.push("**Exit codes**", "");
-  lines.push(...spec.exitCodes.map((exit) => `- \`${exit.code}\`: ${exit.meaning}`));
-  if (spec.examples.length > 0) {
-    lines.push("", "**Examples**", "", "```bash", ...spec.examples, "```");
-  }
-  return lines.join("\n");
 }

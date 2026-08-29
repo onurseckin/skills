@@ -1,9 +1,6 @@
 {
   "name": "factory:status",
-  "aliases": [
-    "mind:factory:status",
-    "preplan:status"
-  ],
+  "aliases": [],
   "domain": "mind",
   "summary": "Inspect factory pre-planning queue health, stagnation status, and concurrency saturation.",
   "flags": [

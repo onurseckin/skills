@@ -20,7 +20,7 @@ const SHELL_EXIT_CODES: readonly ExitCodeSpec[] = [
 export const SHELL_COMMANDS: readonly CommandSpec[] = [
   {
     name: "shell",
-    aliases: ["sh", "exec:safe"],
+    aliases: [],
     domain: "run",
     summary:
       "Execute direct non-interactive CLI commands under mechanical RBAC policy with signed evidence.",
@@ -51,7 +51,7 @@ export const SHELL_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "scope:expand",
-    aliases: ["scope-expand"],
+    aliases: [],
     domain: "agent",
     summary: "Dynamically expand the declared read scope neighborhood for an active actor.",
     description:

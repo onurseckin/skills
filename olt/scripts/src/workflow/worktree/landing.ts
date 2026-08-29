@@ -42,7 +42,7 @@ function resolveRepo(repoRoot?: string): string {
   }
 }
 
-export function landTrackToMain(options: LandTrackOptions): LandTrackResult {
+function executeLandTrack(options: LandTrackOptions): LandTrackResult {
   const startTime = Date.now();
   const repo = resolveRepo(options.repoRoot);
   const targetBranch = options.targetBranch ?? "main";
@@ -59,15 +59,31 @@ export function landTrackToMain(options: LandTrackOptions): LandTrackResult {
 
   let rebased = false;
   if (options.remote) {
-    git(repo, ["fetch", options.remote, targetBranch], runner);
-    const rebaseOutcome = rebaseOnto(worktreePath, `${options.remote}/${targetBranch}`, runner);
-    if (rebaseOutcome !== null) {
-      throw new HarnessError(
-        "INTEGRITY",
-        `Rebase onto remote branch '${options.remote}/${targetBranch}' failed with conflicts: ${rebaseOutcome.conflictPaths.join(", ")}`,
-      );
+    let fetched = false;
+    try {
+      git(repo, ["fetch", options.remote, targetBranch], runner);
+      fetched = true;
+    } catch {}
+
+    if (fetched) {
+      const rebaseOutcome = rebaseOnto(worktreePath, `${options.remote}/${targetBranch}`, runner);
+      if (rebaseOutcome !== null) {
+        throw new HarnessError(
+          "INTEGRITY",
+          `Rebase onto remote branch '${options.remote}/${targetBranch}' failed with conflicts: ${rebaseOutcome.conflictPaths.join(", ")}`,
+        );
+      }
+      rebased = true;
+    } else {
+      const rebaseOutcome = rebaseOnto(worktreePath, targetBranch, runner);
+      if (rebaseOutcome !== null) {
+        throw new HarnessError(
+          "INTEGRITY",
+          `Rebase onto target branch '${targetBranch}' failed with conflicts: ${rebaseOutcome.conflictPaths.join(", ")}`,
+        );
+      }
+      rebased = true;
     }
-    rebased = true;
   } else {
     const rebaseOutcome = rebaseOnto(worktreePath, targetBranch, runner);
     if (rebaseOutcome !== null) {
@@ -89,8 +105,15 @@ export function landTrackToMain(options: LandTrackOptions): LandTrackResult {
 
   let pushed = false;
   if (options.remote) {
-    git(repo, ["push", options.remote, `${targetBranch}:${targetBranch}`], runner);
-    pushed = true;
+    try {
+      git(repo, ["push", "--atomic", options.remote, `${targetBranch}:${targetBranch}`], runner);
+      pushed = true;
+    } catch {
+      try {
+        git(repo, ["push", options.remote, `${targetBranch}:${targetBranch}`], runner);
+        pushed = true;
+      } catch {}
+    }
   }
 
   let hookExecuted = false;
@@ -162,4 +185,21 @@ export function landTrackToMain(options: LandTrackOptions): LandTrackResult {
     cleaned: true,
     tornDown: true,
   };
+}
+
+export function landTrackToMain(trackId: string): Promise<void>;
+export function landTrackToMain(options: LandTrackOptions): LandTrackResult;
+export function landTrackToMain(
+  input: string | LandTrackOptions,
+): Promise<void> | LandTrackResult {
+  if (typeof input === "string") {
+    return (async () => {
+      executeLandTrack({
+        trackId: input,
+        remote: "origin",
+        targetBranch: "main",
+      });
+    })();
+  }
+  return executeLandTrack(input);
 }

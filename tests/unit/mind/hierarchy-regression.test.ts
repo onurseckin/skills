@@ -39,7 +39,7 @@ import {
   resolveProfile,
   roleToProfile,
   type ProfileBindings,
-} from "../../../olt/scripts/src/mind/roles/index.ts";
+} from "../../../olt/scripts/src/roles/index.ts";
 import {
   carryForwardFindingsAndRequirements,
   getAllRounds,

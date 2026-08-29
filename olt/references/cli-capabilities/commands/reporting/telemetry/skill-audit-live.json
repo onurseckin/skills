@@ -1,8 +1,6 @@
 {
   "name": "skill:audit:live",
-  "aliases": [
-    "skill:audit"
-  ],
+  "aliases": [],
   "domain": "reporting",
   "summary": "Live Tier 0 out-of-band audit of skill compliance and delta event forensics.",
   "flags": [

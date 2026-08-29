@@ -52,6 +52,7 @@ export {
   ensureDir,
   checkExistingDir,
   resolvePolicyLocation,
+  resolveSystemLockPath,
   readVerifiedFile,
   withLock,
 } from "./io-safety.ts";
@@ -102,6 +103,8 @@ export {
 export type {
   EvaluateHooksEngineOptions,
   ExecuteLifecycleHooksOptions,
+  ExecutePolicyHookOptions,
+  HookContext,
   HookExecutionRecord,
   HookInterpolationContext,
   HookSpawnRunner,
@@ -118,6 +121,7 @@ export {
   evaluatePolicyHooksEngine,
   executeHookCommand,
   executeLifecycleHooks,
+  executePolicyHook,
   executePolicyLifecycleHooks,
   formatDuration,
   formatHookDuration,
@@ -126,3 +130,10 @@ export {
   parseCommandLineArgs,
   validatePolicyHooksConfiguration,
 } from "./hooks/index.ts";
+
+export type {
+  EnforcePolicyOptions,
+  PolicyEnforcementAction,
+  PolicyEnforcementResult,
+} from "./policy-enforcer.ts";
+export { enforceRepoPolicy } from "./policy-enforcer.ts";

@@ -1,5 +1,56 @@
-export * from "./types.ts";
-export * from "./backlog-clusterer.ts";
-export * from "./plan-factory.ts";
-export * from "./bridge-state.ts";
-export * from "./continuous-preplanner.ts";
+export type {
+  AssemblyStation,
+  AssemblyStationStatus,
+  BacklogItemStatus,
+  BrentConcurrencyPlan,
+  BrentPartition,
+  ClusterOptions,
+  ConcurrencyAuditResult,
+  DefectStatus,
+  DomainCategory,
+  GitStagingInvariantRecord,
+  HostSchedulerConfig,
+  HostSchedulerId,
+  MindAuditorStagnationReport,
+  PlanGenerationOptions,
+  PreplanningRunResult,
+  RawBacklogItem,
+  RawDefectItem,
+  StagnationAuditResult,
+  StragglerAssessment,
+  ThematicCluster,
+  ThinkingLevel,
+} from "./types.ts";
+export {
+  CANONICAL_DOMAINS,
+  classifyDomain,
+  clusterBacklogAndDefects,
+  computeClusterId,
+  filterEligibleBacklogItems,
+  filterEligibleDefects,
+  generateClusterId,
+  generatePlanPath,
+  loadBacklogItems,
+  loadDefectItems,
+} from "./backlog-clusterer.ts";
+export {
+  assertValidBlueprintStructure,
+  generateAndWritePlan,
+  generatePlanMarkdown,
+  writePlanFile,
+} from "./plan-factory.ts";
+export {
+  resolveLedgerPath,
+  transitionBacklogItemsToPlanned,
+  transitionDefectsToPlanned,
+  updateBridgeState,
+} from "./bridge-state.ts";
+export {
+  type DaemonOptions,
+  type PreplannerOptions,
+  isPreplanningNeeded,
+  runContinuousPreplanningTick,
+  runPreplanningTick,
+  startPreplanningDaemon,
+} from "./continuous-preplanner.ts";
+

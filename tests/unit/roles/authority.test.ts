@@ -28,6 +28,10 @@ describe("Roles authority invariants enforcement", () => {
         "evidence:record",
       ]),
     ).not.toThrow();
+
+    expect(() =>
+      validateRoleAuthorityInvariants("validator", "adversarial", []),
+    ).not.toThrow();
   });
 
   test("throws ROLE_CONFINEMENT_VIOLATION when validator is granted mutating commands", () => {
@@ -45,5 +49,11 @@ describe("Roles authority invariants enforcement", () => {
     expect(() =>
       validateRoleAuthorityInvariants("validator-security", "default", ["edit_file"]),
     ).toThrow(HarnessError);
+
+    for (const forbidden of FORBIDDEN_VALIDATOR_COMMANDS) {
+      expect(() =>
+        validateRoleAuthorityInvariants("validator-adversary", "adversarial", [forbidden]),
+      ).toThrow(HarnessError);
+    }
   });
 });

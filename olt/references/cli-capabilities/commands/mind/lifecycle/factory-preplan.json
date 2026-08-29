@@ -1,9 +1,6 @@
 {
   "name": "factory:preplan",
-  "aliases": [
-    "mind:preplan",
-    "preplan:run"
-  ],
+  "aliases": [],
   "domain": "mind",
   "summary": "Execute continuous pre-planning factory tick to cluster backlog and emit blueprints.",
   "flags": [

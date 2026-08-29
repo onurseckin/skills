@@ -11,26 +11,12 @@ import {
 } from "./interpolator.ts";
 import type { LifecycleEventType, LifecycleHooksConfig, RepoPolicy } from "../types/index.ts";
 
-export {
-  formatDuration,
-  formatHookDuration,
-  interpolateHookCommand,
-  interpolateLifecycleHookCommand,
-};
+export { formatDuration, formatHookDuration, interpolateHookCommand, interpolateLifecycleHookCommand };
 
 export type PolicyLifecycleEvent =
-  | "on_phase_completion"
-  | "on_task_completion"
-  | "on_release_push"
-  | "on_wave_completion"
-  | "on_error"
-  | "on_task_validate"
-  | "on_defect_resolved"
-  | "POST_PHASE"
-  | "POST_PUSH"
-  | "POST_TASK_SUBMIT"
-  | "POST_TASK_VALIDATE"
-  | "ON_DEFECT_RESOLVED";
+  | "on_phase_completion" | "on_task_completion" | "on_release_push" | "on_wave_completion"
+  | "on_wave_complete" | "on_error" | "on_task_validate" | "on_defect_resolved"
+  | "POST_PHASE" | "POST_PUSH" | "POST_TASK_SUBMIT" | "POST_TASK_VALIDATE" | "ON_DEFECT_RESOLVED";
 
 export type PolicyHooksConfig = LifecycleHooksConfig & {
   readonly [key: string]: readonly string[] | undefined;
@@ -53,6 +39,8 @@ const EVENT_CANONICAL_MAP: Record<string, string> = {
   on_task_completion: "POST_TASK_SUBMIT",
   on_task_validate: "POST_TASK_VALIDATE",
   on_defect_resolved: "ON_DEFECT_RESOLVED",
+  on_wave_complete: "on_wave_completion",
+  on_wave_completion: "on_wave_complete",
 };
 
 export interface PolicyHooksValidationResult {
@@ -63,25 +51,12 @@ export interface PolicyHooksValidationResult {
   readonly totalCommandCount: number;
 }
 
-export function validatePolicyHooksConfiguration(
-  policyHooks: unknown,
-): PolicyHooksValidationResult {
-  if (policyHooks === undefined || policyHooks === null) {
-    return {
-      valid: true,
-      errors: [],
-      hooks: undefined,
-      configuredEvents: [],
-      totalCommandCount: 0,
-    };
+export function validatePolicyHooksConfiguration(policyHooks: unknown): PolicyHooksValidationResult {
+  if (policyHooks === undefined ? true : policyHooks === null) {
+    return { valid: true, errors: [], hooks: undefined, configuredEvents: [], totalCommandCount: 0 };
   }
-  if (typeof policyHooks !== "object" || Array.isArray(policyHooks)) {
-    return {
-      valid: false,
-      errors: ["Policy hooks configuration must be an object"],
-      configuredEvents: [],
-      totalCommandCount: 0,
-    };
+  if (typeof policyHooks !== "object" ? true : Array.isArray(policyHooks)) {
+    return { valid: false, errors: ["Policy hooks configuration must be an object"], configuredEvents: [], totalCommandCount: 0 };
   }
   const record = policyHooks as Record<string, unknown>;
   const errors: string[] = [];
@@ -115,13 +90,7 @@ export function validatePolicyHooksConfiguration(
     }
   }
   if (errors.length > 0) return { valid: false, errors, configuredEvents, totalCommandCount };
-  return {
-    valid: true,
-    errors: [],
-    hooks: validatedHooks as PolicyHooksConfig,
-    configuredEvents,
-    totalCommandCount,
-  };
+  return { valid: true, errors: [], hooks: validatedHooks as PolicyHooksConfig, configuredEvents, totalCommandCount };
 }
 
 export function parseCommandLineArgs(command: string): string[] {
@@ -132,7 +101,8 @@ export function parseCommandLineArgs(command: string): string[] {
   let escape = false;
 
   for (let i = 0; i < command.length; i++) {
-    const char = command[i] ?? "";
+    const rawChar = command[i];
+    const char = rawChar !== undefined ? rawChar : "";
     if (escape) {
       current += char;
       escape = false;
@@ -163,10 +133,7 @@ export function parseCommandLineArgs(command: string): string[] {
   return args;
 }
 
-export type HookSpawnRunner = (
-  command: string,
-  options: { detached: boolean; stdio: string; cwd: string },
-) => unknown;
+export type HookSpawnRunner = (command: string, options: { detached: boolean; stdio: string; cwd: string }) => unknown;
 
 export interface HookExecutionRecord {
   readonly template: string;
@@ -184,48 +151,28 @@ export function executeHookCommand(
     readonly nonBlocking?: boolean | undefined;
   } = {},
 ): HookExecutionRecord {
-  const repoRoot =
-    options.repoRoot ??
-    (typeof process !== "undefined" && typeof process.cwd === "function" ? process.cwd() : "/");
+  const fallbackRoot = typeof process !== "undefined" && typeof process.cwd === "function" ? process.cwd() : "/";
+  const repoRoot = options.repoRoot !== undefined ? options.repoRoot : fallbackRoot;
   const enrichedContext: HookVariableContext = { repo_root: repoRoot, repoRoot, ...context };
   const isNonBlocking = options.nonBlocking !== false;
   const interpolated = interpolateHookCommand(commandTemplate, enrichedContext);
   const parsedArgs = parseCommandLineArgs(interpolated);
-  const [executable = "", ...args] = parsedArgs;
+  const [firstArg, ...args] = parsedArgs;
+  const executable = firstArg !== undefined ? firstArg : "";
 
   if (executable.length === 0) {
-    return {
-      template: commandTemplate,
-      command: interpolated,
-      success: false,
-      error: "Empty command",
-    };
+    return { template: commandTemplate, command: interpolated, success: false, error: "Empty command" };
   }
 
   try {
     const spawnOpts = { detached: isNonBlocking, stdio: "ignore" as const, cwd: repoRoot };
-    const child = options.customSpawn
-      ? options.customSpawn(interpolated, spawnOpts)
-      : spawn(executable, args, spawnOpts);
-
-    if (
-      isNonBlocking &&
-      child !== null &&
-      typeof child === "object" &&
-      "unref" in child &&
-      typeof (child as { unref?: unknown }).unref === "function"
-    ) {
+    const child = options.customSpawn ? options.customSpawn(interpolated, spawnOpts) : spawn(executable, args, spawnOpts);
+    if (isNonBlocking && child !== null && typeof child === "object" && "unref" in child && typeof (child as { unref?: unknown }).unref === "function") {
       (child as { unref: () => void }).unref();
     }
     return { template: commandTemplate, command: interpolated, success: true };
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    return {
-      template: commandTemplate,
-      command: interpolated,
-      success: false,
-      error: errorMessage,
-    };
+    return { template: commandTemplate, command: interpolated, success: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -260,25 +207,17 @@ export interface ExecuteLifecycleHooksOptions {
 
 export type LifecycleHookExecutionResult = LifecycleHooksExecutionResult;
 
-export function executePolicyLifecycleHooks(
-  options: PolicyHooksExecutionOptions,
-): LifecycleHooksExecutionResult {
+export function executePolicyLifecycleHooks(options: PolicyHooksExecutionOptions): LifecycleHooksExecutionResult {
   const hooksRecord = options.hooks as Record<string, readonly string[] | undefined> | undefined;
   const eventKey = options.event;
   const altKey = EVENT_CANONICAL_MAP[eventKey];
-  const commands =
-    hooksRecord?.[eventKey] ?? (altKey !== undefined ? hooksRecord?.[altKey] : undefined);
+  let commands: readonly string[] | undefined = hooksRecord !== undefined ? hooksRecord[eventKey] : undefined;
+  if (commands === undefined && altKey !== undefined && hooksRecord !== undefined) {
+    commands = hooksRecord[altKey];
+  }
 
-  if (!commands || commands.length === 0) {
-    return {
-      event: options.event,
-      commandCount: 0,
-      executedCommands: [],
-      records: [],
-      skipped: true,
-      errors: [],
-      success: true,
-    };
+  if (commands === undefined ? true : commands.length === 0) {
+    return { event: options.event, commandCount: 0, executedCommands: [], records: [], skipped: true, errors: [], success: true };
   }
 
   const executedCommands: string[] = [];
@@ -307,14 +246,12 @@ export function executePolicyLifecycleHooks(
   };
 }
 
-export function executeLifecycleHooks(
-  options: ExecuteLifecycleHooksOptions,
-): LifecycleHooksExecutionResult {
-  const repoRoot = options.repoRoot ?? findRepoRoot();
+export function executeLifecycleHooks(options: ExecuteLifecycleHooksOptions): LifecycleHooksExecutionResult {
+  const repoRoot = options.repoRoot !== undefined ? options.repoRoot : findRepoRoot();
   let hooks = options.hooks;
   if (!hooks) {
-    const policy = options.policy ?? inspectRepoPolicy(repoRoot).policy;
-    hooks = policy?.hooks;
+    const policy = options.policy !== undefined ? options.policy : inspectRepoPolicy(repoRoot).policy;
+    hooks = policy !== undefined ? policy.hooks : undefined;
   }
   return executePolicyLifecycleHooks({
     event: options.event,
@@ -335,24 +272,14 @@ export interface EvaluateHooksEngineOptions {
   readonly nonBlocking?: boolean | undefined;
 }
 
-export function evaluatePolicyHooksEngine(
-  options: EvaluateHooksEngineOptions,
-): LifecycleHooksExecutionResult {
+export function evaluatePolicyHooksEngine(options: EvaluateHooksEngineOptions): LifecycleHooksExecutionResult {
   let activeHooks: PolicyHooksConfig | undefined;
   if (options.policyHooks === undefined) {
     activeHooks = DEFAULT_POLICY_HOOKS;
   } else {
     const validation = validatePolicyHooksConfiguration(options.policyHooks);
     if (!validation.valid) {
-      return {
-        event: options.event,
-        commandCount: 0,
-        executedCommands: [],
-        records: [],
-        skipped: false,
-        errors: validation.errors,
-        success: false,
-      };
+      return { event: options.event, commandCount: 0, executedCommands: [], records: [], skipped: false, errors: validation.errors, success: false };
     }
     activeHooks = validation.hooks;
   }

@@ -44,6 +44,7 @@ const HOOKS_KEYS: ReadonlySet<string> = new Set([
   "on_release_push",
   "on_task_completion",
   "on_wave_completion",
+  "on_wave_complete",
   "on_error",
 ]);
 
@@ -71,24 +72,23 @@ export function parseReviewProtocol(raw: unknown, p: string): ReviewProtocolPoli
   if (!isRecord(raw)) integrity(p, "must be an object");
   assertAllowedKeys(raw, REVIEW_PROTOCOL_KEYS, p);
 
-  const maxAdv = reqInt(
-    raw["max_adversarial_pushes"] ?? DEFAULT_REVIEW_PROTOCOL_POLICY.max_adversarial_pushes,
-    `${p}.max_adversarial_pushes`,
-    1,
-    100,
-  );
-  const cog = reqInt(
-    raw["cognitive_pushes"] ?? DEFAULT_REVIEW_PROTOCOL_POLICY.cognitive_pushes,
-    `${p}.cognitive_pushes`,
-    0,
-    maxAdv,
-  );
+  const rawMax = raw["max_adversarial_pushes"] !== undefined
+    ? raw["max_adversarial_pushes"]
+    : DEFAULT_REVIEW_PROTOCOL_POLICY.max_adversarial_pushes;
+  const maxAdv = reqInt(rawMax, `${p}.max_adversarial_pushes`, 1, 100);
+
+  const rawCog = raw["cognitive_pushes"] !== undefined
+    ? raw["cognitive_pushes"]
+    : DEFAULT_REVIEW_PROTOCOL_POLICY.cognitive_pushes;
+  const cog = reqInt(rawCog, `${p}.cognitive_pushes`, 0, maxAdv);
   if (cog > maxAdv) integrity(`${p}.cognitive_pushes`, "must not exceed max_adversarial_pushes");
 
-  const esc =
-    raw["escalate_on_exhausted_adversarial"] !== undefined
-      ? reqBool(raw["escalate_on_exhausted_adversarial"], `${p}.escalate_on_exhausted_adversarial`)
-      : (DEFAULT_REVIEW_PROTOCOL_POLICY.escalate_on_exhausted_adversarial ?? true);
+  const defaultEsc = DEFAULT_REVIEW_PROTOCOL_POLICY.escalate_on_exhausted_adversarial !== undefined
+    ? DEFAULT_REVIEW_PROTOCOL_POLICY.escalate_on_exhausted_adversarial
+    : true;
+  const esc = raw["escalate_on_exhausted_adversarial"] !== undefined
+    ? reqBool(raw["escalate_on_exhausted_adversarial"], `${p}.escalate_on_exhausted_adversarial`)
+    : defaultEsc;
 
   return {
     max_adversarial_pushes: maxAdv,
@@ -101,67 +101,49 @@ export function parsePlanning(raw: unknown, p: string): PlanningPolicy {
   if (!isRecord(raw)) integrity(p, "must be an object");
   assertAllowedKeys(raw, PLANNING_KEYS, p);
 
+  const rawRounds = raw["mandatory_brainstorming_rounds"] !== undefined
+    ? raw["mandatory_brainstorming_rounds"]
+    : DEFAULT_PLANNING_POLICY.mandatory_brainstorming_rounds;
+  const mandatory_brainstorming_rounds = reqInt(rawRounds, `${p}.mandatory_brainstorming_rounds`, 0, 100);
+
+  const rawDepth = raw["socratic_expansion_depth"] !== undefined
+    ? raw["socratic_expansion_depth"]
+    : DEFAULT_PLANNING_POLICY.socratic_expansion_depth;
+  const socratic_expansion_depth = reqInt(rawDepth, `${p}.socratic_expansion_depth`, 0, 100);
+
+  const enforce_edge_case_matrix = raw["enforce_edge_case_matrix"] !== undefined
+    ? reqBool(raw["enforce_edge_case_matrix"], `${p}.enforce_edge_case_matrix`)
+    : DEFAULT_PLANNING_POLICY.enforce_edge_case_matrix;
+
+  const rawMinTasks = raw["min_tasks_per_complex_prompt"] !== undefined
+    ? raw["min_tasks_per_complex_prompt"]
+    : DEFAULT_PLANNING_POLICY.min_tasks_per_complex_prompt;
+  const min_tasks_per_complex_prompt = reqInt(rawMinTasks, `${p}.min_tasks_per_complex_prompt`, 1, 100);
+
+  const rawMaxFiles = raw["max_files_per_task"] !== undefined
+    ? raw["max_files_per_task"]
+    : DEFAULT_PLANNING_POLICY.max_files_per_task;
+  const max_files_per_task = reqInt(rawMaxFiles, `${p}.max_files_per_task`, 1, 100);
+
+  const reject_shallow_umbrella_compression = raw["reject_shallow_umbrella_compression"] !== undefined
+    ? reqBool(raw["reject_shallow_umbrella_compression"], `${p}.reject_shallow_umbrella_compression`)
+    : DEFAULT_PLANNING_POLICY.reject_shallow_umbrella_compression;
+
   return {
-    mandatory_brainstorming_rounds: reqInt(
-      raw["mandatory_brainstorming_rounds"] ??
-        DEFAULT_PLANNING_POLICY.mandatory_brainstorming_rounds,
-      `${p}.mandatory_brainstorming_rounds`,
-      0,
-      100,
-    ),
-    socratic_expansion_depth: reqInt(
-      raw["socratic_expansion_depth"] ?? DEFAULT_PLANNING_POLICY.socratic_expansion_depth,
-      `${p}.socratic_expansion_depth`,
-      0,
-      100,
-    ),
-    enforce_edge_case_matrix:
-      raw["enforce_edge_case_matrix"] !== undefined
-        ? reqBool(raw["enforce_edge_case_matrix"], `${p}.enforce_edge_case_matrix`)
-        : DEFAULT_PLANNING_POLICY.enforce_edge_case_matrix,
-    min_tasks_per_complex_prompt: reqInt(
-      raw["min_tasks_per_complex_prompt"] ?? DEFAULT_PLANNING_POLICY.min_tasks_per_complex_prompt,
-      `${p}.min_tasks_per_complex_prompt`,
-      1,
-      100,
-    ),
-    max_files_per_task: reqInt(
-      raw["max_files_per_task"] ?? DEFAULT_PLANNING_POLICY.max_files_per_task,
-      `${p}.max_files_per_task`,
-      1,
-      100,
-    ),
-    reject_shallow_umbrella_compression:
-      raw["reject_shallow_umbrella_compression"] !== undefined
-        ? reqBool(
-            raw["reject_shallow_umbrella_compression"],
-            `${p}.reject_shallow_umbrella_compression`,
-          )
-        : DEFAULT_PLANNING_POLICY.reject_shallow_umbrella_compression,
+    mandatory_brainstorming_rounds,
+    socratic_expansion_depth,
+    enforce_edge_case_matrix,
+    min_tasks_per_complex_prompt,
+    max_files_per_task,
+    reject_shallow_umbrella_compression,
     ...(raw["max_task_duration_minutes"] !== undefined
-      ? {
-          max_task_duration_minutes: reqInt(
-            raw["max_task_duration_minutes"],
-            `${p}.max_task_duration_minutes`,
-            1,
-          ),
-        }
+      ? { max_task_duration_minutes: reqInt(raw["max_task_duration_minutes"], `${p}.max_task_duration_minutes`, 1) }
       : {}),
     ...(raw["parallel_subagent_sla_rule"] !== undefined
-      ? {
-          parallel_subagent_sla_rule: reqBool(
-            raw["parallel_subagent_sla_rule"],
-            `${p}.parallel_subagent_sla_rule`,
-          ),
-        }
+      ? { parallel_subagent_sla_rule: reqBool(raw["parallel_subagent_sla_rule"], `${p}.parallel_subagent_sla_rule`) }
       : {}),
     ...(raw["stage_on_subdomain_completion"] !== undefined
-      ? {
-          stage_on_subdomain_completion: reqBool(
-            raw["stage_on_subdomain_completion"],
-            `${p}.stage_on_subdomain_completion`,
-          ),
-        }
+      ? { stage_on_subdomain_completion: reqBool(raw["stage_on_subdomain_completion"], `${p}.stage_on_subdomain_completion`) }
       : {}),
   };
 }
@@ -196,40 +178,26 @@ export function parseHooks(raw: unknown, p: string): LifecycleHooksConfig {
   if (!isRecord(raw)) integrity(p, "must be an object");
   assertAllowedKeys(raw, HOOKS_KEYS, p);
 
+  const rawWave = raw["on_wave_completion"] !== undefined ? raw["on_wave_completion"] : raw["on_wave_complete"];
+
   return {
     ...(raw["on_phase_completion"] !== undefined
-      ? {
-          on_phase_completion: parseHookCommandList(
-            raw["on_phase_completion"],
-            `${p}.on_phase_completion`,
-          ),
-        }
+      ? { on_phase_completion: parseHookCommandList(raw["on_phase_completion"], `${p}.on_phase_completion`) }
       : {}),
     ...(raw["on_release_push"] !== undefined
-      ? {
-          on_release_push: parseHookCommandList(raw["on_release_push"], `${p}.on_release_push`),
-        }
+      ? { on_release_push: parseHookCommandList(raw["on_release_push"], `${p}.on_release_push`) }
       : {}),
     ...(raw["on_task_completion"] !== undefined
-      ? {
-          on_task_completion: parseHookCommandList(
-            raw["on_task_completion"],
-            `${p}.on_task_completion`,
-          ),
-        }
+      ? { on_task_completion: parseHookCommandList(raw["on_task_completion"], `${p}.on_task_completion`) }
       : {}),
-    ...(raw["on_wave_completion"] !== undefined
+    ...(rawWave !== undefined
       ? {
-          on_wave_completion: parseHookCommandList(
-            raw["on_wave_completion"],
-            `${p}.on_wave_completion`,
-          ),
+          on_wave_completion: parseHookCommandList(rawWave, `${p}.on_wave_completion`),
+          on_wave_complete: parseHookCommandList(rawWave, `${p}.on_wave_complete`),
         }
       : {}),
     ...(raw["on_error"] !== undefined
-      ? {
-          on_error: parseHookCommandList(raw["on_error"], `${p}.on_error`),
-        }
+      ? { on_error: parseHookCommandList(raw["on_error"], `${p}.on_error`) }
       : {}),
   };
 }

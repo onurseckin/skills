@@ -6,7 +6,7 @@ export { factoryPreplanCommand, factoryStatusCommand };
 export const FACTORY_COMMANDS: readonly CommandSpec[] = [
   {
     name: "factory:preplan",
-    aliases: ["mind:preplan", "preplan:run"],
+    aliases: [],
     domain: "mind",
     summary: "Execute continuous pre-planning factory tick to cluster backlog and emit blueprints.",
     description:
@@ -32,7 +32,7 @@ export const FACTORY_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "factory:status",
-    aliases: ["mind:factory:status", "preplan:status"],
+    aliases: [],
     domain: "mind",
     summary:
       "Inspect factory pre-planning queue health, stagnation status, and concurrency saturation.",

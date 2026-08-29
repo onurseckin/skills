@@ -31,7 +31,7 @@ describe("plan:claim / plan:apply", () => {
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Implement one independently verified change");
     const init = await execute([
-      "init",
+      "plan:init",
       "--repo",
       repo,
       "--run-id",
@@ -63,7 +63,7 @@ describe("plan:claim / plan:apply", () => {
     const graphPath = await writeJson(repo, "graph.json", graph);
 
     const init = await execute([
-      "init",
+      "plan:init",
       "--repo",
       repo,
       "--run-id",
@@ -106,7 +106,7 @@ describe("plan:claim / plan:apply", () => {
     const requirementsPath = await writeJson(repo, "requirements.json", requirements);
     const graphPath = await writeJson(repo, "graph.json", graph);
     const init = await execute([
-      "init",
+      "plan:init",
       "--repo",
       repo,
       "--run-id",
@@ -142,7 +142,7 @@ describe("plan:claim / plan:apply", () => {
     await writeFile(promptPath, prompt);
     await writeFile(join(repo, "gate-check.ts"), "console.log('gate-ok');\n");
     const init = await execute([
-      "init",
+      "plan:init",
       "--repo",
       repo,
       "--run-id",
@@ -173,7 +173,7 @@ describe("plan:audit", () => {
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Do one thing");
     const init = await execute([
-      "init",
+      "plan:init",
       "--repo",
       repo,
       "--run-id",
@@ -193,7 +193,7 @@ describe("plan:audit", () => {
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Do one thing");
     const init = await execute([
-      "init",
+      "plan:init",
       "--repo",
       repo,
       "--run-id",
@@ -230,7 +230,7 @@ describe("plan:audit", () => {
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Test prompt");
     const init = await execute([
-      "init",
+      "plan:init",
       "--repo",
       repo,
       "--run-id",

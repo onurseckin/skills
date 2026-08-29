@@ -28,6 +28,25 @@ function isValidAgentId(agentId: unknown): agentId is string {
   return true;
 }
 
+export function resolveMailboxLockPath(agentId: string, baseDir?: string): string {
+  if (typeof agentId !== "string") {
+    throw new HarnessError("INVALID_ARGUMENT", "agentId must be a non-empty string");
+  }
+  if (agentId.trim().length === 0) {
+    throw new HarnessError("INVALID_ARGUMENT", "agentId must be a non-empty string");
+  }
+  if (!isValidAgentId(agentId)) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      `Invalid agentId '${agentId}': cannot contain path separators or traversal elements`,
+    );
+  }
+
+  const effectiveBase = baseDir !== undefined ? baseDir : process.cwd();
+  const root = resolve(effectiveBase);
+  return join(root, ".olt", "locks", "mailboxes", `${agentId}.lock`);
+}
+
 export function resolveMailboxPaths(agentId: string, baseDir?: string): MailboxPaths {
   if (typeof agentId !== "string") {
     throw new HarnessError("INVALID_ARGUMENT", "agentId must be a non-empty string");
@@ -54,7 +73,7 @@ export function resolveMailboxPaths(agentId: string, baseDir?: string): MailboxP
     archivePath: join(agentMailboxDir, "archive.jsonl"),
     cursorPath: join(agentMailboxDir, "cursor.json"),
     quarantinePath: join(agentMailboxDir, "quarantine.log"),
-    lockPath: join(root, ".olt", "locks", "mailboxes", `${agentId}.lock`),
+    lockPath: resolveMailboxLockPath(agentId, baseDir),
   };
 }
 

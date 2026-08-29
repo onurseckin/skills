@@ -26,3 +26,9 @@ export {
   type PolicyHooksValidationResult,
   type PolicyLifecycleEvent,
 } from "./lifecycle-hooks-engine.ts";
+
+export {
+  executePolicyHook,
+  type ExecutePolicyHookOptions,
+  type HookContext,
+} from "./lifecycle-hooks.ts";

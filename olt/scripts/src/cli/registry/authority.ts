@@ -63,7 +63,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "watchdog:status",
-    aliases: ["watchdog:list"],
+    aliases: [],
     domain: "authority",
     summary: "Query watchdog lifecycle, monitor cadence, and health status.",
     description:
@@ -95,7 +95,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "watchdog:cleanup",
-    aliases: ["watchdog:clean"],
+    aliases: [],
     domain: "authority",
     summary: "Purge stale or legacy watchdog monitors exceeding heartbeat timeout.",
     description:
@@ -141,7 +141,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "watchdog:phase-cleanup",
-    aliases: ["watchdog:phase-clean", "watchdog:cleanup-phase"],
+    aliases: [],
     domain: "authority",
     summary: "Terminate legacy phase watchdog monitors upon phase rollover or completion.",
     description: "Terminates active watchdog monitors belonging to completed or superseded phases.",
@@ -185,7 +185,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "watchdog:verify",
-    aliases: ["watchdog:check", "watchdog:lint"],
+    aliases: [],
     domain: "authority",
     summary: "Verify watchdog lifecycle invariants and single-monitor constraints.",
     description: "Audits the watchdog registry against architectural constraints.",
@@ -206,7 +206,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "watchdog:probe",
-    aliases: ["watchdog:supervise", "watchdog:health-probe"],
+    aliases: [],
     domain: "authority",
     summary: "Execute 2-way supervisory health probe and doctor diagnostics to top leader.",
     description:

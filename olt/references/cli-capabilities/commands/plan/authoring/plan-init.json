@@ -1,7 +1,8 @@
 {
   "name": "plan:init",
   "aliases": [
-    "init"
+    "plan-init",
+    "init-plan"
   ],
   "domain": "plan",
   "summary": "Create a run capsule and capture the prompt bytes immutably.",

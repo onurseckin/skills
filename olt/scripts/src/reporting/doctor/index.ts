@@ -40,6 +40,37 @@ export {
   type GitDiffRecord,
 } from "./tier-confinement/index.ts";
 export {
+  versionAtLeast,
+  ignoredByGit,
+  classifyIssueSeverity,
+  tierDoctorIssues,
+  computeCapsuleDoctorFacts,
+  type DoctorIssueSeverity,
+  type DoctorIssueTiering,
+  type CapsuleDoctorFacts,
+} from "./facts.ts";
+export {
+  formatDoctorReport,
+  type DoctorReportFormatParams,
+} from "./report-formatter.ts";
+export {
+  remedialActionsForIntegrityIssues,
+  generateRemedialGuidance,
+  type DoctorRemedialAction,
+  type GuidanceGenerationOptions,
+  type DoctorGuidanceResult,
+} from "./guidance.ts";
+export {
+  checkPreCompletionDiagnostics,
+  type PreCompletionDiagnosticsOptions,
+  type PreCompletionDiagnosticsResult,
+  type PreCompletionBlocker,
+} from "./pre-completion.ts";
+export {
+  runDoctor,
+  type DoctorOptions,
+} from "./runner.ts";
+export {
   checkPlanningDag,
   checkAstPurity,
   scanFileForAstPurity,
@@ -68,6 +99,8 @@ export {
   pruneOrphanedMailboxes,
   checkWorktreeHealth,
   autoHealWorktreeState,
+  checkEpistemicConfidence,
+  checkCliRegistryTaxonomy,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
   type PlanningDagCheckOptions,
@@ -88,9 +121,12 @@ export {
   type MailboxHealthOptions,
   type DoctorWorktreeHealthReport,
   type WorktreeHealthOptions,
+  type EpistemicConfidenceCheckOptions,
+  type CliRegistryTaxonomyCheckOptions,
   type DoctorSeverity,
   type DoctorDiagnosticFinding,
   type DoctorCheckEngineResult,
+  type DoctorCheckResult,
   type DoctorAutoHealResult,
   type RepositoryHygieneFinding,
   type RepositoryHygieneResult,

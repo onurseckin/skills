@@ -1,9 +1,6 @@
 {
   "name": "watchdog:probe",
-  "aliases": [
-    "watchdog:supervise",
-    "watchdog:health-probe"
-  ],
+  "aliases": [],
   "domain": "authority",
   "summary": "Execute 2-way supervisory health probe and doctor diagnostics to top leader.",
   "flags": [

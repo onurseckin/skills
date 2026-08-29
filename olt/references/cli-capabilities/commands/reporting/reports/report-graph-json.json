@@ -1,8 +1,6 @@
 {
   "name": "report:graph-json",
-  "aliases": [
-    "dag:export-json"
-  ],
+  "aliases": [],
   "domain": "reporting",
   "summary": "Export DAG telemetry and metrics to JSON.",
   "flags": [

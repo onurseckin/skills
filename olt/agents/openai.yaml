@@ -56,6 +56,9 @@ permissions:
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
     - "Bypass mandatory doctor verification before concluding supervisory rounds or task handoffs"
 instructions: |
+  # Host-Tool Interlock & Shielded Shell
+  - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
   # OpenAI Platform Adapter Contract
 
   ## Mandatory Doctor Pre-Completion Verification Guard

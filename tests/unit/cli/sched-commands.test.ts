@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
+  executeSchedBackoff,
+  executeSchedEval,
   schedBackoffCommand,
   schedEvalCommand,
   schedJitterCommand,
@@ -94,4 +96,51 @@ describe("Scheduling CLI commands", () => {
     const jitterRes = await execute(["sched:jitter", "--interval", "5000", "--seed", "42"]);
     expect(typeof jitterRes.intervalMs).toBe("number");
   });
+
+  test("executeSchedEval and executeSchedBackoff runner functions exit cleanly and format JSON", async () => {
+    const origStdout = process.stdout.write;
+    const origStderr = process.stderr.write;
+    let stdoutBuf = "";
+    process.stdout.write = ((chunk: string) => {
+      stdoutBuf += chunk;
+      return true;
+    }) as unknown as typeof process.stdout.write;
+    process.stderr.write = (() => true) as unknown as typeof process.stderr.write;
+
+    try {
+      stdoutBuf = "";
+      const evalCode = await executeSchedEval(["--pending-work", "--trace-id", "trace-123"]);
+      expect(evalCode).toBe(0);
+      const parsedEval = JSON.parse(stdoutBuf);
+      expect(parsedEval.isImmediate).toBe(true);
+      expect(parsedEval.ok).toBe(true);
+      expect(parsedEval.traceContext.traceId).toBe("trace-123");
+
+      stdoutBuf = "";
+      const backoffCode = await executeSchedBackoff([
+        "--streak",
+        "2",
+        "--strategy",
+        "fixed",
+        "--trace-id",
+        "trace-456",
+      ]);
+      expect(backoffCode).toBe(0);
+      const parsedBackoff = JSON.parse(stdoutBuf);
+      expect(parsedBackoff.strategy).toBe("fixed");
+      expect(parsedBackoff.ok).toBe(true);
+      expect(parsedBackoff.delayMs).toBe(1000);
+      expect(parsedBackoff.traceContext.traceId).toBe("trace-456");
+
+      const errEval = await executeSchedEval(["--unknown-flag-xyz"]);
+      expect(errEval).toBe(2);
+
+      const errBackoff = await executeSchedBackoff(["--unknown-flag-xyz"]);
+      expect(errBackoff).toBe(2);
+    } finally {
+      process.stdout.write = origStdout;
+      process.stderr.write = origStderr;
+    }
+  });
 });
+

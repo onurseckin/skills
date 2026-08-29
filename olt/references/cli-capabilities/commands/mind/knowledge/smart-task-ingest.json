@@ -1,8 +1,6 @@
 {
   "name": "smart-task:ingest",
-  "aliases": [
-    "smart-task:expand"
-  ],
+  "aliases": [],
   "domain": "mind",
   "summary": "Ingest and enhance an external prompt into a gate-verifiable task plan.",
   "flags": [

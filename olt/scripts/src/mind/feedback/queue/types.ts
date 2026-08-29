@@ -35,11 +35,15 @@ export type FeedbackCategory =
   | "SCALING"
   | "ARCHITECTURE"
   | "CORE_ENGINE"
+  | "ENGINE"
   | "REPAIR"
   | "GENERAL"
   | "GOVERNANCE"
   | "ORCHESTRATION"
-  | "AUDITING";
+  | "AUDITING"
+  | "COMMUNICATION"
+  | "VALIDATION"
+  | "NOTIFICATION";
 
 export interface FeedbackResolutionProof {
   readonly task_id: string;
@@ -133,7 +137,6 @@ type FeedbackQueuePersistenceStage =
 let feedbackQueuePersistenceTestHook: ((stage: FeedbackQueuePersistenceStage) => void) | undefined;
 const feedbackQueueLockSleep = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
 
-/** @internal Narrow deterministic durability seam for the unit suite. */
 export function __setFeedbackQueuePersistenceTestHook(
   hook: ((stage: FeedbackQueuePersistenceStage) => void) | undefined,
 ): void {
@@ -209,20 +212,23 @@ export function validateStatus(val: unknown): FeedbackStatus {
 
 export function validateCategory(val: unknown): FeedbackCategory {
   if (typeof val === "string") {
-    const upper = val.toUpperCase();
-    if (upper === "DOCUMENTATION") return "DOCUMENTATION";
-    if (upper === "AGENT_CONTRACTS") return "AGENT_CONTRACTS";
-    if (upper === "CLI_TOOLING" || upper === "COMMUNICATION") return "CLI_TOOLING";
+    const upper = val.trim().toUpperCase();
+    if (upper === "DOCUMENTATION" || upper === "DOCS" || upper === "DOC") return "DOCUMENTATION";
+    if (upper === "AGENT_CONTRACTS" || upper === "CONTRACTS" || upper === "AGENT") return "AGENT_CONTRACTS";
+    if (upper === "CLI_TOOLING" || upper === "CLI" || upper === "TOOLING") return "CLI_TOOLING";
     if (upper === "WATCHDOG") return "WATCHDOG";
     if (upper === "SCALING") return "SCALING";
     if (upper === "ARCHITECTURE") return "ARCHITECTURE";
-    if (upper === "CORE_ENGINE" || upper === "ENGINE") return "CORE_ENGINE";
-    if (upper === "REPAIR") return "REPAIR";
+    if (upper === "CORE_ENGINE") return "CORE_ENGINE";
+    if (upper === "ENGINE") return "ENGINE";
+    if (upper === "REPAIR" || upper === "BUGFIX" || upper === "FIX") return "REPAIR";
     if (upper === "GENERAL") return "GENERAL";
     if (upper === "GOVERNANCE" || upper === "POLICY") return "GOVERNANCE";
     if (upper === "ORCHESTRATION" || upper === "WORKFLOW") return "ORCHESTRATION";
-    if (upper === "AUDITING") return "AUDITING";
-    if (upper === "NOTIFICATION" || upper === "NOTIFICATIONS") return "CLI_TOOLING";
+    if (upper === "AUDITING" || upper === "AUDIT") return "AUDITING";
+    if (upper === "COMMUNICATION" || upper === "MSG" || upper === "MESSAGING") return "COMMUNICATION";
+    if (upper === "VALIDATION" || upper === "VALIDATOR") return "VALIDATION";
+    if (upper === "NOTIFICATION" || upper === "NOTIFICATIONS" || upper === "NOTIFY") return "NOTIFICATION";
   }
   throw new HarnessError("INTEGRITY", "Feedback item requires valid category");
 }

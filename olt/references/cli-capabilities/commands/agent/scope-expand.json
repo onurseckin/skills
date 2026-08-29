@@ -1,8 +1,6 @@
 {
   "name": "scope:expand",
-  "aliases": [
-    "scope-expand"
-  ],
+  "aliases": [],
   "domain": "agent",
   "summary": "Dynamically expand the declared read scope neighborhood for an active actor.",
   "flags": [

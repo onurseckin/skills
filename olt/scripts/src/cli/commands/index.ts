@@ -373,13 +373,24 @@ export type { MailboxSummary, MsgListResult } from "./msg-list.ts";
 export { msgListCommand } from "./msg-list.ts";
 export {
   taskAddCommand,
+  executeTaskAdd,
   taskListCommand,
+  executeTaskList,
   taskLeaseCommand,
   taskCompleteCommand,
   taskFailCommand,
   taskPruneCommand,
 } from "./task-queue-ops.ts";
-export { schedEvalCommand, schedBackoffCommand, schedJitterCommand } from "./sched-ops.ts";
-export { roleListCommand, roleProfileCommand } from "./role-ops.ts";
-export { hygieneAuditCommand, hygieneFixCommand } from "./hygiene-ops.ts";
+export {
+  roleListCommand,
+  executeRoleList,
+  roleProfileCommand,
+  executeRoleProfile,
+} from "./role-ops.ts";
+export {
+  hygieneAuditCommand,
+  executeHygieneAudit,
+  hygieneFixCommand,
+  executeHygieneFix,
+} from "./hygiene-ops.ts";
 export { defectRecordCommand, defectResolveCommand, defectListCommand } from "./defect-ops.ts";

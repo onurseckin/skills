@@ -114,10 +114,6 @@ describe("Unified Reporting CLI Surface", () => {
     expect(report.markdown).toContain("`impl-worker-1`");
     expect(report.markdown).toContain("`task-api`");
     expect(report.markdown).not.toContain("undefined");
-
-    // Test aliases
-    const aliasReport2 = (await execute(["report:all", "--run", run])) as unknown as UnifiedReport;
-    expect(aliasReport2.run_id).toBe(report.run_id);
   });
 
   test("run:status delineates active implementers, validators, and standby tasks", async () => {
@@ -345,7 +341,7 @@ describe("Unified Reporting CLI Surface", () => {
     expect(statusResult.markdown as string).toContain("Leased (legacy-worker-99 [implementer])");
     expect(statusResult.markdown as string).not.toContain("Leased (undefined");
 
-    const dagResult = (await execute(["dag:view", "--run", run])) as Record<string, unknown>;
+    const dagResult = (await execute(["report:dag", "--run", run])) as Record<string, unknown>;
     expect(dagResult.markdown as string).toContain("legacy-worker-99");
     expect(dagResult.markdown as string).not.toContain("undefined");
 

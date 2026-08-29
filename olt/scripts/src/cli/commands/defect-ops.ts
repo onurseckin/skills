@@ -3,23 +3,47 @@ import {
   deserializeDefectRecord,
   parseAndDeduplicateDefectJsonl,
   parseDefectLog,
-  resolveDefect,
+  resolveDefectRecord,
   serializeAggregatedDefectLog,
+  type AggregatedDefect,
   type DefectEntry,
   type DefectResolutionProof,
+  type LiveDeduplicationOptions,
 } from "../../logging/defects/index.ts";
 import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+
+export interface DefectRecordResult {
+  readonly defects: readonly AggregatedDefect[];
+  readonly serialized: string;
+  readonly count: number;
+}
+
+export interface DefectResolveResult {
+  readonly defect: DefectEntry | AggregatedDefect;
+  readonly status: "resolved";
+}
+
+export interface DefectListResult {
+  readonly defects: readonly DefectEntry[];
+  readonly count: number;
+}
 
 export function defectRecordCommand(
   flags: Flags,
   context?: CommandContext,
-): Record<string, unknown> {
+): DefectRecordResult {
   const filePath = textFlag(flags, "file", false) ?? textFlag(flags, "path", false);
   const directContent =
     textFlag(flags, "content", false) ??
     textFlag(flags, "json", false) ??
     textFlag(flags, "jsonl", false);
   const windowMs = integerFlag(flags, "window-ms") ?? integerFlag(flags, "dedup-window");
+  const maxEntries = integerFlag(flags, "max-entries") ?? integerFlag(flags, "limit");
+  const maxOccurrences = integerFlag(flags, "max-occurrences");
+  const strategyFlag = textFlag(flags, "strategy", false);
+  const strategy = strategyFlag === "exact_dedup" || strategyFlag === "windowed" || strategyFlag === "sliding_window_hash" || strategyFlag === "aggregate_synchronous"
+    ? strategyFlag
+    : undefined;
 
   let rawContent = "";
   if (filePath && existsSync(filePath)) {
@@ -32,9 +56,14 @@ export function defectRecordCommand(
     rawContent = context.inlinePrompt;
   }
 
-  const defects = parseAndDeduplicateDefectJsonl(rawContent, {
-    windowMs,
-  });
+  const options: LiveDeduplicationOptions = {
+    ...(windowMs !== undefined ? { windowMs } : {}),
+    ...(maxEntries !== undefined ? { maxEntries } : {}),
+    ...(maxOccurrences !== undefined ? { maxOccurrences } : {}),
+    ...(strategy !== undefined ? { strategy } : {}),
+  };
+
+  const defects = parseAndDeduplicateDefectJsonl(rawContent, options);
   const serialized = serializeAggregatedDefectLog(defects);
 
   return {
@@ -47,9 +76,9 @@ export function defectRecordCommand(
 export function defectResolveCommand(
   flags: Flags,
   _context?: CommandContext,
-): Record<string, unknown> {
+): DefectResolveResult {
   const defectRaw = textFlag(flags, "defect", false) ?? textFlag(flags, "defect-json", false);
-  const filePath = textFlag(flags, "file", false);
+  const filePath = textFlag(flags, "file", false) ?? textFlag(flags, "path", false);
   const taskId = textFlag(flags, "task-id", false) ?? textFlag(flags, "task", true)!;
   const testAssertion =
     textFlag(flags, "test-assertion", false) ?? textFlag(flags, "assertion", true)!;
@@ -60,7 +89,7 @@ export function defectResolveCommand(
   const resolvedAt = textFlag(flags, "resolved-at", false) ?? new Date().toISOString();
   const requireCommitSha = boolFlag(flags, "require-commit-sha");
 
-  let baseDefect: DefectEntry | null = null;
+  let baseDefect: AggregatedDefect | DefectEntry | null = null;
   if (filePath && existsSync(filePath)) {
     const fileContent = readFileSync(filePath, "utf-8");
     baseDefect = deserializeDefectRecord(fileContent);
@@ -88,7 +117,7 @@ export function defectResolveCommand(
     ...(verifiedBy !== undefined ? { verified_by: verifiedBy } : {}),
   };
 
-  const resolved = resolveDefect(targetDefect, proof, { requireCommitSha });
+  const resolved = resolveDefectRecord(targetDefect, proof, { requireCommitSha });
 
   return {
     defect: resolved,
@@ -99,10 +128,13 @@ export function defectResolveCommand(
 export function defectListCommand(
   flags: Flags,
   _context?: CommandContext,
-): Record<string, unknown> {
+): DefectListResult {
   const filePath = textFlag(flags, "file", false) ?? textFlag(flags, "path", false);
   const directContent = textFlag(flags, "content", false) ?? textFlag(flags, "jsonl", false);
   const capsuleRoot = textFlag(flags, "capsule-root", false) ?? textFlag(flags, "run", false);
+  const filterStatus = (textFlag(flags, "filter-status", false) ?? textFlag(flags, "status", false))?.toLowerCase();
+  const filterCategory = (textFlag(flags, "filter-category", false) ?? textFlag(flags, "category", false))?.toLowerCase();
+  const limit = integerFlag(flags, "limit") ?? integerFlag(flags, "max-entries");
 
   let rawContent = "";
   if (filePath && existsSync(filePath)) {
@@ -111,9 +143,19 @@ export function defectListCommand(
     rawContent = directContent;
   }
 
-  const defects = parseDefectLog(rawContent, {
+  let defects = parseDefectLog(rawContent, {
     capsuleRoot,
   });
+
+  if (filterStatus) {
+    defects = defects.filter((d) => String(d.status).toLowerCase() === filterStatus);
+  }
+  if (filterCategory) {
+    defects = defects.filter((d) => String(d.category).toLowerCase() === filterCategory);
+  }
+  if (limit !== undefined && limit > 0) {
+    defects = defects.slice(0, limit);
+  }
 
   return {
     defects,

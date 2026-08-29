@@ -9,13 +9,11 @@ import {
   EXECUTABLE_EXTENSIONS,
   SCRATCH_PATTERNS,
   TEST_ARTIFACT_PATTERNS,
-} from "./types.ts";
-import type {
-  HygieneViolationType,
-  QuarantinedFileRecord,
-  RootHygieneFinding,
-  RootHygieneOptions,
-  RootHygieneScanResult,
+  type HygieneViolationType,
+  type QuarantinedFileRecord,
+  type RootHygieneFinding,
+  type RootHygieneOptions,
+  type RootHygieneScanResult,
 } from "./types.ts";
 
 export function isExecutable(fullPath: string, mode: number): boolean {

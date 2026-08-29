@@ -38,7 +38,7 @@ export const RUN_COMMANDS: readonly CommandSpec[] = [
     readsStdin: true,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts run:init --run <run-id>", "bun harness.ts init --run <run-id>"],
+    examples: ["bun harness.ts run:init --run <run-id>"],
     handler: runInitCommand,
   },
   {
@@ -79,7 +79,7 @@ export const RUN_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "run:status",
-    aliases: ["status"],
+    aliases: [],
     domain: "run",
     summary: "Show phase, per-task status and progress for the run.",
     description: "Reads the capsule without mutating it and renders the execution table.",
@@ -96,10 +96,7 @@ export const RUN_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts run:status --run .olt/capsules/<run-id>",
-      "bun harness.ts status --run .olt/capsules/<run-id>",
-    ],
+    examples: ["bun harness.ts run:status --run .olt/capsules/<run-id>"],
     handler: runStatusCommand,
   },
   {

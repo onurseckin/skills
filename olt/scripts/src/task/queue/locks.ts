@@ -1,5 +1,5 @@
 import { openSync, closeSync, lstatSync, fstatSync, mkdirSync, constants } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { releaseFlock, tryExclusiveFlock } from "../../platform/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { taskQueueLockSleep } from "./types.ts";
@@ -47,6 +47,16 @@ export function releaseTaskQueueFlock(descriptor: number): void {
   releaseFlock(descriptor);
 }
 
+export function resolveTaskQueueLockPath(filePath: string): string {
+  const resolved = resolve(filePath);
+  const dir = dirname(resolved);
+  if (dir.endsWith(".olt") || dir.includes("/.olt/")) {
+    const oltDir = dir.endsWith(".olt") ? dir : dir.slice(0, dir.indexOf("/.olt/") + 5);
+    return join(oltDir, "locks", "tasks.lock");
+  }
+  return join(dir, ".task-queue.lock");
+}
+
 export function withTaskQueueTransaction<T>(filePath: string, mutation: () => T): T {
   const parent = dirname(filePath);
   const parentRoot = dirname(parent);
@@ -64,7 +74,7 @@ export function withTaskQueueTransaction<T>(filePath: string, mutation: () => T)
     rootLocked = acquireTaskQueueFlock(rootFd, "task queue root");
     assertStableDirectory(root, rootFd, "task queue root");
     try {
-      mkdirSync(parent);
+      mkdirSync(parent, { recursive: true });
     } catch (error) {
       if (!isOwnErrorCode(error, "EEXIST")) throw error;
     }
@@ -102,5 +112,55 @@ export function withTaskQueueTransaction<T>(filePath: string, mutation: () => T)
 }
 
 export async function withTaskQueueLock<T>(filePath: string, fn: () => T | Promise<T>): Promise<T> {
-  return withTaskQueueTransaction(filePath, () => fn());
+  const parent = dirname(filePath);
+  const parentRoot = dirname(parent);
+  const root = parentRoot === parent || parentRoot === "/" ? parent : parentRoot;
+  let rootFd: number | undefined;
+  let parentFd: number | undefined;
+  let rootLocked = false;
+  let parentLocked = false;
+  let primaryThrown = false;
+  let primary: unknown;
+  let result!: T;
+  try {
+    rootFd = openSync(root, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    assertStableDirectory(root, rootFd, "task queue root");
+    rootLocked = acquireTaskQueueFlock(rootFd, "task queue root");
+    assertStableDirectory(root, rootFd, "task queue root");
+    try {
+      mkdirSync(parent, { recursive: true });
+    } catch (error) {
+      if (!isOwnErrorCode(error, "EEXIST")) throw error;
+    }
+    assertStableDirectory(root, rootFd, "task queue root");
+    parentFd = openSync(parent, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    assertStableDirectory(parent, parentFd, "task queue parent");
+    parentLocked = acquireTaskQueueFlock(parentFd, "task queue parent");
+    assertStableDirectory(parent, parentFd, "task queue parent");
+    result = await fn();
+  } catch (error) {
+    primaryThrown = true;
+    primary = error;
+  }
+
+  let cleanupThrown = false;
+  let cleanup: unknown;
+  const attemptCleanup = (action: () => void): void => {
+    try {
+      action();
+    } catch (error) {
+      if (!cleanupThrown) {
+        cleanupThrown = true;
+        cleanup = error;
+      }
+    }
+  };
+  if (parentLocked && parentFd !== undefined)
+    attemptCleanup(() => releaseTaskQueueFlock(parentFd!));
+  if (rootLocked && rootFd !== undefined) attemptCleanup(() => releaseTaskQueueFlock(rootFd!));
+  if (parentFd !== undefined) attemptCleanup(() => closeSync(parentFd!));
+  if (rootFd !== undefined) attemptCleanup(() => closeSync(rootFd!));
+  if (primaryThrown) throw primary;
+  if (cleanupThrown) throw cleanup;
+  return result;
 }

@@ -1,8 +1,6 @@
 {
   "name": "policy:check-drift",
-  "aliases": [
-    "policy:drift"
-  ],
+  "aliases": [],
   "domain": "policy",
   "summary": "Check for policy file drift against a known SHA-256 checksum.",
   "flags": [

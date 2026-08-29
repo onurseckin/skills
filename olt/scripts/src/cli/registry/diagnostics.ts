@@ -20,7 +20,7 @@ import {
 export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
   {
     name: "defect:audit",
-    aliases: ["defects"],
+    aliases: [],
     domain: "diagnostics",
     tier: "internal",
     internal: true,
@@ -269,7 +269,7 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "finding:file",
-    aliases: ["finding"],
+    aliases: [],
     domain: "diagnostics",
     tier: "primary",
     internal: false,

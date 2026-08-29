@@ -20,7 +20,7 @@ function spec(invocation: string) {
 describe("grant bootstrap allowlist data", () => {
   test("capsule genesis commands are the ones that create a capsule before any ledger exists", () => {
     expect([...CAPSULE_GENESIS_COMMANDS].sort()).toEqual(
-      ["mind:init", "orchestrate", "plan:init"].sort(),
+      ["mind:init", "orchestrate", "plan:init", "run:init"].sort(),
     );
   });
 
@@ -106,6 +106,7 @@ describe("declaresRunIdentityFlag: the structural hole 1 predicate", () => {
   test("is true for commands that declare a --run/--run-id flag, whether required or optional", () => {
     expect(declaresRunIdentityFlag(spec("plan:init"))).toBe(true);
     expect(declaresRunIdentityFlag(spec("orchestrate"))).toBe(true);
+    expect(declaresRunIdentityFlag(spec("run:init"))).toBe(true);
     expect(declaresRunIdentityFlag(spec("agent:register"))).toBe(true);
     expect(declaresRunIdentityFlag(spec("doctor"))).toBe(true);
     expect(declaresRunIdentityFlag(spec("whoami"))).toBe(true);

@@ -1,9 +1,6 @@
 {
   "name": "notify:phase",
-  "aliases": [
-    "notify",
-    "phase:notify"
-  ],
+  "aliases": [],
   "domain": "reporting",
   "summary": "Trigger cross-platform native OS push notification and audio chime upon phase landing.",
   "flags": [

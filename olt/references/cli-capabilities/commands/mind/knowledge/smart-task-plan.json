@@ -1,8 +1,6 @@
 {
   "name": "smart-task:plan",
-  "aliases": [
-    "task:synthesize"
-  ],
+  "aliases": [],
   "domain": "mind",
   "summary": "Autonomously synthesize self-evolution tasks or plan from feedback queue.",
   "flags": [

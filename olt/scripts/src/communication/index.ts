@@ -37,6 +37,7 @@ export {
   loadMailboxCursor,
   quarantineTornLines,
   readUnreadMessages,
+  resolveMailboxLockPath,
   resolveMailboxPaths,
   resolveRecipientAgentIds,
   rotateMailboxMessages,

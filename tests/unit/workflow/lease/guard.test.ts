@@ -157,4 +157,36 @@ describe("verifyDiskCapsuleLease", () => {
 
     rmSync(scratch, { recursive: true, force: true });
   });
+
+  test("rejects when on-disk capsule task has no active lease", () => {
+    const scratch = scratchRoot(import.meta.path, "unleased-capsule-test");
+    mkdirSync(scratch, { recursive: true });
+    const state = workflowState();
+    writeFileSync(join(scratch, "state.json"), JSON.stringify(state, null, 2), "utf8");
+
+    const res = verifyDiskCapsuleLease(scratch, "T-1");
+    expect(res.valid).toBe(false);
+    expect(res.reason).toContain("LEASE_REQUIRED: task T-1 has no active lease in capsule state");
+
+    rmSync(scratch, { recursive: true, force: true });
+  });
+
+  test("rejects when on-disk capsule lease has expired", () => {
+    const scratch = scratchRoot(import.meta.path, "expired-capsule-test");
+    mkdirSync(scratch, { recursive: true });
+    const port = new TestPort(workflowState());
+    const { state, token } = claimTask(port, "T-1", "worker-1", "implementer", {
+      leaseSeconds: 60,
+      clock: start,
+    });
+    writeFileSync(join(scratch, "state.json"), JSON.stringify(state, null, 2), "utf8");
+
+    const res = verifyDiskCapsuleLease(scratch, "T-1", "worker-1", token, {
+      clock: afterExpiry,
+    });
+    expect(res.valid).toBe(false);
+    expect(res.reason).toContain("LEASE_REQUIRED: task T-1 lease expired at");
+
+    rmSync(scratch, { recursive: true, force: true });
+  });
 });

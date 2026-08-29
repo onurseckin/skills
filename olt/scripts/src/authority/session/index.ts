@@ -38,6 +38,7 @@ export {
 } from "./io.ts";
 
 export {
+  assertActiveCapsuleLease,
   pruneStaleSessions,
   registerSessionGrant,
   revokeSessionGrant,
@@ -48,5 +49,6 @@ export {
 export {
   autoDeriveCallerIdentity,
   isSessionLedgerBacked,
+  requireTurn1Registration,
   resolveActiveSession,
 } from "./resolver.ts";

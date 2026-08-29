@@ -1,8 +1,6 @@
 {
   "name": "orchestrator:run",
-  "aliases": [
-    "orchestrator"
-  ],
+  "aliases": [],
   "domain": "orchestrator",
   "summary": "Run the autonomous coordination loop over a fresh capsule.",
   "flags": [

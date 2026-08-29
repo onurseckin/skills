@@ -16,6 +16,13 @@ export {
   type LeaseGuardResult,
 } from "./guard.ts";
 export { heartbeat } from "./heartbeat.ts";
+export {
+  assertMutationInterlock,
+  verifyMutationInterlock,
+  type MutationInterlockResult,
+  type MutationOperation,
+  type MutationOpInput,
+} from "./mutation-interlock.ts";
 export { type RecoveryOptions, recoverStale } from "./recover-stale.ts";
 export { releaseLease } from "./release.ts";
 export {

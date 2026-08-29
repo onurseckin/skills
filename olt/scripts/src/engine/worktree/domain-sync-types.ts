@@ -20,6 +20,45 @@ export const CONVENTIONAL_COMMIT_TYPES = new Set([
   "migration",
 ]);
 
+export interface WorktreeContext {
+  readonly trackId: string;
+  readonly worktreePath: string;
+  readonly branch: string;
+  readonly baseBranch: string;
+  readonly repoRoot: string;
+  readonly lockPath?: string | undefined;
+  readonly createdAt: string;
+}
+
+export interface LandingResult {
+  readonly success: boolean;
+  readonly trackId: string;
+  readonly commitSha: string;
+  readonly targetBranch: string;
+  readonly rebased: boolean;
+  readonly pushed: boolean;
+  readonly durationMs: number;
+  readonly cleaned: boolean;
+  readonly tornDown: boolean;
+  readonly warning?: string | undefined;
+}
+
+export interface CreateHermeticWorktreeOptions {
+  readonly repoRoot?: string | undefined;
+  readonly baseBranch?: string | undefined;
+  readonly runner?: GitRunner | undefined;
+}
+
+export interface LandHermeticWorktreeOptions {
+  readonly remote?: string | undefined;
+  readonly targetBranch?: string | undefined;
+  readonly commitMessage?: string | undefined;
+  readonly commitType?: string | undefined;
+  readonly scope?: string | undefined;
+  readonly description?: string | undefined;
+  readonly runner?: GitRunner | undefined;
+}
+
 export interface DomainWorktreeConfig {
   domain: string;
   worktreeId: string;

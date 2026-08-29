@@ -25,18 +25,12 @@ export function filterEligibleBacklogItems(
       item.status !== undefined && item.status !== null ? String(item.status) : "PENDING";
     const status = rawStatus.toUpperCase();
     const ineligible = ["COMPLETED", "PROCESSED", "DECLINED", "BLOCKED"];
-    if (ineligible.includes(status)) {
-      return false;
-    }
+    if (ineligible.includes(status)) return false;
     if (item.plan_path && item.plan_path.trim() !== "") {
       const pathStr = item.plan_path.trim();
-      if (existsSync(pathStr) || pathStr.startsWith("docs/planning/")) {
-        return false;
-      }
+      if (existsSync(pathStr) || pathStr.startsWith("docs/planning/")) return false;
     }
-    if (status === "PLANNED" && (!item.plan_path || item.plan_path.trim() === "")) {
-      return false;
-    }
+    if (status === "PLANNED" && (!item.plan_path || item.plan_path.trim() === "")) return false;
     return true;
   });
 }
@@ -47,18 +41,12 @@ export function filterEligibleDefects(defects: readonly RawDefectItem[]): readon
       defect.status !== undefined && defect.status !== null ? String(defect.status) : "OPEN";
     const status = rawStatus.toUpperCase();
     const ineligible = ["COMPLETED", "RESOLVED", "CLOSED", "DECLINED"];
-    if (ineligible.includes(status)) {
-      return false;
-    }
+    if (ineligible.includes(status)) return false;
     if (defect.plan_path && defect.plan_path.trim() !== "") {
       const pathStr = defect.plan_path.trim();
-      if (existsSync(pathStr) || pathStr.startsWith("docs/planning/")) {
-        return false;
-      }
+      if (existsSync(pathStr) || pathStr.startsWith("docs/planning/")) return false;
     }
-    if (status === "PLANNED" && (!defect.plan_path || defect.plan_path.trim() === "")) {
-      return false;
-    }
+    if (status === "PLANNED" && (!defect.plan_path || defect.plan_path.trim() === "")) return false;
     return true;
   });
 }
@@ -74,74 +62,24 @@ export function classifyDomain(
   const errStr = errorCode !== undefined ? errorCode : "";
   const combined = `${title} ${descStr} ${catStr} ${errStr}`.toLowerCase();
 
-  // Explicit domain category override if exact match
   if (category && CANONICAL_DOMAINS.includes(category.toLowerCase() as DomainCategory)) {
     return category.toLowerCase() as DomainCategory;
   }
 
-  // Domain classification heuristics based on priority and domain patterns
-  const mindKeywords = [
-    "mind",
-    "cognitive",
-    "feedback",
-    "hyper-cognition",
-    "pulse",
-    "brainstorm",
-    "charter",
-  ];
-  if (mindKeywords.some((w) => combined.includes(w))) {
-    return "mind";
-  }
+  const mindKeywords = ["mind", "cognitive", "feedback", "hyper-cognition", "pulse", "brainstorm", "charter"];
+  if (mindKeywords.some((w) => combined.includes(w))) return "mind";
 
-  const valKeywords = [
-    "validat",
-    "test",
-    "assert",
-    "coverage",
-    "apca",
-    "contrast",
-    "audit",
-    "verifier",
-    "spec",
-  ];
-  if (valKeywords.some((w) => combined.includes(w))) {
-    return "validation";
-  }
+  const valKeywords = ["validat", "test", "assert", "coverage", "apca", "contrast", "audit", "verifier", "spec"];
+  if (valKeywords.some((w) => combined.includes(w))) return "validation";
 
-  const toolKeywords = [
-    "cli",
-    "command",
-    "tool",
-    "script",
-    "shell",
-    "harness",
-    "flags",
-    "factory-ops",
-  ];
-  if (toolKeywords.some((w) => combined.includes(w))) {
-    return "tooling";
-  }
+  const toolKeywords = ["cli", "command", "tool", "script", "shell", "harness", "flags", "factory-ops"];
+  if (toolKeywords.some((w) => combined.includes(w))) return "tooling";
 
-  const engKeywords = [
-    "engine",
-    "store",
-    "storage",
-    "ledger",
-    "cache",
-    "kv",
-    "scheduler",
-    "queue",
-    "pipeline",
-    "bridge",
-  ];
-  if (engKeywords.some((w) => combined.includes(w))) {
-    return "engine";
-  }
+  const engKeywords = ["engine", "store", "storage", "ledger", "cache", "kv", "scheduler", "queue", "pipeline", "bridge"];
+  if (engKeywords.some((w) => combined.includes(w))) return "engine";
 
   const repKeywords = ["report", "brief", "summary", "metrics", "telemetry", "doctor"];
-  if (repKeywords.some((w) => combined.includes(w))) {
-    return "reporting";
-  }
+  if (repKeywords.some((w) => combined.includes(w))) return "reporting";
 
   return "core";
 }
@@ -172,9 +110,7 @@ export function clusterBacklogAndDefects(
   const eligibleItems = filterEligibleBacklogItems(items);
   const eligibleDefects = filterEligibleDefects(defects);
 
-  if (eligibleItems.length === 0 && eligibleDefects.length === 0) {
-    return [];
-  }
+  if (eligibleItems.length === 0 && eligibleDefects.length === 0) return [];
 
   const domainGroups = new Map<
     DomainCategory,
@@ -226,17 +162,11 @@ export function clusterBacklogAndDefects(
 
   for (const domain of CANONICAL_DOMAINS) {
     const group = domainGroups.get(domain);
-    if (group === undefined) {
-      continue;
-    }
-    if (group.itemIds.length === 0 && group.defectIds.length === 0) {
-      continue;
-    }
+    if (group === undefined || (group.itemIds.length === 0 && group.defectIds.length === 0)) continue;
 
     const tsOpt = options !== undefined ? options.timestamp : undefined;
     const targetDirOpt = options !== undefined ? options.targetDir : undefined;
     const clusterId = generateClusterId(domain, group.itemIds, group.defectIds, tsOpt);
-
     const planPath = generatePlanPath(clusterId, targetDirOpt);
     const domainCapitalized = domain.charAt(0).toUpperCase() + domain.slice(1);
     const title = `${domainCapitalized} Continuous Pre-Planning Domain Cluster`;
@@ -257,9 +187,7 @@ export function clusterBacklogAndDefects(
 }
 
 export function loadBacklogItems(filePath: string): readonly RawBacklogItem[] {
-  if (!existsSync(filePath)) {
-    return [];
-  }
+  if (!existsSync(filePath)) return [];
   const content = readFileSync(filePath, "utf-8");
   const items: RawBacklogItem[] = [];
   for (const line of content.split("\n")) {
@@ -267,20 +195,14 @@ export function loadBacklogItems(filePath: string): readonly RawBacklogItem[] {
     if (!trimmed) continue;
     try {
       const parsed = JSON.parse(trimmed) as RawBacklogItem;
-      if (parsed && typeof parsed.id === "string") {
-        items.push(parsed);
-      }
-    } catch {
-      // Ignore corrupted lines
-    }
+      if (parsed && typeof parsed.id === "string") items.push(parsed);
+    } catch {}
   }
   return Object.freeze(items);
 }
 
 export function loadDefectItems(filePath: string): readonly RawDefectItem[] {
-  if (!existsSync(filePath)) {
-    return [];
-  }
+  if (!existsSync(filePath)) return [];
   const content = readFileSync(filePath, "utf-8");
   const defects: RawDefectItem[] = [];
   for (const line of content.split("\n")) {
@@ -288,12 +210,8 @@ export function loadDefectItems(filePath: string): readonly RawDefectItem[] {
     if (!trimmed) continue;
     try {
       const parsed = JSON.parse(trimmed) as RawDefectItem;
-      if (parsed && typeof parsed.id === "string") {
-        defects.push(parsed);
-      }
-    } catch {
-      // Ignore corrupted lines
-    }
+      if (parsed && typeof parsed.id === "string") defects.push(parsed);
+    } catch {}
   }
   return Object.freeze(defects);
 }

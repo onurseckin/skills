@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { isAbsolute } from "node:path";
+import { dirname, join, resolve, isAbsolute } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot, isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import { loadRun } from "../../engine/store/capsule/load.ts";
@@ -19,21 +18,17 @@ import type { ResolveSessionOptions, SessionIdentity } from "./types.ts";
 export function resolveActiveSession(options: ResolveSessionOptions = {}): SessionIdentity | null {
   const cwd = resolve(options.cwd ?? (typeof process !== "undefined" ? process.cwd() : "."));
   const env = options.env ?? (typeof process !== "undefined" ? process.env : {});
-  const readSessionFile: (path: string, encoding: "utf8") => string =
-    options.readPersistedSessionFile ?? ((path) => secureReadSession(path));
+  const readSessionFile = options.readPersistedSessionFile ?? ((p: string) => secureReadSession(p));
   const pid = options.pid ?? (typeof process !== "undefined" ? process.pid : 0);
   const ppid = options.ppid ?? (typeof process !== "undefined" ? process.ppid : 0);
   let repoRoot: string;
   try {
     repoRoot = resolveSessionRepositoryRoot(options.runRoot, cwd);
   } catch (error) {
-    if (error instanceof HarnessError && error.code === "PATH_SAFETY") {
-      return null;
-    }
+    if (error instanceof HarnessError && error.code === "PATH_SAFETY") return null;
     throw error;
   }
   const mechanisms: string[] = [];
-
   let detectedAgentId: string | null = null;
   let detectedRole: string | null = null;
   let detectedToken: string | null = null;
@@ -44,7 +39,6 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   let detectedTaskId: string | undefined;
   let grantedAt = new Date().toISOString();
 
-  // Mechanism 1: Environment Variables & Injected Session Tokens
   const envToken = env["HARNESS_TOKEN"] || env["HARNESS_SESSION_TOKEN"];
   const envAgent = env["AGENT_ID"] || env["HARNESS_AGENT_ID"];
   const envRole = env["ROLE"] || env["HARNESS_ROLE"];
@@ -56,7 +50,6 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     if (envRole) detectedRole = envRole.trim();
   }
 
-  // Mechanism 2: Process Tree (PID / PPID) Session Registry
   const globalSessionsDir = resolveGlobalSessionsDir(repoRoot);
   const checkPids = [ppid, pid].filter((p) => p > 0);
 
@@ -77,26 +70,19 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     break;
   }
 
-  // Mechanism 3: Directory / Workspace Anchoring (.session.json or .olt-identity.json)
   let currentDir = cwd;
   while (true) {
     const sessionPath = join(currentDir, ".session.json");
     const identityPath = join(currentDir, ".olt-identity.json");
-    const session = readPersistedSession(
-      sessionPath,
-      "workspace_directory_session",
-      readSessionFile,
-    );
-    const parsed =
-      session ?? readPersistedSession(identityPath, "workspace_directory_session", readSessionFile);
+    const session = readPersistedSession(sessionPath, "workspace_directory_session", readSessionFile);
+    const parsed = session ?? readPersistedSession(identityPath, "workspace_directory_session", readSessionFile);
 
     if (parsed) {
       mechanisms.push("workspace_directory_session");
       if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
       if (!detectedRole && typeof parsed.role === "string") detectedRole = parsed.role;
       if (!detectedToken && typeof parsed.token === "string") detectedToken = parsed.token;
-      if (typeof parsed.can_execute_shell === "boolean")
-        detectedCanShell = parsed.can_execute_shell;
+      if (typeof parsed.can_execute_shell === "boolean") detectedCanShell = parsed.can_execute_shell;
       if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
       if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
       if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
@@ -109,31 +95,19 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     currentDir = parent;
   }
 
-  // Mechanism 4: Run Capsule Runtime Session (<runRoot>/runtime/sessions/<explicitActor>.json)
   if (options.runRoot && options.explicitActor) {
     const trimmed = options.runRoot.trim();
-    const resolvedRunRoot =
-      isAbsolute(trimmed) || isInsideCapsule(trimmed)
-        ? resolve(trimmed)
-        : join(resolveCapsulesDir(repoRoot), trimmed);
-    const runtimeSessionPath = join(
-      resolvedRunRoot,
-      "runtime",
-      "sessions",
-      `${options.explicitActor.trim()}.json`,
-    );
-    const parsed = readPersistedSession(
-      runtimeSessionPath,
-      "capsule_runtime_session",
-      readSessionFile,
-    );
+    const resolvedRunRoot = isAbsolute(trimmed) || isInsideCapsule(trimmed)
+      ? resolve(trimmed)
+      : join(resolveCapsulesDir(repoRoot), trimmed);
+    const runtimeSessionPath = join(resolvedRunRoot, "runtime", "sessions", `${options.explicitActor.trim()}.json`);
+    const parsed = readPersistedSession(runtimeSessionPath, "capsule_runtime_session", readSessionFile);
     if (parsed) {
       mechanisms.push("capsule_runtime_session");
       detectedAgentId = parsed.agent_id as string;
       if (typeof parsed.role === "string") detectedRole = parsed.role;
       if (typeof parsed.token === "string") detectedToken = parsed.token;
-      if (typeof parsed.can_execute_shell === "boolean")
-        detectedCanShell = parsed.can_execute_shell;
+      if (typeof parsed.can_execute_shell === "boolean") detectedCanShell = parsed.can_execute_shell;
       if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
       if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
       if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
@@ -141,23 +115,16 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     }
   }
 
-  if (!detectedAgentId && !detectedRole && !detectedToken) {
-    return null;
-  }
+  if (!detectedAgentId && !detectedRole && !detectedToken) return null;
 
-  const finalRole =
-    detectedRole ?? (detectedAgentId ? agentIdToRole(detectedAgentId) : null) ?? "implementer";
+  const finalRole = detectedRole ?? (detectedAgentId ? agentIdToRole(detectedAgentId) : null) ?? "implementer";
   const finalAgentId = detectedAgentId ?? `agent-${finalRole}`;
   const finalTier = (roleToTier(finalRole) ?? agentIdToTier(finalAgentId) ?? 3) as ExecutionTier;
   const finalToken = detectedToken ?? options.explicitToken ?? "unauthenticated";
 
   if (options.explicitActor) {
     const requestedActor = options.explicitActor.trim();
-    if (
-      requestedActor !== finalAgentId &&
-      requestedActor !== finalRole &&
-      requestedActor !== `agent-${finalRole}`
-    ) {
+    if (requestedActor !== finalAgentId && requestedActor !== finalRole && requestedActor !== `agent-${finalRole}`) {
       throw new HarnessError(
         "AUTHENTICATION_FAILURE",
         `Actor spoofing blocked: caller verified as '${finalAgentId}' (${finalRole}) cannot execute as '${requestedActor}'. Session tokens authenticate their holder and cannot delegate another agent's durable grant.`,
@@ -182,24 +149,17 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   };
 }
 
-export function isSessionLedgerBacked(
-  runRoot: string | undefined,
-  agentId: string,
-  role: string,
-): boolean {
+export function isSessionLedgerBacked(runRoot: string | undefined, agentId: string, role: string): boolean {
   const trimmed = runRoot?.trim();
   if (!trimmed) return false;
   try {
     const repoRoot = findRepoRoot(trimmed);
-    const resolved =
-      isAbsolute(trimmed) || isInsideCapsule(trimmed)
-        ? resolve(trimmed)
-        : join(resolveCapsulesDir(repoRoot), trimmed);
+    const resolved = isAbsolute(trimmed) || isInsideCapsule(trimmed)
+      ? resolve(trimmed)
+      : join(resolveCapsulesDir(repoRoot), trimmed);
     if (!existsSync(join(resolved, "state.json"))) return false;
-    const ledger = readAgentLedger(loadRun(resolved).state);
-    return ledger.some(
-      (entry) => entry.id === agentId && entry.status === "active" && entry.role === role,
-    );
+    const ledger = readAgentLedger(loadRun(resolved, false).state);
+    return ledger.some((entry) => entry.id === agentId && entry.status === "active" && entry.role === role);
   } catch {
     return false;
   }
@@ -219,15 +179,10 @@ export function autoDeriveCallerIdentity(
 
   if (session) {
     const fileBased = session.mechanisms_detected.some(
-      (m) =>
-        m.startsWith("process_ancestry_pid_") ||
-        m === "workspace_directory_session" ||
-        m === "capsule_runtime_session",
+      (m) => m.startsWith("process_ancestry_pid_") || m === "workspace_directory_session" || m === "capsule_runtime_session",
     );
     const envBased = session.mechanisms_detected.includes("environment_variables");
-    const verified = fileBased
-      ? isSessionLedgerBacked(options.runRoot, session.agent_id, session.role)
-      : !envBased;
+    const verified = fileBased ? isSessionLedgerBacked(options.runRoot, session.agent_id, session.role) : !envBased;
     return {
       actor: session.agent_id,
       role: session.role,
@@ -240,9 +195,7 @@ export function autoDeriveCallerIdentity(
 
   const explicit = options.explicitActor?.trim();
   const fallbackRole = explicit ? (agentIdToRole(explicit) ?? explicit) : "mind";
-  const fallbackTier = (roleToTier(fallbackRole) ??
-    (explicit ? agentIdToTier(explicit) : 0) ??
-    0) as ExecutionTier;
+  const fallbackTier = (roleToTier(fallbackRole) ?? (explicit ? agentIdToTier(explicit) : 0) ?? 0) as ExecutionTier;
 
   return {
     actor: explicit ?? "mind",
@@ -252,4 +205,62 @@ export function autoDeriveCallerIdentity(
     mechanisms: ["interactive_terminal_fallback"],
     verified: false,
   };
+}
+
+export function requireTurn1Registration(session: SessionIdentity): void {
+  if (!session) {
+    throw new HarnessError("AUTHENTICATION_FAILURE", "session identity is required");
+  }
+  if (!session.token || session.token === "unauthenticated") {
+    throw new HarnessError(
+      "AUTHENTICATION_FAILURE",
+      `agent '${session.agent_id}' is unauthenticated: turn 1 registration token required`,
+    );
+  }
+  if (!session.run_id || !session.run_id.trim()) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `agent '${session.agent_id}' is unanchored: missing run_id in session identity`,
+    );
+  }
+  if (
+    !session.mechanisms_detected ||
+    session.mechanisms_detected.length === 0 ||
+    (session.mechanisms_detected.length === 1 && session.mechanisms_detected[0] === "interactive_terminal_fallback")
+  ) {
+    throw new HarnessError(
+      "AUTHENTICATION_FAILURE",
+      `agent '${session.agent_id}' session has no valid durable registration mechanism`,
+    );
+  }
+  const trimmed = session.run_id.trim();
+  let statePath = join(trimmed, "state.json");
+  let resolved = trimmed;
+  if (!existsSync(statePath)) {
+    const candidates = [
+      join(process.cwd(), ".olt", "capsules", trimmed),
+      join(process.cwd(), "capsules", trimmed),
+    ];
+    try {
+      const repoRoot = findRepoRoot(trimmed);
+      candidates.push(join(resolveCapsulesDir(repoRoot), trimmed), join(repoRoot, ".olt", "capsules", trimmed));
+    } catch {}
+    try {
+      const defaultRepo = findRepoRoot();
+      candidates.push(join(resolveCapsulesDir(defaultRepo), trimmed), join(defaultRepo, ".olt", "capsules", trimmed));
+    } catch {}
+    for (const cand of candidates) {
+      if (existsSync(join(cand, "state.json"))) {
+        resolved = resolve(cand);
+        statePath = join(resolved, "state.json");
+        break;
+      }
+    }
+  }
+  if (!existsSync(statePath)) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `capsule state.json not found for run '${session.run_id}' at ${resolved}; execute run:init first`,
+    );
+  }
 }

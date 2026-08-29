@@ -34,21 +34,3 @@ export {
   type DynamicRoleCatalogExport,
   type DynamicRoleFilter,
 } from "./dynamic/index.ts";
-
-export {
-  ABSTRACT_PROFILES,
-  ABSTRACT_PROFILE_SET,
-  ROLE_PROFILE_MAP,
-  isAbstractProfile,
-  roleToProfile,
-  resolveProfile,
-  resolveRoleArchetype,
-  formatHostDegradation,
-  isPerAgentModelSelectionSupported,
-  resolveAgentProfile,
-  type AbstractProfile,
-  type ProfileBinding,
-  type ProfileBindings,
-  type ResolvedProfile,
-  type AgentProfileResolution,
-} from "../../roles/index.ts";

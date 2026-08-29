@@ -1,8 +1,6 @@
 {
   "name": "watchdog:status",
-  "aliases": [
-    "watchdog:list"
-  ],
+  "aliases": [],
   "domain": "authority",
   "summary": "Query watchdog lifecycle, monitor cadence, and health status.",
   "flags": [

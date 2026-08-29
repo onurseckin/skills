@@ -13,7 +13,7 @@ import { HYGIENE_COMMANDS } from "./hygiene.ts";
 import { INSPECTION_COMMANDS } from "./inspection.ts";
 import { INSTALL_COMMANDS } from "./install.ts";
 import { MIND_COMMANDS } from "./mind.ts";
-import { MSG_COMMANDS } from "./msg.ts";
+import { ENGINE_COMMANDS, MSG_COMMANDS } from "./engine.ts";
 import { ORCHESTRATOR_COMMANDS } from "./orchestrator.ts";
 import { ORPHAN_COMMANDS } from "./orphan.ts";
 import { PLAN_COMMANDS } from "./plan.ts";
@@ -26,7 +26,7 @@ import { SCHED_COMMANDS } from "./sched.ts";
 import { SHELL_COMMANDS } from "./shell.ts";
 import { SUMMARY_COMMANDS } from "./summary.ts";
 import { TASK_COMMANDS } from "./task.ts";
-import { WORKTREE_COMMANDS } from "./worktree.ts";
+import { WORKFLOW_COMMANDS, WORKTREE_COMMANDS } from "./workflow.ts";
 import {
   DEFAULT_EXIT_CODES,
   PRIMARY_VERBS,
@@ -37,14 +37,19 @@ import {
   optionalFlag,
   repeatableFlag,
   requiredFlag,
+  type CliErrorEnvelope,
+  type CliSuccessEnvelope,
   type CommandAuthoritySpec,
   type CommandDomain,
+  type CommandFlagSpec,
   type CommandHandler,
   type CommandSpec,
   type CommandTier,
+  type ErrorSeverity,
   type ExitCodeSpec,
   type FlagSpec,
   type FlagType,
+  type HarnessErrorCode,
   type PrimaryVerb,
 } from "./types.ts";
 
@@ -58,14 +63,19 @@ export {
   optionalFlag,
   repeatableFlag,
   requiredFlag,
+  type CliErrorEnvelope,
+  type CliSuccessEnvelope,
   type CommandAuthoritySpec,
   type CommandDomain,
+  type CommandFlagSpec,
   type CommandHandler,
   type CommandSpec,
   type CommandTier,
+  type ErrorSeverity,
   type ExitCodeSpec,
   type FlagSpec,
   type FlagType,
+  type HarnessErrorCode,
   type PrimaryVerb,
 };
 export { AGENT_COMMANDS } from "./agent.ts";
@@ -83,7 +93,7 @@ export { HYGIENE_COMMANDS } from "./hygiene.ts";
 export { INSPECTION_COMMANDS } from "./inspection.ts";
 export { INSTALL_COMMANDS } from "./install.ts";
 export { MIND_COMMANDS } from "./mind.ts";
-export { MSG_COMMANDS } from "./msg.ts";
+export { ENGINE_COMMANDS, MSG_COMMANDS } from "./engine.ts";
 export { ORCHESTRATOR_COMMANDS } from "./orchestrator.ts";
 export { ORPHAN_COMMANDS } from "./orphan.ts";
 export { PLAN_COMMANDS } from "./plan.ts";
@@ -96,7 +106,7 @@ export { SCHED_COMMANDS } from "./sched.ts";
 export { SHELL_COMMANDS } from "./shell.ts";
 export { SUMMARY_COMMANDS } from "./summary.ts";
 export { TASK_COMMANDS } from "./task.ts";
-export { WORKTREE_COMMANDS } from "./worktree.ts";
+export { WORKFLOW_COMMANDS, WORKTREE_COMMANDS } from "./workflow.ts";
 
 export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...PLAN_COMMANDS,
@@ -122,8 +132,8 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...MIND_COMMANDS,
   ...POLICY_COMMANDS,
   ...FACTORY_COMMANDS,
-  ...MSG_COMMANDS,
-  ...WORKTREE_COMMANDS,
+  ...ENGINE_COMMANDS,
+  ...WORKFLOW_COMMANDS,
   ...SCHED_COMMANDS,
   ...ROLE_COMMANDS,
   ...HYGIENE_COMMANDS,
@@ -188,3 +198,6 @@ export function getPrimaryCommands(): readonly CommandSpec[] {
 export function getInternalCommands(): readonly CommandSpec[] {
   return INTERNAL_COMMANDS;
 }
+
+export { parseCommandFlags } from "./flag-parser.ts";
+

@@ -48,6 +48,7 @@ export {
 } from "./ledger.ts";
 export {
   createTrackWorktree,
+  destroyTrackWorktree,
   cleanupTrackWorktree,
   listTrackWorktrees,
   type TrackWorktreeInfo,

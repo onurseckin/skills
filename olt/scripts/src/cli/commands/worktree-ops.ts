@@ -10,7 +10,7 @@ import {
   readWorktreeLedger,
   reclaimOrphanedWorktrees,
   recordReclaim,
-} from "../../workflow/worktree/index.ts";
+} from "../../engine/worktree/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { boolFlag, textFlag, type Flags } from "../options.ts";
 

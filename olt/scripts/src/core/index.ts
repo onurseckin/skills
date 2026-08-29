@@ -147,3 +147,23 @@ export {
   parseIntervalDuration,
   projectIntervalProgression,
 } from "./scheduling/index.ts";
+export type {
+  EpistemicGrade,
+  EpistemicVector,
+  EpistemicEvaluationInput,
+  EpistemicConfidenceResult,
+  EpistemicWeights,
+  EvaluateEpistemicOptions,
+} from "./epistemic/index.ts";
+export {
+  DEFAULT_EPISTEMIC_WEIGHTS,
+  DEFAULT_PASS_THRESHOLD,
+  clamp,
+  calculateEpistemicGrade,
+  computeWeightedEpistemicScore,
+  computeEpistemicEntropy,
+  computeEvidenceConfidence,
+  computeShannonEntropy,
+  computeWilsonScoreInterval,
+  evaluateEpistemicConfidence,
+} from "./epistemic/index.ts";

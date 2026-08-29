@@ -9,13 +9,12 @@ import {
   recordCompletedTasksBatch,
   type CompletedTaskRecord,
 } from "../../../archival/completed/index.ts";
-import { updateCognitiveMemory } from "../planner/memory.ts";
+import { updateCognitiveMemory, readCognitiveMemory } from "../planner/memory.ts";
 import {
   verifyAdmissionToDispatchInvariants,
   stageTasksForMultiOrchestratorExecution,
 } from "./invariants.ts";
-import { computeMacroMetrics } from "../planner/index.ts";
-import { partitionGroupedFeedbacksStrictly } from "../planner/index.ts";
+import { computeMacroMetrics, partitionGroupedFeedbacksStrictly } from "../planner/index.ts";
 import { synthesizeSmartTasksFromSelfEvolution } from "./evolution.ts";
 import { resolve } from "node:path";
 import type {
@@ -26,7 +25,6 @@ import type {
   SmartTaskPlan,
   MultiOrchestratorPrePlanningResult,
 } from "../planner/models.ts";
-import { readCognitiveMemory } from "../planner/memory.ts";
 import { readFeedbackQueue, resolveFeedbackQueuePath } from "../../../feedback/queue/index.ts";
 import {
   readTaskQueue,
@@ -34,6 +32,7 @@ import {
   type TaskQueueItem,
 } from "../../../../task/queue/index.ts";
 import { executeAtomicAdmissionToDispatch } from "./dispatch.ts";
+
 export function runInfiniteProductOwnerCycle(
   options: InfiniteProductOwnerOptions = {},
 ): InfiniteProductOwnerResult {
@@ -55,7 +54,6 @@ export function runInfiniteProductOwnerCycle(
     | "multi_orchestrator_dispatch"
     | "idle_monitored" = "idle_monitored";
 
-  // Check Mode B: Pending feedback items or direct intake items
   if (pendingFeedbacks.length > 0 || directIntake.length > 0) {
     mode = "feedback_intake";
 
@@ -97,7 +95,6 @@ export function runInfiniteProductOwnerCycle(
       });
     }
 
-    // Check multi-orchestrator pre-planning
     if (
       (options.orchestratorCount && options.orchestratorCount > 1) ||
       (options.orchestratorIds && options.orchestratorIds.length > 0)
@@ -111,7 +108,6 @@ export function runInfiniteProductOwnerCycle(
       multiOrchPlan = staged.plan;
     }
 
-    // Execute atomic admission-to-dispatch
     if (options.autoEnqueue !== false) {
       const dispatchRes = executeAtomicAdmissionToDispatch({
         capsulesDir: options.capsulesDir,
@@ -124,7 +120,6 @@ export function runInfiniteProductOwnerCycle(
       synthesizedPlans = dispatchRes.synthesized_tasks;
     }
   } else {
-    // Check Task Queue State: if idle, run Mode A Self-Evolution
     const currentQueue = readTaskQueue(options.queuePath);
     const activeTasks = currentQueue.filter(
       (t) =>
@@ -182,7 +177,6 @@ export function runInfiniteProductOwnerCycle(
     ? multiOrchPlan.macro_metrics
     : computeMacroMetrics(synthesizedPlans);
 
-  // Update memory
   try {
     updateCognitiveMemory(
       (curr) => ({
@@ -197,9 +191,7 @@ export function runInfiniteProductOwnerCycle(
       }),
       options.memoryPath,
     );
-  } catch {
-    // non-fatal
-  }
+  } catch {}
 
   const auditReport = verifyAdmissionToDispatchInvariants(options);
 
@@ -217,9 +209,6 @@ export function runInfiniteProductOwnerCycle(
   };
 }
 
-/**
- * Drains completed items from active backlog into completed-tasks archive upon run/task completion.
- */
 export function drainBacklogOnRunCompletion(params: {
   readonly runId?: string | undefined;
   readonly commitSha?: string | undefined;
@@ -239,11 +228,7 @@ export function drainBacklogOnRunCompletion(params: {
 
   const backlogItems = readFeedbackQueue(backlogPath);
   if (backlogItems.length === 0) {
-    return {
-      drainedCount: 0,
-      remainingBacklogCount: 0,
-      archivedRecords: [],
-    };
+    return { drainedCount: 0, remainingBacklogCount: 0, archivedRecords: [] };
   }
 
   const completedIds = new Set(params.completedTasks ?? []);
@@ -303,7 +288,3 @@ export function drainBacklogOnRunCompletion(params: {
     archivedRecords,
   };
 }
-
-/**
- * Autonomous Code Quality Scanner (detects dead code, AST suppressions, pattern deviations).
- */

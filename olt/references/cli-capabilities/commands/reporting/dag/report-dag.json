@@ -2,7 +2,7 @@
   "name": "report:dag",
   "aliases": [],
   "domain": "reporting",
-  "summary": "Canonical reporting for DAG status.",
+  "summary": "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",
   "flags": [
     {
       "name": "run",
@@ -40,7 +40,21 @@
       "default": null
     },
     {
+      "name": "box-style",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "rounded"
+    },
+    {
       "name": "all",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "json",
       "type": "bool",
       "required": false,
       "repeatable": false,

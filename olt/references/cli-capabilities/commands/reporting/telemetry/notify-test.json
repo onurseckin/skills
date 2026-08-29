@@ -1,8 +1,6 @@
 {
   "name": "notify:test",
-  "aliases": [
-    "test:notify"
-  ],
+  "aliases": [],
   "domain": "reporting",
   "summary": "Send a test native OS notification and Glass chime to verify desktop integration.",
   "flags": [

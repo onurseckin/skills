@@ -6,6 +6,7 @@ import type { GitRunner } from "../../../../olt/scripts/src/workflow/worktree/gi
 import {
   cleanupTrackWorktree,
   createTrackWorktree,
+  destroyTrackWorktree,
   listTrackWorktrees,
 } from "../../../../olt/scripts/src/workflow/worktree/index.ts";
 
@@ -131,5 +132,46 @@ describe("track worktree manager", () => {
     const list = listTrackWorktrees({ repoRoot: TEST_DIR, runner: mockRunner });
     expect(list.length).toBe(1);
     expect(list[0]!.trackId).toBe("track-1");
+  });
+
+  test("createTrackWorktree accepts string trackId and returns path", () => {
+    const mockRunner: GitRunner = (cwd, argv) => {
+      if (argv[0] === "rev-parse") return { status: 1, stdout: "", stderr: "" };
+      if (argv[0] === "worktree" && argv[1] === "add") return { status: 0, stdout: "", stderr: "" };
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+    const worktreePath = createTrackWorktree({
+      trackId: "track-gamma",
+      repoRoot: TEST_DIR,
+      runner: mockRunner,
+    });
+    expect(worktreePath.trackId).toBe("track-gamma");
+    expect(worktreePath.worktreePath).toBe(join(TEST_DIR, ".olt", "worktrees", "track-gamma"));
+  });
+
+  test("destroyTrackWorktree with options cleans worktree and lock", () => {
+    const executedGit: string[][] = [];
+    const mockRunner: GitRunner = (cwd, argv) => {
+      executedGit.push([...argv]);
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-delta");
+    const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "track-delta.lock");
+    mkdirSync(worktreeDir, { recursive: true });
+    mkdirSync(join(TEST_DIR, ".olt", "worktrees", "locks"), { recursive: true });
+    writeFileSync(lockPath, JSON.stringify({ pid: process.pid, trackId: "track-delta" }), "utf8");
+
+    const result = destroyTrackWorktree({
+      trackId: "track-delta",
+      repoRoot: TEST_DIR,
+      runner: mockRunner,
+    });
+
+    expect(result.trackId).toBe("track-delta");
+    expect(result.cleaned).toBe(true);
+    expect(existsSync(lockPath)).toBe(false);
+    expect(executedGit.some((args) => args[0] === "worktree" && args[1] === "prune")).toBe(true);
   });
 });

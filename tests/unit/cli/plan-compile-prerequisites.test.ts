@@ -24,7 +24,7 @@ async function createTestRun(
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, promptText, "utf-8");
   const init = await execute([
-    "init",
+    "plan:init",
     "--repo",
     repo,
     "--run-id",

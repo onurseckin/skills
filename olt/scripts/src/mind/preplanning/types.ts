@@ -1,10 +1,3 @@
-/**
- * Mind Continuous Pre-Planning Engine & Asynchronous Assembly Pipeline Types
- *
- * Adheres strictly to the architectural specifications in PLAN.md:
- * Zero TypeScript any, zero compiler suppressions.
- */
-
 export type BacklogItemStatus = "PENDING" | "PLANNED" | "DISPATCHED" | "PROCESSED" | "BLOCKED";
 export type DefectStatus = "OPEN" | "PLANNED" | "IN_PROGRESS" | "RESOLVED" | "REOPENED";
 
@@ -70,7 +63,7 @@ export interface HostSchedulerConfig {
   readonly tier_0_2_thinking: ThinkingLevel;
   readonly tier_3_model: string;
   readonly tier_3_thinking: ThinkingLevel;
-  readonly max_single_task_seconds: number; // 300 seconds (5 minutes)
+  readonly max_single_task_seconds: number;
   readonly heartbeat_tick_seconds: number;
   readonly watchdog_timeout_seconds: number;
 }
@@ -88,15 +81,15 @@ export interface GitStagingInvariantRecord {
 export interface BrentPartition {
   readonly subtask_id: string;
   readonly assigned_scope: readonly string[];
-  readonly target_duration_seconds: number; // Target: 120s - 240s (2-4 minutes)
+  readonly target_duration_seconds: number;
 }
 
 export interface BrentConcurrencyPlan {
   readonly active_workers: number;
   readonly remaining_work_units: number;
   readonly span_length: number;
-  readonly optimal_parallelism: number; // P = Math.ceil(remaining_work_units / span_length), clamped [5, 15]
-  readonly estimated_subagent_duration_seconds: number; // Target: 120s - 240s (2-4 minutes)
+  readonly optimal_parallelism: number;
+  readonly estimated_subagent_duration_seconds: number;
   readonly sub_partitions: readonly BrentPartition[];
 }
 
@@ -104,7 +97,7 @@ export interface StragglerAssessment {
   readonly task_id: string;
   readonly agent_id: string;
   readonly elapsed_seconds: number;
-  readonly is_straggler: boolean; // true if elapsed_seconds > 300 (5 minutes)
+  readonly is_straggler: boolean;
   readonly recommended_action: "DECOMPOSE_PARALLEL" | "RECLAIM_LEASE" | "CONTINUE";
   readonly decomposition_plan?: BrentConcurrencyPlan | undefined;
 }

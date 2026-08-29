@@ -6,7 +6,11 @@ export {
   verifyEnvelopeHmac,
 } from "./envelope.ts";
 
-export { ensureMailboxDirectories, resolveMailboxPaths } from "./mailbox-paths.ts";
+export {
+  ensureMailboxDirectories,
+  resolveMailboxLockPath,
+  resolveMailboxPaths,
+} from "./mailbox-paths.ts";
 
 export {
   appendMailboxMessage,
@@ -46,3 +50,13 @@ export {
   type AssertNonChatterPolicyContext,
   type RouteStatusUpdateOptions,
 } from "./chatter-guard.ts";
+
+export {
+  ingestToQuarantine,
+  sweepQuarantineDeadLetters,
+  type QuarantineIngestOptions,
+  type QuarantinedDeadLetter,
+  type QuarantinedEntry,
+  type SweepQuarantineOptions,
+  type SweepQuarantineResult,
+} from "./quarantine.ts";

@@ -1,9 +1,6 @@
 {
   "name": "watchdog:verify",
-  "aliases": [
-    "watchdog:check",
-    "watchdog:lint"
-  ],
+  "aliases": [],
   "domain": "authority",
   "summary": "Verify watchdog lifecycle invariants and single-monitor constraints.",
   "flags": [
