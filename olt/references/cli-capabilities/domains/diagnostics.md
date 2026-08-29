@@ -202,6 +202,36 @@ Evaluates raw execution traces against 7 behavioral heuristics (TOKEN_BURNING, F
 bun harness.ts meta-audit --run .olt/capsules/<run-id> --actor coordinator --inject
 ```
 
+### `finding:file`
+
+Record a diagnostic finding or defect directly into the flock-locked defect store.
+
+Universal diagnostic finding ingestion command accessible to all companion and auditor roles. Appends or updates defects in .olt/defects.jsonl under flock lock.
+
+- **Aliases**: `finding`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--code` | string | yes | no | - | Diagnostic finding code (e.g. AST_PURITY_VIOLATION). |
+| `--severity` | string | no | no | - | Severity: critical, high, warning, low, info. |
+| `--file` | string | no | no | - | Target file path where violation occurred. |
+| `--path` | string | no | no | - | Alias for --file. |
+| `--line` | int | no | no | - | Line number where violation occurred. |
+| `--message` | string | no | no | - | Diagnostic message or description. |
+| `--description` | string | no | no | - | Alias for --message. |
+| `--task-id` | string | no | no | - | Task identifier during which finding occurred. |
+| `--commit-sha` | string | no | no | - | Commit SHA where finding was observed. |
+| `--remediation` | string | no | no | - | Remediation guidance. |
+| `--actor` | string | no | no | - | Actor recording the finding. |
+| `--defects-path` | string | no | no | - | Custom defects.jsonl file location. |
+
+```bash
+bun harness.ts finding:file --code AST_PURITY_VIOLATION --severity high --file src/index.ts --message 'Found as any'
+bun harness.ts finding:file --code RUNTIME_ERROR --task-id task-1 --commit-sha abc1234
+```
+
 ### `explain`
 
 Explain a HarnessError code: the rule it enforces, common causes and the remedy for each.

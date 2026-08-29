@@ -115,7 +115,7 @@ Deconstructs the 4 falsifiable evidence classes, raw PNG 32-byte IHDR and Shanno
 
 ### [Chapter 10: Durability, Recovery & Merkle Chains](10-durability-recovery-capsules/index.md)
 
-Details the capsule filesystem anatomy, recursive SHA-256 Merkle event chaining, kernel-level POSIX advisory locking (`flock`), and projection state reconstruction with torn-tail auto-healing.
+Details the capsule filesystem anatomy, recursive SHA-256 Merkle event chaining ($H_i = \text{SHA-256}(H_{i-1} \parallel e_i)$), kernel-level POSIX advisory locking (`flock`), and projection state reconstruction with torn-tail auto-healing.
 
 ### [Chapter 11: Worktree Branching & Honesty Gates](11-worktree-branching-honesty/index.md)
 
@@ -151,9 +151,57 @@ Details the implementation of the 5 internal verification engines: Typecheck, AS
 
 ```mermaid
 graph TD
-    P1["Part I: Foundations (Ch 01-03)"] --> P2["Part II: Scheduling & Concurrency (Ch 04-07)"]
-    P2 --> P3["Part III: Validation & Durability (Ch 08-13)"]
-    P3 --> P4["Part IV: Reference & Engines (Ch 14-17)"]
+    subgraph PART_1 ["Part I: Foundations & Hierarchy (Ch 01-03)"]
+        CH1["Ch 01: Foundations & Core Invariants"]
+        CH2["Ch 02: Four-Tier Workforce Hierarchy"]
+        CH3["Ch 03: Mind Product Owner"]
+        CH1 --> CH2 --> CH3
+    end
+
+    subgraph PART_2 ["Part II: Scheduling & Concurrency (Ch 04-07)"]
+        CH4["Ch 04: Preplanning Factory"]
+        CH5["Ch 05: Concurrency & Straggler SLA"]
+        CH6["Ch 06: Topological DAG Scheduler"]
+        CH7["Ch 07: Distributed Task Leasing"]
+        CH4 --> CH5 --> CH6 --> CH7
+    end
+
+    subgraph PART_3 ["Part III: Proofs & Durability (Ch 08-13)"]
+        CH8["Ch 08: Adversarial Validation"]
+        CH9["Ch 09: Falsifiable Evidence Gates"]
+        CH10["Ch 10: Durability & Merkle Chains"]
+        CH11["Ch 11: Worktree Honesty Gates"]
+        CH12["Ch 12: Flock Mailboxes & Telemetry"]
+        CH13["Ch 13: Policy & RBAC Engine"]
+        CH8 --> CH9 --> CH10 --> CH11 --> CH12 --> CH13
+    end
+
+    subgraph PART_4 ["Part IV: Catalogs & Engines (Ch 14-17)"]
+        CH14["Ch 14: Harness CLI Engine"]
+        CH15["Ch 15: State & Event Schemas"]
+        CH16["Ch 16: Error Catalog & Blunders"]
+        CH17["Ch 17: Verification Engines"]
+        CH14 --> CH15 --> CH16 --> CH17
+    end
+
+    PART_1 --> PART_2
+    PART_2 --> PART_3
+    PART_3 --> PART_4
+```
+
+---
+
+## 5. Cross-Chapter Pathways & Reading Guides
+
+```text
++-------------------------+-----------------------------------+------------------------------------+
+| Operator Archetype      | Recommended Reading Sequence      | Key Practical Takeaways            |
++-------------------------+-----------------------------------+------------------------------------+
+| Autonomous Implementer  | Ch 01 -> Ch 02 -> Ch 07 -> Ch 09  | Worktree isolation & evidence gates|
+| Systems Architect       | Ch 04 -> Ch 05 -> Ch 06 -> Ch 10  | Toposort, Brent theorem & Merkle   |
+| Security & Safety Lead  | Ch 08 -> Ch 11 -> Ch 13 -> Ch 17  | Cognitive lock, AST purity & RBAC  |
+| Platform Operator       | Ch 14 -> Ch 15 -> Ch 16 -> Ref    | CLI dictionary & error mitigation  |
++-------------------------+-----------------------------------+------------------------------------+
 ```
 
 ---

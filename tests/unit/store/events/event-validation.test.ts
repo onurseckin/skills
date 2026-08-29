@@ -132,6 +132,37 @@ describe("validateProjectionPatch", () => {
     const found = validateProjectionPatch([{ op: "unset", path: ["event_sequence"] }], 1);
     expect(found.some((entry) => entry.message.includes("touches reserved field"))).toBe(true);
   });
+
+  test("returns no issues for a well-formed splice patch op", () => {
+    expect(
+      validateProjectionPatch(
+        [
+          { op: "splice", path: ["items"], start: 2, deleteCount: 1, items: ["x", "y"] },
+          { op: "splice", path: ["tasks"], start: 0, deleteCount: 2 },
+        ],
+        7,
+      ),
+    ).toEqual([]);
+  });
+
+  test("flags splice ops with invalid start, deleteCount, or items", () => {
+    expect(
+      validateProjectionPatch([{ op: "splice", path: ["a"], start: -1, deleteCount: 0 }], 1).some(
+        (entry) => entry.message.includes("invalid splice start"),
+      ),
+    ).toBe(true);
+    expect(
+      validateProjectionPatch([{ op: "splice", path: ["a"], start: 0, deleteCount: -1 }], 1).some(
+        (entry) => entry.message.includes("invalid splice deleteCount"),
+      ),
+    ).toBe(true);
+    expect(
+      validateProjectionPatch(
+        [{ op: "splice", path: ["a"], start: 0, deleteCount: 0, items: "not-array" }],
+        1,
+      ).some((entry) => entry.message.includes("splice items must be an array")),
+    ).toBe(true);
+  });
 });
 
 describe("validateProjectionField", () => {

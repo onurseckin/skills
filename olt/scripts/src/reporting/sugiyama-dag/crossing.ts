@@ -5,7 +5,200 @@
 import type { SugiyamaEdge, SugiyamaLayer, SugiyamaRankedNode } from "./types.ts";
 
 /**
- * Step 2: Crossing minimization using Barycenter heuristic.
+ * Counts edge crossings between two consecutive layers using coordinate inversion conditions:
+ * (u1 < u2) && (v1 > v2) || (u1 > u2) && (v1 < v2).
+ */
+export function countLayerCrossings(
+  layerA: readonly SugiyamaRankedNode[],
+  layerB: readonly SugiyamaRankedNode[],
+  edges: readonly SugiyamaEdge[],
+): number {
+  if (layerA.length <= 1 || layerB.length <= 1 || edges.length <= 1) {
+    return 0;
+  }
+
+  const posA = new Map<string, number>();
+  for (let i = 0; i < layerA.length; i++) {
+    const node = layerA[i];
+    if (node !== undefined) {
+      posA.set(node.id, i);
+    }
+  }
+
+  const posB = new Map<string, number>();
+  for (let i = 0; i < layerB.length; i++) {
+    const node = layerB[i];
+    if (node !== undefined) {
+      posB.set(node.id, i);
+    }
+  }
+
+  const edgePairs: { readonly aPos: number; readonly bPos: number }[] = [];
+  for (const edge of edges) {
+    const aPos = posA.get(edge.from);
+    const bPos = posB.get(edge.to);
+    if (aPos !== undefined && bPos !== undefined) {
+      edgePairs.push({ aPos, bPos });
+    }
+  }
+
+  let crossings = 0;
+  for (let i = 0; i < edgePairs.length; i++) {
+    const e1 = edgePairs[i];
+    if (e1 === undefined) continue;
+    for (let j = i + 1; j < edgePairs.length; j++) {
+      const e2 = edgePairs[j];
+      if (e2 === undefined) continue;
+      if ((e1.aPos < e2.aPos && e1.bPos > e2.bPos) || (e1.aPos > e2.aPos && e1.bPos < e2.bPos)) {
+        crossings += 1;
+      }
+    }
+  }
+
+  return crossings;
+}
+
+/**
+ * Computes total crossings across an entire sequence of ranked layers.
+ */
+function computeTotalGraphCrossings(
+  layers: readonly (readonly SugiyamaRankedNode[])[],
+  edges: readonly SugiyamaEdge[],
+): number {
+  let total = 0;
+  for (let i = 0; i < layers.length - 1; i++) {
+    const layer1 = layers[i];
+    const layer2 = layers[i + 1];
+    if (layer1 !== undefined && layer2 !== undefined) {
+      total += countLayerCrossings(layer1, layer2, edges);
+    }
+  }
+  return total;
+}
+
+/**
+ * Normalizes coordinates, wave, lane, and order metadata for a ranked node.
+ */
+function formatRankedNode(
+  node: SugiyamaRankedNode,
+  rank: number,
+  order: number,
+): SugiyamaRankedNode {
+  const wave = node.wave ?? rank + 1;
+  const lane = node.lane ?? order + 1;
+  const coordinates =
+    typeof node.coordinates === "object" &&
+    node.coordinates !== null &&
+    !Array.isArray(node.coordinates)
+      ? {
+          ...node.coordinates,
+          rank,
+          order,
+          wave: node.coordinates.wave ?? wave,
+          lane: node.coordinates.lane ?? lane,
+        }
+      : (node.coordinates ?? {
+          wave,
+          lane,
+          rank,
+          order,
+        });
+
+  return {
+    ...node,
+    rank,
+    order,
+    wave,
+    lane,
+    coordinates,
+  };
+}
+
+/**
+ * Sorts nodes in a layer using the barycentric centroid of their neighbors in an adjacent reference layer.
+ * On tie, breaks deterministically using original order and node ID.
+ *
+ * @param layer The layer to be sorted
+ * @param refLayer The adjacent fixed reference layer
+ * @param edges Graph edges
+ * @param direction "down" if sweeping downwards (refLayer is parents), "up" if sweeping upwards (refLayer is children)
+ */
+export function barycentricSort(
+  layer: readonly SugiyamaRankedNode[],
+  refLayer: readonly SugiyamaRankedNode[],
+  edges: readonly SugiyamaEdge[],
+  direction: "down" | "up",
+): SugiyamaRankedNode[] {
+  if (layer.length <= 1) {
+    return layer.map((node, order) => formatRankedNode(node, node.rank, order));
+  }
+
+  const refPosMap = new Map<string, number>();
+  for (let i = 0; i < refLayer.length; i++) {
+    const refNode = refLayer[i];
+    if (refNode !== undefined) {
+      refPosMap.set(refNode.id, i);
+    }
+  }
+
+  const adjMap = new Map<string, string[]>();
+  for (const edge of edges) {
+    if (direction === "down") {
+      if (refPosMap.has(edge.from)) {
+        let targets = adjMap.get(edge.to);
+        if (targets === undefined) {
+          targets = [];
+          adjMap.set(edge.to, targets);
+        }
+        targets.push(edge.from);
+      }
+    } else {
+      if (refPosMap.has(edge.to)) {
+        let sources = adjMap.get(edge.from);
+        if (sources === undefined) {
+          sources = [];
+          adjMap.set(edge.from, sources);
+        }
+        sources.push(edge.to);
+      }
+    }
+  }
+
+  interface BarycenterEntry {
+    readonly node: SugiyamaRankedNode;
+    readonly centroid: number;
+    readonly originalIndex: number;
+  }
+
+  const entries: BarycenterEntry[] = layer.map((node, originalIndex) => {
+    const neighbors = adjMap.get(node.id) ?? [];
+    const validPositions = neighbors
+      .map((nId) => refPosMap.get(nId))
+      .filter((pos): pos is number => pos !== undefined);
+
+    const centroid =
+      validPositions.length > 0
+        ? validPositions.reduce((acc, pos) => acc + pos, 0) / validPositions.length
+        : originalIndex;
+
+    return { node, centroid, originalIndex };
+  });
+
+  entries.sort((a, b) => {
+    if (a.centroid !== b.centroid) {
+      return a.centroid - b.centroid;
+    }
+    if (a.originalIndex !== b.originalIndex) {
+      return a.originalIndex - b.originalIndex;
+    }
+    return a.node.id.localeCompare(b.node.id);
+  });
+
+  return entries.map((entry, order) => formatRankedNode(entry.node, entry.node.rank, order));
+}
+
+/**
+ * Step 2: Crossing minimization using alternating Barycenter heuristic sweeps (default 4 passes).
  */
 export function minimizeCrossingsBarycenter(
   layers: readonly SugiyamaLayer[],
@@ -13,159 +206,48 @@ export function minimizeCrossingsBarycenter(
   passes = 4,
 ): SugiyamaLayer[] {
   if (layers.length <= 1) {
-    return layers.map((l) => ({ ...l }));
+    return layers.map((layer, rank) => ({
+      rank,
+      nodes: layer.nodes.map((node, order) => formatRankedNode(node, rank, order)),
+    }));
   }
 
-  // Create mutable working layers
-  let currentLayers: SugiyamaRankedNode[][] = layers.map((l) => [...l.nodes]);
+  let currentLayers: SugiyamaRankedNode[][] = layers.map((layer, rank) =>
+    layer.nodes.map((node, order) => formatRankedNode(node, rank, order)),
+  );
 
-  const adjDown = new Map<string, string[]>();
-  const adjUp = new Map<string, string[]>();
+  let bestCrossings = computeTotalGraphCrossings(currentLayers, edges);
+  let bestLayers: SugiyamaRankedNode[][] = currentLayers.map((l) => [...l]);
 
-  for (const e of edges) {
-    if (!adjDown.has(e.from)) adjDown.set(e.from, []);
-    if (!adjUp.has(e.to)) adjUp.set(e.to, []);
-    adjDown.get(e.from)?.push(e.to);
-    adjUp.get(e.to)?.push(e.from);
-  }
-
-  function countCrossingsBetween(
-    layerA: readonly SugiyamaRankedNode[],
-    layerB: readonly SugiyamaRankedNode[],
-  ): number {
-    let crossings = 0;
-    const posB = new Map<string, number>();
-    for (let i = 0; i < layerB.length; i++) {
-      const node = layerB[i];
-      if (node) {
-        posB.set(node.id, i);
-      }
-    }
-
-    const edgePairs: { aPos: number; bPos: number }[] = [];
-    for (let aIdx = 0; aIdx < layerA.length; aIdx++) {
-      const uNode = layerA[aIdx];
-      if (!uNode) continue;
-      const u = uNode.id;
-      const targets = adjDown.get(u) ?? [];
-      for (const v of targets) {
-        const bPosition = posB.get(v);
-        if (bPosition !== undefined) {
-          edgePairs.push({ aPos: aIdx, bPos: bPosition });
-        }
-      }
-    }
-
-    for (let i = 0; i < edgePairs.length; i++) {
-      for (let j = i + 1; j < edgePairs.length; j++) {
-        const e1 = edgePairs[i];
-        const e2 = edgePairs[j];
-        if (!e1 || !e2) continue;
-        if ((e1.aPos < e2.aPos && e1.bPos > e2.bPos) || (e1.aPos > e2.aPos && e1.bPos < e2.bPos)) {
-          crossings += 1;
-        }
-      }
-    }
-    return crossings;
-  }
-
-  function totalCrossings(layerList: readonly (readonly SugiyamaRankedNode[])[]): number {
-    let total = 0;
-    for (let i = 0; i < layerList.length - 1; i++) {
-      const layer1 = layerList[i];
-      const layer2 = layerList[i + 1];
-      if (layer1 && layer2) {
-        total += countCrossingsBetween(layer1, layer2);
-      }
-    }
-    return total;
-  }
-
-  let bestCrossings = totalCrossings(currentLayers);
-  let bestLayers = currentLayers.map((l) => [...l]);
-
-  for (let p = 0; p < passes; p++) {
-    // Forward pass (downwards)
+  const numPasses = Math.max(1, passes);
+  for (let p = 0; p < numPasses; p++) {
+    // Forward pass (downwards): sort layer r using layer r-1 as reference
     for (let r = 1; r < currentLayers.length; r++) {
       const prevLayer = currentLayers[r - 1];
       const currLayer = currentLayers[r];
-      if (!prevLayer || !currLayer) continue;
-
-      const posMap = new Map<string, number>();
-      for (let i = 0; i < prevLayer.length; i++) {
-        const prevNode = prevLayer[i];
-        if (prevNode) {
-          posMap.set(prevNode.id, i);
-        }
+      if (prevLayer !== undefined && currLayer !== undefined) {
+        currentLayers[r] = barycentricSort(currLayer, prevLayer, edges, "down");
       }
-
-      const barycenters = currLayer.map((node, originalIndex) => {
-        const parents = adjUp.get(node.id) ?? [];
-        const validPositions = parents
-          .map((pId) => posMap.get(pId))
-          .filter((pos): pos is number => pos !== undefined);
-        const bc =
-          validPositions.length > 0
-            ? validPositions.reduce((acc, val) => acc + val, 0) / validPositions.length
-            : originalIndex;
-        return { node, bc, originalIndex };
-      });
-
-      barycenters.sort((a, b) => (a.bc !== b.bc ? a.bc - b.bc : a.originalIndex - b.originalIndex));
-      currentLayers[r] = barycenters.map((b) => b.node);
     }
 
-    // Backward pass (upwards)
+    // Backward pass (upwards): sort layer r using layer r+1 as reference
     for (let r = currentLayers.length - 2; r >= 0; r--) {
       const nextLayer = currentLayers[r + 1];
       const currLayer = currentLayers[r];
-      if (!nextLayer || !currLayer) continue;
-
-      const posMap = new Map<string, number>();
-      for (let i = 0; i < nextLayer.length; i++) {
-        const nextNode = nextLayer[i];
-        if (nextNode) {
-          posMap.set(nextNode.id, i);
-        }
+      if (nextLayer !== undefined && currLayer !== undefined) {
+        currentLayers[r] = barycentricSort(currLayer, nextLayer, edges, "up");
       }
-
-      const barycenters = currLayer.map((node, originalIndex) => {
-        const children = adjDown.get(node.id) ?? [];
-        const validPositions = children
-          .map((cId) => posMap.get(cId))
-          .filter((pos): pos is number => pos !== undefined);
-        const bc =
-          validPositions.length > 0
-            ? validPositions.reduce((acc, val) => acc + val, 0) / validPositions.length
-            : originalIndex;
-        return { node, bc, originalIndex };
-      });
-
-      barycenters.sort((a, b) => (a.bc !== b.bc ? a.bc - b.bc : a.originalIndex - b.originalIndex));
-      currentLayers[r] = barycenters.map((b) => b.node);
     }
 
-    const currentScore = totalCrossings(currentLayers);
-    if (currentScore < bestCrossings) {
-      bestCrossings = currentScore;
+    const currentCrossings = computeTotalGraphCrossings(currentLayers, edges);
+    if (currentCrossings < bestCrossings) {
+      bestCrossings = currentCrossings;
       bestLayers = currentLayers.map((l) => [...l]);
     }
   }
 
   return bestLayers.map((nodesInRank, rank) => ({
     rank,
-    nodes: nodesInRank.map((node, order) => ({
-      ...node,
-      rank,
-      order,
-      wave: node.wave ?? rank + 1,
-      lane: node.lane ?? order + 1,
-      coordinates: node.coordinates ?? {
-        wave: node.wave ?? rank + 1,
-        lane: node.lane ?? order + 1,
-        rank,
-        order,
-      },
-    })),
+    nodes: nodesInRank.map((node, order) => formatRankedNode(node, rank, order)),
   }));
 }

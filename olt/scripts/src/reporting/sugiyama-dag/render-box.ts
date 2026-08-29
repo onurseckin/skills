@@ -4,24 +4,30 @@
 import {
   formatCoordinates,
   formatImplementerValidatorTracking,
+  formatNodeBadges,
   formatSubagentAllocation,
+  getNodeStatusGlyph,
   getStatusGlyph,
   renderSubagentExpandedItems,
 } from "./subagent-expansion.ts";
 import type { SugiyamaNode } from "./types.ts";
 
+export { formatNodeBadges, getNodeStatusGlyph };
+
+export interface RenderSugiyamaNodeBoxOptions {
+  readonly detailed?: boolean | undefined;
+  readonly boxStyle?: "rounded" | "sharp" | "ascii" | undefined;
+  readonly boxWidth?: number | undefined;
+  readonly isCycle?: boolean | undefined;
+  readonly isBypass?: boolean | undefined;
+}
+
 /**
- * Renders a single rounded Unicode node box.
+ * Renders a single Sugiyama node box with configurable borders and strict uniform width.
  */
-export function renderRoundedNodeBox(
+export function renderSugiyamaNodeBox(
   task: SugiyamaNode,
-  options: {
-    detailed?: boolean | undefined;
-    boxStyle?: "rounded" | "sharp" | "ascii" | undefined;
-    boxWidth?: number | undefined;
-    isCycle?: boolean | undefined;
-    isBypass?: boolean | undefined;
-  } = {},
+  options: RenderSugiyamaNodeBoxOptions = {},
 ): string[] {
   const glyph = getStatusGlyph(task.status, task.dependencies.length > 0);
   const style = options.boxStyle ?? "rounded";
@@ -153,7 +159,7 @@ export function renderRoundedNodeBox(
     rows.push(`Tool:  ${task.assignedTool}`);
   }
 
-  const maxRowLen = Math.max(...rows.map((r) => r.length));
+  const maxRowLen = Math.max(0, ...rows.map((r) => r.length));
   const defaultWidth = options.boxWidth ?? 63;
   const targetWidth = Math.max(defaultWidth, maxRowLen + 4);
   const finalWidth = targetWidth % 2 === 0 ? targetWidth + 1 : targetWidth;
@@ -163,9 +169,24 @@ export function renderRoundedNodeBox(
   const bottomBorder = `${cornerBL}${horiz.repeat(finalWidth - 2)}${cornerBR}`;
 
   const formattedRows = rows.map((row) => {
-    const padding = Math.max(0, innerWidth - row.length);
-    return `${vert} ${row}${" ".repeat(padding)} ${vert}`;
+    const truncatedRow =
+      row.length > innerWidth ? `${row.slice(0, Math.max(0, innerWidth - 3))}...` : row;
+    const padding = Math.max(0, innerWidth - truncatedRow.length);
+    return `${vert} ${truncatedRow}${" ".repeat(padding)} ${vert}`;
   });
 
   return [topBorder, ...formattedRows, bottomBorder];
+}
+
+/**
+ * Backward compatibility alias for renderSugiyamaNodeBox.
+ */
+export function renderRoundedNodeBox(
+  task: SugiyamaNode,
+  options: RenderSugiyamaNodeBoxOptions = {},
+): string[] {
+  return renderSugiyamaNodeBox(task, {
+    ...options,
+    boxStyle: options.boxStyle ?? "rounded",
+  });
 }

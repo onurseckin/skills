@@ -44,7 +44,15 @@ export interface ProjectionPatchUnset extends JsonObject {
   path: string[];
 }
 
-export type ProjectionPatchOp = ProjectionPatchSet | ProjectionPatchUnset;
+export interface ProjectionPatchSplice extends JsonObject {
+  op: "splice";
+  path: string[];
+  start: number;
+  deleteCount: number;
+  items?: JsonValue[];
+}
+
+export type ProjectionPatchOp = ProjectionPatchSet | ProjectionPatchUnset | ProjectionPatchSplice;
 
 export interface HarnessEvent extends JsonObject {
   schema: "harness.event";

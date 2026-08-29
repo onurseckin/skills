@@ -9,6 +9,7 @@ import {
 import { taskReleaseCommand } from "../commands/task-ops.ts";
 import { worktreeReclaimCommand } from "../commands/worktree-ops.ts";
 import { doctorCertifyCommand } from "../../reporting/doctor/certify-command.ts";
+import { findingFileCommand } from "../commands/finding-ops.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,
@@ -289,5 +290,37 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
       const { metaAuditCommand } = await import("../commands/meta-audit.ts");
       return (await metaAuditCommand(flags, context)) as unknown as Record<string, unknown>;
     },
+  },
+  {
+    name: "finding:file",
+    aliases: ["finding"],
+    domain: "diagnostics",
+    tier: "primary",
+    internal: false,
+    summary: "Record a diagnostic finding or defect directly into the flock-locked defect store.",
+    description:
+      "Universal diagnostic finding ingestion command accessible to all companion and auditor roles. Appends or updates defects in .olt/defects.jsonl under flock lock.",
+    flags: [
+      requiredFlag("code", "string", "Diagnostic finding code (e.g. AST_PURITY_VIOLATION)."),
+      optionalFlag("severity", "string", "Severity: critical, high, warning, low, info."),
+      optionalFlag("file", "string", "Target file path where violation occurred."),
+      optionalFlag("path", "string", "Alias for --file."),
+      optionalFlag("line", "int", "Line number where violation occurred."),
+      optionalFlag("message", "string", "Diagnostic message or description."),
+      optionalFlag("description", "string", "Alias for --message."),
+      optionalFlag("task-id", "string", "Task identifier during which finding occurred."),
+      optionalFlag("commit-sha", "string", "Commit SHA where finding was observed."),
+      optionalFlag("remediation", "string", "Remediation guidance."),
+      optionalFlag("actor", "string", "Actor recording the finding."),
+      optionalFlag("defects-path", "string", "Custom defects.jsonl file location."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts finding:file --code AST_PURITY_VIOLATION --severity high --file src/index.ts --message 'Found as any'",
+      "bun harness.ts finding:file --code RUNTIME_ERROR --task-id task-1 --commit-sha abc1234",
+    ],
+    handler: findingFileCommand,
   },
 ];

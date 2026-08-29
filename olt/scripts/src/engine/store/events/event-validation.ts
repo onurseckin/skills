@@ -55,7 +55,7 @@ export function validateProjectionPatch(value: unknown, index: number): Integrit
     }
     const record = entry as Record<string, unknown>;
     const kind = record.op;
-    if (kind !== "set" && kind !== "unset") {
+    if (kind !== "set" && kind !== "unset" && kind !== "splice") {
       found.push(
         issue(
           "EVENT_PROJECTION_PATCH",
@@ -92,6 +92,40 @@ export function validateProjectionPatch(value: unknown, index: number): Integrit
           `event line ${index} patch op ${position} is missing a value`,
         ),
       );
+    if (kind === "splice") {
+      if (
+        typeof record.start !== "number" ||
+        !Number.isSafeInteger(record.start) ||
+        record.start < 0
+      ) {
+        found.push(
+          issue(
+            "EVENT_PROJECTION_PATCH",
+            `event line ${index} patch op ${position} has an invalid splice start`,
+          ),
+        );
+      }
+      if (
+        typeof record.deleteCount !== "number" ||
+        !Number.isSafeInteger(record.deleteCount) ||
+        record.deleteCount < 0
+      ) {
+        found.push(
+          issue(
+            "EVENT_PROJECTION_PATCH",
+            `event line ${index} patch op ${position} has an invalid splice deleteCount`,
+          ),
+        );
+      }
+      if ("items" in record && record.items !== undefined && !Array.isArray(record.items)) {
+        found.push(
+          issue(
+            "EVENT_PROJECTION_PATCH",
+            `event line ${index} patch op ${position} splice items must be an array`,
+          ),
+        );
+      }
+    }
   });
   return found;
 }

@@ -60,6 +60,10 @@ import {
   checkPushbackQuotas,
   checkPolicyDoctor,
   auditPolicyDoctor,
+  checkRepositoryHygiene,
+  checkGitIndexIntegrity,
+  autoHealGitState,
+  cleanseDanglingLocks,
   autoHealCapsule,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
@@ -76,6 +80,8 @@ import {
   type RoleBoundaryInterlockOptions,
   type PushbackQuotasCheckOptions,
   type PolicyDoctorOptions,
+  type RepositoryHygieneOptions,
+  type GitIndexCheckOptions,
   type AutoHealOptions,
 } from "./doctor/engines.ts";
 
@@ -112,6 +118,10 @@ export {
   checkPushbackQuotas,
   checkPolicyDoctor,
   auditPolicyDoctor,
+  checkRepositoryHygiene,
+  checkGitIndexIntegrity,
+  autoHealGitState,
+  cleanseDanglingLocks,
   autoHealCapsule,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
@@ -128,6 +138,8 @@ export {
   type RoleBoundaryInterlockOptions,
   type PushbackQuotasCheckOptions,
   type PolicyDoctorOptions,
+  type RepositoryHygieneOptions,
+  type GitIndexCheckOptions,
   type AutoHealOptions,
 };
 
@@ -138,6 +150,7 @@ export interface DoctorOptions {
     clients?: string[];
   };
   autoHeal?: boolean;
+  repoRoot?: string;
   writeScope?: readonly string[];
   testPaths?: readonly string[];
 }
@@ -306,6 +319,15 @@ export async function runDoctor(
   options: DoctorOptions = {},
   gitCommand: RepositoryGitCommand = repositoryGit,
 ): Promise<Record<string, unknown>> {
+  let repository: string | undefined = options.repoRoot;
+  if (repository === undefined) {
+    try {
+      repository = findRepoRoot(runRoot);
+    } catch (error) {
+      if (!(error instanceof HarnessError && error.code === "PATH_SAFETY")) throw error;
+    }
+  }
+
   // 1. Auto-Healing: Auto-heal projection mismatches, torn event tails, and stale leases by default
   const autoHealEnabled = options.autoHeal ?? true;
   let autoHealResult: DoctorAutoHealResult = {
@@ -313,10 +335,14 @@ export async function runDoctor(
     recoveredLeases: [],
     projectionRecovered: false,
     quarantinedFragments: [],
+    danglingLocksCleared: [],
+    migratedLedgers: [],
+    gitIndexHealed: false,
+    gitArtifactsStaged: [],
   };
 
   if (autoHealEnabled) {
-    autoHealResult = autoHealCapsule(runRoot);
+    autoHealResult = autoHealCapsule(runRoot, { repoRoot: repository });
   }
 
   // 2. Compute Capsule Doctor Facts post-healing
@@ -350,12 +376,6 @@ export async function runDoctor(
   const installationIssues = (installation?.issues ?? []).map((issue) => `installation: ${issue}`);
 
   let gitDiffs: string[] | undefined = undefined;
-  let repository: string | undefined;
-  try {
-    repository = findRepoRoot(runRoot);
-  } catch (error) {
-    if (!(error instanceof HarnessError && error.code === "PATH_SAFETY")) throw error;
-  }
   if (repository !== undefined && existsSync(join(repository, ".git"))) {
     try {
       const diffOutput = gitCommand(repository, ["diff", "--name-only"], 1024 * 64, [0]);
@@ -470,6 +490,26 @@ export async function runDoctor(
     grants: (loaded?.state?.grants as readonly unknown[] | undefined) ?? null,
   });
 
+  const hygieneResult = checkRepositoryHygiene({ repoRoot: repository });
+  const engine10: DoctorCheckEngineResult = {
+    engine: "checkRepositoryHygiene",
+    passed: hygieneResult.passed,
+    findings: hygieneResult.violations.map((v) => ({
+      code: v.violationType,
+      severity: v.severity,
+      engine: "checkRepositoryHygiene",
+      message: v.message,
+      details: { path: v.path, violationType: v.violationType },
+    })),
+  };
+
+  const gitIndexResult = checkGitIndexIntegrity({ repoRoot: repository });
+  const engine11: DoctorCheckEngineResult = {
+    engine: "checkGitIndexIntegrity",
+    passed: gitIndexResult.healthy,
+    findings: gitIndexResult.findings,
+  };
+
   const allEngineFindings = [
     ...engine1.findings,
     ...engine2.findings,
@@ -480,6 +520,8 @@ export async function runDoctor(
     ...engine7.findings,
     ...engine8.findings,
     ...engine9.findings,
+    ...engine10.findings,
+    ...engine11.findings,
   ];
 
   const engineErrorIssues = allEngineFindings
@@ -577,6 +619,8 @@ export async function runDoctor(
       checkRoleBoundaryInterlock: engine7,
       checkPushbackQuotas: engine8,
       checkPolicyDoctor: engine9,
+      checkRepositoryHygiene: engine10,
+      checkGitIndexIntegrity: engine11,
     },
     doctor_findings: allEngineFindings,
     errors,

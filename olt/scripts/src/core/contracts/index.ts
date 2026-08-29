@@ -24,6 +24,7 @@ export {
   type RunState,
   type ProjectionPatchSet,
   type ProjectionPatchUnset,
+  type ProjectionPatchSplice,
   type ProjectionPatchOp,
   type HarnessEvent,
   type RunFiles,

@@ -44,7 +44,7 @@ own status in `exit_code`.
 | orphan | 1 | [cli-capabilities/domains/orphan.md](cli-capabilities/domains/orphan.md) |
 | authority | 8 | [cli-capabilities/domains/authority.md](cli-capabilities/domains/authority.md) |
 | install | 2 | [cli-capabilities/domains/install.md](cli-capabilities/domains/install.md) |
-| diagnostics | 10 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
+| diagnostics | 11 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
 | gate | 1 | [cli-capabilities/domains/gate.md](cli-capabilities/domains/gate.md) |
 | capture | 3 | [cli-capabilities/domains/capture.md](cli-capabilities/domains/capture.md) |
 | mind | 25 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
@@ -150,6 +150,7 @@ own status in `exit_code`.
 | `task:release` | task | Hand a live lease back without waiting for it to expire. |
 | `worktree:reclaim` | diagnostics | Free an abandoned run's worktree directories. |
 | `meta-audit` | diagnostics | Deep behavioral forensics and anomaly detection across all agent telemetry. |
+| `finding:file` | diagnostics | Record a diagnostic finding or defect directly into the flock-locked defect store. |
 | `explain` | diagnostics | Explain a HarnessError code: the rule it enforces, common causes and the remedy for each. |
 | `gate:prove` | gate | Prove a compiled task's gate can actually fail, on a disposable scratch copy. |
 | `coordinator:pushback` | task | Reject a validator's own recorded pass, procedurally or substantively. |

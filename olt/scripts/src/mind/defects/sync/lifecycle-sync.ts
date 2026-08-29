@@ -18,6 +18,7 @@ import type {
 } from "../../contracts/defect-contracts.ts";
 import { createSha256Hash } from "../core/discriminator.ts";
 import { categorizeDefect } from "../core/sanitizer.ts";
+import { computeNormalizedFailureSignature } from "./signature.ts";
 
 export interface DoctorFindingInput {
   readonly id?: string | undefined;
@@ -113,7 +114,10 @@ export function serializeDefectsJsonl(entries: readonly DefectEntry[]): string {
   return entries.map((entry) => JSON.stringify(entry)).join("\n") + "\n";
 }
 
-function normalizeFindingToDefect(finding: DoctorFindingInput, timestamp: string): DefectEntry {
+export function normalizeFindingToDefect(
+  finding: DoctorFindingInput,
+  timestamp: string,
+): DefectEntry {
   const code = (finding.code || finding.error_code || finding.rule || "doctor_finding").trim();
   const filePath = (finding.path || finding.file || "").trim();
   const line = finding.line !== undefined ? String(finding.line) : "";
@@ -124,9 +128,19 @@ function normalizeFindingToDefect(finding: DoctorFindingInput, timestamp: string
     finding.observation ||
     code
   ).trim();
-  const contentHash = createSha256Hash(
-    `${code}::${filePath}::${line}::${desc.toLowerCase()}`,
-  ).slice(0, 12);
+  const category = categorizeDefect({
+    type: code,
+    observation: desc,
+    remediation: finding.remediation || "",
+  });
+  const dedupKey = computeNormalizedFailureSignature({
+    category,
+    code,
+    path: filePath,
+    message: desc,
+    line: finding.line,
+  });
+  const contentHash = dedupKey.slice(0, 12);
   const sanitizedCode = code
     .toLowerCase()
     .replace(/_/g, "-")
@@ -141,11 +155,6 @@ function normalizeFindingToDefect(finding: DoctorFindingInput, timestamp: string
         : finding.severity === "low" || finding.severity === "info"
           ? "low"
           : "warning";
-  const category = categorizeDefect({
-    type: code,
-    observation: desc,
-    remediation: finding.remediation || "",
-  });
 
   return {
     id,
@@ -159,7 +168,7 @@ function normalizeFindingToDefect(finding: DoctorFindingInput, timestamp: string
     first_seen_at: timestamp,
     last_seen_at: timestamp,
     count: 1,
-    dedup_key: `${category}::${code}::${contentHash}`,
+    dedup_key: dedupKey,
     ...(filePath ? { context: { path: filePath, ...(line ? { line: finding.line } : {}) } } : {}),
   };
 }

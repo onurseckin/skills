@@ -166,3 +166,30 @@ export {
   type CharterDigestCheckResult,
   type AuditBlockCheckResult,
 } from "./questionnaire/index.ts";
+
+export {
+  auditOrchestratorLiveness,
+  reclaimZombieOrchestrator,
+  defaultIsPidAlive,
+  DEFAULT_HEARTBEAT_THRESHOLD_SECONDS,
+  DEFAULT_SINGLETON_ROLE,
+  type RosterReconciliationReport,
+  type AuditLivenessOptions,
+  type ReclaimZombieOptions,
+  type GhostOrchestratorFinding,
+  type LiveSubagentInfo,
+} from "./orchestrator-liveness-auditor.ts";
+
+export {
+  auditSkillConcurrencySaturation,
+  SKILL_CONCURRENCY_UNDER_SATURATED,
+  UNSTAGED_STATION_DURABILITY_RISK,
+  type ConcurrencyAuditOptions,
+} from "./skill-concurrency-auditor.ts";
+
+export {
+  auditMindPreplanningStagnation,
+  MIND_PREPLANNING_STAGNATION,
+  DEFAULT_STAGNATION_THRESHOLD_SECONDS,
+  type StagnationAuditOptions,
+} from "./mind-stagnation-auditor.ts";

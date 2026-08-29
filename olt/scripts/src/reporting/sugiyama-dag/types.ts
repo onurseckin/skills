@@ -1,6 +1,34 @@
 /**
  * Sugiyama DAG Type Definitions
+ * Strictly typed interfaces with 0 any and strictly readonly properties.
  */
+
+export interface SugiyamaNodeBadge {
+  readonly implementerId?: string | undefined;
+  readonly validatorId?: string | undefined;
+  readonly coordinatorId?: string | undefined;
+  readonly role?:
+    | "implementer"
+    | "validator"
+    | "coordinator"
+    | "observer"
+    | "mind"
+    | string
+    | undefined;
+  readonly effort?: number | undefined;
+  readonly span?: number | undefined;
+  readonly status?:
+    | "pending"
+    | "leased"
+    | "running"
+    | "validating"
+    | "completed"
+    | "failed"
+    | string
+    | undefined;
+  readonly repairRound?: number | undefined;
+  readonly probeRound?: number | undefined;
+}
 
 export interface SugiyamaSubtask {
   readonly id: string;
@@ -94,6 +122,7 @@ export interface SugiyamaEdge {
 export interface SugiyamaRankedNode extends SugiyamaNode {
   readonly rank: number;
   readonly order: number;
+  readonly badge?: SugiyamaNodeBadge | undefined;
   readonly x?: number | undefined;
   readonly y?: number | undefined;
   readonly width?: number | undefined;
@@ -103,6 +132,26 @@ export interface SugiyamaRankedNode extends SugiyamaNode {
 export interface SugiyamaLayer {
   readonly rank: number;
   readonly nodes: readonly SugiyamaRankedNode[];
+}
+
+export interface OrthogonalEdgeSegment {
+  readonly fromNodeId: string;
+  readonly toNodeId: string;
+  readonly startX: number;
+  readonly startY: number;
+  readonly endX: number;
+  readonly endY: number;
+  readonly waypoints: readonly { readonly x: number; readonly y: number }[];
+  readonly glyphType: "direct_down" | "fan_out_bus" | "fan_in_bus" | "cross_lane" | string;
+}
+
+export interface OrthogonalRouteSegment {
+  readonly fromNodeId: string;
+  readonly toNodeId: string;
+  readonly fromWave: number;
+  readonly toWave: number;
+  readonly fromLane: number;
+  readonly toLane: number;
 }
 
 export interface CycleDiagnostic {
@@ -148,6 +197,8 @@ export interface SugiyamaRenderOptions {
   readonly showDiagnostics?: boolean | undefined;
   readonly showForensics?: boolean | undefined;
   readonly title?: string | undefined;
+  readonly maxWidth?: number | undefined;
+  readonly passes?: number | undefined;
 }
 
 export interface SugiyamaDagReport {
@@ -161,6 +212,12 @@ export interface SugiyamaDagReport {
   readonly isCompiled: boolean;
   readonly graphRevision: number | null;
   readonly totalTasks: number;
+  readonly totalNodes?: number | undefined;
+  readonly totalLayers?: number | undefined;
+  readonly maxLayerWidth?: number | undefined;
+  readonly totalCrossings?: number | undefined;
+  readonly renderedAscii?: string | undefined;
+  readonly edges?: readonly OrthogonalEdgeSegment[] | undefined;
 }
 
 export interface DiagnosticHealthResult {

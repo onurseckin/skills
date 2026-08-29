@@ -1,6 +1,6 @@
 /**
- * Tarjan Cycle Detection & Bypass Diagnostics Engine
- * Detects strongly connected components (SCCs) and transitive bypasses.
+ * Tarjan Cycle Detection, Feedback Arc Inversion & Bypass Diagnostics Engine
+ * Detects strongly connected components (SCCs), extracts feedback arcs, and identifies transitive bypasses.
  */
 import type {
   BypassDiagnostic,
@@ -11,21 +11,14 @@ import type {
   SugiyamaNode,
 } from "./types.ts";
 
-/**
- * Tarjan cycle detection to find all strongly connected components (SCCs) and cycles.
- */
-export function detectCyclesTarjan(
+function computeTarjanSccs(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],
-): CycleDiagnostic {
+): { adj: Map<string, string[]>; sccs: string[][] } {
   const adj = new Map<string, string[]>();
-  for (const n of nodes) {
-    adj.set(n.id, []);
-  }
+  for (const n of nodes) adj.set(n.id, []);
   for (const e of edges) {
-    if (adj.has(e.from)) {
-      adj.get(e.from)?.push(e.to);
-    }
+    if (adj.has(e.from)) adj.get(e.from)?.push(e.to);
   }
 
   let index = 0;
@@ -42,17 +35,12 @@ export function detectCyclesTarjan(
     stack.push(v);
     onStack.set(v, true);
 
-    const neighbors = adj.get(v) ?? [];
-    for (const w of neighbors) {
+    for (const w of adj.get(v) ?? []) {
       if (!indices.has(w)) {
         strongConnect(w);
-        const lowV = lowlinks.get(v) ?? 0;
-        const lowW = lowlinks.get(w) ?? 0;
-        lowlinks.set(v, Math.min(lowV, lowW));
+        lowlinks.set(v, Math.min(lowlinks.get(v) ?? 0, lowlinks.get(w) ?? 0));
       } else if (onStack.get(w)) {
-        const lowV = lowlinks.get(v) ?? 0;
-        const idxW = indices.get(w) ?? 0;
-        lowlinks.set(v, Math.min(lowV, idxW));
+        lowlinks.set(v, Math.min(lowlinks.get(v) ?? 0, indices.get(w) ?? 0));
       }
     }
 
@@ -69,22 +57,97 @@ export function detectCyclesTarjan(
 
       if (scc.length > 1) {
         sccs.push(scc);
-      } else if (scc.length === 1 && scc[0] !== undefined) {
-        // Check for self-loop
-        const singleNode = scc[0];
-        if (adj.get(singleNode)?.includes(singleNode)) {
-          sccs.push(scc);
-        }
+      } else if (scc.length === 1 && scc[0] !== undefined && adj.get(scc[0])?.includes(scc[0])) {
+        sccs.push(scc);
       }
     }
   }
 
   for (const n of nodes) {
-    if (!indices.has(n.id)) {
-      strongConnect(n.id);
+    if (!indices.has(n.id)) strongConnect(n.id);
+  }
+  return { adj, sccs };
+}
+
+/**
+ * Extracts feedback arc set by identifying back-edges within Tarjan SCCs.
+ */
+export function extractFeedbackArcSet(
+  nodes: readonly SugiyamaNode[],
+  edges: readonly SugiyamaEdge[],
+): { feedbackArcs: { from: string; to: string }[]; acyclicEdges: SugiyamaEdge[] } {
+  const { adj, sccs } = computeTarjanSccs(nodes, edges);
+  if (sccs.length === 0) return { feedbackArcs: [], acyclicEdges: [...edges] };
+
+  const feedbackArcs: { from: string; to: string }[] = [];
+  const feedbackArcSet = new Set<string>();
+
+  for (const scc of sccs) {
+    if (scc.length === 1 && scc[0] !== undefined) {
+      const single = scc[0];
+      const key = `${single}->${single}`;
+      if (!feedbackArcSet.has(key)) {
+        feedbackArcSet.add(key);
+        feedbackArcs.push({ from: single, to: single });
+      }
+      continue;
+    }
+
+    const sccSet = new Set(scc);
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+    const depth = new Map<string, number>();
+
+    function dfs(u: string, d: number): void {
+      visited.add(u);
+      visiting.add(u);
+      depth.set(u, d);
+
+      for (const v of adj.get(u) ?? []) {
+        if (!sccSet.has(v)) continue;
+        if (visiting.has(v)) {
+          const key = `${u}->${v}`;
+          if (!feedbackArcSet.has(key)) {
+            feedbackArcSet.add(key);
+            feedbackArcs.push({ from: u, to: v });
+          }
+        } else if (!visited.has(v)) {
+          dfs(v, d + 1);
+        }
+      }
+      visiting.delete(u);
+    }
+
+    for (const node of nodes) {
+      if (sccSet.has(node.id) && !visited.has(node.id)) {
+        dfs(node.id, 0);
+      }
     }
   }
 
+  const acyclicEdges = edges.filter((e) => !feedbackArcSet.has(`${e.from}->${e.to}`));
+  return { feedbackArcs, acyclicEdges };
+}
+
+/**
+ * Reverses the direction of feedback arcs in the edge set to produce a strict DAG.
+ */
+export function reverseCycleEdges(
+  edges: readonly SugiyamaEdge[],
+  feedbackArcs: readonly { readonly from: string; readonly to: string }[],
+): SugiyamaEdge[] {
+  const faSet = new Set(feedbackArcs.map((fa) => `${fa.from}->${fa.to}`));
+  return edges.map((e) => (faSet.has(`${e.from}->${e.to}`) ? { ...e, from: e.to, to: e.from } : e));
+}
+
+/**
+ * Tarjan cycle detection to find all strongly connected components (SCCs) and cycles.
+ */
+export function detectCyclesTarjan(
+  nodes: readonly SugiyamaNode[],
+  edges: readonly SugiyamaEdge[],
+): CycleDiagnostic {
+  const { adj, sccs } = computeTarjanSccs(nodes, edges);
   if (sccs.length === 0) {
     return {
       hasCycle: false,
@@ -102,9 +165,7 @@ export function detectCyclesTarjan(
   const cycleNodeSet = new Set<string>();
 
   for (const scc of sccs) {
-    for (const id of scc) {
-      cycleNodeSet.add(id);
-    }
+    for (const id of scc) cycleNodeSet.add(id);
 
     if (scc.length === 1 && scc[0] !== undefined) {
       const single = scc[0];
@@ -114,16 +175,15 @@ export function detectCyclesTarjan(
       continue;
     }
 
-    // Trace cycle path within SCC
     const sccSet = new Set(scc);
-    const start = scc[0];
+    const start = nodes.find((n) => sccSet.has(n.id))?.id ?? scc[0];
     if (!start) continue;
 
     const path: string[] = [start];
     const visitedInPath = new Set<string>([start]);
     let curr = start;
-
     let foundCycle = false;
+
     for (let step = 0; step < scc.length + 5 && !foundCycle; step++) {
       const nextCandidates = (adj.get(curr) ?? []).filter((nextId) => sccSet.has(nextId));
       if (nextCandidates.length === 0) break;
@@ -144,9 +204,7 @@ export function detectCyclesTarjan(
     for (let i = 0; i < path.length - 1; i++) {
       const fromNode = path[i];
       const toNode = path[i + 1];
-      if (fromNode && toNode) {
-        cycleEdges.push({ from: fromNode, to: toNode });
-      }
+      if (fromNode && toNode) cycleEdges.push({ from: fromNode, to: toNode });
     }
     const firstEdge = `${path[0]} ➔ ${path[1] ?? path[0]}`;
     remediation.push(
@@ -166,21 +224,15 @@ export function detectCyclesTarjan(
 
 /**
  * Detects illegal transitive bypasses and layering violations.
- * A bypass occurs when an edge u -> v exists directly, but there is also a longer path u -> ... -> v
- * with >= 2 hops, bypassing intermediate invariants.
  */
 export function detectIllegalBypasses(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],
 ): BypassDiagnostic {
   const adj = new Map<string, string[]>();
-  for (const n of nodes) {
-    adj.set(n.id, []);
-  }
+  for (const n of nodes) adj.set(n.id, []);
   for (const e of edges) {
-    if (adj.has(e.from)) {
-      adj.get(e.from)?.push(e.to);
-    }
+    if (adj.has(e.from)) adj.get(e.from)?.push(e.to);
   }
 
   function findAllPaths(start: string, target: string, maxDepth = 6): string[][] {
@@ -188,13 +240,10 @@ export function detectIllegalBypasses(
     function dfs(curr: string, currentPath: string[]): void {
       if (currentPath.length > maxDepth) return;
       if (curr === target) {
-        if (currentPath.length > 2) {
-          paths.push([...currentPath]);
-        }
+        if (currentPath.length > 2) paths.push([...currentPath]);
         return;
       }
-      const neighbors = adj.get(curr) ?? [];
-      for (const next of neighbors) {
+      for (const next of adj.get(curr) ?? []) {
         if (!currentPath.includes(next)) {
           currentPath.push(next);
           dfs(next, currentPath);
@@ -210,19 +259,11 @@ export function detectIllegalBypasses(
   const warnings: string[] = [];
 
   for (const e of edges) {
-    const longerPaths = findAllPaths(e.from, e.to);
-    if (longerPaths.length > 0) {
-      for (const p of longerPaths) {
-        const intermediate = p.slice(1, -1);
-        const reason = `Direct edge [${e.from} ➔ ${e.to}] bypasses required intermediate stage (${intermediate.join(" ➔ ")})`;
-        bypassItems.push({
-          from: e.from,
-          to: e.to,
-          intermediatePath: intermediate,
-          reason,
-        });
-        warnings.push(`❌ [ILLEGAL BYPASS]: ${reason}`);
-      }
+    for (const p of findAllPaths(e.from, e.to)) {
+      const intermediate = p.slice(1, -1);
+      const reason = `Direct edge [${e.from} ➔ ${e.to}] bypasses required intermediate stage (${intermediate.join(" ➔ ")})`;
+      bypassItems.push({ from: e.from, to: e.to, intermediatePath: intermediate, reason });
+      warnings.push(`❌ [ILLEGAL BYPASS]: ${reason}`);
     }
   }
 
@@ -234,6 +275,9 @@ export function detectIllegalBypasses(
   };
 }
 
+/**
+ * Validates overall diagnostic health of a DAG.
+ */
 export function validateDiagnosticHealth(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],
@@ -244,12 +288,10 @@ export function validateDiagnosticHealth(
   if (cycleDiag.hasCycle) {
     issues.push(`Cycle detected: ${cycleDiag.cyclePaths.map((p) => p.join(" -> ")).join(", ")}`);
   }
-  if (bypassDiag.hasBypass) {
-    for (const b of bypassDiag.bypasses) {
-      issues.push(
-        `Illegal bypass: ${b.from} -> ${b.to} via intermediate [${b.intermediatePath.join(", ")}]`,
-      );
-    }
+  for (const b of bypassDiag.bypasses) {
+    issues.push(
+      `Illegal bypass: ${b.from} -> ${b.to} via intermediate [${b.intermediatePath.join(", ")}]`,
+    );
   }
   return {
     healthy: !cycleDiag.hasCycle && !bypassDiag.hasBypass,

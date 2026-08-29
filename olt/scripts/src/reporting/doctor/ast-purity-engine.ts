@@ -1,6 +1,13 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { resolve, relative } from "node:path";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import { resolve } from "node:path";
+import ts from "typescript";
+import type {
+  AstPurityFinding,
+  DoctorCheckEngineResult,
+  DoctorDiagnosticFinding,
+} from "./types.ts";
+
+export type { AstPurityFinding };
 
 export interface AstPurityCheckOptions {
   readonly repoRoot?: string | undefined;
@@ -8,62 +15,117 @@ export interface AstPurityCheckOptions {
   readonly fileContents?: Readonly<Record<string, string>> | undefined;
 }
 
-const BANNED_SUPPRESSION_PATTERNS: readonly { readonly pattern: RegExp; readonly name: string }[] =
-  [
-    { pattern: /@ts-ignore/u, name: "@ts-ignore" },
-    { pattern: /@ts-expect-error/u, name: "@ts-expect-error" },
-    { pattern: /\bas\s+any\b/u, name: "as any" },
-    { pattern: /<\s*any\s*>/u, name: "<any>" },
-    { pattern: /:\s*any(?=[;\s,)=>[\]{}|&]|$)/u, name: ": any" },
-    { pattern: /\bany\[\]/u, name: "any[]" },
-    { pattern: /\bArray<\s*any\s*>/u, name: "Array<any>" },
-    { pattern: /\bPromise<\s*any\s*>/u, name: "Promise<any>" },
-  ];
-
 /**
- * Scans lines of TypeScript code for banned suppressions and 'any' usages.
+ * Scans a TypeScript file's content using native TypeScript Compiler AST tokenization.
+ * Ignores string literals, template literals, and regex literals to ensure 0 false positives.
  */
-function scanContentForPurity(filePath: string, content: string): DoctorDiagnosticFinding[] {
-  const findings: DoctorDiagnosticFinding[] = [];
-  const lines = content.split("\n");
+export function scanFileForAstPurity(filePath: string, content: string): AstPurityFinding[] {
+  const sourceFile = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true);
+  const findings: AstPurityFinding[] = [];
 
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i]!;
-    const trimmed = line.trim();
-    if (!trimmed) continue;
+  // 1. Scan actual comment ranges for compiler suppression directives (ignore / expect-error)
+  const commentScanner = ts.createScanner(
+    ts.ScriptTarget.Latest,
+    false,
+    ts.LanguageVariant.Standard,
+    content,
+  );
+  const scannedCommentRanges = new Set<string>();
 
-    for (const { pattern, name } of BANNED_SUPPRESSION_PATTERNS) {
-      if (pattern.test(line)) {
-        findings.push({
-          code: "AST_PURITY_VIOLATION",
-          severity: "ERROR",
-          engine: "checkAstPurity",
-          message: `AST purity invariant violation in ${filePath}:${i + 1}: Found banned ${name} usage ("${trimmed}")`,
-          details: {
-            filePath,
-            lineNumber: i + 1,
-            violationType: name,
-            lineContent: trimmed,
-          },
-        });
+  let token = commentScanner.scan();
+  while (token !== ts.SyntaxKind.EndOfFileToken) {
+    const leadingComments = ts.getLeadingCommentRanges(content, commentScanner.getTokenPos());
+    if (leadingComments) {
+      for (const comment of leadingComments) {
+        const key = `${comment.pos}:${comment.end}`;
+        if (!scannedCommentRanges.has(key)) {
+          scannedCommentRanges.add(key);
+          const commentText = content.slice(comment.pos, comment.end);
+          if (commentText.includes("@ts-ignore") || commentText.includes("@ts-expect-error")) {
+            const { line, character } = sourceFile.getLineAndCharacterOfPosition(comment.pos);
+            const trimmed = commentText.trim();
+            findings.push({
+              filePath,
+              lineNumber: line + 1,
+              columnNumber: character + 1,
+              violationType: "COMPILER_SUPPRESSION_DIRECTIVE",
+              nodeText: trimmed,
+              message: `Banned compiler suppression directive in comment at ${filePath}:${line + 1}:${character + 1}: "${trimmed}"`,
+            });
+          }
+        }
       }
     }
+    token = commentScanner.scan();
   }
 
+  // 2. Walk AST for AnyKeyword and type assertions
+  function visit(node: ts.Node): void {
+    if (
+      ts.isStringLiteral(node) ||
+      ts.isNoSubstitutionTemplateLiteral(node) ||
+      ts.isTemplateExpression(node) ||
+      node.kind === ts.SyntaxKind.RegularExpressionLiteral
+    ) {
+      return;
+    }
+
+    if (node.kind === ts.SyntaxKind.AnyKeyword) {
+      const parent = node.parent;
+      const isAssertion =
+        parent && (ts.isAsExpression(parent) || ts.isTypeAssertionExpression(parent));
+      const { line, character } = sourceFile.getLineAndCharacterOfPosition(
+        node.getStart(sourceFile),
+      );
+      findings.push({
+        filePath,
+        lineNumber: line + 1,
+        columnNumber: character + 1,
+        violationType: isAssertion ? "ANY_TYPE_ASSERTION" : "EXPLICIT_ANY",
+        nodeText: (isAssertion && parent ? parent : node).getText(sourceFile),
+        message:
+          isAssertion && parent
+            ? `Banned 'any' type assertion at ${filePath}:${line + 1}:${character + 1} ("${parent.getText(sourceFile)}")`
+            : `Explicit 'any' type prohibited at ${filePath}:${line + 1}:${character + 1}`,
+      });
+    }
+
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
   return findings;
 }
 
 /**
  * Engine 2: checkAstPurity
- * Scans TypeScript files for @ts-ignore, @ts-expect-error, : any, as any, <any>, etc.
+ * Scans TypeScript files using AST tokenization for @ts-ignore, @ts-expect-error, and any usages.
  */
 export function checkAstPurity(options: AstPurityCheckOptions = {}): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
 
+  function recordFindings(purityFindings: readonly AstPurityFinding[]): void {
+    for (const f of purityFindings) {
+      findings.push({
+        code: "AST_PURITY_VIOLATION",
+        severity: "ERROR",
+        engine: "checkAstPurity",
+        message: `AST purity invariant violation in ${f.filePath}:${f.lineNumber}: ${f.message}`,
+        details: {
+          filePath: f.filePath,
+          lineNumber: f.lineNumber,
+          columnNumber: f.columnNumber,
+          violationType: f.violationType,
+          nodeText: f.nodeText,
+        },
+      });
+    }
+  }
+
   // 1. If explicit fileContents provided
   if (options.fileContents) {
     for (const [path, content] of Object.entries(options.fileContents)) {
-      findings.push(...scanContentForPurity(path, content));
+      recordFindings(scanFileForAstPurity(path, content));
     }
     return {
       engine: "checkAstPurity",
@@ -81,7 +143,7 @@ export function checkAstPurity(options: AstPurityCheckOptions = {}): DoctorCheck
           const stat = statSync(fullPath);
           if (stat.isFile() && (fullPath.endsWith(".ts") || fullPath.endsWith(".tsx"))) {
             const content = readFileSync(fullPath, "utf-8");
-            findings.push(...scanContentForPurity(relPath, content));
+            recordFindings(scanFileForAstPurity(relPath, content));
           }
         } catch {
           // File read error ignored

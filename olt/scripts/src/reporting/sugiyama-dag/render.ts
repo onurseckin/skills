@@ -1,11 +1,16 @@
 /**
  * Sugiyama DAG Visual Renderer & Report Builder Subsystem
  */
+import { countLayerCrossings, minimizeCrossingsBarycenter } from "./crossing.ts";
 import { assignSugiyamaRanks } from "./ranking.ts";
-import { minimizeCrossingsBarycenter } from "./crossing.ts";
-import { detectCyclesTarjan, detectIllegalBypasses } from "./tarjan.ts";
-import { renderRoundedNodeBox } from "./render-box.ts";
+import { renderRoundedNodeBox, renderSugiyamaNodeBox } from "./render-box.ts";
 import { renderInterWaveConnector, renderLaneSeparator } from "./routing.ts";
+import {
+  detectCyclesTarjan,
+  detectIllegalBypasses,
+  extractFeedbackArcSet,
+  reverseCycleEdges,
+} from "./tarjan.ts";
 import type {
   BypassDiagnostic,
   CycleDiagnostic,
@@ -18,10 +23,16 @@ import type {
   SugiyamaWaveMetrics,
 } from "./types.ts";
 
-export { renderRoundedNodeBox } from "./render-box.ts";
+export { renderRoundedNodeBox, renderSugiyamaNodeBox } from "./render-box.ts";
 
 /**
  * Builds and renders the full Sugiyama DAG layout with orthogonal routing and diagnostics.
+ * Executes the complete 5-stage Sugiyama layout pipeline:
+ * 1. Cycle & Bypass Detection / FAS Inversion (Tarjan SCC)
+ * 2. Layer Ranking & Coffman-Graham Width Bounding
+ * 3. Barycentric Crossing Minimization (4-pass heuristic)
+ * 4. Orthogonal Connector Routing
+ * 5. Uniform Badged Node Box Rendering
  */
 export function renderSugiyamaDag(
   nodes: readonly SugiyamaNode[],
@@ -48,32 +59,44 @@ export function renderSugiyamaDag(
     };
   }
 
-  const rankMap = assignSugiyamaRanks(nodes, edges, cycleDiagnostic.cycleNodeIds);
+  // Stage 1: FAS Inversion & Acyclic Edge Set
+  const { feedbackArcs, acyclicEdges } = extractFeedbackArcSet(nodes, edges);
+  const invertedEdges = reverseCycleEdges(edges, feedbackArcs);
+
+  // Stage 2: Longest-path & Coffman-Graham Width Bounded Layer Assignment
+  const rankMap = assignSugiyamaRanks(
+    nodes,
+    acyclicEdges,
+    cycleDiagnostic.cycleNodeIds,
+    options.maxWidth,
+  );
   const maxRank = Math.max(0, ...[...rankMap.values()]);
 
   const initialLayers: SugiyamaLayer[] = [];
   for (let r = 0; r <= maxRank; r++) {
     const nodesInRank = nodes
       .filter((n) => (rankMap.get(n.id) ?? 0) === r)
-      .map((n, order) => ({
-        ...n,
-        rank: r,
-        order,
-        wave: n.wave ?? r + 1,
-        lane: n.lane ?? order + 1,
-        coordinates: n.coordinates ?? {
-          wave: n.wave ?? r + 1,
-          lane: n.lane ?? order + 1,
+      .map((n, order) => {
+        const wave = n.wave ?? r + 1;
+        const lane = n.lane ?? order + 1;
+        return {
+          ...n,
           rank: r,
           order,
-        },
-      }));
-    if (nodesInRank.length > 0) {
-      initialLayers.push({ rank: r, nodes: nodesInRank });
-    }
+          wave,
+          lane,
+          coordinates: n.coordinates ?? { wave, lane, rank: r, order },
+        };
+      });
+    if (nodesInRank.length > 0) initialLayers.push({ rank: r, nodes: nodesInRank });
   }
 
-  const optimizedLayers = minimizeCrossingsBarycenter(initialLayers, edges);
+  // Stage 3: Barycentric Crossing Minimization (4-pass heuristic)
+  const optimizedLayers = minimizeCrossingsBarycenter(
+    initialLayers,
+    acyclicEdges,
+    options.passes ?? 4,
+  );
   const flatRankedNodes = optimizedLayers.flatMap((l) => l.nodes);
   const lines: string[] = [];
 
@@ -81,30 +104,24 @@ export function renderSugiyamaDag(
     lines.push("╔════════════════════════════════════════════════════════════════════════════╗");
     lines.push("║                         ⚡ [POISONOUS CYCLE] ⚡                            ║");
     lines.push("╠════════════════════════════════════════════════════════════════════════════╣");
-    for (const path of cycleDiagnostic.cyclePaths) {
+    for (const path of cycleDiagnostic.cyclePaths)
       lines.push(`║ Cycle detected: ${path.join(" ➔ ")}`);
-    }
-    for (const rem of cycleDiagnostic.remediation) {
-      lines.push(`║ Remediation:    ${rem}`);
-    }
-    lines.push("╚════════════════════════════════════════════════════════════════════════════╝");
-    lines.push("");
+    for (const rem of cycleDiagnostic.remediation) lines.push(`║ Remediation:    ${rem}`);
+    lines.push("╚════════════════════════════════════════════════════════════════════════════╝\n");
   }
 
   if (bypassDiagnostic.hasBypass) {
     lines.push("╔════════════════════════════════════════════════════════════════════════════╗");
     lines.push("║                        ❌ [ILLEGAL BYPASS]                                 ║");
     lines.push("╠════════════════════════════════════════════════════════════════════════════╣");
-    for (const warning of bypassDiagnostic.warnings) {
-      lines.push(`║ ${warning}`);
-    }
-    lines.push("╚════════════════════════════════════════════════════════════════════════════╝");
-    lines.push("");
+    for (const warning of bypassDiagnostic.warnings) lines.push(`║ ${warning}`);
+    lines.push("╚════════════════════════════════════════════════════════════════════════════╝\n");
   }
 
   const cycleSet = new Set(cycleDiagnostic.cycleNodeIds);
   const bypassSet = new Set(bypassDiagnostic.bypasses.map((b) => b.to));
 
+  // Stages 4 & 5: Node Box Rendering & Orthogonal Connector Routing
   for (let lIdx = 0; lIdx < optimizedLayers.length; lIdx++) {
     const layer = optimizedLayers[lIdx];
     if (!layer) continue;
@@ -118,8 +135,7 @@ export function renderSugiyamaDag(
     const activeWaveBadge = hasActiveTasks ? " ⚡ [ACTIVE EXECUTION SUBGRAPH]" : "";
     const headerTitle = ` WAVE ${waveNum} (${waveTasks.length} ${waveTasks.length === 1 ? "lane" : "lanes"} • ${waveStatuses})${activeWaveBadge} `;
     const barLength = Math.max(10, 61 - headerTitle.length);
-    const headerLine = `╭─${headerTitle}${"─".repeat(barLength)}╮`;
-    lines.push(headerLine);
+    lines.push(`╭─${headerTitle}${"─".repeat(barLength)}╮`);
 
     const isLastWave = lIdx === optimizedLayers.length - 1;
 
@@ -128,29 +144,22 @@ export function renderSugiyamaDag(
       if (!task) continue;
       const isLastTaskInWave = tIdx === waveTasks.length - 1;
 
-      const isNodeInCycle = cycleSet.has(task.id);
-      const isNodeInBypass = bypassSet.has(task.id);
+      lines.push(
+        ...renderSugiyamaNodeBox(task, {
+          detailed: options.detailed,
+          boxStyle: options.boxStyle,
+          boxWidth: options.minBoxWidth ?? 63,
+          isCycle: cycleSet.has(task.id),
+          isBypass: bypassSet.has(task.id),
+        }),
+      );
 
-      const boxLines = renderRoundedNodeBox(task, {
-        detailed: options.detailed,
-        boxStyle: options.boxStyle,
-        boxWidth: options.minBoxWidth ?? 63,
-        isCycle: isNodeInCycle,
-        isBypass: isNodeInBypass,
-      });
-
-      lines.push(...boxLines);
-
-      if (!isLastTaskInWave) {
-        lines.push(...renderLaneSeparator());
-      }
+      if (!isLastTaskInWave) lines.push(...renderLaneSeparator());
     }
 
     if (!isLastWave) {
       const nextLayer = optimizedLayers[lIdx + 1];
-      if (nextLayer) {
-        lines.push(...renderInterWaveConnector(layer, nextLayer, edges));
-      }
+      if (nextLayer) lines.push(...renderInterWaveConnector(layer, nextLayer, edges));
     }
   }
 
@@ -166,7 +175,7 @@ export function renderSugiyamaDag(
 /**
  * Builds the complete Sugiyama DAG Report including markdown formatting and metrics.
  */
-export function buildSugiyamaDagReport(
+export function generateSugiyamaDagReport(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],
   options: SugiyamaRenderOptions & {
@@ -195,10 +204,18 @@ export function buildSugiyamaDagReport(
   const parallelismFactor = span > 0 ? Number((totalWork / span).toFixed(2)) : 0;
   const maxParallel = options.maxParallel ?? 4;
   const optimalConcurrency = Math.min(maxParallel, Math.max(1, Math.ceil(nodes.length / 2)));
+  const maxLayerWidth = layers.length > 0 ? Math.max(...layers.map((l) => l.nodes.length)) : 0;
+
+  let totalCrossings = 0;
+  for (let i = 0; i < layers.length - 1; i++) {
+    const l1 = layers[i];
+    const l2 = layers[i + 1];
+    if (l1 && l2) totalCrossings += countLayerCrossings(l1.nodes, l2.nodes, edges);
+  }
 
   const metrics: SugiyamaWaveMetrics = {
     totalWaves: layers.length,
-    maxParallelLanes: layers.length > 0 ? Math.max(...layers.map((l) => l.nodes.length)) : 0,
+    maxParallelLanes: maxLayerWidth,
     criticalPathLength: maxCriticalPath,
     averageWaveConcurrency:
       layers.length > 0 ? Number((nodes.length / layers.length).toFixed(2)) : 0,
@@ -227,22 +244,15 @@ export function buildSugiyamaDagReport(
   ];
 
   if (cycleDiagnostic.hasCycle) {
-    mdSections.push("");
-    mdSections.push("#### ⚡ [POISONOUS CYCLE] ⚡");
-    for (const path of cycleDiagnostic.cyclePaths) {
+    mdSections.push("", "#### ⚡ [POISONOUS CYCLE] ⚡");
+    for (const path of cycleDiagnostic.cyclePaths)
       mdSections.push(`- **Cycle Path**: ${path.join(" ➔ ")}`);
-    }
-    for (const rem of cycleDiagnostic.remediation) {
-      mdSections.push(`- **Remediation**: ${rem}`);
-    }
+    for (const rem of cycleDiagnostic.remediation) mdSections.push(`- **Remediation**: ${rem}`);
   }
 
   if (bypassDiagnostic.hasBypass) {
-    mdSections.push("");
-    mdSections.push("#### ❌ [ILLEGAL BYPASS] ❌");
-    for (const w of bypassDiagnostic.warnings) {
-      mdSections.push(`- ${w}`);
-    }
+    mdSections.push("", "#### ❌ [ILLEGAL BYPASS] ❌");
+    for (const w of bypassDiagnostic.warnings) mdSections.push(`- ${w}`);
   }
 
   return {
@@ -256,5 +266,27 @@ export function buildSugiyamaDagReport(
     isCompiled,
     graphRevision,
     totalTasks: nodes.length,
+    totalNodes: nodes.length,
+    totalLayers: layers.length,
+    maxLayerWidth,
+    totalCrossings,
+    renderedAscii: renderedDag,
   };
+}
+
+/**
+ * Backward compatibility alias for generateSugiyamaDagReport.
+ */
+export function buildSugiyamaDagReport(
+  nodes: readonly SugiyamaNode[],
+  edges: readonly SugiyamaEdge[],
+  options: SugiyamaRenderOptions & {
+    runRoot?: string | undefined;
+    runId?: string | undefined;
+    isCompiled?: boolean | undefined;
+    graphRevision?: number | null | undefined;
+    maxParallel?: number | undefined;
+  } = {},
+): SugiyamaDagReport {
+  return generateSugiyamaDagReport(nodes, edges, options);
 }

@@ -97,3 +97,40 @@ export {
   type ConsolidateCapsulesOptions,
   type ConsolidateCapsulesResult,
 } from "../../mind/archival/index.ts";
+export {
+  resolveStoragePaths,
+  resolveCapsulePaths,
+  assertSafeStoragePath,
+  type StoragePaths,
+  type CapsulePaths,
+} from "./hierarchy/storage-paths.ts";
+export { migrateLegacyCapsules, relocateVestigialLedgers } from "./hierarchy/storage-migrator.ts";
+export {
+  writeAtomicSnapshot,
+  loadLatestSnapshot,
+  loadSnapshotAtSequence,
+  shouldCreateSnapshot,
+  type SnapshotRecord,
+} from "./hierarchy/snapshot-manager.ts";
+export {
+  updateSparseIndex,
+  seekEventByteOffset,
+  rebuildSparseIndex,
+  loadSparseIndex,
+  type EventSparseIndex,
+} from "./hierarchy/sparse-index.ts";
+export {
+  reconstructStateAtSequence,
+  fastForwardProjection,
+} from "./hierarchy/reconstruction-engine.ts";
+export {
+  diffArrayElements,
+  applyArrayPatchOperation,
+  isMonotonicArrayAppend,
+  type ArrayPatchOperation,
+} from "./projections/array-patch.ts";
+export {
+  diffProjection,
+  applyProjectionPatch,
+  reduceEventStream,
+} from "./projections/projection-patch.ts";

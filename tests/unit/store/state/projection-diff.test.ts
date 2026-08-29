@@ -108,43 +108,54 @@ describe("diffProjection", () => {
     ]);
   });
 
-  test("replaces the whole array when its existing contents change", () => {
+  test("emits granular set op when an existing array element changes in place", () => {
     const before = { list: [1, 2, 3] };
     const after = { list: [1, 2, 4] };
-    expect(diffProjection(before, after)).toEqual([
-      { op: "set", path: ["list"], value: [1, 2, 4] },
-    ]);
+    expect(diffProjection(before, after)).toEqual([{ op: "set", path: ["list", "2"], value: 4 }]);
+    expect(applyProjectionPatch(before, diffProjection(before, after))).toEqual(after);
   });
 
-  test("replaces the whole array when an existing nested object key or value changes", () => {
+  test("emits granular splice when array items are modified with length changes", () => {
     const before = { list: [{ state: { name: "one" } }] };
-    expect(
-      diffProjection(before, { list: [{ state: { name: "two" } }, { state: { name: "three" } }] }),
-    ).toEqual([
+    const after1 = { list: [{ state: { name: "two" } }, { state: { name: "three" } }] };
+    expect(diffProjection(before, after1)).toEqual([
       {
-        op: "set",
+        op: "splice",
         path: ["list"],
-        value: [{ state: { name: "two" } }, { state: { name: "three" } }],
+        start: 0,
+        deleteCount: 1,
+        items: [{ state: { name: "two" } }, { state: { name: "three" } }],
       },
     ]);
-    expect(
-      diffProjection(before, { list: [{ state: { name: "one", active: true } }, { state: {} }] }),
-    ).toEqual([
+    expect(applyProjectionPatch(before, diffProjection(before, after1))).toEqual(after1);
+
+    const after2 = { list: [{ state: { name: "one", active: true } }, { state: {} }] };
+    expect(diffProjection(before, after2)).toEqual([
       {
-        op: "set",
+        op: "splice",
         path: ["list"],
-        value: [{ state: { name: "one", active: true } }, { state: {} }],
+        start: 0,
+        deleteCount: 1,
+        items: [{ state: { name: "one", active: true } }, { state: {} }],
       },
     ]);
+    expect(applyProjectionPatch(before, diffProjection(before, after2))).toEqual(after2);
   });
 
-  test("replaces the whole array when it shrinks or reorders", () => {
-    expect(diffProjection({ list: [1, 2, 3] }, { list: [1, 2] })).toEqual([
-      { op: "set", path: ["list"], value: [1, 2] },
+  test("emits granular splice when array shrinks and set ops when reordered in place", () => {
+    const before = { list: [1, 2, 3] };
+    const shrunk = { list: [1, 2] };
+    expect(diffProjection(before, shrunk)).toEqual([
+      { op: "splice", path: ["list"], start: 2, deleteCount: 1 },
     ]);
-    expect(diffProjection({ list: [1, 2, 3] }, { list: [2, 1, 3] })).toEqual([
-      { op: "set", path: ["list"], value: [2, 1, 3] },
+    expect(applyProjectionPatch(before, diffProjection(before, shrunk))).toEqual(shrunk);
+
+    const reordered = { list: [2, 1, 3] };
+    expect(diffProjection(before, reordered)).toEqual([
+      { op: "set", path: ["list", "0"], value: 2 },
+      { op: "set", path: ["list", "1"], value: 1 },
     ]);
+    expect(applyProjectionPatch(before, diffProjection(before, reordered))).toEqual(reordered);
   });
 
   test("does not emit an op for an unchanged array", () => {

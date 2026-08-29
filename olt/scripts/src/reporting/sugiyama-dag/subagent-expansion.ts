@@ -2,53 +2,110 @@
  * Sugiyama Subagent Expansion & Visual Badges Engine
  * Handles implementer-validator allocations, coordinate formatting, and hierarchical subagent nesting.
  */
-import type { SugiyamaNode, SugiyamaSubtask } from "./types.ts";
+import type { SugiyamaNode, SugiyamaNodeBadge, SugiyamaSubtask } from "./types.ts";
+
+/**
+ * Returns a single Unicode glyph for task lifecycle status.
+ * Covers glyph badges (●, ✓, ⏳, ✗, 🔍, ⟳, 🔄, 🟣, ○).
+ */
+export function getNodeStatusGlyph(status: string, hasDeps = false): string {
+  const s = status.toLowerCase();
+  if (s === "pass" || s === "done" || s === "satisfied" || s === "passed" || s === "completed")
+    return "✓";
+  if (s === "active" || s === "leased" || s === "running" || s === "in_progress") return "●";
+  if (s === "probing" || s === "probe" || s === "investigating") return "🔍";
+  if (s === "repairing" || s === "repair" || s === "remediation" || s === "changes_requested")
+    return "⟳";
+  if (s === "validating") return "🔄";
+  if (s === "validated") return "🟣";
+  if (s === "ready" || s === "retry_ready") return "○";
+  if (s === "failed" || s === "rejected" || s === "escalated" || s === "error") return "✗";
+  if (s === "draft") return hasDeps ? "⏳" : "○";
+  return "⏳";
+}
+
+/**
+ * Formats structured operational badges: [I: <id>], [V: <id>], [C: <id>], [R<round> P<probe>], W:<work> S:<span>.
+ */
+export function formatNodeBadges(task: SugiyamaNode): string {
+  const parts: string[] = [];
+  const badge =
+    "badge" in task && typeof task.badge === "object" && task.badge !== null
+      ? (task.badge as SugiyamaNodeBadge)
+      : undefined;
+
+  const role = task.assignedRole?.toLowerCase();
+  const implementerId =
+    task.implementerAgent?.trim() ||
+    badge?.implementerId?.trim() ||
+    (role !== "validator" && role !== "coordinator" ? task.assignedAgent?.trim() : undefined) ||
+    undefined;
+
+  const validatorId =
+    task.validatorAgent?.trim() ||
+    task.validatorId?.trim() ||
+    badge?.validatorId?.trim() ||
+    (role === "validator" ? task.assignedAgent?.trim() : undefined) ||
+    undefined;
+
+  const coordinatorId =
+    task.coordinatorId?.trim() ||
+    badge?.coordinatorId?.trim() ||
+    (role === "coordinator" ? task.assignedAgent?.trim() : undefined) ||
+    undefined;
+
+  if (implementerId) parts.push(`[I: ${implementerId}]`);
+  if (validatorId) parts.push(`[V: ${validatorId}]`);
+  if (coordinatorId) parts.push(`[C: ${coordinatorId}]`);
+
+  const round = task.round ?? badge?.repairRound;
+  const probeRound = task.probeRound ?? task.probes ?? badge?.probeRound;
+
+  if (round !== undefined && probeRound !== undefined) {
+    parts.push(`[R${round} P${probeRound}]`);
+  } else if (round !== undefined) {
+    parts.push(`[R${round}]`);
+  } else if (probeRound !== undefined) {
+    parts.push(`[P${probeRound}]`);
+  }
+
+  const work =
+    typeof task.effort === "number"
+      ? task.effort
+      : typeof badge?.effort === "number"
+        ? badge.effort
+        : 1;
+
+  const span =
+    typeof task.criticalDepth === "number"
+      ? task.criticalDepth + 1
+      : typeof badge?.span === "number"
+        ? badge.span
+        : 1;
+
+  parts.push(`W:${work} S:${span}`);
+  return parts.join(" ");
+}
 
 /**
  * Returns live status badge and glyph.
  */
 export function getStatusBadge(status: string, hasDeps = false): string {
-  switch (status.toLowerCase()) {
-    case "pass":
-      return "✓ PASS";
-    case "done":
-    case "satisfied":
-    case "passed":
-      return "✓ PASSED";
-    case "active":
-      return "● ACTIVE";
-    case "leased":
-    case "running":
-      return "🟢 RUNNING";
-    case "probing":
-    case "probe":
-    case "investigating":
-      return "🔍 PROBING";
-    case "repairing":
-    case "repair":
-    case "remediation":
-      return "⟳ REPAIRING";
-    case "validating":
-      return "🔄 VALIDATING";
-    case "validated":
-      return "🟣 VALIDATED";
-    case "ready":
-    case "retry_ready":
-      return "○ READY";
-    case "draft":
-      return hasDeps ? "⏳ BLOCKED" : "○ READY";
-    case "changes_requested":
-      return "🔴 CHANGES_REQ";
-    case "failed":
-    case "rejected":
-      return "❌ REJECTED";
-    case "escalated":
-      return "🚨 ESCALATED";
-    case "proposed":
-    case "blocked":
-    default:
-      return "⏳ BLOCKED";
-  }
+  const s = status.toLowerCase();
+  if (s === "pass") return "✓ PASS";
+  if (s === "done" || s === "satisfied" || s === "passed" || s === "completed") return "✓ PASSED";
+  if (s === "active") return "● ACTIVE";
+  if (s === "leased" || s === "running" || s === "in_progress") return "🟢 RUNNING";
+  if (s === "probing" || s === "probe" || s === "investigating") return "🔍 PROBING";
+  if (s === "repairing" || s === "repair" || s === "remediation") return "⟳ REPAIRING";
+  if (s === "changes_requested") return "🔴 CHANGES_REQ";
+  if (s === "validating") return "🔄 VALIDATING";
+  if (s === "validated") return "🟣 VALIDATED";
+  if (s === "ready" || s === "retry_ready") return "○ READY";
+  if (s === "draft") return hasDeps ? "⏳ BLOCKED" : "○ READY";
+  if (s === "failed" || s === "rejected") return "❌ REJECTED";
+  if (s === "escalated") return "🚨 ESCALATED";
+  return "⏳ BLOCKED";
 }
 
 export function getStatusGlyph(status: string, hasDeps = false): string {
@@ -57,48 +114,23 @@ export function getStatusGlyph(status: string, hasDeps = false): string {
 
 /**
  * Returns boxed bracket status badges for dynamic DAG visualization.
- * Supported badges: [● ACTIVE], [✓ PASS], [○ READY], [⟳ REPAIRING], [🔍 PROBING], etc.
  */
 export function formatStatusBadge(status: string, hasDeps = false): string {
-  switch (status.toLowerCase()) {
-    case "active":
-    case "leased":
-    case "running":
-    case "in_progress":
-      return "[● ACTIVE]";
-    case "pass":
-    case "done":
-    case "satisfied":
-    case "passed":
-      return "[✓ PASS]";
-    case "ready":
-    case "retry_ready":
-      return "[○ READY]";
-    case "repairing":
-    case "repair":
-    case "changes_requested":
-    case "remediation":
-      return "[⟳ REPAIRING]";
-    case "probing":
-    case "probe":
-    case "investigating":
-      return "[🔍 PROBING]";
-    case "validating":
-      return "[🔄 VALIDATING]";
-    case "validated":
-      return "[🟣 VALIDATED]";
-    case "failed":
-    case "rejected":
-      return "[❌ REJECTED]";
-    case "escalated":
-      return "[🚨 ESCALATED]";
-    case "proposed":
-    case "blocked":
-      return "[⏳ BLOCKED]";
-    case "draft":
-    default:
-      return hasDeps ? "[⏳ BLOCKED]" : "[○ READY]";
-  }
+  const s = status.toLowerCase();
+  if (s === "active" || s === "leased" || s === "running" || s === "in_progress")
+    return "[● ACTIVE]";
+  if (s === "pass" || s === "done" || s === "satisfied" || s === "passed" || s === "completed")
+    return "[✓ PASS]";
+  if (s === "ready" || s === "retry_ready") return "[○ READY]";
+  if (s === "repairing" || s === "repair" || s === "changes_requested" || s === "remediation")
+    return "[⟳ REPAIRING]";
+  if (s === "probing" || s === "probe" || s === "investigating") return "[🔍 PROBING]";
+  if (s === "validating") return "[🔄 VALIDATING]";
+  if (s === "validated") return "[🟣 VALIDATED]";
+  if (s === "failed" || s === "rejected") return "[❌ REJECTED]";
+  if (s === "escalated") return "[🚨 ESCALATED]";
+  if (s === "draft") return hasDeps ? "[⏳ BLOCKED]" : "[○ READY]";
+  return "[⏳ BLOCKED]";
 }
 
 /**
@@ -145,8 +177,7 @@ export function formatCoordinates(
 ): string {
   if (typeof coordinates === "string" && coordinates.trim().length > 0) {
     const trimmed = coordinates.trim();
-    if (trimmed.startsWith("[") && trimmed.endsWith("]")) return trimmed;
-    return `[${trimmed}]`;
+    return trimmed.startsWith("[") && trimmed.endsWith("]") ? trimmed : `[${trimmed}]`;
   }
   if (coordinates && typeof coordinates === "object") {
     const wave = coordinates.wave ?? (coordinates.rank !== undefined ? coordinates.rank + 1 : 1);
@@ -154,9 +185,7 @@ export function formatCoordinates(
     return `[W${wave}:L${lane}]`;
   }
   if (waveFallback !== undefined || laneFallback !== undefined) {
-    const wave = waveFallback ?? 1;
-    const lane = laneFallback ?? 1;
-    return `[W${wave}:L${lane}]`;
+    return `[W${waveFallback ?? 1}:L${laneFallback ?? 1}]`;
   }
   return "";
 }
@@ -166,7 +195,6 @@ export function formatCoordinates(
  */
 export function formatImplementerValidatorTracking(task: SugiyamaNode): string[] {
   const lines: string[] = [];
-
   const pushesCount = task.pushes ?? 0;
   const probesCount = task.probes ?? (task.probeRound !== undefined ? task.probeRound : 0);
   const attemptsCount = task.attempt ?? 1;
@@ -196,18 +224,20 @@ export function formatImplementerValidatorTracking(task: SugiyamaNode): string[]
 export function renderSubagentExpandedItems(
   subtasks: readonly (SugiyamaNode | SugiyamaSubtask | string)[],
   branchId?: string,
+  depth = 0,
 ): string[] {
   const rows: string[] = [];
+  const indent = "  ".repeat(depth);
   const branchHeader = branchId
-    ? `↳ Dynamic Branch [${branchId}] (${subtasks.length} sub-tasks):`
-    : `↳ Dynamic Sub-tasks (${subtasks.length}):`;
+    ? `${indent}↳ Dynamic Branch [${branchId}] (${subtasks.length} sub-tasks):`
+    : `${indent}↳ Dynamic Sub-tasks (${subtasks.length}):`;
   rows.push(branchHeader);
 
   for (let i = 0; i < subtasks.length; i++) {
     const sub = subtasks[i];
     if (!sub) continue;
     const isLast = i === subtasks.length - 1;
-    const connector = isLast ? "  └──►" : "  ├──►";
+    const connector = isLast ? `${indent}  └──►` : `${indent}  ├──►`;
 
     if (typeof sub === "string") {
       rows.push(`${connector} [${sub}]`);
@@ -237,6 +267,19 @@ export function renderSubagentExpandedItems(
       const childAlloc = formatSubagentAllocation(subImpl, subVal, subRole ?? "IMPLEMENTER");
       const allocSuffix = childAlloc ? ` ${childAlloc}` : "";
       rows.push(`${connector} [${subId}] ${subStatus}${allocSuffix}`);
+
+      if (
+        "expandedSubtasks" in sub &&
+        Array.isArray(sub.expandedSubtasks) &&
+        sub.expandedSubtasks.length > 0
+      ) {
+        const nested = renderSubagentExpandedItems(
+          sub.expandedSubtasks as readonly (SugiyamaNode | SugiyamaSubtask | string)[],
+          "branchId" in sub && typeof sub.branchId === "string" ? sub.branchId : undefined,
+          depth + 1,
+        );
+        rows.push(...nested);
+      }
     }
   }
 

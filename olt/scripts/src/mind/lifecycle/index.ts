@@ -221,3 +221,51 @@ export {
   executeWatchdogVerify,
   executeWatchdogProbe,
 } from "./watchdog/index.ts";
+
+export {
+  computeManifestSha256Pin,
+  computeMerkleGenesisBinding,
+  resolveManifestPath,
+  syncOrchestratorToManifest,
+  validateCapsuleManifestBinding,
+} from "./manifest-sync.ts";
+export type {
+  ManifestSyncOptions,
+  ManifestSyncResult,
+  ManifestValidateOptions,
+  ManifestValidateResult,
+} from "./manifest-sync.ts";
+
+export {
+  DEFAULT_ORCHESTRATOR_LEDGER_FILE,
+  DEFAULT_ORCHESTRATOR_LOCK_FILE,
+  VALID_LIFECYCLE_STATUSES,
+  VALID_HOST_TYPES,
+  withOrchestratorLedgerLock,
+  loadOrchestratorLedger,
+  registerOrchestratorSpawn,
+  deregisterOrchestrator,
+  updateOrchestratorHeartbeat,
+} from "./orchestrator-ledger.ts";
+export type {
+  OrchestratorLifecycleStatus,
+  OrchestratorHostType,
+  OrchestratorRegistrationRecord,
+  NewOrchestratorRecordInput,
+} from "./orchestrator-ledger.ts";
+
+export {
+  detectGhostOrchestrators,
+  reconcileOrchestratorRoster,
+  terminateDetachedOrchestrator,
+} from "./ghost-reconciler.ts";
+export type {
+  DetectGhostOptions,
+  GhostActionTaken,
+  GhostOrchestratorFinding,
+  GhostReason,
+  LiveSubagentInfo,
+  ReconcileRosterOptions,
+  RosterReconciliationResult,
+  TerminateOptions,
+} from "./ghost-reconciler.ts";

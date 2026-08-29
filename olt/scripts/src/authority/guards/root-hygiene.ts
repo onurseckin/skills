@@ -28,6 +28,23 @@ export class RootDirectoryHygieneGuard {
           `[ROOT_HYGIENE_VIOLATION] Cannot create loose directory '${topDir}' in repository root. All temporary scripts, patches, and logs MUST reside in 'scratch/' or '.olt/scratch/', and capsule runs MUST reside in '.olt/capsules/'.`,
         );
       }
+
+      // Check static package purity inside `olt/`
+      if (topDir === "olt") {
+        const fileName = segments[segments.length - 1] ?? "";
+        if (
+          fileName.endsWith(".jsonl") ||
+          fileName.endsWith(".log") ||
+          segments.includes("coverage") ||
+          segments.includes("quarantine") ||
+          segments.includes(".coverage")
+        ) {
+          throw new HarnessError(
+            "PATH_SAFETY",
+            `[ROOT_HYGIENE_VIOLATION] Cannot write runtime file or directory '${rel}' inside static package directory 'olt/'. All runtime state must live in '.olt/'.`,
+          );
+        }
+      }
     }
   }
 }

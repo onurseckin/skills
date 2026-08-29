@@ -1,5 +1,9 @@
 export { checkPlanningDag, type PlanningDagCheckOptions } from "./planning-dag-engine.ts";
-export { checkAstPurity, type AstPurityCheckOptions } from "./ast-purity-engine.ts";
+export {
+  checkAstPurity,
+  scanFileForAstPurity,
+  type AstPurityCheckOptions,
+} from "./ast-purity-engine.ts";
 export {
   checkAntiMockMutation,
   type AntiMockMutationCheckOptions,
@@ -24,11 +28,32 @@ export {
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
 } from "./pushback-quotas-engine.ts";
+export {
+  checkRepositoryHygiene,
+  purgeOrphanedScratch,
+  type RepositoryHygieneOptions,
+} from "./hygiene-engine.ts";
+export {
+  checkGitIndexIntegrity,
+  autoHealGitState,
+  type GitIndexCheckOptions,
+  type AutoHealGitStateOptions,
+} from "./git-index-engine.ts";
+export {
+  cleanseDanglingLocks,
+  isProcessAlive,
+  recoverStaleLeases,
+  type LockCleanerOptions,
+} from "./lock-cleaner.ts";
 export { checkPolicyDoctor, auditPolicyDoctor, type PolicyDoctorOptions } from "./policy-doctor.ts";
-export { autoHealCapsule, type AutoHealOptions } from "./auto-heal.ts";
+export { autoHealCapsule, quarantineTornTail, type AutoHealOptions } from "./auto-heal.ts";
 export type {
   DoctorSeverity,
   DoctorDiagnosticFinding,
   DoctorCheckEngineResult,
   DoctorAutoHealResult,
+  RepositoryHygieneFinding,
+  RepositoryHygieneResult,
+  AstPurityFinding,
+  GitIndexIntegrityReport,
 } from "./types.ts";

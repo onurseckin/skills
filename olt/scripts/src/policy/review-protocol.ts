@@ -77,13 +77,10 @@ export function resolveReviewProtocolConfig(
   }
 
   let agentConfig: Partial<ReviewProtocolPolicy> | undefined;
-  if (agentMetadata) {
-    const metadata = agentMetadata.metadata;
-    if (typeof metadata === "object" && metadata !== null) {
-      const rec = metadata as Record<string, unknown>;
-      if (typeof rec["review_config"] === "object" && rec["review_config"] !== null) {
-        agentConfig = rec["review_config"] as Partial<ReviewProtocolPolicy>;
-      }
+  if (agentMetadata?.metadata && typeof agentMetadata.metadata === "object") {
+    const rec = agentMetadata.metadata as Record<string, unknown>;
+    if (typeof rec["review_config"] === "object" && rec["review_config"] !== null) {
+      agentConfig = rec["review_config"] as Partial<ReviewProtocolPolicy>;
     }
   }
 
@@ -121,9 +118,7 @@ export function resolveReviewProtocolConfig(
 export function extractReviewHistory(
   input: TaskRecord | readonly ReviewChannelEntry[],
 ): readonly ReviewChannelEntry[] {
-  if (Array.isArray(input)) {
-    return input;
-  }
+  if (Array.isArray(input)) return input;
   const task = input as TaskRecord;
   const rawHistory = (task as Record<string, unknown>)["review_history"];
   if (Array.isArray(rawHistory)) {
@@ -150,11 +145,8 @@ export function projectTaskReviewState(
   let cognitiveRounds = 0;
 
   for (const entry of history) {
-    if (entry.channel === "adversarial") {
-      adversarialRounds += 1;
-    } else if (entry.channel === "cognitive") {
-      cognitiveRounds += 1;
-    }
+    if (entry.channel === "adversarial") adversarialRounds += 1;
+    else if (entry.channel === "cognitive") cognitiveRounds += 1;
   }
 
   if (isTask) {
@@ -163,12 +155,8 @@ export function projectTaskReviewState(
     const probeRound =
       typeof taskOrHistory.probe_round === "number" ? taskOrHistory.probe_round : 0;
 
-    if (repairRound > adversarialRounds) {
-      adversarialRounds = repairRound;
-    }
-    if (probeRound > cognitiveRounds) {
-      cognitiveRounds = probeRound;
-    }
+    if (repairRound > adversarialRounds) adversarialRounds = repairRound;
+    if (probeRound > cognitiveRounds) cognitiveRounds = probeRound;
   }
 
   const openDefects = isTask

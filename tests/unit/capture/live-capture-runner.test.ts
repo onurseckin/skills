@@ -40,14 +40,18 @@ describe("Task 3.3: Headless Mock Cookie Injector & Viewport PNG Validator", () 
       const desktopPng = createSyntheticPngBuffer(1440, 900, 1024);
       expect(validatePngBuffer(desktopPng, 1440, 900)).toBe(true);
 
-      const mobilePng = createSyntheticPngBuffer(375, 667, 1024);
-      expect(validatePngBuffer(mobilePng, 375, 667)).toBe(true);
+      const tabletPng = createSyntheticPngBuffer(768, 1024, 1024);
+      expect(validatePngBuffer(tabletPng, 768, 1024)).toBe(true);
+
+      const mobilePng = createSyntheticPngBuffer(390, 844, 1024);
+      expect(validatePngBuffer(mobilePng, 390, 844)).toBe(true);
     });
 
     test("rejects dimension mismatch on valid PNG buffers", () => {
       const desktopPng = createSyntheticPngBuffer(1440, 900, 1024);
       expect(validatePngBuffer(desktopPng, 1920, 1080)).toBe(false);
-      expect(validatePngBuffer(desktopPng, 375, 667)).toBe(false);
+      expect(validatePngBuffer(desktopPng, 768, 1024)).toBe(false);
+      expect(validatePngBuffer(desktopPng, 390, 844)).toBe(false);
       expect(validatePngBuffer(desktopPng, 1440, 800)).toBe(false);
     });
 
@@ -204,7 +208,7 @@ describe("Task 3.3: Headless Mock Cookie Injector & Viewport PNG Validator", () 
         baseUrl: "http://localhost:3000",
         viewports: {
           desktop: { name: "desktop", width: 1440, height: 900 },
-          mobile: { name: "mobile", width: 375, height: 667 },
+          mobile: { name: "mobile", width: 390, height: 844 },
         },
         screens: [
           {
