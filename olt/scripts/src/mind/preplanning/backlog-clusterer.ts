@@ -21,27 +21,45 @@ export function filterEligibleBacklogItems(
   items: readonly RawBacklogItem[],
 ): readonly RawBacklogItem[] {
   return items.filter((item) => {
-    if (item.plan_path && item.plan_path.trim() !== "") {
-      return false;
-    }
     const rawStatus =
       item.status !== undefined && item.status !== null ? String(item.status) : "PENDING";
     const status = rawStatus.toUpperCase();
-    const ineligible = ["PLANNED", "PROCESSED", "COMPLETED", "DECLINED", "BLOCKED"];
-    return !ineligible.includes(status);
+    const ineligible = ["COMPLETED", "PROCESSED", "DECLINED", "BLOCKED"];
+    if (ineligible.includes(status)) {
+      return false;
+    }
+    if (item.plan_path && item.plan_path.trim() !== "") {
+      const pathStr = item.plan_path.trim();
+      if (existsSync(pathStr) || pathStr.startsWith("docs/planning/")) {
+        return false;
+      }
+    }
+    if (status === "PLANNED" && (!item.plan_path || item.plan_path.trim() === "")) {
+      return false;
+    }
+    return true;
   });
 }
 
 export function filterEligibleDefects(defects: readonly RawDefectItem[]): readonly RawDefectItem[] {
   return defects.filter((defect) => {
-    if (defect.plan_path && defect.plan_path.trim() !== "") {
-      return false;
-    }
     const rawStatus =
       defect.status !== undefined && defect.status !== null ? String(defect.status) : "OPEN";
     const status = rawStatus.toUpperCase();
-    const ineligible = ["PLANNED", "RESOLVED", "COMPLETED", "CLOSED", "DECLINED"];
-    return !ineligible.includes(status);
+    const ineligible = ["COMPLETED", "RESOLVED", "CLOSED", "DECLINED"];
+    if (ineligible.includes(status)) {
+      return false;
+    }
+    if (defect.plan_path && defect.plan_path.trim() !== "") {
+      const pathStr = defect.plan_path.trim();
+      if (existsSync(pathStr) || pathStr.startsWith("docs/planning/")) {
+        return false;
+      }
+    }
+    if (status === "PLANNED" && (!defect.plan_path || defect.plan_path.trim() === "")) {
+      return false;
+    }
+    return true;
   });
 }
 
