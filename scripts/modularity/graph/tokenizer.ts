@@ -102,15 +102,24 @@ function decodeEscape(
     if (value > 0x10ffff || (braced && source[close] !== "}")) {
       malformedSpecifier("invalid Unicode code point");
     }
-    return { value: String.fromCodePoint(value), end: braced ? close + 1 : close };
+    return {
+      value: String.fromCodePoint(value),
+      end: braced ? close + 1 : close,
+    };
   }
   if (escaped === "0" && /[0-9]/.test(source[offset + 1] ?? "")) {
     malformedSpecifier("legacy octal escape");
   }
   if (escaped === "\n") return { value: "", end: offset + 1 };
   if (escaped === "\r")
-    return { value: "", end: source[offset + 1] === "\n" ? offset + 2 : offset + 1 };
-  return { value: simple[escaped] ?? (escaped === "0" ? "\0" : escaped), end: offset + 1 };
+    return {
+      value: "",
+      end: source[offset + 1] === "\n" ? offset + 2 : offset + 1,
+    };
+  return {
+    value: simple[escaped] ?? (escaped === "0" ? "\0" : escaped),
+    end: offset + 1,
+  };
 }
 
 function readString(
@@ -183,7 +192,8 @@ function canStartRegex(previous: string): boolean {
 function scan(source: string): ScanResult {
   const references: ImportReference[] = [];
   let exportStars = 0;
-  let index = 0;
+  const hashbangEnd = source.indexOf("\n");
+  let index = source.startsWith("#!") ? (hashbangEnd < 0 ? source.length : hashbangEnd + 1) : 0;
   let previous = "";
   while (index < source.length) {
     const character = source[index];

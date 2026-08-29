@@ -32,8 +32,13 @@ export function findMissingFacades(blobs: readonly IndexedBlob[]): readonly Viol
 }
 
 export function findFacadeViolations(edges: readonly ImportEdge[]): readonly Violation[] {
-  return edges
-    .filter((edge) => dirname(edge.from) !== dirname(edge.to) && !edge.viaFacade)
+  const unique = new Map<string, ImportEdge>();
+  for (const edge of edges) {
+    if (dirname(edge.from) !== dirname(edge.to) && !edge.viaFacade) {
+      unique.set(`${edge.from}\0${edge.to}`, edge);
+    }
+  }
+  return [...unique.values()]
     .sort((left, right) => compare(left.from, right.from) || compare(left.to, right.to))
     .map((edge) => ({
       rule: "facade_bypass" as const,

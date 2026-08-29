@@ -15,13 +15,23 @@ test("resolves exact files, extensions, then directory facades", () => {
   ).toBe("slice/b.ts");
   expect(
     resolveImport(
-      { from: "slice/a.ts", specifier: "./target", typeOnly: false, kind: "import" },
+      {
+        from: "slice/a.ts",
+        specifier: "./target",
+        typeOnly: false,
+        kind: "import",
+      },
       paths,
     ),
   ).toBe("slice/target/index.ts");
   expect(() =>
     resolveImport(
-      { from: "slice/a.ts", specifier: "./missing", typeOnly: false, kind: "import" },
+      {
+        from: "slice/a.ts",
+        specifier: "./missing",
+        typeOnly: false,
+        kind: "import",
+      },
       paths,
     ),
   ).toThrow("Unable to resolve relative import");
@@ -68,7 +78,11 @@ test("resolves a decoded escaped module specifier", () => {
   ]);
 
   expect(edges).toEqual([
-    expect.objectContaining({ from: "slice/source.ts", to: "slice/foo.ts", typeOnly: false }),
+    expect.objectContaining({
+      from: "slice/source.ts",
+      to: "slice/foo.ts",
+      typeOnly: false,
+    }),
   ]);
 });
 
@@ -76,4 +90,44 @@ test("reports export-star separately", () => {
   expect(
     findExportStarViolations([blob("slice/index.ts", 'export * from "./private.ts";')]),
   ).toEqual([expect.objectContaining({ rule: "export_star", path: "slice/index.ts" })]);
+});
+
+test("reports test-origin and missing-facade bypasses once per edge identity", () => {
+  const edges = [
+    {
+      from: "tests/unit/source.ts",
+      to: "src/private.ts",
+      typeOnly: false,
+      viaFacade: false,
+    },
+    {
+      from: "tests/unit/source.ts",
+      to: "src/private.ts",
+      typeOnly: false,
+      viaFacade: false,
+    },
+    {
+      from: "src/source.ts",
+      to: "missing/private.ts",
+      typeOnly: false,
+      viaFacade: false,
+    },
+    {
+      from: "src/source.ts",
+      to: "src/index.ts",
+      typeOnly: false,
+      viaFacade: true,
+    },
+  ];
+
+  expect(findFacadeViolations(edges)).toEqual([
+    expect.objectContaining({
+      path: "src/source.ts",
+      observed: "missing/private.ts",
+    }),
+    expect.objectContaining({
+      path: "tests/unit/source.ts",
+      observed: "src/private.ts",
+    }),
+  ]);
 });

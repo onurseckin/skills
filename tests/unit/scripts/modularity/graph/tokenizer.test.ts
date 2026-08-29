@@ -116,3 +116,12 @@ test("counts export type-star while preserving its type-only reference", () => {
   ]);
   expect(countExportStars(target)).toBe(1);
 });
+
+test("skips a hashbang only when it begins the source", () => {
+  expect(
+    scanImports(blob("slice/hashbang.ts", '#!import "./fake.ts";\nimport "./real.ts";')),
+  ).toEqual([{ specifier: "./real.ts", typeOnly: false, kind: "import" }]);
+  expect(scanImports(blob("slice/non-hashbang.ts", '# ! import "./real.ts";'))).toEqual([
+    { specifier: "./real.ts", typeOnly: false, kind: "import" },
+  ]);
+});

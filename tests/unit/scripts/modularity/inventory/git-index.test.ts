@@ -1,12 +1,15 @@
 import { afterEach, expect, test } from "bun:test";
-import { readIndexedBlobs } from "../../../../../scripts/modularity/inventory/index.ts";
+import {
+  readIndexedBlobs,
+  readTreeBlobs,
+} from "../../../../../scripts/modularity/inventory/index.ts";
+import { type FakeGitBehavior, withFakeGit } from "./fake-git-fixture.ts";
 import {
   createIndexedFixture,
   gitInFixture,
   removeIndexedFixture,
   stageFiles,
 } from "./index-fixture.ts";
-import { type FakeGitBehavior, withFakeGit } from "./fake-git-fixture.ts";
 
 const fixtures: string[] = [];
 
@@ -49,7 +52,10 @@ test("returns index paths in lexical order and preserves NUL-safe names", async 
 test("uses final index paths after staged deletion and rename", async () => {
   const repo = await createIndexedFixture({ staged: "root", working: "root" });
   fixtures.push(repo);
-  await stageFiles(repo, { "slice/old.ts": "old", "slice/remove.ts": "remove" });
+  await stageFiles(repo, {
+    "slice/old.ts": "old",
+    "slice/remove.ts": "remove",
+  });
   await gitInFixture(repo, ["mv", "slice/old.ts", "slice/renamed.ts"]);
   await gitInFixture(repo, ["rm", "--cached", "slice/remove.ts"]);
 
@@ -169,4 +175,20 @@ test("transports a single quote in an indexed path without shell interpolation",
   });
 
   expect(blobs.map((blob) => blob.path)).toEqual([path]);
+});
+
+test("reads working-tree bytes and an untracked in-scope file for tree provenance", async () => {
+  const repo = await createIndexedFixture({
+    staged: "a\n".repeat(300),
+    working: "b\n".repeat(301),
+  });
+  fixtures.push(repo);
+  await stageFiles(repo, { "slice/untracked.ts": "export const value = 1;" });
+  await gitInFixture(repo, ["rm", "--cached", "slice/untracked.ts"]);
+
+  const blobs = await readTreeBlobs(repo);
+  expect(
+    new TextDecoder().decode(blobs.find((blob) => blob.path === "slice/index.ts")?.bytes),
+  ).toBe("b\n".repeat(301));
+  expect(blobs.map((blob) => blob.path)).toContain("slice/untracked.ts");
 });

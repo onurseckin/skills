@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import {
-  stronglyConnectedComponents,
   type ImportEdge,
+  stronglyConnectedComponents,
 } from "../../../../../scripts/modularity/graph/index.ts";
 
 function edge(from: string, to: string): ImportEdge {

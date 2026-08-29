@@ -30,8 +30,14 @@ export async function withFakeGit<T>(
     writeFile(
       configPath,
       JSON.stringify({
-        lsFiles: { output: behavior.lsFilesOutput, status: behavior.lsFilesStatus ?? 0 },
-        catFile: { output: behavior.catFileOutput ?? "", status: behavior.catFileStatus ?? 0 },
+        lsFiles: {
+          output: behavior.lsFilesOutput,
+          status: behavior.lsFilesStatus ?? 0,
+        },
+        catFile: {
+          output: behavior.catFileOutput ?? "",
+          status: behavior.catFileStatus ?? 0,
+        },
       }),
     ),
   ]);

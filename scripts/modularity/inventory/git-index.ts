@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { assertRepositoryRelativePosixPath } from "../core/index.ts";
 
 export interface IndexedBlob {
@@ -81,7 +83,11 @@ function parseBatch(output: Uint8Array, entries: readonly IndexEntry[]): readonl
     const end = offset + size;
     if (end > output.length || output[end] !== 10)
       failure(`truncated cat-file blob for ${entry.path}`);
-    blobs.push({ path: entry.path, oid: entry.oid, bytes: output.slice(offset, end) });
+    blobs.push({
+      path: entry.path,
+      oid: entry.oid,
+      bytes: output.slice(offset, end),
+    });
     offset = end + 1;
   }
   if (offset !== output.length) failure("cat-file returned unexpected trailing data");
@@ -111,4 +117,32 @@ export async function readIndexedBlobs(
   const result = await collect(batch);
   if (result.status !== 0) failure(result.stderr.trim() || "git cat-file failed");
   return parseBatch(result.stdout, entries);
+}
+
+export async function readTreeBlobs(repoRoot: string): Promise<readonly IndexedBlob[]> {
+  const list = Bun.spawn(
+    ["git", "-C", repoRoot, "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+    { stdout: "pipe", stderr: "pipe" },
+  );
+  const listed = await collect(list);
+  if (listed.status !== 0) failure(listed.stderr.trim() || "git ls-files failed");
+  const paths = new TextDecoder("utf-8", { fatal: true }).decode(listed.stdout).split("\0");
+  if (paths.pop() !== "") failure("ls-files output was not NUL-terminated");
+  const unique = new Set<string>();
+  const blobs = await Promise.all(
+    paths
+      .map((path) => {
+        assertRepositoryRelativePosixPath(path);
+        if (unique.has(path)) failure(`duplicate tree path: ${path}`);
+        unique.add(path);
+        return path;
+      })
+      .sort(comparePaths)
+      .map(async (path) => ({
+        path,
+        oid: "working-tree",
+        bytes: new Uint8Array(await readFile(join(repoRoot, path))),
+      })),
+  );
+  return blobs;
 }
