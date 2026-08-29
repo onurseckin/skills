@@ -1,13 +1,56 @@
-export * from "./arguments.ts";
-export * from "./execute.ts";
-export * from "./git-ignore.ts";
-export * from "./help.ts";
-export * from "./host-telemetry-probe.ts";
-export * from "./manifest.ts";
-export * from "./options.ts";
-export * from "./output-format.ts";
-export * from "./prompt-input.ts";
-export * from "./taxonomy-flags.ts";
+export {
+  FlagValue,
+  FlagValues,
+  FlagShape,
+  FlagShapes,
+  ParsedArguments,
+  FlagSuggestion,
+  nearestFlagNames,
+  suggestFlag,
+  parseArguments,
+  flagPositions,
+} from "./arguments.ts";
+export { execute, DeductiveStateMachine, CumulativePhaseInvariantEngine } from "./execute.ts";
+export { ensureHarnessIgnored } from "./git-ignore.ts";
+export { HelpRequest, RenderHelpOptions, helpRequest, renderHelp } from "./help.ts";
+export { probeAgentTelemetry, withHostTelemetryConflicts } from "./host-telemetry-probe.ts";
+export {
+  MANIFEST_SCHEMA,
+  FlagManifest,
+  CommandManifest,
+  CapabilityManifest,
+  capabilityManifest,
+  commandSlice,
+  domainSlice,
+  commandSection,
+  domainCommandSpecs,
+  renderDomainMarkdown,
+  renderManifestMarkdown,
+} from "./manifest.ts";
+export {
+  Flags,
+  CommandContext,
+  assertFlags,
+  textFlag,
+  listFlag,
+  boolFlag,
+  integerFlag,
+  actorFlag,
+} from "./options.ts";
+export { OutputFormatScan, stripOutputFormat } from "./output-format.ts";
+export {
+  shouldReadPromptStdin,
+  OrchestrateArgv,
+  extractOrchestrateInlinePrompt,
+  shouldAutoReadOrchestrateStdin,
+} from "./prompt-input.ts";
+export {
+  CATEGORY_FLAG_HELP,
+  toolRefFlags,
+  tokenExtraFlags,
+  DeclaredCommandTool,
+  declaredToolFlags,
+} from "./taxonomy-flags.ts";
 
 export * as commands from "./commands/index.ts";
 export * as formatters from "./formatters/index.ts";
