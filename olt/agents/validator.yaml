@@ -39,6 +39,9 @@ permissions:
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - "sub-validator"
 invariants:
@@ -119,6 +122,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---
@@ -230,6 +236,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---
@@ -343,6 +352,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---
@@ -448,6 +460,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---
@@ -567,6 +582,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---
