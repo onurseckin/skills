@@ -24,6 +24,8 @@ capabilities:
   token_reporting: true
   native_resume: true
 communication_contract:
+  mandatory_turn_completion_actions:
+    - "doctor:verify"
   protocol: "mailbox_ipc"
   mailbox_path: ".olt/mailboxes/{agent_id}/"
   lock_path: ".olt/locks/mailboxes/{agent_id}.lock"

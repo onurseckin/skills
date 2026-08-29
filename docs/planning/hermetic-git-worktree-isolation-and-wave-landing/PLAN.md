@@ -1,74 +1,157 @@
-# Blueprint: Hermetic Git Worktree Isolation, Atomic Wave Landing & Doctor Auto-Cleanup Engine
+# Master Plan: Hermetic Git Worktree Isolation & Per-Wave Atomic Landing Pipeline
 
-**Domain:** `workflow` / `orchestration` / `git` / `reporting`  
-**Priority:** `CRITICAL`  
-**Status:** `READY_FOR_EXECUTION`
-
----
-
-## 1. Problem Statement & Architectural Gap
-
-Currently, parallel orchestrator tracks executing in the shared working tree on `main` block intermediate wave commits. Furthermore, without deterministic worktree lifecycle governance:
-
-1. **Worktree Hell**: Orphaned worktree directories and stale branches accumulate in `.olt/worktrees/` after agents terminate or complete tasks.
-2. **Missing Doctor Observability**: `bun harness.ts doctor` lacks a dedicated `WorktreeHealthEngine` to audit worktree state, identify fully merged/pushed worktrees that were never destroyed, or auto-clean dead worktrees.
-3. **Dirty Git State**: Lingering worktree locks or dead references cause future `git worktree add` commands to fail with path collisions.
+> **Tracking ID:** `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing`  
+> **Status:** `PLANNED - READY FOR COORDINATOR DISPATCH`  
+> **Priority:** `CRITICAL_USER_FEEDBACK`  
+> **Target Subsystems:** `olt/scripts/src/workflow/worktree/`, `olt/scripts/src/orchestrator/`, `olt/scripts/src/reporting/doctor/`, `olt/scripts/src/cli/commands/`  
+> **Author:** Strategic Mind Supervisor (`mind-gen-1`)  
+> **Created:** 2026-08-29
 
 ---
 
-## 2. Target Architecture: Hermetic Lifecycle & Zero-Worktree-Hell Invariant
+## Level 1: Executive Context & Problem Statement
+
+### 1.1 Architectural Context & Root Causes
+
+During multi-track parallel execution, orchestrators running in the shared working tree on `main` collide during file modifications and block intermediate wave commits.
+
+1. **Shared Workspace Collisions**:
+   Multiple tracks editing files concurrently in the root workspace cause uncommitted state collisions and broken unit tests.
+2. **Worktree Accumulation (Worktree Hell)**:
+   Orphaned worktree directories and stale branches accumulate in `.olt/worktrees/` after agents terminate without clean teardown.
+3. **Missing Worktree Health Engine**:
+   `bun harness.ts doctor` lacks a dedicated `WorktreeHealthEngine` to audit worktree state, identify fully merged worktrees, or auto-clean dead worktrees.
+4. **Delayed Upstream Landings**:
+   Verified waves are blocked from immediate push to `origin/main` because uncommitted dirty state exists from concurrent tracks.
+
+---
+
+## Level 2: Target Architecture & ASCII Unicode Topology
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│          HERMETIC WORKTREE ISOLATION, ATOMIC LANDING & AUTO-CLEANUP         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  [ Phase 1: Hermetic Provisioning ]                                         │
-│    • `git worktree add .olt/worktrees/<track_id> -b track/<track_id> main` │
-│    • Registers lease in `.olt/capsules/<run_id>/worktree.json`.             │
-│                                                                             │
-│  [ Phase 2: Hermetic Wave Implementation & Verification ]                   │
-│    • Coordinators & Implementers work 100% inside worktree boundary.        │
-│    • File edits and unit test gates run with zero cross-track interference. │
-│                                                                             │
-│  [ Phase 3: Atomic Landing & Immediate Push to Main ]                       │
-│    • Wave commits inside worktree: `git commit -m "feat(...): ..."`         │
-│    • Upstream synchronization: `git fetch origin main && git rebase main`   │
-│    • Fast-forward atomic push: `git push origin main`                       │
-│                                                                             │
-│  [ Phase 4: Deterministic Teardown (Zero Worktree Hell) ]                   │
-│    • Immediate removal: `git worktree remove --force .olt/worktrees/<track>`│
-│    • Branch deletion: `git branch -D track/<track_id>`                      │
-│    • Clean git metadata: `git worktree prune`                               │
-│                                                                             │
-│  [ Phase 5: Harness Doctor Worktree Health & Auto-Healing Engine ]          │
-│    • Audit 1: Detects and flags merged worktrees not yet destroyed.         │
-│    • Audit 2: Detects orphaned worktrees from crashed / dead agent PIDs.    │
-│    • Auto-Heal: Automatically runs `cleanupStaleWorktrees()` during doctor. │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                 HERMETIC GIT WORKTREE ISOLATION & WAVE LANDING TOPOLOGY                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+                                             │
+               ┌─────────────────────────────┼─────────────────────────────┐
+               ▼                             ▼                             ▼
+┌──────────────────────────────┐┌──────────────────────────────┐┌──────────────────────────────┐
+│    Hermetic Provisioning     ││   Per-Wave Atomic Landing    ││    Doctor Worktree Engine    │
+│ ──────────────────────────── ││ ──────────────────────────── ││ ──────────────────────────── │
+│ • `git worktree add` track   ││ • In-tree wave commit        ││ • Stale worktree audit       │
+│ • Branch: `track/<id>`       ││ • Rebase onto `origin/main`  ││ • Orphaned branch detection  │
+│ • Isolated `.session.json`   ││ • Atomic `git push`          ││ • Automated prune & cleanup  │
+│ • Dedicated write boundary   ││ • Immediate worktree remove  ││ • Zero worktree accumulation │
+└──────────────────────────────┘└──────────────────────────────┘└──────────────────────────────┘
+               │                             │                             │
+               └─────────────────────────────┼─────────────────────────────┘
+                                             ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                           DETERMINISTIC TEARDOWN INVARIANT                                  │
+│ ─────────────────────────────────────────────────────────────────────────────────────────── │
+│ • Every worktree and branch is destroyed immediately upon push to origin/main                │
+│ • Zero lingering worktree locks; automatic `git worktree prune` after landing               │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Implementation Tasks Breakdown
+## Level 3: Disjoint Scope Boundaries
 
-| Task ID         | Component / File                                                     | Deliverable                                                                                                                                       | Gate Verification                             |
-| :-------------- | :------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------ | :-------------------------------------------- |
-| **`task-wt-1`** | `olt/scripts/src/workflow/worktree/manager.ts`                       | Implement `createTrackWorktree(trackId, baseBranch)` and `destroyTrackWorktree(trackId)` with mandatory branch deletion and `git worktree prune`. | Unit tests in `tests/unit/workflow/worktree/` |
-| **`task-wt-2`** | `olt/scripts/src/workflow/worktree/landing.ts`                       | Implement `landTrackToMain(trackId)`: automated fetch, rebase onto `origin/main`, atomic push, and immediate worktree + branch destruction.       | Integration tests in hermetic git repo        |
-| **`task-wt-3`** | `olt/scripts/src/reporting/doctor/worktree-health-engine.ts`         | Implement `checkWorktreeHealth` and `autoHealWorktreeState`: audit stale/merged worktrees, detect dead agent worktrees, and auto-prune them.      | Unit tests in `tests/unit/doctor/`            |
-| **`task-wt-4`** | `olt/scripts/src/reporting/doctor/engines.ts` & `doctor.ts`          | Re-export `checkWorktreeHealth` and register it in the master `doctor` CLI execution pipeline.                                                    | Master doctor E2E tests                       |
-| **`task-wt-5`** | `olt/scripts/src/cli/commands/worktree-ops.ts`                       | Expose CLI subcommands: `worktree:create`, `worktree:land`, `worktree:list`, `worktree:clean`, `worktree:status`.                                 | CLI execution tests                           |
-| **`task-wt-6`** | `olt/scripts/src/orchestrator/loop-runner.ts` & `station-landing.ts` | Integrate hermetic worktrees into Orchestrator lifecycle: auto-bind worktrees and trigger atomic landing + teardown.                              | Orchestrator E2E tests                        |
-| **`task-wt-7`** | `olt/agents/orchestrator.yaml` & `coordinator.yaml`                  | Update manifests to mandate `--worktree .olt/worktrees/<track_id>` execution and automatic teardown verification.                                 | Manifest validation test                      |
+| Scope Domain             | Path Specification                                                                                                                       | Access Contract       |
+| :----------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- | :-------------------- |
+| **Write Scope (Lane A)** | `olt/scripts/src/workflow/worktree/manager.ts`, `olt/scripts/src/workflow/worktree/landing.ts`, `tests/unit/workflow/worktree.test.ts`   | Exclusive Write Lease |
+| **Write Scope (Lane B)** | `olt/scripts/src/reporting/doctor/worktree-health-engine.ts`, `tests/unit/doctor/worktree-health.test.ts`                               | Exclusive Write Lease |
+| **Write Scope (Lane C)** | `olt/scripts/src/cli/commands/worktree-ops.ts`, `tests/unit/cli/worktree-ops.test.ts`                                                     | Exclusive Write Lease |
+| **Write Scope (Lane D)** | `olt/scripts/src/orchestrator/loop-runner.ts`, `olt/scripts/src/orchestrator/station-landing.ts`                                          | Exclusive Write Lease |
+| **Read-Only Scope**      | `olt/scripts/src/core/`, `.olt/worktrees/`                                                                                               | Read-Only             |
 
 ---
 
-## 4. Acceptance Criteria & Invariants
+## Level 4: Atomic Implementation Tasks Matrix
 
-1. **Deterministic Teardown (Zero Worktree Hell)**: Every worktree and its tracking branch are immediately destroyed upon push to `origin/main`.
-2. **Comprehensive Doctor Health Engine**: `bun harness.ts doctor` audits worktree health, detects lingering merged/dead worktrees, and auto-heals them via `git worktree remove` and `git worktree prune`.
-3. **Zero Shared Working Tree Conflicts**: Concurrent tracks strictly execute in dedicated `.olt/worktrees/<track_id>` workspaces.
-4. **Instant Per-Wave Commit & Push**: Completed waves land and push to `origin/main` immediately upon verification without waiting for unrelated tracks.
-5. **Modularity & Zero Comments**: All files strictly $\le 300$ physical lines, explicit named exports in `index.ts`, and 0 comments in `.ts` files.
+| Task ID        | Target File Path                                             | Exact TypeScript Symbols / Signatures                               | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                                                    |
+| :------------- | :----------------------------------------------------------- | :------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `task-wt-1.1`  | `olt/scripts/src/workflow/worktree/manager.ts`               | `createTrackWorktree(trackId: string): string`                      | Provision hermetic worktree in `.olt/worktrees/<trackId>` on branch `track/<trackId>`.                                                                   |
+| `task-wt-1.2`  | `olt/scripts/src/workflow/worktree/manager.ts`               | `destroyTrackWorktree(trackId: string): void`                       | Safely remove worktree, delete branch `track/<trackId>`, and execute `git worktree prune`.                                                               |
+| `task-wt-1.3`  | `olt/scripts/src/workflow/worktree/landing.ts`               | `landTrackToMain(trackId: string): Promise<void>`                   | Perform fetch, rebase onto `origin/main`, atomic push, and immediate worktree teardown.                                                                 |
+| `task-wt-1.4`  | `tests/unit/workflow/worktree.test.ts`                       | `describe("Worktree Manager & Landing", ...)`                       | Unit test verifying provisioning, isolation, landing, and clean teardown in test repository.                                                            |
+| `task-wt-2.1`  | `olt/scripts/src/reporting/doctor/worktree-health-engine.ts` | `checkWorktreeHealth(): Promise<DoctorCheckResult>`                 | Implement doctor check for unmerged branches, dead agent worktrees, and auto-cleanup.                                                                     |
+| `task-wt-2.2`  | `tests/unit/doctor/worktree-health.test.ts`                  | `describe("Worktree Health Engine", ...)`                           | Unit test verifying doctor detection and auto-healing of stale worktrees.                                                                               |
+| `task-wt-3.1`  | `olt/scripts/src/cli/commands/worktree-ops.ts`               | `worktreeCreateCommand`, `worktreeLandCommand`, etc.                | Expose CLI commands: `worktree:create`, `worktree:land`, `worktree:list`, `worktree:clean`, `worktree:status`.                                          |
+| `task-wt-3.2`  | `tests/unit/cli/worktree-ops.test.ts`                        | `describe("Worktree CLI Ops", ...)`                                 | Unit test verifying CLI command execution and output formatting.                                                                                         |
+| `task-wt-4.1`  | `olt/scripts/src/orchestrator/loop-runner.ts`                | `executeOrchestratorTrack(options: TrackOptions): Promise<void>`    | Bind orchestrator track to isolated worktree and execute per-wave landing.                                                                               |
+
+---
+
+## Level 5: Falsifiable Gate Verification Commands
+
+```bash
+# Gate 1: Worktree Provisioning and Landing
+bun test tests/unit/workflow/worktree.test.ts
+
+# Gate 2: Worktree Doctor Health Check
+bun test tests/unit/doctor/worktree-health.test.ts
+
+# Gate 3: Worktree CLI Operations
+bun test tests/unit/cli/worktree-ops.test.ts
+
+# Gate 4: System Invariant Check
+bun ~/.agents/skills/olt/scripts/harness.ts task:check --repo .
+```
+
+---
+
+## Level 6: Strict Invariant Enforcement
+
+1. **Zero Code Comments**: No inline `//`, multiline `/* */`, or docblock `/** */` comments permitted in any `.ts` file.
+2. **Density Budget**: Every modified file must remain $\le 300$ physical lines. Subdirectories must contain $\le 10$ files.
+3. **Ban Defect-Prefix Source Files**: No `defect-*.ts` or `fb-*.ts` files permitted in source or test directories.
+4. **Explicit Named Exports**: No `export *` wildcard re-exports. Every symbol must be explicitly named in `index.ts`.
+5. **Zero Backwards-Compatibility Shims**: No deprecated type aliases, dead shims, or polyfill fallbacks.
+
+---
+
+## Level 7: Sequential Critical Path DAG & Work/Span Optimization
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                             CRITICAL PATH DAG (KAHN SORT)                                   │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  [Wave 1: Core Worktree Manager & Landing Engine]
+      ├── Task wt-1.1 (Worktree Manager) ────────────┐
+      ├── Task wt-1.2 (Worktree Teardown) ───────────┼──► [Gate 1: Worktree Test]
+      ├── Task wt-1.3 (Atomic Landing) ──────────────┤
+      └── Task wt-1.4 (Worktree Unit Test) ──────────┘
+      │
+  [Wave 2: Doctor Health & CLI Ops]
+      ├── Task wt-2.1 (Doctor Health Engine) ────────┐
+      ├── Task wt-2.2 (Doctor Health Test) ──────────┼──► [Gate 2: Doctor Health Test]
+      │
+      ├── Task wt-3.1 (CLI Ops Handlers) ────────────┐
+      └── Task wt-3.2 (CLI Ops Unit Test) ───────────┴──► [Gate 3: CLI Ops Test]
+                                                                  │
+                                                                  ▼
+  [Wave 3: Orchestrator Integration & System Seal]
+      ├── Task wt-4.1 (Orchestrator Worktree Binding) ┐
+      └── Task wt-5.1 (System Verification & Seal) ───┴──► [Gate 4: task:check]
+```
+
+**Work/Span Calculation**:
+
+- Total Work ($W$): 9 discrete tasks $\approx 18$ minutes.
+- Critical Path Span ($S$): 3 sequential wave barriers $\approx 6$ minutes.
+- Optimal Concurrency: $P = \lceil W / S \rceil = \lceil 18 / 6 \rceil = 3$ concurrent implementers.
+- Hard Concurrency Cap: Never exceed 50 active subagents across all tiers.
+
+---
+
+## Level 8: Exhaustive Traceability Matrix
+
+| Backlog / Defect ID                                                | Title / Requirement                                  | Resolved By Tasks                                            | Falsifiable Gate Verification Target                  |
+| :----------------------------------------------------------------- | :--------------------------------------------------- | :----------------------------------------------------------- | :---------------------------------------------------- |
+| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing`| Hermetic Worktree Provisioning & Isolation           | `task-wt-1.1`, `task-wt-1.2`, `task-wt-1.4`                  | `bun test tests/unit/workflow/worktree.test.ts`       |
+| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing`| Atomic Wave Landing & Immediate Teardown             | `task-wt-1.3`, `task-wt-4.1`                                 | `bun test tests/unit/workflow/worktree.test.ts`       |
+| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing`| Worktree Doctor Diagnostic & Auto-Prune Engine       | `task-wt-2.1`, `task-wt-2.2`                                 | `bun test tests/unit/doctor/worktree-health.test.ts`  |
+| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing`| Worktree Management CLI Commands                     | `task-wt-3.1`, `task-wt-3.2`                                 | `bun test tests/unit/cli/worktree-ops.test.ts`        |
