@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { durableAppendBytes } from "../core/durable-write.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { resolveDefectsPath, resolveSkillHomeRepo } from "../core/shared/paths.ts";
 
 export type DefectDomain = "project" | "skill-framework";

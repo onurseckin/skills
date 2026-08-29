@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { CHECKPOINT_INTERVAL, limits } from "../../../olt/scripts/src/engine/store/constants.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import {

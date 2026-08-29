@@ -1,4 +1,4 @@
-import type { JsonObject } from "../../core/contracts/json.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { gateFalsifiabilityStatuses } from "./pass-preconditions.ts";
 import type { TaskRecord, WorkflowState } from "../types.ts";
 

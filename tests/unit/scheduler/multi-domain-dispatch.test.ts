@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { dependencyMap } from "../../../olt/scripts/src/graph/dependency-map.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   classifyTaskDomain,
   derivePrimaryValidatorDomain,

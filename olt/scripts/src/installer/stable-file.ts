@@ -7,7 +7,7 @@ import {
   readSync,
   type BigIntStats,
 } from "node:fs";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 function identity(stat: BigIntStats): string {
   return [stat.dev, stat.ino, stat.mode, stat.size, stat.mtimeNs, stat.ctimeNs].join(":");

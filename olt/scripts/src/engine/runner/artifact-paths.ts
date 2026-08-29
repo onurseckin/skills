@@ -1,6 +1,6 @@
 import { isAbsolute, relative, sep } from "node:path";
 import { safeRepoPath } from "../../core/paths.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 
 export function portableArtifactPath(runRoot: string, absolutePath: string): string {
   const fromRoot = relative(runRoot, absolutePath);

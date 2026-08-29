@@ -1,6 +1,6 @@
 import { lstat, mkdir, realpath } from "node:fs/promises";
 import { isAbsolute, join, relative } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 export interface PathIdentity {
   device: bigint;

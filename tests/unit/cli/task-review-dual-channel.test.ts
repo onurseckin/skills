@@ -15,11 +15,11 @@ import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import { publishTaskRolePacket } from "../../../olt/scripts/src/packets/role-grant.ts";
 import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
 import { runAndRecordCommand } from "../../../olt/scripts/src/integration/record-command.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import type { ScreenshotRecord } from "../../../olt/scripts/src/reporting/screenshot-types.ts";
 import type { CompanionManifestData } from "../../../olt/scripts/src/validation/dual-channel-types.ts";
-import { createAgentMetadata } from "../../../olt/scripts/src/runtime/agent-metadata.ts";
+import { createAgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
 import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 

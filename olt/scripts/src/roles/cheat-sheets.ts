@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { findCommand } from "../cli/registry/index.ts";
 import type { CommandSpec } from "../cli/registry/types.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
-import { isAgentRole } from "../core/contracts/packets.ts";
+import { HarnessError } from "../core/errors/index.ts";
+import { isAgentRole } from "../core/contracts/index.ts";
 import {
   loadRoleContract,
   loadValidatorDomainContract,

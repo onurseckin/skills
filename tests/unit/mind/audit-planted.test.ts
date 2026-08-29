@@ -10,10 +10,10 @@ import {
 } from "../../../olt/scripts/src/cli/commands/mind-audit.ts";
 import { mindPulseCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
 import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
-import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertAuditAllowsPulseOpen,
   checkAdmittedCandidateGoals,

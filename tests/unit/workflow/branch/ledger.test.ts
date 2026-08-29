@@ -9,7 +9,7 @@ import {
   requireSubTask,
   writeBranchLedger,
 } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/json.ts";
+import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { branchRecord, subTask } from "./fixture.ts";
 
 describe("readBranchLedger", () => {

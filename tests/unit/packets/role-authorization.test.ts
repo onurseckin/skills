@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentRole } from "../../../olt/scripts/src/core/contracts/packets.ts";
+import type { AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { publishPacket } from "../../../olt/scripts/src/packets/persist-packet.ts";
 import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
 import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";

@@ -8,7 +8,7 @@ import {
   formatMindQuiesceBrief,
   mindQuiesceCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-quiesce.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   buildQuiescentDigest,
   calculateQuiescentInterval,

@@ -1,7 +1,7 @@
 import { join } from "node:path";
-import { isAgentRole, type AgentRole } from "../core/contracts/packets.ts";
+import { isAgentRole, type AgentRole } from "../core/contracts/index.ts";
 import { canonicalJsonBytes } from "../core/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
 import { locateSubTask, readBranchLedger } from "../workflow/branch/ledger.ts";
 import { tokenMatches } from "../workflow/lease/token.ts";

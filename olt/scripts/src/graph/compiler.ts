@@ -1,4 +1,4 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import type { TaskDeclaration } from "../requirements/compiler.ts";
 import { normalizeScopePath } from "./scope-analyzer.ts";
 import { validateGraph } from "./validate-graph.ts";

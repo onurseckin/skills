@@ -5,8 +5,8 @@ import { tmpdir } from "node:os";
 import type {
   CommandAttemptRecord,
   CommandRecord,
-} from "../../../olt/scripts/src/core/contracts/commands.ts";
-import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/repository.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import {

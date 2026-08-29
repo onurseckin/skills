@@ -6,7 +6,7 @@ import {
   expandDynamicPlan,
   expandWider,
 } from "../../../olt/scripts/src/graph/dynamic-expansion.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { requirementsDocument } from "../requirements/fixtures.ts";
 import { graphDocument } from "./fixtures.ts";
 

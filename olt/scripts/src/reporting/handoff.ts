@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readTopology } from "../core/contracts/topology.ts";
+import { readTopology } from "../core/contracts/index.ts";
 import { atomicWriteBytes } from "../core/durable-write.ts";
 import { loadRun } from "../engine/store/index.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
@@ -9,7 +9,7 @@ import { agentRows, liveWaveLine, topologyRows } from "./handoff-sections.ts";
 import { nextActions } from "./next-actions.ts";
 import { workflowView } from "./workflow-view.ts";
 import { renderPreplanHandoff } from "./preplan-handoff.ts";
-import { trustedHostEvidence, trustedHostLimitations } from "../core/contracts/trusted-host.ts";
+import { trustedHostEvidence, trustedHostLimitations } from "../core/contracts/index.ts";
 
 const ENTRYPOINT = fileURLToPath(new URL("../../harness.ts", import.meta.url));
 

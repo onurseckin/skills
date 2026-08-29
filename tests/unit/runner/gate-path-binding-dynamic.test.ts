@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, truncate, writeFile } from "node:fs/promises";
 import { openSync, readSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/repository.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   captureGatePathBindings,
   gatePathBindingIssues,

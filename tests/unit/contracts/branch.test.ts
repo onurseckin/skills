@@ -16,7 +16,7 @@ import {
   type BranchStatus,
   type BranchSubTask,
   type BranchSubTaskStatus,
-} from "../../../olt/scripts/src/core/contracts/branch.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 
 function subTask(overrides: Partial<BranchSubTask> = {}): BranchSubTask {
   return {

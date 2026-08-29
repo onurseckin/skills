@@ -3,8 +3,8 @@ import {
   SkillAuditorPolicy,
   MetaAuditorPolicy,
 } from "../../../olt/scripts/src/engine/scheduler/skill-auditor-policy.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 describe("SkillAuditorPolicy", () => {
   it("can be instantiated", () => {

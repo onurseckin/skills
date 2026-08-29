@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { findRepoRoot } from "../../core/shared/paths.ts";
-import { isEvidenced } from "../../core/contracts/evidence.ts";
-import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
+import { isEvidenced } from "../../core/contracts/index.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import {
   appendGateProof,
   DEFAULT_BASE_REF,
@@ -11,7 +11,7 @@ import {
   type GateProveOutcome,
 } from "../../graph/gate-proof.ts";
 import { commandIsWeak } from "../../graph/gate-command-policy.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun, transact } from "../../engine/store/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";

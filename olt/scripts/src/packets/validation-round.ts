@@ -1,5 +1,5 @@
-import type { RunState } from "../core/contracts/capsule.ts";
-import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
+import type { RunState } from "../core/contracts/index.ts";
+import { isJsonObject, type JsonObject } from "../core/contracts/index.ts";
 import { applicableGates, commandArgv } from "../workflow/gates/gate-policy.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import { priorRoundDemands, type ProveDemand } from "./prior-round-demands.ts";

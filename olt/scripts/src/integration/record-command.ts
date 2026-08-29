@@ -1,8 +1,8 @@
 import { dirname } from "node:path";
-import type { CommandRecord } from "../core/contracts/commands.ts";
-import type { JsonObject } from "../core/contracts/json.ts";
+import type { CommandRecord } from "../core/contracts/index.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
 import { readCanonicalObject } from "../core/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
 import { executePreparedCommand, prepareCommand } from "../engine/runner/run-command.ts";
 import { resolveArtifactPath } from "../engine/runner/artifact-paths.ts";

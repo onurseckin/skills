@@ -5,12 +5,12 @@ import {
 } from "./internal-command-runner.ts";
 import { runAttempt } from "./run-attempt.ts";
 import type { CommandOptions, CommandResult, PreparedCommand } from "./types.ts";
-import { readAgentMetadata } from "../../runtime/agent-metadata.ts";
+import { readAgentMetadata } from "../../runtime/index.ts";
 import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { resolveScratchDir } from "../../core/shared/paths.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import { releaseFlock, tryExclusiveFlock } from "../../platform/flock-ffi.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import { releaseFlock, tryExclusiveFlock } from "../../platform/index.ts";
 import { join, resolve } from "node:path";
 import {
   closeSync,

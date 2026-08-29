@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { ErrorCode } from "../core/errors/codes.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { ErrorCode } from "../core/errors/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 export interface StagnationTelemetry {
   readonly agentId: string;

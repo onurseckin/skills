@@ -1,4 +1,4 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { isRecord } from "../requirements/predicates.ts";
 import { RUNTIME_TASK_FIELDS } from "./constants.ts";
 import { jsonCopy } from "./plan-contract.ts";

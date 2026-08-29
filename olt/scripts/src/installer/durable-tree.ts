@@ -1,7 +1,7 @@
 import { closeSync, constants, fsyncSync, lstatSync, openSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fsyncDirectory } from "../core/durable-write.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 export function syncTree(root: string): void {
   const directories: string[] = [];

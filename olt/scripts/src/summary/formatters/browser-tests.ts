@@ -1,5 +1,5 @@
-import type { CommandRecord } from "../../core/contracts/commands.ts";
-import type { EvidenceClass } from "../../core/contracts/evidence.ts";
+import type { CommandRecord } from "../../core/contracts/index.ts";
+import type { EvidenceClass } from "../../core/contracts/index.ts";
 import { queryBrowserRuns } from "../../reporting/browser-run-store.ts";
 import type { BrowserRunRecord } from "../../reporting/browser-run-types.ts";
 import type { BrowserTestRun } from "../types.ts";

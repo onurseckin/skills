@@ -14,7 +14,7 @@ import {
 } from "../../../olt/scripts/src/reporting/behavioral-auditor.ts";
 import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 const roots: string[] = [];
 afterEach(async () =>

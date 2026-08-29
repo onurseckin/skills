@@ -8,8 +8,8 @@ import {
   mindCandidateCommand,
   type MindCandidate,
 } from "../../../olt/scripts/src/cli/commands/mind-candidate.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   readCommandOutput,
   resolveWitnessCommand,

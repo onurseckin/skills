@@ -1,4 +1,4 @@
-import type { Finding } from "../../core/contracts/workflow.ts";
+import type { Finding } from "../../core/contracts/index.ts";
 
 export type FindingClass = "defect" | "probe_demand";
 

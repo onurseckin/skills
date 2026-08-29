@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { estimated, evidenced } from "../../../../olt/scripts/src/core/contracts/evidence.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/harness-error.ts";
+import { estimated, evidenced } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { initRun, loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import {
   recordAgentReport,

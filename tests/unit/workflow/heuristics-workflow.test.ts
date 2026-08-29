@@ -43,7 +43,7 @@ import type {
 } from "../../../olt/scripts/src/validation/dual-channel-types.ts";
 import { assertRoleArtifactPresent } from "../../../olt/scripts/src/workflow/review/role-evidence.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 function createFindingCollector(): {
   readonly findings: StructuredFinding[];

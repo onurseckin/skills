@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { agentListCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
-import type { AgentRole } from "../../../olt/scripts/src/core/contracts/packets.ts";
+import type { AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   registerAgentGrant,
   releaseAgentGrant,

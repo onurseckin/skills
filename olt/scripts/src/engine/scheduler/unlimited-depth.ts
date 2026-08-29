@@ -1,9 +1,9 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { dependencyMap } from "../../graph/dependency-map.ts";
 import { topologicalOrder, type DependencyMap } from "../../graph/topology.ts";
 import { isInteger, isRecord } from "../../requirements/predicates.ts";
-import { applicableValidatorDomains, type ValidatorDomain } from "../../core/contracts/workflow.ts";
-import type { TopologyDecision, TopologyReason } from "../../core/contracts/topology.ts";
+import { applicableValidatorDomains, type ValidatorDomain } from "../../core/contracts/index.ts";
+import type { TopologyDecision, TopologyReason } from "../../core/contracts/index.ts";
 import { resourceConflict, scopeConflict } from "./conflicts.ts";
 import { proposeBatch } from "./propose-batch.ts";
 import type { ScheduledTask } from "./rank.ts";

@@ -6,9 +6,9 @@ import { tmpdir } from "node:os";
 import type {
   CommandAttemptRecord,
   CommandRecord,
-} from "../../../olt/scripts/src/core/contracts/commands.ts";
-import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/repository.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/command-shape.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
 import type { AttemptResult } from "../../../olt/scripts/src/capture/runners/types.ts";

@@ -20,7 +20,7 @@ import {
   setSessionLockCleanupFailureForTesting,
   setSessionPersistenceObserverForTesting,
 } from "../../../olt/scripts/src/authority/session-registry.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   findRepoRoot,
   resolveCapsulesDir,

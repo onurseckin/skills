@@ -1,6 +1,6 @@
-import type { AgentRole } from "../core/contracts/packets.ts";
-import type { BranchSubTask } from "../core/contracts/branch.ts";
-import type { JsonObject } from "../core/contracts/json.ts";
+import type { AgentRole } from "../core/contracts/index.ts";
+import type { BranchSubTask } from "../core/contracts/index.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
 import type { Clock, RequirementRuntime, TaskRecord, WorkflowState } from "../workflow/types.ts";
 import type { RoleContract } from "./role-contract.ts";
 

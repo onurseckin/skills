@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import { transact } from "../store/index.ts";
 
 interface AutoReceiptDependencies {

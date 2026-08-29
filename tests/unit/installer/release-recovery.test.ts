@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { cp, mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { sealInstallationManifest } from "../../../olt/scripts/src/installer/manifest-integrity.ts";
 import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
 import { recoverReleasePaths } from "../../../olt/scripts/src/installer/release-recovery.ts";

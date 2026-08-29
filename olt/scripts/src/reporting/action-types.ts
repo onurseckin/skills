@@ -63,7 +63,7 @@ export function mergeActions(...parts: readonly NextActions[]): NextActions {
 
 export const LEASE_TOKEN = placeholder("lease-token-returned-by:task:claim");
 import { resolve } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { findRepoRoot, stripCapsulePath } from "../core/shared/paths.ts";
 
 export const VALIDATION_TOKEN = placeholder("validation-token-returned-by:task:validate-start");

@@ -3,8 +3,8 @@ import {
   isSubTaskTerminal,
   type BranchLease,
   type BranchRecord,
-} from "../../core/contracts/branch.ts";
-import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
+} from "../../core/contracts/index.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import type { ScopedLease } from "../types.ts";
 import { isLeaseSuspended, leaseIsExpired } from "../lease/suspension.ts";
 import { transition, utc } from "../task-state.ts";

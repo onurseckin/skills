@@ -1,12 +1,12 @@
-import type { AgentGrantRecord, AgentToolRef, AgentToolUse } from "../core/contracts/agents.ts";
-import { isAgentRole } from "../core/contracts/packets.ts";
-import type { CommandRecord } from "../core/contracts/commands.ts";
-import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
+import type { AgentGrantRecord, AgentToolRef, AgentToolUse } from "../core/contracts/index.ts";
+import { isAgentRole } from "../core/contracts/index.ts";
+import type { CommandRecord } from "../core/contracts/index.ts";
+import { isJsonObject, type JsonObject } from "../core/contracts/index.ts";
 import type { TaskRecord, ValidationAttempt } from "../workflow/types.ts";
-import type { RunState } from "../core/contracts/capsule.ts";
+import type { RunState } from "../core/contracts/index.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
 import { loadRun } from "../engine/store/index.ts";
-import { CODE_EDIT_TOOLS } from "../platform/code-edit-tools.ts";
+import { CODE_EDIT_TOOLS } from "../platform/index.ts";
 
 export type BehavioralViolationType =
   | "coordinator_code_writing"

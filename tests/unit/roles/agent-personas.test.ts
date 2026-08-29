@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { isAgentRole } from "../../../olt/scripts/src/core/contracts/packets.ts";
+import { isAgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   MAX_REPAIR_ROUNDS,
   MIN_ADVERSARIAL_PROBES,

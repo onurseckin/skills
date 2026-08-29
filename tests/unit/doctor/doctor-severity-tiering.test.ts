@@ -16,7 +16,7 @@ import {
 } from "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts";
 import { executePlanBrainstorm } from "../../../olt/scripts/src/cli/commands/plan-brainstorm.ts";
 import { formatDoctorBrief } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 const roots: string[] = [];
 afterEach(async () =>

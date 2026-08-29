@@ -6,7 +6,7 @@ import {
   createAgentMetadata,
   writeAgentMetadata,
   readAgentMetadata,
-} from "../../../olt/scripts/src/runtime/agent-metadata.ts";
+} from "../../../olt/scripts/src/runtime/index.ts";
 import {
   isPathInScopeList,
   isWithinNeighborhood,

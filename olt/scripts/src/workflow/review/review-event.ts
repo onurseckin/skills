@@ -1,5 +1,5 @@
-import type { JsonObject } from "../../core/contracts/json.ts";
-import type { Finding } from "../../core/contracts/workflow.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
+import type { Finding } from "../../core/contracts/index.ts";
 import type { TaskRecord } from "../types.ts";
 import { findingClassOf, type FindingClass } from "./finding-class.ts";
 

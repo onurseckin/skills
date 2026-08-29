@@ -10,11 +10,11 @@ import {
   type Stats,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import type { JsonValue } from "../core/contracts/json.ts";
+import type { JsonValue } from "../core/contracts/index.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { resolveWatchdogsPath } from "../core/shared/paths.ts";
-import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 
 export type WatchdogStatus = "active" | "stale" | "terminated" | "orphaned";
 

@@ -12,7 +12,7 @@ import {
   writeEnhancedPlan,
   type EnhancedPlanInput,
 } from "../../../olt/scripts/src/requirements/enhanced-plan.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 

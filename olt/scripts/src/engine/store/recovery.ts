@@ -1,8 +1,8 @@
 import { lstatSync, mkdirSync, realpathSync } from "node:fs";
-import type { Manifest, RunState } from "../../core/contracts/capsule.ts";
+import type { Manifest, RunState } from "../../core/contracts/index.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import { withRunLock } from "../../platform/run-lock.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import { withRunLock } from "../../platform/index.ts";
 import { validateEventChain } from "./event-stream.ts";
 import {
   appendProjectionEvent,

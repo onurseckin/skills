@@ -1,4 +1,4 @@
-import type { RunFiles } from "../core/contracts/capsule.ts";
+import type { RunFiles } from "../core/contracts/index.ts";
 import { registryArgv } from "./registry-argv.ts";
 
 const PREPLAN_NEXT_COMMANDS: readonly string[] = [

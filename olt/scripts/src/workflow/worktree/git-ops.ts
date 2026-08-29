@@ -1,4 +1,4 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { git, runGit, type GitRunner } from "./git.ts";
 
 export { runGit };

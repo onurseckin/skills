@@ -8,7 +8,7 @@ import {
 } from "../../../olt/scripts/src/testing/isolation.ts";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("testing subsystem mirror tests", () => {
   it("resolves repository root correctly", () => {

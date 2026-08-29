@@ -1,4 +1,4 @@
-import type { JsonObject } from "../../core/contracts/json.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { loadRun } from "../../engine/store/load.ts";
 import { transact } from "../../engine/store/transaction.ts";
 import { writeLastPulse } from "../../mind/last-pulse.ts";

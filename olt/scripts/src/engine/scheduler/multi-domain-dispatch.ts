@@ -1,5 +1,5 @@
 import { extname } from "node:path";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { dependencyMap } from "../../graph/dependency-map.ts";
 import { isInteger, isRecord } from "../../requirements/predicates.ts";
 import { taskExecutionState } from "../../workflow/authority/execution-state.ts";
@@ -7,7 +7,7 @@ import {
   applicableValidatorDomains,
   type ValidatorDomain,
   VALIDATOR_DOMAINS,
-} from "../../core/contracts/workflow.ts";
+} from "../../core/contracts/index.ts";
 import { hasActiveOwnership, resourceConflict, scopeConflict } from "./conflicts.ts";
 import { schedulingMetrics } from "./metrics.ts";
 import { rankTasks, type ScheduledTask } from "./rank.ts";

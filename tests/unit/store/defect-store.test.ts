@@ -8,7 +8,7 @@ import {
   loadCapsuleDefects,
   resolveCapsuleDefect,
 } from "../../../olt/scripts/src/engine/store/defect-store.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { setDefectLogDependenciesForTesting } from "../../../olt/scripts/src/logging/defect-logger.ts";
 
 const tempRoots: string[] = [];

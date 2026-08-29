@@ -16,9 +16,9 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { nextActionsBlock } from "../cli/formatters/next-actions.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { pruneDefectLedgerRecords } from "../logging/defect-logger.ts";
-import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
 import {
   resolveFeedbackQueuePath,

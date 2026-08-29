@@ -1,5 +1,5 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
-import { CODE_EDIT_TOOLS } from "../platform/code-edit-tools.ts";
+import { HarnessError } from "../core/errors/index.ts";
+import { CODE_EDIT_TOOLS } from "../platform/index.ts";
 
 export type BoundaryViolationType =
   | "role_confinement_violation"

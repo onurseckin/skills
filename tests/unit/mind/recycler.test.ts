@@ -6,14 +6,14 @@ import {
   formatMindRotateBrief,
   mindRotateCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   appendFeedbackItem,
   writeFeedbackQueue,
   type FeedbackItem,
 } from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import type { CandidateRecord } from "../../../olt/scripts/src/mind/gates.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assessRecyclingState,
   compileAutonomicWavePlan,

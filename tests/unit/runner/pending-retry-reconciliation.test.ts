@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import type {
   CommandAttemptRecord,
   CommandRecord,
-} from "../../../olt/scripts/src/core/contracts/commands.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import {

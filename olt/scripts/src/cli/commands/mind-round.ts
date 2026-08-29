@@ -1,8 +1,8 @@
 import { existsSync, lstatSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { DEFAULT_MIND_BUDGET } from "../../mind/charter.ts";
 import {
   closeRoundInState,

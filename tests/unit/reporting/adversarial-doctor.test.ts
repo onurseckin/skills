@@ -9,7 +9,7 @@ import {
   certifyHarnessDoctor,
   assertDoctorCertification,
 } from "../../../olt/scripts/src/reporting/doctor/adversarial-doctor.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const SCRATCH_DIR = resolve(join(process.cwd(), "coverage", "scratch", "adversarial-doctor-tests"));

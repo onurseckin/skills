@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { isTopologyRecord } from "../../../olt/scripts/src/core/contracts/topology.ts";
+import { isTopologyRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { computeTopology } from "../../../olt/scripts/src/engine/scheduler/topology.ts";
 import { topologyState } from "./fixtures.ts";
 

@@ -1,7 +1,7 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import type { CommandRecord, CommandStatus } from "../core/contracts/commands.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { CommandRecord, CommandStatus } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 export interface WitnessResolution {
   readonly commandId: string;

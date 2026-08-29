@@ -11,7 +11,7 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { atomicWriteBytes } from "../core/durable-write.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { isTestEnvironment, resolveDefectsPath, resolveScratchDir } from "../core/shared/paths.ts";
 import {
   appendDefectLedgerRecord,

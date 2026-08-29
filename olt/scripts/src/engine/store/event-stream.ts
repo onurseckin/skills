@@ -1,5 +1,5 @@
-import type { HarnessEvent, IntegrityIssue, RunState } from "../../core/contracts/capsule.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
+import type { HarnessEvent, IntegrityIssue, RunState } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { canonicalJsonBytes, parseJsonBytes, sha256Bytes } from "../../core/json.ts";
 import { EVENT_SCHEMA, FORMAT_VERSION, type StoreLimits, limits } from "./constants.ts";
 import { streamEventLines } from "./event-lines.ts";

@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { parseConfigFile, type ResolvedHarnessConfig } from "./harness-config.ts";
+import { parseConfigFile, type ResolvedHarnessConfig } from "./index.ts";
 
 export interface HarnessConfigFileInspection {
   readonly status: "valid_custom" | "invalid_custom" | "auto_detected";

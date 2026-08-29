@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { verifyUnifiedEvidenceLocation } from "../../../olt/scripts/src/reporting/doctor/evidence-location.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { UNIFIED_EVIDENCE_DIRECTORY } from "../../../olt/scripts/src/validation/evidence-paths.ts";
 
 const SCRATCH_DIR = resolve(join(process.cwd(), "coverage", "scratch", "evidence-location-tests"));

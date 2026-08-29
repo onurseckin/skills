@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { CAPSULE_LAYOUT } from "../../../olt/scripts/src/engine/store/layout.ts";
 import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";

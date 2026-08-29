@@ -1,5 +1,5 @@
-import type { JsonObject } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/index.ts";
 import type { TransactionPort, WorkflowState } from "../workflow/types.ts";
 import { evidenceSchema } from "./evidence-schema.ts";

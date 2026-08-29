@@ -1,5 +1,5 @@
-import type { CaptureAssurance, CaptureMode } from "../../core/contracts/capsule.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { CaptureAssurance, CaptureMode } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 
 export const VERBATIM_CAPTURE_MODE: CaptureMode = "verbatim_context_copy";
 export const CAPTURE_MODES: readonly CaptureMode[] = [

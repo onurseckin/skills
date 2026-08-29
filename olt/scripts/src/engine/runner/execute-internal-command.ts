@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import type { CommandRecord } from "../../core/contracts/commands.ts";
+import type { CommandRecord } from "../../core/contracts/index.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
 import { readCanonicalObject } from "../../core/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import type { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
 import { applyAttempt, replaceFinalAttempt, updateRetryExhaustion } from "./command-aggregate.ts";
 import {

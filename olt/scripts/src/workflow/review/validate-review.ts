@@ -1,6 +1,6 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import type { Finding } from "../../core/contracts/workflow.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import type { Finding } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { loadChecklist, type ValidatorDomain } from "../../packets/role-contract.ts";
 import { requireSubstantiveObjects } from "../evidence.ts";
 import { jsonCopy, requireText, taskRequirements } from "../task-state.ts";

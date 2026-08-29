@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/repository.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/command-shape.ts";
 import type { AttemptResult } from "../../../olt/scripts/src/capture/runners/types.ts";

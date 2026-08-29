@@ -1,5 +1,5 @@
 import { dependencyMap } from "../../graph/dependency-map.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { isInteger, isRecord } from "../../requirements/predicates.ts";
 import { taskExecutionState } from "../../workflow/authority/execution-state.ts";
 import { hasActiveOwnership, resourceConflict, scopeConflict } from "./conflicts.ts";

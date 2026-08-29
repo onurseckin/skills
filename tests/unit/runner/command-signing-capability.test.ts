@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CommandAttemptStartedRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import type { CommandAttemptStartedRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   CREATE_ATTEMPT_DISPOSITION,
   createCommandSigningCapability,

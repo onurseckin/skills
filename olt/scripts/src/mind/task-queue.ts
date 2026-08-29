@@ -14,8 +14,8 @@ import {
   writeSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
-import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+import { HarnessError } from "../core/errors/index.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 import {
   recordCompletedTask,
   recordCompletedTasksBatch,

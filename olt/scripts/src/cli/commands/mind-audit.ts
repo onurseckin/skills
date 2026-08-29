@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
-import type { JsonObject, JsonValue } from "../../core/contracts/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
+import type { JsonObject, JsonValue } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import {
   AUDIT_QUESTION_IDS,
   checkPulseGaps,

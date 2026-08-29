@@ -26,10 +26,10 @@ import type {
   LiveDeduplicationOptions,
 } from "../mind/defects/types.ts";
 import { atomicWriteBytes } from "../core/durable-write.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import type { DefectLogOptions, DefectLogResult } from "./types.ts";
 import { resolveDefectsPath } from "../core/shared/paths.ts";
-import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 
 interface DefectLogDependencies {
   readonly atomicWrite: typeof atomicWriteBytes;

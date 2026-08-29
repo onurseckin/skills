@@ -1,7 +1,7 @@
 import type {
   BranchRecord,
   BranchSubTask,
-} from "../../../../olt/scripts/src/core/contracts/branch.ts";
+} from "../../../../olt/scripts/src/core/contracts/index.ts";
 
 export function subTask(overrides: Partial<BranchSubTask> = {}): BranchSubTask {
   return {

@@ -3,8 +3,8 @@ import { enforceLineLimit, nextActionsBlock, whoamiNextActions } from "../format
 import { loadRun } from "../../engine/store/index.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { identifyExecutionContext, parseTierValue } from "../../authority/thread-identifier.ts";
-import { isJsonObject } from "../../core/contracts/json.ts";
-import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
+import { isJsonObject } from "../../core/contracts/index.ts";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
 import {
   constructSupervisoryPersonaReminder,
   type SupervisoryPersonaReminder,

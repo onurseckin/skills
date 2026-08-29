@@ -9,9 +9,9 @@ import {
   mindAuditStartCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-audit.ts";
 import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertAuditAllowsPulseOpen,
   AUDIT_QUESTION_IDS,

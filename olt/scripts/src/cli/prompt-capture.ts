@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 export async function capturePromptWithTimeout(
   inlineText: string | undefined,

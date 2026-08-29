@@ -8,10 +8,10 @@ import {
   mindRoundOpenCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-round.ts";
 import { COMMAND_REGISTRY, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { evidenced } from "../../../olt/scripts/src/core/contracts/evidence.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { AGENT_ROLES } from "../../../olt/scripts/src/core/contracts/packets.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { AGENT_ROLES } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   DEFAULT_MIND_BUDGET,
   DEFAULT_PROHIBITIONS,

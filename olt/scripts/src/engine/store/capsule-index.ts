@@ -1,9 +1,9 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import type { Manifest, RunState } from "../../core/contracts/capsule.ts";
-import type { JsonObject, JsonValue } from "../../core/contracts/json.ts";
+import type { Manifest, RunState } from "../../core/contracts/index.ts";
+import type { JsonObject, JsonValue } from "../../core/contracts/index.ts";
 import { atomicWriteBytes } from "../../core/durable-write.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { listBlobs } from "./blobs.ts";
 import { capturesPath, readCaptures, type CaptureKind, CAPTURES_FILE } from "./captures.ts";
 import { contentDigest } from "./content-normalization/index.ts";

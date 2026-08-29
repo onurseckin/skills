@@ -1,6 +1,6 @@
-import type { TopologyRecord } from "../../core/contracts/topology.ts";
-import type { WorktreeAssignment } from "../../core/contracts/worktree.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { TopologyRecord } from "../../core/contracts/index.ts";
+import type { WorktreeAssignment } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { scopeConflict } from "../../engine/scheduler/conflicts.ts";
 
 export interface AssignableTask {

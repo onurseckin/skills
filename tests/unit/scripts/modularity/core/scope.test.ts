@@ -7,7 +7,7 @@ import {
 } from "../../../../../scripts/modularity/core/index.ts";
 
 test("includes production runtime but excludes runtime output", () => {
-  expect(classifyPath("olt/scripts/src/runtime/agent-metadata.ts").included).toBe(true);
+  expect(classifyPath("olt/scripts/src/runtime/index.ts").included).toBe(true);
   expect(classifyPath(".olt/capsules/run/runtime/session.json").included).toBe(false);
 });
 

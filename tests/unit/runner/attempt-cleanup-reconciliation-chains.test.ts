@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   reconcileStrandedCommands,
   runAndRecordCommand,

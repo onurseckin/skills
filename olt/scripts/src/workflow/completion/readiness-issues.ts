@@ -1,4 +1,4 @@
-import { applicableValidatorDomains } from "../../core/contracts/workflow.ts";
+import { applicableValidatorDomains } from "../../core/contracts/index.ts";
 import { openBranchIssues } from "../branch/completion-blockers.ts";
 import { applicableGates, commandMatchesGate, workflowGates } from "../gates/gate-policy.ts";
 import { embeddedCommandIssues } from "../../engine/runner/command-shape.ts";

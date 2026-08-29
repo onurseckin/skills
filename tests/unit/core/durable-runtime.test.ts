@@ -135,8 +135,7 @@ describe("durable runtime files", () => {
     const root = scratchRoot(import.meta.path, "durable-append-cross-process");
     const target = join(root, "events.jsonl");
     const ready = join(root, "holder-ready");
-    const flockUrl = new URL("../../../olt/scripts/src/platform/flock-ffi.ts", import.meta.url)
-      .href;
+    const flockUrl = new URL("../../../olt/scripts/src/platform/index.ts", import.meta.url).href;
     const script = `
       import { closeSync, constants, openSync, writeFileSync } from "node:fs";
       import { releaseFlock, tryExclusiveFlock } from ${JSON.stringify(flockUrl)};

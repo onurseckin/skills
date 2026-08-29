@@ -2,9 +2,9 @@ import { generateKeyPairSync, sign, type KeyObject } from "node:crypto";
 import type {
   CommandAttemptCleanupDisposition,
   CommandAttemptStartedRecord,
-} from "../../core/contracts/commands.ts";
+} from "../../core/contracts/index.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import {
   boundedReason,
   cleanupDispositionEntryDigest,

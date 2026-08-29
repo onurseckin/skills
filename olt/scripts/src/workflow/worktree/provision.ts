@@ -1,13 +1,13 @@
 import { mkdirSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
-import type { TopologyRecord } from "../../core/contracts/topology.ts";
+import type { TopologyRecord } from "../../core/contracts/index.ts";
 import type {
   WorktreeAssignment,
   WorktreeLedgerState,
   WorktreeRecord,
-} from "../../core/contracts/worktree.ts";
-import type { RunState } from "../../core/contracts/capsule.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+} from "../../core/contracts/index.ts";
+import type { RunState } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun, transact } from "../../engine/store/index.ts";
 import { assignWorktrees, type AssignableTask } from "./assign.ts";
 import {

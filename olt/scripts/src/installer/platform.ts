@@ -1,4 +1,4 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 export function assertInstallerPlatform(platform: NodeJS.Platform = process.platform): void {
   if (platform !== "darwin" && platform !== "linux") {

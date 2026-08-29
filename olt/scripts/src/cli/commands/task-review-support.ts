@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { getHarnessConfig } from "../../core/config/harness-config.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { getHarnessConfig } from "../../core/config/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { getVisualReport, queryScreenshots } from "../../reporting/screenshot-store.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
@@ -30,7 +30,7 @@ import {
   resolveReviewProtocolConfig,
   type ReviewProtocolConfig,
 } from "../../policy/review-protocol.ts";
-import { readAgentMetadata } from "../../runtime/agent-metadata.ts";
+import { readAgentMetadata } from "../../runtime/index.ts";
 
 export interface ReviewPolicy {
   minProbes: number;

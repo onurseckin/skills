@@ -1,5 +1,5 @@
-import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import {
   readAgentLedger,
   releaseAllActiveGrants,

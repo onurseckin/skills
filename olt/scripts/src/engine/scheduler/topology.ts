@@ -1,11 +1,11 @@
-import type { ResolvedHarnessConfig } from "../../core/config/harness-config.ts";
+import type { ResolvedHarnessConfig } from "../../core/config/index.ts";
 import type {
   TopologyDecision,
   TopologyReason,
   TopologyRecord,
   TopologyWave,
-} from "../../core/contracts/topology.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+} from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { dependencyMap } from "../../graph/dependency-map.ts";
 import { isInteger, isRecord } from "../../requirements/predicates.ts";
 import { resourceConflict, scopeConflict } from "./conflicts.ts";

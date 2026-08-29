@@ -1,6 +1,6 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 
 const [runRoot, barrier, label, agentId] = Bun.argv.slice(2);

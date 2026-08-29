@@ -91,7 +91,7 @@ function setupMindCapsule(
         counter: 2,
         open: null,
         last: pulseLast,
-      } as unknown as import("../../../olt/scripts/src/core/contracts/json.ts").JsonValue;
+      } as unknown as import("../../../olt/scripts/src/core/contracts/index.ts").JsonValue;
       working.observations = [];
       working.candidates = [];
       working.escalations = [];

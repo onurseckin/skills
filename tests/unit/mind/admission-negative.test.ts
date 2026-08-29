@@ -5,8 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
 import { mindAdmitCommand } from "../../../olt/scripts/src/cli/commands/mind-admit.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   evaluateAdmissionGates,
   evaluateGate1Witnessed,

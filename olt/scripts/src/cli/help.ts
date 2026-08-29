@@ -1,4 +1,4 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { flagPositions } from "./arguments.ts";
 import { enforceLineLimit, formatTable } from "./formatters/line-limiter.ts";
 import {

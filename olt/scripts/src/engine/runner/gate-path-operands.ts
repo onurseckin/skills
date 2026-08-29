@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { basename, isAbsolute, resolve } from "node:path";
-import type { CommandPathBinding } from "../../core/contracts/commands.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { CommandPathBinding } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { commandHasTestIntent } from "./output-evidence.ts";
 
 const PATH_EXTENSION =

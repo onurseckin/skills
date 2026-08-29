@@ -1,6 +1,6 @@
 import { delimiter, isAbsolute } from "node:path";
 import { RESTRICTED_GIT_ENVIRONMENT } from "../../core/restricted-git.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { OWNERSHIP_ENV } from "./pipe-ownership.ts";
 
 const PASSTHROUGH = ["LANG", "LC_ALL", "LC_CTYPE", "PATH", "TMPDIR", "TZ"] as const;

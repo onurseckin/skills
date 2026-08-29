@@ -1,6 +1,6 @@
 import { normalizeScopePath } from "../../graph/scope-analyzer.ts";
 import { scopeConflict } from "../../engine/scheduler/conflicts.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 
 function segmentContains(outer: string, inner: string): boolean {
   if (outer === inner) return true;

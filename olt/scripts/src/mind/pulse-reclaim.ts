@@ -1,6 +1,6 @@
-import type { HarnessEvent } from "../core/contracts/capsule.ts";
-import type { JsonObject } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { HarnessEvent } from "../core/contracts/index.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/load.ts";
 import { transact } from "../engine/store/transaction.ts";
 import type { Clock } from "../workflow/types.ts";

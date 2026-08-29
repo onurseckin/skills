@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseUnifiedAgentManifest } from "../../authority/manifest-schema.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import type { Flags } from "../options.ts";

@@ -1,5 +1,5 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import type { MicroCycleRecord } from "../../core/contracts/workflow.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import type { MicroCycleRecord } from "../../core/contracts/index.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { newLeaseToken, tokenDigest } from "../lease/token.ts";
 import {

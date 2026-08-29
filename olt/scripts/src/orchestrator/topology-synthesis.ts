@@ -1,4 +1,4 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 /**
  * Task specification input for topology synthesis.

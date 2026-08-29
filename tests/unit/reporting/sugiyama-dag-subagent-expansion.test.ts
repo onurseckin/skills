@@ -20,7 +20,7 @@ import {
   buildDynamicDagState,
   renderDynamicDagAscii,
 } from "../../../olt/scripts/src/reporting/living-tracer.ts";
-import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/capsule.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 function createMockEvent(
   sequence: number,

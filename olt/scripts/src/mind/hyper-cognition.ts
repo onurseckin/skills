@@ -11,9 +11,9 @@
  * ZERO `any` types, ZERO defaulted literal fallback operators (`??`, `||`).
  */
 
-import { HarnessError } from "../core/errors/harness-error.ts";
-import type { HarnessEvent, RunState } from "../core/contracts/capsule.ts";
-import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/index.ts";
+import type { HarnessEvent, RunState } from "../core/contracts/index.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/index.ts";
 import { isRecord, isNonblank, isInteger } from "../requirements/predicates.ts";
 import {
   COGNITIVE_DIMENSIONS,

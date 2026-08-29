@@ -1,0 +1,58 @@
+export {
+  assertNoRepositoryBoundaryCrossed,
+  assertSafeToDelete,
+  refuse,
+  assertNotDenylisted,
+  assertWithinAllowedRoots,
+  MIN_PATH_SEGMENTS,
+  canonicalizeTarget,
+  isSelfOrStrictAncestor,
+  pathExists,
+  realpathOfExistingAncestor,
+  segmentCount,
+  emitAudit,
+  safeCpSync,
+  safeMkdirSync,
+  safeRenameSync,
+  safeRmSync,
+  safeWriteFileSync,
+} from "./safe-fs/index.ts";
+
+export type {
+  AuditSink,
+  DestructiveAuditEvent,
+  SafeDeleteOptions,
+  SafeFsRefusalRule,
+  SafeCopyOptions,
+  SafeMkdirOptions,
+  SafeRenameOptions,
+  SafeWriteOptions,
+} from "./safe-fs/index.ts";
+
+export {
+  CAPSULES_DIR_NAME,
+  OLT_DIR_NAME,
+  OLT_FILES,
+  findRepoRoot,
+  isInsideCapsule,
+  isTestEnvironment,
+  loadSkillGlobalConfig,
+  resolveBacklogPath,
+  resolveCapsulesDir,
+  resolveCompletedDefectsPath,
+  resolveCompletedTasksPath,
+  resolveDefectsPath,
+  resolveEvidenceDir,
+  resolveMemoryPath,
+  resolveOltDir,
+  resolvePolicyPath,
+  resolveQuotaDagSnapshotPath,
+  resolveScratchDir,
+  resolveSkillGlobalConfigPath,
+  resolveSkillHomeRepo,
+  resolveTelemetryPath,
+  resolveWatchdogsPath,
+  stripCapsulePath,
+} from "./paths.ts";
+
+export type { SkillGlobalConfig } from "./paths.ts";

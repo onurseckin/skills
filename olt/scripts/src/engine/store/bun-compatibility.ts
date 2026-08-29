@@ -1,4 +1,4 @@
-import type { BunCompatibility } from "../../core/contracts/capsule.ts";
+import type { BunCompatibility } from "../../core/contracts/index.ts";
 
 export const BUN_COMPATIBILITY: BunCompatibility = "same-major-not-older";
 

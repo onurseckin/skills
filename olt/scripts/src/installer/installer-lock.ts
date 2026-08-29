@@ -1,6 +1,6 @@
 import { closeSync, constants, fstatSync, lstatSync, openSync } from "node:fs";
-import { HarnessError } from "../core/errors/harness-error.ts";
-import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+import { HarnessError } from "../core/errors/index.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 import type { PathIdentity } from "./path-safety.ts";
 
 export interface InstallerLock {

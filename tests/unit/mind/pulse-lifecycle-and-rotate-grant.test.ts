@@ -22,7 +22,7 @@ import { join } from "node:path";
 import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
 import { mindEscalateCommand } from "../../../olt/scripts/src/cli/commands/mind-escalate.ts";
 import { mindHaltCommand } from "../../../olt/scripts/src/cli/commands/mind-halt.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";

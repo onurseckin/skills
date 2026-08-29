@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import type { Evidenced } from "../../core/contracts/evidence.ts";
-import type { Finding } from "../../core/contracts/workflow.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import type { Evidenced } from "../../core/contracts/index.ts";
+import type { Finding } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { tokenMatches } from "../lease/token.ts";
 import { jsonCopy, requireText, taskIn, transition, utc } from "../task-state.ts";

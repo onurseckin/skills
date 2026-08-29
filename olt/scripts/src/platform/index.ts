@@ -1,13 +1,62 @@
-export * from "./flock-ffi.ts";
-export * from "./observer.ts";
-export * from "./run-lock.ts";
-export * from "./types.ts";
-export * from "./cli-registration.ts";
-export * from "./antigravity.ts";
-export * from "./claude-code.ts";
-export * from "./cursor.ts";
-export * from "./codex.ts";
-export * from "./chatgpt.ts";
-export * from "./host-adapter-registry.ts";
-export * from "./unfulfilled-demand.ts";
-export * from "./adapters.ts";
+export {
+  linuxLibcCandidates,
+  libraryCandidates,
+  tryExclusiveFlock,
+  releaseFlock,
+} from "./fs/flock-ffi.ts";
+export { withRunLock } from "./process/run-lock.ts";
+export type { RunLockOptions } from "./process/run-lock.ts";
+export { observerDirectory, publishObserver, clearObserver } from "./process/observer.ts";
+export {
+  buildAgentRegisterCommand,
+  buildTaskClaimCommand,
+  buildTaskHeartbeatCommand,
+  buildTaskSubmitCommand,
+  buildMandatoryCliSequence,
+  verifyAgentRegistration,
+  assertAgentRegistered,
+} from "./process/cli-registration.ts";
+export type { CliRegistrationOptions } from "./process/cli-registration.ts";
+export {
+  validateDispatchPacket,
+  MechanicalFirstDispatcher,
+  dispatchWithFallback,
+} from "./host/adapters.ts";
+export type { DispatchOptions } from "./host/adapters.ts";
+export { ANTIGRAVITY_CAPABILITIES, AntigravityHostAdapter } from "./host/antigravity.ts";
+export { CHATGPT_CAPABILITIES, ChatGptHostAdapter } from "./host/chatgpt.ts";
+export { CLAUDE_CODE_CAPABILITIES, ClaudeCodeHostAdapter } from "./host/claude-code.ts";
+export { CODEX_CAPABILITIES, CodexHostAdapter } from "./host/codex.ts";
+export { CURSOR_CAPABILITIES, CursorHostAdapter } from "./host/cursor.ts";
+export {
+  getHostAdapter,
+  listSupportedHostProviders,
+  listHostCapabilities,
+  resolveHostProvider,
+  dispatchSubagent,
+} from "./host/host-adapter-registry.ts";
+export { HOST_PROVIDERS, isHostProvider } from "./host/types.ts";
+export type {
+  HostProvider,
+  WorkspaceIsolationMode,
+  HostCapabilities,
+  SubagentDispatchPacket,
+  MechanicalDispatchResult,
+  CognitiveFallbackPromptResult,
+  DispatchResult,
+  MandatoryCliActionSequence,
+  UnfulfilledDemandItem,
+  UnfulfilledDemandPushbackReport,
+  HostAdapter,
+} from "./host/types.ts";
+export {
+  evaluateUnfulfilledDemands,
+  assertNoUnfulfilledDemands,
+} from "./host/unfulfilled-demand.ts";
+export type { UnfulfilledDemandEvaluationOptions } from "./host/unfulfilled-demand.ts";
+export {
+  CODE_EDIT_TOOL_NAMES_BY_HOST,
+  CODE_EDIT_TOOLS,
+  isCodeEditTool,
+  codeEditToolNamesForHost,
+} from "./host/code-edit-tools.ts";

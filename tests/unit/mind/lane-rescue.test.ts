@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { executeRescueLane } from "../../../olt/scripts/src/mind/lanes/rescue.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";

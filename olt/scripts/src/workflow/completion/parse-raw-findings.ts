@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import type { CompletionFinding } from "./types.ts";
 
 const SEVERITIES = new Set(["critical", "important", "minor"]);

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import type { JsonObject, JsonValue } from "../../core/contracts/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { parseCharter } from "../../mind/charter.ts";
 import {
   evaluateAdmissionGates,

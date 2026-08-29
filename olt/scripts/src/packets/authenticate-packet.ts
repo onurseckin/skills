@@ -1,6 +1,6 @@
-import type { BranchSubTask } from "../core/contracts/branch.ts";
+import type { BranchSubTask } from "../core/contracts/index.ts";
 import { canonicalJsonBytes } from "../core/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { readBranchLedger, locateSubTask } from "../workflow/branch/ledger.ts";
 import { tokenMatches } from "../workflow/lease/token.ts";
 import { requireText } from "../workflow/task-state.ts";

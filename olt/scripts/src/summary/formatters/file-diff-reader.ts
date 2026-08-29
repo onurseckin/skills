@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { isJsonObject } from "../../core/contracts/json.ts";
+import { isJsonObject } from "../../core/contracts/index.ts";
 import { diffAnchor, type DiffAnchor } from "../../packets/round-repository-delta.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";

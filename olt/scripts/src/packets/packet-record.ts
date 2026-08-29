@@ -1,5 +1,5 @@
-import type { JsonObject } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { utc } from "../workflow/task-state.ts";
 import type { PacketRecord } from "../workflow/types.ts";
 import type { BuiltPacket } from "./types.ts";

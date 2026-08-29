@@ -1,6 +1,6 @@
 import { existsSync, lstatSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import type { IntegrityIssue } from "../../core/contracts/capsule.ts";
+import type { IntegrityIssue } from "../../core/contracts/index.ts";
 import { readBoundedBytes, sha256Bytes } from "../../core/json.ts";
 import { MAX_BLOB_BYTES, blobContentDigest, blobRelativePath, listBlobs } from "./blobs.ts";
 import { CAPTURES_FILE, readCaptures, type CaptureRecord } from "./captures.ts";

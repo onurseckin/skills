@@ -13,9 +13,9 @@ import {
 } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { emitTelemetryEvent } from "../reporting/telemetry-stream.ts";
-import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 import type { CircuitBreakerEvaluation } from "./circuit-breaker.ts";
 
 export interface QuotaDagSnapshotTask {

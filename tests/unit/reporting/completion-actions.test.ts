@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { orphanEvidenceSha256 } from "../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { actions, view } from "./actions-fixture.ts";
 

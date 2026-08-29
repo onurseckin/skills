@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandAttemptStartedRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
-import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/repository.ts";
+import type { CommandAttemptStartedRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import { recoverAggregateFromAttempts } from "../../../olt/scripts/src/integration/reconcile-command-attempts.ts";
 import {

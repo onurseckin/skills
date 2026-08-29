@@ -1,9 +1,9 @@
 import { basename, resolve, join } from "node:path";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { getHarnessConfig } from "../../core/config/harness-config.ts";
-import type { RunFiles } from "../../core/contracts/capsule.ts";
-import type { JsonValue } from "../../core/contracts/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { getHarnessConfig } from "../../core/config/index.ts";
+import type { RunFiles } from "../../core/contracts/index.ts";
+import type { JsonValue } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { compileGraphDocument, compilePlanMarkdown } from "../../graph/compiler.ts";
 import { executeDagViewCommand } from "./dag-view.ts";
 import { advisoryFindings, blockingFindings } from "../../graph/plan-audit.ts";

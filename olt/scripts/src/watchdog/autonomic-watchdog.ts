@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { loadRun } from "../engine/store/index.ts";
-import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
+import { isJsonObject, type JsonObject } from "../core/contracts/index.ts";
 import {
   auditTierConfinement,
   type TierConfinementFinding,

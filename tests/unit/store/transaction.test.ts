@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { RunState, StateMutator } from "../../../olt/scripts/src/core/contracts/capsule.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { RunState, StateMutator } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";

@@ -1,5 +1,5 @@
-import type { CommandRecord } from "../../core/contracts/commands.ts";
-import { applicableValidatorDomains } from "../../core/contracts/workflow.ts";
+import type { CommandRecord } from "../../core/contracts/index.ts";
+import { applicableValidatorDomains } from "../../core/contracts/index.ts";
 import { embeddedCommandIssues } from "../../engine/runner/command-shape.ts";
 import { openBranchIssues } from "../branch/completion-blockers.ts";
 import { applicableGates, commandMatchesGate, workflowGates } from "../gates/gate-policy.ts";

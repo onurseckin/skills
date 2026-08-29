@@ -11,8 +11,8 @@ import {
 } from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { readLastPulse } from "../../../olt/scripts/src/mind/last-pulse.ts";
 import {
   enforceInfiniteMindCadence,

@@ -1,5 +1,5 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
 
 export class SkillAuditorPolicy {
   public static isMandatoryTarget(repoRoot: string): boolean {

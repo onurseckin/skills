@@ -1,4 +1,4 @@
-import type { CommandRecord } from "../core/contracts/commands.ts";
+import type { CommandRecord } from "../core/contracts/index.ts";
 import { sameCommandJson } from "../engine/runner/command-shape.ts";
 
 export function sameOptionalJson(left: unknown, right: unknown): boolean {

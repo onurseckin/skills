@@ -12,8 +12,8 @@ import { resolve } from "node:path";
 import type {
   BranchRepositoryEntry,
   BranchRepositoryObservation,
-} from "../../core/contracts/branch.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+} from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "../../packets/repository-git-metadata.ts";
 

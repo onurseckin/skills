@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
-import { isAgentRole } from "../../../olt/scripts/src/core/contracts/packets.ts";
+import { isAgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   MIND_STRATEGIC_ALTITUDE,
   MIND_HARD_ZEROS,

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { transact } from "../engine/store/transaction.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";
 

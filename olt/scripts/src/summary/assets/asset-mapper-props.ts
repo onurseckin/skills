@@ -1,4 +1,4 @@
-import type { CommandRecord } from "../../core/contracts/commands.ts";
+import type { CommandRecord } from "../../core/contracts/index.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import { resolveValidatorId } from "../graph/graph-node-context.ts";
 

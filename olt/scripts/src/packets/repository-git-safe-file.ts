@@ -1,6 +1,6 @@
 import { closeSync, constants, fstatSync, lstatSync, openSync, readSync } from "node:fs";
 import type { Stats } from "node:fs";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 type FileStat = Stats;
 

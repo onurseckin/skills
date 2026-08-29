@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { actorFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { expandReadScope } from "../../runtime/read-scope-guard.ts";
 import { emitTelemetryEvent } from "../../reporting/telemetry-stream.ts";

@@ -8,7 +8,7 @@ import {
   formatMindPulseOpenBrief,
   mindPulseOpenCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   checkDailyBudget,
   checkQuietHours,

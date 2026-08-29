@@ -15,9 +15,9 @@ import {
   type Stats,
 } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { findRepoRoot, resolveSkillHomeRepo } from "../core/shared/paths.ts";
-import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 
 export type RepoEcosystem = "bun" | "node" | "python" | "cargo" | "unknown";
 

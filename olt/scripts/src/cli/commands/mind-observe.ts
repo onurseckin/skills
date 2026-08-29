@@ -1,6 +1,6 @@
 import { dirname } from "node:path";
-import type { JsonObject, JsonValue } from "../../core/contracts/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import {
   findSourceDefinition,
   MIND_DISCOVERY_SOURCES,

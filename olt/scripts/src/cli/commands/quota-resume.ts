@@ -6,7 +6,7 @@ import {
   type CollectorEnvironment,
 } from "../../telemetry/collectors/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun } from "../../engine/store/load.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 

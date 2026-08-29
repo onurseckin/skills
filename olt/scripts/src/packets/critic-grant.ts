@@ -1,6 +1,6 @@
-import type { RunFiles } from "../core/contracts/capsule.ts";
-import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { RunFiles } from "../core/contracts/index.ts";
+import { isJsonObject, type JsonObject } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/index.ts";
 import { observeCapsuleIntegrity } from "../workflow/completion/integrity-evidence.ts";
 import { authoritativeRepositoryCommand } from "../workflow/completion/repository-evidence.ts";

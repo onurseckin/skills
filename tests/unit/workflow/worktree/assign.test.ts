@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { assignWorktrees } from "../../../../olt/scripts/src/workflow/worktree/assign.ts";
-import type { TopologyRecord } from "../../../../olt/scripts/src/core/contracts/topology.ts";
+import type { TopologyRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 
 function topology(waves: readonly (readonly string[])[]): TopologyRecord {
   return {

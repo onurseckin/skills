@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
 import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   isCognitiveValidatorRole,
   isMechanicValidatorRole,

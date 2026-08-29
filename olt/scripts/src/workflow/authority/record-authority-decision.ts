@@ -1,4 +1,4 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { isRecord } from "../../requirements/predicates.ts";
 import { requireText, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort, type WorkflowState } from "../types.ts";

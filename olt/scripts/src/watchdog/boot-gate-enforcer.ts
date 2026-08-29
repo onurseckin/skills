@@ -1,6 +1,6 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { roleToTier } from "../authority/thread-identifier.ts";
-import type { JsonObject } from "../core/contracts/json.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
 import type { MandatoryBootGate } from "./constants.ts";
 import type {
   BootGateVerificationResult,

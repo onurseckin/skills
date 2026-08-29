@@ -5,7 +5,7 @@ import {
 } from "../../../../olt/scripts/src/workflow/worktree/commit.ts";
 import { readWorktreeLedger } from "../../../../olt/scripts/src/workflow/worktree/ledger.ts";
 import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
-import type { WorktreeCommitRecord } from "../../../../olt/scripts/src/core/contracts/worktree.ts";
+import type { WorktreeCommitRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { FakeRunStore, baseLedger, seedLedger, seedTask } from "./fake-transact.ts";
 
 type Call = { cwd: string; argv: readonly string[] };

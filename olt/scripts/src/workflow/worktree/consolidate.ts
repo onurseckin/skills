@@ -3,8 +3,8 @@ import { join } from "node:path";
 import type {
   WorktreeConsolidationRecord,
   WorktreeLedgerState,
-} from "../../core/contracts/worktree.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+} from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import {
   addWorktreeForBranch,

@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import ts from "typescript";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { autoDeriveCallerIdentity } from "../../authority/session-registry.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import {

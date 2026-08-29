@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { evidenced } from "../../../olt/scripts/src/core/contracts/evidence.ts";
+import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   ABSTRACT_PROFILES,
   formatHostDegradation,

@@ -7,14 +7,14 @@ import {
   isCognitiveValidatorRole,
   isMechanicValidatorRole,
   type AgentRole,
-} from "../core/contracts/packets.ts";
+} from "../core/contracts/index.ts";
 import {
   isValidatorDomain,
   VALIDATOR_DOMAINS,
   type ValidatorDomain,
-} from "../core/contracts/workflow.ts";
+} from "../core/contracts/index.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { parseUnifiedAgentManifest } from "../authority/manifest-schema.ts";
 
 const AGENTS_ROOT = fileURLToPath(new URL("../../../agents", import.meta.url));

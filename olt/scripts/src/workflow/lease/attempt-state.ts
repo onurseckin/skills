@@ -1,5 +1,5 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { requireText, utc } from "../task-state.ts";
 import type { TaskRecord } from "../types.ts";
 

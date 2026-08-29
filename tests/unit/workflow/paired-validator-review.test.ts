@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { assertValidReviewer } from "../../../olt/scripts/src/cli/commands/task-review.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("assertValidReviewer", () => {

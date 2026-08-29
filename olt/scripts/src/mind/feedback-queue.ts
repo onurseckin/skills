@@ -15,9 +15,9 @@ import {
   writeSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { isTestEnvironment, resolveScratchDir } from "../core/shared/paths.ts";
-import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 import { resolveTaskQueuePath } from "./task-queue.ts";
 
 export type FeedbackPriority =

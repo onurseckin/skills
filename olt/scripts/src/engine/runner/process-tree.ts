@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import type { ProcessIdentity, ProcessTopology } from "./process-identity.ts";
 
 const execute = promisify(execFile);

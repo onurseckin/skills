@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
 import type {
   CustomHookHandler,

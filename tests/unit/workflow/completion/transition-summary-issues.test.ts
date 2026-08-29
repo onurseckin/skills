@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentGrantRecord } from "../../../../olt/scripts/src/core/contracts/agents.ts";
+import type { AgentGrantRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { transitionSummaryIssues } from "../../../../olt/scripts/src/workflow/completion/transition-summary-issues.ts";
 import { AGENT_LEDGER_KEY } from "../../../../olt/scripts/src/workflow/agents/ledger.ts";
 import { BRANCH_LEDGER_KEY } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";

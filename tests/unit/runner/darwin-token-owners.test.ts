@@ -4,7 +4,7 @@ import {
   scanDarwinTokenOwners,
 } from "../../../olt/scripts/src/engine/runner/darwin-token-owners.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process-identity.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("scanDarwinTokenOwners edge cases", () => {
   test("returns empty array when token is empty", () => {

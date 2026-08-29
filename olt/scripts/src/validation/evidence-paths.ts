@@ -1,5 +1,5 @@
 import { isAbsolute, normalize, relative, resolve } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 export const UNIFIED_EVIDENCE_DIRECTORY = "evidence";
 export const UNIFIED_SCREENSHOTS_DIRECTORY = "evidence/screenshots";

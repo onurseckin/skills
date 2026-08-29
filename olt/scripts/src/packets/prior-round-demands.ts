@@ -1,5 +1,5 @@
-import { isJsonObject, type JsonObject, type JsonValue } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { isJsonObject, type JsonObject, type JsonValue } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { isProbeDemand } from "../workflow/review/finding-class.ts";
 import { requireText } from "../workflow/task-state.ts";
 import type { TaskRecord } from "../workflow/types.ts";

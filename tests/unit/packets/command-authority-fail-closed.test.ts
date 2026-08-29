@@ -16,9 +16,9 @@ import {
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
 import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
-import type { AgentRole } from "../../../olt/scripts/src/core/contracts/packets.ts";
+import type { AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { emptyGrantRun } from "./grant-run-fixture.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {

@@ -1,10 +1,10 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
-import type { BranchRecord } from "../../core/contracts/branch.ts";
-import type { HarnessEvent, Manifest } from "../../core/contracts/capsule.ts";
-import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
-import { readTopology } from "../../core/contracts/topology.ts";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
+import type { BranchRecord } from "../../core/contracts/index.ts";
+import type { HarnessEvent, Manifest } from "../../core/contracts/index.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
+import { readTopology } from "../../core/contracts/index.ts";
 import type { WorkflowState } from "../../workflow/types.ts";
 import { collectActionSteps } from "../metrics/timeline-collector.ts";
 import type {

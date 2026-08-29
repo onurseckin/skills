@@ -1,7 +1,7 @@
-import type { AgentGrantRecord } from "../core/contracts/agents.ts";
-import type { Evidenced } from "../core/contracts/evidence.ts";
-import type { JsonValue } from "../core/contracts/json.ts";
-import { topologyWavesByTask, type TopologyRecord } from "../core/contracts/topology.ts";
+import type { AgentGrantRecord } from "../core/contracts/index.ts";
+import type { Evidenced } from "../core/contracts/index.ts";
+import type { JsonValue } from "../core/contracts/index.ts";
+import { topologyWavesByTask, type TopologyRecord } from "../core/contracts/index.ts";
 import type { TaskView } from "./action-types.ts";
 
 const UNKNOWN = "unknown";

@@ -1,6 +1,6 @@
-import type { BranchRecord } from "../../../../olt/scripts/src/core/contracts/branch.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/json.ts";
-import type { RunState } from "../../../../olt/scripts/src/core/contracts/capsule.ts";
+import type { BranchRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { transact } from "../../../../olt/scripts/src/engine/store/transaction.ts";
 import { writeBranchLedger } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
 

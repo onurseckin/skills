@@ -15,7 +15,7 @@ import {
   taskCheckCommand,
   type TaskCheckSummary,
 } from "../../../olt/scripts/src/cli/commands/task-check.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { setAutoReceiptDependenciesForTesting } from "../../../olt/scripts/src/engine/runner/auto-receipt.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";

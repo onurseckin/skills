@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 import { closeSync, lstatSync, opendirSync, realpathSync } from "node:fs";
 import { join, relative, sep } from "node:path";
-import type { CommandPathBinding } from "../../core/contracts/commands.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
+import type { CommandPathBinding } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { canonicalJsonBytes } from "../../core/json.ts";
 import { collectBoundedDirectoryEntries } from "../../core/bounded-directory.ts";
 import { safeRepoPath } from "../../core/paths.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import {
   createGateCaptureBudget,
   digestFile,

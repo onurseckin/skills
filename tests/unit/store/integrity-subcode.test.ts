@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { IntegrityIssue } from "../../../olt/scripts/src/core/contracts/capsule.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { IntegrityIssue } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";

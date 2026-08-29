@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { capturePromptWithTimeout } from "../prompt-capture.ts";
 import { readBoundedBytes } from "../../core/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { formatOrchestrateBrief } from "../formatters/index.ts";
 import { textFlag, boolFlag, type CommandContext, type Flags } from "../options.ts";

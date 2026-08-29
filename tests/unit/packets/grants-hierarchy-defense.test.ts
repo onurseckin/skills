@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import { emptyGrantRun } from "./grant-run-fixture.ts";
 

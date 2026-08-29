@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as yaml from "js-yaml";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 export interface CharterGoal {
   readonly id: string;

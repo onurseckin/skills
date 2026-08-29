@@ -1,4 +1,4 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import type { CommandContext, Flags } from "../options.ts";
 
 export const CAPTURE_RUN_MISSING_PROVIDER_MESSAGE =

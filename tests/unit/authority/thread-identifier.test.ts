@@ -21,7 +21,7 @@ import {
   type DefectRecord,
   type ExecutionTier,
 } from "../../../olt/scripts/src/authority/thread-identifier.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 import { scratchRoot } from "../../support/scratch-root.ts";
 

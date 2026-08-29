@@ -10,7 +10,7 @@ import {
   parseAuthorityRepoPolicy,
   type RepoPolicy,
 } from "../../../olt/scripts/src/policy/repo-policy.ts";
-import type { AgentMetadata } from "../../../olt/scripts/src/runtime/agent-metadata.ts";
+import type { AgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
 
 describe("RBAC Engine & Hybrid Deny-List", () => {
   const samplePolicy: RepoPolicy = {

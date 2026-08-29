@@ -1,10 +1,10 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { SplitChannelDefectRouter } from "../reporting/split-channel-defect-router.ts";
 import { OrchestratorCompanionAuditor } from "./companion-auditor.ts";
 import type { BehavioralForensicsReport, CompanionPairingResult } from "./types.ts";
-import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/index.ts";
 
 export type CapsuleExecutionStatus =
   | "pending"

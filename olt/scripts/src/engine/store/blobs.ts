@@ -21,7 +21,7 @@ import {
 import { randomUUID } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fsyncDirectory } from "../../core/durable-write.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { SHA256_PATTERN } from "./constants.ts";
 
 export const MAX_BLOB_BYTES = 256 * 1024 * 1024;

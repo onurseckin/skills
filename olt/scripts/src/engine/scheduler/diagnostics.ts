@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { ALL_CHECKS, defaultLayout, runHealthCheck } from "../../health/index.ts";
 import type { HealthCheckId, HealthReport } from "../../health/types.ts";
 import { runDoctor, type DoctorOptions } from "../../reporting/doctor.ts";

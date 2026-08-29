@@ -2,7 +2,7 @@ import {
   TERMINAL_SUB_TASK_STATUSES,
   type BranchStatus,
   type BranchSubTaskStatus,
-} from "../core/contracts/branch.ts";
+} from "../core/contracts/index.ts";
 import {
   mergeActions,
   LEASE_TOKEN,

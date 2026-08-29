@@ -1,8 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Manifest } from "../../../olt/scripts/src/core/contracts/capsule.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { Manifest } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { formatSummaryMarkdown } from "../../../olt/scripts/src/summary/markdown-formatter.ts";
 import type { MarkdownFormatterInput } from "../../../olt/scripts/src/summary/markdown-formatter.ts";

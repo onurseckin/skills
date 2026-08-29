@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import type { CapsuleChainManifest, DefectSynthesis } from "./types.ts";
-import type { Manifest, RunState } from "../core/contracts/capsule.ts";
+import type { Manifest, RunState } from "../core/contracts/index.ts";
 import type { WorkflowState } from "../workflow/types.ts";
 
 export interface ChainCapsulesOptions {

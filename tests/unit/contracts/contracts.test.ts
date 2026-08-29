@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
-import { isJsonObject, isSafeInteger } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { normalizeError } from "../../../olt/scripts/src/core/errors/normalize-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { isJsonObject, isSafeInteger } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { normalizeError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("shared contracts", () => {
   test("distinguishes JSON objects and safe integers", () => {

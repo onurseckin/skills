@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import * as harnessConfigModule from "../../../olt/scripts/src/core/config/harness-config.ts";
+import * as harnessConfigModule from "../../../olt/scripts/src/core/config/index.ts";
 import {
   DEFAULT_RESOLVED_CONFIG,
   resolveHarnessConfig,
-} from "../../../olt/scripts/src/core/config/harness-config.ts";
+} from "../../../olt/scripts/src/core/config/index.ts";
 import type {
   ExternallyAttestedFact,
   ExternallyAttestedSource,
@@ -33,7 +33,7 @@ const NO_HOST_CEILING = { hostConcurrency: null } as const;
 
 const REPO_ROOT = join(import.meta.dir, "..", "..", "..");
 const HARNESS_SOURCE_ROOT = join(REPO_ROOT, "olt", "scripts", "src");
-const HARNESS_CONFIG_SOURCE = join(HARNESS_SOURCE_ROOT, "core", "config", "harness-config.ts");
+const HARNESS_CONFIG_SOURCE = join(HARNESS_SOURCE_ROOT, "core", "config", "contracts.ts");
 const PROVENANCE_SOURCE = join(HARNESS_SOURCE_ROOT, "core", "config", "provenance.ts");
 
 function makeTempDir(label: string): string {
@@ -157,7 +157,7 @@ describe("quota freeze threshold resolution", () => {
     expect(readAccessor()(config.quota_freeze_threshold_pct).source).not.toBe("assumed_default");
   });
 
-  test("no literal quota threshold survives in harness-config.ts outside the named constant", () => {
+  test("no literal quota threshold survives in contracts.ts outside the named constant", () => {
     const source = readFileSync(HARNESS_CONFIG_SOURCE, "utf-8");
     expect(source).not.toContain("5.0");
     const numericQuotaLines = source

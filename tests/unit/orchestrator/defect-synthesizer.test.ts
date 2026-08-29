@@ -3,7 +3,7 @@ import {
   normalizeFindingToDetail,
   synthesizeNextRoundPrompt,
 } from "../../../olt/scripts/src/orchestrator/defect-synthesizer.ts";
-import type { Finding } from "../../../olt/scripts/src/core/contracts/workflow.ts";
+import type { Finding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { FindingDetail } from "../../../olt/scripts/src/workflow/scope-partitioner.ts";
 
 describe("Defect Synthesizer Unit Tests", () => {

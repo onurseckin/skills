@@ -1,5 +1,5 @@
-import type { BranchRecord } from "../../core/contracts/branch.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { BranchRecord } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { newLeaseToken, tokenDigest, tokenMatches } from "../lease/token.ts";
 import { isLeaseSuspended } from "../lease/suspension.ts";

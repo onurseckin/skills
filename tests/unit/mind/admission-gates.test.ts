@@ -8,7 +8,7 @@ import {
   formatMindAdmitBrief,
   mindAdmitCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-admit.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   evaluateAdmissionGates,
   evaluateGate1Witnessed,

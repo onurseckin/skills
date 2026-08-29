@@ -1,6 +1,6 @@
 import { canonicalJsonBytes, sha256Bytes } from "../core/json.ts";
-import type { JsonObject } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { CLIENT_NAMES, INSTALL_SCHEMA, INSTALL_VERSION, SKILL_NAME } from "./constants.ts";
 
 export interface ManifestPayload extends JsonObject {

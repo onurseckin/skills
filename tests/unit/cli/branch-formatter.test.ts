@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { BranchRecord } from "../../../olt/scripts/src/core/contracts/branch.ts";
+import type { BranchRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   formatBranchAbandonBrief,
   formatBranchClaimBrief,

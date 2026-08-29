@@ -1,9 +1,9 @@
-import { isBranchOpen, type BranchRecord } from "../../core/contracts/branch.ts";
-import type { RunState } from "../../core/contracts/capsule.ts";
-import { isJsonObject } from "../../core/contracts/json.ts";
-import { getHarnessConfig } from "../../core/config/harness-config.ts";
-import { isAgentRole, type AgentRole } from "../../core/contracts/packets.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { isBranchOpen, type BranchRecord } from "../../core/contracts/index.ts";
+import type { RunState } from "../../core/contracts/index.ts";
+import { isJsonObject } from "../../core/contracts/index.ts";
+import { getHarnessConfig } from "../../core/config/index.ts";
+import { isAgentRole, type AgentRole } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { publishSubTaskRolePacket } from "../../packets/role-grant.ts";
 import { loadRun } from "../../engine/store/index.ts";

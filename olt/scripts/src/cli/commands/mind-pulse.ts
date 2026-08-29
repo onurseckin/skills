@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { checkDailyBudget, parseNowMs, rollDayKeyIfNeeded } from "../../mind/budget.ts";
 import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/charter.ts";
 import { formatDuration } from "../../mind/brief.ts";

@@ -13,7 +13,7 @@ import {
   type FetchLike,
 } from "../../../olt/scripts/src/reporting/event-stream.ts";
 import { streamEventsCommand } from "../../../olt/scripts/src/cli/commands/stream-events.ts";
-import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/capsule.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 function createMockCapsule(events: readonly Record<string, unknown>[]): {
   dir: string;

@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   appendFeedbackItem,
   backpropagateFeedbackResolution,

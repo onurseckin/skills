@@ -26,7 +26,7 @@ import {
 import { registerWatchdog } from "../../../olt/scripts/src/authority/watchdog-manager.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type {
   TaskRecord,
   TransactionPort,

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { requireText } from "../task-state.ts";
 import type { CompletionEvidenceItem, CompletionRequirementProof } from "./types.ts";
 

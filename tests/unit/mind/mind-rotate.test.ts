@@ -8,8 +8,8 @@ import {
   mindRotateCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
 import { summaryViewCommand } from "../../../olt/scripts/src/cli/commands/summary-ops.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   evaluateGate6NotADuplicate,
   type CandidateRecord,

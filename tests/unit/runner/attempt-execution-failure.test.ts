@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { relative, join, sep } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { recoverAggregateFromAttempts } from "../../../olt/scripts/src/integration/reconcile-command-attempts.ts";

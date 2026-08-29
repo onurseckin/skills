@@ -1,5 +1,5 @@
 import { fsyncDirectory } from "../core/durable-write.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { dirname } from "node:path";
 import { moveBoundPath, removeBoundPath } from "./bound-mutations.ts";
 import { identifiedInstallation, readInstallationManifest } from "./identity.ts";

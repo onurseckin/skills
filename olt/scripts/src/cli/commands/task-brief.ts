@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import {
   buildExactAnchorBriefing,
@@ -15,7 +15,7 @@ import { formatAgentBrief, type AgentBriefParams } from "../formatters/agent-for
 import { formatTaskBrief, type TaskBriefParams } from "../formatters/task-formatter.ts";
 import { textFlag, type Flags } from "../options.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
-import type { AgentGrantRecord, AgentToolRef } from "../../core/contracts/agents.ts";
+import type { AgentGrantRecord, AgentToolRef } from "../../core/contracts/index.ts";
 
 /** Helper to extract target files from task write scope or task properties. */
 function deriveTargetFiles(

@@ -2,10 +2,10 @@ import { createHash, randomUUID } from "node:crypto";
 import { existsSync, lstatSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
-import { isJsonObject } from "../core/contracts/json.ts";
-import type { AgentRole, CapsuleMemoryPointer } from "../core/contracts/packets.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/index.ts";
+import { isJsonObject } from "../core/contracts/index.ts";
+import type { AgentRole, CapsuleMemoryPointer } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import type { BuiltPacket } from "./types.ts";
 import {
   VALIDATOR_EXCLUSIONS,

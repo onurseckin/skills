@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { CommandPathBinding } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import type { CommandPathBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   gateControlBindingScopeIssues,
   gateControlBindingsOverlapWriteScopes,

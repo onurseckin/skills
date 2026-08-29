@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import type { CommandAttemptRecord } from "../../core/contracts/commands.ts";
+import type { CommandAttemptRecord } from "../../core/contracts/index.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
 import { readBoundedBytes } from "../../core/json.ts";
 import { activityMetadata, raceWithTimeout } from "./attempt-support.ts";

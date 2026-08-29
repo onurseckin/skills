@@ -1,6 +1,6 @@
 import { basename, resolve } from "node:path";
-import { getHarnessConfig } from "../../core/config/harness-config.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { getHarnessConfig } from "../../core/config/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
 import { readySet, type ReadyEntry, type ReadySetSelection } from "../../engine/scheduler/index.ts";

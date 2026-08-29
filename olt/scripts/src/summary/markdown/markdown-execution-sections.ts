@@ -1,6 +1,6 @@
-import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
-import type { BranchRecord, BranchRepositoryObservation } from "../../core/contracts/branch.ts";
-import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
+import type { BranchRecord, BranchRepositoryObservation } from "../../core/contracts/index.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import {
   type AttributedFileRef,

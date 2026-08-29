@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { findRepoRoot, resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { loadRun, loadRunProjection } from "../../../olt/scripts/src/engine/store/load.ts";

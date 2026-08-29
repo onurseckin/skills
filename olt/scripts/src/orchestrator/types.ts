@@ -1,7 +1,7 @@
-import type { AgentGrantRecord } from "../core/contracts/agents.ts";
-import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
+import type { AgentGrantRecord } from "../core/contracts/index.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/index.ts";
 import type { FindingDetail } from "../workflow/scope-partitioner.ts";
-import type { Finding, TaskStatus } from "../core/contracts/workflow.ts";
+import type { Finding, TaskStatus } from "../core/contracts/index.ts";
 import type { AuditorCursor } from "../mind/cognitive-auditors.ts";
 import type { ForensicsIncident } from "../mind/meta-auditor.ts";
 

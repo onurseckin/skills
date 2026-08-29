@@ -1,5 +1,5 @@
-import { isBranchOpen } from "../../core/contracts/branch.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
+import { isBranchOpen } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { readBranchLedger } from "./ledger.ts";
 
 export function openBranchIssues(state: JsonObject): string[] {

@@ -3,7 +3,7 @@ import {
   assignReplacementRepairer,
   type ReplacementReason,
 } from "../../workflow/review/assign-repairer.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { formatTaskAssignRepairerBrief } from "../formatters/index.ts";
 import { textFlag, type Flags } from "../options.ts";
 

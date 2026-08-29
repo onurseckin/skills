@@ -3,7 +3,7 @@ import { loadRun } from "../engine/store/index.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { isRecord } from "../requirements/predicates.ts";
-import { getHarnessConfig } from "../core/config/harness-config.ts";
+import { getHarnessConfig } from "../core/config/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
 import {
   agentIdToRole,

@@ -1,8 +1,8 @@
-import type { AgentMetadata } from "../runtime/agent-metadata.ts";
-import { inferCanExecuteShell } from "../runtime/agent-metadata.ts";
+import type { AgentMetadata } from "../runtime/index.ts";
+import { inferCanExecuteShell } from "../runtime/index.ts";
 import type { RepoPolicy } from "./repo-policy.ts";
 import { loadRepoPolicy } from "./repo-policy.ts";
-import { CODE_EDIT_TOOLS } from "../platform/code-edit-tools.ts";
+import { CODE_EDIT_TOOLS } from "../platform/index.ts";
 
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

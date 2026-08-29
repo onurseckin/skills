@@ -1,4 +1,4 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 export type FlagValue = string | true;
 export type FlagValues = FlagValue | readonly FlagValue[];

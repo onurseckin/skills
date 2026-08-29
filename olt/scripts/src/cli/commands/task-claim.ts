@@ -1,10 +1,10 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import type { CommandRecord } from "../../core/contracts/commands.ts";
-import { AGENT_ROLES, isAgentRole } from "../../core/contracts/packets.ts";
-import { evidenced, type Evidenced } from "../../core/contracts/evidence.ts";
-import { getHarnessConfig } from "../../core/config/harness-config.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { CommandRecord } from "../../core/contracts/index.ts";
+import { AGENT_ROLES, isAgentRole } from "../../core/contracts/index.ts";
+import { evidenced, type Evidenced } from "../../core/contracts/index.ts";
+import { getHarnessConfig } from "../../core/config/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { appendDefectLedgerRecord } from "../../logging/defect-logger.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";

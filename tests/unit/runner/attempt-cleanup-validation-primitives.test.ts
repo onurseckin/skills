@@ -4,7 +4,7 @@ import {
   identityValid,
   signalLedgerValid,
 } from "../../../olt/scripts/src/engine/runner/attempt-cleanup-validation.ts";
-import type { CommandProcessIdentity } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import type { CommandProcessIdentity } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 const validIdentity: CommandProcessIdentity = {
   pid: 100,

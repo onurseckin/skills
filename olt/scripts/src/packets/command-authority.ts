@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import type { RunState } from "../core/contracts/capsule.ts";
-import type { AgentRole } from "../core/contracts/packets.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { RunState } from "../core/contracts/index.ts";
+import type { AgentRole } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/index.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
 import type { Flags } from "../cli/options.ts";

@@ -1,4 +1,4 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { refreshHandoffOnEscalation } from "../../reporting/handoff.ts";
 import { loadRun } from "../../engine/store/index.ts";

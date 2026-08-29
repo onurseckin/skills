@@ -5,7 +5,7 @@ import type {
   DefectResolutionProof,
   LiveDeduplicationOptions,
 } from "../../mind/defects/types.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import {
   compactDefectLogFile,
   readDefectLogFile,

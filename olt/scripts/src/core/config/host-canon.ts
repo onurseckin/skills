@@ -1,6 +1,6 @@
 import { HarnessError } from "../errors/harness-error.ts";
-import type { HostProvider } from "../../platform/types.ts";
-import { HOST_PROVIDERS, isHostProvider } from "../../platform/types.ts";
+import type { HostProvider } from "../../platform/host/types.ts";
+import { HOST_PROVIDERS, isHostProvider } from "../../platform/host/types.ts";
 import type { ExternallyAttestedFact } from "./provenance.ts";
 import { attestedFact, unattestedFact, unreadableFact } from "./provenance.ts";
 

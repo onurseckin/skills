@@ -9,7 +9,7 @@ import {
   mindObserveCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-observe.ts";
 import { COMMAND_REGISTRY, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   findSourceDefinition,
   getSourceDefinition,

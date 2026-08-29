@@ -17,7 +17,7 @@ import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init
 import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
 import { mindRotateCommand } from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
 import { mindWakeCommand } from "../../../olt/scripts/src/cli/commands/mind-wake.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 function simulatePulseClose(params: {
   run: string;

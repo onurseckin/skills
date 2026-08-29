@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import { getHarnessConfig } from "../../core/config/index.ts";
 import { readBoundedBytes } from "../../core/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { AutonomousLoopRunner } from "../../orchestrator/loop-runner.ts";
 import { formatMorningReportMarkdown } from "../../orchestrator/morning-report.ts";
 import { runSupervisionWatch } from "../../orchestrator/supervision-watch.ts";

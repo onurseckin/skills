@@ -3,7 +3,7 @@ import { loadRun } from "../engine/store/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
 import { systemClock, type Clock } from "../workflow/types.ts";
 import { escalateTask } from "../workflow/lease/escalate.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { OrchestratorCompanionAuditor } from "./companion-auditor.ts";
 import { selectDispatchable, type BackingOffTask } from "./dispatch-selection.ts";
 import {

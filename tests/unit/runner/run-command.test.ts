@@ -11,14 +11,14 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { releaseFlock as releaseNativeFlock } from "../../../olt/scripts/src/platform/flock-ffi.ts";
+import { releaseFlock as releaseNativeFlock } from "../../../olt/scripts/src/platform/index.ts";
 import {
   prepareCommand,
   executePreparedCommand,
   setExecutionLockDependenciesForTesting,
 } from "../../../olt/scripts/src/engine/runner/run-command.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { resolveScratchDir } from "../../../olt/scripts/src/core/shared/paths.ts";
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
 import type {

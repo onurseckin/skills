@@ -1,6 +1,6 @@
-import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { findGrant, readAgentLedger } from "./ledger.ts";
 
 export type UnattributedReason = "empty-ledger" | "no-such-grant" | "grant-released";

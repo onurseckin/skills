@@ -1,4 +1,4 @@
-import type { BranchRecord, BranchSubTask } from "../../core/contracts/branch.ts";
+import type { BranchRecord, BranchSubTask } from "../../core/contracts/index.ts";
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
 import {
   branchClaimNextActions,

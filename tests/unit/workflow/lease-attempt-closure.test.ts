@@ -7,7 +7,7 @@ import {
 import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { recoverStale } from "../../../olt/scripts/src/workflow/lease/recover-stale.ts";
 import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "./test-port.ts";
 
 const start = at("2026-08-19T00:00:00.000Z");

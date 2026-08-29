@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { EvidenceClass } from "../core/contracts/evidence.ts";
-import type { JsonObject } from "../core/contracts/json.ts";
+import type { EvidenceClass } from "../core/contracts/index.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
 import { DEFAULT_PLANNING_POLICY, loadRepoPolicy } from "../policy/repo-policy.ts";
 import { promptLines } from "../requirements/prompt-lines.ts";
 import { looksWholeSuite, namesATarget } from "./gate-breadth.ts";

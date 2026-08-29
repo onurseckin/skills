@@ -17,7 +17,7 @@ import {
   roleToTier,
   type RoleBoundaryAction,
 } from "../../../olt/scripts/src/mind/role-auditing.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("mind/role-auditing > RoleBoundaryWatchdog and Zero-Tolerance Invariants", () => {
   describe("Role classification predicates and tier detection", () => {

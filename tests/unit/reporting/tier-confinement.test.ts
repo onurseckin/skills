@@ -23,11 +23,11 @@ import {
   type TierConfinementFinding,
 } from "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts";
 import * as DoctorIndex from "../../../olt/scripts/src/reporting/doctor/index.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const SCRATCH_DIR = resolve(join(process.cwd(), "coverage", "scratch", "tier-confinement-tests"));

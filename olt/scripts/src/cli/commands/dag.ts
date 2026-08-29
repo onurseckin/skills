@@ -1,6 +1,6 @@
 import { basename, dirname } from "node:path";
-import { getHarnessConfig } from "../../core/config/harness-config.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { getHarnessConfig } from "../../core/config/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { isRecord } from "../../requirements/predicates.ts";
 import type { TaskDeclaration } from "../../requirements/compiler.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";

@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { resolveCapsulesDir } from "../core/shared/paths.ts";
 import { parseCharter, resolveCharterPath } from "./charter.ts";
 

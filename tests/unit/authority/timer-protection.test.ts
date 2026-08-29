@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { TimerProtectionGuard } from "../../../olt/scripts/src/authority/timer-protection-guard.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("TimerProtectionGuard", () => {
   it("blocks subagents from killing protected supervisory timers", () => {

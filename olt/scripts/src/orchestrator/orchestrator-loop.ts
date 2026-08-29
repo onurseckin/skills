@@ -2,7 +2,7 @@
  * Orchestrator delegation and role confinement invariants.
  * Auto-pairs companion Skill Auditor alongside Tier 1 Orchestrator.
  */
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { OrchestratorCompanionAuditor } from "./companion-auditor.ts";
 import type { CompanionPairingResult } from "./types.ts";
 

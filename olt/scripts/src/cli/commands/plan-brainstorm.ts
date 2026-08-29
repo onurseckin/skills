@@ -1,8 +1,8 @@
 import { lstatSync } from "node:fs";
 import { isAbsolute, join, resolve, sep } from "node:path";
 import { canonicalJsonBytes, sha256Bytes } from "../../core/json.ts";
-import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import { BrainstormEngine, type BrainstormResult } from "../../graph/brainstorm-engine.ts";
 import { BRAINSTORMING_SCHEMA, BRAINSTORMING_VERSION, loadRun } from "../../engine/store/index.ts";

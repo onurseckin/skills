@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { TelemetryFieldConflict } from "../../../olt/scripts/src/core/contracts/agents.ts";
+import type { TelemetryFieldConflict } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { makeGrant, makeState, makeTask } from "./graph-fixtures.ts";

@@ -17,7 +17,7 @@ import {
   type CounterfactualEvidenceItem,
 } from "../../../olt/scripts/src/authority/review-pushback.ts";
 import { MAX_REPAIR_ROUNDS } from "../../../olt/scripts/src/core/config/constants.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("Review Pushback Subsystem (authority/review-pushback.ts)", () => {
   describe("SUPERFICIAL_PATTERNS and rejectSuperficialClaims", () => {

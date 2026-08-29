@@ -1,4 +1,4 @@
-import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
+import { isJsonObject, type JsonObject } from "../core/contracts/index.ts";
 import { isImplementerRole, isCoordinatorRole, isOrchestratorRole } from "./behavioral-auditor.ts";
 
 export type SocraticDimension =

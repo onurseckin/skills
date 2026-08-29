@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { RootDirectoryHygieneGuard } from "../../../olt/scripts/src/authority/root-hygiene-guard.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("RootDirectoryHygieneGuard", () => {
   const repoRoot = "/Users/foo/repos/skills";

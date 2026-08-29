@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { evidenced } from "../../../../olt/scripts/src/core/contracts/evidence.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/harness-error.ts";
+import { evidenced } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   appendGateProof,
   type GateProofRecord,

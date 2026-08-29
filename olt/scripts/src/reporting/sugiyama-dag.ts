@@ -2,7 +2,7 @@
  * Sugiyama Hierarchical DAG Renderer & Visual Diagnostics Subsystem
  * Implements layered ranking, barycenter crossing minimization, Tarjan cycle alerts, and orthogonal routing.
  */
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { scopeConflict } from "../engine/scheduler/conflicts.ts";
 import { schedulingMetrics, type SchedulingMetrics } from "../engine/scheduler/metrics.ts";
 

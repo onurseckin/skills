@@ -1,4 +1,4 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { isValidatorDomain } from "../../packets/role-contract.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";

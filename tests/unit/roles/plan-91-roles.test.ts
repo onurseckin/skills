@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { AGENT_ROLES, type AgentRole } from "../../../olt/scripts/src/core/contracts/packets.ts";
+import { AGENT_ROLES, type AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   loadRoleContract,
   resolveRoleContractPath,

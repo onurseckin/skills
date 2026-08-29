@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
-import type { CommandAttemptStartedRecord } from "../../core/contracts/commands.ts";
+import type { CommandAttemptStartedRecord } from "../../core/contracts/index.ts";
 import { readCanonicalObject, sha256Bytes } from "../../core/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { cleanupDispositionIssues } from "./attempt-cleanup-disposition.ts";
 import {
   readProcessIdentity,

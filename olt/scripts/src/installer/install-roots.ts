@@ -1,6 +1,6 @@
 import { lstat, mkdir, realpath } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 function contains(parent: string, child: string): boolean {
   const rel = relative(parent, child);

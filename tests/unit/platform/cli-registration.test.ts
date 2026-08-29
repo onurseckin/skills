@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertAgentRegistered,
   buildAgentRegisterCommand,

@@ -3,11 +3,8 @@ import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
-import {
-  createAgentMetadata,
-  writeAgentMetadata,
-} from "../../../olt/scripts/src/runtime/agent-metadata.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { createAgentMetadata, writeAgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
 import {
   taskClaimCommand,
   taskSubmitCommand,

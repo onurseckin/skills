@@ -1,7 +1,7 @@
 import { relative, sep, join } from "node:path";
-import type { CommandRecord } from "../../core/contracts/commands.ts";
+import type { CommandRecord } from "../../core/contracts/index.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { canonicalCommandFingerprint, commandId } from "./command-id.ts";
 import { portableArtifactPath } from "./artifact-paths.ts";
 import type { CommandRuntimeCapability } from "./command-execution-snapshot.ts";

@@ -1,9 +1,9 @@
-import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
-import type { BranchRecord } from "../../core/contracts/branch.ts";
-import type { Manifest } from "../../core/contracts/capsule.ts";
-import type { CommandRecord } from "../../core/contracts/commands.ts";
-import { isJsonObject } from "../../core/contracts/json.ts";
-import type { TopologyRecord } from "../../core/contracts/topology.ts";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
+import type { BranchRecord } from "../../core/contracts/index.ts";
+import type { Manifest } from "../../core/contracts/index.ts";
+import type { CommandRecord } from "../../core/contracts/index.ts";
+import { isJsonObject } from "../../core/contracts/index.ts";
+import type { TopologyRecord } from "../../core/contracts/index.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import { readAgentLedgerView } from "../metrics/agent-telemetry.ts";
 import type { AsciiWave } from "./markdown-ascii-graph.ts";

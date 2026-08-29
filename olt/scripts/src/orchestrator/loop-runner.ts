@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { resolveCapsulesDir } from "../core/shared/paths.ts";
 import { normalizeRunId } from "../engine/store/run-id.ts";
 import { OrchestratorCompanionAuditor } from "./companion-auditor.ts";

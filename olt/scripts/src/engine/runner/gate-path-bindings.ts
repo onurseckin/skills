@@ -1,8 +1,8 @@
 import { closeSync } from "node:fs";
 import { resolve } from "node:path";
-import type { CommandPathBinding } from "../../core/contracts/commands.ts";
+import type { CommandPathBinding } from "../../core/contracts/index.ts";
 import { safeRepoPath } from "../../core/paths.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { commandLayers } from "./command-wrappers.ts";
 import { pathOperand, pathRole } from "./gate-path-operands.ts";
 import {

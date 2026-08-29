@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import {
   repositoryGit,
   repositoryWorktree,

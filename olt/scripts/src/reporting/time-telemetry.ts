@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { HarnessEvent } from "../core/contracts/capsule.ts";
-import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
+import type { HarnessEvent } from "../core/contracts/index.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/index.ts";
 import {
   calculateDrift,
   calculateDuration,
@@ -9,8 +9,8 @@ import {
   getDualTime,
   isDualTimeRecord,
   type DualTimeRecord,
-} from "../core/dual-time.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+} from "../core/dual-time/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 /**
  * Canonical action category domains across the 4-tier autonomous harness hierarchy.

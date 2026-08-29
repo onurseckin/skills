@@ -1,6 +1,6 @@
-import type { AgentRole } from "../core/contracts/packets.ts";
-import type { JsonObject } from "../core/contracts/json.ts";
-import { trustedHostEvidence, trustedHostLimitations } from "../core/contracts/trusted-host.ts";
+import type { AgentRole } from "../core/contracts/index.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
+import { trustedHostEvidence, trustedHostLimitations } from "../core/contracts/index.ts";
 
 const taskSubmission: JsonObject = {
   summary: "<nonempty summary>",

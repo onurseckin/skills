@@ -4,8 +4,8 @@ import { join, resolve } from "node:path";
 import { mindAuditLiveCommand } from "../../olt/scripts/src/cli/commands/mind-audit-live.ts";
 import { skillAuditLiveCommand } from "../../olt/scripts/src/cli/commands/skill-audit-live.ts";
 import { execute } from "../../olt/scripts/src/cli/execute.ts";
-import type { AgentGrantRecord } from "../../olt/scripts/src/core/contracts/agents.ts";
-import { HarnessError } from "../../olt/scripts/src/core/errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { SkillAuditorPolicy } from "../../olt/scripts/src/engine/scheduler/skill-auditor-policy.ts";
 import {
   AuditorCursorStore,

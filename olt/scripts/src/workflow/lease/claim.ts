@@ -1,5 +1,5 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import type { Evidenced } from "../../core/contracts/evidence.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import type { Evidenced } from "../../core/contracts/index.ts";
 import { newLeaseToken, tokenDigest } from "./token.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";

@@ -8,7 +8,7 @@
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, isAbsolute, relative, resolve } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { findRepoRoot } from "./isolation.ts";
 import { isTestFilePath } from "./concurrency-lock.ts";
 

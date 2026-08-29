@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { BranchRecord } from "../../../olt/scripts/src/core/contracts/branch.ts";
+import type { BranchRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { CompletionReview } from "../../../olt/scripts/src/workflow/types.ts";
 import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
 import { makeState, makeTask } from "./graph-fixtures.ts";

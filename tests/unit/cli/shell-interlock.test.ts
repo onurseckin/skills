@@ -22,12 +22,12 @@ import {
   checkReadScopeAuthorization,
   isWithinNeighborhood,
 } from "../../../olt/scripts/src/runtime/read-scope-guard.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   createAgentMetadata,
   getAgentMetadataPath,
   writeAgentMetadata,
-} from "../../../olt/scripts/src/runtime/agent-metadata.ts";
+} from "../../../olt/scripts/src/runtime/index.ts";
 import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
@@ -206,7 +206,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
     test("refuses unknown capsule gate before recording command evidence", async () => {
       const { setupCompiledRun } = await import("./task-ops-fixture.ts");
       const { writeAgentMetadata, createAgentMetadata } =
-        await import("../../../olt/scripts/src/runtime/agent-metadata.ts");
+        await import("../../../olt/scripts/src/runtime/index.ts");
       const { join } = await import("node:path");
       const { run: runRoot } = await setupCompiledRun("shell-unknown-gate", []);
       writeAgentMetadata(
@@ -339,7 +339,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
       ]);
 
       const { writeAgentMetadata, createAgentMetadata } =
-        await import("../../../olt/scripts/src/runtime/agent-metadata.ts");
+        await import("../../../olt/scripts/src/runtime/index.ts");
       writeAgentMetadata(
         createAgentMetadata({
           agent_id: "worker-1",
@@ -545,7 +545,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
 
       // Shared top-level directory: common >= 1
       const isNeighborPolicy = isWithinNeighborhood(
-        "src/runtime/agent-metadata.ts",
+        "src/runtime/index.ts",
         ["src/policy/repo-policy.ts"],
         2,
       );

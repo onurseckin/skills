@@ -4,7 +4,7 @@ import {
   projectTaskReviewState,
   ReviewProtocolEngine,
 } from "../../../olt/scripts/src/policy/review-protocol.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Task Review Dual-Channel Pushback Enforcement", () => {

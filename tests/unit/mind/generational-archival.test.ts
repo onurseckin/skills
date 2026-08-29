@@ -17,8 +17,8 @@ import {
   formatMindRotateBrief,
   mindRotateCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   appendArchivedObjectives,
   __setArchivedObjectivesPersistenceTestHook,

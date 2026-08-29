@@ -12,8 +12,8 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { isJsonObject, type JsonObject, type JsonValue } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { isJsonObject, type JsonObject, type JsonValue } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { safeRmSync } from "../core/shared/safe-fs.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../packets/repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "../packets/repository-git-metadata.ts";

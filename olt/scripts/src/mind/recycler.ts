@@ -1,6 +1,6 @@
 import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
-import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/load.ts";
 import { transact } from "../engine/store/transaction.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";

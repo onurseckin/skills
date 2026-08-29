@@ -7,7 +7,7 @@
  * more token-efficient, and higher quality?"
  */
 
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import {
   COGNITIVE_PILLARS,
   type CognitivePillar,

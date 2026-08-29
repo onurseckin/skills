@@ -6,9 +6,9 @@ import {
   type TierConfinementFinding,
 } from "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts";
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Mechanical Supervisor Code-Editing Ban & Doctor Enforcement (p46)", () => {

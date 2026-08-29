@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   OrchestratorCompanionAuditor,
   executeBehavioralForensics,
@@ -10,7 +10,7 @@ import {
   pairCompanionAuditor,
   assertBehavioralCompliance,
 } from "../../../olt/scripts/src/orchestrator/companion-auditor.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { BehavioralForensicsReport } from "../../../olt/scripts/src/orchestrator/types.ts";
 
 describe("OrchestratorCompanionAuditor Unit Tests", () => {

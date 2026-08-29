@@ -3,8 +3,8 @@ import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
-import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/repository.ts";
+import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
 
 // The tools' own variable names, held as values so no product names a symbol in this suite.

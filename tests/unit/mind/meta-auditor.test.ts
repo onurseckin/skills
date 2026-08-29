@@ -28,13 +28,13 @@ import {
   renderEfficiencyMetricsTable,
   renderForensicsIncidentTable,
 } from "../../../olt/scripts/src/cli/commands/meta-audit.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
-import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   __setFeedbackQueuePersistenceTestHook,
   readFeedbackQueue,
 } from "../../../olt/scripts/src/mind/feedback-queue.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Deep Behavioral Forensics Engine (meta-auditor)", () => {

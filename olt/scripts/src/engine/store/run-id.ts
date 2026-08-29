@@ -1,5 +1,5 @@
 import { sep } from "node:path";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 
 const PREFIXES = [".olt/capsules/", ".capsules/", "capsules/"] as const;
 

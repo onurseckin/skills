@@ -1,9 +1,9 @@
 import { lstatSync, realpathSync } from "node:fs";
 import type { Stats } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
-import type { JsonObject } from "../core/contracts/json.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../core/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { commandOutputRetryingEmpty, type RepositoryGitCommand } from "./repository-git-command.ts";
 import { rejectLocalGitHelpers } from "./repository-git-helper-policy.ts";
 import { readRepositoryGitControlFile } from "./repository-git-safe-file.ts";

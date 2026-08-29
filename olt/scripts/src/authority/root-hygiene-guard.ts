@@ -1,5 +1,5 @@
 import { isAbsolute, relative } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 const ALLOWED_ROOT_FILES: ReadonlySet<string> = new Set([
   "package.json",

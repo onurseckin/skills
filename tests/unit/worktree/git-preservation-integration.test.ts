@@ -17,7 +17,7 @@ import {
   type GitRunner,
   type GitSpawn,
 } from "../../../olt/scripts/src/workflow/worktree/git.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservation", () => {
   function createTrackingSpawn(recordedCalls: Array<{ cmd: string; args: string[] }>): GitSpawn {

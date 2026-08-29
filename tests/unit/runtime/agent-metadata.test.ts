@@ -9,14 +9,14 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   createAgentMetadata,
   findAgentMetadataLocation,
   getAgentMetadataPath,
   setAgentMetadataDependenciesForTesting,
   writeAgentMetadata,
-} from "../../../olt/scripts/src/runtime/agent-metadata.ts";
+} from "../../../olt/scripts/src/runtime/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const caller = import.meta.path;
@@ -26,7 +26,7 @@ function metadata(agentId: string): Record<string, unknown> {
     agent_id: agentId,
     role: "implementer",
     tier: 3,
-    write_scope: ["olt/scripts/src/runtime/agent-metadata.ts"],
+    write_scope: ["olt/scripts/src/runtime/index.ts"],
     allowed_read_scope: ["olt/scripts/src/runtime"],
     can_execute_shell: true,
     spawned_at: "2026-08-26T00:00:00.000Z",

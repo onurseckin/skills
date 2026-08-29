@@ -20,8 +20,8 @@ import {
 import { join, resolve, dirname, basename, isAbsolute } from "node:path";
 import { randomBytes } from "node:crypto";
 import { randomUUID } from "node:crypto";
-import { HarnessError } from "../core/errors/harness-error.ts";
-import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/index.ts";
+import { isJsonObject, type JsonObject } from "../core/contracts/index.ts";
 import {
   findRepoRoot,
   isInsideCapsule,
@@ -31,7 +31,7 @@ import {
 } from "../core/shared/paths.ts";
 import { loadRun } from "../engine/store/load.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
-import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 
 let sessionPersistenceObserver:
   | ((step: "file-fsync" | "rename" | "directory-fsync", path: string) => void)

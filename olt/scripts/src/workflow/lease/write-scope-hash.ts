@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import type { Stats } from "node:fs";
 import { join, relative, sep } from "node:path";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { safeRepoPath } from "../../core/paths.ts";
 
 const MAX_FILE_BYTES = 64 * 1024 * 1024;

@@ -1,4 +1,4 @@
-import type { JsonObject } from "../core/contracts/json.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
 import type { TransactionPort, WorkflowState } from "../workflow/types.ts";
 import {
   type ClassificationResult,

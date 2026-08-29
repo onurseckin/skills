@@ -1,14 +1,14 @@
 import { dirname, isAbsolute, normalize, relative, resolve } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
-import type { AgentMetadata } from "./agent-metadata.ts";
+import type { AgentMetadata } from "./index.ts";
 import {
   createAgentMetadata,
   findAgentMetadataLocation,
   getAgentMetadataPath,
   withAgentMetadataMutationLock,
   writeAgentMetadataUnlocked,
-} from "./agent-metadata.ts";
+} from "./index.ts";
 
 export interface ReadScopeCheckResult {
   readonly authorized: boolean;

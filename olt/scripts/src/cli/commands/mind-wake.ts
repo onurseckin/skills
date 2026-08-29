@@ -1,4 +1,4 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { buildWakeBrief } from "../../mind/brief.ts";
 import { reclaimDeadPulse } from "../../mind/pulse-reclaim.ts";
 import { renderHandoff } from "../../reporting/handoff.ts";

@@ -5,7 +5,7 @@ import {
   isAnyValidatorRole,
   isCognitiveValidatorRole,
   isMechanicValidatorRole,
-} from "../../../olt/scripts/src/core/contracts/packets.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 
 describe("core contracts/packets", () => {
   test("AGENT_ROLES lists all 16 canonical roles", () => {

@@ -1,9 +1,9 @@
-import type { JsonObject } from "../../core/contracts/json.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { commandMatchesGate, workflowGates } from "../gates/gate-policy.ts";
 import type { GateRuntime, WorkflowState } from "../types.ts";
 import { jsonDigest } from "./completion-review-digest.ts";
 import { currentRepositoryBinding } from "./repository-binding.ts";
-import type { RepositoryBinding } from "../../core/contracts/repository.ts";
+import type { RepositoryBinding } from "../../core/contracts/index.ts";
 
 function sortedValues<T extends { id: string }>(values: T[] | Record<string, T> | unknown): T[] {
   const arr = Array.isArray(values)

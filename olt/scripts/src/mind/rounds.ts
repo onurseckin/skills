@@ -1,7 +1,7 @@
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import type { JsonObject } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { chainCapsules } from "../orchestrator/capsule-chainer.ts";
 import type { CapsuleChainManifest, DefectSynthesis } from "../orchestrator/types.ts";
 import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";

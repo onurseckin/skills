@@ -1,4 +1,4 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 export function assertActiveCriticDeadline(value: unknown, now: number): void {
   if (typeof value !== "string" || !Number.isFinite(Date.parse(value)))

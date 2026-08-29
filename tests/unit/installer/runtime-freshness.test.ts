@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { cp, mkdir, realpath, symlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { clientLinkPaths } from "../../../olt/scripts/src/installer/client-links.ts";
 import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
 import {

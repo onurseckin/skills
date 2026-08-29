@@ -1,7 +1,7 @@
 import { dirname, join } from "node:path";
 import { mkdirSync, writeFileSync } from "node:fs";
-import type { RepositoryBinding } from "../../core/contracts/repository.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { RepositoryBinding } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";

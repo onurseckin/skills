@@ -2,14 +2,14 @@ import {
   executePhaseCompletionSyncAndCommit,
   type PhaseCompletionResult,
 } from "../../workflow/completion/auto-sync-and-commit.ts";
-import { readAgentMetadata } from "../../runtime/agent-metadata.ts";
+import { readAgentMetadata } from "../../runtime/index.ts";
 import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import type { JsonObject } from "../../core/contracts/json.ts";
-import { getHarnessConfig } from "../../core/config/harness-config.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
+import { getHarnessConfig } from "../../core/config/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { runAndRecordCommand } from "../../integration/record-command.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
@@ -31,7 +31,7 @@ import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/consolidate.ts";
 import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
-import type { WorktreeConsolidationRecord } from "../../core/contracts/worktree.ts";
+import type { WorktreeConsolidationRecord } from "../../core/contracts/index.ts";
 import {
   formatRunCompleteBrief,
   formatRunExecBrief,

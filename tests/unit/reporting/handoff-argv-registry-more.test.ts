@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
+import type { RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 import { renderHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";

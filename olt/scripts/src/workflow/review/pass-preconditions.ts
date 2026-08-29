@@ -1,6 +1,6 @@
-import type { CommandRecord, CommandStatus } from "../../core/contracts/commands.ts";
-import { isEvidenced } from "../../core/contracts/evidence.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { CommandRecord, CommandStatus } from "../../core/contracts/index.ts";
+import { isEvidenced } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { latestGateProof, type GateProofRecord } from "../../graph/gate-proof.ts";
 import { normalizeScopePath } from "../../graph/scope-analyzer.ts";
 import { applicableGates, commandArgv } from "../gates/gate-policy.ts";

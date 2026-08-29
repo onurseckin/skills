@@ -1,4 +1,4 @@
-import type { Evidenced } from "../core/contracts/evidence.ts";
+import type { Evidenced } from "../core/contracts/index.ts";
 import type { EnhancedPlanDocument } from "./enhanced-plan.ts";
 
 const NONE = "_Nothing reported._";

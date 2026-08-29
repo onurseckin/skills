@@ -1,6 +1,6 @@
-import type { CommandAttemptRecord, CommandRecord } from "../../core/contracts/commands.ts";
+import type { CommandAttemptRecord, CommandRecord } from "../../core/contracts/index.ts";
 import { canonicalJsonBytes } from "../../core/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { MAX_COMMAND_RETRIES } from "./policy.ts";
 
 export const MAX_COMMAND_RECORD_BYTES = 16 * 1024 * 1024;

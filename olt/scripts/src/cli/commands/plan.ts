@@ -1,8 +1,8 @@
 import { basename, dirname, resolve } from "node:path";
-import { getHarnessConfig } from "../../core/config/harness-config.ts";
-import { isJsonObject, type JsonObject, type JsonValue } from "../../core/contracts/json.ts";
+import { getHarnessConfig } from "../../core/config/index.ts";
+import { isJsonObject, type JsonObject, type JsonValue } from "../../core/contracts/index.ts";
 import { readBoundedBytes } from "../../core/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { partitionByGlob, slugifyScope } from "../../graph/auto-partition.ts";
 import { compileGraphDocument } from "../../graph/compiler.ts";
 import { projectPlan } from "../../graph/project-plan.ts";

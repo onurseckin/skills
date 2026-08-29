@@ -1,6 +1,6 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
-import type { Finding } from "../../core/contracts/workflow.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import type { Finding } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { jsonCopy, requireText, taskIn, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
 import { tokenMatches } from "../lease/token.ts";

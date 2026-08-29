@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { symlinkSync, writeFileSync } from "node:fs";
 import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { cleanInstallerFixtures, installerFixture } from "./helpers.ts";

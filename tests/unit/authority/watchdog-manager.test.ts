@@ -35,7 +35,7 @@ import {
   watchdogStatusCommand,
   watchdogVerifyCommand,
 } from "../../../olt/scripts/src/cli/commands/watchdog-ops.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("WatchdogManager - Store Lifecycle & Resolution", () => {
@@ -470,8 +470,7 @@ describe("WatchdogManager - Registration & Single Active Invariant", () => {
   test("times out without changing bytes while another process owns the parent inode", async () => {
     const dir = scratchRoot(import.meta.path, "lock-timeout");
     const ready = join(dir, "holder-ready");
-    const flockUrl = new URL("../../../olt/scripts/src/platform/flock-ffi.ts", import.meta.url)
-      .href;
+    const flockUrl = new URL("../../../olt/scripts/src/platform/index.ts", import.meta.url).href;
     const script = `
       import { closeSync, constants, openSync, writeFileSync } from "node:fs";
       import { releaseFlock, tryExclusiveFlock } from ${JSON.stringify(flockUrl)};
@@ -513,8 +512,7 @@ describe("WatchdogManager - Registration & Single Active Invariant", () => {
       watchdogs: [],
     });
     writeFileSync(join(oltDir, "watchdogs.json"), initialBytes, "utf8");
-    const flockUrl = new URL("../../../olt/scripts/src/platform/flock-ffi.ts", import.meta.url)
-      .href;
+    const flockUrl = new URL("../../../olt/scripts/src/platform/index.ts", import.meta.url).href;
     const script = `
       import { closeSync, constants, openSync, writeFileSync } from "node:fs";
       import { releaseFlock, tryExclusiveFlock } from ${JSON.stringify(flockUrl)};
@@ -555,8 +553,7 @@ describe("WatchdogManager - Registration & Single Active Invariant", () => {
 
   test("releases a crashed child holder before the next mutation", async () => {
     const dir = scratchRoot(import.meta.path, "crash-release");
-    const flockUrl = new URL("../../../olt/scripts/src/platform/flock-ffi.ts", import.meta.url)
-      .href;
+    const flockUrl = new URL("../../../olt/scripts/src/platform/index.ts", import.meta.url).href;
     const script = `
       import { constants, openSync } from "node:fs";
       import { tryExclusiveFlock } from ${JSON.stringify(flockUrl)};

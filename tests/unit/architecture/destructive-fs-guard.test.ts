@@ -7,7 +7,10 @@ const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const oltScriptsRoot = join(repoRoot, "olt/scripts/src");
 const syncScriptsRoot = join(repoRoot, "scripts");
 
-const GUARD_MODULE = join(oltScriptsRoot, "core/shared/safe-fs.ts");
+const GUARD_MODULES = [
+  join(oltScriptsRoot, "core/shared/safe-fs.ts"),
+  join(oltScriptsRoot, "core/shared/safe-fs/atomic.ts"),
+];
 
 const installerPathSafetyRoot = join(oltScriptsRoot, "installer");
 
@@ -49,7 +52,7 @@ describe("destructive filesystem guard", () => {
     ];
     const violations: string[] = [];
     for (const path of prodFiles) {
-      if (path === GUARD_MODULE) continue;
+      if (GUARD_MODULES.includes(path)) continue;
       if (path.endsWith(".test.ts")) continue;
       if (path.startsWith(installerPathSafetyRoot + "/")) continue;
       const source = await readFile(path, "utf8");

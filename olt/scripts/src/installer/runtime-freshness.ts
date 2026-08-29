@@ -1,8 +1,8 @@
 import { homedir } from "node:os";
 import { lstat, realpath } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import type { JsonValue } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { JsonValue } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { clientLinkPaths } from "./client-links.ts";
 import { SKILL_NAME } from "./constants.ts";
 import { validateSkillSource, type ValidatedSkillSource } from "./source-validation.ts";

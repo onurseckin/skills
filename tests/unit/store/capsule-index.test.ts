@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
+import type { RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   buildIndex,
   indexFreshness,

@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { doctorCertifyCommand } from "../../../olt/scripts/src/reporting/doctor/certify-command.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 

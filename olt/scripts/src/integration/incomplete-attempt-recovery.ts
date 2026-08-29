@@ -5,10 +5,10 @@ import type {
   CommandAttemptStartedRecord,
   CommandLogMetadata,
   CommandRecord,
-} from "../core/contracts/commands.ts";
+} from "../core/contracts/index.ts";
 import { atomicWriteBytes, atomicWriteJson } from "../core/durable-write.ts";
 import { readBoundedBytes, readCanonicalObject, sha256Bytes } from "../core/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import {
   attemptStartedIssues,
   probeAttemptProcess,

@@ -1,7 +1,7 @@
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/json.ts";
-import type { RunState } from "../../../../olt/scripts/src/core/contracts/capsule.ts";
+import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { transact } from "../../../../olt/scripts/src/engine/store/transaction.ts";
-import type { WorktreeLedgerState } from "../../../../olt/scripts/src/core/contracts/worktree.ts";
+import type { WorktreeLedgerState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { writeWorktreeLedger } from "../../../../olt/scripts/src/workflow/worktree/ledger.ts";
 
 export const FAKE_RUN_ROOT = "fake-run-root";

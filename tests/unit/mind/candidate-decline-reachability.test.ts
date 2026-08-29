@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
 import { mindCandidateCommand } from "../../../olt/scripts/src/cli/commands/mind-candidate.ts";
 import { mindDeclineCommand } from "../../../olt/scripts/src/cli/commands/mind-admit.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { captureInitCommand } from "../../../olt/scripts/src/cli/commands/capture-init.ts";
 import {
   CAPTURE_RUN_MISSING_PROVIDER_FIX,

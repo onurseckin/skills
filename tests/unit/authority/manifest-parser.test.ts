@@ -32,7 +32,7 @@ import {
   type SupervisoryPersonaReminder,
   type SupervisoryReminderEvaluationContext,
 } from "../../../olt/scripts/src/authority/supervisory-persona-reminder.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("YAML and Markdown Frontmatter Parser (manifest-parser.ts)", () => {

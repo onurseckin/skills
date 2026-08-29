@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { ParallelWaveDispatchEnforcer } from "../../../olt/scripts/src/engine/scheduler/parallel-enforcer.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("ParallelWaveDispatchEnforcer", () => {
   it("can be instantiated", () => {

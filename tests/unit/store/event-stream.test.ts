@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
+import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { validateEventChain } from "../../../olt/scripts/src/engine/store/event-stream.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";

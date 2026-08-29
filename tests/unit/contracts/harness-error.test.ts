@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { ERROR_CODES, type ErrorCode } from "../../../olt/scripts/src/core/errors/codes.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
-import { normalizeError } from "../../../olt/scripts/src/core/errors/normalize-error.ts";
+import { ERROR_CODES, type ErrorCode } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { normalizeError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("core errors contract: HarnessError, codes, and normalizeError", () => {
   test("ERROR_CODES contains all canonical error code variants", () => {

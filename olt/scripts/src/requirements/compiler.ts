@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { promptLines } from "./prompt-lines.ts";
 import { validateRequirements } from "./validate-requirements.ts";
 

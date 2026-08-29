@@ -8,7 +8,7 @@ import {
   type WorktreeLedgerState,
   type WorktreeMergeConflict,
   type WorktreeRecord,
-} from "../../../olt/scripts/src/core/contracts/worktree.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 
 function worktree(overrides: Partial<WorktreeRecord> = {}): WorktreeRecord {
   return {

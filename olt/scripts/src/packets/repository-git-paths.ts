@@ -1,4 +1,4 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import type { RepositoryContentPath, RepositoryIndexEntry } from "./repository-content-types.ts";
 import {
   DEFAULT_REPOSITORY_CONTENT_POLICY,

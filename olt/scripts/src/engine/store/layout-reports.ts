@@ -1,6 +1,6 @@
 import { existsSync, lstatSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import type { IntegrityIssue } from "../../core/contracts/capsule.ts";
+import type { IntegrityIssue } from "../../core/contracts/index.ts";
 import { issue } from "./issues.ts";
 import { isRecord, type JsonRecord } from "./layout-json.ts";
 

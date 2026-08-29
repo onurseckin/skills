@@ -1,5 +1,5 @@
 import { statSync } from "node:fs";
-import type { EvidenceClass } from "../core/contracts/evidence.ts";
+import type { EvidenceClass } from "../core/contracts/index.ts";
 import { readBrowserRunReport, type BrowserReportFacts } from "./browser-run-report.ts";
 import { findBrowserReportCandidates } from "./browser-run-scanner.ts";
 import { writeBrowserRunRecord } from "./browser-run-store.ts";

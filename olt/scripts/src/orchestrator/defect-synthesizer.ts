@@ -1,6 +1,6 @@
-import type { EvidenceClass } from "../core/contracts/evidence.ts";
+import type { EvidenceClass } from "../core/contracts/index.ts";
 import type { FindingDetail } from "../workflow/scope-partitioner.ts";
-import type { Finding } from "../core/contracts/workflow.ts";
+import type { Finding } from "../core/contracts/index.ts";
 import type { DefectSynthesis, CriticDecision, RoundGateResult } from "./types.ts";
 import type { SmartTaskPlan } from "../mind/smart-task-manager.ts";
 import {

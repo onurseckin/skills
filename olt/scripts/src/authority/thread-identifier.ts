@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import os from "node:os";
 import { durableAppendBytes } from "../core/durable-write.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { isTestEnvironment, resolveDefectsPath } from "../core/shared/paths.ts";
 
 export type ExecutionTier = 0 | 1 | 2 | 3;

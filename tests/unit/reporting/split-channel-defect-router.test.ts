@@ -14,7 +14,7 @@ import {
   SplitChannelDefectRouter,
   type DefectRouteResult,
 } from "../../../olt/scripts/src/reporting/split-channel-defect-router.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 const scratchRoots: string[] = [];
 

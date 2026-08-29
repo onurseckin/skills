@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { isAgentRole, type AgentRole } from "../core/contracts/packets.ts";
-import { evidenced, type Evidenced } from "../core/contracts/evidence.ts";
+import { isAgentRole, type AgentRole } from "../core/contracts/index.ts";
+import { evidenced, type Evidenced } from "../core/contracts/index.ts";
 import { canonicalJsonBytes } from "../core/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { DEFAULT_PROHIBITIONS, type MindBudget, type ParsedCharter } from "./charter.ts";
 import type { CandidateRecord } from "./gates.ts";
 import {

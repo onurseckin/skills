@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
 import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
 import { skillAuditLiveCommand } from "../../../olt/scripts/src/cli/commands/skill-audit-live.ts";
-import type { JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import {

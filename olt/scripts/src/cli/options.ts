@@ -1,4 +1,4 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { suggestFlag, type FlagValue, type FlagValues } from "./arguments.ts";
 
 export type Flags = Readonly<Record<string, FlagValues>>;

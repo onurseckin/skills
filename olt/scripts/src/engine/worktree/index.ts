@@ -1,5 +1,5 @@
 export * from "./zero-destructive-policy.ts";
-export * from "../../core/contracts/worktree.ts";
+export * from "../../core/contracts/index.ts";
 export * from "../../workflow/worktree/git.ts";
 export * from "../../workflow/worktree/git-ops.ts";
 export * from "../../workflow/worktree/commit.ts";

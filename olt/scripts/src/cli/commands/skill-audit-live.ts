@@ -1,4 +1,4 @@
-import type { JsonObject } from "../../core/contracts/json.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { SkillAuditorEngine } from "../../mind/cognitive-auditors.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";

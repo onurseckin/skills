@@ -6,8 +6,8 @@ import type {
   AgentGrantRecord,
   AgentToolUse,
   TelemetryFieldConflict,
-} from "../../../../olt/scripts/src/core/contracts/agents.ts";
-import { estimated, evidenced } from "../../../../olt/scripts/src/core/contracts/evidence.ts";
+} from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { estimated, evidenced } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import { writeAgentLedger } from "../../../../olt/scripts/src/workflow/agents/ledger.ts";
 import {

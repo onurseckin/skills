@@ -1,5 +1,5 @@
 import * as ffi from "bun:ffi";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { parseDarwinProcessIdentity } from "./darwin-process-identity.ts";
 import type { ProcessIdentity } from "./process-identity.ts";
 import { scanDarwinTokenOwners } from "./darwin-token-owners.ts";

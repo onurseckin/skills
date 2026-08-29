@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { GraphDataset, TimelineEventRecord } from "../../../olt/scripts/src/summary/types.ts";
 import { cleanupRoots, emptyState, metrics, render, task, tempRoot } from "./markdown-fixtures.ts";
 

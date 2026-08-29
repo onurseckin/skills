@@ -1,8 +1,8 @@
-import type { CommandRecord } from "../../core/contracts/commands.ts";
+import type { CommandRecord } from "../../core/contracts/index.ts";
 import {
   sameTrustedHostRepositoryBinding,
   TRUSTED_HOST_ASSURANCE,
-} from "../../core/contracts/trusted-host.ts";
+} from "../../core/contracts/index.ts";
 import { isAbsolute } from "node:path";
 import { canonicalCommandFingerprint } from "../../engine/runner/command-id.ts";
 import { embeddedCommandIssues } from "../../engine/runner/command-shape.ts";

@@ -1,5 +1,5 @@
-import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
-import type { Finding } from "../../core/contracts/workflow.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
+import type { Finding } from "../../core/contracts/index.ts";
 import { isProbeDemand } from "../../workflow/review/finding-class.ts";
 import type { TaskRecord, ValidationAttempt } from "../../workflow/types.ts";
 import {

@@ -1,9 +1,9 @@
 import { existsSync } from "node:fs";
 import { posix } from "node:path";
-import type { CommandAttemptRecord, CommandRecord } from "../core/contracts/commands.ts";
+import type { CommandAttemptRecord, CommandRecord } from "../core/contracts/index.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
 import { readCanonicalObject } from "../core/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { inspectRepositoryBinding } from "../packets/repository-identity.ts";
 import { probeAttemptProcess } from "../engine/runner/attempt-intent.ts";
 import { resolveArtifactPath } from "../engine/runner/artifact-paths.ts";

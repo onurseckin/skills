@@ -1,7 +1,7 @@
 import { basename, resolve } from "node:path";
 import { readFileSync } from "node:fs";
-import { getHarnessConfig } from "../../core/config/harness-config.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { getHarnessConfig } from "../../core/config/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { dependencyMap } from "../../graph/dependency-map.ts";
 import { normalizeScopePath } from "../../graph/scope-analyzer.ts";
 import { projectPlan } from "../../graph/project-plan.ts";
@@ -13,7 +13,7 @@ import { transact } from "../../engine/store/transaction.ts";
 import { formatPlanReplanBrief } from "../formatters/index.ts";
 import { partitionFindingsIntoScopes } from "../../workflow/scope-partitioner.ts";
 import { utc } from "../../workflow/task-state.ts";
-import type { Finding } from "../../core/contracts/workflow.ts";
+import type { Finding } from "../../core/contracts/index.ts";
 import type { TaskRecord, GateRuntime } from "../../workflow/types.ts";
 import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 import { collectReplanFindings } from "./plan-replan-findings.ts";

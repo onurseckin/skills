@@ -46,7 +46,7 @@ export const PATH_SAFETY_AND_INTEGRITY_ENTRIES: readonly ExplainEntry[] = [
         "Something else mutated the path between the check and the read: another agent, a build step, a concurrent install. Stop the concurrent writer and rerun.",
         [
           example("engine/runner/gate-path-file.ts", "gate path changed while opening"),
-          example("platform/run-lock.ts", "run root identity changed while locked: ${runRoot}"),
+          example("platform/index.ts", "run root identity changed while locked: ${runRoot}"),
         ],
       ),
       cause(

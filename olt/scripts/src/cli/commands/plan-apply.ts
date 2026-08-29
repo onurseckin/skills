@@ -1,6 +1,6 @@
 import { basename, join } from "node:path";
-import type { JsonObject } from "../../core/contracts/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { applyPlan, type PlanningStore } from "../../graph/apply-plan.ts";
 import { initializePlannerPacket } from "../../packets/planner-packet.ts";
 import { loadRun } from "../../engine/store/index.ts";

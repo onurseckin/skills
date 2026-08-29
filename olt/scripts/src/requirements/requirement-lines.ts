@@ -1,4 +1,4 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { promptLines } from "./prompt-lines.ts";
 
 const TOKEN_PATTERN = /^(\d{1,9})(?:-(\d{1,9}))?$/u;

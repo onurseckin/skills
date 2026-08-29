@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   MAX_BLOB_BYTES,
   blobContentDigest,

@@ -2,11 +2,11 @@ import { fileURLToPath } from "node:url";
 import { indexFreshness, loadIndex, loadRun, verifyIntegrity } from "../engine/store/index.ts";
 import type { IndexFreshness } from "../engine/store/capsule-index.ts";
 import { workflowView } from "./workflow-view.ts";
-import { trustedHostEvidence, trustedHostLimitations } from "../core/contracts/trusted-host.ts";
+import { trustedHostEvidence, trustedHostLimitations } from "../core/contracts/index.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
 import { nextActions } from "./next-actions.ts";
 import type { NextActions } from "./action-types.ts";
-import type { JsonObject } from "../core/contracts/json.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
 import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
 
 const ENTRYPOINT = fileURLToPath(new URL("../../harness.ts", import.meta.url));

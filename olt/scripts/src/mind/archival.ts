@@ -17,10 +17,10 @@ import {
 } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { isTestEnvironment, resolveCapsulesDir, resolveScratchDir } from "../core/shared/paths.ts";
 import { safeCpSync, safeRenameSync, safeRmSync } from "../core/shared/safe-fs.ts";
-import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 import type { CandidateRecord } from "./gates.ts";
 import type { ObjectiveRecord } from "./rounds.ts";
 

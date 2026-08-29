@@ -1,5 +1,5 @@
-import type { CommandRecord } from "../../core/contracts/commands.ts";
-import { isValidatorDomain, type ValidatorDomain } from "../../core/contracts/workflow.ts";
+import type { CommandRecord } from "../../core/contracts/index.ts";
+import { isValidatorDomain, type ValidatorDomain } from "../../core/contracts/index.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 
 export interface ArchivedRoundContext {

@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

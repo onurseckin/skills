@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
-import type { JsonObject } from "../core/contracts/json.ts";
-import { isJsonObject } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/index.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
+import { isJsonObject } from "../core/contracts/index.ts";
 import { isInteger, isNonblank, isRecord } from "../requirements/predicates.ts";
 import {
   compileRequirementsFromPrompt,

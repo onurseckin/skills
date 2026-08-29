@@ -1,4 +1,4 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { darwinProcessIdentity } from "./darwin-pipes.ts";
 import { linuxProcessIdentity } from "./linux-pipes.ts";
 

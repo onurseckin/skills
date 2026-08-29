@@ -4,14 +4,14 @@ import {
   AGENT_ROLES,
   isAgentRole,
   type AgentRole,
-} from "../../../olt/scripts/src/core/contracts/packets.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   loadRoleContract,
   parseRoleContract,
   resolveRoleContractPath,
 } from "../../../olt/scripts/src/packets/role-contract.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {
   test("mind-auditor is a recognized canonical AgentRole", () => {

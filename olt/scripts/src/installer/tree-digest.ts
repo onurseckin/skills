@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { join, relative, sep } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 
 interface TreeEntry {
   type: "directory" | "file";

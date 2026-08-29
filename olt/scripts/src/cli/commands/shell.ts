@@ -11,16 +11,16 @@ import {
   writeSync,
 } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { actorFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
-import { readAgentMetadata } from "../../runtime/agent-metadata.ts";
+import { readAgentMetadata } from "../../runtime/index.ts";
 import { emitTelemetryEvent } from "../../reporting/telemetry-stream.ts";
 import { findRepoRoot, resolveEvidenceDir, resolveScratchDir } from "../../core/shared/paths.ts";
 import { runExecCommand } from "./run-ops.ts";
-import type { CommandRecord } from "../../core/contracts/commands.ts";
+import type { CommandRecord } from "../../core/contracts/index.ts";
 
 export interface ShellExecutionResult {
   readonly markdown: string;

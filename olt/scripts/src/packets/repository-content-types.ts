@@ -1,4 +1,4 @@
-import type { JsonObject } from "../core/contracts/json.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
 
 export interface RepositoryIndexEntry extends JsonObject {
   mode: string;

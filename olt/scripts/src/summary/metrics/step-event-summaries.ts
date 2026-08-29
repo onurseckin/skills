@@ -1,4 +1,4 @@
-import type { HarnessEvent } from "../../core/contracts/capsule.ts";
+import type { HarnessEvent } from "../../core/contracts/index.ts";
 
 interface EventNarration {
   phase: string;

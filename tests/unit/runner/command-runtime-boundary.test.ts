@@ -3,8 +3,8 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promis
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
-import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/repository.ts";
+import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   MAX_COMMAND_ATTEMPTS,
   MAX_COMMAND_ATTEMPT_BYTES,

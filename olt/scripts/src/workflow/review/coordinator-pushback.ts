@@ -4,9 +4,9 @@ import {
   type CoordinatorPushback,
   type CoordinatorPushbackCause,
   type ValidatorDomain,
-} from "../../core/contracts/workflow.ts";
+} from "../../core/contracts/index.ts";
 import { MAX_REPAIR_ROUNDS } from "../../core/config/constants.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort, type WorkflowState } from "../types.ts";
 import { archiveOpenValidations } from "./validation-state.ts";

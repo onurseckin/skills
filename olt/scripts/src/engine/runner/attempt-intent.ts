@@ -2,7 +2,7 @@ import { dirname, join } from "node:path";
 import type {
   CommandAttemptStartedRecord,
   CommandProcessIdentity,
-} from "../../core/contracts/commands.ts";
+} from "../../core/contracts/index.ts";
 import { atomicWriteJson, fsyncDirectory } from "../../core/durable-write.ts";
 import { attemptStartedBaseDigest } from "./attempt-cleanup-disposition.ts";
 import {

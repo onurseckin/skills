@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/capsule.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { getDualTime, isDualTimeRecord } from "../../../olt/scripts/src/core/dual-time.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { getDualTime, isDualTimeRecord } from "../../../olt/scripts/src/core/dual-time/index.ts";
 import {
   ActionSpan,
   categorizeHarnessAction,

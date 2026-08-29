@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   DEFAULT_RESOLVED_CONFIG,
   resolveHarnessConfig,
-} from "../../../olt/scripts/src/core/config/harness-config.ts";
+} from "../../../olt/scripts/src/core/config/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function makeTempDir(label: string): string {

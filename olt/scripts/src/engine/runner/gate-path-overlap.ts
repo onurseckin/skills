@@ -1,4 +1,4 @@
-import type { CommandPathBinding } from "../../core/contracts/commands.ts";
+import type { CommandPathBinding } from "../../core/contracts/index.ts";
 
 function pathsOverlap(left: string, right: string): boolean {
   const a = left.replace(/\/(?:\*\*)?\*?$/u, "").split("/");

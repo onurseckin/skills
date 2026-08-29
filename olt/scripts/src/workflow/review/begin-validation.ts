@@ -2,8 +2,8 @@ import {
   applicableValidatorDomains,
   isValidatorDomain,
   type ValidatorDomain,
-} from "../../core/contracts/workflow.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+} from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { newLeaseToken, tokenDigest } from "../lease/token.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";

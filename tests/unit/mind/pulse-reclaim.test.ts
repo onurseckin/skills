@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { readLastPulse } from "../../../olt/scripts/src/mind/last-pulse.ts";
 import { reclaimDeadPulse } from "../../../olt/scripts/src/mind/pulse-reclaim.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";

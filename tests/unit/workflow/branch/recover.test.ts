@@ -4,8 +4,8 @@ import {
   BRANCH_LEDGER_KEY,
   readBranchLedger,
 } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/json.ts";
-import type { BranchLease } from "../../../../olt/scripts/src/core/contracts/branch.ts";
+import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { BranchLease } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { branchRecord, subTask } from "./fixture.ts";
 
 function lease(overrides: Partial<BranchLease> = {}): BranchLease {

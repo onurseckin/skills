@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   isLeaseSuspended,
   leaseIsExpired,

@@ -1,5 +1,5 @@
-import type { IntegrityIssue } from "../../core/contracts/capsule.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { IntegrityIssue } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 
 export function issue(
   code: string,

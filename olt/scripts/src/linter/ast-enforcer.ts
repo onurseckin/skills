@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { isRecord } from "../requirements/predicates.ts";
 
 export type AstLintRule =

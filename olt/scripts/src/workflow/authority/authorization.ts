@@ -1,6 +1,6 @@
 import { isRecord } from "../../requirements/predicates.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../core/json.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 
 export type RequirementDisposition = "actionable" | "needs_authority" | "out_of_scope";
 

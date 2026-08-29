@@ -2,8 +2,8 @@ import { closeSync, constants, fsyncSync, openSync, writeSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fsyncDirectory } from "../core/durable-write.ts";
 import { canonicalJsonBytes, readCanonicalObject } from "../core/json.ts";
-import type { JsonObject } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { SKILL_NAME } from "./constants.ts";
 
 export const MARKER_SCHEMA = "harness-install-transaction/v3";

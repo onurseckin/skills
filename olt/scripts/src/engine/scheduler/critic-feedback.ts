@@ -1,7 +1,7 @@
 import { MAX_REPAIR_ROUNDS } from "../../core/config/constants.ts";
-import type { Finding, TaskStatus } from "../../core/contracts/workflow.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { Finding, TaskStatus } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { topologicalOrder, type DependencyMap } from "../../graph/topology.ts";
 import { isInteger, isRecord } from "../../requirements/predicates.ts";
 import { archiveOpenValidations } from "../../workflow/review/validation-state.ts";

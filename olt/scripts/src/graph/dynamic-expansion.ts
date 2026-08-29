@@ -1,4 +1,4 @@
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { isInteger, isNonblank, isRecord } from "../requirements/predicates.ts";
 import type { TaskDeclaration } from "../requirements/compiler.ts";
 import { normalizeScopePath, checkScopeOverlap } from "./scope-analyzer.ts";

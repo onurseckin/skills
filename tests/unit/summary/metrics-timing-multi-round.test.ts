@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/capsule.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import {
   computeGateTiming,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { applicableValidatorDomains } from "../../../olt/scripts/src/core/contracts/workflow.ts";
+import { applicableValidatorDomains } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { finishTask } from "../../../olt/scripts/src/workflow/gates/finish-task.ts";
 import { attachGateResult } from "../../../olt/scripts/src/workflow/gates/attach-result.ts";

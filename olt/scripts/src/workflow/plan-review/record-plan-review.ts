@@ -1,4 +1,4 @@
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { authoritativeRepositoryCommand } from "../completion/repository-evidence.ts";
 import { jsonDigest } from "../completion/completion-review-digest.ts";
 import { tokenMatches } from "../lease/token.ts";

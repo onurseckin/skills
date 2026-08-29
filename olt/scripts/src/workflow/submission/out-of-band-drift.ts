@@ -1,4 +1,4 @@
-import { isJsonObject } from "../../core/contracts/json.ts";
+import { isJsonObject } from "../../core/contracts/index.ts";
 import { anchoredChangedPaths, diffAnchor } from "../../packets/round-repository-delta.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import type { WorkflowState } from "../types.ts";

@@ -2,11 +2,11 @@ import type {
   AgentModelTier,
   TelemetryFieldConflict,
   ThinkingLevel,
-} from "../../core/contracts/agents.ts";
-import type { EvidenceClass, Evidenced } from "../../core/contracts/evidence.ts";
-import type { JsonObject } from "../../core/contracts/json.ts";
-import type { ToolCategory } from "../../core/contracts/taxonomy.ts";
-import type { ValidatorDomain } from "../../core/contracts/workflow.ts";
+} from "../../core/contracts/index.ts";
+import type { EvidenceClass, Evidenced } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
+import type { ToolCategory } from "../../core/contracts/index.ts";
+import type { ValidatorDomain } from "../../core/contracts/index.ts";
 
 export type NodeRole =
   | "mind"

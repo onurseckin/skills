@@ -98,7 +98,7 @@ describe("a config knob nothing reads is a promise the harness does not keep", (
   const keys = keysFor(
     { "roles/.keep": "" },
     {
-      "src/config/harness-config.ts": CONFIG,
+      "src/config/index.ts": CONFIG,
       "src/review.ts": [
         "export function budget(config: { max_repair_rounds: number }): number {",
         "  return config.max_repair_rounds;",
@@ -200,11 +200,9 @@ describe("a tree this process is not running is not judged against this process'
     "references/guide.md": "Run `bun harness.ts task:invent`.",
   });
   const tree = loadTree("foreign", {
-    "src/config/harness-config.ts": [
-      "export interface HarnessConfig {",
-      "  orphan_knob: string;",
-      "}",
-    ].join("\n"),
+    "src/config/index.ts": ["export interface HarnessConfig {", "  orphan_knob: string;", "}"].join(
+      "\n",
+    ),
   });
   const result = checkDeclarations({
     production: tree.modules,

@@ -1,4 +1,4 @@
-import { applicableValidatorDomains, type ValidatorDomain } from "../../core/contracts/workflow.ts";
+import { applicableValidatorDomains, type ValidatorDomain } from "../../core/contracts/index.ts";
 import type { TaskRecord, ValidationAttempt } from "../types.ts";
 
 export function openValidations(task: TaskRecord): ValidationAttempt[] {

@@ -5,8 +5,8 @@ import {
   isAgentToolRef,
   isTelemetryFieldConflict,
   isThinkingLevel,
-} from "../../../olt/scripts/src/core/contracts/agents.ts";
-import { evidenced } from "../../../olt/scripts/src/core/contracts/evidence.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
+import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 describe("core contracts/agents", () => {
   test("isThinkingLevel validates thinking levels", () => {

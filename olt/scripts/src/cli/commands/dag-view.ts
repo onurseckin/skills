@@ -1,7 +1,7 @@
 import { basename, dirname, isAbsolute, resolve } from "node:path";
 import { existsSync, readdirSync, statSync } from "node:fs";
-import { getHarnessConfig } from "../../core/config/harness-config.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { getHarnessConfig } from "../../core/config/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { dependencyMap } from "../../graph/dependency-map.ts";
 import { schedulingMetrics } from "../../engine/scheduler/metrics.ts";
 import { scopeConflict } from "../../engine/scheduler/conflicts.ts";

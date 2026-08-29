@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/index.ts";
 import { requireText } from "../workflow/task-state.ts";
 import type { PublishedPacket } from "./persist-packet.ts";

@@ -25,8 +25,8 @@ import {
   configOperand,
   pathOperand,
 } from "../../../olt/scripts/src/engine/runner/gate-path-operands.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type {
   ProcessIdentity,
   ProcessTopology,

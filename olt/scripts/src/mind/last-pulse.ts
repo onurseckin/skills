@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { RunState } from "../core/contracts/capsule.ts";
-import type { JsonObject } from "../core/contracts/json.ts";
+import type { RunState } from "../core/contracts/index.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
 
 export interface LastPulseRecord {

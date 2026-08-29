@@ -1,7 +1,7 @@
 import { lstatSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import type { JsonObject } from "../core/contracts/json.ts";
-import { HarnessError } from "../core/errors/harness-error.ts";
+import type { JsonObject } from "../core/contracts/index.ts";
+import { HarnessError } from "../core/errors/index.ts";
 import { parseArguments } from "./arguments.ts";
 import { assertFlags, type CommandContext } from "./options.ts";
 import { assertGrantedCommand, explicitActingClaim } from "../packets/command-authority.ts";

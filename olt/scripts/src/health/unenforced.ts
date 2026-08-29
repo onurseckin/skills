@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { COMMAND_REGISTRY, commandInvocations } from "../cli/registry/index.ts";
-import { AGENT_ROLES } from "../core/contracts/packets.ts";
+import { AGENT_ROLES } from "../core/contracts/index.ts";
 import { parseRoleContract } from "../packets/role-contract.ts";
 import { parseUnifiedAgentManifest } from "../authority/manifest-schema.ts";
 import { listFiles } from "./sources.ts";
@@ -63,7 +63,7 @@ function unreadFlags(production: ReadonlyMap<string, ModuleRecord>): HealthFindi
   return findings;
 }
 
-const CONFIG_MODULE = "config/harness-config.ts";
+const CONFIG_MODULE = "config/index.ts";
 
 function unreadConfigFields(production: ReadonlyMap<string, ModuleRecord>): HealthFinding[] {
   const config = [...production.values()].find((record) => record.relative.endsWith(CONFIG_MODULE));

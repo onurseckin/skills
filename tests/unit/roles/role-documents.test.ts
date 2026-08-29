@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { AGENT_ROLES, isAgentRole } from "../../../olt/scripts/src/core/contracts/packets.ts";
+import { AGENT_ROLES, isAgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   loadRoleContract,
   loadValidatorDomainContract,

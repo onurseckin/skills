@@ -1,6 +1,6 @@
-import { applicableValidatorDomains } from "../../core/contracts/workflow.ts";
+import { applicableValidatorDomains } from "../../core/contracts/index.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { isValidatorDomain } from "../../packets/role-contract.ts";
 import { refreshHandoffOnEscalation } from "../../reporting/handoff.ts";

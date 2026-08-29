@@ -1,10 +1,10 @@
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
-import type { JsonValue } from "../../core/contracts/json.ts";
+import type { AgentGrantRecord } from "../../core/contracts/index.ts";
+import type { JsonValue } from "../../core/contracts/index.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
-import { HarnessError } from "../../core/errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/index.ts";
 import { DEFAULT_MIND_BUDGET, parseCharter, type ParsedCharter } from "../../mind/charter.ts";
 import { initRun, loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/transaction.ts";

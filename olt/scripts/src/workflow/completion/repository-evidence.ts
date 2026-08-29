@@ -1,4 +1,4 @@
-import type { CommandRecord } from "../../core/contracts/commands.ts";
+import type { CommandRecord } from "../../core/contracts/index.ts";
 import { embeddedCommandIssues } from "../../engine/runner/command-shape.ts";
 import { commandMatchesGate, workflowGates } from "../gates/gate-policy.ts";
 import type { WorkflowState } from "../types.ts";

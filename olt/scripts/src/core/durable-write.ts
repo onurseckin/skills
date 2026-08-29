@@ -15,7 +15,7 @@ import { randomUUID } from "node:crypto";
 import type { JsonValue } from "./contracts/json.ts";
 import { HarnessError } from "./errors/harness-error.ts";
 import { canonicalJsonBytes } from "./json.ts";
-import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
+import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 
 export type DurableWriteStep = "chmod" | "file-fsync" | "rename" | "directory-fsync";
 export interface AtomicWriteOptions {
