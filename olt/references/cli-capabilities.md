@@ -33,7 +33,7 @@ own status in `exit_code`.
 | plan | 13 | [cli-capabilities/domains/plan.md](cli-capabilities/domains/plan.md) |
 | queue | 4 | [cli-capabilities/domains/queue.md](cli-capabilities/domains/queue.md) |
 | task | 13 | [cli-capabilities/domains/task.md](cli-capabilities/domains/task.md) |
-| reporting | 17 | [cli-capabilities/domains/reporting.md](cli-capabilities/domains/reporting.md) |
+| reporting | 19 | [cli-capabilities/domains/reporting.md](cli-capabilities/domains/reporting.md) |
 | run | 4 | [cli-capabilities/domains/run.md](cli-capabilities/domains/run.md) |
 | critic | 4 | [cli-capabilities/domains/critic.md](cli-capabilities/domains/critic.md) |
 | summary | 3 | [cli-capabilities/domains/summary.md](cli-capabilities/domains/summary.md) |
@@ -99,6 +99,8 @@ own status in `exit_code`.
 | `quota:freeze` | reporting | Initiate DAG quota freeze and create a snapshot. |
 | `quota:resume` | reporting | Resume DAG operations from a quota freeze snapshot. |
 | `skill:audit:live` | reporting | Live Tier 0 out-of-band audit of skill compliance and delta event forensics. |
+| `notify:phase` | reporting | Trigger cross-platform native OS push notification and audio chime upon phase landing. |
+| `notify:test` | reporting | Send a test native OS notification and Glass chime to verify desktop integration. |
 | `run:exec` | run | Run a gate command under process isolation and record the evidence. |
 | `run:status` | run | Show phase, per-task status and progress for the run. |
 | `run:complete` | run | Seal the capsule after verifying every completion artifact. |

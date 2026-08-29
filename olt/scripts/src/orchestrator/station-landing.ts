@@ -5,6 +5,29 @@ import type {
   GitStagingInvariantRecord,
 } from "../mind/preplanning/types.ts";
 import { executeGitStagingInvariant, type GitStagingOptions } from "./subdomain-staging.ts";
+import {
+  notifyPhaseCompletion,
+  type NotificationResult,
+  type PhaseCompletionNotificationOptions,
+} from "../reporting/notifications/index.ts";
+
+export interface StationLandingOptions extends GitStagingOptions {
+  readonly phaseName?: string | undefined;
+  readonly startedAt?: number | undefined;
+  readonly commitSha?: string | undefined;
+  readonly taskCount?: number | undefined;
+  readonly soundEnabled?: boolean | undefined;
+  readonly notify?: boolean | undefined;
+  readonly customNotifier?: ((opts: PhaseCompletionNotificationOptions) => NotificationResult) | undefined;
+}
+
+export interface PhaseLandingResult {
+  readonly success: boolean;
+  readonly durationMs: number;
+  readonly notificationResult?: NotificationResult | undefined;
+  readonly station?: AssemblyStation | undefined;
+  readonly stagingRecord?: GitStagingInvariantRecord | undefined;
+}
 
 export function createStation(
   stationId: string,
@@ -56,8 +79,13 @@ export function verifyStation(
 
 export function landStation(
   station: AssemblyStation,
-  stagingOptions?: GitStagingOptions | undefined,
-): { station: AssemblyStation; stagingRecord: GitStagingInvariantRecord } {
+  stagingOptions?: StationLandingOptions | undefined,
+): {
+  station: AssemblyStation;
+  stagingRecord: GitStagingInvariantRecord;
+  notificationResult?: NotificationResult | undefined;
+  durationMs?: number | undefined;
+} {
   if (station.status !== "VERIFIED") {
     throw new Error(
       `Cannot land station ${station.station_id} before verification (current status: ${station.status})`,
@@ -79,9 +107,58 @@ export function landStation(
     staging_record: stagingRecord,
   };
 
+  let notificationResult: NotificationResult | undefined;
+  let durationMs: number | undefined;
+
+  if (stagingOptions?.notify) {
+    const startedAt = stagingOptions.startedAt ?? Date.parse(station.claimed_at ?? "") ?? Date.now();
+    durationMs = Math.max(0, Date.now() - (Number.isFinite(startedAt) ? startedAt : Date.now()));
+    const notifier = stagingOptions.customNotifier ?? notifyPhaseCompletion;
+
+    notificationResult = notifier({
+      phaseName: stagingOptions.phaseName ?? `${station.domain} (${station.milestone_id})`,
+      commitSha: stagingOptions.commitSha ?? stagingRecord.git_index_sha,
+      taskCount: stagingOptions.taskCount ?? station.assigned_files.length,
+      durationMs,
+      soundEnabled: stagingOptions.soundEnabled ?? true,
+    });
+  }
+
   return {
     station: landedStation,
     stagingRecord,
+    ...(notificationResult ? { notificationResult } : {}),
+    ...(durationMs !== undefined ? { durationMs } : {}),
+  };
+}
+
+export function landPhaseRelease(options: {
+  readonly phaseName: string;
+  readonly startedAt: number;
+  readonly commitSha?: string | undefined;
+  readonly taskCount?: number | undefined;
+  readonly soundEnabled?: boolean | undefined;
+  readonly notify?: boolean | undefined;
+  readonly customNotifier?: ((opts: PhaseCompletionNotificationOptions) => NotificationResult) | undefined;
+}): PhaseLandingResult {
+  const durationMs = Math.max(0, Date.now() - options.startedAt);
+  let notificationResult: NotificationResult | undefined;
+
+  if (options.notify ?? true) {
+    const notifier = options.customNotifier ?? notifyPhaseCompletion;
+    notificationResult = notifier({
+      phaseName: options.phaseName,
+      commitSha: options.commitSha,
+      taskCount: options.taskCount,
+      durationMs,
+      soundEnabled: options.soundEnabled ?? true,
+    });
+  }
+
+  return {
+    success: true,
+    durationMs,
+    ...(notificationResult ? { notificationResult } : {}),
   };
 }
 

@@ -30,8 +30,8 @@ export function performDiscoveryScans(options: TaskDiscoveryOptions) {
   const nowIso = new Date().toISOString();
   const maxTasks = options.maxTasks ? options.maxTasks : 5;
   const existingQueue = readTaskQueue(options.taskQueuePath);
-  const existingTaskIds = new Set(existingQueue.map((t) => t.id));
-  const existingTaskLabels = new Set(existingQueue.map((t) => t.title.toLowerCase().trim()));
+  const existingTaskIds = new Set(existingQueue.map((t: import("../queue/index.ts").TaskQueueItem): string => t.id));
+  const existingTaskLabels = new Set(existingQueue.map((t: import("../queue/index.ts").TaskQueueItem): string => t.title.toLowerCase().trim()));
 
   // Step 1: Scan Code Quality
   const codeQualityResult =
@@ -93,14 +93,16 @@ export function performDiscoveryScans(options: TaskDiscoveryOptions) {
   // Step 6: Scan Pending Feedback Items
   const pendingFeedback =
     options.enableFeedbackQueueScan !== false
-      ? readFeedbackQueue(options.feedbackQueuePath).filter((f) => f.status === "PENDING")
+      ? readFeedbackQueue(options.feedbackQueuePath).filter(
+          (f: import("../../feedback/queue/index.ts").FeedbackItem): boolean => f.status === "PENDING",
+        )
       : [];
 
   // Step 7: Scan Open Defects
   const openDefects =
     options.enableDefectScan !== false
       ? auditDefectLog(options.capsulesDir ? [options.capsulesDir] : [".capsules/"]).defects.filter(
-          (b) => b.status === "open",
+          (b: import("../../contracts/defect-contracts.ts").DefectEntry): boolean => b.status === "open",
         )
       : [];
 
@@ -149,7 +151,7 @@ export function performDiscoveryScans(options: TaskDiscoveryOptions) {
       addDiscovery({
         id: `defect-${slug}`,
         category: "DEFECT_REMEDIATION",
-        title: `Remediate Defect: ${bl.observation.slice(0, 50)}`,
+        title: `Remediate Defect: ${bl.observation?.slice(0, 50) ?? ""}`,
         description: bl.observation,
         priority: "CRITICAL",
         targetFiles: scope,
@@ -157,7 +159,7 @@ export function performDiscoveryScans(options: TaskDiscoveryOptions) {
         gate: "bun test tests/unit/mind && bun run typecheck",
         charterGoals: ["G2"],
         acceptanceCriteria: [
-          `Resolve open defect ${bl.id}: ${bl.observation.slice(0, 80)}`,
+          `Resolve open defect ${bl.id}: ${bl.observation?.slice(0, 80) ?? ""}`,
           "Verify regression immunity with unit tests",
         ],
         remediation: bl.remediation || "Fix root cause of defect",

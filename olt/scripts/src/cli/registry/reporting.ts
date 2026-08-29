@@ -20,6 +20,7 @@ import { quotaCheckCommand } from "../commands/quota-check.ts";
 import { quotaFreezeCommand } from "../commands/quota-freeze.ts";
 import { quotaResumeCommand } from "../commands/quota-resume.ts";
 import { skillAuditLiveCommand } from "../commands/skill-audit-live.ts";
+import { notifyPhaseCommand, notifyTestCommand } from "../commands/notify-ops.ts";
 
 export {
   reportUnifiedCommand,
@@ -41,6 +42,8 @@ export {
   quotaFreezeCommand,
   quotaResumeCommand,
   skillAuditLiveCommand,
+  notifyPhaseCommand,
+  notifyTestCommand,
 };
 
 export const REPORTING_COMMANDS: readonly CommandSpec[] = [
@@ -484,5 +487,52 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts skill:audit:live --run .olt/capsules/run-1 --json",
     ],
     handler: skillAuditLiveCommand,
+  },
+  {
+    name: "notify:phase",
+    aliases: ["notify", "phase:notify"],
+    domain: "reporting",
+    summary:
+      "Trigger cross-platform native OS push notification and audio chime upon phase landing.",
+    description:
+      "Dispatches native desktop banner notifications and plays the macOS Glass chime upon successful upstream release landings.",
+    flags: [
+      optionalFlag("phase", "string", "Name or identifier of the completed phase.", "OLT Release"),
+      optionalFlag("duration-ms", "int", "Total elapsed duration in milliseconds."),
+      optionalFlag("tasks", "int", "Total task count completed in the phase."),
+      optionalFlag("commit", "string", "Git commit hash of the release."),
+      optionalFlag("title", "string", "Custom notification title."),
+      optionalFlag("subtitle", "string", "Custom notification subtitle."),
+      optionalFlag("details", "string", "Additional details."),
+      optionalFlag("sound", "bool", "Enable Glass audio chime (default: true).", true),
+      optionalFlag("no-sound", "bool", "Disable audio chime.", false),
+      optionalFlag("silent", "bool", "Suppress all audio/visual alerts.", false),
+      optionalFlag("json", "bool", "Output structured JSON report.", false),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts notify:phase --phase 'Core Architecture' --tasks 12 --duration-ms 272000",
+      "bun harness.ts notify:phase --phase 'Subdomain Staging' --commit 89a5042 --json",
+    ],
+    handler: notifyPhaseCommand,
+  },
+  {
+    name: "notify:test",
+    aliases: ["test:notify"],
+    domain: "reporting",
+    summary: "Send a test native OS notification and Glass chime to verify desktop integration.",
+    description:
+      "Triggers a non-blocking test notification and Glass audio chime on macOS or standard alert chime on Linux/Windows.",
+    flags: [
+      optionalFlag("no-sound", "bool", "Mute audio chime.", false),
+      optionalFlag("json", "bool", "Output structured JSON report.", false),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts notify:test", "bun harness.ts notify:test --no-sound"],
+    handler: notifyTestCommand,
   },
 ];

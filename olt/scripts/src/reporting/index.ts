@@ -30,3 +30,4 @@ export * from "./dag-view.ts";
 export * from "./socratic-validator.ts";
 export * from "./lease-agent-extractor.ts";
 export * from "./unified/index.ts";
+export * from "./notifications/index.ts";

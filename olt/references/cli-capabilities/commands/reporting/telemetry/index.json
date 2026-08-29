@@ -5,6 +5,14 @@
     {
       "id": "skill:audit:live",
       "path": "skill-audit-live.json"
+    },
+    {
+      "id": "notify:phase",
+      "path": "notify-phase.json"
+    },
+    {
+      "id": "notify:test",
+      "path": "notify-test.json"
     }
   ]
 }

@@ -355,3 +355,4 @@ export {
   policyCheckDriftCommand,
 } from "./policy-ops.ts";
 export { factoryPreplanCommand, factoryStatusCommand } from "./factory-ops.ts";
+export { notifyPhaseCommand, notifyTestCommand } from "./notify-ops.ts";

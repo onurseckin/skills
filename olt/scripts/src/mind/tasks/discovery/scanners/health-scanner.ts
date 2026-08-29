@@ -252,7 +252,7 @@ export function proposeCandidateEvolutions(findings: {
         proposals.push({
           id: `cand-evo-defect-${slug}`,
           kind: "defect",
-          title: `Remediate Defect: ${bl.observation.slice(0, 50)}`,
+          title: `Remediate Defect: ${bl.observation?.slice(0, 50) ?? ""}`,
           statement: bl.observation,
           rationale: bl.remediation || "Fix root cause of defect with regression immunity",
           targetFiles: ["olt/scripts/src/mind/"],

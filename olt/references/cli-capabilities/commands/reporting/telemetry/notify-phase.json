@@ -1,0 +1,90 @@
+{
+  "name": "notify:phase",
+  "aliases": [
+    "notify",
+    "phase:notify"
+  ],
+  "domain": "reporting",
+  "summary": "Trigger cross-platform native OS push notification and audio chime upon phase landing.",
+  "flags": [
+    {
+      "name": "phase",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "OLT Release"
+    },
+    {
+      "name": "duration-ms",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "tasks",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "commit",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "title",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "subtitle",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "details",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "sound",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": true
+    },
+    {
+      "name": "no-sound",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": false
+    },
+    {
+      "name": "silent",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": false
+    },
+    {
+      "name": "json",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": false
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

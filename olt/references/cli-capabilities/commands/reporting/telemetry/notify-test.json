@@ -1,0 +1,26 @@
+{
+  "name": "notify:test",
+  "aliases": [
+    "test:notify"
+  ],
+  "domain": "reporting",
+  "summary": "Send a test native OS notification and Glass chime to verify desktop integration.",
+  "flags": [
+    {
+      "name": "no-sound",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": false
+    },
+    {
+      "name": "json",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": false
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}
