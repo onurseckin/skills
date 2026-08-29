@@ -223,14 +223,7 @@ export {
 } from "./plan-replan-findings.ts";
 export { planReplanCommand } from "./plan-replan.ts";
 export { planValidateStartCommand, planReviewCommand } from "./plan-validate.ts";
-export {
-  planCompileCommand,
-  planReplanCommand,
-  planInitCommand,
-  planEnhanceCommand,
-  planAddCommand,
-  planStatusCommand,
-} from "./plan.ts";
+export { planInitCommand, planEnhanceCommand, planAddCommand, planStatusCommand } from "./plan.ts";
 export { queueNextCommand, queueListCommand, queueWaveCommand, queuePopCommand } from "./queue.ts";
 export {
   resolutionProofs,
@@ -295,19 +288,8 @@ export {
   taskCheckCommand,
 } from "./task-check.ts";
 export { taskClaimCommand, taskHeartbeatCommand } from "./task-claim.ts";
-export * from "./task-finding-input.ts";
-export {
-  taskClaimCommand,
-  taskHeartbeatCommand,
-  taskAbandonCommand,
-  taskAssignRepairerCommand,
-  taskProbeCommand,
-  taskRejectCommand,
-  taskReviewCommand,
-  taskValidateStartCommand,
-  taskSubmitCommand,
-  taskReleaseCommand,
-} from "./task-ops.ts";
+export {} from "./task-finding-input.ts";
+export { taskSubmitCommand, taskReleaseCommand } from "./task-ops.ts";
 export { taskProbeCommand } from "./task-probe.ts";
 export { taskRejectCommand } from "./task-reject.ts";
 export {

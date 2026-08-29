@@ -1,0 +1,34 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "mind",
+  "entries": [
+    {
+      "id": "mind:init",
+      "path": "mind-init.json"
+    },
+    {
+      "id": "mind:wake",
+      "path": "mind-wake.json"
+    },
+    {
+      "id": "mind:observe",
+      "path": "mind-observe.json"
+    },
+    {
+      "id": "mind:quiesce",
+      "path": "mind-quiesce.json"
+    },
+    {
+      "id": "mind:escalate",
+      "path": "mind-escalate.json"
+    },
+    {
+      "id": "mind:halt",
+      "path": "mind-halt.json"
+    },
+    {
+      "id": "mind:rotate",
+      "path": "mind-rotate.json"
+    }
+  ]
+}

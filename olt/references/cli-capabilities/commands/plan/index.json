@@ -1,0 +1,14 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "plan",
+  "entries": [
+    {
+      "id": "authoring",
+      "path": "authoring/index.json"
+    },
+    {
+      "id": "validation",
+      "path": "validation/index.json"
+    }
+  ]
+}

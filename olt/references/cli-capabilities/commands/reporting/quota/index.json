@@ -1,0 +1,18 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "reporting",
+  "entries": [
+    {
+      "id": "quota:check",
+      "path": "quota-check.json"
+    },
+    {
+      "id": "quota:freeze",
+      "path": "quota-freeze.json"
+    },
+    {
+      "id": "quota:resume",
+      "path": "quota-resume.json"
+    }
+  ]
+}

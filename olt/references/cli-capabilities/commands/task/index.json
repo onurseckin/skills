@@ -1,0 +1,22 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "task",
+  "entries": [
+    {
+      "id": "lifecycle",
+      "path": "lifecycle/index.json"
+    },
+    {
+      "id": "ops",
+      "path": "ops/index.json"
+    },
+    {
+      "id": "review",
+      "path": "review/index.json"
+    },
+    {
+      "id": "terminal",
+      "path": "terminal/index.json"
+    }
+  ]
+}

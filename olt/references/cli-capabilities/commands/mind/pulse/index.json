@@ -1,0 +1,14 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "mind",
+  "entries": [
+    {
+      "id": "mind:pulse-open",
+      "path": "mind-pulse-open.json"
+    },
+    {
+      "id": "mind:pulse",
+      "path": "mind-pulse.json"
+    }
+  ]
+}

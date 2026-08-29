@@ -1,0 +1,18 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "reporting",
+  "entries": [
+    {
+      "id": "report:dag",
+      "path": "report-dag.json"
+    },
+    {
+      "id": "dag",
+      "path": "dag.json"
+    },
+    {
+      "id": "dag:trace",
+      "path": "dag-trace.json"
+    }
+  ]
+}

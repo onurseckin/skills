@@ -1,0 +1,18 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "task",
+  "entries": [
+    {
+      "id": "task:claim",
+      "path": "task-claim.json"
+    },
+    {
+      "id": "task:submit",
+      "path": "task-submit.json"
+    },
+    {
+      "id": "task:assign-repairer",
+      "path": "task-assign-repairer.json"
+    }
+  ]
+}

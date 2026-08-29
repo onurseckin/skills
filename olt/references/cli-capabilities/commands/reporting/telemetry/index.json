@@ -1,0 +1,42 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "reporting",
+  "entries": [
+    {
+      "id": "report:graph-json",
+      "path": "report-graph-json.json"
+    },
+    {
+      "id": "report:graph",
+      "path": "report-graph.json"
+    },
+    {
+      "id": "report:health",
+      "path": "report-health.json"
+    },
+    {
+      "id": "report:leases",
+      "path": "report-leases.json"
+    },
+    {
+      "id": "report:decisions",
+      "path": "report-decisions.json"
+    },
+    {
+      "id": "report:summary",
+      "path": "report-summary.json"
+    },
+    {
+      "id": "report:task",
+      "path": "report-task.json"
+    },
+    {
+      "id": "usage:report",
+      "path": "usage-report.json"
+    },
+    {
+      "id": "skill:audit:live",
+      "path": "skill-audit-live.json"
+    }
+  ]
+}

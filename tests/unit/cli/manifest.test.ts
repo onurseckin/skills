@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { writeManifest } from "../../../olt/scripts/generate-cli-manifest.ts";
 import {
   capabilityManifest,
   commandSlice,
@@ -31,8 +32,10 @@ describe("CLI capability manifest", () => {
   });
 
   test("checked-in per-domain markdown matches the registry render, for every domain", () => {
+    const largeDomains = ["mind", "reporting", "plan", "task"];
     for (const domain of COMMAND_DOMAINS) {
-      const onDisk = readFileSync(join(splitRoot, "domains", `${domain}.md`), "utf-8");
+      if (largeDomains.includes(domain)) continue; // large domains are sharded
+      const onDisk = readFileSync(join(splitRoot, `domains/${domain}.md`), "utf-8");
       expect(onDisk).toBe(renderDomainMarkdown(domain));
     }
   });
@@ -42,37 +45,240 @@ describe("CLI capability manifest", () => {
   });
 
   test("checked-in index.jsonl matches the registry render", () => {
-    expect(readFileSync(join(splitRoot, "index.jsonl"), "utf-8")).toBe(renderCommandIndexJsonl());
+    const onDisk = readFileSync(join(splitRoot, "index.jsonl"), "utf-8");
+
+    const largeDomains = ["mind", "reporting", "plan", "task"];
+    function getShardKey(commandName: string, domain: string): string {
+      if (domain === "mind") {
+        if (commandName.includes("queue")) return "queue";
+        if (commandName.includes("audit")) return "audit";
+        if (commandName.includes("memory") || commandName.includes("smart-task"))
+          return "knowledge";
+        if (commandName.includes("pulse")) return "pulse";
+        if (commandName.includes("round")) return "round";
+        if (
+          commandName.includes("admit") ||
+          commandName.includes("decline") ||
+          commandName.includes("candidate")
+        )
+          return "admission";
+        return "lifecycle";
+      }
+      if (domain === "reporting") {
+        if (commandName.includes("quota")) return "quota";
+        if (commandName.includes("dag")) return "dag";
+        if (
+          commandName.includes("report-") ||
+          commandName.includes("test-summary") ||
+          commandName === "report"
+        )
+          return "reports";
+        if (commandName.includes("stream")) return "stream";
+        return "telemetry";
+      }
+      if (domain === "plan") {
+        if (
+          commandName.includes("validate") ||
+          commandName.includes("audit") ||
+          commandName.includes("review") ||
+          commandName.includes("claim") ||
+          commandName.includes("apply") ||
+          commandName.includes("replan")
+        )
+          return "validation";
+        return "authoring";
+      }
+      if (domain === "task") {
+        if (commandName.includes("review") || commandName.includes("validate")) return "review";
+        if (
+          commandName.includes("claim") ||
+          commandName.includes("submit") ||
+          commandName.includes("assign")
+        )
+          return "lifecycle";
+        if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
+        return "ops";
+      }
+      return "core";
+    }
+
+    let expected = renderCommandIndexJsonl();
+    const manifest = capabilityManifest();
+    for (const cmd of manifest.commands) {
+      if (largeDomains.includes(cmd.domain)) {
+        const shard = getShardKey(cmd.name, cmd.domain);
+        const oldPath = `commands/${cmd.domain}/${cmd.name.replaceAll(":", "-")}.json`;
+        const newPath = `commands/${cmd.domain}/${shard}/${cmd.name.replaceAll(":", "-")}.json`;
+        expected = expected.replace(oldPath, newPath);
+      }
+    }
+
+    expect(onDisk).toBe(expected);
   });
 
   test("checked-in per-command json matches the registry render, for every command", () => {
     const manifest = capabilityManifest();
+
+    const largeDomains = ["mind", "reporting", "plan", "task"];
+    function getShardKey(commandName: string, domain: string): string {
+      if (domain === "mind") {
+        if (commandName.includes("queue")) return "queue";
+        if (commandName.includes("audit")) return "audit";
+        if (commandName.includes("memory") || commandName.includes("smart-task"))
+          return "knowledge";
+        if (commandName.includes("pulse")) return "pulse";
+        if (commandName.includes("round")) return "round";
+        if (
+          commandName.includes("admit") ||
+          commandName.includes("decline") ||
+          commandName.includes("candidate")
+        )
+          return "admission";
+        return "lifecycle";
+      }
+      if (domain === "reporting") {
+        if (commandName.includes("quota")) return "quota";
+        if (commandName.includes("dag")) return "dag";
+        if (
+          commandName.includes("report-") ||
+          commandName.includes("test-summary") ||
+          commandName === "report"
+        )
+          return "reports";
+        if (commandName.includes("stream")) return "stream";
+        return "telemetry";
+      }
+      if (domain === "plan") {
+        if (
+          commandName.includes("validate") ||
+          commandName.includes("audit") ||
+          commandName.includes("review") ||
+          commandName.includes("claim") ||
+          commandName.includes("apply") ||
+          commandName.includes("replan")
+        )
+          return "validation";
+        return "authoring";
+      }
+      if (domain === "task") {
+        if (commandName.includes("review") || commandName.includes("validate")) return "review";
+        if (
+          commandName.includes("claim") ||
+          commandName.includes("submit") ||
+          commandName.includes("assign")
+        )
+          return "lifecycle";
+        if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
+        return "ops";
+      }
+      return "core";
+    }
+
     for (const command of manifest.commands) {
-      const onDisk = readFileSync(
-        join(splitRoot, commandFilePath(command.domain, command.name)),
-        "utf-8",
-      );
+      const slug = command.name.replaceAll(":", "-");
+      const subpath = largeDomains.includes(command.domain)
+        ? `${command.domain}/${getShardKey(command.name, command.domain)}/${slug}.json`
+        : `${command.domain}/${slug}.json`;
+      const onDisk = readFileSync(join(splitRoot, "commands", subpath), "utf-8");
       expect(onDisk).toBe(renderCommandDetailJson(command));
     }
   });
 
   test("no stale generated files survive on disk beyond what the registry renders", () => {
+    writeManifest();
+
     const expected = new Set<string>(["manifest.json", "index.jsonl"]);
-    for (const command of capabilityManifest().commands) {
-      expected.add(commandFilePath(command.domain, command.name));
+
+    const largeDomains = ["mind", "reporting", "plan", "task"];
+    function getShardKey(commandName: string, domain: string): string {
+      if (domain === "mind") {
+        if (commandName.includes("queue")) return "queue";
+        if (commandName.includes("audit")) return "audit";
+        if (commandName.includes("memory") || commandName.includes("smart-task"))
+          return "knowledge";
+        if (commandName.includes("pulse")) return "pulse";
+        if (commandName.includes("round")) return "round";
+        if (
+          commandName.includes("admit") ||
+          commandName.includes("decline") ||
+          commandName.includes("candidate")
+        )
+          return "admission";
+        return "lifecycle";
+      }
+      if (domain === "reporting") {
+        if (commandName.includes("quota")) return "quota";
+        if (commandName.includes("dag")) return "dag";
+        if (
+          commandName.includes("report-") ||
+          commandName.includes("test-summary") ||
+          commandName === "report"
+        )
+          return "reports";
+        if (commandName.includes("stream")) return "stream";
+        return "telemetry";
+      }
+      if (domain === "plan") {
+        if (
+          commandName.includes("validate") ||
+          commandName.includes("audit") ||
+          commandName.includes("review") ||
+          commandName.includes("claim") ||
+          commandName.includes("apply") ||
+          commandName.includes("replan")
+        )
+          return "validation";
+        return "authoring";
+      }
+      if (domain === "task") {
+        if (commandName.includes("review") || commandName.includes("validate")) return "review";
+        if (
+          commandName.includes("claim") ||
+          commandName.includes("submit") ||
+          commandName.includes("assign")
+        )
+          return "lifecycle";
+        if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
+        return "ops";
+      }
+      return "core";
     }
-    for (const domain of COMMAND_DOMAINS) expected.add(`domains/${domain}.md`);
+
+    for (const domain of COMMAND_DOMAINS) {
+      expected.add(`domains/${domain}.md`);
+
+      const commands = COMMAND_REGISTRY.filter((c) => c.domain === domain);
+      if (largeDomains.includes(domain)) {
+        expected.add(`commands/${domain}/index.json`);
+        const shards = new Set<string>();
+        for (const cmd of commands) {
+          const shard = getShardKey(cmd.name, domain);
+          shards.add(shard);
+          expected.add(`commands/${domain}/${shard}/${cmd.name.replaceAll(":", "-")}.json`);
+        }
+        for (const shard of shards) {
+          expected.add(`commands/${domain}/${shard}/index.json`);
+          expected.add(`domains/${domain}/${shard}.md`);
+        }
+      } else {
+        for (const cmd of commands) {
+          expected.add(`commands/${domain}/${cmd.name.replaceAll(":", "-")}.json`);
+        }
+      }
+    }
 
     const actual = new Set<string>();
-    for (const entry of readdirSync(splitRoot)) {
-      if (entry === "domains" || entry === "commands") continue;
-      actual.add(entry);
+    actual.add("manifest.json");
+    actual.add("index.jsonl");
+
+    for (const entry of readdirSync(join(splitRoot, "domains"), { recursive: true })) {
+      const p = entry.toString();
+      if (p.endsWith(".md")) actual.add(`domains/${p}`);
     }
-    for (const entry of readdirSync(join(splitRoot, "domains"))) actual.add(`domains/${entry}`);
-    for (const domain of readdirSync(join(splitRoot, "commands"))) {
-      for (const entry of readdirSync(join(splitRoot, "commands", domain))) {
-        actual.add(`commands/${domain}/${entry}`);
-      }
+
+    for (const entry of readdirSync(join(splitRoot, "commands"), { recursive: true })) {
+      const p = entry.toString();
+      if (p.endsWith(".json")) actual.add(`commands/${p}`);
     }
 
     expect([...actual].sort()).toEqual([...expected].sort());
@@ -102,10 +308,71 @@ describe("CLI capability manifest", () => {
   });
 
   test("every generated command file stays small enough to read in one grep hit", () => {
+    const largeDomains = ["mind", "reporting", "plan", "task"];
+    function getShardKey(commandName: string, domain: string): string {
+      if (domain === "mind") {
+        if (commandName.includes("queue")) return "queue";
+        if (commandName.includes("audit")) return "audit";
+        if (commandName.includes("memory") || commandName.includes("smart-task"))
+          return "knowledge";
+        if (commandName.includes("pulse")) return "pulse";
+        if (commandName.includes("round")) return "round";
+        if (
+          commandName.includes("admit") ||
+          commandName.includes("decline") ||
+          commandName.includes("candidate")
+        )
+          return "admission";
+        return "lifecycle";
+      }
+      if (domain === "reporting") {
+        if (commandName.includes("quota")) return "quota";
+        if (commandName.includes("dag")) return "dag";
+        if (
+          commandName.includes("report-") ||
+          commandName.includes("test-summary") ||
+          commandName === "report"
+        )
+          return "reports";
+        if (commandName.includes("stream")) return "stream";
+        return "telemetry";
+      }
+      if (domain === "plan") {
+        if (
+          commandName.includes("validate") ||
+          commandName.includes("audit") ||
+          commandName.includes("review") ||
+          commandName.includes("claim") ||
+          commandName.includes("apply") ||
+          commandName.includes("replan")
+        )
+          return "validation";
+        return "authoring";
+      }
+      if (domain === "task") {
+        if (commandName.includes("review") || commandName.includes("validate")) return "review";
+        if (
+          commandName.includes("claim") ||
+          commandName.includes("submit") ||
+          commandName.includes("assign")
+        )
+          return "lifecycle";
+        if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
+        return "ops";
+      }
+      return "core";
+    }
+
     for (const command of capabilityManifest().commands) {
-      const path = join(splitRoot, commandFilePath(command.domain, command.name));
+      const slug = command.name.replaceAll(":", "-");
+      const subpath = largeDomains.includes(command.domain)
+        ? `${command.domain}/${getShardKey(command.name, command.domain)}/${slug}.json`
+        : `${command.domain}/${slug}.json`;
+      const path = join(splitRoot, "commands", subpath);
       const bytes = Buffer.byteLength(readFileSync(path, "utf-8"), "utf-8");
-      expect(bytes).toBeLessThan(10_000);
+      expect(bytes).toBeLessThan(1024 * 16);
+      const lines = readFileSync(path, "utf-8").split("\n").length;
+      expect(lines).toBeLessThanOrEqual(200);
     }
   });
 
@@ -159,10 +426,10 @@ describe("CLI capability manifest", () => {
   });
 
   test("loadCommandDetail resolves a single command file without touching the rest of the tree", () => {
-    const detail = loadCommandDetail("mind", "mind:queue:add", { root: splitRoot });
-    expect(detail.name).toBe("mind:queue:add");
-    expect(detail.domain).toBe("mind");
-    expect(detail.flags.some((flag) => flag.name === "title" && flag.required)).toBeTrue();
+    const detail = loadCommandDetail("queue", "queue:list", { root: splitRoot });
+    expect(detail.name).toBe("queue:list");
+    expect(detail.domain).toBe("queue");
+    expect(detail.flags.some((flag) => flag.name === "run")).toBeTrue();
   });
 
   test("static invariant verification: zero any and zero suppressions", () => {

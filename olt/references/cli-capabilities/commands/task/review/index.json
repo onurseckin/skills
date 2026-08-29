@@ -1,0 +1,14 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "task",
+  "entries": [
+    {
+      "id": "task:validate-start",
+      "path": "task-validate-start.json"
+    },
+    {
+      "id": "task:review",
+      "path": "task-review.json"
+    }
+  ]
+}

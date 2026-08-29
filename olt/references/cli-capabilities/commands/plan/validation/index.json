@@ -1,0 +1,30 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "plan",
+  "entries": [
+    {
+      "id": "plan:audit",
+      "path": "plan-audit.json"
+    },
+    {
+      "id": "plan:validate-start",
+      "path": "plan-validate-start.json"
+    },
+    {
+      "id": "plan:review",
+      "path": "plan-review.json"
+    },
+    {
+      "id": "plan:replan",
+      "path": "plan-replan.json"
+    },
+    {
+      "id": "plan:claim",
+      "path": "plan-claim.json"
+    },
+    {
+      "id": "plan:apply",
+      "path": "plan-apply.json"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "mind",
+  "entries": [
+    {
+      "id": "mind:queue:list",
+      "path": "mind-queue-list.json"
+    },
+    {
+      "id": "mind:queue:add",
+      "path": "mind-queue-add.json"
+    },
+    {
+      "id": "mind:queue:drain",
+      "path": "mind-queue-drain.json"
+    },
+    {
+      "id": "mind:queue:seal",
+      "path": "mind-queue-seal.json"
+    },
+    {
+      "id": "mind:queue:clean",
+      "path": "mind-queue-clean.json"
+    }
+  ]
+}

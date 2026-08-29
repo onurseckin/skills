@@ -1,0 +1,14 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "mind",
+  "entries": [
+    {
+      "id": "mind:round-open",
+      "path": "mind-round-open.json"
+    },
+    {
+      "id": "mind:round-close",
+      "path": "mind-round-close.json"
+    }
+  ]
+}

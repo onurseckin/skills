@@ -1,0 +1,30 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "task",
+  "entries": [
+    {
+      "id": "task:brief",
+      "path": "task-brief.json"
+    },
+    {
+      "id": "task:heartbeat",
+      "path": "task-heartbeat.json"
+    },
+    {
+      "id": "task:probe",
+      "path": "task-probe.json"
+    },
+    {
+      "id": "task:reject",
+      "path": "task-reject.json"
+    },
+    {
+      "id": "task:check",
+      "path": "task-check.json"
+    },
+    {
+      "id": "coordinator:pushback",
+      "path": "coordinator-pushback.json"
+    }
+  ]
+}

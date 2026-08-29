@@ -1,0 +1,10 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "reporting",
+  "entries": [
+    {
+      "id": "stream:events",
+      "path": "stream-events.json"
+    }
+  ]
+}

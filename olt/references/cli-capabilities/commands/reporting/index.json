@@ -1,0 +1,26 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "reporting",
+  "entries": [
+    {
+      "id": "dag",
+      "path": "dag/index.json"
+    },
+    {
+      "id": "quota",
+      "path": "quota/index.json"
+    },
+    {
+      "id": "reports",
+      "path": "reports/index.json"
+    },
+    {
+      "id": "stream",
+      "path": "stream/index.json"
+    },
+    {
+      "id": "telemetry",
+      "path": "telemetry/index.json"
+    }
+  ]
+}

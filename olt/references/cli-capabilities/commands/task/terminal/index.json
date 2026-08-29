@@ -1,0 +1,14 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "task",
+  "entries": [
+    {
+      "id": "task:abandon",
+      "path": "task-abandon.json"
+    },
+    {
+      "id": "task:release",
+      "path": "task-release.json"
+    }
+  ]
+}

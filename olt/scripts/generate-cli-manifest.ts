@@ -1,11 +1,21 @@
 #!/usr/bin/env bun
-
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import * as fs from "node:fs";
+import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { renderDomainMarkdown, renderManifestMarkdown } from "./src/cli/manifest.ts";
-import { domainFilePath, renderSplitFiles } from "./src/cli/manifest-split.ts";
 import { COMMAND_DOMAINS } from "./src/cli/registry/index.ts";
+import {
+  renderDomainMarkdown,
+  renderManifestMarkdown,
+  commandSection,
+  capabilityManifest,
+  domainCommandSpecs,
+} from "./src/cli/manifest.ts";
+import {
+  renderCommandIndexJsonl,
+  renderCommandDetailJson,
+  splitManifest,
+} from "./src/cli/manifest-split.ts";
 
 export function manifestPaths(): { markdown: string; splitRoot: string } {
   const references = new URL("../references/", import.meta.url);
@@ -14,24 +24,225 @@ export function manifestPaths(): { markdown: string; splitRoot: string } {
     splitRoot: fileURLToPath(new URL("cli-capabilities/", references)),
   };
 }
+function getShardKey(commandName: string, domain: string): string {
+  if (domain === "mind") {
+    if (commandName.includes("queue")) return "queue";
+    if (commandName.includes("audit")) return "audit";
+    if (commandName.includes("memory") || commandName.includes("smart-task")) return "knowledge";
+    if (commandName.includes("pulse")) return "pulse";
+    if (commandName.includes("round")) return "round";
+    if (
+      commandName.includes("admit") ||
+      commandName.includes("decline") ||
+      commandName.includes("candidate")
+    )
+      return "admission";
+    return "lifecycle";
+  }
+  if (domain === "reporting") {
+    if (commandName.includes("quota")) return "quota";
+    if (commandName.includes("dag")) return "dag";
+    if (
+      commandName.includes("report-") ||
+      commandName.includes("test-summary") ||
+      commandName === "report"
+    )
+      return "reports";
+    if (commandName.includes("stream")) return "stream";
+    return "telemetry";
+  }
+  if (domain === "plan") {
+    if (
+      commandName.includes("validate") ||
+      commandName.includes("audit") ||
+      commandName.includes("review") ||
+      commandName.includes("claim") ||
+      commandName.includes("apply") ||
+      commandName.includes("replan")
+    )
+      return "validation";
+    return "authoring";
+  }
+  if (domain === "task") {
+    if (commandName.includes("review") || commandName.includes("validate")) return "review";
+    if (
+      commandName.includes("claim") ||
+      commandName.includes("submit") ||
+      commandName.includes("assign")
+    )
+      return "lifecycle";
+    if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
+    return "ops";
+  }
+  return "core";
+}
 
 export function writeManifest(): { markdown: string; splitFiles: string[] } {
   const paths = manifestPaths();
-  writeFileSync(paths.markdown, renderManifestMarkdown(), "utf-8");
 
+  if (!existsSync(paths.splitRoot)) {
+    mkdirSync(paths.splitRoot, { recursive: true });
+  }
+
+  writeFileSync(paths.markdown, renderManifestMarkdown(), "utf-8");
   const splitFiles: string[] = [];
-  for (const file of renderSplitFiles()) {
-    const target = `${paths.splitRoot}${file.path}`;
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, file.content, "utf-8");
-    splitFiles.push(target);
+
+  const manifestData = splitManifest();
+  writeFileSync(
+    join(paths.splitRoot, "manifest.json"),
+    JSON.stringify(manifestData, null, 2) + "\n",
+    "utf-8",
+  );
+  splitFiles.push(join(paths.splitRoot, "manifest.json"));
+
+  const largeDomains = ["mind", "reporting", "plan", "task"];
+  const allCommands = capabilityManifest().commands;
+
+  let indexJsonl = renderCommandIndexJsonl();
+  for (const cmd of allCommands) {
+    if (largeDomains.includes(cmd.domain)) {
+      const shard = getShardKey(cmd.name, cmd.domain);
+      const oldPath = `commands/${cmd.domain}/${cmd.name.replaceAll(":", "-")}.json`;
+      const newPath = `commands/${cmd.domain}/${shard}/${cmd.name.replaceAll(":", "-")}.json`;
+      indexJsonl = indexJsonl.replace(oldPath, newPath);
+    }
   }
+
+  writeFileSync(join(paths.splitRoot, "index.jsonl"), indexJsonl, "utf-8");
+  splitFiles.push(join(paths.splitRoot, "index.jsonl"));
+
   for (const domain of COMMAND_DOMAINS) {
-    const target = `${paths.splitRoot}${domainFilePath(domain)}`;
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, renderDomainMarkdown(domain), "utf-8");
-    splitFiles.push(target);
+    const specs = domainCommandSpecs(domain);
+    const domainCommands = allCommands.filter((c) => c.domain === domain);
+
+    let domainMarkdown = renderDomainMarkdown(domain);
+    const domainLines = domainMarkdown.split("\n");
+
+    // Markdown sharding
+    if (domainLines.length > 300 && largeDomains.includes(domain)) {
+      const shards = new Map<string, string[]>();
+      for (const spec of specs) {
+        const shard = getShardKey(spec.name, domain);
+        if (!shards.has(shard)) {
+          shards.set(shard, [
+            `# CLI Capability Manifest \u2014 ${domain} (${shard})`,
+            "",
+            `Generated from \`olt/scripts/src/cli/registry\` by \`olt/scripts/generate-cli-manifest.ts\`. Do not edit by`,
+            "hand. Index: [`../../cli-capabilities.md`](../../cli-capabilities.md).",
+            "",
+          ]);
+        }
+        shards.get(shard)!.push(...commandSection(spec));
+      }
+
+      const domainIndexContent = [
+        `# CLI Capability Manifest \u2014 ${domain}`,
+        "",
+        `Generated from \`olt/scripts/src/cli/registry\` by \`olt/scripts/generate-cli-manifest.ts\`. Do not edit by`,
+        "hand. Index: [`../cli-capabilities.md`](../cli-capabilities.md).",
+        "",
+        "## Shards",
+        "",
+      ];
+
+      const sortedShards = Array.from(shards.keys()).sort();
+      for (const shard of sortedShards) {
+        const lines = shards.get(shard)!;
+        const shardFile = `domains/${domain}/${shard}.md`;
+        domainIndexContent.push(`- [${shard}](${domain}/${shard}.md)`);
+
+        const target = join(paths.splitRoot, shardFile);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, lines.join("\n").trimEnd() + "\n", "utf-8");
+        splitFiles.push(target);
+      }
+
+      const target = join(paths.splitRoot, `domains/${domain}.md`);
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, domainIndexContent.join("\n") + "\n", "utf-8");
+      splitFiles.push(target);
+    } else {
+      const target = join(paths.splitRoot, `domains/${domain}.md`);
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, domainMarkdown, "utf-8");
+      splitFiles.push(target);
+    }
+
+    // JSON Sharding
+    if (largeDomains.includes(domain)) {
+      const entries = [];
+      const shards = new Map<string, any[]>();
+
+      for (const cmd of domainCommands) {
+        const shard = getShardKey(cmd.name, domain);
+        const targetPath = `${shard}/${cmd.name.replaceAll(":", "-")}.json`;
+
+        const fullTarget = join(paths.splitRoot, `commands/${domain}`, targetPath);
+        mkdirSync(dirname(fullTarget), { recursive: true });
+        writeFileSync(fullTarget, renderCommandDetailJson(cmd), "utf-8");
+        splitFiles.push(fullTarget);
+
+        if (!shards.has(shard)) shards.set(shard, []);
+        shards.get(shard)!.push({ id: cmd.name, path: `${cmd.name.replaceAll(":", "-")}.json` });
+      }
+
+      const domainEntries = [];
+      const sortedShards = Array.from(shards.keys()).sort();
+      for (const shard of sortedShards) {
+        const shardEntries = shards.get(shard)!;
+        const shardIndex = {
+          schema: "olt-cli-catalog/v1",
+          domain: domain,
+          entries: shardEntries,
+        };
+        const shardIndexPath = join(paths.splitRoot, `commands/${domain}/${shard}/index.json`);
+        writeFileSync(shardIndexPath, JSON.stringify(shardIndex, null, 2) + "\n", "utf-8");
+        splitFiles.push(shardIndexPath);
+
+        domainEntries.push({ id: shard, path: `${shard}/index.json` });
+      }
+
+      const domainIndex = {
+        schema: "olt-cli-catalog/v1",
+        domain: domain,
+        entries: domainEntries,
+      };
+
+      const target = join(paths.splitRoot, `commands/${domain}/index.json`);
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, JSON.stringify(domainIndex, null, 2) + "\n", "utf-8");
+      splitFiles.push(target);
+    } else {
+      for (const cmd of domainCommands) {
+        const targetPath = `${cmd.name.replaceAll(":", "-")}.json`;
+
+        const fullTarget = join(paths.splitRoot, `commands/${domain}`, targetPath);
+        mkdirSync(dirname(fullTarget), { recursive: true });
+        writeFileSync(fullTarget, renderCommandDetailJson(cmd), "utf-8");
+        splitFiles.push(fullTarget);
+      }
+    }
   }
+
+  const generated = new Set(splitFiles);
+  function cleanDir(dir: string) {
+    if (!existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = require("node:path").join(dir, entry.name);
+      if (entry.isDirectory()) {
+        cleanDir(fullPath);
+        if (fs.readdirSync(fullPath).length === 0) {
+          fs.rmdirSync(fullPath);
+        }
+      } else {
+        if (!generated.has(fullPath)) {
+          fs.rmSync(fullPath);
+        }
+      }
+    }
+  }
+  cleanDir(paths.splitRoot);
+
   return { markdown: paths.markdown, splitFiles };
 }
 
