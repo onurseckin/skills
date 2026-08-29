@@ -364,7 +364,10 @@ export function resolveAggregatorImportPath(specifier: string, fromFilePath?: st
     if (normalizedFrom.includes("mind/defects/index") || normalizedFrom.endsWith("defects")) {
       return CANONICAL_AGGREGATOR_BARREL_SPECIFIER;
     }
-    if (normalizedFrom.includes("tests/unit/mind") || normalizedFrom.includes("tests/unit/defects")) {
+    if (
+      normalizedFrom.includes("tests/unit/mind") ||
+      normalizedFrom.includes("tests/unit/defects")
+    ) {
       return CANONICAL_AGGREGATOR_BARREL_SPECIFIER_FROM_TEST;
     }
     if (normalizedFrom.includes("mind/index") || normalizedFrom.endsWith("mind")) {
@@ -477,7 +480,11 @@ export function extractImportEntries(sourceCode: string): readonly ImportEntry[]
         const namedPart = parts[1]?.replace(/\}/gu, "").trim();
         if (namedPart) {
           for (const s of namedPart.split(",")) {
-            const sym = s.trim().replace(/^type\s+/u, "").split(/\s+as\s+/u)[0]?.trim();
+            const sym = s
+              .trim()
+              .replace(/^type\s+/u, "")
+              .split(/\s+as\s+/u)[0]
+              ?.trim();
             if (sym) namedSymbols.push(sym);
           }
         }
@@ -486,7 +493,11 @@ export function extractImportEntries(sourceCode: string): readonly ImportEntry[]
       }
     } else if (namedOnly) {
       for (const s of namedOnly.split(",")) {
-        const sym = s.trim().replace(/^type\s+/u, "").split(/\s+as\s+/u)[0]?.trim();
+        const sym = s
+          .trim()
+          .replace(/^type\s+/u, "")
+          .split(/\s+as\s+/u)[0]
+          ?.trim();
         if (sym) namedSymbols.push(sym);
       }
     }

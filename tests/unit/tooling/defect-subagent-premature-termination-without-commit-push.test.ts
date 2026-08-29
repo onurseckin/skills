@@ -26,8 +26,16 @@ import {
   type SyncExecutionOutput,
 } from "../../../olt/scripts/src/tooling/defect-subagent-premature-termination-without-commit-push.ts";
 
-const dummyGitSuccess = (): GitExecutionOutput => ({ exitCode: 0, stdout: "", stderr: "" });
-const dummySyncSuccess = (): SyncExecutionOutput => ({ exitCode: 0, stdout: "", stderr: "" });
+const dummyGitSuccess = (): GitExecutionOutput => ({
+  exitCode: 0,
+  stdout: "",
+  stderr: "",
+});
+const dummySyncSuccess = (): SyncExecutionOutput => ({
+  exitCode: 0,
+  stdout: "",
+  stderr: "",
+});
 
 describe("Task 1.9: Defect Remediation - Subagent Premature Termination Without Commit and Push", () => {
   describe("1. Defect Metadata, Invariants & Canonical Constants", () => {
@@ -99,7 +107,10 @@ describe("Task 1.9: Defect Remediation - Subagent Premature Termination Without 
       expect(receipt1.testPassed).toBe(true);
       expect(receipt1.exitCode).toBe(0);
 
-      const receipt2 = generateVerificationReceipt({ taskId: "task-fail-inferred", exitCode: 2 });
+      const receipt2 = generateVerificationReceipt({
+        taskId: "task-fail-inferred",
+        exitCode: 2,
+      });
       expect(receipt2.testPassed).toBe(false);
       expect(receipt2.exitCode).toBe(2);
     });
@@ -164,19 +175,35 @@ describe("Task 1.9: Defect Remediation - Subagent Premature Termination Without 
           return { exitCode: 0, stdout: "", stderr: "" };
         }
         if (cmd.startsWith("git commit")) {
-          return { exitCode: 0, stdout: "[main abc1234] feat: complete task", stderr: "" };
+          return {
+            exitCode: 0,
+            stdout: "[main abc1234] feat: complete task",
+            stderr: "",
+          };
         }
         if (cmd.startsWith("git rev-parse HEAD")) {
-          return { exitCode: 0, stdout: "abc1234567890abcdef1234567890abcdef1234", stderr: "" };
+          return {
+            exitCode: 0,
+            stdout: "abc1234567890abcdef1234567890abcdef1234",
+            stderr: "",
+          };
         }
         if (cmd.startsWith("git push")) {
-          return { exitCode: 0, stdout: "To origin/main\n   abc1234..def5678 main -> main", stderr: "" };
+          return {
+            exitCode: 0,
+            stdout: "To origin/main\n   abc1234..def5678 main -> main",
+            stderr: "",
+          };
         }
         return { exitCode: 0, stdout: "", stderr: "" };
       };
 
       const mockSyncRunner = (scriptPath: string): SyncExecutionOutput => {
-        return { exitCode: 0, stdout: `Synced successfully via ${scriptPath}`, stderr: "" };
+        return {
+          exitCode: 0,
+          stdout: `Synced successfully via ${scriptPath}`,
+          stderr: "",
+        };
       };
 
       const result = await executePreTerminationReleaseGate({
@@ -249,7 +276,11 @@ describe("Task 1.9: Defect Remediation - Subagent Premature Termination Without 
       const mockGitRunner = (cmd: string): GitExecutionOutput => {
         if (cmd.startsWith("git add")) return { exitCode: 0, stdout: "", stderr: "" };
         if (cmd.startsWith("git commit")) {
-          return { exitCode: 1, stdout: "nothing to commit, working tree clean", stderr: "" };
+          return {
+            exitCode: 1,
+            stdout: "nothing to commit, working tree clean",
+            stderr: "",
+          };
         }
         if (cmd.startsWith("git rev-parse HEAD")) {
           return { exitCode: 0, stdout: "clean-tree-sha", stderr: "" };
@@ -274,7 +305,11 @@ describe("Task 1.9: Defect Remediation - Subagent Premature Termination Without 
     test("fails release gate when git stage fails", async () => {
       const mockGitRunner = (cmd: string): GitExecutionOutput => {
         if (cmd.startsWith("git add")) {
-          return { exitCode: 128, stdout: "", stderr: "fatal: pathspec does not match any files" };
+          return {
+            exitCode: 128,
+            stdout: "",
+            stderr: "fatal: pathspec does not match any files",
+          };
         }
         return { exitCode: 0, stdout: "", stderr: "" };
       };
@@ -296,7 +331,11 @@ describe("Task 1.9: Defect Remediation - Subagent Premature Termination Without 
       const mockGitRunner = (cmd: string): GitExecutionOutput => {
         if (cmd.startsWith("git add")) return { exitCode: 0, stdout: "", stderr: "" };
         if (cmd.startsWith("git commit")) {
-          return { exitCode: 1, stdout: "", stderr: "error: unable to write loose object" };
+          return {
+            exitCode: 1,
+            stdout: "",
+            stderr: "error: unable to write loose object",
+          };
         }
         return { exitCode: 0, stdout: "", stderr: "" };
       };
@@ -316,7 +355,11 @@ describe("Task 1.9: Defect Remediation - Subagent Premature Termination Without 
     test("fails release gate when git push fails", async () => {
       const mockGitRunner = (cmd: string): GitExecutionOutput => {
         if (cmd.startsWith("git push")) {
-          return { exitCode: 1, stdout: "", stderr: "fatal: remote origin unreachable" };
+          return {
+            exitCode: 1,
+            stdout: "",
+            stderr: "fatal: remote origin unreachable",
+          };
         }
         return { exitCode: 0, stdout: "", stderr: "" };
       };
@@ -335,7 +378,11 @@ describe("Task 1.9: Defect Remediation - Subagent Premature Termination Without 
     });
 
     test("fails release gate when global skill sync fails", async () => {
-      const mockGitRunner = (): GitExecutionOutput => ({ exitCode: 0, stdout: "", stderr: "" });
+      const mockGitRunner = (): GitExecutionOutput => ({
+        exitCode: 0,
+        stdout: "",
+        stderr: "",
+      });
       const mockSyncRunner = (): SyncExecutionOutput => ({
         exitCode: 1,
         stdout: "",

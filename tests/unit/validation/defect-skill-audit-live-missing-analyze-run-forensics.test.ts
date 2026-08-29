@@ -17,7 +17,9 @@ describe("Task 1.11: defect-skill-audit-live-missing-analyze-run-forensics", () 
   test("1. defect constants, paths, and required symbol definitions are accurately specified", () => {
     expect(DEFECT_REF).toBe("defect-skill-audit-live-missing-analyze-run-forensics");
     expect(UNDEFINED_FUNCTION_REFERENCE).toBe("UNDEFINED_FUNCTION_REFERENCE");
-    expect(CANONICAL_SKILL_AUDIT_MODULE_PATH).toBe("olt/scripts/src/mind/auditing/cognitive/skill-auditor.ts");
+    expect(CANONICAL_SKILL_AUDIT_MODULE_PATH).toBe(
+      "olt/scripts/src/mind/auditing/cognitive/skill-auditor.ts",
+    );
     expect(REQUIRED_SKILL_AUDIT_FORENSICS_SYMBOLS).toContain("analyzeRunForensics");
     expect(REQUIRED_SKILL_AUDIT_FORENSICS_SYMBOLS).toContain("SkillAuditorEngine");
     expect(REQUIRED_SKILL_AUDIT_FORENSICS_SYMBOLS).toContain("SKILL_AUDIT_FORENSICS_CATEGORIES");
@@ -155,7 +157,9 @@ describe("Task 1.11: defect-skill-audit-live-missing-analyze-run-forensics", () 
     expect(result.missingSymbols).toContain("SKILL_AUDIT_FORENSICS_CATEGORIES");
     expect(result.issues.length).toBe(3);
 
-    const nonExistentResult = validateSkillAuditLiveForensicsSymbols("/nonexistent/skill-auditor.ts");
+    const nonExistentResult = validateSkillAuditLiveForensicsSymbols(
+      "/nonexistent/skill-auditor.ts",
+    );
     expect(nonExistentResult.valid).toBe(false);
     expect(nonExistentResult.issues[0]).toContain("File not found");
   });

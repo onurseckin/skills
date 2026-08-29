@@ -118,8 +118,7 @@ export const CANONICAL_WITNESS_SPECIFIER_FROM_COGNITIVE = "../witness/index.ts" 
 export const CANONICAL_WITNESS_TYPES_SPECIFIER_FROM_WITNESS = "./types.ts" as const;
 
 // Canonical specifiers from auditing directory
-export const CANONICAL_LAST_PULSE_SPECIFIER_FROM_AUDITING =
-  "../lifecycle/pulse/index.ts" as const;
+export const CANONICAL_LAST_PULSE_SPECIFIER_FROM_AUDITING = "../lifecycle/pulse/index.ts" as const;
 export const CANONICAL_META_SPECIFIER_FROM_AUDITING = "./meta/index.ts" as const;
 export const CANONICAL_WITNESS_SPECIFIER_FROM_AUDITING = "./witness/index.ts" as const;
 export const CANONICAL_COGNITIVE_SPECIFIER_FROM_AUDITING = "./cognitive/index.ts" as const;
@@ -600,7 +599,8 @@ export function classifyCognitiveAuditingImport(
   const issues: CognitiveAuditingImportIssue[] = [];
   const clean = normalizeSlashes(specifier.trim());
   const isFromCognitive =
-    typeof fromFilePath === "string" && normalizeSlashes(fromFilePath).includes("auditing/cognitive");
+    typeof fromFilePath === "string" &&
+    normalizeSlashes(fromFilePath).includes("auditing/cognitive");
 
   if (isLegacyLastPulseImport(clean)) {
     const suggested = isFromCognitive
@@ -787,7 +787,9 @@ export function extractImportEntries(source: string): readonly ImportEntry[] {
     const staticMatch = staticImportRegex.exec(line);
     if (staticMatch) {
       const isTypeOnly = Boolean(staticMatch[1]);
-      const namespace = staticMatch[2] ? staticMatch[2].replace(/^\*\s+as\s+/u, "").trim() : undefined;
+      const namespace = staticMatch[2]
+        ? staticMatch[2].replace(/^\*\s+as\s+/u, "").trim()
+        : undefined;
       const defaultImport = staticMatch[3] || staticMatch[4];
       const namedClause = staticMatch[5] ?? "";
       const specifier = staticMatch[6] ?? "";
@@ -1206,7 +1208,9 @@ export function remediateCognitiveAuditingSourceWithReport(
 /**
  * Remediates a file on disk.
  */
-export function remediateCognitiveAuditingFile(filePath: string): CognitiveAuditingRemediationResult {
+export function remediateCognitiveAuditingFile(
+  filePath: string,
+): CognitiveAuditingRemediationResult {
   const source = readFileSync(filePath, "utf-8");
   const result = remediateCognitiveAuditingSource(source, filePath);
   if (result.replacementsCount > 0) {
@@ -1246,7 +1250,9 @@ function findTsFiles(dir: string): string[] {
 /**
  * Audits a specific directory for cognitive auditing import compliance.
  */
-export function auditCognitiveAuditingDirectory(dirPath: string): CognitiveAuditingModuleAuditReport {
+export function auditCognitiveAuditingDirectory(
+  dirPath: string,
+): CognitiveAuditingModuleAuditReport {
   const tsFiles = findTsFiles(dirPath);
   const fileReports: CognitiveAuditingValidationResult[] = [];
   const allIssues: CognitiveAuditingImportIssue[] = [];
@@ -1293,7 +1299,9 @@ export function auditAuditingSubsystem(repoRoot?: string): CognitiveAuditingModu
 /**
  * Formats a brief markdown report for cognitive auditing import audits.
  */
-export function formatCognitiveAuditingAuditBrief(report: CognitiveAuditingModuleAuditReport): string {
+export function formatCognitiveAuditingAuditBrief(
+  report: CognitiveAuditingModuleAuditReport,
+): string {
   const lines: string[] = [
     `# Cognitive Auditing Import Integrity Report`,
     `- Defect Ref: \`${report.defectRef}\``,
@@ -1380,7 +1388,8 @@ export function createCognitiveAuditingDefectProof(options?: {
   return {
     commit_sha: options?.commitSha ?? null,
     task_id: options?.taskId ?? "Task 1.20",
-    test_assertion: "tests/unit/mind/defect-mind-auditing-cognitive-unresolved-relative-imports.test.ts",
+    test_assertion:
+      "tests/unit/mind/defect-mind-auditing-cognitive-unresolved-relative-imports.test.ts",
     resolved_at: new Date().toISOString(),
     explanation:
       "All stale relative imports in mind/auditing/cognitive (last-pulse, meta-auditor) and witness re-exports resolved to canonical barrel paths with 100% test coverage.",

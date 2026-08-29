@@ -288,7 +288,9 @@ describe("Task 1.20: Defect Remediation - Stale relative imports in mind/auditin
 
   describe("3. Error Types & Class Hierarchy", () => {
     test("MindAuditingCognitiveImportError creates structured error with defaults", () => {
-      const err = new MindAuditingCognitiveImportError("Unresolved relative import in cognitive chunk");
+      const err = new MindAuditingCognitiveImportError(
+        "Unresolved relative import in cognitive chunk",
+      );
       expect(err).toBeInstanceOf(Error);
       expect(err).toBeInstanceOf(MindAuditingCognitiveImportError);
       expect(err.name).toBe("MindAuditingCognitiveImportError");
@@ -447,7 +449,10 @@ import { c } from "./mod2.ts";
     });
 
     test("resolveCognitiveAuditingImportPath resolves relative paths and handles nonexistent files", () => {
-      const res = resolveCognitiveAuditingImportPath("./index.ts", "olt/scripts/src/mind/auditing/cognitive/engine.ts");
+      const res = resolveCognitiveAuditingImportPath(
+        "./index.ts",
+        "olt/scripts/src/mind/auditing/cognitive/engine.ts",
+      );
       expect(typeof res.exists).toBe("boolean");
       expect(res.resolvedPath).toBeDefined();
     });

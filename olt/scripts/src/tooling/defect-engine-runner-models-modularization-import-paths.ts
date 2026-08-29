@@ -134,10 +134,14 @@ export const INVARIANT_DESCRIPTION =
   "All imports targeting engine/runner/models must resolve to the modular subdirectories (attempt/, command/, execution/) or canonical facade barrels, with zero references to stale flat file paths." as const;
 
 export const CANONICAL_RUNNER_MODELS_ROOT = "olt/scripts/src/engine/runner/models" as const;
-export const CANONICAL_RUNNER_MODELS_BARREL = "olt/scripts/src/engine/runner/models/index.ts" as const;
-export const CANONICAL_ATTEMPT_BARREL = "olt/scripts/src/engine/runner/models/attempt/index.ts" as const;
-export const CANONICAL_COMMAND_BARREL = "olt/scripts/src/engine/runner/models/command/index.ts" as const;
-export const CANONICAL_EXECUTION_BARREL = "olt/scripts/src/engine/runner/models/execution/index.ts" as const;
+export const CANONICAL_RUNNER_MODELS_BARREL =
+  "olt/scripts/src/engine/runner/models/index.ts" as const;
+export const CANONICAL_ATTEMPT_BARREL =
+  "olt/scripts/src/engine/runner/models/attempt/index.ts" as const;
+export const CANONICAL_COMMAND_BARREL =
+  "olt/scripts/src/engine/runner/models/command/index.ts" as const;
+export const CANONICAL_EXECUTION_BARREL =
+  "olt/scripts/src/engine/runner/models/execution/index.ts" as const;
 
 export const MODULAR_SUBDIRECTORIES: readonly ["attempt", "command", "execution"] = Object.freeze([
   "attempt",
@@ -150,99 +154,147 @@ export type RunnerModelsSubdirectory = (typeof MODULAR_SUBDIRECTORIES)[number];
 /**
  * Mapping of legacy flat file base names to their modular subdirectory locations.
  */
-export const LEGACY_FLAT_FILE_MAPPINGS: Readonly<Record<string, { submodule: RunnerModelsSubdirectory; relativePath: string }>> = Object.freeze({
+export const LEGACY_FLAT_FILE_MAPPINGS: Readonly<
+  Record<string, { submodule: RunnerModelsSubdirectory; relativePath: string }>
+> = Object.freeze({
   // Attempt submodule files
-  "attempt-success-evidence.ts": { submodule: "attempt", relativePath: "attempt/attempt-success-evidence.ts" },
-  "attempt-success-evidence": { submodule: "attempt", relativePath: "attempt/attempt-success-evidence.ts" },
+  "attempt-success-evidence.ts": {
+    submodule: "attempt",
+    relativePath: "attempt/attempt-success-evidence.ts",
+  },
+  "attempt-success-evidence": {
+    submodule: "attempt",
+    relativePath: "attempt/attempt-success-evidence.ts",
+  },
   "attempt-support.ts": { submodule: "attempt", relativePath: "attempt/attempt-support.ts" },
   "attempt-support": { submodule: "attempt", relativePath: "attempt/attempt-support.ts" },
-  "gate-attempt-finalization.ts": { submodule: "attempt", relativePath: "attempt/gate-attempt-finalization.ts" },
-  "gate-attempt-finalization": { submodule: "attempt", relativePath: "attempt/gate-attempt-finalization.ts" },
+  "gate-attempt-finalization.ts": {
+    submodule: "attempt",
+    relativePath: "attempt/gate-attempt-finalization.ts",
+  },
+  "gate-attempt-finalization": {
+    submodule: "attempt",
+    relativePath: "attempt/gate-attempt-finalization.ts",
+  },
   "run-attempt.ts": { submodule: "attempt", relativePath: "attempt/run-attempt.ts" },
   "run-attempt": { submodule: "attempt", relativePath: "attempt/run-attempt.ts" },
 
   // Command submodule files
-  "command-aggregate-shape.ts": { submodule: "command", relativePath: "command/command-aggregate-shape.ts" },
-  "command-aggregate-shape": { submodule: "command", relativePath: "command/command-aggregate-shape.ts" },
+  "command-aggregate-shape.ts": {
+    submodule: "command",
+    relativePath: "command/command-aggregate-shape.ts",
+  },
+  "command-aggregate-shape": {
+    submodule: "command",
+    relativePath: "command/command-aggregate-shape.ts",
+  },
   "command-aggregate.ts": { submodule: "command", relativePath: "command/command-aggregate.ts" },
   "command-aggregate": { submodule: "command", relativePath: "command/command-aggregate.ts" },
   "command-id.ts": { submodule: "command", relativePath: "command/command-id.ts" },
   "command-id": { submodule: "command", relativePath: "command/command-id.ts" },
-  "command-record-size.ts": { submodule: "command", relativePath: "command/command-record-size.ts" },
+  "command-record-size.ts": {
+    submodule: "command",
+    relativePath: "command/command-record-size.ts",
+  },
   "command-record-size": { submodule: "command", relativePath: "command/command-record-size.ts" },
   "command-shape.ts": { submodule: "command", relativePath: "command/command-shape.ts" },
   "command-shape": { submodule: "command", relativePath: "command/command-shape.ts" },
-  "command-signing-capability.ts": { submodule: "command", relativePath: "command/command-signing-capability.ts" },
-  "command-signing-capability": { submodule: "command", relativePath: "command/command-signing-capability.ts" },
+  "command-signing-capability.ts": {
+    submodule: "command",
+    relativePath: "command/command-signing-capability.ts",
+  },
+  "command-signing-capability": {
+    submodule: "command",
+    relativePath: "command/command-signing-capability.ts",
+  },
   "command-wrappers.ts": { submodule: "command", relativePath: "command/command-wrappers.ts" },
   "command-wrappers": { submodule: "command", relativePath: "command/command-wrappers.ts" },
 
   // Execution submodule files
-  "command-execution-snapshot.ts": { submodule: "execution", relativePath: "execution/command-execution-snapshot.ts" },
-  "command-execution-snapshot": { submodule: "execution", relativePath: "execution/command-execution-snapshot.ts" },
-  "internal-command-runner.ts": { submodule: "execution", relativePath: "execution/internal-command-runner.ts" },
-  "internal-command-runner": { submodule: "execution", relativePath: "execution/internal-command-runner.ts" },
-  "run-command-lock-deps.ts": { submodule: "execution", relativePath: "execution/run-command-lock-deps.ts" },
-  "run-command-lock-deps": { submodule: "execution", relativePath: "execution/run-command-lock-deps.ts" },
+  "command-execution-snapshot.ts": {
+    submodule: "execution",
+    relativePath: "execution/command-execution-snapshot.ts",
+  },
+  "command-execution-snapshot": {
+    submodule: "execution",
+    relativePath: "execution/command-execution-snapshot.ts",
+  },
+  "internal-command-runner.ts": {
+    submodule: "execution",
+    relativePath: "execution/internal-command-runner.ts",
+  },
+  "internal-command-runner": {
+    submodule: "execution",
+    relativePath: "execution/internal-command-runner.ts",
+  },
+  "run-command-lock-deps.ts": {
+    submodule: "execution",
+    relativePath: "execution/run-command-lock-deps.ts",
+  },
+  "run-command-lock-deps": {
+    submodule: "execution",
+    relativePath: "execution/run-command-lock-deps.ts",
+  },
   "run-command-lock.ts": { submodule: "execution", relativePath: "execution/run-command-lock.ts" },
   "run-command-lock": { submodule: "execution", relativePath: "execution/run-command-lock.ts" },
   "run-command.ts": { submodule: "execution", relativePath: "execution/run-command.ts" },
   "run-command": { submodule: "execution", relativePath: "execution/run-command.ts" },
 });
 
-export const ALL_CANONICAL_SYMBOLS: Readonly<Record<RunnerModelsSubdirectory, readonly string[]>> = Object.freeze({
-  attempt: Object.freeze([
-    "runAttempt",
-    "cleanupAfterAttemptFailure",
-    "raceWithTimeout",
-    "settleBounded",
-    "settleTrackerBeforeOutcome",
-    "activityMetadata",
-    "writeSuccessfulAttemptEvidence",
-    "finalizeSuccessfulAttempt",
-    "finalizeGateAttempt",
-  ]),
-  command: Object.freeze([
-    "commandId",
-    "canonicalCommandFingerprint",
-    "embeddedCommandIssues",
-    "repositoryObservationIssues",
-    "sameCommandJson",
-    "CREATE_ATTEMPT_DISPOSITION",
-    "createCommandSigningCapability",
-    "createAttemptDispositionCapabilityWithKey",
-    "CommandSigningCapability",
-    "commandLayers",
-    "effectiveCommandArgv",
-    "CommandLayers",
-    "aggregateFinalAttemptIssues",
-    "transientFailure",
-    "applyAttemptRecord",
-    "applyAttempt",
-    "replaceFinalAttempt",
-    "updateRetryExhaustion",
-    "MAX_COMMAND_ATTEMPT_BYTES",
-    "MAX_COMMAND_RECORD_BYTES",
-    "MAX_COMMAND_INTENT_BYTES",
-    "assertCommandAttemptSize",
-    "assertCommandRecordSize",
-    "assertCommandIntentSize",
-    "boundedEvidenceError",
-  ]),
-  execution: Object.freeze([
-    "isBroadScopeTest",
-    "runCommand",
-    "prepareCommand",
-    "executePreparedCommand",
-    "acquireMutexLock",
-    "setExecutionLockDependenciesForTesting",
-    "createInternalCommandRunner",
-    "InternalCommandRunner",
-    "commandExecutionSnapshot",
-    "CommandRuntimeCapability",
-    "ExecutionLockDependencies",
-  ]),
-});
+export const ALL_CANONICAL_SYMBOLS: Readonly<Record<RunnerModelsSubdirectory, readonly string[]>> =
+  Object.freeze({
+    attempt: Object.freeze([
+      "runAttempt",
+      "cleanupAfterAttemptFailure",
+      "raceWithTimeout",
+      "settleBounded",
+      "settleTrackerBeforeOutcome",
+      "activityMetadata",
+      "writeSuccessfulAttemptEvidence",
+      "finalizeSuccessfulAttempt",
+      "finalizeGateAttempt",
+    ]),
+    command: Object.freeze([
+      "commandId",
+      "canonicalCommandFingerprint",
+      "embeddedCommandIssues",
+      "repositoryObservationIssues",
+      "sameCommandJson",
+      "CREATE_ATTEMPT_DISPOSITION",
+      "createCommandSigningCapability",
+      "createAttemptDispositionCapabilityWithKey",
+      "CommandSigningCapability",
+      "commandLayers",
+      "effectiveCommandArgv",
+      "CommandLayers",
+      "aggregateFinalAttemptIssues",
+      "transientFailure",
+      "applyAttemptRecord",
+      "applyAttempt",
+      "replaceFinalAttempt",
+      "updateRetryExhaustion",
+      "MAX_COMMAND_ATTEMPT_BYTES",
+      "MAX_COMMAND_RECORD_BYTES",
+      "MAX_COMMAND_INTENT_BYTES",
+      "assertCommandAttemptSize",
+      "assertCommandRecordSize",
+      "assertCommandIntentSize",
+      "boundedEvidenceError",
+    ]),
+    execution: Object.freeze([
+      "isBroadScopeTest",
+      "runCommand",
+      "prepareCommand",
+      "executePreparedCommand",
+      "acquireMutexLock",
+      "setExecutionLockDependenciesForTesting",
+      "createInternalCommandRunner",
+      "InternalCommandRunner",
+      "commandExecutionSnapshot",
+      "CommandRuntimeCapability",
+      "ExecutionLockDependencies",
+    ]),
+  });
 
 // ---------------------------------------------------------------------------
 // Error Types & Classes
@@ -440,7 +492,10 @@ export function extractImportEntries(sourceCode: string): readonly RunnerModelsI
         for (const p of parts) {
           const trimmed = p.trim();
           if (trimmed) {
-            const sym = trimmed.replace(/^type\s+/, "").split(/\s+as\s+/)[0]?.trim();
+            const sym = trimmed
+              .replace(/^type\s+/, "")
+              .split(/\s+as\s+/)[0]
+              ?.trim();
             if (sym) namedSymbols.push(sym);
           }
         }
@@ -545,7 +600,8 @@ export function isLegacyRunnerModelsImport(specifier: string, fromFilePath?: str
       normalized.endsWith(`/models/${flatName}`) ||
       normalized === `models/${flatName}` ||
       normalized === `./models/${flatName}` ||
-      normalized.endsWith(`/${flatName}`) && (normalized.includes("/runner/") || normalized.includes("models/"))
+      (normalized.endsWith(`/${flatName}`) &&
+        (normalized.includes("/runner/") || normalized.includes("models/")))
     ) {
       return true;
     }
@@ -573,10 +629,7 @@ export function isLegacyRunnerModelsImport(specifier: string, fromFilePath?: str
 /**
  * Resolves a legacy flat runner/models import specifier to its modular path.
  */
-export function resolveRunnerModelsModularImport(
-  specifier: string,
-  fromFilePath?: string,
-): string {
+export function resolveRunnerModelsModularImport(specifier: string, fromFilePath?: string): string {
   if (!isLegacyRunnerModelsImport(specifier, fromFilePath)) {
     return specifier;
   }
@@ -659,7 +712,9 @@ export function remediateRunnerModelsImportsWithReport(
 ): RunnerModelsRemediationResult {
   const remediated = remediateRunnerModelsImports(sourceCode, options);
   const imports = extractModuleImports(sourceCode);
-  const legacyCount = imports.filter((imp) => isLegacyRunnerModelsImport(imp, options?.fromFilePath)).length;
+  const legacyCount = imports.filter((imp) =>
+    isLegacyRunnerModelsImport(imp, options?.fromFilePath),
+  ).length;
 
   return {
     defectRef: DEFECT_REF,
@@ -848,7 +903,8 @@ export function verifyBarrelReExports(modelsRootDir?: string): BarrelVerificatio
     }
   }
 
-  const verified = missingBarrels.length === 0 && missingSymbols.length === 0 && issues.length === 0;
+  const verified =
+    missingBarrels.length === 0 && missingSymbols.length === 0 && issues.length === 0;
 
   return {
     verified,
@@ -887,9 +943,10 @@ export function auditRunnerModelsModularization(
   options?: { repoRoot?: string },
 ): RunnerModelsAuditReport {
   const root = resolve(options?.repoRoot ?? process.cwd());
-  const modelsDir = typeof targetDirOrFiles === "string"
-    ? resolve(root, targetDirOrFiles)
-    : join(root, CANONICAL_RUNNER_MODELS_ROOT);
+  const modelsDir =
+    typeof targetDirOrFiles === "string"
+      ? resolve(root, targetDirOrFiles)
+      : join(root, CANONICAL_RUNNER_MODELS_ROOT);
 
   const barrelReport = verifyBarrelReExports(modelsDir);
   const issues: string[] = [...barrelReport.issues];
@@ -1018,7 +1075,10 @@ export function auditRunnerModelsCallerFiles(
  * Creates a verified DefectResolutionProof contract.
  */
 export function createRunnerModelsDefectProof(
-  reportOrResult?: RunnerModelsAuditReport | RunnerModelsCallerAuditReport | RunnerModelsValidationResult,
+  reportOrResult?:
+    | RunnerModelsAuditReport
+    | RunnerModelsCallerAuditReport
+    | RunnerModelsValidationResult,
 ): DefectResolutionProof {
   const timestamp = new Date().toISOString();
   const isResolved = reportOrResult
@@ -1036,7 +1096,8 @@ export function createRunnerModelsDefectProof(
       "Successfully remediated stale imports after engine/runner/models directory modularization into attempt/, command/, and execution/ subdirectories. " +
       "All callers in workflow/completion, workflow/gates, workflow/review, and integration resolve modular import paths with zero runtime errors.",
     verified: isResolved,
-    empirical_command: "bun test tests/unit/tooling/defect-engine-runner-models-modularization-import-paths.test.ts",
+    empirical_command:
+      "bun test tests/unit/tooling/defect-engine-runner-models-modularization-import-paths.test.ts",
   };
 }
 
@@ -1058,15 +1119,13 @@ export function createRunnerModelsDefectEntry(
     description:
       "engine/runner/models files were moved into attempt/, command/, and execution/ subdirectories. Callers in workflow/completion/, workflow/gates/, workflow/review/, and integration/ must resolve modular model paths.",
     message:
-      firstIssue?.message ??
-      "Runner models modularization import paths verified and remediated.",
+      firstIssue?.message ?? "Runner models modularization import paths verified and remediated.",
     status: options.status ?? "resolved",
     type: "CODE_HEALTH",
     category: "modularity_violation",
     severity: options.severity ?? "high",
     observation:
-      options.observation ??
-      `Found ${issues.length} runner models import issue(s) in ${filePath}`,
+      options.observation ?? `Found ${issues.length} runner models import issue(s) in ${filePath}`,
     remediation:
       options.remediation ??
       "Update stale import specifiers to modular subdirectories (attempt/, command/, execution/) or canonical facade barrels.",
@@ -1082,7 +1141,8 @@ export function createRunnerModelsDefectEntry(
       test_assertion: "expect(auditRunnerModelsModularization().resolved).toBeTrue()",
       resolved_at: options.timestamp ?? new Date().toISOString(),
       verified: true,
-      empirical_command: "bun test tests/unit/tooling/defect-engine-runner-models-modularization-import-paths.test.ts",
+      empirical_command:
+        "bun test tests/unit/tooling/defect-engine-runner-models-modularization-import-paths.test.ts",
     },
     timestamp: options.timestamp ?? new Date().toISOString(),
   };

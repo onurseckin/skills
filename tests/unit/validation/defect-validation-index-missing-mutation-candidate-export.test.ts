@@ -26,7 +26,10 @@ import {
 const tempDirs: string[] = [];
 
 function createTempDir(): string {
-  const dir = join(tmpdir(), `val-index-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const dir = join(
+    tmpdir(),
+    `val-index-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
   mkdirSync(dir, { recursive: true });
   tempDirs.push(dir);
   return dir;
@@ -34,7 +37,11 @@ function createTempDir(): string {
 
 afterEach(() => {
   for (const d of tempDirs) {
-    try { rmSync(d, { recursive: true, force: true }); } catch { /* cleanup */ }
+    try {
+      rmSync(d, { recursive: true, force: true });
+    } catch {
+      /* cleanup */
+    }
   }
   tempDirs.length = 0;
 });
@@ -46,7 +53,9 @@ describe("Task 1.9: defect-validation-index-missing-mutation-candidate-export", 
     expect(CANONICAL_MUTATION_CANDIDATE_MODULE).toBe("./mutation-gate/types.ts");
     expect(CANONICAL_VALIDATION_INDEX_PATH).toBe("olt/scripts/src/validation/index.ts");
     expect(CANONICAL_MUTATION_GATE_INDEX_SPECIFIER).toBe("./mutation-gate/index.ts");
-    expect(CANONICAL_MUTATION_GATE_TYPES_PATH).toBe("olt/scripts/src/validation/mutation-gate/types.ts");
+    expect(CANONICAL_MUTATION_GATE_TYPES_PATH).toBe(
+      "olt/scripts/src/validation/mutation-gate/types.ts",
+    );
     expect(LEGACY_ENGINE_INDEX_SPECIFIER).toBe("./engine/index.ts");
     expect(TARGET_MEMBER).toBe("MutationCandidate");
     expect(KNOWN_LEGACY_ENGINE_SPECIFIERS).toContain("./engine/index.ts");
@@ -68,7 +77,14 @@ describe("Task 1.9: defect-validation-index-missing-mutation-candidate-export", 
       specifier: "./engine/index.ts",
       missingMember: "MutationCandidate",
       filePath: "/path/to/index.ts",
-      issues: [{ code: "CUSTOM_CODE", message: "Unexported symbol", specifier: "./engine/index.ts", member: "MutationCandidate" }],
+      issues: [
+        {
+          code: "CUSTOM_CODE",
+          message: "Unexported symbol",
+          specifier: "./engine/index.ts",
+          member: "MutationCandidate",
+        },
+      ],
     });
     expect(customErr.code).toBe("CUSTOM_CODE");
     expect(customErr.defectRef).toBe("custom-ref");
@@ -109,10 +125,16 @@ describe("Task 1.9: defect-validation-index-missing-mutation-candidate-export", 
     expect(isLegacyMutationCandidateImport("../engine/index.ts", "MutationCandidate")).toBe(true);
     expect(isLegacyMutationCandidateImport("./engine", "MutationCandidate")).toBe(true);
     expect(isLegacyMutationCandidateImport("engine/index.ts", "MutationCandidate")).toBe(true);
-    expect(isLegacyMutationCandidateImport("./engine/mutation-candidate.ts", "MutationCandidate")).toBe(true);
+    expect(
+      isLegacyMutationCandidateImport("./engine/mutation-candidate.ts", "MutationCandidate"),
+    ).toBe(true);
 
-    expect(isLegacyMutationCandidateImport("./mutation-gate/index.ts", "MutationCandidate")).toBe(false);
-    expect(isLegacyMutationCandidateImport("./mutation-gate/types.ts", "MutationCandidate")).toBe(false);
+    expect(isLegacyMutationCandidateImport("./mutation-gate/index.ts", "MutationCandidate")).toBe(
+      false,
+    );
+    expect(isLegacyMutationCandidateImport("./mutation-gate/types.ts", "MutationCandidate")).toBe(
+      false,
+    );
     expect(isLegacyMutationCandidateImport("./other-module.ts", "MutationCandidate")).toBe(false);
     expect(isLegacyMutationCandidateImport("", "MutationCandidate")).toBe(false);
   });
@@ -188,8 +210,16 @@ describe("Task 1.9: defect-validation-index-missing-mutation-candidate-export", 
     expect(treeAudit.issues).toEqual([]);
 
     const tempDir = createTempDir();
-    writeFileSync(join(tempDir, "clean.ts"), `export { type MutationCandidate } from "./mutation-gate/index.ts";\n`, "utf-8");
-    writeFileSync(join(tempDir, "legacy.ts"), `export { type MutationCandidate } from "./engine/index.ts";\n`, "utf-8");
+    writeFileSync(
+      join(tempDir, "clean.ts"),
+      `export { type MutationCandidate } from "./mutation-gate/index.ts";\n`,
+      "utf-8",
+    );
+    writeFileSync(
+      join(tempDir, "legacy.ts"),
+      `export { type MutationCandidate } from "./engine/index.ts";\n`,
+      "utf-8",
+    );
 
     const tempAudit = auditValidationIndexModuleTree(tempDir);
     expect(tempAudit.resolved).toBe(false);
@@ -202,7 +232,14 @@ describe("Task 1.9: defect-validation-index-missing-mutation-candidate-export", 
   test("9. createValidationIndexDefectEntry generates compliant DefectEntry contract", () => {
     const entry = createValidationIndexDefectEntry({
       filePath: "olt/scripts/src/validation/index.ts",
-      issues: [{ code: UNEXPORTED_MEMBER_IMPORT, message: "Unexported member MutationCandidate", specifier: "./engine/index.ts", member: "MutationCandidate" }],
+      issues: [
+        {
+          code: UNEXPORTED_MEMBER_IMPORT,
+          message: "Unexported member MutationCandidate",
+          specifier: "./engine/index.ts",
+          member: "MutationCandidate",
+        },
+      ],
     });
     expect(entry.id).toContain(DEFECT_REF);
     expect(entry.domain).toBe("validation-modularization");
@@ -219,11 +256,19 @@ describe("Task 1.9: defect-validation-index-missing-mutation-candidate-export", 
 
   test("10. verifies zero TypeScript any and zero compiler suppressions across write scope", () => {
     const filesToAudit = [
-      join(process.cwd(), "olt/scripts/src/validation/defect-validation-index-missing-mutation-candidate-export.ts"),
-      join(process.cwd(), "tests/unit/validation/defect-validation-index-missing-mutation-candidate-export.test.ts"),
+      join(
+        process.cwd(),
+        "olt/scripts/src/validation/defect-validation-index-missing-mutation-candidate-export.ts",
+      ),
+      join(
+        process.cwd(),
+        "tests/unit/validation/defect-validation-index-missing-mutation-candidate-export.test.ts",
+      ),
     ];
     const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
-    const suppressionPattern = new RegExp(["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck"].join("|"));
+    const suppressionPattern = new RegExp(
+      ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck"].join("|"),
+    );
 
     for (const fp of filesToAudit) {
       expect(existsSync(fp)).toBe(true);

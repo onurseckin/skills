@@ -454,8 +454,7 @@ export async function executePreTerminationReleaseGate(
     try {
       const commitType = options.commitType ?? "feat";
       const commitScope = options.commitScope ? `(${options.commitScope})` : "";
-      const commitDescription =
-        options.commitDescription ?? `complete task ${options.taskId}`;
+      const commitDescription = options.commitDescription ?? `complete task ${options.taskId}`;
       const defaultCommitMessage = `${commitType}${commitScope}: ${commitDescription}`;
       const messageToUse = options.commitMessage ?? defaultCommitMessage;
 
@@ -706,18 +705,15 @@ export async function assertSubagentTerminationAllowed(
         ? result.errors.join("; ")
         : `Pre-termination release gate failed on step '${result.failedStep ?? "unknown"}'`;
 
-    throw new SubagentTerminationGuardError(
-      `Subagent teardown strictly blocked: ${errorSummary}`,
-      {
-        code: PREMATURE_TERMINATION_WITHOUT_COMMIT_PUSH,
-        defectRef: DEFECT_REF,
-        taskId: result.taskId,
-        subagentId: result.subagentId,
-        failedStep: result.failedStep,
-        errors: result.errors,
-        gateResult: result,
-      },
-    );
+    throw new SubagentTerminationGuardError(`Subagent teardown strictly blocked: ${errorSummary}`, {
+      code: PREMATURE_TERMINATION_WITHOUT_COMMIT_PUSH,
+      defectRef: DEFECT_REF,
+      taskId: result.taskId,
+      subagentId: result.subagentId,
+      failedStep: result.failedStep,
+      errors: result.errors,
+      gateResult: result,
+    });
   }
 
   return result;
@@ -776,8 +772,7 @@ export function createSubagentTerminationDefectProof(
   return {
     commit_sha: "e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
     task_id: `task-remediate-${DEFECT_REF}`,
-    test_assertion:
-      "expect((await executePreTerminationReleaseGate(options)).allowed).toBeTrue()",
+    test_assertion: "expect((await executePreTerminationReleaseGate(options)).allowed).toBeTrue()",
     resolved_at: new Date().toISOString(),
     explanation:
       "Remediated subagent premature termination by establishing a strict 4-step pre-termination release gate " +

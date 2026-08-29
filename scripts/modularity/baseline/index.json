@@ -4,7 +4,7 @@
     {
       "rule": "line_limit",
       "path": "olt/policy.json",
-      "observed": 670,
+      "observed": 637,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -319,14 +319,14 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/mind/defect-mind-auditing-cognitive-unresolved-relative-imports.ts",
-      "observed": 1464,
+      "observed": 1473,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/mind/defect-mind-defects-unresolved-aggregator-import.ts",
-      "observed": 824,
+      "observed": 835,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -669,28 +669,63 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/tooling/defect-engine-runner-models-modularization-import-paths.ts",
-      "observed": 1089,
+      "observed": 1149,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/tooling/defect-living-tracer-unresolved-replay-context.ts",
-      "observed": 886,
+      "observed": 885,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/tooling/defect-subagent-premature-termination-without-commit-push.ts",
-      "observed": 838,
+      "observed": 833,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/tooling/defect-workflow-integrity-evidence-unresolved-store-import.ts",
-      "observed": 974,
+      "observed": 964,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "olt/scripts/src/validation/defect-doctor-ast-purity-test-regex-false-positive.ts",
+      "observed": 415,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "olt/scripts/src/validation/defect-mechanical-chunk-naming-anti-pattern.ts",
+      "observed": 361,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "olt/scripts/src/validation/defect-plan-granularity-monolithic-docs-orchestrator.ts",
+      "observed": 452,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "olt/scripts/src/validation/defect-skill-audit-live-missing-analyze-run-forensics.ts",
+      "observed": 458,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "olt/scripts/src/validation/defect-validation-index-missing-mutation-candidate-export.ts",
+      "observed": 498,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -1383,14 +1418,14 @@
     {
       "rule": "line_limit",
       "path": "tests/unit/mind/defect-mind-auditing-cognitive-unresolved-relative-imports.test.ts",
-      "observed": 787,
+      "observed": 792,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
       "path": "tests/unit/mind/defect-mind-defects-unresolved-aggregator-import.test.ts",
-      "observed": 541,
+      "observed": 539,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -1929,28 +1964,28 @@
     {
       "rule": "line_limit",
       "path": "tests/unit/tooling/defect-engine-runner-models-modularization-import-paths.test.ts",
-      "observed": 392,
+      "observed": 413,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
       "path": "tests/unit/tooling/defect-living-tracer-unresolved-replay-context.test.ts",
-      "observed": 427,
+      "observed": 425,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
       "path": "tests/unit/tooling/defect-subagent-premature-termination-without-commit-push.test.ts",
-      "observed": 558,
+      "observed": 618,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
       "path": "tests/unit/tooling/defect-workflow-integrity-evidence-unresolved-store-import.test.ts",
-      "observed": 604,
+      "observed": 608,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -2370,7 +2405,7 @@
     {
       "rule": "directory_fanout",
       "path": "tests/unit/validation",
-      "observed": 16,
+      "observed": 18,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -2634,6 +2669,12 @@
       "rule": "export_star",
       "path": "olt/scripts/src/graph/index.ts",
       "observed": 32,
+      "detail": "Facade must use explicit named exports instead of export-star."
+    },
+    {
+      "rule": "export_star",
+      "path": "olt/scripts/src/mind/contracts/index.ts",
+      "observed": 1,
       "detail": "Facade must use explicit named exports instead of export-star."
     },
     {
@@ -23736,6 +23777,18 @@
       "rule": "facade_bypass",
       "path": "tests/unit/validation/defect-mechanical-chunk-naming-anti-pattern.test.ts",
       "observed": "olt/scripts/src/validation/defect-mechanical-chunk-naming-anti-pattern.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/validation/defect-plan-granularity-monolithic-docs-orchestrator.test.ts",
+      "observed": "olt/scripts/src/validation/defect-plan-granularity-monolithic-docs-orchestrator.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/validation/defect-skill-audit-live-missing-analyze-run-forensics.test.ts",
+      "observed": "olt/scripts/src/validation/defect-skill-audit-live-missing-analyze-run-forensics.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {

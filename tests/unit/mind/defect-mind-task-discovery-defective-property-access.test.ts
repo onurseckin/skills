@@ -101,12 +101,12 @@ describe("Task 1.17: Defect Remediation - Property 'prescribed_remediation' does
     });
 
     it("hasPrescribedRemediation accurately validates prescribed_remediation property presence", () => {
-      expect(
-        hasPrescribedRemediation({ prescribed_remediation: "Apply fallback extractor" }),
-      ).toBe(true);
-      expect(
-        hasPrescribedRemediation({ prescribed_remediation: "  trimmed prescribed  " }),
-      ).toBe(true);
+      expect(hasPrescribedRemediation({ prescribed_remediation: "Apply fallback extractor" })).toBe(
+        true,
+      );
+      expect(hasPrescribedRemediation({ prescribed_remediation: "  trimmed prescribed  " })).toBe(
+        true,
+      );
       expect(hasPrescribedRemediation({ prescribed_remediation: "" })).toBe(false);
       expect(hasPrescribedRemediation({ prescribed_remediation: "   " })).toBe(false);
       expect(hasPrescribedRemediation({ prescribed_remediation: undefined })).toBe(false);

@@ -18,7 +18,10 @@ import {
 const tempDirs: string[] = [];
 
 function createTempDir(): string {
-  const dir = join(tmpdir(), `chunk-naming-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const dir = join(
+    tmpdir(),
+    `chunk-naming-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
   mkdirSync(dir, { recursive: true });
   tempDirs.push(dir);
   return dir;
@@ -26,7 +29,11 @@ function createTempDir(): string {
 
 afterEach(() => {
   for (const dir of tempDirs) {
-    try { rmSync(dir, { recursive: true, force: true }); } catch { /* cleanup */ }
+    try {
+      rmSync(dir, { recursive: true, force: true });
+    } catch {
+      /* cleanup */
+    }
   }
   tempDirs.length = 0;
 });
@@ -40,7 +47,14 @@ describe("Task 1.12: defect-mechanical-chunk-naming-anti-pattern", () => {
   });
 
   test("2. detectMechanicalChunkNaming returns empty array on clean domain-semantic names", () => {
-    const semanticFiles = ["parser.ts", "types.ts", "validator.ts", "chunk-parser.ts", "multipart-form.ts", "storage.ts"];
+    const semanticFiles = [
+      "parser.ts",
+      "types.ts",
+      "validator.ts",
+      "chunk-parser.ts",
+      "multipart-form.ts",
+      "storage.ts",
+    ];
     for (const f of semanticFiles) {
       const issues = detectMechanicalChunkNaming(f);
       expect(issues).toEqual([]);
@@ -48,7 +62,12 @@ describe("Task 1.12: defect-mechanical-chunk-naming-anti-pattern", () => {
   });
 
   test("3. detectMechanicalChunkNaming identifies *-chunkN.ts anti-pattern variants", () => {
-    const mechanical = ["pushbacks-chunk1.ts", "rotate-chunk2.ts", "proposal-chunk5.ts", "memory-chunk3.ts"];
+    const mechanical = [
+      "pushbacks-chunk1.ts",
+      "rotate-chunk2.ts",
+      "proposal-chunk5.ts",
+      "memory-chunk3.ts",
+    ];
     for (const m of mechanical) {
       const issues = detectMechanicalChunkNaming(m);
       expect(issues.length).toBeGreaterThan(0);
@@ -106,9 +125,15 @@ describe("Task 1.12: defect-mechanical-chunk-naming-anti-pattern", () => {
   });
 
   test("9. suggestSemanticModuleName replaces mechanical chunk with responsibility hint", () => {
-    expect(suggestSemanticModuleName("pushbacks-chunk1.ts", { responsibility: "validator" })).toBe("pushbacks-validator.ts");
-    expect(suggestSemanticModuleName("rotate_part2.ts", { responsibility: "rotator" })).toBe("rotate_rotator.ts");
-    expect(suggestSemanticModuleName("proposal-chunk5.ts", { responsibility: "types" })).toBe("proposal-types.ts");
+    expect(suggestSemanticModuleName("pushbacks-chunk1.ts", { responsibility: "validator" })).toBe(
+      "pushbacks-validator.ts",
+    );
+    expect(suggestSemanticModuleName("rotate_part2.ts", { responsibility: "rotator" })).toBe(
+      "rotate_rotator.ts",
+    );
+    expect(suggestSemanticModuleName("proposal-chunk5.ts", { responsibility: "types" })).toBe(
+      "proposal-types.ts",
+    );
   });
 
   test("10. suggestSemanticModuleName infers role heuristically from stem", () => {
@@ -127,7 +152,9 @@ describe("Task 1.12: defect-mechanical-chunk-naming-anti-pattern", () => {
 
   test("12. suggestSemanticModuleName is idempotent on semantic file names", () => {
     expect(suggestSemanticModuleName("parser.ts")).toBe("parser.ts");
-    expect(suggestSemanticModuleName("olt/scripts/src/validation/index.ts")).toBe("olt/scripts/src/validation/index.ts");
+    expect(suggestSemanticModuleName("olt/scripts/src/validation/index.ts")).toBe(
+      "olt/scripts/src/validation/index.ts",
+    );
   });
 
   test("13. assertSemanticNamingPurity does not throw on pure semantic paths", () => {
@@ -135,12 +162,16 @@ describe("Task 1.12: defect-mechanical-chunk-naming-anti-pattern", () => {
   });
 
   test("14. assertSemanticNamingPurity throws MechanicalChunkNamingError on violating path", () => {
-    expect(() => assertSemanticNamingPurity("rotate-chunk2.ts")).toThrow(MechanicalChunkNamingError);
+    expect(() => assertSemanticNamingPurity("rotate-chunk2.ts")).toThrow(
+      MechanicalChunkNamingError,
+    );
   });
 
   test("15. assertSemanticNamingPurity throws MechanicalChunkNamingError on mechanical chunk import", () => {
     const brokenCode = `import { parse } from "./parser-chunk1.ts";`;
-    expect(() => assertSemanticNamingPurity("valid.ts", brokenCode)).toThrow(MechanicalChunkNamingError);
+    expect(() => assertSemanticNamingPurity("valid.ts", brokenCode)).toThrow(
+      MechanicalChunkNamingError,
+    );
   });
 
   test("16. MechanicalChunkNamingError encapsulates code, defectRef, issues and filePath", () => {
@@ -192,11 +223,13 @@ describe("Task 1.12: defect-mechanical-chunk-naming-anti-pattern", () => {
   test("19. createMechanicalChunkNamingDefectEntry generates valid structured DefectEntry", () => {
     const entry = createMechanicalChunkNamingDefectEntry({
       filePath: "olt/scripts/src/engine/rotate-chunk2.ts",
-      issues: [{
-        code: MECHANICAL_CHUNK_NAMING_BLUNDER,
-        message: "Mechanical chunk naming blunder detected in path 'rotate-chunk2.ts'",
-        filePath: "rotate-chunk2.ts",
-      }],
+      issues: [
+        {
+          code: MECHANICAL_CHUNK_NAMING_BLUNDER,
+          message: "Mechanical chunk naming blunder detected in path 'rotate-chunk2.ts'",
+          filePath: "rotate-chunk2.ts",
+        },
+      ],
     });
     expect(entry.id).toContain(DEFECT_REF);
     expect(entry.domain).toBe("file-modularization-semantic-naming");
@@ -211,11 +244,19 @@ describe("Task 1.12: defect-mechanical-chunk-naming-anti-pattern", () => {
 
   test("20. verifies zero TypeScript any and zero compiler suppressions across write scope", () => {
     const filesToAudit = [
-      join(process.cwd(), "olt/scripts/src/validation/defect-mechanical-chunk-naming-anti-pattern.ts"),
-      join(process.cwd(), "tests/unit/validation/defect-mechanical-chunk-naming-anti-pattern.test.ts"),
+      join(
+        process.cwd(),
+        "olt/scripts/src/validation/defect-mechanical-chunk-naming-anti-pattern.ts",
+      ),
+      join(
+        process.cwd(),
+        "tests/unit/validation/defect-mechanical-chunk-naming-anti-pattern.test.ts",
+      ),
     ];
     const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
-    const suppressionPattern = new RegExp(["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck"].join("|"));
+    const suppressionPattern = new RegExp(
+      ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck"].join("|"),
+    );
 
     for (const filePath of filesToAudit) {
       expect(existsSync(filePath)).toBe(true);

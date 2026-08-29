@@ -82,7 +82,10 @@ describe("Task 1.13: defect-plan-granularity-monolithic-docs-orchestrator", () =
   });
 
   test("6. validatePlanGranularity flags task count exceeding MAX_PLAN_TASK_COUNT (15)", () => {
-    const tasks = Array.from({ length: 16 }, (_, i) => ({ id: `Task 1.${i + 1}`, description: `Task ${i + 1}` }));
+    const tasks = Array.from({ length: 16 }, (_, i) => ({
+      id: `Task 1.${i + 1}`,
+      description: `Task ${i + 1}`,
+    }));
     const plan: PlanDescriptor = {
       id: "huge-task-plan",
       title: "Huge Task Plan",
@@ -109,7 +112,10 @@ describe("Task 1.13: defect-plan-granularity-monolithic-docs-orchestrator", () =
   });
 
   test("8. validatePlanGranularity detects both task and subsystem violations on monolithic plans", () => {
-    const tasks = Array.from({ length: 20 }, (_, i) => ({ id: `Task ${i + 1}`, description: `Task desc ${i + 1}` }));
+    const tasks = Array.from({ length: 20 }, (_, i) => ({
+      id: `Task ${i + 1}`,
+      description: `Task desc ${i + 1}`,
+    }));
     const plan: PlanDescriptor = {
       id: "monolithic-mega-plan",
       title: "Monolithic Mega Plan",
@@ -139,11 +145,20 @@ describe("Task 1.13: defect-plan-granularity-monolithic-docs-orchestrator", () =
   });
 
   test("10. decomposeMonolithicPlan splits monolithic plans into compliant sub-plans", () => {
-    const tasks = Array.from({ length: 20 }, (_, i) => ({ id: `Task ${i + 1}`, description: `Task desc ${i + 1}` }));
+    const tasks = Array.from({ length: 20 }, (_, i) => ({
+      id: `Task ${i + 1}`,
+      description: `Task desc ${i + 1}`,
+    }));
     const monolithic: PlanDescriptor = {
       id: "docs-monolith",
       title: "Docs Orchestrator Monolith",
-      subsystems: ["olt/agents/", "olt/references/", "olt/scripts/src/docs/", "olt/scripts/src/cli/", "olt/scripts/src/policy/"],
+      subsystems: [
+        "olt/agents/",
+        "olt/references/",
+        "olt/scripts/src/docs/",
+        "olt/scripts/src/cli/",
+        "olt/scripts/src/policy/",
+      ],
       tasks,
     };
 
@@ -184,7 +199,9 @@ describe("Task 1.13: defect-plan-granularity-monolithic-docs-orchestrator", () =
       subsystems: ["sub/1", "sub/2", "sub/3", "sub/4", "sub/5"],
       tasks: [{ id: "Task 1.1", description: "Task desc" }],
     };
-    expect(() => assertPlanGranularityCompliance(invalidPlan)).toThrow(PlanGranularityViolationError);
+    expect(() => assertPlanGranularityCompliance(invalidPlan)).toThrow(
+      PlanGranularityViolationError,
+    );
   });
 
   test("13. auditPlanningDirectoryForMonolithicPlans scans planning directories", () => {

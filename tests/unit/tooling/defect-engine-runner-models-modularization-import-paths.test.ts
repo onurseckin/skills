@@ -38,7 +38,9 @@ describe("defect-engine-runner-models-modularization-import-paths", () => {
       expect(DEFECT_REF).toBe("defect-engine-runner-models-modularization-import-paths");
       expect(DEFECT_ERROR_CODE).toBe("UNRESOLVED_MODULE_IMPORT_AFTER_REFACTOR");
       expect(ERROR_CODE).toBe("UNRESOLVED_MODULE_IMPORT_AFTER_REFACTOR");
-      expect(UNRESOLVED_MODULE_IMPORT_AFTER_REFACTOR).toBe("UNRESOLVED_MODULE_IMPORT_AFTER_REFACTOR");
+      expect(UNRESOLVED_MODULE_IMPORT_AFTER_REFACTOR).toBe(
+        "UNRESOLVED_MODULE_IMPORT_AFTER_REFACTOR",
+      );
       expect(INVARIANT_NUMBER).toBe(1);
       expect(INVARIANT_REF).toBe("Invariant 1.8");
       expect(typeof INVARIANT_DESCRIPTION).toBe("string");
@@ -158,7 +160,9 @@ describe("defect-engine-runner-models-modularization-import-paths", () => {
       expect(entries[0]?.isTypeOnly).toBe(false);
       expect(entries[0]?.line).toBe(1);
 
-      expect(entries[1]?.specifier).toBe("../engine/runner/models/execution/internal-command-runner.ts");
+      expect(entries[1]?.specifier).toBe(
+        "../engine/runner/models/execution/internal-command-runner.ts",
+      );
       expect(entries[1]?.namedSymbols).toContain("InternalCommandRunner");
       expect(entries[1]?.isTypeOnly).toBe(true);
       expect(entries[1]?.line).toBe(2);
@@ -173,21 +177,33 @@ describe("defect-engine-runner-models-modularization-import-paths", () => {
       expect(isLegacyRunnerModelsImport("../../engine/runner/models/command-shape.ts")).toBe(true);
       expect(isLegacyRunnerModelsImport("../engine/runner/models/run-attempt.ts")).toBe(true);
       expect(isLegacyRunnerModelsImport("engine/runner/models/command-id.ts")).toBe(true);
-      expect(isLegacyRunnerModelsImport("../../engine/runner/models/internal-command-runner.ts")).toBe(true);
+      expect(
+        isLegacyRunnerModelsImport("../../engine/runner/models/internal-command-runner.ts"),
+      ).toBe(true);
       expect(isLegacyRunnerModelsImport("../../engine/runner/models/command-aggregate")).toBe(true);
-      expect(isLegacyRunnerModelsImport("../../engine/runner/models/run-command-lock.ts")).toBe(true);
+      expect(isLegacyRunnerModelsImport("../../engine/runner/models/run-command-lock.ts")).toBe(
+        true,
+      );
       expect(isLegacyRunnerModelsImport("models/attempt-support.ts")).toBe(true);
     });
 
     test("identifies modularized paths and barrel imports as non-legacy (false)", () => {
-      expect(isLegacyRunnerModelsImport("../../engine/runner/models/command/command-shape.ts")).toBe(false);
-      expect(isLegacyRunnerModelsImport("../../engine/runner/models/attempt/run-attempt.ts")).toBe(false);
-      expect(isLegacyRunnerModelsImport("../../engine/runner/models/execution/run-command.ts")).toBe(false);
+      expect(
+        isLegacyRunnerModelsImport("../../engine/runner/models/command/command-shape.ts"),
+      ).toBe(false);
+      expect(isLegacyRunnerModelsImport("../../engine/runner/models/attempt/run-attempt.ts")).toBe(
+        false,
+      );
+      expect(
+        isLegacyRunnerModelsImport("../../engine/runner/models/execution/run-command.ts"),
+      ).toBe(false);
       expect(isLegacyRunnerModelsImport("../../engine/runner/models/index.ts")).toBe(false);
       expect(isLegacyRunnerModelsImport("../../engine/runner/models/index")).toBe(false);
       expect(isLegacyRunnerModelsImport("../../engine/runner/models/attempt/index.ts")).toBe(false);
       expect(isLegacyRunnerModelsImport("../../engine/runner/models/command/index.ts")).toBe(false);
-      expect(isLegacyRunnerModelsImport("../../engine/runner/models/execution/index.ts")).toBe(false);
+      expect(isLegacyRunnerModelsImport("../../engine/runner/models/execution/index.ts")).toBe(
+        false,
+      );
       expect(isLegacyRunnerModelsImport("./attempt/index.ts")).toBe(false);
       expect(isLegacyRunnerModelsImport("./command/index.ts")).toBe(false);
       expect(isLegacyRunnerModelsImport("./execution/index.ts")).toBe(false);
@@ -198,21 +214,21 @@ describe("defect-engine-runner-models-modularization-import-paths", () => {
 
   describe("Import Resolution (resolveRunnerModelsModularImport)", () => {
     test("resolves legacy flat paths to correct modular subdirectories", () => {
-      expect(
-        resolveRunnerModelsModularImport("../../engine/runner/models/command-shape.ts"),
-      ).toBe("../../engine/runner/models/command/command-shape.ts");
+      expect(resolveRunnerModelsModularImport("../../engine/runner/models/command-shape.ts")).toBe(
+        "../../engine/runner/models/command/command-shape.ts",
+      );
 
-      expect(
-        resolveRunnerModelsModularImport("../engine/runner/models/run-attempt.ts"),
-      ).toBe("../engine/runner/models/attempt/run-attempt.ts");
+      expect(resolveRunnerModelsModularImport("../engine/runner/models/run-attempt.ts")).toBe(
+        "../engine/runner/models/attempt/run-attempt.ts",
+      );
 
       expect(
         resolveRunnerModelsModularImport("../../engine/runner/models/internal-command-runner.ts"),
       ).toBe("../../engine/runner/models/execution/internal-command-runner.ts");
 
-      expect(
-        resolveRunnerModelsModularImport("models/gate-attempt-finalization.ts"),
-      ).toBe("models/attempt/gate-attempt-finalization.ts");
+      expect(resolveRunnerModelsModularImport("models/gate-attempt-finalization.ts")).toBe(
+        "models/attempt/gate-attempt-finalization.ts",
+      );
     });
 
     test("returns non-legacy specifiers unchanged", () => {
@@ -266,7 +282,8 @@ import { runAttempt } from "../../engine/runner/models/run-attempt.ts";
 
   describe("Validation & Assertion", () => {
     test("validateRunnerModelsImports flags legacy imports as invalid", () => {
-      const legacyCode = 'import { sameCommandJson } from "../../engine/runner/models/command-shape.ts";';
+      const legacyCode =
+        'import { sameCommandJson } from "../../engine/runner/models/command-shape.ts";';
       const result = validateRunnerModelsImports(legacyCode);
 
       expect(result.valid).toBe(false);
@@ -276,11 +293,14 @@ import { runAttempt } from "../../engine/runner/models/run-attempt.ts";
       expect(result.issues.length).toBe(1);
       expect(result.issues[0]?.code).toBe(DEFECT_ERROR_CODE);
       expect(result.issues[0]?.targetSubmodule).toBe("command");
-      expect(result.issues[0]?.suggestedRemediation).toBe("../../engine/runner/models/command/command-shape.ts");
+      expect(result.issues[0]?.suggestedRemediation).toBe(
+        "../../engine/runner/models/command/command-shape.ts",
+      );
     });
 
     test("validateRunnerModelsImports accepts valid modular imports", () => {
-      const validCode = 'import { sameCommandJson } from "../../engine/runner/models/command/command-shape.ts";';
+      const validCode =
+        'import { sameCommandJson } from "../../engine/runner/models/command/command-shape.ts";';
       const result = validateRunnerModelsImports(validCode);
 
       expect(result.valid).toBe(true);
@@ -309,7 +329,8 @@ import { runAttempt } from "../../engine/runner/models/run-attempt.ts";
     });
 
     test("assertValidRunnerModelsImports succeeds on clean modular code", () => {
-      const validCode = 'import { runAttempt } from "../../engine/runner/models/attempt/run-attempt.ts";';
+      const validCode =
+        'import { runAttempt } from "../../engine/runner/models/attempt/run-attempt.ts";';
       expect(() => assertValidRunnerModelsImports(validCode)).not.toThrow();
     });
   });

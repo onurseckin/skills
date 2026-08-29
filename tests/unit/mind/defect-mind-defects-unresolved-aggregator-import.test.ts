@@ -75,9 +75,7 @@ describe("Task 1.12: Defect Remediation - Unresolved import './aggregator.ts' in
         "olt/scripts/src/mind/defects/aggregator/metrics.ts",
       );
       expect(CANONICAL_AGGREGATOR_BARREL_SPECIFIER).toBe("./aggregator/index.ts");
-      expect(CANONICAL_AGGREGATOR_BARREL_SPECIFIER_FROM_MIND).toBe(
-        "./defects/aggregator/index.ts",
-      );
+      expect(CANONICAL_AGGREGATOR_BARREL_SPECIFIER_FROM_MIND).toBe("./defects/aggregator/index.ts");
       expect(CANONICAL_AGGREGATOR_BARREL_SPECIFIER_FROM_TEST).toBe(
         "../../../olt/scripts/src/mind/defects/aggregator/index.ts",
       );
@@ -180,9 +178,7 @@ describe("Task 1.12: Defect Remediation - Unresolved import './aggregator.ts' in
     });
 
     it("executes mergeDefectSets correctly", () => {
-      const setA = [
-        toAggregatedDefect({ id: "d-1", type: "syntax_error", observation: "Err 1" }),
-      ];
+      const setA = [toAggregatedDefect({ id: "d-1", type: "syntax_error", observation: "Err 1" })];
       const setB = [
         toAggregatedDefect({ id: "d-2", type: "type_error", observation: "Err 2" }),
         toAggregatedDefect({ id: "d-1", type: "syntax_error", observation: "Err 1", count: 2 }),
@@ -276,9 +272,9 @@ describe("Task 1.12: Defect Remediation - Unresolved import './aggregator.ts' in
     });
 
     it("resolveAggregatorImportPath provides context-appropriate canonical paths", () => {
-      expect(resolveAggregatorImportPath("./aggregator.ts", "olt/scripts/src/mind/defects/index.ts")).toBe(
-        "./aggregator/index.ts",
-      );
+      expect(
+        resolveAggregatorImportPath("./aggregator.ts", "olt/scripts/src/mind/defects/index.ts"),
+      ).toBe("./aggregator/index.ts");
       expect(
         resolveAggregatorImportPath(
           "../../mind/defects/aggregator.ts",
@@ -412,7 +408,9 @@ describe("Task 1.12: Defect Remediation - Unresolved import './aggregator.ts' in
       const validCode = `
         export { pickHigherSeverity } from "./aggregator/index.ts";
       `;
-      expect(() => assertValidDefectsAggregatorImports(validCode, "defects/index.ts")).not.toThrow();
+      expect(() =>
+        assertValidDefectsAggregatorImports(validCode, "defects/index.ts"),
+      ).not.toThrow();
     });
 
     it("DefectsAggregatorImportError initializes with proper error fields", () => {

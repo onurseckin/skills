@@ -6,7 +6,11 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { DefectEntry, DefectSeverity, DefectStatus } from "../mind/contracts/defect-contracts.ts";
+import type {
+  DefectEntry,
+  DefectSeverity,
+  DefectStatus,
+} from "../mind/contracts/defect-contracts.ts";
 
 export const DEFECT_REF = "defect-mechanical-chunk-naming-anti-pattern" as const;
 export const MECHANICAL_CHUNK_NAMING_BLUNDER = "MECHANICAL_CHUNK_NAMING_BLUNDER" as const;
@@ -101,7 +105,10 @@ export interface SuggestSemanticModuleNameHints {
   readonly fallback?: string | undefined;
 }
 
-export function suggestSemanticModuleName(name: string, hints?: SuggestSemanticModuleNameHints): string {
+export function suggestSemanticModuleName(
+  name: string,
+  hints?: SuggestSemanticModuleNameHints,
+): string {
   if (typeof name !== "string" || !name.trim()) return name;
   const norm = name.replace(/\\/g, "/");
   const lastSlash = norm.lastIndexOf("/");
@@ -139,22 +146,30 @@ function checkMechanicalPattern(nameOrPath: string): string | undefined {
   return undefined;
 }
 
-export function extractModuleImports(sourceCode: string): readonly { specifier: string; line: number; column: number }[] {
+export function extractModuleImports(
+  sourceCode: string,
+): readonly { specifier: string; line: number; column: number }[] {
   if (typeof sourceCode !== "string" || !sourceCode.trim()) return [];
   const results: { specifier: string; line: number; column: number }[] = [];
   const lines = sourceCode.split("\n");
-  const staticRegex = /(?:import|export)\s+(?:(?:type\s+)?(?:(?:\*\s+as\s+[\w$]+|[\w$,\s{}]+)\s+from\s+)?|)["']([^"']+)["']/g;
+  const staticRegex =
+    /(?:import|export)\s+(?:(?:type\s+)?(?:(?:\*\s+as\s+[\w$]+|[\w$,\s{}]+)\s+from\s+)?|)["']([^"']+)["']/g;
   const dynRegex = /import\s*\(\s*["']([^"']+)["']\s*\)/g;
   for (let l = 0; l < lines.length; l++) {
     const lineStr = lines[l]!;
     let m: RegExpExecArray | null;
-    while ((m = staticRegex.exec(lineStr)) !== null) if (m[1]) results.push({ specifier: m[1], line: l + 1, column: (m.index ?? 0) + 1 });
-    while ((m = dynRegex.exec(lineStr)) !== null) if (m[1]) results.push({ specifier: m[1], line: l + 1, column: (m.index ?? 0) + 1 });
+    while ((m = staticRegex.exec(lineStr)) !== null)
+      if (m[1]) results.push({ specifier: m[1], line: l + 1, column: (m.index ?? 0) + 1 });
+    while ((m = dynRegex.exec(lineStr)) !== null)
+      if (m[1]) results.push({ specifier: m[1], line: l + 1, column: (m.index ?? 0) + 1 });
   }
   return results;
 }
 
-export function detectMechanicalChunkNaming(pathOrName: string, content?: string): readonly MechanicalChunkNamingIssue[] {
+export function detectMechanicalChunkNaming(
+  pathOrName: string,
+  content?: string,
+): readonly MechanicalChunkNamingIssue[] {
   const issues: MechanicalChunkNamingIssue[] = [];
   const matchedPattern = checkMechanicalPattern(pathOrName);
   if (matchedPattern) {
@@ -168,7 +183,11 @@ export function detectMechanicalChunkNaming(pathOrName: string, content?: string
   }
   let code = content;
   if (code === undefined && !pathOrName.includes("\n") && existsSync(pathOrName)) {
-    try { code = readFileSync(pathOrName, "utf-8"); } catch { /* ignore */ }
+    try {
+      code = readFileSync(pathOrName, "utf-8");
+    } catch {
+      /* ignore */
+    }
   }
   if (code) {
     for (const imp of extractModuleImports(code)) {
@@ -190,7 +209,10 @@ export function detectMechanicalChunkNaming(pathOrName: string, content?: string
   return issues;
 }
 
-export function validatePathSemanticNaming(pathOrName: string, content?: string): PathSemanticValidationResult {
+export function validatePathSemanticNaming(
+  pathOrName: string,
+  content?: string,
+): PathSemanticValidationResult {
   const issues = detectMechanicalChunkNaming(pathOrName, content);
   const pathIssue = issues.find((i) => !i.specifier);
   return {
@@ -211,12 +233,22 @@ export function assertSemanticNamingPurity(pathOrName: string, content?: string)
     const first = result.issues[0];
     throw new MechanicalChunkNamingError(
       `Semantic naming purity assertion failed: ${result.issues.map((i) => i.message).join("; ")}`,
-      { code: first?.code ?? MECHANICAL_CHUNK_NAMING_BLUNDER, defectRef: DEFECT_REF, filePath: pathOrName, issues: result.issues },
+      {
+        code: first?.code ?? MECHANICAL_CHUNK_NAMING_BLUNDER,
+        defectRef: DEFECT_REF,
+        filePath: pathOrName,
+        issues: result.issues,
+      },
     );
   }
 }
 
-function collectFiles(dir: string, exts: readonly string[], rec: boolean, ignoreDirs: readonly string[]): string[] {
+function collectFiles(
+  dir: string,
+  exts: readonly string[],
+  rec: boolean,
+  ignoreDirs: readonly string[],
+): string[] {
   if (!existsSync(dir)) return [];
   const entries = readdirSync(dir, { withFileTypes: true });
   const out: string[] = [];
@@ -229,10 +261,20 @@ function collectFiles(dir: string, exts: readonly string[], rec: boolean, ignore
   return out.sort();
 }
 
-export function auditRepositoryForMechanicalChunkNaming(targetDirOrFiles?: string | readonly string[], options?: RepositorySemanticAuditOptions): RepositorySemanticAuditResult {
+export function auditRepositoryForMechanicalChunkNaming(
+  targetDirOrFiles?: string | readonly string[],
+  options?: RepositorySemanticAuditOptions,
+): RepositorySemanticAuditResult {
   const filePaths = Array.isArray(targetDirOrFiles)
     ? [...targetDirOrFiles]
-    : collectFiles(typeof targetDirOrFiles === "string" ? resolve(targetDirOrFiles) : resolve(process.cwd(), "olt/scripts/src"), options?.extensions ?? [".ts", ".tsx", ".js", ".mjs"], options?.recursive ?? true, options?.ignoreDirs ?? [".git", "node_modules", "dist", ".gemini", "brain", "scratch"]);
+    : collectFiles(
+        typeof targetDirOrFiles === "string"
+          ? resolve(targetDirOrFiles)
+          : resolve(process.cwd(), "olt/scripts/src"),
+        options?.extensions ?? [".ts", ".tsx", ".js", ".mjs"],
+        options?.recursive ?? true,
+        options?.ignoreDirs ?? [".git", "node_modules", "dist", ".gemini", "brain", "scratch"],
+      );
   const fileResults: PathSemanticValidationResult[] = [];
   const violatingPaths: string[] = [];
   const allIssues: string[] = [];
@@ -240,7 +282,9 @@ export function auditRepositoryForMechanicalChunkNaming(targetDirOrFiles?: strin
   let mechanicalChunkFiles = 0;
   for (const fp of filePaths) {
     const validation = validatePathSemanticNaming(fp);
-    if (validation.valid) { validFiles++; } else {
+    if (validation.valid) {
+      validFiles++;
+    } else {
       mechanicalChunkFiles++;
       violatingPaths.push(fp);
       for (const issue of validation.issues) allIssues.push(`[${fp}] ${issue.message}`);
@@ -261,29 +305,57 @@ export function auditRepositoryForMechanicalChunkNaming(targetDirOrFiles?: strin
   };
 }
 
-export function createMechanicalChunkNamingDefectEntry(options: CreateMechanicalChunkNamingDefectEntryOptions = {}): DefectEntry {
+export function createMechanicalChunkNamingDefectEntry(
+  options: CreateMechanicalChunkNamingDefectEntryOptions = {},
+): DefectEntry {
   const issues = options.issues ?? [];
   const first = issues[0];
   const filePath = options.filePath ?? first?.filePath ?? "olt/scripts/src";
-  const validStatus: readonly DefectStatus[] = ["open", "in_progress", "resolved", "completed", "closed", "declined", "reopened"];
+  const validStatus: readonly DefectStatus[] = [
+    "open",
+    "in_progress",
+    "resolved",
+    "completed",
+    "closed",
+    "declined",
+    "reopened",
+  ];
   const validSeverity: readonly DefectSeverity[] = ["low", "medium", "high", "critical"];
-  const status: DefectStatus = validStatus.includes(options.status as DefectStatus) ? (options.status as DefectStatus) : "open";
-  const severity: DefectSeverity = validSeverity.includes(options.severity as DefectSeverity) ? (options.severity as DefectSeverity) : "high";
+  const status: DefectStatus = validStatus.includes(options.status as DefectStatus)
+    ? (options.status as DefectStatus)
+    : "open";
+  const severity: DefectSeverity = validSeverity.includes(options.severity as DefectSeverity)
+    ? (options.severity as DefectSeverity)
+    : "high";
 
   return {
     id: options.id ?? `${DEFECT_REF}-${Date.now()}`,
     domain: "file-modularization-semantic-naming",
     error_code: first?.code ?? MECHANICAL_CHUNK_NAMING_BLUNDER,
     title: `Mechanical chunk naming anti-pattern detected: ${filePath}`,
-    description: "Automated mechanical file splitting created meaningless *-chunkN.ts and *_partN.ts files instead of domain-semantic modularization.",
-    message: first?.message ?? "Mechanical chunk naming blunder detected; modules must be partitioned into semantic responsibilities strictly <= 300 lines.",
+    description:
+      "Automated mechanical file splitting created meaningless *-chunkN.ts and *_partN.ts files instead of domain-semantic modularization.",
+    message:
+      first?.message ??
+      "Mechanical chunk naming blunder detected; modules must be partitioned into semantic responsibilities strictly <= 300 lines.",
     status,
     type: "MODULARITY_VIOLATION",
     category: "modularity_violation",
     severity,
-    observation: options.observation ?? (issues.length > 0 ? `Found ${issues.length} mechanical chunk naming issue(s) in ${filePath}` : `Mechanical chunk naming anti-pattern detected in ${filePath}`),
-    remediation: options.remediation ?? "Refactor mechanical chunks (*-chunkN.ts, *_partN.ts) into domain-semantic modules reflecting specific single responsibilities (e.g. types.ts, validator.ts, parser.ts, storage.ts) strictly <=300 lines.",
-    context: { file: filePath, issuesCount: issues.length, defectReference: DEFECT_REF, ...options.context },
+    observation:
+      options.observation ??
+      (issues.length > 0
+        ? `Found ${issues.length} mechanical chunk naming issue(s) in ${filePath}`
+        : `Mechanical chunk naming anti-pattern detected in ${filePath}`),
+    remediation:
+      options.remediation ??
+      "Refactor mechanical chunks (*-chunkN.ts, *_partN.ts) into domain-semantic modules reflecting specific single responsibilities (e.g. types.ts, validator.ts, parser.ts, storage.ts) strictly <=300 lines.",
+    context: {
+      file: filePath,
+      issuesCount: issues.length,
+      defectReference: DEFECT_REF,
+      ...options.context,
+    },
     timestamp: options.timestamp ?? new Date().toISOString(),
   };
 }

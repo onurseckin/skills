@@ -65,7 +65,8 @@ export function displaySystemNotification(
   },
 ): { delivered: boolean; command?: string | undefined } {
   const platform = options?.platform !== undefined ? options.platform : process.platform;
-  const spawner = options?.customSpawn !== undefined ? options.customSpawn : defaultNotificationSpawner;
+  const spawner =
+    options?.customSpawn !== undefined ? options.customSpawn : defaultNotificationSpawner;
 
   switch (platform) {
     case "darwin": {
@@ -132,7 +133,8 @@ export function playCompletionChime(
   },
 ): { delivered: boolean; command?: string | undefined } {
   const platform = options?.platform !== undefined ? options.platform : process.platform;
-  const spawner = options?.customSpawn !== undefined ? options.customSpawn : defaultNotificationSpawner;
+  const spawner =
+    options?.customSpawn !== undefined ? options.customSpawn : defaultNotificationSpawner;
 
   switch (platform) {
     case "darwin": {

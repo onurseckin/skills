@@ -11,7 +11,8 @@ import type { DefectEntry, DefectSeverity } from "../mind/contracts/defect-contr
 
 export const DEFECT_REF = "defect-doctor-ast-purity-test-regex-false-positive" as const;
 export const AST_PURITY_REGEX_FALSE_POSITIVE = "AST_PURITY_REGEX_FALSE_POSITIVE" as const;
-export const CANONICAL_AST_PURITY_ENGINE_PATH = "olt/scripts/src/reporting/doctor/ast-purity-engine.ts" as const;
+export const CANONICAL_AST_PURITY_ENGINE_PATH =
+  "olt/scripts/src/reporting/doctor/ast-purity-engine.ts" as const;
 
 export const STANDARD_DOCTOR_AST_PURITY_MODULES: readonly string[] = Object.freeze([
   "olt/scripts/src/reporting/doctor/ast-purity-engine.ts",
@@ -19,7 +20,10 @@ export const STANDARD_DOCTOR_AST_PURITY_MODULES: readonly string[] = Object.free
   "tests/unit/doctor/ast-purity-engine.test.ts",
 ]);
 
-export type AstPurityViolationType = "COMPILER_SUPPRESSION_DIRECTIVE" | "EXPLICIT_ANY" | "ANY_TYPE_ASSERTION";
+export type AstPurityViolationType =
+  | "COMPILER_SUPPRESSION_DIRECTIVE"
+  | "EXPLICIT_ANY"
+  | "ANY_TYPE_ASSERTION";
 
 export interface AstPurityViolation {
   readonly filePath: string;
@@ -117,14 +121,23 @@ export interface CreateAstPurityDefectEntryOptions {
 const IMMUNE_PATTERN = /(?:any|as\s+any|@ts-(?:ignore|expect-error|nocheck)|<any>)/i;
 
 export function isAstPurityImmuneNode(node: ts.Node): boolean {
-  return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || node.kind === ts.SyntaxKind.RegularExpressionLiteral;
+  return (
+    ts.isStringLiteral(node) ||
+    ts.isNoSubstitutionTemplateLiteral(node) ||
+    node.kind === ts.SyntaxKind.RegularExpressionLiteral
+  );
 }
 
 export function countImmuneAstPatterns(content: string, filePath = "anonymous.ts"): number {
   const sourceFile = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true);
   let count = 0;
   function visit(node: ts.Node): void {
-    if (isAstPurityImmuneNode(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+    if (
+      isAstPurityImmuneNode(node) ||
+      ts.isTemplateHead(node) ||
+      ts.isTemplateMiddle(node) ||
+      ts.isTemplateTail(node)
+    ) {
       if (IMMUNE_PATTERN.test(node.getText(sourceFile))) count++;
       return;
     }
@@ -134,10 +147,18 @@ export function countImmuneAstPatterns(content: string, filePath = "anonymous.ts
   return count;
 }
 
-export function scanFileForAstPurityViolations(filePath: string, content: string): AstPurityViolation[] {
+export function scanFileForAstPurityViolations(
+  filePath: string,
+  content: string,
+): AstPurityViolation[] {
   const sourceFile = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true);
   const violations: AstPurityViolation[] = [];
-  const commentScanner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, content);
+  const commentScanner = ts.createScanner(
+    ts.ScriptTarget.Latest,
+    false,
+    ts.LanguageVariant.Standard,
+    content,
+  );
   const scannedRanges = new Set<string>();
   let token = commentScanner.scan();
 
@@ -153,8 +174,11 @@ export function scanFileForAstPurityViolations(filePath: string, content: string
             const { line, character } = sourceFile.getLineAndCharacterOfPosition(c.pos);
             const trimmed = raw.trim();
             violations.push({
-              filePath, lineNumber: line + 1, columnNumber: character + 1,
-              violationType: "COMPILER_SUPPRESSION_DIRECTIVE", nodeText: trimmed,
+              filePath,
+              lineNumber: line + 1,
+              columnNumber: character + 1,
+              violationType: "COMPILER_SUPPRESSION_DIRECTIVE",
+              nodeText: trimmed,
               message: `Banned compiler suppression directive in comment at ${filePath}:${line + 1}:${character + 1}: "${trimmed}"`,
             });
           }
@@ -168,15 +192,22 @@ export function scanFileForAstPurityViolations(filePath: string, content: string
     if (isAstPurityImmuneNode(node)) return;
     if (node.kind === ts.SyntaxKind.AnyKeyword) {
       const parent = node.parent;
-      const isAssertion = Boolean(parent && (ts.isAsExpression(parent) || ts.isTypeAssertionExpression(parent)));
-      const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+      const isAssertion = Boolean(
+        parent && (ts.isAsExpression(parent) || ts.isTypeAssertionExpression(parent)),
+      );
+      const { line, character } = sourceFile.getLineAndCharacterOfPosition(
+        node.getStart(sourceFile),
+      );
       violations.push({
-        filePath, lineNumber: line + 1, columnNumber: character + 1,
+        filePath,
+        lineNumber: line + 1,
+        columnNumber: character + 1,
         violationType: isAssertion ? "ANY_TYPE_ASSERTION" : "EXPLICIT_ANY",
         nodeText: (isAssertion && parent ? parent : node).getText(sourceFile),
-        message: isAssertion && parent
-          ? `Banned 'any' type assertion at ${filePath}:${line + 1}:${character + 1} ("${parent.getText(sourceFile)}")`
-          : `Explicit 'any' type prohibited at ${filePath}:${line + 1}:${character + 1}`,
+        message:
+          isAssertion && parent
+            ? `Banned 'any' type assertion at ${filePath}:${line + 1}:${character + 1} ("${parent.getText(sourceFile)}")`
+            : `Explicit 'any' type prohibited at ${filePath}:${line + 1}:${character + 1}`,
       });
     }
     ts.forEachChild(node, visit);
@@ -186,17 +217,43 @@ export function scanFileForAstPurityViolations(filePath: string, content: string
   return violations;
 }
 
-export function validateAstPurityWithoutRegexFalsePositives(sourceCodeOrFilePath?: string, options?: AstPurityValidationOptions): AstPurityValidationResult {
+export function validateAstPurityWithoutRegexFalsePositives(
+  sourceCodeOrFilePath?: string,
+  options?: AstPurityValidationOptions,
+): AstPurityValidationResult {
   let content = "";
   let targetPath = options?.filePath;
 
   if (sourceCodeOrFilePath === undefined) {
     targetPath = resolve(process.cwd(), CANONICAL_AST_PURITY_ENGINE_PATH);
-    if (!existsSync(targetPath)) return { defectRef: DEFECT_REF, valid: false, filePath: targetPath, violations: [], violationCount: 0, immunePatternsFound: 0, issues: [`Canonical AST purity engine not found at ${targetPath}`] };
+    if (!existsSync(targetPath))
+      return {
+        defectRef: DEFECT_REF,
+        valid: false,
+        filePath: targetPath,
+        violations: [],
+        violationCount: 0,
+        immunePatternsFound: 0,
+        issues: [`Canonical AST purity engine not found at ${targetPath}`],
+      };
     content = readFileSync(targetPath, "utf-8");
-  } else if (!sourceCodeOrFilePath.includes("\n") && (sourceCodeOrFilePath.endsWith(".ts") || sourceCodeOrFilePath.endsWith(".tsx") || existsSync(sourceCodeOrFilePath))) {
+  } else if (
+    !sourceCodeOrFilePath.includes("\n") &&
+    (sourceCodeOrFilePath.endsWith(".ts") ||
+      sourceCodeOrFilePath.endsWith(".tsx") ||
+      existsSync(sourceCodeOrFilePath))
+  ) {
     targetPath = resolve(sourceCodeOrFilePath);
-    if (!existsSync(targetPath)) return { defectRef: DEFECT_REF, valid: false, filePath: targetPath, violations: [], violationCount: 0, immunePatternsFound: 0, issues: [`File not found at ${targetPath}`] };
+    if (!existsSync(targetPath))
+      return {
+        defectRef: DEFECT_REF,
+        valid: false,
+        filePath: targetPath,
+        violations: [],
+        violationCount: 0,
+        immunePatternsFound: 0,
+        issues: [`File not found at ${targetPath}`],
+      };
     content = readFileSync(targetPath, "utf-8");
   } else {
     content = sourceCodeOrFilePath;
@@ -205,15 +262,33 @@ export function validateAstPurityWithoutRegexFalsePositives(sourceCodeOrFilePath
   const effectivePath = targetPath ?? "anonymous.ts";
   const violations = scanFileForAstPurityViolations(effectivePath, content);
   const immunePatternsFound = countImmuneAstPatterns(content, effectivePath);
-  return { defectRef: DEFECT_REF, valid: violations.length === 0, filePath: targetPath, violations, violationCount: violations.length, immunePatternsFound, issues: violations.map((v) => v.message) };
+  return {
+    defectRef: DEFECT_REF,
+    valid: violations.length === 0,
+    filePath: targetPath,
+    violations,
+    violationCount: violations.length,
+    immunePatternsFound,
+    issues: violations.map((v) => v.message),
+  };
 }
 
-export function assertAstPurityEngineCompliance(sourceCodeOrFilePath?: string, options?: AstPurityValidationOptions): void {
+export function assertAstPurityEngineCompliance(
+  sourceCodeOrFilePath?: string,
+  options?: AstPurityValidationOptions,
+): void {
   const result = validateAstPurityWithoutRegexFalsePositives(sourceCodeOrFilePath, options);
   if (!result.valid) {
-    throw new AstPurityEvaluationError(`AST purity engine compliance assertion failed: ${result.issues.join("; ")}`, {
-      code: AST_PURITY_REGEX_FALSE_POSITIVE, defectRef: DEFECT_REF, filePath: result.filePath, violations: result.violations, issues: result.issues,
-    });
+    throw new AstPurityEvaluationError(
+      `AST purity engine compliance assertion failed: ${result.issues.join("; ")}`,
+      {
+        code: AST_PURITY_REGEX_FALSE_POSITIVE,
+        defectRef: DEFECT_REF,
+        filePath: result.filePath,
+        violations: result.violations,
+        issues: result.issues,
+      },
+    );
   }
 }
 
@@ -229,7 +304,10 @@ function collectTsFiles(dir: string, exts: readonly string[], rec: boolean): str
   return out.sort();
 }
 
-export function auditDoctorAstPurityEngine(targetDirOrFiles?: string | readonly string[], options?: AstPurityAuditOptions): AstPurityAuditResult {
+export function auditDoctorAstPurityEngine(
+  targetDirOrFiles?: string | readonly string[],
+  options?: AstPurityAuditOptions,
+): AstPurityAuditResult {
   const filePaths: string[] = [];
   if (Array.isArray(targetDirOrFiles)) {
     filePaths.push(...targetDirOrFiles.map((f) => resolve(f)));
@@ -237,7 +315,14 @@ export function auditDoctorAstPurityEngine(targetDirOrFiles?: string | readonly 
     const full = resolve(targetDirOrFiles);
     if (existsSync(full)) {
       const st = statSync(full);
-      if (st.isDirectory()) filePaths.push(...collectTsFiles(full, options?.extensions ?? [".ts", ".tsx"], options?.recursive ?? true));
+      if (st.isDirectory())
+        filePaths.push(
+          ...collectTsFiles(
+            full,
+            options?.extensions ?? [".ts", ".tsx"],
+            options?.recursive ?? true,
+          ),
+        );
       else filePaths.push(full);
     }
   } else {
@@ -263,17 +348,34 @@ export function auditDoctorAstPurityEngine(targetDirOrFiles?: string | readonly 
       invalidFiles++;
       for (const issue of val.issues) allIssues.push(`[${fp}] ${issue}`);
     }
-    fileResults.push({ filePath: fp, valid: val.valid, violations: val.violations, immunePatternsCount: val.immunePatternsFound, issues: val.issues });
+    fileResults.push({
+      filePath: fp,
+      valid: val.valid,
+      violations: val.violations,
+      immunePatternsCount: val.immunePatternsFound,
+      issues: val.issues,
+    });
   }
 
   return {
-    defectRef: DEFECT_REF, errorCode: AST_PURITY_REGEX_FALSE_POSITIVE, resolved: invalidFiles === 0,
-    totalFiles: filePaths.length, validFiles, invalidFiles, totalViolations, totalImmunePatterns,
-    files: fileResults, verifiedFiles: filePaths, issues: allIssues, timestamp: new Date().toISOString(),
+    defectRef: DEFECT_REF,
+    errorCode: AST_PURITY_REGEX_FALSE_POSITIVE,
+    resolved: invalidFiles === 0,
+    totalFiles: filePaths.length,
+    validFiles,
+    invalidFiles,
+    totalViolations,
+    totalImmunePatterns,
+    files: fileResults,
+    verifiedFiles: filePaths,
+    issues: allIssues,
+    timestamp: new Date().toISOString(),
   };
 }
 
-export function createAstPurityDefectEntry(options: CreateAstPurityDefectEntryOptions = {}): DefectEntry {
+export function createAstPurityDefectEntry(
+  options: CreateAstPurityDefectEntryOptions = {},
+): DefectEntry {
   const filePath = options.filePath ?? CANONICAL_AST_PURITY_ENGINE_PATH;
   const violations = options.violations ?? [];
   const issues = options.issues ?? violations.map((v) => v.message);
@@ -283,15 +385,31 @@ export function createAstPurityDefectEntry(options: CreateAstPurityDefectEntryOp
     domain: "doctor-ast-purity",
     error_code: AST_PURITY_REGEX_FALSE_POSITIVE,
     title: `Doctor AST purity engine flags regex patterns in test files as false-positive AST violations: ${filePath}`,
-    description: "Doctor AST purity validator flags RegExp patterns and string assertions in test suites as type violations",
-    message: issues[0] ?? "RegExp patterns and assertion strings in tests falsely triggered AST purity violations",
+    description:
+      "Doctor AST purity validator flags RegExp patterns and string assertions in test suites as type violations",
+    message:
+      issues[0] ??
+      "RegExp patterns and assertion strings in tests falsely triggered AST purity violations",
     status: options.status ?? "resolved",
     type: "DOCTOR_FINDING",
     category: "code_defect",
     severity: options.severity ?? "high",
-    observation: options.observation ?? (violations.length > 0 ? `Found ${violations.length} AST violation(s) in ${filePath}` : `AST purity engine evaluated regex patterns in test files without false positives`),
-    remediation: options.remediation ?? "Use native TypeScript Compiler AST tokenization ignoring string literals, template literals, and regex literals",
-    context: { file: filePath, defectReference: DEFECT_REF, rule: "native-ast-compiler-tokenization", mechanism: "literal-and-regex-immunity", violationsCount: violations.length, ...options.context },
+    observation:
+      options.observation ??
+      (violations.length > 0
+        ? `Found ${violations.length} AST violation(s) in ${filePath}`
+        : `AST purity engine evaluated regex patterns in test files without false positives`),
+    remediation:
+      options.remediation ??
+      "Use native TypeScript Compiler AST tokenization ignoring string literals, template literals, and regex literals",
+    context: {
+      file: filePath,
+      defectReference: DEFECT_REF,
+      rule: "native-ast-compiler-tokenization",
+      mechanism: "literal-and-regex-immunity",
+      violationsCount: violations.length,
+      ...options.context,
+    },
     timestamp: options.timestamp ?? new Date().toISOString(),
   };
 }

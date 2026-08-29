@@ -21,9 +21,15 @@ describe("Task 1.10: defect-doctor-ast-purity-test-regex-false-positive", () => 
   test("1. defect constants and canonical paths are defined", () => {
     expect(DEFECT_REF).toBe("defect-doctor-ast-purity-test-regex-false-positive");
     expect(AST_PURITY_REGEX_FALSE_POSITIVE).toBe("AST_PURITY_REGEX_FALSE_POSITIVE");
-    expect(CANONICAL_AST_PURITY_ENGINE_PATH).toBe("olt/scripts/src/reporting/doctor/ast-purity-engine.ts");
-    expect(STANDARD_DOCTOR_AST_PURITY_MODULES).toContain("olt/scripts/src/reporting/doctor/ast-purity-engine.ts");
-    expect(STANDARD_DOCTOR_AST_PURITY_MODULES).toContain("tests/unit/doctor/ast-purity-engine.test.ts");
+    expect(CANONICAL_AST_PURITY_ENGINE_PATH).toBe(
+      "olt/scripts/src/reporting/doctor/ast-purity-engine.ts",
+    );
+    expect(STANDARD_DOCTOR_AST_PURITY_MODULES).toContain(
+      "olt/scripts/src/reporting/doctor/ast-purity-engine.ts",
+    );
+    expect(STANDARD_DOCTOR_AST_PURITY_MODULES).toContain(
+      "tests/unit/doctor/ast-purity-engine.test.ts",
+    );
   });
 
   test("2. AstPurityEvaluationError instantiates with defaults and custom options", () => {
@@ -100,7 +106,9 @@ describe("Task 1.10: defect-doctor-ast-purity-test-regex-false-positive", () => 
     `;
     const violations = scanFileForAstPurityViolations("suppressed.ts", snippet);
     expect(violations).toHaveLength(3);
-    expect(violations.every((v) => v.violationType === "COMPILER_SUPPRESSION_DIRECTIVE")).toBe(true);
+    expect(violations.every((v) => v.violationType === "COMPILER_SUPPRESSION_DIRECTIVE")).toBe(
+      true,
+    );
     expect(violations[0]?.lineNumber).toBe(2);
     expect(violations[1]?.lineNumber).toBe(4);
     expect(violations[2]?.lineNumber).toBe(6);
@@ -195,8 +203,14 @@ describe("Task 1.10: defect-doctor-ast-purity-test-regex-false-positive", () => 
 
   test("12. AST purity scanner confirms zero TypeScript any and zero compiler suppressions across write scope", () => {
     const filesToAudit = [
-      resolve(process.cwd(), "olt/scripts/src/validation/defect-doctor-ast-purity-test-regex-false-positive.ts"),
-      resolve(process.cwd(), "tests/unit/validation/defect-doctor-ast-purity-test-regex-false-positive.test.ts"),
+      resolve(
+        process.cwd(),
+        "olt/scripts/src/validation/defect-doctor-ast-purity-test-regex-false-positive.ts",
+      ),
+      resolve(
+        process.cwd(),
+        "tests/unit/validation/defect-doctor-ast-purity-test-regex-false-positive.test.ts",
+      ),
     ];
 
     for (const filePath of filesToAudit) {
