@@ -32,7 +32,6 @@ export function appendFeedbackItem(
   });
 }
 
-/** Appends items atomically, skipping titles already present or duplicated in the supplied batch. */
 export function appendFeedbackItemsDedupedByTitle(
   items: readonly (Omit<FeedbackItem, "timestamp"> & { readonly timestamp?: string | undefined })[],
   customPath?: string,
@@ -61,7 +60,6 @@ export function appendFeedbackItemsDedupedByTitle(
   });
 }
 
-/** Predicate-scoped atomic update/prune primitive for callers that must avoid whole-ledger RMW. */
 export function updateOrPruneFeedbackItems<T>(
   mutation: (item: FeedbackItem) => FeedbackItem | null,
   customPath?: string,

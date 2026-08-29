@@ -19,9 +19,7 @@ export function ingestPushbacks(
     try {
       const content = readFileSync(mdPath, "utf8");
       records = parsePushbackMarkdown(content);
-    } catch {
-      // Gracefully handle file read error
-    }
+    } catch {}
   }
 
   const feedbackItems = readFeedbackQueue(feedbackQueuePath);

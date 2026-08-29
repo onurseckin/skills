@@ -1,7 +1,7 @@
 import { taskCheckCommand } from "../commands/task-check.ts";
 import {
   taskAbandonCommand, taskAssignRepairerCommand, taskClaimCommand, taskHeartbeatCommand,
-  taskProbeCommand, taskRejectCommand, taskReviewCommand, taskSubmitCommand, taskValidateStartCommand,
+  taskProbeCommand, taskRejectCommand, taskReleaseCommand, taskReviewCommand, taskSubmitCommand, taskValidateStartCommand,
 } from "../commands/task-ops.ts";
 import { taskBriefCommand } from "../commands/task-brief.ts";
 import {
@@ -15,7 +15,7 @@ import {
 export {
   taskAbandonCommand, taskAddCommand, taskAssignRepairerCommand, taskBriefCommand, taskCheckCommand,
   taskClaimCommand, taskCompleteCommand, taskFailCommand, taskHeartbeatCommand, taskLeaseCommand,
-  taskListCommand, taskProbeCommand, taskPruneCommand, taskRejectCommand, taskReviewCommand,
+  taskListCommand, taskProbeCommand, taskPruneCommand, taskRejectCommand, taskReleaseCommand, taskReviewCommand,
   taskSubmitCommand, taskValidateStartCommand,
 };
 
@@ -174,6 +174,20 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     taskAbandonCommand,
     DEFAULT_EXIT_CODES,
     ['bun harness.ts task:abandon --run .olt/capsules/<run-id> --task task-1 --actor coordinator --reason "agent crashed"'],
+  ),
+  taskCmd(
+    "task:release",
+    "Hand a live lease back without waiting for it to expire.",
+    "The voluntary counterpart to `recover`. Requires the live lease token; the task returns to retry_ready, or to changes_requested when the released attempt was a repair. A branched task cannot be released - collect or abandon the branch first.",
+    [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag("task", "string", "Leased task id."),
+      requiredFlag("agent", "string", "Agent holding the lease."),
+      requiredFlag("token", "string", "Lease bearer token."),
+    ],
+    taskReleaseCommand,
+    DEFAULT_EXIT_CODES,
+    ["bun harness.ts task:release --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>"],
   ),
   taskCmd(
     "task:check",

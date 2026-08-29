@@ -41,3 +41,13 @@ export {
   reconcilePausedAdmittedFeedbacks,
   migrateFeedbackQueue,
 } from "./queue/index.ts";
+
+export {
+  normalizeFeedbackCategory,
+  normalizeFeedbackPriority,
+  normalizeFeedbackStatus,
+  validateCategory,
+  validatePriority,
+  validateStatus,
+} from "./normalizer.ts";
+

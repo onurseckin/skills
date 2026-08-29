@@ -63,7 +63,6 @@ export function admitAndDispatchFeedbackAtomically(
     }
   }
 
-  // Execute dispatcher callback BEFORE persisting the ADMITTED state
   const dispatchRes = dispatcher(targetItem);
   if (!dispatchRes.taskId || !dispatchRes.taskId.trim()) {
     throw new HarnessError(
@@ -119,10 +118,6 @@ export function admitAndDispatchFeedbackAtomically(
   });
 }
 
-/**
- * Audits the atomic admission-to-dispatch integrity across feedback and task queues.
- * Verifies that zero admitted items are left in a paused or orphaned state.
- */
 export function auditAdmissionDispatchIntegrity(
   options: {
     readonly feedbackPath?: string | undefined;
@@ -132,7 +127,6 @@ export function auditAdmissionDispatchIntegrity(
   const feedbacks = readFeedbackQueue(options.feedbackPath);
   const admittedFeedbacks = feedbacks.filter((f) => f.status === "ADMITTED");
 
-  // Read task queue
   const taskQueueFilePath = resolveTaskQueuePath(options.taskQueuePath);
   interface ParsedTaskInfo {
     readonly id: string;
@@ -161,13 +155,9 @@ export function auditAdmissionDispatchIntegrity(
                   : undefined,
             });
           }
-        } catch {
-          // skip
-        }
+        } catch {}
       }
-    } catch {
-      // skip
-    }
+    } catch {}
   }
 
   const taskMap = new Map<string, ParsedTaskInfo>();
@@ -212,9 +202,6 @@ export function auditAdmissionDispatchIntegrity(
   };
 }
 
-/**
- * Reconciles paused or orphaned admitted feedbacks by resetting status to PENDING or returning report.
- */
 export function reconcilePausedAdmittedFeedbacks(
   options: {
     readonly feedbackPath?: string | undefined;

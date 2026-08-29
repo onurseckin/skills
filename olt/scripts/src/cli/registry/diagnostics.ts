@@ -6,7 +6,6 @@ import {
   recoverCommand,
   repairProjectionCommand,
 } from "../commands/diagnostics-ops.ts";
-import { taskReleaseCommand } from "../commands/task-ops.ts";
 import { doctorCertifyCommand } from "../../reporting/doctor/certify-command.ts";
 import { findingFileCommand } from "../commands/finding-ops.ts";
 import {
@@ -214,29 +213,6 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: ["bun harness.ts recover --run .olt/capsules/<run-id> --actor coordinator"],
     handler: recoverCommand,
-  },
-  {
-    name: "task:release",
-    aliases: [],
-    domain: "task",
-    tier: "primary",
-    internal: false,
-    summary: "Hand a live lease back without waiting for it to expire.",
-    description:
-      "The voluntary counterpart to `recover`. Requires the live lease token; the task returns to retry_ready, or to changes_requested when the released attempt was a repair. A branched task cannot be released - collect or abandon the branch first.",
-    flags: [
-      requiredFlag("run", "string", "Capsule run root."),
-      requiredFlag("task", "string", "Leased task id."),
-      requiredFlag("agent", "string", "Agent holding the lease."),
-      requiredFlag("token", "string", "Lease bearer token."),
-    ],
-    readsStdin: false,
-    takesRemainder: false,
-    exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts task:release --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>",
-    ],
-    handler: taskReleaseCommand,
   },
   {
     name: "meta-audit",

@@ -119,13 +119,11 @@ export function strictFeedbackItem(parsed: unknown, lineNumber: number): Feedbac
   return normalized;
 }
 
-/** Strict evidence reader for lifecycle decisions; diagnostic consumers keep readFeedbackQueue. */
 export function readFeedbackQueueStrict(customPath?: string): FeedbackItem[] {
   const filePath = resolveFeedbackQueuePath(customPath);
   return parseFeedbackQueue(readFeedbackQueueFile(filePath));
 }
 
-/** Strict reader retained as the default public diagnostic reader: invalid bytes are never skipped. */
 export function readFeedbackQueue(customPath?: string): FeedbackItem[] {
   return readFeedbackQueueStrict(customPath);
 }
