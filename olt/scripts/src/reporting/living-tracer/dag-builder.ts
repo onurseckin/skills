@@ -1,6 +1,3 @@
-/**
- * Dynamic DAG Builder
- */
 import type { HarnessEvent } from "../../core/contracts/index.ts";
 import { replayTelemetryEvent, type ReplayContext } from "./event-replayer.ts";
 import type {
@@ -14,9 +11,6 @@ export { buildStepTraceEntries } from "./step-extractor.ts";
 export { createSproutedRepairBranch } from "./sprout-builder.ts";
 export { replayTelemetryEvent } from "./event-replayer.ts";
 
-/**
- * Builds dynamic DAG expansion state by replaying capsule telemetry events.
- */
 export function buildDynamicDagState(
   events: readonly HarnessEvent[],
   runId = "capsule-run",

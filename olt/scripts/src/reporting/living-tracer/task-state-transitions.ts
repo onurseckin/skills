@@ -1,6 +1,3 @@
-/**
- * Living Tracer Task State Transition Mechanics
- */
 import { createSproutedRepairBranch } from "./sprout-builder.ts";
 import {
   formatSeq,
