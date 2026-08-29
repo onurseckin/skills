@@ -9,7 +9,7 @@ import { guardPlanRevision } from "../../graph/revision-guard.ts";
 import { isRecord } from "../../requirements/predicates.ts";
 import { recordTopology } from "../../engine/scheduler/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { transact } from "../../engine/store/index.ts";
 import { formatPlanReplanBrief } from "../formatters/index.ts";
 import { partitionFindingsIntoScopes } from "../../workflow/scope-partitioner.ts";
 import { utc } from "../../workflow/task-state.ts";

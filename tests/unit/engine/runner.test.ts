@@ -3,34 +3,34 @@ import { mkdirSync, rmSync, existsSync, readFileSync, realpathSync } from "node:
 import { generateKeyPairSync } from "node:crypto";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { ActivityRecord } from "../../../olt/scripts/src/engine/runner/activity-record.ts";
+import { ActivityRecord } from "../../../olt/scripts/src/engine/runner/reconciliation/activity-record.ts";
 import {
   embeddedCommandIssues as commandShapeIssues,
   sameCommandJson,
-} from "../../../olt/scripts/src/engine/runner/command-shape.ts";
-import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/gate-environment.ts";
-import { canonicalCommandFingerprint } from "../../../olt/scripts/src/engine/runner/command-id.ts";
-import { DescendantTracker } from "../../../olt/scripts/src/engine/runner/descendant-tracker.ts";
+} from "../../../olt/scripts/src/engine/runner/models/command-shape.ts";
+import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/signing/gate-environment.ts";
+import { canonicalCommandFingerprint } from "../../../olt/scripts/src/engine/runner/models/command-id.ts";
+import { DescendantTracker } from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-tracker.ts";
 import {
   MIN_POLL_DELAY_MS,
   MAX_POLL_DELAY_MS,
   nextPollDelayMs,
-} from "../../../olt/scripts/src/engine/runner/descendant-poll-policy.ts";
+} from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-poll-policy.ts";
 import {
   inside,
   portableRelative,
   resolvePathExecutable,
-} from "../../../olt/scripts/src/engine/runner/gate-path-binding-verify.ts";
+} from "../../../olt/scripts/src/engine/runner/signing/gate-path-binding-verify.ts";
 import {
   configOperand,
   pathOperand,
-} from "../../../olt/scripts/src/engine/runner/gate-path-operands.ts";
+} from "../../../olt/scripts/src/engine/runner/signing/gate-path-operands.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type {
   ProcessIdentity,
   ProcessTopology,
-} from "../../../olt/scripts/src/engine/runner/process-identity.ts";
+} from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
 describe("ActivityRecord", () => {
   let testDir: string;

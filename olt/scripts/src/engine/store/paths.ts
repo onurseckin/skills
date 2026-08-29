@@ -1,13 +1,1 @@
-import { safeRepoPath } from "../../core/paths.ts";
-import { HarnessError } from "../../core/errors/index.ts";
-
-export function runFilePath(runRoot: string, name: string): string {
-  try {
-    return safeRepoPath(runRoot, name);
-  } catch (error) {
-    throw new HarnessError(
-      "INTEGRITY",
-      `unsafe ${name} path: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
+export * from "./capsule/paths.ts";

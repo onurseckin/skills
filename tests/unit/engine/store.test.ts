@@ -6,7 +6,7 @@ import {
   CAPSULE_LAYOUT,
   initialCapsuleDirectories,
   renderLayoutReadme,
-} from "../../../olt/scripts/src/engine/store/layout.ts";
+} from "../../../olt/scripts/src/engine/store/layout/layout.ts";
 import {
   detectContentFormat,
   normalizeContent,
@@ -21,9 +21,9 @@ import {
   loadCapsuleDefects,
   compactCapsuleDefects,
   resolveCapsuleDefect,
-} from "../../../olt/scripts/src/engine/store/defect-store.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+} from "../../../olt/scripts/src/engine/store/recovery/defect-store.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("Store Layout", () => {

@@ -1,6 +1,6 @@
 import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { transact } from "../../../../olt/scripts/src/engine/store/transaction.ts";
+import type { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import type { WorktreeLedgerState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { writeWorktreeLedger } from "../../../../olt/scripts/src/workflow/worktree/ledger.ts";
 

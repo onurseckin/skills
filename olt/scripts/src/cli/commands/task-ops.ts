@@ -10,8 +10,8 @@ import { taskRejectCommand } from "./task-reject.ts";
 import { taskReviewCommand } from "./task-review.ts";
 import { taskValidateStartCommand } from "./task-validation-start.ts";
 import { taskReleaseCommand as coreRelease } from "./diagnostics-ops.ts";
-import { loadRun } from "../../engine/store/load.ts";
-import { writeIndex } from "../../engine/store/capsule-index.ts";
+import { loadRun } from "../../engine/store/index.ts";
+import { writeIndex } from "../../engine/store/index.ts";
 import { textFlag, type Flags, type CommandContext } from "../options.ts";
 
 export {

@@ -21,7 +21,7 @@ import {
 } from "../../requirements/compiler.ts";
 import { recordTopology } from "../../engine/scheduler/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { transact } from "../../engine/store/index.ts";
 import { formatPlanCompileBrief } from "../formatters/index.ts";
 import { actorFlag, listFlag, textFlag, type Flags } from "../options.ts";
 import { parseAuditAcceptance, recordAuditAcceptance, recordPlanAudit } from "./plan-audit.ts";

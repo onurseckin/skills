@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { HarnessError } from "../core/errors/index.ts";
-import { transact } from "../engine/store/transaction.ts";
+import { transact } from "../engine/store/index.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";
 
 export type ProposalStatus =

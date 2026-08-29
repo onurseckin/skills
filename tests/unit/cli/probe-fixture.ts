@@ -8,7 +8,7 @@ import {
   type GateProofRecord,
 } from "../../../olt/scripts/src/graph/gate-proof.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,

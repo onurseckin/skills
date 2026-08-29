@@ -4,10 +4,10 @@ import { join } from "node:path";
 import type { IntegrityIssue } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
-import { issue } from "../../../olt/scripts/src/engine/store/issues.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity/integrity.ts";
+import { issue } from "../../../olt/scripts/src/engine/store/integrity/issues.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function freshRun(label: string): string {

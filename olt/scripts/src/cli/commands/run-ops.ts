@@ -13,7 +13,7 @@ import { HarnessError } from "../../core/errors/index.ts";
 import { runAndRecordCommand } from "../../integration/record-command.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
-import { verifyCommandRecord } from "../../engine/runner/verify-command.ts";
+import { verifyCommandRecord } from "../../engine/runner/signing/verify-command";
 import { loadRun } from "../../engine/store/index.ts";
 import {
   archiveCapsule,

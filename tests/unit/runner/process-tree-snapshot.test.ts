@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { processSnapshot } from "../../../olt/scripts/src/engine/runner/process-tree.ts";
+import { processSnapshot } from "../../../olt/scripts/src/engine/runner/process/process-tree.ts";
 
 describe("processSnapshot", () => {
   test("parses the real ps output and finds this live process among the topology", async () => {

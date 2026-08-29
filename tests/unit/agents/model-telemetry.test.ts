@@ -20,15 +20,24 @@ function capsuleWithWorker(
 ): string {
   const run = seededRun(import.meta.path, name);
   registerCoordinator(run);
-  agentRegisterCommand({
-    run,
-    agent: "worker-1",
-    role: "implementer",
-    host: "some-host",
-    "parent-agent": "coordinator-1",
-    "parent-task": "task-1",
-    ...extra,
-  });
+  agentRegisterCommand(
+    {
+      run,
+      agent: "worker-1",
+      role: "implementer",
+      host: "some-host",
+      "parent-agent": "coordinator-1",
+      "parent-task": "task-1",
+      ...extra,
+    },
+    {
+      authenticatedCaller: {
+        actor: "coordinator-1",
+        role: "coordinator",
+        verified: true,
+      },
+    },
+  );
   return run;
 }
 

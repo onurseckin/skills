@@ -5,11 +5,12 @@ export {
   DEFAULT_HOOK_SCHEMA,
   DEFAULT_HOOK_VERSION,
   loadHookConfig,
+  saveHookConfig,
   parseHookConfig,
   parseHookDefinition,
   resolveHookConfigFile,
-  saveHookConfig,
 } from "./config.ts";
+
 export {
   ALLOWED_SHELL_EXECUTABLES,
   buildHookChildEnvironment,
@@ -27,7 +28,9 @@ export {
   matchesEvent,
   resolveAudioSoundPath,
   resolvePinnedHookCwd,
+  resolveTrustedExecutablePath,
 } from "./dispatcher.ts";
+
 export type {
   HookAudioRefusalRule,
   HookCwdResolution,
@@ -35,6 +38,7 @@ export type {
   ProcessRunner,
   ProcessRunResult,
 } from "./dispatcher.ts";
+
 export type {
   CustomHookHandler,
   HookAction,

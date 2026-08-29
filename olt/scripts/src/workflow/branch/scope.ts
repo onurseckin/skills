@@ -1,5 +1,5 @@
 import { normalizeScopePath } from "../../graph/scope-analyzer.ts";
-import { scopeConflict } from "../../engine/scheduler/conflicts.ts";
+import { scopeConflict } from "../../engine/scheduler/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 
 function segmentContains(outer: string, inner: string): boolean {

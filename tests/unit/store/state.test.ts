@@ -6,7 +6,7 @@ import {
   initialState,
   isTerminalState,
   sameJson,
-} from "../../../olt/scripts/src/engine/store/state.ts";
+} from "../../../olt/scripts/src/engine/store/capsule/state.ts";
 
 describe("initialState", () => {
   test("returns a freshly minted zero-revision state", () => {

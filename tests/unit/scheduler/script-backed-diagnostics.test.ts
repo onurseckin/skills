@@ -23,13 +23,10 @@ import {
 } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import {
-  formatMindPulseActiveBrief,
-  formatMindPulseOpenedBrief,
-} from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 import { schedulerState } from "./fixtures.ts";
+import { formatMindPulseActiveBrief, formatMindPulseOpenedBrief } from "../../../olt/scripts/src/cli/commands/mind-pulse.js";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
@@ -513,9 +510,9 @@ describe("Script-Backed Scheduler Diagnostics Engine", () => {
   describe("6. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     test("verifies touched scheduler source files contain zero any and zero suppressions", () => {
       const filesToCheck = [
-        "olt/scripts/src/engine/scheduler/diagnostics.ts",
-        "olt/scripts/src/engine/scheduler/pulse.ts",
-        "olt/scripts/src/engine/scheduler/metrics.ts",
+        "olt/scripts/src/engine/scheduler/diagnostics/index.ts",
+        "olt/scripts/src/engine/scheduler/feedback/pulse-core.ts",
+        "olt/scripts/src/engine/scheduler/topology/metrics.ts",
         "olt/scripts/src/engine/scheduler/index.ts",
       ];
 

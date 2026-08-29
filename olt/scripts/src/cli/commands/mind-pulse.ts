@@ -9,8 +9,8 @@ import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/charter.ts";
 import { formatDuration } from "../../mind/brief.ts";
 import { writeLastPulse } from "../../mind/last-pulse.ts";
 import { parseDuration } from "../../mind/value.ts";
-import { loadRun } from "../../engine/store/load.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { loadRun } from "../../engine/store/index.ts";
+import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { resolveHostProviderLoose } from "../../core/config/host-canon.ts";
@@ -25,7 +25,7 @@ import {
   runScriptBackedDiagnostics,
   type CliDiagnosticReceipt,
   type ScriptBackedDiagnosticsResult,
-} from "../../engine/scheduler/diagnostics.ts";
+} from "../../engine/scheduler/index.ts";
 
 export const CLOSING_FORBIDDEN_FOR_MIND = "CLOSING_FORBIDDEN_FOR_MIND" as const;
 

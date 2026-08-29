@@ -9,8 +9,8 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { CAPSULE_LAYOUT } from "../../../olt/scripts/src/engine/store/layout.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { CAPSULE_LAYOUT } from "../../../olt/scripts/src/engine/store/layout/layout.ts";
 import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";

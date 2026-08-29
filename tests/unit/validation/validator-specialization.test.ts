@@ -129,12 +129,22 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
       });
 
       const flags1: Flags = { run, actor: "validator_task-1" };
-      expect(() => assertGrantedCommand(spec("run:exec"), flags1)).toThrow(
+      expect(() =>
+        assertGrantedCommand(spec("run:exec"), flags1, {
+          actor: "validator_task-1",
+          verified: true,
+        }),
+      ).toThrow(
         "cognitive validators are strictly banned from executing bash/shell commands or running test suites (run:exec)",
       );
 
       const flags2: Flags = { run, actor: "ui-validator_task-2" };
-      expect(() => assertGrantedCommand(spec("run:exec"), flags2)).toThrow(
+      expect(() =>
+        assertGrantedCommand(spec("run:exec"), flags2, {
+          actor: "ui-validator_task-2",
+          verified: true,
+        }),
+      ).toThrow(
         "cognitive validators are strictly banned from executing bash/shell commands or running test suites (run:exec)",
       );
     });
@@ -163,9 +173,12 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
           validator: "validator_task-1",
           "tool-category": cat,
         };
-        expect(() => assertGrantedCommand(spec("task:probe"), flags)).toThrow(
-          "may not invoke execution tool category",
-        );
+        expect(() =>
+          assertGrantedCommand(spec("task:probe"), flags, {
+            actor: "validator_task-1",
+            verified: true,
+          }),
+        ).toThrow("may not invoke execution tool category");
       }
     });
 
@@ -200,7 +213,12 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
       for (const cmdName of permittedCommands) {
         const cmdSpec = spec(cmdName);
         const flags: Flags = { run, validator: "validator_task-1", agent: "validator_task-1" };
-        expect(() => assertGrantedCommand(cmdSpec, flags)).not.toThrow();
+        expect(() =>
+          assertGrantedCommand(cmdSpec, flags, {
+            actor: "validator_task-1",
+            verified: true,
+          }),
+        ).not.toThrow();
       }
     });
   });
@@ -240,7 +258,12 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
       });
 
       const flags: Flags = { run, actor: "mechanic-validator_task-1" };
-      expect(() => assertGrantedCommand(spec("run:exec"), flags)).not.toThrow();
+      expect(() =>
+        assertGrantedCommand(spec("run:exec"), flags, {
+          actor: "mechanic-validator_task-1",
+          verified: true,
+        }),
+      ).not.toThrow();
     });
 
     it("validates mechanic-validator evidence schema structure including gate receipts and checks", () => {

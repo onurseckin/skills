@@ -1,14 +1,15 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { verifyCapsuleDeep, verifyIntegrity } from "../engine/store/index.ts";
-import { MINIMUM_BUN_VERSION } from "../core/config/constants.ts";
+import { verifyIntegrity } from "../engine/store/index.ts";
+import { verifyCapsuleDeep } from "../engine/store/index.ts";
+import { MINIMUM_BUN_VERSION } from "../core/config/contracts.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
 import type { CommandRecord } from "../core/contracts/index.ts";
 import type { IntegrityIssue } from "../core/contracts/index.ts";
 import type { JsonObject } from "../core/contracts/index.ts";
 import { loadRun } from "../engine/store/index.ts";
-import { verifyCommandRecord } from "../engine/runner/verify-command.ts";
+import { verifyCommandRecord } from "../engine/runner/signing/verify-command";
 import type { PacketRecord } from "../workflow/types.ts";
 import { packetEvidenceIssues } from "./packet-evidence.ts";
 import { workflowView } from "./workflow-view.ts";
@@ -45,6 +46,32 @@ import {
   type LifecycleAuditSummary,
 } from "./doctor/state-machine-auditor.ts";
 import { runDoctorDiagnostics, type HarnessHealthCheck } from "./doctor/adversarial-doctor.ts";
+import {
+  checkPlanningDag,
+  checkAstPurity,
+  checkAntiMockMutation,
+  checkAntiBatchingIsolation,
+  checkDualChannelUi,
+  checkCognitiveValidatorCommandLock,
+  checkRoleBoundaryInterlock,
+  checkPushbackQuotas,
+  autoHealCapsule,
+  MIN_ADVERSARIAL_PROBES,
+  MANDATORY_COGNITIVE_PUSHBACKS,
+  type DoctorSeverity,
+  type DoctorDiagnosticFinding,
+  type DoctorCheckEngineResult,
+  type DoctorAutoHealResult,
+  type PlanningDagCheckOptions,
+  type AstPurityCheckOptions,
+  type AntiMockMutationCheckOptions,
+  type AntiBatchingIsolationOptions,
+  type DualChannelUiCheckOptions,
+  type CognitiveValidatorCommandLockOptions,
+  type RoleBoundaryInterlockOptions,
+  type PushbackQuotasCheckOptions,
+  type AutoHealOptions,
+} from "./doctor/engines.ts";
 
 export {
   auditBehavioralHealth,
@@ -69,6 +96,30 @@ export {
   type LifecycleAuditSummary,
   runDoctorDiagnostics,
   type HarnessHealthCheck,
+  checkPlanningDag,
+  checkAstPurity,
+  checkAntiMockMutation,
+  checkAntiBatchingIsolation,
+  checkDualChannelUi,
+  checkCognitiveValidatorCommandLock,
+  checkRoleBoundaryInterlock,
+  checkPushbackQuotas,
+  autoHealCapsule,
+  MIN_ADVERSARIAL_PROBES,
+  MANDATORY_COGNITIVE_PUSHBACKS,
+  type DoctorSeverity,
+  type DoctorDiagnosticFinding,
+  type DoctorCheckEngineResult,
+  type DoctorAutoHealResult,
+  type PlanningDagCheckOptions,
+  type AstPurityCheckOptions,
+  type AntiMockMutationCheckOptions,
+  type AntiBatchingIsolationOptions,
+  type DualChannelUiCheckOptions,
+  type CognitiveValidatorCommandLockOptions,
+  type RoleBoundaryInterlockOptions,
+  type PushbackQuotasCheckOptions,
+  type AutoHealOptions,
 };
 
 export interface DoctorOptions {
@@ -77,6 +128,9 @@ export interface DoctorOptions {
     home: string;
     clients?: string[];
   };
+  autoHeal?: boolean;
+  writeScope?: readonly string[];
+  testPaths?: readonly string[];
 }
 
 export function versionAtLeast(actual: string, minimum: string): boolean {
@@ -110,19 +164,12 @@ export function ignoredByGit(
 
 export type DoctorIssueSeverity = "critical" | "cosmetic";
 
-// Issue codes an operator can safely ignore: they describe layout/naming noise, not data
-// loss, a broken invariant, or an operational failure. Everything else defaults to
-// "critical" — an issue this classifier does not recognize must never silently vanish
-// from Healthy, only a deliberately reviewed code may downgrade to cosmetic.
 const COSMETIC_ISSUE_CODES: ReadonlySet<string> = new Set(["LAYOUT_UNDECLARED"]);
 
 export function classifyIssueSeverity(issue: string): DoctorIssueSeverity {
   const code = issue.split(":", 1)[0];
   if (code !== undefined && COSMETIC_ISSUE_CODES.has(code)) return "cosmetic";
-  // Behavioral/tier-confinement findings embed their own severity as "[critical]",
-  // "[important]" or "[minor]" (see TierViolationSeverity); only "minor" is cosmetic —
-  // "critical" and "important" both keep Healthy false, matching prior behaviour.
-  if (issue.includes("[minor]")) return "cosmetic";
+  if (issue.startsWith("[INFO]") || issue.includes("[minor]")) return "cosmetic";
   return "critical";
 }
 
@@ -140,12 +187,6 @@ export function tierDoctorIssues(issues: readonly string[]): DoctorIssueTiering 
 
 export interface CapsuleDoctorFacts {
   readonly integrityIssues: readonly IntegrityIssue[];
-  // The subset of integrityIssues serious enough that loading and auditing the rest of
-  // the capsule (state, tier confinement, socratic self-questioning, lifecycle) is unsafe
-  // or meaningless — e.g. a broken hash chain. A cosmetic issue such as an undeclared
-  // capsule entry does NOT belong here: it has no bearing on whether the run is loadable,
-  // and gating the load on it would silently skip every other audit, masking whatever
-  // those audits would have found — trading a false red for a worse false green.
   readonly criticalIntegrityIssues: readonly IntegrityIssue[];
   readonly gitignored: boolean | null;
   readonly bunSupported: boolean;
@@ -155,11 +196,6 @@ export interface CapsuleDoctorFacts {
   readonly healthy: boolean;
 }
 
-// The integrity/gitignored/bun-support facts are asked for twice — once by the `doctor`
-// command and once by the `report` (unified) command's embedded doctor section. Both
-// used to call ignoredByGit/verifyIntegrity/verifyCapsuleDeep independently, which let the
-// two surfaces silently disagree about the same capsule. This is the single computation
-// both call, so the fields cannot drift apart by construction.
 export function computeCapsuleDoctorFacts(
   runRoot: string,
   gitCommand: RepositoryGitCommand = repositoryGit,
@@ -186,6 +222,10 @@ export function formatDoctorReport(params: {
   bunSupported: boolean;
   gitignored: boolean | null;
   issues: readonly string[];
+  errors?: readonly string[];
+  warnings?: readonly string[];
+  infos?: readonly string[];
+  autoHealed?: readonly string[];
   behavioralFindings?: readonly BehavioralFinding[] | readonly TierConfinementFinding[];
   tierConfinementFindings?: readonly TierConfinementFinding[];
   socraticReport?: SocraticAuditReport | undefined;
@@ -195,6 +235,14 @@ export function formatDoctorReport(params: {
   const findings = (params.tierConfinementFindings ??
     params.behavioralFindings ??
     []) as unknown as readonly BehavioralFinding[];
+
+  const errors = params.errors ?? issues.filter((i) => classifyIssueSeverity(i) === "critical");
+  const warnings = params.warnings ?? [];
+  const infos = [
+    ...(params.autoHealed ?? []).map((h) => `Auto-Healed: ${h}`),
+    ...(params.infos ?? issues.filter((i) => classifyIssueSeverity(i) === "cosmetic")),
+  ];
+
   const lines = [
     `### Capsule Doctor: \`${params.runRoot}\``,
     `- **Healthy**: ${params.healthy ? "yes" : "no"}`,
@@ -204,6 +252,14 @@ export function formatDoctorReport(params: {
     }`,
     ...(issues.length > 0 ? ["- **Issues**:"] : ["- **Issues**: none"]),
     ...issues.map((issue) => `  - ${issue}`),
+    "",
+    "### Doctor Findings:",
+    `- **[ERROR]**:`,
+    ...(errors.length > 0 ? errors.map((e) => `  - ${e}`) : ["  - none"]),
+    `- **[WARN]**:`,
+    ...(warnings.length > 0 ? warnings.map((w) => `  - ${w}`) : ["  - none"]),
+    `- **[INFO]**:`,
+    ...(infos.length > 0 ? infos.map((i) => `  - ${i}`) : ["  - none"]),
     "",
     formatBehavioralRoleHealthSection(findings),
     "",
@@ -241,12 +297,23 @@ export async function runDoctor(
   options: DoctorOptions = {},
   gitCommand: RepositoryGitCommand = repositoryGit,
 ): Promise<Record<string, unknown>> {
+  // 1. Auto-Healing: Auto-heal projection mismatches, torn event tails, and stale leases by default
+  const autoHealEnabled = options.autoHeal ?? true;
+  let autoHealResult: DoctorAutoHealResult = {
+    autoHealed: [],
+    recoveredLeases: [],
+    projectionRecovered: false,
+    quarantinedFragments: [],
+  };
+
+  if (autoHealEnabled) {
+    autoHealResult = autoHealCapsule(runRoot);
+  }
+
+  // 2. Compute Capsule Doctor Facts post-healing
   const facts = computeCapsuleDoctorFacts(runRoot, gitCommand);
   const { integrityIssues, criticalIntegrityIssues, gitignored, bunSupported } = facts;
-  // Gate on CRITICAL integrity issues only: a cosmetic one (e.g. an undeclared capsule
-  // entry) must never suppress loadRun and, with it, every loaded-dependent audit below
-  // (tier confinement, socratic, lifecycle, command/packet/workflow) — see
-  // CapsuleDoctorFacts.criticalIntegrityIssues.
+
   const loaded = criticalIntegrityIssues.length === 0 ? loadRun(runRoot) : undefined;
   const commandIssues = loaded
     ? Object.values((loaded.state.commands ?? {}) as Record<string, CommandRecord>).flatMap(
@@ -339,6 +406,76 @@ export async function runDoctor(
     .filter((check) => check.status === "fail")
     .map((check) => `${check.category}: ${check.message}`);
 
+  // 3. Run the 8 Diagnostic Engines
+  const engine1 = checkPlanningDag({
+    tasks: (loaded?.state?.tasks as Record<string, unknown> | undefined) ?? null,
+    graph: (loaded?.state?.graph as { nodes?: []; edges?: [] } | undefined) ?? null,
+  });
+
+  const effectiveWriteScope = options.writeScope ?? gitDiffs ?? [];
+  const engine2 = checkAstPurity({
+    repoRoot: repository,
+    writeScope: effectiveWriteScope,
+  });
+
+  const engine3 = checkAntiMockMutation({
+    repoRoot: repository,
+    targetPaths: options.testPaths,
+  });
+
+  const engine4 = checkAntiBatchingIsolation({
+    state: (loaded?.state as Record<string, unknown> | undefined) ?? null,
+    tasks: (loaded?.state?.tasks as Record<string, unknown> | undefined) ?? null,
+    grants: (loaded?.state?.grants as readonly unknown[] | undefined) ?? null,
+  });
+
+  const engine5 = checkDualChannelUi();
+
+  const engine6 = checkCognitiveValidatorCommandLock({
+    state: (loaded?.state as Record<string, unknown> | undefined) ?? null,
+    commands: (loaded?.state?.commands as Record<string, unknown> | undefined) ?? null,
+    events: (loaded?.events as readonly Record<string, unknown>[] | undefined) ?? null,
+    grants: (loaded?.state?.grants as readonly unknown[] | undefined) ?? null,
+  });
+
+  const engine7 = checkRoleBoundaryInterlock({
+    state: (loaded?.state as Record<string, unknown> | undefined) ?? null,
+    commands: (loaded?.state?.commands as Record<string, unknown> | undefined) ?? null,
+    events: (loaded?.events as readonly Record<string, unknown>[] | undefined) ?? null,
+    grants: (loaded?.state?.grants as readonly unknown[] | undefined) ?? null,
+  });
+
+  const engine8 = checkPushbackQuotas({
+    state: (loaded?.state as Record<string, unknown> | undefined) ?? null,
+    tasks: (loaded?.state?.tasks as Record<string, unknown> | undefined) ?? null,
+    events: (loaded?.events as readonly Record<string, unknown>[] | undefined) ?? null,
+  });
+
+  const allEngineFindings = [
+    ...engine1.findings,
+    ...engine2.findings,
+    ...engine3.findings,
+    ...engine4.findings,
+    ...engine5.findings,
+    ...engine6.findings,
+    ...engine7.findings,
+    ...engine8.findings,
+  ];
+
+  const engineErrorIssues = allEngineFindings
+    .filter((f) => f.severity === "ERROR")
+    .map((f) => `${f.engine}: ${f.message}`);
+
+  const engineWarnIssues = allEngineFindings
+    .filter((f) => f.severity === "WARN")
+    .map((f) => `${f.engine}: ${f.message}`);
+
+  const engineInfoIssues = allEngineFindings
+    .filter((f) => f.severity === "INFO")
+    .map((f) => `[INFO] ${f.engine}: ${f.message}`);
+
+  const autoHealedNotices = autoHealResult.autoHealed.map((msg) => `[INFO] Auto-Healed: ${msg}`);
+
   const issues = [
     ...facts.issues,
     ...commandIssues,
@@ -350,12 +487,21 @@ export async function runDoctor(
     ...installationIssues,
     ...policyIssues,
     ...diagnosticIssues,
+    ...engineErrorIssues,
+    ...engineWarnIssues,
+    ...engineInfoIssues,
+    ...autoHealedNotices,
   ];
 
-  // Re-tier over the FULL issue set, not just facts.issues: commandIssues/tierIssues/etc.
-  // can themselves carry a "[critical]"/"[minor]" tag (see classifyIssueSeverity) or a
-  // cosmetic layout code, and Healthy must reflect all of them, not only the base facts.
   const { criticalIssues, cosmeticIssues, healthy } = tierDoctorIssues(issues);
+
+  const errors = criticalIssues;
+  const warnings = engineWarnIssues;
+  const infos = [
+    ...autoHealResult.autoHealed.map((msg) => `Auto-Healed: ${msg}`),
+    ...cosmeticIssues,
+    ...engineInfoIssues.map((msg) => msg.replace(/^\[INFO\]\s*/u, "")),
+  ];
 
   const markdown = formatDoctorReport({
     runRoot,
@@ -364,6 +510,10 @@ export async function runDoctor(
     bunSupported,
     gitignored,
     issues,
+    errors,
+    warnings,
+    infos,
+    autoHealed: autoHealResult.autoHealed,
     behavioralFindings,
     tierConfinementFindings: tierFindings,
     socraticReport,
@@ -378,6 +528,8 @@ export async function runDoctor(
     bun_version: Bun.version,
     bun_supported: bunSupported,
     gitignored,
+    auto_healed: autoHealResult.autoHealed,
+    auto_heal_result: autoHealResult,
     integrity_issues: integrityIssues,
     command_issues: commandIssues,
     packet_issues: packetIssues,
@@ -395,6 +547,20 @@ export async function runDoctor(
     policy_inspection: policyInspection,
     diagnostic_checks: diagnosticChecks,
     diagnostic_issues: diagnosticIssues,
+    engine_results: {
+      checkPlanningDag: engine1,
+      checkAstPurity: engine2,
+      checkAntiMockMutation: engine3,
+      checkAntiBatchingIsolation: engine4,
+      checkDualChannelUi: engine5,
+      checkCognitiveValidatorCommandLock: engine6,
+      checkRoleBoundaryInterlock: engine7,
+      checkPushbackQuotas: engine8,
+    },
+    doctor_findings: allEngineFindings,
+    errors,
+    warnings,
+    infos,
     remedial_actions: remedialActionsForIntegrityIssues(runRoot, integrityIssues),
     issues,
     critical_issues: criticalIssues,

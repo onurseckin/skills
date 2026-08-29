@@ -7,12 +7,12 @@ import {
   handleAttemptFailure,
   settleAndTerminateAttempt,
   startAttemptPumpsAndMonitoring,
-} from "../../../olt/scripts/src/engine/runner/attempt-failure-cleanup.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-cleanup.ts";
 import type { NormalizedCommandOptions } from "../../../olt/scripts/src/capture/runners/types.ts";
-import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/descendant-tracker.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-tracker.ts";
 
 import { scratchRoot } from "../../support/scratch-root.ts";
-import { readProcessIdentity } from "../../../olt/scripts/src/engine/runner/process-identity.ts";
+import { readProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
 const mockOptions: NormalizedCommandOptions = {
   commandId: "cmd-1",
@@ -285,7 +285,7 @@ describe("attempt-failure-cleanup", () => {
 
     test("handles missing terminalProof in cleanup when startedAt and activityRecord are set", async () => {
       const attemptCleanupModule =
-        await import("../../../olt/scripts/src/engine/runner/attempt-cleanup.ts");
+        await import("../../../olt/scripts/src/engine/runner/execution/attempt-cleanup.ts");
       const spyCleanup = spyOn(attemptCleanupModule, "cleanupFailedAttempt").mockResolvedValue({
         issues: [],
         signals: [],
@@ -323,7 +323,7 @@ describe("attempt-failure-cleanup", () => {
 
   test("settleAndTerminateAttempt catches errors during probeRoot and uses realSettleClock wait", async () => {
     const attemptIntentModule =
-      await import("../../../olt/scripts/src/engine/runner/attempt-intent.ts");
+      await import("../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts");
     let probeCount = 0;
     const probeSpy = spyOn(attemptIntentModule, "probeAttemptProcess").mockImplementation(() => {
       probeCount += 1;

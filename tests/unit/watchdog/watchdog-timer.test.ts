@@ -701,12 +701,30 @@ describe("DOCTOR_SUPERVISOR_CODE_CONTAMINATION Doctor Check Enforcement", () => 
 describe("Invariants & Cleanliness Audit - Autonomic Watchdog (p47 & p56)", () => {
   it("zero TypeScript any and zero suppressions across all watchdog files", () => {
     const watchdogDir = join(__dirname, "../../../olt/scripts/src/watchdog");
+    const autoDir = join(watchdogDir, "autonomic-watchdog");
+    const bootDir = join(watchdogDir, "boot-gate-enforcer");
     const sourceFiles = [
       join(watchdogDir, "constants.ts"),
       join(watchdogDir, "types.ts"),
       join(watchdogDir, "boot-gate-enforcer.ts"),
       join(watchdogDir, "autonomic-watchdog.ts"),
       join(watchdogDir, "index.ts"),
+      join(autoDir, "activity-tracker.ts"),
+      join(autoDir, "adaptive-timer.ts"),
+      join(autoDir, "cli-reporter.ts"),
+      join(autoDir, "event-emitter.ts"),
+      join(autoDir, "health-auditor.ts"),
+      join(autoDir, "reactive-dispatcher.ts"),
+      join(autoDir, "types.ts"),
+      join(autoDir, "watchdog-engine.ts"),
+      join(autoDir, "index.ts"),
+      join(bootDir, "enforcer.ts"),
+      join(bootDir, "formatter.ts"),
+      join(bootDir, "recorder.ts"),
+      join(bootDir, "state-auditor.ts"),
+      join(bootDir, "types.ts"),
+      join(bootDir, "verifier.ts"),
+      join(bootDir, "index.ts"),
       join(__dirname, "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts"),
       __filename,
     ];

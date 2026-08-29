@@ -41,16 +41,23 @@ describe("mind/watchdog-manager", () => {
     const store = {
       ...baseStore,
       watchdogs: [
-        {
+                {
           id: "watch-01",
+          generation: 1,
+          pulse_id: "pulse-01",
+          phase: "active",
+          run_id: "run-01",
+          run_root: null,
           pid: process.pid,
-          registered_at: new Date().toISOString(),
-          last_heartbeat: new Date().toISOString(),
+          ppid: process.ppid,
+          agent_id: "mind-1",
+          started_at: new Date().toISOString(),
+          last_heartbeat_at: new Date().toISOString(),
+          heartbeat_cadence_ms: 2_000,
           timeout_ms: 10_000,
-          cadence_ms: 2_000,
           status: "active" as const,
-          command: "test",
-          args: [],
+          terminated_at: null,
+          termination_reason: null,
         },
       ],
     };

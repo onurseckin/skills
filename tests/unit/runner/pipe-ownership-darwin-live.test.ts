@@ -5,17 +5,17 @@ import {
   ownedProcessPids,
   ownershipTokenIdentities,
   runnerPipeHandles,
-} from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
+} from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import {
   darwinPipeHandles,
   darwinPipeOwners,
   darwinProcessIdentity,
   darwinTokenOwnerIdentities,
-} from "../../../olt/scripts/src/engine/runner/darwin-pipes.ts";
+} from "../../../olt/scripts/src/engine/runner/process/darwin-pipes.ts";
 import {
   processHasToken,
   scanDarwinTokenOwners,
-} from "../../../olt/scripts/src/engine/runner/darwin-token-owners.ts";
+} from "../../../olt/scripts/src/engine/runner/process/darwin-token-owners.ts";
 
 // These exercise the real darwin FFI-backed implementations against the current, live test
 // process rather than a fake dependency: they are direct syscalls scoped to this process and a
@@ -87,7 +87,7 @@ describe("platform dispatch seam", () => {
   });
 
   test("ownedProcessPids maps linux token owners to pids", async () => {
-    const linuxPipes = await import("../../../olt/scripts/src/engine/runner/linux-pipes.ts");
+    const linuxPipes = await import("../../../olt/scripts/src/engine/runner/process/linux-pipes.ts");
     const spyOwners = spyOn(linuxPipes, "linuxPipeOwners").mockReturnValue(new Set([101, 102]));
     const spyTokens = spyOn(linuxPipes, "linuxTokenOwnerIdentities").mockReturnValue([
       { pid: 101, parent: 1, group: 101, birth: "1000" },
@@ -115,7 +115,7 @@ describe("ownedProcessPids / ownershipTokenIdentities (real darwin dispatch)", (
   });
 
   test("ownedProcessPids maps darwin token owners to pids when owners exist", async () => {
-    const darwinPipes = await import("../../../olt/scripts/src/engine/runner/darwin-pipes.ts");
+    const darwinPipes = await import("../../../olt/scripts/src/engine/runner/process/darwin-pipes.ts");
     const spyOwners = spyOn(darwinPipes, "darwinPipeOwners").mockReturnValue(new Set([201, 202]));
     const spyTokens = spyOn(darwinPipes, "darwinTokenOwnerIdentities").mockReturnValue([
       { pid: 201, parent: 1, group: 201, birth: "1000" },

@@ -9,7 +9,7 @@ import {
   scheduleUnlimitedDepthDAG,
   type DepthMetrics,
   type UnboundedWavePartition,
-} from "../../../olt/scripts/src/engine/scheduler/unlimited-depth.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { topologyState } from "./fixtures.ts";
 
 describe("Unlimited Depth DAG Scheduler & Validator Pairing", () => {
@@ -674,10 +674,10 @@ describe("Unlimited Depth DAG Scheduler & Validator Pairing", () => {
   });
 
   describe("Static Invariants & Typing", () => {
-    test("unlimited-depth.ts contains 0 any types and 0 linter/compiler suppressions", () => {
+    test("index.ts contains 0 any types and 0 linter/compiler suppressions", () => {
       const filePath = join(
         import.meta.dir,
-        "../../../olt/scripts/src/engine/scheduler/unlimited-depth.ts",
+        "../../../olt/scripts/src/engine/scheduler/index.ts",
       );
       const content = readFileSync(filePath, "utf-8");
 

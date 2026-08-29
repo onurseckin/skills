@@ -12,9 +12,9 @@ import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/jso
 import {
   settledAttemptTerminalProof,
   startAttemptIntent,
-} from "../../../olt/scripts/src/engine/runner/attempt-intent.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
-import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import type {
   AttemptResult,
   NormalizedCommandOptions,
@@ -22,7 +22,7 @@ import type {
 import {
   verifyCommandAttempt,
   verifyCommandRecord,
-} from "../../../olt/scripts/src/engine/runner/verify-command.ts";
+} from "../../../olt/scripts/src/engine/runner/signing/verify-command.ts";
 
 const roots: string[] = [];
 

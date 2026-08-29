@@ -1,78 +1,53 @@
-import { dependencyMap } from "../../graph/dependency-map.ts";
-import { HarnessError } from "../../core/errors/index.ts";
-import { isInteger, isRecord } from "../../requirements/predicates.ts";
-import { taskExecutionState } from "../../workflow/authority/execution-state.ts";
-import { hasActiveOwnership, resourceConflict, scopeConflict } from "./conflicts.ts";
-import { schedulingMetrics } from "./metrics.ts";
-import { rankTasks, type ScheduledTask } from "./rank.ts";
+import type { RunState, TaskRecord } from "../../core/contracts/index.ts";
+import { scopeConflict, resourceConflict, hasActiveOwnership } from "./conflict/conflicts.ts";
 
-function taskRecord(value: unknown): value is ScheduledTask {
-  if (!isRecord(value)) return false;
-  return (
-    typeof value.id === "string" &&
-    isInteger(value.priority) &&
-    isInteger(value.created_order) &&
-    isInteger(value.effort) &&
-    Array.isArray(value.requirement_ids) &&
-    value.requirement_ids.every((id) => typeof id === "string") &&
-    (value.resource_scope === undefined ||
-      (Array.isArray(value.resource_scope) &&
-        value.resource_scope.every((scope) => typeof scope === "string"))) &&
-    Array.isArray(value.write_scope) &&
-    value.write_scope.every((scope) => typeof scope === "string")
-  );
-}
+export function proposeBatch(
+  state: unknown,
+  maxParallel = 8,
+): readonly TaskRecord[] {
+  if (!state || typeof state !== "object") return [];
+  const s = state as RunState;
+  if (!s.tasks || typeof s.tasks !== "object") return [];
 
-const DISPATCHABLE_STATUSES = new Set(["proposed", "ready", "retry_ready"]);
+  const allTasks = Object.values(s.tasks) as TaskRecord[];
+  const activeTasks = allTasks.filter((t) => hasActiveOwnership(t.status));
+  const candidateTasks = allTasks.filter((t) => t.status === "ready" || t.status === "proposed");
 
-function dispatchable(task: ScheduledTask): boolean {
-  return DISPATCHABLE_STATUSES.has(String(task.status));
-}
+  const sorted = [...candidateTasks].sort((a, b) => {
+    if ((b.priority ?? 0) !== (a.priority ?? 0)) {
+      return (b.priority ?? 0) - (a.priority ?? 0);
+    }
+    return a.id.localeCompare(b.id);
+  });
 
-function occupiesScope(task: ScheduledTask): boolean {
-  return hasActiveOwnership(task.status) && !dispatchable(task);
-}
+  const batch: TaskRecord[] = [];
+  const selectedWriteScopes: string[][] = activeTasks.map((t) => [...t.write_scope]);
+  const selectedResourceScopes: string[][] = activeTasks.map((t) => [...(t.resource_scope ?? [])]);
 
-function conflicts(left: ScheduledTask, right: ScheduledTask): boolean {
-  return (
-    scopeConflict(left.write_scope, right.write_scope) ||
-    resourceConflict(left.resource_scope ?? [], right.resource_scope ?? [])
-  );
-}
+  for (const task of sorted) {
+    if (batch.length >= maxParallel) break;
 
-export function proposeBatch(state: unknown, maxParallel: number | null = null): ScheduledTask[] {
-  if (maxParallel !== null && (!isInteger(maxParallel) || maxParallel < 1)) {
-    throw new HarnessError("INVALID_ARGUMENT", "maxParallel must be a positive integer or null");
+    if (Array.isArray(task.dependencies) && task.dependencies.length > 0) {
+      const allDepsMet = task.dependencies.every((depId) => {
+        const dep = s.tasks[depId];
+        return dep && dep.status === "done";
+      });
+      if (!allDepsMet) continue;
+    }
+
+    const taskWrite = task.write_scope || [];
+    const taskResource = task.resource_scope || [];
+
+    const hasScopeConflict = selectedWriteScopes.some((ws) => scopeConflict(ws, taskWrite));
+    if (hasScopeConflict) continue;
+
+    const hasResourceConflict = selectedResourceScopes.some((rs) => resourceConflict(rs, taskResource));
+    if (hasResourceConflict) continue;
+
+    batch.push(task);
+    selectedWriteScopes.push([...taskWrite]);
+    selectedResourceScopes.push([...taskResource]);
   }
-  if (!isRecord(state) || !isRecord(state.graph) || !isRecord(state.tasks)) {
-    throw new HarnessError("INVALID_STATE", "a plan must be applied before scheduling");
-  }
-  const dependencies = dependencyMap(state.graph);
-  const tasks = new Map<string, ScheduledTask>();
-  for (const [id, value] of Object.entries(state.tasks)) {
-    if (taskRecord(value)) tasks.set(id, { ...value, resource_scope: value.resource_scope ?? [] });
-  }
-  const done = new Set([...tasks].filter(([, task]) => task.status === "done").map(([id]) => id));
-  const metrics = schedulingMetrics(dependencies);
-  const occupied = [...tasks.values()].filter(occupiesScope);
-  const eligible = rankTasks(
-    [...tasks]
-      .filter(([id, task]) => {
-        return (
-          dispatchable(task) &&
-          taskExecutionState(state, task.requirement_ids) === "executable" &&
-          !occupied.some((running) => conflicts(task, running)) &&
-          [...(dependencies.get(id) ?? [])].every((dependency) => done.has(dependency))
-        );
-      })
-      .map(([, task]) => task),
-    metrics,
-  );
-  const selected: ScheduledTask[] = [];
-  for (const candidate of eligible) {
-    if (selected.some((chosen) => conflicts(candidate, chosen))) continue;
-    selected.push(candidate);
-    if (maxParallel !== null && selected.length >= maxParallel) break;
-  }
-  return structuredClone(selected);
+
+  return batch;
 }

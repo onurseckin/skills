@@ -5,11 +5,18 @@ import { validateMaterialStateLayers } from "./material-state-layers.ts";
 import { validateAppleOpticalTracking } from "./apple-optical-tracking.ts";
 import { validateGeistTokens } from "./geist-tokens.ts";
 
-export * from "./wai-aria-focus-trap.ts";
-export * from "./floating-ui-collision.ts";
-export * from "./material-state-layers.ts";
-export * from "./apple-optical-tracking.ts";
-export * from "./geist-tokens.ts";
+export { validateWaiAriaFocusTrap } from "./wai-aria-focus-trap.ts";
+
+export { validateFloatingUiCollision } from "./floating-ui-collision.ts";
+
+export { validateMaterialStateLayers } from "./material-state-layers.ts";
+
+export {
+  getExpectedAppleTracking,
+  validateAppleOpticalTracking,
+} from "./apple-optical-tracking.ts";
+
+export { validateGeistTokens } from "./geist-tokens.ts";
 
 export function validateCustom(ctx: ValidationContext): PillarValidationResult {
   const defects: ValidationDefect[] = [];

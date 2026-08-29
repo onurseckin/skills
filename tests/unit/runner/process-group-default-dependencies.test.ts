@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   terminateProcessGroup,
   type ProcessGroupIdentity,
-} from "../../../olt/scripts/src/engine/runner/process-group.ts";
+} from "../../../olt/scripts/src/engine/runner/process/process-group.ts";
 
 describe("terminateProcessGroup default inspect/wait dependencies", () => {
   test("uses the real process inspector and a real timer wait when no overrides are given", async () => {

@@ -15,7 +15,7 @@ import { reportUnifiedCommand } from "../../../olt/scripts/src/cli/commands/unif
 import { summaryViewCommand } from "../../../olt/scripts/src/cli/commands/summary-ops.ts";
 import { dagViewCommand } from "../../../olt/scripts/src/cli/commands/dag-view.ts";
 import { autoDeriveCallerIdentity } from "../../../olt/scripts/src/authority/session-registry.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 

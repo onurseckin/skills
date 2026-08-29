@@ -6,8 +6,8 @@ import type { CommandAttemptStartedRecord } from "../../../olt/scripts/src/core/
 import {
   CREATE_ATTEMPT_DISPOSITION,
   createCommandSigningCapability,
-} from "../../../olt/scripts/src/engine/runner/command-signing-capability.ts";
-import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process-identity.ts";
+} from "../../../olt/scripts/src/engine/runner/models/command-signing-capability.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
 const mockIdentity: ProcessIdentity = {
   pid: 1234,

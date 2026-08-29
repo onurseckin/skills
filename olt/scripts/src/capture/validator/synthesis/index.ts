@@ -1,3 +1,12 @@
-export * from "./remediation-generator.ts";
-export * from "./manifest-synthesizer.ts";
-export * from "./manifest-writer.ts";
+export { generateRemediations } from "./remediation-generator.ts";
+
+export {
+  isCertifiedManifest,
+  synthesizeCompanionManifest,
+} from "./manifest-synthesizer.ts";
+
+export {
+  formatManifestFilename,
+  loadCompanionManifest,
+  saveCompanionManifest,
+} from "./manifest-writer.ts";

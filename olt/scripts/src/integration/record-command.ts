@@ -4,17 +4,17 @@ import type { JsonObject } from "../core/contracts/index.ts";
 import { readCanonicalObject } from "../core/json.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
-import { executePreparedCommand, prepareCommand } from "../engine/runner/run-command.ts";
-import { resolveArtifactPath } from "../engine/runner/artifact-paths.ts";
-import { MAX_COMMAND_RECORD_BYTES } from "../engine/runner/command-record-size.ts";
+import { executePreparedCommand, prepareCommand } from "../engine/runner/models/run-command";
+import { resolveArtifactPath } from "../engine/runner/core/artifact-paths";
+import { MAX_COMMAND_RECORD_BYTES } from "../engine/runner/models/command-record-size";
 import {
   assertCommandActor,
   assertCommandArgv,
   assertCommandIdentities,
-} from "../engine/runner/policy.ts";
-import type { CommandOptions, CommandResult } from "../engine/runner/types.ts";
-import { verifyCommandRecord } from "../engine/runner/verify-command.ts";
-import { gateControlBindingsOverlapWriteScopes } from "../engine/runner/gate-path-overlap.ts";
+} from "../engine/runner/core/policy";
+import type { CommandOptions, CommandResult } from "../engine/runner/types/types";
+import { verifyCommandRecord } from "../engine/runner/signing/verify-command";
+import { gateControlBindingsOverlapWriteScopes } from "../engine/runner/signing/gate-path-overlap";
 import { loadRun, transact } from "../engine/store/index.ts";
 import {
   recoverAggregateFromAttempts,

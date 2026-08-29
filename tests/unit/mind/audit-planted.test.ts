@@ -26,9 +26,9 @@ import {
 } from "../../../olt/scripts/src/mind/audit.ts";
 import { calculatePulseValue } from "../../../olt/scripts/src/mind/value.ts";
 import { verifyDefectWitness } from "../../../olt/scripts/src/mind/witness.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 
@@ -130,23 +130,28 @@ function setupPlantedAuditCapsule(
     },
   );
 
-  if (overrides.registerMindAgent !== false) {
-    agentRegisterCommand({
-      run,
-      agent: "mind-1",
-      role: "mind",
-      host: "antigravity",
+          transact(run, "register-test-agents", "agents-registered", {}, (working) => {
+      working.agents = [
+        {
+          id: "mind-1",
+          role: "mind",
+          host: "antigravity",
+          status: "active",
+          granted_at: new Date().toISOString(),
+          parent_agent_id: null,
+          parent_task_id: null,
+        },
+        {
+          id: "auditor-1",
+          role: "mind-auditor",
+          host: "antigravity",
+          status: "active",
+          granted_at: new Date().toISOString(),
+          parent_agent_id: "mind-1",
+          parent_task_id: null,
+        },
+      ];
     });
-  }
-
-  if (overrides.registerAuditorAgent !== false) {
-    agentRegisterCommand({
-      run,
-      agent: "auditor-1",
-      role: "mind-auditor",
-      host: "antigravity",
-    });
-  }
 
   return { repo, run, charterPath, charterSha };
 }

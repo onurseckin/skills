@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   DescendantTracker,
   type ProcessIdentity,
-} from "../../../olt/scripts/src/engine/runner/descendant-tracker.ts";
-import { MIN_POLL_DELAY_MS } from "../../../olt/scripts/src/engine/runner/descendant-poll-policy.ts";
+} from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-tracker.ts";
+import { MIN_POLL_DELAY_MS } from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-poll-policy.ts";
 
 describe("DescendantTracker background polling", () => {
   test("schedules and runs background polls after a successful start, then stops cleanly", async () => {

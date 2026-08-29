@@ -4,7 +4,7 @@ import { HarnessError } from "../../core/errors/index.ts";
 import { applyPlan, type PlanningStore } from "../../graph/apply-plan.ts";
 import { initializePlannerPacket } from "../../packets/planner-packet.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { transact } from "../../engine/store/index.ts";
 import { formatPlanApplyBrief, formatPlanClaimBrief } from "../formatters/index.ts";
 import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 

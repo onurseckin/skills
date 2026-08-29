@@ -22,7 +22,7 @@ import {
   listBlobs,
   putBlobFile,
   type ViewLinker,
-} from "../../../olt/scripts/src/engine/store/blobs.ts";
+} from "../../../olt/scripts/src/engine/store/layout/blobs.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];

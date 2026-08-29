@@ -1,6 +1,6 @@
 import type { JsonObject } from "../../core/contracts/index.ts";
-import { loadRun } from "../../engine/store/load.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { loadRun } from "../../engine/store/index.ts";
+import { transact } from "../../engine/store/index.ts";
 import { writeLastPulse } from "../../mind/last-pulse.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";

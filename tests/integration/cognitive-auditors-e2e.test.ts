@@ -6,7 +6,7 @@ import { skillAuditLiveCommand } from "../../olt/scripts/src/cli/commands/skill-
 import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import type { AgentGrantRecord } from "../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { SkillAuditorPolicy } from "../../olt/scripts/src/engine/scheduler/skill-auditor-policy.ts";
+import { SkillAuditorPolicy } from "../../olt/scripts/src/engine/scheduler/index.ts";
 import {
   AuditorCursorStore,
   MindAuditorEngine,

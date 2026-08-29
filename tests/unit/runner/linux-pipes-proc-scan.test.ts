@@ -9,7 +9,7 @@ import {
   linuxProcessIdentity,
   linuxTokenOwnerIdentities,
   parseLinuxProcessIdentity,
-} from "../../../olt/scripts/src/engine/runner/linux-pipes.ts";
+} from "../../../olt/scripts/src/engine/runner/process/linux-pipes.ts";
 
 /**
  * There is no real /proc on this platform (or in CI generally), and the production code only

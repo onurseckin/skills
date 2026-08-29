@@ -16,19 +16,19 @@ import {
   prepareCommand,
   executePreparedCommand,
   setExecutionLockDependenciesForTesting,
-} from "../../../olt/scripts/src/engine/runner/run-command.ts";
+} from "../../../olt/scripts/src/engine/runner/models/run-command.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { resolveScratchDir } from "../../../olt/scripts/src/core/shared/paths.ts";
-import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
+import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
 import type {
   CommandOptions,
   CommandResult,
   PreparedCommand,
-} from "../../../olt/scripts/src/engine/runner/types.ts";
+} from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 const runCommandModule = new URL(
-  "../../../olt/scripts/src/engine/runner/run-command.ts",
+  "../../../olt/scripts/src/engine/runner/models/run-command.ts",
   import.meta.url,
 ).href;
 
@@ -658,7 +658,16 @@ describe("prepareCommand policy and authorization", () => {
     mkdirSync(join(repo, ".olt"), { recursive: true });
     writeFileSync(
       join(repo, ".olt", "policy.json"),
-      JSON.stringify({ forbidden_commands: ["echo"] }),
+      JSON.stringify({
+        schema_version: 1,
+        ecosystem: "bun",
+        forbidden_commands: ["echo"],
+        test_runner: {
+          default_command: "bun test",
+          targeted_pattern: "bun test <path>",
+          full_suite_command: "bun test",
+        },
+      }),
     );
     rmSync(resolveScratchDir(repo), { recursive: true, force: true });
     const runtimeDir = join(repo, "runtime");

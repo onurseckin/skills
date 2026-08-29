@@ -24,6 +24,8 @@ pre-commit:
         - ".olt/capsules/**"
         - ".olt/scratch/**"
       run: bunx oxfmt --check --no-error-on-unmatched-pattern {staged_files}
+    modularity:
+      run: bun run modularity:staged
 
 pre-push:
   commands:

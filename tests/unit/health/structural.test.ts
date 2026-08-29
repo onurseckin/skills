@@ -39,7 +39,7 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["olt/scripts/src/core/runtime-tree.ts", 2],
   ["olt/scripts/src/engine/scheduler/core-engine.ts", 2],
   ["olt/scripts/src/engine/scheduler/dynamic-topology.ts", 1],
-  ["olt/scripts/src/engine/store/capsule.ts", 1],
+  ["olt/scripts/src/engine/store/index.ts", 1],
   ["olt/scripts/src/engine/worktree/domain-sync.ts", 1],
   ["olt/scripts/src/graph/dag-expansion.ts", 1],
   ["olt/scripts/src/graph/parallel-decoupler.ts", 5],

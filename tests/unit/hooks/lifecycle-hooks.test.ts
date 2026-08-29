@@ -1149,8 +1149,17 @@ describe("Lifecycle Hooks - Invariant & Type Cleanliness Audit", () => {
     const sourceFiles = [
       join(__dirname, "../../../olt/scripts/src/hooks/types.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/config.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/env.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/shell.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/audio.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/actions.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/dispatcher.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/index.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config/constants.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config/io.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config/parser.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config/resolver.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config/index.ts"),
       __filename,
     ];
 
@@ -1181,8 +1190,17 @@ describe("Lifecycle Hooks - Invariant & Type Cleanliness Audit", () => {
     const sourceFiles = [
       join(__dirname, "../../../olt/scripts/src/hooks/types.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/config.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/env.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/shell.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/audio.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/actions.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/dispatcher.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/index.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config/constants.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config/io.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config/parser.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config/resolver.ts"),
+      join(__dirname, "../../../olt/scripts/src/hooks/config/index.ts"),
     ];
 
     for (const filePath of sourceFiles) {

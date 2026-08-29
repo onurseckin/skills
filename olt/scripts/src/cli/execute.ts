@@ -171,7 +171,7 @@ export async function execute(
   if (typeof parsed.flags["run"] === "string" && parsed.flags["run"].trim() !== "") {
     try {
       const runRoot = parsed.flags["run"] as string;
-      const { loadRun } = await import("../engine/store/load.ts");
+      const { loadRun } = await import("../engine/store/index.ts");
       const runData = loadRun(runRoot, false);
       if (runData && runData.state) {
         CumulativePhaseInvariantEngine.verify(spec, runData.state as Record<string, unknown>);

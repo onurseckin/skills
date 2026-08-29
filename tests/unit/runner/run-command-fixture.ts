@@ -1,7 +1,7 @@
 import {
   executePreparedCommand,
   prepareCommand,
-} from "../../../olt/scripts/src/engine/runner/run-command.ts";
+} from "../../../olt/scripts/src/engine/runner/models/run-command.ts";
 import type {
   CommandOptions,
   CommandResult,

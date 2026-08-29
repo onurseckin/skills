@@ -12,8 +12,8 @@ import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init
 import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { DEFAULT_MIND_BUDGET, parseCharter } from "../../../olt/scripts/src/mind/charter.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 

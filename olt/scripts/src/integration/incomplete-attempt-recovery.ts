@@ -14,12 +14,12 @@ import {
   probeAttemptProcess,
   retainedActivityTimes,
   type AttemptProcessProof,
-} from "../engine/runner/attempt-intent.ts";
-import { resolveArtifactPath } from "../engine/runner/artifact-paths.ts";
-import { outputEvidenceIssues } from "../engine/runner/output-evidence.ts";
-import { OWNERSHIP_ENV } from "../engine/runner/pipe-ownership.ts";
-import type { ProcessIdentity } from "../engine/runner/process-identity.ts";
-import { assertCommandAttemptSize } from "../engine/runner/command-record-size.ts";
+} from "../engine/runner/execution/attempt-intent";
+import { resolveArtifactPath } from "../engine/runner/core/artifact-paths";
+import { outputEvidenceIssues } from "../engine/runner/receipt/output-evidence";
+import { OWNERSHIP_ENV } from "../engine/runner/core/pipe-ownership";
+import type { ProcessIdentity } from "../engine/runner/process/process-identity";
+import { assertCommandAttemptSize } from "../engine/runner/models/command-record-size";
 
 const MAX_ACTIVITY_BYTES = 1024 * 1024;
 const INTERRUPTED = "attempt interrupted before terminal evidence was durable";

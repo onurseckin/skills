@@ -1,4 +1,4 @@
-import type { CaptureRecord } from "../engine/store/captures.ts";
+import type { CaptureRecord } from "../engine/store/index.ts";
 
 export interface ViewportMetrics {
   width: number;

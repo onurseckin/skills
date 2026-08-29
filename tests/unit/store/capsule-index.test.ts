@@ -8,7 +8,7 @@ import {
   loadIndex,
   refreshIndex,
   writeIndex,
-} from "../../../olt/scripts/src/engine/store/capsule-index.ts";
+} from "../../../olt/scripts/src/engine/store/capsule/capsule-index.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

@@ -95,7 +95,7 @@ olt/scripts/src/engine/scheduler/dynamic-topology.ts | 608
 olt/scripts/src/engine/scheduler/multi-domain-dispatch.ts | 783
 olt/scripts/src/engine/scheduler/pulse.ts | 367
 olt/scripts/src/engine/scheduler/unlimited-depth.ts | 544
-olt/scripts/src/engine/store/capsule-index.ts | 382
+olt/scripts/src/engine/store/index.ts | 382
 olt/scripts/src/engine/store/content-normalization/ecmascript-whitespace.ts | 314
 olt/scripts/src/engine/store/content-normalization/yaml-canonical.ts | 476
 olt/scripts/src/engine/store/event-append.ts | 335

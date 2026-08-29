@@ -1,2 +1,35 @@
-export * from "./naming.ts";
-export * from "./agent-triad.ts";
+export {
+  AGENT_NAMING_STANDARDS,
+  agentIdToRole,
+  agentIdToTier,
+  isStandardAgentId,
+  parseStandardAgentId,
+  recommendStandardAgentId,
+  roleToTier,
+  validateAgentNamingConvention,
+  type AgentBindingType,
+  type AgentNamingStandardDefinition,
+  type AgentNamingValidationResult,
+  type ExecutionTier,
+  type StandardAgentIdParsedComponents,
+  type StandardAgentRole,
+} from "./naming.ts";
+
+export {
+  assertTriadIntegrity,
+  auditAgentTriadWorkspace,
+  findRelevantReferencesForRole,
+  loadAgentIdentity,
+  loadAgentReferenceDocs,
+  loadAgentRoleDefinition,
+  resolveWorkspacePaths,
+  synthesizeTriadManifest,
+  validateAgentTriad,
+  type AgentIdentity,
+  type AgentReferenceDoc,
+  type AgentRoleDefinition,
+  type AgentTriadBundle,
+  type AgentTriadOptions,
+  type TriadAuditReport,
+  type TriadValidationResult,
+} from "./agent-triad.ts";

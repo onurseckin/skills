@@ -78,3 +78,34 @@ export interface HookConfig {
   readonly defaultAudioLinux?: string | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
+
+export type HookShellRefusalRule =
+  | "SHELL_STRING_COMMAND_REJECTED"
+  | "MISSING_COMMAND_ARGV"
+  | "EXECUTABLE_NOT_ALLOWLISTED"
+  | "RECURSIVE_DELETE_DETECTED"
+  | "FORBIDDEN_COMMANDS_POLICY"
+  | "CWD_OUTSIDE_REPOSITORY";
+
+export type HookAudioRefusalRule = "AUDIO_COMMAND_STRING_REJECTED" | "AUDIO_FILE_PATH_INVALID";
+
+export interface ProcessRunResult {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}
+
+export type ProcessRunner = (
+  executable: string,
+  args: readonly string[],
+  options: {
+    readonly cwd?: string | undefined;
+    readonly env?: Readonly<Record<string, string>> | undefined;
+    readonly timeoutMs: number;
+    readonly captureOutput: boolean;
+  },
+) => ProcessRunResult;
+
+export type HookCwdResolution =
+  | { readonly ok: true; readonly cwd: string }
+  | { readonly ok: false; readonly reason: string };

@@ -340,7 +340,12 @@ describe("Hierarchical Boundary Supervision & Cognitive Validator Hard-Lock", ()
         "parent-agent": "coord-lead",
         host: "claude-code",
       };
-      expect(() => assertGrantedCommand(spec("agent:register"), validRegFlags)).not.toThrow();
+      expect(() =>
+        assertGrantedCommand(spec("agent:register"), validRegFlags, {
+          actor: "coord-lead",
+          verified: true,
+        }),
+      ).not.toThrow();
 
       // Invalid registration: Orchestrator attempting to directly register Implementer
       const invalidOrchRegFlags: Flags = {
@@ -351,9 +356,12 @@ describe("Hierarchical Boundary Supervision & Cognitive Validator Hard-Lock", ()
         "parent-agent": "orch-lead",
         host: "claude-code",
       };
-      expect(() => assertGrantedCommand(spec("agent:register"), invalidOrchRegFlags)).toThrow(
-        "Hierarchical Parent-Child Boundary Violation",
-      );
+      expect(() =>
+        assertGrantedCommand(spec("agent:register"), invalidOrchRegFlags, {
+          actor: "orch-lead",
+          verified: true,
+        }),
+      ).toThrow("Hierarchical Parent-Child Boundary Violation");
 
       // Invalid registration: Tier 3 Implementer dispatched with no parent agent
       const orphanRegFlags: Flags = {
@@ -363,9 +371,12 @@ describe("Hierarchical Boundary Supervision & Cognitive Validator Hard-Lock", ()
         role: "implementer",
         host: "claude-code",
       };
-      expect(() => assertGrantedCommand(spec("agent:register"), orphanRegFlags)).toThrow(
-        "Hierarchical supervision violation",
-      );
+      expect(() =>
+        assertGrantedCommand(spec("agent:register"), orphanRegFlags, {
+          actor: "mind-lead",
+          verified: true,
+        }),
+      ).toThrow("Hierarchical supervision violation");
     });
   });
 
@@ -480,9 +491,12 @@ describe("Hierarchical Boundary Supervision & Cognitive Validator Hard-Lock", ()
           validator: "val-cog-1",
           "tool-category": cat,
         };
-        expect(() => assertGrantedCommand(spec("task:probe"), flags)).toThrow(
-          "may not invoke execution tool category",
-        );
+        expect(() =>
+          assertGrantedCommand(spec("task:probe"), flags, {
+            actor: "val-cog-1",
+            verified: true,
+          }),
+        ).toThrow("may not invoke execution tool category");
       }
 
       const prohibitedTools = ["run_command", "bash", "sh", "test_runner", "bun_test"];
@@ -493,9 +507,12 @@ describe("Hierarchical Boundary Supervision & Cognitive Validator Hard-Lock", ()
           validator: "val-cog-1",
           tool,
         };
-        expect(() => assertGrantedCommand(spec("task:probe"), flags)).toThrow(
-          "may not invoke execution tool",
-        );
+        expect(() =>
+          assertGrantedCommand(spec("task:probe"), flags, {
+            actor: "val-cog-1",
+            verified: true,
+          }),
+        ).toThrow("may not invoke execution tool");
       }
 
       // Mechanic validator invoking execution tool category succeeds
@@ -504,7 +521,12 @@ describe("Hierarchical Boundary Supervision & Cognitive Validator Hard-Lock", ()
         actor: "mech-val-1",
         "tool-category": "test-runner",
       };
-      expect(() => assertGrantedCommand(spec("run:exec"), mechFlags)).not.toThrow();
+      expect(() =>
+        assertGrantedCommand(spec("run:exec"), mechFlags, {
+          actor: "mech-val-1",
+          verified: true,
+        }),
+      ).not.toThrow();
     });
 
     it("enforces Cognitive Validator Hard-Lock in validation/anti-leak.ts", () => {

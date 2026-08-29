@@ -1,6 +1,6 @@
 import { basename, join } from "node:path";
 import { existsSync, readdirSync } from "node:fs";
-import { loadRun } from "../engine/store/load.ts";
+import { loadRun } from "../engine/store/index.ts";
 import {
   generateTrailingValueSeries,
   extractTrailingValueSeriesFromState,

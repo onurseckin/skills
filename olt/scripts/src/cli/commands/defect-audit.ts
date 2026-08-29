@@ -10,8 +10,8 @@ import {
   type DefectEntry,
   type GeneratedRegressionTest,
 } from "../../mind/defects.ts";
-import { loadRun } from "../../engine/store/load.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { loadRun } from "../../engine/store/index.ts";
+import { transact } from "../../engine/store/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import {

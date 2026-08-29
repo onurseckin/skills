@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, normalize, resolve } from "node:path";
-import { scopeConflict } from "../engine/scheduler/conflicts.ts";
+import { scopeConflict } from "../engine/scheduler/index.ts";
 import { readArchivedObjectives, type ArchivedObjectiveRecord } from "./archival.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";
 

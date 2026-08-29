@@ -6,7 +6,7 @@ import { readRegularFileNoFollow } from "../core/no-follow.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { chainCapsules } from "../orchestrator/capsule-chainer.ts";
 import { initRun, loadRun } from "../engine/store/index.ts";
-import { transact } from "../engine/store/transaction.ts";
+import { transact } from "../engine/store/index.ts";
 import { readAgentLedger, writeAgentLedger } from "../workflow/agents/ledger.ts";
 import {
   DEFAULT_CHARTER_RELATIVE_PATH,

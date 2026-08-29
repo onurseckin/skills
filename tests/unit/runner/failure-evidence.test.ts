@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { FailureEvidence } from "../../../olt/scripts/src/engine/runner/failure-evidence.ts";
+import { FailureEvidence } from "../../../olt/scripts/src/engine/runner/receipt/failure-evidence.ts";
 
 describe("FailureEvidence", () => {
   test("starts with no signals found", () => {

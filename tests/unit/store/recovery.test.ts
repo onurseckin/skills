@@ -12,10 +12,10 @@ import {
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
-import { recoverProjection } from "../../../olt/scripts/src/engine/store/recovery.ts";
-import { TRANSACTION_MARKER_FILE } from "../../../olt/scripts/src/engine/store/event-append.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
+import { recoverProjection } from "../../../olt/scripts/src/engine/store/recovery/recovery.ts";
+import { TRANSACTION_MARKER_FILE } from "../../../olt/scripts/src/engine/store/events/event-append.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function makeTempDir(label: string): string {

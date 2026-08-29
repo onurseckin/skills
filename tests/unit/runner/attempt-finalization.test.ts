@@ -8,12 +8,12 @@ import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { recoverAggregateFromAttempts } from "../../../olt/scripts/src/integration/reconcile-command-attempts.ts";
-import { writeAttemptStarted } from "../../../olt/scripts/src/engine/runner/attempt-intent.ts";
-import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/attempt-disposition-capability.ts";
-import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/command-shape.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
-import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
-import { runAttempt } from "../../../olt/scripts/src/engine/runner/run-attempt.ts";
+import { writeAttemptStarted } from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
+import { runAttempt } from "../../../olt/scripts/src/engine/runner/models/run-attempt.ts";
 import type {
   AttemptResult,
   BunSpawnApi,

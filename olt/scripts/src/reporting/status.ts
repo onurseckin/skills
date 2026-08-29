@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { indexFreshness, loadIndex, loadRun, verifyIntegrity } from "../engine/store/index.ts";
-import type { IndexFreshness } from "../engine/store/capsule-index.ts";
+import type { IndexFreshness } from "../engine/store/index.ts";
 import { workflowView } from "./workflow-view.ts";
 import { trustedHostEvidence, trustedHostLimitations } from "../core/contracts/index.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";

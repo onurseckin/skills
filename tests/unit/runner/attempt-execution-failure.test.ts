@@ -6,23 +6,23 @@ import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contrac
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { recoverAggregateFromAttempts } from "../../../olt/scripts/src/integration/reconcile-command-attempts.ts";
-import { AttemptExecutionError } from "../../../olt/scripts/src/engine/runner/attempt-execution-error.ts";
+import { AttemptExecutionError } from "../../../olt/scripts/src/engine/runner/execution/attempt-execution-error.ts";
 import {
   settledAttemptTerminalProof,
   startAttemptIntent,
   strongAttemptTerminalProof,
-} from "../../../olt/scripts/src/engine/runner/attempt-intent.ts";
-import { settleBounded } from "../../../olt/scripts/src/engine/runner/attempt-support.ts";
-import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/command-shape.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
-import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { settleBounded } from "../../../olt/scripts/src/engine/runner/models/attempt-support.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import type {
   AttemptResult,
   FailureClass,
   NormalizedCommandOptions,
 } from "../../../olt/scripts/src/capture/runners/types.ts";
-import { verifyCommandRecord } from "../../../olt/scripts/src/engine/runner/verify-command.ts";
-import type { CommandSigningCapability } from "../../../olt/scripts/src/engine/runner/attempt-disposition-capability.ts";
+import { verifyCommandRecord } from "../../../olt/scripts/src/engine/runner/signing/verify-command.ts";
+import type { CommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

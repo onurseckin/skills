@@ -3,7 +3,7 @@ import type { Evidenced } from "../../core/contracts/index.ts";
 import { newLeaseToken, tokenDigest } from "./token.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
-import { ownershipConflicts } from "../../engine/scheduler/conflicts.ts";
+import { ownershipConflicts } from "../../engine/scheduler/index.ts";
 import { taskExecutionBlockers, taskExecutionState } from "../authority/execution-state.ts";
 
 const MIN_LEASE = 5;

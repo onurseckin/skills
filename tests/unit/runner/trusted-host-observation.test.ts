@@ -9,8 +9,8 @@ import type {
 } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/command-shape.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
 import type { AttemptResult } from "../../../olt/scripts/src/capture/runners/types.ts";
 
 const roots: string[] = [];

@@ -18,7 +18,7 @@ import {
   type AstLintViolation,
 } from "../../linter/ast-enforcer.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { AutoReceiptLogger } from "../../engine/runner/auto-receipt.ts";
+import { AutoReceiptLogger } from "../../engine/runner/receipt/auto-receipt";
 import type { TaskRecord } from "../../workflow/types.ts";
 import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
 import { boolFlag, listFlag, textFlag, type CommandContext, type Flags } from "../options.ts";

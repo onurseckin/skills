@@ -1,12 +1,19 @@
-export const MANIFEST_SCHEMA = "harness.manifest" as const;
-export const STATE_SCHEMA = "harness.state" as const;
-export const EVENT_SCHEMA = "harness.event" as const;
-export const FORMAT_VERSION = 1 as const;
-export const RUNTIME_VERSION = "0.2.0" as const;
-export const MINIMUM_BUN_VERSION = "1.3.0" as const;
-export const MAX_JSON_FILE_BYTES = 64 * 1024 * 1024;
-export const MIN_ADVERSARIAL_PROBES = 5;
-export const MAX_REPAIR_ROUNDS = 20;
-export const MAX_BRANCH_DEPTH = 5;
-
-export const MAX_AGENTS = 100;
+export {
+  MANIFEST_SCHEMA,
+  STATE_SCHEMA,
+  EVENT_SCHEMA,
+  FORMAT_VERSION,
+  RUNTIME_VERSION,
+  MINIMUM_BUN_VERSION,
+  MAX_JSON_FILE_BYTES,
+  MIN_ADVERSARIAL_PROBES,
+  MAX_REPAIR_ROUNDS,
+  MAX_BRANCH_DEPTH,
+  MAX_AGENTS,
+  QUOTA_FREEZE_THRESHOLD_FLOOR_PCT,
+  type EffectiveQuotaThreshold,
+  type HarnessConfig,
+  type ConcurrencyCeilingSource,
+  type ResolvedHarnessConfig,
+  type ResolveHarnessConfigOptions,
+} from "./contracts.ts";

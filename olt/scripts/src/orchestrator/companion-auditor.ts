@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { HarnessError } from "../core/errors/index.ts";
-import { SkillAuditorPolicy } from "../engine/scheduler/skill-auditor-policy.ts";
+import { SkillAuditorPolicy } from "../engine/scheduler/index.ts";
 import { SkillAuditorEngine, type SkillAuditLiveResult } from "../mind/cognitive-auditors.ts";
 import { analyzeRunForensics, type ForensicsAnalysisResult } from "../mind/meta-auditor.ts";
 import { SplitChannelDefectRouter } from "../reporting/split-channel-defect-router.ts";

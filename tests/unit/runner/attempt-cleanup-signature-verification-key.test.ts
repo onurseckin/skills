@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { generateKeyPairSync } from "node:crypto";
-import { verificationKey } from "../../../olt/scripts/src/engine/runner/attempt-cleanup-signature.ts";
+import { verificationKey } from "../../../olt/scripts/src/engine/runner/execution/attempt-cleanup-signature.ts";
 
 describe("verificationKey key-type guard", () => {
   test("rejects a well-formed, correctly canonical public key of a non-ed25519 type", () => {

@@ -68,7 +68,7 @@ export function findRepoRoot(startDir: string = process.cwd()): string {
 1. **Premature Short-Circuit on In-Capsule Markers:** When `startDir` is inside a capsule workspace (e.g. `/repo/.olt/capsules/run-abc/sub/dir`), and that capsule contains an internal `.olt/` folder, `.git` submodule/worktree, or `package.json` file, `findRepoRoot` encounters `existsSync(...)` on its upward traversal and returns the capsule workspace as the repository root.
 2. **Post-Loop Stripping is Unreachable Dead Code:** The suffix/capsule stripping logic (`resolved.includes("/.olt/capsules/")`) is placed after the `while (true)` loop. Because the loop either returns a matched directory or breaks at filesystem root `/` and returns `/`, lines 42–52 are never executed.
 3. **Double-Nesting in `resolveCapsulesDir`:** When `resolveCapsulesDir(repoRoot)` receives an un-sanitized root or capsule path, it naively joins `root + "/.olt/capsules"`, compounding paths into `.olt/capsules/.olt/capsules`.
-4. **Defenseless `initRun`:** `initRun()` in [`olt/scripts/src/engine/store/capsule.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/store/capsule.ts#L26-L53) performs no validation against `isInsideCapsule(repoRoot)`, allowing callers to initialize capsules inside existing capsule directories without throwing `PATH_SAFETY`.
+4. **Defenseless `initRun`:** `initRun()` in [`olt/scripts/src/engine/store/index.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/store/index.ts#L26-L53) performs no validation against `isInsideCapsule(repoRoot)`, allowing callers to initialize capsules inside existing capsule directories without throwing `PATH_SAFETY`.
 
 ### 1.3 Symlinks, Submodules, Git Worktrees & Deep Workspaces
 
@@ -274,7 +274,7 @@ export function resolveCapsulesDir(repoRoot?: string): string {
 }
 ```
 
-### 3.2 `olt/scripts/src/engine/store/capsule.ts`
+### 3.2 `olt/scripts/src/engine/store/index.ts`
 
 ```typescript
 export function initRun(
@@ -312,7 +312,7 @@ export function initRun(
 }
 ```
 
-### 3.3 `olt/scripts/src/engine/store/load.ts`
+### 3.3 `olt/scripts/src/engine/store/index.ts`
 
 ```typescript
 export interface LoadRunOptions extends StoreLimits {
@@ -401,14 +401,14 @@ In `olt/scripts/src/reporting/doctor.ts`:
 - [ ] Refactor `resolveCapsulesDir(repoRoot?)` and `resolveOltDir(repoRoot?)`:
   - Enforce idempotency on inputs ending in `/.olt` or `/.olt/capsules`.
 
-### Task 2: Implement Capsule Nesting Guard in `olt/scripts/src/engine/store/capsule.ts`
+### Task 2: Implement Capsule Nesting Guard in `olt/scripts/src/engine/store/index.ts`
 
 - [ ] In `initRun(repoRoot, runId, ...)`:
   - Import `isInsideCapsule` from `../../core/shared/paths.ts`.
   - Add assertion: `if (isInsideCapsule(repo)) throw new HarnessError("PATH_SAFETY", "cannot initialize a capsule inside an existing capsule workspace: " + repo);`.
   - Ensure error code is strictly `"PATH_SAFETY"`.
 
-### Task 3: Enhance Run Loader Isolation in `olt/scripts/src/engine/store/load.ts`
+### Task 3: Enhance Run Loader Isolation in `olt/scripts/src/engine/store/index.ts`
 
 - [ ] Update `loadRunFiles(runRoot, verify, options, collectEvents)`:
   - Support `options.capsulesDir` and `options.repoRoot` in candidate path resolution.

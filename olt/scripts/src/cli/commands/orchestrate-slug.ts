@@ -1,4 +1,4 @@
-import { RUN_ID_PATTERN } from "../../engine/store/constants.ts";
+import { RUN_ID_PATTERN } from "../../engine/store/index.ts";
 
 const MAX_WORDS = 6;
 const MAX_WORDS_LENGTH = 48;

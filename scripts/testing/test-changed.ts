@@ -3,12 +3,11 @@
  * Runs only test files affected by changes since origin/main or HEAD~1.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { basename, extname, join, resolve } from "node:path";
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { basename, extname, join } from "node:path";
 
 const ARGS = process.argv.slice(2);
 const RUN_ALL = ARGS.includes("--all");
-const WITH_COVERAGE = ARGS.includes("--coverage");
 const SHOW_HELP = ARGS.includes("--help") || ARGS.includes("-h");
 
 function gitOutput(args: string[]): string {

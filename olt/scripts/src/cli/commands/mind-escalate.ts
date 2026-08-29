@@ -2,8 +2,8 @@ import { existsSync } from "node:fs";
 import type { JsonObject } from "../../core/contracts/index.ts";
 import { atomicWriteBytes } from "../../core/durable-write.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
-import { transact } from "../../engine/store/transaction.ts";
-import { runFilePath } from "../../engine/store/paths.ts";
+import { transact } from "../../engine/store/index.ts";
+import { runFilePath } from "../../engine/store/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
 

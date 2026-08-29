@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { ancestry, matchesTopology } from "../../../olt/scripts/src/engine/runner/process-tree.ts";
-import type { ProcessTopology } from "../../../olt/scripts/src/engine/runner/process-identity.ts";
+import { ancestry, matchesTopology } from "../../../olt/scripts/src/engine/runner/process/process-tree.ts";
+import type { ProcessTopology } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
 describe("ancestry", () => {
   test("walks the parent chain from a pid up through every recorded ancestor", () => {

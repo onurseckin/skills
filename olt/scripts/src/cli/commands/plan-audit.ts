@@ -12,7 +12,7 @@ import {
 } from "../../graph/plan-audit.ts";
 import type { TaskDeclaration } from "../../requirements/compiler.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { transact } from "../../engine/store/index.ts";
 import { formatPlanAuditBrief } from "../formatters/index.ts";
 import { actorFlag, textFlag, type Flags } from "../options.ts";
 

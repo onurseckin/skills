@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { ParallelWaveDispatchEnforcer } from "../../../olt/scripts/src/engine/scheduler/parallel-enforcer.ts";
+import { ParallelWaveDispatchEnforcer } from "../../../olt/scripts/src/engine/scheduler/dispatch/parallel-enforcer.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("ParallelWaveDispatchEnforcer", () => {

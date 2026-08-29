@@ -1,36 +1,42 @@
-export { proposeBatch } from "./propose-batch.ts";
+export { proposeBatch } from "./dispatch/propose-batch.ts";
 export {
   schedulingMetrics,
   generateTaskDagBadge,
   generateWaveLaneBadges,
   formatWorkSpanBadge,
   type SchedulingMetrics,
-} from "./metrics.ts";
+} from "./topology/metrics.ts";
+export {
+  computeWorkSpanMetrics,
+  computeResourceDisjointness,
+  type WorkSpanMetrics,
+  type ResourceDisjointnessMetrics,
+} from "./topology/dynamic-metrics.ts";
 export {
   resourceConflict,
   scopeConflict,
   hasActiveOwnership,
   ownershipConflicts,
-} from "./conflicts.ts";
-export { computeTopology, type TopologyConfig, type TopologyInputs } from "./topology.ts";
-export { recordTopology } from "./persist-topology.ts";
-export { readySet, type ReadyEntry, type ReadySetSelection } from "./ready-set.ts";
+} from "./conflict/conflicts.ts";
+export { computeTopology, type TopologyConfig, type TopologyInputs } from "./topology/topology.ts";
+export { recordTopology } from "./topology/persist-topology.ts";
+export { readySet, type ReadyEntry, type ReadySetSelection } from "./dispatch/ready-set.ts";
 export {
-  computeWorkSpanMetrics,
-  computeResourceDisjointness,
   partitionOrchestratorDomains,
   calculateValidatorAllocations,
   calculateCriticConcurrency,
-  synthesizeDynamicTopology,
-  type WorkSpanMetrics,
-  type ResourceDisjointnessMetrics,
   type OrchestratorPartition,
   type CrossOrchestratorBarrier,
   type ValidatorDemand,
+} from "./topology/dynamic-allocations.ts";
+export {
+  synthesizeDynamicTopology,
+  type DynamicTopologySynthesis,
+} from "./topology/dynamic-synthesize.ts";
+export {
   type DynamicTopologyWave,
   type DynamicTopologyOptions,
-  type DynamicTopologySynthesis,
-} from "./dynamic-topology.ts";
+} from "./topology/dynamic-types.ts";
 export {
   evaluateHierarchicalDecision,
   assertHierarchicalCompliance,
@@ -39,7 +45,7 @@ export {
   type HierarchicalAction,
   type HierarchicalDecisionContext,
   type HierarchicalDecisionResult,
-} from "./decision-tree.ts";
+} from "./conflict/decision-tree.ts";
 export {
   SchedulerEngine,
   auditDoctorGate,
@@ -49,11 +55,7 @@ export {
   assertDoctorGatePassed,
   determineTopLeader,
   dispatchSupervisoryHealthProbe,
-  formatDiagnosticReceiptsMarkdown,
   formatSupervisoryHealthMarkdown,
-  generateAsciiDagBadges,
-  generateReceiptBadge,
-  generateReceiptSummaryBadge,
   probeAgentRegistryAccuracy,
   probeCircularDependencies,
   probeDoctorErrorResolution,
@@ -65,17 +67,9 @@ export {
   probeStaleLeases,
   probeWorkSpanParallelizationHealth,
   recoverStaleTasks,
-  runInspectorDagView,
-  runInspectorDoctor,
-  runInspectorHealth,
-  runInspectorUnifiedReport,
-  runScriptBackedDiagnostics,
   type AgentRegistryAccuracyAudit,
   type BlockedTaskInfo,
   type CircularDependenciesProbeResult,
-  type CliDiagnosticReceipt,
-  type DiagnosticInspectorName,
-  type DiagnosticReceiptStatus,
   type DoctorErrorResolutionAudit,
   type GateCoverageProbeResult,
   type GraphHealthAuditReport,
@@ -88,8 +82,6 @@ export {
   type SchedulerEngineOptions,
   type ScopeCollisionHazard,
   type ScopeCollisionProbeResult,
-  type ScriptBackedDiagnosticsOptions,
-  type ScriptBackedDiagnosticsResult,
   type StaleLeaseInfo,
   type StaleLeasesProbeResult,
   type Supervisory5PointHealthReport,
@@ -100,16 +92,35 @@ export {
   type TaskRecoveryRecord,
   type TaskRecoveryResult,
   type WorkSpanHealthAudit,
-} from "./core-engine.ts";
+} from "./core/index.ts";
+export {
+  computeReceiptHash,
+  formatDiagnosticReceiptsMarkdown,
+  generateAsciiDagBadges,
+  generateReceiptBadge,
+  generateReceiptSummaryBadge,
+  runInspectorDagView,
+  runInspectorDoctor,
+  runInspectorHealth,
+  runInspectorUnifiedReport,
+  runScriptBackedDiagnostics,
+  type CliDiagnosticReceipt,
+  type DiagnosticInspectorName,
+  type DiagnosticReceiptStatus,
+  type ScriptBackedDiagnosticsOptions,
+  type ScriptBackedDiagnosticsResult,
+} from "./diagnostics/index.ts";
 export {
   executePulseTick,
   executePulseTickWithDiagnostics,
   runPulseLoop,
+} from "./feedback/pulse-core.ts";
+export {
   type PulseLoopOptions,
   type PulseLoopResult,
   type PulseTickOptions,
   type PulseTickResult,
-} from "./pulse.ts";
+} from "./feedback/pulse-types.ts";
 export {
   deriveCounterfactualRequirement,
   normalizeCriticFinding,
@@ -128,13 +139,15 @@ export {
   type CompiledRepairDag,
   type RouteCriticFeedbackOptions,
   type RouteCriticFeedbackResult,
-} from "./critic-feedback.ts";
+} from "./diagnostics/critic-feedback.ts";
 export {
   classifyTaskDomain,
   derivePrimaryValidatorDomain,
   dispatchMultiDomainValidators,
   evaluateMultiDomainBatch,
   isMultiDomainDispatchEligible,
+  isDualValidationRequired,
+  getRequiredValidatorDomains,
   MULTI_DOMAIN_PARALLELISM_THRESHOLD,
   proposeMultiDomainWave,
   resolveParallelismFactor,
@@ -147,5 +160,29 @@ export {
   type MultiDomainWaveOptions,
   type MultiDomainWaveResult,
   type TaskDomain,
-} from "./multi-domain-dispatch.ts";
-export { SkillAuditorPolicy, MetaAuditorPolicy } from "./skill-auditor-policy.ts";
+} from "./dispatch/multi-domain-dispatch.ts";
+export { SkillAuditorPolicy, MetaAuditorPolicy } from "./diagnostics/skill-auditor-policy.ts";
+export {
+  scheduleUnlimitedDepthDAG,
+} from "./topology/unlimited-core.ts";
+export {
+  pairValidatorsStrictly,
+  assertUnboundedConcurrencySafety,
+  validateDepthInvariants,
+} from "./topology/unlimited-pairing.ts";
+export {
+  taskRecord,
+  conflicting,
+  derivedRationale,
+  computeCriticalPathDepth,
+} from "./topology/unlimited-utils.ts";
+export {
+  type UnlimitedDepthSchedulerConfig,
+  type ValidatorPairingRecord,
+  type UnboundedWavePartition,
+  type DepthMetrics,
+  type CriticalPathDepthResult,
+  type DepthInvariantValidationResult,
+  type PairValidatorsOptions,
+  type UnlimitedDepthScheduleResult,
+} from "./topology/unlimited-types.ts";

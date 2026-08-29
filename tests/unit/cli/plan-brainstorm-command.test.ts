@@ -11,7 +11,7 @@ import {
 } from "../../../olt/scripts/src/cli/commands/plan-brainstorm.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { freshRun } from "./plan-workflow-fixture.ts";
 

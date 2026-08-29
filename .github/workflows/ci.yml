@@ -36,5 +36,8 @@ jobs:
       - name: Unit tests
         run: bun run test
 
+      - name: Modularity check
+        run: bun run modularity:check
+
       - name: Format check
-        run: bunx oxfmt --check .
+        run: bun run format:check

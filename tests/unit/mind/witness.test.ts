@@ -15,9 +15,9 @@ import {
   resolveWitnessCommand,
   verifyDefectWitness,
 } from "../../../olt/scripts/src/mind/witness.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 

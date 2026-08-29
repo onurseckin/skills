@@ -18,7 +18,7 @@ import { buildEnhancedPlan, writeEnhancedPlan } from "../../requirements/enhance
 import { parseRequirementLines } from "../../requirements/requirement-lines.ts";
 import { recordTopology } from "../../engine/scheduler/index.ts";
 import { initRun, loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { transact } from "../../engine/store/index.ts";
 import { ensureHarnessIgnored } from "../git-ignore.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { discoverGatePaths, gateBreadthWarning } from "../../graph/gate-breadth.ts";

@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   processHasToken,
   scanDarwinTokenOwners,
-} from "../../../olt/scripts/src/engine/runner/darwin-token-owners.ts";
-import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process-identity.ts";
+} from "../../../olt/scripts/src/engine/runner/process/darwin-token-owners.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("scanDarwinTokenOwners edge cases", () => {

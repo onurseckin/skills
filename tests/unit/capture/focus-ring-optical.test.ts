@@ -2,19 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
-  calculateApcaContrast,
-  calculateRelativeLuminance,
-  calculateWcagContrast,
-  compositeRgb,
-  isValidColor,
-  parseRgb,
-  type RgbaColor,
-} from "../../../olt/scripts/src/reporting/theme-contrast-matrix.ts";
-import type {
-  ElementPhysicsSnapshot,
-  ValidationContext,
-} from "../../../olt/scripts/src/capture/validator/types.ts";
-import { validateApcaElement } from "../../../olt/scripts/src/capture/validator/mechanical/apca.ts";
+  calculateApcaLightness,
+  validateApcaElement,
+} from "../../../olt/scripts/src/capture/validator/mechanical/apca.ts";
 import { validateConcentricRadius } from "../../../olt/scripts/src/capture/validator/mechanical/concentric-radius.ts";
 import {
   auditFocusRingContrast,
@@ -732,16 +722,22 @@ describe("Optical Ring Snapping & Concentric Geometry Matrix Validator", () => {
     });
 
     it("computes APCA perceptual lightness difference for focus ring pairings", () => {
+      const calcApca = (fg: string, bg: string): number => {
+        const fgRgb = parseCssColor(fg);
+        const bgRgb = parseCssColor(bg);
+        return fgRgb && bgRgb ? calculateApcaLightness(fgRgb, bgRgb) : 0;
+      };
+
       // White on Dark Navy -> Negative Lc with high magnitude
-      const apcaWhiteOnDark = calculateApcaContrast("#ffffff", "#0f172a");
+      const apcaWhiteOnDark = calcApca("#ffffff", "#0f172a");
       expect(Math.abs(apcaWhiteOnDark)).toBeGreaterThan(90.0);
 
       // Black on White -> Positive Lc > 100
-      const apcaBlackOnWhite = calculateApcaContrast("#000000", "#ffffff");
+      const apcaBlackOnWhite = calcApca("#000000", "#ffffff");
       expect(apcaBlackOnWhite).toBeGreaterThan(100.0);
 
       // Inaccessible pair -> Low Lc
-      const apcaFaint = calculateApcaContrast("#94a3b8", "#cbd5e1");
+      const apcaFaint = calcApca("#94a3b8", "#cbd5e1");
       expect(Math.abs(apcaFaint)).toBeLessThan(30.0);
     });
   });

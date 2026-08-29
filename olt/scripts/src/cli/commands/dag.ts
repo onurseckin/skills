@@ -9,7 +9,7 @@ import { parseArguments } from "../arguments.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
-import { schedulingMetrics } from "../../engine/scheduler/metrics.ts";
+import { schedulingMetrics } from "../../engine/scheduler/index.ts";
 import {
   buildSugiyamaDagReport,
   type SugiyamaDagReport,

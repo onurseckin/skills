@@ -20,10 +20,10 @@ import {
   type QuiescentSourceObservation,
 } from "../../../olt/scripts/src/mind/quiesce.ts";
 import { MIND_DISCOVERY_SOURCES } from "../../../olt/scripts/src/mind/sources.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const tempRoots: string[] = [];
 
@@ -391,12 +391,25 @@ describe("Quiesce Module: Specifications & Pure Functions", () => {
 describe("CLI Command: mindQuiesceCommand (PLAN.md §7.5 / PHASE-3.md §3.5)", () => {
   test("enforces role 'mind' on acting agent", async () => {
     const fixture = setupMindFixture("role-check");
-    agentRegisterCommand({
-      run: fixture.mindRun,
-      agent: "impl-1",
-      role: "orchestrator",
-      host: "antigravity",
-      "parent-agent": "mind-1",
+    transact(fixture.mindRun, "register-subagent", "subagent-registered", {}, (working) => {
+      working.agents = [
+        {
+          agent_id: "mind-1",
+          role: "mind",
+          host: "antigravity",
+          status: "active",
+          granted_at: new Date().toISOString(),
+          parent_agent_id: null,
+        },
+        {
+          agent_id: "impl-1",
+          role: "orchestrator",
+          host: "antigravity",
+          status: "active",
+          granted_at: new Date().toISOString(),
+          parent_agent_id: "mind-1",
+        },
+      ];
     });
 
     const sources = buildValid10SourceFlags(fixture.commandIds);

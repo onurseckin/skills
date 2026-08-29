@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { appendTraceStep, writeTrace } from "../../../olt/scripts/src/engine/store/trace.ts";
+import { appendTraceStep, writeTrace } from "../../../olt/scripts/src/engine/store/recovery/trace.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

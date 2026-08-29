@@ -7,7 +7,7 @@ import {
   compactCapsuleDefects,
   loadCapsuleDefects,
   resolveCapsuleDefect,
-} from "../../../olt/scripts/src/engine/store/defect-store.ts";
+} from "../../../olt/scripts/src/engine/store/recovery/defect-store.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { setDefectLogDependenciesForTesting } from "../../../olt/scripts/src/logging/defect-logger.ts";
 

@@ -648,13 +648,29 @@ export async function executeRescueLane(
 
         const idleSeconds = Math.max(0, Math.floor((nowMs - latestActivityMs) / 1000));
         if (idleSeconds > grantIdleSeconds) {
-          releaseAgentGrant({
-            runRoot: runPath,
-            agentId: grant.id,
+          transact(
+            runPath,
             actor,
-            reason: "presumed_dead",
-            now: new Date(nowMs),
-          });
+            "agent-released",
+            {
+              agent_id: grant.id,
+              released_at: new Date(nowMs).toISOString(),
+              reason: "presumed_dead",
+            },
+            (draft) => {
+              const ledger = readAgentLedger(draft);
+              const target = findGrant(ledger, grant.id);
+              if (target && target.status === "active") {
+                const next = {
+                  ...target,
+                  status: "released" as const,
+                  released_at: new Date(nowMs).toISOString(),
+                  release_reason: "presumed_dead",
+                };
+                writeAgentLedger(draft, replaceGrant(ledger, next));
+              }
+            },
+          );
           deadAgentsReleased.push({
             runId,
             agentId: grant.id,

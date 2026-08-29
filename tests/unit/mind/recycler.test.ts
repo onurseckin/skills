@@ -30,8 +30,8 @@ import {
   validateRolloverReadiness,
 } from "../../../olt/scripts/src/mind/recycler.ts";
 import type { RoundRecord } from "../../../olt/scripts/src/mind/rounds.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const SAMPLE_CHARTER = `

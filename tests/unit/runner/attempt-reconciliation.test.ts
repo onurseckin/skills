@@ -12,12 +12,12 @@ import {
   startAttemptIntent,
   strongAttemptTerminalProof,
   writeAttemptStarted,
-} from "../../../olt/scripts/src/engine/runner/attempt-intent.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
-import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/attempt-disposition-capability.ts";
-import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
-import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process-identity.ts";
-import { verifyCommandRecord } from "../../../olt/scripts/src/engine/runner/verify-command.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+import { verifyCommandRecord } from "../../../olt/scripts/src/engine/runner/signing/verify-command.ts";
 
 const roots: string[] = [];
 const identity: ProcessIdentity = { pid: 4242, parent: 100, group: 4242, birth: "birth-1" };

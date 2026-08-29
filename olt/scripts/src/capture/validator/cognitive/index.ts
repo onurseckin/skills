@@ -5,12 +5,30 @@ import { validateHickHyman } from "./hick-hyman.ts";
 import { validateNormanRecovery } from "./norman-recovery.ts";
 import { validateUiStatesFsm } from "./ui-states-fsm.ts";
 
-export * from "./cowan-chunking.ts";
-export * from "./fitts-law.ts";
-export * from "./hick-hyman.ts";
-export * from "./norman-recovery.ts";
-export * from "./ui-states-fsm.ts";
-export * from "./cognitive-questions.ts";
+export { validateCowanChunking } from "./cowan-chunking.ts";
+
+export {
+  calculateFittsId,
+  validateFittsLaw,
+} from "./fitts-law.ts";
+
+export {
+  calculateHickHymanEntropy,
+  validateHickHyman,
+} from "./hick-hyman.ts";
+
+export { validateNormanRecovery } from "./norman-recovery.ts";
+
+export { validateUiStatesFsm } from "./ui-states-fsm.ts";
+
+export {
+  COGNITIVE_BOILERPLATE,
+  evaluateCognitiveQuestions,
+  validateCognitiveSemanticDepth,
+  type CognitiveSemanticDepthDefect,
+  type CognitiveSemanticDepthResult,
+  type QuestionEvaluatorParams,
+} from "./cognitive-questions.ts";
 
 export function validateCognitive(ctx: ValidationContext): PillarValidationResult {
   const defects: ValidationDefect[] = [];

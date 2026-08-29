@@ -1,18 +1,53 @@
 import type { PillarValidationResult, ValidationContext, ValidationDefect } from "../types.ts";
-import { validateApcaElement } from "./apca.ts";
+import { validateApcaElement, calculateApcaLightness } from "./apca.ts";
 import { validateTouchTargetDimensions, validateTouchTargetClearance } from "./touch-target.ts";
 import { validateConcentricRadius } from "./concentric-radius.ts";
 import { validateSubpixelSnapping } from "./subpixel-snapping.ts";
 import { validateClsReservation } from "./cls-reservation.ts";
 import { validateSidebarLayout } from "./sidebar-layout.ts";
 
-export * from "./apca.ts";
-export * from "./touch-target.ts";
-export * from "./concentric-radius.ts";
-export * from "./subpixel-snapping.ts";
-export * from "./cls-reservation.ts";
-export * from "./sidebar-layout.ts";
-export * from "./focus-ring-optical.ts";
+export {
+  calculateApcaLightness,
+  validateApcaElement,
+} from "./apca.ts";
+
+export {
+  validateTouchTargetDimensions,
+  validateTouchTargetClearance,
+} from "./touch-target.ts";
+
+export { validateConcentricRadius } from "./concentric-radius.ts";
+
+export { validateSubpixelSnapping } from "./subpixel-snapping.ts";
+
+export { validateClsReservation } from "./cls-reservation.ts";
+
+export { validateSidebarLayout } from "./sidebar-layout.ts";
+
+export {
+  NAMED_COLORS,
+  auditFocusRingContrast,
+  calculateConcentricRadius,
+  calculateOpticalCurvatureMetrics,
+  calculateWcagLuminance,
+  compositeColorOver,
+  getSubpixelFraction,
+  hslToRgb,
+  parseCssColor,
+  snapToDevicePixelRatio,
+  srgbChannelToLinear,
+  validateFocusRingOpticalSnapping,
+  validateNestedConcentricCorners,
+  type ConcentricCornerEvaluation,
+  type DprSnapEvaluation,
+  type FocusRingDefect,
+  type FocusRingDefectType,
+  type FocusRingGeometry,
+  type OpticalCurvatureMetrics,
+  type OpticalSnapResult,
+  type OpticalSnappingOptions,
+  type RgbaColor,
+} from "./focus-ring-optical.ts";
 
 export function validateMechanical(ctx: ValidationContext): PillarValidationResult {
   const defects: ValidationDefect[] = [];

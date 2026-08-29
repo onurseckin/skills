@@ -3,7 +3,7 @@ import {
   MAX_BRANCH_DEPTH,
   MAX_REPAIR_ROUNDS,
   MIN_ADVERSARIAL_PROBES,
-} from "./constants.ts";
+} from "./contracts.ts";
 import { deriveGateConcurrencyCeiling } from "./host-concurrency.ts";
 import {
   buildConfigProvenanceMap,

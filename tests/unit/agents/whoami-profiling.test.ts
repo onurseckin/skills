@@ -11,7 +11,7 @@ import {
   type HostProfile,
 } from "../../../olt/scripts/src/authority/thread-identifier";
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami";
-import { execute } from "../../../olt/scripts/src/cli/execute";
+import { taskClaimCommand } from "../../../olt/scripts/src/cli/commands/task-ops.ts";
 import { cleanupRoots } from "../cli/full-lifecycle-fixture";
 import { setupCompiledRun } from "../cli/task-ops-fixture";
 import { TASK_ID, VALIDATOR, claimSubmitValidate, setupRun } from "../cli/probe-fixture";
@@ -328,17 +328,12 @@ describe("Agent Whoami Profiling Engine", () => {
   describe("whoami Next Actions are role and state aware", () => {
     it("tells an implementer holding a lease to heartbeat and submit that exact task", async () => {
       const { run } = await setupCompiledRun("whoami-lease-aware", roots);
-      const claim = await execute([
-        "task:claim",
-        "--run",
+      const claim = await taskClaimCommand({
         run,
-        "--task",
-        "task-core",
-        "--agent",
-        "worker-1",
-        "--role",
-        "implementer",
-      ]);
+        task: "task-core",
+        agent: "worker-1",
+        role: "implementer",
+      });
       expect(claim.token).toBeDefined();
 
       const result = whoamiCommand({ run, agent: "worker-1" });

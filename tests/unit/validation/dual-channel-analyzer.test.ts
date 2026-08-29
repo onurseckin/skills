@@ -1010,6 +1010,13 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
     const filesToAudit = [
       resolve(import.meta.dir, "../../../olt/scripts/src/validation/dual-channel-types.ts"),
       resolve(import.meta.dir, "../../../olt/scripts/src/validation/dual-channel-analyzer.ts"),
+      resolve(import.meta.dir, "../../../olt/scripts/src/validation/dual-channel-analyzer/types.ts"),
+      resolve(import.meta.dir, "../../../olt/scripts/src/validation/dual-channel-analyzer/file-classifier.ts"),
+      resolve(import.meta.dir, "../../../olt/scripts/src/validation/dual-channel-analyzer/semantic-depth.ts"),
+      resolve(import.meta.dir, "../../../olt/scripts/src/validation/dual-channel-analyzer/manifest-auditor.ts"),
+      resolve(import.meta.dir, "../../../olt/scripts/src/validation/dual-channel-analyzer/cross-proof.ts"),
+      resolve(import.meta.dir, "../../../olt/scripts/src/validation/dual-channel-analyzer/analyzer.ts"),
+      resolve(import.meta.dir, "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts"),
       resolve(import.meta.dir, "dual-channel-analyzer.test.ts"),
     ];
 

@@ -1,5 +1,89 @@
-export * from "./types.ts";
-export * from "./mechanical/index.ts";
-export * from "./cognitive/index.ts";
-export * from "./custom/index.ts";
-export * from "./synthesis/index.ts";
+export type {
+  CodeRemediation,
+  CodeRemediationFramework,
+  CognitiveAnalysisReport,
+  CompanionManifestV2,
+  DefectSeverity,
+  ElementBoundingBox,
+  ElementComputedStyles,
+  ElementMediaMeta,
+  ElementPhysicsSnapshot,
+  EvaluatedCognitiveQuestion,
+  EvaluatedCriterion,
+  PillarValidationResult,
+  UIInteractionState,
+  ValidationContext,
+  ValidationDefect,
+  ValidationPillar,
+  ValidationVerdict,
+} from "./types.ts";
+
+export {
+  NAMED_COLORS,
+  auditFocusRingContrast,
+  calculateApcaLightness,
+  calculateConcentricRadius,
+  calculateOpticalCurvatureMetrics,
+  calculateWcagLuminance,
+  compositeColorOver,
+  getSubpixelFraction,
+  hslToRgb,
+  parseCssColor,
+  snapToDevicePixelRatio,
+  srgbChannelToLinear,
+  validateApcaElement,
+  validateClsReservation,
+  validateConcentricRadius,
+  validateFocusRingOpticalSnapping,
+  validateMechanical,
+  validateNestedConcentricCorners,
+  validateSidebarLayout,
+  validateSubpixelSnapping,
+  validateTouchTargetClearance,
+  validateTouchTargetDimensions,
+  type ConcentricCornerEvaluation,
+  type DprSnapEvaluation,
+  type FocusRingDefect,
+  type FocusRingDefectType,
+  type FocusRingGeometry,
+  type OpticalCurvatureMetrics,
+  type OpticalSnapResult,
+  type OpticalSnappingOptions,
+  type RgbaColor,
+} from "./mechanical/index.ts";
+
+export {
+  COGNITIVE_BOILERPLATE,
+  calculateFittsId,
+  calculateHickHymanEntropy,
+  evaluateCognitiveQuestions,
+  validateCognitive,
+  validateCognitiveSemanticDepth,
+  validateCowanChunking,
+  validateFittsLaw,
+  validateHickHyman,
+  validateNormanRecovery,
+  validateUiStatesFsm,
+  type CognitiveSemanticDepthDefect,
+  type CognitiveSemanticDepthResult,
+  type QuestionEvaluatorParams,
+} from "./cognitive/index.ts";
+
+export {
+  getExpectedAppleTracking,
+  validateAppleOpticalTracking,
+  validateCustom,
+  validateFloatingUiCollision,
+  validateGeistTokens,
+  validateMaterialStateLayers,
+  validateWaiAriaFocusTrap,
+} from "./custom/index.ts";
+
+export {
+  formatManifestFilename,
+  generateRemediations,
+  isCertifiedManifest,
+  loadCompanionManifest,
+  saveCompanionManifest,
+  synthesizeCompanionManifest,
+} from "./synthesis/index.ts";

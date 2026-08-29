@@ -8,10 +8,10 @@ import {
   reconcileCommandResult,
   recordCommandIntent,
 } from "../../../olt/scripts/src/integration/record-command.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
-import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command-shape.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/attempt-disposition-capability.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
 
 const roots: string[] = [];
 

@@ -577,6 +577,11 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
     it("verifies zero TypeScript any and zero suppressions across anti-leak source and test files", () => {
       const filesToAudit = [
         "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak.ts",
+        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak/types.ts",
+        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak/checks.ts",
+        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak/validator.ts",
+        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak/delegator.ts",
+        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak/index.ts",
         "/Users/onurseckinsenoglu/repos/skills/tests/unit/validation/anti-leak.test.ts",
       ];
 

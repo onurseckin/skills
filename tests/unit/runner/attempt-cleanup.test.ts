@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { cleanupFailedAttempt } from "../../../olt/scripts/src/engine/runner/attempt-cleanup.ts";
-import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/descendant-tracker.ts";
+import { cleanupFailedAttempt } from "../../../olt/scripts/src/engine/runner/execution/attempt-cleanup.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-tracker.ts";
 
 const mockIdentity: ProcessIdentity = {
   pid: 40,

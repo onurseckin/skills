@@ -8,8 +8,8 @@ import {
   type AdmissionGateVerdict,
   type CandidateRecord,
 } from "../../mind/gates.ts";
-import { loadRun } from "../../engine/store/load.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { loadRun } from "../../engine/store/index.ts";
+import { transact } from "../../engine/store/index.ts";
 import { VALID_PROPOSAL_TRANSITIONS, type ProposalStatus } from "../../mind/proposal.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";

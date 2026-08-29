@@ -53,11 +53,24 @@ export async function validateSkillSource(
   ) {
     throw new HarnessError("INTEGRITY", "skill runtime package identity is invalid");
   }
-  const constantsPath = existsSync(resolve(root, "scripts/src/core/config/constants.ts"))
-    ? resolve(root, "scripts/src/core/config/constants.ts")
-    : resolve(root, "scripts/src/config/constants.ts");
-  const runtimeConstants = readStableText(constantsPath);
-  const runtimeVersion = /RUNTIME_VERSION\s*=\s*["']([^"']+)["']/u.exec(runtimeConstants)?.[1];
+  const candidatePaths = [
+    resolve(root, "scripts/src/core/config/contracts.ts"),
+    resolve(root, "scripts/src/core/config/constants.ts"),
+    resolve(root, "scripts/src/engine/store/constants.ts"),
+    resolve(root, "scripts/src/config/constants.ts"),
+    resolve(root, "scripts/src/constants.ts"),
+  ];
+  let runtimeVersion: string | undefined;
+  for (const candidate of candidatePaths) {
+    if (existsSync(candidate)) {
+      const text = readStableText(candidate);
+      const match = /RUNTIME_VERSION\s*=\s*["']([^"']+)["']/u.exec(text)?.[1];
+      if (match) {
+        runtimeVersion = match;
+        break;
+      }
+    }
+  }
   if (!runtimeVersion)
     throw new HarnessError("INTEGRITY", "skill source runtime version is missing");
   await options.beforeSnapshotRecheck?.();

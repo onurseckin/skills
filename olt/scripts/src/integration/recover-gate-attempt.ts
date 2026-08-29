@@ -1,8 +1,8 @@
 import type { CommandAttemptRecord, CommandRecord } from "../core/contracts/index.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
 import type { inspectRepositoryBinding } from "../packets/repository-identity.ts";
-import { assertCommandAttemptSize } from "../engine/runner/command-record-size.ts";
-import { sameRepositoryObservation } from "../engine/runner/gate-observation.ts";
+import { assertCommandAttemptSize } from "../engine/runner/models/command-record-size";
+import { sameRepositoryObservation } from "../engine/runner/signing/gate-observation";
 
 const POST_INTERRUPTED = "gate post-observation interrupted before integrity finalization";
 const REPOSITORY_DRIFT = "gate repository changed before durable integrity finalization";

@@ -24,9 +24,7 @@ import {
   validateRoundBudget,
   validateRoundCloseArmingRail,
 } from "../../../olt/scripts/src/mind/rounds.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 interface MindFixture {

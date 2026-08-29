@@ -4,7 +4,7 @@ import {
   evaluateHierarchicalDecision,
   type AgentRoleHierarchy,
   type HierarchicalDecisionResult,
-} from "../engine/scheduler/decision-tree.ts";
+} from "../engine/scheduler/index.ts";
 
 export interface HierarchicalViolation {
   readonly ruleId: string;

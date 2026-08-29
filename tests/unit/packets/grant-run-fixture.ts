@@ -9,9 +9,9 @@ import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.t
 import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
 import { recordRepositoryInspection } from "../../../olt/scripts/src/packets/repository-inspection.ts";
 import { inspectRepositoryBinding } from "../../../olt/scripts/src/packets/repository-identity.ts";
-import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/gate-environment.ts";
-import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/gate-path-bindings.ts";
-import { canonicalCommandFingerprint } from "../../../olt/scripts/src/engine/runner/command-id.ts";
+import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/index.ts";
+import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/index.ts";
+import { canonicalCommandFingerprint } from "../../../olt/scripts/src/engine/runner/index.ts";
 import type { TransactionPort } from "../../../olt/scripts/src/workflow/types.ts";
 
 /**

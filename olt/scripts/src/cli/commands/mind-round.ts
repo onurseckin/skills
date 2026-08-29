@@ -20,8 +20,8 @@ import {
   type RoundRecord,
   type RoundResult,
 } from "../../mind/rounds.ts";
-import { loadRun } from "../../engine/store/load.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { loadRun } from "../../engine/store/index.ts";
+import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 

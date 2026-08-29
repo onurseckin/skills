@@ -21,10 +21,10 @@ import {
   type EvidenceClass,
   type MindSourceId,
 } from "../../../olt/scripts/src/mind/sources.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const tempRoots: string[] = [];
 
@@ -561,12 +561,19 @@ describe("mindObserveCommand", () => {
     }
 
     // 2. Agent registered with wrong role
-    agentRegisterCommand({
-      run: mindRun,
-      agent: "worker-1",
-      role: "orchestrator",
-      host: "antigravity",
-      "parent-agent": "mind-1",
+    transact(mindRun, "register-sub", "sub-registered", {}, (working) => {
+      working.agents = [
+        ...((working.agents as unknown[]) ?? []),
+        {
+          id: "worker-1",
+          role: "orchestrator",
+          host: "antigravity",
+          status: "active",
+          granted_at: new Date().toISOString(),
+          parent_agent_id: "mind-1",
+          parent_task_id: null,
+        },
+      ];
     });
 
     try {

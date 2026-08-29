@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { readCaptures } from "../engine/store/captures.ts";
+import { readCaptures } from "../engine/store/index.ts";
 import { normalizeVisualReport } from "./visual-report.ts";
 import type {
   ScreenshotQueryOptions,

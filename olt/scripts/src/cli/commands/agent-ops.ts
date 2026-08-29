@@ -1,4 +1,4 @@
-import { dirname } from "node:path";
+import { basename, dirname } from "node:path";
 import {
   AGENT_MODEL_TIERS,
   isAgentModelTier,
@@ -13,6 +13,8 @@ import { AGENT_ROLES, isAgentRole, type AgentRole } from "../../core/contracts/i
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { rollbackStagedSessionGrant, stageSessionGrant } from "../../authority/session-registry.ts";
+import { roleToTier } from "../../authority/thread-identifier.ts";
+import { writeAgentMetadata } from "../../runtime/index.ts";
 import {
   isCommittedWithRecoveryPending,
   loadRun,
@@ -151,9 +153,18 @@ export function agentRegisterCommand(
       };
     }
   }
-  // Stage session authority first, then commit the active grant. If grant admission
-  // rejects, compensate the staged required PID records before exposing an outcome.
-  const stagedSession = stageSessionGrant({ runRoot: run, agentId: agent, role, host });
+  const explicitPid = integerFlag(flags, "pid", { minimum: 1 });
+  const explicitPpid = integerFlag(flags, "ppid", { minimum: 1 });
+  const bindProcessAncestry = explicitPid !== undefined;
+  const stagedSession = stageSessionGrant({
+    runRoot: run,
+    agentId: agent,
+    role,
+    host,
+    pid: explicitPid,
+    ppid: explicitPpid,
+    bindProcessAncestry,
+  });
   const session = stagedSession.session;
   let outcome;
   try {
@@ -217,6 +228,25 @@ export function agentRegisterCommand(
       // The grant failure is primary and must not leak an authority token through cleanup.
     }
     throw error;
+  }
+
+  try {
+    writeAgentMetadata(
+      {
+        agent_id: outcome.grant.id,
+        role: outcome.grant.role,
+        tier: roleToTier(outcome.grant.role) ?? 3,
+        write_scope: [],
+        allowed_read_scope: ["*"],
+        can_execute_shell: true,
+        spawned_at: outcome.grant.granted_at,
+        run_id: basename(run),
+        task_id: outcome.grant.parent_task_id ?? undefined,
+      },
+      run,
+    );
+  } catch {
+    // Best-effort runtime metadata persistence
   }
 
   return withHostTelemetryConflicts(

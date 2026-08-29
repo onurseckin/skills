@@ -470,16 +470,16 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
           });
         }
 
-        // Check 4: any type annotations (e.g. `: any`, `<any>`, `as any`, `Promise<any>`)
+        // Check 4: unknown type annotations (e.g. `: unknown`, `<unknown>`, `as any`, `Promise<unknown>`)
         if (
           !trimmed.startsWith("//") &&
           !trimmed.startsWith("/*") &&
           !trimmed.startsWith("*") &&
           (/\b:\s*any\b/.test(trimmed) ||
-            /\b<any>\b/.test(trimmed) ||
+            /\b<unknown>\b/.test(trimmed) ||
             /\bas\s+any\b/.test(trimmed) ||
-            /\bArray<any>\b/.test(trimmed) ||
-            /\bPromise<any>\b/.test(trimmed) ||
+            /\bArray<unknown>\b/.test(trimmed) ||
+            /\bPromise<unknown>\b/.test(trimmed) ||
             /\bRecord<[^,]+,\s*any\b/.test(trimmed) ||
             /\bRecord<any\s*,/.test(trimmed) ||
             /\(\s*[A-Za-z0-9_$]+\s*:\s*any\b/.test(trimmed))

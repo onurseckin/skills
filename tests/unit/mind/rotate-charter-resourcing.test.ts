@@ -4,7 +4,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { rotateMindGeneration } from "../../../olt/scripts/src/mind/rotate.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 

@@ -26,7 +26,7 @@ import {
   auditSupervisory5PointHealth,
   dispatchSupervisoryHealthProbe,
   type Supervisory5PointHealthReport,
-} from "../../engine/scheduler/core-engine.ts";
+} from "../../engine/scheduler/index.ts";
 
 const VALID_FILTER_STATUSES = new Set(["active", "stale", "terminated", "orphaned", "all"]);
 

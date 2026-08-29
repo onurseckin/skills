@@ -3,7 +3,7 @@ import type { CommandPathBinding } from "../../../olt/scripts/src/core/contracts
 import {
   gateControlBindingScopeIssues,
   gateControlBindingsOverlapWriteScopes,
-} from "../../../olt/scripts/src/engine/runner/gate-path-overlap.ts";
+} from "../../../olt/scripts/src/engine/runner/signing/gate-path-overlap.ts";
 
 function binding(overrides: Partial<CommandPathBinding>): CommandPathBinding {
   return {

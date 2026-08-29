@@ -1,13 +1,178 @@
-export * from "./dual-channel-types.ts";
-export * from "./dual-channel-analyzer.ts";
-export * from "./dom-violation-extractor.ts";
-export * from "./cross-channel-consistency.ts";
-export * from "./report-adapter.ts";
-export * from "./evidence-paths.ts";
-export * from "./anti-mock-types.ts";
-export * from "./ast-linter.ts";
-export * from "./assertion-floor.ts";
-export * from "./mutation-gate.ts";
-export * from "./anti-mock-engine.ts";
-export * from "./anti-leak.ts";
-export * from "./anti-batching.ts";
+export {
+  assertAntiBatchingRule,
+  assertDefectCandidatesIsolated,
+  assertDiscriminatingSignOffProofs,
+  assertOneToOneImplementerValidatorIsolation,
+  detectScopeCollisions,
+  partitionCandidatesStrictly,
+  partitionDefectsToIsolatedTasks,
+  partitionGroupedFeedbacksStrictly,
+  partitionIntoDisjointWaves,
+  planEnhance,
+  synthesizeAutonomousTasks,
+  validateAntiBatchingIsolation,
+  validateAntiBatchingRule,
+  validateCriticAntiBatching,
+  validateReviewAntiBatching,
+  type AntiBatchingCriticPayload,
+  type AntiBatchingCriticProof,
+  type AntiBatchingCriticValidationResult,
+  type AntiBatchingRequirementProof,
+  type AntiBatchingResolvedFinding,
+  type AntiBatchingReviewCheckProof,
+  type AntiBatchingReviewPayload,
+  type AntiBatchingReviewValidationResult,
+  type AntiBatchingValidationReport,
+  type IsolatedDefectTask,
+  type ScopeCollision,
+  type SmartTaskPlan,
+  type SmartWavePlanResult,
+} from "./anti-batching.ts";
+
+export {
+  CODE_MUTATION_ACTIONS,
+  PROHIBITED_COGNITIVE_ACTIONS,
+  PROHIBITED_COGNITIVE_CATEGORIES,
+  SUPERVISORY_ROLES,
+  assertAcyclicPushbackDelegation,
+  assertNoBoundaryLeak,
+  delegateRepairTask,
+  detectGraphCycles,
+  isBoundaryLeakViolation,
+  isCodeMutationAction,
+  isCognitiveValidatorRole,
+  isCriticOrValidatorAgent,
+  isCriticOrValidatorRole,
+  isExecutionToolCategory,
+  isMechanicValidatorRole,
+  isProhibitedValidatorExecutionAction,
+  isSupervisorRole,
+  validateAcyclicPushbackDelegation,
+  validateBoundaryIntegrity,
+  type AcyclicPushbackValidationParams,
+  type AcyclicPushbackValidationResult,
+  type AntiLeakValidationResult,
+  type BoundaryLeakCheck,
+  type BoundaryViolation,
+  type BoundaryViolationSeverity,
+  type BoundaryViolationType,
+  type DelegateRepairTaskParams,
+  type RepairDelegationOrder,
+} from "./anti-leak/index.ts";
+
+export {
+  AntiMockEngine,
+  checkAssertionFloor,
+  evaluateAntiMock,
+  formatAntiMockReport,
+  type AntiMockDiagnosticReport,
+  type AntiMockEngineConfig,
+  type AntiMockEvaluationInput,
+  type AssertionFloorOptions,
+  type AssertionFloorResult,
+  type AssertionFloorRule,
+  type AssertionFloorViolation,
+  type AstLinterOptions,
+  type AstLinterResult,
+  type AstLinterRule,
+  type AstLinterViolation,
+  type MutantExecutionResult,
+  type MutantRecord,
+  type MutantStatus,
+  type MutationGateOptions,
+  type MutationGateResult,
+  type MutationTestRunOutcome,
+  type MutationTestRunner,
+  type MutationType,
+  type MutationViolation,
+  type TestAssertionSummary,
+} from "./anti-mock/index.ts";
+
+export {
+  MOCK_FACTORIES,
+  TEST_IDENTIFIERS,
+  checkMockTautology,
+  checkTrivialConstantAssertion,
+  detectMockDeclarations,
+  extractTestName,
+  findCallback,
+  getRootExpectArg,
+  identifyTestCall,
+  isAssertionCall,
+  isLiteralOrConstant,
+  isTestIdentifier,
+  lintTestAst,
+  type MockInfo,
+  type TestCallInfo,
+} from "./ast-linter/index.ts";
+
+export {
+  extractDomViolations,
+  normalizeViewportName,
+  validateCrossChannelConsistency,
+  type ClippingViolation,
+  type CompanionManifestData,
+  type ContrastViolation,
+  type CrossChannelProof,
+  type DualChannelAuditResult,
+  type DualChannelInput,
+  type EvaluatedCriterion,
+  type FindingAdder,
+  type OrphanViolation,
+  type OverflowViolation,
+  type ScreenshotMetadata,
+  type StackingViolation,
+  type StructuredFinding,
+  type ViewportMetrics,
+  type VisualMetricsReport,
+} from "./channels/index.ts";
+
+export {
+  DEFAULT_REQUIRED_VIEWPORTS,
+  MANIFEST_INVARIANT,
+  MAX_DEVICE_SCALE_FACTOR,
+  METRIC_PATTERN,
+  PNG_SIGNATURE,
+  PROTECTED_VIEWPORT_BANDS,
+  SCREENSHOT_INVARIANT,
+  SUPERFICIAL_BOILERPLATE_PATTERNS,
+  analyzeDualChannel,
+  domInvariantsInspected,
+  measuredWidthOf,
+  readPngPixelDimensions,
+  resolveScreenshotPath,
+  selfReportedDimensionsWithinTolerance,
+  validateCompanionManifestCriteria,
+  verifyScreenshotPixelDimensions,
+  type ManifestCriteriaValidationResult,
+  type PngDimensionRead,
+  type PngVerificationResult,
+  type ValidateCompanionManifestOptions,
+} from "./dual-channel-analyzer/index.ts";
+
+export {
+  enforceValidatorCommandLock,
+  generateMutants,
+  performMechanicAutomatedChecks,
+  runMutationGate,
+  type ValidatorConfig,
+} from "./engine/index.ts";
+
+export {
+  shouldSkipStringLiteral,
+  type MutationCandidate,
+} from "./mutation-gate/index.ts";
+
+export {
+  UNIFIED_BROWSER_RUNS_DIRECTORY,
+  UNIFIED_EVIDENCE_DIRECTORY,
+  UNIFIED_MANIFESTS_DIRECTORY,
+  UNIFIED_SCREENSHOTS_DIRECTORY,
+  adaptIngestedVisualReport,
+  adaptScreenshotRecords,
+  assertUnifiedEvidencePath,
+  formatUnifiedEvidencePath,
+  isUnifiedEvidencePath,
+  isUnifiedEvidenceRelativePath,
+  type EvidenceCategory,
+} from "./reporters/index.ts";

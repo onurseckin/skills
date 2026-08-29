@@ -9,11 +9,11 @@ import { recoverAggregateFromAttempts } from "../../../olt/scripts/src/integrati
 import {
   startAttemptIntent,
   strongAttemptTerminalProof,
-} from "../../../olt/scripts/src/engine/runner/attempt-intent.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
-import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/attempt-disposition-capability.ts";
-import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
-import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process-identity.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 import type { PreparedCommand } from "../../../olt/scripts/src/capture/runners/types.ts";
 
 const roots: string[] = [];

@@ -13,16 +13,16 @@ import {
   cleanupDispositionEntryDigest,
   cleanupDispositionSigningBytes,
   type CleanupDispositionPayload,
-} from "../../../olt/scripts/src/engine/runner/attempt-cleanup-disposition.ts";
-import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/attempt-disposition-capability.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-cleanup-disposition.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
 import {
   attemptStartedIssues,
   ownershipTokenDigest,
   settledAttemptTerminalProof,
   startAttemptIntent,
-} from "../../../olt/scripts/src/engine/runner/attempt-intent.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
-import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];

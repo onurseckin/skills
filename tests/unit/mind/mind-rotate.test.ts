@@ -16,9 +16,9 @@ import {
   type GateEvaluationContext,
 } from "../../../olt/scripts/src/mind/gates.ts";
 import { rotateMindGeneration } from "../../../olt/scripts/src/mind/rotate.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

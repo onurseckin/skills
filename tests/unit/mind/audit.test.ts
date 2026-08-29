@@ -26,10 +26,10 @@ import {
   normalizeQuestionId,
   validateAuditAnswers,
 } from "../../../olt/scripts/src/mind/audit.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 
@@ -118,23 +118,28 @@ function setupMindCapsule(
     },
   );
 
-  if (overrides.registerMindAgent !== false) {
-    agentRegisterCommand({
-      run,
-      agent: "mind-1",
-      role: "mind",
-      host: "antigravity",
+          transact(run, "register-test-agents", "agents-registered", {}, (working) => {
+      working.agents = [
+        {
+          id: "mind-1",
+          role: "mind",
+          host: "antigravity",
+          status: "active",
+          granted_at: new Date().toISOString(),
+          parent_agent_id: null,
+          parent_task_id: null,
+        },
+        {
+          id: "auditor-1",
+          role: "mind-auditor",
+          host: "antigravity",
+          status: "active",
+          granted_at: new Date().toISOString(),
+          parent_agent_id: "mind-1",
+          parent_task_id: null,
+        },
+      ];
     });
-  }
-
-  if (overrides.registerAuditorAgent !== false) {
-    agentRegisterCommand({
-      run,
-      agent: "auditor-1",
-      role: "mind-auditor",
-      host: "antigravity",
-    });
-  }
 
   return { repo, run, charterPath, charterSha };
 }
@@ -490,12 +495,19 @@ describe("Phase 5 W5.2 - Mind Audit Questionnaire & Verification", () => {
         }),
       ).toThrow(HarnessError);
 
-      agentRegisterCommand({
-        run: fixture.run,
-        agent: "impl-1",
-        role: "orchestrator",
-        host: "antigravity",
-        "parent-agent": "mind-1",
+      transact(fixture.run, "register-sub", "sub-registered", {}, (working) => {
+        working.agents = [
+          ...((working.agents as unknown[]) ?? []),
+          {
+            id: "impl-1",
+            role: "orchestrator",
+            host: "antigravity",
+            status: "active",
+            granted_at: new Date().toISOString(),
+            parent_agent_id: "mind-1",
+            parent_task_id: null,
+          },
+        ];
       });
 
       expect(() =>

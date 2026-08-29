@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   executePreparedCommand,
   prepareCommand,
-} from "../../../olt/scripts/src/engine/runner/run-command.ts";
-import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
+} from "../../../olt/scripts/src/engine/runner/models/run-command.ts";
+import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
 import {
   CommandOptions,
   CommandResult,

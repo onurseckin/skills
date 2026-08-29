@@ -87,10 +87,10 @@ import {
   type LastPulseRecord,
 } from "../../../olt/scripts/src/mind/last-pulse.ts";
 import { calculateNextWakeInterval } from "../../../olt/scripts/src/mind/value.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { auditRemoteUrls, isPushTargetInert } from "../../support/remote-safety.ts";
 
 const roots: string[] = [];

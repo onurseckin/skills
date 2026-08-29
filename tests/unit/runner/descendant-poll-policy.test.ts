@@ -3,7 +3,7 @@ import {
   MAX_POLL_DELAY_MS,
   MIN_POLL_DELAY_MS,
   nextPollDelayMs,
-} from "../../../olt/scripts/src/engine/runner/descendant-poll-policy.ts";
+} from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-poll-policy.ts";
 
 describe("descendant poll policy", () => {
   test("resets to the minimum delay when a new descendant was discovered", () => {

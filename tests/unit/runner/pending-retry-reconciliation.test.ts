@@ -12,15 +12,15 @@ import {
   reconcileStrandedCommands,
   recordCommandIntent,
 } from "../../../olt/scripts/src/integration/record-command.ts";
-import { applyAttemptRecord } from "../../../olt/scripts/src/engine/runner/command-aggregate.ts";
+import { applyAttemptRecord } from "../../../olt/scripts/src/engine/runner/models/command-aggregate.ts";
 import {
   settledAttemptTerminalProof,
   startAttemptIntent,
-} from "../../../olt/scripts/src/engine/runner/attempt-intent.ts";
-import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/command-shape.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
-import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/attempt-disposition-capability.ts";
-import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];

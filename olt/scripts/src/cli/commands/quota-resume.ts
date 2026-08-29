@@ -7,7 +7,7 @@ import {
 } from "../../telemetry/collectors/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { loadRun } from "../../engine/store/load.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export async function quotaResumeCommand(

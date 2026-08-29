@@ -7,9 +7,9 @@ import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.t
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { inspectRepositoryBinding } from "../../../olt/scripts/src/packets/repository-identity.ts";
-import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/gate-environment.ts";
-import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/gate-path-bindings.ts";
-import { canonicalCommandFingerprint } from "../../../olt/scripts/src/engine/runner/command-id.ts";
+import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/index.ts";
+import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/index.ts";
+import { canonicalCommandFingerprint } from "../../../olt/scripts/src/engine/runner/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
   establishSupervisorChain,

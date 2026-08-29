@@ -48,6 +48,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       const feedbacks: readonly FeedbackItem[] = [
         {
           id: "fb-opt-1",
+          timestamp: new Date().toISOString(),
           title: "Optimize API Response Latency",
           content: "Reduce payload serialization overhead",
           priority: "CRITICAL_USER_FEEDBACK",
@@ -56,6 +57,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
         },
         {
           id: "fb-sec-2",
+          timestamp: new Date().toISOString(),
           title: "Harden Bearer Token Validation",
           content: "Verify constant-time comparison on tokens",
           priority: "HIGH_ARCHITECTURAL_FEATURE",
@@ -64,6 +66,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
         },
         {
           id: "fb-cli-3",
+          timestamp: new Date().toISOString(),
           title: "Add Verbose Logging to CLI Commands",
           content: "Support --verbose flag across CLI registry",
           priority: "USER_DIRECTIVE",

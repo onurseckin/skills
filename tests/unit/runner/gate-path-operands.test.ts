@@ -6,7 +6,7 @@ import {
   configOperand,
   pathOperand,
   pathRole,
-} from "../../../olt/scripts/src/engine/runner/gate-path-operands.ts";
+} from "../../../olt/scripts/src/engine/runner/signing/gate-path-operands.ts";
 
 describe("configOperand", () => {
   test("identifies config flags at the target index", () => {

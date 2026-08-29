@@ -11,13 +11,13 @@ import {
   MAX_COMMAND_INTENT_BYTES,
   MAX_COMMAND_RECORD_BYTES,
   MAX_EVIDENCE_ERROR_BYTES,
-} from "../../../olt/scripts/src/engine/runner/command-record-size.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
+} from "../../../olt/scripts/src/engine/runner/models/command-record-size.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/internal-command-runner.ts";
 import {
   executePreparedCommand as executePublic,
   prepareCommand as preparePublic,
-} from "../../../olt/scripts/src/engine/runner/run-command.ts";
-import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
+} from "../../../olt/scripts/src/engine/runner/models/run-command.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import type {
   AttemptResult,
   NormalizedCommandOptions,

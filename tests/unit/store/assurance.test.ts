@@ -5,7 +5,7 @@ import {
   VERBATIM_CAPTURE_MODE,
   captureAssurance,
   isCaptureMode,
-} from "../../../olt/scripts/src/engine/store/assurance.ts";
+} from "../../../olt/scripts/src/engine/store/integrity/assurance.ts";
 
 describe("isCaptureMode", () => {
   test("accepts every declared capture mode", () => {

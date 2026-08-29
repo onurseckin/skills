@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   evaluateHierarchicalDecision,
   assertHierarchicalCompliance,
-} from "../../../olt/scripts/src/engine/scheduler/decision-tree.ts";
+} from "../../../olt/scripts/src/engine/scheduler/conflict/decision-tree.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Hierarchical Decision Tree & Dominating Skill Mechanics", () => {

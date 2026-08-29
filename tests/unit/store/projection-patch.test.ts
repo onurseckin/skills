@@ -4,7 +4,7 @@ import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   applyProjectionPatch,
   diffProjection,
-} from "../../../olt/scripts/src/engine/store/projection-patch.ts";
+} from "../../../olt/scripts/src/engine/store/projections/projection-patch.ts";
 
 function expectIntegrity(operation: () => void): void {
   try {

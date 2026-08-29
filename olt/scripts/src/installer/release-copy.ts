@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { cp, lstat, mkdir, realpath, writeFile } from "node:fs/promises";
+import { chmod, cp, lstat, mkdir, realpath, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { canonicalJsonBytes } from "../core/json.ts";
 import { HarnessError } from "../core/errors/index.ts";
@@ -95,6 +95,8 @@ export async function prepareReleaseCopy(
     existingIdentity = await pathIdentity(destination);
     const sealed = sealInstallationManifest(manifest);
     await cp(source, temporary, { recursive: true, errorOnExist: true, force: false });
+    const sourceStat = await lstat(source, { bigint: true });
+    await chmod(temporary, Number(sourceStat.mode & 0o777n));
     const staged = await validateSkillSource(temporary);
     const current = await validateSkillSource(source, {
       ...(hooks.beforeSourceRecheck === undefined

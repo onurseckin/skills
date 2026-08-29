@@ -3,7 +3,7 @@ import {
   monitorProcess,
   type TimeoutKind,
   type WatchdogOutcome,
-} from "../../../olt/scripts/src/engine/runner/watchdog.ts";
+} from "../../../olt/scripts/src/engine/runner/telemetry/watchdog.ts";
 import type { BunSubprocess } from "../../../olt/scripts/src/capture/runners/types.ts";
 
 function fakeChild(exited: Promise<number>): BunSubprocess {
@@ -137,7 +137,7 @@ describe("Invariants & Cleanliness Audit - Runner Watchdog", () => {
     const { readFileSync } = require("node:fs");
     const { join } = require("node:path");
     const sourceFiles = [
-      join(__dirname, "../../../olt/scripts/src/engine/runner/watchdog.ts"),
+      join(__dirname, "../../../olt/scripts/src/engine/runner/telemetry/watchdog.ts"),
       __filename,
     ];
 

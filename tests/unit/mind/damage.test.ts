@@ -8,10 +8,10 @@ import { mindWakeCommand } from "../../../olt/scripts/src/cli/commands/mind-wake
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { executeRescueLane } from "../../../olt/scripts/src/mind/lanes/rescue.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
 import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";

@@ -15,7 +15,7 @@ import {
   createGateCaptureBudget,
   openGatePath,
   MAX_GATE_PATH_BINDINGS,
-} from "../../../olt/scripts/src/engine/runner/gate-path-tree.ts";
+} from "../../../olt/scripts/src/engine/runner/signing/gate-path-tree.ts";
 
 describe("gate-path-tree", () => {
   test("captures file and directory bindings with tree digest", () => {

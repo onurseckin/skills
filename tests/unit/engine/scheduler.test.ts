@@ -4,18 +4,18 @@ import {
   scopeConflict,
   resourceConflict,
   hasActiveOwnership,
-} from "../../../olt/scripts/src/engine/scheduler/conflicts.ts";
-import { rankTasks, type ScheduledTask } from "../../../olt/scripts/src/engine/scheduler/rank.ts";
-import { proposeBatch } from "../../../olt/scripts/src/engine/scheduler/propose-batch.ts";
-import { readySet } from "../../../olt/scripts/src/engine/scheduler/ready-set.ts";
-import { computeTopology } from "../../../olt/scripts/src/engine/scheduler/topology.ts";
+  proposeBatch,
+  readySet,
+  computeTopology,
+  type SchedulingMetrics,
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
+import { rankTasks, type ScheduledTask } from "../../../olt/scripts/src/engine/scheduler/conflict/rank.ts";
 import {
   computeReceiptHash,
   generateReceiptBadge,
   generateReceiptSummaryBadge,
   type CliDiagnosticReceipt,
-} from "../../../olt/scripts/src/engine/scheduler/diagnostics.ts";
-import type { SchedulingMetrics } from "../../../olt/scripts/src/engine/scheduler/metrics.ts";
+} from "../../../olt/scripts/src/engine/scheduler/diagnostics/index.ts";
 
 describe("Scheduler Conflicts", () => {
   test("scopeConflict correctly identifies overlapping directory and glob scopes", () => {

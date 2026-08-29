@@ -1,8 +1,5 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { ALL_CHECKS, defaultLayout, runHealthCheck } from "../../health/index.ts";
-import { renderHealthReport } from "../../health/report.ts";
-import type { HealthCheckId } from "../../health/types.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
@@ -12,13 +9,13 @@ import { loadRun, recoverProjection, transactionRecoveryStatus } from "../../eng
 import { recoverStale } from "../../workflow/lease/recover-stale.ts";
 import { releaseLease } from "../../workflow/lease/release.ts";
 import { systemClock, type WorkflowState } from "../../workflow/types.ts";
+import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import {
   doctorNextActions,
-  enforceLineLimit,
   nextActionsBlock,
   recoverNextActions,
   type DoctorCriticalFinding,
-} from "../formatters/index.ts";
+} from "../formatters/next-actions.ts";
 import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
 
 function runPlanVerified(run: string): boolean {
@@ -133,15 +130,30 @@ function issueSectionLines(report: Record<string, unknown>): string[] {
   }
   const criticalIssues = issueList(report.critical_issues);
   const cosmeticIssues = issueList(report.cosmetic_issues);
+  const autoHealed = Array.isArray(report.auto_healed) ? issueList(report.auto_healed) : [];
+  const warnings = Array.isArray(report.warnings) ? issueList(report.warnings) : [];
+  const infos = [
+    ...autoHealed.map((msg) => `Auto-Healed: ${msg}`),
+    ...cosmeticIssues,
+  ];
+
   return [
     ...(criticalIssues.length > 0 ? ["- **Critical Issues**:"] : ["- **Critical Issues**: none"]),
     ...criticalIssues.map((issue) => `  - ${issue}`),
-    ...(cosmeticIssues.length > 0
+    ...(infos.length > 0
       ? [
           "- **Notices** (cosmetic — do not affect Healthy):",
-          ...cosmeticIssues.map((issue) => `  - ${issue}`),
+          ...infos.map((issue) => `  - ${issue}`),
         ]
       : []),
+    "",
+    "### Doctor Findings:",
+    `- **[ERROR]**:`,
+    ...(criticalIssues.length > 0 ? criticalIssues.map((e) => `  - ${e}`) : ["  - none"]),
+    `- **[WARN]**:`,
+    ...(warnings.length > 0 ? warnings.map((w) => `  - ${w}`) : ["  - none"]),
+    `- **[INFO]**:`,
+    ...(infos.length > 0 ? infos.map((i) => `  - ${i}`) : ["  - none"]),
   ];
 }
 
@@ -280,25 +292,12 @@ function existingDirectory(flags: Flags, name: string): string | undefined {
   return path;
 }
 
-function isCheckId(name: string): name is HealthCheckId {
-  const known: readonly string[] = ALL_CHECKS;
-  return known.includes(name);
-}
+export async function healthCommand(flags: Flags): Promise<Record<string, unknown>> {
+  const { ALL_CHECKS, defaultLayout, runHealthCheck } = await import("../../health/index.ts");
+  const { renderHealthReport } = await import("../../health/report.ts");
+  type HealthCheckId = (typeof ALL_CHECKS)[number];
+  const isCheckId = (name: string): name is HealthCheckId => (ALL_CHECKS as readonly string[]).includes(name);
 
-function requestedChecks(flags: Flags): readonly HealthCheckId[] {
-  const requested = listFlag(flags, "check");
-  if (requested === undefined) return ALL_CHECKS;
-  const unknown = requested.filter((name) => !isCheckId(name));
-  if (unknown.length > 0) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `unknown --check: ${unknown.join(", ")}; known checks are ${ALL_CHECKS.join(", ")}`,
-    );
-  }
-  return requested.filter(isCheckId);
-}
-
-export function healthCommand(flags: Flags): Record<string, unknown> {
   const scripts = existingDirectory(flags, "scripts");
   const consumer = existingDirectory(flags, "consumer");
   const base = defaultLayout(scripts);
@@ -309,7 +308,19 @@ export function healthCommand(flags: Flags): Record<string, unknown> {
     );
   }
   const layout = consumer === undefined ? base : { ...base, consumerRoot: consumer };
-  const report = runHealthCheck(layout, requestedChecks(flags));
+  const requested = listFlag(flags, "check");
+  let checksToRun: readonly HealthCheckId[] = ALL_CHECKS;
+  if (requested !== undefined) {
+    const unknown = requested.filter((name) => !isCheckId(name));
+    if (unknown.length > 0) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `unknown --check: ${unknown.join(", ")}; known checks are ${ALL_CHECKS.join(", ")}`,
+      );
+    }
+    checksToRun = requested.filter(isCheckId);
+  }
+  const report = runHealthCheck(layout, checksToRun);
   if (boolFlag(flags, "strict") && !report.healthy) {
     throw new HarnessError(
       "INVALID_STATE",

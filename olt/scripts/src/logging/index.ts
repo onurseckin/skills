@@ -1,2 +1,32 @@
-export * from "./types.ts";
-export * from "./defect-logger.ts";
+export {
+  __setDefectPromotionPersistenceTestHook,
+  appendDefectLedgerRecord,
+  compactDefectLogFile,
+  deduplicateDefectLog,
+  parseAndDeduplicateDefectJsonl,
+  promoteDefectLedgerRecords,
+  pruneDefectLedgerRecords,
+  readDefectLogFile,
+  recordKeyedDefect,
+  recoverDefectPromotion,
+  replaceDefectLogFileUnlocked,
+  resolveDefectLogPath,
+  serializeAggregatedDefectLog,
+  setDefectLogDependenciesForTesting,
+  withDefectLedgerTransaction,
+  withDefectLogMutationLock,
+} from "./defect-logger.ts";
+
+export type {
+  AggregatedDefect,
+  DeduplicationStrategy,
+  DefectKeyOptions,
+  DefectLogDependencies,
+  DefectLogOptions,
+  DefectLogResult,
+  DefectPromotionJournal,
+  DefectPromotionPersistenceStage,
+  DefectRecordInput,
+  LiveDeduplicationOptions,
+  StrictDefectLedgerEntry,
+} from "./types.ts";

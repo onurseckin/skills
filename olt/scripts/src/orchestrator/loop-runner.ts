@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../core/errors/index.ts";
 import { resolveCapsulesDir } from "../core/shared/paths.ts";
-import { normalizeRunId } from "../engine/store/run-id.ts";
+import { normalizeRunId } from "../engine/store/index.ts";
 import { OrchestratorCompanionAuditor } from "./companion-auditor.ts";
 import { OrchestratorWatchdog } from "./watchdog.ts";
 import { synthesizeNextRoundPrompt } from "./defect-synthesizer.ts";

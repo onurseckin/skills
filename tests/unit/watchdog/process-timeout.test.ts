@@ -681,8 +681,19 @@ describe("HierarchicalStallProbe - Supervisor-to-Child Health Probing", () => {
 
 describe("Invariants & Cleanliness Audit - Mechanical Process Timeout Watchdog", () => {
   test("zero TypeScript any and zero suppressions across process-timeout watchdog files", () => {
+    const ptDir = join(__dirname, "../../../olt/scripts/src/watchdog/process-timeout");
     const sourceFiles = [
       join(__dirname, "../../../olt/scripts/src/watchdog/process-timeout.ts"),
+      join(ptDir, "constants.ts"),
+      join(ptDir, "types.ts"),
+      join(ptDir, "remediation.ts"),
+      join(ptDir, "diagnostics.ts"),
+      join(ptDir, "kill-tree.ts"),
+      join(ptDir, "liveness.ts"),
+      join(ptDir, "monitor.ts"),
+      join(ptDir, "runner.ts"),
+      join(ptDir, "probe.ts"),
+      join(ptDir, "index.ts"),
       __filename,
     ];
 

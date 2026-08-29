@@ -2,8 +2,8 @@ import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.t
 import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { realpathSync } from "node:fs";
 import { commandFingerprint } from "../../../olt/scripts/src/workflow/gates/gate-policy.ts";
-import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/gate-path-bindings.ts";
-import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/gate-environment.ts";
+import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/index.ts";
+import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/index.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 export const repositoryBinding = {

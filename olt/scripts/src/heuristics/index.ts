@@ -1,15 +1,89 @@
 /**
  * @file index.ts
  * Extended Edge-Case Heuristics Engine
- *
- * Exports:
- * - Glass surface analysis (nested backdrop-filter stacking, luminosity interference, APCA multi-substrate validation).
- * - Modal focus traps (cycle detection, active element containment, aria-hidden/inert sibling isolation, scroll-lock checks).
- * - Subpixel borders & hairline artifact detector across fractional DPR scales.
- * - Multi-viewport companion manifest & 4-pillar verification.
  */
 
-export * from "./glass-surfaces.ts";
-export * from "./modal-focus-traps.ts";
-export * from "./subpixel-borders.ts";
-export * from "./multi-viewport-manifest.ts";
+export {
+  analyzeGlassSurfaces,
+  calculateApcaLightnessContrast,
+  calculateEffectiveCumulativeBlur,
+  compositeRgba,
+  extractBlurRadiusPx,
+  getRequiredApcaLc,
+  parseColorToRgba,
+  simulateSubstrateContrasts,
+  sRgbToLuminanceY,
+  type GlassStackAnalysisResult,
+  type GlassSubstrateEvaluation,
+  type GlassSurfaceDefect,
+  type GlassSurfaceLayer,
+  type GlassTextElement,
+  type ParsedRgba,
+} from "./glass-surfaces.ts";
+
+export {
+  validateModalFocusTrap,
+  type BodyScrollState,
+  type FocusCycleReport,
+  type FocusSequenceTransition,
+  type FocusableNode,
+  type ModalFocusTrapDefect,
+  type ModalFocusTrapInput,
+  type ModalFocusTrapResult,
+  type OutsideSiblingNode,
+} from "./modal-focus-traps.ts";
+
+export {
+  CANONICAL_FRACTIONAL_DPR_SCALES,
+  evaluateAntiAliasingEdgeContrast,
+  evaluateEdgeContrast,
+  evaluateElementSubpixelPhysics,
+  evaluateSubpixelDrift,
+  getPhysicalRoundingError,
+  normalizeBorderWidths,
+  parseTransformTranslations,
+  snapToDevicePixels,
+  validateElementSubpixelPhysics,
+  validateSubpixelBorders,
+  type AntiAliasingEdgeContrastResult,
+  type DprEvaluation,
+  type EdgeContrastEvaluation,
+  type SubpixelBorderAnalysisResult,
+  type SubpixelBorderDefect,
+  type SubpixelBorderWidths,
+  type SubpixelDriftEvaluation,
+  type SubpixelDriftResult,
+  type SubpixelElementBounds,
+  type SubpixelElementInput,
+  type SubpixelValidationOptions,
+} from "./subpixel-borders.ts";
+
+export {
+  CANONICAL_VIEWPORTS,
+  CANONICAL_VIEWPORT_SPECS,
+  MANDATORY_PILLARS,
+  MINIMUM_SCREENSHOT_BYTES,
+  SUPERFICIAL_BOILERPLATE_PATTERNS,
+  auditCriterionSemanticDepth,
+  auditManifestSemanticDepth,
+  auditSingleViewportManifest,
+  computePhysicalViewportMetrics,
+  normalizePillar,
+  synthesizeDprAwareCompanionManifest,
+  verifyMultiViewportManifests,
+  type CanonicalViewport,
+  type CanonicalViewportSpec,
+  type DprAwareManifestSynthesisOptions,
+  type MandatoryPillar,
+  type ManifestSemanticDepthResult,
+  type MultiViewportBundleInput,
+  type MultiViewportDefect,
+  type MultiViewportManifestEntry,
+  type MultiViewportVerificationResult,
+  type PhysicalViewportMetrics,
+  type ScreenshotArtifact,
+  type SemanticDepthAuditResult,
+  type SemanticDepthDefect,
+  type SingleViewportAudit,
+  type SingleViewportAuditOptions,
+} from "./multi-viewport-manifest.ts";

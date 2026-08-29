@@ -7,9 +7,9 @@ import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agen
 import { mindCandidateCommand } from "../../../olt/scripts/src/cli/commands/mind-candidate.ts";
 import { mindDeclineCommand } from "../../../olt/scripts/src/cli/commands/mind-admit.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 // This suite proves the cand-11 wedge (mind-admit.ts:287-291 rejecting decline on
 // status "open", which is the exact status the proposal cap in mind-candidate.ts

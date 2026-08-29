@@ -13,8 +13,8 @@ import {
   type QuiescentDigest,
   type QuiescentSourceObservation,
 } from "../../mind/quiesce.ts";
-import { loadRun } from "../../engine/store/load.ts";
-import { transact } from "../../engine/store/transaction.ts";
+import { loadRun } from "../../engine/store/index.ts";
+import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { commandLayout } from "../../../olt/scripts/src/engine/store/layout-commands.ts";
+import { commandLayout } from "../../../olt/scripts/src/engine/store/layout/layout-commands.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {
