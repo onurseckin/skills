@@ -26,7 +26,10 @@ permissions:
     - "Write, edit, format, or delete repository files (0 source edits)"
     - "Pass work without probe round or Socratic critique"
     - "Validate its own work"
-  commands: []
+  commands:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns:
     - "sub-validator"
 invariants:
@@ -104,6 +107,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---
@@ -215,6 +221,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---
@@ -328,6 +337,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---
@@ -433,6 +445,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---
@@ -552,6 +567,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---
@@ -673,6 +691,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---

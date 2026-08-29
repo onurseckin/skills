@@ -948,6 +948,13 @@
     },
     {
       "rule": "line_limit",
+      "path": "tests/unit/cli/msg-commands.test.ts",
+      "observed": 302,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
       "path": "tests/unit/cli/next-actions.test.ts",
       "observed": 667,
       "limit": 300,
@@ -2244,7 +2251,7 @@
     {
       "rule": "directory_fanout",
       "path": "tests/unit/cli",
-      "observed": 88,
+      "observed": 89,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -15533,6 +15540,18 @@
       "rule": "facade_bypass",
       "path": "tests/unit/cli/meta-audit.test.ts",
       "observed": "tests/support/scratch-root.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/cli/msg-commands.test.ts",
+      "observed": "olt/scripts/src/cli/execute.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/cli/msg-commands.test.ts",
+      "observed": "olt/scripts/src/communication/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {

@@ -64,7 +64,7 @@ describe("Mailbox IPC CLI Commands", () => {
       expect(result.message_type).toBe("DISPATCH_TASK");
       expect(result.correlation_id).toBe("corr-101");
 
-      const envelope = result.envelope as MailboxEnvelope<{
+      const envelope = result.envelope as unknown as MailboxEnvelope<{
         chunkId: number;
         retries: number;
         body: string;
@@ -134,7 +134,8 @@ describe("Mailbox IPC CLI Commands", () => {
       const recv1 = await execute(["msg:recv", "--actor", "worker-rcv", "--base-dir", testRoot]);
 
       expect(recv1.totalReceipts).toBe(2);
-      expect((recv1.receipts as MailboxEnvelope[]).length).toBe(2);
+      const list = recv1.receipts as unknown as MailboxEnvelope[];
+      expect(list.length).toBe(2);
 
       const paths = resolveMailboxPaths("worker-rcv", testRoot);
       const cursor = loadMailboxCursor(paths.cursorPath);
@@ -209,7 +210,7 @@ describe("Mailbox IPC CLI Commands", () => {
       const waitPromise = msgRecvCommand({
         actor: "worker-wait",
         wait: true,
-        timeout: 400,
+        timeout: "400",
         "base-dir": testRoot,
       });
 
@@ -235,7 +236,7 @@ describe("Mailbox IPC CLI Commands", () => {
       const timeoutResult = await msgRecvCommand({
         actor: "worker-timeout",
         wait: true,
-        timeout: 100,
+        timeout: "100",
         "base-dir": testRoot,
       });
       expect(timeoutResult.totalReceipts).toBe(0);
@@ -246,8 +247,8 @@ describe("Mailbox IPC CLI Commands", () => {
     it("polls until message arrives within interval and timeout", async () => {
       const pollPromise = msgPollCommand({
         actor: "worker-poll",
-        interval: 30,
-        timeout: 1000,
+        interval: "30",
+        timeout: "1000",
         "base-dir": testRoot,
       });
 
@@ -276,9 +277,9 @@ describe("Mailbox IPC CLI Commands", () => {
     it("stops polling when max-rounds limit is reached", async () => {
       const result = await msgPollCommand({
         actor: "worker-empty-poll",
-        interval: 20,
-        "max-rounds": 3,
-        timeout: 2000,
+        interval: "20",
+        "max-rounds": "3",
+        timeout: "2000",
         "base-dir": testRoot,
       });
 
