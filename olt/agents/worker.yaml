@@ -29,6 +29,7 @@ permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
     - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees."
+    - "Turn 1 MUST execute: task:claim (bun harness.ts task:claim --run <run_id> --task <task_id>) to obtain an active lease token before reading or editing any files"
     - "Claim ready or retry-ready tasks holding exactly one lease token"
     - "Create, edit, and delete files strictly within leased write scope"
     - "Execute 1-hop in-lease micro-cycles (task:reject --in-lease) directly remediating findings"
@@ -46,6 +47,7 @@ permissions:
   commands:
     - "task:brief"
     - "task:claim"
+    - "queue:pop"
     - "task:check"
     - "task:heartbeat"
     - "run:exec"
@@ -54,6 +56,12 @@ permissions:
     - "branch:open"
     - "branch:collect"
     - "branch:abandon"
+    - "finding:get"
+    - "report:get"
+    - "evidence:get"
+    - "agent:register"
+    - "agent:report"
+    - "agent:release"
     - "doctor"
     - "whoami"
     - "msg:send"
@@ -79,6 +87,7 @@ instructions: |
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
   - Mandatory Turn 1 Actions: task:claim.
+  - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a task submitted, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
 
   ---
   role: implementer
@@ -151,6 +160,7 @@ instructions: |
 
   Implement only the leased task and submit trusted-host observed evidence.
 
+  - **Mandatory Turn 1 Registration Interlock**: On Turn 1, Implementers MUST execute `task:claim` (`bun harness.ts task:claim --run <run_id> --task <task_id>`) to obtain an active lease token before reading or editing any files. Unleased file modifications will be rejected with `LEASE_REQUIRED`.
   - **Zero-Exploration 1-Shot Briefings**: Implementers start from structured 1-shot task briefings (`task:brief`) specifying assigned task ID, exact disjoint write scope, target files, recommended file-scoped test commands (`bun test <path.test.ts>`), and acceptance criteria—eliminating exploratory probing.
   - **1-Hop In-Lease Micro-Cycles**: When paired with a validator who emits micro-cycle critique (`--micro-cycle` / `--in-lease`), do not release the lease or terminate. Directly address the findings in-lease, verify with file-scoped tests, and re-submit (bounded to 3 micro-cycle rounds before formal escalation).
   - **Dual-Channel Review & Socratic Probing Contract**: Respond in-lease to validator cognitive probes (`task:probe --kind cognitive`) with concrete empirical proof, edge-case hardening, and static invariant verification. Cognitive probes carry zero penalty on your repair budget and do not trigger task escalation (governed by Dual-Channel Review Protocol: `max_adversarial_pushes: 20` defect repair ceiling, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds before `task:review --status pass`).

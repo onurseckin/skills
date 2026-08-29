@@ -11,6 +11,9 @@ tier: 3
 tools:
   enable_subagent_tools: false
   enable_write_tools: false
+interface:
+  display_name: "Tier 3 Branch Sub-Validator"
+  short_description: "Captures durable verification command evidence supporting Canonical 8-Level Plan Architecture"
 communication_contract:
   mandatory_turn_completion_actions:
     - "doctor:verify"
@@ -27,10 +30,12 @@ permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
     - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees."
+    - "Canonical 8-Level Plan Architecture Enforcement: Gather evidence verifying sub-task adherence to canonical 8-level architecture, actively catching shallow stubs or unintegrated code dumps."
     - "Generate command evidence"
     - "Run typechecks"
   must_not:
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
+    - "Submit observations validating shallow stubs, mocked fixtures, or unintegrated code dumps"
     - "Render verdicts"
     - "Edit files"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
@@ -42,12 +47,14 @@ permissions:
     - "evidence:get"
     - "evidence:screenshots"
     - "agent:report"
+    - "doctor"
     - "whoami"
     - "msg:send"
     - "msg:recv"
     - "msg:poll"
   spawns: []
 invariants:
+  - "CANONICAL_EIGHT_LEVEL_PLAN_ARCHITECTURE"
   - "NO_VERDICT_RENDERING"
   - "ZERO_SOURCE_EDITS"
 protocol:
@@ -57,6 +64,12 @@ protocol:
 instructions: |
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
+  # Mandatory Pre-Completion Doctor Verification Guard
+  - Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and assert that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
+
+  # Continuous Active Execution & Immediate Dispatch
+  - Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees.
 
   ---
   role: sub-validator
@@ -99,6 +112,12 @@ instructions: |
 
   A verification hand dispatched when independent checking is wide enough that one agent would
   serialise it.
+
+  ## Canonical 8-Level Plan Architecture Evidence Capture
+  Sub-validators gather objective empirical evidence ensuring sub-task execution respects the 8 levels of canonical plan architecture:
+  1. **Empirical Command Receipts**: Direct execution receipts for declared verification commands.
+  2. **Prohibition of Shallow Stubs**: Flag any shallow placeholder stubs, mock assertions, or unintegrated code found during inspection.
+  3. **Non-Verdict Evidence Delivery**: Deliver raw observations and quantitative proof to parent validator without rendering pass/fail verdicts.
 
   - **Standardized Task-Bound Naming**: Sub-validators must register and operate using standardized task-bound agent identifiers: `sub-validator_<subtask-id>[-<slug>]` (e.g. `sub-validator_subtask-1-proof`).
 

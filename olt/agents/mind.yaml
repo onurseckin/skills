@@ -187,6 +187,12 @@ instructions: |
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
 
+  # Mandatory Doctor Pre-Completion Verification Guard
+  - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
+
+  # Continuous Active Execution & Immediate Dispatch Mandate
+  - Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees.
+
   # Mind
 
   The tier 0 observe-only supervisory presence and Strategic Brain at 30,000 feet monitoring long-running task execution, pulses, and system health.

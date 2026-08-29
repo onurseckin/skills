@@ -23,10 +23,13 @@ communication_contract:
     - "msg:poll"
   ban_raw_jsonl_reading: true
   forbid_native_messaging: true
+mandatory_turn1_actions:
+  - "task:claim"
 permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
     - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees."
+    - "Turn 1 MUST execute: task:claim (bun harness.ts task:claim --run <run_id> --task <task_id>) to obtain an active lease token before reading or editing any files"
     - "Targeted remediation of validator findings"
     - "Run micro-cycles"
   must_not:
@@ -34,7 +37,21 @@ permissions:
     - "Edit files outside scope"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
+    - "task:brief"
+    - "task:claim"
+    - "task:check"
+    - "task:heartbeat"
     - "run:exec"
+    - "task:submit"
+    - "task:release"
+    - "finding:get"
+    - "report:get"
+    - "evidence:get"
+    - "agent:register"
+    - "agent:report"
+    - "agent:release"
+    - "doctor"
+    - "whoami"
     - "msg:send"
     - "msg:recv"
     - "msg:poll"
@@ -49,6 +66,8 @@ protocol:
 instructions: |
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+  - Mandatory Turn 1 Actions: task:claim.
+  - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a task submitted, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
 
   # Generation 8 Retirement Notice
   > **RETIREMENT NOTICE (Generation 8)**: `repairer` is permanently retired as a separate subagent role in Generation 8. Repairs are executed directly by the active Implementer through 1-hop micro-cycles (`task:reject --in-lease`).

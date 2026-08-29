@@ -3,6 +3,17 @@ display_name: "Cursor"
 aliases:
   - "cursor-ide"
   - "cursor-cli"
+platform_mapping:
+  host_id: "cursor"
+  supervisory_model: "cursor-latest"
+  supervisory_thinking: "high"
+  worker_model: "cursor-latest"
+  worker_thinking: "high"
+  supervisory_cadence_seconds: 300
+  supervisory_cron: "*/5 * * * *"
+  max_single_task_seconds: 300
+  heartbeat_tick_seconds: 60
+  watchdog_timeout_seconds: 300
 dispatch:
   tool: "Task"
   policy_name: "task"
@@ -35,6 +46,27 @@ communication_contract:
   ban_raw_jsonl_reading: true
   forbid_native_messaging: true
 permissions:
+  may:
+    - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
+    - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees."
+    - "Execute multi-agent operations using Cursor native tools (Task, terminal) compliant with tiered isolation and mailbox IPC."
   must_not:
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
+    - "Bypass mandatory doctor verification before concluding supervisory rounds or task handoffs"
+instructions: |
+  # Cursor Platform Adapter Contract
+
+  ## Mandatory Doctor Pre-Completion Verification Guard
+  Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
+
+  ## Continuous Active Execution & Immediate Dispatch Mandate
+  Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `Task` tool (`policy: "task"`) to execute ready wave lanes in parallel worktrees.
+
+  ## Canonical 4-Host Platform Mapping: Cursor
+  - Tier 0-2 Supervisory Model: `cursor-latest` (Thinking: `high`)
+  - Tier 3 Worker Model: `cursor-latest` (Thinking: `high`)
+  - Supervisory Cadence: 5 minutes / 300s scheduler (`*/5 * * * *`)
+  - Max Single Task SLA: 300s (5 minutes)
+  - Nesting Limit: 1 level (main agent and direct subagents only)
+  - Concurrency Ceiling: 10 concurrent tasks

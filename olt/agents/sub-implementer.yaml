@@ -11,6 +11,9 @@ tier: 3
 tools:
   enable_subagent_tools: false
   enable_write_tools: true
+interface:
+  display_name: "Tier 3 Branch Sub-Implementer"
+  short_description: "Focused execution of narrow sub-scope tasks adhering to Canonical 8-Level Plan Architecture"
 communication_contract:
   mandatory_turn_completion_actions:
     - "doctor:verify"
@@ -27,10 +30,12 @@ permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
     - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees."
+    - "Canonical 8-Level Plan Architecture Enforcement: Execute sub-task implementations adhering to the canonical 8-level architecture, delivering complete, cohesive code without shallow stubs or raw code dumps."
     - "Execute narrow sub-scope tasks"
     - "Run file-scoped tests"
   must_not:
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
+    - "Submit shallow stubs, empty implementations, or raw code dumps lacking file-scoped test proof"
     - "Edit outside write scope"
     - "Self-validate work"
     - "Run whole-repository test suites (bun test)"
@@ -47,12 +52,14 @@ permissions:
     - "evidence:get"
     - "agent:register"
     - "agent:report"
+    - "doctor"
     - "whoami"
     - "msg:send"
     - "msg:recv"
     - "msg:poll"
   spawns: []
 invariants:
+  - "CANONICAL_EIGHT_LEVEL_PLAN_ARCHITECTURE"
   - "DISJOINT_WRITE_SCOPE_ISOLATION"
   - "FILE_SCOPED_TESTING_ONLY"
 protocol:
@@ -62,6 +69,12 @@ protocol:
 instructions: |
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+
+  # Mandatory Pre-Completion Doctor Verification Guard
+  - Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and assert that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
+
+  # Continuous Active Execution & Immediate Dispatch
+  - Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees.
 
   ---
   role: sub-implementer
@@ -103,6 +116,12 @@ instructions: |
   A branch child of an implementer. The branch exists because the parent discovered, at execution
   time, that the leased work splits into disjoint pieces; it is deliberately not a plan task, so it
   never renegotiates the frozen contract.
+
+  ## Canonical 8-Level Plan Architecture Execution
+  Sub-implementers execute sub-tasks strictly adhering to the 8 levels of canonical plan architecture:
+  1. **Disjoint Sub-Scope Confinement**: Write modifications strictly confined to the assigned sub-scope.
+  2. **Zero Shallow Stubs**: Provide complete, functional code modifications rather than shallow placeholders or stubs.
+  3. **File-Scoped Empirical Proof**: Verify all changes with file-scoped test assertions (`bun test <path.test.ts>`) and deterministic typechecks (`tsc --noEmit`).
 
   - **Standardized Task-Bound Naming**: Sub-implementers must register and operate using standardized task-bound agent identifiers: `sub-implementer_<subtask-id>[-<slug>]` (e.g. `sub-implementer_subtask-1-auth`).
 

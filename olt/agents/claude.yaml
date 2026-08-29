@@ -2,6 +2,17 @@ provider: "claude"
 display_name: "Anthropic Claude Code"
 aliases:
   - "claude-code"
+platform_mapping:
+  host_id: "claude_code"
+  supervisory_model: "claude-5-opus"
+  supervisory_thinking: "high"
+  worker_model: "claude-5-sonnet"
+  worker_thinking: "high"
+  supervisory_cadence_seconds: 900
+  supervisory_cron: "*/15 * * * *"
+  max_single_task_seconds: 300
+  heartbeat_tick_seconds: 180
+  watchdog_timeout_seconds: 900
 dispatch:
   tool: "Agent"
   batch_dispatch: true
@@ -42,6 +53,28 @@ communication_contract:
   ban_raw_jsonl_reading: true
   forbid_native_messaging: true
 permissions:
+  may:
+    - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
+    - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees."
+    - "Execute multi-agent operations using Claude Code native tools (Agent, SendMessage, Bash, Edit) compliant with tiered isolation and mailbox IPC."
   must_not:
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
+    - "Bypass mandatory doctor verification before concluding supervisory rounds or task handoffs"
+instructions: |
+  # Anthropic Claude Code Platform Adapter Contract
+
+  ## Mandatory Doctor Pre-Completion Verification Guard
+  Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
+
+  ## Continuous Active Execution & Immediate Dispatch Mandate
+  Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `Agent` tool calls to execute ready wave lanes in parallel worktrees.
+
+  ## Canonical 4-Host Platform Mapping: Claude Code
+  - Tier 0-2 Supervisory Model: `claude-5-opus` (Thinking: `high`)
+  - Tier 3 Worker Model: `claude-5-sonnet` (Thinking: `high`)
+  - Supervisory Cadence: 15 minutes / 900s scheduler (`*/15 * * * *`)
+  - Max Single Task SLA: 300s (5 minutes)
+  - Concurrency Ceiling: 20 subagents (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`)
+  - Spawn Depth Limit: 3 (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`)
+  - Native Resume: Not supported (must recover harness lease and re-dispatch)

@@ -43,6 +43,19 @@ permissions:
     - "Validate its own work"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
+    - "task:brief"
+    - "task:validate-start"
+    - "task:probe"
+    - "task:reject"
+    - "task:review"
+    - "finding:get"
+    - "report:get"
+    - "evidence:get"
+    - "evidence:screenshots"
+    - "agent:register"
+    - "agent:report"
+    - "agent:release"
+    - "whoami"
     - "msg:send"
     - "msg:recv"
     - "msg:poll"
@@ -63,6 +76,11 @@ cognitive_pushes: 5
 instructions: |
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+  - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking validation completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
+
+  # Strict Command-Running Ban & Cognitive Validation Invariant
+  - Strict Command-Running Ban: Cognitive Validators execute 0 commands (no run:exec).
+  - Anti-Boundary-Leak Rule: Strictly prohibited from claiming code write leases or editing source files. Failures must be recorded via structured findings and delegated via task:assign-repairer or task:reject to an assigned repairer.
 
   ---
   role: validator

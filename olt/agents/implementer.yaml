@@ -87,6 +87,7 @@ instructions: |
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
   - Mandatory Turn 1 Actions: task:claim.
+  - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a task submitted, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
 
   ---
   role: implementer

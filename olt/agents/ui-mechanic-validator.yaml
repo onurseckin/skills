@@ -40,14 +40,27 @@ permissions:
     - "Validate without execution receipts"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
+    - "task:brief"
+    - "task:validate-start"
     - "task:check"
     - "run:exec"
-    - "task:submit"
+    - "task:probe"
+    - "task:reject"
     - "task:review"
+    - "task:submit"
+    - "finding:get"
+    - "report:get"
+    - "evidence:get"
+    - "evidence:screenshots"
+    - "agent:register"
+    - "agent:report"
+    - "agent:release"
+    - "doctor"
+    - "whoami"
     - "msg:send"
     - "msg:recv"
     - "msg:poll"
-  spawns:
+  spawns: []
 invariants:
   - "ZERO_SOURCE_EDITS"
   - "NO_TEST_RE_RUNS"
@@ -59,6 +72,7 @@ protocol:
 instructions: |
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
+  - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking validation completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
 
   ---
   role: mechanic-validator

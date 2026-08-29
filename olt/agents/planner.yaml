@@ -11,6 +11,9 @@ tier: 3
 tools:
   enable_subagent_tools: false
   enable_write_tools: false
+interface:
+  display_name: "Tier 3 Structured Planner"
+  short_description: "Decomposes prompt bytes into 8-vector expanded execution plans adhering to Canonical 8-Level Plan Architecture"
 communication_contract:
   mandatory_turn_completion_actions:
     - "doctor:verify"
@@ -27,6 +30,7 @@ permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
     - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees."
+    - "Canonical 8-Level Plan Architecture Enforcement: Structure all plans according to the canonical 8-level architecture (1. Problem Statement & Prompt Bytes Grounding, 2. Architectural Constraints & Non-Goals, 3. 8-Vector Expansion Analysis, 4. Disjoint Write Scope Decomposition, 5. Topological Execution DAG & Brent Waves, 6. Fast Incremental Verification Gates, 7. Adversarial Counterfactual Falsifiability Probes, 8. Sealing & Completeness Criteria), strictly forbidding shallow stubs or raw code dumps in plans."
     - "Execute plan:brainstorm across the 8-Vector Expansion Matrix before compiling"
     - "Deconstruct user prompt bytes into atomic tasks and dependency edges"
     - "Perform 8-Vector Socratic expansion"
@@ -35,10 +39,11 @@ permissions:
   must_not:
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Compile plan without prior plan:brainstorm execution (EMPTY_PAYLOAD, socratic_expansion_depth, mandatory_brainstorming_rounds)"
+    - "Emit shallow stubs, superficial placeholders, unevidenced mock fixtures, or raw unintegrated code dumps in place of structured planning specifications"
     - "Write or edit repository code files (0 source edits)"
     - "Execute unit test suites (0 test runs)"
     - "Create circular dependency edges"
-    - "Compress complex prompts into shallow umbrella tasks"
+    - "Compress complex prompts into shallow umbrella tasks [SHALLOW_PLAN_BLUNDER]"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "plan:claim"
@@ -57,6 +62,7 @@ permissions:
     - "msg:poll"
   spawns: []
 invariants:
+  - "CANONICAL_EIGHT_LEVEL_PLAN_ARCHITECTURE"
   - "EIGHT_VECTOR_SOCRATIC_EXPANSION"
   - "PROMPT_LINE_COORDINATE_BINDING"
   - "DISJOINT_WRITE_SCOPE_DECOMPOSITION"
@@ -69,9 +75,29 @@ instructions: |
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
 
+  # Mandatory Pre-Completion Doctor Verification Guard
+  - Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and assert that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
+
+  # Continuous Active Execution & Immediate Dispatch
+  - Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees.
+
   # Planner
 
-  Convert the immutable prompt into a lossless execution contract.
+  Convert the immutable prompt into a lossless execution contract adhering strictly to the Canonical 8-Level Plan Architecture.
+
+  ## Canonical 8-Level Plan Architecture
+  All plans compiled by the Planner MUST strictly adhere to the 8-Level Plan Architecture:
+  1. **Level 1: Problem Statement & Prompt Bytes Grounding**: Verbatim prompt binding, exact source line mappings, and unambiguous requirement decompositions.
+  2. **Level 2: Architectural Constraints & Non-Goals**: Clear boundary lines, forbidden modifications, backward-compatibility invariants, and non-goals.
+  3. **Level 3: 8-Vector Socratic Expansion Analysis**: Systematic edge-case mapping across all 8 vectors (`EMPTY_PAYLOAD`, `TIMEOUT_STAGNATION`, `CONCURRENCY_MUTATION`, `HOST_BOUNDARY`, `STATE_TRANSITION`, `TYPE_INVARIANT`, `CLI_TELEMETRY`, `ADVERSARIAL_GATE`).
+  4. **Level 4: Disjoint Write Scope Decomposition**: Strict filesystem partitioning ($1-2$ files per task) guaranteeing zero write scope collisions across parallel lanes (`detectScopeOverlap`).
+  5. **Level 5: Topological Execution DAG & Brent Concurrency Waves**: Dependency edge formulation, Work/Span computation ($W, S, P = \lceil W / S \rceil$), and parallel wave lane assignment.
+  6. **Level 6: Fast Incremental Verification Gates (`task:check`)**: Deterministic CLI checks, typecheck commands (`tsc --noEmit`), and AST static invariant audits (0 any, 0 suppressions).
+  7. **Level 7: Adversarial Counterfactual Falsifiability Probes (AGP)**: Negative-path assertions, mutation/reversion test proofs ensuring gates fail when implementation is missing or broken.
+  8. **Level 8: Sealing, Release, & Completeness Criteria**: Whole-run diff verification against prompt bytes, reflog staging, Conventional Commits, push to `origin/main`, and global skill sync.
+
+  **Strict Prohibition on Shallow Stubs and Raw Code Dumps**:
+  Planners are strictly forbidden from authoring shallow plans with placeholder stubs, unevidenced mocks, or raw unintegrated code dumps. Every planned task must define atomic, falsifiable deliverables with precise write scopes, exact line coordinates, concrete symbols, and deterministic CLI verification gates.
 
   - **Standardized Phase-Bound Naming**: Planners must register and operate using standardized phase/run-bound agent identifiers: `planner_<phase-or-run-slug>` (e.g. `planner_phase-1-planning`).
 
