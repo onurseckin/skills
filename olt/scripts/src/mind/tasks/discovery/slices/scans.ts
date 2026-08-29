@@ -44,13 +44,9 @@ export function performDiscoveryScans(options: TaskDiscoveryOptions): DiscoveryS
   const nowIso = new Date().toISOString();
   const maxTasks = options.maxTasks ? options.maxTasks : 5;
   const existingQueue = readTaskQueue(options.taskQueuePath);
-  const existingTaskIds = new Set(
-    existingQueue.map((t: TaskQueueItem): string => t.id),
-  );
+  const existingTaskIds = new Set(existingQueue.map((t: TaskQueueItem): string => t.id));
   const existingTaskLabels = new Set(
-    existingQueue.map((t: TaskQueueItem): string =>
-      t.title.toLowerCase().trim(),
-    ),
+    existingQueue.map((t: TaskQueueItem): string => t.title.toLowerCase().trim()),
   );
 
   const codeQualityResult =

@@ -10,6 +10,11 @@ import {
   type NotificationResult,
   type PhaseCompletionNotificationOptions,
 } from "../reporting/notifications/index.ts";
+import {
+  executeLifecycleHooks,
+  type LifecycleHookExecutionResult,
+  type RepoPolicy,
+} from "../policy/index.ts";
 
 export interface StationLandingOptions extends GitStagingOptions {
   readonly phaseName?: string | undefined;
@@ -21,6 +26,31 @@ export interface StationLandingOptions extends GitStagingOptions {
   readonly customNotifier?:
     | ((opts: PhaseCompletionNotificationOptions) => NotificationResult)
     | undefined;
+  readonly policy?: RepoPolicy | undefined;
+  readonly customHookExecutor?: typeof executeLifecycleHooks | undefined;
+}
+
+export interface PhaseLandingOptions {
+  readonly phaseName: string;
+  readonly startedAt: number;
+  readonly commitSha?: string | undefined;
+  readonly taskCount?: number | undefined;
+  readonly soundEnabled?: boolean | undefined;
+  readonly notify?: boolean | undefined;
+  readonly customNotifier?:
+    | ((opts: PhaseCompletionNotificationOptions) => NotificationResult)
+    | undefined;
+  readonly policy?: RepoPolicy | undefined;
+  readonly customHookExecutor?: typeof executeLifecycleHooks | undefined;
+  readonly rootDir?: string | undefined;
+}
+
+export interface LandStationResult {
+  readonly station: AssemblyStation;
+  readonly stagingRecord: GitStagingInvariantRecord;
+  readonly notificationResult?: NotificationResult | undefined;
+  readonly durationMs?: number | undefined;
+  readonly hookExecutionResult?: LifecycleHookExecutionResult | undefined;
 }
 
 export interface PhaseLandingResult {
@@ -29,6 +59,38 @@ export interface PhaseLandingResult {
   readonly notificationResult?: NotificationResult | undefined;
   readonly station?: AssemblyStation | undefined;
   readonly stagingRecord?: GitStagingInvariantRecord | undefined;
+  readonly hookExecutionResult?: LifecycleHookExecutionResult | undefined;
+}
+
+function dispatchPhaseCompletionHook(
+  hookExecutor: typeof executeLifecycleHooks | undefined,
+  context: {
+    readonly phaseName: string;
+    readonly commitSha?: string | undefined;
+    readonly taskCount?: number | undefined;
+    readonly durationMs: number;
+    readonly status: string;
+  },
+  rootDir?: string | undefined,
+  policy?: RepoPolicy | undefined,
+): LifecycleHookExecutionResult {
+  const executor = hookExecutor ?? executeLifecycleHooks;
+  try {
+    return executor({
+      event: "on_phase_completion",
+      context,
+      repoRoot: rootDir,
+      policy,
+    });
+  } catch (err) {
+    return {
+      event: "on_phase_completion",
+      commandCount: 0,
+      executedCommands: [],
+      skipped: false,
+      errors: [err instanceof Error ? err.message : String(err)],
+    };
+  }
 }
 
 export function createStation(
@@ -64,14 +126,9 @@ export function verifyStation(
   if (station.status !== "IN_PROGRESS") {
     throw new Error(`Cannot verify station ${station.station_id} with status ${station.status}`);
   }
-
   if (testProof && !testProof.passed) {
-    return {
-      ...station,
-      status: "FAILED",
-    };
+    return { ...station, status: "FAILED" };
   }
-
   return {
     ...station,
     status: "VERIFIED",
@@ -82,12 +139,7 @@ export function verifyStation(
 export function landStation(
   station: AssemblyStation,
   stagingOptions?: StationLandingOptions | undefined,
-): {
-  station: AssemblyStation;
-  stagingRecord: GitStagingInvariantRecord;
-  notificationResult?: NotificationResult | undefined;
-  durationMs?: number | undefined;
-} {
+): LandStationResult {
   if (station.status !== "VERIFIED") {
     throw new Error(
       `Cannot land station ${station.station_id} before verification (current status: ${station.status})`,
@@ -109,43 +161,45 @@ export function landStation(
     staging_record: stagingRecord,
   };
 
+  const rawStartedAt =
+    stagingOptions?.startedAt ??
+    (station.claimed_at ? Date.parse(station.claimed_at) : undefined) ??
+    Date.now();
+  const startedAt = Number.isFinite(rawStartedAt) ? rawStartedAt : Date.now();
+  const durationMs = Math.max(0, Date.now() - startedAt);
+  const phaseName = stagingOptions?.phaseName ?? `${station.domain} (${station.milestone_id})`;
+  const commitSha = stagingOptions?.commitSha ?? stagingRecord.git_index_sha;
+  const taskCount = stagingOptions?.taskCount ?? station.assigned_files.length;
+
   let notificationResult: NotificationResult | undefined;
-  let durationMs: number | undefined;
-
   if (stagingOptions?.notify) {
-    const startedAt =
-      stagingOptions.startedAt ?? Date.parse(station.claimed_at ?? "") ?? Date.now();
-    durationMs = Math.max(0, Date.now() - (Number.isFinite(startedAt) ? startedAt : Date.now()));
     const notifier = stagingOptions.customNotifier ?? notifyPhaseCompletion;
-
     notificationResult = notifier({
-      phaseName: stagingOptions.phaseName ?? `${station.domain} (${station.milestone_id})`,
-      commitSha: stagingOptions.commitSha ?? stagingRecord.git_index_sha,
-      taskCount: stagingOptions.taskCount ?? station.assigned_files.length,
+      phaseName,
+      commitSha,
+      taskCount,
       durationMs,
       soundEnabled: stagingOptions.soundEnabled ?? true,
     });
   }
 
+  const hookExecutionResult = dispatchPhaseCompletionHook(
+    stagingOptions?.customHookExecutor,
+    { phaseName, commitSha, taskCount, durationMs, status: "SUCCESS" },
+    stagingOptions?.rootDir,
+    stagingOptions?.policy,
+  );
+
   return {
     station: landedStation,
     stagingRecord,
     ...(notificationResult ? { notificationResult } : {}),
-    ...(durationMs !== undefined ? { durationMs } : {}),
+    ...(stagingOptions?.notify || stagingOptions?.startedAt !== undefined ? { durationMs } : {}),
+    hookExecutionResult,
   };
 }
 
-export function landPhaseRelease(options: {
-  readonly phaseName: string;
-  readonly startedAt: number;
-  readonly commitSha?: string | undefined;
-  readonly taskCount?: number | undefined;
-  readonly soundEnabled?: boolean | undefined;
-  readonly notify?: boolean | undefined;
-  readonly customNotifier?:
-    | ((opts: PhaseCompletionNotificationOptions) => NotificationResult)
-    | undefined;
-}): PhaseLandingResult {
+export function landPhaseRelease(options: PhaseLandingOptions): PhaseLandingResult {
   const durationMs = Math.max(0, Date.now() - options.startedAt);
   let notificationResult: NotificationResult | undefined;
 
@@ -160,10 +214,24 @@ export function landPhaseRelease(options: {
     });
   }
 
+  const hookExecutionResult = dispatchPhaseCompletionHook(
+    options.customHookExecutor,
+    {
+      phaseName: options.phaseName,
+      commitSha: options.commitSha,
+      taskCount: options.taskCount,
+      durationMs,
+      status: "SUCCESS",
+    },
+    options.rootDir,
+    options.policy,
+  );
+
   return {
     success: true,
     durationMs,
     ...(notificationResult ? { notificationResult } : {}),
+    hookExecutionResult,
   };
 }
 
@@ -207,23 +275,11 @@ export class AssemblyStationRegistry {
     let failed = 0;
 
     for (const st of all) {
-      switch (st.status) {
-        case "PENDING":
-          pending++;
-          break;
-        case "IN_PROGRESS":
-          inProgress++;
-          break;
-        case "VERIFIED":
-          verified++;
-          break;
-        case "LANDED":
-          landed++;
-          break;
-        case "FAILED":
-          failed++;
-          break;
-      }
+      if (st.status === "PENDING") pending++;
+      else if (st.status === "IN_PROGRESS") inProgress++;
+      else if (st.status === "VERIFIED") verified++;
+      else if (st.status === "LANDED") landed++;
+      else if (st.status === "FAILED") failed++;
     }
 
     return {

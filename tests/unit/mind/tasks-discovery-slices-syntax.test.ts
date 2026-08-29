@@ -196,10 +196,7 @@ describe("Task 1.39: Defect Remediation - Syntax Errors and Dangling Statements 
   });
 
   test("6. Slices directory structure and files adhere to strict repository invariants", () => {
-    const slicesDir = join(
-      process.cwd(),
-      "olt/scripts/src/mind/tasks/discovery/slices",
-    );
+    const slicesDir = join(process.cwd(), "olt/scripts/src/mind/tasks/discovery/slices");
     expect(existsSync(slicesDir)).toBe(true);
 
     const sliceFiles = readdirSync(slicesDir).filter((f) => f.endsWith(".ts"));
@@ -239,10 +236,7 @@ describe("Task 1.39: Defect Remediation - Syntax Errors and Dangling Statements 
   });
 
   test("7. All discovery files in parent directory adhere to <= 300 lines and zero comments", () => {
-    const discoveryDir = join(
-      process.cwd(),
-      "olt/scripts/src/mind/tasks/discovery",
-    );
+    const discoveryDir = join(process.cwd(), "olt/scripts/src/mind/tasks/discovery");
     const topFiles = readdirSync(discoveryDir).filter((f) => f.endsWith(".ts"));
 
     for (const file of topFiles) {

@@ -28,15 +28,13 @@ export function formatDuration(durationMs: number): string {
 
 export function interpolateHookCommand(
   template: string,
-  context: HookInterpolationContext
+  context: HookInterpolationContext,
 ): string {
   const phaseName =
-    context.phaseName ??
-    (typeof context["phase_name"] === "string" ? context["phase_name"] : "");
+    context.phaseName ?? (typeof context["phase_name"] === "string" ? context["phase_name"] : "");
 
   const commitSha =
-    context.commitSha ??
-    (typeof context["commit_sha"] === "string" ? context["commit_sha"] : "");
+    context.commitSha ?? (typeof context["commit_sha"] === "string" ? context["commit_sha"] : "");
 
   const durationMsVal =
     context.durationMs ??
@@ -59,12 +57,10 @@ export function interpolateHookCommand(
   const taskCount = taskCountVal !== undefined ? String(taskCountVal) : "0";
 
   const repoRoot =
-    context.repoRoot ??
-    (typeof context["repo_root"] === "string" ? context["repo_root"] : "");
+    context.repoRoot ?? (typeof context["repo_root"] === "string" ? context["repo_root"] : "");
 
   const status =
-    context.status ??
-    (typeof context["status"] === "string" ? context["status"] : "SUCCESS");
+    context.status ?? (typeof context["status"] === "string" ? context["status"] : "SUCCESS");
 
   const replacements: Record<string, string> = {
     "{phase_name}": phaseName,

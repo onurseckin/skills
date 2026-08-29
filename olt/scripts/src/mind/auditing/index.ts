@@ -221,4 +221,3 @@ export {
   type CharterProhibitionAuditResult,
   type CharterAuditReport,
 } from "./charter-auditing.ts";
-

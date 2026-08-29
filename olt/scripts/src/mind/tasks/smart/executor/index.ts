@@ -35,8 +35,10 @@ export {
 
 export {
   executeAtomicAdmissionToDispatch,
+  executeAtomicDispatch,
   executeProductOwnerAdmissionAndDispatch,
   reconcileAdmissionToDispatchState,
+  type AtomicDispatchOptions,
 } from "./dispatch.ts";
 
 export { runInfiniteProductOwnerCycle, drainBacklogOnRunCompletion } from "./product-owner.ts";
@@ -49,8 +51,4 @@ export {
   assertMindModeAllowed,
 } from "./backlog-drainer.ts";
 
-export {
-  synthesizeTaskPriorities,
-  type TaskPrioritySynthesisOptions,
-} from "./priorities.ts";
-
+export { synthesizeTaskPriorities, type TaskPrioritySynthesisOptions } from "./priorities.ts";

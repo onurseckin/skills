@@ -1,10 +1,9 @@
-import { getSourceEmpiricalCommand, mapDiscoveryCategoryToSourceId } from "../../../memory/sources/index.ts";
+import {
+  getSourceEmpiricalCommand,
+  mapDiscoveryCategoryToSourceId,
+} from "../../../memory/sources/index.ts";
 import { sanitizeSlug } from "../scanners/index.ts";
-import type {
-  DiscoveryItem,
-  DiscoveredTaskPlan,
-  TaskDiscoveryResult,
-} from "../types.ts";
+import type { DiscoveryItem, DiscoveredTaskPlan, TaskDiscoveryResult } from "../types.ts";
 
 export function synthesizeTaskFromDiscovery(item: DiscoveryItem, index = 1): DiscoveredTaskPlan {
   const taskSlug = sanitizeSlug(item.id);

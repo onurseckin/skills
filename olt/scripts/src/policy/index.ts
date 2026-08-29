@@ -104,9 +104,4 @@ export type {
   HookInterpolationContext,
   LifecycleHookExecutionResult,
 } from "./hooks/index.ts";
-export {
-  executeLifecycleHooks,
-  formatDuration,
-  interpolateHookCommand,
-} from "./hooks/index.ts";
-
+export { executeLifecycleHooks, formatDuration, interpolateHookCommand } from "./hooks/index.ts";

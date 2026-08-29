@@ -69,9 +69,7 @@ charter:
   test("defect metadata and canonical path constants match specifications", () => {
     expect(DEFECT_REF).toBe("defect-stale-governance-charter-imports");
     expect(ERROR_CODE).toBe("STALE_GOVERNANCE_CHARTER_IMPORTS");
-    expect(CANONICAL_GOVERNANCE_CHARTER_PATH).toBe(
-      "olt/scripts/src/mind/governance/charter.ts",
-    );
+    expect(CANONICAL_GOVERNANCE_CHARTER_PATH).toBe("olt/scripts/src/mind/governance/charter.ts");
     expect(CANONICAL_LIFECYCLE_CHARTER_PATH).toBe(
       "olt/scripts/src/mind/lifecycle/charter/index.ts",
     );
@@ -79,9 +77,7 @@ charter:
 
   test("parses structured YAML manifest into ParsedCharter", () => {
     const parsed = parseCharter(SAMPLE_YAML);
-    expect(parsed.identity).toBe(
-      "Autonomous Mind supervising long-running task orchestration.",
-    );
+    expect(parsed.identity).toBe("Autonomous Mind supervising long-running task orchestration.");
     expect(parsed.goals.length).toBe(2);
     expect(parsed.goalIds).toEqual(["G1", "G2"]);
     expect(parsed.nonGoals).toEqual(["Modifying production secrets"]);
@@ -141,10 +137,7 @@ charter:
 
   test("verifies charter sha256 integrity", () => {
     const liveCharter = loadCharter(process.cwd());
-    const result = verifyCharterIntegrity(
-      process.cwd(),
-      liveCharter.sha256,
-    );
+    const result = verifyCharterIntegrity(process.cwd(), liveCharter.sha256);
     expect(result.valid).toBe(true);
     expect(result.actualSha256).toBe(liveCharter.sha256);
 
@@ -188,12 +181,10 @@ charter:
 
   test("throws HarnessError on invalid inputs", () => {
     expect(() => parseCharter("")).toThrow(HarnessError);
-    expect(() => parseDurationOrNumber("invalid-duration")).toThrow(
+    expect(() => parseDurationOrNumber("invalid-duration")).toThrow(HarnessError);
+    expect(() => resolveGovernanceCharter("/non/existent/directory/path/here")).toThrow(
       HarnessError,
     );
-    expect(() =>
-      resolveGovernanceCharter("/non/existent/directory/path/here"),
-    ).toThrow(HarnessError);
   });
 
   test("exports match between governance/charter.ts, governance/index.ts, and mind/index.ts", () => {

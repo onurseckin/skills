@@ -65,7 +65,7 @@ describe("interpolateHookCommand", () => {
     const result = interpolateHookCommand(template, context);
 
     expect(result).toBe(
-      "cmd --phase 'phase-alpha' --sha 'c0ffee1' --duration '2m 15s' --ms 135000 --tasks 5 --root '/workspace/repo' --status 'SUCCESS'"
+      "cmd --phase 'phase-alpha' --sha 'c0ffee1' --duration '2m 15s' --ms 135000 --tasks 5 --root '/workspace/repo' --status 'SUCCESS'",
     );
   });
 
@@ -84,7 +84,7 @@ describe("interpolateHookCommand", () => {
     const result = interpolateHookCommand(template, context);
 
     expect(result).toBe(
-      "bun harness.ts notify:phase --phase 'cluster-mind-preplanning' --sha 'a5264fd8' --duration '4m 32s' --ms 272000 --tasks 12 --root '/repos/skills'"
+      "bun harness.ts notify:phase --phase 'cluster-mind-preplanning' --sha 'a5264fd8' --duration '4m 32s' --ms 272000 --tasks 12 --root '/repos/skills'",
     );
   });
 
@@ -97,7 +97,7 @@ describe("interpolateHookCommand", () => {
     const result = interpolateHookCommand(template, emptyContext);
 
     expect(result).toBe(
-      "cmd --phase '' --sha '' --duration '0s' --ms 0 --tasks 0 --root '' --status 'SUCCESS'"
+      "cmd --phase '' --sha '' --duration '0s' --ms 0 --tasks 0 --root '' --status 'SUCCESS'",
     );
   });
 
@@ -115,7 +115,7 @@ describe("interpolateHookCommand", () => {
     const result = interpolateHookCommand(template, context);
 
     expect(result).toBe(
-      "bun ~/.agents/skills/olt/scripts/harness.ts notify:phase --phase 'cluster-mind-preplanning' --sha 'a5264fd8' --duration '4m 32s' --tasks 12"
+      "bun ~/.agents/skills/olt/scripts/harness.ts notify:phase --phase 'cluster-mind-preplanning' --sha 'a5264fd8' --duration '4m 32s' --tasks 12",
     );
   });
 
@@ -144,7 +144,7 @@ describe("interpolateHookCommand", () => {
     const result = interpolateHookCommand(template, context);
 
     expect(result).toBe(
-      "echo 'Phase wave-1 starting' && run --phase wave-1 --count 7 --retry-count 7 --status FAILED || notify FAILED"
+      "echo 'Phase wave-1 starting' && run --phase wave-1 --count 7 --retry-count 7 --status FAILED || notify FAILED",
     );
   });
 

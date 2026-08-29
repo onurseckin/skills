@@ -30,6 +30,8 @@ import {
   type CliDiagnosticReceipt,
   type ScriptBackedDiagnosticsResult,
 } from "../../engine/scheduler/index.ts";
+import { MindAutonomousDiscoveryEngine } from "../../mind/tasks/discovery/index.ts";
+import { type SmartTaskPlan, synthesizeAutonomousTasks } from "../../mind/tasks/smart/index.ts";
 
 export const CLOSING_FORBIDDEN_FOR_MIND = "CLOSING_FORBIDDEN_FOR_MIND" as const;
 
@@ -172,7 +174,6 @@ export function computeMindCognitiveTelemetry(
     }
   }
 
-  // Compute topological waves
   const waveMap = new Map<string, number>();
   const depMap = new Map<string, Set<string>>();
   for (const t of rawTasks) {
@@ -211,7 +212,6 @@ export function computeMindCognitiveTelemetry(
 
   const maxWave = Math.max(1, currentWave - 1);
 
-  // Group into wave lanes
   const waveGroups: {
     wave: number;
     tasks: {
@@ -501,7 +501,6 @@ export async function mindPulseCommand(
   const loaded = loadRun(run, false);
   const state = loaded.state;
 
-  // 1. Check if mind is halted
   const mindState = (state.mind ?? {}) as Record<string, unknown>;
   if (mindState.halted === true) {
     const haltReason =
@@ -512,7 +511,6 @@ export async function mindPulseCommand(
     );
   }
 
-  // 2. Enforce acting agent role grant
   const ledger = readAgentLedger(state);
   let grant = findGrant(ledger, actor);
   if (!grant) {
@@ -567,7 +565,6 @@ export async function mindPulseCommand(
       ? budgetRecord.wall_clock_ms_per_day
       : DEFAULT_MIND_BUDGET.wall_clock_ms_per_day;
 
-  // CASE 1: Pulse is currently open -> Output active pulse telemetry and next scheduled interval
   if (openPulse !== null && openPulse !== undefined && typeof openPulse === "object") {
     const openPulseId =
       typeof openPulse.pulse_id === "string" ? openPulse.pulse_id : "pulse-active";
@@ -623,9 +620,7 @@ export async function mindPulseCommand(
         state,
         clock: { now: () => new Date(nowMs) },
       });
-    } catch {
-      // Non-fatal fallback
-    }
+    } catch {}
     const dagBadges = generateAsciiDagBadges(state);
 
     const markdown = formatMindPulseActiveBrief({
@@ -691,8 +686,6 @@ export async function mindPulseCommand(
     };
   }
 
-  // CASE 2: No pulse is open -> Automatically open a new perpetual pulse
-  // 3. Check charter digest consistency
   const actualRunRoot = loaded?.runRoot ?? run;
   const repoRoot = findRepoRoot(actualRunRoot);
   const charterRecord = (mindState.charter ?? {}) as Record<string, unknown>;
@@ -733,7 +726,6 @@ export async function mindPulseCommand(
     );
   }
 
-  // 4. Check event headroom
   const eventSequence = state.event_sequence ?? 0;
   if (eventSequence >= 100_000) {
     throw new HarnessError(
@@ -742,7 +734,6 @@ export async function mindPulseCommand(
     );
   }
 
-  // 5. Check budget constraints
   const budgetCheck = checkDailyBudget(budgetRecord, nowMs);
   if (!budgetCheck.ok) {
     throw new HarnessError(
@@ -751,7 +742,6 @@ export async function mindPulseCommand(
     );
   }
 
-  // 6. Calculate pulse id and deadline
   const currentCounter = typeof pulseState.counter === "number" ? pulseState.counter : 0;
   const nextCounter = currentCounter + 1;
   const pulseId = `pulse-${nextCounter}`;
@@ -764,7 +754,6 @@ export async function mindPulseCommand(
   const scheduledIntervalMs = arm ? parseDuration(arm) : baseIntervalMs;
   const nextWakeAt = new Date(nowMs + scheduledIntervalMs).toISOString();
 
-  // 7. Transact mind-pulse-opened
   let updatedPulsesToday = 1;
   let updatedWallClockToday = 0;
 
@@ -825,7 +814,6 @@ export async function mindPulseCommand(
     },
   );
 
-  // 8. Write last_pulse.json with active state
   writeLastPulse(run, {
     at: openedAt,
     pulse_id: pulseId,
@@ -860,9 +848,7 @@ export async function mindPulseCommand(
       state,
       clock: { now: () => new Date(nowMs) },
     });
-  } catch {
-    // Non-fatal fallback
-  }
+  } catch {}
   const dagBadges = generateAsciiDagBadges(state);
 
   const markdown = formatMindPulseOpenedBrief({
@@ -927,8 +913,6 @@ export async function mindPulseCommand(
   };
 }
 
-import { MindAutonomousDiscoveryEngine } from "../../mind/tasks/index.ts";
-
 export function formatPulseDirective(params: {
   readonly activeRuns: number;
   readonly pendingBacklog: number;
@@ -937,7 +921,7 @@ export function formatPulseDirective(params: {
     const proposals = MindAutonomousDiscoveryEngine.generateProposals({
       backlogCount: params.pendingBacklog,
       activeRunCount: params.activeRuns,
-      unresolvedDefects: 0, // Fallback to 0 if not provided
+      unresolvedDefects: 0,
     });
     const lines = [
       "### MODE A AUTONOMOUS DISCOVERY REQUIRED",

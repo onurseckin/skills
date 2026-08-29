@@ -147,9 +147,30 @@ describe("Orchestrator Recursive Critic Feedback Integration", () => {
     };
 
     const summaries: readonly TaskRepairSummary[] = [
-      { taskId: "T-1", repairAssignee: "worker-1", newStatus: "changes_requested", findingsCount: 1, priorStatus: "done", repairRound: 1 },
-      { taskId: "T-2", repairAssignee: "worker-2", newStatus: "changes_requested", findingsCount: 1, priorStatus: "done", repairRound: 1 },
-      { taskId: "T-1", repairAssignee: "worker-1", newStatus: "escalated", findingsCount: 1, priorStatus: "changes_requested", repairRound: 2 },
+      {
+        taskId: "T-1",
+        repairAssignee: "worker-1",
+        newStatus: "changes_requested",
+        findingsCount: 1,
+        priorStatus: "done",
+        repairRound: 1,
+      },
+      {
+        taskId: "T-2",
+        repairAssignee: "worker-2",
+        newStatus: "changes_requested",
+        findingsCount: 1,
+        priorStatus: "done",
+        repairRound: 1,
+      },
+      {
+        taskId: "T-1",
+        repairAssignee: "worker-1",
+        newStatus: "escalated",
+        findingsCount: 1,
+        priorStatus: "changes_requested",
+        repairRound: 2,
+      },
     ];
 
     const instructions = generateRepairInstructions(state, summaries);
@@ -162,9 +183,39 @@ describe("Orchestrator Recursive Critic Feedback Integration", () => {
 
   test("generateRepairInstructions handles revalidation gates and deduplicates them", () => {
     const openFindings: readonly Finding[] = [
-      { id: "F-1", requirement_id: "R-1", severity: "medium", observation: "Issue 1", file_paths: ["src/a.ts"], evidence: [], remediation: "Fix 1", revalidation: "bun test test1.test.ts", status: "open" },
-      { id: "F-2", requirement_id: "R-1", severity: "medium", observation: "Issue 2", file_paths: ["src/b.ts"], evidence: [], remediation: "Fix 2", revalidation: "bun test test1.test.ts", status: "open" },
-      { id: "F-3", requirement_id: "R-1", severity: "medium", observation: "Issue 3", file_paths: ["src/c.ts"], evidence: [], remediation: "Fix 3", revalidation: "   ", status: "open" },
+      {
+        id: "F-1",
+        requirement_id: "R-1",
+        severity: "medium",
+        observation: "Issue 1",
+        file_paths: ["src/a.ts"],
+        evidence: [],
+        remediation: "Fix 1",
+        revalidation: "bun test test1.test.ts",
+        status: "open",
+      },
+      {
+        id: "F-2",
+        requirement_id: "R-1",
+        severity: "medium",
+        observation: "Issue 2",
+        file_paths: ["src/b.ts"],
+        evidence: [],
+        remediation: "Fix 2",
+        revalidation: "bun test test1.test.ts",
+        status: "open",
+      },
+      {
+        id: "F-3",
+        requirement_id: "R-1",
+        severity: "medium",
+        observation: "Issue 3",
+        file_paths: ["src/c.ts"],
+        evidence: [],
+        remediation: "Fix 3",
+        revalidation: "   ",
+        status: "open",
+      },
     ];
 
     const state = workflowState();
@@ -175,7 +226,14 @@ describe("Orchestrator Recursive Critic Feedback Integration", () => {
     };
 
     const summaries: readonly TaskRepairSummary[] = [
-      { taskId: "T-1", repairAssignee: "worker-1", newStatus: "changes_requested", findingsCount: 3, priorStatus: "done", repairRound: 1 },
+      {
+        taskId: "T-1",
+        repairAssignee: "worker-1",
+        newStatus: "changes_requested",
+        findingsCount: 3,
+        priorStatus: "done",
+        repairRound: 1,
+      },
     ];
 
     const instructions = generateRepairInstructions(state, summaries);

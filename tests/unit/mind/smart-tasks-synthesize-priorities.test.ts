@@ -45,9 +45,18 @@ describe("synthesizeTaskPriorities unit test suite", () => {
 
   it("maps FeedbackPriority string values to TaskPriority", () => {
     const tasks: readonly SmartTaskPlan[] = [
-      createMockTask({ id: "t1", priority: "CRITICAL_USER_FEEDBACK" as unknown as SmartTaskPlan["priority"] }),
-      createMockTask({ id: "t2", priority: "HIGH_ARCHITECTURAL_FEATURE" as unknown as SmartTaskPlan["priority"] }),
-      createMockTask({ id: "t3", priority: "USER_DIRECTIVE" as unknown as SmartTaskPlan["priority"] }),
+      createMockTask({
+        id: "t1",
+        priority: "CRITICAL_USER_FEEDBACK" as unknown as SmartTaskPlan["priority"],
+      }),
+      createMockTask({
+        id: "t2",
+        priority: "HIGH_ARCHITECTURAL_FEATURE" as unknown as SmartTaskPlan["priority"],
+      }),
+      createMockTask({
+        id: "t3",
+        priority: "USER_DIRECTIVE" as unknown as SmartTaskPlan["priority"],
+      }),
       createMockTask({ id: "t4", priority: "NORMAL" as unknown as SmartTaskPlan["priority"] }),
     ];
     const result = synthesizeTaskPriorities(tasks);
@@ -73,9 +82,17 @@ describe("synthesizeTaskPriorities unit test suite", () => {
 
   it("infers priority from keyword heuristics in label and rationale", () => {
     const tasks: readonly SmartTaskPlan[] = [
-      createMockTask({ id: "sec-task", label: "Fix CVE security vulnerability", priority: undefined }),
+      createMockTask({
+        id: "sec-task",
+        label: "Fix CVE security vulnerability",
+        priority: undefined,
+      }),
       createMockTask({ id: "perf-task", label: "Fix urgent perf regression", priority: undefined }),
-      createMockTask({ id: "doc-task", label: "Update minor doc cleanup chore", priority: undefined }),
+      createMockTask({
+        id: "doc-task",
+        label: "Update minor doc cleanup chore",
+        priority: undefined,
+      }),
     ];
     const result = synthesizeTaskPriorities(tasks);
     expect(result.find((t) => t.id === "sec-task")?.priority).toBe("CRITICAL");

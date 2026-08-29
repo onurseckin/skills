@@ -21,7 +21,10 @@ import {
   type PushbackContestOptions,
 } from "../../../olt/scripts/src/task/pushback.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { CoordinatorPushbackCause, ValidatorDomain } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type {
+  CoordinatorPushbackCause,
+  ValidatorDomain,
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 function createMockPort(initial: WorkflowState): TransactionPort {

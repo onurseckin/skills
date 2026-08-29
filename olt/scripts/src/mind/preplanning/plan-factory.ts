@@ -95,10 +95,10 @@ export function generatePlanMarkdown(
     lines.push(`- **Read-Only Scope:** \`olt/scripts/src/\``);
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
     lines.push(`  - Implement: ${itemDetail}`);
-    lines.push("  - Zero TypeScript `any`, zero compiler suppressions, zero comments in .ts files.");
     lines.push(
-      `  - Command: \`bun test tests/unit/${cluster.domain}/\` (100% PASS).`,
+      "  - Zero TypeScript `any`, zero compiler suppressions, zero comments in .ts files.",
     );
+    lines.push(`  - Command: \`bun test tests/unit/${cluster.domain}/\` (100% PASS).`);
     lines.push("");
     taskIndex++;
   }
@@ -128,10 +128,10 @@ export function generatePlanMarkdown(
     lines.push(`- **Read-Only Scope:** \`olt/scripts/src/\``);
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
     lines.push(`  - Remediate: ${defectDetail}`);
-    lines.push("  - Zero TypeScript `any`, zero compiler suppressions, zero comments in .ts files.");
     lines.push(
-      `  - Command: \`bun test tests/unit/${cluster.domain}/\` (100% PASS).`,
+      "  - Zero TypeScript `any`, zero compiler suppressions, zero comments in .ts files.",
     );
+    lines.push(`  - Command: \`bun test tests/unit/${cluster.domain}/\` (100% PASS).`);
     lines.push("");
     taskIndex++;
   }

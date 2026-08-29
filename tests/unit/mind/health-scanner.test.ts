@@ -49,7 +49,11 @@ describe("health-scanner unit tests", () => {
 
       writeFileSync(fileA, `import { b } from "./fileB.ts";\nexport const a = 1;`, "utf8");
       writeFileSync(fileB, `import { a } from "./fileA.ts";\nexport const b = 2;`, "utf8");
-      writeFileSync(fileC, `import { missing } from "./nonExistentFile.ts";\nexport const c = 3;`, "utf8");
+      writeFileSync(
+        fileC,
+        `import { missing } from "./nonExistentFile.ts";\nexport const c = 3;`,
+        "utf8",
+      );
       writeFileSync(fileD, `import { sub } from "./sub";\nexport const d = 4;`, "utf8");
       writeFileSync(indexFile, `export const sub = "sub";`, "utf8");
 
@@ -177,7 +181,10 @@ describe("health-scanner unit tests", () => {
   });
 
   test("health-scanner.ts source code satisfies all repository invariants", () => {
-    const filePath = join(process.cwd(), "olt/scripts/src/mind/tasks/discovery/scanners/health-scanner.ts");
+    const filePath = join(
+      process.cwd(),
+      "olt/scripts/src/mind/tasks/discovery/scanners/health-scanner.ts",
+    );
     expect(existsSync(filePath)).toBe(true);
 
     const content = readFileSync(filePath, "utf8");

@@ -15,7 +15,8 @@ export const CHARTER_BUDGET_EXCEEDED = "CHARTER_BUDGET_EXCEEDED" as const;
 export const CHARTER_INTEGRITY_DRIFT = "CHARTER_INTEGRITY_DRIFT" as const;
 export const CHARTER_SCOPE_VIOLATION = "CHARTER_SCOPE_VIOLATION" as const;
 export const CHARTER_PROHIBITION_VIOLATION = "CHARTER_PROHIBITION_VIOLATION" as const;
-export const DEFECT_MIND_AUDITING_MISSING_STATE_CHARTER = "defect-mind-auditing-missing-state-charter" as const;
+export const DEFECT_MIND_AUDITING_MISSING_STATE_CHARTER =
+  "defect-mind-auditing-missing-state-charter" as const;
 
 export {
   DEFAULT_CHARTER_RELATIVE_PATH,
@@ -106,7 +107,9 @@ export function auditCharterGoals(
     findings.push("Charter contains no defined goals.");
   }
   for (const unmapped of unmappedGoals) {
-    findings.push(`Referenced goal '${unmapped}' is not defined in charter goals [${definedGoals.join(", ")}].`);
+    findings.push(
+      `Referenced goal '${unmapped}' is not defined in charter goals [${definedGoals.join(", ")}].`,
+    );
   }
 
   return {
@@ -126,28 +129,44 @@ export function auditCharterBudgetCompliance(
   const violations: string[] = [];
 
   const maxAgents = budget.max_agents_in_flight ?? DEFAULT_MIND_BUDGET.max_agents_in_flight;
-  if (metrics.agentsInFlight !== undefined && typeof maxAgents === "number" && metrics.agentsInFlight > maxAgents) {
+  if (
+    metrics.agentsInFlight !== undefined &&
+    typeof maxAgents === "number" &&
+    metrics.agentsInFlight > maxAgents
+  ) {
     violations.push(
       `Active agents in flight (${metrics.agentsInFlight}) exceeds charter limit (${maxAgents}).`,
     );
   }
 
   const maxRounds = budget.max_rounds_per_objective ?? DEFAULT_MIND_BUDGET.max_rounds_per_objective;
-  if (metrics.roundsSpent !== undefined && typeof maxRounds === "number" && metrics.roundsSpent > maxRounds) {
+  if (
+    metrics.roundsSpent !== undefined &&
+    typeof maxRounds === "number" &&
+    metrics.roundsSpent > maxRounds
+  ) {
     violations.push(
       `Rounds spent (${metrics.roundsSpent}) exceeds charter objective limit (${maxRounds}).`,
     );
   }
 
   const maxWallClock = budget.wall_clock_ms_per_day ?? DEFAULT_MIND_BUDGET.wall_clock_ms_per_day;
-  if (metrics.wallClockMsSpent !== undefined && typeof maxWallClock === "number" && metrics.wallClockMsSpent > maxWallClock) {
+  if (
+    metrics.wallClockMsSpent !== undefined &&
+    typeof maxWallClock === "number" &&
+    metrics.wallClockMsSpent > maxWallClock
+  ) {
     violations.push(
       `Wall clock duration (${metrics.wallClockMsSpent}ms) exceeds daily budget (${maxWallClock}ms).`,
     );
   }
 
   const maxProposals = budget.max_open_proposals ?? DEFAULT_MIND_BUDGET.max_open_proposals;
-  if (metrics.openProposalsCount !== undefined && typeof maxProposals === "number" && metrics.openProposalsCount > maxProposals) {
+  if (
+    metrics.openProposalsCount !== undefined &&
+    typeof maxProposals === "number" &&
+    metrics.openProposalsCount > maxProposals
+  ) {
     violations.push(
       `Open proposals count (${metrics.openProposalsCount}) exceeds charter limit (${maxProposals}).`,
     );
@@ -165,7 +184,8 @@ export function auditCharterIntegrity(
   currentSha256: string,
   hasOwnerAuthorization: boolean = false,
 ): CharterIntegrityAuditResult {
-  const driftDetected = pinnedSha256.length > 0 && currentSha256.length > 0 && pinnedSha256 !== currentSha256;
+  const driftDetected =
+    pinnedSha256.length > 0 && currentSha256.length > 0 && pinnedSha256 !== currentSha256;
   const findings: string[] = [];
 
   if (driftDetected && !hasOwnerAuthorization) {
@@ -201,7 +221,9 @@ export function auditCharterRepoRoots(
     });
     if (!inBounds) {
       outOfBoundsPaths.push(touched);
-      findings.push(`Touched path '${touched}' is outside declared charter repo_roots [${allowedRoots.join(", ")}].`);
+      findings.push(
+        `Touched path '${touched}' is outside declared charter repo_roots [${allowedRoots.join(", ")}].`,
+      );
     }
   }
 
@@ -233,7 +255,8 @@ export function auditCharterProhibitions(
       .replace(/[^a-z0-9\s]/g, " ")
       .split(/\s+/)
       .filter((w) => w.length > 3);
-    const matches = ruleKeywords.length > 0 && ruleKeywords.filter((w) => lowerAction.includes(w)).length >= 2;
+    const matches =
+      ruleKeywords.length > 0 && ruleKeywords.filter((w) => lowerAction.includes(w)).length >= 2;
     if (matches) {
       matchedProhibitions.push(rule);
       findings.push(`Action violates charter prohibition: "${rule}".`);
@@ -259,7 +282,9 @@ export function auditCharterManifest(
     options.hasOwnerAuthorization ?? false,
   );
   const repoRootsAudit = auditCharterRepoRoots(charter, options.touchedPaths ?? []);
-  const budgetAudit = options.budgetUsage ? auditCharterBudgetCompliance(charter, options.budgetUsage) : undefined;
+  const budgetAudit = options.budgetUsage
+    ? auditCharterBudgetCompliance(charter, options.budgetUsage)
+    : undefined;
 
   const findings: string[] = [
     ...goalAudit.findings,

@@ -3,6 +3,7 @@ import {
   AssemblyStationRegistry,
   claimStation,
   createStation,
+  landPhaseRelease,
   landStation,
   verifyStation,
 } from "../../../olt/scripts/src/orchestrator/station-landing.ts";
@@ -10,8 +11,13 @@ import {
   executeGitStagingInvariant,
   verifyGitStagingDurability,
 } from "../../../olt/scripts/src/orchestrator/subdomain-staging.ts";
+import type {
+  ExecuteLifecycleHooksOptions,
+  LifecycleHookExecutionResult,
+  RepoPolicy,
+} from "../../../olt/scripts/src/policy/index.ts";
 
-describe("Sub-Domain Completion Git Staging & Station Landing Engine (Task 2.3)", () => {
+describe("Sub-Domain Completion Git Staging & Station Landing Engine (Task 2.3 & Task Hooks 7)", () => {
   it("executes Git staging invariant and produces durable blob safety record", () => {
     const executedCommands: string[] = [];
     const mockGitRunner = (cmd: string): string => {
@@ -95,7 +101,6 @@ describe("Sub-Domain Completion Git Staging & Station Landing Engine (Task 2.3)"
     expect(status.pending_stations).toBe(3);
     expect(status.is_all_landed).toBe(false);
 
-    // 1. Claim all
     const claimedCore = claimStation(stationCore);
     const claimedVal = claimStation(stationValidation);
     const claimedTool = claimStation(stationTooling);
@@ -103,7 +108,6 @@ describe("Sub-Domain Completion Git Staging & Station Landing Engine (Task 2.3)"
     registry.updateStation(claimedVal);
     registry.updateStation(claimedTool);
 
-    // 2. Land Core independently
     const verifiedCore = verifyStation(claimedCore);
     const { station: landedCore } = landStation(verifiedCore, {
       customGitRunner: () => "tree-sha-core",
@@ -115,7 +119,6 @@ describe("Sub-Domain Completion Git Staging & Station Landing Engine (Task 2.3)"
     expect(status.in_progress_stations).toBe(2);
     expect(status.is_all_landed).toBe(false);
 
-    // 3. Land Validation independently
     const verifiedVal = verifyStation(claimedVal);
     const { station: landedVal } = landStation(verifiedVal, {
       customGitRunner: () => "tree-sha-val",
@@ -126,7 +129,6 @@ describe("Sub-Domain Completion Git Staging & Station Landing Engine (Task 2.3)"
     expect(status.landed_stations).toBe(2);
     expect(status.in_progress_stations).toBe(1);
 
-    // 4. Land Tooling
     const verifiedTool = verifyStation(claimedTool);
     const { station: landedTool } = landStation(verifiedTool, {
       customGitRunner: () => "tree-sha-tool",
@@ -136,5 +138,161 @@ describe("Sub-Domain Completion Git Staging & Station Landing Engine (Task 2.3)"
     status = registry.getStatus();
     expect(status.landed_stations).toBe(3);
     expect(status.is_all_landed).toBe(true);
+  });
+
+  it("triggers on_phase_completion lifecycle hook during landStation with correct context", () => {
+    const invokedHooks: ExecuteLifecycleHooksOptions[] = [];
+    const mockExecutor = (opts: ExecuteLifecycleHooksOptions): LifecycleHookExecutionResult => {
+      invokedHooks.push(opts);
+      return {
+        event: opts.event,
+        commandCount: 1,
+        executedCommands: ["echo phase completed"],
+        skipped: false,
+        errors: [],
+      };
+    };
+
+    const station = createStation("station-hook-1", "mind", "m1-mind", [
+      "src/mind/a.ts",
+      "src/mind/b.ts",
+    ]);
+    const claimed = claimStation(station);
+    const verified = verifyStation(claimed, { testPath: "tests/mind.ts", passed: true });
+
+    const startTime = Date.now() - 4000;
+    const result = landStation(verified, {
+      customGitRunner: () => "git-tree-sha-mind",
+      customHookExecutor: mockExecutor,
+      phaseName: "Mind Domain Assembly",
+      commitSha: "custom-mind-sha",
+      taskCount: 2,
+      startedAt: startTime,
+    });
+
+    expect(result.station.status).toBe("LANDED");
+    expect(result.hookExecutionResult).toBeDefined();
+    expect(result.hookExecutionResult?.event).toBe("on_phase_completion");
+    expect(result.hookExecutionResult?.commandCount).toBe(1);
+    expect(invokedHooks.length).toBe(1);
+    expect(invokedHooks[0]?.event).toBe("on_phase_completion");
+    expect(invokedHooks[0]?.context.phaseName).toBe("Mind Domain Assembly");
+    expect(invokedHooks[0]?.context.commitSha).toBe("custom-mind-sha");
+    expect(invokedHooks[0]?.context.taskCount).toBe(2);
+    expect(invokedHooks[0]?.context.status).toBe("SUCCESS");
+    expect((invokedHooks[0]?.context.durationMs as number) >= 3500).toBe(true);
+  });
+
+  it("triggers on_phase_completion lifecycle hook during landPhaseRelease with correct context", () => {
+    const invokedHooks: ExecuteLifecycleHooksOptions[] = [];
+    const mockExecutor = (opts: ExecuteLifecycleHooksOptions): LifecycleHookExecutionResult => {
+      invokedHooks.push(opts);
+      return {
+        event: opts.event,
+        commandCount: 1,
+        executedCommands: ["echo phase release completed"],
+        skipped: false,
+        errors: [],
+      };
+    };
+
+    const startTime = Date.now() - 6000;
+    const result = landPhaseRelease({
+      phaseName: "Core Architecture Wave",
+      startedAt: startTime,
+      commitSha: "commit-sha-999",
+      taskCount: 7,
+      customHookExecutor: mockExecutor,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.durationMs).toBeGreaterThanOrEqual(5000);
+    expect(result.hookExecutionResult).toBeDefined();
+    expect(result.hookExecutionResult?.event).toBe("on_phase_completion");
+    expect(invokedHooks.length).toBe(1);
+    expect(invokedHooks[0]?.event).toBe("on_phase_completion");
+    expect(invokedHooks[0]?.context.phaseName).toBe("Core Architecture Wave");
+    expect(invokedHooks[0]?.context.commitSha).toBe("commit-sha-999");
+    expect(invokedHooks[0]?.context.taskCount).toBe(7);
+    expect(invokedHooks[0]?.context.status).toBe("SUCCESS");
+    expect((invokedHooks[0]?.context.durationMs as number) >= 5000).toBe(true);
+  });
+
+  it("forwards custom RepoPolicy to hook executor in landStation and landPhaseRelease", () => {
+    const passedPolicies: (RepoPolicy | undefined)[] = [];
+    const mockExecutor = (opts: ExecuteLifecycleHooksOptions): LifecycleHookExecutionResult => {
+      passedPolicies.push(opts.policy);
+      return {
+        event: opts.event,
+        commandCount: 0,
+        executedCommands: [],
+        skipped: true,
+        errors: [],
+      };
+    };
+
+    const customPolicy: RepoPolicy = {
+      schema_version: 1,
+      ecosystem: "bun",
+      hooks: {
+        on_phase_completion: ["echo custom hook {phaseName}"],
+      },
+    };
+
+    const station = createStation("station-policy-1", "tooling", "m1-tool", ["src/cli.ts"]);
+    const claimed = claimStation(station);
+    const verified = verifyStation(claimed);
+
+    landStation(verified, {
+      customGitRunner: () => "tree-sha-tool",
+      customHookExecutor: mockExecutor,
+      policy: customPolicy,
+    });
+
+    landPhaseRelease({
+      phaseName: "Tooling Phase",
+      startedAt: Date.now(),
+      customHookExecutor: mockExecutor,
+      policy: customPolicy,
+    });
+
+    expect(passedPolicies.length).toBe(2);
+    expect(passedPolicies[0]).toEqual(customPolicy);
+    expect(passedPolicies[1]).toEqual(customPolicy);
+  });
+
+  it("handles hook execution exceptions gracefully without crashing landing pipeline", () => {
+    const throwingExecutor = (): LifecycleHookExecutionResult => {
+      throw new Error("Hook execution catastrophic spawn error");
+    };
+
+    const station = createStation("station-err-1", "validation", "m1-val", ["tests/x.ts"]);
+    const claimed = claimStation(station);
+    const verified = verifyStation(claimed);
+
+    const stationResult = landStation(verified, {
+      customGitRunner: () => "tree-sha-err",
+      customHookExecutor: throwingExecutor,
+    });
+
+    expect(stationResult.station.status).toBe("LANDED");
+    expect(stationResult.hookExecutionResult).toBeDefined();
+    expect(stationResult.hookExecutionResult?.errors.length).toBe(1);
+    expect(stationResult.hookExecutionResult?.errors[0]).toContain(
+      "Hook execution catastrophic spawn error",
+    );
+
+    const releaseResult = landPhaseRelease({
+      phaseName: "Validation Phase",
+      startedAt: Date.now() - 1000,
+      customHookExecutor: throwingExecutor,
+    });
+
+    expect(releaseResult.success).toBe(true);
+    expect(releaseResult.hookExecutionResult).toBeDefined();
+    expect(releaseResult.hookExecutionResult?.errors.length).toBe(1);
+    expect(releaseResult.hookExecutionResult?.errors[0]).toContain(
+      "Hook execution catastrophic spawn error",
+    );
   });
 });

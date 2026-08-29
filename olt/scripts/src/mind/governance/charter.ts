@@ -21,16 +21,12 @@ import type {
 
 export const DEFECT_REF = "defect-stale-governance-charter-imports" as const;
 export const ERROR_CODE = "STALE_GOVERNANCE_CHARTER_IMPORTS" as const;
-export const CANONICAL_GOVERNANCE_CHARTER_PATH = "olt/scripts/src/mind/governance/charter.ts" as const;
-export const CANONICAL_LIFECYCLE_CHARTER_PATH = "olt/scripts/src/mind/lifecycle/charter/index.ts" as const;
+export const CANONICAL_GOVERNANCE_CHARTER_PATH =
+  "olt/scripts/src/mind/governance/charter.ts" as const;
+export const CANONICAL_LIFECYCLE_CHARTER_PATH =
+  "olt/scripts/src/mind/lifecycle/charter/index.ts" as const;
 
-export type {
-  CharterGoal,
-  StabilityCheck,
-  MindBudgetOverrides,
-  MindBudget,
-  ParsedCharter,
-};
+export type { CharterGoal, StabilityCheck, MindBudgetOverrides, MindBudget, ParsedCharter };
 
 export {
   DEFAULT_MIND_BUDGET,
@@ -89,18 +85,12 @@ export function resolveGovernanceCharter(
   return charter;
 }
 
-export function getCharterGoal(
-  parsed: ParsedCharter,
-  goalId: string,
-): CharterGoal | undefined {
+export function getCharterGoal(parsed: ParsedCharter, goalId: string): CharterGoal | undefined {
   const targetId = goalId.toUpperCase().trim();
   return parsed.goals.find((g) => g.id === targetId);
 }
 
-export function hasCharterGoal(
-  parsed: ParsedCharter,
-  goalId: string,
-): boolean {
+export function hasCharterGoal(parsed: ParsedCharter, goalId: string): boolean {
   return getCharterGoal(parsed, goalId) !== undefined;
 }
 

@@ -190,4 +190,3 @@ export function mapFeedbackPriorityToTaskPriority(fbPriority: string): TaskPrior
       return "MEDIUM";
   }
 }
-

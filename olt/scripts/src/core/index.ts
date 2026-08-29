@@ -95,3 +95,15 @@ export {
 } from "./restricted-git.ts";
 export { includeRuntimeSourceEntry } from "./runtime-filter.ts";
 export { type RuntimeSnapshot, runtimeTreeSnapshot, copyPinnedRuntime } from "./runtime-tree.ts";
+export {
+  assertZeroTypescriptAny,
+  scanSourceCodeForTypescriptAny,
+  scanFileForTypescriptAny,
+  scanDirectoryForTypescriptAny,
+  collectTypescriptFiles,
+  isTypeSafetyViolation,
+  isTypeSafetyScanResult,
+  type TypeSafetyViolation,
+  type TypeSafetyScanResult,
+  type TypeSafetyScanOptions,
+} from "./type-safety/index.ts";

@@ -154,6 +154,7 @@ export type {
   WaveGroup,
   DefectTaskTarget,
   PlanTasksForDefectOptions,
+  AtomicDispatchOptions,
 } from "./smart/index.ts";
 
 export {
@@ -181,6 +182,7 @@ export {
   evaluateHierarchyScaling,
   evaluateSmartHierarchy,
   executeAtomicAdmissionToDispatch,
+  executeAtomicDispatch,
   executeProductOwnerAdmissionAndDispatch,
   expandExternalPromptToPlan,
   expandExternalPromptToWavePlan,

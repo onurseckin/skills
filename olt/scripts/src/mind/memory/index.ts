@@ -99,3 +99,25 @@ export {
 } from "./value/index.ts";
 
 export { calculateQuiescentBackoffInterval, calculateNextWakeInterval } from "./value/index.ts";
+
+export {
+  type MemoryIndexTelemetry,
+  type MemorySearchTelemetry,
+  type MemoryTelemetrySnapshot,
+  type MemoryTelemetryEvent,
+  type MemoryTelemetryListener,
+  type RecordIndexTelemetryOptions,
+  type RecordSearchTelemetryOptions,
+  type CognitiveTelemetry,
+  type ComputeCognitiveTelemetryOptions,
+  MemoryTelemetryTracker,
+  createMemoryTelemetryTracker,
+  getGlobalMemoryTelemetryTracker,
+  recordMemoryIndexTelemetry,
+  recordMemorySearchTelemetry,
+  getMemoryTelemetrySnapshot,
+  resetMemoryTelemetry,
+  formatMemoryTelemetrySummary,
+  calculateCacheHitRate,
+  computeCognitiveTelemetry,
+} from "./telemetry.ts";

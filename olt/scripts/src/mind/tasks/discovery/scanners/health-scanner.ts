@@ -86,8 +86,7 @@ export function scanArchitecturalHealth(
       }
 
       fileImportMap.set(file, importedPaths);
-    } catch {
-    }
+    } catch {}
   }
 
   for (const [fileA, importsA] of fileImportMap.entries()) {

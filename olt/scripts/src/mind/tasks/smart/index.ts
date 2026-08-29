@@ -111,6 +111,7 @@ export {
   verifyAdmissionToDispatchInvariants,
   verifyProductOwnerInvariants,
   executeAtomicAdmissionToDispatch,
+  executeAtomicDispatch,
   executeProductOwnerAdmissionAndDispatch,
   reconcileAdmissionToDispatchState,
   runInfiniteProductOwnerCycle,
@@ -121,8 +122,8 @@ export {
   autonomousCreativeOverload,
   assertMindModeAllowed,
   planTasksForDefect,
+  type AtomicDispatchOptions,
   type PlanTasksForDefectOptions,
   type DefectTaskTarget,
   type TaskPrioritySynthesisOptions,
 } from "./executor/index.ts";
-

@@ -1,4 +1,75 @@
 export type {
+  BuildWakeBriefOptions,
+  CharterStatus,
+  HealthObservationSummary,
+  IntegrityStatus,
+  LiveRunSummary,
+  MindBriefFacts,
+  MindLane,
+  MindMode,
+  RuntimeStatus,
+  WakeBriefResult,
+} from "./brief/index.ts";
+
+export {
+  buildWakeBrief,
+  computeFullWakeBrief,
+  deriveLane,
+  formatDuration,
+  formatNumber,
+  formatShortSha,
+  renderCharterLine,
+  renderGapLine,
+  renderHealthLine,
+  renderIntegrityLine,
+  renderRuntimeLine,
+} from "./brief/index.ts";
+
+export type {
+  AnchorOptions,
+  AnchorSymbol,
+  AnchorSymbolKind,
+  ExactAnchor,
+  ExactAnchorBriefing,
+  ExactAnchorBriefingOptions,
+} from "./builder/index.ts";
+
+export {
+  buildExactAnchorBriefing,
+  createDropInAnchor,
+  deriveRecommendedTestCommands,
+  extractFileAnchors,
+  extractFileSymbols,
+  extractSymbolsFromSource,
+  findAnchorByPattern,
+  formatExactAnchorBriefingMarkdown,
+} from "./builder/index.ts";
+
+export type {
+  AdmissionEvaluationResult,
+  AdmissionGateVerdict,
+  CandidateRecord,
+  CommandRecordCandidate,
+  GateEvaluationContext,
+} from "./gates/index.ts";
+
+export {
+  evaluateAdmissionGates,
+  evaluateGate1Witnessed,
+  evaluateGate2InCharter,
+  evaluateGate3Falsifiable,
+  evaluateGate4Scoped,
+  evaluateGate5Affordable,
+  evaluateGate6NotADuplicate,
+  executeFalsifier,
+  findCommandRecord,
+  isPathInRepoRoots,
+  outputContainsDefect,
+  parseFalsifierArgv,
+  readCandidateCommandOutput,
+} from "./gates/index.ts";
+
+export type {
   DecideProposalOptions,
   GeneratePlanRevisionOptions,
   InitiativeActionType,

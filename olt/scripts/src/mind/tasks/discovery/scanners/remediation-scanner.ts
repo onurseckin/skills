@@ -1,10 +1,11 @@
-import type { DefectEntry, DefectCategory, DefectSeverity, DefectStatus } from "../../../defects/index.ts";
-import { auditDefectLog, categorizeDefect } from "../../../defects/index.ts";
 import type {
-  DiscoveryItem,
-  DiscoverySeverity,
-  TaskPriority,
-} from "../types.ts";
+  DefectEntry,
+  DefectCategory,
+  DefectSeverity,
+  DefectStatus,
+} from "../../../defects/index.ts";
+import { auditDefectLog, categorizeDefect } from "../../../defects/index.ts";
+import type { DiscoveryItem, DiscoverySeverity, TaskPriority } from "../types.ts";
 
 export type DefectRemediationIssueType =
   | "UNRESOLVED_DEFECT"
@@ -134,7 +135,8 @@ export function mapDefectToDiscoveryItem(defect: DefectEntry): DiscoveryItem {
   const charterGoal = category === "boundary_violation" ? "G1" : "G2";
   const priority = mapDefectSeverityToPriority(defect.severity);
   const scope = ["olt/scripts/src/mind/", "tests/unit/mind/"];
-  const remediation = defect.remediation || defect.prescribed_remediation || "Fix root cause of defect";
+  const remediation =
+    defect.remediation || defect.prescribed_remediation || "Fix root cause of defect";
 
   return {
     id: `defect-${slug}`,
@@ -201,9 +203,7 @@ export function scanDefectRemediations(
     }
   }
 
-  const targetList = options.includeResolved
-    ? [...openDefects, ...resolvedDefects]
-    : openDefects;
+  const targetList = options.includeResolved ? [...openDefects, ...resolvedDefects] : openDefects;
   const findings: DefectRemediationFinding[] = [];
 
   for (const defect of targetList) {

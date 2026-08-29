@@ -225,8 +225,7 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
           });
         }
       }
-    } catch {
-    }
+    } catch {}
   }
 
   return {

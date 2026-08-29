@@ -120,8 +120,7 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
           });
         }
       }
-    } catch {
-    }
+    } catch {}
   }
 
   return {

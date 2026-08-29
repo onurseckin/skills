@@ -13,30 +13,27 @@ import {
   assertAntiBatchingRule,
   partitionGroupedFeedbacksStrictly,
 } from "../planner/partitioning.ts";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { HarnessError } from "../../../../core/errors/index.ts";
-import { transact } from "../../../../engine/store/index.ts";
 import type {
-  SmartTaskPlan,
   AdmissionToDispatchResult,
-  InfiniteProductOwnerResult,
   AdmissionToDispatchAuditReport,
 } from "../planner/models.ts";
 import {
   verifyAdmissionToDispatchInvariants,
   stageTasksForMultiOrchestratorExecution,
 } from "./invariants.ts";
-import { enrichTaskPlanWithExactAnchors } from "../planner/anti-batching.ts";
+
+export interface AtomicDispatchOptions {
+  readonly capsulesDir?: string | undefined;
+  readonly queuePath?: string | undefined;
+  readonly feedbackItems?: readonly FeedbackItem[] | undefined;
+  readonly charterGoals?: readonly string[] | undefined;
+  readonly maxTasks?: number | undefined;
+  readonly orchestratorIds?: readonly string[] | undefined;
+}
+
 export function executeAtomicAdmissionToDispatch(
-  options: {
-    readonly capsulesDir?: string | undefined;
-    readonly queuePath?: string | undefined;
-    readonly feedbackItems?: readonly FeedbackItem[] | undefined;
-    readonly charterGoals?: readonly string[] | undefined;
-    readonly maxTasks?: number | undefined;
-    readonly orchestratorIds?: readonly string[] | undefined;
-  } = {},
+  options: AtomicDispatchOptions = {},
 ): AdmissionToDispatchResult {
   const maxTasks = options.maxTasks ?? 10;
   const targetFeedbacks =
@@ -62,7 +59,6 @@ export function executeAtomicAdmissionToDispatch(
 
   assertAntiBatchingRule(tasks);
 
-  // If orchestratorIds provided, stage across orchestrators
   let finalTasks = tasks;
   if (options.orchestratorIds && options.orchestratorIds.length > 0) {
     const staged = stageTasksForMultiOrchestratorExecution(tasks, {
@@ -71,7 +67,6 @@ export function executeAtomicAdmissionToDispatch(
     finalTasks = staged.staged_tasks;
   }
 
-  // 1. Enqueue tasks to task queue
   const batchInputs: NewTaskQueueInput[] = finalTasks.map((t) => ({
     id: t.id,
     title: t.label,
@@ -93,8 +88,7 @@ export function executeAtomicAdmissionToDispatch(
     if (task.feedback_id) taskByFeedbackId.set(task.feedback_id, task.id);
   }
   const preparedAt = new Date().toISOString();
-  // Persist the recovery receipt before task enqueue. If enqueue succeeds but feedback
-  // commit faults, reconciliation can deterministically promote this marker exactly once.
+
   updateOrPruneFeedbackItems((feedback) => {
     const taskId = taskByFeedbackId.get(feedback.id);
     if (!taskId) return feedback;
@@ -111,7 +105,6 @@ export function executeAtomicAdmissionToDispatch(
 
   const enqueuedTasks = enqueueTasksBatch(batchInputs, options.queuePath);
 
-  // 2. Atomically update feedback queue status to ADMITTED with linked task ID
   const nowIso = new Date().toISOString();
   const admittedMap = new Map<string, string>();
   for (const t of finalTasks) {
@@ -142,7 +135,6 @@ export function executeAtomicAdmissionToDispatch(
     (items) => items.filter((item) => admittedMap.has(item.id) && item.status === "ADMITTED"),
   ) as readonly FeedbackItem[];
 
-  // 3. Verify zero paused admitted items invariant
   const auditReport = verifyAdmissionToDispatchInvariants(options);
   if (!auditReport.zero_paused_admitted) {
     throw new HarnessError(
@@ -160,26 +152,18 @@ export function executeAtomicAdmissionToDispatch(
   };
 }
 
-/**
- * Alias for executeAtomicAdmissionToDispatch.
- */
-export function executeProductOwnerAdmissionAndDispatch(
-  options: {
-    readonly capsulesDir?: string | undefined;
-    readonly queuePath?: string | undefined;
-    readonly feedbackItems?: readonly FeedbackItem[] | undefined;
-    readonly charterGoals?: readonly string[] | undefined;
-    readonly maxTasks?: number | undefined;
-    readonly orchestratorIds?: readonly string[] | undefined;
-  } = {},
+export function executeAtomicDispatch(
+  options: AtomicDispatchOptions = {},
 ): AdmissionToDispatchResult {
   return executeAtomicAdmissionToDispatch(options);
 }
 
-/**
- * Auto-reconciles any paused or orphaned admitted items by synthesizing missing 1:1 isolated tasks
- * and enqueuing them to the task queue.
- */
+export function executeProductOwnerAdmissionAndDispatch(
+  options: AtomicDispatchOptions = {},
+): AdmissionToDispatchResult {
+  return executeAtomicAdmissionToDispatch(options);
+}
+
 export function reconcileAdmissionToDispatchState(
   options: {
     readonly capsulesDir?: string | undefined;
@@ -275,12 +259,3 @@ export function reconcileAdmissionToDispatchState(
     audit_report: dispatchResult.audit_report,
   };
 }
-
-/**
- * Executes a full Infinite Mind Product Owner cycle:
- * 1. Intakes items across user feedback, defect candidates, and self-evolution streams.
- * 2. Emits Product Owner admission decisions (G1-G6 criteria, anti-batching 1:1 isolation).
- * 3. Pre-plans tasks across concurrent multi-orchestrator sub-trees with disjoint write scopes.
- * 4. Atomically chains admission to task queue dispatch (guaranteeing zero paused admitted items).
- * 5. Integrates Work/Span macro metrics into persistent cognitive memory.
- */

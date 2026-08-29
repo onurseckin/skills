@@ -207,10 +207,7 @@ export function parseHooks(raw: unknown, p: string): LifecycleHooksConfig {
       : {}),
     ...(raw["on_release_push"] !== undefined
       ? {
-          on_release_push: parseHookCommandList(
-            raw["on_release_push"],
-            `${p}.on_release_push`,
-          ),
+          on_release_push: parseHookCommandList(raw["on_release_push"], `${p}.on_release_push`),
         }
       : {}),
     ...(raw["on_task_completion"] !== undefined
@@ -231,10 +228,7 @@ export function parseHooks(raw: unknown, p: string): LifecycleHooksConfig {
       : {}),
     ...(raw["on_error"] !== undefined
       ? {
-          on_error: parseHookCommandList(
-            raw["on_error"],
-            `${p}.on_error`,
-          ),
+          on_error: parseHookCommandList(raw["on_error"], `${p}.on_error`),
         }
       : {}),
   };

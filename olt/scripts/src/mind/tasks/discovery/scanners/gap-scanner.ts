@@ -153,8 +153,7 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
           });
         }
       }
-    } catch {
-    }
+    } catch {}
   }
 
   return {
