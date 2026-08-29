@@ -147,13 +147,14 @@ export class DynamicToolRegistry {
     if (securityPolicy) {
       const sanResult = sanitizeToolInput(args, securityPolicy);
       if (!sanResult.safe) {
+        const violations = sanResult.violations ?? [];
         return {
           success: false,
           output: null,
-          error: `Security violation: ${sanResult.violations.map((v) => v.message).join("; ")}`,
+          error: `Security violation: ${violations.map((v) => v.details ?? "violation").join("; ")}`,
           durationMs: performance.now() - start,
           toolName: tool.name,
-          securityViolations: sanResult.violations,
+          securityViolations: violations,
         };
       }
     }

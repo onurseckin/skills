@@ -5,7 +5,7 @@ import { generateDagJsonReport, type DagJsonReport } from "../../reporting/graph
 import { boolFlag, textFlag, type Flags } from "../options.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
 
-export interface GraphExportCommandResult {
+export interface GraphExportCommandResult extends Record<string, unknown> {
   readonly runId: string;
   readonly format: DagExportFormat;
   readonly content?: string | undefined;

@@ -12,6 +12,7 @@ export function validateTypeOnly(type: ToolParameterType, value: unknown): boole
     case "string":
       return typeof value === "string";
     case "number":
+    case "integer":
       return typeof value === "number" && !Number.isNaN(value);
     case "boolean":
       return typeof value === "boolean";
@@ -29,7 +30,8 @@ export function coerceValue(value: unknown, targetType: ToolParameterType): unkn
   switch (targetType) {
     case "string":
       return typeof value === "string" ? value : String(value);
-    case "number": {
+    case "number":
+    case "integer": {
       if (typeof value === "number") return value;
       if (typeof value === "string") {
         const trimmed = value.trim();
@@ -54,9 +56,7 @@ export function coerceValue(value: unknown, targetType: ToolParameterType): unkn
           if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
             return parsed;
           }
-        } catch {
-          return value;
-        }
+        } catch {}
       }
       return value;
     }
@@ -66,9 +66,7 @@ export function coerceValue(value: unknown, targetType: ToolParameterType): unkn
         try {
           const parsed = JSON.parse(value);
           if (Array.isArray(parsed)) return parsed;
-        } catch {
-          return value;
-        }
+        } catch {}
       }
       return value;
     }
@@ -99,11 +97,11 @@ export function validateParameter(
         message: `Missing required parameter '${fieldName}'`,
         expected: param.type,
       });
-      return { valid: false, value: undefined, errors };
     }
-    return { valid: true, value: undefined, errors: [] };
+    return { valid: errors.length === 0, value, errors };
   }
 
+  const expectedType = param.type === "integer" ? "number" : param.type;
   if (options.coerceTypes) {
     value = coerceValue(value, param.type);
   }
@@ -119,20 +117,23 @@ export function validateParameter(
     return { valid: false, value, errors };
   }
 
+  if (param.integer && typeof value === "number" && !Number.isInteger(value)) {
+    errors.push({
+      field: fieldName,
+      code: "NOT_INTEGER",
+      message: `Parameter '${fieldName}' must be an integer`,
+      received: value,
+      expected: "integer",
+    });
+  }
+
   if (param.enumValues && param.enumValues.length > 0) {
-    if (typeof value !== "string" && typeof value !== "number") {
+    const matched = param.enumValues.some((allowed) => allowed === value);
+    if (!matched) {
       errors.push({
         field: fieldName,
         code: "INVALID_ENUM",
         message: `Parameter '${fieldName}' must be one of: ${param.enumValues.join(", ")}`,
-        received: value,
-        expected: param.enumValues.join(" | "),
-      });
-    } else if (!param.enumValues.includes(value)) {
-      errors.push({
-        field: fieldName,
-        code: "INVALID_ENUM",
-        message: `Value '${value}' is not allowed for '${fieldName}'. Expected: ${param.enumValues.join(", ")}`,
         received: value,
         expected: param.enumValues.join(" | "),
       });
@@ -144,7 +145,7 @@ export function validateParameter(
       errors.push({
         field: fieldName,
         code: "MIN_LENGTH",
-        message: `Parameter '${fieldName}' length must be >= ${param.minLength}`,
+        message: `String '${fieldName}' must have at least ${param.minLength} characters`,
         received: value.length,
         expected: `>= ${param.minLength}`,
       });
@@ -153,40 +154,33 @@ export function validateParameter(
       errors.push({
         field: fieldName,
         code: "MAX_LENGTH",
-        message: `Parameter '${fieldName}' length must be <= ${param.maxLength}`,
+        message: `String '${fieldName}' must have at most ${param.maxLength} characters`,
         received: value.length,
         expected: `<= ${param.maxLength}`,
       });
     }
-    if (param.pattern !== undefined) {
-      const reg = new RegExp(param.pattern);
-      if (!reg.test(value)) {
-        errors.push({
-          field: fieldName,
-          code: "PATTERN_MISMATCH",
-          message: `Parameter '${fieldName}' does not match pattern '${param.pattern}'`,
-          received: value,
-          expected: param.pattern,
-        });
-      }
+    if (param.pattern) {
+      try {
+        const re = new RegExp(param.pattern);
+        if (!re.test(value)) {
+          errors.push({
+            field: fieldName,
+            code: "PATTERN_MISMATCH",
+            message: `String '${fieldName}' does not match pattern /${param.pattern}/`,
+            received: value,
+            expected: param.pattern,
+          });
+        }
+      } catch {}
     }
   }
 
-  if (param.type === "number" && typeof value === "number") {
-    if (param.integer && !Number.isInteger(value)) {
-      errors.push({
-        field: fieldName,
-        code: "NOT_INTEGER",
-        message: `Parameter '${fieldName}' must be an integer`,
-        received: value,
-        expected: "integer",
-      });
-    }
+  if ((param.type === "number" || param.type === "integer") && typeof value === "number") {
     if (param.minimum !== undefined && value < param.minimum) {
       errors.push({
         field: fieldName,
         code: "MIN_VALUE",
-        message: `Parameter '${fieldName}' must be >= ${param.minimum}`,
+        message: `Number '${fieldName}' must be at least ${param.minimum}`,
         received: value,
         expected: `>= ${param.minimum}`,
       });
@@ -195,7 +189,7 @@ export function validateParameter(
       errors.push({
         field: fieldName,
         code: "MAX_VALUE",
-        message: `Parameter '${fieldName}' must be <= ${param.maximum}`,
+        message: `Number '${fieldName}' must be at most ${param.maximum}`,
         received: value,
         expected: `<= ${param.maximum}`,
       });
@@ -203,18 +197,22 @@ export function validateParameter(
   }
 
   if (param.type === "array" && Array.isArray(value) && param.itemType) {
+    const itemTypeStr: ToolParameterType =
+      typeof param.itemType === "string"
+        ? (param.itemType as ToolParameterType)
+        : (param.itemType.type as ToolParameterType);
     const itemErrors: ToolValidationError[] = [];
     const sanitizedItems: unknown[] = [];
     for (let i = 0; i < value.length; i++) {
       let itemVal = value[i];
-      if (options.coerceTypes) itemVal = coerceValue(itemVal, param.itemType);
-      if (!validateTypeOnly(param.itemType, itemVal)) {
+      if (options.coerceTypes) itemVal = coerceValue(itemVal, itemTypeStr);
+      if (!validateTypeOnly(itemTypeStr, itemVal)) {
         itemErrors.push({
           field: `${fieldName}[${i}]`,
           code: "INVALID_ITEM",
-          message: `Array item at index ${i} for '${fieldName}' must be ${param.itemType}`,
+          message: `Array item at index ${i} for '${fieldName}' must be ${itemTypeStr}`,
           received: typeof itemVal,
-          expected: param.itemType,
+          expected: itemTypeStr,
         });
       }
       sanitizedItems.push(itemVal);
@@ -227,17 +225,29 @@ export function validateParameter(
   }
 
   if (param.type === "object" && typeof value === "object" && value !== null && !Array.isArray(value) && param.properties) {
+    const propsList: readonly ToolParameter[] = Array.isArray(param.properties)
+      ? (param.properties as readonly ToolParameter[])
+      : Object.entries(param.properties).map(([pName, p]) => ({
+          name: pName,
+          type: p.type as ToolParameterType,
+          description: p.description ?? "",
+          required: p.required,
+          defaultValue: p.defaultValue,
+          enumValues: p.enumValues,
+        }));
     const nestedRes = sanitizeAndValidatePayload(
-      param.properties,
+      propsList,
       value as Record<string, unknown>,
       options,
     );
     if (!nestedRes.valid && nestedRes.errors) {
       for (const nestedErr of nestedRes.errors) {
-        errors.push({
-          ...nestedErr,
-          field: `${fieldName}.${nestedErr.field}`,
-        });
+        if (typeof nestedErr === "object" && nestedErr !== null) {
+          errors.push({
+            ...nestedErr,
+            field: `${fieldName}.${nestedErr.field ?? ""}`,
+          });
+        }
       }
     } else if (nestedRes.sanitized) {
       value = nestedRes.sanitized;
@@ -283,7 +293,9 @@ export function sanitizeAndValidatePayload(
 
   return {
     valid: errors.length === 0,
-    sanitized,
+    safe: errors.length === 0,
     errors,
+    sanitized,
+    sanitizedPayload: sanitized,
   };
 }

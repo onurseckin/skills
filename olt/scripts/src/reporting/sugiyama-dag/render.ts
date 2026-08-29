@@ -44,8 +44,8 @@ export function renderSugiyamaDag(
       : []
     : (graphOrNodes as DirectedGraph).edges;
   const opts: SugiyamaRenderOptions = isArray
-    ? options ?? (!Array.isArray(edgesOrOptions) && typeof edgesOrOptions === "object" ? edgesOrOptions : {})
-    : (typeof edgesOrOptions === "object" && !Array.isArray(edgesOrOptions) ? edgesOrOptions : options ?? {});
+    ? options ?? (!Array.isArray(edgesOrOptions) && typeof edgesOrOptions === "object" && edgesOrOptions !== null ? (edgesOrOptions as SugiyamaRenderOptions) : {})
+    : (typeof edgesOrOptions === "object" && edgesOrOptions !== null && !Array.isArray(edgesOrOptions) ? (edgesOrOptions as SugiyamaRenderOptions) : options ?? {});
 
   const cycleDiagnostic = detectCyclesTarjan(nodes, edges);
   const bypassDiagnostic = detectIllegalBypasses(nodes, edges);

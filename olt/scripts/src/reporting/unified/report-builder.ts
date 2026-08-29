@@ -29,7 +29,7 @@ export function buildUnifiedReport(ctx: ReportContext): UnifiedReportView {
 
 export function generateUnifiedReport(
   runRoot: string,
-  options: { detailed?: boolean } = {},
+  options: { detailed?: boolean | undefined } = {},
 ): UnifiedReport {
   const loaded = loadRun(runRoot);
   const state = loaded.state as unknown as WorkflowState;
