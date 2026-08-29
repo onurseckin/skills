@@ -219,27 +219,25 @@ export function assertNoExplicitUndefinedProperties(
 export function buildSafeAutonomicWatchdogConfig(
   config: Partial<AutonomicWatchdogConfig> = {},
 ): AutonomicWatchdogConfig {
-  const result: Record<string, unknown> = {};
-
-  if (config.heartbeatIntervalMs !== undefined) result.heartbeatIntervalMs = config.heartbeatIntervalMs;
-  if (config.timeoutMs !== undefined) result.timeoutMs = config.timeoutMs;
-  if (config.healthAuditIntervalMs !== undefined) result.healthAuditIntervalMs = config.healthAuditIntervalMs;
-  if (config.processHealthCheckIntervalMs !== undefined) result.processHealthCheckIntervalMs = config.processHealthCheckIntervalMs;
-  if (config.initialStartedAt !== undefined) result.initialStartedAt = config.initialStartedAt;
-  if (config.capsuleRoot !== undefined) result.capsuleRoot = config.capsuleRoot;
-  if (config.generation !== undefined) result.generation = config.generation;
-  if (config.pulseId !== undefined) result.pulseId = config.pulseId;
-  if (config.enforcePreFlightGates !== undefined) result.enforcePreFlightGates = config.enforcePreFlightGates;
-  if (config.processLivenessChecker !== undefined) result.processLivenessChecker = config.processLivenessChecker;
-  if (config.onHeartbeat !== undefined) result.onHeartbeat = config.onHeartbeat;
-  if (config.onHealthAudit !== undefined) result.onHealthAudit = config.onHealthAudit;
-  if (config.onViolation !== undefined) result.onViolation = config.onViolation;
-  if (config.onReactiveWakeup !== undefined) result.onReactiveWakeup = config.onReactiveWakeup;
-  if (config.onIntervalAdjusted !== undefined) result.onIntervalAdjusted = config.onIntervalAdjusted;
-  if (config.adaptive !== undefined) result.adaptive = config.adaptive;
-  if (config.minIntervalMs !== undefined) result.minIntervalMs = config.minIntervalMs;
-
-  return result as AutonomicWatchdogConfig;
+  return {
+    ...(config.heartbeatIntervalMs !== undefined ? { heartbeatIntervalMs: config.heartbeatIntervalMs } : {}),
+    ...(config.timeoutMs !== undefined ? { timeoutMs: config.timeoutMs } : {}),
+    ...(config.healthAuditIntervalMs !== undefined ? { healthAuditIntervalMs: config.healthAuditIntervalMs } : {}),
+    ...(config.processHealthCheckIntervalMs !== undefined ? { processHealthCheckIntervalMs: config.processHealthCheckIntervalMs } : {}),
+    ...(config.initialStartedAt !== undefined ? { initialStartedAt: config.initialStartedAt } : {}),
+    ...(config.capsuleRoot !== undefined ? { capsuleRoot: config.capsuleRoot } : {}),
+    ...(config.generation !== undefined ? { generation: config.generation } : {}),
+    ...(config.pulseId !== undefined ? { pulseId: config.pulseId } : {}),
+    ...(config.enforcePreFlightGates !== undefined ? { enforcePreFlightGates: config.enforcePreFlightGates } : {}),
+    ...(config.processLivenessChecker !== undefined ? { processLivenessChecker: config.processLivenessChecker } : {}),
+    ...(config.onHeartbeat !== undefined ? { onHeartbeat: config.onHeartbeat } : {}),
+    ...(config.onHealthAudit !== undefined ? { onHealthAudit: config.onHealthAudit } : {}),
+    ...(config.onViolation !== undefined ? { onViolation: config.onViolation } : {}),
+    ...(config.onReactiveWakeup !== undefined ? { onReactiveWakeup: config.onReactiveWakeup } : {}),
+    ...(config.onIntervalAdjusted !== undefined ? { onIntervalAdjusted: config.onIntervalAdjusted } : {}),
+    ...(config.adaptive !== undefined ? { adaptive: config.adaptive } : {}),
+    ...(config.minIntervalMs !== undefined ? { minIntervalMs: config.minIntervalMs } : {}),
+  };
 }
 
 /**
@@ -248,16 +246,14 @@ export function buildSafeAutonomicWatchdogConfig(
 export function buildSafeStartActionSpanOptions(
   options: Partial<StartActionSpanOptions> = {},
 ): StartActionSpanOptions {
-  const result: Record<string, unknown> = {};
-
-  if (options.category !== undefined) result.category = options.category;
-  if (options.tier !== undefined) result.tier = options.tier;
-  if (options.startedAt !== undefined) result.startedAt = options.startedAt;
-  if (options.timezone !== undefined) result.timezone = options.timezone;
-  if (options.metadata !== undefined) result.metadata = options.metadata;
-  if (options.expectedStartMs !== undefined) result.expectedStartMs = options.expectedStartMs;
-
-  return result as StartActionSpanOptions;
+  return {
+    ...(options.category !== undefined ? { category: options.category } : {}),
+    ...(options.tier !== undefined ? { tier: options.tier } : {}),
+    ...(options.startedAt !== undefined ? { startedAt: options.startedAt } : {}),
+    ...(options.timezone !== undefined ? { timezone: options.timezone } : {}),
+    ...(options.metadata !== undefined ? { metadata: options.metadata } : {}),
+    ...(options.expectedStartMs !== undefined ? { expectedStartMs: options.expectedStartMs } : {}),
+  };
 }
 
 /**
@@ -266,20 +262,17 @@ export function buildSafeStartActionSpanOptions(
 export function buildSafeSubagentRegistrationOptions(
   options: SubagentRegistrationOptions,
 ): SubagentRegistrationOptions {
-  const result: Record<string, unknown> = {
+  return {
     agentId: options.agentId,
     role: options.role,
+    ...(options.tier !== undefined ? { tier: options.tier } : {}),
+    ...(options.parentAgentId !== undefined ? { parentAgentId: options.parentAgentId } : {}),
+    ...(options.taskId !== undefined ? { taskId: options.taskId } : {}),
+    ...(options.pid !== undefined ? { pid: options.pid } : {}),
+    ...(options.ppid !== undefined ? { ppid: options.ppid } : {}),
+    ...(options.spawnedAt !== undefined ? { spawnedAt: options.spawnedAt } : {}),
+    ...(options.metadata !== undefined ? { metadata: options.metadata } : {}),
   };
-
-  if (options.tier !== undefined) result.tier = options.tier;
-  if (options.parentAgentId !== undefined) result.parentAgentId = options.parentAgentId;
-  if (options.taskId !== undefined) result.taskId = options.taskId;
-  if (options.pid !== undefined) result.pid = options.pid;
-  if (options.ppid !== undefined) result.ppid = options.ppid;
-  if (options.spawnedAt !== undefined) result.spawnedAt = options.spawnedAt;
-  if (options.metadata !== undefined) result.metadata = options.metadata;
-
-  return result as SubagentRegistrationOptions;
 }
 
 /**
@@ -296,18 +289,15 @@ export function buildSafeAgentActivityState(
     lastProcessHealth?: ProcessHealthStatus | undefined;
   },
 ): AgentActivityState {
-  const result: Record<string, unknown> = {
+  return {
     agentId: state.agentId,
     taskId: state.taskId ?? null,
     lastHeartbeatAt: state.lastHeartbeatAt,
     lastActivityAt: state.lastActivityAt,
     status: state.status,
+    ...(state.pid !== undefined ? { pid: state.pid } : {}),
+    ...(state.lastProcessHealth !== undefined ? { lastProcessHealth: state.lastProcessHealth } : {}),
   };
-
-  if (state.pid !== undefined) result.pid = state.pid;
-  if (state.lastProcessHealth !== undefined) result.lastProcessHealth = state.lastProcessHealth;
-
-  return result as AgentActivityState;
 }
 
 /**
@@ -324,18 +314,15 @@ export function buildSafeSubStepTiming(
     details?: Readonly<Record<string, JsonValue>> | undefined;
   },
 ): SubStepTiming {
-  const result: Record<string, unknown> = {
+  return {
     name,
     startedAt,
     status,
+    ...(options?.finishedAt !== undefined ? { finishedAt: options.finishedAt } : {}),
+    ...(options?.durationMs !== undefined ? { durationMs: options.durationMs } : {}),
+    ...(options?.durationFormatted !== undefined ? { durationFormatted: options.durationFormatted } : {}),
+    ...(options?.details !== undefined ? { details: options.details } : {}),
   };
-
-  if (options?.finishedAt !== undefined) result.finishedAt = options.finishedAt;
-  if (options?.durationMs !== undefined) result.durationMs = options.durationMs;
-  if (options?.durationFormatted !== undefined) result.durationFormatted = options.durationFormatted;
-  if (options?.details !== undefined) result.details = options.details;
-
-  return result as SubStepTiming;
 }
 
 // ---------------------------------------------------------------------------
