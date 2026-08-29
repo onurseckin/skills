@@ -222,6 +222,7 @@ export function validateCategory(val: unknown): FeedbackCategory {
     if (upper === "GOVERNANCE") return "GOVERNANCE";
     if (upper === "ORCHESTRATION") return "ORCHESTRATION";
     if (upper === "AUDITING") return "AUDITING";
+    if (upper === "NOTIFICATION" || upper === "NOTIFICATIONS") return "CLI_TOOLING";
   }
   throw new HarnessError("INTEGRITY", "Feedback item requires valid category");
 }

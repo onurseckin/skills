@@ -843,11 +843,15 @@ export function extractImportEntries(source: string): readonly ImportEntry[] {
     }
   }
 
-  // Also handle multiline imports by joining multi-line blocks
+  // Also handle multiline imports by joining multi-line blocks with comments stripped
+  const cleanedSource = source
+    .replace(/\/\*[\s\S]*?\*\//gu, (m) => "\n".repeat(m.split("\n").length - 1))
+    .replace(/^\s*\/\/.*$/gmu, "");
+
   const fullBlockRegex =
     /(?:export\s+)?import\s+(?:type\s+)?(?:\{[^}]*\}|[\w$,\s*]+)\s+from\s+["']([^"']+)["']/gu;
   let fullMatch: RegExpExecArray | null = null;
-  while ((fullMatch = fullBlockRegex.exec(source)) !== null) {
+  while ((fullMatch = fullBlockRegex.exec(cleanedSource)) !== null) {
     const spec = fullMatch[1];
     if (spec && !entries.some((e) => e.specifier === spec)) {
       const offset = fullMatch.index;

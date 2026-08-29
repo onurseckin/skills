@@ -47,9 +47,7 @@ describe("Task 1.7: defect-living-tracer-unresolved-replay-context", () => {
     expect(CANONICAL_LIVING_TRACER_INDEX_PATH).toBe(
       "olt/scripts/src/reporting/living-tracer/index.ts",
     );
-    expect(CANONICAL_LIVING_TRACER_DIR).toBe(
-      "olt/scripts/src/reporting/living-tracer",
-    );
+    expect(CANONICAL_LIVING_TRACER_DIR).toBe("olt/scripts/src/reporting/living-tracer");
 
     expect(Array.isArray(KNOWN_LIVING_TRACER_CORE_FILES)).toBe(true);
     expect(KNOWN_LIVING_TRACER_CORE_FILES.length).toBeGreaterThanOrEqual(4);
@@ -282,9 +280,7 @@ describe("Task 1.7: defect-living-tracer-unresolved-replay-context", () => {
     expect(transitionsVal.roleVariableDeclared).toBe(true);
     expect(transitionsVal.issueCount).toBe(0);
 
-    const typesVal = validateLivingTracerTaskTransitions(
-      CANONICAL_LIVING_TRACER_TYPES_PATH,
-    );
+    const typesVal = validateLivingTracerTaskTransitions(CANONICAL_LIVING_TRACER_TYPES_PATH);
     expect(typesVal.valid).toBe(true);
     expect(typesVal.replayContextExported).toBe(true);
     expect(typesVal.issueCount).toBe(0);
@@ -317,7 +313,9 @@ describe("Task 1.7: defect-living-tracer-unresolved-replay-context", () => {
     });
     expect(badTypesVal.valid).toBe(false);
     expect(badTypesVal.replayContextExported).toBe(false);
-    expect(badTypesVal.issues.some((i) => i.message.includes("export of 'ReplayContext'"))).toBe(true);
+    expect(badTypesVal.issues.some((i) => i.message.includes("export of 'ReplayContext'"))).toBe(
+      true,
+    );
   });
 
   test("9. auditLivingTracerTaskStateTransitions audits repository tree successfully", () => {

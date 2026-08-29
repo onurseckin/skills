@@ -69,10 +69,14 @@ export const ERROR_CODE = "UNEXPORTED_MEMBER_IMPORT" as const;
 export const UNEXPORTED_MEMBER_IMPORT = "UNEXPORTED_MEMBER_IMPORT" as const;
 export const TARGET_MEMBER = "ReplayContext" as const;
 
-export const CANONICAL_LIVING_TRACER_TYPES_PATH = "olt/scripts/src/reporting/living-tracer/types.ts" as const;
-export const CANONICAL_LIVING_TRACER_TRANSITIONS_PATH = "olt/scripts/src/reporting/living-tracer/task-state-transitions.ts" as const;
-export const CANONICAL_LIVING_TRACER_REPLAYER_PATH = "olt/scripts/src/reporting/living-tracer/event-replayer.ts" as const;
-export const CANONICAL_LIVING_TRACER_INDEX_PATH = "olt/scripts/src/reporting/living-tracer/index.ts" as const;
+export const CANONICAL_LIVING_TRACER_TYPES_PATH =
+  "olt/scripts/src/reporting/living-tracer/types.ts" as const;
+export const CANONICAL_LIVING_TRACER_TRANSITIONS_PATH =
+  "olt/scripts/src/reporting/living-tracer/task-state-transitions.ts" as const;
+export const CANONICAL_LIVING_TRACER_REPLAYER_PATH =
+  "olt/scripts/src/reporting/living-tracer/event-replayer.ts" as const;
+export const CANONICAL_LIVING_TRACER_INDEX_PATH =
+  "olt/scripts/src/reporting/living-tracer/index.ts" as const;
 export const CANONICAL_LIVING_TRACER_DIR = "olt/scripts/src/reporting/living-tracer" as const;
 
 export const KNOWN_LIVING_TRACER_CORE_FILES: readonly string[] = Object.freeze([
@@ -204,16 +208,12 @@ export interface CreateLivingTracerDefectOptions {
 /**
  * Creates a clean, typed initial ReplayContext for event telemetry folding.
  */
-export function createInitialReplayContext(
-  overrides?: Partial<ReplayContext>,
-): ReplayContext {
+export function createInitialReplayContext(overrides?: Partial<ReplayContext>): ReplayContext {
   return {
     taskMap: overrides?.taskMap ?? new Map<string, DynamicTaskState>(),
     agentMap: overrides?.agentMap ?? new Map<string, ActiveAgentState>(),
     branches: overrides?.branches ?? new Set<string>(),
-    sproutedRepairPairs: overrides?.sproutedRepairPairs
-      ? [...overrides.sproutedRepairPairs]
-      : [],
+    sproutedRepairPairs: overrides?.sproutedRepairPairs ? [...overrides.sproutedRepairPairs] : [],
     revision: overrides?.revision ?? 0,
     maxRoundReached: overrides?.maxRoundReached ?? 1,
   };
@@ -222,9 +222,7 @@ export function createInitialReplayContext(
 /**
  * Creates a sample DynamicTaskState with sensible defaults and override options.
  */
-export function createSampleDynamicTask(
-  overrides?: Partial<DynamicTaskState>,
-): DynamicTaskState {
+export function createSampleDynamicTask(overrides?: Partial<DynamicTaskState>): DynamicTaskState {
   return {
     id: overrides?.id ?? "task-001",
     label: overrides?.label ?? "Sample Task",
@@ -322,7 +320,8 @@ export function verifyReplayContextAndTransitions(
     });
     handleTaskStateTransition(testTask, testTask.id, claimEv, ctx);
     const afterClaim = ctx.taskMap.get("task-verify-1");
-    const claimSuccess = afterClaim?.status === "leased" && afterClaim?.assignedAgent === "worker-agent";
+    const claimSuccess =
+      afterClaim?.status === "leased" && afterClaim?.assignedAgent === "worker-agent";
 
     // 2. Tool exec transition
     const toolEv = createSampleEventTransitionData({
@@ -336,7 +335,8 @@ export function verifyReplayContextAndTransitions(
       handleTaskStateTransition(afterClaim, "task-verify-1", toolEv, ctx);
     }
     const afterTool = ctx.taskMap.get("task-verify-1");
-    const toolSuccess = afterTool?.status === "in_progress" && afterTool?.activeTool === "edit_file";
+    const toolSuccess =
+      afterTool?.status === "in_progress" && afterTool?.activeTool === "edit_file";
 
     // 3. Gate prove transition
     const gateEv = createSampleEventTransitionData({
@@ -584,8 +584,7 @@ export function validateLivingTracerTaskTransitions(
     // If the file uses `role ?` or `role:` but does not extract `role` from `evData`, flag it
     const usesRole = /\brole\s*\?|\brole\s*:/.test(content);
     const extractsRole =
-      /const\s*\{[^}]*\brole\b[^}]*\}\s*=\s*evData/.test(content) ||
-      /evData\.role/.test(content);
+      /const\s*\{[^}]*\brole\b[^}]*\}\s*=\s*evData/.test(content) || /evData\.role/.test(content);
 
     if (usesRole && !extractsRole) {
       roleVariableDeclared = false;
@@ -687,19 +686,16 @@ export function remediateLivingTracerTaskTransitions(sourceCode: string): string
     /const\s*\{([^}]+)\}\s*=\s*evData;/.test(code) &&
     !/const\s*\{[^}]*\brole\b[^}]*\}\s*=\s*evData;/.test(code)
   ) {
-    code = code.replace(
-      /const\s*\{([^}]+)\}\s*=\s*evData;/,
-      (fullMatch, clause: string) => {
-        const items = clause
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-        if (!items.includes("role")) {
-          items.push("role");
-        }
-        return `const {\n    ${items.join(",\n    ")},\n  } = evData;`;
-      },
-    );
+    code = code.replace(/const\s*\{([^}]+)\}\s*=\s*evData;/, (fullMatch, clause: string) => {
+      const items = clause
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (!items.includes("role")) {
+        items.push("role");
+      }
+      return `const {\n    ${items.join(",\n    ")},\n  } = evData;`;
+    });
   }
 
   return code;
@@ -832,7 +828,8 @@ export function createLivingTracerDefectProof(
     explanation:
       "Successfully remediated missing export 'ReplayContext' in reporting/living-tracer/types.ts and ensured complete type safety and valid state transitions across task-state-transitions.ts.",
     verified: isResolved,
-    empirical_command: "bun test tests/unit/tooling/defect-living-tracer-unresolved-replay-context.test.ts",
+    empirical_command:
+      "bun test tests/unit/tooling/defect-living-tracer-unresolved-replay-context.test.ts",
   };
 }
 
@@ -844,7 +841,8 @@ export function createLivingTracerDefectEntry(
 ): DefectEntry {
   const issues = options.issues ?? [];
   const firstIssue = issues[0];
-  const filePath = options.filePath ?? firstIssue?.filePath ?? CANONICAL_LIVING_TRACER_TRANSITIONS_PATH;
+  const filePath =
+    options.filePath ?? firstIssue?.filePath ?? CANONICAL_LIVING_TRACER_TRANSITIONS_PATH;
 
   return {
     id: options.id ?? `${DEFECT_REF}-${Date.now()}`,
@@ -879,7 +877,8 @@ export function createLivingTracerDefectEntry(
       test_assertion: "expect(auditLivingTracerTaskStateTransitions().resolved).toBeTrue()",
       resolved_at: options.timestamp ?? new Date().toISOString(),
       verified: true,
-      empirical_command: "bun test tests/unit/tooling/defect-living-tracer-unresolved-replay-context.test.ts",
+      empirical_command:
+        "bun test tests/unit/tooling/defect-living-tracer-unresolved-replay-context.test.ts",
     },
     timestamp: options.timestamp ?? new Date().toISOString(),
   };
