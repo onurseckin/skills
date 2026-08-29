@@ -179,6 +179,9 @@ export function parsePayloadStringArray(
 ): readonly string[] {
   if (!payload || typeof payload !== "object") return [];
   const val = payload[key];
+  if (typeof val === "string" && val.trim().length > 0) {
+    return [val.trim()];
+  }
   if (Array.isArray(val) && val.every((item) => typeof item === "string")) {
     return val as readonly string[];
   }
