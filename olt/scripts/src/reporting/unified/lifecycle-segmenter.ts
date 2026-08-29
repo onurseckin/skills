@@ -1,6 +1,3 @@
-/**
- * Lifecycle Segmentation & Agent Matrix Processor for Unified Run Reports
- */
 import {
   agentIdToRole,
   agentIdToTier,

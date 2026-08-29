@@ -1,6 +1,3 @@
-/**
- * Sugiyama DAG Visual Renderer & Report Builder Subsystem
- */
 import { countLayerCrossings, minimizeCrossingsBarycenter } from "./crossing.ts";
 import { assignSugiyamaRanks } from "./ranking.ts";
 import { renderRoundedNodeBox, renderSugiyamaNodeBox } from "./render-box.ts";
@@ -14,6 +11,7 @@ import {
 import type {
   BypassDiagnostic,
   CycleDiagnostic,
+  DirectedGraph,
   SugiyamaDagReport,
   SugiyamaEdge,
   SugiyamaLayer,
@@ -25,19 +23,10 @@ import type {
 
 export { renderRoundedNodeBox, renderSugiyamaNodeBox } from "./render-box.ts";
 
-/**
- * Builds and renders the full Sugiyama DAG layout with orthogonal routing and diagnostics.
- * Executes the complete 5-stage Sugiyama layout pipeline:
- * 1. Cycle & Bypass Detection / FAS Inversion (Tarjan SCC)
- * 2. Layer Ranking & Coffman-Graham Width Bounding
- * 3. Barycentric Crossing Minimization (4-pass heuristic)
- * 4. Orthogonal Connector Routing
- * 5. Uniform Badged Node Box Rendering
- */
 export function renderSugiyamaDag(
-  nodes: readonly SugiyamaNode[],
-  edges: readonly SugiyamaEdge[],
-  options: SugiyamaRenderOptions = {},
+  graphOrNodes: DirectedGraph | readonly SugiyamaNode[],
+  edgesOrOptions?: readonly SugiyamaEdge[] | SugiyamaRenderOptions,
+  options?: SugiyamaRenderOptions,
 ): {
   renderedDag: string;
   layers: readonly SugiyamaLayer[];
@@ -45,6 +34,19 @@ export function renderSugiyamaDag(
   cycleDiagnostic: CycleDiagnostic;
   bypassDiagnostic: BypassDiagnostic;
 } {
+  const isArray = Array.isArray(graphOrNodes);
+  const nodes: readonly SugiyamaNode[] = isArray
+    ? (graphOrNodes as readonly SugiyamaNode[])
+    : (graphOrNodes as DirectedGraph).nodes;
+  const edges: readonly SugiyamaEdge[] = isArray
+    ? Array.isArray(edgesOrOptions)
+      ? (edgesOrOptions as readonly SugiyamaEdge[])
+      : []
+    : (graphOrNodes as DirectedGraph).edges;
+  const opts: SugiyamaRenderOptions = isArray
+    ? options ?? (!Array.isArray(edgesOrOptions) && typeof edgesOrOptions === "object" ? edgesOrOptions : {})
+    : (typeof edgesOrOptions === "object" && !Array.isArray(edgesOrOptions) ? edgesOrOptions : options ?? {});
+
   const cycleDiagnostic = detectCyclesTarjan(nodes, edges);
   const bypassDiagnostic = detectIllegalBypasses(nodes, edges);
 
@@ -59,16 +61,14 @@ export function renderSugiyamaDag(
     };
   }
 
-  // Stage 1: FAS Inversion & Acyclic Edge Set
   const { feedbackArcs, acyclicEdges } = extractFeedbackArcSet(nodes, edges);
-  const invertedEdges = reverseCycleEdges(edges, feedbackArcs);
+  reverseCycleEdges(edges, feedbackArcs);
 
-  // Stage 2: Longest-path & Coffman-Graham Width Bounded Layer Assignment
   const rankMap = assignSugiyamaRanks(
     nodes,
     acyclicEdges,
     cycleDiagnostic.cycleNodeIds,
-    options.maxWidth,
+    opts.maxWidth,
   );
   const maxRank = Math.max(0, ...[...rankMap.values()]);
 
@@ -91,11 +91,10 @@ export function renderSugiyamaDag(
     if (nodesInRank.length > 0) initialLayers.push({ rank: r, nodes: nodesInRank });
   }
 
-  // Stage 3: Barycentric Crossing Minimization (4-pass heuristic)
   const optimizedLayers = minimizeCrossingsBarycenter(
     initialLayers,
     acyclicEdges,
-    options.passes ?? 4,
+    opts.passes ?? 4,
   );
   const flatRankedNodes = optimizedLayers.flatMap((l) => l.nodes);
   const lines: string[] = [];
@@ -121,7 +120,6 @@ export function renderSugiyamaDag(
   const cycleSet = new Set(cycleDiagnostic.cycleNodeIds);
   const bypassSet = new Set(bypassDiagnostic.bypasses.map((b) => b.to));
 
-  // Stages 4 & 5: Node Box Rendering & Orthogonal Connector Routing
   for (let lIdx = 0; lIdx < optimizedLayers.length; lIdx++) {
     const layer = optimizedLayers[lIdx];
     if (!layer) continue;
@@ -146,9 +144,9 @@ export function renderSugiyamaDag(
 
       lines.push(
         ...renderSugiyamaNodeBox(task, {
-          detailed: options.detailed,
-          boxStyle: options.boxStyle,
-          boxWidth: options.minBoxWidth ?? 63,
+          detailed: opts.detailed,
+          boxStyle: opts.boxStyle,
+          boxWidth: opts.minBoxWidth ?? 63,
           isCycle: cycleSet.has(task.id),
           isBypass: bypassSet.has(task.id),
         }),
@@ -172,9 +170,6 @@ export function renderSugiyamaDag(
   };
 }
 
-/**
- * Builds the complete Sugiyama DAG Report including markdown formatting and metrics.
- */
 export function generateSugiyamaDagReport(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],
@@ -274,9 +269,6 @@ export function generateSugiyamaDagReport(
   };
 }
 
-/**
- * Backward compatibility alias for generateSugiyamaDagReport.
- */
 export function buildSugiyamaDagReport(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],

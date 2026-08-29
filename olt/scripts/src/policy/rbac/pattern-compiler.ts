@@ -20,7 +20,6 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
 
   let patterns: RegExp[];
 
-  // Cognitive Validators: Hard-lock matches everything (0 commands allowed)
   if (
     normalizedRole === "validator" ||
     normalizedRole === "cognitive-validator" ||
@@ -36,10 +35,7 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
     normalizedRole === "sub_investigator"
   ) {
     patterns = [/.*/];
-  }
-
-  // Supervisors
-  else if (
+  } else if (
     normalizedRole === "mind" ||
     normalizedRole === "orchestrator" ||
     normalizedRole === "coordinator" ||
@@ -57,10 +53,7 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
       }
     }
     patterns = supervisorPatterns;
-  }
-
-  // Mechanic Validators: Can run typechecks, AST static audits, tests; cannot mutate git or source files
-  else if (
+  } else if (
     normalizedRole === "mechanic-validator" ||
     normalizedRole === "mechanic_validator" ||
     normalizedRole === "sub-validator" ||
@@ -72,10 +65,7 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
       /^bun\s+harness.*task:review/i,
       /^bun\s+harness.*run:complete/i,
     ];
-  }
-
-  // Implementers / Repairers / Workers
-  else {
+  } else {
     const implementerPatterns: RegExp[] = [...STATIC_IMPLEMENTER_FORBIDDEN_PATTERNS];
 
     if (policy?.forbidden_commands) {

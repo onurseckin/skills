@@ -1,7 +1,3 @@
-/**
- * Sugiyama Orthogonal Routing Engine
- * Renders orthogonal ASCII / Unicode grid routes and connectors between waves and lanes.
- */
 import type {
   OrthogonalRouteSegment,
   SugiyamaEdge,
@@ -35,9 +31,6 @@ const BOX_GLYPHS: Readonly<Record<number, string>> = {
   15: "┼",
 };
 
-/**
- * Builds routing segments for edges traversing layers.
- */
 export function buildOrthogonalRouteSegments(
   edges: readonly SugiyamaEdge[],
   nodeMap: ReadonlyMap<string, SugiyamaRankedNode>,
@@ -62,10 +55,6 @@ export function buildOrthogonalRouteSegments(
   return segments;
 }
 
-/**
- * Renders orthogonal Unicode box-drawing connectors between adjacent Sugiyama layers.
- * Supports direct downward flows, fan-out buses, fan-in buses, and cross-lane junctions.
- */
 export function renderOrthogonalConnectors(
   fromLayer: SugiyamaLayer,
   toLayer: SugiyamaLayer,
@@ -87,7 +76,6 @@ export function renderOrthogonalConnectors(
     return [`${" ".repeat(indent)}│`, `${" ".repeat(indent)}▼`];
   }
 
-  // 1-to-1 direct downward connector
   if (fromNodes.length === 1 && toNodes.length === 1) {
     return [`${" ".repeat(indent)}│`, `${" ".repeat(indent)}▼`];
   }
@@ -100,7 +88,6 @@ export function renderOrthogonalConnectors(
   const toColMap = new Map<string, number>();
 
   if (numFrom === 1 && numTo > 1) {
-    // Fan-out: center single source over targets
     const startCol = Math.max(0, indent - Math.floor(((numTo - 1) * step) / 2));
     for (let j = 0; j < numTo; j++) {
       const node = toNodes[j];
@@ -112,7 +99,6 @@ export function renderOrthogonalConnectors(
     const sourceNode = fromNodes[0];
     if (sourceNode) fromColMap.set(sourceNode.id, centerCol);
   } else if (numFrom > 1 && numTo === 1) {
-    // Fan-in: center single target under sources
     const startCol = Math.max(0, indent - Math.floor(((numFrom - 1) * step) / 2));
     for (let i = 0; i < numFrom; i++) {
       const node = fromNodes[i];
@@ -124,7 +110,6 @@ export function renderOrthogonalConnectors(
     const targetNode = toNodes[0];
     if (targetNode) toColMap.set(targetNode.id, centerCol);
   } else {
-    // Multi-to-multi (parallel lanes or cross-lane junctions)
     const maxCount = Math.max(numFrom, numTo);
     const startCol = Math.max(0, indent - Math.floor(((maxCount - 1) * step) / 2));
     for (let i = 0; i < numFrom; i++) {
@@ -205,9 +190,6 @@ export function renderOrthogonalConnectors(
   return [line1, line2, line3];
 }
 
-/**
- * Renders inter-wave orthogonal connector lines between layers.
- */
 export function renderInterWaveConnector(
   fromLayer: SugiyamaLayer,
   toLayer: SugiyamaLayer,
@@ -217,9 +199,6 @@ export function renderInterWaveConnector(
   return renderOrthogonalConnectors(fromLayer, toLayer, edges, indent);
 }
 
-/**
- * Renders intra-wave parallel lane separator.
- */
 export function renderLaneSeparator(indent = 30): string[] {
   const padding = " ".repeat(Math.max(0, indent - 6));
   return [

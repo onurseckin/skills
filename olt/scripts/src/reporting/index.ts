@@ -30,6 +30,7 @@ export * from "./dag-view.ts";
 export * from "./socratic-validator.ts";
 export * from "./lease-agent-extractor.ts";
 export * from "./unified/index.ts";
+export * from "./dag-exporters/index.ts";
 export {
   buildPhaseNotificationPayload,
   DEFAULT_DARWIN_NOTIFICATION_SOUND,

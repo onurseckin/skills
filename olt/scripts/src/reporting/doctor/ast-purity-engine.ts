@@ -15,15 +15,10 @@ export interface AstPurityCheckOptions {
   readonly fileContents?: Readonly<Record<string, string>> | undefined;
 }
 
-/**
- * Scans a TypeScript file's content using native TypeScript Compiler AST tokenization.
- * Ignores string literals, template literals, and regex literals to ensure 0 false positives.
- */
 export function scanFileForAstPurity(filePath: string, content: string): AstPurityFinding[] {
   const sourceFile = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true);
   const findings: AstPurityFinding[] = [];
 
-  // 1. Scan actual comment ranges for compiler suppression directives (ignore / expect-error)
   const commentScanner = ts.createScanner(
     ts.ScriptTarget.Latest,
     false,
@@ -59,7 +54,6 @@ export function scanFileForAstPurity(filePath: string, content: string): AstPuri
     token = commentScanner.scan();
   }
 
-  // 2. Walk AST for AnyKeyword and type assertions
   function visit(node: ts.Node): void {
     if (
       ts.isStringLiteral(node) ||
@@ -97,10 +91,6 @@ export function scanFileForAstPurity(filePath: string, content: string): AstPuri
   return findings;
 }
 
-/**
- * Engine 2: checkAstPurity
- * Scans TypeScript files using AST tokenization for @ts-ignore, @ts-expect-error, and any usages.
- */
 export function checkAstPurity(options: AstPurityCheckOptions = {}): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
 
@@ -122,7 +112,6 @@ export function checkAstPurity(options: AstPurityCheckOptions = {}): DoctorCheck
     }
   }
 
-  // 1. If explicit fileContents provided
   if (options.fileContents) {
     for (const [path, content] of Object.entries(options.fileContents)) {
       recordFindings(scanFileForAstPurity(path, content));
@@ -134,7 +123,6 @@ export function checkAstPurity(options: AstPurityCheckOptions = {}): DoctorCheck
     };
   }
 
-  // 2. If writeScope provided
   if (options.writeScope && options.writeScope.length > 0) {
     for (const relPath of options.writeScope) {
       const fullPath = options.repoRoot ? resolve(options.repoRoot, relPath) : resolve(relPath);
@@ -146,7 +134,6 @@ export function checkAstPurity(options: AstPurityCheckOptions = {}): DoctorCheck
             recordFindings(scanFileForAstPurity(relPath, content));
           }
         } catch {
-          // File read error ignored
         }
       }
     }

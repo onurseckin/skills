@@ -34,7 +34,6 @@ export function planWaveExecution(tasks: readonly SmartTaskPlan[]): SmartWavePla
     taskMap.set(t.id, t);
   }
 
-  // Compute depth for each task based on dependencies, checking for cycles
   const depthMap = new Map<string, number>();
 
   function getDepth(taskId: string, visiting: Set<string>): number {
@@ -72,7 +71,6 @@ export function planWaveExecution(tasks: readonly SmartTaskPlan[]): SmartWavePla
     getDepth(task.id, new Set());
   }
 
-  // Group tasks by dependency depth
   const depthWaveMap = new Map<number, SmartTaskPlan[]>();
   for (const task of tasks) {
     const depth = depthMap.get(task.id) ?? 1;
@@ -144,9 +142,6 @@ export function planWaveExecution(tasks: readonly SmartTaskPlan[]): SmartWavePla
   };
 }
 
-/**
- * Evaluates hierarchy scaling for an array of smart task plans.
- */
 export function evaluateSmartHierarchy(
   tasks: readonly SmartTaskPlan[],
   options: {
@@ -163,9 +158,6 @@ export function evaluateSmartHierarchy(
   });
 }
 
-/**
- * Plans multi-coordinator partitions across an entire SmartWavePlanResult.
- */
 export function planMultiCoordinatorWaves(
   wavePlan: SmartWavePlanResult,
   options: MultiCoordinatorPartitionOptions = {},
@@ -179,10 +171,6 @@ export function planMultiCoordinatorWaves(
     }),
   );
 }
-
-/**
- * Compiles an array of SmartTaskPlans into ordered execution waves with disjoint write scopes.
- */
 
 export function compileSmartTasksToWavePlan(tasks: readonly SmartTaskPlan[]): SmartWavePlanResult {
   return planWaveExecution(tasks);

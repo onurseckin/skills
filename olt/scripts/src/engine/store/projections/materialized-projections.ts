@@ -74,8 +74,6 @@ export function materializedProjections(state: RunState): readonly MaterializedP
 }
 
 export function materializeProjections(runRoot: string, state: RunState): void {
-  // The event-chain state is the only source of truth.  Never inspect an existing
-  // derived file to decide what to write; only use it as a link-safety guard.
   safeRoot(runRoot);
   for (const projection of materializedProjections(state)) {
     const path = join(runRoot, projection.path);

@@ -85,7 +85,6 @@ export async function streamEventsCommand(
 
   const ndjsonContent = formatEventsToNdjsonStream(matchingEvents);
 
-  // Markdown formatting
   const mdLines: string[] = [
     `### Event Stream: \`${streamResult.runId}\``,
     `- **Run Root**: \`${streamResult.runRoot}\``,

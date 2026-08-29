@@ -1,17 +1,5 @@
-/**
- * Sugiyama Layered Ranking & Coffman-Graham Width Bounding Engine
- * Computes topological / longest-path rank levels and width-bounded layer schedules.
- * Strictly 0 any and strictly typed.
- */
 import type { SugiyamaEdge, SugiyamaNode } from "./types.ts";
 
-/**
- * Computes deterministic lexicographical labels lambda(v) in {1, ..., |V|} for Coffman-Graham scheduling.
- * Sinks (nodes with no successors) are labeled first.
- * For each eligible candidate node (all successors already labeled), its successor labels are sorted descending,
- * and the candidate with the lexicographically smallest list is chosen next.
- * Ties are broken deterministically by node ID.
- */
 export function computeLexicographicLabels(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],
@@ -88,7 +76,6 @@ export function computeLexicographicLabels(
       }
     }
 
-    // In case of cycles, fallback to remaining unassigned nodes
     const pool = eligible.length > 0 ? eligible : [...unassigned];
     pool.sort(compareLexicographic);
 
@@ -102,14 +89,10 @@ export function computeLexicographicLabels(
   return labelMap;
 }
 
-/**
- * Partitions nodes into discrete layers bounded by maxWidth (default: 4),
- * guaranteeing |L_k| <= maxWidth and for all edges (u, v), layer(v) > layer(u).
- */
 export function boundLayerWidthCoffmanGraham(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],
-  maxWidth: number = 4,
+  maxWidth = 4,
 ): Map<string, number> {
   const rankMap = new Map<string, number>();
   if (nodes.length === 0) {
@@ -139,7 +122,6 @@ export function boundLayerWidthCoffmanGraham(
 
   const labels = computeLexicographicLabels(nodes, edges);
 
-  // Consider vertices in decreasing order of their labels lambda(v)
   const sortedNodes = [...nodes].sort((a, b) => {
     const lA = labels.get(a.id) ?? 0;
     const lB = labels.get(b.id) ?? 0;
@@ -172,11 +154,6 @@ export function boundLayerWidthCoffmanGraham(
   return rankMap;
 }
 
-/**
- * Step 1: Assign nodes to discrete rank layers.
- * If maxWidth is provided, applies Coffman-Graham width bounding;
- * otherwise computes topological longest-path leveling.
- */
 export function assignSugiyamaRanks(
   nodes: readonly SugiyamaNode[],
   edges: readonly SugiyamaEdge[],
@@ -185,7 +162,6 @@ export function assignSugiyamaRanks(
 ): Map<string, number> {
   const cycleSet = new Set<string>(cycleNodeIds);
 
-  // Filter out cycle back-edges to calculate ranks safely
   const acyclicEdges = edges.filter(
     (e) => !cycleSet.has(e.from) || !cycleSet.has(e.to) || e.from === e.to,
   );
@@ -196,7 +172,6 @@ export function assignSugiyamaRanks(
 
   const rankMap = new Map<string, number>();
 
-  // In-degree computation
   const inDegree = new Map<string, number>();
   const outgoing = new Map<string, string[]>();
   for (const n of nodes) {
@@ -223,7 +198,8 @@ export function assignSugiyamaRanks(
 
   const visited = new Set<string>();
   while (queue.length > 0) {
-    const curr = queue.shift()!;
+    const curr = queue.shift();
+    if (curr === undefined) break;
     visited.add(curr);
     const currRank = rankMap.get(curr) ?? 0;
     const children = outgoing.get(curr) ?? [];
@@ -241,7 +217,6 @@ export function assignSugiyamaRanks(
     }
   }
 
-  // Handle any remaining nodes in cycles or disconnected components
   for (const n of nodes) {
     if (!visited.has(n.id)) {
       let maxParentRank = -1;

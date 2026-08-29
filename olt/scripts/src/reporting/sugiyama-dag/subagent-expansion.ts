@@ -1,58 +1,31 @@
-/**
- * Sugiyama Subagent Expansion & Visual Badges Engine
- * Handles implementer-validator allocations, coordinate formatting, and hierarchical subagent nesting.
- */
-import type { SugiyamaNode, SugiyamaNodeBadge, SugiyamaSubtask } from "./types.ts";
+import type {
+  SubagentNode,
+  SugiyamaDag,
+  SugiyamaNode,
+  SugiyamaNodeBadge,
+  SugiyamaSubtask,
+} from "./types.ts";
 
-/**
- * Returns a single Unicode glyph for task lifecycle status.
- * Covers glyph badges (●, ✓, ⏳, ✗, 🔍, ⟳, 🔄, 🟣, ○).
- */
 export function getNodeStatusGlyph(status: string, hasDeps = false): string {
   const s = status.toLowerCase();
-  if (s === "pass" || s === "done" || s === "satisfied" || s === "passed" || s === "completed")
-    return "✓";
+  if (s === "pass" || s === "done" || s === "satisfied" || s === "passed" || s === "completed") return "✓";
   if (s === "active" || s === "leased" || s === "running" || s === "in_progress") return "●";
   if (s === "probing" || s === "probe" || s === "investigating") return "🔍";
-  if (s === "repairing" || s === "repair" || s === "remediation" || s === "changes_requested")
-    return "⟳";
+  if (s === "repairing" || s === "repair" || s === "remediation" || s === "changes_requested") return "⟳";
   if (s === "validating") return "🔄";
   if (s === "validated") return "🟣";
   if (s === "ready" || s === "retry_ready") return "○";
   if (s === "failed" || s === "rejected" || s === "escalated" || s === "error") return "✗";
-  if (s === "draft") return hasDeps ? "⏳" : "○";
-  return "⏳";
+  return s === "draft" ? (hasDeps ? "⏳" : "○") : "⏳";
 }
 
-/**
- * Formats structured operational badges: [I: <id>], [V: <id>], [C: <id>], [R<round> P<probe>], W:<work> S:<span>.
- */
 export function formatNodeBadges(task: SugiyamaNode): string {
   const parts: string[] = [];
-  const badge =
-    "badge" in task && typeof task.badge === "object" && task.badge !== null
-      ? (task.badge as SugiyamaNodeBadge)
-      : undefined;
-
+  const badge = "badge" in task && typeof task.badge === "object" && task.badge !== null ? (task.badge as SugiyamaNodeBadge) : undefined;
   const role = task.assignedRole?.toLowerCase();
-  const implementerId =
-    task.implementerAgent?.trim() ||
-    badge?.implementerId?.trim() ||
-    (role !== "validator" && role !== "coordinator" ? task.assignedAgent?.trim() : undefined) ||
-    undefined;
-
-  const validatorId =
-    task.validatorAgent?.trim() ||
-    task.validatorId?.trim() ||
-    badge?.validatorId?.trim() ||
-    (role === "validator" ? task.assignedAgent?.trim() : undefined) ||
-    undefined;
-
-  const coordinatorId =
-    task.coordinatorId?.trim() ||
-    badge?.coordinatorId?.trim() ||
-    (role === "coordinator" ? task.assignedAgent?.trim() : undefined) ||
-    undefined;
+  const implementerId = task.implementerAgent?.trim() || badge?.implementerId?.trim() || (role !== "validator" && role !== "coordinator" ? task.assignedAgent?.trim() : undefined) || undefined;
+  const validatorId = task.validatorAgent?.trim() || task.validatorId?.trim() || badge?.validatorId?.trim() || (role === "validator" ? task.assignedAgent?.trim() : undefined) || undefined;
+  const coordinatorId = task.coordinatorId?.trim() || badge?.coordinatorId?.trim() || (role === "coordinator" ? task.assignedAgent?.trim() : undefined) || undefined;
 
   if (implementerId) parts.push(`[I: ${implementerId}]`);
   if (validatorId) parts.push(`[V: ${validatorId}]`);
@@ -69,27 +42,12 @@ export function formatNodeBadges(task: SugiyamaNode): string {
     parts.push(`[P${probeRound}]`);
   }
 
-  const work =
-    typeof task.effort === "number"
-      ? task.effort
-      : typeof badge?.effort === "number"
-        ? badge.effort
-        : 1;
-
-  const span =
-    typeof task.criticalDepth === "number"
-      ? task.criticalDepth + 1
-      : typeof badge?.span === "number"
-        ? badge.span
-        : 1;
-
+  const work = typeof task.effort === "number" ? task.effort : typeof badge?.effort === "number" ? badge.effort : 1;
+  const span = typeof task.criticalDepth === "number" ? task.criticalDepth + 1 : typeof badge?.span === "number" ? badge.span : 1;
   parts.push(`W:${work} S:${span}`);
   return parts.join(" ");
 }
 
-/**
- * Returns live status badge and glyph.
- */
 export function getStatusBadge(status: string, hasDeps = false): string {
   const s = status.toLowerCase();
   if (s === "pass") return "✓ PASS";
@@ -112,31 +70,20 @@ export function getStatusGlyph(status: string, hasDeps = false): string {
   return `(${getStatusBadge(status, hasDeps)})`;
 }
 
-/**
- * Returns boxed bracket status badges for dynamic DAG visualization.
- */
 export function formatStatusBadge(status: string, hasDeps = false): string {
   const s = status.toLowerCase();
-  if (s === "active" || s === "leased" || s === "running" || s === "in_progress")
-    return "[● ACTIVE]";
-  if (s === "pass" || s === "done" || s === "satisfied" || s === "passed" || s === "completed")
-    return "[✓ PASS]";
+  if (s === "active" || s === "leased" || s === "running" || s === "in_progress") return "[● ACTIVE]";
+  if (s === "pass" || s === "done" || s === "satisfied" || s === "passed" || s === "completed") return "[✓ PASS]";
   if (s === "ready" || s === "retry_ready") return "[○ READY]";
-  if (s === "repairing" || s === "repair" || s === "changes_requested" || s === "remediation")
-    return "[⟳ REPAIRING]";
+  if (s === "repairing" || s === "repair" || s === "changes_requested" || s === "remediation") return "[⟳ REPAIRING]";
   if (s === "probing" || s === "probe" || s === "investigating") return "[🔍 PROBING]";
   if (s === "validating") return "[🔄 VALIDATING]";
   if (s === "validated") return "[🟣 VALIDATED]";
   if (s === "failed" || s === "rejected") return "[❌ REJECTED]";
   if (s === "escalated") return "[🚨 ESCALATED]";
-  if (s === "draft") return hasDeps ? "[⏳ BLOCKED]" : "[○ READY]";
-  return "[⏳ BLOCKED]";
+  return s === "draft" ? (hasDeps ? "[⏳ BLOCKED]" : "[○ READY]") : "[⏳ BLOCKED]";
 }
 
-/**
- * Formats subagent allocation relationship string:
- * [● IMPLEMENTER: <agent-id> ──► VALIDATOR: <agent-id>]
- */
 export function formatSubagentAllocation(
   implementerId?: string | null,
   validatorId?: string | null,
@@ -144,24 +91,14 @@ export function formatSubagentAllocation(
 ): string {
   const cleanImpl = implementerId?.trim();
   const cleanVal = validatorId?.trim();
-
   if (cleanImpl && cleanVal) {
-    const roleUpper = implementerRole.toUpperCase();
-    return `[● ${roleUpper}: ${cleanImpl} ──► VALIDATOR: ${cleanVal}]`;
+    return `[● ${implementerRole.toUpperCase()}: ${cleanImpl} ──► VALIDATOR: ${cleanVal}]`;
   }
-  if (cleanImpl) {
-    const roleUpper = implementerRole.toUpperCase();
-    return `[● ${roleUpper}: ${cleanImpl}]`;
-  }
-  if (cleanVal) {
-    return `[● VALIDATOR: ${cleanVal}]`;
-  }
+  if (cleanImpl) return `[● ${implementerRole.toUpperCase()}: ${cleanImpl}]`;
+  if (cleanVal) return `[● VALIDATOR: ${cleanVal}]`;
   return "";
 }
 
-/**
- * Formats wave/lane coordinates: [W<wave>:L<lane>]
- */
 export function formatCoordinates(
   coordinates?:
     | {
@@ -190,37 +127,22 @@ export function formatCoordinates(
   return "";
 }
 
-/**
- * Formats implementer-validator metrics & tracking lines for node details.
- */
 export function formatImplementerValidatorTracking(task: SugiyamaNode): string[] {
   const lines: string[] = [];
   const pushesCount = task.pushes ?? 0;
   const probesCount = task.probes ?? (task.probeRound !== undefined ? task.probeRound : 0);
   const attemptsCount = task.attempt ?? 1;
-  const inLeaseRepairsCount =
-    task.inLeaseRepairs ?? (task.round !== undefined && task.round > 1 ? task.round - 1 : 0);
+  const inLeaseRepairsCount = task.inLeaseRepairs ?? (task.round !== undefined && task.round > 1 ? task.round - 1 : 0);
 
-  lines.push(
-    `Tracking: Pushes: ${pushesCount}/5 | Probes: ${probesCount}/5 | Attempts: ${attemptsCount}/3 | In-Lease Repairs: ${inLeaseRepairsCount}/3`,
-  );
-
+  lines.push(`Tracking: Pushes: ${pushesCount}/5 | Probes: ${probesCount}/5 | Attempts: ${attemptsCount}/3 | In-Lease Repairs: ${inLeaseRepairsCount}/3`);
   if (task.coordinatorId) {
-    const pctStr =
-      task.coordinatorOwnershipPct !== undefined ? ` (${task.coordinatorOwnershipPct}%)` : "";
-    const leaseTimerStr =
-      task.activeLeaseTimerSeconds !== undefined
-        ? ` | Active Lease Timer: ${task.activeLeaseTimerSeconds}s`
-        : "";
+    const pctStr = task.coordinatorOwnershipPct !== undefined ? ` (${task.coordinatorOwnershipPct}%)` : "";
+    const leaseTimerStr = task.activeLeaseTimerSeconds !== undefined ? ` | Active Lease Timer: ${task.activeLeaseTimerSeconds}s` : "";
     lines.push(`Coordinator: ${task.coordinatorId}${pctStr}${leaseTimerStr}`);
   }
-
   return lines;
 }
 
-/**
- * Expands hierarchical subagent subtasks into rendered ASCII tree lines.
- */
 export function renderSubagentExpandedItems(
   subtasks: readonly (SugiyamaNode | SugiyamaSubtask | string)[],
   branchId?: string,
@@ -236,43 +158,21 @@ export function renderSubagentExpandedItems(
   for (let i = 0; i < subtasks.length; i++) {
     const sub = subtasks[i];
     if (!sub) continue;
-    const isLast = i === subtasks.length - 1;
-    const connector = isLast ? `${indent}  └──►` : `${indent}  ├──►`;
+    const connector = i === subtasks.length - 1 ? `${indent}  └──►` : `${indent}  ├──►`;
 
     if (typeof sub === "string") {
       rows.push(`${connector} [${sub}]`);
     } else {
       const subId = sub.id;
       const subStatus = formatStatusBadge(sub.status ?? "ready");
-      const subRole =
-        "assignedRole" in sub && typeof sub.assignedRole === "string"
-          ? sub.assignedRole
-          : "role" in sub && typeof sub.role === "string"
-            ? sub.role
-            : undefined;
-      const subImpl =
-        "assignedAgent" in sub && subRole !== "validator"
-          ? sub.assignedAgent
-          : "implementerAgent" in sub && typeof sub.implementerAgent === "string"
-            ? sub.implementerAgent
-            : null;
-      const subVal =
-        "validatorId" in sub && typeof sub.validatorId === "string"
-          ? sub.validatorId
-          : "validatorAgent" in sub && typeof sub.validatorAgent === "string"
-            ? sub.validatorAgent
-            : "assignedAgent" in sub && subRole === "validator"
-              ? sub.assignedAgent
-              : null;
+      const subRole = "assignedRole" in sub && typeof sub.assignedRole === "string" ? sub.assignedRole : "role" in sub && typeof sub.role === "string" ? sub.role : undefined;
+      const subImpl = "assignedAgent" in sub && subRole !== "validator" ? sub.assignedAgent : "implementerAgent" in sub && typeof sub.implementerAgent === "string" ? sub.implementerAgent : null;
+      const subVal = "validatorId" in sub && typeof sub.validatorId === "string" ? sub.validatorId : "validatorAgent" in sub && typeof sub.validatorAgent === "string" ? sub.validatorAgent : "assignedAgent" in sub && subRole === "validator" ? sub.assignedAgent : null;
       const childAlloc = formatSubagentAllocation(subImpl, subVal, subRole ?? "IMPLEMENTER");
       const allocSuffix = childAlloc ? ` ${childAlloc}` : "";
       rows.push(`${connector} [${subId}] ${subStatus}${allocSuffix}`);
 
-      if (
-        "expandedSubtasks" in sub &&
-        Array.isArray(sub.expandedSubtasks) &&
-        sub.expandedSubtasks.length > 0
-      ) {
+      if ("expandedSubtasks" in sub && Array.isArray(sub.expandedSubtasks) && sub.expandedSubtasks.length > 0) {
         const nested = renderSubagentExpandedItems(
           sub.expandedSubtasks as readonly (SugiyamaNode | SugiyamaSubtask | string)[],
           "branchId" in sub && typeof sub.branchId === "string" ? sub.branchId : undefined,
@@ -282,6 +182,47 @@ export function renderSubagentExpandedItems(
       }
     }
   }
-
   return rows;
+}
+
+export function expandSubagentSubgraphs(
+  dag: SugiyamaDag,
+  subagents: readonly SubagentNode[],
+): SugiyamaDag {
+  if (subagents.length === 0) return dag;
+
+  const subagentsByParent = new Map<string, SubagentNode[]>();
+  for (const sa of subagents) {
+    const parentId = sa.parentTaskId;
+    if (parentId) {
+      const list = subagentsByParent.get(parentId);
+      if (list) list.push(sa);
+      else subagentsByParent.set(parentId, [sa]);
+    }
+  }
+
+  const updatedNodes: SugiyamaNode[] = dag.nodes.map((node) => {
+    const matchingSubagents = subagentsByParent.get(node.id);
+    if (!matchingSubagents || matchingSubagents.length === 0) return node;
+
+    const convertedSubtasks: SugiyamaSubtask[] = matchingSubagents.map((sa) => ({
+      id: sa.id,
+      label: sa.label,
+      status: sa.status ?? "ready",
+      assignedAgent: sa.assignedAgent,
+      validatorAgent: sa.validatorAgent,
+      validatorId: sa.validatorId,
+      implementerAgent: sa.implementerAgent,
+      role: sa.role,
+      writeScope: sa.writeScope,
+    }));
+
+    const existingExpanded = node.expandedSubtasks ?? [];
+    return {
+      ...node,
+      expandedSubtasks: [...existingExpanded, ...convertedSubtasks],
+    };
+  });
+
+  return { nodes: updatedNodes, edges: dag.edges };
 }

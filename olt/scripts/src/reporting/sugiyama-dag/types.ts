@@ -1,8 +1,3 @@
-/**
- * Sugiyama DAG Type Definitions
- * Strictly typed interfaces with 0 any and strictly readonly properties.
- */
-
 export interface SugiyamaNodeBadge {
   readonly implementerId?: string | undefined;
   readonly validatorId?: string | undefined;
@@ -28,6 +23,19 @@ export interface SugiyamaNodeBadge {
     | undefined;
   readonly repairRound?: number | undefined;
   readonly probeRound?: number | undefined;
+}
+
+export interface SubagentNode {
+  readonly id: string;
+  readonly parentTaskId?: string | undefined;
+  readonly role?: string | undefined;
+  readonly status?: string | undefined;
+  readonly label?: string | undefined;
+  readonly assignedAgent?: string | null | undefined;
+  readonly validatorAgent?: string | null | undefined;
+  readonly validatorId?: string | null | undefined;
+  readonly implementerAgent?: string | null | undefined;
+  readonly writeScope?: readonly string[] | undefined;
 }
 
 export interface SugiyamaSubtask {
@@ -103,6 +111,7 @@ export interface SugiyamaNode {
   readonly coordinatorId?: string | undefined;
   readonly coordinatorOwnershipPct?: number | undefined;
   readonly activeLeaseTimerSeconds?: number | undefined;
+  readonly badge?: SugiyamaNodeBadge | undefined;
 }
 
 export interface SugiyamaEdge {
@@ -119,10 +128,19 @@ export interface SugiyamaEdge {
   readonly reason?: string | undefined;
 }
 
+export interface DirectedGraph {
+  readonly nodes: readonly SugiyamaNode[];
+  readonly edges: readonly SugiyamaEdge[];
+}
+
+export interface SugiyamaDag {
+  readonly nodes: readonly SugiyamaNode[];
+  readonly edges: readonly SugiyamaEdge[];
+}
+
 export interface SugiyamaRankedNode extends SugiyamaNode {
   readonly rank: number;
   readonly order: number;
-  readonly badge?: SugiyamaNodeBadge | undefined;
   readonly x?: number | undefined;
   readonly y?: number | undefined;
   readonly width?: number | undefined;
@@ -173,6 +191,7 @@ export interface BypassDiagnosticItem {
 export interface BypassDiagnostic {
   readonly hasBypass: boolean;
   readonly bypasses: readonly BypassDiagnosticItem[];
+  readonly bypassEdges: readonly { readonly from: string; readonly to: string }[];
   readonly alert: string;
   readonly warnings: readonly string[];
 }

@@ -5,14 +5,7 @@ export interface SugiyamaNodeBadge {
   readonly role: "implementer" | "validator" | "coordinator" | "observer" | "mind";
   readonly effortMinutes: number;
   readonly spanMinutes: number;
-  readonly status:
-    | "PENDING"
-    | "READY"
-    | "LEASED"
-    | "RUNNING"
-    | "VALIDATING"
-    | "COMPLETED"
-    | "FAILED";
+  readonly status: "PENDING" | "READY" | "LEASED" | "RUNNING" | "VALIDATING" | "COMPLETED" | "FAILED";
   readonly repairRound?: number | undefined;
 }
 export interface SugiyamaRankedNode {
@@ -63,14 +56,7 @@ export class AsciiCanvasMatrix {
       if (text[i] !== undefined) this.writeChar(x + i, y, text[i]!);
     }
   }
-  public drawBox(
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    title: string,
-    lines: readonly string[],
-  ): void {
+  public drawBox(x: number, y: number, w: number, h: number, title: string, lines: readonly string[]): void {
     this.writeChar(x, y, "┌");
     for (let i = 1; i < w - 1; i++) this.writeChar(x + i, y, "─");
     this.writeChar(x + w - 1, y, "┐");
@@ -127,8 +113,7 @@ export function computeBarycenter(
     neighbors.push(...(adjacency.get(nodeId) ?? []));
   }
   if (neighbors.length === 0) return 0;
-  const sum = neighbors.reduce((acc, nId) => acc + (neighborPosMap.get(nId) ?? 0), 0);
-  return sum / neighbors.length;
+  return neighbors.reduce((acc, nId) => acc + (neighborPosMap.get(nId) ?? 0), 0) / neighbors.length;
 }
 export function minimizeCrossings(
   layers: readonly (readonly SugiyamaRankedNode[])[],
@@ -238,23 +223,12 @@ export function layoutSugiyamaDag(
   const boxHeight = config.boxHeightLines ?? 5;
   const hSpacing = config.horizontalSpacing ?? 4;
   const vSpacing = config.verticalSpacing ?? 2;
-  if (nodes.length === 0) {
-    return {
-      totalNodes: 0,
-      totalLayers: 0,
-      totalCrossings: 0,
-      criticalPathSpan: 0,
-      asciiDiagram: "(Empty DAG)",
-      layers: [],
-    };
-  }
+  if (nodes.length === 0) return { totalNodes: 0, totalLayers: 0, totalCrossings: 0, criticalPathSpan: 0, asciiDiagram: "(Empty DAG)", layers: [] };
   const rankMap = assignSugiyamaLayers(nodes, maxLaneWidth);
   const maxRank = Math.max(0, ...[...rankMap.values()]);
   const rawLayers: SugiyamaRankedNode[][] = [];
   for (let r = 0; r <= maxRank; r++) {
-    const inRank = nodes
-      .filter((n) => (rankMap.get(n.id) ?? 0) === r)
-      .map((n, idx) => ({ ...n, rank: r, order: idx }));
+    const inRank = nodes.filter((n) => (rankMap.get(n.id) ?? 0) === r).map((n, idx) => ({ ...n, rank: r, order: idx }));
     if (inRank.length > 0) rawLayers.push(inRank);
   }
   const adjacency = new Map<string, string[]>();
@@ -273,9 +247,7 @@ export function layoutSugiyamaDag(
   }
   const layerCount = optimizedLayers.length;
   const maxNodesInLayer = Math.max(1, ...optimizedLayers.map((l) => l.length));
-  const totalWidth = layerCount * (boxWidth + hSpacing);
-  const totalHeight = maxNodesInLayer * (boxHeight + vSpacing) + 2;
-  const canvas = new AsciiCanvasMatrix(totalWidth, totalHeight);
+  const canvas = new AsciiCanvasMatrix(layerCount * (boxWidth + hSpacing), maxNodesInLayer * (boxHeight + vSpacing) + 2);
   const nodePositions = new Map<string, { x: number; y: number }>();
   for (let lIdx = 0; lIdx < optimizedLayers.length; lIdx++) {
     const layer = optimizedLayers[lIdx];
@@ -289,11 +261,7 @@ export function layoutSugiyamaDag(
       const statusBadge = node.badges?.status ?? "READY";
       const roleBadge = node.badges ? `[${node.badges.role.toUpperCase()}]` : "";
       const implBadge = node.badges?.implementerId ? `I:${node.badges.implementerId}` : "";
-      const lines = [
-        `${roleBadge} [${statusBadge}]`.trim(),
-        implBadge,
-        `Deps: ${node.dependencies.join(",") || "none"}`,
-      ].filter((l) => l.length > 0);
+      const lines = [`${roleBadge} [${statusBadge}]`.trim(), implBadge, `Deps: ${node.dependencies.join(",") || "none"}`].filter((l) => l.length > 0);
       canvas.drawBox(x, y, boxWidth, boxHeight, node.id, lines);
     }
   }
@@ -301,22 +269,15 @@ export function layoutSugiyamaDag(
     const fromPos = nodePositions.get(edge.from);
     const toPos = nodePositions.get(edge.to);
     if (fromPos && toPos) {
-      if (fromPos.x < toPos.x)
-        canvas.drawHorizontalEdge(fromPos.x + boxWidth, toPos.x, fromPos.y + 2);
-      else if (fromPos.y !== toPos.y)
-        canvas.drawVerticalEdge(
-          fromPos.x + Math.floor(boxWidth / 2),
-          fromPos.y + boxHeight,
-          toPos.y,
-        );
+      if (fromPos.x < toPos.x) canvas.drawHorizontalEdge(fromPos.x + boxWidth, toPos.x, fromPos.y + 2);
+      else if (fromPos.y !== toPos.y) canvas.drawVerticalEdge(fromPos.x + Math.floor(boxWidth / 2), fromPos.y + boxHeight, toPos.y);
     }
   }
-  const criticalPathSpan = nodes.reduce((acc, node) => acc + (node.badges?.spanMinutes ?? 1), 0);
   return {
     totalNodes: nodes.length,
     totalLayers: optimizedLayers.length,
     totalCrossings,
-    criticalPathSpan,
+    criticalPathSpan: nodes.reduce((acc, node) => acc + (node.badges?.spanMinutes ?? 1), 0),
     asciiDiagram: canvas.renderToString(),
     layers: optimizedLayers,
   };

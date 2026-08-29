@@ -1,123 +1,27 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { parseToolSchema } from "./schema-parser.ts";
+import type { DynamicToolRegistry } from "./registry.ts";
 import type {
-  DynamicToolRegistry,
+  DiscoveredTool,
+  DiscoveryOptions,
+  DiscoveryReport,
   ToolDefinition,
-  ToolParameter,
-  ToolParameterType,
-} from "./registry.ts";
+} from "./types.ts";
 
-export interface DiscoveryOptions {
-  readonly extensions?: readonly string[];
-  readonly recursive?: boolean;
-  readonly defaultCategory?: string;
-  readonly ignorePatterns?: readonly string[];
-  readonly autoRegister?: boolean;
-}
-
-export interface DiscoveredTool {
-  readonly definition: ToolDefinition;
-  readonly sourcePath: string;
-  readonly loadedAt: string;
-}
-
-export interface DiscoveryReport {
-  readonly discoveredCount: number;
-  readonly registeredCount: number;
-  readonly errors: readonly { readonly path: string; readonly error: string }[];
-  readonly tools: readonly DiscoveredTool[];
-}
-
-const VALID_PARAM_TYPES: readonly ToolParameterType[] = [
-  "string",
-  "number",
-  "boolean",
-  "object",
-  "array",
-];
+export { type DiscoveredTool, type DiscoveryOptions, type DiscoveryReport };
 
 export function validateToolSpec(raw: unknown): {
   readonly valid: boolean;
   readonly errors: readonly string[];
-  readonly definition?: ToolDefinition;
+  readonly definition?: ToolDefinition | undefined;
 } {
-  const errors: string[] = [];
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return { valid: false, errors: ["Tool specification must be an object"] };
-  }
-  const obj = raw as Record<string, unknown>;
-  if (typeof obj.name !== "string" || !obj.name.trim()) {
-    errors.push("Tool definition requires a non-empty 'name' string");
-  }
-  if (typeof obj.description !== "string") {
-    errors.push("Tool definition requires a 'description' string");
-  }
-
-  const category =
-    typeof obj.category === "string" && obj.category.trim() ? obj.category.trim() : "general";
-  const parameters: ToolParameter[] = [];
-  if (obj.parameters !== undefined) {
-    if (!Array.isArray(obj.parameters)) {
-      errors.push("'parameters' must be an array");
-    } else {
-      for (let i = 0; i < obj.parameters.length; i++) {
-        const p = obj.parameters[i];
-        if (!p || typeof p !== "object") {
-          errors.push(`Parameter at index ${i} is not an object`);
-          continue;
-        }
-        const paramObj = p as Record<string, unknown>;
-        if (typeof paramObj.name !== "string" || !paramObj.name.trim()) {
-          errors.push(`Parameter at index ${i} requires a non-empty 'name'`);
-        }
-        const typeStr = typeof paramObj.type === "string" ? paramObj.type : "string";
-        if (!VALID_PARAM_TYPES.includes(typeStr as ToolParameterType)) {
-          errors.push(`Invalid parameter type '${typeStr}' at index ${i}`);
-        }
-        parameters.push({
-          name: typeof paramObj.name === "string" ? paramObj.name.trim() : `param_${i}`,
-          type: (VALID_PARAM_TYPES.includes(typeStr as ToolParameterType)
-            ? typeStr
-            : "string") as ToolParameterType,
-          description: typeof paramObj.description === "string" ? paramObj.description : "",
-          required: Boolean(paramObj.required),
-          defaultValue: paramObj.defaultValue,
-          ...(Array.isArray(paramObj.enumValues)
-            ? { enumValues: paramObj.enumValues as readonly (string | number)[] }
-            : {}),
-        });
-      }
-    }
-  }
-
-  if (errors.length > 0) return { valid: false, errors };
-
-  const meta =
-    obj.metadata && typeof obj.metadata === "object"
-      ? (obj.metadata as Record<string, unknown>)
-      : undefined;
-  const definition: ToolDefinition = {
-    name: String(obj.name).trim(),
-    description: String(obj.description),
-    category,
-    parameters,
-    enabled: obj.enabled === undefined ? true : Boolean(obj.enabled),
-    ...(Array.isArray(obj.aliases) ? { aliases: obj.aliases.map(String) } : {}),
-    ...(meta
-      ? {
-          metadata: {
-            ...(typeof meta.version === "string" ? { version: String(meta.version) } : {}),
-            ...(typeof meta.author === "string" ? { author: String(meta.author) } : {}),
-            ...(Array.isArray(meta.tags) ? { tags: meta.tags as string[] } : {}),
-            deprecated: Boolean(meta.deprecated),
-            ...(typeof meta.deprecationReason === "string"
-              ? { deprecationReason: String(meta.deprecationReason) }
-              : {}),
-          },
-        }
-      : {}),
+  const result = parseToolSchema(raw);
+  return {
+    valid: result.valid,
+    errors: result.errors,
+    definition: result.definition,
   };
-  return { valid: true, errors: [], definition };
 }
 
 export function parseToolSpec(content: string, _sourcePath = ""): ToolDefinition | null {
@@ -125,7 +29,7 @@ export function parseToolSpec(content: string, _sourcePath = ""): ToolDefinition
     const trimmed = content.trim();
     if (!trimmed) return null;
     const parsed = JSON.parse(trimmed);
-    const result = validateToolSpec(parsed);
+    const result = parseToolSchema(parsed);
     return result.valid && result.definition ? result.definition : null;
   } catch {
     return null;
@@ -155,12 +59,16 @@ export function discoverToolsFromDirectory(
       if (stat.isDirectory()) {
         if (recursive && !entry.startsWith(".") && entry !== "node_modules") walk(fullPath);
       } else if (stat.isFile()) {
-        if (!exts.some((ext) => fullPath.endsWith(ext))) continue;
+        if (!exts.some((ext: string) => fullPath.endsWith(ext))) continue;
         try {
           const content = readFileSync(fullPath, "utf-8");
           const def = parseToolSpec(content, fullPath);
           if (def) {
             discovered.push({
+              name: def.name,
+              path: fullPath,
+              valid: true,
+              errors: [],
               definition: {
                 ...def,
                 category:
@@ -196,7 +104,7 @@ export function discoverToolsFromManifest(
         : [parsed];
     const tools: ToolDefinition[] = [];
     for (const item of list) {
-      const val = validateToolSpec(item);
+      const val = parseToolSchema(item);
       if (val.valid && val.definition) {
         tools.push({
           ...val.definition,
@@ -227,13 +135,13 @@ export function scanAndRegisterTools(
       for (const item of items) {
         discoveredCount++;
         tools.push(item);
-        if (options.autoRegister !== false) {
+        if (options.autoRegister !== false && item.definition) {
           try {
             registry.register(item.definition);
             registeredCount++;
           } catch (err) {
             errors.push({
-              path: item.sourcePath,
+              path: item.sourcePath ?? item.path ?? dir,
               error: err instanceof Error ? err.message : String(err),
             });
           }
@@ -243,5 +151,13 @@ export function scanAndRegisterTools(
       errors.push({ path: dir, error: err instanceof Error ? err.message : String(err) });
     }
   }
-  return { discoveredCount, registeredCount, errors, tools };
+  return {
+    total: discoveredCount,
+    valid: registeredCount,
+    invalid: errors.length,
+    discoveredCount,
+    registeredCount,
+    errors,
+    tools,
+  };
 }

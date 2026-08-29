@@ -26,9 +26,6 @@ export interface SnapshotRecord {
 
 const STATE_FILE_REGEX = /^state\.(\d+)\.json$/;
 
-/**
- * Returns true strictly when sequence is a positive integer and an exact multiple of interval.
- */
 export function shouldCreateSnapshot(sequence: number, interval = 200): boolean {
   if (!Number.isInteger(sequence) || sequence <= 0) {
     return false;
@@ -116,9 +113,6 @@ function parseAndValidateSnapshot(
   };
 }
 
-/**
- * Atomically writes a snapshot to `<snapshotsDir>/state.<sequence>.json`.
- */
 export function writeAtomicSnapshot(
   snapshotsDir: string,
   sequence: number,
@@ -177,21 +171,18 @@ export function writeAtomicSnapshot(
         closeSync(dirDescriptor);
       }
     } catch {
-      // Directory fsync is best-effort across platforms
     }
   } catch (error) {
     if (descriptor !== undefined) {
       try {
         closeSync(descriptor);
       } catch {
-        // ignore
       }
     }
     if (existsSync(tempPath)) {
       try {
         rmSync(tempPath, { force: true });
       } catch {
-        // ignore
       }
     }
     throw error;
@@ -200,10 +191,6 @@ export function writeAtomicSnapshot(
   return snapshot;
 }
 
-/**
- * Loads snapshot at a specific sequence if it exists.
- * Returns null if not found. Throws HarnessError on integrity violations.
- */
 export function loadSnapshotAtSequence(
   snapshotsDir: string,
   sequence: number,
@@ -217,11 +204,6 @@ export function loadSnapshotAtSequence(
   return parseAndValidateSnapshot(raw, filePath, sequence);
 }
 
-/**
- * Scans snapshotsDir for state.<seq>.json files, filtering seq <= (maxSequence ?? Infinity),
- * and loads the one with the highest sequence number.
- * Returns null if no snapshot exists within bounds.
- */
 export function loadLatestSnapshot(
   snapshotsDir: string,
   maxSequence?: number,

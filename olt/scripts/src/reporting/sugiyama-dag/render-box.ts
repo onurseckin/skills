@@ -1,6 +1,3 @@
-/**
- * Sugiyama Single Node Box Renderer
- */
 import {
   formatCoordinates,
   formatImplementerValidatorTracking,
@@ -22,9 +19,6 @@ export interface RenderSugiyamaNodeBoxOptions {
   readonly isBypass?: boolean | undefined;
 }
 
-/**
- * Renders a single Sugiyama node box with configurable borders and strict uniform width.
- */
 export function renderSugiyamaNodeBox(
   task: SugiyamaNode,
   options: RenderSugiyamaNodeBoxOptions = {},
@@ -183,9 +177,6 @@ export function renderSugiyamaNodeBox(
   return [topBorder, ...formattedRows, bottomBorder];
 }
 
-/**
- * Backward compatibility alias for renderSugiyamaNodeBox.
- */
 export function renderRoundedNodeBox(
   task: SugiyamaNode,
   options: RenderSugiyamaNodeBoxOptions = {},

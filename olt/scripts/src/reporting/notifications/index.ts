@@ -24,3 +24,20 @@ export {
   playCompletionChime,
   sendSystemNotification,
 } from "./system-notifier.ts";
+
+export {
+  DarwinNotificationDispatcher,
+  HeadlessNotificationDispatcher,
+  LinuxNotificationDispatcher,
+  NotificationDispatcherRegistry,
+  WindowsNotificationDispatcher,
+  defaultDispatcherRegistry,
+  type DispatchEventRecord,
+  type DispatcherRegistryOptions,
+  type INotificationDispatcher,
+  type NotificationPriority,
+  type PlatformNotificationDeliveryResult,
+  type PlatformNotificationOptions,
+  type RateLimiterOptions,
+} from "./dispatchers/index.ts";
+

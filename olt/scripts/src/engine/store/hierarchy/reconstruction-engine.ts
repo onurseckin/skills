@@ -91,10 +91,6 @@ function* streamEventsFromOffset(
   }
 }
 
-/**
- * Fast-forwards state projection from `fromSequence` to `toSequence`
- * by replaying events in the half-open interval (fromSequence, toSequence].
- */
 export function fastForwardProjection(
   currentState: Record<string, unknown>,
   fromSequence: number,
@@ -202,13 +198,6 @@ export function fastForwardProjection(
   return state;
 }
 
-/**
- * Reconstructs point-in-time state projection at targetSequence.
- * Follows Plan Section 2.3:
- * 1. Loads latest snapshot S_base <= targetSequence.
- * 2. If S_base === targetSequence, returns snapshot payload immediately in O(1) time.
- * 3. Otherwise, seeks byte offset via sparse index and fast-forwards delta patches (bounded by <= 199 events).
- */
 export function reconstructStateAtSequence(
   capsulePaths: CapsulePaths,
   targetSequence: number,

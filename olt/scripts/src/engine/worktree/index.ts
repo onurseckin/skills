@@ -46,6 +46,9 @@ export {
 
 export {
   landHermeticWorktree,
+} from "./landing-ops.ts";
+
+export {
   syncDomainToGlobal,
   syncGlobalToDomain,
   synchronizeAllDomains,

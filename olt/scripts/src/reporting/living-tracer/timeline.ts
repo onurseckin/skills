@@ -1,6 +1,3 @@
-/**
- * Living Tracer Timeline & Auxiliary Inspector
- */
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -11,9 +8,6 @@ import {
   type StepTracerSummary,
 } from "./types.ts";
 
-/**
- * Renders the chronological step trace as a connected ASCII/Unicode vertical timeline.
- */
 export function renderAsciiTimeline(
   entries: readonly StepTraceEntry[],
   maxEntries?: number,
@@ -56,9 +50,6 @@ export function renderAsciiTimeline(
   return lines.join("\n");
 }
 
-/**
- * Computes summary statistics across step trace entries and dynamic DAG state.
- */
 export function computeStepTracerSummary(
   entries: readonly StepTraceEntry[],
   dynamicDag: DynamicDagState,
@@ -85,9 +76,6 @@ export function computeStepTracerSummary(
   };
 }
 
-/**
- * Inspects auxiliary capsule artifacts on disk (rounds/, leases/) to corroborate telemetry.
- */
 export function inspectCapsuleAuxiliary(runRoot: string): {
   readonly roundsFound: readonly string[];
   readonly activeLeaseFiles: readonly string[];
@@ -106,7 +94,6 @@ export function inspectCapsuleAuxiliary(runRoot: string): {
           }
         }
       } catch {
-        // ignore filesystem permission errors
       }
     }
 
@@ -120,7 +107,6 @@ export function inspectCapsuleAuxiliary(runRoot: string): {
           }
         }
       } catch {
-        // ignore filesystem permission errors
       }
     }
   }

@@ -1,98 +1,16 @@
-export type ToolParameterType = "string" | "number" | "boolean" | "object" | "array";
+import { validateToolArguments } from "./input-validator.ts";
+import { sanitizeToolInput } from "./security-sanitizer.ts";
+import type {
+  ToolCatalogExport,
+  ToolContext,
+  ToolDefinition,
+  ToolExecutionResult,
+  ToolFilter,
+  ToolHandler,
+  ToolRegistryStats,
+} from "./types.ts";
 
-export interface ToolParameter {
-  readonly name: string;
-  readonly type: ToolParameterType;
-  readonly description: string;
-  readonly required?: boolean;
-  readonly defaultValue?: unknown;
-  readonly enumValues?: readonly (string | number)[];
-}
-
-export interface ToolContext {
-  readonly agentId?: string;
-  readonly correlationId?: string;
-  readonly sessionDir?: string;
-  readonly abortSignal?: AbortSignal;
-  readonly environment?: Record<string, string>;
-}
-
-export interface ToolExecutionResult {
-  readonly success: boolean;
-  readonly output: unknown;
-  readonly error?: string;
-  readonly durationMs: number;
-  readonly toolName: string;
-}
-
-export type ToolHandler = (
-  args: Record<string, unknown>,
-  context?: ToolContext,
-) => Promise<unknown> | unknown;
-
-export interface ToolMetadata {
-  readonly version?: string;
-  readonly author?: string;
-  readonly tags?: readonly string[];
-  readonly deprecated?: boolean;
-  readonly deprecationReason?: string;
-}
-
-export interface ToolDefinition {
-  readonly name: string;
-  readonly description: string;
-  readonly category: string;
-  readonly parameters: readonly ToolParameter[];
-  readonly handler?: ToolHandler;
-  readonly aliases?: readonly string[];
-  readonly metadata?: ToolMetadata;
-  readonly enabled?: boolean;
-}
-
-export interface ToolFilter {
-  readonly category?: string;
-  readonly tag?: string;
-  readonly enabledOnly?: boolean;
-  readonly includeDeprecated?: boolean;
-  readonly search?: string;
-}
-
-export interface ToolRegistryStats {
-  readonly totalTools: number;
-  readonly enabledTools: number;
-  readonly totalInvocations: number;
-  readonly categoryCounts: Record<string, number>;
-}
-
-export interface ToolCatalogExport {
-  readonly exportedAt: string;
-  readonly totalTools: number;
-  readonly tools: readonly ToolDefinition[];
-}
-
-function validateParameterValue(param: ToolParameter, value: unknown): boolean {
-  if (value === undefined || value === null) {
-    return !param.required;
-  }
-  if (param.enumValues && param.enumValues.length > 0) {
-    if (typeof value !== "string" && typeof value !== "number") return false;
-    if (!param.enumValues.includes(value)) return false;
-  }
-  switch (param.type) {
-    case "string":
-      return typeof value === "string";
-    case "number":
-      return typeof value === "number" && !Number.isNaN(value);
-    case "boolean":
-      return typeof value === "boolean";
-    case "object":
-      return typeof value === "object" && !Array.isArray(value);
-    case "array":
-      return Array.isArray(value);
-    default:
-      return true;
-  }
-}
+export type { ToolContext, ToolHandler };
 
 export class DynamicToolRegistry {
   private readonly tools = new Map<string, ToolDefinition>();
@@ -162,8 +80,9 @@ export class DynamicToolRegistry {
   public list(filter?: ToolFilter): readonly ToolDefinition[] {
     let list = Array.from(this.tools.values());
     if (filter?.enabledOnly) list = list.filter((t) => t.enabled !== false);
-    if (filter?.category)
+    if (filter?.category) {
       list = list.filter((t) => t.category.toLowerCase() === filter.category!.toLowerCase());
+    }
     if (filter?.tag) list = list.filter((t) => t.metadata?.tags?.includes(filter.tag!));
     if (!filter?.includeDeprecated) list = list.filter((t) => !t.metadata?.deprecated);
     if (filter?.search) {
@@ -224,36 +143,43 @@ export class DynamicToolRegistry {
       };
     }
 
-    const resolvedArgs: Record<string, unknown> = { ...args };
-    for (const param of tool.parameters) {
-      if (resolvedArgs[param.name] === undefined && param.defaultValue !== undefined) {
-        resolvedArgs[param.name] = param.defaultValue;
-      }
-      if (param.required && resolvedArgs[param.name] === undefined) {
+    const securityPolicy = context?.securityPolicy ?? tool.securityPolicy ?? tool.metadata?.securityPolicy;
+    if (securityPolicy) {
+      const sanResult = sanitizeToolInput(args, securityPolicy);
+      if (!sanResult.safe) {
         return {
           success: false,
           output: null,
-          error: `Missing required parameter '${param.name}' for tool '${tool.name}'`,
+          error: `Security violation: ${sanResult.violations.map((v) => v.message).join("; ")}`,
           durationMs: performance.now() - start,
           toolName: tool.name,
-        };
-      }
-      if (
-        resolvedArgs[param.name] !== undefined &&
-        !validateParameterValue(param, resolvedArgs[param.name])
-      ) {
-        return {
-          success: false,
-          output: null,
-          error: `Invalid type or value for parameter '${param.name}' (expected ${param.type})`,
-          durationMs: performance.now() - start,
-          toolName: tool.name,
+          securityViolations: sanResult.violations,
         };
       }
     }
 
+    const validation = validateToolArguments(tool.parameters, args, {
+      applyDefaults: true,
+      securityPolicy,
+    });
+    if (!validation.valid) {
+      const primaryError = validation.errors[0];
+      const errorMsg = primaryError
+        ? primaryError.code === "REQUIRED_PARAMETER_MISSING"
+          ? `Missing required parameter '${primaryError.path}' for tool '${tool.name}'`
+          : `Invalid type or value for parameter '${primaryError.path}' (${primaryError.message})`
+        : `Validation failed for tool '${tool.name}'`;
+      return {
+        success: false,
+        output: null,
+        error: errorMsg,
+        durationMs: performance.now() - start,
+        toolName: tool.name,
+      };
+    }
+
     try {
-      const output = await tool.handler(resolvedArgs, context);
+      const output = await tool.handler(validation.sanitizedArgs, context);
       const prevCount = this.invocationCounts.get(tool.name) ?? 0;
       this.invocationCounts.set(tool.name, prevCount + 1);
       return { success: true, output, durationMs: performance.now() - start, toolName: tool.name };

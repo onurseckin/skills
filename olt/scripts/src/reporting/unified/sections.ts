@@ -1,6 +1,3 @@
-/**
- * Markdown Section Generators for Unified Run Reports
- */
 import { formatTable } from "../../cli/formatters/line-limiter.ts";
 import {
   buildAgentMatrixTable,

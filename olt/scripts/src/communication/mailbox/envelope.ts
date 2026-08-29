@@ -6,10 +6,6 @@ export const DEFAULT_REPO_SECRET = process.env.OLT_HMAC_SECRET || "olt-communica
 
 const textEncoder = new TextEncoder();
 
-/**
- * Deterministically serialize any JSON-compatible data into canonical JSON string.
- * Recursively sorts all object keys lexicographically and normalizes undefined/primitives.
- */
 function canonicalizeJson(value: unknown, seen: WeakSet<object> = new WeakSet<object>()): string {
   if (value === null || value === undefined) {
     return "null";
@@ -80,17 +76,11 @@ function canonicalizeJson(value: unknown, seen: WeakSet<object> = new WeakSet<ob
   return JSON.stringify(value);
 }
 
-/**
- * Returns deterministic canonical UTF-8 bytes for any JSON object/data.
- */
 export function canonicalEnvelopeBytes(data: unknown): Uint8Array {
   const jsonString = canonicalizeJson(data);
   return textEncoder.encode(jsonString);
 }
 
-/**
- * Computes the HMAC-SHA256 signature for unsigned envelope fields.
- */
 function computeEnvelopeSignature(
   unsignedPayload: Record<string, unknown>,
   secretKey: string,
@@ -99,9 +89,6 @@ function computeEnvelopeSignature(
   return createHmac("sha256", secretKey).update(bytes).digest("hex");
 }
 
-/**
- * Creates a signed mailbox envelope with monotonic sequence, timestamp, and HMAC-SHA256 seal.
- */
 export function createSignedEnvelope<T = Record<string, unknown>>(
   options: CreateEnvelopeOptions<T>,
 ): MailboxEnvelope<T> {
@@ -134,9 +121,6 @@ export function createSignedEnvelope<T = Record<string, unknown>>(
   };
 }
 
-/**
- * Verifies the cryptographic HMAC-SHA256 signature of a mailbox envelope.
- */
 export function verifyEnvelopeHmac(
   envelope: MailboxEnvelope<unknown>,
   secretKey?: string,
@@ -190,9 +174,6 @@ export function verifyEnvelopeHmac(
   }
 }
 
-/**
- * Asserts the HMAC integrity of an envelope, throwing HarnessError with code INTEGRITY on failure.
- */
 export function assertEnvelopeIntegrity(
   envelope: MailboxEnvelope<unknown>,
   secretKey?: string,

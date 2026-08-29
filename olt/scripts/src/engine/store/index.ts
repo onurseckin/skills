@@ -131,6 +131,25 @@ export {
   fastForwardProjection,
 } from "./hierarchy/reconstruction-engine.ts";
 export {
+  compactWalLog,
+  type WalCompactionOptions,
+  type WalCompactionResult,
+} from "./hierarchy/wal-compactor.ts";
+export {
+  shouldTriggerCheckpoint,
+  createStateCheckpoint,
+  pruneExpiredCheckpoints,
+  type CheckpointMetrics,
+  type CheckpointPolicy,
+  type CheckpointRetentionOptions,
+  type PruneCheckpointsResult,
+} from "./hierarchy/state-checkpointer.ts";
+export {
+  recoverDiskState,
+  type DiskRecoveryOptions,
+  type DiskRecoveryOutcome,
+} from "./hierarchy/disk-recovery.ts";
+export {
   diffArrayElements,
   applyArrayPatchOperation,
   isMonotonicArrayAppend,

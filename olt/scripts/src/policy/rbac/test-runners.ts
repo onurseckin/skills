@@ -38,27 +38,20 @@ export function isTargetTestArgument(token: string): boolean {
   const trimmed = token.trim();
   if (!trimmed || trimmed.startsWith("-") || trimmed === "--") return false;
 
-  // Whole repo wildcards in Go/Rust/glob (e.g. ./... or ...)
   if (trimmed === "./..." || trimmed === "..." || trimmed === ".") return false;
 
-  // Pure numeric literals (e.g. 1234, 4, 5000)
   if (/^\d+$/.test(trimmed)) return false;
 
-  // Boolean literals
   if (trimmed.toLowerCase() === "true" || trimmed.toLowerCase() === "false") return false;
 
-  // Non-target CLI flags, test modes, common config keys/values, reporter formats
   if (IGNORED_TEST_KEYWORDS.has(trimmed.toLowerCase())) return false;
 
-  // Key=value argument that does not contain a file path
   if (/^[a-zA-Z0-9_-]+=[a-zA-Z0-9_-]+$/.test(trimmed) && !trimmed.includes("/")) {
     return false;
   }
 
-  // Directory path or file path with slashes (excluding root/wildcard)
   if (trimmed.includes("/") || trimmed.includes("\\")) return true;
 
-  // Known test or source file extension / naming patterns
   if (
     /\.(test|spec)\.[a-zA-Z0-9]+$/i.test(trimmed) ||
     /\.(ts|tsx|js|jsx|py|rs|go|rb|cpp|c|h|java|kt|scala|cs|php|ex|exs)$/i.test(trimmed) ||
@@ -70,7 +63,6 @@ export function isTargetTestArgument(token: string): boolean {
     return true;
   }
 
-  // Non-keyword identifier (e.g. cargo test test_name or pytest test_function)
   if (/^[a-zA-Z_][a-zA-Z0-9_:-]*$/.test(trimmed)) {
     return true;
   }
@@ -118,7 +110,7 @@ export function isUntargetedTestCommand(
             i + 1 < rest.length &&
             !rest[i + 1]!.startsWith("-")
           ) {
-            i++; // skip flag value argument
+            i++;
           }
           continue;
         }
@@ -130,12 +122,10 @@ export function isUntargetedTestCommand(
         }
       }
 
-      // If no valid targeted arguments remain, it is an un-targeted test run!
       return targetArgs.length === 0;
     }
   }
 
-  // Check dynamic full suite command from policy
   if (policy?.test_runner?.full_suite_command) {
     const fullTokens = policy.test_runner.full_suite_command.trim().split(/\s+/);
     if (tokens.length >= fullTokens.length) {

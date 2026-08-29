@@ -137,3 +137,29 @@ export type {
   PolicyEnforcementResult,
 } from "./policy-enforcer.ts";
 export { enforceRepoPolicy } from "./policy-enforcer.ts";
+
+export type {
+  AlertSubscriber,
+  AlertThresholdConfig,
+  AuditActor,
+  AuditEvent,
+  AuditEventCategory,
+  AuditOutcome,
+  AuditQueryFilter,
+  AuditSeverity,
+  AuditTrailWriterOptions,
+  IntegrityCheckResult,
+  PolicyEngineTelemetrySnapshot,
+  SecurityAuditLoggerOptions,
+  ViolationAlert,
+} from "./audit/index.ts";
+export {
+  AuditTrailWriter,
+  PolicyEngineTelemetryCollector,
+  SecurityAuditLogger,
+  ViolationAlertDispatcher,
+  computeAuditRecordHash,
+  createSecurityAuditLogger,
+  verifyAuditTrailChain,
+} from "./audit/index.ts";
+

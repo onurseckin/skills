@@ -28,3 +28,29 @@ export {
   evaluateEpistemicConfidence,
   type EvaluateEpistemicOptions,
 } from "./evaluator.ts";
+
+export {
+  EpistemicIndexStore,
+  EpistemicQueryOptimizer,
+  computeEpistemicAggregate,
+  matchesEpistemicPredicate,
+  type EpistemicQuery,
+  type EpistemicQueryAggregate,
+  type EpistemicQueryOrder,
+  type EpistemicQueryPlan,
+  type EpistemicQueryPredicate,
+  type EpistemicQueryProjection,
+  type EpistemicQueryResult,
+  type EpistemicRecord,
+} from "./query.ts";
+
+export {
+  EpistemicEventBus,
+  EpistemicEventJournal,
+  EpistemicEventStream,
+  type EpistemicEventType,
+  type EpistemicStreamEvent,
+  type StreamErrorHandler,
+  type StreamSubscriber,
+  type StreamSubscription,
+} from "./streaming.ts";

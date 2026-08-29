@@ -1,7 +1,3 @@
-/**
- * Living Dynamic DAG Expansion & Step Tracer Types
- */
-
 export type DynamicTaskOrigin =
   | "static"
   | "dynamic_expansion"

@@ -187,3 +187,19 @@ export {
   isUserPersonaRole,
   resolveSessionCookieTemplate,
 } from "./persona-registry.ts";
+
+export {
+  BrowserPoolManager,
+  PooledBrowserInstance,
+  PooledCaptureBrowserDriver,
+  PooledCaptureBrowserProvider,
+  type BrowserInstanceStatus,
+  type BrowserPoolEvent,
+  type BrowserPoolEventType,
+  type BrowserPoolOptions,
+  type BrowserPoolStats,
+  type IBrowserPool,
+  type IPooledBrowserInstance,
+  type PoolState,
+} from "./pool/index.ts";
+

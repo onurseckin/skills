@@ -1,12 +1,41 @@
-/**
- * Leases and Authority Decisions Report Generators
- */
 import { enforceLineLimit, formatTable } from "../../cli/formatters/line-limiter.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { isRecord } from "../../requirements/predicates.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import { extractLeaseAgentId } from "../lease-agent-extractor.ts";
-import type { DecisionAuditRow, LeaseMatrixRow } from "./types.ts";
+import type { DecisionAuditRow, LeaseMatrixRow, LeaseRecord } from "./types.ts";
+
+export function formatLeaseDecisions(leases: readonly (LeaseRecord | LeaseMatrixRow)[]): string {
+  if (leases.length === 0) {
+    return "*No active leases found.*";
+  }
+  const headers = [
+    "Task ID",
+    "Agent ID",
+    "Role",
+    "Attempt",
+    "Status",
+    "Feedback / Verdict",
+    "Expires At",
+  ];
+  const rows = leases.map((r) => {
+    const feedback = r.verdict
+      ? `Verdict: ${r.verdict}`
+      : r.pushes !== undefined || r.probes !== undefined
+        ? `Pushes: ${r.pushes ?? 0}/5, Probes: ${r.probes ?? 0}/5`
+        : "—";
+    return [
+      `\`${r.taskId}\``,
+      `\`${r.agentId}\``,
+      r.role,
+      `#${r.attempt}`,
+      r.status,
+      feedback,
+      r.expiresAt ?? "—",
+    ];
+  });
+  return formatTable(headers, rows).join("\n");
+}
 
 export function generateLeasesReport(runRoot: string): {
   matrix: LeaseMatrixRow[];

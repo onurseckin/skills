@@ -46,9 +46,6 @@ function validateAndFreezeOffsets(
   return Object.freeze(validated);
 }
 
-/**
- * Loads and validates an EventSparseIndex from disk. Returns null if missing.
- */
 export function loadSparseIndex(sparseIndexPath: string): EventSparseIndex | null {
   if (typeof sparseIndexPath !== "string" || !sparseIndexPath.trim()) {
     throw new HarnessError("INVALID_ARGUMENT", "sparseIndexPath must be a non-empty string");
@@ -106,9 +103,6 @@ export function loadSparseIndex(sparseIndexPath: string): EventSparseIndex | nul
   };
 }
 
-/**
- * Updates sparse index for sequence/byteOffset. Returns updated index or null if not indexed.
- */
 export function updateSparseIndex(
   sparseIndexPath: string,
   sequence: number,
@@ -155,9 +149,6 @@ export function updateSparseIndex(
   return updatedIndex;
 }
 
-/**
- * Fast O(1) in-memory lookup. Finds greatest indexed sequence S <= targetSequence.
- */
 export function seekEventByteOffset(
   sparseIndex: EventSparseIndex | null,
   targetSequence: number,
@@ -191,9 +182,6 @@ export function seekEventByteOffset(
   return 0;
 }
 
-/**
- * Streams/reads events.jsonl, computing exact byte offsets at line boundaries.
- */
 export function rebuildSparseIndex(
   eventsPath: string,
   sparseIndexPath: string,

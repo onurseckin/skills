@@ -1,6 +1,3 @@
-/**
- * Table Builders for Unified Run Reports
- */
 import { formatTable } from "../../cli/formatters/line-limiter.ts";
 import type {
   DecisionAuditRow,

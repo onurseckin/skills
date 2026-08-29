@@ -1,6 +1,3 @@
-/**
- * Unified Run Report Type Definitions
- */
 import type { ExecutionTier } from "../../authority/thread/index.ts";
 import type { LeaseRecordView } from "../lease-agent-extractor.ts";
 import type { SugiyamaDagReport, SugiyamaWaveMetrics } from "../sugiyama-dag/index.ts";
@@ -14,7 +11,7 @@ export {
   type LeaseRecordView,
 } from "../lease-agent-extractor.ts";
 
-export interface LeaseMatrixRow {
+export interface LeaseRecord {
   taskId: string;
   agentId: string;
   role: string;
@@ -23,7 +20,14 @@ export interface LeaseMatrixRow {
   issuedAt?: string | undefined;
   expiresAt?: string | undefined;
   heartbeatAt?: string | undefined;
+  pushes?: number | undefined;
+  probes?: number | undefined;
+  repairs?: number | undefined;
+  validatorId?: string | undefined;
+  verdict?: string | undefined;
 }
+
+export type LeaseMatrixRow = LeaseRecord;
 
 export interface DecisionAuditRow {
   requirementId: string;
@@ -50,11 +54,11 @@ export interface ImplementerValidatorTrackingRow {
   readonly lane: string;
   readonly implementerId: string;
   readonly validatorId: string;
-  readonly pushes: string; // e.g. "Pushes: 1/5"
-  readonly probes: string; // e.g. "Probes: 2/5"
-  readonly microCycles: string; // e.g. "Attempts: 1/3, In-Lease Repairs: 0/3"
-  readonly coordinator: string; // e.g. "coordinator-1 (100%)"
-  readonly leaseTimer: string; // e.g. "120s remaining"
+  readonly pushes: string;
+  readonly probes: string;
+  readonly microCycles: string;
+  readonly coordinator: string;
+  readonly leaseTimer: string;
 }
 
 export interface CoordinatorOwnershipMetrics {
@@ -106,6 +110,11 @@ export interface UnifiedLifecycleBreakdown {
   };
 }
 
+export interface ReportContext {
+  readonly runRoot: string;
+  readonly detailed?: boolean | undefined;
+}
+
 export interface UnifiedReport {
   markdown: string;
   run_root: string;
@@ -145,3 +154,5 @@ export interface UnifiedReport {
     | undefined;
   metrics?: SugiyamaWaveMetrics | undefined;
 }
+
+export type UnifiedReportView = UnifiedReport;

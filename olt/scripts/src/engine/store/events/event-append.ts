@@ -197,19 +197,16 @@ export function appendProjectionEvent(
     durableAppendBytes(eventPath, line);
     checkedEventCommit(runRoot, manifest, event, sequence);
   } catch (error) {
-    // No acknowledged event fsync+validation means callers receive the original rejection.
     try {
       clearTransactionMarker(runRoot);
-    } catch {
-      // Cleanup cannot turn a pre-commit failure into a committed outcome.
+    } catch (_ignored) {
     }
     throw error;
   }
   const pending = (phase: TransactionPhase, cause: unknown): never => {
     try {
       marker = writeTransactionMarker(runRoot, { ...marker, phase });
-    } catch {
-      // The most recently durable marker remains authoritative.
+    } catch (_ignored) {
     }
     throw new CommittedWithRecoveryPendingError(marker, cloneObject(next), cause);
   };

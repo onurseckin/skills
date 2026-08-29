@@ -32,9 +32,6 @@ const VESTIGIAL_LEDGER_FILES = [
   "completed-defects.jsonl",
 ] as const;
 
-/**
- * Validates the SHA-256 hash chain and structural validity of an events.jsonl file.
- */
 export function validateEventsFileShaChain(eventsFilePath: string): {
   readonly valid: boolean;
   readonly error?: string;
@@ -114,9 +111,6 @@ export function validateEventsFileShaChain(eventsFilePath: string): {
   return { valid: true };
 }
 
-/**
- * Validates that an existing migrated run directory has valid integrity.
- */
 export function validateMigratedRun(capsuleDir: string): {
   readonly valid: boolean;
   readonly error?: string;
@@ -127,13 +121,6 @@ export function validateMigratedRun(capsuleDir: string): {
   return validateEventsFileShaChain(join(capsuleDir, "events.jsonl"));
 }
 
-/**
- * Migrates legacy capsules from `.capsules/`, `olt/capsules/`, and `capsules/`
- * into the sovereign directory `<repoRoot>/.olt/capsules/<run_id>/`.
- *
- * Verifies SHA-256 hash chains of `events.jsonl` if present. If broken hashes are
- * detected, records the error and halts migration for that capsule to prevent target corruption.
- */
 export function migrateLegacyCapsules(repoRoot?: string): MigrationResult {
   const paths = resolveStoragePaths(repoRoot);
   const errors: string[] = [];
@@ -203,17 +190,12 @@ export function migrateLegacyCapsules(repoRoot?: string): MigrationResult {
         safeRmSync(legacyDir, { allowedRoots: [paths.repoRoot], missingOk: true });
       }
     } catch {
-      // Ignore cleanup error of empty legacy dir
     }
   }
 
   return { migratedCount, errors: Object.freeze(errors) };
 }
 
-/**
- * Checks for runtime ledgers in static package root `olt/` and relocates / merges
- * them into `.olt/`, cleaning up source files from `olt/`.
- */
 export function relocateVestigialLedgers(repoRoot?: string): RelocationResult {
   const paths = resolveStoragePaths(repoRoot);
   const staticOltDir = join(paths.repoRoot, "olt");

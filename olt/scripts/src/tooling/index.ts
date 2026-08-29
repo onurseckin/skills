@@ -2,16 +2,6 @@ export {
   DynamicToolRegistry,
   getGlobalToolRegistry,
   resetGlobalToolRegistry,
-  type ToolCatalogExport,
-  type ToolContext,
-  type ToolDefinition,
-  type ToolExecutionResult,
-  type ToolFilter,
-  type ToolHandler,
-  type ToolMetadata,
-  type ToolParameter,
-  type ToolParameterType,
-  type ToolRegistryStats,
 } from "./registry.ts";
 
 export {
@@ -20,10 +10,53 @@ export {
   parseToolSpec,
   scanAndRegisterTools,
   validateToolSpec,
-  type DiscoveredTool,
-  type DiscoveryOptions,
-  type DiscoveryReport,
 } from "./discovery.ts";
+
+export {
+  generateToolCatalogTypeScript,
+  jsonSchemaPropertyToToolParameter,
+  jsonSchemaToToolDefinition,
+  toCamelCase,
+  toolDefinitionToJsonSchema,
+  toolDefinitionToTypeScript,
+  toolParameterToJsonSchemaProperty,
+  toolParametersToTypeScriptFields,
+  toPascalCase,
+} from "./schema-codegen.ts";
+
+export {
+  coerceValue,
+  sanitizeAndValidatePayload,
+  validateParameter,
+  validateTypeOnly,
+} from "./payload-sanitizer.ts";
+
+export {
+  buildJsonSchemaFromTool,
+  parseParameterConstraint,
+  parseParameterSchema,
+  parseToolSchema,
+  type ParameterSchemaParseResult,
+  type ToolSchemaParseResult,
+} from "./schema-parser.ts";
+
+export {
+  validateConstraints,
+  validateParameterType,
+  validateParameterValue,
+  validateToolArguments,
+} from "./input-validator.ts";
+
+export {
+  detectCommandInjection,
+  detectPrototypePollution,
+  isSafeExecutionPayload,
+  sanitizeHtmlContent,
+  sanitizePathTraversal,
+  sanitizeShellArgument,
+  sanitizeToolInput,
+  sanitizeValueByPolicy,
+} from "./security-sanitizer.ts";
 
 export {
   DEFAULT_DARWIN_NOTIFICATION_SOUND,
@@ -48,3 +81,84 @@ export {
   type NotificationResult,
   type PhaseCompletionNotificationOptions,
 } from "./notifications.ts";
+
+export {
+  BALANCED_QUOTA,
+  DANGEROUS_COMMAND_NAMES,
+  DefaultSystemMetricsProvider,
+  DynamicExecutionSandbox,
+  IsolatedChildProcessManager,
+  PERMISSIVE_QUOTA,
+  PERMISSIVE_SANDBOX_POLICY,
+  READ_ONLY_SANDBOX_POLICY,
+  RESTRICTED_SANDBOX_POLICY,
+  ResourceGovernor,
+  STRICT_QUOTA,
+  STRICT_SANDBOX_POLICY,
+  SandboxedToolExecutor,
+  TimeoutWatcher,
+  UNCONSTRAINED_QUOTA,
+  assertPathWithinBoundaries,
+  createCustomSandboxPolicy,
+  createDefaultResourcePolicy,
+  createDefaultSandboxPolicy,
+  getGlobalExecutionSandbox,
+  isCommandSafe,
+  isPathAllowed,
+  mergeQuotas,
+  resetGlobalExecutionSandbox,
+  resolveSandboxPolicy,
+  resolveSandboxQuota,
+  sanitizeEnvironmentVariables,
+  spawnIsolatedProcess,
+  validatePolicyConfiguration,
+  type ChildProcessOptions,
+  type ChildProcessResult,
+  type IsolationLevel,
+  type IsolationViolation,
+  type QuotaViolation,
+  type ResourceGovernorOptions,
+  type ResourceQuota,
+  type ResourceUsageReport,
+  type ResourceUsageSnapshot,
+  type SandboxExecutionOptions,
+  type SandboxExecutionResult,
+  type SandboxPolicyConfig,
+  type SandboxTerminationReason,
+  type SandboxTier,
+  type SandboxedExecutionOptions,
+  type SandboxedExecutionResult,
+  type SystemMetricsProvider,
+  type TimeoutWatcherOptions,
+  type WatcherState,
+} from "./sandbox/index.ts";
+
+export type {
+  CodegenOptions,
+  DiscoveredTool,
+  DiscoveryOptions,
+  DiscoveryReport,
+  InputValidationResult,
+  JsonSchemaDocument,
+  JsonSchemaProperty,
+  ParameterSchemaConstraint,
+  ParameterValidationError,
+  SanitizationOptions,
+  SanitizationPolicyType,
+  SanitizationResult,
+  SecurityViolation,
+  ToolCatalogExport,
+  ToolContext,
+  ToolDefinition,
+  ToolExecutionResult,
+  ToolFilter,
+  ToolHandler,
+  ToolMetadata,
+  ToolParameter,
+  ToolParameterSchema,
+  ToolParameterType,
+  ToolRegistryStats,
+  ToolSecurityPolicy,
+  ToolValidationError,
+  ValidationOptions,
+} from "./types.ts";

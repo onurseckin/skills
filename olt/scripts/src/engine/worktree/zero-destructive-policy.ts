@@ -10,7 +10,6 @@ export function isDestructiveGitCommand(argv: readonly string[]): DestructiveChe
   if (argv.length === 0) return { destructive: false };
   const subCommand = argv[0]?.toLowerCase() ?? "";
 
-  // Check `git clean`
   if (subCommand === "clean") {
     return {
       destructive: true,
@@ -18,7 +17,6 @@ export function isDestructiveGitCommand(argv: readonly string[]): DestructiveChe
     };
   }
 
-  // Check `git reset` with destructive flags (--hard, --merge, --keep)
   if (subCommand === "reset") {
     const hasHard = argv.some(
       (arg) => arg === "--hard" || arg === "-hard" || arg === "--merge" || arg === "--keep",
@@ -31,7 +29,6 @@ export function isDestructiveGitCommand(argv: readonly string[]): DestructiveChe
     }
   }
 
-  // Check `git checkout` discarding changes (-- or . or -f / --force with paths)
   if (subCommand === "checkout") {
     if (argv.includes("--")) {
       return {
@@ -45,7 +42,6 @@ export function isDestructiveGitCommand(argv: readonly string[]): DestructiveChe
         reason: "git checkout --force forcibly overwrites uncommitted working-tree modifications",
       };
     }
-    // Checking checkout of dot or path without branch creation
     const nonFlags = argv.slice(1).filter((arg) => !arg.startsWith("-"));
     if (nonFlags.length === 1 && nonFlags[0] === ".") {
       return {
@@ -55,7 +51,6 @@ export function isDestructiveGitCommand(argv: readonly string[]): DestructiveChe
     }
   }
 
-  // Check `git restore`
   if (subCommand === "restore") {
     return {
       destructive: true,
@@ -63,7 +58,6 @@ export function isDestructiveGitCommand(argv: readonly string[]): DestructiveChe
     };
   }
 
-  // Check `git stash` drop / clear
   if (subCommand === "stash") {
     const stashAction = argv[1]?.toLowerCase();
     if (stashAction === "drop" || stashAction === "clear") {

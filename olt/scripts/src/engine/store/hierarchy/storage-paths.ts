@@ -27,9 +27,6 @@ export interface CapsulePaths {
   readonly tracePath: string;
 }
 
-/**
- * Resolves sovereign repository-level storage paths under `.olt/`.
- */
 export function resolveStoragePaths(repoRoot?: string): StoragePaths {
   const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
   const oltDir = join(root, ".olt");
@@ -46,14 +43,6 @@ export function resolveStoragePaths(repoRoot?: string): StoragePaths {
   };
 }
 
-/**
- * Asserts that a storage path candidate is safe and strictly adheres to `.olt/` isolation.
- *
- * Rejection criteria:
- * - Reject any candidatePath resolving runtime ledgers into `olt/` instead of `.olt/` (throws HarnessError with code PATH_SAFETY).
- * - Reject directory traversal `..` escaping repo root.
- * - Reject invalid runId structures (empty, slashes, invalid path segments).
- */
 export function assertSafeStoragePath(candidatePath: string, repoRoot?: string): void {
   if (typeof candidatePath !== "string" || !candidatePath.trim()) {
     throw new HarnessError("PATH_SAFETY", "Storage path candidate must not be empty or blank");
@@ -69,7 +58,6 @@ export function assertSafeStoragePath(candidatePath: string, repoRoot?: string):
     : resolve(root, candidatePath);
   const relFromRoot = relative(root, resolved);
 
-  // Escaping root via traversal:
   if (
     relFromRoot === ".." ||
     relFromRoot.startsWith(`..${sep}`) ||
@@ -82,7 +70,6 @@ export function assertSafeStoragePath(candidatePath: string, repoRoot?: string):
     );
   }
 
-  // Reject candidate paths inside static package root "olt/" instead of sovereign ".olt/":
   const normalizedRel = relFromRoot.split(sep).join("/");
   if (normalizedRel === "olt" || normalizedRel.startsWith("olt/")) {
     throw new HarnessError(
@@ -91,7 +78,6 @@ export function assertSafeStoragePath(candidatePath: string, repoRoot?: string):
     );
   }
 
-  // Validate runId structure if candidate references capsules:
   if (normalizedRel.includes("capsules/")) {
     const parts = normalizedRel.split("/");
     const capIdx = parts.indexOf("capsules");
@@ -107,9 +93,6 @@ export function assertSafeStoragePath(candidatePath: string, repoRoot?: string):
   }
 }
 
-/**
- * Resolves all paths for a run capsule inside `<repoRoot>/.olt/capsules/<run_id>/`.
- */
 export function resolveCapsulePaths(runId: string, repoRoot?: string): CapsulePaths {
   if (typeof runId !== "string" || !runId.trim()) {
     throw new HarnessError("PATH_SAFETY", "run_id must not be empty or blank");

@@ -50,8 +50,6 @@ export function recoverProjection(runRoot: string, actor: string): RunState {
   return withRunLock(root, () => recoverProjectionLocked(root, actor));
 }
 
-/** Internal only: callers already holding the exclusive capsule lock use this to
- * prevent a recovery/repair window between the marker check and materialization. */
 export function recoverProjectionLocked(root: string, actor: string): RunState {
   const immutable = checkManifest(root);
   if (immutable.issues.length > 0 || !immutable.manifest) throwIntegrity(immutable.issues);

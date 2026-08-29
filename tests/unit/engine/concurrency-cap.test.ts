@@ -140,7 +140,7 @@ describe("Subagent Concurrency Pool Hard Cap (<= 50 subagents)", () => {
     expect(miniPool.activeCount).toBe(0);
   });
 
-  test("rejects with CAPACITY_EXCEEDED when acquisition exceeds timeoutMs", async () => {
+  test("rejects with LOCK_TIMEOUT when acquisition exceeds timeoutMs", async () => {
     const miniPool = new SubagentPool(1);
     const held = await miniPool.acquire({ agentId: "exclusive" });
 
@@ -152,7 +152,7 @@ describe("Subagent Concurrency Pool Hard Cap (<= 50 subagents)", () => {
     }
 
     expect(thrownError).toBeInstanceOf(HarnessError);
-    expect((thrownError as HarnessError).code).toBe("CAPACITY_EXCEEDED");
+    expect((thrownError as HarnessError).code).toBe("LOCK_TIMEOUT");
     expect(miniPool.queueDepth).toBe(0);
 
     held.release();

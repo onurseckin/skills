@@ -1,6 +1,3 @@
-/**
- * Unified Run Report Builder
- */
 import { enforceLineLimit } from "../../cli/formatters/line-limiter.ts";
 import { getHarnessConfig } from "../../core/config/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
@@ -20,9 +17,15 @@ import { buildUnifiedReportMarkdown } from "./sections.ts";
 import type {
   CoordinatorOwnershipMetrics,
   ImplementerValidatorTrackingRow,
+  ReportContext,
   UnifiedLifecycleBreakdown,
   UnifiedReport,
+  UnifiedReportView,
 } from "./types.ts";
+
+export function buildUnifiedReport(ctx: ReportContext): UnifiedReportView {
+  return generateUnifiedReport(ctx.runRoot, { detailed: ctx.detailed });
+}
 
 export function generateUnifiedReport(
   runRoot: string,

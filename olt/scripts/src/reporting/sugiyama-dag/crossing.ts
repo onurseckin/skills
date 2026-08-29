@@ -1,13 +1,5 @@
-/**
- * Sugiyama Crossing Minimization Engine
- * Implements 2-layer iterative barycenter heuristic sweeps to minimize edge crossings.
- */
 import type { SugiyamaEdge, SugiyamaLayer, SugiyamaRankedNode } from "./types.ts";
 
-/**
- * Counts edge crossings between two consecutive layers using coordinate inversion conditions:
- * (u1 < u2) && (v1 > v2) || (u1 > u2) && (v1 < v2).
- */
 export function countLayerCrossings(
   layerA: readonly SugiyamaRankedNode[],
   layerB: readonly SugiyamaRankedNode[],
@@ -58,9 +50,6 @@ export function countLayerCrossings(
   return crossings;
 }
 
-/**
- * Computes total crossings across an entire sequence of ranked layers.
- */
 function computeTotalGraphCrossings(
   layers: readonly (readonly SugiyamaRankedNode[])[],
   edges: readonly SugiyamaEdge[],
@@ -76,9 +65,6 @@ function computeTotalGraphCrossings(
   return total;
 }
 
-/**
- * Normalizes coordinates, wave, lane, and order metadata for a ranked node.
- */
 function formatRankedNode(
   node: SugiyamaRankedNode,
   rank: number,
@@ -114,15 +100,6 @@ function formatRankedNode(
   };
 }
 
-/**
- * Sorts nodes in a layer using the barycentric centroid of their neighbors in an adjacent reference layer.
- * On tie, breaks deterministically using original order and node ID.
- *
- * @param layer The layer to be sorted
- * @param refLayer The adjacent fixed reference layer
- * @param edges Graph edges
- * @param direction "down" if sweeping downwards (refLayer is parents), "up" if sweeping upwards (refLayer is children)
- */
 export function barycentricSort(
   layer: readonly SugiyamaRankedNode[],
   refLayer: readonly SugiyamaRankedNode[],
@@ -197,9 +174,6 @@ export function barycentricSort(
   return entries.map((entry, order) => formatRankedNode(entry.node, entry.node.rank, order));
 }
 
-/**
- * Step 2: Crossing minimization using alternating Barycenter heuristic sweeps (default 4 passes).
- */
 export function minimizeCrossingsBarycenter(
   layers: readonly SugiyamaLayer[],
   edges: readonly SugiyamaEdge[],
@@ -221,7 +195,6 @@ export function minimizeCrossingsBarycenter(
 
   const numPasses = Math.max(1, passes);
   for (let p = 0; p < numPasses; p++) {
-    // Forward pass (downwards): sort layer r using layer r-1 as reference
     for (let r = 1; r < currentLayers.length; r++) {
       const prevLayer = currentLayers[r - 1];
       const currLayer = currentLayers[r];
@@ -230,7 +203,6 @@ export function minimizeCrossingsBarycenter(
       }
     }
 
-    // Backward pass (upwards): sort layer r using layer r+1 as reference
     for (let r = currentLayers.length - 2; r >= 0; r--) {
       const nextLayer = currentLayers[r + 1];
       const currLayer = currentLayers[r];

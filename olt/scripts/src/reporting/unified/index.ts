@@ -5,13 +5,16 @@ export {
   extractLeaseRole,
   extractLeaseAttempt,
   type LeaseRecordView,
+  type LeaseRecord,
   type LeaseMatrixRow,
   type DecisionAuditRow,
   type UnifiedAgentRow,
   type ImplementerValidatorTrackingRow,
   type CoordinatorOwnershipMetrics,
   type UnifiedLifecycleBreakdown,
+  type ReportContext,
   type UnifiedReport,
+  type UnifiedReportView,
 } from "./types.ts";
 export {
   buildAgentMatrixTable,
@@ -26,5 +29,9 @@ export {
   segmentTaskLifecycle,
   buildAgentMatrixRows,
 } from "./lifecycle-segmenter.ts";
-export { generateLeasesReport, generateDecisionsReport } from "./leases-decisions.ts";
-export { generateUnifiedReport } from "./report-builder.ts";
+export {
+  formatLeaseDecisions,
+  generateLeasesReport,
+  generateDecisionsReport,
+} from "./leases-decisions.ts";
+export { buildUnifiedReport, generateUnifiedReport } from "./report-builder.ts";

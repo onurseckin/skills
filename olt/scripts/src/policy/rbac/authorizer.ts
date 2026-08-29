@@ -172,7 +172,6 @@ export function verifyCommandAuthorization(
     normalizedRole === "mind-auditor" ||
     normalizedRole === "mind_auditor";
 
-  // 1. Check Subshell and Chaining Escapes
   const subshellCheck = hasUnshieldedSubshellOrChaining(normalizedCommandStr, argv);
   if (subshellCheck.detected) {
     return {
@@ -186,7 +185,6 @@ export function verifyCommandAuthorization(
     };
   }
 
-  // 2. Check Cognitive Validator Hard-Lock
   if (isCognitiveValidator) {
     return {
       authorized: false,
@@ -198,7 +196,6 @@ export function verifyCommandAuthorization(
     };
   }
 
-  // 3. Supervisor strict ban on tests
   const isTestCommand = isKnownTestRunner(argv) || /\.(test|spec)\.[a-z0-9]+$/i.test(argv[0] ?? "");
   if (isSupervisor && isTestCommand) {
     return {
@@ -209,7 +206,6 @@ export function verifyCommandAuthorization(
     };
   }
 
-  // 4. General !canExecute check (if they are a supervisor but running non-test command, or other non-exec roles)
   if (!canExecute) {
     return {
       authorized: false,
@@ -221,7 +217,6 @@ export function verifyCommandAuthorization(
     };
   }
 
-  // 5. Check Un-Targeted Test Suite Executions (Implementer / Worker)
   if (isUntargetedTestCommand(normalizedCommandStr, argv, activePolicy)) {
     const targetedExample = activePolicy?.test_runner?.targeted_pattern ?? "bun test <path>";
     return {
@@ -235,7 +230,6 @@ export function verifyCommandAuthorization(
     };
   }
 
-  // 6. Parse git globally before string policy matching so options cannot hide mutations.
   const gitCheck = inspectGitDispatch(argv);
   if (gitCheck) {
     return {
@@ -246,7 +240,6 @@ export function verifyCommandAuthorization(
     };
   }
 
-  // 7. Check Forbidden Regex Patterns against normalized dispatch tokens.
   const forbiddenPatterns = compileEffectiveForbiddenPatterns(role, activePolicy);
   for (const pattern of forbiddenPatterns) {
     if (pattern.test(normalizedCommandStr)) {

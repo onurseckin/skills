@@ -1,11 +1,11 @@
-/**
- * Sugiyama Hierarchical DAG Renderer & Visual Diagnostics Subsystem Facade
- */
 export {
   type SugiyamaNodeBadge,
+  type SubagentNode,
   type SugiyamaSubtask,
   type SugiyamaNode,
   type SugiyamaEdge,
+  type DirectedGraph,
+  type SugiyamaDag,
   type SugiyamaRankedNode,
   type SugiyamaLayer,
   type OrthogonalEdgeSegment,
@@ -47,6 +47,7 @@ export {
   formatCoordinates,
   formatImplementerValidatorTracking,
   renderSubagentExpandedItems,
+  expandSubagentSubgraphs,
 } from "./subagent-expansion.ts";
 export { renderSugiyamaNodeBox, renderRoundedNodeBox } from "./render-box.ts";
 export { renderSugiyamaDag, generateSugiyamaDagReport, buildSugiyamaDagReport } from "./render.ts";

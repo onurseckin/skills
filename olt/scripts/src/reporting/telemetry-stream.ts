@@ -31,7 +31,6 @@ export function emitTelemetryEvent(
     const line = JSON.stringify(event) + "\n";
     appendFileSync(filePath, line, "utf-8");
   } catch {
-    // Non-fatal telemetry logging
   }
 }
 
@@ -59,7 +58,6 @@ export function readTelemetryStream(
           events.push(parsed);
         }
       } catch {
-        // Skip malformed lines
       }
     }
 
