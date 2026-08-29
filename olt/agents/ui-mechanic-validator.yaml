@@ -28,6 +28,9 @@ permissions:
     - "run:exec"
     - "task:submit"
     - "task:review"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns:
 invariants:
   - "ZERO_SOURCE_EDITS"
@@ -91,6 +94,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-validator
   ---

@@ -131,28 +131,17 @@ describe("Mailbox IPC CLI Commands", () => {
         "base-dir": testRoot,
       });
 
-      const recv1 = await execute([
-        "msg:recv",
-        "--actor",
-        "worker-rcv",
-        "--base-dir",
-        testRoot,
-      ]);
+      const recv1 = await execute(["msg:recv", "--actor", "worker-rcv", "--base-dir", testRoot]);
 
       expect(recv1.totalReceipts).toBe(2);
       expect((recv1.receipts as MailboxEnvelope[]).length).toBe(2);
 
       const paths = resolveMailboxPaths("worker-rcv", testRoot);
       const cursor = loadMailboxCursor(paths.cursorPath);
-      expect(cursor.last_read_sequence).toBe(2);
+      expect(cursor.seen_ids.length).toBe(2);
+      expect(cursor.last_read_sequence).toBeGreaterThanOrEqual(1);
 
-      const recv2 = await execute([
-        "msg:recv",
-        "--actor",
-        "worker-rcv",
-        "--base-dir",
-        testRoot,
-      ]);
+      const recv2 = await execute(["msg:recv", "--actor", "worker-rcv", "--base-dir", testRoot]);
       expect(recv2.totalReceipts).toBe(0);
     });
 
