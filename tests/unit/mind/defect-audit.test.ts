@@ -15,7 +15,7 @@ import {
   type DefectStatus,
   type RGBColor,
 } from "../../../olt/scripts/src/cli/commands/defect-audit.ts";
-import { executeDefectAudit } from "../../../olt/scripts/src/mind/defect-audit.ts";
+import { executeDefectAudit } from "../../../olt/scripts/src/mind/defects/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";

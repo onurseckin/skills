@@ -12,7 +12,7 @@ import {
   MindAuditorEngine,
   SkillAuditorEngine,
   type AuditorCursor,
-} from "../../olt/scripts/src/mind/cognitive-auditors.ts";
+} from "../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 import { OrchestratorCompanionAuditor } from "../../olt/scripts/src/orchestrator/companion-auditor.ts";
 import { AutonomousLoopRunner } from "../../olt/scripts/src/orchestrator/loop-runner.ts";
 import type {

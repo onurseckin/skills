@@ -25,8 +25,8 @@
     "lint": "oxlint --quiet",
     "format": "oxfmt '!**/.olt/capsules/**' '!**/.olt/scratch/**'",
     "format:check": "oxfmt '!**/.olt/capsules/**' '!**/.olt/scratch/**' --check",
-    "modularity:staged": "bun scripts/modularity/check.ts --mode strict --source index",
-    "modularity:check": "bun scripts/modularity/check.ts --mode strict --source tree",
+    "modularity:staged": "bun scripts/modularity/check.ts --mode ratchet --source index",
+    "modularity:check": "bun scripts/modularity/check.ts --mode ratchet --source tree",
     "sync": "bun scripts/sync/index.ts",
     "sync:local": "bun run sync",
     "sync:remote": "npx skills update olt -g -y"

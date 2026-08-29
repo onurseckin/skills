@@ -3,7 +3,7 @@ import { delimiter, isAbsolute, relative, resolve, sep } from "node:path";
 import type { CommandPathBinding } from "../../../core/contracts/index";
 import { canonicalJsonBytes } from "../../../core/json";
 import { HarnessError } from "../../../core/errors/index";
-import { commandLayers } from "../models/command-wrappers";
+import { commandLayers } from "../models/command/command-wrappers.ts";
 import { captureGatePathBindings } from "./gate-path-bindings";
 
 export function inside(root: string, path: string): boolean {

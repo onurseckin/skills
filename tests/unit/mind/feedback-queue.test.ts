@@ -31,7 +31,7 @@ import {
   __setFeedbackQueuePersistenceTestHook,
   type FeedbackItem,
   type FeedbackResolutionProof,
-} from "../../../olt/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Feedback Queue Engine", () => {
@@ -211,7 +211,7 @@ describe("Feedback Queue Engine", () => {
   it("retains both distinct synchronized child-process appends", async () => {
     setup();
     const latch = join(testDir, "append-go");
-    const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback-queue.ts");
+    const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback/queue/index.ts");
     const child = (id: string) =>
       Bun.spawn({
         cmd: [
@@ -251,7 +251,7 @@ describe("Feedback Queue Engine", () => {
       },
       queueFile,
     );
-    const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback-queue.ts");
+    const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback/queue/index.ts");
     const child = Bun.spawn({
       cmd: [
         "bun",
@@ -661,7 +661,7 @@ describe("Feedback Queue Engine", () => {
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   it("verifies feedback queue files contain zero any and zero suppressions", () => {
     const filesToAudit = [
-      join(process.cwd(), "olt/scripts/src/mind/feedback-queue.ts"),
+      join(process.cwd(), "olt/scripts/src/mind/feedback/queue/index.ts"),
       join(process.cwd(), "olt/scripts/src/cli/commands/feedback-ops.ts"),
       join(process.cwd(), "tests/unit/mind/feedback-queue.test.ts"),
     ];

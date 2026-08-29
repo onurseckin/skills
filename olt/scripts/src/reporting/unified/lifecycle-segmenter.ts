@@ -118,8 +118,19 @@ export function segmentTaskLifecycle(tasks: readonly TaskRecord[]): LifecycleSeg
 export function buildAgentMatrixRows(
   rawAgents: readonly Record<string, unknown>[],
   tasks: readonly TaskRecord[],
-  implementersActive: readonly { taskId: string; agentId: string; role: string; attempt: number; expiresAt: string }[],
-  validatorsActive: readonly { taskId: string; validatorId: string; domain: string; deadlineAt: string }[],
+  implementersActive: readonly {
+    taskId: string;
+    agentId: string;
+    role: string;
+    attempt: number;
+    expiresAt: string;
+  }[],
+  validatorsActive: readonly {
+    taskId: string;
+    validatorId: string;
+    domain: string;
+    deadlineAt: string;
+  }[],
 ): UnifiedAgentRow[] {
   const agentRows: UnifiedAgentRow[] = [];
 

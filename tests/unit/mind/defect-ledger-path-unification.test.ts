@@ -12,7 +12,7 @@ import {
   resolveCanonicalDefectLogPath,
   resolveDefectLogPath,
   type DefectEntry,
-} from "../../../olt/scripts/src/mind/defects.ts";
+} from "../../../olt/scripts/src/mind/defects/index.ts";
 
 // Fixtures live under the limo scratch tree, never under skills' own .olt/,
 // so a bug in the resolvers under test can never touch the live 252-row ledger.

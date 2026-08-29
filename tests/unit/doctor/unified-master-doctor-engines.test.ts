@@ -233,7 +233,9 @@ describe("Unified Master Doctor - 8 Check Engines", () => {
         },
       });
       expect(result.passed).toBe(false);
-      const finding = result.findings.find((f) => f.code === "ANTI_BATCHING_MULTIPLE_ACTIVE_LEASES");
+      const finding = result.findings.find(
+        (f) => f.code === "ANTI_BATCHING_MULTIPLE_ACTIVE_LEASES",
+      );
       expect(finding).toBeDefined();
       expect(finding?.severity).toBe("ERROR");
       expect(finding?.message).toContain("agent-overworked");
@@ -385,8 +387,12 @@ describe("Unified Master Doctor - 8 Check Engines", () => {
         ],
       });
       expect(result.passed).toBe(false);
-      expect(result.findings.some((f) => f.code === "ROLE_BOUNDARY_IMPLEMENTER_PLAN_MUTATION")).toBe(true);
-      expect(result.findings.some((f) => f.code === "ROLE_BOUNDARY_IMPLEMENTER_SELF_APPROVAL")).toBe(true);
+      expect(
+        result.findings.some((f) => f.code === "ROLE_BOUNDARY_IMPLEMENTER_PLAN_MUTATION"),
+      ).toBe(true);
+      expect(
+        result.findings.some((f) => f.code === "ROLE_BOUNDARY_IMPLEMENTER_SELF_APPROVAL"),
+      ).toBe(true);
     });
   });
 
@@ -419,8 +425,12 @@ describe("Unified Master Doctor - 8 Check Engines", () => {
         },
       });
       expect(failedResult.passed).toBe(false);
-      expect(failedResult.findings.some((f) => f.code === "PUSHBACK_QUOTA_ADVERSARIAL_PROBES_DEFICIT")).toBe(true);
-      expect(failedResult.findings.some((f) => f.code === "PUSHBACK_QUOTA_COGNITIVE_PUSHBACKS_DEFICIT")).toBe(true);
+      expect(
+        failedResult.findings.some((f) => f.code === "PUSHBACK_QUOTA_ADVERSARIAL_PROBES_DEFICIT"),
+      ).toBe(true);
+      expect(
+        failedResult.findings.some((f) => f.code === "PUSHBACK_QUOTA_COGNITIVE_PUSHBACKS_DEFICIT"),
+      ).toBe(true);
     });
   });
 });

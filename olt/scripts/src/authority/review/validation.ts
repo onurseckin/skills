@@ -1,8 +1,5 @@
 import { MAX_REPAIR_ROUNDS } from "../../core/config/contracts.ts";
-import {
-  isCoordinatorPushbackCause,
-  isValidatorDomain,
-} from "../../core/contracts/index.ts";
+import { isCoordinatorPushbackCause, isValidatorDomain } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import type { ValidatedReviewPushback } from "./types.ts";
 

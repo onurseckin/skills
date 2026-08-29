@@ -1,13 +1,23 @@
-import type { GraphHealthAuditReport, GraphHealthIssue, SupervisoryWatchdogAuditReport, TaskRecoveryResult, TaskRecoveryRecord } from "./types.ts";
-import { probeOrphanedTasks, probeStaleLeases } from "./tasks.ts";
-import { probeCircularDependencies } from "./tasks-circular.ts";
-import { probeGateCoverageViolations } from "./tasks-coverage.ts";
-import { probeScopeCollisionHazards } from "./tasks-advanced.ts";
-import { parseTimestamp, loadWatchdogStore, WatchdogRecord } from "../../../authority/watchdog-manager";
-import { TaskStatus } from "../../../core/contracts";
-import { transition } from "../../../workflow/task-state";
-import { TransactionPort } from "../../../workflow/types";
-import { isRecord } from "../../store/layout/layout-json.ts";
+import type {
+  GraphHealthAuditReport,
+  GraphHealthIssue,
+  SupervisoryWatchdogAuditReport,
+  TaskRecoveryResult,
+  TaskRecoveryRecord,
+} from "./types.ts";
+import { probeOrphanedTasks, probeStaleLeases } from "./tasks/tasks.ts";
+import { probeCircularDependencies } from "./tasks/tasks-circular.ts";
+import { probeGateCoverageViolations } from "./tasks/tasks-coverage.ts";
+import { probeScopeCollisionHazards } from "./tasks/tasks-advanced.ts";
+import {
+  parseTimestamp,
+  loadWatchdogStore,
+  type WatchdogRecord,
+} from "../../../authority/watchdog-manager.ts";
+import { type TaskStatus } from "../../../core/contracts/index.ts";
+import { transition } from "../../../workflow/task-state.ts";
+import { type TransactionPort } from "../../../workflow/types.ts";
+import { isRecord } from "../../../requirements/predicates.ts";
 
 export function auditGraphHealth(
   state: unknown,

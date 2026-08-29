@@ -3,16 +3,10 @@
  * Synthesis of DPR-aware companion manifests with physical resolution metrics
  */
 
-import type {
-  CompanionManifestV2,
-  EvaluatedCriterion,
-} from "../../capture/validator/types.ts";
+import type { CompanionManifestV2, EvaluatedCriterion } from "../../capture/validator/types.ts";
 import { CANONICAL_VIEWPORT_SPECS } from "./constants.ts";
 import { computePhysicalViewportMetrics } from "./metrics.ts";
-import type {
-  CanonicalViewport,
-  DprAwareManifestSynthesisOptions,
-} from "./types.ts";
+import type { CanonicalViewport, DprAwareManifestSynthesisOptions } from "./types.ts";
 
 /**
  * Synthesizes a companion manifest enriched with DPR physical raster coordinates and resolution metrics.

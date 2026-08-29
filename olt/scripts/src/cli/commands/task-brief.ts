@@ -6,7 +6,7 @@ import {
   extractFileAnchors,
   type ExactAnchor,
   type ExactAnchorBriefing,
-} from "../../mind/briefing-builder.ts";
+} from "../../mind/proposals/builder/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { readAgentLedger, requireGrant } from "../../workflow/agents/ledger.ts";
 import { applicableGates, commandArgv } from "../../workflow/gates/gate-policy.ts";

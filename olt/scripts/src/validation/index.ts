@@ -158,10 +158,7 @@ export {
   type ValidatorConfig,
 } from "./engine/index.ts";
 
-export {
-  shouldSkipStringLiteral,
-  type MutationCandidate,
-} from "./mutation-gate/index.ts";
+export { shouldSkipStringLiteral, type MutationCandidate } from "./mutation-gate/index.ts";
 
 export {
   UNIFIED_BROWSER_RUNS_DIRECTORY,

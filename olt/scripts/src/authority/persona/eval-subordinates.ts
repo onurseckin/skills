@@ -1,10 +1,6 @@
 import { DEFAULT_WATCHDOG_TIMEOUT_MS } from "../watchdog-manager.ts";
 import { findOverlappingScopes } from "./profiles.ts";
-import type {
-  DriftFinding,
-  ReflexiveAuditContext,
-  SubordinateHealthSummary,
-} from "./types.ts";
+import type { DriftFinding, ReflexiveAuditContext, SubordinateHealthSummary } from "./types.ts";
 
 export function evaluateSubordinateFulfillment(
   context: ReflexiveAuditContext,

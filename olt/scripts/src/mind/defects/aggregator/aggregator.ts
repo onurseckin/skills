@@ -18,7 +18,10 @@ const SEVERITY_LEVELS: Record<DefectSeverity, number> = {
   critical: 4,
 };
 
-export function pickHigherSeverity(s1: DefectSeverity, s2: DefectSeverity): DefectSeverity {
+export function pickHigherSeverity(
+  s1?: DefectSeverity | string,
+  s2?: DefectSeverity | string,
+): DefectSeverity {
   const norm1 = (s1 || "warning").toLowerCase() as DefectSeverity;
   const norm2 = (s2 || "warning").toLowerCase() as DefectSeverity;
   const rank1 = SEVERITY_LEVELS[norm1] ?? 2;
@@ -54,7 +57,7 @@ export function toAggregatedDefect(input: DefectRecordInput): AggregatedDefect {
   const id = input.id || `defect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const dedupKey = input.dedup_key || computeDefectDiscriminator(input);
   const rawSev = input.severity || "warning";
-  const severity = (rawSev.toLowerCase().trim()) as DefectSeverity;
+  const severity = rawSev.toLowerCase().trim() as DefectSeverity;
   const category = categorizeDefect(input);
   const status = normalizeStatus(input.status);
   const remediation = input.remediation || input.prescribed_remediation || undefined;
@@ -101,12 +104,17 @@ export function aggregateDefectEntries(
 ): AggregatedDefect {
   const maxOccurrences = options.maxOccurrences ?? 50;
   const incomingTs = incoming.timestamp || new Date().toISOString();
-  const lastSeen = Date.parse(incomingTs) > Date.parse(target.last_seen_at) ? incomingTs : target.last_seen_at;
-  
+  const lastSeen =
+    Date.parse(incomingTs) > Date.parse(target.last_seen_at) ? incomingTs : target.last_seen_at;
+
   const incFirst = incoming.first_seen_at || incoming.timestamp || incomingTs;
-  const firstSeen = Date.parse(incFirst) < Date.parse(target.first_seen_at) ? incFirst : target.first_seen_at;
+  const firstSeen =
+    Date.parse(incFirst) < Date.parse(target.first_seen_at) ? incFirst : target.first_seen_at;
   const newCount = target.count + (incoming.count ?? 1);
-  const severity = pickHigherSeverity(target.severity, (incoming.severity || "warning") as DefectSeverity);
+  const severity = pickHigherSeverity(
+    (target.severity || "warning") as DefectSeverity,
+    (incoming.severity || "warning") as DefectSeverity,
+  );
 
   let status = target.status;
   if (incoming.status) {
@@ -130,7 +138,9 @@ export function aggregateDefectEntries(
 
   const boundedOccurrences = newOccurrences.slice(-maxOccurrences);
 
-  const context = incoming.context ? { ...(target.context || {}), ...incoming.context } : target.context;
+  const context = incoming.context
+    ? { ...(target.context || {}), ...incoming.context }
+    : target.context;
   return {
     ...target,
     severity,

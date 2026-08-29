@@ -9,7 +9,7 @@ import {
   type DefectAuditReport,
   type DefectEntry,
   type DefectResolutionProof,
-} from "../../../olt/scripts/src/mind/defects.ts";
+} from "../../../olt/scripts/src/mind/defects/index.ts";
 
 describe("Diagnostics Remediation Proof & Static Quality Invariants", () => {
   const sampleDefect: DefectEntry = {

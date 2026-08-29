@@ -211,7 +211,9 @@ describe("sugiyama-canonical-tracking", () => {
 
       const tracking = formatImplementerValidatorTracking(task);
       expect(tracking).toHaveLength(2);
-      expect(tracking[0]).toBe("Tracking: Pushes: 2/5 | Probes: 3/5 | Attempts: 1/3 | In-Lease Repairs: 0/3");
+      expect(tracking[0]).toBe(
+        "Tracking: Pushes: 2/5 | Probes: 3/5 | Attempts: 1/3 | In-Lease Repairs: 0/3",
+      );
       expect(tracking[1]).toBe("Coordinator: coord-alpha (100%) | Active Lease Timer: 90s");
     });
 
@@ -231,15 +233,29 @@ describe("sugiyama-canonical-tracking", () => {
         coordinatorOwnershipPct: 100,
         activeLeaseTimerSeconds: 120,
         expandedSubtasks: [
-          { id: "sub-1", label: "Sub 1", status: "done", role: "worker", assignedAgent: "impl-bob" },
-          { id: "sub-2", label: "Sub 2", status: "ready", role: "validator", validatorId: "val-alice" },
+          {
+            id: "sub-1",
+            label: "Sub 1",
+            status: "done",
+            role: "worker",
+            assignedAgent: "impl-bob",
+          },
+          {
+            id: "sub-2",
+            label: "Sub 2",
+            status: "ready",
+            role: "validator",
+            validatorId: "val-alice",
+          },
         ],
       };
 
       const boxLines = renderRoundedNodeBox(task);
       const renderedBox = boxLines.join("\n");
       expect(renderedBox).toContain("Feature Engine");
-      expect(renderedBox).toContain("Tracking: Pushes: 1/5 | Probes: 2/5 | Attempts: 1/3 | In-Lease Repairs: 0/3");
+      expect(renderedBox).toContain(
+        "Tracking: Pushes: 1/5 | Probes: 2/5 | Attempts: 1/3 | In-Lease Repairs: 0/3",
+      );
       expect(renderedBox).toContain("Coordinator: supervisor-1 (100%) | Active Lease Timer: 120s");
       expect(renderedBox).toContain("[sub-1]");
       expect(renderedBox).toContain("[sub-2]");

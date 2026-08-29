@@ -4,11 +4,7 @@ import {
   type JsonObject,
 } from "../../../core/contracts/index.ts";
 import type { TaskRecord, ValidationAttempt } from "../../../workflow/types.ts";
-import {
-  GRAPH_MUTATION_COMMANDS,
-  isImplementerRole,
-  VALIDATION_COMMANDS,
-} from "./constants.ts";
+import { GRAPH_MUTATION_COMMANDS, isImplementerRole, VALIDATION_COMMANDS } from "./constants.ts";
 import type { TierConfinementFinding } from "./types.ts";
 
 /**

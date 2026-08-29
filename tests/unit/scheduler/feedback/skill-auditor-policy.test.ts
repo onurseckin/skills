@@ -1,0 +1,149 @@
+import { describe, it, expect } from "bun:test";
+import {
+  SkillAuditorPolicy,
+  MetaAuditorPolicy,
+} from "../../../../olt/scripts/src/engine/scheduler/diagnostics/skill-auditor-policy.ts";
+import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import type { AgentGrantRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
+
+describe("SkillAuditorPolicy", () => {
+  it("can be instantiated", () => {
+    const policy = new SkillAuditorPolicy();
+    expect(policy).toBeDefined();
+  });
+
+  it("exports MetaAuditorPolicy as alias for backwards compatibility", () => {
+    expect(MetaAuditorPolicy).toBe(SkillAuditorPolicy);
+  });
+
+  describe("isMandatoryTarget", () => {
+    it("returns true for repos containing /skills", () => {
+      expect(SkillAuditorPolicy.isMandatoryTarget("/Users/foo/repos/skills")).toBe(true);
+    });
+
+    it("returns true for repos containing orchestrating-long-tasks", () => {
+      expect(
+        SkillAuditorPolicy.isMandatoryTarget("/Users/foo/.agents/skills/orchestrating-long-tasks"),
+      ).toBe(true);
+    });
+
+    it("returns true for repos containing /olt", () => {
+      expect(SkillAuditorPolicy.isMandatoryTarget("/Users/foo/project/olt/scripts")).toBe(true);
+    });
+
+    it("returns false for unrelated repositories", () => {
+      expect(SkillAuditorPolicy.isMandatoryTarget("/Users/foo/repos/unrelated-app")).toBe(false);
+    });
+  });
+
+  describe("assertSkillAuditorRequired", () => {
+    it("returns immediately without throwing on non-mandatory target repo", () => {
+      const activeAgents: readonly AgentGrantRecord[] = [
+        {
+          id: "orchestrator-1",
+          role: "orchestrator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+      ];
+
+      expect(() => {
+        SkillAuditorPolicy.assertSkillAuditorRequired(
+          "/Users/foo/repos/external-repo",
+          activeAgents,
+        );
+      }).not.toThrow();
+    });
+
+    it("throws SKILL_AUDITOR_MANDATE_VIOLATION when skill-auditor or meta-auditor is missing", () => {
+      const activeAgents: readonly AgentGrantRecord[] = [
+        {
+          id: "orchestrator-1",
+          role: "orchestrator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+        {
+          id: "mind-auditor-1",
+          role: "mind-auditor",
+          parent_agent_id: "orchestrator-1",
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+      ];
+
+      expect(() => {
+        SkillAuditorPolicy.assertSkillAuditorRequired("/Users/foo/repos/skills", activeAgents);
+      }).toThrow(HarnessError);
+
+      try {
+        SkillAuditorPolicy.assertSkillAuditorRequired("/Users/foo/repos/skills", activeAgents);
+      } catch (err) {
+        expect(err).toBeInstanceOf(HarnessError);
+        expect((err as HarnessError).message).toContain("[SKILL_AUDITOR_MANDATE_VIOLATION]");
+      }
+    });
+
+    it("passes when skill-auditor is present", () => {
+      const activeAgents: readonly AgentGrantRecord[] = [
+        {
+          id: "orchestrator-1",
+          role: "orchestrator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+        {
+          id: "skill-auditor-1",
+          role: "skill-auditor",
+          parent_agent_id: "orchestrator-1",
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+      ];
+
+      expect(() => {
+        SkillAuditorPolicy.assertSkillAuditorRequired("/Users/foo/repos/skills", activeAgents);
+      }).not.toThrow();
+    });
+
+    it("passes when meta-auditor is present as fallback companion", () => {
+      const activeAgents: readonly AgentGrantRecord[] = [
+        {
+          id: "orchestrator-1",
+          role: "orchestrator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+        {
+          id: "meta-auditor-1",
+          role: "meta-auditor",
+          parent_agent_id: "orchestrator-1",
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+      ];
+
+      expect(() => {
+        SkillAuditorPolicy.assertSkillAuditorRequired("/Users/foo/repos/skills", activeAgents);
+      }).not.toThrow();
+    });
+  });
+});

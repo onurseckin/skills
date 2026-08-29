@@ -1,16 +1,11 @@
-export {
-  synthesizeDynamicTopology,
-} from "./topology/dynamic-synthesize.ts";
+export { synthesizeDynamicTopology } from "./topology/dynamic-synthesize.ts";
 
-export {
-  computeWorkSpanMetrics,
-  computeResourceDisjointness,
-  calculateCriticConcurrency,
-} from "./topology/dynamic-metrics.ts";
+export { computeWorkSpanMetrics, computeResourceDisjointness } from "./topology/dynamic-metrics.ts";
 
 export {
   partitionOrchestratorDomains,
   calculateValidatorAllocations,
+  calculateCriticConcurrency,
 } from "./topology/dynamic-allocations.ts";
 
 export type {
@@ -19,7 +14,6 @@ export type {
   CrossOrchestratorBarrier,
   ValidatorDemand,
   ResourceDisjointnessMetrics,
-  CriticConcurrencyMetrics,
   DynamicTopologyWave,
   DynamicTopologySynthesis,
   DynamicTopologyOptions,

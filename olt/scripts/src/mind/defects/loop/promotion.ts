@@ -61,12 +61,18 @@ export function requireDistinctLedgerPaths(sourcePath: string, targetPath: strin
       const realSource = realpathSync(normSource);
       const realTarget = realpathSync(normTarget);
       if (realSource === realTarget) {
-        throw new HarnessError("INTEGRITY", "source and target defect ledgers point to the same physical file via symlink");
+        throw new HarnessError(
+          "INTEGRITY",
+          "source and target defect ledgers point to the same physical file via symlink",
+        );
       }
       const statSource = lstatSync(normSource);
       const statTarget = lstatSync(normTarget);
       if (statSource.dev === statTarget.dev && statSource.ino === statTarget.ino) {
-        throw new HarnessError("INTEGRITY", "source and target defect ledgers point to the same file via hardlink");
+        throw new HarnessError(
+          "INTEGRITY",
+          "source and target defect ledgers point to the same file via hardlink",
+        );
       }
     } catch (e) {
       if (e instanceof HarnessError) throw e;
@@ -150,7 +156,10 @@ export function promoteResolvedDefects(
           requireCommitSha: options.requireCommitSha,
         });
         if (!proof.isValid) {
-          throw new HarnessError("INTEGRITY", `resolved defect '${b.id}' has invalid resolution: ${proof.reason ?? "unknown error"}`);
+          throw new HarnessError(
+            "INTEGRITY",
+            `resolved defect '${b.id}' has invalid resolution: ${proof.reason ?? "unknown error"}`,
+          );
         }
       }
       if (requireProof) {

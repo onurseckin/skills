@@ -17,26 +17,20 @@ export type {
   StrategicCandidateAdmissionOptions,
   ProactiveRoadmapPlanningOptions,
   ProactiveMindCognitionOptions,
-} from "./strategic-purpose-chunk1.ts";
+} from "./types.ts";
 
 export {
   MIND_STRATEGIC_ALTITUDE,
   MIND_HARD_ZEROS,
   MIND_PROACTIVE_BANDWIDTH_ACTIVITIES,
-} from "./strategic-purpose-chunk1.ts";
+} from "./types.ts";
 
-export {
-  diagnoseMacroDag,
-  groomBacklog,
-} from "./strategic-purpose-chunk2.ts";
+export { diagnoseMacroDag, groomBacklog } from "./strategic.ts";
 
-export {
-  evaluateStrategicCandidateAdmission,
-  planProactiveRoadmap,
-} from "./strategic-purpose-chunk3.ts";
+export { evaluateStrategicCandidateAdmission, planProactiveRoadmap } from "./purpose.ts";
 
 export {
   executeProactiveMindCognition,
   formatStrategicCognitionBrief,
   verifyMindRoleStrategicInvariants,
-} from "./strategic-purpose-chunk4.ts";
+} from "./cognition.ts";

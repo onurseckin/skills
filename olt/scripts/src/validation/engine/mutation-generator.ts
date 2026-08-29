@@ -1,5 +1,9 @@
 import ts from "typescript";
-import type { MutantRecord, MutationGateOptions, MutationType } from "../anti-mock/anti-mock-types.ts";
+import type {
+  MutantRecord,
+  MutationGateOptions,
+  MutationType,
+} from "../anti-mock/anti-mock-types.ts";
 import {
   visitBooleanKeywords,
   visitUnaryInversion,
@@ -7,7 +11,7 @@ import {
   visitReturnStatement,
   visitFunctionBody,
   visitStringLiteral,
-  CandidateAdder
+  CandidateAdder,
 } from "../rules/mutation-visitors.ts";
 
 interface MutationCandidate {
@@ -22,20 +26,30 @@ interface MutationCandidate {
 }
 
 export function generateMutants(sourceCode: string, options?: MutationGateOptions): MutantRecord[] {
-  const allowedTypes = options?.mutationTypes ? new Set<MutationType>(options.mutationTypes) : undefined;
-  const fileName = typeof options?.file === "string" && options.file.length > 0 ? options.file : "source.ts";
+  const allowedTypes = options?.mutationTypes
+    ? new Set<MutationType>(options.mutationTypes)
+    : undefined;
+  const fileName =
+    typeof options?.file === "string" && options.file.length > 0 ? options.file : "source.ts";
 
   const sourceFile = ts.createSourceFile(
     fileName,
     sourceCode,
     ts.ScriptTarget.Latest,
     true,
-    fileName.endsWith(".tsx") || fileName.endsWith(".jsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+    fileName.endsWith(".tsx") || fileName.endsWith(".jsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   );
 
   const candidates: MutationCandidate[] = [];
 
-  const addCandidate: CandidateAdder = (mutationType, description, start, end, originalText, replacementText) => {
+  const addCandidate: CandidateAdder = (
+    mutationType,
+    description,
+    start,
+    end,
+    originalText,
+    replacementText,
+  ) => {
     if (allowedTypes && !allowedTypes.has(mutationType)) return;
     const { line, character } = sourceFile.getLineAndCharacterOfPosition(start);
     candidates.push({
@@ -62,7 +76,8 @@ export function generateMutants(sourceCode: string, options?: MutationGateOption
 
   walk(sourceFile);
 
-  const maxMutants = typeof options?.maxMutants === "number" ? options.maxMutants : candidates.length;
+  const maxMutants =
+    typeof options?.maxMutants === "number" ? options.maxMutants : candidates.length;
   const selectedCandidates = candidates.slice(0, maxMutants);
 
   return selectedCandidates.map((candidate, idx) => {

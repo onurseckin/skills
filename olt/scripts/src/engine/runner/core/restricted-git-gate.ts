@@ -3,7 +3,7 @@ import {
   isRestrictedGitDiffArgv,
   restrictedGitDiffArgv,
 } from "../../../core/restricted-git";
-import { commandLayers } from "../models/command-wrappers";
+import { commandLayers } from "../models/command/command-wrappers.ts";
 
 function effective(argv: readonly string[]): { index: number; argv: readonly string[] } {
   const layers = commandLayers(argv);

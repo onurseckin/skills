@@ -20,11 +20,7 @@ import {
   sameInode,
   withWatchdogStoreLock,
 } from "./lock.ts";
-import type {
-  WatchdogRecord,
-  WatchdogStatus,
-  WatchdogStore,
-} from "./types.ts";
+import type { WatchdogRecord, WatchdogStatus, WatchdogStore } from "./types.ts";
 
 export function failStoreIntegrity(message: string): never {
   throw new HarnessError("INTEGRITY", `invalid watchdog store: ${message}`);

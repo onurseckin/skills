@@ -13,8 +13,8 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
         "Execute commands under the verified agent session or provide the matching token for delegation.",
         [
           example(
-            "authority/session-registry.ts",
-            "Actor spoofing blocked: caller verified as '${finalAgentId}' (${finalRole}) cannot execute as '${requestedActor}' without matching credentials.",
+            "authority/session/resolver.ts",
+            "Actor spoofing blocked: caller verified as '${finalAgentId}' (${finalRole}) cannot execute as '${requestedActor}'. Session tokens authenticate their holder and cannot delegate another agent's durable grant.",
           ),
         ],
       ),
@@ -127,7 +127,7 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
             "workflow/completion/begin-completeness-critic.ts",
             "completeness critic rounds are exhausted",
           ),
-          example("engine/store/event-append.ts", "event count exceeds configured limit"),
+          example("engine/store/events/event-append.ts", "event count exceeds configured limit"),
         ],
       ),
       cause(
@@ -242,12 +242,12 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
         "--run does not name a real directory, or --report/--findings does not name a readable file of the expected kind.",
         "Point the flag at a real, readable path of the right kind - a directory for --run, a file for --report or a findings/proofs file.",
         [
-          example("engine/store/load.ts", "run_root must be a real directory: ${runRoot}"),
+          example("engine/store/capsule/load.ts", "run_root must be a real directory: ${runRoot}"),
           example(
             "workflow/completion/parse-raw-findings.ts",
             "cannot read findings file: ${findingsFile}",
           ),
-          example("engine/store/blobs.ts", "not a regular file: ${sourcePath}"),
+          example("engine/store/layout/blobs.ts", "not a regular file: ${sourcePath}"),
         ],
       ),
     ],

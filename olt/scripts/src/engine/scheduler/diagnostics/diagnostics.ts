@@ -87,21 +87,13 @@ export async function runScriptBackedDiagnostics(
     }
 
     if (inspector === "doctor") {
-      doctorReceipt = await runInspectorDoctor(
-        options.runRoot,
-        options.doctorOptions ?? {},
-        clock,
-      );
+      doctorReceipt = await runInspectorDoctor(options.runRoot, options.doctorOptions ?? {}, clock);
       receipts.push(doctorReceipt);
       if (doctorReceipt.status === "failed") {
         errors.push(doctorReceipt.error ?? doctorReceipt.summary);
       }
     } else if (inspector === "health") {
-      healthReceipt = await runInspectorHealth(
-        options.scriptsRoot,
-        options.healthChecks,
-        clock,
-      );
+      healthReceipt = await runInspectorHealth(options.scriptsRoot, options.healthChecks, clock);
       receipts.push(healthReceipt);
       if (healthReceipt.status === "failed") {
         errors.push(healthReceipt.error ?? healthReceipt.summary);
@@ -118,11 +110,7 @@ export async function runScriptBackedDiagnostics(
         errors.push(dagViewReceipt.error ?? dagViewReceipt.summary);
       }
     } else if (inspector === "report:unified") {
-      unifiedReportReceipt = await runInspectorUnifiedReport(
-        options.runRoot,
-        options.state,
-        clock,
-      );
+      unifiedReportReceipt = await runInspectorUnifiedReport(options.runRoot, options.state, clock);
       receipts.push(unifiedReportReceipt);
       if (unifiedReportReceipt.status === "failed") {
         errors.push(unifiedReportReceipt.error ?? unifiedReportReceipt.summary);

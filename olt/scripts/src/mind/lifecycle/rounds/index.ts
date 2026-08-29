@@ -5,7 +5,7 @@ export type {
   ObjectiveRecord,
   OpenRoundInStateOptions,
   CloseRoundInStateOptions,
-} from "./rounds-chunk1.ts";
+} from "./types.ts";
 
 export {
   ROUND_RESULTS,
@@ -15,7 +15,7 @@ export {
   validateCandidateAdmitted,
   validateObjectiveStatement,
   validateRoundBudget,
-} from "./rounds-chunk1.ts";
+} from "./types.ts";
 
 export {
   validatePriorRoundCompleted,
@@ -23,11 +23,11 @@ export {
   getAllRounds,
   getOpenRoundForObjective,
   reconcileRoundState,
-} from "./rounds-chunk2.ts";
+} from "./round-open.ts";
 
 export {
   openRoundInState,
   closeRoundInState,
   formatMindRoundOpenBrief,
   formatMindRoundCloseBrief,
-} from "./rounds-chunk3.ts";
+} from "./round-close.ts";

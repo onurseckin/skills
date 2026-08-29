@@ -4,7 +4,22 @@
 
 export type DefectSeverity = "low" | "medium" | "high" | "critical";
 
-export type DefectStatus = "open" | "in_progress" | "resolved" | "completed" | "closed" | "declined" | "reopened";
+export type DefectCategory =
+  | "boundary_violation"
+  | "model_reasoning_error"
+  | "code_defect"
+  | "documentation"
+  | "security_risk"
+  | "modularity_violation";
+
+export type DefectStatus =
+  | "open"
+  | "in_progress"
+  | "resolved"
+  | "completed"
+  | "closed"
+  | "declined"
+  | "reopened";
 
 export type DefectType =
   | "CODE_HEALTH"
@@ -44,7 +59,7 @@ export interface DefectContext {
 }
 
 export interface DefectResolutionProof {
-  readonly commit_sha?: string | undefined;
+  readonly commit_sha?: string | null | undefined;
   readonly test_assertion?: string | undefined;
   readonly task_id?: string | undefined;
   readonly resolved_at?: string | undefined;
@@ -56,22 +71,41 @@ export interface DefectResolutionProof {
 
 export interface DefectEntry {
   readonly id: string;
-  readonly domain: string;
-  readonly error_code: string;
-  readonly title: string;
-  readonly description: string;
-  readonly actor: string;
-  readonly timestamp: string;
+  readonly domain?: string | undefined;
+  readonly error_code?: string | undefined;
+  readonly title?: string | undefined;
+  readonly description?: string | undefined;
+  readonly message?: string | undefined;
+  readonly actor?: string | undefined;
+  readonly timestamp?: string | undefined;
   readonly source_repo?: string | undefined;
-  readonly context?: DefectContext | undefined;
-  readonly status: DefectStatus;
-  readonly curation?: DefectCuration | undefined;
+  readonly context?: Record<string, unknown> | DefectContext | undefined;
+  readonly status: DefectStatus | string;
+  readonly type?: string | undefined;
+  readonly category?: DefectCategory | string | undefined;
+  readonly severity?: DefectSeverity | string | undefined;
+  readonly observation?: string | undefined;
+  readonly remediation?: string | undefined;
+  readonly prescribed_remediation?: string | undefined;
+  readonly curation?: Record<string, unknown> | DefectCuration | undefined;
+  readonly resolution?: DefectResolutionProof | undefined;
   readonly resolution_proof?: DefectResolutionProof | undefined;
-  readonly occurrences?: readonly string[] | undefined;
+  readonly failure_proof?: EmpiricalFailureProof | undefined;
+  readonly occurrences?:
+    | readonly string[]
+    | readonly import("../defects/core/types.ts").DefectOccurrence[]
+    | undefined;
   readonly count?: number | undefined;
   readonly first_seen?: string | undefined;
+  readonly first_seen_at?: string | undefined;
   readonly last_seen?: string | undefined;
+  readonly last_seen_at?: string | undefined;
+  readonly reopened_at?: string | undefined;
   readonly dedup_key?: string | undefined;
+  readonly capsule_root?: string | undefined;
+  readonly role?: string | undefined;
+  readonly agent_id?: string | undefined;
+  readonly pid?: number | undefined;
 }
 
 export interface AggregatedDefect extends DefectEntry {
@@ -106,13 +140,19 @@ export interface EmpiricalFailureProof {
   readonly error_code?: string | undefined;
   readonly message?: string | undefined;
   readonly timestamp: string;
+  readonly [key: string]: unknown;
 }
 
 export interface SyncDoctorDefectOptions {
   readonly defectsPath?: string | undefined;
+  readonly customPath?: string | undefined;
   readonly runId?: string | undefined;
   readonly commitSha?: string | undefined;
+  readonly timestamp?: string | undefined;
   readonly autoReopen?: boolean | undefined;
+  readonly failureProof?: EmpiricalFailureProof | undefined;
+  readonly dryRun?: boolean | undefined;
+  readonly requireStrictProof?: boolean | undefined;
 }
 
 export interface SyncDefectResult {
@@ -122,4 +162,9 @@ export interface SyncDefectResult {
   readonly existingUpdated: number;
   readonly unchanged: number;
   readonly defects: readonly DefectEntry[];
+  readonly pushed_count?: number;
+  readonly reopened_count?: number;
+  readonly skipped_count?: number;
+  readonly total_findings?: number;
+  readonly defects_file?: string;
 }

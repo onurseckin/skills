@@ -2,13 +2,13 @@ import type { EvidenceClass } from "../core/contracts/index.ts";
 import type { FindingDetail } from "../workflow/scope-partitioner.ts";
 import type { Finding } from "../core/contracts/index.ts";
 import type { DefectSynthesis, CriticDecision, RoundGateResult } from "./types.ts";
-import type { SmartTaskPlan } from "../mind/smart-task-manager.ts";
+import type { SmartTaskPlan } from "../mind/tasks/smart/index.ts";
 import {
   assertAntiBatchingRule,
   deriveGateForCategory,
   deriveWriteScopeForCategory,
   sanitizeSlug,
-} from "../mind/smart-task-manager.ts";
+} from "../mind/tasks/smart/index.ts";
 
 export interface NormalizedFinding extends FindingDetail {
   readonly file_paths_evidence_class: EvidenceClass;

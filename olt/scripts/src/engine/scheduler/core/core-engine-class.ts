@@ -1,13 +1,42 @@
-import type { SchedulerEngineOptions, GraphHealthAuditReport, SupervisoryWatchdogAuditReport, Supervisory5PointHealthReport, SupervisoryProbeDispatchResult, TaskRecoveryResult, ScheduledWaveResult, ScheduledTaskDispatch, BlockedTaskInfo } from "./types.ts";
+import type {
+  SchedulerEngineOptions,
+  GraphHealthAuditReport,
+  SupervisoryWatchdogAuditReport,
+  Supervisory5PointHealthReport,
+  SupervisoryProbeDispatchResult,
+  TaskRecoveryResult,
+  ScheduledWaveResult,
+  ScheduledTaskDispatch,
+  BlockedTaskInfo,
+} from "./types.ts";
 import { auditGraphHealth, auditSupervisoryWatchdog, recoverStaleTasks } from "./state.ts";
-import { auditSupervisory5PointHealth, dispatchSupervisoryHealthProbe, auditDoctorGate, assertDoctorGatePassed } from "./lifecycle.ts";
-import { type ScriptBackedDiagnosticsOptions, type ScriptBackedDiagnosticsResult, runScriptBackedDiagnostics } from "../diagnostics/diagnostics.ts";
-import { WatchdogRecord, registerWatchdog } from "../../../authority/watchdog-manager";
-import { dependencyMap } from "../../../graph/dependency-map";
-import { DoctorOptions } from "../../../reporting/doctor";
-import { Clock, systemClock, TransactionPort } from "../../../workflow/types";
-import { hasActiveOwnership } from "../conflict/conflicts";
-import { MultiDomainBatchOptions, MultiDomainBatchResult, evaluateMultiDomainBatch, MultiDomainValidatorDispatchOptions, MultiDomainValidatorDispatchResult, dispatchMultiDomainValidators, MultiDomainWaveOptions, MultiDomainWaveResult, proposeMultiDomainWave } from "../dispatch/multi-domain-dispatch";
+import {
+  auditSupervisory5PointHealth,
+  dispatchSupervisoryHealthProbe,
+  auditDoctorGate,
+  assertDoctorGatePassed,
+} from "./lifecycle.ts";
+import {
+  type ScriptBackedDiagnosticsOptions,
+  type ScriptBackedDiagnosticsResult,
+  runScriptBackedDiagnostics,
+} from "../diagnostics/diagnostics.ts";
+import { type WatchdogRecord, registerWatchdog } from "../../../authority/watchdog-manager.ts";
+import { dependencyMap } from "../../../graph/dependency-map.ts";
+import { type DoctorOptions } from "../../../reporting/doctor.ts";
+import { type Clock, systemClock, type TransactionPort } from "../../../workflow/types.ts";
+import { hasActiveOwnership } from "../conflict/conflicts.ts";
+import {
+  type MultiDomainBatchOptions,
+  type MultiDomainBatchResult,
+  evaluateMultiDomainBatch,
+  type MultiDomainValidatorDispatchOptions,
+  type MultiDomainValidatorDispatchResult,
+  dispatchMultiDomainValidators,
+  type MultiDomainWaveOptions,
+  type MultiDomainWaveResult,
+  proposeMultiDomainWave,
+} from "../dispatch/multi-domain-dispatch.ts";
 import { type ReadySetSelection, readySet } from "../dispatch/ready-set.ts";
 import { proposeBatch } from "../dispatch/propose-batch.ts";
 
@@ -238,4 +267,8 @@ export class SchedulerEngine {
       this.watchdogTarget,
     ).watchdog;
   }
+}
+
+export function createSchedulerEngine(options: SchedulerEngineOptions = {}): SchedulerEngine {
+  return new SchedulerEngine(options);
 }

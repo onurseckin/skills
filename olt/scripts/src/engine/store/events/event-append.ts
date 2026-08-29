@@ -1,7 +1,11 @@
 import { existsSync, lstatSync, unlinkSync } from "node:fs";
 import type { HarnessEvent, Manifest, RunState } from "../../../core/contracts/index.ts";
 import type { JsonObject } from "../../../core/contracts/index.ts";
-import { atomicWriteJson, durableAppendBytes, fsyncDirectory } from "../../../core/durable-write.ts";
+import {
+  atomicWriteJson,
+  durableAppendBytes,
+  fsyncDirectory,
+} from "../../../core/durable-write.ts";
 import {
   canonicalJsonBytes,
   normalizeJson,

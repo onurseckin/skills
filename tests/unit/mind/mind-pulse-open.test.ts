@@ -14,7 +14,7 @@ import {
   checkQuietHours,
   parseNowMs,
   rollDayKeyIfNeeded,
-} from "../../../olt/scripts/src/mind/budget.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/budget/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";

@@ -4,7 +4,9 @@ export interface PlanningDagCheckOptions {
   readonly tasks?: Readonly<Record<string, unknown>> | null | undefined;
   readonly graph?:
     | {
-        readonly nodes?: readonly { readonly id: string; readonly dependencies?: readonly string[] }[] | undefined;
+        readonly nodes?:
+          | readonly { readonly id: string; readonly dependencies?: readonly string[] }[]
+          | undefined;
         readonly edges?: readonly { readonly from: string; readonly to: string }[] | undefined;
       }
     | null
@@ -20,7 +22,10 @@ interface TaskNodeInfo {
 /**
  * Tarjan's Strongly Connected Components Algorithm for cycle detection.
  */
-function findCycles(nodeIds: readonly string[], adjacency: ReadonlyMap<string, readonly string[]>): string[][] {
+function findCycles(
+  nodeIds: readonly string[],
+  adjacency: ReadonlyMap<string, readonly string[]>,
+): string[][] {
   let indexCounter = 0;
   const indices = new Map<string, number>();
   const lowlinks = new Map<string, number>();
@@ -108,8 +113,10 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
         if (node && typeof node === "object" && typeof node.id === "string") {
           const existing = nodesMap.get(node.id);
           const deps = Array.isArray(node.dependencies)
-            ? node.dependencies.filter((d): d is string => typeof d === "string")
-            : existing?.dependencies ?? [];
+            ? (node.dependencies as readonly (string | { id?: string })[])
+                .map((d: { id?: string } | string) => (typeof d === "string" ? d : d?.id))
+                .filter((d): d is string => typeof d === "string")
+            : (existing?.dependencies ?? []);
           nodesMap.set(node.id, {
             id: node.id,
             dependencies: deps,
@@ -120,7 +127,12 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
     }
     if (Array.isArray(options.graph.edges)) {
       for (const edge of options.graph.edges) {
-        if (edge && typeof edge === "object" && typeof edge.from === "string" && typeof edge.to === "string") {
+        if (
+          edge &&
+          typeof edge === "object" &&
+          typeof edge.from === "string" &&
+          typeof edge.to === "string"
+        ) {
           const target = nodesMap.get(edge.to);
           if (target) {
             if (!target.dependencies.includes(edge.from)) {

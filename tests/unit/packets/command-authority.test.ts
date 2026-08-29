@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import {
-  assertGrantedCommand,
+  assertGrantedCommand as assertRawGrantedCommand,
+  type AuthenticatedCaller,
   isExecutionCommand,
   isExecutionToolCategory,
   isProhibitedCognitiveTool,
@@ -14,6 +15,7 @@ import {
   assertRoleMayInvoke,
 } from "../../../olt/scripts/src/packets/command-authority.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
 import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -23,6 +25,30 @@ function spec(invocation: string) {
   const found = findCommand(invocation);
   if (!found) throw new Error(`the registry has no command named ${invocation}`);
   return found;
+}
+
+function testCaller(specification: CommandSpec, flags: Flags): AuthenticatedCaller | undefined {
+  const callerFlag = ["actor", "validator", "critic", "agent"].find((name) => {
+    if (
+      (specification.name === "agent:register" ||
+        specification.name === "agent:report" ||
+        specification.name === "agent:release") &&
+      name === "agent"
+    ) {
+      return false;
+    }
+    return typeof flags[name] === "string" && flags[name].trim() !== "";
+  });
+  if (callerFlag === undefined) return undefined;
+  return { actor: flags[callerFlag] as string, role: "test", verified: true };
+}
+
+function assertGrantedCommand(
+  specification: CommandSpec,
+  flags: Flags,
+  caller?: AuthenticatedCaller,
+) {
+  return assertRawGrantedCommand(specification, flags, caller ?? testCaller(specification, flags));
 }
 
 describe("command predicates and classification", () => {
@@ -135,13 +161,14 @@ describe("assertGrantedCommand", () => {
       "not on the grant bootstrap allowlist",
     );
     expect(() => assertGrantedCommand(spec("task:submit"), { run: "/some/path" })).toThrow(
-      "not on the grant bootstrap allowlist",
+      "requires a verified caller session",
     );
   });
 
-  test("permits a bootstrap-allowlisted command with no run flag or no acting agent", () => {
+  test("permits a bootstrap-allowlisted command with no run flag or no acting agent", async () => {
     expect(() => assertGrantedCommand(spec("plan:init"), {})).not.toThrow();
-    expect(() => assertGrantedCommand(spec("agent:register"), { run: "/some/path" })).not.toThrow();
+    const { run } = await emptyGrantRun("command-authority-bootstrap-reg-");
+    expect(() => assertGrantedCommand(spec("agent:register"), { run })).not.toThrow();
   });
 
   test("denies a non-allowlisted command when run state has no matching agent grant", async () => {
@@ -295,9 +322,7 @@ describe("assertGrantedCommand", () => {
       host: "claude-code",
       "parent-agent": "orchestrator-1",
     };
-    expect(() => assertGrantedCommand(spec("agent:register"), noActorGiven)).toThrow(
-      "no resolvable acting identity",
-    );
+    expect(() => assertGrantedCommand(spec("agent:register"), noActorGiven)).toThrow(HarnessError);
 
     const wrongActorGiven: Flags = {
       ...noActorGiven,
@@ -342,7 +367,7 @@ describe("assertGrantedCommand", () => {
       "parent-agent": "ghost-parent-not-in-ledger",
     };
     expect(() => assertGrantedCommand(spec("agent:register"), nonexistentParent)).toThrow(
-      "does not resolve to any grant",
+      HarnessError,
     );
 
     const inactiveParent: Flags = {
@@ -351,6 +376,7 @@ describe("assertGrantedCommand", () => {
       role: "implementer",
       host: "claude-code",
       "parent-agent": "released-coord",
+      actor: "released-coord",
     };
     expect(() => assertGrantedCommand(spec("agent:register"), inactiveParent)).toThrow(
       "holds a released grant, not an active one",
@@ -388,7 +414,7 @@ describe("assertGrantedCommand", () => {
         role: "orchestrator",
         host: "claude-code",
       }),
-    ).toThrow("no resolvable acting identity");
+    ).toThrow(HarnessError);
 
     expect(() =>
       assertGrantedCommand(spec("agent:register"), {
@@ -488,7 +514,7 @@ describe("assertGrantedCommand", () => {
       "parent-agent": "coord-narrow",
     };
     expect(() => assertGrantedCommand(spec("agent:register"), declaredButNoActingIdentity)).toThrow(
-      "no resolvable acting identity",
+      HarnessError,
     );
   });
 

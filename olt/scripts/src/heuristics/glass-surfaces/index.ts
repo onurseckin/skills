@@ -20,12 +20,6 @@ export {
   sRgbToLuminanceY,
 } from "./color.ts";
 
-export {
-  calculateEffectiveCumulativeBlur,
-  extractBlurRadiusPx,
-} from "./blur-accumulator.ts";
+export { calculateEffectiveCumulativeBlur, extractBlurRadiusPx } from "./blur-accumulator.ts";
 
-export {
-  analyzeGlassSurfaces,
-  simulateSubstrateContrasts,
-} from "./evaluator.ts";
+export { analyzeGlassSurfaces, simulateSubstrateContrasts } from "./evaluator.ts";

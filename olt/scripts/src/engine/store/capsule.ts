@@ -1,1 +1,1 @@
-export * from "./capsule/capsule.ts";
+export { type InitRunOptions, initRun } from "./capsule/capsule.ts";

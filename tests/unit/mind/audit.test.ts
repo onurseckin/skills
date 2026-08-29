@@ -25,7 +25,7 @@ import {
   checkValueConsistency,
   normalizeQuestionId,
   validateAuditAnswers,
-} from "../../../olt/scripts/src/mind/audit.ts";
+} from "../../../olt/scripts/src/mind/auditing/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -118,28 +118,28 @@ function setupMindCapsule(
     },
   );
 
-          transact(run, "register-test-agents", "agents-registered", {}, (working) => {
-      working.agents = [
-        {
-          id: "mind-1",
-          role: "mind",
-          host: "antigravity",
-          status: "active",
-          granted_at: new Date().toISOString(),
-          parent_agent_id: null,
-          parent_task_id: null,
-        },
-        {
-          id: "auditor-1",
-          role: "mind-auditor",
-          host: "antigravity",
-          status: "active",
-          granted_at: new Date().toISOString(),
-          parent_agent_id: "mind-1",
-          parent_task_id: null,
-        },
-      ];
-    });
+  transact(run, "register-test-agents", "agents-registered", {}, (working) => {
+    working.agents = [
+      {
+        id: "mind-1",
+        role: "mind",
+        host: "antigravity",
+        status: "active",
+        granted_at: new Date().toISOString(),
+        parent_agent_id: null,
+        parent_task_id: null,
+      },
+      {
+        id: "auditor-1",
+        role: "mind-auditor",
+        host: "antigravity",
+        status: "active",
+        granted_at: new Date().toISOString(),
+        parent_agent_id: "mind-1",
+        parent_task_id: null,
+      },
+    ];
+  });
 
   return { repo, run, charterPath, charterSha };
 }

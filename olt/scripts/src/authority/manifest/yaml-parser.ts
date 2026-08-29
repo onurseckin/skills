@@ -1,7 +1,8 @@
 import type { ParsedLine } from "./types.ts";
 
 export function stripYamlComment(line: string): string {
-  let inSingle = false, inDouble = false;
+  let inSingle = false,
+    inDouble = false;
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (ch === "'" && !inDouble) {
@@ -11,7 +12,12 @@ export function stripYamlComment(line: string): string {
       inDouble = !inDouble;
     } else if (inDouble && ch === "\\" && i + 1 < line.length) {
       i++;
-    } else if (ch === "#" && !inSingle && !inDouble && (i === 0 || line[i - 1] === " " || line[i - 1] === "\t")) {
+    } else if (
+      ch === "#" &&
+      !inSingle &&
+      !inDouble &&
+      (i === 0 || line[i - 1] === " " || line[i - 1] === "\t")
+    ) {
       return line.slice(0, i);
     }
   }
@@ -19,7 +25,10 @@ export function stripYamlComment(line: string): string {
 }
 
 export function findColonKeyBoundary(line: string): number {
-  let inSingle = false, inDouble = false, bracketDepth = 0, braceDepth = 0;
+  let inSingle = false,
+    inDouble = false,
+    bracketDepth = 0,
+    braceDepth = 0;
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (ch === "'" && !inDouble) inSingle = !inSingle;
@@ -32,7 +41,8 @@ export function findColonKeyBoundary(line: string): number {
       else if (ch === "}") braceDepth--;
       else if (ch === ":" && bracketDepth === 0 && braceDepth === 0) {
         const next = line[i + 1];
-        if (next === undefined || next === " " || next === "\t" || next === "\n" || next === "\r") return i;
+        if (next === undefined || next === " " || next === "\t" || next === "\n" || next === "\r")
+          return i;
       }
     }
   }
@@ -41,7 +51,10 @@ export function findColonKeyBoundary(line: string): number {
 
 export function cleanYamlKey(keyPart: string): string {
   const trimmed = keyPart.trim();
-  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
     return trimmed.slice(1, -1);
   }
   return trimmed;
@@ -66,7 +79,12 @@ export function parseYamlScalar(rawInput: string): unknown {
     try {
       return JSON.parse(trimmed);
     } catch {
-      return trimmed.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, "\\").replace(/\\n/g, "\n").replace(/\\t/g, "\t");
+      return trimmed
+        .slice(1, -1)
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, "\\")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t");
     }
   }
   if (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length >= 2) {
@@ -81,7 +99,11 @@ export function parseYamlScalar(rawInput: string): unknown {
 
 function splitFlowItems(inner: string): string[] {
   const items: string[] = [];
-  let current = "", inSingle = false, inDouble = false, bracketDepth = 0, braceDepth = 0;
+  let current = "",
+    inSingle = false,
+    inDouble = false,
+    bracketDepth = 0,
+    braceDepth = 0;
   for (let i = 0; i < inner.length; i++) {
     const ch = inner[i];
     if (ch === "'" && !inDouble) inSingle = !inSingle;
@@ -126,7 +148,9 @@ export function parseYaml(yamlText: string): unknown {
   const trimmed = yamlText.trim();
   if (trimmed.length === 0) return {};
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-    try { return JSON.parse(trimmed); } catch {}
+    try {
+      return JSON.parse(trimmed);
+    } catch {}
   }
 
   const rawLines = yamlText.split(/\r?\n/);
@@ -141,7 +165,11 @@ export function parseYaml(yamlText: string): unknown {
   }
 
   if (parsedLines.length === 0) return {};
-  if (parsedLines.length === 1 && findColonKeyBoundary(parsedLines[0]!.text) === -1 && !parsedLines[0]!.text.startsWith("-")) {
+  if (
+    parsedLines.length === 1 &&
+    findColonKeyBoundary(parsedLines[0]!.text) === -1 &&
+    !parsedLines[0]!.text.startsWith("-")
+  ) {
     return parseYamlScalar(parsedLines[0]!.text);
   }
 
@@ -149,7 +177,8 @@ export function parseYaml(yamlText: string): unknown {
 
   function parseBlockScalar(allLines: string[], headerLineNum: number, indicator: string): string {
     const collected: string[] = [];
-    let baseIndent: number | null = null, linePtr = headerLineNum + 1;
+    let baseIndent: number | null = null,
+      linePtr = headerLineNum + 1;
     while (linePtr < allLines.length) {
       const raw = allLines[linePtr]!;
       if (raw.trim().length === 0) {
@@ -169,14 +198,18 @@ export function parseYaml(yamlText: string): unknown {
       collected.push(raw.length >= baseIndent ? raw.slice(baseIndent) : raw.trimStart());
       linePtr++;
     }
-    while (currentIdx < parsedLines.length && parsedLines[currentIdx]!.lineNum < linePtr) currentIdx++;
+    while (currentIdx < parsedLines.length && parsedLines[currentIdx]!.lineNum < linePtr)
+      currentIdx++;
 
     let resultText = "";
     if (indicator.startsWith(">")) {
       let buffer = "";
       for (const l of collected) {
         if (l.trim().length === 0) {
-          if (buffer.length > 0) { resultText += (resultText.length > 0 ? "\n" : "") + buffer; buffer = ""; }
+          if (buffer.length > 0) {
+            resultText += (resultText.length > 0 ? "\n" : "") + buffer;
+            buffer = "";
+          }
           resultText += "\n";
         } else {
           buffer = buffer.length > 0 ? `${buffer} ${l.trim()}` : l.trim();
@@ -203,7 +236,10 @@ export function parseYaml(yamlText: string): unknown {
         if (/^(\|[-+]?|>[-+]?)$/.test(nextValPart)) {
           target[nextKey] = parseBlockScalar(rawLines, nextLine.lineNum, nextValPart);
         } else if (nextValPart.length === 0) {
-          target[nextKey] = (currentIdx < parsedLines.length && parsedLines[currentIdx]!.indent > nextLine.indent) ? parseBlock(parsedLines[currentIdx]!.indent) : null;
+          target[nextKey] =
+            currentIdx < parsedLines.length && parsedLines[currentIdx]!.indent > nextLine.indent
+              ? parseBlock(parsedLines[currentIdx]!.indent)
+              : null;
         } else {
           target[nextKey] = parseYamlScalar(nextValPart);
         }
@@ -227,21 +263,33 @@ export function parseYaml(yamlText: string): unknown {
           const itemText = line.text === "-" ? "" : line.text.slice(2).trim();
           currentIdx++;
           if (itemText.length === 0) {
-            list.push(currentIdx < parsedLines.length && parsedLines[currentIdx]!.indent > line.indent ? parseBlock(parsedLines[currentIdx]!.indent) : null);
+            list.push(
+              currentIdx < parsedLines.length && parsedLines[currentIdx]!.indent > line.indent
+                ? parseBlock(parsedLines[currentIdx]!.indent)
+                : null,
+            );
           } else {
             const colonBoundary = findColonKeyBoundary(itemText);
             if (colonBoundary !== -1) {
               const k = cleanYamlKey(itemText.slice(0, colonBoundary));
               const afterColon = itemText.slice(colonBoundary + 1).trim();
               if (/^(\|[-+]?|>[-+]?)$/.test(afterColon)) {
-                const obj: Record<string, unknown> = { [k]: parseBlockScalar(rawLines, line.lineNum, afterColon) };
+                const obj: Record<string, unknown> = {
+                  [k]: parseBlockScalar(rawLines, line.lineNum, afterColon),
+                };
                 parseAdditionalObjectKeys(obj, line.indent + 2);
                 list.push(obj);
               } else if (afterColon.length === 0) {
                 let childObj: Record<string, unknown> = {};
-                if (currentIdx < parsedLines.length && parsedLines[currentIdx]!.indent > line.indent) {
+                if (
+                  currentIdx < parsedLines.length &&
+                  parsedLines[currentIdx]!.indent > line.indent
+                ) {
                   const nested = parseBlock(parsedLines[currentIdx]!.indent);
-                  childObj = typeof nested === "object" && nested !== null && !Array.isArray(nested) ? { [k]: nested, ...(nested as Record<string, unknown>) } : { [k]: nested };
+                  childObj =
+                    typeof nested === "object" && nested !== null && !Array.isArray(nested)
+                      ? { [k]: nested, ...(nested as Record<string, unknown>) }
+                      : { [k]: nested };
                 } else {
                   childObj = { [k]: null };
                 }
@@ -269,14 +317,20 @@ export function parseYaml(yamlText: string): unknown {
       const line = parsedLines[currentIdx]!;
       if (line.indent < currentIndent) break;
       const colonIdx = findColonKeyBoundary(line.text);
-      if (colonIdx === -1) { currentIdx++; continue; }
+      if (colonIdx === -1) {
+        currentIdx++;
+        continue;
+      }
       const key = cleanYamlKey(line.text.slice(0, colonIdx));
       const valuePart = line.text.slice(colonIdx + 1).trim();
       currentIdx++;
       if (/^(\|[-+]?|>[-+]?)$/.test(valuePart)) {
         obj[key] = parseBlockScalar(rawLines, line.lineNum, valuePart);
       } else if (valuePart.length === 0) {
-        obj[key] = (currentIdx < parsedLines.length && parsedLines[currentIdx]!.indent > line.indent) ? parseBlock(parsedLines[currentIdx]!.indent) : null;
+        obj[key] =
+          currentIdx < parsedLines.length && parsedLines[currentIdx]!.indent > line.indent
+            ? parseBlock(parsedLines[currentIdx]!.indent)
+            : null;
       } else {
         obj[key] = parseYamlScalar(valuePart);
       }

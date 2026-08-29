@@ -1,1 +1,6 @@
-export * from "./integrity/layout-integrity.ts";
+export {
+  verifyCapsuleLayout,
+  verifyCapsuleDeep,
+  undeclaredEntries,
+  verifyBlobContents,
+} from "./integrity/layout-integrity.ts";

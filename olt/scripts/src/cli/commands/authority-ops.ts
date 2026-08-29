@@ -1,5 +1,5 @@
 import { loadRun } from "../../engine/store/index.ts";
-import { decideProposal } from "../../mind/proposal.ts";
+import { decideProposal } from "../../mind/proposals/proposal/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { recordAuthorityDecision } from "../../workflow/authority/record-authority-decision.ts";
 import { HarnessError } from "../../core/errors/index.ts";

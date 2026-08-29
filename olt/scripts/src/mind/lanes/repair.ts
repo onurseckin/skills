@@ -5,7 +5,7 @@ import {
   buildEscalationDigest,
   formatEscalationDigestMarkdown,
   type EscalationDigestData,
-} from "../digest.ts";
+} from "../memory/digest/index.ts";
 
 export interface ExecuteRepairLaneOptions {
   readonly runRoot: string;
@@ -14,6 +14,8 @@ export interface ExecuteRepairLaneOptions {
   readonly actor?: string | undefined;
   readonly writeReport?: boolean | undefined;
 }
+
+export type RepairLaneOptions = ExecuteRepairLaneOptions;
 
 export interface RepairLaneResult {
   readonly digest: EscalationDigestData;

@@ -13,11 +13,11 @@ import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { readLastPulse } from "../../../olt/scripts/src/mind/last-pulse.ts";
+import { readLastPulse } from "../../../olt/scripts/src/mind/lifecycle/index.ts";
 import {
   enforceInfiniteMindCadence,
   transitionPulseToWake,
-} from "../../../olt/scripts/src/mind/recycler.ts";
+} from "../../../olt/scripts/src/mind/archival/recycler/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";

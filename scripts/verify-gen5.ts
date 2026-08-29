@@ -1,4 +1,4 @@
-import { RoleBoundaryWatchdog } from "../olt/scripts/src/mind/role-auditing.ts";
+import { RoleBoundaryWatchdog } from "../olt/scripts/src/mind/auditing/roles/index.ts";
 import { partitionDynamicLanes } from "../olt/scripts/src/graph/topology.ts";
 import { GLOBAL_SYNC_GEN5 } from "./sync-global.ts";
 

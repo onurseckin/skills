@@ -1,7 +1,7 @@
-import { DoctorErrorResolutionAudit } from "./types.ts";
-import { isNonblank } from "../../../requirements/predicates";
-import { verifyIntegrity } from "../../store";
-import { boundedEvidenceCause } from "./tasks";
+import type { DoctorErrorResolutionAudit } from "./types.ts";
+import { isNonblank } from "../../../requirements/predicates.ts";
+import { verifyIntegrity } from "../../store/index.ts";
+import { boundedEvidenceCause } from "./tasks/tasks.ts";
 
 export function probeDoctorErrorResolution(
   runRoot?: string,

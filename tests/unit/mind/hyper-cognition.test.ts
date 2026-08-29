@@ -24,7 +24,7 @@ import {
   type HyperCognitionEngine,
   type HyperPulseInput,
   type SystemStateMetrics,
-} from "../../../olt/scripts/src/mind/hyper-cognition.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/cognition/index.ts";
 
 describe("Hyper-Active Mind Cognition Engine", () => {
   describe("Constants, Matrix & Taxonomy", () => {

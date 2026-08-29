@@ -18,7 +18,10 @@ export interface AutoHealOptions {
  * Automatically inspects the capsule for state projection mismatches,
  * torn event tails, and stale leases, applying self-healing repairs.
  */
-export function autoHealCapsule(runRoot: string, options: AutoHealOptions = {}): DoctorAutoHealResult {
+export function autoHealCapsule(
+  runRoot: string,
+  options: AutoHealOptions = {},
+): DoctorAutoHealResult {
   const actor = options.actor ?? "doctor-auto-heal";
   const autoHealed: string[] = [];
   const recoveredLeases: string[] = [];
@@ -95,7 +98,9 @@ export function autoHealCapsule(runRoot: string, options: AutoHealOptions = {}):
       const reclaimed = leasedBefore.filter((id) => afterState.tasks[id]?.lease === undefined);
       if (reclaimed.length > 0) {
         recoveredLeases.push(...reclaimed);
-        autoHealed.push(`Auto-recovered ${reclaimed.length} stale task lease(s): ${reclaimed.join(", ")}`);
+        autoHealed.push(
+          `Auto-recovered ${reclaimed.length} stale task lease(s): ${reclaimed.join(", ")}`,
+        );
       }
     }
   } catch {

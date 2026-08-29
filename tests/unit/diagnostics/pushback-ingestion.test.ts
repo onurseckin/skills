@@ -10,7 +10,7 @@ import {
   readFeedbackQueue,
   type FeedbackCategory,
   type FeedbackItem,
-} from "../../../olt/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   ingestPushbacks,
   mapFeedbackCategoryToDefectCategory,
@@ -18,7 +18,7 @@ import {
   resolvePushbackMarkdownPath,
   type PushbackAuditReport,
   type PushbackRecord,
-} from "../../../olt/scripts/src/mind/pushbacks.ts";
+} from "../../../olt/scripts/src/mind/feedback/pushbacks/index.ts";
 
 describe("Diagnostics Pushback Ingestion Engine", () => {
   const repoRoot = process.cwd();

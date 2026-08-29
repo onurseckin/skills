@@ -26,10 +26,7 @@ export {
   isSupervisorRole,
 } from "./checks.ts";
 
-export {
-  assertNoBoundaryLeak,
-  validateBoundaryIntegrity,
-} from "./validator.ts";
+export { assertNoBoundaryLeak, validateBoundaryIntegrity } from "./validator.ts";
 
 export {
   assertAcyclicPushbackDelegation,

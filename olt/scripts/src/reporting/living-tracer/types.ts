@@ -88,6 +88,15 @@ export interface DynamicDagState {
   readonly sproutedRepairPairs: readonly SproutedRepairPair[];
 }
 
+export interface ReplayContext {
+  readonly taskMap: Map<string, DynamicTaskState>;
+  readonly agentMap: Map<string, ActiveAgentState>;
+  readonly branches: Set<string>;
+  readonly sproutedRepairPairs: SproutedRepairPair[];
+  revision: number;
+  maxRoundReached: number;
+}
+
 export interface StepTraceEntry {
   readonly sequence: number;
   readonly timestamp: string;

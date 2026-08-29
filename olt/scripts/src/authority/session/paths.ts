@@ -43,7 +43,10 @@ export function noFollow(): number {
   return flag;
 }
 
-export function sameInode(left: Pick<Stats, "dev" | "ino">, right: Pick<Stats, "dev" | "ino">): boolean {
+export function sameInode(
+  left: Pick<Stats, "dev" | "ino">,
+  right: Pick<Stats, "dev" | "ino">,
+): boolean {
   return left.dev === right.dev && left.ino === right.ino;
 }
 
@@ -86,7 +89,10 @@ export function assertSingleLinkRegular(path: string): Stats | undefined {
     throw new HarnessError("PATH_SAFETY", `session authority must be a regular file: ${path}`);
   }
   if (stat.nlink !== 1) {
-    throw new HarnessError("INTEGRITY", `session authority must have exactly one hard link: ${path}`);
+    throw new HarnessError(
+      "INTEGRITY",
+      `session authority must have exactly one hard link: ${path}`,
+    );
   }
   return stat;
 }

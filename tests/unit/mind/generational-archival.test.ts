@@ -37,21 +37,21 @@ import {
   writeArchivedObjectives,
   BOILERPLATE_CAPSULE_SUBDIRECTORIES,
   type ArchivedObjectiveRecord,
-} from "../../../olt/scripts/src/mind/archival.ts";
+} from "../../../olt/scripts/src/mind/archival/index.ts";
 import {
   evaluateGate6NotADuplicate,
   type CandidateRecord,
   type GateEvaluationContext,
-} from "../../../olt/scripts/src/mind/gates.ts";
+} from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
 import {
   buildMemoryIndex,
   createMemoryDocument,
   indexAllMemory,
   indexArchivedObjectiveDocuments,
   searchMemory,
-} from "../../../olt/scripts/src/mind/memory.ts";
-import { rotateMindGeneration } from "../../../olt/scripts/src/mind/rotate.ts";
-import type { ObjectiveRecord } from "../../../olt/scripts/src/mind/rounds.ts";
+} from "../../../olt/scripts/src/mind/memory/core/index.ts";
+import { rotateMindGeneration } from "../../../olt/scripts/src/mind/archival/rotate/index.ts";
+import type { ObjectiveRecord } from "../../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -62,7 +62,7 @@ function scratchRoot(label: string): string {
 }
 
 function appendFromChild(targetFile: string, record: ArchivedObjectiveRecord): Promise<void> {
-  const modulePath = join(process.cwd(), "olt", "scripts", "src", "mind", "archival.ts");
+  const modulePath = join(process.cwd(), "olt", "scripts", "src", "mind", "archival", "index.ts");
   const source = [
     `import { appendArchivedObjectives } from ${JSON.stringify(modulePath)};`,
     `appendArchivedObjectives([${JSON.stringify(record)}], ${JSON.stringify(targetFile)});`,

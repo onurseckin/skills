@@ -5,7 +5,7 @@ import {
   isCodeEditTool,
 } from "../../../olt/scripts/src/platform/index.ts";
 import { HOST_PROVIDERS } from "../../../olt/scripts/src/platform/index.ts";
-import { CODE_EDIT_TOOLS as ROLE_AUDITING_CODE_EDIT_TOOLS } from "../../../olt/scripts/src/mind/role-auditing.ts";
+import { CODE_EDIT_TOOLS as ROLE_AUDITING_CODE_EDIT_TOOLS } from "../../../olt/scripts/src/mind/auditing/roles/index.ts";
 import { CODE_EDIT_TOOLS as TIER_CONFINEMENT_CODE_EDIT_TOOLS } from "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts";
 
 describe("code-edit-tools: one host-aware table, not an antigravity-only one", () => {

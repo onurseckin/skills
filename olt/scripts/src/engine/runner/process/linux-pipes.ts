@@ -8,7 +8,7 @@ import {
   statSync,
 } from "node:fs";
 import { HarnessError } from "../../../core/errors/index";
-import type { ProcessIdentity } from "./process-identity";
+import type { ProcessIdentity } from "./process-identity.ts";
 
 export const OWNERSHIP_ENV = "HARNESS_INTERNAL_OWNERSHIP_TOKEN";
 const MAX_TOKEN_SCAN_PROCESSES = 65_536;

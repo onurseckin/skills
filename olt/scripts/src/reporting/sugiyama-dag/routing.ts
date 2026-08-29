@@ -55,17 +55,11 @@ export function renderInterWaveConnector(
   const relevantEdges = edges.filter((e) => fromIds.has(e.from) && toIds.has(e.to));
   if (relevantEdges.length === 0) {
     // Standard downward flow
-    return [
-      `${" ".repeat(indent)}│`,
-      `${" ".repeat(indent)}▼`,
-    ];
+    return [`${" ".repeat(indent)}│`, `${" ".repeat(indent)}▼`];
   }
 
   if (fromLayer.nodes.length === 1 && toLayer.nodes.length === 1) {
-    return [
-      `${" ".repeat(indent)}│`,
-      `${" ".repeat(indent)}▼`,
-    ];
+    return [`${" ".repeat(indent)}│`, `${" ".repeat(indent)}▼`];
   }
 
   // Multi-lane fan-in / fan-out orthogonal channel

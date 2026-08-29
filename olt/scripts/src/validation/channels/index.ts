@@ -20,7 +20,4 @@ export {
   validateCrossChannelConsistency,
 } from "./cross-channel-consistency.ts";
 
-export {
-  extractDomViolations,
-  type FindingAdder,
-} from "./dom-violation-extractor.ts";
+export { extractDomViolations, type FindingAdder } from "./dom-violation-extractor.ts";

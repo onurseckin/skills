@@ -1,6 +1,4 @@
-export {
-  DefaultFallbackBrowserProvider,
-} from "./fallback-provider.ts";
+export { DefaultFallbackBrowserProvider } from "./fallback-provider.ts";
 
 export {
   filterScreens,
@@ -8,10 +6,6 @@ export {
   resolveViewportsForScreen,
 } from "./path-resolver.ts";
 
-export {
-  runLiveCapture,
-} from "./runner.ts";
+export { runLiveCapture } from "./runner.ts";
 
-export {
-  createSyntheticPngBuffer,
-} from "./synthetic-png.ts";
+export { createSyntheticPngBuffer } from "./synthetic-png.ts";

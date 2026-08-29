@@ -13,7 +13,8 @@ export async function runMutationGate(
   options?: MutationGateOptions,
 ): Promise<MutationGateResult> {
   const minScore = typeof options?.minMutationScore === "number" ? options.minMutationScore : 100;
-  const strictZeroSurvival = options?.strictZeroSurvival !== undefined ? options.strictZeroSurvival : true;
+  const strictZeroSurvival =
+    options?.strictZeroSurvival !== undefined ? options.strictZeroSurvival : true;
   const mutants = generateMutants(sourceCode, options);
 
   if (mutants.length === 0) {
@@ -44,13 +45,19 @@ export async function runMutationGate(
 
       if (outcome.passed === false || (outcome.exitCode !== undefined && outcome.exitCode !== 0)) {
         killed++;
-        const errDetails = typeof outcome.error === "string" && outcome.error.length > 0
-          ? outcome.error
-          : "Test suite detected mutation and failed as expected.";
+        const errDetails =
+          typeof outcome.error === "string" && outcome.error.length > 0
+            ? outcome.error
+            : "Test suite detected mutation and failed as expected.";
         results.push({ mutant, status: "killed", details: errDetails, durationMs });
       } else {
         survived++;
-        results.push({ mutant, status: "survived", details: "Test suite passed unexpectedly.", durationMs });
+        results.push({
+          mutant,
+          status: "survived",
+          details: "Test suite passed unexpectedly.",
+          durationMs,
+        });
         violations.push({
           mutantId: mutant.id,
           mutationType: mutant.mutationType,
@@ -70,7 +77,18 @@ export async function runMutationGate(
   }
 
   const mutationScore = Number(((killed / mutants.length) * 100).toFixed(2));
-  const passed = mutationScore >= minScore && (!strictZeroSurvival || survived === 0) && errored === 0;
+  const passed =
+    mutationScore >= minScore && (!strictZeroSurvival || survived === 0) && errored === 0;
 
-  return { passed, totalMutants: mutants.length, killedMutants: killed, survivedMutants: survived, erroredMutants: errored, mutationScore, minMutationScore: minScore, mutantResults: results, violations };
+  return {
+    passed,
+    totalMutants: mutants.length,
+    killedMutants: killed,
+    survivedMutants: survived,
+    erroredMutants: errored,
+    mutationScore,
+    minMutationScore: minScore,
+    mutantResults: results,
+    violations,
+  };
 }

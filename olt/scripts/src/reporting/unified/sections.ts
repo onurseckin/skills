@@ -27,15 +27,32 @@ export interface UnifiedSectionData {
   readonly doctorCriticalIssues: readonly string[];
   readonly doctorCosmeticIssues: readonly string[];
   readonly agentRows: readonly UnifiedAgentRow[];
-  readonly implementersActive: readonly { taskId: string; agentId: string; role: string; attempt: number; expiresAt: string }[];
-  readonly validatorsActive: readonly { taskId: string; validatorId: string; domain: string; deadlineAt: string }[];
+  readonly implementersActive: readonly {
+    taskId: string;
+    agentId: string;
+    role: string;
+    attempt: number;
+    expiresAt: string;
+  }[];
+  readonly validatorsActive: readonly {
+    taskId: string;
+    validatorId: string;
+    domain: string;
+    deadlineAt: string;
+  }[];
   readonly submittedTaskIds: readonly string[];
   readonly standbyTaskIds: readonly string[];
   readonly blockedTaskIds: readonly string[];
   readonly satisfiedTaskIds: readonly string[];
   readonly repairTaskIds: readonly string[];
   readonly sugiyamaReport: SugiyamaDagReport;
-  readonly tasks: readonly { id: string; label?: string; status: string; gate?: string; write_scope?: readonly string[] }[];
+  readonly tasks: readonly {
+    id: string;
+    label?: string;
+    status: string;
+    gate?: string;
+    write_scope?: readonly string[];
+  }[];
   readonly trackingRows: readonly ImplementerValidatorTrackingRow[];
   readonly coordinatorMetrics: CoordinatorOwnershipMetrics;
   readonly decisions: readonly DecisionAuditRow[];
@@ -70,7 +87,9 @@ export function buildUnifiedReportMarkdown(data: UnifiedSectionData): string {
     [
       "🔄 Validators (Testing/Probing)",
       String(data.validatorsActive.length),
-      data.validatorsActive.map((v) => `\`${v.taskId}\` (\`${v.validatorId}\` [${v.domain}])`).join(", ") || "none",
+      data.validatorsActive
+        .map((v) => `\`${v.taskId}\` (\`${v.validatorId}\` [${v.domain}])`)
+        .join(", ") || "none",
     ],
     [
       "📦 Submitted (Awaiting Validation)",
@@ -112,8 +131,12 @@ export function buildUnifiedReportMarkdown(data: UnifiedSectionData): string {
   mdSections.push("#### 5. Live Doctor Diagnostics & System Integrity");
   mdSections.push(`- **Healthy**: ${data.doctorHealthy ? "yes" : "no"}`);
   mdSections.push(`- **Bun**: ${Bun.version} (${data.bunSupported ? "supported" : "unsupported"})`);
-  mdSections.push(`- **Gitignored**: ${data.gitignored === true ? "yes" : data.gitignored === false ? "no" : "unknown"}`);
-  mdSections.push(`- **Supervisory Invariants**: Strict Tier Hierarchy & Supervisor Zero-File-Edit Rule actively enforced`);
+  mdSections.push(
+    `- **Gitignored**: ${data.gitignored === true ? "yes" : data.gitignored === false ? "no" : "unknown"}`,
+  );
+  mdSections.push(
+    `- **Supervisory Invariants**: Strict Tier Hierarchy & Supervisor Zero-File-Edit Rule actively enforced`,
+  );
 
   if (data.doctorCriticalIssues.length > 0) {
     mdSections.push("- **Critical Issues**:");

@@ -21,7 +21,7 @@ import {
   type ForensicsSeverity,
   type PlanInjectionProposal,
   type RootCauseCategory,
-} from "../../../olt/scripts/src/mind/meta-auditor.ts";
+} from "../../../olt/scripts/src/mind/auditing/meta/index.ts";
 import {
   formatMetaAuditReport,
   metaAuditCommand,
@@ -33,7 +33,7 @@ import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts
 import {
   __setFeedbackQueuePersistenceTestHook,
   readFeedbackQueue,
-} from "../../../olt/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
@@ -524,7 +524,7 @@ describe("Deep Behavioral Forensics Engine (meta-auditor)", () => {
       const queuePath = join(scratchDir, "FEEDBACK_QUEUE.jsonl");
       const latch = join(scratchDir, "inject-go");
       mkdirSync(scratchDir, { recursive: true });
-      const modulePath = join(process.cwd(), "olt/scripts/src/mind/meta-auditor.ts");
+      const modulePath = join(process.cwd(), "olt/scripts/src/mind/auditing/meta/index.ts");
       const child = () =>
         Bun.spawn({
           cmd: [
@@ -1536,7 +1536,7 @@ describe("Deep Behavioral Forensics Engine (meta-auditor)", () => {
   describe("Static Invariant Verification", () => {
     it("verifies meta-auditor.ts, meta-audit.ts, and test suite have 0 any types and 0 compiler suppressions", () => {
       const filesToAudit = [
-        resolve(import.meta.dir, "../../../olt/scripts/src/mind/meta-auditor.ts"),
+        resolve(import.meta.dir, "../../../olt/scripts/src/mind/auditing/meta/index.ts"),
         resolve(import.meta.dir, "../../../olt/scripts/src/cli/commands/meta-audit.ts"),
         resolve(import.meta.dir, "../../../tests/unit/mind/meta-auditor.test.ts"),
       ];

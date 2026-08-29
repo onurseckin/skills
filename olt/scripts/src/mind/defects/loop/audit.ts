@@ -1,3 +1,8 @@
+import {
+  defectAuditCommand,
+  type DefectAuditCommandResult,
+} from "../../../cli/commands/defect-audit.ts";
+import type { CommandContext, Flags } from "../../../cli/options.ts";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../core/errors/index.ts";
@@ -17,7 +22,9 @@ export interface DefectAuditReport {
   readonly generated_at?: string | undefined;
 }
 
-export function auditDefectLog(defectsOrCapsules?: readonly (DefectEntry | string)[] | string): DefectAuditReport {
+export function auditDefectLog(
+  defectsOrCapsules?: readonly (DefectEntry | string)[] | string,
+): DefectAuditReport {
   let rawDefects: DefectEntry[] = [];
   const capsulesAudited: string[] = [];
 
@@ -85,7 +92,7 @@ export function auditDefectLog(defectsOrCapsules?: readonly (DefectEntry | strin
     else if (status === "wontfix" || status === "wont_fix") wontfixCount += 1;
     else openCount += 1;
 
-    const cat = b.category || categorizeDefect(b);
+    const cat: DefectCategory = categorizeDefect(b);
     byCategory[cat] = (byCategory[cat] ?? 0) + 1;
 
     const sev = b.severity || "warning";
@@ -109,7 +116,7 @@ export function formatDefectAuditBrief(
   report: DefectAuditReport,
   options?: { readonly maxLines?: number | undefined } | number,
 ): string {
-  const maxLines = typeof options === "number" ? options : options?.maxLines ?? 30;
+  const maxLines = typeof options === "number" ? options : (options?.maxLines ?? 30);
   const lines: string[] = [
     "### Defect Audit & Remediation Brief",
     `- **Total Defects**: \`${report.total_defects}\` (Open: \`${report.open_count}\`, Resolved: \`${report.resolved_count}\`, Wontfix: \`${report.wontfix_count}\`)`,
@@ -122,8 +129,11 @@ export function formatDefectAuditBrief(
   } else {
     lines.push("#### Recorded Defects");
     for (const b of report.defects) {
-      const statusIcon = b.status === "resolved" ? "✅ resolved" : b.status === "open" ? "⚠️ open" : "⏹ wontfix";
-      lines.push(`- \`${b.id}\` [${statusIcon}] (${b.category}/${b.severity}): ${b.observation || b.type}`);
+      const statusIcon =
+        b.status === "resolved" ? "✅ resolved" : b.status === "open" ? "⚠️ open" : "⏹ wontfix";
+      lines.push(
+        `- \`${b.id}\` [${statusIcon}] (${b.category}/${b.severity}): ${b.observation || b.type}`,
+      );
     }
   }
 
@@ -145,10 +155,16 @@ export function logBoundaryViolationDefect(params: {
   readonly timestamp?: string | undefined;
 }): DefectEntry {
   if (!params.observation || !params.observation.trim()) {
-    throw new HarnessError("INVALID_ARGUMENT", "Boundary violation defect requires non-empty observation");
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Boundary violation defect requires non-empty observation",
+    );
   }
   if (!params.violation_type || !params.violation_type.trim()) {
-    throw new HarnessError("INVALID_ARGUMENT", "Boundary violation defect requires non-empty violation_type");
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Boundary violation defect requires non-empty violation_type",
+    );
   }
 
   const timestamp = params.timestamp?.trim() || new Date().toISOString();
@@ -168,4 +184,11 @@ export function logBoundaryViolationDefect(params: {
     last_seen_at: timestamp,
     count: 1,
   };
+}
+
+export function executeDefectAudit(
+  flags: Flags,
+  context?: CommandContext,
+): DefectAuditCommandResult {
+  return defectAuditCommand(flags, context);
 }

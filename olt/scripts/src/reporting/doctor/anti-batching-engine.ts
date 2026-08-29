@@ -40,7 +40,9 @@ function scopesOverlap(scopeA: readonly string[], scopeB: readonly string[]): st
  * Engine 4: checkAntiBatchingIsolation
  * Enforces 1:1 task-to-subagent isolation and disjoint write scopes across concurrent active tasks.
  */
-export function checkAntiBatchingIsolation(options: AntiBatchingIsolationOptions = {}): DoctorCheckEngineResult {
+export function checkAntiBatchingIsolation(
+  options: AntiBatchingIsolationOptions = {},
+): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
   const activeTasks: ActiveTaskInfo[] = [];
 
@@ -51,12 +53,16 @@ export function checkAntiBatchingIsolation(options: AntiBatchingIsolationOptions
         const task = val as Record<string, unknown>;
         const id = typeof task.id === "string" ? task.id : key;
         const status = typeof task.status === "string" ? task.status : "open";
-        const lease = task.lease && typeof task.lease === "object" ? (task.lease as Record<string, unknown>) : undefined;
-        const agentId = typeof lease?.agent_id === "string"
-          ? lease.agent_id
-          : typeof task.assigned_agent === "string"
-            ? task.assigned_agent
+        const lease =
+          task.lease && typeof task.lease === "object"
+            ? (task.lease as Record<string, unknown>)
             : undefined;
+        const agentId =
+          typeof lease?.agent_id === "string"
+            ? lease.agent_id
+            : typeof task.assigned_agent === "string"
+              ? task.assigned_agent
+              : undefined;
         const writeScope = Array.isArray(task.write_scope)
           ? task.write_scope.filter((s): s is string => typeof s === "string")
           : [];

@@ -33,7 +33,7 @@ import {
   validateTaskQueueDag,
   writeTaskQueue,
   type TaskQueueItem,
-} from "../../../olt/scripts/src/mind/task-queue.ts";
+} from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Stateful Task Queue Engine", () => {
@@ -209,7 +209,7 @@ describe("Stateful Task Queue Engine", () => {
 
   it("retains distinct enqueues from two child processes", async () => {
     setup();
-    const modulePath = resolve(process.cwd(), "olt/scripts/src/mind/task-queue.ts");
+    const modulePath = resolve(process.cwd(), "olt/scripts/src/mind/tasks/queue/index.ts");
     const program = `import { enqueueTask } from ${JSON.stringify(modulePath)};
       enqueueTask({ id: process.env.TASK_ID, title: process.env.TASK_ID, write_scope: [process.env.TASK_ID + '.ts'], gate: 'gate' }, process.env.QUEUE_PATH);`;
     const first = spawnQueueChild(program, { QUEUE_PATH: queuePath, TASK_ID: "child-one" });
@@ -227,7 +227,7 @@ describe("Stateful Task Queue Engine", () => {
   it("allows exactly one child process to pop and lease one eligible task", async () => {
     setup();
     enqueueTask({ id: "only", title: "Only", write_scope: ["only.ts"], gate: "gate" }, queuePath);
-    const modulePath = resolve(process.cwd(), "olt/scripts/src/mind/task-queue.ts");
+    const modulePath = resolve(process.cwd(), "olt/scripts/src/mind/tasks/queue/index.ts");
     const program = `import { popNextEligibleTask } from ${JSON.stringify(modulePath)};
       const result = popNextEligibleTask({ agentId: process.env.AGENT_ID, customPath: process.env.QUEUE_PATH });
       console.log(result ? result.leaseToken : 'none');`;
@@ -891,7 +891,7 @@ describe("Stateful Task Queue Engine", () => {
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   it("verifies task-queue.ts and smart-task-ops.ts contain zero any and zero suppressions", () => {
     const filesToAudit = [
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/task-queue.ts",
+      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/tasks/queue/index.ts",
       "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/smart-task-ops.ts",
       "/Users/onurseckinsenoglu/repos/skills/tests/unit/mind/task-queue.test.ts",
     ];

@@ -5,7 +5,7 @@ import {
   type AutonomousDualIntakeResult,
   type SmartTaskPlan,
   type SmartTaskSynthesisResult,
-} from "../../mind/smart-task-manager.ts";
+} from "../../mind/tasks/smart/index.ts";
 import {
   claimTaskLease,
   completeTask,
@@ -19,7 +19,7 @@ import {
   type TaskQueueItem,
   type TaskQueueStats,
   type TaskQueueStatus,
-} from "../../mind/task-queue.ts";
+} from "../../mind/tasks/queue/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 

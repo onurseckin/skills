@@ -33,7 +33,7 @@ import {
   type DefectCategory,
   type DefectEntry,
   type DefectResolutionProof,
-} from "../../../olt/scripts/src/mind/defects.ts";
+} from "../../../olt/scripts/src/mind/defects/index.ts";
 
 const tempRoots: string[] = [];
 

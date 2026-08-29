@@ -19,7 +19,7 @@ import { resolveArtifactPath } from "../engine/runner/core/artifact-paths";
 import { outputEvidenceIssues } from "../engine/runner/receipt/output-evidence";
 import { OWNERSHIP_ENV } from "../engine/runner/core/pipe-ownership";
 import type { ProcessIdentity } from "../engine/runner/process/process-identity";
-import { assertCommandAttemptSize } from "../engine/runner/models/command-record-size";
+import { assertCommandAttemptSize } from "../engine/runner/models/command/command-record-size.ts";
 
 const MAX_ACTIVITY_BYTES = 1024 * 1024;
 const INTERRUPTED = "attempt interrupted before terminal evidence was durable";

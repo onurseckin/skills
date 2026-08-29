@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { HarnessError } from "../../../core/errors/index";
-import { commandId } from "../models/command-id";
+import { commandId } from "../models/command/command-id.ts";
 
 export interface ReservedCommandRoot {
   id: string;

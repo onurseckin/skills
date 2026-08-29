@@ -1,10 +1,6 @@
 import type { LayoutShiftEntry } from "../layout-shift-tracker.ts";
 import type { ExtractedElementPhysics } from "../types.ts";
-import type {
-  ExpectedShiftBehavior,
-  SyntheticDomEvent,
-  UnexpectedShiftDefect,
-} from "./types.ts";
+import type { ExpectedShiftBehavior, SyntheticDomEvent, UnexpectedShiftDefect } from "./types.ts";
 
 /**
  * Evaluates whether an observed layout shift is intentional user feedback vs an unexpected layout shift defect.

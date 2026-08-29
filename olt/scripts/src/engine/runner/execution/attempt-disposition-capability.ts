@@ -5,7 +5,7 @@ import {
   CREATE_ATTEMPT_DISPOSITION,
   createCommandSigningCapability as makeCommandSigner,
   type CommandSigningCapability,
-} from "../models/command-signing-capability";
+} from "../models/command/command-signing-capability.ts";
 
 export { makeCommandSigner as createCommandSigningCapability };
 export type { CommandSigningCapability };

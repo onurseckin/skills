@@ -1,7 +1,12 @@
 /**
  * Behavioral Audit: Coordinator Code Writing & Tool Confinement
  */
-import type { AgentGrantRecord, AgentToolRef, AgentToolUse, CommandRecord } from "../../core/contracts/index.ts";
+import type {
+  AgentGrantRecord,
+  AgentToolRef,
+  AgentToolUse,
+  CommandRecord,
+} from "../../core/contracts/index.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import { isCoordinatorRole, isFullTestSuiteCommand } from "./predicates.ts";
 import { FILE_EDIT_TOOLS, type BehavioralFinding } from "./types.ts";

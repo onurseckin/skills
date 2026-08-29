@@ -6,11 +6,7 @@ import type {
 } from "../anti-mock/anti-mock-types.ts";
 import { checkTrivialConstantAssertion } from "./assertion-detectors.ts";
 import { checkMockTautology } from "./mock-detectors.ts";
-import {
-  identifyTestCall,
-  isAssertionCall,
-  type TestCallInfo,
-} from "./types.ts";
+import { identifyTestCall, isAssertionCall, type TestCallInfo } from "./types.ts";
 
 export function lintTestAst(sourceCode: string, options?: AstLinterOptions): AstLinterResult {
   const detectEmpty = options?.detectEmptyTests ?? true;

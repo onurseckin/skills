@@ -22,14 +22,17 @@ export class ContinuousDefectFeedbackLoop {
   private readonly deduplicator: LiveDefectDeduplicator;
   private readonly taskQueues = new Map<string, Array<QueuedTaskEntry<unknown>>>();
   private readonly domainActiveWorkers = new Map<string, number>();
-  private readonly domainStats = new Map<string, {
-    totalTasks: number;
-    successfulTasks: number;
-    failedTasks: number;
-    timedOutTasks: number;
-    defectsCount: number;
-    totalDurationMs: number;
-  }>();
+  private readonly domainStats = new Map<
+    string,
+    {
+      totalTasks: number;
+      successfulTasks: number;
+      failedTasks: number;
+      timedOutTasks: number;
+      defectsCount: number;
+      totalDurationMs: number;
+    }
+  >();
   private readonly feedbackCycles: DefectFeedbackCycle[] = [];
   private totalTasksExecuted = 0;
   private successfulTasks = 0;
@@ -43,10 +46,18 @@ export class ContinuousDefectFeedbackLoop {
     this.deduplicator = new LiveDefectDeduplicator(options.deduplicatorOptions);
   }
 
-  public getDeduplicator(): LiveDefectDeduplicator { return this.deduplicator; }
-  public getStatus(): "idle" | "running" | "paused" | "stopped" { return this.status; }
+  public getDeduplicator(): LiveDefectDeduplicator {
+    return this.deduplicator;
+  }
+  public getStatus(): "idle" | "running" | "paused" | "stopped" {
+    return this.status;
+  }
 
-  public recordDefect(defect: DefectRecordInput, domain = "general", taskId?: string): AggregatedDefect {
+  public recordDefect(
+    defect: DefectRecordInput,
+    domain = "general",
+    taskId?: string,
+  ): AggregatedDefect {
     const recordResult = this.deduplicator.record(defect);
     const aggregated = recordResult.entry;
     const stats = this.getOrCreateDomainStats(domain);
@@ -55,7 +66,9 @@ export class ContinuousDefectFeedbackLoop {
     return aggregated;
   }
 
-  public async submitTask<TResult>(task: DomainExecutionTask<TResult>): Promise<DomainTaskResult<TResult>> {
+  public async submitTask<TResult>(
+    task: DomainExecutionTask<TResult>,
+  ): Promise<DomainTaskResult<TResult>> {
     if (this.status === "stopped") {
       throw new Error(`Cannot submit task ${task.id}: ContinuousDefectFeedbackLoop is stopped`);
     }
@@ -71,7 +84,9 @@ export class ContinuousDefectFeedbackLoop {
     return this.runTask(task);
   }
 
-  public async submitBatch(tasks: readonly DomainExecutionTask<unknown>[]): Promise<readonly DomainTaskResult<unknown>[]> {
+  public async submitBatch(
+    tasks: readonly DomainExecutionTask<unknown>[],
+  ): Promise<readonly DomainTaskResult<unknown>[]> {
     return Promise.all(tasks.map((task) => this.submitTask(task)));
   }
 
@@ -110,7 +125,8 @@ export class ContinuousDefectFeedbackLoop {
       };
       proposedActions.push(action);
 
-      if (this.options.onRemediationProposed) this.options.onRemediationProposed(action, hypothesis);
+      if (this.options.onRemediationProposed)
+        this.options.onRemediationProposed(action, hypothesis);
 
       if (this.options.autoRemediate) {
         executedActions.push({ ...action, status: "verified" });
@@ -143,7 +159,9 @@ export class ContinuousDefectFeedbackLoop {
     return this.deduplicator.resolve(defectId, proof) !== null;
   }
 
-  public pause(): void { if (this.status !== "stopped") this.status = "paused"; }
+  public pause(): void {
+    if (this.status !== "stopped") this.status = "paused";
+  }
 
   public resume(): void {
     if (this.status === "paused") {
@@ -156,7 +174,9 @@ export class ContinuousDefectFeedbackLoop {
     this.status = "stopped";
     for (const queue of this.taskQueues.values()) {
       for (const entry of queue) {
-        entry.reject(new Error(`Task ${entry.task.id} cancelled: ContinuousDefectFeedbackLoop stopped`));
+        entry.reject(
+          new Error(`Task ${entry.task.id} cancelled: ContinuousDefectFeedbackLoop stopped`),
+        );
       }
     }
     this.taskQueues.clear();
@@ -177,7 +197,8 @@ export class ContinuousDefectFeedbackLoop {
     const result: Record<string, DomainMetrics> = {};
     for (const [domain, stats] of this.domainStats.entries()) {
       const activeWorkers = this.domainActiveWorkers.get(domain) ?? 0;
-      const avgDurationMs = stats.totalTasks > 0 ? Math.round(stats.totalDurationMs / stats.totalTasks) : 0;
+      const avgDurationMs =
+        stats.totalTasks > 0 ? Math.round(stats.totalDurationMs / stats.totalTasks) : 0;
       result[domain] = {
         domain,
         totalTasks: stats.totalTasks,
@@ -235,7 +256,9 @@ export class ContinuousDefectFeedbackLoop {
     }
   }
 
-  private async runTask<TResult>(task: DomainExecutionTask<TResult>): Promise<DomainTaskResult<TResult>> {
+  private async runTask<TResult>(
+    task: DomainExecutionTask<TResult>,
+  ): Promise<DomainTaskResult<TResult>> {
     const domain = task.domain.trim().toLowerCase();
     this.domainActiveWorkers.set(domain, (this.domainActiveWorkers.get(domain) ?? 0) + 1);
     this.runningPromiseCount += 1;
@@ -263,10 +286,14 @@ export class ContinuousDefectFeedbackLoop {
       stats.failedTasks += 1;
     }
 
-    this.domainActiveWorkers.set(domain, Math.max(0, (this.domainActiveWorkers.get(domain) ?? 1) - 1));
+    this.domainActiveWorkers.set(
+      domain,
+      Math.max(0, (this.domainActiveWorkers.get(domain) ?? 1) - 1),
+    );
     this.runningPromiseCount = Math.max(0, this.runningPromiseCount - 1);
     if (this.runningPromiseCount === 0 && this.status === "running") this.status = "idle";
-    if (this.options.onTaskCompleted) this.options.onTaskCompleted(taskResult as DomainTaskResult<unknown>);
+    if (this.options.onTaskCompleted)
+      this.options.onTaskCompleted(taskResult as DomainTaskResult<unknown>);
     this.pumpQueues();
     return taskResult;
   }
@@ -281,7 +308,14 @@ export class ContinuousDefectFeedbackLoop {
   } {
     let stats = this.domainStats.get(domain);
     if (!stats) {
-      stats = { totalTasks: 0, successfulTasks: 0, failedTasks: 0, timedOutTasks: 0, defectsCount: 0, totalDurationMs: 0 };
+      stats = {
+        totalTasks: 0,
+        successfulTasks: 0,
+        failedTasks: 0,
+        timedOutTasks: 0,
+        defectsCount: 0,
+        totalDurationMs: 0,
+      };
       this.domainStats.set(domain, stats);
     }
     return stats;

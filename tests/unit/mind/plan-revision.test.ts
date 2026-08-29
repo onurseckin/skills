@@ -32,7 +32,7 @@ import {
   type PlanRevisionProposal,
   type PlanRevisionSignal,
   type ProposalStatus,
-} from "../../../olt/scripts/src/mind/proposal.ts";
+} from "../../../olt/scripts/src/mind/proposals/proposal/index.ts";
 import {
   balanceOrchestratorLoad,
   calculateHierarchyCapacity,
@@ -45,7 +45,7 @@ import {
   type HierarchyCapacityMetrics,
   type OrchestratorNodeInfo,
   type ScalingThresholds,
-} from "../../../olt/scripts/src/mind/self-evolution.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/evolution/index.ts";
 
 describe("Mind Proposal & Plan Revision Subsystem", () => {
   describe("Proposal Creation, Deduplication & Fingerprinting", () => {
@@ -60,7 +60,7 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
         statement: "Implement active plan revision engine",
         rationale: "Allows Mind to synthesize evolutionary updates without human blockage",
         charter_goal_ids: ["goal-self-evolution"],
-        write_scope: ["olt/scripts/src/mind/proposal.ts"],
+        write_scope: ["olt/scripts/src/mind/proposals/proposal/index.ts"],
         actor: "orchestrator_main",
       });
 
@@ -401,23 +401,23 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
           source: "scripts/src/mind/proposal.test.ts",
           severity: "CRITICAL",
           evidence: "Assertion failed in lifecycle state machine",
-          affectedWriteScopes: ["olt/scripts/src/mind/proposal.ts"],
+          affectedWriteScopes: ["olt/scripts/src/mind/proposals/proposal/index.ts"],
           charterGoalId: "goal-test-stability",
         },
         {
           signalType: "COGNITIVE_OVERLOAD",
-          source: "scripts/src/mind/smart-task-manager.ts",
+          source: "scripts/src/mind/tasks/smart/index.ts",
           severity: "HIGH",
           evidence: "Function cyclomatic complexity exceeds threshold (score: 28 > 15)",
-          affectedWriteScopes: ["olt/scripts/src/mind/smart-task-manager.ts"],
+          affectedWriteScopes: ["olt/scripts/src/mind/tasks/smart/index.ts"],
           charterGoalId: "goal-maintainability",
         },
         {
           signalType: "DEFECT_SURGE",
-          source: "scripts/src/mind/defects.ts",
+          source: "scripts/src/mind/defects/index.ts",
           severity: "CRITICAL",
           evidence: "Multiple consecutive compilation errors detected",
-          affectedWriteScopes: ["olt/scripts/src/mind/defects.ts"],
+          affectedWriteScopes: ["olt/scripts/src/mind/defects/index.ts"],
           charterGoalId: "goal-zero-defect",
         },
       ];
@@ -720,13 +720,13 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
           category: "TEST_COVERAGE",
           severity: "HIGH",
           description: "Missing test for plan revision state transitions",
-          file: "scripts/src/mind/proposal.ts",
+          file: "scripts/src/mind/proposals/proposal/index.ts",
         },
         {
           category: "COGNITIVE_GAP",
           severity: "MEDIUM",
           description: "Cognitive chunk size exceeds recommended threshold",
-          file: "scripts/src/mind/self-evolution.ts",
+          file: "scripts/src/mind/lifecycle/evolution/index.ts",
         },
       ];
 
@@ -743,8 +743,8 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
   describe("Static Invariant Proof: Zero-Any & Zero Suppressions", () => {
     it("proves 0 occurrences of TypeScript any and 0 compiler/linter suppressions across scoped files", () => {
       const filesToCheck = [
-        resolve(process.cwd(), "olt/scripts/src/mind/proposal.ts"),
-        resolve(process.cwd(), "olt/scripts/src/mind/self-evolution.ts"),
+        resolve(process.cwd(), "olt/scripts/src/mind/proposals/proposal/index.ts"),
+        resolve(process.cwd(), "olt/scripts/src/mind/lifecycle/evolution/index.ts"),
         resolve(process.cwd(), "tests/unit/mind/plan-revision.test.ts"),
       ];
 

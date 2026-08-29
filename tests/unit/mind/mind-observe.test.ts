@@ -4,7 +4,7 @@ import {
   formatMindObserveBrief,
   resolveCanonicalObservationsPath,
   resolveObservationsPath,
-} from "../../../olt/scripts/src/mind/mind-observe.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("mind/mind-observe", () => {

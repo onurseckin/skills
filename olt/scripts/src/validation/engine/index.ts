@@ -1,10 +1,6 @@
-export {
-  generateMutants,
-} from "./mutation-generator.ts";
+export { generateMutants } from "./mutation-generator.ts";
 
-export {
-  runMutationGate,
-} from "./mutation-runner.ts";
+export { runMutationGate } from "./mutation-runner.ts";
 
 export {
   enforceValidatorCommandLock,

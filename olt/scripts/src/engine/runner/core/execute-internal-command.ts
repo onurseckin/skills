@@ -5,25 +5,29 @@ import { atomicWriteJson } from "../../../core/durable-write";
 import { readCanonicalObject } from "../../../core/json";
 import { HarnessError } from "../../../core/errors/index";
 import type { inspectRepositoryBinding } from "../../../packets/repository-identity";
-import { applyAttempt, replaceFinalAttempt, updateRetryExhaustion } from "../models/command-aggregate";
+import {
+  applyAttempt,
+  replaceFinalAttempt,
+  updateRetryExhaustion,
+} from "../models/command/command-aggregate.ts";
 import {
   commandExecutionSnapshot,
   gateExecutionSnapshot,
   type CommandRuntimeCapability,
-} from "../models/command-execution-snapshot";
+} from "../models/execution/command-execution-snapshot.ts";
 import {
   assertCommandAttemptSize,
   assertCommandRecordSize,
   boundedEvidenceError,
   MAX_COMMAND_ATTEMPTS,
   MAX_COMMAND_RECORD_BYTES,
-} from "../models/command-record-size";
-import { embeddedCommandIssues, sameCommandJson } from "../models/command-shape";
+} from "../models/command/command-record-size.ts";
+import { embeddedCommandIssues, sameCommandJson } from "../models/command/index.ts";
 import { gateEnvironmentIssues } from "../signing/gate-environment";
 import { assertGatePathBindings, executionArgv } from "../signing/gate-path-bindings";
-import { finalizeGateAttempt } from "../models/gate-attempt-finalization";
+import { finalizeGateAttempt } from "../models/attempt/gate-attempt-finalization.ts";
 import { sameRepositoryObservation } from "../signing/gate-observation";
-import { runAttempt } from "../models/run-attempt";
+import { runAttempt } from "../models/attempt/run-attempt.ts";
 import { AttemptExecutionError } from "../execution/attempt-execution-error";
 import type { CommandSigningCapability } from "../execution/attempt-disposition-capability";
 import { shouldRetry } from "./retry-policy";

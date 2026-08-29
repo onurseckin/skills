@@ -229,7 +229,7 @@ export class OmnipresentTelemetryCollector {
   }): TimeTelemetryReport {
     const records = this.getRecords(options?.filter);
     return buildTimeTelemetryReport(records, this._activeSpans.size, {
-      defaultTimezone: this._defaultTimezone,
+      ...(this._defaultTimezone !== undefined ? { defaultTimezone: this._defaultTimezone } : {}),
       ...options,
     });
   }

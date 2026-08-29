@@ -62,7 +62,10 @@ export function delay(milliseconds: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
 }
 
-export function sameInode(left: Pick<Stats, "dev" | "ino">, right: Pick<Stats, "dev" | "ino">): boolean {
+export function sameInode(
+  left: Pick<Stats, "dev" | "ino">,
+  right: Pick<Stats, "dev" | "ino">,
+): boolean {
   return left.dev === right.dev && left.ino === right.ino;
 }
 

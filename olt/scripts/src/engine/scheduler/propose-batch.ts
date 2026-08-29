@@ -1,12 +1,18 @@
-import type { RunState, TaskRecord } from "../../core/contracts/index.ts";
 import { scopeConflict, resourceConflict, hasActiveOwnership } from "./conflict/conflicts.ts";
 
-export function proposeBatch(
-  state: unknown,
-  maxParallel = 8,
-): readonly TaskRecord[] {
+export interface TaskRecord {
+  readonly id: string;
+  readonly status: string;
+  readonly priority?: number;
+  readonly write_scope: readonly string[];
+  readonly resource_scope?: readonly string[];
+  readonly dependencies?: readonly string[];
+  readonly [key: string]: unknown;
+}
+
+export function proposeBatch(state: unknown, maxParallel = 8): readonly TaskRecord[] {
   if (!state || typeof state !== "object") return [];
-  const s = state as RunState;
+  const s = state as { readonly tasks?: Record<string, TaskRecord> };
   if (!s.tasks || typeof s.tasks !== "object") return [];
 
   const allTasks = Object.values(s.tasks) as TaskRecord[];
@@ -28,8 +34,8 @@ export function proposeBatch(
     if (batch.length >= maxParallel) break;
 
     if (Array.isArray(task.dependencies) && task.dependencies.length > 0) {
-      const allDepsMet = task.dependencies.every((depId) => {
-        const dep = s.tasks[depId];
+      const allDepsMet = task.dependencies.every((depId: string) => {
+        const dep = s.tasks?.[depId];
         return dep && dep.status === "done";
       });
       if (!allDepsMet) continue;
@@ -41,7 +47,9 @@ export function proposeBatch(
     const hasScopeConflict = selectedWriteScopes.some((ws) => scopeConflict(ws, taskWrite));
     if (hasScopeConflict) continue;
 
-    const hasResourceConflict = selectedResourceScopes.some((rs) => resourceConflict(rs, taskResource));
+    const hasResourceConflict = selectedResourceScopes.some((rs) =>
+      resourceConflict(rs, taskResource),
+    );
     if (hasResourceConflict) continue;
 
     batch.push(task);

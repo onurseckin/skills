@@ -46,7 +46,7 @@ import {
   validateResolutionProof,
   verifyResolutionProofEmpirical,
   type DefectEntry,
-} from "../../../olt/scripts/src/mind/defects.ts";
+} from "../../../olt/scripts/src/mind/defects/index.ts";
 
 describe("Defect Pipeline - Categorization & Discriminator Logic", () => {
   it("categorizes boundary violations correctly", () => {
@@ -979,7 +979,7 @@ describe("Defect Pipeline - Static Code Invariants", () => {
       .filter((f) => f.endsWith(".ts"))
       .map((f) => join(defectDir, f));
 
-    const mindDefectsPath = join(process.cwd(), "olt/scripts/src/mind/defects.ts");
+    const mindDefectsPath = join(process.cwd(), "olt/scripts/src/mind/defects/index.ts");
     const testFilePath = join(process.cwd(), "tests/unit/defects/defect-pipeline.test.ts");
     const allFiles = [...defectFiles, mindDefectsPath, testFilePath];
 

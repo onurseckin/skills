@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { computeDefectDiscriminator } from "../core/discriminator.ts";
 import {
   aggregateDefectEntries,
@@ -31,7 +32,9 @@ export function deduplicateDefectLog(
         options.onNewDefect?.(entry);
         results.push(entry);
       } else {
-        const existing = results.find((r) => (r.dedup_key || computeDefectDiscriminator(r)) === key);
+        const existing = results.find(
+          (r) => (r.dedup_key || computeDefectDiscriminator(r)) === key,
+        );
         if (existing) options.onDefectDeduplicated?.(existing, existing);
       }
     }
@@ -200,7 +203,14 @@ export function filterDefectStream(
   },
 ): readonly AggregatedDefect[] {
   const targetAgent = criteria.agentId || criteria.agent_id;
-  const sevRank: Record<string, number> = { low: 1, info: 1, warning: 2, medium: 2, high: 3, critical: 4 };
+  const sevRank: Record<string, number> = {
+    low: 1,
+    info: 1,
+    warning: 2,
+    medium: 2,
+    high: 3,
+    critical: 4,
+  };
   const minRank = criteria.minSeverity ? (sevRank[criteria.minSeverity.toLowerCase()] ?? 0) : 0;
 
   return defects.filter((d) => {

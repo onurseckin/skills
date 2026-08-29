@@ -10,7 +10,7 @@ export interface MindCandidateProposal {
   readonly write_scope: readonly string[];
   readonly status: string;
   readonly disposition: string;
-  readonly defect_id: string;
+  readonly defect_id?: string | null | undefined;
   readonly evidence_class: string;
   readonly created_at?: string | undefined;
 }
@@ -20,7 +20,8 @@ export function formulateDefectCandidates(
   charterGoals: readonly string[] = ["G1", "G2"],
 ): MindCandidateProposal[] {
   if (!Array.isArray(defects) || defects.length === 0) return [];
-  const goals = Array.isArray(charterGoals) && charterGoals.length > 0 ? charterGoals : ["G1", "G2"];
+  const goals =
+    Array.isArray(charterGoals) && charterGoals.length > 0 ? charterGoals : ["G1", "G2"];
   const openDefects = defects.filter((b) => b.status === "open");
   const proposals: MindCandidateProposal[] = [];
 

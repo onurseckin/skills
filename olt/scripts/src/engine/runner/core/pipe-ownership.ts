@@ -1,12 +1,16 @@
-import { HarnessError } from "../../../core/errors/index";
-import { darwinPipeHandles, darwinPipeOwners, darwinTokenOwnerIdentities } from "../process/darwin-pipes";
+import { HarnessError } from "../../../core/errors/index.ts";
+import {
+  darwinPipeHandles,
+  darwinPipeOwners,
+  darwinTokenOwnerIdentities,
+} from "../process/darwin/darwin-pipes.ts";
 import {
   linuxPipeHandles,
   linuxPipeOwners,
   linuxTokenOwnerIdentities,
   OWNERSHIP_ENV,
-} from "../process/linux-pipes";
-import type { ProcessIdentity } from "../process/process-identity";
+} from "../process/linux-pipes.ts";
+import type { ProcessIdentity } from "../process/process-identity.ts";
 
 export { OWNERSHIP_ENV };
 

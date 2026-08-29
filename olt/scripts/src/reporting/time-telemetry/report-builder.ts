@@ -18,11 +18,11 @@ export function buildTimeTelemetryReport(
   records: readonly HarnessActionTimeRecord[],
   activeSpansCount: number,
   options?: {
-    runId?: string;
-    filter?: TelemetryFilter;
-    timezone?: string;
-    defaultTimezone?: string;
-    maxRecent?: number;
+    runId?: string | undefined;
+    filter?: TelemetryFilter | undefined;
+    timezone?: string | undefined;
+    defaultTimezone?: string | undefined;
+    maxRecent?: number | undefined;
   },
 ): TimeTelemetryReport {
   const tz = options?.timezone ?? options?.defaultTimezone ?? "UTC";

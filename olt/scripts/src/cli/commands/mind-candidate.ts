@@ -1,6 +1,6 @@
 import type { JsonObject, JsonValue } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { verifyDefectWitness } from "../../mind/witness.ts";
+import { verifyDefectWitness } from "../../mind/auditing/witness/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";

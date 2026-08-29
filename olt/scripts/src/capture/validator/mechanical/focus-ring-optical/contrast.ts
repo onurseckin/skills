@@ -1,8 +1,4 @@
-import {
-  calculateWcagLuminance,
-  compositeColorOver,
-  parseCssColor,
-} from "./color.ts";
+import { calculateWcagLuminance, compositeColorOver, parseCssColor } from "./color.ts";
 
 /**
  * Audits WCAG 2.1 relative luminance contrast between a focus ring and its adjacent background.

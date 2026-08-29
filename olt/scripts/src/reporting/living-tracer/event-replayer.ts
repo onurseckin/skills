@@ -9,17 +9,11 @@ import {
   parsePayloadStringArray,
   type ActiveAgentState,
   type DynamicTaskState,
+  type ReplayContext,
   type SproutedRepairPair,
 } from "./types.ts";
 
-export interface ReplayContext {
-  readonly taskMap: Map<string, DynamicTaskState>;
-  readonly agentMap: Map<string, ActiveAgentState>;
-  readonly branches: Set<string>;
-  readonly sproutedRepairPairs: SproutedRepairPair[];
-  revision: number;
-  maxRoundReached: number;
-}
+export type { ReplayContext };
 
 export function replayTelemetryEvent(ev: HarnessEvent, ctx: ReplayContext): void {
   const payload =
@@ -183,9 +177,7 @@ export function replayTelemetryEvent(ev: HarnessEvent, ctx: ReplayContext): void
 
     if (
       (existing.status === "changes_requested" || existing.executionState.includes("REJECTED")) &&
-      (roundInPayload === 2 ||
-        role === "repairer" ||
-        (attemptInPayload && attemptInPayload > 1)) &&
+      (roundInPayload === 2 || role === "repairer" || (attemptInPayload && attemptInPayload > 1)) &&
       existing.sproutedChildren &&
       existing.sproutedChildren.length > 0
     ) {

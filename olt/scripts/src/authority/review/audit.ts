@@ -19,7 +19,11 @@ export function auditTaskVerificationEvidence(
   const rejectionReasons: string[] = [];
   const correctiveGuidance: string[] = [];
 
-  if (!evidence.taskId || typeof evidence.taskId !== "string" || evidence.taskId.trim().length === 0) {
+  if (
+    !evidence.taskId ||
+    typeof evidence.taskId !== "string" ||
+    evidence.taskId.trim().length === 0
+  ) {
     violations.push({
       type: "empty_rationale",
       message: "Task ID is required for 1:1 individual task verification.",
@@ -36,7 +40,9 @@ export function auditTaskVerificationEvidence(
       taskId: evidence.taskId,
       details: { confidence: superficiality.confidenceScore },
     });
-    rejectionReasons.push(superficiality.reason ?? "Verification contains superficial rubber-stamping claim.");
+    rejectionReasons.push(
+      superficiality.reason ?? "Verification contains superficial rubber-stamping claim.",
+    );
     correctiveGuidance.push(
       "**Resolution Path:**\n1. Review the task requirements and assigned write scope.\n2. Extract concrete, task-specific observations (e.g., file paths, line references).\n3. Execute targeted test commands relevant to the task.\n4. Incorporate the test execution evidence directly into the verification claim.",
     );
@@ -84,7 +90,9 @@ export function auditTaskVerificationEvidence(
       message: "No check commands or artifact proofs were provided for verification.",
       taskId: evidence.taskId,
     });
-    rejectionReasons.push("Verification lacks any executed check commands or tangible evidence artifacts.");
+    rejectionReasons.push(
+      "Verification lacks any executed check commands or tangible evidence artifacts.",
+    );
     correctiveGuidance.push(
       "**Resolution Path:**\n1. Identify the task gate check command for this verification.\n2. Execute the command to verify functionality.\n3. Record the exact exit code and relevant output.\n4. Attach this structured proof to the verification verdict.",
     );
@@ -141,7 +149,9 @@ export function generateCorrectiveGuidance(
 
   if (history.rounds.length > 0) {
     const latest = history.rounds.at(-1)!;
-    guidance.push(`[Round ${latest.round} ${latest.cause.toUpperCase()} Pushback]: ${latest.observation}`);
+    guidance.push(
+      `[Round ${latest.round} ${latest.cause.toUpperCase()} Pushback]: ${latest.observation}`,
+    );
     guidance.push(`Remediation Required: ${latest.remediation}`);
     for (const g of latest.correctiveGuidance) {
       if (!guidance.includes(g)) guidance.push(g);

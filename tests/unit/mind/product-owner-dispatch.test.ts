@@ -14,7 +14,7 @@ import {
   reconcilePausedAdmittedFeedbacks,
   writeFeedbackQueue,
   type FeedbackItem,
-} from "../../../olt/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   assertAntiBatchingRule,
   executeAtomicAdmissionToDispatch,
@@ -34,13 +34,13 @@ import {
   type MultiOrchestratorPrePlanningResult,
   type ProductOwnerIntakeItem,
   type SmartTaskPlan,
-} from "../../../olt/scripts/src/mind/smart-task-manager.ts";
+} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
 import {
   clearTaskQueue,
   enqueueTasksBatch,
   getQueueStats,
   readTaskQueue,
-} from "../../../olt/scripts/src/mind/task-queue.ts";
+} from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
 
 describe("Mind Product Owner Mode & Atomic Dispatch Chaining Test Suite", () => {
   const testRoot = join(
@@ -56,7 +56,7 @@ describe("Mind Product Owner Mode & Atomic Dispatch Chaining Test Suite", () => 
     if (existsSync(testRoot)) {
       rmSync(testRoot, { recursive: true, force: true });
     }
-    mkdirSync(join(testRoot, ".olt"), { recursive: true });
+    mkdirSync(join(testRoot, ".olt", "capsules"), { recursive: true });
   });
 
   afterAll(() => {
@@ -724,8 +724,8 @@ describe("Mind Product Owner Mode & Atomic Dispatch Chaining Test Suite", () => 
   describe("4. Static Invariant Verification: 0 any & 0 Suppressions", () => {
     it("proves 0 TypeScript any and 0 compiler/linter suppressions across all target files", () => {
       const filesToCheck = [
-        "olt/scripts/src/mind/smart-task-manager.ts",
-        "olt/scripts/src/mind/feedback-queue.ts",
+        "olt/scripts/src/mind/tasks/smart/index.ts",
+        "olt/scripts/src/mind/feedback/queue/index.ts",
         "tests/unit/mind/product-owner-dispatch.test.ts",
       ];
 

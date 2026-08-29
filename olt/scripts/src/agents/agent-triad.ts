@@ -10,15 +10,9 @@ export type {
 
 export { resolveWorkspacePaths } from "./agent-triad-paths.ts";
 
-export {
-  loadAgentIdentity,
-  loadAgentRoleDefinition,
-} from "./agent-triad-loaders.ts";
+export { loadAgentIdentity, loadAgentRoleDefinition } from "./agent-triad-loaders.ts";
 
-export {
-  loadAgentReferenceDocs,
-  findRelevantReferencesForRole,
-} from "./agent-triad-references.ts";
+export { loadAgentReferenceDocs, findRelevantReferencesForRole } from "./agent-triad-references.ts";
 
 export {
   validateAgentTriad,

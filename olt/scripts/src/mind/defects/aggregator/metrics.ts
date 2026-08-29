@@ -125,7 +125,9 @@ export function clusterDefectsBySimilarity(
     for (const cluster of clusters) {
       const representative = cluster[0];
       if (representative) {
-        const repSig = normalizeObservationSignature(representative.observation || representative.type);
+        const repSig = normalizeObservationSignature(
+          representative.observation || representative.type,
+        );
         const sim = calculateDefectSimilarity(sig, repSig);
         if (sim >= similarityThreshold && defect.category === representative.category) {
           cluster.push(defect);

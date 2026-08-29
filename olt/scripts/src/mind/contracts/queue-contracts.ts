@@ -2,7 +2,14 @@
  * Shared Leaf Contracts for Task Queue & Execution Management
  */
 
-export type TaskStatus = "pending" | "in_progress" | "completed" | "failed" | "blocked" | "cancelled" | "declined";
+export type TaskStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "blocked"
+  | "cancelled"
+  | "declined";
 
 export type TaskPriority = "critical" | "high" | "medium" | "low";
 

@@ -8,10 +8,7 @@ export {
   type LayoutEntry,
 } from "./layout.ts";
 
-export {
-  checkManifest,
-  type ManifestCheck,
-} from "./manifest.ts";
+export { checkManifest, type ManifestCheck } from "./manifest.ts";
 
 export {
   MAX_BLOB_BYTES,

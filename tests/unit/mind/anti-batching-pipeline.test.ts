@@ -11,7 +11,7 @@ import {
   synthesizeAutonomousTasks,
   validateAntiBatchingIsolation,
   type SmartTaskPlan,
-} from "../../../olt/scripts/src/mind/smart-task-manager.ts";
+} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
 import {
   assertDefectCandidatesIsolated,
   assertDiscriminatingSignOffProofs,
@@ -21,7 +21,7 @@ import {
 import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
 import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/review-input.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback-queue.ts";
+import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {
@@ -48,6 +48,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       const feedbacks: FeedbackItem[] = [
         {
           id: "fb-opt-1",
+          timestamp: new Date().toISOString(),
           title: "Optimize API Response Latency",
           content: "Reduce payload serialization overhead",
           priority: "CRITICAL_USER_FEEDBACK",
@@ -56,6 +57,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
         },
         {
           id: "fb-sec-2",
+          timestamp: new Date().toISOString(),
           title: "Harden Bearer Token Validation",
           content: "Verify constant-time comparison on tokens",
           priority: "HIGH_ARCHITECTURAL_FEATURE",
@@ -64,6 +66,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
         },
         {
           id: "fb-cli-3",
+          timestamp: new Date().toISOString(),
           title: "Add Verbose Logging to CLI Commands",
           content: "Support --verbose flag across CLI registry",
           priority: "USER_DIRECTIVE",
@@ -637,7 +640,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
   describe("8. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     it("verifies zero TypeScript any and zero suppressions across all anti-batching pipeline source and test files", () => {
       const filesToAudit = [
-        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/smart-task-manager.ts",
+        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/tasks/smart/index.ts",
         "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/orchestrator/anti-batching.ts",
         "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/orchestrator/defect-synthesizer.ts",
         "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/workflow/review/validate-review.ts",

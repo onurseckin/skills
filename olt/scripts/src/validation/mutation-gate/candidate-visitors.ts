@@ -83,41 +83,146 @@ export function visitBinaryExpressions(
 
   // Comparison / Equality
   if (opKind === ts.SyntaxKind.EqualsEqualsEqualsToken) {
-    addCandidate("comparison_mutation", "Mutate === to !==", opToken.getStart(sourceFile), opToken.getEnd(), "===", "!==");
+    addCandidate(
+      "comparison_mutation",
+      "Mutate === to !==",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "===",
+      "!==",
+    );
   } else if (opKind === ts.SyntaxKind.ExclamationEqualsEqualsToken) {
-    addCandidate("comparison_mutation", "Mutate !== to ===", opToken.getStart(sourceFile), opToken.getEnd(), "!==", "===");
+    addCandidate(
+      "comparison_mutation",
+      "Mutate !== to ===",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "!==",
+      "===",
+    );
   } else if (opKind === ts.SyntaxKind.EqualsEqualsToken) {
-    addCandidate("comparison_mutation", "Mutate == to !=", opToken.getStart(sourceFile), opToken.getEnd(), "==", "!=");
+    addCandidate(
+      "comparison_mutation",
+      "Mutate == to !=",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "==",
+      "!=",
+    );
   } else if (opKind === ts.SyntaxKind.ExclamationEqualsToken) {
-    addCandidate("comparison_mutation", "Mutate != to ==", opToken.getStart(sourceFile), opToken.getEnd(), "!=", "==");
+    addCandidate(
+      "comparison_mutation",
+      "Mutate != to ==",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "!=",
+      "==",
+    );
   } else if (opKind === ts.SyntaxKind.LessThanToken) {
-    addCandidate("comparison_mutation", "Mutate < to >=", opToken.getStart(sourceFile), opToken.getEnd(), "<", ">=");
+    addCandidate(
+      "comparison_mutation",
+      "Mutate < to >=",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "<",
+      ">=",
+    );
   } else if (opKind === ts.SyntaxKind.LessThanEqualsToken) {
-    addCandidate("comparison_mutation", "Mutate <= to >", opToken.getStart(sourceFile), opToken.getEnd(), "<=", ">");
+    addCandidate(
+      "comparison_mutation",
+      "Mutate <= to >",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "<=",
+      ">",
+    );
   } else if (opKind === ts.SyntaxKind.GreaterThanToken) {
-    addCandidate("comparison_mutation", "Mutate > to <=", opToken.getStart(sourceFile), opToken.getEnd(), ">", "<=");
+    addCandidate(
+      "comparison_mutation",
+      "Mutate > to <=",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      ">",
+      "<=",
+    );
   } else if (opKind === ts.SyntaxKind.GreaterThanEqualsToken) {
-    addCandidate("comparison_mutation", "Mutate >= to <", opToken.getStart(sourceFile), opToken.getEnd(), ">=", "<");
+    addCandidate(
+      "comparison_mutation",
+      "Mutate >= to <",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      ">=",
+      "<",
+    );
   }
 
   // Logical Operators
   if (opKind === ts.SyntaxKind.AmpersandAmpersandToken) {
-    addCandidate("logical_operator_mutation", "Mutate && to ||", opToken.getStart(sourceFile), opToken.getEnd(), "&&", "||");
+    addCandidate(
+      "logical_operator_mutation",
+      "Mutate && to ||",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "&&",
+      "||",
+    );
   } else if (opKind === ts.SyntaxKind.BarBarToken) {
-    addCandidate("logical_operator_mutation", "Mutate || to &&", opToken.getStart(sourceFile), opToken.getEnd(), "||", "&&");
+    addCandidate(
+      "logical_operator_mutation",
+      "Mutate || to &&",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "||",
+      "&&",
+    );
   }
 
   // Arithmetic Operators
   if (opKind === ts.SyntaxKind.PlusToken) {
-    addCandidate("arithmetic_mutation", "Mutate + to -", opToken.getStart(sourceFile), opToken.getEnd(), "+", "-");
+    addCandidate(
+      "arithmetic_mutation",
+      "Mutate + to -",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "+",
+      "-",
+    );
   } else if (opKind === ts.SyntaxKind.MinusToken) {
-    addCandidate("arithmetic_mutation", "Mutate - to +", opToken.getStart(sourceFile), opToken.getEnd(), "-", "+");
+    addCandidate(
+      "arithmetic_mutation",
+      "Mutate - to +",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "-",
+      "+",
+    );
   } else if (opKind === ts.SyntaxKind.AsteriskToken) {
-    addCandidate("arithmetic_mutation", "Mutate * to /", opToken.getStart(sourceFile), opToken.getEnd(), "*", "/");
+    addCandidate(
+      "arithmetic_mutation",
+      "Mutate * to /",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "*",
+      "/",
+    );
   } else if (opKind === ts.SyntaxKind.SlashToken) {
-    addCandidate("arithmetic_mutation", "Mutate / to *", opToken.getStart(sourceFile), opToken.getEnd(), "/", "*");
+    addCandidate(
+      "arithmetic_mutation",
+      "Mutate / to *",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "/",
+      "*",
+    );
   } else if (opKind === ts.SyntaxKind.PercentToken) {
-    addCandidate("arithmetic_mutation", "Mutate % to *", opToken.getStart(sourceFile), opToken.getEnd(), "%", "*");
+    addCandidate(
+      "arithmetic_mutation",
+      "Mutate % to *",
+      opToken.getStart(sourceFile),
+      opToken.getEnd(),
+      "%",
+      "*",
+    );
   }
 }
 
@@ -131,21 +236,63 @@ export function visitReturnStatements(
   if (node.expression) {
     const expr = node.expression;
     if (expr.kind === ts.SyntaxKind.TrueKeyword) {
-      addCandidate("flip_return_value", "Flip return true to return false", node.getStart(sourceFile), node.getEnd(), node.getText(sourceFile), "return false;");
+      addCandidate(
+        "flip_return_value",
+        "Flip return true to return false",
+        node.getStart(sourceFile),
+        node.getEnd(),
+        node.getText(sourceFile),
+        "return false;",
+      );
     } else if (expr.kind === ts.SyntaxKind.FalseKeyword) {
-      addCandidate("flip_return_value", "Flip return false to return true", node.getStart(sourceFile), node.getEnd(), node.getText(sourceFile), "return true;");
+      addCandidate(
+        "flip_return_value",
+        "Flip return false to return true",
+        node.getStart(sourceFile),
+        node.getEnd(),
+        node.getText(sourceFile),
+        "return true;",
+      );
     } else if (ts.isNumericLiteral(expr)) {
       const numVal = Number(expr.text);
       const replacement = numVal === 0 ? "1" : "0";
-      addCandidate("flip_return_value", `Flip return ${expr.text} to return ${replacement}`, node.getStart(sourceFile), node.getEnd(), node.getText(sourceFile), `return ${replacement};`);
+      addCandidate(
+        "flip_return_value",
+        `Flip return ${expr.text} to return ${replacement}`,
+        node.getStart(sourceFile),
+        node.getEnd(),
+        node.getText(sourceFile),
+        `return ${replacement};`,
+      );
     } else if (ts.isStringLiteral(expr)) {
       const replacement = expr.text.length > 0 ? '""' : '"__MUTATED__"';
-      addCandidate("flip_return_value", `Flip return string to ${replacement}`, node.getStart(sourceFile), node.getEnd(), node.getText(sourceFile), `return ${replacement};`);
+      addCandidate(
+        "flip_return_value",
+        `Flip return string to ${replacement}`,
+        node.getStart(sourceFile),
+        node.getEnd(),
+        node.getText(sourceFile),
+        `return ${replacement};`,
+      );
     } else {
-      addCandidate("flip_return_value", "Flip return value to return undefined", node.getStart(sourceFile), node.getEnd(), node.getText(sourceFile), "return undefined;");
+      addCandidate(
+        "flip_return_value",
+        "Flip return value to return undefined",
+        node.getStart(sourceFile),
+        node.getEnd(),
+        node.getText(sourceFile),
+        "return undefined;",
+      );
     }
   } else {
-    addCandidate("flip_return_value", "Flip bare return to return true", node.getStart(sourceFile), node.getEnd(), node.getText(sourceFile), "return true;");
+    addCandidate(
+      "flip_return_value",
+      "Flip bare return to return true",
+      node.getStart(sourceFile),
+      node.getEnd(),
+      node.getText(sourceFile),
+      "return true;",
+    );
   }
 }
 

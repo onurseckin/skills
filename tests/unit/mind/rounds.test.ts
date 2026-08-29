@@ -23,7 +23,7 @@ import {
   validatePriorRoundCompleted,
   validateRoundBudget,
   validateRoundCloseArmingRail,
-} from "../../../olt/scripts/src/mind/rounds.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
 import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 

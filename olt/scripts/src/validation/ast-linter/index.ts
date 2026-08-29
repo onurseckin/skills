@@ -18,15 +18,8 @@ export {
   isTestIdentifier,
 } from "./types.ts";
 
-export {
-  checkTrivialConstantAssertion,
-} from "./assertion-detectors.ts";
+export { checkTrivialConstantAssertion } from "./assertion-detectors.ts";
 
-export {
-  checkMockTautology,
-  detectMockDeclarations,
-} from "./mock-detectors.ts";
+export { checkMockTautology, detectMockDeclarations } from "./mock-detectors.ts";
 
-export {
-  lintTestAst,
-} from "./visitor.ts";
+export { lintTestAst } from "./visitor.ts";

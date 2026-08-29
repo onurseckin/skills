@@ -10,7 +10,7 @@ import {
   parseCharter,
   parseCharterYaml,
   resolveCharterPath,
-} from "../../../olt/scripts/src/mind/charter.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/charter/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Mind Charter Module (charter.ts) - Pure YAML Manifest SSoT", () => {

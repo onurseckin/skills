@@ -23,7 +23,7 @@ import {
   validateParentChildSupervision,
   assertParentChildBoundary,
   type RoleBoundaryAction,
-} from "../../../olt/scripts/src/mind/role-auditing.ts";
+} from "../../../olt/scripts/src/mind/auditing/roles/index.ts";
 import {
   isBoundaryLeakViolation,
   validateBoundaryIntegrity,
@@ -32,7 +32,7 @@ import {
 } from "../../../olt/scripts/src/validation/anti-leak.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { emptyGrantRun } from "../packets/grant-run-fixture.ts";
-import type { DynamicRoleSpec } from "../../../olt/scripts/src/mind/dynamic-roles.ts";
+import type { DynamicRoleSpec } from "../../../olt/scripts/src/mind/roles/dynamic/index.ts";
 
 function spec(invocation: string): CommandSpec {
   const found = findCommand(invocation);
@@ -605,7 +605,7 @@ describe("Hierarchical Boundary Supervision & Cognitive Validator Hard-Lock", ()
 
   describe("3. Static Code Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     const filesToAudit = [
-      "olt/scripts/src/mind/role-auditing.ts",
+      "olt/scripts/src/mind/auditing/roles/index.ts",
       "olt/scripts/src/packets/command-authority.ts",
       "olt/scripts/src/validation/anti-leak.ts",
     ];

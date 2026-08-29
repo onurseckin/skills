@@ -9,11 +9,6 @@ export type {
   MutationViolation,
 } from "./types.ts";
 
-export {
-  generateMutants,
-  shouldSkipStringLiteral,
-} from "./ast-mutators.ts";
+export { generateMutants, shouldSkipStringLiteral } from "./ast-mutators.ts";
 
-export {
-  runMutationGate,
-} from "./runner.ts";
+export { runMutationGate } from "./runner.ts";

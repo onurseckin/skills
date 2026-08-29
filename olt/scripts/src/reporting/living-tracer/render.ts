@@ -86,8 +86,7 @@ export function renderDynamicDagAscii(dynamicDag: DynamicDagState): string {
         const isLastSub = i === task.expandedSubtasks.length - 1;
         const sproutConnector = isLastSub ? "└──► " : "├──► ";
         const subStatus = formatStatusBadge(sub.status ?? "ready");
-        const subRole =
-          "role" in sub && typeof sub.role === "string" ? sub.role : undefined;
+        const subRole = "role" in sub && typeof sub.role === "string" ? sub.role : undefined;
         const subImpl =
           "assignedAgent" in sub && subRole !== "validator" ? sub.assignedAgent : null;
         const subVal =

@@ -7,15 +7,9 @@ import { validateUiStatesFsm } from "./ui-states-fsm.ts";
 
 export { validateCowanChunking } from "./cowan-chunking.ts";
 
-export {
-  calculateFittsId,
-  validateFittsLaw,
-} from "./fitts-law.ts";
+export { calculateFittsId, validateFittsLaw } from "./fitts-law.ts";
 
-export {
-  calculateHickHymanEntropy,
-  validateHickHyman,
-} from "./hick-hyman.ts";
+export { calculateHickHymanEntropy, validateHickHyman } from "./hick-hyman.ts";
 
 export { validateNormanRecovery } from "./norman-recovery.ts";
 

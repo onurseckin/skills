@@ -7,27 +7,15 @@ export {
   srgbChannelToLinear,
 } from "./color.ts";
 
-export {
-  calculateConcentricRadius,
-  validateNestedConcentricCorners,
-} from "./concentricity.ts";
+export { calculateConcentricRadius, validateNestedConcentricCorners } from "./concentricity.ts";
 
-export {
-  auditFocusRingContrast,
-} from "./contrast.ts";
+export { auditFocusRingContrast } from "./contrast.ts";
 
-export {
-  calculateOpticalCurvatureMetrics,
-} from "./curvature.ts";
+export { calculateOpticalCurvatureMetrics } from "./curvature.ts";
 
-export {
-  validateFocusRingOpticalSnapping,
-} from "./evaluator.ts";
+export { validateFocusRingOpticalSnapping } from "./evaluator.ts";
 
-export {
-  getSubpixelFraction,
-  snapToDevicePixelRatio,
-} from "./snapping.ts";
+export { getSubpixelFraction, snapToDevicePixelRatio } from "./snapping.ts";
 
 export type {
   ConcentricCornerEvaluation,

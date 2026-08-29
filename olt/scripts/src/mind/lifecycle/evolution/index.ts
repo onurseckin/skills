@@ -15,7 +15,7 @@ export type {
   EvolutionLedgerEntry,
   EvolutionHistoryStats,
   SelfEvolutionCycleOptions,
-} from "./self-evolution-chunk1.ts";
+} from "./types.ts";
 
 export {
   PERPETUAL_NON_STOPPING_CADENCE,
@@ -24,11 +24,9 @@ export {
   DEFAULT_EVOLUTION_BASE_INTERVAL_MS,
   DEFAULT_EVOLUTION_MAX_INTERVAL_MS,
   DEFAULT_SCALING_THRESHOLDS,
-} from "./self-evolution-chunk1.ts";
+} from "./types.ts";
 
-export type {
-  SelfEvolutionCycleResult,
-} from "./self-evolution-chunk2.ts";
+export type { SelfEvolutionCycleResult } from "./history.ts";
 
 export {
   resolveEvolutionHistoryPath,
@@ -36,24 +34,12 @@ export {
   recordEvolutionCycle,
   getEvolutionStats,
   enforcePerpetualNonStoppingCadence,
-} from "./self-evolution-chunk2.ts";
+} from "./history.ts";
 
-export {
-  calculateHierarchyCapacity,
-  evaluateHierarchyScaling,
-} from "./self-evolution-chunk3.ts";
+export { calculateHierarchyCapacity, evaluateHierarchyScaling } from "./cadence.ts";
 
-export {
-  balanceOrchestratorLoad,
-  synthesizeDynamicPlanRevisions,
-} from "./self-evolution-chunk4.ts";
+export { balanceOrchestratorLoad, synthesizeDynamicPlanRevisions } from "./proposal.ts";
 
-export {
-  evaluatePerpetualCadence,
-  formatSelfEvolutionBrief,
-} from "./self-evolution-chunk5.ts";
+export { evaluatePerpetualCadence, formatSelfEvolutionBrief } from "./pipeline.ts";
 
-export {
-  runSelfEvolutionCycle,
-  executeSelfEvolutionStep,
-} from "./self-evolution-chunk6.ts";
+export { runSelfEvolutionCycle, executeSelfEvolutionStep } from "./cycle.ts";

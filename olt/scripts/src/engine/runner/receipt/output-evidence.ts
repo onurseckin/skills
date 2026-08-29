@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { effectiveCommandArgv } from "../models/command-wrappers";
+import { effectiveCommandArgv } from "../models/command/command-wrappers.ts";
 
 const ZERO_TEST_PATTERNS = [
   /filters? did not match any test files?/iu,

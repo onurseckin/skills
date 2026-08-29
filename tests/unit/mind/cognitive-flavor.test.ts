@@ -13,7 +13,7 @@ import {
   getCognitiveFlavorProfile,
   type CognitiveDimension,
   type CognitiveFlavorId,
-} from "../../../olt/scripts/src/mind/cognitive-flavor.ts";
+} from "../../../olt/scripts/src/mind/auditing/flavor/index.ts";
 
 describe("Innovative Mind Cognition & Self-Questioning Flavor", () => {
   describe("Constants & Core Taxonomy", () => {

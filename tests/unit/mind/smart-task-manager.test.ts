@@ -30,7 +30,7 @@ import {
   validateAntiBatchingIsolation,
   validateAntiBatchingRule,
   type SmartTaskPlan,
-} from "../../../olt/scripts/src/mind/smart-task-manager.ts";
+} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
 import {
   admitFeedbackToQueue,
   __setFeedbackQueuePersistenceTestHook,
@@ -48,13 +48,13 @@ import {
   updateFeedbackItem,
   type FeedbackItem,
   type FeedbackResolutionProof,
-} from "../../../olt/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   clearTaskQueue,
   enqueueTasksBatch,
   getQueueStats,
   readTaskQueue,
-} from "../../../olt/scripts/src/mind/task-queue.ts";
+} from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
 
 describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
   const testDir = join(tmpdir(), `test-bench-smart-task-${Date.now()}`);
@@ -338,8 +338,8 @@ describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
 
   describe("2. Scope Collision Detection & Wave Partitioning", () => {
     it("detectScopeOverlap accurately flags exact matches and directory containment", () => {
-      const scopeA = ["src/mind/smart-task-manager.ts", "docs/"];
-      const scopeB = ["src/mind/smart-task-manager.ts"];
+      const scopeA = ["src/mind/tasks/smart/index.ts", "docs/"];
+      const scopeB = ["src/mind/tasks/smart/index.ts"];
       const scopeC = ["src/mind/"];
       const scopeD = ["src/cli/other.ts"];
 
@@ -1054,8 +1054,8 @@ describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
   describe("5. Static Invariant Verification: 0 TypeScript any & 0 Suppressions", () => {
     it("proves 0 any and 0 compiler/linter suppressions across all leased modules", () => {
       const filesToAudit = [
-        join(process.cwd(), "olt/scripts/src/mind/smart-task-manager.ts"),
-        join(process.cwd(), "olt/scripts/src/mind/feedback-queue.ts"),
+        join(process.cwd(), "olt/scripts/src/mind/tasks/smart/index.ts"),
+        join(process.cwd(), "olt/scripts/src/mind/feedback/queue/index.ts"),
         join(process.cwd(), "tests/unit/mind/smart-task-manager.test.ts"),
       ];
 

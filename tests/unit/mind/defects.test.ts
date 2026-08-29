@@ -25,7 +25,7 @@ import {
   type DefectEntry,
   type DefectResolutionProof,
   type MindCandidateProposal,
-} from "../../../olt/scripts/src/mind/defects.ts";
+} from "../../../olt/scripts/src/mind/defects/index.ts";
 
 const tempRoots: string[] = [];
 

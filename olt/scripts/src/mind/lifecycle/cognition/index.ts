@@ -11,7 +11,7 @@ export type {
   CognitiveScoreVector,
   CadenceHyperAction,
   HyperCognitivePulseReport,
-} from "./hyper-cognition-chunk1.ts";
+} from "./types.ts";
 
 export {
   HYPER_COGNITION_VERSION,
@@ -21,7 +21,7 @@ export {
   DEFAULT_HYPER_AUDIT_INTERVAL_MS,
   COGNITIVE_AUDIT_DIMENSIONS,
   PROACTIVE_QUESTION_CATALOG,
-} from "./hyper-cognition-chunk1.ts";
+} from "./types.ts";
 
 export type {
   SystemStateMetrics,
@@ -31,29 +31,22 @@ export type {
   HyperCognitionEngineOptions,
   HyperCognitionEngine,
   DimensionalWeights,
-} from "./hyper-cognition-chunk2.ts";
+} from "./state.ts";
 
-export {
-  DEFAULT_DIMENSIONAL_WEIGHTS,
-} from "./hyper-cognition-chunk2.ts";
+export { DEFAULT_DIMENSIONAL_WEIGHTS } from "./state.ts";
 
-export {
-  computeCognitiveScoreVector,
-  runAutonomousAuditLoop,
-} from "./hyper-cognition-chunk3.ts";
+export { computeCognitiveScoreVector, runAutonomousAuditLoop } from "./gap-analysis.ts";
 
 export {
   executeProactiveSelfQuestioningCycle,
   harvestPlanEnhancementsDuringPulse,
-} from "./hyper-cognition-chunk4.ts";
+} from "./planner.ts";
 
 export {
   generateOptimizationProposals,
   evaluateCadenceHyperPulse,
   formatHyperCognitionBrief,
   validateHyperCognitiveReport,
-} from "./hyper-cognition-chunk5.ts";
+} from "./evolution.ts";
 
-export {
-  createHyperCognitionEngine,
-} from "./hyper-cognition-chunk6.ts";
+export { createHyperCognitionEngine } from "./engine.ts";

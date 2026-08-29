@@ -159,7 +159,12 @@ export class BootGateEnforcer {
     operationDescription = "performing task operations",
     requireValidProof = false,
   ): void {
-    assertBootGatesPassed(this.records.get(agentId), agentId, operationDescription, requireValidProof);
+    assertBootGatesPassed(
+      this.records.get(agentId),
+      agentId,
+      operationDescription,
+      requireValidProof,
+    );
   }
 
   public auditSubagentBootGatesFromState(

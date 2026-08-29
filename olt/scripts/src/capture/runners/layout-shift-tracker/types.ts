@@ -1,7 +1,4 @@
-import type {
-  AABB,
-  ExtractedComputedStyles,
-} from "../types.ts";
+import type { AABB, ExtractedComputedStyles } from "../types.ts";
 
 export interface UnstableElementDisplacement {
   readonly selector: string;

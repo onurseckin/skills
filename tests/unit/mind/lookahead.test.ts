@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { MindConcurrentLookaheadPipeline } from "../../../olt/scripts/src/mind/lookahead.ts";
+import { MindConcurrentLookaheadPipeline } from "../../../olt/scripts/src/mind/tasks/index.ts";
 
 describe("MindConcurrentLookaheadPipeline", () => {
   it("can be instantiated", () => {

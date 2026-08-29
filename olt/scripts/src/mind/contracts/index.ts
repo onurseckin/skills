@@ -38,11 +38,7 @@ export type {
   ProposalCandidate,
 } from "./proposal-contracts.ts";
 
-export type {
-  DynamicRoleSpec,
-  RoleBoundaryRule,
-  RoleExecutionState,
-} from "./role-contracts.ts";
+export type { DynamicRoleSpec, RoleBoundaryRule, RoleExecutionState } from "./role-contracts.ts";
 
 export { ROOT_CAUSE_CATEGORIES } from "./audit-contracts.ts";
 export type {
@@ -68,8 +64,4 @@ export type {
   CharterConfig,
 } from "./lifecycle-contracts.ts";
 
-export type {
-  GateEvaluation,
-  CounterfactualHypothesis,
-  QuiesceState,
-} from "./gate-contracts.ts";
+export type { GateEvaluation, CounterfactualHypothesis, QuiesceState } from "./gate-contracts.ts";

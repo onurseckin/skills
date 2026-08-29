@@ -14,7 +14,7 @@ export const PLATFORM_AND_LOCK_ENTRIES: readonly ExplainEntry[] = [
         "Another agent or process is actively holding the run or installer lock. Wait and retry. If the holder is a dead process from a crash mid-command, that's what doctor / recover exist to find and clear - never force a lock by hand.",
         [
           example(
-            "platform/index.ts",
+            "platform/process/run-lock.ts",
             "timed out after ${maximum}ms waiting for run lock: ${root}",
           ),
           example("installer/installer-lock.ts", "installer parent is already owned: ${parent}"),
@@ -54,7 +54,7 @@ export const PLATFORM_AND_LOCK_ENTRIES: readonly ExplainEntry[] = [
         "Run the harness on macOS or Linux; there is no fallback path for another platform.",
         [
           example(
-            "engine/runner/platform-policy.ts",
+            "engine/runner/core/platform-policy.ts",
             "monitored commands are unsupported on ${platform}; POSIX process groups are required",
           ),
           example("installer/platform.ts", "installer is unsupported on ${platform}"),
@@ -71,7 +71,7 @@ export const PLATFORM_AND_LOCK_ENTRIES: readonly ExplainEntry[] = [
         "The dynamic-library candidates this build tries didn't resolve on this host - typically an unusual musl/libc layout. Check the underlying error and the host's libc; this is not a flag-level fix.",
         [
           example(
-            "platform/index.ts",
+            "platform/fs/flock-ffi.ts",
             "could not load a libc flock implementation: ${String(lastError)}",
           ),
           example(

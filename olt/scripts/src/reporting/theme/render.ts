@@ -1,8 +1,9 @@
-import { THEME_MODES, ThemeMode, CONTRAST_STANDARDS, ContrastStandard, RgbaColor, ElementThemePair, ContrastEvaluation, ThemeContrastElementResult, ThemeContrastMatrix, RegressionSeverity, ThemeRegressionFinding, MultiThemeComparisonReport } from "./types.ts";
-import { isValidColor, parseRgb, compositeRgb, calculateRelativeLuminance, calculateWcagContrast, calculateApcaContrast } from "./color-space.ts";
-import { evaluateThemeContrastMatrix } from "./evaluation.ts";
-import { formatThemeContrastMatrixMarkdown } from "./render.ts";
+/**
+ * @file render.ts
+ * Visual Markdown and ASCII report formatting for theme contrast evaluations.
+ */
 
+import type { MultiThemeComparisonReport } from "./types.ts";
 
 /**
  * Renders a clean ASCII / Unicode visual table report for multi-theme contrast compliance.
@@ -124,4 +125,3 @@ export function formatThemeContrastMatrixMarkdown(report: MultiThemeComparisonRe
 
   return lines.join("\n");
 }
-

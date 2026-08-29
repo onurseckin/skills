@@ -26,17 +26,8 @@ export {
   rejectSuperficialClaims,
 } from "./evaluators.ts";
 
-export {
-  auditTaskVerificationEvidence,
-  generateCorrectiveGuidance,
-} from "./audit.ts";
+export { auditTaskVerificationEvidence, generateCorrectiveGuidance } from "./audit.ts";
 
-export {
-  appendPushbackRound,
-  createPushbackHistory,
-} from "./history.ts";
+export { appendPushbackRound, createPushbackHistory } from "./history.ts";
 
-export {
-  validateReviewPushbackCriteria,
-  validateReviewPushbackInput,
-} from "./validation.ts";
+export { validateReviewPushbackCriteria, validateReviewPushbackInput } from "./validation.ts";

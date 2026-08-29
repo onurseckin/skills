@@ -9,7 +9,7 @@ import {
   type DefectCategory,
   type DefectEntry,
   type GeneratedRegressionTest,
-} from "../../mind/defects.ts";
+} from "../../mind/defects/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";

@@ -1,12 +1,21 @@
-import type { SupervisoryTopLeader, Supervisory5PointHealthReport, Supervisory5PointOptions, SupervisoryProbeDispatchResult } from "./types.ts";
-import { probeWorkSpanParallelizationHealth } from "./tasks-advanced.ts";
-import { probePlanEnhancementNeeds, probeAgentRegistryAccuracy, probeRoleBoundaryAdherence } from "./loop.ts";
+import type {
+  SupervisoryTopLeader,
+  Supervisory5PointHealthReport,
+  Supervisory5PointOptions,
+  SupervisoryProbeDispatchResult,
+} from "./types.ts";
+import { probeWorkSpanParallelizationHealth } from "./tasks/tasks-advanced.ts";
+import {
+  probePlanEnhancementNeeds,
+  probeAgentRegistryAccuracy,
+  probeRoleBoundaryAdherence,
+} from "./loop.ts";
 import { probeDoctorErrorResolution } from "./loop-doctor.ts";
-import { parseTimestamp } from "../../../authority/watchdog-manager";
-import { HarnessError } from "../../../core/errors";
-import { BehavioralFinding } from "../../../reporting/behavioral-auditor";
-import { DoctorOptions, runDoctor } from "../../../reporting/doctor";
-import { isRecord } from "../../store/layout/layout-json.ts";
+import { parseTimestamp } from "../../../authority/watchdog-manager.ts";
+import { HarnessError } from "../../../core/errors/index.ts";
+import { type BehavioralFinding } from "../../../reporting/behavioral-auditor.ts";
+import { type DoctorOptions, runDoctor } from "../../../reporting/doctor.ts";
+import { isRecord } from "../../../requirements/predicates.ts";
 
 export function determineTopLeader(state: unknown): SupervisoryTopLeader {
   if (isRecord(state) && Array.isArray(state.agents)) {

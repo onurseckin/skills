@@ -21,7 +21,6 @@ export const nonNullAssertionRule: AstLintRuleModule = {
   },
   generateFixSuggestion: () => ({
     suggestedReplacement: "/* verify value !== undefined before access */",
-    explanation:
-      "Replace non-null assertion (!) with explicit conditional guard or runtime check.",
+    explanation: "Replace non-null assertion (!) with explicit conditional guard or runtime check.",
   }),
 };

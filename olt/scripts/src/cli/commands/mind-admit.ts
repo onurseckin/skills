@@ -2,15 +2,18 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import type { JsonObject, JsonValue } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { parseCharter } from "../../mind/charter.ts";
+import { parseCharter } from "../../mind/lifecycle/charter/index.ts";
 import {
   evaluateAdmissionGates,
   type AdmissionGateVerdict,
   type CandidateRecord,
-} from "../../mind/gates.ts";
+} from "../../mind/proposals/gates/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
-import { VALID_PROPOSAL_TRANSITIONS, type ProposalStatus } from "../../mind/proposal.ts";
+import {
+  VALID_PROPOSAL_TRANSITIONS,
+  type ProposalStatus,
+} from "../../mind/proposals/proposal/index.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";

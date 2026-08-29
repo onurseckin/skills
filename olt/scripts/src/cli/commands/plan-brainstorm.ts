@@ -5,7 +5,12 @@ import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import { BrainstormEngine, type BrainstormResult } from "../../graph/brainstorm-engine.ts";
-import { BRAINSTORMING_SCHEMA, BRAINSTORMING_VERSION, loadRun, transactIdempotent } from "../../engine/store/index.ts";
+import {
+  BRAINSTORMING_SCHEMA,
+  BRAINSTORMING_VERSION,
+  loadRun,
+  transactIdempotent,
+} from "../../engine/store/index.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { parseArguments } from "../arguments.ts";
 

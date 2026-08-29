@@ -15,11 +15,7 @@ export {
   type AgentNamingStandardDefinition,
 } from "./naming-types.ts";
 
-export {
-  roleToTier,
-  agentIdToTier,
-  agentIdToRole,
-} from "./naming-utils.ts";
+export { roleToTier, agentIdToTier, agentIdToRole } from "./naming-utils.ts";
 
 export interface StandardAgentIdParsedComponents {
   readonly role: string;

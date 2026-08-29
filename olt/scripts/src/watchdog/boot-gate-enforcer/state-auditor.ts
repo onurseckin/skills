@@ -4,7 +4,10 @@ import type { SubagentBootGateRecord, SubagentRegistrationOptions } from "./type
 export function auditBootGatesFromState(
   state: JsonObject | null | undefined,
   records: Map<string, SubagentBootGateRecord>,
-  registerFn: (options: SubagentRegistrationOptions, now?: string | number | Date) => SubagentBootGateRecord,
+  registerFn: (
+    options: SubagentRegistrationOptions,
+    now?: string | number | Date,
+  ) => SubagentBootGateRecord,
   recordCommandFn: (
     agentId: string,
     argv: readonly string[],

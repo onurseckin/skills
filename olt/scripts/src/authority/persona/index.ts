@@ -18,10 +18,7 @@ export type {
   WatchdogPersonaGroundingOptions,
 } from "./types.ts";
 
-export {
-  SEVERITY_WEIGHTS,
-  SUPERVISORY_ROLE_BOUNDARIES,
-} from "./constants.ts";
+export { SEVERITY_WEIGHTS, SUPERVISORY_ROLE_BOUNDARIES } from "./constants.ts";
 
 export {
   findOverlappingScopes,
@@ -32,9 +29,7 @@ export {
   parseNowMs,
 } from "./profiles.ts";
 
-export {
-  evaluateReflexiveSelfAudit,
-} from "./evaluator.ts";
+export { evaluateReflexiveSelfAudit } from "./evaluator.ts";
 
 export {
   buildWatchdogAuditPrompt,

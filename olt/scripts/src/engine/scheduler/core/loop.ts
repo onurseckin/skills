@@ -1,8 +1,12 @@
-import { PlanEnhancementAudit, AgentRegistryAccuracyAudit, RoleBoundaryAdherenceAudit } from "./types.ts";
-import { isJsonObject } from "../../../core/contracts";
-import { auditBehavioralHealth } from "../../../reporting/behavioral-auditor";
-import { isRecord } from "../../store/layout/layout-json.ts";
-import { boundedEvidenceCause } from "./tasks";
+import type {
+  PlanEnhancementAudit,
+  AgentRegistryAccuracyAudit,
+  RoleBoundaryAdherenceAudit,
+} from "./types.ts";
+import { isJsonObject } from "../../../core/contracts/index.ts";
+import { auditBehavioralHealth } from "../../../reporting/behavioral-auditor.ts";
+import { isRecord } from "../../../requirements/predicates.ts";
+import { boundedEvidenceCause } from "./tasks/tasks.ts";
 
 export function probePlanEnhancementNeeds(state: unknown): PlanEnhancementAudit {
   const details: string[] = [];

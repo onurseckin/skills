@@ -19,11 +19,7 @@ import {
 import { auditOrchestratorConfinement } from "./audit-orchestrator.ts";
 import { auditImplementerConfinement } from "./audit-implementer.ts";
 import { auditPulseTerminationConfinement } from "./audit-pulse.ts";
-import type {
-  GitDiffRecord,
-  TierConfinementFinding,
-  TierConfinementSummary,
-} from "./types.ts";
+import type { GitDiffRecord, TierConfinementFinding, TierConfinementSummary } from "./types.ts";
 
 /**
  * Full mechanical audit of 4-tier boundary confinement across capsule state.

@@ -1,7 +1,7 @@
 import { basename, dirname } from "node:path";
 import type { JsonObject, JsonValue } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { formatDuration } from "../../mind/brief.ts";
+import { formatDuration } from "../../mind/proposals/brief/index.ts";
 import {
   buildQuiescentDigest,
   calculateQuiescentInterval,
@@ -12,7 +12,7 @@ import {
   validateQuiescentScan,
   type QuiescentDigest,
   type QuiescentSourceObservation,
-} from "../../mind/quiesce.ts";
+} from "../../mind/archival/quiesce/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";

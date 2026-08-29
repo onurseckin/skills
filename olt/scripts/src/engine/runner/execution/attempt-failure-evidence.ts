@@ -5,7 +5,10 @@ import { readBoundedBytes, sha256Bytes } from "../../../core/json";
 import { AttemptExecutionError } from "./attempt-execution-error";
 import { retainedActivityTimes } from "./attempt-intent";
 import { portableArtifactPath } from "../core/artifact-paths";
-import { assertCommandAttemptSize, boundedEvidenceError } from "../models/command-record-size";
+import {
+  assertCommandAttemptSize,
+  boundedEvidenceError,
+} from "../models/command/command-record-size.ts";
 import { outputEvidenceIssues } from "../receipt/output-evidence";
 import type { AttemptResult, NormalizedCommandOptions } from "../types/types";
 

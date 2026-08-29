@@ -7,9 +7,9 @@ import { ActivityRecord } from "../../../olt/scripts/src/engine/runner/reconcili
 import {
   embeddedCommandIssues as commandShapeIssues,
   sameCommandJson,
-} from "../../../olt/scripts/src/engine/runner/models/command-shape.ts";
+} from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/signing/gate-environment.ts";
-import { canonicalCommandFingerprint } from "../../../olt/scripts/src/engine/runner/models/command-id.ts";
+import { canonicalCommandFingerprint } from "../../../olt/scripts/src/engine/runner/models/command/command-id.ts";
 import { DescendantTracker } from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-tracker.ts";
 import {
   MIN_POLL_DELAY_MS,

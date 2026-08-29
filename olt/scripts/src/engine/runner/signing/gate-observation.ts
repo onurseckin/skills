@@ -1,5 +1,5 @@
 import type { RepositoryBinding } from "../../../core/contracts/index";
-import { sameCommandJson } from "../models/command-shape";
+import { sameCommandJson } from "../models/command/index.ts";
 
 export const TRUSTED_HOST_ASSURANCE = "trusted_host_observed_v1" as const;
 

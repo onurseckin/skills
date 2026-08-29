@@ -23,7 +23,13 @@ describe("Unified Master Doctor - Auto-Healing and Severity-Tiered Reporting", (
       const repo = await mkdtemp(join(tmpdir(), "harness-autoheal-"));
       roots.push(repo);
       await mkdir(join(repo, ".git"));
-      const runRoot = initRun(repo, "autoheal-run", new TextEncoder().encode("Prompt"), "file", true);
+      const runRoot = initRun(
+        repo,
+        "autoheal-run",
+        new TextEncoder().encode("Prompt"),
+        "file",
+        true,
+      );
 
       transact(runRoot, "coord-1", "plan-brainstormed", { plan_id: "p1" }, (state) => {
         state.tasks = { t1: { id: "t1", status: "open" } };

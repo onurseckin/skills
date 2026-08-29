@@ -68,7 +68,9 @@ function calculateWcagContrast(fg: Rgb, bg: Rgb): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-export function checkDualChannelUi(options: DualChannelUiCheckOptions = {}): DoctorCheckEngineResult {
+export function checkDualChannelUi(
+  options: DualChannelUiCheckOptions = {},
+): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
 
   // 1. Evaluate Theme Contrast Matrix

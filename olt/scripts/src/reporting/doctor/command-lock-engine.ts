@@ -45,7 +45,8 @@ export function checkCognitiveValidatorCommandLock(
     for (const grant of rawGrants) {
       if (grant && typeof grant === "object") {
         const g = grant as Record<string, unknown>;
-        const id = typeof g.id === "string" ? g.id : typeof g.agent_id === "string" ? g.agent_id : undefined;
+        const id =
+          typeof g.id === "string" ? g.id : typeof g.agent_id === "string" ? g.agent_id : undefined;
         const role = typeof g.role === "string" ? g.role : undefined;
         if (id && role) {
           agentRoleMap.set(id, role);
@@ -58,9 +59,10 @@ export function checkCognitiveValidatorCommandLock(
   if (rawAgents && typeof rawAgents === "object") {
     for (const [id, agent] of Object.entries(rawAgents)) {
       if (agent && typeof agent === "object") {
-        const role = typeof (agent as Record<string, unknown>).role === "string"
-          ? ((agent as Record<string, unknown>).role as string)
-          : undefined;
+        const role =
+          typeof (agent as Record<string, unknown>).role === "string"
+            ? ((agent as Record<string, unknown>).role as string)
+            : undefined;
         if (role) {
           agentRoleMap.set(id, role);
         }
@@ -74,29 +76,44 @@ export function checkCognitiveValidatorCommandLock(
     if (!agentId) return "";
     if (agentRoleMap.has(agentId)) return agentRoleMap.get(agentId)!;
     const lower = agentId.toLowerCase();
-    if (lower.startsWith("validator") || lower.includes("-validator-") || lower.includes("_validator_")) return "validator";
-    if (lower.startsWith("critic") || lower.includes("-critic-") || lower.includes("_critic_")) return "critic";
-    if (lower.startsWith("completeness-critic") || lower.includes("completeness_critic")) return "completeness-critic";
-    if (lower.startsWith("cognitive-validator") || lower.includes("cognitive_validator")) return "cognitive-validator";
+    if (
+      lower.startsWith("validator") ||
+      lower.includes("-validator-") ||
+      lower.includes("_validator_")
+    )
+      return "validator";
+    if (lower.startsWith("critic") || lower.includes("-critic-") || lower.includes("_critic_"))
+      return "critic";
+    if (lower.startsWith("completeness-critic") || lower.includes("completeness_critic"))
+      return "completeness-critic";
+    if (lower.startsWith("cognitive-validator") || lower.includes("cognitive_validator"))
+      return "cognitive-validator";
     return "";
   }
 
   // 2. Scan state.commands / options.commands
-  const rawCommands = options.commands ?? (options.state?.commands as Record<string, unknown> | undefined);
+  const rawCommands =
+    options.commands ?? (options.state?.commands as Record<string, unknown> | undefined);
   if (rawCommands && typeof rawCommands === "object") {
     const cmdList = Array.isArray(rawCommands) ? rawCommands : Object.values(rawCommands);
     for (const entry of cmdList) {
       if (entry && typeof entry === "object") {
         const cmd = entry as Record<string, unknown>;
-        const agentId = typeof cmd.agent_id === "string" ? cmd.agent_id : typeof cmd.actor === "string" ? cmd.actor : undefined;
+        const agentId =
+          typeof cmd.agent_id === "string"
+            ? cmd.agent_id
+            : typeof cmd.actor === "string"
+              ? cmd.actor
+              : undefined;
         const role = inferRole(agentId, typeof cmd.role === "string" ? cmd.role : undefined);
-        const commandText = typeof cmd.command === "string"
-          ? cmd.command
-          : Array.isArray(cmd.argv)
-            ? cmd.argv.join(" ")
-            : typeof cmd.id === "string"
-              ? cmd.id
-              : "unknown command";
+        const commandText =
+          typeof cmd.command === "string"
+            ? cmd.command
+            : Array.isArray(cmd.argv)
+              ? cmd.argv.join(" ")
+              : typeof cmd.id === "string"
+                ? cmd.id
+                : "unknown command";
 
         if (isBannedValidatorRole(role)) {
           findings.push({
@@ -121,13 +138,23 @@ export function checkCognitiveValidatorCommandLock(
     for (const event of options.events) {
       if (event && typeof event === "object") {
         const evt = event as Record<string, unknown>;
-        const eventName = typeof evt.name === "string" ? evt.name : typeof evt.type === "string" ? evt.type : "";
+        const eventName =
+          typeof evt.name === "string" ? evt.name : typeof evt.type === "string" ? evt.type : "";
         const actor = typeof evt.actor === "string" ? evt.actor : undefined;
-        const payload = evt.payload && typeof evt.payload === "object" ? (evt.payload as Record<string, unknown>) : {};
+        const payload =
+          evt.payload && typeof evt.payload === "object"
+            ? (evt.payload as Record<string, unknown>)
+            : {};
         const agentId = typeof payload.agent_id === "string" ? payload.agent_id : actor;
-        const role = inferRole(agentId, typeof payload.role === "string" ? payload.role : undefined);
+        const role = inferRole(
+          agentId,
+          typeof payload.role === "string" ? payload.role : undefined,
+        );
 
-        const isCommandEvent = eventName === "command-executed" || eventName === "command-recorded" || eventName === "test-executed";
+        const isCommandEvent =
+          eventName === "command-executed" ||
+          eventName === "command-recorded" ||
+          eventName === "test-executed";
         if (isCommandEvent && isBannedValidatorRole(role)) {
           const commandText = typeof payload.command === "string" ? payload.command : eventName;
           findings.push({

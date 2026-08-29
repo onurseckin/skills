@@ -26,8 +26,8 @@ import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { reclaimDeadPulse } from "../../../olt/scripts/src/mind/pulse-reclaim.ts";
-import { rotateMindGeneration } from "../../../olt/scripts/src/mind/rotate.ts";
+import { reclaimDeadPulse } from "../../../olt/scripts/src/mind/lifecycle/index.ts";
+import { rotateMindGeneration } from "../../../olt/scripts/src/mind/archival/rotate/index.ts";
 import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 

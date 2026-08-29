@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { SimpleQueue, QueueDrainage } from "../../../olt/scripts/src/mind/queue-drainage.ts";
+import { SimpleQueue, QueueDrainage } from "../../../olt/scripts/src/mind/tasks/index.ts";
 
 describe("mind/queue-drainage", () => {
   describe("SimpleQueue", () => {

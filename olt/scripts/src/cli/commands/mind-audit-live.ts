@@ -1,6 +1,6 @@
 import type { JsonObject } from "../../core/contracts/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
-import { MindAuditorEngine } from "../../mind/cognitive-auditors.ts";
+import { MindAuditorEngine } from "../../mind/auditing/cognitive/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import type { CommandContext } from "../options.ts";
 

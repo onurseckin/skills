@@ -1,4 +1,4 @@
-export { initRun, type InitRunOptions, type InitRunResult } from "./capsule/capsule.ts";
+export { initRun, type InitRunOptions } from "./capsule/capsule.ts";
 export { loadRun, loadRunProjection } from "./capsule/load.ts";
 export { recoverProjection } from "./recovery/recovery.ts";
 export { transact, transactIdempotent } from "./events/transaction.ts";
@@ -31,11 +31,7 @@ export {
   compactCapsuleDefects,
   resolveCapsuleDefect,
 } from "./recovery/defect-store.ts";
-export {
-  readCaptures,
-  recordCaptures,
-  type CaptureRecord,
-} from "./capsule/captures.ts";
+export { readCaptures, recordCaptures, type CaptureRecord } from "./capsule/captures.ts";
 export {
   blobContentDigest,
   blobRelativePath,
@@ -48,35 +44,22 @@ export {
   type ViewLinker,
   type ViewStorage,
 } from "./layout/blobs.ts";
-export {
-  normalizeRunId,
-} from "./capsule/run-id.ts";
-export {
-  runFilePath,
-  safeRepoPath,
-  isInsideCapsule,
-  resolveCapsulesDir,
-} from "./capsule/paths.ts";
+export { normalizeRunId } from "./capsule/run-id.ts";
+export { runFilePath, safeRepoPath, isInsideCapsule, resolveCapsulesDir } from "./capsule/paths.ts";
 export {
   detectContentFormat,
   normalizeContent,
   contentDigest,
   contentEquals,
   type ContentFormat,
-  type ContentNormalizationMethod,
-  type ContentDigestResult,
-  type ContentEqualsResult,
-  type NormalizeContentResult,
+  type NormalizationMethod,
+  type ContentDigest,
+  type ContentComparison,
+  type NormalizationResult,
 } from "./content-normalization/index.ts";
-export {
-  canonicalizeJson,
-} from "./content-normalization/json-canonical.ts";
-export {
-  canonicalizeYaml,
-} from "./content-normalization/yaml-canonical.ts";
-export {
-  canonicalizeEcmaScriptWhitespace,
-} from "./content-normalization/ecmascript-whitespace.ts";
+export { canonicalizeJson } from "./content-normalization/json-canonical.ts";
+export { canonicalizeYaml } from "./content-normalization/yaml-canonical.ts";
+export { canonicalizeEcmaScriptWhitespace } from "./content-normalization/ecmascript-whitespace.ts";
 export {
   CAPSULE_LAYOUT,
   LOCKS_DIRECTORY,
@@ -113,4 +96,4 @@ export {
   type ArchiveCapsuleResult,
   type ConsolidateCapsulesOptions,
   type ConsolidateCapsulesResult,
-} from "../../mind/archival.ts";
+} from "../../mind/archival/index.ts";

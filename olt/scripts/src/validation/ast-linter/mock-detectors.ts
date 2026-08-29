@@ -1,11 +1,6 @@
 import ts from "typescript";
 import type { AstLinterViolation } from "../anti-mock/anti-mock-types.ts";
-import {
-  getRootExpectArg,
-  isAssertionCall,
-  MOCK_FACTORIES,
-  type MockInfo,
-} from "./types.ts";
+import { getRootExpectArg, isAssertionCall, MOCK_FACTORIES, type MockInfo } from "./types.ts";
 
 export function detectMockDeclarations(
   callback: ts.FunctionLikeDeclaration,

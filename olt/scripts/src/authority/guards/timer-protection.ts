@@ -12,7 +12,10 @@ export interface TimerProtectionTarget {
 }
 
 export class TimerProtectionGuard {
-  public static assertCanKillTimer(caller: TimerProtectionCaller, timer: TimerProtectionTarget): void {
+  public static assertCanKillTimer(
+    caller: TimerProtectionCaller,
+    timer: TimerProtectionTarget,
+  ): void {
     if (timer.isSupervisory && caller.role !== "human_root") {
       const labelStr = timer.label ? ` (${timer.label})` : "";
       throw new HarnessError(

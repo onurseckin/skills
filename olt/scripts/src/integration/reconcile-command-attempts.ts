@@ -11,13 +11,13 @@ import {
   applyAttemptRecord,
   transientFailure,
   updateRetryExhaustion,
-} from "../engine/runner/models/command-aggregate";
-import { embeddedCommandIssues } from "../engine/runner/models/command-shape";
+} from "../engine/runner/models/command/command-aggregate.ts";
+import { embeddedCommandIssues } from "../engine/runner/models/command/command-shape.ts";
 import {
   assertCommandAttemptSize,
   assertCommandRecordSize,
   MAX_COMMAND_ATTEMPT_BYTES,
-} from "../engine/runner/models/command-record-size";
+} from "../engine/runner/models/command/command-record-size.ts";
 import { verifyCommandAttempt } from "../engine/runner/signing/verify-command";
 import { recoverGateAttempt } from "./recover-gate-attempt.ts";
 import {

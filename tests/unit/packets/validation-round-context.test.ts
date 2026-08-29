@@ -178,7 +178,7 @@ describe("the round-N record carries facts and demands", () => {
     expect(round.gates).toEqual([
       {
         gate_id: "G-1",
-        command: ["bun", "test", "tests/unit/runner/output-evidence.test.ts"],
+        command: ["bun", "test", "tests/unit/runner/receipt/output-evidence.test.ts"],
         mandatory: true,
         recorded_pass: { command_id: "C-gate" },
       },

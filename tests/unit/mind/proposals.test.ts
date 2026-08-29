@@ -18,7 +18,7 @@ import {
   isProposalGranted,
   PROPOSAL_WITNESS_OWNER_DECISION,
   recordProposal,
-} from "../../../olt/scripts/src/mind/proposal.ts";
+} from "../../../olt/scripts/src/mind/proposals/proposal/index.ts";
 import { assertRoleMayInvoke } from "../../../olt/scripts/src/packets/command-authority.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";

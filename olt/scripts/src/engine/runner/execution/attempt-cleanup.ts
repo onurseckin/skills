@@ -5,7 +5,7 @@ import {
   type AttemptProcessProof,
   type AttemptTerminalProof,
 } from "./attempt-intent";
-import { settleBounded } from "../models/attempt-support";
+import { settleBounded } from "../models/attempt/attempt-support.ts";
 import type { DescendantTracker, ProcessIdentity } from "../reconciliation/descendant-tracker";
 import { terminateProcessGroup } from "../process/process-group";
 import type { BunSubprocess, OutputSummary } from "../types/types";

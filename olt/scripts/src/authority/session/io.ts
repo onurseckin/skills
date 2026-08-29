@@ -68,7 +68,8 @@ export function atomicSessionWrite(path: string, payload: string): void {
     let offset = 0;
     while (offset < bytes.byteLength) {
       const wrote = writeSync(fd, bytes, offset, bytes.byteLength - offset);
-      if (wrote <= 0) throw new HarnessError("INTEGRITY", "session authority write made no progress");
+      if (wrote <= 0)
+        throw new HarnessError("INTEGRITY", "session authority write made no progress");
       offset += wrote;
     }
     fsyncSync(fd);
@@ -95,7 +96,11 @@ export function atomicSessionWrite(path: string, payload: string): void {
   }
 }
 
-export function withSessionAuthorityLock<T>(repoRoot: string, directory: string, operation: () => T): T {
+export function withSessionAuthorityLock<T>(
+  repoRoot: string,
+  directory: string,
+  operation: () => T,
+): T {
   const root = openVerifiedDirectory(repoRoot, false, "session repository root");
   let session: { fd: number; stat: Stats } | undefined;
   let rootLocked = false;
@@ -201,7 +206,10 @@ export function readPersistedSession(
   }
 
   const invalid = (cause: string): never => {
-    throw new HarnessError("INTEGRITY", `invalid persisted ${mechanism} session evidence at ${path}: ${cause}`);
+    throw new HarnessError(
+      "INTEGRITY",
+      `invalid persisted ${mechanism} session evidence at ${path}: ${cause}`,
+    );
   };
 
   const session: JsonObject = isJsonObject(parsed) ? parsed : invalid("expected a JSON object");
@@ -220,7 +228,8 @@ export function readPersistedSession(
   }
   if (
     "write_scope" in session &&
-    (!Array.isArray(session.write_scope) || session.write_scope.some((entry) => typeof entry !== "string"))
+    (!Array.isArray(session.write_scope) ||
+      session.write_scope.some((entry) => typeof entry !== "string"))
   ) {
     invalid("write_scope must be an array of strings when present");
   }
@@ -232,7 +241,10 @@ export function readPersistedSession(
   return session;
 }
 
-export function inferCanExecute(role: string): { can_execute_shell: boolean; can_edit_files: boolean } {
+export function inferCanExecute(role: string): {
+  can_execute_shell: boolean;
+  can_edit_files: boolean;
+} {
   const normalized = role.trim().toLowerCase();
   if (
     normalized === "validator" ||

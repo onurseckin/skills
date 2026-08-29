@@ -24,10 +24,10 @@ export {
   createDefectDeliberationRound,
   advanceDeliberationRound,
   DefectDeliberationPipeline,
-} from "./deliberation.ts";
-export type { DeliberationSynthesis, DefectDeliberationRound } from "./deliberation.ts";
-
-export { formatDeliberationReport } from "./deliberation-report.ts";
+  formatDeliberationReport,
+  type DeliberationSynthesis,
+  type DefectDeliberationRound,
+} from "./deliberation/index.ts";
 
 export {
   generateDefectRegressionTest,
@@ -36,26 +36,26 @@ export {
 } from "./regression-gen.ts";
 export type { GeneratedRegressionTest } from "./regression-gen.ts";
 
-export {
-  validateRegressionTest,
-  promoteResolvedDefects,
-  autoPromoteDefect,
-} from "./promotion.ts";
+export { validateRegressionTest, promoteResolvedDefects, autoPromoteDefect } from "./promotion.ts";
 export type { DefectPromotionOptions, DefectPromotionResult } from "./promotion.ts";
 
-export {
-  formulateDefectCandidates,
-} from "./candidates.ts";
+export { formulateDefectCandidates } from "./candidates.ts";
 export type { MindCandidateProposal } from "./candidates.ts";
 
 export {
   auditDefectLog,
+  executeDefectAudit,
   formatDefectAuditBrief,
   logBoundaryViolationDefect,
 } from "./audit.ts";
 export type { DefectAuditReport } from "./audit.ts";
 
 export {
+  DEFAULT_DEFECTS_FILE,
+  CANONICAL_DEFECTS_FILE,
+  DEFAULT_COMPLETED_DEFECTS_FILE,
+  CANONICAL_COMPLETED_DEFECTS_FILE,
+  requireDistinctLedgerPaths,
   resolveCanonicalDefectLogPath,
   resolveDefectLogPath,
   resolveCanonicalCompletedDefectsPath,

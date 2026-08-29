@@ -5,7 +5,7 @@ import {
   executeWatchdogPhaseCleanup,
   executeWatchdogVerify,
   executeWatchdogProbe,
-} from "../../../olt/scripts/src/mind/watchdog-ops.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("mind/watchdog-ops", () => {

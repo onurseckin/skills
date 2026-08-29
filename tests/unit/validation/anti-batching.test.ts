@@ -21,7 +21,7 @@ import {
 import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
 import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/review-input.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback-queue.ts";
+import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {

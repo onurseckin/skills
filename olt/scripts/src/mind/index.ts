@@ -1,49 +1,103 @@
-// Subsystem and domain namespace exports
-export * as archival from "./archival.ts";
-export * as audit from "./audit.ts";
-export * as defectAudit from "./defect-audit.ts";
-export * as defects from "./defects.ts";
-export * as brief from "./brief.ts";
-export * as briefingBuilder from "./briefing-builder.ts";
-export * as budget from "./budget.ts";
-export * as cadence from "./cadence.ts";
-export * as charter from "./charter.ts";
-export * as cognitiveFlavor from "./cognitive-flavor.ts";
-export * as completedTasks from "./completed-tasks.ts";
-export * as counterfactual from "./counterfactual.ts";
-export * as deploy from "./deploy.ts";
-export * as digest from "./digest.ts";
-export * as dynamicRoles from "./dynamic-roles.ts";
-export * as feedbackQueue from "./feedback-queue.ts";
-export * as gates from "./gates.ts";
-export * as hyperCognition from "./hyper-cognition.ts";
-export * as interval from "./interval.ts";
-export * as lane from "./lane.ts";
-export * as lanes from "./lanes/index.ts";
-export * as lastPulse from "./last-pulse.ts";
-export * as liveness from "./liveness.ts";
-export * as memory from "./memory.ts";
-export * as metaAuditor from "./meta-auditor.ts";
-export * as mindObserve from "./mind-observe.ts";
-export * as profiles from "./profiles.ts";
-export * as proposal from "./proposal.ts";
-export * as pulseReclaim from "./pulse-reclaim.ts";
-export * as pushbacks from "./pushbacks.ts";
-export * as quiesce from "./quiesce.ts";
-export * as recycler from "./recycler.ts";
-export * as roleAuditing from "./role-auditing.ts";
-export * as rotate from "./rotate.ts";
-export * as rounds from "./rounds.ts";
-export * as selfEvolution from "./self-evolution.ts";
-export * as smartTaskManager from "./smart-task-manager.ts";
-export * as sources from "./sources.ts";
-export * as strategicPurpose from "./strategic-purpose.ts";
-export * as taskDiscovery from "./task-discovery.ts";
-export * as taskQueue from "./task-queue.ts";
-export * as value from "./value.ts";
-export * as watchdogManager from "./watchdog-manager.ts";
-export * as watchdogOps from "./watchdog-ops.ts";
-export * as witness from "./witness.ts";
+// Subsystem and domain namespace exports mapped to modular subdirectories
+import * as archival from "./archival/index.ts";
+import * as completedTasks from "./archival/completed/index.ts";
+import * as quiesce from "./archival/quiesce/index.ts";
+import * as recycler from "./archival/recycler/index.ts";
+import * as rotate from "./archival/rotate/index.ts";
 
-// Primary mind entrypoint and orchestration exports
-export * from "./mind.ts";
+import * as audit from "./auditing/index.ts";
+import * as cognitiveFlavor from "./auditing/flavor/index.ts";
+import * as counterfactual from "./auditing/counterfactual/index.ts";
+import * as metaAuditor from "./auditing/meta/index.ts";
+import * as roleAuditing from "./auditing/roles/index.ts";
+import * as witness from "./auditing/witness/index.ts";
+
+import * as defects from "./defects/index.ts";
+import * as defectAudit from "./defects/loop/index.ts";
+
+import * as feedbackQueue from "./feedback/queue/index.ts";
+import * as pushbacks from "./feedback/pushbacks/index.ts";
+
+import * as lane from "./lanes/index.ts";
+import * as lanes from "./lanes/index.ts";
+
+import * as budget from "./lifecycle/budget/index.ts";
+import * as cadence from "./lifecycle/cadence/index.ts";
+import * as charter from "./lifecycle/charter/index.ts";
+import * as deploy from "./lifecycle/deploy/index.ts";
+import * as interval from "./lifecycle/interval/index.ts";
+import * as liveness from "./lifecycle/liveness/index.ts";
+import * as mindObserve from "./lifecycle/observe/index.ts";
+import * as lastPulse from "./lifecycle/pulse/index.ts";
+import * as pulseReclaim from "./lifecycle/liveness/index.ts";
+import * as rounds from "./lifecycle/rounds/index.ts";
+import * as selfEvolution from "./lifecycle/evolution/index.ts";
+import * as watchdogManager from "./lifecycle/watchdog/index.ts";
+import * as watchdogOps from "./lifecycle/watchdog/index.ts";
+
+import * as memory from "./memory/index.ts";
+import * as digest from "./memory/digest/index.ts";
+import * as sources from "./memory/sources/index.ts";
+import * as hyperCognition from "./memory/core/index.ts";
+import * as strategicPurpose from "./memory/core/index.ts";
+import * as value from "./memory/core/index.ts";
+
+import * as brief from "./proposals/brief/index.ts";
+import * as briefingBuilder from "./proposals/builder/index.ts";
+import * as gates from "./proposals/gates/index.ts";
+import * as proposal from "./proposals/proposal/index.ts";
+
+import * as dynamicRoles from "./roles/dynamic/index.ts";
+import * as profiles from "./roles/index.ts";
+
+import * as taskDiscovery from "./tasks/discovery/index.ts";
+import * as taskQueue from "./tasks/queue/index.ts";
+import * as smartTaskManager from "./tasks/smart/index.ts";
+
+export {
+  archival,
+  audit,
+  brief,
+  briefingBuilder,
+  budget,
+  cadence,
+  charter,
+  cognitiveFlavor,
+  completedTasks,
+  counterfactual,
+  defectAudit,
+  defects,
+  deploy,
+  digest,
+  dynamicRoles,
+  feedbackQueue,
+  gates,
+  hyperCognition,
+  interval,
+  lane,
+  lanes,
+  lastPulse,
+  liveness,
+  memory,
+  metaAuditor,
+  mindObserve,
+  profiles,
+  proposal,
+  pulseReclaim,
+  pushbacks,
+  quiesce,
+  recycler,
+  roleAuditing,
+  rotate,
+  rounds,
+  selfEvolution,
+  smartTaskManager,
+  sources,
+  strategicPurpose,
+  taskDiscovery,
+  taskQueue,
+  value,
+  watchdogManager,
+  watchdogOps,
+  witness,
+};

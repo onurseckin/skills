@@ -20,7 +20,7 @@ import {
   validateQuiescentSources,
   type EvidenceClass,
   type MindSourceId,
-} from "../../../olt/scripts/src/mind/sources.ts";
+} from "../../../olt/scripts/src/mind/memory/sources/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";

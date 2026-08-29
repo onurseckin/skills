@@ -18,8 +18,8 @@ import {
   readFeedbackQueue,
   writeFeedbackQueue,
   type FeedbackItem,
-} from "../../../olt/scripts/src/mind/feedback-queue.ts";
-import { readCompletedTasksLedger } from "../../../olt/scripts/src/mind/completed-tasks.ts";
+} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+import { readCompletedTasksLedger } from "../../../olt/scripts/src/mind/archival/completed/index.ts";
 import { registerSessionGrant } from "../../../olt/scripts/src/authority/session-registry.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
@@ -538,7 +538,7 @@ describe("CLI todo-ops and mind:queue commands", () => {
         ],
         queueFile,
       );
-      const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback-queue.ts");
+      const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback/queue/index.ts");
       const child = Bun.spawn({
         cmd: [
           "bun",

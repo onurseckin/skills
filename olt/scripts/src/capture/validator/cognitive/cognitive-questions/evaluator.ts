@@ -1,7 +1,4 @@
-import type {
-  CognitiveAnalysisReport,
-  EvaluatedCognitiveQuestion,
-} from "../../types.ts";
+import type { CognitiveAnalysisReport, EvaluatedCognitiveQuestion } from "../../types.ts";
 import {
   evaluateErgonomicsQuestions,
   evaluatePerceptionQuestions,

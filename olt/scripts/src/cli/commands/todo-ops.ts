@@ -2,7 +2,7 @@ import {
   recordCompletedTasksBatch,
   resolveCompletedTasksLedgerPath,
   type CompletedTaskRecord,
-} from "../../mind/completed-tasks.ts";
+} from "../../mind/archival/completed/index.ts";
 import {
   drainPendingFeedbacks,
   getFeedbackStats,
@@ -17,7 +17,7 @@ import {
   type FeedbackQueueStats,
   type FeedbackResolutionProof,
   type FeedbackStatus,
-} from "../../mind/feedback-queue.ts";
+} from "../../mind/feedback/queue/index.ts";
 import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
 import { nextActionsBlock } from "../formatters/next-actions.ts";
 import {

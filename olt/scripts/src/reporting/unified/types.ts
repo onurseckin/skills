@@ -2,15 +2,17 @@
  * Unified Run Report Type Definitions
  */
 import type { ExecutionTier } from "../../authority/thread-identifier.ts";
-import type {
-  LeaseRecordView,
-} from "../lease-agent-extractor.ts";
-import type {
-  SugiyamaDagReport,
-  SugiyamaWaveMetrics,
-} from "../sugiyama-dag/index.ts";
+import type { LeaseRecordView } from "../lease-agent-extractor.ts";
+import type { SugiyamaDagReport, SugiyamaWaveMetrics } from "../sugiyama-dag/index.ts";
 
-export { extractLeaseAgentId, extractLeaseRole, extractLeaseAttempt, type LeaseRecordView } from "../lease-agent-extractor.ts";
+export type { SugiyamaDagReport, SugiyamaWaveMetrics };
+
+export {
+  extractLeaseAgentId,
+  extractLeaseRole,
+  extractLeaseAttempt,
+  type LeaseRecordView,
+} from "../lease-agent-extractor.ts";
 
 export interface LeaseMatrixRow {
   taskId: string;

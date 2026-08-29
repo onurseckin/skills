@@ -23,9 +23,9 @@ import {
   checkPulseGaps,
   checkScopeViolations,
   checkValueConsistency,
-} from "../../../olt/scripts/src/mind/audit.ts";
-import { calculatePulseValue } from "../../../olt/scripts/src/mind/value.ts";
-import { verifyDefectWitness } from "../../../olt/scripts/src/mind/witness.ts";
+} from "../../../olt/scripts/src/mind/auditing/index.ts";
+import { calculatePulseValue } from "../../../olt/scripts/src/mind/memory/index.ts";
+import { verifyDefectWitness } from "../../../olt/scripts/src/mind/auditing/witness/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -130,28 +130,28 @@ function setupPlantedAuditCapsule(
     },
   );
 
-          transact(run, "register-test-agents", "agents-registered", {}, (working) => {
-      working.agents = [
-        {
-          id: "mind-1",
-          role: "mind",
-          host: "antigravity",
-          status: "active",
-          granted_at: new Date().toISOString(),
-          parent_agent_id: null,
-          parent_task_id: null,
-        },
-        {
-          id: "auditor-1",
-          role: "mind-auditor",
-          host: "antigravity",
-          status: "active",
-          granted_at: new Date().toISOString(),
-          parent_agent_id: "mind-1",
-          parent_task_id: null,
-        },
-      ];
-    });
+  transact(run, "register-test-agents", "agents-registered", {}, (working) => {
+    working.agents = [
+      {
+        id: "mind-1",
+        role: "mind",
+        host: "antigravity",
+        status: "active",
+        granted_at: new Date().toISOString(),
+        parent_agent_id: null,
+        parent_task_id: null,
+      },
+      {
+        id: "auditor-1",
+        role: "mind-auditor",
+        host: "antigravity",
+        status: "active",
+        granted_at: new Date().toISOString(),
+        parent_agent_id: "mind-1",
+        parent_task_id: null,
+      },
+    ];
+  });
 
   return { repo, run, charterPath, charterSha };
 }
@@ -962,8 +962,8 @@ describe("PHASE-5 §4.1 & PLAN §13.7 Planted-Ledger Audit Test Suite", () => {
             task_id: "T-01",
             write_scope: ["src/mind/"],
             touched_files: [
-              "src/mind/audit.ts",
-              "src/mind/witness.ts",
+              "src/mind/auditing/index.ts",
+              "src/mind/auditing/witness/index.ts",
               "src/forbidden/unleased-file.ts",
               "contracts/capsule.ts",
             ],
@@ -1049,7 +1049,7 @@ describe("PHASE-5 §4.1 & PLAN §13.7 Planted-Ledger Audit Test Suite", () => {
           payload: {
             task_id: "T-01",
             write_scope: ["src/mind/", "tests/unit/mind/"],
-            touched_files: ["src/mind/audit.ts", "tests/unit/mind/audit.test.ts"],
+            touched_files: ["src/mind/auditing/index.ts", "tests/unit/mind/audit.test.ts"],
           },
           previous_hash: null,
           projection: null,

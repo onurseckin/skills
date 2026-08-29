@@ -178,7 +178,8 @@ export const AGENT_NAMING_STANDARDS: Readonly<Record<string, AgentNamingStandard
     tier: 3,
     bindingType: "subtask",
     formatTemplate: "sub-investigator_<subtask-id>[-<descriptive-slug>]",
-    regexPattern: /^sub-investigator_(subtask-[a-z0-9]+|[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
+    regexPattern:
+      /^sub-investigator_(subtask-[a-z0-9]+|[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
     example: "sub-investigator_subtask-1-diag",
     description: "Tier 3 Branch Sub-Investigator bound to branch subtask ID",
   },

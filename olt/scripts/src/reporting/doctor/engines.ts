@@ -1,10 +1,33 @@
 export { checkPlanningDag, type PlanningDagCheckOptions } from "./planning-dag-engine.ts";
 export { checkAstPurity, type AstPurityCheckOptions } from "./ast-purity-engine.ts";
-export { checkAntiMockMutation, type AntiMockMutationCheckOptions, type CounterfactualCheckRecord } from "./anti-mock-engine.ts";
-export { checkAntiBatchingIsolation, type AntiBatchingIsolationOptions } from "./anti-batching-engine.ts";
+export {
+  checkAntiMockMutation,
+  type AntiMockMutationCheckOptions,
+  type CounterfactualCheckRecord,
+} from "./anti-mock-engine.ts";
+export {
+  checkAntiBatchingIsolation,
+  type AntiBatchingIsolationOptions,
+} from "./anti-batching-engine.ts";
 export { checkDualChannelUi, type DualChannelUiCheckOptions } from "./dual-channel-ui-engine.ts";
-export { checkCognitiveValidatorCommandLock, type CognitiveValidatorCommandLockOptions } from "./command-lock-engine.ts";
-export { checkRoleBoundaryInterlock, type RoleBoundaryInterlockOptions } from "./role-boundary-engine.ts";
-export { checkPushbackQuotas, type PushbackQuotasCheckOptions, MIN_ADVERSARIAL_PROBES, MANDATORY_COGNITIVE_PUSHBACKS } from "./pushback-quotas-engine.ts";
+export {
+  checkCognitiveValidatorCommandLock,
+  type CognitiveValidatorCommandLockOptions,
+} from "./command-lock-engine.ts";
+export {
+  checkRoleBoundaryInterlock,
+  type RoleBoundaryInterlockOptions,
+} from "./role-boundary-engine.ts";
+export {
+  checkPushbackQuotas,
+  type PushbackQuotasCheckOptions,
+  MIN_ADVERSARIAL_PROBES,
+  MANDATORY_COGNITIVE_PUSHBACKS,
+} from "./pushback-quotas-engine.ts";
 export { autoHealCapsule, type AutoHealOptions } from "./auto-heal.ts";
-export type { DoctorSeverity, DoctorDiagnosticFinding, DoctorCheckEngineResult, DoctorAutoHealResult } from "./types.ts";
+export type {
+  DoctorSeverity,
+  DoctorDiagnosticFinding,
+  DoctorCheckEngineResult,
+  DoctorAutoHealResult,
+} from "./types.ts";

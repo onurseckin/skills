@@ -12,7 +12,11 @@ import {
   runScriptBackedDiagnostics,
   type ScriptBackedDiagnosticsResult,
 } from "../diagnostics/diagnostics.ts";
-import { heartbeatWatchdog, registerWatchdog, WatchdogRecord } from "../../../authority/watchdog-manager";
+import {
+  heartbeatWatchdog,
+  registerWatchdog,
+  WatchdogRecord,
+} from "../../../authority/watchdog-manager";
 import { TransactionPort, systemClock } from "../../../workflow/types";
 
 export function delay(ms: number): Promise<void> {

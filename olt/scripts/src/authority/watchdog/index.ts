@@ -85,7 +85,4 @@ export {
   terminatePhaseWatchdogsUnlocked,
 } from "./ops-cleanup.ts";
 
-export {
-  renderAsciiWatchdogTable,
-  verifyWatchdogLifecycle,
-} from "./verify.ts";
+export { renderAsciiWatchdogTable, verifyWatchdogLifecycle } from "./verify.ts";

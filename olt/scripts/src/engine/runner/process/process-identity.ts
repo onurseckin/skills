@@ -1,6 +1,6 @@
-import { HarnessError } from "../../../core/errors/index";
-import { darwinProcessIdentity } from "./darwin-pipes";
-import { linuxProcessIdentity } from "./linux-pipes";
+import { HarnessError } from "../../../core/errors/index.ts";
+import { darwinProcessIdentity } from "./darwin/darwin-pipes.ts";
+import { linuxProcessIdentity } from "./linux-pipes.ts";
 
 export interface ProcessTopology {
   pid: number;

@@ -30,7 +30,18 @@ export function handleTaskStateTransition(
   evData: EventTransitionData,
   ctx: ReplayContext,
 ): void {
-  const { actor, lowerKind, seq, payload, tool, cmd, exitCode, roundInPayload, attemptInPayload } = evData;
+  const {
+    actor,
+    lowerKind,
+    seq,
+    payload,
+    role,
+    tool,
+    cmd,
+    exitCode,
+    roundInPayload,
+    attemptInPayload,
+  } = evData;
   const currentRound = roundInPayload ?? targetTask.round;
   if (currentRound > ctx.maxRoundReached) ctx.maxRoundReached = currentRound;
   const currentAttempt = attemptInPayload ?? targetTask.attempt;

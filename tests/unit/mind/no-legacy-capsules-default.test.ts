@@ -5,10 +5,10 @@ import { join } from "node:path";
 const REPO_ROOT = join(import.meta.dir, "..", "..", "..");
 
 const FILES_THAT_MUST_NOT_DEFAULT_TO_BARE_DOT_CAPSULES = [
-  "olt/scripts/src/mind/task-queue.ts",
-  "olt/scripts/src/mind/archival.ts",
-  "olt/scripts/src/mind/self-evolution.ts",
-  "olt/scripts/src/mind/smart-task-manager.ts",
+  "olt/scripts/src/mind/tasks/queue/index.ts",
+  "olt/scripts/src/mind/archival/index.ts",
+  "olt/scripts/src/mind/lifecycle/evolution/index.ts",
+  "olt/scripts/src/mind/tasks/smart/index.ts",
 ] as const;
 
 describe("no legacy bare .capsules default path", () => {
@@ -21,18 +21,21 @@ describe("no legacy bare .capsules default path", () => {
   );
 
   test("resolveArchivedObjectivesPath's production fallback resolves through resolveCapsulesDir", () => {
-    const source = readFileSync(join(REPO_ROOT, "olt/scripts/src/mind/archival.ts"), "utf-8");
+    const source = readFileSync(join(REPO_ROOT, "olt/scripts/src/mind/archival/types.ts"), "utf-8");
     expect(source).toMatch(/return join\(resolveCapsulesDir\(\), "ARCHIVED_OBJECTIVES\.jsonl"\);/);
   });
 
   test("resolveEvolutionHistoryPath's production fallback resolves through resolveCapsulesDir", () => {
-    const source = readFileSync(join(REPO_ROOT, "olt/scripts/src/mind/self-evolution.ts"), "utf-8");
+    const source = readFileSync(
+      join(REPO_ROOT, "olt/scripts/src/mind/lifecycle/evolution/history.ts"),
+      "utf-8",
+    );
     expect(source).toMatch(/return join\(resolveCapsulesDir\(\), "EVOLUTION_HISTORY\.jsonl"\);/);
   });
 
   test("synthesizeSmartTasksFromSelfEvolution's targetRoots fallback resolves through resolveCapsulesDir", () => {
     const source = readFileSync(
-      join(REPO_ROOT, "olt/scripts/src/mind/smart-task-manager.ts"),
+      join(REPO_ROOT, "olt/scripts/src/mind/tasks/smart/executor/self-evolution.ts"),
       "utf-8",
     );
     expect(source).toMatch(

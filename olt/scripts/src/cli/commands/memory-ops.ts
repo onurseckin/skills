@@ -14,7 +14,7 @@ import {
   indexAllMemory,
   searchMemory,
   type MemoryQueryResult,
-} from "../../mind/memory.ts";
+} from "../../mind/memory/core/index.ts";
 import { resolveCapsulesDir } from "../../core/shared/paths.ts";
 
 export interface MemoryQueryCommandResult {

@@ -11,7 +11,7 @@ import {
   type AutonomousRecycleOptions,
   type RecycleAssessment,
   type RecyclePlan,
-} from "../mind/recycler.ts";
+} from "../mind/archival/recycler/index.ts";
 import { loadRun } from "../engine/store/index.ts";
 import { AutonomousLoopRunner } from "./loop-runner.ts";
 import type {

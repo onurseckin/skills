@@ -115,10 +115,7 @@ export {
   provisionWorktrees,
 } from "../../workflow/worktree/provision.ts";
 
-export {
-  type AssignableTask,
-  assignWorktrees,
-} from "../../workflow/worktree/assign.ts";
+export { type AssignableTask, assignWorktrees } from "../../workflow/worktree/assign.ts";
 
 export {
   WORKTREE_LEDGER_KEY,

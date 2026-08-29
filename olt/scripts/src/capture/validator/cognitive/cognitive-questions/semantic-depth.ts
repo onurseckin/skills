@@ -1,8 +1,5 @@
 import type { CognitiveAnalysisReport } from "../../types.ts";
-import type {
-  CognitiveSemanticDepthDefect,
-  CognitiveSemanticDepthResult,
-} from "./types.ts";
+import type { CognitiveSemanticDepthDefect, CognitiveSemanticDepthResult } from "./types.ts";
 
 export const COGNITIVE_BOILERPLATE: ReadonlySet<string> = new Set([
   "ok",

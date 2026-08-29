@@ -11,7 +11,11 @@ export interface PushbackQuotasCheckOptions {
   readonly minPushbacks?: number | undefined;
 }
 
-function countProbesForTask(task: Record<string, unknown>, events: readonly Record<string, unknown>[], taskId: string): number {
+function countProbesForTask(
+  task: Record<string, unknown>,
+  events: readonly Record<string, unknown>[],
+  taskId: string,
+): number {
   let count = 0;
   if (Array.isArray(task.adversarial_probes)) count += task.adversarial_probes.length;
   else if (typeof task.adversarial_probes === "number") count += task.adversarial_probes;
@@ -20,8 +24,12 @@ function countProbesForTask(task: Record<string, unknown>, events: readonly Reco
 
   // Add event counts
   for (const evt of events) {
-    const name = typeof evt.name === "string" ? evt.name : typeof evt.type === "string" ? evt.type : "";
-    const payload = evt.payload && typeof evt.payload === "object" ? (evt.payload as Record<string, unknown>) : {};
+    const name =
+      typeof evt.name === "string" ? evt.name : typeof evt.type === "string" ? evt.type : "";
+    const payload =
+      evt.payload && typeof evt.payload === "object"
+        ? (evt.payload as Record<string, unknown>)
+        : {};
     if (payload.task_id === taskId && (name.includes("probe") || name.includes("adversarial"))) {
       count += 1;
     }
@@ -30,7 +38,11 @@ function countProbesForTask(task: Record<string, unknown>, events: readonly Reco
   return count;
 }
 
-function countPushbacksForTask(task: Record<string, unknown>, events: readonly Record<string, unknown>[], taskId: string): number {
+function countPushbacksForTask(
+  task: Record<string, unknown>,
+  events: readonly Record<string, unknown>[],
+  taskId: string,
+): number {
   let count = 0;
   if (Array.isArray(task.cognitive_pushbacks)) count += task.cognitive_pushbacks.length;
   else if (typeof task.cognitive_pushbacks === "number") count += task.cognitive_pushbacks;
@@ -39,9 +51,16 @@ function countPushbacksForTask(task: Record<string, unknown>, events: readonly R
 
   // Add event counts
   for (const evt of events) {
-    const name = typeof evt.name === "string" ? evt.name : typeof evt.type === "string" ? evt.type : "";
-    const payload = evt.payload && typeof evt.payload === "object" ? (evt.payload as Record<string, unknown>) : {};
-    if (payload.task_id === taskId && (name.includes("pushback") || name.includes("critic-feedback"))) {
+    const name =
+      typeof evt.name === "string" ? evt.name : typeof evt.type === "string" ? evt.type : "";
+    const payload =
+      evt.payload && typeof evt.payload === "object"
+        ? (evt.payload as Record<string, unknown>)
+        : {};
+    if (
+      payload.task_id === taskId &&
+      (name.includes("pushback") || name.includes("critic-feedback"))
+    ) {
       count += 1;
     }
   }
@@ -54,7 +73,9 @@ function countPushbacksForTask(task: Record<string, unknown>, events: readonly R
  * Enforces MIN_ADVERSARIAL_PROBES = 5 and MANDATORY_COGNITIVE_PUSHBACKS = 5.
  * Any completed task with fewer than 5 cognitive pushbacks or 5 adversarial probes is an ERROR.
  */
-export function checkPushbackQuotas(options: PushbackQuotasCheckOptions = {}): DoctorCheckEngineResult {
+export function checkPushbackQuotas(
+  options: PushbackQuotasCheckOptions = {},
+): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
   const minProbes = options.minProbes ?? MIN_ADVERSARIAL_PROBES;
   const minPushbacks = options.minPushbacks ?? MANDATORY_COGNITIVE_PUSHBACKS;
@@ -88,7 +109,11 @@ export function checkPushbackQuotas(options: PushbackQuotasCheckOptions = {}): D
               severity: "ERROR",
               engine: "checkPushbackQuotas",
               message: `Task "${id}" completed with only ${pushbackCount}/${minPushbacks} cognitive pushbacks (minimum required: ${minPushbacks})`,
-              details: { taskId: id, actualPushbacks: pushbackCount, requiredPushbacks: minPushbacks },
+              details: {
+                taskId: id,
+                actualPushbacks: pushbackCount,
+                requiredPushbacks: minPushbacks,
+              },
             });
           }
         } else {

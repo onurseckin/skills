@@ -5,7 +5,7 @@ import {
   selectLane,
   type LaneSelectorFacts,
   type MindLane,
-} from "../../../olt/scripts/src/mind/lane.ts";
+} from "../../../olt/scripts/src/mind/lanes/index.ts";
 
 describe("lane.ts — Pure Lane Selector", () => {
   describe("Table tests across conditions and boundaries", () => {

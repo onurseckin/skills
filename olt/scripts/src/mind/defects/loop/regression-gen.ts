@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import type { DefectCategory, DefectEntry } from "../core/types.ts";
 import { categorizeDefect } from "../core/sanitizer.ts";
 import { verifyResolutionProofEmpirical } from "./resolution.ts";
@@ -53,7 +54,7 @@ export function generateDefectRegressionTest(
   return {
     defect_id: defect.id,
     test_name: testName,
-    category: cat,
+    category: cat as DefectCategory,
     file_path_hint: filePathHint,
     test_code: testBody,
     verified_assertion: assertion,

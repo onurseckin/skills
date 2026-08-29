@@ -67,8 +67,9 @@ export function generateUnifiedReport(
   const { decisions } = generateDecisionsReport(runRoot);
 
   const coordinatorId =
-    agentRows.find((a) => a.tier === 1 || a.role.includes("coordinator") || a.role.includes("supervisor"))?.agentId ??
-    "coordinator-tier1";
+    agentRows.find(
+      (a) => a.tier === 1 || a.role.includes("coordinator") || a.role.includes("supervisor"),
+    )?.agentId ?? "coordinator-tier1";
   const totalTasksCount = tasks.length;
   const coordinatorMetrics: CoordinatorOwnershipMetrics = {
     coordinatorId,
@@ -85,7 +86,11 @@ export function generateUnifiedReport(
   const trackingRows: ImplementerValidatorTrackingRow[] = tasks.map((t, idx) => {
     const laneName = `Lane ${idx + 1}`;
     const lease = isRecord(t.lease) ? t.lease : null;
-    const implId = lease ? extractLeaseAgentId(lease) : (t.status === "done" ? "implementer-1" : "unassigned");
+    const implId = lease
+      ? extractLeaseAgentId(lease)
+      : t.status === "done"
+        ? "implementer-1"
+        : "unassigned";
     const valId =
       Array.isArray(t.validations) && t.validations.length > 0 && isRecord(t.validations[0])
         ? String(t.validations[0].validator_id ?? "validator-1")

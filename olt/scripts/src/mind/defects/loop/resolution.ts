@@ -1,8 +1,5 @@
 import { HarnessError } from "../../../core/errors/index.ts";
-import type {
-  DefectEntry,
-  DefectResolutionProof,
-} from "../core/types.ts";
+import type { DefectEntry, DefectResolutionProof } from "../core/types.ts";
 
 export function validateResolutionProof(
   proof: unknown,
@@ -17,11 +14,7 @@ export function validateResolutionProof(
   const testAssertion = typeof p.test_assertion === "string" ? p.test_assertion.trim() : "";
   const resolvedAt = typeof p.resolved_at === "string" ? p.resolved_at.trim() : "";
   const commitSha =
-    typeof p.commit_sha === "string" && p.commit_sha.trim()
-      ? p.commit_sha.trim()
-      : p.commit_sha === null
-        ? null
-        : undefined;
+    typeof p.commit_sha === "string" && p.commit_sha.trim() ? p.commit_sha.trim() : undefined;
 
   const remediationNotes =
     typeof p.remediation_notes === "string" && p.remediation_notes.trim()
@@ -29,15 +22,16 @@ export function validateResolutionProof(
       : undefined;
 
   const verifiedBy =
-    typeof p.verified_by === "string" && p.verified_by.trim()
-      ? p.verified_by.trim()
-      : undefined;
+    typeof p.verified_by === "string" && p.verified_by.trim() ? p.verified_by.trim() : undefined;
 
   if (!taskId) {
     throw new HarnessError("INVALID_ARGUMENT", "resolution proof requires non-empty task_id");
   }
   if (!testAssertion) {
-    throw new HarnessError("INVALID_ARGUMENT", "resolution proof requires non-empty test_assertion");
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "resolution proof requires non-empty test_assertion",
+    );
   }
   if (!resolvedAt) {
     throw new HarnessError("INVALID_ARGUMENT", "resolution proof requires non-empty resolved_at");
@@ -62,7 +56,7 @@ export function validateResolutionProof(
     task_id: taskId,
     test_assertion: testAssertion,
     resolved_at: resolvedAt,
-    ...(commitSha !== undefined ? { commit_sha: commitSha || undefined } : {}),
+    ...(commitSha !== undefined ? { commit_sha: commitSha } : {}),
     ...(remediationNotes !== undefined ? { remediation_notes: remediationNotes } : {}),
     ...(verifiedBy !== undefined ? { verified_by: verifiedBy } : {}),
   };

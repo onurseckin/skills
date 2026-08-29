@@ -3,17 +3,26 @@ import { isAccessOrCall } from "./utils.ts";
 
 export const TEST_IDENTIFIERS = new Set(["test", "it"]);
 export const MOCK_FACTORIES = new Set([
-  "fn", "mock", "spyOn", "mockReturnValue", "mockResolvedValue", "mockImplementation"
+  "fn",
+  "mock",
+  "spyOn",
+  "mockReturnValue",
+  "mockResolvedValue",
+  "mockImplementation",
 ]);
 export const MOCK_RETURN_PROPS = new Set(["mockReturnValue", "mockResolvedValue"]);
 export const MOCK_FRAMEWORK_NAMES = new Set(["mock", "vi", "jest"]);
 export const ASSERTION_NAMES = new Set(["expect", "assert", "t"]);
 export const EQUALITY_MATCHERS = new Set(["toBe", "toEqual", "toStrictEqual", "toBeStrictEqual"]);
 export const LITERAL_SYNTAX_KINDS = new Set<ts.SyntaxKind>([
-  ts.SyntaxKind.TrueKeyword, ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.NullKeyword,
-  ts.SyntaxKind.NumericLiteral, ts.SyntaxKind.StringLiteral,
-  ts.SyntaxKind.NoSubstitutionTemplateLiteral, ts.SyntaxKind.ArrayLiteralExpression,
-  ts.SyntaxKind.ObjectLiteralExpression
+  ts.SyntaxKind.TrueKeyword,
+  ts.SyntaxKind.FalseKeyword,
+  ts.SyntaxKind.NullKeyword,
+  ts.SyntaxKind.NumericLiteral,
+  ts.SyntaxKind.StringLiteral,
+  ts.SyntaxKind.NoSubstitutionTemplateLiteral,
+  ts.SyntaxKind.ArrayLiteralExpression,
+  ts.SyntaxKind.ObjectLiteralExpression,
 ]);
 
 export interface TestCallInfo {
@@ -28,29 +37,47 @@ export function isTestIdentifier(name: string): boolean {
 
 export function extractTestName(args: ts.NodeArray<ts.Expression>): string {
   for (const arg of args) {
-    if (ts.isStringLiteral(arg)) { return arg.text; }
-    if (ts.isNoSubstitutionTemplateLiteral(arg)) { return arg.text; }
-    if (ts.isTemplateExpression(arg)) { return arg.getText(); }
+    if (ts.isStringLiteral(arg)) {
+      return arg.text;
+    }
+    if (ts.isNoSubstitutionTemplateLiteral(arg)) {
+      return arg.text;
+    }
+    if (ts.isTemplateExpression(arg)) {
+      return arg.getText();
+    }
   }
   return "<anonymous test>";
 }
 
-export function findCallback(args: ts.NodeArray<ts.Expression>): ts.FunctionLikeDeclaration | undefined {
+export function findCallback(
+  args: ts.NodeArray<ts.Expression>,
+): ts.FunctionLikeDeclaration | undefined {
   for (const arg of args) {
-    if (ts.isArrowFunction(arg)) { return arg; }
-    if (ts.isFunctionExpression(arg)) { return arg; }
+    if (ts.isArrowFunction(arg)) {
+      return arg;
+    }
+    if (ts.isFunctionExpression(arg)) {
+      return arg;
+    }
   }
   return undefined;
 }
 
 export function isTestPropertyTarget(obj: ts.Expression, prop: string): boolean {
   if (ts.isIdentifier(obj)) {
-    if (isTestIdentifier(obj.text)) { return true; }
-    if (obj.text === "describe" && isTestIdentifier(prop)) { return true; }
+    if (isTestIdentifier(obj.text)) {
+      return true;
+    }
+    if (obj.text === "describe" && isTestIdentifier(prop)) {
+      return true;
+    }
   }
   if (ts.isPropertyAccessExpression(obj)) {
     if (ts.isIdentifier(obj.name)) {
-      if (isTestIdentifier(obj.name.text)) { return true; }
+      if (isTestIdentifier(obj.name.text)) {
+        return true;
+      }
     }
   }
   return false;
@@ -92,13 +119,21 @@ export function identifyTestCall(node: ts.CallExpression): TestCallInfo | undefi
 }
 
 export function isLiteralOrConstant(node: ts.Node): boolean {
-  if (LITERAL_SYNTAX_KINDS.has(node.kind)) { return true; }
+  if (LITERAL_SYNTAX_KINDS.has(node.kind)) {
+    return true;
+  }
   if (ts.isIdentifier(node)) {
-    if (node.text === "undefined") { return true; }
-    if (node.text === "NaN") { return true; }
+    if (node.text === "undefined") {
+      return true;
+    }
+    if (node.text === "NaN") {
+      return true;
+    }
   }
   if (ts.isPrefixUnaryExpression(node)) {
-    if (ts.isNumericLiteral(node.operand)) { return true; }
+    if (ts.isNumericLiteral(node.operand)) {
+      return true;
+    }
   }
   return false;
 }
@@ -106,18 +141,24 @@ export function isLiteralOrConstant(node: ts.Node): boolean {
 export function isAssertionCall(call: ts.CallExpression): boolean {
   const expr = call.expression;
   if (ts.isIdentifier(expr)) {
-    if (ASSERTION_NAMES.has(expr.text)) { return true; }
+    if (ASSERTION_NAMES.has(expr.text)) {
+      return true;
+    }
   }
   let curr: ts.Expression = expr;
   while (isAccessOrCall(curr)) {
     if (ts.isPropertyAccessExpression(curr)) {
       if (ts.isIdentifier(curr.expression)) {
-        if (ASSERTION_NAMES.has(curr.expression.text)) { return true; }
+        if (ASSERTION_NAMES.has(curr.expression.text)) {
+          return true;
+        }
       }
       curr = curr.expression;
     } else if (ts.isCallExpression(curr)) {
       if (ts.isIdentifier(curr.expression)) {
-        if (ASSERTION_NAMES.has(curr.expression.text)) { return true; }
+        if (ASSERTION_NAMES.has(curr.expression.text)) {
+          return true;
+        }
       }
       curr = curr.expression;
     } else {
@@ -129,13 +170,17 @@ export function isAssertionCall(call: ts.CallExpression): boolean {
 
 export function getRootExpectArg(node: ts.CallExpression): ts.Expression | undefined {
   if (ts.isIdentifier(node.expression)) {
-    if (node.expression.text === "expect") { return node.arguments[0]; }
+    if (node.expression.text === "expect") {
+      return node.arguments[0];
+    }
   }
   let curr: ts.Expression = node.expression;
   while (isAccessOrCall(curr)) {
     if (ts.isCallExpression(curr)) {
       if (ts.isIdentifier(curr.expression)) {
-        if (curr.expression.text === "expect") { return curr.arguments[0]; }
+        if (curr.expression.text === "expect") {
+          return curr.arguments[0];
+        }
       }
       curr = curr.expression;
     } else if (ts.isPropertyAccessExpression(curr)) {
@@ -153,10 +198,16 @@ export interface MockInfo {
   readonly isMockObject?: boolean | undefined;
 }
 
-export function detectMockDeclarations(callback: ts.FunctionLikeDeclaration, sourceFile: ts.SourceFile): MockInfo[] {
+export function detectMockDeclarations(
+  callback: ts.FunctionLikeDeclaration,
+  sourceFile: ts.SourceFile,
+): MockInfo[] {
   const mocks: MockInfo[] = [];
 
-  function checkInitializer(init: ts.Expression): { isMock: boolean; stubbedValue?: string | undefined; } {
+  function checkInitializer(init: ts.Expression): {
+    isMock: boolean;
+    stubbedValue?: string | undefined;
+  } {
     if (ts.isCallExpression(init)) {
       let curr: ts.Expression = init;
       let stubbedValue: string | undefined = undefined;
@@ -167,15 +218,21 @@ export function detectMockDeclarations(callback: ts.FunctionLikeDeclaration, sou
             const propName = curr.expression.name.text;
             if (MOCK_RETURN_PROPS.has(propName)) {
               const valArg = curr.arguments[0];
-              if (valArg !== undefined) { stubbedValue = valArg.getText(sourceFile); }
+              if (valArg !== undefined) {
+                stubbedValue = valArg.getText(sourceFile);
+              }
             }
-            if (MOCK_FACTORIES.has(propName)) { return { isMock: true, stubbedValue }; }
+            if (MOCK_FACTORIES.has(propName)) {
+              return { isMock: true, stubbedValue };
+            }
             curr = curr.expression.expression;
           } else if (ts.isIdentifier(curr.expression)) {
             if (MOCK_FRAMEWORK_NAMES.has(curr.expression.text)) {
               const firstArg = curr.arguments[0];
               if (firstArg !== undefined) {
-                const isFn = ts.isArrowFunction(firstArg) ? true : ts.isFunctionExpression(firstArg);
+                const isFn = ts.isArrowFunction(firstArg)
+                  ? true
+                  : ts.isFunctionExpression(firstArg);
                 if (isFn) {
                   const fnNode = firstArg as ts.ArrowFunction | ts.FunctionExpression;
                   if (fnNode.body && !ts.isBlock(fnNode.body)) {
@@ -192,7 +249,9 @@ export function detectMockDeclarations(callback: ts.FunctionLikeDeclaration, sou
         } else if (ts.isPropertyAccessExpression(curr)) {
           if (ts.isIdentifier(curr.expression)) {
             if (MOCK_FRAMEWORK_NAMES.has(curr.expression.text)) {
-              if (MOCK_FACTORIES.has(curr.name.text)) { return { isMock: true, stubbedValue }; }
+              if (MOCK_FACTORIES.has(curr.name.text)) {
+                return { isMock: true, stubbedValue };
+              }
             }
           }
           curr = curr.expression;
@@ -220,31 +279,51 @@ export function detectMockDeclarations(callback: ts.FunctionLikeDeclaration, sou
             }
           }
         }
-        if (hasMockProp) { mocks.push({ varName: node.name.text, isMockObject: true }); }
+        if (hasMockProp) {
+          mocks.push({ varName: node.name.text, isMockObject: true });
+        }
       }
     }
     ts.forEachChild(node, walk);
   }
 
   if (callback.body && ts.isBlock(callback.body)) {
-    for (const stmt of callback.body.statements) { walk(stmt); }
+    for (const stmt of callback.body.statements) {
+      walk(stmt);
+    }
   }
 
   return mocks;
 }
 
 export function matchesMockTarget(rootText: string, name: string): boolean {
-  if (rootText === name) { return true; }
-  if (rootText.startsWith(`${name}.`)) { return true; }
-  if (rootText.startsWith(`${name}(`)) { return true; }
+  if (rootText === name) {
+    return true;
+  }
+  if (rootText.startsWith(`${name}.`)) {
+    return true;
+  }
+  if (rootText.startsWith(`${name}(`)) {
+    return true;
+  }
   return false;
 }
 
 export function isTrivialLiteralMatch(methodName: string, rootArg: ts.Expression): boolean {
-  if (methodName === "toBeTruthy" && rootArg.kind === ts.SyntaxKind.TrueKeyword) { return true; }
-  if (methodName === "toBeFalsy" && rootArg.kind === ts.SyntaxKind.FalseKeyword) { return true; }
-  if (methodName === "toBeNull" && rootArg.kind === ts.SyntaxKind.NullKeyword) { return true; }
-  if (methodName === "toBeUndefined" && ts.isIdentifier(rootArg) && rootArg.text === "undefined") { return true; }
-  if (methodName === "toBeNaN" && ts.isIdentifier(rootArg) && rootArg.text === "NaN") { return true; }
+  if (methodName === "toBeTruthy" && rootArg.kind === ts.SyntaxKind.TrueKeyword) {
+    return true;
+  }
+  if (methodName === "toBeFalsy" && rootArg.kind === ts.SyntaxKind.FalseKeyword) {
+    return true;
+  }
+  if (methodName === "toBeNull" && rootArg.kind === ts.SyntaxKind.NullKeyword) {
+    return true;
+  }
+  if (methodName === "toBeUndefined" && ts.isIdentifier(rootArg) && rootArg.text === "undefined") {
+    return true;
+  }
+  if (methodName === "toBeNaN" && ts.isIdentifier(rootArg) && rootArg.text === "NaN") {
+    return true;
+  }
   return false;
 }

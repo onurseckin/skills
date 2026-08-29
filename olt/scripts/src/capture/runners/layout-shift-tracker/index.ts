@@ -1,10 +1,6 @@
-export {
-  detectLayoutShiftBetweenSnapshots,
-} from "./detector.ts";
+export { detectLayoutShiftBetweenSnapshots } from "./detector.ts";
 
-export {
-  identifyRootCausingElements,
-} from "./exclusion.ts";
+export { identifyRootCausingElements } from "./exclusion.ts";
 
 export {
   calculateDistanceFraction,
@@ -14,19 +10,11 @@ export {
   computeRectanglesUnionArea,
 } from "./geometry.ts";
 
-export {
-  DEFAULT_LAYOUT_SHIFT_OPTIONS,
-  resolveLayoutShiftTrackerOptions,
-} from "./options.ts";
+export { DEFAULT_LAYOUT_SHIFT_OPTIONS, resolveLayoutShiftTrackerOptions } from "./options.ts";
 
-export {
-  buildCumulativeLayoutShiftReport,
-  groupSessionWindows,
-} from "./session-windows.ts";
+export { buildCumulativeLayoutShiftReport, groupSessionWindows } from "./session-windows.ts";
 
-export {
-  LayoutShiftTracker,
-} from "./tracker.ts";
+export { LayoutShiftTracker } from "./tracker.ts";
 
 export type {
   CumulativeLayoutShiftReport,

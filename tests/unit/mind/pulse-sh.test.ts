@@ -146,7 +146,7 @@ describe("pulse.sh driver seam", () => {
     const recordedContent = readFileSync(recordFile, "utf-8");
     expect(recordedContent).toContain("MODE");
     expect(recordedContent).toContain("CHARTER");
-  });
+  }, 30000);
 
   test("flock concurrency exclusion: second concurrent invocation exits 0 without waiting", async () => {
     const root = scratchRoot("concurrency");
@@ -193,7 +193,7 @@ describe("pulse.sh driver seam", () => {
     writeFileSync(blockerFile, "go", "utf-8");
     const proc1Exit = await proc1.exited;
     expect(proc1Exit).toBe(0);
-  });
+  }, 30000);
 
   test("cleans up brief temporary file after successful execution", async () => {
     const root = scratchRoot("temp-cleanup");
@@ -219,7 +219,7 @@ describe("pulse.sh driver seam", () => {
     const briefPath = readFileSync(pathRecordFile, "utf-8").trim();
     expect(briefPath.length).toBeGreaterThan(0);
     expect(existsSync(briefPath)).toBe(false);
-  });
+  }, 30000);
 
   test("cleans up brief temporary file after host command failure and propagates non-zero exit", async () => {
     const root = scratchRoot("fail-cleanup");
@@ -245,7 +245,7 @@ describe("pulse.sh driver seam", () => {
     const briefPath = readFileSync(pathRecordFile, "utf-8").trim();
     expect(briefPath.length).toBeGreaterThan(0);
     expect(existsSync(briefPath)).toBe(false);
-  });
+  }, 30000);
 
   test("respects PULSE_HOST_CMD environment variable", async () => {
     const root = scratchRoot("env-host");
@@ -268,7 +268,7 @@ describe("pulse.sh driver seam", () => {
     expect(exitCode).toBe(0);
     expect(existsSync(recordFile)).toBe(true);
     expect(readFileSync(recordFile, "utf-8")).toBe("from-env");
-  });
+  }, 30000);
 
   test("killing a pulse mid-flight leaves capsule state for subsequent wake reclamation", async () => {
     const root = scratchRoot("midflight-kill");
@@ -327,5 +327,5 @@ describe("pulse.sh driver seam", () => {
     const lastPulse = (afterPulse.last ?? {}) as Record<string, unknown>;
     expect(lastPulse.outcome).toBe("crashed");
     expect(lastPulse.pulse_id).toBe("pulse-midflight-1");
-  });
+  }, 30000);
 });

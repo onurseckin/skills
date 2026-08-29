@@ -80,13 +80,13 @@ import {
   evaluateGate6NotADuplicate,
   type CandidateRecord,
   type GateEvaluationContext,
-} from "../../../olt/scripts/src/mind/gates.ts";
+} from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
 import {
   readLastPulse,
   writeLastPulse,
   type LastPulseRecord,
-} from "../../../olt/scripts/src/mind/last-pulse.ts";
-import { calculateNextWakeInterval } from "../../../olt/scripts/src/mind/value.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/index.ts";
+import { calculateNextWakeInterval } from "../../../olt/scripts/src/mind/memory/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -249,14 +249,17 @@ function setupMindCapsule(
     "mind-soak-runner",
   ];
 
-  for (const agent of agentsToRegister) {
-    agentRegisterCommand({
-      run: runRoot,
-      agent,
-      role: "mind",
+  transact(runRoot, "register-soak-agents", "agents-registered", {}, (working) => {
+    working.agents = agentsToRegister.map((agentId) => ({
+      id: agentId,
+      role: "mind" as const,
       host: "antigravity",
-    });
-  }
+      status: "active" as const,
+      granted_at: new Date().toISOString(),
+      parent_agent_id: agentId === "mind-agent" ? null : "mind-agent",
+      parent_task_id: null,
+    }));
+  });
 
   writeLastPulse(runRoot, {
     at: new Date().toISOString(),

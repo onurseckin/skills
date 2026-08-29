@@ -77,12 +77,12 @@ export interface StructuredFailurePayload {
   readonly exitStatus: ExitStatus | string;
   readonly errorClassification: ErrorClassification | string;
   readonly reason: string;
-  readonly taskId?: string | null;
-  readonly gateId?: string | null;
-  readonly agentId?: string | null;
-  readonly supervisorTier?: SupervisorTier | string;
-  readonly childRole?: HierarchicalRole | string;
-  readonly childPid?: number;
+  readonly taskId?: string | null | undefined;
+  readonly gateId?: string | null | undefined;
+  readonly agentId?: string | null | undefined;
+  readonly supervisorTier?: SupervisorTier | string | undefined;
+  readonly childRole?: HierarchicalRole | string | undefined;
+  readonly childPid?: number | undefined;
   readonly diagnostics: ProcessDiagnostics;
   readonly remediationGuidance: RemediationGuidance;
   readonly timestamp: string;

@@ -1,8 +1,5 @@
 export { ActivityTracker } from "./activity-tracker.ts";
-export {
-  AdaptiveTimerController,
-  type IntervalAdjustmentResult,
-} from "./adaptive-timer.ts";
+export { AdaptiveTimerController, type IntervalAdjustmentResult } from "./adaptive-timer.ts";
 export { formatCliStatusReport } from "./cli-reporter.ts";
 export { WatchdogEventEmitter } from "./event-emitter.ts";
 export {
@@ -10,10 +7,7 @@ export {
   defaultProcessLivenessChecker,
   type HealthAuditorOptions,
 } from "./health-auditor.ts";
-export {
-  normalizeReactiveTrigger,
-  resolveTimestampMs,
-} from "./reactive-dispatcher.ts";
+export { normalizeReactiveTrigger, resolveTimestampMs } from "./reactive-dispatcher.ts";
 export { AutonomicWatchdog } from "./watchdog-engine.ts";
 
 export type {

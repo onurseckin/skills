@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { MindAutonomousDiscoveryEngine } from "../../../olt/scripts/src/mind/discovery-engine.ts";
+import { MindAutonomousDiscoveryEngine } from "../../../olt/scripts/src/mind/tasks/index.ts";
 
 describe("MindAutonomousDiscoveryEngine", () => {
   it("can be instantiated", () => {

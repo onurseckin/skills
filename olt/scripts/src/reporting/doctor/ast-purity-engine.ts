@@ -8,16 +8,17 @@ export interface AstPurityCheckOptions {
   readonly fileContents?: Readonly<Record<string, string>> | undefined;
 }
 
-const BANNED_SUPPRESSION_PATTERNS: readonly { readonly pattern: RegExp; readonly name: string }[] = [
-  { pattern: /@ts-ignore/u, name: "@ts-ignore" },
-  { pattern: /@ts-expect-error/u, name: "@ts-expect-error" },
-  { pattern: /\bas\s+any\b/u, name: "as any" },
-  { pattern: /<\s*any\s*>/u, name: "<any>" },
-  { pattern: /:\s*any(?=[;\s,)=>[\]{}|&]|$)/u, name: ": any" },
-  { pattern: /\bany\[\]/u, name: "any[]" },
-  { pattern: /\bArray<\s*any\s*>/u, name: "Array<any>" },
-  { pattern: /\bPromise<\s*any\s*>/u, name: "Promise<any>" },
-];
+const BANNED_SUPPRESSION_PATTERNS: readonly { readonly pattern: RegExp; readonly name: string }[] =
+  [
+    { pattern: /@ts-ignore/u, name: "@ts-ignore" },
+    { pattern: /@ts-expect-error/u, name: "@ts-expect-error" },
+    { pattern: /\bas\s+any\b/u, name: "as any" },
+    { pattern: /<\s*any\s*>/u, name: "<any>" },
+    { pattern: /:\s*any(?=[;\s,)=>[\]{}|&]|$)/u, name: ": any" },
+    { pattern: /\bany\[\]/u, name: "any[]" },
+    { pattern: /\bArray<\s*any\s*>/u, name: "Array<any>" },
+    { pattern: /\bPromise<\s*any\s*>/u, name: "Promise<any>" },
+  ];
 
 /**
  * Scans lines of TypeScript code for banned suppressions and 'any' usages.

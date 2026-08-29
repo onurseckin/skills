@@ -81,6 +81,10 @@ function isGeneratedCliArtifact(path: string): boolean {
   return path.startsWith("olt/references/cli-capabilities/");
 }
 
+function isModularityBaselineArtifact(path: string): boolean {
+  return path.startsWith("scripts/modularity/baseline/");
+}
+
 function isNonTypeScriptFixture(path: string, extension: string): boolean {
   return (
     extension !== ".ts" &&
@@ -96,6 +100,10 @@ export function classifyPath(path: string): ScopeDecision {
 
   if (hasExcludedDirectory(path) || LOCKFILES.has(path)) {
     return EXCLUDED;
+  }
+
+  if (isModularityBaselineArtifact(path)) {
+    return FANOUT_ONLY;
   }
 
   if (isGeneratedCliArtifact(path)) {

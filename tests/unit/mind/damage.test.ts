@@ -7,7 +7,7 @@ import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind
 import { mindWakeCommand } from "../../../olt/scripts/src/cli/commands/mind-wake.ts";
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { executeRescueLane } from "../../../olt/scripts/src/mind/lanes/rescue.ts";
+import { executeRescueLane } from "../../../olt/scripts/src/mind/lanes/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";

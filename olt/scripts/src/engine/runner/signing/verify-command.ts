@@ -8,9 +8,12 @@ import type {
 import { readBoundedBytes, readCanonicalObject, sha256Bytes } from "../../../core/json";
 import { resolveArtifactPath } from "../core/artifact-paths";
 import { attemptStartedIssues } from "../execution/attempt-intent";
-import { embeddedCommandIssues, sameCommandJson } from "../models/command-shape";
+import { embeddedCommandIssues, sameCommandJson } from "../models/command/index.ts";
 import { outputEvidenceIssues } from "../receipt/output-evidence";
-import { MAX_COMMAND_ATTEMPT_BYTES, MAX_COMMAND_RECORD_BYTES } from "../models/command-record-size";
+import {
+  MAX_COMMAND_ATTEMPT_BYTES,
+  MAX_COMMAND_RECORD_BYTES,
+} from "../models/command/command-record-size.ts";
 import { OWNERSHIP_ENV } from "../core/pipe-ownership";
 
 const MAX_ACTIVITY_BYTES = 1024 * 1024;
@@ -184,4 +187,4 @@ export function verifyCommandRecord(runRoot: string, record: CommandRecord): str
   return issues;
 }
 
-export { embeddedCommandIssues } from "../models/command-shape";
+export { embeddedCommandIssues } from "../models/command/index.ts";

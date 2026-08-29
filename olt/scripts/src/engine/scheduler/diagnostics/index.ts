@@ -34,9 +34,6 @@ export {
   type CompiledRepairDag,
   type RouteCriticFeedbackOptions,
   type RouteCriticFeedbackResult,
-} from "./critic-feedback.ts";
+} from "./critic/index.ts";
 
-export {
-  SkillAuditorPolicy,
-  MetaAuditorPolicy,
-} from "./skill-auditor-policy.ts";
+export { SkillAuditorPolicy, MetaAuditorPolicy } from "./skill-auditor-policy.ts";

@@ -10,10 +10,7 @@ import {
   isDualTimeRecord,
   type DualTimeRecord,
 } from "../../core/dual-time/index.ts";
-import type {
-  HarnessActionTimeRecord,
-  TimeTelemetryReport,
-} from "./types.ts";
+import type { HarnessActionTimeRecord, TimeTelemetryReport } from "./types.ts";
 
 /**
  * Injects dual-time stamp and telemetry metadata into any arbitrary JSON payload.

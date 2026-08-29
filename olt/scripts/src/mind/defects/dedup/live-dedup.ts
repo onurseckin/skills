@@ -4,7 +4,10 @@ import {
   toAggregatedDefect,
   withinDeduplicationWindow,
 } from "../aggregator/aggregator.ts";
-import { calculateDefectAggregateMetrics, type DefectMetricsResult } from "../aggregator/metrics.ts";
+import {
+  calculateDefectAggregateMetrics,
+  type DefectMetricsResult,
+} from "../aggregator/metrics.ts";
 import { resolveDefect } from "../loop/resolution.ts";
 import { parseAndDeduplicateDefectJsonl, serializeAggregatedDefectLog } from "./dedup-stream.ts";
 import type {

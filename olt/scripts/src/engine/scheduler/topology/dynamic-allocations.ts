@@ -1,5 +1,10 @@
-import { OrchestratorPartition, computeWorkSpanMetrics, ValidatorDemand } from "..";
-import { applicableValidatorDomains, ValidatorDomain, VALIDATOR_DOMAINS } from "../../../core/contracts";
+import type { OrchestratorPartition, ValidatorDemand } from "./dynamic-types.ts";
+import { computeWorkSpanMetrics } from "./dynamic-metrics.ts";
+import {
+  applicableValidatorDomains,
+  type ValidatorDomain,
+  VALIDATOR_DOMAINS,
+} from "../../../core/contracts/index.ts";
 import { DependencyMap } from "../../../graph/dag-forensics";
 import { isInteger } from "../../../requirements/predicates";
 import { ScheduledTask } from "../conflict/rank";

@@ -1,9 +1,5 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import type {
-  AntiLeakValidationResult,
-  BoundaryLeakCheck,
-  BoundaryViolation,
-} from "./types.ts";
+import type { AntiLeakValidationResult, BoundaryLeakCheck, BoundaryViolation } from "./types.ts";
 import {
   isCodeMutationAction,
   isCriticOrValidatorAgent,

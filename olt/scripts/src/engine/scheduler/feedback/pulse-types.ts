@@ -1,5 +1,16 @@
-import { ScriptBackedDiagnosticsResult, ScriptBackedDiagnosticsOptions, GraphHealthAuditReport, Supervisory5PointHealthReport, SupervisoryProbeDispatchResult, TaskRecoveryResult, ScheduledTaskDispatch, CliDiagnosticReceipt } from "..";
-import { Clock } from "../../../workflow/types";
+import type {
+  ScriptBackedDiagnosticsResult,
+  ScriptBackedDiagnosticsOptions,
+  CliDiagnosticReceipt,
+} from "../diagnostics/index.ts";
+import type {
+  GraphHealthAuditReport,
+  Supervisory5PointHealthReport,
+  SupervisoryProbeDispatchResult,
+  TaskRecoveryResult,
+  ScheduledTaskDispatch,
+} from "../core/types.ts";
+import type { Clock } from "../../../workflow/types.ts";
 
 export interface PulseTickOptions {
   readonly tickNumber?: number | undefined;

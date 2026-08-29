@@ -26,7 +26,11 @@ export interface HealthAuditorOptions {
   readonly activities: Map<string, AgentActivityState>;
   readonly processLivenessChecker: (pid: number) => boolean;
   readonly onStallDetected?: (agentId: string, finding: WatchdogFinding) => void;
-  readonly onProcessFailureDetected?: (agentId: string, pid: number, finding: WatchdogFinding) => void;
+  readonly onProcessFailureDetected?: (
+    agentId: string,
+    pid: number,
+    finding: WatchdogFinding,
+  ) => void;
 }
 
 export class HealthAuditor {
@@ -84,7 +88,9 @@ export class HealthAuditor {
     return results;
   }
 
-  public async auditHealth(currentTime?: string | number | Date): Promise<WatchdogHealthAuditReport> {
+  public async auditHealth(
+    currentTime?: string | number | Date,
+  ): Promise<WatchdogHealthAuditReport> {
     const timeMs =
       typeof currentTime === "number"
         ? currentTime
@@ -205,7 +211,9 @@ export class HealthAuditor {
     let tierViolationsCount = 0;
     if (this.options.capsuleRoot && existsSync(this.options.capsuleRoot)) {
       try {
-        const tierModule = await import("../../reporting/doctor/tier-confinement.ts").catch(() => null);
+        const tierModule = await import("../../reporting/doctor/tier-confinement.ts").catch(
+          () => null,
+        );
         if (tierModule && typeof tierModule.auditTierConfinement === "function") {
           const tierFindings: TierConfinementFinding[] = tierModule.auditTierConfinement(
             this.options.capsuleRoot,

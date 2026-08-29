@@ -19,8 +19,8 @@ import {
   archiveCapsule,
   consolidateCapsules,
   pruneCapsuleBoilerplate,
-} from "../../mind/archival.ts";
-import { drainBacklogOnRunCompletion } from "../../mind/smart-task-manager.ts";
+} from "../../mind/archival/index.ts";
+import { drainBacklogOnRunCompletion } from "../../mind/tasks/smart/index.ts";
 import { completeRun } from "../../workflow/completion/complete-run.ts";
 import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";

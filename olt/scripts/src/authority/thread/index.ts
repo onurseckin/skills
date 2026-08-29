@@ -12,11 +12,7 @@ export type {
   TierSpawningValidationResult,
 } from "./types.ts";
 
-export {
-  AGENT_NAMING_STANDARDS,
-  MAIN_THREAD_ADVISORY,
-  TIER_NAMES,
-} from "./constants.ts";
+export { AGENT_NAMING_STANDARDS, MAIN_THREAD_ADVISORY, TIER_NAMES } from "./constants.ts";
 
 export {
   agentIdToRole,
@@ -35,9 +31,7 @@ export {
   identifyExecutionContext,
 } from "./context.ts";
 
-export {
-  validateTierSpawning,
-} from "./spawning.ts";
+export { validateTierSpawning } from "./spawning.ts";
 
 export {
   isStandardAgentId,

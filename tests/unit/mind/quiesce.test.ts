@@ -18,8 +18,8 @@ import {
   tryParseQuiescentSourceSpec,
   validateQuiescentScan,
   type QuiescentSourceObservation,
-} from "../../../olt/scripts/src/mind/quiesce.ts";
-import { MIND_DISCOVERY_SOURCES } from "../../../olt/scripts/src/mind/sources.ts";
+} from "../../../olt/scripts/src/mind/archival/quiesce/index.ts";
+import { MIND_DISCOVERY_SOURCES } from "../../../olt/scripts/src/mind/memory/sources/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";

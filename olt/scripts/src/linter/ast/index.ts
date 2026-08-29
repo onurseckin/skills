@@ -55,25 +55,10 @@ export {
   type TestCallInfo,
 } from "./test-utils.ts";
 
-export {
-  formatAstLintReport,
-  formatSummaryTable,
-  formatViolationMarkdown,
-} from "./formatters.ts";
+export { formatAstLintReport, formatSummaryTable, formatViolationMarkdown } from "./formatters.ts";
 
-export {
-  collectSourceFiles,
-  lintDirectory,
-} from "./scanner.ts";
+export { collectSourceFiles, lintDirectory } from "./scanner.ts";
 
-export {
-  assertZeroFallbackCompliance,
-  lintFile,
-  lintSourceCode,
-} from "./runner.ts";
+export { assertZeroFallbackCompliance, lintFile, lintSourceCode } from "./runner.ts";
 
-export {
-  autoFixSourceCode,
-  generateFixSuggestion,
-  suggestRefactorings,
-} from "./autofix.ts";
+export { autoFixSourceCode, generateFixSuggestion, suggestRefactorings } from "./autofix.ts";

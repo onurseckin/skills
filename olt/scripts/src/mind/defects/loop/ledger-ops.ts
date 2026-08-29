@@ -1,7 +1,25 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+export const DEFAULT_DEFECTS_FILE = "olt/defects.jsonl";
+export const CANONICAL_DEFECTS_FILE = "olt/defects.jsonl";
+export const DEFAULT_COMPLETED_DEFECTS_FILE = "olt/completed-defects.jsonl";
+export const CANONICAL_COMPLETED_DEFECTS_FILE = "olt/completed-defects.jsonl";
+
+export function requireDistinctLedgerPaths(activePath: string, completedPath: string): void {
+  if (resolve(activePath) === resolve(completedPath)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "active and completed defect ledger paths must be distinct",
+    );
+  }
+}
+import { existsSync, readFileSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../../../core/errors/index.ts";
-import { isTestEnvironment, resolveDefectsPath, resolveScratchDir } from "../../../core/shared/paths.ts";
+import {
+  isTestEnvironment,
+  resolveDefectsPath,
+  resolveScratchDir,
+} from "../../../core/shared/paths.ts";
+import { withDefectLogMutationLock, replaceDefectLogFileUnlocked } from "../../../logging/lock.ts";
 import { parseDefectsJsonl, serializeDefectsJsonl } from "../sync/lifecycle-sync.ts";
 import type { DefectEntry, DefectHypothesis } from "../core/types.ts";
 
@@ -45,7 +63,10 @@ export function readCompletedDefectsLog(customPath?: string): DefectEntry[] {
   return readExistingDefectLog(p, "Read completed defects log");
 }
 
-export function writeCompletedDefectsLog(entries: readonly DefectEntry[], customPath?: string): void {
+export function writeCompletedDefectsLog(
+  entries: readonly DefectEntry[],
+  customPath?: string,
+): void {
   const p = resolveCompletedDefectsPath(customPath);
   atomicWriteDefectLog(entries, p, "Write completed defects log");
 }
@@ -56,9 +77,11 @@ export function atomicWriteDefectLog(
   _operation = "Write defect log",
 ): void {
   const parent = dirname(path);
-  if (!existsSync(parent)) mkdirSync(parent, { recursive: true });
+  if (!existsSync(parent)) mkdirSync(parent, { recursive: true, mode: 0o700 });
   const raw = serializeDefectsJsonl(entries);
-  writeFileSync(path, raw, "utf-8");
+  withDefectLogMutationLock(path, () => {
+    replaceDefectLogFileUnlocked(path, raw);
+  });
 }
 
 export function appendDefectLogEntry(
@@ -70,24 +93,40 @@ export function appendDefectLogEntry(
     : options?.capsuleRoot
       ? resolveCanonicalDefectLogPath(options.capsuleRoot)
       : resolveDefectLogPath();
-  const existing = readExistingDefectLog(targetPath);
-  const updated = [...existing.filter((e) => e.id !== entry.id), entry];
-  atomicWriteDefectLog(updated, targetPath);
-  return targetPath;
+  const parent = dirname(targetPath);
+  if (!existsSync(parent)) mkdirSync(parent, { recursive: true, mode: 0o700 });
+  return withDefectLogMutationLock(targetPath, () => {
+    const existing = readExistingDefectLog(targetPath);
+    const updated = [
+      ...existing.filter(
+        (e) => e.id !== entry.id && (!entry.dedup_key || e.dedup_key !== entry.dedup_key),
+      ),
+      entry,
+    ];
+    const raw = serializeDefectsJsonl(updated);
+    replaceDefectLogFileUnlocked(targetPath, raw);
+    return targetPath;
+  });
 }
 
-export function appendCompletedDefectLogEntry(
-  entry: DefectEntry,
-  targetPath?: string,
-): string {
+export function appendCompletedDefectLogEntry(entry: DefectEntry, targetPath?: string): string {
   const p = resolveCompletedDefectsPath(targetPath);
-  const existing = readExistingDefectLog(p);
-  if (existing.some((e) => e.id === entry.id)) {
+  const parent = dirname(p);
+  if (!existsSync(parent)) mkdirSync(parent, { recursive: true, mode: 0o700 });
+  return withDefectLogMutationLock(p, () => {
+    const existing = readExistingDefectLog(p);
+    if (
+      existing.some(
+        (e) => e.id === entry.id || (entry.dedup_key && e.dedup_key === entry.dedup_key),
+      )
+    ) {
+      return p;
+    }
+    const updated = [...existing, entry];
+    const raw = serializeDefectsJsonl(updated);
+    replaceDefectLogFileUnlocked(p, raw);
     return p;
-  }
-  const updated = [...existing, entry];
-  atomicWriteDefectLog(updated, p);
-  return p;
+  });
 }
 
 export function mergeDefectsById(
@@ -121,9 +160,11 @@ export function formulateBoundaryViolationHypothesis(defect: DefectEntry): Defec
     confidence = 0.99;
   } else if (
     vType.includes("orchestrator_direct_implementation") ||
-    (rawObs.includes("orchestrator") && (rawObs.includes("task") || rawObs.includes("implementation")))
+    (rawObs.includes("orchestrator") &&
+      (rawObs.includes("task") || rawObs.includes("implementation")))
   ) {
-    rootCause = "Tier 1 Orchestrator breached zero-tolerance boundary (0 orchestrator task implementations).";
+    rootCause =
+      "Tier 1 Orchestrator breached zero-tolerance boundary (0 orchestrator task implementations).";
     confidence = 0.99;
   } else if (vType.includes("unassigned_test_running") || rawObs.includes("unassigned test")) {
     rootCause = "Agent breached test running confinement (0 unassigned test running).";

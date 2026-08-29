@@ -1,6 +1,6 @@
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
-import { rotateMindGeneration } from "../../mind/rotate.ts";
+import { rotateMindGeneration } from "../../mind/archival/rotate/index.ts";
 
 export interface MindRotateCommandResult {
   readonly markdown: string;

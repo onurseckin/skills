@@ -11,7 +11,7 @@ import {
   type ForensicsSeverity,
   type ForensicsSummary,
   type MetaAuditAnalysisOptions,
-} from "../../mind/meta-auditor.ts";
+} from "../../mind/auditing/meta/index.ts";
 import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
 import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { resolveBacklogPath } from "../../core/shared/paths.ts";

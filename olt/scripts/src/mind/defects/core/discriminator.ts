@@ -32,7 +32,8 @@ export function createDefectContentHash(
   defect: DefectRecordInput,
   algorithm: "fnv1a" | "sha256" = "sha256",
 ): string {
-  const cat = defect.category || (defect.role ? `role:${defect.role}` : "");
+  const role = (defect as { role?: string }).role || (defect as { actor?: string }).actor;
+  const cat = defect.category || (role ? `role:${role}` : "");
   const typ = defect.type || defect.message || "";
   const obs = normalizeObservationSignature(defect.observation || defect.message || "");
   const content = `${cat}::${typ}::${obs}`;
@@ -50,17 +51,22 @@ export function computeDefectDiscriminator(
     return options.customDiscriminator(defect);
   }
 
-  const category = options.includeCategory === false
-    ? "any"
-    : (defect.category || "code_defect").toLowerCase().trim();
-  const type = options.includeType === false ? "any" : (defect.type || "unknown_defect").toLowerCase().trim();
-  
+  const category =
+    options.includeCategory === false
+      ? "any"
+      : (defect.category || "code_defect").toLowerCase().trim();
+  const type =
+    options.includeType === false ? "any" : (defect.type || "unknown_defect").toLowerCase().trim();
+
   let agentId = "all";
   if (options.includeAgentId !== false) {
     if (defect.agent_id) {
       agentId = defect.agent_id.toLowerCase().trim();
-    } else if (defect.role) {
-      agentId = `role:${defect.role}`.toLowerCase().trim();
+    } else {
+      const role = (defect as { role?: string }).role || (defect as { actor?: string }).actor;
+      if (role) {
+        agentId = `role:${role}`.toLowerCase().trim();
+      }
     }
   }
 
@@ -69,16 +75,28 @@ export function computeDefectDiscriminator(
     return `${category}::${type}::${agentId}::${hash}`;
   }
 
-  const signature = options.normalizeObservation === false
-    ? (defect.observation || defect.message || type)
-    : normalizeObservationSignature(defect.observation || defect.message || type);
+  const signature =
+    options.normalizeObservation === false
+      ? defect.observation || defect.message || type
+      : normalizeObservationSignature(defect.observation || defect.message || type);
   return `${category}::${type}::${agentId}::${signature}`;
 }
 
 export function extractDefectKeywords(text: string): readonly string[] {
   if (!text || typeof text !== "string") return [];
   const words = text.toLowerCase().match(/\b[a-z]{3,}\b/g) ?? [];
-  const stopwords = new Set(["the", "and", "for", "with", "this", "that", "from", "was", "were", "are"]);
+  const stopwords = new Set([
+    "the",
+    "and",
+    "for",
+    "with",
+    "this",
+    "that",
+    "from",
+    "was",
+    "were",
+    "are",
+  ]);
   return words.filter((w) => !stopwords.has(w));
 }
 

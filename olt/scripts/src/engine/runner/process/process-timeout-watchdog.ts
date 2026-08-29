@@ -1,16 +1,10 @@
 import type { BunSubprocess } from "../types/types.ts";
 import { DEFAULT_TEST_WALL_TIMEOUT_MS, DEFAULT_TEST_IDLE_TIMEOUT_MS } from "../core/policy.ts";
-import { buildRemediationGuidance } from "./watchdog-remediation.ts";
 import {
   DEFAULT_HEARTBEAT_INTERVAL_MS,
   DEFAULT_STALL_PROGRESS_THRESHOLD_MS,
   DEFAULT_GRACE_PERIOD_MS,
   DEFAULT_DIAGNOSTIC_TAIL_BYTES,
-  EXIT_STATUS_SIGKILL_TIMEOUT,
-  ERROR_CLASS_STALL_TIMEOUT,
-  ERROR_CLASS_WALL_TIMEOUT,
-  ERROR_CLASS_IDLE_TIMEOUT,
-  ERROR_CLASS_PROCESS_HANG,
   type SupervisorTier,
   type HierarchicalRole,
   type ProcessDiagnostics,
@@ -19,6 +13,11 @@ import {
   type WatchdogLivenessReport,
   type WatchdogMonitorResult,
 } from "./watchdog-types.ts";
+import {
+  checkWatchdogLiveness,
+  synthesizeWatchdogFailurePayload,
+} from "./watchdog-failure-payload.ts";
+import { runWatchdogMonitoringLoop } from "./watchdog-monitor.ts";
 
 export {
   DEFAULT_HEARTBEAT_INTERVAL_MS,
@@ -119,6 +118,10 @@ export class ProcessTimeoutWatchdog {
     this.lastHeartbeatAtMs = initialNow;
   }
 
+  public getSignalsSent(): readonly NodeJS.Signals[] {
+    return this.recordedSignals;
+  }
+
   public recordActivity(
     channel?: "stdout" | "stderr",
     chunk?: string | Uint8Array,
@@ -200,50 +203,15 @@ export class ProcessTimeoutWatchdog {
   }
 
   public checkLiveness(nowMs?: number): WatchdogLivenessReport {
-    const now = nowMs ?? this.clock();
-    const duration = now - this.startedAtMs;
-    const idleDuration = now - this.lastActivityAtMs;
-    const stallDuration = now - this.lastProgressAtMs;
-
-    if (duration >= this.wallTimeoutMs) {
-      return {
-        alive: false,
-        timedOut: true,
-        stalled: true,
-        timeoutKind: "wall",
-        errorClassification: ERROR_CLASS_WALL_TIMEOUT,
-        reason: `Process wall timeout exceeded: execution duration ${duration}ms >= ${this.wallTimeoutMs}ms limit`,
-      };
-    }
-
-    if (idleDuration >= this.idleTimeoutMs) {
-      return {
-        alive: false,
-        timedOut: true,
-        stalled: true,
-        timeoutKind: "idle",
-        errorClassification: ERROR_CLASS_IDLE_TIMEOUT,
-        reason: `Process idle timeout exceeded: no output activity for ${idleDuration}ms >= ${this.idleTimeoutMs}ms limit`,
-      };
-    }
-
-    if (stallDuration >= this.stallProgressThresholdMs) {
-      return {
-        alive: false,
-        timedOut: true,
-        stalled: true,
-        timeoutKind: "stall",
-        errorClassification: ERROR_CLASS_STALL_TIMEOUT,
-        reason: `Process stall detected: 0 progress recorded for ${stallDuration}ms >= ${this.stallProgressThresholdMs}ms threshold`,
-      };
-    }
-
-    return {
-      alive: true,
-      timedOut: false,
-      stalled: false,
-      timeoutKind: null,
-    };
+    return checkWatchdogLiveness({
+      now: nowMs ?? this.clock(),
+      startedAtMs: this.startedAtMs,
+      lastActivityAtMs: this.lastActivityAtMs,
+      lastProgressAtMs: this.lastProgressAtMs,
+      wallTimeoutMs: this.wallTimeoutMs,
+      idleTimeoutMs: this.idleTimeoutMs,
+      stallProgressThresholdMs: this.stallProgressThresholdMs,
+    });
   }
 
   public async enforceSigkill(
@@ -284,35 +252,20 @@ export class ProcessTimeoutWatchdog {
     } = {},
   ): StructuredFailurePayload {
     const now = options.now ?? this.clock();
-    const diag = this.getDiagnostics(now);
-    const classification = options.errorClassification ?? ERROR_CLASS_STALL_TIMEOUT;
-    const guidance = buildRemediationGuidance({
+    return synthesizeWatchdogFailurePayload({
+      now,
       supervisorTier: this.supervisorTier,
       childRole: this.childRole,
-      errorClassification: classification,
       taskId: this.taskId,
       gateId: this.gateId,
+      agentId: this.agentId,
+      pid: this.pid,
+      diagnostics: this.getDiagnostics(now),
+      exitStatus: options.exitStatus,
+      errorClassification: options.errorClassification,
+      reason: options.reason,
       defectReference: options.defectReference,
     });
-
-    return {
-      schema: "harness.structured_failure_payload",
-      version: 1,
-      exitStatus: options.exitStatus ?? EXIT_STATUS_SIGKILL_TIMEOUT,
-      errorClassification: classification,
-      reason:
-        options.reason ??
-        `Process execution terminated by watchdog due to ${classification} constraint violation`,
-      taskId: this.taskId ?? null,
-      gateId: this.gateId ?? null,
-      agentId: this.agentId ?? null,
-      supervisorTier: this.supervisorTier,
-      childRole: this.childRole,
-      childPid: this.pid,
-      diagnostics: diag,
-      remediationGuidance: guidance,
-      timestamp: new Date(now).toISOString(),
-    };
   }
 
   public async monitor(
@@ -320,83 +273,7 @@ export class ProcessTimeoutWatchdog {
     signal?: AbortSignal,
     onHeartbeat?: () => void,
   ): Promise<WatchdogMonitorResult> {
-    const pollInterval = Math.min(
-      50,
-      Math.max(
-        5,
-        Math.floor(
-          Math.min(this.wallTimeoutMs, this.idleTimeoutMs, this.stallProgressThresholdMs) / 4,
-        ),
-      ),
-    );
-
-    const exitedPromise = subprocess.exited.then((code) => ({
-      kind: "exit" as const,
-      code,
-    }));
-
-    const interruptedPromise = new Promise<{ kind: "interrupted" }>((resolve) => {
-      if (signal?.aborted) {
-        resolve({ kind: "interrupted" });
-      } else {
-        signal?.addEventListener("abort", () => resolve({ kind: "interrupted" }), {
-          once: true,
-        });
-      }
-    });
-
-    const sleep = (ms: number) =>
-      new Promise<"tick">((resolve) => setTimeout(() => resolve("tick"), ms));
-
-    while (true) {
-      const step = await Promise.race([exitedPromise, interruptedPromise, sleep(pollInterval)]);
-
-      if (step !== "tick" && step.kind === "exit") {
-        return {
-          outcome: "exit",
-          exitCode: step.code,
-          signalsSent: [...this.recordedSignals],
-        };
-      }
-
-      if (step !== "tick" && step.kind === "interrupted") {
-        await this.enforceSigkill();
-        const payload = this.synthesizeFailurePayload({
-          exitStatus: EXIT_STATUS_SIGKILL_TIMEOUT,
-          errorClassification: ERROR_CLASS_PROCESS_HANG,
-          reason: "Subprocess execution interrupted by host abort signal",
-        });
-        return {
-          outcome: "interrupted",
-          exitCode: null,
-          failurePayload: payload,
-          signalsSent: [...this.recordedSignals],
-        };
-      }
-
-      this.emitHeartbeat();
-      onHeartbeat?.();
-
-      const liveness = this.checkLiveness();
-      if (!liveness.alive) {
-        await this.enforceSigkill();
-        const payload = this.synthesizeFailurePayload({
-          exitStatus: EXIT_STATUS_SIGKILL_TIMEOUT,
-          errorClassification: liveness.errorClassification ?? ERROR_CLASS_STALL_TIMEOUT,
-          reason:
-            typeof liveness.reason === "string"
-              ? liveness.reason
-              : "Process execution timeout / stall detected by watchdog",
-        });
-
-        return {
-          outcome: liveness.timeoutKind === "stall" ? "stall" : "timeout",
-          exitCode: null,
-          failurePayload: payload,
-          signalsSent: [...this.recordedSignals],
-        };
-      }
-    }
+    return runWatchdogMonitoringLoop(this, subprocess, signal, onHeartbeat);
   }
 
   public async monitorSubprocess(
@@ -414,9 +291,6 @@ export function createProcessTimeoutWatchdog(
   return new ProcessTimeoutWatchdog(options);
 }
 
-export {
-  HierarchicalStallProbe,
-  createHierarchicalStallProbe,
-} from "./hierarchical-probe.ts";
+export { HierarchicalStallProbe, createHierarchicalStallProbe } from "./hierarchical-probe.ts";
 
 export { buildRemediationGuidance } from "./watchdog-remediation.ts";

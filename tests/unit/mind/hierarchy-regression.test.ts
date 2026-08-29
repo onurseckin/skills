@@ -17,7 +17,7 @@ import {
   DEFAULT_PROHIBITIONS,
   type MindBudget,
   type ParsedCharter,
-} from "../../../olt/scripts/src/mind/charter.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/charter/index.ts";
 import {
   ABSTRACT_PROFILES,
   assertAbstractProfile,
@@ -29,8 +29,8 @@ import {
   validateAbstractProfile,
   validateTierSpawn,
   type Tier1DeploymentPacketInput,
-} from "../../../olt/scripts/src/mind/deploy.ts";
-import type { CandidateRecord } from "../../../olt/scripts/src/mind/gates.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/deploy/index.ts";
+import type { CandidateRecord } from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
 import {
   formatHostDegradation,
   isAbstractProfile,
@@ -39,13 +39,13 @@ import {
   resolveProfile,
   roleToProfile,
   type ProfileBindings,
-} from "../../../olt/scripts/src/mind/profiles.ts";
+} from "../../../olt/scripts/src/mind/roles/index.ts";
 import {
   carryForwardFindingsAndRequirements,
   getAllRounds,
   getOpenRoundForObjective,
   reconcileRoundState,
-} from "../../../olt/scripts/src/mind/rounds.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
 import {
   loadRoleContract,
   resolveRoleContractPath,

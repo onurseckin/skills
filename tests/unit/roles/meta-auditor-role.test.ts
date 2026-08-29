@@ -12,7 +12,7 @@ import {
 import {
   ROOT_CAUSE_CATEGORIES,
   FORENSICS_SEVERITIES,
-} from "../../../olt/scripts/src/mind/meta-auditor.ts";
+} from "../../../olt/scripts/src/mind/auditing/meta/index.ts";
 
 describe("Meta-Auditor Role & Agent Persona Test Suite", () => {
   const rootDir = resolve(import.meta.dir, "../../..");

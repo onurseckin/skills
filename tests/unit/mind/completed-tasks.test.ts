@@ -29,16 +29,16 @@ import {
   validateCompletedTaskStatus,
   writeCompletedTasksLedger,
   type CompletedTaskRecord,
-} from "../../../olt/scripts/src/mind/completed-tasks.ts";
+} from "../../../olt/scripts/src/mind/archival/completed/index.ts";
 import {
   popNextEligibleTaskWithCleanup,
   readTaskQueue,
   writeTaskQueue,
-} from "../../../olt/scripts/src/mind/task-queue.ts";
+} from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
 import {
   appendFeedbackItem,
   readFeedbackQueue,
-} from "../../../olt/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Completed Tasks Ledger Engine", () => {
@@ -61,7 +61,7 @@ describe("Completed Tasks Ledger Engine", () => {
   }
 
   function spawnLedgerChild(id: string): Bun.Subprocess<"pipe", "pipe", "inherit"> {
-    const modulePath = resolve(process.cwd(), "olt/scripts/src/mind/completed-tasks.ts");
+    const modulePath = resolve(process.cwd(), "olt/scripts/src/mind/archival/completed/index.ts");
     return Bun.spawn(
       [
         "bun",
@@ -560,7 +560,7 @@ describe("Completed Tasks Ledger Engine", () => {
       },
       feedbackFile,
     );
-    const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback-queue.ts");
+    const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback/queue/index.ts");
     const child = Bun.spawn({
       cmd: [
         "bun",
@@ -769,7 +769,7 @@ describe("Completed Tasks Ledger Engine", () => {
     writeFileSync(defectsFile, '{"id":"remove-me","status":"open"}\n', "utf8");
     const start = join(testDir, "defect-prune-start");
     const completedModule = new URL(
-      "../../../olt/scripts/src/mind/completed-tasks.ts",
+      "../../../olt/scripts/src/mind/archival/completed/index.ts",
       import.meta.url,
     ).href;
     const loggerModule = new URL(
@@ -920,7 +920,7 @@ describe("Completed Tasks Ledger Engine", () => {
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   it("verifies completed tasks files contain zero any and zero suppressions", () => {
     const filesToAudit = [
-      join(process.cwd(), "olt/scripts/src/mind/completed-tasks.ts"),
+      join(process.cwd(), "olt/scripts/src/mind/archival/completed/index.ts"),
       join(process.cwd(), "tests/unit/mind/completed-tasks.test.ts"),
     ];
 

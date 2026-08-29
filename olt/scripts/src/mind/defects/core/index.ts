@@ -28,4 +28,6 @@ export {
   isRecord,
   normalizeText,
   categorizeDefect,
+  parseDefectLog,
+  serializeDefectLog,
 } from "./sanitizer.ts";

@@ -1,7 +1,4 @@
-import type {
-  LayoutShiftTrackerOptions,
-  ResolvedLayoutShiftTrackerOptions,
-} from "./types.ts";
+import type { LayoutShiftTrackerOptions, ResolvedLayoutShiftTrackerOptions } from "./types.ts";
 
 export const DEFAULT_LAYOUT_SHIFT_OPTIONS: ResolvedLayoutShiftTrackerOptions = {
   subpixelTolerance: 0.5,

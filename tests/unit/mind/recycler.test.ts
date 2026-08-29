@@ -11,8 +11,8 @@ import {
   appendFeedbackItem,
   writeFeedbackQueue,
   type FeedbackItem,
-} from "../../../olt/scripts/src/mind/feedback-queue.ts";
-import type { CandidateRecord } from "../../../olt/scripts/src/mind/gates.ts";
+} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+import type { CandidateRecord } from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assessRecyclingState,
@@ -28,8 +28,8 @@ import {
   transitionCompletenessCriticSignOff,
   transitionPulseCloseToWake,
   validateRolloverReadiness,
-} from "../../../olt/scripts/src/mind/recycler.ts";
-import type { RoundRecord } from "../../../olt/scripts/src/mind/rounds.ts";
+} from "../../../olt/scripts/src/mind/archival/recycler/index.ts";
+import type { RoundRecord } from "../../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";

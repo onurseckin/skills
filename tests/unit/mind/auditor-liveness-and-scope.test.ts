@@ -13,8 +13,8 @@ import {
   AuditorCursorStore,
   MindAuditorEngine,
   SkillAuditorEngine,
-} from "../../../olt/scripts/src/mind/cognitive-auditors.ts";
-import { readLastPulse, writeLastPulse } from "../../../olt/scripts/src/mind/last-pulse.ts";
+} from "../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
+import { readLastPulse, writeLastPulse } from "../../../olt/scripts/src/mind/lifecycle/index.ts";
 
 const roots: string[] = [];
 

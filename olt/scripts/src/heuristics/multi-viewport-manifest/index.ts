@@ -15,10 +15,7 @@ export { computePhysicalViewportMetrics } from "./metrics.ts";
 
 export { normalizePillar } from "./pillars.ts";
 
-export {
-  auditCriterionSemanticDepth,
-  auditManifestSemanticDepth,
-} from "./semantic-depth.ts";
+export { auditCriterionSemanticDepth, auditManifestSemanticDepth } from "./semantic-depth.ts";
 
 export { auditSingleViewportManifest } from "./single-verifier.ts";
 

@@ -1,5 +1,1 @@
-export {
-  loadRun,
-  loadRunProjection,
-  type LoadRunOptions,
-} from "./capsule/load.ts";
+export { loadRun, loadRunProjection, type LoadRunOptions } from "./capsule/load.ts";

@@ -19,11 +19,7 @@ export type {
   VisualMetricsReport,
 } from "./types.ts";
 
-export {
-  UI_DIR_PATTERNS,
-  UI_EXTENSIONS,
-  isUiScope,
-} from "./file-classifier.ts";
+export { UI_DIR_PATTERNS, UI_EXTENSIONS, isUiScope } from "./file-classifier.ts";
 
 export {
   METRIC_PATTERN,

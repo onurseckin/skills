@@ -11,7 +11,7 @@ import {
   resolveProfile,
   roleToProfile,
   type ProfileBindings,
-} from "../../../olt/scripts/src/mind/profiles.ts";
+} from "../../../olt/scripts/src/mind/roles/index.ts";
 
 describe("Mind abstract profiles and host degradation", () => {
   test("maps canonical roles to correct abstract profiles per PLAN §10 / PHASE-4 §3.4", () => {
@@ -176,7 +176,7 @@ describe("Mind abstract profiles and host degradation", () => {
   });
 
   test("enforces 0 hardcoded vendor model names in profiles.ts source", () => {
-    const profilesPath = join(import.meta.dir, "../../../olt/scripts/src/mind/profiles.ts");
+    const profilesPath = join(import.meta.dir, "../../../olt/scripts/src/mind/roles/index.ts");
     const content = readFileSync(profilesPath, "utf-8");
 
     const prohibitedVendorKeywords = [

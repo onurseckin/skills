@@ -4,8 +4,8 @@ import {
   TRUSTED_HOST_ASSURANCE,
 } from "../../core/contracts/index.ts";
 import { isAbsolute } from "node:path";
-import { canonicalCommandFingerprint } from "../../engine/runner/models/command-id";
-import { embeddedCommandIssues } from "../../engine/runner/models/command-shape";
+import { canonicalCommandFingerprint } from "../../engine/runner/models/command/command-id.ts";
+import { embeddedCommandIssues } from "../../engine/runner/models/command/command-shape.ts";
 import { gatePathBindingIssues } from "../../engine/runner/signing/gate-path-bindings";
 import type { GateRuntime, TaskRecord, WorkflowState } from "../types.ts";
 import { executableTaskRequirementIds } from "../authority/execution-state.ts";

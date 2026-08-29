@@ -6,7 +6,7 @@ import { mindAuditLiveCommand } from "../../../olt/scripts/src/cli/commands/mind
 import { skillAuditLiveCommand } from "../../../olt/scripts/src/cli/commands/skill-audit-live.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { AuditorCursorStore } from "../../../olt/scripts/src/mind/cognitive-auditors.ts";
+import { AuditorCursorStore } from "../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
 const MIN_MANIFEST_YAML = `role: mind
 tier: 0

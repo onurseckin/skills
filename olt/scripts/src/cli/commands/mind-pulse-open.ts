@@ -4,12 +4,16 @@ import { dirname, resolve } from "node:path";
 import type { AgentGrantRecord } from "../../core/contracts/index.ts";
 import type { JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { checkDailyBudget, parseNowMs, rollDayKeyIfNeeded } from "../../mind/budget.ts";
-import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/charter.ts";
+import {
+  checkDailyBudget,
+  parseNowMs,
+  rollDayKeyIfNeeded,
+} from "../../mind/lifecycle/budget/index.ts";
+import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/lifecycle/charter/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
-import { writeLastPulse } from "../../mind/last-pulse.ts";
+import { writeLastPulse } from "../../mind/lifecycle/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";

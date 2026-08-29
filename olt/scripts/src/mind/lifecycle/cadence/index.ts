@@ -11,7 +11,7 @@ export type {
   RolloverEvaluationOptions,
   CadenceStepInput,
   CadenceStepResult,
-} from "./cadence-chunk1.ts";
+} from "./types.ts";
 
 export {
   PERPETUAL_NON_STOPPING_CADENCE,
@@ -22,19 +22,15 @@ export {
   DEFAULT_CADENCE_GRACE_MS,
   createCadenceTrigger,
   enforceLineLimit,
-} from "./cadence-chunk1.ts";
+} from "./types.ts";
 
-export type {
-  MindCadenceEngineOptions,
-} from "./cadence-chunk2.ts";
+export type { MindCadenceEngineOptions } from "./state.ts";
 
 export {
   evaluateAntiIdleRollover,
   enforceInfiniteMindCadence,
   createInitialCadenceState,
   CadenceTriggerDispatcher,
-} from "./cadence-chunk2.ts";
+} from "./state.ts";
 
-export {
-  MindCadenceEngine,
-} from "./cadence-chunk3.ts";
+export { MindCadenceEngine } from "./rollover.ts";

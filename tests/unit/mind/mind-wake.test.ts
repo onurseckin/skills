@@ -11,7 +11,7 @@ import {
   formatDuration,
   formatNumber,
   formatShortSha,
-} from "../../../olt/scripts/src/mind/brief.ts";
+} from "../../../olt/scripts/src/mind/proposals/brief/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 

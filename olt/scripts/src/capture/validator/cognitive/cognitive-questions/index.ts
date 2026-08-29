@@ -1,11 +1,6 @@
-export {
-  evaluateCognitiveQuestions,
-} from "./evaluator.ts";
+export { evaluateCognitiveQuestions } from "./evaluator.ts";
 
-export {
-  COGNITIVE_BOILERPLATE,
-  validateCognitiveSemanticDepth,
-} from "./semantic-depth.ts";
+export { COGNITIVE_BOILERPLATE, validateCognitiveSemanticDepth } from "./semantic-depth.ts";
 
 export type {
   CognitiveSemanticDepthDefect,

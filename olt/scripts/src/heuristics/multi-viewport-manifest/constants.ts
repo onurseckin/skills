@@ -3,11 +3,7 @@
  * Canonical viewports, specifications, mandatory pillars, and boilerplate patterns
  */
 
-import type {
-  CanonicalViewport,
-  CanonicalViewportSpec,
-  MandatoryPillar,
-} from "./types.ts";
+import type { CanonicalViewport, CanonicalViewportSpec, MandatoryPillar } from "./types.ts";
 
 export const CANONICAL_VIEWPORTS: readonly CanonicalViewport[] = [
   "mobile",

@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import type { CommandPathBinding } from "../../../core/contracts/index";
 import { safeRepoPath } from "../../../core/paths";
 import { HarnessError } from "../../../core/errors/index";
-import { commandLayers } from "../models/command-wrappers";
+import { commandLayers } from "../models/command/command-wrappers.ts";
 import { pathOperand, pathRole } from "./gate-path-operands";
 import {
   captureOpenedPath,

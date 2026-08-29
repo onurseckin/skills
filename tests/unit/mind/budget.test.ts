@@ -21,8 +21,11 @@ import {
   parseNowMs,
   rollDayKeyIfNeeded,
   type BudgetOutcome,
-} from "../../../olt/scripts/src/mind/budget.ts";
-import { DEFAULT_MIND_BUDGET, parseCharter } from "../../../olt/scripts/src/mind/charter.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/budget/index.ts";
+import {
+  DEFAULT_MIND_BUDGET,
+  parseCharter,
+} from "../../../olt/scripts/src/mind/lifecycle/charter/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -687,11 +690,19 @@ describe("mind/budget - strict refusal ladder and outcomes per CONTRACTS §1.3 a
       });
 
       // Register an orchestrator agent to attempt round opening
-      agentRegisterCommand({
-        run,
-        agent: "orch-1",
-        role: "orchestrator",
-        host: "antigravity",
+      transact(run, "register-orch", "orch-registered", {}, (working) => {
+        working.agents = [
+          ...((working.agents as unknown[]) ?? []),
+          {
+            id: "orch-1",
+            role: "orchestrator",
+            host: "antigravity",
+            status: "active",
+            granted_at: new Date().toISOString(),
+            parent_agent_id: "mind-1",
+            parent_task_id: null,
+          },
+        ];
       });
 
       const before = loadRun(run, false);

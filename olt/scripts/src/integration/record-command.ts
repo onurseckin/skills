@@ -4,9 +4,12 @@ import type { JsonObject } from "../core/contracts/index.ts";
 import { readCanonicalObject } from "../core/json.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
-import { executePreparedCommand, prepareCommand } from "../engine/runner/models/run-command";
+import {
+  executePreparedCommand,
+  prepareCommand,
+} from "../engine/runner/models/execution/run-command.ts";
 import { resolveArtifactPath } from "../engine/runner/core/artifact-paths";
-import { MAX_COMMAND_RECORD_BYTES } from "../engine/runner/models/command-record-size";
+import { MAX_COMMAND_RECORD_BYTES } from "../engine/runner/models/command/command-record-size.ts";
 import {
   assertCommandActor,
   assertCommandArgv,

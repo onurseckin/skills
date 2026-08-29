@@ -9,7 +9,12 @@ import { sha256Bytes } from "../../../core/json.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
 import { captureAssurance, isCaptureMode } from "../integrity/assurance.ts";
 import { BUN_COMPATIBILITY } from "../recovery/bun-compatibility.ts";
-import { FORMAT_VERSION, MANIFEST_SCHEMA, RUN_ID_PATTERN, RUNTIME_VERSION } from "../layout/constants.ts";
+import {
+  FORMAT_VERSION,
+  MANIFEST_SCHEMA,
+  RUN_ID_PATTERN,
+  RUNTIME_VERSION,
+} from "../layout/constants.ts";
 import { initialCapsuleDirectories, renderLayoutReadme } from "../layout/layout.ts";
 import { initialState } from "./state.ts";
 import { writeIndex } from "./capsule-index.ts";

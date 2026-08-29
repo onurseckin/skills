@@ -1,8 +1,4 @@
-import type {
-  ReactiveEvent,
-  WatchdogEvent,
-  WatchdogEventListener,
-} from "./types.ts";
+import type { ReactiveEvent, WatchdogEvent, WatchdogEventListener } from "./types.ts";
 
 export class WatchdogEventEmitter {
   private readonly listeners = new Map<string, Set<WatchdogEventListener>>();

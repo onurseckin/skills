@@ -29,7 +29,7 @@ import {
   type HierarchyScalingResult,
   type MultiCoordinatorWavePartitionResult,
   type SmartTaskPlan,
-} from "../../../olt/scripts/src/mind/smart-task-manager.ts";
+} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 function createMockTask(
@@ -115,7 +115,7 @@ describe("Plan 91 Pillar 1: Elastic Dynamic Hierarchy Scaling & Anti-Serializati
     it("infers functional stacks and domains from file scopes accurately", () => {
       expect(inferStackOrDomain("src/ui/Button.tsx")).toBe("ui");
       expect(inferStackOrDomain("src/styles/theme.css")).toBe("ui");
-      expect(inferStackOrDomain("src/mind/smart-task-manager.ts")).toBe("core");
+      expect(inferStackOrDomain("src/mind/tasks/smart/index.ts")).toBe("core");
       expect(inferStackOrDomain("scripts/cli/commands/task-check.ts")).toBe("cli");
       expect(inferStackOrDomain("prisma/schema.prisma")).toBe("database");
       expect(inferStackOrDomain("scripts/engine.py")).toBe("python");
@@ -354,7 +354,7 @@ describe("Plan 91 Pillar 1: Elastic Dynamic Hierarchy Scaling & Anti-Serializati
       const modules = [
         "olt/scripts/src/graph/parallel-decoupler.ts",
         "olt/scripts/src/graph/topology.ts",
-        "olt/scripts/src/mind/smart-task-manager.ts",
+        "olt/scripts/src/mind/tasks/smart/index.ts",
         "olt/scripts/src/cli/commands/task-check.ts",
       ];
 

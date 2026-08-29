@@ -109,10 +109,7 @@ export function formatArgvLiteral(argv: readonly string[]): string {
   return JSON.stringify(argv);
 }
 
-export function formatHookRefusal(
-  rule: HookShellRefusalRule | string,
-  message: string,
-): string {
+export function formatHookRefusal(rule: HookShellRefusalRule | string, message: string): string {
   return `Refused hook [${rule}]: ${message}`;
 }
 
@@ -286,8 +283,4 @@ export async function executeShellAction(
   }
 }
 
-export {
-  AMBIENT_HOOK_ENVIRONMENT_KEYS,
-  buildHookChildEnvironment,
-  resolvePinnedHookCwd,
-};
+export { AMBIENT_HOOK_ENVIRONMENT_KEYS, buildHookChildEnvironment, resolvePinnedHookCwd };

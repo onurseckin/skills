@@ -22,15 +22,8 @@ export { DECISION_PROTOCOLS } from "./constants.ts";
 
 export { STANDING_CHECKLIST_DEFINITIONS } from "./checklists.ts";
 
-export {
-  computeScopeOverlaps,
-  parseTimeMs,
-} from "./protocols.ts";
+export { computeScopeOverlaps, parseTimeMs } from "./protocols.ts";
 
-export {
-  evaluateSupervisoryState,
-} from "./evaluator.ts";
+export { evaluateSupervisoryState } from "./evaluator.ts";
 
-export {
-  constructSupervisoryPersonaReminder,
-} from "./formatter.ts";
+export { constructSupervisoryPersonaReminder } from "./formatter.ts";

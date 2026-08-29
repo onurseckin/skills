@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import {
   appendFeedbackItem,
   readFeedbackQueue,
-} from "../../../olt/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   findSourceDefinition,
   getSourceDefinition,
@@ -15,7 +15,7 @@ import {
   mapSourceIdToDiscoveryCategory,
   MIND_DISCOVERY_SOURCES,
   validateQuiescentSources,
-} from "../../../olt/scripts/src/mind/sources.ts";
+} from "../../../olt/scripts/src/mind/memory/sources/index.ts";
 import {
   discoverTasks,
   formatTaskDiscoveryBrief,
@@ -28,12 +28,12 @@ import {
   scanTestCoverage,
   synthesizeTaskFromDiscovery,
   type DiscoveryItem,
-} from "../../../olt/scripts/src/mind/task-discovery.ts";
+} from "../../../olt/scripts/src/mind/tasks/discovery/index.ts";
 import {
   clearTaskQueue,
   enqueueTask,
   readTaskQueue,
-} from "../../../olt/scripts/src/mind/task-queue.ts";
+} from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
 
 describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Validation Loops", () => {
   afterAll(teardownWorkspace);
@@ -516,8 +516,8 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
   describe("10. Static Invariant Verification (0 any, 0 suppressions)", () => {
     it("proves 0 TypeScript any and 0 compiler/linter suppressions across write scope files", () => {
       const writeScopeFiles = [
-        join(process.cwd(), "olt/scripts/src/mind/task-discovery.ts"),
-        join(process.cwd(), "olt/scripts/src/mind/sources.ts"),
+        join(process.cwd(), "olt/scripts/src/mind/tasks/discovery/index.ts"),
+        join(process.cwd(), "olt/scripts/src/mind/memory/sources/index.ts"),
         join(process.cwd(), "tests/unit/mind/task-discovery.test.ts"),
       ];
 

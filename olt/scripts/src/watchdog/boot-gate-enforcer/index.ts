@@ -6,11 +6,7 @@ export {
   createSpawnedSubagentRecord,
 } from "./recorder.ts";
 export { auditBootGatesFromState } from "./state-auditor.ts";
-export {
-  assertBootGatesPassed,
-  auditFindings,
-  verifyBootGates,
-} from "./verifier.ts";
+export { assertBootGatesPassed, auditFindings, verifyBootGates } from "./verifier.ts";
 export type {
   BootGateVerificationResult,
   LiveCliProof,

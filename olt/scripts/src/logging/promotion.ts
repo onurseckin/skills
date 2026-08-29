@@ -27,9 +27,7 @@ import {
   withDefectLedgerTransaction,
 } from "./transaction.ts";
 
-let defectPromotionPersistenceHook:
-  | ((stage: DefectPromotionPersistenceStage) => void)
-  | undefined;
+let defectPromotionPersistenceHook: ((stage: DefectPromotionPersistenceStage) => void) | undefined;
 
 /** @internal deterministic crash seam for transaction recovery tests. */
 export function __setDefectPromotionPersistenceTestHook(

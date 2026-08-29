@@ -4,11 +4,15 @@ import { dirname } from "node:path";
 import type { AgentGrantRecord } from "../../core/contracts/index.ts";
 import type { JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { checkDailyBudget, parseNowMs, rollDayKeyIfNeeded } from "../../mind/budget.ts";
-import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/charter.ts";
-import { formatDuration } from "../../mind/brief.ts";
-import { writeLastPulse } from "../../mind/last-pulse.ts";
-import { parseDuration } from "../../mind/value.ts";
+import {
+  checkDailyBudget,
+  parseNowMs,
+  rollDayKeyIfNeeded,
+} from "../../mind/lifecycle/budget/index.ts";
+import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/lifecycle/charter/index.ts";
+import { formatDuration } from "../../mind/proposals/brief/index.ts";
+import { writeLastPulse } from "../../mind/lifecycle/pulse/index.ts";
+import { parseDuration } from "../../mind/memory/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
@@ -923,7 +927,7 @@ export async function mindPulseCommand(
   };
 }
 
-import { MindAutonomousDiscoveryEngine } from "../../mind/discovery-engine.ts";
+import { MindAutonomousDiscoveryEngine } from "../../mind/tasks/index.ts";
 
 export function formatPulseDirective(params: {
   readonly activeRuns: number;

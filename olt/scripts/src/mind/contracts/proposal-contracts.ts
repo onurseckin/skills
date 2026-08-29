@@ -11,7 +11,9 @@ export type ProposalStatus =
   | "failed"
   | "quarantined";
 
-export const VALID_PROPOSAL_TRANSITIONS: Readonly<Record<ProposalStatus, readonly ProposalStatus[]>> = {
+export const VALID_PROPOSAL_TRANSITIONS: Readonly<
+  Record<ProposalStatus, readonly ProposalStatus[]>
+> = {
   proposed: ["admitted", "declined", "quarantined"],
   admitted: ["in_progress", "declined", "quarantined"],
   in_progress: ["completed", "failed", "quarantined"],

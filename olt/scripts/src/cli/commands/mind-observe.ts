@@ -8,7 +8,7 @@ import {
   type EvidenceClass,
   type MindObservationRecord,
   type MindSourceId,
-} from "../../mind/sources.ts";
+} from "../../mind/memory/sources/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";

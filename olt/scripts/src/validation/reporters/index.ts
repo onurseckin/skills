@@ -10,7 +10,4 @@ export {
   type EvidenceCategory,
 } from "./evidence-paths.ts";
 
-export {
-  adaptIngestedVisualReport,
-  adaptScreenshotRecords,
-} from "./report-adapter.ts";
+export { adaptIngestedVisualReport, adaptScreenshotRecords } from "./report-adapter.ts";

@@ -17,15 +17,35 @@ export interface AntiMockMutationCheckOptions {
   readonly counterfactualRecords?: readonly CounterfactualCheckRecord[] | undefined;
 }
 
-const EMPTY_TEST_BODY_REGEX = /(?:test|it)\s*\(\s*["'`][^"'`]+["'`]\s*,\s*(?:async\s*)?\(\s*\)\s*=>\s*\{\s*\}\s*\)/gu;
+const EMPTY_TEST_BODY_REGEX =
+  /(?:test|it)\s*\(\s*["'`][^"'`]+["'`]\s*,\s*(?:async\s*)?\(\s*\)\s*=>\s*\{\s*\}\s*\)/gu;
 
 const TRIVIAL_ASSERTION_PATTERNS: readonly { readonly pattern: RegExp; readonly name: string }[] = [
-  { pattern: /expect\s*\(\s*true\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*true\s*\)/u, name: "expect(true).toBe(true)" },
-  { pattern: /expect\s*\(\s*true\s*\)\s*\.\s*toBeTruthy\s*\(\s*\)/u, name: "expect(true).toBeTruthy()" },
-  { pattern: /expect\s*\(\s*false\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*false\s*\)/u, name: "expect(false).toBe(false)" },
-  { pattern: /expect\s*\(\s*1\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*1\s*\)/u, name: "expect(1).toBe(1)" },
-  { pattern: /expect\s*\(\s*0\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*0\s*\)/u, name: "expect(0).toBe(0)" },
-  { pattern: /expect\s*\(\s*["'][^"']*["']\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*["'][^"']*["']\s*\)/u, name: "expect('literal').toBe('literal')" },
+  {
+    pattern: /expect\s*\(\s*true\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*true\s*\)/u,
+    name: "expect(true).toBe(true)",
+  },
+  {
+    pattern: /expect\s*\(\s*true\s*\)\s*\.\s*toBeTruthy\s*\(\s*\)/u,
+    name: "expect(true).toBeTruthy()",
+  },
+  {
+    pattern: /expect\s*\(\s*false\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*false\s*\)/u,
+    name: "expect(false).toBe(false)",
+  },
+  {
+    pattern: /expect\s*\(\s*1\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*1\s*\)/u,
+    name: "expect(1).toBe(1)",
+  },
+  {
+    pattern: /expect\s*\(\s*0\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*0\s*\)/u,
+    name: "expect(0).toBe(0)",
+  },
+  {
+    pattern:
+      /expect\s*\(\s*["'][^"']*["']\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*["'][^"']*["']\s*\)/u,
+    name: "expect('literal').toBe('literal')",
+  },
 ];
 
 function scanCodeForBannedMocks(filePath: string, content: string): DoctorDiagnosticFinding[] {
@@ -68,7 +88,9 @@ function scanCodeForBannedMocks(filePath: string, content: string): DoctorDiagno
  * Engine 3: checkAntiMockMutation
  * Validates against banned mocking patterns and counterfactual falsifiability.
  */
-export function checkAntiMockMutation(options: AntiMockMutationCheckOptions = {}): DoctorCheckEngineResult {
+export function checkAntiMockMutation(
+  options: AntiMockMutationCheckOptions = {},
+): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
 
   // 1. Scan in-memory file contents if provided
@@ -81,7 +103,9 @@ export function checkAntiMockMutation(options: AntiMockMutationCheckOptions = {}
   // 2. Scan target files if provided
   if (options.targetPaths) {
     for (const targetPath of options.targetPaths) {
-      const fullPath = options.repoRoot ? resolve(options.repoRoot, targetPath) : resolve(targetPath);
+      const fullPath = options.repoRoot
+        ? resolve(options.repoRoot, targetPath)
+        : resolve(targetPath);
       if (existsSync(fullPath)) {
         try {
           const stat = statSync(fullPath);

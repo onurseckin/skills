@@ -6,16 +6,8 @@ export {
   DEFAULT_HOOK_VERSION,
 } from "./constants.ts";
 
-export {
-  loadHookConfig,
-  saveHookConfig,
-} from "./io.ts";
+export { loadHookConfig, saveHookConfig } from "./io.ts";
 
-export {
-  parseHookConfig,
-  parseHookDefinition,
-} from "./parser.ts";
+export { parseHookConfig, parseHookDefinition } from "./parser.ts";
 
-export {
-  resolveHookConfigFile,
-} from "./resolver.ts";
+export { resolveHookConfigFile } from "./resolver.ts";

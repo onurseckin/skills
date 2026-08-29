@@ -6,15 +6,9 @@ import { validateSubpixelSnapping } from "./subpixel-snapping.ts";
 import { validateClsReservation } from "./cls-reservation.ts";
 import { validateSidebarLayout } from "./sidebar-layout.ts";
 
-export {
-  calculateApcaLightness,
-  validateApcaElement,
-} from "./apca.ts";
+export { calculateApcaLightness, validateApcaElement } from "./apca.ts";
 
-export {
-  validateTouchTargetDimensions,
-  validateTouchTargetClearance,
-} from "./touch-target.ts";
+export { validateTouchTargetDimensions, validateTouchTargetClearance } from "./touch-target.ts";
 
 export { validateConcentricRadius } from "./concentric-radius.ts";
 

@@ -13,7 +13,7 @@ import {
   smartTaskQueueReclaimCommand,
   smartTaskSynthesizeCommand,
 } from "../../../olt/scripts/src/cli/commands/smart-task-ops.ts";
-import { enqueueTasksBatch } from "../../../olt/scripts/src/mind/task-queue.ts";
+import { enqueueTasksBatch } from "../../../olt/scripts/src/mind/tasks/queue/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
@@ -170,7 +170,7 @@ describe("smart-task-ops CLI commands", () => {
         {
           id: "task-child",
           title: "Plugin System",
-          priority: "NORMAL",
+          priority: "MEDIUM",
           write_scope: ["src/plugins"],
           gate: "bun test",
           dependencies: ["task-parent"],

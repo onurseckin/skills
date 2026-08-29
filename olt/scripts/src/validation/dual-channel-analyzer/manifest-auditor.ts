@@ -242,14 +242,7 @@ export function validateCompanionManifestCriteria(
           } else if (requireSemanticDepth) {
             const obs = typeof qObj.observation === "string" ? qObj.observation.trim() : "";
             const ev = typeof qObj.evidence === "string" ? qObj.evidence.trim() : "";
-            auditCognitiveQuestionSemanticDepth(
-              obs,
-              ev,
-              qId,
-              manifestLabel,
-              viewport,
-              reportError,
-            );
+            auditCognitiveQuestionSemanticDepth(obs, ev, qId, manifestLabel, viewport, reportError);
           }
         }
       }

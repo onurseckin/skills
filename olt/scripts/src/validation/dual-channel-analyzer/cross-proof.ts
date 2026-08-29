@@ -7,11 +7,7 @@ import {
   validateCrossChannelConsistency,
 } from "../channels/cross-channel-consistency.ts";
 import type { FindingAdder } from "../channels/dom-violation-extractor.ts";
-import type {
-  PngDimensionRead,
-  PngVerificationResult,
-  ScreenshotMetadata,
-} from "./types.ts";
+import type { PngDimensionRead, PngVerificationResult, ScreenshotMetadata } from "./types.ts";
 
 export { validateCrossChannelConsistency };
 

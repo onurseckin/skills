@@ -3,7 +3,6 @@ import type {
   AggregatedDefect,
   DefectRecordInput,
   DefectResolutionProof,
-  LiveDeduplicationOptions,
 } from "../../../mind/defects/index.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
 import {
@@ -13,7 +12,7 @@ import {
   replaceDefectLogFileUnlocked,
   withDefectLogMutationLock,
 } from "../../../logging/defect-logger.ts";
-import type { DefectLogOptions } from "../../../logging/types.ts";
+import type { DefectLogOptions, LiveDeduplicationOptions } from "../../../logging/types.ts";
 import { resolveDefect } from "../../../mind/defects/index.ts";
 import { runFilePath } from "../capsule/paths.ts";
 

@@ -10,11 +10,7 @@ import {
   roleToTier,
   type ExecutionTier,
 } from "../thread-identifier.ts";
-import {
-  assertSafeSessionComponent,
-  assertSessionPid,
-  resolveGlobalSessionsDir,
-} from "./paths.ts";
+import { assertSafeSessionComponent, assertSessionPid, resolveGlobalSessionsDir } from "./paths.ts";
 import {
   atomicSessionWrite,
   formatSafeErrorCause,

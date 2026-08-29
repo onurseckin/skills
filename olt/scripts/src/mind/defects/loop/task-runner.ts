@@ -1,8 +1,5 @@
 import { categorizeDefect } from "../core/sanitizer.ts";
-import type {
-  AggregatedDefect,
-  DefectRecordInput,
-} from "../core/types.ts";
+import type { AggregatedDefect, DefectRecordInput } from "../core/types.ts";
 import type {
   DomainExecutionContext,
   DomainExecutionStatus,
@@ -14,7 +11,11 @@ export async function executeDomainTask<TResult>(params: {
   readonly task: DomainExecutionTask<TResult>;
   readonly domain: string;
   readonly defaultTimeoutMs: number;
-  readonly recordDefect: (input: DefectRecordInput, domain: string, taskId?: string) => AggregatedDefect;
+  readonly recordDefect: (
+    input: DefectRecordInput,
+    domain: string,
+    taskId?: string,
+  ) => AggregatedDefect;
 }): Promise<DomainTaskResult<TResult>> {
   const { task, domain, defaultTimeoutMs, recordDefect } = params;
   const capturedDefects: AggregatedDefect[] = [];
@@ -27,7 +28,9 @@ export async function executeDomainTask<TResult>(params: {
     timeoutHandle = setTimeout(() => {
       isTimedOut = true;
       abortController.abort();
-      reject(new Error(`Domain task ${task.id} in domain ${domain} timed out after ${timeoutMs}ms`));
+      reject(
+        new Error(`Domain task ${task.id} in domain ${domain} timed out after ${timeoutMs}ms`),
+      );
     }, timeoutMs);
   });
 

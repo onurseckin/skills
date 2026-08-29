@@ -9,7 +9,7 @@ import {
   createDefaultWatchdogStore,
   CANONICAL_WATCHDOG_FILE,
   DEFAULT_WATCHDOG_FILE,
-} from "../../../olt/scripts/src/mind/watchdog-manager.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("mind/watchdog-manager", () => {
@@ -41,7 +41,7 @@ describe("mind/watchdog-manager", () => {
     const store = {
       ...baseStore,
       watchdogs: [
-                {
+        {
           id: "watch-01",
           generation: 1,
           pulse_id: "pulse-01",

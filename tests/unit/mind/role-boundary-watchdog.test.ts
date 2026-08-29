@@ -16,7 +16,7 @@ import {
   isFullTestSuiteCommand,
   roleToTier,
   type RoleBoundaryAction,
-} from "../../../olt/scripts/src/mind/role-auditing.ts";
+} from "../../../olt/scripts/src/mind/auditing/roles/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("mind/role-auditing > RoleBoundaryWatchdog and Zero-Tolerance Invariants", () => {

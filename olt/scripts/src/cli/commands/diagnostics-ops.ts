@@ -132,10 +132,7 @@ function issueSectionLines(report: Record<string, unknown>): string[] {
   const cosmeticIssues = issueList(report.cosmetic_issues);
   const autoHealed = Array.isArray(report.auto_healed) ? issueList(report.auto_healed) : [];
   const warnings = Array.isArray(report.warnings) ? issueList(report.warnings) : [];
-  const infos = [
-    ...autoHealed.map((msg) => `Auto-Healed: ${msg}`),
-    ...cosmeticIssues,
-  ];
+  const infos = [...autoHealed.map((msg) => `Auto-Healed: ${msg}`), ...cosmeticIssues];
 
   return [
     ...(criticalIssues.length > 0 ? ["- **Critical Issues**:"] : ["- **Critical Issues**: none"]),
@@ -296,7 +293,8 @@ export async function healthCommand(flags: Flags): Promise<Record<string, unknow
   const { ALL_CHECKS, defaultLayout, runHealthCheck } = await import("../../health/index.ts");
   const { renderHealthReport } = await import("../../health/report.ts");
   type HealthCheckId = (typeof ALL_CHECKS)[number];
-  const isCheckId = (name: string): name is HealthCheckId => (ALL_CHECKS as readonly string[]).includes(name);
+  const isCheckId = (name: string): name is HealthCheckId =>
+    (ALL_CHECKS as readonly string[]).includes(name);
 
   const scripts = existingDirectory(flags, "scripts");
   const consumer = existingDirectory(flags, "consumer");

@@ -1,11 +1,7 @@
 /**
  * Time Telemetry Health Validator
  */
-import type {
-  HarnessActionTimeRecord,
-  TimeAnomaly,
-  TimeTelemetryHealthResult,
-} from "./types.ts";
+import type { HarnessActionTimeRecord, TimeAnomaly, TimeTelemetryHealthResult } from "./types.ts";
 
 /**
  * Validates the behavioral health and temporal consistency of telemetry records.

@@ -1,1 +1,6 @@
-export * from "./events/transaction.ts";
+export {
+  type IdempotentTransactionResult,
+  type IdempotentTransactionIdentity,
+  transact,
+  transactIdempotent,
+} from "./events/transaction.ts";

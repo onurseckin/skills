@@ -18,7 +18,7 @@ import {
   type AdmissionGateVerdict,
   type CandidateRecord,
   type GateEvaluationContext,
-} from "../../../olt/scripts/src/mind/gates.ts";
+} from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";

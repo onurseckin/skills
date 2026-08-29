@@ -23,7 +23,7 @@ import {
   type MemoryDocument,
   type MemoryIndex,
   type MemoryKind,
-} from "../../../olt/scripts/src/mind/memory.ts";
+} from "../../../olt/scripts/src/mind/memory/core/index.ts";
 
 const tempRoots: string[] = [];
 
@@ -138,7 +138,7 @@ charter:
         id: "task-1-memory",
         label: "Implement memory search CLI",
         status: "completed",
-        write_scope: ["olt/scripts/src/mind/memory.ts"],
+        write_scope: ["olt/scripts/src/mind/memory/core/index.ts"],
       },
     ],
     candidates: [

@@ -164,8 +164,16 @@ describe("doctor diagnostics and gitignore policy", () => {
 
     await writeFile(join(repo, "SKILL.md"), "---\nname: olt\ndescription: test\n---\n", "utf-8");
     await mkdir(join(repo, "scripts", "src", "core", "config"), { recursive: true });
-    await writeFile(join(repo, "scripts", "package.json"), JSON.stringify({ name: "@local/olt-runtime" }), "utf-8");
-    await writeFile(join(repo, "scripts", "src", "core", "config", "constants.ts"), 'export const RUNTIME_VERSION = "0.2.0";\n', "utf-8");
+    await writeFile(
+      join(repo, "scripts", "package.json"),
+      JSON.stringify({ name: "@local/olt-runtime" }),
+      "utf-8",
+    );
+    await writeFile(
+      join(repo, "scripts", "src", "core", "config", "constants.ts"),
+      'export const RUNTIME_VERSION = "0.2.0";\n',
+      "utf-8",
+    );
     const report = await runDoctor(runRoot, {
       installation: {
         source: repo,

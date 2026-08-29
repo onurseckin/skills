@@ -1,8 +1,5 @@
 import { HarnessError } from "../../../core/errors/index";
-import {
-  trackerDependencies,
-  type TrackerDependencies,
-} from "./descendant-tracker-dependencies";
+import { trackerDependencies, type TrackerDependencies } from "./descendant-tracker-dependencies";
 import { MIN_POLL_DELAY_MS, nextPollDelayMs } from "./descendant-poll-policy";
 import {
   sameProcessIdentity,

@@ -5,7 +5,11 @@ import type { JsonValue } from "../../core/contracts/index.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { DEFAULT_MIND_BUDGET, parseCharter, type ParsedCharter } from "../../mind/charter.ts";
+import {
+  DEFAULT_MIND_BUDGET,
+  parseCharter,
+  type ParsedCharter,
+} from "../../mind/lifecycle/charter/index.ts";
 import { initRun, loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { enforceLineLimit, mindInitNextActions, nextActionsBlock } from "../formatters/index.ts";

@@ -14,7 +14,7 @@ import {
   MindCadenceEngine,
   PERPETUAL_NON_STOPPING_CADENCE,
   ZERO_SLEEP_DELAY_MS,
-} from "../../../olt/scripts/src/mind/cadence.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/cadence/index.ts";
 import {
   applyIntervalJitter,
   calculateBackoffWithStrategy,
@@ -33,7 +33,7 @@ import {
   generateTrailingValueSeries,
   parseIntervalDuration,
   projectIntervalProgression,
-} from "../../../olt/scripts/src/mind/interval.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/interval/index.ts";
 import {
   analyzeLivenessTrends,
   calculateTimeToStaleMs,
@@ -50,7 +50,7 @@ import {
   formatLivenessBrief,
   getExitCodeForStatus,
   resolvePulseFilePath,
-} from "../../../olt/scripts/src/mind/liveness.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/liveness/index.ts";
 
 describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
   describe("1. Infinite Cadence Loop & Perpetual Invariants", () => {
@@ -790,9 +790,9 @@ describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
 
   describe("6. Static Invariants (Zero-Any TypeScript & No Suppressions)", () => {
     const filesToInspect = [
-      "olt/scripts/src/mind/cadence.ts",
-      "olt/scripts/src/mind/interval.ts",
-      "olt/scripts/src/mind/liveness.ts",
+      "olt/scripts/src/mind/lifecycle/cadence/index.ts",
+      "olt/scripts/src/mind/lifecycle/interval/index.ts",
+      "olt/scripts/src/mind/lifecycle/liveness/index.ts",
       "tests/unit/mind/cadence-rollover.test.ts",
     ];
 

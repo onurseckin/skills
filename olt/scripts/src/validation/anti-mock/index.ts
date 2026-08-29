@@ -22,12 +22,6 @@ export type {
   TestAssertionSummary,
 } from "./anti-mock-types.ts";
 
-export {
-  checkAssertionFloor,
-} from "./assertion-floor.ts";
+export { checkAssertionFloor } from "./assertion-floor.ts";
 
-export {
-  AntiMockEngine,
-  evaluateAntiMock,
-  formatAntiMockReport,
-} from "./anti-mock-engine.ts";
+export { AntiMockEngine, evaluateAntiMock, formatAntiMockReport } from "./anti-mock-engine.ts";

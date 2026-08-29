@@ -10,7 +10,7 @@ import {
   writeFeedbackQueue,
   appendFeedbackItem,
   type FeedbackItem,
-} from "../../../olt/scripts/src/mind/feedback-queue.ts";
+} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   CANONICAL_COMPLETED_TASKS_FILE,
   CANONICAL_DEFECTS_FILE,
@@ -28,12 +28,12 @@ import {
   readCompletedTasksLedger,
   writeCompletedTasksLedger,
   type CompletedTaskRecord,
-} from "../../../olt/scripts/src/mind/completed-tasks.ts";
+} from "../../../olt/scripts/src/mind/archival/completed/index.ts";
 import {
   CANONICAL_WATCHDOG_FILE,
   resolveCanonicalWatchdogStorePath,
   resolveWatchdogStorePath,
-} from "../../../olt/scripts/src/mind/watchdog-manager.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/index.ts";
 import {
   CANONICAL_COGNITIVE_MEMORY_FILE,
   resolveCanonicalCognitiveMemoryPath,
@@ -42,7 +42,7 @@ import {
   writeCognitiveMemory,
   updateCognitiveMemory,
   type CognitiveMemoryState,
-} from "../../../olt/scripts/src/mind/smart-task-manager.ts";
+} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () => {

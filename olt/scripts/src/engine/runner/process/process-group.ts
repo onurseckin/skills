@@ -1,5 +1,5 @@
 import { HarnessError } from "../../../core/errors/index";
-import { readProcessIdentity } from "./process-identity";
+import { readProcessIdentity } from "./process-identity.ts";
 
 type Kill = (pid: number, signal: NodeJS.Signals) => boolean;
 

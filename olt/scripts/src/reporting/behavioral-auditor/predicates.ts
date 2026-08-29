@@ -78,7 +78,11 @@ export function isSubagentRole(role: string): boolean {
   );
 }
 
-export function inferRole(actorId: string, roleMap: Map<string, string>, state: JsonObject): string {
+export function inferRole(
+  actorId: string,
+  roleMap: Map<string, string>,
+  state: JsonObject,
+): string {
   if (roleMap.has(actorId)) return roleMap.get(actorId)!;
   if (isAgentRole(actorId)) return actorId;
 

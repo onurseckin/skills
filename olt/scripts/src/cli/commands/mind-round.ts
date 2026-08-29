@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import type { AgentGrantRecord } from "../../core/contracts/index.ts";
 import type { JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { DEFAULT_MIND_BUDGET } from "../../mind/charter.ts";
+import { DEFAULT_MIND_BUDGET } from "../../mind/lifecycle/charter/index.ts";
 import {
   closeRoundInState,
   formatMindRoundCloseBrief,
@@ -19,7 +19,7 @@ import {
   validateRoundCloseArmingRail,
   type RoundRecord,
   type RoundResult,
-} from "../../mind/rounds.ts";
+} from "../../mind/lifecycle/rounds/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";

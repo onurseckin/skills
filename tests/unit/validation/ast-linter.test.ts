@@ -160,8 +160,14 @@ describe("AST Linter & Anti-Mock Verification", () => {
       const filesToAudit = [
         resolve(import.meta.dir, "../../../olt/scripts/src/validation/ast-linter.ts"),
         resolve(import.meta.dir, "../../../olt/scripts/src/validation/ast-linter/types.ts"),
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/ast-linter/assertion-detectors.ts"),
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/ast-linter/mock-detectors.ts"),
+        resolve(
+          import.meta.dir,
+          "../../../olt/scripts/src/validation/ast-linter/assertion-detectors.ts",
+        ),
+        resolve(
+          import.meta.dir,
+          "../../../olt/scripts/src/validation/ast-linter/mock-detectors.ts",
+        ),
         resolve(import.meta.dir, "../../../olt/scripts/src/validation/ast-linter/visitor.ts"),
         resolve(import.meta.dir, "../../../olt/scripts/src/validation/ast-linter/index.ts"),
         resolve(import.meta.dir, "ast-linter.test.ts"),

@@ -22,14 +22,8 @@ export { buildProcessDiagnostics, trimChunks } from "./diagnostics.ts";
 export { defaultKillProcessTree, executeSignalEscalation } from "./kill-tree.ts";
 export { evaluateProcessLiveness } from "./liveness.ts";
 export { monitorSubprocessLoop } from "./monitor.ts";
-export {
-  ProcessTimeoutWatchdog,
-  createProcessTimeoutWatchdog,
-} from "./runner.ts";
-export {
-  HierarchicalStallProbe,
-  createHierarchicalStallProbe,
-} from "./probe.ts";
+export { ProcessTimeoutWatchdog, createProcessTimeoutWatchdog } from "./runner.ts";
+export { HierarchicalStallProbe, createHierarchicalStallProbe } from "./probe.ts";
 
 export type {
   BunSubprocess,

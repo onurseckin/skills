@@ -7,13 +7,13 @@ import {
   scanCharterGaps,
   scanCodeQuality,
   scanTestCoverage,
-} from "../../../olt/scripts/src/mind/smart-task-manager.ts";
+} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
 import {
   readFeedbackQueue,
   writeFeedbackQueue,
   type FeedbackItem,
-} from "../../../olt/scripts/src/mind/feedback-queue.ts";
-import { readCompletedTasksLedger } from "../../../olt/scripts/src/mind/completed-tasks.ts";
+} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+import { readCompletedTasksLedger } from "../../../olt/scripts/src/mind/archival/completed/index.ts";
 
 describe("Mind Backlog Drainage & Autonomous Creative Overload", () => {
   const tmpDir = join(require("os").tmpdir(), "tmp", "test-backlog-drainage");

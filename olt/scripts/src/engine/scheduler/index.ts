@@ -6,12 +6,11 @@ export {
   formatWorkSpanBadge,
   type SchedulingMetrics,
 } from "./topology/metrics.ts";
+export { computeWorkSpanMetrics, computeResourceDisjointness } from "./topology/dynamic-metrics.ts";
 export {
-  computeWorkSpanMetrics,
-  computeResourceDisjointness,
   type WorkSpanMetrics,
   type ResourceDisjointnessMetrics,
-} from "./topology/dynamic-metrics.ts";
+} from "./topology/dynamic-types.ts";
 export {
   resourceConflict,
   scopeConflict,
@@ -25,15 +24,13 @@ export {
   partitionOrchestratorDomains,
   calculateValidatorAllocations,
   calculateCriticConcurrency,
+} from "./topology/dynamic-allocations.ts";
+export { synthesizeDynamicTopology } from "./topology/dynamic-synthesize.ts";
+export {
   type OrchestratorPartition,
   type CrossOrchestratorBarrier,
   type ValidatorDemand,
-} from "./topology/dynamic-allocations.ts";
-export {
-  synthesizeDynamicTopology,
   type DynamicTopologySynthesis,
-} from "./topology/dynamic-synthesize.ts";
-export {
   type DynamicTopologyWave,
   type DynamicTopologyOptions,
 } from "./topology/dynamic-types.ts";
@@ -48,6 +45,7 @@ export {
 } from "./conflict/decision-tree.ts";
 export {
   SchedulerEngine,
+  createSchedulerEngine,
   auditDoctorGate,
   auditGraphHealth,
   auditSupervisory5PointHealth,
@@ -68,7 +66,6 @@ export {
   probeWorkSpanParallelizationHealth,
   recoverStaleTasks,
   type AgentRegistryAccuracyAudit,
-  type BlockedTaskInfo,
   type CircularDependenciesProbeResult,
   type DoctorErrorResolutionAudit,
   type GateCoverageProbeResult,
@@ -77,9 +74,6 @@ export {
   type OrphanedTasksProbeResult,
   type PlanEnhancementAudit,
   type RoleBoundaryAdherenceAudit,
-  type ScheduledTaskDispatch,
-  type ScheduledWaveResult,
-  type SchedulerEngineOptions,
   type ScopeCollisionHazard,
   type ScopeCollisionProbeResult,
   type StaleLeaseInfo,
@@ -92,6 +86,10 @@ export {
   type TaskRecoveryRecord,
   type TaskRecoveryResult,
   type WorkSpanHealthAudit,
+  type ScheduledTaskDispatch,
+  type BlockedTaskInfo,
+  type ScheduledWaveResult,
+  type SchedulerEngineOptions,
 } from "./core/index.ts";
 export {
   computeReceiptHash,
@@ -139,7 +137,7 @@ export {
   type CompiledRepairDag,
   type RouteCriticFeedbackOptions,
   type RouteCriticFeedbackResult,
-} from "./diagnostics/critic-feedback.ts";
+} from "./diagnostics/critic/index.ts";
 export {
   classifyTaskDomain,
   derivePrimaryValidatorDomain,
@@ -162,20 +160,18 @@ export {
   type TaskDomain,
 } from "./dispatch/multi-domain-dispatch.ts";
 export { SkillAuditorPolicy, MetaAuditorPolicy } from "./diagnostics/skill-auditor-policy.ts";
-export {
-  scheduleUnlimitedDepthDAG,
-} from "./topology/unlimited-core.ts";
+export { scheduleUnlimitedDepthDAG } from "./topology/unlimited/unlimited-core.ts";
 export {
   pairValidatorsStrictly,
   assertUnboundedConcurrencySafety,
   validateDepthInvariants,
-} from "./topology/unlimited-pairing.ts";
+} from "./topology/unlimited/unlimited-pairing.ts";
 export {
   taskRecord,
   conflicting,
   derivedRationale,
   computeCriticalPathDepth,
-} from "./topology/unlimited-utils.ts";
+} from "./topology/unlimited/unlimited-utils.ts";
 export {
   type UnlimitedDepthSchedulerConfig,
   type ValidatorPairingRecord,
@@ -185,4 +181,4 @@ export {
   type DepthInvariantValidationResult,
   type PairValidatorsOptions,
   type UnlimitedDepthScheduleResult,
-} from "./topology/unlimited-types.ts";
+} from "./topology/unlimited/unlimited-types.ts";

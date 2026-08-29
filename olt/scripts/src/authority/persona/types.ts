@@ -1,8 +1,4 @@
-import type {
-  CognitivePillar,
-  CognitivePillarId,
-  SupervisoryRole,
-} from "../pillars.ts";
+import type { CognitivePillar, CognitivePillarId, SupervisoryRole } from "../pillars.ts";
 
 export type { CognitivePillar, CognitivePillarId, SupervisoryRole };
 

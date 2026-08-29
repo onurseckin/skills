@@ -1,9 +1,5 @@
 import { loadWatchdogStore, parseTimestamp, timestampMilliseconds } from "./store.ts";
-import type {
-  VerifyWatchdogResult,
-  WatchdogRecord,
-  WatchdogViolation,
-} from "./types.ts";
+import type { VerifyWatchdogResult, WatchdogRecord, WatchdogViolation } from "./types.ts";
 
 export function verifyWatchdogLifecycle(
   options: { now?: string | number | Date } = {},

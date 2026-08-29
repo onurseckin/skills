@@ -5,7 +5,12 @@ import type {
   HookDefinition,
   LifecycleEvent,
 } from "../types.ts";
-import { DEFAULT_HOOK_CONFIG, DEFAULT_HOOK_SCHEMA, DEFAULT_HOOK_VERSION, DEFAULT_DARWIN_SOUND_PATH } from "./constants.ts";
+import {
+  DEFAULT_HOOK_CONFIG,
+  DEFAULT_HOOK_SCHEMA,
+  DEFAULT_HOOK_VERSION,
+  DEFAULT_DARWIN_SOUND_PATH,
+} from "./constants.ts";
 
 export function parseHookDefinition(raw: unknown, defaultId: string): HookDefinition | null {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {

@@ -12,16 +12,19 @@ export const PATH_SAFETY_AND_INTEGRITY_ENTRIES: readonly ExplainEntry[] = [
         "A path argument resolves outside the boundary the command declared: repositoryRoot, runRoot, or a task's own write scope/ownership.",
         "Pass a path that already resolves inside the declared root. A bare '.' as a gate path operand is refused outright, not silently narrowed - name the actual path or glob instead of the whole tree.",
         [
-          example("engine/runner/policy.ts", "cwd must be within repositoryRoot"),
+          example("engine/runner/core/policy.ts", "cwd must be within repositoryRoot"),
           example(
-            "engine/runner/artifact-paths.ts",
+            "engine/runner/core/artifact-paths.ts",
             "command artifact escapes run root: ${absolutePath}",
           ),
           example(
             "workflow/submission/validate-report.ts",
             "report changed a path outside task ownership",
           ),
-          example("engine/runner/gate-path-operands.ts", "gate path operand is unsafe: ${operand}"),
+          example(
+            "engine/runner/signing/gate-path-operands.ts",
+            "gate path operand is unsafe: ${operand}",
+          ),
         ],
       ),
       cause(
@@ -30,7 +33,7 @@ export const PATH_SAFETY_AND_INTEGRITY_ENTRIES: readonly ExplainEntry[] = [
         "A path or one of its ancestors is a symbolic link where the harness requires a real file or directory.",
         "Replace the symlink with the real file/directory, or point the flag at the real target directly - these checks use lstat, so a symlink is refused even when it resolves somewhere valid.",
         [
-          example("engine/runner/gate-path-file.ts", "gate path must not be symbolic"),
+          example("engine/runner/signing/gate-path-file.ts", "gate path must not be symbolic"),
           example("installer/install-roots.ts", "home must be a real directory, not a symlink"),
           example(
             "workflow/lease/write-scope-hash.ts",
@@ -45,8 +48,11 @@ export const PATH_SAFETY_AND_INTEGRITY_ENTRIES: readonly ExplainEntry[] = [
         "A path was re-stat'd mid-operation and no longer matches the identity captured when the operation started - a TOCTOU guard, not a one-time check.",
         "Something else mutated the path between the check and the read: another agent, a build step, a concurrent install. Stop the concurrent writer and rerun.",
         [
-          example("engine/runner/gate-path-file.ts", "gate path changed while opening"),
-          example("platform/index.ts", "run root identity changed while locked: ${runRoot}"),
+          example("engine/runner/signing/gate-path-file.ts", "gate path changed while opening"),
+          example(
+            "platform/process/run-lock.ts",
+            "run root identity changed while locked: ${runRoot}",
+          ),
         ],
       ),
       cause(
@@ -56,7 +62,7 @@ export const PATH_SAFETY_AND_INTEGRITY_ENTRIES: readonly ExplainEntry[] = [
         "Fix the PATH the gate command inherits so every entry is an absolute directory; a relative PATH entry is refused outright, not merely skipped.",
         [
           example(
-            "engine/runner/gate-environment.ts",
+            "engine/runner/signing/gate-environment.ts",
             "gate PATH must contain only absolute directories",
           ),
         ],
@@ -68,11 +74,11 @@ export const PATH_SAFETY_AND_INTEGRITY_ENTRIES: readonly ExplainEntry[] = [
         "Point --gate at a command whose executable actually exists (on PATH or as an absolute path) and carries the executable bit.",
         [
           example(
-            "engine/runner/gate-path-binding-verify.ts",
+            "engine/runner/signing/gate-path-binding-verify.ts",
             "gate executable is not resolvable: ${argument}",
           ),
           example(
-            "engine/runner/gate-path-bindings.ts",
+            "engine/runner/signing/gate-path-bindings.ts",
             "resolved gate executable is not executable",
           ),
         ],
@@ -133,7 +139,7 @@ export const PATH_SAFETY_AND_INTEGRITY_ENTRIES: readonly ExplainEntry[] = [
             "workflow/agents/ledger.ts",
             "state.agents must be an array of agent grant records",
           ),
-          example("engine/store/capsule-index.ts", "${INDEX_FILE} is not a capsule index"),
+          example("engine/store/capsule/capsule-index.ts", "${INDEX_FILE} is not a capsule index"),
         ],
       ),
       cause(
@@ -143,7 +149,7 @@ export const PATH_SAFETY_AND_INTEGRITY_ENTRIES: readonly ExplainEntry[] = [
         "Internal consistency guard between a command's durable record and what's about to run, usually surfacing after a crash mid-command. Run doctor / recover rather than replaying the same command by hand.",
         [
           example(
-            "engine/runner/execute-internal-command.ts",
+            "engine/runner/core/execute-internal-command.ts",
             "prepared command does not match its durable intent",
           ),
           example(

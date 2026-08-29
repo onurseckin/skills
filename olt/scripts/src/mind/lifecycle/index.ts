@@ -104,7 +104,6 @@ export {
   MIND_NEVER_IDLE_MANTRA,
   MIN_COGNITIVE_SCORE,
   PROACTIVE_QUESTION_CATALOG,
-  HyperCognitionEngine,
   computeCognitiveScoreVector,
   createHyperCognitionEngine,
   evaluateCadenceHyperPulse,
@@ -124,6 +123,7 @@ export type {
   CognitiveScoreVector,
   DimensionalWeights,
   DiscoveredSubtask,
+  HyperCognitionEngine,
   HyperCognitionEngineOptions,
   HyperCognitivePulseReport,
   HyperPulseInput,
@@ -168,3 +168,56 @@ export type {
   StrategicCandidateAdmissionResult,
   StrategicCandidateEvaluation,
 } from "./purpose/index.ts";
+
+export {
+  writeLastPulse,
+  readLastPulse,
+  reconcileLastPulse,
+  resolveLastPulsePath,
+  pulseProducedActivity,
+  DEFAULT_CONSECUTIVE_CRASH_THRESHOLD,
+  reclaimDeadPulse,
+  type LastPulseRecord,
+  type ReclaimDeadPulseResult,
+} from "./pulse/index.ts";
+
+export {
+  executeMindObserve,
+  formatMindObserveBrief,
+  resolveCanonicalObservationsPath,
+  resolveObservationsPath,
+} from "./observe/index.ts";
+
+export {
+  enforceIsolatedTaskDispatch,
+  deployHierarchy,
+  atomicAdmissionToDispatch,
+} from "./deploy/index.ts";
+
+export {
+  mindTaskDiscoveryCommand,
+  mindSelfEvolveCommand,
+  mindStrategicCognitionCommand,
+  MIND_TASK_DISCOVERY_COMMAND_SPEC,
+  MIND_SELF_EVOLVE_COMMAND_SPEC,
+  MIND_STRATEGIC_COGNITION_COMMAND_SPEC,
+} from "../core/index.ts";
+
+export {
+  CANONICAL_WATCHDOG_FILE,
+  DEFAULT_WATCHDOG_FILE,
+  resolveCanonicalWatchdogStorePath,
+  resolveWatchdogStorePath,
+  loadMindWatchdogStore,
+  saveMindWatchdogStore,
+  auditProcessLiveness,
+  createDefaultWatchdogStore,
+} from "./watchdog/index.ts";
+
+export {
+  executeWatchdogStatus,
+  executeWatchdogCleanup,
+  executeWatchdogPhaseCleanup,
+  executeWatchdogVerify,
+  executeWatchdogProbe,
+} from "./watchdog/index.ts";

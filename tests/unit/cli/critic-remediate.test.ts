@@ -12,6 +12,7 @@ import type {
 } from "../../../olt/scripts/src/workflow/types.ts";
 import { commandRecord, repositoryBinding } from "../workflow/test-port.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
+import { registerSessionGrant } from "../../../olt/scripts/src/authority/session-registry.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 const roots: string[] = [];
@@ -102,6 +103,13 @@ async function reviewedFindingsRun(
     state.completion_critic_history = [criticAssignment];
     state.completion_review = review;
     state.completion_reviews = [review];
+  });
+
+  registerSessionGrant({
+    runRoot,
+    agentId: "coordinator",
+    role: "coordinator",
+    pid: process.pid,
   });
 
   return { run: runRoot, reviewSha: review.review_sha256, findingId: finding.id };

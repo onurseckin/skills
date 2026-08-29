@@ -11,11 +11,7 @@ export type {
   SidebarPosition,
 } from "./types.ts";
 
-export {
-  CANONICAL_VIEWPORTS,
-  DEFAULT_PRESETS,
-  DEFAULT_SIDEBAR_LAYOUT,
-} from "./default-presets.ts";
+export { CANONICAL_VIEWPORTS, DEFAULT_PRESETS, DEFAULT_SIDEBAR_LAYOUT } from "./default-presets.ts";
 
 export { parseYamlOrJson } from "./yaml-parser.ts";
 

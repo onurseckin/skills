@@ -1,4 +1,1 @@
-export {
-  adaptIngestedVisualReport,
-  adaptScreenshotRecords,
-} from "./reporters/report-adapter.ts";
+export { adaptIngestedVisualReport, adaptScreenshotRecords } from "./reporters/report-adapter.ts";

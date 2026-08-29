@@ -170,13 +170,20 @@ export function formatImplementerValidatorTracking(task: SugiyamaNode): string[]
   const pushesCount = task.pushes ?? 0;
   const probesCount = task.probes ?? (task.probeRound !== undefined ? task.probeRound : 0);
   const attemptsCount = task.attempt ?? 1;
-  const inLeaseRepairsCount = task.inLeaseRepairs ?? (task.round !== undefined && task.round > 1 ? task.round - 1 : 0);
+  const inLeaseRepairsCount =
+    task.inLeaseRepairs ?? (task.round !== undefined && task.round > 1 ? task.round - 1 : 0);
 
-  lines.push(`Tracking: Pushes: ${pushesCount}/5 | Probes: ${probesCount}/5 | Attempts: ${attemptsCount}/3 | In-Lease Repairs: ${inLeaseRepairsCount}/3`);
+  lines.push(
+    `Tracking: Pushes: ${pushesCount}/5 | Probes: ${probesCount}/5 | Attempts: ${attemptsCount}/3 | In-Lease Repairs: ${inLeaseRepairsCount}/3`,
+  );
 
   if (task.coordinatorId) {
-    const pctStr = task.coordinatorOwnershipPct !== undefined ? ` (${task.coordinatorOwnershipPct}%)` : "";
-    const leaseTimerStr = task.activeLeaseTimerSeconds !== undefined ? ` | Active Lease Timer: ${task.activeLeaseTimerSeconds}s` : "";
+    const pctStr =
+      task.coordinatorOwnershipPct !== undefined ? ` (${task.coordinatorOwnershipPct}%)` : "";
+    const leaseTimerStr =
+      task.activeLeaseTimerSeconds !== undefined
+        ? ` | Active Lease Timer: ${task.activeLeaseTimerSeconds}s`
+        : "";
     lines.push(`Coordinator: ${task.coordinatorId}${pctStr}${leaseTimerStr}`);
   }
 

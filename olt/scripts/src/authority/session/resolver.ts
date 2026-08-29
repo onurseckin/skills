@@ -12,14 +12,8 @@ import {
   roleToTier,
   type ExecutionTier,
 } from "../thread-identifier.ts";
-import {
-  resolveGlobalSessionsDir,
-  resolveSessionRepositoryRoot,
-} from "./paths.ts";
-import {
-  readPersistedSession,
-  secureReadSession,
-} from "./io.ts";
+import { resolveGlobalSessionsDir, resolveSessionRepositoryRoot } from "./paths.ts";
+import { readPersistedSession, secureReadSession } from "./io.ts";
 import type { ResolveSessionOptions, SessionIdentity } from "./types.ts";
 
 export function resolveActiveSession(options: ResolveSessionOptions = {}): SessionIdentity | null {
@@ -88,15 +82,21 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   while (true) {
     const sessionPath = join(currentDir, ".session.json");
     const identityPath = join(currentDir, ".olt-identity.json");
-    const session = readPersistedSession(sessionPath, "workspace_directory_session", readSessionFile);
-    const parsed = session ?? readPersistedSession(identityPath, "workspace_directory_session", readSessionFile);
+    const session = readPersistedSession(
+      sessionPath,
+      "workspace_directory_session",
+      readSessionFile,
+    );
+    const parsed =
+      session ?? readPersistedSession(identityPath, "workspace_directory_session", readSessionFile);
 
     if (parsed) {
       mechanisms.push("workspace_directory_session");
       if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
       if (!detectedRole && typeof parsed.role === "string") detectedRole = parsed.role;
       if (!detectedToken && typeof parsed.token === "string") detectedToken = parsed.token;
-      if (typeof parsed.can_execute_shell === "boolean") detectedCanShell = parsed.can_execute_shell;
+      if (typeof parsed.can_execute_shell === "boolean")
+        detectedCanShell = parsed.can_execute_shell;
       if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
       if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
       if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
@@ -116,14 +116,24 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
       isAbsolute(trimmed) || isInsideCapsule(trimmed)
         ? resolve(trimmed)
         : join(resolveCapsulesDir(repoRoot), trimmed);
-    const runtimeSessionPath = join(resolvedRunRoot, "runtime", "sessions", `${options.explicitActor.trim()}.json`);
-    const parsed = readPersistedSession(runtimeSessionPath, "capsule_runtime_session", readSessionFile);
+    const runtimeSessionPath = join(
+      resolvedRunRoot,
+      "runtime",
+      "sessions",
+      `${options.explicitActor.trim()}.json`,
+    );
+    const parsed = readPersistedSession(
+      runtimeSessionPath,
+      "capsule_runtime_session",
+      readSessionFile,
+    );
     if (parsed) {
       mechanisms.push("capsule_runtime_session");
       if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
       if (!detectedRole && typeof parsed.role === "string") detectedRole = parsed.role;
       if (!detectedToken && typeof parsed.token === "string") detectedToken = parsed.token;
-      if (typeof parsed.can_execute_shell === "boolean") detectedCanShell = parsed.can_execute_shell;
+      if (typeof parsed.can_execute_shell === "boolean")
+        detectedCanShell = parsed.can_execute_shell;
       if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
       if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
       if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
@@ -135,7 +145,8 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     return null;
   }
 
-  const finalRole = detectedRole ?? (detectedAgentId ? agentIdToRole(detectedAgentId) : null) ?? "implementer";
+  const finalRole =
+    detectedRole ?? (detectedAgentId ? agentIdToRole(detectedAgentId) : null) ?? "implementer";
   const finalAgentId = detectedAgentId ?? `agent-${finalRole}`;
   const finalTier = (roleToTier(finalRole) ?? agentIdToTier(finalAgentId) ?? 3) as ExecutionTier;
   const finalToken = detectedToken ?? options.explicitToken ?? "unauthenticated";
@@ -186,7 +197,9 @@ export function isSessionLedgerBacked(
         : join(resolveCapsulesDir(repoRoot), trimmed);
     if (!existsSync(join(resolved, "state.json"))) return false;
     const ledger = readAgentLedger(loadRun(resolved).state);
-    return ledger.some((entry) => entry.id === agentId && entry.status === "active" && entry.role === role);
+    return ledger.some(
+      (entry) => entry.id === agentId && entry.status === "active" && entry.role === role,
+    );
   } catch {
     return false;
   }
@@ -227,7 +240,9 @@ export function autoDeriveCallerIdentity(
 
   const explicit = options.explicitActor?.trim();
   const fallbackRole = explicit ? (agentIdToRole(explicit) ?? explicit) : "mind";
-  const fallbackTier = (roleToTier(fallbackRole) ?? (explicit ? agentIdToTier(explicit) : 0) ?? 0) as ExecutionTier;
+  const fallbackTier = (roleToTier(fallbackRole) ??
+    (explicit ? agentIdToTier(explicit) : 0) ??
+    0) as ExecutionTier;
 
   return {
     actor: explicit ?? "mind",

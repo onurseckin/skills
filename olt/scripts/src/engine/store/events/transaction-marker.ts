@@ -126,7 +126,10 @@ export function transactionRecoveryStatus(runRoot: string): TransactionPhase | u
   return readTransactionMarker(runRoot)?.phase;
 }
 
-export function writeTransactionMarker(runRoot: string, marker: TransactionMarker): TransactionMarker {
+export function writeTransactionMarker(
+  runRoot: string,
+  marker: TransactionMarker,
+): TransactionMarker {
   assertMarkerPath(markerPath(runRoot));
   atomicWriteJson(markerPath(runRoot), marker, 0o600);
   return marker;

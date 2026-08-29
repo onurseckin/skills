@@ -1,12 +1,23 @@
-import { DynamicTopologyOptions, DynamicTopologySynthesis, computeWorkSpanMetrics, partitionOrchestratorDomains, DynamicTopologyWave, CrossOrchestratorBarrier, calculateValidatorAllocations, computeResourceDisjointness, calculateCriticConcurrency } from "..";
+import type {
+  DynamicTopologyOptions,
+  DynamicTopologySynthesis,
+  DynamicTopologyWave,
+  CrossOrchestratorBarrier,
+} from "./dynamic-types.ts";
+import { computeWorkSpanMetrics, computeResourceDisjointness } from "./dynamic-metrics.ts";
+import {
+  partitionOrchestratorDomains,
+  calculateValidatorAllocations,
+  calculateCriticConcurrency,
+} from "./dynamic-allocations.ts";
 import { TopologyDecision, TopologyReason } from "../../../core/contracts";
 import { HarnessError } from "../../../core/errors";
 import { dependencyMap } from "../../../graph/dependency-map";
 import { isInteger } from "../../../requirements/predicates";
-import { isRecord } from "../../store/layout/layout-json.ts";
+import { isRecord } from "../../../requirements/predicates.ts";
 import { ScheduledTask } from "../conflict/rank";
 import { proposeBatch } from "../dispatch/propose-batch.ts";
-import { taskRecord, conflicting, derivedRationale } from "./unlimited-utils";
+import { taskRecord, conflicting, derivedRationale } from "./unlimited/unlimited-utils.ts";
 
 export function synthesizeDynamicTopology(
   state: unknown,

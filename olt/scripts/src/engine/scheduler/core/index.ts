@@ -1,16 +1,11 @@
-export {
-  auditGraphHealth,
-  auditSupervisoryWatchdog,
-  recoverStaleTasks,
-} from "./state.ts";
+export { probeOrphanedTasks, probeStaleLeases } from "./tasks/tasks.ts";
 
-export {
-  probeDoctorErrorResolution,
-} from "./loop-doctor.ts";
+export { probeCircularDependencies } from "./tasks/tasks-circular.ts";
+export { auditGraphHealth, auditSupervisoryWatchdog, recoverStaleTasks } from "./state.ts";
 
-export {
-  probeGateCoverageViolations,
-} from "./tasks-coverage.ts";
+export { probeDoctorErrorResolution } from "./loop-doctor.ts";
+
+export { probeGateCoverageViolations } from "./tasks/tasks-coverage.ts";
 
 export {
   probePlanEnhancementNeeds,
@@ -35,7 +30,7 @@ export {
   NOOP_COMMANDS,
   probeScopeCollisionHazards,
   probeWorkSpanParallelizationHealth,
-} from "./tasks-advanced.ts";
+} from "./tasks/tasks-advanced.ts";
 
 export {
   determineTopLeader,
@@ -58,14 +53,14 @@ export type {
   GraphHealthAuditReport,
   SupervisoryWatchdogAuditReport,
   WorkSpanHealthAudit,
+  SupervisoryTopLeader,
   PlanEnhancementAudit,
   AgentRegistryAccuracyAudit,
   RoleBoundaryAdherenceAudit,
   DoctorErrorResolutionAudit,
-  SupervisoryTopLeader,
   Supervisory5PointHealthReport,
-  SupervisoryProbeDispatchResult,
   Supervisory5PointOptions,
+  SupervisoryProbeDispatchResult,
   TaskRecoveryRecord,
   TaskRecoveryResult,
   ScheduledTaskDispatch,
@@ -74,16 +69,4 @@ export type {
   SchedulerEngineOptions,
 } from "./types.ts";
 
-export {
-  SchedulerEngine,
-} from "./core-engine-class.ts";
-
-export {
-  boundedEvidenceCause,
-  probeOrphanedTasks,
-  probeStaleLeases,
-} from "./tasks.ts";
-
-export {
-  probeCircularDependencies,
-} from "./tasks-circular.ts";
+export { SchedulerEngine, createSchedulerEngine } from "./core-engine-class.ts";

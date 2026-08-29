@@ -8,10 +8,7 @@ import type {
   EvaluatedCriterion,
   PillarValidationResult,
 } from "../../capture/validator/types.ts";
-import {
-  MANDATORY_PILLARS,
-  MINIMUM_SCREENSHOT_BYTES,
-} from "./constants.ts";
+import { MANDATORY_PILLARS, MINIMUM_SCREENSHOT_BYTES } from "./constants.ts";
 import { computePhysicalViewportMetrics } from "./metrics.ts";
 import { normalizePillar } from "./pillars.ts";
 import { auditCriterionSemanticDepth } from "./semantic-depth.ts";

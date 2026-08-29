@@ -6,7 +6,7 @@ import {
   mapFeedbackCategoryToDefectCategory,
   parsePushbackMarkdown,
   ingestPushbacks,
-} from "../../../olt/scripts/src/mind/pushbacks.ts";
+} from "../../../olt/scripts/src/mind/feedback/pushbacks/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("mind/pushbacks", () => {
@@ -174,7 +174,8 @@ More details about how the system violated boundaries.`;
           id: "fb-001",
           title: "Role restriction violated",
           content: "Validator attempted implementer actions",
-          category: "ROLE_CONFUSION",
+          category: "AGENT_CONTRACTS",
+          priority: "USER_DIRECTIVE",
           status: "PENDING",
           timestamp: "2026-08-24T00:00:00Z",
           source: "audit",
@@ -183,7 +184,8 @@ More details about how the system violated boundaries.`;
           id: "fb-002",
           title: "Admitted planning bug",
           content: "Plan generation stalled",
-          category: "PLANNING_DRIFT",
+          category: "ARCHITECTURE",
+          priority: "USER_DIRECTIVE",
           status: "ADMITTED",
           candidate_id: "cand-existing-002",
           timestamp: "2026-08-24T00:01:00Z",
@@ -193,8 +195,9 @@ More details about how the system violated boundaries.`;
           id: "fb-003",
           title: "Resolved bug",
           content: "Already resolved",
-          category: "CODE_DEFECT",
-          status: "RESOLVED",
+          category: "CORE_ENGINE",
+          priority: "USER_DIRECTIVE",
+          status: "COMPLETED",
           timestamp: "2026-08-24T00:02:00Z",
           source: "audit",
         }),

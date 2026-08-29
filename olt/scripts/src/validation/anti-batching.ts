@@ -7,7 +7,7 @@ import type {
   AntiBatchingValidationReport,
   ScopeCollision,
   SmartWavePlanResult,
-} from "../mind/smart-task-manager.ts";
+} from "../mind/tasks/smart/index.ts";
 import {
   assertAntiBatchingRule,
   validateAntiBatchingIsolation,
@@ -18,7 +18,7 @@ import {
   detectScopeCollisions,
   planEnhance,
   synthesizeAutonomousTasks,
-} from "../mind/smart-task-manager.ts";
+} from "../mind/tasks/smart/index.ts";
 import {
   assertDefectCandidatesIsolated,
   assertOneToOneImplementerValidatorIsolation,

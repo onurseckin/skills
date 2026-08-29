@@ -2,7 +2,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { initRun, loadIndex, indexFreshness } from "../../../../olt/scripts/src/engine/store/index.ts";
+import {
+  initRun,
+  loadIndex,
+  indexFreshness,
+} from "../../../../olt/scripts/src/engine/store/index.ts";
 import { ingestScreenshots } from "../../../../olt/scripts/src/reporting/screenshot-ingestion.ts";
 import { runDoctor, versionAtLeast } from "../../../../olt/scripts/src/reporting/doctor.ts";
 

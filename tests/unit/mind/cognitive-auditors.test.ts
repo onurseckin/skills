@@ -7,7 +7,7 @@ import {
   MindAuditorEngine,
   SkillAuditorEngine,
   type AuditorCursor,
-} from "../../../olt/scripts/src/mind/cognitive-auditors.ts";
+} from "../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
 const MIN_MANIFEST_YAML = `role: mind
 tier: 0

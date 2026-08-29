@@ -8,7 +8,7 @@ import {
   MIND_HARD_ZEROS,
   MIND_PROACTIVE_BANDWIDTH_ACTIVITIES,
   verifyMindRoleStrategicInvariants,
-} from "../../../olt/scripts/src/mind/strategic-purpose.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/purpose/index.ts";
 
 describe("mind role contract & strategic purpose codification", () => {
   test("mind role is registered with tier 0", () => {

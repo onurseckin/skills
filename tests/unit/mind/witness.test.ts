@@ -14,7 +14,7 @@ import {
   readCommandOutput,
   resolveWitnessCommand,
   verifyDefectWitness,
-} from "../../../olt/scripts/src/mind/witness.ts";
+} from "../../../olt/scripts/src/mind/auditing/witness/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";

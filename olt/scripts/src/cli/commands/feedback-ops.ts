@@ -7,7 +7,7 @@ import {
   type FeedbackItem,
   type FeedbackPriority,
   type FeedbackStatus,
-} from "../../mind/feedback-queue.ts";
+} from "../../mind/feedback/queue/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 

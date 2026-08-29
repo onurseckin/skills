@@ -3,7 +3,7 @@ import {
   categorizeDefect,
   type DefectCategory,
   type DefectEntry,
-} from "../../../olt/scripts/src/mind/defects.ts";
+} from "../../../olt/scripts/src/mind/defects/index.ts";
 
 describe("Diagnostics Defect Categorization Engine", () => {
   describe("Explicit Category Preservation & Aliasing", () => {

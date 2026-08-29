@@ -9,7 +9,7 @@ import {
   validateAuditAnswers,
   type AuditAnswer,
   type AuditVerdict,
-} from "../../mind/audit.ts";
+} from "../../mind/auditing/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";

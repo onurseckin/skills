@@ -117,9 +117,15 @@ describe("Mutation Gate & AST Mutators", () => {
   describe("5. Mutation Gate Runner Execution", () => {
     it("passes when all mutants are killed by test runner", async () => {
       const source = `export function add(a: number, b: number): number { return a + b; }`;
-      const testRunner: MutationTestRunner = async (mutatedSource: string, mutant: MutantRecord) => {
+      const testRunner: MutationTestRunner = async (
+        mutatedSource: string,
+        mutant: MutantRecord,
+      ) => {
         // Test suite kills the mutant if arithmetic operator was mutated from + to -
-        if (mutant.mutationType === "arithmetic_mutation" || mutant.mutationType === "flip_return_value") {
+        if (
+          mutant.mutationType === "arithmetic_mutation" ||
+          mutant.mutationType === "flip_return_value"
+        ) {
           return { passed: false, exitCode: 1, error: "Assertion failed" };
         }
         return { passed: false, exitCode: 1 };
@@ -135,7 +141,10 @@ describe("Mutation Gate & AST Mutators", () => {
 
     it("fails when any mutant survives", async () => {
       const source = `export function isPositive(n: number): boolean { return n > 0; }`;
-      const testRunner: MutationTestRunner = async (_mutatedSource: string, mutant: MutantRecord) => {
+      const testRunner: MutationTestRunner = async (
+        _mutatedSource: string,
+        mutant: MutantRecord,
+      ) => {
         // Test runner fails to detect return value flip (mutant survives)
         if (mutant.mutationType === "flip_return_value") {
           return { passed: true, exitCode: 0 };
@@ -164,8 +173,14 @@ describe("Mutation Gate & AST Mutators", () => {
       const filesToAudit = [
         resolve(import.meta.dir, "../../../olt/scripts/src/validation/mutation-gate.ts"),
         resolve(import.meta.dir, "../../../olt/scripts/src/validation/mutation-gate/types.ts"),
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/mutation-gate/candidate-visitors.ts"),
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/mutation-gate/ast-mutators.ts"),
+        resolve(
+          import.meta.dir,
+          "../../../olt/scripts/src/validation/mutation-gate/candidate-visitors.ts",
+        ),
+        resolve(
+          import.meta.dir,
+          "../../../olt/scripts/src/validation/mutation-gate/ast-mutators.ts",
+        ),
         resolve(import.meta.dir, "../../../olt/scripts/src/validation/mutation-gate/runner.ts"),
         resolve(import.meta.dir, "../../../olt/scripts/src/validation/mutation-gate/index.ts"),
         resolve(import.meta.dir, "mutation-gate.test.ts"),

@@ -1,2 +1,19 @@
-export { TRUSTED_HOST_ASSURANCE, trustedHostEvidence, trustedHostLimitations, sameTrustedHostRepositoryBinding } from "./trusted-host.js";
-export { type AgentRole, type PacketMetadata, type ResponsibilityChecklistItem, type CapsuleMemoryPointer, type ReviewPayloadGating, type ReviewPacketPayload, AGENT_ROLES, isAgentRole, isCognitiveValidatorRole, isMechanicValidatorRole, isAnyValidatorRole } from "./packets.js";
+export {
+  TRUSTED_HOST_ASSURANCE,
+  trustedHostEvidence,
+  trustedHostLimitations,
+  sameTrustedHostRepositoryBinding,
+} from "./trusted-host.ts";
+export {
+  type AgentRole,
+  type PacketMetadata,
+  type ResponsibilityChecklistItem,
+  type CapsuleMemoryPointer,
+  type ReviewPayloadGating,
+  type ReviewPacketPayload,
+  AGENT_ROLES,
+  isAgentRole,
+  isCognitiveValidatorRole,
+  isMechanicValidatorRole,
+  isAnyValidatorRole,
+} from "./packets.ts";

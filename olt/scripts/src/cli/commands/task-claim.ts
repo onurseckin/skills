@@ -256,7 +256,7 @@ export async function taskClaimCommand(
   });
 
   try {
-    const { buildExactAnchorBriefing } = await import("../../mind/briefing-builder.ts");
+    const { buildExactAnchorBriefing } = await import("../../mind/proposals/builder/index.ts");
     const briefing = buildExactAnchorBriefing({
       taskId: task.id,
       label: typeof task.label === "string" ? task.label : task.id,
