@@ -87,7 +87,6 @@ function releaseFeedbackQueueFlock(descriptor: number): void {
   releaseFlock(descriptor);
 }
 
-/** Runs one feedback-ledger mutation under stable root and parent inode locks. */
 export function withFeedbackQueueTransaction<T>(
   customPath: string | undefined,
   mutation: (items: readonly FeedbackItem[]) => {

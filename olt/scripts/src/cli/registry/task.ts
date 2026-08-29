@@ -180,10 +180,8 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     "Hand a live lease back without waiting for it to expire.",
     "The voluntary counterpart to `recover`. Requires the live lease token; the task returns to retry_ready, or to changes_requested when the released attempt was a repair. A branched task cannot be released - collect or abandon the branch first.",
     [
-      requiredFlag("run", "string", "Capsule run root."),
-      requiredFlag("task", "string", "Leased task id."),
-      requiredFlag("agent", "string", "Agent holding the lease."),
-      requiredFlag("token", "string", "Lease bearer token."),
+      requiredFlag("run", "string", "Capsule run root."), requiredFlag("task", "string", "Leased task id."),
+      requiredFlag("agent", "string", "Agent holding the lease."), requiredFlag("token", "string", "Lease bearer token."),
     ],
     taskReleaseCommand,
     DEFAULT_EXIT_CODES,
