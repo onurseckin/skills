@@ -1,5 +1,10 @@
 import { DEFAULT_PLANNING_POLICY, DEFAULT_REVIEW_PROTOCOL_POLICY } from "../generator/index.ts";
-import type { PlanningPolicy, ReviewProtocolPolicy, TestRunnerPolicy } from "../types/index.ts";
+import type {
+  LifecycleHooksConfig,
+  PlanningPolicy,
+  ReviewProtocolPolicy,
+  TestRunnerPolicy,
+} from "../types/index.ts";
 import {
   assertAllowedKeys,
   integrity,
@@ -32,6 +37,14 @@ const PLANNING_KEYS: ReadonlySet<string> = new Set([
   "max_task_duration_minutes",
   "parallel_subagent_sla_rule",
   "stage_on_subdomain_completion",
+]);
+
+const HOOKS_KEYS: ReadonlySet<string> = new Set([
+  "on_phase_completion",
+  "on_release_push",
+  "on_task_completion",
+  "on_wave_completion",
+  "on_error",
 ]);
 
 export function parseTestRunner(raw: unknown, p: string): TestRunnerPolicy {
@@ -168,4 +181,61 @@ export function parseCommandList(
     parsed.push(norm);
   }
   return parsed;
+}
+
+function parseHookCommandList(arr: unknown, p: string): readonly string[] {
+  if (!Array.isArray(arr)) integrity(p, "must be an array of non-empty strings");
+  const parsed: string[] = [];
+  for (const [i, c] of (arr as unknown[]).entries()) {
+    parsed.push(reqString(c, `${p}[${i}]`));
+  }
+  return parsed;
+}
+
+export function parseHooks(raw: unknown, p: string): LifecycleHooksConfig {
+  if (!isRecord(raw)) integrity(p, "must be an object");
+  assertAllowedKeys(raw, HOOKS_KEYS, p);
+
+  return {
+    ...(raw["on_phase_completion"] !== undefined
+      ? {
+          on_phase_completion: parseHookCommandList(
+            raw["on_phase_completion"],
+            `${p}.on_phase_completion`,
+          ),
+        }
+      : {}),
+    ...(raw["on_release_push"] !== undefined
+      ? {
+          on_release_push: parseHookCommandList(
+            raw["on_release_push"],
+            `${p}.on_release_push`,
+          ),
+        }
+      : {}),
+    ...(raw["on_task_completion"] !== undefined
+      ? {
+          on_task_completion: parseHookCommandList(
+            raw["on_task_completion"],
+            `${p}.on_task_completion`,
+          ),
+        }
+      : {}),
+    ...(raw["on_wave_completion"] !== undefined
+      ? {
+          on_wave_completion: parseHookCommandList(
+            raw["on_wave_completion"],
+            `${p}.on_wave_completion`,
+          ),
+        }
+      : {}),
+    ...(raw["on_error"] !== undefined
+      ? {
+          on_error: parseHookCommandList(
+            raw["on_error"],
+            `${p}.on_error`,
+          ),
+        }
+      : {}),
+  };
 }

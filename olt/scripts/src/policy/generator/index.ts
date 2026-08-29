@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { findRepoRoot, resolveSkillHomeRepo } from "../../core/index.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
+  type LifecycleHooksConfig,
   type PlanningPolicy,
   type RepoPolicy,
   type ReviewProtocolPolicy,
@@ -30,6 +31,12 @@ export const DEFAULT_PLANNING_POLICY: PlanningPolicy = {
   reject_shallow_umbrella_compression: true,
 };
 
+export const DEFAULT_LIFECYCLE_HOOKS_CONFIG: LifecycleHooksConfig = {
+  on_phase_completion: [
+    "bun ~/.agents/skills/olt/scripts/harness.ts notify:phase --phase '{phase_name}' --sha '{commit_sha}' --duration '{duration_formatted}' --tasks {task_count}",
+  ],
+};
+
 export function generateCanonicalDefaultPolicy(root: string): RepoPolicy {
   const ecosystem = detectRepoEcosystem(root);
   const common = {
@@ -40,6 +47,7 @@ export function generateCanonicalDefaultPolicy(root: string): RepoPolicy {
     planning: { ...DEFAULT_PLANNING_POLICY },
     agents: buildDefaultAgents(),
     docker_environment: buildDefaultDocker(),
+    hooks: { ...DEFAULT_LIFECYCLE_HOOKS_CONFIG },
   };
 
   switch (ecosystem) {

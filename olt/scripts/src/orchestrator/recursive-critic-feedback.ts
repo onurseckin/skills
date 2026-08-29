@@ -1,6 +1,5 @@
 import { MAX_REPAIR_ROUNDS } from "../core/config/contracts.ts";
 import type { Finding } from "../core/contracts/index.ts";
-import { HarnessError } from "../core/errors/index.ts";
 import {
   routeCriticReviewFindings,
   type RouteCriticFindingsOptions,
@@ -9,7 +8,7 @@ import {
 } from "../workflow/completion/critic-feedback-loop.ts";
 import type { CompletionReview } from "../workflow/completion/types.ts";
 import type { TransactionPort, WorkflowState } from "../workflow/types.ts";
-import { normalizeFindingToDetail, synthesizeNextRoundPrompt } from "./defect-synthesizer.ts";
+import { synthesizeNextRoundPrompt } from "./defect-synthesizer.ts";
 import type { DefectSynthesis, RoundGateResult } from "./types.ts";
 
 export interface TaskRepairInstruction {

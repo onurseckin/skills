@@ -91,13 +91,13 @@ export function generatePlanMarkdown(
     lines.push("");
     lines.push("- **Owner / Tier:** Tier 3 Implementer + Independent Validator");
     lines.push(`- **Backlog Ref:** \`${item.id}\``);
-    lines.push(`- **Write Scope:** \`olt/scripts/src/${cluster.domain}/${item.id}.ts\``);
-    lines.push(`- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\``);
+    lines.push(`- **Write Scope:** \`olt/scripts/src/${cluster.domain}/\``);
+    lines.push(`- **Read-Only Scope:** \`olt/scripts/src/\``);
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
     lines.push(`  - Implement: ${itemDetail}`);
-    lines.push("  - Zero TypeScript `any`, zero compiler suppressions.");
+    lines.push("  - Zero TypeScript `any`, zero compiler suppressions, zero comments in .ts files.");
     lines.push(
-      `  - Command: \`bun test tests/unit/${cluster.domain}/${item.id}.test.ts\` (100% PASS).`,
+      `  - Command: \`bun test tests/unit/${cluster.domain}/\` (100% PASS).`,
     );
     lines.push("");
     taskIndex++;
@@ -124,13 +124,13 @@ export function generatePlanMarkdown(
     lines.push("");
     lines.push("- **Owner / Tier:** Tier 3 Implementer + Independent Validator");
     lines.push(`- **Defect Ref:** \`${defect.id}\` (Error Code: \`${errCode}\`)`);
-    lines.push(`- **Write Scope:** \`olt/scripts/src/${cluster.domain}/${defect.id}.ts\``);
-    lines.push(`- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\``);
+    lines.push(`- **Write Scope:** \`olt/scripts/src/${cluster.domain}/\``);
+    lines.push(`- **Read-Only Scope:** \`olt/scripts/src/\``);
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
     lines.push(`  - Remediate: ${defectDetail}`);
-    lines.push("  - Zero TypeScript `any`, zero compiler suppressions.");
+    lines.push("  - Zero TypeScript `any`, zero compiler suppressions, zero comments in .ts files.");
     lines.push(
-      `  - Command: \`bun test tests/unit/${cluster.domain}/${defect.id}.test.ts\` (100% PASS).`,
+      `  - Command: \`bun test tests/unit/${cluster.domain}/\` (100% PASS).`,
     );
     lines.push("");
     taskIndex++;
@@ -150,14 +150,14 @@ export function generatePlanMarkdown(
   lines.push("");
   lines.push("## 5. Exhaustive Traceability Matrix");
   lines.push("");
-  lines.push("| Defect / Backlog ID | Resolved By Task | Verification Test File |");
+  lines.push("| Defect / Backlog ID | Resolved By Task | Verification Target |");
   lines.push("| :--- | :--- | :--- |");
 
   for (const itemId of cluster.backlog_item_ids) {
-    lines.push(`| \`${itemId}\` | Task 1.x | \`tests/unit/${cluster.domain}/${itemId}.test.ts\` |`);
+    lines.push(`| \`${itemId}\` | Task 1.x | \`tests/unit/${cluster.domain}/\` |`);
   }
   for (const defId of cluster.defect_ids) {
-    lines.push(`| \`${defId}\` | Task 1.x | \`tests/unit/${cluster.domain}/${defId}.test.ts\` |`);
+    lines.push(`| \`${defId}\` | Task 1.x | \`tests/unit/${cluster.domain}/\` |`);
   }
 
   lines.push("");

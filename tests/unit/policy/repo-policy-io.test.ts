@@ -1,6 +1,6 @@
 import { describe, expect, test, afterAll } from "bun:test";
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
@@ -53,20 +53,17 @@ describe("Repo Policy I/O, Flocking & Generator (Task 1.2)", () => {
     expect(policy.docker_environment!.test_user_personas.admin.role).toBe("admin");
   });
 
-  test("resolves fallback between .olt/policy.json and olt/policy.json", () => {
-    const dir = join(scratchBase, "fallback-test");
+  test("strictly governs .olt/policy.json and ignores legacy olt/policy.json fallback", () => {
+    const dir = join(scratchBase, "no-fallback-test");
     mkdirSync(join(dir, "olt"), { recursive: true });
     const legacyPath = join(dir, "olt", "policy.json");
-    const samplePolicy = generateDefaultRepoPolicy(dir);
+    const samplePolicy = { ...generateDefaultRepoPolicy(dir), read_scope_neighborhood_depth: 99 };
     writeFileSync(legacyPath, JSON.stringify(samplePolicy), "utf-8");
 
-    // Should load from legacy olt/policy.json when .olt/policy.json does not exist
     const inspection = inspectRepoPolicy(dir);
-    expect(inspection.status).toBe("valid_custom");
-    expect(inspection.filePath).toBe(legacyPath);
-    expect(loadRepoPolicy(dir).ecosystem).toBe(samplePolicy.ecosystem);
+    expect(inspection.status).toBe("auto_detected");
+    expect(loadRepoPolicy(dir).read_scope_neighborhood_depth).not.toBe(99);
 
-    // When .olt/policy.json is created, it takes precedence
     mkdirSync(join(dir, ".olt"), { recursive: true });
     const primaryPath = join(dir, ".olt", "policy.json");
     const updatedPolicy = { ...samplePolicy, read_scope_neighborhood_depth: 7 };
@@ -80,8 +77,8 @@ describe("Repo Policy I/O, Flocking & Generator (Task 1.2)", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  test("atomic save mirrors .olt/policy.json to olt/policy.json when olt dir exists", () => {
-    const dir = join(scratchBase, "mirror-sync-test");
+  test("atomic save writes strictly to .olt/policy.json and does not mirror to olt/policy.json", () => {
+    const dir = join(scratchBase, "no-mirror-test");
     mkdirSync(join(dir, ".olt"), { recursive: true });
     mkdirSync(join(dir, "olt"), { recursive: true });
 
@@ -89,11 +86,7 @@ describe("Repo Policy I/O, Flocking & Generator (Task 1.2)", () => {
     const savedPath = saveRepoPolicy(policy, dir);
     expect(savedPath).toBe(join(dir, ".olt", "policy.json"));
     expect(existsSync(join(dir, ".olt", "policy.json"))).toBe(true);
-    expect(existsSync(join(dir, "olt", "policy.json"))).toBe(true);
-
-    const mirroredContent = readFileSync(join(dir, "olt", "policy.json"), "utf-8");
-    const primaryContent = readFileSync(join(dir, ".olt", "policy.json"), "utf-8");
-    expect(mirroredContent).toBe(primaryContent);
+    expect(existsSync(join(dir, "olt", "policy.json"))).toBe(false);
 
     rmSync(dir, { recursive: true, force: true });
   });

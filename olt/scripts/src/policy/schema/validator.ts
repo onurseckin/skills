@@ -33,6 +33,7 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
     "planning",
     "agents",
     "docker_environment",
+    "hooks",
   ]);
   for (const k of Object.keys(rec)) {
     if (!allowedKeys.has(k))

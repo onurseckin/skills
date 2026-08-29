@@ -48,10 +48,29 @@ export {
   mapPriority,
   mapFeedbackPriorityToTaskPriority,
   proposeCandidateEvolutions,
+  scanDefectRemediations,
+  mapDefectToDiscoveryItem,
+  mapDefectSeverityToPriority,
+  mapDefectSeverityToDiscoverySeverity,
+  mapCategoryToIssueType,
+  filterOpenDefects,
+  isDefectEntry,
 } from "./scanners/index.ts";
 
-export { synthesizeTaskFromDiscovery, formatTaskDiscoveryBrief } from "./engine.ts";
+export type {
+  DefectRemediationFinding,
+  DefectRemediationIssueType,
+  DefectRemediationScanOptions,
+  DefectRemediationScanResult,
+} from "./scanners/index.ts";
+
+export {
+  performDiscoveryScans,
+  transformFindingsToDiscoveries,
+  synthesizeTaskFromDiscovery,
+  formatTaskDiscoveryBrief,
+  discoverTasks,
+  type DiscoveryScanOutputs,
+} from "./slices/index.ts";
 
 export { MindAutonomousDiscoveryEngine, type DiscoveryProposal } from "./discovery-engine.ts";
-
-export { discoverTasks } from "./runner.ts";

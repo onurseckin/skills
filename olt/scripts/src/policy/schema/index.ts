@@ -11,6 +11,7 @@ import { parseDockerEnv } from "./docker-schema.ts";
 import { assertAllowedKeys, integrity, isRecord, reqInt, reqString } from "./primitives.ts";
 import {
   parseCommandList,
+  parseHooks,
   parsePlanning,
   parseReviewProtocol,
   parseTestRunner,
@@ -43,6 +44,7 @@ export {
 } from "./primitives.ts";
 export {
   parseCommandList,
+  parseHooks,
   parsePlanning,
   parseReviewProtocol,
   parseTestRunner,
@@ -64,6 +66,7 @@ const TOP_LEVEL_KEYS: ReadonlySet<string> = new Set([
   "planning",
   "agents",
   "docker_environment",
+  "hooks",
 ]);
 
 const ECOSYSTEMS: ReadonlySet<string> = new Set(["bun", "node", "python", "cargo", "unknown"]);
@@ -148,5 +151,6 @@ export function parseRepoPolicy(raw: unknown): RepoPolicy {
     ...(raw["docker_environment"] !== undefined
       ? { docker_environment: parseDockerEnv(raw["docker_environment"], "$.docker_environment") }
       : {}),
+    ...(raw["hooks"] !== undefined ? { hooks: parseHooks(raw["hooks"], "$.hooks") } : {}),
   };
 }

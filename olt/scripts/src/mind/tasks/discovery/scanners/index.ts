@@ -15,3 +15,20 @@ export {
   mapFeedbackPriorityToTaskPriority,
   sanitizeSlug,
 } from "./health-scanner.ts";
+
+export {
+  scanDefectRemediations,
+  mapDefectToDiscoveryItem,
+  mapDefectSeverityToPriority,
+  mapDefectSeverityToDiscoverySeverity,
+  mapCategoryToIssueType,
+  filterOpenDefects,
+  isDefectEntry,
+} from "./remediation-scanner.ts";
+
+export type {
+  DefectRemediationFinding,
+  DefectRemediationIssueType,
+  DefectRemediationScanOptions,
+  DefectRemediationScanResult,
+} from "./remediation-scanner.ts";

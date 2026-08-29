@@ -1,6 +1,3 @@
-/**
- * Living Dynamic DAG Expansion & Step Tracer Subsystem Facade
- */
 export {
   type DynamicTaskOrigin,
   type DynamicTaskState,

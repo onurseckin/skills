@@ -152,6 +152,8 @@ export type {
   SubagentDispatchFormatOptions,
   SubagentDispatchItem,
   WaveGroup,
+  DefectTaskTarget,
+  PlanTasksForDefectOptions,
 } from "./smart/index.ts";
 
 export {
@@ -199,6 +201,7 @@ export {
   planEnhanceToWavePlan,
   planMultiCoordinatorWaves,
   planMultiOrchestratorExecution,
+  planTasksForDefect,
   planWaveExecution,
   prepareExactAnchorBriefingForTask,
   preplanMultiOrchestratorTasks,
@@ -216,6 +219,7 @@ export {
   synthesizeAutonomousTasks,
   synthesizeSmartTasksFromFeedbackQueue,
   synthesizeSmartTasksFromSelfEvolution,
+  synthesizeTaskPriorities,
   updateCognitiveMemory,
   validateAntiBatchingIsolation,
   validateAntiBatchingRule,

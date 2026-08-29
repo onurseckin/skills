@@ -219,7 +219,7 @@ export function validateCategory(val: unknown): FeedbackCategory {
     if (upper === "CORE_ENGINE") return "CORE_ENGINE";
     if (upper === "REPAIR") return "REPAIR";
     if (upper === "GENERAL") return "GENERAL";
-    if (upper === "GOVERNANCE") return "GOVERNANCE";
+    if (upper === "GOVERNANCE" || upper === "POLICY") return "GOVERNANCE";
     if (upper === "ORCHESTRATION") return "ORCHESTRATION";
     if (upper === "AUDITING") return "AUDITING";
     if (upper === "NOTIFICATION" || upper === "NOTIFICATIONS") return "CLI_TOOLING";

@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import {
   closeSync,
   constants,
-  copyFileSync,
   existsSync,
   fsyncSync,
   lstatSync,
@@ -199,17 +198,6 @@ export function saveRepoPolicy(
       syncDir(loc.parent);
       ensureDir(loc.root, loc.parent);
       if (existsSync(loc.filePath)) assertOwnedPrivateFile(lstatSync(loc.filePath), loc.filePath);
-
-      if (!customPath && loc.filePath === join(loc.root, ".olt", "policy.json")) {
-        const altDir = join(loc.root, "olt");
-        if (existsSync(altDir) && lstatSync(altDir).isDirectory()) {
-          try {
-            copyFileSync(loc.filePath, join(altDir, "policy.json"));
-          } catch {
-            /* best effort */
-          }
-        }
-      }
       return loc.filePath;
     } catch (err) {
       if (renamed || !existsSync(tmp)) {

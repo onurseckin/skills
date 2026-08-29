@@ -144,6 +144,21 @@ export interface DockerTestProfile {
   readonly session_cookie_templates: Record<string, CookieTemplateConfig>;
 }
 
+export type LifecycleEventType =
+  | "on_phase_completion"
+  | "on_release_push"
+  | "on_task_completion"
+  | "on_wave_completion"
+  | "on_error";
+
+export interface LifecycleHooksConfig {
+  readonly on_phase_completion?: readonly string[] | undefined;
+  readonly on_release_push?: readonly string[] | undefined;
+  readonly on_task_completion?: readonly string[] | undefined;
+  readonly on_wave_completion?: readonly string[] | undefined;
+  readonly on_error?: readonly string[] | undefined;
+}
+
 export interface RepoPolicy {
   readonly schema_version: number;
   readonly ecosystem: RepoEcosystem;
@@ -159,6 +174,7 @@ export interface RepoPolicy {
   readonly planning?: PlanningPolicy | undefined;
   readonly agents?: Record<string, AgentPolicy> | undefined;
   readonly docker_environment?: DockerTestProfile | undefined;
+  readonly hooks?: LifecycleHooksConfig | undefined;
 }
 
 export const CURRENT_POLICY_SCHEMA_VERSION = 1;

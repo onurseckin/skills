@@ -1,6 +1,9 @@
 export {
   synthesizeSmartTasksFromFeedbackQueue,
   synthesizeSmartTasksFromSelfEvolution,
+  planTasksForDefect,
+  type PlanTasksForDefectOptions,
+  type DefectTaskTarget,
 } from "./evolution.ts";
 
 export {
@@ -45,3 +48,9 @@ export {
   autonomousCreativeOverload,
   assertMindModeAllowed,
 } from "./backlog-drainer.ts";
+
+export {
+  synthesizeTaskPriorities,
+  type TaskPrioritySynthesisOptions,
+} from "./priorities.ts";
+

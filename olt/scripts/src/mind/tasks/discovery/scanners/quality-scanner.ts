@@ -1,13 +1,13 @@
 import { DEFAULT_SOURCE_EXTENSIONS, DEFAULT_EXCLUDE_PATTERNS } from "../types.ts";
-import { existsSync, lstatSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { basename, extname, join, relative, resolve } from "node:path";
-import { HarnessError } from "../../../../core/errors/index.ts";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { extname, join, relative, resolve } from "node:path";
 import type {
   CodeQualityFinding,
   CodeQualityScanOptions,
   CodeQualityScanResult,
 } from "../types.ts";
-import { loadCharter, resolveCharterPath } from "../../../lifecycle/charter/index.ts";
+import { resolveCharterPath } from "../../../lifecycle/charter/index.ts";
+
 export function sanitizeSlug(input: string): string {
   return input
     .toLowerCase()
@@ -54,14 +54,6 @@ export function collectFilesRecursively(
   return accumulated;
 }
 
-/**
- * Scans codebase files for code quality defects:
- * - TypeScript `any` types
- * - Compiler suppressions (@ts-ignore, @ts-nocheck, @ts-expect-error, eslint-disable)
- * - Literal fallbacks / TODOs / FIXMEs / hardcoded stubs
- * - Oversized modules exceeding line thresholds
- * - Unexported dead code (unreferenced top-level private declarations)
- */
 export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQualityScanResult {
   const startTime = Date.now();
   const roots =
@@ -89,7 +81,6 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
       const lines = content.split("\n");
       const isTestFile = file.includes(".test.") || file.includes(".spec.");
 
-      // Check 1: Oversized module
       if (lines.length > maxLineThreshold) {
         findings.push({
           file,
@@ -101,7 +92,6 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
         });
       }
 
-      // Check 2: Unexported dead code detection (for non-test modules)
       if (!isTestFile && lines.length > 5) {
         const topLevelDeclRegex =
           /^(?:function|const|let|var|class|interface|type)\s+([A-Za-z0-9_$]+)/;
@@ -121,7 +111,6 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
           const declMatch = topLevelDeclRegex.exec(lineTrimmed);
           if (declMatch && declMatch[1]) {
             const ident = declMatch[1];
-            // Skip common boilerplate identifiers
             if (
               ident.startsWith("DEFAULT_") ||
               ident === "map" ||
@@ -147,7 +136,6 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
         }
       }
 
-      // Check lines for suppressions, any keyword, fallbacks, and markers
       for (let i = 0; i < lines.length; i++) {
         if (findings.length >= maxFindings) break;
         const line = lines[i];
@@ -155,7 +143,6 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
         const lineNum = i + 1;
         const trimmed = line.trim();
 
-        // Check 3: Compiler suppressions
         if (
           trimmed.includes("@" + "ts-ignore") ||
           trimmed.includes("@" + "ts-nocheck") ||
@@ -174,7 +161,6 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
           });
         }
 
-        // Check 4: unknown type annotations (e.g. `: unknown`, `<unknown>`, `as any`, `Promise<unknown>`)
         if (
           !trimmed.startsWith("//") &&
           !trimmed.startsWith("/*") &&
@@ -200,7 +186,6 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
           });
         }
 
-        // Check 5: Literal fallbacks / hardcoded stub returns
         if (
           !isTestFile &&
           !trimmed.startsWith("//") &&
@@ -225,7 +210,6 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
           });
         }
 
-        // Check 6: Unaddressed TODO / FIXME / HACK markers
         if (
           /\b(TODO|FIXME|HACK|XXX|BUG)\b/i.test(trimmed) &&
           (trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*"))
@@ -242,7 +226,6 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
         }
       }
     } catch {
-      // Skip unreadable files gracefully
     }
   }
 
@@ -253,11 +236,3 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
     durationMs: Date.now() - startTime,
   };
 }
-
-/**
- * Scans source and test trees to discover test coverage gaps:
- * - Source modules without matching test files in tests/unit/
- * - Skipped test suites (test.skip, describe.skip)
- * - Empty or missing test assertions
- * - Low assertion density (test suites lacking adequate expect assertions)
- */

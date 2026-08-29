@@ -143,12 +143,9 @@ export function resolvePolicyLocation(
   }
   const root = resolve(reqRoot);
   assertRealDir(root, "repository root");
-  let filePath = customPath?.trim() ? resolve(root, customPath.trim()) : "";
-  if (!filePath) {
-    const dotOlt = join(root, ".olt", "policy.json");
-    const olt = join(root, "olt", "policy.json");
-    filePath = existsSync(dotOlt) ? dotOlt : existsSync(olt) ? olt : dotOlt;
-  }
+  const filePath = customPath?.trim()
+    ? resolve(root, customPath.trim())
+    : join(root, ".olt", "policy.json");
   if (!isInside(root, filePath)) {
     throw new HarnessError(
       "PATH_SAFETY",

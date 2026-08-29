@@ -5,6 +5,7 @@ import type { TaskPriority } from "../../queue/index.ts";
 import type { FeedbackItem } from "../../../feedback/queue/index.ts";
 import { planWaveExecution } from "../planner/waves.ts";
 import { HarnessError } from "../../../../core/errors/index.ts";
+
 export function expandExternalPromptToWavePlan(
   prompt: string,
   options: {
@@ -19,8 +20,8 @@ export function expandExternalPromptToWavePlan(
 
   const lines = trimmed
     .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0 && !l.startsWith("#"));
+    .map((l: string) => l.trim())
+    .filter((l: string) => l.length > 0 && !l.startsWith("#"));
 
   const prefix = typeof options.baseIdPrefix === "string" ? options.baseIdPrefix : "wave-task";
   const goals =
@@ -64,9 +65,6 @@ export function expandExternalPromptToWavePlan(
   return planWaveExecution(tasks);
 }
 
-/**
- * Plan enhancer that converts feedback items or multi-step prompt into disjoint wave plans.
- */
 export function planEnhanceToWavePlan(
   promptOrFeedbacks: string | readonly FeedbackItem[],
   options: {
@@ -160,7 +158,7 @@ export function deriveWriteScopeForCategory(category: string, id: string): reado
 }
 
 export function deriveGateForCategory(_category: string, writeScope: readonly string[]): string {
-  const testFile = writeScope.find((s) => s.includes("test.ts") || s.includes("tests/"));
+  const testFile = writeScope.find((s: string) => s.includes("test.ts") || s.includes("tests/"));
   if (testFile) {
     const cleaned = testFile.endsWith("/") ? testFile.slice(0, -1) : testFile;
     return `bun test ${cleaned} && bun run typecheck`;
@@ -193,7 +191,3 @@ export function mapFeedbackPriorityToTaskPriority(fbPriority: string): TaskPrior
   }
 }
 
-/**
- * Partitions and stages tasks across multiple orchestrator sub-trees simultaneously,
- * maintaining strictly disjoint write scopes between all orchestrator trees.
- */

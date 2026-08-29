@@ -1,6 +1,3 @@
-/**
- * Unified Run Report & Telemetry Subsystem Facade
- */
 export {
   type SugiyamaDagReport,
   type SugiyamaWaveMetrics,

@@ -118,7 +118,7 @@ describe("Policy Schema Advanced - Numeric Bounds, Types & Command Conflicts", (
       string,
       Record<string, Record<string, unknown>>
     >;
-    de["containers"]["web_app"]["ports"] = "3000:3000"; // not array
+    de["containers"]["web_app"]["ports"] = "3000:3000";
     expect(() => parseRepoPolicy(rawNoPorts)).toThrow(HarnessError);
 
     const rawEmptyPort = canonicalPolicy();
@@ -126,7 +126,96 @@ describe("Policy Schema Advanced - Numeric Bounds, Types & Command Conflicts", (
       string,
       Record<string, Record<string, unknown>>
     >;
-    de2["containers"]["web_app"]["ports"] = [""]; // empty string port
+    de2["containers"]["web_app"]["ports"] = [""];
     expect(() => parseRepoPolicy(rawEmptyPort)).toThrow(HarnessError);
+  });
+});
+
+describe("Policy Schema Advanced - Lifecycle Hooks", () => {
+  test("parses valid lifecycle hooks configuration with all event types", () => {
+    const raw = {
+      ...canonicalPolicy(),
+      hooks: {
+        on_phase_completion: ["bun test", "git status"],
+        on_release_push: ["echo releasing"],
+        on_task_completion: ["bun run typecheck"],
+        on_wave_completion: ["echo wave done"],
+        on_error: ["echo error occurred"],
+      },
+    };
+    const policy = parseRepoPolicy(raw);
+    expect(policy.hooks).toBeDefined();
+    expect(policy.hooks?.on_phase_completion).toEqual(["bun test", "git status"]);
+    expect(policy.hooks?.on_release_push).toEqual(["echo releasing"]);
+    expect(policy.hooks?.on_task_completion).toEqual(["bun run typecheck"]);
+    expect(policy.hooks?.on_wave_completion).toEqual(["echo wave done"]);
+    expect(policy.hooks?.on_error).toEqual(["echo error occurred"]);
+  });
+
+  test("parses partial lifecycle hooks configuration", () => {
+    const raw = {
+      ...canonicalPolicy(),
+      hooks: {
+        on_phase_completion: ["bun test"],
+      },
+    };
+    const policy = parseRepoPolicy(raw);
+    expect(policy.hooks).toBeDefined();
+    expect(policy.hooks?.on_phase_completion).toEqual(["bun test"]);
+    expect(policy.hooks?.on_release_push).toBeUndefined();
+  });
+
+  test("rejects unknown keys in hooks object", () => {
+    const raw = {
+      ...canonicalPolicy(),
+      hooks: {
+        on_invalid_event: ["echo invalid"],
+      },
+    };
+    expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
+  });
+
+  test("rejects non-object hooks configuration", () => {
+    const raw = {
+      ...canonicalPolicy(),
+      hooks: "invalid",
+    };
+    expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
+  });
+
+  test("rejects non-array hook commands", () => {
+    const raw = {
+      ...canonicalPolicy(),
+      hooks: {
+        on_phase_completion: "bun test",
+      },
+    };
+    expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
+  });
+
+  test("rejects hook commands with empty strings or non-string elements", () => {
+    const rawEmpty = {
+      ...canonicalPolicy(),
+      hooks: {
+        on_error: [""],
+      },
+    };
+    expect(() => parseRepoPolicy(rawEmpty)).toThrow(HarnessError);
+
+    const rawSpaces = {
+      ...canonicalPolicy(),
+      hooks: {
+        on_error: ["   "],
+      },
+    };
+    expect(() => parseRepoPolicy(rawSpaces)).toThrow(HarnessError);
+
+    const rawNonString = {
+      ...canonicalPolicy(),
+      hooks: {
+        on_error: [123],
+      },
+    };
+    expect(() => parseRepoPolicy(rawNonString)).toThrow(HarnessError);
   });
 });

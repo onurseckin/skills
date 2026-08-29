@@ -1,4 +1,3 @@
-// Subsystem and domain namespace exports mapped to modular subdirectories
 import * as archival from "./archival/index.ts";
 import * as completedTasks from "./archival/completed/index.ts";
 import * as quiesce from "./archival/quiesce/index.ts";
@@ -17,6 +16,8 @@ import * as defectAudit from "./defects/loop/index.ts";
 
 import * as feedbackQueue from "./feedback/queue/index.ts";
 import * as pushbacks from "./feedback/pushbacks/index.ts";
+
+import * as governance from "./governance/index.ts";
 
 import * as lane from "./lanes/index.ts";
 import * as lanes from "./lanes/index.ts";
@@ -72,6 +73,7 @@ export {
   dynamicRoles,
   feedbackQueue,
   gates,
+  governance,
   hyperCognition,
   interval,
   lane,

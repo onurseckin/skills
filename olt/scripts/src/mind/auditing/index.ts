@@ -196,3 +196,29 @@ export {
   DEFAULT_STAGNATION_THRESHOLD_SECONDS,
   type StagnationAuditOptions,
 } from "./mind-stagnation-auditor.ts";
+
+export {
+  auditCharterGoals,
+  auditCharterBudgetCompliance,
+  auditCharterIntegrity,
+  auditCharterRepoRoots,
+  auditCharterProhibitions,
+  auditCharterManifest,
+  auditLiveCharter,
+  CHARTER_AUDIT_PASSED,
+  CHARTER_UNRESOLVED_GOALS,
+  CHARTER_BUDGET_EXCEEDED,
+  CHARTER_INTEGRITY_DRIFT,
+  CHARTER_SCOPE_VIOLATION,
+  CHARTER_PROHIBITION_VIOLATION,
+  DEFECT_MIND_AUDITING_MISSING_STATE_CHARTER,
+  type CharterAuditOptions,
+  type CharterBudgetUsageMetrics,
+  type CharterGoalAuditResult,
+  type CharterBudgetComplianceResult,
+  type CharterIntegrityAuditResult,
+  type CharterRepoRootsAuditResult,
+  type CharterProhibitionAuditResult,
+  type CharterAuditReport,
+} from "./charter-auditing.ts";
+

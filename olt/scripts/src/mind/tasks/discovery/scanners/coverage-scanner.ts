@@ -1,15 +1,13 @@
-import { resolve } from "node:path";
+import { resolve, basename, extname, relative } from "node:path";
 import { DEFAULT_SOURCE_EXTENSIONS, DEFAULT_EXCLUDE_PATTERNS } from "../types.ts";
-import { basename, extname } from "node:path";
-import { existsSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
-import { HarnessError } from "../../../../core/errors/index.ts";
+import { readFileSync } from "node:fs";
 import type {
   TestCoverageFinding,
   TestCoverageScanOptions,
   TestCoverageScanResult,
 } from "../types.ts";
 import { collectFilesRecursively } from "./quality-scanner.ts";
+
 export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCoverageScanResult {
   const startTime = Date.now();
   const sourceRoots =
@@ -47,7 +45,6 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
     if (findings.length >= maxFindings) break;
 
     const base = basename(sf, extname(sf));
-    // Skip index or type-only definition files from strict 1:1 test requirement if small
     if (base === "index" || base === "types" || base.endsWith(".d")) {
       continue;
     }
@@ -73,7 +70,6 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
     }
   }
 
-  // Scan existing test files for skipped tests, empty suites, and low assertion density
   for (const tf of testFiles) {
     if (findings.length >= maxFindings) break;
 
@@ -110,7 +106,6 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
           severity: "HIGH",
         });
       } else if (hasTestBlock) {
-        // Assertion density check: count expect() assertions
         const expectMatches = content.match(/\bexpect\s*\(/g);
         const expectCount = expectMatches ? expectMatches.length : 0;
         if (expectCount === 0) {
@@ -126,7 +121,6 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
         }
       }
     } catch {
-      // Ignore read errors
     }
   }
 
@@ -139,13 +133,3 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
     durationMs: Date.now() - startTime,
   };
 }
-
-/**
- * Scans codebase files for cognitive complexity and architectural gap issues:
- * - Deeply nested logic blocks exceeding indentation thresholds
- * - Cognitive parameter overloading (> 5 positional parameters)
- * - Unhandled raw JSON parses lacking try/catch protection
- * - Unbounded collections or infinite loops lacking bounds
- * - Missing error recovery (empty catch blocks)
- * - Async uncaught boundaries
- */

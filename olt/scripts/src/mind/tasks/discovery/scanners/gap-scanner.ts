@@ -4,11 +4,8 @@ import { readTaskQueue } from "../../queue/index.ts";
 import { DEFAULT_SOURCE_EXTENSIONS, DEFAULT_EXCLUDE_PATTERNS } from "../types.ts";
 import { resolveDiscoveryCharterPath, sanitizeSlug } from "./quality-scanner.ts";
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { HarnessError } from "../../../../core/errors/index.ts";
 import type {
-  CodeQualityFinding,
-  TestCoverageFinding,
   CognitiveGapFinding,
   CognitiveGapScanOptions,
   CognitiveGapScanResult,
@@ -17,6 +14,7 @@ import type {
   DormantCriteriaScanResult,
 } from "../types.ts";
 import { collectFilesRecursively } from "./quality-scanner.ts";
+
 export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): CognitiveGapScanResult {
   const startTime = Date.now();
   const roots =
@@ -49,7 +47,6 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
         const lineNum = i + 1;
         const trimmed = line.trim();
 
-        // Check 1: Deep nesting (> 20 leading spaces or > 5 tabs) indicating cognitive overload
         const leadingSpaces = line.search(/\S/);
         if (leadingSpaces >= 20 && !trimmed.startsWith("//") && !trimmed.startsWith("*")) {
           findings.push({
@@ -64,7 +61,6 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
           });
         }
 
-        // Check 2: Cognitive Chunking Overload - Function definition with > 5 parameters
         if (
           /function\s+\w+\s*\([^)]*,[^)]*,[^)]*,[^)]*,[^)]*,[^)]*\)/.test(line) ||
           /\(\s*\w+:[^,]+,\s*\w+:[^,]+,\s*\w+:[^,]+,\s*\w+:[^,]+,\s*\w+:[^,]+,\s*\w+:[^)]*\)\s*=>/.test(
@@ -83,7 +79,6 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
           });
         }
 
-        // Check 3: Raw JSON.parse without safe parser wrapper or try-catch context in immediate vicinity
         if (
           trimmed.includes("JSON.parse(") &&
           !trimmed.startsWith("//") &&
@@ -108,7 +103,6 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
           }
         }
 
-        // Check 4: Unbounded collection / infinite loop
         if (
           trimmed.startsWith("while (true)") ||
           trimmed.startsWith("while(true)") ||
@@ -139,7 +133,6 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
           }
         }
 
-        // Check 5: Missing error recovery (empty catch blocks - single line and multi-line)
         const isCatchHeader =
           trimmed.startsWith("catch") || trimmed.endsWith("catch {") || trimmed.includes("} catch");
         const nextTrimmed = lines[i + 1] ? lines[i + 1]!.trim() : "";
@@ -161,7 +154,6 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
         }
       }
     } catch {
-      // Skip unreadable files gracefully
     }
   }
 
@@ -173,11 +165,6 @@ export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): Cognit
   };
 }
 
-/**
- * Scans charter goals and recent task history to discover dormant criteria:
- * - Goals defined in mind.yaml that have zero associated tasks or tests
- * - Stability checks that have not been exercised
- */
 export function scanDormantCriteria(
   options: DormantCriteriaScanOptions = {},
 ): DormantCriteriaScanResult {
@@ -210,7 +197,6 @@ export function scanDormantCriteria(
     const rawContent = readFileSync(charterPath, "utf8");
     const parsed = parseCharter(rawContent);
 
-    // Read task history from queue or provided history
     const taskHistory = options.recentTasksHistory
       ? options.recentTasksHistory
       : readTaskQueue(options.taskQueuePath);
@@ -239,7 +225,6 @@ export function scanDormantCriteria(
       }
     }
 
-    // Check stability checks
     const stabilityChecks = parsed.stability ? parsed.stability : [];
     for (const check of stabilityChecks) {
       if (findings.length >= maxFindings) break;
@@ -273,10 +258,3 @@ export function scanDormantCriteria(
     durationMs: Date.now() - startTime,
   };
 }
-
-/**
- * Scans architectural health across source modules:
- * - Broken relative imports pointing to missing files
- * - Circular module import dependencies
- * - Orphan modules not imported anywhere in tree
- */

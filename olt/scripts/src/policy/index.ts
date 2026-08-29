@@ -5,6 +5,8 @@ export {
   type AgentSchedulerPolicy,
   type DockerTestProfile,
   type HostType,
+  type LifecycleEventType,
+  type LifecycleHooksConfig,
   type PlanningPolicy,
   type RepoEcosystem,
   type RepoPolicy,
@@ -23,6 +25,7 @@ export type {
 } from "./drift-detector.ts";
 
 export {
+  DEFAULT_LIFECYCLE_HOOKS_CONFIG,
   DEFAULT_REVIEW_PROTOCOL_POLICY,
   DEFAULT_PLANNING_POLICY,
   detectRepoEcosystem,
@@ -30,7 +33,7 @@ export {
   generateDefaultRepoPolicy,
 } from "./generator/index.ts";
 
-export { parseRepoPolicy } from "./schema/index.ts";
+export { parseHooks, parseRepoPolicy } from "./schema/index.ts";
 
 export {
   computePolicyChecksum,
@@ -95,3 +98,15 @@ export {
   isUntargetedTestCommand,
   verifyCommandAuthorization,
 } from "./rbac/index.ts";
+
+export type {
+  ExecuteLifecycleHooksOptions,
+  HookInterpolationContext,
+  LifecycleHookExecutionResult,
+} from "./hooks/index.ts";
+export {
+  executeLifecycleHooks,
+  formatDuration,
+  interpolateHookCommand,
+} from "./hooks/index.ts";
+

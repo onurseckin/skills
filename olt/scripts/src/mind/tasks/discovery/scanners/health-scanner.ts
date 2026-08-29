@@ -1,7 +1,6 @@
 import { resolve, dirname, basename, extname, join } from "node:path";
 import { existsSync, readFileSync } from "node:fs";
 import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_SOURCE_EXTENSIONS } from "../types.ts";
-import { HarnessError } from "../../../../core/errors/index.ts";
 import type {
   ArchitecturalHealthFinding,
   ArchitecturalHealthScanOptions,
@@ -17,7 +16,10 @@ import type {
 } from "../types.ts";
 import type { TaskPriority } from "../../queue/index.ts";
 import type { FeedbackPriority } from "../../../feedback/queue/index.ts";
-import { collectFilesRecursively } from "./quality-scanner.ts";
+import { collectFilesRecursively, sanitizeSlug } from "./quality-scanner.ts";
+
+export { sanitizeSlug };
+
 export function scanArchitecturalHealth(
   options: ArchitecturalHealthScanOptions = {},
 ): ArchitecturalHealthScanResult {
@@ -39,7 +41,6 @@ export function scanArchitecturalHealth(
   const findings: ArchitecturalHealthFinding[] = [];
   const fileImportMap = new Map<string, string[]>();
 
-  // Pass 1: Parse imports per file
   for (const file of allFiles) {
     try {
       const content = readFileSync(file, "utf8");
@@ -52,14 +53,12 @@ export function scanArchitecturalHealth(
         if (!line) continue;
         const trimmed = line.trim();
 
-        // Extract relative imports: from "./..." or from "../..."
         const importMatch = /from\s+["'](\.\.?\/[^"']+)["']/.exec(trimmed);
         if (importMatch && importMatch[1]) {
           const importRel = importMatch[1];
           const dir = dirname(file);
           let targetPath = resolve(dir, importRel);
 
-          // If no extension or ts/js extension
           if (!existsSync(targetPath)) {
             if (existsSync(`${targetPath}.ts`)) {
               targetPath = `${targetPath}.ts`;
@@ -88,11 +87,9 @@ export function scanArchitecturalHealth(
 
       fileImportMap.set(file, importedPaths);
     } catch {
-      // Ignore unreadable
     }
   }
 
-  // Pass 2: Detect Circular Dependencies (A -> B and B -> A)
   for (const [fileA, importsA] of fileImportMap.entries()) {
     if (findings.length >= maxFindings) break;
     for (const fileB of importsA) {
@@ -152,9 +149,6 @@ export function mapFeedbackPriorityToTaskPriority(p: FeedbackPriority): TaskPrio
   }
 }
 
-/**
- * Proposes structured candidate evolutions from discovered system gaps.
- */
 export function proposeCandidateEvolutions(findings: {
   readonly codeQuality?: readonly CodeQualityFinding[] | undefined;
   readonly testCoverage?: readonly TestCoverageFinding[] | undefined;
@@ -166,7 +160,6 @@ export function proposeCandidateEvolutions(findings: {
 }): readonly CandidateEvolutionProposal[] {
   const proposals: CandidateEvolutionProposal[] = [];
 
-  // 1. Propose from cognitive gaps
   if (findings.cognitiveGaps) {
     for (const cg of findings.cognitiveGaps) {
       const fileBase = basename(cg.file, extname(cg.file));
@@ -193,7 +186,6 @@ export function proposeCandidateEvolutions(findings: {
     }
   }
 
-  // 2. Propose from architectural health
   if (findings.architecturalHealth) {
     for (const ah of findings.architecturalHealth) {
       const fileBase = basename(ah.file, extname(ah.file));
@@ -219,7 +211,6 @@ export function proposeCandidateEvolutions(findings: {
     }
   }
 
-  // 3. Propose from feedback items
   if (findings.feedbackPending) {
     for (const fb of findings.feedbackPending) {
       const slug = sanitizeSlug(fb.id);
@@ -244,7 +235,6 @@ export function proposeCandidateEvolutions(findings: {
     }
   }
 
-  // 4. Propose from defects
   if (findings.openDefects) {
     for (const bl of findings.openDefects) {
       if (bl.observation) {
@@ -272,16 +262,4 @@ export function proposeCandidateEvolutions(findings: {
   }
 
   return proposals;
-}
-
-/**
- * Synthesizes a structured DiscoveredTaskPlan from a generic DiscoveryItem.
- * Strictly guarantees Anti-Batching rules, isolated scopes, and 1:1 implementer-validator separation.
- */
-export function sanitizeSlug(input: string): string {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
 }

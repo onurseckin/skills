@@ -93,6 +93,7 @@ export {
   synthesizeSmartTasksFromFeedbackQueue,
   synthesizeSmartTasksFromSelfEvolution,
   synthesizeAutonomousTasks,
+  synthesizeTaskPriorities,
   processAutonomousDualIntake,
   runAutonomousDualIntakeCycle,
   expandExternalPromptToPlan,
@@ -119,4 +120,9 @@ export {
   scanCharterGaps,
   autonomousCreativeOverload,
   assertMindModeAllowed,
+  planTasksForDefect,
+  type PlanTasksForDefectOptions,
+  type DefectTaskTarget,
+  type TaskPrioritySynthesisOptions,
 } from "./executor/index.ts";
+

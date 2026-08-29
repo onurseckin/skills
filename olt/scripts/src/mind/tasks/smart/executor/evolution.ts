@@ -1,24 +1,160 @@
 import { detectScopeOverlap } from "../planner/collisions.ts";
-import { auditDefectLog } from "../../../defects/index.ts";
-import {
-  isTestEnvironment,
-  resolveScratchDir,
-  resolveCapsulesDir,
-} from "../../../../core/shared/paths.ts";
-import { enqueueTasksBatch, type NewTaskQueueInput } from "../../queue/index.ts";
+import { enqueueTasksBatch, type NewTaskQueueInput, type TaskPriority } from "../../queue/index.ts";
 import { evaluateHierarchyScaling } from "../../../../graph/parallel-decoupler.ts";
 import { drainPendingFeedbacks } from "../../../feedback/index.ts";
 import { assertAntiBatchingRule } from "../planner/partitioning.ts";
 import { enrichTaskPlanWithExactAnchors } from "../planner/anti-batching.ts";
-import { mapFeedbackPriorityToTaskPriority } from "./orchestrator.ts";
 import {
+  mapFeedbackPriorityToTaskPriority,
   sanitizeSlug,
   deriveWriteScopeForCategory,
   deriveGateForCategory,
 } from "./orchestrator.ts";
 import type { SmartTaskPlan, SmartTaskSynthesisResult } from "../planner/models.ts";
-import { readCognitiveMemory } from "../planner/memory.ts";
-import { readFeedbackQueue, resolveFeedbackQueuePath } from "../../../feedback/queue/index.ts";
+import { readFeedbackQueue } from "../../../feedback/queue/index.ts";
+import { HarnessError } from "../../../../core/errors/index.ts";
+
+export interface PlanTasksForDefectOptions {
+  readonly charterGoals?: readonly string[] | undefined;
+  readonly baseId?: string | undefined;
+  readonly priority?: TaskPriority | undefined;
+  readonly writeScope?: readonly string[] | undefined;
+  readonly gate?: string | undefined;
+  readonly assignedTier?:
+    | "Tier_0_Mind"
+    | "Tier_1_Orchestrator"
+    | "Tier_2_Coordinator"
+    | "Tier_3_Implementer"
+    | "Tier_3_Validator"
+    | undefined;
+  readonly assignedImplementer?: string | undefined;
+  readonly assignedValidator?: string | undefined;
+  readonly roundNumber?: number | undefined;
+}
+
+export interface DefectTaskTarget {
+  readonly id: string;
+  readonly observation?: string | undefined;
+  readonly description?: string | undefined;
+  readonly title?: string | undefined;
+  readonly message?: string | undefined;
+  readonly remediation?: string | undefined;
+  readonly category?: string | undefined;
+  readonly severity?: string | undefined;
+  readonly status?: string | undefined;
+  readonly write_scope?: readonly string[] | undefined;
+  readonly gate?: string | undefined;
+  readonly [key: string]: unknown;
+}
+
+export function planTasksForDefect(
+  defectOrDefects: DefectTaskTarget | string | readonly (DefectTaskTarget | string)[],
+  options: PlanTasksForDefectOptions = {},
+): readonly SmartTaskPlan[] {
+  const items = Array.isArray(defectOrDefects) ? defectOrDefects : [defectOrDefects];
+  if (items.length === 0) return [];
+
+  const tasks: SmartTaskPlan[] = [];
+  const goals =
+    options.charterGoals && options.charterGoals.length > 0 ? options.charterGoals : ["G2"];
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]!;
+    const isStr = typeof item === "string";
+    const defectId = isStr
+      ? item.trim()
+      : typeof item.id === "string" && item.id.trim()
+        ? item.id.trim()
+        : `defect-${i + 1}`;
+    if (!defectId) throw new HarnessError("INVALID_ARGUMENT", "Defect identifier cannot be empty");
+
+    const detail = isStr
+      ? defectId
+      : item.observation || item.description || item.title || item.message || defectId;
+    const remediation =
+      !isStr && item.remediation
+        ? item.remediation
+        : "Fix root cause of defect with regression immunity";
+    const category = !isStr && item.category ? item.category : "CORE_ENGINE";
+    const slug = sanitizeSlug(defectId.slice(0, 40));
+    const taskId = options.baseId
+      ? items.length === 1
+        ? sanitizeSlug(options.baseId)
+        : `${sanitizeSlug(options.baseId)}-${i + 1}`
+      : `task-${i + 1}-defect-${slug}`;
+
+    const scope =
+      options.writeScope && options.writeScope.length > 0
+        ? options.writeScope
+        : !isStr && Array.isArray(item.write_scope) && item.write_scope.length > 0
+          ? item.write_scope
+          : deriveWriteScopeForCategory(category, defectId);
+
+    const gate =
+      options.gate && options.gate.trim()
+        ? options.gate.trim()
+        : !isStr && typeof item.gate === "string" && item.gate.trim()
+          ? item.gate.trim()
+          : deriveGateForCategory(category, scope);
+
+    let priority: TaskPriority = options.priority ?? "CRITICAL";
+    if (options.priority === undefined && !isStr && item.severity) {
+      const s = item.severity.toLowerCase();
+      priority =
+        s === "critical"
+          ? "CRITICAL"
+          : s === "high" || s === "important"
+            ? "HIGH"
+            : s === "medium"
+              ? "MEDIUM"
+              : "LOW";
+    }
+
+    const assignedImplementer = options.assignedImplementer ?? `implementer-defect-${slug}`;
+    const assignedValidator = options.assignedValidator ?? `validator-defect-${slug}`;
+
+    const rawPlan: SmartTaskPlan = {
+      id: taskId,
+      label: `Defect Remediation: ${detail.slice(0, 80)}`,
+      write_scope: scope,
+      gate,
+      charter_goals: goals,
+      acceptance_criteria: [
+        `Remediate open defect ${defectId}: ${detail.slice(0, 100)}`,
+        `Prescribed remediation: ${remediation.slice(0, 100)}`,
+        `Pass gate: ${gate}`,
+        "Ensure zero TypeScript any and zero compiler suppressions",
+      ],
+      dependencies: [],
+      source_type: "defect_remediation",
+      priority,
+      rationale: `Autonomous defect remediation for ${defectId}: ${detail}`,
+      assigned_tier: options.assignedTier ?? "Tier_3_Implementer",
+      assigned_implementer: assignedImplementer,
+      assigned_validator: assignedValidator,
+      candidate_id: defectId,
+      metadata: {
+        candidate_id: defectId,
+        defect_id: defectId,
+        assigned_implementer: assignedImplementer,
+        assigned_validator: assignedValidator,
+      },
+    };
+
+    const enriched = enrichTaskPlanWithExactAnchors(rawPlan);
+    const dependencies: string[] = [];
+    for (const prev of tasks) {
+      if (detectScopeOverlap(enriched.write_scope, prev.write_scope).length > 0) {
+        dependencies.push(prev.id);
+      }
+    }
+    tasks.push({ ...enriched, dependencies });
+  }
+
+  assertAntiBatchingRule(tasks);
+  return tasks;
+}
+
 export function synthesizeSmartTasksFromFeedbackQueue(
   options: {
     readonly capsulesDir?: string | undefined;
@@ -118,7 +254,6 @@ export function synthesizeSmartTasksFromFeedbackQueue(
     const enqueued = enqueueTasksBatch(batchInputs, options.queuePath);
     enqueuedCount = enqueued.length;
 
-    // Drain and mark pending feedbacks as ADMITTED
     drainPendingFeedbacks({ markAs: "ADMITTED", limit: selected.length }, options.capsulesDir);
   }
 
@@ -135,10 +270,5 @@ export function synthesizeSmartTasksFromFeedbackQueue(
     ...(enqueuedCount > 0 ? { enqueued_count: enqueuedCount } : {}),
   };
 }
-
-/**
- * Synthesizes self-evolution smart tasks from open defect logs, charter gap analysis,
- * Brent's theorem Work/Span (P = W/S) optimizations, and continuous invariant hardening (Mode A).
- */
 
 export { synthesizeSmartTasksFromSelfEvolution } from "./self-evolution.ts";
