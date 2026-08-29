@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import {
-  ActionSpan,
   buildTimeTelemetryReport,
   categorizeHarnessAction,
   computeLatencyPercentiles,
@@ -35,21 +34,20 @@ describe("reporting/time-telemetry core suite", () => {
   });
 
   it("tracks action spans with OmnipresentTelemetryCollector", () => {
-    const collector = new OmnipresentTelemetryCollector({ runId: "run-time-test" });
-    const span = new ActionSpan("task:execute", "impl_13", { category: "task", tier: 3 });
+    const collector = new OmnipresentTelemetryCollector();
+    const span = collector.startSpan("task:execute", "impl_13", { category: "task", tier: 3 });
     span.startSubStep("step1");
     span.finishSubStep("success");
-    const record = span.finish("success");
+    const record = collector.finishSpan(span.actionId, "success");
 
-    collector.recordSpan(span);
-    expect(collector.getRecordCount()).toBe(1);
+    expect(collector.getRecords().length).toBe(1);
     expect(record.status).toBe("success");
 
-    const report = buildTimeTelemetryReport(collector.getRecords(), "run-time-test");
+    const report = buildTimeTelemetryReport(collector.getRecords(), 0, { runId: "run-time-test" });
     expect(report.runId).toBe("run-time-test");
     expect(report.totalDurationMs).toBeGreaterThanOrEqual(0);
 
-    const health = validateTimeTelemetryHealth(report);
+    const health = validateTimeTelemetryHealth(collector.getRecords());
     expect(health.healthy).toBe(true);
   });
 });

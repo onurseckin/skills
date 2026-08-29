@@ -144,11 +144,12 @@ export interface LivingTracerReport {
 }
 
 export function parsePayloadString(
-  payload: Record<string, unknown> | undefined,
-  keys: readonly string[],
+  payload: Record<string, unknown> | undefined | null,
+  keys: string | readonly string[],
 ): string | null {
   if (!payload || typeof payload !== "object") return null;
-  for (const k of keys) {
+  const keyList = typeof keys === "string" ? [keys] : keys;
+  for (const k of keyList) {
     const val = payload[k];
     if (typeof val === "string" && val.trim().length > 0) {
       return val.trim();
@@ -158,11 +159,12 @@ export function parsePayloadString(
 }
 
 export function parsePayloadNumber(
-  payload: Record<string, unknown> | undefined,
-  keys: readonly string[],
+  payload: Record<string, unknown> | undefined | null,
+  keys: string | readonly string[],
 ): number | null {
   if (!payload || typeof payload !== "object") return null;
-  for (const k of keys) {
+  const keyList = typeof keys === "string" ? [keys] : keys;
+  for (const k of keyList) {
     const val = payload[k];
     if (typeof val === "number" && !Number.isNaN(val)) {
       return val;
@@ -172,7 +174,7 @@ export function parsePayloadNumber(
 }
 
 export function parsePayloadStringArray(
-  payload: Record<string, unknown> | undefined,
+  payload: Record<string, unknown> | undefined | null,
   key: string,
 ): readonly string[] {
   if (!payload || typeof payload !== "object") return [];

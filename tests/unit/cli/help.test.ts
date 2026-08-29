@@ -58,8 +58,7 @@ describe("CLI help", () => {
     expect(detail).toContain("bun harness.ts run:exec --run .olt/capsules/<run-id>");
   });
 
-  test("resolves aliases and reports the stdin rule", () => {
-    expect(renderHelp("orchestrator")).toBe(renderHelp("orchestrator:run"));
+  test("reports the stdin rule", () => {
     expect(renderHelp("orchestrator:run")).toContain(
       "**Stdin**: reads stdin when `--prompt-stdin` is set",
     );

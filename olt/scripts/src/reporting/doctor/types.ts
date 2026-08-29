@@ -71,3 +71,23 @@ export interface GitIndexIntegrityReport {
   readonly stashCorrupted: boolean;
   readonly findings: readonly DoctorDiagnosticFinding[];
 }
+
+export interface CounterfactualCheckRecord {
+  readonly checkId: string;
+  readonly name: string;
+  readonly targetPath: string;
+  readonly passed: boolean;
+  readonly falsified: boolean;
+  readonly mutation?: unknown;
+}
+
+export interface AntiMockMutationCheckOptions {
+  readonly testFiles?: readonly string[] | undefined;
+  readonly sourceFiles?: readonly string[] | undefined;
+  readonly targetFiles?: readonly string[] | undefined;
+  readonly targetPaths?: readonly string[] | undefined;
+  readonly fileContents?: Readonly<Record<string, string>> | undefined;
+  readonly repoRoot?: string | undefined;
+  readonly timeoutMs?: number | undefined;
+  readonly counterfactualRecords?: readonly CounterfactualCheckRecord[] | undefined;
+}

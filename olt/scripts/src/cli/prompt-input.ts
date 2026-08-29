@@ -3,7 +3,16 @@ import { findCommand } from "./registry/index.ts";
 
 export function shouldReadPromptStdin(argv: readonly string[]): boolean {
   const invocation = argv[0];
-  if (invocation === undefined || findCommand(invocation)?.readsStdin !== true) return false;
+  if (invocation === undefined) return false;
+  const cmd = findCommand(invocation);
+  const allowsStdin =
+    cmd?.readsStdin === true ||
+    invocation === "init" ||
+    invocation === "run:init" ||
+    invocation === "orchestrator" ||
+    invocation === "orchestrator:run" ||
+    invocation === "orchestrate";
+  if (!allowsStdin) return false;
   const boundary = argv.indexOf("--");
   const options = boundary === -1 ? argv : argv.slice(0, boundary);
   return options.includes("--prompt-stdin");

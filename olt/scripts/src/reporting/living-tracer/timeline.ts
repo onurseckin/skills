@@ -13,7 +13,7 @@ export function renderAsciiTimeline(
   maxEntries?: number,
 ): string {
   if (entries.length === 0) {
-    return "  ┌────────────────────────────────────────────────────────┐\n  │  (No telemetry events recorded for active step trace)  │\n  └────────────────────────────────────────────────────────┘";
+    return "  ┌────────────────────────────────────────────────────────┐\n  │  (No steps recorded in execution trace)                │\n  │  (No telemetry events recorded for active step trace)  │\n  └────────────────────────────────────────────────────────┘";
   }
 
   const lines: string[] = [];
@@ -79,13 +79,20 @@ export function computeStepTracerSummary(
 export function inspectCapsuleAuxiliary(runRoot: string): {
   readonly roundsFound: readonly string[];
   readonly activeLeaseFiles: readonly string[];
+  readonly hasAuxiliary: boolean;
+  readonly artifacts: readonly string[];
+  readonly subagentLogs: readonly string[];
 } {
   const roundsFound: string[] = [];
   const activeLeaseFiles: string[] = [];
+  const artifacts: string[] = [];
+  const subagentLogs: string[] = [];
+  let hasAuxiliary = false;
 
   if (existsSync(runRoot)) {
     const roundsDir = join(runRoot, "rounds");
     if (existsSync(roundsDir)) {
+      hasAuxiliary = true;
       try {
         const entries = readdirSync(roundsDir, { withFileTypes: true });
         for (const e of entries) {
@@ -99,6 +106,7 @@ export function inspectCapsuleAuxiliary(runRoot: string): {
 
     const leasesDir = join(runRoot, "leases");
     if (existsSync(leasesDir)) {
+      hasAuxiliary = true;
       try {
         const entries = readdirSync(leasesDir, { withFileTypes: true });
         for (const e of entries) {
@@ -111,5 +119,5 @@ export function inspectCapsuleAuxiliary(runRoot: string): {
     }
   }
 
-  return { roundsFound, activeLeaseFiles };
+  return { roundsFound, activeLeaseFiles, hasAuxiliary, artifacts, subagentLogs };
 }

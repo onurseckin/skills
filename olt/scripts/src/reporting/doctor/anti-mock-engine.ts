@@ -2,11 +2,12 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import type {
   AntiMockMutationCheckOptions,
+  CounterfactualCheckRecord,
   DoctorCheckEngineResult,
   DoctorDiagnosticFinding,
 } from "./types.ts";
 
-export type { AntiMockMutationCheckOptions };
+export type { AntiMockMutationCheckOptions, CounterfactualCheckRecord };
 
 const EMPTY_TEST_BODY_REGEX =
   /(?:it|test)\s*\(\s*["'][^"']+["']\s*,\s*(?:async\s*)?\(\s*\)\s*=>\s*\{\s*\}\s*\)/gu;
@@ -37,6 +38,7 @@ const TRIVIAL_ASSERTION_PATTERNS: readonly { readonly pattern: RegExp; readonly 
 
 function scanCodeForBannedMocks(filePath: string, content: string): DoctorDiagnosticFinding[] {
   const findings: DoctorDiagnosticFinding[] = [];
+  const normalizedPath = String(filePath);
 
   const emptyMatches = content.matchAll(EMPTY_TEST_BODY_REGEX);
   for (const match of emptyMatches) {
@@ -44,8 +46,8 @@ function scanCodeForBannedMocks(filePath: string, content: string): DoctorDiagno
       code: "ANTI_MOCK_EMPTY_TEST_BODY",
       severity: "ERROR",
       engine: "checkAntiMockMutation",
-      message: `Banned mock defect in ${filePath}: Empty test body found ("${match[0].slice(0, 80)}")`,
-      details: { filePath, snippet: match[0] },
+      message: `Banned mock defect in ${normalizedPath}: Empty test body found ("${match[0].slice(0, 80)}")`,
+      details: { filePath: normalizedPath, snippet: match[0] },
     });
   }
 
@@ -59,8 +61,8 @@ function scanCodeForBannedMocks(filePath: string, content: string): DoctorDiagno
           code: "ANTI_MOCK_TRIVIAL_ASSERTION",
           severity: "ERROR",
           engine: "checkAntiMockMutation",
-          message: `Banned mock defect in ${filePath}:${i + 1}: Trivial assertion without system verification: ${name}`,
-          details: { filePath, lineNumber: i + 1, snippet: trimmed },
+          message: `Banned mock defect in ${normalizedPath}:${i + 1}: Trivial assertion without system verification: ${name}`,
+          details: { filePath: normalizedPath, lineNumber: i + 1, snippet: trimmed },
         });
       }
     }
@@ -75,8 +77,8 @@ export function checkAntiMockMutation(
   const findings: DoctorDiagnosticFinding[] = [];
 
   if (options.fileContents) {
-    for (const [path, content] of Object.entries(options.fileContents)) {
-      findings.push(...scanCodeForBannedMocks(path, content));
+    for (const [p, content] of Object.entries(options.fileContents)) {
+      findings.push(...scanCodeForBannedMocks(String(p), String(content)));
     }
     return {
       engine: "checkAntiMockMutation",
@@ -86,8 +88,9 @@ export function checkAntiMockMutation(
   }
 
   if (options.targetFiles && options.targetFiles.length > 0) {
-    for (const relPath of options.targetFiles) {
-      const fullPath = options.repoRoot ? resolve(options.repoRoot, relPath) : resolve(relPath);
+    for (const p of options.targetFiles) {
+      const relPath = String(p);
+      const fullPath = options.repoRoot ? resolve(String(options.repoRoot), relPath) : resolve(relPath);
       if (existsSync(fullPath)) {
         try {
           const stat = statSync(fullPath);
@@ -104,10 +107,10 @@ export function checkAntiMockMutation(
     for (const rec of options.counterfactualRecords) {
       if (!rec.falsified) {
         findings.push({
-          code: "ANTI_MOCK_COUNTERFACTUAL_FAILURE",
+          code: "COUNTERFACTUAL_NOT_FALSIFIABLE",
           severity: "ERROR",
           engine: "checkAntiMockMutation",
-          message: `Counterfactual mutation test failed to falsify gate: ${rec.name} (${rec.targetPath})`,
+          message: `Counterfactual mutation test failed to falsify gate: ${String(rec.name)} (${String(rec.targetPath)})`,
           details: {
             checkId: rec.checkId,
             name: rec.name,
