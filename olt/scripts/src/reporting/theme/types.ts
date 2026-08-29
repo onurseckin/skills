@@ -1,8 +1,3 @@
-/**
- * @file types.ts
- * Multi-Theme Contrast Matrix & Dynamic Color Scheme Visual Reporting Types
- */
-
 export const THEME_MODES = ["light", "dark", "high-contrast-light", "high-contrast-dark"] as const;
 
 export type ThemeMode = (typeof THEME_MODES)[number];

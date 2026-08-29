@@ -1,13 +1,5 @@
-/**
- * @file render.ts
- * Visual Markdown and ASCII report formatting for theme contrast evaluations.
- */
-
 import type { MultiThemeComparisonReport } from "./types.ts";
 
-/**
- * Renders a clean ASCII / Unicode visual table report for multi-theme contrast compliance.
- */
 export function formatThemeContrastMatrixMarkdown(report: MultiThemeComparisonReport): string {
   const lines: string[] = [];
 
@@ -45,7 +37,6 @@ export function formatThemeContrastMatrixMarkdown(report: MultiThemeComparisonRe
   lines.push("## High-Level Element Contrast Matrix");
   lines.push("");
 
-  // Construct High-Level ASCII Matrix
   const headers = ["Selector", ...report.evaluatedThemes, "Status"];
   lines.push(`| ${headers.join(" | ")} |`);
   lines.push(`| ${headers.map(() => ":---").join(" | ")} |`);

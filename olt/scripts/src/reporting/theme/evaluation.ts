@@ -1,8 +1,3 @@
-/**
- * @file evaluation.ts
- * Multi-theme contrast matrix evaluation engine and regression analysis.
- */
-
 import {
   THEME_MODES,
   CONTRAST_STANDARDS,
@@ -23,73 +18,11 @@ import {
   calculateWcagContrast,
   calculateApcaContrast,
 } from "./color-space.ts";
+import { resolveIsLargeText, getRequiredThreshold, evaluateSingleStandard } from "./thresholds.ts";
+import { checkThemeRegressions } from "./regression-detector.ts";
 
-export function resolveIsLargeText(
-  isLarge?: boolean | undefined,
-  fontSize?: number | undefined,
-  fontWeight?: number | string | undefined,
-): boolean {
-  if (typeof isLarge === "boolean") return isLarge;
-  const size = typeof fontSize === "number" ? fontSize : 16;
-  const isBold =
-    typeof fontWeight === "number"
-      ? fontWeight >= 600
-      : typeof fontWeight === "string"
-        ? fontWeight === "bold" ||
-          fontWeight === "bolder" ||
-          fontWeight === "semibold" ||
-          fontWeight === "semi-bold" ||
-          parseInt(fontWeight, 10) >= 600
-        : false;
+export { resolveIsLargeText, getRequiredThreshold, evaluateSingleStandard };
 
-  if (size >= 24) return true;
-  if (size >= 18.66 && isBold) return true;
-  if (size >= 16 && isBold) return true;
-  return false;
-}
-
-export function getRequiredThreshold(standard: ContrastStandard, isLargeText: boolean): number {
-  switch (standard) {
-    case "wcag-aa":
-      return isLargeText ? 3.0 : 4.5;
-    case "wcag-aaa":
-      return isLargeText ? 4.5 : 7.0;
-    case "apca":
-      return isLargeText ? 60.0 : 75.0;
-  }
-}
-
-export function evaluateSingleStandard(
-  standard: ContrastStandard,
-  wcagRatio: number,
-  apcaLc: number,
-  isLargeText: boolean,
-): ContrastEvaluation {
-  const requiredThreshold = getRequiredThreshold(standard, isLargeText);
-  let passed = false;
-  let note: string;
-
-  if (standard === "wcag-aa" || standard === "wcag-aaa") {
-    passed = wcagRatio >= requiredThreshold;
-    note = `Required CR ≥ ${requiredThreshold.toFixed(1)}:1 (${isLargeText ? "Large" : "Normal"} text), Measured: ${wcagRatio.toFixed(2)}:1`;
-  } else {
-    passed = Math.abs(apcaLc) >= requiredThreshold;
-    note = `Required |Lc| ≥ ${requiredThreshold.toFixed(1)} (${isLargeText ? "Large" : "Normal"} text), Measured: ${Math.abs(apcaLc).toFixed(1)}`;
-  }
-
-  return {
-    standard,
-    contrastRatio: standard === "apca" ? Math.abs(apcaLc) : wcagRatio,
-    requiredThreshold,
-    passed,
-    score: standard === "apca" ? Math.abs(apcaLc) : wcagRatio,
-    note,
-  };
-}
-
-/**
- * Evaluate multi-theme contrast matrix across all provided elements and theme pairs.
- */
 export function evaluateThemeContrastMatrix(
   elements: readonly ElementThemePair[],
   standards: readonly ContrastStandard[] = CONTRAST_STANDARDS,
@@ -97,7 +30,6 @@ export function evaluateThemeContrastMatrix(
   const evaluatedStandards: readonly ContrastStandard[] =
     standards.length === 0 ? CONTRAST_STANDARDS : standards;
 
-  // Group element pairs by selector
   const selectorMap = new Map<string, ElementThemePair[]>();
   const discoveredThemes = new Set<ThemeMode>();
 
@@ -111,7 +43,6 @@ export function evaluateThemeContrastMatrix(
     }
   }
 
-  // If elements specify theme pairs across a subset of themes, evaluate all themes present in the elements batch
   const evaluatedThemes =
     discoveredThemes.size > 0 ? Array.from(discoveredThemes) : [...THEME_MODES];
 
@@ -140,7 +71,6 @@ export function evaluateThemeContrastMatrix(
     let anyLargeText = false;
     let elementName: string | undefined = undefined;
 
-    // Index by theme mode
     const pairByTheme = new Map<ThemeMode, ElementThemePair>();
     for (const p of pairs) {
       pairByTheme.set(p.theme, p);
@@ -156,7 +86,6 @@ export function evaluateThemeContrastMatrix(
       const pair = pairByTheme.get(theme);
 
       if (pair === undefined) {
-        // Missing theme pair check
         findings.push({
           id: generateFindingId("MISSING"),
           selector,
@@ -266,73 +195,14 @@ export function evaluateThemeContrastMatrix(
       };
     }
 
-    // Dynamic Theme Regression Detection (e.g. Light passes AA, Dark fails AA)
-    const lightRes = themeResults.light;
-    const darkRes = themeResults.dark;
-    const hcLightRes = themeResults["high-contrast-light"];
-    const hcDarkRes = themeResults["high-contrast-dark"];
-
-    if (lightRes !== undefined && darkRes !== undefined) {
-      const lightAa = lightRes.evaluations.find((e) => e.standard === "wcag-aa");
-      const darkAa = darkRes.evaluations.find((e) => e.standard === "wcag-aa");
-      const lightAaPassed = lightAa !== undefined ? lightAa.passed : lightRes.wcagRatio >= 4.5;
-      const darkAaPassed = darkAa !== undefined ? darkAa.passed : darkRes.wcagRatio >= 4.5;
-
-      if (lightAaPassed && !darkAaPassed) {
-        findings.push({
-          id: generateFindingId("REGRESS-DARK"),
-          selector,
-          theme: "dark",
-          standard: "wcag-aa",
-          severity: "serious",
-          message: `Dark mode contrast regression: selector "${selector}" passes in light mode (CR: ${lightRes.wcagRatio.toFixed(2)}:1), but regresses and fails in dark mode (CR: ${darkRes.wcagRatio.toFixed(2)}:1).`,
-          foregroundColor: darkRes.foregroundColor,
-          backgroundColor: darkRes.backgroundColor,
-          contrastRatio: darkRes.wcagRatio,
-          requiredThreshold: getRequiredThreshold("wcag-aa", anyLargeText),
-          details:
-            "Dark mode color palette fails to preserve adequate contrast compared to light theme baseline.",
-        });
-      }
-    }
-
-    // High Contrast Regression Detection
-    if (hcLightRes !== undefined && lightRes !== undefined) {
-      if (hcLightRes.wcagRatio < lightRes.wcagRatio) {
-        findings.push({
-          id: generateFindingId("REGRESS-HC"),
-          selector,
-          theme: "high-contrast-light",
-          standard: "wcag-aa",
-          severity: "moderate",
-          message: `High-contrast light mode inverted contrast: selector "${selector}" has lower contrast in high-contrast mode (${hcLightRes.wcagRatio.toFixed(2)}:1) than standard light mode (${lightRes.wcagRatio.toFixed(2)}:1).`,
-          foregroundColor: hcLightRes.foregroundColor,
-          backgroundColor: hcLightRes.backgroundColor,
-          contrastRatio: hcLightRes.wcagRatio,
-          requiredThreshold: lightRes.wcagRatio,
-          details:
-            "High-contrast theme mode must yield higher or equal luminance contrast relative to standard themes.",
-        });
-      }
-    }
-
-    if (hcDarkRes !== undefined && darkRes !== undefined) {
-      if (hcDarkRes.wcagRatio < darkRes.wcagRatio) {
-        findings.push({
-          id: generateFindingId("REGRESS-HCDARK"),
-          selector,
-          theme: "high-contrast-dark",
-          standard: "wcag-aa",
-          severity: "moderate",
-          message: `High-contrast dark mode inverted contrast: selector "${selector}" has lower contrast in high-contrast dark mode (${hcDarkRes.wcagRatio.toFixed(2)}:1) than standard dark mode (${darkRes.wcagRatio.toFixed(2)}:1).`,
-          foregroundColor: hcDarkRes.foregroundColor,
-          backgroundColor: hcDarkRes.backgroundColor,
-          contrastRatio: hcDarkRes.wcagRatio,
-          requiredThreshold: darkRes.wcagRatio,
-          details:
-            "High-contrast theme mode must yield higher or equal luminance contrast relative to standard themes.",
-        });
-      }
+    const regressions = checkThemeRegressions(
+      selector,
+      themeResults,
+      anyLargeText,
+      generateFindingId,
+    );
+    for (const r of regressions) {
+      findings.push(r);
     }
 
     matrices.push({

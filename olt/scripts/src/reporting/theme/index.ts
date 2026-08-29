@@ -1,6 +1,3 @@
-/**
- * Theme Contrast Matrix and Evaluation Subsystem Facade
- */
 export {
   THEME_MODES,
   type ThemeMode,
@@ -15,8 +12,8 @@ export {
   type ThemeRegressionFinding,
   type MultiThemeComparisonReport,
 } from "./types.ts";
+export { NAMED_COLORS } from "./named-colors.ts";
 export {
-  NAMED_COLORS,
   clampByte,
   clampAlpha,
   parseChannelValue,
@@ -26,14 +23,13 @@ export {
   isValidColor,
   parseRgb,
   compositeRgb,
+} from "./color-parser.ts";
+export {
   calculateRelativeLuminance,
   calculateWcagContrast,
   calculateApcaContrast,
-} from "./color-space.ts";
-export {
-  resolveIsLargeText,
-  getRequiredThreshold,
-  evaluateSingleStandard,
-  evaluateThemeContrastMatrix,
-} from "./evaluation.ts";
+} from "./contrast-algorithms.ts";
+export { resolveIsLargeText, getRequiredThreshold, evaluateSingleStandard } from "./thresholds.ts";
+export { checkThemeRegressions } from "./regression-detector.ts";
+export { evaluateThemeContrastMatrix } from "./evaluation.ts";
 export { formatThemeContrastMatrixMarkdown } from "./render.ts";

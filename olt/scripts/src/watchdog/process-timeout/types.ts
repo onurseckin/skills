@@ -29,8 +29,8 @@ export type ExitStatus =
 export interface BunSubprocess {
   readonly pid: number;
   readonly exited: Promise<number>;
-  readonly stdout?: ReadableStream<Uint8Array> | null;
-  readonly stderr?: ReadableStream<Uint8Array> | null;
+  readonly stdout?: ReadableStream<Uint8Array> | null | undefined;
+  readonly stderr?: ReadableStream<Uint8Array> | null | undefined;
 }
 
 export interface ProcessDiagnostics {
@@ -44,8 +44,8 @@ export interface ProcessDiagnostics {
   readonly durationMs: number;
   readonly idleDurationMs: number;
   readonly progressStallDurationMs: number;
-  readonly pid?: number;
-  readonly ppid?: number;
+  readonly pid?: number | undefined;
+  readonly ppid?: number | undefined;
   readonly signalsSent: readonly NodeJS.Signals[];
 }
 
@@ -58,8 +58,8 @@ export interface RemediationGuidance {
   readonly summary: string;
   readonly prescribedSteps: readonly string[];
   readonly defectReference: "defect-20260822-24" | "defect-20260822-28" | string;
-  readonly supervisorTarget?: string;
-  readonly fallbackDirective?: string;
+  readonly supervisorTarget?: string | undefined;
+  readonly fallbackDirective?: string | undefined;
 }
 
 export interface StructuredFailurePayload {
@@ -68,12 +68,12 @@ export interface StructuredFailurePayload {
   readonly exitStatus: ExitStatus | string;
   readonly errorClassification: ErrorClassification | string;
   readonly reason: string;
-  readonly taskId?: string | null;
-  readonly gateId?: string | null;
-  readonly agentId?: string | null;
-  readonly supervisorTier?: SupervisorTier | string;
-  readonly childRole?: HierarchicalRole | string;
-  readonly childPid?: number;
+  readonly taskId?: string | null | undefined;
+  readonly gateId?: string | null | undefined;
+  readonly agentId?: string | null | undefined;
+  readonly supervisorTier?: SupervisorTier | string | undefined;
+  readonly childRole?: HierarchicalRole | string | undefined;
+  readonly childPid?: number | undefined;
   readonly diagnostics: ProcessDiagnostics;
   readonly remediationGuidance: RemediationGuidance;
   readonly timestamp: string;
@@ -104,14 +104,14 @@ export interface WatchdogLivenessReport {
   readonly timedOut: boolean;
   readonly stalled: boolean;
   readonly timeoutKind: WatchdogTimeoutKind | null;
-  readonly errorClassification?: ErrorClassification;
-  readonly reason?: string;
+  readonly errorClassification?: ErrorClassification | undefined;
+  readonly reason?: string | undefined;
 }
 
 export interface WatchdogMonitorResult {
   readonly outcome: "exit" | "timeout" | "stall" | "interrupted";
   readonly exitCode: number | null;
-  readonly failurePayload?: StructuredFailurePayload;
+  readonly failurePayload?: StructuredFailurePayload | undefined;
   readonly signalsSent: readonly NodeJS.Signals[];
 }
 
@@ -119,18 +119,18 @@ export interface ChildNodeInfo {
   readonly childId: string;
   readonly role: HierarchicalRole | string;
   readonly supervisorTier: SupervisorTier | string;
-  readonly pid?: number;
-  readonly ppid?: number;
-  readonly taskId?: string;
-  readonly gateId?: string;
-  readonly agentId?: string;
-  readonly wallTimeoutMs?: number;
-  readonly idleTimeoutMs?: number;
-  readonly stallProgressThresholdMs?: number;
-  readonly heartbeatIntervalMs?: number;
-  readonly graceMs?: number;
-  readonly startedAt?: number;
-  readonly metadata?: Readonly<Record<string, unknown>>;
+  readonly pid?: number | undefined;
+  readonly ppid?: number | undefined;
+  readonly taskId?: string | undefined;
+  readonly gateId?: string | undefined;
+  readonly agentId?: string | undefined;
+  readonly wallTimeoutMs?: number | undefined;
+  readonly idleTimeoutMs?: number | undefined;
+  readonly stallProgressThresholdMs?: number | undefined;
+  readonly heartbeatIntervalMs?: number | undefined;
+  readonly graceMs?: number | undefined;
+  readonly startedAt?: number | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
 export interface ProbeResult {
@@ -151,13 +151,13 @@ export interface ProbeResult {
 
 export interface HierarchicalStallProbeOptions {
   readonly supervisorTier: SupervisorTier;
-  readonly supervisorId?: string;
-  readonly defaultWallTimeoutMs?: number;
-  readonly defaultIdleTimeoutMs?: number;
-  readonly defaultStallThresholdMs?: number;
-  readonly heartbeatIntervalMs?: number;
-  readonly graceMs?: number;
-  readonly maxTailBytes?: number;
+  readonly supervisorId?: string | undefined;
+  readonly defaultWallTimeoutMs?: number | undefined;
+  readonly defaultIdleTimeoutMs?: number | undefined;
+  readonly defaultStallThresholdMs?: number | undefined;
+  readonly heartbeatIntervalMs?: number | undefined;
+  readonly graceMs?: number | undefined;
+  readonly maxTailBytes?: number | undefined;
   readonly now?: () => number;
   readonly killProcessTree?: (pid: number, signal: NodeJS.Signals) => boolean;
   readonly wait?: (milliseconds: number) => Promise<unknown>;

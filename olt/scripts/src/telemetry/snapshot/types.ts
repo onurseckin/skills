@@ -2,7 +2,7 @@ export interface QuotaDagSnapshotTask {
   id: string;
   status: string;
   effortMath: string;
-  agent?: string;
+  agent?: string | undefined;
   dependencies: string[];
 }
 
@@ -29,9 +29,9 @@ export interface QuotaDagSnapshot {
   repositoryRoot: string;
   runRoot: string;
   frozenAt: string;
-  resumedAt?: string;
+  resumedAt?: string | undefined;
   status: "frozen" | "resumed";
-  activeWave?: QuotaDagSnapshotWave;
+  activeWave?: QuotaDagSnapshotWave | undefined;
   tasks: QuotaDagSnapshotTask[];
   agents: QuotaDagSnapshotAgent[];
   cronsSuspended: QuotaDagSnapshotCron[];
@@ -52,7 +52,7 @@ export interface CaptureDagSnapshotOptions {
 export interface ResumeDagSnapshotOptions {
   repoRoot: string;
   runRoot: string;
-  clearAfterResume?: boolean;
+  clearAfterResume?: boolean | undefined;
 }
 
 export interface ResumeDagSnapshotResult {
