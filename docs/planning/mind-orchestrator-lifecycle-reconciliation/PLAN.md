@@ -90,6 +90,15 @@ $$\text{Invariant: } |\text{ActiveAuditors}| \le 1$$
 - Spawning a second `skill_auditor` attempts to acquire `.olt/locks/skill_auditor.lock`.
 - If held by an active live process, `spawn-validator.ts` immediately rejects the spawn with `DUPLICATE_SINGLETON_AUDITOR_ERROR`.
 
+### 2.4 Zero Empty-Pulse Churn & Informational Telemetry Density
+
+- Supervisory cadences (Mind pulses, Orchestrator round pulses, Coordinator wave heartbeats) suppress disk writes on empty iterations where 0 state mutations, 0 queue transitions, and 0 defect promotions occur.
+- Only actionable delta updates, milestone completions, and error escalations emit persistent events, preventing log file bloat across long idle or wait intervals.
+
+### 2.5 Zero-Copy In-Place Skill Execution
+
+- Mind and Orchestrator lifecycle operations execute directly against the checked-out repository source root, strictly forbidding runtime copying or cloning of skill assets into `.olt/`.
+
 ---
 
 ## 3. TypeScript Schemas & Concrete Contracts

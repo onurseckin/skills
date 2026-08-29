@@ -116,6 +116,28 @@ To reconstruct state at sequence target $T$:
 4. Scan forward to event $S_{\text{base}}+1$, then apply sequential patches for events $S_{\text{base}}+1 \dots T$.
 5. Replay cost is bounded by $\le 199$ events regardless of total history size $N$.
 
+### 2.4 Operator-Only Manual Cleanup CLI & Atomic Co-Purging
+
+To prevent `.olt/` from becoming bloated after tens or hundreds of multi-agent runs, the harness provides human operator-driven cleanup commands:
+
+- **CLI Commands:**
+  - `bun harness.ts clean:capsules [--older-than <days> | --completed | --run <id>]`
+  - `bun harness.ts clean:telemetry [--before <date>]`
+  - `bun harness.ts clean:mailboxes [--all | --inactive]`
+  - `bun harness.ts clean:all` (Full reset of completed capsules, mailboxes, and temporary scratch)
+- **Strict Agent Ban (`AGENT_CLEAN_PROHIBITION_INVARIANT`):** Autonomous subagents are mechanically forbidden from invoking any `clean:*` commands. Cleaning is strictly an operator-initiated manual maintenance tool.
+- **Atomic Co-Purging Guarantee:** When a capsule run is deleted, its directory (`.olt/capsules/<run_id>/`), corresponding mailboxes (`.olt/mailboxes/<agent_id>/`), POSIX locks (`.locks/`), and non-shared CAS evidence blobs are pruned together atomically, preventing partial/dangling orphan files.
+
+### 2.5 Post-Run Graph & Summary Fidelity Invariant
+
+- Before any manual cleanup is performed, the harness guarantees 100% data preservation during active runs.
+- `summary:export` compiles the full execution trajectory into `summary/graph.json` and `summary.md`, capturing all subagent dispatches, token usage, inter-agent messages, and directed dependency graphs before historical pruning.
+
+### 2.6 Zero-Copy In-Place Skill Execution Invariant
+
+- The harness strictly forbids duplicating or copying skill packages, scripts, or agent manifests into `.olt/` at runtime during execution or tests.
+- All operations execute in-place directly from the repository source tree, eliminating redundant file duplication on disk.
+
 ---
 
 ## 3. TypeScript Schemas & Concrete Contracts

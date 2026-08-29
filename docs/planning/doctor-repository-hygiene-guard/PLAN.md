@@ -81,6 +81,9 @@ graph TD
 4. **Scratch Confinement:**
    Scratch scripts (`fix-*.ts`, `test-*.ts`, `*.py`) are strictly confined to `scratch/` or `.olt/scratch/`.
 
+5. **Zero-Copy In-Place Execution Invariant (Ban on Runtime Skill Cloning):**
+   The harness strictly forbids cloning or duplicating the skill package or its subdirectories into `.olt/` at runtime during execution or tests. Tests and subagents run directly against the checked-out repository source root with zero redundant file copies.
+
 ### 2.2 Git Index Integrity & Reflog Crash Safety
 
 1. **Dangling Index Lock Protocol:**

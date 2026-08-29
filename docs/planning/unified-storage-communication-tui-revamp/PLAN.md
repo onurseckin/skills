@@ -17,6 +17,7 @@ This master specification delivers a foundational modernization of the OLT harne
 3. **Flock-Locked File Mailbox Subsystem (`.olt/mailboxes/<id>/`)**: Replaces brittle host-specific message routing (`hb-s6-peer-messaging-by-role-name-resolves-for-nobody`) and eliminates human-relay thread chatter (`hb-main-thread-chatter-burns-owner-context`, `defect-main-thread-chatter-burns-owner-context`) with durable, HMAC-signed, flock-locked file mailboxes.
 4. **Canonical Sugiyama Layered DAG Visualizer**: Implements rigorous graph drawing mathematics—longest-path layering, Coffman-Graham width bounding, barycentric crossing minimization, and orthogonal box-drawing edge routing (`┌`, `┐`, `└`, `┘`, `│`, `─`, `├`, `┤`, `┬`, `┴`, `┼`) with node badges for Implementers `[I]` and Validators `[V]`.
 5. **Interactive Terminal UI (TUI) Dashboard**: Provides a high-performance in-terminal mission control (`bun harness.ts tui --watch`) with double-buffered ANSI diff canvas, 20Hz debounced refresh, `wcwidth` Unicode alignment, and interactive view switching.
+6. **User-Driven Manual Atomic Cleanup & Smart Density Engine**: Provides operator-only CLI cleanup commands (`clean:capsules`, `clean:mailboxes`, `clean:all`) with atomic co-purging, strict agent execution bans, zero empty-pulse byte churn, 1,000-message bounded queues with post-run `graph.json` fidelity, and zero-copy in-place skill execution.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -49,6 +50,13 @@ This master specification delivers a foundational modernization of the OLT harne
 │     • wcwidth Unicode alignment engine (wide emojis, Asian fullwidth, ANSI escape stripping).    │
 │     • Interactive View Switcher: Sugiyama DAG, Timeline, Concurrency Matrix, Mailbox Inspector.  │
 │     • Robust Panic Cleanup: Raw mode reset, SIGINT/SIGTERM handlers, Headless CI/CD fallback.   │
+│                                                                                                  │
+│  6. [ User-Driven Manual Atomic Cleanup & Smart Density Engine ]                                 │
+│     • Operator-Only Clean Commands: `clean:capsules`, `clean:mailboxes`, `clean:all`.            │
+│     • Atomic Co-Purging: Removes capsule, mailboxes, and CAS evidence together without orphans.  │
+│     • Agent Clean Ban: Subagents strictly prohibited from executing clean operations.            │
+│     • Smart Density: Zero empty-pulse churn, 1,000-message queue bound, 100% graph.json fidelity.│
+│     • Zero-Copy Execution: In-place skill execution without duplicating files inside `.olt/`.    │
 │                                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```

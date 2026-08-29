@@ -97,6 +97,20 @@ Each active agent possesses an isolated directory structure within `.olt/mailbox
    - Lock payload: `{"pid": number, "holder": string, "created_at": string}`.
    - If lock age $> 10\text{s}$ and `kill(pid, 0) === false` (process does not exist), the lock is atomically reclaimed via unlink and re-acquisition.
 
+4. **1,000-Message Bounded In-Flight Queue & Full Post-Run Graph Fidelity:**
+   - To prevent memory/file bloat during massive parallel waves, active `inbox.jsonl` maintains a rolling window of up to 1,000 active messages.
+   - Acknowledged messages are atomically rotated into `archive.jsonl`.
+   - **Post-Run Graph Fidelity Invariant:** `archive.jsonl` retains complete inter-agent communication records (token counts, dispatches, handoffs, and payloads) throughout the run so that final `summary/graph.json` and `summary.md` can render 100% of the execution graph and message traces.
+
+5. **Smart Informational Density (Zero Empty-Pulse Churn):**
+   - Heartbeat and supervisory pulse events (`PULSE_HEARTBEAT`) are emitted only when state transitions, queue mutations, or new telemetry are detected.
+   - Repetitive 3-minute / 5-minute empty pulses that contain zero actionable changes are suppressed to prevent megabytes of redundant byte churn.
+
+6. **Operator-Only Manual Cleanup & Atomic Co-Purging:**
+   - **CLI Command:** `bun harness.ts clean:mailboxes [--all | --inactive | --agent <id>]`
+   - **Strict Agent Ban (`AGENT_CLEAN_PROHIBITION_INVARIANT`):** Autonomous subagents (Mind, Orchestrators, Workers) are mechanically prohibited from executing clean commands. Clean operations can only be triggered interactively by the human user.
+   - **Atomic Co-Purging:** When an agent mailbox is purged, `.olt/mailboxes/<agent_id>/` and its advisory lock `.olt/mailboxes/.locks/<agent_id>.lock` are deleted together atomically with zero orphaned lock remnants.
+
 ---
 
 ## 3. TypeScript Schemas & Concrete Contracts
