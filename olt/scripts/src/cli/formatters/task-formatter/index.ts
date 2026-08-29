@@ -8,16 +8,20 @@ export type {
   TaskReviewPassParams,
   TaskSubmitParams,
   ValidationStartParams,
-} from "./task-formatter/index.ts";
+} from "./types.ts";
+
+export { formatTaskBrief } from "./brief.ts";
 
 export {
   formatTaskAssignRepairerBrief,
-  formatTaskBrief,
   formatTaskClaimBrief,
   formatTaskHeartbeatBrief,
+  formatTaskSubmitBrief,
+} from "./lifecycle.ts";
+
+export {
   formatTaskProbeBrief,
   formatTaskRejectBrief,
   formatTaskReviewPassBrief,
-  formatTaskSubmitBrief,
   formatValidationStartBrief,
-} from "./task-formatter/index.ts";
+} from "./validation.ts";

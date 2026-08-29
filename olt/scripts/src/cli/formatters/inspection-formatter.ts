@@ -1,10 +1,11 @@
+import type { ScreenshotRecord } from "../../reporting/index.ts";
 import { enforceLineLimit } from "./line-limiter.ts";
 import {
   evidenceGetNextActions,
   findingGetNextActions,
   nextActionsBlock,
   reportGetNextActions,
-} from "./next-actions.ts";
+} from "./next-actions/index.ts";
 
 function screenshotRecordPath(record: unknown): string {
   if (typeof record === "object" && record !== null && "path" in record) {
@@ -174,5 +175,50 @@ export function formatEvidenceListBrief(params: EvidenceListParams): string {
     }
   }
   lines.push(...nextActionsBlock(evidenceGetNextActions()));
+  return enforceLineLimit(lines.join("\n"), 30);
+}
+
+export interface ScreenshotsListParams {
+  screenshots: ScreenshotRecord[];
+  count: number;
+  taskId?: string | undefined;
+  commandId?: string | undefined;
+}
+
+export function formatScreenshotsListBrief(params: ScreenshotsListParams): string {
+  const scopeSuffix = params.taskId
+    ? ` (Task: \`${params.taskId}\`)`
+    : params.commandId
+      ? ` (Command: \`${params.commandId}\`)`
+      : "";
+
+  const lines = [`### Run Screenshots: ${params.count} total${scopeSuffix}`];
+
+  if (params.screenshots.length === 0) {
+    lines.push("- No screenshots recorded for this run.");
+  } else {
+    for (const s of params.screenshots.slice(0, 15)) {
+      const details: string[] = [];
+      if (s.command_id) details.push(`Command: \`${s.command_id}\``);
+      if (s.task_id) details.push(`Task: \`${s.task_id}\``);
+      if (s.actor) details.push(`Actor: \`${s.actor}\``);
+      const detailStr = details.length > 0 ? ` (${details.join(" | ")})` : "";
+      lines.push(`- **\`${s.name}\`**${detailStr}: \`${s.path}\``);
+    }
+    if (params.screenshots.length > 15) {
+      lines.push(`- ... and ${params.screenshots.length - 15} more screenshots.`);
+    }
+  }
+
+  lines.push(
+    ...nextActionsBlock([
+      {
+        command: `bun harness.ts evidence:screenshots`,
+        role: "Validator",
+        description: "List all visual screenshot evidence",
+      },
+    ]),
+  );
+
   return enforceLineLimit(lines.join("\n"), 30);
 }

@@ -2,7 +2,9 @@ import type { CheckReport, Violation } from "../core/index.ts";
 import type { ModularityBaseline } from "./baseline.ts";
 
 function identity(violation: Violation): string {
-  return violation.rule === "line_limit" || violation.rule === "directory_fanout"
+  return violation.rule === "line_limit" ||
+    violation.rule === "directory_fanout" ||
+    violation.rule === "dependency_cycle"
     ? `${violation.rule}:${violation.path}`
     : `${violation.rule}:${violation.path}:${String(violation.observed)}`;
 }
