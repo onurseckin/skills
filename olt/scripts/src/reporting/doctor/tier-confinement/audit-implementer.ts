@@ -7,9 +7,6 @@ import type { TaskRecord, ValidationAttempt } from "../../../workflow/types.ts";
 import { GRAPH_MUTATION_COMMANDS, isImplementerRole, VALIDATION_COMMANDS } from "./constants.ts";
 import type { TierConfinementFinding } from "./types.ts";
 
-/**
- * Mechanically audits Implementer self-grading, validation command execution, and graph topology mutations.
- */
 export function auditImplementerConfinement(
   roleMap: Map<string, string>,
   tasks: readonly TaskRecord[],

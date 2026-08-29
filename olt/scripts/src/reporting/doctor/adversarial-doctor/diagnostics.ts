@@ -8,15 +8,11 @@ import { auditTierConfinement } from "../tier-confinement/index.ts";
 import { compareSemver } from "./mutation.ts";
 import type { DoctorDiagnosticOptions, HarnessHealthCheck } from "./types.ts";
 
-/**
- * Runs comprehensive doctor diagnostics on the harness environment.
- */
 export async function runDoctorDiagnostics(
   options: DoctorDiagnosticOptions = {},
 ): Promise<readonly HarnessHealthCheck[]> {
   const checks: HarnessHealthCheck[] = [];
 
-  // 1. Bun Runtime Version Check
   if (options.checkBunVersion !== false) {
     const minVersion =
       typeof options.minimumBunVersion === "string" && options.minimumBunVersion.length > 0
@@ -45,7 +41,6 @@ export async function runDoctorDiagnostics(
     }
   }
 
-  // 2. Capsule Root Confinement Check
   if (
     options.checkCapsuleRoot !== false &&
     typeof options.runRoot === "string" &&
@@ -90,7 +85,6 @@ export async function runDoctorDiagnostics(
     }
   }
 
-  // 3. Unified Evidence Location Check
   if (
     options.checkUnifiedEvidence !== false &&
     typeof options.runRoot === "string" &&
@@ -135,7 +129,6 @@ export async function runDoctorDiagnostics(
     }
   }
 
-  // 4. Tier Confinement Check
   if (
     options.checkTierConfinement !== false &&
     typeof options.runRoot === "string" &&
@@ -181,7 +174,6 @@ export async function runDoctorDiagnostics(
     }
   }
 
-  // 5. State & Layout Integrity Check
   if (
     options.checkIntegrity !== false &&
     typeof options.runRoot === "string" &&
@@ -224,7 +216,6 @@ export async function runDoctorDiagnostics(
     }
   }
 
-  // 6. Custom Diagnostics
   if (Array.isArray(options.customChecks) && options.customChecks.length > 0) {
     for (const customFn of options.customChecks) {
       try {

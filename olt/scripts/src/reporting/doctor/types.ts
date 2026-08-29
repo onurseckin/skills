@@ -1,7 +1,3 @@
-/**
- * Doctor Diagnostic Engine Types & Contracts
- */
-
 export type DoctorSeverity = "ERROR" | "WARN" | "INFO";
 
 export interface DoctorDiagnosticFinding {

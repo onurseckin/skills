@@ -18,10 +18,6 @@ export interface EvidenceLocationAuditResult {
   readonly issues: readonly string[];
 }
 
-/**
- * Validates that all validator output storage, screenshot artifacts, visual reports, and companion manifests
- * reside strictly under the unified evidence directory (.capsules/<run>/evidence/ or relative evidence/screenshots/).
- */
 export function verifyUnifiedEvidenceLocation(
   runRoot: string,
   state?: JsonObject | null,
@@ -32,7 +28,6 @@ export function verifyUnifiedEvidenceLocation(
 
   const resolvedRunRoot = resolve(runRoot);
 
-  // 1. Audit captures ledger if present
   if (existsSync(resolvedRunRoot)) {
     const captures = readCaptures(resolvedRunRoot);
     for (const capture of captures) {
@@ -50,7 +45,6 @@ export function verifyUnifiedEvidenceLocation(
     }
   }
 
-  // 2. Audit task validations and packet evidence in state
   if (state && isJsonObject(state)) {
     const tasks = isJsonObject(state.tasks) ? Object.values(state.tasks) : [];
     for (const task of tasks) {
@@ -78,7 +72,6 @@ export function verifyUnifiedEvidenceLocation(
       }
     }
 
-    // 3. Audit packets if present in state
     const packets = isJsonObject(state.packets) ? Object.values(state.packets) : [];
     for (const packet of packets) {
       if (!isJsonObject(packet)) continue;
@@ -100,7 +93,6 @@ export function verifyUnifiedEvidenceLocation(
     }
   }
 
-  // 4. Physical evidence directory audit: scan runRoot/evidence to ensure directory is valid
   const physicalEvidenceDir = join(resolvedRunRoot, UNIFIED_EVIDENCE_DIRECTORY);
   if (existsSync(resolvedRunRoot) && existsSync(physicalEvidenceDir)) {
     try {
@@ -109,7 +101,7 @@ export function verifyUnifiedEvidenceLocation(
         checkedCount++;
       }
     } catch {
-      
+
     }
   }
 

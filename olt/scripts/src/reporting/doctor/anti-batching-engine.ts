@@ -15,7 +15,10 @@ interface ActiveTaskInfo {
 }
 
 function normalizeScopePattern(pattern: string): string {
-  return pattern.trim().replace(/^\.?\//u, "");
+  const p = pattern.trim();
+  if (p.startsWith("./")) return p.slice(2);
+  if (p.startsWith("/")) return p.slice(1);
+  return p;
 }
 
 function scopesOverlap(scopeA: readonly string[], scopeB: readonly string[]): string[] {
@@ -36,10 +39,6 @@ function scopesOverlap(scopeA: readonly string[], scopeB: readonly string[]): st
   return overlaps;
 }
 
-/**
- * Engine 4: checkAntiBatchingIsolation
- * Enforces 1:1 task-to-subagent isolation and disjoint write scopes across concurrent active tasks.
- */
 export function checkAntiBatchingIsolation(
   options: AntiBatchingIsolationOptions = {},
 ): DoctorCheckEngineResult {
@@ -76,7 +75,6 @@ export function checkAntiBatchingIsolation(
     }
   }
 
-  // 1. Check for single agent holding concurrent active task leases without distinct lane subtasks
   const agentTaskMap = new Map<string, string[]>();
   for (const task of activeTasks) {
     if (task.agentId) {
@@ -98,7 +96,6 @@ export function checkAntiBatchingIsolation(
     }
   }
 
-  // 2. Check for overlapping write scopes across concurrent active tasks
   for (let i = 0; i < activeTasks.length; i += 1) {
     for (let j = i + 1; j < activeTasks.length; j += 1) {
       const taskA = activeTasks[i]!;

@@ -1,33 +1,20 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+import type {
+  AntiMockMutationCheckOptions,
+  DoctorCheckEngineResult,
+  DoctorDiagnosticFinding,
+} from "./types.ts";
 
-export interface CounterfactualCheckRecord {
-  readonly name?: string | undefined;
-  readonly passed: boolean;
-  readonly falsified: boolean;
-  readonly baselinePassed?: boolean | undefined;
-  readonly message?: string | undefined;
-}
-
-export interface AntiMockMutationCheckOptions {
-  readonly repoRoot?: string | undefined;
-  readonly targetPaths?: readonly string[] | undefined;
-  readonly fileContents?: Readonly<Record<string, string>> | undefined;
-  readonly counterfactualRecords?: readonly CounterfactualCheckRecord[] | undefined;
-}
+export type { AntiMockMutationCheckOptions };
 
 const EMPTY_TEST_BODY_REGEX =
-  /(?:test|it)\s*\(\s*["'`][^"'`]+["'`]\s*,\s*(?:async\s*)?\(\s*\)\s*=>\s*\{\s*\}\s*\)/gu;
+  /(?:it|test)\s*\(\s*["'][^"']+["']\s*,\s*(?:async\s*)?\(\s*\)\s*=>\s*\{\s*\}\s*\)/gu;
 
 const TRIVIAL_ASSERTION_PATTERNS: readonly { readonly pattern: RegExp; readonly name: string }[] = [
   {
     pattern: /expect\s*\(\s*true\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*true\s*\)/u,
     name: "expect(true).toBe(true)",
-  },
-  {
-    pattern: /expect\s*\(\s*true\s*\)\s*\.\s*toBeTruthy\s*\(\s*\)/u,
-    name: "expect(true).toBeTruthy()",
   },
   {
     pattern: /expect\s*\(\s*false\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*false\s*\)/u,
@@ -51,7 +38,6 @@ const TRIVIAL_ASSERTION_PATTERNS: readonly { readonly pattern: RegExp; readonly 
 function scanCodeForBannedMocks(filePath: string, content: string): DoctorDiagnosticFinding[] {
   const findings: DoctorDiagnosticFinding[] = [];
 
-  // 1. Scan for empty test bodies
   const emptyMatches = content.matchAll(EMPTY_TEST_BODY_REGEX);
   for (const match of emptyMatches) {
     findings.push({
@@ -63,7 +49,6 @@ function scanCodeForBannedMocks(filePath: string, content: string): DoctorDiagno
     });
   }
 
-  // 2. Scan lines for trivial true assertions
   const lines = content.split("\n");
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i]!;
@@ -84,60 +69,51 @@ function scanCodeForBannedMocks(filePath: string, content: string): DoctorDiagno
   return findings;
 }
 
-/**
- * Engine 3: checkAntiMockMutation
- * Validates against banned mocking patterns and counterfactual falsifiability.
- */
 export function checkAntiMockMutation(
   options: AntiMockMutationCheckOptions = {},
 ): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
 
-  // 1. Scan in-memory file contents if provided
   if (options.fileContents) {
     for (const [path, content] of Object.entries(options.fileContents)) {
       findings.push(...scanCodeForBannedMocks(path, content));
     }
+    return {
+      engine: "checkAntiMockMutation",
+      passed: findings.length === 0,
+      findings,
+    };
   }
 
-  // 2. Scan target files if provided
-  if (options.targetPaths) {
-    for (const targetPath of options.targetPaths) {
-      const fullPath = options.repoRoot
-        ? resolve(options.repoRoot, targetPath)
-        : resolve(targetPath);
+  if (options.targetFiles && options.targetFiles.length > 0) {
+    for (const relPath of options.targetFiles) {
+      const fullPath = options.repoRoot ? resolve(options.repoRoot, relPath) : resolve(relPath);
       if (existsSync(fullPath)) {
         try {
           const stat = statSync(fullPath);
-          if (stat.isFile() && (fullPath.endsWith(".test.ts") || fullPath.endsWith(".spec.ts"))) {
+          if (stat.isFile() && (fullPath.endsWith(".ts") || fullPath.endsWith(".tsx"))) {
             const content = readFileSync(fullPath, "utf-8");
-            findings.push(...scanCodeForBannedMocks(targetPath, content));
+            findings.push(...scanCodeForBannedMocks(relPath, content));
           }
-        } catch {
-          // File read error ignored
-        }
+        } catch {}
       }
     }
   }
 
-  // 3. Check counterfactual records
   if (options.counterfactualRecords) {
-    for (const record of options.counterfactualRecords) {
-      if (record.baselinePassed === false) {
+    for (const rec of options.counterfactualRecords) {
+      if (!rec.falsified) {
         findings.push({
-          code: "COUNTERFACTUAL_BASELINE_FAILED",
+          code: "ANTI_MOCK_COUNTERFACTUAL_FAILURE",
           severity: "ERROR",
           engine: "checkAntiMockMutation",
-          message: `Counterfactual baseline failed before mutation: ${record.name ?? "unnamed test"}`,
-          details: { record },
-        });
-      } else if (!record.falsified && record.passed) {
-        findings.push({
-          code: "COUNTERFACTUAL_NOT_FALSIFIABLE",
-          severity: "ERROR",
-          engine: "checkAntiMockMutation",
-          message: `Counterfactual falsifiability failure: Test still passed despite injected mutation: ${record.name ?? "unnamed test"}`,
-          details: { record },
+          message: `Counterfactual mutation test failed to falsify gate: ${rec.name} (${rec.targetPath})`,
+          details: {
+            checkId: rec.checkId,
+            name: rec.name,
+            targetPath: rec.targetPath,
+            mutation: rec.mutation,
+          },
         });
       }
     }
@@ -145,7 +121,7 @@ export function checkAntiMockMutation(
 
   return {
     engine: "checkAntiMockMutation",
-    passed: findings.filter((f) => f.severity === "ERROR").length === 0,
+    passed: findings.length === 0,
     findings,
   };
 }

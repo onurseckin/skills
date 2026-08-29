@@ -1,13 +1,7 @@
-/**
- * Time Telemetry Type Definitions & Predicates
- */
 import type { DualTimeRecord } from "../../core/dual-time/index.ts";
 import { isDualTimeRecord } from "../../core/dual-time/index.ts";
 import type { JsonValue } from "../../core/contracts/index.ts";
 
-/**
- * Canonical action category domains across the 4-tier autonomous harness hierarchy.
- */
 export type HarnessActionCategory =
   | "plan"
   | "queue"
@@ -21,9 +15,6 @@ export type HarnessActionCategory =
   | "workflow"
   | "custom";
 
-/**
- * Execution lifecycle states for an action timing span.
- */
 export type ActionExecutionStatus =
   | "pending"
   | "running"
@@ -32,9 +23,6 @@ export type ActionExecutionStatus =
   | "error"
   | "timed_out";
 
-/**
- * Valid action categories set for runtime validation.
- */
 export const HARNESS_ACTION_CATEGORIES: readonly HarnessActionCategory[] = [
   "plan",
   "queue",
@@ -49,9 +37,6 @@ export const HARNESS_ACTION_CATEGORIES: readonly HarnessActionCategory[] = [
   "custom",
 ] as const;
 
-/**
- * Valid execution statuses set for runtime validation.
- */
 export const ACTION_EXECUTION_STATUSES: readonly ActionExecutionStatus[] = [
   "pending",
   "running",
@@ -61,9 +46,6 @@ export const ACTION_EXECUTION_STATUSES: readonly ActionExecutionStatus[] = [
   "timed_out",
 ] as const;
 
-/**
- * Sub-step timing detail within a parent action span.
- */
 export interface SubStepTiming {
   readonly name: string;
   readonly startedAt: DualTimeRecord;
@@ -74,9 +56,6 @@ export interface SubStepTiming {
   readonly details?: Readonly<Record<string, JsonValue>> | undefined;
 }
 
-/**
- * Immutable serializable action timing and dual-time telemetry record.
- */
 export interface HarnessActionTimeRecord {
   readonly actionId: string;
   readonly actionName: string;
@@ -94,9 +73,6 @@ export interface HarnessActionTimeRecord {
   readonly error?: string | undefined;
 }
 
-/**
- * Options for initiating an ActionSpan.
- */
 export interface StartActionSpanOptions {
   readonly category?: HarnessActionCategory | undefined;
   readonly tier?: number | undefined;
@@ -106,9 +82,6 @@ export interface StartActionSpanOptions {
   readonly expectedStartMs?: number | undefined;
 }
 
-/**
- * Statistical latency percentiles structure.
- */
 export interface LatencyPercentiles {
   readonly count: number;
   readonly minMs: number;
@@ -120,9 +93,6 @@ export interface LatencyPercentiles {
   readonly p99Ms: number;
 }
 
-/**
- * Categorical breakdown summary.
- */
 export interface CategoryTelemetrySummary {
   readonly category: HarnessActionCategory;
   readonly count: number;
@@ -135,9 +105,6 @@ export interface CategoryTelemetrySummary {
   readonly percentiles: LatencyPercentiles;
 }
 
-/**
- * Per-actor summary.
- */
 export interface ActorTelemetrySummary {
   readonly actor: string;
   readonly tier: number;
@@ -147,9 +114,6 @@ export interface ActorTelemetrySummary {
   readonly errorCount: number;
 }
 
-/**
- * Behavioral time anomaly detected during telemetry analysis.
- */
 export interface TimeAnomaly {
   readonly type:
     | "excessive_duration"
@@ -166,9 +130,6 @@ export interface TimeAnomaly {
   readonly actualMs?: number | undefined;
 }
 
-/**
- * Health assessment result for a collection of time telemetry records.
- */
 export interface TimeTelemetryHealthResult {
   readonly healthy: boolean;
   readonly totalChecked: number;
@@ -177,9 +138,6 @@ export interface TimeTelemetryHealthResult {
   readonly recommendation: string;
 }
 
-/**
- * Comprehensive omnipresent time telemetry report.
- */
 export interface TimeTelemetryReport {
   readonly generatedAt: DualTimeRecord;
   readonly runId?: string | undefined;
@@ -195,9 +153,6 @@ export interface TimeTelemetryReport {
   readonly timezone: string;
 }
 
-/**
- * Filter options for querying recorded telemetry records.
- */
 export interface TelemetryFilter {
   readonly category?: HarnessActionCategory | readonly HarnessActionCategory[] | undefined;
   readonly actor?: string | readonly string[] | undefined;
@@ -207,10 +162,6 @@ export interface TelemetryFilter {
   readonly fromMs?: number | undefined;
   readonly toMs?: number | undefined;
 }
-
-// ---------------------------------------------------------
-// Strict Type Guards
-// ---------------------------------------------------------
 
 export function isHarnessActionCategory(value: unknown): value is HarnessActionCategory {
   return (

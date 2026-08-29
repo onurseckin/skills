@@ -231,7 +231,6 @@ export class StateMachineAuditor {
       });
     }
 
-    // Check 3: UNVALIDATED_TASK_COMPLETED
     for (const [id, taskVal] of taskEntries) {
       if (isRecord(taskVal)) {
         const status = taskVal["status"];

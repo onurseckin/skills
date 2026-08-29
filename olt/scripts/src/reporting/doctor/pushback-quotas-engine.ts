@@ -159,10 +159,6 @@ function countPushbacksForTask(
   return count;
 }
 
-/**
- * Engine 8: checkPushbackQuotas
- * Verifies that completed tasks satisfy mandatory_cognitive_pushbacks and max_adversarial_probes from .olt/policy.json.
- */
 export function checkPushbackQuotas(
   options: PushbackQuotasCheckOptions = {},
 ): DoctorCheckEngineResult {

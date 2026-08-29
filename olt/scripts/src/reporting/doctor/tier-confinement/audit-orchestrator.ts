@@ -12,9 +12,6 @@ import {
 } from "./constants.ts";
 import type { TierConfinementFinding } from "./types.ts";
 
-/**
- * Mechanically audits Orchestrator direct implementation, code editing, and task graph mutation.
- */
 export function auditOrchestratorConfinement(
   roleMap: Map<string, string>,
   grants: readonly AgentGrantRecord[],

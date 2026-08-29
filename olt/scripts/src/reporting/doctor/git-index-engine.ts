@@ -14,9 +14,6 @@ export interface AutoHealGitStateOptions {
   readonly cleanIndexLock?: boolean | undefined;
 }
 
-/**
- * Checks Git index integrity, detecting stale .git/index.lock, uncommitted artifacts, and stash health.
- */
 export function checkGitIndexIntegrity(
   options: GitIndexCheckOptions = {},
 ): GitIndexIntegrityReport {
@@ -38,7 +35,6 @@ export function checkGitIndexIntegrity(
   let staleIndexLockPath: string | undefined;
   let deadLockPid: number | undefined;
 
-  // 1. Check for .git/index.lock
   const indexLockPath = join(gitDir, "index.lock");
   if (existsSync(indexLockPath)) {
     staleIndexLockPath = indexLockPath;
@@ -54,7 +50,7 @@ export function checkGitIndexIntegrity(
           lockPid = parsed;
         }
       } catch {
-        // Unparseable PID
+
       }
 
       if (lockPid !== undefined) {
@@ -63,7 +59,7 @@ export function checkGitIndexIntegrity(
           staleIndexLockPresent = true;
         }
       } else if (ageSeconds > 120) {
-        // Lock older than 2 minutes without active PID
+
         staleIndexLockPresent = true;
       }
 
@@ -77,11 +73,10 @@ export function checkGitIndexIntegrity(
         });
       }
     } catch {
-      // Ignore stat error
+
     }
   }
 
-  // 2. Check for unstaged modifications
   const uncommittedArtifacts: string[] = [];
   try {
     const statusResult = spawnSync("git", ["status", "--porcelain"], {
@@ -97,10 +92,9 @@ export function checkGitIndexIntegrity(
       }
     }
   } catch {
-    // Git status probe failed
+
   }
 
-  // 3. Check stash integrity
   let stashCorrupted = false;
   try {
     const stashResult = spawnSync("git", ["stash", "list"], {
@@ -125,7 +119,7 @@ export function checkGitIndexIntegrity(
       }
     }
   } catch {
-    // Stash check failed
+
   }
 
   const healthy = findings.filter((f) => f.severity === "ERROR").length === 0;
@@ -141,10 +135,6 @@ export function checkGitIndexIntegrity(
   };
 }
 
-/**
- * Automatically repairs Git index lock issues and auto-stages uncommitted artifacts (`git add -A`)
- * for sub-domain completion reflog safety.
- */
 export function autoHealGitState(options: AutoHealGitStateOptions = {}): {
   readonly indexLockCleaned: boolean;
   readonly stagedFiles: readonly string[];
@@ -161,7 +151,6 @@ export function autoHealGitState(options: AutoHealGitStateOptions = {}): {
     return { indexLockCleaned, stagedFiles };
   }
 
-  // 1. Clean dead .git/index.lock
   if (cleanIndexLock) {
     const indexLockPath = join(gitDir, "index.lock");
     if (existsSync(indexLockPath)) {
@@ -179,7 +168,7 @@ export function autoHealGitState(options: AutoHealGitStateOptions = {}): {
             }
           }
         } catch {
-          // Ignore
+
         }
 
         if (ageSeconds > 120 || shouldUnlink) {
@@ -187,12 +176,11 @@ export function autoHealGitState(options: AutoHealGitStateOptions = {}): {
           indexLockCleaned = true;
         }
       } catch {
-        // Ignore unlink error
+
       }
     }
   }
 
-  // 2. Auto-stage changes for reflog safety
   if (stageModified) {
     try {
       const addResult = spawnSync("git", ["add", "-A"], {
@@ -215,7 +203,7 @@ export function autoHealGitState(options: AutoHealGitStateOptions = {}): {
         }
       }
     } catch {
-      // Ignore git add failure
+
     }
   }
 

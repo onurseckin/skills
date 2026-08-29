@@ -73,7 +73,6 @@ export function checkDualChannelUi(
 ): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
 
-  // 1. Evaluate Theme Contrast Matrix
   if (options.themeElements && options.themeElements.length > 0) {
     for (const pair of options.themeElements) {
       const fgRgb = parseColor(pair.foregroundColor);
@@ -111,7 +110,6 @@ export function checkDualChannelUi(
     }
   }
 
-  // 2. Validate Terminal Dual-Channel (ASCII fallback + ANSI color channel)
   if (options.checkTerminalChannels ?? true) {
     if (options.asciiChannelSample !== undefined && options.asciiChannelSample.length === 0) {
       findings.push({

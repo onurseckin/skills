@@ -7,9 +7,6 @@ import { roleToTier } from "../../../authority/thread/index.ts";
 import { inferRole, TERMINAL_PULSE_OUTCOMES } from "./constants.ts";
 import type { TierConfinementFinding } from "./types.ts";
 
-/**
- * Mechanically audits subagent pulse termination violations.
- */
 export function auditPulseTerminationConfinement(
   roleMap: Map<string, string>,
   state: JsonObject,

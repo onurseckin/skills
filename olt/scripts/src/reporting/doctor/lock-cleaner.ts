@@ -16,9 +16,6 @@ export interface StaleLeaseOptions {
   readonly graceSeconds?: number | undefined;
 }
 
-/**
- * Checks if a process with the specified PID is currently alive.
- */
 export function isProcessAlive(pid: number): boolean {
   if (!Number.isInteger(pid) || pid <= 0) return false;
   try {
@@ -30,9 +27,6 @@ export function isProcessAlive(pid: number): boolean {
   }
 }
 
-/**
- * Cleanses dangling flock lock files from dead processes or exceeded staleness thresholds.
- */
 export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[] {
   const repoRoot = options.repoRoot ?? process.cwd();
   const staleSeconds = options.staleSeconds ?? 300;
@@ -69,13 +63,12 @@ export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[]
         let shouldClean = false;
         let reason = "";
 
-        // Check file age
         const ageSeconds = (now - stats.mtimeMs) / 1000;
         if (ageSeconds > staleSeconds) {
           shouldClean = true;
           reason = `stale lock age (${Math.round(ageSeconds)}s > ${staleSeconds}s)`;
         } else {
-          // Check payload for PID
+
           try {
             const content = readFileSync(fullPath, "utf-8").trim();
             if (content.startsWith("{") && content.endsWith("}")) {
@@ -95,7 +88,7 @@ export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[]
               }
             }
           } catch {
-            // Unparseable content with moderate age
+
             if (ageSeconds > 60) {
               shouldClean = true;
               reason = `unparseable lock file with age ${Math.round(ageSeconds)}s`;
@@ -108,11 +101,11 @@ export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[]
             unlinkSync(fullPath);
             cleared.push(`${fullPath} (${reason})`);
           } catch {
-            // Ignore unlink errors
+
           }
         }
       } catch {
-        // Ignore stat errors
+
       }
     }
   }
@@ -120,9 +113,6 @@ export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[]
   return cleared;
 }
 
-/**
- * Reclaims expired/stale task leases in a capsule run.
- */
 export function recoverStaleLeases(runRoot: string, options: StaleLeaseOptions = {}): string[] {
   const actor = options.actor ?? "doctor-auto-heal";
   const recovered: string[] = [];
@@ -158,7 +148,7 @@ export function recoverStaleLeases(runRoot: string, options: StaleLeaseOptions =
       }
     }
   } catch {
-    // Best effort recovery
+
   }
 
   return recovered;

@@ -1,6 +1,3 @@
-/**
- * Adversarial Doctor & Counterfactual Certification Facade
- */
 export {
   type MutationKind,
   type CounterfactualMutation,

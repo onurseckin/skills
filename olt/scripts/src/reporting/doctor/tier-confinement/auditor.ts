@@ -21,9 +21,6 @@ import { auditImplementerConfinement } from "./audit-implementer.ts";
 import { auditPulseTerminationConfinement } from "./audit-pulse.ts";
 import type { GitDiffRecord, TierConfinementFinding, TierConfinementSummary } from "./types.ts";
 
-/**
- * Full mechanical audit of 4-tier boundary confinement across capsule state.
- */
 export function auditTierConfinement(
   capsuleRoot: string,
   state?: RunState | JsonObject | null,
@@ -40,7 +37,7 @@ export function auditTierConfinement(
       }
       loadedEvents = (loaded.events ?? []) as unknown as JsonObject[];
     } catch {
-      // In offline tests fall back to resolvedState
+
     }
   }
 
@@ -54,7 +51,7 @@ export function auditTierConfinement(
       roleMap.set(grant.id, grant.role);
     }
   } catch {
-    // Graceful fallback
+
   }
 
   const rawTasks = resolvedState.tasks;
@@ -98,11 +95,6 @@ export function summarizeTierConfinement(
   };
 }
 
-/**
- * Hard mechanical assertion ensuring supervisors (Tier 1 Orchestrators & Tier 2 Coordinators)
- * never perform direct code edits or hold task leases.
- * Throws a fatal HarnessError if any supervisor code contamination is detected.
- */
 export function assertSupervisorRoleConfinement(findings: readonly TierConfinementFinding[]): void {
   const supervisorViolations = findings.filter(
     (f) =>

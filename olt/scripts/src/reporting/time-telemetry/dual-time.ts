@@ -1,6 +1,3 @@
-/**
- * Dual-Time Formatting, Enrichment, and Markdown Rendering
- */
 import { randomUUID } from "node:crypto";
 import type { HarnessEvent, JsonObject, JsonValue } from "../../core/contracts/index.ts";
 import {
@@ -12,9 +9,6 @@ import {
 } from "../../core/dual-time/index.ts";
 import type { HarnessActionTimeRecord, TimeTelemetryReport } from "./types.ts";
 
-/**
- * Injects dual-time stamp and telemetry metadata into any arbitrary JSON payload.
- */
 export function enrichWithDualTime<T extends JsonObject>(
   payload: T,
   timezone?: string,
@@ -29,9 +23,6 @@ export function enrichWithDualTime<T extends JsonObject>(
   };
 }
 
-/**
- * Enriches a HarnessEvent with standard dual-time record.
- */
 export function enrichHarnessEvent(
   event: HarnessEvent,
   timezone?: string,
@@ -43,9 +34,6 @@ export function enrichHarnessEvent(
   } as unknown as HarnessEvent & { readonly dual_time: DualTimeRecord };
 }
 
-/**
- * Extracts and verifies a DualTimeRecord from any candidate object.
- */
 export function extractDualTime(source: unknown): DualTimeRecord | null {
   if (!source || typeof source !== "object") return null;
 
@@ -79,18 +67,12 @@ export function extractDualTime(source: unknown): DualTimeRecord | null {
   return null;
 }
 
-/**
- * Renders a Markdown header banner with dual-time timestamp.
- */
 export function renderDualTimeHeader(title: string, record?: DualTimeRecord): string {
   const dual = record ?? getDualTime();
   const display = formatDualTimeDisplay(dual);
   return `# ${title}\n> **Generated At**: \`${display}\` (UTC: \`${dual.utc}\`)\n`;
 }
 
-/**
- * Formats a collection of action records as an omnipresent Markdown table.
- */
 export function formatDualTimeTable(
   records: readonly HarnessActionTimeRecord[],
   options?: { timezone?: string; maxRows?: number },
@@ -137,9 +119,6 @@ export function formatDualTimeTable(
   return lines.join("\n");
 }
 
-/**
- * Renders a full markdown brief from a TimeTelemetryReport.
- */
 export function renderOmnipresentTelemetryMarkdown(report: TimeTelemetryReport): string {
   const lines: string[] = [];
 

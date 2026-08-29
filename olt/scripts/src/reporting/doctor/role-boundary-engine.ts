@@ -45,19 +45,12 @@ function isImplementerRole(role: string): boolean {
   return IMPLEMENTER_ROLES.has(normalizeRole(role));
 }
 
-/**
- * Engine 7: checkRoleBoundaryInterlock
- * Enforces strict tier hierarchy:
- * - Supervisor/Coordinator (Tier 0/1/2) 0 code edit tools used.
- * - Implementers (Tier 3) cannot mutate planning graph or self-approve validation.
- */
 export function checkRoleBoundaryInterlock(
   options: RoleBoundaryInterlockOptions = {},
 ): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
   const agentRoleMap = new Map<string, string>();
 
-  // 1. Map agents to roles
   const rawGrants = options.grants ?? (options.state?.grants as readonly unknown[] | undefined);
   if (Array.isArray(rawGrants)) {
     for (const grant of rawGrants) {
@@ -71,7 +64,7 @@ export function checkRoleBoundaryInterlock(
           : [];
         if (id && role) {
           agentRoleMap.set(id, role);
-          // Check if supervisor role has code edit tools recorded in grant
+
           if (isSupervisorRole(role)) {
             for (const tool of toolsUsed) {
               if (CODE_EDIT_TOOLS.has(tool)) {
@@ -116,7 +109,6 @@ export function checkRoleBoundaryInterlock(
     return "";
   }
 
-  // 2. Scan events for role boundary violations
   if (Array.isArray(options.events)) {
     for (const event of options.events) {
       if (event && typeof event === "object") {
@@ -140,7 +132,6 @@ export function checkRoleBoundaryInterlock(
               ? payload.tool_name
               : undefined;
 
-        // Check A: Supervisor zero-file-edit rule
         if (isSupervisorRole(role) && toolName && CODE_EDIT_TOOLS.has(toolName)) {
           findings.push({
             code: "ROLE_BOUNDARY_SUPERVISOR_CODE_EDIT",
@@ -151,7 +142,6 @@ export function checkRoleBoundaryInterlock(
           });
         }
 
-        // Check B: Implementer cannot mutate planning graph
         if (isImplementerRole(role) && PLANNING_MUTATION_EVENTS.has(eventName)) {
           findings.push({
             code: "ROLE_BOUNDARY_IMPLEMENTER_PLAN_MUTATION",
@@ -162,7 +152,6 @@ export function checkRoleBoundaryInterlock(
           });
         }
 
-        // Check C: Implementer self-approval / self-grading
         if (
           eventName === "task-satisfied" ||
           eventName === "task-approved" ||
@@ -189,7 +178,6 @@ export function checkRoleBoundaryInterlock(
     }
   }
 
-  // 3. Scan state.tasks for self-approval records
   const rawTasks = options.state?.tasks as Record<string, unknown> | undefined;
   if (rawTasks && typeof rawTasks === "object") {
     for (const [key, val] of Object.entries(rawTasks)) {

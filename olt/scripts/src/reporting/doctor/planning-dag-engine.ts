@@ -32,9 +32,6 @@ export interface TaskNodeInfo {
   readonly status?: string | undefined;
 }
 
-/**
- * Type guard for extracting dependency IDs from string or object dependency items.
- */
 export function extractDependencyId(item: unknown): string | undefined {
   if (typeof item === "string") {
     const trimmed = item.trim();
@@ -50,9 +47,6 @@ export function extractDependencyId(item: unknown): string | undefined {
   return undefined;
 }
 
-/**
- * Extracts and filters a clean list of string dependency IDs from any raw dependency array.
- */
 export function extractDependencyList(rawDeps: unknown): readonly string[] {
   if (!Array.isArray(rawDeps)) {
     return [];
@@ -67,9 +61,6 @@ export function extractDependencyList(rawDeps: unknown): readonly string[] {
   return result;
 }
 
-/**
- * Tarjan's Strongly Connected Components Algorithm for cycle detection.
- */
 function findCycles(
   nodeIds: readonly string[],
   adjacency: ReadonlyMap<string, readonly string[]>,
@@ -114,7 +105,7 @@ function findCycles(
       if (scc.length > 1) {
         sccs.push(scc);
       } else if (scc.length === 1 && (adjacency.get(scc[0]!) ?? []).includes(scc[0]!)) {
-        // Self-loop
+
         sccs.push(scc);
       }
     }
@@ -129,15 +120,10 @@ function findCycles(
   return sccs;
 }
 
-/**
- * Engine 1: checkPlanningDag
- * Validates task dependencies, cycle detection (Tarjan), orphan/unreachable tasks, and missing dependency links.
- */
 export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
   const nodesMap = new Map<string, TaskNodeInfo>();
 
-  // Extract from options.tasks
   if (options.tasks && typeof options.tasks === "object") {
     for (const [key, value] of Object.entries(options.tasks)) {
       if (value && typeof value === "object") {
@@ -150,7 +136,6 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
     }
   }
 
-  // Extract from options.graph
   if (options.graph && typeof options.graph === "object") {
     if (Array.isArray(options.graph.nodes)) {
       for (const node of options.graph.nodes) {
@@ -210,7 +195,6 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
   const allNodeSet = new Set(allNodeIds);
   const adjacency = new Map<string, string[]>();
 
-  // 1. Validate missing dependency links
   for (const [id, node] of nodesMap.entries()) {
     const validDeps: string[] = [];
     for (const depId of node.dependencies) {
@@ -229,7 +213,6 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
     adjacency.set(id, validDeps);
   }
 
-  // 2. Validate cycles via Tarjan
   const cycles = findCycles(allNodeIds, adjacency);
   for (const cycle of cycles) {
     const cycleStr = cycle.join(" -> ") + ` -> ${cycle[0]}`;
@@ -242,8 +225,6 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
     });
   }
 
-  // 3. Validate orphan / unreachable tasks
-  // An orphan is a task with no dependents and no dependencies when multiple tasks exist
   if (allNodeIds.length > 1) {
     const isTargetSet = new Set<string>();
     for (const deps of adjacency.values()) {

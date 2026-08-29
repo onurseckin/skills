@@ -94,14 +94,14 @@ export function verifyStrictRepositoryCapsuleRoot(
   try {
     if (existsSync(resolvedRunRoot)) resolvedRunRoot = realpathSync(resolvedRunRoot);
   } catch {
-    // Ignore realpath error
+
   }
 
   let repoRoot = explicitRepoRoot ? resolve(explicitRepoRoot) : findRepositoryRoot(resolvedRunRoot);
   try {
     if (existsSync(repoRoot)) repoRoot = realpathSync(repoRoot);
   } catch {
-    // Ignore realpath error
+
   }
 
   const canonicalCapsulesDir = join(repoRoot, OLT_DIR_NAME, CAPSULES_SUBDIR_NAME);

@@ -11,9 +11,6 @@ import type {
   MutationKind,
 } from "./types.ts";
 
-/**
- * Certifies the Harness Doctor status by executing diagnostic audits and adversarial counterfactual checks.
- */
 export async function certifyHarnessDoctor(
   options: DoctorCertificationOptions = {},
 ): Promise<DoctorCertificationReport> {
@@ -31,7 +28,6 @@ export async function certifyHarnessDoctor(
   const healthChecks = await runDoctorDiagnostics(options);
   const adversarialChecks: AdversarialCheckResult[] = [];
 
-  // Run adversarial falsifiability checks on write scope files if requested
   if (
     options.runAdversarialChecks !== false &&
     Array.isArray(options.writeScope) &&
@@ -156,15 +152,8 @@ export async function certifyHarnessDoctor(
   };
 }
 
-/**
- * Alias for certifyHarnessDoctor
- */
 export const certifyDoctorDiagnostics = certifyHarnessDoctor;
 
-/**
- * Asserts that the DoctorCertificationReport is fully certified.
- * Throws a fatal HarnessError if any critical issue or certification failure is present.
- */
 export function assertDoctorCertification(report: DoctorCertificationReport): void {
   if (!report.certified || report.criticalIssues.length > 0 || report.failedChecks > 0) {
     const detailMessage =

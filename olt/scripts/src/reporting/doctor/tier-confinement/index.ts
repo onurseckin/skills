@@ -1,6 +1,3 @@
-/**
- * Tier Confinement Doctor Rules & Boundary Auditing Facade
- */
 export {
   type TierViolationType,
   type TierViolationSeverity,
