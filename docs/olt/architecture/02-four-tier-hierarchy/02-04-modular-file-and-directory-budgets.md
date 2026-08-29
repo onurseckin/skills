@@ -1,84 +1,92 @@
-# Modular File & Directory Budgets
-
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 02](./index.md) > 02-04 Modular Budgets
+# Modular File & Directory Sizing Budgets
 
 ---
 
-[⏮️ Previous: 02-03 Host Parity & Adapters](02-03-host-parity-and-adapters.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Chapter 03: Mind Product Owner & Cadence](../03-mind-product-owner/index.md)
+[Previous: 02-03 Host Parity & Adapters](02-03-host-parity-and-adapters.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Chapter 03 Index](../03-mind-product-owner/index.md)
+
 ---
 
-## 1. Cognitive Containment & The 300 LOC Rule
+## 1. Executive Summary & Cognitive Load Bounds
 
-A major vulnerability in LLM-driven software engineering is **file bloat**. When a file exceeds 300–500 lines of code:
+In autonomous multi-agent development, monolithic files and sprawling directory trees degrade agent reasoning:
 
-1. LLM attention mechanisms suffer from middle-context dropout.
-2. Edit diff parsers make frequent off-by-one replacement errors.
-3. Multiple agents attempting concurrent edits on the same large file inevitably collide.
+- LLMs struggle to maintain precise attention over files exceeding 500 lines, leading to syntax errors and hallucinated imports.
+- Deep directory nesting obscures module boundaries and encourages circular dependencies.
+- Large diffs overwhelm cognitive validators during adversarial code audits.
 
-OLT enforces strict **Modular File & Directory Budgets**:
+The OLT (Orchestrating Long Tasks) engine enforces strict **Modular File & Directory Sizing Budgets**. Under this standard:
 
-$$\text{LinesOfCode}(\text{file}) \le 300 \quad \land \quad \text{FilesCount}(\text{directory}) \le 10$$
+1. **TypeScript Source Files**: Capped strictly at $\le 300$ physical lines.
+2. **Documentation Topics**: Bounded strictly within the optimal $250 \le L \le 800$ line sizing envelope.
+3. **Directory Fanout**: Capped at $\le 10$ child entries per directory module.
+4. **Explicit Named-Export Facades**: Every directory module exposes its public API through an `index.ts` barrel containing explicit named exports.
 
 ```text
-                           MODULAR DECOMPOSITION TOPOLOGY
-  BEFORE: Monolithic auth.ts (1,200 LOC) - High Failure Rate
-  ┌────────────────────────────────────────────────────────────────────────┐
-  │ auth.ts (Tokens, Password Hashing, DB Queries, Session Store, Routes) │
-  └────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼ (Decomposed via OLT Modular Pattern)
-  AFTER: Modular Directory (<= 300 LOC per file, <= 10 files per dir)
-  ┌────────────────────────────────────────────────────────────────────────┐
-  │ src/auth/                                                              │
-  │  ├── token-signer.ts        (140 LOC)                                  │
-  │  ├── password-hasher.ts     (95 LOC)                                   │
-  │  ├── session-store.ts       (210 LOC)                                  │
-  │  ├── auth-routes.ts         (180 LOC)                                  │
-  │  └── types.ts               (60 LOC)                                   │
-  └────────────────────────────────────────────────────────────────────────┘
++--------------------------------------------------------------------------------------------------+
+│                             MODULAR SIZING BUDGET ENVELOPE                                       │
++--------------------------------------------------------------------------------------------------+
+│                                                                                                  │
+│   TypeScript Source Files     ──► L <= 300 Lines (Strict AST & Linter Limit)                     │
+│   Documentation Topics        ──► 250 <= L <= 800 Lines (Target Diátaxis Envelope)               │
+│   Directory Module Fanout     ──► Children <= 10 Entries per Directory Level                     │
+│   Module Export Facades       ──► Explicit named exports only (Prohibit wildcard export *)       │
+│                                                                                                  │
++--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. Structural Decomposition Patterns
+## 2. Mathematical Formalization of Cognitive Load $\mathcal{K}(u)$
 
-When a module approaches the 300 LOC ceiling, OLT enforces three standard decomposition patterns:
+Let $F$ denote a source file with physical line count $L(F)$ and cyclomatic complexity $C(F)$.
+
+The cognitive comprehension cost $\mathcal{K}(F)$ for an agent context is modeled as:
+
+$$\mathcal{K}(F) = \alpha \cdot L(F) + \beta \cdot C(F) + \gamma \cdot \text{Fanout}(F)$$
+
+Where $\alpha, \beta, \gamma > 0$ are empirically calibrated weights.
+
+To ensure $\mathcal{K}(F) \le \mathcal{K}_{\max}$ (the maximum reliable attention threshold):
+
+$$L(F) \le 300 \quad \text{and} \quad \text{Fanout}(F) \le 10$$
 
 ```mermaid
 flowchart TD
-    LargeFile[File Approaching 300 LOC] --> PatternSelect{Select Pattern}
-    PatternSelect -->|Logic & Pure Functions| Facade[Facade + Helper Submodules]
-    PatternSelect -->|Type Definitions & Schemas| TypeExtract[Dedicated types.ts Module]
-    PatternSelect -->|Strategy / Polymorphic Handlers| Strategy[Strategy Registry Directory]
+    EditSubmission[Agent Submits File Edit: F] --> LineCountCheck{Physical Lines <= 300?}
+    LineCountCheck -->|No: Monolith| RejectLines[TRAP: PHYSICAL_LINE_BUDGET_EXCEEDED]
+    LineCountCheck -->|Yes| FanoutCheck{Directory Children <= 10?}
+    FanoutCheck -->|No: Sprawling Dir| RejectFanout[TRAP: DIRECTORY_FANOUT_BUDGET_EXCEEDED]
+    FanoutCheck -->|Yes| WildcardCheck{Contains export * from ...?}
+    WildcardCheck -->|Yes: Wildcard| RejectWildcard[TRAP: PROHIBIT_WILDCARD_EXPORTS]
+    WildcardCheck -->|No: Clean Export| PassBudget([Sizing Budget Certified])
 ```
-
-1. **Facade & Helper Extraction**: The entry point maintains the public API and delegates internal transformations to modular helper files.
-2. **Domain Type Segregation**: All interfaces, type aliases, and JSON schemas are extracted into a co-located `types.ts`.
-3. **Directory Subdivision**: When a directory exceeds 10 files, sub-features must be partitioned into nested subdirectories with explicit boundary contracts.
 
 ---
 
-## 3. Automated Linter Enforcement
+## 3. Module Decomposition & Barrel Facades
 
-The OLT AST Doctor checks file and directory limits as part of [`ast-linter.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/ast-enforcer.ts):
+When a module exceeds sizing bounds, it must be decomposed into dedicated submodules and unified via an explicit export facade:
 
 ```typescript
-export function verifyModularBudgets(ast: ASTSourceFile): LintViolation[] {
-  const lineCount = ast.getEndLineNumber();
-  if (lineCount > 300) {
-    return [
-      {
-        rule: "MODULAR_FILE_BUDGET_EXCEEDED",
-        severity: "error",
-        message: `File exceeds strict 300 LOC budget (${lineCount} lines). Decompose immediately.`,
-      },
-    ];
-  }
-  return [];
-}
+// Good: Explicit named export facade (index.ts)
+export { compileTopologicalDAG } from "./dag-compiler";
+export { breakTarjanCycles } from "./cycle-breaker";
+export { layoutSugiyamaLayers } from "./sugiyama-layout";
+
+// Prohibited: Wildcard export
+export * from "./dag-compiler"; // AST Linter Fault: PROHIBIT_WILDCARD_EXPORTS
 ```
 
 ---
 
-[⏮️ Previous: 02-03 Host Parity & Adapters](02-03-host-parity-and-adapters.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Chapter 03: Mind Product Owner & Cadence](../03-mind-product-owner/index.md)
+## 4. Architectural Invariants Summary
+
+1. **Mechanical Enforcement**: Pre-commit hooks and AST linters reject files violating line budgets.
+2. **Zero Shallow Stubs**: Documentation files under 100 lines are merged into cohesive topics.
+3. **Predictable Architecture**: High modularity guarantees fast compilation and hermetic unit testing.
+
+---
+
+[Previous: 02-03 Host Parity & Adapters](02-03-host-parity-and-adapters.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Chapter 03 Index](../03-mind-product-owner/index.md)
+
 ---

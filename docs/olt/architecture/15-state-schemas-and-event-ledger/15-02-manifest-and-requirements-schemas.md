@@ -7,10 +7,10 @@
 
 ---
 
-[⏮️ Previous: Capsule Filesystem Layout](15-01-capsule-filesystem-layout.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Events JSONL & Merkle Schema](15-03-events-jsonl-and-merkle-schema.md)
+[Previous: Capsule Filesystem Layout](15-01-capsule-filesystem-layout.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Events JSONL & Merkle Schema](15-03-events-jsonl-and-merkle-schema.md)
 ---
 
-## 📑 1. Capsule Manifest Schema (`manifest.json`)
+## 1. Capsule Manifest Schema (`manifest.json`)
 
 The **Capsule Manifest** is the root anchor artifact initialized at `.olt/capsules/<slug>/manifest.json` during `plan:init` or `orchestrate`. It immutably binds the exact byte-for-byte user prompt, execution container identity, capture assurance level, and pinned runtime engine versions to the capsule.
 
@@ -188,7 +188,7 @@ flowchart TD
 
 ---
 
-## 📋 2. Requirements Specification Schema (`requirements.json`)
+## 2. Requirements Specification Schema (`requirements.json`)
 
 `requirements.json` compiled during `plan:compile` binds the exact lines of `prompt.md` to verifiable, atomic technical obligations. Every requirement must have falsifiable acceptance criteria and candidate verification gates.
 
@@ -402,7 +402,7 @@ OLT enforces the **Zero-Unaccounted-Lines Axiom**: Every line in `prompt.md` (fr
 
 ---
 
-## 🏛️ 3. Preplanning Artifact Schemas
+## 3. Preplanning Artifact Schemas
 
 Preplanning artifacts are created during `plan:brainstorm` and `plan:enhance` before graph compilation.
 
@@ -526,7 +526,7 @@ Stores structured observations, todos, identified risks, and discovered source r
 
 ---
 
-## 🔐 4. RBAC Authority & Mutation Matrix
+## 4. RBAC Authority & Mutation Matrix
 
 | File Target         | Creating Role                         | Authorized Readers     | Modifying Role                  | Mutation Policy                                                   |
 | :------------------ | :------------------------------------ | :--------------------- | :------------------------------ | :---------------------------------------------------------------- |
@@ -537,5 +537,5 @@ Stores structured observations, todos, identified risks, and discovered source r
 
 ---
 
-[⏮️ Previous: Capsule Filesystem Layout](15-01-capsule-filesystem-layout.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Events JSONL & Merkle Schema](15-03-events-jsonl-and-merkle-schema.md)
+[Previous: Capsule Filesystem Layout](15-01-capsule-filesystem-layout.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Events JSONL & Merkle Schema](15-03-events-jsonl-and-merkle-schema.md)
 ---

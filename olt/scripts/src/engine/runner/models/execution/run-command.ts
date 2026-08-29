@@ -6,7 +6,7 @@ import {
 import { runAttempt } from "../attempt/run-attempt.ts";
 import type { CommandOptions, CommandResult, PreparedCommand } from "../../types/types.ts";
 import { readAgentMetadata } from "../../../../runtime/index.ts";
-import { verifyCommandAuthorization } from "../../../../policy/rbac-engine.ts";
+import { verifyCommandAuthorization } from "../../../../policy/index.ts";
 import { loadRepoPolicy } from "../../../../policy/repo-policy.ts";
 import { resolveScratchDir } from "../../../../core/shared/paths.ts";
 import { HarnessError } from "../../../../core/errors/index.ts";

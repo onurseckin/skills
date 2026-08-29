@@ -1,5 +1,5 @@
 import { extractDomPhysics } from "../dom-physics-extractor.ts";
-import { LayoutShiftTracker } from "../layout-shift-tracker.ts";
+import { LayoutShiftTracker } from "../layout-shift-tracker/index.ts";
 import type { CapturePageDriver } from "../types.ts";
 import { simulateDomEvent } from "./dispatchers.ts";
 import { classifyLayoutShift } from "./evaluator.ts";

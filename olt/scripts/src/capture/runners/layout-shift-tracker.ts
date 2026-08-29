@@ -1,16 +1,16 @@
 export {
-  DEFAULT_LAYOUT_SHIFT_OPTIONS,
-  LayoutShiftTracker,
-  buildCumulativeLayoutShiftReport,
+  detectLayoutShiftBetweenSnapshots,
+  identifyRootCausingElements,
   calculateDistanceFraction,
   calculateImpactFraction,
   calculateLayoutShiftScore,
   clipRectToViewport,
   computeRectanglesUnionArea,
-  detectLayoutShiftBetweenSnapshots,
-  groupSessionWindows,
-  identifyRootCausingElements,
+  DEFAULT_LAYOUT_SHIFT_OPTIONS,
   resolveLayoutShiftTrackerOptions,
+  buildCumulativeLayoutShiftReport,
+  groupSessionWindows,
+  LayoutShiftTracker,
 } from "./layout-shift-tracker/index.ts";
 
 export type {

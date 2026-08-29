@@ -4,14 +4,14 @@
 
 ---
 
-[⏮️ Previous: 28 Empirical Blunders](16-03-twenty-eight-empirical-blunders.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Reference 07: State & Capsule Schemas](../15-state-schemas-and-event-ledger/index.md)
+[Previous: 28 Empirical Blunders](16-03-twenty-eight-empirical-blunders.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Reference 07: State & Capsule Schemas](../15-state-schemas-and-event-ledger/index.md)
 ---
 
 This manual provides actionable, step-by-step remediation runbooks, forensic diagnostic procedures, and self-healing protocols for every error code, failure state, and empirical blunder in the Open Loop Task (OLT) ecosystem.
 
 ---
 
-## 🔍 1. Forensic Diagnostics & Capsule Health
+## 1. Forensic Diagnostics & Capsule Health
 
 When an agent or pipeline encounters an unexpected error, follow the structured forensic diagnostic workflow:
 
@@ -32,7 +32,7 @@ flowchart TD
 
 ---
 
-## 🛠️ 2. Core Self-Healing Commands
+## 2. Core Self-Healing Commands
 
 ### 1. Capsule Doctor (`doctor`)
 
@@ -72,7 +72,7 @@ bun olt/scripts/harness.ts recover --run .olt/capsules/<slug>
 
 ---
 
-## 📖 3. Step-by-Step Recovery Playbooks
+## 3. Step-by-Step Recovery Playbooks
 
 ---
 
@@ -385,5 +385,5 @@ flowchart TD
 
 ---
 
-[⏮️ Previous: 28 Empirical Blunders](16-03-twenty-eight-empirical-blunders.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Reference 07: State & Capsule Schemas](../15-state-schemas-and-event-ledger/index.md)
+[Previous: 28 Empirical Blunders](16-03-twenty-eight-empirical-blunders.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Reference 07: State & Capsule Schemas](../15-state-schemas-and-event-ledger/index.md)
 ---

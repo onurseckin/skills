@@ -4,14 +4,14 @@
 
 ---
 
-[⏮️ Previous: Reference 06: Error Dictionary & Blunders Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Harness Error Codes & Payloads](16-02-harness-error-codes-and-payloads.md)
+[Previous: Reference 06: Error Dictionary & Blunders Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Harness Error Codes & Payloads](16-02-harness-error-codes-and-payloads.md)
 ---
 
 The **Open Loop Task (OLT) Harness** (`bun olt/scripts/harness.ts`) operates as a deterministic POSIX process interface. Every CLI invocation terminates with one of four canonical POSIX exit codes. This deterministic signaling enables orchestrators, supervisor daemons, and continuous integration pipelines to immediately distinguish between input errors, transient lock contention, internal runtime panics, and successful state commits.
 
 ---
 
-## 🚦 1. POSIX Exit Status Architecture
+## 1. POSIX Exit Status Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -57,7 +57,7 @@ flowchart TD
 
 ---
 
-## 🔍 2. Detailed Exit Code Specifications
+## 2. Detailed Exit Code Specifications
 
 ### Exit `0`: `SUCCESS` (`EX_OK`)
 
@@ -119,7 +119,7 @@ flowchart TD
 
 ---
 
-## 🔒 3. The Zero-Mutation Invariant
+## 3. The Zero-Mutation Invariant
 
 > [!IMPORTANT]
 > **Axiomatic Guarantee**: If any harness command terminates with exit code `3`, `4`, or `70`, the disk representation of `.olt/capsules/<slug>/` is guaranteed to be completely unchanged.
@@ -159,7 +159,7 @@ This two-phase architecture guarantees that:
 
 ---
 
-## 📡 4. Stream Routing & Machine Contracts
+## 4. Stream Routing & Machine Contracts
 
 The OLT Harness enforces strict stream separation between standard output (`stdout`) and standard error (`stderr`).
 
@@ -183,7 +183,7 @@ The OLT Harness enforces strict stream separation between standard output (`stdo
 
 ---
 
-## ⚙️ 5. The `run:exec` Process Wrapper Exception
+## 5. The `run:exec` Process Wrapper Exception
 
 The monitored command wrapper command `bun harness.ts run:exec` is the **sole exception** to direct exit status propagation:
 
@@ -216,7 +216,7 @@ sequenceDiagram
 
 ---
 
-## 💻 6. Caller Integration & Pipeline Recipes
+## 6. Caller Integration & Pipeline Recipes
 
 ### Bash / Shell Script Integration
 
@@ -313,5 +313,5 @@ export async function executeHarness<T>(argv: string[]): Promise<HarnessExecutio
 
 ---
 
-[⏮️ Previous: Reference 06: Error Dictionary & Blunders Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Harness Error Codes & Payloads](16-02-harness-error-codes-and-payloads.md)
+[Previous: Reference 06: Error Dictionary & Blunders Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Harness Error Codes & Payloads](16-02-harness-error-codes-and-payloads.md)
 ---

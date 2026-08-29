@@ -1,14 +1,12 @@
 # 03-01: Infinite Autonomous Cadence — Mutual Exclusion, Quota Freezing & The Zero-Kill Invariant
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 03: Mind Product Owner](./index.md) > 03-01: Infinite Autonomous Cadence
-
 > **Status**: Authoritative Architecture Specification  
 > **Topic**: Tier-0 Perpetual Autonomous Loop, POSIX Advisory Mutual Exclusion, Suspended Dual-Time Clock, and Zero-Kill Quota Resilience  
 > **Audience**: Autonomous Systems Architects, Concurrency Engineers, Operating Systems Specialists, Daemon Runtime Developers
 
 ---
 
-[⏮️ Previous: Chapter 03: Mind Product Owner & Cadence Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 03-02 Ten Discovery Sources & Triage](03-02-ten-discovery-sources-and-triage.md)
+[Previous: Chapter 03: Mind Product Owner & Cadence Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 03-02 Ten Discovery Sources & Triage](03-02-ten-discovery-sources-and-triage.md)
 ---
 
 ## 1. Executive Summary & The Perpetual Daemon Model
@@ -373,6 +371,6 @@ The digest is synthesized into an immutable record verifying repository health a
 *Proceed to the next section: [03-02: Ten Discovery Sources & Real-Time Triage](./03-02-ten-discovery-sources-and-triage.md).*
 
 ---
-[⏮️ Previous: Chapter 03: Mind Product Owner & Cadence Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 03-02 Ten Discovery Sources & Triage](03-02-ten-discovery-sources-and-triage.md)
+[Previous: Chapter 03: Mind Product Owner & Cadence Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 03-02 Ten Discovery Sources & Triage](03-02-ten-discovery-sources-and-triage.md)
 ---
 $$

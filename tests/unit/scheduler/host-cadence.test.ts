@@ -7,8 +7,11 @@ import {
   resolveSchedulerCron,
   resolveSchedulerIntervalSeconds,
 } from "../../../olt/scripts/src/engine/scheduler/host-cadence.ts";
-import { generateDefaultRepoPolicy } from "../../../olt/scripts/src/policy/generator.ts";
-import type { HostType, RepoPolicy } from "../../../olt/scripts/src/policy/types.ts";
+import {
+  generateDefaultRepoPolicy,
+  type HostType,
+  type RepoPolicy,
+} from "../../../olt/scripts/src/policy/index.ts";
 
 describe("Embedded Schedulers & Host Cadence (Task 2.3)", () => {
   const policy: RepoPolicy = generateDefaultRepoPolicy();

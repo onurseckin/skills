@@ -1,14 +1,12 @@
 # Chapter 03: Mind Product Owner & Autonomous Cadence — Tier-0 Macro-Cognition, Continuous Ingestion & Generational Lineage
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > Chapter 03: Mind Product Owner & Autonomous Cadence
-
 > **Status**: Authoritative Architecture Specification  
 > **Topic**: Tier-0 Mind Supervisory Engine, Autonomous Product Ownership, Continuous Cadence, Admission Gate Theory, and Generational Rotation  
 > **Audience**: Autonomous Systems Architects, Distributed Agent Runtime Specialists, Compiler Engineers, Formal Verification Leads
 
 ---
 
-[⏮️ Previous: Chapter 02: Four-Tier Hierarchy](../02-four-tier-hierarchy/index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 03-01 Infinite Autonomous Cadence](03-01-infinite-autonomous-cadence.md)
+[Previous: Chapter 02: Four-Tier Hierarchy](../02-four-tier-hierarchy/index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 03-01 Infinite Autonomous Cadence](03-01-infinite-autonomous-cadence.md)
 ---
 
 ## 1. Executive Summary & The Product Owner Philosophy
@@ -332,5 +330,5 @@ _Proceed to the next section: [03-01: Infinite Autonomous Cadence](./03-01-infin
 
 ---
 
-[⏮️ Previous: Chapter 02: Four-Tier Hierarchy](../02-four-tier-hierarchy/index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 03-01 Infinite Autonomous Cadence](03-01-infinite-autonomous-cadence.md)
+[Previous: Chapter 02: Four-Tier Hierarchy](../02-four-tier-hierarchy/index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 03-01 Infinite Autonomous Cadence](03-01-infinite-autonomous-cadence.md)
 ---

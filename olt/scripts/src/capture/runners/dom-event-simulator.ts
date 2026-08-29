@@ -1,11 +1,11 @@
 export {
   DOM_EVENT_DISPATCH_SCRIPT,
-  DEFAULT_DOM_SIMULATION_OPTIONS,
-  DomEventSimulator,
+  simulateDomEvent,
   buildSyntheticInteractionPlan,
   classifyLayoutShift,
+  DEFAULT_DOM_SIMULATION_OPTIONS,
   resolveDomSimulationOptions,
-  simulateDomEvent,
+  DomEventSimulator,
 } from "./dom-event-simulator/index.ts";
 
 export type {

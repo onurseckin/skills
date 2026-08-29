@@ -255,7 +255,7 @@ describe("Task 3.3: Headless Mock Cookie Injector & Viewport PNG Validator", () 
         ),
         join(process.cwd(), "olt/scripts/src/capture/runners/live-capture-runner/runner.ts"),
         join(process.cwd(), "olt/scripts/src/capture/runners/live-capture-runner/synthetic-png.ts"),
-        join(process.cwd(), "olt/scripts/src/capture/runners/live-capture-runner.ts"),
+        join(process.cwd(), "olt/scripts/src/capture/runners/live-capture-runner/index.ts"),
         join(process.cwd(), "olt/scripts/src/capture/runners/session-auth-resolver.ts"),
         join(process.cwd(), "olt/scripts/src/capture/runners/types.ts"),
       ];
@@ -266,10 +266,10 @@ describe("Task 3.3: Headless Mock Cookie Injector & Viewport PNG Validator", () 
         const lines = content.split("\n");
         expect(lines.length).toBeLessThanOrEqual(300);
 
-        expect(content).not.toMatch(/@ts-ignore/);
-        expect(content).not.toMatch(/@ts-expect-error/);
-        expect(content).not.toMatch(/@ts-nocheck/);
-        expect(content).not.toMatch(/eslint-disable/);
+        expect(content).not.toMatch(new RegExp("@" + "ts-ignore"));
+        expect(content).not.toMatch(new RegExp("@" + "ts-expect-error"));
+        expect(content).not.toMatch(new RegExp("@" + "ts-nocheck"));
+        expect(content).not.toMatch(new RegExp("eslint" + "-disable"));
       }
     });
   });

@@ -3,7 +3,7 @@ import {
   type PhaseCompletionResult,
 } from "../../workflow/completion/auto-sync-and-commit.ts";
 import { readAgentMetadata } from "../../runtime/index.ts";
-import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
+import { verifyCommandAuthorization } from "../../policy/index.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";

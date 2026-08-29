@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { generateDefaultRepoPolicy } from "./generator.ts";
+import { generateDefaultRepoPolicy } from "./generator/index.ts";
 import { resolvePolicyLocation } from "./io-safety.ts";
 import { loadRepoPolicy } from "./repo-policy.ts";
-import type { RepoPolicy } from "./types.ts";
+import type { RepoPolicy } from "./types/index.ts";
 
 export interface PolicyReloadEvent {
   readonly type: "POLICY_RELOAD_EVENT";

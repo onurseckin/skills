@@ -1,14 +1,12 @@
 # 03-02: The Ten Autonomous Discovery Sources & Real-Time Triage Engine
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 03: Mind Product Owner](./index.md) > 03-02: Ten Discovery Sources & Triage
-
 > **Status**: Authoritative Architecture Specification  
 > **Topic**: Continuous Sensing Scanners, Stream-Hash Deduplication, Observation Signature Normalization, and Candidate Lifecycle Algebra  
 > **Audience**: Autonomous Systems Architects, Static Analysis Engineers, Data Pipeline Specialists, Triage Runtime Authors
 
 ---
 
-[⏮️ Previous: 03-01 Infinite Autonomous Cadence](03-01-infinite-autonomous-cadence.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 03-03 Six Admission Gates](03-03-six-admission-gates.md)
+[Previous: 03-01 Infinite Autonomous Cadence](03-01-infinite-autonomous-cadence.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 03-03 Six Admission Gates](03-03-six-admission-gates.md)
 ---
 
 ## 1. Executive Summary & Proactive Discovery Theory
@@ -396,5 +394,5 @@ _Proceed to the next section: [03-03: Six Admission Gates](./03-03-six-admission
 
 ---
 
-[⏮️ Previous: 03-01 Infinite Autonomous Cadence](03-01-infinite-autonomous-cadence.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 03-03 Six Admission Gates](03-03-six-admission-gates.md)
+[Previous: 03-01 Infinite Autonomous Cadence](03-01-infinite-autonomous-cadence.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 03-03 Six Admission Gates](03-03-six-admission-gates.md)
 ---

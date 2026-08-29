@@ -1,7 +1,5 @@
 # 12.3 Audit Logging & Transcripts — Tamper-Evident Transcripts, Merkle-Linked Event Streams, Deterministic Replay & Forensic Post-Mortem Bundling
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 12: Flock Mailboxes & Live TUI](./index.md) > 12.3 Audit Logging & Transcripts
-
 ---
 
 > **Status**: Authoritative Architecture Specification  
@@ -10,7 +8,7 @@
 
 ---
 
-[⏮️ Previous: 12-02 Non-Blocking Message Delivery](12-02-non-blocking-message-delivery.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 12-04 Live TUI Telemetry & Diagnostics](12-04-live-tui-telemetry-and-diagnostics.md)
+[Previous: 12-02 Non-Blocking Message Delivery](12-02-non-blocking-message-delivery.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 12-04 Live TUI Telemetry & Diagnostics](12-04-live-tui-telemetry-and-diagnostics.md)
 ---
 
 ## 1. Executive Summary & Epistemic Architecture
@@ -317,5 +315,5 @@ This bundle provides 100% offline verification, enabling formal review by compli
 
 ---
 
-[⏮️ Previous: 12-02 Non-Blocking Message Delivery](12-02-non-blocking-message-delivery.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 12-04 Live TUI Telemetry & Diagnostics](12-04-live-tui-telemetry-and-diagnostics.md)
+[Previous: 12-02 Non-Blocking Message Delivery](12-02-non-blocking-message-delivery.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 12-04 Live TUI Telemetry & Diagnostics](12-04-live-tui-telemetry-and-diagnostics.md)
 ---

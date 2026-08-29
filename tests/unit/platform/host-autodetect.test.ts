@@ -183,6 +183,21 @@ describe("detectActiveHost", () => {
       ).toThrow(HarnessError);
     });
 
+    test("throws HarnessError when host environment variables are undefined", () => {
+      expect(() =>
+        detectActiveHost({
+          ANTIGRAVITY_APP_DIR: undefined,
+          GEMINI_CLI_HOME: undefined,
+          CLAUDE_PROJECT_DIR: undefined,
+          CLAUDE_CODE_ENTRY: undefined,
+          CODEX_RUNTIME: undefined,
+          CODEX_THREAD_ID: undefined,
+          CURSOR_PROJECT_DIR: undefined,
+          CURSOR_TRACE_ID: undefined,
+        }),
+      ).toThrow(HarnessError);
+    });
+
     test("detectActiveHost defaults to process.env without throwing if process.env matches a host", () => {
       // In this environment, either process.env detects a host or throws HarnessError (fail-closed)
       try {

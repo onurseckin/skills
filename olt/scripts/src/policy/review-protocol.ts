@@ -7,7 +7,16 @@ import {
 } from "./repo-policy.ts";
 import type { AgentMetadata } from "../runtime/index.ts";
 import type { Finding } from "../core/contracts/index.ts";
-import type { TaskRecord } from "../workflow/types.ts";
+
+export interface ReviewTaskRecord {
+  readonly id: string;
+  readonly status?: string | undefined;
+  readonly findings?: readonly Finding[] | undefined;
+  readonly review_history?: readonly ReviewChannelEntry[] | undefined;
+  readonly review_state?: TaskReviewState | undefined;
+  readonly [key: string]: unknown;
+}
+export type TaskRecord = ReviewTaskRecord;
 
 export type ReviewPhase = "adversarial" | "cognitive" | "completed";
 
@@ -83,13 +92,11 @@ export function resolveReviewProtocolConfig(
     policyConfig?.max_adversarial_pushes ??
     agentConfig?.max_adversarial_pushes ??
     DEFAULT_REVIEW_PROTOCOL_CONFIG.max_adversarial_pushes;
-
   const mergedCognitive =
     overrides?.cognitive_pushes ??
     policyConfig?.cognitive_pushes ??
     agentConfig?.cognitive_pushes ??
     DEFAULT_REVIEW_PROTOCOL_CONFIG.cognitive_pushes;
-
   const mergedEscalate =
     overrides?.escalate_on_exhausted_adversarial ??
     policyConfig?.escalate_on_exhausted_adversarial ??

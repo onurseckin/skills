@@ -11,7 +11,7 @@ import {
   agentBriefCommand,
   executeAgentBrief,
 } from "../../../olt/scripts/src/cli/commands/agent-brief.ts";
-import { generateDefaultRepoPolicy } from "../../../olt/scripts/src/policy/generator.ts";
+import { generateDefaultRepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
 import type { RepoPolicy } from "../../../olt/scripts/src/policy/types.ts";
 
 describe("host-bindings", () => {
@@ -186,7 +186,7 @@ describe("host-bindings", () => {
             rbac: { can_execute_shell: false, can_edit_code: false },
             hosts: {
               antigravity: { model: "m", model_tier: "high" },
-            } as unknown as Record<
+            } as Record<
               "antigravity" | "claude_code" | "codex" | "cursor",
               { model: string; model_tier: "high" }
             >,

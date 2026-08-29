@@ -5,7 +5,7 @@ import {
   generateInitialConfigJson,
   generateInitialConfigYaml,
 } from "../../../olt/scripts/src/cli/commands/capture-init.ts";
-import { resolveViewportsForScreen } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
+import { resolveViewportsForScreen } from "../../../olt/scripts/src/capture/runners/index.ts";
 import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/types.ts";
 
 describe("Capture Configuration Schema", () => {

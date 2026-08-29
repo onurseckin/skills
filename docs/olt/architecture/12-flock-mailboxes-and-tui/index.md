@@ -1,7 +1,5 @@
 # Chapter 12: Flock Mailboxes, Telemetry & Live TUI — Inter-Agent Directory Protocols, Non-Blocking Advisory Streaming, Tamper-Evident Transcripts & Real-Time Terminal Dashboards
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > Chapter 12: Flock Mailboxes, Telemetry & Live TUI
-
 ---
 
 > **Status**: Authoritative Architecture Specification  
@@ -10,7 +8,7 @@
 
 ---
 
-[⏮️ Previous: Chapter 11: Worktree Branching & Honesty Gates](../11-worktree-branching-honesty/index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 12-01 Mailbox Directory Protocol](12-01-inter-agent-mailbox-directory-protocol.md)
+[Previous: Chapter 11: Worktree Branching & Honesty Gates](../11-worktree-branching-honesty/index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 12-01 Mailbox Directory Protocol](12-01-inter-agent-mailbox-directory-protocol.md)
 ---
 
 ## 1. Executive Summary & IPC Philosophy
@@ -235,5 +233,5 @@ The theoretical foundations and protocols detailed in this chapter are implement
 
 ---
 
-[⏮️ Previous: Chapter 11: Worktree Branching & Honesty Gates](../11-worktree-branching-honesty/index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 12-01 Mailbox Directory Protocol](12-01-inter-agent-mailbox-directory-protocol.md)
+[Previous: Chapter 11: Worktree Branching & Honesty Gates](../11-worktree-branching-honesty/index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 12-01 Mailbox Directory Protocol](12-01-inter-agent-mailbox-directory-protocol.md)
 ---

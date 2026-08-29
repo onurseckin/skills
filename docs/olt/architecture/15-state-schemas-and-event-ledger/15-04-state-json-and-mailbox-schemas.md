@@ -7,10 +7,10 @@
 
 ---
 
-[⏮️ Previous: Events JSONL & Merkle Schema](15-03-events-jsonl-and-merkle-schema.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Reference 08: Verification Engines](../17-verification-engines-and-gates/index.md)
+[Previous: Events JSONL & Merkle Schema](15-03-events-jsonl-and-merkle-schema.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Reference 08: Verification Engines](../17-verification-engines-and-gates/index.md)
 ---
 
-## 🏛️ 1. Projected State Schema (`state.json`)
+## 1. Projected State Schema (`state.json`)
 
 The **State Projection** (`.olt/capsules/<slug>/state.json`) is the single authoritative, materialized view derived deterministically by replaying `events.jsonl` from sequence `0` to the current `event_sequence`. It stores topological wave schedules, agent authorization records, active task leases, Git branches, gates, and Mind governance ledgers.
 
@@ -319,7 +319,7 @@ stateDiagram-v2
 
 ---
 
-## 📬 2. Inter-Agent Mailbox Schema (`mailbox/<recipient>/<msg_id>.json`)
+## 2. Inter-Agent Mailbox Schema (`mailbox/<recipient>/<msg_id>.json`)
 
 The **Mailbox System** provides asynchronous, flock-synchronized peer-to-peer communication between subagents. Messages are written into the recipient's mailbox directory under POSIX advisory locking (`in.lock`), eliminating interactive stdout chatter and preserving LLM context windows.
 
@@ -386,7 +386,7 @@ sequenceDiagram
 
 ---
 
-## 🧾 3. Command Execution Receipt Schema (`record.json`)
+## 3. Command Execution Receipt Schema (`record.json`)
 
 Every shell execution via `bun harness.ts run:exec` generates a signed, tamper-evident command receipt at `.olt/capsules/<slug>/commands/C-<uuid>/record.json`. Receipts record exact exit codes, wall-clock timings, Git diffs, and SHA-256 digests of standard output and error streams.
 
@@ -483,7 +483,7 @@ flowchart TD
 
 ---
 
-## 🔍 4. Verification Evidence Schemas (`findings.json` & `proofs.json`)
+## 4. Verification Evidence Schemas (`findings.json` & `proofs.json`)
 
 ### 4.1 Structured Finding Schema (`findings.json`)
 
@@ -542,5 +542,5 @@ Compiled by critics upon successful verification of all requirements prior to fi
 
 ---
 
-[⏮️ Previous: Events JSONL & Merkle Schema](15-03-events-jsonl-and-merkle-schema.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Reference 08: Verification Engines](../17-verification-engines-and-gates/index.md)
+[Previous: Events JSONL & Merkle Schema](15-03-events-jsonl-and-merkle-schema.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Reference 08: Verification Engines](../17-verification-engines-and-gates/index.md)
 ---

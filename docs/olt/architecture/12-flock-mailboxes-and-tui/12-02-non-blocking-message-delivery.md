@@ -1,7 +1,5 @@
 # 12.2 Non-Blocking Message Delivery — POSIX Flock-Protected Channels, Lock-Free Directory Polling, Asynchronous Sentinels & At-Least-Once Delivery Guarantees
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 12: Flock Mailboxes & Live TUI](./index.md) > 12.2 Non-Blocking Message Delivery
-
 ---
 
 > **Status**: Authoritative Architecture Specification  
@@ -10,7 +8,7 @@
 
 ---
 
-[⏮️ Previous: 12-01 Mailbox Directory Protocol](12-01-inter-agent-mailbox-directory-protocol.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 12-03 Audit Logging & Transcripts](12-03-audit-logging-and-transcripts.md)
+[Previous: 12-01 Mailbox Directory Protocol](12-01-inter-agent-mailbox-directory-protocol.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 12-03 Audit Logging & Transcripts](12-03-audit-logging-and-transcripts.md)
 ---
 
 ## 1. Executive Summary & Concurrency Problem Statement
@@ -352,5 +350,5 @@ This distribution prevents synchronous resonance (the "thundering herd" effect) 
 
 ---
 
-[⏮️ Previous: 12-01 Mailbox Directory Protocol](12-01-inter-agent-mailbox-directory-protocol.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 12-03 Audit Logging & Transcripts](12-03-audit-logging-and-transcripts.md)
+[Previous: 12-01 Mailbox Directory Protocol](12-01-inter-agent-mailbox-directory-protocol.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 12-03 Audit Logging & Transcripts](12-03-audit-logging-and-transcripts.md)
 ---

@@ -46,7 +46,7 @@ export {
   resolveCaptureOutputDir,
   resolveViewportsForScreen,
   runLiveCapture,
-} from "./live-capture-runner.ts";
+} from "./live-capture-runner/index.ts";
 
 export {
   DEFAULT_LAYOUT_SHIFT_OPTIONS,
@@ -67,7 +67,7 @@ export {
   type LayoutShiftWindow,
   type ResolvedLayoutShiftTrackerOptions,
   type UnstableElementDisplacement,
-} from "./layout-shift-tracker.ts";
+} from "./layout-shift-tracker/index.ts";
 
 export {
   DOM_EVENT_DISPATCH_SCRIPT,
@@ -85,4 +85,4 @@ export {
   type SyntheticDomEvent,
   type SyntheticDomEventType,
   type UnexpectedShiftDefect,
-} from "./dom-event-simulator.ts";
+} from "./dom-event-simulator/index.ts";

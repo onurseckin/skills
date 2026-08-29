@@ -4,7 +4,7 @@
 
 ---
 
-[⏮️ Previous: Reference 08: Verification Engines Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 10 AST Static Lint Rules](17-02-ten-ast-static-lint-rules.md)
+[Previous: Reference 08: Verification Engines Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 10 AST Static Lint Rules](17-02-ten-ast-static-lint-rules.md)
 ---
 
 The **Incremental TypeScript Typecheck Engine** provides fast, targeted semantic and syntactic type validation of files within an assigned task write scope without requiring full repository compilation passes.
@@ -13,7 +13,7 @@ Implemented in [`olt/scripts/src/cli/commands/task-check.ts`](file:///Users/onur
 
 ---
 
-## 🏗️ 1. Architecture & Program Creation Pipeline
+## 1. Architecture & Program Creation Pipeline
 
 The Typecheck Engine isolates compilation to the files modified or targeted by a task. Rather than launching an external `tsc` CLI process that traverses the entire repository, it uses the programmatic `ts.createProgram` API to instantiate an in-memory compiler program bound exclusively to the target file set and its direct import graphs.
 
@@ -59,7 +59,7 @@ sequenceDiagram
 
 ---
 
-## 🎯 2. Target File Scope Resolution Algorithm
+## 2. Target File Scope Resolution Algorithm
 
 The engine resolves target files through [`resolveTargetFiles(options)`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/task-check.ts#L173-L287) using a strict three-tier precedence model:
 
@@ -102,7 +102,7 @@ export function isSupportedSourceFile(fileName: string): boolean {
 
 ---
 
-## ⚙️ 3. `tsconfig.json` Hierarchical Resolution
+## 3. `tsconfig.json` Hierarchical Resolution
 
 For each target file, the engine identifies the nearest compilation boundary using [`findNearestTsconfig(filePath)`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/task-check.ts#L292-L316):
 
@@ -144,7 +144,7 @@ const fallbackCompilerOptions: ts.CompilerOptions = {
 
 ---
 
-## 🔍 4. Program Diagnostics & Zero-Error Invariant
+## 4. Program Diagnostics & Zero-Error Invariant
 
 The typechecker invokes `ts.getPreEmitDiagnostics(program)` to collect syntactic parse errors, semantic type mismatches, and declaration diagnostics.
 
@@ -214,7 +214,7 @@ return {
 
 ---
 
-## 💻 5. CLI Invocation & Parameter Grammar
+## 5. CLI Invocation & Parameter Grammar
 
 ```bash
 bun olt/scripts/harness.ts task:check [--task <id>] [--run <path>] [--file <paths>] [--typecheck] [--lint] [--format <markdown|json>]
@@ -236,7 +236,7 @@ bun olt/scripts/harness.ts task:check [--task <id>] [--run <path>] [--file <path
 
 ---
 
-## 📊 6. Output Schemas & Concrete Exemplars
+## 6. Output Schemas & Concrete Exemplars
 
 ### 6.1 JSON Structured Payload Output (`--format json`)
 
@@ -300,15 +300,15 @@ When invoked with `--format json`, the engine outputs a JSON object adhering to 
 ### 6.2 Terminal Markdown Briefing Output (`--format markdown`)
 
 ```text
-### ⚡ Incremental Verification: Task `task-impl-auth-tokens`
-❌ **FAIL: Verification Violations Detected**
+###  Incremental Verification: Task `task-impl-auth-tokens`
+[FAIL] **FAIL: Verification Violations Detected**
 
 - **Duration**: 342ms
 - **Files Audited**: 2
 - **Capsule Run**: `/repo/.olt/capsules/feature-auth`
 - **Task ID**: `task-impl-auth-tokens`
 
-#### 🔷 TypeScript Incremental Type Check
+####  TypeScript Incremental Type Check
 - Status: **Failed** (2 errors across 2 files)
 
 | Location | Code | Message |
@@ -316,13 +316,13 @@ When invoked with `--format json`, the engine outputs a JSON object adhering to 
 | `/repo/src/auth/token-manager.ts:42:11` | TS2322 | Type 'string \| null' is not assignable to type 'string'. Type 'null' is not assignable to type 'string'. |
 | `/repo/src/auth/token-manager.ts:87:18` | TS2339 | Property 'expiresIn' does not exist on type 'TokenPayload'. |
 
-#### 🛡️ AST Static Invariant & Linter Audit
+####  AST Static Invariant & Linter Audit
 - Status: **Passed** (0 violations, strict 0 'any', 0 compiler suppressions maintained)
 ```
 
 ---
 
-## 🛠️ 7. Mechanical Evidence Persistence
+## 7. Mechanical Evidence Persistence
 
 When `--run` is supplied, `task:check` automatically writes a persistent diagnostic report to `.olt/capsules/<slug>/evidence/mechanic-report-<task-id>.json` (or `evidence/mechanic-report.json`).
 
@@ -330,5 +330,5 @@ This artifact provides verifiable Class 1 mechanical proof that typechecking suc
 
 ---
 
-[⏮️ Previous: Reference 08: Verification Engines Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 10 AST Static Lint Rules](17-02-ten-ast-static-lint-rules.md)
+[Previous: Reference 08: Verification Engines Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 10 AST Static Lint Rules](17-02-ten-ast-static-lint-rules.md)
 ---

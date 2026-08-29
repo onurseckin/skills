@@ -4,10 +4,10 @@
 
 ---
 
-[⏮️ Previous: Task & Worker Commands](14-02-task-and-worker-commands.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Doctor & Diagnostics Commands](14-04-doctor-and-diagnostics-commands.md)
+[Previous: Task & Worker Commands](14-02-task-and-worker-commands.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Doctor & Diagnostics Commands](14-04-doctor-and-diagnostics-commands.md)
 ---
 
-## 🏛️ Section Overview & Autonomous Supervisor Loop
+## Section Overview & Autonomous Supervisor Loop
 
 The **Mind & Preplanning** command suite provides the runtime foundation for the **OLT Infinite Autonomous Supervisor**. Operating above individual task runs, the Mind mode runs in an infinite pulse cadence (`pulse.sh`), continuously scanning 10 repository discovery sources, evaluating candidates against 6 admission gates (`G1`–`G6`), calculating cognitive Work/Span telemetry, dispatching multi-agent execution rounds, and performing generational rotation (`mind-gen-1` $\to$ `mind-gen-2`) to avoid context satiation.
 
@@ -144,7 +144,7 @@ bun olt/scripts/harness.ts mind:pulse --run <RUN_DIR> [--actor <ACTOR>] [--forma
 **Standard Output (Markdown Brief)**:
 
 ```markdown
-### 🧠 Mind Pulse: `mind-gen-1` (Pulse #42)
+### Mind Pulse: `mind-gen-1` (Pulse #42)
 
 - **Status**: `ACTIVE_SUPERVISING` | **Active Tasks**: `3 leased`, `2 ready`, `5 done`
 - **Work / Span**: $W=10, S=4 \implies P=\lceil 10/4 \rceil = 3$ | **Efficiency**: $\eta=83.3\%$
@@ -324,5 +324,5 @@ bun olt/scripts/harness.ts memory:query --run <RUN_DIR> --query <QUERY_STRING>
 
 ---
 
-[⏮️ Previous: Task & Worker Commands](14-02-task-and-worker-commands.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Doctor & Diagnostics Commands](14-04-doctor-and-diagnostics-commands.md)
+[Previous: Task & Worker Commands](14-02-task-and-worker-commands.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Doctor & Diagnostics Commands](14-04-doctor-and-diagnostics-commands.md)
 ---

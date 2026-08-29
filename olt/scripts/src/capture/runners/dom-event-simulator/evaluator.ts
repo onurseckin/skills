@@ -1,4 +1,4 @@
-import type { LayoutShiftEntry } from "../layout-shift-tracker.ts";
+import type { LayoutShiftEntry } from "../layout-shift-tracker/index.ts";
 import type { ExtractedElementPhysics } from "../types.ts";
 import type { ExpectedShiftBehavior, SyntheticDomEvent, UnexpectedShiftDefect } from "./types.ts";
 

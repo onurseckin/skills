@@ -1,6 +1,6 @@
 import { HarnessError } from "../core/errors/index.ts";
-import type { ReviewProtocolPolicy } from "../policy/repo-policy.ts";
-import { AgentMetadata } from "./contracts.ts";
+import type { ReviewProtocolPolicy } from "../policy/types/index.ts";
+import type { AgentMetadata } from "./contracts.ts";
 
 export function inferTierFromRole(role: string): number {
   const normalized = role.trim().toLowerCase();

@@ -1,45 +1,102 @@
 # Chapter 10: Durability, Recovery & Merkle Chains
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > Chapter 10: Durability, Recovery & Merkle Chains
+---
+
+[Previous: Chapter 09 Index](../09-falsifiable-evidence-gates/index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 10-01 Capsule Filesystem Anatomy](10-01-capsule-filesystem-anatomy.md)
 
 ---
 
-[⏮️ Previous: Chapter 09: Falsifiable Evidence Gates](../09-falsifiable-evidence-gates/index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 10-01 Capsule Filesystem Anatomy](10-01-capsule-filesystem-anatomy.md)
----
+## 1. Chapter Overview & Durability Architecture
 
-## 1. Chapter Overview
+Welcome to Chapter 10 of the OLT Architecture Book. This chapter codifies the on-disk capsule filesystem structure, SHA-256 Merkle event chaining algorithms, POSIX advisory locking protocols, and torn-tail state reconstruction mechanics governing durability and disaster recovery in the OLT (Orchestrating Long Tasks) engine.
 
-An autonomous agent harness must survive process crashes, host reboots, power failures, and kernel panics without losing state.
-
-OLT provides **Zero-Loss Crash Recovery** through its **Capsule Filesystem Anatomy**, **SHA-256 Merkle Event Chaining**, **POSIX Advisory Locking**, and **Projection-Patch State Reconstruction**.
+Unstructured state management leads to lost transactions, corrupted JSON files, and unrecoverable crashes. Chapter 10 establishes the Capsule Filesystem Anatomy, details SHA-256 Merkle Event Chains & Tamper-Evident Ledgers, formalizes POSIX Advisory Locking (`flock`), and defines Projection Patch State Reconstruction & Torn-Tail Healing.
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                            CHAPTER 10: DURABILITY & RECOVERY TOPOLOGY                            │
-├──────────────────────────┬──────────────────────────┬────────────────────────────────────────────┤
-│ Sub-Topic                │ Key Architectural Model  │ Primary Invariants Enforced                │
-├──────────────────────────┼──────────────────────────┼────────────────────────────────────────────┤
-│ 01. Capsule Anatomy      │ .olt/capsules/<slug>/    │ Atomic fs.renameSync & Isolation Layout    │
-│ 02. Merkle Event Chains  │ Cryptographic Hash Chain │ Hi = SHA256(Hi-1 || Ei || timestamp)      │
-│ 03. POSIX Flock Locking  │ Advisory Kernel Locks    │ 5000ms Acquisition Deadline & Exit Code 4  │
-│ 04. State Reconstruction │ Zero-Loss Replay Engine  │ Deterministic Projection from events.jsonl │
-└──────────────────────────┴──────────────────────────┴────────────────────────────────────────────┘
++--------------------------------------------------------------------------------------------------+
+│                             CHAPTER 10: DURABILITY & RECOVERY TOPOLOGY                           │
++--------------------------------------------------------------------------------------------------+
+│                                                                                                  │
+│    ┌───────────────────────────┐                    ┌───────────────────────────┐                │
+│    │ 10-01: Capsule Filesystem │                    │ 10-02: SHA-256 Merkle     │                │
+│    │ Anatomy & Hierarchy       │ ══════════════════►│ Event Chains & Ledgers    │                │
+│    └─────────────┬─────────────┘                    └─────────────┬─────────────┘                │
+│                  │                                                │                              │
+│                  ▼                                                ▼                              │
+│    ┌───────────────────────────┐                    ┌───────────────────────────┐                │
+│    │ 10-03: POSIX Flock        │                    │ 10-04: Projection State   │                │
+│    │ Advisory Locking Protocol │ ══════════════════►│ Reconstruction & Healing  │                │
+│    └───────────────────────────┘                    └───────────────────────────┘                │
+│                                                                                                  │
++--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. Table of Contents
+## 2. Chapter Table of Contents & Learning Path
 
-1. **[10-01: Capsule Filesystem Anatomy](./10-01-capsule-filesystem-anatomy.md)**  
-   _Comprehensive layout under `.olt/capsules/<slug>/`, format contracts, schema versions._
-2. **[10-02: SHA-256 Merkle Event Chains](./10-02-sha256-merkle-event-chains.md)**  
-   _Cryptographic event chaining equation, tamper detection, append-only log integrity._
-3. **[10-03: POSIX Flock Advisory Locking](./10-03-posix-flock-advisory-locking.md)**  
-   _Advisory locking mechanics (`LOCK_EX`, `LOCK_UN`), 5000ms deadline, Exit Code 4._
-4. **[10-04: Projection-Patch State Reconstruction](./10-04-projection-patch-state-reconstruction.md)**  
-   _Projection state engine, deterministic zero-loss crash recovery, torn-tail healing._
+```text
++--------------------------------------------------+--------------+--------------------------------+
+│ Document                                         │ Classification│ Core Architectural Focus       │
++--------------------------------------------------+--------------+--------------------------------+
+│ 10-01 Capsule Filesystem Anatomy & Hierarchy     │ Architecture │ SSoT directory layout & modes  │
+│ 10-02 SHA-256 Merkle Event Chains & Ledgers      │ Security     │ Cryptographic hash chaining    │
+│ 10-03 POSIX Flock Advisory Locking Protocol      │ Concurrency  │ Mutexes, backoff & libc flock  │
+│ 10-04 Projection State Reconstruction & Healing  │ Reliability  │ Event folds & torn-tail repair │
++--------------------------------------------------+--------------+--------------------------------+
+```
+
+### [10-01: Capsule Filesystem Anatomy & Directory Hierarchy](10-01-capsule-filesystem-anatomy.md)
+
+Deconstructs the `.olt/capsules/<slug>/` storage layout: `manifest.json`, `prompt.md`, `state.json`, `events.jsonl`, `mailbox/`, `locks/`, `evidence/`, and `forensics/`. Details permission modes and storage phases.
+
+### [10-02: SHA-256 Merkle Event Chains & Tamper-Evident Ledgers](10-02-sha256-merkle-event-chains.md)
+
+Formalizes the recursive Merkle hash recurrence ($h_k = \text{SHA256}(h_{k-1} \parallel \text{CanonicalJSON}(e_k))$), linear verification algorithms, and JSONL schemas.
+
+### [10-03: POSIX Advisory Locking & Concurrency Synchronization](10-03-posix-flock-advisory-locking.md)
+
+Details kernel-level file descriptor locking (`LOCK_EX` vs. `LOCK_SH`), lock compatibility matrices, non-blocking exponential backoff acquisition, and cross-platform fallbacks.
+
+### [10-04: Projection Patch State Reconstruction & Torn-Tail Healing](10-04-projection-patch-state-reconstruction.md)
+
+Explains pure state projection folds ($S_N = \text{FoldLeft}(\mathcal{P}, S_0, \mathbf{E})$), the torn-tail truncation and auto-healing algorithm, and incremental patch applications.
 
 ---
 
-[⏮️ Previous: Chapter 09: Falsifiable Evidence Gates](../09-falsifiable-evidence-gates/index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 10-01 Capsule Filesystem Anatomy](10-01-capsule-filesystem-anatomy.md)
+## 3. Core Durability Reference Table
+
+$$ \begin{array}{|l|l|l|}
+\hline
+\textbf{Mechanism} & \textbf{Formal Expression} & \textbf{Operational Invariant} \\ \hline
+\text{Genesis Hash} & h_0 = \text{SHA256}(\text{manifest.json}) & \text{Immutable metadata anchor} \\ \hline
+\text{Merkle Recurrence} & h_k = \text{SHA256}(h_{k-1} \mathbin{\Vert} \text{Canon}(e_k)) & \text{Tamper-evident event chaining} \\ \hline
+\text{Lock Compatibility} & \mathcal{M}(\text{EX}, \text{EX}) = 0, \quad \mathcal{M}(\text{SH}, \text{SH}) = 1 & \text{Mutual exclusion synchronization} \\ \hline
+\text{State Fold} & S_N = \mathcal{P}(S_{N-1}, e_N) & \text{Pure deterministic state replay} \\ \hline
+\text{Torn-Tail Healing} & \text{Truncate}(\text{lastValidOffset}) & \text{Zero unrecoverable crash states} \\ \hline
+\end{array}$$
+
+```mermaid
+graph TD
+    subgraph "Chapter 10 Durability & Recovery"
+        A[10-01 Capsule Anatomy] --> B[10-02 Merkle Chains]
+        B --> C[10-03 POSIX Locking]
+        C --> D[10-04 State Reconstruction]
+    end
+    D --> E["Chapter 11: Worktree Branching & Honesty"]
+```
+
 ---
+
+## 4. Summary & Transition
+
+The cryptographic ledgers, kernel-level lock interlocks, and auto-healing state projections established in Chapter 10 guarantee 100% data durability and disaster recovery resilience across all autonomous runs.
+
+Proceed to [10-01: Capsule Filesystem Anatomy](10-01-capsule-filesystem-anatomy.md) or advance directly to [Chapter 11: Worktree Branching & Honesty Gates](../11-worktree-branching-honesty/index.md).
+
+---
+
+[Previous: Chapter 09 Index](../09-falsifiable-evidence-gates/index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 10-01 Capsule Filesystem Anatomy](10-01-capsule-filesystem-anatomy.md)
+
+---
+$$

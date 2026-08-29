@@ -11,9 +11,9 @@ import {
 import { checkPolicyDoctor } from "../../../olt/scripts/src/reporting/doctor/policy-doctor.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
+  generateDefaultRepoPolicy,
   type RepoPolicy,
-} from "../../../olt/scripts/src/policy/types.ts";
-import { generateDefaultRepoPolicy } from "../../../olt/scripts/src/policy/generator.ts";
+} from "../../../olt/scripts/src/policy/index.ts";
 
 describe("Doctor Policy Certification & Policy CLI Operations (Task 4.3)", () => {
   const scratchDir = join(process.cwd(), "coverage", "scratch", "policy-doctor-test");

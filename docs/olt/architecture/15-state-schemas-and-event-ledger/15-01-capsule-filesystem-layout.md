@@ -7,10 +7,10 @@
 
 ---
 
-[⏮️ Previous: Reference 07: State & Capsule Schemas Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Manifest & Requirements Schemas](15-02-manifest-and-requirements-schemas.md)
+[Previous: Reference 07: State & Capsule Schemas Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Manifest & Requirements Schemas](15-02-manifest-and-requirements-schemas.md)
 ---
 
-## 🗂️ 1. Complete Filesystem Anatomy
+## 1. Complete Filesystem Anatomy
 
 An OLT **Run Capsule** is a self-contained, crash-resilient, gitignored directory initialized under `.olt/capsules/<slug>/` (for feature runs) or `.olt/capsules/mind-gen-<G>/` (for generational Mind supervisor runs). It stores the entire immutable cryptographic lineage of a task run, including prompt provenance, append-only event ledgers, materialized snapshots, command execution receipts, inter-agent mailbox buffers, and validation artifacts.
 
@@ -127,7 +127,7 @@ When OLT operates in **Mind Mode** (Tier 0 infinite autonomous preplanning super
 
 ---
 
-## 🏷️ 2. File Roles, Ownership & Classification
+## 2. File Roles, Ownership & Classification
 
 Every filesystem entry in an OLT capsule is assigned a formal **Layout Role** that dictates its lifecycle, mutability, and recovery behavior:
 
@@ -162,7 +162,7 @@ graph TD
 
 ---
 
-## 🔒 3. POSIX Permissions & Concurrency Matrix
+## 3. POSIX Permissions & Concurrency Matrix
 
 OLT enforces strict POSIX file permission octal masks to prevent accidental overwrites, unauthorized subagent file modifications, and lock collisions:
 
@@ -188,7 +188,7 @@ OLT enforces strict POSIX file permission octal masks to prevent accidental over
 
 ---
 
-## ⚡ 4. Atomic Temp Files & Durability Cycles
+## 4. Atomic Temp Files & Durability Cycles
 
 To guarantee **Zero State Corruption** across power outages, host crashes, or process terminations (`SIGKILL`), all file mutations in OLT adhere to a strict 4-phase **Atomic Temp-Fsync-Rename** protocol.
 
@@ -229,7 +229,7 @@ sequenceDiagram
 
 ---
 
-## 📦 5. Content-Addressed Storage (`blobs/`) & Views (`evidence/`)
+## 5. Content-Addressed Storage (`blobs/`) & Views (`evidence/`)
 
 The OLT storage engine eliminates redundant byte storage through Content-Addressed Storage (CAS).
 
@@ -258,7 +258,7 @@ The OLT storage engine eliminates redundant byte storage through Content-Address
 
 ---
 
-## 🚑 6. Quarantine Mechanics & Recovery Storage
+## 6. Quarantine Mechanics & Recovery Storage
 
 If a process crash or kernel panic occurs during an active append to `events.jsonl`, the file may be left with a **torn final line** (incomplete JSON fragment or partially written UTF-8 bytes).
 
@@ -271,5 +271,5 @@ If a process crash or kernel panic occurs during an active append to `events.jso
 
 ---
 
-[⏮️ Previous: Reference 07: State & Capsule Schemas Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Manifest & Requirements Schemas](15-02-manifest-and-requirements-schemas.md)
+[Previous: Reference 07: State & Capsule Schemas Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Manifest & Requirements Schemas](15-02-manifest-and-requirements-schemas.md)
 ---

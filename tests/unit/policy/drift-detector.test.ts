@@ -152,4 +152,73 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
 
     rmSync(dir, { recursive: true, force: true });
   });
+
+  test("checkAndHandlePolicyDrift performs a no-op when no drift occurs", async () => {
+    const dir = join(scratchBase, "non-drift-noop");
+    mkdirSync(dir, { recursive: true });
+    initRepoPolicy(dir);
+
+    const initialChecksum = computePolicyChecksum(dir);
+    let driftDetectedCalled = false;
+    let schedulerRearmed = false;
+    let logEventCalled = false;
+
+    const result = await checkAndHandlePolicyDrift(initialChecksum, {
+      repoRoot: dir,
+      callbacks: {
+        onDriftDetected: () => {
+          driftDetectedCalled = true;
+        },
+        rearmScheduler: () => {
+          schedulerRearmed = true;
+        },
+        logEvent: () => {
+          logEventCalled = true;
+        },
+      },
+    });
+
+    expect(result.drifted).toBe(false);
+    expect(result.currentChecksum).toBe(initialChecksum);
+    expect(driftDetectedCalled).toBe(false);
+    expect(schedulerRearmed).toBe(false);
+    expect(logEventCalled).toBe(false);
+
+    const eventsPath = join(dir, ".olt", "events.jsonl");
+    expect(existsSync(eventsPath)).toBe(false);
+
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("checkAndHandlePolicyDrift supports custom policyPath and custom eventsLogPath", async () => {
+    const dir = join(scratchBase, "custom-paths");
+    mkdirSync(dir, { recursive: true });
+    const customPolicyRel = join(".olt", "custom-policy.json");
+    const customEventsRel = join(".olt", "custom-events.jsonl");
+    const customEventsAbs = join(dir, customEventsRel);
+
+    initRepoPolicy(dir, customPolicyRel);
+    const initialChecksum = computePolicyChecksum(dir, customPolicyRel);
+
+    const updatedPolicy = { ...generateDefaultRepoPolicy(dir), read_scope_neighborhood_depth: 3 };
+    saveRepoPolicy(updatedPolicy, dir, customPolicyRel);
+
+    const result = await checkAndHandlePolicyDrift(initialChecksum, {
+      repoRoot: dir,
+      customPath: customPolicyRel,
+      eventsLogPath: customEventsAbs,
+    });
+
+    expect(result.drifted).toBe(true);
+    expect(existsSync(customEventsAbs)).toBe(true);
+
+    const lines = readFileSync(customEventsAbs, "utf-8").trim().split("\n");
+    const lastEvent = JSON.parse(lines[lines.length - 1]!) as PolicyReloadEvent;
+    expect(lastEvent.type).toBe("POLICY_RELOAD_EVENT");
+    expect(lastEvent.policy_path).toBe(join(dir, customPolicyRel));
+    expect(lastEvent.previous_checksum).toBe(initialChecksum);
+    expect(lastEvent.new_checksum).toBe(result.currentChecksum);
+
+    rmSync(dir, { recursive: true, force: true });
+  });
 });

@@ -4,7 +4,7 @@
 
 ---
 
-[⏮️ Previous: Harness Error Codes & Payloads](16-02-harness-error-codes-and-payloads.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Recovery & Mitigation Playbooks](16-04-recovery-and-mitigation-playbooks.md)
+[Previous: Harness Error Codes & Payloads](16-02-harness-error-codes-and-payloads.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Recovery & Mitigation Playbooks](16-04-recovery-and-mitigation-playbooks.md)
 ---
 
 Autonomous multi-agent systems driven by Large Language Models (LLMs) fail in distinct, empirically observed ways. When given unconstrained autonomy, LLMs exhibit cognitive biases such as conversational sycophancy, premature sign-offs, prompt rewriting, unread tail dropping, and hallucinated line citations.
@@ -13,7 +13,7 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ---
 
-## 🧭 1. Blunder Taxonomy Overview
+## 1. Blunder Taxonomy Overview
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -33,7 +33,7 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ---
 
-## 📋 2. Category 1: Lifecycle & Planning Blunders (`LP-1` .. `LP-6`)
+## 2. Category 1: Lifecycle & Planning Blunders (`LP-1` .. `LP-6`)
 
 ### `LP-1`: Unread Tail Dropping
 
@@ -47,7 +47,7 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 │ PROMPT.MD (100 Lines)  ───►  REQUIREMENTS.JSON                         │
 │ [Line 001 - 040]       ───►  req-auth-01 (MUST_IMPLEMENT)              │
 │ [Line 041 - 075]       ───►  req-rate-limit (CONSTRAINT)               │
-│ [Line 076 - 100]       ───►  ⛔ UNMAPPED (Error: LP-1 Halt Compilation) │
+│ [Line 076 - 100]       ───►   UNMAPPED (Error: LP-1 Halt Compilation) │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -98,7 +98,7 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ---
 
-## 🔍 3. Category 2: Validation & Probing Blunders (`VP-1` .. `VP-4`)
+## 3. Category 2: Validation & Probing Blunders (`VP-1` .. `VP-4`)
 
 ### `VP-1`: Context Anchoring & Sycophancy
 
@@ -136,7 +136,7 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ---
 
-## 🧪 4. Category 3: Verification & Testing Blunders (`VT-1` .. `VT-4`)
+## 4. Category 3: Verification & Testing Blunders (`VT-1` .. `VT-4`)
 
 ### `VT-1`: Premature First-Round Approval
 
@@ -174,7 +174,7 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ---
 
-## 🌿 5. Category 4: Branching & Isolation Blunders (`BR-1` .. `BR-4`)
+## 5. Category 4: Branching & Isolation Blunders (`BR-1` .. `BR-4`)
 
 ### `BR-1`: Dead Sub-Agent Freeze
 
@@ -212,7 +212,7 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ---
 
-## 👥 6. Category 5: Multi-Agent Coordination Blunders (`MC-1` .. `MC-4`)
+## 6. Category 5: Multi-Agent Coordination Blunders (`MC-1` .. `MC-4`)
 
 ### `MC-1`: Monolithic In-Place Repair
 
@@ -250,7 +250,7 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ---
 
-## ⚡ 7. Category 6: State Machine & Storage Blunders (`SM-1` .. `SM-8`)
+## 7. Category 6: State Machine & Storage Blunders (`SM-1` .. `SM-8`)
 
 ### `SM-1`: Host Binary Inversion
 
@@ -324,7 +324,7 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ---
 
-## 🛡️ 8. Category 7: Gate & Evidence Blunders (`G5-1` .. `G5-3`)
+## 8. Category 7: Gate & Evidence Blunders (`G5-1` .. `G5-3`)
 
 ### `G5-1`: Supervisor Boundary Leak
 
@@ -357,7 +357,7 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ---
 
-## 📊 9. Master 28-Blunder Matrix
+## 9. Master 28-Blunder Matrix
 
 | Code   | Blunder Name                     | Category               | Risk Level | Invariant Enforced            | Automated Detection  |
 | :----- | :------------------------------- | :--------------------- | :--------- | :---------------------------- | :------------------- |
@@ -397,5 +397,5 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ---
 
-[⏮️ Previous: Harness Error Codes & Payloads](16-02-harness-error-codes-and-payloads.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Recovery & Mitigation Playbooks](16-04-recovery-and-mitigation-playbooks.md)
+[Previous: Harness Error Codes & Payloads](16-02-harness-error-codes-and-payloads.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Recovery & Mitigation Playbooks](16-04-recovery-and-mitigation-playbooks.md)
 ---

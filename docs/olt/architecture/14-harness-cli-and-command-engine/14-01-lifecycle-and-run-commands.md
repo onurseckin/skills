@@ -4,10 +4,10 @@
 
 ---
 
-[⏮️ Previous: Reference 04: CLI Dictionary Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Task & Worker Commands](14-02-task-and-worker-commands.md)
+[Previous: Reference 04: CLI Dictionary Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Task & Worker Commands](14-02-task-and-worker-commands.md)
 ---
 
-## 🏛️ Section Overview & Lifecycle Topology
+## Section Overview & Lifecycle Topology
 
 The **Lifecycle & Run** command suite governs the progression of an OLT capsule from raw prompt capture through Socratic brainstorming, requirements formalization, DAG compilation, wave queue dispatch, and terminal cryptographic sealing.
 
@@ -77,7 +77,7 @@ bun olt/scripts/harness.ts run:init --run <RUN_DIR> [--repo <PATH>] [--prompt-fi
 **Standard Output (Markdown Brief)**:
 
 ```markdown
-### 🚀 OLT Run Initialized: `2026-08-29-refactor-auth`
+### OLT Run Initialized: `2026-08-29-refactor-auth`
 
 - **Run Root**: `.olt/capsules/2026-08-29-refactor-auth`
 - **Prompt Hash**: `sha256:4a8b2c1d9e8f...` (1,420 bytes)
@@ -142,7 +142,7 @@ bun olt/scripts/harness.ts run:status [--run <RUN_DIR>] [--repo <PATH>] [--detai
 **Standard Output (Markdown Brief)**:
 
 ```markdown
-### 📊 OLT Run Status: `2026-08-29-refactor-auth` [Phase: `EXECUTING`]
+### OLT Run Status: `2026-08-29-refactor-auth` [Phase: `EXECUTING`]
 
 - **Revision**: `R=1` | **Wave**: `2/4` | **Tasks**: `3/7 Done` (42%)
 - **Active Leases**:
@@ -195,7 +195,7 @@ bun olt/scripts/harness.ts run:exec --run <RUN_DIR> --actor <AGENT_ID> [--task <
 **Standard Output (Markdown Brief)**:
 
 ```markdown
-### ⚙️ Command Executed: `bun test tests/unit/auth.test.ts`
+### Command Executed: `bun test tests/unit/auth.test.ts`
 
 - **Command ID**: `cmd-9f8e7d6c` | **Exit Code**: `0`
 - **Duration**: `412ms` | **Output Size**: `2,840 bytes`
@@ -601,7 +601,7 @@ bun olt/scripts/harness.ts queue:wave --run <RUN_DIR> [--wave <INT>] [--actor <A
 **Standard Output (Markdown Brief)**:
 
 ```markdown
-### 🌊 Wave 1 Activated: 3 Tasks Ready
+### Wave 1 Activated: 3 Tasks Ready
 
 - **Run**: `2026-08-29-refactor-auth`
 - **Ready Tasks**: `task-auth-01`, `task-auth-02`, `task-auth-03`
@@ -672,5 +672,5 @@ bun olt/scripts/harness.ts queue:reprioritize --run <RUN_DIR> --task <TASK_ID> -
 
 ---
 
-[⏮️ Previous: Reference 04: CLI Dictionary Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Task & Worker Commands](14-02-task-and-worker-commands.md)
+[Previous: Reference 04: CLI Dictionary Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Task & Worker Commands](14-02-task-and-worker-commands.md)
 ---

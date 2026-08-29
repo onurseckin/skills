@@ -1,89 +1,137 @@
-# Host Parity & Platform Adapters
-
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 02](./index.md) > 02-03 Host Parity & Adapters
+# Host Parity & Universal Adapter Interfaces
 
 ---
 
-[⏮️ Previous: 02-02 Subagent Naming Grammar](02-02-subagent-naming-grammar.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 02-04 Modular Budgets](02-04-modular-file-and-directory-budgets.md)
+[Previous: 02-02 Subagent Naming Grammar](02-02-subagent-naming-grammar.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 02-04 Modular File & Sizing Budgets](02-04-modular-file-and-directory-budgets.md)
+
 ---
 
-## 1. Abstract Capabilities vs. Host Mechanisms
+## 1. Executive Summary & Cross-Platform Execution
 
-OLT is architected to be completely **host-agnostic**. The core runtime relies on abstract primitives (spawning subagents, POSIX filesystem operations, executing commands, passing structured messages) rather than vendor-specific APIs.
+Autonomous software engineering agents must execute across diverse AI host platforms (e.g. Antigravity, Claude Code, Goose, Windsurf, Cursor, Cline). However, each platform exposes different tool naming conventions, subagent spawning semantics, and messaging formats:
+
+- Claude Code uses `Agent` and `Bash` primitives.
+- Antigravity uses `invoke_subagent`, `run_command`, and native MCP server tools.
+- Goose uses dynamic shell expansions and extensions.
+
+The OLT (Orchestrating Long Tasks) engine implements the **Universal Host Adapter Architecture (`IHostAdapter`)**. Under this model:
+
+1. **Host-Agnostic Core Engine**: All scheduling, leasing, Merkle chaining, and AST linting logic is written strictly against a generic TypeScript interface.
+2. **Dynamic Platform Detection**: At boot time, the engine probes ambient environment variables and tool signatures to detect the active host and bind the appropriate adapter.
+3. **100% Behavioral Parity**: Regardless of host runtime, OLT guarantees identical execution semantics, file operations, and verification proofs.
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          OLT ABSTRACT AGENT ENGINE                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│      spawn()       │      exec()       │      read()       │    write()     │
-├────────────────────┼───────────────────┼───────────────────┼────────────────┤
-│  Antigravity Host  │ Claude Code Host  │    Codex Host     │  Cursor Host   │
-│  invoke_subagent   │ Agent Task API    │ Subprocess Worker │ Sub-agent Mode │
-│  run_command       │ Bash tool         │ Shell executor    │ Terminal Tool  │
-│  view_file         │ View tool         │ File reader       │ ReadFile Tool  │
-│  replace_content   │ Edit tool         │ File mutator      │ EditFile Tool  │
-└────────────────────┴───────────────────┴───────────────────┴────────────────┘
++--------------------------------------------------------------------------------------------------+
+│                             UNIVERSAL HOST ADAPTER TOPOLOGY                                      │
++--------------------------------------------------------------------------------------------------+
+│                                                                                                  │
+│   OLT CORE ENGINE (Topological Scheduler, Merkle Ledger, AST Linter, RBAC Interlock)           │
+│                                │                                                                 │
+│                                ▼                                                                 │
+│   UNIVERSAL HOST ADAPTER INTERFACE (IHostAdapter)                                                │
+│   • spawnSubagent(role, name, prompt)                                                            │
+│   • sendMessage(recipient, message)                                                             │
+│   • executeCommand(cmd, cwd, env)                                                                │
+│   • readStorageFile(path) / writeStorageFile(path, content)                                      │
+│                                │                                                                 │
+│         ┌──────────────────────┼──────────────────────┬──────────────────────┐                   │
+│         ▼                      ▼                      ▼                      ▼                   │
+│   ┌──────────────┐       ┌──────────────┐       ┌──────────────┐       ┌──────────────┐          │
+│   │ Antigravity  │       │ Claude Code  │       │ Goose        │       │ Windsurf /   │          │
+│   │ Adapter      │       │ Adapter      │       │ Adapter      │       │ Cursor       │          │
+│   └──────────────┘       └──────────────┘       └──────────────┘       └──────────────┘          │
+│                                                                                                  │
++--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. The 4 Canonical Host Profiles
+## 2. The `IHostAdapter` Interface Contract
 
-OLT formally defines adapters and capability profiles for four tier-1 host environments:
+The TypeScript interface contract is defined in [`host-adapter.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/session/session-registry.ts):
 
-### 1. `antigravity` (Google Cloud Antigravity)
+```typescript
+export interface IHostAdapter {
+  readonly hostType: "antigravity" | "claude_code" | "goose" | "windsurf" | "cursor" | "generic";
 
-- **Mechanism**: Native `invoke_subagent`, `define_subagent`, and `manage_subagents` APIs.
-- **Communication**: Inter-agent `send_message` protocol.
-- **Concurrency Bound**: Maximum 40 parallel subagents per coordinator.
+  spawnSubagent(options: {
+    readonly role: string;
+    readonly name: string;
+    readonly prompt: string;
+    readonly model?: "inherit" | "flash" | "pro";
+  }): Promise<{ readonly conversationId: string }>;
 
-### 2. `claude_code` (Anthropic Claude Code)
+  sendMessage(recipientId: string, message: string): Promise<void>;
 
-- **Mechanism**: Headless subagent task spawning via command line orchestration.
-- **Communication**: POSIX flock mailbox files in capsule storage.
-- **Concurrency Bound**: Maximum 16 parallel execution lanes.
+  executeCommand(
+    command: string,
+    options?: {
+      readonly cwd?: string;
+      readonly timeoutMs?: number;
+    },
+  ): Promise<{ readonly exitCode: number; readonly stdout: string; readonly stderr: string }>;
 
-### 3. `codex` (OpenAI Codex CLI)
-
-- **Mechanism**: Asynchronous background subshell workers.
-- **Communication**: Merkle event streams and filesystem signal sentinels.
-- **Concurrency Bound**: Maximum 24 parallel worker threads.
-
-### 4. `cursor` (Cursor Agent Platform)
-
-- **Mechanism**: Native editor subagents with scoped workspace trees.
-- **Communication**: Memory-mapped mailbox streams and lockfiles.
-- **Concurrency Bound**: Maximum 10 parallel execution contexts.
-
----
-
-## 3. Host Capability Matrix & Parity Assurance
+  readFile(path: string): Promise<string>;
+  writeFile(path: string, content: string): Promise<void>;
+}
+```
 
 ```mermaid
-flowchart LR
-    Harness[Harness Core] --> AdapterLayer[Host Adapter Layer]
-    AdapterLayer --> Antigravity[Antigravity Adapter]
-    AdapterLayer --> Claude[Claude Code Adapter]
-    AdapterLayer --> Codex[Codex Adapter]
-    AdapterLayer --> Cursor[Cursor Adapter]
+classDiagram
+    class IHostAdapter {
+        <<interface>>
+        +hostType string
+        +spawnSubagent(options)
+        +sendMessage(recipient, msg)
+        +executeCommand(cmd, opts)
+        +readFile(path)
+        +writeFile(path, content)
+    }
+    class AntigravityAdapter {
+        +invokeNativeSubagent()
+        +callMcpTool()
+    }
+    class ClaudeCodeAdapter {
+        +invokeAgentTool()
+        +executeBash()
+    }
+    class GenericCliAdapter {
+        +spawnProcess()
+        +writeFifo()
+    }
 
-    Antigravity --> ParityTest[Parity Test Suite]
-    Claude --> ParityTest
-    Codex --> ParityTest
-    Cursor --> ParityTest
-    ParityTest --> Result{100% Behavioral Parity?}
-    Result -->|Pass| Certified[Host Certified for OLT]
-    Result -->|Fail| Quarantine[Quarantined Host]
+    IHostAdapter <|.. AntigravityAdapter
+    IHostAdapter <|.. ClaudeCodeAdapter
+    IHostAdapter <|.. GenericCliAdapter
 ```
-
-| Capability Domain       | Abstract Primitive    | Antigravity       | Claude Code   | Codex           | Cursor        |
-| :---------------------- | :-------------------- | :---------------- | :------------ | :-------------- | :------------ |
-| **Worker Spawning**     | `spawnWorker(spec)`   | `invoke_subagent` | `task_spawn`  | `subshell_fork` | `agent_fork`  |
-| **Command Execution**   | `executeCmd(cmd)`     | `run_command`     | `Bash`        | `exec`          | `terminal`    |
-| **Advisory Locking**    | `acquireLock(path)`   | POSIX `flock`     | POSIX `flock` | POSIX `flock`   | POSIX `flock` |
-| **Evidence Validation** | `validateProof(type)` | AST Engine        | AST Engine    | AST Engine      | AST Engine    |
 
 ---
 
-[⏮️ Previous: 02-02 Subagent Naming Grammar](02-02-subagent-naming-grammar.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 02-04 Modular Budgets](02-04-modular-file-and-directory-budgets.md)
+## 3. Dynamic Detection Cascade
+
+```text
++--------------------------------------------------------------------------------------------------+
+│                             DYNAMIC HOST DETECTION CASCADE                                       │
++--------------------------------------------------------------------------------------------------+
+│                                                                                                  │
+│   1. Check for `ANTIGRAVITY_APP_DIR` or native MCP tools ──► Bind AntigravityAdapter             │
+│   2. Check for `CLAUDE_CODE_ENTRY` or `__claude__`      ──► Bind ClaudeCodeAdapter              │
+│   3. Check for `GOOSE_PROVIDER`                          ──► Bind GooseAdapter                   │
+│   4. Fallback to Headless Local CLI Adapter             ──► Bind GenericCliAdapter              │
+│                                                                                                  │
++--------------------------------------------------------------------------------------------------+
+```
+
+---
+
+## 4. Architectural Invariants Summary
+
+1. **Zero Host Lock-In**: Core engine algorithms contain zero vendor-specific API calls.
+2. **Deterministic Parity**: The test suite validates identical behavior across all adapters.
+3. **Fail-Closed Fallback**: Inability to detect host capabilities falls back to safe CLI mode.
+
+---
+
+[Previous: 02-02 Subagent Naming Grammar](02-02-subagent-naming-grammar.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 02-04 Modular File & Sizing Budgets](02-04-modular-file-and-directory-budgets.md)
+
 ---

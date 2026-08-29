@@ -1,45 +1,101 @@
-# Chapter 11: Worktree Branching Isolation & Honesty Gates
-
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > Chapter 11: Worktree Branching Isolation & Honesty Gates
+# Chapter 11: Worktree Branching & Honesty Gates
 
 ---
 
-[⏮️ Previous: Chapter 10: Durability, Recovery & Merkle Chains](../10-durability-recovery-capsules/index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 11-01 Out-of-Repo Git Worktree Isolation](11-01-out-of-repo-git-worktree-isolation.md)
+[Previous: Chapter 10 Index](../10-durability-recovery-capsules/index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 11-01 Worktree Isolation](11-01-out-of-repo-git-worktree-isolation.md)
+
 ---
 
-## 1. Chapter Overview
+## 1. Chapter Overview & Worktree Architecture
 
-Parallel coding agents operating on the same repository directory inevitably overwrite each other's files, corrupt git index staging, and cause merge conflicts.
+Welcome to Chapter 11 of the OLT Architecture Book. This chapter codifies the out-of-repo Git worktree isolation mechanisms, strict 1:1 task anti-batching invariants, honesty verification gates, and agent grant ledgers governing workspace safety and provenance in the OLT (Orchestrating Long Tasks) engine.
 
-OLT eliminates write collisions through **Out-of-Repo Git Worktrees**, **Strict 1:1 Anti-Batching Leases**, **Honesty Verification Gates**, and the **Dynamic Agent Grant Ledger**.
+Concurrent file edits in shared working trees produce race conditions and corrupted repositories. Chapter 11 establishes Out-of-Repo Git Worktree Isolation, details the Strict 1:1 Task Anti-Batching Invariant, formalizes Honesty Gates & Anti-Fabrication Detection, and defines the Agent Grant Ledger & Authority Locks.
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                           CHAPTER 11: WORKTREE & HONESTY TOPOLOGY                                │
-├──────────────────────────┬──────────────────────────┬────────────────────────────────────────────┤
-│ Sub-Topic                │ Key Architectural Model  │ Primary Invariants Enforced                │
-├──────────────────────────┼──────────────────────────┼────────────────────────────────────────────┤
-│ 01. Worktree Isolation   │ Ephemeral Out-of-Repo    │ Physical Directory Isolation per Worker    │
-│ 02. 1:1 Anti-Batching    │ 1 Agent to 1 Task Lease  │ Zero Multi-Task Batching & Context Bleed   │
-│ 03. Honesty Gates        │ Anti-Fabrication Engine  │ Penalty Models & Ban on Simulated Proofs   │
-│ 04. Grant Ledger         │ Dynamic RBAC Elevation   │ Audited Permission Revocation & Scopes     │
-└──────────────────────────┴──────────────────────────┴────────────────────────────────────────────┘
++--------------------------------------------------------------------------------------------------+
+│                             CHAPTER 11: WORKTREE & HONESTY TOPOLOGY                              │
++--------------------------------------------------------------------------------------------------+
+│                                                                                                  │
+│    ┌───────────────────────────┐                    ┌───────────────────────────┐                │
+│    │ 11-01: Out-of-Repo        │                    │ 11-02: Strict 1:1         │                │
+│    │ Worktree Isolation        │ ══════════════════►│ Anti-Batching Invariant   │                │
+│    └─────────────┬─────────────┘                    └─────────────┬─────────────┘                │
+│                  │                                                │                              │
+│                  ▼                                                ▼                              │
+│    ┌───────────────────────────┐                    ┌───────────────────────────┐                │
+│    │ 11-03: Honesty Gates      │                    │ 11-04: Agent Grant        │                │
+│    │ & Anti-Fabrication        │ ══════════════════►│ Ledger & Authority Locks  │                │
+│    └───────────────────────────┘                    └───────────────────────────┘                │
+│                                                                                                  │
++--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. Table of Contents
+## 2. Chapter Table of Contents & Learning Path
 
-1. **[11-01: Out-of-Repo Git Worktree Isolation](./11-01-out-of-repo-git-worktree-isolation.md)**  
-   _Ephemeral git worktrees under `.olt/worktrees/<task_id>/`, conflict avoidance, clean merge-back._
-2. **[11-02: Strict One-to-One Anti-Batching](./11-02-strict-one-to-one-anti-batching.md)**  
-   _Strict 1-agent to 1-task lease invariant, eliminating hidden dependencies and context bleed._
-3. **[11-03: Honesty Gates & Anti-Fabrication](./11-03-honesty-gates-and-anti-fabrication.md)**  
-   _Honesty verification gates, rejection of unverified passes, penalty models for fabrication._
-4. **[11-04: Agent Grant Ledger & Authority Locks](./11-04-agent-grant-ledger-and-authority-locks.md)**  
-   _Dynamic Agent Grant Ledger, capability elevation protocol, audited permission revocation._
+```text
++--------------------------------------------------+--------------+--------------------------------+
+│ Document                                         │ Classification│ Core Architectural Focus       │
++--------------------------------------------------+--------------+--------------------------------+
+│ 11-01 Out-of-Repo Git Worktree Isolation         │ Concurrency  │ Isolated paths & branch merges │
+│ 11-02 Strict 1:1 Task Anti-Batching              │ Invariants   │ Bijective worker:task mapping  │
+│ 11-03 Honesty Gates & Anti-Fabrication           │ Verification │ Ground-truth physical checks   │
+│ 11-04 Agent Grant Ledger & Authority Locks       │ Security     │ Session lineages & HMAC tokens │
++--------------------------------------------------+--------------+--------------------------------+
+```
+
+### [11-01: Out-of-Repo Git Worktree Isolation](11-01-out-of-repo-git-worktree-isolation.md)
+
+Deconstructs out-of-repo worktrees (`.olt/worktrees/<task_id>/`), clean branch isolation, concurrent worker separation, and atomic sequential merging into the main repository.
+
+### [11-02: Strict 1:1 Task Anti-Batching Invariant](11-02-strict-one-to-one-anti-batching.md)
+
+Formalizes the bijective lease mapping $|\mathcal{M}(A_i)| \equiv 1$, eliminating blast radius cascades, context pollution, and ambiguous forensic diff attribution.
+
+### [11-03: Honesty Gates & Anti-Fabrication Mechanisms](11-03-honesty-gates-and-anti-fabrication.md)
+
+Details physical disk cross-checking, the mathematical honesty predicate $\mathcal{H}_{\text{gate}}$, and the four anti-fabrication sensors (Git diffs, process exits, AST grounding, image entropy).
+
+### [11-04: Agent Grant Ledger & Authority Locks](11-04-agent-grant-ledger-and-authority-locks.md)
+
+Explains session lineage tracking, least-privilege authority locks, cryptographic grant tokens, and RBAC interlocks.
 
 ---
 
-[⏮️ Previous: Chapter 10: Durability, Recovery & Merkle Chains](../10-durability-recovery-capsules/index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 11-01 Out-of-Repo Git Worktree Isolation](11-01-out-of-repo-git-worktree-isolation.md)
+## 3. Core Worktree & Honesty Specifications Table
+
+$$ \begin{array}{|l|l|l|}
+\hline
+\textbf{Invariant / Policy} & \textbf{Formal Notation} & \textbf{Operational Guarantee} \\ \hline
+\text{Worktree Isolation} & \mathcal{W}_i \cap \mathcal{W}_j = \emptyset & \text{Zero cross-worker file collisions} \\ \hline
+\text{Anti-Batching} & |\text{Tasks}(A_i)| \equiv 1 & \text{Strict atomic task granularity} \\ \hline
+\text{Honesty Predicate} & \text{Claim}(\text{diff}) \stackrel{?}{=} \text{Observed}(\text{diff}) & \text{Zero unverified agent prose accepted} \\ \hline
+\text{Grant Signature} & \text{HMAC}_K(\text{id} \mathbin{\Vert} \text{scope} \mathbin{\Vert} \tau) & \text{Cryptographic authority locks} \\ \hline
+\end{array}$$
+
+```mermaid
+graph TD
+    subgraph "Chapter 11 Worktree & Honesty"
+        A[11-01 Worktree Isolation] --> B[11-02 Anti-Batching]
+        B --> C[11-03 Honesty Gates]
+        C --> D[11-04 Grant Ledger]
+    end
+    D --> E["Chapter 12: Flock Mailboxes & Telemetry"]
+```
+
 ---
+
+## 4. Summary & Transition
+
+The worktree isolation models and honesty verification interlocks established in Chapter 11 guarantee that parallel worker execution remains hermetic, honest, and mathematically accountable.
+
+Proceed to [11-01: Out-of-Repo Git Worktree Isolation](11-01-out-of-repo-git-worktree-isolation.md) or advance directly to [Chapter 12: Flock Mailboxes & Telemetry](../12-flock-mailboxes-and-tui/index.md).
+
+---
+
+[Previous: Chapter 10 Index](../10-durability-recovery-capsules/index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 11-01 Worktree Isolation](11-01-out-of-repo-git-worktree-isolation.md)
+
+---
+$$

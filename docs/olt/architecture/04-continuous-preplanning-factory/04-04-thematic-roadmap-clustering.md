@@ -1,39 +1,84 @@
-# Thematic Roadmap Clustering & DAG Generation
-
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 04](./index.md) > 04-04 Thematic Clustering
+# Thematic Roadmap Clustering & Multi-Wave Decomposition
 
 ---
 
-[⏮️ Previous: 04-03 Authority-Gated Obligations](04-03-authority-gated-obligations.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Chapter 05: Concurrency Scaling & Straggler SLA](../05-concurrency-straggler-sla/index.md)
+[Previous: 04-03 Authority-Gated Obligations](04-03-authority-gated-obligations.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Chapter 05 Index](../05-concurrency-straggler-sla/index.md)
+
 ---
 
-## 1. Affinity Scoring & Graph Partitioning
+## 1. Executive Summary & Wave Decomposition
 
-Once requirements are derived and authority-cleared, the preplanning factory groups them into cohesive, modular implementation milestones using **Semantic & Structural Affinity Scoring**:
+In large software projects, executing dozens of unorganized tasks simultaneously causes unmanageable dependency knots and merge contention.
 
-$$\text{Affinity}(R_a, R_b) = w_1 \cdot \text{FileOverlap}(R_a, R_b) + w_2 \cdot \text{DomainSimilarity}(R_a, R_b) + w_3 \cdot \text{DependencyCoupling}(R_a, R_b)$$
+The OLT (Orchestrating Long Tasks) engine implements **Thematic Roadmap Clustering & Multi-Wave Decomposition**. Under this model:
 
-```mermaid
-flowchart LR
-    R1[REQ-1: Auth Token] -->|High Affinity| ClusterA[Cluster 1: Authentication Core]
-    R2[REQ-2: Session Store] -->|High Affinity| ClusterA
-    R3[REQ-3: User Profile UI] -->|High Affinity| ClusterB[Cluster 2: User Interface]
-    R4[REQ-4: Avatar Upload] -->|High Affinity| ClusterB
+1. **5-Domain Thematic Partitioning**: Obligations are clustered into 5 cohesive architectural domains (Foundations, Core Engine, Validation & Gates, Tooling & CLI, Documentation).
+2. **Multi-Wave DAG Synthesis**: Tasks within the same domain are organized into sequential, decoupled waves ($W_1 \dots W_K$).
+3. **Work-Span Minimization**: The scheduler maximizes parallel width $\mathcal{W}(G)$ while minimizing critical path span $S(G)$.
 
-    ClusterA -->|Precedes| ClusterB
+```text
++--------------------------------------------------------------------------------------------------+
+│                             THEMATIC CLUSTERING & WAVE TOPOLOGY                                  │
++--------------------------------------------------------------------------------------------------+
+│                                                                                                  │
+│   DOMAIN 1: Foundations (Contracts & Types) ──► Wave 1 (Parallel Tasks 1A, 1B, 1C)               │
+│                                                       │                                          │
+│                                                       ▼                                          │
+│   DOMAIN 2: Core Engine & Graph Scheduler   ──► Wave 2 (Parallel Tasks 2A, 2B)                   │
+│                                                       │                                          │
+│                                                       ▼                                          │
+│   DOMAIN 3: Verification & Evidence Gates   ──► Wave 3 (Parallel Tasks 3A, 3B, 3C)               │
+│                                                       │                                          │
+│                                                       ▼                                          │
+│   DOMAIN 4: CLI & Operator Tooling          ──► Wave 4 (Parallel Tasks 4A, 4B)                   │
+│                                                       │                                          │
+│                                                       ▼                                          │
+│   DOMAIN 5: Architecture Documentation      ──► Wave 5 (Parallel Docs Sync)                      │
+│                                                                                                  │
++--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. Generational DAG Compilation ($G_0 \to G_k$)
+## 2. Mathematical Formalization of Thematic Clustering
 
-The clusters are compiled into a topological Directed Acyclic Graph where:
+Let $\mathcal{O} = \{O_1, \dots, O_N\}$ be the set of extracted obligations.
 
-- Nodes represent atomic execution tasks ($V = \{T_1, T_2, \dots, T_n\}$).
-- Edges represent strict prerequisite dependencies ($E = \{(T_i, T_j) \mid T_i \prec T_j\}$).
-- Each task specifies exact granted filesystem write scopes to guarantee disjoint parallel execution.
+We define the semantic affinity matrix $\mathcal{A}_{ij} = \text{Sim}(O_i, O_j) \in [0, 1]$ based on shared file paths and dependency edges.
+
+The **Thematic Clustering Objective** partitions $\mathcal{O}$ into $K \le 5$ clusters $C_1, \dots, C_K$ to maximize intra-cluster cohesion while minimizing cross-cluster dependencies:
+
+$$\max_{\{C_1 \dots C_K\}} \sum_{k=1}^K \sum_{u, v \in C_k} \mathcal{A}_{uv} - \lambda \sum_{k \neq l} \text{CrossEdges}(C_k, C_l)$$
+
+```mermaid
+flowchart TD
+    ExtractObs[Extracted Obligations: O_1..N] --> PartitionDomains[Cluster into 5 Thematic Domains]
+    PartitionDomains --> TopoOrder[Topological Dependency Sort across Domains]
+    TopoOrder --> SynthWaves[Synthesize Waves W_1..K via Kahn's Algorithm]
+    SynthWaves --> DecoupleScopes[Decouple Worktree File Scopes per Wave]
+    DecoupleScopes --> WaveDAG([Multi-Wave DAG Ready for Execution])
+```
 
 ---
 
-[⏮️ Previous: 04-03 Authority-Gated Obligations](04-03-authority-gated-obligations.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Chapter 05: Concurrency Scaling & Straggler SLA](../05-concurrency-straggler-sla/index.md)
+## 3. Wave Execution & Decoupling Invariants
+
+1. **Strict Scope Disjointness**: Tasks in the same wave $W_m$ must have mutually disjoint write scopes:
+
+$$\forall T_a, T_b \in W_m \; (a \neq b) \implies \text{Scope}(T_a) \cap \text{Scope}(T_b) = \emptyset$$
+
+2. **Sequential Wave Barriers**: Wave $W_{m+1}$ cannot commence until all tasks in wave $W_m$ are certified completed.
+
+---
+
+## 4. Architectural Invariants Summary
+
+1. **Maximized Parallelism**: Independent modules execute concurrently across worktrees.
+2. **Zero File Collisions**: Scope disjointness prevents Git merge conflicts.
+3. **Structured Roadmaps**: Multi-wave clustering provides clear milestone visibility.
+
+---
+
+[Previous: 04-03 Authority-Gated Obligations](04-03-authority-gated-obligations.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Chapter 05 Index](../05-concurrency-straggler-sla/index.md)
+
 ---

@@ -130,6 +130,17 @@ Every agent executing within this repository must adhere to the following non-ne
     - When remaining quota drops below 10% (`QUOTA_EXHAUSTED_CIRCUIT_BROKEN`) or provider rate limit (429) is encountered, supervisory agents gracefully suspend recurring background crons (`mind:pulse`, live auditors, round supervisors).
     - **Zero-Kill Invariant:** Active subagents are NEVER terminated or killed (`manage_subagents kill` strictly forbidden during freeze). Subprocesses sleep in RAM in an IDLE state, preserving uncommitted working tree changes and in-memory epistemic context.
     - **Auto-Wake Resume:** A single one-shot sentinel timer is scheduled (`resetTime + 60s` buffer). Upon sentinel wakeup, supervisory agents re-register stopped crons, restore DAG coordinates from `.olt/quota-dag-snapshot.json`, and resume multi-round convergence.
+36. **Zero Backwards-Compatibility Code & Dead Code Elimination Invariant (`ZERO_BACKWARDS_COMPATIBILITY_INVARIANT`):**
+    - When modernizing, modularizing, refactoring, or completing any feature in the repository, agents must **never** create or leave behind backwards-compatibility shims, deprecated forwarding files, stub wrappers, or dead code.
+    - All call sites, imports, tests, and CLI consumers across the repository must be updated directly to target the new, canonical modular structure.
+    - Any obsolete, superseded, or legacy single-file representations (e.g. `schema.ts`, `generator.ts`, `rbac-engine.ts`) must be permanently deleted immediately rather than retained as forwarding aliases.
+37. **Codebase Modularity Invariants, Density Budgets & Clean Facades (`MODULARITY_RATCHET_INVARIANTS`):**
+    - **Strict File Line Budget:** Every TypeScript and source file must remain strictly $\le 300$ physical lines.
+    - **Strict Directory Fanout Budget:** Every directory must contain $\le 10$ files.
+    - **Explicit Named Facade Invariant:** Every TypeScript module directory must expose an explicit `index.ts` facade containing named exports. Wildcard exports (`export * from ...`) are strictly prohibited to maintain deterministic AST import graphs and avoid namespace pollution.
+    - **Zero Facade Bypass Invariant:** Cross-directory imports must strictly target destination `index.ts` facades (e.g. `import { foo } from "../policy/index.ts"`), never reaching across directory boundaries to private internal submodule paths.
+    - **Zero Circular Dependencies:** Import graphs must form a strict directed acyclic graph (DAG). Strongly connected component (SCC) dependency cycles are strictly prohibited.
+    - **Pre-Commit Modularity Ratchet:** All staged changes must pass `bun run modularity:staged` before committing.
 
 ---
 
@@ -371,6 +382,16 @@ To protect repository state and prevent common LLM blunder modes:
     - Main thread and supervisory tiers strictly refrain from direct source file modifications and test suite executions. Zero main-thread implementation is an absolute repository invariant.
 24. **4 Canonical Hosts, Models & Thinking Levels Governance:**
     - Strictly use the 4 canonical host configurations (`antigravity`: `gemini-3.7-flash` high thinking, 5m; `claude_code`: `claude-5-opus` high thinking supervisory / `claude-5-sonnet` high thinking worker, 15m; `codex`: `gpt-5.6-sol` high thinking supervisory / `gpt-5.6-terra` high thinking worker, 15m; `cursor`: latest stable model high thinking, 5m). Generic fallbacks are strictly banned.
+25. **Zero Backwards-Compatibility Code & Dead Code Elimination Invariant (`ZERO_BACKWARDS_COMPATIBILITY_INVARIANT`):**
+    - When modernizing, modularizing, or refactoring features, agents must **never** leave backwards-compatibility shims, deprecated forwarding files, wrapper aliases, or dead code behind.
+    - All call sites, imports, tests, and CLI consumers across the repository must be updated directly to target the new canonical modular structure.
+    - Any obsolete, superseded, or legacy single-file representations (e.g. `schema.ts`, `generator.ts`, `rbac-engine.ts`) must be permanently deleted from disk and git index immediately.
+26. **Codebase Modularity Invariants, Density Budgets & Clean Facades (`MODULARITY_RATCHET_INVARIANTS`):**
+    - Every source and test file must remain strictly $\le 300$ physical lines.
+    - Every directory must contain $\le 10$ files.
+    - Every directory must expose an explicit `index.ts` facade containing named exports. Wildcard exports (`export * from ...`) are strictly prohibited.
+    - Cross-directory imports must strictly target destination `index.ts` facades, never reaching across directory boundaries to private internal submodule paths.
+    - Import graphs must form a strict DAG with 0 dependency cycles. All staged changes must pass `bun run modularity:staged` before committing.
 
 ---
 
@@ -383,8 +404,9 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
    - External boundaries must use strict runtime schema validations or TypeScript type guards.
 2. **Zero Compiler & Linter Suppressions:**
    - Exactly **0 compiler/linter suppressions** (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`) are permitted anywhere in the repository.
-3. **Context-Friendly File Size Budgets:**
-   - Production source files must remain compact and modular: $\le 200$ lines for production sources, $\le 250$ lines for unit test suites.
+3. **Context-Friendly File Size Budgets & Modularity Ratchet:**
+   - Production source files and unit test suites must remain strictly bounded: $\le 300$ physical lines per file, $\le 10$ files per directory fanout.
+   - Zero backwards-compatibility code, zero dead code, explicit named facade exports, zero facade bypasses, and zero circular dependencies.
 4. **100% Host-Agnostic & Zero Runtime Dependencies:**
    - Harness and scripts must run using native runtime APIs (`bun` / `node` built-ins). No external runtime `node_modules` or runtime `npm install` requirements.
 5. **File-Scoped Falsifiable Test Coverage:**

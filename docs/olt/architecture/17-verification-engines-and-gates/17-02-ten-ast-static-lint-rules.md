@@ -4,7 +4,7 @@
 
 ---
 
-[⏮️ Previous: Typecheck Engine](17-01-typecheck-engine.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: APCA Perceptual Contrast Engine](17-03-apca-perceptual-contrast-engine.md)
+[Previous: Typecheck Engine](17-01-typecheck-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: APCA Perceptual Contrast Engine](17-03-apca-perceptual-contrast-engine.md)
 ---
 
 The **AST Static Invariant Auditor** ([`olt/scripts/src/linter/ast-enforcer.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/ast-enforcer.ts)) parses TypeScript and JavaScript source files into abstract syntax trees to enforce 10 non-negotiable code hygiene, typing safety, vendor neutrality, and test honesty invariants.
@@ -13,7 +13,7 @@ In the OLT runtime, these rules execute unconditionally during `bun harness.ts t
 
 ---
 
-## 🛡️ Master AST Rule Catalog
+## Master AST Rule Catalog
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -66,13 +66,13 @@ The rule intercepts any TypeScript AST node matching `ts.SyntaxKind.AnyKeyword`.
 ### 1.2 Code Exemplars
 
 ```typescript
-// ❌ VIOLATION: Unsafe any usage
+// [FAIL] VIOLATION: Unsafe any usage
 function parsePayload(raw: any): any {
   const data = raw as any;
   return data.value;
 }
 
-// ✅ GOOD: Type-safe generics and unknown with runtime type narrowing
+// [PASS] GOOD: Type-safe generics and unknown with runtime type narrowing
 function parsePayload<T extends Record<string, unknown>>(raw: T): unknown {
   const data = raw as unknown as { value: unknown };
   if (typeof data === "object" && data !== null && "value" in data) {
@@ -117,18 +117,18 @@ flowchart LR
 ### 2.2 Code Exemplars
 
 ```typescript
-// ❌ VIOLATION: Suppressing typechecker errors
+// [FAIL] VIOLATION: Suppressing typechecker errors
 // @ts-ignore
 const result = unsafeMethodCall();
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const config = loadRawConfig();
 
-// ❌ VIOLATION: Ignoring expected type mismatch
+// [FAIL] VIOLATION: Ignoring expected type mismatch
 // @ts-expect-error Type string not assignable to number
 const count: number = "10";
 
-// ✅ GOOD: Correct typing without suppression
+// [PASS] GOOD: Correct typing without suppression
 interface ConfigLoader {
   loadRawConfig(): Record<string, unknown>;
 }
@@ -165,14 +165,14 @@ const count: number = parseInt("10", 10);
 ### 3.2 Code Exemplars
 
 ```typescript
-// ❌ VIOLATION: Assuming non-null state
+// [FAIL] VIOLATION: Assuming non-null state
 function getUsername(user?: { name: string }): string {
   return user!.name; // Crash if user is undefined
 }
 
 const element = document.getElementById("root")!;
 
-// ✅ GOOD: Explicit runtime guards & defensive branching
+// [PASS] GOOD: Explicit runtime guards & defensive branching
 function getUsername(user?: { name: string }): string {
   if (user === undefined || user === null) {
     throw new Error("user must be defined");
@@ -241,7 +241,7 @@ export function extractIdentifierWords(identifier: string): readonly string[] {
 ### 4.2 Code Exemplars
 
 ```typescript
-// ❌ VIOLATION: Vendor leak in function name & string literals
+// [FAIL] VIOLATION: Vendor leak in function name & string literals
 class ClaudeAiClient {
   async callOpenAiApi(prompt: string): Promise<string> {
     return fetch("https://api.openai.com/v1/chat/completions", {
@@ -250,7 +250,7 @@ class ClaudeAiClient {
   }
 }
 
-// ✅ GOOD: Neutral naming & dynamic provider abstractions
+// [PASS] GOOD: Neutral naming & dynamic provider abstractions
 interface ModelClient {
   generateCompletion(prompt: string): Promise<string>;
 }
@@ -288,12 +288,12 @@ Problem:    If user explicitly sets limit = 0 (disable limit),
 ### 5.2 Code Exemplars
 
 ```typescript
-// ❌ VIOLATION: Unsafe logical OR fallback
+// [FAIL] VIOLATION: Unsafe logical OR fallback
 const port = process.env.PORT || 3000;
 const label = button.title || "Default Title";
 const maxRetries = options.retries || 5;
 
-// ✅ GOOD: Explicit ternary checks or boolean verification
+// [PASS] GOOD: Explicit ternary checks or boolean verification
 const port =
   process.env.PORT !== undefined && process.env.PORT.trim().length > 0
     ? parseInt(process.env.PORT, 10)
@@ -317,11 +317,11 @@ const maxRetries = typeof options.retries === "number" ? options.retries : 5;
 ### 6.1 Code Exemplars
 
 ```typescript
-// ❌ VIOLATION: Unverified fallback
+// [FAIL] VIOLATION: Unverified fallback
 const timeoutMs = config.timeoutMs ?? 5000;
 const userName = profile.name ?? "Anonymous";
 
-// ✅ GOOD: Explicit branching with full branch visibility
+// [PASS] GOOD: Explicit branching with full branch visibility
 const timeoutMs =
   config.timeoutMs !== undefined && config.timeoutMs !== null ? config.timeoutMs : 5000;
 
@@ -354,14 +354,14 @@ flowchart TD
 ### 7.2 Code Exemplars
 
 ```typescript
-// ❌ VIOLATION: Mock tautology (testing mock return, not SUT)
+// [FAIL] VIOLATION: Mock tautology (testing mock return, not SUT)
 test("user authentication test", () => {
   const authMock = vi.fn().mockReturnValue({ authenticated: true });
   // SUT is never called!
   expect(authMock().authenticated).toBe(true);
 });
 
-// ✅ GOOD: Mock injected into System Under Test (SUT)
+// [PASS] GOOD: Mock injected into System Under Test (SUT)
 test("user authentication test", async () => {
   const authProvider = { verifyToken: vi.fn().mockReturnValue({ userId: "u-123" }) };
   const authService = new AuthService(authProvider); // SUT instantiated
@@ -390,7 +390,7 @@ test("user authentication test", async () => {
 ### 8.1 Code Exemplars
 
 ```typescript
-// ❌ VIOLATION: Trivial always-green assertions
+// [FAIL] VIOLATION: Trivial always-green assertions
 test("database connection works", () => {
   db.connect();
   expect(true).toBe(true); // Always passes regardless of db state
@@ -399,7 +399,7 @@ test("database connection works", () => {
   expect(status).toBe(status); // Comparing variable to itself
 });
 
-// ✅ GOOD: Meaningful assertion on actual runtime state
+// [PASS] GOOD: Meaningful assertion on actual runtime state
 test("database connection works", async () => {
   const db = new DatabaseClient();
   await db.connect();
@@ -421,14 +421,14 @@ test("database connection works", async () => {
 ### 9.1 Code Exemplars
 
 ```typescript
-// ❌ VIOLATION: Empty placeholder tests
+// [FAIL] VIOLATION: Empty placeholder tests
 test("should validate email format", () => {});
 
 it("should handle network disconnects", async () => {
   // TODO: implement later
 });
 
-// ✅ GOOD: Implemented test with executable assertions
+// [PASS] GOOD: Implemented test with executable assertions
 test("should validate email format", () => {
   const validator = new EmailValidator();
   expect(validator.validate("user@example.com")).toBe(true);
@@ -447,17 +447,17 @@ test("should validate email format", () => {
 ### 10.1 Code Exemplars
 
 ```typescript
-// ❌ VIOLATION: Early return bypassing assertions
+// [FAIL] VIOLATION: Early return bypassing assertions
 test("handles conditional feature flag", () => {
   const isEnabled = checkFeatureFlag("experimental-mode");
   if (!isEnabled) {
-    return; // ❌ Test silently passes without asserting anything!
+    return; // [FAIL] Test silently passes without asserting anything!
   }
   const result = runExperimentalFeature();
   expect(result.success).toBe(true);
 });
 
-// ✅ GOOD: Assertions covering all conditional execution paths
+// [PASS] GOOD: Assertions covering all conditional execution paths
 test("handles conditional feature flag", () => {
   const isEnabled = checkFeatureFlag("experimental-mode");
   if (!isEnabled) {
@@ -472,7 +472,7 @@ test("handles conditional feature flag", () => {
 
 ---
 
-## 🔧 11. Deterministic Autofix Engine (`autoFixSourceCode`)
+## 11. Deterministic Autofix Engine (`autoFixSourceCode`)
 
 The AST subsystem provides deterministic source code refactoring capabilities in [`olt/scripts/src/linter/ast/autofix.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/ast/autofix.ts):
 
@@ -493,5 +493,5 @@ export function autoFixSourceCode(
 
 ---
 
-[⏮️ Previous: Typecheck Engine](17-01-typecheck-engine.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: APCA Perceptual Contrast Engine](17-03-apca-perceptual-contrast-engine.md)
+[Previous: Typecheck Engine](17-01-typecheck-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: APCA Perceptual Contrast Engine](17-03-apca-perceptual-contrast-engine.md)
 ---

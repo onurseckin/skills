@@ -54,44 +54,28 @@
           "model_tier": "high",
           "thinking_effort": "high",
           "max_tokens": 8192,
-          "scheduler": {
-            "enabled": true,
-            "cron": "*/5 * * * *",
-            "interval_seconds": 300
-          }
+          "scheduler": { "enabled": true, "cron": "*/5 * * * *", "interval_seconds": 300 }
         },
         "claude_code": {
           "model": "claude-5-opus",
           "model_tier": "xhigh",
           "thinking_effort": "high",
           "max_tokens": 8192,
-          "scheduler": {
-            "enabled": true,
-            "cron": "*/15 * * * *",
-            "interval_seconds": 900
-          }
+          "scheduler": { "enabled": true, "cron": "*/15 * * * *", "interval_seconds": 900 }
         },
         "codex": {
           "model": "gpt-5.6-sol",
           "model_tier": "xhigh",
           "thinking_effort": "high",
           "max_tokens": 8192,
-          "scheduler": {
-            "enabled": true,
-            "cron": "*/15 * * * *",
-            "interval_seconds": 900
-          }
+          "scheduler": { "enabled": true, "cron": "*/15 * * * *", "interval_seconds": 900 }
         },
         "cursor": {
           "model": "cursor-latest",
           "model_tier": "high",
           "thinking_effort": "high",
           "max_tokens": 8192,
-          "scheduler": {
-            "enabled": true,
-            "cron": "*/5 * * * *",
-            "interval_seconds": 300
-          }
+          "scheduler": { "enabled": true, "cron": "*/5 * * * *", "interval_seconds": 300 }
         }
       }
     },
@@ -235,10 +219,7 @@
     "validator_code_quality": {
       "tier": 3,
       "domain": "code_quality",
-      "rbac": {
-        "can_execute_shell": false,
-        "can_edit_code": false
-      },
+      "rbac": { "can_execute_shell": false, "can_edit_code": false },
       "quotas": {
         "mandatory_cognitive_pushbacks": 5,
         "max_adversarial_probes": 10,
@@ -275,10 +256,7 @@
     "validator_ui_design": {
       "tier": 3,
       "domain": "ui_design",
-      "rbac": {
-        "can_execute_shell": false,
-        "can_edit_code": false
-      },
+      "rbac": { "can_execute_shell": false, "can_edit_code": false },
       "quotas": {
         "mandatory_cognitive_pushbacks": 5,
         "max_adversarial_probes": 10,
@@ -315,10 +293,7 @@
     "validator_security": {
       "tier": 3,
       "domain": "security",
-      "rbac": {
-        "can_execute_shell": false,
-        "can_edit_code": false
-      },
+      "rbac": { "can_execute_shell": false, "can_edit_code": false },
       "quotas": {
         "mandatory_cognitive_pushbacks": 5,
         "max_adversarial_probes": 10,
@@ -355,10 +330,7 @@
     "validator_system_design": {
       "tier": 3,
       "domain": "system_design",
-      "rbac": {
-        "can_execute_shell": false,
-        "can_edit_code": false
-      },
+      "rbac": { "can_execute_shell": false, "can_edit_code": false },
       "quotas": {
         "mandatory_cognitive_pushbacks": 5,
         "max_adversarial_probes": 10,
@@ -395,10 +367,7 @@
     "validator_product": {
       "tier": 3,
       "domain": "product",
-      "rbac": {
-        "can_execute_shell": false,
-        "can_edit_code": false
-      },
+      "rbac": { "can_execute_shell": false, "can_edit_code": false },
       "quotas": {
         "mandatory_cognitive_pushbacks": 5,
         "max_adversarial_probes": 10,
@@ -435,10 +404,7 @@
     "completeness_critic": {
       "tier": 3,
       "domain": "completeness",
-      "rbac": {
-        "can_execute_shell": false,
-        "can_edit_code": false
-      },
+      "rbac": { "can_execute_shell": false, "can_edit_code": false },
       "quotas": {
         "mandatory_cognitive_pushbacks": 5,
         "max_adversarial_probes": 10,
@@ -475,50 +441,35 @@
     "autonomic_watchdog": {
       "tier": 0,
       "silent_daemon": true,
-      "rbac": {
-        "can_execute_shell": false,
-        "can_edit_code": false
-      },
+      "rbac": { "can_execute_shell": false, "can_edit_code": false },
       "hosts": {
         "antigravity": {
           "model": "gemini-3.7-flash",
           "model_tier": "high",
           "thinking_effort": "high",
           "max_tokens": 8192,
-          "scheduler": {
-            "enabled": true,
-            "interval_seconds": 300
-          }
+          "scheduler": { "enabled": true, "interval_seconds": 300 }
         },
         "claude_code": {
           "model": "claude-5-sonnet",
           "model_tier": "high",
           "thinking_effort": "high",
           "max_tokens": 8192,
-          "scheduler": {
-            "enabled": true,
-            "interval_seconds": 300
-          }
+          "scheduler": { "enabled": true, "interval_seconds": 300 }
         },
         "codex": {
           "model": "gpt-5.6-terra",
           "model_tier": "high",
           "thinking_effort": "high",
           "max_tokens": 8192,
-          "scheduler": {
-            "enabled": true,
-            "interval_seconds": 300
-          }
+          "scheduler": { "enabled": true, "interval_seconds": 300 }
         },
         "cursor": {
           "model": "cursor-latest",
           "model_tier": "high",
           "thinking_effort": "high",
           "max_tokens": 8192,
-          "scheduler": {
-            "enabled": true,
-            "interval_seconds": 300
-          }
+          "scheduler": { "enabled": true, "interval_seconds": 300 }
         }
       }
     },
@@ -574,10 +525,7 @@
         "ports": ["3000:3000"],
         "health_endpoint": "http://localhost:3000/api/health",
         "ready_timeout_ms": 30000,
-        "env": {
-          "NODE_ENV": "test",
-          "PORT": "3000"
-        }
+        "env": { "NODE_ENV": "test", "PORT": "3000" }
       }
     },
     "test_user_personas": {

@@ -4,14 +4,14 @@
 
 ---
 
-[⏮️ Previous: Exit Status Hierarchy](16-01-exit-status-hierarchy.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 28 Empirical Blunders](16-03-twenty-eight-empirical-blunders.md)
+[Previous: Exit Status Hierarchy](16-01-exit-status-hierarchy.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 28 Empirical Blunders](16-03-twenty-eight-empirical-blunders.md)
 ---
 
 The **Open Loop Task (OLT) Harness** provides structured, machine-readable error reporting. Every non-zero exit condition produces a typed payload that explicitly identifies the failure classification, provides human-readable context, enumerates diagnostic issues, and delivers copy-pasteable remediation commands.
 
 ---
 
-## 📜 1. Formal JSON Error Schema (Draft 2020-12)
+## 1. Formal JSON Error Schema (Draft 2020-12)
 
 When invoked with `--format json` or executed in automated subagent mode, all harness errors emitted to `stderr` strictly validate against the following JSON Schema:
 
@@ -90,7 +90,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ---
 
-## 🛡️ 2. The 12 Canonical HarnessError Codes
+## 2. The 12 Canonical HarnessError Codes
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -574,5 +574,5 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ---
 
-[⏮️ Previous: Exit Status Hierarchy](16-01-exit-status-hierarchy.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 28 Empirical Blunders](16-03-twenty-eight-empirical-blunders.md)
+[Previous: Exit Status Hierarchy](16-01-exit-status-hierarchy.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 28 Empirical Blunders](16-03-twenty-eight-empirical-blunders.md)
 ---

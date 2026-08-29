@@ -1,7 +1,5 @@
 # 12.4 Live TUI Telemetry & Diagnostics — Real-Time Terminal User Interface Architecture, Work/Span Cognitive Metrics, Heartbeat Health Meters & Diagnostic Telemetry
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 12: Flock Mailboxes & Live TUI](./index.md) > 12.4 Live TUI Telemetry & Diagnostics
-
 ---
 
 > **Status**: Authoritative Architecture Specification  
@@ -10,7 +8,7 @@
 
 ---
 
-[⏮️ Previous: 12-03 Audit Logging & Transcripts](12-03-audit-logging-and-transcripts.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Chapter 13: Policy, Mechanical RBAC & Fail-Closed Engine](../13-policy-rbac-failclosed-engine/index.md)
+[Previous: 12-03 Audit Logging & Transcripts](12-03-audit-logging-and-transcripts.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Chapter 13: Policy, Mechanical RBAC & Fail-Closed Engine](../13-policy-rbac-failclosed-engine/index.md)
 ---
 
 ## 1. Executive Summary & Terminal Observability Philosophy
@@ -36,7 +34,7 @@ The **OLT Live Terminal User Interface (TUI) Subsystem** resolves this by delive
    │  ┌───────────────────────────────┐                  ┌───────────────────────────────┐ │
    │  │ Quadrant I: Capsule Status    │                  │ Quadrant II: Cognitive Bounds │ │
    │  │  • Phase & Wave Progress      │                  │  • Work (W) & Critical Span(S)│ │
-   │  │  • Monotonic Dual-Time Clock  │                  │  • Concurrency Target P = ⌈W/S⌉││
+   │  │  • Monotonic Dual-Time Clock  │                  │  • Concurrency Target P = W/S││
    │  ├───────────────────────────────┤                  ├───────────────────────────────┤ │
    │  │ Quadrant III: Sugiyama DAG    │                  │ Quadrant IV: Leases & Bus     │ │
    │  │  • Dynamic Repair Hierarchy   │                  │  • Heartbeat Health Meters    │ │
@@ -64,19 +62,19 @@ The Live TUI layout partitions the terminal window into four synchronized quadra
 │ [1] CAPSULE STATUS & DUAL-TIME                    │ [2] WORK/SPAN & BRENT CONCURRENCY BOUNDS          │
 │ Slug:    fix-auth-middleware-v2                   │ Work (W):         1840s (Cognitive Effort)        │
 │ Run ID:  run_01J8F7B3C4N89QZ1X6R2A0E5             │ Span (S):          420s (Critical Path Length)    │
-│ Phase:   WAVE_0_EXECUTION (Wave 2 of 4)           │ Concurrency (P):  ⌈1840 / 420⌉ = 5 Workers        │
+│ Phase:   WAVE_0_EXECUTION (Wave 2 of 4)           │ Concurrency (P):  1840 / 420 = 5 Workers        │
 │ Clock:   00:14:22.410 UTC | Mono: +862.4s         │ Worker Saturation: [██████████░░░░░░░░] 5 / 12 (41%) │
 │ Invariants: C1..C10 [● PASS: 10/10]               │ Efficiency (η):   87.6% (Zero-Serialization OK)   │
 ├───────────────────────────────────────────────────┼───────────────────────────────────────────────────┤
 │ [3] LIVING SUGIYAMA DYNAMIC DAG & REPAIR TREES    │ [4] ACTIVE LEASES, HEARTBEATS & MAILBOX QUEUES    │
 │ ┌─ [task-01-jwt-auth] ──► [● COMPLETED (Exit 0)]  │ Active Leases:                                    │
-│ │   ↳ Scope: src/auth/jwt.ts, tests/jwt.test.ts   │  • impl_01: task-03 [🟢 ACTIVE | Lease: 312s left]│
-│ ├─ [task-02-session] ──► [● COMPLETED (Exit 0)]   │  • impl_02: task-04 [🟢 ACTIVE | Lease: 480s left]│
-│ │   ↳ Scope: src/auth/session.ts                  │  • val_01:  task-03 [🔍 REVIEW | Lease: 520s left]│
-│ ├─ [task-03-role-guard] ──► [🟢 EXECUTING (s04)]  │ Heartbeat Monitor:                                │
-│ │   ├──► [REPAIR-01] (R1 Sprout: Broken Cookie)   │  • impl_01: [❤️❤️❤️❤️❤️] (1.2s ago)               │
-│ │   └──► [VAL-03] [● VALIDATOR: val_01]           │  • impl_02: [❤️❤️❤️❤️❤️] (0.8s ago)               │
-│ └─ [task-04-rate-limit] ──► [🟢 EXECUTING (s02)]  │ Mailbox Depths: In: 0 | Out: 2 | Proc: 14 | Dead:0│
+│ │   ↳ Scope: src/auth/jwt.ts, tests/jwt.test.ts   │  • impl_01: task-03 [ ACTIVE | Lease: 312s left]│
+│ ├─ [task-02-session] ──► [● COMPLETED (Exit 0)]   │  • impl_02: task-04 [ ACTIVE | Lease: 480s left]│
+│ │   ↳ Scope: src/auth/session.ts                  │  • val_01:  task-03 [ REVIEW | Lease: 520s left]│
+│ ├─ [task-03-role-guard] ──► [ EXECUTING (s04)]  │ Heartbeat Monitor:                                │
+│ │   ├──► [REPAIR-01] (R1 Sprout: Broken Cookie)   │  • impl_01: [] (1.2s ago)               │
+│ │   └──► [VAL-03] [● VALIDATOR: val_01]           │  • impl_02: [] (0.8s ago)               │
+│ └─ [task-04-rate-limit] ──► [ EXECUTING (s02)]  │ Mailbox Depths: In: 0 | Out: 2 | Proc: 14 | Dead:0│
 └───────────────────────────────────────────────────┴───────────────────────────────────────────────────┘
 ```
 
@@ -106,7 +104,7 @@ flowchart TD
     DAG --> W_Calc[Compute Cumulative Work W t]
     DAG --> S_Calc[Compute Critical Path Span S t]
 
-    W_Calc --> P_Calc[Calculate Ideal Parallelism P = ⌈W / S⌉]
+    W_Calc --> P_Calc[Calculate Ideal Parallelism P = W / S]
     S_Calc --> P_Calc
 
     P_Calc --> Brent[Compute Brent Execution Bounds]
@@ -144,10 +142,10 @@ flowchart TD
 Worker agents emit non-blocking heartbeat telemetry pulses at regular intervals ($\tau_{\text{hb}} = 5\text{s}$). The TUI calculates the heartbeat deficit $\Delta t_{\text{hb}} = t_{\text{now}} - t_{\text{last\_pulse}}$:
 
 $$ \text{HealthStatus}(A_i) = \begin{cases}
-\texttt{"[❤️❤️❤️❤️❤️] (HEALTHY)"} & \text{if } \Delta t_{\text{hb}} \le \tau_{\text{hb}} \\
-\texttt{"[❤️❤️❤️░░] (DELAYED)"} & \text{if } \tau_{\text{hb}} < \Delta t_{\text{hb}} \le 2\tau_{\text{hb}} \\
-\texttt{"[❤️░░░░░] (STRAGGLER)"} & \text{if } 2\tau_{\text{hb}} < \Delta t_{\text{hb}} \le 4\tau_{\text{hb}} \\
-\texttt{"[💀 STALLED] (REAP PENDING)"} & \text{if } \Delta t_{\text{hb}} > 4\tau_{\text{hb}}
+\texttt{"[] (HEALTHY)"} & \text{if } \Delta t_{\text{hb}} \le \tau_{\text{hb}} \\
+\texttt{"[░░] (DELAYED)"} & \text{if } \tau_{\text{hb}} < \Delta t_{\text{hb}} \le 2\tau_{\text{hb}} \\
+\texttt{"[░░░░░] (STRAGGLER)"} & \text{if } 2\tau_{\text{hb}} < \Delta t_{\text{hb}} \le 4\tau_{\text{hb}} \\
+\texttt{"[ STALLED] (REAP PENDING)"} & \text{if } \Delta t_{\text{hb}} > 4\tau_{\text{hb}}
 \end{cases}$$
 
 ### 4.2 Active Lease Countdown & Eviction Trigger
@@ -273,6 +271,6 @@ Because the TUI reads exclusively from local cached memory structures populated 
 [Return to Architecture Index](../index.md)
 
 ---
-[⏮️ Previous: 12-03 Audit Logging & Transcripts](12-03-audit-logging-and-transcripts.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Chapter 13: Policy, Mechanical RBAC & Fail-Closed Engine](../13-policy-rbac-failclosed-engine/index.md)
+[Previous: 12-03 Audit Logging & Transcripts](12-03-audit-logging-and-transcripts.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Chapter 13: Policy, Mechanical RBAC & Fail-Closed Engine](../13-policy-rbac-failclosed-engine/index.md)
 ---
 $$

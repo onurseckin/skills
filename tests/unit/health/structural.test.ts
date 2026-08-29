@@ -78,7 +78,6 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["olt/scripts/src/platform/index.ts", 6],
   ["olt/scripts/src/platform/index.ts", 3],
   ["olt/scripts/src/platform/index.ts", 2],
-  ["olt/scripts/src/policy/rbac-engine.ts", 1],
   ["olt/scripts/src/reporting/dag-view.ts", 2],
   ["olt/scripts/src/reporting/doctor/tier-confinement.ts", 2],
   ["olt/scripts/src/reporting/living-tracer.ts", 5],

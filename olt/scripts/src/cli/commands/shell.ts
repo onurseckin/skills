@@ -15,7 +15,7 @@ import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { actorFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
-import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
+import { verifyCommandAuthorization } from "../../policy/index.ts";
 import { readAgentMetadata } from "../../runtime/index.ts";
 import { emitTelemetryEvent } from "../../reporting/telemetry-stream.ts";
 import { findRepoRoot, resolveEvidenceDir, resolveScratchDir } from "../../core/shared/paths.ts";

@@ -26,10 +26,12 @@ import {
   PROPOSAL_WITNESS_OWNER_DECISION,
   recordProposal,
 } from "../../../olt/scripts/src/mind/proposals/proposal/index.ts";
-import { auditPermissionHealth } from "../../../olt/scripts/src/policy/permission-health.ts";
-import { generateDefaultRepoPolicy } from "../../../olt/scripts/src/policy/generator.ts";
-import { loadRepoPolicy } from "../../../olt/scripts/src/policy/repo-policy.ts";
-import { verifyCommandAuthorization } from "../../../olt/scripts/src/policy/rbac-engine.ts";
+import {
+  auditPermissionHealth,
+  generateDefaultRepoPolicy,
+  loadRepoPolicy,
+} from "../../../olt/scripts/src/policy/index.ts";
+import { verifyCommandAuthorization } from "../../../olt/scripts/src/policy/index.ts";
 
 const roots: string[] = [];
 

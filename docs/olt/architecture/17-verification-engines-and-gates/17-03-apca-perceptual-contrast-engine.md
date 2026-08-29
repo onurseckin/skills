@@ -4,7 +4,7 @@
 
 ---
 
-[⏮️ Previous: 10 AST Static Lint Rules](17-02-ten-ast-static-lint-rules.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md)
+[Previous: 10 AST Static Lint Rules](17-02-ten-ast-static-lint-rules.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md)
 ---
 
 The **Accessible Perceptual Contrast Algorithm (APCA)** engine evaluates human visual readability and text legibility using spatial psychophysics, non-linear photopic luminance, polarity asymmetry power curves, and multi-substrate glass layer physics.
@@ -15,7 +15,7 @@ Implemented in [`olt/scripts/src/capture/validator/mechanical/apca.ts`](file:///
 
 ---
 
-## 🧮 1. Mathematical Formulation & Calculation Pipeline
+## 1. Mathematical Formulation & Calculation Pipeline
 
 ```text
        [Raw Foreground & Background Colors: Hex, RGB, RGBA, HSL]
@@ -67,7 +67,7 @@ Implemented in [`olt/scripts/src/capture/validator/mechanical/apca.ts`](file:///
 
 ---
 
-## 🔬 2. Step-by-Step Mathematical Derivations
+## 2. Step-by-Step Mathematical Derivations
 
 ### 2.1 Step 1: Color Parsing & Normalization
 
@@ -126,7 +126,7 @@ $$ L_c = \begin{cases}
 
 ---
 
-## 📊 3. Spatial Frequency & Typography Hierarchy Thresholds
+##  3. Spatial Frequency & Typography Hierarchy Thresholds
 
 Readability is fundamentally a function of **spatial frequency**: smaller glyphs or thinner stroke weights require significantly higher lightness contrast to achieve identical legibility.
 
@@ -171,7 +171,7 @@ export function getRequiredApcaLc(fontSize: number = 16, fontWeight: number = 40
 
 ---
 
-## 🧊 4. Multi-Substrate Translucent & Frosted Glass Physics
+##  4. Multi-Substrate Translucent & Frosted Glass Physics
 
 Modern user interfaces frequently place text over translucent, frosted glass (`backdrop-filter: blur()`) surfaces. Because the substrate behind translucent glass can dynamically change (e.g. user scrolling from a dark photo to a white content area), the APCA engine evaluates contrast across both extreme ambient substrate bounds:
 
@@ -192,7 +192,7 @@ flowchart TD
     C2 --> L2["Composited Bg = rgb(255,255,255)<br/>APCA Lc = 0.0 (FAIL: Invisible)"]
 
     L1 & L2 --> EVAL["Worst-Case Contrast:<br/>min(|Lc(S_dark)|, |Lc(S_light)|) = 0.0"]
-    EVAL -->|0.0 < 75.0| REJ["❌ CRITICAL DEFECT:<br/>Glass surface text fails readability on light substrate"]
+    EVAL -->|0.0 < 75.0| REJ["[FAIL] CRITICAL DEFECT:<br/>Glass surface text fails readability on light substrate"]
 ```
 
 ### 4.1 Porter-Duff Alpha Compositing
@@ -217,7 +217,7 @@ $$\text{Cumulative Effective Blur} = \sqrt{\sum_{i=1}^{n} \text{blur}_i^2}$$
 
 ---
 
-## 💻 5. CLI Invocation & Audit Specification
+##  5. CLI Invocation & Audit Specification
 
 ```bash
 bun olt/scripts/harness.ts defect:audit --apca [--run <capsule-path>]
@@ -250,6 +250,6 @@ When a visual contrast violation is detected during auditing, the engine emits a
 ```
 
 ---
-[⏮️ Previous: 10 AST Static Lint Rules](17-02-ten-ast-static-lint-rules.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md)
+[Previous: 10 AST Static Lint Rules](17-02-ten-ast-static-lint-rules.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md)
 ---
 $$

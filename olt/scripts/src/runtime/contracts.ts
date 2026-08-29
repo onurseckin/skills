@@ -1,5 +1,5 @@
 import { type Dirent } from "node:fs";
-import type { ReviewProtocolPolicy } from "../policy/repo-policy.ts";
+import type { ReviewProtocolPolicy } from "../policy/types/index.ts";
 
 export interface AgentMetadata {
   readonly agent_id: string;

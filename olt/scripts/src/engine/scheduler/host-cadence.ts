@@ -1,9 +1,12 @@
 import { normalizeRoleKey } from "../../authority/host-bindings.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { detectActiveHost, isHostType, type HostType } from "../../platform/host-autodetect.ts";
-import { generateDefaultRepoPolicy } from "../../policy/generator.ts";
-import { loadRepoPolicy } from "../../policy/repo-policy.ts";
-import type { AgentSchedulerPolicy, RepoPolicy } from "../../policy/types.ts";
+import {
+  generateDefaultRepoPolicy,
+  loadRepoPolicy,
+  type AgentSchedulerPolicy,
+  type RepoPolicy,
+} from "../../policy/index.ts";
 
 export const DEFAULT_HOST_INTERVAL_SECONDS: Readonly<Record<HostType, number>> = {
   antigravity: 300,

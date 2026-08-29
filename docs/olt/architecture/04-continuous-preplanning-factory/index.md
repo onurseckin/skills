@@ -1,62 +1,101 @@
-# Chapter 04: Continuous Preplanning Factory & Prompt Compilation
-
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > Chapter 04: Continuous Preplanning Factory
+# Chapter 04: Continuous Preplanning Factory
 
 ---
 
-[⏮️ Previous: Chapter 03: Mind Product Owner & Cadence](../03-mind-product-owner/index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 04-01 Prompt Ingestion & SHA-256 Binding](04-01-prompt-ingestion-and-sha256-binding.md)
+[Previous: Chapter 03 Index](../03-mind-product-owner/index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 04-01 Prompt Ingestion & SHA-256 Binding](04-01-prompt-ingestion-and-sha256-binding.md)
+
 ---
 
-## 1. Chapter Overview
+## 1. Chapter Overview & Preplanning Architecture
 
-Flawed execution is almost always the consequence of incomplete preplanning. If a requirements specification omits subtle constraints, contains ambiguous natural language, or leaves dependencies implicit, implementers will hallucinate solutions or create incompatible changes.
+Welcome to Chapter 04 of the OLT Architecture Book. This chapter establishes the theoretical foundations, mathematical invariants, and pipeline mechanics governing the **Continuous Preplanning Factory** in the OLT (Orchestrating Long Tasks) engine.
 
-The **Continuous Preplanning Factory** transforms raw user prompts into deterministic, mathematically verified execution DAGs. It enforces **Byte-Exact Prompt Capture**, **100% Prompt Line Coverage**, **Authority-Gated Obligations**, and **Topological Affinity Clustering**.
+Ad-hoc agent execution fails when requirements are interpreted loosely or partially forgotten as execution progresses. Chapter 04 codifies the Prompt Ingestion & SHA-256 Sealing protocol, formalizes the 100% Prompt Line Coverage Invariant, details Authority-Gated Obligations, and explores Thematic Roadmap Clustering.
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                     CHAPTER 04: CONTINUOUS PREPLANNING FACTORY TOPOLOGY                          │
-├──────────────────────────┬──────────────────────────┬────────────────────────────────────────────┤
-│ Sub-Topic                │ Key Architectural Model  │ Primary Invariants Enforced                │
-├──────────────────────────┼──────────────────────────┼────────────────────────────────────────────┤
-│ 01. Prompt Ingestion     │ Mode 0444 Immutability   │ Byte-Exact SHA-256 Binding in Manifest     │
-│ 02. 100% Line Coverage   │ Line Disposition Alg     │ Every Line Mapped to {Req, Noise, Context} │
-│ 03. Authority Gating     │ Authority Decision Ledger│ needs_authority Honest Blocked Reporting   │
-│ 04. Thematic Clustering  │ Topological DAG Compiler │ Semantic Affinity Graph Partitioning       │
-└──────────────────────────┴──────────────────────────┴────────────────────────────────────────────┘
++--------------------------------------------------------------------------------------------------+
+│                             CHAPTER 04: PREPLANNING FACTORY TOPOLOGY                             │
++--------------------------------------------------------------------------------------------------+
+│                                                                                                  │
+│    ┌───────────────────────────┐                    ┌───────────────────────────┐                │
+│    │ 04-01: Prompt Ingestion   │                    │ 04-02: 100% Prompt Line   │                │
+│    │ & SHA-256 Digest Sealing  │ ══════════════════►│ Coverage Invariant        │                │
+│    └─────────────┬─────────────┘                    └─────────────┬─────────────┘                │
+│                  │                                                │                              │
+│                  ▼                                                ▼                              │
+│    ┌───────────────────────────┐                    ┌───────────────────────────┐                │
+│    │ 04-03: Authority-Gated    │                    │ 04-04: Thematic Roadmap   │                │
+│    │ Obligations & Risk Bounds │ ══════════════════►│ Clustering & Wave Decouple│                │
+│    └───────────────────────────┘                    └───────────────────────────┘                │
+│                                                                                                  │
++--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. Table of Contents
+## 2. Chapter Table of Contents & Learning Path
 
-1. **[04-01: Prompt Ingestion & SHA-256 Binding](./04-01-prompt-ingestion-and-sha256-binding.md)**  
-   _`plan:init` byte-exact capture, mode `0444` immutability, and manifest cryptographic sealing._
-2. **[04-02: 100% Prompt Line Coverage Invariant](./04-02-one-hundred-percent-line-coverage.md)**  
-   _Formal line disposition algorithm, `--requirement-lines` binding, and omission detection._
-3. **[04-03: Authority-Gated Obligations](./04-03-authority-gated-obligations.md)**  
-   _`needs_authority` taxonomy, decision ledgers, and honest blocked requirement reporting._
-4. **[04-04: Thematic Roadmap Clustering](./04-04-thematic-roadmap-clustering.md)**  
-   _Affinity scoring, topological graph clustering, and DAG compilation ($G_0 \to G_k$)._
+```text
++--------------------------------------------------+--------------+--------------------------------+
+│ Document                                         │ Classification│ Core Architectural Focus       │
++--------------------------------------------------+--------------+--------------------------------+
+│ 04-01 Prompt Ingestion & SHA-256 Binding         │ Ingestion    │ Mode 0444 & tamper prevention  │
+│ 04-02 100% Prompt Line Coverage Invariant        │ Traceability │ Bidirectional coverage matrix  │
+│ 04-03 Authority-Gated Obligations                │ Security     │ Risk triggers & grant gates    │
+│ 04-04 Thematic Roadmap Clustering                │ Planning     │ 5-domain clustering & waves    │
++--------------------------------------------------+--------------+--------------------------------+
+```
+
+### [04-01: Prompt Ingestion & SHA-256 Binding](04-01-prompt-ingestion-and-sha256-binding.md)
+
+Deconstructs mode `0444` read-only prompt ingestion, SHA-256 cryptographic manifest sealing, and preflight tamper verification.
+
+### [04-02: 100% Prompt Line Coverage Invariant](04-02-one-hundred-percent-line-coverage.md)
+
+Formalizes the mathematical coverage predicate $\Phi_{\text{cov}} = 1.000$, the bidirectional Traceability Matrix, and anti-cherry-picking rules.
+
+### [04-03: Authority-Gated Obligations & Risk Bounds](04-03-authority-gated-obligations.md)
+
+Details the risk classification matrix, high-risk operational triggers, supervisory grant gates, and the Agent Grant Ledger.
+
+### [04-04: Thematic Roadmap Clustering & Multi-Wave Decomposition](04-04-thematic-roadmap-clustering.md)
+
+Explains the 5-domain partitioning matrix, multi-wave DAG synthesis, dynamic wave decoupling, and work-span minimization.
 
 ---
 
-## 3. Preplanning Compilation Pipeline
+## 3. Core Preplanning Metrics Reference Table
+
+$$ \begin{array}{|l|l|l|}
+\hline
+\textbf{Metric} & \textbf{Mathematical Formulation} & \textbf{Acceptance Standard} \\ \hline
+\text{Prompt Hash} & h_{\text{prompt}} = \text{SHA256}(P) & \text{Cryptographically immutable} \\ \hline
+\text{Coverage Ratio} & \Phi_{\text{cov}} = \frac{|\text{CoveredLines}(P)|}{|\text{TotalLines}(P)|} & \Phi_{\text{cov}} \equiv 1.000 \text{ (100\% Coverage)} \\ \hline
+\text{Risk Gate} & \text{NeedsAuthority}(O_i) \implies \text{GrantToken} & \text{Explicit supervisor approval} \\ \hline
+\text{Cluster Quality} & \mathcal{Q}(C) = \sum \text{Sim}(u, v) - \lambda \text{CrossEdges} & \text{Maximized module cohesion} \\ \hline
+\end{array}$$
 
 ```mermaid
-flowchart TD
-    RawPrompt[Raw User Prompt String] --> Ingestion[plan:init: Seal to prompt.txt mode 0444]
-    Ingestion --> Hash[Compute SHA-256 -> Record in manifest.json]
-    Hash --> Disposition[Line Disposition Algorithm: Classify L_1..L_n]
-    Disposition --> CoverageCheck{100% Line Coverage Verified?}
-    CoverageCheck -->|No: Lines Dropped| Error[EXIT 3: PROMPT_LINE_OMISSION]
-    CoverageCheck -->|Yes| Enhance[plan:enhance: Derive Acceptance Criteria]
-    Enhance --> Authority[plan:authority: Gate High-Risk Obligations]
-    Authority --> Cluster[Affinity Clustering & Wave DAG Partitioning]
-    Cluster --> Compile[plan:compile: Immutable DAG Output]
+graph TD
+    subgraph "Chapter 04 Preplanning Factory"
+        A[04-01 Prompt Ingestion] --> B[04-02 100% Coverage]
+        B --> C[04-03 Authority Gates]
+        C --> D[04-04 Roadmap Clustering]
+    end
+    D --> E["Chapter 05: Concurrency Scaling & SLA"]
 ```
 
 ---
 
-[⏮️ Previous: Chapter 03: Mind Product Owner & Cadence](../03-mind-product-owner/index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 04-01 Prompt Ingestion & SHA-256 Binding](04-01-prompt-ingestion-and-sha256-binding.md)
+## 4. Summary & Transition
+
+The preplanning algorithms and prompt coverage invariants codified in Chapter 04 ensure that autonomous runs execute with zero requirement omissions, strict authority boundaries, and optimal dependency partitioning.
+
+Proceed to [04-01: Prompt Ingestion & SHA-256 Binding](04-01-prompt-ingestion-and-sha256-binding.md) or advance directly to [Chapter 05: Concurrency Scaling & Straggler SLA](../05-concurrency-straggler-sla/index.md).
+
 ---
+
+[Previous: Chapter 03 Index](../03-mind-product-owner/index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 04-01 Prompt Ingestion & SHA-256 Binding](04-01-prompt-ingestion-and-sha256-binding.md)
+
+---
+$$

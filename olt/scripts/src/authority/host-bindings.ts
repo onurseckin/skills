@@ -1,8 +1,13 @@
 import { HarnessError } from "../core/errors/index.ts";
 import { detectActiveHost, isHostType, type HostType } from "../platform/host-autodetect.ts";
-import { generateDefaultRepoPolicy } from "../policy/generator.ts";
+import { generateDefaultRepoPolicy } from "../policy/generator/index.ts";
 import { loadRepoPolicy } from "../policy/repo-policy.ts";
-import type { AgentHostPolicy, ModelTier, RepoPolicy, ThinkingEffort } from "../policy/types.ts";
+import type {
+  AgentHostPolicy,
+  ModelTier,
+  RepoPolicy,
+  ThinkingEffort,
+} from "../policy/types/index.ts";
 
 export const ROLE_KEY_ALIASES: Readonly<Record<string, string>> = {
   // Mind / Tier 0

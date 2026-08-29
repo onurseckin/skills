@@ -1,14 +1,12 @@
 # 03-04: Generational Rotation & Quiescence — Zero-Downtime State Handoff, Checkpoint Compaction & Merkle Sealing
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 03: Mind Product Owner](./index.md) > 03-04: Generational Rotation & Quiescence
-
 > **Status**: Authoritative Architecture Specification  
 > **Topic**: Generational Capsule Rotation, Zero-Downtime Migration, Ledger Compaction, and 8th-Streak Quiescent Repository Digests  
 > **Audience**: Autonomous Systems Architects, Storage Engine Specialists, Distributed Ledger Engineers, Reliability Architects
 
 ---
 
-[⏮️ Previous: 03-03 Six Admission Gates](03-03-six-admission-gates.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Chapter 04: Continuous Preplanning Factory](../04-continuous-preplanning-factory/index.md)
+[Previous: 03-03 Six Admission Gates](03-03-six-admission-gates.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Chapter 04: Continuous Preplanning Factory](../04-continuous-preplanning-factory/index.md)
 ---
 
 ## 1. Executive Summary & Generational Rotation Theory
@@ -264,6 +262,6 @@ export interface ArchivedObjectiveRecord {
 *End of Chapter 03. Return to [Chapter 03 Index](./index.md) or explore [OLT Architecture Overview](../index.md).*
 
 ---
-[⏮️ Previous: 03-03 Six Admission Gates](03-03-six-admission-gates.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Chapter 04: Continuous Preplanning Factory](../04-continuous-preplanning-factory/index.md)
+[Previous: 03-03 Six Admission Gates](03-03-six-admission-gates.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Chapter 04: Continuous Preplanning Factory](../04-continuous-preplanning-factory/index.md)
 ---
 $$

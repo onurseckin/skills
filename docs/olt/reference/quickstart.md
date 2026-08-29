@@ -1,114 +1,163 @@
-# OLT Quickstart & Execution Guide
+# OLT Quickstart & Onboarding Guide
 
 ---
 
-[⏮️ Previous: Reference Index](index.md) | [📂 Reference Index](index.md) | [📚 All Chapters Index](../architecture/index.md) | [⏭️ Next: Health & Status](health-and-status.md)
----
-
-Welcome to the **OLT Quickstart Guide**. This reference manual provides concise, copy-pasteable operator instructions for running OLT in both **Single-Task Mode** and **Mind Supervisor Mode**.
+[Previous: Reference Hub Index](index.md) | [Chapter Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Health & Status Reference](health-and-status.md)
 
 ---
 
-## ⚡ Mode A: Single-Task Execution Workflow
+## 1. Executive Summary & Getting Started
 
-Use Single-Task Mode to execute an isolated, prompt-driven engineering objective with deterministic wave scheduling and adversarial validation.
+Welcome to the OLT (Orchestrating Long Tasks) quickstart guide. This document provides step-by-step walkthroughs for initializing tasks, running autonomous development waves, verifying code correctness, and diagnosing runtime health.
 
-### 1. Initialize Capsule & Ingest Prompt
+OLT operates in two primary modes:
 
-```bash
-# Initialize run capsule
-bun harness.ts run:init --slug feature-auth --title "Implement JWT Authentication"
+1. **Single-Task Execution Mode**: An operator or developer issues a discrete prompt, and OLT compiles, executes, and validates the task using isolated worktrees and dual-channel verification.
+2. **Infinite Mind Mode (Product Owner)**: OLT runs as a continuous autonomous daemon, ingesting defect backlogs, checking admission gates, and dispatching multi-wave orchestrations.
 
-# Ingest and freeze user prompt (mode 0444)
-bun harness.ts plan:init --run feature-auth --prompt "Add JWT authentication to the login service with refresh tokens and rate limiting."
-```
-
-### 2. Derive Requirements & Compile DAG
-
-```bash
-# Derive requirements from prompt lines
-bun harness.ts plan:enhance --run feature-auth --auto-derive
-
-# Compile Directed Acyclic Graph (DAG) with Brent Work/Span metrics
-bun harness.ts plan:compile --run feature-auth
-
-# Independent plan validation review
-bun harness.ts plan:validate-review --run feature-auth --reviewer plan-validator --status approved
-```
-
-### 3. Claim Tasks & Execute
-
-```bash
-# Open topological execution wave
-bun harness.ts queue:wave --run feature-auth
-
-# Implementer claims task lease (monotonic token issued)
-bun harness.ts task:claim --run feature-auth --task task-1 --agent implementer_auth_1
-
-# Make edits strictly within declared write scope
-# Execute Subdomain Git Staging Invariant immediately upon milestone completion
-git add -A
-
-# Submit task completion with summary
-bun harness.ts task:submit --run feature-auth --task task-1 --agent implementer_auth_1 --summary "Implemented JWT token issuance and verify middleware"
-```
-
-### 4. Adversarial Review & Gate Proof
-
-```bash
-# Cognitive validator reviews implementation (0 mutating commands)
-bun harness.ts task:review --run feature-auth --task task-1 --agent validator_auth_1 --status pass --evidence-class class_1_compiler
-
-# Falsifiable gate proof execution
-bun harness.ts gate:prove --run feature-auth --proof-type unit_test --command "bun test tests/unit/auth/"
-
-# Seal run upon 9-point completion checklist satisfaction
-bun harness.ts run:complete --run feature-auth
+```text
++--------------------------------------------------------------------------------------------------+
+│                                 OLT QUICKSTART EXECUTION PIPELINE                                │
++--------------------------------------------------------------------------------------------------+
+│                                                                                                  │
+│   Step 1: System Preflight  ──► Verify runtime & dependencies (`olt doctor`)                     │
+│               │                                                                                  │
+│               ▼                                                                                  │
+│   Step 2: Initialize Task   ──► Ingest & seal prompt into capsule (`olt capsule:init`)           │
+│               │                                                                                  │
+│               ▼                                                                                  │
+│   Step 3: Compile DAG Plan  ──► Kahn toposort & wave compilation (`olt plan:compile`)            │
+│               │                                                                                  │
+│               ▼                                                                                  │
+│   Step 4: Dispatch Waves    ──► Parallel implementers in worktrees (`olt run:start`)             │
+│               │                                                                                  │
+│               ▼                                                                                  │
+│   Step 5: Verify & Complete ──► Dual-channel proof & terminal seal (`olt run:complete`)          │
+│                                                                                                  │
++--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 🧠 Mode B: Infinite Autonomous Mind Mode
+## 2. Step-by-Step Single-Task Walkthrough
 
-Use Mind Mode for continuous, multi-round autonomous repository governance, preplanning, and strategic execution.
+### Step 1: Run System Preflight Diagnostics
 
-### 1. Initialize Mind Capsule
+Before launching a run, ensure your environment meets the runtime invariants:
 
 ```bash
-# Initialize primary Mind supervisor capsule
-bun harness.ts mind:init --slug mind-primary
+olt doctor
 ```
 
-### 2. Launch Background Pulse Loop
+Verify that all 10 diagnostic domains return `HEALTHY` with exit code `0`.
+
+### Step 2: Initialize a New Task Capsule
+
+Create a new execution capsule and ingest your prompt verbatim:
 
 ```bash
-# Launch infinite autonomous pulse runner
-./olt/scripts/pulse.sh --run mind-primary --interval 60 --max-rounds 100
+olt capsule:init --slug feature-auth-tokens --prompt "Implement HMAC SHA-256 lease token generation in auth/token.ts with 100% unit test coverage."
 ```
 
-### 3. Manual Operator Interventions
+This writes `.olt/capsules/feature-auth-tokens/prompt.md` with mode `0444` and computes the canonical SHA-256 digest in `manifest.json`.
+
+### Step 3: Compile the Topological Execution Plan
+
+Decompose obligations and compile the dependency DAG:
 
 ```bash
-# Ingest candidate task into triage queue
-bun harness.ts mind:candidate --run mind-primary --title "Refactor Database Connection Pool" --category performance --priority 80
+olt plan:compile --capsule .olt/capsules/feature-auth-tokens
+```
 
-# Admit candidate through 6 admission gates (G1..G6)
-bun harness.ts mind:admit --run mind-primary --candidate-id cand-101
+Verify that Kahn's algorithm reports zero cycles and compiles the wave sequence.
 
-# Trigger immediate supervisor wake & pulse
-bun harness.ts mind:wake --run mind-primary
+### Step 4: Launch Concurrent Execution Waves
+
+Dispatch the compiled plan:
+
+```bash
+olt run:start --capsule .olt/capsules/feature-auth-tokens
+```
+
+Monitor live execution progress:
+
+```bash
+olt run:status --run feature-auth-tokens --detailed
+```
+
+### Step 5: Verify and Seal Terminal Completion
+
+Once all tasks pass dual-channel validation:
+
+```bash
+olt run:complete --capsule .olt/capsules/feature-auth-tokens
+```
+
+```mermaid
+sequenceDiagram
+    participant Operator as Operator / CLI
+    participant Harness as OLT Engine
+    participant Capsule as Capsule Ledger (.olt/capsules/)
+    participant Worker as Tier 3 Implementer
+
+    Operator->>Harness: olt capsule:init --slug run-01 --prompt "..."
+    Harness->>Capsule: Write prompt.md (0444) & manifest.json
+    Operator->>Harness: olt plan:compile --capsule run-01
+    Harness->>Capsule: Compile Topological Waves W_1..k
+    Operator->>Harness: olt run:start --capsule run-01
+    Harness->>Worker: Lease Task to Worktree
+    Worker->>Harness: task:submit with Evidence Bundle
+    Harness->>Harness: Dual-Channel Verification (Cog + Mech)
+    Operator->>Harness: olt run:complete --capsule run-01
+    Harness->>Capsule: Seal Terminal Merkle Root (Phase: COMPLETED)
 ```
 
 ---
 
-## 🧭 Related Architecture Chapters
+## 3. Running in Infinite Mind Product Owner Mode
 
-- For graph theory, cycle breaking, and wave math: [Chapter 06: Topological DAG Scheduler](../architecture/06-topological-scheduler-dags/index.md)
-- For leasing, heartbeats, and worker isolation: [Chapter 07: Distributed Leasing & Execution](../architecture/07-distributed-leasing-execution/index.md)
-- For infinite Mind autonomous loop mechanics: [Chapter 03: Mind Product Owner](../architecture/03-mind-product-owner/index.md)
-- For complete CLI dictionary: [Chapter 14: Harness CLI & Command Engine](../architecture/14-harness-cli-and-command-engine/index.md)
+To launch the perpetual autonomous discovery daemon:
+
+```bash
+# Launch Mind daemon with default 5-minute pulse interval
+olt mind:pulse
+
+# Query active backlog and admission state
+olt mind:status
+```
 
 ---
 
-[⏮️ Previous: Reference Index](index.md) | [📂 Reference Index](index.md) | [📚 All Chapters Index](../architecture/index.md) | [⏭️ Next: Health & Status](health-and-status.md)
+## 4. Key CLI Commands Quick Reference
+
+```text
++-----------------------+--------------------------------------------------------------------------+
+| Command Line Syntax   | Description                                                              |
++-----------------------+--------------------------------------------------------------------------+
+| `olt doctor`          | Runs 10-domain diagnostic sweep across runtime, git, and AST invariants. |
++-----------------------+--------------------------------------------------------------------------+
+| `olt doctor:heal`     | Auto-heals torn event logs, clears deadlocks, and recovers stale leases. |
++-----------------------+--------------------------------------------------------------------------+
+| `olt capsule:init`    | Initializes a new task capsule, sealing prompt.md with SHA-256 hashing.  |
++-----------------------+--------------------------------------------------------------------------+
+| `olt plan:compile`    | Decomposes prompt obligations and compiles a cycle-free topological DAG. |
++-----------------------+--------------------------------------------------------------------------+
+| `olt run:status`      | Displays real-time phase, active worker leases, and remaining span.      |
++-----------------------+--------------------------------------------------------------------------+
+| `olt gate:prove`      | Mechanically evaluates Class 1-4 falsifiable evidence receipts.          |
++-----------------------+--------------------------------------------------------------------------+
+```
+
+---
+
+## 5. Architectural Invariants Summary
+
+1. **Deterministic Execution**: Given identical inputs, OLT generates reproducible schedules and cryptographic proofs.
+2. **Hermetic Worktrees**: Implementers execute in isolated directories, leaving the root repository clean.
+3. **Continuous Verification**: Every completed task is verified across both cognitive and mechanical channels before merging.
+
+---
+
+[Previous: Reference Hub Index](index.md) | [Chapter Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Health & Status Reference](health-and-status.md)
+
 ---

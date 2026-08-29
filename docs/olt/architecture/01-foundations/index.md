@@ -1,80 +1,104 @@
 # Chapter 01: Foundations & Core Invariants
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > Chapter 01: Foundations & Core Invariants
+---
+
+[Previous: Master Architecture Index](../index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 01-01 Zero-Assumption Philosophy](01-01-zero-assumption-philosophy.md)
 
 ---
 
-[⏮️ Previous: Architecture Master Index](../index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 01-01 Zero-Assumption Philosophy](01-01-zero-assumption-philosophy.md)
----
+## 1. Chapter Overview & Epistemic Scope
 
-## 1. Chapter Overview
+Welcome to Chapter 01 of the OLT Architecture Book. This chapter establishes the fundamental theoretical principles, epistemic rules, and mechanical safety invariants that govern the entire OLT (Orchestrating Long Tasks) autonomous engineering engine.
 
-The **Orchestrated Lifecycle Topology (OLT)** runtime is engineered from first principles to solve the foundational failure modes of autonomous software engineering agents. Unconstrained Large Language Models (LLMs) suffer from context window degradation, probabilistic drift, sycophantic self-validation, write collisions, and torn execution states.
-
-OLT replaces conversational consensus with a **deterministic, kernel-grade execution harness**. State is never stored in conversational memory; it is maintained exclusively through append-only cryptographic event logs, advisory-locked filesystem capsules, and formal state transition matrices.
+Large-scale agentic execution fails when systems rely on unstated assumptions, implicit environment parameters, or unverified agent assertions. Chapter 01 codifies the Zero-Assumption Philosophy, details the 4 Hard Zeros ($Z_4$), formalizes the 15 Positive System Invariants ($\mathcal{C}_{1 \dots 15}$ thematically grouped across Ingestion, Execution, Validation, and Durability), defines the Deterministic Capsule State Machine, and outlines the Reflog Safety & Subdomain Git Staging protocol.
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
++--------------------------------------------------------------------------------------------------+
 │                               CHAPTER 01: FOUNDATIONS TOPOLOGY                                   │
-├──────────────────────────┬──────────────────────────┬────────────────────────────────────────────┤
-│ Sub-Topic                │ Key Architectural Model  │ Primary Invariants Enforced                │
-├──────────────────────────┼──────────────────────────┼────────────────────────────────────────────┤
-│ 01. Zero-Assumption      │ Epistemic State Duality  │ "Prose is not state, memory is not proof"  │
-│ 02. Hard Zeros & Invars  │ Formal Invariant Catalog │ 4 Hard Zeros & C1–C10 System Invariants    │
-│ 03. State Machine        │ Monotonic FSM Engine     │ S0 -> S_complete via Linear Event Replay   │
-│ 04. Reflog Safety & Git  │ Milestone Staging Tree   │ Subdomain Git Staging Invariant (git add -A)│
-└──────────────────────────┴──────────────────────────┴────────────────────────────────────────────┘
++--------------------------------------------------------------------------------------------------+
+│                                                                                                  │
+│    ┌───────────────────────────┐                    ┌───────────────────────────┐                │
+│    │ 01-01: Zero-Assumption    │                    │ 01-02: Hard Zeros &       │                │
+│    │ Philosophy & Epistemics   │ ══════════════════►│ Formal Invariant Catalog  │                │
+│    └─────────────┬─────────────┘                    └─────────────┬─────────────┘                │
+│                  │                                                │                              │
+│                  ▼                                                ▼                              │
+│    ┌───────────────────────────┐                    ┌───────────────────────────┐                │
+│    │ 01-03: Deterministic      │                    │ 01-04: Reflog Safety &    │                │
+│    │ Capsule State Machine     │ ══════════════════►│ Subdomain Git Staging     │                │
+│    └───────────────────────────┘                    └───────────────────────────┘                │
+│                                                                                                  │
++--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. Table of Contents
+## 2. Chapter Table of Contents & Learning Path
 
-1. **[01-01: Zero-Assumption Philosophy](./01-01-zero-assumption-philosophy.md)**  
-   _Core epistemic doctrine, untrusted model outputs, and deterministic runtime truth._
-2. **[01-02: The Hard Zeros & Invariants Catalog](./01-02-the-hard-zeros-and-invariants.md)**  
-   _The 4 Hard Zeros and the formal $C_1 \dots C_{10}$ mathematical invariant catalog._
-3. **[01-03: Deterministic Capsule State Machine](./01-03-deterministic-capsule-state-machine.md)**  
-   _Finite State Machine (FSM), state monotonicity, transition matrices, and idempotent replay._
-4. **[01-04: Reflog Safety & Git Staging Invariants](./01-04-reflog-safety-and-git-staging.md)**  
-   _The Subdomain Git Staging Invariant (`git add -A`), reflog safety, and commit trees._
+```text
++--------------------------------------------------+--------------+--------------------------------+
+│ Document                                         │ Classification│ Core Architectural Focus       │
++--------------------------------------------------+--------------+--------------------------------+
+│ 01-01 Zero-Assumption Philosophy                │ Theory       │ Epistemic grounding & Z_4      │
+│ 01-02 The Hard Zeros & Invariant Catalog        │ Specification│ 15 Positive Invariants (C1-C15)│
+│ 01-03 Deterministic Capsule State Machine        │ Architecture │ SSoT, event sourcing & folds   │
+│ 01-04 Reflog Safety & Git Staging                │ Operations   │ Git staging, reflog & recovery │
++--------------------------------------------------+--------------+--------------------------------+
+```
+
+### [01-01: Zero-Assumption Philosophy & Core Invariants](01-01-zero-assumption-philosophy.md)
+
+Explores the epistemic foundation of OLT: state must be observed and proven rather than inferred. Introduces the Four Hard Zeros ($Z_{\text{hallucination}}=0$, $Z_{\text{mutation}}=0$, $Z_{\text{scope}}=0$, $Z_{\text{assumption}}=0$), the Verification Triad, and the mathematical predicate for falsifiable gate verification $\mathcal{V}(s, a, e)$.
+
+### [01-02: The 4 Hard Zeros & Formal Invariant Catalog](01-02-the-hard-zeros-and-invariants.md)
+
+Presents the complete catalog of system invariants ($\mathcal{C}_1$ through $\mathcal{C}_{15}$). Formalizes prompt sealing, monotonic lease HMAC tokens, path scope confinement, dual-channel verification interlocks, Tarjan SCC cycle-breaking, cognitive validator hard-locks, and Cowan context sanitization.
+
+### [01-03: Deterministic Capsule State Machine](01-03-deterministic-capsule-state-machine.md)
+
+Deconstructs the on-disk capsule directory layout (`.olt/capsules/<slug>/`). Details the seven-phase lifecycle state machine ($\Sigma$), event-sourced projection mathematical folds ($S_t = \text{Fold}(S_0, [e_1 \dots e_t])$), and the torn-tail auto-healing algorithm.
+
+### [01-04: Reflog Safety & Subdomain Git Staging](01-04-reflog-safety-and-git-staging.md)
+
+Details the immediate staging invariant (`git add -A`), zero uncommitted progress guarantees, and the 4-step disaster recovery playbook using `git reflog` and Merkle event hashes to survive crashes with zero state loss.
 
 ---
 
-## 3. Core Invariant Catalog ($C_1 \dots C_{10}$)
+## 3. Core Invariant Mathematical Reference Table
 
-Every operation within an OLT execution capsule is governed by ten formal, non-negotiable invariants:
-
-| ID           | Invariant Name                | Formal Mathematical Definition                                                                                                            | Primary Enforcement Module                                                                                                               | Verification Test         |
-| :----------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
-| **$C_1$**    | **Byte-Exact Prompt Sealing** | $H_{\text{prompt}} = \text{SHA256}(\text{Prompt}_{\text{raw}}), \text{mode}(\text{prompt}) = 0444$                                        | [`capsule-storage.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/contracts/agents/capsule.ts)                    | `prompt-capture.test.ts`  |
-| **$C_2$**    | **Monotonic Writer Lease**    | $\forall t_1 < t_2, \text{seq}(L_{t_1}) < \text{seq}(L_{t_2}) \land \text{flock}(L_{\text{capsule}}) = 1$                                 | [`task-claim.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/task-claim.ts)                               | `lease-lock.test.ts`      |
-| **$C_3$**    | **Scope Confinement**         | $\forall f \in \Delta_{\text{task}}, f \subseteq \text{Scope}_{\text{assigned}} \land f \cap \text{Scope}_{\text{forbidden}} = \emptyset$ | [`paths.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/paths.ts)                                                 | `scope-boundary.test.ts`  |
-| **$C_4$**    | **Dual-Channel Verification** | $V(T) = V_{\text{cognitive}}(\text{AST}) \land V_{\text{mechanical}}(\text{ExitCode}=0)$                                                  | [`critic-ops.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/critic/critic-ops.ts)                                     | `dual-channel.test.ts`    |
-| **$C_5$**    | **State Monotonicity**        | $S_{i+1} = \delta(S_i, E_{i+1}) \implies S_i \le_{\text{lifecycle}} S_{i+1}$                                                              | [`state-transitions.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/living-tracer/task-state-transitions.ts) | `state-fold.test.ts`      |
-| **$C_6$**    | **DAG Edge Justification**    | $\forall (u, v) \in E_{\text{DAG}}, \text{Output}(u) \cap \text{Input}(v) \neq \emptyset$                                                 | [`topological-scheduler.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/sugiyama-dag.ts)                     | `dag-scheduler.test.ts`   |
-| **$C_7$**    | **Hard-Lock Review**          | $\text{ReviewerRole} \implies \text{MutatingCmds} = \emptyset$                                                                            | [`rbac-compiler.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/policy/rbac-engine.ts)                                 | `hardlock-review.test.ts` |
-| **$C_8$**    | **Zero Main-Thread Spill**    | $\text{Thread}_{\text{supervisor}} \implies \text{FileMutations} = \emptyset$                                                             | [`persona-grounding.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/persona-grounding.ts)                    | `thread-spill.test.ts`    |
-| **$C_9$**    | **Subdomain Git Staging**     | $\text{StepFinished}(T) \implies \text{git add -A} \land \text{git status --porcelain} = \emptyset$                                       | [`task-submit.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/workflow/submission/submit.ts)                           | `git-milestone.test.ts`   |
-| **$C_{10}$** | **Headless Worktree Safety**  | $\text{WorktreePath} \cap \text{RepoRoot} = \emptyset \land \text{CleanMerge}(W)$                                                         | [`branch-ops.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/branch-ops.ts)                               | `worktree-safety.test.ts` |
-
----
-
-## 4. Architectural State Transition Lifecycle
+$$ \begin{array}{|l|l|l|}
+\hline
+\textbf{Invariant} & \textbf{Formal Equation} & \textbf{Description} \\ \hline
+\text{Prompt Hash} & h_{\text{prompt}} = \text{SHA256}(P) & \text{Prompt sealing under 0444 read-only mode} \\ \hline
+\text{Monotonic Lease} & \text{seq}_k > \text{seq}_{k-1} & \text{Exclusive token sequence progression} \\ \hline
+\text{Scope Guard} & p \in \mathcal{S}_{\text{granted}} \land p \notin \mathcal{S}_{\text{forbidden}} & \text{Path confinement enforcement} \\ \hline
+\text{Dual Verification} & V_{\text{cog}} \land (\text{ExitCode}=0) \land (\text{AST}=0) & \text{Cognitive and mechanical verification} \\ \hline
+\text{State Fold} & S_t = \mathcal{P}(S_{t-1}, e_t) & \text{Deterministic event replay} \\ \hline
+\text{Merkle Chain} & h_i = \text{SHA256}(h_{i-1} \mathbin{\Vert} \text{Canon}(e_i)) & \text{Tamper-evident chronological ledgering} \\ \hline
+\text{Straggler SLA} & \Delta t_{\text{heartbeat}} \le 300\text{s} & \text{5-minute watchdog lease revocation} \\ \hline
+\end{array}$$
 
 ```mermaid
-flowchart TD
-    Init([Initialized]) -->|plan:init| Planning([Planning])
-    Planning -->|plan:compile| Planned([Planned DAG])
-    Planned -->|queue:wave| Executing([Executing Wave W_k])
-    Executing -->|task:submit| Validating([Adversarial Validation])
-    Validating -->|Pass: gate:prove| Completed([Terminal Complete])
-    Validating -->|Fail: P0/P1 Finding| Repair([Monotonic Repair Wave])
-    Repair -->|Retry <= 3| Executing
-    Repair -->|Exhausted > 3| Aborted([Terminal Abort / Quarantined])
+graph LR
+    subgraph "Chapter 01 Foundations"
+        A[01-01 Zero Assumption] --> B[01-02 Invariant Catalog]
+        B --> C[01-03 State Machine]
+        C --> D[01-04 Reflog Safety]
+    end
+    D --> E["Chapter 02: Four-Tier Hierarchy"]
 ```
 
 ---
 
-[⏮️ Previous: Architecture Master Index](../index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 01-01 Zero-Assumption Philosophy](01-01-zero-assumption-philosophy.md)
+## 4. Summary & Transition
+
+The foundational guarantees codified in Chapter 01 establish the bedrock upon which all higher-tier autonomous agents, DAG schedulers, distributed leases, and validation engines operate.
+
+Proceed to [01-01: Zero-Assumption Philosophy](01-01-zero-assumption-philosophy.md) or advance directly to [Chapter 02: Four-Tier Workforce Hierarchy](../02-four-tier-hierarchy/index.md).
+
 ---
+
+[Previous: Master Architecture Index](../index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 01-01 Zero-Assumption Philosophy](01-01-zero-assumption-philosophy.md)
+
+---
+$$

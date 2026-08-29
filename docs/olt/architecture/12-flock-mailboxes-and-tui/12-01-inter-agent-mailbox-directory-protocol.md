@@ -1,7 +1,5 @@
 # 12.1 Inter-Agent Mailbox Directory Protocol — Hierarchical POSIX Inode Mailbox Architecture, Atomic Enqueue/Dequeue Semantics & Cryptographic Message Schemas
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 12: Flock Mailboxes & Live TUI](./index.md) > 12.1 Inter-Agent Mailbox Directory Protocol
-
 ---
 
 > **Status**: Authoritative Architecture Specification  
@@ -10,7 +8,7 @@
 
 ---
 
-[⏮️ Previous: Chapter 12: Flock Mailboxes & Live TUI Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 12-02 Non-Blocking Message Delivery](12-02-non-blocking-message-delivery.md)
+[Previous: Chapter 12: Flock Mailboxes & Live TUI Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 12-02 Non-Blocking Message Delivery](12-02-non-blocking-message-delivery.md)
 ---
 
 ## 1. Executive Summary & Epistemic Motivation
@@ -418,6 +416,6 @@ Let $I_{\text{max}}$ be the inode capacity of the host filesystem volume. The ru
 * **Crash Consistency**: In the event of catastrophic power loss or process kill (`SIGKILL`), in-flight messages remain durably sealed on disk and are immediately recoverable upon restart.
 
 ---
-[⏮️ Previous: Chapter 12: Flock Mailboxes & Live TUI Overview](index.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 12-02 Non-Blocking Message Delivery](12-02-non-blocking-message-delivery.md)
+[Previous: Chapter 12: Flock Mailboxes & Live TUI Overview](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 12-02 Non-Blocking Message Delivery](12-02-non-blocking-message-delivery.md)
 ---
 $$

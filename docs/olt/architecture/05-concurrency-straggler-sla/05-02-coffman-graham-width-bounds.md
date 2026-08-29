@@ -1,45 +1,80 @@
-# Coffman-Graham Width Bounds & Level Assignment
-
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 05](./index.md) > 05-02 Coffman-Graham Width Bounds
+# Coffman-Graham Width Bounds Scheduling
 
 ---
 
-[⏮️ Previous: 05-01 Brent Work-Span Theorem](05-01-brent-work-span-theorem.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 05-03 Five-Minute Straggler SLA Rule](05-03-five-minute-straggler-sla-rule.md)
+[Previous: 05-01 Brent Work-Span Theorem](05-01-brent-work-span-theorem.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 05-03 Five-Minute Straggler SLA](05-03-five-minute-straggler-sla-rule.md)
+
 ---
 
-## 1. Processor-Constrained Precedence Scheduling
+## 1. Executive Summary & Graph Width Bounds
 
-When the optimal concurrency $P_{\text{opt}}$ exceeds available host execution capacity $P_{\text{host}}$, the scheduler must partition tasks into discrete topological levels without violating precedence constraints.
+In task graph scheduling, assigning tasks to parallel workers without width bounds leads to unpredictable resource spikes. When a wide wave with 20 parallel tasks is launched on a system configured for 4 workers, queue contention and CPU thrashing degrade overall throughput.
 
-The **Coffman-Graham Algorithm** provides an optimal two-processor scheduling sequence and a high-performance heuristic for general $P$-processor bounds.
+The OLT (Orchestrating Long Tasks) engine implements **Coffman-Graham Width Bounds Scheduling**. Under this algorithm:
+
+1. **Lexicographical Task Labeling**: Tasks in the DAG are assigned unique integer labels based on the ordered sets of their immediate successors.
+2. **Width-Bounded Layering**: Tasks are placed into execution layers such that no layer exceeds the maximum concurrency width $\mathcal{W}_{\max}$, respecting all topological dependencies.
+3. **Graham Approximation Bound**: The resulting schedule is proven to be within $(2 - 2/p)$ of the optimal schedule for $p$ parallel processors.
 
 ```text
-                     COFFMAN-GRAHAM LEVEL ASSIGNMENT
-  Level 3: [Task 4] (Label: 5)
-             ▲
-  Level 2: [Task 2] (Label: 3)    [Task 3] (Label: 4)
-             ▲                      ▲
-  Level 1: [Task 1] (Label: 1) ───┘
++--------------------------------------------------------------------------------------------------+
+│                             COFFMAN-GRAHAM 2-PHASE SCHEDULING                                    │
++--------------------------------------------------------------------------------------------------+
+│                                                                                                  │
+│   PHASE 1: Lexicographical Labeling                                                              │
+│   • Assign labels lambda(v) from 1 to N to DAG nodes based on sorted child labels                │
+│                                                                                                  │
+│   PHASE 2: Width-Bounded List Scheduling                                                         │
+│   • Assign ready tasks with highest labels to active worker slots (Slot 1..W_max)                │
+│                                                                                                  │
++--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. Lexicographical Label Assignment Algorithm
+## 2. Mathematical Specification of the Coffman-Graham Algorithm
 
-1. Assign label $1$ to an unlabelled task with in-degree $0$.
-2. For each subsequent task $v$, let $L(v)$ be the descending sorted set of labels of all its immediate predecessors.
-3. Choose the unlabelled task whose predecessor label set $L(v)$ is lexicographically smallest, and assign the next sequential integer label.
-4. Schedule tasks into execution slots in reverse order of assigned labels.
+Let $G = (V, E)$ be a DAG with $|V| = N$.
+
+### Phase 1: Lexicographical Labeling
+
+1. Choose a node $u \in V$ with out-degree $\text{deg}^+(u) = 0$. Assign $\lambda(u) = 1$.
+2. For $k = 2, 3, \dots, N$:
+   - For each unlabeled node $v \in V$ whose successors $\text{Succ}(v)$ are all labeled, construct the descending ordered list of successor labels:
+
+$$L(v) = \big( \lambda(w_1), \lambda(w_2), \dots, \lambda(w_d) \big), \quad \text{where } \lambda(w_1) > \lambda(w_2) > \dots > \lambda(w_d)$$
+
+- Choose node $v^*$ that minimizes $L(v)$ lexicographically.
+- Assign $\lambda(v^*) = k$.
+
+### Phase 2: Width-Constrained Scheduling
+
+Tasks are scheduled in decreasing order of labels $\lambda(v) = N, N-1, \dots, 1$, ensuring at most $\mathcal{W}_{\max}$ tasks execute simultaneously:
+
+$$\forall t, \quad |\text{ActiveTasks}(t)| \le \mathcal{W}_{\max}$$
+
+```mermaid
+flowchart TD
+    DAG[Input Task DAG: G = V, E] --> LabelLeaves[Label leaf nodes with out-degree 0]
+    LabelLeaves --> LexSort[Lexicographically sort remaining nodes based on child labels]
+    LexSort --> AssignLabels[Assign monotonic labels lambda from 1 to N]
+    AssignLabels --> ListSchedule[List schedule tasks in descending label order]
+    ListSchedule --> EnforceWidth{Active Tasks <= W_max?}
+    EnforceWidth -->|Yes| DispatchTask[Dispatch to Worker Worktree]
+    EnforceWidth -->|No| QueueNext[Hold in Ready Queue for next slot]
+    DispatchTask --> WaveFinished([Wave Execution Optimal])
+```
 
 ---
 
-## 3. Wave Width Bounding
+## 3. Architectural Invariants Summary
 
-Using Coffman-Graham level assignments, OLT guarantees that no execution wave $W_k$ exceeds the maximum width bound:
-
-$$\text{Width}(W_k) \le P_{\text{effective}} = \min(P_{\text{host}}, P_{\text{quota}}, 40)$$
+1. **Deterministic Slices**: Label assignment is deterministic and reproducible across runs.
+2. **Hard Concurrency Floor**: Concurrency width never exceeds $\mathcal{W}_{\max}$.
+3. **Proven Approximation**: Guarantee of minimal idle time across workers.
 
 ---
 
-[⏮️ Previous: 05-01 Brent Work-Span Theorem](05-01-brent-work-span-theorem.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 05-03 Five-Minute Straggler SLA Rule](05-03-five-minute-straggler-sla-rule.md)
+[Previous: 05-01 Brent Work-Span Theorem](05-01-brent-work-span-theorem.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 05-03 Five-Minute Straggler SLA](05-03-five-minute-straggler-sla-rule.md)
+
 ---

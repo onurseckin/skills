@@ -4,10 +4,10 @@
 
 ---
 
-[⏮️ Previous: Mind & Preplanning Commands](14-03-mind-and-preplanning-commands.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Reference 05: Role Contracts & Authority](../02-four-tier-hierarchy/index.md)
+[Previous: Mind & Preplanning Commands](14-03-mind-and-preplanning-commands.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Reference 05: Role Contracts & Authority](../02-four-tier-hierarchy/index.md)
 ---
 
-## 🏛️ Section Overview & Diagnostic Architecture
+## Section Overview & Diagnostic Architecture
 
 The **Doctor & Diagnostics** suite provides the verification, forensic, and telemetry foundations of OLT. It ensures host runtime parity, verifies falsifiable gate proofs on scratch sandbox copies, computes topological graph layouts, enforces 4-tier RBAC authority contracts, provides instant error explanations, and compiles comprehensive audit reports.
 
@@ -193,12 +193,12 @@ A gate is **falsifiable** if and only if it exits non-zero when the task's own m
 **Standard Output (Markdown Brief)**:
 
 ```markdown
-### 🔬 Gate Proof Audit: `task-auth-jwt`
+### Gate Proof Audit: `task-auth-jwt`
 
 - **Gate Command**: `bun test tests/unit/auth/jwt.test.ts`
 - **Reverted Ref**: `HEAD~1` (Write scope reverted in scratch sandbox)
 - **Scratch Run Result**: Exit Code `1` (Tests failed on reverted code)
-- **Verdict**: ✅ **FALSIFIABLE** (The gate genuinely proves the task's code)
+- **Verdict**: [PASS] **FALSIFIABLE** (The gate genuinely proves the task's code)
 - **Proof Hash**: `sha256:7b8a9c...` recorded in `events.jsonl`
 ```
 
@@ -246,7 +246,7 @@ bun olt/scripts/harness.ts report:dag --run <RUN_DIR>
 ┌────────────────────────────────────────────────────────────────────────┐
 │                      WAVE 1 (Concurrency: 2)                          │
 ├──────────────────────────────────┬─────────────────────────────────────┤
-│ [✓] task-auth-jwt                │ [⚡] task-auth-session               │
+│ [] task-auth-jwt                │ [] task-auth-session               │
 │ Assignee: worker-1 (Done)        │ Assignee: worker-2 (Leased 420s)    │
 │ Scope: src/auth/jwt.ts           │ Scope: src/auth/session.ts          │
 └────────────────┬─────────────────┴──────────────────┬──────────────────┘
@@ -322,7 +322,7 @@ bun olt/scripts/harness.ts whoami [--run <RUN_DIR>] [--agent <AGENT_ID>] [--role
 **Standard Output (Markdown Brief)**:
 
 ```markdown
-### 🆔 Execution Context Resolved
+### Execution Context Resolved
 
 - **Process Context**: PID `41285` | PPID `41200`
 - **Agent Identity**: `worker-auth-01` | **Tier**: `T3` (Implementer)
@@ -408,7 +408,7 @@ bun olt/scripts/harness.ts explain --code <ERROR_CODE> [--command <COMMAND_NAME>
 ```bash
 $ bun harness.ts explain --code INVALID_STATE --command task:claim
 
-### 🔍 Error Explanation: INVALID_STATE (task:claim)
+###  Error Explanation: INVALID_STATE (task:claim)
 - **Rule**: A task cannot be claimed unless its status is 'ready' or 'changes_requested'.
 - **Direct Throw Sites**:
   - `src/workflow/lease/task-claim.ts:L48`: "Task is currently leased to another agent"
@@ -550,5 +550,5 @@ bun olt/scripts/harness.ts meta:audit --run <RUN_DIR> [--strict]
 
 ---
 
-[⏮️ Previous: Mind & Preplanning Commands](14-03-mind-and-preplanning-commands.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Reference 05: Role Contracts & Authority](../02-four-tier-hierarchy/index.md)
+[Previous: Mind & Preplanning Commands](14-03-mind-and-preplanning-commands.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Reference 05: Role Contracts & Authority](../02-four-tier-hierarchy/index.md)
 ---

@@ -4,7 +4,7 @@
 
 ---
 
-[⏮️ Previous: Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: OLT Documentation Hub](../../README.md)
+[Previous: Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: OLT Documentation Hub](../../README.md)
 ---
 
 This document specifies the cryptographic and falsification engines in the OLT verification subsystem:
@@ -17,7 +17,7 @@ Implemented in [`olt/scripts/src/graph/gate-proof.ts`](file:///Users/onurseckins
 
 ---
 
-## ⛓️ 1. Cryptographic Merkle Hash Chain Engine
+## 1. Cryptographic Merkle Hash Chain Engine
 
 All state mutations in OLT are recorded as discrete, immutable events appended to `events.jsonl`. Integrity and causal order are guaranteed through a forward-secure SHA-256 cryptographic hash chain.
 
@@ -85,7 +85,7 @@ flowchart TD
 
 ---
 
-## 🧪 2. Falsification & Gate Prover Engine (`gate:prove`)
+## 2. Falsification & Gate Prover Engine (`gate:prove`)
 
 To prevent tautological "always-green" test scripts from certifying broken code, the **Gate Falsifiability Prover** ([`olt/scripts/src/graph/gate-proof.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/gate-proof.ts)) validates task gates by executing them against counterfactual mutated scratch trees.
 
@@ -144,11 +144,11 @@ sequenceDiagram
 Gate commands MUST be formatted as direct string argument arrays (`string[]`), never shell strings executed via `/bin/sh -c`.
 
 ```json
-// ✅ VALID: Direct argv array
+// [PASS] VALID: Direct argv array
 ["bun", "test", "tests/unit/auth.test.ts"]
 ["pytest", "tests/test_api.py", "-k", "test_login"]
 
-// ❌ INVALID: Shell operators (triggers immediate INVALID_ARGUMENT error)
+// [FAIL] INVALID: Shell operators (triggers immediate INVALID_ARGUMENT error)
 ["sh", "-c", "bun test && git status"]
 ["bun", "test", "tests/auth.test.ts", "|", "grep", "pass"]
 ```
@@ -158,7 +158,7 @@ Gate commands MUST be formatted as direct string argument arrays (`string[]`), n
 
 ---
 
-## 📋 3. Gate Proof Record Schema
+## 3. Gate Proof Record Schema
 
 Gate proof results are appended to `state.json` under `gate_proofs`:
 
@@ -206,7 +206,7 @@ export interface GateProofRecord extends JsonObject {
 
 ---
 
-## 🏆 4. Evidence Validation Matrix (Classes 1–4)
+## 4. Evidence Validation Matrix (Classes 1–4)
 
 To satisfy task and run completion criteria, every requirement in `requirements.json` must be backed by valid evidence mapped to its formal evidence class:
 
@@ -238,5 +238,5 @@ bun olt/scripts/harness.ts gate:prove --run <capsule-path> --task <task-id> --ac
 
 ---
 
-[⏮️ Previous: Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: OLT Documentation Hub](../../README.md)
+[Previous: Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: OLT Documentation Hub](../../README.md)
 ---

@@ -7,7 +7,7 @@ import {
   type RepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
 
-function canonicalHosts(model = "gemini-3.7-flash"): Record<string, AgentHostPolicy> {
+export function canonicalHosts(model = "gemini-3.7-flash"): Record<string, AgentHostPolicy> {
   return {
     antigravity: {
       model,
@@ -22,7 +22,7 @@ function canonicalHosts(model = "gemini-3.7-flash"): Record<string, AgentHostPol
   };
 }
 
-function canonicalPolicy(): Record<string, unknown> {
+export function canonicalPolicy(): Record<string, unknown> {
   return {
     schema_version: 1,
     ecosystem: "bun",
@@ -188,7 +188,7 @@ function canonicalPolicy(): Record<string, unknown> {
   };
 }
 
-describe("Policy Schema - Canonical & Minimal Parsing", () => {
+describe("Policy Schema Core - Canonical & Minimal Parsing", () => {
   test("parses full canonical policy with all 7 archetypes and Docker environment", () => {
     const raw = canonicalPolicy();
     const policy: RepoPolicy = parseRepoPolicy(raw);
@@ -237,7 +237,7 @@ describe("Policy Schema - Canonical & Minimal Parsing", () => {
   });
 });
 
-describe("Policy Schema - Non-Object Inputs & Schema Version Failures", () => {
+describe("Policy Schema Core - Non-Object Inputs & Schema Version Failures", () => {
   test.each([null, undefined, 42, "invalid string", true, false, [1, 2, 3]])(
     "rejects non-object input %p with INVALID_ARGUMENT",
     (input) => {
@@ -264,7 +264,7 @@ describe("Policy Schema - Non-Object Inputs & Schema Version Failures", () => {
   );
 });
 
-describe("Policy Schema - Unknown Keys & Invalid Enums", () => {
+describe("Policy Schema Core - Unknown Keys & Invalid Enums", () => {
   test("rejects unknown top-level keys with INVALID_ARGUMENT", () => {
     const raw = { ...canonicalPolicy(), rogue_key: "disallowed" };
     expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
@@ -286,113 +286,5 @@ describe("Policy Schema - Unknown Keys & Invalid Enums", () => {
     expect(() => parseRepoPolicy({ ...canonicalPolicy(), package_manager: pm })).toThrow(
       HarnessError,
     );
-  });
-
-  test("rejects invalid or missing host profiles in agent configuration", () => {
-    const raw = canonicalPolicy();
-    const agents = raw["agents"] as Record<string, Record<string, unknown>>;
-    const ms = agents["mind_supervisor"] as Record<string, unknown>;
-    ms["hosts"] = { ...canonicalHosts(), unknown_host: { model: "m", model_tier: "high" } };
-    expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
-
-    const rawMissing = canonicalPolicy();
-    const agentsMissing = rawMissing["agents"] as Record<string, Record<string, unknown>>;
-    agentsMissing["mind_supervisor"] = {
-      ...agentsMissing["mind_supervisor"],
-      hosts: { antigravity: { model: "m", model_tier: "high" } },
-    };
-    expect(() => parseRepoPolicy(rawMissing)).toThrow(HarnessError);
-  });
-
-  test("rejects invalid model_tier, thinking_effort, and persona roles", () => {
-    const rawTier = canonicalPolicy();
-    const agents = rawTier["agents"] as Record<
-      string,
-      Record<string, Record<string, Record<string, unknown>>>
-    >;
-    agents["mind_supervisor"]["hosts"]["antigravity"]["model_tier"] = "ultra_tier";
-    expect(() => parseRepoPolicy(rawTier)).toThrow(HarnessError);
-
-    const rawEffort = canonicalPolicy();
-    const agEffort = rawEffort["agents"] as Record<
-      string,
-      Record<string, Record<string, Record<string, unknown>>>
-    >;
-    agEffort["mind_supervisor"]["hosts"]["antigravity"]["thinking_effort"] = "extreme";
-    expect(() => parseRepoPolicy(rawEffort)).toThrow(HarnessError);
-
-    const rawPersona = canonicalPolicy();
-    const de = rawPersona["docker_environment"] as Record<
-      string,
-      Record<string, Record<string, unknown>>
-    >;
-    de["test_user_personas"]["guest"] = {
-      ...de["test_user_personas"]["guest"],
-      role: "superadmin",
-    };
-    expect(() => parseRepoPolicy(rawPersona)).toThrow(HarnessError);
-  });
-
-  test("rejects invalid cookie same_site values", () => {
-    const raw = canonicalPolicy();
-    const de = raw["docker_environment"] as Record<string, Record<string, Record<string, unknown>>>;
-    de["session_cookie_templates"]["session_id"]["same_site"] = "Loose";
-    expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
-  });
-});
-
-describe("Policy Schema - Numeric Bounds, Types & Command Conflicts", () => {
-  test("rejects negative quotas and invalid quota ranges", () => {
-    const raw = canonicalPolicy();
-    const ag = raw["agents"] as Record<string, Record<string, Record<string, unknown>>>;
-    ag["validator_code_quality"]["quotas"]["mandatory_cognitive_pushbacks"] = -1;
-    expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
-
-    const rawOver = canonicalPolicy();
-    const agOver = rawOver["agents"] as Record<string, Record<string, Record<string, unknown>>>;
-    agOver["validator_code_quality"]["quotas"]["mandatory_cognitive_pushbacks"] = 101;
-    expect(() => parseRepoPolicy(rawOver)).toThrow(HarnessError);
-  });
-
-  test("rejects negative or fractional neighborhood depths and timeouts", () => {
-    expect(() =>
-      parseRepoPolicy({ ...canonicalPolicy(), read_scope_neighborhood_depth: -5 }),
-    ).toThrow(HarnessError);
-    expect(() =>
-      parseRepoPolicy({ ...canonicalPolicy(), read_scope_neighborhood_depth: 3.14 }),
-    ).toThrow(HarnessError);
-    const rawTimeout = canonicalPolicy();
-    (rawTimeout["test_runner"] as Record<string, unknown>)["timeout_ms"] = -100;
-    expect(() => parseRepoPolicy(rawTimeout)).toThrow(HarnessError);
-  });
-
-  test("rejects string representation where boolean is expected", () => {
-    const raw = canonicalPolicy();
-    const ag = raw["agents"] as Record<string, Record<string, Record<string, unknown>>>;
-    ag["mind_supervisor"]["rbac"]["can_execute_shell"] = "false";
-    expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
-  });
-
-  test("rejects overlapping allowed_commands and forbidden_commands", () => {
-    const raw = {
-      ...canonicalPolicy(),
-      allowed_commands: ["bun test", "git commit", "ls"],
-      forbidden_commands: ["git commit", "git push"],
-    };
-    expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
-    try {
-      parseRepoPolicy(raw);
-    } catch (err) {
-      expect((err as HarnessError).code).toBe("INTEGRITY");
-      expect((err as Error).message).toContain("git commit");
-    }
-  });
-
-  test("rejects duplicate command definitions within allowed_commands", () => {
-    const raw = {
-      ...canonicalPolicy(),
-      allowed_commands: ["bun test", "bun test"],
-    };
-    expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
   });
 });

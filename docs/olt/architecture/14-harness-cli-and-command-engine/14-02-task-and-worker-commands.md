@@ -4,10 +4,10 @@
 
 ---
 
-[⏮️ Previous: Lifecycle & Run Commands](14-01-lifecycle-and-run-commands.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Mind & Preplanning Commands](14-03-mind-and-preplanning-commands.md)
+[Previous: Lifecycle & Run Commands](14-01-lifecycle-and-run-commands.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Mind & Preplanning Commands](14-03-mind-and-preplanning-commands.md)
 ---
 
-## 🏛️ Section Overview & Execution Topology
+## Section Overview & Execution Topology
 
 The **Task & Worker** command suite orchestrates the core execution loop of OLT. It enforces strict physical lease boundaries, bearer token authentication, heartbeat continuity, incremental AST/type verification, adversarial validator probing, worktree branch isolation, and evidence collection.
 
@@ -72,7 +72,7 @@ bun olt/scripts/harness.ts task:claim --run <RUN_DIR> --task <TASK_ID> --agent <
 **Standard Output (Markdown Brief)**:
 
 ```markdown
-### 🔒 Task Leased: `task-auth-jwt`
+### Task Leased: `task-auth-jwt`
 
 - **Agent**: `worker-auth-01` | **Role**: `implementer`
 - **Bearer Token**: `tok_9a8b7c6d5e4f3a2b1c0d` (Store securely; required for all worker ops)
@@ -481,5 +481,5 @@ bun olt/scripts/harness.ts report:get --run <RUN_DIR> --task <TASK_ID>
 
 ---
 
-[⏮️ Previous: Lifecycle & Run Commands](14-01-lifecycle-and-run-commands.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: Mind & Preplanning Commands](14-03-mind-and-preplanning-commands.md)
+[Previous: Lifecycle & Run Commands](14-01-lifecycle-and-run-commands.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Mind & Preplanning Commands](14-03-mind-and-preplanning-commands.md)
 ---

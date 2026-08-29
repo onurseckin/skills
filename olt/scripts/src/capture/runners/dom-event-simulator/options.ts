@@ -1,4 +1,4 @@
-import { resolveLayoutShiftTrackerOptions } from "../layout-shift-tracker.ts";
+import { resolveLayoutShiftTrackerOptions } from "../layout-shift-tracker/index.ts";
 import type { DomSimulationOptions, ResolvedDomSimulationOptions } from "./types.ts";
 
 export const DEFAULT_DOM_SIMULATION_OPTIONS: ResolvedDomSimulationOptions = {

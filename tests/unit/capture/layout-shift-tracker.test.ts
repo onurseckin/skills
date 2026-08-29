@@ -14,7 +14,7 @@ import {
   LayoutShiftTracker,
   type LayoutShiftEntry,
   type UnstableElementDisplacement,
-} from "../../../olt/scripts/src/capture/runners/layout-shift-tracker.ts";
+} from "../../../olt/scripts/src/capture/runners/index.ts";
 import type {
   AABB,
   DomPhysicsSnapshot,

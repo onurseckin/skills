@@ -7,10 +7,10 @@
 
 ---
 
-[⏮️ Previous: Manifest & Requirements Schemas](15-02-manifest-and-requirements-schemas.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: State JSON & Mailbox Schemas](15-04-state-json-and-mailbox-schemas.md)
+[Previous: Manifest & Requirements Schemas](15-02-manifest-and-requirements-schemas.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: State JSON & Mailbox Schemas](15-04-state-json-and-mailbox-schemas.md)
 ---
 
-## 📜 1. The Append-Only Merkle Ledger (`events.jsonl`)
+## 1. The Append-Only Merkle Ledger (`events.jsonl`)
 
 The **OLT Event Log** (`.olt/capsules/<slug>/events.jsonl`) is the canonical, forward-secure, append-only source of truth for an execution capsule. Every state transition, task lease, heartbeat, command execution, and gate proof is appended as a discrete line formatted as a cryptographic Merkle event record.
 
@@ -30,7 +30,7 @@ flowchart LR
 
 ---
 
-## 🔐 2. Mathematical Chaining & SHA-256 Computation Rules
+## 2. Mathematical Chaining & SHA-256 Computation Rules
 
 Every event record $E_n$ is cryptographically bound to its immediate predecessor $E_{n-1}$ via SHA-256 hashing.
 
@@ -69,7 +69,7 @@ export function computeEventHash(eventWithoutHash: Omit<HarnessEvent, "hash">): 
 
 ---
 
-## 📋 3. Event Record Schema (`harness.event`)
+## 3. Event Record Schema (`harness.event`)
 
 ### 3.1 Draft 2020-12 JSON Schema
 
@@ -207,7 +207,7 @@ export function computeEventHash(eventWithoutHash: Omit<HarnessEvent, "hash">): 
 
 ---
 
-## 🛠️ 4. RFC-6902 Patch Operations & Checkpoints
+## 4. RFC-6902 Patch Operations & Checkpoints
 
 To ensure O(1) state snapshot generation without requiring full state tree dumps on every transaction, OLT utilizes **Incremental JSON Patches**:
 
@@ -239,7 +239,7 @@ graph LR
 
 ---
 
-## 🗃️ 5. Standard Event Kinds Taxonomy
+## 5. Standard Event Kinds Taxonomy
 
 | Event `kind`         | Primary Actor          | Description                                           | Key Payload Properties                                       |
 | :------------------- | :--------------------- | :---------------------------------------------------- | :----------------------------------------------------------- |
@@ -258,7 +258,7 @@ graph LR
 
 ---
 
-## 🌟 6. Validator-Green Exemplar Event Lines
+## 6. Validator-Green Exemplar Event Lines
 
 ### Exemplar 1: Genesis Initialization Event (Sequence 0)
 
@@ -366,5 +366,5 @@ graph LR
 
 ---
 
-[⏮️ Previous: Manifest & Requirements Schemas](15-02-manifest-and-requirements-schemas.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: State JSON & Mailbox Schemas](15-04-state-json-and-mailbox-schemas.md)
+[Previous: Manifest & Requirements Schemas](15-02-manifest-and-requirements-schemas.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: State JSON & Mailbox Schemas](15-04-state-json-and-mailbox-schemas.md)
 ---

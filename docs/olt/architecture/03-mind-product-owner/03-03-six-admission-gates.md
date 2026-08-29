@@ -1,14 +1,12 @@
 # 03-03: The Six Admission Gates ($G_1 \dots G_6$) — Deterministic Predicates & Decision Theory
 
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 03: Mind Product Owner](./index.md) > 03-03: Six Admission Gates
-
 > **Status**: Authoritative Architecture Specification  
 > **Topic**: Mechanical Admission Theory, Falsification Predicates, Disjoint Write Scopes, and Autonomous Governance Gates  
 > **Audience**: Autonomous Systems Architects, Formal Methods Engineers, Verification Specialists, Runtime Platform Authors
 
 ---
 
-[⏮️ Previous: 03-02 Ten Discovery Sources & Triage](03-02-ten-discovery-sources-and-triage.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 03-04 Generational Rotation & Quiescence](03-04-generational-rotation-and-quiescence.md)
+[Previous: 03-02 Ten Discovery Sources & Triage](03-02-ten-discovery-sources-and-triage.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 03-04 Generational Rotation & Quiescence](03-04-generational-rotation-and-quiescence.md)
 ---
 
 ## 1. Executive Summary & The Problem of Speculative Task Inflation
@@ -263,6 +261,6 @@ export interface AdmissionEvaluationResult {
 *Proceed to the next section: [03-04: Generational Rotation & Quiescence](./03-04-generational-rotation-and-quiescence.md).*
 
 ---
-[⏮️ Previous: 03-02 Ten Discovery Sources & Triage](03-02-ten-discovery-sources-and-triage.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 03-04 Generational Rotation & Quiescence](03-04-generational-rotation-and-quiescence.md)
+[Previous: 03-02 Ten Discovery Sources & Triage](03-02-ten-discovery-sources-and-triage.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 03-04 Generational Rotation & Quiescence](03-04-generational-rotation-and-quiescence.md)
 ---
 $$

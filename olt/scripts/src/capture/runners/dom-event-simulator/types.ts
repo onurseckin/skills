@@ -4,7 +4,7 @@ import type {
   LayoutShiftTrackerOptions,
   ResolvedLayoutShiftTrackerOptions,
   UnstableElementDisplacement,
-} from "../layout-shift-tracker.ts";
+} from "../layout-shift-tracker/index.ts";
 import type { CapturePageDriver, DomPhysicsSnapshot } from "../types.ts";
 
 export type SyntheticDomEventType =

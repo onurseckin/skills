@@ -1,50 +1,115 @@
-# The 5-Minute Straggler SLA Rule & Decomposition
-
-[OLT Documentation Hub](../../README.md) > [Architecture Index](../index.md) > [Chapter 05](./index.md) > 05-03 Straggler SLA Rule
+# Five-Minute Straggler SLA Rule & Auto-Healing
 
 ---
 
-[⏮️ Previous: 05-02 Coffman-Graham Width Bounds](05-02-coffman-graham-width-bounds.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 05-04 Dynamic Load Throttling](05-04-dynamic-load-throttling.md)
+[Previous: 05-02 Coffman-Graham Width Bounds](05-02-coffman-graham-width-bounds.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 05-04 Dynamic Load Throttling](05-04-dynamic-load-throttling.md)
+
 ---
 
-## 1. The Straggler Problem in Autonomous Systems
+## 1. Executive Summary & The Straggler Problem
 
-In multi-agent execution waves, overall wave completion is bounded by the slowest worker ($T_{\text{wave}} = \max_{i} T(A_i)$). An agent that enters a reasoning loop, encounters an ambiguous prompt, or gets stuck in a massive file edit acts as a **Straggler**, freezing all downstream waves.
+In distributed autonomous development, subagents occasionally enter unrecoverable stalled states:
 
-OLT establishes the **5-Minute Straggler SLA Rule**:
+- An agent enters an infinite retry loop on a failing compiler error.
+- A network partition or API rate limit causes a worker process to hang silently.
+- An agent terminates abruptly without releasing its lease token.
 
-$$T_{\text{active}}(T_j) > 300\text{s} \implies \text{TriggerSLA}(\text{Preempt} \lor \text{Decompose})$$
+The OLT (Orchestrating Long Tasks) engine enforces the **Five-Minute Straggler SLA Rule ($\Delta t \le 300\text{s}$)**. Under this rule:
+
+1. **Mandatory Heartbeat Cadence**: Every active worker must emit a heartbeat token to `.olt/capsules/<slug>/mailbox/<agent_id>/heartbeat.json` at least once every 60 seconds.
+2. **5-Minute Watchdog Interlock**: If an active lease has no heartbeat update for $\Delta t > 300\text{s}$, the watchdog declares the worker a **Zombie**.
+3. **Atomic 3-Step Auto-Healing**: The watchdog immediately revokes the lease, cleans the scratch worktree, and re-queues the task with elevated priority.
 
 ```text
-                        STRAGGLER DETECTION TIMELINE
- 0s                  60s                 180s                300s (SLA BREACH)
- ├─── Normal ────────┼─── Heartbeat ─────┼─── Slow Warning ──┼─── PREEMPTION ───►
- Active Execution    Heartbeat Refresh   Health Check        Revoke Lease
-                                                             Split into Subtasks
++--------------------------------------------------------------------------------------------------+
+│                             5-MINUTE STRAGGLER SLA TOPOLOGY                                      │
++--------------------------------------------------------------------------------------------------+
+│                                                                                                  │
+│   Worker Active ──► Emits Heartbeat every 60s: .olt/capsules/<slug>/mailbox/<id>/heartbeat.json   │
+│                             │                                                                    │
+│                             ▼                                                                    │
+│   Watchdog Daemon ──► Evaluates: Delta t = Now() - LastHeartbeat(T_i)                            │
+│                             │                                                                    │
+│         ┌───────────────────┴───────────────────┐                                                │
+│         ▼                                       ▼                                                │
+│   Delta t <= 300s                         Delta t > 300s (SLA BREACH)                            │
+│   [Lease HEALTHY]                         [ZOMBIE WORKER DETECTED]                               │
+│                                                 │                                                │
+│                                                 ▼                                                │
+│                                           3-Step Auto-Heal:                                      │
+│                                           1. Revoke Monotonic Lease Token                        │
+│                                           2. Scrub .olt/worktrees/T_i/                           │
+│                                           3. Re-queue Task with Escalated Priority               │
+│                                                                                                  │
++--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. Automated Task Preemption & Decomposition
+## 2. Mathematical Formalization of Straggler Detection
+
+Let $\tau_{\text{last}}(T_i)$ denote the timestamp of the last verified heartbeat emitted for leased task $T_i$.
+
+The **Straggler Detection Predicate** $\mathcal{S}_{\text{straggler}}(T_i)$ is:
+
+$$\mathcal{S}_{\text{straggler}}(T_i) = \Big( \text{Status}(T_i) = \text{LEASED} \Big) \land \Big( \text{Now}() - \tau_{\text{last}}(T_i) > 300\text{s} \Big)$$
+
+When $\mathcal{S}_{\text{straggler}}(T_i) = 1$, the recovery operator $\mathcal{R}_{\text{heal}}$ is triggered:
+
+$$\mathcal{R}_{\text{heal}}(T_i) = \text{RevokeLease}(T_i) \circ \text{ScrubWorktree}(T_i) \circ \text{RequeueTask}(T_i, \text{priority} \leftarrow \text{HIGH})$$
 
 ```mermaid
-flowchart TD
-    Watchdog[Watchdog Heartbeat Monitor] --> CheckTimer{Task Time > 300s?}
-    CheckTimer -->|No| Continue[Healthy Worker]
-    CheckTimer -->|Yes| SLAEvent[Emit Event: STRAGGLER_SLA_BREACH]
-    SLAEvent --> CheckProgress{Has Intermediate Progress?}
-    CheckProgress -->|Git Staged Diffs Exist| SaveSprout[Save Progress to Sprout Branch]
-    CheckProgress -->|0 Diffs / Loop Stuck| KillWorker[Kill Subagent & Revoke Lease]
-    SaveSprout --> Decompose[Split Task: T_j -> {T_j.1, T_j.2}]
-    KillWorker --> Requeue[Reset Task State: retry_ready]
-    Decompose --> WaveRecompile[Recompile Wave DAG]
-```
+sequenceDiagram
+    participant Worker as Tier 3 Worker (Stalled)
+    participant Watchdog as Autonomic Watchdog Daemon
+    participant Capsule as Capsule State Ledger
+    participant Pool as Ready Task Queue
 
-1. **Watchdog Interception**: The watchdog manager checks task runtimes every 15 seconds.
-2. **Intermediate Checkpoint Extraction**: If the worker has staged git modifications (`git status`), the partial progress is preserved on a quarantined branch.
-3. **Atomic Decomposition**: The remaining unfulfilled requirements are split into two parallel subtasks ($T_{j.1}, T_{j.2}$), each bounded by 150s budgets.
+    Watchdog->>Watchdog: Sweep active leases every 30s
+    Watchdog->>Watchdog: Evaluate Delta t = Now() - LastHeartbeat
+    Watchdog->>Watchdog: Delta t = 312s (> 300s SLA Threshold)
+    Watchdog->>Capsule: Append STRAGGLER_REVOKED event to events.jsonl
+    Watchdog->>Capsule: Clear holder from state.json
+    Watchdog->>Worker: Kill Worker Subshell (SIGTERM / SIGKILL)
+    Watchdog->>Pool: Re-insert Task T_i with Escalated Priority
+    Watchdog-->>Watchdog: Stalled Lane Successfully Auto-Healed
+```
 
 ---
 
-[⏮️ Previous: 05-02 Coffman-Graham Width Bounds](05-02-coffman-graham-width-bounds.md) | [📂 Chapter Index](index.md) | [📚 All Chapters Index](../index.md) | [⏭️ Next: 05-04 Dynamic Load Throttling](05-04-dynamic-load-throttling.md)
+## 3. Watchdog Daemon Implementation
+
+The SLA watchdog ([`watchdog-daemon.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/watchdog/watchdog-daemon.ts)) executes non-blocking background sweeps:
+
+```typescript
+export async function sweepStragglerLeases(capsuleDir: string): Promise<number> {
+  const state = await loadCapsuleState(capsuleDir);
+  const now = Date.now();
+  let reclaimedCount = 0;
+
+  for (const [taskId, task] of Object.entries(state.tasks)) {
+    if (task.status === "LEASED" && task.lastHeartbeat) {
+      const elapsedMs = now - new Date(task.lastHeartbeat).getTime();
+      if (elapsedMs > 300_000) {
+        await reclaimZombieTask(capsuleDir, taskId, task.holder);
+        reclaimedCount++;
+      }
+    }
+  }
+  return reclaimedCount;
+}
+```
+
+---
+
+## 4. Architectural Invariants Summary
+
+1. **Zero Indefinite Hangs**: No task may block the topological scheduler for longer than 300 seconds without heartbeat renewal.
+2. **Atomic Recovery**: Worktrees of stalled workers are wiped clean before re-leasing.
+3. **Escalated Re-Queue**: Straggler tasks receive priority dispatch on subsequent attempts.
+
+---
+
+[Previous: 05-02 Coffman-Graham Width Bounds](05-02-coffman-graham-width-bounds.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 05-04 Dynamic Load Throttling](05-04-dynamic-load-throttling.md)
+
 ---
