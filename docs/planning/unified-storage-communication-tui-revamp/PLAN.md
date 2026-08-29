@@ -393,6 +393,38 @@ The TUI renders full-screen interactive dashboards inside standard terminal emul
 
 ---
 
+### 2.6 Host Execution Matrix, Unified Runtime & Model Architecture
+
+The harness defines a unified host architecture where CLI and IDE seats share the identical codebase, mailbox protocols, configuration files, and execution logic—eliminating fragmented host abstractions.
+
+| Host Identifier | Tier 0-2 Models (Supervisor / Orchestrator / Coordinator) | Tier 3 Models (Implementer / Validator) | Thinking Effort | Scheduler Cadence             | Unified Host Definition             |
+| :-------------- | :-------------------------------------------------------- | :-------------------------------------- | :-------------- | :---------------------------- | :---------------------------------- |
+| `antigravity`   | `gemini-3.7-flash`                                        | `gemini-3.7-flash`                      | High Thinking   | 5-min (`*/5 * * * *`, 300s)   | Single shared runtime for CLI & IDE |
+| `claude_code`   | `claude-opus-5`                                           | `claude-sonnet-5`                       | High Thinking   | 15-min (`*/15 * * * *`, 900s) | Single shared runtime for CLI & IDE |
+| `codex`         | `gpt-5.6-sol`                                             | `gpt-5.6-terra`                         | High Thinking   | 15-min (`*/15 * * * *`, 900s) | Single shared runtime for CLI & IDE |
+| `cursor`        | Cursor Latest Model                                       | Cursor Latest Model                     | High Thinking   | 5-min (`*/5 * * * *`, 300s)   | Single shared runtime for CLI & IDE |
+
+#### Host Architectural Invariants
+
+1. **Unified Host Parity**: No divergent logic paths between CLI and IDE environments. All hosts consume `.olt/policy.json`, route through `.olt/mailboxes/<id>/`, and execute via identical task lifecycle runners.
+2. **Deterministic Model Tier Routing**: Supervisory tiers (0-2) requiring deep strategic synthesis utilize high-capacity reasoning models (`claude-opus-5`, `gpt-5.6-sol`, `gemini-3.7-flash`), while Tier 3 implementation/validation tasks utilize rapid code specialists (`claude-sonnet-5`, `gpt-5.6-terra`, `gemini-3.7-flash`).
+3. **Scheduler Interval Confinement**: Fast autonomous loops (`antigravity`, `cursor`) run on 5-minute ticks, while deep reasoning hosts (`claude_code`, `codex`) operate on 15-minute cycles.
+
+---
+
+### 2.7 Sub-Domain Completion Git Staging Invariant & Reflog Crash Safety
+
+To guarantee zero data loss against machine reboots, kernel panics, or abrupt container termination:
+
+1. **Immediate Sub-Domain & Sub-Task Git Staging Invariant (`git add -A`)**:
+   - The moment any sub-domain, wave slice, or discrete sub-task finishes its execution cycle, the harness executes `git add -A`.
+   - **Reflog Safety Mechanism**: Git immediately generates and fsyncs loose object blobs and tree structures into `.git/objects/`. Even if the host machine crashes before a formal commit or task state transition is written, all file modifications remain permanently recoverable from Git's object database and the reflog.
+2. **Doctor Auto-Healing for Git Staging & Stashed State**:
+   - Master Doctor (`bun harness.ts doctor [--fix]`) inspects Git index integrity, verifies no uncommitted artifacts remain stranded in an unstaged state after task completion, and checks for dangling `.git/index.lock` files from interrupted processes.
+   - If dangling locks exist, Doctor verifies process liveness and clears the lock. If unpersisted modifications from completed tasks are detected, Doctor automatically stages them and reports the auto-healed state.
+
+---
+
 ## 3. TypeScript Contracts & Concrete Interface Definitions
 
 All types adhere strictly to **0 TypeScript `any`** and **0 compiler suppressions**.
@@ -557,6 +589,43 @@ export interface TuiDashboardState {
   readonly isPaused: boolean;
   readonly fps: number;
   readonly lastRefreshTimestamp: string;
+}
+
+// ============================================================================
+// 5. Host Execution Matrix & Git Staging Invariant Types
+// ============================================================================
+
+export type HostType = "antigravity" | "claude_code" | "codex" | "cursor";
+
+export interface HostModelTierConfig {
+  readonly model: string;
+  readonly thinking_effort: "high" | "medium" | "low" | "none";
+  readonly scheduler?: {
+    readonly cron: string;
+    readonly interval_seconds: number;
+    readonly enabled: boolean;
+  };
+}
+
+export interface HostExecutionPolicy {
+  readonly host: HostType;
+  readonly tierModels: Readonly<Record<number, HostModelTierConfig>>;
+  readonly isUnifiedHost: boolean;
+}
+
+export interface GitStagingAuditResult {
+  readonly subDomainId: string;
+  readonly stagedFiles: readonly string[];
+  readonly gitObjectsPersisted: boolean;
+  readonly timestamp: string;
+}
+
+export interface GitIndexIntegrityReport {
+  readonly indexValid: boolean;
+  readonly uncommittedChanges: readonly string[];
+  readonly stagedArtifacts: readonly string[];
+  readonly stashedStates: readonly string[];
+  readonly autoHealedLocks: readonly string[];
 }
 ```
 
@@ -724,6 +793,12 @@ graph LR
 8. `olt/scripts/src/cli/commands/tui-cmd.ts` ($\le 180$ lines)
    - CLI command registration for `bun harness.ts tui`.
    - Exported symbols: `executeTuiCommand`.
+9. `olt/scripts/src/authority/hosts/host-matrix.ts` ($\le 240$ lines)
+   - Unified host runtime mapping, tier model resolution (Tiers 0-2 vs Tier 3), and scheduler cadence.
+   - Exported symbols: `resolveHostConfig`, `getTierModelConfig`, `assertUnifiedHostParity`.
+10. `olt/scripts/src/engine/runner/lifecycle/git-staging-hook.ts` ($\le 190$ lines)
+    - Sub-domain and sub-task completion git auto-staging (`git add -A`) for crash safety.
+    - Exported symbols: `stageCompletedSubDomainArtifacts`, `assertGitObjectPersistence`.
 
 #### Verification & Discriminating Gates
 
@@ -733,22 +808,31 @@ graph LR
 - **Control-Probe Gate 4.2 (Unicode Width Border Stability)**:
   - Probe: Render node titles containing wide emojis (⚡, 🔍, 🚀) and fullwidth CJK characters.
   - Criterion: Visual length of every row in the rendered node box matches box width exactly ($targetWidth \pm 0$ cells); zero misaligned right borders.
+- **Control-Probe Gate 4.3 (Sub-Domain Completion Git Staging Invariant)**:
+  - Probe: Execute a completed sub-task in simulation and verify `git-staging-hook.ts` executes `git add -A`.
+  - Criterion: Asserts all modified/created files are staged in the Git index and loose objects exist in `.git/objects/` prior to task completion receipt handoff.
+- **Control-Probe Gate 4.4 (Host Matrix Model & Scheduler Resolution)**:
+  - Probe: Query host configuration across `antigravity`, `claude_code`, `codex`, and `cursor`.
+  - Criterion: Verifies `antigravity` resolves to `gemini-3.7-flash` (300s), `claude_code` resolves to `claude-opus-5` (Tiers 0-2) / `claude-sonnet-5` (Tier 3) (900s), `codex` resolves to `gpt-5.6-sol` (Tiers 0-2) / `gpt-5.6-terra` (Tier 3) (900s), and `cursor` resolves to Cursor Latest Model (300s).
 
 ---
 
 ## 5. Defect & Backlog Traceability Matrix
 
-| Backlog / Defect ID                                                                             | Description / Defect Mechanism                                                                    | Architectural Resolution & Component                                             | Implementation File & Symbol                                                | Discriminating Verification Gate                                                   |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `hb-s2-diffvalue-array-invariant`                                                               | `diffValue` recurses into objects but re-serializes arrays whole, causing $O(N^2)$ log explosion. | Granular element-level array patch operations (`set`, `splice`, `append`).       | `src/engine/store/projections/projection-patch.ts`<br/>`diffProjection`     | Gate 1.1: 500-item array append yields $<1.8\text{MB}$ log size vs $>50\text{MB}$. |
-| `hb-s6-peer-messaging-by-role-name-resolves-for-nobody`                                         | Role-style names (`olt-coordinator`) fail on host; messages lost.                                 | Host-agnostic file mailboxes (`.olt/mailboxes/<id>/`) indexed by raw agent ID.   | `src/communication/mailbox/mailbox-stream.ts`<br/>`dispatchPeerMessage`     | Gate 2.1: 500 messages across 10 concurrent processes delivered with 0 loss.       |
-| `hb-main-thread-chatter-burns-owner-context` & `defect-main-thread-chatter-burns-owner-context` | Supervisory tiers narrate step progress into human interactive thread, exhausting context.        | P2P mailbox routing + `chatter-guard.ts` blocking mid-flight stdout narration.   | `src/communication/mailbox/chatter-guard.ts`<br/>`assertNonChatterPolicy`   | Gate 2.2: Mid-flight status updates rejected from stdout and routed to inbox.      |
-| `hb-s9b-listagents-session-disabled-not-architectural`                                          | `ListAgents` session-disabled; supervisory seats cannot inspect roster.                           | High-water mark cursor tracking and mailbox directory enumeration.               | `src/communication/mailbox/cursor-tracker.ts`<br/>`loadMailboxCursor`       | Gate 2.1: Active agents discoverable via `.olt/mailboxes/` filesystem state.       |
-| `defect-vestigial-runtime-ledgers-in-static-package-root`                                       | Runtime ledgers written to package root `olt/` instead of repo `.olt/`.                           | Strict path resolver + `storage-migrator.ts` auto-relocating misplaced files.    | `src/engine/store/hierarchy/storage-paths.ts`<br/>`resolveStoragePaths`     | Doctor verifies 0 runtime files in `olt/` and 100% confined to `.olt/`.            |
-| `defect-root-hygiene-loose-files-detected`                                                      | Invariant 30 loose runtime/scratch files in root violating hygiene.                               | Confinement of all scratch artifacts strictly to `scratch/` or `.olt/scratch/`.  | `src/engine/store/hierarchy/storage-paths.ts`<br/>`resolveScratchDir`       | Pre-commit hook & Doctor verify 0 loose `.ts`/`.jsonl` files in root.              |
-| `defect-reporting-unified-sections-missing-sugiyama-export`                                     | Type `SugiyamaDagReport` not exported from `reporting/unified/types.ts`.                          | Canonical export of `SugiyamaDagReport` in `sugiyama-dag/types.ts`.              | `src/reporting/sugiyama-dag/types.ts`<br/>`SugiyamaDagReport`               | Typecheck verifies clean import across CLI diagnostics and reporting.              |
-| `fb-codex-flat-native-logical-hierarchy-20260825`                                               | Host nesting limits block multi-tier agent deployment.                                            | Flat-dispatch mailbox queues separating host transport from logical hierarchy.   | `src/communication/mailbox/mailbox-dispatcher.ts`<br/>`dispatchPeerMessage` | Flat sibling agents communicate logically across hierarchical tiers.               |
-| `fb-comment-free-source-skills-20260825`                                                        | Executable source files must remain comment-free.                                                 | Lexical AST verification and comment removal across all TypeScript deliverables. | Repository-wide pre-commit transformer                                      | AST linter verifies 0 comments in `.ts` source files.                              |
+| Backlog / Defect ID                                                                             | Description / Defect Mechanism                                                                    | Architectural Resolution & Component                                                    | Implementation File & Symbol                                                             | Discriminating Verification Gate                                                   |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `hb-s2-diffvalue-array-invariant`                                                               | `diffValue` recurses into objects but re-serializes arrays whole, causing $O(N^2)$ log explosion. | Granular element-level array patch operations (`set`, `splice`, `append`).              | `src/engine/store/projections/projection-patch.ts`<br/>`diffProjection`                  | Gate 1.1: 500-item array append yields $<1.8\text{MB}$ log size vs $>50\text{MB}$. |
+| `hb-s6-peer-messaging-by-role-name-resolves-for-nobody`                                         | Role-style names (`olt-coordinator`) fail on host; messages lost.                                 | Host-agnostic file mailboxes (`.olt/mailboxes/<id>/`) indexed by raw agent ID.          | `src/communication/mailbox/mailbox-stream.ts`<br/>`dispatchPeerMessage`                  | Gate 2.1: 500 messages across 10 concurrent processes delivered with 0 loss.       |
+| `hb-main-thread-chatter-burns-owner-context` & `defect-main-thread-chatter-burns-owner-context` | Supervisory tiers narrate step progress into human interactive thread, exhausting context.        | P2P mailbox routing + `chatter-guard.ts` blocking mid-flight stdout narration.          | `src/communication/mailbox/chatter-guard.ts`<br/>`assertNonChatterPolicy`                | Gate 2.2: Mid-flight status updates rejected from stdout and routed to inbox.      |
+| `hb-s9b-listagents-session-disabled-not-architectural`                                          | `ListAgents` session-disabled; supervisory seats cannot inspect roster.                           | High-water mark cursor tracking and mailbox directory enumeration.                      | `src/communication/mailbox/cursor-tracker.ts`<br/>`loadMailboxCursor`                    | Gate 2.1: Active agents discoverable via `.olt/mailboxes/` filesystem state.       |
+| `defect-vestigial-runtime-ledgers-in-static-package-root`                                       | Runtime ledgers written to package root `olt/` instead of repo `.olt/`.                           | Strict path resolver + `storage-migrator.ts` auto-relocating misplaced files.           | `src/engine/store/hierarchy/storage-paths.ts`<br/>`resolveStoragePaths`                  | Doctor verifies 0 runtime files in `olt/` and 100% confined to `.olt/`.            |
+| `defect-root-hygiene-loose-files-detected`                                                      | Invariant 30 loose runtime/scratch files in root violating hygiene.                               | Confinement of all scratch artifacts strictly to `scratch/` or `.olt/scratch/`.         | `src/engine/store/hierarchy/storage-paths.ts`<br/>`resolveScratchDir`                    | Pre-commit hook & Doctor verify 0 loose `.ts`/`.jsonl` files in root.              |
+| `defect-reporting-unified-sections-missing-sugiyama-export`                                     | Type `SugiyamaDagReport` not exported from `reporting/unified/types.ts`.                          | Canonical export of `SugiyamaDagReport` in `sugiyama-dag/types.ts`.                     | `src/reporting/sugiyama-dag/types.ts`<br/>`SugiyamaDagReport`                            | Typecheck verifies clean import across CLI diagnostics and reporting.              |
+| `fb-codex-flat-native-logical-hierarchy-20260825`                                               | Host nesting limits block multi-tier agent deployment.                                            | Flat-dispatch mailbox queues separating host transport from logical hierarchy.          | `src/communication/mailbox/mailbox-dispatcher.ts`<br/>`dispatchPeerMessage`              | Flat sibling agents communicate logically across hierarchical tiers.               |
+| `fb-comment-free-source-skills-20260825`                                                        | Executable source files must remain comment-free.                                                 | Lexical AST verification and comment removal across all TypeScript deliverables.        | Repository-wide pre-commit transformer                                                   | AST linter verifies 0 comments in `.ts` source files.                              |
+| `fb-host-matrix-unified-model-hierarchy-20260829`                                               | Inconsistent model allocations and separate CLI vs IDE host branches.                             | Unified host definition with tier-bound models and scheduler intervals.                 | `src/authority/hosts/host-matrix.ts`<br/>`resolveHostConfig`                             | Gate 4.4: 100% compliant host configuration and scheduler cadences.                |
+| `inv-subdomain-git-staging-reflog-safety`                                                       | OS crashes and kernel panics risk uncommitted file loss between sub-domains.                      | Immediate `git add -A` upon sub-domain/sub-task finish to persist objects to disk.      | `src/engine/runner/lifecycle/git-staging-hook.ts`<br/>`stageCompletedSubDomainArtifacts` | Gate 4.3: Git objects confirmed on disk immediately after sub-task execution.      |
+| `fb-doctor-git-index-integrity-auto-healing`                                                    | Stale git index locks and stranded unstaged modifications after interruptions.                    | Master Doctor auto-heals `.git/index.lock`, audits stashed states and staged artifacts. | `src/reporting/doctor/auto-heal.ts`<br/>`autoHealGitState`                               | Doctor auto-clears dead index locks and confirms clean staging state.              |
 
 ---
 
@@ -760,3 +844,6 @@ graph LR
 4. **Fail-Closed Locking**: All mailbox and snapshot file operations acquire exclusive POSIX locks; failure to acquire locks within timeout safely fails closed.
 5. **Discriminative Testing Contract**: Every test suite includes negative control probes ensuring an empty or trivial stub fails execution.
 6. **Backward Compatibility**: Existing historical runs in `.olt/capsules/` must load and replay cleanly without modification.
+7. **Sub-Domain Completion Git Staging Invariant (Reflog Safety)**: Whenever a sub-domain or discrete sub-task finishes, `git add -A` must immediately execute to persist Git object blobs and trees to disk, ensuring crash resilience and reflog recovery.
+8. **Unified Host Architecture**: No separate CLI vs IDE host execution branches; all platforms consume identical configuration, policies, and mailbox message channels.
+9. **Doctor Git Index & Stash Auto-Healing**: Master Doctor automatically inspects and recovers Git index integrity, cleans dangling lock files, and reports staged artifact status.

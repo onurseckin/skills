@@ -40,6 +40,7 @@ The OLT autonomous development harness requires a unified, self-healing diagnost
 │  │    • Stale Task Lease Auto-Recovery (`recoverStale()`)                             │  │
 │  │    • Dangling Flock Lock Cleansing (Dead PID probe via `kill(pid, 0)`)             │  │
 │  │    • Vestigial Runtime Ledger Migration (`olt/defects.jsonl` ──► `.olt/`)         │  │
+│  │    • Git Index Integrity & Stash Auto-Healer (`.git/index.lock`, auto `git add -A`)│  │
 │  └───────────────────────────────────┬────────────────────────────────────────────────┘  │
 │                                      │                                                   │
 │                                      ▼                                                   │
@@ -52,7 +53,7 @@ The OLT autonomous development harness requires a unified, self-healing diagnost
 │                                      │                                                   │
 │                                      ▼                                                   │
 │  ┌────────────────────────────────────────────────────────────────────────────────────┐  │
-│  │ 3. SUITE OF 8 INTEGRATED DIAGNOSTIC CHECK ENGINES                                  │  │
+│  │ 3. SUITE OF INTEGRATED DIAGNOSTIC CHECK ENGINES                                    │  │
 │  │    ├── E1: Planning DAG Engine (Tarjan SCC Cycle Detection & Orphan Probe)         │  │
 │  │    ├── E2: AST Static Purity Linter (TypeScript Compiler AST Tokenization)         │  │
 │  │    ├── E3: Anti-Mock & Mutation Gate Engine (Zero-Mock Tautology Enforcement)      │  │
@@ -60,7 +61,9 @@ The OLT autonomous development harness requires a unified, self-healing diagnost
 │  │    ├── E5: Dual-Channel UI Engine (DOM + Optical Canvas & Theme Contrast)         │  │
 │  │    ├── E6: Cognitive Validator Command Hard-Lock (0 `run:exec`, 0 tests, 0 bash)   │  │
 │  │    ├── E7: Role Boundary Interlock Engine (Tier Confinement 0/1/2/3 Isolation)     │  │
-│  │    └── E8: Pushback Quota Engine (5 Cognitive Pushbacks + 5 Adversarial Probes)    │  │
+│  │    ├── E8: Pushback Quota Engine (5 Cognitive Pushbacks + 5 Adversarial Probes)    │  │
+│  │    ├── E9: Git Staging Invariant Engine (Sub-Domain Completion Reflog Safety)      │  │
+│  │    └── E10: Unified Host Matrix & Tier Model Engine (antigravity/claude/codex/cur) │  │
 │  └───────────────────────────────────┬────────────────────────────────────────────────┘  │
 │                                      │                                                   │
 │                                      ▼                                                   │
@@ -71,6 +74,12 @@ The OLT autonomous development harness requires a unified, self-healing diagnost
 │  │    • Empirical Proof Regression Protocol: `completed` ──► `deliberating` ──► `open`│  │
 │  │    • Universal `finding:file` CLI API for All Observing Roles                      │  │
 │  │    • Non-Blocking Multi-Process Concurrency Lock (`withDefectLogMutationLock`)     │  │
+│  └────────────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                          │
+│  ┌────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ 5. UNIFIED HOST MATRIX & MODEL ARCHITECTURE                                        │  │
+│  │    • antigravity: gemini-3.7-flash (5m) │ claude_code: opus-5 / sonnet-5 (15m)      │  │
+│  │    • codex: gpt-5.6-sol / terra (15m)   │ cursor: Cursor Latest (5m)               │  │
 │  └────────────────────────────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -91,6 +100,8 @@ export interface DoctorAutoHealResult {
   readonly quarantinedFragments: readonly string[];
   readonly danglingLocksCleared: readonly string[];
   readonly migratedLedgers: readonly string[];
+  readonly gitIndexHealed: boolean;
+  readonly gitArtifactsStaged: readonly string[];
 }
 
 export interface AutoHealOptions {
@@ -119,6 +130,10 @@ export interface AutoHealOptions {
 5. **Vestigial Runtime Ledger Migration:**
    - Detects misplaced files in static package locations (e.g., `olt/defects.jsonl`, `olt/completed-defects.jsonl`, `olt/coverage/`).
    - Merges entries into canonical root locations (`.olt/defects.jsonl`) and unlinks the misplaced files.
+6. **Git Index Integrity & Stash Auto-Healing:**
+   - Detects stale `.git/index.lock` files from interrupted git processes, verifies owning PID liveness via `kill(pid, 0)`, and safely cleanses dead locks.
+   - Reconciles uncommitted vs staged files. If completed sub-domains or sub-tasks left unstaged modifications, Doctor automatically invokes `git add -A` to persist Git loose objects to disk for reflog safety.
+   - Verifies git stash integrity, auditing stashed states and ensuring zero corrupted stash tree references.
 
 ---
 
@@ -313,6 +328,39 @@ export interface DefectRecord {
 
 ---
 
+### 2.6 Host Execution Matrix, Unified Runtime & Model Architecture (Tiers 0-3)
+
+The harness defines a unified host architecture where CLI and IDE seats share the identical codebase, mailbox protocols, configuration files, and execution logic—eliminating divergent host implementations.
+
+| Host Identifier | Tier 0-2 Models (Supervisor / Orchestrator / Coordinator) | Tier 3 Models (Implementer / Validator) | Thinking Effort | Scheduler Cadence             | Unified Host Definition             |
+| :-------------- | :-------------------------------------------------------- | :-------------------------------------- | :-------------- | :---------------------------- | :---------------------------------- |
+| `antigravity`   | `gemini-3.7-flash`                                        | `gemini-3.7-flash`                      | High Thinking   | 5-min (`*/5 * * * *`, 300s)   | Single shared runtime for CLI & IDE |
+| `claude_code`   | `claude-opus-5`                                           | `claude-sonnet-5`                       | High Thinking   | 15-min (`*/15 * * * *`, 900s) | Single shared runtime for CLI & IDE |
+| `codex`         | `gpt-5.6-sol`                                             | `gpt-5.6-terra`                         | High Thinking   | 15-min (`*/15 * * * *`, 900s) | Single shared runtime for CLI & IDE |
+| `cursor`        | Cursor Latest Model                                       | Cursor Latest Model                     | High Thinking   | 5-min (`*/5 * * * *`, 300s)   | Single shared runtime for CLI & IDE |
+
+#### Host Architectural Invariants
+
+1. **Unified Host Parity**: Zero divergent logic paths between CLI and IDE environments. All hosts consume `.olt/policy.json`, route through `.olt/mailboxes/<id>/`, and execute via identical task lifecycle runners.
+2. **Deterministic Model Tier Routing**: Supervisory tiers (0-2) requiring deep strategic synthesis utilize high-capacity reasoning models (`claude-opus-5`, `gpt-5.6-sol`, `gemini-3.7-flash`), while Tier 3 implementation/validation tasks utilize rapid code specialists (`claude-sonnet-5`, `gpt-5.6-terra`, `gemini-3.7-flash`).
+3. **Scheduler Interval Confinement**: Fast autonomous loops (`antigravity`, `cursor`) run on 5-minute ticks, while deep reasoning hosts (`claude_code`, `codex`) operate on 15-minute cycles.
+
+---
+
+### 2.7 Git Index Integrity, Sub-Domain Git Staging Invariant & Stashed State Auto-Healing
+
+To guarantee zero loss of work in the event of abrupt OS crashes, kernel panics, or container terminations:
+
+1. **Immediate Sub-Domain & Sub-Task Git Staging Invariant (`git add -A`)**:
+   - The moment any sub-domain, wave slice, or discrete sub-task finishes its execution cycle, the harness immediately executes `git add -A`.
+   - **Reflog Safety**: Git immediately writes loose object blobs and tree structures into `.git/objects/`. Even if the operating system or host crashes prior to commit creation or task state updates, all file modifications remain permanently recoverable from Git's object database and the reflog.
+2. **Master Doctor Git Index & Stash Auto-Healing (`checkGitIndexIntegrity()`, `autoHealGitState()`):**
+   - **Index Lock Cleansing**: Master Doctor detects orphaned `.git/index.lock` files from crashed processes, verifies PID liveness via `kill(pid, 0)`, and removes dead locks.
+   - **Uncommitted Artifact Staging**: Doctor audits unstaged files against completed sub-domain tasks; with `--fix`, it auto-stages them (`git add -A`) to maintain reflog safety.
+   - **Stashed State Inspection**: Doctor verifies that git stash entries are valid and uncorrupted, preventing lost stashed state.
+
+---
+
 ## 3. Work Breakdown & Execution Waves
 
 ```mermaid
@@ -402,6 +450,21 @@ export function quarantineTornTail(runRoot: string, tornBytes: Buffer): string {
   - Stubs allowing unwhitelisted files (e.g. `fix-temp.ts` in repo root) must throw `ROOT_HYGIENE_VIOLATION`.
   - Stubs allowing `olt/defects.jsonl` or `olt/coverage/` must fail.
   - **Verification:** `bun test tests/unit/authority/root-hygiene.test.ts`
+
+#### Task 1.4: Git Index Integrity, Auto-Staging & Stash Recovery Engine
+
+- **Owner / Tier:** Tier 3 Implementer + Independent Validator
+- **Write Scope:**
+  - `olt/scripts/src/reporting/doctor/git-index-engine.ts`
+  - `tests/unit/doctor/git-index-engine.test.ts`
+- **Read-Only Scope:** `olt/scripts/src/reporting/doctor/types.ts`
+- **Concrete Symbols:**
+  `checkGitIndexIntegrity()`, `autoHealGitState()`, `GitIndexIntegrityReport`
+- **Discriminating Acceptance Criteria (Stub Must Fail):**
+  - Stubs failing to detect orphaned `.git/index.lock` or unpersisted changes from completed subtasks must fail.
+  - Test creates simulated dead index lock, asserts Doctor clears lock and auto-stages modified files.
+  - Zero TypeScript `any`, zero suppressions.
+  - **Verification:** `bun test tests/unit/doctor/git-index-engine.test.ts`
 
 ---
 
@@ -560,7 +623,7 @@ export function scanFileForAstPurity(filePath: string, content: string): AstPuri
 - **Concrete Symbols:**
   `runDoctor()`, `formatDoctorReport()`, `tierDoctorIssues()`
 - **Discriminating Acceptance Criteria (Stub Must Fail):**
-  - Aggregates results from all 8 diagnostic engines into a unified structured report.
+  - Aggregates results from all integrated diagnostic engines (Planning DAG, AST Purity, Anti-Mock, Anti-Batching, Dual UI, Validator Command Lock, Role Boundary, Pushback Quotas, Git Staging Invariant, Unified Host Matrix) into a unified structured report.
   - Categorizes findings into `[ERROR]`, `[WARN]`, `[INFO]`, and `[Auto-Healed]`.
   - Returns `healthy: false` if any `ERROR` level finding exists.
   - **Verification:** `bun test tests/unit/reporting/doctor-unified.test.ts`
@@ -576,8 +639,8 @@ export function scanFileForAstPurity(filePath: string, content: string): AstPuri
 - **Concrete Symbols:**
   `executePreFlightDoctorAudit()`, `executePostFlightDoctorAudit()`
 - **Discriminating Acceptance Criteria (Stub Must Fail):**
-  - Pre-flight hook auto-heals torn projections and locks before task claim.
-  - Post-flight hook validates zero hygiene violations and quota satisfaction before task close.
+  - Pre-flight hook auto-heals torn projections, stale locks, and git index locks before task claim.
+  - Post-flight hook validates zero hygiene violations, executes `git add -A` for sub-domain completion reflog safety, and enforces pushback quotas before task close.
   - **Verification:** `bun test tests/unit/workflow/harness-hooks.test.ts`
 
 #### Task 4.3: Comprehensive Concurrency & Diagnostic E2E Test Suite
@@ -589,8 +652,8 @@ export function scanFileForAstPurity(filePath: string, content: string): AstPuri
 - **Concrete Symbols:**
   End-to-end integration test suite
 - **Discriminating Acceptance Criteria (Stub Must Fail):**
-  - Simulates multi-process concurrency, damaged capsules, torn JSON logs, AST violations, hygiene breaches, and quota deficits.
-  - Proves 100% compliance across all 8 engines, 0 unhandled promise rejections, 0 loose files.
+  - Simulates multi-process concurrency, damaged capsules, torn JSON logs, AST violations, hygiene breaches, git index lock contention, and quota deficits.
+  - Proves 100% compliance across all check engines, 0 unhandled promise rejections, 0 loose files.
   - **Verification:** `bun test tests/e2e/doctor/master-doctor-engine.test.ts`
 
 ---
@@ -599,22 +662,22 @@ export function scanFileForAstPurity(filePath: string, content: string): AstPuri
 
 Applying Brent's Work-Span Scheduling Theorem ($P = \lceil W / S \rceil$):
 
-- **Total Work Units ($W$):** 12 discrete engineering tasks
+- **Total Work Units ($W$):** 13 discrete engineering tasks
 - **Critical Path Span ($S$):** 4 sequential waves
-- **Target Parallelism ($P$):** 3 parallel domain coordinators per wave
+- **Target Parallelism ($P$):** 3-4 parallel domain coordinators per wave
 
 ```text
 Execution Flow:
-  Wave 1 (Capsule & Hygiene)    ──► [T1.1: AutoHeal]     + [T1.2: LockClean]   + [T1.3: HygieneGuard]
-                                            │
-                                            ▼
-  Wave 2 (AST & Quotas)         ──► [T2.1: AstTokenizer] + [T2.2: DagTyping]   + [T2.3: PushbackQuotas]
-                                            │
-                                            ▼
-  Wave 3 (Defect Lifecycle)     ──► [T3.1: FlockSync]    + [T3.2: ProofGate]   + [T3.3: FindingCli]
-                                            │
-                                            ▼
-  Wave 4 (Master Integration)   ──► [T4.1: DoctorEngine] + [T4.2: FlightHooks] + [T4.3: E2ESuite]
+  Wave 1 (Capsule & Hygiene & Git) ──► [T1.1: AutoHeal]     + [T1.2: LockClean]   + [T1.3: HygieneGuard] + [T1.4: GitIndexEngine]
+                                             │
+                                             ▼
+  Wave 2 (AST & Quotas)            ──► [T2.1: AstTokenizer] + [T2.2: DagTyping]   + [T2.3: PushbackQuotas]
+                                             │
+                                             ▼
+  Wave 3 (Defect Lifecycle)        ──► [T3.1: FlockSync]    + [T3.2: ProofGate]   + [T3.3: FindingCli]
+                                             │
+                                             ▼
+  Wave 4 (Master Integration)      ──► [T4.1: DoctorEngine] + [T4.2: FlightHooks] + [T4.3: E2ESuite]
 ```
 
 ---
@@ -637,3 +700,21 @@ Execution Flow:
 | `hb-main-thread-chatter-burns-owner-context`                    | Task 3.3, 4.1            | `olt/scripts/src/cli/commands/finding-ops.ts:1-60`                  | `tests/unit/cli/finding-ops.test.ts`               |
 | `hb-authority-unregistered-actor-bypasses-role-enforcement`     | Task 3.2, 4.1            | `olt/scripts/src/reporting/doctor/command-lock-engine.ts:31-155`    | `tests/unit/reporting/doctor-unified.test.ts`      |
 | `defect-missing-automatic-host-subagent-registration-on-init`   | Task 4.2                 | `olt/scripts/src/workflow/lifecycle/harness-hooks.ts:1-50`          | `tests/unit/workflow/harness-hooks.test.ts`        |
+| `fb-host-matrix-unified-model-hierarchy-20260829`               | Task 4.1                 | `olt/scripts/src/authority/hosts/host-matrix.ts:1-120`              | `tests/unit/reporting/doctor-unified.test.ts`      |
+| `inv-subdomain-git-staging-reflog-safety`                       | Task 1.4, 4.2            | `olt/scripts/src/workflow/lifecycle/harness-hooks.ts:1-60`          | `tests/unit/workflow/harness-hooks.test.ts`        |
+| `fb-doctor-git-index-integrity-auto-healing`                    | Task 1.4, 4.1            | `olt/scripts/src/reporting/doctor/git-index-engine.ts:1-150`        | `tests/unit/doctor/git-index-engine.test.ts`       |
+
+---
+
+## 6. Strict Compliance Invariants & Acceptance Checklist
+
+1. **0 TypeScript `any` & 0 Suppressions**: AST purity scanner verifies zero `@ts-ignore`, `@ts-expect-error`, or `any` types across all new and modified files.
+2. **Modular File Line Limits**: Every source file $\le 300$ physical lines; every directory $\le 10$ files.
+3. **Sub-Domain Completion Git Staging Invariant (Reflog Safety)**: Immediately upon completing any sub-domain or discrete sub-task, stage all modified and added files with `git add -A` so Git writes disk objects to `.git/objects/`, guaranteeing crash resilience and reflog recoverability.
+4. **Unified Host Architecture**: No separate CLI vs IDE host branches; both share identical files, policy models, and mailbox logic across `antigravity`, `claude_code`, `codex`, and `cursor`.
+5. **Host Model Tier Confinement**:
+   - `antigravity`: `gemini-3.7-flash` high thinking (5m scheduler).
+   - `claude_code`: `claude-opus-5` high thinking (Tiers 0-2), `claude-sonnet-5` high thinking (Tier 3), 15m scheduler.
+   - `codex`: `gpt-5.6-sol` high thinking (Tiers 0-2), `gpt-5.6-terra` high thinking (Tier 3), 15m scheduler.
+   - `cursor`: Cursor Latest Model high thinking (5m scheduler).
+6. **Doctor Auto-Healing & Git Index Recovery**: Master Doctor inspects and repairs Git index integrity, clears dead `.git/index.lock` files, reconciles stashed states, and auto-stages uncommitted artifacts from completed sub-domains.

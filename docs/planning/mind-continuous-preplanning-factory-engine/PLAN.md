@@ -10,38 +10,39 @@
 
 ## 1. Executive Summary & The Assembly Pipeline Vision
 
-The goal of this architectural blueprint is to eliminate **all forms of idle waiting, wave serialization bottlenecks, single-worker stragglers, and passive auditor syndrome** across the OLT multi-agent ecosystem.
+The goal of this architectural blueprint is to eliminate **all forms of idle waiting, wave serialization bottlenecks, single-worker stragglers, uncommitted crash vulnerabilities, and passive auditor syndrome** across the OLT multi-agent ecosystem.
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│             ASYNCHRONOUS PRE-PLANNING & ASSEMBLY PIPELINE ARCHITECTURE      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  [ Tier 0: Mind Continuous Pre-Planning Factory ] (Non-Stop Autonomic Loop) │
-│    • Continuous scan of `.olt/backlog.jsonl` & `.olt/defects.jsonl`         │
-│    • Thematic Clustering: Merges defects & backlog into domain roadmaps     │
-│    • Deep Phase 1 Formulation ──► Writes `docs/planning/<cluster>/PLAN.md`  │
-│    • Bridge State Transition: Sets `status: "PLANNED"`, links `plan_path`   │
-│                                                                             │
-│                                      │                                      │
-│                                      ▼                                      │
-│                                                                             │
-│  [ Active Worker Waves: Assembly Stations (Tier 1 / 2 / 3) ]                │
-│    • Station A (Core Domain) ────────► 100% Verified ──► Incremental Land   │
-│    • Station B (Validation Domain) ──► 100% Verified ──► Incremental Land   │
-│    • Station C (Tooling Domain) ─────► 100% Verified ──► Incremental Land   │
-│    • Station D (Mind Domain) ────────► In-Lease Micro-Cycle Convergence     │
-│                                                                             │
-│                                      │                                      │
-│                                      ▼                                      │
-│                                                                             │
-│  [ Active Watchdogs & Autonomic SLAs ]                                      │
-│    • 30-Min Task Straggler SLA: Auto-reclaims/splits stuck tasks            │
-│    • 15-Min Rolling Velocity Assessment: Enforces Brent $P = \lceil W/S\rceil│
-│    • Mind Auditor: Flags `MIND_PREPLANNING_STAGNATION` on idle loops        │
-│    • Skill Auditor: Enforces saturation & challenges uncommitted stations   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                    ASYNCHRONOUS PRE-PLANNING & ASSEMBLY PIPELINE ARCHITECTURE               │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                             │
+│  [ Tier 0: Mind Continuous Pre-Planning Factory ] (Non-Stop Autonomic Loop)                 │
+│    • Continuous scan of `.olt/backlog.jsonl` & `.olt/defects.jsonl`                         │
+│    • Thematic Clustering: Merges defects & backlog into domain roadmaps                     │
+│    • Deep Phase 1 Formulation ──► Writes `docs/planning/<cluster>/PLAN.md`                  │
+│    • Bridge State Transition: Sets `status: "PLANNED"`, links `plan_path`                   │
+│                                                                                             │
+│                                      │                                                      │
+│                                      ▼                                                      │
+│                                                                                             │
+│  [ Active Worker Waves: Assembly Stations (Tier 1 / 2 / 3) ]                                │
+│    • Station A (Core Domain) ────────► Verified ──► git add -A (Blob Safety) ──► Land       │
+│    • Station B (Validation Domain) ──► Verified ──► git add -A (Blob Safety) ──► Land       │
+│    • Station C (Tooling Domain) ─────► Verified ──► git add -A (Blob Safety) ──► Land       │
+│    • Station D (Mind Domain) ────────► In-Lease Micro-Cycle Convergence                     │
+│                                                                                             │
+│                                      │                                                      │
+│                                      ▼                                                      │
+│                                                                                             │
+│  [ Host Schedulers & Autonomic Watchdog Matrix ]                                            │
+│    • 5-Min Parallelization & Straggler SLA: Flags t > 5m, splits into P = ⌈W/S⌉ (5-15 agents)│
+│    • Sub-Domain Completion Staging: git add -A writes blobs to .git/objects/ on milestone   │
+│    • Host Matrix: antigravity (5m), claude_code (15m), codex (15m), cursor (5m)             │
+│    • Mind Auditor: Flags MIND_PREPLANNING_STAGNATION on idle loops                          │
+│    • Skill Auditor: Enforces saturation & challenges uncommitted stations                   │
+│                                                                                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -64,48 +65,122 @@ export interface ThematicCluster {
   readonly planned_at: string;
 }
 
+export type HostSchedulerId = "antigravity" | "claude_code" | "codex" | "cursor";
+
+export interface HostSchedulerConfig {
+  readonly host_id: HostSchedulerId;
+  readonly default_cadence_seconds: number;
+  readonly tier_0_2_model: string;
+  readonly tier_0_2_thinking: "high" | "medium" | "low" | "none";
+  readonly tier_3_model: string;
+  readonly tier_3_thinking: "high" | "medium" | "low" | "none";
+  readonly max_single_task_seconds: number; // 300 seconds (5 minutes)
+}
+
+export interface GitStagingInvariantRecord {
+  readonly staging_id: string;
+  readonly milestone_id: string;
+  readonly subdomain: string;
+  readonly staged_at: string;
+  readonly staged_files: readonly string[];
+  readonly git_index_sha: string;
+  readonly blob_objects_written: number;
+}
+
 export interface StragglerAssessment {
   readonly task_id: string;
   readonly agent_id: string;
   readonly elapsed_seconds: number;
-  readonly is_straggler: boolean;
-  readonly recommended_action: "RECLAIM_LEASE" | "SUB_PARTITION" | "CONTINUE";
+  readonly is_straggler: boolean; // true if elapsed_seconds > 300 (5 minutes)
+  readonly recommended_action: "DECOMPOSE_PARALLEL" | "RECLAIM_LEASE" | "CONTINUE";
+  readonly decomposition_plan?: BrentConcurrencyPlan;
 }
 
 export interface BrentConcurrencyPlan {
   readonly active_workers: number;
   readonly remaining_work_units: number;
   readonly span_length: number;
-  readonly optimal_parallelism: number; // P = ceil(W / S)
+  readonly optimal_parallelism: number; // P = Math.ceil(remaining_work_units / span_length), clamped [5, 15]
+  readonly estimated_subagent_duration_seconds: number; // Target: 120s - 240s (2-4 minutes)
   readonly sub_partitions: readonly {
     readonly subtask_id: string;
     readonly assigned_scope: readonly string[];
+    readonly target_duration_seconds: number;
   }[];
 }
 ```
 
 ---
 
-### 2.2 Autonomic SLA & Velocity Algorithms
+### 2.2 5-Minute Parallelization & Straggler SLA Rule
+
+To eliminate bottlenecks and prevent worker stalls during long-task orchestration, subagent execution is strictly governed by the **5-minute parallelization SLA**:
+
+1. **5-Minute SLA Boundary**: If any subagent task exceeds **5 minutes (300 seconds)** of execution without final convergence or verifiable progress receipt, the coordinator/watchdog immediately flags a **straggler event** (`TASK_STRAGGLER_OVERBURDEN_DEFECT`).
+2. **Brent Concurrency Decomposition ($P = \lceil W / S \rceil$)**:
+   - The coordinator computes the remaining workload units $W$ and the critical path span length $S$.
+   - Parallel agent allocation is derived via:
+     $$P = \left\lceil \frac{W}{S} \right\rceil$$
+   - The task is partitioned into **5 to 15 parallel subagents**, each scoped to execute in **2 to 4 minutes (120–240 seconds)** with disjoint file write scopes.
+3. **Automated Subagent Spawn & State Handoff**:
+   - The original leased task is snapshot-quarantined.
+   - Sub-tasks are enqueued in `.olt/backlog.jsonl` with explicit sub-lane scopes and high priority.
 
 ```text
-Algorithm: AutonomicStragglerWatchdog(activeTasks, now)
+Algorithm: Autonomic5MinStragglerWatchdog(activeTasks, now)
 1. For each task in activeTasks:
-     If task.status == 'RUNNING' or task.status == 'LEASED':
+     If task.status in ['RUNNING', 'LEASED']:
        Let elapsed = now - task.claimed_at
-       If elapsed > 30 minutes and task.last_receipt_at is NULL:
-         Emit Defect(error_code='TASK_STRAGGLER_OVERBURDEN_DEFECT', task_id=task.id)
-         Trigger CoordinatorEscalation(task.id, action='SUB_PARTITION_OR_RECLAIM')
+       If elapsed > 300: // 5-Minute SLA Exceeded
+         Emit Defect(error_code='TASK_STRAGGLER_OVERBURDEN_DEFECT', task_id=task.id, elapsed=elapsed)
+         Let decomposition = CalculateBrentDecomposition(task)
+         Trigger StragglerDecomposition(task.id, decomposition)
 
-Algorithm: RollingVelocityRebalancer(waveState, now)
-1. Let W = Sum(task.remaining_files for task in waveState.tasks)
-2. Let S = Max(task.estimated_critical_path for task in waveState.tasks)
-3. Let P_optimal = Math.ceil(W / S)
-4. For each activeWorker in waveState.workers:
-     If activeWorker.remaining_files > 5 and SiblingWorkersAreIdle(waveState):
-       Partition remaining_files into P_optimal sub-lanes
-       Dispatch sub-implementers with disjoint file write scopes
+Algorithm: CalculateBrentDecomposition(task)
+1. Let W = task.remaining_work_units (or remaining_files)
+2. Let S = task.estimated_span_length
+3. Let P = Clamp(Math.ceil(W / S), min=5, max=15)
+4. Partition task.scope into P disjoint sub-partitions
+5. For each partition p in partitions:
+     Target duration = 180s (2-4 minutes target window)
+6. Return BrentConcurrencyPlan(P, sub_partitions)
 ```
+
+---
+
+### 2.3 Sub-Domain Completion Git Staging Invariant (Reflog Safety)
+
+During long-task multi-agent orchestrations, intermediate failures (kernel panics, OS reboots, power cuts, or subagent process aborts) can destroy unstaged workspace changes. To guarantee continuous durability:
+
+1. **The Invariant**: Whenever any subdomain, intermediate milestone, or task group completes its execution and verification, all modified workspace files must immediately be moved to the Git staged area via:
+   ```bash
+   git add -A
+   ```
+2. **Architectural Rationale (Git Object Durability & Reflog Safety)**:
+   - Invoking `git add -A` immediately creates loose Git blob objects under `.git/objects/` for every modified file.
+   - Once written to `.git/objects/`, the content is content-addressed, immutable, and fully recoverable via `git fsck --lost-found`, dangling blob recovery, or the Git reflog, even if subsequent dependent subdomains crash or encounter fatal errors before a formal commit is constructed.
+   - This ensures full immunity against uncommitted work loss during multi-stage assembly pipelines where downstream stations are still running.
+3. **Execution Hooks**:
+   - **Post-Task-Verification Hook**: Executes `git add -A` immediately upon `TaskResult.status === "PASSED"`.
+   - **Post-Subdomain-Milestone Hook**: Executes `git add -A` before transitioning state in `.olt/state.json`.
+
+---
+
+### 2.4 Host Schedulers Matrix & Thinking Configuration
+
+The orchestration framework integrates with heterogeneous host environments. Each host scheduler adheres to a defined execution cadence and model thinking configuration:
+
+| Host Scheduler    | Default Cadence | Tier 0 – 2 (Strategic / Supervisory) Model & Thinking | Tier 3 (Implementer / Validator) Model & Thinking | Heartbeat / Watchdog SLA |
+| :---------------- | :-------------- | :---------------------------------------------------- | :------------------------------------------------ | :----------------------- |
+| **`antigravity`** | **5 minutes**   | `gemini-3.7-flash` (High Thinking)                    | `gemini-3.7-flash` (High Thinking)                | 60s tick / 300s timeout  |
+| **`claude_code`** | **15 minutes**  | `claude-5-opus` (High Thinking)                       | `claude-5-sonnet` (High Thinking)                 | 180s tick / 900s timeout |
+| **`codex`**       | **15 minutes**  | `gpt-5.6-sol` (High Thinking)                         | `gpt-5.6-terra` (High Thinking)                   | 180s tick / 900s timeout |
+| **`cursor`**      | **5 minutes**   | Cursor Latest Model (High Thinking)                   | Cursor Latest Model (High Thinking)               | 60s tick / 300s timeout  |
+
+#### Host Configuration Invariants:
+
+1. **High Thinking Enforcement**: All tiers across all host schedulers must operate with `high` thinking enabled to ensure deep architectural reasoning, strict invariant adherence, and zero hallucination.
+2. **Cadence Alignment**: Host schedulers running on a 5-minute cadence (`antigravity`, `cursor`) trigger micro-cycle rebalancing at every tick, perfectly synchronizing with the **5-Minute Parallelization & Straggler SLA**. Host schedulers on a 15-minute cadence (`claude_code`, `codex`) enforce internal 5-minute subagent timers while operating macro review loops every 15 minutes.
 
 ---
 
@@ -116,11 +191,12 @@ graph TD
     W1_T1["Task 1.1: Pre-Planning Factory Scanner & Clustering<br/>(backlog-clusterer.ts)"] --> W1_T2["Task 1.2: Phase 1 Plan Generator & Bridge State<br/>(plan-factory.ts)"]
     W1_T2 --> W1_T3["Task 1.3: Mind Continuous Pre-Planning Loop<br/>(continuous-preplanner.ts)"]
 
-    W1_T3 --> W2_T1["Task 2.1: 30-Min Task Straggler SLA Interlock<br/>(straggler-watchdog.ts)"]
-    W2_T1 --> W2_T2["Task 2.2: 15-Min Rolling Velocity & Brent Partitioning<br/>(velocity-rebalancer.ts)"]
-    W2_T2 --> W2_T3["Task 2.3: Asynchronous Station Landing Engine<br/>(station-landing.ts)"]
+    W1_T3 --> W2_T1["Task 2.1: 5-Min Task Straggler SLA Interlock<br/>(straggler-watchdog.ts)"]
+    W2_T1 --> W2_T2["Task 2.2: Brent Parallelization & Dynamic Decomposition<br/>(velocity-rebalancer.ts)"]
+    W2_T2 --> W2_T3["Task 2.3: Sub-Domain Staging & Station Landing Engine<br/>(station-landing.ts)"]
+    W2_T3 --> W2_T4["Task 2.4: Host Schedulers Matrix & Thinking Engine<br/>(host-schedulers.ts)"]
 
-    W2_T3 --> W3_T1["Task 3.1: Active Mind Auditor Stagnation Engine<br/>(mind-stagnation-auditor.ts)"]
+    W2_T4 --> W3_T1["Task 3.1: Active Mind Auditor Stagnation Engine<br/>(mind-stagnation-auditor.ts)"]
     W3_T1 --> W3_T2["Task 3.2: Skill Auditor Concurrency Saturation Engine<br/>(skill-concurrency-auditor.ts)"]
 
     W3_T2 --> W4_T1["Task 4.1: CLI Pre-Planning & Station Operations<br/>(factory-ops.ts)"]
@@ -170,9 +246,9 @@ graph TD
 
 ---
 
-### Wave 2: Straggler SLA, Velocity Rebalancer & Station Landing
+### Wave 2: Straggler SLA, Brent Decomposition, Staging Invariant & Host Matrix
 
-#### Task 2.1: 30-Minute Task Straggler SLA Interlock
+#### Task 2.1: 5-Minute Task Straggler SLA Interlock
 
 - **Owner / Tier:** Tier 3 Implementer + Independent Validator
 - **Write Scope:**
@@ -180,10 +256,11 @@ graph TD
   - `tests/unit/watchdog/straggler-watchdog.test.ts`
 - **Read-Only Scope:** `olt/scripts/src/engine/store/`
 - **Acceptance Criteria (Stub Must Fail):**
-  - Flags `TASK_STRAGGLER_OVERBURDEN_DEFECT` when runtime $>30$ minutes without receipt.
+  - Flags `TASK_STRAGGLER_OVERBURDEN_DEFECT` whenever task runtime exceeds 5 minutes (300 seconds) without progress receipt.
+  - Emits straggler assessment event to trigger dynamic parallel decomposition.
   - Command: `bun test tests/unit/watchdog/straggler-watchdog.test.ts` (100% PASS).
 
-#### Task 2.2: 15-Minute Rolling Velocity & Brent Partitioning
+#### Task 2.2: Brent Parallelization & Dynamic Decomposition Engine
 
 - **Owner / Tier:** Tier 3 Implementer + Independent Validator
 - **Write Scope:**
@@ -191,19 +268,36 @@ graph TD
   - `tests/unit/orchestrator/velocity-rebalancer.test.ts`
 - **Read-Only Scope:** `olt/scripts/src/engine/store/`
 - **Acceptance Criteria (Stub Must Fail):**
-  - Identifies single workers with $>5$ remaining files; splits into parallel sub-lanes.
+  - Evaluates remaining work $W$ and span $S$ to compute $P = \lceil W / S \rceil$.
+  - Decomposes straggling scope into 5–15 parallel subagent tasks targeting 2–4 minutes execution each.
+  - Generates disjoint file write scopes for all sub-lanes.
   - Command: `bun test tests/unit/orchestrator/velocity-rebalancer.test.ts` (100% PASS).
 
-#### Task 2.3: Asynchronous Station Landing Engine
+#### Task 2.3: Sub-Domain Completion Git Staging & Station Landing Engine
 
 - **Owner / Tier:** Tier 3 Implementer + Independent Validator
 - **Write Scope:**
   - `olt/scripts/src/orchestrator/station-landing.ts`
+  - `olt/scripts/src/orchestrator/subdomain-staging.ts`
   - `tests/unit/orchestrator/station-landing.test.ts`
 - **Read-Only Scope:** `olt/scripts/src/engine/store/`
 - **Acceptance Criteria (Stub Must Fail):**
+  - Executes `git add -A` immediately on subdomain or milestone completion, writing blob objects into `.git/objects/`.
+  - Ensures crash immunity across dependent downstream station execution.
   - Incremental commits and pushes 100% verified stations without blocking on other domains.
   - Command: `bun test tests/unit/orchestrator/station-landing.test.ts` (100% PASS).
+
+#### Task 2.4: Host Schedulers Matrix & Thinking Engine Integration
+
+- **Owner / Tier:** Tier 3 Implementer + Independent Validator
+- **Write Scope:**
+  - `olt/scripts/src/orchestrator/host-schedulers.ts`
+  - `tests/unit/orchestrator/host-schedulers.test.ts`
+- **Read-Only Scope:** `olt/scripts/src/orchestrator/types.ts`
+- **Acceptance Criteria (Stub Must Fail):**
+  - Implements matrix configuration for `antigravity` (5m cadence, `gemini-3.7-flash` high thinking), `claude_code` (15m cadence, `claude-5-opus` T0-2 / `claude-5-sonnet` T3 high thinking), `codex` (15m cadence, `gpt-5.6-sol` T0-2 / `gpt-5.6-terra` T3 high thinking), and `cursor` (5m cadence, Cursor latest model high thinking).
+  - Enforces high thinking across all tiers and validates cadence timing parameters.
+  - Command: `bun test tests/unit/orchestrator/host-schedulers.test.ts` (100% PASS).
 
 ---
 
@@ -253,7 +347,7 @@ graph TD
   - `tests/integration/mind/assembly-pipeline.test.ts`
 - **Read-Only Scope:** All subsystems
 - **Acceptance Criteria (Stub Must Fail):**
-  - Multi-station concurrent execution, straggler partitioning, and continuous pre-planning pass together.
+  - Multi-station concurrent execution, 5-minute straggler decomposition, subdomain Git staging durability, host scheduler routing, and continuous pre-planning pass together.
   - Command: `bun test tests/integration/mind/assembly-pipeline.test.ts` (100% PASS).
 
 ---
@@ -265,7 +359,7 @@ Sequential Execution Order:
   Wave 1: [Task 1.1] ──► [Task 1.2] ──► [Task 1.3]
              │
              ▼
-  Wave 2: [Task 2.1] ──► [Task 2.2] ──► [Task 2.3]
+  Wave 2: [Task 2.1] ──► [Task 2.2] ──► [Task 2.3] ──► [Task 2.4]
              │
              ▼
   Wave 3: [Task 3.1] ──► [Task 3.2]
@@ -281,9 +375,11 @@ Sequential Execution Order:
 | Defect / Backlog ID                                           | Resolved By Task    | Verification Test File                                |
 | ------------------------------------------------------------- | ------------------- | ----------------------------------------------------- |
 | `fb-mind-continuous-preplanning-pipeline-engine`              | Tasks 1.1, 1.2, 1.3 | `tests/unit/mind/continuous-preplanner.test.ts`       |
-| `hb-main-thread-chatter-burns-owner-context`                  | Task 2.3, 4.1       | `tests/unit/orchestrator/station-landing.test.ts`     |
-| `defect-naive-line-splitting-breaks-ast-syntax`               | Task 1.1, 1.2       | `tests/unit/mind/assembly-pipeline.test.ts`           |
-| `defect-mechanical-chunk-naming-anti-pattern`                 | Task 1.1            | `tests/unit/mind/assembly-pipeline.test.ts`           |
-| `hb-s7-coordinator-diagnosed-live-agent-as-dead`              | Task 2.1, 2.2       | `tests/unit/watchdog/straggler-watchdog.test.ts`      |
-| `fb-codex-watchdog-child-cadence-liveness`                    | Task 2.1, 3.1       | `tests/unit/mind/mind-stagnation-auditor.test.ts`     |
-| `defect-mind-smart-task-duplicate-identifier-rebalance-tasks` | Task 2.2            | `tests/unit/orchestrator/velocity-rebalancer.test.ts` |
+| `hb-main-thread-chatter-burns-owner-context`                  | Tasks 2.3, 4.1      | `tests/unit/orchestrator/station-landing.test.ts`     |
+| `defect-naive-line-splitting-breaks-ast-syntax`               | Tasks 1.1, 1.2      | `tests/integration/mind/assembly-pipeline.test.ts`    |
+| `defect-mechanical-chunk-naming-anti-pattern`                 | Task 1.1            | `tests/integration/mind/assembly-pipeline.test.ts`    |
+| `hb-s7-coordinator-diagnosed-live-agent-as-dead`              | Tasks 2.1, 2.2      | `tests/unit/watchdog/straggler-watchdog.test.ts`      |
+| `fb-codex-watchdog-child-cadence-liveness`                    | Tasks 2.1, 2.4, 3.1 | `tests/unit/mind/mind-stagnation-auditor.test.ts`     |
+| `defect-mind-smart-task-duplicate-identifier-rebalance-tasks` | Tasks 2.2, 2.4      | `tests/unit/orchestrator/velocity-rebalancer.test.ts` |
+| `fb-subdomain-git-staging-reflog-safety`                      | Task 2.3            | `tests/unit/orchestrator/station-landing.test.ts`     |
+| `fb-host-schedulers-matrix-cadence-thinking`                  | Task 2.4            | `tests/unit/orchestrator/host-schedulers.test.ts`     |

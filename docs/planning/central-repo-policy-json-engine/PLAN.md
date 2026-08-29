@@ -28,7 +28,7 @@ graph TD
         direction TB
         SCHEMA["Canonical Schema & Versioning (v1)"]
         AGENTS["Agent Archetypes & Roles (Tier 0-3)"]
-        HOSTS["Host Profiles (Antigravity / Claude / Codex)"]
+        HOSTS["4 Canonical Host Profiles (antigravity / claude_code / codex / cursor)"]
         QUOTAS["Per-Validator Cognitive/Adversarial Quotas"]
         TESTS["Dynamic Test Runner & Ecosystem Discovery"]
         DOCKER["Docker Headless Capture & User Personas"]
@@ -72,7 +72,7 @@ export type RepoEcosystem = "bun" | "node" | "python" | "cargo" | "unknown";
 export type PackageManager =
   "bun" | "npm" | "pnpm" | "yarn" | "poetry" | "pipenv" | "pip" | "cargo" | "unknown";
 
-export type HostType = "antigravity" | "claude" | "codex" | "cursor" | "generic";
+export type HostType = "antigravity" | "claude_code" | "codex" | "cursor";
 export type ModelTier = "low" | "medium" | "high" | "xhigh";
 export type ThinkingEffort = "none" | "low" | "medium" | "high";
 
@@ -156,6 +156,9 @@ export interface PlanningPolicy {
   readonly min_tasks_per_complex_prompt: number;
   readonly max_files_per_task: number;
   readonly reject_shallow_umbrella_compression: boolean;
+  readonly max_task_duration_minutes: number;
+  readonly parallel_subagent_sla_rule: boolean;
+  readonly stage_on_subdomain_completion: boolean;
 }
 
 export interface ContainerConfig {
@@ -266,7 +269,10 @@ export const CURRENT_POLICY_SCHEMA_VERSION = 1;
     "enforce_edge_case_matrix": true,
     "min_tasks_per_complex_prompt": 6,
     "max_files_per_task": 2,
-    "reject_shallow_umbrella_compression": true
+    "reject_shallow_umbrella_compression": true,
+    "max_task_duration_minutes": 5,
+    "parallel_subagent_sla_rule": true,
+    "stage_on_subdomain_completion": true
   },
   "agents": {
     "mind_supervisor": {
@@ -279,39 +285,32 @@ export const CURRENT_POLICY_SCHEMA_VERSION = 1;
       },
       "hosts": {
         "antigravity": {
-          "model": "gemini-2.5-flash",
+          "model": "gemini-3.7-flash",
           "model_tier": "high",
           "thinking_effort": "high",
           "max_tokens": 8192,
           "scheduler": { "cron": "*/5 * * * *", "interval_seconds": 300, "enabled": true }
         },
-        "claude": {
-          "model": "claude-3-7-sonnet",
-          "model_tier": "high",
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
           "thinking_effort": "high",
-          "max_tokens": 4096,
+          "max_tokens": 8192,
           "scheduler": { "cron": "*/15 * * * *", "interval_seconds": 900, "enabled": true }
         },
         "codex": {
-          "model": "o3-mini",
-          "model_tier": "high",
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
           "thinking_effort": "high",
-          "max_tokens": 4096,
-          "scheduler": { "cron": "*/10 * * * *", "interval_seconds": 600, "enabled": true }
-        },
-        "cursor": {
-          "model": "claude-3-7-sonnet",
-          "model_tier": "high",
-          "thinking_effort": "high",
-          "max_tokens": 4096,
+          "max_tokens": 8192,
           "scheduler": { "cron": "*/15 * * * *", "interval_seconds": 900, "enabled": true }
         },
-        "generic": {
-          "model": "gpt-4o",
-          "model_tier": "medium",
-          "thinking_effort": "none",
-          "max_tokens": 4096,
-          "scheduler": { "cron": "*/10 * * * *", "interval_seconds": 600, "enabled": true }
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192,
+          "scheduler": { "cron": "*/5 * * * *", "interval_seconds": 300, "enabled": true }
         }
       }
     },
@@ -332,14 +331,25 @@ export const CURRENT_POLICY_SCHEMA_VERSION = 1;
       },
       "hosts": {
         "antigravity": {
-          "model": "gemini-2.5-flash",
+          "model": "gemini-3.7-flash",
           "model_tier": "high",
           "thinking_effort": "high"
         },
-        "claude": { "model": "claude-3-7-sonnet", "model_tier": "high", "thinking_effort": "high" },
-        "codex": { "model": "o3-mini", "model_tier": "high", "thinking_effort": "high" },
-        "cursor": { "model": "claude-3-7-sonnet", "model_tier": "high", "thinking_effort": "high" },
-        "generic": { "model": "gpt-4o", "model_tier": "medium", "thinking_effort": "none" }
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high"
+        },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high"
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high"
+        }
       }
     },
     "coordinator": {
@@ -365,22 +375,25 @@ export const CURRENT_POLICY_SCHEMA_VERSION = 1;
       },
       "hosts": {
         "antigravity": {
-          "model": "gemini-2.5-flash",
+          "model": "gemini-3.7-flash",
           "model_tier": "high",
-          "thinking_effort": "medium"
+          "thinking_effort": "high"
         },
-        "claude": {
-          "model": "claude-3-7-sonnet",
-          "model_tier": "high",
-          "thinking_effort": "medium"
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high"
         },
-        "codex": { "model": "o3-mini", "model_tier": "high", "thinking_effort": "medium" },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high"
+        },
         "cursor": {
-          "model": "claude-3-7-sonnet",
+          "model": "cursor-latest",
           "model_tier": "high",
-          "thinking_effort": "medium"
-        },
-        "generic": { "model": "gpt-4o", "model_tier": "medium", "thinking_effort": "none" }
+          "thinking_effort": "high"
+        }
       }
     },
     "implementer": {
@@ -405,14 +418,25 @@ export const CURRENT_POLICY_SCHEMA_VERSION = 1;
       },
       "hosts": {
         "antigravity": {
-          "model": "gemini-2.5-flash",
+          "model": "gemini-3.7-flash",
           "model_tier": "high",
           "thinking_effort": "high"
         },
-        "claude": { "model": "claude-3-7-sonnet", "model_tier": "high", "thinking_effort": "high" },
-        "codex": { "model": "o3-mini", "model_tier": "high", "thinking_effort": "high" },
-        "cursor": { "model": "claude-3-7-sonnet", "model_tier": "high", "thinking_effort": "high" },
-        "generic": { "model": "gpt-4o", "model_tier": "high", "thinking_effort": "none" }
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "high",
+          "thinking_effort": "high"
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "high",
+          "thinking_effort": "high"
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high"
+        }
       }
     },
     "validator_code_quality": {
@@ -430,14 +454,25 @@ export const CURRENT_POLICY_SCHEMA_VERSION = 1;
       },
       "hosts": {
         "antigravity": {
-          "model": "gemini-2.5-flash",
+          "model": "gemini-3.7-flash",
           "model_tier": "high",
           "thinking_effort": "high"
         },
-        "claude": { "model": "claude-3-7-sonnet", "model_tier": "high", "thinking_effort": "high" },
-        "codex": { "model": "o3-mini", "model_tier": "high", "thinking_effort": "high" },
-        "cursor": { "model": "claude-3-7-sonnet", "model_tier": "high", "thinking_effort": "high" },
-        "generic": { "model": "gpt-4o", "model_tier": "high", "thinking_effort": "none" }
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "high",
+          "thinking_effort": "high"
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "high",
+          "thinking_effort": "high"
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high"
+        }
       }
     },
     "validator_ui_design": {
@@ -455,14 +490,25 @@ export const CURRENT_POLICY_SCHEMA_VERSION = 1;
       },
       "hosts": {
         "antigravity": {
-          "model": "gemini-2.5-flash",
+          "model": "gemini-3.7-flash",
           "model_tier": "high",
           "thinking_effort": "high"
         },
-        "claude": { "model": "claude-3-7-sonnet", "model_tier": "high", "thinking_effort": "high" },
-        "codex": { "model": "o3-mini", "model_tier": "high", "thinking_effort": "high" },
-        "cursor": { "model": "claude-3-7-sonnet", "model_tier": "high", "thinking_effort": "high" },
-        "generic": { "model": "gpt-4o", "model_tier": "high", "thinking_effort": "none" }
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "high",
+          "thinking_effort": "high"
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "high",
+          "thinking_effort": "high"
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high"
+        }
       }
     },
     "owner": {
@@ -481,14 +527,25 @@ export const CURRENT_POLICY_SCHEMA_VERSION = 1;
       },
       "hosts": {
         "antigravity": {
-          "model": "gemini-2.5-flash",
+          "model": "gemini-3.7-flash",
           "model_tier": "high",
           "thinking_effort": "high"
         },
-        "claude": { "model": "claude-3-7-sonnet", "model_tier": "high", "thinking_effort": "high" },
-        "codex": { "model": "o3-mini", "model_tier": "high", "thinking_effort": "high" },
-        "cursor": { "model": "claude-3-7-sonnet", "model_tier": "high", "thinking_effort": "high" },
-        "generic": { "model": "gpt-4o", "model_tier": "high", "thinking_effort": "none" }
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high"
+        },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high"
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high"
+        }
       }
     }
   },
@@ -566,44 +623,68 @@ export const CURRENT_POLICY_SCHEMA_VERSION = 1;
 
 ## 3. Dynamic Host Auto-Detection & Adaptive Runtime Engine (`detectActiveHost()`)
 
-### 3.1 Host Detection Matrix & Heuristic Hierarchy
+### 3.1 4 Canonical Hosts (No Generic Fallback, No CLI vs IDE Split)
 
-The runtime auto-detection engine determines host context at startup without requiring explicit user flags or environment overrides.
+Both CLI and IDE versions of any tool share the exact same filesystem, execution logic, and agent definitions. OLT supports exactly **4 canonical hosts** with zero generic fallback:
+
+1. **`antigravity`**: Google Gemini runtime environment.
+2. **`claude_code`**: Anthropic Claude runtime environment.
+3. **`codex`**: OpenAI Codex runtime environment.
+4. **`cursor`**: Cursor IDE runtime environment.
+
+The runtime auto-detection engine determines the active canonical host at startup via deterministic heuristics without loose generic fallbacks:
 
 ```mermaid
 graph TD
     START["detectActiveHost() Invocation"] --> ENV_CHECK["1. Inspect Environment Variables"]
 
-    ENV_CHECK -->|ANTIGRAVITY_APP_DIR set / .gemini dir| DETECT_AGY["Host: antigravity (Gemini 2.5/3.7 Flash High)"]
-    ENV_CHECK -->|CLAUDE_PROJECT_DIR set / claude.json| DETECT_CLAUDE["Host: claude (Claude 3.7 Sonnet High)"]
-    ENV_CHECK -->|CODEX_RUNTIME set / codex context| DETECT_CODEX["Host: codex (o3-mini High)"]
-    ENV_CHECK -->|CURSOR_PROJECT_DIR / .cursor dir| DETECT_CURSOR["Host: cursor (Claude 3.7 Sonnet)"]
+    ENV_CHECK -->|ANTIGRAVITY_APP_DIR set / .gemini dir / GEMINI_CLI_HOME| DETECT_AGY["Host: antigravity (Gemini 3.7 Flash High)"]
+    ENV_CHECK -->|CLAUDE_PROJECT_DIR set / CLAUDE_CODE_ENTRY / claude.json| DETECT_CLAUDE["Host: claude_code (Claude 5 Opus / Claude 5 Sonnet)"]
+    ENV_CHECK -->|CODEX_RUNTIME set / CODEX_THREAD_ID| DETECT_CODEX["Host: codex (GPT-5.6 Sol / Terra)"]
+    ENV_CHECK -->|CURSOR_PROJECT_DIR set / CURSOR_TRACE_ID / .cursor dir| DETECT_CURSOR["Host: cursor (Cursor Latest Stable)"]
 
     ENV_CHECK -->|No definitive Env Var| TOOL_CHECK["2. Inspect Registered Runtime Tools"]
     TOOL_CHECK -->|call_mcp_tool & chrome-devtools present| DETECT_AGY
-    TOOL_CHECK -->|Staging Tool & Sonnet System Header| DETECT_CLAUDE
+    TOOL_CHECK -->|Staging Tool & Anthropic System Headers| DETECT_CLAUDE
     TOOL_CHECK -->|Collab Thread & Codex Proxy| DETECT_CODEX
+    TOOL_CHECK -->|Cursor Core IPC & Protocol Bridge| DETECT_CURSOR
 
-    TOOL_CHECK -->|No Match| FALLBACK["3. Default Fallback: generic (GPT-4o)"]
+    TOOL_CHECK -->|No Match| FAIL_CLOSE["3. Error: UNSUPPORTED_HOST_ENVIRONMENT (Fail-Closed)"]
 ```
 
 ### 3.2 Dynamic Prompt Injection, Token Budgeting & Thinking Allocation
 
 When an agent is initialized or briefed:
 
-1. `detectActiveHost()` resolves the active `HostType`.
-2. The agent's `hosts[activeHost]` configuration is loaded.
-3. The model name, thinking effort, max tokens, and scheduler cadence are dynamically injected into the agent's dispatch packet.
+1. `detectActiveHost()` resolves the active `HostType` (`"antigravity" | "claude_code" | "codex" | "cursor"`).
+2. The agent's `hosts[activeHost]` configuration is loaded from `.olt/policy.json`.
+3. The exact model, thinking effort (`high` across all hosts), max tokens, and scheduler cadence are dynamically bound to the dispatch packet.
 
-| Host             | Detected Model                        | Model Tier | Thinking Effort | Scheduler Cadence | Quota Rationale                                 |
-| ---------------- | ------------------------------------- | ---------- | --------------- | ----------------- | ----------------------------------------------- |
-| **Antigravity**  | `gemini-2.5-flash` / `gemini-3.7-pro` | `high`     | `high`          | 5 min (300s)      | Sub-second latency, generous request quotas     |
-| **Claude Code**  | `claude-3-7-sonnet`                   | `high`     | `high`          | 15 min (900s)     | Conserves strict hourly API request limits      |
-| **OpenAI Codex** | `o3-mini` / `gpt-5.6-sol`             | `high`     | `high`          | 10 min (600s)     | Balances reasoning depth with token rate bounds |
-| **Cursor**       | `claude-3-7-sonnet`                   | `high`     | `medium`        | 15 min (900s)     | Standard editor-integrated rate limits          |
-| **Generic**      | `gpt-4o`                              | `medium`   | `none`          | 10 min (600s)     | Universal default for standard API endpoints    |
+| Host                       | Planning / Orchestration / Coordination (Tier 0-2) | Implementation & Validation (Tier 3) | Thinking Effort | Default Scheduler Cadence | Quota & Architecture Rationale                                                                                                                                   |
+| :------------------------- | :------------------------------------------------- | :----------------------------------- | :-------------- | :------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`antigravity`**          | `gemini-3.7-flash`                                 | `gemini-3.7-flash`                   | `high`          | **5 min (300s)**          | Fast turnaround, sub-second latency, generous request quotas across all agent tiers.                                                                             |
+| **`claude_code`**          | `claude-5-opus`                                    | `claude-5-sonnet`                    | `high`          | **15 min (900s)**         | `claude-5-opus` provides deep architectural reasoning for Mind/Orchestrator/Coordinator; `claude-5-sonnet` provides high-throughput code editing and validation. |
+| **`codex`** (OpenAI Codex) | `gpt-5.6-sol`                                      | `gpt-5.6-terra`                      | `high`          | **15 min (900s)**         | `gpt-5.6-sol` provides strategic planning and orchestration; `gpt-5.6-terra` handles concrete implementation and verification.                                   |
+| **`cursor`**               | Cursor latest stable model                         | Cursor latest stable model           | `high`          | **5 min (300s)**          | Fast editor turnaround, native deep integration with local codebase index.                                                                                       |
 
-### 3.3 Real-Time SHA-256 Configuration Drift Watchdog & Fleet Re-Arming
+### 3.3 Sub-Domain Completion & Git Staging Safety Check
+
+In long-running long tasks (OLT), intermediate progress loss due to host, OS, container, or session termination is strictly prevented:
+
+- **Immediate Git Staging (`git add -A`)**: Whenever a subdomain, intermediate milestone, or task group completes (even before downstream dependent tasks finish or full PR push), all modified and created files must be immediately staged.
+- **Durable Object Database Snapshotting**: Staging records the state snapshot into Git's internal object database and reflog index, ensuring complete data recovery and zero loss under unexpected crashes or context resets.
+
+### 3.4 5-Minute Parallelization & Straggler SLA Rule
+
+To maintain operational velocity and prevent supervisor starvation:
+
+- **5-Minute Workload Ceiling**: Any task or work packet whose estimated execution time exceeds 5 minutes ($>300\text{s}$) MUST be divided into parallel subagents.
+- **Subagent Allocation Formula**: The number of parallel subagents $P$ is calculated as:
+  $$P = \left\lceil \frac{W}{S} \right\rceil$$
+  where $W$ is the total estimated workload (in minutes) and $S = 5\text{ minutes}$ is the maximum SLA turn budget.
+- **Straggler SLA Enforcement**: If any running subagent exceeds the 5-minute threshold without intermediate progress or subdomain staging, the supervising Coordinator splits remaining work units across additional subagents immediately.
+
+### 3.5 Real-Time SHA-256 Configuration Drift Watchdog & Fleet Re-Arming
 
 To eliminate stale scheduler runs when repository policies change:
 
@@ -867,6 +948,7 @@ gantt
 - **Drop-in Implementation Pattern:**
   ```typescript
   // olt/scripts/src/platform/host-autodetect.ts
+  import { HarnessError } from "../core/errors/index.ts";
   import type { HostType } from "../policy/types.ts";
 
   export function detectActiveHost(
@@ -876,7 +958,7 @@ gantt
       return "antigravity";
     }
     if (env["CLAUDE_PROJECT_DIR"] || env["CLAUDE_CODE_ENTRY"]) {
-      return "claude";
+      return "claude_code";
     }
     if (env["CODEX_RUNTIME"] || env["CODEX_THREAD_ID"]) {
       return "codex";
@@ -884,7 +966,10 @@ gantt
     if (env["CURSOR_PROJECT_DIR"] || env["CURSOR_TRACE_ID"]) {
       return "cursor";
     }
-    return "generic";
+    throw new HarnessError(
+      "UNSUPPORTED_HOST",
+      "Could not detect canonical host environment (zero generic fallback)",
+    );
   }
   ```
 - **Verification Gate (`run:exec`):**
@@ -892,7 +977,7 @@ gantt
   bun test tests/unit/platform/host-autodetect.test.ts
   ```
 - **Anti-Stub Gate Invariant:**
-  Must test all 5 host profiles across synthetic environment variable permutations and verify deterministic fallback to `generic`.
+  Must test all 4 canonical host profiles across synthetic environment variable permutations and verify strict fail-closed error throwing on unmapped environments.
 
 ---
 
@@ -912,7 +997,7 @@ gantt
   bun test tests/unit/authority/host-bindings.test.ts
   ```
 - **Anti-Stub Gate Invariant:**
-  Asserts that `agent:brief --role mind` outputs valid allowed policy commands and model bindings rather than `(None)`.
+  Asserts that `agent:brief --role mind` outputs valid allowed policy commands and model bindings (`claude-5-opus` / `gemini-3.7-flash` / `gpt-5.6-sol`) rather than `(None)`.
 
 ---
 
@@ -930,7 +1015,7 @@ gantt
   bun test tests/unit/scheduler/host-cadence.test.ts
   ```
 - **Anti-Stub Gate Invariant:**
-  Asserts that `mind_supervisor` returns 300s interval for `antigravity` and 900s interval for `claude` from the same policy instance.
+  Asserts that `mind_supervisor` returns 300s interval for `antigravity`/`cursor` and 900s interval for `claude_code`/`codex` from the same policy instance.
 
 ---
 
@@ -1086,3 +1171,9 @@ gantt
    - Multi-process concurrent reads and writes to `.olt/policy.json` protected by OS-level `flock` without race conditions or torn writes.
 5. **Universal Doctor Clean Bill of Health:**
    - `bun harness.ts doctor` passes with `Healthy: yes` across all check engines.
+6. **Sub-Domain Completion & Git Staging Safety Invariant:**
+   - In long-running tasks, whenever a subdomain or intermediate milestone completes, all modified files must immediately be staged (`git add -A`) into Git's object database/reflog prior to downstream execution to guarantee zero data loss.
+7. **5-Minute Parallelization & Straggler SLA Invariant:**
+   - Any task exceeding 5 minutes must be divided into parallel subagents ($P = \lceil W / S \rceil$, $S = 5\text{ minutes}$).
+8. **Strict 4-Host Canon Invariant:**
+   - Exactly 4 canonical hosts (`antigravity`, `claude_code`, `codex`, `cursor`) supported; unified CLI/IDE filesystem logic; 0 generic fallback.
