@@ -1,25 +1,44 @@
 import { randomBytes } from "node:crypto";
-import { DEFAULT_LEASE_DURATION_SECONDS, PRIORITY_WEIGHTS, resolveTaskQueuePath, type TaskQueueItem } from "./types.ts";
+import {
+  DEFAULT_LEASE_DURATION_SECONDS,
+  PRIORITY_WEIGHTS,
+  resolveTaskQueuePath,
+  type TaskQueueItem,
+} from "./types.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { withTaskQueueTransaction } from "./locks.ts";
 import { readTaskQueueFile, writeTaskQueueUnlocked } from "./storage.ts";
 import { pruneCompletedTasksUnlocked, reclaimExpiredLeasesUnlocked } from "./maintenance.ts";
 
-function findTask(queue: readonly TaskQueueItem[], taskId: string): { readonly task: TaskQueueItem; readonly index: number } {
+function findTask(
+  queue: readonly TaskQueueItem[],
+  taskId: string,
+): { readonly task: TaskQueueItem; readonly index: number } {
   const index = queue.findIndex((t) => t.id === taskId);
-  if (index === -1) throw new HarnessError("INVALID_ARGUMENT", `Task '${taskId}' not found in task queue`);
+  if (index === -1)
+    throw new HarnessError("INVALID_ARGUMENT", `Task '${taskId}' not found in task queue`);
   return { task: queue[index]!, index };
 }
 
-export function assertSingleActiveLease(tasks: readonly TaskQueueItem[], agentId: string, nowMs = Date.now()): void {
+export function assertSingleActiveLease(
+  tasks: readonly TaskQueueItem[],
+  agentId: string,
+  nowMs = Date.now(),
+): void {
   for (const task of tasks) {
     if (
-      (task.status === "IN_PROGRESS" || task.status === "RUNNING" || task.status === "VALIDATING") &&
-      task.lease && task.lease.agent_id === agentId
+      (task.status === "IN_PROGRESS" ||
+        task.status === "RUNNING" ||
+        task.status === "VALIDATING") &&
+      task.lease &&
+      task.lease.agent_id === agentId
     ) {
       const expMs = Date.parse(task.lease.expires_at);
       if (Number.isFinite(expMs) && expMs > nowMs) {
-        throw new HarnessError("INVALID_STATE", `Agent '${agentId}' already holds active lease on task '${task.id}'`);
+        throw new HarnessError(
+          "INVALID_STATE",
+          `Agent '${agentId}' already holds active lease on task '${task.id}'`,
+        );
       }
     }
   }
@@ -31,29 +50,47 @@ export function admitTaskUnlocked(
 ): TaskQueueItem {
   const queue = readTaskQueueFile(filePath);
   const { task, index } = findTask(queue, params.taskId);
-  if (task.status === "COMPLETED") throw new HarnessError("INVALID_STATE", `Cannot admit task '${task.id}': already COMPLETED`);
+  if (task.status === "COMPLETED")
+    throw new HarnessError("INVALID_STATE", `Cannot admit task '${task.id}': already COMPLETED`);
   if (task.status === "FAILED" || task.status === "ESCALATED") {
-    throw new HarnessError("INVALID_STATE", `Cannot admit task '${task.id}': task has status ${task.status}`);
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Cannot admit task '${task.id}': task has status ${task.status}`,
+    );
   }
   const nowIso = params.nowIso ?? new Date().toISOString();
   const admittedTask: TaskQueueItem = {
     ...task,
     status: task.blocked_by.length > 0 ? "BLOCKED" : "ADMITTED",
     updated_at: nowIso,
-    metadata: { ...(task.metadata ?? {}), ...(params.admittedBy ? { admitted_by: params.admittedBy } : {}), admitted_at: nowIso },
+    metadata: {
+      ...(task.metadata ?? {}),
+      ...(params.admittedBy ? { admitted_by: params.admittedBy } : {}),
+      admitted_at: nowIso,
+    },
   };
   queue[index] = admittedTask;
   writeTaskQueueUnlocked(queue, filePath);
   return admittedTask;
 }
 
-export function admitTask(params: { readonly taskId: string; readonly admittedBy?: string; readonly customPath?: string; readonly nowIso?: string }): TaskQueueItem {
+export function admitTask(params: {
+  readonly taskId: string;
+  readonly admittedBy?: string;
+  readonly customPath?: string;
+  readonly nowIso?: string;
+}): TaskQueueItem {
   const p = resolveTaskQueuePath(params.customPath);
   return withTaskQueueTransaction(p, () => admitTaskUnlocked(params, p));
 }
 
 export function claimTaskLeaseUnlocked(
-  params: { readonly taskId: string; readonly agentId: string; readonly durationSeconds?: number; readonly nowIso?: string },
+  params: {
+    readonly taskId: string;
+    readonly agentId: string;
+    readonly durationSeconds?: number;
+    readonly nowIso?: string;
+  },
   filePath: string,
 ): { readonly task: TaskQueueItem; readonly leaseToken: string } {
   const queue = readTaskQueueFile(filePath);
@@ -62,15 +99,26 @@ export function claimTaskLeaseUnlocked(
   const { task, index } = findTask(queue, params.taskId);
   const nowIso = params.nowIso ?? new Date(nowMs).toISOString();
 
-  if (task.status === "COMPLETED") throw new HarnessError("INVALID_STATE", `Cannot claim task '${task.id}': already COMPLETED`);
-  if (task.status === "BLOCKED") throw new HarnessError("INVALID_STATE", `Cannot claim task '${task.id}': task is BLOCKED by [${task.blocked_by.join(", ")}]`);
+  if (task.status === "COMPLETED")
+    throw new HarnessError("INVALID_STATE", `Cannot claim task '${task.id}': already COMPLETED`);
+  if (task.status === "BLOCKED")
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Cannot claim task '${task.id}': task is BLOCKED by [${task.blocked_by.join(", ")}]`,
+    );
   if (task.status === "FAILED" || task.status === "ESCALATED") {
-    throw new HarnessError("INVALID_STATE", `Cannot claim task '${task.id}': task has status ${task.status} (${task.error_message ?? "no error note"})`);
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Cannot claim task '${task.id}': task has status ${task.status} (${task.error_message ?? "no error note"})`,
+    );
   }
   if ((task.status === "IN_PROGRESS" || task.status === "RUNNING") && task.lease) {
     const exp = Date.parse(task.lease.expires_at);
     if (Number.isFinite(exp) && exp > nowMs && task.lease.agent_id !== params.agentId) {
-      throw new HarnessError("INVALID_STATE", `Task '${task.id}' is actively leased to agent '${task.lease.agent_id}' until ${task.lease.expires_at}`);
+      throw new HarnessError(
+        "INVALID_STATE",
+        `Task '${task.id}' is actively leased to agent '${task.lease.agent_id}' until ${task.lease.expires_at}`,
+      );
     }
   }
 
@@ -79,7 +127,14 @@ export function claimTaskLeaseUnlocked(
   const leasedTask: TaskQueueItem = {
     ...task,
     status: "IN_PROGRESS",
-    lease: { agent_id: params.agentId, leased_at: nowIso, expires_at: new Date(nowMs + durationSec * 1000).toISOString(), attempt: (task.lease?.attempt ?? 0) + 1, lease_duration_seconds: durationSec, token },
+    lease: {
+      agent_id: params.agentId,
+      leased_at: nowIso,
+      expires_at: new Date(nowMs + durationSec * 1000).toISOString(),
+      attempt: (task.lease?.attempt ?? 0) + 1,
+      lease_duration_seconds: durationSec,
+      token,
+    },
     started_at: task.started_at ?? nowIso,
     updated_at: nowIso,
   };
@@ -88,7 +143,13 @@ export function claimTaskLeaseUnlocked(
   return { task: leasedTask, leaseToken: token };
 }
 
-export function claimTaskLease(params: { readonly taskId: string; readonly agentId: string; readonly durationSeconds?: number; readonly customPath?: string; readonly nowIso?: string }): { readonly task: TaskQueueItem; readonly leaseToken: string } {
+export function claimTaskLease(params: {
+  readonly taskId: string;
+  readonly agentId: string;
+  readonly durationSeconds?: number;
+  readonly customPath?: string;
+  readonly nowIso?: string;
+}): { readonly task: TaskQueueItem; readonly leaseToken: string } {
   const p = resolveTaskQueuePath(params.customPath);
   return withTaskQueueTransaction(p, () => claimTaskLeaseUnlocked(params, p));
 }
@@ -111,7 +172,11 @@ export function popNextEligibleTaskUnlocked(
     return true;
   });
   if (eligible.length === 0) return null;
-  eligible.sort((a, b) => (PRIORITY_WEIGHTS[b.priority] - PRIORITY_WEIGHTS[a.priority]) || a.created_at.localeCompare(b.created_at));
+  eligible.sort(
+    (a, b) =>
+      PRIORITY_WEIGHTS[b.priority] - PRIORITY_WEIGHTS[a.priority] ||
+      a.created_at.localeCompare(b.created_at),
+  );
   return claimTaskLeaseUnlocked(
     {
       taskId: eligible[0]!.id,
@@ -123,7 +188,12 @@ export function popNextEligibleTaskUnlocked(
   );
 }
 
-export function popNextEligibleTask(params: { readonly agentId: string; readonly durationSeconds?: number; readonly customPath?: string; readonly nowIso?: string }): { readonly task: TaskQueueItem; readonly leaseToken: string } | null {
+export function popNextEligibleTask(params: {
+  readonly agentId: string;
+  readonly durationSeconds?: number;
+  readonly customPath?: string;
+  readonly nowIso?: string;
+}): { readonly task: TaskQueueItem; readonly leaseToken: string } | null {
   const p = resolveTaskQueuePath(params.customPath);
   return withTaskQueueTransaction(p, () => popNextEligibleTaskUnlocked(params, p));
 }
@@ -134,14 +204,23 @@ export function popNextEligibleTaskWithCleanup(params: {
   readonly customPath?: string;
   readonly completedTasksPath?: string;
   readonly nowIso?: string;
-}): { readonly task: TaskQueueItem; readonly leaseToken: string; readonly prunedCount: number } | null {
+}): {
+  readonly task: TaskQueueItem;
+  readonly leaseToken: string;
+  readonly prunedCount: number;
+} | null {
   const filePath = resolveTaskQueuePath(params.customPath);
   return withTaskQueueTransaction(filePath, () => {
-    const pruneRes = pruneCompletedTasksUnlocked({ completedTasksPath: params.completedTasksPath, autoArchive: true }, filePath);
+    const pruneRes = pruneCompletedTasksUnlocked(
+      { completedTasksPath: params.completedTasksPath, autoArchive: true },
+      filePath,
+    );
     const popped = popNextEligibleTaskUnlocked(
       {
         agentId: params.agentId,
-        ...(params.durationSeconds !== undefined ? { durationSeconds: params.durationSeconds } : {}),
+        ...(params.durationSeconds !== undefined
+          ? { durationSeconds: params.durationSeconds }
+          : {}),
         ...(params.nowIso !== undefined ? { nowIso: params.nowIso } : {}),
       },
       filePath,
@@ -170,20 +249,34 @@ export function dequeueTask(
 }
 
 export function renewTaskLeaseUnlocked(
-  params: { readonly taskId: string; readonly agentId: string; readonly leaseToken: string; readonly extensionSeconds?: number; readonly nowIso?: string },
+  params: {
+    readonly taskId: string;
+    readonly agentId: string;
+    readonly leaseToken: string;
+    readonly extensionSeconds?: number;
+    readonly nowIso?: string;
+  },
   filePath: string,
 ): TaskQueueItem {
   const queue = readTaskQueueFile(filePath);
   const { task, index } = findTask(queue, params.taskId);
-  if (!task.lease) throw new HarnessError("INVALID_STATE", `Task '${task.id}' does not have an active lease`);
+  if (!task.lease)
+    throw new HarnessError("INVALID_STATE", `Task '${task.id}' does not have an active lease`);
   if (task.lease.token !== params.leaseToken || task.lease.agent_id !== params.agentId) {
-    throw new HarnessError("INVALID_STATE", `Invalid lease token or agent mismatch for task '${task.id}'`);
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Invalid lease token or agent mismatch for task '${task.id}'`,
+    );
   }
   const nowMs = params.nowIso ? Date.parse(params.nowIso) : Date.now();
   const extSeconds = params.extensionSeconds ?? DEFAULT_LEASE_DURATION_SECONDS;
   const renewedTask: TaskQueueItem = {
     ...task,
-    lease: { ...task.lease, expires_at: new Date(nowMs + extSeconds * 1000).toISOString(), lease_duration_seconds: extSeconds },
+    lease: {
+      ...task.lease,
+      expires_at: new Date(nowMs + extSeconds * 1000).toISOString(),
+      lease_duration_seconds: extSeconds,
+    },
     updated_at: params.nowIso ?? new Date(nowMs).toISOString(),
   };
   queue[index] = renewedTask;
@@ -191,48 +284,97 @@ export function renewTaskLeaseUnlocked(
   return renewedTask;
 }
 
-export function renewTaskLease(params: { readonly taskId: string; readonly agentId: string; readonly leaseToken: string; readonly extensionSeconds?: number; readonly customPath?: string; readonly nowIso?: string }): TaskQueueItem {
+export function renewTaskLease(params: {
+  readonly taskId: string;
+  readonly agentId: string;
+  readonly leaseToken: string;
+  readonly extensionSeconds?: number;
+  readonly customPath?: string;
+  readonly nowIso?: string;
+}): TaskQueueItem {
   const p = resolveTaskQueuePath(params.customPath);
   return withTaskQueueTransaction(p, () => renewTaskLeaseUnlocked(params, p));
 }
 
 export function releaseTaskLeaseUnlocked(
-  params: { readonly taskId: string; readonly agentId: string; readonly leaseToken?: string; readonly nowIso?: string },
+  params: {
+    readonly taskId: string;
+    readonly agentId: string;
+    readonly leaseToken?: string;
+    readonly nowIso?: string;
+  },
   filePath: string,
 ): TaskQueueItem {
   const queue = readTaskQueueFile(filePath);
   const { task, index } = findTask(queue, params.taskId);
   if (task.lease) {
-    if (params.leaseToken && task.lease.token !== params.leaseToken) throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
-    if (task.lease.agent_id !== params.agentId) throw new HarnessError("INVALID_STATE", `Agent '${params.agentId}' does not hold lease for task '${task.id}'`);
+    if (params.leaseToken && task.lease.token !== params.leaseToken)
+      throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
+    if (task.lease.agent_id !== params.agentId)
+      throw new HarnessError(
+        "INVALID_STATE",
+        `Agent '${params.agentId}' does not hold lease for task '${task.id}'`,
+      );
   }
-  const releasedTask: TaskQueueItem = { ...task, status: "PENDING", lease: null, updated_at: params.nowIso ?? new Date().toISOString() };
+  const releasedTask: TaskQueueItem = {
+    ...task,
+    status: "PENDING",
+    lease: null,
+    updated_at: params.nowIso ?? new Date().toISOString(),
+  };
   queue[index] = releasedTask;
   writeTaskQueueUnlocked(queue, filePath);
   return releasedTask;
 }
 
-export function releaseTaskLease(params: { readonly taskId: string; readonly agentId: string; readonly leaseToken?: string; readonly customPath?: string; readonly nowIso?: string }): TaskQueueItem {
+export function releaseTaskLease(params: {
+  readonly taskId: string;
+  readonly agentId: string;
+  readonly leaseToken?: string;
+  readonly customPath?: string;
+  readonly nowIso?: string;
+}): TaskQueueItem {
   const p = resolveTaskQueuePath(params.customPath);
   return withTaskQueueTransaction(p, () => releaseTaskLeaseUnlocked(params, p));
 }
 
 export function startTaskValidationUnlocked(
-  params: { readonly taskId: string; readonly agentId?: string; readonly leaseToken?: string; readonly nowIso?: string },
+  params: {
+    readonly taskId: string;
+    readonly agentId?: string;
+    readonly leaseToken?: string;
+    readonly nowIso?: string;
+  },
   filePath: string,
 ): TaskQueueItem {
   const queue = readTaskQueueFile(filePath);
   const { task, index } = findTask(queue, params.taskId);
-  if (task.status === "COMPLETED") throw new HarnessError("INVALID_STATE", `Cannot validate task '${task.id}': already COMPLETED`);
-  if (params.leaseToken && task.lease && task.lease.token !== params.leaseToken) throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
-  if (params.agentId && task.lease && task.lease.agent_id !== params.agentId) throw new HarnessError("INVALID_STATE", `Agent mismatch for task '${task.id}': leased to '${task.lease.agent_id}'`);
-  const validatingTask: TaskQueueItem = { ...task, status: "VALIDATING", updated_at: params.nowIso ?? new Date().toISOString() };
+  if (task.status === "COMPLETED")
+    throw new HarnessError("INVALID_STATE", `Cannot validate task '${task.id}': already COMPLETED`);
+  if (params.leaseToken && task.lease && task.lease.token !== params.leaseToken)
+    throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
+  if (params.agentId && task.lease && task.lease.agent_id !== params.agentId)
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Agent mismatch for task '${task.id}': leased to '${task.lease.agent_id}'`,
+    );
+  const validatingTask: TaskQueueItem = {
+    ...task,
+    status: "VALIDATING",
+    updated_at: params.nowIso ?? new Date().toISOString(),
+  };
   queue[index] = validatingTask;
   writeTaskQueueUnlocked(queue, filePath);
   return validatingTask;
 }
 
-export function startTaskValidation(params: { readonly taskId: string; readonly agentId?: string; readonly leaseToken?: string; readonly customPath?: string; readonly nowIso?: string }): TaskQueueItem {
+export function startTaskValidation(params: {
+  readonly taskId: string;
+  readonly agentId?: string;
+  readonly leaseToken?: string;
+  readonly customPath?: string;
+  readonly nowIso?: string;
+}): TaskQueueItem {
   const p = resolveTaskQueuePath(params.customPath);
   return withTaskQueueTransaction(p, () => startTaskValidationUnlocked(params, p));
 }

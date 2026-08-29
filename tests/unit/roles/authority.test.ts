@@ -29,9 +29,7 @@ describe("Roles authority invariants enforcement", () => {
       ]),
     ).not.toThrow();
 
-    expect(() =>
-      validateRoleAuthorityInvariants("validator", "adversarial", []),
-    ).not.toThrow();
+    expect(() => validateRoleAuthorityInvariants("validator", "adversarial", [])).not.toThrow();
   });
 
   test("throws ROLE_CONFINEMENT_VIOLATION when validator is granted mutating commands", () => {

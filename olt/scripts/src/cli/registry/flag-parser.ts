@@ -16,13 +16,17 @@ function resolveAllowedNames(flags: readonly FlagSpec[]): Set<string> {
   return allowed;
 }
 
-function parseTokens(argv: readonly string[], spec: CommandSpec): {
+function parseTokens(
+  argv: readonly string[],
+  spec: CommandSpec,
+): {
   flags: Record<string, (string | true)[]>;
   remainder: string[];
 } {
-  const tokens = argv.length > 0 && (argv[0] === spec.name || spec.aliases.includes(argv[0]!))
-    ? argv.slice(1)
-    : argv;
+  const tokens =
+    argv.length > 0 && (argv[0] === spec.name || spec.aliases.includes(argv[0]!))
+      ? argv.slice(1)
+      : argv;
   const flagMap: Record<string, (string | true)[]> = {};
   const remainder: string[] = [];
   const allowed = resolveAllowedNames(spec.flags);
@@ -65,7 +69,12 @@ function parseTokens(argv: readonly string[], spec: CommandSpec): {
     }
     const existing = flagMap[name];
     if (existing !== undefined) {
-      const specFlag = spec.flags.find((f) => f.name === name || (name === "run-id" && f.name === "run") || (name === "task-id" && f.name === "task"));
+      const specFlag = spec.flags.find(
+        (f) =>
+          f.name === name ||
+          (name === "run-id" && f.name === "run") ||
+          (name === "task-id" && f.name === "task"),
+      );
       if (specFlag && !specFlag.repeatable) {
         throw new HarnessError("INVALID_ARGUMENT", `duplicate option: --${name}`);
       }
@@ -76,10 +85,7 @@ function parseTokens(argv: readonly string[], spec: CommandSpec): {
   }
 
   if (!spec.takesRemainder && remainder.length > 0) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `command ${spec.name} does not accept -- arguments`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `command ${spec.name} does not accept -- arguments`);
   }
 
   return { flags: flagMap, remainder };

@@ -125,10 +125,7 @@ describe("Backlog Clusterer Engine & Cluster DAG Verification", () => {
     expect(loadedItems[1]!.id).toBe("b2");
 
     const defectsFile = join(testDir, "defects.jsonl");
-    writeFileSync(
-      defectsFile,
-      '{"id":"d1","title":"Defect 1"}\n{"id":"d2","title":"Defect 2"}\n',
-    );
+    writeFileSync(defectsFile, '{"id":"d1","title":"Defect 1"}\n{"id":"d2","title":"Defect 2"}\n');
     const loadedDefects = loadDefectItems(defectsFile);
     expect(loadedDefects.length).toBe(2);
   });

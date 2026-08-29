@@ -28,10 +28,7 @@ export interface DefectListResult extends Record<string, unknown> {
   readonly count: number;
 }
 
-export function defectRecordCommand(
-  flags: Flags,
-  context?: CommandContext,
-): DefectRecordResult {
+export function defectRecordCommand(flags: Flags, context?: CommandContext): DefectRecordResult {
   const filePath = textFlag(flags, "file", false) ?? textFlag(flags, "path", false);
   const directContent =
     textFlag(flags, "content", false) ??
@@ -41,9 +38,13 @@ export function defectRecordCommand(
   const maxEntries = integerFlag(flags, "max-entries") ?? integerFlag(flags, "limit");
   const maxOccurrences = integerFlag(flags, "max-occurrences");
   const strategyFlag = textFlag(flags, "strategy", false);
-  const strategy = strategyFlag === "exact_dedup" || strategyFlag === "windowed" || strategyFlag === "sliding_window_hash" || strategyFlag === "aggregate_synchronous"
-    ? strategyFlag
-    : undefined;
+  const strategy =
+    strategyFlag === "exact_dedup" ||
+    strategyFlag === "windowed" ||
+    strategyFlag === "sliding_window_hash" ||
+    strategyFlag === "aggregate_synchronous"
+      ? strategyFlag
+      : undefined;
 
   let rawContent = "";
   if (filePath && existsSync(filePath)) {
@@ -73,10 +74,7 @@ export function defectRecordCommand(
   };
 }
 
-export function defectResolveCommand(
-  flags: Flags,
-  _context?: CommandContext,
-): DefectResolveResult {
+export function defectResolveCommand(flags: Flags, _context?: CommandContext): DefectResolveResult {
   const defectRaw = textFlag(flags, "defect", false) ?? textFlag(flags, "defect-json", false);
   const filePath = textFlag(flags, "file", false) ?? textFlag(flags, "path", false);
   const taskId = textFlag(flags, "task-id", false) ?? textFlag(flags, "task", true)!;
@@ -125,15 +123,16 @@ export function defectResolveCommand(
   };
 }
 
-export function defectListCommand(
-  flags: Flags,
-  _context?: CommandContext,
-): DefectListResult {
+export function defectListCommand(flags: Flags, _context?: CommandContext): DefectListResult {
   const filePath = textFlag(flags, "file", false) ?? textFlag(flags, "path", false);
   const directContent = textFlag(flags, "content", false) ?? textFlag(flags, "jsonl", false);
   const capsuleRoot = textFlag(flags, "capsule-root", false) ?? textFlag(flags, "run", false);
-  const filterStatus = (textFlag(flags, "filter-status", false) ?? textFlag(flags, "status", false))?.toLowerCase();
-  const filterCategory = (textFlag(flags, "filter-category", false) ?? textFlag(flags, "category", false))?.toLowerCase();
+  const filterStatus = (
+    textFlag(flags, "filter-status", false) ?? textFlag(flags, "status", false)
+  )?.toLowerCase();
+  const filterCategory = (
+    textFlag(flags, "filter-category", false) ?? textFlag(flags, "category", false)
+  )?.toLowerCase();
   const limit = integerFlag(flags, "limit") ?? integerFlag(flags, "max-entries");
 
   let rawContent = "";

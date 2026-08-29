@@ -1,28 +1,60 @@
 import { randomUUID } from "node:crypto";
 import {
-  closeSync, constants, existsSync, fsyncSync, lstatSync, openSync, renameSync, rmSync, writeSync,
+  closeSync,
+  constants,
+  existsSync,
+  fsyncSync,
+  lstatSync,
+  openSync,
+  renameSync,
+  rmSync,
+  writeSync,
 } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../core/errors/index.ts";
 import {
-  DEFAULT_PLANNING_POLICY, DEFAULT_REVIEW_PROTOCOL_POLICY, detectRepoEcosystem,
-  generateCanonicalDefaultPolicy, generateDefaultRepoPolicy,
+  DEFAULT_PLANNING_POLICY,
+  DEFAULT_REVIEW_PROTOCOL_POLICY,
+  detectRepoEcosystem,
+  generateCanonicalDefaultPolicy,
+  generateDefaultRepoPolicy,
 } from "./generator/index.ts";
 import {
-  assertOwnedPrivateFile, checkExistingDir, ensureDir, readVerifiedFile, reqNoFollow,
-  resolvePolicyLocation, safeMsg, withLock, type Location, type RepoPolicyReadDependencies,
+  assertOwnedPrivateFile,
+  checkExistingDir,
+  ensureDir,
+  readVerifiedFile,
+  reqNoFollow,
+  resolvePolicyLocation,
+  safeMsg,
+  withLock,
+  type Location,
+  type RepoPolicyReadDependencies,
 } from "./io-safety.ts";
 import { parseRepoPolicy, validateRepoPolicy } from "./schema/index.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
-  type PlanningPolicy, type RepoEcosystem, type RepoPolicy, type ReviewProtocolPolicy, type TestRunnerPolicy,
+  type PlanningPolicy,
+  type RepoEcosystem,
+  type RepoPolicy,
+  type ReviewProtocolPolicy,
+  type TestRunnerPolicy,
 } from "./types/index.ts";
 
 export {
-  CURRENT_POLICY_SCHEMA_VERSION, DEFAULT_PLANNING_POLICY, DEFAULT_REVIEW_PROTOCOL_POLICY,
-  detectRepoEcosystem, generateCanonicalDefaultPolicy, generateDefaultRepoPolicy, validateRepoPolicy,
-  type PlanningPolicy, type RepoEcosystem, type RepoPolicy, type RepoPolicyReadDependencies,
-  type ReviewProtocolPolicy, type TestRunnerPolicy,
+  CURRENT_POLICY_SCHEMA_VERSION,
+  DEFAULT_PLANNING_POLICY,
+  DEFAULT_REVIEW_PROTOCOL_POLICY,
+  detectRepoEcosystem,
+  generateCanonicalDefaultPolicy,
+  generateDefaultRepoPolicy,
+  validateRepoPolicy,
+  type PlanningPolicy,
+  type RepoEcosystem,
+  type RepoPolicy,
+  type RepoPolicyReadDependencies,
+  type ReviewProtocolPolicy,
+  type TestRunnerPolicy,
 };
 
 export interface PolicyInspectionResult {
@@ -86,7 +118,12 @@ export function inspectRepoPolicy(
     const parsed = parseRepoPolicy(JSON.parse(raw) as unknown);
     const prov = parsed.provenance !== undefined ? parsed.provenance : "explicit_custom";
     const policy = { ...parsed, provenance: prov };
-    return { status: "valid_custom", policy, filePath: loc.filePath, provenance: "explicit_custom" };
+    return {
+      status: "valid_custom",
+      policy,
+      filePath: loc.filePath,
+      provenance: "explicit_custom",
+    };
   } catch (err) {
     return {
       status: "invalid_custom",
@@ -106,7 +143,10 @@ export function loadRepoPolicy(
   const res = inspectRepoPolicy(repoRoot, customPath, deps);
   if (res.status === "invalid_custom") {
     const errText = res.error !== undefined ? res.error : "unknown error";
-    throw new HarnessError("INTEGRITY", `Repository policy at '${res.filePath}' is invalid: ${errText}`);
+    throw new HarnessError(
+      "INTEGRITY",
+      `Repository policy at '${res.filePath}' is invalid: ${errText}`,
+    );
   }
   return res.policy;
 }
@@ -128,14 +168,14 @@ export function saveRepoPolicy(
   const syncDir =
     deps.fsyncDirectory !== undefined
       ? deps.fsyncDirectory
-      : ((p: string) => {
+      : (p: string) => {
           const fd = openSync(p, constants.O_RDONLY | dirFlag | reqNoFollow());
           try {
             fsyncSync(fd);
           } finally {
             closeSync(fd);
           }
-        });
+        };
 
   const serialized = JSON.stringify(validated, null, 2) + "\n";
   const bytes = Buffer.from(serialized, "utf8");
@@ -143,19 +183,32 @@ export function saveRepoPolicy(
   return withLock(loc, () => {
     ensureDir(loc.root, loc.parent);
     if (existsSync(loc.filePath)) assertOwnedPrivateFile(lstatSync(loc.filePath), loc.filePath);
-    const tmp = join(loc.parent, `.${loc.filePath.slice(loc.parent.length + 1)}.${randomUUID()}.tmp`);
+    const tmp = join(
+      loc.parent,
+      `.${loc.filePath.slice(loc.parent.length + 1)}.${randomUUID()}.tmp`,
+    );
     let fd: number | undefined;
     let renamed = false;
     try {
-      fd = open(tmp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | reqNoFollow(), 0o600);
+      fd = open(
+        tmp,
+        constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | reqNoFollow(),
+        0o600,
+      );
       let offset = 0;
       while (offset < bytes.byteLength) {
         const written = write(fd, bytes, offset, bytes.byteLength - offset);
         if (written <= 0) {
-          throw new HarnessError("INTEGRITY", `Repository policy write made no progress: ${loc.filePath}`);
+          throw new HarnessError(
+            "INTEGRITY",
+            `Repository policy write made no progress: ${loc.filePath}`,
+          );
         }
         if (written > bytes.byteLength - offset) {
-          throw new HarnessError("INTEGRITY", `Repository policy write made no progress: ${loc.filePath}`);
+          throw new HarnessError(
+            "INTEGRITY",
+            `Repository policy write made no progress: ${loc.filePath}`,
+          );
         }
         offset += written;
       }
@@ -173,7 +226,10 @@ export function saveRepoPolicy(
     } catch (err) {
       const isUncertain = renamed ? true : !existsSync(tmp);
       if (isUncertain) {
-        throw new HarnessError("INTEGRITY", `Repository policy write outcome is uncertain after rename: ${loc.filePath}: ${safeMsg(err)}`);
+        throw new HarnessError(
+          "INTEGRITY",
+          `Repository policy write outcome is uncertain after rename: ${loc.filePath}: ${safeMsg(err)}`,
+        );
       }
       throw err;
     } finally {

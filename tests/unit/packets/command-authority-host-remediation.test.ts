@@ -130,7 +130,9 @@ describe("hierarchical spawning host remediation", () => {
     const agResult = validateHierarchicalSpawning("orchestrator", "implementer", "antigravity");
     expect(agResult.valid).toBe(false);
     expect(agResult.remediation).toContain("Antigravity");
-    expect(agResult.remediation).toContain("Tier 1 Orchestrator must dispatch a Tier 2 Coordinator");
+    expect(agResult.remediation).toContain(
+      "Tier 1 Orchestrator must dispatch a Tier 2 Coordinator",
+    );
     expect(agResult.remediation).toContain("invoke_subagent");
   });
 

@@ -1,5 +1,6 @@
 export const ERROR_CODES = [
   "AUTHENTICATION_FAILURE",
+  "CAPACITY_EXCEEDED",
   "INTEGRITY",
   "INVALID_ARGUMENT",
   "INVALID_STATE",
@@ -14,3 +15,4 @@ export const ERROR_CODES = [
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
+export type HarnessErrorCode = ErrorCode;

@@ -26,10 +26,10 @@ describe("Epistemic Mathematical Functions & Vector Computation", () => {
 
   test("calculateEpistemicGrade assigns correct discrete grades", () => {
     expect(calculateEpistemicGrade(0.95)).toBe("VERY_HIGH");
-    expect(calculateEpistemicGrade(0.80)).toBe("HIGH");
+    expect(calculateEpistemicGrade(0.8)).toBe("HIGH");
     expect(calculateEpistemicGrade(0.65)).toBe("MEDIUM");
     expect(calculateEpistemicGrade(0.45)).toBe("LOW");
-    expect(calculateEpistemicGrade(0.20)).toBe("VERY_LOW");
+    expect(calculateEpistemicGrade(0.2)).toBe("VERY_LOW");
   });
 
   test("computeEpistemicEntropy calculates Shannon entropy", () => {
@@ -66,7 +66,7 @@ describe("Epistemic Confidence Evaluator", () => {
       falsifiableGateCount: 4,
       totalGateCount: 4,
       historicalStability: 0.95,
-      testCoverageRatio: 0.90,
+      testCoverageRatio: 0.9,
     };
 
     const verdict = evaluateEpistemicConfidence(input);
@@ -128,7 +128,7 @@ describe("Epistemic Confidence Evaluator", () => {
 
     const customWeights = {
       ...DEFAULT_EPISTEMIC_WEIGHTS,
-      empirical: 0.90,
+      empirical: 0.9,
       coherence: 0.025,
       falsifiability: 0.025,
       stability: 0.025,
@@ -137,7 +137,7 @@ describe("Epistemic Confidence Evaluator", () => {
 
     const verdict = evaluateEpistemicConfidence(input, {
       weights: customWeights,
-      threshold: 0.80,
+      threshold: 0.8,
     });
     expect(verdict.passed).toBe(false);
   });
@@ -161,7 +161,7 @@ describe("Doctor Epistemic Engine (checkEpistemicConfidence)", () => {
         historicalStability: 0.1,
         testCoverageRatio: 0.0,
       },
-      threshold: 0.70,
+      threshold: 0.7,
     };
 
     const result = checkEpistemicConfidence(options);

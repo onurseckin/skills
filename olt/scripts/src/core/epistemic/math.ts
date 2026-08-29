@@ -29,7 +29,11 @@ export function computeWeightedEpistemicScore(
   weights: EpistemicWeights = DEFAULT_EPISTEMIC_WEIGHTS,
 ): number {
   const totalWeight =
-    weights.empirical + weights.coherence + weights.falsifiability + weights.stability + weights.coverage;
+    weights.empirical +
+    weights.coherence +
+    weights.falsifiability +
+    weights.stability +
+    weights.coverage;
   if (totalWeight <= 0) return 0;
 
   const rawScore =
@@ -109,11 +113,12 @@ export function computeWilsonScoreInterval(
 }
 
 function deriveConfidenceLevel(score: number, total: number): EpistemicConfidenceLevel {
-  if (total === 0 || score <= 0) return "UNGROUNDED";
-  if (score >= 0.9 && total >= 20) return "CERTAIN";
+  if (total === 0) return "UNGROUNDED";
+  if (score <= 0) return "SPECULATIVE";
+  if (score >= 0.82 && total >= 20) return "CERTAIN";
   if (score >= 0.75) return "HIGH_CONFIDENCE";
-  if (score >= 0.55) return "MODERATE_CONFIDENCE";
-  if (score >= 0.35) return "LOW_CONFIDENCE";
+  if (score >= 0.5) return "MODERATE_CONFIDENCE";
+  if (score >= 0.05) return "LOW_CONFIDENCE";
   return "SPECULATIVE";
 }
 

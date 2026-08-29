@@ -1,5 +1,7 @@
 export type TierType = "tier1_cli_command" | "tier2_local_storage" | "tier3_runtime";
 
+export type WindowType = "5_hour" | "weekly" | "session" | string;
+
 export type ConfidenceLevel =
   | "verified_exact"
   | "cached"
@@ -11,7 +13,7 @@ export type ConfidenceLevel =
 export interface NormalizedQuotaMetric {
   rawMetricName: string;
   canonicalProvider: string;
-  windowType: string;
+  windowType: WindowType;
   remainingPercentage: number | null;
   sourceTier: TierType;
   confidence: ConfidenceLevel;

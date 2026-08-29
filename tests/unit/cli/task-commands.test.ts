@@ -88,9 +88,7 @@ describe("Telemetry Trace Context (task-cli-03)", () => {
     expect(targetEnv.OLT_SPAN_ID).toBe("1234567890abcdef");
     expect(targetEnv.OLT_PARENT_SPAN_ID).toBe("fedcba0987654321");
     expect(targetEnv.OLT_SAMPLED).toBe("1");
-    expect(targetEnv.TRACEPARENT).toBe(
-      "00-abcdef0123456789abcdef0123456789-1234567890abcdef-01",
-    );
+    expect(targetEnv.TRACEPARENT).toBe("00-abcdef0123456789abcdef0123456789-1234567890abcdef-01");
   });
 });
 

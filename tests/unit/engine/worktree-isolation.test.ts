@@ -96,7 +96,12 @@ describe("Hermetic Worktree Pipeline", () => {
 
   test("domain ledger and worktree provisioning tracks domain status and eligibility", () => {
     const mockRunner: GitRunner = () => ({ status: 0, stdout: "", stderr: "" });
-    const ledger: DomainLedgerState = createDomainLedger("harness-main", "sha-base-000", testDir, "main");
+    const ledger: DomainLedgerState = createDomainLedger(
+      "harness-main",
+      "sha-base-000",
+      testDir,
+      "main",
+    );
     expect(ledger.harnessBranch).toBe("harness-main");
     expect(ledger.baseSha).toBe("sha-base-000");
 
@@ -139,7 +144,13 @@ describe("Hermetic Worktree Pipeline", () => {
       pushed: false,
     });
 
-    const result = syncDomainToGlobal({ repoRoot: testDir, runId: "run1", domain: "payments", ledger, runner: mockRunner });
+    const result = syncDomainToGlobal({
+      repoRoot: testDir,
+      runId: "run1",
+      domain: "payments",
+      ledger,
+      runner: mockRunner,
+    });
     expect(result.synced).toBe(false);
     expect(result.conflict).toBeDefined();
     expect(ledger.domains["payments"]?.status).toBe("conflict");
@@ -160,15 +171,22 @@ describe("Hermetic Worktree Pipeline", () => {
       assignedTaskIds: [],
     };
 
-    const summary = synchronizeAllDomains({ repoRoot: testDir, runId: "run1", ledger, runner: mockRunner });
+    const summary = synchronizeAllDomains({
+      repoRoot: testDir,
+      runId: "run1",
+      ledger,
+      runner: mockRunner,
+    });
     expect(summary.syncedDomains).toContain("auth");
     expect(summary.scopeIsolated).toBe(true);
   });
 
   test("landHermeticWorktree stages changes, rebases, pushes, and performs clean teardown", async () => {
     const mockRunner: GitRunner = (_cwd, argv) => {
-      if (argv[0] === "rev-parse" && argv[1] === "HEAD") return { status: 0, stdout: "landed-sha-999\n", stderr: "" };
-      if (argv[0] === "branch" && argv[1] === "--show-current") return { status: 0, stdout: "main\n", stderr: "" };
+      if (argv[0] === "rev-parse" && argv[1] === "HEAD")
+        return { status: 0, stdout: "landed-sha-999\n", stderr: "" };
+      if (argv[0] === "branch" && argv[1] === "--show-current")
+        return { status: 0, stdout: "main\n", stderr: "" };
       return { status: 0, stdout: "", stderr: "" };
     };
 

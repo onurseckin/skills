@@ -379,9 +379,7 @@ function countMappedEdgeCases(
       } else if (existsSync(oltFile)) {
         count += extractCountFromCandidate(JSON.parse(readFileSync(oltFile, "utf-8")) as unknown);
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   return count;

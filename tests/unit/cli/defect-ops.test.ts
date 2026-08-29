@@ -34,8 +34,16 @@ describe("CLI Defect Operations (defect-ops)", () => {
 
     try {
       const lines = [
-        JSON.stringify({ id: "d1", observation: "Mem leak", timestamp: "2026-08-29T10:00:00.000Z" }),
-        JSON.stringify({ id: "d2", observation: "Mem leak", timestamp: "2026-08-29T10:00:10.000Z" }),
+        JSON.stringify({
+          id: "d1",
+          observation: "Mem leak",
+          timestamp: "2026-08-29T10:00:00.000Z",
+        }),
+        JSON.stringify({
+          id: "d2",
+          observation: "Mem leak",
+          timestamp: "2026-08-29T10:00:10.000Z",
+        }),
       ];
       writeFileSync(tmpFile, lines.join("\n"));
 
@@ -48,14 +56,22 @@ describe("CLI Defect Operations (defect-ops)", () => {
       expect(fileRes.count).toBe(1);
       expect(fileRes.defects[0]?.count).toBe(2);
 
-      const stdinRes = defectRecordCommand({}, {
-        stdin: new TextEncoder().encode(JSON.stringify({ id: "stdin-1", observation: "Stdin defect" })),
-      });
+      const stdinRes = defectRecordCommand(
+        {},
+        {
+          stdin: new TextEncoder().encode(
+            JSON.stringify({ id: "stdin-1", observation: "Stdin defect" }),
+          ),
+        },
+      );
       expect(stdinRes.count).toBe(1);
 
-      const promptRes = defectRecordCommand({}, {
-        inlinePrompt: JSON.stringify({ id: "prompt-1", observation: "Inline prompt defect" }),
-      });
+      const promptRes = defectRecordCommand(
+        {},
+        {
+          inlinePrompt: JSON.stringify({ id: "prompt-1", observation: "Inline prompt defect" }),
+        },
+      );
       expect(promptRes.count).toBe(1);
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
@@ -84,7 +100,9 @@ describe("CLI Defect Operations (defect-ops)", () => {
     expect(res.defect.id).toBe("defect-to-resolve-1");
     expect(res.defect.resolution?.task_id).toBe("task-remed-01");
     expect(res.defect.resolution?.commit_sha).toBe("12345678abcdef");
-    expect(res.defect.resolution?.remediation_notes).toBe("Handled promise rejection in worker pool");
+    expect(res.defect.resolution?.remediation_notes).toBe(
+      "Handled promise rejection in worker pool",
+    );
     expect(res.defect.resolution?.verified_by).toBe("validator_06");
   });
 
@@ -115,9 +133,24 @@ describe("CLI Defect Operations (defect-ops)", () => {
 
     try {
       const records = [
-        JSON.stringify({ id: "d1", status: "open", category: "boundary_violation", observation: "Conf breach" }),
-        JSON.stringify({ id: "d2", status: "resolved", category: "code_defect", observation: "Syntax error" }),
-        JSON.stringify({ id: "d3", status: "open", category: "code_defect", observation: "Type error" }),
+        JSON.stringify({
+          id: "d1",
+          status: "open",
+          category: "boundary_violation",
+          observation: "Conf breach",
+        }),
+        JSON.stringify({
+          id: "d2",
+          status: "resolved",
+          category: "code_defect",
+          observation: "Syntax error",
+        }),
+        JSON.stringify({
+          id: "d3",
+          status: "open",
+          category: "code_defect",
+          observation: "Type error",
+        }),
       ];
       writeFileSync(tmpFile, records.join("\n"));
 

@@ -58,7 +58,10 @@ describe("Sugiyama Ranking and Width Bounding", () => {
 
   it("computes deterministic lexicographical labels for scheduling", () => {
     const nodes = [node("T1"), node("T2", ["T1"]), node("T3", ["T1"])];
-    const edges: SugiyamaEdge[] = [{ from: "T1", to: "T2" }, { from: "T1", to: "T3" }];
+    const edges: SugiyamaEdge[] = [
+      { from: "T1", to: "T2" },
+      { from: "T1", to: "T3" },
+    ];
     const labels = computeLexicographicLabels(nodes, edges);
     expect(labels.size).toBe(3);
     expect(labels.has("T1")).toBe(true);
@@ -89,8 +92,18 @@ describe("Sugiyama Crossing Minimization", () => {
       { ...node("B1"), rank: 1, order: 0 },
       { ...node("B2"), rank: 1, order: 1 },
     ];
-    expect(countLayerCrossings(layerA, layerB, [{ from: "A1", to: "B1" }, { from: "A2", to: "B2" }])).toBe(0);
-    expect(countLayerCrossings(layerA, layerB, [{ from: "A1", to: "B2" }, { from: "A2", to: "B1" }])).toBe(1);
+    expect(
+      countLayerCrossings(layerA, layerB, [
+        { from: "A1", to: "B1" },
+        { from: "A2", to: "B2" },
+      ]),
+    ).toBe(0);
+    expect(
+      countLayerCrossings(layerA, layerB, [
+        { from: "A1", to: "B2" },
+        { from: "A2", to: "B1" },
+      ]),
+    ).toBe(1);
   });
 
   it("sorts layer nodes using barycentric heuristic", () => {
@@ -102,7 +115,10 @@ describe("Sugiyama Crossing Minimization", () => {
       { ...node("T1"), rank: 1, order: 0 },
       { ...node("T2"), rank: 1, order: 1 },
     ];
-    const edges: SugiyamaEdge[] = [{ from: "R1", to: "T2" }, { from: "R2", to: "T1" }];
+    const edges: SugiyamaEdge[] = [
+      { from: "R1", to: "T2" },
+      { from: "R2", to: "T1" },
+    ];
     const sorted = barycentricSort(targetLayer, refLayer, edges, "down");
     expect(sorted[0]?.id).toBe("T2");
     expect(sorted[1]?.id).toBe("T1");
@@ -110,10 +126,25 @@ describe("Sugiyama Crossing Minimization", () => {
 
   it("minimizes crossings across multiple layers with barycenter sweep", () => {
     const layers: SugiyamaLayer[] = [
-      { rank: 0, nodes: [{ ...node("L0_1"), rank: 0, order: 0 }, { ...node("L0_2"), rank: 0, order: 1 }] },
-      { rank: 1, nodes: [{ ...node("L1_1"), rank: 1, order: 0 }, { ...node("L1_2"), rank: 1, order: 1 }] },
+      {
+        rank: 0,
+        nodes: [
+          { ...node("L0_1"), rank: 0, order: 0 },
+          { ...node("L0_2"), rank: 0, order: 1 },
+        ],
+      },
+      {
+        rank: 1,
+        nodes: [
+          { ...node("L1_1"), rank: 1, order: 0 },
+          { ...node("L1_2"), rank: 1, order: 1 },
+        ],
+      },
     ];
-    const edges: SugiyamaEdge[] = [{ from: "L0_1", to: "L1_2" }, { from: "L0_2", to: "L1_1" }];
+    const edges: SugiyamaEdge[] = [
+      { from: "L0_1", to: "L1_2" },
+      { from: "L0_2", to: "L1_1" },
+    ];
     const optimized = minimizeCrossingsBarycenter(layers, edges, 4);
     expect(optimized.length).toBe(2);
     expect(countLayerCrossings(optimized[0]!.nodes, optimized[1]!.nodes, edges)).toBe(0);
@@ -123,7 +154,10 @@ describe("Sugiyama Crossing Minimization", () => {
 describe("Sugiyama Tarjan Cycle and Diagnostics", () => {
   it("detects cycles and returns remediation advice", () => {
     const nodes = [node("C1"), node("C2")];
-    const edges: SugiyamaEdge[] = [{ from: "C1", to: "C2" }, { from: "C2", to: "C1" }];
+    const edges: SugiyamaEdge[] = [
+      { from: "C1", to: "C2" },
+      { from: "C2", to: "C1" },
+    ];
     const diag = detectCyclesTarjan(nodes, edges);
     expect(diag.hasCycle).toBe(true);
     expect(diag.cyclePaths.length).toBeGreaterThan(0);
@@ -132,7 +166,10 @@ describe("Sugiyama Tarjan Cycle and Diagnostics", () => {
 
   it("extracts feedback arc sets and reverses cycle edges", () => {
     const nodes = [node("X"), node("Y")];
-    const edges: SugiyamaEdge[] = [{ from: "X", to: "Y" }, { from: "Y", to: "X" }];
+    const edges: SugiyamaEdge[] = [
+      { from: "X", to: "Y" },
+      { from: "Y", to: "X" },
+    ];
     const { feedbackArcs, acyclicEdges } = extractFeedbackArcSet(nodes, edges);
     expect(feedbackArcs.length).toBe(1);
     expect(acyclicEdges.length).toBe(1);
@@ -162,7 +199,10 @@ describe("Sugiyama Tarjan Cycle and Diagnostics", () => {
     expect(cleanHealth.cycleCount).toBe(0);
 
     const badNodes = [node("B1"), node("B2")];
-    const badEdges: SugiyamaEdge[] = [{ from: "B1", to: "B2" }, { from: "B2", to: "B1" }];
+    const badEdges: SugiyamaEdge[] = [
+      { from: "B1", to: "B2" },
+      { from: "B2", to: "B1" },
+    ];
     const badHealth = validateDiagnosticHealth(badNodes, badEdges);
     expect(badHealth.healthy).toBe(false);
     expect(badHealth.cycleCount).toBeGreaterThan(0);
@@ -261,7 +301,12 @@ describe("Sugiyama Rendering and Report Generation", () => {
   });
 
   it("renders multi-layer DAG and generates complete report", () => {
-    const nodes = [node("T_Start"), node("T_Mid1", ["T_Start"]), node("T_Mid2", ["T_Start"]), node("T_End", ["T_Mid1", "T_Mid2"])];
+    const nodes = [
+      node("T_Start"),
+      node("T_Mid1", ["T_Start"]),
+      node("T_Mid2", ["T_Start"]),
+      node("T_End", ["T_Mid1", "T_Mid2"]),
+    ];
     const edges: SugiyamaEdge[] = [
       { from: "T_Start", to: "T_Mid1" },
       { from: "T_Start", to: "T_Mid2" },
@@ -275,7 +320,10 @@ describe("Sugiyama Rendering and Report Generation", () => {
     expect(dagResult.renderedDag).toContain("WAVE 2");
     expect(dagResult.renderedDag).toContain("WAVE 3");
 
-    const report = generateSugiyamaDagReport(nodes, edges, { runId: "test-run-001", maxParallel: 4 });
+    const report = generateSugiyamaDagReport(nodes, edges, {
+      runId: "test-run-001",
+      maxParallel: 4,
+    });
     expect(report.totalTasks).toBe(4);
     expect(report.totalLayers).toBe(3);
     expect(report.metrics.totalWaves).toBe(3);

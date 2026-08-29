@@ -162,7 +162,11 @@ describe("Central Policy & Lifecycle Hooks Engine", () => {
       hooks: {},
     };
 
-    await executePolicyHook("on_release_push", {}, { policy, repoRoot: "/repo", customSpawn: mockSpawn });
+    await executePolicyHook(
+      "on_release_push",
+      {},
+      { policy, repoRoot: "/repo", customSpawn: mockSpawn },
+    );
     expect(spawnLog.length).toBe(0);
   });
 });

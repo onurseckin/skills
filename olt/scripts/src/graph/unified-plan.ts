@@ -93,9 +93,6 @@ export interface CapsuleContext {
   readonly graphDocument?: Record<string, unknown> | undefined;
 }
 
-/**
- * Auto-detects capsule context from a directory path or in-memory state.
- */
 export function detectCapsuleContext(
   contextOrPath?: string | Record<string, unknown>,
   fallbackRepoRoot = ".",
@@ -141,9 +138,7 @@ export function detectCapsuleContext(
         if (isRecord(parsed)) {
           requirementsDoc = parsed;
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
 
     const graphPath = join(root, "graph.json");
@@ -153,9 +148,7 @@ export function detectCapsuleContext(
         if (isRecord(parsed)) {
           graphDoc = parsed;
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
 
     return {
@@ -216,11 +209,6 @@ function parseCompletionGate(completionGate: string | readonly string[]): string
   return completionGate.map((item) => String(item).trim()).filter((item) => item.length > 0);
 }
 
-/**
- * Unified High-Leverage Plan Compiler:
- * Ingests requirements, applies graph enhancements/decoupling, runs plan audit (A1-A6),
- * checks transitive bypass violations with cognitive guidance, and compiles executable topology.
- */
 export function compileUnifiedHighLeveragePlan(input: UnifiedPlanInput): UnifiedPlanResult {
   const repoRoot = typeof input.repoRoot === "string" ? input.repoRoot : ".";
   const revision = input.revision ?? 1;
@@ -244,12 +232,10 @@ export function compileUnifiedHighLeveragePlan(input: UnifiedPlanInput): Unified
     );
   }
 
-  // 1. Auto-detect context or use supplied
   const context = detectCapsuleContext(input.capsuleRoot ?? input.runState, repoRoot);
   const prompt = input.prompt ?? context.prompt;
   const runState: JsonObject = input.runState ? input.runState : context.runState;
 
-  // 2. Ingest or compile requirements
   let requirementsDocument: Record<string, unknown>;
   let requirementIdsByTask = new Map<string, string[]>();
   const allWarnings: string[] = [];
@@ -268,7 +254,6 @@ export function compileUnifiedHighLeveragePlan(input: UnifiedPlanInput): Unified
     requirementIdsByTask = compiledReqs.requirementIdsByTask;
     allWarnings.push(...compiledReqs.warnings);
   } else {
-    // Generate minimal valid requirements document from tasks
     const reqs: Record<string, unknown>[] = [];
     input.tasks.forEach((task, idx) => {
       const reqId = `req-${task.id.replace(/^task-?/, "")}`;
@@ -315,7 +300,6 @@ export function compileUnifiedHighLeveragePlan(input: UnifiedPlanInput): Unified
     };
   }
 
-  // 3. Compile initial graph document
   const compiledGraph: CompiledGraphResult = compileGraphDocument(
     input.tasks,
     requirementsDocument,
@@ -327,14 +311,12 @@ export function compileUnifiedHighLeveragePlan(input: UnifiedPlanInput): Unified
   let workingGraph = compiledGraph.graphDocument;
   let decoupledResult: DecoupledGraphResult | null = null;
 
-  // 4. Graph Enhancement & Parallel Decoupling
   if (autoDecouple) {
     decoupledResult = decoupleDisjointTasks(workingGraph, { maxLanes, preserveJustified });
     workingGraph = decoupledResult.graph;
     allWarnings.push(...decoupledResult.warnings.map((w) => `[PARALLEL DECOUPLER]: ${w.message}`));
   }
 
-  // 5. Plan Audit Engine (Granularity, Gate Discrimination, False Barriers, Stragglers, Whole Suite Gate, Parallelism)
   const auditTasks: AuditTaskInput[] = input.tasks.map((t) => ({
     taskId: t.id,
     writeScope: t.writeScope,
@@ -346,7 +328,6 @@ export function compileUnifiedHighLeveragePlan(input: UnifiedPlanInput): Unified
   const auditResult = auditPlan(repoRoot, auditTasks, runState, prompt);
   const blocking = blockingFindings(auditResult);
 
-  // Validate audit overrides
   if (blocking.length > 0) {
     const acceptAudit = input.acceptAudit ?? {};
     const unaccepted: AuditFinding[] = [];
@@ -371,7 +352,6 @@ export function compileUnifiedHighLeveragePlan(input: UnifiedPlanInput): Unified
     }
   }
 
-  // 6. Transitive Bypass Validation & Cognitive Guidance
   const nodes = Array.isArray(workingGraph.nodes)
     ? (workingGraph.nodes as Record<string, unknown>[])
     : [];
@@ -391,7 +371,6 @@ export function compileUnifiedHighLeveragePlan(input: UnifiedPlanInput): Unified
     );
   }
 
-  // 7. Executable Topology Compilation
   const { dependencies } = dependencyData(nodes, edges);
   const order = topologicalOrder(dependencies);
 
@@ -426,9 +405,6 @@ export function compileUnifiedHighLeveragePlan(input: UnifiedPlanInput): Unified
   };
 }
 
-/**
- * Unified mid-flight dynamic expansion with re-audit, bypass validation, and topology compilation.
- */
 export function expandDynamicPlanUnified(
   currentGraph: Record<string, unknown>,
   expansion: DynamicExpansionPlan | DeeperExpansionRequest | WiderExpansionRequest,

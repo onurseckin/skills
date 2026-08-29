@@ -16,12 +16,7 @@ import {
   todoListCommand,
   todoSealCommand,
 } from "../commands/todo-ops.ts";
-import {
-  DEFAULT_EXIT_CODES,
-  optionalFlag,
-  requiredFlag,
-  type CommandSpec,
-} from "./types.ts";
+import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export {
   mindQueueAddCommand,
@@ -59,7 +54,8 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     aliases: [],
     domain: "queue",
     summary: "Partition every task by queue status.",
-    description: "Groups tasks into ready, leased, validating, blocked and satisfied partitions with the blocking dependencies.",
+    description:
+      "Groups tasks into ready, leased, validating, blocked and satisfied partitions with the blocking dependencies.",
     flags: [requiredFlag("run", "string", "Capsule run root.")],
     readsStdin: false,
     takesRemainder: false,
@@ -72,10 +68,15 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     aliases: [],
     domain: "queue",
     summary: "Show every task claimable right now, ranked by critical depth — for display only.",
-    description: "The readiness query: runs the scheduler over live task state and returns every task whose dependencies are done and whose write scope collides with nothing currently leased, ranked by critical depth and capped at max_parallel. Annotates each task with the wave plan:compile recorded, or reports the topology as absent, purely for display. This is not a batch to assemble and dispatch as one unit — claim each entry the moment an agent is free, and re-run this (or claim atomically with queue:pop / task:claim) the instant any agent finishes; never wait for the rest of one call's answer before claiming the next task. Read-only: each dispatched agent still claims its own task.",
+    description:
+      "The readiness query: runs the scheduler over live task state and returns every task whose dependencies are done and whose write scope collides with nothing currently leased, ranked by critical depth and capped at max_parallel. Annotates each task with the wave plan:compile recorded, or reports the topology as absent, purely for display. This is not a batch to assemble and dispatch as one unit — claim each entry the moment an agent is free, and re-run this (or claim atomically with queue:pop / task:claim) the instant any agent finishes; never wait for the rest of one call's answer before claiming the next task. Read-only: each dispatched agent still claims its own task.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
-      optionalFlag("max-parallel", "int", "Occupancy ceiling for this query; defaults to the configured default_max_parallel."),
+      optionalFlag(
+        "max-parallel",
+        "int",
+        "Occupancy ceiling for this query; defaults to the configured default_max_parallel.",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,
@@ -88,7 +89,8 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     aliases: [],
     domain: "queue",
     summary: "Claim the highest-priority ready task and mint a lease token.",
-    description: "Atomically leases the next ready task to an agent. Fails when no task is ready rather than waiting.",
+    description:
+      "Atomically leases the next ready task to an agent. Fails when no task is ready rather than waiting.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       requiredFlag("agent", "string", "Agent id receiving the lease."),
@@ -98,7 +100,9 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts queue:pop --run .olt/capsules/<run-id> --agent worker-1 --lease-seconds 1800"],
+    examples: [
+      "bun harness.ts queue:pop --run .olt/capsules/<run-id> --agent worker-1 --lease-seconds 1800",
+    ],
     handler: queuePopCommand,
   },
   {
@@ -130,8 +134,16 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     summary: "Drain and mark pending feedback items for execution.",
     description: "Drains pending items from .olt/backlog.jsonl in FIFO order.",
     flags: [
-      requiredFlag("authority-run", "string", "Capsule run whose active Mind grant authorizes this mutation."),
-      optionalFlag("actor", "string", "Explicit acting Mind identity; must match the verified session when supplied."),
+      requiredFlag(
+        "authority-run",
+        "string",
+        "Capsule run whose active Mind grant authorizes this mutation.",
+      ),
+      optionalFlag(
+        "actor",
+        "string",
+        "Explicit acting Mind identity; must match the verified session when supplied.",
+      ),
       optionalFlag("limit", "int", "Maximum items to drain.", 5),
       optionalFlag("mark-as", "string", "Target status: PROCESSED, IN_PROGRESS, ADMITTED."),
       optionalFlag("category", "string", "Filter by category."),
@@ -159,7 +171,8 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     aliases: [],
     domain: "queue",
     summary: "List and inspect mind feedback queue items.",
-    description: "Lists active feedback items from the canonical feedback queue (.olt/backlog.jsonl).",
+    description:
+      "Lists active feedback items from the canonical feedback queue (.olt/backlog.jsonl).",
     flags: [
       optionalFlag("status", "string", "Filter by item status."),
       optionalFlag("priority", "string", "Filter by priority level."),
@@ -182,8 +195,16 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     summary: "Seal completed queue items with empirical verification proofs.",
     description: "Marks queue items completed and attaches proof records.",
     flags: [
-      requiredFlag("authority-run", "string", "Capsule run whose active Mind grant authorizes this mutation."),
-      optionalFlag("actor", "string", "Explicit acting Mind identity; must match the verified session when supplied."),
+      requiredFlag(
+        "authority-run",
+        "string",
+        "Capsule run whose active Mind grant authorizes this mutation.",
+      ),
+      optionalFlag(
+        "actor",
+        "string",
+        "Explicit acting Mind identity; must match the verified session when supplied.",
+      ),
       requiredFlag("id", "string", "Feedback item ID to seal."),
       optionalFlag("proof", "string", "Commit SHA or test receipt proving resolution."),
       optionalFlag("resolution", "string", "Resolution description."),
@@ -215,8 +236,16 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     summary: "Prune resolved items from queue into completed-tasks archive.",
     description: "Moves sealed items from .olt/backlog.jsonl to .olt/completed-tasks.jsonl.",
     flags: [
-      requiredFlag("authority-run", "string", "Capsule run whose active Mind grant authorizes this mutation."),
-      optionalFlag("actor", "string", "Explicit acting Mind identity; must match the verified session when supplied."),
+      requiredFlag(
+        "authority-run",
+        "string",
+        "Capsule run whose active Mind grant authorizes this mutation.",
+      ),
+      optionalFlag(
+        "actor",
+        "string",
+        "Explicit acting Mind identity; must match the verified session when supplied.",
+      ),
       optionalFlag("force", "bool", "Force clean all completed items."),
       optionalFlag("dry-run", "bool", "Simulate clean without mutating files."),
       optionalFlag("queue-file", "string", "Override queue file path."),

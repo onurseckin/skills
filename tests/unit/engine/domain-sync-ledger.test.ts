@@ -60,8 +60,14 @@ describe("Domain Sync & Ledger State Verification", () => {
       const runner: GitRunner = () => ok();
       const now = new Date("2026-08-29T12:00:00.000Z");
 
-      const config = provisionDomainWorktree(repoRoot, ledger, "auth-engine", "run-101", runner, now);
-
+      const config = provisionDomainWorktree(
+        repoRoot,
+        ledger,
+        "auth-engine",
+        "run-101",
+        runner,
+        now,
+      );
       expect(config.domain).toBe("auth-engine");
       expect(config.worktreeId).toBe("domain-auth-engine");
       expect(config.branch).toBe("harness--auth-engine-run-101");
@@ -124,7 +130,6 @@ describe("Domain Sync & Ledger State Verification", () => {
         _meta: unknown,
         updater: (d: unknown) => void,
       ) => updater(draft);
-
       const commit: DomainCommitRecord = {
         taskId: "task-1",
         domain: "billing",
@@ -138,7 +143,6 @@ describe("Domain Sync & Ledger State Verification", () => {
       };
 
       recordDomainCommit("/tmp/capsule", "agent-1", "billing", "task-1", commit, mockTransact);
-
       const ledger = draft.domain_sync_ledger as DomainLedgerState;
       expect(ledger.commits).toHaveLength(1);
       expect(ledger.commits[0]?.sha).toBe("commit-sha-55");
@@ -150,7 +154,12 @@ describe("Domain Sync & Ledger State Verification", () => {
       const repoRoot = trackedDir("repo");
       const ledgerRoot = trackedDir("ledger");
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot);
-      const domainConfig = provisionDomainWorktree(repoRoot, ledger, "data-lake", "run-55");
+      const runner: GitRunner = (_cwd, argv) => {
+        if (argv[0] === "worktree" || argv[0] === "merge") return ok();
+        if (argv[0] === "rev-parse") return ok("merged-head-sha-777\n");
+        return ok();
+      };
+      const domainConfig = provisionDomainWorktree(repoRoot, ledger, "data-lake", "run-55", runner);
 
       ledger.commits.push({
         taskId: "task-dl-1",
@@ -164,13 +173,6 @@ describe("Domain Sync & Ledger State Verification", () => {
         pushed: true,
       });
 
-      const runner: GitRunner = (_cwd, argv) => {
-        if (argv[0] === "worktree") return ok();
-        if (argv[0] === "merge") return ok();
-        if (argv[0] === "rev-parse") return ok("merged-head-sha-777\n");
-        return ok();
-      };
-
       const result = syncDomainToGlobal({
         repoRoot,
         runId: "run-55",
@@ -178,7 +180,6 @@ describe("Domain Sync & Ledger State Verification", () => {
         ledger,
         runner,
       });
-
       expect(result.synced).toBe(true);
       expect(result.domain).toBe("data-lake");
       expect(result.commitsSynced).toBe(1);
@@ -193,7 +194,23 @@ describe("Domain Sync & Ledger State Verification", () => {
       const repoRoot = trackedDir("repo");
       const ledgerRoot = trackedDir("ledger");
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot);
-      const domainConfig = provisionDomainWorktree(repoRoot, ledger, "network-mesh", "run-99");
+      const runner: GitRunner = (_cwd, argv) => {
+        if (argv[0] === "merge")
+          return {
+            status: 1,
+            stdout: "CONFLICT (content): Merge conflict in routes.ts\n",
+            stderr: "",
+          };
+        if (argv[0] === "diff") return ok("routes.ts\n");
+        return ok();
+      };
+      const domainConfig = provisionDomainWorktree(
+        repoRoot,
+        ledger,
+        "network-mesh",
+        "run-99",
+        runner,
+      );
 
       ledger.commits.push({
         taskId: "task-net-1",
@@ -207,16 +224,6 @@ describe("Domain Sync & Ledger State Verification", () => {
         pushed: false,
       });
 
-      const runner: GitRunner = (_cwd, argv) => {
-        if (argv[0] === "merge") {
-          return { status: 1, stdout: "CONFLICT (content): Merge conflict in routes.ts\n", stderr: "" };
-        }
-        if (argv[0] === "diff") {
-          return ok("routes.ts\n");
-        }
-        return ok();
-      };
-
       const result = syncDomainToGlobal({
         repoRoot,
         runId: "run-99",
@@ -224,7 +231,6 @@ describe("Domain Sync & Ledger State Verification", () => {
         ledger,
         runner,
       });
-
       expect(result.synced).toBe(false);
       expect(result.conflict).toBeDefined();
       expect(result.conflict?.conflictingPaths).toContain("routes.ts");
@@ -236,14 +242,12 @@ describe("Domain Sync & Ledger State Verification", () => {
       const repoRoot = trackedDir("repo");
       const ledgerRoot = trackedDir("ledger");
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot);
-      const domainConfig = provisionDomainWorktree(repoRoot, ledger, "ui-theme", "run-7");
-
       const runner: GitRunner = (_cwd, argv) => {
-        if (argv[0] === "rebase") return ok();
-        if (argv[0] === "merge") return ok();
+        if (argv[0] === "rebase" || argv[0] === "merge") return ok();
         if (argv[0] === "rev-parse") return ok("ui-head-sha-888\n");
         return ok();
       };
+      const domainConfig = provisionDomainWorktree(repoRoot, ledger, "ui-theme", "run-7", runner);
 
       const resultRebase = syncGlobalToDomain({
         repoRoot,
@@ -252,7 +256,6 @@ describe("Domain Sync & Ledger State Verification", () => {
         rebase: true,
         runner,
       });
-
       expect(resultRebase.synced).toBe(true);
       expect(resultRebase.syncedSha).toBe("ui-head-sha-888");
       expect(domainConfig.status).toBe("active");
@@ -264,7 +267,6 @@ describe("Domain Sync & Ledger State Verification", () => {
         rebase: false,
         runner,
       });
-
       expect(resultMerge.synced).toBe(true);
     });
   });
@@ -274,9 +276,15 @@ describe("Domain Sync & Ledger State Verification", () => {
       const repoRoot = trackedDir("repo");
       const ledgerRoot = trackedDir("ledger");
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot, "origin/main");
+      const runner: GitRunner = (_cwd, argv) => {
+        if (argv[0] === "diff" && argv[1] === "--stat")
+          return ok("3 files changed, 20 insertions(+)\n");
+        if (argv[0] === "rev-parse") return ok("consolidated-sha\n");
+        return ok();
+      };
 
-      const d1 = provisionDomainWorktree(repoRoot, ledger, "domain-alpha", "run-all");
-      const d2 = provisionDomainWorktree(repoRoot, ledger, "domain-beta", "run-all");
+      const d1 = provisionDomainWorktree(repoRoot, ledger, "domain-alpha", "run-all", runner);
+      const d2 = provisionDomainWorktree(repoRoot, ledger, "domain-beta", "run-all", runner);
 
       ledger.commits.push({
         taskId: "t1",
@@ -290,12 +298,6 @@ describe("Domain Sync & Ledger State Verification", () => {
         pushed: true,
       });
 
-      const runner: GitRunner = (_cwd, argv) => {
-        if (argv[0] === "diff" && argv[1] === "--stat") return ok("3 files changed, 20 insertions(+)\n");
-        if (argv[0] === "rev-parse") return ok("consolidated-sha\n");
-        return ok();
-      };
-
       const summary = synchronizeAllDomains({
         repoRoot,
         runId: "run-all",
@@ -303,7 +305,6 @@ describe("Domain Sync & Ledger State Verification", () => {
         rebaseOnComplete: true,
         runner,
       });
-
       expect(summary.harnessBranch).toBe("main");
       expect(summary.syncedDomains).toContain("domain-alpha");
       expect(summary.syncedDomains).toContain("domain-beta");
@@ -331,7 +332,6 @@ describe("Domain Sync & Ledger State Verification", () => {
         _meta: unknown,
         updater: (d: unknown) => void,
       ) => updater(draft);
-
       const syncRes: DomainSyncResult = {
         domain: "payment",
         synced: true,
@@ -357,7 +357,6 @@ describe("Domain Sync & Ledger State Verification", () => {
       };
 
       recordGlobalSync("/tmp", "agent", globalSummary, mockTransact);
-
       const ledger = draft.domain_sync_ledger as DomainLedgerState;
       expect(ledger.syncHistory).toHaveLength(1);
       expect(ledger.globalSyncSummary).toBe(globalSummary);

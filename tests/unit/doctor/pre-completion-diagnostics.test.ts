@@ -26,7 +26,11 @@ describe("Pre-Completion Diagnostics & Guidance Engine", () => {
 
   afterEach(() => {
     if (existsSync(scratchDir)) {
-      safeRmSync(scratchDir, { allowedRoots: [tmpdir()], allowGitRepositoryDeletion: true, missingOk: true });
+      safeRmSync(scratchDir, {
+        allowedRoots: [tmpdir()],
+        allowGitRepositoryDeletion: true,
+        missingOk: true,
+      });
     }
   });
 
@@ -44,7 +48,10 @@ describe("Pre-Completion Diagnostics & Guidance Engine", () => {
     };
     writeFileSync(join(runRoot, "manifest.json"), JSON.stringify(manifest));
     writeFileSync(join(runRoot, "state.json"), JSON.stringify(state));
-    writeFileSync(join(runRoot, "events.jsonl"), JSON.stringify({ sequence: 1, type: "genesis" }) + "\n");
+    writeFileSync(
+      join(runRoot, "events.jsonl"),
+      JSON.stringify({ sequence: 1, type: "genesis" }) + "\n",
+    );
 
     const result = checkPreCompletionDiagnostics({
       runRoot,
@@ -67,7 +74,10 @@ describe("Pre-Completion Diagnostics & Guidance Engine", () => {
     };
     writeFileSync(join(runRoot, "manifest.json"), JSON.stringify({ run_id: "test-run" }));
     writeFileSync(join(runRoot, "state.json"), JSON.stringify(state));
-    writeFileSync(join(runRoot, "events.jsonl"), JSON.stringify({ sequence: 1, type: "genesis" }) + "\n");
+    writeFileSync(
+      join(runRoot, "events.jsonl"),
+      JSON.stringify({ sequence: 1, type: "genesis" }) + "\n",
+    );
 
     const result = checkPreCompletionDiagnostics({
       runRoot,
@@ -90,7 +100,10 @@ describe("Pre-Completion Diagnostics & Guidance Engine", () => {
     };
     writeFileSync(join(runRoot, "manifest.json"), JSON.stringify({ run_id: "test-run" }));
     writeFileSync(join(runRoot, "state.json"), JSON.stringify(state));
-    writeFileSync(join(runRoot, "events.jsonl"), JSON.stringify({ sequence: 1, type: "genesis" }) + "\n");
+    writeFileSync(
+      join(runRoot, "events.jsonl"),
+      JSON.stringify({ sequence: 1, type: "genesis" }) + "\n",
+    );
 
     const result = checkPreCompletionDiagnostics({
       runRoot,
@@ -108,12 +121,18 @@ describe("Pre-Completion Diagnostics & Guidance Engine", () => {
   test("auto-heals dangling locks and reports repaired items during pre-completion check", () => {
     const locksDir = join(scratchDir, ".locks");
     mkdirSync(locksDir, { recursive: true });
-    writeFileSync(join(locksDir, "dead-process.lock"), JSON.stringify({ pid: 99999999, created_at: new Date().toISOString() }));
+    writeFileSync(
+      join(locksDir, "dead-process.lock"),
+      JSON.stringify({ pid: 99999999, created_at: new Date().toISOString() }),
+    );
 
     const state = { run_id: "test-run", tasks: {} };
     writeFileSync(join(runRoot, "manifest.json"), JSON.stringify({ run_id: "test-run" }));
     writeFileSync(join(runRoot, "state.json"), JSON.stringify(state));
-    writeFileSync(join(runRoot, "events.jsonl"), JSON.stringify({ sequence: 1, type: "genesis" }) + "\n");
+    writeFileSync(
+      join(runRoot, "events.jsonl"),
+      JSON.stringify({ sequence: 1, type: "genesis" }) + "\n",
+    );
 
     const result = checkPreCompletionDiagnostics({
       runRoot,
@@ -122,7 +141,9 @@ describe("Pre-Completion Diagnostics & Guidance Engine", () => {
       autoHeal: true,
     });
 
-    expect(result.autoHealedItems.some((item) => item.includes("Cleared dangling lock"))).toBe(true);
+    expect(result.autoHealedItems.some((item) => item.includes("Cleared dangling lock"))).toBe(
+      true,
+    );
     expect(existsSync(join(locksDir, "dead-process.lock"))).toBe(false);
   });
 
@@ -168,13 +189,18 @@ describe("Pre-Completion Diagnostics & Guidance Engine", () => {
     });
 
     expect(report).toContain("### Pre-Completion Remedial Guidance:");
-    expect(report).toContain("[STATE_PROJECTION] state.json mismatch -> Run: `bun harness.ts doctor:repair`");
+    expect(report).toContain(
+      "[STATE_PROJECTION] state.json mismatch -> Run: `bun harness.ts doctor:repair`",
+    );
   });
 
   test("runDoctor returns pre_completion_diagnostics, guidance, and remedial_actions in payload", async () => {
     writeFileSync(join(runRoot, "manifest.json"), JSON.stringify({ run_id: "test-run" }));
     writeFileSync(join(runRoot, "state.json"), JSON.stringify({ run_id: "test-run" }));
-    writeFileSync(join(runRoot, "events.jsonl"), JSON.stringify({ sequence: 1, type: "genesis" }) + "\n");
+    writeFileSync(
+      join(runRoot, "events.jsonl"),
+      JSON.stringify({ sequence: 1, type: "genesis" }) + "\n",
+    );
 
     const report = await runDoctor(runRoot, { repoRoot: scratchDir, autoHeal: true });
 

@@ -4,7 +4,4 @@ export type {
   PlanEvaluationResult,
 } from "./plan-evaluator.ts";
 
-export {
-  detectScopeOverlapWarnings,
-  evaluatePlanEpistemicReadiness,
-} from "./plan-evaluator.ts";
+export { detectScopeOverlapWarnings, evaluatePlanEpistemicReadiness } from "./plan-evaluator.ts";

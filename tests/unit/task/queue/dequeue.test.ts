@@ -13,10 +13,7 @@ import {
   releaseTaskLease,
   startTaskValidation,
 } from "../../../../olt/scripts/src/task/queue/dequeue.ts";
-import {
-  enqueueTask,
-  enqueueTasksBatch,
-} from "../../../../olt/scripts/src/task/queue/enqueue.ts";
+import { enqueueTask, enqueueTasksBatch } from "../../../../olt/scripts/src/task/queue/enqueue.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 describe("Task Queue Dequeue Engine & Anti-Batching Guard", () => {
@@ -102,8 +99,14 @@ describe("Task Queue Dequeue Engine & Anti-Batching Guard", () => {
   });
 
   it("dequeueTask claims next eligible task in priority order", () => {
-    enqueueTask({ id: "task-low", title: "Low", priority: "LOW", write_scope: ["a.ts"], gate: "G1" }, queuePath);
-    enqueueTask({ id: "task-crit", title: "Crit", priority: "CRITICAL", write_scope: ["b.ts"], gate: "G1" }, queuePath);
+    enqueueTask(
+      { id: "task-low", title: "Low", priority: "LOW", write_scope: ["a.ts"], gate: "G1" },
+      queuePath,
+    );
+    enqueueTask(
+      { id: "task-crit", title: "Crit", priority: "CRITICAL", write_scope: ["b.ts"], gate: "G1" },
+      queuePath,
+    );
 
     const dequeued = dequeueTask("agent-worker-1", 300, { customPath: queuePath });
     expect(dequeued).not.toBeNull();
@@ -113,14 +116,20 @@ describe("Task Queue Dequeue Engine & Anti-Batching Guard", () => {
   });
 
   it("dequeueTask enforces 1:1 anti-batching guard against double lease", () => {
-    enqueueTask({ id: "task-1", title: "Task 1", priority: "HIGH", write_scope: ["a.ts"], gate: "G1" }, queuePath);
-    enqueueTask({ id: "task-2", title: "Task 2", priority: "HIGH", write_scope: ["b.ts"], gate: "G1" }, queuePath);
+    enqueueTask(
+      { id: "task-1", title: "Task 1", priority: "HIGH", write_scope: ["a.ts"], gate: "G1" },
+      queuePath,
+    );
+    enqueueTask(
+      { id: "task-2", title: "Task 2", priority: "HIGH", write_scope: ["b.ts"], gate: "G1" },
+      queuePath,
+    );
 
     const first = dequeueTask("agent-worker-1", 300, { customPath: queuePath });
     expect(first?.id).toBe("task-1");
 
     expect(() => dequeueTask("agent-worker-1", 300, { customPath: queuePath })).toThrow(
-      /already holds active lease/
+      /already holds active lease/,
     );
 
     const other = dequeueTask("agent-worker-2", 300, { customPath: queuePath });
@@ -128,8 +137,20 @@ describe("Task Queue Dequeue Engine & Anti-Batching Guard", () => {
   });
 
   it("dequeueTask returns null when no eligible unblocked tasks exist", () => {
-    enqueueTask({ id: "task-parent", title: "Parent", write_scope: ["a.ts"], gate: "G1" }, queuePath);
-    enqueueTask({ id: "task-child", title: "Child", dependencies: ["task-parent"], write_scope: ["b.ts"], gate: "G1" }, queuePath);
+    enqueueTask(
+      { id: "task-parent", title: "Parent", write_scope: ["a.ts"], gate: "G1" },
+      queuePath,
+    );
+    enqueueTask(
+      {
+        id: "task-child",
+        title: "Child",
+        dependencies: ["task-parent"],
+        write_scope: ["b.ts"],
+        gate: "G1",
+      },
+      queuePath,
+    );
 
     dequeueTask("agent-1", 300, { customPath: queuePath });
     const empty = dequeueTask("agent-2", 300, { customPath: queuePath });
@@ -137,8 +158,20 @@ describe("Task Queue Dequeue Engine & Anti-Batching Guard", () => {
   });
 
   it("popNextEligibleTask and popNextEligibleTaskWithCleanup acquire leases", () => {
-    enqueueTask({ id: "task-cleanup", title: "Cleanup", priority: "MEDIUM", write_scope: ["c.ts"], gate: "G1" }, queuePath);
-    const popped = popNextEligibleTaskWithCleanup({ agentId: "agent-cleaner", customPath: queuePath });
+    enqueueTask(
+      {
+        id: "task-cleanup",
+        title: "Cleanup",
+        priority: "MEDIUM",
+        write_scope: ["c.ts"],
+        gate: "G1",
+      },
+      queuePath,
+    );
+    const popped = popNextEligibleTaskWithCleanup({
+      agentId: "agent-cleaner",
+      customPath: queuePath,
+    });
     expect(popped).not.toBeNull();
     expect(popped?.task.id).toBe("task-cleanup");
     expect(popped?.leaseToken).toMatch(/^lease-/);
@@ -148,7 +181,11 @@ describe("Task Queue Dequeue Engine & Anti-Batching Guard", () => {
     enqueueTask({ id: "task-life", title: "Life", write_scope: ["l.ts"], gate: "G1" }, queuePath);
     admitTask({ taskId: "task-life", admittedBy: "orchestrator", customPath: queuePath });
 
-    const claim = claimTaskLease({ taskId: "task-life", agentId: "agent-life", customPath: queuePath });
+    const claim = claimTaskLease({
+      taskId: "task-life",
+      agentId: "agent-life",
+      customPath: queuePath,
+    });
     expect(claim.task.status).toBe("IN_PROGRESS");
 
     const renewed = renewTaskLease({

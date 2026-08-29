@@ -13,7 +13,9 @@ export interface DuplicateCollision {
   readonly collidingSpec: string;
 }
 
-export function detectDuplicateInvocations(specs: readonly CommandSpec[]): readonly DuplicateCollision[] {
+export function detectDuplicateInvocations(
+  specs: readonly CommandSpec[],
+): readonly DuplicateCollision[] {
   const seen = new Map<string, string>();
   const duplicates: DuplicateCollision[] = [];
 

@@ -18,7 +18,10 @@ function randomHex(bytes: number): string {
   return Array.from(buffer, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function extractStringFlag(flags: Record<string, unknown> | undefined, ...keys: string[]): string | undefined {
+function extractStringFlag(
+  flags: Record<string, unknown> | undefined,
+  ...keys: string[]
+): string | undefined {
   if (!flags) return undefined;
   for (const k of keys) {
     if (typeof flags[k] === "string") return flags[k] as string;
@@ -65,10 +68,7 @@ export function resolveTraceContext(flags?: Record<string, unknown>): TraceConte
   };
 }
 
-export function injectTraceEnvironment(
-  env: Record<string, string>,
-  context: TraceContext,
-): void {
+export function injectTraceEnvironment(env: Record<string, string>, context: TraceContext): void {
   env.OLT_TRACE_ID = context.traceId;
   env.OLT_SPAN_ID = context.spanId;
   if (context.parentSpanId) env.OLT_PARENT_SPAN_ID = context.parentSpanId;

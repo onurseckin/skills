@@ -80,8 +80,6 @@ function flagPayload(value: string): string | null {
   return short?.[1] ?? null;
 }
 
-// Named export (rather than folding into a boolean) so callers can report *which* argv entry
-// tripped path-form rejection instead of collapsing it into an undifferentiated weakness verdict.
 export function unsafeOperand(argv: readonly string[]): string | null {
   for (const value of argv) {
     if (isUnsafeGatePath(value)) return value;

@@ -79,12 +79,18 @@ function validateParameterValue(param: ToolParameter, value: unknown): boolean {
     if (!param.enumValues.includes(value)) return false;
   }
   switch (param.type) {
-    case "string": return typeof value === "string";
-    case "number": return typeof value === "number" && !Number.isNaN(value);
-    case "boolean": return typeof value === "boolean";
-    case "object": return typeof value === "object" && !Array.isArray(value);
-    case "array": return Array.isArray(value);
-    default: return true;
+    case "string":
+      return typeof value === "string";
+    case "number":
+      return typeof value === "number" && !Number.isNaN(value);
+    case "boolean":
+      return typeof value === "boolean";
+    case "object":
+      return typeof value === "object" && !Array.isArray(value);
+    case "array":
+      return Array.isArray(value);
+    default:
+      return true;
   }
 }
 
@@ -156,15 +162,17 @@ export class DynamicToolRegistry {
   public list(filter?: ToolFilter): readonly ToolDefinition[] {
     let list = Array.from(this.tools.values());
     if (filter?.enabledOnly) list = list.filter((t) => t.enabled !== false);
-    if (filter?.category) list = list.filter((t) => t.category.toLowerCase() === filter.category!.toLowerCase());
+    if (filter?.category)
+      list = list.filter((t) => t.category.toLowerCase() === filter.category!.toLowerCase());
     if (filter?.tag) list = list.filter((t) => t.metadata?.tags?.includes(filter.tag!));
     if (!filter?.includeDeprecated) list = list.filter((t) => !t.metadata?.deprecated);
     if (filter?.search) {
       const q = filter.search.toLowerCase();
-      list = list.filter((t) =>
-        t.name.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        (t.aliases && t.aliases.some((a) => a.toLowerCase().includes(q))),
+      list = list.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.description.toLowerCase().includes(q) ||
+          (t.aliases && t.aliases.some((a) => a.toLowerCase().includes(q))),
       );
     }
     return list.sort((a, b) => a.name.localeCompare(b.name));
@@ -189,13 +197,31 @@ export class DynamicToolRegistry {
     const start = performance.now();
     const tool = this.get(nameOrAlias);
     if (!tool) {
-      return { success: false, output: null, error: `Tool '${nameOrAlias}' is not registered`, durationMs: performance.now() - start, toolName: nameOrAlias };
+      return {
+        success: false,
+        output: null,
+        error: `Tool '${nameOrAlias}' is not registered`,
+        durationMs: performance.now() - start,
+        toolName: nameOrAlias,
+      };
     }
     if (tool.enabled === false) {
-      return { success: false, output: null, error: `Tool '${tool.name}' is disabled`, durationMs: performance.now() - start, toolName: tool.name };
+      return {
+        success: false,
+        output: null,
+        error: `Tool '${tool.name}' is disabled`,
+        durationMs: performance.now() - start,
+        toolName: tool.name,
+      };
     }
     if (!tool.handler) {
-      return { success: false, output: null, error: `Tool '${tool.name}' has no executable handler registered`, durationMs: performance.now() - start, toolName: tool.name };
+      return {
+        success: false,
+        output: null,
+        error: `Tool '${tool.name}' has no executable handler registered`,
+        durationMs: performance.now() - start,
+        toolName: tool.name,
+      };
     }
 
     const resolvedArgs: Record<string, unknown> = { ...args };
@@ -204,10 +230,25 @@ export class DynamicToolRegistry {
         resolvedArgs[param.name] = param.defaultValue;
       }
       if (param.required && resolvedArgs[param.name] === undefined) {
-        return { success: false, output: null, error: `Missing required parameter '${param.name}' for tool '${tool.name}'`, durationMs: performance.now() - start, toolName: tool.name };
+        return {
+          success: false,
+          output: null,
+          error: `Missing required parameter '${param.name}' for tool '${tool.name}'`,
+          durationMs: performance.now() - start,
+          toolName: tool.name,
+        };
       }
-      if (resolvedArgs[param.name] !== undefined && !validateParameterValue(param, resolvedArgs[param.name])) {
-        return { success: false, output: null, error: `Invalid type or value for parameter '${param.name}' (expected ${param.type})`, durationMs: performance.now() - start, toolName: tool.name };
+      if (
+        resolvedArgs[param.name] !== undefined &&
+        !validateParameterValue(param, resolvedArgs[param.name])
+      ) {
+        return {
+          success: false,
+          output: null,
+          error: `Invalid type or value for parameter '${param.name}' (expected ${param.type})`,
+          durationMs: performance.now() - start,
+          toolName: tool.name,
+        };
       }
     }
 
@@ -218,7 +259,13 @@ export class DynamicToolRegistry {
       return { success: true, output, durationMs: performance.now() - start, toolName: tool.name };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      return { success: false, output: null, error: errorMsg, durationMs: performance.now() - start, toolName: tool.name };
+      return {
+        success: false,
+        output: null,
+        error: errorMsg,
+        durationMs: performance.now() - start,
+        toolName: tool.name,
+      };
     }
   }
 
@@ -230,7 +277,10 @@ export class DynamicToolRegistry {
     return { exportedAt: new Date().toISOString(), totalTools: tools.length, tools };
   }
 
-  public importCatalog(catalog: ToolCatalogExport, handlers: Record<string, ToolHandler> = {}): number {
+  public importCatalog(
+    catalog: ToolCatalogExport,
+    handlers: Record<string, ToolHandler> = {},
+  ): number {
     let imported = 0;
     for (const tool of catalog.tools) {
       const resolvedHandler = handlers[tool.name] ?? tool.handler;
@@ -250,7 +300,12 @@ export class DynamicToolRegistry {
     for (const tool of this.tools.values()) {
       categoryCounts[tool.category] = (categoryCounts[tool.category] ?? 0) + 1;
     }
-    return { totalTools: this.tools.size, enabledTools: this.count(true), totalInvocations, categoryCounts };
+    return {
+      totalTools: this.tools.size,
+      enabledTools: this.count(true),
+      totalInvocations,
+      categoryCounts,
+    };
   }
 }
 

@@ -16,7 +16,11 @@ import {
   toAggregatedDefect,
   validateResolutionProof,
 } from "../../../../olt/scripts/src/logging/defects/index.ts";
-import type { AggregatedDefect, DefectRecordInput, DefectResolutionProof } from "../../../../olt/scripts/src/logging/defects/index.ts";
+import type {
+  AggregatedDefect,
+  DefectRecordInput,
+  DefectResolutionProof,
+} from "../../../../olt/scripts/src/logging/defects/index.ts";
 
 describe("Defect Deduplication and Lifecycle Engine", () => {
   test("computeDefectDedupKey normalizes variable patterns in observations", () => {
@@ -24,13 +28,15 @@ describe("Defect Deduplication and Lifecycle Engine", () => {
       category: "code_defect",
       type: "syntax_error",
       agent_id: "agent-1",
-      observation: "Error at 2026-08-29T12:00:00.000Z in /repo/.capsules/run-123/main.ts line: 42 with hash 1234567890abcdef1234567890abcdef",
+      observation:
+        "Error at 2026-08-29T12:00:00.000Z in /repo/.capsules/run-123/main.ts line: 42 with hash 1234567890abcdef1234567890abcdef",
     });
     const key2 = computeDefectDedupKey({
       category: "code_defect",
       type: "syntax_error",
       agent_id: "agent-1",
-      observation: "Error at 2026-08-29T14:30:00.000Z in /repo/.capsules/run-999/main.ts line: 99 with hash abcdef1234567890abcdef1234567890",
+      observation:
+        "Error at 2026-08-29T14:30:00.000Z in /repo/.capsules/run-999/main.ts line: 99 with hash abcdef1234567890abcdef1234567890",
     });
     expect(key1).toBe(key2);
   });
@@ -58,9 +64,15 @@ describe("Defect Deduplication and Lifecycle Engine", () => {
     expect(categorizeDefect({ category: "security_risk" })).toBe("security_risk");
     expect(categorizeDefect({ category: "confinement_breach" })).toBe("boundary_violation");
     expect(categorizeDefect({ category: "hallucination" })).toBe("model_reasoning_error");
-    expect(categorizeDefect({ observation: "Supervisor leaked write scope boundary" })).toBe("boundary_violation");
-    expect(categorizeDefect({ observation: "Model experienced reasoning drift during planning" })).toBe("model_reasoning_error");
-    expect(categorizeDefect({ observation: "TypeError: undefined is not a function" })).toBe("code_defect");
+    expect(categorizeDefect({ observation: "Supervisor leaked write scope boundary" })).toBe(
+      "boundary_violation",
+    );
+    expect(
+      categorizeDefect({ observation: "Model experienced reasoning drift during planning" }),
+    ).toBe("model_reasoning_error");
+    expect(categorizeDefect({ observation: "TypeError: undefined is not a function" })).toBe(
+      "code_defect",
+    );
   });
 
   test("mergeStatus and pickHigherSeverity handle precedence rules", () => {
@@ -172,9 +184,18 @@ describe("Defect Deduplication and Lifecycle Engine", () => {
     expect(validated.commit_sha).toBe("abcdef123");
 
     expect(() => validateResolutionProof(null)).toThrow(/must be an object/);
-    expect(() => validateResolutionProof({ test_assertion: "t", resolved_at: "2026-08-29T12:00:00.000Z" })).toThrow(/task_id/);
-    expect(() => validateResolutionProof({ task_id: "t", test_assertion: "a", resolved_at: "invalid-date" })).toThrow(/ISO date timestamp/);
-    expect(() => validateResolutionProof({ task_id: "t", test_assertion: "a", resolved_at: "2026-08-29T12:00:00.000Z" }, { requireCommitSha: true })).toThrow(/commit_sha/);
+    expect(() =>
+      validateResolutionProof({ test_assertion: "t", resolved_at: "2026-08-29T12:00:00.000Z" }),
+    ).toThrow(/task_id/);
+    expect(() =>
+      validateResolutionProof({ task_id: "t", test_assertion: "a", resolved_at: "invalid-date" }),
+    ).toThrow(/ISO date timestamp/);
+    expect(() =>
+      validateResolutionProof(
+        { task_id: "t", test_assertion: "a", resolved_at: "2026-08-29T12:00:00.000Z" },
+        { requireCommitSha: true },
+      ),
+    ).toThrow(/commit_sha/);
   });
 
   test("resolveDefectRecord updates defect status to resolved with proof", () => {

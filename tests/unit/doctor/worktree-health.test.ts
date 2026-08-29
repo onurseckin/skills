@@ -21,7 +21,8 @@ describe("Worktree Health Engine", () => {
 
   test("checkWorktreeHealth returns healthy on clean repo", () => {
     const mockRunner: GitRunner = (cwd, argv) => {
-      if (argv[0] === "worktree" && argv[1] === "list") return { status: 0, stdout: "", stderr: "" };
+      if (argv[0] === "worktree" && argv[1] === "list")
+        return { status: 0, stdout: "", stderr: "" };
       return { status: 0, stdout: "", stderr: "" };
     };
 
@@ -47,8 +48,10 @@ describe("Worktree Health Engine", () => {
     writeFileSync(deadLockPath, JSON.stringify({ pid: 999999999, trackId: "track-dead" }), "utf8");
 
     const mockRunner: GitRunner = (cwd, argv) => {
-      if (argv[0] === "worktree" && argv[1] === "list") return { status: 0, stdout: "", stderr: "" };
-      if (argv[0] === "worktree" && argv[1] === "prune") return { status: 0, stdout: "", stderr: "" };
+      if (argv[0] === "worktree" && argv[1] === "list")
+        return { status: 0, stdout: "", stderr: "" };
+      if (argv[0] === "worktree" && argv[1] === "prune")
+        return { status: 0, stdout: "", stderr: "" };
       return { status: 0, stdout: "", stderr: "" };
     };
 
@@ -75,8 +78,10 @@ describe("Worktree Health Engine", () => {
     ].join("\n");
 
     const mockRunner: GitRunner = (cwd, argv) => {
-      if (argv[0] === "worktree" && argv[1] === "list") return { status: 0, stdout: mockPorcelain, stderr: "" };
-      if (argv[0] === "branch" && argv[1] === "--merged") return { status: 0, stdout: "track/track-merged\n", stderr: "" };
+      if (argv[0] === "worktree" && argv[1] === "list")
+        return { status: 0, stdout: mockPorcelain, stderr: "" };
+      if (argv[0] === "branch" && argv[1] === "--merged")
+        return { status: 0, stdout: "track/track-merged\n", stderr: "" };
       if (argv[0] === "worktree") return { status: 0, stdout: "", stderr: "" };
       if (argv[0] === "branch" && argv[1] === "-D") return { status: 0, stdout: "", stderr: "" };
       return { status: 0, stdout: "", stderr: "" };
@@ -111,8 +116,10 @@ describe("Worktree Health Engine", () => {
     ].join("\n");
 
     const mockRunner: GitRunner = (cwd, argv) => {
-      if (argv[0] === "worktree" && argv[1] === "list") return { status: 0, stdout: mockPorcelain, stderr: "" };
-      if (argv[0] === "branch" && argv[1] === "--merged") return { status: 0, stdout: "", stderr: "" };
+      if (argv[0] === "worktree" && argv[1] === "list")
+        return { status: 0, stdout: mockPorcelain, stderr: "" };
+      if (argv[0] === "branch" && argv[1] === "--merged")
+        return { status: 0, stdout: "", stderr: "" };
       if (argv[0] === "worktree") return { status: 0, stdout: "", stderr: "" };
       if (argv[0] === "branch" && argv[1] === "-D") return { status: 0, stdout: "", stderr: "" };
       return { status: 0, stdout: "", stderr: "" };
@@ -121,7 +128,9 @@ describe("Worktree Health Engine", () => {
     const report = checkWorktreeHealth({ repoRoot: TEST_DIR, runner: mockRunner, autoHeal: false });
     expect(report.healthy).toBe(false);
     expect(report.findings.some((f) => f.code === "WORKTREE_DEAD_PID_LOCK")).toBe(true);
-    expect(report.findings.some((f) => f.code === "WORKTREE_UNMERGED_DEAD_AGENT_BRANCH")).toBe(true);
+    expect(report.findings.some((f) => f.code === "WORKTREE_UNMERGED_DEAD_AGENT_BRANCH")).toBe(
+      true,
+    );
 
     const healed = autoHealWorktreeState({ repoRoot: TEST_DIR, runner: mockRunner });
     expect(healed.healthy).toBe(true);
@@ -147,7 +156,8 @@ describe("Worktree Health Engine", () => {
     mkdirSync(orphanDir, { recursive: true });
 
     const mockRunner: GitRunner = (cwd, argv) => {
-      if (argv[0] === "worktree" && argv[1] === "list") return { status: 0, stdout: "", stderr: "" };
+      if (argv[0] === "worktree" && argv[1] === "list")
+        return { status: 0, stdout: "", stderr: "" };
       return { status: 0, stdout: "", stderr: "" };
     };
 
@@ -171,7 +181,8 @@ describe("Worktree Health Engine", () => {
 
     let pruned = false;
     const mockRunner: GitRunner = (cwd, argv) => {
-      if (argv[0] === "worktree" && argv[1] === "list") return { status: 0, stdout: mockPorcelain, stderr: "" };
+      if (argv[0] === "worktree" && argv[1] === "list")
+        return { status: 0, stdout: mockPorcelain, stderr: "" };
       if (argv[0] === "worktree" && argv[1] === "prune") {
         pruned = true;
         return { status: 0, stdout: "", stderr: "" };

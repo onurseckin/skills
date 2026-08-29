@@ -52,11 +52,7 @@ describe("CLI Help Formatter & Cowan Table Layout", () => {
   });
 
   it("formatDomainSummary formats domain and command list row", () => {
-    const row = formatDomainSummary("task", [
-      "task:claim",
-      "task:submit",
-      "task:complete",
-    ]);
+    const row = formatDomainSummary("task", ["task:claim", "task:submit", "task:complete"]);
 
     expect(row).toBe("| task | `task:claim`, `task:submit`, `task:complete` |");
   });

@@ -53,7 +53,8 @@ export function validateToolSpec(raw: unknown): {
     errors.push("Tool definition requires a 'description' string");
   }
 
-  const category = typeof obj.category === "string" && obj.category.trim() ? obj.category.trim() : "general";
+  const category =
+    typeof obj.category === "string" && obj.category.trim() ? obj.category.trim() : "general";
   const parameters: ToolParameter[] = [];
   if (obj.parameters !== undefined) {
     if (!Array.isArray(obj.parameters)) {
@@ -75,11 +76,15 @@ export function validateToolSpec(raw: unknown): {
         }
         parameters.push({
           name: typeof paramObj.name === "string" ? paramObj.name.trim() : `param_${i}`,
-          type: (VALID_PARAM_TYPES.includes(typeStr as ToolParameterType) ? typeStr : "string") as ToolParameterType,
+          type: (VALID_PARAM_TYPES.includes(typeStr as ToolParameterType)
+            ? typeStr
+            : "string") as ToolParameterType,
           description: typeof paramObj.description === "string" ? paramObj.description : "",
           required: Boolean(paramObj.required),
           defaultValue: paramObj.defaultValue,
-          ...(Array.isArray(paramObj.enumValues) ? { enumValues: paramObj.enumValues as readonly (string | number)[] } : {}),
+          ...(Array.isArray(paramObj.enumValues)
+            ? { enumValues: paramObj.enumValues as readonly (string | number)[] }
+            : {}),
         });
       }
     }
@@ -87,7 +92,10 @@ export function validateToolSpec(raw: unknown): {
 
   if (errors.length > 0) return { valid: false, errors };
 
-  const meta = obj.metadata && typeof obj.metadata === "object" ? (obj.metadata as Record<string, unknown>) : undefined;
+  const meta =
+    obj.metadata && typeof obj.metadata === "object"
+      ? (obj.metadata as Record<string, unknown>)
+      : undefined;
   const definition: ToolDefinition = {
     name: String(obj.name).trim(),
     description: String(obj.description),
@@ -95,15 +103,19 @@ export function validateToolSpec(raw: unknown): {
     parameters,
     enabled: obj.enabled === undefined ? true : Boolean(obj.enabled),
     ...(Array.isArray(obj.aliases) ? { aliases: obj.aliases.map(String) } : {}),
-    ...(meta ? {
-      metadata: {
-        ...(typeof meta.version === "string" ? { version: String(meta.version) } : {}),
-        ...(typeof meta.author === "string" ? { author: String(meta.author) } : {}),
-        ...(Array.isArray(meta.tags) ? { tags: meta.tags as string[] } : {}),
-        deprecated: Boolean(meta.deprecated),
-        ...(typeof meta.deprecationReason === "string" ? { deprecationReason: String(meta.deprecationReason) } : {}),
-      },
-    } : {}),
+    ...(meta
+      ? {
+          metadata: {
+            ...(typeof meta.version === "string" ? { version: String(meta.version) } : {}),
+            ...(typeof meta.author === "string" ? { author: String(meta.author) } : {}),
+            ...(Array.isArray(meta.tags) ? { tags: meta.tags as string[] } : {}),
+            deprecated: Boolean(meta.deprecated),
+            ...(typeof meta.deprecationReason === "string"
+              ? { deprecationReason: String(meta.deprecationReason) }
+              : {}),
+          },
+        }
+      : {}),
   };
   return { valid: true, errors: [], definition };
 }
@@ -151,14 +163,16 @@ export function discoverToolsFromDirectory(
             discovered.push({
               definition: {
                 ...def,
-                category: options.defaultCategory && def.category === "general" ? options.defaultCategory : def.category,
+                category:
+                  options.defaultCategory && def.category === "general"
+                    ? options.defaultCategory
+                    : def.category,
               },
               sourcePath: fullPath,
               loadedAt: new Date().toISOString(),
             });
           }
-        } catch {
-        }
+        } catch {}
       }
     }
   }
@@ -175,14 +189,19 @@ export function discoverToolsFromManifest(
   try {
     const raw = readFileSync(resolved, "utf-8");
     const parsed = JSON.parse(raw);
-    const list = Array.isArray(parsed) ? parsed : Array.isArray((parsed as Record<string, unknown>)?.tools) ? (parsed as Record<string, unknown>).tools as unknown[] : [parsed];
+    const list = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray((parsed as Record<string, unknown>)?.tools)
+        ? ((parsed as Record<string, unknown>).tools as unknown[])
+        : [parsed];
     const tools: ToolDefinition[] = [];
     for (const item of list) {
       const val = validateToolSpec(item);
       if (val.valid && val.definition) {
         tools.push({
           ...val.definition,
-          category: val.definition.category === "general" ? defaultCategory : val.definition.category,
+          category:
+            val.definition.category === "general" ? defaultCategory : val.definition.category,
         });
       }
     }

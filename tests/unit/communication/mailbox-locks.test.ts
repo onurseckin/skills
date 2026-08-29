@@ -42,7 +42,9 @@ describe("Mailbox and System Lock Path Consolidation", () => {
 
     it("defaults to process.cwd() when baseDir is omitted", () => {
       const lockPath = resolveMailboxLockPath("orchestrator-main");
-      expect(lockPath).toBe(join(process.cwd(), ".olt", "locks", "mailboxes", "orchestrator-main.lock"));
+      expect(lockPath).toBe(
+        join(process.cwd(), ".olt", "locks", "mailboxes", "orchestrator-main.lock"),
+      );
     });
 
     it("matches lockPath returned by resolveMailboxPaths", () => {
@@ -58,9 +60,7 @@ describe("Mailbox and System Lock Path Consolidation", () => {
       expect(() => resolveMailboxLockPath(undefined as unknown as string, testRoot)).toThrow(
         HarnessError,
       );
-      expect(() => resolveMailboxLockPath("" as unknown as string, testRoot)).toThrow(
-        HarnessError,
-      );
+      expect(() => resolveMailboxLockPath("" as unknown as string, testRoot)).toThrow(HarnessError);
       expect(() => resolveMailboxLockPath("   ", testRoot)).toThrow(HarnessError);
     });
 

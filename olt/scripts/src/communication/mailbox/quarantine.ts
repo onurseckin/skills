@@ -81,7 +81,11 @@ export function ingestToQuarantine(
   const formattedLine = `[${timestamp}] [REASON: ${reason}] ${rawStr}\n`;
 
   const appendOp = (): void => {
-    const fd = openSync(paths.quarantinePath, constants.O_WRONLY | constants.O_CREAT | constants.O_APPEND, 0o644);
+    const fd = openSync(
+      paths.quarantinePath,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_APPEND,
+      0o644,
+    );
     try {
       writeSync(fd, formattedLine);
       fsyncSync(fd);
@@ -97,7 +101,14 @@ export function ingestToQuarantine(
     appendOp();
   }
 
-  return { id: entryId, agentId, reason, rawEnvelope: rawStr, timestamp, quarantinePath: paths.quarantinePath };
+  return {
+    id: entryId,
+    agentId,
+    reason,
+    rawEnvelope: rawStr,
+    timestamp,
+    quarantinePath: paths.quarantinePath,
+  };
 }
 
 function parseQuarantineFile(agentId: string, filePath: string): QuarantinedDeadLetter[] {
@@ -108,15 +119,29 @@ function parseQuarantineFile(agentId: string, filePath: string): QuarantinedDead
     if (line.trim().length === 0) continue;
     const match = LINE_REGEX.exec(line);
     if (match && match[1] && match[2] && match[3] !== undefined) {
-      entries.push({ id: randomUUID(), agentId, timestamp: match[1], reason: match[2], rawEnvelope: match[3] });
+      entries.push({
+        id: randomUUID(),
+        agentId,
+        timestamp: match[1],
+        reason: match[2],
+        rawEnvelope: match[3],
+      });
     } else {
-      entries.push({ id: randomUUID(), agentId, timestamp: new Date().toISOString(), reason: "UNKNOWN_CORRUPTION", rawEnvelope: line });
+      entries.push({
+        id: randomUUID(),
+        agentId,
+        timestamp: new Date().toISOString(),
+        reason: "UNKNOWN_CORRUPTION",
+        rawEnvelope: line,
+      });
     }
   }
   return entries;
 }
 
-export function sweepQuarantineDeadLetters(options?: SweepQuarantineOptions): SweepQuarantineResult {
+export function sweepQuarantineDeadLetters(
+  options?: SweepQuarantineOptions,
+): SweepQuarantineResult {
   const effectiveBase = resolve(options?.baseDir ?? process.cwd());
   const mailboxesDir = join(effectiveBase, ".olt", "mailboxes");
   const agentIds: string[] = [];
@@ -147,7 +172,8 @@ export function sweepQuarantineDeadLetters(options?: SweepQuarantineOptions): Sw
     const kept: QuarantinedDeadLetter[] = [];
     for (const entry of entries) {
       const entryTime = new Date(entry.timestamp).getTime();
-      const isExpired = maxAge !== undefined ? Number.isFinite(entryTime) && now - entryTime >= maxAge : true;
+      const isExpired =
+        maxAge !== undefined ? Number.isFinite(entryTime) && now - entryTime >= maxAge : true;
       if (isExpired) {
         allDeadLetters.push(entry);
       } else {
@@ -162,7 +188,9 @@ export function sweepQuarantineDeadLetters(options?: SweepQuarantineOptions): Sw
           truncateSync(paths.quarantinePath, 0);
           purgedEntries += entries.length;
         } else {
-          const newContent = kept.map((k) => `[${k.timestamp}] [REASON: ${k.reason}] ${k.rawEnvelope}\n`).join("");
+          const newContent = kept
+            .map((k) => `[${k.timestamp}] [REASON: ${k.reason}] ${k.rawEnvelope}\n`)
+            .join("");
           writeFileSync(paths.quarantinePath, newContent, "utf8");
           purgedEntries += entries.length - kept.length;
         }

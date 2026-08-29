@@ -20,7 +20,10 @@ import {
   type TaskQueueStatus,
   type TaskSourceType,
 } from "../../../../olt/scripts/src/task/queue/types.ts";
-import type { TaskQueueFilterOptions, TaskQueueStats } from "../../../../olt/scripts/src/task/queue/filters.ts";
+import type {
+  TaskQueueFilterOptions,
+  TaskQueueStats,
+} from "../../../../olt/scripts/src/task/queue/filters.ts";
 
 describe("Task Queue Types & Schema Validation", () => {
   it("defines standard task statuses and priorities", () => {

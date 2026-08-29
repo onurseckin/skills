@@ -76,7 +76,7 @@ export const DEFAULT_EPISTEMIC_WEIGHTS: EpistemicWeights = {
   coherence: 0.25,
   falsifiability: 0.25,
   stability: 0.15,
-  coverage: 0.10,
+  coverage: 0.1,
 };
 
 export const DEFAULT_PASS_THRESHOLD = 0.7;

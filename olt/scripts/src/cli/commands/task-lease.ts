@@ -1,13 +1,7 @@
 import { claimTaskLease } from "../../task/queue/index.ts";
 import { resolveTraceContext } from "../../telemetry/trace-context.ts";
 import { parseArguments } from "../arguments.ts";
-import {
-  assertFlags,
-  integerFlag,
-  textFlag,
-  type CommandContext,
-  type Flags,
-} from "../options.ts";
+import { assertFlags, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 const ALLOWED_TASK_LEASE_FLAGS: readonly string[] = [
   "task",

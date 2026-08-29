@@ -10,7 +10,6 @@ import {
   validateZeroCommentsInCode,
 } from "../../../olt/scripts/src/validation/coding-conventions.ts";
 
-
 describe("Coding Conventions Validation", () => {
   describe("validateZeroCommentsInCode", () => {
     it("detects single-line, multi-line, and docblock comments", () => {
@@ -155,7 +154,6 @@ describe("Coding Conventions Validation", () => {
       }
     });
   });
-
 
   describe("validateNoBackwardsCompatibilityShims", () => {
     it("detects deprecation annotations and shim identifiers", () => {

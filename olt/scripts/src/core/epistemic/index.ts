@@ -11,10 +11,7 @@ export type {
   WilsonScoreInterval,
 } from "./types.ts";
 
-export {
-  DEFAULT_EPISTEMIC_WEIGHTS,
-  DEFAULT_PASS_THRESHOLD,
-} from "./types.ts";
+export { DEFAULT_EPISTEMIC_WEIGHTS, DEFAULT_PASS_THRESHOLD } from "./types.ts";
 
 export {
   calculateEpistemicGrade,

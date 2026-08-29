@@ -49,10 +49,7 @@ export {
   type DoctorIssueTiering,
   type CapsuleDoctorFacts,
 } from "./facts.ts";
-export {
-  formatDoctorReport,
-  type DoctorReportFormatParams,
-} from "./report-formatter.ts";
+export { formatDoctorReport, type DoctorReportFormatParams } from "./report-formatter.ts";
 export {
   remedialActionsForIntegrityIssues,
   generateRemedialGuidance,
@@ -62,14 +59,12 @@ export {
 } from "./guidance.ts";
 export {
   checkPreCompletionDiagnostics,
+  executePreCompletionDoctorHook,
   type PreCompletionDiagnosticsOptions,
   type PreCompletionDiagnosticsResult,
   type PreCompletionBlocker,
 } from "./pre-completion.ts";
-export {
-  runDoctor,
-  type DoctorOptions,
-} from "./runner.ts";
+export { runDoctor, type DoctorOptions } from "./runner.ts";
 export {
   checkPlanningDag,
   checkAstPurity,

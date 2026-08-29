@@ -45,7 +45,9 @@ export function detectScopeOverlapWarnings(tasks: readonly PlanTaskInput[]): str
 
   for (const [scope, taskIds] of scopeMap.entries()) {
     if (taskIds.length > 1) {
-      warnings.push(`Concurrent write scope collision on '${scope}' between tasks: ${taskIds.join(", ")}`);
+      warnings.push(
+        `Concurrent write scope collision on '${scope}' between tasks: ${taskIds.join(", ")}`,
+      );
     }
   }
 
@@ -68,7 +70,11 @@ export function evaluatePlanEpistemicReadiness(
   const empiricalEvidenceCount = (doc.sources?.length ?? 0) + (doc.observations?.length ?? 0);
   const contradictionCount = (doc.risks ?? []).filter((r) => {
     const lower = r.toLowerCase();
-    return lower.includes("contradiction") || lower.includes("conflict") || lower.includes("incompatible");
+    return (
+      lower.includes("contradiction") ||
+      lower.includes("conflict") ||
+      lower.includes("incompatible")
+    );
   }).length;
 
   const epistemic = evaluateEpistemicConfidence(
@@ -88,7 +94,7 @@ export function evaluatePlanEpistemicReadiness(
   let readinessVerdict: "READY" | "REVISE" | "BLOCKED" = "BLOCKED";
   if (epistemic.passed && scopeOverlapWarnings.length === 0) {
     readinessVerdict = "READY";
-  } else if (epistemic.confidenceScore >= 0.50) {
+  } else if (epistemic.confidenceScore >= 0.5) {
     readinessVerdict = "REVISE";
   }
 

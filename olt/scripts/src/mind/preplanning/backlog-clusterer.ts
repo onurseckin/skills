@@ -66,16 +66,54 @@ export function classifyDomain(
     return category.toLowerCase() as DomainCategory;
   }
 
-  const mindKeywords = ["mind", "cognitive", "feedback", "hyper-cognition", "pulse", "brainstorm", "charter"];
+  const mindKeywords = [
+    "mind",
+    "cognitive",
+    "feedback",
+    "hyper-cognition",
+    "pulse",
+    "brainstorm",
+    "charter",
+  ];
   if (mindKeywords.some((w) => combined.includes(w))) return "mind";
 
-  const valKeywords = ["validat", "test", "assert", "coverage", "apca", "contrast", "audit", "verifier", "spec"];
+  const valKeywords = [
+    "validat",
+    "test",
+    "assert",
+    "coverage",
+    "apca",
+    "contrast",
+    "audit",
+    "verifier",
+    "spec",
+  ];
   if (valKeywords.some((w) => combined.includes(w))) return "validation";
 
-  const toolKeywords = ["cli", "command", "tool", "script", "shell", "harness", "flags", "factory-ops"];
+  const toolKeywords = [
+    "cli",
+    "command",
+    "tool",
+    "script",
+    "shell",
+    "harness",
+    "flags",
+    "factory-ops",
+  ];
   if (toolKeywords.some((w) => combined.includes(w))) return "tooling";
 
-  const engKeywords = ["engine", "store", "storage", "ledger", "cache", "kv", "scheduler", "queue", "pipeline", "bridge"];
+  const engKeywords = [
+    "engine",
+    "store",
+    "storage",
+    "ledger",
+    "cache",
+    "kv",
+    "scheduler",
+    "queue",
+    "pipeline",
+    "bridge",
+  ];
   if (engKeywords.some((w) => combined.includes(w))) return "engine";
 
   const repKeywords = ["report", "brief", "summary", "metrics", "telemetry", "doctor"];
@@ -162,7 +200,8 @@ export function clusterBacklogAndDefects(
 
   for (const domain of CANONICAL_DOMAINS) {
     const group = domainGroups.get(domain);
-    if (group === undefined || (group.itemIds.length === 0 && group.defectIds.length === 0)) continue;
+    if (group === undefined || (group.itemIds.length === 0 && group.defectIds.length === 0))
+      continue;
 
     const tsOpt = options !== undefined ? options.timestamp : undefined;
     const targetDirOpt = options !== undefined ? options.targetDir : undefined;

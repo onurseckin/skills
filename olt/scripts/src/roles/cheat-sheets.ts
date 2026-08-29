@@ -28,14 +28,23 @@ export function parseRoleContract(
 
 export function listAvailableRoles(rolesDir?: string): readonly string[] {
   const dir = rolesDir !== undefined ? resolve(rolesDir) : DEFAULT_AGENTS_ROOT;
-  if (!existsSync(dir)) throw new HarnessError("PATH_SAFETY", `roles directory does not exist: ${dir}`);
+  if (!existsSync(dir))
+    throw new HarnessError("PATH_SAFETY", `roles directory does not exist: ${dir}`);
   const roles = readdirSync(dir)
-    .filter((e) => (e.endsWith(".yaml") || e.endsWith(".yml") || e.endsWith(".md")) && !e.startsWith("."))
+    .filter(
+      (e) => (e.endsWith(".yaml") || e.endsWith(".yml") || e.endsWith(".md")) && !e.startsWith("."),
+    )
     .map((e) => e.replace(/\.(yaml|yml|md)$/, ""))
     .filter((e) => (rolesDir !== undefined ? true : isAgentRole(e)))
     .sort();
   if (roles.includes("validator") && !roles.includes("validator-code-quality")) {
-    roles.push("validator-code-quality", "validator-product", "validator-security", "validator-system-design", "validator-ui-design");
+    roles.push(
+      "validator-code-quality",
+      "validator-product",
+      "validator-security",
+      "validator-system-design",
+      "validator-ui-design",
+    );
     roles.sort();
   }
   return roles;
@@ -43,39 +52,81 @@ export function listAvailableRoles(rolesDir?: string): readonly string[] {
 
 function resolveRoleFile(role: string, rolesDir?: string): string {
   const dir = rolesDir !== undefined ? resolve(rolesDir) : DEFAULT_AGENTS_ROOT;
-  const candidates = [join(dir, `${role}.yaml`), join(dir, `${role}.yml`), join(dir, `${role}.md`), join(dir, role)];
-  if (role.startsWith("validator-")) candidates.push(join(dir, "validator.yaml"), join(dir, "validator.yml"), join(dir, "validator.md"));
+  const candidates = [
+    join(dir, `${role}.yaml`),
+    join(dir, `${role}.yml`),
+    join(dir, `${role}.md`),
+    join(dir, role),
+  ];
+  if (role.startsWith("validator-"))
+    candidates.push(
+      join(dir, "validator.yaml"),
+      join(dir, "validator.yml"),
+      join(dir, "validator.md"),
+    );
   for (const cand of candidates) {
     if (existsSync(cand)) return cand;
   }
-  throw new HarnessError("INVALID_ARGUMENT", `role contract not found for role '${role}' at ${join(dir, role)}`);
+  throw new HarnessError(
+    "INVALID_ARGUMENT",
+    `role contract not found for role '${role}' at ${join(dir, role)}`,
+  );
 }
 
-function extractProseDetails(body: string, roleName: string): {
+function extractProseDetails(
+  body: string,
+  roleName: string,
+): {
   title: string;
   summary: string;
   cognitivePillars: string[];
   proseRules: string[];
 } {
-  let title = "Role", inPillars = false;
-  const cognitivePillars: string[] = [], proseRules: string[] = [], leadParagraphs: string[] = [];
+  let title = "Role",
+    inPillars = false;
+  const cognitivePillars: string[] = [],
+    proseRules: string[] = [],
+    leadParagraphs: string[] = [];
   const normalizedRole = roleName.toLowerCase().replace(/^validator-/, "");
   for (const line of body.split("\n")) {
     const trimmed = line.trim();
     if (trimmed.startsWith("# ") && title === "Role") {
-      const h = trimmed.slice(2).trim(), hl = h.toLowerCase();
-      if (hl === normalizedRole || hl === roleName.toLowerCase() || hl.startsWith(normalizedRole) ||
-          (!hl.includes("host-tool") && !hl.includes("interlock") && !hl.includes("guard") &&
-           !hl.includes("mandate") && !hl.includes("verification") && !hl.includes("shielded"))) {
+      const h = trimmed.slice(2).trim(),
+        hl = h.toLowerCase();
+      if (
+        hl === normalizedRole ||
+        hl === roleName.toLowerCase() ||
+        hl.startsWith(normalizedRole) ||
+        (!hl.includes("host-tool") &&
+          !hl.includes("interlock") &&
+          !hl.includes("guard") &&
+          !hl.includes("mandate") &&
+          !hl.includes("verification") &&
+          !hl.includes("shielded"))
+      ) {
         title = h;
       }
       continue;
     }
-    if (trimmed.startsWith("## Cognitive Pillars")) { inPillars = true; continue; }
+    if (trimmed.startsWith("## Cognitive Pillars")) {
+      inPillars = true;
+      continue;
+    }
     if (inPillars && trimmed.startsWith("## ")) inPillars = false;
-    if (inPillars && trimmed.startsWith("- ")) { cognitivePillars.push(trimmed.slice(2).trim()); continue; }
-    if (trimmed.startsWith("- **")) { proseRules.push(trimmed.slice(2).trim()); continue; }
-    if (!trimmed.startsWith("#") && !trimmed.startsWith("-") && trimmed.length > 0 && leadParagraphs.length < 2) {
+    if (inPillars && trimmed.startsWith("- ")) {
+      cognitivePillars.push(trimmed.slice(2).trim());
+      continue;
+    }
+    if (trimmed.startsWith("- **")) {
+      proseRules.push(trimmed.slice(2).trim());
+      continue;
+    }
+    if (
+      !trimmed.startsWith("#") &&
+      !trimmed.startsWith("-") &&
+      trimmed.length > 0 &&
+      leadParagraphs.length < 2
+    ) {
       leadParagraphs.push(trimmed);
     }
   }
@@ -88,31 +139,55 @@ function formatCompactMarkdown(sheet: Omit<RoleCheatSheet, "markdown">): string 
     `### ⚡ Compact Cheat-Sheet: \`${sheet.role}\` (Tier ${sheet.tier})`,
     `**Granted Commands (${sheet.grantedCommands.length})**: ${sheet.grantedCommands.map((c) => `\`${c}\``).join(", ")}`,
     `**Spawns (${sheet.spawns.length})**: ${sheet.spawns.length > 0 ? sheet.spawns.map((s) => `\`${s}\``).join(", ") : "none"}`,
-    "", "```text", ...sheet.commandDetails.map((cmd) => `${cmd.name.padEnd(22)} -> ${cmd.syntax}`), "```", "",
+    "",
+    "```text",
+    ...sheet.commandDetails.map((cmd) => `${cmd.name.padEnd(22)} -> ${cmd.syntax}`),
+    "```",
+    "",
     "**Key Invariants**:",
     ...invList.slice(0, 5).map((inv) => `- 🔴 ${inv}`),
-    ...(invList.length > 5 ? [`- *(+${invList.length - 5} more prohibitions in full contract)*`] : []),
+    ...(invList.length > 5
+      ? [`- *(+${invList.length - 5} more prohibitions in full contract)*`]
+      : []),
     "",
   ];
   return lines.join("\n");
 }
 
-function formatFullMarkdown(sheet: Omit<RoleCheatSheet, "markdown">, spec: UniversalRoleSpec): string {
+function formatFullMarkdown(
+  sheet: Omit<RoleCheatSheet, "markdown">,
+  spec: UniversalRoleSpec,
+): string {
   const prohibited = sheet.forbiddenActions.length > 0 ? sheet.forbiddenActions : sheet.invariants;
   const lines: string[] = [
     `### 🛡️ Role Contract: \`${sheet.role}\` (Tier ${sheet.tier})`,
-    `**${sheet.title}** — ${sheet.summary}`, "",
-    ...(sheet.domain !== undefined ? [`- **${spec.archetype !== undefined ? "Specialization Domain" : "Validator Domain"}**: \`${sheet.domain}\``] : []),
+    `**${sheet.title}** — ${sheet.summary}`,
+    "",
+    ...(sheet.domain !== undefined
+      ? [
+          `- **${spec.archetype !== undefined ? "Specialization Domain" : "Validator Domain"}**: \`${sheet.domain}\``,
+        ]
+      : []),
     `- **Authority Tier**: Tier ${sheet.tier}`,
     ...(spec.archetype !== undefined ? [`- **Archetype**: \`${spec.archetype}\``] : []),
-    ...(spec.writeScopePolicy !== undefined ? [`- **Write Scope Policy**: \`${spec.writeScopePolicy}\``] : []),
+    ...(spec.writeScopePolicy !== undefined
+      ? [`- **Write Scope Policy**: \`${spec.writeScopePolicy}\``]
+      : []),
     `- **Spawns Allowed**: ${sheet.spawns.length > 0 ? sheet.spawns.map((s) => `\`${s}\``).join(", ") : "*(None — Leaf Worker)*"}`,
-    "", "#### ⚡ Granted CLI Verbs & Syntax", "| Command | Summary | Syntax Template |", "| :--- | :--- | :--- |",
-    ...sheet.commandDetails.map((cmd) => `| \`${cmd.name}\` | ${cmd.summary} | \`${cmd.syntax}\` |`),
-    "", "#### 🚫 Invariants & Absolute Prohibitions (`must_not`)",
+    "",
+    "#### ⚡ Granted CLI Verbs & Syntax",
+    "| Command | Summary | Syntax Template |",
+    "| :--- | :--- | :--- |",
+    ...sheet.commandDetails.map(
+      (cmd) => `| \`${cmd.name}\` | ${cmd.summary} | \`${cmd.syntax}\` |`,
+    ),
+    "",
+    "#### 🚫 Invariants & Absolute Prohibitions (`must_not`)",
     ...prohibited.map((inv) => `- 🔴 ${inv}`),
-    "", "#### ✅ Permitted Activities (`may`)",
-    ...sheet.permittedActivities.map((may) => `- 🟢 ${may}`), "",
+    "",
+    "#### ✅ Permitted Activities (`may`)",
+    ...sheet.permittedActivities.map((may) => `- 🟢 ${may}`),
+    "",
     ...(sheet.cognitivePillars && sheet.cognitivePillars.length > 0
       ? ["#### 🧠 Cognitive Pillars", ...sheet.cognitivePillars.map((p) => `- 🔷 ${p}`), ""]
       : []),
@@ -142,9 +217,13 @@ export function formatUniversalCheatSheet(
       ...(spec.writeScopePolicy !== undefined ? [`Write Policy: ${spec.writeScopePolicy}`] : []),
     ],
     spawns: spec.spawns,
-    ...(spec.cognitivePillars && spec.cognitivePillars.length > 0 ? { cognitivePillars: spec.cognitivePillars } : {}),
+    ...(spec.cognitivePillars && spec.cognitivePillars.length > 0
+      ? { cognitivePillars: spec.cognitivePillars }
+      : {}),
   };
-  const markdown = options?.compact ? formatCompactMarkdown(baseSheet) : formatFullMarkdown(baseSheet, spec);
+  const markdown = options?.compact
+    ? formatCompactMarkdown(baseSheet)
+    : formatFullMarkdown(baseSheet, spec);
   return { ...baseSheet, markdown };
 }
 
@@ -172,19 +251,27 @@ export function generateRoleCheatSheet(
   const prose = extractProseDetails(body, role);
   const invariants = [...contract.must_not];
   const antiLeakRules: string[] = [];
-  if ((contract.role === "validator" || contract.role === "completeness-critic") &&
-      !prose.proseRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))) {
-    const rule = "**Anti-Boundary-Leak Rule**: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.";
+  if (
+    (contract.role === "validator" || contract.role === "completeness-critic") &&
+    !prose.proseRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))
+  ) {
+    const rule =
+      "**Anti-Boundary-Leak Rule**: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.";
     antiLeakRules.push(rule);
     if (!invariants.some((i) => i.toLowerCase().includes("anti-boundary-leak"))) {
-      invariants.push("Anti-Boundary-Leak Rule: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.");
+      invariants.push(
+        "Anti-Boundary-Leak Rule: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.",
+      );
     }
   }
 
   const spec: UniversalRoleSpec = {
     name: contract.role,
     tier: contract.tier,
-    title: prose.title.length > 0 && prose.title !== "Role" ? prose.title : contract.role.charAt(0).toUpperCase() + contract.role.slice(1),
+    title:
+      prose.title.length > 0 && prose.title !== "Role"
+        ? prose.title
+        : contract.role.charAt(0).toUpperCase() + contract.role.slice(1),
     summary: prose.summary.length > 0 ? prose.summary : `Role contract for ${contract.role}`,
     domain: contract.domain,
     grantedCommands: contract.commands,
@@ -192,7 +279,12 @@ export function generateRoleCheatSheet(
     prohibitedActions: invariants,
     forbiddenActions: contract.must_not,
     invariants,
-    authorityRules: [`Tier ${contract.tier} execution authority`, `Spawns: ${contract.spawns.length > 0 ? contract.spawns.join(", ") : "none"}`, ...antiLeakRules, ...prose.proseRules],
+    authorityRules: [
+      `Tier ${contract.tier} execution authority`,
+      `Spawns: ${contract.spawns.length > 0 ? contract.spawns.join(", ") : "none"}`,
+      ...antiLeakRules,
+      ...prose.proseRules,
+    ],
     spawns: contract.spawns,
     ...(prose.cognitivePillars.length > 0 ? { cognitivePillars: prose.cognitivePillars } : {}),
   };

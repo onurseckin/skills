@@ -46,7 +46,9 @@ describe("Session Capsule Interlock & Turn 1 Registration", () => {
     it("rejects agent with no active grant in capsule state", () => {
       const state = { schema_version: 1, run_id: "run-session-interlock-1", tasks: {}, agents: [] };
       writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
-      expect(() => assertActiveCapsuleLease(capsuleDir, "unregistered-agent")).toThrow(HarnessError);
+      expect(() => assertActiveCapsuleLease(capsuleDir, "unregistered-agent")).toThrow(
+        HarnessError,
+      );
     });
 
     it("rejects agent whose grant is released", () => {
@@ -138,7 +140,9 @@ describe("Session Capsule Interlock & Turn 1 Registration", () => {
 
   describe("requireTurn1Registration", () => {
     it("rejects null or undefined session identity", () => {
-      expect(() => requireTurn1Registration(null as unknown as SessionIdentity)).toThrow(HarnessError);
+      expect(() => requireTurn1Registration(null as unknown as SessionIdentity)).toThrow(
+        HarnessError,
+      );
     });
 
     it("rejects unauthenticated session token", () => {

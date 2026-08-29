@@ -22,7 +22,7 @@ describe("Role CLI Commands & JSON Contract Verification", () => {
   test("role:list supports custom roles directory parameter", () => {
     const res = roleListCommand({ dir: "olt/agents" });
     expect(Array.isArray(res.roles)).toBeTrue();
-    expect((res.total as number)).toBeGreaterThanOrEqual(0);
+    expect(res.total as number).toBeGreaterThanOrEqual(0);
   });
 
   test("executeRoleList executes command line entrypoint and returns exit code 0", async () => {
@@ -78,7 +78,7 @@ describe("Role CLI Commands & JSON Contract Verification", () => {
 
     const allRes = await roleCheatSheetCommand({ all: true });
     expect(typeof allRes.markdown).toBe("string");
-    expect((allRes.total_roles as number)).toBeGreaterThan(0);
+    expect(allRes.total_roles as number).toBeGreaterThan(0);
 
     const compactRes = await roleCheatSheetCommand({ compact: true });
     expect(typeof compactRes.markdown).toBe("string");

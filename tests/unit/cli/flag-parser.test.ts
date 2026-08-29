@@ -60,7 +60,22 @@ describe("parseCommandFlags", () => {
     }
 
     const result = parseCommandFlags<Parsed>(
-      ["test:action", "--track", "TRK-01", "--count", "42", "--dry-run", "--tag", "alpha", "--tag", "beta", "--priority", "1", "--priority", "2"],
+      [
+        "test:action",
+        "--track",
+        "TRK-01",
+        "--count",
+        "42",
+        "--dry-run",
+        "--tag",
+        "alpha",
+        "--tag",
+        "beta",
+        "--priority",
+        "1",
+        "--priority",
+        "2",
+      ],
       SAMPLE_SPEC,
     );
 
@@ -78,10 +93,7 @@ describe("parseCommandFlags", () => {
       readonly "dry-run": boolean;
     }
 
-    const result = parseCommandFlags<Parsed>(
-      ["--track", "TRK-02"],
-      SAMPLE_SPEC,
-    );
+    const result = parseCommandFlags<Parsed>(["--track", "TRK-02"], SAMPLE_SPEC);
 
     expect(result.track).toBe("TRK-02");
     expect(result.count).toBe(10);
@@ -121,9 +133,7 @@ describe("parseCommandFlags", () => {
   });
 
   it("throws HarnessError on blank string value", () => {
-    expect(() =>
-      parseCommandFlags(["--track", "   "], SAMPLE_SPEC),
-    ).toThrow(HarnessError);
+    expect(() => parseCommandFlags(["--track", "   "], SAMPLE_SPEC)).toThrow(HarnessError);
   });
 
   it("throws HarnessError on unknown option and provides suggestion", () => {
@@ -144,9 +154,9 @@ describe("parseCommandFlags", () => {
   });
 
   it("throws HarnessError on unexpected positional arguments", () => {
-    expect(() =>
-      parseCommandFlags(["--track", "TRK-01", "unexpected-arg"], SAMPLE_SPEC),
-    ).toThrow(HarnessError);
+    expect(() => parseCommandFlags(["--track", "TRK-01", "unexpected-arg"], SAMPLE_SPEC)).toThrow(
+      HarnessError,
+    );
   });
 
   it("resolves run-id alias to run flag", () => {
@@ -179,9 +189,9 @@ describe("parseCommandFlags", () => {
   });
 
   it("rejects remainder when spec.takesRemainder is false", () => {
-    expect(() =>
-      parseCommandFlags(["--track", "TRK-01", "--", "extra"], SAMPLE_SPEC),
-    ).toThrow(HarnessError);
+    expect(() => parseCommandFlags(["--track", "TRK-01", "--", "extra"], SAMPLE_SPEC)).toThrow(
+      HarnessError,
+    );
   });
 
   it("handles command name stripping from start of argv", () => {
@@ -189,10 +199,7 @@ describe("parseCommandFlags", () => {
       readonly track: string;
     }
 
-    const result = parseCommandFlags<Parsed>(
-      ["test:action", "--track", "TRK-99"],
-      SAMPLE_SPEC,
-    );
+    const result = parseCommandFlags<Parsed>(["test:action", "--track", "TRK-99"], SAMPLE_SPEC);
 
     expect(result.track).toBe("TRK-99");
   });

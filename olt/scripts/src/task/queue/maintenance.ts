@@ -13,7 +13,9 @@ import {
 } from "./storage.ts";
 import { PRIORITY_WEIGHTS, resolveTaskQueuePath, type TaskQueueItem } from "./types.ts";
 
-export function getQueueStats(customPathOrItems?: string | readonly TaskQueueItem[]): TaskQueueStats {
+export function getQueueStats(
+  customPathOrItems?: string | readonly TaskQueueItem[],
+): TaskQueueStats {
   const items = Array.isArray(customPathOrItems)
     ? customPathOrItems
     : readTaskQueue(typeof customPathOrItems === "string" ? customPathOrItems : undefined);
@@ -36,8 +38,10 @@ export function getQueueStats(customPathOrItems?: string | readonly TaskQueueIte
     if (item.status === "PENDING") mutableStats.pending++;
     else if (item.status === "ADMITTED") mutableStats.admitted++;
     else if (item.status === "IN_PROGRESS") mutableStats.in_progress++;
-    else if (item.status === "RUNNING") { mutableStats.running++; mutableStats.in_progress++; }
-    else if (item.status === "VALIDATING") mutableStats.validating++;
+    else if (item.status === "RUNNING") {
+      mutableStats.running++;
+      mutableStats.in_progress++;
+    } else if (item.status === "VALIDATING") mutableStats.validating++;
     else if (item.status === "COMPLETED") mutableStats.completed++;
     else if (item.status === "FAILED") mutableStats.failed++;
     else if (item.status === "BLOCKED") mutableStats.blocked++;
@@ -63,7 +67,9 @@ export function listTaskQueue(options: TaskQueueFilterOptions = {}): TaskQueueIt
   if (options.agentId) filtered = filtered.filter((t) => t.lease?.agent_id === options.agentId);
   if (options.search) {
     const q = options.search.toLowerCase();
-    filtered = filtered.filter((t) => t.id.toLowerCase().includes(q) || t.title.toLowerCase().includes(q));
+    filtered = filtered.filter(
+      (t) => t.id.toLowerCase().includes(q) || t.title.toLowerCase().includes(q),
+    );
   }
   filtered.sort((a, b) => {
     const pDiff = PRIORITY_WEIGHTS[b.priority] - PRIORITY_WEIGHTS[a.priority];
@@ -75,9 +81,18 @@ export function listTaskQueue(options: TaskQueueFilterOptions = {}): TaskQueueIt
 }
 
 export function pruneCompletedTasksUnlocked(
-  options: { readonly completedTasksPath?: string | undefined; readonly autoArchive?: boolean | undefined } | undefined,
+  options:
+    | {
+        readonly completedTasksPath?: string | undefined;
+        readonly autoArchive?: boolean | undefined;
+      }
+    | undefined,
   filePath: string,
-): { readonly prunedCount: number; readonly remainingCount: number; readonly archivedCount?: number | undefined } {
+): {
+  readonly prunedCount: number;
+  readonly remainingCount: number;
+  readonly archivedCount?: number | undefined;
+} {
   const all = readTaskQueueFile(filePath);
   const completed = all.filter((t) => t.status === "COMPLETED");
   const remaining = all.filter((t) => t.status !== "COMPLETED");
@@ -96,7 +111,9 @@ export function pruneCompletedTasksUnlocked(
       metadata: t.metadata,
     }));
     try {
-      const archived = recordCompletedTasksBatch(records, { customPath: options?.completedTasksPath });
+      const archived = recordCompletedTasksBatch(records, {
+        customPath: options?.completedTasksPath,
+      });
       archivedCount = archived.length;
     } catch {}
   }
@@ -106,8 +123,15 @@ export function pruneCompletedTasksUnlocked(
 
 export function pruneCompletedTasks(
   customPath?: string,
-  options?: { readonly completedTasksPath?: string | undefined; readonly autoArchive?: boolean | undefined },
-): { readonly prunedCount: number; readonly remainingCount: number; readonly archivedCount?: number | undefined } {
+  options?: {
+    readonly completedTasksPath?: string | undefined;
+    readonly autoArchive?: boolean | undefined;
+  },
+): {
+  readonly prunedCount: number;
+  readonly remainingCount: number;
+  readonly archivedCount?: number | undefined;
+} {
   const filePath = resolveTaskQueuePath(customPath);
   return withTaskQueueTransaction(filePath, () => pruneCompletedTasksUnlocked(options, filePath));
 }
@@ -116,7 +140,11 @@ export function pruneTaskQueue(options?: {
   readonly customPath?: string | undefined;
   readonly completedTasksPath?: string | undefined;
   readonly autoArchive?: boolean | undefined;
-}): { readonly prunedCount: number; readonly remainingCount: number; readonly archivedCount?: number | undefined } {
+}): {
+  readonly prunedCount: number;
+  readonly remainingCount: number;
+  readonly archivedCount?: number | undefined;
+} {
   return pruneCompletedTasks(options?.customPath, options);
 }
 
@@ -131,7 +159,12 @@ export function reclaimExpiredLeasesUnlocked(
   let modified = false;
   for (let i = 0; i < queue.length; i++) {
     const item = queue[i]!;
-    if ((item.status === "IN_PROGRESS" || item.status === "RUNNING" || item.status === "VALIDATING") && item.lease) {
+    if (
+      (item.status === "IN_PROGRESS" ||
+        item.status === "RUNNING" ||
+        item.status === "VALIDATING") &&
+      item.lease
+    ) {
       const expiresMs = Date.parse(item.lease.expires_at);
       if (Number.isFinite(expiresMs) && expiresMs <= nowMs) {
         const canRetry = item.retry_count < item.max_retries;

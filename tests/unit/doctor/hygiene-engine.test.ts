@@ -18,7 +18,10 @@ afterEach(() => {
 });
 
 function createWorkspace(): string {
-  const root = join(tmpdir(), `hygiene-doc-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const root = join(
+    tmpdir(),
+    `hygiene-doc-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
   mkdirSync(root, { recursive: true });
   testRoots.push(root);
   writeFileSync(join(root, "package.json"), "{}");

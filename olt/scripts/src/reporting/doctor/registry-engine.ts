@@ -1,8 +1,4 @@
-import {
-  COMMAND_DOMAINS,
-  COMMAND_REGISTRY,
-  type CommandSpec,
-} from "../../cli/registry/index.ts";
+import { COMMAND_DOMAINS, COMMAND_REGISTRY, type CommandSpec } from "../../cli/registry/index.ts";
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
 
 export interface CliRegistryTaxonomyCheckOptions {

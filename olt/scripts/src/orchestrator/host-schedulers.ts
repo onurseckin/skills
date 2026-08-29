@@ -97,9 +97,7 @@ export function validateHostSchedulerConfig(config: HostSchedulerConfig): {
   }
 
   if (config.tier_3_thinking !== "medium" && config.tier_3_thinking !== "high") {
-    errors.push(
-      `Tier 3 thinking must be "medium" or "high", received "${config.tier_3_thinking}"`,
-    );
+    errors.push(`Tier 3 thinking must be "medium" or "high", received "${config.tier_3_thinking}"`);
   }
 
   if (config.max_single_task_seconds > 300) {

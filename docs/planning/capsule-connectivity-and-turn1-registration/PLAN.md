@@ -58,26 +58,26 @@ During multi-agent continuous execution, subagents in the Antigravity host runti
 
 ## Level 3: Disjoint Scope Boundaries
 
-| Scope Domain             | Path Specification                                                                                                                           | Access Contract       |
-| :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------- |
+| Scope Domain             | Path Specification                                                                                                                               | Access Contract       |
+| :----------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------- |
 | **Write Scope (Lane A)** | `olt/scripts/src/authority/session/grants.ts`, `olt/scripts/src/authority/session/resolver.ts`, `tests/unit/authority/session-interlock.test.ts` | Exclusive Write Lease |
-| **Write Scope (Lane B)** | `olt/scripts/src/orchestrator/lifecycle/turn1.ts`, `olt/scripts/src/orchestrator/lifecycle/index.ts`, `tests/unit/orchestrator/turn1.test.ts` | Exclusive Write Lease |
-| **Write Scope (Lane C)** | `olt/scripts/src/validation/anti-leak/validator.ts`, `tests/unit/validation/mutation-interlock.test.ts`                                      | Exclusive Write Lease |
-| **Read-Only Scope**      | `olt/scripts/src/core/`, `.olt/capsules/`, `.olt/backlog.jsonl`                                                                              | Read-Only             |
+| **Write Scope (Lane B)** | `olt/scripts/src/orchestrator/lifecycle/turn1.ts`, `olt/scripts/src/orchestrator/lifecycle/index.ts`, `tests/unit/orchestrator/turn1.test.ts`    | Exclusive Write Lease |
+| **Write Scope (Lane C)** | `olt/scripts/src/validation/anti-leak/validator.ts`, `tests/unit/validation/mutation-interlock.test.ts`                                          | Exclusive Write Lease |
+| **Read-Only Scope**      | `olt/scripts/src/core/`, `.olt/capsules/`, `.olt/backlog.jsonl`                                                                                  | Read-Only             |
 
 ---
 
 ## Level 4: Atomic Implementation Tasks Matrix
 
-| Task ID         | Target File Path                                      | Exact TypeScript Symbols / Signatures                                   | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                                                    |
-| :-------------- | :---------------------------------------------------- | :---------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `task-caps-1.1` | `olt/scripts/src/authority/session/grants.ts`         | `assertActiveCapsuleLease(runRoot: string, agentId: string): void`      | Verify that the calling agent holds an active, non-expired lease in `state.json` before permitting state mutations.                                     |
-| `task-caps-1.2` | `olt/scripts/src/authority/session/resolver.ts`       | `requireTurn1Registration(session: SessionIdentity): void`              | Enforce that session tokens reject unanchored execution when `runRoot` is absent or uninitialized.                                                      |
-| `task-caps-1.3` | `tests/unit/authority/session-interlock.test.ts`       | `describe("Session Capsule Interlock", ...)`                            | Unit tests verifying rejection of unauthenticated/unleased caller mutations.                                                                            |
-| `task-caps-2.1` | `olt/scripts/src/orchestrator/lifecycle/turn1.ts`     | `enforceTurn1OrchestratorInit(runRoot: string, orchId: string): void`   | Automatically execute or verify `run:init` on Orchestrator start; fail immediately if capsule initialization is omitted.                                 |
-| `task-caps-2.2` | `tests/unit/orchestrator/turn1.test.ts`               | `describe("Orchestrator Turn 1 Init", ...)`                             | Unit test verifying that Orchestrators missing Turn 1 `run:init` are blocked from spawning Coordinators.                                                |
-| `task-caps-3.1` | `olt/scripts/src/validation/anti-leak/validator.ts`   | `assertLeaseTokenForFileMutation(file: string, token: string): void`    | Mechanically verify that the implementer holds a valid lease covering the target file's write scope before mutation is allowed.                         |
-| `task-caps-3.2` | `tests/unit/validation/mutation-interlock.test.ts`    | `describe("Mutation Interlock Enforcement", ...)`                       | Unit test verifying that file mutations without valid lease tokens throw `HarnessError("PERMISSION_DENIED")`.                                            |
+| Task ID         | Target File Path                                    | Exact TypeScript Symbols / Signatures                                 | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                            |
+| :-------------- | :-------------------------------------------------- | :-------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| `task-caps-1.1` | `olt/scripts/src/authority/session/grants.ts`       | `assertActiveCapsuleLease(runRoot: string, agentId: string): void`    | Verify that the calling agent holds an active, non-expired lease in `state.json` before permitting state mutations.             |
+| `task-caps-1.2` | `olt/scripts/src/authority/session/resolver.ts`     | `requireTurn1Registration(session: SessionIdentity): void`            | Enforce that session tokens reject unanchored execution when `runRoot` is absent or uninitialized.                              |
+| `task-caps-1.3` | `tests/unit/authority/session-interlock.test.ts`    | `describe("Session Capsule Interlock", ...)`                          | Unit tests verifying rejection of unauthenticated/unleased caller mutations.                                                    |
+| `task-caps-2.1` | `olt/scripts/src/orchestrator/lifecycle/turn1.ts`   | `enforceTurn1OrchestratorInit(runRoot: string, orchId: string): void` | Automatically execute or verify `run:init` on Orchestrator start; fail immediately if capsule initialization is omitted.        |
+| `task-caps-2.2` | `tests/unit/orchestrator/turn1.test.ts`             | `describe("Orchestrator Turn 1 Init", ...)`                           | Unit test verifying that Orchestrators missing Turn 1 `run:init` are blocked from spawning Coordinators.                        |
+| `task-caps-3.1` | `olt/scripts/src/validation/anti-leak/validator.ts` | `assertLeaseTokenForFileMutation(file: string, token: string): void`  | Mechanically verify that the implementer holds a valid lease covering the target file's write scope before mutation is allowed. |
+| `task-caps-3.2` | `tests/unit/validation/mutation-interlock.test.ts`  | `describe("Mutation Interlock Enforcement", ...)`                     | Unit test verifying that file mutations without valid lease tokens throw `HarnessError("PERMISSION_DENIED")`.                   |
 
 ---
 
@@ -145,8 +145,8 @@ bun ~/.agents/skills/olt/scripts/harness.ts task:check --repo .
 
 ## Level 8: Exhaustive Traceability Matrix
 
-| Backlog / Defect ID                                                | Title / Requirement                           | Resolved By Tasks                              | Falsifiable Gate Verification Target                     |
-| :----------------------------------------------------------------- | :-------------------------------------------- | :--------------------------------------------- | :------------------------------------------------------- |
-| `fb-1788021500000-capsule-connectivity-and-turn1-registration`     | Mandatory Turn 1 `run:init` by Orchestrators  | `task-caps-2.1`, `task-caps-2.2`               | `bun test tests/unit/orchestrator/turn1.test.ts`         |
-| `fb-1788021500000-capsule-connectivity-and-turn1-registration`     | Mandatory `plan:compile` & `task:claim` Token | `task-caps-1.1`, `task-caps-1.2`, `task-caps-1.3` | `bun test tests/unit/authority/session-interlock.test.ts`|
-| `fb-1788021500000-capsule-connectivity-and-turn1-registration`     | Mechanical Mutation Interlock Blocking Unleased Edits | `task-caps-3.1`, `task-caps-3.2`               | `bun test tests/unit/validation/mutation-interlock.test.ts` |
+| Backlog / Defect ID                                            | Title / Requirement                                   | Resolved By Tasks                                 | Falsifiable Gate Verification Target                        |
+| :------------------------------------------------------------- | :---------------------------------------------------- | :------------------------------------------------ | :---------------------------------------------------------- |
+| `fb-1788021500000-capsule-connectivity-and-turn1-registration` | Mandatory Turn 1 `run:init` by Orchestrators          | `task-caps-2.1`, `task-caps-2.2`                  | `bun test tests/unit/orchestrator/turn1.test.ts`            |
+| `fb-1788021500000-capsule-connectivity-and-turn1-registration` | Mandatory `plan:compile` & `task:claim` Token         | `task-caps-1.1`, `task-caps-1.2`, `task-caps-1.3` | `bun test tests/unit/authority/session-interlock.test.ts`   |
+| `fb-1788021500000-capsule-connectivity-and-turn1-registration` | Mechanical Mutation Interlock Blocking Unleased Edits | `task-caps-3.1`, `task-caps-3.2`                  | `bun test tests/unit/validation/mutation-interlock.test.ts` |

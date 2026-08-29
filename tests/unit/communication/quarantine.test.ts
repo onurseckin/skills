@@ -50,12 +50,10 @@ describe("Mailbox Quarantine Engine", () => {
 
     it("handles string rawEnvelope and custom lockPath", () => {
       const paths = resolveMailboxPaths("agent-beta", testRoot);
-      const entry = ingestToQuarantine(
-        "agent-beta",
-        "raw unparsed junk string",
-        "SYNTAX_ERROR",
-        { baseDir: testRoot, lockPath: paths.lockPath },
-      );
+      const entry = ingestToQuarantine("agent-beta", "raw unparsed junk string", "SYNTAX_ERROR", {
+        baseDir: testRoot,
+        lockPath: paths.lockPath,
+      });
 
       expect(entry.rawEnvelope).toBe("raw unparsed junk string");
       const log = readFileSync(paths.quarantinePath, "utf8");
@@ -95,10 +93,16 @@ describe("Mailbox Quarantine Engine", () => {
     });
 
     it("purges dead letters when purge flag is true", () => {
-      const entry = ingestToQuarantine("agent-purge", "corrupt text", "PURGE_ME", { baseDir: testRoot });
+      const entry = ingestToQuarantine("agent-purge", "corrupt text", "PURGE_ME", {
+        baseDir: testRoot,
+      });
       expect(existsSync(entry.quarantinePath)).toBe(true);
 
-      const sweep = sweepQuarantineDeadLetters({ baseDir: testRoot, agentId: "agent-purge", purge: true });
+      const sweep = sweepQuarantineDeadLetters({
+        baseDir: testRoot,
+        agentId: "agent-purge",
+        purge: true,
+      });
       expect(sweep.totalEntries).toBe(1);
       expect(sweep.purgedEntries).toBe(1);
       expect(readFileSync(entry.quarantinePath, "utf8")).toBe("");
@@ -115,7 +119,11 @@ describe("Mailbox Quarantine Engine", () => {
         "utf8",
       );
 
-      const sweep = sweepQuarantineDeadLetters({ baseDir: testRoot, agentId: "agent-age", maxAgeMs: 50000 });
+      const sweep = sweepQuarantineDeadLetters({
+        baseDir: testRoot,
+        agentId: "agent-age",
+        maxAgeMs: 50000,
+      });
       expect(sweep.totalEntries).toBe(2);
       expect(sweep.deadLetters.length).toBe(1);
       expect(sweep.deadLetters[0].reason).toBe("OLD_ERROR");

@@ -196,22 +196,14 @@ describe("Task Queue DAG Validation", () => {
   }
 
   test("validates clean acyclic task queue DAG", () => {
-    const tasks = [
-      makeTask("t1"),
-      makeTask("t2", ["t1"]),
-      makeTask("t3", ["t2"]),
-    ];
+    const tasks = [makeTask("t1"), makeTask("t2", ["t1"]), makeTask("t3", ["t2"])];
     const check = validateTaskQueueDag(tasks);
     expect(check.ok).toBe(true);
     expect(check.cycles).toEqual([]);
   });
 
   test("detects and extracts cyclic paths in task queue DAG", () => {
-    const cyclicTasks = [
-      makeTask("a", ["b"]),
-      makeTask("b", ["c"]),
-      makeTask("c", ["a"]),
-    ];
+    const cyclicTasks = [makeTask("a", ["b"]), makeTask("b", ["c"]), makeTask("c", ["a"])];
     const check = validateTaskQueueDag(cyclicTasks);
     expect(check.ok).toBe(false);
     expect(check.cycles.length).toBeGreaterThan(0);

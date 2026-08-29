@@ -187,9 +187,7 @@ describe("checkCommandLockIntegrity", () => {
     );
     expect(valFinding).toBeDefined();
 
-    const implFinding = res.findings.find(
-      (f) => f.code === "IMPLEMENTER_COMMAND_LOCK_VIOLATION",
-    );
+    const implFinding = res.findings.find((f) => f.code === "IMPLEMENTER_COMMAND_LOCK_VIOLATION");
     expect(implFinding).toBeDefined();
 
     rmSync(scratch, { recursive: true, force: true });

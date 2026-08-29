@@ -26,4 +26,3 @@ export function createDefaultCollectors(env?: CollectorEnvironment): TelemetryCo
     new CodexCollector(env),
   ];
 }
-

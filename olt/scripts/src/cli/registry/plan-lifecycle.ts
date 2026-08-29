@@ -1,8 +1,4 @@
-import {
-  planCompileCommand,
-  planReplanCommand,
-  planStatusCommand,
-} from "../commands/plan.ts";
+import { planCompileCommand, planReplanCommand, planStatusCommand } from "../commands/plan.ts";
 import { planApplyCommand, planClaimCommand } from "../commands/plan-apply.ts";
 import { planAuditCommand } from "../commands/plan-audit.ts";
 import { planReviewCommand, planValidateStartCommand } from "../commands/plan-validate.ts";

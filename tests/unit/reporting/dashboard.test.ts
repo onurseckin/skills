@@ -138,7 +138,13 @@ describe("Unified Master Reporting Dashboard & Sugiyama DAG Suite", () => {
           order: 1,
           isDummy: false,
           dependencies: ["T1"],
-          badges: { role: "validator", effortMinutes: 3, spanMinutes: 3, status: "RUNNING", implementerId: "impl-1" },
+          badges: {
+            role: "validator",
+            effortMinutes: 3,
+            spanMinutes: 3,
+            status: "RUNNING",
+            implementerId: "impl-1",
+          },
         },
       ];
       const edges: SugiyamaEdge[] = [{ from: "T1", to: "T2" }];
@@ -192,7 +198,13 @@ describe("Unified Master Reporting Dashboard & Sugiyama DAG Suite", () => {
 
     const mockAgents: DashboardAgentState[] = [
       { id: "agent-impl-1", role: "implementer", tier: 3, status: "idle" },
-      { id: "agent-impl-2", role: "implementer", tier: 3, status: "active", assignedTask: "task-2" },
+      {
+        id: "agent-impl-2",
+        role: "implementer",
+        tier: 3,
+        status: "active",
+        assignedTask: "task-2",
+      },
       { id: "agent-val-1", role: "validator", tier: 2, status: "active", assignedTask: "task-2" },
     ];
 

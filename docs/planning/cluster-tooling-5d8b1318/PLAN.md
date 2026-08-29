@@ -60,6 +60,6 @@ Execution Order: [Task 1.1] ──► [Verification] ──► [Git Staging: git
 
 ## 5. Exhaustive Traceability Matrix
 
-| Defect / Backlog ID | Resolved By Task | Verification Target |
-| :--- | :--- | :--- |
-| `defect-run-init-auth-failure-and-orchestrator-role-drift` | Task 1.x | `tests/unit/tooling/` |
+| Defect / Backlog ID                                        | Resolved By Task | Verification Target   |
+| :--------------------------------------------------------- | :--------------- | :-------------------- |
+| `defect-run-init-auth-failure-and-orchestrator-role-drift` | Task 1.x         | `tests/unit/tooling/` |

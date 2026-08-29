@@ -206,7 +206,11 @@ describe("Worktree Manager & Landing", () => {
     const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "track-teardown.lock");
     mkdirSync(worktreeDir, { recursive: true });
     mkdirSync(join(TEST_DIR, ".olt", "worktrees", "locks"), { recursive: true });
-    writeFileSync(lockPath, JSON.stringify({ pid: process.pid, trackId: "track-teardown" }), "utf8");
+    writeFileSync(
+      lockPath,
+      JSON.stringify({ pid: process.pid, trackId: "track-teardown" }),
+      "utf8",
+    );
 
     const result = destroyTrackWorktree({
       trackId: "track-teardown",
@@ -257,4 +261,3 @@ describe("Worktree Manager & Landing", () => {
     );
   });
 });
-

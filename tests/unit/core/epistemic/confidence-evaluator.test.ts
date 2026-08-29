@@ -26,14 +26,14 @@ describe("Epistemic Confidence Evaluator & Math Verification", () => {
 
   it("maps confidence scores to standardized epistemic grades", () => {
     expect(calculateEpistemicGrade(0.95)).toBe("VERY_HIGH");
-    expect(calculateEpistemicGrade(0.90)).toBe("VERY_HIGH");
+    expect(calculateEpistemicGrade(0.9)).toBe("VERY_HIGH");
     expect(calculateEpistemicGrade(0.85)).toBe("HIGH");
     expect(calculateEpistemicGrade(0.75)).toBe("HIGH");
     expect(calculateEpistemicGrade(0.65)).toBe("MEDIUM");
-    expect(calculateEpistemicGrade(0.60)).toBe("MEDIUM");
+    expect(calculateEpistemicGrade(0.6)).toBe("MEDIUM");
     expect(calculateEpistemicGrade(0.45)).toBe("LOW");
-    expect(calculateEpistemicGrade(0.40)).toBe("LOW");
-    expect(calculateEpistemicGrade(0.20)).toBe("VERY_LOW");
+    expect(calculateEpistemicGrade(0.4)).toBe("LOW");
+    expect(calculateEpistemicGrade(0.2)).toBe("VERY_LOW");
     expect(calculateEpistemicGrade(0)).toBe("VERY_LOW");
   });
 

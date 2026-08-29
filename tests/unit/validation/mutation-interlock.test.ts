@@ -8,9 +8,7 @@ import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Mutation Interlock Enforcement", () => {
   it("throws INVALID_ARGUMENT when target file path is empty or whitespace", () => {
-    expect(() => assertLeaseTokenForFileMutation("", "tok_live_1234567890")).toThrow(
-      HarnessError,
-    );
+    expect(() => assertLeaseTokenForFileMutation("", "tok_live_1234567890")).toThrow(HarnessError);
     expect(() => assertLeaseTokenForFileMutation("   ", "tok_live_1234567890")).toThrow(
       HarnessError,
     );
@@ -94,11 +92,9 @@ describe("Mutation Interlock Enforcement", () => {
     expect(session.can_edit_files).toBe(true);
 
     try {
-      assertLeaseTokenForFileMutation(
-        "docs/planning/capsule-connectivity/PLAN.md",
-        session.token,
-        { runRoot: sandboxDir },
-      );
+      assertLeaseTokenForFileMutation("docs/planning/capsule-connectivity/PLAN.md", session.token, {
+        runRoot: sandboxDir,
+      });
       expect.unreachable("out-of-scope mutation must be blocked");
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(HarnessError);
@@ -119,26 +115,19 @@ describe("Mutation Interlock Enforcement", () => {
       customToken: "tok_live_impl_scope_allow",
       pid: 91105,
       ppid: 91104,
-      writeScope: [
-        "olt/scripts/src/workflow/lease/",
-        "tests/unit/workflow/lease/guard.test.ts",
-      ],
+      writeScope: ["olt/scripts/src/workflow/lease/", "tests/unit/workflow/lease/guard.test.ts"],
     });
 
     expect(() =>
-      assertLeaseTokenForFileMutation(
-        "olt/scripts/src/workflow/lease/guard.ts",
-        session.token,
-        { runRoot: sandboxDir },
-      ),
+      assertLeaseTokenForFileMutation("olt/scripts/src/workflow/lease/guard.ts", session.token, {
+        runRoot: sandboxDir,
+      }),
     ).not.toThrow();
 
     expect(() =>
-      assertLeaseTokenForFileMutation(
-        "tests/unit/workflow/lease/guard.test.ts",
-        session.token,
-        { runRoot: sandboxDir },
-      ),
+      assertLeaseTokenForFileMutation("tests/unit/workflow/lease/guard.test.ts", session.token, {
+        runRoot: sandboxDir,
+      }),
     ).not.toThrow();
 
     rmSync(sandboxDir, { recursive: true, force: true });

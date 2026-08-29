@@ -87,7 +87,6 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       return this.overrides.fetchUserStatus(port);
     }
 
-    // Unit test isolation guard: when readFile is mocked and no explicit fetch override was passed, return null
     if (this.overrides.readFile) {
       return null;
     }
@@ -96,10 +95,6 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       return null;
     }
 
-    /* =========================================================================
-     * REAL LIVE CONNECT-RPC LANGUAGE SERVER QUERY
-     * Connects to Antigravity Language Server on 127.0.0.1:<port>
-     * ========================================================================= */
     try {
       const requestOptions = {
         method: "POST",
@@ -110,16 +105,14 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       };
       const res = await fetch(
         `https://127.0.0.1:${port}/exa.language_server_pb.LanguageServerService/GetUserStatus`,
-        // Cast via unknown to RequestInit for Bun TLS extension support
+
         requestOptions as unknown as RequestInit,
       );
       if (res.ok) {
         const data = (await res.json()) as Record<string, unknown>;
         if (data) return data;
       }
-    } catch {
-      // Port unreachable or timed out
-    }
+    } catch {}
 
     return null;
   }
@@ -143,12 +136,10 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       return this.overrides.fetchClaudeUsage();
     }
 
-    // Unit test isolation guard: when readFile is mocked and no explicit fetch override was passed, return null
     if (this.overrides.readFile) {
       return null;
     }
 
-    // 1. Try reading live ~/.claude.json directly
     try {
       const claudeJsonPath = join(this.homedir, ".claude.json");
       const raw = await readFile(claudeJsonPath, "utf8");
@@ -156,14 +147,8 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       if (parsed && (parsed.cachedUsageUtilization || parsed.oauthAccount || parsed.utilization)) {
         return parsed;
       }
-    } catch {
-      // Fall back to live API or fixture
-    }
+    } catch {}
 
-    /* =========================================================================
-     * REAL LIVE ANTHROPIC OAUTH USAGE QUERY
-     * Connects to https://api.anthropic.com/api/oauth/usage
-     * ========================================================================= */
     try {
       const token = this.env.CLAUDE_CODE_OAUTH_TOKEN || this.env.ANTHROPIC_OAUTH_TOKEN;
       if (token) {
@@ -185,9 +170,7 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
           }
         }
       }
-    } catch {
-      // API unreachable
-    }
+    } catch {}
 
     return null;
   }
@@ -211,12 +194,10 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       return this.overrides.fetchCodexUsage();
     }
 
-    // Unit test isolation guard: when readFile is mocked and no explicit fetch override was passed, return null
     if (this.overrides.readFile) {
       return null;
     }
 
-    // 1. Find latest ~/.codex/sessions/**/rollout-*.jsonl and extract the last token_count event
     try {
       const sessionsDir = join(this.homedir, ".codex", "sessions");
       const entries = await readdir(sessionsDir, { recursive: true, withFileTypes: true });
@@ -245,17 +226,11 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
               ) {
                 return parsed;
               }
-            } catch {
-              // Ignore invalid line JSON
-            }
+            } catch {}
           }
-        } catch {
-          // Continue to next rollout candidate
-        }
+        } catch {}
       }
-    } catch {
-      // Sessions dir missing or inaccessible
-    }
+    } catch {}
 
     return null;
   }

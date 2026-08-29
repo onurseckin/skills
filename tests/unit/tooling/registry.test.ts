@@ -73,10 +73,18 @@ describe("Dynamic Tool & Role Registry Unit Test Suite", () => {
 
     it("overwrites existing role upon duplicate registration", () => {
       const registry = new DynamicRoleRegistry();
-      registry.register({ name: "redefined-worker", archetype: "tier_3_implementer", title: "Initial" });
+      registry.register({
+        name: "redefined-worker",
+        archetype: "tier_3_implementer",
+        title: "Initial",
+      });
       expect(registry.get("redefined-worker")?.spec.title).toBe("Initial");
 
-      registry.register({ name: "redefined-worker", archetype: "tier_3_implementer", title: "Updated" });
+      registry.register({
+        name: "redefined-worker",
+        archetype: "tier_3_implementer",
+        title: "Updated",
+      });
       expect(registry.count()).toBe(1);
       expect(registry.get("redefined-worker")?.spec.title).toBe("Updated");
     });
@@ -120,9 +128,21 @@ describe("Dynamic Tool & Role Registry Unit Test Suite", () => {
     it("filters roles by tier, domain, archetype, and writeScopePolicy", () => {
       const registry = new DynamicRoleRegistry();
       registry.register({ name: "tier0-mind", archetype: "tier_0_mind", domain: "strategy" });
-      registry.register({ name: "tier2-coord", archetype: "tier_2_coordinator", domain: "planning" });
-      registry.register({ name: "tier3-impl-tooling", archetype: "tier_3_implementer", domain: "tooling" });
-      registry.register({ name: "tier3-val-tooling", archetype: "tier_3_validator", domain: "tooling" });
+      registry.register({
+        name: "tier2-coord",
+        archetype: "tier_2_coordinator",
+        domain: "planning",
+      });
+      registry.register({
+        name: "tier3-impl-tooling",
+        archetype: "tier_3_implementer",
+        domain: "tooling",
+      });
+      registry.register({
+        name: "tier3-val-tooling",
+        archetype: "tier_3_validator",
+        domain: "tooling",
+      });
 
       expect(registry.filterByTier(3)).toHaveLength(2);
       expect(registry.filterByTier(2)).toHaveLength(1);
@@ -145,8 +165,16 @@ describe("Dynamic Tool & Role Registry Unit Test Suite", () => {
   describe("DynamicRoleRegistry catalog import and export", () => {
     it("exports catalog with ISO timestamp, total count, and role specs", () => {
       const registry = new DynamicRoleRegistry();
-      registry.register({ name: "export-worker-1", archetype: "tier_3_implementer", domain: "tooling" });
-      registry.register({ name: "export-worker-2", archetype: "tier_3_validator", domain: "tooling" });
+      registry.register({
+        name: "export-worker-1",
+        archetype: "tier_3_implementer",
+        domain: "tooling",
+      });
+      registry.register({
+        name: "export-worker-2",
+        archetype: "tier_3_validator",
+        domain: "tooling",
+      });
 
       const catalog = registry.exportCatalog();
       expect(catalog.totalRoles).toBe(2);

@@ -29,12 +29,10 @@ describe("Task queue CLI commands & Cowan Pagination", () => {
     expect(addRes.ok).toBe(true);
     expect(addRes.id).toBe("task-01");
 
-    const listRes = (await execute([
-      "task:list",
-      "--queue-path",
-      queuePath,
-      "--stats",
-    ])) as Record<string, unknown>;
+    const listRes = (await execute(["task:list", "--queue-path", queuePath, "--stats"])) as Record<
+      string,
+      unknown
+    >;
 
     expect(Array.isArray(listRes.tasks)).toBe(true);
     expect(listRes.total).toBe(1);
@@ -171,11 +169,10 @@ describe("Task queue CLI commands & Cowan Pagination", () => {
     const taskObj = completeRes.task as Record<string, unknown>;
     expect(taskObj.status).toBe("COMPLETED");
 
-    const listRes = (await execute([
-      "task:list",
-      "--queue-path",
-      queuePath,
-    ])) as Record<string, unknown>;
+    const listRes = (await execute(["task:list", "--queue-path", queuePath])) as Record<
+      string,
+      unknown
+    >;
     const tasks = listRes.tasks as Array<Record<string, unknown>>;
     const childTask = tasks.find((t) => t.id === "task-dep-child");
     expect(childTask?.status).toBe("PENDING");
@@ -228,13 +225,7 @@ describe("Task queue CLI commands & Cowan Pagination", () => {
       queuePath,
     ]);
 
-    await execute([
-      "task:complete",
-      "--task",
-      "task-to-prune",
-      "--queue-path",
-      queuePath,
-    ]);
+    await execute(["task:complete", "--task", "task-to-prune", "--queue-path", queuePath]);
 
     const pruneRes = (await execute([
       "task:prune",

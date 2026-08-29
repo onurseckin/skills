@@ -88,7 +88,9 @@ describe("Plan Factory Engine", () => {
       defect_ids: [],
     };
     const markdown = generatePlanMarkdown(emptyCluster, [], []);
-    expect(markdown).toContain("### Task 1.1: Core Continuous Pre-Planning Domain Cluster Implementation");
+    expect(markdown).toContain(
+      "### Task 1.1: Core Continuous Pre-Planning Domain Cluster Implementation",
+    );
     expect(assertValidBlueprintStructure(markdown)).toBe(true);
   });
 
@@ -96,7 +98,9 @@ describe("Plan Factory Engine", () => {
     expect(assertValidBlueprintStructure("")).toBe(false);
     expect(assertValidBlueprintStructure("Just some text")).toBe(false);
     expect(
-      assertValidBlueprintStructure("# Plan\n## 1. Executive Summary\n## 2. Core Architectural Pillars"),
+      assertValidBlueprintStructure(
+        "# Plan\n## 1. Executive Summary\n## 2. Core Architectural Pillars",
+      ),
     ).toBe(false);
   });
 

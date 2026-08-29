@@ -200,4 +200,3 @@ export function getInternalCommands(): readonly CommandSpec[] {
 }
 
 export { parseCommandFlags } from "./flag-parser.ts";
-

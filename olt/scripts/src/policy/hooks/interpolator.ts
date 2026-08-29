@@ -59,7 +59,10 @@ export function interpolateHookCommand(template: string, context: HookVariableCo
   } else if (typeof rawMs === "string" && !Number.isNaN(Number(rawMs)) && rawMs.trim() !== "") {
     numMs = Number(rawMs);
   }
-  const rawDuration = context.duration_formatted !== undefined ? context.duration_formatted : context.durationFormatted;
+  const rawDuration =
+    context.duration_formatted !== undefined
+      ? context.duration_formatted
+      : context.durationFormatted;
   let durationFormatted = str(rawDuration);
   if (durationFormatted === "") {
     durationFormatted = numMs !== undefined ? formatDuration(numMs) : "0s";

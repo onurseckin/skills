@@ -240,7 +240,9 @@ describe("Task Queue Transitions Engine", () => {
   });
 
   test("validateCompletionReceipts verifies mechanical and cognitive channels", () => {
-    expect(() => validateCompletionReceipts({ exit_code: 0, cognitive_verdict: "PASS" })).not.toThrow();
+    expect(() =>
+      validateCompletionReceipts({ exit_code: 0, cognitive_verdict: "PASS" }),
+    ).not.toThrow();
     expect(() => validateCompletionReceipts()).not.toThrow();
     expect(() => validateCompletionReceipts({ exit_code: 1 })).toThrow(HarnessError);
     expect(() => validateCompletionReceipts({ cognitive_verdict: "FAIL" })).toThrow(HarnessError);

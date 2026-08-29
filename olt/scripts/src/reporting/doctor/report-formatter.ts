@@ -1,5 +1,8 @@
 import { classifyIssueSeverity } from "./facts.ts";
-import { formatBehavioralRoleHealthSection, type BehavioralFinding } from "../behavioral-auditor/index.ts";
+import {
+  formatBehavioralRoleHealthSection,
+  type BehavioralFinding,
+} from "../behavioral-auditor/index.ts";
 import type { TierConfinementFinding } from "./tier-confinement/index.ts";
 import { formatSocraticAuditSection, type SocraticAuditReport } from "../socratic-validator.ts";
 import type { LifecycleFinding } from "./state-machine-auditor.ts";
@@ -57,7 +60,11 @@ export function formatDoctorReport(params: DoctorReportFormatParams): string {
     "",
     ...(params.socraticReport ? [formatSocraticAuditSection(params.socraticReport)] : []),
     ...(params.remedialGuidance && params.remedialGuidance.length > 0
-      ? ["", "### Pre-Completion Remedial Guidance:", ...params.remedialGuidance.map((g) => `  - ${g}`)]
+      ? [
+          "",
+          "### Pre-Completion Remedial Guidance:",
+          ...params.remedialGuidance.map((g) => `  - ${g}`),
+        ]
       : []),
   ];
   return lines.join("\n");

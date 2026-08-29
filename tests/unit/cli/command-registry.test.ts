@@ -98,12 +98,14 @@ describe("Command Registry & Dispatch Invariant Gate", () => {
   });
 
   test("remainder arguments are strictly permitted only for designated process runners", async () => {
-    const remainderCommands = COMMAND_REGISTRY.filter((spec) => spec.takesRemainder).map((s) => s.name);
+    const remainderCommands = COMMAND_REGISTRY.filter((spec) => spec.takesRemainder).map(
+      (s) => s.name,
+    );
     expect(remainderCommands.sort()).toEqual(["run:exec", "shell"].sort());
 
-    await expect(
-      execute(["role:list", "--", "unexpected-trailing-argument"]),
-    ).rejects.toThrow(HarnessError);
+    await expect(execute(["role:list", "--", "unexpected-trailing-argument"])).rejects.toThrow(
+      HarnessError,
+    );
   });
 
   test("execute rejects unknown command invocations with exitCode 3", async () => {

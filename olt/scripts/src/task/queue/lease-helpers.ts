@@ -36,7 +36,10 @@ export function validateCompletionReceipts(receipts?: CompletionReceipts): void 
 export function assertWriteScopeASTPurity(repoRoot: string, writeScope: readonly string[]): void {
   for (const relPath of writeScope) {
     const fullPath = resolve(repoRoot, relPath);
-    if (existsSync(fullPath) && (fullPath.endsWith(".ts") || fullPath.endsWith(".tsx") || fullPath.endsWith(".js"))) {
+    if (
+      existsSync(fullPath) &&
+      (fullPath.endsWith(".ts") || fullPath.endsWith(".tsx") || fullPath.endsWith(".js"))
+    ) {
       const content = readFileSync(fullPath, "utf8");
       if (content.includes("/*") || content.includes("//")) {
         throw new HarnessError("INTEGRITY", `AST purity invariant violated in ${relPath}`);
@@ -65,7 +68,10 @@ export function translateSuspendedLeases(
   if (frozenDurationMs <= 0) return { translatedCount: 0, tasks: [...tasks] };
   let count = 0;
   const updated = tasks.map((task) => {
-    if (task.lease && (task.status === "IN_PROGRESS" || task.status === "RUNNING" || task.status === "VALIDATING")) {
+    if (
+      task.lease &&
+      (task.status === "IN_PROGRESS" || task.status === "RUNNING" || task.status === "VALIDATING")
+    ) {
       const expMs = Date.parse(task.lease.expires_at);
       if (Number.isFinite(expMs)) {
         count++;

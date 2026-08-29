@@ -22,7 +22,9 @@ describe("reporting/notifications module", () => {
   describe("constants and environment", () => {
     it("exports default sound paths for Darwin and Linux", () => {
       expect(DEFAULT_DARWIN_NOTIFICATION_SOUND).toBe("/System/Library/Sounds/Glass.aiff");
-      expect(DEFAULT_LINUX_NOTIFICATION_SOUND).toBe("/usr/share/sounds/freedesktop/stereo/complete.oga");
+      expect(DEFAULT_LINUX_NOTIFICATION_SOUND).toBe(
+        "/usr/share/sounds/freedesktop/stereo/complete.oga",
+      );
     });
 
     it("detects test environment and spawns mock process", () => {
@@ -72,7 +74,9 @@ describe("reporting/notifications module", () => {
       expect(full.subtitle).toBe("Custom Subtitle");
       expect(full.soundEnabled).toBe(true);
       expect(full.soundFile).toBe("/custom/sound.wav");
-      expect(full.message).toContain("✓ Pushed 1a2b3c4d | 1m 32s (12 tasks) - all metrics verified");
+      expect(full.message).toContain(
+        "✓ Pushed 1a2b3c4d | 1m 32s (12 tasks) - all metrics verified",
+      );
 
       const fallback = buildPhaseNotificationPayload({ phaseName: "   " });
       expect(fallback.title).toBe("OLT Release Deployed");
@@ -152,7 +156,10 @@ describe("reporting/notifications module", () => {
       const throwingSpawn: NotificationProcessSpawner = () => {
         throw new Error("spawn failed");
       };
-      const failed = displaySystemNotification(payload, { platform: "darwin", customSpawn: throwingSpawn });
+      const failed = displaySystemNotification(payload, {
+        platform: "darwin",
+        customSpawn: throwingSpawn,
+      });
       expect(failed.delivered).toBe(false);
       expect(failed.command).toBeDefined();
     });
@@ -208,7 +215,10 @@ describe("reporting/notifications module", () => {
       const throwingSpawn: NotificationProcessSpawner = () => {
         throw new Error("afplay failed");
       };
-      const failed = playCompletionChime(undefined, { platform: "darwin", customSpawn: throwingSpawn });
+      const failed = playCompletionChime(undefined, {
+        platform: "darwin",
+        customSpawn: throwingSpawn,
+      });
       expect(failed.delivered).toBe(false);
       expect(failed.command).toBeDefined();
     });
@@ -245,7 +255,11 @@ describe("reporting/notifications module", () => {
         message: "No chime",
         soundEnabled: true,
       };
-      const result = sendSystemNotification(payload, { platform: "darwin", customSpawn, silent: true });
+      const result = sendSystemNotification(payload, {
+        platform: "darwin",
+        customSpawn,
+        silent: true,
+      });
       expect(result.visualDelivered).toBe(true);
       expect(result.audioDelivered).toBe(false);
       expect(calls.length).toBe(1);

@@ -93,7 +93,9 @@ export function checkPreCompletionDiagnostics(
 
   const stateObj = resolveStateObject(runRoot, options.state);
   if (stateObj) {
-    const rawOrphans = Array.isArray(stateObj.orphan_evidence) ? (stateObj.orphan_evidence as unknown[]) : [];
+    const rawOrphans = Array.isArray(stateObj.orphan_evidence)
+      ? (stateObj.orphan_evidence as unknown[])
+      : [];
     const rawDispositions = Array.isArray(stateObj.orphan_evidence_dispositions)
       ? (stateObj.orphan_evidence_dispositions as unknown[])
       : [];
@@ -276,4 +278,11 @@ export function checkPreCompletionDiagnostics(
     remedialActions: guidance.remedialActions,
     findings,
   };
+}
+
+export function executePreCompletionDoctorHook(
+  runRoot: string,
+  options: Omit<PreCompletionDiagnosticsOptions, "runRoot"> = {},
+): PreCompletionDiagnosticsResult {
+  return checkPreCompletionDiagnostics({ runRoot, ...options });
 }

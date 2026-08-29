@@ -189,9 +189,7 @@ function executeLandTrack(options: LandTrackOptions): LandTrackResult {
 
 export function landTrackToMain(trackId: string): Promise<void>;
 export function landTrackToMain(options: LandTrackOptions): LandTrackResult;
-export function landTrackToMain(
-  input: string | LandTrackOptions,
-): Promise<void> | LandTrackResult {
+export function landTrackToMain(input: string | LandTrackOptions): Promise<void> | LandTrackResult {
   if (typeof input === "string") {
     return (async () => {
       executeLandTrack({

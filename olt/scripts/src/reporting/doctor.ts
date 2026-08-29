@@ -73,6 +73,7 @@ export {
 } from "./doctor/engines.ts";
 export {
   checkPreCompletionDiagnostics,
+  executePreCompletionDoctorHook,
   type PreCompletionDiagnosticsOptions,
   type PreCompletionDiagnosticsResult,
   type PreCompletionBlocker,
@@ -95,11 +96,5 @@ export {
   type DoctorIssueTiering,
   type CapsuleDoctorFacts,
 } from "./doctor/facts.ts";
-export {
-  formatDoctorReport,
-  type DoctorReportFormatParams,
-} from "./doctor/report-formatter.ts";
-export {
-  runDoctor,
-  type DoctorOptions,
-} from "./doctor/runner.ts";
+export { formatDoctorReport, type DoctorReportFormatParams } from "./doctor/report-formatter.ts";
+export { runDoctor, type DoctorOptions } from "./doctor/runner.ts";

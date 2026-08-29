@@ -2,16 +2,8 @@ import { taskAddCommand, executeTaskAdd } from "./task-add.ts";
 import { taskListCommand, executeTaskList } from "./task-list.ts";
 import { taskLeaseCommand, executeTaskLease } from "./task-lease.ts";
 import { taskCompleteCommand, executeTaskComplete } from "./task-complete.ts";
-import {
-  failTask,
-  pruneTaskQueue,
-} from "../../task/queue/index.ts";
-import {
-  boolFlag,
-  textFlag,
-  type CommandContext,
-  type Flags,
-} from "../options.ts";
+import { failTask, pruneTaskQueue } from "../../task/queue/index.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export {
   taskAddCommand,

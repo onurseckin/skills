@@ -261,9 +261,10 @@ export async function runDoctor(
     doctor_findings: allEngineFindings,
     pre_completion_diagnostics: preCompletion,
     guidance: guidance.guidanceSummary,
-    remedial_actions: guidance.remedialActions.length > 0
-      ? guidance.remedialActions
-      : remedialActionsForIntegrityIssues(runRoot, integrityIssues),
+    remedial_actions:
+      guidance.remedialActions.length > 0
+        ? guidance.remedialActions
+        : remedialActionsForIntegrityIssues(runRoot, integrityIssues),
     errors,
     warnings,
     infos,

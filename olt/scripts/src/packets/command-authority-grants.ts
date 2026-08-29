@@ -2,10 +2,7 @@ import { HarnessError } from "../core/errors/index.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
 import type { Flags } from "../cli/options.ts";
 import type { CommandSpec } from "../cli/registry/types.ts";
-import {
-  declaresRunIdentityFlag,
-  requiresActingIdentity,
-} from "./grant-bootstrap-allowlist.ts";
+import { declaresRunIdentityFlag, requiresActingIdentity } from "./grant-bootstrap-allowlist.ts";
 import {
   isCognitiveValidatorRole,
   isExecutionToolCategory,
@@ -264,7 +261,11 @@ export function assertGrantedCommand(
     const childRole = identity(flags, "role");
     const parentAgentId = identity(flags, "parent-agent");
     if (childRole !== undefined && parentAgentId === undefined && roleToTier(childRole) > 1) {
-      const remediation = formatSupervisionRemediation(childRole, roleToTier(childRole), activeHost);
+      const remediation = formatSupervisionRemediation(
+        childRole,
+        roleToTier(childRole),
+        activeHost,
+      );
       throw new HarnessError(
         "ROLE_CONFINEMENT_VIOLATION",
         `Hierarchical supervision violation: Role '${childRole}' (Tier ${roleToTier(childRole)}) cannot be dispatched without a supervising parent agent. Tier 2 Coordinators must be spawned by Tier 1 Orchestrators, and Tier 3 workers must be spawned by Tier 2 Coordinators. ${remediation}`,

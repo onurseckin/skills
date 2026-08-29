@@ -40,15 +40,46 @@ export interface ExitCodeSpec {
   readonly meaning: string;
 }
 
-export const PRIMARY_VERBS = ["plan", "queue", "task", "run", "doctor", "mind", "msg", "worktree"] as const;
+export const PRIMARY_VERBS = [
+  "plan",
+  "queue",
+  "task",
+  "run",
+  "doctor",
+  "mind",
+  "msg",
+  "worktree",
+] as const;
 export type PrimaryVerb = (typeof PRIMARY_VERBS)[number];
 export type CommandTier = "primary" | "internal";
 
 export type CommandDomain =
-  | "plan" | "queue" | "task" | "run" | "critic" | "summary" | "inspection"
-  | "orchestrator" | "install" | "agent" | "branch" | "orphan" | "authority"
-  | "diagnostics" | "reporting" | "gate" | "capture" | "mind" | "doctor"
-  | "policy" | "msg" | "worktree" | "sched" | "role" | "hygiene" | "defect";
+  | "plan"
+  | "queue"
+  | "task"
+  | "run"
+  | "critic"
+  | "summary"
+  | "inspection"
+  | "orchestrator"
+  | "install"
+  | "agent"
+  | "branch"
+  | "orphan"
+  | "authority"
+  | "diagnostics"
+  | "reporting"
+  | "gate"
+  | "capture"
+  | "mind"
+  | "doctor"
+  | "policy"
+  | "msg"
+  | "worktree"
+  | "sched"
+  | "role"
+  | "hygiene"
+  | "defect";
 
 export type CommandHandler = (
   flags: Flags,
@@ -83,7 +114,8 @@ export interface CommandSpec {
 export function isInternalCommand(spec: CommandSpec): boolean {
   if (spec.internal !== undefined) return spec.internal;
   if (spec.tier !== undefined) return spec.tier === "internal";
-  if (spec.domain === "doctor" || spec.name === "doctor" || spec.name.startsWith("doctor:")) return false;
+  if (spec.domain === "doctor" || spec.name === "doctor" || spec.name.startsWith("doctor:"))
+    return false;
   return !(PRIMARY_VERBS as readonly string[]).includes(spec.domain);
 }
 
@@ -97,7 +129,11 @@ export function commandTier(spec: CommandSpec): CommandTier {
 
 export const DEFAULT_EXIT_CODES: readonly ExitCodeSpec[] = [
   { code: 0, meaning: "SUCCESS - markdown brief on stdout, or JSON when --format json is set" },
-  { code: 3, meaning: "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed" },
+  {
+    code: 3,
+    meaning:
+      "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed",
+  },
   { code: 4, meaning: "LOCK_TIMEOUT - the capsule lock was still held at the deadline" },
   { code: 70, meaning: "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify" },
 ];

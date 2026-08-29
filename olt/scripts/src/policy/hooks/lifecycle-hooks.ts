@@ -43,7 +43,8 @@ export async function executePolicyHook(
   const repoRoot = options.repoRoot !== undefined ? options.repoRoot : findRepoRoot();
   let hooks = options.hooks;
   if (!hooks) {
-    const policy = options.policy !== undefined ? options.policy : inspectRepoPolicy(repoRoot).policy;
+    const policy =
+      options.policy !== undefined ? options.policy : inspectRepoPolicy(repoRoot).policy;
     hooks = policy !== undefined ? policy.hooks : undefined;
   }
   const isNonBlocking = options.nonBlocking !== undefined ? options.nonBlocking : false;

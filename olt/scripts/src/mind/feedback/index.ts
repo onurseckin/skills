@@ -50,4 +50,3 @@ export {
   validatePriority,
   validateStatus,
 } from "./normalizer.ts";
-

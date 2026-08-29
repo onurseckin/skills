@@ -6,10 +6,7 @@ export type {
   UnifiedTelemetryReport,
 } from "./types.ts";
 export type { TelemetryCollector } from "./probe-interface.ts";
-export {
-  BaseTieredCollector,
-  type TierResult,
-} from "./base-collector.ts";
+export { BaseTieredCollector, type TierResult } from "./base-collector.ts";
 export {
   AntigravityCollector,
   ClaudeCollector,
@@ -66,9 +63,4 @@ export {
   type ResumeDagSnapshotResult,
 } from "./dag-snapshot.ts";
 
-export {
-  injectTraceEnvironment,
-  resolveTraceContext,
-  type TraceContext,
-} from "./trace-context.ts";
-
+export { injectTraceEnvironment, resolveTraceContext, type TraceContext } from "./trace-context.ts";

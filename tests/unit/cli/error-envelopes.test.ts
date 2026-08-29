@@ -202,4 +202,3 @@ describe("Distributed Trace Context & Error Envelopes", () => {
     expect(exitList).toBe(2);
   });
 });
-

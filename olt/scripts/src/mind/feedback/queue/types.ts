@@ -214,7 +214,8 @@ export function validateCategory(val: unknown): FeedbackCategory {
   if (typeof val === "string") {
     const upper = val.trim().toUpperCase();
     if (upper === "DOCUMENTATION" || upper === "DOCS" || upper === "DOC") return "DOCUMENTATION";
-    if (upper === "AGENT_CONTRACTS" || upper === "CONTRACTS" || upper === "AGENT") return "AGENT_CONTRACTS";
+    if (upper === "AGENT_CONTRACTS" || upper === "CONTRACTS" || upper === "AGENT")
+      return "AGENT_CONTRACTS";
     if (upper === "CLI_TOOLING" || upper === "CLI" || upper === "TOOLING") return "CLI_TOOLING";
     if (upper === "WATCHDOG") return "WATCHDOG";
     if (upper === "SCALING") return "SCALING";
@@ -226,9 +227,11 @@ export function validateCategory(val: unknown): FeedbackCategory {
     if (upper === "GOVERNANCE" || upper === "POLICY") return "GOVERNANCE";
     if (upper === "ORCHESTRATION" || upper === "WORKFLOW") return "ORCHESTRATION";
     if (upper === "AUDITING" || upper === "AUDIT") return "AUDITING";
-    if (upper === "COMMUNICATION" || upper === "MSG" || upper === "MESSAGING") return "COMMUNICATION";
+    if (upper === "COMMUNICATION" || upper === "MSG" || upper === "MESSAGING")
+      return "COMMUNICATION";
     if (upper === "VALIDATION" || upper === "VALIDATOR") return "VALIDATION";
-    if (upper === "NOTIFICATION" || upper === "NOTIFICATIONS" || upper === "NOTIFY") return "NOTIFICATION";
+    if (upper === "NOTIFICATION" || upper === "NOTIFICATIONS" || upper === "NOTIFY")
+      return "NOTIFICATION";
   }
   throw new HarnessError("INTEGRITY", "Feedback item requires valid category");
 }

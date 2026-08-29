@@ -57,13 +57,15 @@ export function validatePlanningPolicy(planning: unknown): readonly string[] {
   const p = planning as Record<string, unknown>;
   if (
     typeof p["mandatory_brainstorming_rounds"] === "number" &&
-    (!Number.isSafeInteger(p["mandatory_brainstorming_rounds"]) || p["mandatory_brainstorming_rounds"] < 0)
+    (!Number.isSafeInteger(p["mandatory_brainstorming_rounds"]) ||
+      p["mandatory_brainstorming_rounds"] < 0)
   ) {
     errors.push("mandatory_brainstorming_rounds must be a non-negative integer");
   }
   if (
     typeof p["min_tasks_per_complex_prompt"] === "number" &&
-    (!Number.isSafeInteger(p["min_tasks_per_complex_prompt"]) || p["min_tasks_per_complex_prompt"] < 1)
+    (!Number.isSafeInteger(p["min_tasks_per_complex_prompt"]) ||
+      p["min_tasks_per_complex_prompt"] < 1)
   ) {
     errors.push("min_tasks_per_complex_prompt must be a positive integer >= 1");
   }

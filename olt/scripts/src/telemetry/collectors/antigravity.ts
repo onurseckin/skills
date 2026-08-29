@@ -13,7 +13,6 @@ export class AntigravityCollector extends BaseTieredCollector {
   }
 
   protected async probeTier1Cli(): Promise<TierResult | null> {
-    // 1. Connect-RPC Local Language Server Discovery
     const lsofResult = await this.env.exec("lsof", ["-iTCP", "-sTCP:LISTEN", "-P", "-n"]);
     const ports: string[] = [];
     if (lsofResult && lsofResult.stdout) {
@@ -157,7 +156,6 @@ export class AntigravityCollector extends BaseTieredCollector {
       }
     }
 
-    // 2. Fallback: agy quota --json
     const quotaResult = await this.env.exec("agy", ["quota", "--json"]);
     if (quotaResult && quotaResult.stdout.trim()) {
       try {
@@ -272,9 +270,7 @@ export class AntigravityCollector extends BaseTieredCollector {
               rawObservations: { storagePath: filePath, content: parsed },
             };
           }
-        } catch {
-          // JSON parse failed or unreadable, continue to next candidate
-        }
+        } catch {}
       }
     }
     return null;

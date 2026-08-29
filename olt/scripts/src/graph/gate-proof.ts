@@ -40,14 +40,6 @@ export interface GateProveInput {
   readonly maxFiles?: number;
 }
 
-/**
- * `falsifiable` and `not_falsifiable` mean the gate actually ran against a reverted tree that
- * carried real prior content. `refused_absent_at_base` means the entire effective write scope
- * had zero representation at `base` — there was no counterfactual to run the gate against, so
- * the gate was never spawned and neither boolean verdict would be honest. Callers must branch on
- * `outcome`, not infer refusal from `falsifiable === false` (that value is also used for a
- * genuine "gate still passes" result).
- */
 export type GateProveOutcome = "falsifiable" | "not_falsifiable" | "refused_absent_at_base";
 
 export interface GateProveResult {
@@ -58,7 +50,7 @@ export interface GateProveResult {
   readonly timedOut: boolean;
   readonly restoredPaths: readonly string[];
   readonly deletedPaths: readonly string[];
-  /** The write scope `effectiveRevertScope` actually reverted against, after any test-path exclusion. */
+
   readonly revertedScope: readonly string[];
   readonly copiedFileCount: number;
   readonly durationMs: number;
@@ -310,18 +302,7 @@ export interface GateProveDependencies {
 
 interface EffectiveRevertScope {
   readonly scope: readonly string[];
-  /**
-   * True only when the gate is a recognized test-runner invocation (`bun test`, `vitest`, `jest`,
-   * `pytest`) whose own test target(s) this function could NOT exclude from the revert — either
-   * the write scope was entirely test-shaped paths with no paired implementation to revert
-   * instead, or the exclusion filter would have emptied the scope outright. In both fallback
-   * cases the caller reverts (and, if the target never existed at `base`, may delete) the exact
-   * file the gate is about to run — the filed-defect shape (an untracked test target proved with
-   * no paired tracked source). `proveGateFalsifiable` uses this flag, together with an empty
-   * `restoredPaths`, to decide when a verdict would be vacuous and must be refused instead.
-   * A non-test-runner gate (this function's first early return) never sets this: there is no
-   * "test target" concept for it to protect, so its outcome is unaffected by this refusal path.
-   */
+
   readonly gateTargetUnexcludable: boolean;
 }
 
@@ -411,14 +392,7 @@ export function proveGateFalsifiable(
       revertScope,
       git,
     );
-    // The gate is a recognized test runner and its own test target could not be excluded from
-    // the revert (no paired tracked source to revert instead), AND nothing in that revert scope
-    // had any representation at `base`: there is no prior counterfactual to run the gate against.
-    // Running it anyway would measure the deleted-untracked-file's mere absence (module-not-found,
-    // "0 tests discovered", etc.), not the gate's discrimination — exactly the vacuous verdict
-    // this function must refuse to certify. A non-test-runner gate (e.g. a plain filesystem
-    // existence check deliberately probing the revert itself) is unaffected: it never sets
-    // `gateTargetUnexcludable`, so its verdict is computed exactly as before.
+
     if (gateTargetUnexcludable && restoredPaths.length === 0) {
       const startedAt = Date.now();
       return {
@@ -468,9 +442,7 @@ export interface GateProofRecord extends JsonObject {
   timed_out: boolean;
   proved_at: string;
   actor: string;
-  // Additive fields: every record persisted before this fix carried only the nine fields above.
-  // These stay optional so that legacy record still satisfies `isGateProofRecord` and keeps
-  // flowing through `readGateProofs`/`latestGateProof` unchanged.
+
   outcome?: GateProveOutcome;
   restored_paths?: string[];
   deleted_paths?: string[];
@@ -499,9 +471,6 @@ function isOptionalStringField(value: JsonValue | undefined): boolean {
   return value === undefined || typeof value === "string";
 }
 
-// Every new field is optional so a nine-field record persisted before this fix — which lacks all
-// six of them — still satisfies this guard exactly as it did before: only the original four
-// checks are mandatory. A field is validated only when the record actually carries it.
 function isGateProofRecord(value: JsonValue): value is GateProofRecord {
   return (
     isJsonObject(value) &&

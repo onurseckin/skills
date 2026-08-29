@@ -58,29 +58,29 @@ During multi-agent continuous execution, subagents frequently attempt to communi
 
 ## Level 3: Disjoint Scope Boundaries
 
-| Scope Domain             | Path Specification                                                                                                                                                 | Access Contract       |
-| :----------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------- |
+| Scope Domain             | Path Specification                                                                                                                                                   | Access Contract       |
+| :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------- |
 | **Write Scope (Lane A)** | `olt/scripts/src/cli/commands/msg-send.ts`, `olt/scripts/src/cli/commands/msg-recv.ts`, `olt/scripts/src/cli/commands/msg-poll.ts`, `tests/unit/cli/msg-ops.test.ts` | Exclusive Write Lease |
-| **Write Scope (Lane B)** | `olt/scripts/src/communication/mailbox/mailbox-paths.ts`, `olt/scripts/src/policy/io-safety.ts`, `tests/unit/communication/mailbox-locks.test.ts`                  | Exclusive Write Lease |
-| **Write Scope (Lane C)** | `olt/scripts/src/reporting/doctor/mailbox-health-engine.ts`, `olt/scripts/src/reporting/doctor/engines.ts`, `tests/unit/doctor/mailbox-health.test.ts`             | Exclusive Write Lease |
-| **Write Scope (Lane D)** | `olt/agents/*.yaml` (Manifests communication contract update)                                                                                                      | Exclusive Write Lease |
-| **Read-Only Scope**      | `olt/scripts/src/core/`, `.olt/mailboxes/`, `.olt/locks/`                                                                                                          | Read-Only             |
+| **Write Scope (Lane B)** | `olt/scripts/src/communication/mailbox/mailbox-paths.ts`, `olt/scripts/src/policy/io-safety.ts`, `tests/unit/communication/mailbox-locks.test.ts`                    | Exclusive Write Lease |
+| **Write Scope (Lane C)** | `olt/scripts/src/reporting/doctor/mailbox-health-engine.ts`, `olt/scripts/src/reporting/doctor/engines.ts`, `tests/unit/doctor/mailbox-health.test.ts`               | Exclusive Write Lease |
+| **Write Scope (Lane D)** | `olt/agents/*.yaml` (Manifests communication contract update)                                                                                                        | Exclusive Write Lease |
+| **Read-Only Scope**      | `olt/scripts/src/core/`, `.olt/mailboxes/`, `.olt/locks/`                                                                                                            | Read-Only             |
 
 ---
 
 ## Level 4: Atomic Implementation Tasks Matrix
 
-| Task ID         | Target File Path                                            | Exact TypeScript Symbols / Signatures                               | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                                                    |
-| :-------------- | :---------------------------------------------------------- | :------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `task-msg-1.1`  | `olt/scripts/src/cli/commands/msg-send.ts`                  | `msgSendCommand(flags: Flags): Promise<JsonObject>`                | Implement `msg:send` CLI command with HMAC signing and `.olt/locks/` POSIX flock protection.                                                             |
-| `task-msg-1.2`  | `olt/scripts/src/cli/commands/msg-recv.ts`                  | `msgRecvCommand(flags: Flags): Promise<JsonObject>`                | Implement `msg:recv` CLI command with cursor tracking and unread message indexing.                                                                      |
-| `task-msg-1.3`  | `olt/scripts/src/cli/commands/msg-poll.ts`                  | `msgPollCommand(flags: Flags): Promise<JsonObject>`                | Implement `msg:poll` CLI command supporting polling interval and timeout flags.                                                                          |
-| `task-msg-1.4`  | `tests/unit/cli/msg-ops.test.ts`                            | `describe("Mailbox CLI Ops", ...)`                                  | Unit test validating end-to-end `msg:send`, `msg:recv`, `msg:poll`, and `msg:list`.                                                                      |
-| `task-msg-2.1`  | `olt/scripts/src/communication/mailbox/mailbox-paths.ts`    | `resolveMailboxLockPath(agentId: string): string`                   | Consolidate all mailbox lock paths into `.olt/locks/mailboxes/`.                                                                                         |
-| `task-msg-2.2`  | `olt/scripts/src/policy/io-safety.ts`                       | `resolveSystemLockPath(lockName: string): string`                   | Relocate repository flock files (`backlog.flock`, `defects.flock`) to `.olt/locks/`.                                                                     |
-| `task-msg-3.1`  | `olt/scripts/src/reporting/doctor/mailbox-health-engine.ts` | `checkMailboxHealth(): Promise<DoctorCheckResult>`                  | Implement health checks for inbox latency SLA, broken agent loops, and auto-healing corrupted cursors.                                                    |
-| `task-msg-3.2`  | `tests/unit/doctor/mailbox-health.test.ts`                  | `describe("Mailbox Health Engine", ...)`                            | Unit test verifying doctor mailbox audit and auto-healing behavior.                                                                                      |
-| `task-msg-4.1`  | `olt/agents/*.yaml`                                         | `communication_contract: { preferred_channel: "cli_mailbox", ... }` | Add communication contract section to agent manifests banning direct raw `.jsonl` reading.                                                               |
+| Task ID        | Target File Path                                            | Exact TypeScript Symbols / Signatures                               | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                   |
+| :------------- | :---------------------------------------------------------- | :------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------- |
+| `task-msg-1.1` | `olt/scripts/src/cli/commands/msg-send.ts`                  | `msgSendCommand(flags: Flags): Promise<JsonObject>`                 | Implement `msg:send` CLI command with HMAC signing and `.olt/locks/` POSIX flock protection.           |
+| `task-msg-1.2` | `olt/scripts/src/cli/commands/msg-recv.ts`                  | `msgRecvCommand(flags: Flags): Promise<JsonObject>`                 | Implement `msg:recv` CLI command with cursor tracking and unread message indexing.                     |
+| `task-msg-1.3` | `olt/scripts/src/cli/commands/msg-poll.ts`                  | `msgPollCommand(flags: Flags): Promise<JsonObject>`                 | Implement `msg:poll` CLI command supporting polling interval and timeout flags.                        |
+| `task-msg-1.4` | `tests/unit/cli/msg-ops.test.ts`                            | `describe("Mailbox CLI Ops", ...)`                                  | Unit test validating end-to-end `msg:send`, `msg:recv`, `msg:poll`, and `msg:list`.                    |
+| `task-msg-2.1` | `olt/scripts/src/communication/mailbox/mailbox-paths.ts`    | `resolveMailboxLockPath(agentId: string): string`                   | Consolidate all mailbox lock paths into `.olt/locks/mailboxes/`.                                       |
+| `task-msg-2.2` | `olt/scripts/src/policy/io-safety.ts`                       | `resolveSystemLockPath(lockName: string): string`                   | Relocate repository flock files (`backlog.flock`, `defects.flock`) to `.olt/locks/`.                   |
+| `task-msg-3.1` | `olt/scripts/src/reporting/doctor/mailbox-health-engine.ts` | `checkMailboxHealth(): Promise<DoctorCheckResult>`                  | Implement health checks for inbox latency SLA, broken agent loops, and auto-healing corrupted cursors. |
+| `task-msg-3.2` | `tests/unit/doctor/mailbox-health.test.ts`                  | `describe("Mailbox Health Engine", ...)`                            | Unit test verifying doctor mailbox audit and auto-healing behavior.                                    |
+| `task-msg-4.1` | `olt/agents/*.yaml`                                         | `communication_contract: { preferred_channel: "cli_mailbox", ... }` | Add communication contract section to agent manifests banning direct raw `.jsonl` reading.             |
 
 ---
 
@@ -149,9 +149,9 @@ bun ~/.agents/skills/olt/scripts/harness.ts task:check --repo .
 
 ## Level 8: Exhaustive Traceability Matrix
 
-| Backlog / Defect ID                                           | Title / Requirement                                | Resolved By Tasks                                            | Falsifiable Gate Verification Target                   |
-| :------------------------------------------------------------ | :------------------------------------------------- | :----------------------------------------------------------- | :----------------------------------------------------- |
-| `fb-1788021600000-mandatory-mailbox-communication-engine`     | Harness Mailbox IPC CLI Commands (`msg:*`)         | `task-msg-1.1`, `task-msg-1.2`, `task-msg-1.3`, `task-msg-1.4` | `bun test tests/unit/cli/msg-ops.test.ts`              |
-| `fb-1788021600000-mandatory-mailbox-communication-engine`     | Centralized Locks in `.olt/locks/`                 | `task-msg-2.1`, `task-msg-2.2`                               | `bun test tests/unit/communication/mailbox-locks.test.ts` |
-| `fb-1788021600000-mandatory-mailbox-communication-engine`     | Doctor `MailboxHealthEngine` & Auto-Heal           | `task-msg-3.1`, `task-msg-3.2`                               | `bun test tests/unit/doctor/mailbox-health.test.ts`    |
-| `fb-1788021600000-mandatory-mailbox-communication-engine`     | Ban Raw JSONL Reading Across Agent Manifests       | `task-msg-4.1`                                               | `bun ~/.agents/skills/olt/scripts/harness.ts task:check --repo .` |
+| Backlog / Defect ID                                       | Title / Requirement                          | Resolved By Tasks                                              | Falsifiable Gate Verification Target                              |
+| :-------------------------------------------------------- | :------------------------------------------- | :------------------------------------------------------------- | :---------------------------------------------------------------- |
+| `fb-1788021600000-mandatory-mailbox-communication-engine` | Harness Mailbox IPC CLI Commands (`msg:*`)   | `task-msg-1.1`, `task-msg-1.2`, `task-msg-1.3`, `task-msg-1.4` | `bun test tests/unit/cli/msg-ops.test.ts`                         |
+| `fb-1788021600000-mandatory-mailbox-communication-engine` | Centralized Locks in `.olt/locks/`           | `task-msg-2.1`, `task-msg-2.2`                                 | `bun test tests/unit/communication/mailbox-locks.test.ts`         |
+| `fb-1788021600000-mandatory-mailbox-communication-engine` | Doctor `MailboxHealthEngine` & Auto-Heal     | `task-msg-3.1`, `task-msg-3.2`                                 | `bun test tests/unit/doctor/mailbox-health.test.ts`               |
+| `fb-1788021600000-mandatory-mailbox-communication-engine` | Ban Raw JSONL Reading Across Agent Manifests | `task-msg-4.1`                                                 | `bun ~/.agents/skills/olt/scripts/harness.ts task:check --repo .` |

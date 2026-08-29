@@ -6,11 +6,6 @@ function validCommand(value: unknown): boolean {
   return isNonblank(value) || (Array.isArray(value) && value.length > 0 && value.every(isNonblank));
 }
 
-// `commandIsWeak` folds path-form rejection (absolute/UNC/drive/reserved-segment operands) and
-// genuine weakness (no-op executables, dry-run flags, non-verification grammar) into one boolean,
-// so a command whose only flaw is an unsafe operand path reads as "not substantive" to a caller.
-// Mirror the operand shape it inspects (single command string, or pre-split argv array) here so
-// the two causes can be diagnosed and reported separately, without editing that read-only file.
 function commandOperands(value: unknown): readonly string[] {
   if (typeof value === "string") return [value.trim()];
   if (Array.isArray(value)) {
@@ -36,9 +31,6 @@ export function validateGates(
     else gateIds.add(gate.id);
     if (!validCommand(gate.command)) issues.push(`${prefix}.command must be non-blank`);
     else {
-      // Path form is checked first and short-circuits: an unsafe operand makes the command
-      // unsafe to run at all, so reporting it takes priority over (and is reported instead of)
-      // a "not substantive" weakness verdict that would otherwise misname the cause.
       const unsafe = unsafeOperand(commandOperands(gate.command));
       if (unsafe !== null)
         issues.push(

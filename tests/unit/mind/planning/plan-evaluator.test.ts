@@ -25,10 +25,10 @@ describe("Epistemic Mathematics and Confidence Engine", () => {
 
   test("calculateEpistemicGrade maps scores to categorical thresholds", () => {
     expect(calculateEpistemicGrade(0.95)).toBe("VERY_HIGH");
-    expect(calculateEpistemicGrade(0.80)).toBe("HIGH");
+    expect(calculateEpistemicGrade(0.8)).toBe("HIGH");
     expect(calculateEpistemicGrade(0.65)).toBe("MEDIUM");
     expect(calculateEpistemicGrade(0.45)).toBe("LOW");
-    expect(calculateEpistemicGrade(0.20)).toBe("VERY_LOW");
+    expect(calculateEpistemicGrade(0.2)).toBe("VERY_LOW");
   });
 
   test("computeWeightedEpistemicScore applies standard weights correctly", () => {
@@ -57,7 +57,7 @@ describe("Epistemic Mathematics and Confidence Engine", () => {
       falsifiableGateCount: 4,
       totalGateCount: 4,
       historicalStability: 0.95,
-      testCoverageRatio: 0.90,
+      testCoverageRatio: 0.9,
     };
 
     const result = evaluateEpistemicConfidence(input, DEFAULT_PASS_THRESHOLD);

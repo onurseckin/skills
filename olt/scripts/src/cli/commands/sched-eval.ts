@@ -1,6 +1,4 @@
-import {
-  computeAntiIdleInterval,
-} from "../../core/scheduling/index.ts";
+import { computeAntiIdleInterval } from "../../core/scheduling/index.ts";
 import { resolveTraceContext } from "../../telemetry/trace-context.ts";
 import { parseArguments } from "../arguments.ts";
 import {

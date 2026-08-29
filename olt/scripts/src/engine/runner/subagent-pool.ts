@@ -107,7 +107,7 @@ export class SubagentPool {
             this.waitQueue.splice(index, 1);
             reject(
               new HarnessError(
-                "LOCK_TIMEOUT",
+                "CAPACITY_EXCEEDED",
                 `Subagent concurrency slot acquisition timed out after ${options.timeoutMs}ms (max capacity: ${this.maxCapacity}, queue depth: ${this.waitQueue.length})`,
               ),
             );

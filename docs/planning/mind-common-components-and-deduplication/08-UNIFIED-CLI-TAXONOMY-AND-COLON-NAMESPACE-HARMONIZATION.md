@@ -3,7 +3,7 @@
 **Domain:** `cli` / `tooling` / `reporting` / `queue` / `governance`  
 **Priority:** `CRITICAL`  
 **Status:** `READY_FOR_EXECUTION`  
-**Tracking ID:** `MIND-DEDUP-CLI-TAXONOMY-08`  
+**Tracking ID:** `MIND-DEDUP-CLI-TAXONOMY-08`
 
 ---
 
@@ -64,6 +64,7 @@ Across the Harness CLI registry (54 commands), a critical taxonomy dissonance an
 ## Level 3: Disjoint Scope Boundaries
 
 ### Write Scope
+
 - `olt/scripts/src/cli/registry/reporting.ts` (Harmonized `report:*` and `events:*` commands)
 - `olt/scripts/src/cli/registry/mind.ts` (Migration of queue commands to unified `queue:*`)
 - `olt/scripts/src/cli/registry/workflow.ts` (Worktree commands harmonization)
@@ -74,6 +75,7 @@ Across the Harness CLI registry (54 commands), a critical taxonomy dissonance an
 - `tests/unit/cli/registry-taxonomy.test.ts` (Taxonomy & zero-alias verification suite)
 
 ### Read-Only Scope
+
 - `olt/scripts/src/cli/registry/types.ts` (CommandSpec & FlagSpec contracts)
 - `olt/scripts/src/core/shared/paths.ts` (Canonical storage paths)
 
@@ -81,13 +83,13 @@ Across the Harness CLI registry (54 commands), a critical taxonomy dissonance an
 
 ## Level 4: Atomic Implementation Tasks Matrix
 
-| Task ID | Target File Path | Exported Typed Symbols / Registrations | Deliverable & Contract |
-| :--- | :--- | :--- | :--- |
-| **`task-tax-01`** | `olt/scripts/src/cli/registry/reporting.ts` | `REPORTING_COMMANDS: readonly CommandSpec[]` | Unify all reporting under `report`, `report:summary`, `report:task`, `report:health`, `report:leases`, `report:decisions`, `report:usage`, `report:dag`, `report:graph-json`; unify event commands under `events:stream` and `events:trace`; purge all `aliases` to `[]`. ($\le 300$ lines, 0 comments). |
-| **`task-tax-02`** | `olt/scripts/src/cli/registry/mind.ts` | `MIND_COMMANDS: readonly CommandSpec[]` | Extract queue commands into top-level `queue:add`, `queue:drain`, `queue:status`, `queue:clean`; purge all `aliases` to `[]`. ($\le 300$ lines, 0 comments). |
-| **`task-tax-03`** | `olt/scripts/src/cli/registry/workflow.ts` & `engine.ts` | `WORKFLOW_COMMANDS`, `ENGINE_COMMANDS` | Consolidate `worktree:*` and `msg:*` namespaces; purge all legacy duplicate aliases across all command specs. ($\le 280$ lines, 0 comments). |
-| **`task-tax-04`** | `olt/scripts/src/cli/registry/core.ts`, `plan.ts`, `inspection.ts` | `CORE_COMMANDS`, `PLAN_COMMANDS`, `INSPECTION_COMMANDS` | Eliminate `init` collision; purge all alias arrays to `aliases: []`. ($\le 260$ lines, 0 comments). |
-| **`task-tax-05`** | `tests/unit/cli/registry-taxonomy.test.ts` | `describe("CLI Registry Taxonomy & Zero-Alias Invariant")` | Unit test suite asserting 100% of commands follow canonical `<domain>:<subcommand>` taxonomy and have `aliases.length === 0`. |
+| Task ID           | Target File Path                                                   | Exported Typed Symbols / Registrations                     | Deliverable & Contract                                                                                                                                                                                                                                                                                   |
+| :---------------- | :----------------------------------------------------------------- | :--------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`task-tax-01`** | `olt/scripts/src/cli/registry/reporting.ts`                        | `REPORTING_COMMANDS: readonly CommandSpec[]`               | Unify all reporting under `report`, `report:summary`, `report:task`, `report:health`, `report:leases`, `report:decisions`, `report:usage`, `report:dag`, `report:graph-json`; unify event commands under `events:stream` and `events:trace`; purge all `aliases` to `[]`. ($\le 300$ lines, 0 comments). |
+| **`task-tax-02`** | `olt/scripts/src/cli/registry/mind.ts`                             | `MIND_COMMANDS: readonly CommandSpec[]`                    | Extract queue commands into top-level `queue:add`, `queue:drain`, `queue:status`, `queue:clean`; purge all `aliases` to `[]`. ($\le 300$ lines, 0 comments).                                                                                                                                             |
+| **`task-tax-03`** | `olt/scripts/src/cli/registry/workflow.ts` & `engine.ts`           | `WORKFLOW_COMMANDS`, `ENGINE_COMMANDS`                     | Consolidate `worktree:*` and `msg:*` namespaces; purge all legacy duplicate aliases across all command specs. ($\le 280$ lines, 0 comments).                                                                                                                                                             |
+| **`task-tax-04`** | `olt/scripts/src/cli/registry/core.ts`, `plan.ts`, `inspection.ts` | `CORE_COMMANDS`, `PLAN_COMMANDS`, `INSPECTION_COMMANDS`    | Eliminate `init` collision; purge all alias arrays to `aliases: []`. ($\le 260$ lines, 0 comments).                                                                                                                                                                                                      |
+| **`task-tax-05`** | `tests/unit/cli/registry-taxonomy.test.ts`                         | `describe("CLI Registry Taxonomy & Zero-Alias Invariant")` | Unit test suite asserting 100% of commands follow canonical `<domain>:<subcommand>` taxonomy and have `aliases.length === 0`.                                                                                                                                                                            |
 
 ---
 
@@ -142,9 +144,9 @@ Across the Harness CLI registry (54 commands), a critical taxonomy dissonance an
 
 ## Level 8: Exhaustive Traceability Matrix
 
-| Backlog / Defect ID | Task ID | Target Component | Gate Test Suite | Invariant Status |
-| :--- | :--- | :--- | :--- | :--- |
-| `defect-alias-proliferation-bloat` | `task-tax-01, 02, 03, 04` | `olt/scripts/src/cli/registry/` | `tests/unit/cli/registry-taxonomy.test.ts` | Complete ($\le 300$ lines, 0 comments) |
-| `defect-cli-init-collision` | `task-tax-04` | `src/cli/registry/plan.ts` | `tests/unit/cli/registry.test.ts` | Complete ($\le 260$ lines, 0 comments) |
-| `defect-queue-domain-dissonance` | `task-tax-02` | `src/cli/registry/mind.ts` | `tests/unit/cli/registry-taxonomy.test.ts` | Complete ($\le 300$ lines, 0 comments) |
-| `defect-reporting-subcommand-fragmentation` | `task-tax-01` | `src/cli/registry/reporting.ts` | `tests/unit/cli/registry-taxonomy.test.ts` | Complete ($\le 300$ lines, 0 comments) |
+| Backlog / Defect ID                         | Task ID                   | Target Component                | Gate Test Suite                            | Invariant Status                       |
+| :------------------------------------------ | :------------------------ | :------------------------------ | :----------------------------------------- | :------------------------------------- |
+| `defect-alias-proliferation-bloat`          | `task-tax-01, 02, 03, 04` | `olt/scripts/src/cli/registry/` | `tests/unit/cli/registry-taxonomy.test.ts` | Complete ($\le 300$ lines, 0 comments) |
+| `defect-cli-init-collision`                 | `task-tax-04`             | `src/cli/registry/plan.ts`      | `tests/unit/cli/registry.test.ts`          | Complete ($\le 260$ lines, 0 comments) |
+| `defect-queue-domain-dissonance`            | `task-tax-02`             | `src/cli/registry/mind.ts`      | `tests/unit/cli/registry-taxonomy.test.ts` | Complete ($\le 300$ lines, 0 comments) |
+| `defect-reporting-subcommand-fragmentation` | `task-tax-01`             | `src/cli/registry/reporting.ts` | `tests/unit/cli/registry-taxonomy.test.ts` | Complete ($\le 300$ lines, 0 comments) |

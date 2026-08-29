@@ -66,9 +66,7 @@ describe("Orchestrator Turn 1 Init", () => {
 
   test("throws INVALID_STATE when state.json is missing in capsule directory", () => {
     const sandbox = scratchRoot(import.meta.path, "missing-state-json");
-    expect(() => enforceTurn1OrchestratorInit(sandbox, "orchestrator_run-1")).toThrow(
-      HarnessError,
-    );
+    expect(() => enforceTurn1OrchestratorInit(sandbox, "orchestrator_run-1")).toThrow(HarnessError);
     try {
       enforceTurn1OrchestratorInit(sandbox, "orchestrator_run-1");
     } catch (err) {

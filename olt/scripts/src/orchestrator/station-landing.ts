@@ -25,7 +25,9 @@ export interface StationLandingOptions extends GitStagingOptions {
   readonly soundEnabled?: boolean | undefined;
   readonly notify?: boolean | undefined;
   readonly trackId?: string | undefined;
-  readonly customNotifier?: ((opts: PhaseCompletionNotificationOptions) => NotificationResult) | undefined;
+  readonly customNotifier?:
+    | ((opts: PhaseCompletionNotificationOptions) => NotificationResult)
+    | undefined;
   readonly policy?: RepoPolicy | undefined;
   readonly customHookExecutor?: typeof executeLifecycleHooks | undefined;
 }
@@ -38,7 +40,9 @@ export interface PhaseLandingOptions {
   readonly soundEnabled?: boolean | undefined;
   readonly notify?: boolean | undefined;
   readonly trackId?: string | undefined;
-  readonly customNotifier?: ((opts: PhaseCompletionNotificationOptions) => NotificationResult) | undefined;
+  readonly customNotifier?:
+    | ((opts: PhaseCompletionNotificationOptions) => NotificationResult)
+    | undefined;
   readonly policy?: RepoPolicy | undefined;
   readonly customHookExecutor?: typeof executeLifecycleHooks | undefined;
   readonly rootDir?: string | undefined;
@@ -127,7 +131,9 @@ export function landStation(
   stagingOptions?: StationLandingOptions | undefined,
 ): LandStationResult {
   if (station.status !== "VERIFIED") {
-    throw new Error(`Cannot land station ${station.station_id} before verification (status: ${station.status})`);
+    throw new Error(
+      `Cannot land station ${station.station_id} before verification (status: ${station.status})`,
+    );
   }
 
   const stagingRecord = executeGitStagingInvariant({
@@ -212,7 +218,13 @@ export function landPhaseRelease(options: PhaseLandingOptions): PhaseLandingResu
 
   const hookExecutionResult = dispatchPhaseCompletionHook(
     options.customHookExecutor,
-    { phaseName: options.phaseName, commitSha: options.commitSha, taskCount: options.taskCount, durationMs, status: "SUCCESS" },
+    {
+      phaseName: options.phaseName,
+      commitSha: options.commitSha,
+      taskCount: options.taskCount,
+      durationMs,
+      status: "SUCCESS",
+    },
     options.rootDir,
     options.policy,
   );
@@ -239,15 +251,27 @@ export interface AssemblyPipelineStatus {
 export class AssemblyStationRegistry {
   private readonly stations = new Map<string, AssemblyStation>();
 
-  public registerStation(station: AssemblyStation): void { this.stations.set(station.station_id, station); }
-  public getStation(stationId: string): AssemblyStation | undefined { return this.stations.get(stationId); }
-  public getAllStations(): readonly AssemblyStation[] { return Object.freeze(Array.from(this.stations.values())); }
-  public updateStation(station: AssemblyStation): void { this.stations.set(station.station_id, station); }
+  public registerStation(station: AssemblyStation): void {
+    this.stations.set(station.station_id, station);
+  }
+  public getStation(stationId: string): AssemblyStation | undefined {
+    return this.stations.get(stationId);
+  }
+  public getAllStations(): readonly AssemblyStation[] {
+    return Object.freeze(Array.from(this.stations.values()));
+  }
+  public updateStation(station: AssemblyStation): void {
+    this.stations.set(station.station_id, station);
+  }
 
   public getStatus(): AssemblyPipelineStatus {
     const all = Array.from(this.stations.values());
     const total = all.length;
-    let pending = 0, inProgress = 0, verified = 0, landed = 0, failed = 0;
+    let pending = 0,
+      inProgress = 0,
+      verified = 0,
+      landed = 0,
+      failed = 0;
 
     for (const st of all) {
       if (st.status === "PENDING") pending++;

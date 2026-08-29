@@ -87,7 +87,8 @@ export function parseRepoPolicy(raw: unknown): RepoPolicy {
   if (!isRecord(raw)) throw new HarnessError("INVALID_ARGUMENT", "Repo policy must be an object");
   assertAllowedKeys(raw, TOP_LEVEL_KEYS, "$", "invalid_argument");
 
-  const rawVer = raw["schema_version"] !== undefined ? raw["schema_version"] : CURRENT_POLICY_SCHEMA_VERSION;
+  const rawVer =
+    raw["schema_version"] !== undefined ? raw["schema_version"] : CURRENT_POLICY_SCHEMA_VERSION;
   const ver = reqInt(rawVer, "$.schema_version", 1);
   if (ver !== CURRENT_POLICY_SCHEMA_VERSION) {
     integrity("$.schema_version", `must equal supported version ${CURRENT_POLICY_SCHEMA_VERSION}`);
@@ -154,6 +155,8 @@ export function parseRepoPolicy(raw: unknown): RepoPolicy {
       ? { docker_environment: parseDockerEnv(raw["docker_environment"], "$.docker_environment") }
       : {}),
     ...(raw["hooks"] !== undefined ? { hooks: parseHooks(raw["hooks"], "$.hooks") } : {}),
-    ...(raw["provenance"] !== undefined ? { provenance: reqString(raw["provenance"], "$.provenance") } : {}),
+    ...(raw["provenance"] !== undefined
+      ? { provenance: reqString(raw["provenance"], "$.provenance") }
+      : {}),
   };
 }

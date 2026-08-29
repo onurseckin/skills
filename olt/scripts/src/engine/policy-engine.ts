@@ -33,7 +33,9 @@ export interface PolicyEngineOptions {
   readonly repoRoot?: string | undefined;
   readonly customPath?: string | undefined;
   readonly autoReloadIntervalMs?: number | undefined;
-  readonly onReload?: ((newPolicy: RepoPolicy, previousPolicy?: RepoPolicy) => void | Promise<void>) | undefined;
+  readonly onReload?:
+    | ((newPolicy: RepoPolicy, previousPolicy?: RepoPolicy) => void | Promise<void>)
+    | undefined;
   readonly onDrift?: ((result: PolicyDriftResult) => void | Promise<void>) | undefined;
 }
 
@@ -44,8 +46,12 @@ export class PolicyEngine {
   private readonly customPath?: string | undefined;
   private readonly listeners: Set<PolicyChangeListener> = new Set();
   private autoReloadTimer: ReturnType<typeof setInterval> | null = null;
-  private readonly onReloadCallback?: ((newPolicy: RepoPolicy, previousPolicy?: RepoPolicy) => void | Promise<void>) | undefined;
-  private readonly onDriftCallback?: ((result: PolicyDriftResult) => void | Promise<void>) | undefined;
+  private readonly onReloadCallback?:
+    | ((newPolicy: RepoPolicy, previousPolicy?: RepoPolicy) => void | Promise<void>)
+    | undefined;
+  private readonly onDriftCallback?:
+    | ((result: PolicyDriftResult) => void | Promise<void>)
+    | undefined;
 
   constructor(options: PolicyEngineOptions = {}) {
     this.repoRoot = options.repoRoot;
@@ -217,14 +223,10 @@ export class PolicyEngine {
     event: LifecycleEventType,
     context?: HookVariableContext,
   ): Promise<void> {
-    await executePolicyHook(
-      event,
-      context ?? {},
-      {
-        policy: this.currentPolicy,
-        repoRoot: this.getRepoRoot(),
-      },
-    );
+    await executePolicyHook(event, context ?? {}, {
+      policy: this.currentPolicy,
+      repoRoot: this.getRepoRoot(),
+    });
   }
 
   public verifyCommand(command: string, role: string): AuthorizationResult {

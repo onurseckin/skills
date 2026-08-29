@@ -63,7 +63,9 @@ describe("Hygiene CLI Commands & JSON Contract Verification", () => {
     expect(typeof fixRes.totalQuarantined).toBe("number");
     expect(fixRes.totalQuarantined).toBe(1);
 
-    const firstQuarantine = (fixRes.quarantinedFiles as Array<{ originalPath: string; quarantinePath: string }>)[0];
+    const firstQuarantine = (
+      fixRes.quarantinedFiles as Array<{ originalPath: string; quarantinePath: string }>
+    )[0];
     expect(firstQuarantine).toBeDefined();
     expect(firstQuarantine?.originalPath).toContain("temp-test.py");
   });

@@ -40,7 +40,14 @@ function createViolation(
     target_file: targetFile,
     observation,
     remediation,
-    evidence: { task_id: taskId, agent_id: check.agent_id, role: check.role, action: check.action, target_file: targetFile, ...extraEvidence },
+    evidence: {
+      task_id: taskId,
+      agent_id: check.agent_id,
+      role: check.role,
+      action: check.action,
+      target_file: targetFile,
+      ...extraEvidence,
+    },
   };
 }
 
@@ -238,7 +245,10 @@ function findSessionByToken(
       let p = dirname(resolve(file));
       while (p && p !== dirname(p)) {
         const sDir = join(p, ".olt", ".sessions");
-        if (existsSync(sDir)) { dirs.add(sDir); break; }
+        if (existsSync(sDir)) {
+          dirs.add(sDir);
+          break;
+        }
         p = dirname(p);
       }
     } catch {}
@@ -274,17 +284,36 @@ export function assertLeaseTokenForFileMutation(
   if (typeof file !== "string" || !file.trim()) {
     throw new HarnessError("INVALID_ARGUMENT", "Target file path must be a nonempty string");
   }
-  if (!token || typeof token !== "string" || !token.trim() || token.trim() === "unauthenticated" || token.trim() === "none") {
-    throw new HarnessError("PERMISSION_DENIED", "Mutation interlock violation: active lease token required for file mutation");
+  if (
+    !token ||
+    typeof token !== "string" ||
+    !token.trim() ||
+    token.trim() === "unauthenticated" ||
+    token.trim() === "none"
+  ) {
+    throw new HarnessError(
+      "PERMISSION_DENIED",
+      "Mutation interlock violation: active lease token required for file mutation",
+    );
   }
 
   const session = findSessionByToken(token, file, options);
   if (session) {
     if (session.can_edit_files === false) {
-      throw new HarnessError("PERMISSION_DENIED", `Actor role '${session.role}' is not permitted to mutate files`);
+      throw new HarnessError(
+        "PERMISSION_DENIED",
+        `Actor role '${session.role}' is not permitted to mutate files`,
+      );
     }
-    if (session.write_scope && session.write_scope.length > 0 && !matchesWriteScope(file, session.write_scope)) {
-      throw new HarnessError("PERMISSION_DENIED", `Target file '${file}' is outside leased write scope: ${session.write_scope.join(", ")}`);
+    if (
+      session.write_scope &&
+      session.write_scope.length > 0 &&
+      !matchesWriteScope(file, session.write_scope)
+    ) {
+      throw new HarnessError(
+        "PERMISSION_DENIED",
+        `Target file '${file}' is outside leased write scope: ${session.write_scope.join(", ")}`,
+      );
     }
   }
 }

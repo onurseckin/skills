@@ -142,7 +142,10 @@ export function renderTaskSummaryTable(tasks: readonly DashboardTaskState[], wid
   return lines;
 }
 
-export function renderAgentMatrixSection(agents: readonly DashboardAgentState[], width = 80): string[] {
+export function renderAgentMatrixSection(
+  agents: readonly DashboardAgentState[],
+  width = 80,
+): string[] {
   const lines: string[] = [
     "┌─ AGENT MATRIX ───────────────────────────────────────────────────────────────┐",
     "│ AGENT ID             ROLE           TIER   STATUS    ASSIGNED TASK            │",
@@ -164,7 +167,12 @@ export function renderAgentMatrixSection(agents: readonly DashboardAgentState[],
   return lines;
 }
 
-export function renderDashboardHeader(runId: string, phase: string, metrics: DashboardMetrics, width = 80): string[] {
+export function renderDashboardHeader(
+  runId: string,
+  phase: string,
+  metrics: DashboardMetrics,
+  width = 80,
+): string[] {
   return [
     "╔═══════════════════════════════════════════════════════════════════════════════╗",
     `║ UNIFIED MASTER REPORTING DASHBOARD: ${runId.padEnd(41).slice(0, 41)} ║`,
@@ -192,7 +200,14 @@ export function generateDashboardReport(
       role: t.validatorId && !t.implementerId ? "validator" : "implementer",
       effortMinutes: t.effort,
       spanMinutes: t.effort,
-      status: t.status.toUpperCase() as "PENDING" | "READY" | "LEASED" | "RUNNING" | "VALIDATING" | "COMPLETED" | "FAILED",
+      status: t.status.toUpperCase() as
+        | "PENDING"
+        | "READY"
+        | "LEASED"
+        | "RUNNING"
+        | "VALIDATING"
+        | "COMPLETED"
+        | "FAILED",
       implementerId: t.implementerId,
       validatorId: t.validatorId,
       repairRound: t.repairRound,

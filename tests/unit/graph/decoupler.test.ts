@@ -35,9 +35,7 @@ describe("Graph Decoupler & Artificial Serialization", () => {
         { id: "t1", type: "task", write_scope: ["src/t1.ts"], effort: 10 },
         { id: "t2", type: "task", write_scope: ["src/t2.ts"], effort: 10 },
       ],
-      edges: [
-        { source: "t2", target: "t1", type: "depends_on" },
-      ],
+      edges: [{ source: "t2", target: "t1", type: "depends_on" }],
     };
 
     const result = decoupleDisjointTasks(graph);
@@ -59,9 +57,7 @@ describe("Graph Decoupler & Artificial Serialization", () => {
         { id: "t1", type: "task", write_scope: ["src/common.ts"], effort: 15 },
         { id: "t2", type: "task", write_scope: ["src/common.ts"], effort: 15 },
       ],
-      edges: [
-        { source: "t2", target: "t1", type: "depends_on" },
-      ],
+      edges: [{ source: "t2", target: "t1", type: "depends_on" }],
     };
 
     const result = decoupleDisjointTasks(graph);

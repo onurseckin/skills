@@ -48,7 +48,14 @@ describe("2-Tier CLI Surface Split & Taxonomy Invariants", () => {
 
   test("exposes exactly the 8 high-level primary verbs", () => {
     expect(PRIMARY_VERBS).toEqual([
-      "plan", "queue", "task", "run", "doctor", "mind", "msg", "worktree",
+      "plan",
+      "queue",
+      "task",
+      "run",
+      "doctor",
+      "mind",
+      "msg",
+      "worktree",
     ]);
     expect(PRIMARY_VERBS.length).toBe(8);
   });
@@ -74,9 +81,21 @@ describe("2-Tier CLI Surface Split & Taxonomy Invariants", () => {
 
   test("correctly assigns known workflow commands to the primary tier", () => {
     const primaryNames = [
-      "orchestrate", "plan:init", "plan:enhance", "plan:add", "plan:compile",
-      "queue:next", "queue:wave", "task:claim", "task:submit", "run:exec",
-      "run:status", "doctor", "doctor:repair", "mind:init", "mind:pulse",
+      "orchestrate",
+      "plan:init",
+      "plan:enhance",
+      "plan:add",
+      "plan:compile",
+      "queue:next",
+      "queue:wave",
+      "task:claim",
+      "task:submit",
+      "run:exec",
+      "run:status",
+      "doctor",
+      "doctor:repair",
+      "mind:init",
+      "mind:pulse",
     ];
     for (const name of primaryNames) {
       const spec = findCommand(name);
@@ -90,10 +109,27 @@ describe("2-Tier CLI Surface Split & Taxonomy Invariants", () => {
 
   test("correctly assigns lower-level/diagnostic utilities to the internal tier", () => {
     const internalNames = [
-      "agent:register", "agent:list", "authority:decide", "whoami", "branch:open",
-      "branch:claim", "capture:init", "critic:review", "diagnostics", "defect:audit",
-      "coverage:check", "health", "recover", "explain", "gate:prove", "finding:get",
-      "install", "orchestrator:supervise", "orphan:dispose", "report", "summary:export",
+      "agent:register",
+      "agent:list",
+      "authority:decide",
+      "whoami",
+      "branch:open",
+      "branch:claim",
+      "capture:init",
+      "critic:review",
+      "diagnostics",
+      "defect:audit",
+      "coverage:check",
+      "health",
+      "recover",
+      "explain",
+      "gate:prove",
+      "finding:get",
+      "install",
+      "orchestrator:supervise",
+      "orphan:dispose",
+      "report",
+      "summary:export",
       "coordinator:pushback",
     ];
     for (const name of internalNames) {
@@ -110,14 +146,23 @@ describe("2-Tier CLI Surface Split & Taxonomy Invariants", () => {
     expect(helpRequest(["help", "--internal"])).toEqual({ command: null, internal: true });
     expect(helpRequest(["help", "-i"])).toEqual({ command: null, internal: true });
     expect(helpRequest(["help", "task:claim"])).toEqual({ command: "task:claim" });
-    expect(helpRequest(["help", "task:claim", "--internal"])).toEqual({ command: "task:claim", internal: true });
-    expect(helpRequest(["help", "--internal", "task:claim"])).toEqual({ command: "task:claim", internal: true });
+    expect(helpRequest(["help", "task:claim", "--internal"])).toEqual({
+      command: "task:claim",
+      internal: true,
+    });
+    expect(helpRequest(["help", "--internal", "task:claim"])).toEqual({
+      command: "task:claim",
+      internal: true,
+    });
     expect(helpRequest(["--help"])).toEqual({ command: null });
     expect(helpRequest(["--help", "--internal"])).toEqual({ command: null, internal: true });
     expect(helpRequest(["--internal", "--help"])).toEqual({ command: null, internal: true });
     expect(helpRequest(["--internal"])).toEqual({ command: null, internal: true });
     expect(helpRequest(["task:claim", "--help"])).toEqual({ command: "task:claim" });
-    expect(helpRequest(["task:claim", "--help", "--internal"])).toEqual({ command: "task:claim", internal: true });
+    expect(helpRequest(["task:claim", "--help", "--internal"])).toEqual({
+      command: "task:claim",
+      internal: true,
+    });
   });
 
   test("renders default overview presenting only the clean 2-tier primary surface", () => {
@@ -133,7 +178,9 @@ describe("2-Tier CLI Surface Split & Taxonomy Invariants", () => {
     expect(overview).not.toContain("| orphan |");
     expect(overview).not.toContain("| capture |");
     expect(overview).not.toContain("| critic |");
-    expect(overview).toContain("Pass `--internal` to view lower-level internal and diagnostic commands.");
+    expect(overview).toContain(
+      "Pass `--internal` to view lower-level internal and diagnostic commands.",
+    );
   });
 
   test("renders internal tier overview when internal option is true", () => {
@@ -143,8 +190,19 @@ describe("2-Tier CLI Surface Split & Taxonomy Invariants", () => {
     expect(lines[0]).toBe("### Harness CLI (Internal Tier)");
 
     const internalDomains = [
-      "agent", "authority", "branch", "capture", "critic", "diagnostics",
-      "gate", "inspection", "install", "orchestrator", "orphan", "reporting", "summary",
+      "agent",
+      "authority",
+      "branch",
+      "capture",
+      "critic",
+      "diagnostics",
+      "gate",
+      "inspection",
+      "install",
+      "orchestrator",
+      "orphan",
+      "reporting",
+      "summary",
     ];
     for (const domain of internalDomains) {
       expect(internalOverview).toContain(`| ${domain} |`);
@@ -198,27 +256,53 @@ describe("2-Tier CLI Surface Split & Taxonomy Invariants", () => {
 
   test("custom/synthetic CommandSpec classification works with explicit tier flags and defaults", () => {
     const primarySpec: CommandSpec = {
-      name: "custom:primary", aliases: [], domain: "plan", tier: "primary",
-      summary: "custom primary", description: "custom primary", flags: [],
-      readsStdin: false, takesRemainder: false, exitCodes: [], examples: [], handler: () => ({ ok: true }),
+      name: "custom:primary",
+      aliases: [],
+      domain: "plan",
+      tier: "primary",
+      summary: "custom primary",
+      description: "custom primary",
+      flags: [],
+      readsStdin: false,
+      takesRemainder: false,
+      exitCodes: [],
+      examples: [],
+      handler: () => ({ ok: true }),
     };
     expect(isPrimaryCommand(primarySpec)).toBeTrue();
     expect(isInternalCommand(primarySpec)).toBeFalse();
     expect(commandTier(primarySpec)).toBe("primary");
 
     const explicitInternalInPlanDomain: CommandSpec = {
-      name: "plan:internal-helper", aliases: [], domain: "plan", internal: true,
-      summary: "plan helper", description: "plan helper", flags: [],
-      readsStdin: false, takesRemainder: false, exitCodes: [], examples: [], handler: () => ({ ok: true }),
+      name: "plan:internal-helper",
+      aliases: [],
+      domain: "plan",
+      internal: true,
+      summary: "plan helper",
+      description: "plan helper",
+      flags: [],
+      readsStdin: false,
+      takesRemainder: false,
+      exitCodes: [],
+      examples: [],
+      handler: () => ({ ok: true }),
     };
     expect(isPrimaryCommand(explicitInternalInPlanDomain)).toBeFalse();
     expect(isInternalCommand(explicitInternalInPlanDomain)).toBeTrue();
     expect(commandTier(explicitInternalInPlanDomain)).toBe("internal");
 
     const doctorNamedSpec: CommandSpec = {
-      name: "doctor:sub-check", aliases: [], domain: "diagnostics",
-      summary: "doctor sub check", description: "doctor sub check", flags: [],
-      readsStdin: false, takesRemainder: false, exitCodes: [], examples: [], handler: () => ({ ok: true }),
+      name: "doctor:sub-check",
+      aliases: [],
+      domain: "diagnostics",
+      summary: "doctor sub check",
+      description: "doctor sub check",
+      flags: [],
+      readsStdin: false,
+      takesRemainder: false,
+      exitCodes: [],
+      examples: [],
+      handler: () => ({ ok: true }),
     };
     expect(isPrimaryCommand(doctorNamedSpec)).toBeTrue();
     expect(commandTier(doctorNamedSpec)).toBe("primary");

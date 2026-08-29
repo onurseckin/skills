@@ -135,8 +135,7 @@ export class QuotaCircuitBreaker {
     } = {},
   ) {
     this.defaultThreshold = options.thresholdPercentage ?? DEFAULT_QUOTA_THRESHOLD;
-    this.defaultSafeWindowSeconds =
-      options.defaultSafeWindowSeconds ?? DEFAULT_SAFE_WINDOW_SECONDS;
+    this.defaultSafeWindowSeconds = options.defaultSafeWindowSeconds ?? DEFAULT_SAFE_WINDOW_SECONDS;
     this.defaultBufferSeconds = options.bufferSeconds ?? DEFAULT_AUTO_WAKE_BUFFER_SECONDS;
   }
 

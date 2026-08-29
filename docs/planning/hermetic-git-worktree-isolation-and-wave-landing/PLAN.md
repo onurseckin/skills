@@ -58,29 +58,29 @@ During multi-track parallel execution, orchestrators running in the shared worki
 
 ## Level 3: Disjoint Scope Boundaries
 
-| Scope Domain             | Path Specification                                                                                                                       | Access Contract       |
-| :----------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- | :-------------------- |
-| **Write Scope (Lane A)** | `olt/scripts/src/workflow/worktree/manager.ts`, `olt/scripts/src/workflow/worktree/landing.ts`, `tests/unit/workflow/worktree.test.ts`   | Exclusive Write Lease |
-| **Write Scope (Lane B)** | `olt/scripts/src/reporting/doctor/worktree-health-engine.ts`, `tests/unit/doctor/worktree-health.test.ts`                               | Exclusive Write Lease |
-| **Write Scope (Lane C)** | `olt/scripts/src/cli/commands/worktree-ops.ts`, `tests/unit/cli/worktree-ops.test.ts`                                                     | Exclusive Write Lease |
-| **Write Scope (Lane D)** | `olt/scripts/src/orchestrator/loop-runner.ts`, `olt/scripts/src/orchestrator/station-landing.ts`                                          | Exclusive Write Lease |
-| **Read-Only Scope**      | `olt/scripts/src/core/`, `.olt/worktrees/`                                                                                               | Read-Only             |
+| Scope Domain             | Path Specification                                                                                                                     | Access Contract       |
+| :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------- | :-------------------- |
+| **Write Scope (Lane A)** | `olt/scripts/src/workflow/worktree/manager.ts`, `olt/scripts/src/workflow/worktree/landing.ts`, `tests/unit/workflow/worktree.test.ts` | Exclusive Write Lease |
+| **Write Scope (Lane B)** | `olt/scripts/src/reporting/doctor/worktree-health-engine.ts`, `tests/unit/doctor/worktree-health.test.ts`                              | Exclusive Write Lease |
+| **Write Scope (Lane C)** | `olt/scripts/src/cli/commands/worktree-ops.ts`, `tests/unit/cli/worktree-ops.test.ts`                                                  | Exclusive Write Lease |
+| **Write Scope (Lane D)** | `olt/scripts/src/orchestrator/loop-runner.ts`, `olt/scripts/src/orchestrator/station-landing.ts`                                       | Exclusive Write Lease |
+| **Read-Only Scope**      | `olt/scripts/src/core/`, `.olt/worktrees/`                                                                                             | Read-Only             |
 
 ---
 
 ## Level 4: Atomic Implementation Tasks Matrix
 
-| Task ID        | Target File Path                                             | Exact TypeScript Symbols / Signatures                               | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                                                    |
-| :------------- | :----------------------------------------------------------- | :------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `task-wt-1.1`  | `olt/scripts/src/workflow/worktree/manager.ts`               | `createTrackWorktree(trackId: string): string`                      | Provision hermetic worktree in `.olt/worktrees/<trackId>` on branch `track/<trackId>`.                                                                   |
-| `task-wt-1.2`  | `olt/scripts/src/workflow/worktree/manager.ts`               | `destroyTrackWorktree(trackId: string): void`                       | Safely remove worktree, delete branch `track/<trackId>`, and execute `git worktree prune`.                                                               |
-| `task-wt-1.3`  | `olt/scripts/src/workflow/worktree/landing.ts`               | `landTrackToMain(trackId: string): Promise<void>`                   | Perform fetch, rebase onto `origin/main`, atomic push, and immediate worktree teardown.                                                                 |
-| `task-wt-1.4`  | `tests/unit/workflow/worktree.test.ts`                       | `describe("Worktree Manager & Landing", ...)`                       | Unit test verifying provisioning, isolation, landing, and clean teardown in test repository.                                                            |
-| `task-wt-2.1`  | `olt/scripts/src/reporting/doctor/worktree-health-engine.ts` | `checkWorktreeHealth(): Promise<DoctorCheckResult>`                 | Implement doctor check for unmerged branches, dead agent worktrees, and auto-cleanup.                                                                     |
-| `task-wt-2.2`  | `tests/unit/doctor/worktree-health.test.ts`                  | `describe("Worktree Health Engine", ...)`                           | Unit test verifying doctor detection and auto-healing of stale worktrees.                                                                               |
-| `task-wt-3.1`  | `olt/scripts/src/cli/commands/worktree-ops.ts`               | `worktreeCreateCommand`, `worktreeLandCommand`, etc.                | Expose CLI commands: `worktree:create`, `worktree:land`, `worktree:list`, `worktree:clean`, `worktree:status`.                                          |
-| `task-wt-3.2`  | `tests/unit/cli/worktree-ops.test.ts`                        | `describe("Worktree CLI Ops", ...)`                                 | Unit test verifying CLI command execution and output formatting.                                                                                         |
-| `task-wt-4.1`  | `olt/scripts/src/orchestrator/loop-runner.ts`                | `executeOrchestratorTrack(options: TrackOptions): Promise<void>`    | Bind orchestrator track to isolated worktree and execute per-wave landing.                                                                               |
+| Task ID       | Target File Path                                             | Exact TypeScript Symbols / Signatures                            | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                           |
+| :------------ | :----------------------------------------------------------- | :--------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| `task-wt-1.1` | `olt/scripts/src/workflow/worktree/manager.ts`               | `createTrackWorktree(trackId: string): string`                   | Provision hermetic worktree in `.olt/worktrees/<trackId>` on branch `track/<trackId>`.                         |
+| `task-wt-1.2` | `olt/scripts/src/workflow/worktree/manager.ts`               | `destroyTrackWorktree(trackId: string): void`                    | Safely remove worktree, delete branch `track/<trackId>`, and execute `git worktree prune`.                     |
+| `task-wt-1.3` | `olt/scripts/src/workflow/worktree/landing.ts`               | `landTrackToMain(trackId: string): Promise<void>`                | Perform fetch, rebase onto `origin/main`, atomic push, and immediate worktree teardown.                        |
+| `task-wt-1.4` | `tests/unit/workflow/worktree.test.ts`                       | `describe("Worktree Manager & Landing", ...)`                    | Unit test verifying provisioning, isolation, landing, and clean teardown in test repository.                   |
+| `task-wt-2.1` | `olt/scripts/src/reporting/doctor/worktree-health-engine.ts` | `checkWorktreeHealth(): Promise<DoctorCheckResult>`              | Implement doctor check for unmerged branches, dead agent worktrees, and auto-cleanup.                          |
+| `task-wt-2.2` | `tests/unit/doctor/worktree-health.test.ts`                  | `describe("Worktree Health Engine", ...)`                        | Unit test verifying doctor detection and auto-healing of stale worktrees.                                      |
+| `task-wt-3.1` | `olt/scripts/src/cli/commands/worktree-ops.ts`               | `worktreeCreateCommand`, `worktreeLandCommand`, etc.             | Expose CLI commands: `worktree:create`, `worktree:land`, `worktree:list`, `worktree:clean`, `worktree:status`. |
+| `task-wt-3.2` | `tests/unit/cli/worktree-ops.test.ts`                        | `describe("Worktree CLI Ops", ...)`                              | Unit test verifying CLI command execution and output formatting.                                               |
+| `task-wt-4.1` | `olt/scripts/src/orchestrator/loop-runner.ts`                | `executeOrchestratorTrack(options: TrackOptions): Promise<void>` | Bind orchestrator track to isolated worktree and execute per-wave landing.                                     |
 
 ---
 
@@ -149,9 +149,9 @@ bun ~/.agents/skills/olt/scripts/harness.ts task:check --repo .
 
 ## Level 8: Exhaustive Traceability Matrix
 
-| Backlog / Defect ID                                                | Title / Requirement                                  | Resolved By Tasks                                            | Falsifiable Gate Verification Target                  |
-| :----------------------------------------------------------------- | :--------------------------------------------------- | :----------------------------------------------------------- | :---------------------------------------------------- |
-| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing`| Hermetic Worktree Provisioning & Isolation           | `task-wt-1.1`, `task-wt-1.2`, `task-wt-1.4`                  | `bun test tests/unit/workflow/worktree.test.ts`       |
-| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing`| Atomic Wave Landing & Immediate Teardown             | `task-wt-1.3`, `task-wt-4.1`                                 | `bun test tests/unit/workflow/worktree.test.ts`       |
-| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing`| Worktree Doctor Diagnostic & Auto-Prune Engine       | `task-wt-2.1`, `task-wt-2.2`                                 | `bun test tests/unit/doctor/worktree-health.test.ts`  |
-| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing`| Worktree Management CLI Commands                     | `task-wt-3.1`, `task-wt-3.2`                                 | `bun test tests/unit/cli/worktree-ops.test.ts`        |
+| Backlog / Defect ID                                                 | Title / Requirement                            | Resolved By Tasks                           | Falsifiable Gate Verification Target                 |
+| :------------------------------------------------------------------ | :--------------------------------------------- | :------------------------------------------ | :--------------------------------------------------- |
+| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing` | Hermetic Worktree Provisioning & Isolation     | `task-wt-1.1`, `task-wt-1.2`, `task-wt-1.4` | `bun test tests/unit/workflow/worktree.test.ts`      |
+| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing` | Atomic Wave Landing & Immediate Teardown       | `task-wt-1.3`, `task-wt-4.1`                | `bun test tests/unit/workflow/worktree.test.ts`      |
+| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing` | Worktree Doctor Diagnostic & Auto-Prune Engine | `task-wt-2.1`, `task-wt-2.2`                | `bun test tests/unit/doctor/worktree-health.test.ts` |
+| `fb-1788022500000-hermetic-git-worktree-isolation-and-wave-landing` | Worktree Management CLI Commands               | `task-wt-3.1`, `task-wt-3.2`                | `bun test tests/unit/cli/worktree-ops.test.ts`       |
