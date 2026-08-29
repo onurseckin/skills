@@ -1,6 +1,3 @@
-/**
- * Living Tracer Telemetry Event Replayer
- */
 import type { HarnessEvent } from "../../core/contracts/index.ts";
 import { handleTaskStateTransition } from "./task-state-transitions.ts";
 import {
