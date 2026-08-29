@@ -15,9 +15,6 @@ import {
   type PhaseCompletionNotificationOptions,
 } from "./types.ts";
 
-/**
- * Checks whether the current process is executing under a unit test runner.
- */
 export function isTestEnvironment(): boolean {
   return (
     process.env.NODE_ENV === "test" ||
@@ -27,9 +24,6 @@ export function isTestEnvironment(): boolean {
   );
 }
 
-/**
- * Default non-blocking child process spawner using detached and unref.
- */
 export function defaultNotificationSpawner(
   command: string,
   args: readonly string[],
@@ -73,9 +67,6 @@ export function defaultNotificationSpawner(
   }
 }
 
-/**
- * Dispatches a native OS visual desktop notification.
- */
 export function displaySystemNotification(
   payload: NotificationPayload,
   options?: {
@@ -141,9 +132,6 @@ export function displaySystemNotification(
   }
 }
 
-/**
- * Plays a native OS completion audio chime (e.g. Glass.aiff on macOS).
- */
 export function playCompletionChime(
   soundFile?: string | undefined,
   options?: {
@@ -200,9 +188,6 @@ export function playCompletionChime(
   }
 }
 
-/**
- * Dispatches both visual and auditory native OS push notifications in a non-blocking manner.
- */
 export function sendSystemNotification(
   payload: NotificationPayload,
   options?: {
@@ -252,9 +237,6 @@ export function sendSystemNotification(
   };
 }
 
-/**
- * High-level helper to trigger a phase completion notification.
- */
 export function notifyPhaseCompletion(
   options: PhaseCompletionNotificationOptions,
 ): NotificationResult {

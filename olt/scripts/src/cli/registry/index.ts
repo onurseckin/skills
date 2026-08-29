@@ -11,25 +11,60 @@ import { GATE_COMMANDS } from "./gate.ts";
 import { INSPECTION_COMMANDS } from "./inspection.ts";
 import { INSTALL_COMMANDS } from "./install.ts";
 import { MIND_COMMANDS } from "./mind.ts";
-import { POLICY_COMMANDS } from "./policy.ts";
+import { MSG_COMMANDS } from "./msg.ts";
 import { ORCHESTRATOR_COMMANDS } from "./orchestrator.ts";
 import { ORPHAN_COMMANDS } from "./orphan.ts";
 import { PLAN_COMMANDS } from "./plan.ts";
+import { POLICY_COMMANDS } from "./policy.ts";
 import { QUEUE_COMMANDS } from "./queue.ts";
 import { REPORTING_COMMANDS } from "./reporting.ts";
 import { RUN_COMMANDS } from "./run.ts";
-import { SUMMARY_COMMANDS } from "./summary.ts";
 import { SHELL_COMMANDS } from "./shell.ts";
+import { SUMMARY_COMMANDS } from "./summary.ts";
 import { TASK_COMMANDS } from "./task.ts";
 import {
+  DEFAULT_EXIT_CODES,
+  PRIMARY_VERBS,
+  commandTier,
+  flagShapes,
   isInternalCommand,
   isPrimaryCommand,
+  optionalFlag,
+  repeatableFlag,
+  requiredFlag,
+  type CommandAuthoritySpec,
   type CommandDomain,
+  type CommandHandler,
   type CommandSpec,
+  type CommandTier,
+  type ExitCodeSpec,
+  type FlagSpec,
+  type FlagType,
+  type PrimaryVerb,
 } from "./types.ts";
 
-export * from "./types.ts";
+export {
+  DEFAULT_EXIT_CODES,
+  PRIMARY_VERBS,
+  commandTier,
+  flagShapes,
+  isInternalCommand,
+  isPrimaryCommand,
+  optionalFlag,
+  repeatableFlag,
+  requiredFlag,
+  type CommandAuthoritySpec,
+  type CommandDomain,
+  type CommandHandler,
+  type CommandSpec,
+  type CommandTier,
+  type ExitCodeSpec,
+  type FlagSpec,
+  type FlagType,
+  type PrimaryVerb,
+};
 export { SHELL_COMMANDS } from "./shell.ts";
+export { MSG_COMMANDS } from "./msg.ts";
 
 export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...PLAN_COMMANDS,
@@ -55,6 +90,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...MIND_COMMANDS,
   ...POLICY_COMMANDS,
   ...FACTORY_COMMANDS,
+  ...MSG_COMMANDS,
 ];
 
 export const COMMAND_DOMAINS: readonly CommandDomain[] = [
@@ -77,6 +113,7 @@ export const COMMAND_DOMAINS: readonly CommandDomain[] = [
   "capture",
   "mind",
   "policy",
+  "msg",
 ];
 
 const BY_INVOCATION: ReadonlyMap<string, CommandSpec> = (() => {

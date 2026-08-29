@@ -50,9 +50,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isRuleValid(rule: unknown): rule is "any_type" | "compiler_suppression" {
-  if (rule === "any_type") return true;
-  if (rule === "compiler_suppression") return true;
-  return false;
+  return rule === "any_type" || rule === "compiler_suppression";
 }
 
 export function isTypeSafetyViolation(value: unknown): value is TypeSafetyViolation {
@@ -81,22 +79,20 @@ export function isTypeSafetyScanResult(value: unknown): value is TypeSafetyScanR
 }
 
 function isTsxFile(fileName: string): boolean {
-  if (fileName.endsWith(".tsx")) return true;
-  if (fileName.endsWith(".jsx")) return true;
-  return false;
+  return fileName.endsWith(".tsx") || fileName.endsWith(".jsx");
 }
 
 function isCommentTrivia(token: ts.SyntaxKind): boolean {
-  if (token === ts.SyntaxKind.SingleLineCommentTrivia) return true;
-  if (token === ts.SyntaxKind.MultiLineCommentTrivia) return true;
-  return false;
+  return (
+    token === ts.SyntaxKind.SingleLineCommentTrivia ||
+    token === ts.SyntaxKind.MultiLineCommentTrivia
+  );
 }
 
 function matchesPattern(entryName: string, fullPath: string, pattern: string): boolean {
-  if (entryName === pattern) return true;
-  if (fullPath.includes(`/${pattern}/`)) return true;
-  if (fullPath.endsWith(`/${pattern}`)) return true;
-  return false;
+  return (
+    entryName === pattern || fullPath.includes(`/${pattern}/`) || fullPath.endsWith(`/${pattern}`)
+  );
 }
 
 function checkCompilerSuppressions(
@@ -133,15 +129,14 @@ function checkCompilerSuppressions(
   }
 }
 
-export function collectTypescriptFiles(
+export function collectTsFiles(
   dirPath: string,
   extensions: readonly string[] = DEFAULT_TS_EXTENSIONS,
   excludePatterns: readonly string[] = DEFAULT_EXCLUDE_PATTERNS,
   maxDepth = 20,
   currentDepth = 0,
 ): readonly string[] {
-  if (currentDepth > maxDepth) return [];
-  if (!existsSync(dirPath)) return [];
+  if (currentDepth > maxDepth || !existsSync(dirPath)) return [];
   const results: string[] = [];
   const entries = readdirSync(dirPath, { withFileTypes: true });
   for (const entry of entries) {
@@ -155,7 +150,7 @@ export function collectTypescriptFiles(
     }
     if (isExcluded) continue;
     if (entry.isDirectory()) {
-      const nested = collectTypescriptFiles(
+      const nested = collectTsFiles(
         fullPath,
         extensions,
         excludePatterns,
@@ -175,7 +170,7 @@ export function collectTypescriptFiles(
   return results;
 }
 
-export function scanSourceCodeForTypescriptAny(
+export function scanSourceCodeForAny(
   sourceCode: string,
   fileName = "source.ts",
   options?: TypeSafetyScanOptions,
@@ -208,10 +203,8 @@ export function scanSourceCodeForTypescriptAny(
   }
   walk(sourceFile);
 
-  let checkSuppressions = true;
-  if (options !== undefined && options.checkCompilerSuppressions !== undefined) {
-    checkSuppressions = options.checkCompilerSuppressions;
-  }
+  const checkSuppressions =
+    options?.checkCompilerSuppressions !== undefined ? options.checkCompilerSuppressions : true;
   if (checkSuppressions) {
     checkCompilerSuppressions(sourceCode, sourceFile, fileName, violations);
   }
@@ -226,7 +219,7 @@ export function scanSourceCodeForTypescriptAny(
   };
 }
 
-export function scanFileForTypescriptAny(
+export function scanFileForAny(
   filePath: string,
   options?: TypeSafetyScanOptions,
 ): TypeSafetyScanResult {
@@ -235,10 +228,10 @@ export function scanFileForTypescriptAny(
       { filePath },
     ]);
   }
-  return scanSourceCodeForTypescriptAny(readFileSync(filePath, "utf-8"), filePath, options);
+  return scanSourceCodeForAny(readFileSync(filePath, "utf-8"), filePath, options);
 }
 
-export function scanDirectoryForTypescriptAny(
+export function scanDirectoryForAny(
   dirPath: string,
   options?: TypeSafetyScanOptions,
 ): TypeSafetyScanResult {
@@ -253,22 +246,13 @@ export function scanDirectoryForTypescriptAny(
       { dirPath },
     ]);
   }
-  let extensions = DEFAULT_TS_EXTENSIONS;
-  if (options !== undefined && options.includeExtensions !== undefined) {
-    extensions = options.includeExtensions;
-  }
-  let excludePatterns = DEFAULT_EXCLUDE_PATTERNS;
-  if (options !== undefined && options.excludePatterns !== undefined) {
-    excludePatterns = options.excludePatterns;
-  }
-  let maxDepth = 20;
-  if (options !== undefined && options.maxDepth !== undefined) {
-    maxDepth = options.maxDepth;
-  }
-  const files = collectTypescriptFiles(dirPath, extensions, excludePatterns, maxDepth);
+  const extensions = options?.includeExtensions ?? DEFAULT_TS_EXTENSIONS;
+  const excludePatterns = options?.excludePatterns ?? DEFAULT_EXCLUDE_PATTERNS;
+  const maxDepth = options?.maxDepth ?? 20;
+  const files = collectTsFiles(dirPath, extensions, excludePatterns, maxDepth);
   const allViolations: TypeSafetyViolation[] = [];
   for (const file of files) {
-    const fileResult = scanFileForTypescriptAny(file, options);
+    const fileResult = scanFileForAny(file, options);
     for (const v of fileResult.violations) allViolations.push(v);
   }
   return {
@@ -280,18 +264,15 @@ export function scanDirectoryForTypescriptAny(
   };
 }
 
-export function assertZeroTypescriptAny(
-  filePathOrSource: string,
-  options?: TypeSafetyScanOptions,
-): void {
+export function assertZeroAny(filePathOrSource: string, options?: TypeSafetyScanOptions): void {
   let result: TypeSafetyScanResult;
   if (typeof filePathOrSource === "string" && existsSync(filePathOrSource)) {
     const stat = statSync(filePathOrSource);
     result = stat.isDirectory()
-      ? scanDirectoryForTypescriptAny(filePathOrSource, options)
-      : scanFileForTypescriptAny(filePathOrSource, options);
+      ? scanDirectoryForAny(filePathOrSource, options)
+      : scanFileForAny(filePathOrSource, options);
   } else {
-    result = scanSourceCodeForTypescriptAny(filePathOrSource, "inline.ts", options);
+    result = scanSourceCodeForAny(filePathOrSource, "inline.ts", options);
   }
 
   if (!result.valid) {

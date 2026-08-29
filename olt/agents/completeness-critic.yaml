@@ -32,6 +32,9 @@ permissions:
     - "evidence:screenshots"
     - "doctor"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns: []
 invariants:
   - "WHOLE_RUN_PROOF_VERIFICATION"
@@ -92,6 +95,9 @@ instructions: |
     - evidence:screenshots
     - agent:report
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns: []
   ---
 

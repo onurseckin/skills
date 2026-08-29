@@ -36,11 +36,17 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
       mkdirSync(join(mbRoot, "coordinator-0"), { recursive: true });
       mkdirSync(join(mbRoot, ".locks"), { recursive: true });
       writeFileSync(join(mbRoot, ".locks", "validator-1.lock"), "");
+      mkdirSync(join(testRoot, ".olt", "locks", "mailboxes"), { recursive: true });
+      writeFileSync(join(testRoot, ".olt", "locks", "mailboxes", "repairer-1.lock"), "");
+      mkdirSync(join(testRoot, ".olt", "locks"), { recursive: true });
+      writeFileSync(join(testRoot, ".olt", "locks", "critic-1.lock"), "");
 
       expect(resolveRecipientAgentIds("worker-alpha", testRoot)).toEqual(["worker-alpha"]);
       expect(resolveRecipientAgentIds("worker", testRoot)).toEqual(["worker-alpha", "worker-beta"]);
       expect(resolveRecipientAgentIds("coordinator", testRoot)).toEqual(["coordinator-0"]);
       expect(resolveRecipientAgentIds("validator", testRoot)).toEqual(["validator-1"]);
+      expect(resolveRecipientAgentIds("repairer", testRoot)).toEqual(["repairer-1"]);
+      expect(resolveRecipientAgentIds("critic", testRoot)).toEqual(["critic-1"]);
       expect(resolveRecipientAgentIds("custom-agent-99", testRoot)).toEqual(["custom-agent-99"]);
     });
 

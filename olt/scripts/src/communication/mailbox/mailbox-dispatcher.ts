@@ -24,20 +24,41 @@ export interface CollectReceiptsOptions {
 }
 
 function requireNonEmpty(val: unknown, name: string): string {
-  if (typeof val !== "string" || val.trim().length === 0) {
+  if (typeof val !== "string") {
+    throw new HarnessError("INVALID_ARGUMENT", `${name} must be a non-empty string`);
+  }
+  if (val.trim().length === 0) {
     throw new HarnessError("INVALID_ARGUMENT", `${name} must be a non-empty string`);
   }
   return val.trim();
 }
 
 function validatePathSafety(target: string): void {
-  if (
-    target === "." ||
-    target.includes("..") ||
-    target.includes("/") ||
-    target.includes("\\") ||
-    target.includes("\0")
-  ) {
+  if (target === ".") {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      `Invalid recipient role or ID '${target}': cannot contain path separators or traversal elements`,
+    );
+  }
+  if (target.includes("..")) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      `Invalid recipient role or ID '${target}': cannot contain path separators or traversal elements`,
+    );
+  }
+  if (target.includes("/")) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      `Invalid recipient role or ID '${target}': cannot contain path separators or traversal elements`,
+    );
+  }
+  if (target.includes("\\")) {
+    throw new HarnessError(
+      "PATH_SAFETY",
+      `Invalid recipient role or ID '${target}': cannot contain path separators or traversal elements`,
+    );
+  }
+  if (target.includes("\0")) {
     throw new HarnessError(
       "PATH_SAFETY",
       `Invalid recipient role or ID '${target}': cannot contain path separators or traversal elements`,
@@ -48,24 +69,31 @@ function validatePathSafety(target: string): void {
 function matchesRoleSubstring(agentId: string, role: string): boolean {
   const idLower = agentId.toLowerCase();
   const roleLower = role.toLowerCase();
-  return (
-    idLower === roleLower ||
-    idLower.startsWith(`${roleLower}-`) ||
-    idLower.startsWith(`${roleLower}_`) ||
-    idLower.includes(roleLower)
-  );
+  if (idLower === roleLower) {
+    return true;
+  }
+  if (idLower.startsWith(`${roleLower}-`)) {
+    return true;
+  }
+  if (idLower.startsWith(`${roleLower}_`)) {
+    return true;
+  }
+  if (idLower.includes(roleLower)) {
+    return true;
+  }
+  return false;
 }
 
-/**
- * Discovers and resolves agent IDs from a logical role name or direct agent ID.
- */
 export function resolveRecipientAgentIds(roleOrId: string, baseDir?: string): readonly string[] {
   const target = requireNonEmpty(roleOrId, "recipient role or ID");
   validatePathSafety(target);
 
-  const root = resolve(baseDir ?? process.cwd());
+  const effectiveBase = baseDir !== undefined ? baseDir : process.cwd();
+  const root = resolve(effectiveBase);
   const mailboxesDir = join(root, ".olt", "mailboxes");
-  const locksDir = join(mailboxesDir, ".locks");
+  const mailboxLocksDir = join(root, ".olt", "locks", "mailboxes");
+  const generalLocksDir = join(root, ".olt", "locks");
+  const legacyLocksDir = join(mailboxesDir, ".locks");
   const discoveredIds = new Set<string>();
 
   if (existsSync(mailboxesDir)) {
@@ -82,18 +110,23 @@ export function resolveRecipientAgentIds(roleOrId: string, baseDir?: string): re
     }
   }
 
-  if (existsSync(locksDir)) {
-    try {
-      const lockEntries = readdirSync(locksDir, { withFileTypes: true });
-      for (const entry of lockEntries) {
-        if (entry.isFile() && entry.name.endsWith(".lock") && !entry.name.startsWith(".")) {
-          const id = entry.name.slice(0, -5);
-          if (id.length > 0) discoveredIds.add(id);
+  const lockDirsToCheck = [mailboxLocksDir, generalLocksDir, legacyLocksDir];
+  for (const lockDir of lockDirsToCheck) {
+    if (existsSync(lockDir)) {
+      try {
+        const lockEntries = readdirSync(lockDir, { withFileTypes: true });
+        for (const entry of lockEntries) {
+          if (entry.isFile() && entry.name.endsWith(".lock") && !entry.name.startsWith(".")) {
+            const id = entry.name.slice(0, -5);
+            if (id.length > 0) {
+              discoveredIds.add(id);
+            }
+          }
         }
+      } catch (err) {
+        if (err instanceof HarnessError) throw err;
+        throw new HarnessError("INTEGRITY", `Failed to read lock directory: ${String(err)}`);
       }
-    } catch (err) {
-      if (err instanceof HarnessError) throw err;
-      throw new HarnessError("INTEGRITY", `Failed to read lock directory: ${String(err)}`);
     }
   }
 
@@ -112,13 +145,13 @@ export function resolveRecipientAgentIds(roleOrId: string, baseDir?: string): re
   return Object.freeze([target]);
 }
 
-/**
- * Formats, signs, and dispatches a peer message into the recipient inbox and sender outbox.
- */
 export function dispatchPeerMessage<T = Record<string, unknown>>(
   options: DispatchMessageOptions<T>,
 ): MailboxEnvelope<T> {
-  if (!options || typeof options !== "object") {
+  if (!options) {
+    throw new HarnessError("INVALID_ARGUMENT", "options must be an object");
+  }
+  if (typeof options !== "object") {
     throw new HarnessError("INVALID_ARGUMENT", "options must be an object");
   }
   const senderId = requireNonEmpty(options.senderId, "senderId");
@@ -130,7 +163,11 @@ export function dispatchPeerMessage<T = Record<string, unknown>>(
   if (resolved.length === 0) {
     throw new HarnessError("NOT_FOUND", `Recipient '${recipientRoleOrId}' not found`);
   }
-  const recipientId = resolved[0]!;
+  const firstRecipient = resolved[0];
+  if (firstRecipient === undefined) {
+    throw new HarnessError("NOT_FOUND", `Recipient '${recipientRoleOrId}' not found`);
+  }
+  const recipientId = firstRecipient;
 
   const envelopeOptions: CreateEnvelopeOptions<T> = {
     senderId,
@@ -163,13 +200,13 @@ export function dispatchPeerMessage<T = Record<string, unknown>>(
   return envelope;
 }
 
-/**
- * Dispatches wave notifications to multiple recipient agents.
- */
 export function broadcastWaveNotification<T = Record<string, unknown>>(
   options: BroadcastNotificationOptions<T>,
 ): readonly MailboxEnvelope<T>[] {
-  if (!options || typeof options !== "object") {
+  if (!options) {
+    throw new HarnessError("INVALID_ARGUMENT", "options must be an object");
+  }
+  if (typeof options !== "object") {
     throw new HarnessError("INVALID_ARGUMENT", "options must be an object");
   }
   const senderId = requireNonEmpty(options.senderId, "senderId");
@@ -183,7 +220,9 @@ export function broadcastWaveNotification<T = Record<string, unknown>>(
   for (const entry of options.recipientIds) {
     const resolved = resolveRecipientAgentIds(entry, options.baseDir);
     for (const id of resolved) {
-      if (!targetIds.includes(id)) targetIds.push(id);
+      if (!targetIds.includes(id)) {
+        targetIds.push(id);
+      }
     }
   }
 
@@ -206,9 +245,6 @@ export function broadcastWaveNotification<T = Record<string, unknown>>(
   return Object.freeze(results);
 }
 
-/**
- * Collects unread receipts from agent inbox with optional correlationId/type filtering and cursor advancement.
- */
 export function collectInboxReceipts(
   agentId: string,
   options?: CollectReceiptsOptions,
@@ -234,7 +270,7 @@ export function collectInboxReceipts(
     receipts = receipts.filter((msg) => msg.message_type === msgType);
   }
 
-  if (options?.advanceCursor && receipts.length > 0) {
+  if (options?.advanceCursor === true && receipts.length > 0) {
     advanceMailboxCursorBatch(paths.cursorPath, receipts, cursor, paths.lockPath);
   }
 

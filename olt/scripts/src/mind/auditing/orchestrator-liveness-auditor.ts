@@ -113,9 +113,7 @@ export function auditOrchestratorLiveness(
       if (pidAlive && options?.killFn) {
         try {
           options.killFn(record.pid, "SIGTERM");
-        } catch {
-          // Non-fatal error during process termination
-        }
+        } catch {}
       }
       const deregistered = deregisterOrchestrator(
         record.orchestrator_id,

@@ -1,4 +1,9 @@
 export { initRun, type InitRunOptions } from "./capsule/capsule.ts";
+export {
+  initCapsuleRun,
+  ensureCapsuleInitialized,
+  type InitCapsuleRunOptions,
+} from "./capsule/init.ts";
 export { loadRun, loadRunProjection } from "./capsule/load.ts";
 export { recoverProjection } from "./recovery/recovery.ts";
 export { transact, transactIdempotent } from "./events/transaction.ts";

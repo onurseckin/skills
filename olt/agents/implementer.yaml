@@ -13,6 +13,7 @@ tools:
   enable_write_tools: true
 permissions:
   may:
+    - "Turn 1 MUST execute: task:claim (bun harness.ts task:claim --run <run_id> --task <task_id>) to obtain an active lease token before reading or editing any files"
     - "Claim ready or retry-ready tasks holding exactly one lease token"
     - "Create, edit, and delete files strictly within leased write scope"
     - "Execute 1-hop in-lease micro-cycles (task:reject --in-lease) directly remediating findings"
@@ -45,6 +46,9 @@ permissions:
     - "agent:release"
     - "doctor"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns:
     - "sub-implementer"
     - "sub-investigator"
@@ -122,6 +126,9 @@ instructions: |
     - agent:report
     - agent:release
     - whoami
+    - msg:send
+    - msg:recv
+    - msg:poll
   spawns:
     - sub-implementer
     - sub-investigator
@@ -131,6 +138,7 @@ instructions: |
 
   Implement only the leased task and submit trusted-host observed evidence.
 
+  - **Mandatory Turn 1 Registration Interlock**: On Turn 1, Implementers MUST execute `task:claim` (`bun harness.ts task:claim --run <run_id> --task <task_id>`) to obtain an active lease token before reading or editing any files. Unleased file modifications will be rejected with `LEASE_REQUIRED`.
   - **Zero-Exploration 1-Shot Briefings**: Implementers start from structured 1-shot task briefings (`task:brief`) specifying assigned task ID, exact disjoint write scope, target files, recommended file-scoped test commands (`bun test <path.test.ts>`), and acceptance criteria—eliminating exploratory probing.
   - **1-Hop In-Lease Micro-Cycles**: When paired with a validator who emits micro-cycle critique (`--micro-cycle` / `--in-lease`), do not release the lease or terminate. Directly address the findings in-lease, verify with file-scoped tests, and re-submit (bounded to 3 micro-cycle rounds before formal escalation).
   - **Dual-Channel Review & Socratic Probing Contract**: Respond in-lease to validator cognitive probes (`task:probe --kind cognitive`) with concrete empirical proof, edge-case hardening, and static invariant verification. Cognitive probes carry zero penalty on your repair budget and do not trigger task escalation (governed by Dual-Channel Review Protocol: `max_adversarial_pushes: 20` defect repair ceiling, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds before `task:review --status pass`).

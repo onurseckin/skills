@@ -8,13 +8,16 @@ import {
   renameSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, extname, isAbsolute, join, resolve } from "node:path";
 import { releaseFlock, tryExclusiveFlock } from "../../platform/fs/flock-ffi.ts";
 import type { RawBacklogItem, RawDefectItem, ThematicCluster } from "./types.ts";
 
 function withFileFlock<T>(targetFilePath: string, fn: () => T, timeoutMs = 5000): T {
-  const flockPath = `${targetFilePath}.flock`;
-  mkdirSync(dirname(flockPath), { recursive: true });
+  const dir = dirname(targetFilePath);
+  const base = basename(targetFilePath, extname(targetFilePath));
+  const locksDir = basename(dir) === ".olt" ? join(dir, "locks") : join(dir, ".olt", "locks");
+  const flockPath = join(locksDir, `${base}.flock`);
+  mkdirSync(locksDir, { recursive: true });
   let fd: number | undefined;
   let locked = false;
   try {

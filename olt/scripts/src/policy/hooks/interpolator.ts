@@ -1,17 +1,32 @@
-export interface HookInterpolationContext {
+export interface HookVariableContext {
+  readonly phase_name?: string | undefined;
   readonly phaseName?: string | undefined;
+  readonly commit_sha?: string | undefined;
   readonly commitSha?: string | undefined;
+  readonly duration_formatted?: string | undefined;
   readonly durationFormatted?: string | undefined;
-  readonly durationMs?: number | undefined;
-  readonly taskCount?: number | undefined;
+  readonly duration_ms?: number | string | undefined;
+  readonly durationMs?: number | string | undefined;
+  readonly task_count?: number | string | undefined;
+  readonly taskCount?: number | string | undefined;
+  readonly repo_root?: string | undefined;
   readonly repoRoot?: string | undefined;
+  readonly error_message?: string | undefined;
+  readonly errorMessage?: string | undefined;
+  readonly task_id?: string | undefined;
+  readonly taskId?: string | undefined;
   readonly status?: string | undefined;
   readonly [key: string]: unknown;
 }
 
+export type HookInterpolationContext = HookVariableContext;
+
 export function formatDuration(durationMs: number): string {
   if (!Number.isFinite(durationMs) || durationMs <= 0) {
     return "0s";
+  }
+  if (durationMs < 1000) {
+    return `${durationMs}ms`;
   }
   const totalSeconds = Math.floor(durationMs / 1000);
   if (totalSeconds < 60) {
@@ -26,41 +41,35 @@ export function formatDuration(durationMs: number): string {
   return `${minutes}m ${seconds}s`;
 }
 
-export function interpolateHookCommand(
-  template: string,
-  context: HookInterpolationContext,
-): string {
-  const phaseName =
-    context.phaseName ?? (typeof context["phase_name"] === "string" ? context["phase_name"] : "");
+export const formatHookDuration = formatDuration;
 
-  const commitSha =
-    context.commitSha ?? (typeof context["commit_sha"] === "string" ? context["commit_sha"] : "");
+function str(val: unknown): string {
+  return typeof val === "string" ? val : "";
+}
 
-  const durationMsVal =
-    context.durationMs ??
-    (typeof context["duration_ms"] === "number" ? context["duration_ms"] : undefined);
-
+export function interpolateHookCommand(template: string, context: HookVariableContext): string {
+  const phaseName = str(context.phase_name ?? context.phaseName);
+  const commitSha = str(context.commit_sha ?? context.commitSha);
+  const rawMs = context.duration_ms ?? context.durationMs;
+  const numMs =
+    typeof rawMs === "number"
+      ? rawMs
+      : typeof rawMs === "string" && !Number.isNaN(Number(rawMs)) && rawMs.trim() !== ""
+        ? Number(rawMs)
+        : undefined;
   const durationFormatted =
-    context.durationFormatted ??
-    (typeof context["duration_formatted"] === "string"
-      ? context["duration_formatted"]
-      : durationMsVal !== undefined
-        ? formatDuration(durationMsVal)
-        : "0s");
-
-  const durationMs = durationMsVal !== undefined ? String(durationMsVal) : "0";
-
-  const taskCountVal =
-    context.taskCount ??
-    (typeof context["task_count"] === "number" ? context["task_count"] : undefined);
-
-  const taskCount = taskCountVal !== undefined ? String(taskCountVal) : "0";
-
-  const repoRoot =
-    context.repoRoot ?? (typeof context["repo_root"] === "string" ? context["repo_root"] : "");
-
-  const status =
-    context.status ?? (typeof context["status"] === "string" ? context["status"] : "SUCCESS");
+    str(context.duration_formatted ?? context.durationFormatted) ||
+    (numMs !== undefined ? formatDuration(numMs) : "0s");
+  const durationMs = numMs !== undefined ? String(numMs) : "0";
+  const rawCount = context.task_count ?? context.taskCount;
+  const taskCount =
+    typeof rawCount === "number" || (typeof rawCount === "string" && rawCount.trim() !== "")
+      ? String(rawCount)
+      : "0";
+  const repoRoot = str(context.repo_root ?? context.repoRoot);
+  const errorMessage = str(context.error_message ?? context.errorMessage);
+  const taskId = str(context.task_id ?? context.taskId);
+  const status = str(context.status) || "SUCCESS";
 
   const replacements: Record<string, string> = {
     "{phase_name}": phaseName,
@@ -75,12 +84,23 @@ export function interpolateHookCommand(
     "{taskCount}": taskCount,
     "{repo_root}": repoRoot,
     "{repoRoot}": repoRoot,
+    "{error_message}": errorMessage,
+    "{errorMessage}": errorMessage,
+    "{task_id}": taskId,
+    "{taskId}": taskId,
     "{status}": status,
   };
 
   let result = template;
-  for (const [placeholder, value] of Object.entries(replacements)) {
-    result = result.replaceAll(placeholder, value);
+  for (const [token, value] of Object.entries(replacements)) {
+    result = result.replaceAll(token, value);
+  }
+  for (const [key, value] of Object.entries(context)) {
+    if (value !== undefined && value !== null && typeof value !== "object") {
+      result = result.replaceAll(`{${key}}`, String(value));
+    }
   }
   return result;
 }
+
+export const interpolateLifecycleHookCommand = interpolateHookCommand;

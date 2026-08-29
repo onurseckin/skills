@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
+  DEFAULT_ORCHESTRATOR_LOCK_FILE,
   deregisterOrchestrator,
   loadOrchestratorLedger,
   registerOrchestratorSpawn,
@@ -313,6 +314,10 @@ describe("Orchestrator Epistemic Lifecycle Ledger", () => {
       const corruptPath = join(tempDir, "corrupt.jsonl");
       writeFileSync(corruptPath, "{not-json}\n", "utf8");
       expect(() => loadOrchestratorLedger(corruptPath)).toThrow(/invalid JSON/);
+    });
+
+    test("DEFAULT_ORCHESTRATOR_LOCK_FILE points to .olt/locks/orchestrators.lock", () => {
+      expect(DEFAULT_ORCHESTRATOR_LOCK_FILE).toBe(".olt/locks/orchestrators.lock");
     });
   });
 });

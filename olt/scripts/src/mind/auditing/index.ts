@@ -192,6 +192,7 @@ export {
 
 export {
   auditMindPreplanningStagnation,
+  auditMindPreplanningLiveness,
   MIND_PREPLANNING_STAGNATION,
   DEFAULT_STAGNATION_THRESHOLD_SECONDS,
   type StagnationAuditOptions,

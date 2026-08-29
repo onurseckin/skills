@@ -50,9 +50,7 @@ describe("Mailbox Stream IO & Paths Engine", () => {
       expect(paths.quarantinePath).toBe(
         join(testRoot, ".olt", "mailboxes", "agent-alpha", "quarantine.log"),
       );
-      expect(paths.lockPath).toBe(
-        join(testRoot, ".olt", "mailboxes", ".locks", "agent-alpha.lock"),
-      );
+      expect(paths.lockPath).toBe(join(testRoot, ".olt", "locks", "mailboxes", "agent-alpha.lock"));
     });
 
     it("rejects invalid agent IDs and directory traversal attempts", () => {
@@ -70,7 +68,7 @@ describe("Mailbox Stream IO & Paths Engine", () => {
       expect(existsSync(paths.agentMailboxDir)).toBe(false);
       ensureMailboxDirectories(paths);
       expect(existsSync(paths.agentMailboxDir)).toBe(true);
-      expect(existsSync(join(testRoot, ".olt", "mailboxes", ".locks"))).toBe(true);
+      expect(existsSync(join(testRoot, ".olt", "locks", "mailboxes"))).toBe(true);
       expect(() => ensureMailboxDirectories({} as unknown as typeof paths)).toThrow(HarnessError);
       expect(() =>
         ensureMailboxDirectories({ agentMailboxDir: "", lockPath: "" } as unknown as typeof paths),

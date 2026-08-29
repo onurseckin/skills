@@ -15,9 +15,9 @@ import {
   type GateProofRecord,
 } from "../../../olt/scripts/src/graph/gate-proof.ts";
 import {
-  inspectFacadeViolation,
-  inspectFileCommentsViolation,
-} from "../../../olt/scripts/src/validation/defect-modularity-facade-and-zero-comments-violation.ts";
+  validateFacadeExports,
+  validateZeroCommentsInCode,
+} from "../../../olt/scripts/src/validation/coding-conventions.ts";
 import {
   at,
   registerCommand,
@@ -121,11 +121,11 @@ describe("workflow/review/index.ts: recordReviewVerdict deduplication & canonica
 
     expect(lines.length).toBeLessThanOrEqual(300);
 
-    const commentViolations = inspectFileCommentsViolation(indexPath, content);
-    expect(commentViolations).toHaveLength(0);
+    const commentResult = validateZeroCommentsInCode(content, indexPath);
+    expect(commentResult.violations).toHaveLength(0);
 
-    const facadeViolations = inspectFacadeViolation(indexPath, content);
-    expect(facadeViolations).toHaveLength(0);
+    const facadeResult = validateFacadeExports(content, indexPath);
+    expect(facadeResult.violations).toHaveLength(0);
 
     const matches = content.match(/\brecordReviewVerdict\b/g);
     expect(matches).not.toBeNull();

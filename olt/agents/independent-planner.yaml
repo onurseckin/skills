@@ -23,7 +23,10 @@ permissions:
     - "Generate CLI commands, flags, or shell scripts"
     - "Interact with OLT execution harnesses or capsules"
     - "Invoke any OLT harness CLI command: this is a deliberate zero-command grant, not an unfinished one — pure-English conceptual blueprinting under COMPLETE_HARNESS_DECOUPLING never touches the harness CLI, which is a different reason than a cognitive validator's execution hard-lock"
-  commands: []
+  commands:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns: []
 invariants:
   - "PURE_ENGLISH_CONCEPTUAL_STANDARD"

@@ -96,11 +96,11 @@ export {
 export { includeRuntimeSourceEntry } from "./runtime-filter.ts";
 export { type RuntimeSnapshot, runtimeTreeSnapshot, copyPinnedRuntime } from "./runtime-tree.ts";
 export {
-  assertZeroTypescriptAny,
-  scanSourceCodeForTypescriptAny,
-  scanFileForTypescriptAny,
-  scanDirectoryForTypescriptAny,
-  collectTypescriptFiles,
+  assertZeroAny,
+  scanSourceCodeForAny,
+  scanFileForAny,
+  scanDirectoryForAny,
+  collectTsFiles,
   isTypeSafetyViolation,
   isTypeSafetyScanResult,
   type TypeSafetyViolation,

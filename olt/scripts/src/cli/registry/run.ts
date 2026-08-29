@@ -1,4 +1,5 @@
 import { runCompleteCommand, runExecCommand, runStatusCommand } from "../commands/run-ops.ts";
+import { runInitCommand } from "../commands/run-init.ts";
 import { CATEGORY_FLAG_HELP } from "../taxonomy-flags.ts";
 import {
   DEFAULT_EXIT_CODES,
@@ -14,6 +15,32 @@ const EXEC_EXIT_CODES: readonly ExitCodeSpec[] = [
 ];
 
 export const RUN_COMMANDS: readonly CommandSpec[] = [
+  {
+    name: "run:init",
+    aliases: [],
+    domain: "run",
+    summary: "Initialize a capsule run root and write its initial manifest.",
+    description:
+      "Deterministic auto-initialization ensuring .olt/capsules/<run_id>/ exists on disk before any subagent work.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root or run ID."),
+      optionalFlag("run-id", "string", "Alias of --run."),
+      optionalFlag("repo", "string", "Repository root.", "."),
+      optionalFlag("prompt", "string", "Prompt string for run initialization."),
+      optionalFlag("mode", "string", "Capsule mode (feature, bugfix, investigation, etc.)."),
+      optionalFlag("actor", "string", "Agent or actor initializing the run."),
+      optionalFlag("capture-mode", "string", "Capture mode (file, stdin, argv)."),
+      optionalFlag("source-verified", "bool", "Whether source is verified."),
+      optionalFlag("no-runtime-pin", "bool", "Do not pin runtime code."),
+      optionalFlag("runtime-source", "string", "Runtime source directory to pin."),
+      optionalFlag("allow-existing", "bool", "Allow initializing an already existing run.", true),
+    ],
+    readsStdin: true,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts run:init --run <run-id>", "bun harness.ts init --run <run-id>"],
+    handler: runInitCommand,
+  },
   {
     name: "run:exec",
     aliases: [],

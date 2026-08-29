@@ -62,26 +62,20 @@ export function parseNowMs(nowInput?: number | Date | string): number {
   return Date.now();
 }
 
-/**
- * Computes dynamic topological concurrency governed by Work/Span math:
- * P = W / S (where W = total work, S = critical path span).
- * In an infinite borderless mind, concurrency scales dynamically with topological parallelism.
- */
 export function computeTopologicalConcurrency(
   totalWork: number,
   span: number,
-  minConcurrency: number = 1,
+  minConcurrency: number = 5,
+  maxConcurrency: number = 50,
 ): number {
   if (!Number.isFinite(totalWork) || totalWork <= 0) return minConcurrency;
-  if (!Number.isFinite(span) || span <= 0) return Math.max(minConcurrency, Math.ceil(totalWork));
+  if (!Number.isFinite(span) || span <= 0) {
+    return Math.min(maxConcurrency, Math.max(minConcurrency, Math.ceil(totalWork)));
+  }
   const p = Math.ceil(totalWork / span);
-  return Math.max(minConcurrency, p);
+  return Math.min(maxConcurrency, Math.max(minConcurrency, p));
 }
 
-/**
- * Rolls the budget day_key when it differs from current UTC day,
- * resetting pulses_today and wall_clock_ms_today.
- */
 export function rollDayKeyIfNeeded(
   budget: Record<string, unknown>,
   nowInput?: number | Date | string,
@@ -99,10 +93,6 @@ export function rollDayKeyIfNeeded(
   return { rolled: false, dayKey: todayKey };
 }
 
-/**
- * Checks whether the given time falls within configured quiet hours.
- * Expected format: "HH:MM-HH:MM" (e.g. "23:00-05:00" or "01:00-06:00" in UTC).
- */
 export function checkQuietHours(
   quietHours: string | null | undefined,
   nowInput?: number | Date | string,
@@ -152,17 +142,12 @@ export function checkQuietHours(
   if (startMinutes <= endMinutes) {
     inQuietHours = nowMinutes >= startMinutes && nowMinutes <= endMinutes;
   } else {
-    // Spans across midnight, e.g. 23:00 to 05:00
     inQuietHours = nowMinutes >= startMinutes || nowMinutes <= endMinutes;
   }
 
   return { inQuietHours, quietHours: trimmed };
 }
 
-/**
- * Validates quiet hours constraint in budget.
- * Hard refusal with outcome: 'deferred'.
- */
 export function checkQuietHoursBudget(
   budget: Record<string, unknown>,
   nowInput?: number | Date | string,
@@ -185,10 +170,6 @@ export function checkQuietHoursBudget(
   return { ok: true };
 }
 
-/**
- * Validates daily pulse limit against budget.
- * In an infinite borderless mind, infinite cadence is supported without artificial refusal halts.
- */
 export function checkDailyPulseLimit(
   budget: Record<string, unknown>,
   nowInput?: number | Date | string,
@@ -218,10 +199,6 @@ export function checkDailyPulseLimit(
   return { ok: true };
 }
 
-/**
- * Validates daily wall clock limit against budget.
- * In an infinite borderless mind, infinite cadence is supported without artificial refusal halts.
- */
 export function checkDailyWallClockLimit(
   budget: Record<string, unknown>,
   nowInput?: number | Date | string,

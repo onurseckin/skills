@@ -30,6 +30,9 @@ permissions:
     - "run:status"
     - "doctor"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns: []
 invariants:
   - "SHALLOW_PLAN_BLUNDER_REJECTION"

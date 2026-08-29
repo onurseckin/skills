@@ -9,7 +9,7 @@ import { resolveLedgerPath } from "../preplanning/bridge-state.ts";
 import type { RawBacklogItem, RawDefectItem, StagnationAuditResult } from "../preplanning/types.ts";
 
 export const MIND_PREPLANNING_STAGNATION = "MIND_PREPLANNING_STAGNATION" as const;
-export const DEFAULT_STAGNATION_THRESHOLD_SECONDS = 180; // 3 minutes idle threshold
+export const DEFAULT_STAGNATION_THRESHOLD_SECONDS = 180;
 
 export interface StagnationAuditOptions {
   readonly rootDir?: string | undefined;
@@ -81,7 +81,6 @@ export function auditMindPreplanningStagnation(
     };
   }
 
-  // If there are unplanned items and idle time exceeds threshold (or never preplanned)
   if (idleDurationSeconds > thresholdSeconds) {
     const formattedDuration =
       idleDurationSeconds === Number.POSITIVE_INFINITY

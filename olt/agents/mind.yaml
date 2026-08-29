@@ -151,6 +151,9 @@ permissions:
     - "quota:resume"
     - "doctor"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns:
     - "orchestrator"
 invariants:

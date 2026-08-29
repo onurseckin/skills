@@ -43,7 +43,8 @@ export type CommandDomain =
   | "capture"
   | "mind"
   | "doctor"
-  | "policy";
+  | "policy"
+  | "msg";
 
 export type CommandHandler = (
   flags: Flags,
@@ -82,7 +83,13 @@ export interface CommandSpec {
 export function isInternalCommand(spec: CommandSpec): boolean {
   if (spec.internal !== undefined) return spec.internal;
   if (spec.tier !== undefined) return spec.tier === "internal";
-  if (spec.domain === "doctor" || spec.name === "doctor" || spec.name.startsWith("doctor:")) {
+  if (spec.domain === "doctor") {
+    return false;
+  }
+  if (spec.name === "doctor") {
+    return false;
+  }
+  if (spec.name.startsWith("doctor:")) {
     return false;
   }
   const isPrimary = (PRIMARY_VERBS as readonly string[]).includes(spec.domain);

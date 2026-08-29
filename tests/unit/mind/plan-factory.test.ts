@@ -67,12 +67,8 @@ describe("Mind Continuous Pre-Planning: Plan Factory & Bridge State (Task 1.2)",
     expect(md).toContain("Defect Remediation: Mind pulse stagnation defect");
     expect(md).toContain("## 4. Sequential Execution Order & Critical Path");
     expect(md).toContain("## 5. Exhaustive Traceability Matrix");
-    expect(md).toContain(
-      "| `fb-mind-engine-1` | Task 1.x | `tests/unit/mind/fb-mind-engine-1.test.ts` |",
-    );
-    expect(md).toContain(
-      "| `def-mind-pulse-1` | Task 1.x | `tests/unit/mind/def-mind-pulse-1.test.ts` |",
-    );
+    expect(md).toContain("| `fb-mind-engine-1` | Task 1.x | `tests/unit/mind/` |");
+    expect(md).toContain("| `def-mind-pulse-1` | Task 1.x | `tests/unit/mind/` |");
   });
 
   it("writes plan file to disk correctly", () => {
@@ -97,7 +93,6 @@ describe("Mind Continuous Pre-Planning: Plan Factory & Bridge State (Task 1.2)",
       const backlogFile = join(oltDir, "backlog.jsonl");
       const defectsFile = join(oltDir, "defects.jsonl");
 
-      // Write initial state
       writeFileSync(
         backlogFile,
         JSON.stringify({ id: "fb-mind-engine-1", title: "Task 1", status: "PENDING" }) +
@@ -123,7 +118,6 @@ describe("Mind Continuous Pre-Planning: Plan Factory & Bridge State (Task 1.2)",
       expect(updateResult.itemsUpdated).toBe(1);
       expect(updateResult.defectsUpdated).toBe(1);
 
-      // Verify updated backlog file
       const updatedBacklogLines = readFileSync(backlogFile, "utf-8")
         .trim()
         .split("\n")
@@ -134,11 +128,9 @@ describe("Mind Continuous Pre-Planning: Plan Factory & Bridge State (Task 1.2)",
       expect(updatedBacklogLines[0].plan_path).toBe(sampleCluster.plan_path);
       expect(updatedBacklogLines[0].planned_at).toBe(sampleCluster.planned_at);
 
-      // Untouched item should retain original status
       expect(updatedBacklogLines[1].id).toBe("other-task");
       expect(updatedBacklogLines[1].status).toBe("PENDING");
 
-      // Verify updated defects file
       const updatedDefectLines = readFileSync(defectsFile, "utf-8")
         .trim()
         .split("\n")
@@ -149,7 +141,6 @@ describe("Mind Continuous Pre-Planning: Plan Factory & Bridge State (Task 1.2)",
       expect(updatedDefectLines[0].plan_path).toBe(sampleCluster.plan_path);
       expect(updatedDefectLines[0].planned_at).toBe(sampleCluster.planned_at);
 
-      // Untouched defect should retain original status
       expect(updatedDefectLines[1].id).toBe("other-def");
       expect(updatedDefectLines[1].status).toBe("OPEN");
     } finally {

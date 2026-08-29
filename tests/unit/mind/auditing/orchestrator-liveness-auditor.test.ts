@@ -73,7 +73,6 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
         customLedgerPath: ledgerPath,
         customLockPath: lockPath,
       });
-
       expect(reclaimed).toBe(true);
       const ledger = loadOrchestratorLedger(ledgerPath);
       expect(ledger[0]?.status).toBe("ZOMBIE_RECLAIMED");
@@ -94,17 +93,14 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
         ledgerPath,
         lockPath,
       );
-
       const report = auditOrchestratorLiveness({
         customLedgerPath: ledgerPath,
         customLockPath: lockPath,
         isPidAliveFn: (pid) => pid !== 99999,
         now: "2026-08-29T12:00:00.000Z",
       });
-
       expect(report.zombies_reclaimed).toEqual(["orch-dead"]);
       expect(report.total_active_orchestrators).toBe(0);
-
       const ledger = loadOrchestratorLedger(ledgerPath);
       expect(ledger[0]?.status).toBe("ZOMBIE_RECLAIMED");
     });
@@ -115,11 +111,8 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
         ledgerPath,
         lockPath,
       );
-
-      // Advance time by 301 seconds past creation
       const baseTime = Date.now();
       const futureTime = new Date(baseTime + 301 * 1000);
-
       const report = auditOrchestratorLiveness({
         customLedgerPath: ledgerPath,
         customLockPath: lockPath,
@@ -127,10 +120,8 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
         heartbeatThresholdSeconds: 300,
         now: futureTime,
       });
-
       expect(report.zombies_reclaimed).toEqual(["orch-stale"]);
       expect(report.total_active_orchestrators).toBe(0);
-
       const ledger = loadOrchestratorLedger(ledgerPath);
       expect(ledger[0]?.status).toBe("ZOMBIE_RECLAIMED");
     });
@@ -141,7 +132,6 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
         ledgerPath,
         lockPath,
       );
-
       const report = auditOrchestratorLiveness({
         customLedgerPath: ledgerPath,
         customLockPath: lockPath,
@@ -149,10 +139,8 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
         heartbeatThresholdSeconds: 300,
         now: new Date(),
       });
-
       expect(report.zombies_reclaimed).toEqual([]);
       expect(report.total_active_orchestrators).toBe(1);
-
       const ledger = loadOrchestratorLedger(ledgerPath);
       expect(ledger[0]?.status).toBe("ACTIVE");
     });
@@ -181,19 +169,15 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
       );
 
       const now = new Date(Date.now() + 500 * 1000);
-
       const report = auditOrchestratorLiveness({
         customLedgerPath: ledgerPath,
         customLockPath: lockPath,
-        isPidAliveFn: (pid) => pid !== 102, // 102 dead, 101 & 103 alive
+        isPidAliveFn: (pid) => pid !== 102,
         killFn,
         heartbeatThresholdSeconds: 300,
         now,
       });
 
-      // 101 is alive but heartbeat is stale (>500s) -> zombie
-      // 102 is dead pid -> zombie
-      // 103 is alive but heartbeat is stale (>500s) -> zombie
       expect(report.zombies_reclaimed).toHaveLength(3);
       expect(report.total_active_orchestrators).toBe(0);
     });
@@ -210,17 +194,16 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
         lockPath,
       );
 
-      const now = new Date(); // within threshold
+      const now = new Date();
       const report = auditOrchestratorLiveness({
         customLedgerPath: ledgerPath,
         customLockPath: lockPath,
-        isPidAliveFn: (pid) => pid === 201, // 201 alive, 202 dead
+        isPidAliveFn: (pid) => pid === 201,
         now,
       });
 
       expect(report.zombies_reclaimed).toEqual(["orch-dead"]);
       expect(report.total_active_orchestrators).toBe(1);
-
       const ledger = loadOrchestratorLedger(ledgerPath);
       expect(ledger.find((r) => r.orchestrator_id === "orch-fresh")?.status).toBe("ACTIVE");
       expect(ledger.find((r) => r.orchestrator_id === "orch-dead")?.status).toBe(
@@ -283,7 +266,6 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
       const liveAgents: LiveSubagentInfo[] = [
         { subagent_id: "ghost-orch-99", role: "orchestrator", pid: 9001, status: "ACTIVE" },
       ];
-
       const report = auditOrchestratorLiveness({
         customLedgerPath: ledgerPath,
         customLockPath: lockPath,
@@ -302,7 +284,6 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
         customLedgerPath: ledgerPath,
         customLockPath: lockPath,
       });
-
       expect(report.total_active_orchestrators).toBe(0);
       expect(report.ghost_processes_found).toEqual([]);
       expect(report.zombies_reclaimed).toEqual([]);

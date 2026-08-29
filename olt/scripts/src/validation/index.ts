@@ -154,24 +154,6 @@ export {
 } from "./reporters/index.ts";
 
 export {
-  DEFAULT_POLICY_HOOKS,
-  evaluatePolicyHooksEngine,
-  executePolicyLifecycleHooks,
-  formatHookDuration,
-  interpolateLifecycleHookCommand,
-  validatePolicyHooksConfiguration,
-  type EvaluateHooksEngineOptions,
-  type HookExecutionRecord,
-  type HookSpawnRunner,
-  type HookVariableContext,
-  type LifecycleHooksExecutionResult,
-  type PolicyHooksConfig,
-  type PolicyHooksExecutionOptions,
-  type PolicyHooksValidationResult,
-  type PolicyLifecycleEvent,
-} from "./fb-1788021200000-policy-event-lifecycle-hooks-engine.ts";
-
-export {
   validateCapsuleDiskHygiene,
   validateDensityBudgets,
   validateFacadeExports,
@@ -192,32 +174,4 @@ export {
   type ShimValidationResult,
   type ShimViolation,
   type ZeroCommentsValidationResult,
-} from "./fb-1788021000000-strict-modularity-and-zero-comment-enforcement.ts";
-
-export {
-  CAPSULE_DISK_HYGIENE_INVARIANT,
-  DENSITY_BUDGET_INVARIANT,
-  EXPLICIT_FACADE_EXPORTS_INVARIANT,
-  MAX_FILES_PER_DIRECTORY,
-  MAX_LINES_PER_FILE,
-  MODULARITY_AND_ZERO_COMMENTS_VIOLATION,
-  ZERO_COMMENTS_INVARIANT,
-  assertNoModularityOrCommentsViolations,
-  auditModularityAndZeroCommentsDefects,
-  formatModularityViolationReport,
-  inspectCapsuleHygieneViolation,
-  inspectDensityViolation,
-  inspectFacadeViolation,
-  inspectFileCommentsViolation,
-  remediateCommentViolations,
-  type CapsuleDefectViolation,
-  type CommentDefectViolation,
-  type DefectAuditCapsuleInput,
-  type DefectAuditDirectoryInput,
-  type DefectAuditFileInput,
-  type DefectAuditOptions,
-  type DensityDefectViolation,
-  type FacadeDefectViolation,
-  type ModularityAuditResult,
-  type ViolationCategory,
-} from "./defect-modularity-facade-and-zero-comments-violation.ts";
+} from "./coding-conventions.ts";

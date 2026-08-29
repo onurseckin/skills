@@ -96,7 +96,7 @@ export {
   recoverCommand,
   repairProjectionCommand,
 } from "./diagnostics-ops.ts";
-export * from "./explain-data-path-integrity.ts";
+export { PATH_SAFETY_AND_INTEGRITY_ENTRIES } from "./explain-data-path-integrity.ts";
 export { PLATFORM_AND_LOCK_ENTRIES } from "./explain-data-platform.ts";
 export { INVALID_STATE_AND_ARGUMENT_ENTRIES } from "./explain-data-state-argument.ts";
 export type { ExplainExample, ExplainCause, ExplainEntry } from "./explain-data-types.ts";
@@ -226,6 +226,7 @@ export {
   runStatusCommand,
   runExecCommand,
 } from "./run-ops.ts";
+export { runInitCommand } from "./run-init.ts";
 export type { ScopeExpandResult } from "./scope-expand.ts";
 export { scopeExpandCommand } from "./scope-expand.ts";
 export type { ShellExecutionResult } from "./shell.ts";
@@ -356,3 +357,9 @@ export {
 } from "./policy-ops.ts";
 export { factoryPreplanCommand, factoryStatusCommand } from "./factory-ops.ts";
 export { notifyPhaseCommand, notifyTestCommand } from "./notify-ops.ts";
+export type { MsgSendResult } from "./msg-send.ts";
+export { msgSendCommand } from "./msg-send.ts";
+export type { MsgRecvResult } from "./msg-recv.ts";
+export { msgRecvCommand } from "./msg-recv.ts";
+export type { MsgPollResult } from "./msg-poll.ts";
+export { msgPollCommand } from "./msg-poll.ts";

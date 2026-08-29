@@ -36,9 +36,7 @@ afterEach(() => {
   for (const root of roots) {
     try {
       rmSync(root, { recursive: true, force: true });
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
   roots.length = 0;
 });
@@ -559,11 +557,9 @@ describe("mind/budget - strict refusal ladder and outcomes per CONTRACTS §1.3 a
       expect(checkQuietHours("none").inQuietHours).toBe(false);
       expect(checkQuietHours("").inQuietHours).toBe(false);
 
-      // Same-day window: 01:00-06:00
       expect(checkQuietHours("01:00-06:00", "2026-08-21T03:00:00Z").inQuietHours).toBe(true);
       expect(checkQuietHours("01:00-06:00", "2026-08-21T07:00:00Z").inQuietHours).toBe(false);
 
-      // Midnight-spanning window: 22:00-06:00
       expect(checkQuietHours("22:00-06:00", "2026-08-21T23:30:00Z").inQuietHours).toBe(true);
       expect(checkQuietHours("22:00-06:00", "2026-08-21T04:30:00Z").inQuietHours).toBe(true);
       expect(checkQuietHours("22:00-06:00", "2026-08-21T14:00:00Z").inQuietHours).toBe(false);
@@ -689,7 +685,6 @@ describe("mind/budget - strict refusal ladder and outcomes per CONTRACTS §1.3 a
         candidates: [candidateRecord],
       });
 
-      // Register an orchestrator agent to attempt round opening
       transact(run, "register-orch", "orch-registered", {}, (working) => {
         working.agents = [
           ...((working.agents as unknown[]) ?? []),
@@ -715,7 +710,7 @@ describe("mind/budget - strict refusal ladder and outcomes per CONTRACTS §1.3 a
           actor: "orch-1",
           objective: "obj-test",
           candidate: "cand-1",
-          round: "3", // exceeds max_rounds_per_objective of 2
+          round: "3",
         });
         expect(true).toBe(false);
       } catch (err) {
@@ -731,7 +726,7 @@ describe("mind/budget - strict refusal ladder and outcomes per CONTRACTS §1.3 a
     });
   });
 
-  describe("p17 & p23 - Infinite Borderless Mind & Dynamic Topological Concurrency ($P = W/S$)", () => {
+  describe("p17 & p23 - Infinite Borderless Mind & Dynamic Topological Concurrency ($P = W/S$) and Max 50 Agent Cap", () => {
     test("DEFAULT_MIND_BUDGET provides infinite borderless parameters without artificial caps", () => {
       expect(DEFAULT_MIND_BUDGET.infinite_cadence).toBe(true);
       expect(DEFAULT_MIND_BUDGET.cadence).toBe("infinite_borderless");
@@ -748,42 +743,82 @@ describe("mind/budget - strict refusal ladder and outcomes per CONTRACTS §1.3 a
       expect(DEFAULT_MIND_BUDGET.quiet_hours).toBeNull();
     });
 
-    test("computeTopologicalConcurrency accurately calculates P = ceil(W / S)", () => {
-      // Work = 10, Span = 2 -> P = 5
+    test("computeTopologicalConcurrency accurately calculates P = ceil(W / S) clamped into [5, 50]", () => {
       expect(computeTopologicalConcurrency(10, 2)).toBe(5);
-      // Work = 10, Span = 4 -> P = ceil(2.5) = 3
-      expect(computeTopologicalConcurrency(10, 4)).toBe(3);
-      // Work = 6, Span = 1 -> P = 6
+      expect(computeTopologicalConcurrency(10, 4)).toBe(5);
       expect(computeTopologicalConcurrency(6, 1)).toBe(6);
-      // Work = 6, Span = 6 (serial chain) -> P = 1
-      expect(computeTopologicalConcurrency(6, 6)).toBe(1);
-      // Edge cases
-      expect(computeTopologicalConcurrency(0, 0)).toBe(1);
-      expect(computeTopologicalConcurrency(-5, 2)).toBe(1);
+      expect(computeTopologicalConcurrency(6, 6)).toBe(5);
+      expect(computeTopologicalConcurrency(100, 1)).toBe(50);
+      expect(computeTopologicalConcurrency(200, 2)).toBe(50);
+      expect(computeTopologicalConcurrency(0, 0)).toBe(5);
+      expect(computeTopologicalConcurrency(-5, 2)).toBe(5);
       expect(computeTopologicalConcurrency(10, 0)).toBe(10);
+      expect(computeTopologicalConcurrency(100, 0)).toBe(50);
+      expect(computeTopologicalConcurrency(2, 0)).toBe(5);
     });
 
-    test("checkMaxAgentsInFlight evaluates dynamic topological Work/Span concurrency", () => {
+    test("checkMaxAgentsInFlight evaluates dynamic topological Work/Span concurrency clamped to [5, 50]", () => {
       const budget: Record<string, unknown> = {
         infinite_cadence: true,
       };
 
-      // When 4 agents active, and W=12, S=3 -> maxAgents = 4 -> passes
-      const passResult = checkMaxAgentsInFlight(budget, 3, { totalWork: 12, span: 3 });
+      const passResult = checkMaxAgentsInFlight(budget, 9, { totalWork: 30, span: 3 });
       expect(passResult.ok).toBe(true);
 
-      // When 5 agents active, and W=12, S=3 -> maxAgents = 4 -> refuses with capacity deferral
-      const refuseResult = checkMaxAgentsInFlight(budget, 5, { totalWork: 12, span: 3 });
+      const refuseResult = checkMaxAgentsInFlight(budget, 10, { totalWork: 30, span: 3 });
       expect(refuseResult.ok).toBe(false);
       if (!refuseResult.ok) {
         expect(refuseResult.key).toBe("max_agents_in_flight");
         expect(refuseResult.outcome).toBe("deferred");
-        expect(refuseResult.current).toBe(5);
-        expect(refuseResult.limit).toBe(4);
+        expect(refuseResult.repairArgv).toBe("agent:release");
+        expect(refuseResult.current).toBe(10);
+        expect(refuseResult.limit).toBe(10);
+      }
+
+      const minClampedRefuse = checkMaxAgentsInFlight(budget, 5, { totalWork: 10, span: 5 });
+      expect(minClampedRefuse.ok).toBe(false);
+      if (!minClampedRefuse.ok) {
+        expect(minClampedRefuse.current).toBe(5);
+        expect(minClampedRefuse.limit).toBe(5);
+      }
+
+      const maxClampedPass = checkMaxAgentsInFlight(budget, 49, { totalWork: 200, span: 1 });
+      expect(maxClampedPass.ok).toBe(true);
+
+      const maxClampedRefuse = checkMaxAgentsInFlight(budget, 50, { totalWork: 200, span: 1 });
+      expect(maxClampedRefuse.ok).toBe(false);
+      if (!maxClampedRefuse.ok) {
+        expect(maxClampedRefuse.current).toBe(50);
+        expect(maxClampedRefuse.limit).toBe(50);
       }
     });
 
-    test("budget checks pass unconditionally under default infinite budget", () => {
+    test("checkMaxAgentsInFlight defaults to 50 when unspecified and clamps budget limit to 50", () => {
+      const unspecifiedBudget: Record<string, unknown> = {};
+      expect(checkMaxAgentsInFlight(unspecifiedBudget, 49).ok).toBe(true);
+      const unspecifiedRefuse = checkMaxAgentsInFlight(unspecifiedBudget, 50);
+      expect(unspecifiedRefuse.ok).toBe(false);
+      if (!unspecifiedRefuse.ok) {
+        expect(unspecifiedRefuse.outcome).toBe("deferred");
+        expect(unspecifiedRefuse.repairArgv).toBe("agent:release");
+        expect(unspecifiedRefuse.current).toBe(50);
+        expect(unspecifiedRefuse.limit).toBe(50);
+      }
+
+      const nullBudget: Record<string, unknown> = { max_agents_in_flight: null };
+      expect(checkMaxAgentsInFlight(nullBudget, 49).ok).toBe(true);
+      expect(checkMaxAgentsInFlight(nullBudget, 50).ok).toBe(false);
+
+      const excessBudget: Record<string, unknown> = { max_agents_in_flight: 100 };
+      expect(checkMaxAgentsInFlight(excessBudget, 49).ok).toBe(true);
+      const excessRefuse = checkMaxAgentsInFlight(excessBudget, 50);
+      expect(excessRefuse.ok).toBe(false);
+      if (!excessRefuse.ok) {
+        expect(excessRefuse.limit).toBe(50);
+      }
+    });
+
+    test("budget checks pass with active agents under default 50-agent capacity and defer at capacity", () => {
       const defaultBudget = {
         ...DEFAULT_MIND_BUDGET,
         day_key: "2026-08-22",
@@ -793,16 +828,30 @@ describe("mind/budget - strict refusal ladder and outcomes per CONTRACTS §1.3 a
 
       expect(checkDailyPulseLimit(defaultBudget).ok).toBe(true);
       expect(checkDailyWallClockLimit(defaultBudget).ok).toBe(true);
-      expect(checkMaxAgentsInFlight(defaultBudget, 50).ok).toBe(true);
+      expect(checkMaxAgentsInFlight(defaultBudget, 40).ok).toBe(true);
       expect(checkRoundBudget(defaultBudget, 100, "obj-infinite").ok).toBe(true);
       expect(checkMaxOpenProposals(defaultBudget, 50).ok).toBe(true);
 
-      const ladderResult = evaluateBudgetRefusalLadder(defaultBudget, {
+      const ladderResultPass = evaluateBudgetRefusalLadder(defaultBudget, {
+        activeAgentsCount: 40,
+        roundIndex: 100,
+        openProposalsCount: 50,
+      });
+      expect(ladderResultPass.ok).toBe(true);
+
+      const ladderResultDefer = evaluateBudgetRefusalLadder(defaultBudget, {
         activeAgentsCount: 50,
         roundIndex: 100,
         openProposalsCount: 50,
       });
-      expect(ladderResult.ok).toBe(true);
+      expect(ladderResultDefer.ok).toBe(false);
+      if (!ladderResultDefer.ok) {
+        expect(ladderResultDefer.key).toBe("max_agents_in_flight");
+        expect(ladderResultDefer.outcome).toBe("deferred");
+        expect(ladderResultDefer.repairArgv).toBe("agent:release");
+        expect(ladderResultDefer.current).toBe(50);
+        expect(ladderResultDefer.limit).toBe(50);
+      }
     });
 
     test("parseCharter correctly parses infinite borderless cadence and topological Work/Span notation", () => {

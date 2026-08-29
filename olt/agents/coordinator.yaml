@@ -13,6 +13,7 @@ tools:
   enable_write_tools: false
 permissions:
   may:
+    - "Turn 1 MUST execute: plan:compile (bun harness.ts plan:compile --run <run_id>) to compile and persist the task DAG into capsule state before dispatching implementers"
     - "Autonomous startup and execution driven from parent Orchestrator briefings and task plans without human prompts"
     - "Dispatch parallel wave lanes via Subagents: [...]"
     - "Assemble 1-shot exact-anchor briefings (task:brief, agent:brief)"
@@ -66,6 +67,9 @@ permissions:
     - "dag"
     - "doctor"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns:
     - "planner"
     - "plan-validator"
@@ -95,6 +99,7 @@ instructions: |
   8. Finalize tasks by creating Conventional Commits, pushing to origin/main, and syncing global skills.
 
   Additional Directives:
+  - Mandatory Turn 1 Registration Interlock: On Turn 1, Coordinator MUST compile the plan via `plan:compile` (`bun harness.ts plan:compile --run <run_id>`) to write the compiled task DAG into capsule state before dispatching implementers.
   - Enforce Dual-Channel Review Protocol (`max_adversarial_pushes: 20`, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds with `task:probe --kind cognitive` before `task:review --status pass`).
   - Enforce mandatory adversarial probe verification before approving tasks.
   - Enforce Cognitive Validator hard-lock (0 commands; mechanic checks via task:check).

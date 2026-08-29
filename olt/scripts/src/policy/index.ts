@@ -100,8 +100,29 @@ export {
 } from "./rbac/index.ts";
 
 export type {
+  EvaluateHooksEngineOptions,
   ExecuteLifecycleHooksOptions,
+  HookExecutionRecord,
   HookInterpolationContext,
+  HookSpawnRunner,
+  HookVariableContext,
   LifecycleHookExecutionResult,
+  LifecycleHooksExecutionResult,
+  PolicyHooksConfig,
+  PolicyHooksExecutionOptions,
+  PolicyHooksValidationResult,
+  PolicyLifecycleEvent,
 } from "./hooks/index.ts";
-export { executeLifecycleHooks, formatDuration, interpolateHookCommand } from "./hooks/index.ts";
+export {
+  DEFAULT_POLICY_HOOKS,
+  evaluatePolicyHooksEngine,
+  executeHookCommand,
+  executeLifecycleHooks,
+  executePolicyLifecycleHooks,
+  formatDuration,
+  formatHookDuration,
+  interpolateHookCommand,
+  interpolateLifecycleHookCommand,
+  parseCommandLineArgs,
+  validatePolicyHooksConfiguration,
+} from "./hooks/index.ts";

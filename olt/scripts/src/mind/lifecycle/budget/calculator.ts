@@ -17,9 +17,6 @@ import {
   checkDailyWallClockLimit,
 } from "./types.ts";
 
-/**
- * Validates maximum active agents in flight against budget limit or topological Work/Span concurrency.
- */
 export function checkMaxAgentsInFlight(
   budget: Record<string, unknown>,
   activeAgentsCountOrState: number | Record<string, unknown>,
@@ -34,11 +31,11 @@ export function checkMaxAgentsInFlight(
 
   let maxAgents: number;
   if (typeof budget.max_agents_in_flight === "number") {
-    maxAgents = budget.max_agents_in_flight;
+    maxAgents = Math.min(Math.max(1, budget.max_agents_in_flight), 50);
   } else if (topologicalParams?.totalWork !== undefined && topologicalParams?.span !== undefined) {
     maxAgents = computeTopologicalConcurrency(topologicalParams.totalWork, topologicalParams.span);
   } else {
-    maxAgents = Infinity;
+    maxAgents = 50;
   }
 
   if (Number.isFinite(maxAgents) && activeCount >= maxAgents) {
@@ -56,10 +53,6 @@ export function checkMaxAgentsInFlight(
   return { ok: true };
 }
 
-/**
- * Validates round budget against max rounds per objective.
- * In an infinite borderless mind, infinite cadence is supported without artificial refusal halts.
- */
 export function checkRoundBudget(
   budget: Record<string, unknown>,
   roundIndex: number,
@@ -88,10 +81,6 @@ export function checkRoundBudget(
   return { ok: true };
 }
 
-/**
- * Validates open proposals count against max_open_proposals budget.
- * In an infinite borderless mind, infinite proposal capacity is supported without artificial refusal halts.
- */
 export function checkMaxOpenProposals(
   budget: Record<string, unknown>,
   openProposalsCount: number,
@@ -114,9 +103,6 @@ export function checkMaxOpenProposals(
   return { ok: true };
 }
 
-/**
- * Counts active agents in flight from a state object.
- */
 export function countActiveAgentsInFlight(state: Record<string, unknown>): number {
   const agents = (Array.isArray(state.agents) ? state.agents : []) as readonly Record<
     string,
@@ -136,17 +122,6 @@ export function countActiveAgentsInFlight(state: Record<string, unknown>): numbe
   }).length;
 }
 
-/**
- * Evaluates the full budget refusal ladder in deterministic order:
- * 1. Quiet Hours (refusal outcome: 'deferred')
- * 2. Daily Pulse Limit (refusal outcome: 'deferred')
- * 3. Daily Wall Clock Limit (refusal outcome: 'deferred')
- * 4. Max Agents in Flight / Dynamic Topological Concurrency (refusal outcome: 'deferred')
- * 5. Round Budget (refusal outcome: 'paused')
- * 6. Max Open Proposals (refusal outcome: 'paused')
- *
- * In infinite borderless mode (default), checks pass without artificial refusal halts.
- */
 export function evaluateBudgetRefusalLadder(
   budgetOrState: Record<string, unknown>,
   options?: BudgetLadderOptions,
@@ -157,19 +132,15 @@ export function evaluateBudgetRefusalLadder(
       : budgetOrState
   ) as Record<string, unknown>;
 
-  // 1. Quiet hours
   const quietCheck = checkQuietHoursBudget(budget, options?.now);
   if (!quietCheck.ok) return quietCheck;
 
-  // 2. Daily pulse limit
   const pulseCheck = checkDailyPulseLimit(budget, options?.now);
   if (!pulseCheck.ok) return pulseCheck;
 
-  // 3. Daily wall clock limit
   const wallCheck = checkDailyWallClockLimit(budget, options?.now);
   if (!wallCheck.ok) return wallCheck;
 
-  // 4. Max agents in flight / dynamic topological concurrency
   const topoParams =
     options?.totalWork !== undefined && options?.span !== undefined
       ? { totalWork: options.totalWork, span: options.span }
@@ -184,13 +155,11 @@ export function evaluateBudgetRefusalLadder(
     if (!agentsCheck.ok) return agentsCheck;
   }
 
-  // 5. Round budget
   if (options?.roundIndex !== undefined) {
     const roundCheck = checkRoundBudget(budget, options.roundIndex, options.objectiveId);
     if (!roundCheck.ok) return roundCheck;
   }
 
-  // 6. Max open proposals
   if (options?.openProposalsCount !== undefined) {
     const proposalCheck = checkMaxOpenProposals(budget, options.openProposalsCount);
     if (!proposalCheck.ok) return proposalCheck;
@@ -199,10 +168,6 @@ export function evaluateBudgetRefusalLadder(
   return { ok: true };
 }
 
-/**
- * Validates budget headroom (quiet hours, daily pulses, wall clock time).
- * Rolls over day key before checking.
- */
 export function checkDailyBudget(
   budget: Record<string, unknown>,
   nowInput?: number | Date | string,

@@ -130,104 +130,100 @@ function isOwnerInteractiveRecipient(recipient?: string): boolean {
   );
 }
 
+function matchesAny(text: string, patterns: readonly RegExp[]): boolean {
+  return (
+    typeof text === "string" && text.trim().length > 0 && patterns.some((p) => p.test(text.trim()))
+  );
+}
+
+function makeClassification(
+  category: ChatterCategory,
+  isChatter: boolean,
+  isSuppressed: boolean,
+  reason: string,
+  severity: ChatterSeverity,
+): ChatterClassification {
+  return { category, isChatter, isSuppressed, reason, severity };
+}
+
 export function estimateTokenSavings(text: string): number {
   return typeof text === "string" && text.length > 0 ? Math.max(1, Math.ceil(text.length / 4)) : 0;
 }
 
 export function isActionableError(text: string): boolean {
-  return (
-    typeof text === "string" &&
-    text.trim().length > 0 &&
-    ACTIONABLE_ERROR_PATTERNS.some((p) => p.test(text.trim()))
-  );
+  return matchesAny(text, ACTIONABLE_ERROR_PATTERNS);
 }
 
 export function isHighPriorityMilestone(text: string): boolean {
-  return (
-    typeof text === "string" &&
-    text.trim().length > 0 &&
-    HIGH_PRIORITY_MILESTONE_PATTERNS.some((p) => p.test(text.trim()))
-  );
+  return matchesAny(text, HIGH_PRIORITY_MILESTONE_PATTERNS);
 }
 
 export function isRoutinePulse(text: string): boolean {
-  return (
-    typeof text === "string" &&
-    text.trim().length > 0 &&
-    ROUTINE_PULSE_PATTERNS.some((p) => p.test(text.trim()))
-  );
+  return matchesAny(text, ROUTINE_PULSE_PATTERNS);
 }
 
 export function isCompanionAuditorOutput(text: string): boolean {
-  return (
-    typeof text === "string" &&
-    text.trim().length > 0 &&
-    COMPANION_AUDIT_PATTERNS.some((p) => p.test(text.trim()))
-  );
+  return matchesAny(text, COMPANION_AUDIT_PATTERNS);
 }
 
 export function isProgressNarration(text: string): boolean {
-  return (
-    typeof text === "string" &&
-    text.trim().length > 0 &&
-    PROGRESS_NARRATION_PATTERNS.some((p) => p.test(text.trim()))
-  );
+  return matchesAny(text, PROGRESS_NARRATION_PATTERNS);
 }
 
 export function classifyChatter(text: string): ChatterClassification {
   if (typeof text !== "string") throw new HarnessError("INVALID_ARGUMENT", "Text must be a string");
   if (isActionableError(text)) {
-    return {
-      category: "ACTIONABLE_ERROR",
-      isChatter: false,
-      isSuppressed: false,
-      reason: "Actionable error or defect escalation requires immediate owner attention",
-      severity: "critical",
-    };
+    return makeClassification(
+      "ACTIONABLE_ERROR",
+      false,
+      false,
+      "Actionable error or defect escalation requires immediate owner attention",
+      "critical",
+    );
   }
   if (isHighPriorityMilestone(text)) {
-    return {
-      category: "HIGH_PRIORITY_MILESTONE",
-      isChatter: false,
-      isSuppressed: false,
-      reason: "High priority milestone or final deliverable admitted to owner context",
-      severity: "high",
-    };
+    return makeClassification(
+      "HIGH_PRIORITY_MILESTONE",
+      false,
+      false,
+      "High priority milestone or final deliverable admitted to owner context",
+      "high",
+    );
   }
   if (isRoutinePulse(text)) {
-    return {
-      category: "ROUTINE_PULSE",
-      isChatter: true,
-      isSuppressed: true,
-      reason: "Routine pulse / heartbeat tick suppressed to preserve owner context",
-      severity: "low",
-    };
+    return makeClassification(
+      "ROUTINE_PULSE",
+      true,
+      true,
+      "Routine pulse / heartbeat tick suppressed to preserve owner context",
+      "low",
+    );
   }
   if (isCompanionAuditorOutput(text)) {
-    return {
-      category: "COMPANION_AUDIT",
-      isChatter: true,
-      isSuppressed: true,
-      reason: "Companion auditor / witness chatter suppressed from main thread",
-      severity: "low",
-    };
+    return makeClassification(
+      "COMPANION_AUDIT",
+      true,
+      true,
+      "Companion auditor / witness chatter suppressed from main thread",
+      "low",
+    );
   }
   if (isProgressNarration(text)) {
-    return {
-      category: "PROGRESS_NARRATION",
-      isChatter: true,
-      isSuppressed: true,
-      reason: "Mid-flight progress narration suppressed from main thread",
-      severity: "medium",
-    };
+    return makeClassification(
+      "PROGRESS_NARRATION",
+      true,
+      true,
+      "Mid-flight progress narration suppressed from main thread",
+      "medium",
+    );
   }
-  return {
-    category: "STANDARD_PAYLOAD",
-    isChatter: false,
-    isSuppressed: false,
-    reason: "Standard payload passes through without suppression",
-    severity: "low",
-  };
+  return makeClassification(
+    "STANDARD_PAYLOAD",
+    false,
+    false,
+    "Standard payload passes through without suppression",
+    "low",
+  );
 }
 
 export function shouldSuppressForOwner(text: string, options?: ChatterGuardFilterOptions): boolean {
@@ -243,8 +239,9 @@ export function filterOwnerContextMessage(
   text: string,
   options?: ChatterGuardFilterOptions,
 ): ChatterFilterResult {
-  if (typeof text !== "string")
+  if (typeof text !== "string") {
     throw new HarnessError("INVALID_ARGUMENT", "Message text must be a string");
+  }
   const classification = classifyChatter(text);
   const suppressed = shouldSuppressForOwner(text, options);
   const mask = options?.maskSuppressedText ?? true;
@@ -271,8 +268,9 @@ export function assertNonChatterOwnerContext(
   text: string,
   context?: AssertOwnerSafetyContext,
 ): void {
-  if (typeof text !== "string")
+  if (typeof text !== "string") {
     throw new HarnessError("INVALID_ARGUMENT", "Context payload text must be a string");
+  }
   const isOwner =
     context?.isOwnerSeat === true ||
     (context?.isOwnerSeat === undefined &&
@@ -286,18 +284,16 @@ export function assertNonChatterOwnerContext(
   }
 }
 
-function emptyCategoryCounts(): Record<ChatterCategory, number> {
-  return {
-    ROUTINE_PULSE: 0,
-    BACKGROUND_TICK: 0,
-    COMPANION_AUDIT: 0,
-    WITNESS_TRACE: 0,
-    PROGRESS_NARRATION: 0,
-    HIGH_PRIORITY_MILESTONE: 0,
-    ACTIONABLE_ERROR: 0,
-    STANDARD_PAYLOAD: 0,
-  };
-}
+const createCategoryCounters = (): Record<ChatterCategory, number> => ({
+  ROUTINE_PULSE: 0,
+  BACKGROUND_TICK: 0,
+  COMPANION_AUDIT: 0,
+  WITNESS_TRACE: 0,
+  PROGRESS_NARRATION: 0,
+  HIGH_PRIORITY_MILESTONE: 0,
+  ACTIONABLE_ERROR: 0,
+  STANDARD_PAYLOAD: 0,
+});
 
 export class ChatterGuardEngine {
   private metrics: ChatterGuardMetrics = {
@@ -306,7 +302,7 @@ export class ChatterGuardEngine {
     totalAllowed: 0,
     suppressedBytes: 0,
     estimatedSavedTokens: 0,
-    suppressedByCategory: emptyCategoryCounts(),
+    suppressedByCategory: createCategoryCounters(),
   };
 
   public evaluate(text: string, options?: ChatterGuardFilterOptions): ChatterFilterResult {
@@ -338,7 +334,7 @@ export class ChatterGuardEngine {
       totalAllowed: 0,
       suppressedBytes: 0,
       estimatedSavedTokens: 0,
-      suppressedByCategory: emptyCategoryCounts(),
+      suppressedByCategory: createCategoryCounters(),
     };
   }
 }

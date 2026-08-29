@@ -41,7 +41,6 @@ describe("Active Anti-Passivity: Mind Pre-Planning Stagnation Auditor (Task 3.1)
       { id: "def-open-1", title: "Unplanned Defect", status: "OPEN" },
     ];
 
-    // Last preplan was 300s ago (> 180s default threshold)
     const lastPreplanTimestamp = new Date(nowMs - 300_000).toISOString();
 
     const result = auditMindPreplanningStagnation({
@@ -65,7 +64,6 @@ describe("Active Anti-Passivity: Mind Pre-Planning Stagnation Auditor (Task 3.1)
       { id: "item-new-1", title: "Fresh Task", status: "PENDING" },
     ];
 
-    // Last preplan was 30s ago (< 180s threshold)
     const lastPreplanTimestamp = new Date(nowMs - 30_000).toISOString();
 
     const result = auditMindPreplanningStagnation({

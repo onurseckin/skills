@@ -33,6 +33,9 @@ permissions:
     - "mind:pulse"
     - "doctor"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns: []
 invariants:
   - "SUPERVISOR_ZERO_CODE_EDITS"

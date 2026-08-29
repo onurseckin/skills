@@ -1,13 +1,5 @@
 import type { NotificationPayload, PhaseCompletionNotificationOptions } from "./types.ts";
 
-/**
- * Formats a millisecond duration into a human-readable elapsed duration string.
- * Examples:
- *   - 0 -> "0s"
- *   - 14000 -> "14s"
- *   - 272000 -> "4m 32s"
- *   - 3724000 -> "1h 2m 4s"
- */
 export function formatElapsedDuration(durationMs: number): string {
   if (!Number.isFinite(durationMs) || durationMs <= 0) {
     return "0s";
@@ -31,23 +23,14 @@ export function formatElapsedDuration(durationMs: number): string {
   return `${seconds}s`;
 }
 
-/**
- * Escapes characters for AppleScript string literals.
- */
 export function escapeAppleScriptString(input: string): string {
   return input.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-/**
- * Escapes characters for PowerShell string literals.
- */
 export function escapePowerShellString(input: string): string {
   return input.replace(/'/g, "''").replace(/`/g, "``");
 }
 
-/**
- * Builds a structured notification payload from phase completion options.
- */
 export function buildPhaseNotificationPayload(
   options: PhaseCompletionNotificationOptions,
 ): NotificationPayload {

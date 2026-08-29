@@ -4,20 +4,20 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
-  assertZeroTypescriptAny,
-  collectTypescriptFiles,
+  assertZeroAny,
+  collectTsFiles,
   isTypeSafetyScanResult,
   isTypeSafetyViolation,
-  scanDirectoryForTypescriptAny,
-  scanFileForTypescriptAny,
-  scanSourceCodeForTypescriptAny,
+  scanDirectoryForAny,
+  scanFileForAny,
+  scanSourceCodeForAny,
 } from "../../../olt/scripts/src/core/type-safety/index.ts";
 
 function createTempDir(prefix: string): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));
 }
 
-describe("assertZeroTypescriptAny and type-safety scanner", () => {
+describe("assertZeroAny and type-safety scanner", () => {
   describe("inline source code scanning", () => {
     it("passes for strictly typed code without any", () => {
       const code = `
@@ -29,8 +29,8 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
           return { id, age: 30 };
         }
       `;
-      expect(() => assertZeroTypescriptAny(code)).not.toThrow();
-      const result = scanSourceCodeForTypescriptAny(code, "test.ts");
+      expect(() => assertZeroAny(code)).not.toThrow();
+      const result = scanSourceCodeForAny(code, "test.ts");
       expect(result.valid).toBe(true);
       expect(result.passed).toBe(true);
       expect(result.totalViolations).toBe(0);
@@ -41,7 +41,7 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
       const code = "const value: any = 123;";
       let caught: unknown;
       try {
-        assertZeroTypescriptAny(code);
+        assertZeroAny(code);
       } catch (err) {
         caught = err;
       }
@@ -50,7 +50,7 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
       expect(error.code).toBe("INTEGRITY");
       expect(error.message).toContain("Zero TypeScript 'any' compliance check failed");
 
-      const result = scanSourceCodeForTypescriptAny(code, "test.ts");
+      const result = scanSourceCodeForAny(code, "test.ts");
       expect(result.valid).toBe(false);
       expect(result.totalViolations).toBe(1);
       expect(result.violations[0]?.rule).toBe("any_type");
@@ -61,7 +61,7 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
         const x = (data as any).field;
         const y = (<any>data).field;
       `;
-      const result = scanSourceCodeForTypescriptAny(code, "test.ts");
+      const result = scanSourceCodeForAny(code, "test.ts");
       expect(result.valid).toBe(false);
       expect(result.totalViolations).toBe(2);
       expect(result.violations.every((v) => v.rule === "any_type")).toBe(true);
@@ -72,7 +72,7 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
         const list: Array<any> = [];
         const record: Record<string, any> = {};
       `;
-      const result = scanSourceCodeForTypescriptAny(code, "test.ts");
+      const result = scanSourceCodeForAny(code, "test.ts");
       expect(result.valid).toBe(false);
       expect(result.totalViolations).toBe(2);
     });
@@ -81,7 +81,7 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
       const sup1 = ["/", "/", " ", "@", "ts-ignore"].join("");
       const sup2 = ["/", "*", " ", "@", "ts-expect-error", " ", "*", "/"].join("");
       const code = [sup1, "const x = 10;", sup2, "const y = 20;"].join("\n");
-      const result = scanSourceCodeForTypescriptAny(code, "test.ts");
+      const result = scanSourceCodeForAny(code, "test.ts");
       expect(result.valid).toBe(false);
       expect(result.totalViolations).toBe(2);
       expect(result.violations.every((v) => v.rule === "compiler_suppression")).toBe(true);
@@ -90,7 +90,7 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
     it("allows ignoring compiler suppressions when option is disabled", () => {
       const sup = ["/", "/", " ", "@", "ts-ignore"].join("");
       const code = [sup, "const x: number = 10;"].join("\n");
-      const result = scanSourceCodeForTypescriptAny(code, "test.ts", {
+      const result = scanSourceCodeForAny(code, "test.ts", {
         checkCompilerSuppressions: false,
       });
       expect(result.valid).toBe(true);
@@ -107,11 +107,11 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
         writeFileSync(cleanFile, "export const PI: number = 3.14;");
         writeFileSync(dirtyFile, "export const bad: any = true;");
 
-        expect(() => assertZeroTypescriptAny(cleanFile)).not.toThrow();
+        expect(() => assertZeroAny(cleanFile)).not.toThrow();
 
         let caught: unknown;
         try {
-          assertZeroTypescriptAny(dirtyFile);
+          assertZeroAny(dirtyFile);
         } catch (err) {
           caught = err;
         }
@@ -131,13 +131,13 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
         writeFileSync(join(tempDir, "a.ts"), "export const a: string = 'ok';");
         writeFileSync(join(subDir, "b.tsx"), "export const b = 42;");
 
-        expect(() => assertZeroTypescriptAny(tempDir)).not.toThrow();
+        expect(() => assertZeroAny(tempDir)).not.toThrow();
 
         writeFileSync(join(subDir, "c.ts"), "export function fail(x: any): void {}");
 
         let caught: unknown;
         try {
-          assertZeroTypescriptAny(tempDir);
+          assertZeroAny(tempDir);
         } catch (err) {
           caught = err;
         }
@@ -154,7 +154,7 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
       const bogusPath = "/non/existent/path/file.ts";
       let caughtFile: unknown;
       try {
-        scanFileForTypescriptAny(bogusPath);
+        scanFileForAny(bogusPath);
       } catch (err) {
         caughtFile = err;
       }
@@ -163,7 +163,7 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
 
       let caughtDir: unknown;
       try {
-        scanDirectoryForTypescriptAny(bogusPath);
+        scanDirectoryForAny(bogusPath);
       } catch (err) {
         caughtDir = err;
       }
@@ -207,7 +207,7 @@ describe("assertZeroTypescriptAny and type-safety scanner", () => {
         writeFileSync(join(tempDir, "valid.tsx"), "const x = 1;");
         writeFileSync(join(tempDir, "ignored.txt"), "some text");
 
-        const collected = collectTypescriptFiles(tempDir);
+        const collected = collectTsFiles(tempDir);
         expect(collected.length).toBe(2);
         expect(collected.some((f) => f.endsWith("valid.ts"))).toBe(true);
         expect(collected.some((f) => f.endsWith("valid.tsx"))).toBe(true);

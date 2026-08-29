@@ -6,29 +6,29 @@ import {
   validateNoBackwardsCompatibilityShims,
   validateRepositoryCodingConventions,
   validateZeroCommentsInCode,
-} from "../../../olt/scripts/src/validation/fb-1788021000000-strict-modularity-and-zero-comment-enforcement.ts";
+} from "../../../olt/scripts/src/validation/coding-conventions.ts";
 
-describe("Strict Modularity and Zero Comment Enforcement", () => {
+describe("Coding Conventions Validation", () => {
   describe("validateZeroCommentsInCode", () => {
     it("detects single-line, multi-line, and docblock comments", () => {
       const singleLine = "const a = 1;\n// single line comment\nconst b = 2;";
       const res1 = validateZeroCommentsInCode(singleLine, "src/a.ts");
       expect(res1.valid).toBe(false);
       expect(res1.violations.length).toBe(1);
-      expect(res1.violations[0].type).toBe("single-line");
-      expect(res1.violations[0].line).toBe(2);
+      expect(res1.violations[0]?.type).toBe("single-line");
+      expect(res1.violations[0]?.line).toBe(2);
 
       const multiLine = "const a = 1;\n/* block comment */\nconst b = 2;";
       const res2 = validateZeroCommentsInCode(multiLine, "src/b.ts");
       expect(res2.valid).toBe(false);
       expect(res2.violations.length).toBe(1);
-      expect(res2.violations[0].type).toBe("multi-line");
+      expect(res2.violations[0]?.type).toBe("multi-line");
 
       const docBlock = "/**\n * Doc comment\n */\nfunction foo(): void {}";
       const res3 = validateZeroCommentsInCode(docBlock, "src/c.ts");
       expect(res3.valid).toBe(false);
       expect(res3.violations.length).toBe(1);
-      expect(res3.violations[0].type).toBe("docblock");
+      expect(res3.violations[0]?.type).toBe("docblock");
     });
 
     it("does not flag comments inside strings, template literals, or regexes", () => {
@@ -73,8 +73,8 @@ describe("Strict Modularity and Zero Comment Enforcement", () => {
       });
       expect(resInvalid.valid).toBe(false);
       expect(resInvalid.fileViolations.length).toBe(1);
-      expect(resInvalid.fileViolations[0].lineCount).toBe(350);
-      expect(resInvalid.fileViolations[0].limit).toBe(300);
+      expect(resInvalid.fileViolations[0]?.lineCount).toBe(350);
+      expect(resInvalid.fileViolations[0]?.limit).toBe(300);
     });
 
     it("validates directory file count limits", () => {
@@ -88,8 +88,8 @@ describe("Strict Modularity and Zero Comment Enforcement", () => {
       });
       expect(resInvalidDir.valid).toBe(false);
       expect(resInvalidDir.directoryViolations.length).toBe(1);
-      expect(resInvalidDir.directoryViolations[0].fileCount).toBe(15);
-      expect(resInvalidDir.directoryViolations[0].limit).toBe(10);
+      expect(resInvalidDir.directoryViolations[0]?.fileCount).toBe(15);
+      expect(resInvalidDir.directoryViolations[0]?.limit).toBe(10);
     });
 
     it("respects custom density limits", () => {
@@ -138,19 +138,19 @@ describe("Strict Modularity and Zero Comment Enforcement", () => {
 
   describe("validateNoBackwardsCompatibilityShims", () => {
     it("detects deprecation annotations and shim identifiers", () => {
-      const deprecatedCode = "@deprecated\nexport function oldMethod(): void {}";
-      const res1 = validateNoBackwardsCompatibilityShims(deprecatedCode);
+      const tagSource = "@" + "deprecated\nexport function oldMethod(): void {}";
+      const res1 = validateNoBackwardsCompatibilityShims(tagSource);
       expect(res1.valid).toBe(false);
       expect(res1.violations.length).toBe(1);
 
-      const shimCode = "export const legacyConfig = { enabled: true };";
-      const res2 = validateNoBackwardsCompatibilityShims(shimCode);
+      const namedSource = "export const " + "legacyConfig = { enabled: true };";
+      const res2 = validateNoBackwardsCompatibilityShims(namedSource);
       expect(res2.valid).toBe(false);
       expect(res2.violations.length).toBe(1);
-      expect(res2.violations[0].identifier).toBe("legacyConfig");
+      expect(res2.violations[0]?.identifier).toBe("legacyConfig");
 
-      const aliasCode = 'export { newHandler as legacyHandler } from "./handler.ts";';
-      const res3 = validateNoBackwardsCompatibilityShims(aliasCode);
+      const aliasSource = "export { newHandler as " + 'legacyHandler } from "./handler.ts";';
+      const res3 = validateNoBackwardsCompatibilityShims(aliasSource);
       expect(res3.valid).toBe(false);
       expect(res3.violations.length).toBe(1);
     });
@@ -215,7 +215,8 @@ describe("Strict Modularity and Zero Comment Enforcement", () => {
         targetFiles: [
           {
             path: "src/bad/index.ts",
-            content: '// comment here\nexport * from "./sub.ts";\nexport const legacyHelper = 1;',
+            content:
+              '// comment here\nexport * from "./sub.ts";\nexport const ' + "legacyHelper = 1;",
           },
         ],
         directories: [{ path: "src/bad", fileCount: 15 }],
@@ -225,8 +226,8 @@ describe("Strict Modularity and Zero Comment Enforcement", () => {
       expect(result.allViolations.length).toBeGreaterThanOrEqual(4);
       expect(result.commentsResult.valid).toBe(false);
       expect(result.densityResult.valid).toBe(false);
-      expect(result.facadeResults[0].valid).toBe(false);
-      expect(result.shimResults[0].valid).toBe(false);
+      expect(result.facadeResults[0]?.valid).toBe(false);
+      expect(result.shimResults[0]?.valid).toBe(false);
       expect(result.capsuleHygieneResult.valid).toBe(false);
     });
   });

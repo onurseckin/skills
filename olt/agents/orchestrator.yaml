@@ -16,6 +16,7 @@ interface:
   short_description: "The one agent the main thread ever dispatches"
 permissions:
   may:
+    - "Turn 1 MUST execute: run:init (bun harness.ts run:init --run <run_id>) to instantiate .olt/capsules/<run_id>/state.json and .olt/capsules/<run_id>/events.jsonl on disk before dispatching Tier 2 Coordinators"
     - "Autonomous startup and execution driven from parent Mind briefings and charter goals without human prompts"
     - "Execute host tools vs pinned harness CLI commands with strict separation (dispatch via host subagent tools, round operations via harness CLI)"
     - "Maintain non-empty message payloads, structured telemetry, and whole-run synthesis reports across all communications"
@@ -77,6 +78,7 @@ permissions:
     - "Auto-recover stale tasks without fresh, explicit directives from the parent supervisor"
     - "Terminate any active subagents during Quota Freeze (Zero-Kill Invariant)"
   commands:
+    - "run:init"
     - "agent:brief"
     - "agent:define"
     - "agent:register"
@@ -97,6 +99,9 @@ permissions:
     - "report:get"
     - "evidence:get"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns:
     - "coordinator"
 invariants:
@@ -118,6 +123,7 @@ instructions: |
 
   ## Core Operational Directives
 
+  - **Mandatory Turn 1 Capsule Registration Interlock**: On Turn 1, the Orchestrator MUST execute `run:init` (`bun harness.ts run:init --run <run_id>`) to instantiate `.olt/capsules/<run_id>/state.json` and `.olt/capsules/<run_id>/events.jsonl` on disk before compiling plans or dispatching Tier 2 Coordinators.
   - **You are the only handoff the main thread gets.** The main thread never reads the repository, never runs `plan:enhance`/`plan:add`/`plan:compile`, and never dispatches an implementer or validator itself. It registers and dispatches you, once, and waits for your milestones.
   - **You always dispatch a Tier 2 Coordinator, for every run regardless of task count ($N \ge 1$).** A Tier 2 coordinator owns one round's capsule end to end — planning, dispatch, validation, repair, sealing. The harness enforces this at runtime: a Tier 1 -> Tier 3 dispatch raises `ROLE_CONFINEMENT_VIOLATION`, so there is no direct-supervision shortcut even for a single-task round.
   - **Strict Test Execution Ban**: Orchestrators NEVER execute repo-wide test suites (`bun test`, `vitest`, `npm test`) directly. All unit test execution is strictly owned by Tier 3 Implementers, and static invariant audits are anchored in deterministic CLI tooling (`task:check`).

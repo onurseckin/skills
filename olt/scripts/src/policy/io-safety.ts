@@ -195,7 +195,8 @@ export function readVerifiedFile(
 }
 
 export function withLock<T>(loc: Location, fn: () => T): T {
-  const lockPath = join(loc.parent, ".policy.lock");
+  const lockPath = join(loc.root, ".olt", "locks", "policy.lock");
+  ensureDir(loc.root, dirname(lockPath));
   if (activeLocks.has(loc.root)) {
     throw new HarnessError("LOCK_TIMEOUT", `Repository policy lock is already active: ${loc.root}`);
   }

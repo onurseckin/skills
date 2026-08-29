@@ -32,6 +32,9 @@ permissions:
     - "recover"
     - "doctor"
     - "whoami"
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
   spawns:
     - "mind"
     - "orchestrator"

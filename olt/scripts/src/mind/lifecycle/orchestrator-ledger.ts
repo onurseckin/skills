@@ -1,5 +1,5 @@
 import { closeSync, constants, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { atomicWriteBytes } from "../../core/durable-write.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { releaseFlock, tryExclusiveFlock } from "../../platform/index.ts";
@@ -47,7 +47,7 @@ export interface NewOrchestratorRecordInput {
 }
 
 export const DEFAULT_ORCHESTRATOR_LEDGER_FILE = ".olt/orchestrators.jsonl";
-export const DEFAULT_ORCHESTRATOR_LOCK_FILE = ".olt/orchestrators.lock";
+export const DEFAULT_ORCHESTRATOR_LOCK_FILE = ".olt/locks/orchestrators.lock";
 
 function delay(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -61,7 +61,12 @@ function resolveLedgerPath(customPath?: string): string {
 
 function resolveLockPath(customLock?: string, customLedger?: string): string {
   if (customLock?.trim()) return resolve(customLock.trim());
-  if (customLedger?.trim()) return resolve(dirname(customLedger.trim()), "orchestrators.lock");
+  if (customLedger?.trim()) {
+    const dir = dirname(customLedger.trim());
+    return basename(dir) === ".olt"
+      ? resolve(dir, "locks", "orchestrators.lock")
+      : resolve(dir, ".olt", "locks", "orchestrators.lock");
+  }
   return resolve(process.cwd(), DEFAULT_ORCHESTRATOR_LOCK_FILE);
 }
 

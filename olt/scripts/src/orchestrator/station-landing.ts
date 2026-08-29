@@ -87,8 +87,10 @@ function dispatchPhaseCompletionHook(
       event: "on_phase_completion",
       commandCount: 0,
       executedCommands: [],
+      records: [],
       skipped: false,
       errors: [err instanceof Error ? err.message : String(err)],
+      success: false,
     };
   }
 }
