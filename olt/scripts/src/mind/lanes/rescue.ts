@@ -9,7 +9,7 @@ import { workflowPort } from "../../integration/store-ports.ts";
 import { abandonAttempt } from "../../workflow/lease/abandon.ts";
 import { isAttemptOpen } from "../../workflow/lease/attempt-state.ts";
 import { releaseAgentGrant } from "../../workflow/agents/grants.ts";
-import { readAgentLedger } from "../../workflow/agents/ledger.ts";
+import { readAgentLedger, writeAgentLedger, findGrant, replaceGrant } from "../../workflow/agents/ledger.ts";
 import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
 import { reclaimOrphanedWorktrees, recordReclaim } from "../../workflow/worktree/reclaim.ts";
 import {
@@ -622,7 +622,7 @@ export async function executeRescueLane(
       const loadedRun = loadRun(runPath, false);
       const ledger = readAgentLedger(loadedRun.state);
       const activeGrants = ledger.filter((g) => g.status === "active");
-
+      
       for (const grant of activeGrants) {
         // Find events attributable to this agent
         const attributableEvents = loadedRun.events.filter(
@@ -647,7 +647,7 @@ export async function executeRescueLane(
         }
 
         const idleSeconds = Math.max(0, Math.floor((nowMs - latestActivityMs) / 1000));
-        if (idleSeconds > grantIdleSeconds) {
+                if (idleSeconds > grantIdleSeconds) {
           transact(
             runPath,
             actor,

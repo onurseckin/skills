@@ -1,17 +1,10 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { transact } from "../store/index.ts";
 import {
   addWorktree,
-  addWorktreeForBranch,
   commitChangedLines,
-  diffStat,
   headSha,
-  mergeBranch,
-  rebaseOnto,
-  removeWorktree,
   runGit,
   stageAndCommit,
   type GitRunner,
@@ -21,159 +14,55 @@ import {
   assertZeroDestructiveGit,
   isPathInWriteScope,
 } from "./zero-destructive-policy.ts";
+import {
+  CONVENTIONAL_COMMIT_TYPES,
+  type DomainWorktreeConfig,
+  type DomainCommitRecord,
+  type DomainSyncConflict,
+  type DomainSyncResult,
+  type GlobalSyncSummary,
+  type DomainLedgerState,
+  type DomainCommitPushInput,
+  type DomainCommitPushOutcome,
+  type SyncDomainInput,
+  type SyncGlobalToDomainInput,
+  type SyncAllDomainsInput,
+  type DomainScopeEntry,
+  type DomainScopeConflict,
+  type DomainIsolationCheckResult,
+  recordDomainCommit,
+  recordDomainSync,
+  recordGlobalSync,
+} from "./domain-sync-types.ts";
+import {
+  syncDomainToGlobal,
+  syncGlobalToDomain,
+  synchronizeAllDomains,
+} from "./domain-sync-ops.ts";
 
-export const CONVENTIONAL_COMMIT_TYPES = new Set([
-  "feat",
-  "fix",
-  "chore",
-  "docs",
-  "refactor",
-  "perf",
-  "test",
-  "build",
-  "ci",
-  "revert",
-  "hotfix",
-  "security",
-  "deps",
-  "migration",
-]);
-
-export interface DomainWorktreeConfig {
-  domain: string;
-  worktreeId: string;
-  worktreePath: string;
-  branch: string;
-  baseSha: string;
-  headSha: string;
-  createdAt: string;
-  status: "active" | "syncing" | "synced" | "conflict" | "reclaimed";
-  lastSyncedSha?: string | undefined;
-  lastSyncedAt?: string | undefined;
-  assignedTaskIds: string[];
-}
-
-export interface DomainCommitRecord {
-  taskId: string;
-  domain: string;
-  worktreeId: string;
-  sha: string;
-  subject: string;
-  changedLines: number;
-  overLimit: boolean;
-  committedAt: string;
-  pushed: boolean;
-  pushedAt?: string | undefined;
-}
-
-export interface DomainSyncConflict {
-  domain: string;
-  worktreeId: string;
-  branch: string;
-  conflictingPaths: string[];
-  reason: string;
-}
-
-export interface DomainSyncResult {
-  domain: string;
-  synced: boolean;
-  targetBranch: string;
-  sourceBranch: string;
-  commitsSynced: number;
-  syncedSha?: string | undefined;
-  conflict?: DomainSyncConflict | undefined;
-  syncedAt: string;
-}
-
-export interface GlobalSyncSummary {
-  harnessBranch: string;
-  syncedDomains: string[];
-  failedDomains: string[];
-  totalCommitsSynced: number;
-  conflicts: DomainSyncConflict[];
-  diffstat: string;
-  rebased: boolean;
-  rebaseTarget?: string | undefined;
-  rebaseConflictPaths?: string[] | undefined;
-  consolidatedAt: string;
-  scopeIsolated: boolean;
-}
-
-export interface DomainLedgerState {
-  harnessBranch: string;
-  baseSha: string;
-  baseBranch?: string | undefined;
-  root: string;
-  domains: Record<string, DomainWorktreeConfig>;
-  commits: DomainCommitRecord[];
-  syncHistory: DomainSyncResult[];
-  globalSyncSummary?: GlobalSyncSummary | undefined;
-}
-
-export interface DomainCommitPushInput {
-  domain: string;
-  taskId: string;
-  worktreeId: string;
-  worktreePath: string;
-  writeScope: readonly string[];
-  label: string;
-  commitType?: string | undefined;
-  maxCommitLines?: number | undefined;
-  pushOnCommit?: boolean | undefined;
-  modifiedPaths?: readonly string[] | undefined;
-  now?: Date | undefined;
-  runner?: GitRunner | undefined;
-}
-
-export interface DomainCommitPushOutcome {
-  committed: boolean;
-  pushed: boolean;
-  commit?: DomainCommitRecord | undefined;
-  warning?: string | undefined;
-}
-
-export interface SyncDomainInput {
-  repoRoot: string;
-  runId: string;
-  domain: string;
-  ledger: DomainLedgerState;
-  runner?: GitRunner | undefined;
-  now?: Date | undefined;
-}
-
-export interface SyncGlobalToDomainInput {
-  repoRoot: string;
-  domain: string;
-  ledger: DomainLedgerState;
-  rebase?: boolean | undefined;
-  runner?: GitRunner | undefined;
-  now?: Date | undefined;
-}
-
-export interface SyncAllDomainsInput {
-  repoRoot: string;
-  runId: string;
-  ledger: DomainLedgerState;
-  rebaseOnComplete?: boolean | undefined;
-  runner?: GitRunner | undefined;
-  now?: Date | undefined;
-}
-
-export interface DomainScopeEntry {
-  domain: string;
-  writeScope: readonly string[];
-}
-
-export interface DomainScopeConflict {
-  domainA: string;
-  domainB: string;
-  overlappingScope: string;
-}
-
-export interface DomainIsolationCheckResult {
-  isolated: boolean;
-  conflicts: DomainScopeConflict[];
-}
+export {
+  CONVENTIONAL_COMMIT_TYPES,
+  type DomainWorktreeConfig,
+  type DomainCommitRecord,
+  type DomainSyncConflict,
+  type DomainSyncResult,
+  type GlobalSyncSummary,
+  type DomainLedgerState,
+  type DomainCommitPushInput,
+  type DomainCommitPushOutcome,
+  type SyncDomainInput,
+  type SyncGlobalToDomainInput,
+  type SyncAllDomainsInput,
+  type DomainScopeEntry,
+  type DomainScopeConflict,
+  type DomainIsolationCheckResult,
+  syncDomainToGlobal,
+  syncGlobalToDomain,
+  synchronizeAllDomains,
+  recordDomainCommit,
+  recordDomainSync,
+  recordGlobalSync,
+};
 
 function toPathspec(scope: string): string {
   if (scope.endsWith("/**")) {
@@ -323,256 +212,6 @@ export function commitAndPushDomainSubphase(input: DomainCommitPushInput): Domai
   };
 }
 
-export function syncDomainToGlobal(input: SyncDomainInput): DomainSyncResult {
-  const { repoRoot, runId, domain, ledger } = input;
-  const runner = input.runner ?? runGit;
-  const timestamp = (input.now ?? new Date()).toISOString();
-
-  const domainConfig = ledger.domains[domain];
-  if (!domainConfig) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Domain '${domain}' is not registered in the domain sync ledger`,
-    );
-  }
-
-  const domainCommits = ledger.commits.filter((c) => c.domain === domain);
-  if (domainCommits.length === 0) {
-    return {
-      domain,
-      synced: true,
-      targetBranch: ledger.harnessBranch,
-      sourceBranch: domainConfig.branch,
-      commitsSynced: 0,
-      syncedSha: domainConfig.headSha,
-      syncedAt: timestamp,
-    };
-  }
-
-  const scratchPath = join(ledger.root, runId, "domain-sync", domain);
-  mkdirSync(join(ledger.root, runId, "domain-sync"), { recursive: true });
-
-  assertZeroDestructiveGit(["worktree", "add", scratchPath, ledger.harnessBranch]);
-  addWorktreeForBranch(repoRoot, scratchPath, ledger.harnessBranch, runner);
-
-  try {
-    const mergeOutcome = mergeBranch(
-      scratchPath,
-      domainConfig.branch,
-      `chore(domain-sync): merge ${domain} domain branch into ${ledger.harnessBranch}`,
-      runner,
-    );
-
-    if (mergeOutcome) {
-      const conflict: DomainSyncConflict = {
-        domain,
-        worktreeId: domainConfig.worktreeId,
-        branch: domainConfig.branch,
-        conflictingPaths: mergeOutcome.conflictPaths,
-        reason: `Merge conflict on paths: ${mergeOutcome.conflictPaths.join(", ")}`,
-      };
-
-      domainConfig.status = "conflict";
-
-      const syncResult: DomainSyncResult = {
-        domain,
-        synced: false,
-        targetBranch: ledger.harnessBranch,
-        sourceBranch: domainConfig.branch,
-        commitsSynced: 0,
-        conflict,
-        syncedAt: timestamp,
-      };
-
-      ledger.syncHistory.push(syncResult);
-      return syncResult;
-    }
-
-    const newSha = headSha(scratchPath, runner);
-    domainConfig.lastSyncedSha = newSha;
-    domainConfig.lastSyncedAt = timestamp;
-    domainConfig.status = "synced";
-    domainConfig.headSha = newSha;
-
-    const syncResult: DomainSyncResult = {
-      domain,
-      synced: true,
-      targetBranch: ledger.harnessBranch,
-      sourceBranch: domainConfig.branch,
-      commitsSynced: domainCommits.length,
-      syncedSha: newSha,
-      syncedAt: timestamp,
-    };
-
-    ledger.syncHistory.push(syncResult);
-    return syncResult;
-  } finally {
-    removeWorktree(repoRoot, scratchPath, runner);
-  }
-}
-
-export function syncGlobalToDomain(input: SyncGlobalToDomainInput): DomainSyncResult {
-  const { domain, ledger, rebase = false } = input;
-  const runner = input.runner ?? runGit;
-  const timestamp = (input.now ?? new Date()).toISOString();
-
-  const domainConfig = ledger.domains[domain];
-  if (!domainConfig) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Domain '${domain}' is not registered in the domain sync ledger`,
-    );
-  }
-
-  if (rebase) {
-    const outcome = rebaseOnto(domainConfig.worktreePath, ledger.harnessBranch, runner);
-    if (outcome) {
-      const conflict: DomainSyncConflict = {
-        domain,
-        worktreeId: domainConfig.worktreeId,
-        branch: domainConfig.branch,
-        conflictingPaths: outcome.conflictPaths,
-        reason: `Rebase conflict on paths: ${outcome.conflictPaths.join(", ")}`,
-      };
-      domainConfig.status = "conflict";
-      return {
-        domain,
-        synced: false,
-        targetBranch: domainConfig.branch,
-        sourceBranch: ledger.harnessBranch,
-        commitsSynced: 0,
-        conflict,
-        syncedAt: timestamp,
-      };
-    }
-  } else {
-    const outcome = mergeBranch(
-      domainConfig.worktreePath,
-      ledger.harnessBranch,
-      `chore(domain-sync): sync global ${ledger.harnessBranch} into ${domain}`,
-      runner,
-    );
-    if (outcome) {
-      const conflict: DomainSyncConflict = {
-        domain,
-        worktreeId: domainConfig.worktreeId,
-        branch: domainConfig.branch,
-        conflictingPaths: outcome.conflictPaths,
-        reason: `Merge conflict on paths: ${outcome.conflictPaths.join(", ")}`,
-      };
-      domainConfig.status = "conflict";
-      return {
-        domain,
-        synced: false,
-        targetBranch: domainConfig.branch,
-        sourceBranch: ledger.harnessBranch,
-        commitsSynced: 0,
-        conflict,
-        syncedAt: timestamp,
-      };
-    }
-  }
-
-  const updatedSha = headSha(domainConfig.worktreePath, runner);
-  domainConfig.headSha = updatedSha;
-  domainConfig.status = "active";
-
-  return {
-    domain,
-    synced: true,
-    targetBranch: domainConfig.branch,
-    sourceBranch: ledger.harnessBranch,
-    commitsSynced: 1,
-    syncedSha: updatedSha,
-    syncedAt: timestamp,
-  };
-}
-
-export function synchronizeAllDomains(input: SyncAllDomainsInput): GlobalSyncSummary {
-  const { repoRoot, runId, ledger, rebaseOnComplete = false } = input;
-  const runner = input.runner ?? runGit;
-  const timestamp = (input.now ?? new Date()).toISOString();
-
-  const activeDomains = Object.keys(ledger.domains);
-  const syncedDomains: string[] = [];
-  const failedDomains: string[] = [];
-  const conflicts: DomainSyncConflict[] = [];
-  let totalCommitsSynced = 0;
-
-  for (const domain of activeDomains) {
-    const result = syncDomainToGlobal({
-      repoRoot,
-      runId,
-      domain,
-      ledger,
-      runner,
-      now: input.now,
-    });
-
-    if (result.synced) {
-      syncedDomains.push(domain);
-      totalCommitsSynced += result.commitsSynced;
-    } else {
-      failedDomains.push(domain);
-      if (result.conflict) {
-        conflicts.push(result.conflict);
-      }
-    }
-  }
-
-  let rebased = false;
-  let rebaseConflictPaths: string[] | undefined;
-  const scratchPath = join(ledger.root, runId, "global-rebase");
-
-  if (rebaseOnComplete && failedDomains.length === 0 && ledger.baseBranch) {
-    mkdirSync(join(ledger.root, runId), { recursive: true });
-    addWorktreeForBranch(repoRoot, scratchPath, ledger.harnessBranch, runner);
-    try {
-      const outcome = rebaseOnto(scratchPath, ledger.baseBranch, runner);
-      if (outcome === null) {
-        rebased = true;
-      } else {
-        rebaseConflictPaths = outcome.conflictPaths;
-      }
-    } finally {
-      removeWorktree(repoRoot, scratchPath, runner);
-    }
-  }
-
-  let stat = "0 files changed";
-  const statWorktree = join(ledger.root, runId, "diffstat-probe");
-  try {
-    mkdirSync(join(ledger.root, runId), { recursive: true });
-    addWorktreeForBranch(repoRoot, statWorktree, ledger.harnessBranch, runner);
-    stat = diffStat(statWorktree, ledger.baseSha, "HEAD", runner);
-  } catch {
-    // Diffstat fallback
-  } finally {
-    try {
-      removeWorktree(repoRoot, statWorktree, runner);
-    } catch {
-      // Ignored
-    }
-  }
-
-  const summary: GlobalSyncSummary = {
-    harnessBranch: ledger.harnessBranch,
-    syncedDomains,
-    failedDomains,
-    totalCommitsSynced,
-    conflicts,
-    diffstat: stat,
-    rebased,
-    ...(ledger.baseBranch ? { rebaseTarget: ledger.baseBranch } : {}),
-    ...(rebaseConflictPaths ? { rebaseConflictPaths } : {}),
-    consolidatedAt: timestamp,
-    scopeIsolated: conflicts.length === 0,
-  };
-
-  ledger.globalSyncSummary = summary;
-  return summary;
-}
-
 export function validateDomainIsolation(
   domains: readonly DomainScopeEntry[],
 ): DomainIsolationCheckResult {
@@ -624,101 +263,4 @@ export function assertDomainIsolation(domains: readonly DomainScopeEntry[]): voi
 
 export function isDomainSyncEligible(domainState: DomainWorktreeConfig): boolean {
   return domainState.status === "active" || domainState.status === "synced";
-}
-
-export function recordDomainCommit(
-  runRoot: string,
-  actor: string,
-  domain: string,
-  taskId: string,
-  commit: DomainCommitRecord,
-  transactFn: typeof transact = transact,
-): void {
-  transactFn(
-    runRoot,
-    actor,
-    "domain-subphase-committed",
-    { domain, task_id: taskId, sha: commit.sha },
-    (draft) => {
-      if (!isJsonObject(draft)) {
-        throw new HarnessError("INVALID_STATE", "run state is not a json object");
-      }
-      if (!isJsonObject(draft.domain_sync_ledger)) {
-        draft.domain_sync_ledger = {
-          harnessBranch: "main",
-          baseSha: commit.sha,
-          root: ".capsules",
-          domains: {},
-          commits: [],
-          syncHistory: [],
-        };
-      }
-      const ledger = draft.domain_sync_ledger as unknown as DomainLedgerState;
-      ledger.commits.push(commit);
-
-      if (isJsonObject(draft.tasks) && isJsonObject(draft.tasks[taskId])) {
-        draft.tasks[taskId].domain_commit = commit as unknown as JsonObject;
-      }
-    },
-  );
-}
-
-export function recordDomainSync(
-  runRoot: string,
-  actor: string,
-  domain: string,
-  syncResult: DomainSyncResult,
-  transactFn: typeof transact = transact,
-): void {
-  transactFn(
-    runRoot,
-    actor,
-    "domain-synced-to-global",
-    { domain, synced: syncResult.synced, sha: syncResult.syncedSha ?? null },
-    (draft) => {
-      if (!isJsonObject(draft)) {
-        throw new HarnessError("INVALID_STATE", "run state is not a json object");
-      }
-      if (!isJsonObject(draft.domain_sync_ledger)) {
-        throw new HarnessError(
-          "INVALID_STATE",
-          "no domain sync ledger to record sync result against",
-        );
-      }
-      const ledger = draft.domain_sync_ledger as unknown as DomainLedgerState;
-      ledger.syncHistory.push(syncResult);
-    },
-  );
-}
-
-export function recordGlobalSync(
-  runRoot: string,
-  actor: string,
-  summary: GlobalSyncSummary,
-  transactFn: typeof transact = transact,
-): void {
-  transactFn(
-    runRoot,
-    actor,
-    "global-domains-consolidated",
-    {
-      harness_branch: summary.harnessBranch,
-      synced_domains: summary.syncedDomains,
-      total_commits: summary.totalCommitsSynced,
-      rebased: summary.rebased,
-    },
-    (draft) => {
-      if (!isJsonObject(draft)) {
-        throw new HarnessError("INVALID_STATE", "run state is not a json object");
-      }
-      if (!isJsonObject(draft.domain_sync_ledger)) {
-        throw new HarnessError(
-          "INVALID_STATE",
-          "no domain sync ledger to record global sync against",
-        );
-      }
-      const ledger = draft.domain_sync_ledger as unknown as DomainLedgerState;
-      ledger.globalSyncSummary = summary;
-    },
-  );
 }

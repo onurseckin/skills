@@ -511,7 +511,7 @@ describe("rescue.ts — executeRescueLane", () => {
         runtimeFreshnessOverride: { drifted: false, referenceRuntimeVersion: "1.0.0" },
       });
 
-      expect(result.rungs.rung3.deadAgentsReleased.length).toBe(1);
+            expect(result.rungs.rung3.deadAgentsReleased.length).toBe(1);
       expect(result.rungs.rung3.deadAgentsReleased[0]?.agentId).toBe("idle-validator");
       expect(result.rungs.rung3.deadAgentsReleased[0]?.role).toBe("validator");
 
