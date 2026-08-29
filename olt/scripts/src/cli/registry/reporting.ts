@@ -189,7 +189,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "report:dag",
-    aliases: ["dag:view", "graph:ascii", "status:dag"],
+    aliases: [],
     domain: "reporting",
     summary:
       "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",

@@ -1,0 +1,206 @@
+import type { GeneratedRegressionTest } from "../../mind/defects/index.ts";
+
+export type DefectStatus = "open" | "admitted" | "resolved" | "declined" | "ignored";
+
+export interface RGBColor {
+  readonly r: number;
+  readonly g: number;
+  readonly b: number;
+}
+
+export interface ApcaBadgeInfo {
+  readonly label: string;
+  readonly badge_text: string;
+  readonly fg_color: string;
+  readonly bg_color: string;
+  readonly lc: number;
+  readonly required_lc: number;
+  readonly passes_apca: boolean;
+}
+
+export interface ApcaContrastCompliance {
+  readonly compliant_badges: number;
+  readonly total_badges: number;
+  readonly min_lc_observed: number;
+  readonly passes_apca: boolean;
+  readonly badge_details: readonly ApcaBadgeInfo[];
+}
+
+export interface AuditedDefect {
+  readonly id: string;
+  readonly type: string;
+  readonly severity: "critical" | "warning" | string;
+  readonly timestamp: string;
+  readonly pid: number;
+  readonly ppid: number;
+  readonly agent_id: string | null;
+  readonly observation: string;
+  readonly remediation: string;
+  readonly context: {
+    readonly cwd?: string | undefined;
+    readonly indicators?: Readonly<Record<string, string>> | undefined;
+    readonly [key: string]: unknown;
+  };
+  readonly status: DefectStatus;
+  readonly source_capsule: string;
+  readonly source_file: string;
+  readonly candidate_id?: string | null | undefined;
+  readonly resolution?: Record<string, unknown> | null | undefined;
+}
+
+export interface DefectAuditSummary {
+  readonly total_defects: number;
+  readonly open_count: number;
+  readonly admitted_count: number;
+  readonly resolved_count: number;
+  readonly declined_count: number;
+  readonly critical_count: number;
+  readonly warning_count: number;
+  readonly by_category: Readonly<Record<string, number>>;
+  readonly by_capsule: Readonly<Record<string, number>>;
+  readonly apca_contrast_compliance: ApcaContrastCompliance;
+}
+
+export interface DefectAuditCommandResult {
+  readonly markdown: string;
+  readonly capsules_dir: string;
+  readonly run_root: string | null;
+  readonly total_defects: number;
+  readonly filtered_defects: readonly AuditedDefect[];
+  readonly summary: DefectAuditSummary;
+  readonly auto_admitted_count: number;
+  readonly auto_admitted_candidates: readonly string[];
+  readonly promoted_count?: number | undefined;
+  readonly promoted_defects?: readonly string[] | undefined;
+  readonly generated_tests?: readonly GeneratedRegressionTest[] | undefined;
+  readonly generated_test_suite?: string | undefined;
+  readonly [key: string]: unknown;
+}
+
+export interface DefectFileDiscovery {
+  readonly capsuleName: string;
+  readonly filePath: string;
+}
+
+export function sRgbToLinearY(r: number, g: number, b: number): number {
+  const rLin = Math.pow(r / 255, 2.4);
+  const gLin = Math.pow(g / 255, 2.4);
+  const bLin = Math.pow(b / 255, 2.4);
+  return 0.2126729 * rLin + 0.7151522 * gLin + 0.072175 * bLin;
+}
+
+export function calculateApcaLightnessContrast(textColor: RGBColor, bgColor: RGBColor): number {
+  let yTxt = sRgbToLinearY(textColor.r, textColor.g, textColor.b);
+  let yBg = sRgbToLinearY(bgColor.r, bgColor.g, bgColor.b);
+
+  const blackThresh = 0.022;
+  const expBlack = 1.414;
+
+  if (yTxt < blackThresh) {
+    yTxt = yTxt + Math.pow(blackThresh - yTxt, expBlack);
+  }
+  if (yBg < blackThresh) {
+    yBg = yBg + Math.pow(blackThresh - yBg, expBlack);
+  }
+
+  const scaleFactor = 1.14;
+  let contrast = 0;
+
+  if (yBg > yTxt) {
+    const yBgExp = Math.pow(yBg, 0.56);
+    const yTxtExp = Math.pow(yTxt, 0.57);
+    contrast = (yBgExp - yTxtExp) * scaleFactor;
+  } else {
+    const yBgExp = Math.pow(yBg, 0.65);
+    const yTxtExp = Math.pow(yTxt, 0.62);
+    contrast = (yBgExp - yTxtExp) * scaleFactor;
+  }
+
+  if (Math.abs(contrast) < 0.1) {
+    return 0;
+  }
+  const rawLc = contrast > 0 ? (contrast - 0.027) * 100 : (contrast + 0.027) * 100;
+  return Number(Math.abs(rawLc).toFixed(1));
+}
+
+export const APCA_PALETTE: Readonly<
+  Record<string, { fg: RGBColor; bg: RGBColor; fgHex: string; bgHex: string; glyph: string }>
+> = {
+  critical: {
+    fg: { r: 255, g: 255, b: 255 },
+    bg: { r: 183, g: 28, b: 28 },
+    fgHex: "#FFFFFF",
+    bgHex: "#B71C1C",
+    glyph: "●",
+  },
+  warning: {
+    fg: { r: 0, g: 0, b: 0 },
+    bg: { r: 255, g: 193, b: 7 },
+    fgHex: "#000000",
+    bgHex: "#FFC107",
+    glyph: "▲",
+  },
+  open: {
+    fg: { r: 255, g: 255, b: 255 },
+    bg: { r: 211, g: 47, b: 47 },
+    fgHex: "#FFFFFF",
+    bgHex: "#D32F2F",
+    glyph: "🟢",
+  },
+  admitted: {
+    fg: { r: 255, g: 255, b: 255 },
+    bg: { r: 25, g: 118, b: 210 },
+    fgHex: "#FFFFFF",
+    bgHex: "#1976D2",
+    glyph: "✓",
+  },
+  resolved: {
+    fg: { r: 255, g: 255, b: 255 },
+    bg: { r: 46, g: 125, b: 50 },
+    fgHex: "#FFFFFF",
+    bgHex: "#2E7D32",
+    glyph: "✓",
+  },
+  declined: {
+    fg: { r: 255, g: 255, b: 255 },
+    bg: { r: 97, g: 97, b: 97 },
+    fgHex: "#FFFFFF",
+    bgHex: "#616161",
+    glyph: "✕",
+  },
+  ignored: {
+    fg: { r: 255, g: 255, b: 255 },
+    bg: { r: 117, g: 117, b: 117 },
+    fgHex: "#FFFFFF",
+    bgHex: "#757575",
+    glyph: "○",
+  },
+};
+
+export function getApcaBadgeInfo(statusOrSeverity: string): ApcaBadgeInfo {
+  const normalized = statusOrSeverity.trim().toLowerCase();
+  const warningPalette = APCA_PALETTE["warning"];
+  const matchedPalette = APCA_PALETTE[normalized];
+  const palette = matchedPalette !== undefined ? matchedPalette : warningPalette;
+  if (palette === undefined) {
+    throw new Error("unreachable: missing warning palette");
+  }
+  const lc = calculateApcaLightnessContrast(palette.fg, palette.bg);
+  const requiredLc = 60.0;
+  const passes = lc >= requiredLc;
+  const badgeText = `[${palette.glyph} ${normalized.toUpperCase()} (Lc=${lc.toFixed(1)} | ${passes ? "PASS" : "FAIL"})]`;
+
+  return {
+    label: normalized,
+    badge_text: badgeText,
+    fg_color: palette.fgHex,
+    bg_color: palette.bgHex,
+    lc,
+    required_lc: requiredLc,
+    passes_apca: passes,
+  };
+}
+
+export function renderApcaContrastBadge(statusOrSeverity: string): string {
+  return getApcaBadgeInfo(statusOrSeverity).badge_text;
+}

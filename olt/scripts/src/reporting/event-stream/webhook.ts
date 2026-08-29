@@ -10,6 +10,22 @@ interface SingleBatchResult {
   readonly error?: string | undefined;
 }
 
+function parseRetryAfterMs(headerVal: string | null, defaultMs: number): number {
+  if (!headerVal) {
+    return defaultMs;
+  }
+  const numeric = Number.parseInt(headerVal, 10);
+  if (!Number.isNaN(numeric) && numeric >= 0) {
+    return numeric * 1000;
+  }
+  const dateParsed = Date.parse(headerVal);
+  if (!Number.isNaN(dateParsed)) {
+    const diff = dateParsed - Date.now();
+    return Math.max(0, diff);
+  }
+  return defaultMs;
+}
+
 async function deliverSingleBatch(
   batch: readonly (HarnessEvent | Record<string, unknown>)[],
   webhookUrl: string,
@@ -36,6 +52,7 @@ async function deliverSingleBatch(
     attempts = attempt;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let retryAfterDelay: number | undefined;
 
     try {
       const response = await fetchFn(webhookUrl, {
@@ -80,7 +97,11 @@ async function deliverSingleBatch(
         };
       }
 
-      if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+      if (response.status === 429) {
+        const retryHeader = response.headers.get("retry-after");
+        const defaultBackoff = backoffBase * Math.pow(2, attempt - 1);
+        retryAfterDelay = parseRetryAfterMs(retryHeader, defaultBackoff);
+      } else if (response.status >= 400 && response.status < 500) {
         return {
           success: false,
           statusCode: response.status,
@@ -96,7 +117,10 @@ async function deliverSingleBatch(
     }
 
     if (attempt <= maxRetries) {
-      const delay = backoffBase * Math.pow(2, attempt - 1);
+      const delay =
+        retryAfterDelay !== undefined
+          ? retryAfterDelay
+          : backoffBase * Math.pow(2, attempt - 1);
       await new Promise((resolveSleep) => setTimeout(resolveSleep, delay));
     }
   }

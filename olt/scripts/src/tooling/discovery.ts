@@ -11,6 +11,12 @@ import type {
 
 export { type DiscoveredTool, type DiscoveryOptions, type DiscoveryReport };
 
+function stripJsonComments(input: string): string {
+  return input
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*/g, "");
+}
+
 export function validateToolSpec(raw: unknown): {
   readonly valid: boolean;
   readonly errors: readonly string[];
@@ -28,7 +34,8 @@ export function parseToolSpec(content: string, _sourcePath = ""): ToolDefinition
   try {
     const trimmed = content.trim();
     if (!trimmed) return null;
-    const parsed = JSON.parse(trimmed);
+    const sanitized = stripJsonComments(trimmed);
+    const parsed = JSON.parse(sanitized);
     const result = parseToolSchema(parsed);
     return result.valid && result.definition ? result.definition : null;
   } catch {
@@ -47,7 +54,12 @@ export function discoverToolsFromDirectory(
   const discovered: DiscoveredTool[] = [];
 
   function walk(currentDir: string): void {
-    const entries = readdirSync(currentDir);
+    let entries: string[] = [];
+    try {
+      entries = readdirSync(currentDir);
+    } catch {
+      return;
+    }
     for (const entry of entries) {
       const fullPath = join(currentDir, entry);
       let stat;
@@ -96,7 +108,8 @@ export function discoverToolsFromManifest(
   if (!existsSync(resolved)) return [];
   try {
     const raw = readFileSync(resolved, "utf-8");
-    const parsed = JSON.parse(raw);
+    const sanitized = stripJsonComments(raw);
+    const parsed = JSON.parse(sanitized);
     const list = Array.isArray(parsed)
       ? parsed
       : Array.isArray((parsed as Record<string, unknown>)?.tools)
@@ -104,6 +117,7 @@ export function discoverToolsFromManifest(
         : [parsed];
     const tools: ToolDefinition[] = [];
     for (const item of list) {
+      if (!item || typeof item !== "object") continue;
       const val = parseToolSchema(item);
       if (val.valid && val.definition) {
         tools.push({

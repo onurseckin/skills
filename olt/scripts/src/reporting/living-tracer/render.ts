@@ -235,9 +235,6 @@ export function buildLivingTracerReport(
   };
 }
 
-/**
- * Reads events directly from run capsule path and builds the living tracer report.
- */
 export function traceCapsuleRun(
   runPath: string,
   options: LivingTracerOptions = {},

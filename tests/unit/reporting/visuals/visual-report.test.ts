@@ -77,4 +77,22 @@ describe("normalizeVisualReport", () => {
     const report = normalizeVisualReport({ metadata: [1, 2] }, undefined);
     expect(report).not.toHaveProperty("metadata");
   });
+
+  test("synchronizes multi-viewport array definitions into normalized viewport records", () => {
+    const report = normalizeVisualReport(
+      {
+        viewports: [
+          { name: "desktop", width: 1920, height: 1080 },
+          { viewport: "tablet", width: 768, height: 1024 },
+          { width: 375, height: 667 },
+        ],
+      },
+      undefined,
+    );
+    expect(report?.viewports).toEqual({
+      desktop: { width: 1920, height: 1080 },
+      tablet: { width: 768, height: 1024 },
+      "viewport-3": { width: 375, height: 667 },
+    });
+  });
 });

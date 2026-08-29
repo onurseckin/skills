@@ -1,6 +1,3 @@
-/**
- * Omnipresent Time Telemetry Collector
- */
 import { randomUUID } from "node:crypto";
 import type { JsonValue } from "../../core/contracts/index.ts";
 import {
@@ -24,9 +21,6 @@ import {
 export { validateTimeTelemetryHealth } from "./health.ts";
 export { buildTimeTelemetryReport } from "./report-builder.ts";
 
-/**
- * Omnipresent Time Telemetry Collector managing active action spans and historical action records.
- */
 export class OmnipresentTelemetryCollector {
   private readonly _activeSpans = new Map<string, ActionSpan>();
   private readonly _completedRecords: HarnessActionTimeRecord[] = [];

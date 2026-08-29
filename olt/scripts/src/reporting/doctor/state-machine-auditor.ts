@@ -22,15 +22,17 @@ export interface LifecycleAuditSummary {
   readonly issues: readonly string[];
 }
 
+function getEventName(event: Record<string, unknown>): string {
+  if (typeof event["name"] === "string") return event["name"];
+  if (typeof event["kind"] === "string") return event["kind"];
+  if (typeof event["type"] === "string") return event["type"];
+  return "";
+}
+
 export class StateMachineAuditor {
   public static isPlanBrainstormed(events: readonly Record<string, unknown>[]): boolean {
     return events.some((event) => {
-      const kind =
-        typeof event["kind"] === "string"
-          ? event["kind"]
-          : typeof event["type"] === "string"
-            ? event["type"]
-            : "";
+      const kind = getEventName(event);
       return (
         kind === "plan-brainstormed" ||
         kind === "plan:brainstorm" ||
@@ -59,12 +61,7 @@ export class StateMachineAuditor {
     }
 
     return events.some((event) => {
-      const kind =
-        typeof event["kind"] === "string"
-          ? event["kind"]
-          : typeof event["type"] === "string"
-            ? event["type"]
-            : "";
+      const kind = getEventName(event);
       if (
         kind === "plan-reviewed" ||
         kind === "plan:review" ||
@@ -149,12 +146,7 @@ export class StateMachineAuditor {
     const taskCount = taskEntries.length + planningTasks.length;
 
     const hasTaskEvents = events.some((event) => {
-      const kind =
-        typeof event["kind"] === "string"
-          ? event["kind"]
-          : typeof event["type"] === "string"
-            ? event["type"]
-            : "";
+      const kind = getEventName(event);
       return (
         kind.startsWith("task-") ||
         kind.startsWith("task:") ||
@@ -167,7 +159,6 @@ export class StateMachineAuditor {
 
     const tasksExistOrProgressed = taskCount > 0 || hasTaskEvents;
 
-    // Check 1: PLANNING_BRAINSTORMING_SKIPPED
     const brainstormed = StateMachineAuditor.isPlanBrainstormed(events);
     if (tasksExistOrProgressed && !brainstormed) {
       findings.push({
@@ -182,7 +173,6 @@ export class StateMachineAuditor {
       });
     }
 
-    // Check 2: PLAN_VALIDATION_SKIPPED
     const progressedStatuses = new Set([
       "leased",
       "running",
@@ -212,12 +202,7 @@ export class StateMachineAuditor {
     }
 
     const hasProgressedTaskEvents = events.some((event) => {
-      const kind =
-        typeof event["kind"] === "string"
-          ? event["kind"]
-          : typeof event["type"] === "string"
-            ? event["type"]
-            : "";
+      const kind = getEventName(event);
       return (
         kind === "task-claimed" ||
         kind === "task:claim" ||

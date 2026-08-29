@@ -20,6 +20,7 @@ export const ALLOWED_ROOT_FILES: ReadonlySet<string> = new Set([
 export const ALLOWED_ROOT_DIRS: ReadonlySet<string> = new Set([
   "olt",
   ".olt",
+  ".capsules",
   "tests",
   "docs",
   "scratch",

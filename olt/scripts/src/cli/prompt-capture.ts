@@ -9,12 +9,10 @@ export async function capturePromptWithTimeout(
     timeoutMs?: number | undefined;
   } = {},
 ): Promise<string> {
-  // 1. Explicit inline prompt takes immediate precedence
   if (inlineText && inlineText.trim().length > 0) {
     return inlineText.trim();
   }
 
-  // 2. Explicit file prompt
   if (options.promptFile) {
     if (!existsSync(options.promptFile)) {
       throw new HarnessError("INVALID_ARGUMENT", `prompt file not found: ${options.promptFile}`);
@@ -22,7 +20,6 @@ export async function capturePromptWithTimeout(
     return readFileSync(options.promptFile, "utf-8").trim();
   }
 
-  // 3. Stdin with non-blocking race timeout
   const timeoutMs = options.timeoutMs ?? 500;
   return new Promise<string>((resolve, reject) => {
     const timer = setTimeout(() => {

@@ -167,6 +167,9 @@ export type {
   StreamSubscription,
   StreamSubscriber,
   StreamErrorHandler,
+  ReplayedEpistemicState,
+  EpistemicStateSnapshot,
+  EpistemicStateDiff,
 } from "./epistemic/index.ts";
 export {
   DEFAULT_EPISTEMIC_WEIGHTS,
@@ -186,4 +189,8 @@ export {
   EpistemicEventBus,
   EpistemicEventJournal,
   EpistemicEventStream,
+  EpistemicStateReplayer,
+  diffEpistemicStates,
+  reconstructEpistemicState,
+  buildSparseIndexFromState,
 } from "./epistemic/index.ts";

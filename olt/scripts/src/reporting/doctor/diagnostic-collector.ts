@@ -147,7 +147,7 @@ export function collectDiagnosticEngines(
 
   const engineWarnIssues = allEngineFindings
     .filter((f) => f.severity === "WARN")
-    .map((f) => `${f.engine}: ${f.message}`);
+    .map((f) => `[WARN] ${f.engine}: ${f.message}`);
 
   const engineInfoIssues = allEngineFindings
     .filter((f) => f.severity === "INFO")

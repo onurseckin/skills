@@ -1,6 +1,31 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import type { ChildProcessOptions, ChildProcessResult } from "./types.ts";
 
+const GLOBAL_ACTIVE_PROCESSES = new Set<ChildProcess>();
+
+function cleanupGlobalProcesses(): void {
+  for (const proc of GLOBAL_ACTIVE_PROCESSES) {
+    try {
+      if (proc.pid) {
+        process.kill(-proc.pid, "SIGKILL");
+      } else {
+        proc.kill("SIGKILL");
+      }
+    } catch {
+      try {
+        proc.kill("SIGKILL");
+      } catch {}
+    }
+  }
+  GLOBAL_ACTIVE_PROCESSES.clear();
+}
+
+try {
+  process.once("exit", cleanupGlobalProcesses);
+  process.once("SIGINT", cleanupGlobalProcesses);
+  process.once("SIGTERM", cleanupGlobalProcesses);
+} catch {}
+
 export class IsolatedChildProcessManager {
   private readonly runningProcesses = new Set<ChildProcess>();
 
@@ -35,6 +60,7 @@ export class IsolatedChildProcessManager {
       });
 
       this.runningProcesses.add(proc);
+      GLOBAL_ACTIVE_PROCESSES.add(proc);
 
       const cleanup = (): void => {
         if (timer) {
@@ -46,6 +72,13 @@ export class IsolatedChildProcessManager {
           forceKillTimer = null;
         }
         this.runningProcesses.delete(proc);
+        GLOBAL_ACTIVE_PROCESSES.delete(proc);
+
+        try {
+          proc.stdout?.destroy();
+          proc.stderr?.destroy();
+          proc.stdin?.destroy();
+        } catch {}
       };
 
       if (timeoutMs > 0) {

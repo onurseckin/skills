@@ -1,6 +1,3 @@
-/**
- * Living Tracer Sprouted Repair & Validator Branch Builder
- */
 import type { DynamicTaskState, SproutedRepairPair } from "./types.ts";
 
 export function createSproutedRepairBranch(

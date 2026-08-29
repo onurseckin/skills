@@ -1,12 +1,22 @@
 export type {
+  BayesianBeliefState,
+  BayesianEvidence,
+  BayesianUpdateOptions,
+  EpistemicCacheEntry,
+  EpistemicCacheOptions,
+  EpistemicCacheStats,
   EpistemicConfidenceLevel,
-  EpistemicEvaluationInput,
   EpistemicConfidenceResult,
+  EpistemicEvaluationInput,
   EpistemicGrade,
   EpistemicMetricInput,
   EpistemicScoreResult,
   EpistemicVector,
   EpistemicWeights,
+  InferenceEdge,
+  InferenceGraphSnapshot,
+  InferenceNode,
+  InferenceNodeKind,
   ShannonEntropyConfig,
   WilsonScoreInterval,
 } from "./types.ts";
@@ -28,6 +38,21 @@ export {
   evaluateEpistemicConfidence,
   type EvaluateEpistemicOptions,
 } from "./evaluator.ts";
+
+export {
+  computeBayesFactor,
+  createBayesianBelief,
+  fuseEvidenceSources,
+  logOddsToProbability,
+  oddsToProbability,
+  probabilityToLogOdds,
+  probabilityToOdds,
+  updateBayesianBelief,
+} from "./bayesian-inference.ts";
+
+export { EpistemicInferenceCache } from "./inference-cache.ts";
+
+export { InferenceGraph, type AddNodeOptions } from "./inference-graph.ts";
 
 export {
   EpistemicIndexStore,
@@ -54,3 +79,13 @@ export {
   type StreamSubscriber,
   type StreamSubscription,
 } from "./streaming.ts";
+
+export {
+  EpistemicStateReplayer,
+  buildSparseIndexFromState,
+  diffEpistemicStates,
+  reconstructEpistemicState,
+  type EpistemicStateDiff,
+  type EpistemicStateSnapshot,
+  type ReplayedEpistemicState,
+} from "./state-replay.ts";

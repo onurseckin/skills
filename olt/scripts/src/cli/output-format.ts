@@ -32,7 +32,7 @@ export function stripOutputFormat(argv: readonly string[]): OutputFormatScan {
         if (argv[i + 1] === "json") {
           json = true;
         }
-        i++; // skip the value
+        i++;
       }
       continue;
     }

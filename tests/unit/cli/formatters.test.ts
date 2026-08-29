@@ -45,6 +45,19 @@ describe("Markdown Formatters", () => {
     expect(rows[1]).toBe("| :--- | :--- |");
   });
 
+  test("formatTable handles column overflow, raw pipes, and newlines cleanly", () => {
+    const rows = formatTable(
+      ["Header | With Pipe", "Long Header Column"],
+      [
+        ["Line 1\nLine 2", "This is an extremely long string that exceeds column limits"],
+      ],
+      { maxColumnWidth: 20, truncate: true },
+    );
+    expect(rows[0]).toBe("| Header \\| With Pipe | Long Header Column |");
+    expect(rows[1]).toBe("| :--- | :--- |");
+    expect(rows[2]).toBe("| Line 1 Line 2 | This is an extrem... |");
+  });
+
   test("all brief formatters produce valid markdown <= 30 lines", () => {
     const initBrief = formatCapsuleInitBrief({
       runId: "run-1",

@@ -6,7 +6,6 @@ import { safeRmSync } from "../../core/shared/safe-fs/index.ts";
 import {
   cleanupTrackWorktree,
   listTrackWorktrees,
-  type TrackWorktreeInfo,
 } from "../../workflow/worktree/manager.ts";
 import { runGit, type GitRunner } from "../../workflow/worktree/git-ops.ts";
 
@@ -96,8 +95,9 @@ function findPrunableWorktrees(repoRoot: string, runner = runGit): readonly stri
       } else if (line.startsWith("prunable")) {
         isPrunable = true;
       } else if (line === "" && currentPath) {
-        if (isPrunable || (!existsSync(currentPath) && currentPath.includes(".olt")))
+        if (isPrunable || (!existsSync(currentPath) && currentPath.includes(".olt"))) {
           prunable.push(currentPath);
+        }
         currentPath = "";
         isPrunable = false;
       }
@@ -146,26 +146,14 @@ export function checkWorktreeHealth(
       if (isCorrupt) {
         const issue = `Corrupted lock file for worktree '${wt.trackId}'`;
         issues.push(issue);
-        findings.push({
-          code: "WORKTREE_CORRUPTED_METADATA",
-          severity: "WARN",
-          engine: "checkWorktreeHealth",
-          message: issue,
-          details: { trackId: wt.trackId, lockPath },
-        });
+        findings.push({ code: "WORKTREE_CORRUPTED_METADATA", severity: "WARN", engine: "checkWorktreeHealth", message: issue, details: { trackId: wt.trackId, lockPath } });
       } else if (lockData?.pid) {
         lockPid = lockData.pid;
         if (!isProcessAlive(lockPid)) {
           isDead = true;
           const issue = `Dead agent PID ${lockPid} holding track worktree '${wt.trackId}'`;
           issues.push(issue);
-          findings.push({
-            code: "WORKTREE_DEAD_PID_LOCK",
-            severity: "ERROR",
-            engine: "checkWorktreeHealth",
-            message: issue,
-            details: { trackId: wt.trackId, lockPid, lockPath },
-          });
+          findings.push({ code: "WORKTREE_DEAD_PID_LOCK", severity: "ERROR", engine: "checkWorktreeHealth", message: issue, details: { trackId: wt.trackId, lockPid, lockPath } });
         }
       }
     }
@@ -174,23 +162,11 @@ export function checkWorktreeHealth(
     if (merged) {
       const issue = `Track branch '${wt.branch}' for '${wt.trackId}' is merged into ${baseBranch} but not cleaned up`;
       issues.push(issue);
-      findings.push({
-        code: "WORKTREE_MERGED_NOT_CLEANED",
-        severity: "WARN",
-        engine: "checkWorktreeHealth",
-        message: issue,
-        details: { trackId: wt.trackId, branch: wt.branch },
-      });
+      findings.push({ code: "WORKTREE_MERGED_NOT_CLEANED", severity: "WARN", engine: "checkWorktreeHealth", message: issue, details: { trackId: wt.trackId, branch: wt.branch } });
     } else if (isDead) {
       const issue = `Unmerged branch '${wt.branch}' held by dead agent PID ${lockPid ?? "unknown"} in worktree '${wt.trackId}'`;
       issues.push(issue);
-      findings.push({
-        code: "WORKTREE_UNMERGED_DEAD_AGENT_BRANCH",
-        severity: "ERROR",
-        engine: "checkWorktreeHealth",
-        message: issue,
-        details: { trackId: wt.trackId, branch: wt.branch, lockPid },
-      });
+      findings.push({ code: "WORKTREE_UNMERGED_DEAD_AGENT_BRANCH", severity: "ERROR", engine: "checkWorktreeHealth", message: issue, details: { trackId: wt.trackId, branch: wt.branch, lockPid } });
     }
 
     if (autoHeal && (isDead || merged)) {
@@ -198,13 +174,7 @@ export function checkWorktreeHealth(
         cleanupTrackWorktree({ trackId: wt.trackId, repoRoot, force: true, runner });
         repaired.push(`Cleaned up worktree '${wt.trackId}'`);
       } catch (err) {
-        findings.push({
-          code: "WORKTREE_CLEANUP_FAILED",
-          severity: "ERROR",
-          engine: "checkWorktreeHealth",
-          message: `Failed to auto-heal worktree '${wt.trackId}': ${String(err)}`,
-          details: { trackId: wt.trackId },
-        });
+        findings.push({ code: "WORKTREE_CLEANUP_FAILED", severity: "ERROR", engine: "checkWorktreeHealth", message: `Failed to auto-heal worktree '${wt.trackId}': ${String(err)}`, details: { trackId: wt.trackId } });
       }
     }
   }
@@ -220,34 +190,16 @@ export function checkWorktreeHealth(
         if (isCorrupt) {
           const issue = `Corrupted orphaned lock '${file}'`;
           issues.push(issue);
-          findings.push({
-            code: "WORKTREE_CORRUPTED_METADATA",
-            severity: "WARN",
-            engine: "checkWorktreeHealth",
-            message: issue,
-            details: { file, lockPath },
-          });
+          findings.push({ code: "WORKTREE_CORRUPTED_METADATA", severity: "WARN", engine: "checkWorktreeHealth", message: issue, details: { file, lockPath } });
           if (autoHeal) {
-            try {
-              unlinkSync(lockPath);
-              repaired.push(`Removed corrupted lock '${file}'`);
-            } catch {}
+            try { unlinkSync(lockPath); repaired.push(`Removed corrupted lock '${file}'`); } catch {}
           }
         } else if (isOrphan && lockData?.pid && !isProcessAlive(lockData.pid)) {
           const issue = `Orphaned lock '${file}' with dead PID ${lockData.pid}`;
           issues.push(issue);
-          findings.push({
-            code: "WORKTREE_ORPHANED_LOCK",
-            severity: "WARN",
-            engine: "checkWorktreeHealth",
-            message: issue,
-            details: { file, lockPath, pid: lockData.pid },
-          });
+          findings.push({ code: "WORKTREE_ORPHANED_LOCK", severity: "WARN", engine: "checkWorktreeHealth", message: issue, details: { file, lockPath, pid: lockData.pid } });
           if (autoHeal) {
-            try {
-              unlinkSync(lockPath);
-              repaired.push(`Removed orphaned lock '${file}'`);
-            } catch {}
+            try { unlinkSync(lockPath); repaired.push(`Removed orphaned lock '${file}'`); } catch {}
           }
         }
       }
@@ -259,28 +211,14 @@ export function checkWorktreeHealth(
       for (const item of readdirSync(worktreesDir)) {
         if (item === "locks" || item.startsWith(".")) continue;
         const itemPath = join(worktreesDir, item);
-        try {
-          if (!statSync(itemPath).isDirectory()) continue;
-        } catch {
-          continue;
-        }
+        try { if (!statSync(itemPath).isDirectory()) continue; } catch { continue; }
         if (!activeTrackWorktrees.some((w) => w.trackId === item)) {
           const issue = `Orphaned directory in .olt/worktrees: '${item}'`;
           issues.push(issue);
-          findings.push({
-            code: "WORKTREE_ORPHANED_DIR",
-            severity: "WARN",
-            engine: "checkWorktreeHealth",
-            message: issue,
-            details: { item, itemPath },
-          });
+          findings.push({ code: "WORKTREE_ORPHANED_DIR", severity: "WARN", engine: "checkWorktreeHealth", message: issue, details: { item, itemPath } });
           if (autoHeal) {
             try {
-              safeRmSync(itemPath, {
-                allowedRoots: [worktreesDir],
-                allowGitRepositoryDeletion: true,
-                missingOk: true,
-              });
+              safeRmSync(itemPath, { allowedRoots: [worktreesDir], allowGitRepositoryDeletion: true, missingOk: true });
               repaired.push(`Removed orphaned worktree dir '${item}'`);
             } catch {}
           }
@@ -293,28 +231,19 @@ export function checkWorktreeHealth(
   for (const prunablePath of prunable) {
     const issue = `Stale or prunable git worktree entry at '${prunablePath}'`;
     issues.push(issue);
-    findings.push({
-      code: "WORKTREE_PRUNABLE_GIT_ENTRY",
-      severity: "WARN",
-      engine: "checkWorktreeHealth",
-      message: issue,
-      details: { path: prunablePath },
-    });
+    findings.push({ code: "WORKTREE_PRUNABLE_GIT_ENTRY", severity: "WARN", engine: "checkWorktreeHealth", message: issue, details: { path: prunablePath } });
   }
 
   if (autoHeal) {
     try {
       runner(repoRoot, ["worktree", "prune"]);
-      if (prunable.length > 0)
-        repaired.push(`Pruned ${prunable.length} stale git worktree entries`);
+      if (prunable.length > 0) repaired.push(`Pruned ${prunable.length} stale git worktree entries`);
     } catch {}
   }
 
   const cleanupFailed = findings.some((f) => f.code === "WORKTREE_CLEANUP_FAILED");
   const isHealthy = autoHeal ? !cleanupFailed : issues.length === 0;
-  const isPassed = autoHeal
-    ? !cleanupFailed
-    : findings.filter((f) => f.severity === "ERROR").length === 0;
+  const isPassed = autoHeal ? !cleanupFailed : findings.filter((f) => f.severity === "ERROR").length === 0;
 
   return {
     name: "worktree_health",

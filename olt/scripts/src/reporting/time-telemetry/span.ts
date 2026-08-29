@@ -1,6 +1,3 @@
-/**
- * Action Span & Timing Measurement Mechanics
- */
 import { randomUUID } from "node:crypto";
 import type { JsonValue } from "../../core/contracts/index.ts";
 import {
@@ -44,9 +41,6 @@ const COMMAND_PREFIX_MAP: Readonly<Record<string, CommandDomainMapping>> = {
   "workflow:": { category: "workflow", defaultTier: 2 },
 };
 
-/**
- * Categorizes a harness command or action name and returns its canonical domain and authority tier.
- */
 export function categorizeHarnessAction(actionName: string): {
   readonly category: HarnessActionCategory;
   readonly defaultTier: number;
@@ -72,9 +66,6 @@ export function categorizeHarnessAction(actionName: string): {
   return { category: "custom", defaultTier: 3 };
 }
 
-/**
- * Computes min, max, mean, and standard latency percentiles from a series of durations in ms.
- */
 export function computeLatencyPercentiles(durationsMs: readonly number[]): LatencyPercentiles {
   if (durationsMs.length === 0) {
     return {
@@ -115,9 +106,6 @@ export function computeLatencyPercentiles(durationsMs: readonly number[]): Laten
   };
 }
 
-/**
- * Active timing span for wrapping and measuring harness actions in real time.
- */
 export class ActionSpan {
   public readonly actionId: string;
   public readonly actionName: string;

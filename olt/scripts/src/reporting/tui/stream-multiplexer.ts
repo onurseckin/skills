@@ -13,6 +13,7 @@ export class StreamMultiplexer {
   private readonly ringBuffer: MuxEnvelope[] = [];
   private maxBufferSize: number;
   private sequenceCounter = 0;
+  private droppedCount = 0;
 
   constructor(options?: MultiplexerOptions) {
     this.maxBufferSize = Math.max(1, options?.maxBufferSize ?? 500);
@@ -123,16 +124,23 @@ export class StreamMultiplexer {
     return this.ringBuffer.length;
   }
 
+  public getDroppedCount(): number {
+    return this.droppedCount;
+  }
+
   public setMaxBufferSize(size: number): void {
     this.maxBufferSize = Math.max(1, size);
     if (this.ringBuffer.length > this.maxBufferSize) {
-      this.ringBuffer.splice(0, this.ringBuffer.length - this.maxBufferSize);
+      const excess = this.ringBuffer.length - this.maxBufferSize;
+      this.droppedCount += excess;
+      this.ringBuffer.splice(0, excess);
     }
   }
 
   private appendEnvelope(envelope: MuxEnvelope): void {
     this.ringBuffer.push(envelope);
     if (this.ringBuffer.length > this.maxBufferSize) {
+      this.droppedCount += 1;
       this.ringBuffer.shift();
     }
   }

@@ -155,6 +155,7 @@ describe("Track 2 Extensions - Terminal Dashboard Keybindings & Live TUI Streams
         mux.pushEvent("test", { num: i });
       }
       expect(mux.getBufferSize()).toBe(5);
+      expect(mux.getDroppedCount()).toBe(5);
       const remaining = mux.getEvents();
       expect(remaining.length).toBe(5);
     });

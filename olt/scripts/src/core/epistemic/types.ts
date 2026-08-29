@@ -242,6 +242,30 @@ export interface StreamSubscription {
 export type StreamSubscriber<T> = (event: T) => void | Promise<void>;
 export type StreamErrorHandler = (error: Error) => void;
 
+export interface ReplayedEpistemicState {
+  readonly timestamp: number;
+  readonly records: ReadonlyMap<string, EpistemicRecord>;
+  readonly beliefStates: ReadonlyMap<string, BayesianBeliefState>;
+  readonly eventCount: number;
+  readonly lastEventId?: string | undefined;
+}
+
+export interface EpistemicStateSnapshot {
+  readonly timestamp: number;
+  readonly records: readonly EpistemicRecord[];
+  readonly beliefStates: readonly BayesianBeliefState[];
+  readonly eventCount: number;
+  readonly lastEventId?: string | undefined;
+}
+
+export interface EpistemicStateDiff {
+  readonly addedRecordIds: readonly string[];
+  readonly removedRecordIds: readonly string[];
+  readonly modifiedRecordIds: readonly string[];
+  readonly scoreDeltas: Readonly<Record<string, number>>;
+  readonly gradeTransitions: Readonly<Record<string, { from: EpistemicGrade; to: EpistemicGrade }>>;
+}
+
 export const DEFAULT_EPISTEMIC_WEIGHTS: EpistemicWeights = {
   empirical: 0.25,
   coherence: 0.25,

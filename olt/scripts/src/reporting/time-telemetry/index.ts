@@ -1,6 +1,3 @@
-/**
- * Omnipresent Time Telemetry & Dual-Time Reporting Subsystem Facade
- */
 export {
   type HarnessActionCategory,
   type ActionExecutionStatus,

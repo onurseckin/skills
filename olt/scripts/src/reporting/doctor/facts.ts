@@ -43,7 +43,14 @@ export function ignoredByGit(
 export function classifyIssueSeverity(issue: string): DoctorIssueSeverity {
   const code = issue.split(":", 1)[0];
   if (code !== undefined && COSMETIC_ISSUE_CODES.has(code)) return "cosmetic";
-  if (issue.startsWith("[INFO]") || issue.includes("[minor]")) return "cosmetic";
+  if (
+    issue.startsWith("[INFO]") ||
+    issue.startsWith("[WARN]") ||
+    issue.includes("[minor]") ||
+    issue.includes("[warning]")
+  ) {
+    return "cosmetic";
+  }
   return "critical";
 }
 

@@ -84,10 +84,11 @@ function mindCmd(
   flags: readonly FlagSpec[],
   handler: CommandHandler,
   examples: readonly string[] = [],
+  aliases: readonly string[] = [],
 ): CommandSpec {
   return {
     name,
-    aliases: [],
+    aliases,
     domain: "mind",
     summary,
     description,

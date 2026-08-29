@@ -41,13 +41,11 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
   });
 
   describe("Command Registry Verification", () => {
-    test("registers mind:audit:live and its alias mind:audit in mind domain", () => {
+    test("registers mind:audit:live in mind domain", () => {
       const spec = findCommand("mind:audit:live");
       expect(spec).toBeDefined();
       expect(spec?.name).toBe("mind:audit:live");
       expect(spec?.domain).toBe("mind");
-      expect(spec?.aliases).toContain("mind:audit");
-      expect(findCommand("mind:audit")).toBe(spec);
 
       const flagNames = spec?.flags.map((f) => f.name);
       expect(flagNames).toContain("repo");
@@ -56,13 +54,11 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
       expect(flagNames).toContain("json");
     });
 
-    test("registers skill:audit:live and its alias skill:audit in reporting domain", () => {
+    test("registers skill:audit:live in reporting domain", () => {
       const spec = findCommand("skill:audit:live");
       expect(spec).toBeDefined();
       expect(spec?.name).toBe("skill:audit:live");
       expect(spec?.domain).toBe("reporting");
-      expect(spec?.aliases).toContain("skill:audit");
-      expect(findCommand("skill:audit")).toBe(spec);
 
       const flagNames = spec?.flags.map((f) => f.name);
       expect(flagNames).toContain("repo");
@@ -245,7 +241,7 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
   });
 
   describe("Harness CLI execute Integration", () => {
-    test("executes mind:audit:live and mind:audit via CLI harness", async () => {
+    test("executes mind:audit:live via CLI harness", async () => {
       AuditorCursorStore.saveCursor(testDir, "mind", {
         lastInspectedTimestamp: new Date().toISOString(),
         lastInspectedEventIndex: 0,
@@ -255,25 +251,14 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
         suppressStdout: true,
       });
       expect(resLive["stagnant"]).toBe(false);
-
-      const resAlias = await execute(["mind:audit", "--repo", testDir, "--json"], {
-        suppressStdout: true,
-      });
-      expect(resAlias["stagnant"]).toBe(false);
     });
 
-    test("executes skill:audit:live and skill:audit via CLI harness", async () => {
+    test("executes skill:audit:live via CLI harness", async () => {
       const resLive = await execute(
         ["skill:audit:live", "--repo", testDir, "--run", runDir, "--json"],
         { suppressStdout: true },
       );
       expect(resLive["compliant"]).toBe(true);
-
-      const resAlias = await execute(
-        ["skill:audit", "--repo", testDir, "--run", runDir, "--json"],
-        { suppressStdout: true },
-      );
-      expect(resAlias["compliant"]).toBe(true);
     });
   });
 

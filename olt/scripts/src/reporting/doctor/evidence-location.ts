@@ -109,7 +109,7 @@ export function verifyUnifiedEvidenceLocation(
         checkedCount++;
       }
     } catch {
-      // Ignore reading directory errors
+      
     }
   }
 

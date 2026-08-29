@@ -18,9 +18,12 @@ export function sanitizeShellArgument(arg: string): string {
 export function detectCommandInjection(input: string): SecurityViolation | null {
   if (SHELL_INJECTION_PATTERN.test(input)) {
     return {
+      parameterName: "shell_argument",
       field: "shell_argument",
       threatType: "COMMAND_INJECTION",
+      violationType: "command-injection",
       message: "Potential command injection characters detected in shell argument",
+      details: "Potential command injection characters detected in shell argument",
       rawValue: input,
     };
   }
@@ -35,9 +38,12 @@ export function sanitizePathTraversal(
     return {
       safePath: null,
       violation: {
+        parameterName: "path",
         field: "path",
         threatType: "NULL_BYTE_INJECTION",
+        violationType: "unsafe-characters",
         message: "Null byte detected in file path",
+        details: "Null byte detected in file path",
         rawValue: pathStr,
       },
     };
@@ -48,9 +54,12 @@ export function sanitizePathTraversal(
     return {
       safePath: null,
       violation: {
+        parameterName: "path",
         field: "path",
         threatType: "PATH_TRAVERSAL",
+        violationType: "path-traversal",
         message: "Path traversal attempt detected with parent directory references",
+        details: "Path traversal attempt detected with parent directory references",
         rawValue: pathStr,
       },
     };
@@ -66,9 +75,12 @@ export function sanitizePathTraversal(
       return {
         safePath: null,
         violation: {
+          parameterName: "path",
           field: "path",
           threatType: "PATH_TRAVERSAL",
+          violationType: "path-traversal",
           message: `Path '${pathStr}' is outside allowed directories: ${allowedRoots.join(", ")}`,
+          details: `Path '${pathStr}' is outside allowed directories: ${allowedRoots.join(", ")}`,
           rawValue: pathStr,
         },
       };
@@ -85,9 +97,13 @@ export function detectPrototypePollution(
 ): SecurityViolation | null {
   if (currentDepth > maxDepth) {
     return {
+      parameterName: "depth",
       field: "depth",
       threatType: "PAYLOAD_TOO_LARGE",
+      violationType: "policy-violation",
       message: `Object nesting depth exceeds maximum allowed depth of ${maxDepth}`,
+      details: `Object nesting depth exceeds maximum allowed depth of ${maxDepth}`,
+      rawValue: currentDepth,
     };
   }
   if (!value || typeof value !== "object") return null;
@@ -104,9 +120,12 @@ export function detectPrototypePollution(
   for (const key of Object.getOwnPropertyNames(obj)) {
     if (PROTOTYPE_POLLUTION_KEYS.has(key)) {
       return {
+        parameterName: key,
         field: key,
         threatType: "PROTOTYPE_POLLUTION",
+        violationType: "prototype-pollution",
         message: `Dangerous prototype property '${key}' detected in payload`,
+        details: `Dangerous prototype property '${key}' detected in payload`,
         rawValue: key,
       };
     }
@@ -172,29 +191,38 @@ export function sanitizeToolInput(
     if (typeof val === "string") {
       if (val.includes("\0")) {
         violations.push({
+          parameterName: path,
           field: path,
           threatType: "NULL_BYTE_INJECTION",
+          violationType: "unsafe-characters",
           message: "Null byte detected in string value",
+          details: "Null byte detected in string value",
           rawValue: val,
         });
       }
       if (val.length > maxStringLength) {
         violations.push({
+          parameterName: path,
           field: path,
           threatType: "PAYLOAD_TOO_LARGE",
+          violationType: "policy-violation",
           message: `String length ${val.length} exceeds maximum limit of ${maxStringLength}`,
+          details: `String length ${val.length} exceeds maximum limit of ${maxStringLength}`,
           rawValue: val.slice(0, 100),
         });
       }
       if (policy.allowShellExecution === false) {
         const shellV = detectCommandInjection(val);
-        if (shellV) violations.push({ ...shellV, field: path });
+        if (shellV) violations.push({ ...shellV, parameterName: path, field: path });
       }
       if (policy.stripUnsafeHtml && DANGEROUS_HTML_PATTERN.test(val)) {
         violations.push({
+          parameterName: path,
           field: path,
           threatType: "XSS_OR_SCRIPT_INJECTION",
+          violationType: "unsafe-characters",
           message: "Dangerous script or HTML construct detected",
+          details: "Dangerous script or HTML construct detected",
           rawValue: val,
         });
       }
@@ -203,9 +231,12 @@ export function sanitizeToolInput(
           const regex = typeof pattern === "string" ? new RegExp(pattern) : pattern;
           if (regex.test(val)) {
             violations.push({
+              parameterName: path,
               field: path,
               threatType: "FORBIDDEN_PATTERN",
+              violationType: "policy-violation",
               message: `Value matches forbidden security pattern '${String(pattern)}'`,
+              details: `Value matches forbidden security pattern '${String(pattern)}'`,
               rawValue: val,
             });
           }
@@ -217,9 +248,13 @@ export function sanitizeToolInput(
     if (Array.isArray(val)) {
       if (val.length > maxArrayLength) {
         violations.push({
+          parameterName: path,
           field: path,
           threatType: "PAYLOAD_TOO_LARGE",
+          violationType: "policy-violation",
           message: `Array length ${val.length} exceeds maximum allowed elements ${maxArrayLength}`,
+          details: `Array length ${val.length} exceeds maximum allowed elements ${maxArrayLength}`,
+          rawValue: val.length,
         });
       }
       return val.map((item, idx) => sanitizeRecursive(item, `${path}[${idx}]`, depth + 1));
@@ -243,9 +278,14 @@ export function sanitizeToolInput(
   return {
     valid: violations.length === 0,
     safe: violations.length === 0,
-    errors: violations.map((v) => v.message ?? "Security violation"),
+    errors: violations.map((v) => ({
+      field: v.field ?? v.parameterName,
+      message: v.message ?? v.details ?? "Security violation",
+      code: v.threatType ?? v.violationType ?? "SECURITY_VIOLATION",
+    })),
     violations,
     sanitized,
+    sanitizedPayload: sanitized,
   };
 }
 

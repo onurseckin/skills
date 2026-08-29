@@ -49,7 +49,6 @@ export function extractOrchestrateInlinePrompt(argv: readonly string[]): Orchest
       if (flagNames.has(flagName)) {
         filteredArgv.push(token);
         i++;
-        // If the flag takes a value, capture the value as a flag option, not as inline prompt
         if (
           flagName === "run" ||
           flagName === "run-id" ||

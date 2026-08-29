@@ -1,6 +1,3 @@
-/**
- * Time Telemetry Report Builder
- */
 import { getDualTime } from "../../core/dual-time/index.ts";
 import { validateTimeTelemetryHealth } from "./health.ts";
 import { computeLatencyPercentiles } from "./span.ts";
