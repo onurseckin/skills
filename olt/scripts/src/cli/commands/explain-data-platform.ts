@@ -82,4 +82,56 @@ export const PLATFORM_AND_LOCK_ENTRIES: readonly ExplainEntry[] = [
       ),
     ],
   },
+  {
+    code: "UNSUPPORTED_HOST",
+    summary: "Could not detect canonical host environment.",
+    rule: "The harness requires one of the four canonical host environments: antigravity, claude_code, codex, or cursor with zero generic fallback.",
+    causes: [
+      cause(
+        "unsupported-host-environment",
+        "Host environment variables or tools do not match any canonical profile",
+        "None of the environment signatures for antigravity, claude_code, codex, or cursor were present.",
+        "Set the required environment variable for your host runtime (e.g., ANTIGRAVITY_APP_DIR, CLAUDE_PROJECT_DIR, CODEX_RUNTIME, or CURSOR_PROJECT_DIR).",
+        [
+          example(
+            "platform/host-autodetect.ts",
+            "Could not detect canonical host environment (zero generic fallback)",
+          ),
+        ],
+      ),
+    ],
+  },
+  {
+    code: "NOT_FOUND",
+    summary: "The requested entity or resource was not found.",
+    rule: "The requested entity (such as a user persona or resource) does not exist in the active registry or system store.",
+    causes: [
+      cause(
+        "user-persona-not-found",
+        "User persona role not found",
+        "The requested user persona role was not registered in the persona registry.",
+        "Ensure the persona is configured in .olt/policy.json or use a supported canonical persona role (admin, standard_user, invited_member, guest).",
+        [example("capture/persona-registry.ts", "User persona role '${String(role)}' not found")],
+      ),
+    ],
+  },
+  {
+    code: "PERMISSION_DENIED",
+    summary: "The actor is not permitted to perform the requested operation.",
+    rule: "The actor is either unregistered, has an unresolved role, or is attempting a command or mutation prohibited by RBAC policy.",
+    causes: [
+      cause(
+        "unresolved-actor-or-role",
+        "Unresolved actor or role fail-closed denial",
+        "An actor with an unresolvable identity or role attempted a governed command or shell execution.",
+        "Register the actor under an active supervisor chain and execute within the bounds of the assigned role grant.",
+        [
+          example(
+            "packets/command-authority.ts",
+            'role ${role ?? "unresolved"} may not invoke ${spec.name}: actor \'${agentId ?? "unresolved"}\' or role is unresolved; fail-closed enforcement active',
+          ),
+        ],
+      ),
+    ],
+  },
 ];

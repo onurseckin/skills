@@ -16,7 +16,7 @@ export interface UnifiedAgentManifest {
   readonly permissions: {
     readonly may: readonly string[];
     readonly must_not: readonly string[];
-    readonly commands: readonly string[];
+    readonly commands?: readonly string[] | undefined;
     readonly spawns: readonly string[];
   };
   readonly invariants: readonly string[];
@@ -34,7 +34,7 @@ export function parseUnifiedAgentManifest(
 ): UnifiedAgentManifest {
   try {
     const doc = yaml.load(rawYaml) as Record<string, unknown>;
-    if (!doc || typeof doc !== "object") {
+    if (!doc || typeof doc !== "object" || Array.isArray(doc)) {
       throw new Error("YAML document must be an object");
     }
 
@@ -74,7 +74,11 @@ export function parseUnifiedAgentManifest(
       permissions: {
         may: Array.isArray(rawPerms.may) ? rawPerms.may : [],
         must_not: Array.isArray(rawPerms.must_not) ? rawPerms.must_not : [],
-        commands: Array.isArray(rawPerms.commands) ? rawPerms.commands : [],
+        commands: Array.isArray(rawPerms.commands)
+          ? rawPerms.commands
+          : Array.isArray(doc.commands)
+            ? (doc.commands as readonly string[])
+            : undefined,
         spawns: Array.isArray(rawPerms.spawns) ? rawPerms.spawns : [],
       },
       invariants: Array.isArray(doc.invariants) ? doc.invariants : [],
@@ -145,7 +149,9 @@ export function validateUnifiedAgentManifest(manifest: UnifiedAgentManifest): {
     };
     checkStringArray(manifest.permissions.may, "permissions.may");
     checkStringArray(manifest.permissions.must_not, "permissions.must_not");
-    checkStringArray(manifest.permissions.commands, "permissions.commands");
+    if (manifest.permissions.commands !== undefined) {
+      checkStringArray(manifest.permissions.commands, "permissions.commands");
+    }
     checkStringArray(manifest.permissions.spawns, "permissions.spawns");
   }
 

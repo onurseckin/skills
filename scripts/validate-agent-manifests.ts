@@ -49,7 +49,7 @@ function run() {
         const manifest = parseUnifiedAgentManifest(rawYaml, filePath);
         tier = manifest.tier;
         tools = `W:${manifest.tools.enable_write_tools} S:${manifest.tools.enable_subagent_tools}`;
-        commandsCount = manifest.permissions.commands.length;
+        commandsCount = manifest.permissions.commands?.length ?? 0;
         spawnsCount = manifest.permissions.spawns.length;
 
         const validation = validateUnifiedAgentManifest(manifest);

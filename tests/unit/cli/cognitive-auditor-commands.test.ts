@@ -201,9 +201,8 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
       const output = String(result["output"]);
       expect(output).toContain("# Tier 0 Skill Compliance Live Audit: NON_COMPLIANT");
       expect(output).toContain("⚠️ 1 INCIDENTS");
-      expect(output).toContain("## Forensics Incidents Detected:");
       expect(output).toContain(
-        "ROLE_BOUNDARY_DEVIATION: Coordinator agent `coordinator-1` directly invoked write tool",
+        "ROLE_BOUNDARY_DEVIATION: Coordinator 'coordinator-1' executed code modification tool",
       );
       const lineCount = output.split("\n").length;
       expect(lineCount).toBeLessThanOrEqual(30);

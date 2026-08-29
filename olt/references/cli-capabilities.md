@@ -48,6 +48,7 @@ own status in `exit_code`.
 | gate | 1 | [cli-capabilities/domains/gate.md](cli-capabilities/domains/gate.md) |
 | capture | 3 | [cli-capabilities/domains/capture.md](cli-capabilities/domains/capture.md) |
 | mind | 25 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
+| policy | 4 | [cli-capabilities/domains/policy.md](cli-capabilities/domains/policy.md) |
 
 ## Commands
 
@@ -180,3 +181,7 @@ own status in `exit_code`.
 | `mind:queue:seal` | mind | Seal completed queue items with empirical verification proofs. |
 | `mind:queue:clean` | mind | Prune resolved items from queue into completed-tasks archive. |
 | `mind:audit:live` | mind | Live Tier 0 out-of-band audit of mind liveness, stagnation, and Mode A/B injection. |
+| `policy:init` | policy | Initialize canonical .olt/policy.json with auto-detected ecosystem defaults. |
+| `policy:get` | policy | Inspect repo policy or retrieve a specific policy key value. |
+| `policy:set` | policy | Set or update a specific key value in .olt/policy.json. |
+| `policy:check-drift` | policy | Check for policy file drift against a known SHA-256 checksum. |

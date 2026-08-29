@@ -1,0 +1,637 @@
+{
+  "schema_version": 1,
+  "ecosystem": "bun",
+  "package_manager": "bun",
+  "skill_home_repo_root": "/Users/onurseckinsenoglu/repos/skills",
+  "test_runner": {
+    "default_command": "bun test",
+    "targeted_pattern": "bun test <path>",
+    "full_suite_command": "bun test",
+    "timeout_ms": 30000
+  },
+  "typecheck_command": "bun run typecheck",
+  "lint_command": "bun run lint",
+  "allowed_commands": [
+    "bun test",
+    "bun run",
+    "tsc",
+    "git status",
+    "git diff",
+    "git log",
+    "ls",
+    "find",
+    "grep",
+    "cat",
+    "wc"
+  ],
+  "forbidden_commands": ["git commit", "git push", "git reset", "rm -rf /"],
+  "read_scope_neighborhood_depth": 2,
+  "review_protocol": {
+    "max_adversarial_pushes": 20,
+    "cognitive_pushes": 5,
+    "escalate_on_exhausted_adversarial": true
+  },
+  "planning": {
+    "mandatory_brainstorming_rounds": 3,
+    "socratic_expansion_depth": 8,
+    "enforce_edge_case_matrix": true,
+    "min_tasks_per_complex_prompt": 6,
+    "max_files_per_task": 2,
+    "reject_shallow_umbrella_compression": true
+  },
+  "agents": {
+    "mind_supervisor": {
+      "tier": 0,
+      "silent_daemon": true,
+      "rbac": {
+        "can_execute_shell": false,
+        "can_edit_code": false,
+        "allowed_spawns": ["orchestrator", "mind_auditor", "skill_auditor", "autonomic_watchdog"]
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192,
+          "scheduler": {
+            "enabled": true,
+            "cron": "*/5 * * * *",
+            "interval_seconds": 300
+          }
+        },
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192,
+          "scheduler": {
+            "enabled": true,
+            "cron": "*/15 * * * *",
+            "interval_seconds": 900
+          }
+        },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192,
+          "scheduler": {
+            "enabled": true,
+            "cron": "*/15 * * * *",
+            "interval_seconds": 900
+          }
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192,
+          "scheduler": {
+            "enabled": true,
+            "cron": "*/5 * * * *",
+            "interval_seconds": 300
+          }
+        }
+      }
+    },
+    "orchestrator": {
+      "tier": 1,
+      "rbac": {
+        "can_execute_shell": true,
+        "can_edit_code": false,
+        "allowed_commands": ["bun harness.ts *", "git status", "git diff", "git log"],
+        "forbidden_patterns": ["^bun\\s+test\\b", "^npm\\s+test\\b", "^git\\s+(commit|push|reset)"],
+        "allowed_spawns": [
+          "coordinator",
+          "implementer",
+          "validator_code_quality",
+          "validator_ui_design",
+          "completeness_critic"
+        ]
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
+    "coordinator": {
+      "tier": 2,
+      "rbac": {
+        "can_execute_shell": true,
+        "can_edit_code": false,
+        "allowed_commands": [
+          "bun harness.ts *",
+          "git status",
+          "git diff",
+          "git commit",
+          "git push",
+          "git log"
+        ],
+        "forbidden_patterns": ["^bun\\s+test\\b", "^npm\\s+test\\b"],
+        "allowed_spawns": [
+          "implementer",
+          "validator_code_quality",
+          "validator_ui_design",
+          "completeness_critic"
+        ]
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
+    "implementer": {
+      "tier": 3,
+      "rbac": {
+        "can_execute_shell": true,
+        "can_edit_code": true,
+        "allowed_commands": [
+          "bun test <target>",
+          "bun run typecheck",
+          "bun run lint",
+          "git status",
+          "git diff",
+          "ls",
+          "grep"
+        ],
+        "forbidden_patterns": [
+          "^git\\s+(commit|push|reset|checkout\\s+-b)",
+          "^bun\\s+test\\s*$",
+          "^npm\\s+test\\s*$"
+        ]
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
+    "validator_code_quality": {
+      "tier": 3,
+      "domain": "code_quality",
+      "rbac": {
+        "can_execute_shell": false,
+        "can_edit_code": false
+      },
+      "quotas": {
+        "mandatory_cognitive_pushbacks": 5,
+        "max_adversarial_probes": 10,
+        "max_turns_per_task": 15,
+        "escalate_on_exhausted_adversarial": true
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
+    "validator_ui_design": {
+      "tier": 3,
+      "domain": "ui_design",
+      "rbac": {
+        "can_execute_shell": false,
+        "can_edit_code": false
+      },
+      "quotas": {
+        "mandatory_cognitive_pushbacks": 5,
+        "max_adversarial_probes": 10,
+        "max_turns_per_task": 15,
+        "escalate_on_exhausted_adversarial": true
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
+    "validator_security": {
+      "tier": 3,
+      "domain": "security",
+      "rbac": {
+        "can_execute_shell": false,
+        "can_edit_code": false
+      },
+      "quotas": {
+        "mandatory_cognitive_pushbacks": 5,
+        "max_adversarial_probes": 10,
+        "max_turns_per_task": 15,
+        "escalate_on_exhausted_adversarial": true
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
+    "validator_system_design": {
+      "tier": 3,
+      "domain": "system_design",
+      "rbac": {
+        "can_execute_shell": false,
+        "can_edit_code": false
+      },
+      "quotas": {
+        "mandatory_cognitive_pushbacks": 5,
+        "max_adversarial_probes": 10,
+        "max_turns_per_task": 15,
+        "escalate_on_exhausted_adversarial": true
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
+    "validator_product": {
+      "tier": 3,
+      "domain": "product",
+      "rbac": {
+        "can_execute_shell": false,
+        "can_edit_code": false
+      },
+      "quotas": {
+        "mandatory_cognitive_pushbacks": 5,
+        "max_adversarial_probes": 10,
+        "max_turns_per_task": 15,
+        "escalate_on_exhausted_adversarial": true
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
+    "completeness_critic": {
+      "tier": 3,
+      "domain": "completeness",
+      "rbac": {
+        "can_execute_shell": false,
+        "can_edit_code": false
+      },
+      "quotas": {
+        "mandatory_cognitive_pushbacks": 5,
+        "max_adversarial_probes": 10,
+        "max_turns_per_task": 15,
+        "escalate_on_exhausted_adversarial": true
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
+    "autonomic_watchdog": {
+      "tier": 0,
+      "silent_daemon": true,
+      "rbac": {
+        "can_execute_shell": false,
+        "can_edit_code": false
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192,
+          "scheduler": {
+            "enabled": true,
+            "interval_seconds": 300
+          }
+        },
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192,
+          "scheduler": {
+            "enabled": true,
+            "interval_seconds": 300
+          }
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192,
+          "scheduler": {
+            "enabled": true,
+            "interval_seconds": 300
+          }
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192,
+          "scheduler": {
+            "enabled": true,
+            "interval_seconds": 300
+          }
+        }
+      }
+    },
+    "owner": {
+      "tier": "independent",
+      "rbac": {
+        "can_execute_shell": true,
+        "can_edit_code": true,
+        "allowed_commands": [
+          "agent:register",
+          "authority:decide",
+          "mind:admit",
+          "mind:rotate",
+          "recover",
+          "doctor"
+        ]
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    }
+  },
+  "docker_environment": {
+    "enabled": true,
+    "compose_file": "docker-compose.test.yml",
+    "containers": {
+      "web_app": {
+        "container_name": "app-web-test",
+        "image": "node:20-alpine",
+        "ports": ["3000:3000"],
+        "health_endpoint": "http://localhost:3000/api/health",
+        "ready_timeout_ms": 30000,
+        "env": {
+          "NODE_ENV": "test",
+          "PORT": "3000"
+        }
+      }
+    },
+    "test_user_personas": {
+      "admin": {
+        "role": "admin",
+        "email": "admin@olt.local",
+        "password_env_var": "OLT_TEST_ADMIN_PASSWORD",
+        "display_name": "Test Admin",
+        "tenant_id": "tenant-corp-001",
+        "permissions": ["*"],
+        "mock_session_cookie": "olt_session_admin_mock_token_sec991823"
+      },
+      "standard_user": {
+        "role": "standard_user",
+        "email": "user@olt.local",
+        "password_env_var": "OLT_TEST_USER_PASSWORD",
+        "display_name": "Standard User",
+        "tenant_id": "tenant-corp-001",
+        "permissions": ["read", "write"],
+        "mock_session_cookie": "olt_session_user_mock_token_usr102938"
+      },
+      "invited_member": {
+        "role": "invited_member",
+        "email": "invited@olt.local",
+        "password_env_var": "OLT_TEST_INVITED_PASSWORD",
+        "display_name": "Invited Member",
+        "tenant_id": "tenant-corp-001",
+        "permissions": ["read"],
+        "mock_session_cookie": "olt_session_invited_mock_token_inv482019"
+      },
+      "guest": {
+        "role": "guest",
+        "email": "guest@olt.local",
+        "password_env_var": "OLT_TEST_GUEST_PASSWORD",
+        "display_name": "Guest Visitor",
+        "tenant_id": "tenant-corp-001",
+        "permissions": ["public_read"]
+      }
+    },
+    "auth_paths": {
+      "login_url": "http://localhost:3000/login",
+      "logout_url": "http://localhost:3000/logout",
+      "signup_url": "http://localhost:3000/signup",
+      "session_verify_url": "http://localhost:3000/api/auth/me"
+    },
+    "session_cookie_templates": {
+      "session_id": {
+        "name": "olt_session_id",
+        "domain": "localhost",
+        "path": "/",
+        "http_only": true,
+        "secure": false,
+        "same_site": "Lax"
+      }
+    }
+  }
+}

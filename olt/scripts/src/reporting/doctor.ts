@@ -55,6 +55,8 @@ import {
   checkCognitiveValidatorCommandLock,
   checkRoleBoundaryInterlock,
   checkPushbackQuotas,
+  checkPolicyDoctor,
+  auditPolicyDoctor,
   autoHealCapsule,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
@@ -70,6 +72,7 @@ import {
   type CognitiveValidatorCommandLockOptions,
   type RoleBoundaryInterlockOptions,
   type PushbackQuotasCheckOptions,
+  type PolicyDoctorOptions,
   type AutoHealOptions,
 } from "./doctor/engines.ts";
 
@@ -104,6 +107,8 @@ export {
   checkCognitiveValidatorCommandLock,
   checkRoleBoundaryInterlock,
   checkPushbackQuotas,
+  checkPolicyDoctor,
+  auditPolicyDoctor,
   autoHealCapsule,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
@@ -119,6 +124,7 @@ export {
   type CognitiveValidatorCommandLockOptions,
   type RoleBoundaryInterlockOptions,
   type PushbackQuotasCheckOptions,
+  type PolicyDoctorOptions,
   type AutoHealOptions,
 };
 
@@ -449,6 +455,16 @@ export async function runDoctor(
     state: (loaded?.state as Record<string, unknown> | undefined) ?? null,
     tasks: (loaded?.state?.tasks as Record<string, unknown> | undefined) ?? null,
     events: (loaded?.events as readonly Record<string, unknown>[] | undefined) ?? null,
+    repoRoot: repository,
+  });
+
+  const engine9 = checkPolicyDoctor({
+    repoRoot: repository,
+    state: (loaded?.state as Record<string, unknown> | undefined) ?? null,
+    tasks: (loaded?.state?.tasks as Record<string, unknown> | undefined) ?? null,
+    commands: (loaded?.state?.commands as Record<string, unknown> | undefined) ?? null,
+    events: (loaded?.events as readonly Record<string, unknown>[] | undefined) ?? null,
+    grants: (loaded?.state?.grants as readonly unknown[] | undefined) ?? null,
   });
 
   const allEngineFindings = [
@@ -460,6 +476,7 @@ export async function runDoctor(
     ...engine6.findings,
     ...engine7.findings,
     ...engine8.findings,
+    ...engine9.findings,
   ];
 
   const engineErrorIssues = allEngineFindings
@@ -556,6 +573,7 @@ export async function runDoctor(
       checkCognitiveValidatorCommandLock: engine6,
       checkRoleBoundaryInterlock: engine7,
       checkPushbackQuotas: engine8,
+      checkPolicyDoctor: engine9,
     },
     doctor_findings: allEngineFindings,
     errors,

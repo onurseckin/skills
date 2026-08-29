@@ -246,16 +246,17 @@ export function assertCognitiveValidatorHardlock(
   }
 }
 
-const ACTING_FLAGS: readonly string[] = ["agent", "validator", "critic", "actor"];
+const ACTING_FLAGS: readonly string[] = ["actor", "validator", "critic", "agent"];
 
 const SUBJECT_FLAGS: ReadonlyMap<string, string> = new Map([
   ["agent:register", "agent"],
   ["agent:report", "agent"],
   ["agent:release", "agent"],
-  ["queue:pop", "agent"],
-  ["critic:start", "critic"],
-  ["coordinator:pushback", "validator"],
   ["meta-audit", "agent"],
+  ["skill:audit:live", "agent"],
+  ["skill:audit", "agent"],
+  ["mind:audit:live", "agent"],
+  ["mind:audit", "agent"],
 ]);
 
 function identity(flags: Flags, name: string): string | undefined {
@@ -332,7 +333,47 @@ function capsuleState(runRoot: string): RunState | undefined {
   }
 }
 
-export function assertRoleMayInvoke(role: AgentRole, spec: CommandSpec, agentId: string): void {
+function normalizeRoleForContract(role: string): string {
+  const norm = role.toLowerCase().trim();
+  if (norm === "meta-auditor" || norm === "meta_auditor") return "skill-auditor";
+  if (norm === "critic") return "completeness-critic";
+  if (norm === "worker") return "implementer";
+  if (norm === "orch") return "orchestrator";
+  if (norm === "coord") return "coordinator";
+  return norm;
+}
+
+export function assertRoleMayInvoke(
+  role: AgentRole | string | undefined | null,
+  spec: CommandSpec,
+  agentId?: string | undefined | null,
+): void {
+  if (
+    !role ||
+    typeof role !== "string" ||
+    role.trim() === "" ||
+    role.trim().toLowerCase() === "unresolved" ||
+    !agentId ||
+    typeof agentId !== "string" ||
+    agentId.trim() === "" ||
+    agentId.trim().toLowerCase() === "unresolved"
+  ) {
+    throw new HarnessError(
+      "PERMISSION_DENIED",
+      `role ${role ?? "unresolved"} may not invoke ${spec.name}: actor '${agentId ?? "unresolved"}' or role is unresolved; fail-closed enforcement active`,
+    );
+  }
+
+  const normalizedRole = role.toLowerCase().trim();
+  if (
+    (normalizedRole === "meta-auditor" || normalizedRole === "meta_auditor") &&
+    (spec.name === "meta-audit" || spec.aliases.includes("meta-audit"))
+  ) {
+    return;
+  }
+
+  const normalizedContractRole = normalizeRoleForContract(role);
+
   if (
     isExecutionCommand(spec) &&
     isCognitiveValidatorRole(role) &&
@@ -340,8 +381,8 @@ export function assertRoleMayInvoke(role: AgentRole, spec: CommandSpec, agentId:
   ) {
     let grantDetail = "";
     try {
-      const contract = loadRoleContract(role);
-      grantDetail = `, and the contract at ${resolveRoleContractPath(role)} grants only ${contract.commands.join(", ")}`;
+      const contract = loadRoleContract(normalizedContractRole as AgentRole);
+      grantDetail = `, and the contract at ${resolveRoleContractPath(normalizedContractRole as AgentRole)} grants only ${contract.commands.join(", ")}`;
     } catch {
       grantDetail = "";
     }
@@ -351,13 +392,22 @@ export function assertRoleMayInvoke(role: AgentRole, spec: CommandSpec, agentId:
     );
   }
 
-  const contract = loadRoleContract(role);
+  let contract: RoleContract;
+  try {
+    contract = loadRoleContract(normalizedContractRole as AgentRole);
+  } catch (error) {
+    throw new HarnessError(
+      "PERMISSION_DENIED",
+      `role ${role} may not invoke ${spec.name}: role contract could not be loaded (${String(error)})`,
+    );
+  }
+
   const invocations = [spec.name, ...spec.aliases];
 
   if (invocations.some((invocation) => contract.commands.includes(invocation))) return;
   throw new HarnessError(
     "INVALID_STATE",
-    `role ${role} may not invoke ${spec.name}: agent ${agentId} holds a ${role} grant, and the contract at ${resolveRoleContractPath(role)} grants only ${contract.commands.join(", ")}`,
+    `role ${role} may not invoke ${spec.name}: agent ${agentId} holds a ${role} grant, and the contract at ${resolveRoleContractPath(normalizedContractRole as AgentRole)} grants only ${contract.commands.join(", ")}`,
   );
 }
 
@@ -544,7 +594,7 @@ export function assertGrantedCommand(
   if (!grant) {
     if (isBootstrapExempt(spec)) return;
     throw new HarnessError(
-      "INVALID_STATE",
+      "PERMISSION_DENIED",
       `agent ${agentId} holds no grant in the capsule at --run ${runRoot} and ${spec.name} is not on the grant bootstrap allowlist`,
     );
   }

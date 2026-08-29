@@ -10,6 +10,7 @@ import { GATE_COMMANDS } from "./gate.ts";
 import { INSPECTION_COMMANDS } from "./inspection.ts";
 import { INSTALL_COMMANDS } from "./install.ts";
 import { MIND_COMMANDS } from "./mind.ts";
+import { POLICY_COMMANDS } from "./policy.ts";
 import { ORCHESTRATOR_COMMANDS } from "./orchestrator.ts";
 import { ORPHAN_COMMANDS } from "./orphan.ts";
 import { PLAN_COMMANDS } from "./plan.ts";
@@ -51,6 +52,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...COORDINATOR_COMMANDS,
   ...CAPTURE_COMMANDS,
   ...MIND_COMMANDS,
+  ...POLICY_COMMANDS,
 ];
 
 export const COMMAND_DOMAINS: readonly CommandDomain[] = [
@@ -72,6 +74,7 @@ export const COMMAND_DOMAINS: readonly CommandDomain[] = [
   "gate",
   "capture",
   "mind",
+  "policy",
 ];
 
 const BY_INVOCATION: ReadonlyMap<string, CommandSpec> = (() => {

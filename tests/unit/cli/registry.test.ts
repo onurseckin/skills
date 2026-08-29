@@ -203,6 +203,11 @@ const EXPECTED_INVOCATIONS = [
   "feedback:clean",
   "mind:audit:live",
   "mind:audit",
+  "policy:init",
+  "policy:get",
+  "policy:set",
+  "policy:check-drift",
+  "policy:drift",
 ];
 
 describe("CLI command registry", () => {

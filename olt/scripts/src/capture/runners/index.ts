@@ -2,6 +2,7 @@ export type {
   AABB,
   CaptureBrowserDriver,
   CaptureBrowserProvider,
+  CaptureCookie,
   CaptureError,
   CaptureItemResult,
   CapturePageDriver,
@@ -16,6 +17,14 @@ export type {
   ResolvedSessionAuth,
   TextClippingEntry,
 } from "./types.ts";
+
+export {
+  PNG_SIGNATURE,
+  extractPngDimensions,
+  isPngBuffer,
+  validatePngBuffer,
+  type PngDimensions,
+} from "./png-ihdr-validator.ts";
 
 export {
   CANONICAL_ROLES,

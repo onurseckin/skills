@@ -397,10 +397,10 @@ function preflightRunExecGate(
       `finished task ${taskId} only permits its exact already-passed gate: ${gateId}`,
     );
   }
-  if (task.status !== "validated" && task.status !== "gating") {
+  if (task.status !== "validated" && task.status !== "gating" && task.status !== "validating") {
     throw new HarnessError(
       "INVALID_STATE",
-      `task ${taskId} must be validated or gating before a gate command runs`,
+      `task ${taskId} must be validated, validating, or gating before a gate command runs`,
     );
   }
   return { alreadyFinished: false };
@@ -480,16 +480,21 @@ export async function runExecCommand(
 
   if (task && gate && exitCode === 0 && !gatePreflight?.alreadyFinished) {
     const port = workflowPort(loaded.runRoot);
-    attachGateResult(port, task, gate, record.id, actor);
-    const state = port.read();
-    const currentTask = state.tasks[task];
-    if (!currentTask) throw new HarnessError("INVALID_ARGUMENT", `unknown task: ${task}`);
-    if (
-      applicableGates(state, currentTask).every((candidate) =>
-        taskHasPassedGate(currentTask, candidate.id),
-      )
-    ) {
-      finishTask(port, task, actor);
+    const preState = port.read();
+    const taskRecord = preState.tasks[task];
+    if (taskRecord && (taskRecord.status === "validated" || taskRecord.status === "gating")) {
+      attachGateResult(port, task, gate, record.id, actor);
+      const state = port.read();
+      const currentTask = state.tasks[task];
+      if (!currentTask) throw new HarnessError("INVALID_ARGUMENT", `unknown task: ${task}`);
+      if (
+        currentTask.status === "gating" &&
+        applicableGates(state, currentTask).every((candidate) =>
+          taskHasPassedGate(currentTask, candidate.id),
+        )
+      ) {
+        finishTask(port, task, actor);
+      }
     }
   }
 

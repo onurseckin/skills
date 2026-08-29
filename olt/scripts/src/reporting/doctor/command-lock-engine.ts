@@ -3,7 +3,7 @@ import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.t
 export interface CognitiveValidatorCommandLockOptions {
   readonly state?: Readonly<Record<string, unknown>> | null | undefined;
   readonly commands?: Readonly<Record<string, unknown>> | readonly unknown[] | null | undefined;
-  readonly events?: readonly Readonly<Record<string, unknown>>[] | null | undefined;
+  readonly events?: readonly unknown[] | null | undefined;
   readonly grants?: readonly unknown[] | null | undefined;
 }
 
@@ -24,7 +24,13 @@ function normalizeRole(role: string): string {
 
 function isBannedValidatorRole(role: string): boolean {
   const norm = normalizeRole(role);
-  return BANNED_VALIDATOR_ROLES.has(norm) || BANNED_VALIDATOR_ROLES.has(role.trim().toLowerCase());
+  return (
+    BANNED_VALIDATOR_ROLES.has(norm) ||
+    BANNED_VALIDATOR_ROLES.has(role.trim().toLowerCase()) ||
+    norm.startsWith("validator") ||
+    norm.includes("validator") ||
+    norm.includes("critic")
+  );
 }
 
 /**

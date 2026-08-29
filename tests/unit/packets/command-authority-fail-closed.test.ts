@@ -114,11 +114,11 @@ describe("meta-audit execute authority", () => {
     ).rejects.toThrow("--actor is required");
   });
 
-  test("accepts an active meta-auditor actor through execute", async () => {
-    const { run } = await emptyGrantRun("meta-audit-meta-auditor-");
-    installMetaAuditGrant(run, "meta-auditor", "meta-auditor");
-    registerSessionGrant({ runRoot: run, agentId: "meta-auditor", role: "meta-auditor" });
-    const result = await execute(["meta-audit", "--run", run, "--actor", "meta-auditor"]);
+  test("accepts an active skill-auditor actor through execute", async () => {
+    const { run } = await emptyGrantRun("meta-audit-skill-auditor-");
+    installMetaAuditGrant(run, "skill-auditor", "skill-auditor");
+    registerSessionGrant({ runRoot: run, agentId: "skill-auditor", role: "skill-auditor" });
+    const result = await execute(["meta-audit", "--run", run, "--actor", "skill-auditor"]);
     expect(result.run_root).toBe(run);
   });
 
@@ -390,7 +390,7 @@ describe("governed mutation authority", () => {
     for (const [id, role, status] of [
       ["implementer", "implementer", "active"],
       ["validator", "validator", "active"],
-      ["meta-auditor", "meta-auditor", "active"],
+      ["skill-auditor", "skill-auditor", "active"],
       ["released-mind", "mind", "released"],
     ] as const) {
       const { run } = await emptyGrantRun(`governed-mutator-${id}-`);

@@ -58,8 +58,7 @@ export class VerbatimRoleInjector {
       if (existsSync(p)) return resolve(p);
     }
     throw new HarnessError(
-      // Bridge incompatible ErrorCode union with SSoT NOT_FOUND code
-      "NOT_FOUND" as unknown as ErrorCode,
+      "NOT_FOUND",
       `Agent manifest for role '${role}' not found at candidates: ${candidates.join(", ")}`,
     );
   }

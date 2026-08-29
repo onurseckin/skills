@@ -182,3 +182,10 @@ export {
   type PairValidatorsOptions,
   type UnlimitedDepthScheduleResult,
 } from "./topology/unlimited/unlimited-types.ts";
+export {
+  resolveAgentSchedulerConfig,
+  resolveSchedulerIntervalSeconds,
+  resolveSchedulerCron,
+  isSchedulerEnabled,
+  DEFAULT_HOST_INTERVAL_SECONDS,
+} from "./host-cadence.ts";

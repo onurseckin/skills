@@ -14,11 +14,13 @@ export function auditPermissionHealth(
 
   // Proof 1: Disjoint Set Invariant (allowed_commands ∩ forbidden_commands = ∅)
   const mustNotSet = new Set(manifest.permissions.must_not);
-  for (const cmd of manifest.permissions.commands) {
-    if (mustNotSet.has(cmd)) {
-      errors.push(
-        `Proof 1 Failed: Disjoint Set Invariant violated. Command '${cmd}' is in both allowed and forbidden sets.`,
-      );
+  if (manifest.permissions.commands) {
+    for (const cmd of manifest.permissions.commands) {
+      if (mustNotSet.has(cmd)) {
+        errors.push(
+          `Proof 1 Failed: Disjoint Set Invariant violated. Command '${cmd}' is in both allowed and forbidden sets.`,
+        );
+      }
     }
   }
 
@@ -31,7 +33,7 @@ export function auditPermissionHealth(
     "run:exec",
   ]);
 
-  if (validRegistry.size > 0) {
+  if (manifest.permissions.commands && validRegistry.size > 0) {
     for (const cmd of manifest.permissions.commands) {
       if (!validRegistry.has(cmd)) {
         errors.push(
@@ -52,7 +54,7 @@ export function auditPermissionHealth(
         `Proof 3 Failed: Cognitive Validator '${manifest.role}' must have tools.enable_write_tools === false.`,
       );
     }
-    if (manifest.permissions.commands.includes("run:exec")) {
+    if (manifest.permissions.commands?.includes("run:exec")) {
       errors.push(
         `Proof 3 Failed: Cognitive Validator '${manifest.role}' must have 0 command execution privileges.`,
       );

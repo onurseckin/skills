@@ -5,7 +5,7 @@ export {
   agentListCommand,
 } from "./agent-ops.ts";
 export { authorityDecideCommand } from "./authority-ops.ts";
-export {
+export type {
   DefectStatus,
   RGBColor,
   ApcaBadgeInfo,
@@ -13,6 +13,8 @@ export {
   AuditedDefect,
   DefectAuditSummary,
   DefectAuditCommandResult,
+} from "./defect-audit.ts";
+export {
   calculateApcaLightnessContrast,
   getApcaBadgeInfo,
   renderApcaContrastBadge,
@@ -41,9 +43,8 @@ export {
   captureRunCommand,
 } from "./capture-run.ts";
 export { coordinatorPushbackCommand } from "./coordinator-pushback.ts";
+export type { FileCoverageRecord, CoverageAuditSummary } from "./coverage-check.ts";
 export {
-  FileCoverageRecord,
-  CoverageAuditSummary,
   parseCoverageTable,
   loadBunfigCoverageThreshold,
   coverageCheckCommand,
@@ -54,13 +55,7 @@ export {
   criticRejectCommand,
   criticRemediateCommand,
 } from "./critic-ops.ts";
-export {
-  activeAgentBadge,
-  renderAsciiDag,
-  renderNodeBox,
-  renderVisualDag,
-  statusBadge,
-  statusGlyph,
+export type {
   DagViewOptions,
   DagWaveMetrics,
   DagNodeSummary,
@@ -72,6 +67,14 @@ export {
   MultiCoordinatorOpportunity,
   DagViewReport,
   DagViewResult,
+} from "./dag-view.ts";
+export {
+  activeAgentBadge,
+  renderAsciiDag,
+  renderNodeBox,
+  renderVisualDag,
+  statusBadge,
+  statusGlyph,
   findLatestCapsuleIn,
   resolveCapsuleRun,
   analyzeDependencyForensics,
@@ -96,19 +99,16 @@ export {
 export * from "./explain-data-path-integrity.ts";
 export { PLATFORM_AND_LOCK_ENTRIES } from "./explain-data-platform.ts";
 export { INVALID_STATE_AND_ARGUMENT_ENTRIES } from "./explain-data-state-argument.ts";
-export {
-  ExplainExample,
-  ExplainCause,
-  ExplainEntry,
-  example,
-  cause,
-} from "./explain-data-types.ts";
+export type { ExplainExample, ExplainCause, ExplainEntry } from "./explain-data-types.ts";
+export { example, cause } from "./explain-data-types.ts";
 export { EXPLAIN_ENTRIES } from "./explain-data.ts";
 export { resolveExampleLine, explainCommand } from "./explain-ops.ts";
-export {
+export type {
   FeedbackListResult,
   FeedbackIngestResult,
   FeedbackDrainResult,
+} from "./feedback-ops.ts";
+export {
   feedbackListCommand,
   feedbackIngestCommand,
   feedbackDrainCommand,
@@ -122,105 +122,91 @@ export {
   evidenceScreenshotsCommand,
 } from "./inspection-ops.ts";
 export { installCommand, installationStatusCommand } from "./install-ops.ts";
-export { MemoryQueryCommandResult, memoryQueryCommand } from "./memory-ops.ts";
+export type { MemoryQueryCommandResult } from "./memory-ops.ts";
+export { memoryQueryCommand } from "./memory-ops.ts";
+export type { MetaAuditCommandResult } from "./meta-audit.ts";
 export {
-  MetaAuditCommandResult,
   renderForensicsIncidentTable,
   renderEfficiencyMetricsTable,
   formatMetaAuditReport,
   metaAuditCommand,
 } from "./meta-audit.ts";
+export type { MindAdmitResult } from "./mind-admit.ts";
+export { formatMindAdmitBrief, mindAdmitCommand, mindDeclineCommand } from "./mind-admit.ts";
+export type { MindAuditStartResult, MindAuditReportResult } from "./mind-audit.ts";
 export {
-  MindAdmitResult,
-  formatMindAdmitBrief,
-  mindAdmitCommand,
-  mindDeclineCommand,
-} from "./mind-admit.ts";
-export {
-  MindAuditStartResult,
   formatMindAuditStartBrief,
   mindAuditStartCommand,
-  MindAuditReportResult,
   formatMindAuditReportBrief,
   mindAuditReportCommand,
 } from "./mind-audit.ts";
-export {
-  MindCandidate,
-  MindCandidateResult,
-  formatMindCandidateBrief,
-  mindCandidateCommand,
-} from "./mind-candidate.ts";
+export type { MindCandidate, MindCandidateResult } from "./mind-candidate.ts";
+export { formatMindCandidateBrief, mindCandidateCommand } from "./mind-candidate.ts";
 export { mindEscalateCommand } from "./mind-escalate.ts";
 export { mindHaltCommand } from "./mind-halt.ts";
-export { MindInitResult, formatMindInitBrief, mindInitCommand } from "./mind-init.ts";
-export { MindObserveResult, formatMindObserveBrief, mindObserveCommand } from "./mind-observe.ts";
-export {
-  MindPulseOpenResult,
-  formatMindPulseOpenBrief,
-  mindPulseOpenCommand,
-} from "./mind-pulse-open.ts";
-export {
-  CLOSING_FORBIDDEN_FOR_MIND,
+export type { MindInitResult } from "./mind-init.ts";
+export { formatMindInitBrief, mindInitCommand } from "./mind-init.ts";
+export type { MindObserveResult } from "./mind-observe.ts";
+export { formatMindObserveBrief, mindObserveCommand } from "./mind-observe.ts";
+export type { MindPulseOpenResult } from "./mind-pulse-open.ts";
+export { formatMindPulseOpenBrief, mindPulseOpenCommand } from "./mind-pulse-open.ts";
+export type {
   MindPulseTelemetryBudget,
   MindPulseWorkSpanMetrics,
   MindPulseActiveAgentCoordinate,
   MindPulseWaveLaneInfo,
   MindCognitiveTelemetry,
   MindPulseResult,
+} from "./mind-pulse.ts";
+export {
+  CLOSING_FORBIDDEN_FOR_MIND,
   computeMindCognitiveTelemetry,
   formatMindPulseActiveBrief,
   formatMindPulseOpenedBrief,
   mindPulseCommand,
   formatPulseDirective,
 } from "./mind-pulse.ts";
-export { MindQuiesceResult, formatMindQuiesceBrief, mindQuiesceCommand } from "./mind-quiesce.ts";
-export {
-  MindRotateCommandResult,
-  formatMindRotateBrief,
-  mindRotateCommand,
-} from "./mind-rotate.ts";
-export {
-  MindRoundOpenResult,
-  MindRoundCloseResult,
-  mindRoundOpenCommand,
-  mindRoundCloseCommand,
-} from "./mind-round.ts";
+export type { MindQuiesceResult } from "./mind-quiesce.ts";
+export { formatMindQuiesceBrief, mindQuiesceCommand } from "./mind-quiesce.ts";
+export type { MindRotateCommandResult } from "./mind-rotate.ts";
+export { formatMindRotateBrief, mindRotateCommand } from "./mind-rotate.ts";
+export type { MindRoundOpenResult, MindRoundCloseResult } from "./mind-round.ts";
+export { mindRoundOpenCommand, mindRoundCloseCommand } from "./mind-round.ts";
 export { mindWakeCommand } from "./mind-wake.ts";
 export { deriveRunId, firstAvailableRunId } from "./orchestrate-slug.ts";
 export { orchestrateCommand } from "./orchestrate.ts";
+export type { OrchestratorCommandContext } from "./orchestrator-ops.ts";
 export {
   DEFAULT_WATCH_INTERVAL_SECONDS,
   orchestratorSuperviseCommand,
-  OrchestratorCommandContext,
   orchestratorRunCommand,
 } from "./orchestrator-ops.ts";
 export { orphanDisposeCommand } from "./orphan-ops.ts";
 export { capsulePlanningStore, planClaimCommand, planApplyCommand } from "./plan-apply.ts";
+export type { AuditAcceptance } from "./plan-audit.ts";
 export {
-  AuditAcceptance,
   parseAuditAcceptance,
   recordPlanAudit,
   recordAuditAcceptance,
   planAuditCommand,
 } from "./plan-audit.ts";
 export { planCompileCommand } from "./plan-compile.ts";
-export {
+export type {
   GateSource,
   PlannedTaskBinding,
   PlanBindings,
   ResolvedGate,
+  GateRequest,
+} from "./plan-replan-bindings.ts";
+export {
   parseGateArgv,
   readPlanBindings,
   parentTasks,
-  GateRequest,
   resolveClusterGate,
   resolveClusterFindingRequirement,
 } from "./plan-replan-bindings.ts";
-export {
-  ReplanFindingsInput,
-  UNREPORTED_REMEDIATION,
-  collectReplanFindings,
-} from "./plan-replan-findings.ts";
+export type { ReplanFindingsInput } from "./plan-replan-findings.ts";
+export { UNREPORTED_REMEDIATION, collectReplanFindings } from "./plan-replan-findings.ts";
 export { planReplanCommand } from "./plan-replan.ts";
 export { planValidateStartCommand, planReviewCommand } from "./plan-validate.ts";
 export { planInitCommand, planEnhanceCommand, planAddCommand, planStatusCommand } from "./plan.ts";
@@ -240,14 +226,15 @@ export {
   runStatusCommand,
   runExecCommand,
 } from "./run-ops.ts";
-export { ScopeExpandResult, scopeExpandCommand } from "./scope-expand.ts";
+export type { ScopeExpandResult } from "./scope-expand.ts";
+export { scopeExpandCommand } from "./scope-expand.ts";
+export type { ShellExecutionResult } from "./shell.ts";
 export {
-  ShellExecutionResult,
   setShellCommandDependenciesForTesting,
   persistStandaloneReceipt,
   shellCommand,
 } from "./shell.ts";
-export {
+export type {
   SmartTaskSynthesizeResult,
   SmartTaskIngestResult,
   SmartTaskQueueListResult,
@@ -256,6 +243,8 @@ export {
   SmartTaskQueueFailResult,
   SmartTaskQueueReclaimResult,
   SmartTaskCycleResult,
+} from "./smart-task-ops.ts";
+export {
   smartTaskSynthesizeCommand,
   smartTaskIngestCommand,
   smartTaskQueueListCommand,
@@ -265,18 +254,21 @@ export {
   smartTaskQueueReclaimCommand,
   smartTaskCycleCommand,
 } from "./smart-task-ops.ts";
-export { StreamEventsResult, streamEventsCommand } from "./stream-events.ts";
+export type { StreamEventsResult } from "./stream-events.ts";
+export { streamEventsCommand } from "./stream-events.ts";
 export { summaryExportCommand, summaryViewCommand } from "./summary-ops.ts";
 export { taskAbandonCommand } from "./task-abandon.ts";
 export { taskAssignRepairerCommand } from "./task-assign-repairer.ts";
 export { taskBriefCommand } from "./task-brief.ts";
-export {
-  SUPPORTED_EXTENSIONS,
+export type {
   TypeCheckDiagnostic,
   TypeCheckResult,
   LintCheckResult,
   TaskCheckSummary,
   ResolveTargetFilesOptions,
+} from "./task-check.ts";
+export {
+  SUPPORTED_EXTENSIONS,
   isSupportedSourceFile,
   collectSourceFilesRecursively,
   resolveTargetFiles,
@@ -292,6 +284,7 @@ export {} from "./task-finding-input.ts";
 export { taskSubmitCommand, taskReleaseCommand } from "./task-ops.ts";
 export { taskProbeCommand } from "./task-probe.ts";
 export { taskRejectCommand } from "./task-reject.ts";
+export type { ReviewPolicy } from "./task-review-support.ts";
 export {
   buildProbeDemand,
   buildReviewFinding,
@@ -300,7 +293,6 @@ export {
   parseSeverity,
   resolveFindingRequirement,
   repoRootOf,
-  ReviewPolicy,
   reviewPolicyFor,
   collectTaskScreenshots,
   collectCompanionManifests,
@@ -315,12 +307,14 @@ export {
 export { assertValidReviewer, taskReviewCommand } from "./task-review.ts";
 export { taskValidateStartCommand } from "./task-validation-start.ts";
 export { testSummaryCommand } from "./test-summary.ts";
-export {
+export type {
   TodoListResult,
   TodoAddResult,
   TodoDrainResult,
   TodoSealResult,
   TodoCleanResult,
+} from "./todo-ops.ts";
+export {
   todoListCommand,
   todoAddCommand,
   todoDrainCommand,
@@ -350,7 +344,15 @@ export {
   watchdogVerifyCommand,
   watchdogProbeCommand,
 } from "./watchdog-ops.ts";
-export { TaskLeaseSummary, TaskValidationSummary, whoamiCommand } from "./whoami.ts";
+export type { TaskLeaseSummary, TaskValidationSummary } from "./whoami.ts";
+export { whoamiCommand } from "./whoami.ts";
 export { worktreeReclaimCommand } from "./worktree-ops.ts";
 export { quotaFreezeCommand } from "./quota-freeze.ts";
 export { quotaResumeCommand } from "./quota-resume.ts";
+export {
+  policyGetCommand,
+  policySetCommand,
+  policyInitCommand,
+  policyCheckDriftCommand,
+} from "./policy-ops.ts";
+export { factoryPreplanCommand, factoryStatusCommand } from "./factory-ops.ts";

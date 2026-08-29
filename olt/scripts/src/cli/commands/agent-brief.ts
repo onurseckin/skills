@@ -167,7 +167,7 @@ ${manifest.invariants.map((i) => `  - ${i}`).join("\n")}`);
 SECTION 3: REPOSITORY POLICY & PERMISSION BOUNDARIES
 ================================================================================
 ALLOWED COMMANDS:
-${manifest.permissions.commands.length > 0 ? manifest.permissions.commands.map((c) => `  - ${c}`).join("\n") : "  (None)"}
+${manifest.permissions.commands && manifest.permissions.commands.length > 0 ? manifest.permissions.commands.map((c) => `  - ${c}`).join("\n") : "  (None)"}
 
 ROLE CAPABILITIES (POLICY):
 ${rbacAllowed.length > 0 ? rbacAllowed.map((c) => `  - ${c}`).join("\n") : "  (None)"}

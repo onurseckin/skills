@@ -6,6 +6,7 @@ import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/type
 import {
   computeLayoutMetrics,
   createEmptyDomPhysicsSnapshot,
+  createSyntheticPngBuffer,
   DefaultFallbackBrowserProvider,
   extractDomPhysics,
   filterScreens,
@@ -269,7 +270,7 @@ describe("Capture Runner & Companion Manifest Writer", () => {
             setExtraHTTPHeaders: async () => {},
             goto: async () => {},
             waitForSelector: async () => {},
-            screenshot: async () => Buffer.from("simulated-img"),
+            screenshot: async () => createSyntheticPngBuffer(1440, 900),
             click: async (sel) => {
               actionsExecuted.push(`click:${sel}`);
             },

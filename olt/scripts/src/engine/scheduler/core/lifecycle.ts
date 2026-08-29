@@ -178,20 +178,22 @@ export async function assertDoctorGatePassed(
   const behavioralFindings = Array.isArray(docResult.behavioral_findings)
     ? (docResult.behavioral_findings as BehavioralFinding[])
     : [];
-  const issues = Array.isArray(docResult.issues) ? (docResult.issues as string[]) : [];
+  const criticalIssues = Array.isArray(docResult.critical_issues)
+    ? (docResult.critical_issues as string[])
+    : [];
 
-  if (!healthy || behavioralFindings.length > 0 || issues.length > 0) {
+  if (!healthy || behavioralFindings.length > 0 || criticalIssues.length > 0) {
     const errorPrefix =
       behavioralFindings.length > 0
         ? "DOCTOR GATE VIOLATION (Zero-Tolerance Boundary Auditing): Role confinement or behavioral policy breached"
         : "DOCTOR GATE REJECTION: System doctor discovered unresolved capsule failures";
 
-    const fullMessage = `${errorPrefix}:\n${issues.map((i) => `  - ${i}`).join("\n")}`;
+    const fullMessage = `${errorPrefix}:\n${criticalIssues.map((i) => `  - ${i}`).join("\n")}`;
 
     if (behavioralFindings.length > 0) {
-      throw new HarnessError("ROLE_CONFINEMENT_VIOLATION", fullMessage, issues);
+      throw new HarnessError("ROLE_CONFINEMENT_VIOLATION", fullMessage, criticalIssues);
     }
-    throw new HarnessError("INVALID_STATE", fullMessage, issues);
+    throw new HarnessError("INVALID_STATE", fullMessage, criticalIssues);
   }
 
   return docResult;

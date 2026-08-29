@@ -108,24 +108,26 @@ export async function prepareCommand(
     throw new Error(auth.message || `[${auth.error_code}] Command authorization failed`);
   }
 
-  // Emit signed receipt to .olt/scratch/evidence/
-  const scratchDir = resolveScratchDir(prepared.options?.repositoryRoot ?? repositoryRoot);
-  const evidenceDir = join(scratchDir, "evidence");
-  if (!existsSync(evidenceDir)) {
-    mkdirSync(evidenceDir, { recursive: true });
+  // Emit signed receipt to .olt/scratch/evidence/ for non-gate commands
+  if (!input.gateId && !prepared.options.gateId) {
+    const scratchDir = resolveScratchDir(prepared.options?.repositoryRoot ?? repositoryRoot);
+    const evidenceDir = join(scratchDir, "evidence");
+    if (!existsSync(evidenceDir)) {
+      mkdirSync(evidenceDir, { recursive: true });
+    }
+
+    const receipt = {
+      actor: metadata.agent_id,
+      role: metadata.role,
+      command: argv.join(" "),
+      timestamp: new Date().toISOString(),
+      authorized: true,
+    };
+
+    const receiptStr = JSON.stringify(receipt, null, 2);
+    const digest = createHash("sha256").update(receiptStr).digest("hex");
+    writeFileSync(join(evidenceDir, `${digest}.json`), receiptStr);
   }
-
-  const receipt = {
-    actor: metadata.agent_id,
-    role: metadata.role,
-    command: argv.join(" "),
-    timestamp: new Date().toISOString(),
-    authorized: true,
-  };
-
-  const receiptStr = JSON.stringify(receipt, null, 2);
-  const digest = createHash("sha256").update(receiptStr).digest("hex");
-  writeFileSync(join(evidenceDir, `${digest}.json`), receiptStr);
 
   return prepared;
 }

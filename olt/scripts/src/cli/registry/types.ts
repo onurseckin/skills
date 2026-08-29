@@ -42,7 +42,8 @@ export type CommandDomain =
   | "gate"
   | "capture"
   | "mind"
-  | "doctor";
+  | "doctor"
+  | "policy";
 
 export type CommandHandler = (
   flags: Flags,

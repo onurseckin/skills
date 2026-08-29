@@ -39,10 +39,8 @@ describe("operator reference examples", () => {
 
   test("the Diataxis reference hub exists under docs/olt/reference/", () => {
     const refDir = join(import.meta.dir, "..", "..", "..", "docs", "olt", "reference");
-    expect(existsSync(join(refDir, "harness-cli.md"))).toBe(true);
-    expect(existsSync(join(refDir, "state-schemas.md"))).toBe(true);
-    expect(existsSync(join(refDir, "error-codes.md"))).toBe(true);
-    expect(existsSync(join(refDir, "role-contracts.md"))).toBe(true);
-    expect(existsSync(join(refDir, "verification-engines.md"))).toBe(true);
+    expect(existsSync(join(refDir, "index.md"))).toBe(true);
+    expect(existsSync(join(refDir, "quickstart.md"))).toBe(true);
+    expect(existsSync(join(refDir, "health-and-status.md"))).toBe(true);
   });
 });

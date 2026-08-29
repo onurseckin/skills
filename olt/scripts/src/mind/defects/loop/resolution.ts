@@ -14,7 +14,11 @@ export function validateResolutionProof(
   const testAssertion = typeof p.test_assertion === "string" ? p.test_assertion.trim() : "";
   const resolvedAt = typeof p.resolved_at === "string" ? p.resolved_at.trim() : "";
   const commitSha =
-    typeof p.commit_sha === "string" && p.commit_sha.trim() ? p.commit_sha.trim() : undefined;
+    typeof p.commit_sha === "string" && p.commit_sha.trim()
+      ? p.commit_sha.trim()
+      : p.commit_sha === null
+        ? null
+        : undefined;
 
   const remediationNotes =
     typeof p.remediation_notes === "string" && p.remediation_notes.trim()

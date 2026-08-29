@@ -24,7 +24,6 @@ const CODEX_ROLE_DISPATCH_DEFAULTS: Readonly<
   "sub-investigator": { model: "gpt-5.6-terra", reasoningEffort: "xhigh" },
   "completeness-critic": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
   "mechanic-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
-  "meta-auditor": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
   "mind-auditor": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
   "skill-auditor": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
   "plan-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },

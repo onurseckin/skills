@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { realpathSync } from "node:fs";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -12,7 +13,7 @@ export async function setupCompiledRun(
   name: string,
   roots: string[],
 ): Promise<{ repo: string; run: string }> {
-  const repo = await mkdtemp(join(tmpdir(), `file-persist-${name}-`));
+  const repo = realpathSync(await mkdtemp(join(tmpdir(), `file-persist-${name}-`)));
   roots.push(repo);
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Core unit tests\n\nSecondary tests");

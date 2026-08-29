@@ -213,12 +213,8 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
   const rawDomain = frontmatter.scalars.get("domain");
   let domain: ValidatorDomain | undefined;
   if (rawDomain !== undefined) {
-    if (role !== "validator" && role !== "meta-auditor")
-      invalid(
-        "role contract",
-        source,
-        `domain is only valid for validator or meta-auditor roles: ${rawDomain}`,
-      );
+    if (role !== "validator")
+      invalid("role contract", source, `domain is only valid for validator roles: ${rawDomain}`);
     if (role === "validator") {
       if (!isValidatorDomain(rawDomain))
         invalid(
@@ -482,7 +478,7 @@ export function loadValidatorDomainContract(
         tier: typeof manifest.tier === "number" ? manifest.tier : 3,
         may: manifest.permissions.may,
         must_not: manifest.permissions.must_not,
-        commands: manifest.permissions.commands,
+        commands: manifest.permissions.commands ?? [],
         spawns: manifest.permissions.spawns as AgentRole[],
         domain: domainVal,
         text: instructions,

@@ -24,6 +24,7 @@ export {
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
 } from "./pushback-quotas-engine.ts";
+export { checkPolicyDoctor, auditPolicyDoctor, type PolicyDoctorOptions } from "./policy-doctor.ts";
 export { autoHealCapsule, type AutoHealOptions } from "./auto-heal.ts";
 export type {
   DoctorSeverity,

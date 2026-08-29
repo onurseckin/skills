@@ -641,3 +641,6 @@ When executed with `--inject` (`bun harness.ts meta-audit --run <run> --inject`)
    - In-process TypeScript type checking (`performIncrementalTypecheck`) and AST invariant linting (`performAstLintCheck`).
    - Scopes verification directly to task write scopes (`--task <id> --run <run>`) or modified files (`--file <path1>,<path2>`).
    - Enforces strict monorepo quality gates (0 TypeScript `any`, 0 compiler suppressions, zero-fallback error codes) in milliseconds.
+
+3. **1-Shot Batch Auto-Deployment of Mind and Mind-Auditor (`/olt mind`)**:
+   - Dispatches both Tier 0 `mind` and Tier 1 `mind-auditor` companions concurrently in a single atomic batch invocation.

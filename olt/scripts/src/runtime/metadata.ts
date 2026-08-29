@@ -52,7 +52,8 @@ export function inferCanExecuteShell(role: string): boolean {
     normalized === "mechanic_validator" ||
     normalized === "sub-validator" ||
     normalized === "sub_validator" ||
-    normalized === "worker"
+    normalized === "worker" ||
+    normalized === "owner"
   ) {
     return true;
   }

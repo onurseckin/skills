@@ -4,6 +4,7 @@ import { basename, join } from "node:path";
 import { loadCaptureConfig } from "../../config/config-loader.ts";
 import { synthesizeCompanionManifest, type ValidationContext } from "../../validator/index.ts";
 import { extractDomPhysics } from "../dom-physics-extractor.ts";
+import { extractPngDimensions, validatePngBuffer } from "../png-ihdr-validator.ts";
 import { SessionAuthResolver } from "../session-auth-resolver.ts";
 import type {
   CaptureError,
@@ -89,6 +90,14 @@ export async function runLiveCapture(options: CaptureRunOptions = {}): Promise<C
             path: imagePath,
             fullPage: screen.fullPage ?? false,
           });
+
+          if (!validatePngBuffer(screenshotBuffer, vp.width, vp.height)) {
+            const dims = extractPngDimensions(screenshotBuffer);
+            const actualDesc = dims ? `${dims.width}x${dims.height}` : "invalid/corrupted PNG";
+            throw new Error(
+              `Captured screenshot failed PNG IHDR validation: expected ${vp.width}x${vp.height}, got ${actualDesc}`,
+            );
+          }
 
           const physics = await extractDomPhysics(page, {
             width: vp.width,

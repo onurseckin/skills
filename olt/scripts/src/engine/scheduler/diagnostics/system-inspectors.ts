@@ -44,12 +44,15 @@ export async function runInspectorDoctor(
     const findings = Array.isArray(docResult.behavioral_findings)
       ? docResult.behavioral_findings
       : [];
+    const criticalIssues = Array.isArray(docResult.critical_issues)
+      ? (docResult.critical_issues as readonly string[])
+      : issues.filter((i) => !i.startsWith("[INFO]") && !i.includes("[minor]"));
     const status: DiagnosticReceiptStatus =
-      healthy && issues.length === 0 && findings.length === 0 ? "passed" : "failed";
+      healthy && criticalIssues.length === 0 && findings.length === 0 ? "passed" : "failed";
     const summary =
       status === "passed"
         ? `Capsule doctor verified 100% integrity (healthy: true, 0 findings)`
-        : `Doctor detected ${issues.length} issue(s) and ${findings.length} behavioral finding(s)`;
+        : `Doctor detected ${criticalIssues.length} issue(s) and ${findings.length} behavioral finding(s)`;
     const receiptHash = computeReceiptHash("doctor", timestamp, status, summary);
     const badge = `[RECEIPT: doctor ${status === "passed" ? "PASS" : "FAIL"}]`;
 

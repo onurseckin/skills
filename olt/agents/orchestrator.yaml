@@ -180,4 +180,4 @@ instructions: |
      - Check that any wave with $N \ge 2$ ready disjoint lanes invokes all $N$ subagents in parallel via the 1-shot batch array `Subagents: [...]`.
      - Prevent `FALSE_SERIALIZATION_BLUNDER`.
   10. **Forensic Telemetry & Clean Release Gating**:
-      - Plan post-wave behavioral forensics (`meta-auditor`, `meta-audit --inject`), whole-run completeness review (`completeness-critic`), Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main`, and global skill sync (`bun scripts/sync-global.ts`).
+      - Plan post-wave behavioral forensics (`skill-auditor`, `meta-audit --inject`), whole-run completeness review (`completeness-critic`), Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main`, and global skill sync (`bun scripts/sync-global.ts`).

@@ -141,6 +141,7 @@ export class SessionAuthResolver {
       name: user.name,
       ...(user.token !== undefined ? { token: user.token } : {}),
       headers,
+      ...(user.cookies ? { cookies: user.cookies } : {}),
       resolvedAt: new Date().toISOString(),
     };
   }
@@ -152,6 +153,13 @@ export class SessionAuthResolver {
       [tokenHeader]: `Bearer ${token}`,
       "X-Mock-Auth-Role": role,
     };
+    const cookies = [
+      {
+        name: "mock_session_id",
+        value: `mock-cookie-${role}`,
+        path: "/",
+      },
+    ];
 
     return {
       userId: role,
@@ -159,6 +167,7 @@ export class SessionAuthResolver {
       name: `Simulated ${name}`,
       token,
       headers,
+      cookies,
       resolvedAt: new Date().toISOString(),
     };
   }
@@ -179,6 +188,15 @@ export class SessionAuthResolver {
   ): Promise<void> {
     if (Object.keys(session.headers).length > 0) {
       await driver.setExtraHTTPHeaders({ ...session.headers });
+    }
+    if (session.cookies && session.cookies.length > 0) {
+      if (driver.setCookies) {
+        await driver.setCookies(session.cookies);
+      } else if (driver.setCookie) {
+        for (const cookie of session.cookies) {
+          await driver.setCookie(cookie);
+        }
+      }
     }
   }
 }

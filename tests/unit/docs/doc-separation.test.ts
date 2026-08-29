@@ -80,10 +80,11 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
     }
   });
 
-  it("verifies Diataxis tutorials exist under docs/olt/tutorials/", () => {
-    const tutorialsDir = join(repoRoot, "docs", "olt", "tutorials");
-    expect(existsSync(tutorialsDir)).toBe(true);
-    expect(existsSync(join(tutorialsDir, "getting-started.md"))).toBe(true);
-    expect(existsSync(join(tutorialsDir, "first-autonomous-workflow.md"))).toBe(true);
+  it("verifies canonical reference guides exist under docs/olt/reference/", () => {
+    const referenceDir = join(repoRoot, "docs", "olt", "reference");
+    expect(existsSync(referenceDir)).toBe(true);
+    expect(existsSync(join(referenceDir, "index.md"))).toBe(true);
+    expect(existsSync(join(referenceDir, "quickstart.md"))).toBe(true);
+    expect(existsSync(join(referenceDir, "health-and-status.md"))).toBe(true);
   });
 });

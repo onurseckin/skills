@@ -1,4 +1,4 @@
-import { delimiter, isAbsolute } from "node:path";
+import { delimiter, dirname, isAbsolute } from "node:path";
 import { RESTRICTED_GIT_ENVIRONMENT } from "../../../core/restricted-git";
 import { HarnessError } from "../../../core/errors/index";
 import { OWNERSHIP_ENV } from "../core/pipe-ownership";
@@ -30,6 +30,13 @@ export function captureGateEnvironment(
   for (const key of PASSTHROUGH) {
     const value = source[key];
     if (value !== undefined && value !== "") result[key] = value;
+  }
+  if (result.PATH && typeof process !== "undefined" && process.execPath) {
+    const execDir = dirname(process.execPath);
+    if (isAbsolute(execDir)) {
+      const parts = result.PATH.split(delimiter).filter((p) => p !== execDir);
+      result.PATH = [execDir, ...parts].join(delimiter);
+    }
   }
   if (!result.PATH || !validPath(result.PATH))
     throw new HarnessError("PATH_SAFETY", "gate PATH must contain only absolute directories");

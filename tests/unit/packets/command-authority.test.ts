@@ -535,9 +535,13 @@ describe("assertGrantedCommand", () => {
     });
 
     const flags: Flags = { run, actor: "coordinator-1", agent: "not-a-real-agent" };
-    expect(() => assertGrantedCommand(spec("queue:pop"), flags)).toThrow(
-      "agent coordinator-1 holds a coordinator grant",
-    );
+    expect(() =>
+      assertGrantedCommand(spec("agent:report"), flags, {
+        actor: "coordinator-1",
+        role: "coordinator",
+        verified: true,
+      }),
+    ).toThrow("does not match authenticated caller 'coordinator-1'");
   });
 
   test("verifies zero TypeScript any and zero suppressions across command authority files", () => {

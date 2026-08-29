@@ -3,6 +3,13 @@
   "violations": [
     {
       "rule": "line_limit",
+      "path": "olt/policy.json",
+      "observed": 637,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
       "path": "olt/scripts/src/authority/manifest/loader.ts",
       "observed": 321,
       "limit": 300,
@@ -67,7 +74,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/cli/commands/index.ts",
-      "observed": 356,
+      "observed": 358,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -116,7 +123,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/cli/commands/run-ops.ts",
-      "observed": 584,
+      "observed": 589,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -417,7 +424,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/packets/command-authority.ts",
-      "observed": 605,
+      "observed": 655,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -438,7 +445,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/packets/role-contract.ts",
-      "observed": 525,
+      "observed": 521,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -459,7 +466,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/policy/rbac-engine.ts",
-      "observed": 776,
+      "observed": 796,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -487,7 +494,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/reporting/doctor.ts",
-      "observed": 570,
+      "observed": 588,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -830,7 +837,7 @@
     {
       "rule": "line_limit",
       "path": "tests/unit/capture/runner-manifest.test.ts",
-      "observed": 383,
+      "observed": 384,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -851,7 +858,7 @@
     {
       "rule": "line_limit",
       "path": "tests/unit/cli/cognitive-auditor-commands.test.ts",
-      "observed": 303,
+      "observed": 302,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -914,7 +921,7 @@
     {
       "rule": "line_limit",
       "path": "tests/unit/cli/meta-audit.test.ts",
-      "observed": 487,
+      "observed": 494,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -991,7 +998,7 @@
     {
       "rule": "line_limit",
       "path": "tests/unit/cli/registry.test.ts",
-      "observed": 398,
+      "observed": 403,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -1705,7 +1712,7 @@
     {
       "rule": "line_limit",
       "path": "tests/unit/packets/command-authority.test.ts",
-      "observed": 574,
+      "observed": 578,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -1754,7 +1761,7 @@
     {
       "rule": "line_limit",
       "path": "tests/unit/policy/rbac-engine.test.ts",
-      "observed": 849,
+      "observed": 463,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -1776,13 +1783,6 @@
       "rule": "line_limit",
       "path": "tests/unit/reporting/handoff/handoff-argv-registry.test.ts",
       "observed": 418,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/unit/roles/meta-auditor-role.test.ts",
-      "observed": 342,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -2055,7 +2055,7 @@
     {
       "rule": "line_limit",
       "path": "tests/unit/workflow/sync-workflow.test.ts",
-      "observed": 770,
+      "observed": 771,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -2104,7 +2104,7 @@
     {
       "rule": "directory_fanout",
       "path": "olt/references/cli-capabilities/domains",
-      "observed": 18,
+      "observed": 19,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -2125,7 +2125,7 @@
     {
       "rule": "directory_fanout",
       "path": "olt/scripts/src/cli/commands",
-      "observed": 87,
+      "observed": 89,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -2139,7 +2139,7 @@
     {
       "rule": "directory_fanout",
       "path": "olt/scripts/src/cli/registry",
-      "observed": 23,
+      "observed": 24,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -2174,7 +2174,7 @@
     {
       "rule": "directory_fanout",
       "path": "olt/scripts/src/orchestrator",
-      "observed": 25,
+      "observed": 29,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -2195,7 +2195,7 @@
     {
       "rule": "directory_fanout",
       "path": "olt/scripts/src/reporting/doctor",
-      "observed": 18,
+      "observed": 19,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -2257,8 +2257,22 @@
     },
     {
       "rule": "directory_fanout",
+      "path": "tests/unit/authority",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "tests/unit/capture",
+      "observed": 12,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
       "path": "tests/unit/cli",
-      "observed": 87,
+      "observed": 88,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -2266,6 +2280,13 @@
       "rule": "directory_fanout",
       "path": "tests/unit/contracts",
       "observed": 21,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "tests/unit/doctor",
+      "observed": 11,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -2293,14 +2314,14 @@
     {
       "rule": "directory_fanout",
       "path": "tests/unit/mind",
-      "observed": 85,
+      "observed": 90,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
     {
       "rule": "directory_fanout",
       "path": "tests/unit/orchestrator",
-      "observed": 25,
+      "observed": 28,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -2604,6 +2625,12 @@
       "rule": "export_star",
       "path": "olt/scripts/src/graph/index.ts",
       "observed": 32,
+      "detail": "Facade must use explicit named exports instead of export-star."
+    },
+    {
+      "rule": "export_star",
+      "path": "olt/scripts/src/mind/preplanning/index.ts",
+      "observed": 5,
       "detail": "Facade must use explicit named exports instead of export-star."
     },
     {
@@ -3406,6 +3433,30 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "olt/scripts/src/capture/docker-health.ts",
+      "observed": "olt/scripts/src/policy/generator.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/capture/docker-health.ts",
+      "observed": "olt/scripts/src/policy/repo-policy.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/capture/docker-health.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/capture/persona-registry.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "olt/scripts/src/capture/runners/dom-event-simulator/dispatchers.ts",
       "observed": "olt/scripts/src/capture/runners/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -3528,6 +3579,12 @@
       "rule": "facade_bypass",
       "path": "olt/scripts/src/capture/runners/live-capture-runner/runner.ts",
       "observed": "olt/scripts/src/capture/runners/dom-physics-extractor.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/capture/runners/live-capture-runner/runner.ts",
+      "observed": "olt/scripts/src/capture/runners/png-ihdr-validator.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -4362,6 +4419,54 @@
       "rule": "facade_bypass",
       "path": "olt/scripts/src/cli/commands/explain-ops.ts",
       "observed": "olt/scripts/src/cli/options.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/factory-ops.ts",
+      "observed": "olt/scripts/src/cli/options.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/factory-ops.ts",
+      "observed": "olt/scripts/src/core/shared/paths.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/factory-ops.ts",
+      "observed": "olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/factory-ops.ts",
+      "observed": "olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/factory-ops.ts",
+      "observed": "olt/scripts/src/mind/preplanning/backlog-clusterer.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/factory-ops.ts",
+      "observed": "olt/scripts/src/mind/preplanning/bridge-state.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/factory-ops.ts",
+      "observed": "olt/scripts/src/mind/preplanning/continuous-preplanner.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/factory-ops.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -5208,6 +5313,18 @@
       "rule": "facade_bypass",
       "path": "olt/scripts/src/cli/commands/plan.ts",
       "observed": "olt/scripts/src/requirements/requirement-lines.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/policy-ops.ts",
+      "observed": "olt/scripts/src/cli/options.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/commands/policy-ops.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -6738,6 +6855,12 @@
       "rule": "facade_bypass",
       "path": "olt/scripts/src/cli/registry/plan.ts",
       "observed": "olt/scripts/src/cli/commands/plan.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/cli/registry/policy.ts",
+      "observed": "olt/scripts/src/cli/commands/policy-ops.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -8788,6 +8911,36 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "olt/scripts/src/engine/scheduler/host-cadence.ts",
+      "observed": "olt/scripts/src/authority/host-bindings.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/engine/scheduler/host-cadence.ts",
+      "observed": "olt/scripts/src/platform/host-autodetect.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/engine/scheduler/host-cadence.ts",
+      "observed": "olt/scripts/src/policy/generator.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/engine/scheduler/host-cadence.ts",
+      "observed": "olt/scripts/src/policy/repo-policy.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/engine/scheduler/host-cadence.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "olt/scripts/src/engine/scheduler/index.ts",
       "observed": "olt/scripts/src/engine/scheduler/conflict/conflicts.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -10726,6 +10879,24 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts",
+      "observed": "olt/scripts/src/mind/preplanning/backlog-clusterer.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts",
+      "observed": "olt/scripts/src/mind/preplanning/bridge-state.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "olt/scripts/src/mind/auditing/roles/auditor.ts",
       "observed": "olt/scripts/src/packets/command-authority.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -10770,6 +10941,18 @@
       "rule": "facade_bypass",
       "path": "olt/scripts/src/mind/auditing/roles/types.ts",
       "observed": "olt/scripts/src/mind/roles/dynamic/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts",
+      "observed": "olt/scripts/src/orchestrator/velocity-rebalancer.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -11950,6 +12133,12 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "olt/scripts/src/orchestrator/host-schedulers.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "olt/scripts/src/orchestrator/loop-runner.ts",
       "observed": "olt/scripts/src/core/shared/paths.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -11994,6 +12183,18 @@
       "rule": "facade_bypass",
       "path": "olt/scripts/src/orchestrator/run-terminal.ts",
       "observed": "olt/scripts/src/workflow/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/orchestrator/station-landing.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/orchestrator/subdomain-staging.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -12054,6 +12255,12 @@
       "rule": "facade_bypass",
       "path": "olt/scripts/src/orchestrator/types.ts",
       "observed": "olt/scripts/src/workflow/scope-partitioner.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/orchestrator/velocity-rebalancer.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -12840,6 +13047,24 @@
       "rule": "facade_bypass",
       "path": "olt/scripts/src/reporting/doctor/evidence-location.ts",
       "observed": "olt/scripts/src/validation/evidence-paths.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/reporting/doctor/policy-doctor.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/reporting/doctor/pushback-quotas-engine.ts",
+      "observed": "olt/scripts/src/policy/repo-policy.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/reporting/doctor/pushback-quotas-engine.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -14530,6 +14755,18 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "olt/scripts/src/watchdog/straggler-watchdog.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/watchdog/straggler-watchdog.ts",
+      "observed": "olt/scripts/src/orchestrator/velocity-rebalancer.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "olt/scripts/src/workflow/agents/grants.ts",
       "observed": "olt/scripts/src/packets/command-authority.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -15802,6 +16039,60 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "tests/integration/mind/assembly-pipeline.test.ts",
+      "observed": "olt/scripts/src/cli/commands/factory-ops.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/integration/mind/assembly-pipeline.test.ts",
+      "observed": "olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/integration/mind/assembly-pipeline.test.ts",
+      "observed": "olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/integration/mind/assembly-pipeline.test.ts",
+      "observed": "olt/scripts/src/mind/preplanning/backlog-clusterer.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/integration/mind/assembly-pipeline.test.ts",
+      "observed": "olt/scripts/src/mind/preplanning/continuous-preplanner.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/integration/mind/assembly-pipeline.test.ts",
+      "observed": "olt/scripts/src/orchestrator/host-schedulers.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/integration/mind/assembly-pipeline.test.ts",
+      "observed": "olt/scripts/src/orchestrator/station-landing.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/integration/mind/assembly-pipeline.test.ts",
+      "observed": "olt/scripts/src/orchestrator/velocity-rebalancer.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/integration/mind/assembly-pipeline.test.ts",
+      "observed": "olt/scripts/src/watchdog/straggler-watchdog.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "tests/support/agent-supervisor-chain.ts",
       "observed": "olt/scripts/src/cli/execute.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -16150,6 +16441,42 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "tests/unit/authority/owner-role.test.ts",
+      "observed": "olt/scripts/src/authority/manifest-parser.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/authority/owner-role.test.ts",
+      "observed": "olt/scripts/src/authority/manifest-schema.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/authority/owner-role.test.ts",
+      "observed": "olt/scripts/src/policy/generator.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/authority/owner-role.test.ts",
+      "observed": "olt/scripts/src/policy/permission-health.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/authority/owner-role.test.ts",
+      "observed": "olt/scripts/src/policy/rbac-engine.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/authority/owner-role.test.ts",
+      "observed": "olt/scripts/src/policy/repo-policy.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "tests/unit/authority/persona-grounding.test.ts",
       "observed": "olt/scripts/src/authority/persona-grounding.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -16336,6 +16663,18 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "tests/unit/capture/docker-health.test.ts",
+      "observed": "olt/scripts/src/capture/docker-health.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/capture/docker-health.test.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "tests/unit/capture/focus-ring-optical.test.ts",
       "observed": "olt/scripts/src/capture/validator/mechanical/apca.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -16368,6 +16707,24 @@
       "rule": "facade_bypass",
       "path": "tests/unit/capture/layout-shift-tracker.test.ts",
       "observed": "olt/scripts/src/capture/runners/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/capture/live-capture-runner.test.ts",
+      "observed": "olt/scripts/src/capture/config/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/capture/persona-registry.test.ts",
+      "observed": "olt/scripts/src/capture/persona-registry.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/capture/persona-registry.test.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -16660,6 +17017,12 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "tests/unit/cli/factory-ops.test.ts",
+      "observed": "olt/scripts/src/cli/commands/factory-ops.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "tests/unit/cli/file-persistence-fixture.ts",
       "observed": "olt/scripts/src/cli/execute.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -16878,6 +17241,18 @@
       "rule": "facade_bypass",
       "path": "tests/unit/cli/plan-compile-prerequisites.test.ts",
       "observed": "olt/scripts/src/cli/execute.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/cli/plan-compile-prerequisites.test.ts",
+      "observed": "olt/scripts/src/core/json.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/cli/plan-compile-prerequisites.test.ts",
+      "observed": "olt/scripts/src/engine/store/projections/materialized-projections.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -17982,6 +18357,36 @@
       "rule": "facade_bypass",
       "path": "tests/unit/doctor/evidence-location.test.ts",
       "observed": "olt/scripts/src/validation/evidence-paths.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/doctor/policy-doctor.test.ts",
+      "observed": "olt/scripts/src/cli/commands/policy-ops.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/doctor/policy-doctor.test.ts",
+      "observed": "olt/scripts/src/cli/execute.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/doctor/policy-doctor.test.ts",
+      "observed": "olt/scripts/src/policy/generator.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/doctor/policy-doctor.test.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/doctor/policy-doctor.test.ts",
+      "observed": "olt/scripts/src/reporting/doctor/policy-doctor.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -19444,6 +19849,18 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "tests/unit/mind/backlog-clusterer.test.ts",
+      "observed": "olt/scripts/src/mind/preplanning/backlog-clusterer.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/mind/backlog-clusterer.test.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "tests/unit/mind/briefing-builder.test.ts",
       "observed": "tests/support/scratch-root.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -19494,6 +19911,12 @@
       "rule": "facade_bypass",
       "path": "tests/unit/mind/completed-tasks.test.ts",
       "observed": "tests/support/scratch-root.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/mind/continuous-preplanner.test.ts",
+      "observed": "olt/scripts/src/mind/preplanning/continuous-preplanner.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -19792,6 +20215,18 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "tests/unit/mind/mind-stagnation-auditor.test.ts",
+      "observed": "olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/mind/mind-stagnation-auditor.test.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "tests/unit/mind/mind-wake.test.ts",
       "observed": "olt/scripts/src/cli/arguments.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -19800,6 +20235,24 @@
       "rule": "facade_bypass",
       "path": "tests/unit/mind/mind-wake.test.ts",
       "observed": "olt/scripts/src/cli/commands/mind-wake.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/mind/plan-factory.test.ts",
+      "observed": "olt/scripts/src/mind/preplanning/bridge-state.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/mind/plan-factory.test.ts",
+      "observed": "olt/scripts/src/mind/preplanning/plan-factory.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/mind/plan-factory.test.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -19944,6 +20397,18 @@
       "rule": "facade_bypass",
       "path": "tests/unit/mind/self-evolution.test.ts",
       "observed": "tests/support/scratch-root.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/mind/skill-concurrency-auditor.test.ts",
+      "observed": "olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/mind/skill-concurrency-auditor.test.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -20218,6 +20683,18 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "tests/unit/orchestrator/host-schedulers.test.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/orchestrator/host-schedulers.test.ts",
+      "observed": "olt/scripts/src/orchestrator/host-schedulers.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "tests/unit/orchestrator/loop-gate-honesty.test.ts",
       "observed": "olt/scripts/src/orchestrator/gate-status.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -20326,6 +20803,18 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "tests/unit/orchestrator/station-landing.test.ts",
+      "observed": "olt/scripts/src/orchestrator/station-landing.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/orchestrator/station-landing.test.ts",
+      "observed": "olt/scripts/src/orchestrator/subdomain-staging.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "tests/unit/orchestrator/supervise-reclaim-scoping.test.ts",
       "observed": "olt/scripts/src/cli/commands/orchestrator-ops.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -20406,6 +20895,12 @@
       "rule": "facade_bypass",
       "path": "tests/unit/orchestrator/topology-synthesis.test.ts",
       "observed": "olt/scripts/src/orchestrator/topology-synthesis.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/orchestrator/velocity-rebalancer.test.ts",
+      "observed": "olt/scripts/src/orchestrator/velocity-rebalancer.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -22144,12 +22639,6 @@
     },
     {
       "rule": "facade_bypass",
-      "path": "tests/unit/roles/meta-auditor-role.test.ts",
-      "observed": "olt/scripts/src/authority/manifest-parser.ts",
-      "detail": "Cross-directory import must target the destination index.ts facade."
-    },
-    {
-      "rule": "facade_bypass",
       "path": "tests/unit/roles/mind-role.test.ts",
       "observed": "olt/scripts/src/packets/role-contract.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -23844,6 +24333,24 @@
       "rule": "facade_bypass",
       "path": "tests/unit/scheduler/fixtures.ts",
       "observed": "olt/scripts/src/graph/dependency-map.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/scheduler/host-cadence.test.ts",
+      "observed": "olt/scripts/src/engine/scheduler/host-cadence.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/scheduler/host-cadence.test.ts",
+      "observed": "olt/scripts/src/policy/generator.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/scheduler/host-cadence.test.ts",
+      "observed": "olt/scripts/src/policy/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -25578,6 +26085,12 @@
       "rule": "facade_bypass",
       "path": "tests/unit/watchdog/process-timeout.test.ts",
       "observed": "olt/scripts/src/watchdog/process-timeout.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/watchdog/straggler-watchdog.test.ts",
+      "observed": "olt/scripts/src/watchdog/straggler-watchdog.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -27779,7 +28292,7 @@
     {
       "rule": "dependency_cycle",
       "path": "olt/scripts/src/cli/commands/agent-ops.ts",
-      "observed": "olt/scripts/src/cli/commands/agent-ops.ts,olt/scripts/src/cli/commands/authority-ops.ts,olt/scripts/src/cli/commands/branch-ops.ts,olt/scripts/src/cli/commands/coordinator-pushback.ts,olt/scripts/src/cli/commands/critic-ops.ts,olt/scripts/src/cli/commands/dag-view.ts,olt/scripts/src/cli/commands/dag.ts,olt/scripts/src/cli/commands/diagnostics-ops.ts,olt/scripts/src/cli/commands/explain-ops.ts,olt/scripts/src/cli/commands/gate-prove.ts,olt/scripts/src/cli/commands/graph-export.ts,olt/scripts/src/cli/commands/inspection-ops.ts,olt/scripts/src/cli/commands/memory-ops.ts,olt/scripts/src/cli/commands/mind-admit.ts,olt/scripts/src/cli/commands/mind-audit-live.ts,olt/scripts/src/cli/commands/mind-audit.ts,olt/scripts/src/cli/commands/mind-halt.ts,olt/scripts/src/cli/commands/mind-init.ts,olt/scripts/src/cli/commands/mind-observe.ts,olt/scripts/src/cli/commands/mind-pulse-open.ts,olt/scripts/src/cli/commands/mind-pulse.ts,olt/scripts/src/cli/commands/mind-quiesce.ts,olt/scripts/src/cli/commands/mind-rotate.ts,olt/scripts/src/cli/commands/mind-round.ts,olt/scripts/src/cli/commands/mind-wake.ts,olt/scripts/src/cli/commands/orchestrate.ts,olt/scripts/src/cli/commands/orchestrator-ops.ts,olt/scripts/src/cli/commands/orphan-ops.ts,olt/scripts/src/cli/commands/plan-apply.ts,olt/scripts/src/cli/commands/plan-audit.ts,olt/scripts/src/cli/commands/plan-compile.ts,olt/scripts/src/cli/commands/plan-replan-bindings.ts,olt/scripts/src/cli/commands/plan-replan-findings.ts,olt/scripts/src/cli/commands/plan-replan.ts,olt/scripts/src/cli/commands/plan-validate.ts,olt/scripts/src/cli/commands/plan.ts,olt/scripts/src/cli/commands/queue.ts,olt/scripts/src/cli/commands/review-resolutions.ts,olt/scripts/src/cli/commands/role-cheat-sheet.ts,olt/scripts/src/cli/commands/run-ops.ts,olt/scripts/src/cli/commands/shell.ts,olt/scripts/src/cli/commands/skill-audit-live.ts,olt/scripts/src/cli/commands/smart-task-ops.ts,olt/scripts/src/cli/commands/summary-ops.ts,olt/scripts/src/cli/commands/task-abandon.ts,olt/scripts/src/cli/commands/task-assign-repairer.ts,olt/scripts/src/cli/commands/task-brief.ts,olt/scripts/src/cli/commands/task-check.ts,olt/scripts/src/cli/commands/task-claim.ts,olt/scripts/src/cli/commands/task-finding-input.ts,olt/scripts/src/cli/commands/task-ops.ts,olt/scripts/src/cli/commands/task-probe.ts,olt/scripts/src/cli/commands/task-reject.ts,olt/scripts/src/cli/commands/task-review-support.ts,olt/scripts/src/cli/commands/task-review.ts,olt/scripts/src/cli/commands/task-validation-start.ts,olt/scripts/src/cli/commands/unified-reporting.ts,olt/scripts/src/cli/commands/watchdog-ops.ts,olt/scripts/src/cli/commands/whoami.ts,olt/scripts/src/cli/formatters/index.ts,olt/scripts/src/cli/formatters/plan-formatter.ts,olt/scripts/src/cli/host-telemetry-probe.ts,olt/scripts/src/cli/registry/agent.ts,olt/scripts/src/cli/registry/authority.ts,olt/scripts/src/cli/registry/branch.ts,olt/scripts/src/cli/registry/coordinator.ts,olt/scripts/src/cli/registry/critic.ts,olt/scripts/src/cli/registry/diagnostics.ts,olt/scripts/src/cli/registry/explain.ts,olt/scripts/src/cli/registry/gate.ts,olt/scripts/src/cli/registry/index.ts,olt/scripts/src/cli/registry/inspection.ts,olt/scripts/src/cli/registry/mind.ts,olt/scripts/src/cli/registry/orchestrator.ts,olt/scripts/src/cli/registry/orphan.ts,olt/scripts/src/cli/registry/plan.ts,olt/scripts/src/cli/registry/queue.ts,olt/scripts/src/cli/registry/reporting.ts,olt/scripts/src/cli/registry/run.ts,olt/scripts/src/cli/registry/shell.ts,olt/scripts/src/cli/registry/summary.ts,olt/scripts/src/cli/registry/task.ts,olt/scripts/src/engine/scheduler/conflict/decision-tree.ts,olt/scripts/src/engine/scheduler/conflict/rank.ts,olt/scripts/src/engine/scheduler/core/core-engine-class.ts,olt/scripts/src/engine/scheduler/core/index.ts,olt/scripts/src/engine/scheduler/core/lifecycle.ts,olt/scripts/src/engine/scheduler/core/loop-doctor.ts,olt/scripts/src/engine/scheduler/core/loop.ts,olt/scripts/src/engine/scheduler/core/state.ts,olt/scripts/src/engine/scheduler/core/tasks/tasks-advanced.ts,olt/scripts/src/engine/scheduler/core/tasks/tasks-circular.ts,olt/scripts/src/engine/scheduler/core/tasks/tasks-coverage.ts,olt/scripts/src/engine/scheduler/core/tasks/tasks.ts,olt/scripts/src/engine/scheduler/core/types.ts,olt/scripts/src/engine/scheduler/diagnostics/critic/critic-feedback.ts,olt/scripts/src/engine/scheduler/diagnostics/critic/critic-normalization.ts,olt/scripts/src/engine/scheduler/diagnostics/critic/critic-types.ts,olt/scripts/src/engine/scheduler/diagnostics/critic/index.ts,olt/scripts/src/engine/scheduler/diagnostics/critic/repair-dag.ts,olt/scripts/src/engine/scheduler/diagnostics/diagnostics.ts,olt/scripts/src/engine/scheduler/diagnostics/index.ts,olt/scripts/src/engine/scheduler/diagnostics/inspectors.ts,olt/scripts/src/engine/scheduler/diagnostics/receipts.ts,olt/scripts/src/engine/scheduler/diagnostics/system-inspectors.ts,olt/scripts/src/engine/scheduler/dispatch/multi-domain-batch.ts,olt/scripts/src/engine/scheduler/dispatch/multi-domain-dispatch.ts,olt/scripts/src/engine/scheduler/dispatch/multi-domain-factor.ts,olt/scripts/src/engine/scheduler/dispatch/multi-domain-types.ts,olt/scripts/src/engine/scheduler/dispatch/multi-domain-validators.ts,olt/scripts/src/engine/scheduler/dispatch/propose-batch.ts,olt/scripts/src/engine/scheduler/dispatch/ready-set.ts,olt/scripts/src/engine/scheduler/feedback/pulse-core.ts,olt/scripts/src/engine/scheduler/feedback/pulse-types.ts,olt/scripts/src/engine/scheduler/index.ts,olt/scripts/src/engine/scheduler/metrics.ts,olt/scripts/src/engine/scheduler/topology/dynamic-allocations.ts,olt/scripts/src/engine/scheduler/topology/dynamic-metrics.ts,olt/scripts/src/engine/scheduler/topology/dynamic-synthesize.ts,olt/scripts/src/engine/scheduler/topology/metrics.ts,olt/scripts/src/engine/scheduler/topology/persist-topology.ts,olt/scripts/src/engine/scheduler/topology/topology.ts,olt/scripts/src/engine/scheduler/topology/unlimited/unlimited-core.ts,olt/scripts/src/engine/scheduler/topology/unlimited/unlimited-pairing.ts,olt/scripts/src/engine/scheduler/topology/unlimited/unlimited-types.ts,olt/scripts/src/engine/scheduler/topology/unlimited/unlimited-utils.ts,olt/scripts/src/graph/apply-plan.ts,olt/scripts/src/graph/compiler.ts,olt/scripts/src/graph/dag-forensics.ts,olt/scripts/src/graph/dependency-map.ts,olt/scripts/src/graph/gate-proof.ts,olt/scripts/src/graph/parallel-decoupler.ts,olt/scripts/src/graph/plan-audit.ts,olt/scripts/src/graph/project-plan.ts,olt/scripts/src/graph/revision-guard.ts,olt/scripts/src/graph/scope-analyzer.ts,olt/scripts/src/graph/topology.ts,olt/scripts/src/graph/validate-graph.ts,olt/scripts/src/health/index.ts,olt/scripts/src/health/intent.ts,olt/scripts/src/health/unenforced.ts,olt/scripts/src/integration/store-ports.ts,olt/scripts/src/mind/archival/quiesce/evaluator.ts,olt/scripts/src/mind/archival/quiesce/index.ts,olt/scripts/src/mind/archival/quiesce/types.ts,olt/scripts/src/mind/archival/rotate/finisher.ts,olt/scripts/src/mind/archival/rotate/index.ts,olt/scripts/src/mind/archival/rotate/rotator.ts,olt/scripts/src/mind/auditing/cognitive/engine.ts,olt/scripts/src/mind/auditing/cognitive/index.ts,olt/scripts/src/mind/auditing/cognitive/pulse-auditor.ts,olt/scripts/src/mind/auditing/counterfactual/evaluator.ts,olt/scripts/src/mind/auditing/counterfactual/index.ts,olt/scripts/src/mind/auditing/counterfactual/simulator.ts,olt/scripts/src/mind/auditing/counterfactual/types.ts,olt/scripts/src/mind/auditing/index.ts,olt/scripts/src/mind/auditing/roles/auditor.ts,olt/scripts/src/mind/auditing/roles/batch-auditor.ts,olt/scripts/src/mind/auditing/roles/contract-auditor.ts,olt/scripts/src/mind/auditing/roles/index.ts,olt/scripts/src/mind/auditing/roles/reporter.ts,olt/scripts/src/mind/auditing/roles/rules/hierarchy.ts,olt/scripts/src/mind/auditing/roles/rules/index.ts,olt/scripts/src/mind/auditing/roles/rules/leaf-checks.ts,olt/scripts/src/mind/auditing/roles/rules/matrix.ts,olt/scripts/src/mind/auditing/roles/rules/supervisory-checks.ts,olt/scripts/src/mind/auditing/roles/similarity.ts,olt/scripts/src/mind/auditing/roles/synthesizer.ts,olt/scripts/src/mind/auditing/roles/types.ts,olt/scripts/src/mind/core/cognition-command.ts,olt/scripts/src/mind/core/discovery-command.ts,olt/scripts/src/mind/core/dispatch.ts,olt/scripts/src/mind/core/evolution-command.ts,olt/scripts/src/mind/core/index.ts,olt/scripts/src/mind/lifecycle/deploy/builder.ts,olt/scripts/src/mind/lifecycle/deploy/index.ts,olt/scripts/src/mind/lifecycle/deploy/types.ts,olt/scripts/src/mind/lifecycle/evolution/cadence.ts,olt/scripts/src/mind/lifecycle/evolution/cycle.ts,olt/scripts/src/mind/lifecycle/evolution/history.ts,olt/scripts/src/mind/lifecycle/evolution/index.ts,olt/scripts/src/mind/lifecycle/evolution/pipeline.ts,olt/scripts/src/mind/lifecycle/evolution/proposal.ts,olt/scripts/src/mind/lifecycle/evolution/types.ts,olt/scripts/src/mind/lifecycle/index.ts,olt/scripts/src/mind/lifecycle/observe/index.ts,olt/scripts/src/mind/lifecycle/pulse/index.ts,olt/scripts/src/mind/lifecycle/pulse/pulse-reclaim.ts,olt/scripts/src/mind/lifecycle/rounds/index.ts,olt/scripts/src/mind/lifecycle/rounds/round-close.ts,olt/scripts/src/mind/lifecycle/rounds/round-open.ts,olt/scripts/src/mind/lifecycle/rounds/types.ts,olt/scripts/src/mind/memory/core/index.ts,olt/scripts/src/mind/memory/index.ts,olt/scripts/src/mind/memory/sources/index.ts,olt/scripts/src/mind/memory/sources/scanner.ts,olt/scripts/src/mind/memory/sources/types.ts,olt/scripts/src/mind/proposals/brief/builder.ts,olt/scripts/src/mind/proposals/brief/index.ts,olt/scripts/src/mind/proposals/brief/wake-brief.ts,olt/scripts/src/mind/proposals/gates/evaluator.ts,olt/scripts/src/mind/proposals/gates/formatter.ts,olt/scripts/src/mind/proposals/gates/index.ts,olt/scripts/src/mind/proposals/gates/table.ts,olt/scripts/src/mind/roles/dynamic/cheatsheet.ts,olt/scripts/src/mind/roles/dynamic/index.ts,olt/scripts/src/mind/roles/dynamic/mutator.ts,olt/scripts/src/mind/roles/dynamic/parser.ts,olt/scripts/src/mind/roles/dynamic/registry.ts,olt/scripts/src/mind/roles/dynamic/synthesizer.ts,olt/scripts/src/mind/roles/dynamic/types.ts,olt/scripts/src/mind/roles/dynamic/validation.ts,olt/scripts/src/mind/tasks/discovery/engine.ts,olt/scripts/src/mind/tasks/discovery/index.ts,olt/scripts/src/mind/tasks/discovery/runner.ts,olt/scripts/src/mind/tasks/index.ts,olt/scripts/src/mind/tasks/smart/executor/backlog-drainer.ts,olt/scripts/src/mind/tasks/smart/executor/dispatch.ts,olt/scripts/src/mind/tasks/smart/executor/evolution.ts,olt/scripts/src/mind/tasks/smart/executor/execution.ts,olt/scripts/src/mind/tasks/smart/executor/index.ts,olt/scripts/src/mind/tasks/smart/executor/invariants.ts,olt/scripts/src/mind/tasks/smart/executor/orchestrator.ts,olt/scripts/src/mind/tasks/smart/executor/product-owner.ts,olt/scripts/src/mind/tasks/smart/executor/self-evolution.ts,olt/scripts/src/mind/tasks/smart/executor/synthesis.ts,olt/scripts/src/mind/tasks/smart/index.ts,olt/scripts/src/mind/tasks/smart/planner/anti-batching.ts,olt/scripts/src/mind/tasks/smart/planner/collisions.ts,olt/scripts/src/mind/tasks/smart/planner/index.ts,olt/scripts/src/mind/tasks/smart/planner/memory.ts,olt/scripts/src/mind/tasks/smart/planner/metrics.ts,olt/scripts/src/mind/tasks/smart/planner/models.ts,olt/scripts/src/mind/tasks/smart/planner/partitioning.ts,olt/scripts/src/mind/tasks/smart/planner/rebalance.ts,olt/scripts/src/mind/tasks/smart/planner/types.ts,olt/scripts/src/mind/tasks/smart/planner/waves.ts,olt/scripts/src/orchestrator/capsule-chainer.ts,olt/scripts/src/orchestrator/companion-auditor.ts,olt/scripts/src/orchestrator/dead-agent-detector.ts,olt/scripts/src/orchestrator/defect-synthesizer.ts,olt/scripts/src/orchestrator/dispatch-log.ts,olt/scripts/src/orchestrator/dispatch-selection.ts,olt/scripts/src/orchestrator/gate-status.ts,olt/scripts/src/orchestrator/loop-runner.ts,olt/scripts/src/orchestrator/loop-summary-brief.ts,olt/scripts/src/orchestrator/morning-report.ts,olt/scripts/src/orchestrator/run-terminal.ts,olt/scripts/src/orchestrator/supervision-tick.ts,olt/scripts/src/orchestrator/supervision-watch.ts,olt/scripts/src/orchestrator/supervisor.ts,olt/scripts/src/orchestrator/types.ts,olt/scripts/src/orchestrator/watchdog.ts,olt/scripts/src/packets/authenticate-packet.ts,olt/scripts/src/packets/common-instructions.ts,olt/scripts/src/packets/critic-context.ts,olt/scripts/src/packets/critic-grant.ts,olt/scripts/src/packets/packet-bundle.ts,olt/scripts/src/packets/packet-record.ts,olt/scripts/src/packets/persist-packet.ts,olt/scripts/src/packets/plan-validator-grant.ts,olt/scripts/src/packets/planner-packet.ts,olt/scripts/src/packets/preplan-port.ts,olt/scripts/src/packets/prior-round-demands.ts,olt/scripts/src/packets/publish-role-packet.ts,olt/scripts/src/packets/render-packet.ts,olt/scripts/src/packets/repository-inspection.ts,olt/scripts/src/packets/role-grant.ts,olt/scripts/src/packets/round-commands.ts,olt/scripts/src/packets/types.ts,olt/scripts/src/packets/validation-round.ts,olt/scripts/src/policy/review-protocol.ts,olt/scripts/src/reporting/action-types.ts,olt/scripts/src/reporting/active-actions.ts,olt/scripts/src/reporting/behavioral-auditor.ts,olt/scripts/src/reporting/behavioral-auditor/audit-coordinator.ts,olt/scripts/src/reporting/behavioral-auditor/audit-implementer.ts,olt/scripts/src/reporting/behavioral-auditor/audit-orchestrator.ts,olt/scripts/src/reporting/behavioral-auditor/auditor.ts,olt/scripts/src/reporting/behavioral-auditor/index.ts,olt/scripts/src/reporting/branch-actions.ts,olt/scripts/src/reporting/completion-actions.ts,olt/scripts/src/reporting/doctor.ts,olt/scripts/src/reporting/doctor/adversarial-doctor.ts,olt/scripts/src/reporting/doctor/adversarial-doctor/certification.ts,olt/scripts/src/reporting/doctor/adversarial-doctor/diagnostics.ts,olt/scripts/src/reporting/doctor/adversarial-doctor/index.ts,olt/scripts/src/reporting/doctor/auto-heal.ts,olt/scripts/src/reporting/doctor/certify-command.ts,olt/scripts/src/reporting/doctor/engines.ts,olt/scripts/src/reporting/doctor/tier-confinement.ts,olt/scripts/src/reporting/doctor/tier-confinement/audit-implementer.ts,olt/scripts/src/reporting/doctor/tier-confinement/audit-orchestrator.ts,olt/scripts/src/reporting/doctor/tier-confinement/audit-supervisor.ts,olt/scripts/src/reporting/doctor/tier-confinement/auditor.ts,olt/scripts/src/reporting/doctor/tier-confinement/index.ts,olt/scripts/src/reporting/graph-json.ts,olt/scripts/src/reporting/handoff-sections.ts,olt/scripts/src/reporting/handoff.ts,olt/scripts/src/reporting/next-actions.ts,olt/scripts/src/reporting/packet-evidence.ts,olt/scripts/src/reporting/preplan-handoff.ts,olt/scripts/src/reporting/registry-argv.ts,olt/scripts/src/reporting/socratic-validator.ts,olt/scripts/src/reporting/status.ts,olt/scripts/src/reporting/task-actions.ts,olt/scripts/src/reporting/unified.ts,olt/scripts/src/reporting/unified/index.ts,olt/scripts/src/reporting/unified/leases-decisions.ts,olt/scripts/src/reporting/unified/lifecycle-segmenter.ts,olt/scripts/src/reporting/unified/report-builder.ts,olt/scripts/src/reporting/workflow-view.ts,olt/scripts/src/roles/cheat-sheets.ts,olt/scripts/src/summary/assets/asset-mapper-finding-screenshots.ts,olt/scripts/src/summary/assets/asset-mapper-findings.ts,olt/scripts/src/summary/assets/asset-mapper-props.ts,olt/scripts/src/summary/assets/asset-mapper-task-sources.ts,olt/scripts/src/summary/assets/asset-mapper.ts,olt/scripts/src/summary/formatters/generate-summary.ts,olt/scripts/src/summary/generate-summary.ts,olt/scripts/src/summary/graph/graph-edge-exchanges.ts,olt/scripts/src/summary/graph/graph-edge-factory.ts,olt/scripts/src/summary/graph/graph-generator-branch-nodes.ts,olt/scripts/src/summary/graph/graph-generator-core-nodes.ts,olt/scripts/src/summary/graph/graph-generator-critic-nodes.ts,olt/scripts/src/summary/graph/graph-generator-gate-helpers.ts,olt/scripts/src/summary/graph/graph-generator-helpers.ts,olt/scripts/src/summary/graph/graph-generator-plan-validator-nodes.ts,olt/scripts/src/summary/graph/graph-generator-validator-nodes.ts,olt/scripts/src/summary/graph/graph-generator.ts,olt/scripts/src/summary/graph/graph-node-context.ts,olt/scripts/src/summary/graph/graph-round-context.ts,olt/scripts/src/summary/graph/graph-round-nodes.ts,olt/scripts/src/summary/graph/graph-run-facts.ts,olt/scripts/src/summary/graph/graph-task-preparation.ts,olt/scripts/src/summary/markdown/markdown-checklist-coverage.ts,olt/scripts/src/summary/markdown/markdown-evidence-sections.ts,olt/scripts/src/summary/markdown/markdown-execution-sections.ts,olt/scripts/src/summary/markdown/markdown-formatter.ts,olt/scripts/src/summary/markdown/markdown-plan-sections.ts,olt/scripts/src/summary/markdown/markdown-report-context.ts,olt/scripts/src/summary/markdown/markdown-run-sections.ts,olt/scripts/src/summary/markdown/markdown-sources.ts,olt/scripts/src/summary/markdown/markdown-step-provenance.ts,olt/scripts/src/summary/markdown/node-evidence.ts,olt/scripts/src/summary/metrics/metrics-collector-helpers.ts,olt/scripts/src/summary/metrics/metrics-collector.ts,olt/scripts/src/summary/metrics/step-calculator.ts,olt/scripts/src/summary/node-evidence.ts,olt/scripts/src/workflow/agents/grants.ts,olt/scripts/src/workflow/authority/index.ts,olt/scripts/src/workflow/authority/record-authority-decision.ts,olt/scripts/src/workflow/branch/chain-recovery.ts,olt/scripts/src/workflow/branch/collect.ts,olt/scripts/src/workflow/branch/open.ts,olt/scripts/src/workflow/branch/parent.ts,olt/scripts/src/workflow/branch/scope.ts,olt/scripts/src/workflow/branch/sub-tasks.ts,olt/scripts/src/workflow/completion/artifact-verification.ts,olt/scripts/src/workflow/completion/begin-completeness-critic.ts,olt/scripts/src/workflow/completion/complete-run.ts,olt/scripts/src/workflow/completion/completion-history.ts,olt/scripts/src/workflow/completion/completion-review-digest.ts,olt/scripts/src/workflow/completion/completion-state.ts,olt/scripts/src/workflow/completion/critic-identity.ts,olt/scripts/src/workflow/completion/parse-raw-findings.ts,olt/scripts/src/workflow/completion/parse-raw-proofs.ts,olt/scripts/src/workflow/completion/readiness-issues.ts,olt/scripts/src/workflow/completion/readiness-snapshot.ts,olt/scripts/src/workflow/completion/record-completion-remediation.ts,olt/scripts/src/workflow/completion/record-completion-review.ts,olt/scripts/src/workflow/completion/repository-binding.ts,olt/scripts/src/workflow/completion/repository-evidence.ts,olt/scripts/src/workflow/completion/review-input.ts,olt/scripts/src/workflow/completion/review-issues.ts,olt/scripts/src/workflow/completion/transition-summary-issues.ts,olt/scripts/src/workflow/completion/types.ts,olt/scripts/src/workflow/evidence.ts,olt/scripts/src/workflow/gates/attach-result.ts,olt/scripts/src/workflow/gates/finish-task.ts,olt/scripts/src/workflow/gates/gate-policy.ts,olt/scripts/src/workflow/lease/abandon.ts,olt/scripts/src/workflow/lease/attempt-state.ts,olt/scripts/src/workflow/lease/claim.ts,olt/scripts/src/workflow/lease/escalate.ts,olt/scripts/src/workflow/lease/heartbeat.ts,olt/scripts/src/workflow/lease/recover-stale.ts,olt/scripts/src/workflow/lease/release.ts,olt/scripts/src/workflow/lease/turn-state.ts,olt/scripts/src/workflow/orphan-evidence/digest.ts,olt/scripts/src/workflow/orphan-evidence/disposition.ts,olt/scripts/src/workflow/packet-authority.ts,olt/scripts/src/workflow/plan-review/begin-plan-validation.ts,olt/scripts/src/workflow/plan-review/identity.ts,olt/scripts/src/workflow/plan-review/plan-digest.ts,olt/scripts/src/workflow/plan-review/record-plan-review.ts,olt/scripts/src/workflow/review/assign-repairer.ts,olt/scripts/src/workflow/review/begin-validation.ts,olt/scripts/src/workflow/review/command-evidence.ts,olt/scripts/src/workflow/review/coordinator-pushback.ts,olt/scripts/src/workflow/review/finding-falsifiability.ts,olt/scripts/src/workflow/review/micro-cycle.ts,olt/scripts/src/workflow/review/pass-preconditions.ts,olt/scripts/src/workflow/review/record-probe.ts,olt/scripts/src/workflow/review/record-review.ts,olt/scripts/src/workflow/review/review-event.ts,olt/scripts/src/workflow/review/role-evidence.ts,olt/scripts/src/workflow/review/validate-review.ts,olt/scripts/src/workflow/review/validation-state.ts,olt/scripts/src/workflow/scope-partitioner.ts,olt/scripts/src/workflow/submission/build-report.ts,olt/scripts/src/workflow/submission/out-of-band-drift.ts,olt/scripts/src/workflow/submission/submit.ts,olt/scripts/src/workflow/submission/validate-report.ts,olt/scripts/src/workflow/task-state.ts,olt/scripts/src/workflow/types.ts,olt/scripts/src/workflow/worktree/assign.ts,olt/scripts/src/workflow/worktree/provision.ts",
+      "observed": "olt/scripts/src/cli/commands/agent-ops.ts,olt/scripts/src/cli/commands/authority-ops.ts,olt/scripts/src/cli/commands/branch-ops.ts,olt/scripts/src/cli/commands/coordinator-pushback.ts,olt/scripts/src/cli/commands/critic-ops.ts,olt/scripts/src/cli/commands/dag-view.ts,olt/scripts/src/cli/commands/dag.ts,olt/scripts/src/cli/commands/diagnostics-ops.ts,olt/scripts/src/cli/commands/explain-ops.ts,olt/scripts/src/cli/commands/gate-prove.ts,olt/scripts/src/cli/commands/graph-export.ts,olt/scripts/src/cli/commands/inspection-ops.ts,olt/scripts/src/cli/commands/memory-ops.ts,olt/scripts/src/cli/commands/mind-admit.ts,olt/scripts/src/cli/commands/mind-audit-live.ts,olt/scripts/src/cli/commands/mind-audit.ts,olt/scripts/src/cli/commands/mind-halt.ts,olt/scripts/src/cli/commands/mind-init.ts,olt/scripts/src/cli/commands/mind-observe.ts,olt/scripts/src/cli/commands/mind-pulse-open.ts,olt/scripts/src/cli/commands/mind-pulse.ts,olt/scripts/src/cli/commands/mind-quiesce.ts,olt/scripts/src/cli/commands/mind-rotate.ts,olt/scripts/src/cli/commands/mind-round.ts,olt/scripts/src/cli/commands/mind-wake.ts,olt/scripts/src/cli/commands/orchestrate.ts,olt/scripts/src/cli/commands/orchestrator-ops.ts,olt/scripts/src/cli/commands/orphan-ops.ts,olt/scripts/src/cli/commands/plan-apply.ts,olt/scripts/src/cli/commands/plan-audit.ts,olt/scripts/src/cli/commands/plan-compile.ts,olt/scripts/src/cli/commands/plan-replan-bindings.ts,olt/scripts/src/cli/commands/plan-replan-findings.ts,olt/scripts/src/cli/commands/plan-replan.ts,olt/scripts/src/cli/commands/plan-validate.ts,olt/scripts/src/cli/commands/plan.ts,olt/scripts/src/cli/commands/policy-ops.ts,olt/scripts/src/cli/commands/queue.ts,olt/scripts/src/cli/commands/review-resolutions.ts,olt/scripts/src/cli/commands/role-cheat-sheet.ts,olt/scripts/src/cli/commands/run-ops.ts,olt/scripts/src/cli/commands/shell.ts,olt/scripts/src/cli/commands/skill-audit-live.ts,olt/scripts/src/cli/commands/smart-task-ops.ts,olt/scripts/src/cli/commands/summary-ops.ts,olt/scripts/src/cli/commands/task-abandon.ts,olt/scripts/src/cli/commands/task-assign-repairer.ts,olt/scripts/src/cli/commands/task-brief.ts,olt/scripts/src/cli/commands/task-check.ts,olt/scripts/src/cli/commands/task-claim.ts,olt/scripts/src/cli/commands/task-finding-input.ts,olt/scripts/src/cli/commands/task-ops.ts,olt/scripts/src/cli/commands/task-probe.ts,olt/scripts/src/cli/commands/task-reject.ts,olt/scripts/src/cli/commands/task-review-support.ts,olt/scripts/src/cli/commands/task-review.ts,olt/scripts/src/cli/commands/task-validation-start.ts,olt/scripts/src/cli/commands/unified-reporting.ts,olt/scripts/src/cli/commands/watchdog-ops.ts,olt/scripts/src/cli/commands/whoami.ts,olt/scripts/src/cli/formatters/index.ts,olt/scripts/src/cli/formatters/plan-formatter.ts,olt/scripts/src/cli/host-telemetry-probe.ts,olt/scripts/src/cli/registry/agent.ts,olt/scripts/src/cli/registry/authority.ts,olt/scripts/src/cli/registry/branch.ts,olt/scripts/src/cli/registry/coordinator.ts,olt/scripts/src/cli/registry/critic.ts,olt/scripts/src/cli/registry/diagnostics.ts,olt/scripts/src/cli/registry/explain.ts,olt/scripts/src/cli/registry/gate.ts,olt/scripts/src/cli/registry/index.ts,olt/scripts/src/cli/registry/inspection.ts,olt/scripts/src/cli/registry/mind.ts,olt/scripts/src/cli/registry/orchestrator.ts,olt/scripts/src/cli/registry/orphan.ts,olt/scripts/src/cli/registry/plan.ts,olt/scripts/src/cli/registry/policy.ts,olt/scripts/src/cli/registry/queue.ts,olt/scripts/src/cli/registry/reporting.ts,olt/scripts/src/cli/registry/run.ts,olt/scripts/src/cli/registry/shell.ts,olt/scripts/src/cli/registry/summary.ts,olt/scripts/src/cli/registry/task.ts,olt/scripts/src/engine/scheduler/conflict/decision-tree.ts,olt/scripts/src/engine/scheduler/conflict/rank.ts,olt/scripts/src/engine/scheduler/core/core-engine-class.ts,olt/scripts/src/engine/scheduler/core/index.ts,olt/scripts/src/engine/scheduler/core/lifecycle.ts,olt/scripts/src/engine/scheduler/core/loop-doctor.ts,olt/scripts/src/engine/scheduler/core/loop.ts,olt/scripts/src/engine/scheduler/core/state.ts,olt/scripts/src/engine/scheduler/core/tasks/tasks-advanced.ts,olt/scripts/src/engine/scheduler/core/tasks/tasks-circular.ts,olt/scripts/src/engine/scheduler/core/tasks/tasks-coverage.ts,olt/scripts/src/engine/scheduler/core/tasks/tasks.ts,olt/scripts/src/engine/scheduler/core/types.ts,olt/scripts/src/engine/scheduler/diagnostics/critic/critic-feedback.ts,olt/scripts/src/engine/scheduler/diagnostics/critic/critic-normalization.ts,olt/scripts/src/engine/scheduler/diagnostics/critic/critic-types.ts,olt/scripts/src/engine/scheduler/diagnostics/critic/index.ts,olt/scripts/src/engine/scheduler/diagnostics/critic/repair-dag.ts,olt/scripts/src/engine/scheduler/diagnostics/diagnostics.ts,olt/scripts/src/engine/scheduler/diagnostics/index.ts,olt/scripts/src/engine/scheduler/diagnostics/inspectors.ts,olt/scripts/src/engine/scheduler/diagnostics/receipts.ts,olt/scripts/src/engine/scheduler/diagnostics/system-inspectors.ts,olt/scripts/src/engine/scheduler/dispatch/multi-domain-batch.ts,olt/scripts/src/engine/scheduler/dispatch/multi-domain-dispatch.ts,olt/scripts/src/engine/scheduler/dispatch/multi-domain-factor.ts,olt/scripts/src/engine/scheduler/dispatch/multi-domain-types.ts,olt/scripts/src/engine/scheduler/dispatch/multi-domain-validators.ts,olt/scripts/src/engine/scheduler/dispatch/propose-batch.ts,olt/scripts/src/engine/scheduler/dispatch/ready-set.ts,olt/scripts/src/engine/scheduler/feedback/pulse-core.ts,olt/scripts/src/engine/scheduler/feedback/pulse-types.ts,olt/scripts/src/engine/scheduler/index.ts,olt/scripts/src/engine/scheduler/metrics.ts,olt/scripts/src/engine/scheduler/topology/dynamic-allocations.ts,olt/scripts/src/engine/scheduler/topology/dynamic-metrics.ts,olt/scripts/src/engine/scheduler/topology/dynamic-synthesize.ts,olt/scripts/src/engine/scheduler/topology/metrics.ts,olt/scripts/src/engine/scheduler/topology/persist-topology.ts,olt/scripts/src/engine/scheduler/topology/topology.ts,olt/scripts/src/engine/scheduler/topology/unlimited/unlimited-core.ts,olt/scripts/src/engine/scheduler/topology/unlimited/unlimited-pairing.ts,olt/scripts/src/engine/scheduler/topology/unlimited/unlimited-types.ts,olt/scripts/src/engine/scheduler/topology/unlimited/unlimited-utils.ts,olt/scripts/src/graph/apply-plan.ts,olt/scripts/src/graph/compiler.ts,olt/scripts/src/graph/dag-forensics.ts,olt/scripts/src/graph/dependency-map.ts,olt/scripts/src/graph/gate-proof.ts,olt/scripts/src/graph/parallel-decoupler.ts,olt/scripts/src/graph/plan-audit.ts,olt/scripts/src/graph/project-plan.ts,olt/scripts/src/graph/revision-guard.ts,olt/scripts/src/graph/scope-analyzer.ts,olt/scripts/src/graph/topology.ts,olt/scripts/src/graph/validate-graph.ts,olt/scripts/src/health/index.ts,olt/scripts/src/health/intent.ts,olt/scripts/src/health/unenforced.ts,olt/scripts/src/integration/store-ports.ts,olt/scripts/src/mind/archival/quiesce/evaluator.ts,olt/scripts/src/mind/archival/quiesce/index.ts,olt/scripts/src/mind/archival/quiesce/types.ts,olt/scripts/src/mind/archival/rotate/finisher.ts,olt/scripts/src/mind/archival/rotate/index.ts,olt/scripts/src/mind/archival/rotate/rotator.ts,olt/scripts/src/mind/auditing/cognitive/engine.ts,olt/scripts/src/mind/auditing/cognitive/index.ts,olt/scripts/src/mind/auditing/cognitive/pulse-auditor.ts,olt/scripts/src/mind/auditing/counterfactual/evaluator.ts,olt/scripts/src/mind/auditing/counterfactual/index.ts,olt/scripts/src/mind/auditing/counterfactual/simulator.ts,olt/scripts/src/mind/auditing/counterfactual/types.ts,olt/scripts/src/mind/auditing/index.ts,olt/scripts/src/mind/auditing/roles/auditor.ts,olt/scripts/src/mind/auditing/roles/batch-auditor.ts,olt/scripts/src/mind/auditing/roles/contract-auditor.ts,olt/scripts/src/mind/auditing/roles/index.ts,olt/scripts/src/mind/auditing/roles/reporter.ts,olt/scripts/src/mind/auditing/roles/rules/hierarchy.ts,olt/scripts/src/mind/auditing/roles/rules/index.ts,olt/scripts/src/mind/auditing/roles/rules/leaf-checks.ts,olt/scripts/src/mind/auditing/roles/rules/matrix.ts,olt/scripts/src/mind/auditing/roles/rules/supervisory-checks.ts,olt/scripts/src/mind/auditing/roles/similarity.ts,olt/scripts/src/mind/auditing/roles/synthesizer.ts,olt/scripts/src/mind/auditing/roles/types.ts,olt/scripts/src/mind/core/cognition-command.ts,olt/scripts/src/mind/core/discovery-command.ts,olt/scripts/src/mind/core/dispatch.ts,olt/scripts/src/mind/core/evolution-command.ts,olt/scripts/src/mind/core/index.ts,olt/scripts/src/mind/lifecycle/deploy/builder.ts,olt/scripts/src/mind/lifecycle/deploy/index.ts,olt/scripts/src/mind/lifecycle/deploy/types.ts,olt/scripts/src/mind/lifecycle/evolution/cadence.ts,olt/scripts/src/mind/lifecycle/evolution/cycle.ts,olt/scripts/src/mind/lifecycle/evolution/history.ts,olt/scripts/src/mind/lifecycle/evolution/index.ts,olt/scripts/src/mind/lifecycle/evolution/pipeline.ts,olt/scripts/src/mind/lifecycle/evolution/proposal.ts,olt/scripts/src/mind/lifecycle/evolution/types.ts,olt/scripts/src/mind/lifecycle/index.ts,olt/scripts/src/mind/lifecycle/observe/index.ts,olt/scripts/src/mind/lifecycle/pulse/index.ts,olt/scripts/src/mind/lifecycle/pulse/pulse-reclaim.ts,olt/scripts/src/mind/lifecycle/rounds/index.ts,olt/scripts/src/mind/lifecycle/rounds/round-close.ts,olt/scripts/src/mind/lifecycle/rounds/round-open.ts,olt/scripts/src/mind/lifecycle/rounds/types.ts,olt/scripts/src/mind/memory/core/index.ts,olt/scripts/src/mind/memory/index.ts,olt/scripts/src/mind/memory/sources/index.ts,olt/scripts/src/mind/memory/sources/scanner.ts,olt/scripts/src/mind/memory/sources/types.ts,olt/scripts/src/mind/proposals/brief/builder.ts,olt/scripts/src/mind/proposals/brief/index.ts,olt/scripts/src/mind/proposals/brief/wake-brief.ts,olt/scripts/src/mind/proposals/gates/evaluator.ts,olt/scripts/src/mind/proposals/gates/formatter.ts,olt/scripts/src/mind/proposals/gates/index.ts,olt/scripts/src/mind/proposals/gates/table.ts,olt/scripts/src/mind/roles/dynamic/cheatsheet.ts,olt/scripts/src/mind/roles/dynamic/index.ts,olt/scripts/src/mind/roles/dynamic/mutator.ts,olt/scripts/src/mind/roles/dynamic/parser.ts,olt/scripts/src/mind/roles/dynamic/registry.ts,olt/scripts/src/mind/roles/dynamic/synthesizer.ts,olt/scripts/src/mind/roles/dynamic/types.ts,olt/scripts/src/mind/roles/dynamic/validation.ts,olt/scripts/src/mind/tasks/discovery/engine.ts,olt/scripts/src/mind/tasks/discovery/index.ts,olt/scripts/src/mind/tasks/discovery/runner.ts,olt/scripts/src/mind/tasks/index.ts,olt/scripts/src/mind/tasks/smart/executor/backlog-drainer.ts,olt/scripts/src/mind/tasks/smart/executor/dispatch.ts,olt/scripts/src/mind/tasks/smart/executor/evolution.ts,olt/scripts/src/mind/tasks/smart/executor/execution.ts,olt/scripts/src/mind/tasks/smart/executor/index.ts,olt/scripts/src/mind/tasks/smart/executor/invariants.ts,olt/scripts/src/mind/tasks/smart/executor/orchestrator.ts,olt/scripts/src/mind/tasks/smart/executor/product-owner.ts,olt/scripts/src/mind/tasks/smart/executor/self-evolution.ts,olt/scripts/src/mind/tasks/smart/executor/synthesis.ts,olt/scripts/src/mind/tasks/smart/index.ts,olt/scripts/src/mind/tasks/smart/planner/anti-batching.ts,olt/scripts/src/mind/tasks/smart/planner/collisions.ts,olt/scripts/src/mind/tasks/smart/planner/index.ts,olt/scripts/src/mind/tasks/smart/planner/memory.ts,olt/scripts/src/mind/tasks/smart/planner/metrics.ts,olt/scripts/src/mind/tasks/smart/planner/models.ts,olt/scripts/src/mind/tasks/smart/planner/partitioning.ts,olt/scripts/src/mind/tasks/smart/planner/rebalance.ts,olt/scripts/src/mind/tasks/smart/planner/types.ts,olt/scripts/src/mind/tasks/smart/planner/waves.ts,olt/scripts/src/orchestrator/capsule-chainer.ts,olt/scripts/src/orchestrator/companion-auditor.ts,olt/scripts/src/orchestrator/dead-agent-detector.ts,olt/scripts/src/orchestrator/defect-synthesizer.ts,olt/scripts/src/orchestrator/dispatch-log.ts,olt/scripts/src/orchestrator/dispatch-selection.ts,olt/scripts/src/orchestrator/gate-status.ts,olt/scripts/src/orchestrator/loop-runner.ts,olt/scripts/src/orchestrator/loop-summary-brief.ts,olt/scripts/src/orchestrator/morning-report.ts,olt/scripts/src/orchestrator/run-terminal.ts,olt/scripts/src/orchestrator/supervision-tick.ts,olt/scripts/src/orchestrator/supervision-watch.ts,olt/scripts/src/orchestrator/supervisor.ts,olt/scripts/src/orchestrator/types.ts,olt/scripts/src/orchestrator/watchdog.ts,olt/scripts/src/packets/authenticate-packet.ts,olt/scripts/src/packets/common-instructions.ts,olt/scripts/src/packets/critic-context.ts,olt/scripts/src/packets/critic-grant.ts,olt/scripts/src/packets/packet-bundle.ts,olt/scripts/src/packets/packet-record.ts,olt/scripts/src/packets/persist-packet.ts,olt/scripts/src/packets/plan-validator-grant.ts,olt/scripts/src/packets/planner-packet.ts,olt/scripts/src/packets/preplan-port.ts,olt/scripts/src/packets/prior-round-demands.ts,olt/scripts/src/packets/publish-role-packet.ts,olt/scripts/src/packets/render-packet.ts,olt/scripts/src/packets/repository-inspection.ts,olt/scripts/src/packets/role-grant.ts,olt/scripts/src/packets/round-commands.ts,olt/scripts/src/packets/types.ts,olt/scripts/src/packets/validation-round.ts,olt/scripts/src/policy/index.ts,olt/scripts/src/policy/permission-health.ts,olt/scripts/src/policy/review-protocol.ts,olt/scripts/src/reporting/action-types.ts,olt/scripts/src/reporting/active-actions.ts,olt/scripts/src/reporting/behavioral-auditor.ts,olt/scripts/src/reporting/behavioral-auditor/audit-coordinator.ts,olt/scripts/src/reporting/behavioral-auditor/audit-implementer.ts,olt/scripts/src/reporting/behavioral-auditor/audit-orchestrator.ts,olt/scripts/src/reporting/behavioral-auditor/auditor.ts,olt/scripts/src/reporting/behavioral-auditor/index.ts,olt/scripts/src/reporting/branch-actions.ts,olt/scripts/src/reporting/completion-actions.ts,olt/scripts/src/reporting/doctor.ts,olt/scripts/src/reporting/doctor/adversarial-doctor.ts,olt/scripts/src/reporting/doctor/adversarial-doctor/certification.ts,olt/scripts/src/reporting/doctor/adversarial-doctor/diagnostics.ts,olt/scripts/src/reporting/doctor/adversarial-doctor/index.ts,olt/scripts/src/reporting/doctor/auto-heal.ts,olt/scripts/src/reporting/doctor/certify-command.ts,olt/scripts/src/reporting/doctor/engines.ts,olt/scripts/src/reporting/doctor/policy-doctor.ts,olt/scripts/src/reporting/doctor/tier-confinement.ts,olt/scripts/src/reporting/doctor/tier-confinement/audit-implementer.ts,olt/scripts/src/reporting/doctor/tier-confinement/audit-orchestrator.ts,olt/scripts/src/reporting/doctor/tier-confinement/audit-supervisor.ts,olt/scripts/src/reporting/doctor/tier-confinement/auditor.ts,olt/scripts/src/reporting/doctor/tier-confinement/index.ts,olt/scripts/src/reporting/graph-json.ts,olt/scripts/src/reporting/handoff-sections.ts,olt/scripts/src/reporting/handoff.ts,olt/scripts/src/reporting/next-actions.ts,olt/scripts/src/reporting/packet-evidence.ts,olt/scripts/src/reporting/preplan-handoff.ts,olt/scripts/src/reporting/registry-argv.ts,olt/scripts/src/reporting/socratic-validator.ts,olt/scripts/src/reporting/status.ts,olt/scripts/src/reporting/task-actions.ts,olt/scripts/src/reporting/unified.ts,olt/scripts/src/reporting/unified/index.ts,olt/scripts/src/reporting/unified/leases-decisions.ts,olt/scripts/src/reporting/unified/lifecycle-segmenter.ts,olt/scripts/src/reporting/unified/report-builder.ts,olt/scripts/src/reporting/workflow-view.ts,olt/scripts/src/roles/cheat-sheets.ts,olt/scripts/src/summary/assets/asset-mapper-finding-screenshots.ts,olt/scripts/src/summary/assets/asset-mapper-findings.ts,olt/scripts/src/summary/assets/asset-mapper-props.ts,olt/scripts/src/summary/assets/asset-mapper-task-sources.ts,olt/scripts/src/summary/assets/asset-mapper.ts,olt/scripts/src/summary/formatters/generate-summary.ts,olt/scripts/src/summary/generate-summary.ts,olt/scripts/src/summary/graph/graph-edge-exchanges.ts,olt/scripts/src/summary/graph/graph-edge-factory.ts,olt/scripts/src/summary/graph/graph-generator-branch-nodes.ts,olt/scripts/src/summary/graph/graph-generator-core-nodes.ts,olt/scripts/src/summary/graph/graph-generator-critic-nodes.ts,olt/scripts/src/summary/graph/graph-generator-gate-helpers.ts,olt/scripts/src/summary/graph/graph-generator-helpers.ts,olt/scripts/src/summary/graph/graph-generator-plan-validator-nodes.ts,olt/scripts/src/summary/graph/graph-generator-validator-nodes.ts,olt/scripts/src/summary/graph/graph-generator.ts,olt/scripts/src/summary/graph/graph-node-context.ts,olt/scripts/src/summary/graph/graph-round-context.ts,olt/scripts/src/summary/graph/graph-round-nodes.ts,olt/scripts/src/summary/graph/graph-run-facts.ts,olt/scripts/src/summary/graph/graph-task-preparation.ts,olt/scripts/src/summary/markdown/markdown-checklist-coverage.ts,olt/scripts/src/summary/markdown/markdown-evidence-sections.ts,olt/scripts/src/summary/markdown/markdown-execution-sections.ts,olt/scripts/src/summary/markdown/markdown-formatter.ts,olt/scripts/src/summary/markdown/markdown-plan-sections.ts,olt/scripts/src/summary/markdown/markdown-report-context.ts,olt/scripts/src/summary/markdown/markdown-run-sections.ts,olt/scripts/src/summary/markdown/markdown-sources.ts,olt/scripts/src/summary/markdown/markdown-step-provenance.ts,olt/scripts/src/summary/markdown/node-evidence.ts,olt/scripts/src/summary/metrics/metrics-collector-helpers.ts,olt/scripts/src/summary/metrics/metrics-collector.ts,olt/scripts/src/summary/metrics/step-calculator.ts,olt/scripts/src/summary/node-evidence.ts,olt/scripts/src/workflow/agents/grants.ts,olt/scripts/src/workflow/authority/index.ts,olt/scripts/src/workflow/authority/record-authority-decision.ts,olt/scripts/src/workflow/branch/chain-recovery.ts,olt/scripts/src/workflow/branch/collect.ts,olt/scripts/src/workflow/branch/open.ts,olt/scripts/src/workflow/branch/parent.ts,olt/scripts/src/workflow/branch/scope.ts,olt/scripts/src/workflow/branch/sub-tasks.ts,olt/scripts/src/workflow/completion/artifact-verification.ts,olt/scripts/src/workflow/completion/begin-completeness-critic.ts,olt/scripts/src/workflow/completion/complete-run.ts,olt/scripts/src/workflow/completion/completion-history.ts,olt/scripts/src/workflow/completion/completion-review-digest.ts,olt/scripts/src/workflow/completion/completion-state.ts,olt/scripts/src/workflow/completion/critic-identity.ts,olt/scripts/src/workflow/completion/parse-raw-findings.ts,olt/scripts/src/workflow/completion/parse-raw-proofs.ts,olt/scripts/src/workflow/completion/readiness-issues.ts,olt/scripts/src/workflow/completion/readiness-snapshot.ts,olt/scripts/src/workflow/completion/record-completion-remediation.ts,olt/scripts/src/workflow/completion/record-completion-review.ts,olt/scripts/src/workflow/completion/repository-binding.ts,olt/scripts/src/workflow/completion/repository-evidence.ts,olt/scripts/src/workflow/completion/review-input.ts,olt/scripts/src/workflow/completion/review-issues.ts,olt/scripts/src/workflow/completion/transition-summary-issues.ts,olt/scripts/src/workflow/completion/types.ts,olt/scripts/src/workflow/evidence.ts,olt/scripts/src/workflow/gates/attach-result.ts,olt/scripts/src/workflow/gates/finish-task.ts,olt/scripts/src/workflow/gates/gate-policy.ts,olt/scripts/src/workflow/lease/abandon.ts,olt/scripts/src/workflow/lease/attempt-state.ts,olt/scripts/src/workflow/lease/claim.ts,olt/scripts/src/workflow/lease/escalate.ts,olt/scripts/src/workflow/lease/heartbeat.ts,olt/scripts/src/workflow/lease/recover-stale.ts,olt/scripts/src/workflow/lease/release.ts,olt/scripts/src/workflow/lease/turn-state.ts,olt/scripts/src/workflow/orphan-evidence/digest.ts,olt/scripts/src/workflow/orphan-evidence/disposition.ts,olt/scripts/src/workflow/packet-authority.ts,olt/scripts/src/workflow/plan-review/begin-plan-validation.ts,olt/scripts/src/workflow/plan-review/identity.ts,olt/scripts/src/workflow/plan-review/plan-digest.ts,olt/scripts/src/workflow/plan-review/record-plan-review.ts,olt/scripts/src/workflow/review/assign-repairer.ts,olt/scripts/src/workflow/review/begin-validation.ts,olt/scripts/src/workflow/review/command-evidence.ts,olt/scripts/src/workflow/review/coordinator-pushback.ts,olt/scripts/src/workflow/review/finding-falsifiability.ts,olt/scripts/src/workflow/review/micro-cycle.ts,olt/scripts/src/workflow/review/pass-preconditions.ts,olt/scripts/src/workflow/review/record-probe.ts,olt/scripts/src/workflow/review/record-review.ts,olt/scripts/src/workflow/review/review-event.ts,olt/scripts/src/workflow/review/role-evidence.ts,olt/scripts/src/workflow/review/validate-review.ts,olt/scripts/src/workflow/review/validation-state.ts,olt/scripts/src/workflow/scope-partitioner.ts,olt/scripts/src/workflow/submission/build-report.ts,olt/scripts/src/workflow/submission/out-of-band-drift.ts,olt/scripts/src/workflow/submission/submit.ts,olt/scripts/src/workflow/submission/validate-report.ts,olt/scripts/src/workflow/task-state.ts,olt/scripts/src/workflow/types.ts,olt/scripts/src/workflow/worktree/assign.ts,olt/scripts/src/workflow/worktree/provision.ts",
       "detail": "Import graph contains a strongly connected component."
     },
     {
@@ -27935,6 +28448,12 @@
     {
       "rule": "generated_catalog",
       "path": "olt/references/cli-capabilities/commands/orphan",
+      "observed": "missing index.json",
+      "detail": "Generated CLI directory requires a catalog index."
+    },
+    {
+      "rule": "generated_catalog",
+      "path": "olt/references/cli-capabilities/commands/policy",
       "observed": "missing index.json",
       "detail": "Generated CLI directory requires a catalog index."
     },

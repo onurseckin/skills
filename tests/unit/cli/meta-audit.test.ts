@@ -430,8 +430,8 @@ describe("CLI meta-audit command & formatters", () => {
 
     test.each([
       ["coordinator", "coordinator"],
-      ["meta-auditor", "meta-auditor"],
-    ])(
+      ["skill-auditor", "skill-auditor"],
+    ] as const)(
       "appends exactly one valid remediation line for authorized %s actor",
       async (actorId, role) => {
         const { run, backlogPath } = setupInjectableMetaAuditRun(
@@ -439,6 +439,13 @@ describe("CLI meta-audit command & formatters", () => {
           actorId,
           role,
         );
+        registerSessionGrant({
+          runRoot: run,
+          agentId: actorId,
+          role,
+          pid: process.pid,
+          ppid: process.ppid,
+        });
         const before = readFileSync(backlogPath, "utf8");
 
         const result = await execute(["meta-audit", "--run", run, "--actor", actorId, "--inject"]);

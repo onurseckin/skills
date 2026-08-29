@@ -351,12 +351,12 @@ describe("Tier 0 Dual Cognitive Auditors End-to-End Integration Suite", () => {
         SkillAuditorPolicy.assertSkillAuditorRequired(foreignRepo, orchestratorOnlyAgent);
       }).not.toThrow();
 
-      // Passes when skill-auditor or meta-auditor is present
+      // Passes when skill-auditor is present
       const orchestratorWithAuditor: readonly AgentGrantRecord[] = [
         ...orchestratorOnlyAgent,
         {
           id: "skill-auditor-1",
-          role: "meta-auditor",
+          role: "skill-auditor",
           parent_agent_id: "orchestrator-1",
           parent_task_id: null,
           host: "local",

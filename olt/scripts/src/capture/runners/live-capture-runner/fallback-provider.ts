@@ -2,6 +2,7 @@ import { writeFileSync } from "node:fs";
 import type {
   CaptureBrowserDriver,
   CaptureBrowserProvider,
+  CaptureCookie,
   CapturePageDriver,
   DomPhysicsSnapshot,
 } from "../types.ts";
@@ -12,15 +13,26 @@ export class DefaultFallbackBrowserProvider implements CaptureBrowserProvider {
     return {
       newPage: async (): Promise<CapturePageDriver> => {
         let currentViewport = { width: 1440, height: 900 };
+        const storedCookies: CaptureCookie[] = [];
         return {
           setViewportSize: async (size) => {
             currentViewport = { width: size.width, height: size.height };
           },
           setExtraHTTPHeaders: async () => {},
+          setCookies: async (cookies) => {
+            storedCookies.push(...cookies);
+          },
+          setCookie: async (cookie) => {
+            storedCookies.push(cookie);
+          },
           goto: async () => {},
           waitForSelector: async () => {},
           screenshot: async (opts) => {
-            const buf = createSyntheticPngBuffer(10, 10, 1024);
+            const buf = createSyntheticPngBuffer(
+              currentViewport.width,
+              currentViewport.height,
+              1024,
+            );
             if (opts.path) {
               writeFileSync(opts.path, buf);
             }

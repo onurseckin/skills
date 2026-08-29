@@ -378,7 +378,7 @@ describe("task:review", () => {
       `${repo}/${CHANGED_FILE}`,
       "export const probed = true;\nexport const modified = true;\n",
     );
-    const gateCmd = await runGate(repo, run, "gate-core.ts");
+    const gateCmd = await runGate(repo, run, "gate-core.ts", null);
     await execute([
       "task:submit",
       "--run",

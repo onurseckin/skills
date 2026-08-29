@@ -580,6 +580,8 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
     normalizedRole === "mind" ||
     normalizedRole === "orchestrator" ||
     normalizedRole === "coordinator" ||
+    normalizedRole === "skill-auditor" ||
+    normalizedRole === "skill_auditor" ||
     normalizedRole === "meta-auditor" ||
     normalizedRole === "meta_auditor" ||
     normalizedRole === "mind-auditor" ||
@@ -629,14 +631,30 @@ export function verifyCommandAuthorization(
   actor:
     | AgentMetadata
     | {
-        readonly role: string;
+        readonly role?: string | undefined;
         readonly agent_id?: string | undefined;
         readonly actor_id?: string | undefined;
         readonly can_execute_shell?: boolean | undefined;
-      },
+      }
+    | null
+    | undefined,
   command: string | readonly string[],
   policy?: RepoPolicy,
 ): AuthorizationResult {
+  if (
+    !actor ||
+    typeof actor.role !== "string" ||
+    actor.role.trim() === "" ||
+    actor.role.trim().toLowerCase() === "unresolved"
+  ) {
+    return {
+      authorized: false,
+      error_code: "PERMISSION_DENIED",
+      reason: "Unresolved actor role",
+      message: "[PERMISSION_DENIED] Unresolved actor role is not authorized to execute commands.",
+    };
+  }
+
   const role = actor.role.trim();
   const normalizedRole = role.toLowerCase();
   const roleCanExecute = inferCanExecuteShell(role);
@@ -680,6 +698,8 @@ export function verifyCommandAuthorization(
     normalizedRole === "mind" ||
     normalizedRole === "orchestrator" ||
     normalizedRole === "coordinator" ||
+    normalizedRole === "skill-auditor" ||
+    normalizedRole === "skill_auditor" ||
     normalizedRole === "meta-auditor" ||
     normalizedRole === "meta_auditor" ||
     normalizedRole === "mind-auditor" ||

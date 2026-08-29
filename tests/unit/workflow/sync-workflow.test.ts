@@ -648,6 +648,7 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
         writeScope: [],
         skipPush: true,
         skipSync: true,
+        repoRoot: "/tmp",
       };
 
       const result = await executeAutoSyncAndCommit(options);

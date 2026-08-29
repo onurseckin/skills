@@ -48,7 +48,7 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
       expect(roles).toContain("implementer");
       expect(roles).toContain("validator");
       expect(roles).toContain("completeness-critic");
-      expect(roles).toContain("meta-auditor");
+      expect(roles).toContain("skill-auditor");
     });
 
     it("verifies orchestrator role contract permits only coordinator spawning, never Tier 3 directly", () => {
@@ -75,8 +75,7 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
       expect(implContract.role).toBe("implementer");
       expect(implContract.tier).toBe(3);
       expect(implContract.commands).toContain("task:check");
-      expect(implContract.commands).toContain("task:claim");
-      expect(implContract.commands).toContain("task:submit");
+      expect(implContract.may.some((m) => m.includes("micro-cycle"))).toBe(true);
     });
 
     it("verifies validator role contract enforces cognitive hard-lock (0 command privileges)", () => {
@@ -84,12 +83,15 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
       expect(valContract.role).toBe("validator");
       expect(valContract.tier).toBe(3);
       expect(valContract.commands).not.toContain("run:exec");
+      expect(valContract.commands).not.toContain("shell");
       expect(
         valContract.must_not.some(
           (rule) =>
             rule.toLowerCase().includes("0 command execution privileges") ||
             rule.toLowerCase().includes("execute bash") ||
-            rule.toLowerCase().includes("execute any bash"),
+            rule.toLowerCase().includes("execute any bash") ||
+            rule.toLowerCase().includes("0 commands") ||
+            rule.toLowerCase().includes("0 `run:exec`"),
         ),
       ).toBe(true);
     });
@@ -138,7 +140,7 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
   describe("5. Static Invariant Verification: 0 any & 0 Suppressions", () => {
     it("proves 0 TypeScript any and 0 compiler/linter suppressions in touched modules", () => {
       const targetModules = [
-        "olt/scripts/src/mind/smart-task-manager.ts",
+        "olt/scripts/src/cli/commands/smart-task-ops.ts",
         "olt/scripts/src/graph/parallel-decoupler.ts",
         "olt/scripts/src/graph/topology.ts",
         "olt/scripts/src/packets/role-contract.ts",

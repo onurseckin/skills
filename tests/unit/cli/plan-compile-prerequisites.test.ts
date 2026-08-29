@@ -4,6 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import {
+  BRAINSTORMING_SCHEMA,
+  BRAINSTORMING_VERSION,
+} from "../../../olt/scripts/src/engine/store/projections/materialized-projections.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
@@ -118,11 +123,19 @@ describe("plan:compile prerequisites", () => {
   test("succeeds when state.planning.brainstorming is set", async () => {
     const { run } = await createTestRun("harness-plan-compile-state-");
 
+    const body = {
+      schema: BRAINSTORMING_SCHEMA,
+      version: BRAINSTORMING_VERSION,
+      rounds: 2,
+      total_expanded_items: 16,
+    };
+    const artifact_sha256 = sha256Bytes(canonicalJsonBytes(body));
+
     transact(run, "planner", "test-seeded", {}, (state) => {
       state.planning = {
         brainstorming: {
-          rounds: 2,
-          total_expanded_items: 16,
+          ...body,
+          artifact_sha256,
         },
       };
     });

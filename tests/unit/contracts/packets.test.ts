@@ -8,8 +8,8 @@ import {
 } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 describe("core contracts/packets", () => {
-  test("AGENT_ROLES lists all 16 canonical roles", () => {
-    expect(AGENT_ROLES.length).toBe(16);
+  test("AGENT_ROLES lists all 15 canonical roles", () => {
+    expect(AGENT_ROLES.length).toBe(15);
     expect(AGENT_ROLES).toContain("mind");
     expect(AGENT_ROLES).toContain("orchestrator");
     expect(AGENT_ROLES).toContain("coordinator");

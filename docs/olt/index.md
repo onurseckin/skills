@@ -1,121 +1,84 @@
-# Orchestrating Long Tasks (OLT) Documentation Hub
+# Orchestrating Long Tasks (OLT) — Master Documentation Index
 
-Welcome to the definitive architectural manual, developer guides, and reference specifications for the **OLT (Orchestrating Long Tasks)** autonomous agent skill.
-
-OLT provides a deterministic runtime, state machine, and multi-agent coordination protocol designed to solve the fundamental failure modes of long-running coding agents: context window decay, sycophancy, hallucinated progress, race conditions, and catastrophic monolithic repair loops.
+Welcome to the master lookup taxonomy and index for the **OLT (Orchestrating Long Tasks)** autonomous engineering engine.
 
 ---
 
-## 🏛️ The Diátaxis Documentation Framework
-
-The OLT documentation is structured according to the **Diátaxis Documentation Framework**, organizing information across four distinct quadrants based on user intent and cognitive focus:
+## 🏛️ Domain 1: 17-Chapter Technical Architecture Book (`docs/olt/architecture/`)
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    THE DIÁTAXIS DOCUMENTATION FRAMEWORK                     │
-├──────────────────────────────────────────────┬──────────────────────────────┤
-│               PRACTICAL GOALS                │      THEORETICAL CONCEPTS    │
-├──────────────────────────────────────────────┼──────────────────────────────┤
-│  LEARNING-ORIENTED:                          │  UNDERSTANDING-ORIENTED:     │
-│  [ TUTORIALS ]                               │  [ ARCHITECTURE ]            │
-│  • Getting Started with OLT                  │  • Mental Model & Foundations│
-│  • Building Your First Multi-Agent Task      │  • Brent Work/Span Scaling   │
-│  • Complete End-to-End Walkthrough           │  • Tamper-Proof Hash Chains  │
-│  • Autonomous Lifecycle Pulse                │  • Two-Tier Workforce Theory │
-│                                              │                              │
-│  👉 Read: docs/olt/tutorials/                │  👉 Read: docs/olt/architecture/│
-├──────────────────────────────────────────────┼──────────────────────────────┤
-│  PROBLEM-ORIENTED:                           │  INFORMATION-ORIENTED:       │
-│  [ HOW-TO GUIDES ]                           │  [ REFERENCE ]               │
-│  • Performing Dynamic Replanning             │  • Harness CLI Dictionary    │
-│  • Writing Custom AST Enforcers              │  • Formal State Schemas      │
-│  • Managing Agent Leases & Heartbeats        │  • Error & Blunder Catalog   │
-│  • Resolving Adversarial Probes              │  • Role Contracts Matrix     │
-│  • Recovering From Crashes & Stale Leases    │  • Verification Engines      │
-│                                              │                              │
-│  👉 Read: docs/olt/how-to/                   │  👉 Read: docs/olt/reference/│
-└──────────────────────────────────────────────┴──────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                OLT ARCHITECTURE 17-CHAPTER PORTAL                                │
+├─────────┬──────────────────────────────────┬─────────────────────────────────────────────────────┤
+│ Chapter │ Title                            │ Primary Theoretical & Engineering Concepts          │
+├─────────┼──────────────────────────────────┼─────────────────────────────────────────────────────┤
+│   01    │ Foundations & Core Invariants    │ Zero-assumption philosophy, 4 Hard Zeros, C1..C10   │
+│   02    │ Four-Tier Workforce Hierarchy    │ Tier 0..3 topology, naming grammar, 4-host parity   │
+│   03    │ Mind Product Owner & Cadence     │ Autonomous PO loop, 10 discovery sources, 6 gates   │
+│   04    │ Continuous Preplanning Factory   │ 100% line coverage, 0444 prompt capture, clusters   │
+│   05    │ Concurrency Scaling & SLA        │ Brent Work/Span P = ceil(W/S), 300s SLA, throttling │
+│   06    │ Topological DAG Scheduler        │ Kahn's sort, Tarjan SCC cycles, Sugiyama visualizer │
+│   07    │ Distributed Leasing & Execution  │ Monotonic leases, 30s heartbeats, zombie recovery   │
+│   08    │ Adversarial Validation & Repair  │ Socratic review pushbacks, Validator 0-command lock │
+│   09    │ Falsifiable Evidence & Gates     │ Classes 1–4 evidence, APCA contrast math, PNG IHDR  │
+│   10    │ Durability, Recovery & Merkle    │ Capsule filesystem, SHA-256 Merkle chains, flock    │
+│   11    │ Worktree Branching & Honesty     │ Out-of-repo worktrees, 1:1 anti-batching, honesty   │
+│   12    │ Flock Mailboxes & Telemetry      │ Mailbox directory, non-blocking wakes, live TUI     │
+│   13    │ Policy, RBAC & Fail-Closed Engine│ Mechanical RBAC compiler, 10 AST linters, failclosed│
+│   14    │ Harness CLI & Command Engine     │ 15 command domains (run, plan, task, mind, doctor)  │
+│   15    │ State Schemas & Event Ledger     │ Draft 2020-12 JSON schemas, manifest, events, state │
+│   16    │ Error Catalog & Blunders         │ Exit codes (0, 3, 4, 70), 28 empirical blunders     │
+│   17    │ Verification Engines & Gates     │ Typecheck engine, 10 AST linters, APCA, PNG chunk   │
+└─────────┴──────────────────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
----
+### Architecture Chapter Links
 
-## 🧭 Four-Quadrant Navigation Hub
-
-### 1. 🎓 [Tutorials (`docs/olt/tutorials/`)](./tutorials/)
-
-_Learning-oriented step-by-step lessons for developers and new agent implementations._
-
-- **[01. Getting Started with OLT](./tutorials/)**: Initialize your first capsule, pin runtimes, and inspect event streams.
-- **[02. Prompt to Sealed Run Walkthrough](./tutorials/)**: Follow a complete run from prompt ingestion (`orchestrate`) to terminal cryptographic sealing (`run:complete`).
-- **[03. Autonomous Workforce Operations](./tutorials/)**: Learn how Tier 0 Mind and Tier 2 Coordinator agents drive high-concurrency wave dispatching.
-
-### 2. 🛠️ [How-To Guides (`docs/olt/how-to/`)](./how-to/)
-
-_Problem-oriented recipes for specific operational and developmental challenges._
-
-- **[How to Execute Dynamic Replanning](./how-to/)**: Partition late-stage critic findings into clean, scope-isolated repair waves.
-- **[How to Handle Adversarial Probes](./how-to/)**: Respond to validator probe demands with verified command receipts.
-- **[How to Recover From Crashes & Expired Leases](./how-to/)**: Use `run:recover` and `watchdog:cleanup` to reclaim stalled tasks and heal torn event logs.
-- **[How to Author Domain-Specific Validators](./how-to/)**: Build cognitive and mechanic validators for UI, security, and system architecture.
-
-### 3. 🧠 [Architecture Explanations (`docs/olt/architecture/`)](./architecture/)
-
-_Understanding-oriented deep dives into core theory, mathematical foundations, and system mechanics._
-
-- **[Mental Model & Why Long Tasks Fail](./01-foundations/01-why-long-tasks-fail.md)**: Analysis of context degradation, sycophancy, and why memory is not proof.
-- **[Dependency Graph Theory & Brent Scaling](./03-graph-scheduler/01-dependency-graph-theory.md)**: Mathematical optimization of concurrency using Brent's Work/Span theorem ($P = \lceil W/S \rceil$).
-- **[Storage Model & POSIX flock Atomicity](./01-foundations/02-capsule-and-storage-model.md)**: Append-only hash chains, `events.jsonl`, projected `state.json`, and kernel concurrency.
-- **[Adversarial Validation Philosophy](./06-validation-repair/01-adversarial-validation-philosophy.md)**: Independent validator isolation, probe/defect split, and context sanitization.
-
-### 4. 📚 [Reference Manuals (`docs/olt/reference/`)](./reference/)
-
-_Authoritative, information-oriented specifications, schemas, error tables, and contracts._
-
-- **[Harness CLI Command Dictionary](./reference/harness-cli.md)**: Exhaustive flag tables, types, stdin handling, and exit statuses for every CLI command.
-- **[State Schemas & Data Contracts](./reference/state-schemas.md)**: Formal JSON schemas and exemplars for `manifest.json`, `events.jsonl`, `state.json`, `requirements.json`, and command receipts.
-- **[Error Codes & Blunder Catalog](./reference/error-codes.md)**: Complete catalog of exit statuses (0, 3, 4, 70), error classes, and empirical failure countermeasures.
-- **[Role Contracts & Authority Matrix](./reference/role-contracts.md)**: Formal permissions, invariant prohibitions (`must_not`), command access, and packet limits for all 10 agent roles.
-- **[Deterministic Verification Engines](./reference/verification-engines.md)**: Specifications for `task:check` typechecker, the 10 AST static lint rules, and `gate:prove` falsifiability engine.
+- **[Chapter 01: Foundations & Core Invariants](./architecture/01-foundations/index.md)**
+- **[Chapter 02: Four-Tier Workforce Hierarchy](./architecture/02-four-tier-hierarchy/index.md)**
+- **[Chapter 03: Mind Product Owner & Autonomous Cadence](./architecture/03-mind-product-owner/index.md)**
+- **[Chapter 04: Continuous Preplanning Factory](./architecture/04-continuous-preplanning-factory/index.md)**
+- **[Chapter 05: Concurrency Scaling & Straggler SLA](./architecture/05-concurrency-straggler-sla/index.md)**
+- **[Chapter 06: Topological DAG Scheduler](./architecture/06-topological-scheduler-dags/index.md)**
+- **[Chapter 07: Distributed Leasing & Execution](./architecture/07-distributed-leasing-execution/index.md)**
+- **[Chapter 08: Adversarial Validation & Monotonic Repair](./architecture/08-adversarial-validation-repair/index.md)**
+- **[Chapter 09: Falsifiable Evidence & Completion Gates](./architecture/09-falsifiable-evidence-gates/index.md)**
+- **[Chapter 10: Durability, Recovery & Merkle Chains](./architecture/10-durability-recovery-capsules/index.md)**
+- **[Chapter 11: Worktree Branching & Honesty Gates](./architecture/11-worktree-branching-honesty/index.md)**
+- **[Chapter 12: Flock Mailboxes & Telemetry](./architecture/12-flock-mailboxes-and-tui/index.md)**
+- **[Chapter 13: Policy, RBAC & Fail-Closed Engine](./architecture/13-policy-rbac-failclosed-engine/index.md)**
+- **[Chapter 14: Harness CLI & Command Execution Engine](./architecture/14-harness-cli-and-command-engine/index.md)**
+- **[Chapter 15: State Schemas & Capsule Event Ledger](./architecture/15-state-schemas-and-event-ledger/index.md)**
+- **[Chapter 16: Error Catalog & Empirical Blunders](./architecture/16-error-catalog-and-blunders/index.md)**
+- **[Chapter 17: Verification Engines & Gate Provers](./architecture/17-verification-engines-and-gates/index.md)**
 
 ---
 
-## 🎯 Master Architecture Overview
+## 📚 Domain 2: Concise Reference & Operator Manuals (`docs/olt/reference/`)
 
-```mermaid
-graph TD
-    subgraph Ingestion ["1. Prompt Ingestion & Pinning"]
-        PROMPT["Raw User Prompt"] --> MANIFEST["manifest.json (SHA-256 bound)"]
-        PROMPT --> CAPSULE[".olt/capsules/<slug>/ (mode 0444)"]
-    end
-
-    subgraph Planning ["2. Requirements & Strict DAG"]
-        CAPSULE --> REQS["requirements.json (100% line coverage)"]
-        REQS --> DAG["state.graph (8 node types, 10 edge types)"]
-        DAG --> TOPOLOGY["state.topology (Brent Work/Span Rebalancing)"]
-    end
-
-    subgraph Workforce ["3. Two-Tier Parallel Execution"]
-        TOPOLOGY --> COORD["Tier 2: Coordinator"]
-        COORD -->|Dispatches Wave| IMP["Tier 3: Implementer (task:claim -> run:exec -> task:submit)"]
-        COORD -->|Dispatches Paired| VAL["Tier 3: Validator (task:probe / task:reject / task:review)"]
-        IMP -.->|Optional Sub-tasks| BRANCH["branch:open -> branch:collect"]
-    end
-
-    subgraph Completion ["4. Critic Verification & Sealing"]
-        VAL -->|All Tasks Done| CRITIC["Tier 3: Completeness Critic (critic:start)"]
-        CRITIC -->|100% Requirements Proven| SEAL["run:complete (Cryptographic Seal)"]
-        CRITIC -->|Findings Detected| REPLAN["plan:replan (Cascading Scope-Aware Wave)"]
-        REPLAN --> COORD
-    end
-```
+- **[Quickstart & Execution Guide](./reference/quickstart.md)**: Concise operator manual for running Single-Task mode and Mind autonomous mode.
+- **[Health, Diagnostics & Status Guide](./reference/health-and-status.md)**: Preflight checks, doctor engines, diagnostics, and crash recovery.
 
 ---
 
-## 🧭 Persona-Based Reading Paths
+## 🔍 Topic & Keyword Cross-Reference
 
-| Persona                         | Recommended Reading Path                                                                                                                                                                                                                                         |
-| :------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **First-Time Developer / User** | [Mental Model](./01-foundations/01-why-long-tasks-fail.md) $\to$ [Getting Started](./tutorials/) $\to$ [End-to-End Walkthrough](./10-tutorial-and-cli/01-end-to-end-tutorial.md) $\to$ [Harness CLI Reference](./reference/harness-cli.md)                       |
-| **Implementer Agent (Tier 3)**  | [Role Contracts](./reference/role-contracts.md) $\to$ [CLI Command Dictionary](./reference/harness-cli.md) $\to$ [Verification Engines](./reference/verification-engines.md) $\to$ [State Schemas](./reference/state-schemas.md)                                 |
-| **Validator & Critic Agent**    | [Adversarial Philosophy](./06-validation-repair/01-adversarial-validation-philosophy.md) $\to$ [Structured Finding Schema](./reference/state-schemas.md#6-structured-finding-schema) $\to$ [Error & Blunder Catalog](./reference/error-codes.md)                 |
-| **Systems / AI Architect**      | [Capsule Storage Model](./01-foundations/02-capsule-and-storage-model.md) $\to$ [Brent Concurrency Theory](./03-graph-scheduler/02-topological-conflict-free-batching.md) $\to$ [Event Log Hash Chains](./08-durability-recovery/01-tamper-proof-hash-chains.md) |
+| Topic / Keyword                               | Architecture Chapter                                                                                                                  | Reference Guide                                     | Source File                                                                                                               |
+| :-------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------ | :-------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------ |
+| **Adversarial Validation**                    | [Ch 08](./architecture/08-adversarial-validation-repair/index.md)                                                                     | [Quickstart](./reference/quickstart.md)             | [`critic-ops.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/critic/critic-ops.ts)                      |
+| **APCA Contrast Math**                        | [Ch 09](./architecture/09-falsifiable-evidence-gates/index.md), [Ch 17](./architecture/17-verification-engines-and-gates/index.md)    | [Health & Status](./reference/health-and-status.md) | [`apca-contrast.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/heuristics/apca-contrast.ts)            |
+| **AST Linting (10 Rules)**                    | [Ch 13](./architecture/13-policy-rbac-failclosed-engine/index.md), [Ch 17](./architecture/17-verification-engines-and-gates/index.md) | [Health & Status](./reference/health-and-status.md) | [`ast-linter.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/ast-linter.ts)                      |
+| **Brent Work/Span ($P = \lceil W/S \rceil$)** | [Ch 05](./architecture/05-concurrency-straggler-sla/index.md)                                                                         | [Quickstart](./reference/quickstart.md)             | [`topological-scheduler.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/topological-scheduler.ts) |
+| **Capsule Filesystem Anatomy**                | [Ch 10](./architecture/10-durability-recovery-capsules/index.md), [Ch 15](./architecture/15-state-schemas-and-event-ledger/index.md)  | [Health & Status](./reference/health-and-status.md) | [`capsule-storage.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/storage/capsule-storage.ts)           |
+| **Cognitive Validator Hard-Lock**             | [Ch 08](./architecture/08-adversarial-validation-repair/index.md)                                                                     | [Quickstart](./reference/quickstart.md)             | [`rbac-compiler.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/manifest/rbac-compiler.ts)    |
+| **Error Code Hierarchy**                      | [Ch 01](./architecture/01-foundations/index.md), [Ch 16](./architecture/16-error-catalog-and-blunders/index.md)                       | [Health & Status](./reference/health-and-status.md) | [`harness-error.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/harness-error.ts)                  |
+| **Evidence Classes (1–4)**                    | [Ch 09](./architecture/09-falsifiable-evidence-gates/index.md)                                                                        | [Quickstart](./reference/quickstart.md)             | [`gate-prove.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/gate-prove.ts)                |
+| **Flock Mailboxes**                           | [Ch 12](./architecture/12-flock-mailboxes-and-tui/index.md)                                                                           | [Quickstart](./reference/quickstart.md)             | [`capsule-storage.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/storage/capsule-storage.ts)           |
+| **Git Staging Invariant (`git add -A`)**      | [Ch 01](./architecture/01-foundations/index.md)                                                                                       | [Quickstart](./reference/quickstart.md)             | [`task-submit.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/task/task-submit.ts)                      |
+| **Harness CLI Dictionary**                    | [Ch 14](./architecture/14-harness-cli-and-command-engine/index.md)                                                                    | [Quickstart](./reference/quickstart.md)             | [`commands/index.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/index.ts)                 |
+| **Mind Supervisor Infinite Loop**             | [Ch 03](./architecture/03-mind-product-owner/index.md)                                                                                | [Quickstart](./reference/quickstart.md)             | [`mind-supervisor.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/mind-supervisor.ts)              |
+| **PNG IHDR Binary Chunk Engine**              | [Ch 09](./architecture/09-falsifiable-evidence-gates/index.md), [Ch 17](./architecture/17-verification-engines-and-gates/index.md)    | [Health & Status](./reference/health-and-status.md) | [`doctor/`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/doctor/)                                         |
+| **Sugiyama Layered Layout**                   | [Ch 06](./architecture/06-topological-scheduler-dags/index.md)                                                                        | [Health & Status](./reference/health-and-status.md) | [`sugiyama-layout.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/sugiyama-layout.ts)             |
+| **Tarjan SCC Cycle Detection**                | [Ch 06](./architecture/06-topological-scheduler-dags/index.md)                                                                        | [Health & Status](./reference/health-and-status.md) | [`tarjan-scc.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/tarjan-scc.ts)                       |
+| **Task Leasing & Heartbeats**                 | [Ch 07](./architecture/07-distributed-leasing-execution/index.md)                                                                     | [Quickstart](./reference/quickstart.md)             | [`task-claim.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/task/task-claim.ts)                        |
+| **Worktree Isolation**                        | [Ch 11](./architecture/11-worktree-branching-honesty/index.md)                                                                        | [Quickstart](./reference/quickstart.md)             | [`branch-ops.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/branch-ops.ts)                |

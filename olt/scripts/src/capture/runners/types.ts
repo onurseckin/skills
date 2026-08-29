@@ -8,18 +8,24 @@ import type {
 } from "../config/types.ts";
 import type { CognitiveAnalysisReport, EvaluatedCriterion } from "../validator/types.ts";
 
+export interface CaptureCookie {
+  readonly name: string;
+  readonly value: string;
+  readonly domain?: string;
+  readonly path?: string;
+  readonly url?: string;
+  readonly httpOnly?: boolean;
+  readonly secure?: boolean;
+  readonly sameSite?: "Strict" | "Lax" | "None";
+}
+
 export interface ResolvedSessionAuth {
   readonly userId: string;
   readonly role: string;
   readonly name: string;
   readonly token?: string;
   readonly headers: Readonly<Record<string, string>>;
-  readonly cookies?: readonly {
-    readonly name: string;
-    readonly value: string;
-    readonly domain?: string;
-    readonly path?: string;
-  }[];
+  readonly cookies?: readonly CaptureCookie[];
   readonly resolvedAt: string;
 }
 
@@ -151,6 +157,8 @@ export interface CaptureRunResult {
 export interface CapturePageDriver {
   setViewportSize(size: { width: number; height: number }): Promise<void>;
   setExtraHTTPHeaders(headers: Record<string, string>): Promise<void>;
+  setCookies?(cookies: readonly CaptureCookie[]): Promise<void>;
+  setCookie?(cookie: CaptureCookie): Promise<void>;
   goto(
     url: string,
     options?: { waitUntil?: "load" | "domcontentloaded" | "networkidle"; timeout?: number },

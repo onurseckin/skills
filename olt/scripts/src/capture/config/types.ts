@@ -15,6 +15,16 @@ export interface CaptureUserConfig {
   readonly token?: string;
   readonly avatarUrl?: string;
   readonly headers?: Readonly<Record<string, string>>;
+  readonly cookies?: readonly {
+    readonly name: string;
+    readonly value: string;
+    readonly domain?: string;
+    readonly path?: string;
+    readonly url?: string;
+    readonly httpOnly?: boolean;
+    readonly secure?: boolean;
+    readonly sameSite?: "Strict" | "Lax" | "None";
+  }[];
 }
 
 export interface CaptureAuthConfig {
