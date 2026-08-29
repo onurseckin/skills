@@ -1,7 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import type { RunState } from "../core/contracts/index.ts";
-import type { AgentRole } from "../core/contracts/index.ts";
+import type { RunState, AgentRole } from "../core/contracts/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { loadRun } from "../engine/store/index.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
@@ -14,6 +13,7 @@ import {
   isMissingCapsuleBootstrapExempt,
   requiresActingIdentity,
 } from "./grant-bootstrap-allowlist.ts";
+export { requiresActingIdentity } from "./grant-bootstrap-allowlist.ts";
 
 export function isMechanicValidatorRole(role: string): boolean {
   const normalized = role.toLowerCase().trim();
@@ -273,6 +273,7 @@ function subjectFlag(spec: CommandSpec): string | undefined {
 }
 
 export function explicitActingClaim(spec: CommandSpec, flags: Flags): string | undefined {
+  if (!requiresActingIdentity(spec)) return undefined;
   const subject = subjectFlag(spec);
   const candidates =
     subject === undefined ? ACTING_FLAGS : ACTING_FLAGS.filter((name) => name !== subject);
@@ -631,15 +632,11 @@ export function assertGrantedCommand(
   if (spec.name === "agent:register") {
     const childRole = identity(flags, "role");
     const parentAgentId = identity(flags, "parent-agent");
-
-    if (childRole !== undefined && parentAgentId === undefined) {
-      const childTier = roleToTier(childRole);
-      if (childTier > 1) {
-        throw new HarnessError(
-          "ROLE_CONFINEMENT_VIOLATION",
-          `Hierarchical supervision violation: Role '${childRole}' (Tier ${childTier}) cannot be dispatched without a supervising parent agent. Tier 2 Coordinators must be spawned by Tier 1 Orchestrators, and Tier 3 workers must be spawned by Tier 2 Coordinators.`,
-        );
-      }
+    if (childRole !== undefined && parentAgentId === undefined && roleToTier(childRole) > 1) {
+      throw new HarnessError(
+        "ROLE_CONFINEMENT_VIOLATION",
+        `Hierarchical supervision violation: Role '${childRole}' (Tier ${roleToTier(childRole)}) cannot be dispatched without a supervising parent agent. Tier 2 Coordinators must be spawned by Tier 1 Orchestrators, and Tier 3 workers must be spawned by Tier 2 Coordinators.`,
+      );
     }
   }
 

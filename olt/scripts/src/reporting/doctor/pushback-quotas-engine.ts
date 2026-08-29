@@ -1,4 +1,4 @@
-import type { RepoPolicy } from "../../policy/types.ts";
+import type { RepoPolicy } from "../../policy/types/index.ts";
 import { inspectRepoPolicy } from "../../policy/repo-policy.ts";
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
 

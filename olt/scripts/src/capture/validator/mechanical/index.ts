@@ -41,7 +41,7 @@ export {
   type OpticalSnapResult,
   type OpticalSnappingOptions,
   type RgbaColor,
-} from "./focus-ring-optical.ts";
+} from "./focus-ring-optical/index.ts";
 
 export function validateMechanical(ctx: ValidationContext): PillarValidationResult {
   const defects: ValidationDefect[] = [];

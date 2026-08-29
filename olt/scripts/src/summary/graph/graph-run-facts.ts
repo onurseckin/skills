@@ -16,7 +16,7 @@ import type {
   RunReportFacts,
   RunRepositoryFacts,
   RunRequirementFacts,
-} from "../types.ts";
+} from "./graph-types.ts";
 
 export interface RunFactsInput {
   runId: string;

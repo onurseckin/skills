@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { isThinkingLevel, type ThinkingLevel } from "../../core/contracts/index.ts";
 import { evidenced, type Evidenced } from "../../core/contracts/index.ts";
 import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
-import type { HostIdentity } from "../types.ts";
+import type { HostIdentity } from "./types.ts";
 
 export interface DetectHostIdentityOptions {
   homeDir?: string;

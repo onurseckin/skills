@@ -12,8 +12,8 @@ import { getHarnessConfig } from "../../core/config/index.ts";
 import { AGENT_ROLES, isAgentRole, type AgentRole } from "../../core/contracts/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { rollbackStagedSessionGrant, stageSessionGrant } from "../../authority/session-registry.ts";
-import { roleToTier } from "../../authority/thread-identifier.ts";
+import { rollbackStagedSessionGrant, stageSessionGrant } from "../../authority/session/index.ts";
+import { roleToTier } from "../../authority/thread/index.ts";
 import { writeAgentMetadata } from "../../runtime/index.ts";
 import {
   isCommittedWithRecoveryPending,
@@ -155,15 +155,13 @@ export function agentRegisterCommand(
   }
   const explicitPid = integerFlag(flags, "pid", { minimum: 1 });
   const explicitPpid = integerFlag(flags, "ppid", { minimum: 1 });
-  const bindProcessAncestry = explicitPid !== undefined;
   const stagedSession = stageSessionGrant({
     runRoot: run,
     agentId: agent,
     role,
     host,
-    pid: explicitPid,
-    ppid: explicitPpid,
-    bindProcessAncestry,
+    ...(explicitPid === undefined ? {} : { pid: explicitPid }),
+    ...(explicitPpid === undefined ? {} : { ppid: explicitPpid }),
   });
   const session = stagedSession.session;
   let outcome;

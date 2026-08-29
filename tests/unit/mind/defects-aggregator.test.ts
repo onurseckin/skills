@@ -6,11 +6,11 @@ import {
   mergeDefectSets,
   calculateDefectAggregateMetrics,
   clusterDefectsBySimilarity,
-} from "../../../olt/scripts/src/mind/defects/aggregator.ts";
+} from "../../../olt/scripts/src/mind/defects/aggregator/index.ts";
 import type {
   AggregatedDefect,
   DefectRecordInput,
-} from "../../../olt/scripts/src/mind/defects/types.ts";
+} from "../../../olt/scripts/src/mind/defects/core/index.ts";
 
 describe("mind/defects/aggregator", () => {
   describe("withinDeduplicationWindow", () => {

@@ -65,6 +65,36 @@ export const AGENT_NAMING_STANDARDS: Readonly<Record<string, AgentNamingStandard
     example: "validator_task-p47-autonomic-watchdog",
     description: "Tier 3 Adversarial Validator strictly bound to validated task ID",
   },
+  "mechanic-validator": {
+    role: "mechanic-validator",
+    tier: 3,
+    bindingType: "task",
+    formatTemplate: "mechanic-validator_<task-id>[-<descriptive-slug>]",
+    regexPattern: /^mechanic-validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
+    example: "mechanic-validator_task-p47-autonomic-watchdog",
+    description:
+      "Tier 3 Mechanic Validator strictly bound to validated task ID for deterministic test/gate execution",
+  },
+  "ui-mechanic-validator": {
+    role: "ui-mechanic-validator",
+    tier: 3,
+    bindingType: "task",
+    formatTemplate: "ui-mechanic-validator_<task-id>[-<descriptive-slug>]",
+    regexPattern: /^ui-mechanic-validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
+    example: "ui-mechanic-validator_task-p48-viewport-matrix",
+    description:
+      "Tier 3 UI Mechanic Validator bound to task ID for automated DOM metrics and screenshot capture",
+  },
+  "ui-validator": {
+    role: "ui-validator",
+    tier: 3,
+    bindingType: "task",
+    formatTemplate: "ui-validator_<task-id>[-<descriptive-slug>]",
+    regexPattern: /^ui-validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
+    example: "ui-validator_task-p48-viewport-matrix",
+    description:
+      "Tier 3 UI Cognitive Validator bound to task ID for visual aesthetics, layout, UX, and accessibility critique",
+  },
   repairer: {
     role: "repairer",
     tier: 3,

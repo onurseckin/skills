@@ -4,7 +4,7 @@ import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { undeclaredEntries } from "../../../olt/scripts/src/engine/store/layout-integrity.ts";
+import { undeclaredEntries } from "../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
 import {
   classifyIssueSeverity,
   runDoctor,
@@ -13,7 +13,7 @@ import {
 import {
   auditTierConfinement,
   summarizeTierConfinement,
-} from "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts";
+} from "../../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
 import { formatDoctorBrief } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 

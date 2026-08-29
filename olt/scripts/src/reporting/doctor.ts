@@ -23,7 +23,7 @@ import {
   type BehavioralFinding,
   type BehavioralSeverity,
   type BehavioralViolationType,
-} from "./behavioral-auditor.ts";
+} from "./behavioral-auditor/index.ts";
 import {
   auditTierConfinement,
   summarizeTierConfinement,
@@ -32,7 +32,7 @@ import {
   type TierConfinementSummary,
   type TierViolationSeverity,
   type TierViolationType,
-} from "./doctor/tier-confinement.ts";
+} from "./doctor/tier-confinement/index.ts";
 import {
   evaluateSocraticSelfQuestioning,
   formatSocraticAuditSection,
@@ -45,7 +45,10 @@ import {
   type LifecycleFinding,
   type LifecycleAuditSummary,
 } from "./doctor/state-machine-auditor.ts";
-import { runDoctorDiagnostics, type HarnessHealthCheck } from "./doctor/adversarial-doctor.ts";
+import {
+  runDoctorDiagnostics,
+  type HarnessHealthCheck,
+} from "./doctor/adversarial-doctor/index.ts";
 import {
   checkPlanningDag,
   checkAstPurity,

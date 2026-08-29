@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -129,19 +129,6 @@ export function renderSplitManifestJson(): string {
   return `${JSON.stringify(splitManifest(), null, 2)}\n`;
 }
 
-export interface SplitFile {
-  path: string;
-  content: string;
-}
-
-export function renderSplitFiles(): readonly SplitFile[] {
-  return [
-    { path: "manifest.json", content: renderSplitManifestJson() },
-    { path: INDEX_FILE, content: renderCommandIndexJsonl() },
-    ...renderCommandDetailFiles(),
-  ];
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -251,17 +238,4 @@ export function loadCommandDetail(
   const root = options.root ?? defaultRoot();
   const path = join(root, commandFilePath(domain, commandName));
   return parseCommandManifest(JSON.parse(readFileSync(path, "utf-8")));
-}
-
-export function listGeneratedFiles(root: string): readonly string[] {
-  const files: string[] = ["manifest.json", INDEX_FILE];
-  for (const entry of readdirSync(join(root, DOMAINS_DIR))) {
-    if (entry.endsWith(".md")) files.push(`${DOMAINS_DIR}/${entry}`);
-  }
-  for (const domain of readdirSync(join(root, COMMANDS_DIR))) {
-    for (const entry of readdirSync(join(root, COMMANDS_DIR, domain))) {
-      if (entry.endsWith(".json")) files.push(`${COMMANDS_DIR}/${domain}/${entry}`);
-    }
-  }
-  return files.sort();
 }

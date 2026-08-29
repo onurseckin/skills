@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs.ts";
+import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
 import {
   createPacketBundle,
   verifyPacketBundle,

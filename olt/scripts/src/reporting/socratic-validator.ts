@@ -1,5 +1,9 @@
 import { isJsonObject, type JsonObject } from "../core/contracts/index.ts";
-import { isImplementerRole, isCoordinatorRole, isOrchestratorRole } from "./behavioral-auditor.ts";
+import {
+  isImplementerRole,
+  isCoordinatorRole,
+  isOrchestratorRole,
+} from "./behavioral-auditor/index.ts";
 
 export type SocraticDimension =
   | "premise_verification"

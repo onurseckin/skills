@@ -1,8 +1,12 @@
-import { afterAll, afterEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  registerSessionGrant,
+  revokeSessionGrant,
+} from "../../../olt/scripts/src/authority/session/index.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { isJsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -14,7 +18,18 @@ afterAll(() => {
   for (const root of gitRoots.splice(0)) rmSync(root, { recursive: true, force: true });
 });
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+
+function clearCallerSession(run?: string, agentId = "worker-1"): void {
+  revokeSessionGrant({ runRoot: run, agentId, pid: process.pid, ppid: process.ppid });
+}
+
+beforeEach(() => {
+  clearCallerSession();
+});
+afterEach(async () => {
+  clearCallerSession();
+  await cleanupRoots(roots);
+});
 
 function git(repo: string, argv: readonly string[]): void {
   const result = spawnSync("git", [...argv], {
@@ -57,7 +72,6 @@ async function compiledSingleTaskRun(
     join(repo, "prompt.txt"),
   ]);
   const run = String(init.run_root);
-
   await execute([
     "plan:add",
     "--run",
@@ -240,6 +254,12 @@ describe("gate:prove (command layer)", () => {
       "--role",
       "implementer",
     ]);
+    registerSessionGrant({
+      runRoot: run,
+      agentId: "coordinator",
+      role: "coordinator",
+      host: "antigravity",
+    });
 
     // Simulate the task's own work landing on HEAD before gate:prove ever runs (worktree isolation
     // with commit-per-subphase does exactly this) — the incoherence C3b exists to close: reverting
@@ -306,55 +326,14 @@ describe("gate:prove (command layer)", () => {
   });
 
   test("refuses an --actor with no registered grant instead of treating it as a display label", async () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "gate-prove-cmd-no-grant-")));
-    gitRoots.push(repo);
-    git(repo, ["init", "--quiet", "--initial-branch", "main"]);
-    git(repo, ["config", "user.email", "harness@example.test"]);
-    git(repo, ["config", "user.name", "Harness Test"]);
-    writeFileSync(join(repo, ".gitignore"), ".olt/capsules/\nprompt.txt\n");
-    writeFileSync(join(repo, "README.md"), "hi\n");
-    git(repo, ["add", "-A"]);
-    git(repo, ["commit", "--quiet", "-m", "base"]);
-    writeFileSync(join(repo, "prompt.txt"), "Add a feature file.\n");
-    const init = await execute([
-      "plan:init",
-      "--repo",
-      repo,
-      "--run-id",
-      "no-grant",
-      "--prompt-file",
-      join(repo, "prompt.txt"),
-    ]);
-    const run = String(init.run_root);
-    await execute([
-      "plan:add",
-      "--run",
-      run,
-      "--id",
-      "task-1",
-      "--label",
-      "Add feature file",
-      "--scope",
-      "feature.ts",
-      "--gate",
-      "test -f feature.ts",
-      "--actor",
-      "planner",
-    ]);
-    await execute(["plan:brainstorm", "--run", run, "--actor", "coordinator"]);
-    await execute([
-      "plan:compile",
-      "--run",
-      run,
-      "--actor",
-      "coordinator",
-      "--completion-gate",
-      "bun test tests",
-    ]);
+    const { repo, run } = await compiledSingleTaskRun("no-grant", "test -f feature.ts");
     writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
+    clearCallerSession(run, "coordinator");
 
     await expect(
       execute(["gate:prove", "--run", run, "--task", "task-1", "--actor", "an-unregistered-actor"]),
-    ).rejects.toThrow("agent an-unregistered-actor holds no grant");
+    ).rejects.toThrow(
+      "gate:prove requires a verified caller session backed by an active run grant; explicit identity flags cannot establish authority",
+    );
   });
 });

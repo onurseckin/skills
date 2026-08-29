@@ -3,7 +3,7 @@ import {
   type StaleLeasesProbeResult,
   type StaleLeaseInfo,
 } from "../types.ts";
-import { parseTimestamp } from "../../../../authority/watchdog-manager.ts";
+import { parseTimestamp } from "../../../../authority/watchdog/index.ts";
 import { isRecord } from "../../../../requirements/predicates.ts";
 
 export function boundedEvidenceCause(error: unknown): string {

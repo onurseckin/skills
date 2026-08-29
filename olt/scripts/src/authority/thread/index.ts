@@ -8,6 +8,7 @@ export type {
   ExecutionTier,
   HostProfile,
   StandardAgentIdParsedComponents,
+  StandardAgentRole,
   ThreadIdentification,
   TierSpawningValidationResult,
 } from "./types.ts";

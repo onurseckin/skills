@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { isAbsolute } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot, isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
-import { loadRun } from "../../engine/store/load.ts";
+import { loadRun } from "../../engine/store/capsule/load.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
 import {
   agentIdToRole,
@@ -11,7 +11,7 @@ import {
   detectHostApp,
   roleToTier,
   type ExecutionTier,
-} from "../thread-identifier.ts";
+} from "../thread/index.ts";
 import { resolveGlobalSessionsDir, resolveSessionRepositoryRoot } from "./paths.ts";
 import { readPersistedSession, secureReadSession } from "./io.ts";
 import type { ResolveSessionOptions, SessionIdentity } from "./types.ts";
@@ -110,7 +110,7 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   }
 
   // Mechanism 4: Run Capsule Runtime Session (<runRoot>/runtime/sessions/<explicitActor>.json)
-  if (!detectedAgentId && options.runRoot && options.explicitActor) {
+  if (options.runRoot && options.explicitActor) {
     const trimmed = options.runRoot.trim();
     const resolvedRunRoot =
       isAbsolute(trimmed) || isInsideCapsule(trimmed)
@@ -129,9 +129,9 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     );
     if (parsed) {
       mechanisms.push("capsule_runtime_session");
-      if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
-      if (!detectedRole && typeof parsed.role === "string") detectedRole = parsed.role;
-      if (!detectedToken && typeof parsed.token === "string") detectedToken = parsed.token;
+      detectedAgentId = parsed.agent_id as string;
+      if (typeof parsed.role === "string") detectedRole = parsed.role;
+      if (typeof parsed.token === "string") detectedToken = parsed.token;
       if (typeof parsed.can_execute_shell === "boolean")
         detectedCanShell = parsed.can_execute_shell;
       if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;

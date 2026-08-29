@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   executeAutoSyncAndCommit,
-  executePhaseCompletionSyncAndCommit,
   type AutoSyncOptions,
   type GitRunner,
   type GitRunnerResult,
@@ -151,7 +150,7 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
         scope: "sync",
         description: "implement global skill sync workflow",
         body: "Adds auto-sync-and-commit with Conventional Commits and remote push.",
-        writeScope: ["src/workflow/completion/**", "scripts/sync-global.ts"],
+        writeScope: ["src/workflow/completion/**", "scripts/sync/index.ts"],
         remote: "origin",
         branch: "main",
         repoRoot: "/mock/repo",
@@ -174,7 +173,7 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
         "add",
         "--",
         "src/workflow/completion",
-        "scripts/sync-global.ts",
+        "scripts/sync/index.ts",
       ]);
       expect(gitCalls[0]?.options?.cwd).toBe("/mock/repo");
 
@@ -187,7 +186,7 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
 
       // Verify sync calls
       expect(syncCalls.length).toBe(1);
-      expect(syncCalls[0]?.scriptPath).toBe("/mock/repo/scripts/sync-global.ts");
+      expect(syncCalls[0]?.scriptPath).toBe("/mock/repo/scripts/sync/index.ts");
       expect(syncCalls[0]?.options?.cwd).toBe("/mock/repo");
 
       // Verify logs
@@ -498,7 +497,7 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
         return {
           status: 127,
           stdout: "",
-          stderr: "scripts/sync-global.ts: No such file or directory",
+          stderr: "scripts/sync/index.ts: No such file or directory",
         };
       };
 
@@ -671,66 +670,6 @@ describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Ta
       expect(result.pushed).toBeFalse();
       expect(result.synced).toBeFalse();
       expect(result.logs.some((l) => l.includes("[format] Commit format failed"))).toBeTrue();
-    });
-  });
-
-  describe("Backward Compatibility: executePhaseCompletionSyncAndCommit", () => {
-    test("executes phase completion sync and commit with expected return shape", async () => {
-      const mockGitRunner: GitRunner = (args) => {
-        if (args[0] === "rev-parse") {
-          return { status: 0, stdout: "sha-phase-999\n", stderr: "" };
-        }
-        return { status: 0, stdout: "", stderr: "" };
-      };
-      const mockSyncRunner: SyncRunner = () => ({ status: 0, stdout: "synced", stderr: "" });
-
-      const res = await executePhaseCompletionSyncAndCommit(
-        {
-          phaseName: "test-phase",
-          runId: "run-999",
-          autoPush: false,
-        },
-        mockGitRunner,
-        mockSyncRunner,
-      );
-
-      expect(typeof res.synced).toBe("boolean");
-      expect(typeof res.committed).toBe("boolean");
-      expect(typeof res.pushed).toBe("boolean");
-      expect(res.synced).toBeTrue();
-      expect(res.committed).toBeTrue();
-      expect(res.commitSha).toBe("sha-phase-999");
-      expect(res.pushed).toBeFalse();
-    });
-
-    test("reports mandatory release-step failures while preserving disabled push behavior", async () => {
-      const mockGitRunner: GitRunner = (args) => {
-        if (args[0] === "commit") {
-          return { status: 1, stdout: "", stderr: "commit rejected" };
-        }
-        return { status: 0, stdout: "", stderr: "" };
-      };
-      const mockSyncRunner: SyncRunner = () => ({
-        status: 1,
-        stdout: "sync rejected",
-        stderr: "",
-      });
-
-      const res = await executePhaseCompletionSyncAndCommit(
-        {
-          phaseName: "test-phase",
-          autoPush: false,
-        },
-        mockGitRunner,
-        mockSyncRunner,
-      );
-
-      expect(res.committed).toBeFalse();
-      expect(res.pushed).toBeFalse();
-      expect(res.synced).toBeFalse();
-      expect(res.error).toContain("[commit] Git commit failed (status 1): commit rejected");
-      expect(res.error).toContain("[sync] Global skill sync failed (status 1): sync rejected");
-      expect(res.error).not.toContain("[push]");
     });
   });
 });

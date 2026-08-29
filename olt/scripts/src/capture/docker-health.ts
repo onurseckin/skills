@@ -1,6 +1,6 @@
 import { generateCanonicalDefaultPolicy } from "../policy/index.ts";
 import { loadRepoPolicy } from "../policy/repo-policy.ts";
-import type { ContainerConfig, RepoPolicy } from "../policy/types.ts";
+import type { ContainerConfig, RepoPolicy } from "../policy/types/index.ts";
 
 /**
  * Resolves the active RepoPolicy, falling back to loaded or canonical default policy.

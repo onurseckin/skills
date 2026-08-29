@@ -1,4 +1,4 @@
-import type { ExecutionTier } from "../../../authority/thread-identifier.ts";
+import type { ExecutionTier } from "../../../authority/thread/index.ts";
 
 export type TierViolationType =
   | "cross_tier_spawning_violation"

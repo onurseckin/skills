@@ -3,7 +3,7 @@ import {
   fileProvenanceDetails,
   fileProvenanceTable,
   type AttributedFileRef,
-} from "../../../olt/scripts/src/summary/markdown-file-provenance.ts";
+} from "../../../olt/scripts/src/summary/markdown/index.ts";
 
 /**
  * Direct unit coverage of the B15.2 renderer: line ranges, diff, additions/deletions, rationale,

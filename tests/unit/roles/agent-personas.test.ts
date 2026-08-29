@@ -5,7 +5,7 @@ import { isAgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   MAX_REPAIR_ROUNDS,
   MIN_ADVERSARIAL_PROBES,
-} from "../../../olt/scripts/src/core/config/constants.ts";
+} from "../../../olt/scripts/src/core/config/contracts.ts";
 import { resolveRoleContractPath } from "../../../olt/scripts/src/packets/role-contract.ts";
 
 const agentsRoot = join(import.meta.dir, "..", "..", "..", "olt", "agents");

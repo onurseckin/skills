@@ -146,7 +146,7 @@ export function deriveWriteScopeForCategory(category: string, id: string): reado
       return [`olt/scripts/src/cli/commands/${slug}.ts`, `tests/unit/cli/${slug}.test.ts`];
     case "WATCHDOG":
       return [
-        "olt/scripts/src/authority/watchdog-manager.ts",
+        "olt/scripts/src/authority/watchdog/index.ts",
         "olt/scripts/src/cli/commands/watchdog-ops.ts",
         "tests/unit/authority/watchdog-manager.test.ts",
       ];

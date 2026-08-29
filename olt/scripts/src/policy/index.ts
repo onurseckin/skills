@@ -54,7 +54,6 @@ export {
 } from "./io-safety.ts";
 
 export {
-  parseAuthorityRepoPolicy,
   validateRepoPolicy,
   inspectRepoPolicy,
   loadRepoPolicy,

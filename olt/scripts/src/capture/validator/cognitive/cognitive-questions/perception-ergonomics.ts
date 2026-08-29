@@ -1,8 +1,4 @@
-import type {
-  ElementPhysicsSnapshot,
-  EvaluatedCognitiveQuestion,
-  ValidationContext,
-} from "../../types.ts";
+import type { ElementPhysicsSnapshot, EvaluatedCognitiveQuestion } from "../../types.ts";
 
 export function evaluatePerceptionQuestions(
   elements: readonly ElementPhysicsSnapshot[],

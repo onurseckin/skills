@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { safeRmSync } from "../../olt/scripts/src/core/shared/safe-fs.ts";
+import { safeRmSync } from "../../olt/scripts/src/core/shared/safe-fs/index.ts";
 import { logDestructiveOp } from "./fs-helpers.ts";
 
 export type SyncSourceDecision =

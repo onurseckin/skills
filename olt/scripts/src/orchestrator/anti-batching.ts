@@ -1,12 +1,6 @@
 import { HarnessError } from "../core/errors/index.ts";
 import type { Finding } from "../core/contracts/index.ts";
 import type { FindingDetail } from "../workflow/scope-partitioner.ts";
-import type { SmartTaskPlan } from "../mind/tasks/smart/index.ts";
-import {
-  assertAntiBatchingRule,
-  validateAntiBatchingIsolation,
-  type AntiBatchingValidationReport,
-} from "../mind/tasks/smart/index.ts";
 import { partitionDefectsToIsolatedTasks } from "./defect-synthesizer.ts";
 
 export interface IsolatedDefectTask {
@@ -87,9 +81,4 @@ export function assertDiscriminatingSignOffProofs(
   }
 }
 
-export {
-  assertAntiBatchingRule,
-  validateAntiBatchingIsolation,
-  partitionDefectsToIsolatedTasks,
-  type AntiBatchingValidationReport,
-};
+export { partitionDefectsToIsolatedTasks };

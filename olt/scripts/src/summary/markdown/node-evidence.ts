@@ -5,7 +5,7 @@ import type { CommandRecord } from "../../core/contracts/index.ts";
 import type { EvidenceClass } from "../../core/contracts/index.ts";
 import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
-import type { NodeScript, NodeStateTransition } from "../types.ts";
+import type { NodeScript, NodeStateTransition } from "../graph/index.ts";
 
 export const LOG_READ_CEILING_BYTES = 64 * 1024 * 1024;
 

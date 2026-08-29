@@ -1,4 +1,4 @@
-import { evaluateHierarchyScaling } from "../../../../graph/topology.ts";
+import { evaluateHierarchyScaling } from "../../../../graph/parallel-decoupler.ts";
 import { enrichTaskPlanWithExactAnchors } from "../planner/anti-batching.ts";
 import { assertAntiBatchingRule } from "../planner/partitioning.ts";
 import { readCognitiveMemory } from "../planner/memory.ts";

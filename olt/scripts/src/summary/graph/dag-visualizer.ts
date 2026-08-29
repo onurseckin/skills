@@ -285,3 +285,5 @@ export function renderAsciiDag(
 ): string {
   return renderVisualDag(waves, { detailed, forensics });
 }
+
+export { renderVisualDag as visualizeDag };

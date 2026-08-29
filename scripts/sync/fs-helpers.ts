@@ -6,7 +6,7 @@ import {
   safeCpSync,
   safeRmSync,
   type DestructiveAuditEvent,
-} from "../../olt/scripts/src/core/shared/safe-fs.ts";
+} from "../../olt/scripts/src/core/shared/safe-fs/index.ts";
 
 export function logDestructiveOp(event: DestructiveAuditEvent): void {
   process.stderr.write(`[sync-audit] ${JSON.stringify(event)}\n`);

@@ -2,8 +2,8 @@ import { describe, it, expect } from "bun:test";
 import {
   ContinuousDefectFeedbackLoop,
   type DomainExecutionTask,
-} from "../../../olt/scripts/src/mind/defects/defect-loop.ts";
-import type { DefectResolutionProof } from "../../../olt/scripts/src/mind/defects/types.ts";
+} from "../../../olt/scripts/src/mind/defects/loop/index.ts";
+import type { DefectResolutionProof } from "../../../olt/scripts/src/mind/defects/core/index.ts";
 
 describe("mind/defects/defect-loop", () => {
   it("initializes with idle status and provides deduplicator and metrics", () => {

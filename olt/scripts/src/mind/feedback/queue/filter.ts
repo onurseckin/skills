@@ -239,6 +239,9 @@ function validateCategory(val: unknown): FeedbackCategory {
     if (upper === "CORE_ENGINE") return "CORE_ENGINE";
     if (upper === "REPAIR") return "REPAIR";
     if (upper === "GENERAL") return "GENERAL";
+    if (upper === "GOVERNANCE") return "GOVERNANCE";
+    if (upper === "ORCHESTRATION") return "ORCHESTRATION";
+    if (upper === "AUDITING") return "AUDITING";
   }
   throw new HarnessError("INTEGRITY", "Feedback item requires valid category");
 }

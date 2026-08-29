@@ -1,5 +1,8 @@
 import { HarnessError } from "../../../../core/errors/index.ts";
-import { evaluateHierarchyScaling, partitionWaveCoordinators } from "../../../../graph/topology.ts";
+import {
+  evaluateHierarchyScaling,
+  partitionWaveCoordinators,
+} from "../../../../graph/parallel-decoupler.ts";
 import { pathsOverlap } from "./collisions.ts";
 import type { SmartTaskPlan, SmartWavePlanResult, WaveGroup } from "./models.ts";
 import type {

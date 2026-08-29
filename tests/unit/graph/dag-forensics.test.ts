@@ -24,7 +24,7 @@ import {
   renderVisualDag,
   statusBadge,
   statusGlyph,
-} from "../../../olt/scripts/src/summary/dag-visualizer.ts";
+} from "../../../olt/scripts/src/summary/graph/index.ts";
 
 describe("DAG Forensics: Topological Sorting & Acyclicity", () => {
   test("topologicalOrder returns empty array on empty graph", () => {

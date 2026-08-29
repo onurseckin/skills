@@ -11,13 +11,13 @@ import {
   roleToTier,
   validateAgentNamingConvention,
   type StandardAgentRole,
-} from "../../../olt/scripts/src/agents/naming.ts";
-import { identifyExecutionContext } from "../../../olt/scripts/src/authority/thread-identifier.ts";
+} from "../../../olt/scripts/src/authority/thread/index.ts";
+import { identifyExecutionContext } from "../../../olt/scripts/src/authority/thread/index.ts";
 import {
   findSkillRoot,
   loadAgentManifest,
   loadRoleContract,
-} from "../../../olt/scripts/src/authority/manifest-parser.ts";
+} from "../../../olt/scripts/src/authority/manifest/index.ts";
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
 
 describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", () => {
@@ -376,8 +376,8 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
   describe("Invariants & TypeScript Strictness Audit", () => {
     test("zero TypeScript any and zero suppressions across thread-identifier files", () => {
       const sourceFiles = [
-        join(__dirname, "../../../olt/scripts/src/authority/thread-identifier.ts"),
-        join(__dirname, "../../../olt/scripts/src/agents/naming.ts"),
+        join(__dirname, "../../../olt/scripts/src/authority/thread/index.ts"),
+        join(__dirname, "../../../olt/scripts/src/authority/thread/naming.ts"),
         __filename,
       ];
 

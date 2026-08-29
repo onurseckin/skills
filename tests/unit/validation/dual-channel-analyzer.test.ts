@@ -2,19 +2,17 @@ import { afterAll, beforeAll, describe, expect, test, it } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
+import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import {
   analyzeDualChannel,
   isUiScope,
   validateCrossChannelConsistency,
   validateCompanionManifestCriteria,
+  type DualChannelInput,
   type ScreenshotMetadata,
+  type StructuredFinding,
   type VisualMetricsReport,
-} from "../../../olt/scripts/src/validation/dual-channel-analyzer.ts";
-import type {
-  DualChannelInput,
-  StructuredFinding,
-} from "../../../olt/scripts/src/validation/dual-channel-types.ts";
+} from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
 
 describe("Dual-Channel Visual Analyzer", () => {
   describe("UI Scope Detection (isUiScope)", () => {
@@ -1008,8 +1006,6 @@ describe("Semantic Depth Quality Checks & requireSemanticDepth Enforcement", () 
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   it("verifies dual-channel test and source files contain zero any and zero suppressions", () => {
     const filesToAudit = [
-      resolve(import.meta.dir, "../../../olt/scripts/src/validation/dual-channel-types.ts"),
-      resolve(import.meta.dir, "../../../olt/scripts/src/validation/dual-channel-analyzer.ts"),
       resolve(
         import.meta.dir,
         "../../../olt/scripts/src/validation/dual-channel-analyzer/types.ts",

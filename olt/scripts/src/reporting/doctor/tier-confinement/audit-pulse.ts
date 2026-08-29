@@ -3,7 +3,7 @@ import {
   isJsonObject,
   type JsonObject,
 } from "../../../core/contracts/index.ts";
-import { roleToTier } from "../../../authority/thread-identifier.ts";
+import { roleToTier } from "../../../authority/thread/index.ts";
 import { inferRole, TERMINAL_PULSE_OUTCOMES } from "./constants.ts";
 import type { TierConfinementFinding } from "./types.ts";
 

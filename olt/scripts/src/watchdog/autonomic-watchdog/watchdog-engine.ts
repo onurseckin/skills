@@ -1,4 +1,4 @@
-import { BootGateEnforcer } from "../boot-gate-enforcer.ts";
+import { BootGateEnforcer } from "../boot-gate-enforcer/index.ts";
 import {
   DEFAULT_HEALTH_AUDIT_INTERVAL_MS,
   DEFAULT_PROCESS_HEALTH_CHECK_INTERVAL_MS,

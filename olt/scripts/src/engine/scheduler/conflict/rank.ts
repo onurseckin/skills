@@ -1,4 +1,4 @@
-import type { SchedulingMetrics } from "../metrics.ts";
+import type { SchedulingMetrics } from "../topology/metrics.ts";
 
 export type ScheduledTask = Record<string, unknown> & {
   id: string;

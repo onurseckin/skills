@@ -1,4 +1,4 @@
-import type { WatchdogRecord } from "../../../authority/watchdog-manager.ts";
+import type { WatchdogRecord } from "../../../authority/watchdog/index.ts";
 import type { TaskStatus } from "../../../core/contracts/index.ts";
 import type { Clock } from "../../../workflow/types.ts";
 

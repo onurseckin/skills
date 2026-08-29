@@ -7,7 +7,7 @@ import {
   isUnifiedEvidencePath,
   isUnifiedEvidenceRelativePath,
   formatUnifiedEvidencePath,
-} from "../../../olt/scripts/src/validation/evidence-paths.ts";
+} from "../../../olt/scripts/src/validation/reporters/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 const roots: string[] = [];

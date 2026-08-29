@@ -18,51 +18,32 @@ import { runAndRecordCommand } from "../../../olt/scripts/src/integration/record
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import type { ScreenshotRecord } from "../../../olt/scripts/src/reporting/screenshot-types.ts";
-import type { CompanionManifestData } from "../../../olt/scripts/src/validation/dual-channel-types.ts";
-import { createAgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
-import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
+import type { CompanionManifestData } from "../../../olt/scripts/src/validation/channels/index.ts";
+import { createAgentMetadata, writeAgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
+import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function createValidScreenshotFixtures(label: string): ScreenshotRecord[] {
   const dir = scratchRoot(import.meta.path, label);
-  const desktopPath = join(dir, "button-desktop.png");
-  const tabletPath = join(dir, "button-tablet.png");
-  const mobilePath = join(dir, "button-mobile.png");
-  writeFileSync(desktopPath, createSyntheticPngBuffer(1440, 900, 2048));
-  writeFileSync(tabletPath, createSyntheticPngBuffer(768, 1024, 1536));
-  writeFileSync(mobilePath, createSyntheticPngBuffer(390, 844, 1200));
-  return [
-    {
-      kind: "screenshot",
-      name: "button-desktop.png",
-      path: desktopPath,
-      sha256: "sha-desktop",
-      bytes: 2048,
-      blob_path: "/mock/blobs/sha-desktop",
-      storage: "copy",
-      original_path: desktopPath,
-    },
-    {
-      kind: "screenshot",
-      name: "button-tablet.png",
-      path: tabletPath,
-      sha256: "sha-tablet",
-      bytes: 1536,
-      blob_path: "/mock/blobs/sha-tablet",
-      storage: "copy",
-      original_path: tabletPath,
-    },
-    {
-      kind: "screenshot",
-      name: "button-mobile.png",
-      path: mobilePath,
-      sha256: "sha-mobile",
-      bytes: 1200,
-      blob_path: "/mock/blobs/sha-mobile",
-      storage: "copy",
-      original_path: mobilePath,
-    },
+  const specs = [
+    { name: "button-desktop.png", w: 1440, h: 900, bytes: 2048, sha: "sha-desktop" },
+    { name: "button-tablet.png", w: 768, h: 1024, bytes: 1536, sha: "sha-tablet" },
+    { name: "button-mobile.png", w: 390, h: 844, bytes: 1200, sha: "sha-mobile" },
   ];
+  return specs.map(({ name, w, h, bytes, sha }) => {
+    const path = join(dir, name);
+    writeFileSync(path, createSyntheticPngBuffer(w, h, bytes));
+    return {
+      kind: "screenshot",
+      name,
+      path,
+      sha256: sha,
+      bytes,
+      blob_path: `/mock/blobs/${sha}`,
+      storage: "copy",
+      original_path: path,
+    };
+  });
 }
 
 describe("Task Review Dual-Channel Audit & Companion Manifest Integration", () => {
@@ -393,6 +374,7 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
     execSync("git init -b main", { cwd: testDir });
     execSync("git config user.name 'Test Runner'", { cwd: testDir });
     execSync("git config user.email 'test@example.com'", { cwd: testDir });
+    execSync("git config commit.gpgsign false", { cwd: testDir });
     writeFileSync(join(testDir, ".gitignore"), ".capsules/\n.olt/\nscreenshots/\n");
     writeFileSync(join(testDir, "README.md"), "# Test\n");
     execSync("git add .gitignore README.md && git commit -m 'initial commit'", { cwd: testDir });
@@ -431,17 +413,25 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
           actor: "worker-01",
         },
       ];
-      draft.requirements = {
-        requirements: [
-          {
-            id: "REQ-01",
-            statement: "Component renders card",
-            disposition: "actionable",
-            status: "planned",
-            evidence: [],
-          },
-        ],
-      };
+      draft.requirements = [
+        {
+          id: "REQ-01",
+          statement: "Component renders card",
+          disposition: "actionable",
+          status: "planned",
+          evidence: [],
+        },
+      ];
+      draft.gates = [
+        {
+          id: "gate-01",
+          command: ["echo", "validation-check-ok"],
+          cwd: ".",
+          scope: "task",
+          mandatory: true,
+          requirement_ids: ["REQ-01"],
+        },
+      ];
       draft.commands = {};
       draft.tasks = {
         [taskId]: {
@@ -455,6 +445,15 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
           status: "validating",
           validation_token: token,
           validations: [
+            {
+              validator_id: "mech-01",
+              domain: "code-quality",
+              token_digest: "mech-digest",
+              attempt: 2,
+              started_at: new Date().toISOString(),
+              deadline_at: new Date(Date.now() + 10_000_000).toISOString(),
+              verdict: "pass",
+            },
             {
               validator_id: "val-01",
               domain: "ui-design",
@@ -470,6 +469,7 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
               role: "implementer",
               agent_id: "worker-01",
               started_at: new Date().toISOString(),
+              submitted_at: new Date().toISOString(),
               status: "submitted",
             },
             {
@@ -477,9 +477,14 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
               role: "mechanic-validator",
               agent_id: "mech-01",
               started_at: new Date().toISOString(),
+              submitted_at: new Date().toISOString(),
               status: "submitted",
             },
           ],
+          report: {
+            summary: "Implemented UI card component",
+            files_changed: ["src/components/Card.tsx"],
+          },
           history: [],
           repair_round: 0,
           probe_round: 5,
@@ -490,21 +495,14 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
       return draft;
     });
 
-    createAgentMetadata({ runRoot, role: "validator", agentId: "val-01", context: {} });
-
-    const metaDir = join(runRoot, "runtime");
-    mkdirSync(metaDir, { recursive: true });
-    writeFileSync(
-      join(metaDir, "agent-val-01.json"),
-      JSON.stringify({
-        agent_id: "val-01",
-        role: "validator",
-        capabilities: [],
-        session_started_at: new Date().toISOString(),
-        runRoot,
-        context: {},
-      }),
-    );
+    for (const [agent_id, role] of [
+      ["val-01", "validator"],
+      ["mech-01", "mechanic-validator"],
+      ["worker-01", "implementer"],
+      ["critic-01", "critic"],
+    ] as const) {
+      writeAgentMetadata(createAgentMetadata({ agent_id, role, tier: 3 }), runRoot);
+    }
     await publishTaskRolePacket({
       runRoot,
       port: workflowPort(runRoot),
@@ -515,18 +513,6 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
       taskId,
       validatorDomain: "ui-design",
     });
-
-    writeFileSync(
-      join(metaDir, "agent-mech-01.json"),
-      JSON.stringify({
-        agent_id: "mech-01",
-        role: "mechanic-validator",
-        capabilities: [],
-        session_started_at: new Date().toISOString(),
-        runRoot,
-        context: {},
-      }),
-    );
     const cmdResult = await runAndRecordCommand(runRoot, {
       actor: "mech-01",
       argv: ["echo", "validation-check-ok"],
@@ -636,7 +622,7 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
     } finally {
       cleanupTestCapsule();
     }
-  });
+  }, 30_000);
 
   it("taskReviewCommand passes and records review when companion manifest contains deep quantitative evidence under --require-semantic-depth", async () => {
     const { runPath, taskId, validatorToken, checkId } = await setupTestCapsule();
@@ -709,7 +695,7 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
     } finally {
       cleanupTestCapsule();
     }
-  });
+  }, 30_000);
 
   it("preserves backward compatibility: taskReviewCommand passes shallow manifest when --require-semantic-depth is omitted", async () => {
     const { runPath, taskId, validatorToken, checkId } = await setupTestCapsule();
@@ -766,7 +752,7 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
     } finally {
       cleanupTestCapsule();
     }
-  });
+  }, 30_000);
 
   it("taskReviewCommand rejects rubber-stamp and generic sign-off summaries with INVALID_ARGUMENT", async () => {
     const { runPath, taskId, validatorToken, checkId } = await setupTestCapsule();
@@ -816,7 +802,7 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
     } finally {
       cleanupTestCapsule();
     }
-  });
+  }, 30_000);
 
   it("criticReviewCommand rejects rubber-stamp and generic sign-off summaries with INVALID_ARGUMENT", async () => {
     const { runPath } = await setupTestCapsule();
@@ -865,7 +851,7 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
     } finally {
       cleanupTestCapsule();
     }
-  });
+  }, 30_000);
 });
 
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {

@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { verifyCommandAuthorization } from "../../../../olt/scripts/src/policy/rbac/index.ts";
-import {
-  parseAuthorityRepoPolicy,
-  type RepoPolicy,
-} from "../../../../olt/scripts/src/policy/index.ts";
+import { parseRepoPolicy, type RepoPolicy } from "../../../../olt/scripts/src/policy/index.ts";
 import { createActor, samplePolicy } from "./fixtures.ts";
 
 describe("RBAC Role Confinement & Fail-Closed Enforcement", () => {
@@ -132,11 +129,7 @@ describe("RBAC Role Confinement & Fail-Closed Enforcement", () => {
 
     const malformed = { ...samplePolicy, forbidden_commands: "curl" } as unknown as RepoPolicy;
     expect(() =>
-      verifyCommandAuthorization(
-        createActor("implementer"),
-        ["curl"],
-        parseAuthorityRepoPolicy(malformed),
-      ),
+      verifyCommandAuthorization(createActor("implementer"), ["curl"], parseRepoPolicy(malformed)),
     ).toThrow(/forbidden_commands/i);
   });
 });

@@ -1,6 +1,5 @@
 import { spawnSync } from "node:child_process";
 import { isAbsolute, join } from "node:path";
-import { dispatchLifecycleHook } from "../../hooks/index.ts";
 import {
   buildInclusiveStageArgs,
   formatConventionalCommitMessage,
@@ -19,7 +18,7 @@ export interface AutoSyncOptions {
   skipPush?: boolean | undefined;
   skipSync?: boolean | undefined;
   repoRoot?: string | undefined;
-  syncScriptPath?: string | undefined; // default "scripts/sync-global.ts"
+  syncScriptPath?: string | undefined; // default "scripts/sync/index.ts"
 }
 
 export interface AutoSyncResult {
@@ -132,7 +131,7 @@ export async function executeAutoSyncAndCommit(
   const syncScriptPath =
     typeof options.syncScriptPath === "string" && options.syncScriptPath.length > 0
       ? options.syncScriptPath
-      : "scripts/sync-global.ts";
+      : "scripts/sync/index.ts";
 
   let commitSha: string | undefined;
   let committed = false;
@@ -266,79 +265,5 @@ export async function executeAutoSyncAndCommit(
     synced,
     message: formattedMessage,
     logs,
-  };
-}
-
-export interface PhaseCompletionResult {
-  readonly synced: boolean;
-  readonly committed: boolean;
-  readonly pushed: boolean;
-  readonly commitSha?: string | undefined;
-  readonly error?: string | undefined;
-}
-
-export interface PhaseCompletionOptions {
-  readonly phaseName: string;
-  readonly runId?: string | undefined;
-  readonly repoRoot?: string | undefined;
-  readonly autoPush?: boolean | undefined;
-}
-
-/**
- * Backward-compatible phase completion handler.
- */
-export async function executePhaseCompletionSyncAndCommit(
-  options: PhaseCompletionOptions,
-  gitRunner?: GitRunner,
-  syncRunner?: SyncRunner,
-): Promise<PhaseCompletionResult> {
-  const repoRoot =
-    typeof options.repoRoot === "string" && options.repoRoot.length > 0
-      ? options.repoRoot
-      : process.cwd();
-  const phaseName = options.phaseName;
-  const runId = options.runId;
-  const autoPush = options.autoPush !== undefined ? options.autoPush : true;
-
-  const result = await executeAutoSyncAndCommit(
-    {
-      taskId: typeof runId === "string" && runId.length > 0 ? runId : phaseName,
-      commitType: "feat",
-      scope: "olt",
-      description: `complete ${phaseName}${typeof runId === "string" && runId.length > 0 ? ` in ${runId}` : ""}`,
-      writeScope: ["."],
-      skipPush: !autoPush,
-      repoRoot,
-    },
-    gitRunner,
-    syncRunner,
-  );
-
-  try {
-    await dispatchLifecycleHook("phase:complete", {
-      phase: phaseName,
-      runId,
-      synced: result.synced,
-      committed: result.committed,
-      pushed: result.pushed,
-      commitSha: result.commitSha,
-    });
-  } catch {
-    // Non-blocking
-  }
-
-  const releaseFailureLogs = result.logs.filter(
-    (log) =>
-      (!result.committed && log.startsWith("[commit]")) ||
-      (autoPush && !result.pushed && log.startsWith("[push]")) ||
-      (!result.synced && log.startsWith("[sync]")),
-  );
-
-  return {
-    synced: result.synced,
-    committed: result.committed,
-    pushed: result.pushed,
-    commitSha: result.commitSha,
-    ...(releaseFailureLogs.length === 0 ? {} : { error: releaseFailureLogs.join(" ") }),
   };
 }

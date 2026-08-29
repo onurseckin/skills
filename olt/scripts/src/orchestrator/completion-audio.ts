@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { accessSync, constants as fsConstants } from "node:fs";
-import { DEFAULT_DARWIN_AUDIO_COMMAND, DEFAULT_DARWIN_SOUND_PATH } from "../hooks/config.ts";
+import { DEFAULT_DARWIN_AUDIO_COMMAND, DEFAULT_DARWIN_SOUND_PATH } from "../hooks/config/index.ts";
 import { resolveAudioSoundPath } from "../hooks/dispatcher.ts";
 
 /**

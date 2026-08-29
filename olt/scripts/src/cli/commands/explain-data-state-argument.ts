@@ -92,7 +92,7 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
           ),
           example(
             "packets/command-authority.ts",
-            'role ${role} may not invoke ${spec.name}: agent ${agentId} holds a ${role} grant, and the contract at ${resolveRoleContractPath(role)} grants only ${contract.commands.join(", ")}',
+            'role ${role} may not invoke ${spec.name}: agent ${agentId} holds a ${role} grant, and the contract at ${resolveRoleContractPath(normalizedContractRole as AgentRole)} grants only ${contract.commands.join(", ")}',
           ),
         ],
       ),

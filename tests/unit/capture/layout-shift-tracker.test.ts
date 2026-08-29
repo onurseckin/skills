@@ -888,7 +888,10 @@ describe("Cumulative Layout Shift (CLS) Tracking & Event Simulation", () => {
   describe("Static Invariant Verification", () => {
     it("ensures zero TypeScript any annotations and zero suppressions across files", () => {
       const targetFiles = [
-        resolve(__dirname, "../../../olt/scripts/src/capture/runners/layout-shift-tracker.ts"),
+        resolve(
+          __dirname,
+          "../../../olt/scripts/src/capture/runners/layout-shift-tracker/index.ts",
+        ),
         resolve(__dirname, "layout-shift-tracker.test.ts"),
       ];
 

@@ -13,7 +13,7 @@ import {
   verdictExchange,
 } from "./graph-edge-exchanges.ts";
 import type { ArchivedRoundContext } from "./graph-round-context.ts";
-import type { FileRef, GraphEdgeData, NodeFinding } from "../types.ts";
+import type { FileRef, GraphEdgeData, NodeFinding } from "./graph-types.ts";
 
 export interface TaskEdgeFactoryParams {
   task: TaskRecord;

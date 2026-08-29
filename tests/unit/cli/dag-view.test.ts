@@ -1072,7 +1072,7 @@ describe("renderAsciiDag formatting", () => {
       "utf8",
     );
     const dagVisualizerSource = readFileSync(
-      join(__dirname, "../../../olt/scripts/src/summary/dag-visualizer.ts"),
+      join(__dirname, "../../../olt/scripts/src/summary/graph/dag-visualizer.ts"),
       "utf8",
     );
     const testSource = readFileSync(__filename, "utf8");

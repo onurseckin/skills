@@ -17,7 +17,7 @@ import {
   type FocusRingDefect,
   type FocusRingGeometry,
   type OpticalCurvatureMetrics,
-} from "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical.ts";
+} from "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/index.ts";
 import { validateMechanical } from "../../../olt/scripts/src/capture/validator/mechanical/index.ts";
 import { validateSubpixelSnapping } from "../../../olt/scripts/src/capture/validator/mechanical/subpixel-snapping.ts";
 
@@ -863,7 +863,7 @@ describe("Optical Ring Snapping & Concentric Geometry Matrix Validator", () => {
         resolve(import.meta.dir, "focus-ring-optical.test.ts"),
         resolve(
           import.meta.dir,
-          "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical.ts",
+          "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/index.ts",
         ),
         resolve(
           import.meta.dir,

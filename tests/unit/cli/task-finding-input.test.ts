@@ -12,7 +12,7 @@ import {
   dualChannelRefusalMessage,
   resolveCheckIds,
 } from "../../../olt/scripts/src/cli/commands/task-review-support.ts";
-import type { DualChannelAuditResult } from "../../../olt/scripts/src/validation/dual-channel-types.ts";
+import type { DualChannelAuditResult } from "../../../olt/scripts/src/validation/channels/index.ts";
 
 function taskWith(requirementIds: string[]): TaskRecord {
   return { id: "task-1", requirement_ids: requirementIds } as unknown as TaskRecord;

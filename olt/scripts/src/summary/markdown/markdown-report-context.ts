@@ -28,13 +28,8 @@ import {
   readTaskChecklistCoverage,
   readTopologyRecord,
 } from "./markdown-sources.ts";
-import type {
-  ActionStepRecord,
-  FileRef,
-  GraphDataset,
-  RollupMetrics,
-  TimelineEventRecord,
-} from "../types.ts";
+import type { ActionStepRecord, FileRef, GraphDataset } from "../graph/index.ts";
+import type { RollupMetrics, TimelineEventRecord } from "../metrics/index.ts";
 
 export interface ReportContextInput {
   runId: string;

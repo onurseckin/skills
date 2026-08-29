@@ -9,8 +9,8 @@ import {
   autoHealCapsule,
 } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { formatDoctorBrief } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

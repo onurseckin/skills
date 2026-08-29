@@ -133,7 +133,7 @@ export function recordCompletedTasksBatch(
 
 export function recordCompletedTasksBatchUnlocked(
   records: readonly CompletedTaskRecord[],
-  options: RecordCompletedTaskOptions | undefined,
+  _options: RecordCompletedTaskOptions | undefined,
   filePath: string,
 ): CompletedTaskRecord[] {
   const existing = readCompletedTasksLedger(filePath);

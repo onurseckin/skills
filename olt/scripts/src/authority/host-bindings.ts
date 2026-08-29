@@ -2,12 +2,7 @@ import { HarnessError } from "../core/errors/index.ts";
 import { detectActiveHost, isHostType, type HostType } from "../platform/host-autodetect.ts";
 import { generateDefaultRepoPolicy } from "../policy/generator/index.ts";
 import { loadRepoPolicy } from "../policy/repo-policy.ts";
-import type {
-  AgentHostPolicy,
-  ModelTier,
-  RepoPolicy,
-  ThinkingEffort,
-} from "../policy/types/index.ts";
+import type { AgentHostPolicy, RepoPolicy } from "../policy/types/index.ts";
 
 export const ROLE_KEY_ALIASES: Readonly<Record<string, string>> = {
   // Mind / Tier 0
@@ -151,44 +146,4 @@ export function resolveAgentHostConfiguration(
   }
 
   return hostConfig;
-}
-
-export function resolveAgentModel(
-  role: string,
-  host?: HostType,
-  policy?: RepoPolicy,
-  repoRoot?: string,
-): string {
-  const hostConfig = resolveAgentHostConfiguration(role, host, policy, repoRoot);
-  return hostConfig.model;
-}
-
-export function resolveAgentModelTier(
-  role: string,
-  host?: HostType,
-  policy?: RepoPolicy,
-  repoRoot?: string,
-): ModelTier {
-  const hostConfig = resolveAgentHostConfiguration(role, host, policy, repoRoot);
-  return hostConfig.model_tier;
-}
-
-export function resolveAgentThinkingEffort(
-  role: string,
-  host?: HostType,
-  policy?: RepoPolicy,
-  repoRoot?: string,
-): ThinkingEffort | undefined {
-  const hostConfig = resolveAgentHostConfiguration(role, host, policy, repoRoot);
-  return hostConfig.thinking_effort;
-}
-
-export function resolveAgentTokenBudget(
-  role: string,
-  host?: HostType,
-  policy?: RepoPolicy,
-  repoRoot?: string,
-): number | undefined {
-  const hostConfig = resolveAgentHostConfiguration(role, host, policy, repoRoot);
-  return hostConfig.token_budget ?? hostConfig.max_tokens;
 }

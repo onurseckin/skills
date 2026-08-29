@@ -12,7 +12,7 @@ import type {
 } from "../../../olt/scripts/src/workflow/types.ts";
 import { commandRecord, repositoryBinding } from "../workflow/test-port.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
-import { registerSessionGrant } from "../../../olt/scripts/src/authority/session-registry.ts";
+import { registerSessionGrant } from "../../../olt/scripts/src/authority/session/index.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 const roots: string[] = [];

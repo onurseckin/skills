@@ -20,7 +20,7 @@ import {
   validateTierSpawning,
   type DefectRecord,
   type ExecutionTier,
-} from "../../../olt/scripts/src/authority/thread-identifier.ts";
+} from "../../../olt/scripts/src/authority/thread/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 import { scratchRoot } from "../../support/scratch-root.ts";
@@ -427,10 +427,8 @@ describe("Thread Identifier - 4-Tier Authority & Spawning Rules", () => {
     const ledger = join(runRoot, "defects.jsonl");
     writeFileSync(external, "external\n");
     symlinkSync(external, ledger);
-    const moduleUrl = new URL(
-      "../../../olt/scripts/src/authority/thread-identifier.ts",
-      import.meta.url,
-    ).href;
+    const moduleUrl = new URL("../../../olt/scripts/src/authority/thread/index.ts", import.meta.url)
+      .href;
     const script = `
       import { identifyExecutionContext } from ${JSON.stringify(moduleUrl)};
       try {
@@ -836,7 +834,7 @@ describe("Standardized Agent Naming System (AGENT_NAMING_STANDARDS)", () => {
 describe("Thread Identifier - Invariants & Cleanliness Audit", () => {
   test("zero TypeScript any and zero suppressions across thread-identifier files", () => {
     const sourceFiles = [
-      join(__dirname, "../../../olt/scripts/src/authority/thread-identifier.ts"),
+      join(__dirname, "../../../olt/scripts/src/authority/thread/index.ts"),
       __filename,
     ];
 

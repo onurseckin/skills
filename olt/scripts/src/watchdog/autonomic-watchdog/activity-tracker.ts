@@ -1,4 +1,4 @@
-import type { BootGateEnforcer } from "../boot-gate-enforcer.ts";
+import type { BootGateEnforcer } from "../boot-gate-enforcer/index.ts";
 import type {
   AgentActivityState,
   LiveCliProof,

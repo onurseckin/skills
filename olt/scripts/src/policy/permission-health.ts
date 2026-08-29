@@ -1,4 +1,17 @@
-import type { UnifiedAgentManifest } from "../authority/manifest-schema";
+export interface AgentManifestLike {
+  readonly role: string;
+  readonly tools: {
+    readonly enable_write_tools?: boolean;
+    readonly enable_mcp_tools?: boolean;
+    readonly enable_subagent_tools?: boolean;
+  };
+  readonly permissions: {
+    readonly must_not?: readonly string[];
+    readonly commands?: readonly string[];
+    readonly spawns?: readonly string[];
+  };
+  readonly invariants?: readonly string[];
+}
 
 export interface RepoPolicy {
   readonly allowed_commands?: readonly string[];
@@ -6,7 +19,7 @@ export interface RepoPolicy {
 }
 
 export function auditPermissionHealth(
-  manifest: UnifiedAgentManifest,
+  manifest: AgentManifestLike,
   repoPolicy: RepoPolicy,
   registeredCommands?: readonly string[],
 ): { healthy: boolean; errors: string[] } {
@@ -137,7 +150,7 @@ export function auditPermissionHealth(
         `Proof 3 Failed: Supervisor role '${manifest.role}' must have tools.enable_write_tools === false.`,
       );
     }
-    const mustNotStr = manifest.permissions.must_not.join(" ").toLowerCase();
+    const mustNotStr = (manifest.permissions.must_not ?? []).join(" ").toLowerCase();
     const hasProhibitionFileEdits =
       mustNotStr.includes("file edit") ||
       mustNotStr.includes("edit file") ||
@@ -152,7 +165,7 @@ export function auditPermissionHealth(
       );
     }
   } else if (manifest.role.includes("implementer") || manifest.role === "worker") {
-    const mustNotStr = manifest.permissions.must_not.join(" ").toLowerCase();
+    const mustNotStr = (manifest.permissions.must_not ?? []).join(" ").toLowerCase();
     if (
       !mustNotStr.includes("whole-repo") &&
       !mustNotStr.includes("whole repo") &&
@@ -162,7 +175,7 @@ export function auditPermissionHealth(
         `Proof 3 Failed: Implementer '${manifest.role}' must have whole-repo test suites prohibited.`,
       );
     }
-    const invariantsStr = manifest.invariants.join(" ").toLowerCase();
+    const invariantsStr = (manifest.invariants ?? []).join(" ").toLowerCase();
     if (
       !invariantsStr.includes("file-scoped") &&
       !invariantsStr.includes("file_scoped") &&
@@ -175,10 +188,7 @@ export function auditPermissionHealth(
   }
 
   // Proof 4: Spawning Authority DAG Validation (an agent can only spawn roles declared in permissions.spawns).
-  // Actually, wait, this is just auditing the manifest self-consistency. At runtime, we would check the agent is only spawning these.
-  // We can't fully validate the runtime behavior here, but we can check if `spawns` only contains known roles, etc.
-  // If we just need to implement the function, we can check if there are invalid spawn targets or if the agent has spawns at all.
-  for (const spawn of manifest.permissions.spawns) {
+  for (const spawn of manifest.permissions.spawns ?? []) {
     if (typeof spawn !== "string" || spawn.trim() === "") {
       errors.push("Proof 4 Failed: Invalid spawn target in permissions.spawns.");
     }

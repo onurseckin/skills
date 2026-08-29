@@ -4,7 +4,7 @@ import {
   earliestOpenValidation,
   everyApplicableDomainPassed,
 } from "../../workflow/review/validation-state.ts";
-import type { EdgeExchange, ExchangeTransferredFile, FileRef, NodeFinding } from "../types.ts";
+import type { EdgeExchange, ExchangeTransferredFile, FileRef, NodeFinding } from "./graph-types.ts";
 
 export function transferredFiles(files: readonly FileRef[]): ExchangeTransferredFile[] {
   return files.map((file) => ({ path: file.path, ...(file.mode ? { mode: file.mode } : {}) }));

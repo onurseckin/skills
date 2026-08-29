@@ -14,7 +14,7 @@ import { taskCheckCommand } from "../../../olt/scripts/src/cli/commands/task-che
 import { reportUnifiedCommand } from "../../../olt/scripts/src/cli/commands/unified-reporting.ts";
 import { summaryViewCommand } from "../../../olt/scripts/src/cli/commands/summary-ops.ts";
 import { dagViewCommand } from "../../../olt/scripts/src/cli/commands/dag-view.ts";
-import { autoDeriveCallerIdentity } from "../../../olt/scripts/src/authority/session-registry.ts";
+import { autoDeriveCallerIdentity } from "../../../olt/scripts/src/authority/session/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";

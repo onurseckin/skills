@@ -1,5 +1,5 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import { MAX_REPAIR_ROUNDS } from "../../core/config/constants.ts";
+import { MAX_REPAIR_ROUNDS } from "../../core/config/contracts.ts";
 import { newLeaseToken, tokenDigest } from "../lease/token.ts";
 import { requireText, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort, type WorkflowState } from "../types.ts";

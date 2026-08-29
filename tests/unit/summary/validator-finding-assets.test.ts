@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { CompletionReview, TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
-import { mapFindingDetails } from "../../../olt/scripts/src/summary/asset-mapper.ts";
+import { mapFindingDetails } from "../../../olt/scripts/src/summary/assets/index.ts";
 
 describe("Round 3: Validator Findings & Asset Pipeline", () => {
   describe("Rich Validator Finding Extraction", () => {

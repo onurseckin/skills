@@ -1,6 +1,6 @@
 import type { JsonObject } from "../core/contracts/index.ts";
 import type { DerivedTelemetryInput, TelemetryFieldConflict } from "../workflow/agents/grants.ts";
-import { detectHostTelemetry, type HostTelemetryProbe } from "../summary/host-telemetry.ts";
+import { detectHostTelemetry, type HostTelemetryProbe } from "../summary/metrics/index.ts";
 import { readAgentTranscriptTelemetry } from "../workflow/agents/transcript-telemetry.ts";
 
 export function probeAgentTelemetry(agentId: string): DerivedTelemetryInput {

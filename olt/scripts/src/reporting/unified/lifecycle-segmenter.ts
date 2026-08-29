@@ -7,7 +7,7 @@ import {
   roleToTier,
   TIER_NAMES,
   type ExecutionTier,
-} from "../../authority/thread-identifier.ts";
+} from "../../authority/thread/index.ts";
 import { isRecord } from "../../requirements/predicates.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import { extractLeaseAgentId } from "../lease-agent-extractor.ts";

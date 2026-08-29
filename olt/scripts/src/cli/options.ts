@@ -97,6 +97,17 @@ export function integerFlag(
   name: string,
   options: { required?: boolean; minimum?: number; maximum?: number } = {},
 ): number | undefined {
+  const direct = given(flags, name);
+  if (typeof direct === "number") {
+    if (
+      !Number.isSafeInteger(direct) ||
+      direct < (options.minimum ?? Number.MIN_SAFE_INTEGER) ||
+      direct > (options.maximum ?? Number.MAX_SAFE_INTEGER)
+    ) {
+      throw new HarnessError("INVALID_ARGUMENT", `--${name} must be a bounded integer`);
+    }
+    return direct;
+  }
   const raw = textFlag(flags, name, options.required ?? false);
   if (raw === undefined) return undefined;
   const value = Number(raw);

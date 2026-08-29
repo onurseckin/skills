@@ -1,4 +1,4 @@
-import { loadUnifiedAgentModel, normalizeRoleName } from "../manifest-parser.ts";
+import { loadUnifiedAgentModel, normalizeRoleName } from "../manifest/index.ts";
 import { evaluateSupervisoryState } from "./evaluator.ts";
 import { parseTimeMs } from "./protocols.ts";
 import type {

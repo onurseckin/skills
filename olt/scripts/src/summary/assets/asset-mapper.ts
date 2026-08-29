@@ -12,7 +12,7 @@ import {
   collectReportAssets,
   collectValidationAssets,
 } from "./asset-mapper-task-sources.ts";
-import type { MediaAsset } from "../types.ts";
+import type { MediaAsset } from "../graph/index.ts";
 
 export { extractFindingScreenshots, mapFindingDetails };
 

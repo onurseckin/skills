@@ -24,7 +24,7 @@ import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   registerSessionGrant,
   revokeSessionGrant,
-} from "../../../olt/scripts/src/authority/session-registry.ts";
+} from "../../../olt/scripts/src/authority/session/index.ts";
 import { loadDagSnapshot } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
 
 function spec(invocation: string) {

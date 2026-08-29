@@ -170,7 +170,7 @@ describe("doctor diagnostics and gitignore policy", () => {
       "utf-8",
     );
     await writeFile(
-      join(repo, "scripts", "src", "core", "config", "constants.ts"),
+      join(repo, "scripts", "src", "core", "config", "contracts.ts"),
       'export const RUNTIME_VERSION = "0.2.0";\n',
       "utf-8",
     );

@@ -3,7 +3,7 @@ import { loadRun } from "../../engine/store/index.ts";
 import { recordCoordinatorPushback } from "../../workflow/review/coordinator-pushback.ts";
 import { systemClock } from "../../workflow/types.ts";
 import { actorFlag, textFlag, type Flags } from "../options.ts";
-import { validateReviewPushbackCriteria } from "../../authority/review-pushback.ts";
+import { validateReviewPushbackCriteria } from "../../authority/review/index.ts";
 
 export function coordinatorPushbackCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;

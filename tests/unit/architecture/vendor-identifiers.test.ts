@@ -30,9 +30,7 @@ const testsRoot = join(repoRoot, "tests");
  * those cannot be renamed without breaking the lookup.
  */
 const SCRIPT_EXEMPTIONS: readonly string[] = [
-  "src/authority/manifest-parser.ts",
   "src/authority/manifest/constants.ts",
-  "src/authority/thread-identifier.ts",
   "src/capture/docker-health.ts",
   "src/capture/persona-registry.ts",
   "src/core/config/host-canon.ts",
@@ -40,7 +38,6 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/graph/gate-runtime-grammar.ts",
   "src/installer/runtime-freshness.ts",
   "src/orchestrator/host-schedulers.ts",
-  "src/platform/host/adapters.ts",
   "src/platform/host/antigravity.ts",
   "src/platform/host/chatgpt.ts",
   "src/platform/host/claude-code.ts",
@@ -56,8 +53,8 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/policy/schema/agent-schema.ts",
   "src/policy/schema/docker-schema.ts",
   "src/policy/schema/index.ts",
-  "src/policy/types.ts",
-  "src/summary/host-telemetry.ts",
+  "src/policy/types/index.ts",
+  "src/summary/metrics/host-telemetry.ts",
   "src/telemetry/collectors/antigravity.ts",
   "src/telemetry/collectors/claude.ts",
   "src/telemetry/collectors/codex.ts",

@@ -13,7 +13,7 @@ import {
 } from "./graph-node-context.ts";
 import { computeArchivedRounds } from "./graph-round-context.ts";
 import { partitionTaskCommands } from "../markdown/node-evidence.ts";
-import type { FileRef } from "../types.ts";
+import type { FileRef } from "./graph-types.ts";
 
 export interface TaskPreparationInput {
   task: TaskRecord;

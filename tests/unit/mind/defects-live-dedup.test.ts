@@ -1,9 +1,9 @@
 import { describe, it, expect } from "bun:test";
-import { LiveDefectDeduplicator } from "../../../olt/scripts/src/mind/defects/live-dedup.ts";
+import { LiveDefectDeduplicator } from "../../../olt/scripts/src/mind/defects/dedup/index.ts";
 import type {
   DefectRecordInput,
   DefectResolutionProof,
-} from "../../../olt/scripts/src/mind/defects/types.ts";
+} from "../../../olt/scripts/src/mind/defects/core/index.ts";
 
 describe("mind/defects/live-dedup", () => {
   const baseDefect: DefectRecordInput = {

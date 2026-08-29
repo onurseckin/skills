@@ -29,7 +29,7 @@ import {
   validateBoundaryIntegrity,
   assertNoBoundaryLeak,
   type BoundaryLeakCheck,
-} from "../../../olt/scripts/src/validation/anti-leak.ts";
+} from "../../../olt/scripts/src/validation/anti-leak/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { emptyGrantRun } from "../packets/grant-run-fixture.ts";
 import type { DynamicRoleSpec } from "../../../olt/scripts/src/mind/roles/dynamic/index.ts";
@@ -529,7 +529,7 @@ describe("Hierarchical Boundary Supervision & Cognitive Validator Hard-Lock", ()
       ).not.toThrow();
     });
 
-    it("enforces Cognitive Validator Hard-Lock in validation/anti-leak.ts", () => {
+    it("enforces Cognitive Validator Hard-Lock in validation/anti-leak", () => {
       const cogChecks: BoundaryLeakCheck[] = [
         {
           agent_id: "validator-1",
@@ -607,7 +607,7 @@ describe("Hierarchical Boundary Supervision & Cognitive Validator Hard-Lock", ()
     const filesToAudit = [
       "olt/scripts/src/mind/auditing/roles/index.ts",
       "olt/scripts/src/packets/command-authority.ts",
-      "olt/scripts/src/validation/anti-leak.ts",
+      "olt/scripts/src/validation/anti-leak/index.ts",
     ];
 
     it("verifies zero TypeScript any and zero compiler/linter suppressions across touched files", () => {

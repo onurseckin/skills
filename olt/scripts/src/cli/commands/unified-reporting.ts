@@ -4,7 +4,7 @@ import {
   generateLeasesReport,
   generateDecisionsReport,
   generateUnifiedReport,
-} from "../../reporting/unified.ts";
+} from "../../reporting/unified/index.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
 import { formatDoctorBrief } from "./diagnostics-ops.ts";
 import { summaryExportCommand } from "./summary-ops.ts";

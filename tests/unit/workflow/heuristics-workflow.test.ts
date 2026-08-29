@@ -29,18 +29,16 @@ import {
   computeLayoutMetrics,
   createEmptyDomPhysicsSnapshot,
 } from "../../../olt/scripts/src/capture/runners/dom-physics-extractor.ts";
-import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
+import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import {
   analyzeDualChannel,
   validateCompanionManifestCriteria,
-} from "../../../olt/scripts/src/validation/dual-channel-analyzer.ts";
-import type {
-  CompanionManifestData,
-  DualChannelInput,
-  ScreenshotMetadata,
-  StructuredFinding,
-  VisualMetricsReport,
-} from "../../../olt/scripts/src/validation/dual-channel-types.ts";
+  type CompanionManifestData,
+  type DualChannelInput,
+  type ScreenshotMetadata,
+  type StructuredFinding,
+  type VisualMetricsReport,
+} from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
 import { assertRoleArtifactPresent } from "../../../olt/scripts/src/workflow/review/role-evidence.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";

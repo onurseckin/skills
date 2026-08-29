@@ -9,7 +9,7 @@ import {
   parseMarkdownFrontmatter,
   parseRoleContract as parseAuthorityRoleContract,
   type AgentManifest,
-} from "../../../olt/scripts/src/authority/manifest-parser.ts";
+} from "../../../olt/scripts/src/authority/manifest/index.ts";
 import {
   loadRoleContract as loadPacketRoleContract,
   resolveRoleContractPath,

@@ -6,7 +6,7 @@ import {
 } from "../../../olt/scripts/src/platform/index.ts";
 import { HOST_PROVIDERS } from "../../../olt/scripts/src/platform/index.ts";
 import { CODE_EDIT_TOOLS as ROLE_AUDITING_CODE_EDIT_TOOLS } from "../../../olt/scripts/src/mind/auditing/roles/index.ts";
-import { CODE_EDIT_TOOLS as TIER_CONFINEMENT_CODE_EDIT_TOOLS } from "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts";
+import { CODE_EDIT_TOOLS as TIER_CONFINEMENT_CODE_EDIT_TOOLS } from "../../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
 
 describe("code-edit-tools: one host-aware table, not an antigravity-only one", () => {
   test("every declared host provider has an entry in the table", () => {
@@ -45,7 +45,7 @@ describe("code-edit-tools: one host-aware table, not an antigravity-only one", (
     }
   });
 
-  test("mind/role-auditing.ts and reporting/doctor/tier-confinement.ts both consume the same shared set, not independent duplicates", () => {
+  test("mind/auditing/roles and reporting/doctor/tier-confinement both consume the same shared set, not independent duplicates", () => {
     expect(ROLE_AUDITING_CODE_EDIT_TOOLS).toBe(CODE_EDIT_TOOLS);
     expect(TIER_CONFINEMENT_CODE_EDIT_TOOLS).toBe(CODE_EDIT_TOOLS);
   });

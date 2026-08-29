@@ -1,4 +1,4 @@
-import { DEFAULT_WATCHDOG_TIMEOUT_MS } from "../watchdog-manager.ts";
+import { DEFAULT_WATCHDOG_TIMEOUT_MS } from "../watchdog/index.ts";
 import { findOverlappingScopes } from "./profiles.ts";
 import type { DriftFinding, ReflexiveAuditContext, SubordinateHealthSummary } from "./types.ts";
 

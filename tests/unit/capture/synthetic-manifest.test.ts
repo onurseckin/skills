@@ -3,7 +3,7 @@ import {
   synthesizeCompanionManifest,
   isCertifiedManifest,
 } from "../../../olt/scripts/src/capture/validator/index.ts";
-import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
+import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 
 describe("Companion Manifest Synthesis & 4-Pillar Criteria", () => {
   it("synthesizes criteria covering all 4 mandatory pillars for clean elements", () => {

@@ -1,3 +1,6 @@
+/**
+ * Theme Contrast Matrix and Evaluation Subsystem Facade
+ */
 export {
   THEME_MODES,
   type ThemeMode,
@@ -11,7 +14,7 @@ export {
   type RegressionSeverity,
   type ThemeRegressionFinding,
   type MultiThemeComparisonReport,
-} from "./theme/types.ts";
+} from "./types.ts";
 export {
   isValidColor,
   parseRgb,
@@ -19,6 +22,6 @@ export {
   calculateRelativeLuminance,
   calculateWcagContrast,
   calculateApcaContrast,
-} from "./theme/color-space.ts";
-export { evaluateThemeContrastMatrix } from "./theme/evaluation.ts";
-export { formatThemeContrastMatrixMarkdown } from "./theme/render.ts";
+} from "./color-space.ts";
+export { evaluateThemeContrastMatrix } from "./evaluation.ts";
+export { formatThemeContrastMatrixMarkdown } from "./render.ts";

@@ -9,7 +9,7 @@ import { buildNodeBrowserTests } from "../formatters/browser-tests.ts";
 import { buildNodeScripts } from "../markdown/node-evidence.ts";
 import { earliestOpenValidation } from "../../workflow/review/validation-state.ts";
 import { isValidatorDomain, type ValidatorDomain } from "../../core/contracts/index.ts";
-import type { BadgeDetail, GraphNodeData, IoPort, NodeKind, NodeMetrics } from "../types.ts";
+import type { BadgeDetail, GraphNodeData, IoPort, NodeKind, NodeMetrics } from "./graph-types.ts";
 
 function resolvedValidatorDomain(rawDomain: unknown): ValidatorDomain | undefined {
   return typeof rawDomain === "string" && isValidatorDomain(rawDomain) ? rawDomain : undefined;

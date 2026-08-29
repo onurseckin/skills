@@ -326,7 +326,7 @@ export function formatBackgroundFinalizationBrief(input: {
  * Executes complete background finalization within the Tier 1 Orchestrator thread:
  * 1. Git add & commit
  * 2. Git push to upstream
- * 3. Global skill synchronization (`bun scripts/sync-global.ts`)
+ * 3. Global skill synchronization (`bun scripts/sync/index.ts`)
  * 4. Zero main-thread spillover verification
  * 5. Autonomous loop recycling transition evaluation
  */
@@ -352,7 +352,7 @@ export async function executeBackgroundFinalization(
   const syncCommand =
     options.syncCommand !== undefined && options.syncCommand.length > 0
       ? options.syncCommand
-      : "bun scripts/sync-global.ts";
+      : "bun scripts/sync/index.ts";
   let commitMessage: string;
   if (options.commitMessage !== undefined && options.commitMessage.length > 0) {
     commitMessage = options.commitMessage;

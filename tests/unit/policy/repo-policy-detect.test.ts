@@ -8,7 +8,7 @@ import {
   detectRepoEcosystem,
   generateDefaultRepoPolicy,
   loadRepoPolicy,
-  parseAuthorityRepoPolicy,
+  parseRepoPolicy,
   validateRepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
 
@@ -251,10 +251,8 @@ describe("Repo Policy Auto-Detection & Schema Validation", () => {
       },
     };
 
-    expect(parseAuthorityRepoPolicy(required).planning).toEqual(DEFAULT_PLANNING_POLICY);
-    expect(parseAuthorityRepoPolicy(required).review_protocol).toEqual(
-      DEFAULT_REVIEW_PROTOCOL_POLICY,
-    );
+    expect(parseRepoPolicy(required).planning).toEqual(DEFAULT_PLANNING_POLICY);
+    expect(parseRepoPolicy(required).review_protocol).toEqual(DEFAULT_REVIEW_PROTOCOL_POLICY);
 
     const invalidPolicies: readonly [string, unknown][] = [
       ["$.schema_version", { ...required, schema_version: 2 }],
@@ -282,7 +280,7 @@ describe("Repo Policy Auto-Detection & Schema Validation", () => {
     ];
     for (const [fieldPath, malformed] of invalidPolicies) {
       try {
-        parseAuthorityRepoPolicy(malformed);
+        parseRepoPolicy(malformed);
         throw new Error(`expected ${fieldPath} to fail`);
       } catch (error) {
         expect(error).toHaveProperty("code", "INTEGRITY");

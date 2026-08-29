@@ -7,11 +7,7 @@ import {
   mindRotateCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
 import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
-import {
-  appendFeedbackItem,
-  writeFeedbackQueue,
-  type FeedbackItem,
-} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+import { writeFeedbackQueue } from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import type { CandidateRecord } from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -30,8 +26,7 @@ import {
   validateRolloverReadiness,
 } from "../../../olt/scripts/src/mind/archival/recycler/index.ts";
 import type { RoundRecord } from "../../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const SAMPLE_CHARTER = `
@@ -827,11 +822,8 @@ describe("mind autonomic recycler", () => {
 
   describe("inspectRecycleHealth & validateRolloverReadiness", () => {
     test("inspectRecycleHealth returns healthy status and activeCadence", () => {
-      const state: Record<string, unknown> = {
-        mind: {
-          generation: 1,
-          rounds: [{ number: 1, status: "closed", objective_id: "obj-1" }],
-        },
+      const state = {
+        mind: { generation: 1, rounds: [{ number: 1, status: "closed", objective_id: "obj-1" }] },
       };
       const health = inspectRecycleHealth(state, "/fake/run", {
         actor: "owner-alice",
@@ -844,20 +836,23 @@ describe("mind autonomic recycler", () => {
     });
 
     test("validateRolloverReadiness validates generation sequence correctly", () => {
-      const stateWithoutMind: Record<string, unknown> = {};
-      const resMissing = validateRolloverReadiness(stateWithoutMind, 2);
+      const repo = scratchRoot(import.meta.path, "rollover-readiness-test");
+      const queuePath = join(repo, "FEEDBACK_QUEUE.jsonl");
+      writeFileSync(queuePath, "", "utf8");
+      const opts = { feedbackQueuePath: queuePath };
+      const resMissing = validateRolloverReadiness({}, 2, opts);
       expect(resMissing.ready).toBe(false);
       expect(resMissing.reason).toContain("Missing mind substate");
 
       const stateWithMind: Record<string, unknown> = { mind: { generation: 2 } };
-      const resEqual = validateRolloverReadiness(stateWithMind, 2);
+      const resEqual = validateRolloverReadiness(stateWithMind, 2, opts);
       expect(resEqual.ready).toBe(false);
       expect(resEqual.reason).toContain("must exceed current generation");
 
-      const resLower = validateRolloverReadiness(stateWithMind, 1);
+      const resLower = validateRolloverReadiness(stateWithMind, 1, opts);
       expect(resLower.ready).toBe(false);
 
-      const resHigher = validateRolloverReadiness(stateWithMind, 3);
+      const resHigher = validateRolloverReadiness(stateWithMind, 3, opts);
       expect(resHigher.ready).toBe(true);
       expect(resHigher.generation).toBe(2);
       expect(resHigher.targetGeneration).toBe(3);
@@ -868,10 +863,9 @@ describe("mind autonomic recycler", () => {
       const repo = scratchRoot(import.meta.path, "rollover-malformed-feedback-test");
       const queuePath = join(repo, "FEEDBACK_QUEUE.jsonl");
       writeFileSync(queuePath, "{not-json}\n", "utf8");
+      const mind = { mind: { generation: 1, status: "active" } };
       expect(() =>
-        validateRolloverReadiness({ mind: { generation: 1, status: "active" } }, undefined, {
-          feedbackQueuePath: queuePath,
-        }),
+        validateRolloverReadiness(mind, undefined, { feedbackQueuePath: queuePath }),
       ).toThrow(HarnessError);
     });
   });

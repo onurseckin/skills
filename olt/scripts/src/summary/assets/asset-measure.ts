@@ -1,6 +1,6 @@
 import { closeSync, lstatSync, openSync, readSync, realpathSync } from "node:fs";
 import { isAbsolute, join, resolve, sep } from "node:path";
-import type { MediaAsset } from "../types.ts";
+import type { MediaAsset } from "../graph/index.ts";
 
 const HEADER_BYTES = 32;
 

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { basename, resolve } from "node:path";
 import { HarnessError } from "../../../core/errors/index.ts";
 import { findRepoRoot } from "../../../core/shared/paths.ts";
-import { safeWriteFileSync } from "../../../core/shared/safe-fs.ts";
+import { safeWriteFileSync } from "../../../core/shared/safe-fs/index.ts";
 import type {
   AdversarialCheckOptions,
   AdversarialCheckResult,

@@ -6,7 +6,7 @@ import {
 import { buildNodeScripts } from "../markdown/node-evidence.ts";
 import type { ArchivedRoundContext } from "./graph-round-context.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
-import type { GraphNodeData, NodeKind } from "../types.ts";
+import type { GraphNodeData, NodeKind } from "./graph-types.ts";
 
 export interface ArchivedRoundNodesInput {
   task: TaskRecord;

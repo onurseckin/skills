@@ -8,7 +8,7 @@ const oltScriptsRoot = join(repoRoot, "olt/scripts/src");
 const syncScriptsRoot = join(repoRoot, "scripts");
 
 const GUARD_MODULES = [
-  join(oltScriptsRoot, "core/shared/safe-fs.ts"),
+  join(oltScriptsRoot, "core/shared/safe-fs/index.ts"),
   join(oltScriptsRoot, "core/shared/safe-fs/atomic.ts"),
 ];
 

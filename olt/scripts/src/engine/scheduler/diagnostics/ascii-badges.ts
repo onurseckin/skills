@@ -1,5 +1,5 @@
 import { isRecord } from "../../../requirements/predicates.ts";
-import { statusGlyph } from "../../../summary/dag-visualizer.ts";
+import { statusGlyph } from "../../../summary/graph/index.ts";
 
 export function generateAsciiDagBadges(
   stateOrTasks: unknown,

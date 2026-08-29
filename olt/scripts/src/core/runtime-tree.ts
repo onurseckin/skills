@@ -17,7 +17,7 @@ import { createHash } from "node:crypto";
 import { canonicalJsonBytes, sha256Bytes } from "./json.ts";
 import { fsyncDirectory } from "./durable-write.ts";
 import { includeRuntimeSourceEntry } from "./runtime-filter.ts";
-import { safeRmSync } from "./shared/safe-fs.ts";
+import { safeRmSync } from "./shared/safe-fs/index.ts";
 
 type Identity = readonly [string, string, bigint, bigint, bigint, bigint, bigint];
 export interface RuntimeSnapshot {

@@ -55,7 +55,6 @@ export async function validateSkillSource(
   }
   const candidatePaths = [
     resolve(root, "scripts/src/core/config/contracts.ts"),
-    resolve(root, "scripts/src/core/config/constants.ts"),
     resolve(root, "scripts/src/engine/store/constants.ts"),
     resolve(root, "scripts/src/config/constants.ts"),
     resolve(root, "scripts/src/constants.ts"),

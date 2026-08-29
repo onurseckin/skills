@@ -1,5 +1,8 @@
-import type { UnifiedAgentModel } from "../manifest-parser.ts";
-import { loadUnifiedAgentModel, normalizeRoleName } from "../manifest-parser.ts";
+import {
+  loadUnifiedAgentModel,
+  normalizeRoleName,
+  type UnifiedAgentModel,
+} from "../manifest/index.ts";
 import { STANDING_CHECKLIST_DEFINITIONS } from "./checklists.ts";
 import { DECISION_PROTOCOLS } from "./constants.ts";
 import { evaluateRulesBatch1 } from "./eval-rules-1.ts";

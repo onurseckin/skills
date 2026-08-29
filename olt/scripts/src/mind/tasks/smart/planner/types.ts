@@ -81,7 +81,7 @@ export {
   partitionDynamicLanes,
   partitionWaveCoordinators,
   verifyAntiSerializationInterlock,
-} from "../../../../graph/topology.ts";
+} from "../../../../graph/parallel-decoupler.ts";
 export type { AnchorSymbolKind };
 
 export type SmartTaskSourceType =

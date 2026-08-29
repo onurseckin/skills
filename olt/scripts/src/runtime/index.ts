@@ -52,3 +52,12 @@ export {
   isTrustedEnoent,
   formatSafeErrorCause,
 } from "./util.ts";
+export type { ReadScopeCheckResult } from "./read-scope-guard.ts";
+export {
+  ALWAYS_ACCESSIBLE_PATTERNS,
+  normalizeScopePath,
+  isPathInScopeList,
+  isWithinNeighborhood,
+  checkReadScopeAuthorization,
+  expandReadScope,
+} from "./read-scope-guard.ts";

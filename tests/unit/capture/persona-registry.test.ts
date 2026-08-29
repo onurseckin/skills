@@ -15,7 +15,7 @@ import type {
   RepoPolicy,
   UserPersonaConfig,
   UserPersonaRole,
-} from "../../../olt/scripts/src/policy/types.ts";
+} from "../../../olt/scripts/src/policy/types/index.ts";
 
 const customPolicy: RepoPolicy = {
   schema_version: 1,

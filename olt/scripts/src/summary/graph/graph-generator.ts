@@ -20,7 +20,7 @@ import { buildTaskEdges } from "./graph-edge-factory.ts";
 import { buildArchivedRoundNodes } from "./graph-round-nodes.ts";
 import { prepareTaskContext } from "./graph-task-preparation.ts";
 import { computeExecutionSteps } from "../metrics/step-calculator.ts";
-import type { GraphDataset, GraphEdgeData, GraphNodeData, GraphSection } from "../types.ts";
+import type { GraphDataset, GraphEdgeData, GraphNodeData, GraphSection } from "./graph-types.ts";
 
 export interface GraphGeneratorInput {
   runId: string;

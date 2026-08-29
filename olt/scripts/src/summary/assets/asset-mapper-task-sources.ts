@@ -1,6 +1,6 @@
 import type { CompletionReview, TaskRecord } from "../../workflow/types.ts";
 import { inferAssetProps } from "./asset-mapper-props.ts";
-import type { FindingDetail, MediaAsset } from "../types.ts";
+import type { FindingDetail, MediaAsset } from "../graph/index.ts";
 
 export type AssetSink = (asset: MediaAsset) => void;
 export type IndexProvider = () => number;

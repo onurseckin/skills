@@ -19,7 +19,7 @@ import {
   verifyWatchdogLifecycle,
   type WatchdogRecord,
   type WatchdogStatus,
-} from "../../authority/watchdog-manager.ts";
+} from "../../authority/watchdog/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
 import {

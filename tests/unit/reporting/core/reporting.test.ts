@@ -12,7 +12,7 @@ import { runStatusCommand } from "../../../../olt/scripts/src/cli/commands/run-o
 import { repositoryBinding, commandRecord } from "../../workflow/test-port.ts";
 import { orphanEvidenceSha256 } from "../../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
-import { generateLeasesReport } from "../../../../olt/scripts/src/reporting/unified.ts";
+import { generateLeasesReport } from "../../../../olt/scripts/src/reporting/unified/index.ts";
 
 const roots: string[] = [];
 const skillRoot = fileURLToPath(new URL("../../../../olt", import.meta.url));

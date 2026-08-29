@@ -4,7 +4,7 @@ import type { JsonObject } from "../../../core/contracts/index.ts";
 import { verifyCapsuleDeep, verifyIntegrity } from "../../../engine/store/index.ts";
 import { verifyStrictRepositoryCapsuleRoot } from "../capsule-root.ts";
 import { verifyUnifiedEvidenceLocation } from "../evidence-location.ts";
-import { auditTierConfinement } from "../tier-confinement.ts";
+import { auditTierConfinement } from "../tier-confinement/index.ts";
 import { compareSemver } from "./mutation.ts";
 import type { DoctorDiagnosticOptions, HarnessHealthCheck } from "./types.ts";
 

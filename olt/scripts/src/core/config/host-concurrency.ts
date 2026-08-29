@@ -2,7 +2,7 @@ import { availableParallelism, cpus } from "node:os";
 import {
   detectHostTelemetry,
   type DetectHostIdentityOptions,
-} from "../../summary/host-telemetry.ts";
+} from "../../summary/metrics/index.ts";
 
 export interface HostConcurrencyCeiling {
   readonly value: number;

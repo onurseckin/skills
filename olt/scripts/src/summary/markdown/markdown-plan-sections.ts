@@ -272,3 +272,5 @@ export function renderTaskGraph(context: ReportContext): string[] {
   ];
   return section("6. Task Graph", body);
 }
+
+export { renderTaskGraph as renderTaskGraphSection };

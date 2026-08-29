@@ -18,7 +18,7 @@ import {
   initRepoPolicy,
   inspectRepoPolicy,
   loadRepoPolicy,
-  parseAuthorityRepoPolicy,
+  parseRepoPolicy,
   saveRepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
 
@@ -221,12 +221,12 @@ for (let index = 0; index < 5; index++) {
     for (let index = 0; index < 150; index++) {
       const bytes = readFileSync(policyPath, "utf-8");
       observed.push(bytes);
-      expect(() => parseAuthorityRepoPolicy(JSON.parse(bytes) as unknown)).not.toThrow();
+      expect(() => parseRepoPolicy(JSON.parse(bytes) as unknown)).not.toThrow();
       await Bun.sleep(1);
     }
     await completion;
     const finalBytes = readFileSync(policyPath, "utf-8");
-    expect(() => parseAuthorityRepoPolicy(JSON.parse(finalBytes) as unknown)).not.toThrow();
+    expect(() => parseRepoPolicy(JSON.parse(finalBytes) as unknown)).not.toThrow();
     expect(observed.length).toBeGreaterThan(0);
     rmSync(dir, { recursive: true, force: true });
     rmSync(childScript, { force: true });

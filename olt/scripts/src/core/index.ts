@@ -1,4 +1,4 @@
-export * from "./bounded-directory.ts";
+export { type SyncDirectoryReader, collectBoundedDirectoryEntries } from "./bounded-directory.ts";
 export type {
   DualTimeRecord,
   DurationResult,
@@ -36,11 +36,62 @@ export {
   createStepMachineTelemetry,
   updateStepMachineTelemetry,
 } from "./dual-time/index.ts";
-export * from "./durable-write.ts";
-export * from "./json.ts";
-export * from "./no-follow.ts";
-export * from "./paths.ts";
-export * from "./shared/paths.ts";
-export * from "./restricted-git.ts";
-export * from "./runtime-filter.ts";
-export * from "./runtime-tree.ts";
+export {
+  type DurableWriteStep,
+  type AtomicWriteOptions,
+  type DurableAppendOptions,
+  type DurableAppendDependencies,
+  fsyncDirectory,
+  atomicWriteBytes,
+  durableAppendBytes,
+  atomicWriteJson,
+} from "./durable-write.ts";
+export {
+  type JsonReadLimits,
+  canonicalJsonBytes,
+  sha256Bytes,
+  parseJsonBytes,
+  readBoundedBytes,
+  readCanonicalObject,
+  normalizeJson,
+  jsonCopy,
+  sameJson,
+} from "./json.ts";
+export { readRegularFileNoFollow } from "./no-follow.ts";
+export { safeRepoPath } from "./paths.ts";
+export {
+  CAPSULES_DIR_NAME,
+  OLT_DIR_NAME,
+  OLT_FILES,
+  findRepoRoot,
+  isInsideCapsule,
+  isTestEnvironment,
+  loadSkillGlobalConfig,
+  resolveBacklogPath,
+  resolveCapsulesDir,
+  resolveCompletedDefectsPath,
+  resolveCompletedTasksPath,
+  resolveDefectsPath,
+  resolveEvidenceDir,
+  resolveMemoryPath,
+  resolveOltDir,
+  resolvePolicyPath,
+  resolveQuotaDagSnapshotPath,
+  resolveScratchDir,
+  resolveSkillGlobalConfigPath,
+  resolveSkillHomeRepo,
+  resolveTelemetryPath,
+  resolveWatchdogsPath,
+  stripCapsulePath,
+  type SkillGlobalConfig,
+} from "./shared/paths.ts";
+export {
+  RESTRICTED_GIT_ENVIRONMENT,
+  RESTRICTED_GIT_ARGUMENTS,
+  restrictedRepositoryGitArgv,
+  isGitArgv,
+  isRestrictedGitDiffArgv,
+  restrictedGitDiffArgv,
+} from "./restricted-git.ts";
+export { includeRuntimeSourceEntry } from "./runtime-filter.ts";
+export { type RuntimeSnapshot, runtimeTreeSnapshot, copyPinnedRuntime } from "./runtime-tree.ts";

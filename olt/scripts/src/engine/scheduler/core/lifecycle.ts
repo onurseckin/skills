@@ -11,9 +11,9 @@ import {
   probeRoleBoundaryAdherence,
 } from "./loop.ts";
 import { probeDoctorErrorResolution } from "./loop-doctor.ts";
-import { parseTimestamp } from "../../../authority/watchdog-manager.ts";
+import { parseTimestamp } from "../../../authority/watchdog/index.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
-import { type BehavioralFinding } from "../../../reporting/behavioral-auditor.ts";
+import { type BehavioralFinding } from "../../../reporting/behavioral-auditor/index.ts";
 import { type DoctorOptions, runDoctor } from "../../../reporting/doctor.ts";
 import { isRecord } from "../../../requirements/predicates.ts";
 

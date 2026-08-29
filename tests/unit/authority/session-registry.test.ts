@@ -19,7 +19,7 @@ import {
   pruneStaleSessions,
   setSessionLockCleanupFailureForTesting,
   setSessionPersistenceObserverForTesting,
-} from "../../../olt/scripts/src/authority/session-registry.ts";
+} from "../../../olt/scripts/src/authority/session/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   findRepoRoot,

@@ -1,4 +1,4 @@
-import { roleToTier } from "../../authority/thread-identifier.ts";
+import { roleToTier } from "../../authority/thread/index.ts";
 import type {
   LiveCliProof,
   ProcessHealthStatus,

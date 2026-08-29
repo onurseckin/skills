@@ -3,7 +3,7 @@ import type { CompletionReview, TaskRecord } from "../../workflow/types.ts";
 import { extractFindingScreenshots } from "./asset-mapper-finding-screenshots.ts";
 import { isImageExtension } from "./asset-mapper-props.ts";
 import { isFindingClass } from "../../workflow/review/finding-class.ts";
-import type { FileRef, FindingDetail } from "../types.ts";
+import type { FileRef, FindingDetail } from "../graph/index.ts";
 
 export { extractFindingScreenshots };
 

@@ -25,7 +25,3 @@ export const CODE_EDIT_TOOLS: ReadonlySet<string> = new Set(
 export function isCodeEditTool(toolName: string): boolean {
   return CODE_EDIT_TOOLS.has(toolName);
 }
-
-export function codeEditToolNamesForHost(provider: HostProvider): readonly string[] {
-  return CODE_EDIT_TOOL_NAMES_BY_HOST[provider];
-}

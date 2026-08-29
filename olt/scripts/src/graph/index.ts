@@ -5,9 +5,8 @@ export {
   type ArtificialSerializationWarning,
   type ParallelLaneAssignment,
   allocateParallelLanes,
-  describeCycle,
   detectArtificialSerialization,
-} from "./topology.ts";
+} from "./parallel-decoupler.ts";
 export * from "./scope-analyzer.ts";
 export * from "./scope-expansion.ts";
 export * from "./dag-expansion.ts";

@@ -74,10 +74,6 @@ export interface RepoPolicyWriteDependencies {
   readonly fsyncDirectory?: (path: string) => void;
 }
 
-export function parseAuthorityRepoPolicy(raw: unknown): RepoPolicy {
-  return parseRepoPolicy(raw);
-}
-
 export function inspectRepoPolicy(
   repoRoot?: string,
   customPath?: string,
@@ -113,7 +109,7 @@ export function inspectRepoPolicy(
     const raw = readVerifiedFile(loc, deps);
     if (raw === undefined)
       return { status: "auto_detected", policy: generateDefaultRepoPolicy(repoRoot) };
-    const policy = parseAuthorityRepoPolicy(JSON.parse(raw) as unknown);
+    const policy = parseRepoPolicy(JSON.parse(raw) as unknown);
     return { status: "valid_custom", policy, filePath: loc.filePath };
   } catch (err) {
     return {
@@ -146,7 +142,7 @@ export function saveRepoPolicy(
   customPath?: string,
   deps: RepoPolicyWriteDependencies = {},
 ): string {
-  const validated = parseAuthorityRepoPolicy(policy);
+  const validated = parseRepoPolicy(policy);
   const loc = resolvePolicyLocation(repoRoot, customPath, true);
   const open = deps.open ?? openSync;
   const write = deps.write ?? writeSync;

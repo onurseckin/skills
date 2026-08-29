@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { generateUnifiedReport } from "../../../reporting/unified.ts";
+import { generateUnifiedReport } from "../../../reporting/unified/index.ts";
 import { isRecord } from "../../../requirements/predicates.ts";
 import { systemClock, type Clock } from "../../../workflow/types.ts";
 import { dependencyMap } from "../../../graph/dependency-map.ts";

@@ -7,7 +7,7 @@ import type {
   ActionTarget,
 } from "../graph/graph-types.ts";
 import { narrateUnclassifiedEvent } from "./step-event-summaries.ts";
-import type { TimelineEventRecord } from "../types.ts";
+import type { TimelineEventRecord } from "./types.ts";
 
 interface EventDetails {
   phase: string;

@@ -168,7 +168,10 @@ export const PATH_SAFETY_AND_INTEGRITY_ENTRIES: readonly ExplainEntry[] = [
         "The dependency graph contains an execution cycle, or the compiled graph/plan projection failed its own validation.",
         "Fix the plan before compiling: remove the circular dependency, or correct whatever the reported issues list names.",
         [
-          example("engine/scheduler/metrics.ts", "depends_on edges contain an execution cycle"),
+          example(
+            "engine/scheduler/topology/metrics.ts",
+            "depends_on edges contain an execution cycle",
+          ),
           example("graph/compiler.ts", 'compiled graph failed validation: ${issues.join("; ")}'),
           example("graph/apply-plan.ts", "plan is invalid"),
         ],

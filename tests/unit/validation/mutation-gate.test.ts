@@ -7,7 +7,7 @@ import {
   type MutantRecord,
   type MutationGateResult,
   type MutationTestRunner,
-} from "../../../olt/scripts/src/validation/mutation-gate.ts";
+} from "../../../olt/scripts/src/validation/mutation-gate/index.ts";
 
 describe("Mutation Gate & AST Mutators", () => {
   describe("1. Boolean and Unary Mutations", () => {
@@ -171,7 +171,6 @@ describe("Mutation Gate & AST Mutators", () => {
   describe("6. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     it("verifies zero TypeScript any and zero suppressions across mutation-gate source and test files", () => {
       const filesToAudit = [
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/mutation-gate.ts"),
         resolve(import.meta.dir, "../../../olt/scripts/src/validation/mutation-gate/types.ts"),
         resolve(
           import.meta.dir,

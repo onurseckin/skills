@@ -9,7 +9,7 @@
  */
 import { isNonblank } from "../requirements/predicates.ts";
 import { checkScopeOverlap, normalizeScopePath } from "./scope-analyzer.ts";
-import { downstreamMap, topologicalOrder, type DependencyMap } from "./topology.ts";
+import { describeCycle, downstreamMap, topologicalOrder, type DependencyMap } from "./topology.ts";
 
 export interface ForensicTaskNode {
   readonly id: string;
@@ -156,29 +156,6 @@ function extractEffortById(effortMap: ReadonlyMap<string, number>, taskId: strin
   return 1;
 }
 
-function joinWithAnd(items: readonly string[]): string {
-  if (items.length === 0) return "";
-  if (items.length === 1) {
-    const single = items[0];
-    if (single !== undefined) return single;
-    return "";
-  }
-  if (items.length === 2) {
-    const first = items[0];
-    const second = items[1];
-    if (first !== undefined && second !== undefined) {
-      return `${first} and ${second}`;
-    }
-    return "";
-  }
-  const last = items[items.length - 1];
-  const rest = items.slice(0, -1);
-  if (last !== undefined) {
-    return `${rest.join(", ")}, and ${last}`;
-  }
-  return items.join(", ");
-}
-
 /**
  * Checks whether a dependency graph is a valid Directed Acyclic Graph (DAG).
  */
@@ -228,83 +205,6 @@ export function findCycles(dependencies: ReadonlyMap<string, ReadonlySet<string>
   }
 
   return cycles;
-}
-
-/**
- * Describes a dependency cycle in human-readable format and specifies which edge to drop to break it.
- */
-export function describeCycle(
-  dependencies: ReadonlyMap<string, ReadonlySet<string>>,
-  order?: readonly string[] | undefined,
-): string {
-  let resolvedList: readonly string[];
-  if (order !== undefined) {
-    resolvedList = order;
-  } else {
-    resolvedList = topologicalOrder(dependencies);
-  }
-  const resolved = new Set(resolvedList);
-  const unresolved = new Set(Array.from(dependencies.keys()).filter((id) => !resolved.has(id)));
-  if (unresolved.size === 0) return "no cycle detected";
-
-  const unresolvedSorted = Array.from(unresolved).sort();
-  for (const start of unresolvedSorted) {
-    const stack: { node: string; edgeIdx: number; neighbors: string[] }[] = [];
-    const inStack = new Set<string>();
-    const visited = new Set<string>();
-
-    const startNeighbors = extractNeighbors(dependencies, start).filter((id) => unresolved.has(id));
-    stack.push({ node: start, edgeIdx: 0, neighbors: startNeighbors });
-    inStack.add(start);
-    visited.add(start);
-
-    while (stack.length > 0) {
-      const top = stack[stack.length - 1];
-      if (top === undefined) break;
-
-      if (top.edgeIdx < top.neighbors.length) {
-        const next = top.neighbors[top.edgeIdx];
-        top.edgeIdx += 1;
-        if (next === undefined) continue;
-
-        if (inStack.has(next)) {
-          const cycleNodes: string[] = [];
-          const idx = stack.findIndex((item) => item.node === next);
-          if (idx >= 0) {
-            for (let i = idx; i < stack.length; i++) {
-              const item = stack[i];
-              if (item !== undefined) {
-                cycleNodes.push(item.node);
-              }
-            }
-          }
-          const cycleEdges: string[] = [];
-          for (let i = 0; i < cycleNodes.length; i++) {
-            const current = cycleNodes[i];
-            const nextNode = cycleNodes[(i + 1) % cycleNodes.length];
-            if (current !== undefined && nextNode !== undefined) {
-              cycleEdges.push(`${current} --deps ${nextNode}`);
-            }
-          }
-          const firstEdge = cycleEdges[0];
-          const edgeToDrop = firstEdge !== undefined ? firstEdge : "feedback edge";
-          return `${joinWithAnd(cycleEdges)} form a cycle; drop ${edgeToDrop} to break it`;
-        } else if (!visited.has(next)) {
-          visited.add(next);
-          inStack.add(next);
-          const nextNeighbors = extractNeighbors(dependencies, next).filter((id) =>
-            unresolved.has(id),
-          );
-          stack.push({ node: next, edgeIdx: 0, neighbors: nextNeighbors });
-        }
-      } else {
-        inStack.delete(top.node);
-        stack.pop();
-      }
-    }
-  }
-
-  return "cycle detected";
 }
 
 /**
@@ -1159,4 +1059,4 @@ export function renderForensicUnicodeReport(
   return lines.join("\n");
 }
 
-export { topologicalOrder, downstreamMap, type DependencyMap } from "./topology.ts";
+export { describeCycle, topologicalOrder, downstreamMap, type DependencyMap } from "./topology.ts";

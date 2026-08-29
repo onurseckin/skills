@@ -6,7 +6,7 @@ import {
   computeGateTiming,
   computeTaskTiming,
   extractTaskTimestamps,
-} from "../../../olt/scripts/src/summary/metrics-collector.ts";
+} from "../../../olt/scripts/src/summary/metrics/index.ts";
 
 describe("metrics timing collector - multi-round timing", () => {
   test("isolates multi-round validation durations and prevents repair latency inflation", () => {

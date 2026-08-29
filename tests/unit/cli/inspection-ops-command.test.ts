@@ -12,11 +12,9 @@ afterEach(async () => cleanupRoots(roots));
 
 /** Runs task-core's real, already-on-disk gate script and returns the recorded command id. */
 async function recordGateCommand(run: string, repo: string, actor: string): Promise<string> {
-  try {
-    await execute(["agent:register", "--run", run, "--agent-id", actor, "--role", "implementer"]);
-  } catch {
-    // already registered
-  }
+  transact(run, "test-setup", "task-validating-for-test", {}, (draft) => {
+    ((draft.tasks as JsonObject)["task-core"] as JsonObject).status = "validating";
+  });
   const result = await execute([
     "run:exec",
     "--run",
@@ -38,16 +36,14 @@ async function recordGateCommand(run: string, repo: string, actor: string): Prom
 
 function seedFinding(run: string, taskId: string, findingId: string): void {
   transact(run, "test-setup", "finding-seeded-for-test", {}, (draft) => {
-    const tasks = draft.tasks as JsonObject;
-    const task = tasks[taskId] as JsonObject;
-    task.findings = [
+    ((draft.tasks as JsonObject)[taskId] as JsonObject).findings = [
       {
         id: findingId,
         requirement_id: "req-core",
         severity: "important",
         observation: "a defect was found",
         remediation: "fix the defect",
-      },
+      } as JsonObject,
     ] as JsonObject[];
   });
 }
@@ -102,9 +98,8 @@ describe("finding:get", () => {
 
 describe("report:get", () => {
   async function writeReport(run: string, name: string, data: Record<string, unknown>) {
-    const dir = join(run, "reports");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, `${name}.json`), JSON.stringify(data));
+    await mkdir(join(run, "reports"), { recursive: true });
+    await writeFile(join(run, "reports", `${name}.json`), JSON.stringify(data));
   }
 
   test("--task prefers the review report, falling back to the submission report", async () => {
@@ -251,6 +246,11 @@ describe("evidence:get", () => {
     expect((byTask.evidence as unknown[]).length).toBe(1);
     const byOtherTask = await execute(["evidence:get", "--run", run, "--task", "task-sec"]);
     expect((byOtherTask.evidence as unknown[]).length).toBe(0);
+
+    const byGate = await execute(["evidence:get", "--run", run, "--gate", "gate-core"]);
+    expect((byGate.evidence as unknown[]).length).toBe(1);
+    const byOtherGate = await execute(["evidence:get", "--run", run, "--gate", "gate-sec"]);
+    expect((byOtherGate.evidence as unknown[]).length).toBe(0);
 
     const byActor = await execute(["evidence:get", "--run", run, "--actor", "worker-1"]);
     expect((byActor.evidence as unknown[]).length).toBe(1);

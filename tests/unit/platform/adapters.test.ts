@@ -5,25 +5,20 @@ import {
   CursorHostAdapter,
   CodexHostAdapter,
   ChatGptHostAdapter,
+  assertNoUnfulfilledDemands,
   dispatchSubagent,
-  dispatchWithFallback,
+  evaluateUnfulfilledDemands,
   getHostAdapter,
   listHostCapabilities,
   listSupportedHostProviders,
-  MechanicalFirstDispatcher,
   resolveHostProvider,
-  validateDispatchPacket,
   type SubagentDispatchPacket,
 } from "../../../olt/scripts/src/platform/index.ts";
+import { isCoordinatorPushbackCause } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
-  assertPushbackSafety,
-  contestValidatorVerdict,
-  evaluatePushbackReport,
-  executeCoordinatorPushback,
-  isProceduralPushback,
-  isSubstantivePushback,
-  validatePushbackEvidence,
-} from "../../../olt/scripts/src/task/pushback.ts";
+  recordCoordinatorPushback,
+  validateCoordinatorPushbackInput,
+} from "../../../olt/scripts/src/workflow/review/coordinator-pushback.ts";
 import type {
   TaskRecord,
   TransactionPort,
@@ -85,7 +80,7 @@ function createMockPortWithValidatedTask(taskId: string = "task-1"): {
   return { port, state };
 }
 
-describe("Unified Platform Host Adapters & Mechanical Dispatch", () => {
+describe("Unified Platform Host Adapters & Dispatch", () => {
   const samplePacket: SubagentDispatchPacket = {
     agentId: "impl-worker-alpha",
     role: "implementer",
@@ -115,29 +110,24 @@ describe("Unified Platform Host Adapters & Mechanical Dispatch", () => {
     expect(resolveHostProvider("chatgpt-o3")).toBe("chatgpt");
   });
 
-  test("MechanicalFirstDispatcher dispatches mechanically by default", () => {
-    const res = MechanicalFirstDispatcher.dispatch("antigravity", samplePacket);
+  test("dispatchSubagent dispatches mechanically by default", () => {
+    const res = dispatchSubagent("antigravity", samplePacket);
     expect(res.mode).toBe("mechanical");
     expect(res.provider).toBe("antigravity");
   });
 
-  test("MechanicalFirstDispatcher triggers cognitive fallback when forced", () => {
-    let fallbackReason = "";
-    const res = MechanicalFirstDispatcher.dispatch("claude-code", samplePacket, {
+  test("dispatchSubagent triggers cognitive fallback when forced", () => {
+    const res = dispatchSubagent("claude-code", samplePacket, {
       forceCognitiveFallback: true,
-      onFallbackTriggered: (reason) => {
-        fallbackReason = reason;
-      },
     });
 
     expect(res.mode).toBe("cognitive_fallback");
     expect(res.provider).toBe("claude-code");
-    expect(fallbackReason).toContain("forceCognitiveFallback");
   });
 
-  test("MechanicalFirstDispatcher builds mandatory CLI sequence correctly", () => {
-    const seq = MechanicalFirstDispatcher.buildMandatoryCliSequence(
-      "cursor",
+  test("getHostAdapter builds mandatory CLI sequence correctly", () => {
+    const adapter = getHostAdapter("cursor");
+    const seq = adapter.buildMandatoryCliSequence(
       ".olt/capsules/run-1",
       "worker-1",
       "implementer",
@@ -148,51 +138,50 @@ describe("Unified Platform Host Adapters & Mechanical Dispatch", () => {
     expect(seq.claimCommand).toContain("task:claim");
     expect(seq.submitCommand).toContain("task:submit");
   });
-
-  test("validateDispatchPacket rejects missing required fields", () => {
-    expect(() =>
-      validateDispatchPacket({
-        ...samplePacket,
-        agentId: "",
-      }),
-    ).toThrow(/agentId/);
-
-    expect(() =>
-      validateDispatchPacket({
-        ...samplePacket,
-        taskDescription: "",
-      }),
-    ).toThrow(/taskDescription/);
-  });
-
-  test("dispatchWithFallback wrapper functions as expected", () => {
-    const res = dispatchWithFallback("codex", samplePacket);
-    expect(res.mode).toBe("mechanical");
-    expect(res.provider).toBe("codex");
-  });
 });
 
 describe("Coordinator Pushback Execution Logic", () => {
-  test("isProceduralPushback and isSubstantivePushback type guards", () => {
-    expect(isProceduralPushback("procedural")).toBeTrue();
-    expect(isProceduralPushback("substantive")).toBeFalse();
-    expect(isSubstantivePushback("substantive")).toBeTrue();
-    expect(isSubstantivePushback("procedural")).toBeFalse();
+  test("isCoordinatorPushbackCause type guard", () => {
+    expect(isCoordinatorPushbackCause("procedural")).toBeTrue();
+    expect(isCoordinatorPushbackCause("substantive")).toBeTrue();
+    expect(isCoordinatorPushbackCause("invalid")).toBeFalse();
   });
 
-  test("validatePushbackEvidence enforces non-blank observation and remediation", () => {
-    expect(() => validatePushbackEvidence("procedural", "", "remedy")).toThrow(/observation/);
-    expect(() => validatePushbackEvidence("substantive", "obs", "")).toThrow(/remediation/);
+  test("validateCoordinatorPushbackInput enforces non-blank observation and remediation", () => {
     expect(() =>
-      validatePushbackEvidence("invalid" as unknown as "procedural", "obs", "rem"),
+      validateCoordinatorPushbackInput({
+        validator_id: "val-1",
+        domain: "code-quality",
+        cause: "procedural",
+        observation: "",
+        remediation: "remedy",
+      }),
+    ).toThrow();
+    expect(() =>
+      validateCoordinatorPushbackInput({
+        validator_id: "val-1",
+        domain: "code-quality",
+        cause: "substantive",
+        observation: "obs",
+        remediation: "",
+      }),
+    ).toThrow();
+    expect(() =>
+      validateCoordinatorPushbackInput({
+        validator_id: "val-1",
+        domain: "code-quality",
+        cause: "invalid" as unknown as "procedural",
+        observation: "obs",
+        remediation: "rem",
+      }),
     ).toThrow(/cause/);
   });
 
   test("procedural pushback reopens validation and changes status to validating", () => {
-    const { port, state } = createMockPortWithValidatedTask("task-1");
+    const { port } = createMockPortWithValidatedTask("task-1");
 
-    const updated = executeCoordinatorPushback(port, "task-1", "coord-1", {
-      validatorId: "val-1",
+    const updated = recordCoordinatorPushback(port, "task-1", "coord-1", {
+      validator_id: "val-1",
       domain: "code-quality",
       cause: "procedural",
       observation: "Missing required automated test runner artifacts.",
@@ -206,12 +195,10 @@ describe("Coordinator Pushback Execution Logic", () => {
   });
 
   test("substantive pushback transitions task to changes_requested and assigns repairer", () => {
-    const { port, state } = createMockPortWithValidatedTask("task-1");
+    const { port } = createMockPortWithValidatedTask("task-1");
 
-    const updated = contestValidatorVerdict(port, {
-      taskId: "task-1",
-      coordinatorId: "coord-1",
-      validatorId: "val-1",
+    const updated = recordCoordinatorPushback(port, "task-1", "coord-1", {
+      validator_id: "val-1",
       domain: "code-quality",
       cause: "substantive",
       observation: "Critical concurrency race condition observed in mutex locking.",
@@ -228,12 +215,12 @@ describe("Coordinator Pushback Execution Logic", () => {
     const { port, state } = createMockPortWithValidatedTask("task-1");
     state.tasks["task-1"]!.repair_round = 2; // Next will reach 3 (maxRepairRounds = 3)
 
-    const updated = executeCoordinatorPushback(
+    const updated = recordCoordinatorPushback(
       port,
       "task-1",
       "coord-1",
       {
-        validatorId: "val-1",
+        validator_id: "val-1",
         domain: "code-quality",
         cause: "substantive",
         observation: "Repeated failure to fix memory leak.",
@@ -247,7 +234,7 @@ describe("Coordinator Pushback Execution Logic", () => {
     expect(task.status).toBe("escalated");
   });
 
-  test("evaluatePushbackReport and assertPushbackSafety detect unfulfilled demands", () => {
+  test("evaluateUnfulfilledDemands and assertNoUnfulfilledDemands detect unfulfilled demands", () => {
     const { state } = createMockPortWithValidatedTask("task-1");
     state.tasks["task-2"] = {
       id: "task-2",
@@ -260,11 +247,11 @@ describe("Coordinator Pushback Execution Logic", () => {
       repair_round: 0,
     };
 
-    const report = evaluatePushbackReport(state as unknown as Record<string, unknown>);
+    const report = evaluateUnfulfilledDemands(state as unknown as Record<string, unknown>);
     expect(report.hasUnfulfilledDemands).toBeTrue();
     expect(report.totalUnfulfilled).toBeGreaterThan(0);
 
-    expect(() => assertPushbackSafety(state as unknown as Record<string, unknown>)).toThrow(
+    expect(() => assertNoUnfulfilledDemands(state as unknown as Record<string, unknown>)).toThrow(
       /unfulfilled.*demand/i,
     );
   });

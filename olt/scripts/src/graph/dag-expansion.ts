@@ -88,14 +88,6 @@ export {
   type WiderExpansionRequest,
 };
 
-/**
- * High-Leverage Unified Plan Compilation Pipeline.
- * Alias for compileUnifiedHighLeveragePlan.
- */
-export function compileUnifiedPlan(input: UnifiedPlanInput): UnifiedPlanResult {
-  return compileUnifiedHighLeveragePlan(input);
-}
-
 export type DynamicTaskOrigin =
   | "static"
   | "dynamic_expansion"

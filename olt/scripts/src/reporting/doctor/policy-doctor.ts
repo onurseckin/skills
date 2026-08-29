@@ -1,5 +1,10 @@
-import { computePolicyChecksum, detectPolicyDrift, inspectRepoPolicy } from "../../policy/index.ts";
-import { CURRENT_POLICY_SCHEMA_VERSION, type RepoPolicy } from "../../policy/types.ts";
+import {
+  CURRENT_POLICY_SCHEMA_VERSION,
+  computePolicyChecksum,
+  detectPolicyDrift,
+  inspectRepoPolicy,
+  type RepoPolicy,
+} from "../../policy/index.ts";
 import { checkCognitiveValidatorCommandLock } from "./command-lock-engine.ts";
 import { checkPushbackQuotas } from "./pushback-quotas-engine.ts";
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";

@@ -14,16 +14,3 @@ export function deconstructPromptBytes(prompt: string): RequirementClause[] {
     verified: false,
   }));
 }
-
-export function enforceByteFidelity(
-  promptBytes: string,
-  extractedClauses: RequirementClause[],
-): boolean {
-  // Ensure that all clauses actually exist in the original prompt bytes
-  for (const clause of extractedClauses) {
-    if (!promptBytes.includes(clause.clause)) {
-      return false;
-    }
-  }
-  return true;
-}

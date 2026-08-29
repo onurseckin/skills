@@ -2,7 +2,7 @@ import type { CommandRecord } from "../../core/contracts/index.ts";
 import type { EvidenceClass } from "../../core/contracts/index.ts";
 import { queryBrowserRuns } from "../../reporting/browser-run-store.ts";
 import type { BrowserRunRecord } from "../../reporting/browser-run-types.ts";
-import type { BrowserTestRun } from "../types.ts";
+import type { BrowserTestRun } from "../graph/index.ts";
 
 const GRAPH_FIELD_BY_RECORD_FIELD: Readonly<Record<string, string>> = {
   category: "category",

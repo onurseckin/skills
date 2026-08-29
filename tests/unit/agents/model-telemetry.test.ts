@@ -8,7 +8,7 @@ import {
   buildNodeTelemetry,
   buildNodeTools,
   readAgentLedgerView,
-} from "../../../olt/scripts/src/summary/agent-telemetry.ts";
+} from "../../../olt/scripts/src/summary/metrics/index.ts";
 import { ledgerOf, registerCoordinator, seededRun } from "./fixture.ts";
 
 /** A model string with a tier, a vendor and a date in it: none of which may be read out of it. */

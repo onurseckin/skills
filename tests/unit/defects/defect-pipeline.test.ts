@@ -27,7 +27,7 @@ import type {
   DefectCategory,
   DefectRecordInput,
   DefectResolutionProof,
-} from "../../../olt/scripts/src/mind/defects/types.ts";
+} from "../../../olt/scripts/src/mind/defects/core/index.ts";
 import {
   advanceDeliberationRound,
   auditDefectLog,

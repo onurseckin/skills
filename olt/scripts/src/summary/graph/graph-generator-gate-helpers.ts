@@ -1,5 +1,5 @@
 import { mapGateStatus, type TaskNodeContext } from "./graph-node-context.ts";
-import type { BadgeDetail, GraphNodeData, IoPort, NodeKind } from "../types.ts";
+import type { BadgeDetail, GraphNodeData, IoPort, NodeKind } from "./graph-types.ts";
 
 export { mapGateStatus };
 

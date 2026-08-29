@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
-import type { TierConfinementFinding } from "../../reporting/doctor/tier-confinement.ts";
-import type { BootGateEnforcer } from "../boot-gate-enforcer.ts";
+import type { TierConfinementFinding } from "../../reporting/doctor/tier-confinement/index.ts";
+import type { BootGateEnforcer } from "../boot-gate-enforcer/index.ts";
 import type {
   AgentActivityState,
   ProcessHealthStatus,
@@ -108,7 +108,7 @@ export class HealthAuditor {
     let rawState: JsonObject | null = null;
     if (this.options.capsuleRoot && existsSync(this.options.capsuleRoot)) {
       try {
-        const storeModule = await import("../../engine/store/load.ts").catch(() => null);
+        const storeModule = await import("../../engine/store/capsule/load.ts").catch(() => null);
         if (storeModule && typeof storeModule.loadRun === "function") {
           const loaded = storeModule.loadRun(this.options.capsuleRoot, false);
           rawState = isJsonObject(loaded.state) ? (loaded.state as JsonObject) : null;
@@ -211,7 +211,7 @@ export class HealthAuditor {
     let tierViolationsCount = 0;
     if (this.options.capsuleRoot && existsSync(this.options.capsuleRoot)) {
       try {
-        const tierModule = await import("../../reporting/doctor/tier-confinement.ts").catch(
+        const tierModule = await import("../../reporting/doctor/tier-confinement/index.ts").catch(
           () => null,
         );
         if (tierModule && typeof tierModule.auditTierConfinement === "function") {

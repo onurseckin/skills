@@ -115,12 +115,6 @@ function validateDocument(value: unknown): BaselineDocument {
   };
 }
 
-export function validateBaseline(value: unknown): ModularityBaseline {
-  const document = validateDocument(value);
-  if (!document.violations) failure("baseline index requires shards");
-  return { schema: document.schema, violations: document.violations };
-}
-
 export async function loadBaseline(
   repoRoot: string,
   baselinePath: string,

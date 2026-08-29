@@ -2,13 +2,13 @@ import { integerFlag, textFlag, type Flags } from "../options.ts";
 import { enforceLineLimit, nextActionsBlock, whoamiNextActions } from "../formatters/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
-import { identifyExecutionContext, parseTierValue } from "../../authority/thread-identifier.ts";
+import { identifyExecutionContext, parseTierValue } from "../../authority/thread/index.ts";
 import { isJsonObject } from "../../core/contracts/index.ts";
 import type { AgentGrantRecord } from "../../core/contracts/index.ts";
 import {
   constructSupervisoryPersonaReminder,
   type SupervisoryPersonaReminder,
-} from "../../authority/supervisory-persona-reminder.ts";
+} from "../../authority/supervisory/index.ts";
 
 export interface TaskLeaseSummary {
   task_id: string;

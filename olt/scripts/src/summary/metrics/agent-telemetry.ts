@@ -1,7 +1,7 @@
-import type { AgentGrantRecord } from "../../core/contracts/index.ts";
-import { isJsonObject } from "../../core/contracts/index.ts";
+import { isJsonObject, type AgentGrantRecord } from "../../core/contracts/index.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
-import type { NodeTelemetry, NodeTool, TokenUsageDetail } from "../types.ts";
+import type { TokenUsageDetail } from "./types.ts";
+import type { NodeTelemetry, NodeTool } from "../graph/graph-types.ts";
 
 export interface AgentLedgerView {
   grants: Map<string, AgentGrantRecord>;

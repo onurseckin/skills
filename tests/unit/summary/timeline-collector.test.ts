@@ -2,11 +2,11 @@ import { describe, expect, test } from "bun:test";
 import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
 // The B15.1 contract itself: imported from graph-types.ts directly, not the types.ts re-export
 // barrel, since ActionStepRecord is new enough that no prior test ever settled on either style.
-import type { ActionStepRecord } from "../../../olt/scripts/src/summary/graph-types.ts";
+import type { ActionStepRecord } from "../../../olt/scripts/src/summary/graph/index.ts";
 import {
   collectActionSteps,
   collectTimeline,
-} from "../../../olt/scripts/src/summary/timeline-collector.ts";
+} from "../../../olt/scripts/src/summary/metrics/index.ts";
 
 function createEvent(
   kind: string,

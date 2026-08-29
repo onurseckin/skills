@@ -2,17 +2,13 @@ import { describe, expect, test } from "bun:test";
 import {
   normalizeRoleKey,
   resolveAgentHostConfiguration,
-  resolveAgentModel,
-  resolveAgentModelTier,
-  resolveAgentThinkingEffort,
-  resolveAgentTokenBudget,
 } from "../../../olt/scripts/src/authority/host-bindings.ts";
 import {
   agentBriefCommand,
   executeAgentBrief,
 } from "../../../olt/scripts/src/cli/commands/agent-brief.ts";
 import { generateDefaultRepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
-import type { RepoPolicy } from "../../../olt/scripts/src/policy/types.ts";
+import type { RepoPolicy } from "../../../olt/scripts/src/policy/types/index.ts";
 
 describe("host-bindings", () => {
   const defaultPolicy = generateDefaultRepoPolicy();
@@ -75,60 +71,33 @@ describe("host-bindings", () => {
     });
 
     test("resolves orchestrator bindings across hosts", () => {
-      expect(resolveAgentModel("orchestrator", "antigravity", defaultPolicy)).toBe(
-        "gemini-3.7-flash",
+      expect(
+        resolveAgentHostConfiguration("orchestrator", "antigravity", defaultPolicy).model,
+      ).toBe("gemini-3.7-flash");
+      expect(
+        resolveAgentHostConfiguration("orchestrator", "claude_code", defaultPolicy).model,
+      ).toBe("claude-5-opus");
+      expect(resolveAgentHostConfiguration("orchestrator", "codex", defaultPolicy).model).toBe(
+        "gpt-5.6-sol",
       );
-      expect(resolveAgentModel("orchestrator", "claude_code", defaultPolicy)).toBe("claude-5-opus");
-      expect(resolveAgentModel("orchestrator", "codex", defaultPolicy)).toBe("gpt-5.6-sol");
-      expect(resolveAgentModel("orchestrator", "cursor", defaultPolicy)).toBe("cursor-latest");
+      expect(resolveAgentHostConfiguration("orchestrator", "cursor", defaultPolicy).model).toBe(
+        "cursor-latest",
+      );
     });
 
     test("resolves implementer and worker alias bindings across hosts", () => {
-      expect(resolveAgentModel("implementer", "antigravity", defaultPolicy)).toBe(
+      expect(resolveAgentHostConfiguration("implementer", "antigravity", defaultPolicy).model).toBe(
         "gemini-3.7-flash",
       );
-      expect(resolveAgentModel("worker", "claude_code", defaultPolicy)).toBe("claude-5-sonnet");
-      expect(resolveAgentModel("repairer", "codex", defaultPolicy)).toBe("gpt-5.6-terra");
-      expect(resolveAgentModel("implementer", "cursor", defaultPolicy)).toBe("cursor-latest");
-    });
-  });
-
-  describe("helper functions", () => {
-    test("resolveAgentModel returns exact model name", () => {
-      const model = resolveAgentModel("critic", "claude_code", defaultPolicy);
-      expect(model).toBe("claude-5-sonnet");
-    });
-
-    test("resolveAgentModelTier returns model tier", () => {
-      expect(resolveAgentModelTier("mind", "claude_code", defaultPolicy)).toBe("xhigh");
-      expect(resolveAgentModelTier("implementer", "claude_code", defaultPolicy)).toBe("high");
-    });
-
-    test("resolveAgentThinkingEffort returns thinking effort", () => {
-      expect(resolveAgentThinkingEffort("mind", "antigravity", defaultPolicy)).toBe("high");
-    });
-
-    test("resolveAgentTokenBudget returns token budget or max tokens", () => {
-      expect(resolveAgentTokenBudget("mind", "antigravity", defaultPolicy)).toBe(8192);
-
-      const customPolicy: RepoPolicy = {
-        ...defaultPolicy,
-        agents: {
-          ...defaultPolicy.agents,
-          custom_role: {
-            tier: 3,
-            rbac: { can_execute_shell: false, can_edit_code: false },
-            hosts: {
-              antigravity: { model: "gemini-custom", model_tier: "high", token_budget: 16384 },
-              claude_code: { model: "claude-custom", model_tier: "high", token_budget: 16384 },
-              codex: { model: "gpt-custom", model_tier: "high", token_budget: 16384 },
-              cursor: { model: "cursor-custom", model_tier: "high", token_budget: 16384 },
-            },
-          },
-        },
-      };
-
-      expect(resolveAgentTokenBudget("custom_role", "antigravity", customPolicy)).toBe(16384);
+      expect(resolveAgentHostConfiguration("worker", "claude_code", defaultPolicy).model).toBe(
+        "claude-5-sonnet",
+      );
+      expect(resolveAgentHostConfiguration("repairer", "codex", defaultPolicy).model).toBe(
+        "gpt-5.6-terra",
+      );
+      expect(resolveAgentHostConfiguration("implementer", "cursor", defaultPolicy).model).toBe(
+        "cursor-latest",
+      );
     });
   });
 

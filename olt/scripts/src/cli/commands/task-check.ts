@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "nod
 import { dirname, join, resolve } from "node:path";
 import ts from "typescript";
 import { HarnessError } from "../../core/errors/index.ts";
-import { autoDeriveCallerIdentity } from "../../authority/session-registry.ts";
+import { autoDeriveCallerIdentity } from "../../authority/session/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import {
   ALL_AST_LINT_RULES,
@@ -16,7 +16,7 @@ import {
   type AstLintOptions,
   type AstLintRule,
   type AstLintViolation,
-} from "../../linter/ast-enforcer.ts";
+} from "../../linter/ast/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { AutoReceiptLogger } from "../../engine/runner/receipt/auto-receipt";
 import type { TaskRecord } from "../../workflow/types.ts";

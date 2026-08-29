@@ -23,7 +23,7 @@ import { textFlag, type CommandContext, type Flags } from "../options.ts";
 import {
   constructSupervisoryPersonaReminder,
   type SupervisoryPersonaReminder,
-} from "../../authority/supervisory-persona-reminder.ts";
+} from "../../authority/supervisory/index.ts";
 import {
   generateAsciiDagBadges,
   runScriptBackedDiagnostics,

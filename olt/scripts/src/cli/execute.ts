@@ -4,9 +4,13 @@ import type { JsonObject } from "../core/contracts/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { parseArguments } from "./arguments.ts";
 import { assertFlags, type CommandContext } from "./options.ts";
-import { assertGrantedCommand, explicitActingClaim } from "../packets/command-authority.ts";
+import {
+  assertGrantedCommand,
+  explicitActingClaim,
+  requiresActingIdentity,
+} from "../packets/command-authority.ts";
 import { findCommand, flagShapes, type CommandSpec } from "./registry/index.ts";
-import { autoDeriveCallerIdentity } from "../authority/session-registry.ts";
+import { autoDeriveCallerIdentity } from "../authority/session/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
 
 function isEnoent(error: unknown): boolean {
@@ -153,6 +157,7 @@ export async function execute(
 
   if (
     identity.verified &&
+    requiresActingIdentity(spec) &&
     spec.flags.some((flag) => flag.name === "actor") &&
     parsed.flags["actor"] === undefined
   ) {
@@ -276,9 +281,7 @@ export class CumulativePhaseInvariantEngine {
     if (READ_ONLY_INSPECTOR_COMMANDS.has(name)) {
       return [];
     }
-    if (name === "run:complete") {
-      return ["plan", "queue", "task", "critic"];
-    }
+    if (name === "run:complete") return ["plan", "queue", "task", "critic"];
     if (
       name === "run:exec" ||
       name === "shell" ||
@@ -287,15 +290,8 @@ export class CumulativePhaseInvariantEngine {
     ) {
       return ["plan", "queue", "task"];
     }
-    if (spec.domain === "task" || name.startsWith("task:")) {
-      return ["plan", "queue"];
-    }
-    if (spec.domain === "queue" || name.startsWith("queue:")) {
-      return ["plan"];
-    }
-    if (spec.domain === "plan" || name.startsWith("plan:")) {
-      return [];
-    }
+    if (spec.domain === "task" || name.startsWith("task:")) return ["plan", "queue"];
+    if (spec.domain === "queue" || name.startsWith("queue:")) return ["plan"];
     return [];
   }
 }

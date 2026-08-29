@@ -21,7 +21,7 @@ import {
   safeRmSync,
   safeWriteFileSync,
   type DestructiveAuditEvent,
-} from "../../../olt/scripts/src/core/shared/safe-fs.ts";
+} from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
 
 function makeFixtureRoot(): string {
   return realpathSync(mkdtempSync(join(tmpdir(), "safe-fs-test-")));

@@ -13,7 +13,7 @@ import type {
   StructuredFinding,
   ViewportMetrics,
   VisualMetricsReport,
-} from "../dual-channel-types.ts";
+} from "../channels/dual-channel-types.ts";
 
 export type {
   ClippingViolation,

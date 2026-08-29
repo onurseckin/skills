@@ -1,5 +1,5 @@
 import { getMimeTypeForUrl, isImageExtension } from "./asset-mapper-props.ts";
-import type { MediaAsset } from "../types.ts";
+import type { MediaAsset } from "../graph/index.ts";
 
 export function extractFindingScreenshots(
   f: Record<string, unknown>,

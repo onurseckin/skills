@@ -33,7 +33,7 @@ import {
   type ActiveLeaseInfo,
   type ReflexiveAuditContext,
   type SubordinateAgentInfo,
-} from "../../../olt/scripts/src/authority/persona-grounding.ts";
+} from "../../../olt/scripts/src/authority/persona/index.ts";
 
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 

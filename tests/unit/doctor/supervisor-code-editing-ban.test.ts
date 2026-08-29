@@ -4,7 +4,7 @@ import {
   auditOrchestratorConfinement,
   assertSupervisorRoleConfinement,
   type TierConfinementFinding,
-} from "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts";
+} from "../../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";

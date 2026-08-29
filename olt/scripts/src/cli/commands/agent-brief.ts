@@ -6,7 +6,7 @@ import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { detectActiveHost, isHostType, type HostType } from "../../platform/host-autodetect.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
-import type { AgentHostPolicy } from "../../policy/types.ts";
+import type { AgentHostPolicy } from "../../policy/types/index.ts";
 import type { Flags } from "../options.ts";
 
 export interface AgentBriefOptions {

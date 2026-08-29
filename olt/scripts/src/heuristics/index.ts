@@ -19,7 +19,7 @@ export {
   type GlassSurfaceLayer,
   type GlassTextElement,
   type ParsedRgba,
-} from "./glass-surfaces.ts";
+} from "./glass-surfaces/index.ts";
 
 export {
   validateModalFocusTrap,
@@ -31,7 +31,7 @@ export {
   type ModalFocusTrapInput,
   type ModalFocusTrapResult,
   type OutsideSiblingNode,
-} from "./modal-focus-traps.ts";
+} from "./modal-focus-traps/index.ts";
 
 export {
   CANONICAL_FRACTIONAL_DPR_SCALES,
@@ -56,7 +56,7 @@ export {
   type SubpixelElementBounds,
   type SubpixelElementInput,
   type SubpixelValidationOptions,
-} from "./subpixel-borders.ts";
+} from "./subpixel-borders/index.ts";
 
 export {
   CANONICAL_VIEWPORTS,
@@ -86,4 +86,4 @@ export {
   type SemanticDepthDefect,
   type SingleViewportAudit,
   type SingleViewportAuditOptions,
-} from "./multi-viewport-manifest.ts";
+} from "./multi-viewport-manifest/index.ts";

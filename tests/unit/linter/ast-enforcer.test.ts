@@ -29,7 +29,7 @@ import {
   type AstLintViolation,
   type DirectoryLintResult,
   type FixSuggestion,
-} from "../../../olt/scripts/src/linter/ast-enforcer.ts";
+} from "../../../olt/scripts/src/linter/ast/index.ts";
 
 describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () => {
   describe("1. Nullish Coalescing (??) Rule", () => {
@@ -682,8 +682,8 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
   });
 
   describe("13. Self-Compliance Invariant Verification", () => {
-    it("ast-enforcer.ts itself is 100% compliant with zero fallback and no violations", () => {
-      const linterPath = "olt/scripts/src/linter/ast-enforcer.ts";
+    it("ast/index.ts itself is 100% compliant with zero fallback and no violations", () => {
+      const linterPath = "olt/scripts/src/linter/ast/index.ts";
       const result = lintFile(linterPath);
 
       expect(result.valid).toBe(true);

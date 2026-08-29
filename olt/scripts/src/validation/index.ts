@@ -1,17 +1,4 @@
 export {
-  assertAntiBatchingRule,
-  assertDefectCandidatesIsolated,
-  assertDiscriminatingSignOffProofs,
-  assertOneToOneImplementerValidatorIsolation,
-  detectScopeCollisions,
-  partitionCandidatesStrictly,
-  partitionDefectsToIsolatedTasks,
-  partitionGroupedFeedbacksStrictly,
-  partitionIntoDisjointWaves,
-  planEnhance,
-  synthesizeAutonomousTasks,
-  validateAntiBatchingIsolation,
-  validateAntiBatchingRule,
   validateCriticAntiBatching,
   validateReviewAntiBatching,
   type AntiBatchingCriticPayload,
@@ -22,11 +9,6 @@ export {
   type AntiBatchingReviewCheckProof,
   type AntiBatchingReviewPayload,
   type AntiBatchingReviewValidationResult,
-  type AntiBatchingValidationReport,
-  type IsolatedDefectTask,
-  type ScopeCollision,
-  type SmartTaskPlan,
-  type SmartWavePlanResult,
 } from "./anti-batching.ts";
 
 export {
@@ -151,14 +133,11 @@ export {
 } from "./dual-channel-analyzer/index.ts";
 
 export {
-  enforceValidatorCommandLock,
   generateMutants,
-  performMechanicAutomatedChecks,
   runMutationGate,
-  type ValidatorConfig,
-} from "./engine/index.ts";
-
-export { shouldSkipStringLiteral, type MutationCandidate } from "./mutation-gate/index.ts";
+  shouldSkipStringLiteral,
+  type MutationCandidate,
+} from "./mutation-gate/index.ts";
 
 export {
   UNIFIED_BROWSER_RUNS_DIRECTORY,

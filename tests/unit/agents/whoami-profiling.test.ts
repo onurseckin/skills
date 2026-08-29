@@ -9,7 +9,7 @@ import {
   agentIdToRole,
   MAIN_THREAD_ADVISORY,
   type HostProfile,
-} from "../../../olt/scripts/src/authority/thread-identifier";
+} from "../../../olt/scripts/src/authority/thread/index.ts";
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami";
 import { taskClaimCommand } from "../../../olt/scripts/src/cli/commands/task-ops.ts";
 import { cleanupRoots } from "../cli/full-lifecycle-fixture";

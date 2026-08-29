@@ -25,7 +25,7 @@ import {
   type DefectEntry,
   type DefectResolutionProof,
 } from "../../../olt/scripts/src/mind/defects/index.ts";
-import { GLOBAL_SYNC_GEN5 } from "../../../scripts/sync-global.ts";
+import { GLOBAL_SYNC_GEN5 } from "../../../scripts/sync/index.ts";
 
 const tempRoots: string[] = [];
 

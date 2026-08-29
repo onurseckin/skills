@@ -19,11 +19,11 @@ import {
   type GlassSurfaceLayer,
   type GlassTextElement,
   type ParsedRgba,
-} from "../../../olt/scripts/src/heuristics/glass-surfaces.ts";
+} from "../../../olt/scripts/src/heuristics/glass-surfaces/index.ts";
 import {
   validateModalFocusTrap,
   type ModalFocusTrapInput,
-} from "../../../olt/scripts/src/heuristics/modal-focus-traps.ts";
+} from "../../../olt/scripts/src/heuristics/modal-focus-traps/index.ts";
 import {
   CANONICAL_FRACTIONAL_DPR_SCALES,
   evaluateAntiAliasingEdgeContrast,
@@ -42,7 +42,7 @@ import {
   type SubpixelDriftResult,
   type SubpixelElementBounds,
   type SubpixelElementInput,
-} from "../../../olt/scripts/src/heuristics/subpixel-borders.ts";
+} from "../../../olt/scripts/src/heuristics/subpixel-borders/index.ts";
 import {
   auditCriterionSemanticDepth,
   auditManifestSemanticDepth,
@@ -58,11 +58,11 @@ import {
   type MultiViewportBundleInput,
   type PhysicalViewportMetrics,
   type ScreenshotArtifact,
-} from "../../../olt/scripts/src/heuristics/multi-viewport-manifest.ts";
+} from "../../../olt/scripts/src/heuristics/multi-viewport-manifest/index.ts";
 import {
   evaluateCognitiveQuestions,
   validateCognitiveSemanticDepth,
-} from "../../../olt/scripts/src/capture/validator/cognitive/cognitive-questions.ts";
+} from "../../../olt/scripts/src/capture/validator/cognitive/cognitive-questions/index.ts";
 import type {
   CompanionManifestV2,
   ElementPhysicsSnapshot,
@@ -1438,14 +1438,15 @@ describe("Extended Heuristics: Semantic Depth & Anti-Boilerplate Verification", 
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   it("verifies heuristic sources and test files contain zero any annotations and zero suppressions", () => {
     const filesToAudit = [
-      join(import.meta.dir, "../../../olt/scripts/src/heuristics/glass-surfaces.ts"),
-      join(import.meta.dir, "../../../olt/scripts/src/heuristics/modal-focus-traps.ts"),
-      join(import.meta.dir, "../../../olt/scripts/src/heuristics/subpixel-borders.ts"),
-      join(import.meta.dir, "../../../olt/scripts/src/heuristics/multi-viewport-manifest.ts"),
+      join(import.meta.dir, "../../../olt/scripts/src/heuristics/index.ts"),
+      join(import.meta.dir, "../../../olt/scripts/src/heuristics/glass-surfaces/index.ts"),
+      join(import.meta.dir, "../../../olt/scripts/src/heuristics/modal-focus-traps/index.ts"),
+      join(import.meta.dir, "../../../olt/scripts/src/heuristics/subpixel-borders/index.ts"),
+      join(import.meta.dir, "../../../olt/scripts/src/heuristics/multi-viewport-manifest/index.ts"),
       join(import.meta.dir, "heuristics-edge-cases.test.ts"),
       join(
         import.meta.dir,
-        "../../../olt/scripts/src/capture/validator/cognitive/cognitive-questions.ts",
+        "../../../olt/scripts/src/capture/validator/cognitive/cognitive-questions/index.ts",
       ),
     ];
 

@@ -10,11 +10,11 @@ import {
   isValidatorRole,
   summarizeTierConfinement,
   type TierConfinementFinding,
-} from "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts";
+} from "../../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
 import {
   roleToTier,
   validateTierSpawning,
-} from "../../../olt/scripts/src/authority/thread-identifier.ts";
+} from "../../../olt/scripts/src/authority/thread/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 

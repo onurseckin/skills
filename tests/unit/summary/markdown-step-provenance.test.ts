@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import type { ActionStepRecord, GraphDataset } from "../../../olt/scripts/src/summary/types.ts";
+import type {
+  ActionStepRecord,
+  GraphDataset,
+} from "../../../olt/scripts/src/summary/graph/index.ts";
 import { emptyGraph, emptyState, render } from "./markdown-fixtures.ts";
 
 function graphWithSteps(steps: ActionStepRecord[]): GraphDataset {

@@ -8,24 +8,55 @@ import {
   registerSessionGrant,
   revokeSessionGrant,
   resolveActiveSession,
-} from "../../../olt/scripts/src/authority/session-registry.ts";
+} from "../../../olt/scripts/src/authority/session/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+afterEach(async () => {
+  clearCallerSession();
+  await cleanupRoots(roots);
+});
 
 function installCallerSession(run: string, agentId: string, role: string): void {
   registerSessionGrant({ runRoot: run, agentId, role, host: "claude-code" });
 }
 
-function clearCallerSession(run: string): void {
-  revokeSessionGrant({
-    runRoot: run,
-    agentId: "test-session",
-    pid: process.pid,
-    ppid: process.ppid,
-  });
+function clearCallerSession(run?: string, agentId = "coordinator-1"): void {
+  revokeSessionGrant({ runRoot: run, agentId, pid: process.pid, ppid: process.ppid });
+  if (run) revokeSessionGrant({ agentId, pid: process.pid, ppid: process.ppid });
+}
+
+async function registerCoordAndWorker(run: string, parentTask?: string): Promise<void> {
+  await execute([
+    "agent:register",
+    "--run",
+    run,
+    "--agent",
+    "coordinator-1",
+    "--role",
+    "coordinator",
+    "--host",
+    "claude-code",
+  ]);
+  installCallerSession(run, "coordinator-1", "coordinator");
+  const args = [
+    "agent:register",
+    "--run",
+    run,
+    "--agent",
+    "worker-1",
+    "--role",
+    "implementer",
+    "--host",
+    "claude-code",
+    "--parent-agent",
+    "coordinator-1",
+    "--actor",
+    "coordinator-1",
+  ];
+  if (parentTask) args.push("--parent-task", parentTask);
+  await execute(args);
 }
 
 function registrationBytes(run: string, agentId: string): Record<string, string | null> {
@@ -80,7 +111,14 @@ describe("agent:register", () => {
 
   test("rolls back a conditionally staged session when the locked ledger is already nonempty", async () => {
     const { run } = await setupCompiledRun("agent-register-conditional-rollback", roots);
-    agentRegisterCommand({ run, agent: "coordinator-1", role: "coordinator", host: "claude-code" });
+    agentRegisterCommand({
+      run,
+      agent: "coordinator-1",
+      role: "coordinator",
+      host: "claude-code",
+      pid: String(process.pid),
+      ppid: String(process.ppid),
+    });
     const before = registrationBytes(run, "worker-rejected");
 
     expect(() =>
@@ -109,6 +147,7 @@ describe("agent:register", () => {
       "--host",
       "claude-code",
     ]);
+    installCallerSession(run, "coordinator-1", "coordinator");
 
     const result = await execute([
       "agent:register",
@@ -313,6 +352,7 @@ describe("agent:register", () => {
       "--host",
       "claude-code",
     ]);
+    installCallerSession(run, "orchestrator-1", "orchestrator");
 
     await expect(
       execute([
@@ -399,6 +439,7 @@ describe("agent:report", () => {
       "--host",
       "claude-code",
     ]);
+    installCallerSession(run, "worker-1", "implementer");
 
     const result = await execute([
       "agent:report",
@@ -478,6 +519,7 @@ describe("agent:report", () => {
       "--host",
       "claude-code",
     ]);
+    installCallerSession(run, "worker-1", "implementer");
     const result = await execute([
       "agent:report",
       "--run",
@@ -495,32 +537,7 @@ describe("agent:report", () => {
 describe("agent:release", () => {
   test("closes a grant and reports the remaining active count", async () => {
     const { run } = await setupCompiledRun("agent-release", roots);
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "coordinator-1",
-      "--role",
-      "coordinator",
-      "--host",
-      "claude-code",
-    ]);
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "worker-1",
-      "--role",
-      "implementer",
-      "--host",
-      "claude-code",
-      "--parent-agent",
-      "coordinator-1",
-      "--actor",
-      "coordinator-1",
-    ]);
+    await registerCoordAndWorker(run);
 
     const result = await execute([
       "agent:release",
@@ -619,32 +636,7 @@ describe("agent:release", () => {
 describe("agent:list", () => {
   test("lists active grants by default and excludes released ones", async () => {
     const { run } = await setupCompiledRun("agent-list-active", roots);
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "coordinator-1",
-      "--role",
-      "coordinator",
-      "--host",
-      "claude-code",
-    ]);
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "worker-1",
-      "--role",
-      "implementer",
-      "--host",
-      "claude-code",
-      "--parent-agent",
-      "coordinator-1",
-      "--actor",
-      "coordinator-1",
-    ]);
+    await registerCoordAndWorker(run);
     await execute(["agent:release", "--run", run, "--agent", "worker-1", "--reason", "done"]);
 
     const active = await execute(["agent:list", "--run", run]);
@@ -656,32 +648,7 @@ describe("agent:list", () => {
 
   test("--all includes released grants and reports each one's ancestor chain", async () => {
     const { run } = await setupCompiledRun("agent-list-all", roots);
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "coordinator-1",
-      "--role",
-      "coordinator",
-      "--host",
-      "claude-code",
-    ]);
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "worker-1",
-      "--role",
-      "implementer",
-      "--host",
-      "claude-code",
-      "--parent-agent",
-      "coordinator-1",
-      "--actor",
-      "coordinator-1",
-    ]);
+    await registerCoordAndWorker(run);
     await execute(["agent:release", "--run", run, "--agent", "worker-1", "--reason", "done"]);
 
     const all = await execute(["agent:list", "--run", run, "--all"]);
@@ -693,34 +660,7 @@ describe("agent:list", () => {
 
   test("--task reports the lineage of dispatch under that task instead of the roster", async () => {
     const { run } = await setupCompiledRun("agent-list-lineage", roots);
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "coordinator-1",
-      "--role",
-      "coordinator",
-      "--host",
-      "claude-code",
-    ]);
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "worker-1",
-      "--role",
-      "implementer",
-      "--host",
-      "claude-code",
-      "--parent-agent",
-      "coordinator-1",
-      "--actor",
-      "coordinator-1",
-      "--parent-task",
-      "task-core",
-    ]);
+    await registerCoordAndWorker(run, "task-core");
 
     const result = await execute(["agent:list", "--run", run, "--task", "task-core"]);
     expect(result.lineage).toBeDefined();

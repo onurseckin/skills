@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { BranchRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
-import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
+import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
 import { makeCommand, makeState, makeTask } from "./graph-fixtures.ts";
 
 const REASON = "The migration turned out to need a schema rewrite and a data backfill";

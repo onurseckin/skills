@@ -1,4 +1,4 @@
-import type { ExecutionTier } from "../thread-identifier.ts";
+import type { ExecutionTier } from "../thread/index.ts";
 
 export interface SessionIdentity {
   readonly agent_id: string;

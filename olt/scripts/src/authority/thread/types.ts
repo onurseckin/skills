@@ -1,5 +1,29 @@
 export type ExecutionTier = 0 | 1 | 2 | 3;
 
+export type StandardAgentRole =
+  | "mind"
+  | "orchestrator"
+  | "mind-auditor"
+  | "coordinator"
+  | "implementer"
+  | "validator"
+  | "mechanic-validator"
+  | "ui-mechanic-validator"
+  | "ui-validator"
+  | "repairer"
+  | "completeness-critic"
+  | "critic"
+  | "planner"
+  | "plan-validator"
+  | "validator-code-quality"
+  | "validator-ui-design"
+  | "validator-security"
+  | "validator-product"
+  | "validator-system-design"
+  | "sub-implementer"
+  | "sub-validator"
+  | "sub-investigator";
+
 export interface DefectRecord {
   id: string;
   type:

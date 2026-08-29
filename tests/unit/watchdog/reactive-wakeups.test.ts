@@ -495,8 +495,6 @@ describe("REMED-008: Invariants & Cleanliness Audit", () => {
     const sourceFiles = [
       join(watchdogDir, "constants.ts"),
       join(watchdogDir, "types.ts"),
-      join(watchdogDir, "boot-gate-enforcer.ts"),
-      join(watchdogDir, "autonomic-watchdog.ts"),
       join(watchdogDir, "index.ts"),
       join(autoDir, "activity-tracker.ts"),
       join(autoDir, "adaptive-timer.ts"),

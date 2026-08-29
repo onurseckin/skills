@@ -11,7 +11,7 @@ import { join, resolve, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:net";
 import { findRepoRoot } from "../core/shared/paths.ts";
-import { safeRmSync } from "../core/shared/safe-fs.ts";
+import { safeRmSync } from "../core/shared/safe-fs/index.ts";
 
 export { findRepoRoot };
 

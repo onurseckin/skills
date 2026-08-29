@@ -12,8 +12,8 @@ import { createEdge } from "./edge-builder.ts";
 import type { AssetRegistry } from "./graph-asset-ownership.ts";
 import { commandDurationMs, commandLogBytes } from "./graph-edge-exchanges.ts";
 import { buildNodeBrowserTests } from "../formatters/browser-tests.ts";
-import { enrichFileRefsWithDiffs } from "../formatters/file-diff-reader.ts";
-import { buildNodeScripts } from "../markdown/node-evidence.ts";
+import { enrichFileRefsWithDiffs } from "../formatters/index.ts";
+import { buildNodeScripts } from "../markdown/index.ts";
 import type {
   FileRef,
   GraphEdgeData,
@@ -21,7 +21,7 @@ import type {
   GraphSection,
   NodeKind,
   NodeStatus,
-} from "../types.ts";
+} from "./graph-types.ts";
 
 export interface BranchSubgraphInput {
   branches: readonly BranchRecord[];

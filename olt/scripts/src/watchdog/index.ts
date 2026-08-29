@@ -1,13 +1,9 @@
 export {
-  DEFAULT_ACTIVITY_BOOST,
   DEFAULT_ADAPTIVE_ACTIVITY_BOOST,
   DEFAULT_ADAPTIVE_BACKOFF_FACTOR,
   DEFAULT_ADAPTIVE_MAX_INTERVAL_MS,
   DEFAULT_ADAPTIVE_MIN_INTERVAL_MS,
-  DEFAULT_BACKOFF_FACTOR,
   DEFAULT_HEALTH_AUDIT_INTERVAL_MS,
-  DEFAULT_MAX_HEARTBEAT_INTERVAL_MS,
-  DEFAULT_MIN_HEARTBEAT_INTERVAL_MS,
   DEFAULT_PROCESS_HEALTH_CHECK_INTERVAL_MS,
   DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS,
   DEFAULT_WATCHDOG_TIMEOUT_MS,
@@ -48,7 +44,7 @@ export {
   createSpawnedSubagentRecord,
   renderAsciiBootGateTable,
   verifyBootGates,
-} from "./boot-gate-enforcer.ts";
+} from "./boot-gate-enforcer/index.ts";
 
 export {
   ActivityTracker,
@@ -63,7 +59,7 @@ export {
   type AgentActivityState,
   type HealthAuditorOptions,
   type IntervalAdjustmentResult,
-} from "./autonomic-watchdog.ts";
+} from "./autonomic-watchdog/index.ts";
 
 export {
   DEFAULT_DIAGNOSTIC_TAIL_BYTES,
@@ -108,4 +104,4 @@ export {
   type WatchdogLivenessReport,
   type WatchdogMonitorResult,
   type WatchdogTimeoutKind,
-} from "./process-timeout.ts";
+} from "./process-timeout/index.ts";

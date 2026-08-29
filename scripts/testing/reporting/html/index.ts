@@ -11,10 +11,10 @@ import { extractCoverageFileData } from "./data-extractor.ts";
 import { getHtmlStyles } from "./styles.ts";
 import { buildHtmlDocument } from "./templates.ts";
 
-export * from "./styles.ts";
-export * from "./client-script.ts";
-export * from "./templates.ts";
-export * from "./data-extractor.ts";
+export { getHtmlStyles } from "./styles.ts";
+export { getClientScript } from "./client-script.ts";
+export { buildHtmlDocument } from "./templates.ts";
+export { extractCoverageFileData } from "./data-extractor.ts";
 
 export function generateInteractiveHtml(
   fileMap: Map<string, FileCoverageMetric>,

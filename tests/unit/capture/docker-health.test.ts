@@ -6,7 +6,7 @@ import {
   resolveContainerConfig,
   resolvePolicy,
 } from "../../../olt/scripts/src/capture/docker-health.ts";
-import type { RepoPolicy } from "../../../olt/scripts/src/policy/types.ts";
+import type { RepoPolicy } from "../../../olt/scripts/src/policy/types/index.ts";
 
 const mockPolicy: RepoPolicy = {
   schema_version: 1,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mapFindingDetails } from "../../../olt/scripts/src/summary/asset-mapper.ts";
+import { mapFindingDetails } from "../../../olt/scripts/src/summary/assets/index.ts";
 import type { CompletionReview, TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { makeTask } from "./graph-fixtures.ts";
 

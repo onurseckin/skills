@@ -257,5 +257,5 @@ export function enforceIsolatedTaskDispatch(candidateId: string): {
 }
 
 export function atomicAdmissionToDispatch(candidateId: string): boolean {
-  return true;
+  return candidateId.trim().length > 0;
 }

@@ -714,7 +714,7 @@ export function defectAuditCommand(
         charter_goal_ids: ["G1", "G2"],
         falsifier_argv: null,
         falsifier_exit: null,
-        write_scope: ["olt/scripts/src/authority/thread-identifier.ts"],
+        write_scope: ["olt/scripts/src/authority/thread/index.ts"],
         rationale,
         status: "admitted",
         created_at: nowIso,

@@ -26,7 +26,8 @@ import {
 } from "./markdown-plan-sections.ts";
 import { buildReportContext } from "./markdown-report-context.ts";
 import { renderActionProvenance } from "./markdown-step-provenance.ts";
-import type { GraphDataset, RollupMetrics, TimelineEventRecord } from "../types.ts";
+import type { GraphDataset } from "../graph/index.ts";
+import type { RollupMetrics, TimelineEventRecord } from "../metrics/index.ts";
 
 export interface MarkdownFormatterInput {
   runId: string;

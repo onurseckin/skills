@@ -1,6 +1,6 @@
 import { downstreamMap, topologicalOrder, type DependencyMap } from "../../../graph/topology.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
-import { statusGlyph } from "../../../summary/dag-visualizer.ts";
+import { statusGlyph } from "../../../summary/graph/index.ts";
 
 export interface SchedulingMetrics {
   criticalDepth: Map<string, number>;

@@ -3,11 +3,27 @@ import { basename, join } from "node:path";
 import type { CommandRecord } from "../../core/contracts/index.ts";
 import type { WorkflowState } from "../../workflow/types.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { collectTimeline } from "../metrics/timeline-collector.ts";
-import { collectMetrics } from "../metrics/metrics-collector.ts";
-import { generateGraphDataset } from "../graph/graph-generator.ts";
-import { formatSummaryMarkdown } from "../markdown/markdown-formatter.ts";
-import type { SummaryGenerationOptions, SummarySuite } from "../types.ts";
+import {
+  collectMetrics,
+  collectTimeline,
+  type RollupMetrics,
+  type TimelineEventRecord,
+} from "../metrics/index.ts";
+import { generateGraphDataset, type GraphDataset } from "../graph/index.ts";
+import { formatSummaryMarkdown } from "../markdown/index.ts";
+
+export interface SummarySuite {
+  timeline: TimelineEventRecord[];
+  metrics: RollupMetrics;
+  graph: GraphDataset;
+  markdown: string;
+}
+
+export interface SummaryGenerationOptions {
+  outDir?: string | undefined;
+  capsulePath: string;
+  writeToDisk?: boolean | undefined;
+}
 
 export function loadCommandsFromDir(commandsDir: string): Record<string, CommandRecord> {
   const result: Record<string, CommandRecord> = {};

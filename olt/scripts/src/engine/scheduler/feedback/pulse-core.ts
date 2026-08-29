@@ -16,7 +16,7 @@ import {
   heartbeatWatchdog,
   registerWatchdog,
   WatchdogRecord,
-} from "../../../authority/watchdog-manager";
+} from "../../../authority/watchdog/index.ts";
 import { TransactionPort, systemClock } from "../../../workflow/types";
 
 export function delay(ms: number): Promise<void> {

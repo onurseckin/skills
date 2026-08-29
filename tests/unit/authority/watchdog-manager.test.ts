@@ -28,7 +28,7 @@ import {
   verifyWatchdogLifecycle,
   type WatchdogRecord,
   type WatchdogStore,
-} from "../../../olt/scripts/src/authority/watchdog-manager.ts";
+} from "../../../olt/scripts/src/authority/watchdog/index.ts";
 import {
   watchdogCleanupCommand,
   watchdogPhaseCleanupCommand,
@@ -574,7 +574,7 @@ describe("WatchdogManager - Registration & Single Active Invariant", () => {
     const dir = scratchRoot(import.meta.path, "cross-process-register");
     const start = join(dir, "start");
     const moduleUrl = new URL(
-      "../../../olt/scripts/src/authority/watchdog-manager.ts",
+      "../../../olt/scripts/src/authority/watchdog/index.ts",
       import.meta.url,
     ).href;
     const childScript = (id: string, generation: number): string => `
@@ -618,7 +618,7 @@ describe("WatchdogManager - Registration & Single Active Invariant", () => {
     const dir = scratchRoot(import.meta.path, "cross-process-same-generation");
     const start = join(dir, "start");
     const moduleUrl = new URL(
-      "../../../olt/scripts/src/authority/watchdog-manager.ts",
+      "../../../olt/scripts/src/authority/watchdog/index.ts",
       import.meta.url,
     ).href;
     const childScript = (id: string): string => `
@@ -1726,7 +1726,6 @@ describe("WatchdogManager - Lifecycle Invariant Verification", () => {
 describe("Invariants & Cleanliness Audit", () => {
   test("zero TypeScript any and zero suppressions across watchdog files", () => {
     const sourceFiles = [
-      join(__dirname, "../../../olt/scripts/src/authority/watchdog-manager.ts"),
       join(__dirname, "../../../olt/scripts/src/authority/watchdog/index.ts"),
       join(__dirname, "../../../olt/scripts/src/authority/watchdog/types.ts"),
       join(__dirname, "../../../olt/scripts/src/authority/watchdog/constants.ts"),

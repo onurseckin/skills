@@ -20,14 +20,12 @@ import {
   agentIdToTier,
   roleToTier,
   AGENT_NAMING_STANDARDS,
-} from "../../../olt/scripts/src/agents/naming.ts";
+} from "../../../olt/scripts/src/authority/thread/index.ts";
 import {
-  loadAgentIdentity,
-  loadAgentRoleDefinition,
-  validateAgentTriad,
-  synthesizeTriadManifest,
-  assertTriadIntegrity,
-} from "../../../olt/scripts/src/agents/agent-triad.ts";
+  loadAgentManifest,
+  loadRoleContract,
+  loadUnifiedAgentModel,
+} from "../../../olt/scripts/src/authority/manifest/index.ts";
 import {
   SUPERFICIAL_PATTERNS,
   rejectSuperficialClaims,
@@ -35,13 +33,13 @@ import {
   auditTaskVerificationEvidence,
   createPushbackHistory,
   appendPushbackRound,
-} from "../../../olt/scripts/src/authority/review-pushback.ts";
+} from "../../../olt/scripts/src/authority/review/index.ts";
 import { findCycles, breakCycles } from "../../../olt/scripts/src/graph/dag-forensics.ts";
 import {
   CANONICAL_VIEWPORTS,
   DEFAULT_PRESETS,
 } from "../../../olt/scripts/src/capture/config/default-presets.ts";
-import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
+import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { emptyGrantRun } from "../packets/grant-run-fixture.ts";
 
@@ -357,55 +355,49 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
       });
     });
 
-    describe("Agent Triad Integration (Identity, Contract, References)", () => {
-      it("loads valid agent identity manifests for ui-mechanic-validator and ui-validator", () => {
-        const mechId = loadAgentIdentity("ui-mechanic-validator");
+    describe("Agent Unified Model Integration (Identity, Contract, Permissions)", () => {
+      it("loads valid agent manifests for ui-mechanic-validator and ui-validator", () => {
+        const mechId = loadAgentManifest("ui-mechanic-validator");
         expect(mechId.name).toBe("ui-mechanic-validator");
         expect(mechId.tier).toBe(3);
-        expect(mechId.displayName).toBe("UI Mechanic Validator");
+        expect(mechId.interface?.display_name).toBe("UI Mechanic Validator");
         expect(mechId.tools?.enable_write_tools).toBe(false);
         expect(mechId.filePath).toBeDefined();
 
-        const cogId = loadAgentIdentity("ui-validator");
+        const cogId = loadAgentManifest("ui-validator");
         expect(cogId.name).toBe("ui-validator");
         expect(cogId.tier).toBe(3);
-        expect(cogId.displayName).toBe("UI Cognitive Validator");
+        expect(cogId.interface?.display_name).toBe("UI Cognitive Validator");
         expect(cogId.tools?.enable_write_tools).toBe(false);
         expect(cogId.filePath).toBeDefined();
       });
 
       it("loads valid role definition contracts for ui-mechanic-validator and ui-validator", () => {
-        const mechDef = loadAgentRoleDefinition("ui-mechanic-validator");
+        const mechDef = loadRoleContract("ui-mechanic-validator");
         expect(mechDef.tier).toBe(3);
         expect(mechDef.commands.includes("run:exec")).toBe(true);
         expect(mechDef.filePath).toBeDefined();
 
-        const cogDef = loadAgentRoleDefinition("ui-validator");
+        const cogDef = loadRoleContract("ui-validator");
         expect(cogDef.tier).toBe(3);
         expect(cogDef.commands.includes("run:exec")).toBe(false);
         expect(cogDef.filePath).toBeDefined();
       });
 
-      it("validates triad consistency and synthesizes complete bundles for ui-mechanic-validator and ui-validator", () => {
-        const mechVal = validateAgentTriad("ui-mechanic-validator");
-        expect(mechVal.valid).toBe(true);
-        expect(mechVal.tierConsistent).toBe(true);
-        expect(mechVal.hasIdentity).toBe(true);
-        expect(mechVal.hasDefinition).toBe(true);
+      it("validates unified model consistency and synthesizes complete models for ui-mechanic-validator and ui-validator", () => {
+        const mechModel = loadUnifiedAgentModel("ui-mechanic-validator");
+        expect(mechModel.role).toBe("ui-mechanic-validator");
+        expect(mechModel.tier).toBe(3);
+        expect(mechModel.manifest).toBeDefined();
+        expect(mechModel.contract).toBeDefined();
+        expect(mechModel.commands.includes("run:exec")).toBe(true);
 
-        const cogVal = validateAgentTriad("ui-validator");
-        expect(cogVal.valid).toBe(true);
-        expect(cogVal.tierConsistent).toBe(true);
-        expect(cogVal.hasIdentity).toBe(true);
-        expect(cogVal.hasDefinition).toBe(true);
-
-        const mechBundle = synthesizeTriadManifest("ui-mechanic-validator");
-        expect(mechBundle.isComplete).toBe(true);
-        expect(() => assertTriadIntegrity(mechBundle)).not.toThrow();
-
-        const cogBundle = synthesizeTriadManifest("ui-validator");
-        expect(cogBundle.isComplete).toBe(true);
-        expect(() => assertTriadIntegrity(cogBundle)).not.toThrow();
+        const cogModel = loadUnifiedAgentModel("ui-validator");
+        expect(cogModel.role).toBe("ui-validator");
+        expect(cogModel.tier).toBe(3);
+        expect(cogModel.manifest).toBeDefined();
+        expect(cogModel.contract).toBeDefined();
+        expect(cogModel.commands.includes("run:exec")).toBe(false);
       });
     });
 
@@ -605,10 +597,10 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
   describe("5. Static Code Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     test("verifies zero TypeScript any and zero compiler/linter suppressions across touched files", () => {
       const filesToAudit = [
-        "olt/scripts/src/agents/naming.ts",
-        "olt/scripts/src/agents/agent-triad.ts",
-        "olt/scripts/src/agents/index.ts",
-        "olt/scripts/src/capture/runners/live-capture-runner.ts",
+        "olt/scripts/src/authority/thread/naming.ts",
+        "olt/scripts/src/authority/thread/constants.ts",
+        "olt/scripts/src/authority/thread/index.ts",
+        "olt/scripts/src/capture/runners/live-capture-runner/index.ts",
         "olt/scripts/src/capture/runners/types.ts",
         "olt/scripts/src/packets/command-authority.ts",
         "tests/unit/validation/validator-specialization.test.ts",

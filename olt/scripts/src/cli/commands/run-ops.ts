@@ -1,7 +1,5 @@
-import {
-  executePhaseCompletionSyncAndCommit,
-  type PhaseCompletionResult,
-} from "../../workflow/completion/auto-sync-and-commit.ts";
+import { executeAutoSyncAndCommit } from "../../workflow/completion/auto-sync-and-commit.ts";
+import { dispatchLifecycleHook } from "../../hooks/index.ts";
 import { readAgentMetadata } from "../../runtime/index.ts";
 import { verifyCommandAuthorization } from "../../policy/index.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
@@ -39,14 +37,14 @@ import {
 } from "../formatters/index.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { declaredToolFlags } from "../taxonomy-flags.ts";
-import { generateSummarySuite } from "../../summary/generate-summary.ts";
+import { generateSummarySuite } from "../../summary/formatters/index.ts";
 import { ingestBrowserRun } from "../../reporting/browser-run-ingestion.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
 import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
-import { extractLeaseAgentId, generateUnifiedReport } from "../../reporting/unified.ts";
+import { extractLeaseAgentId, generateUnifiedReport } from "../../reporting/unified/index.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
 
 function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParallel: number } {
@@ -104,6 +102,14 @@ function consolidateIfProvisioned(
   });
   recordConsolidation(run, actor, result);
   return result;
+}
+
+export interface PhaseCompletionResult {
+  readonly synced: boolean;
+  readonly committed: boolean;
+  readonly pushed: boolean;
+  readonly commitSha?: string | undefined;
+  readonly error?: string | undefined;
 }
 
 export async function resolvePhaseCompletionResult(
@@ -168,13 +174,45 @@ export async function runCompleteCommand(flags: Flags): Promise<Record<string, u
 
   // Execute automatic local skill sync, git commit, and git push on run completion
   const repoRoot = findRepoRoot(run);
-  const autoSyncCommitResult = await resolvePhaseCompletionResult(() =>
-    executePhaseCompletionSyncAndCommit({
-      phaseName: "run:complete",
-      runId: basename(run),
+  const runId = basename(run);
+  const autoSyncCommitResult = await resolvePhaseCompletionResult(async () => {
+    const result = await executeAutoSyncAndCommit({
+      taskId: runId,
+      commitType: "feat",
+      scope: "olt",
+      description: `complete run:complete in ${runId}`,
+      writeScope: ["."],
       repoRoot,
-    }),
-  );
+    });
+
+    try {
+      await dispatchLifecycleHook("phase:complete", {
+        phase: "run:complete",
+        runId,
+        synced: result.synced,
+        committed: result.committed,
+        pushed: result.pushed,
+        commitSha: result.commitSha,
+      });
+    } catch {
+      // Non-blocking
+    }
+
+    const releaseFailureLogs = result.logs.filter(
+      (log) =>
+        (!result.committed && log.startsWith("[commit]")) ||
+        (!result.pushed && log.startsWith("[push]")) ||
+        (!result.synced && log.startsWith("[sync]")),
+    );
+
+    return {
+      synced: result.synced,
+      committed: result.committed,
+      pushed: result.pushed,
+      commitSha: result.commitSha,
+      ...(releaseFailureLogs.length === 0 ? {} : { error: releaseFailureLogs.join(" ") }),
+    };
+  });
 
   let prunedSubdirectories: readonly string[] = [];
   try {

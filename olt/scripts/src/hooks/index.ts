@@ -9,7 +9,7 @@ export {
   parseHookConfig,
   parseHookDefinition,
   resolveHookConfigFile,
-} from "./config.ts";
+} from "./config/index.ts";
 
 export {
   ALLOWED_SHELL_EXECUTABLES,

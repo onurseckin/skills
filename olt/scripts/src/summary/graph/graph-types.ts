@@ -3,7 +3,15 @@ import type { BranchRecord } from "../../core/contracts/index.ts";
 import type { EvidenceClass, Evidenced } from "../../core/contracts/index.ts";
 import type { JsonObject } from "../../core/contracts/index.ts";
 import type { TopologyRecord } from "../../core/contracts/index.ts";
-import type { BrowserTestRun, NodeScript, NodeTelemetry, NodeTool } from "./graph-agent-types.ts";
+import type {
+  BrowserTestRun,
+  NodeRole,
+  NodeScript,
+  NodeTelemetry,
+  NodeTool,
+  NodeValidatorDomain,
+} from "./graph-agent-types.ts";
+import type { TimingBreakdown, TokenUsageDetail } from "../metrics/index.ts";
 import type {
   BadgeDetail,
   EdgeContainerDetail,
@@ -215,6 +223,41 @@ export interface NodeStateTransition {
   findingCount?: number | undefined;
 }
 
+export interface NodeMetrics {
+  tokensIn?: number | undefined;
+  tokensOut?: number | undefined;
+  costUsd?: number | undefined;
+  durationMs?: number | undefined;
+  retries?: number | undefined;
+  commandCount?: number | undefined;
+  tokens?: TokenUsageDetail | undefined;
+  timingBreakdown?: TimingBreakdown | undefined;
+}
+
+export interface NodeMetadata {
+  role?: NodeRole | undefined;
+  agentId?: string | undefined;
+  findings?: NodeFinding[] | undefined;
+  writeScope?: string[] | undefined;
+  validatorId?: string | undefined;
+  validatorDomain?: NodeValidatorDomain | undefined;
+  repairRounds?: number | undefined;
+  probeRounds?: number | undefined;
+  validationHistory?: unknown[] | undefined;
+  branchId?: string | undefined;
+  branchReason?: string | undefined;
+  subTaskId?: string | undefined;
+  criticId?: string | undefined;
+  status?: string | undefined;
+  unresolvedFindingIds?: string[] | undefined;
+  residualRisks?: unknown[] | undefined;
+  requirementProofs?: unknown[] | undefined;
+  worktreeCommit?:
+    | { sha: string; subject: string; changedLines: number; overLimit: boolean }
+    | undefined;
+  [key: string]: unknown;
+}
+
 export interface GraphNodeData {
   id: string;
   name: string;
@@ -239,12 +282,12 @@ export interface GraphNodeData {
   assets?: MediaAsset[] | undefined;
   browserTests?: BrowserTestRun[] | undefined;
   files?: FileRef[] | undefined;
-  metrics?: unknown;
+  metrics?: NodeMetrics | undefined;
   io?: { inputs?: IoPort[] | undefined; outputs?: IoPort[] | undefined } | undefined;
   prompt?: string | undefined;
   output?: string | undefined;
   logs?: string | undefined;
-  metadata?: Record<string, unknown> | undefined;
+  metadata?: NodeMetadata | undefined;
   rank?: number | undefined;
   group?: string | undefined;
 }

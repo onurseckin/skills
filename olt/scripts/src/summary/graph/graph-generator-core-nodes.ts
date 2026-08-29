@@ -2,7 +2,7 @@ import type { TaskRecord } from "../../workflow/types.ts";
 import { createEdge } from "./edge-builder.ts";
 import { detectHostIdentity } from "../metrics/host-telemetry.ts";
 import type { StepAssignments } from "../metrics/step-calculator.ts";
-import type { GraphEdgeData, GraphNodeData, NodeKind, NodeStatus } from "../types.ts";
+import type { GraphEdgeData, GraphNodeData, NodeKind, NodeStatus } from "./graph-types.ts";
 
 export interface CoreNodeInput {
   promptText: string;

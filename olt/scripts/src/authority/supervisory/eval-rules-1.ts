@@ -1,5 +1,4 @@
-import type { UnifiedAgentModel } from "../manifest-parser.ts";
-import { normalizeRoleName } from "../manifest-parser.ts";
+import { normalizeRoleName, type UnifiedAgentModel } from "../manifest/index.ts";
 import { computeScopeOverlaps } from "./protocols.ts";
 import type {
   ActiveLeaseContext,

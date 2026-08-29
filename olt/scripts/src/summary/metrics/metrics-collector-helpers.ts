@@ -1,9 +1,9 @@
 import type { HarnessEvent, Manifest } from "../../core/contracts/index.ts";
 import type { CommandRecord } from "../../core/contracts/index.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
-import { resolveValidatorId } from "../graph/graph-node-context.ts";
-import { partitionTaskCommands } from "../markdown/node-evidence.ts";
-import type { TimingBreakdown, TokenUsageDetail } from "../types.ts";
+import { resolveValidatorId } from "../graph/index.ts";
+import { partitionTaskCommands } from "../markdown/index.ts";
+import type { TimingBreakdown, TokenUsageDetail } from "./types.ts";
 
 function validationCommands(task: TaskRecord, taskCmds: readonly CommandRecord[]): CommandRecord[] {
   return partitionTaskCommands(taskCmds, resolveValidatorId(task)).validator;

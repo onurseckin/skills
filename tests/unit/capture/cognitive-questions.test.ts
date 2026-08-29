@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { evaluateCognitiveQuestions } from "../../../olt/scripts/src/capture/validator/cognitive/cognitive-questions.ts";
+import { evaluateCognitiveQuestions } from "../../../olt/scripts/src/capture/validator/cognitive/cognitive-questions/index.ts";
 import type {
   ElementPhysicsSnapshot,
   ValidationContext,

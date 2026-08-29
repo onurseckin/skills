@@ -8,7 +8,7 @@ import type {
   DefectResolutionProof,
   DefectSeverity,
   DefectStatus,
-} from "../mind/defects/types.ts";
+} from "../mind/defects/core/index.ts";
 import type { atomicWriteBytes } from "../core/durable-write.ts";
 
 export type DeduplicationStrategy =

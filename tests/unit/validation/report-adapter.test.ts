@@ -2,14 +2,14 @@ import { describe, expect, test } from "bun:test";
 import {
   adaptIngestedVisualReport,
   adaptScreenshotRecords,
-} from "../../../olt/scripts/src/validation/report-adapter.ts";
+} from "../../../olt/scripts/src/validation/reporters/index.ts";
 import type {
   ClippingViolation,
   OverflowViolation,
   StackingViolation,
   VisualMetricsReport,
 } from "../../../olt/scripts/src/reporting/screenshot-types.ts";
-import type { CaptureRecord } from "../../../olt/scripts/src/engine/store/captures.ts";
+import type { CaptureRecord } from "../../../olt/scripts/src/engine/store/capsule/captures.ts";
 
 function baseReport(overrides: Partial<VisualMetricsReport> = {}): VisualMetricsReport {
   return {

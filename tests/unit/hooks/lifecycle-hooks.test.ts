@@ -1148,7 +1148,6 @@ describe("Lifecycle Hooks - Invariant & Type Cleanliness Audit", () => {
   test("zero TypeScript any and zero suppressions across hook source files", () => {
     const sourceFiles = [
       join(__dirname, "../../../olt/scripts/src/hooks/types.ts"),
-      join(__dirname, "../../../olt/scripts/src/hooks/config.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/env.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/shell.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/audio.ts"),
@@ -1189,7 +1188,6 @@ describe("Lifecycle Hooks - Invariant & Type Cleanliness Audit", () => {
   test("zero comments across the hook source files", () => {
     const sourceFiles = [
       join(__dirname, "../../../olt/scripts/src/hooks/types.ts"),
-      join(__dirname, "../../../olt/scripts/src/hooks/config.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/env.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/shell.ts"),
       join(__dirname, "../../../olt/scripts/src/hooks/audio.ts"),

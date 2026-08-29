@@ -23,11 +23,12 @@ function bodyStart(text: string, afterParams: number): number {
   let beforePrevious = "";
   for (let index = afterParams + 1; index < text.length; index += 1) {
     const char = text[index] ?? "";
+    const isArrow = char === ">" && previous === "=";
     const continues =
       previous !== "" && ("|&<,(:".includes(previous) || `${beforePrevious}${previous}` === "=>");
     if (char === "{" && depth === 0 && !continues) return index;
     if ("{[(<".includes(char)) depth += 1;
-    else if ("}])>".includes(char)) depth -= 1;
+    else if (!isArrow && "}])>".includes(char)) depth = Math.max(0, depth - 1);
     if (!/\s/u.test(char)) {
       beforePrevious = previous;
       previous = char;

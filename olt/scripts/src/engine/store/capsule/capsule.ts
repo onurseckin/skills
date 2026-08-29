@@ -21,7 +21,7 @@ import { writeIndex } from "./capsule-index.ts";
 import { normalizeRunId } from "./run-id.ts";
 import { writeTrace } from "../recovery/trace.ts";
 import { isInsideCapsule, resolveCapsulesDir } from "./paths.ts";
-import { safeRmSync } from "../../../core/shared/safe-fs.ts";
+import { safeRmSync } from "../../../core/shared/safe-fs/index.ts";
 
 export interface InitRunOptions {
   runtimeSource?: string;

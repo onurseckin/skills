@@ -689,9 +689,7 @@ describe("Defect Promotion Engine", () => {
         updateSourceFile: false,
       });
 
-      expect(readFileSync(targetPath, "utf8")).toBe(
-        serializeDefectLog(parseDefectLog(sourceBytes)),
-      );
+      expect(readFileSync(targetPath, "utf8")).toBe(sourceBytes);
       expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
     });
 

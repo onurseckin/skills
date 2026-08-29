@@ -13,14 +13,12 @@ import {
   validateReviewPushbackInput,
   type PushbackHistory,
   type TaskVerificationEvidenceInput,
-} from "../../../olt/scripts/src/authority/review-pushback.ts";
+} from "../../../olt/scripts/src/authority/review/index.ts";
 import {
-  executeCoordinatorPushback,
-  isProceduralPushback,
-  isSubstantivePushback,
-  validatePushbackEvidence,
-  type PushbackContestOptions,
-} from "../../../olt/scripts/src/task/pushback.ts";
+  recordCoordinatorPushback,
+  validateCoordinatorPushbackInput,
+} from "../../../olt/scripts/src/workflow/review/coordinator-pushback.ts";
+import { isCoordinatorPushbackCause } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
@@ -546,8 +544,8 @@ describe("Coordinator Pushback Workflow & Scepticism Integration", () => {
     const initialState = createValidatedState("task-p1", "val-1");
     const port = createMockTransactionPort(initialState);
 
-    const updatedState = executeCoordinatorPushback(port, "task-p1", "coordinator-1", {
-      validatorId: "val-1",
+    const updatedState = recordCoordinatorPushback(port, "task-p1", "coordinator-1", {
+      validator_id: "val-1",
       domain: "code-quality",
       cause: "procedural",
       observation: "The validator pass carried no recorded test evidence",
@@ -567,8 +565,8 @@ describe("Coordinator Pushback Workflow & Scepticism Integration", () => {
     const initialState = createValidatedState("task-p2", "val-1");
     const port = createMockTransactionPort(initialState);
 
-    const updatedState = executeCoordinatorPushback(port, "task-p2", "coordinator-1", {
-      validatorId: "val-1",
+    const updatedState = recordCoordinatorPushback(port, "task-p2", "coordinator-1", {
+      validator_id: "val-1",
       domain: "code-quality",
       cause: "substantive",
       observation: "The implementation has a defect in edge case handling",
@@ -587,12 +585,12 @@ describe("Coordinator Pushback Workflow & Scepticism Integration", () => {
     const initialState = createValidatedState("task-p3", "val-1");
     const port = createMockTransactionPort(initialState);
 
-    const updatedState = executeCoordinatorPushback(
+    const updatedState = recordCoordinatorPushback(
       port,
       "task-p3",
       "coordinator-1",
       {
-        validatorId: "val-1",
+        validator_id: "val-1",
         domain: "code-quality",
         cause: "substantive",
         observation: "Defect unresolved after max repair rounds",
@@ -607,35 +605,35 @@ describe("Coordinator Pushback Workflow & Scepticism Integration", () => {
     expect(task.repair_round).toBe(1);
   });
 
-  it("supports contestValidatorVerdict helper with full options", () => {
+  it("supports coordinator pushback with validated criteria", () => {
     const initialState = createValidatedState("task-p4", "val-1");
     const port = createMockTransactionPort(initialState);
 
-    const options: PushbackContestOptions = {
-      taskId: "task-p4",
-      coordinatorId: "coordinator-1",
-      validatorId: "val-1",
-      domain: "code-quality",
-      cause: "procedural",
+    const input = {
+      validator_id: "val-1",
+      domain: "code-quality" as const,
+      cause: "procedural" as const,
       observation: "Contesting standing pass due to lack of discriminating proof",
       remediation: "Provide falsifiable proof",
       guidance: ["Check negative cases"],
-      rejectionReasons: ["unsubstantiated_claims"],
+      rejection_reasons: ["unsubstantiated_claims"],
     };
 
-    const updatedState = executeCoordinatorPushback(port, options.taskId, options.coordinatorId, {
-      validatorId: options.validatorId,
-      domain: options.domain,
-      cause: options.cause,
-      observation: options.observation,
-      remediation: options.remediation,
-    });
+    validateReviewPushbackCriteria("task-p4", "coordinator-1", input);
+
+    const updatedState = recordCoordinatorPushback(port, "task-p4", "coordinator-1", input);
 
     expect(updatedState.tasks["task-p4"]!.status).toBe("validating");
-    expect(isProceduralPushback("procedural")).toBe(true);
-    expect(isSubstantivePushback("substantive")).toBe(true);
+    expect(isCoordinatorPushbackCause("procedural")).toBe(true);
+    expect(isCoordinatorPushbackCause("substantive")).toBe(true);
     expect(() =>
-      validatePushbackEvidence("procedural", "Valid observation", "Valid remediation"),
+      validateCoordinatorPushbackInput({
+        validator_id: "val-1",
+        domain: "code-quality",
+        cause: "procedural",
+        observation: "Valid observation",
+        remediation: "Valid remediation",
+      }),
     ).not.toThrow();
   });
 });

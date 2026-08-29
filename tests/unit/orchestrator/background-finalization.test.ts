@@ -123,7 +123,7 @@ describe("Background Finalization Engine - Lifecycle Execution", () => {
       remote: "origin",
       gitRunner,
       syncRunner,
-      syncCommand: "bun scripts/sync-global.ts",
+      syncCommand: "bun scripts/sync/index.ts",
     });
 
     expect(result.success).toBe(true);
@@ -143,7 +143,7 @@ describe("Background Finalization Engine - Lifecycle Execution", () => {
       ["push", "origin", "main"],
     ]);
 
-    expect(syncCommands).toEqual(["bun scripts/sync-global.ts"]);
+    expect(syncCommands).toEqual(["bun scripts/sync/index.ts"]);
     expect(result.markdown).toContain("Tier 1 Background Orchestrator Finalization");
     expect(result.markdown).toContain("✓ Verified (0 spillover)");
     expect(result.markdown).toContain("✓ Committed");
@@ -179,7 +179,7 @@ describe("Background Finalization Engine - Lifecycle Execution", () => {
       ["status", "--porcelain"],
       ["push", "origin", "main"],
     ]);
-    expect(syncCommands).toEqual(["bun scripts/sync-global.ts"]);
+    expect(syncCommands).toEqual(["bun scripts/sync/index.ts"]);
   });
 
   it("respects skipPush and skipSync configuration flags", async () => {
@@ -503,7 +503,7 @@ describe("SupervisionLoopRunner - Integrated Background Finalization & Recycling
     expect(finalizationCaptured).toBe(true);
 
     expect(gitCommands.length).toBeGreaterThan(0);
-    expect(syncCommands).toEqual(["bun scripts/sync-global.ts"]);
+    expect(syncCommands).toEqual(["bun scripts/sync/index.ts"]);
   });
 
   it("does NOT trigger background finalization if round does not converge (e.g. findings open)", async () => {

@@ -1,4 +1,4 @@
-import type { ManifestLoaderOptions, UnifiedAgentModel } from "../manifest-parser.ts";
+import type { ManifestLoaderOptions, UnifiedAgentModel } from "../manifest/index.ts";
 
 export type ChecklistItemStatus =
   | "pending"

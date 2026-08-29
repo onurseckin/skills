@@ -1,7 +1,7 @@
 /**
  * Unified Run Report Type Definitions
  */
-import type { ExecutionTier } from "../../authority/thread-identifier.ts";
+import type { ExecutionTier } from "../../authority/thread/index.ts";
 import type { LeaseRecordView } from "../lease-agent-extractor.ts";
 import type { SugiyamaDagReport, SugiyamaWaveMetrics } from "../sugiyama-dag/index.ts";
 

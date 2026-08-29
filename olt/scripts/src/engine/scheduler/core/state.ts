@@ -13,7 +13,7 @@ import {
   parseTimestamp,
   loadWatchdogStore,
   type WatchdogRecord,
-} from "../../../authority/watchdog-manager.ts";
+} from "../../../authority/watchdog/index.ts";
 import { type TaskStatus } from "../../../core/contracts/index.ts";
 import { transition } from "../../../workflow/task-state.ts";
 import { type TransactionPort } from "../../../workflow/types.ts";

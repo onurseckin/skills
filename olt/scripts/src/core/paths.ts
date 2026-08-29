@@ -1,7 +1,6 @@
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { HarnessError } from "./errors/harness-error.ts";
-import { RootDirectoryHygieneGuard } from "../authority/root-hygiene-guard.ts";
 
 function unsafe(message: string): never {
   throw new HarnessError("PATH_SAFETY", message);

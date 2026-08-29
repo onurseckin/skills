@@ -1,4 +1,4 @@
-import type { FindingDetail, MediaAsset, NodeFinding } from "../types.ts";
+import type { FindingDetail, MediaAsset, NodeFinding } from "./graph-types.ts";
 
 export class AssetRegistry {
   private readonly idByUrl: Map<string, string>;

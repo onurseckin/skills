@@ -5,10 +5,11 @@ import {
   generateDefaultRepoPolicy,
   inspectRepoPolicy,
   loadRepoPolicy,
-  parseAuthorityRepoPolicy,
+  parseRepoPolicy,
   saveRepoPolicy,
+  type RepoEcosystem,
+  type RepoPolicy,
 } from "../../policy/index.ts";
-import type { RepoEcosystem, RepoPolicy } from "../../policy/types.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 function getNestedValue(obj: unknown, path: string): unknown {
@@ -221,7 +222,7 @@ export async function policySetCommand(
     key,
     parsedValue,
   );
-  const validatedPolicy = parseAuthorityRepoPolicy(updatedRaw);
+  const validatedPolicy = parseRepoPolicy(updatedRaw);
   const savedPath = saveRepoPolicy(validatedPolicy, repo);
 
   return {

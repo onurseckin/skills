@@ -8,7 +8,7 @@ import {
   linkBlobIntoView,
   putBlobFile,
 } from "../../../olt/scripts/src/engine/store/layout/blobs.ts";
-import { recordCaptures } from "../../../olt/scripts/src/engine/store/captures.ts";
+import { recordCaptures } from "../../../olt/scripts/src/engine/store/capsule/captures.ts";
 import { claimSubmitValidateAndReject, setupCompiledRun } from "./file-persistence-fixture.ts";
 import {
   establishSupervisorChain,

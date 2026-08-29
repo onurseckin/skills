@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { LiveDefectDeduplicator } from "../../../olt/scripts/src/mind/defects/live-dedup.ts";
+import { LiveDefectDeduplicator } from "../../../olt/scripts/src/mind/defects/dedup/index.ts";
 
 describe("LiveDefectDeduplicator Engine", () => {
   test("tracks and aggregates live defects synchronously", () => {

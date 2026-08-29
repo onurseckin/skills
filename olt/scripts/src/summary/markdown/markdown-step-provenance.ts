@@ -1,4 +1,4 @@
-import type { ActionStepRecord, ActionTarget } from "../types.ts";
+import type { ActionStepRecord, ActionTarget } from "../graph/index.ts";
 import { code, note, section, table } from "./markdown-primitives.ts";
 import type { ReportContext } from "./markdown-report-context.ts";
 

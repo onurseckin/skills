@@ -1,4 +1,4 @@
-import { safeCpSync, safeRenameSync, safeRmSync } from "../../core/shared/safe-fs.ts";
+import { safeCpSync, safeRenameSync, safeRmSync } from "../../core/shared/safe-fs/index.ts";
 import { existsSync, lstatSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";

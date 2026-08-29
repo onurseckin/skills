@@ -5,7 +5,7 @@ import {
   type CoordinatorPushbackCause,
   type ValidatorDomain,
 } from "../../core/contracts/index.ts";
-import { MAX_REPAIR_ROUNDS } from "../../core/config/constants.ts";
+import { MAX_REPAIR_ROUNDS } from "../../core/config/contracts.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort, type WorkflowState } from "../types.ts";

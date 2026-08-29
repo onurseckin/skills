@@ -1,4 +1,4 @@
-import { MAX_REPAIR_ROUNDS } from "../core/config/constants.ts";
+import { MAX_REPAIR_ROUNDS } from "../core/config/contracts.ts";
 import type { Finding } from "../core/contracts/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import {

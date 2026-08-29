@@ -74,7 +74,7 @@ export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
       "Same estimated_tokens computation as the prompt_bytes allowance above: a command whose stdout byte count was not captured contributes 0 to the run-wide guess rather than the guess claiming a real reading for it.",
   },
   {
-    key: "unused-export:olt/scripts/src/core/config/harness-config.ts#resetHarnessConfigCache",
+    key: "unused-export:olt/scripts/src/core/config/env.ts#resetHarnessConfigCache",
     check: "unused-code",
     reason:
       "The resolved-config cache lives for the life of one process, and every harness.ts invocation is a fresh process, so production never has a stale read to invalidate. The reset exists to stop the shared module cache leaking between test cases that run in the same process - a problem only the test runner has.",
@@ -86,7 +86,7 @@ export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
       "The one production installer (installer/install.ts) must apply client links between the release copy's commit and finalize, so it drives prepareReleaseCopy directly instead of through this all-in-one helper. atomicReleaseCopy composes the same commit/rollback/cleanup sequence without that interleaving, which is exactly the shape the release-copy subsystem's own tests - and the crash-injection worker they spawn - need to exercise it in isolation from client-link concerns.",
   },
   {
-    key: "unused-export:olt/scripts/src/engine/runner/attempt-intent.ts#writeAttemptStarted",
+    key: "unused-export:olt/scripts/src/engine/runner/execution/attempt-intent.ts#writeAttemptStarted",
     check: "unused-code",
     reason:
       "Production always needs the AttemptIntentController this record initialisation can return, and run-attempt.ts gets it from the sibling startAttemptIntent. writeAttemptStarted returns the bare record and accepts a syncParent override that startAttemptIntent does not expose, which is the seam attempt-directory-durability.test.ts needs to observe fsync-before-marker ordering directly - a capability only a test asks for.",

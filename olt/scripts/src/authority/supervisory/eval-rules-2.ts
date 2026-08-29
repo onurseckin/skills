@@ -1,4 +1,4 @@
-import { validateAgentNamingConvention } from "../thread-identifier.ts";
+import { validateAgentNamingConvention } from "../thread/index.ts";
 import type {
   ActiveLeaseContext,
   PersonaViolation,

@@ -6,7 +6,7 @@ import {
   resolveCapsulesDir,
 } from "../../../../core/shared/paths.ts";
 import { enqueueTasksBatch, type NewTaskQueueInput } from "../../queue/index.ts";
-import { evaluateHierarchyScaling } from "../../../../graph/topology.ts";
+import { evaluateHierarchyScaling } from "../../../../graph/parallel-decoupler.ts";
 import { drainPendingFeedbacks } from "../../../feedback/index.ts";
 import { assertAntiBatchingRule } from "../planner/partitioning.ts";
 import { enrichTaskPlanWithExactAnchors } from "../planner/anti-batching.ts";

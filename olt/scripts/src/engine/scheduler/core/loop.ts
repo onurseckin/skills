@@ -4,7 +4,7 @@ import type {
   RoleBoundaryAdherenceAudit,
 } from "./types.ts";
 import { isJsonObject } from "../../../core/contracts/index.ts";
-import { auditBehavioralHealth } from "../../../reporting/behavioral-auditor.ts";
+import { auditBehavioralHealth } from "../../../reporting/behavioral-auditor/index.ts";
 import { isRecord } from "../../../requirements/predicates.ts";
 import { boundedEvidenceCause } from "./tasks/tasks.ts";
 

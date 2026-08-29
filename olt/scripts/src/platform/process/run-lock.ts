@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { releaseFlock, tryExclusiveFlock } from "../fs/flock-ffi.ts";
 import { clearObserver, publishObserver } from "./observer.ts";
+export { clearObserver, publishObserver } from "./observer.ts";
 import { resolveCapsulesDir } from "../../core/shared/paths.ts";
 
 export interface RunLockOptions {

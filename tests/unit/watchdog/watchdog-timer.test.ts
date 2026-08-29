@@ -23,7 +23,7 @@ import {
   DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
   isSourceCodeFile,
   type TierConfinementFinding,
-} from "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts";
+} from "../../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
@@ -706,8 +706,6 @@ describe("Invariants & Cleanliness Audit - Autonomic Watchdog (p47 & p56)", () =
     const sourceFiles = [
       join(watchdogDir, "constants.ts"),
       join(watchdogDir, "types.ts"),
-      join(watchdogDir, "boot-gate-enforcer.ts"),
-      join(watchdogDir, "autonomic-watchdog.ts"),
       join(watchdogDir, "index.ts"),
       join(autoDir, "activity-tracker.ts"),
       join(autoDir, "adaptive-timer.ts"),
@@ -725,7 +723,7 @@ describe("Invariants & Cleanliness Audit - Autonomic Watchdog (p47 & p56)", () =
       join(bootDir, "types.ts"),
       join(bootDir, "verifier.ts"),
       join(bootDir, "index.ts"),
-      join(__dirname, "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts"),
+      join(__dirname, "../../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts"),
       __filename,
     ];
 

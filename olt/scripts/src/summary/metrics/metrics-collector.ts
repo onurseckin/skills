@@ -14,12 +14,12 @@ import {
 } from "./metrics-collector-helpers.ts";
 import type {
   FileChurnRecord,
-  GraphDataset,
   RollupMetrics,
   TimingBreakdown,
   TokenEstimation,
   TokenUsageDetail,
-} from "../types.ts";
+} from "./types.ts";
+import type { GraphDataset } from "../graph/graph-types.ts";
 
 export {
   computeGateTiming,

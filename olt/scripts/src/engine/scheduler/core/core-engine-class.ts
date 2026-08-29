@@ -21,7 +21,7 @@ import {
   type ScriptBackedDiagnosticsResult,
   runScriptBackedDiagnostics,
 } from "../diagnostics/diagnostics.ts";
-import { type WatchdogRecord, registerWatchdog } from "../../../authority/watchdog-manager.ts";
+import { type WatchdogRecord, registerWatchdog } from "../../../authority/watchdog/index.ts";
 import { dependencyMap } from "../../../graph/dependency-map.ts";
 import { type DoctorOptions } from "../../../reporting/doctor.ts";
 import { type Clock, systemClock, type TransactionPort } from "../../../workflow/types.ts";

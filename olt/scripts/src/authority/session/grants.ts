@@ -9,7 +9,7 @@ import {
   detectHostApp,
   roleToTier,
   type ExecutionTier,
-} from "../thread-identifier.ts";
+} from "../thread/index.ts";
 import { assertSafeSessionComponent, assertSessionPid, resolveGlobalSessionsDir } from "./paths.ts";
 import {
   atomicSessionWrite,

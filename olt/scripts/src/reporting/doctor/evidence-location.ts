@@ -8,7 +8,7 @@ import {
   isUnifiedEvidenceRelativePath,
   UNIFIED_EVIDENCE_DIRECTORY,
   UNIFIED_SCREENSHOTS_DIRECTORY,
-} from "../../validation/evidence-paths.ts";
+} from "../../validation/reporters/index.ts";
 
 export interface EvidenceLocationAuditResult {
   readonly valid: boolean;

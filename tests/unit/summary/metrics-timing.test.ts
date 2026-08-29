@@ -6,7 +6,7 @@ import {
   computeGateTiming,
   computeTaskTiming,
   extractTaskTimestamps,
-} from "../../../olt/scripts/src/summary/metrics-collector.ts";
+} from "../../../olt/scripts/src/summary/metrics/index.ts";
 import { makeCommand, makeEvent, makeTask } from "./graph-fixtures.ts";
 
 describe("metrics timing collector - basic task timing", () => {

@@ -280,7 +280,6 @@ export {
   taskCheckCommand,
 } from "./task-check.ts";
 export { taskClaimCommand, taskHeartbeatCommand } from "./task-claim.ts";
-export {} from "./task-finding-input.ts";
 export { taskSubmitCommand, taskReleaseCommand } from "./task-ops.ts";
 export { taskProbeCommand } from "./task-probe.ts";
 export { taskRejectCommand } from "./task-reject.ts";

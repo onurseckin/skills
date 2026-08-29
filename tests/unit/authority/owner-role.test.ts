@@ -10,7 +10,7 @@ import {
   loadAgentManifest,
   loadRoleContract,
   loadUnifiedAgentModel,
-} from "../../../olt/scripts/src/authority/manifest-parser.ts";
+} from "../../../olt/scripts/src/authority/manifest/index.ts";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,

@@ -4,7 +4,7 @@
  * dynamic branch sub-task expansions, and active coordinates across Sugiyama and Living Tracer graphs.
  * Strictly preserves view-layer isolation (never mutates RMS mathematical graph state or GDUI graph.json schema).
  */
-import type { SugiyamaEdge, SugiyamaNode, SugiyamaSubtask } from "./sugiyama-dag.ts";
+import type { SugiyamaEdge, SugiyamaNode, SugiyamaSubtask } from "./sugiyama-dag/index.ts";
 import {
   buildSugiyamaDagReport,
   formatCoordinates,
@@ -16,8 +16,8 @@ import {
   renderSugiyamaDag,
   type SugiyamaDagReport,
   type SugiyamaRenderOptions,
-} from "./sugiyama-dag.ts";
-import type { DynamicDagState, DynamicTaskState } from "./living-tracer.ts";
+} from "./sugiyama-dag/index.ts";
+import type { DynamicDagState, DynamicTaskState } from "./living-tracer/index.ts";
 
 export {
   buildSugiyamaDagReport,

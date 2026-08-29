@@ -10,11 +10,27 @@ import { writeMarkdownReport } from "./markdown-reporter.ts";
 import { buildCoverageSummary, writeSummaryJson } from "./summary-reporter.ts";
 import type { CoverageArtifactResult } from "./types.ts";
 
-export * from "./types.ts";
-export * from "./lcov-parser.ts";
-export * from "./summary-reporter.ts";
-export * from "./markdown-reporter.ts";
-export * from "./html/index.ts";
+export type {
+  CoverageArtifactResult,
+  CoverageSummary,
+  CoverageSummaryItem,
+  FileCoverageMetric,
+  FileDetailData,
+  MetricItem,
+  SourceLineDetail,
+} from "./types.ts";
+export { calculatePct, createMetricItem } from "./types.ts";
+export { parseLcov } from "./lcov-parser.ts";
+export { buildCoverageSummary, writeSummaryJson } from "./summary-reporter.ts";
+export { buildMarkdownReport, writeMarkdownReport } from "./markdown-reporter.ts";
+export {
+  buildHtmlDocument,
+  extractCoverageFileData,
+  generateInteractiveHtml,
+  getClientScript,
+  getHtmlStyles,
+  writeInteractiveHtml,
+} from "./html/index.ts";
 
 export function processCoverageArtifacts(
   repoRoot?: string,

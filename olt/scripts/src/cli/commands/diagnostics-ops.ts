@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
-import { constructSupervisoryPersonaReminder } from "../../authority/supervisory-persona-reminder.ts";
+import { constructSupervisoryPersonaReminder } from "../../authority/supervisory/index.ts";
 import { isJsonObject } from "../../core/contracts/index.ts";
 import { loadRun, recoverProjection, transactionRecoveryStatus } from "../../engine/store/index.ts";
 import { recoverStale } from "../../workflow/lease/recover-stale.ts";

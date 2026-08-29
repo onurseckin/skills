@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
+import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
 import type { ScreenshotRecord } from "../../../olt/scripts/src/reporting/screenshot-types.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { makeCommand, makeState, makeTask } from "./graph-fixtures.ts";

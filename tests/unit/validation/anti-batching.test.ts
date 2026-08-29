@@ -2,22 +2,26 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  validateCriticAntiBatching,
+  validateReviewAntiBatching,
+} from "../../../olt/scripts/src/validation/anti-batching.ts";
+import {
   assertAntiBatchingRule,
-  assertDefectCandidatesIsolated,
-  assertDiscriminatingSignOffProofs,
-  assertOneToOneImplementerValidatorIsolation,
   detectScopeCollisions,
   partitionCandidatesStrictly,
-  partitionDefectsToIsolatedTasks,
   partitionGroupedFeedbacksStrictly,
   partitionIntoDisjointWaves,
   synthesizeAutonomousTasks,
   validateAntiBatchingIsolation,
   validateAntiBatchingRule,
-  validateCriticAntiBatching,
-  validateReviewAntiBatching,
   type SmartTaskPlan,
-} from "../../../olt/scripts/src/validation/anti-batching.ts";
+} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
+import {
+  assertDefectCandidatesIsolated,
+  assertDiscriminatingSignOffProofs,
+  assertOneToOneImplementerValidatorIsolation,
+  partitionDefectsToIsolatedTasks,
+} from "../../../olt/scripts/src/orchestrator/anti-batching.ts";
 import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
 import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/review-input.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";

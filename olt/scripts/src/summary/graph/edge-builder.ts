@@ -4,7 +4,7 @@ import type {
   EdgeTrafficDetail,
   EdgeVariant,
   GraphEdgeData,
-} from "../types.ts";
+} from "./graph-types.ts";
 
 const ACCENT_BY_KIND: Partial<Record<EdgeKind, string>> = {
   backtrack: "#f97316",

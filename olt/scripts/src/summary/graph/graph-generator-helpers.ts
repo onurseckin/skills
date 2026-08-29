@@ -7,7 +7,7 @@ import { mapTaskStatus, type TaskNodeContext } from "./graph-node-context.ts";
 import { buildNodeBrowserTests } from "../formatters/browser-tests.ts";
 import { buildNodeScripts, buildStateTransitions } from "../markdown/node-evidence.ts";
 import { computeTaskTiming, computeTaskTokens } from "../metrics/metrics-collector.ts";
-import type { BadgeDetail, GraphNodeData, IoPort, NodeKind, NodeMetrics } from "../types.ts";
+import type { BadgeDetail, GraphNodeData, IoPort, NodeKind, NodeMetrics } from "./graph-types.ts";
 
 export { mapGateStatus, mapTaskStatus } from "./graph-node-context.ts";
 

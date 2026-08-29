@@ -15,7 +15,7 @@ import {
   lintTestAst,
   MOCK_FACTORIES,
   TEST_IDENTIFIERS,
-} from "../../../olt/scripts/src/validation/ast-linter.ts";
+} from "../../../olt/scripts/src/validation/ast-linter/index.ts";
 
 describe("AST Linter & Anti-Mock Verification", () => {
   describe("1. Identifiers and Extraction Helpers", () => {
@@ -158,7 +158,6 @@ describe("AST Linter & Anti-Mock Verification", () => {
   describe("6. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     it("verifies zero TypeScript any and zero suppressions across ast-linter source and test files", () => {
       const filesToAudit = [
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/ast-linter.ts"),
         resolve(import.meta.dir, "../../../olt/scripts/src/validation/ast-linter/types.ts"),
         resolve(
           import.meta.dir,

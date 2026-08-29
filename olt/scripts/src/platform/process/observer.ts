@@ -26,7 +26,7 @@ function sameDirectory(observer: Observer): boolean {
   }
 }
 
-export function observerDirectory(runRoot: string): string {
+function observerDirectory(runRoot: string): string {
   return join(dirname(runRoot), LOCKS_DIRECTORY, basename(runRoot));
 }
 

@@ -3,10 +3,14 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
-import { setupCompiledRun, markCoreImplemented } from "./task-ops-fixture.ts";
+import {
+  setupCompiledRun,
+  markCoreImplemented,
+  establishSupervisorChain,
+  registerUnderChain,
+} from "./task-ops-fixture.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
@@ -100,8 +104,7 @@ describe("plan:compile", () => {
   });
 
   test("refuses to seal on a blocking audit finding that was not accepted, and refuses an acceptance the audit never raised", async () => {
-    const roots2 = roots;
-    const { run } = await setupCompiledRunUncompiled("compile-blocked", roots2);
+    const { run } = await setupCompiledRunUncompiled("compile-blocked", roots);
     await expect(
       execute([
         "plan:compile",
@@ -372,17 +375,14 @@ async function setupCompiledRunUncompiled(
 
   await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
 
-  await execute([
-    "agent:register",
-    "--run",
+  const chain = await establishSupervisorChain(run);
+  await registerUnderChain(
     run,
-    "--agent",
+    chain,
     "coordinator",
-    "--role",
     name.startsWith("replan-") ? "planner" : "coordinator",
-    "--host",
-    "antigravity",
-  ]);
+  );
+  await registerUnderChain(run, chain, "planner", "planner");
 
   return { repo, run };
 }

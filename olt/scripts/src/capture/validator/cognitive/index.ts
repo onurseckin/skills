@@ -22,7 +22,7 @@ export {
   type CognitiveSemanticDepthDefect,
   type CognitiveSemanticDepthResult,
   type QuestionEvaluatorParams,
-} from "./cognitive-questions.ts";
+} from "./cognitive-questions/index.ts";
 
 export function validateCognitive(ctx: ValidationContext): PillarValidationResult {
   const defects: ValidationDefect[] = [];

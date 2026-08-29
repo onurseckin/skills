@@ -9,11 +9,11 @@ import {
   analyzeDualChannel,
   type CompanionManifestData,
   type DualChannelAuditResult,
-} from "../../validation/dual-channel-analyzer.ts";
+} from "../../validation/dual-channel-analyzer/index.ts";
 import {
   adaptIngestedVisualReport,
   adaptScreenshotRecords,
-} from "../../validation/report-adapter.ts";
+} from "../../validation/reporters/index.ts";
 import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";
 import { applicableGates, taskHasPassedGate } from "../../workflow/gates/gate-policy.ts";

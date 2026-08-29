@@ -1,4 +1,4 @@
-import type { FileRef } from "../types.ts";
+import type { FileRef } from "../graph/index.ts";
 import {
   UNKNOWN,
   code,

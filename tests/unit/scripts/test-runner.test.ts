@@ -24,7 +24,7 @@ describe("test-runner script", () => {
 
   test("runs in-process to cover test-runner module evaluation with mocked spawnSync", async () => {
     const origArgv = [...process.argv];
-    process.argv = ["bun", runnerScript, "tests/unit/scripts/sync-global-and-gen5.test.ts"];
+    process.argv = ["bun", runnerScript, "tests/unit/scripts/test-runner.test.ts"];
 
     const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
       status: 0,

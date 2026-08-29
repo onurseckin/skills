@@ -5,7 +5,7 @@ import type {
   CommandRecord,
 } from "../../../core/contracts/index.ts";
 import type { TaskRecord } from "../../../workflow/types.ts";
-import { roleToTier, validateTierSpawning } from "../../../authority/thread-identifier.ts";
+import { roleToTier, validateTierSpawning } from "../../../authority/thread/index.ts";
 import {
   CODE_EDIT_TOOLS,
   DOCTOR_SUPERVISOR_CODE_CONTAMINATION,

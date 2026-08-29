@@ -152,7 +152,7 @@ import {
   renderVisualDag,
   statusBadge,
   statusGlyph,
-} from "../../summary/dag-visualizer.ts";
+} from "../../summary/graph/index.ts";
 
 export {
   activeAgentBadge,

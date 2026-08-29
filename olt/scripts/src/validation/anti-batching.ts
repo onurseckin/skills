@@ -1,31 +1,4 @@
-import { HarnessError } from "../core/errors/index.ts";
-import type { Finding } from "../core/contracts/index.ts";
-import type { FindingDetail } from "../workflow/scope-partitioner.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
-import type {
-  SmartTaskPlan,
-  AntiBatchingValidationReport,
-  ScopeCollision,
-  SmartWavePlanResult,
-} from "../mind/tasks/smart/index.ts";
-import {
-  assertAntiBatchingRule,
-  validateAntiBatchingIsolation,
-  validateAntiBatchingRule,
-  partitionGroupedFeedbacksStrictly,
-  partitionCandidatesStrictly,
-  partitionIntoDisjointWaves,
-  detectScopeCollisions,
-  planEnhance,
-  synthesizeAutonomousTasks,
-} from "../mind/tasks/smart/index.ts";
-import {
-  assertDefectCandidatesIsolated,
-  assertOneToOneImplementerValidatorIsolation,
-  assertDiscriminatingSignOffProofs,
-  partitionDefectsToIsolatedTasks,
-  type IsolatedDefectTask,
-} from "../orchestrator/anti-batching.ts";
 
 export interface AntiBatchingReviewCheckProof {
   readonly command_id: string;
@@ -153,24 +126,3 @@ export function validateCriticAntiBatching(
     violations,
   };
 }
-
-export {
-  assertAntiBatchingRule,
-  validateAntiBatchingIsolation,
-  validateAntiBatchingRule,
-  partitionGroupedFeedbacksStrictly,
-  partitionCandidatesStrictly,
-  partitionIntoDisjointWaves,
-  detectScopeCollisions,
-  planEnhance,
-  synthesizeAutonomousTasks,
-  assertDefectCandidatesIsolated,
-  assertOneToOneImplementerValidatorIsolation,
-  assertDiscriminatingSignOffProofs,
-  partitionDefectsToIsolatedTasks,
-  type SmartTaskPlan,
-  type AntiBatchingValidationReport,
-  type ScopeCollision,
-  type SmartWavePlanResult,
-  type IsolatedDefectTask,
-};

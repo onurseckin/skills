@@ -6,7 +6,7 @@ import type { RunFiles, RunState } from "../../../olt/scripts/src/core/contracts
 import {
   generateSummarySuite,
   loadCommandsFromDir,
-} from "../../../olt/scripts/src/summary/generate-summary.ts";
+} from "../../../olt/scripts/src/summary/formatters/index.ts";
 import { makeCommand, makeEvent, makeState, makeTask } from "./graph-fixtures.ts";
 import { manifest } from "./markdown-fixtures.ts";
 

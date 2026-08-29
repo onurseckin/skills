@@ -14,6 +14,9 @@ export function executeWatchdogCleanup(flags: Record<string, unknown>): Record<s
   return {
     markdown: "### Watchdog Cleanup: Completed",
     cleanedCount: 0,
+    store: loadMindWatchdogStore(
+      typeof flags["capsules-dir"] === "string" ? flags["capsules-dir"] : undefined,
+    ),
   };
 }
 
@@ -23,6 +26,9 @@ export function executeWatchdogPhaseCleanup(
   return {
     markdown: "### Watchdog Phase Cleanup: Completed",
     cleanedCount: 0,
+    store: loadMindWatchdogStore(
+      typeof flags["capsules-dir"] === "string" ? flags["capsules-dir"] : undefined,
+    ),
   };
 }
 
@@ -30,6 +36,9 @@ export function executeWatchdogVerify(flags: Record<string, unknown>): Record<st
   return {
     valid: true,
     message: "Watchdog integrity valid",
+    store: loadMindWatchdogStore(
+      typeof flags["capsules-dir"] === "string" ? flags["capsules-dir"] : undefined,
+    ),
   };
 }
 
@@ -39,5 +48,8 @@ export async function executeWatchdogProbe(
   return {
     markdown: "### Watchdog Probe: Healthy",
     healthy: true,
+    store: loadMindWatchdogStore(
+      typeof flags["capsules-dir"] === "string" ? flags["capsules-dir"] : undefined,
+    ),
   };
 }

@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { buildPlanValidatorNodes } from "../../../olt/scripts/src/summary/graph-generator-plan-validator-nodes.ts";
-import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
+import {
+  buildPlanValidatorNodes,
+  generateGraphDataset,
+} from "../../../olt/scripts/src/summary/graph/index.ts";
 import type {
   PlanReview,
   PlanValidationAuthorization,

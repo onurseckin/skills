@@ -6,7 +6,7 @@ import {
   certifyHarnessDoctor,
   type DoctorCertificationReport,
   type MutationKind,
-} from "./adversarial-doctor.ts";
+} from "./adversarial-doctor/index.ts";
 
 const VALID_MUTATION_KINDS: ReadonlySet<string> = new Set([
   "syntax_error",

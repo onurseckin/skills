@@ -1,4 +1,4 @@
-import { computeDefectDiscriminator } from "../mind/defects/discriminator.ts";
+import { computeDefectDiscriminator } from "../mind/defects/core/index.ts";
 import type {
   AggregatedDefect,
   DefectCategory,
@@ -6,7 +6,7 @@ import type {
   DefectOccurrence,
   DefectRecordInput,
   DefectStatus,
-} from "../mind/defects/types.ts";
+} from "../mind/defects/core/index.ts";
 import type { LiveDeduplicationOptions } from "./types.ts";
 
 export const SEVERITY_WEIGHTS: Readonly<Record<string, number>> = {

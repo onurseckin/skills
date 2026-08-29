@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import type { HarnessEvent, Manifest } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import { collectMetrics } from "../../../olt/scripts/src/summary/metrics-collector.ts";
-import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
+import { collectMetrics } from "../../../olt/scripts/src/summary/metrics/index.ts";
+import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
 
 describe("metrics collector", () => {
   test("computes rollup metrics accurately", () => {

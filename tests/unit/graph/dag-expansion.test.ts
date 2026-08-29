@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   computeConcurrencyMetrics,
   computeDagCriticalPath,
-  compileUnifiedPlan,
+  compileUnifiedHighLeveragePlan,
   createImplementerValidatorPair,
   detectCapsuleContext,
   detectTransitiveBypasses,
@@ -316,9 +316,9 @@ describe("DAG Expansion & High-Leverage Planning Engine", () => {
     });
   });
 
-  describe("compileUnifiedPlan", () => {
+  describe("compileUnifiedHighLeveragePlan", () => {
     test("compiles full high-leverage plan with audit, auto-decoupling, and wave topology", () => {
-      const plan = compileUnifiedPlan({
+      const plan = compileUnifiedHighLeveragePlan({
         prompt: "Build Database Layer\n\nBuild HTTP Gateway\n\nBuild Cache Layer",
         completionGate: "bun test tests",
         autoDecouple: true,

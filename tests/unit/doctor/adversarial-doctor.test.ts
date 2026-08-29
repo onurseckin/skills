@@ -16,7 +16,7 @@ import {
   type DoctorCertificationReport,
   type HarnessHealthCheck,
   type MutationKind,
-} from "../../../olt/scripts/src/reporting/doctor/adversarial-doctor.ts";
+} from "../../../olt/scripts/src/reporting/doctor/adversarial-doctor/index.ts";
 
 const tempDirs: string[] = [];
 afterEach(async () => {
@@ -368,8 +368,11 @@ describe("Adversarial Doctor & Counterfactual Certification", () => {
   });
 
   describe("Static Invariants: Zero Any & Zero Compiler Suppressions", () => {
-    test("adversarial-doctor.ts contains zero any and zero suppressions", () => {
-      const srcPath = join(process.cwd(), "olt/scripts/src/reporting/doctor/adversarial-doctor.ts");
+    test("adversarial-doctor index.ts contains zero any and zero suppressions", () => {
+      const srcPath = join(
+        process.cwd(),
+        "olt/scripts/src/reporting/doctor/adversarial-doctor/index.ts",
+      );
 
       const srcContent = readFileSync(srcPath, "utf-8");
 

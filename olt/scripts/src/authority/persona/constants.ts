@@ -1,4 +1,4 @@
-import { DEFAULT_HEARTBEAT_CADENCE_MS } from "../watchdog-manager.ts";
+import { DEFAULT_HEARTBEAT_CADENCE_MS } from "../watchdog/index.ts";
 import type { DriftSeverity, RoleBoundaryProfile, SupervisoryRole } from "./types.ts";
 
 export const SUPERVISORY_ROLE_BOUNDARIES: Readonly<Record<SupervisoryRole, RoleBoundaryProfile>> = {
@@ -73,7 +73,7 @@ export const SUPERVISORY_ROLE_BOUNDARIES: Readonly<Record<SupervisoryRole, RoleB
       "Dispatches Tier 2 Coordinators, NEVER Tier 3 workers directly (cross-tier spawning violation).",
       "NEVER write, edit, stage, format, or delete repository files during task execution.",
       "Drives autonomous multi-round loop; synthesizes unresolved findings and failed gates into next round's prompt.",
-      "Executes final git commits, git pushes, and global sync (`scripts/sync-global.ts`) strictly on background threads before loop recycling.",
+      "Executes final git commits, git pushes, and global sync (`scripts/sync/index.ts`) strictly on background threads before loop recycling.",
       "Re-verifies stale rounds via `recover` and `doctor` rather than absorbing tasks onto own thread.",
       "Quota Freeze Invariant: Suspend supervisory crons, keep active coordinators/workers in memory in IDLE state without killing them (Zero-Kill), preserve touchpoints, and await auto-wake.",
     ],

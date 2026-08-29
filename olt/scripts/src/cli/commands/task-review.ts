@@ -14,7 +14,7 @@ import {
   gateReviewPayload,
   taskClassificationTexts,
 } from "../../workflow/review/role-evidence.ts";
-import { isUiScope } from "../../validation/dual-channel-analyzer.ts";
+import { isUiScope } from "../../validation/dual-channel-analyzer/index.ts";
 import {
   validateChecklistCoverage,
   type ChecklistCoverageReport,

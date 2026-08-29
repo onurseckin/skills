@@ -126,7 +126,9 @@ export function agentIdToTier(agentId: string): ExecutionTier | null {
   if (/^mind|^human/i.test(normalized)) return 0;
   if (/^orch/i.test(normalized)) return 1;
   if (/^coord/i.test(normalized)) return 2;
-  if (/^(impl|val|critic|completeness[-_]critic|repair|worker|sub|plan)/i.test(normalized)) {
+  if (
+    /^(impl|val|critic|completeness[-_]critic|repair|worker|sub|plan|mechanic|ui)/i.test(normalized)
+  ) {
     return 3;
   }
   return null;
@@ -139,6 +141,9 @@ export function agentIdToRole(agentId: string): string | null {
   if (/^human/i.test(normalized)) return "human";
   if (/^orch/i.test(normalized)) return "orchestrator";
   if (/^coord/i.test(normalized)) return "coordinator";
+  if (/^ui[-_]mechanic[-_]validator/i.test(normalized)) return "ui-mechanic-validator";
+  if (/^ui[-_]validator/i.test(normalized)) return "ui-validator";
+  if (/^mechanic[-_]validator/i.test(normalized)) return "mechanic-validator";
   if (/^validator[-_]code[-_]quality/i.test(normalized)) return "validator-code-quality";
   if (/^validator[-_]ui[-_]design/i.test(normalized)) return "validator-ui-design";
   if (/^validator[-_]security/i.test(normalized)) return "validator-security";

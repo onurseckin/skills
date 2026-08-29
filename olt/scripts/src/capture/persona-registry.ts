@@ -6,7 +6,7 @@ import type {
   RepoPolicy,
   UserPersonaConfig,
   UserPersonaRole,
-} from "../policy/types.ts";
+} from "../policy/types/index.ts";
 
 export const CANONICAL_PERSONA_ROLES: readonly UserPersonaRole[] = [
   "admin",

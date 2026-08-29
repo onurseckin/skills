@@ -16,7 +16,7 @@ import { projectFindingsForNode, type AssetRegistry } from "./graph-asset-owners
 import { buildNodeBrowserTests } from "../formatters/browser-tests.ts";
 import { isCriticCommand, buildNodeScripts } from "../markdown/node-evidence.ts";
 import type { StepAssignments } from "../metrics/step-calculator.ts";
-import type { GraphEdgeData, GraphNodeData, IoPort, NodeKind } from "../types.ts";
+import type { GraphEdgeData, GraphNodeData, IoPort, NodeKind } from "./graph-types.ts";
 
 export interface CriticNodeInput {
   runId: string;

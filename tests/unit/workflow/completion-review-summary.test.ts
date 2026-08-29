@@ -3,7 +3,7 @@ import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index
 import { recordCompletionReview } from "../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
 import type { RepositoryBindingVerifier } from "../../../olt/scripts/src/workflow/completion/repository-binding.ts";
 import type { TransactionPort } from "../../../olt/scripts/src/workflow/types.ts";
-import { collectActionSteps } from "../../../olt/scripts/src/summary/timeline-collector.ts";
+import { collectActionSteps } from "../../../olt/scripts/src/summary/metrics/index.ts";
 import {
   at,
   commandRecord,

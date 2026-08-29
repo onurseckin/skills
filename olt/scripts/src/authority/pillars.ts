@@ -74,7 +74,7 @@ export const PILLAR_3_THREAD_AUTHORITY: CognitivePillar = {
   keyInvariants: [
     "Interactive main thread / supervisory leads must NEVER write, edit, stage, format, or delete repository files.",
     "Respect strict 4-Tier hierarchy: Mind (T0) -> Orchestrator (T1) -> Coordinator (T2) -> Workers (T3). Never skip tiers or cross-spawn.",
-    "Execute final git commits, git pushes, and global sync (`scripts/sync-global.ts`) strictly on background worker/orchestrator threads.",
+    "Execute final git commits, git pushes, and global sync (`scripts/sync/index.ts`) strictly on background worker/orchestrator threads.",
   ],
   selfAuditQuestion:
     "Am I strictly honoring my tier authority boundaries and ensuring zero code edits or git mutations on supervisory/main threads?",

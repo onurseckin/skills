@@ -16,7 +16,7 @@ import {
   isCoordinatorRole,
   isOrchestratorRole,
   isMindRole,
-} from "../../reporting/doctor/tier-confinement.ts";
+} from "../../reporting/doctor/tier-confinement/index.ts";
 
 export interface EffortEvidenceOptions {
   currentWriteScopeContentHash?: Evidenced<string>;

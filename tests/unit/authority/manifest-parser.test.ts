@@ -17,7 +17,7 @@ import {
   type AgentManifest,
   type RoleContract,
   type UnifiedAgentModel,
-} from "../../../olt/scripts/src/authority/manifest-parser.ts";
+} from "../../../olt/scripts/src/authority/manifest/index.ts";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
@@ -31,7 +31,7 @@ import {
   type DecisionProtocolId,
   type SupervisoryPersonaReminder,
   type SupervisoryReminderEvaluationContext,
-} from "../../../olt/scripts/src/authority/supervisory-persona-reminder.ts";
+} from "../../../olt/scripts/src/authority/supervisory/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 

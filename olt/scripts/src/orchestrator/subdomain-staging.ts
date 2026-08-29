@@ -1,5 +1,5 @@
-import { execSync } from "node:child_process";
-import { createHash, randomBytes } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import type { GitStagingInvariantRecord } from "../mind/preplanning/types.ts";
 
 export interface GitStagingOptions {
@@ -12,7 +12,19 @@ export interface GitStagingOptions {
 
 export function defaultGitRunner(cmd: string, cwd: string): string {
   try {
-    return execSync(cmd, { cwd, encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+    const parts = cmd.match(/(?:[^\s"]+|"[^"]*")+/g) ?? [];
+    const command = parts[0];
+    if (!command) return "";
+    const args = parts
+      .slice(1)
+      .map((arg) => (arg.startsWith('"') && arg.endsWith('"') ? arg.slice(1, -1) : arg));
+    const result = spawnSync(command, args, {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "pipe"],
+      shell: false,
+    });
+    return (result.stdout ?? "").trim();
   } catch {
     return "";
   }

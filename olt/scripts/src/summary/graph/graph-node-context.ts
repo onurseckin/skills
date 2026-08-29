@@ -4,7 +4,7 @@ import type { TaskRecord } from "../../workflow/types.ts";
 import { earliestOpenValidation } from "../../workflow/review/validation-state.ts";
 import type { AgentLedgerView } from "../metrics/agent-telemetry.ts";
 import type { ArchivedRoundContext } from "./graph-round-context.ts";
-import type { FileRef, MediaAsset, NodeFinding, NodeStatus } from "../types.ts";
+import type { FileRef, MediaAsset, NodeFinding, NodeStatus } from "./graph-types.ts";
 
 export interface TaskNodeContext {
   task: TaskRecord;

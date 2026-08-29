@@ -1,6 +1,6 @@
 import { HarnessError } from "../../core/errors/index.ts";
 import { getAllCognitivePillars, getPillarAuditQuestions } from "../pillars.ts";
-import { DEFAULT_HEARTBEAT_CADENCE_MS } from "../watchdog-manager.ts";
+import { DEFAULT_HEARTBEAT_CADENCE_MS } from "../watchdog/index.ts";
 import { SUPERVISORY_ROLE_BOUNDARIES } from "./constants.ts";
 import { evaluateReflexiveSelfAudit } from "./evaluator.ts";
 import { normalizeSupervisoryRole, parseNowMs } from "./profiles.ts";
@@ -12,7 +12,7 @@ import type {
   WatchdogGroundingInjection,
   WatchdogPersonaGroundingOptions,
 } from "./types.ts";
-import { clearManifestCache } from "../manifest-parser.ts";
+import { clearManifestCache } from "../manifest/index.ts";
 
 export function generateWatchdogPersonaGrounding(
   options: WatchdogPersonaGroundingOptions,

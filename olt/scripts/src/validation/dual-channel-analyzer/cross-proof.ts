@@ -1,7 +1,7 @@
 import { realpathSync } from "node:fs";
 import { isAbsolute, join, resolve, sep } from "node:path";
 import { CANONICAL_VIEWPORTS } from "../../capture/config/default-presets.ts";
-import { readHeader } from "../../summary/assets/asset-measure.ts";
+import { readHeader } from "../../summary/assets/index.ts";
 import {
   normalizeViewportName,
   validateCrossChannelConsistency,
