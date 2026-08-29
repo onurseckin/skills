@@ -15,11 +15,7 @@ __pycache__/
 *.tsbuildinfo
 
 # build / run capsules scratch
-!.olt/
-.olt/capsules/
-.olt/scratch/
-.olt/.sessions/
-.olt/auditor-cursors.json
+.olt/
 /scratch/
 /.scratch/
 /.tmp/
