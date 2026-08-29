@@ -148,3 +148,45 @@ Performs generational rotation, carrying forward charter pin and declined candid
 ```bash
 bun harness.ts mind:rotate --run .olt/capsules/mind-gen-1 --next-run .olt/capsules/mind-gen-2 --actor coordinator-1
 ```
+
+### `factory:preplan`
+
+Execute continuous pre-planning factory tick to cluster backlog and emit blueprints.
+
+Scans .olt/backlog.jsonl and .olt/defects.jsonl, groups eligible items into thematic domain clusters, writes Phase 1 master plan blueprints, and updates bridge states under flock protection.
+
+- **Aliases**: `mind:preplan`, `preplan:run`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--repo` | string | no | no | - | Repository root path. |
+| `--root` | string | no | no | - | Alias for --repo. |
+| `--dry-run` | bool | no | no | - | Simulate clustering and blueprint generation without disk mutations. |
+
+```bash
+bun harness.ts factory:preplan
+bun harness.ts factory:preplan --dry-run
+bun harness.ts factory:preplan --repo .
+```
+
+### `factory:status`
+
+Inspect factory pre-planning queue health, stagnation status, and concurrency saturation.
+
+Audits the pre-planning backlog queue against stagnation thresholds, evaluates skill concurrency saturation, and reports readiness for blueprint assembly.
+
+- **Aliases**: `mind:factory:status`, `preplan:status`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--repo` | string | no | no | - | Repository root path. |
+| `--root` | string | no | no | - | Alias for --repo. |
+
+```bash
+bun harness.ts factory:status
+bun harness.ts factory:status --repo .
+```

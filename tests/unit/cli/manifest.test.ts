@@ -32,7 +32,7 @@ describe("CLI capability manifest", () => {
   });
 
   test("checked-in per-domain markdown matches the registry render, for every domain", () => {
-    const largeDomains = ["mind", "reporting", "plan", "task"];
+    const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
     for (const domain of COMMAND_DOMAINS) {
       if (largeDomains.includes(domain)) continue; // large domains are sharded
       const onDisk = readFileSync(join(splitRoot, `domains/${domain}.md`), "utf-8");
@@ -47,7 +47,7 @@ describe("CLI capability manifest", () => {
   test("checked-in index.jsonl matches the registry render", () => {
     const onDisk = readFileSync(join(splitRoot, "index.jsonl"), "utf-8");
 
-    const largeDomains = ["mind", "reporting", "plan", "task"];
+    const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
     function getShardKey(commandName: string, domain: string): string {
       if (domain === "mind") {
         if (commandName.includes("queue")) return "queue";
@@ -98,6 +98,18 @@ describe("CLI capability manifest", () => {
           return "lifecycle";
         if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
         return "ops";
+      }
+      if (domain === "diagnostics") {
+        if (commandName.includes("doctor") || commandName.includes("health") || commandName.includes("recover"))
+          return "doctor";
+        if (
+          commandName.includes("finding") ||
+          commandName.includes("defect") ||
+          commandName.includes("audit") ||
+          commandName.includes("coverage")
+        )
+          return "audit";
+        return "tools";
       }
       return "core";
     }
@@ -119,7 +131,7 @@ describe("CLI capability manifest", () => {
   test("checked-in per-command json matches the registry render, for every command", () => {
     const manifest = capabilityManifest();
 
-    const largeDomains = ["mind", "reporting", "plan", "task"];
+    const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
     function getShardKey(commandName: string, domain: string): string {
       if (domain === "mind") {
         if (commandName.includes("queue")) return "queue";
@@ -170,6 +182,18 @@ describe("CLI capability manifest", () => {
           return "lifecycle";
         if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
         return "ops";
+      }
+      if (domain === "diagnostics") {
+        if (commandName.includes("doctor") || commandName.includes("health") || commandName.includes("recover"))
+          return "doctor";
+        if (
+          commandName.includes("finding") ||
+          commandName.includes("defect") ||
+          commandName.includes("audit") ||
+          commandName.includes("coverage")
+        )
+          return "audit";
+        return "tools";
       }
       return "core";
     }
@@ -189,7 +213,7 @@ describe("CLI capability manifest", () => {
 
     const expected = new Set<string>(["manifest.json", "index.jsonl"]);
 
-    const largeDomains = ["mind", "reporting", "plan", "task"];
+    const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
     function getShardKey(commandName: string, domain: string): string {
       if (domain === "mind") {
         if (commandName.includes("queue")) return "queue";
@@ -241,6 +265,18 @@ describe("CLI capability manifest", () => {
         if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
         return "ops";
       }
+      if (domain === "diagnostics") {
+        if (commandName.includes("doctor") || commandName.includes("health") || commandName.includes("recover"))
+          return "doctor";
+        if (
+          commandName.includes("finding") ||
+          commandName.includes("defect") ||
+          commandName.includes("audit") ||
+          commandName.includes("coverage")
+        )
+          return "audit";
+        return "tools";
+      }
       return "core";
     }
 
@@ -248,6 +284,7 @@ describe("CLI capability manifest", () => {
       expected.add(`domains/${domain}.md`);
 
       const commands = COMMAND_REGISTRY.filter((c) => c.domain === domain);
+      const domainLines = renderDomainMarkdown(domain).split("\n");
       if (largeDomains.includes(domain)) {
         expected.add(`commands/${domain}/index.json`);
         const shards = new Set<string>();
@@ -258,7 +295,9 @@ describe("CLI capability manifest", () => {
         }
         for (const shard of shards) {
           expected.add(`commands/${domain}/${shard}/index.json`);
-          expected.add(`domains/${domain}/${shard}.md`);
+          if (domainLines.length > 300) {
+            expected.add(`domains/${domain}/${shard}.md`);
+          }
         }
       } else {
         for (const cmd of commands) {
@@ -308,7 +347,7 @@ describe("CLI capability manifest", () => {
   });
 
   test("every generated command file stays small enough to read in one grep hit", () => {
-    const largeDomains = ["mind", "reporting", "plan", "task"];
+    const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
     function getShardKey(commandName: string, domain: string): string {
       if (domain === "mind") {
         if (commandName.includes("queue")) return "queue";
@@ -359,6 +398,18 @@ describe("CLI capability manifest", () => {
           return "lifecycle";
         if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
         return "ops";
+      }
+      if (domain === "diagnostics") {
+        if (commandName.includes("doctor") || commandName.includes("health") || commandName.includes("recover"))
+          return "doctor";
+        if (
+          commandName.includes("finding") ||
+          commandName.includes("defect") ||
+          commandName.includes("audit") ||
+          commandName.includes("coverage")
+        )
+          return "audit";
+        return "tools";
       }
       return "core";
     }

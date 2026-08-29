@@ -8,6 +8,7 @@ import { QuotaCircuitBreaker } from "../../../olt/scripts/src/telemetry/circuit-
 import { loadDagSnapshot } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
 import { readTelemetryStream } from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
 
 describe("Quota Lifecycle", () => {
   const TMP_DIR = join(process.cwd(), "tests-tmp-quota-lifecycle");
@@ -40,19 +41,32 @@ describe("Quota Lifecycle", () => {
 
   it("Normal state (quota > 10%) -> quota:check is OK and quota:freeze skips unless forced", async () => {
     const breaker = new QuotaCircuitBreaker();
+    const normalReport: UnifiedTelemetryReport = {
+      timestamp: new Date().toISOString(),
+      results: [
+        {
+          platformId: "antigravity",
+          isDetected: true,
+          primaryTierUsed: "tier1_cli_command",
+          errors: [],
+          rawObservations: {},
+          metrics: [
+            {
+              rawMetricName: "requests",
+              canonicalProvider: "antigravity",
+              windowType: "sliding",
+              remainingPercentage: 20,
+              sourceTier: "tier1_cli_command",
+              confidence: "verified_exact",
+              rawPayload: { remainingPercentage: 20, requestsRemaining: 100 },
+            },
+          ],
+        },
+      ],
+      summary: {},
+    };
     const evaluation = breaker.evaluate(
-      {
-        results: [
-          {
-            platformId: "antigravity",
-            tier: "tier1-rpc",
-            isDetected: true,
-            errors: [],
-            metrics: [{ remainingPercentage: 20, requestsRemaining: 100 }],
-          },
-        ],
-        timestamp: new Date().toISOString(),
-      } as any,
+      normalReport,
       { thresholdPercentage: 10, activeAgentsCount: 0 },
     );
 
@@ -64,25 +78,36 @@ describe("Quota Lifecycle", () => {
 
   it("Quota breach (<10%) -> triggers circuit breaker, computes resetTime + 60s auto-wake", () => {
     const breaker = new QuotaCircuitBreaker();
-    const evaluation = breaker.evaluate(
-      {
-        results: [
-          {
-            platformId: "antigravity",
-            tier: "tier1-rpc",
-            isDetected: true,
-            errors: [],
-            metrics: [
-              {
+    const breachReport: UnifiedTelemetryReport = {
+      timestamp: "2024-01-01T10:00:00Z",
+      results: [
+        {
+          platformId: "antigravity",
+          isDetected: true,
+          primaryTierUsed: "tier1_cli_command",
+          errors: [],
+          rawObservations: {},
+          metrics: [
+            {
+              rawMetricName: "requests",
+              canonicalProvider: "antigravity",
+              windowType: "sliding",
+              remainingPercentage: 5,
+              sourceTier: "tier1_cli_command",
+              confidence: "verified_exact",
+              rawPayload: {
                 remainingPercentage: 5,
                 requestsRemaining: 100,
                 resetTime: "2024-01-01T12:00:00Z",
               },
-            ],
-          },
-        ],
-        timestamp: "2024-01-01T10:00:00Z",
-      } as any,
+            },
+          ],
+        },
+      ],
+      summary: {},
+    };
+    const evaluation = breaker.evaluate(
+      breachReport,
       { thresholdPercentage: 10, activeAgentsCount: 1 },
     );
 

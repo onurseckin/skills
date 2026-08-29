@@ -29,16 +29,21 @@ export class RootDirectoryHygieneGuard {
         );
       }
 
-      // Check static package purity inside `olt/`
-      if (topDir === "olt") {
-        const fileName = segments[segments.length - 1] ?? "";
-        if (
-          fileName.endsWith(".jsonl") ||
-          fileName.endsWith(".log") ||
-          segments.includes("coverage") ||
-          segments.includes("quarantine") ||
-          segments.includes(".coverage")
-        ) {
+      // Check static package purity inside `olt/` (ignoring static reference docs)
+      if (topDir === "olt" && !segments.includes("references")) {
+        const lastSegment = segments[segments.length - 1];
+        const fileName = typeof lastSegment === "string" ? lastSegment : "";
+        const forbiddenSuffixes = [".jsonl", ".log"];
+        const forbiddenSegments = ["coverage", "quarantine", ".coverage"];
+        const isRuntimeFile = forbiddenSuffixes.some((suffix) => fileName.endsWith(suffix));
+        const isRuntimeDir = forbiddenSegments.some((dir) => segments.includes(dir));
+        if (isRuntimeFile) {
+          throw new HarnessError(
+            "PATH_SAFETY",
+            `[ROOT_HYGIENE_VIOLATION] Cannot write runtime file or directory '${rel}' inside static package directory 'olt/'. All runtime state must live in '.olt/'.`,
+          );
+        }
+        if (isRuntimeDir) {
           throw new HarnessError(
             "PATH_SAFETY",
             `[ROOT_HYGIENE_VIOLATION] Cannot write runtime file or directory '${rel}' inside static package directory 'olt/'. All runtime state must live in '.olt/'.`,

@@ -1,0 +1,27 @@
+{
+  "name": "factory:status",
+  "aliases": [
+    "mind:factory:status",
+    "preplan:status"
+  ],
+  "domain": "mind",
+  "summary": "Inspect factory pre-planning queue health, stagnation status, and concurrency saturation.",
+  "flags": [
+    {
+      "name": "repo",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "root",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

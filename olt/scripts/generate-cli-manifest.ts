@@ -28,51 +28,47 @@ function getShardKey(commandName: string, domain: string): string {
   if (domain === "mind") {
     if (commandName.includes("queue")) return "queue";
     if (commandName.includes("audit")) return "audit";
-    if (commandName.includes("memory") || commandName.includes("smart-task")) return "knowledge";
+    if (["memory", "smart-task"].some((k) => commandName.includes(k))) return "knowledge";
     if (commandName.includes("pulse")) return "pulse";
     if (commandName.includes("round")) return "round";
-    if (
-      commandName.includes("admit") ||
-      commandName.includes("decline") ||
-      commandName.includes("candidate")
-    )
+    if (["admit", "decline", "candidate"].some((k) => commandName.includes(k)))
       return "admission";
     return "lifecycle";
   }
   if (domain === "reporting") {
     if (commandName.includes("quota")) return "quota";
     if (commandName.includes("dag")) return "dag";
-    if (
-      commandName.includes("report-") ||
-      commandName.includes("test-summary") ||
-      commandName === "report"
-    )
+    if (["report-", "test-summary", "report"].some((k) => commandName.includes(k)))
       return "reports";
     if (commandName.includes("stream")) return "stream";
     return "telemetry";
   }
   if (domain === "plan") {
     if (
-      commandName.includes("validate") ||
-      commandName.includes("audit") ||
-      commandName.includes("review") ||
-      commandName.includes("claim") ||
-      commandName.includes("apply") ||
-      commandName.includes("replan")
+      ["validate", "audit", "review", "claim", "apply", "replan"].some((k) =>
+        commandName.includes(k),
+      )
     )
       return "validation";
     return "authoring";
   }
   if (domain === "task") {
-    if (commandName.includes("review") || commandName.includes("validate")) return "review";
-    if (
-      commandName.includes("claim") ||
-      commandName.includes("submit") ||
-      commandName.includes("assign")
-    )
+    if (["review", "validate"].some((k) => commandName.includes(k))) return "review";
+    if (["claim", "submit", "assign"].some((k) => commandName.includes(k)))
       return "lifecycle";
-    if (commandName.includes("abandon") || commandName.includes("release")) return "terminal";
+    if (["abandon", "release"].some((k) => commandName.includes(k))) return "terminal";
     return "ops";
+  }
+  if (domain === "diagnostics") {
+    if (["doctor", "health", "recover"].some((k) => commandName.includes(k)))
+      return "doctor";
+    if (
+      ["finding", "defect", "audit", "coverage"].some((k) =>
+        commandName.includes(k),
+      )
+    )
+      return "audit";
+    return "tools";
   }
   return "core";
 }
@@ -95,7 +91,7 @@ export function writeManifest(): { markdown: string; splitFiles: string[] } {
   );
   splitFiles.push(join(paths.splitRoot, "manifest.json"));
 
-  const largeDomains = ["mind", "reporting", "plan", "task"];
+  const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
   const allCommands = capabilityManifest().commands;
 
   let indexJsonl = renderCommandIndexJsonl();
@@ -123,16 +119,19 @@ export function writeManifest(): { markdown: string; splitFiles: string[] } {
       const shards = new Map<string, string[]>();
       for (const spec of specs) {
         const shard = getShardKey(spec.name, domain);
-        if (!shards.has(shard)) {
+        const existing = shards.get(shard);
+        if (existing) {
+          existing.push(...commandSection(spec));
+        } else {
           shards.set(shard, [
             `# CLI Capability Manifest \u2014 ${domain} (${shard})`,
             "",
             `Generated from \`olt/scripts/src/cli/registry\` by \`olt/scripts/generate-cli-manifest.ts\`. Do not edit by`,
             "hand. Index: [`../../cli-capabilities.md`](../../cli-capabilities.md).",
             "",
+            ...commandSection(spec),
           ]);
         }
-        shards.get(shard)!.push(...commandSection(spec));
       }
 
       const domainIndexContent = [
@@ -147,7 +146,10 @@ export function writeManifest(): { markdown: string; splitFiles: string[] } {
 
       const sortedShards = Array.from(shards.keys()).sort();
       for (const shard of sortedShards) {
-        const lines = shards.get(shard)!;
+        const lines = shards.get(shard);
+        if (!lines) {
+          continue;
+        }
         const shardFile = `domains/${domain}/${shard}.md`;
         domainIndexContent.push(`- [${shard}](${domain}/${shard}.md)`);
 
@@ -170,8 +172,8 @@ export function writeManifest(): { markdown: string; splitFiles: string[] } {
 
     // JSON Sharding
     if (largeDomains.includes(domain)) {
-      const entries = [];
-      const shards = new Map<string, any[]>();
+      const entries: Array<{ id: string; path: string }> = [];
+      const shards = new Map<string, Array<{ id: string; path: string }>>();
 
       for (const cmd of domainCommands) {
         const shard = getShardKey(cmd.name, domain);
@@ -182,14 +184,21 @@ export function writeManifest(): { markdown: string; splitFiles: string[] } {
         writeFileSync(fullTarget, renderCommandDetailJson(cmd), "utf-8");
         splitFiles.push(fullTarget);
 
-        if (!shards.has(shard)) shards.set(shard, []);
-        shards.get(shard)!.push({ id: cmd.name, path: `${cmd.name.replaceAll(":", "-")}.json` });
+        const existingShard = shards.get(shard);
+        if (existingShard) {
+          existingShard.push({ id: cmd.name, path: `${cmd.name.replaceAll(":", "-")}.json` });
+        } else {
+          shards.set(shard, [{ id: cmd.name, path: `${cmd.name.replaceAll(":", "-")}.json` }]);
+        }
       }
 
-      const domainEntries = [];
+      const domainEntries: Array<{ id: string; path: string }> = [];
       const sortedShards = Array.from(shards.keys()).sort();
       for (const shard of sortedShards) {
-        const shardEntries = shards.get(shard)!;
+        const shardEntries = shards.get(shard);
+        if (!shardEntries) {
+          continue;
+        }
         const shardIndex = {
           schema: "olt-cli-catalog/v1",
           domain: domain,

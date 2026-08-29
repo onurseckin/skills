@@ -66,7 +66,7 @@ All contributors to the Reference Hub must adhere to the following non-negotiabl
 4. **Deterministic Command Receipts**: Every shell snippet must specify exact command invocations (e.g. `bun olt/scripts/harness.ts <command>`) and corresponding JSON output envelopes.
 5. **Universal Clean 4-Way Navigation**: Top and bottom bars must match the standard clean format:
    ```markdown
-   [Previous: <Title>](prev_path) | [Reference Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: <Title>](next_path)
+   [Previous: Reference Index](index.md) | [Reference Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Quickstart Tutorial](quickstart.md)
    ```
 6. **100% Relative Link Integrity**: All relative links must resolve to existing on-disk targets.
 

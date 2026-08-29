@@ -47,7 +47,7 @@ own status in `exit_code`.
 | diagnostics | 11 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
 | gate | 1 | [cli-capabilities/domains/gate.md](cli-capabilities/domains/gate.md) |
 | capture | 3 | [cli-capabilities/domains/capture.md](cli-capabilities/domains/capture.md) |
-| mind | 25 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
+| mind | 27 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
 | policy | 4 | [cli-capabilities/domains/policy.md](cli-capabilities/domains/policy.md) |
 
 ## Commands
@@ -186,3 +186,5 @@ own status in `exit_code`.
 | `policy:get` | policy | Inspect repo policy or retrieve a specific policy key value. |
 | `policy:set` | policy | Set or update a specific key value in .olt/policy.json. |
 | `policy:check-drift` | policy | Check for policy file drift against a known SHA-256 checksum. |
+| `factory:preplan` | mind | Execute continuous pre-planning factory tick to cluster backlog and emit blueprints. |
+| `factory:status` | mind | Inspect factory pre-planning queue health, stagnation status, and concurrency saturation. |

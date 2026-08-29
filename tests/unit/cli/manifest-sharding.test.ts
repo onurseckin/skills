@@ -103,7 +103,7 @@ describe("CLI capability manifest sharding and modularity", () => {
 
   test("all generated index.json files follow the catalog index schema", () => {
     writeManifest();
-    const largeDomains = ["mind", "reporting", "plan", "task"] as const;
+    const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"] as const;
     for (const domain of largeDomains) {
       const index = readCatalog(`commands/${domain}/index.json`);
       expect(index.schema).toBe("olt-cli-catalog/v1");

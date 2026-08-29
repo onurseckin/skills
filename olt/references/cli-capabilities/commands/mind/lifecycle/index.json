@@ -29,6 +29,14 @@
     {
       "id": "mind:rotate",
       "path": "mind-rotate.json"
+    },
+    {
+      "id": "factory:preplan",
+      "path": "factory-preplan.json"
+    },
+    {
+      "id": "factory:status",
+      "path": "factory-status.json"
     }
   ]
 }

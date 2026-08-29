@@ -1,0 +1,22 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "diagnostics",
+  "entries": [
+    {
+      "id": "defect:audit",
+      "path": "defect-audit.json"
+    },
+    {
+      "id": "coverage:check",
+      "path": "coverage-check.json"
+    },
+    {
+      "id": "meta-audit",
+      "path": "meta-audit.json"
+    },
+    {
+      "id": "finding:file",
+      "path": "finding-file.json"
+    }
+  ]
+}

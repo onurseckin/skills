@@ -157,6 +157,8 @@ const EXPECTED_INVOCATIONS = [
   "task:release",
   "worktree:reclaim",
   "meta-audit",
+  "finding:file",
+  "finding",
   "explain",
   "gate:prove",
   "coordinator:pushback",
@@ -208,6 +210,12 @@ const EXPECTED_INVOCATIONS = [
   "policy:set",
   "policy:check-drift",
   "policy:drift",
+  "factory:preplan",
+  "mind:preplan",
+  "preplan:run",
+  "factory:status",
+  "mind:factory:status",
+  "preplan:status",
 ];
 
 describe("CLI command registry", () => {

@@ -35,7 +35,8 @@ export function purgeOrphanedScratch(repoRoot: string): string[] {
   }
 
   for (const entry of entries) {
-    if (ALLOWED_ROOT_FILES.has(entry) || ALLOWED_ROOT_DIRS.has(entry)) continue;
+    if (ALLOWED_ROOT_FILES.has(entry)) continue;
+    if (ALLOWED_ROOT_DIRS.has(entry)) continue;
 
     const fullPath = join(root, entry);
     try {
@@ -81,12 +82,8 @@ function cleanStaticPackagePollution(
       try {
         const stats = statSync(fullPath);
         if (stats.isDirectory()) {
-          if (
-            entry === "coverage" ||
-            entry === ".coverage" ||
-            entry === "logs" ||
-            entry === "quarantine"
-          ) {
+          const forbiddenDirs = ["coverage", ".coverage", "logs", "quarantine"];
+          if (forbiddenDirs.includes(entry)) {
             findings.push({
               path: fullPath,
               violationType: "STATIC_PACKAGE_RUNTIME_POLLUTION",
@@ -102,11 +99,14 @@ function cleanStaticPackagePollution(
                 // ignore
               }
             }
-          } else {
+          } else if (entry !== "references") {
             scanDir(fullPath);
           }
         } else if (stats.isFile()) {
-          if (entry.endsWith(".jsonl") || entry.endsWith(".log") || entry === "defects.jsonl") {
+          const isForbiddenSuffix = [".jsonl", ".log"].some((suffix) => entry.endsWith(suffix));
+          const isDefects = entry === "defects.jsonl";
+          const isRuntimePollution = [isForbiddenSuffix, isDefects].some(Boolean);
+          if (isRuntimePollution) {
             findings.push({
               path: fullPath,
               violationType: "STATIC_PACKAGE_RUNTIME_POLLUTION",
@@ -139,8 +139,9 @@ function cleanStaticPackagePollution(
 export function checkRepositoryHygiene(
   options: RepositoryHygieneOptions = {},
 ): RepositoryHygieneResult {
-  const repoRoot = resolve(options.repoRoot ?? process.cwd());
-  const fix = options.fix ?? false;
+  const explicitRoot = options.repoRoot;
+  const repoRoot = resolve(typeof explicitRoot === "string" ? explicitRoot : process.cwd());
+  const fix = typeof options.fix === "boolean" ? options.fix : false;
   const violations: RepositoryHygieneFinding[] = [];
   const scrubbedFiles: string[] = [];
 
@@ -162,11 +163,9 @@ export function checkRepositoryHygiene(
       const stats = statSync(fullPath);
       if (stats.isFile()) {
         if (!ALLOWED_ROOT_FILES.has(entry)) {
-          const isScratch =
-            SCRATCH_SCRIPT_PATTERNS.some((p) => p.test(entry)) ||
-            entry.endsWith(".sh") ||
-            entry.endsWith(".py") ||
-            entry.endsWith(".tmp");
+          const isPatternMatch = SCRATCH_SCRIPT_PATTERNS.some((p) => p.test(entry));
+          const isSuffixMatch = [".sh", ".py", ".tmp"].some((s) => entry.endsWith(s));
+          const isScratch = [isPatternMatch, isSuffixMatch].some(Boolean);
 
           violations.push({
             path: fullPath,

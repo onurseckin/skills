@@ -1,0 +1,26 @@
+{
+  "schema": "olt-cli-catalog/v1",
+  "domain": "diagnostics",
+  "entries": [
+    {
+      "id": "health",
+      "path": "health.json"
+    },
+    {
+      "id": "doctor",
+      "path": "doctor.json"
+    },
+    {
+      "id": "doctor:repair",
+      "path": "doctor-repair.json"
+    },
+    {
+      "id": "doctor:certify",
+      "path": "doctor-certify.json"
+    },
+    {
+      "id": "recover",
+      "path": "recover.json"
+    }
+  ]
+}
