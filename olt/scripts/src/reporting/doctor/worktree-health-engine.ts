@@ -33,10 +33,7 @@ interface ParsedLockFile {
   readonly createdAt?: string;
 }
 
-function parseTrackLock(lockPath: string): {
-  readonly data: ParsedLockFile | null;
-  readonly isCorrupt: boolean;
-} {
+function parseTrackLock(lockPath: string): { readonly data: ParsedLockFile | null; readonly isCorrupt: boolean } {
   try {
     if (!existsSync(lockPath)) return { data: null, isCorrupt: false };
     const content = readFileSync(lockPath, "utf8").trim();
@@ -49,17 +46,11 @@ function parseTrackLock(lockPath: string): {
   }
 }
 
-function isBranchMerged(
-  repoRoot: string,
-  branch: string,
-  baseBranch = "main",
-  runner = runGit,
-): boolean {
+function isBranchMerged(repoRoot: string, branch: string, baseBranch = "main", runner = runGit): boolean {
   try {
     const result = runner(repoRoot, ["branch", "--merged", baseBranch]);
     if (result.status !== 0) return false;
-    const branches = result.stdout.split("\n").map((b) => b.trim().replace(/^[*+]\s+/, ""));
-    return branches.includes(branch);
+    return result.stdout.split("\n").map((b) => b.trim().replace(/^[*+]\s+/, "")).includes(branch);
   } catch {
     return false;
   }
@@ -69,10 +60,7 @@ function getGitWorktreePaths(repoRoot: string, runner = runGit): readonly string
   try {
     const res = runner(repoRoot, ["worktree", "list", "--porcelain"]);
     if (res.status !== 0) return [];
-    return res.stdout
-      .split("\n")
-      .filter((l) => l.startsWith("worktree "))
-      .map((l) => resolve(l.slice("worktree ".length).trim()));
+    return res.stdout.split("\n").filter((l) => l.startsWith("worktree ")).map((l) => resolve(l.slice(9).trim()));
   } catch {
     return [];
   }
@@ -87,7 +75,7 @@ function findPrunableWorktrees(repoRoot: string, runner = runGit): readonly stri
     let isPrunable = false;
     for (const line of result.stdout.split("\n")) {
       if (line.startsWith("worktree ")) {
-        currentPath = line.slice("worktree ".length).trim();
+        currentPath = line.slice(9).trim();
         isPrunable = false;
       } else if (line.startsWith("prunable")) {
         isPrunable = true;
@@ -106,13 +94,9 @@ function findPrunableWorktrees(repoRoot: string, runner = runGit): readonly stri
   return prunable;
 }
 
-export function checkWorktreeHealth(
-  optionsOrRepoRoot?: string | WorktreeHealthOptions,
-): DoctorWorktreeHealthReport {
+export function checkWorktreeHealth(optionsOrRepoRoot?: string | WorktreeHealthOptions): DoctorWorktreeHealthReport {
   const options: WorktreeHealthOptions =
-    typeof optionsOrRepoRoot === "string"
-      ? { repoRoot: optionsOrRepoRoot }
-      : (optionsOrRepoRoot ?? {});
+    typeof optionsOrRepoRoot === "string" ? { repoRoot: optionsOrRepoRoot } : (optionsOrRepoRoot ?? {});
   const repoRoot = resolve(options.repoRoot ?? process.cwd());
   const runner = options.runner ?? runGit;
   const autoHeal = options.autoHeal ?? false;
@@ -124,13 +108,17 @@ export function checkWorktreeHealth(
   const worktreesDir = join(repoRoot, ".olt", "worktrees");
   const locksDir = join(worktreesDir, "locks");
 
+  const addFinding = (code: string, severity: "WARN" | "ERROR", issue: string, details?: Record<string, unknown>) => {
+    issues.push(issue);
+    findings.push({ code, severity, engine: "checkWorktreeHealth", message: issue, details });
+  };
+
   const gitPaths = new Set(getGitWorktreePaths(repoRoot, runner));
   const rawTrackWorktrees = listTrackWorktrees({ repoRoot, runner });
   const activeTrackWorktrees = rawTrackWorktrees.filter((wt) => {
     const hasMeta = existsSync(join(wt.worktreePath, ".worktree-meta.json"));
     const hasLock = existsSync(wt.lockPath) || existsSync(join(locksDir, `${wt.trackId}.lock`));
-    const inGit = gitPaths.has(resolve(wt.worktreePath));
-    return hasMeta || hasLock || inGit;
+    return hasMeta || hasLock || gitPaths.has(resolve(wt.worktreePath));
   });
 
   for (const wt of activeTrackWorktrees) {
@@ -141,53 +129,21 @@ export function checkWorktreeHealth(
     if (existsSync(lockPath)) {
       const { data: lockData, isCorrupt } = parseTrackLock(lockPath);
       if (isCorrupt) {
-        const issue = `Corrupted lock file for worktree '${wt.trackId}'`;
-        issues.push(issue);
-        findings.push({
-          code: "WORKTREE_CORRUPTED_METADATA",
-          severity: "WARN",
-          engine: "checkWorktreeHealth",
-          message: issue,
-          details: { trackId: wt.trackId, lockPath },
-        });
+        addFinding("WORKTREE_CORRUPTED_METADATA", "WARN", `Corrupted lock file for worktree '${wt.trackId}'`, { trackId: wt.trackId, lockPath });
       } else if (lockData?.pid) {
         lockPid = lockData.pid;
         if (!isProcessAlive(lockPid)) {
           isDead = true;
-          const issue = `Dead agent PID ${lockPid} holding track worktree '${wt.trackId}'`;
-          issues.push(issue);
-          findings.push({
-            code: "WORKTREE_DEAD_PID_LOCK",
-            severity: "ERROR",
-            engine: "checkWorktreeHealth",
-            message: issue,
-            details: { trackId: wt.trackId, lockPid, lockPath },
-          });
+          addFinding("WORKTREE_DEAD_PID_LOCK", "ERROR", `Dead agent PID ${lockPid} holding track worktree '${wt.trackId}'`, { trackId: wt.trackId, lockPid, lockPath });
         }
       }
     }
 
     const merged = isBranchMerged(repoRoot, wt.branch, baseBranch, runner);
     if (merged) {
-      const issue = `Track branch '${wt.branch}' for '${wt.trackId}' is merged into ${baseBranch} but not cleaned up`;
-      issues.push(issue);
-      findings.push({
-        code: "WORKTREE_MERGED_NOT_CLEANED",
-        severity: "WARN",
-        engine: "checkWorktreeHealth",
-        message: issue,
-        details: { trackId: wt.trackId, branch: wt.branch },
-      });
+      addFinding("WORKTREE_MERGED_NOT_CLEANED", "WARN", `Track branch '${wt.branch}' for '${wt.trackId}' is merged into ${baseBranch} but not cleaned up`, { trackId: wt.trackId, branch: wt.branch });
     } else if (isDead) {
-      const issue = `Unmerged branch '${wt.branch}' held by dead agent PID ${lockPid ?? "unknown"} in worktree '${wt.trackId}'`;
-      issues.push(issue);
-      findings.push({
-        code: "WORKTREE_UNMERGED_DEAD_AGENT_BRANCH",
-        severity: "ERROR",
-        engine: "checkWorktreeHealth",
-        message: issue,
-        details: { trackId: wt.trackId, branch: wt.branch, lockPid },
-      });
+      addFinding("WORKTREE_UNMERGED_DEAD_AGENT_BRANCH", "ERROR", `Unmerged branch '${wt.branch}' held by dead agent PID ${lockPid ?? "unknown"} in worktree '${wt.trackId}'`, { trackId: wt.trackId, branch: wt.branch, lockPid });
     }
 
     if (autoHeal && (isDead || merged)) {
@@ -215,36 +171,14 @@ export function checkWorktreeHealth(
         const trackId = file.replace(/\.lock$/, "");
         const isOrphan = !activeTrackWorktrees.some((w) => w.trackId === trackId);
         if (isCorrupt) {
-          const issue = `Corrupted orphaned lock '${file}'`;
-          issues.push(issue);
-          findings.push({
-            code: "WORKTREE_CORRUPTED_METADATA",
-            severity: "WARN",
-            engine: "checkWorktreeHealth",
-            message: issue,
-            details: { file, lockPath },
-          });
+          addFinding("WORKTREE_CORRUPTED_METADATA", "WARN", `Corrupted orphaned lock '${file}'`, { file, lockPath });
           if (autoHeal) {
-            try {
-              unlinkSync(lockPath);
-              repaired.push(`Removed corrupted lock '${file}'`);
-            } catch {}
+            try { unlinkSync(lockPath); repaired.push(`Removed corrupted lock '${file}'`); } catch {}
           }
         } else if (isOrphan && lockData?.pid && !isProcessAlive(lockData.pid)) {
-          const issue = `Orphaned lock '${file}' with dead PID ${lockData.pid}`;
-          issues.push(issue);
-          findings.push({
-            code: "WORKTREE_ORPHANED_LOCK",
-            severity: "WARN",
-            engine: "checkWorktreeHealth",
-            message: issue,
-            details: { file, lockPath, pid: lockData.pid },
-          });
+          addFinding("WORKTREE_ORPHANED_LOCK", "WARN", `Orphaned lock '${file}' with dead PID ${lockData.pid}`, { file, lockPath, pid: lockData.pid });
           if (autoHeal) {
-            try {
-              unlinkSync(lockPath);
-              repaired.push(`Removed orphaned lock '${file}'`);
-            } catch {}
+            try { unlinkSync(lockPath); repaired.push(`Removed orphaned lock '${file}'`); } catch {}
           }
         }
       }
@@ -256,28 +190,12 @@ export function checkWorktreeHealth(
       for (const item of readdirSync(worktreesDir)) {
         if (item === "locks" || item.startsWith(".")) continue;
         const itemPath = join(worktreesDir, item);
-        try {
-          if (!statSync(itemPath).isDirectory()) continue;
-        } catch {
-          continue;
-        }
+        try { if (!statSync(itemPath).isDirectory()) continue; } catch { continue; }
         if (!activeTrackWorktrees.some((w) => w.trackId === item)) {
-          const issue = `Orphaned directory in .olt/worktrees: '${item}'`;
-          issues.push(issue);
-          findings.push({
-            code: "WORKTREE_ORPHANED_DIR",
-            severity: "WARN",
-            engine: "checkWorktreeHealth",
-            message: issue,
-            details: { item, itemPath },
-          });
+          addFinding("WORKTREE_ORPHANED_DIR", "WARN", `Orphaned directory in .olt/worktrees: '${item}'`, { item, itemPath });
           if (autoHeal) {
             try {
-              safeRmSync(itemPath, {
-                allowedRoots: [worktreesDir],
-                allowGitRepositoryDeletion: true,
-                missingOk: true,
-              });
+              safeRmSync(itemPath, { allowedRoots: [worktreesDir], allowGitRepositoryDeletion: true, missingOk: true });
               repaired.push(`Removed orphaned worktree dir '${item}'`);
             } catch {}
           }
@@ -288,30 +206,19 @@ export function checkWorktreeHealth(
 
   const prunable = findPrunableWorktrees(repoRoot, runner);
   for (const prunablePath of prunable) {
-    const issue = `Stale or prunable git worktree entry at '${prunablePath}'`;
-    issues.push(issue);
-    findings.push({
-      code: "WORKTREE_PRUNABLE_GIT_ENTRY",
-      severity: "WARN",
-      engine: "checkWorktreeHealth",
-      message: issue,
-      details: { path: prunablePath },
-    });
+    addFinding("WORKTREE_PRUNABLE_GIT_ENTRY", "WARN", `Stale or prunable git worktree entry at '${prunablePath}'`, { path: prunablePath });
   }
 
   if (autoHeal) {
     try {
       runner(repoRoot, ["worktree", "prune"]);
-      if (prunable.length > 0)
-        repaired.push(`Pruned ${prunable.length} stale git worktree entries`);
+      if (prunable.length > 0) repaired.push(`Pruned ${prunable.length} stale git worktree entries`);
     } catch {}
   }
 
   const cleanupFailed = findings.some((f) => f.code === "WORKTREE_CLEANUP_FAILED");
   const isHealthy = autoHeal ? !cleanupFailed : issues.length === 0;
-  const isPassed = autoHeal
-    ? !cleanupFailed
-    : findings.filter((f) => f.severity === "ERROR").length === 0;
+  const isPassed = autoHeal ? !cleanupFailed : findings.filter((f) => f.severity === "ERROR").length === 0;
 
   return {
     name: "worktree_health",
@@ -325,8 +232,6 @@ export function checkWorktreeHealth(
   };
 }
 
-export function autoHealWorktreeState(
-  options: WorktreeHealthOptions = {},
-): DoctorWorktreeHealthReport {
+export function autoHealWorktreeState(options: WorktreeHealthOptions = {}): DoctorWorktreeHealthReport {
   return checkWorktreeHealth({ ...options, autoHeal: true });
 }

@@ -4,7 +4,7 @@ export {
   planTasksForDefect,
   type PlanTasksForDefectOptions,
   type DefectTaskTarget,
-} from "./evolution.ts";
+} from "./evolution/index.ts";
 
 export {
   synthesizeAutonomousTasks,

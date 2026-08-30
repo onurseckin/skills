@@ -1,33 +1,25 @@
-import { evaluateHierarchyScaling } from "../../../../graph/parallel-decoupler.ts";
-import { enrichTaskPlanWithExactAnchors } from "../planner/anti-batching.ts";
-import { assertAntiBatchingRule } from "../planner/partitioning.ts";
-import { readCognitiveMemory } from "../planner/memory.ts";
-import { detectScopeOverlap } from "../planner/collisions.ts";
-import { computeMacroMetrics } from "../planner/index.ts";
+import { evaluateHierarchyScaling } from "../../../../../graph/parallel-decoupler.ts";
+import { enrichTaskPlanWithExactAnchors } from "../../planner/anti-batching.ts";
+import { assertAntiBatchingRule } from "../../planner/partitioning.ts";
+import { detectScopeOverlap } from "../../planner/collisions.ts";
+import { computeMacroMetrics } from "../../planner/index.ts";
 import type {
   SmartTaskPlan,
-  SmartWavePlanResult,
   SmartTaskSynthesisResult,
-} from "../planner/models.ts";
-import { synthesizeSmartTasksFromFeedbackQueue } from "./evolution.ts";
-import { updateCognitiveMemory } from "../../../memory/core/index.ts";
-import {
-  resolveCompletedTasksLedgerPath,
-  recordCompletedTasksBatch,
-} from "../../../archival/completed/index.ts";
-import { updateOrPruneFeedbackItems } from "../../../feedback/queue/index.ts";
-import { auditDefectLog } from "../../../defects/index.ts";
+} from "../../planner/models.ts";
+import { updateCognitiveMemory } from "../../../../memory/core/index.ts";
+import { auditDefectLog } from "../../../../defects/index.ts";
 import {
   isTestEnvironment,
   resolveScratchDir,
   resolveCapsulesDir,
-} from "../../../../core/shared/paths.ts";
-import { enqueueTasksBatch, type NewTaskQueueInput } from "../../../../task/queue/index.ts";
+} from "../../../../../core/shared/paths.ts";
+import { enqueueTasksBatch, type NewTaskQueueInput } from "../../../../../task/queue/index.ts";
 import {
   sanitizeSlug,
   deriveWriteScopeForCategory,
   deriveGateForCategory,
-} from "./orchestrator.ts";
+} from "../orchestrator.ts";
 
 export function synthesizeSmartTasksFromSelfEvolution(
   options: {

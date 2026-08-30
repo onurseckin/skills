@@ -107,7 +107,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "queue:add",
-    aliases: [],
+    aliases: ["mind:queue:add", "todo:add", "feedback:ingest", "feedback:add"],
     domain: "queue",
     summary: "Add a feedback item to the mind queue.",
     description: "Appends a new feedback item to .olt/backlog.jsonl.",
@@ -129,7 +129,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "queue:drain",
-    aliases: [],
+    aliases: ["mind:queue:drain", "todo:drain", "feedback:drain"],
     domain: "queue",
     summary: "Drain and mark pending feedback items for execution.",
     description: "Drains pending items from .olt/backlog.jsonl in FIFO order.",
@@ -168,7 +168,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "queue:status",
-    aliases: [],
+    aliases: ["mind:queue:list", "todo:list", "feedback:list", "mind:queue:status"],
     domain: "queue",
     summary: "List and inspect mind feedback queue items.",
     description:
@@ -190,7 +190,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "queue:seal",
-    aliases: [],
+    aliases: ["mind:queue:seal", "todo:seal", "feedback:seal"],
     domain: "queue",
     summary: "Seal completed queue items with empirical verification proofs.",
     description: "Marks queue items completed and attaches proof records.",
@@ -231,7 +231,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "queue:clean",
-    aliases: [],
+    aliases: ["mind:queue:clean", "todo:clean", "feedback:clean"],
     domain: "queue",
     summary: "Prune resolved items from queue into completed-tasks archive.",
     description: "Moves sealed items from .olt/backlog.jsonl to .olt/completed-tasks.jsonl.",
@@ -255,7 +255,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts queue:clean --authority-run <run>"],
+    examples: ["bun harness.ts mind:queue:clean --authority-run <run>"],
     authority: {
       requiresActingIdentity: true,
       authorityRunFlag: "authority-run",

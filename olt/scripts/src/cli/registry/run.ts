@@ -79,7 +79,7 @@ export const RUN_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "run:status",
-    aliases: [],
+    aliases: ["status"],
     domain: "run",
     summary: "Show phase, per-task status and progress for the run.",
     description: "Reads the capsule without mutating it and renders the execution table.",

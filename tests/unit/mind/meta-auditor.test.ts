@@ -1526,7 +1526,7 @@ describe("Deep Behavioral Forensics Engine (meta-auditor)", () => {
         },
       ]);
 
-      expect(incidentTable.join("\n")).toContain("`inc-pipe|test`");
+      expect(incidentTable.join("\n")).toContain("`inc-pipe\\|test`");
       expect(incidentTable.join("\n")).toContain("HIGH");
       // Verify pipe escaping in observation and remediation
       expect(incidentTable.join("\n")).toContain("Obs with \\| pipe");

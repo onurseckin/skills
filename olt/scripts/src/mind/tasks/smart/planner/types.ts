@@ -170,6 +170,8 @@ export interface CognitiveMemoryState {
   readonly roadmaps: readonly RoadmapItem[];
   readonly macro_metrics?: MacroMetrics | undefined;
   readonly context?: Readonly<Record<string, unknown>> | undefined;
+  readonly last_self_evolution_cycle?: string | undefined;
+  readonly evolution_cycles_completed?: number | undefined;
 }
 
 export const CANONICAL_COGNITIVE_MEMORY_FILE = ".olt/memory.json";

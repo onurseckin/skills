@@ -1,4 +1,4 @@
-import { synthesizeSmartTasksFromSelfEvolution } from "./evolution.ts";
+import { synthesizeSmartTasksFromSelfEvolution } from "./evolution/index.ts";
 import type { SmartTaskSynthesisResult } from "../planner/models.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";

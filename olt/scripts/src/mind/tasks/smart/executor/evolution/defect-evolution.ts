@@ -1,22 +1,22 @@
-import { detectScopeOverlap } from "../planner/collisions.ts";
+import { detectScopeOverlap } from "../../planner/collisions.ts";
 import {
   enqueueTasksBatch,
   type NewTaskQueueInput,
   type TaskPriority,
-} from "../../../../task/queue/index.ts";
-import { evaluateHierarchyScaling } from "../../../../graph/parallel-decoupler.ts";
-import { drainPendingFeedbacks } from "../../../feedback/index.ts";
-import { assertAntiBatchingRule } from "../planner/partitioning.ts";
-import { enrichTaskPlanWithExactAnchors } from "../planner/anti-batching.ts";
+} from "../../../../../task/queue/index.ts";
+import { evaluateHierarchyScaling } from "../../../../../graph/parallel-decoupler.ts";
+import { drainPendingFeedbacks } from "../../../../feedback/index.ts";
+import { assertAntiBatchingRule } from "../../planner/partitioning.ts";
+import { enrichTaskPlanWithExactAnchors } from "../../planner/anti-batching.ts";
 import {
   mapFeedbackPriorityToTaskPriority,
   sanitizeSlug,
   deriveWriteScopeForCategory,
   deriveGateForCategory,
-} from "./orchestrator.ts";
-import type { SmartTaskPlan, SmartTaskSynthesisResult } from "../planner/models.ts";
-import { readFeedbackQueue } from "../../../feedback/queue/index.ts";
-import { HarnessError } from "../../../../core/errors/index.ts";
+} from "../orchestrator.ts";
+import type { SmartTaskPlan, SmartTaskSynthesisResult } from "../../planner/models.ts";
+import { readFeedbackQueue } from "../../../../feedback/queue/index.ts";
+import { HarnessError } from "../../../../../core/errors/index.ts";
 
 export interface PlanTasksForDefectOptions {
   readonly charterGoals?: readonly string[] | undefined;
@@ -274,5 +274,3 @@ export function synthesizeSmartTasksFromFeedbackQueue(
     ...(enqueuedCount > 0 ? { enqueued_count: enqueuedCount } : {}),
   };
 }
-
-export { synthesizeSmartTasksFromSelfEvolution } from "./self-evolution.ts";

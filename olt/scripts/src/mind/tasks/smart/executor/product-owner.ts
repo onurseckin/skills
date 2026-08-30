@@ -15,7 +15,7 @@ import {
   stageTasksForMultiOrchestratorExecution,
 } from "./invariants.ts";
 import { computeMacroMetrics, partitionGroupedFeedbacksStrictly } from "../planner/index.ts";
-import { synthesizeSmartTasksFromSelfEvolution } from "./evolution.ts";
+import { synthesizeSmartTasksFromSelfEvolution } from "./evolution/index.ts";
 import { resolve } from "node:path";
 import type {
   InfiniteProductOwnerState,

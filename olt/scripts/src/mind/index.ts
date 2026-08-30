@@ -11,7 +11,7 @@ import * as counterfactual from "./auditing/counterfactual/index.ts";
 import * as metaAuditor from "./auditing/meta/index.ts";
 import * as questionnaire from "./auditing/questionnaire/index.ts";
 import * as roleAuditing from "./auditing/roles/index.ts";
-import * as witness from "./auditing/witness/index.ts";
+import * as witness from "./witness.ts";
 
 import * as chatterGuard from "./chatter-guard.ts";
 import * as chatterPatterns from "./chatter-patterns.ts";
@@ -50,7 +50,7 @@ import * as liveness from "./lifecycle/liveness/index.ts";
 import * as mindObserve from "./lifecycle/observe/index.ts";
 import * as observe from "./lifecycle/observe/index.ts";
 import * as pulse from "./lifecycle/pulse/index.ts";
-import * as pulseReclaim from "./lifecycle/pulse/index.ts";
+import * as pulseReclaim from "./pulse-reclaim.ts";
 import * as purpose from "./lifecycle/purpose/index.ts";
 import * as rounds from "./lifecycle/rounds/index.ts";
 import * as selfEvolution from "./lifecycle/evolution/index.ts";
@@ -63,7 +63,7 @@ import * as memory from "./memory/index.ts";
 import * as memoryCore from "./memory/core/index.ts";
 import * as digest from "./memory/digest/index.ts";
 import * as sources from "./memory/sources/index.ts";
-import * as value from "./memory/value/index.ts";
+import * as value from "./value.ts";
 
 import * as preplanning from "./preplanning/index.ts";
 

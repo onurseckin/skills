@@ -42,7 +42,7 @@ export const ROLE_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "role:cheat-sheet",
-    aliases: [],
+    aliases: ["role:contract", "role:cheat"],
     domain: "role",
     summary: "Display compact terminal cheat sheets and command matrices for system roles.",
     description:

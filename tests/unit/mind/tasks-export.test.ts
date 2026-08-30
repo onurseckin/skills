@@ -129,7 +129,7 @@ describe("Task 1.35: Named Export 'planTasksForDefect' in mind/tasks/index.ts", 
       "olt/scripts/src/mind/tasks/index.ts",
       "olt/scripts/src/mind/tasks/smart/index.ts",
       "olt/scripts/src/mind/tasks/smart/executor/index.ts",
-      "olt/scripts/src/mind/tasks/smart/executor/evolution.ts",
+      "olt/scripts/src/mind/tasks/smart/executor/evolution/defect-evolution.ts",
       "tests/unit/mind/tasks-export.test.ts",
     ];
 

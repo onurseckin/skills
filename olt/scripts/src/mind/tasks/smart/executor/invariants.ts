@@ -9,6 +9,7 @@ import { preplanMultiOrchestratorTasks } from "./execution.ts";
 import { readFeedbackQueue } from "../../../feedback/index.ts";
 import { readTaskQueue, type TaskQueueItem } from "../../../../task/queue/index.ts";
 import { HarnessError } from "../../../../core/errors/index.ts";
+
 export function planMultiOrchestratorExecution(
   tasks: readonly SmartTaskPlan[],
   options: MultiOrchestratorPlanningOptions | number | readonly string[] = {},
@@ -16,9 +17,6 @@ export function planMultiOrchestratorExecution(
   return preplanMultiOrchestratorTasks(tasks, options);
 }
 
-/**
- * Alias for preplanMultiOrchestratorTasks.
- */
 export function partitionTasksAcrossOrchestrators(
   tasks: readonly SmartTaskPlan[],
   options: MultiOrchestratorPlanningOptions | number | readonly string[] = {},
@@ -26,11 +24,6 @@ export function partitionTasksAcrossOrchestrators(
   return preplanMultiOrchestratorTasks(tasks, options);
 }
 
-/**
- * Verifies the Atomic Admission-to-Dispatch invariant:
- * 1. Zero paused admitted feedback items (every ADMITTED feedback has a corresponding active or completed task).
- * 2. Every task in the queue satisfies 1:1 Implementer-Validator isolation and anti-batching rule.
- */
 export function verifyAdmissionToDispatchInvariants(
   options: {
     readonly capsulesDir?: string | undefined;
@@ -93,9 +86,6 @@ export function verifyAdmissionToDispatchInvariants(
   };
 }
 
-/**
- * Alias for verifyAdmissionToDispatchInvariants.
- */
 export function verifyProductOwnerInvariants(
   options: {
     readonly capsulesDir?: string | undefined;
@@ -104,11 +94,6 @@ export function verifyProductOwnerInvariants(
 ): AdmissionToDispatchAuditReport {
   return verifyAdmissionToDispatchInvariants(options);
 }
-
-/**
- * Atomically admits pending or provided feedback items and dispatches them to 1:1 isolated task nodes in the task queue.
- * Guarantees that zero items are left in a paused ADMITTED state.
- */
 
 export function validateMultiOrchestratorIsolation(plan: MultiOrchestratorPrePlanningResult): void {
   if (!plan.is_disjoint || plan.cross_orchestrator_collisions.length > 0) {
@@ -125,11 +110,6 @@ export function validateMultiOrchestratorIsolation(plan: MultiOrchestratorPrePla
     assertAntiBatchingRule(orch.tasks);
   }
 }
-
-/**
- * Stages tasks across multiple orchestrator sub-trees, tagging each task with its assigned orchestrator
- * and wave metadata, and enforcing strict write scope isolation.
- */
 
 export function stageTasksForMultiOrchestratorExecution(
   tasks: readonly SmartTaskPlan[],
@@ -165,7 +145,3 @@ export function stageTasksForMultiOrchestratorExecution(
     staged_tasks: stagedTasks,
   };
 }
-
-/**
- * Alias for preplanMultiOrchestratorTasks.
- */

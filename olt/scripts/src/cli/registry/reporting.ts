@@ -163,7 +163,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "report:usage",
-    aliases: [],
+    aliases: ["usage:report"],
     domain: "reporting",
     summary: "Discover and report cross-platform quota, rate limit, and token usage telemetry.",
     description:
@@ -273,7 +273,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "events:trace",
-    aliases: [],
+    aliases: ["dag:trace"],
     domain: "reporting",
     summary: "Real-time step tracer and dynamic living DAG expansion timeline.",
     description:
