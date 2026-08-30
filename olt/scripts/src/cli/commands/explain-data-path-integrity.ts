@@ -187,7 +187,7 @@ export const PATH_SAFETY_AND_INTEGRITY_ENTRIES: readonly ExplainEntry[] = [
             "packet role contract does not match the packet role",
           ),
           example(
-            "packets/role-contract.ts",
+            "packets/roles/role-contract-evaluator.ts",
             "role contract ${path} declares role ${contract.role}",
           ),
           example("packets/packet-bundle.ts", "packet bundle is missing or differs: ${id}"),

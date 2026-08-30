@@ -127,7 +127,7 @@ export const PLATFORM_AND_LOCK_ENTRIES: readonly ExplainEntry[] = [
         "Register the actor under an active supervisor chain and execute within the bounds of the assigned role grant.",
         [
           example(
-            "packets/command-authority.ts",
+            "packets/command-authority-invocation.ts",
             'role ${role ?? "unresolved"} may not invoke ${spec.name}: actor \'${agentId ?? "unresolved"}\' or role is unresolved; fail-closed enforcement active',
           ),
         ],
