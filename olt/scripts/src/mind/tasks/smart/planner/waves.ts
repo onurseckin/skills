@@ -179,8 +179,3 @@ export function compileSmartTasksToWavePlan(tasks: readonly SmartTaskPlan[]): Sm
 export function partitionIntoDisjointWaves(tasks: readonly SmartTaskPlan[]): SmartWavePlanResult {
   return planWaveExecution(tasks);
 }
-export {
-  rebalanceTasksWithBrentLimits,
-  integrateMacroMetricsIntoMemory,
-  rebalanceTaskQueueWithBrentLimits,
-} from "./rebalance.ts";

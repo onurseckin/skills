@@ -158,7 +158,7 @@ export interface RoadmapItem {
 export interface MacroMetrics {
   readonly work: number;
   readonly span: number;
-  readonly parallelism: number; // P = W / S
+  readonly parallelism: number;
   readonly efficiency: number;
 }
 

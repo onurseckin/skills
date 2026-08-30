@@ -4,6 +4,8 @@ import type { RebalancedTaskPlanResult, SmartTaskPlan, SmartWavePlanResult } fro
 import type { MacroMetrics, CognitiveMemoryState } from "./types.ts";
 import { planWaveExecution } from "./waves.ts";
 import { computeMacroMetrics } from "./metrics.ts";
+import { readTaskQueue } from "../../../../task/queue/index.ts";
+import type { TaskQueueItem } from "../../../../task/queue/index.ts";
 
 export function rebalanceTasksWithBrentLimits(
   tasks: readonly SmartTaskPlan[],
@@ -112,8 +114,6 @@ export function rebalanceTasksWithBrentLimits(
     warnings,
   };
 }
-import { readTaskQueue } from "../../../../task/queue/index.ts";
-import type { TaskQueueItem } from "../../../../task/queue/index.ts";
 
 export function integrateMacroMetricsIntoMemory(
   tasksOrQueue?: readonly (SmartTaskPlan | TaskQueueItem)[] | undefined,

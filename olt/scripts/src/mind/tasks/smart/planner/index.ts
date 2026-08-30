@@ -99,7 +99,10 @@ export {
   planMultiCoordinatorWaves,
   compileSmartTasksToWavePlan,
   partitionIntoDisjointWaves,
+} from "./waves.ts";
+
+export {
   rebalanceTasksWithBrentLimits,
   integrateMacroMetricsIntoMemory,
   rebalanceTaskQueueWithBrentLimits,
-} from "./waves.ts";
+} from "./rebalance.ts";

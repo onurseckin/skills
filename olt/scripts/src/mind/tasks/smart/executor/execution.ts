@@ -68,7 +68,6 @@ export function preplanMultiOrchestratorTasks(
     };
   }
 
-  // 1. Group tasks into connected clusters based on scope overlap and dependencies
   const n = tasks.length;
   const parent = Array.from({ length: n }, (_, i) => i);
   function find(i: number): number {
@@ -146,7 +145,6 @@ export function preplanMultiOrchestratorTasks(
 
   clusters.sort((a, b) => b.totalWork - a.totalWork);
 
-  // 2. Bin pack clusters across target orchestrators
   const numOrchestrators = Math.min(clusters.length, targetOrchestratorIds.length);
   const activeOrchIds = targetOrchestratorIds.slice(0, Math.max(1, numOrchestrators));
 
@@ -181,7 +179,6 @@ export function preplanMultiOrchestratorTasks(
     }
   }
 
-  // 3. Build sub-tree plans for each active orchestrator
   const subTreePlans: MultiOrchestratorSubTreePlan[] = [];
   const crossCollisions: ScopeCollision[] = [];
   const warnings: string[] = [];
@@ -199,7 +196,6 @@ export function preplanMultiOrchestratorTasks(
     });
   }
 
-  // 4. Verify disjointness across orchestrator sub-trees
   for (let i = 0; i < subTreePlans.length; i++) {
     for (let j = i + 1; j < subTreePlans.length; j++) {
       const orchA = subTreePlans[i]!;
@@ -216,7 +212,6 @@ export function preplanMultiOrchestratorTasks(
     }
   }
 
-  // 5. Aggregate MacroMetrics
   let aggWork = 0;
   let maxSpan = 0;
   for (const st of subTreePlans) {
@@ -247,9 +242,7 @@ export function preplanMultiOrchestratorTasks(
         }),
         cognitiveMemoryPath,
       );
-    } catch {
-      // non-fatal
-    }
+    } catch {}
   }
   let totalCoordinators = 0;
   for (const st of subTreePlans) {

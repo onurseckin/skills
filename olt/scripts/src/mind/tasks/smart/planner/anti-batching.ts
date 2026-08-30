@@ -24,9 +24,6 @@ export function deriveTargetFiles(
   });
 }
 
-/**
- * Extracts exact symbol line anchors and AST references from a target file.
- */
 export function extractFileAnchors(
   filePath: string,
   options: ExactAnchorExtractionOptions = {},
@@ -49,9 +46,6 @@ export function extractFileAnchors(
   }));
 }
 
-/**
- * Formats a zero-exploration 1-shot task briefing in standard markdown format.
- */
 export function formatZeroExplorationPrompt(
   briefing: Omit<ExactAnchorBriefing, "zero_exploration_prompt" | "generated_at">,
 ): string {
@@ -119,9 +113,6 @@ export function formatZeroExplorationPrompt(
   ].join("\n");
 }
 
-/**
- * Builds a complete ExactAnchorBriefing for a given SmartTaskPlan or TaskQueueItem.
- */
 export function buildExactAnchorBriefing(
   task:
     | SmartTaskPlan
@@ -234,9 +225,6 @@ export function buildExactAnchorBriefing(
   };
 }
 
-/**
- * Enriches a SmartTaskPlan with exact file anchors and a zero-exploration 1-shot briefing in metadata.
- */
 export function enrichTaskPlanWithExactAnchors(
   plan: SmartTaskPlan,
   options: BuildExactAnchorBriefingOptions = {},
@@ -265,9 +253,6 @@ export function enrichTaskPlanWithExactAnchors(
   };
 }
 
-/**
- * Prepares an exact anchor briefing for a task (alias / helper).
- */
 export function prepareExactAnchorBriefingForTask(
   task: SmartTaskPlan | TaskQueueItem,
   options: BuildExactAnchorBriefingOptions = {},
@@ -275,9 +260,6 @@ export function prepareExactAnchorBriefingForTask(
   return buildExactAnchorBriefing(task, options);
 }
 
-/**
- * Dispatches a smart task plan with exact anchors, returning the enriched plan and prompt.
- */
 export function dispatchTaskWithExactAnchors(
   task: SmartTaskPlan,
   options: BuildExactAnchorBriefingOptions = {},
@@ -295,10 +277,3 @@ export function dispatchTaskWithExactAnchors(
     zero_exploration_prompt: briefing.zero_exploration_prompt,
   };
 }
-
-/**
- * Validates that all task plans strictly comply with the Anti-Batching Rule:
- * 1. No task merges multiple disparate feedback items or candidate directives.
- * 2. Every task has an independent, non-empty write scope.
- * 3. Every task has a dedicated Implementer and an independent Validator (1:1 isolation; no self-validation).
- */

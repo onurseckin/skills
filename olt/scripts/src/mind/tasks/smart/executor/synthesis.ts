@@ -67,7 +67,6 @@ export function processAutonomousDualIntake(
   const feedbackItems = readFeedbackQueue(options.capsulesDir);
   const pendingFeedback = feedbackItems.filter((f) => f.status === "PENDING");
 
-  // Mode B: External Intake from pending feedback
   if (pendingFeedback.length > 0) {
     const synth = synthesizeSmartTasksFromFeedbackQueue({
       capsulesDir: options.capsulesDir,
@@ -90,7 +89,6 @@ export function processAutonomousDualIntake(
     };
   }
 
-  // If queue is completely idle (0 active tasks), run Mode A Self-Evolution
   if (activeTasks.length === 0) {
     const synth = synthesizeSmartTasksFromSelfEvolution({
       capsulesDir: options.capsulesDir,
@@ -113,7 +111,6 @@ export function processAutonomousDualIntake(
     };
   }
 
-  // Queue is already active
   const stats = getQueueStats(currentQueue);
   return {
     mode: "Queue_Active",
@@ -124,10 +121,6 @@ export function processAutonomousDualIntake(
     admitted_feedback_ids: [],
   };
 }
-
-/**
- * Runs a full Autonomous Dual-Intake Cycle (alias to processAutonomousDualIntake).
- */
 export function runAutonomousDualIntakeCycle(
   options: {
     readonly capsulesDir?: string | undefined;
