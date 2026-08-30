@@ -134,7 +134,10 @@ describe("Repo Policy I/O, Flocking & Generator (Task 1.2)", () => {
   });
 
   test("concurrent processes serialize writes with flock and expose valid json", async () => {
-    const dir = join(scratchBase, "concurrent-flock");
+    const dir = join(
+      scratchBase,
+      `concurrent-flock-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    );
     mkdirSync(dir, { recursive: true });
     initRepoPolicy(dir);
 

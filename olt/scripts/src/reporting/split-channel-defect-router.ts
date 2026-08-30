@@ -1,5 +1,5 @@
-import { mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { durableAppendBytes } from "../core/durable-write.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { resolveDefectsPath, resolveSkillHomeRepo } from "../core/shared/paths.ts";
@@ -90,6 +90,27 @@ export class SplitChannelDefectRouter {
       const line = serialized + "\n";
       mkdirSync(dirname(targetDefectsPath), { recursive: true });
       durableAppendBytes(targetDefectsPath, new TextEncoder().encode(line));
+
+      const feedbackQueuePath = join(targetRepoRoot, ".olt", "feedback-queue.jsonl");
+      const feedbackRecord = {
+        id: `fb-${record.id}`,
+        title: record.title,
+        description: record.description,
+        source: "skill-auditor",
+        category: "defect",
+        priority: 100,
+        admitted: false,
+        created_at: record.timestamp,
+      };
+      try {
+        if (existsSync(dirname(feedbackQueuePath))) {
+          durableAppendBytes(
+            feedbackQueuePath,
+            new TextEncoder().encode(JSON.stringify(feedbackRecord) + "\n"),
+          );
+        }
+      } catch {}
+
       return { targetRepoRoot, targetDefectsPath, isMothership, routed: true };
     } catch (error) {
       throw new HarnessError(

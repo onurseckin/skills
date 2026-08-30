@@ -60,6 +60,11 @@ export const DEFAULT_ALLOWED_SCRIPTS_DIRS: ReadonlySet<string> = new Set([
   "bin",
   "lib",
   "config",
+  "test",
+  "mobile",
+  "dev",
+  "check",
+  "ops",
 ]);
 
 export const DEFAULT_ALLOWED_SCRIPTS_FILES: ReadonlySet<string> = new Set([
@@ -68,6 +73,7 @@ export const DEFAULT_ALLOWED_SCRIPTS_FILES: ReadonlySet<string> = new Set([
   "index.ts",
   "package.json",
   "tsconfig.json",
+  ".DS_Store",
 ]);
 
 export const SCRATCH_PATTERNS: readonly RegExp[] = [

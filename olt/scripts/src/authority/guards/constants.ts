@@ -1,6 +1,7 @@
 export const ALLOWED_ROOT_FILES: ReadonlySet<string> = new Set([
   "package.json",
   "tsconfig.json",
+  "tsconfig.base.json",
   "AGENTS.md",
   "README.md",
   "GEMINI.md",
@@ -10,11 +11,23 @@ export const ALLOWED_ROOT_FILES: ReadonlySet<string> = new Set([
   "bun.lockb",
   ".editorconfig",
   ".oxfmtrc.json",
+  ".oxlintrc.json",
   "eslint.config.js",
   ".prettierrc",
   "LICENSE",
   "bunfig.toml",
   ".capture.yaml",
+  "turbo.json",
+  "commitlint.config.ts",
+  "playwright.config.ts",
+  "mise.toml",
+  ".dockerignore",
+  ".env",
+  ".env.example",
+  ".session.json",
+  "notes.md",
+  ".easignore",
+  ".DS_Store",
 ]);
 
 export const ALLOWED_ROOT_DIRS: ReadonlySet<string> = new Set([
@@ -32,4 +45,9 @@ export const ALLOWED_ROOT_DIRS: ReadonlySet<string> = new Set([
   ".tmp",
   ".locks",
   "scripts",
+  "apps",
+  "packages",
+  "docker",
+  "src",
+  ".claude",
 ]);

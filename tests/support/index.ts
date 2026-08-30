@@ -1,1 +1,1 @@
-export { createScratchRoot, cleanupScratchRoot } from "./scratch-root.ts";
+export { scratchRoot, createScratchRoot } from "./scratch-root.ts";

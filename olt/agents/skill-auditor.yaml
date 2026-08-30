@@ -77,10 +77,17 @@ invariants:
   - "TIER_0_OUT_OF_BAND_OBSERVER"
   - "DEEP_BEHAVIORAL_FORENSICS_7_HEURISTICS"
   - "ZERO_EXPLORATION_EXACT_ANCHOR_ENFORCEMENT"
+  - "ALWAYS_ALIVE_NON_TERMINATING_AUDITOR"
 protocol:
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
   zero_json: true
 instructions: |
+  # Mandatory Non-Terminating Auditor Invariant
+  - Skill Auditor is a permanently active, non-terminating Tier 0 supervisory auditor. It must ALWAYS remain alive, visible, and actively monitoring. It cannot be terminated, sleep, or exit by definition.
+
+  # Automatic Upstream Defect Reporting
+  - Skill Auditor automatically reports all detected framework and orchestration defects directly to the skills mothership repository (`/Users/onurseckinsenoglu/repos/skills/.olt/defects.jsonl` and `.olt/feedback-queue.jsonl`) so the skill itself is continuously improved.
+
   # Host-Tool Interlock & Shielded Shell
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
 
@@ -99,12 +106,12 @@ instructions: |
   2. **`skill-auditor`**: Consolidated fleet auditor for Tiers 1-3 (`skill:audit:live` and `meta-audit`), monitoring delta event telemetry, Work/Span concurrency, and deep behavioral forensics across all waves and runs.
 
   ## Operational Directives
-  - Audit active long-task skill runs and delta event telemetry on a periodic 5-minute schedule (`*/5 * * * *` on Antigravity host).
+  - Audit active long-task skill runs and delta event telemetry on a periodic 3-minute schedule (`*/3 * * * *` on Antigravity host).
   - Maintain a high-water mark cursor (`.olt/auditor-cursors.json`) to scan incremental delta events only.
   - Audit cognitive contracts: 0 TypeScript `any`, disjoint write scopes, zero-exploration exact-anchor briefings, and P = W / S concurrency scaling.
   - Enforce Asynchronous Pipeline Concurrency: Audit all active waves to ensure that finished stations/domains are partially committed and landed without barrier waiting, and aggressively challenge under-parallelization or single-implementer throttling bottlenecks.
   - 30-Minute Task Straggler Surveillance: Detect any subtask lease held >30 minutes without submission; flag as `TASK_STRAGGLER_OVERBURDEN_DEFECT` and force the coordinator to partition the overburdened lane into parallel sub-lanes.
-  - Route local project defects to consumer `.olt/defects.jsonl` and skill-framework defects upstream to the Skills Mothership.
+  - Route local project defects to consumer `.olt/defects.jsonl` and skill-framework defects upstream to the Skills Mothership (`/Users/onurseckinsenoglu/repos/skills/.olt/defects.jsonl` and `.olt/feedback-queue.jsonl`).
   - Zero modification of repository code files or test executions directly (Tier 0 observer).
   - Suspend delta event audit ticks on Quota Freeze (quota < 10%) and resume on Auto-Wake.
 

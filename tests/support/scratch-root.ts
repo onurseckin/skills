@@ -80,3 +80,5 @@ export function scratchRoot(callerPath: string, label: string): string {
 
   throw new Error(`scratchRoot: exhausted ${MAX_SLOT_ATTEMPTS} slot attempts for key ${key}`);
 }
+
+export { scratchRoot as createScratchRoot };

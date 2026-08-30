@@ -345,6 +345,8 @@ export {
   watchdogProbeCommand,
 } from "./watchdog-ops.ts";
 export type { TaskLeaseSummary, TaskValidationSummary } from "./whoami.ts";
+export { whoamiCommand } from "./whoami.ts";
+
 export {
   worktreeCreateCommand,
   worktreeLandCommand,

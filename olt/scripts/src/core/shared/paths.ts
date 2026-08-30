@@ -255,15 +255,19 @@ export function loadSkillGlobalConfig(): SkillGlobalConfig | null {
 }
 
 export function resolveSkillHomeRepo(currentRepoRoot?: string): string {
-  if (currentRepoRoot) {
-    return resolve(currentRepoRoot);
-  }
   if (process.env["OLT_SKILL_HOME_REPO"] && existsSync(process.env["OLT_SKILL_HOME_REPO"])) {
     return resolve(process.env["OLT_SKILL_HOME_REPO"]);
+  }
+  const defaultSkillsRepo = "/Users/onurseckinsenoglu/repos/skills";
+  if (existsSync(defaultSkillsRepo)) {
+    return resolve(defaultSkillsRepo);
   }
   const cfg = loadSkillGlobalConfig();
   if (cfg && existsSync(cfg.home_repo_root)) {
     return resolve(cfg.home_repo_root);
+  }
+  if (currentRepoRoot) {
+    return resolve(currentRepoRoot);
   }
   return findRepoRoot();
 }

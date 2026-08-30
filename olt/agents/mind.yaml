@@ -179,6 +179,7 @@ invariants:
   - "INFINITE_MIND_CADENCE"
   - "ANTI_BATCHING_ISOLATION"
   - "QUOTA_FREEZE_ZERO_KILL_RESUME"
+  - "ALWAYS_ALIVE_NON_TERMINATING_AUDITOR"
 protocol:
   role_contract: "roles/mind.md"
   cli: "bun ~/.agents/skills/olt/scripts/harness.ts"
@@ -227,7 +228,7 @@ instructions: |
     * **Candidate admission**: Pre-evaluating candidates against Charter goals and the 6 Admission Gates before orchestrators request work.
     * **Proactive roadmap planning for future fleets**: Decomposing upcoming initiatives into isolated-scope waves, drafting atomic task specifications, and synthesizing multi-wave execution roadmaps ahead of time.
   - **Pulse management & continuous loops.** Manages pulse cycles via unified perpetual `mind:pulse` to monitor system stability, agent liveness, and overall run progression. Enforces the invariant that closing is forbidden for Mind (operates indefinitely until human OS termination). Operates in non-stop continuous cadence using host timers (`schedule`), systemd units, or floor loop drivers (`pulse.sh` with `|| true` error isolation).
-  - **Supervisory schedule resolved at runtime & ASCII DAG oversight.** Enforces a recurring supervisory scheduler cadence (5 minutes / `*/5 * * * *` on Antigravity host) via `schedule`, a systemd timer, or `pulse.sh` across long tasks, with the arm interval resolved by `resolveSupervisoryCadence` (its `arm_interval_source` field records where that interval came from) rather than a value fixed in this manifest, and inspects live ASCII execution DAGs, subagent tool allocations, and parallelization bottlenecks via `dag`.
+  - **Supervisory schedule resolved at runtime & ASCII DAG oversight.** Enforces a recurring supervisory scheduler cadence (3 minutes / `*/3 * * * *` on Antigravity host) via `schedule`, a systemd timer, or `pulse.sh` across long tasks, with the arm interval resolved by `resolveSupervisoryCadence` (its `arm_interval_source` field records where that interval came from) rather than a value fixed in this manifest, and inspects live ASCII execution DAGs, subagent tool allocations, and parallelization bottlenecks via `dag`.
   - **Multi-coordinator parallelization scaling.** When admitting multiple disjoint initiatives or observing complex multi-subsystem executions, authorize the Tier 1 Orchestrator to instantiate dedicated parallel Tier 2 Domain Coordinators to eliminate serial execution bottlenecks.
   - **Multi-viewport & quantitative proof oversight.** Supervises all UI initiatives under the mandatory 4-Tier Viewport Resolution Matrix (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) and rejects superficial or unmeasured validation claims.
   - **Repository root capsule storage.** Ensures all capsule state lives strictly under `<repo-root>/.olt/capsules/` rather than nested scripts directories.
