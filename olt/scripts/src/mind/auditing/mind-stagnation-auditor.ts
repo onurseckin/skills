@@ -88,6 +88,11 @@ export function auditMindPreplanningStagnation(
   }
 
   if (idleDurationSeconds > thresholdSeconds) {
+    executeStagnationShockRecovery(root, {
+      idleDurationSeconds,
+      stagnationThresholdSeconds: thresholdSeconds,
+      pendingBacklogCount: eligibleBacklog.length,
+    });
     const formattedDuration =
       idleDurationSeconds === Number.POSITIVE_INFINITY
         ? "untracked duration"
@@ -110,10 +115,11 @@ export function auditMindPreplanningStagnation(
     };
 
     if (options?.triggerShockRecovery) {
-      const shockResult = executeStagnationShockRecovery({
-        auditResult: baseResult,
-        consecutiveStagnationCount: options.consecutiveStagnationCount,
-        rootDir: root,
+      const shockResult = executeStagnationShockRecovery(root, {
+        idleDurationSeconds,
+        stagnationThresholdSeconds: thresholdSeconds,
+        pendingBacklogCount: eligibleBacklog.length,
+        consecutiveCycles: options?.consecutiveStagnationCount,
       });
       return {
         ...baseResult,

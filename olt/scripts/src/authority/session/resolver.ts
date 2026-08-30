@@ -247,38 +247,4 @@ export function autoDeriveCallerIdentity(
   };
 }
 
-export function requireTurn1Registration(session: SessionIdentity): void {
-  if (!session) {
-    throw new HarnessError("AUTHENTICATION_FAILURE", "session identity is required");
-  }
-  if (!session.token || session.token === "unauthenticated") {
-    throw new HarnessError(
-      "AUTHENTICATION_FAILURE",
-      `agent '${session.agent_id}' is unauthenticated: turn 1 registration token required`,
-    );
-  }
-  if (!session.run_id || !session.run_id.trim()) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `agent '${session.agent_id}' is unanchored: missing run_id in session identity`,
-    );
-  }
-  if (
-    !session.mechanisms_detected ||
-    session.mechanisms_detected.length === 0 ||
-    (session.mechanisms_detected.length === 1 &&
-      session.mechanisms_detected[0] === "interactive_terminal_fallback")
-  ) {
-    throw new HarnessError(
-      "AUTHENTICATION_FAILURE",
-      `agent '${session.agent_id}' session has no valid durable registration mechanism`,
-    );
-  }
-  const statePath = resolveCapsuleStateCandidate(session.run_id);
-  if (!statePath) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `capsule state.json not found for run '${session.run_id}'; execute run:init first`,
-    );
-  }
-}
+export { requireTurn1Registration } from "./turn1-interlock.ts";
