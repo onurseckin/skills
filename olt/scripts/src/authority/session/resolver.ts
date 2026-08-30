@@ -53,20 +53,27 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   const globalSessionsDir = resolveGlobalSessionsDir(repoRoot);
   const checkPids = [ppid, pid].filter((p) => p > 0);
 
+  const applyParsed = (parsed: Record<string, unknown>): void => {
+    if (!detectedAgentId && typeof parsed["agent_id"] === "string")
+      detectedAgentId = parsed["agent_id"];
+    if (!detectedRole && typeof parsed["role"] === "string") detectedRole = parsed["role"];
+    if (!detectedToken && typeof parsed["token"] === "string") detectedToken = parsed["token"];
+    if (typeof parsed["can_execute_shell"] === "boolean")
+      detectedCanShell = parsed["can_execute_shell"];
+    if (typeof parsed["can_edit_files"] === "boolean") detectedCanEdit = parsed["can_edit_files"];
+    if (Array.isArray(parsed["write_scope"]))
+      detectedWriteScope = parsed["write_scope"] as string[];
+    if (typeof parsed["task_id"] === "string") detectedTaskId = parsed["task_id"];
+    if (typeof parsed["granted_at"] === "string") grantedAt = parsed["granted_at"];
+  };
+
   for (const checkPid of checkPids) {
     const sessionFile = join(globalSessionsDir, `${checkPid}.json`);
     const mechanism = `process_ancestry_pid_${checkPid}`;
     const parsed = readPersistedSession(sessionFile, mechanism, readSessionFile);
     if (!parsed) continue;
     mechanisms.push(mechanism);
-    if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
-    if (!detectedRole && typeof parsed.role === "string") detectedRole = parsed.role;
-    if (!detectedToken && typeof parsed.token === "string") detectedToken = parsed.token;
-    if (typeof parsed.can_execute_shell === "boolean") detectedCanShell = parsed.can_execute_shell;
-    if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
-    if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
-    if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
-    if (typeof parsed.granted_at === "string") grantedAt = parsed.granted_at;
+    applyParsed(parsed);
     break;
   }
 
@@ -84,15 +91,7 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
 
     if (parsed) {
       mechanisms.push("workspace_directory_session");
-      if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
-      if (!detectedRole && typeof parsed.role === "string") detectedRole = parsed.role;
-      if (!detectedToken && typeof parsed.token === "string") detectedToken = parsed.token;
-      if (typeof parsed.can_execute_shell === "boolean")
-        detectedCanShell = parsed.can_execute_shell;
-      if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
-      if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
-      if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
-      if (typeof parsed.granted_at === "string") grantedAt = parsed.granted_at;
+      applyParsed(parsed);
       break;
     }
 
@@ -120,15 +119,7 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     );
     if (parsed) {
       mechanisms.push("capsule_runtime_session");
-      detectedAgentId = parsed.agent_id as string;
-      if (typeof parsed.role === "string") detectedRole = parsed.role;
-      if (typeof parsed.token === "string") detectedToken = parsed.token;
-      if (typeof parsed.can_execute_shell === "boolean")
-        detectedCanShell = parsed.can_execute_shell;
-      if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
-      if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
-      if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
-      if (typeof parsed.granted_at === "string") grantedAt = parsed.granted_at;
+      applyParsed(parsed);
     }
   }
 
@@ -259,11 +250,11 @@ export function requireTurn1Registration(session: SessionIdentity): void {
       `agent '${session.agent_id}' is unanchored: missing run_id in session identity`,
     );
   }
+  const mechs = session.mechanisms_detected;
   if (
-    !session.mechanisms_detected ||
-    session.mechanisms_detected.length === 0 ||
-    (session.mechanisms_detected.length === 1 &&
-      session.mechanisms_detected[0] === "interactive_terminal_fallback")
+    !mechs ||
+    mechs.length === 0 ||
+    (mechs.length === 1 && mechs[0] === "interactive_terminal_fallback")
   ) {
     throw new HarnessError(
       "AUTHENTICATION_FAILURE",
@@ -278,20 +269,15 @@ export function requireTurn1Registration(session: SessionIdentity): void {
       join(process.cwd(), ".olt", "capsules", trimmed),
       join(process.cwd(), "capsules", trimmed),
     ];
-    try {
-      const repoRoot = findRepoRoot(trimmed);
-      candidates.push(
-        join(resolveCapsulesDir(repoRoot), trimmed),
-        join(repoRoot, ".olt", "capsules", trimmed),
-      );
-    } catch {}
-    try {
-      const defaultRepo = findRepoRoot();
-      candidates.push(
-        join(resolveCapsulesDir(defaultRepo), trimmed),
-        join(defaultRepo, ".olt", "capsules", trimmed),
-      );
-    } catch {}
+    for (const lookup of [() => findRepoRoot(trimmed), () => findRepoRoot()]) {
+      try {
+        const root = lookup();
+        candidates.push(
+          join(resolveCapsulesDir(root), trimmed),
+          join(root, ".olt", "capsules", trimmed),
+        );
+      } catch {}
+    }
     for (const cand of candidates) {
       if (existsSync(join(cand, "state.json"))) {
         resolved = resolve(cand);
