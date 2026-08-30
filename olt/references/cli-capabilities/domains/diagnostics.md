@@ -98,6 +98,27 @@ Re-hashes the event chain, re-verifies every recorded command, reports workflow 
 bun harness.ts doctor --run .olt/capsules/<run-id>
 ```
 
+### `doctor:verify`
+
+Verify capsule integrity, cryptographic hash chain and command receipts.
+
+Re-hashes the event chain, re-verifies every recorded command, reports workflow blockers and verifies milestone cryptographic evidence.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--source` | string | no | no | - | Skill source directory for the installation check. |
+| `--home` | string | no | no | - | Home directory for the installation check. |
+| `--clients` | string | no | no | - | Comma-separated clients for the installation check. |
+
+```bash
+bun harness.ts doctor:verify --run .olt/capsules/<run-id>
+```
+
 ### `doctor:repair`
 
 Re-derive state.json from the event chain after a crash tears the log's tail.

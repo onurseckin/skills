@@ -58,18 +58,36 @@ function assertIsSkillsRepoRoot(sourceRepoRoot: string): string {
   return resolved;
 }
 
-function isOwnedLegacyDeployment(targetOlt: string, sourceRepoRoot: string): boolean {
-  const legacyConfigPath = join(targetOlt, "skill-config.json");
-  if (!existsSync(legacyConfigPath)) return false;
-  try {
-    const value = JSON.parse(readFileSync(legacyConfigPath, "utf-8")) as unknown;
-    if (!value) return false;
-    if (typeof value !== "object") return false;
-    const homeRepoRoot = (value as Record<string, unknown>)["home_repo_root"];
-    return typeof homeRepoRoot === "string" && resolve(homeRepoRoot) === resolve(sourceRepoRoot);
-  } catch {
-    return false;
+function readJsonStringField(filePath: string, field: string): string | undefined {
+  if (!existsSync(filePath)) {
+    return undefined;
   }
+  try {
+    const value = JSON.parse(readFileSync(filePath, "utf-8")) as unknown;
+    if (!value || typeof value !== "object") {
+      return undefined;
+    }
+    const fieldValue = (value as Record<string, unknown>)[field];
+    return typeof fieldValue === "string" ? fieldValue : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function isOwnedLegacyDeployment(targetOlt: string, sourceRepoRoot: string): boolean {
+  const resolvedRoot = resolve(sourceRepoRoot);
+  const homeRepoRoot = readJsonStringField(join(targetOlt, "skill-config.json"), "home_repo_root");
+  if (homeRepoRoot && resolve(homeRepoRoot) === resolvedRoot) {
+    return true;
+  }
+  const policyHomeRoot = readJsonStringField(
+    join(targetOlt, "policy.json"),
+    "skill_home_repo_root",
+  );
+  if (policyHomeRoot && resolve(policyHomeRoot) === resolvedRoot) {
+    return true;
+  }
+  return false;
 }
 
 export async function migrateOwnedLegacyDeployment(

@@ -11,6 +11,10 @@
       "path": "doctor.json"
     },
     {
+      "id": "doctor:verify",
+      "path": "doctor-verify.json"
+    },
+    {
       "id": "doctor:repair",
       "path": "doctor-repair.json"
     },

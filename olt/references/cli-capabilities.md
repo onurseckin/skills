@@ -44,7 +44,7 @@ own status in `exit_code`.
 | orphan | 1 | [cli-capabilities/domains/orphan.md](cli-capabilities/domains/orphan.md) |
 | authority | 7 | [cli-capabilities/domains/authority.md](cli-capabilities/domains/authority.md) |
 | install | 2 | [cli-capabilities/domains/install.md](cli-capabilities/domains/install.md) |
-| diagnostics | 10 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
+| diagnostics | 11 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
 | gate | 1 | [cli-capabilities/domains/gate.md](cli-capabilities/domains/gate.md) |
 | capture | 3 | [cli-capabilities/domains/capture.md](cli-capabilities/domains/capture.md) |
 | mind | 22 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
@@ -162,6 +162,7 @@ own status in `exit_code`.
 | `coverage:check` | diagnostics | Audit repository test coverage against strict 95% threshold. |
 | `health` | diagnostics | Check whether the code still does what the requirements said. |
 | `doctor` | diagnostics | Verify capsule integrity, command evidence and the runtime. |
+| `doctor:verify` | diagnostics | Verify capsule integrity, cryptographic hash chain and command receipts. |
 | `doctor:repair` | diagnostics | Re-derive state.json from the event chain after a crash tears the log's tail. |
 | `doctor:certify` | diagnostics | Certify doctor's own checks are falsifiable via counterfactual mutation testing. |
 | `recover` | diagnostics | Release expired leases and interrupted validations. |
