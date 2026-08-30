@@ -9,7 +9,11 @@ import { repositoryGit, type RepositoryGitCommand } from "../../packets/reposito
 
 export type DoctorIssueSeverity = "critical" | "cosmetic";
 
-const COSMETIC_ISSUE_CODES: ReadonlySet<string> = new Set(["LAYOUT_UNDECLARED"]);
+const COSMETIC_ISSUE_CODES: ReadonlySet<string> = new Set([
+  "LAYOUT_UNDECLARED",
+  "capsule_root",
+  "capsules_dir",
+]);
 
 export function versionAtLeast(actual: string, minimum: string): boolean {
   const left = actual.split(".").map(Number);
@@ -47,7 +51,8 @@ export function classifyIssueSeverity(issue: string): DoctorIssueSeverity {
     issue.startsWith("[INFO]") ||
     issue.startsWith("[WARN]") ||
     issue.includes("[minor]") ||
-    issue.includes("[warning]")
+    issue.includes("[warning]") ||
+    issue.includes("not gitignored")
   ) {
     return "cosmetic";
   }
