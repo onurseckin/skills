@@ -1,7 +1,3 @@
-/**
- * Coverage Dashboard HTML Document Template Builder
- * Assembles the full HTML5 markup skeleton with header, metric cards, controls bar, and content viewport.
- */
 export function buildHtmlDocument(styles: string, clientScript: string): string {
   return `<!DOCTYPE html>
 <html lang="en" class="dark">

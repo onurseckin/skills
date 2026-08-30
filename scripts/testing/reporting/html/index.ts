@@ -1,8 +1,3 @@
-/**
- * Interactive HTML Coverage Dashboard Subsystem Entrypoint
- * Assembles data extraction, CSS styles, client-side scripts, and HTML templates
- * to produce and write self-contained interactive coverage dashboards.
- */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { CoverageSummary, FileCoverageMetric } from "../types.ts";

@@ -1,8 +1,3 @@
-/**
- * Coverage Dashboard CSS Stylesheet Generator
- * Provides modern dark theme styles, metrics gauges, responsive grids, and code viewer highlighting.
- */
-
 import { getCodeViewerStyles } from "./styles-code-viewer.ts";
 
 export function getHtmlStyles(): string {

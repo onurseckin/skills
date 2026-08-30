@@ -1,9 +1,3 @@
-/**
- * Coverage Dashboard Client-Side Interactive Script Generator
- * Generates browser-side JavaScript for folder drilldowns, file search, filters,
- * breadcrumbs, sortable metrics tables, code viewer, and line jumping.
- */
-
 import { getClientScriptHelpers } from "./client-script-helpers.ts";
 
 export function getClientScript(payloadJson: string): string {
