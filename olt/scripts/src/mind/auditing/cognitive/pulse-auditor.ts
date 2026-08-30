@@ -1,3 +1,9 @@
+import {
+  resolveLatestPulseTimestamp,
+  resolveActivePulse,
+  resolveActiveMindGrant,
+} from "./capsule-resolver.ts";
+import { auditRepositoryGovernanceHelper } from "./governance-auditor.ts";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -14,7 +20,6 @@ import {
 import { readLastPulse } from "../../lifecycle/pulse/index.ts";
 import { executeStagnationShockRecovery } from "../stagnation-recovery-interlock.ts";
 import { AuditorCursorStore } from "./cursor.ts";
-import { MindAuditorEngine } from "./engine.ts";
 import type { AuditorCursor, MindAuditLiveResult } from "./types.ts";
 
 export function auditMindPulseHelper(
@@ -48,16 +53,16 @@ export function auditMindPulseHelper(
   // .olt/defects.jsonl (MIND_AUDIT_LIVE_MEASURES_THE_AUDITOR_CADENCE_NOT_THE_MIND): idle time
   // tracked the gap between audit ticks, not Mind activity, so a Mind silent for 4h05m read as
   // healthy whenever the auditor happened to run twice within the threshold.
-  const pulseMs = MindAuditorEngine.resolveLatestPulseTimestamp(
+  const pulseMs = resolveLatestPulseTimestamp(
     repoRoot,
     options !== undefined ? options.capsuleRunRoot : undefined,
   );
-  const activePulse = MindAuditorEngine.resolveActivePulse(
+  const activePulse = resolveActivePulse(
     repoRoot,
     nowMs,
     options !== undefined ? options.capsuleRunRoot : undefined,
   );
-  const activeMindGrant = MindAuditorEngine.resolveActiveMindGrant(
+  const activeMindGrant = resolveActiveMindGrant(
     repoRoot,
     options !== undefined ? options.capsuleRunRoot : undefined,
   );
@@ -75,25 +80,34 @@ export function auditMindPulseHelper(
         : nowMs - (threshold + 1) * 1000; // never pulsed => already stagnant
 
   const idleDurationSeconds = Math.max(0, Math.floor((nowMs - lastActiveMs) / 1000));
-  // An active harness grant alone is not native Codex liveness. Require both a live grant and
-  // prior pulse evidence before declaring a Mind stagnant; otherwise provide deployment or
-  // reconciliation guidance without manufacturing a LIVE_STAGNATION defect.
+  const gov = auditRepositoryGovernanceHelper(
+    repoRoot,
+    options !== undefined ? options.capsuleRunRoot : undefined,
+  );
+
   const hasNativeMindEvidence =
     activePulse !== null ||
     (activeMindGrant !== null && pulseMs !== null) ||
     (options !== undefined &&
       options.cursor !== undefined &&
       typeof options.cursor.lastInspectedTimestamp === "string");
-  const stagnant = hasNativeMindEvidence && idleDurationSeconds >= threshold;
-  const remediation = activePulse
-    ? "none"
-    : activeMindGrant === null
-      ? "deploy_mind"
-      : pulseMs === null
-        ? "reconcile_native_mind"
-        : stagnant
-          ? "wake_mind"
-          : "none";
+
+  const isGovernanceDeficient = !gov.policyValid;
+  const stagnant =
+    (hasNativeMindEvidence && idleDurationSeconds >= threshold) || gov.simulatedExecutionDetected;
+
+  const remediation =
+    activePulse && !gov.simulatedExecutionDetected
+      ? "none"
+      : activeMindGrant === null
+        ? "deploy_mind"
+        : pulseMs === null || gov.simulatedExecutionDetected
+          ? "reconcile_native_mind"
+          : !gov.policyValid
+            ? "deploy_mind"
+            : stagnant
+              ? "wake_mind"
+              : "none";
 
   // 2. Query pending backlog count
   let pendingBacklogCount = 0;

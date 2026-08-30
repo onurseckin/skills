@@ -55,3 +55,6 @@ yarn-error.log*
 .idea/
 *.sublime-workspace
 *.sublime-project
+
+# runtime session auth
+.session.json

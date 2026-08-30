@@ -1,7 +1,6 @@
-import { existsSync, lstatSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, realpathSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import type { AgentGrantRecord } from "../../core/contracts/index.ts";
-import type { JsonValue } from "../../core/contracts/index.ts";
+import type { AgentGrantRecord, JsonValue } from "../../core/contracts/index.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
 import { HarnessError } from "../../core/errors/index.ts";
@@ -11,13 +10,12 @@ import {
   type ParsedCharter,
 } from "../../mind/lifecycle/charter/index.ts";
 import { bootstrapRepoGovernance, type RepoGovernanceStatus } from "../../mind/governance/index.ts";
-import { initRun, loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/index.ts";
-import { enforceLineLimit, mindInitNextActions, nextActionsBlock } from "../formatters/index.ts";
+import { initRun, loadRun, transact } from "../../engine/store/index.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { resolveCapsulesDir } from "../../core/shared/paths.ts";
 import { initRepoPolicy } from "../../policy/index.ts";
 import { writeAgentLedger } from "../../workflow/agents/ledger.ts";
+import { formatMindInitBrief } from "./mind-init-brief.ts";
 
 export type MindInitGovernanceStatus = RepoGovernanceStatus;
 
@@ -36,34 +34,7 @@ export interface MindInitResult {
   governance: RepoGovernanceStatus;
 }
 
-export function formatMindInitBrief(params: {
-  mindId: string;
-  runRoot: string;
-  generation: number;
-  charterSourcePath: string;
-  charterSha256: string;
-  goals: readonly string[];
-  repoRoots: readonly string[];
-  governance?: RepoGovernanceStatus;
-}): string {
-  const md = [
-    `### Mind Initialized: ${params.mindId}`,
-    `- **Capsule Root**: \`${params.runRoot}\``,
-    `- **Generation**: ${params.generation}`,
-    `- **Charter Source**: \`${params.charterSourcePath}\``,
-    `- **Charter SHA-256**: \`${params.charterSha256}\``,
-    `- **Pinned Goals**: ${params.goals.join(", ")} (${params.goals.length} total)`,
-    `- **Repo Roots**: ${params.repoRoots.map((r) => `\`${r}\``).join(", ")}`,
-    ...(params.governance
-      ? [
-          `- **Governance**: \`${params.governance.ready ? "ready" : "unready"}\` (policy, backlog, defects, session)`,
-        ]
-      : []),
-    `- **Status**: Substrate ready for wake (\`mind:wake --run ${params.runRoot}\`).`,
-    ...nextActionsBlock(mindInitNextActions(params.runRoot)),
-  ].join("\n");
-  return enforceLineLimit(md, 30);
-}
+export { formatMindInitBrief } from "./mind-init-brief.ts";
 
 export function mindInitCommand(
   flags: Flags,
@@ -77,6 +48,11 @@ export function mindInitCommand(
     );
   }
   const repoRoot = realpathSync(repoRaw);
+  const oltDir = join(repoRoot, ".olt");
+  if (!existsSync(oltDir)) mkdirSync(oltDir, { recursive: true });
+  if (!existsSync(join(oltDir, "policy.json"))) {
+    initRepoPolicy(repoRoot);
+  }
 
   const charterPathRaw = textFlag(flags, "charter", true);
   if (!charterPathRaw) {
@@ -148,11 +124,6 @@ export function mindInitCommand(
     );
   }
 
-  const policyFile = join(repoRoot, ".olt", "policy.json");
-  if (!existsSync(policyFile)) {
-    initRepoPolicy(repoRoot);
-  }
-
   const runRoot = initRun(repoRoot, mindId, charterBytes, "file", true);
   const loaded = loadRun(runRoot);
   const pinnedDigest = loaded.manifest.prompt_sha256;
@@ -212,16 +183,32 @@ export function mindInitCommand(
         last: null,
       } as unknown as JsonValue;
 
-      const mindGrant: AgentGrantRecord = {
-        id: mindId,
-        role: "mind",
-        parent_agent_id: null,
-        parent_task_id: null,
-        host: "initialization",
-        granted_at: new Date().toISOString(),
-        status: "active",
-      };
-      writeAgentLedger(state, [mindGrant]);
+      const nowIso = new Date().toISOString();
+      const initialGrants: AgentGrantRecord[] = [
+        {
+          id: mindId,
+          role: "mind",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "initialization",
+          granted_at: nowIso,
+          status: "active",
+        },
+      ];
+
+      if (actor && actor !== mindId) {
+        initialGrants.push({
+          id: actor,
+          role: "mind",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "initialization",
+          granted_at: nowIso,
+          status: "active",
+        });
+      }
+
+      writeAgentLedger(state, initialGrants);
 
       state.observations = [] as unknown as JsonValue;
       state.candidates = [] as unknown as JsonValue;

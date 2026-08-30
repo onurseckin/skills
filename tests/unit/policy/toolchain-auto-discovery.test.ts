@@ -1,8 +1,8 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
-import { mindObserveCommand } from "../../../olt/scripts/src/cli/commands/mind-observe.ts";
+import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
+import { mindObserveCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
 import {
   discoverToolchain,
   generateDefaultRepoPolicy,

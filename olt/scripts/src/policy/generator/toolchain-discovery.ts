@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot } from "../../core/index.ts";
 import type { PackageManager, RepoEcosystem, TestRunnerPolicy } from "../types/index.ts";
 import { buildAllowedCommands } from "./command-builder.ts";
 import { detectRepoEcosystem } from "./ecosystem-detect.ts";

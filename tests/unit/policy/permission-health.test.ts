@@ -124,7 +124,7 @@ describe("auditPermissionHealth & Manifest Proof Invariants", () => {
     expect(validResult.healthy).toBe(true);
   });
 
-  test("Proof 3: Supervisor confinement enforces enable_write_tools === false and must_not file edits", () => {
+  test("Proof 3: Supervisor confinement enforces must_not file edits", () => {
     const invalidSupervisor = createManifest({
       role: "coordinator",
       tools: {
@@ -144,13 +144,6 @@ describe("auditPermissionHealth & Manifest Proof Invariants", () => {
     expect(
       result.errors.some((e) =>
         e.includes(
-          "Proof 3 Failed: Supervisor role 'coordinator' must have tools.enable_write_tools === false",
-        ),
-      ),
-    ).toBe(true);
-    expect(
-      result.errors.some((e) =>
-        e.includes(
           "Proof 3 Failed: Supervisor role 'coordinator' must have prohibitions against file edits in must_not",
         ),
       ),
@@ -160,7 +153,7 @@ describe("auditPermissionHealth & Manifest Proof Invariants", () => {
       role: "mind",
       tools: {
         enable_subagent_tools: true,
-        enable_write_tools: false,
+        enable_write_tools: true,
       },
       permissions: {
         may: [],

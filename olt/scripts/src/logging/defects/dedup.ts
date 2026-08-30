@@ -49,7 +49,7 @@ export function withinDeduplicationWindow(tA: string, tB: string, windowMs: numb
 }
 
 export function normalizeObservationSignature(obs?: string): string {
-  if (!obs) return "";
+  if (typeof obs !== "string" || !obs.trim()) return "";
   return obs
     .toLowerCase()
     .trim()

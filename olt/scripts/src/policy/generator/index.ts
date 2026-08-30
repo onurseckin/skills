@@ -11,7 +11,7 @@ import {
 import { buildDefaultAgents } from "./default-agents.ts";
 import { buildDefaultDocker } from "./default-docker.ts";
 import { detectRepoEcosystem } from "./ecosystem-detect.ts";
-import { discoverToolchain, type DiscoveredToolchain } from "./toolchain-discovery.ts";
+import { discoverToolchain } from "./toolchain-discovery.ts";
 
 export { buildDefaultAgents } from "./default-agents.ts";
 export { buildDefaultDocker } from "./default-docker.ts";
@@ -28,6 +28,8 @@ export {
   type ParsedPythonManifest,
   type ParsedTurboJson,
 } from "./toolchain-discovery.ts";
+export { scanRepositoryToolchain, synthesizeCalibratedRepoPolicy } from "./toolchain-scanner.ts";
+export type { ToolchainAnalysis } from "./toolchain-types.ts";
 
 export const DEFAULT_REVIEW_PROTOCOL_POLICY: ReviewProtocolPolicy = {
   max_adversarial_pushes: 20,

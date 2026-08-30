@@ -164,3 +164,5 @@ export {
   createSecurityAuditLogger,
   verifyAuditTrailChain,
 } from "./audit/index.ts";
+
+export { discoverToolchainPolicy, type DiscoveredToolchainPolicy } from "./repo-policy.ts";

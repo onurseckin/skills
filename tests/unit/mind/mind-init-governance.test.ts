@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
-import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
-import { mindWakeCommand } from "../../../olt/scripts/src/cli/commands/mind-wake.ts";
+import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
+import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
+import { mindWakeCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
 import {
   isSessionLedgerBacked,
   resolveActiveSession,
 } from "../../../olt/scripts/src/authority/session/index.ts";
-import { loadRepoPolicy } from "../../../olt/scripts/src/policy/repo-policy.ts";
-import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
+import { loadRepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
+import { scratchRoot as makeScratchRoot } from "../../support/index.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

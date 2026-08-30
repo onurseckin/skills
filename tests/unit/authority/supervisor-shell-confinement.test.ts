@@ -6,8 +6,8 @@ import {
   executeShieldedCommand,
   verifyCommandAuthorization,
 } from "../../../olt/scripts/src/authority/rbac/index.ts";
-import { inferCanExecute } from "../../../olt/scripts/src/authority/session/io.ts";
-import { buildDefaultAgents } from "../../../olt/scripts/src/policy/generator/default-agents.ts";
+import { inferCanExecute } from "../../../olt/scripts/src/authority/session/index.ts";
+import { buildDefaultAgents } from "../../../olt/scripts/src/policy/generator/index.ts";
 import type { RepoPolicy } from "../../../olt/scripts/src/policy/types/index.ts";
 
 describe("Supervisor and Validator Shell Confinement & Antigravity Enablement", () => {

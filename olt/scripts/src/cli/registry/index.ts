@@ -180,6 +180,7 @@ const BY_INVOCATION: ReadonlyMap<string, CommandSpec> = (() => {
 })();
 
 const LEGACY_ALIASES: ReadonlyMap<string, string> = new Map([
+  ["dag", "report:dag"],
   ["watchdog:list", "watchdog:status"],
   ["watchdog:clean", "watchdog:cleanup"],
   ["watchdog:cleanup-phase", "watchdog:phase-cleanup"],

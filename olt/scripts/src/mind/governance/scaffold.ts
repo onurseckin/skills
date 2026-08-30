@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { generateDefaultRepoPolicy, saveRepoPolicy } from "../../policy/repo-policy.ts";
+import { generateDefaultRepoPolicy, saveRepoPolicy } from "../../policy/index.ts";
 import { registerSessionGrant } from "../../authority/session/index.ts";
 
 export interface RepoGovernanceStatus {
@@ -65,13 +65,6 @@ export function bootstrapRepoGovernance(
   }
 
   const sessionPath = join(options.repoRoot, ".session.json");
-  registerSessionGrant({
-    agentId: options.mindId,
-    role: "mind",
-    runRoot: options.runRoot,
-    worktreeDir: options.repoRoot,
-  });
-
   if (!existsSync(sessionPath)) {
     const grant = registerSessionGrant({
       agentId: options.mindId,
