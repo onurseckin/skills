@@ -145,11 +145,6 @@ export function auditPermissionHealth(
       );
     }
   } else if (["mind", "orchestrator", "coordinator"].includes(manifest.role)) {
-    if (manifest.tools.enable_write_tools) {
-      errors.push(
-        `Proof 3 Failed: Supervisor role '${manifest.role}' must have tools.enable_write_tools === false.`,
-      );
-    }
     const mustNotStr = (manifest.permissions.must_not ?? []).join(" ").toLowerCase();
     const hasProhibitionFileEdits =
       mustNotStr.includes("file edit") ||

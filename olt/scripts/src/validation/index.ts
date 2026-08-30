@@ -180,3 +180,21 @@ export {
   verifyHtmlReporterTemplatePurity,
   type HtmlReporterDefectAuditResult,
 } from "./defect-html-reporter-escaped-backtick-unterminated-literal.ts";
+
+export {
+  PROSE_ASSERTION_OVER_EVIDENCE_BIAS,
+  assertEvidenceOverProse,
+  auditProseAgainstEvidence,
+  extractProseMilestoneClaims,
+  inspectEventLogEvidence,
+  verifyProseAssertionDefectRemediated,
+  type CommandReceiptProof,
+  type EventLogSummary,
+  type EvidenceAuditOptions,
+  type EvidenceAuditResult,
+  type MilestoneType,
+  type ObservedEvidenceState,
+  type ProseAssertionErrorCode,
+  type ProseAssertionViolation,
+  type ProseMilestoneClaim,
+} from "./evidence/index.ts";

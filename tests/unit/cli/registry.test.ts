@@ -20,40 +20,36 @@ import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const EXPECTED_INVOCATIONS: readonly string[] = `
-  plan:brainstorm orchestrate plan:init plan:enhance plan:add plan:audit
+  plan:brainstorm orchestrate plan:init plan-init init-plan plan:enhance plan:add plan:audit
   plan:compile plan:validate-start plan:review plan:replan plan:claim plan:apply plan:status
-  queue:next queue:list queue:wave queue:pop task:brief task:claim task:heartbeat task:submit
-  task:validate-start task:review task:probe task:reject task:assign-repairer task:abandon
+  queue:next queue:list queue:wave queue:pop queue:add mind:queue:add todo:add feedback:ingest
+  feedback:add queue:drain mind:queue:drain todo:drain feedback:drain queue:status mind:queue:list
+  todo:list feedback:list mind:queue:status queue:seal mind:queue:seal todo:seal feedback:seal
+  queue:clean mind:queue:clean todo:clean feedback:clean
+  task:brief task:claim task:heartbeat task:submit
+  task:validate-start task:review task:probe task:reject task:assign-repairer task:abandon task:release
   task:check task:add task:list task:lease task:complete task:fail task:prune
-  report report:all report:graph-json dag:export-json report:dag report:graph
-  report:health report:leases report:decisions report:summary report:task stream:events
-  events:stream events:tail dag dag:render dag:view graph:sugiyama report:sugiyama
-  graph:ascii status:dag dag:trace trace:dag stream:trace usage:report telemetry:usage
-  quota:report quota:check quota:circuit-break circuit-breaker:check circuit-break
-  quota:circuit-breaker quota:freeze quota:suspend freeze:quota quota:resume quota:unfreeze
-  resume:quota skill:audit:live skill:audit notify:phase notify phase:notify notify:test
-  test:notify run:init run:exec run:status run:complete shell sh exec:safe
-  scope:expand scope-expand critic:start critic:review critic:reject critic:remediate
-  summary:export summary:view test:summary finding:get report:get evidence:get
-  evidence:screenshots orchestrator:run orchestrator orchestrator:supervise branch:open
+  report report:summary report:task report:health report:leases report:decisions
+  report:usage usage:report report:dag report:graph-json
+  events:stream events:trace dag:trace
+  quota:check quota:circuit-break circuit-breaker:check quota:freeze quota:resume
+  skill:audit:live notify:phase notify:test
+  run:init run-init capsule-init run:exec run:status status run:complete shell
+  scope:expand critic:start critic:review critic:reject critic:remediate
+  summary:export summary:view test:summary finding:get report:get evidence:get evidence:screenshots
+  orchestrator:run orchestrator:supervise branch:open
   branch:claim branch:submit branch:collect branch:abandon branch:status agent:register
   agent:report agent:release agent:list agent:brief agent:define orphan:dispose
-  authority:decide whoami watchdog:status
-  watchdog:list watchdog:cleanup watchdog:clean watchdog:phase-cleanup watchdog:phase-clean
-  watchdog:cleanup-phase watchdog:verify watchdog:check watchdog:lint watchdog:probe
-  watchdog:supervise watchdog:health-probe install installation-status defect:audit
-  defects coverage:check health doctor doctor:repair doctor:certify recover
-  task:release meta-audit finding:file finding explain gate:prove
-  coordinator:pushback capture:init capture:run capture:eval memory:query memory:search
+  authority:decide whoami watchdog:status watchdog:cleanup watchdog:phase-cleanup
+  watchdog:verify watchdog:probe install installation-status defect:audit
+  coverage:check health doctor doctor:repair doctor:certify recover
+  meta-audit finding:file explain gate:prove coordinator:pushback
+  capture:init capture:run capture:eval memory:query
   mind:init mind:wake mind:pulse-open mind:pulse mind:observe mind:candidate mind:admit
   mind:decline mind:quiesce mind:escalate mind:halt mind:round-open mind:round-close
-  mind:audit-start mind:audit-report mind:rotate smart-task:plan task:synthesize
-  smart-task:ingest smart-task:expand mind:queue:list todo:list feedback:list
-  mind:queue:add todo:add feedback:ingest feedback:add mind:queue:drain todo:drain
-  feedback:drain mind:queue:seal todo:seal feedback:seal mind:queue:clean todo:clean
-  feedback:clean mind:audit:live mind:audit policy:init policy:get policy:set
-  policy:check-drift policy:drift factory:preplan mind:preplan preplan:run factory:status
-  mind:factory:status preplan:status msg:send msg:recv msg:poll msg:list
+  mind:audit-start mind:audit-report mind:rotate smart-task:plan
+  smart-task:ingest mind:audit:live policy:init policy:get policy:set
+  policy:check-drift factory:preplan factory:status msg:send msg:recv msg:poll msg:list
   worktree:create worktree:land worktree:list worktree:clean worktree:status worktree:reclaim
   sched:eval sched:backoff sched:jitter
   role:list role:profile role:cheat-sheet role:contract role:cheat
@@ -208,7 +204,7 @@ describe("CLI command registry", () => {
     }[] = [
       { name: "report", handler: reportUnifiedCommand },
       { name: "report:summary", handler: summaryViewCommand },
-      { name: "dag", handler: dagViewCommand },
+      { name: "report:dag", handler: dagViewCommand },
     ];
 
     for (const { name, handler } of liveJsonCommands) {

@@ -119,11 +119,13 @@ export function agentRegisterCommand(
   }
   const explicitPid = integerFlag(flags, "pid", { minimum: 1 });
   const explicitPpid = integerFlag(flags, "ppid", { minimum: 1 });
+  const bindProcessAncestry = explicitPid !== undefined || explicitPpid !== undefined;
   const stagedSession = stageSessionGrant({
     runRoot: run,
     agentId: agent,
     role,
     host,
+    bindProcessAncestry,
     ...(explicitPid === undefined ? {} : { pid: explicitPid }),
     ...(explicitPpid === undefined ? {} : { ppid: explicitPpid }),
   });

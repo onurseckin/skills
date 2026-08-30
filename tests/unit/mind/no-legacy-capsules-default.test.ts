@@ -35,7 +35,7 @@ describe("no legacy bare .capsules default path", () => {
 
   test("synthesizeSmartTasksFromSelfEvolution's targetRoots fallback resolves through resolveCapsulesDir", () => {
     const source = readFileSync(
-      join(REPO_ROOT, "olt/scripts/src/mind/tasks/smart/executor/self-evolution.ts"),
+      join(REPO_ROOT, "olt/scripts/src/mind/tasks/smart/executor/evolution/self-evolution.ts"),
       "utf-8",
     );
     expect(source).toMatch(

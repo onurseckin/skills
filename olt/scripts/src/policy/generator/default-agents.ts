@@ -48,8 +48,10 @@ export function buildDefaultAgents(): Record<string, AgentPolicy> {
       tier: 0,
       silent_daemon: true,
       rbac: {
-        can_execute_shell: false,
+        can_execute_shell: true,
         can_edit_code: false,
+        allowed_commands: ["bun harness.ts *", "git status", "git diff", "git log"],
+        forbidden_patterns: ["^bun\\s+test\\b", "^npm\\s+test\\b", "^git\\s+(commit|push|reset)"],
         allowed_spawns: ["orchestrator", "mind_auditor", "skill_auditor", "autonomic_watchdog"],
       },
       hosts: {

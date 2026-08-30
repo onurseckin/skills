@@ -1,3 +1,27 @@
+import { scanRepositoryToolchain } from "./generator/index.ts";
+
+export interface DiscoveredToolchainPolicy {
+  readonly commands: {
+    readonly typecheck?: string | undefined;
+    readonly lint?: string | undefined;
+    readonly test?: string | undefined;
+    readonly build?: string | undefined;
+  };
+  readonly toolchain: string;
+}
+
+export function discoverToolchainPolicy(repoRoot: string): DiscoveredToolchainPolicy {
+  const analysis = scanRepositoryToolchain(repoRoot);
+  return {
+    commands: {
+      typecheck: analysis.typecheckCommand ?? "bun run typecheck",
+      lint: analysis.lintCommand ?? "bun run lint",
+      test: analysis.testRunner.default_command ?? "bun test",
+      build: analysis.buildCommand ?? "bun run build",
+    },
+    toolchain: analysis.ecosystem,
+  };
+}
 import { randomUUID } from "node:crypto";
 import {
   closeSync,
