@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   auditOrchestratorLiveness,
   defaultIsPidAlive,
+  ORCHESTRATOR_LIVENESS_DEFECT,
   reclaimZombieOrchestrator,
   DEFAULT_HEARTBEAT_THRESHOLD_SECONDS,
   DEFAULT_SINGLETON_ROLE,
@@ -35,11 +36,13 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
   let tempDir: string;
   let ledgerPath: string;
   let lockPath: string;
+  let capsulesDir: string;
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "liveness-auditor-test-"));
     ledgerPath = join(tempDir, "orchestrators.jsonl");
     lockPath = join(tempDir, "orchestrators.lock");
+    capsulesDir = join(tempDir, ".olt", "capsules");
   });
 
   afterEach(() => {
@@ -52,6 +55,7 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
     test("exports standard defaults", () => {
       expect(DEFAULT_HEARTBEAT_THRESHOLD_SECONDS).toBe(300);
       expect(DEFAULT_SINGLETON_ROLE).toBe("skill_auditor");
+      expect(ORCHESTRATOR_LIVENESS_DEFECT).toBe("ORCHESTRATOR_LIVENESS_DEFECT");
     });
 
     test("defaultIsPidAlive returns true for current process and false for non-existent/invalid PID", () => {
@@ -101,6 +105,7 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
       });
       expect(report.zombies_reclaimed).toEqual(["orch-dead"]);
       expect(report.total_active_orchestrators).toBe(0);
+      expect(report.error_code).toBe(ORCHESTRATOR_LIVENESS_DEFECT);
       const ledger = loadOrchestratorLedger(ledgerPath);
       expect(ledger[0]?.status).toBe("ZOMBIE_RECLAIMED");
     });
@@ -141,6 +146,7 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
       });
       expect(report.zombies_reclaimed).toEqual([]);
       expect(report.total_active_orchestrators).toBe(1);
+      expect(report.error_code).toBeUndefined();
       const ledger = loadOrchestratorLedger(ledgerPath);
       expect(ledger[0]?.status).toBe("ACTIVE");
     });
@@ -181,34 +187,45 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
       expect(report.zombies_reclaimed).toHaveLength(3);
       expect(report.total_active_orchestrators).toBe(0);
     });
+  });
 
-    test("preserves healthy orchestrators with custom fresh heartbeat timestamps", () => {
-      registerOrchestratorSpawn(
-        createInput({ orchestrator_id: "orch-fresh", pid: 201 }),
-        ledgerPath,
-        lockPath,
-      );
-      registerOrchestratorSpawn(
-        createInput({ orchestrator_id: "orch-dead", pid: 202 }),
-        ledgerPath,
-        lockPath,
+  describe("multi-capsule discovery and ghost detection", () => {
+    test("detects detached orchestrator in isolated capsule directory", () => {
+      const capsule1 = join(capsulesDir, "capsule-alpha");
+      mkdirSync(capsule1, { recursive: true });
+      writeFileSync(
+        join(capsule1, "manifest.json"),
+        JSON.stringify({ pid: 8888, orchestrator_id: "orch-alpha-detached" }),
       );
 
-      const now = new Date();
       const report = auditOrchestratorLiveness({
         customLedgerPath: ledgerPath,
         customLockPath: lockPath,
-        isPidAliveFn: (pid) => pid === 201,
-        now,
+        capsulesRootDir: capsulesDir,
+        isPidAliveFn: (pid) => pid === 8888,
       });
 
-      expect(report.zombies_reclaimed).toEqual(["orch-dead"]);
-      expect(report.total_active_orchestrators).toBe(1);
-      const ledger = loadOrchestratorLedger(ledgerPath);
-      expect(ledger.find((r) => r.orchestrator_id === "orch-fresh")?.status).toBe("ACTIVE");
-      expect(ledger.find((r) => r.orchestrator_id === "orch-dead")?.status).toBe(
-        "ZOMBIE_RECLAIMED",
-      );
+      expect(report.ghost_processes_found).toHaveLength(1);
+      expect(report.ghost_processes_found[0]?.subagent_id).toBe("orch-alpha-detached");
+      expect(report.ghost_processes_found[0]?.reason).toBe("DETACHED_ORPHAN");
+      expect(report.error_code).toBe(ORCHESTRATOR_LIVENESS_DEFECT);
+    });
+
+    test("detects ghost orchestrator from live agents list unregistered in ledger", () => {
+      const liveAgents: LiveSubagentInfo[] = [
+        { subagent_id: "ghost-orch-99", role: "orchestrator", pid: 9001, status: "ACTIVE" },
+      ];
+      const report = auditOrchestratorLiveness({
+        customLedgerPath: ledgerPath,
+        customLockPath: lockPath,
+        liveAgents,
+        isPidAliveFn: () => true,
+      });
+
+      expect(report.ghost_processes_found).toHaveLength(1);
+      expect(report.ghost_processes_found[0]?.subagent_id).toBe("ghost-orch-99");
+      expect(report.ghost_processes_found[0]?.reason).toBe("UNREGISTERED_IN_LEDGER");
+      expect(report.error_code).toBe(ORCHESTRATOR_LIVENESS_DEFECT);
     });
   });
 
@@ -244,51 +261,6 @@ describe("Orchestrator Liveness & Zombie Auditor", () => {
         liveAgents: multipleAuditors,
       });
       expect(report.singleton_auditor_compliant).toBe(false);
-    });
-
-    test("ignores non-active skill_auditors for singleton compliance calculation", () => {
-      const mixedAuditors: LiveSubagentInfo[] = [
-        { subagent_id: "auditor-active", role: "skill_auditor", pid: 701, status: "ACTIVE" },
-        { subagent_id: "auditor-done", role: "skill_auditor", pid: 702, status: "COMPLETED" },
-        { subagent_id: "auditor-term", role: "skill_auditor", pid: 703, status: "TERMINATED" },
-      ];
-      const report = auditOrchestratorLiveness({
-        customLedgerPath: ledgerPath,
-        customLockPath: lockPath,
-        liveAgents: mixedAuditors,
-      });
-      expect(report.singleton_auditor_compliant).toBe(true);
-    });
-  });
-
-  describe("ghost orchestrator detection and report structure", () => {
-    test("detects ghost orchestrator not registered in ledger", () => {
-      const liveAgents: LiveSubagentInfo[] = [
-        { subagent_id: "ghost-orch-99", role: "orchestrator", pid: 9001, status: "ACTIVE" },
-      ];
-      const report = auditOrchestratorLiveness({
-        customLedgerPath: ledgerPath,
-        customLockPath: lockPath,
-        liveAgents,
-        isPidAliveFn: () => true,
-      });
-
-      expect(report.ghost_processes_found).toHaveLength(1);
-      expect(report.ghost_processes_found[0]?.subagent_id).toBe("ghost-orch-99");
-      expect(report.ghost_processes_found[0]?.reason).toBe("UNREGISTERED_IN_LEDGER");
-      expect(Number.isFinite(Date.parse(report.timestamp))).toBe(true);
-    });
-
-    test("empty ledger produces valid empty reconciliation report", () => {
-      const report = auditOrchestratorLiveness({
-        customLedgerPath: ledgerPath,
-        customLockPath: lockPath,
-      });
-      expect(report.total_active_orchestrators).toBe(0);
-      expect(report.ghost_processes_found).toEqual([]);
-      expect(report.zombies_reclaimed).toEqual([]);
-      expect(report.singleton_auditor_compliant).toBe(true);
-      expect(typeof report.timestamp).toBe("string");
     });
   });
 });

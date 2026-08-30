@@ -1,3 +1,5 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   deregisterOrchestrator,
   loadOrchestratorLedger,
@@ -11,6 +13,7 @@ import {
 
 export { type GhostOrchestratorFinding, type LiveSubagentInfo };
 
+export const ORCHESTRATOR_LIVENESS_DEFECT = "ORCHESTRATOR_LIVENESS_DEFECT" as const;
 export const DEFAULT_HEARTBEAT_THRESHOLD_SECONDS = 300;
 export const DEFAULT_SINGLETON_ROLE = "skill_auditor";
 
@@ -20,9 +23,12 @@ export interface RosterReconciliationReport {
   readonly zombies_reclaimed: readonly string[];
   readonly singleton_auditor_compliant: boolean;
   readonly timestamp: string;
+  readonly error_code?: typeof ORCHESTRATOR_LIVENESS_DEFECT | undefined;
 }
 
 export interface AuditLivenessOptions {
+  readonly rootDir?: string | undefined;
+  readonly capsulesRootDir?: string | undefined;
   readonly customLedgerPath?: string | undefined;
   readonly customLockPath?: string | undefined;
   readonly liveAgents?: readonly LiveSubagentInfo[] | undefined;
@@ -83,9 +89,65 @@ export function reclaimZombieOrchestrator(
   return result !== null;
 }
 
+function scanCapsuleRoots(
+  capsulesDir: string,
+  knownPids: ReadonlySet<number>,
+  isPidAlive: (pid: number) => boolean,
+  nowIso: string,
+): readonly GhostOrchestratorFinding[] {
+  if (!existsSync(capsulesDir)) {
+    return [];
+  }
+
+  const findings: GhostOrchestratorFinding[] = [];
+  try {
+    const entries = readdirSync(capsulesDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const capsulePath = join(capsulesDir, entry.name);
+      const manifestFile = join(capsulePath, "manifest.json");
+      const pidFile = join(capsulePath, "orchestrator.pid");
+
+      let pid = 0;
+      let subagentId = `capsule-${entry.name}`;
+
+      if (existsSync(pidFile)) {
+        const rawPid = readFileSync(pidFile, "utf-8").trim();
+        const parsed = Number.parseInt(rawPid, 10);
+        if (Number.isInteger(parsed) && parsed > 0) {
+          pid = parsed;
+        }
+      } else if (existsSync(manifestFile)) {
+        try {
+          const raw = JSON.parse(readFileSync(manifestFile, "utf-8")) as Record<string, unknown>;
+          if (typeof raw["pid"] === "number" && Number.isInteger(raw["pid"])) {
+            pid = raw["pid"];
+          }
+          if (typeof raw["orchestrator_id"] === "string" && raw["orchestrator_id"].trim()) {
+            subagentId = raw["orchestrator_id"].trim();
+          }
+        } catch {}
+      }
+
+      if (pid > 0 && isPidAlive(pid) && !knownPids.has(pid)) {
+        findings.push({
+          process_id: pid,
+          subagent_id: subagentId,
+          detected_at: nowIso,
+          reason: "DETACHED_ORPHAN",
+          action_taken: "ALERTED",
+        });
+      }
+    }
+  } catch {}
+
+  return findings;
+}
+
 export function auditOrchestratorLiveness(
   options?: AuditLivenessOptions,
 ): RosterReconciliationReport {
+  const root = options?.rootDir ?? process.cwd();
   const customLedgerPath = options?.customLedgerPath;
   const customLockPath = options?.customLockPath;
   const liveAgents = options?.liveAgents ?? [];
@@ -129,9 +191,22 @@ export function auditOrchestratorLiveness(
 
   const remainingActiveCount = activeRecords.length - zombiesReclaimed.length;
 
-  const ghostFindings = detectGhostOrchestrators(liveAgents, customLedgerPath, {
-    isPidAliveFn: isPidAlive,
-  });
+  const ghostFindings = [
+    ...detectGhostOrchestrators(liveAgents, customLedgerPath, {
+      isPidAliveFn: isPidAlive,
+    }),
+  ];
+
+  const knownPids = new Set<number>(records.map((r) => r.pid));
+  for (const agent of liveAgents) {
+    knownPids.add(agent.pid);
+  }
+
+  const capsulesDir = options?.capsulesRootDir ?? join(root, ".olt", "capsules");
+  const capsuleFindings = scanCapsuleRoots(capsulesDir, knownPids, isPidAlive, isoTimestamp);
+  for (const cf of capsuleFindings) {
+    ghostFindings.push(cf);
+  }
 
   const activeAuditors = liveAgents.filter((agent) => {
     const isAuditor = agent.role.trim().toLowerCase() === DEFAULT_SINGLETON_ROLE;
@@ -140,12 +215,14 @@ export function auditOrchestratorLiveness(
   });
 
   const singletonAuditorCompliant = activeAuditors.length <= 1;
+  const hasDefects = ghostFindings.length > 0 || zombiesReclaimed.length > 0;
 
   return {
     total_active_orchestrators: remainingActiveCount,
-    ghost_processes_found: ghostFindings,
+    ghost_processes_found: Object.freeze(ghostFindings),
     zombies_reclaimed: Object.freeze(zombiesReclaimed),
     singleton_auditor_compliant: singletonAuditorCompliant,
     timestamp: isoTimestamp,
+    ...(hasDefects ? { error_code: ORCHESTRATOR_LIVENESS_DEFECT } : {}),
   };
 }
