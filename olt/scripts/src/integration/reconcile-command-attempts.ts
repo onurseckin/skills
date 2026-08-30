@@ -5,20 +5,19 @@ import { atomicWriteJson } from "../core/durable-write.ts";
 import { readCanonicalObject } from "../core/json.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { inspectRepositoryBinding } from "../packets/repository-identity.ts";
-import { probeAttemptProcess } from "../engine/runner/execution/attempt-intent";
-import { resolveArtifactPath } from "../engine/runner/core/artifact-paths";
+import { probeAttemptProcess } from "../engine/runner/execution/attempt-intent.ts";
+import { resolveArtifactPath } from "../engine/runner/core/artifact-paths.ts";
 import {
   applyAttemptRecord,
   transientFailure,
   updateRetryExhaustion,
-} from "../engine/runner/models/command/command-aggregate.ts";
-import { embeddedCommandIssues } from "../engine/runner/models/command/command-shape.ts";
-import {
+  embeddedCommandIssues,
   assertCommandAttemptSize,
   assertCommandRecordSize,
   MAX_COMMAND_ATTEMPT_BYTES,
-} from "../engine/runner/models/command/command-record-size.ts";
-import { verifyCommandAttempt } from "../engine/runner/signing/verify-command";
+} from "../engine/runner/index.ts";
+import { verifyCommandAttempt } from "../engine/runner/signing/verify-command.ts";
+
 import { recoverGateAttempt } from "./recover-gate-attempt.ts";
 import {
   recoverIncomplete,

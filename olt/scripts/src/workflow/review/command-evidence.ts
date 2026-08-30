@@ -1,6 +1,7 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import { embeddedCommandIssues } from "../../engine/runner/models/command/command-shape.ts";
+import { embeddedCommandIssues } from "../../engine/runner/index.ts";
 import { applicableGates, commandMatchesGate } from "../gates/gate-policy.ts";
+
 import type { CommandProof, WorkflowState } from "../types.ts";
 
 export function assertValidatorCommands(
