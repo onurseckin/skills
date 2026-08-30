@@ -85,6 +85,9 @@ export class NotificationDispatcherRegistry {
       platform: dispatcher.platform,
       success: result.delivered,
     });
+    while (this._history.length > 100) {
+      this._history.shift();
+    }
 
     if (payload.soundEnabled && !options?.silent) {
       dispatcher.chime(payload.soundFile, options);
