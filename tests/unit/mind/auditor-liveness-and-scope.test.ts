@@ -23,7 +23,7 @@ afterEach(() => {
     try {
       rmSync(root, { recursive: true, force: true });
     } catch {
-      // ignore
+
     }
   }
   roots.length = 0;
@@ -107,9 +107,6 @@ describe("cursor identity carries observer AND capsule (mechanism c)", () => {
       now: "2026-08-25T00:02:00.000Z",
     });
 
-    // At HEAD the "skill" cursor is keyed by auditorType alone: capsule A ratcheting its mark to
-    // index 4 bleeds into capsule B's independent, unrelated event log and truncates its scan.
-    // Capsule identity must be part of the cursor key so each capsule starts its own scan fresh.
     expect(resultB.eventsAnalyzed).toBe(7);
   });
 
@@ -137,7 +134,7 @@ describe("Mind liveness is measured from the pulse clock, never the observer's o
     mkdirSync(join(repoRoot, "olt", "agents"), { recursive: true });
     writeFileSync(join(repoRoot, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML, "utf-8");
 
-    const pulseAt = "2026-08-24T20:00:00.000Z"; // Mind's real last pulse
+    const pulseAt = "2026-08-24T20:00:00.000Z";
     writeLastPulse(capsuleRoot, {
       at: pulseAt,
       pulse_id: "pulse-9",
@@ -159,7 +156,7 @@ describe("Mind liveness is measured from the pulse clock, never the observer's o
     });
 
     const threshold = 120;
-    const tick1 = "2026-08-25T00:05:00.000Z"; // 4h05m after pulseAt
+    const tick1 = "2026-08-25T00:05:00.000Z";
     const first = MindAuditorEngine.auditMindPulse(repoRoot, {
       stagnationThresholdSeconds: threshold,
       now: tick1,
@@ -167,11 +164,6 @@ describe("Mind liveness is measured from the pulse clock, never the observer's o
     });
     expect(first.stagnant).toBe(true);
 
-    // Tick 2 runs only 30s after tick 1: well inside the threshold measured against the
-    // AUDITOR's own last run, but the Mind still has not pulsed since pulseAt. A cursor that
-    // contaminates the liveness clock reports healthy here purely because the auditor itself ran
-    // recently -- the pulse clock alone must still fire. This is the defect: idle time tracking
-    // the gap between audit ticks instead of Mind activity.
     const tick2 = "2026-08-25T00:05:30.000Z";
     const second = MindAuditorEngine.auditMindPulse(repoRoot, {
       stagnationThresholdSeconds: threshold,
@@ -386,7 +378,6 @@ describe("skill:audit:live's documented default invocation actually scans (mecha
     const repoRoot = freshRepoRoot("default-invocation");
     buildViolatingCapsule(repoRoot);
 
-    // Exactly the documented happy path from cli-capabilities.md: no --run.
     const result = await skillAuditLiveCommand({ repo: repoRoot, "log-defects": false });
 
     expect(asBoolean(result.compliant)).toBe(false);

@@ -18,14 +18,14 @@ export function readCommandOutput(resolution: WitnessResolution): {
     try {
       stdout = readFileSync(stdStdoutPath, "utf-8");
     } catch {
-      // ignore
+
     }
   }
   if (existsSync(stdStderrPath)) {
     try {
       stderr = readFileSync(stdStderrPath, "utf-8");
     } catch {
-      // ignore
+
     }
   }
 
@@ -36,7 +36,7 @@ export function readCommandOutput(resolution: WitnessResolution): {
       try {
         stdout = readFileSync(customStdoutPath, "utf-8");
       } catch {
-        // ignore
+
       }
     }
   }
@@ -48,7 +48,7 @@ export function readCommandOutput(resolution: WitnessResolution): {
       try {
         stderr = readFileSync(customStderrPath, "utf-8");
       } catch {
-        // ignore
+
       }
     }
   }
@@ -69,7 +69,7 @@ export function readCommandOutput(resolution: WitnessResolution): {
           try {
             stdout = readFileSync(attemptStdout, "utf-8");
           } catch {
-            // ignore
+
           }
         }
       }
@@ -82,7 +82,7 @@ export function readCommandOutput(resolution: WitnessResolution): {
           try {
             stderr = readFileSync(attemptStderr, "utf-8");
           } catch {
-            // ignore
+
           }
         }
       }

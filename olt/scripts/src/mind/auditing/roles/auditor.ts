@@ -49,7 +49,6 @@ export function validateParentChildSupervision(
   const pTier = roleToTier(parentRole);
   const cTier = roleToTier(childRole);
 
-  // Tier 0 Mind -> Tier 1 Orchestrator only
   if (pTier === 0) {
     if (cTier === 1 && isOrchestratorRole(childRole)) {
       return { valid: true, parentRole, childRole, parentTier: pTier, childTier: cTier };
@@ -64,7 +63,6 @@ export function validateParentChildSupervision(
     };
   }
 
-  // Tier 1 Orchestrator -> Tier 2 Coordinator only
   if (pTier === 1) {
     if (cTier === 2 && isCoordinatorRole(childRole)) {
       return { valid: true, parentRole, childRole, parentTier: pTier, childTier: cTier };
@@ -79,7 +77,6 @@ export function validateParentChildSupervision(
     };
   }
 
-  // Tier 2 Coordinator -> Tier 3 workers only
   if (pTier === 2) {
     if (
       cTier === 3 &&
@@ -99,7 +96,6 @@ export function validateParentChildSupervision(
     };
   }
 
-  // Tier 3 Leaf workers -> cannot spawn children
   return {
     valid: false,
     parentRole,

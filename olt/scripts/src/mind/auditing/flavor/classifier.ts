@@ -150,7 +150,7 @@ export interface CognitiveEvaluationStateInput {
 
 export interface CognitiveDimensionScore {
   readonly dimension: CognitiveDimension;
-  readonly score: number; // 0 to 100
+  readonly score: number;
   readonly grade: "OPTIMAL" | "HEALTHY" | "NEEDS_SIMPLIFICATION" | "CRITICAL_FRICTION";
   readonly findingsCount: number;
   readonly summary: string;
@@ -159,7 +159,7 @@ export interface CognitiveDimensionScore {
 export interface CognitiveFlavorEvaluation {
   readonly evaluatedAt: string;
   readonly canonicalQuestion: string;
-  readonly overallCognitiveHealthScore: number; // 0 to 100
+  readonly overallCognitiveHealthScore: number;
   readonly primaryFlavor: CognitiveFlavorId;
   readonly dimensionScores: Readonly<Record<CognitiveDimension, CognitiveDimensionScore>>;
   readonly frictionFindings: readonly CognitiveFrictionFinding[];

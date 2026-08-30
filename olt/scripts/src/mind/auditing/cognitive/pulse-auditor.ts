@@ -46,13 +46,6 @@ export function auditMindPulseHelper(
       : new Date().toISOString();
   const nowMs = new Date(nowIso).getTime();
 
-  // 1. Determine last activity timestamp from the pulse clock alone. The cursor below tracks
-  // this auditor's OWN last invocation, which advances every time this function runs; folding
-  // it into lastActiveMs (via Math.max or as a same-priority fallback) makes the auditor
-  // measure its own polling cadence instead of the Mind's. Confirmed live in
-  // .olt/defects.jsonl (MIND_AUDIT_LIVE_MEASURES_THE_AUDITOR_CADENCE_NOT_THE_MIND): idle time
-  // tracked the gap between audit ticks, not Mind activity, so a Mind silent for 4h05m read as
-  // healthy whenever the auditor happened to run twice within the threshold.
   const pulseMs = resolveLatestPulseTimestamp(
     repoRoot,
     options !== undefined ? options.capsuleRunRoot : undefined,
@@ -67,8 +60,6 @@ export function auditMindPulseHelper(
     options !== undefined ? options.capsuleRunRoot : undefined,
   );
 
-  // An open, unexpired pulse is an authoritative liveness lease. Its last_pulse snapshot is
-  // intentionally written at pulse open and may therefore predate a long running pulse.
   const lastActiveMs = activePulse
     ? nowMs
     : pulseMs !== null
@@ -77,7 +68,7 @@ export function auditMindPulseHelper(
           options.cursor !== undefined &&
           typeof options.cursor.lastInspectedTimestamp === "string"
         ? new Date(options.cursor.lastInspectedTimestamp).getTime()
-        : nowMs - (threshold + 1) * 1000; // never pulsed => already stagnant
+        : nowMs - (threshold + 1) * 1000;
 
   const idleDurationSeconds = Math.max(0, Math.floor((nowMs - lastActiveMs) / 1000));
   const gov = auditRepositoryGovernanceHelper(
@@ -109,7 +100,6 @@ export function auditMindPulseHelper(
               ? "wake_mind"
               : "none";
 
-  // 2. Query pending backlog count
   let pendingBacklogCount = 0;
   const backlogPath = resolveBacklogPath(repoRoot);
   if (existsSync(backlogPath)) {
@@ -128,11 +118,10 @@ export function auditMindPulseHelper(
         }
       }
     } catch {
-      // ignore
+
     }
   }
 
-  // 3. Query unresolved defect count
   const countDefectLines = (defectsPath: string): number => {
     if (!existsSync(defectsPath)) return 0;
     try {

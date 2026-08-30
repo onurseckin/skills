@@ -29,6 +29,7 @@ export async function skillAuditLiveCommand(
     `- Status: ${result.compliant ? "✓ COMPLIANT" : `⚠️ ${result.incidents.length} INCIDENTS`}`,
     `- Delta Events Analyzed: ${result.eventsAnalyzed}`,
     `- Defects Logged: ${result.defectsLogged}`,
+    ...(result.interjectionsSent !== undefined ? [`- Interjections Dispatched: ${result.interjectionsSent}`] : []),
     `- High-Water Mark Event Seq: ${result.cursor.lastInspectedEventIndex}`,
     `- Cursor Timestamp: ${result.cursor.lastInspectedTimestamp}`,
   ];
@@ -47,6 +48,7 @@ export async function skillAuditLiveCommand(
     incidents_count: result.incidents.length,
     events_analyzed: result.eventsAnalyzed,
     defects_logged: result.defectsLogged,
+    interjections_sent: result.interjectionsSent ?? 0,
     cursor: result.cursor as unknown as JsonObject,
     output,
     markdown: output,

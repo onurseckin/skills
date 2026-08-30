@@ -24,6 +24,7 @@ export interface SkillAuditLiveResult {
   readonly compliant: boolean;
   readonly incidents: readonly ForensicsIncident[];
   readonly defectsLogged: number;
+  readonly interjectionsSent?: number | undefined;
   readonly cursor: AuditorCursor;
   readonly eventsAnalyzed: number;
   readonly timestamp: string;

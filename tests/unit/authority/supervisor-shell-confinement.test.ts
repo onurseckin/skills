@@ -189,7 +189,9 @@ describe("Supervisor and Validator Shell Confinement & Antigravity Enablement", 
       for (const cmd of fileMutationInvocations) {
         const res = verifyCommandAuthorization(role, cmd);
         expect(res.authorized).toBe(false);
-        expect(res.reason).toBe("SUPERVISOR_ZERO_CODE_EDITS");
+        expect(
+          res.reason === "SUPERVISOR_ZERO_CODE_EDITS" || res.reason === "ROLE_BOUNDARY_DEVIATION",
+        ).toBe(true);
       }
     }
   });

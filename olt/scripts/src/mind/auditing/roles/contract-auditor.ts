@@ -49,7 +49,6 @@ export function auditSingleRole(
   const pillars = spec.cognitivePillars ?? [];
   const activities = spec.permittedActivities ?? [];
 
-  // 1. Spawning hierarchy
   if (tier === 3 && spawns.length > 0) {
     findings.push({
       id: `FIND-HIER-SPAWN3-${roleName}`,
@@ -137,7 +136,6 @@ export function auditSingleRole(
     }
   }
 
-  // 2. Command authorization
   if (granted.includes("orchestrator:run")) {
     findings.push({
       id: `FIND-CMD-ORCHRUN-${roleName}`,
@@ -163,7 +161,6 @@ export function auditSingleRole(
     });
   }
 
-  // 3. Anti-boundary leak
   const isVal = spec.archetype === "tier_3_validator" || isValidatorRole(roleName);
   if (isVal) {
     const hasExplicitWritePolicy =
@@ -189,7 +186,6 @@ export function auditSingleRole(
     }
   }
 
-  // 4. Cognitive pillars
   const minPillars = options?.minCognitivePillars ?? 0;
   if (minPillars > 0 && pillars.length < minPillars) {
     findings.push({

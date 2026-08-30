@@ -17,7 +17,6 @@ export function evaluateCognitiveState(
 ): CognitiveFlavorEvaluation {
   const frictionFindings: CognitiveFrictionFinding[] = [];
 
-  // 1. Evaluate Dimension: Simpler
   let simplerScore = 100;
   if ((input.totalLinesOfCode ?? 0) > 20000) {
     simplerScore -= 20;
@@ -45,7 +44,6 @@ export function evaluateCognitiveState(
     });
   }
 
-  // 2. Evaluate Dimension: Better
   let betterScore = 100;
   if ((input.supervisoryFileEditsCount ?? 0) > 0) {
     betterScore -= 50;
@@ -61,7 +59,6 @@ export function evaluateCognitiveState(
     });
   }
 
-  // 3. Evaluate Dimension: Faster
   let fasterScore = 100;
   const work = input.totalWorkUnits ?? 1;
   const span = input.criticalPathSpan ?? 1;
@@ -94,7 +91,6 @@ export function evaluateCognitiveState(
     });
   }
 
-  // 4. Evaluate Dimension: More Visual
   let visualScore = 100;
   if ((input.missingViewportCoverageCount ?? 0) > 0) {
     visualScore -= 35;
@@ -110,7 +106,6 @@ export function evaluateCognitiveState(
     });
   }
 
-  // 5. Evaluate Dimension: More Token-Efficient
   let tokenScore = 100;
   if (input.unboundedOutputDetected) {
     tokenScore -= 30;
@@ -126,7 +121,6 @@ export function evaluateCognitiveState(
     });
   }
 
-  // 6. Evaluate Dimension: Higher Quality
   let qualityScore = 100;
   if ((input.anyTypesCount ?? 0) > 0) {
     qualityScore -= 40;
@@ -181,7 +175,6 @@ export function evaluateCognitiveState(
     });
   }
 
-  // Normalize scores between 0 and 100
   simplerScore = Math.max(0, Math.min(100, simplerScore));
   betterScore = Math.max(0, Math.min(100, betterScore));
   fasterScore = Math.max(0, Math.min(100, fasterScore));

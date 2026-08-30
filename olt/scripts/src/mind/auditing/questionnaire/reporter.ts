@@ -118,7 +118,7 @@ export function validateAuditAnswers(rawAnswers: unknown): readonly AuditAnswer[
       }
     }
   } else {
-    // Record of question keys/IDs to answers
+
     const record = rawAnswers as Record<string, unknown>;
     for (const [key, value] of Object.entries(record)) {
       const qId = normalizeQuestionId(key);
@@ -179,7 +179,6 @@ export function validateAuditAnswers(rawAnswers: unknown): readonly AuditAnswer[
     }
   }
 
-  // Ensure all 8 questions are answered
   const missing: AuditQuestionId[] = [];
   for (const q of AUDIT_QUESTION_IDS) {
     if (!answerMap.has(q)) {
@@ -207,7 +206,6 @@ export function checkAuditBlocksPulse(state: RunState): AuditBlockCheckResult {
   const mindState = (state.mind ?? {}) as Record<string, unknown>;
   const auditRecord = (state.audit ?? mindState.audit ?? {}) as Record<string, unknown>;
 
-  // 1. Mind halted check
   if (
     mindState.halted === true ||
     auditRecord.status === "halted" ||
@@ -226,7 +224,6 @@ export function checkAuditBlocksPulse(state: RunState): AuditBlockCheckResult {
     };
   }
 
-  // 2. Open findings check
   const openFindings = Array.isArray(auditRecord.open_findings)
     ? (auditRecord.open_findings as string[])
     : [];
@@ -240,7 +237,6 @@ export function checkAuditBlocksPulse(state: RunState): AuditBlockCheckResult {
     };
   }
 
-  // 3. Status changes_requested check
   if (
     auditRecord.status === "changes_requested" ||
     auditRecord.last_verdict === "changes_requested"

@@ -1,7 +1,12 @@
 import { existsSync } from "node:fs";
 import { dirname, join, resolve, isAbsolute } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
-import { findRepoRoot, isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
+import {
+  findRepoRoot,
+  isInsideCapsule,
+  isTestEnvironment,
+  resolveCapsulesDir,
+} from "../../core/shared/paths.ts";
 import { loadRun } from "../../engine/store/capsule/load.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
 import {
@@ -71,37 +76,41 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     if (typeof parsed["granted_at"] === "string") grantedAt = parsed["granted_at"];
   };
 
-  for (const checkPid of checkPids) {
-    const sessionFile = join(globalSessionsDir, `${checkPid}.json`);
-    const mechanism = `process_ancestry_pid_${checkPid}`;
-    const parsed = readPersistedSession(sessionFile, mechanism, readSessionFile);
-    if (!parsed) continue;
-    mechanisms.push(mechanism);
-    applyParsed(parsed);
-    break;
-  }
-
-  let currentDir = cwd;
-  while (true) {
-    const sessionPath = join(currentDir, ".session.json");
-    const identityPath = join(currentDir, ".olt-identity.json");
-    const session = readPersistedSession(
-      sessionPath,
-      "workspace_directory_session",
-      readSessionFile,
-    );
-    const parsed =
-      session ?? readPersistedSession(identityPath, "workspace_directory_session", readSessionFile);
-
-    if (parsed) {
-      mechanisms.push("workspace_directory_session");
+  if (!isTestEnvironment() || repoRoot !== findRepoRoot()) {
+    for (const checkPid of checkPids) {
+      const sessionFile = join(globalSessionsDir, `${checkPid}.json`);
+      const mechanism = `process_ancestry_pid_${checkPid}`;
+      const parsed = readPersistedSession(sessionFile, mechanism, readSessionFile);
+      if (!parsed) continue;
+      mechanisms.push(mechanism);
       applyParsed(parsed);
       break;
     }
+  }
 
-    const parent = dirname(currentDir);
-    if (parent === currentDir || currentDir === repoRoot) break;
-    currentDir = parent;
+  if (!isTestEnvironment() || cwd !== findRepoRoot()) {
+    let currentDir = cwd;
+    while (true) {
+      const sessionPath = join(currentDir, ".session.json");
+      const identityPath = join(currentDir, ".olt-identity.json");
+      const session = readPersistedSession(
+        sessionPath,
+        "workspace_directory_session",
+        readSessionFile,
+      );
+      const parsed =
+        session ?? readPersistedSession(identityPath, "workspace_directory_session", readSessionFile);
+
+      if (parsed) {
+        mechanisms.push("workspace_directory_session");
+        applyParsed(parsed);
+        break;
+      }
+
+      const parent = dirname(currentDir);
+      if (parent === currentDir || currentDir === repoRoot) break;
+      currentDir = parent;
+    }
   }
 
   if (options.runRoot && options.explicitActor) {

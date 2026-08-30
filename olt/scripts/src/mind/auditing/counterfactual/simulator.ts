@@ -43,7 +43,6 @@ export function evaluateCandidateCounterfactual(
   const evaluatedAt = parseNowIso(options.now);
   const isolated = createIsolatedCandidate(candidate);
 
-  // Assert isolation
   const audit = auditCandidateIsolation(isolated);
   if (!audit.isolated) {
     throw new HarnessError(
@@ -52,7 +51,6 @@ export function evaluateCandidateCounterfactual(
     );
   }
 
-  // Convert isolated candidate to CandidateRecord interface for admission evaluation
   const isolatedRecord: CandidateRecord = {
     id: isolated.id,
     kind: isolated.kind,
@@ -65,7 +63,6 @@ export function evaluateCandidateCounterfactual(
     status: "opened",
   };
 
-  // 1. Defect-specific witness inspection
   if (isolated.kind === "defect") {
     const witnessId = isolated.witness_command_id?.trim();
     if (!witnessId) {
@@ -227,7 +224,6 @@ export function evaluateCandidateCounterfactual(
     }
   }
 
-  // 2. Execute fresh admission evaluation
   const admission = evaluateAdmissionGates(isolatedRecord, context);
 
   if (!admission.admitted) {
@@ -268,7 +264,6 @@ export function evaluateCandidateCounterfactual(
     };
   }
 
-  // Defect persists and all admission gates pass under isolated evaluation
   return {
     candidateId: isolated.id,
     admissible: true,

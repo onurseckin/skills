@@ -40,31 +40,24 @@ export class RoleBoundaryWatchdog {
     const tier = action.tier ?? roleToTier(action.role);
     const timestamp = action.timestamp ?? new Date().toISOString();
 
-    // 1. Coordinator code writing / task lease
     const coordViolation = this.checkCoordinator(action, tier, timestamp);
     if (coordViolation) return this.handleViolation(coordViolation);
 
-    // 2. Orchestrator task implementation / graph mutation
     const orchViolation = this.checkOrchestrator(action, tier, timestamp);
     if (orchViolation) return this.handleViolation(orchViolation);
 
-    // 3. Unassigned test running
     const testViolation = this.checkTestRunning(action, tier, timestamp);
     if (testViolation) return this.handleViolation(testViolation);
 
-    // 4. Anti-boundary leak
     const leakViolation = this.checkAntiBoundaryLeak(action, tier, timestamp);
     if (leakViolation) return this.handleViolation(leakViolation);
 
-    // 5. Validator hardlock
     const valViolation = this.checkValidatorHardLock(action, tier, timestamp);
     if (valViolation) return this.handleViolation(valViolation);
 
-    // 6. Spawning hierarchy
     const spawnViolation = this.checkSpawning(action, tier, timestamp);
     if (spawnViolation) return this.handleViolation(spawnViolation);
 
-    // 7. Forbidden commands
     const cmdViolation = this.checkForbidden(action, tier, timestamp);
     if (cmdViolation) return this.handleViolation(cmdViolation);
 

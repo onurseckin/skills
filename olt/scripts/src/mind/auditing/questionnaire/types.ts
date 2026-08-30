@@ -25,7 +25,7 @@ export const AUDIT_QUESTIONS: readonly AuditQuestionDefinition[] = [
   {
     id: "Q3",
     key: "charter_goals",
-    text: "Did unknown admitted candidate cite a charter goal that does not exist?",
+    text: "Did any admitted candidate cite a charter goal that does not exist?",
   },
   {
     id: "Q4",
@@ -40,7 +40,7 @@ export const AUDIT_QUESTIONS: readonly AuditQuestionDefinition[] = [
   {
     id: "Q6",
     key: "never_unattended",
-    text: "Did unknown pulse take an action on the never-unattended list?",
+    text: "Did any pulse take an action on the never-unattended list?",
   },
   {
     id: "Q7",
@@ -178,7 +178,6 @@ export function checkPulseGaps(
   const gaps: string[] = [];
   const allPulseIds = new Set<string>([...openCounts.keys(), ...closeCounts.keys()]);
 
-  // Check sequence numbering if standard pulse-N format
   const pulseNumbers: number[] = [];
   for (const id of allPulseIds) {
     const match = id.match(/^pulse-(\d+)$/);

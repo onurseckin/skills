@@ -10,6 +10,7 @@ import {
   PROHIBITED_COGNITIVE_TOOLS,
 } from "./command-authority-predicates.ts";
 import { assertSpawnAuthorized, roleToTier } from "./command-authority-hierarchy.ts";
+import { assertCoordinatorPreToolGuard } from "../authority/guards/coordinator-tool-guard.ts";
 import {
   formatHardlockRemediation,
   formatSupervisionRemediation,
@@ -229,6 +230,9 @@ export function assertGrantedCommand(
   assertSubjectTargetPolicy(spec, flags, agentId, ledger);
 
   const toolCat = identity(flags, "tool-category");
+  if (toolCat) {
+    assertCoordinatorPreToolGuard(grant.role, toolCat, agentId);
+  }
   if (
     toolCat &&
     isExecutionToolCategory(toolCat) &&
@@ -243,6 +247,9 @@ export function assertGrantedCommand(
   }
 
   const toolName = identity(flags, "tool");
+  if (toolName) {
+    assertCoordinatorPreToolGuard(grant.role, toolName, agentId);
+  }
   if (
     toolName &&
     (PROHIBITED_COGNITIVE_TOOLS.has(toolName.toLowerCase().trim()) ||

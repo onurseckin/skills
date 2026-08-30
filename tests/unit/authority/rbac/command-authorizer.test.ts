@@ -37,11 +37,15 @@ describe("verifyCommandAuthorization", () => {
 
       const resCodeEdit = verifyCommandAuthorization(role, ["rm", "-rf", "src/app.ts"]);
       expect(resCodeEdit.authorized).toBe(false);
-      expect(resCodeEdit.reason).toBe("SUPERVISOR_ZERO_CODE_EDITS");
+      expect(resCodeEdit.reason).toBe(
+        role === "coordinator" ? "ROLE_BOUNDARY_DEVIATION" : "SUPERVISOR_ZERO_CODE_EDITS",
+      );
 
       const resWriteTool = verifyCommandAuthorization(role, ["write_to_file", "foo.ts"]);
       expect(resWriteTool.authorized).toBe(false);
-      expect(resWriteTool.reason).toBe("SUPERVISOR_ZERO_CODE_EDITS");
+      expect(resWriteTool.reason).toBe(
+        role === "coordinator" ? "ROLE_BOUNDARY_DEVIATION" : "SUPERVISOR_ZERO_CODE_EDITS",
+      );
 
       const resStatus = verifyCommandAuthorization(role, ["git", "status"]);
       expect(resStatus.authorized).toBe(true);

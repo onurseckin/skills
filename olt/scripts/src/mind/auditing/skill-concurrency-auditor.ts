@@ -79,10 +79,6 @@ export function auditConcurrencySaturation(
     ? [...options.underParallelizedTasks]
     : [];
 
-  // Anti-stub failure criteria:
-  // Emits warning / finding SKILL_CONCURRENCY_UNDER_SATURATED if:
-  // 1) > 5 tasks/work units are queued/needed while active worker slots < optimal concurrency (P = ceil(W/S)) and saturationRatio < minRatio
-  // 2) or active slots < 2 when queued/work units > 5
   const isUnderSaturated =
     (totalWorkUnits > 5 && activeSlots < 2) ||
     (totalWorkUnits >= 5 && activeSlots < optimalConcurrency && saturationRatio < minRatio);
@@ -109,7 +105,6 @@ export function auditConcurrencySaturation(
     }
   }
 
-  // 2. Subdomain Git Staging Durability Check
   for (const station of stations) {
     if (station.status === "LANDED" || station.status === "VERIFIED") {
       if (!station.staging_record || !station.staging_record.git_index_sha) {
@@ -121,7 +116,6 @@ export function auditConcurrencySaturation(
     }
   }
 
-  // 3. Straggler Task Saturation Check
   if (options?.stragglingAssessments) {
     for (const assessment of options.stragglingAssessments) {
       if (assessment.is_straggler) {

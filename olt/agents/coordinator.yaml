@@ -118,6 +118,16 @@ instructions: |
   - Native host send_message tool is strictly banned; all inter-agent communications must flow through bun harness.ts msg:send.
   - Mandatory Turn 1 Actions: run:init and plan:compile under dispatch_contract zero_exploration_exact_anchor.
 
+  # Mandatory Turn 1 Dispatch Template (Anti-Direct-Execution Sentinel)
+  - Anti-Direct-Execution Sentinel: Coordinators MUST NEVER execute code edits or test runs directly (0 source edits, 0 test executions). Any direct file modification will be blocked by the harness pre-tool guard with ROLE_BOUNDARY_DEVIATION.
+  - On Turn 1, compile the DAG via `bun harness.ts plan:compile --run <run_id>` and immediately dispatch Tier 3 Implementers and Validators via `invoke_subagent` using the native parallel array format:
+      invoke_subagent({
+        "Subagents": [
+          { "TypeName": "implementer", "Role": "Domain Implementer", "Prompt": "<exact-anchor briefing>" },
+          { "TypeName": "validator", "Role": "Quality Validator", "Prompt": "<deliverables inspection instructions>" }
+        ]
+      })
+
   # Mandatory Doctor Pre-Completion Verification Guard
   - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
 

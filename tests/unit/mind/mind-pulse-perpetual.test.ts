@@ -54,6 +54,7 @@ function setupMindFixture(
 
   const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
+  mkdirSync(join(repo, ".olt"), { recursive: true });
   const charterPath = join(charterDir, "mind.yaml");
   const charterContent =
     overrides.charterContent ??
@@ -359,7 +360,7 @@ describe("P43 Unified Perpetual mind:pulse Command", () => {
 
     test("CLI execute successfully dispatches unified mind:pulse", async () => {
       const fixture = setupMindFixture("cli-dispatch");
-      await execute([
+      const reg = await execute([
         "agent:register",
         "--run",
         fixture.run,
@@ -371,6 +372,11 @@ describe("P43 Unified Perpetual mind:pulse Command", () => {
         "antigravity",
       ]);
 
+      delete process.env.AGENT_ID;
+      delete process.env.HARNESS_AGENT_ID;
+      if (reg.token && typeof reg.token === "string") {
+        process.env.HARNESS_TOKEN = reg.token;
+      }
       const res = await execute(["mind:pulse", "--run", fixture.run, "--actor", "mind-1"]);
       expect(res.status).toBe("opened");
       expect(res.pulse_id).toBe("pulse-1");

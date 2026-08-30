@@ -30,12 +30,11 @@ describe("Mind Auditor Repository Governance & Liveness Checks", () => {
     const capsuleDir = join(testDir, ".olt", "capsules", "run-1");
     mkdirSync(capsuleDir, { recursive: true });
 
-    // Write last_pulse.json with active timestamp
     await Bun.write(
       join(testDir, "last_pulse.json"),
       JSON.stringify({ at: new Date().toISOString() }),
     );
-    // Write events.jsonl with only sequence 1
+
     await Bun.write(
       join(capsuleDir, "events.jsonl"),
       JSON.stringify({ sequence: 1, kind: "mind-initialized" }) + "\n",

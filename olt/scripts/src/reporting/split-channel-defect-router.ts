@@ -56,7 +56,7 @@ function safeCause(error: unknown): string {
     if (descriptor && "value" in descriptor && typeof descriptor.value === "string")
       return bounded(descriptor.value);
   } catch {
-    // A proxy can reject descriptor inspection; retain an intentionally generic cause.
+
   }
   return "unknown error";
 }
@@ -82,7 +82,7 @@ export class SplitChannelDefectRouter {
         source_repo: resolve(options.currentRepoRoot),
         ...(contextSupplied ? { context: options.defect.context } : {}),
       };
-      // Serialize before mkdir or append so malformed contexts cannot leave a partial row.
+
       const serialized = JSON.stringify(record);
       if (contextSupplied && !Object.hasOwn(JSON.parse(serialized) as object, "context")) {
         throw new HarnessError("INTEGRITY", "Supplied defect context was omitted by serialization");

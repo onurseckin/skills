@@ -38,7 +38,7 @@ afterEach(() => {
     try {
       rmSync(root, { recursive: true, force: true });
     } catch {
-      // ignore
+
     }
   }
   roots.length = 0;
@@ -198,7 +198,7 @@ describe("Phase 5 W5.2 - Mind Audit Questionnaire & Verification", () => {
 
     test("refuses answers when any question lacks a command ID", () => {
       const missingCmdAnswers = [
-        "Q1::pass", // missing command ID
+        "Q1::pass",
         "Q2:cmd-102:pass",
         "Q3:cmd-103:pass",
         "Q4:cmd-104:pass",
@@ -296,7 +296,6 @@ describe("Phase 5 W5.2 - Mind Audit Questionnaire & Verification", () => {
       expect(cleanResult.ok).toBe(true);
       expect(cleanResult.gaps).toHaveLength(0);
 
-      // Defective: pulse-1 opened but never closed, and pulse-3 closed without open (skipping pulse-2)
       const defectiveEvents: HarnessEvent[] = [
         {
           schema: "harness.event",
@@ -371,7 +370,7 @@ describe("Phase 5 W5.2 - Mind Audit Questionnaire & Verification", () => {
           kind: "mind-pulse-closed",
           payload: {
             pulse_id: "pulse-1",
-            value: 100, // Inflated/falsified value
+            value: 100,
             metrics: {
               leases_reclaimed: 1,
               findings_resolved: 0,
@@ -429,7 +428,7 @@ describe("Phase 5 W5.2 - Mind Audit Questionnaire & Verification", () => {
           {
             id: "cand-1",
             status: "declined",
-            decline_reason: "   ", // Blank reason!
+            decline_reason: "   ",
           },
         ],
       } as unknown as RunState;
@@ -567,7 +566,6 @@ describe("Phase 5 W5.2 - Mind Audit Questionnaire & Verification", () => {
     test("refuses approved verdict when pulse gaps exist (Question 1)", () => {
       const fixture = setupMindCapsule("report-gap-refusal");
 
-      // Open pulse-1 without closing it
       mindPulseOpenCommand({
         run: fixture.run,
         actor: "mind-1",
@@ -575,7 +573,6 @@ describe("Phase 5 W5.2 - Mind Audit Questionnaire & Verification", () => {
         driver: "bash-loop",
       });
 
-      // Transact another un-closed pulse to create a gap
       transact(
         fixture.run,
         "mind-1",
@@ -728,7 +725,6 @@ describe("Phase 5 W5.2 - Mind Audit Questionnaire & Verification", () => {
 
       expect(() => assertAuditAllowsPulseOpen(loaded.state)).toThrow(HarnessError);
 
-      // Opening next pulse must be blocked!
       expect(() =>
         mindPulseOpenCommand({
           run: fixture.run,

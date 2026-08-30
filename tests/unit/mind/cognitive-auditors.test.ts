@@ -529,4 +529,68 @@ describe("SkillAuditorEngine", () => {
     expect(result.incidents.length).toBe(1);
     expect(result.defectsLogged).toBe(0);
   });
+
+  test("auditSkillCompliance active interjection protocol sends mailbox message to deviating coordinator", () => {
+    const eventsPath = join(runDir, "events.jsonl");
+    const e0 = JSON.stringify({
+      kind: "command-executed",
+      sequence: 0,
+      actor: "coordinator-alpha",
+      payload: { tool: "write_to_file", arguments: { TargetFile: "src/main.ts" } },
+      timestamp: "2026-08-24T12:00:00.000Z",
+    });
+    writeFileSync(eventsPath, `${e0}\n`, "utf-8");
+
+    const result = SkillAuditorEngine.auditSkillCompliance(testDir, {
+      capsuleRunRoot: runDir,
+      logDefects: true,
+      interject: true,
+    });
+
+    expect(result.compliant).toBe(false);
+    expect(result.incidents.length).toBe(1);
+    expect(result.interjectionsSent).toBe(1);
+
+    // Verify mailbox message was written to recipient inbox
+    const inboxPath = join(testDir, ".olt", "mailboxes", "coordinator-alpha", "inbox.jsonl");
+    expect(existsSync(inboxPath)).toBe(true);
+
+    const inboxContent = readFileSync(inboxPath, "utf-8").trim();
+    const msg = JSON.parse(inboxContent) as Record<string, unknown>;
+    expect(msg["sender_id"]).toBe("skill-auditor");
+    expect(msg["sender_role"]).toBe("skill-auditor");
+    expect(msg["recipient_id"]).toBe("coordinator-alpha");
+    expect(msg["message_type"]).toBe("DEFECT_ESCALATION");
+
+    const payload = msg["payload"] as Record<string, unknown>;
+    expect(payload["action"]).toBe("INTERJECT_HALT_DIRECT_EXECUTION");
+    expect(payload["category"]).toBe("ROLE_BOUNDARY_DEVIATION");
+    expect(String(payload["instructions"])).toContain("Halt direct file modifications");
+    expect(String(payload["instructions"])).toContain("invoke_subagent");
+  });
+
+  test("auditSkillCompliance respects interject: false to suppress active interjections", () => {
+    const eventsPath = join(runDir, "events.jsonl");
+    const e0 = JSON.stringify({
+      kind: "command-executed",
+      sequence: 0,
+      actor: "coordinator-beta",
+      payload: { tool: "replace_file_content", arguments: { TargetFile: "src/main.ts" } },
+      timestamp: "2026-08-24T12:00:00.000Z",
+    });
+    writeFileSync(eventsPath, `${e0}\n`, "utf-8");
+
+    const result = SkillAuditorEngine.auditSkillCompliance(testDir, {
+      capsuleRunRoot: runDir,
+      logDefects: true,
+      interject: false,
+    });
+
+    expect(result.compliant).toBe(false);
+    expect(result.incidents.length).toBe(1);
+    expect(result.interjectionsSent).toBe(0);
+
+    const inboxPath = join(testDir, ".olt", "mailboxes", "coordinator-beta", "inbox.jsonl");
+    expect(existsSync(inboxPath)).toBe(false);
+  });
 });

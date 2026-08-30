@@ -23,7 +23,6 @@ export function runForensicsHeuristics(ctx: HeuristicsContext): {
   const { allToolCalls, events, state, agentLedger, addIncident } = ctx;
   let sequentialWaveBottlenecks = 0;
 
-  // Group tool calls by agent
   const callsByAgent = new Map<string, ExtractedToolCall[]>();
   for (const call of allToolCalls) {
     const aid = call.agentId || "unknown";
@@ -31,7 +30,6 @@ export function runForensicsHeuristics(ctx: HeuristicsContext): {
     callsByAgent.get(aid)!.push(call);
   }
 
-  // --- HEURISTIC 1: Token Burning ---
   for (const [aid, agentCalls] of callsByAgent.entries()) {
     let readsBeforeWrite = 0;
     let writeFound = false;
@@ -77,7 +75,6 @@ export function runForensicsHeuristics(ctx: HeuristicsContext): {
     });
   }
 
-  // --- HEURISTIC 2: False Serialization ---
   if (
     state &&
     typeof state === "object" &&
@@ -138,7 +135,6 @@ export function runForensicsHeuristics(ctx: HeuristicsContext): {
     }
   }
 
-  // --- HEURISTIC 3: Role Boundary Deviation ---
   for (const call of allToolCalls) {
     const role = String(call.agentRole || call.agentId || "").toLowerCase();
     const tool = String(call.toolName || call.name || "").toLowerCase();
@@ -235,7 +231,6 @@ export function runForensicsHeuristics(ctx: HeuristicsContext): {
     }
   }
 
-  // Run extended heuristics (Polling Waste, Context Overflow, Ghost Lease, Straggler)
   runExtendedForensicsHeuristics(ctx);
 
   return { sequentialWaveBottlenecks };

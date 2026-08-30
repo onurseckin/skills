@@ -200,6 +200,16 @@ function inferActorRole(actorId: string): string {
   return "implementer";
 }
 
+function isCoordinatorRole(role: string): boolean {
+  const norm = role.trim().toLowerCase().replace(/_/gu, "-");
+  return (
+    norm === "coordinator" ||
+    norm.startsWith("coordinator-") ||
+    norm.endsWith("-coordinator") ||
+    norm.includes("coordinator")
+  );
+}
+
 export function verifyCommandAuthorization(
   actorRole: string,
   cmd: readonly string[],
@@ -216,7 +226,10 @@ export function verifyCommandAuthorization(
       return { authorized: false, reason: "SUPERVISOR_ZERO_TEST_RUNS", actorRole, cmd };
     }
     if (isFileMutationCommand(cmd)) {
-      return { authorized: false, reason: "SUPERVISOR_ZERO_CODE_EDITS", actorRole, cmd };
+      const reason = isCoordinatorRole(actorRole)
+        ? "ROLE_BOUNDARY_DEVIATION"
+        : "SUPERVISOR_ZERO_CODE_EDITS";
+      return { authorized: false, reason, actorRole, cmd };
     }
   }
   return { authorized: true, actorRole, cmd };

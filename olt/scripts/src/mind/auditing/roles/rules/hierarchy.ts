@@ -29,7 +29,6 @@ export function auditDynamicRoles(
   const checkDuplicates = options.checkDuplicates ?? true;
   const duplicateThreshold = options.duplicateSimilarityThreshold ?? 0.9;
 
-  // Audit each role individually
   for (const role of roles) {
     const spec: DynamicRoleSpec = "spec" in role ? role.spec : role;
     checkedRoles.push(spec.name);
@@ -37,7 +36,6 @@ export function auditDynamicRoles(
     findings.push(...singleFindings);
   }
 
-  // Cross-role duplicate detection
   if (checkDuplicates) {
     const seenPairs = new Set<string>();
 
@@ -81,7 +79,6 @@ export function auditDynamicRoles(
     }
   }
 
-  // Tally summary metrics
   const criticalCount = findings.filter((f) => f.severity === "CRITICAL").length;
   const highCount = findings.filter((f) => f.severity === "HIGH").length;
   const mediumCount = findings.filter((f) => f.severity === "MEDIUM").length;

@@ -214,7 +214,6 @@ export function checkValueConsistency(
         );
       }
 
-      // Check if forbidden metrics were improperly added
       const forbiddenKeys = [
         "files_touched",
         "commands_run",

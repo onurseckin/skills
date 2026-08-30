@@ -48,7 +48,6 @@ export function auditDynamicRoles(
     findings.push(...auditSingleRole(role));
   }
 
-  // Cross-role duplicate cluster detection
   const duplicatePairs: PersonaSimilarityMetrics[] = [];
   for (let i = 0; i < rolesList.length; i++) {
     for (let j = i + 1; j < rolesList.length; j++) {

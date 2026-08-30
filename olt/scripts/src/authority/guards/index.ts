@@ -23,3 +23,10 @@ export {
   type SubagentSpawnRequest,
   type SubagentSpawnValidationResult,
 } from "./spawn-validator.ts";
+export {
+  COORDINATOR_FILE_EDIT_CATEGORIES,
+  COORDINATOR_FILE_EDIT_TOOLS,
+  assertCoordinatorPreToolGuard,
+  isCoordinatorFileEditForbidden,
+  isCoordinatorRole,
+} from "./coordinator-tool-guard.ts";

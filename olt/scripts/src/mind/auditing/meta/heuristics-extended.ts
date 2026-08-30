@@ -4,7 +4,6 @@ import type { ForensicsIncident, ForensicsSeverity, HeuristicsContext } from "./
 export function runExtendedForensicsHeuristics(ctx: HeuristicsContext): void {
   const { allToolCalls, events, state, agentLedger, addIncident } = ctx;
 
-  // --- HEURISTIC 4: Polling Waste ---
   let pollingCallsCount = 0;
   let pollingAgent: string | undefined;
   for (const call of allToolCalls) {
@@ -27,7 +26,6 @@ export function runExtendedForensicsHeuristics(ctx: HeuristicsContext): void {
     });
   }
 
-  // --- HEURISTIC 5: Context Overflow ---
   const agentsToCheck: { id: string; tokens: number }[] = [];
   if (agentLedger && agentLedger.length > 0) {
     for (const a of agentLedger) {
@@ -70,7 +68,6 @@ export function runExtendedForensicsHeuristics(ctx: HeuristicsContext): void {
     }
   }
 
-  // --- HEURISTIC 6: Ghost Lease ---
   if (state && typeof state === "object") {
     const rawAgents = Array.isArray(state["agents"])
       ? (state["agents"] as Record<string, unknown>[])
@@ -111,7 +108,6 @@ export function runExtendedForensicsHeuristics(ctx: HeuristicsContext): void {
     }
   }
 
-  // --- HEURISTIC 7: Straggler ---
   if (
     state &&
     typeof state === "object" &&

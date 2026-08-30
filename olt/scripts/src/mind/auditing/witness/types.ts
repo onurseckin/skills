@@ -49,7 +49,7 @@ function scanCapsulesDir(dir: string, roots: Set<string>): void {
       }
     }
   } catch {
-    // ignore unreadable directory
+
   }
 }
 
@@ -67,7 +67,7 @@ export function collectCapsuleSearchRoots(startPath?: string): string[] {
       if (isRunItself) {
         roots.add(resolvedStart);
         const parentDir = dirname(resolvedStart);
-        // Only scan sibling capsules if parent directory is named ".capsules"
+
         if (basename(parentDir) === ".capsules" && existsSync(parentDir)) {
           scanCapsulesDir(parentDir, roots);
         }
@@ -136,7 +136,7 @@ export function resolveWitnessCommand(
           commandRecord: record,
         };
       } catch {
-        // continue search
+
       }
     }
 
@@ -152,7 +152,7 @@ export function resolveWitnessCommand(
           commandRecord: record,
         };
       } catch {
-        // continue search
+
       }
     }
 
@@ -177,7 +177,7 @@ export function resolveWitnessCommand(
           };
         }
       } catch {
-        // continue search
+
       }
     }
   }

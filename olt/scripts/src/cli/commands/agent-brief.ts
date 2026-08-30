@@ -200,6 +200,36 @@ HASH CHAIN: ${verification.hashChain.valid ? "VALID" : "INVALID"} (${verificatio
 RECEIPTS: ${verification.commandReceipts.length} total, ${verification.failedReceipts.length} failed`);
   }
 
+  const normalizedRoleName = normalizeRoleKey(options.role);
+  if (normalizedRoleName === "coordinator" || options.role.toLowerCase().includes("coordinator")) {
+    sections.push(`================================================================================
+SECTION 3.8: MANDATORY TURN 1 DISPATCH TEMPLATE (ANTI-DIRECT-EXECUTION SENTINEL)
+================================================================================
+CRITICAL ANTI-DIRECT-EXECUTION INVARIANT (SUPERVISOR_ZERO_CODE_EDITS / ROLE_BOUNDARY_DEVIATION):
+Coordinators are Tier 2 pure wave orchestrators and dispatchers. You are STRICTLY PROHIBITED from modifying code, writing files, or executing test suites directly.
+Any direct file edit attempt by a coordinator is rejected with ROLE_BOUNDARY_DEVIATION.
+
+MANDATORY TURN 1 EXECUTION SEQUENCE:
+1. Initialize & compile the task DAG:
+   bun harness.ts plan:compile --run <run_id>
+2. Dispatch ready tasks immediately to Tier 3 Implementers and Validators in parallel worktrees using invoke_subagent:
+   invoke_subagent({
+     "Subagents": [
+       {
+         "TypeName": "implementer",
+         "Role": "Domain Implementer",
+         "Prompt": "<exact-anchor briefing with target files, symbols, write scope, and gate commands>"
+       },
+       {
+         "TypeName": "validator",
+         "Role": "Quality Validator",
+         "Prompt": "<verification instructions for read-only deliverables inspection>"
+       }
+     ]
+   })
+3. Supervise wave execution and await subagent completion receipts.`);
+  }
+
   sections.push(`================================================================================
 SECTION 4: OPERATIONAL STEP-BY-STEP RUNBOOK
 ================================================================================

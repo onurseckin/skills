@@ -28,7 +28,6 @@ export function injectRemediationToFeedbackQueue(
     };
   }
 
-  // If passed incidents, synthesize proposals first
   const proposals: readonly PlanInjectionProposal[] =
     proposalsOrIncidents.length > 0 && "remediationDirective" in proposalsOrIncidents[0]!
       ? (proposalsOrIncidents as readonly PlanInjectionProposal[])
@@ -69,8 +68,7 @@ export function injectRemediationToFeedbackQueue(
     };
     candidates.push(newItem);
   }
-  // This single transaction dedupes and appends. A persistence failure is propagated;
-  // callers never receive a success count for records that were not committed.
+
   const injectedItems = appendFeedbackItemsDedupedByTitle(candidates, queuePath);
   const itemIds = injectedItems.map((item) => item.id);
 
