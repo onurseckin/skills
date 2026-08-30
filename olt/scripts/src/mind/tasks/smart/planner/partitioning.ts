@@ -19,7 +19,6 @@ export function validateAntiBatchingRule(
   for (const plan of plans) {
     let planCompliant = true;
 
-    // Check duplicate task IDs if ID is non-empty
     if (plan.id && plan.id.trim()) {
       if (seenTaskIds.has(plan.id.trim())) {
         violations.push(`Duplicate task ID '${plan.id}' detected in plan set.`);
@@ -29,7 +28,6 @@ export function validateAntiBatchingRule(
       }
     }
 
-    // 1. Reject merged multi-item tasks
     const metadata = plan.metadata ?? {};
     const batchedFeedback = metadata["batched_feedback_ids"] ?? metadata["feedback_ids"];
     const batchedCandidates = metadata["batched_candidate_ids"] ?? metadata["candidate_ids"];
@@ -82,7 +80,6 @@ export function validateAntiBatchingRule(
       planCompliant = false;
     }
 
-    // 2. Reject empty or invalid write scopes
     if (!plan.write_scope || plan.write_scope.length === 0) {
       violations.push(
         `Task '${plan.id}' has empty write scope, violating independent file isolation.`,
@@ -96,7 +93,6 @@ export function validateAntiBatchingRule(
       }
     }
 
-    // 3. Enforce 1:1 Implementer & independent Validator isolation
     const impl =
       plan.assigned_implementer ??
       (typeof metadata["assigned_implementer"] === "string"

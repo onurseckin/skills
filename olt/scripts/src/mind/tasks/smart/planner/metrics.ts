@@ -128,10 +128,3 @@ export function computeMacroMetrics(
     efficiency,
   };
 }
-
-/**
- * Plans robust wave execution for a set of smart task plans:
- * 1. Checks DAG acyclicity (detects circular dependencies).
- * 2. Partitions into dependency depth levels.
- * 3. Resolves intra-depth scope collisions into disjoint sub-waves.
- */

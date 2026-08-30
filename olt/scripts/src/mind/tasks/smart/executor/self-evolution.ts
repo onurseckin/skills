@@ -48,7 +48,6 @@ export function synthesizeSmartTasksFromSelfEvolution(
 
   const selfTasks: SmartTaskPlan[] = [];
 
-  // 1. Open defect remediation
   if (openDefects.length > 0) {
     const defect = openDefects[0]!;
     const defectSlug = sanitizeSlug(defect.id);
@@ -85,7 +84,6 @@ export function synthesizeSmartTasksFromSelfEvolution(
     });
   }
 
-  // 2. Code Quality & Zero-Suppression Assurance
   const hardeningScope = [
     "olt/scripts/src/mind/smart-task-manager.ts",
     "olt/scripts/src/mind/task-queue.ts",
@@ -120,7 +118,6 @@ export function synthesizeSmartTasksFromSelfEvolution(
     },
   });
 
-  // 3. Charter Gap Analysis & Cognitive Flavor Checks
   const charterGapScope = [
     "olt/agents/mind.yaml",
     "olt/scripts/src/mind/cognitive-flavor.ts",
@@ -153,7 +150,6 @@ export function synthesizeSmartTasksFromSelfEvolution(
     },
   });
 
-  // 4. Historical Defect Regression & Brent's Theorem Work/Span (P = W/S) Optimization
   const brentOptimizationScope = [
     "olt/scripts/src/mind/strategic-purpose.ts",
     "tests/unit/mind/strategic-purpose.test.ts",
@@ -185,7 +181,6 @@ export function synthesizeSmartTasksFromSelfEvolution(
     },
   });
 
-  // 5. Autonomic Continuous Optimization & Lean Architecture
   const autonomicOptScope = [
     "olt/scripts/src/mind/archival.ts",
     "olt/scripts/src/mind/recycler.ts",
@@ -223,7 +218,6 @@ export function synthesizeSmartTasksFromSelfEvolution(
   const selectedSelfTasks = enrichedSelfTasks.slice(0, maxTasks);
   assertAntiBatchingRule(selectedSelfTasks);
 
-  // Update persistent cognitive memory at .capsules/mind/memory.json
   try {
     updateCognitiveMemory(
       (curr) => ({
@@ -252,9 +246,7 @@ export function synthesizeSmartTasksFromSelfEvolution(
       }),
       options.cognitiveMemoryPath,
     );
-  } catch {
-    // Non-fatal cognitive memory persistence
-  }
+  } catch {}
 
   let enqueuedCount = 0;
   if (options.autoEnqueue) {
@@ -290,9 +282,3 @@ export function synthesizeSmartTasksFromSelfEvolution(
     ...(enqueuedCount > 0 ? { enqueued_count: enqueuedCount } : {}),
   };
 }
-
-/**
- * Autonomous Task Synthesizer implementing Dual-Intake:
- * - Mode A: Empty queue -> Autonomous Self-Evolution
- * - Mode B: Pending items -> Feedback / External Directive Expansion
- */
