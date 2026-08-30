@@ -1,6 +1,7 @@
 import type {
   MutantExecutionResult,
   MutantRecord,
+  MutationCandidate,
   MutationGateOptions,
   MutationGateResult,
   MutationTestRunner,
@@ -11,20 +12,10 @@ import type {
 export type {
   MutantExecutionResult,
   MutantRecord,
+  MutationCandidate,
   MutationGateOptions,
   MutationGateResult,
   MutationTestRunner,
   MutationType,
   MutationViolation,
 };
-
-export interface MutationCandidate {
-  readonly mutationType: MutationType;
-  readonly description: string;
-  readonly startPosition: number;
-  readonly endPosition: number;
-  readonly originalText: string;
-  readonly replacementText: string;
-  readonly line: number;
-  readonly column: number;
-}

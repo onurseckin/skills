@@ -13,6 +13,7 @@ export type {
   MutantExecutionResult,
   MutantRecord,
   MutantStatus,
+  MutationCandidate,
   MutationGateOptions,
   MutationGateResult,
   MutationTestRunOutcome,

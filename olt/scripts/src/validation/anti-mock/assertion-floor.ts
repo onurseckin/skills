@@ -109,14 +109,12 @@ function identifyTestCall(
 function isAssertionCall(call: ts.CallExpression, customIdentifiers: Set<string>): boolean {
   const expr = call.expression;
 
-  // Direct: expect(...) or assert(...) or custom(...)
   if (ts.isIdentifier(expr)) {
     if (expr.text === "expect" || expr.text === "assert" || customIdentifiers.has(expr.text)) {
       return true;
     }
   }
 
-  // Method call: assert.equal(...), assert.ok(...), t.is(...), t.assert(...)
   if (ts.isPropertyAccessExpression(expr)) {
     if (ts.isIdentifier(expr.expression)) {
       const id = expr.expression.text;
@@ -225,7 +223,6 @@ export function checkAssertionFloor(
     }
   }
 
-  // Check file-level assertion floor
   if (totalAssertions < minPerFile) {
     violations.push({
       rule: "sub_floor_file_assertions",

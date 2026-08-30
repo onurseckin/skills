@@ -13,9 +13,7 @@ export type CandidateAdder = (
 export function shouldSkipStringLiteral(node: ts.StringLiteral): boolean {
   const parent = node.parent;
   if (!parent) return false;
-  // Skip import / export declarations
   if (ts.isImportDeclaration(parent) || ts.isExportDeclaration(parent)) return true;
-  // Skip require calls
   if (
     ts.isCallExpression(parent) &&
     ts.isIdentifier(parent.expression) &&
@@ -23,13 +21,10 @@ export function shouldSkipStringLiteral(node: ts.StringLiteral): boolean {
   ) {
     return true;
   }
-  // Skip directive prologues e.g. "use strict"
   if (ts.isExpressionStatement(parent) && parent.parent && ts.isSourceFile(parent.parent)) {
     return true;
   }
-  // Skip object property names if not computed
   if (ts.isPropertyAssignment(parent) && parent.name === node) return true;
-
   return false;
 }
 
@@ -81,7 +76,6 @@ export function visitBinaryExpressions(
   const opToken = node.operatorToken;
   const opKind = opToken.kind;
 
-  // Comparison / Equality
   if (opKind === ts.SyntaxKind.EqualsEqualsEqualsToken) {
     addCandidate(
       "comparison_mutation",
@@ -156,7 +150,6 @@ export function visitBinaryExpressions(
     );
   }
 
-  // Logical Operators
   if (opKind === ts.SyntaxKind.AmpersandAmpersandToken) {
     addCandidate(
       "logical_operator_mutation",
@@ -177,7 +170,6 @@ export function visitBinaryExpressions(
     );
   }
 
-  // Arithmetic Operators
   if (opKind === ts.SyntaxKind.PlusToken) {
     addCandidate(
       "arithmetic_mutation",

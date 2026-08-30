@@ -113,7 +113,6 @@ export function checkMockTautology(
     }
   }
 
-  // Check if mock is passed as argument to any non-mock function or class constructor
   let mockExercisedInSut = false;
   const assertions: ts.CallExpression[] = [];
 
@@ -122,7 +121,6 @@ export function checkMockTautology(
       if (isAssertionCall(node)) {
         assertions.push(node);
       } else {
-        // Non-assertion call
         const isDirectMockCall =
           ts.isIdentifier(node.expression) && mockNames.has(node.expression.text);
         const isDirectMockMethod =
@@ -131,7 +129,6 @@ export function checkMockTautology(
           mockNames.has(node.expression.expression.text);
 
         if (!isDirectMockCall && !isDirectMockMethod) {
-          // Check if any argument is a mock identifier
           for (const arg of node.arguments) {
             if (ts.isIdentifier(arg) && mockNames.has(arg.text)) {
               mockExercisedInSut = true;
@@ -153,7 +150,6 @@ export function checkMockTautology(
     inspectNode(callback.body);
   }
 
-  // Check 1: Asserting stubbed return value directly: expect(mockFn()).toBe(stubbedValue)
   for (const assertion of assertions) {
     const rootArg = getRootExpectArg(assertion);
     if (rootArg && ts.isCallExpression(rootArg) && ts.isIdentifier(rootArg.expression)) {
@@ -179,7 +175,6 @@ export function checkMockTautology(
     }
   }
 
-  // Check 2: If mock was never passed to any SUT and all assertions only assert directly on the mock
   if (!mockExercisedInSut && assertions.length > 0) {
     let onlyMockAssertions = true;
     for (const assertion of assertions) {
