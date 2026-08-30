@@ -1,6 +1,3 @@
-/**
- * Behavioral Health Auditor Coordinator
- */
 import type {
   AgentGrantRecord,
   CommandRecord,

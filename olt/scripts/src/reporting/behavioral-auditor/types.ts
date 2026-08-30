@@ -1,6 +1,3 @@
-/**
- * Behavioral Auditor Type Definitions and Constants
- */
 import type { JsonObject } from "../../core/contracts/index.ts";
 import { CODE_EDIT_TOOLS } from "../../platform/index.ts";
 

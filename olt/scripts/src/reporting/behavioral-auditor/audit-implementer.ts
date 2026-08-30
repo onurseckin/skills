@@ -1,6 +1,3 @@
-/**
- * Behavioral Audit: Implementer Self-Grading and Graph Topology Mutation
- */
 import type { CommandRecord, JsonObject } from "../../core/contracts/index.ts";
 import { isJsonObject } from "../../core/contracts/index.ts";
 import type { TaskRecord, ValidationAttempt } from "../../workflow/types.ts";
