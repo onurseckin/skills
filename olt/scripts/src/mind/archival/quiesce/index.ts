@@ -5,6 +5,12 @@ export type {
   QuiescentDigest,
 } from "./types.ts";
 
+export type {
+  ExecuteQuiesceLaneOptions,
+  QuiesceLaneOptions,
+  QuiesceLaneResult,
+} from "./evaluator.ts";
+
 export {
   QUIESCENT_DIGEST_STREAK_THRESHOLD,
   DEFAULT_BASE_INTERVAL_MS,
@@ -21,4 +27,5 @@ export {
   shouldTriggerQuiescentDigest,
   formatQuiescentDigestMarkdown,
   buildQuiescentDigest,
+  executeQuiesceLane,
 } from "./evaluator.ts";

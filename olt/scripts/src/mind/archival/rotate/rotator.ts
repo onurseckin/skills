@@ -157,7 +157,6 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
   }
   const nowIso = new Date(nowMs).toISOString();
 
-  // 1. Seal Generation N
   transact(
     realSourceRunRoot,
     actor,

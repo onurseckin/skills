@@ -18,13 +18,6 @@ import {
   type ArchivedObjectiveRecord,
 } from "./types.ts";
 
-/**
- * Migrates legacy archived objectives files to the canonical .capsules/mind/queue/ layout.
- */
-
-/**
- * Validates and normalizes an unknown object into an ArchivedObjectiveRecord.
- */
 export function validateArchivedObjectiveRecord(raw: unknown): ArchivedObjectiveRecord {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     throw new HarnessError("INVALID_ARGUMENT", "ArchivedObjectiveRecord must be an object");
@@ -144,9 +137,6 @@ export function validateArchivedObjectiveRecord(raw: unknown): ArchivedObjective
   };
 }
 
-/**
- * Reads and parses all records from ARCHIVED_OBJECTIVES.jsonl.
- */
 export function readArchivedObjectives(customPath?: string): ArchivedObjectiveRecord[] {
   const filePath = resolveArchivedObjectivesPath(undefined, customPath);
   return parseArchivedObjectives(readArchivedObjectivesFile(filePath).raw);

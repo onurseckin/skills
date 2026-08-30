@@ -133,9 +133,6 @@ export interface AutonomicRolloverResult {
   readonly markdown: string;
 }
 
-/**
- * Extracts all candidate records from state (both root and mind substate).
- */
 export function extractAllCandidates(state: Record<string, unknown>): readonly CandidateRecord[] {
   const mindState = (state.mind ?? {}) as Record<string, unknown>;
   const list: CandidateRecord[] = [];
@@ -157,9 +154,3 @@ export function extractAllCandidates(state: Record<string, unknown>): readonly C
 
   return list;
 }
-
-/**
- * Assesses the state of the mind and active runs to determine the exact
- * autonomous recycling transition from completeness critic, closed round, closed pulse,
- * or immediate generation rollover.
- */

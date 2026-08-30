@@ -57,7 +57,6 @@ interface StableArchivedObjectivesDirectoryChain {
   readonly descriptors: readonly number[];
 }
 
-/** Opens every absolute path component with O_DIRECTORY|O_NOFOLLOW and revalidates it by inode. */
 function safeRealpath(p: string): string {
   if (existsSync(p)) return realpathSync(p);
   const par = dirname(p);
@@ -277,9 +276,6 @@ function atomicWriteArchivedObjectives(
   }
 }
 
-/**
- * Writes records atomically to ARCHIVED_OBJECTIVES.jsonl.
- */
 export function writeArchivedObjectives(
   items: readonly ArchivedObjectiveRecord[],
   customPath?: string,

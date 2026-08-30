@@ -20,3 +20,9 @@ export {
   type Rung4Result,
   type Rung5Result,
 } from "./rescue/index.ts";
+
+export {
+  executeQuiesceLane,
+  type QuiesceLaneOptions,
+  type QuiesceLaneResult,
+} from "../archival/quiesce/index.ts";

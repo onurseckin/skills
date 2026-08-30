@@ -29,9 +29,6 @@ export function transitionCompletenessCriticSignOff(
   });
 }
 
-/**
- * Specifically transitions a pulse cycle into the next wake/pulse arm without process termination.
- */
 export function transitionPulseToWake(
   runRoot: string,
   pulseId: string,
@@ -52,15 +49,8 @@ export function transitionPulseToWake(
   };
 }
 
-/**
- * Legacy alias for transitionPulseToWake.
- */
 export const transitionPulseCloseToWake = transitionPulseToWake;
 
-/**
- * Drains pending feedback items from FEEDBACK_QUEUE.jsonl and admits them
- * directly into the target mind capsule.
- */
 export function drainAndAdmitFeedbackCandidates(
   options: DrainAndAdmitOptions,
 ): DrainAndAdmitResult {
@@ -137,9 +127,6 @@ export function drainAndAdmitFeedbackCandidates(
   };
 }
 
-/**
- * Compiles an autonomic concurrency wave plan grouping admitted candidates into parallel execution batches.
- */
 export function compileAutonomicWavePlan(
   state: Record<string, unknown>,
   runRoot: string,
@@ -192,9 +179,3 @@ export function compileAutonomicWavePlan(
     nextInstruction,
   };
 }
-
-/**
- * Executes a seamless autonomic generation rollover: seals Generation N,
- * initializes Generation N+1, drains pending items from FEEDBACK_QUEUE.jsonl,
- * admits candidates, compiles wave plans, and prepares orchestrator dispatch.
- */

@@ -26,9 +26,6 @@ export interface RotationMetadata {
   } | null;
 }
 
-/**
- * Reads rotation and generational metadata from a mind capsule state.
- */
 export function readRotationMetadata(capsulePath: string): RotationMetadata | null {
   if (!existsSync(capsulePath) || !lstatSync(capsulePath).isDirectory()) {
     return null;
@@ -75,9 +72,6 @@ export function readRotationMetadata(capsulePath: string): RotationMetadata | nu
   }
 }
 
-/**
- * Walks backward through the generation lineage chain of sealed predecessor capsules.
- */
 export function getGenerationLineage(
   capsulePath: string,
   maxDepth: number = 50,

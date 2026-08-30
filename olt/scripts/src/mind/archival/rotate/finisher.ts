@@ -52,7 +52,6 @@ export function finishRotation(options: FinishRotationOptions): RotateMindResult
     sourceLoaded,
   } = options;
 
-  // 2. Initialize Generation N+1
   const initializedTargetRoot = initRun(repoRoot, targetRunId, promptBytes, "file", true);
   const rotatedCharterSha256 = loadRun(initializedTargetRoot, false).manifest.prompt_sha256;
 
@@ -71,7 +70,6 @@ export function finishRotation(options: FinishRotationOptions): RotateMindResult
     roundNumber: targetGeneration,
   });
 
-  // 3. Generational state pruning and archival
   const archivalResult = pruneAndArchiveGenerationalState({
     sourceState,
     sourceGeneration,

@@ -135,7 +135,6 @@ let archivedObjectivesPersistenceTestHook:
   | ((stage: ArchivedObjectivesPersistenceStage) => void)
   | undefined;
 
-/** @internal deterministic persistence seam for the unit suite. */
 export function __setArchivedObjectivesPersistenceTestHook(
   hook: ((stage: ArchivedObjectivesPersistenceStage) => void) | undefined,
 ): void {
@@ -162,9 +161,6 @@ export function noFollowFlag(): number {
   return constants.O_NOFOLLOW;
 }
 
-/**
- * Resolves the canonical path to the archived objectives ledger.
- */
 export function resolveCanonicalArchivedObjectivesPath(
   customRoot?: string,
   _useTodo = false,
@@ -172,9 +168,6 @@ export function resolveCanonicalArchivedObjectivesPath(
   return join(customRoot || process.cwd(), ".olt", "archived-objectives.jsonl");
 }
 
-/**
- * Resolves the path to the archived objectives ledger, supporting canonical, todo, and legacy locations.
- */
 export function resolveArchivedObjectivesPath(capsulesDir?: string, customPath?: string): string {
   if (customPath && customPath.trim()) return resolve(customPath.trim());
   if (capsulesDir && capsulesDir.trim()) {
