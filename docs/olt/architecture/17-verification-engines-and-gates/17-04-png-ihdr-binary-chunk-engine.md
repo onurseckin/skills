@@ -1,21 +1,70 @@
-# Binary PNG IHDR Chunk Engine
-
-[Reference Home](../index.md) > [Verification Engines](./index.md) > PNG IHDR Binary Chunk Engine
+# 17.4 Binary PNG IHDR Chunk Engine
 
 ---
 
-[Previous: APCA Perceptual Contrast Engine](17-03-apca-perceptual-contrast-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Merkle Hash & Gate Prove Engines](17-05-merkle-hash-and-gate-prove-engines.md)
----
-
-The **Binary PNG IHDR Chunk Engine** inspects rasterized visual evidence by directly parsing raw binary byte streams from disk. The engine validates PNG signatures, extracts physical pixel dimensions from `IHDR` chunks, verifies color types and bit depths, and computes Shannon information entropy across compressed `IDAT` chunks to reject blank, uniform, or synthetic mock placeholder images.
-
-Implemented in [`olt/scripts/src/capture/runners/png-ihdr-validator.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/capture/runners/png-ihdr-validator.ts), [`olt/scripts/src/validation/dual-channel-analyzer/cross-proof.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/dual-channel-analyzer/cross-proof.ts), and [`olt/scripts/src/summary/assets/asset-measure.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/summary/assets/asset-measure.ts), this engine forms the mechanical foundation for visual proof certification.
+> **Status**: Authoritative Architecture Specification  
+> **Topic**: Low-Level Binary PNG Parsing, IHDR Chunk Validation, Shannon Information Entropy, Anti-Mocking Verification, and Device Pixel Ratio Scaling  
+> **Target Audience**: Systems Engineers, Computer Vision & Graphics Specialists, Quality Assurance Architects
 
 ---
 
-## 1. PNG Binary Chunk Architecture & Byte Layout
+[Previous: 17-03 APCA Perceptual Contrast Engine](17-03-apca-perceptual-contrast-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 17-05 Merkle Hash & Gate Prove Engines](17-05-merkle-hash-and-gate-prove-engines.md)
 
-A valid Portable Network Graphics (PNG) file begins with an immutable 8-byte signature followed by a series of structured chunks. The first chunk in every valid PNG stream **must** be the `IHDR` (Image Header) chunk.
+---
+
+## 1. Executive Summary & Epistemic Foundations
+
+In automated user interface engineering and multi-agent development pipelines, visual screenshot evidence is frequently prone to fabrication and superficial compliance:
+
+1. **Synthetic Mock Placeholders**: LLMs or automated test harnesses may produce solid-color rectangular blocks or uniform gray canvases that nominally satisfy file existence checks while containing zero authentic user interface elements.
+2. **Viewport Dimensional Mismatch**: An agent claiming compliance with a `1920x1080` desktop viewport may submit an arbitrarily cropped `800x600` screenshot.
+3. **Heavy Dependency Vulnerabilities**: Ingesting complex C++ native image decoding libraries (e.g., OpenCV, Canvas, libpng) in lightweight CLI environments introduces heavy compilation overheads, memory leaks, and segmentation faults.
+
+The Orchestrating Long Tasks (OLT) framework implements the **Binary PNG IHDR Chunk Engine**. Operating strictly via direct binary buffer inspection without external native dependencies, the engine validates the 8-byte PNG magic header, extracts physical pixel dimensions from the `IHDR` chunk, verifies color type and bit depth specifications, scales dimensions across Device Pixel Ratios (DPR $\in [1, 4]$), and computes Shannon Information Entropy ($H$) across compressed `IDAT` chunks to mechanically reject uniform or synthetic placeholder screenshots.
+
+```text
++--------------------------------------------------------------------------------------------------------------------+
+|                                      PNG IHDR BINARY CHUNK INSPECTION PIPELINE                                     |
++--------------------------------------------------------------------------------------------------------------------+
+|                                                                                                                    |
+|   RAW BINARY BUFFER                     CHUNK DESCRIPTOR & HEADER               VALIDATION & ENTROPY ENGINE         |
+|   ┌──────────────────────────────┐      ┌──────────────────────────────┐       ┌─────────────────────────────────┐ │
+|   │ Read .png file from disk     │ ───► │ Bytes 0..7: PNG Magic Check  │ ────► │ Width & Height Bounds Check     │ │
+|   │ Direct DataView / Uint8Array │      │ Bytes 8..11: IHDR Length 13B │       │ Color Type & Bit Depth Check    │ │
+|   │ Zero Native C++ Libs         │      │ Bytes 12..15: 'IHDR' ASCII   │       │ DPR Scale Factor Matrix Match   │ │
+|   └──────────────────────────────┘      └──────────────────────────────┘       │ Compute Shannon Entropy H(X)    │ │
+|                  │                                     │                       └─────────────────────────────────┘ │
+|                  ▼                                     ▼                                        │                  |
+|   ┌─────────────────────────────────────────────────────────────────────────┐                   ▼                  |
+|   │ FALSIFIABLE EVIDENCE CERTIFICATION                                      │  ┌─────────────────────────────────┐ │
+|   │ If valid IHDR AND dimensions match viewport AND H >= 3.5 bits/byte:     │  │ VERIFICATION OUTCOME            │ │
+|   │   └── VERDICT: Visual Evidence Certified Authenticated                  │  │ • Genuine Rendered UI (PASS)    │ │
+|   │ Else (Corrupt Header / Size Mismatch / Low Entropy H < 2.0 bits/byte):  │  │ • Synthetic Mock Card (REJECT)  │ │
+|   │   └── VERDICT: Emit invalid_screenshot_size or mock_defect Finding      │  │ • Blank Canvas Rect (REJECT)    │ │
+|   └─────────────────────────────────────────────────────────────────────────┘  └─────────────────────────────────┘ │
+|                                                                                                                    |
++--------------------------------------------------------------------------------------------------------------------+
+```
+
+---
+
+## 2. Core Architectural Principles & Invariants
+
+The Binary PNG IHDR Chunk Engine enforces five core architectural invariants:
+
+### 2.1 Pure Binary Buffer Inspection
+
+The engine parses PNG structures using ECMAScript standard `Uint8Array` and `DataView` abstractions. It requires zero native binary bindings, guaranteeing 100% portability across Node.js, Bun, and browser worker contexts.
+
+### 2.2 PNG Magic Signature Verification
+
+Every compliant PNG stream begins with the immutable 8-byte sequence:
+$$\text{Signature} = \left[ \texttt{0x89}, \texttt{0x50}, \texttt{0x4E}, \texttt{0x47}, \texttt{0x0D}, \texttt{0x0A}, \texttt{0x1A}, \texttt{0x0A} \right]$$
+Any deviation in the first 8 bytes results in immediate file rejection.
+
+### 2.3 Canonical IHDR Chunk Layout
+
+The first chunk immediately following the signature must be the `IHDR` chunk with a data length of exactly 13 bytes (`0x0000000D`):
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -37,170 +86,176 @@ A valid Portable Network Graphics (PNG) file begins with an immutable 8-byte sig
 └───────────────┴──────────────┴───────────────────────────────┴─────────────────────────────────────────┘
 ```
 
-```mermaid
-flowchart LR
-    subgraph Sig ["Bytes 0..7: PNG Magic"]
-        S["0x89 50 4E 47 0D 0A 1A 0A"]
-    end
-    subgraph IHDR_Meta ["Bytes 8..15: Chunk Descriptor"]
-        L["Length: 13 Bytes (uint32BE)"]
-        T["Type: 'IHDR' (0x49 48 44 52)"]
-    end
-    subgraph IHDR_Data ["Bytes 16..28: Image Header Data"]
-        W["Width (uint32BE)"]
-        H["Height (uint32BE)"]
-        B["Bit Depth: 8"]
-        C["Color Type: 6 (RGBA)"]
-        M["Comp: 0 | Filt: 0 | Inter: 0"]
-    end
-    subgraph IHDR_CRC ["Bytes 29..32: Integrity"]
-        CRC["CRC-32 Checksum"]
-    end
+### 2.4 Device Pixel Ratio (DPR) Cross-Proof
 
-    Sig --> IHDR_Meta
-    IHDR_Meta --> IHDR_Data
-    IHDR_Data --> IHDR_CRC
-```
+The engine matches physical raster dimensions against canonical logical viewports across integer scaling multipliers $\text{DPR} \in \{1, 2, 3, 4\}$:
+
+| Viewport Preset | Logical CSS ($W \times H$) | 1x Standard (px)   | 2x Retina (px)     | 3x Mobile (px)     | 4x Ultra (px)      |
+| :-------------- | :------------------------- | :----------------- | :----------------- | :----------------- | :----------------- |
+| **`desktop`**   | $1920 \times 1080$         | $1920 \times 1080$ | $3840 \times 2160$ | $5760 \times 3240$ | $7680 \times 4320$ |
+| **`laptop`**    | $1440 \times 900$          | $1440 \times 900$  | $2880 \times 1800$ | $4320 \times 2700$ | $5760 \times 3600$ |
+| **`tablet`**    | $768 \times 1024$          | $768 \times 1024$  | $1536 \times 2048$ | $2304 \times 3072$ | $3072 \times 4096$ |
+| **`mobile`**    | $390 \times 844$           | $390 \times 844$   | $780 \times 1688$  | $1170 \times 2532$ | $1560 \times 3376$ |
+
+### 2.5 Shannon Entropy Anti-Mocking Barrier
+
+To prevent empty or solid-color placeholders from certifying visual gates, the engine requires a minimum Shannon entropy $H \ge 3.5\text{ bits/byte}$ across compressed raster chunk payloads.
 
 ---
 
-## 2. Binary Validation & Dimension Extraction
+## 3. Algorithmic Mechanics & State Transitions
 
-The engine extracts physical pixel dimensions through low-level binary buffer inspection without loading full raster decoding libraries:
+The inspection pipeline evaluates raw binary byte arrays through sequential verification gates.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Caller as Validator / Gate Prover
+    participant Engine as PNG IHDR Engine
+    participant Buffer as Raw Binary Buffer
+    participant Entropy as Shannon Entropy Calculator
+
+    Caller->>Engine: validatePngEvidence(filePath, claimedViewport)
+    Engine->>Buffer: Read file bytes into Uint8Array
+    Engine->>Engine: Verify 8-byte Magic Signature
+    alt Magic Signature Mismatch
+        Engine-->>Caller: Reject (INVALID_PNG_SIGNATURE)
+    else Magic Valid
+        Engine->>Engine: Parse IHDR Chunk (Length == 13, Type == 0x49484452)
+        Engine->>Engine: Extract Width, Height, BitDepth, ColorType
+        Engine->>Engine: Match (Width, Height) against claimedViewport * DPR (1..4)
+        alt Dimension Mismatch
+            Engine-->>Caller: Reject (VIEWPORT_DIMENSION_MISMATCH)
+        else Dimensions Match
+            Engine->>Entropy: calculateShannonEntropy(buffer.slice(33))
+            Entropy-->>Engine: Entropy Score H (bits/byte)
+            alt H < 2.0 (Solid / Mock Card)
+                Engine-->>Caller: Reject (SYNTHETIC_MOCK_IMAGE_DETECTED)
+            else H >= 3.5 (Genuine UI)
+                Engine-->>Caller: Certify (VERIFIED_GENUINE_EVIDENCE)
+            end
+        end
+    end
+```
+
+### 3.1 Extraction & Verification Algorithm
+
+1. **Length Check**: Assert buffer length $\ge 33\text{ bytes}$ (8-byte signature + 25-byte IHDR chunk).
+2. **Signature Loop**: Compare bytes 0..7 against `PNG_SIGNATURE`.
+3. **Chunk Descriptors**: Read uint32 Big-Endian at offset 8 (assert equals 13); verify ASCII bytes at 12..15 equal `"IHDR"`.
+4. **Dimension Extraction**: Read uint32 Big-Endian at offset 16 (Width) and offset 20 (Height); assert $W, H \in [1, 2^{31}-1]$.
+5. **Color/Depth Extraction**: Read byte 24 (Bit Depth) and byte 25 (Color Type); assert Color Type $\in \{2, 6\}$ (RGB or RGBA) and Bit Depth $= 8$.
+6. **Entropy Analysis**: Iterate over byte frequencies and compute Shannon entropy $H$.
+
+---
+
+## 4. Mathematical Formulations & Proofs
+
+Let $B = [b_0, b_1, \dots, b_{N-1}]$ represent the raw binary image buffer of length $N$ bytes.
+
+### 4.1 Shannon Information Entropy Formulation
+
+Let $\Sigma = \{0, 1, \dots, 255\}$ be the alphabet of 8-bit byte values. The empirical probability $P(v)$ of byte value $v \in \Sigma$ across the analyzed chunk sequence $B_{\text{payload}}$ of length $M$ is:
+
+$$P(v) = \frac{1}{M} \sum_{i=0}^{M-1} \mathbb{I}(b_i = v)$$
+
+Where $\mathbb{I}$ is the indicator function. The Shannon Entropy $H(B)$ in bits per byte is:
+
+$$H(B) = -\sum_{v \in \Sigma, P(v) > 0} P(v) \log_2 P(v)$$
+
+```text
++----------------------------------------------------------------------------------------------------+
+|                                SHANNON ENTROPY FIDELITY THRESHOLDS                                 |
++--------------------+-----------------------------+-------------------------------------------------+
+| Entropy Range (H)  | Visual Classification       | Engine Action & Verification Invariant          |
++--------------------+-----------------------------+-------------------------------------------------+
+| H < 0.5 bits/byte  | Blank / Uniform Canvas      | HARD REJECTION: Zero information content        |
+| 0.5 <= H < 2.0     | Synthetic Mock Placeholder  | HARD REJECTION: Trivially generated mock card   |
+| 2.0 <= H < 3.5     | Sparse Wireframe            | WARNING: Requires manual secondary review       |
+| H >= 3.5 bits/byte | Genuine Rendered UI         | ACCEPTED: Rich typography and UI componentry    |
++--------------------+-----------------------------+-------------------------------------------------+
+```
+
+### 4.2 Theorem: Viewport Scaling Invariant
+
+**Theorem (DPR Tolerance)**: A measured raster dimension pair $\langle W_{\text{raw}}, H_{\text{raw}} \rangle$ matches a logical viewport $\langle W_{\text{css}}, H_{\text{css}} \rangle$ if and only if there exists an integer scale factor $s \in \{1, 2, 3, 4\}$ such that:
+
+$$W_{\text{raw}} = s \cdot W_{\text{css}} \quad \land \quad H_{\text{raw}} = s \cdot H_{\text{css}}$$
+
+**Proof**:
+Modern display renderers rasterize CSS logical pixels into physical pixels using discrete Device Pixel Ratios ($1\times, 2\times, 3\times, 4\times$). Non-integer fractional scaling creates anti-aliasing artifacts that violate deterministic pixel snapshot parity. Thus, exact integer scalar multiplication is both necessary and sufficient for valid platform evidence capture. $\blacksquare$
+
+---
+
+## 5. Concrete TypeScript Contracts & Schemas
+
+The TypeScript interfaces governing the Binary PNG IHDR Chunk Engine are implemented in [png-ihdr-validator.ts](../../../../olt/scripts/src/capture/runners/png-ihdr-validator.ts) and [cross-proof.ts](../../../../olt/scripts/src/validation/dual-channel-analyzer/cross-proof.ts):
+
+```typescript
+export interface PngDimensions {
+  readonly width: number;
+  readonly height: number;
+  readonly bitDepth: number;
+  readonly colorType: number;
+}
+
+export interface PngValidationResult {
+  readonly valid: boolean;
+  readonly dimensions: PngDimensions | null;
+  readonly shannonEntropy: number;
+  readonly matchedDpr: number | null;
+  readonly errorFinding?: {
+    readonly findingId: string;
+    readonly severity: "error" | "warning";
+    readonly message: string;
+    readonly remediation: string;
+  };
+}
+
+export interface IPngIhdrValidator {
+  readonly extractDimensions: (buffer: Uint8Array) => PngDimensions | null;
+  readonly computeEntropy: (buffer: Uint8Array) => number;
+  readonly validateScreenshot: (buffer: Uint8Array, claimedViewport: string) => PngValidationResult;
+}
+```
 
 ```typescript
 export const PNG_SIGNATURE = Object.freeze([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const IHDR_CHUNK_TYPE = Object.freeze([0x49, 0x48, 0x44, 0x52]); // "IHDR"
+export const IHDR_CHUNK_TYPE = Object.freeze([0x49, 0x48, 0x44, 0x52]); // "IHDR"
 
-export function extractPngDimensions(buffer: Buffer | Uint8Array): PngDimensions | null {
-  if (!buffer || buffer.byteLength < 24) {
-    return null;
-  }
+export function extractPngDimensions(buffer: Uint8Array): PngDimensions | null {
+  if (!buffer || buffer.byteLength < 33) return null;
 
   // 1. Verify 8-byte PNG signature
   for (let i = 0; i < 8; i++) {
-    if (buffer[i] !== PNG_SIGNATURE[i]) {
-      return null;
-    }
+    if (buffer[i] !== PNG_SIGNATURE[i]) return null;
   }
 
   const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
 
-  // 2. Verify IHDR data length (must be exactly 13 bytes)
+  // 2. Verify IHDR length equals 13
   const ihdrLength = view.getUint32(8, false);
-  if (ihdrLength !== 13) {
-    return null;
-  }
+  if (ihdrLength !== 13) return null;
 
   // 3. Verify chunk type matches "IHDR"
   for (let i = 0; i < 4; i++) {
-    if (buffer[12 + i] !== IHDR_CHUNK_TYPE[i]) {
-      return null;
-    }
+    if (buffer[12 + i] !== IHDR_CHUNK_TYPE[i]) return null;
   }
 
-  // 4. Extract Width and Height (uint32 Big-Endian)
+  // 4. Extract Width, Height, Bit Depth, Color Type
   const width = view.getUint32(16, false);
   const height = view.getUint32(20, false);
+  const bitDepth = buffer[24] ?? 0;
+  const colorType = buffer[25] ?? 0;
 
-  // 5. Bounds validation (1 <= dimension <= 2^31 - 1)
   if (width === 0 || height === 0 || width > 0x7fffffff || height > 0x7fffffff) {
     return null;
   }
 
-  return { width, height };
+  return Object.freeze({ width, height, bitDepth, colorType });
 }
-```
 
----
-
-## 3. Color Type & Bit Depth Specification
-
-The PNG standard defines five legal color type combinations at byte offset 25. The engine validates that captured UI screenshots use standard 8-bit truecolor or alpha channels:
-
-| Color Type Code | Canonical Name         | Allowed Bit Depths | Channels per Pixel | Description                                  |
-| :-------------- | :--------------------- | :----------------- | :----------------- | :------------------------------------------- |
-| **`0`**         | Grayscale              | 1, 2, 4, 8, 16     | 1                  | Monochrome luminance pixels.                 |
-| **`2`**         | RGB Truecolor          | 8, 16              | 3 ($R, G, B$)      | Standard 24-bit truecolor images.            |
-| **`3`**         | Indexed-Color          | 1, 2, 4, 8         | 1 (Palette index)  | PLTE palette indexed bitmaps.                |
-| **`4`**         | Grayscale + Alpha      | 8, 16              | 2 ($G, A$)         | Luminance with alpha transparency.           |
-| **`6`**         | RGBA Truecolor + Alpha | 8, 16              | 4 ($R, G, B, A$)   | Standard 32-bit truecolor with transparency. |
-
-> [!CAUTION]
-> UI screenshot captures in OLT are required to be **Color Type 2 (RGB)** or **Color Type 6 (RGBA)** at **Bit Depth 8**. Any image encoding with color types 0, 1, or 3 for UI verification is flagged for manual review.
-
----
-
-## 4. Viewport Matrix & Device Pixel Ratio (DPR) Cross-Proof
-
-To prevent agents from fabricating metadata while submitting mismatched screenshot files, the engine cross-verifies measured binary dimensions against canonical viewport presets scaled by the Device Pixel Ratio (DPR $\in [1, 4]$):
-
-```text
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 CANONICAL VIEWPORT RESOLUTION MATRIX                                   │
-├──────────────┬──────────────────┬─────────────────┬─────────────────┬─────────────────┬────────────────┤
-│ Viewport     │ CSS Logical Dims │ 1x Raster (px)  │ 2x Retina (px)  │ 3x Mobile (px)  │ 4x Ultra (px)  │
-├──────────────┼──────────────────┼─────────────────┼─────────────────┼─────────────────┼────────────────┤
-│ `desktop`    │ $1920 \times 1080$│ $1920 \times 1080$│ $3840 \times 2160$│ $5760 \times 3240$│ $7680 \times 4320$│
-│ `laptop`     │ $1440 \times 900$ │ $1440 \times 900$ │ $2880 \times 1800$│ $4320 \times 2700$│ $5760 \times 3600$│
-│ `tablet`     │ $768 \times 1024$ │ $768 \times 1024$ │ $1536 \times 2048$│ $2304 \times 3072$│ $3072 \times 4096$│
-│ `mobile`     │ $390 \times 844$  │ $390 \times 844$  │ $780 \times 1688$ │ $1170 \times 2532$│ $1560 \times 3376$│
-└──────────────┴──────────────────┴─────────────────┴─────────────────┴─────────────────┴────────────────┘
-```
-
-### 4.1 Tolerance & Ratio Matching Invariant
-
-```typescript
-export function selfReportedDimensionsWithinTolerance(
-  measuredWidth: number,
-  measuredHeight: number,
-  claimedWidth: number | undefined,
-  claimedHeight: number | undefined,
-): boolean {
-  if (typeof claimedWidth !== "number" || typeof claimedHeight !== "number") return false;
-  if (claimedWidth <= 0 || claimedHeight <= 0) return false;
-
-  for (let scale = 1; scale <= MAX_DEVICE_SCALE_FACTOR; scale++) {
-    if (measuredWidth === claimedWidth * scale && measuredHeight === claimedHeight * scale) {
-      return true; // Match at integer Device Pixel Ratio
-    }
-  }
-  return false;
-}
-```
-
-If a screenshot claims viewport `desktop` ($1920 \times 1080$) but its binary IHDR contains $800 \times 600$, the engine rejects the evidence with an `invalid_screenshot_size` defect finding.
-
----
-
-## 5. Shannon Entropy Calculation for Anti-Mocking
-
-Synthetic or mock screenshots generated by LLMs or empty browser initializations often consist of uniform white, gray, or solid-color rectangles. While their IHDR dimensions may nominally match $1920 \times 1080$, their information density is near zero.
-
-The engine computes the **Shannon Entropy** ($H$) across the byte frequency distribution of the compressed `IDAT` chunks:
-
-$$H(X) = -\sum_{i=0}^{255} P(x_i) \log_2 P(x_i)$$
-
-Where:
-
-- $N$ is the total number of bytes analyzed in the raster payload.
-- $P(x_i) = \frac{\text{count}(x_i)}{N}$ is the empirical probability of byte value $x_i \in [0, 255]$.
-
-```text
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   SHANNON ENTROPY FIDELITY THRESHOLDS                                  │
-├────────────────────┬─────────────────────────────┬─────────────────────────────────────────────────────┤
-│ Entropy Range (H)  │ Classification              │ Engine Action & Verification Invariant              │
-├────────────────────┼─────────────────────────────┼─────────────────────────────────────────────────────┤
-│ $H < 0.5$ bits/B   │ **Blank / Uniform Image**   │ **HARD REJECTION**: Solid color canvas or blank page│
-│ $0.5 \le H < 2.0$  │ **Synthetic Mock Card**     │ **HARD REJECTION**: Placeholder geometric shape/box │
-│ $2.0 \le H < 3.5$  │ **Sparse Wireframe**        │ **WARNING**: Low-complexity diagram or sparse text  │
-│ $H \ge 3.5$ bits/B │ **Genuine Rendered UI**     │ **ACCEPTED**: Real rich UI typography & styling     │
-└────────────────────┴─────────────────────────────┴─────────────────────────────────────────────────────┘
-```
-
-```typescript
-export function calculateShannonEntropy(buffer: Buffer | Uint8Array): number {
+export function calculateShannonEntropy(buffer: Uint8Array): number {
   if (buffer.length === 0) return 0;
 
   const frequencies = new Uint32Array(256);
@@ -223,21 +278,17 @@ export function calculateShannonEntropy(buffer: Buffer | Uint8Array): number {
 
 ---
 
-## 6. Error Findings & Diagnostic Messages
+## 6. Failure Modes, Anti-Blunders & Recovery Playbooks
 
-When binary image verification fails, the engine produces structured findings in the verification report:
-
-```json
-{
-  "finding_id": "invalid_screenshot_size",
-  "severity": "error",
-  "message": "Anti-Mocking Invariant Violation: Screenshot 'desktop_login.png' claims viewport 'desktop' but its real measured pixel dimensions (800x600) do not match canonical 'desktop' viewport (1920x1080, up to 4x device pixel ratio).",
-  "remediation": "Capture genuine 'desktop' viewport evidence at 1920x1080 rather than an arbitrary sized mock placeholder.",
-  "viewport": "desktop"
-}
-```
+| Blunder Identifier           | Trigger Condition                                                    | Severity | System Impact                                           | Immediate Recovery Playbook                                                  |
+| :--------------------------- | :------------------------------------------------------------------- | :------- | :------------------------------------------------------ | :--------------------------------------------------------------------------- |
+| **`PNG_SIGNATURE_MISMATCH`** | File has `.png` extension but lacks `0x89PNG` magic bytes.           | FATAL    | Verification gate fails; evidence rejected.             | Re-capture screenshot via headless browser; ensure binary buffer integrity.  |
+| **`IHDR_LENGTH_INVALID`**    | Byte offset 8 does not equal 13 (`0x0000000D`).                      | FATAL    | Binary parser rejects corrupted image stream.           | Fix screenshot export pipeline to emit standard compliant PNG chunks.        |
+| **`UNSUPPORTED_COLOR_TYPE`** | Image uses indexed color (type 3) or grayscale (type 0) for UI.      | WARN     | Visual review flags potential rendering anomaly.        | Configure browser capture tool to output 24-bit RGB or 32-bit RGBA.          |
+| **`VIEWPORT_DIMS_MISMATCH`** | Screenshot dimensions do not match claimed viewport at any DPR.      | ERROR    | Anti-mocking gate fails with `invalid_screenshot_size`. | Set browser viewport explicitly before capturing screenshot evidence.        |
+| **`LOW_SHANNON_ENTROPY`**    | Image entropy $H < 2.0\text{ bits/byte}$ (solid or blank rectangle). | FATAL    | Rejected as synthetic mock or empty canvas.             | Render actual UI components with text, borders, and contrast before capture. |
+| **`CRC32_CHECKSUM_FAILURE`** | `IHDR` chunk data CRC-32 does not match trailing 4 bytes.            | FATAL    | File corruption detected; evidence discarded.           | Re-write file using atomic `fsync` flush to avoid truncated disk buffers.    |
 
 ---
 
-[Previous: APCA Perceptual Contrast Engine](17-03-apca-perceptual-contrast-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Merkle Hash & Gate Prove Engines](17-05-merkle-hash-and-gate-prove-engines.md)
----
+[Previous: 17-03 APCA Perceptual Contrast Engine](17-03-apca-perceptual-contrast-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 17-05 Merkle Hash & Gate Prove Engines](17-05-merkle-hash-and-gate-prove-engines.md)

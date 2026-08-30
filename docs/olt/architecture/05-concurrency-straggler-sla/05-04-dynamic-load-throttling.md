@@ -163,7 +163,7 @@ The full uncompressed log is simultaneously persisted out-of-band to disk at `.o
 
 ## 5. TypeScript Dynamic Throttling & Budgeting Interfaces
 
-The AIMD controller and Cowan context budgeter are implemented in [`dynamic-load-throttler.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/throttler/dynamic-load-throttler.ts):
+The AIMD controller and Cowan context budgeter are implemented in [`dynamic-load-throttler.ts`](../../../../olt/scripts/src/mind/concurrency-cap.ts):
 
 ```typescript
 import * as os from "node:os";

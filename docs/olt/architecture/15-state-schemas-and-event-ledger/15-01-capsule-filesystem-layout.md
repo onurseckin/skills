@@ -3,7 +3,7 @@
 > **Navigation**: [Reference Home](../index.md) > [State & Capsule Schemas](./index.md) > Capsule Filesystem Layout  
 > **Status**: Authoritative Reference Specification  
 > **POSIX Mode Reference**: IEEE Std 1003.1 (Filesystem & Inode Specifications)  
-> **Related Code**: [`olt/scripts/src/engine/store/layout/layout.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/store/layout/layout.ts), [`olt/scripts/src/engine/store/layout/constants.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/store/layout/constants.ts)
+> **Related Code**: [`olt/scripts/src/engine/store/layout/layout.ts`](../../../../olt/scripts/src/engine/store/layout/layout.ts), [`olt/scripts/src/engine/store/layout/constants.ts`](../../../../olt/scripts/src/engine/store/layout/constants.ts)
 
 ---
 

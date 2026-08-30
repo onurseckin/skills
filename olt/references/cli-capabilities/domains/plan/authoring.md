@@ -61,7 +61,7 @@ Create a run capsule and capture the prompt bytes immutably.
 
 Initialises <repo>/.olt/capsules/<run-id>, records the verbatim prompt with its sha256, and ensures the capsule is gitignored.
 
-- **Aliases**: none
+- **Aliases**: `plan-init`, `init-plan`
 - **Stdin**: reads stdin when `--prompt-stdin` is set
 - **Arguments after `--`**: rejected
 

@@ -1,6 +1,11 @@
 {
   "name": "queue:add",
-  "aliases": [],
+  "aliases": [
+    "mind:queue:add",
+    "todo:add",
+    "feedback:ingest",
+    "feedback:add"
+  ],
   "domain": "queue",
   "summary": "Add a feedback item to the mind queue.",
   "flags": [

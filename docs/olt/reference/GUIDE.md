@@ -2,7 +2,7 @@
 
 ---
 
-[Previous: Reference Index](index.md) | [Reference Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Quickstart Tutorial](quickstart.md)
+[Previous: Health and Status](health-and-status.md) | [Chapter Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Reference Index](index.md)
 
 ---
 
@@ -66,7 +66,7 @@ All contributors to the Reference Hub must adhere to the following non-negotiabl
 4. **Deterministic Command Receipts**: Every shell snippet must specify exact command invocations (e.g. `bun olt/scripts/harness.ts <command>`) and corresponding JSON output envelopes.
 5. **Universal Clean 4-Way Navigation**: Top and bottom bars must match the standard clean format:
    ```markdown
-   [Previous: Reference Index](index.md) | [Reference Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Quickstart Tutorial](quickstart.md)
+   [Previous: ...] | [Chapter Index: ...] | [All Chapters Index: ...] | [Next: ...]
    ```
 6. **100% Relative Link Integrity**: All relative links must resolve to existing on-disk targets.
 
@@ -96,10 +96,10 @@ Before publishing any updates to reference documentation, execute the following 
 - [ ] Are JSON output envelopes formatted with valid JSON syntax?
 - [ ] Does the top navigation bar match the bottom navigation bar?
 - [ ] Do all relative markdown links resolve to valid on-disk files?
-- [ ] Does the line count fall within the mandated sizing envelope?
+- [ ] Does the line count fall within the mandated sizing envelope (100-200 lines for indexes/handbooks, 280-450 lines for tutorials/how-tos)?
 
 ---
 
-[Previous: Reference Index](index.md) | [Reference Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Quickstart Tutorial](quickstart.md)
+[Previous: Health and Status](health-and-status.md) | [Chapter Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Reference Index](index.md)
 
 ---

@@ -7,7 +7,7 @@
 [Previous: Typecheck Engine](17-01-typecheck-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: APCA Perceptual Contrast Engine](17-03-apca-perceptual-contrast-engine.md)
 ---
 
-The **AST Static Invariant Auditor** ([`olt/scripts/src/linter/ast-enforcer.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/ast-enforcer.ts)) parses TypeScript and JavaScript source files into abstract syntax trees to enforce 10 non-negotiable code hygiene, typing safety, vendor neutrality, and test honesty invariants.
+The **AST Static Invariant Auditor** ([`olt/scripts/src/linter/ast-enforcer.ts`](../../../../olt/scripts/src/reporting/doctor/ast-purity-engine.ts)) parses TypeScript and JavaScript source files into abstract syntax trees to enforce 10 non-negotiable code hygiene, typing safety, vendor neutrality, and test honesty invariants.
 
 In the OLT runtime, these rules execute unconditionally during `bun harness.ts task:check`. Any violation produces an immediate verification failure, preventing tasks with degraded code, suppressed compiler warnings, or tautological mock tests from being submitted.
 
@@ -47,7 +47,7 @@ In the OLT runtime, these rules execute unconditionally during `bun harness.ts t
 
 ## 1. Rule 1: `any_type`
 
-- **Implementation**: [`olt/scripts/src/linter/rules/any_type.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/rules/any_type.ts)
+- **Implementation**: [`olt/scripts/src/linter/rules/any_type.ts`](../../../../olt/scripts/src/linter/rules/any_type.ts)
 - **AST Node Matcher**: `node.kind === ts.SyntaxKind.AnyKeyword`
 - **Invariant**: Strict 0 occurrences of the `any` keyword in variable declarations, function signatures, interface properties, type aliases, or cast expressions.
 - **Violation Message**: `"Prohibited 'any' type annotation detected. Use strict types or type guards instead."`
@@ -92,7 +92,7 @@ function parsePayload<T extends Record<string, unknown>>(raw: T): unknown {
 
 ## 2. Rule 2: `compiler_suppression`
 
-- **Implementation**: [`olt/scripts/src/linter/rules/compiler_suppression.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/rules/compiler_suppression.ts)
+- **Implementation**: [`olt/scripts/src/linter/rules/compiler_suppression.ts`](../../../../olt/scripts/src/linter/rules/compiler_suppression.ts)
 - **Scanner Mechanism**: Tokenizes source text with `ts.createScanner(ts.ScriptTarget.Latest, false, languageVariant, sourceCode)` scanning `ts.SyntaxKind.SingleLineCommentTrivia` and `ts.SyntaxKind.MultiLineCommentTrivia`.
 - **Prohibited Directives**:
   - `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `@ts-check`
@@ -145,7 +145,7 @@ const count: number = parseInt("10", 10);
 
 ## 3. Rule 3: `non_null_assertion`
 
-- **Implementation**: [`olt/scripts/src/linter/rules/non_null_assertion.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/rules/non_null_assertion.ts)
+- **Implementation**: [`olt/scripts/src/linter/rules/non_null_assertion.ts`](../../../../olt/scripts/src/linter/rules/non_null_assertion.ts)
 - **AST Node Matcher**: `ts.isNonNullExpression(node)` (postfix `!` operator).
 - **Invariant**: Strict 0 non-null assertion operators (`!`).
 - **Violation Message**: `"Prohibited non-null assertion operator (!) detected. Use explicit branching and runtime verification."`
@@ -195,7 +195,7 @@ if (element === null) {
 
 ## 4. Rule 4: `vendor_leak`
 
-- **Implementation**: [`olt/scripts/src/linter/rules/vendor_leak.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/rules/vendor_leak.ts)
+- **Implementation**: [`olt/scripts/src/linter/rules/vendor_leak.ts`](../../../../olt/scripts/src/linter/rules/vendor_leak.ts)
 - **AST Target Nodes**: `ts.isIdentifier`, `ts.isImportDeclaration`, `ts.isExportDeclaration`, `ts.isCallExpression` (e.g. `require()`), and `ts.isStringLiteral`.
 - **Prohibited Vendor Deny-List**:
   ```typescript
@@ -272,7 +272,7 @@ class StandardHostModelAdapter implements ModelClient {
 
 ## 5. Rule 5: `logical_or_fallback`
 
-- **Implementation**: [`olt/scripts/src/linter/rules/logical_or_fallback.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/rules/logical_or_fallback.ts)
+- **Implementation**: [`olt/scripts/src/linter/rules/logical_or_fallback.ts`](../../../../olt/scripts/src/linter/rules/logical_or_fallback.ts)
 - **AST Node Matcher**: `ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.BarBarToken` (`||`).
 - **Invariant**: Prohibits falsy-blind `||` operators that inadvertently replace valid falsy values (`0`, `""`, `false`, `NaN`) with fallback defaults.
 - **Violation Message**: `"Prohibited logical OR operator (||) detected. Use explicit branching instead."`
@@ -309,7 +309,7 @@ const maxRetries = typeof options.retries === "number" ? options.retries : 5;
 
 ## 6. Rule 6: `nullish_coalescing`
 
-- **Implementation**: [`olt/scripts/src/linter/rules/nullish_coalescing.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/rules/nullish_coalescing.ts)
+- **Implementation**: [`olt/scripts/src/linter/rules/nullish_coalescing.ts`](../../../../olt/scripts/src/linter/rules/nullish_coalescing.ts)
 - **AST Node Matcher**: `ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken` (`??`).
 - **Invariant**: Prohibits unverified `??` fallbacks that obscure missing data and mask upstream schema regressions.
 - **Violation Message**: `"Prohibited nullish coalescing operator (??) detected. Use explicit branching instead."`
@@ -335,7 +335,7 @@ if (profile.name !== undefined && profile.name !== null) {
 
 ## 7. Rule 7: `mock_tautology`
 
-- **Implementation**: [`olt/scripts/src/linter/rules/testing/mock_tautology.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/rules/testing/mock_tautology.ts)
+- **Implementation**: [`olt/scripts/src/linter/rules/testing/mock_tautology.ts`](../../../../olt/scripts/src/linter/rules/testing/mock_tautology.ts)
 - **Mechanism**: Inspects test declarations (`describe`, `test`, `it`). Analyzes mock variable definitions (`mock`, `fn`, `spyOn`, `mockReturnValue`, `mockResolvedValue`) and verifies whether test assertions verify the mock's stubbed return value directly without exercising the System Under Test (SUT).
 - **Violation Message**: `"Test '<testName>' asserts stubbed mock '<mockName>()' return value (<val>) directly without exercising implementation logic."`
 
@@ -378,7 +378,7 @@ test("user authentication test", async () => {
 
 ## 8. Rule 8: `trivial_assertion`
 
-- **Implementation**: [`olt/scripts/src/linter/rules/testing/trivial_assertion.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/rules/testing/trivial_assertion.ts)
+- **Implementation**: [`olt/scripts/src/linter/rules/testing/trivial_assertion.ts`](../../../../olt/scripts/src/linter/rules/testing/trivial_assertion.ts)
 - **AST Node Matcher**: Assertion `CallExpression` matching constant-against-constant checks:
   - `assert(true)`
   - `expect(true).toBe(true)` or `expect(false).toBe(false)`
@@ -414,7 +414,7 @@ test("database connection works", async () => {
 
 ## 9. Rule 9: `empty_test_body`
 
-- **Implementation**: [`olt/scripts/src/linter/rules/testing/empty_test_body.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/rules/testing/empty_test_body.ts)
+- **Implementation**: [`olt/scripts/src/linter/rules/testing/empty_test_body.ts`](../../../../olt/scripts/src/linter/rules/testing/empty_test_body.ts)
 - **AST Node Matcher**: Test `CallExpression` (`test(...)`, `it(...)`) where the callback function has no body (`callback.body === undefined`) or contains 0 statements (`callback.body.statements.length === 0`).
 - **Violation Message**: `"Test '<testName>' has an empty function body."`
 
@@ -440,7 +440,7 @@ test("should validate email format", () => {
 
 ## 10. Rule 10: `trivial_early_return`
 
-- **Implementation**: [`olt/scripts/src/linter/rules/testing/trivial_early_return.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/rules/testing/trivial_early_return.ts)
+- **Implementation**: [`olt/scripts/src/linter/rules/testing/trivial_early_return.ts`](../../../../olt/scripts/src/linter/rules/testing/trivial_early_return.ts)
 - **AST Node Matcher**: Test callback containing a `ts.ReturnStatement` before any executable assertion call is reached in statement order.
 - **Violation Message**: `"Test '<testName>' has early return before any assertion was reached."`
 
@@ -474,7 +474,7 @@ test("handles conditional feature flag", () => {
 
 ## 11. Deterministic Autofix Engine (`autoFixSourceCode`)
 
-The AST subsystem provides deterministic source code refactoring capabilities in [`olt/scripts/src/linter/ast/autofix.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/ast/autofix.ts):
+The AST subsystem provides deterministic source code refactoring capabilities in [`olt/scripts/src/linter/ast/autofix.ts`](../../../../olt/scripts/src/linter/ast/autofix.ts):
 
 ```typescript
 export function autoFixSourceCode(

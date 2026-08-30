@@ -100,7 +100,7 @@ flowchart TD
 ### 3.1 Gate 1: Witnessed ($G_1$)
 
 - **Formal Definition**: A defect candidate must cite a recorded command execution whose output proves the failure, or represent an explicit owner authority decision.
-- **Source Module**: [evaluateGate1Witnessed()](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/proposals/gates/predicates.ts#L99-L200)
+- **Source Module**: [evaluateGate1Witnessed()](../../../../olt/scripts/src/mind/proposals/gates/predicates.ts#L99-L200)
 
 $$ G_1(c, \mathcal{K}) = \begin{cases}
 \texttt{true}, & \text{if } c.\text{kind} = \texttt{"proposal"} \land c.\text{witness\_id} = \texttt{"owner-decision"} \\
@@ -118,7 +118,7 @@ $$ G_1(c, \mathcal{K}) = \begin{cases}
 ### 3.2 Gate 2: In Charter ($G_2$)
 
 * **Formal Definition**: The candidate must explicitly align with at least one goal defined in the pinned charter $\mathbf{G}_{\text{charter}}$, and must not match any declared non-goal $\mathbf{N}_{\text{charter}}$.
-* **Source Module**: [evaluateGate2InCharter()](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/proposals/gates/evaluator.ts#L5-L70)
+* **Source Module**: [evaluateGate2InCharter()](../../../../olt/scripts/src/mind/proposals/gates/evaluator.ts#L5-L70)
 
 $$G_2(c, \mathcal{K}) \iff \Big( \mathbf{g}(c) \ne \emptyset \Big) \land \Big( \mathbf{g}(c) \subseteq \mathbf{G}_{\text{charter}} \Big) \land \Big( \forall n \in \mathbf{N}_{\text{charter}}, \, n \notin \text{Lowercase}(c.\text{statement}) \land n \notin \text{Scope}(c) \Big)$$
 
@@ -132,7 +132,7 @@ $$G_2(c, \mathcal{K}) \iff \Big( \mathbf{g}(c) \ne \emptyset \Big) \land \Big( \
 ### 3.3 Gate 3: Falsifiable Acceptance Criteria ($G_3$)
 
 * **Formal Definition**: For defect candidates, the agent must declare an executable falsifier command $\mathbf{A}_{\text{falsifier}}$. The OLT harness executes this command in a sandboxed host subshell prior to code mutation. The command **must fail (exit non-zero)** in the current repository state.
-* **Source Module**: [evaluateGate3Falsifiable()](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/proposals/gates/evaluator.ts#L77-L128)
+* **Source Module**: [evaluateGate3Falsifiable()](../../../../olt/scripts/src/mind/proposals/gates/evaluator.ts#L77-L128)
 
 $$G_3(c, \mathcal{K}) = \begin{cases}
 \texttt{true}, & \text{if } c.\text{kind} = \texttt{"proposal"} \\
@@ -148,7 +148,7 @@ If the falsifier command exits with `0` before any file edits are made, the clai
 ### 3.4 Gate 4: Bounded & Disjoint Write Scope ($G_4$)
 
 * **Formal Definition**: The declared write scope $\mathbf{\Omega}(c)$ must be non-empty, strictly bounded within the charter's `repo_roots`, disjoint from all currently leased tasks, and disjoint from other admitted candidates in the wave.
-* **Source Module**: [evaluateGate4Scoped()](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/proposals/gates/evaluator.ts#L135-L235)
+* **Source Module**: [evaluateGate4Scoped()](../../../../olt/scripts/src/mind/proposals/gates/evaluator.ts#L135-L235)
 
 $$G_4(c, \mathcal{K}) \iff \Big( \mathbf{\Omega}(c) \ne \emptyset \Big) \land \Big( \mathbf{\Omega}(c) \subseteq \text{RepoRoots} \Big) \land \Big( \mathbf{\Omega}(c) \cap \bigcup_{l \in \mathcal{L}_{\text{active}}} \mathbf{\Omega}(l) = \emptyset \Big) \land \Big( \mathbf{\Omega}(c) \cap \bigcup_{o \in \mathcal{C}_{\text{admitted}}} \mathbf{\Omega}(o) = \emptyset \Big)$$
 
@@ -162,7 +162,7 @@ $$\text{ScopeConflict}(P_A, P_B) \iff (P_A = P_B) \lor \text{StartsWith}(P_A, P_
 ### 3.5 Gate 5: Cognitive Token Budget & Concurrency ($G_5$)
 
 * **Formal Definition**: The repository must have available operational budget for the current calendar day, and active worker concurrency must not exceed the maximum allowed agent pool.
-* **Source Module**: [evaluateGate5Affordable()](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/proposals/gates/table.ts#L12-L105)
+* **Source Module**: [evaluateGate5Affordable()](../../../../olt/scripts/src/mind/proposals/gates/table.ts#L12-L105)
 
 $$G_5(c, \mathcal{K}) \iff \Big( \text{PulsesToday} < \text{MaxPulsesPerDay} \Big) \land \Big( \text{WallClockMsToday} < \text{MaxWallClockPerDay} \Big) \land \Big( N_{\text{active\_agents}} < M_{\text{max\_agents}} \Big)$$
 
@@ -180,7 +180,7 @@ Default Mind Operational Budget Ledger (DEFAULT_MIND_BUDGET):
 ### 3.6 Gate 6: Duplicate & Decline Ledger Verification ($G_6$)
 
 * **Formal Definition**: The candidate must not duplicate any active proposal, open candidate, live task, or permanently declined candidate across current capsule state and historical archival ledgers (`ARCHIVED_OBJECTIVES.jsonl`).
-* **Source Module**: [evaluateGate6NotADuplicate()](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/proposals/gates/table.ts#L112-L265)
+* **Source Module**: [evaluateGate6NotADuplicate()](../../../../olt/scripts/src/mind/proposals/gates/table.ts#L112-L265)
 
 $$G_6(c, \mathcal{K}) \iff \Big( c.\text{fingerprint} \notin \text{Fingerprints}(\mathcal{C}_{\text{active}} \cup \mathcal{C}_{\text{archived}}) \Big) \land \Big( \forall d \in \mathcal{C}_{\text{declined}}, \, c.\text{stmt} \ne d.\text{stmt} \lor \mathbf{\Omega}(c) \cap \mathbf{\Omega}(d) = \emptyset \Big)$$
 

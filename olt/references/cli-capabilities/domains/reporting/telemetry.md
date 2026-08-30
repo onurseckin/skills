@@ -9,7 +9,7 @@ Real-time step tracer and dynamic living DAG expansion timeline.
 
 Replays events.jsonl to construct dynamic branch expansions and renders a chronological vertical step timeline with status glyphs and telemetry.
 
-- **Aliases**: none
+- **Aliases**: `dag:trace`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

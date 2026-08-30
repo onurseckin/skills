@@ -295,9 +295,6 @@ The repository provides an automated synchronizer to link canonical skills, gene
 ```bash
 # Execute local monorepo synchronization across all assistant platforms
 bun scripts/sync/index.ts
-
-# Or via backward-compatible entrypoint
-bun scripts/sync-global.ts
 ```
 
 ### 5.4 Zero Runtime Dependencies Invariant
@@ -367,7 +364,7 @@ Contributors and autonomous agents authoring or modifying skills follow an 8-ste
 │  5. Test Suite Construction      --> Write falsifiable unit & e2e tests     │
 │  6. Quality Gate Verification    --> Execute bun test & typecheck           │
 │  7. Conventional Commits         --> Commit with feat/fix/docs semantics    │
-│  8. Global Sync & Certification  --> Run bun scripts/sync-global.ts         │
+│  8. Global Sync & Certification  --> Run bun scripts/sync/index.ts          │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -389,7 +386,7 @@ bun run lint
 bun run format:check
 
 # 5. Verify global synchronization
-bun scripts/sync-global.ts
+bun scripts/sync/index.ts
 ```
 
 ### 7.2 Conventional Commit Standards

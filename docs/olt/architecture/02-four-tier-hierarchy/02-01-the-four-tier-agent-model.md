@@ -242,7 +242,7 @@ sequenceDiagram
 
 ## 5. TypeScript Role Contracts and RBAC Interlocks
 
-The role contracts and authority matrices are implemented in TypeScript under [`session/types.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/session/types.ts):
+The role contracts and authority matrices are implemented in TypeScript under [`session/types.ts`](../../../../olt/scripts/src/authority/session/types.ts):
 
 ```typescript
 /**

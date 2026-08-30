@@ -224,7 +224,7 @@ flowchart TD
 
 ## 5. Concrete TypeScript Contracts & Tarjan Implementation
 
-The Tarjan SCC engine is implemented in [`tarjan-scc.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/tarjan-scc.ts):
+The Tarjan SCC engine is implemented in [`tarjan-scc.ts`](../../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts):
 
 ```typescript
 export interface TarjanNodeState {

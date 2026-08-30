@@ -223,7 +223,7 @@ When an admitted epic requires a workforce allocation exceeding the span capacit
 
 ## 6. TypeScript Architectural Schemas & Scheduling Interfaces
 
-The OLT scheduling runtime encodes the Brent work-span formulation in [`concurrency-allocator.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/scheduler/concurrency-allocator.ts):
+The OLT scheduling runtime encodes the Brent work-span formulation in [`concurrency-allocator.ts`](../../../../olt/scripts/src/graph/forensics/brent-bounds.ts):
 
 ```typescript
 /**

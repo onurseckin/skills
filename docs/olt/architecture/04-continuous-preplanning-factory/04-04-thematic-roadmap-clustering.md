@@ -140,7 +140,7 @@ sequenceDiagram
 
 ## 4. Concrete TypeScript Roadmap Interfaces & Schemas
 
-The preplanning and roadmap clustering interfaces are codified in [`types.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/preplanning/types.ts), [`backlog-clusterer.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/preplanning/backlog-clusterer.ts), and [`parallel-decoupler.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/plan/parallel-decoupler.ts):
+The preplanning and roadmap clustering interfaces are codified in [`types.ts`](../../../../olt/scripts/src/mind/preplanning/types.ts), [`backlog-clusterer.ts`](../../../../olt/scripts/src/mind/preplanning/backlog-clusterer.ts), and [`parallel-decoupler.ts`](../../../../olt/scripts/src/plan/parallel-decoupler.ts):
 
 ```typescript
 /**

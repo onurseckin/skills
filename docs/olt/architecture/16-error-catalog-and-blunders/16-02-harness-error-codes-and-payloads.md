@@ -112,7 +112,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 1. `INVALID_ARGUMENT` (Exit Code 3)
 
-- **Source Reference**: [`olt/scripts/src/cli/options.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/options.ts), [`olt/scripts/src/cli/arguments.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/arguments.ts)
+- **Source Reference**: [`olt/scripts/src/cli/options.ts`](../../../../olt/scripts/src/cli/options.ts), [`olt/scripts/src/cli/arguments.ts`](../../../../olt/scripts/src/cli/arguments.ts)
 - **Description**: Rejects malformed CLI flags, unrecognized options, missing mandatory arguments, schema violations in passed JSON files, or numerical values violating range bounds.
 - **Issues Schema**:
   ```json
@@ -155,7 +155,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 2. `INVALID_STATE` (Exit Code 3)
 
-- **Source Reference**: [`olt/scripts/src/workflow/lease/`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/workflow/lease/), [`olt/scripts/src/workflow/review/`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/workflow/review/)
+- **Source Reference**: [`olt/scripts/src/workflow/lease/`](../../../../olt/scripts/src/workflow/lease), [`olt/scripts/src/workflow/review/`](../../../../olt/scripts/src/workflow/review)
 - **Description**: State machine invariant violation. Thrown when attempting an illegal lifecycle transition, submitting an unleased task, claiming an already active task, or approving review without required adversarial probes or open finding resolutions.
 - **Issues Schema**:
   ```json
@@ -203,7 +203,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 3. `INTEGRITY` (Exit Code 3)
 
-- **Source Reference**: [`olt/scripts/src/engine/store/events/`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/store/events/), [`olt/scripts/src/packets/`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/)
+- **Source Reference**: [`olt/scripts/src/engine/store/events/`](../../../../olt/scripts/src/engine/store/events), [`olt/scripts/src/packets/`](../../../../olt/scripts/src/packets)
 - **Description**: Cryptographic Merkle chain divergence, corrupted event log, cyclic plan dependencies ($A \to B \to A$), or file tree hash instability (TOCTOU race condition).
 - **Issues Schema**:
   ```json
@@ -244,7 +244,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 4. `PATH_SAFETY` (Exit Code 3)
 
-- **Source Reference**: [`olt/scripts/src/engine/runner/core/policy.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/core/policy.ts), [`olt/scripts/src/authority/root-hygiene-guard.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/root-hygiene-guard.ts)
+- **Source Reference**: [`olt/scripts/src/engine/runner/core/policy.ts`](../../../../olt/scripts/src/engine/runner/core/policy.ts), [`olt/scripts/src/authority/root-hygiene-guard.ts`](../../../../olt/scripts/src/authority/guards/root-hygiene.ts)
 - **Description**: Filesystem confinement boundary breach. Triggered when path arguments escape the run root, touch files outside declared task write scope, traverse symbolic links, or dirty the repository root.
 - **Issues Schema**:
   ```json
@@ -282,7 +282,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 5. `ROLE_CONFINEMENT_VIOLATION` (Exit Code 3)
 
-- **Source Reference**: [`olt/scripts/src/authority/persona/eval-invariants.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/persona/eval-invariants.ts), [`olt/scripts/src/packets/command-authority.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/command-authority.ts)
+- **Source Reference**: [`olt/scripts/src/authority/persona/eval-invariants.ts`](../../../../olt/scripts/src/authority/persona/eval-invariants.ts), [`olt/scripts/src/packets/command-authority.ts`](../../../../olt/scripts/src/packets/command-authority.ts)
 - **Description**: Role-Based Access Control (RBAC) boundary breach. Thrown when a supervisory Tier attempts worker mutations (e.g. Tier 1 Mind directly editing code or claiming tasks) or a cognitive reviewer attempts command execution.
 - **Issues Schema**:
   ```json
@@ -321,7 +321,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 6. `AUTHENTICATION_FAILURE` (Exit Code 3)
 
-- **Source Reference**: [`olt/scripts/src/authority/session/resolver.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/session/resolver.ts), [`olt/scripts/src/authority/session/grants.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/session/grants.ts)
+- **Source Reference**: [`olt/scripts/src/authority/session/resolver.ts`](../../../../olt/scripts/src/authority/session/resolver.ts), [`olt/scripts/src/authority/session/grants.ts`](../../../../olt/scripts/src/authority/session/grants.ts)
 - **Description**: Bearer token authentication failure. Thrown when an agent attempts to submit, release, or review a task using an invalid, expired, or spoofed session token.
 - **Issues Schema**:
   ```json
@@ -357,7 +357,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 7. `UNSUPPORTED_HOST` (Exit Code 3)
 
-- **Source Reference**: [`olt/scripts/src/platform/host-autodetect.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/platform/host-autodetect.ts)
+- **Source Reference**: [`olt/scripts/src/platform/host-autodetect.ts`](../../../../olt/scripts/src/platform/host-autodetect.ts)
 - **Description**: Host environment signature detection failure. Thrown when OLT cannot identify the host environment among canonical supported profiles (`antigravity`, `claude_code`, `codex`, `cursor`) without generic fallback.
 - **Issues Schema**:
   ```json
@@ -392,7 +392,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 8. `UNSUPPORTED_PLATFORM` (Exit Code 3)
 
-- **Source Reference**: [`olt/scripts/src/platform/process/run-lock.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/platform/process/run-lock.ts)
+- **Source Reference**: [`olt/scripts/src/platform/process/run-lock.ts`](../../../../olt/scripts/src/platform/process/run-lock.ts)
 - **Description**: Operating system or runtime architecture incompatibility. Thrown when executing on an OS lacking required POSIX kernel primitives (`flock`, process groups, `renameat2`) or missing dynamic libc bindings.
 - **Issues Schema**:
   ```json
@@ -429,7 +429,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 9. `LOCK_TIMEOUT` (Exit Code 4)
 
-- **Source Reference**: [`olt/scripts/src/platform/process/run-lock.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/platform/process/run-lock.ts#L30-L75)
+- **Source Reference**: [`olt/scripts/src/platform/process/run-lock.ts`](../../../../olt/scripts/src/platform/process/run-lock.ts#L30-L75)
 - **Description**: Kernel advisory lock contention timeout. Thrown when a process fails to acquire exclusive ownership of `.olt/capsules/<slug>/state.json` within the $5000\text{ ms}$ acquisition window.
 - **Issues Schema**:
   ```json
@@ -467,7 +467,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 10. `NOT_FOUND` (Exit Code 3)
 
-- **Source Reference**: [`olt/scripts/src/cli/options.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/options.ts)
+- **Source Reference**: [`olt/scripts/src/cli/options.ts`](../../../../olt/scripts/src/cli/options.ts)
 - **Description**: Entity resolution failure. Thrown when a referenced capsule run, task identifier, command receipt ID, or requirement ID does not exist in active storage.
 - **Issues Schema**:
   ```json
@@ -505,7 +505,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 11. `NOT_IMPLEMENTED` (Exit Code 70)
 
-- **Source Reference**: [`olt/scripts/src/graph/gate-proof.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/gate-proof.ts), [`olt/scripts/src/cli/execute.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/execute.ts)
+- **Source Reference**: [`olt/scripts/src/graph/gate-proof.ts`](../../../../olt/scripts/src/graph/gate-proof.ts), [`olt/scripts/src/cli/execute.ts`](../../../../olt/scripts/src/cli/execute.ts)
 - **Description**: Unsupported operation or feature variant. Thrown when a valid command verb is invoked with an unsupported storage or filesystem mode (e.g. attempting `gate:prove` across symbolic link write scopes).
 - **Issues Schema**:
   ```json
@@ -542,7 +542,7 @@ When invoked with `--format json` or executed in automated subagent mode, all ha
 
 ### 12. `INTERNAL` (Exit Code 70)
 
-- **Source Reference**: [`olt/scripts/src/core/errors/normalize-error.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/errors/normalize-error.ts)
+- **Source Reference**: [`olt/scripts/src/core/errors/normalize-error.ts`](../../../../olt/scripts/src/core/errors/normalize-error.ts)
 - **Description**: Unhandled JavaScript runtime crash, engine panic, or memory exhaustion. All uncaught exceptions are trapped by `normalizeError()` to ensure valid structured JSON is emitted to `stderr`.
 - **Issues Schema**:
   ```json

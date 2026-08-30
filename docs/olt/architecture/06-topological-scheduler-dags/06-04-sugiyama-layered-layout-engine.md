@@ -170,7 +170,7 @@ flowchart TD
 
 ## 5. Concrete TypeScript Contracts & Canvas Matrix Renderer
 
-The Sugiyama rendering engine is implemented in [`sugiyama-layout.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/sugiyama-layout.ts):
+The Sugiyama rendering engine is implemented in [`sugiyama-layout.ts`](../../../../olt/scripts/src/graph/sugiyama.ts):
 
 ```typescript
 export interface SugiyamaNodeBadge {

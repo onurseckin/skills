@@ -2,18 +2,18 @@
 
 ---
 
-[Previous: Quickstart Tutorial](quickstart.md) | [Reference Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Reference Index](index.md)
+[Previous: Quickstart Tutorial](quickstart.md) | [Chapter Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Reference Authoring Guide](GUIDE.md)
 
 ---
 
 ## 1. Executive Summary & Health Philosophy
 
-In high-concurrency autonomous agent architectures, human operators and automated supervisor processes require continuous, deterministic visibility into runtime state, worker leases, topological wave progress, and filesystem health.
+In high-concurrency autonomous multi-agent environments, human operators and supervisor daemons require deterministic visibility into runtime state, worker leases, topological wave progress, and filesystem health.
 
-The **OLT (Orchestrating Long Tasks)** Health & Diagnostics Engine provides unified diagnostic sweeping and self-healing capabilities via the `doctor` and `health` command suites. The architecture is governed by three foundational operational principles:
+The **OLT (Orchestrating Long Tasks)** Health & Diagnostics Engine provides unified diagnostic sweeping and self-healing capabilities via the `doctor`, `health`, `doctor:repair`, and `recover` command suites. The architecture is governed by three foundational operational principles:
 
 1. **Non-Invasive Continuous Inspection**: Diagnostic probes perform read-only evaluations of runtime memory, kernel locks, and filesystem structures without altering active task state or acquiring exclusive write locks.
-2. **Deterministic Auto-Healing (`doctor:heal`)**: Known transient failure modes—such as torn event log tails, stale advisory locks, and orphaned worktree directories—are repaired mathematically from the underlying append-only event ledger.
+2. **Deterministic Auto-Healing (`doctor:repair`)**: Known transient failure modes—such as torn event log tails, stale advisory locks, and orphaned worktree directories—are repaired mathematically from the underlying append-only event ledger.
 3. **Fail-Closed Safety**: Any detected invariant breach immediately halts execution wave dispatch and returns structured error envelopes, preventing cascading state corruption across downstream worker tasks.
 
 ```text
@@ -28,14 +28,14 @@ The **OLT (Orchestrating Long Tasks)** Health & Diagnostics Engine provides unif
 │                 │                                     │                                          │
 │                 ▼                                     ▼                                          │
 │   ┌───────────────────────────┐         ┌───────────────────────────┐                            │
-│   │ 3. Status & Gantt Report  │  ◄───►  │ 4. Automated Healing      │                            │
-│   │ `bun harness.ts status`   │         │ `bun harness.ts doc:heal` │                            │
+│   │ 3. Status & Diagnostic Rpt│  ◄───►  │ 4. State Projection Repair│                            │
+│   │ `bun harness.ts run:status│         │ `bun harness.ts doc:repair│                            │
 │   └─────────────┬─────────────┘         └─────────────┬─────────────┘                            │
 │                 │                                     │                                          │
 │                 ▼                                     ▼                                          │
 │   ┌───────────────────────────┐         ┌───────────────────────────┐                            │
-│   │ 5. Incident Post-Mortem   │  ───►   │ 6. Cryptographic Proof    │                            │
-│   │ `.olt/telemetry.jsonl`    │         │ Re-sealed Merkle Ledger   │                            │
+│   │ 5. Lease & Zombie Recovery│  ───►   │ 6. Cryptographic Proof    │                            │
+│   │ `bun harness.ts recover`  │         │ Re-sealed Merkle Ledger   │                            │
 │   └───────────────────────────┘         └───────────────────────────┘                            │
 │                                                                                                  │
 +--------------------------------------------------------------------------------------------------+
@@ -71,14 +71,14 @@ OLT evaluates system health across ten orthogonal domains ($D_1 \dots D_{10}$). 
 - **Bun Runtime Engine**: Verifies version string $\ge 1.1.0$.
 - **Git Porcelain Interface**: Confirms Git version $\ge 2.38.0$ with worktree submodule support.
 - **Kernel Advisory Locks**: Probes POSIX `flock(2)` syscall responsiveness on host filesystem.
-- **Node Type Environment**: Confirms `@types/node` and `@types/bun` resolution in TypeScript compilation path.
+- **TypeScript Environment**: Confirms strict type resolution in the execution runtime.
 
 #### Domain 2: Capsule Integrity & Immutability
 
 - **Manifest Schema**: Validates `.olt/capsules/<slug>/manifest.json` against Draft 2020-12 JSON Schema.
 - **Prompt Hash Verification**: Recomputes SHA-256 digest of `prompt.md` and matches against `manifest.json`:
   $$H_{\text{prompt}} = \text{SHA-256}(\text{prompt.md})$$
-- **POSIX Permission Mode**: Confirms `prompt.md` and `manifest.json` are set to read-only `0444`.
+- **POSIX Permission Mode**: Confirms `prompt.md` is set to read-only `0444`.
 
 #### Domain 3: State Ledger Merkle Chaining
 
@@ -89,8 +89,8 @@ OLT evaluates system health across ten orthogonal domains ($D_1 \dots D_{10}$). 
 
 #### Domain 4: Concurrency & Kernel Advisory Locks
 
-- **Advisory Lock Contention**: Detects active shared and exclusive lock holders on `.olt/capsules/<slug>/capsule.lock`.
-- **Orphan Lock Files**: Scans `/tmp/olt-*.lock` for abandoned lock descriptors where holder PID is no longer active.
+- **Advisory Lock Contention**: Detects active shared and exclusive lock holders on capsule locks.
+- **Orphan Lock Files**: Scans `/tmp/olt-*.lock` for abandoned lock descriptors where holder PID is inactive.
 
 #### Domain 5: Worker Leases & Straggler SLA
 
@@ -128,13 +128,11 @@ OLT evaluates system health across ten orthogonal domains ($D_1 \dots D_{10}$). 
 
 ### Command 3.1: Full Diagnostic Sweep (`doctor`)
 
-Execute the complete 10-domain diagnostic sweep against an active capsule:
+Execute the complete diagnostic sweep against an active capsule:
 
 ```bash
 bun olt/scripts/harness.ts doctor \
-  --run .olt/capsules/quickstart-auth-tokens \
-  --detailed \
-  --json
+  --run .olt/capsules/quickstart-auth-tokens
 ```
 
 Expected JSON diagnostic report:
@@ -144,27 +142,26 @@ Expected JSON diagnostic report:
   "ok": true,
   "result": {
     "status": "HEALTHY",
-    "checkedAt": "2026-08-29T05:55:00.000Z",
-    "bunVersion": "1.4.0",
+    "checkedAt": "2026-08-29T20:15:00.000Z",
     "capsule": ".olt/capsules/quickstart-auth-tokens",
     "domains": {
       "environment": { "healthy": true, "issues": [] },
       "capsuleIntegrity": { "healthy": true, "promptHashVerified": true },
-      "merkleLedger": { "healthy": true, "eventHeight": 24, "chainIntact": true },
+      "merkleLedger": { "healthy": true, "eventHeight": 14, "chainIntact": true },
       "concurrencyLocks": { "healthy": true, "activeLocks": 1, "staleLocks": 0 },
-      "workerLeases": { "healthy": true, "activeLeases": 2, "staleLeases": 0 },
-      "topologicalGraph": { "healthy": true, "cycleCount": 0, "wavesTotal": 3 },
-      "gitWorkspace": { "healthy": true, "rootClean": true, "activeWorktrees": 2 },
+      "workerLeases": { "healthy": true, "activeLeases": 0, "staleLeases": 0 },
+      "topologicalGraph": { "healthy": true, "cycleCount": 0, "wavesTotal": 2 },
+      "gitWorkspace": { "healthy": true, "rootClean": true, "activeWorktrees": 0 },
       "astPurity": { "healthy": true, "violations": 0 },
       "mailbox": { "healthy": true, "queuedMessages": 0, "deadletters": 0 },
-      "telemetry": { "healthy": true, "tokensConsumed": 42100, "tokenBudgetLimit": 150000 }
+      "telemetry": { "healthy": true, "tokensConsumed": 28400, "tokenBudgetLimit": 150000 }
     },
     "verdict": "PASS"
   }
 }
 ```
 
-### Command 3.2: Fast Host Preflight (`health`)
+### Command 3.2: Host Environment Preflight (`health`)
 
 Audit host compatibility without requiring an active capsule:
 
@@ -178,16 +175,25 @@ Exit Codes:
 - `3`: Incompatible platform or missing runtime dependency (`UNSUPPORTED_PLATFORM`).
 - `70`: Internal fatal error or unhandled runtime failure.
 
----
+### Command 3.3: Counterfactual Mutation Certification (`doctor:certify`)
 
-## 4. Automated Capsule Healing & Repair (`doctor:heal`)
-
-When runtime faults occur (e.g. abrupt host restarts, killed worker processes, or network disconnections), OLT provides mathematical state reconstruction via `doctor:heal`.
+Certify that diagnostic checks and gates are falsifiable using counterfactual mutation testing:
 
 ```bash
-bun olt/scripts/harness.ts doctor:heal \
-  --capsule .olt/capsules/quickstart-auth-tokens \
-  --fix
+bun olt/scripts/harness.ts doctor:certify \
+  --run .olt/capsules/quickstart-auth-tokens
+```
+
+---
+
+## 4. Automated Capsule Healing & Repair (`doctor:repair`)
+
+When runtime faults occur (e.g. abrupt host restarts, killed worker processes, or network disconnections), OLT provides mathematical state reconstruction via `doctor:repair`.
+
+```bash
+bun olt/scripts/harness.ts doctor:repair \
+  --run .olt/capsules/quickstart-auth-tokens \
+  --actor coordinator
 ```
 
 ### Auto-Healing Mechanics
@@ -208,7 +214,7 @@ bun olt/scripts/harness.ts doctor:heal \
 
 ---
 
-## 5. Worker Lease Reclamation & Zombie Recovery
+## 5. Worker Lease Reclamation & Zombie Recovery (`recover`)
 
 OLT enforces the **5-Minute Straggler SLA Rule**. If a worker fails to send a heartbeat or complete its task within 300 seconds:
 
@@ -222,22 +228,18 @@ The orchestrator increments the lease epoch counter:
 
 $$E_{k+1} = E_k + 1$$
 
-and computes a new monotonic HMAC lease token:
-
-$$\tau_{\text{lease}}^{(k+1)} = \text{HMAC-SHA256}(\text{task\_id} \parallel \text{worker\_id} \parallel E_{k+1}, K_{\text{session}})$$
-
-Any late submission from the previous worker possessing token $\tau_{\text{lease}}^{(k)}$ is rejected with `LEASE_EXPIRED`.
+and computes a new monotonic HMAC lease token. Any late submission from the previous worker possessing token $\tau_{\text{lease}}^{(k)}$ is rejected with `LEASE_EXPIRED`.
 
 ### Step 5.2: Execute Lease Reclamation
 
 ```bash
-bun olt/scripts/harness.ts task:reclaim \
-  --capsule .olt/capsules/quickstart-auth-tokens \
-  --task task-001 \
-  --reason "Worker straggler SLA exceeded (Delta t = 342s)"
+bun olt/scripts/harness.ts recover \
+  --run .olt/capsules/quickstart-auth-tokens \
+  --actor coordinator \
+  --grace-seconds 30
 ```
 
-The task is returned to `PENDING` state and scheduled for the next available worker in the wave.
+The task is returned to `retry_ready` (or `changes_requested` after a repair attempt) and scheduled for the next available worker in the wave.
 
 ---
 
@@ -250,10 +252,10 @@ flowchart TD
     CrashDetected[System Crash or Node Restart] --> Step1[1. Probe System: bun harness.ts doctor]
     Step1 --> Evaluate{Any Corrupted Files?}
     Evaluate -->|No Issues| Resume[Resume Wave Execution: bun harness.ts queue:wave]
-    Evaluate -->|Corruptions Detected| Step2[2. Rebuild Projection: bun harness.ts doctor:heal --fix]
+    Evaluate -->|Corruptions Detected| Step2[2. Rebuild Projection: bun harness.ts doctor:repair]
     Step2 --> Step3[3. Verify Merkle Root Chain: events.jsonl]
     Step3 --> Step4[4. Prune Dangling Git Worktrees: git worktree prune]
-    Step4 --> Step5[5. Reclaim Expired Leases: bun harness.ts task:reclaim]
+    Step4 --> Step5[5. Reclaim Expired Leases: bun harness.ts recover]
     Step5 --> Verified([Capsule Re-Verified: Phase Resumed])
 ```
 
@@ -289,36 +291,43 @@ $$t_{\text{wait}} = \min\left(t_{\text{max}},\, t_0 \cdot 2^k + \mathcal{U}(0, \
 
 where $t_0 = 2\,\text{s}$, $k$ is the retry attempt index, and $\mathcal{U}(0, \delta)$ provides uniform jitter ($\delta = 500\,\text{ms}$).
 
-### Operator Quota Reset
+---
 
-To manually unfreeze a throttled capsule after quota replenishment:
+## 8. Diagnostic Finding & Defect Ingestion (`finding:file`)
+
+When an auditor or companion discovers an anomaly, record the finding directly into the flock-locked defect ledger:
 
 ```bash
-bun olt/scripts/harness.ts mind:unfreeze \
-  --capsule .olt/capsules/quickstart-auth-tokens
+bun olt/scripts/harness.ts finding:file \
+  --code AST_PURITY_VIOLATION \
+  --severity high \
+  --file src/auth/tokens.ts \
+  --message "Found unapproved any type annotation" \
+  --task-id task-002 \
+  --actor auditor-01
 ```
 
 ---
 
-## 8. Incident Diagnostic Checklist & Verification Matrix
+## 9. Complete Incident Diagnostic Checklist & Verification Matrix
 
 ```text
 +------------------------------------+---------------------------------------------------------------+
 | Diagnostic Check                   | Verification Command & Invariant Target                       |
 +------------------------------------+---------------------------------------------------------------+
 | 1. Runtime Parity                  | `bun harness.ts health` (Exit code 0, Bun >= 1.1.0)           |
-| 2. Capsule Manifest Hash           | `bun harness.ts doctor --check capsule` (SHA-256 match)       |
-| 3. Merkle Ledger Chain             | `bun harness.ts doctor:merkle` (All event hashes valid)       |
-| 4. Worker Heartbeat SLA            | `bun harness.ts run:status` (All worker leases Delta t <= 300)|
-| 5. Topological DAG Cycles          | `bun harness.ts graph:cycles` (Tarjan SCC cycle count == 0)   |
+| 2. Capsule Manifest Hash           | `bun harness.ts doctor --run <path>` (SHA-256 match)          |
+| 3. Merkle Ledger Chain             | `bun harness.ts doctor --run <path>` (All event hashes valid) |
+| 4. Worker Heartbeat SLA            | `bun harness.ts run:status --run <path>` (Leases Delta t<=300)|
+| 5. Topological DAG Cycles          | `bun harness.ts plan:status --run <path>` (Cycles == 0)       |
 | 6. Worktree Directory Hygiene      | `git worktree list` (Matches active task lease IDs exactly)   |
-| 7. Static AST Compliance           | `bun harness.ts doctor:ast` (0 any, 0 ignore, <= 300 lines)  |
-| 8. Telemetry Budget                | `bun harness.ts quota:status` (Tokens < 150,000 threshold)    |
+| 7. Static AST Compliance           | `bun harness.ts task:check --file <path>` (0 any, 0 ignore)   |
+| 8. Telemetry Budget                | `bun harness.ts doctor --run <path>` (Tokens < 150,000 cap)   |
 +------------------------------------+---------------------------------------------------------------+
 ```
 
 ---
 
-[Previous: Quickstart Tutorial](quickstart.md) | [Reference Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Reference Index](index.md)
+[Previous: Quickstart Tutorial](quickstart.md) | [Chapter Index](index.md) | [All Chapters Index](../architecture/index.md) | [Next: Reference Authoring Guide](GUIDE.md)
 
 ---

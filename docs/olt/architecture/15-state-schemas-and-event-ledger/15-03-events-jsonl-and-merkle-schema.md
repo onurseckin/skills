@@ -3,7 +3,7 @@
 > **Navigation**: [Reference Home](../index.md) > [State & Capsule Schemas](./index.md) > Events JSONL & Merkle Schema  
 > **Status**: Authoritative Reference Specification  
 > **Draft Version**: JSON Schema Draft 2020-12 | **Serialization**: RFC 8785 Canonical JSON  
-> **Related Code**: [`olt/scripts/src/engine/store/events/event-append.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/store/events/event-append.ts), [`olt/scripts/src/engine/store/events/event-validation.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/store/events/event-validation.ts)
+> **Related Code**: [`olt/scripts/src/engine/store/events/event-append.ts`](../../../../olt/scripts/src/engine/store/events/event-append.ts), [`olt/scripts/src/engine/store/events/event-validation.ts`](../../../../olt/scripts/src/engine/store/events/event-validation.ts)
 
 ---
 

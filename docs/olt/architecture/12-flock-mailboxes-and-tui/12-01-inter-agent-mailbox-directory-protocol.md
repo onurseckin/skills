@@ -257,7 +257,7 @@ function atomicDequeue(
 
 ## 4. Message Envelope Schema & Cryptographic Grounding
 
-Every inter-agent message is packaged into a strictly typed, canonical JSON envelope conforming to [packets.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/contracts/network/packets.ts).
+Every inter-agent message is packaged into a strictly typed, canonical JSON envelope conforming to [packets.ts](../../../../olt/scripts/src/core/contracts/network/packets.ts).
 
 ### 4.1 Formal Message Envelope Schema
 
@@ -297,19 +297,19 @@ Every inter-agent message is packaged into a strictly typed, canonical JSON enve
 
 ### 4.2 Field Definitions & Validation Invariants
 
-| Field              | Type             | Invariant / Validation Rule                                                                                                                          | Architectural Purpose                               |
-| :----------------- | :--------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------- |
-| `message_id`       | `string`         | Regex `^msg_[0-9A-HJ-NP-Z]{26}$` (Crockford Base32 monotonic timestamp + entropy).                                                                   | Universally unique message primary key.             |
-| `correlation_id`   | `string`         | Scoped to active DAG run slug or task id.                                                                                                            | Groups causally related messages across swarms.     |
-| `causal_parent_id` | `string \| null` | Must reference an existing, verified upstream message id.                                                                                            | Invariant $C_6$ causal DAG edge validation.         |
-| `sender`           | `AgentEndpoint`  | Must match authorized agent manifest in [capsule.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/contracts/agents/capsule.ts). | Source identity attestation and role verification.  |
-| `recipient`        | `AgentEndpoint`  | Must resolve to a valid registered mailbox directory.                                                                                                | Destination routing target.                         |
-| `priority`         | `Enum`           | `P0_EMERGENCY`, `P1_GATE`, `P2_WORK`, `P3_TELEMETRY`.                                                                                                | Priority queue sorting key prefix.                  |
-| `created_at`       | `string`         | ISO-8601 UTC timestamp with millisecond resolution.                                                                                                  | Human-readable audit trail.                         |
-| `created_at_epoch` | `number`         | Monotonic UTC seconds float.                                                                                                                         | Fast integer TTL arithmetic without string parsing. |
-| `ttl_seconds`      | `number`         | $1 \le \text{TTL} \le 3600$ (Default: $600\text{s}$).                                                                                                | Automatic straggler and zombie prevention.          |
-| `dedup_token`      | `string`         | Hex lowercase SHA-256 HMAC digest.                                                                                                                   | Idempotent deduplication barrier.                   |
-| `payload`          | `JsonObject`     | Strictly validated against role payload schemas.                                                                                                     | Task instructions, diffs, and telemetry payloads.   |
+| Field              | Type             | Invariant / Validation Rule                                                                                         | Architectural Purpose                               |
+| :----------------- | :--------------- | :------------------------------------------------------------------------------------------------------------------ | :-------------------------------------------------- |
+| `message_id`       | `string`         | Regex `^msg_[0-9A-HJ-NP-Z]{26}$` (Crockford Base32 monotonic timestamp + entropy).                                  | Universally unique message primary key.             |
+| `correlation_id`   | `string`         | Scoped to active DAG run slug or task id.                                                                           | Groups causally related messages across swarms.     |
+| `causal_parent_id` | `string \| null` | Must reference an existing, verified upstream message id.                                                           | Invariant $C_6$ causal DAG edge validation.         |
+| `sender`           | `AgentEndpoint`  | Must match authorized agent manifest in [capsule.ts](../../../../olt/scripts/src/core/contracts/agents/capsule.ts). | Source identity attestation and role verification.  |
+| `recipient`        | `AgentEndpoint`  | Must resolve to a valid registered mailbox directory.                                                               | Destination routing target.                         |
+| `priority`         | `Enum`           | `P0_EMERGENCY`, `P1_GATE`, `P2_WORK`, `P3_TELEMETRY`.                                                               | Priority queue sorting key prefix.                  |
+| `created_at`       | `string`         | ISO-8601 UTC timestamp with millisecond resolution.                                                                 | Human-readable audit trail.                         |
+| `created_at_epoch` | `number`         | Monotonic UTC seconds float.                                                                                        | Fast integer TTL arithmetic without string parsing. |
+| `ttl_seconds`      | `number`         | $1 \le \text{TTL} \le 3600$ (Default: $600\text{s}$).                                                               | Automatic straggler and zombie prevention.          |
+| `dedup_token`      | `string`         | Hex lowercase SHA-256 HMAC digest.                                                                                  | Idempotent deduplication barrier.                   |
+| `payload`          | `JsonObject`     | Strictly validated against role payload schemas.                                                                    | Task instructions, diffs, and telemetry payloads.   |
 
 ---
 
@@ -379,7 +379,7 @@ This guarantees absolute uniqueness across all concurrent worker swarms without 
 
 ### 6.2 Inode Allocation and Filesystem Bounds
 
-Let $I_{\text{max}}$ be the inode capacity of the host filesystem volume. The runtime enforces a strict per-capsule mailbox message threshold $N_{\text{cap}} \le 50{,}000$. When $N_{\text{active}} \ge 0.8 \times N_{\text{cap}}$, the runtime triggers an automated compaction cycle via [`archival/compactor.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/archival/compactor.ts), consolidating messages older than $\tau_{\text{archive}} = 1800\text{s}$ in `processed/` into compressed NDJSON chunks.
+Let $I_{\text{max}}$ be the inode capacity of the host filesystem volume. The runtime enforces a strict per-capsule mailbox message threshold $N_{\text{cap}} \le 50{,}000$. When $N_{\text{active}} \ge 0.8 \times N_{\text{cap}}$, the runtime triggers an automated compaction cycle via [`archival/compactor.ts`](../../../../olt/scripts/src/mind/archival/compactor.ts), consolidating messages older than $\tau_{\text{archive}} = 1800\text{s}$ in `processed/` into compressed NDJSON chunks.
 
 ***
 

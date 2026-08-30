@@ -91,7 +91,7 @@ $$\text{State}(\mathcal{G}_{k+1}) = \text{PruneAndCompact}\Big(\text{State}(\mat
 
 ## 3. The 3-Phase Zero-Downtime Rotation Protocol
 
-The complete rotation procedure is executed by [rotateMindGeneration()](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/archival/rotate/rotator.ts#L17-L225) and [finishRotation()](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/archival/rotate/finisher.ts#L33-L204).
+The complete rotation procedure is executed by [rotateMindGeneration()](../../../../olt/scripts/src/mind/archival/rotate/rotator.ts#L17-L225) and [finishRotation()](../../../../olt/scripts/src/mind/archival/rotate/finisher.ts#L33-L204).
 
 ```mermaid
 sequenceDiagram
@@ -142,7 +142,7 @@ sequenceDiagram
 
 1. **Fresh Manifest Sealing**: `initRun` initializes `.olt/capsules/mind-gen-(k+1)` with the raw bytes of the live charter.
 2. **Digest Verification**: The harness asserts that `manifest.prompt_sha256` strictly matches `parsedCharter.sha256`.
-3. **Capsule Chaining**: [chainCapsules()](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/orchestrator/capsule-chainer.ts) records directional lineage references between the source and target capsules.
+3. **Capsule Chaining**: [chainCapsules()](../../../../olt/scripts/src/orchestrator/capsule-chainer.ts) records directional lineage references between the source and target capsules.
 
 ### 3.3 Phase 3: Generational Pruning & State Migration
 
@@ -187,7 +187,7 @@ $$ \text{Streak}_t = \begin{cases}
 
 ### 4.2 The 8th-Streak Quiescent Digest Synthesis
 
-When the streak reaches $s = 8$ ([QUIESCENT_DIGEST_STREAK_THRESHOLD](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/archival/quiesce/types.ts#L21)), [buildQuiescentDigest()](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/archival/quiesce/evaluator.ts#L100-L125) synthesizes a verified repository digest:
+When the streak reaches $s = 8$ ([QUIESCENT_DIGEST_STREAK_THRESHOLD](../../../../olt/scripts/src/mind/archival/quiesce/types.ts#L21)), [buildQuiescentDigest()](../../../../olt/scripts/src/mind/archival/quiesce/evaluator.ts#L100-L125) synthesizes a verified repository digest:
 
 ```typescript
 export function buildQuiescentDigest(params: {

@@ -3,7 +3,7 @@
 > **Navigation**: [Reference Home](../index.md) > [State & Capsule Schemas](./index.md) > State JSON & Mailbox Schemas  
 > **Status**: Authoritative Reference Specification  
 > **Draft Version**: JSON Schema Draft 2020-12  
-> **Related Code**: [`olt/scripts/src/workflow/types.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/workflow/types.ts), [`olt/scripts/src/core/contracts/agents/commands.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/contracts/agents/commands.ts), [`olt/scripts/src/core/contracts/agents/agents.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/contracts/agents/agents.ts)
+> **Related Code**: [`olt/scripts/src/workflow/types.ts`](../../../../olt/scripts/src/workflow/types.ts), [`olt/scripts/src/core/contracts/agents/commands.ts`](../../../../olt/scripts/src/core/contracts/agents/commands.ts), [`olt/scripts/src/core/contracts/agents/agents.ts`](../../../../olt/scripts/src/core/contracts/agents/agents.ts)
 
 ---
 

@@ -52,7 +52,7 @@ The **OLT (Orchestrating Long Tasks)** engine eliminates oscillation through **S
 
 ## 2. Structured Finding JSON Schema Specification
 
-Review findings emitted by Cognitive Validators or Meta-Auditors conform strictly to the Draft 2020-12 JSON Schema ([`socratic-validator.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/socratic-validator.ts)):
+Review findings emitted by Cognitive Validators or Meta-Auditors conform strictly to the Draft 2020-12 JSON Schema ([`socratic-validator.ts`](../../../../olt/scripts/src/reporting/socratic-validator.ts)):
 
 ```json
 {
@@ -215,7 +215,7 @@ All structured findings and their resolution histories are persisted in the caps
 
 ## 5. TypeScript Finding & Remediation Schemas
 
-The TypeScript interfaces governing structured findings and monotonic ledger tracking are defined in [`socratic-validator.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/socratic-validator.ts) and [`critic-ops.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/critic-ops.ts):
+The TypeScript interfaces governing structured findings and monotonic ledger tracking are defined in [`socratic-validator.ts`](../../../../olt/scripts/src/reporting/socratic-validator.ts) and [`critic-ops.ts`](../../../../olt/scripts/src/cli/commands/critic-ops.ts):
 
 ```typescript
 export type FindingSeverity = "FATAL" | "WARN" | "INFO";

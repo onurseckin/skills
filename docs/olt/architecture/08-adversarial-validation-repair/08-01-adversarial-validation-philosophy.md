@@ -208,7 +208,7 @@ This mathematical inequality provides the formal justification for mandatory dua
 
 ## 5. TypeScript Validation Contracts & Protocols
 
-The interface contracts governing adversarial validation are defined in [`socratic-validator.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/socratic-validator.ts) and [`role-contract.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/role-contract.ts).
+The interface contracts governing adversarial validation are defined in [`socratic-validator.ts`](../../../../olt/scripts/src/reporting/socratic-validator.ts) and [`role-contract.ts`](../../../../olt/scripts/src/packets/role-contract.ts).
 
 ```typescript
 export type ValidationVerdict = "PASS" | "REJECT";

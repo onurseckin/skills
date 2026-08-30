@@ -149,7 +149,7 @@ sequenceDiagram
 
 ## 4. Concrete TypeScript Ingestion Interfaces & Schemas
 
-The following contracts define the TypeScript structures used within the OLT requirements and store subsystems ([`prompt-source.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/requirements/prompt-source.ts), [`prompt-lines.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/requirements/prompt-lines.ts)):
+The following contracts define the TypeScript structures used within the OLT requirements and store subsystems ([`prompt-source.ts`](../../../../olt/scripts/src/requirements/prompt-source.ts), [`prompt-lines.ts`](../../../../olt/scripts/src/requirements/prompt-lines.ts)):
 
 ```typescript
 import { createHash } from "node:crypto";

@@ -11,7 +11,7 @@ The **Accessible Perceptual Contrast Algorithm (APCA)** engine evaluates human v
 
 Unlike legacy WCAG 2.x ratio formulas ($\frac{L_1 + 0.05}{L_2 + 0.05}$) which suffer from severe perceptual distortions in dark mode and fail to account for spatial frequency (font size and weight), the OLT APCA engine models actual human retinal response.
 
-Implemented in [`olt/scripts/src/capture/validator/mechanical/apca.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/capture/validator/mechanical/apca.ts) and [`olt/scripts/src/heuristics/glass-surfaces/evaluator.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/heuristics/glass-surfaces/evaluator.ts), the engine evaluates DOM element styles and glass overlay surfaces against mathematical readability thresholds.
+Implemented in [`olt/scripts/src/capture/validator/mechanical/apca.ts`](../../../../olt/scripts/src/capture/validator/mechanical/apca.ts) and [`olt/scripts/src/heuristics/glass-surfaces/evaluator.ts`](../../../../olt/scripts/src/heuristics/glass-surfaces/evaluator.ts), the engine evaluates DOM element styles and glass overlay surfaces against mathematical readability thresholds.
 
 ---
 

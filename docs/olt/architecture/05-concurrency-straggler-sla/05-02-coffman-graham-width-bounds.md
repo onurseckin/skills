@@ -180,7 +180,7 @@ The OLT scheduler guarantees that makespan under Coffman-Graham dispatch never e
 
 ## 6. TypeScript Architectural Schemas & Scheduling Interfaces
 
-The Coffman-Graham labeling and level dispatch algorithms are implemented in [`coffman-graham-scheduler.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/scheduler/coffman-graham-scheduler.ts):
+The Coffman-Graham labeling and level dispatch algorithms are implemented in [`coffman-graham-scheduler.ts`](../../../../olt/scripts/src/graph/forensics/work-span.ts):
 
 ```typescript
 /**

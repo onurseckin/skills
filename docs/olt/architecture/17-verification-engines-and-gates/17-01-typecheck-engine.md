@@ -9,7 +9,7 @@
 
 The **Incremental TypeScript Typecheck Engine** provides fast, targeted semantic and syntactic type validation of files within an assigned task write scope without requiring full repository compilation passes.
 
-Implemented in [`olt/scripts/src/cli/commands/task-check.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/task-check.ts), the engine creates targeted in-process TypeScript Compiler API programs, resolves nearest configuration roots, and aggregates compiler diagnostics into deterministic verification verdicts.
+Implemented in [`olt/scripts/src/cli/commands/task-check.ts`](../../../../olt/scripts/src/cli/commands/task-check.ts), the engine creates targeted in-process TypeScript Compiler API programs, resolves nearest configuration roots, and aggregates compiler diagnostics into deterministic verification verdicts.
 
 ---
 
@@ -61,7 +61,7 @@ sequenceDiagram
 
 ## 2. Target File Scope Resolution Algorithm
 
-The engine resolves target files through [`resolveTargetFiles(options)`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/task-check.ts#L173-L287) using a strict three-tier precedence model:
+The engine resolves target files through [`resolveTargetFiles(options)`](../../../../olt/scripts/src/cli/commands/task-check.ts#L173-L287) using a strict three-tier precedence model:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -82,7 +82,7 @@ The engine resolves target files through [`resolveTargetFiles(options)`](file://
 
 ### 2.1 Supported File Extensions
 
-Defined in [`SUPPORTED_EXTENSIONS`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/task-check.ts#L26-L35):
+Defined in [`SUPPORTED_EXTENSIONS`](../../../../olt/scripts/src/cli/commands/task-check.ts#L26-L35):
 
 - **TypeScript**: `.ts`, `.tsx`, `.mts`, `.cts`
 - **JavaScript**: `.js`, `.jsx`, `.mjs`, `.cjs`
@@ -104,7 +104,7 @@ export function isSupportedSourceFile(fileName: string): boolean {
 
 ## 3. `tsconfig.json` Hierarchical Resolution
 
-For each target file, the engine identifies the nearest compilation boundary using [`findNearestTsconfig(filePath)`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/task-check.ts#L292-L316):
+For each target file, the engine identifies the nearest compilation boundary using [`findNearestTsconfig(filePath)`](../../../../olt/scripts/src/cli/commands/task-check.ts#L292-L316):
 
 ```text
        Target File: /repo/packages/core/src/parser/ast.ts

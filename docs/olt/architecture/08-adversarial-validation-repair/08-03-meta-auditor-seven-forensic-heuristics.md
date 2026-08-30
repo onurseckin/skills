@@ -112,7 +112,7 @@ Dependency cycles create fragile initialization order bugs and degrade modularit
 
 ## 3. Automated AST Forensic Scanning Engine
 
-The Meta-Auditor operates via direct Abstract Syntax Tree analysis using the TypeScript Compiler API ([`ast-linter.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/linter/ast/ast-linter.ts)).
+The Meta-Auditor operates via direct Abstract Syntax Tree analysis using the TypeScript Compiler API ([`ast-linter.ts`](../../../../olt/scripts/src/reporting/doctor/ast-purity-engine.ts)).
 
 ```mermaid
 flowchart TD

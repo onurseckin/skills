@@ -224,7 +224,7 @@ flowchart TD
 
 ## 5. Concrete TypeScript Contracts & Reference Implementation
 
-The topological compiler is implemented in [`topological-scheduler.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/topological-scheduler.ts). The implementation enforces strict type bounds, zero `any` usage, and linear algorithmic performance.
+The topological compiler is implemented in [`topological-scheduler.ts`](../../../../olt/scripts/src/graph/compiler.ts). The implementation enforces strict type bounds, zero `any` usage, and linear algorithmic performance.
 
 ```typescript
 export interface TaskDependencyNode {

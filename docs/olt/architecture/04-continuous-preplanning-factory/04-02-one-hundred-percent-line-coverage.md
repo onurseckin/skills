@@ -147,7 +147,7 @@ flowchart TD
 
 ## 4. Concrete TypeScript Mapping Interfaces & Validation Schemas
 
-The following TypeScript contracts represent the core data structures utilized in [`compiler.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/requirements/compiler.ts) and [`validate-requirements.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/requirements/validate-requirements.ts):
+The following TypeScript contracts represent the core data structures utilized in [`compiler.ts`](../../../../olt/scripts/src/requirements/compiler.ts) and [`validate-requirements.ts`](../../../../olt/scripts/src/requirements/validate-requirements.ts):
 
 ```typescript
 /**

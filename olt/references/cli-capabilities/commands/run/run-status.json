@@ -1,6 +1,8 @@
 {
   "name": "run:status",
-  "aliases": [],
+  "aliases": [
+    "status"
+  ],
   "domain": "run",
   "summary": "Show phase, per-task status and progress for the run.",
   "flags": [

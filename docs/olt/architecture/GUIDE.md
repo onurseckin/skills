@@ -85,7 +85,7 @@ flowchart TD
 
 1. **Zero Emojis**: Emojis are strictly banned from navigation bars, section headers, tables, diagrams, and prose across all architecture chapters.
 2. **Clean 4-Way Navigation Mesh**: Exactly ONE clean navigation bar at the top (under H1) and ONE at the bottom.
-3. **Symbolic Code Links**: All file and symbol references must provide clickable markdown links (e.g. [`topological-scheduler.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/topological-scheduler.ts)).
+3. **Symbolic Code Links**: All file and symbol references must provide clickable markdown links (e.g. [`topological-scheduler.ts`](../../../olt/scripts/src/graph/compiler.ts)).
 4. **Reflog Durability**: Execute `git add -A` upon completing every chapter milestone to guarantee loose Git blob persistence in `.git/objects/`.
 5. **Relative Link Integrity**: 100% of relative links must resolve on disk without broken references.
 

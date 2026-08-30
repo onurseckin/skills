@@ -3,7 +3,7 @@
 > **Navigation**: [Reference Home](../index.md) > [State & Capsule Schemas](./index.md) > Manifest & Requirements Schemas  
 > **Status**: Authoritative Reference Specification  
 > **Draft Version**: JSON Schema Draft 2020-12  
-> **Related Code**: [`olt/scripts/src/core/contracts/agents/capsule.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/contracts/agents/capsule.ts#L8-L26), [`olt/scripts/src/requirements/enhanced-plan.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/requirements/enhanced-plan.ts)
+> **Related Code**: [`olt/scripts/src/core/contracts/agents/capsule.ts`](../../../../olt/scripts/src/core/contracts/agents/capsule.ts#L8-L26), [`olt/scripts/src/requirements/enhanced-plan.ts`](../../../../olt/scripts/src/requirements/enhanced-plan.ts)
 
 ---
 

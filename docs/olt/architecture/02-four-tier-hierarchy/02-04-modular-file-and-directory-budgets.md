@@ -129,7 +129,7 @@ flowchart TD
 
 ## 4. Mechanical AST Linter Enforcement Pipeline
 
-The sizing budget engine executes via the TypeScript Compiler API during pre-commit checks and Tier 3 validation gates. The implementation is defined in TypeScript under [`guards/root-hygiene.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/guards/root-hygiene.ts):
+The sizing budget engine executes via the TypeScript Compiler API during pre-commit checks and Tier 3 validation gates. The implementation is defined in TypeScript under [`guards/root-hygiene.ts`](../../../../olt/scripts/src/authority/guards/root-hygiene.ts):
 
 ```typescript
 import * as ts from "typescript";

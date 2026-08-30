@@ -46,7 +46,7 @@ The **OLT Mind Discovery Engine** transforms the agent runtime into a **continuo
 
 ## 2. The 10 Autonomous Discovery Scanners
 
-Every discovery source is formally specified in the Mind contract ([MIND_DISCOVERY_SOURCES](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/memory/sources/types.ts#L47-L178)) with a dedicated registry command, empirical evidence command, revalidation gate, and evidence classification.
+Every discovery source is formally specified in the Mind contract ([MIND_DISCOVERY_SOURCES](../../../../olt/scripts/src/mind/memory/sources/types.ts#L47-L178)) with a dedicated registry command, empirical evidence command, revalidation gate, and evidence classification.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -237,7 +237,7 @@ Raw diagnostics emitted by compilers and test runners contain non-deterministic 
 
 ### 4.1 Observation Signature Normalization ($\mathcal{N}_{\text{obs}}$)
 
-OLT applies the deterministic normalization transformation $\mathcal{N}_{\text{obs}}: \Sigma^* \to \Sigma^*$ ([normalizeObservationSignature](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/defects/core/discriminator.ts#L4-L16)):
+OLT applies the deterministic normalization transformation $\mathcal{N}_{\text{obs}}: \Sigma^* \to \Sigma^*$ ([normalizeObservationSignature](../../../../olt/scripts/src/mind/defects/core/discriminator.ts#L4-L16)):
 
 $$\mathcal{N}_{\text{obs}}(\text{raw}) = \text{RegexChain}(\text{Lowercase}(\text{Trim}(\text{raw})))$$
 
@@ -289,7 +289,7 @@ $$\mathcal{F}_{\text{defect}} = \text{SHA-256}(\text{Content})$$
 
 ## 5. Proposal Fingerprinting & Duplicate Suppression Theory
 
-To prevent redundant proposals from entering the backlog across pulse cycles, the Mind calculates an exact normalized 48-bit proposal fingerprint ([calculateProposalFingerprint](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/proposals/proposal/storage.ts#L27-L45)):
+To prevent redundant proposals from entering the backlog across pulse cycles, the Mind calculates an exact normalized 48-bit proposal fingerprint ([calculateProposalFingerprint](../../../../olt/scripts/src/mind/proposals/proposal/storage.ts#L27-L45)):
 
 $$\mathcal{F}(s, \mathbf{g}, \mathbf{\Omega}) = \text{Trunc}_{12}\left( \text{SHA-256}\left( \mathcal{N}(s) \parallel \text{SortJoin}(\mathcal{N}(\mathbf{g})) \parallel \text{SortJoin}(\mathcal{N}(\mathbf{\Omega})) \right) \right)$$
 
@@ -355,7 +355,7 @@ If $J(A, B) \ge 0.85$ and $\mathbf{\Omega}_A \cap \mathbf{\Omega}_B \ne \emptyse
 
 ## 7. Stream Deduplication & Aggregator Pipeline
 
-For high-volume event logs (`events.jsonl`), OLT processes records via an asynchronous transform stream ([createDefectDedupTransformStream](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/defects/dedup/dedup-stream.ts#L163-L194)):
+For high-volume event logs (`events.jsonl`), OLT processes records via an asynchronous transform stream ([createDefectDedupTransformStream](../../../../olt/scripts/src/mind/defects/dedup/dedup-stream.ts#L163-L194)):
 
 ```typescript
 export function createDefectDedupTransformStream(

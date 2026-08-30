@@ -163,7 +163,7 @@ where:
 - $\text{id} \in \{0, 1\}^{256}$ is a cryptographically unique identifier:
   $$\text{id} = \text{SHA-256}(\text{sender} \parallel \text{recipient} \parallel \text{ts} \parallel \text{nonce})$$
 - $\text{prio} \in \{\text{P0}_{\text{EMERGENCY}}, \text{P1}_{\text{GATE}}, \text{P2}_{\text{WORK}}, \text{P3}_{\text{TELEMETRY}}\}$ defines the deterministic queue priority.
-- $\mathcal{P} \in \text{JsonObject}$ is the validated payload conforming strictly to [packets.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/contracts/network/packets.ts).
+- $\mathcal{P} \in \text{JsonObject}$ is the validated payload conforming strictly to [packets.ts](../../../../olt/scripts/src/core/contracts/network/packets.ts).
 
 To ensure **Strict Monotonic Deduplication**, every consuming agent maintains an in-memory Merkle filter $\mathcal{K}_{\text{dedup}}$ combined with persistent directory indexing. A message $\mathcal{M}$ is accepted if and only if:
 
@@ -210,26 +210,26 @@ The Flock Mailbox & Telemetry subsystem enforces five strict invariants to ensur
 The theoretical foundations and protocols detailed in this chapter are implemented across the following core runtime modules:
 
 - **Event Streaming & Replay Engine**:
-  [`engine/store/events/event-stream.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/store/events/event-stream.ts) — Low-level Merkle chain validation, torn-line recovery, and canonical JSON event deserialization.  
-  [`reporting/event-stream.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/event-stream.ts) — Capsule event reading, filtering, NDJSON streaming, and webhook telemetry dispatchers.  
-  [`reporting/living-tracer/event-replayer.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/living-tracer/event-replayer.ts) — Chronological event folding and living task dynamic state reconstruction.
+  [`engine/store/events/event-stream.ts`](../../../../olt/scripts/src/engine/store/events/event-stream.ts) — Low-level Merkle chain validation, torn-line recovery, and canonical JSON event deserialization.  
+  [`reporting/event-stream.ts`](../../../../olt/scripts/src/reporting/event-stream.ts) — Capsule event reading, filtering, NDJSON streaming, and webhook telemetry dispatchers.  
+  [`reporting/living-tracer/event-replayer.ts`](../../../../olt/scripts/src/reporting/living-tracer/event-replayer.ts) — Chronological event folding and living task dynamic state reconstruction.
 
 - **Forensic Auditing & Meta-Auditor**:
-  [`cli/commands/meta-audit.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/meta-audit.ts) — CLI handler for deep behavioral forensics, incident table formatting, and feedback queue remediation injection.  
-  [`mind/auditing/meta/index.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/auditing/meta/index.ts) — Forensic incident discovery engine, token waste calculation, and efficiency scoring algorithms.
+  [`cli/commands/meta-audit.ts`](../../../../olt/scripts/src/cli/commands/meta-audit.ts) — CLI handler for deep behavioral forensics, incident table formatting, and feedback queue remediation injection.  
+  [`mind/auditing/meta/index.ts`](../../../../olt/scripts/src/mind/auditing/meta/index.ts) — Forensic incident discovery engine, token waste calculation, and efficiency scoring algorithms.
 
 - **Living Dynamic Tracer & ASCII Visualizers**:
-  [`reporting/living-tracer/render.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/living-tracer/render.ts) — Connected ASCII DAG hierarchy renderer with dynamic round-by-round repair branches and active agent tool indicators.  
-  [`reporting/living-tracer/timeline.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/living-tracer/timeline.ts) — Real-time execution timeline synthesizer and gate metrics collector.  
-  [`reporting/sugiyama-dag/render.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/sugiyama-dag/render.ts) — 4-phase Sugiyama layout renderer for terminal-native topological display.
+  [`reporting/living-tracer/render.ts`](../../../../olt/scripts/src/reporting/living-tracer/render.ts) — Connected ASCII DAG hierarchy renderer with dynamic round-by-round repair branches and active agent tool indicators.  
+  [`reporting/living-tracer/timeline.ts`](../../../../olt/scripts/src/reporting/living-tracer/timeline.ts) — Real-time execution timeline synthesizer and gate metrics collector.  
+  [`reporting/sugiyama-dag/render.ts`](../../../../olt/scripts/src/reporting/sugiyama-dag/render.ts) — 4-phase Sugiyama layout renderer for terminal-native topological display.
 
 - **Durable Storage & Inode Locking**:
-  [`core/durable-write.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/durable-write.ts) — Hardware `fdatasync`, atomic temporary-to-permanent file replacement, and POSIX `flock` advisory concurrency locking.  
-  [`logging/lock.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/logging/lock.ts) — Structured concurrency locking envelopes and deadlock timeout management.
+  [`core/durable-write.ts`](../../../../olt/scripts/src/core/durable-write.ts) — Hardware `fdatasync`, atomic temporary-to-permanent file replacement, and POSIX `flock` advisory concurrency locking.  
+  [`logging/lock.ts`](../../../../olt/scripts/src/logging/lock.ts) — Structured concurrency locking envelopes and deadlock timeout management.
 
 - **Network Packets & Capsule Contracts**:
-  [`core/contracts/network/packets.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/contracts/network/packets.ts) — Canonical TypeScript interfaces for review payloads, checklist coverage, and packet metadata.  
-  [`core/contracts/agents/capsule.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/contracts/agents/capsule.ts) — Capsule layout contracts, runtime manifests, and projection patch models.
+  [`core/contracts/network/packets.ts`](../../../../olt/scripts/src/core/contracts/network/packets.ts) — Canonical TypeScript interfaces for review payloads, checklist coverage, and packet metadata.  
+  [`core/contracts/agents/capsule.ts`](../../../../olt/scripts/src/core/contracts/agents/capsule.ts) — Capsule layout contracts, runtime manifests, and projection patch models.
 
 ---
 

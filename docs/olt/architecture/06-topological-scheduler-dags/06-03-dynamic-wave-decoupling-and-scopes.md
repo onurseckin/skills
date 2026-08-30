@@ -206,7 +206,7 @@ sequenceDiagram
 
 ## 5. Concrete TypeScript Contracts & Lock-Free Dispatch Engine
 
-The dynamic wave decoupling engine is implemented in [`dynamic-scheduler.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/dynamic-scheduler.ts):
+The dynamic wave decoupling engine is implemented in [`dynamic-scheduler.ts`](../../../../olt/scripts/src/graph/decoupling/wave-partitioner.ts):
 
 ```typescript
 export type TaskStatus =

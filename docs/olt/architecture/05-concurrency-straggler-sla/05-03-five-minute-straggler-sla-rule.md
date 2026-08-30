@@ -172,7 +172,7 @@ Every worker agent writes its heartbeat atomically using a POSIX advisory lock o
 
 ## 5. TypeScript Watchdog Implementation Schemas
 
-The autonomic watchdog is implemented in [`straggler-watchdog.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/watchdog/straggler-watchdog.ts):
+The autonomic watchdog is implemented in [`straggler-watchdog.ts`](../../../../olt/scripts/src/watchdog/straggler-watchdog.ts):
 
 ```typescript
 import { promises as fs } from "node:fs";

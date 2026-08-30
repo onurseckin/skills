@@ -131,7 +131,7 @@ stateDiagram-v2
 
 ## 4. Concrete TypeScript Interfaces & Security Boundaries
 
-The session grant and authority evaluation interfaces are codified in [`grants.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/session/grants.ts) and [`types.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/session/types.ts):
+The session grant and authority evaluation interfaces are codified in [`grants.ts`](../../../../olt/scripts/src/authority/session/grants.ts) and [`types.ts`](../../../../olt/scripts/src/authority/session/types.ts):
 
 ```typescript
 import type { ExecutionTier } from "../thread/index.ts";

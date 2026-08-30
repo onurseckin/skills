@@ -1,6 +1,8 @@
 {
   "name": "report:usage",
-  "aliases": [],
+  "aliases": [
+    "usage:report"
+  ],
   "domain": "reporting",
   "summary": "Discover and report cross-platform quota, rate limit, and token usage telemetry.",
   "flags": [

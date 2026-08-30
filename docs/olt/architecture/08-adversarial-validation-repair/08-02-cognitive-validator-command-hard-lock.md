@@ -17,9 +17,9 @@ In autonomous agent architectures, granting command execution capabilities to co
 
 The **OLT (Orchestrating Long Tasks)** engine implements the **Cognitive Validator Command Hard-Lock Interlock**. Under this architecture:
 
-- **Mechanical Command Lock (0 Commands)**: The Cognitive Validator role ([`validator.yaml`](file:///Users/onurseckinsenoglu/repos/skills/olt/agents/validator.yaml)) is mechanically stripped of all shell command execution tools: $\text{Commands}(\text{Validator}) \equiv \emptyset$.
+- **Mechanical Command Lock (0 Commands)**: The Cognitive Validator role ([`validator.yaml`](../../../../olt/agents/validator.yaml)) is mechanically stripped of all shell command execution tools: $\text{Commands}(\text{Validator}) \equiv \emptyset$.
 - **Pure AST & Semantic Auditing**: Validators operate strictly via read-only tools (`view_file`, `grep_search`, `find_by_name`) and AST inspection logic.
-- **Decoupled Mechanic-Validator**: All runtime test execution is isolated in a separate, dedicated Mechanic-Validator ([`mechanic-validator.yaml`](file:///Users/onurseckinsenoglu/repos/skills/olt/agents/mechanic-validator.yaml)).
+- **Decoupled Mechanic-Validator**: All runtime test execution is isolated in a separate, dedicated Mechanic-Validator ([`mechanic-validator.yaml`](../../../../olt/agents/mechanic-validator.yaml)).
 
 ```text
 +--------------------------------------------------------------------------------------------------+
@@ -210,7 +210,7 @@ This proves that even under arbitrary prompt injection attacks embedded in audit
 
 ## 6. TypeScript Validator Capability & Permission Schemas
 
-The TypeScript interfaces defining the RBAC contract and tool dispatcher guards are implemented in [`role-contract.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/role-contract.ts):
+The TypeScript interfaces defining the RBAC contract and tool dispatcher guards are implemented in [`role-contract.ts`](../../../../olt/scripts/src/packets/role-contract.ts):
 
 ```typescript
 export interface RoleCapabilityContract {

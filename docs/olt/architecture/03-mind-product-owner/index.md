@@ -308,21 +308,21 @@ $$\forall c \in \mathcal{C}_{\text{admitted}}, \quad \left( \bigwedge_{i=1}^6 G_
 
 The complete implementation of Chapter 03's architecture is verified across the following repository source files:
 
-| Subsystem / Architectural Component   | Authoritative Source File Link                                                                                      | Key Exported Symbols                                                              |
-| :------------------------------------ | :------------------------------------------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------- |
-| **Mind Pulse Entrypoint & Lock**      | [pulse.sh](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/pulse.sh)                                       | `flock -n 9`, `mind:wake`                                                         |
-| **Mind CLI Dispatch & Supervisor**    | [mind.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/registry/mind.ts)                        | `mind:init`, `mind:wake`, `mind:observe`, `mind:admit`, `mind:pulse`              |
-| **Admission Gates Predicates**        | [predicates.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/proposals/gates/predicates.ts)    | `evaluateGate1Witnessed()`, `executeFalsifier()`, `isPathInRepoRoots()`           |
-| **Admission Gates Evaluator**         | [evaluator.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/proposals/gates/evaluator.ts)      | `evaluateGate2InCharter()`, `evaluateGate3Falsifiable()`, `evaluateGate4Scoped()` |
-| **Admission Gates Table & Budget**    | [table.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/proposals/gates/table.ts)              | `evaluateGate5Affordable()`, `evaluateGate6NotADuplicate()`                       |
-| **Discovery Sources Catalog**         | [types.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/memory/sources/types.ts)               | `MIND_DISCOVERY_SOURCES`, `getSourceDefinition()`, `MindSourceId`                 |
-| **Discovery Scanner Engine**          | [scanner.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/memory/sources/scanner.ts)           | `validateQuiescentSources()`, `resolveCommandRecord()`                            |
-| **Proposal Storage & Fingerprinting** | [storage.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/proposals/proposal/storage.ts)       | `calculateProposalFingerprint()`, `isDuplicateProposal()`                         |
-| **Defect Deduplication & Stream**     | [dedup-stream.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/defects/dedup/dedup-stream.ts)  | `deduplicateDefectLog()`, `streamDeduplicateDefects()`                            |
-| **Defect Discriminator & Hash**       | [discriminator.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/defects/core/discriminator.ts) | `computeDefectDiscriminator()`, `normalizeObservationSignature()`                 |
-| **Generational Rotator Engine**       | [rotator.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/archival/rotate/rotator.ts)          | `rotateMindGeneration()`, `finishRotation()`                                      |
-| **Quiescence Evaluator & Streak**     | [evaluator.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/archival/quiesce/evaluator.ts)     | `calculateQuiescentInterval()`, `buildQuiescentDigest()`                          |
-| **Charter Parser & Verifier**         | [index.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/lifecycle/charter/index.ts)            | `parseCharter()`, `DEFAULT_MIND_BUDGET`                                           |
+| Subsystem / Architectural Component   | Authoritative Source File Link                                                     | Key Exported Symbols                                                              |
+| :------------------------------------ | :--------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
+| **Mind Pulse Entrypoint & Lock**      | [pulse.sh](../../../../olt/scripts/pulse.sh)                                       | `flock -n 9`, `mind:wake`                                                         |
+| **Mind CLI Dispatch & Supervisor**    | [mind.ts](../../../../olt/scripts/src/cli/registry/mind.ts)                        | `mind:init`, `mind:wake`, `mind:observe`, `mind:admit`, `mind:pulse`              |
+| **Admission Gates Predicates**        | [predicates.ts](../../../../olt/scripts/src/mind/proposals/gates/predicates.ts)    | `evaluateGate1Witnessed()`, `executeFalsifier()`, `isPathInRepoRoots()`           |
+| **Admission Gates Evaluator**         | [evaluator.ts](../../../../olt/scripts/src/mind/proposals/gates/evaluator.ts)      | `evaluateGate2InCharter()`, `evaluateGate3Falsifiable()`, `evaluateGate4Scoped()` |
+| **Admission Gates Table & Budget**    | [table.ts](../../../../olt/scripts/src/mind/proposals/gates/table.ts)              | `evaluateGate5Affordable()`, `evaluateGate6NotADuplicate()`                       |
+| **Discovery Sources Catalog**         | [types.ts](../../../../olt/scripts/src/mind/memory/sources/types.ts)               | `MIND_DISCOVERY_SOURCES`, `getSourceDefinition()`, `MindSourceId`                 |
+| **Discovery Scanner Engine**          | [scanner.ts](../../../../olt/scripts/src/mind/memory/sources/scanner.ts)           | `validateQuiescentSources()`, `resolveCommandRecord()`                            |
+| **Proposal Storage & Fingerprinting** | [storage.ts](../../../../olt/scripts/src/mind/proposals/proposal/storage.ts)       | `calculateProposalFingerprint()`, `isDuplicateProposal()`                         |
+| **Defect Deduplication & Stream**     | [dedup-stream.ts](../../../../olt/scripts/src/mind/defects/dedup/dedup-stream.ts)  | `deduplicateDefectLog()`, `streamDeduplicateDefects()`                            |
+| **Defect Discriminator & Hash**       | [discriminator.ts](../../../../olt/scripts/src/mind/defects/core/discriminator.ts) | `computeDefectDiscriminator()`, `normalizeObservationSignature()`                 |
+| **Generational Rotator Engine**       | [rotator.ts](../../../../olt/scripts/src/mind/archival/rotate/rotator.ts)          | `rotateMindGeneration()`, `finishRotation()`                                      |
+| **Quiescence Evaluator & Streak**     | [evaluator.ts](../../../../olt/scripts/src/mind/archival/quiesce/evaluator.ts)     | `calculateQuiescentInterval()`, `buildQuiescentDigest()`                          |
+| **Charter Parser & Verifier**         | [index.ts](../../../../olt/scripts/src/mind/lifecycle/charter/index.ts)            | `parseCharter()`, `DEFAULT_MIND_BUDGET`                                           |
 
 ---
 

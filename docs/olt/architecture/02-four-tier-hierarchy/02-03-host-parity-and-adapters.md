@@ -161,7 +161,7 @@ sequenceDiagram
 
 ## 4. Universal Host Adapter TypeScript Contracts
 
-The `IHostAdapter` interface and concrete normalization types are defined in TypeScript under [`host-bindings.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/host-bindings.ts):
+The `IHostAdapter` interface and concrete normalization types are defined in TypeScript under [`host-bindings.ts`](../../../../olt/scripts/src/authority/host-bindings.ts):
 
 ```typescript
 export type HostType =

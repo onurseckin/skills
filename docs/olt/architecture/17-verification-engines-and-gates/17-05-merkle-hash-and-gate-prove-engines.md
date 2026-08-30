@@ -1,242 +1,281 @@
-# Merkle Hash & Gate Prove Engines
-
-[Reference Home](../index.md) > [Verification Engines](./index.md) > Merkle Hash & Gate Prove Engines
+# 17.5 Merkle Hash & Gate Prove Engines
 
 ---
 
-[Previous: Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: OLT Documentation Hub](../../README.md)
----
-
-This document specifies the cryptographic and falsification engines in the OLT verification subsystem:
-
-1. **The Cryptographic Merkle Hash Chain Engine**: Guarantees immutable, tamper-evident auditability across `.olt/capsules/<slug>/events.jsonl` with torn-tail crash recovery.
-2. **The Gate Falsifiability Prover Engine (`gate:prove`)**: Executes mutation counterfactual tests on isolated scratch trees to prevent tautological tests from falsely certifying broken implementations.
-3. **The Evidence Validation Framework**: Mechanically certifies proof bundles against formal Classes 1–4 evidence hierarchies.
-
-Implemented in [`olt/scripts/src/graph/gate-proof.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/gate-proof.ts) and [`olt/scripts/src/core/durable-write.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/durable-write.ts).
+> **Status**: Authoritative Architecture Specification  
+> **Topic**: Forward-Secure SHA-256 Merkle Chains, RFC 8785 Canonical JSON Normalization, Torn-Tail Recovery, and Counterfactual Mutation Gate Proving  
+> **Target Audience**: Cryptographic Systems Engineers, Verification Architects, Platform Integrity Specialists
 
 ---
 
-## 1. Cryptographic Merkle Hash Chain Engine
+[Previous: 17-04 Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Chapter 17 Index](index.md)
 
-All state mutations in OLT are recorded as discrete, immutable events appended to `events.jsonl`. Integrity and causal order are guaranteed through a forward-secure SHA-256 cryptographic hash chain.
+---
+
+## 1. Executive Summary & Epistemic Foundations
+
+In autonomous multi-agent developer frameworks, historical execution telemetry and test verification gates face two primary vulnerabilities:
+
+1. **Retroactive Log Tampering & Split-Brain Drift**: When task states are stored as mutable documents or unchained log lines, crashed processes or compromised workers can alter previous events or generate divergent historical timelines without detection.
+2. **Tautological Test Fallacies**: Autonomous agents frequently write tautological tests (e.g., tests that pass unconditionally regardless of implementation state, mock assertions that test the mock itself, or vacuous boolean checks). Standard green exit codes fail to prove that the test actually exercises the intended code paths.
+
+The Orchestrating Long Tasks (OLT) framework resolves these vulnerabilities through two cryptographic and falsification subsystems:
+
+- **The Cryptographic Merkle Hash Chain Engine**: Chains every state transition event in `.olt/capsules/<slug>/events.jsonl` using forward-secure SHA-256 Merkle linkage, enforcing RFC 8785 Canonical JSON determinism and automatic torn-tail recovery.
+- **The Gate Falsifiability Prover Engine (`gate:prove`)**: Executes candidate test gates against counterfactual mutated scratch trees where task implementation changes are reverted back to base blobs, certifying that the test fails non-zero on pre-implementation code.
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                  CRYPTOGRAPHIC SHA-256 HASH CHAINING                                   │
-├────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                                        │
-│   EVENT 1 (Genesis)                                                                                    │
-│   ├── sequence: 1                                                                                      │
-│   ├── previous_hash: null                                                                              │
-│   ├── payload: { "run_id": "run-001", "type": "run:init" }                                            │
-│   └── hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ─────────┐             │
-│                                                                                           │             │
-│                                                                                           ▼             │
-│   EVENT 2                                                                                               │
-│   ├── sequence: 2                                                                                      │
-│   ├── previous_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ◄──────┘             │
-│   ├── payload: { "task_id": "t-1", "type": "task:claim" }                                              │
-│   └── hash: "41512719d9b62e49c7f999981a79f3ec3df985c5dc07cae125c11d6159670d8a" ─────────┐             │
-│                                                                                           │             │
-│                                                                                           ▼             │
-│   EVENT 3                                                                                               │
-│   ├── sequence: 3                                                                                      │
-│   ├── previous_hash: "41512719d9b62e49c7f999981a79f3ec3df985c5dc07cae125c11d6159670d8a" ◄──────┘             │
-│   ├── payload: { "task_id": "t-1", "type": "task:submit" }                                             │
-│   └── hash: "bd5aaed259ebca324b91959fb1a9f0e2617df924e2c2f90a9829f04128f729f2"                       │
-│                                                                                                        │
-└────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 1.1 Hash Chaining Formulation
-
-For every event $E_i$ in the stream with monotonic index $i \ge 1$:
-
-$$H_i = \text{SHA-256}\left(\text{CanonicalJSON}(E_i \setminus \{H_i\}) \parallel E_i.\text{previous\_hash}\right)$$
-
-$$E_i.\text{previous\_hash} = \begin{cases} \text{null}, & \text{if } i = 1 \\ H_{i-1}, & \text{if } i > 1 \end{cases}$$
-
-### 1.2 Canonical JSON Encoding Rules
-
-To ensure platform-independent cryptographic determinism across runtimes (Node.js, Bun, V8), JSON payloads must be formatted according to strict RFC 8785 Canonical JSON rules:
-
-1. **Sorted Keys**: Object keys are sorted lexicographically by Unicode code point order.
-2. **Whitespace Stripping**: Zero whitespace characters outside of string literals.
-3. **Float Standardization**: Numbers are encoded using shortest standard IEEE 754 representations without trailing exponential zeroes.
-4. **UTF-8 Byte Encoding**: String values are serialized as standard UTF-8 without non-standard escape sequences.
-
-### 1.3 Torn-Tail Quarantine Protocol (`doctor:repair`)
-
-If a harness process crashes mid-write due to a power loss or kernel kill (`SIGKILL`), a partial event line may remain at the end of `events.jsonl`. The hash chain verifier detects this defect and executes the **Torn-Tail Quarantine Protocol**:
-
-```mermaid
-flowchart TD
-    READ["Read events.jsonl from byte offset 0"] --> VERIFY["Verify SHA-256 Hash Chain & Sequence"]
-    VERIFY --> OK{"Valid Head Reached?"}
-    OK -->|Yes| DONE["All records verified: Zero action needed"]
-    OK -->|Torn Fragment Detected| QUAR["1. Locate Last Valid Verified Byte Offset (cleanOffset)"]
-    QUAR --> SAVE["2. Extract trailing fragment bytes"]
-    SAVE --> WRITE["3. Write quarantine/recovery-torn-<token>.fragment (mode 0400)"]
-    WRITE --> TRUNC["4. ftruncateSync(fd, cleanOffset) + fsyncSync(fd)"]
-    TRUNC --> PROJ["5. Re-project state.json from clean verified events"]
-    PROJ --> LOG["6. Record recovery audit log"]
++--------------------------------------------------------------------------------------------------------------------+
+|                                  CRYPTOGRAPHIC MERKLE CHAIN & GATE PROVING TOPOLOGY                                |
++--------------------------------------------------------------------------------------------------------------------+
+|                                                                                                                    |
+|   APPEND-ONLY MERKLE EVENT LEDGER                                 COUNTERFACTUAL GATE PROVER (gate:prove)          |
+|   ┌──────────────────────────────────────────────┐                ┌──────────────────────────────────────────────┐ │
+|   │ Event 1 (Genesis): H_1 = SHA256(C(E_1) || 0) │                │ Isolate Scratch Tree: mkdtemp(/tmp/gate-*)   │ │
+|   │ Event 2: H_2 = SHA256(C(E_2) || H_1)         │ ─────────────► │ Revert write_scope to Git Base (HEAD)        │ │
+|   │ Event 3: H_3 = SHA256(C(E_3) || H_2)         │                │ Execute gate_argv with shell: false          │ │
+|   │ (Strict RFC 8785 Canonical JSON Encoding)    │                │ Assert Exit Code != 0 (Falsifiable)          │ │
+|   └──────────────────────────────────────────────┘                └──────────────────────────────────────────────┘ │
+|                          │                                                                │                        |
+|                          ▼                                                                ▼                        |
+|   ┌──────────────────────────────────────────────┐                ┌──────────────────────────────────────────────┐ │
+|   │ TORN-TAIL CRASH RECOVERY (doctor:repair)     │                │ PROOF VERDICT INTEGRITY                      │ │
+|   │ Scan chain from offset 0 ──► Detect fragment │                │ • Falsifiable: true ──► Gate Certified Valid │ │
+|   │ Quarantine torn tail ──► Truncate to offset  │                │ • Falsifiable: false ─► TRAP: TAUTOLOGY REJECT│ │
+|   └──────────────────────────────────────────────┘                └──────────────────────────────────────────────┘ │
+|                                                                                                                    |
++--------------------------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. Falsification & Gate Prover Engine (`gate:prove`)
+## 2. Core Architectural Principles & Invariants
 
-To prevent tautological "always-green" test scripts from certifying broken code, the **Gate Falsifiability Prover** ([`olt/scripts/src/graph/gate-proof.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/gate-proof.ts)) validates task gates by executing them against counterfactual mutated scratch trees.
+The Merkle Hash and Gate Prove engines operate under five non-negotiable architectural invariants:
+
+### 2.1 Forward-Secure SHA-256 Hash Chaining
+
+Every event $E_i$ appended to `events.jsonl` incorporates the SHA-256 digest of the immediately preceding event $H_{i-1}$. Any historical modification, insertion, deletion, or reordering invalidates all downstream hash pointers, rendering tampering immediately detectable.
+
+### 2.2 RFC 8785 Canonical JSON Serialization
+
+To eliminate platform-specific formatting divergence across JavaScript runtimes (V8, Bun, JavaScriptCore), event payloads are serialized using strict RFC 8785 Canonical JSON:
+
+- Object keys are sorted lexicographically by UTF-16 code units.
+- Whitespace between tokens is strictly prohibited.
+- Numbers are formatted in standard IEEE 754 decimal representations without trailing exponents.
+
+### 2.3 Counterfactual Scratch Tree Isolation
+
+Mutation testing executed by `gate:prove` takes place in isolated temporary scratch directories created via `mkdtempSync()`. Worktree and repository source trees are never mutated in place during falsifiability probing.
+
+### 2.4 Direct Argv Array Grammar
+
+All gate execution commands are declared as explicit string arrays (`string[]`), such as `["bun", "test", "tests/unit/auth.test.ts"]`. Shell metacharacters (`&&`, `||`, `;`, `|`, `>`, `<`) trigger immediate `INVALID_ARGUMENT` harness exceptions.
+
+### 2.5 Formal Evidence Hierarchy (Classes 1–4)
+
+Requirements satisfaction requires evidence mapped to the formal four-tier evidence hierarchy:
+
+| Class       | Evidence Identifier | Verification Method                                    | Proof Bundle Inclusion                              |
+| :---------- | :------------------ | :----------------------------------------------------- | :-------------------------------------------------- |
+| **Class 1** | `harness_observed`  | SHA-256 command receipt blob with exit code 0          | **Authoritative (Mandatory for core requirements)** |
+| **Class 2** | `host_reported`     | Verified Git commit SHA or POSIX file stat             | **Platform (Required for environment bounds)**      |
+| **Class 3** | `derived`           | Deterministic mathematical calculation (APCA, entropy) | **Derived (Computed from Class 1 evidence)**        |
+| **Class 4** | `agent_reported`    | Uncorroborated prose claim in review markdown          | **Rejected as sole proof**                          |
+
+---
+
+## 3. Algorithmic Mechanics & State Transitions
+
+The verification lifecycle coordinates Merkle stream validation, torn-tail quarantine, and counterfactual gate execution.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant CLI as CLI / Actor (gate:prove)
+    participant CLI as Gate Prover CLI
     participant Git as Host Git Engine
-    participant Scratch as Scratch Copy (mkdtemp)
-    participant Runner as Direct Argv Runner (shell: false)
-    participant State as Capsule State (state.json)
+    participant Scratch as Scratch Workspace
+    participant Runner as Subprocess Runner (shell: false)
+    participant Ledger as events.jsonl Ledger
 
-    CLI->>Git: git ls-files -z (Read repo tree)
-    CLI->>Scratch: Copy non-ignored files into scratch directory
+    CLI->>Git: git ls-files -z (Enumerate tracked files)
+    CLI->>Scratch: Copy source tree to temporary scratch directory
     CLI->>Git: git ls-tree -r <base> -- <revertScope>
-    CLI->>Scratch: Overwrite write_scope files with base blobs (revert to base)
-    alt Test Target Unexcludable & Restored Paths == 0
-        CLI-->>CLI: outcome = "refused_absent_at_base" (Vacuous counterfactual)
-    else Counterfactual Exists
-        CLI->>Runner: spawn(gateArgv, scratchRoot, timeoutMs)
-        Runner-->>CLI: exitCode, stdoutTail, stderrTail
-        alt Gate Fails (exitCode != 0)
-            CLI-->>CLI: outcome = "falsifiable", falsifiable = true (PROVED)
-        else Gate Passes (exitCode == 0)
-            CLI-->>CLI: outcome = "not_falsifiable", falsifiable = false (TAUTOLOGY)
+    CLI->>Scratch: Restore write_scope files to base revision blobs
+
+    alt Reverted counterfactual produces empty diff
+        CLI-->>CLI: outcome = "refused_absent_at_base"
+    else Counterfactual tree successfully constructed
+        CLI->>Runner: spawn(gate_argv, cwd=scratchRoot, timeout=30000ms)
+        Runner-->>CLI: { exitCode, stdoutTail, stderrTail }
+        alt exitCode != 0 (Gate Fails on pre-implementation code)
+            CLI-->>CLI: outcome = "falsifiable", falsifiable = true
+        else exitCode == 0 (Gate Passes on pre-implementation code)
+            CLI-->>CLI: outcome = "not_falsifiable", falsifiable = false
         end
     end
-    CLI->>Scratch: safeRmSync(scratchRoot)
-    CLI->>State: appendGateProof(state, GateProofRecord)
+
+    CLI->>Scratch: Recursively remove scratch workspace
+    CLI->>Ledger: Append GateProofRecord to Merkle event stream
 ```
 
-### 2.1 Mutation Testing Protocol Steps
+### 3.1 Torn-Tail Crash Recovery Protocol
 
-1. **Scratch Isolation**: Creates an isolated throwaway directory via `mkdtempSync(join(tmpdir(), "gate-prove-"))`.
-2. **File Tree Replication**: Copies tracked, non-ignored repository files into the scratch tree (`copyIntoScratch`) including `node_modules/`.
-3. **Effective Revert Scope Calculation**: Identifies implementation files in the task's `write_scope` while preserving the test files that the gate is about to execute:
-   ```typescript
-   function effectiveRevertScope(
-     writeScope: readonly string[],
-     gateArgv: readonly string[],
-   ): EffectiveRevertScope {
-     const isBunTest = gateArgv.length >= 2 && gateArgv[0] === "bun" && gateArgv[1] === "test";
-     // Filter out test paths matching the gate command so the gate actually tests the reverted implementation
-     // ...
-   }
-   ```
-4. **Write Scope Reversion**: Reverts all files inside `effectiveRevertScope` back to `--base` (default `HEAD`) using raw Git blobs from `git ls-tree` and `git show`.
-5. **Execution & Failure Assertion**: Runs the task's gate argv directly inside the mutated scratch root with `shell: false`.
-6. **Verdict Certification**:
-   - **`falsifiable: true` (PASS)**: Gate exits non-zero ($> 0$), proving that without the task's implementation changes, the gate fails.
-   - **`falsifiable: false` (FAIL)**: Gate exits 0 on the reverted tree, proving the gate is a tautology.
-   - **`refused_absent_at_base`**: The target did not exist at base ref; there was no prior counterfactual to test against.
-
-### 2.2 Strict Direct Argv Grammar
-
-Gate commands MUST be formatted as direct string argument arrays (`string[]`), never shell strings executed via `/bin/sh -c`.
-
-```json
-// [PASS] VALID: Direct argv array
-["bun", "test", "tests/unit/auth.test.ts"]
-["pytest", "tests/test_api.py", "-k", "test_login"]
-
-// [FAIL] INVALID: Shell operators (triggers immediate INVALID_ARGUMENT error)
-["sh", "-c", "bun test && git status"]
-["bun", "test", "tests/auth.test.ts", "|", "grep", "pass"]
-```
-
-> [!WARNING]
-> Shell operators (`&&`, `||`, `;`, `|`, `>`, `<`) in gate argument arrays trigger an immediate `INVALID_ARGUMENT` `HarnessError` at the execution boundary.
-
----
-
-## 3. Gate Proof Record Schema
-
-Gate proof results are appended to `state.json` under `gate_proofs`:
-
-```typescript
-export interface GateProofRecord extends JsonObject {
-  task_id: string;
-  gate_argv: string[];
-  write_scope: string[];
-  base: string;
-  falsifiable: boolean;
-  exit_code: number | null;
-  timed_out: boolean;
-  proved_at: string;
-  actor: string;
-  outcome?: "falsifiable" | "not_falsifiable" | "refused_absent_at_base";
-  restored_paths?: string[];
-  deleted_paths?: string[];
-  reverted_scope?: string[];
-  stdout_tail?: string;
-  stderr_tail?: string;
-}
-```
-
-### 3.1 JSON Exemplar
-
-```json
-{
-  "task_id": "task-impl-auth-tokens",
-  "gate_argv": ["bun", "test", "tests/unit/token-manager.test.ts"],
-  "write_scope": ["src/auth/token-manager.ts", "tests/unit/token-manager.test.ts"],
-  "base": "HEAD",
-  "falsifiable": true,
-  "exit_code": 1,
-  "timed_out": false,
-  "proved_at": "2026-08-29T02:50:00.000Z",
-  "actor": "coordinator_worker_01",
-  "outcome": "falsifiable",
-  "restored_paths": ["src/auth/token-manager.ts"],
-  "deleted_paths": [],
-  "reverted_scope": ["src/auth/token-manager.ts"],
-  "stdout_tail": "FAIL tests/unit/token-manager.test.ts > TokenManager > generates valid token\nerror: parseHeader is not defined",
-  "stderr_tail": ""
-}
-```
-
----
-
-## 4. Evidence Validation Matrix (Classes 1–4)
-
-To satisfy task and run completion criteria, every requirement in `requirements.json` must be backed by valid evidence mapped to its formal evidence class:
+When an abnormal runtime termination leaves an incomplete line at the end of `events.jsonl`:
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 EVIDENCE CLASS VALIDATION RULES                                        │
-├─────────┬──────────────────────┬──────────────────────────────┬────────────────────────────────────────┤
-│ Class   │ Identifier           │ Evidence Validation Method   │ Allowed in Final Proof Bundle?         │
-├─────────┼──────────────────────┼──────────────────────────────┼────────────────────────────────────────┤
-│ Class 1 │ `harness_observed`   │ SHA-256 command receipt blob │ **YES (Authoritative)**                │
-│         │                      │ matching exit code 0.        │ Required for all core requirements.    │
-├─────────┼──────────────────────┼──────────────────────────────┼────────────────────────────────────────┤
-│ Class 2 │ `host_reported`      │ Verified Git commit SHA or   │ **YES (Platform)**                     │
-│         │                      │ POSIX file system stat check.│ Used for environment verification.     │
-├─────────┼──────────────────────┼──────────────────────────────┼────────────────────────────────────────┤
-│ Class 3 │ `derived`            │ Deterministically computed   │ **YES (Derived)**                      │
-│         │                      │ formula (APCA Lc, entropy).  │ Verified from underlying Class 1 data. │
-├─────────┼──────────────────────┼──────────────────────────────┼────────────────────────────────────────┤
-│ Class 4 │ `agent_reported`     │ Uncorroborated prose claim.  │ **NO (Rejected as Sole Proof)**        │
-│         │                      │                              │ Must be backed by Class 1/3 evidence.  │
-└─────────┴──────────────────────┴──────────────────────────────┴────────────────────────────────────────┘
-```
-
-### 4.1 CLI Command Specification
-
-```bash
-bun olt/scripts/harness.ts gate:prove --run <capsule-path> --task <task-id> --actor <actor-name> [--base <git-ref>] [--wall-timeout-ms <ms>]
+Crash Recovery Pipeline (doctor:repair)
+    │
+    ├── 1. Read events.jsonl sequentially from byte offset 0
+    │
+    ├── 2. Verify hash chaining: H_i === SHA-256(CanonicalJSON(E_i) || H_{i-1})
+    │
+    ├── 3. Locate clean byte offset of the last fully verified event line
+    │
+    ├── 4. If trailing unparseable fragment exists:
+    │       ├── Extract fragment bytes
+    │       ├── Write to quarantine/recovery-torn-<timestamp>.fragment (mode 0400)
+    │       ├── Call ftruncateSync(fd, cleanOffset)
+    │       └── Issue fsyncSync(fd) barrier
+    │
+    └── 5. Re-project state.json from verified event sequence
 ```
 
 ---
 
-[Previous: Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: OLT Documentation Hub](../../README.md)
+## 4. Mathematical Formulations & Proofs
+
+Let $\mathcal{E} = [E_1, E_2, \dots, E_N]$ represent the sequence of events in `events.jsonl`.
+
+### 4.1 Merkle Recurrence Formulation
+
+Let $\mathcal{C}: \text{JsonObject} \to \text{string}$ denote the RFC 8785 Canonical JSON transformation, and let $\mathcal{H}: \text{string} \to \{0, 1\}^{256}$ denote the SHA-256 hash function.
+
+The forward-secure Merkle hash chain is defined by the recurrence:
+
+$$ H_i = \begin{cases}
+\mathcal{H}\left( \mathcal{C}(E_1 \setminus \{H_1\}) \parallel \texttt{"0"}^{64} \right) & \text{if } i = 1 \\
+\mathcal{H}\left( \mathcal{C}(E_i \setminus \{H_i\}) \parallel H_{i-1} \right) & \text{if } i > 1
+\end{cases}$$
+
+Where $\parallel$ denotes byte sequence concatenation.
+
+### 4.2 Falsifiability Counterfactual Theorem
+
+Let $G$ denote a test gate command vector, $T_{\text{head}}$ denote the repository worktree containing task changes, and $T_{\text{base}}$ denote the counterfactual scratch worktree reverted to base ref:
+
+$$\text{Diff}(T_{\text{head}}, T_{\text{base}}) = \Delta_{\text{task}} \neq \emptyset$$
+
+Let $\text{Exec}(G, T) \in \mathbb{Z}$ denote the exit status of executing $G$ on worktree tree $T$.
+
+**Theorem (Gate Non-Tautology)**: A test gate $G$ is a falsifiable proof of implementation $\Delta_{\text{task}}$ if and only if:
+
+$$\text{Exec}(G, T_{\text{head}}) = 0 \quad \land \quad \text{Exec}(G, T_{\text{base}}) \neq 0$$
+
+**Proof**:
+1. If $\text{Exec}(G, T_{\text{head}}) \neq 0$, the gate fails on the current code; the task is incomplete.
+2. If $\text{Exec}(G, T_{\text{base}}) = 0$, the gate succeeds even when $\Delta_{\text{task}}$ is completely absent. Thus, the gate does not depend on $\Delta_{\text{task}}$ and constitutes a tautological proof.
+3. Therefore, $\text{Exec}(G, T_{\text{base}}) \neq 0$ is necessary and sufficient to prove causal dependence on $\Delta_{\text{task}}$. $\blacksquare$
+
 ---
+
+## 5. Concrete TypeScript Contracts & Schemas
+
+The TypeScript interfaces governing Merkle ledger verification and Gate Proving are implemented in [gate-proof.ts](../../../../olt/scripts/src/graph/gate-proof.ts), [event-stream.ts](../../../../olt/scripts/src/engine/store/events/event-stream.ts), and [durable-write.ts](../../../../olt/scripts/src/core/durable-write.ts):
+
+```typescript
+export interface MerkleEventHeader {
+  readonly sequence: number;
+  readonly timestamp: string;
+  readonly runId: string;
+  readonly actorId: string;
+  readonly eventType: string;
+  readonly previousHash: string | null;
+  readonly hash: string;
+}
+
+export interface GateProofRecord {
+  readonly taskId: string;
+  readonly gateArgv: readonly string[];
+  readonly writeScope: readonly string[];
+  readonly baseRef: string;
+  readonly falsifiable: boolean;
+  readonly exitCode: number | null;
+  readonly timedOut: boolean;
+  readonly provedAt: string;
+  readonly actor: string;
+  readonly outcome: "falsifiable" | "not_falsifiable" | "refused_absent_at_base";
+  readonly restoredPaths: readonly string[];
+  readonly stdoutTail: string;
+  readonly stderrTail: string;
+}
+
+export interface IGateProverEngine {
+  readonly proveGateFalsifiability: (
+    repoRoot: string,
+    taskId: string,
+    gateArgv: readonly string[],
+    writeScope: readonly string[],
+    baseRef?: string,
+    timeoutMs?: number,
+  ) => Promise<GateProofRecord>;
+}
+```
+
+```typescript
+export function computeEventHash(
+  payload: Record<string, unknown>,
+  previousHash: string | null,
+): string {
+  // Strip existing hash field before computing digest
+  const { hash: _discarded, ...dataToHash } = payload;
+  const canonicalJson = serializeCanonicalJson(dataToHash);
+  const chainInput = `${canonicalJson}|${previousHash ?? "0".repeat(64)}`;
+
+  return createHash("sha256").update(chainInput, "utf8").digest("hex");
+}
+
+export function assertValidMerkleChain(events: readonly MerkleEventHeader[]): void {
+  for (let i = 0; i < events.length; i++) {
+    const current = events[i]!;
+    const expectedPrev = i === 0 ? null : events[i - 1]!.hash;
+
+    if (current.previousHash !== expectedPrev) {
+      throw new HarnessError(
+        "MERKLE_CHAIN_BROKEN",
+        `Merkle linkage broken at sequence ${current.sequence}: expected prev '${expectedPrev}', found '${current.previousHash}'`,
+      );
+    }
+
+    const calculatedHash = computeEventHash(
+      current as unknown as Record<string, unknown>,
+      current.previousHash,
+    );
+    if (current.hash !== calculatedHash) {
+      throw new HarnessError(
+        "MERKLE_HASH_MISMATCH",
+        `Hash verification failed at sequence ${current.sequence}: computed '${calculatedHash}', recorded '${current.hash}'`,
+      );
+    }
+  }
+}
+```
+
+---
+
+## 6. Failure Modes, Anti-Blunders & Recovery Playbooks
+
+| Blunder Identifier | Trigger Condition | Severity | System Impact | Immediate Recovery Playbook |
+| :--- | :--- | :--- | :--- | :--- |
+| **`MERKLE_HASH_MISMATCH`** | Historical event line edited or truncated in `events.jsonl`. | FATAL | Ledger verification halts; state re-projection blocked. | Restore ledger from immutable git backup or execute `doctor:repair`. |
+| **`TORN_TAIL_FRAGMENT`** | Process killed mid-write leaving partial trailing event line. | ERROR | Next harness invocation fails chain check. | Run `doctor:repair` to automatically quarantine fragment and truncate clean. |
+| **`GATE_NOT_FALSIFIABLE`** | Gate command exits 0 on reverted base scratch tree. | FATAL | Gate rejected as a tautology; task cannot complete. | Author a targeted test assertion that genuinely exercises new functionality. |
+| **`GATE_ARGV_SHELL_OPERATOR`** | Gate command contains `&&`, `||`, or `|` operators. | ERROR | Harness rejects command grammar with `INVALID_ARGUMENT`. | Split chained commands into direct single-binary argv arrays. |
+| **`SCRATCH_TREE_DIRTY`** | Temporary scratch tree directory fails cleanup after probe. | WARN | Disk storage accumulates orphaned temporary trees. | Run `doctor:hygiene` to purge lingering `/tmp/gate-prove-*` directories. |
+| **`REFUSED_ABSENT_AT_BASE`** | File under test did not exist at base ref; diff is empty. | WARN | Mutation prover notes absence of pre-existing counterfactual. | Verify base ref points to correct parent branch commit. |
+
+---
+
+[Previous: 17-04 Binary PNG IHDR Chunk Engine](17-04-png-ihdr-binary-chunk-engine.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: Chapter 17 Index](index.md)
+$$

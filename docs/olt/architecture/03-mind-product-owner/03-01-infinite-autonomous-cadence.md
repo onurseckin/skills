@@ -116,7 +116,7 @@ To prevent multiple host cron triggers, CI webhooks, or background agents from r
 
 ### 3.1 Kernel Locking Mechanics & Fallback Hierarchy
 
-The entrypoint [pulse.sh](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/pulse.sh) opens file descriptor `9` pointing to `.olt/capsules/<mind-slug>/.locks/mind.pulse`. It applies a non-blocking exclusive lock (`LOCK_EX | LOCK_NB`):
+The entrypoint [pulse.sh](../../../../olt/scripts/pulse.sh) opens file descriptor `9` pointing to `.olt/capsules/<mind-slug>/.locks/mind.pulse`. It applies a non-blocking exclusive lock (`LOCK_EX | LOCK_NB`):
 
 ```bash
 #!/usr/bin/env bash
@@ -272,7 +272,7 @@ $$T_{\text{interval}}(s) = \min\left( T_{\text{max}}, \, \text{round}\left( T_{\
 Where:
 * $T_{\text{base}}$ is the base pulse interval (default: $60{,}000\,\text{ms} = 1\,\text{minute}$).
 * $T_{\text{max}}$ is the maximum sleep cap (default: $3{,}600{,}000\,\text{ms} = 1\,\text{hour}$).
-* $\gamma = 1.5$ is the Quiescence Multiplier ([QUIESCENCE_INTERVAL_MULTIPLIER](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/archival/quiesce/types.ts#L20)).
+* $\gamma = 1.5$ is the Quiescence Multiplier ([QUIESCENCE_INTERVAL_MULTIPLIER](../../../../olt/scripts/src/mind/archival/quiesce/types.ts#L20)).
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -305,7 +305,7 @@ The system immediately collapses backoff and returns to maximum observation resp
 
 ## 6. The 8th-Streak Quiescence State Transition
 
-When the quiescence streak reaches exactly $s = 8$ ([QUIESCENT_DIGEST_STREAK_THRESHOLD](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/archival/quiesce/types.ts#L21)), the Mind supervisor transitions to the `QuiescentDigest` state.
+When the quiescence streak reaches exactly $s = 8$ ([QUIESCENT_DIGEST_STREAK_THRESHOLD](../../../../olt/scripts/src/mind/archival/quiesce/types.ts#L21)), the Mind supervisor transitions to the `QuiescentDigest` state.
 
 ```mermaid
 sequenceDiagram

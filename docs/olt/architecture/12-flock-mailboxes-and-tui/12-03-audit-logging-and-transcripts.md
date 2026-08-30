@@ -92,7 +92,7 @@ $$h_k = \text{SHA-256}\left( \text{canonicalJsonBytes}(e_k \setminus \{h_k\}) \r
 
 ### 2.3 Event Stream Validation Algorithm
 
-The validation engine implemented in [`engine/store/events/event-stream.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/store/events/event-stream.ts) scans `events.jsonl` sequentially to verify cryptographic, sequence, and projection invariants:
+The validation engine implemented in [`engine/store/events/event-stream.ts`](../../../../olt/scripts/src/engine/store/events/event-stream.ts) scans `events.jsonl` sequentially to verify cryptographic, sequence, and projection invariants:
 
 ```typescript
 export function validateEventStream(
@@ -184,7 +184,7 @@ While `events.jsonl` captures the high-level state machine progression, `transcr
 
 ## 4. Forensic Behavioral Auditing & Meta-Auditor Protocol
 
-Autonomous agent swarms frequently exhibit subtle behavioral regressions that do not trigger explicit syntax or exit code errors. The **Meta-Auditor Engine** ([`cli/commands/meta-audit.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/cli/commands/meta-audit.ts), [`mind/auditing/meta/index.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/auditing/meta/index.ts)) scans `events.jsonl` and `transcript.jsonl` to detect four canonical behavioral anti-patterns:
+Autonomous agent swarms frequently exhibit subtle behavioral regressions that do not trigger explicit syntax or exit code errors. The **Meta-Auditor Engine** ([`cli/commands/meta-audit.ts`](../../../../olt/scripts/src/cli/commands/meta-audit.ts), [`mind/auditing/meta/index.ts`](../../../../olt/scripts/src/mind/auditing/meta/index.ts)) scans `events.jsonl` and `transcript.jsonl` to detect four canonical behavioral anti-patterns:
 
 ```mermaid
 flowchart TD
@@ -276,7 +276,7 @@ $$\mathcal{S}_k = \bigodot_{i=1}^k \Delta_i(\mathcal{S}_0) = \Delta_k(\Delta_{k-
  └───────────────────┘                                                 └───────────────────┘
 ```
 
-The Living Tracer ([`reporting/living-tracer/event-replayer.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/living-tracer/event-replayer.ts)) uses this deterministic fold to reconstruct:
+The Living Tracer ([`reporting/living-tracer/event-replayer.ts`](../../../../olt/scripts/src/reporting/living-tracer/event-replayer.ts)) uses this deterministic fold to reconstruct:
 
 - The dynamic round-by-round Sugiyama task DAG.
 - All dynamically sprouted repair and review branches.

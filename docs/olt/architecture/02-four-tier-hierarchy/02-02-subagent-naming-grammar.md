@@ -193,7 +193,7 @@ $$ \text{State}(a) = \begin{cases}
 
 ## 5. TypeScript AST Grammar Parser & Mailbox Contracts
 
-The grammar parser and session registry are implemented in TypeScript under [`session/index.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/authority/session/index.ts):
+The grammar parser and session registry are implemented in TypeScript under [`session/index.ts`](../../../../olt/scripts/src/authority/session/index.ts):
 
 ```typescript
 export type SubagentRole =

@@ -81,12 +81,12 @@ The Live TUI layout partitions the terminal window into four synchronized quadra
 ### 2.1 Quadrant Functional Specifications
 
 1. **Quadrant I: Capsule Status & Dual-Time Clock**:
-   - Displays the active run slug, UUIDv4 run identifier, current execution phase, and dual-time synchronization ([dual-time/clock.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/dual-time/clock.ts)).
+   - Displays the active run slug, UUIDv4 run identifier, current execution phase, and dual-time synchronization ([dual-time/clock.ts](../../../../olt/scripts/src/core/dual-time/clock.ts)).
    - Real-time validation status of the 10 Core Invariants ($C_1 \dots C_{10}$).
 2. **Quadrant II: Work/Span & Brent Concurrency Bounds**:
    - Real-time calculation of total work $W(t)$, remaining critical path span $S(t)$, theoretical parallelism $\mathcal{P} = \lceil W/S \rceil$, and worker lane saturation.
 3. **Quadrant III: Living Dynamic Sugiyama DAG**:
-   - Connected ASCII tree rendering of active execution waves, dynamically sprouted repair branches, write-scope boundaries, and active tool invocations ([reporting/living-tracer/render.ts](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/living-tracer/render.ts)).
+   - Connected ASCII tree rendering of active execution waves, dynamically sprouted repair branches, write-scope boundaries, and active tool invocations ([reporting/living-tracer/render.ts](../../../../olt/scripts/src/reporting/living-tracer/render.ts)).
 4. **Quadrant IV: Active Leases, Heartbeat Health & Mailbox Depths**:
    - Active POSIX advisory lease timers with countdowns, worker heartbeat meters, and mailbox backlog health counts ($\mathcal{D}_{\text{in}}, \mathcal{D}_{\text{out}}, \mathcal{D}_{\text{proc}}, \mathcal{D}_{\text{dead}}$).
 
