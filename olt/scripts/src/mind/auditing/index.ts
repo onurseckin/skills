@@ -171,6 +171,7 @@ export {
   auditOrchestratorLiveness,
   reclaimZombieOrchestrator,
   defaultIsPidAlive,
+  ORCHESTRATOR_LIVENESS_DEFECT,
   DEFAULT_HEARTBEAT_THRESHOLD_SECONDS,
   DEFAULT_SINGLETON_ROLE,
   type RosterReconciliationReport,
@@ -197,6 +198,34 @@ export {
   DEFAULT_STAGNATION_THRESHOLD_SECONDS,
   type StagnationAuditOptions,
 } from "./mind-stagnation-auditor.ts";
+
+export {
+  MODE_A_AUTONOMIC_DISCOVERY,
+  MODE_STANDARD_PREPLAN,
+  MODE_DORMANT,
+  CHRONIC_STAGNATION_CYCLE_THRESHOLD,
+  executeStagnationShockRecovery,
+  type StagnationMode,
+  type StagnationShockOptions,
+  type StagnationShockResult,
+} from "./stagnation-recovery-interlock.ts";
+
+export {
+  PLAN_GRANULARITY_AUDIT,
+  MONOLITHIC_PLAN_DEFECT,
+  EXCESSIVE_SCOPE_DEFECT,
+  DEFAULT_MAX_SUBSYSTEMS_PER_PLAN,
+  DEFAULT_MAX_TASKS_PER_PLAN,
+  DEFAULT_MAX_FILES_PER_TASK,
+  DEFAULT_MIN_FILES_FOR_TASK_SCOPE_CHECK,
+  extractPlanSubsystems,
+  auditPlanGranularity,
+  type PlanGranularityViolationType,
+  type TaskGranularityInput,
+  type PlanGranularityOptions,
+  type PlanGranularityFinding,
+  type PlanGranularityReport,
+} from "./plan-granularity-auditor.ts";
 
 export {
   auditCharterGoals,

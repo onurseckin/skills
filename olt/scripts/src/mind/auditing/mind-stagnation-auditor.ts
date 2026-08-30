@@ -7,6 +7,10 @@ import {
 } from "../preplanning/backlog-clusterer.ts";
 import { resolveLedgerPath } from "../preplanning/bridge-state.ts";
 import type { RawBacklogItem, RawDefectItem, StagnationAuditResult } from "../preplanning/types.ts";
+import {
+  executeStagnationShockRecovery,
+  type StagnationShockResult,
+} from "./stagnation-recovery-interlock.ts";
 
 export const MIND_PREPLANNING_STAGNATION = "MIND_PREPLANNING_STAGNATION" as const;
 export const DEFAULT_STAGNATION_THRESHOLD_SECONDS = 180;
@@ -20,11 +24,13 @@ export interface StagnationAuditOptions {
   readonly stagnationThresholdSeconds?: number | undefined;
   readonly explicitBacklog?: readonly RawBacklogItem[] | undefined;
   readonly explicitDefects?: readonly RawDefectItem[] | undefined;
+  readonly consecutiveStagnationCount?: number | undefined;
+  readonly triggerShockRecovery?: boolean | undefined;
 }
 
 export function auditMindPreplanningStagnation(
   options?: StagnationAuditOptions | undefined,
-): StagnationAuditResult {
+): StagnationAuditResult & { shock_recovery?: StagnationShockResult | undefined } {
   const root =
     options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
   const customBacklog = options !== undefined ? options.backlogFile : undefined;
@@ -91,7 +97,7 @@ export function auditMindPreplanningStagnation(
       `Mind pre-planning engine has stagnated for ${formattedDuration} while ${eligibleBacklog.length} backlog item(s) and ${eligibleDefects.length} defect(s) remain unplanned.`,
     ];
 
-    return {
+    const baseResult: StagnationAuditResult = {
       is_stagnant: true,
       pending_backlog_count: eligibleBacklog.length,
       open_defects_count: eligibleDefects.length,
@@ -102,6 +108,20 @@ export function auditMindPreplanningStagnation(
       findings: Object.freeze(findings),
       recommended_remediation: "RUN_PREPLANNING_FACTORY",
     };
+
+    if (options?.triggerShockRecovery) {
+      const shockResult = executeStagnationShockRecovery({
+        auditResult: baseResult,
+        consecutiveStagnationCount: options.consecutiveStagnationCount,
+        rootDir: root,
+      });
+      return {
+        ...baseResult,
+        shock_recovery: shockResult,
+      };
+    }
+
+    return baseResult;
   }
 
   return {

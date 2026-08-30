@@ -3,6 +3,12 @@ import {
   auditMindPreplanningStagnation,
   MIND_PREPLANNING_STAGNATION,
 } from "../../../olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts";
+import {
+  CHRONIC_STAGNATION_CYCLE_THRESHOLD,
+  executeStagnationShockRecovery,
+  MODE_A_AUTONOMIC_DISCOVERY,
+  MODE_STANDARD_PREPLAN,
+} from "../../../olt/scripts/src/mind/auditing/stagnation-recovery-interlock.ts";
 import type {
   RawBacklogItem,
   RawDefectItem,
@@ -77,5 +83,74 @@ describe("Active Anti-Passivity: Mind Pre-Planning Stagnation Auditor (Task 3.1)
     expect(result.pending_backlog_count).toBe(1);
     expect(result.idle_duration_seconds).toBe(30);
     expect(result.error_code).toBeUndefined();
+  });
+
+  it("AGP-3: Stagnation active shock recovery probe triggers shock recovery on stagnant audit", () => {
+    const openBacklog: readonly RawBacklogItem[] = [
+      { id: "item-pending-1", title: "Unplanned Task", status: "PENDING" },
+    ];
+    const lastPreplanTimestamp = new Date(nowMs - 300_000).toISOString();
+    const auditResult = auditMindPreplanningStagnation({
+      explicitBacklog: openBacklog,
+      explicitDefects: [],
+      lastPreplanTimestamp,
+      nowMs,
+    });
+
+    let actionDispatched = false;
+    const shockResult = executeStagnationShockRecovery({
+      auditResult,
+      consecutiveStagnationCount: 1,
+      dispatchAction: () => {
+        actionDispatched = true;
+      },
+    });
+
+    expect(shockResult.triggered).toBe(true);
+    expect(shockResult.dispatchedTaskId).toBeDefined();
+    expect(shockResult.mode).toBe(MODE_STANDARD_PREPLAN);
+    expect(shockResult.escalated).toBe(false);
+    expect(shockResult.recoveryAction).toBe("DISPATCH_PREPLANNING_SYNTHESIS");
+    expect(actionDispatched).toBe(true);
+  });
+
+  it("AGP-4: Chronic Stagnation Mode Escalation Probe auto-escalates to MODE_A_AUTONOMIC_DISCOVERY", () => {
+    const openBacklog: readonly RawBacklogItem[] = [
+      { id: "item-chronic-1", title: "Chronic Unplanned Task", status: "PENDING" },
+    ];
+    const lastPreplanTimestamp = new Date(nowMs - 500_000).toISOString();
+    const auditResult = auditMindPreplanningStagnation({
+      explicitBacklog: openBacklog,
+      explicitDefects: [],
+      lastPreplanTimestamp,
+      nowMs,
+    });
+
+    const shockResult = executeStagnationShockRecovery({
+      auditResult,
+      consecutiveStagnationCount: CHRONIC_STAGNATION_CYCLE_THRESHOLD,
+    });
+
+    expect(shockResult.triggered).toBe(true);
+    expect(shockResult.mode).toBe(MODE_A_AUTONOMIC_DISCOVERY);
+    expect(shockResult.escalated).toBe(true);
+    expect(shockResult.recoveryAction).toBe("DISPATCH_AUTONOMIC_DISCOVERY_PULSE");
+    expect(shockResult.details).toContain("Chronic stagnation threshold reached");
+  });
+
+  it("bypasses shock recovery when audit result is healthy and forceExecution is false", () => {
+    const auditResult = auditMindPreplanningStagnation({
+      explicitBacklog: [],
+      explicitDefects: [],
+      nowMs,
+    });
+
+    const shockResult = executeStagnationShockRecovery({
+      auditResult,
+    });
+
+    expect(shockResult.triggered).toBe(false);
+    expect(shockResult.mode).toBe(MODE_STANDARD_PREPLAN);
+    expect(shockResult.recoveryAction).toBe("NOOP_HEALTHY");
   });
 });
