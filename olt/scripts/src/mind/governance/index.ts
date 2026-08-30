@@ -7,6 +7,8 @@ export type {
   CharterIntegrityResult,
 } from "./charter.ts";
 
+export type { RepoGovernanceStatus, BootstrapRepoGovernanceOptions } from "./scaffold.ts";
+
 export {
   DEFECT_REF,
   ERROR_CODE,
@@ -30,3 +32,5 @@ export {
   formatCharterSummary,
   verifyCharterIntegrity,
 } from "./charter.ts";
+
+export { bootstrapRepoGovernance, verifyRepoGovernance } from "./scaffold.ts";
