@@ -6,7 +6,10 @@ import { loadRun } from "../../engine/store/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { resolveHostProviderLoose } from "../../core/config/host-canon.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
-import { constructSupervisoryPersonaReminder, type SupervisoryPersonaReminder } from "../../authority/supervisory/index.ts";
+import {
+  constructSupervisoryPersonaReminder,
+  type SupervisoryPersonaReminder,
+} from "../../authority/supervisory/index.ts";
 import {
   generateAsciiDagBadges,
   runScriptBackedDiagnostics,
@@ -101,9 +104,16 @@ export async function mindPulseCommand(
   const pulseState = (state.pulse ?? {}) as Record<string, unknown>;
   const openPulse = pulseState.open as Record<string, unknown> | null | undefined;
   const budgetRecord = (state.budget ?? mindState.budget ?? {}) as Record<string, unknown>;
-  const baseIntervalMs = typeof budgetRecord.base_interval_ms === "number" ? budgetRecord.base_interval_ms : 900_000;
-  const pulsesPerDay = typeof budgetRecord.pulses_per_day === "number" ? budgetRecord.pulses_per_day : DEFAULT_MIND_BUDGET.pulses_per_day;
-  const wallClockPerDay = typeof budgetRecord.wall_clock_ms_per_day === "number" ? budgetRecord.wall_clock_ms_per_day : DEFAULT_MIND_BUDGET.wall_clock_ms_per_day;
+  const baseIntervalMs =
+    typeof budgetRecord.base_interval_ms === "number" ? budgetRecord.base_interval_ms : 900_000;
+  const pulsesPerDay =
+    typeof budgetRecord.pulses_per_day === "number"
+      ? budgetRecord.pulses_per_day
+      : DEFAULT_MIND_BUDGET.pulses_per_day;
+  const wallClockPerDay =
+    typeof budgetRecord.wall_clock_ms_per_day === "number"
+      ? budgetRecord.wall_clock_ms_per_day
+      : DEFAULT_MIND_BUDGET.wall_clock_ms_per_day;
   const scheduledIntervalMs = arm ? parseDuration(arm) : baseIntervalMs;
   const repoRoot = findRepoRoot(loaded?.runRoot ?? run);
 
@@ -121,25 +131,35 @@ export async function mindPulseCommand(
   const pendingBacklog =
     (Array.isArray(state.planning_buffer) ? state.planning_buffer.length : 0) +
     (typeof state.tasks === "object" && state.tasks
-      ? Object.values(state.tasks).filter((t) => t && typeof t === "object" && (t as Record<string, unknown>).status === "proposed").length
+      ? Object.values(state.tasks).filter(
+          (t) => t && typeof t === "object" && (t as Record<string, unknown>).status === "proposed",
+        ).length
       : 0);
 
   if (openPulse !== null && openPulse !== undefined && typeof openPulse === "object") {
-    const openPulseId = typeof openPulse.pulse_id === "string" ? openPulse.pulse_id : "pulse-active";
-    const openedAt = typeof openPulse.opened_at === "string" ? openPulse.opened_at : new Date(nowMs).toISOString();
-    const deadlineAt = typeof openPulse.deadline_at === "string" ? openPulse.deadline_at : "unknown";
+    const openPulseId =
+      typeof openPulse.pulse_id === "string" ? openPulse.pulse_id : "pulse-active";
+    const openedAt =
+      typeof openPulse.opened_at === "string" ? openPulse.opened_at : new Date(nowMs).toISOString();
+    const deadlineAt =
+      typeof openPulse.deadline_at === "string" ? openPulse.deadline_at : "unknown";
     const pulseActor = typeof openPulse.actor === "string" ? openPulse.actor : actor;
     const pulseHost = typeof openPulse.host === "string" ? openPulse.host : host;
     const pulseDriver = typeof openPulse.driver === "string" ? openPulse.driver : driver;
 
     const deadlineMs = Date.parse(deadlineAt);
     if (Number.isFinite(deadlineMs) && nowMs > deadlineMs) {
-      throw new HarnessError("INVALID_STATE", `pulse ${openPulseId} is open and past its deadline (${deadlineAt}); reclaim it first with mind:wake --run ${run}`);
+      throw new HarnessError(
+        "INVALID_STATE",
+        `pulse ${openPulseId} is open and past its deadline (${deadlineAt}); reclaim it first with mind:wake --run ${run}`,
+      );
     }
 
     const nextWakeAt = new Date(nowMs + scheduledIntervalMs).toISOString();
-    const pulsesToday = typeof budgetRecord.pulses_today === "number" ? budgetRecord.pulses_today : 1;
-    const wallClockToday = typeof budgetRecord.wall_clock_ms_today === "number" ? budgetRecord.wall_clock_ms_today : 0;
+    const pulsesToday =
+      typeof budgetRecord.pulses_today === "number" ? budgetRecord.pulses_today : 1;
+    const wallClockToday =
+      typeof budgetRecord.wall_clock_ms_today === "number" ? budgetRecord.wall_clock_ms_today : 0;
     const last = (pulseState.last ?? {}) as Record<string, unknown>;
     const zeroValueStreak = typeof last.zero_value_streak === "number" ? last.zero_value_streak : 0;
 
@@ -200,25 +220,39 @@ export async function mindPulseCommand(
       cli_receipt_summary_badge: diagResult?.receiptSummaryBadge,
       dag_badges: dagBadges,
       diagnostics: diagResult,
-      budget: { pulses_today: pulsesToday, pulses_per_day: pulsesPerDay, wall_clock_ms_today: wallClockToday, wall_clock_ms_per_day: wallClockPerDay },
+      budget: {
+        pulses_today: pulsesToday,
+        pulses_per_day: pulsesPerDay,
+        wall_clock_ms_today: wallClockToday,
+        wall_clock_ms_per_day: wallClockPerDay,
+      },
     };
   }
 
   verifyMindCharterSha(repoRoot, mindState, loaded.manifest.prompt_sha256);
   const eventSequence = state.event_sequence ?? 0;
   if (eventSequence >= 100_000) {
-    throw new HarnessError("INVALID_STATE", `event headroom threshold reached (${eventSequence} >= 100000 events); pulse is halted. Outcome: halted.`);
+    throw new HarnessError(
+      "INVALID_STATE",
+      `event headroom threshold reached (${eventSequence} >= 100000 events); pulse is halted. Outcome: halted.`,
+    );
   }
 
   const budgetCheck = checkDailyBudget(budgetRecord, nowMs);
   if (!budgetCheck.ok) {
-    throw new HarnessError("INVALID_STATE", `${budgetCheck.reason}. Outcome: ${budgetCheck.outcome}. Next: ${budgetCheck.repairArgv}`);
+    throw new HarnessError(
+      "INVALID_STATE",
+      `${budgetCheck.reason}. Outcome: ${budgetCheck.outcome}. Next: ${budgetCheck.repairArgv}`,
+    );
   }
 
   const currentCounter = typeof pulseState.counter === "number" ? pulseState.counter : 0;
   const nextCounter = currentCounter + 1;
   const pulseId = `pulse-${nextCounter}`;
-  const pulseDeadlineMs = typeof budgetRecord.pulse_deadline_ms === "number" ? budgetRecord.pulse_deadline_ms : DEFAULT_MIND_BUDGET.pulse_deadline_ms;
+  const pulseDeadlineMs =
+    typeof budgetRecord.pulse_deadline_ms === "number"
+      ? budgetRecord.pulse_deadline_ms
+      : DEFAULT_MIND_BUDGET.pulse_deadline_ms;
 
   const txnResult = executeOpenPulseTransaction({
     run,
@@ -241,7 +275,14 @@ export async function mindPulseCommand(
     tickNumber: nextCounter,
     cadenceMs: scheduledIntervalMs,
     now: nowMs,
-    context: { role: "mind", agentId: actor, runId: run, pulseId, tickNumber: nextCounter, now: nowMs },
+    context: {
+      role: "mind",
+      agentId: actor,
+      runId: run,
+      pulseId,
+      tickNumber: nextCounter,
+      now: nowMs,
+    },
   });
 
   const markdown = formatMindPulseOpenedBrief({
@@ -290,6 +331,11 @@ export async function mindPulseCommand(
     cli_receipt_summary_badge: diagResult?.receiptSummaryBadge,
     dag_badges: dagBadges,
     diagnostics: diagResult,
-    budget: { pulses_today: txnResult.updatedPulsesToday, pulses_per_day: pulsesPerDay, wall_clock_ms_today: txnResult.updatedWallClockToday, wall_clock_ms_per_day: wallClockPerDay },
+    budget: {
+      pulses_today: txnResult.updatedPulsesToday,
+      pulses_per_day: pulsesPerDay,
+      wall_clock_ms_today: txnResult.updatedWallClockToday,
+      wall_clock_ms_per_day: wallClockPerDay,
+    },
   };
 }

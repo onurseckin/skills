@@ -3,10 +3,7 @@ import { existsSync, lstatSync, readFileSync } from "node:fs";
 import type { AgentGrantRecord } from "../../core/contracts/index.ts";
 import type { JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import {
-  checkDailyBudget,
-  rollDayKeyIfNeeded,
-} from "../../mind/lifecycle/budget/index.ts";
+import { checkDailyBudget, rollDayKeyIfNeeded } from "../../mind/lifecycle/budget/index.ts";
 import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/lifecycle/charter/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
@@ -60,11 +57,7 @@ export function resolveMindPulseGrant(
       `agent ${actor} holds no grant; register it with agent:register first`,
     );
   }
-  if (
-    grant.role !== "mind" &&
-    grant.role !== "orchestrator" &&
-    grant.role !== "coordinator"
-  ) {
+  if (grant.role !== "mind" && grant.role !== "orchestrator" && grant.role !== "coordinator") {
     throw new HarnessError(
       "INVALID_STATE",
       `agent ${actor} holds role '${grant.role}'; role 'mind' is required for ${actionDesc}`,

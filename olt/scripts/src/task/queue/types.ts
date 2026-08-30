@@ -2,26 +2,52 @@ import { resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 
 export type TaskQueueStatus =
-  | "PENDING" | "ADMITTED" | "IN_PROGRESS" | "RUNNING" | "VALIDATING"
-  | "COMPLETED" | "FAILED" | "BLOCKED" | "ESCALATED";
+  | "PENDING"
+  | "ADMITTED"
+  | "IN_PROGRESS"
+  | "RUNNING"
+  | "VALIDATING"
+  | "COMPLETED"
+  | "FAILED"
+  | "BLOCKED"
+  | "ESCALATED";
 
 export const TASK_QUEUE_STATUSES: readonly TaskQueueStatus[] = [
-  "PENDING", "ADMITTED", "IN_PROGRESS", "RUNNING", "VALIDATING",
-  "COMPLETED", "FAILED", "BLOCKED", "ESCALATED",
+  "PENDING",
+  "ADMITTED",
+  "IN_PROGRESS",
+  "RUNNING",
+  "VALIDATING",
+  "COMPLETED",
+  "FAILED",
+  "BLOCKED",
+  "ESCALATED",
 ];
 
 export type TaskPriority = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "BACKGROUND";
 export const TASK_PRIORITIES: readonly TaskPriority[] = [
-  "CRITICAL", "HIGH", "MEDIUM", "LOW", "BACKGROUND",
+  "CRITICAL",
+  "HIGH",
+  "MEDIUM",
+  "LOW",
+  "BACKGROUND",
 ];
 
 export const PRIORITY_WEIGHTS: Readonly<Record<TaskPriority, number>> = {
-  CRITICAL: 100, HIGH: 75, MEDIUM: 50, LOW: 25, BACKGROUND: 10,
+  CRITICAL: 100,
+  HIGH: 75,
+  MEDIUM: 50,
+  LOW: 25,
+  BACKGROUND: 10,
 };
 
 export type TaskSourceType =
-  | "external_intake" | "feedback_intake" | "self_evolution"
-  | "defect_remediation" | "direct_prompt" | "plan_enhancement";
+  | "external_intake"
+  | "feedback_intake"
+  | "self_evolution"
+  | "defect_remediation"
+  | "direct_prompt"
+  | "plan_enhancement";
 
 export interface TaskLease {
   readonly agent_id: string;

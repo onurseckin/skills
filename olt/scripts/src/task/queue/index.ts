@@ -80,16 +80,8 @@ export {
   startTaskValidationUnlocked,
   startTaskValidation,
 } from "./lease.ts";
-export {
-  completeTaskUnlocked,
-  completeTask,
-} from "./completion.ts";
-export {
-  escalateTaskUnlocked,
-  escalateTask,
-  failTaskUnlocked,
-  failTask,
-} from "./transitions.ts";
+export { completeTaskUnlocked, completeTask } from "./completion.ts";
+export { escalateTaskUnlocked, escalateTask, failTaskUnlocked, failTask } from "./transitions.ts";
 export {
   getQueueStats,
   getTaskQueueStats,

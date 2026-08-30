@@ -18,12 +18,14 @@ function findTask(
   taskId: string,
 ): { readonly task: TaskQueueItem; readonly index: number } {
   const index = queue.findIndex((t) => t.id === taskId);
-  if (index === -1) throw new HarnessError("INVALID_ARGUMENT", `Task '${taskId}' not found in task queue`);
+  if (index === -1)
+    throw new HarnessError("INVALID_ARGUMENT", `Task '${taskId}' not found in task queue`);
   return { task: queue[index]!, index };
 }
 
 export function assertValidActiveLease(task: TaskQueueItem, expectedToken?: string): void {
-  if (!task.lease) throw new HarnessError("INVALID_STATE", `Task '${task.id}' does not have an active lease`);
+  if (!task.lease)
+    throw new HarnessError("INVALID_STATE", `Task '${task.id}' does not have an active lease`);
   if (expectedToken && task.lease.token !== expectedToken) {
     throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
   }
@@ -36,10 +38,16 @@ export function assertValidActiveLease(task: TaskQueueItem, expectedToken?: stri
 export function validateCompletionReceipts(receipts?: CompletionReceipts): void {
   if (!receipts) return;
   if (receipts.exit_code !== undefined && receipts.exit_code !== 0) {
-    throw new HarnessError("INTEGRITY", `Mechanical exit code must be 0, got ${receipts.exit_code}`);
+    throw new HarnessError(
+      "INTEGRITY",
+      `Mechanical exit code must be 0, got ${receipts.exit_code}`,
+    );
   }
   if (receipts.cognitive_verdict !== undefined && receipts.cognitive_verdict !== "PASS") {
-    throw new HarnessError("INTEGRITY", `Cognitive verdict must be PASS, got ${receipts.cognitive_verdict}`);
+    throw new HarnessError(
+      "INTEGRITY",
+      `Cognitive verdict must be PASS, got ${receipts.cognitive_verdict}`,
+    );
   }
 }
 
@@ -62,7 +70,8 @@ export function stageWorktreeProgress(worktreePath: string): void {
   if (existsSync(worktreePath)) {
     try {
       const proc = spawnSync("git", ["add", "-A"], { cwd: worktreePath });
-      if (proc.status !== 0) throw new HarnessError("INTEGRITY", `Failed to stage worktree in ${worktreePath}`);
+      if (proc.status !== 0)
+        throw new HarnessError("INTEGRITY", `Failed to stage worktree in ${worktreePath}`);
     } catch (error) {
       if (error instanceof HarnessError) throw error;
     }
@@ -113,15 +122,24 @@ export function claimTaskLeaseUnlocked(
     throw new HarnessError("INVALID_STATE", `Cannot claim task '${task.id}': already COMPLETED`);
   }
   if (task.status === "BLOCKED") {
-    throw new HarnessError("INVALID_STATE", `Cannot claim task '${task.id}': task is BLOCKED by [${task.blocked_by.join(", ")}]`);
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Cannot claim task '${task.id}': task is BLOCKED by [${task.blocked_by.join(", ")}]`,
+    );
   }
   if (task.status === "FAILED" || task.status === "ESCALATED") {
-    throw new HarnessError("INVALID_STATE", `Cannot claim task '${task.id}': task has status ${task.status} (${task.error_message ?? "no error note"})`);
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Cannot claim task '${task.id}': task has status ${task.status} (${task.error_message ?? "no error note"})`,
+    );
   }
   if ((task.status === "IN_PROGRESS" || task.status === "RUNNING") && task.lease) {
     const exp = Date.parse(task.lease.expires_at);
     if (Number.isFinite(exp) && exp > nowMs && task.lease.agent_id !== params.agentId) {
-      throw new HarnessError("INVALID_STATE", `Task '${task.id}' is actively leased to agent '${task.lease.agent_id}' until ${task.lease.expires_at}`);
+      throw new HarnessError(
+        "INVALID_STATE",
+        `Task '${task.id}' is actively leased to agent '${task.lease.agent_id}' until ${task.lease.expires_at}`,
+      );
     }
   }
 
@@ -169,9 +187,13 @@ export function renewTaskLeaseUnlocked(
 ): TaskQueueItem {
   const queue = readTaskQueueFile(filePath);
   const { task, index } = findTask(queue, params.taskId);
-  if (!task.lease) throw new HarnessError("INVALID_STATE", `Task '${task.id}' does not have an active lease`);
+  if (!task.lease)
+    throw new HarnessError("INVALID_STATE", `Task '${task.id}' does not have an active lease`);
   if (task.lease.token !== params.leaseToken || task.lease.agent_id !== params.agentId) {
-    throw new HarnessError("INVALID_STATE", `Invalid lease token or agent mismatch for task '${task.id}'`);
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Invalid lease token or agent mismatch for task '${task.id}'`,
+    );
   }
   const nowMs = params.nowIso ? Date.parse(params.nowIso) : Date.now();
   const extSeconds = params.extensionSeconds ?? DEFAULT_LEASE_DURATION_SECONDS;
@@ -217,7 +239,10 @@ export function releaseTaskLeaseUnlocked(
       throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
     }
     if (task.lease.agent_id !== params.agentId) {
-      throw new HarnessError("INVALID_STATE", `Agent '${params.agentId}' does not hold lease for task '${task.id}'`);
+      throw new HarnessError(
+        "INVALID_STATE",
+        `Agent '${params.agentId}' does not hold lease for task '${task.id}'`,
+      );
     }
   }
   const releasedTask: TaskQueueItem = {
@@ -253,12 +278,16 @@ export function startTaskValidationUnlocked(
 ): TaskQueueItem {
   const queue = readTaskQueueFile(filePath);
   const { task, index } = findTask(queue, params.taskId);
-  if (task.status === "COMPLETED") throw new HarnessError("INVALID_STATE", `Cannot validate task '${task.id}': already COMPLETED`);
+  if (task.status === "COMPLETED")
+    throw new HarnessError("INVALID_STATE", `Cannot validate task '${task.id}': already COMPLETED`);
   if (params.leaseToken && task.lease && task.lease.token !== params.leaseToken) {
     throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
   }
   if (params.agentId && task.lease && task.lease.agent_id !== params.agentId) {
-    throw new HarnessError("INVALID_STATE", `Agent mismatch for task '${task.id}': leased to '${task.lease.agent_id}'`);
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Agent mismatch for task '${task.id}': leased to '${task.lease.agent_id}'`,
+    );
   }
   const validatingTask: TaskQueueItem = {
     ...task,

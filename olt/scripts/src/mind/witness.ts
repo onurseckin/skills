@@ -1,10 +1,13 @@
+export type {
+  WitnessResolution,
+  DefectWitnessVerification,
+  CommandStatus,
+  CommandRecord,
+} from "./auditing/witness/index.ts";
+
 export {
-  collectCapsuleSearchRoots,
   resolveWitnessCommand,
+  collectCapsuleSearchRoots,
   readCommandOutput,
   verifyDefectWitness,
-  type WitnessResolution,
-  type DefectWitnessVerification,
-  type CommandStatus,
-  type CommandRecord,
 } from "./auditing/witness/index.ts";
