@@ -236,27 +236,30 @@ export function proposeCandidateEvolutions(findings: {
 
   if (findings.openDefects) {
     for (const bl of findings.openDefects) {
-      if (bl.observation) {
-        const slug = sanitizeSlug(bl.id);
-        proposals.push({
-          id: `cand-evo-defect-${slug}`,
-          kind: "defect",
-          title: `Remediate Defect: ${bl.observation?.slice(0, 50) ?? ""}`,
-          statement: bl.observation,
-          rationale: bl.remediation || "Fix root cause of defect with regression immunity",
-          targetFiles: ["olt/scripts/src/mind/"],
-          writeScope: ["olt/scripts/src/mind/", "tests/unit/mind/"],
-          gate: "bun test tests/unit/mind && bun run typecheck",
-          charterGoals: ["G2"],
-          acceptanceCriteria: [
-            `Resolve open defect ${bl.id}`,
-            "Verify regression immunity with automated test",
-          ],
-          priority: "CRITICAL",
-          sourceType: "defect_remediation",
-          estimatedEffort: "LARGE",
-        });
-      }
+      const desc = bl.observation ?? bl.description ?? bl.message ?? "Unspecified defect";
+      const remediation =
+        bl.remediation ??
+        bl.prescribed_remediation ??
+        "Fix root cause of defect with regression immunity";
+      const slug = sanitizeSlug(bl.id);
+      proposals.push({
+        id: `cand-evo-defect-${slug}`,
+        kind: "defect",
+        title: `Remediate Defect: ${desc.slice(0, 50)}`,
+        statement: desc,
+        rationale: remediation,
+        targetFiles: ["olt/scripts/src/mind/"],
+        writeScope: ["olt/scripts/src/mind/", "tests/unit/mind/"],
+        gate: "bun test tests/unit/mind && bun run typecheck",
+        charterGoals: ["G2"],
+        acceptanceCriteria: [
+          `Resolve open defect ${bl.id}`,
+          "Verify regression immunity with automated test",
+        ],
+        priority: "CRITICAL",
+        sourceType: "defect_remediation",
+        estimatedEffort: "LARGE",
+      });
     }
   }
 

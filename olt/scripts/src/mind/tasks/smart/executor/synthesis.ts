@@ -37,14 +37,6 @@ export function synthesizeAutonomousTasks(
 
   return synthesizeSmartTasksFromSelfEvolution(options);
 }
-
-/**
- * Runs a full Autonomous Dual-Intake Cycle:
- * - Checks queue state.
- * - If pending feedback exists, runs Mode B external intake and auto-enqueues.
- * - If queue is idle/empty, runs Mode A self-evolution synthesis and auto-enqueues.
- * - If queue has active tasks, reports current active status.
- */
 export function processAutonomousDualIntake(
   options: {
     readonly capsulesDir?: string | undefined;
@@ -132,9 +124,6 @@ export function runAutonomousDualIntakeCycle(
   return processAutonomousDualIntake(options);
 }
 
-/**
- * Expands an external raw prompt or user directive into a structured SmartTaskPlan.
- */
 export function expandExternalPromptToPlan(
   prompt: string,
   options: {
@@ -212,9 +201,6 @@ export function expandExternalPromptToPlan(
   return enriched;
 }
 
-/**
- * General Plan Enhancer function: transforms raw prompt or FeedbackItem into a structured SmartTaskPlan.
- */
 export function planEnhance(
   promptOrFeedback: string | FeedbackItem,
   options: {
@@ -278,7 +264,3 @@ export function planEnhance(
   assertAntiBatchingRule([enriched]);
   return enriched;
 }
-
-/**
- * Expands an external prompt with multiple directives into a multi-step wave plan.
- */
