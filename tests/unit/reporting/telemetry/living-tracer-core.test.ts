@@ -7,9 +7,11 @@ import {
   createSproutedRepairBranch,
   formatDuration,
   formatSeq,
+  handleTaskStateTransition,
   renderAsciiTimeline,
   renderDynamicDagAscii,
   type DynamicTaskState,
+  type ReplayContext,
 } from "../../../../olt/scripts/src/reporting/living-tracer/index.ts";
 
 describe("reporting/living-tracer core suite", () => {
@@ -29,7 +31,7 @@ describe("reporting/living-tracer core suite", () => {
       dependencies: [],
       writeScope: ["src/"],
       assignedAgent: "impl_13",
-      origin: "initial",
+      origin: "static",
       createdAtSeq: 1,
       updatedAtSeq: 5,
       round: 0,
@@ -42,6 +44,107 @@ describe("reporting/living-tracer core suite", () => {
     expect(branch.repairTask.id).toBe("task-10-repair-r1");
     expect(branch.validatorTask.id).toBe("val-task-10-r1");
     expect(branch.nextRound).toBe(1);
+  });
+
+  it("handles state transitions using ReplayContext accurately", () => {
+    const initialTask: DynamicTaskState = {
+      id: "task-01",
+      label: "Refactor Module",
+      status: "ready",
+      role: "implementer",
+      dependencies: [],
+      writeScope: ["src/"],
+      origin: "static",
+      createdAtSeq: 1,
+      updatedAtSeq: 1,
+      round: 0,
+      attempt: 1,
+      executionState: "[⏳ READY]",
+    };
+
+    const ctx: ReplayContext = {
+      taskMap: new Map([["task-01", initialTask]]),
+      agentMap: new Map(),
+      branches: new Set(),
+      sproutedRepairPairs: [],
+      revision: 1,
+      maxRoundReached: 0,
+    };
+
+    handleTaskStateTransition(
+      initialTask,
+      "task-01",
+      {
+        actor: "impl_13",
+        kind: "task:claim",
+        lowerKind: "task:claim",
+        seq: 2,
+        payload: { task_id: "task-01" },
+        role: "implementer",
+        tool: null,
+        cmd: null,
+        exitCode: null,
+        roundInPayload: 0,
+        attemptInPayload: 1,
+        validatorFromPayload: null,
+      },
+      ctx,
+    );
+
+    const leased = ctx.taskMap.get("task-01");
+    expect(leased?.status).toBe("leased");
+    expect(leased?.assignedAgent).toBe("impl_13");
+
+    handleTaskStateTransition(
+      leased!,
+      "task-01",
+      {
+        actor: "impl_13",
+        kind: "tool_call",
+        lowerKind: "tool_call",
+        seq: 3,
+        payload: { tool: "write_to_file", command: "edit code" },
+        role: "implementer",
+        tool: "write_to_file",
+        cmd: "edit code",
+        exitCode: null,
+        roundInPayload: 0,
+        attemptInPayload: 1,
+        validatorFromPayload: null,
+      },
+      ctx,
+    );
+
+    const running = ctx.taskMap.get("task-01");
+    expect(running?.status).toBe("in_progress");
+    expect(running?.activeTool).toBe("write_to_file");
+
+    handleTaskStateTransition(
+      running!,
+      "task-01",
+      {
+        actor: "val_07",
+        kind: "task:reject",
+        lowerKind: "task:reject",
+        seq: 4,
+        payload: { reason: "Missing invariants" },
+        role: "validator",
+        tool: null,
+        cmd: null,
+        exitCode: null,
+        roundInPayload: 0,
+        attemptInPayload: 1,
+        validatorFromPayload: "val_07",
+      },
+      ctx,
+    );
+
+    const rejected = ctx.taskMap.get("task-01");
+    expect(rejected?.status).toBe("changes_requested");
+    expect(ctx.sproutedRepairPairs.length).toBe(1);
+    expect(ctx.maxRoundReached).toBe(1);
+    expect(ctx.taskMap.has("task-01-repair-r1")).toBe(true);
+    expect(ctx.taskMap.has("val-task-01-r1")).toBe(true);
   });
 
   it("builds dynamic DAG state and living tracer report from events", () => {
