@@ -175,3 +175,9 @@ export {
   type ShimViolation,
   type ZeroCommentsValidationResult,
 } from "./coding-conventions.ts";
+
+export {
+  verifyHtmlReporterTemplatePurity,
+  type HtmlReporterDefectAuditResult,
+} from "./defect-html-reporter-escaped-backtick-unterminated-literal.ts";
+

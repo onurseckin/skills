@@ -1,6 +1,5 @@
 export function getCodeViewerStyles(): string {
   return `
-    /* Code Viewer */
     .file-viewer-header {
       background: var(--bg-surface);
       border: 1px solid var(--border-subtle);

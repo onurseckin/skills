@@ -1,8 +1,3 @@
-/**
- * Coverage Data Extractor for Interactive HTML Reporting
- * Reads source files, classifies executable/miss/hit/neutral lines using lineHits,
- * and extracts comprehensive per-file coverage detail payloads.
- */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { FileCoverageMetric, FileDetailData, SourceLineDetail } from "../types.ts";
