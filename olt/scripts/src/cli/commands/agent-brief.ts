@@ -8,12 +8,17 @@ import { detectActiveHost, isHostType, type HostType } from "../../platform/host
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import type { AgentHostPolicy } from "../../policy/types/index.ts";
 import type { Flags } from "../options.ts";
+import {
+  verifyMilestoneEvidence,
+  type MilestoneEvidenceVerification,
+} from "../../mind/evidence/index.ts";
 
 export interface AgentBriefOptions {
   readonly role: string;
   readonly host?: HostType | undefined;
   readonly format?: string | undefined;
   readonly repoRoot?: string | undefined;
+  readonly capsulePath?: string | undefined;
 }
 
 function findAgentManifestPath(role: string, repoRoot?: string): string {
@@ -100,9 +105,7 @@ export function executeAgentBrief(options: AgentBriefOptions): string {
       hostBindingsLines.push(
         `  - ${h}: ${cfg.model} (Tier: ${cfg.model_tier}${thinking}${tokenInfo})`,
       );
-    } catch {
-      // Host not configured in policy
-    }
+    } catch {}
   }
 
   const sections: string[] = [];
@@ -157,7 +160,8 @@ SPAWNS ALLOWED:
 ${manifest.permissions.spawns.length > 0 ? manifest.permissions.spawns.map((p) => `  - ${p}`).join("\n") : "  (None)"}
 
 INVARIANTS:
-${manifest.invariants.map((i) => `  - ${i}`).join("\n")}`);
+${manifest.invariants.map((i) => `  - ${i}`).join("\n")}
+  - Anti-Prose Evidence Invariant: Milestone transitions mandate cryptographic event hash chains and exit_code === 0 receipts.`);
 
   const normalizedKey = normalizeRoleKey(options.role);
   const rolePolicy = repoPolicy.agents?.[normalizedKey] ?? repoPolicy.agents?.[options.role];
@@ -181,7 +185,20 @@ All temporary scripts and files must strictly be written to \`scratch/\` (or \`.
 TEST EXECUTION RULES:
 - Cognitive Validators: 0 test suite executions allowed.
 - Implementers: Only file-scoped unit tests. Whole repo \`bun test\` is strictly prohibited.
-- Supervisors: 0 code modifications or raw test executions allowed.`);
+- Supervisors: 0 code modifications or raw test executions allowed.
+- Evidence Requirement: Prose assertions cannot substitute for cryptographic command receipts.`);
+
+  if (options.capsulePath) {
+    const verification = verifyMilestoneEvidence(options.capsulePath, "ignition");
+    sections.push(`================================================================================
+SECTION 3.5: CAPSULE MILESTONE EVIDENCE VERIFICATION
+================================================================================
+STATUS: ${verification.certified ? "CERTIFIED" : "FAILED"}
+CAPSULE: ${options.capsulePath}
+SUMMARY: ${verification.summary}
+HASH CHAIN: ${verification.hashChain.valid ? "VALID" : "INVALID"} (${verification.hashChain.totalEvents} events)
+RECEIPTS: ${verification.commandReceipts.length} total, ${verification.failedReceipts.length} failed`);
+  }
 
   sections.push(`================================================================================
 SECTION 4: OPERATIONAL STEP-BY-STEP RUNBOOK
@@ -198,6 +215,7 @@ export async function agentBriefCommand(
   const role = typeof flags["role"] === "string" ? flags["role"] : "";
   const format = typeof flags["format"] === "string" ? flags["format"] : undefined;
   const hostFlag = typeof flags["host"] === "string" ? flags["host"] : undefined;
+  const runFlag = typeof flags["run"] === "string" ? flags["run"] : undefined;
   if (!role) {
     throw new HarnessError("INVALID_ARGUMENT", "Missing --role");
   }
@@ -213,9 +231,17 @@ export async function agentBriefCommand(
     repoRoot: findRepoRoot(cwd),
     ...(format !== undefined ? { format } : {}),
     ...(host !== undefined ? { host } : {}),
+    ...(runFlag !== undefined ? { capsulePath: runFlag } : {}),
   };
   const output = executeAgentBrief(opts);
-  return { markdown: output };
+  let milestoneEvidence: MilestoneEvidenceVerification | undefined = undefined;
+  if (runFlag) {
+    milestoneEvidence = verifyMilestoneEvidence(runFlag, "ignition");
+  }
+  return {
+    markdown: output,
+    ...(milestoneEvidence ? { milestone_evidence: milestoneEvidence } : {}),
+  };
 }
 
 export async function agentDefineCommand(_flags: Flags): Promise<Record<string, unknown>> {

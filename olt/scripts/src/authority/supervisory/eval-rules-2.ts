@@ -13,7 +13,6 @@ export function evaluateRulesBatch2(
   violations: PersonaViolation[],
   correctiveDirectives: string[],
 ): void {
-  // 6. Invariant: Unproven Gates (`gate:prove`)
   const unprovenGatesCount = context.unprovenGatesCount ?? 0;
   if (tier === 2 && unprovenGatesCount > 0) {
     violations.push({
@@ -30,7 +29,6 @@ export function evaluateRulesBatch2(
     );
   }
 
-  // 7. Invariant: Scepticism Pushback & Qualitative-Only Passes
   const qualitativePasses = context.qualitativePassesWithoutProof ?? [];
   if (tier <= 2 && qualitativePasses.length > 0) {
     violations.push({
@@ -47,7 +45,6 @@ export function evaluateRulesBatch2(
     );
   }
 
-  // 8. Invariant: 4-Tier Viewport Matrix for UI Tasks
   const uiTasksMissingViewports = context.uiTasksMissingViewportValidation ?? [];
   if (uiTasksMissingViewports.length > 0) {
     violations.push({
@@ -64,7 +61,6 @@ export function evaluateRulesBatch2(
     );
   }
 
-  // 9. Invariant: Premature Run Completion
   if (context.attemptedPrematureCompletion) {
     const hasBlockers =
       leases.length > 0 ||
@@ -93,7 +89,6 @@ export function evaluateRulesBatch2(
     }
   }
 
-  // 10. Invariant: Validator Mandatory Adversarial Probe
   if (role.startsWith("validator") && context.adversarialProbeRecorded === false) {
     violations.push({
       code: "MANDATORY_ADVERSARIAL_PROBE_OMISSION",
@@ -109,7 +104,6 @@ export function evaluateRulesBatch2(
     );
   }
 
-  // 11. Invariant: Standardized Agent Naming Convention
   if (context.agentId) {
     const namingValidation = validateAgentNamingConvention(context.agentId, role, tier);
     if (!namingValidation.valid) {
@@ -133,5 +127,28 @@ export function evaluateRulesBatch2(
           : "**Resolution Path:**\n1. Review the agent naming conventions.\n2. Adopt a standardized agent ID for the role and tier.",
       );
     }
+  }
+
+  if (
+    context.evidenceVerificationFailed ||
+    (context.evidenceVerification && !context.evidenceVerification.certified)
+  ) {
+    const errorDetails =
+      context.evidenceVerification?.errors.join("; ") ??
+      "Milestone evidence failed cryptographic verification.";
+    violations.push({
+      code: "PROSE_EVIDENCE_BIAS_BREACH",
+      rule: "Supervisors must mandate cryptographic event hash chains and exit_code === 0 command receipts instead of accepting prose assertions.",
+      severity: "critical",
+      message: `Milestone evidence verification failed: ${errorDetails}`,
+      correctiveDirective:
+        "**Resolution Path:**\n1. Inspect `events.jsonl` and ensure SHA-256 hash chain is unbroken from sequence 1 to tail.\n2. Ensure all required CLI commands have executed with exit_code === 0.\n3. Certify milestones strictly on cryptographic receipt proof.",
+      evidence: {
+        errors: context.evidenceVerification?.errors ?? ["Evidence verification failed."],
+      },
+    });
+    correctiveDirectives.push(
+      "**Resolution Path:**\n1. Re-verify SHA-256 event hash chain and CLI command receipts.\n2. Reject any milestone transition lacking cryptographic proof.",
+    );
   }
 }
