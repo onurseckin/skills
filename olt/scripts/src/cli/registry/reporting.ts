@@ -299,7 +299,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "quota:check",
-    aliases: [],
+    aliases: ["quota:circuit-break", "circuit-breaker:check"],
     domain: "reporting",
     summary:
       "Evaluate quota circuit-breaker status, wrap-up directives, and auto-wake timer schedule.",
