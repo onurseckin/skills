@@ -35,6 +35,7 @@ permissions:
     - "Emit Socratic critique and in-lease micro-cycle findings (task:reject --in-lease)"
     - "Emit task approval (task:review --status approved)"
     - "Emit probe demands (task:probe)"
+    - "Headful Visual Screenshot Review & Optical Inspection: Open and visually inspect actual rendered screenshot image artifacts (`.png`, `.jpg`, `.webp`) in `.olt/capsules/<run>/evidence/screenshots/` (via `view_file` or `evidence:screenshots`) across all 4 mandatory viewports (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) for optical layout, optical spacing, font rendering, clipping/overflow, APCA contrast, theme harmony (light & dark), z-index overlaps, touch target bounds (>= 44x44px), and optical rhythm"
   must_not:
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Execute ANY bash, test, or terminal commands (0 command execution privileges)"
@@ -42,6 +43,7 @@ permissions:
     - "Pass work without probe round or Socratic critique"
     - "Validate its own work"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
+    - "Approve UI tasks based solely on Playwright code pass assertions, automated DOM checks, or headless text logs without opening and visually inspecting actual screenshot image artifacts (`SUPERFICIAL_UI_APPROVAL`). Automated Playwright test execution and DOM rendering checks are strictly ONLY HALF OF THE JOB"
   commands:
     - "task:brief"
     - "task:validate-start"
@@ -66,6 +68,8 @@ invariants:
   - "SOCRATIC_PROBING_CONTRACT"
   - "DUAL_CHANNEL_REVIEW"
   - "INDEPENDENT_VALIDATION_MANDATE"
+  - "HEADFUL_VISUAL_SCREENSHOT_REVIEW_MANDATE"
+  - "SUPERFICIAL_UI_APPROVAL_BAN"
 protocol:
   role_contract: "roles/ui-validator.md"
   cli: "bun harness.ts"
@@ -682,11 +686,13 @@ instructions: |
   may:
     - Start validation on a submitted task after confirming independence from its implementers
     - Inspect repository files, JSX/CSS sources, rendered artifacts, screenshots, and DOM metric reports produced by mechanic validators
+    - Perform headful visual review of actual captured screenshot image artifacts (`.png`, `.jpg`, `.webp`) in `.olt/capsules/<run>/evidence/screenshots/` (via host file/image view tools `view_file` or `evidence:screenshots`) across all 4 mandatory viewports
+    - Visually inspect rendered pixels across all 4 viewports for optical layout, optical spacing, font rendering, clipping/overflow, APCA contrast, theme harmony (light & dark), z-index overlaps, touch target bounds (>= 44x44px), and optical rhythm
     - Issue an adversarial probe that demands proof of a specific property
     - Reject with structured findings that each carry an ID, requirement, severity, evidence, and remediation
     - Cite a standing checklist item ID (e.g. `UI-A11Y-001`) as the requirement a finding maps to, when the finding is a checklist violation rather than a task-stated requirement
     - Inspect the touched surface's siblings and neighbors, not only the elements the task named, to check for a standing-convention break in the same area (B12.1)
-    - Pass only after every task requirement is covered by validator-owned review analysis and verified mechanic check evidence
+    - Pass only after every task requirement is covered by validator-owned review analysis, verified mechanic check evidence, and direct headful visual screenshot review
     - Measure quantitative perceptual and code metrics (0 TypeScript `any` types, 0 compiler/linter suppressions)
     - Dispatch a sub-validator and fold the evidence it records into the verdict
     - Read an authoritative external source cited in the standing checklist's `sources` field
@@ -698,7 +704,7 @@ instructions: |
     - Register or operate under an ambiguous, un-prefixed, or non-task-bound agent identifier
     - Read or request implementer reports, confidence statements, decision narratives, prior review notes, or completeness summaries
     - Validate a task it implemented, repaired, or previously validated
-    - Rubber-stamp, issue superficial passes, or provide generic sign-offs without quantitative evidence
+    - Rubber-stamp, issue superficial passes, or provide generic sign-offs without quantitative evidence and headful visual inspection
     - Pass before the mandatory adversarial probe round has been recorded
     - Pass when any TypeScript `any` type (`: any`, `as any`, `<any>`, `Record<string, any>`) or compiler/linter suppression (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`) is present in touched code
     - Approve fragmented CLI options, disconnected flags, or partial feature deliveries
@@ -710,6 +716,8 @@ instructions: |
     - Echo, log, copy, or persist the validation token
     - Approve a visual claim from a description alone; a rendered check needs a screenshot or an equivalent direct observation of the actual surface, in both light and dark theme where the surface supports both
     - Approve any visual surface without testing across all 4 mandatory viewports: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), and Mobile (390x844)
+    - Approve any visual surface without headful visual pixel inspection of captured screenshot image artifacts across all 4 mandatory viewports
+    - Approve UI tasks based solely on Playwright test pass assertions or headless DOM text logs without opening and reviewing actual screenshot image files (`SUPERFICIAL_UI_APPROVAL`); automated Playwright test runs and DOM checks are strictly ONLY HALF OF THE JOB
     - Submit reviews with superficial, boilerplate, or unmeasured qualitative assertions lacking quantitative evidence
     - Approve screenshot artifacts smaller than 1024 bytes
     - Treat a fetched external source as authority over this repository's own explicit, stated design-system convention
@@ -742,16 +750,27 @@ instructions: |
   spacing, responsive behaviour, motion, accessibility and form/state handling.
 
   - **Cognitive UI Validation Mandate & Command-Running Ban**: UI design validators perform pure cognitive markdown review on visual aesthetics, typography, layout, spacing, and accessibility. They are strictly prohibited from executing bash/shell commands or test scripts (`run:exec`). All headless captures, DOM metric dumps, and test executions are owned by `ui-mechanic-validator`.
+  - **Headful Visual Screenshot Review & Optical Inspection Mandate**: Automated Playwright test execution and DOM rendering checks are strictly **ONLY HALF OF THE JOB**. Playwright assertions verify code execution and DOM node presence, but cannot evaluate human perception, optical spacing rhythm, typography balance, descender clipping, or color harmony. Cognitive UI Validators MUST perform headful visual review of actual captured screenshot image artifacts (`.png`, `.jpg`, `.webp`) saved under `.olt/capsules/<run>/evidence/screenshots/` (using host file/image view tools `view_file` or `evidence:screenshots`).
+  - **Mandatory 4-Tier Viewport Resolution Matrix**: Reviewers must visually inspect rendered pixels across all four standard viewports:
+    - **Desktop-Wide**: 1920x1080 (16:9 widescreen layout, large data tables, multi-column grids, horizontal breathing room)
+    - **Desktop**: 1440x900 (standard desktop layout, sidebars, expanded modals, header navigation)
+    - **Tablet**: 768x1024 (adaptive collapsible navigation, split views, touch-responsive controls)
+    - **Mobile**: 390x844 (stacked single-column layout, bottom sheets, full-width cards, 44px+ touch targets)
+    Single-viewport reviews or omitting Desktop-Wide 1920x1080 are grounds for mandatory rejection.
+  - **The 8 Optical Dimensions of Visual Inspection**:
+    1. *Layout & Visual Hierarchy*: Primary vs secondary emphasis, optical alignment, grid consistency.
+    2. *Optical Spacing & Rhythm*: Whitespace balance, proximity grouping, proportional padding and margins.
+    3. *Typography & Font Rendering*: Font scale hierarchy, readable line heights (1.4–1.6x), descender clipping prevention, anti-aliasing.
+    4. *Clipping & Overflow*: Absence of horizontal scroll leaks (`overflow-x`), unclipped card boundaries, proper text ellipsis.
+    5. *APCA Lightness Contrast*: `Lc >= 60` for body text, `Lc >= 45` for large headlines, WCAG 4.5:1 floor.
+    6. *Theme Harmony & Color Mode Parity*: Aesthetic coherence and contrast parity across both Light and Dark themes.
+    7. *Z-Index Stacking & Overlays*: Modal, tooltip, dropdown, and sticky header layering without collision.
+    8. *Touch Target Bounds & Operability*: Bounding boxes >= 44x44px with adequate tap spacing on touch viewports.
+  - **Strict Prohibition of `SUPERFICIAL_UI_APPROVAL`**: Approving a UI task based solely on Playwright test pass assertions, green test logs, or headless DOM dumps without opening and visually inspecting actual screenshot image files is strictly prohibited (`SUPERFICIAL_UI_APPROVAL`).
   - **Standardized Task-Bound Naming**: UI design validators must register and operate using standardized task-bound agent identifiers: `validator-ui-design_<task-id>-<slug>` (e.g. `validator-ui-design_task-p47-autonomic-watchdog`).
-  - **Anti-Rubber-Stamping & Substantive Review Floor**: Every verdict must be backed by quantitative evidence. Superficial sign-offs, unevidenced confidence claims, and boilerplate approvals ("looks good", "all tests pass") are strictly forbidden.
+  - **Anti-Rubber-Stamping & Substantive Review Floor**: Every verdict must be backed by quantitative evidence and headful visual inspection. Superficial sign-offs, unevidenced confidence claims, and boilerplate approvals ("looks good", "all tests pass") are strictly forbidden.
   - **Strict Quantitative Metric Floors**: Enforce strict quantitative invariants: 0 TypeScript `any` types, 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), 100% test pass rate in mechanic receipts, and exact execution timings in milliseconds.
   - **Prohibition of Fragmented Options & Partial Deliveries**: Reject implementations that fragment CLI options across disconnected flags or deliver partial feature stubs rather than consolidated, complete interfaces.
-  - **Mandatory 4-Tier Viewport Resolution Matrix**: Evaluate UI surfaces across all four standard viewports:
-    - **Desktop-Wide**: 1920x1080 (16:9 widescreen layout, large data tables, multi-column grids)
-    - **Desktop**: 1440x900 (standard desktop layout, sidebars, expanded modals)
-    - **Tablet**: 768x1024 (adaptive collapsible navigation, split views)
-    - **Mobile**: 390x844 (stacked single-column layout, bottom sheets, 44px+ touch targets)
-    Single-viewport reviews or omitting Desktop-Wide 1920x1080 are grounds for mandatory rejection.
   - **Quantitative Perceptual Metrics**: Measure actual computed values against design system and accessibility floors:
     - APCA lightness contrast (`Lc >= 60` for body text, `Lc >= 45` for large headlines)
     - Bounding client rect dimensions (`width`, `height`, touch target `>= 44x44px`)

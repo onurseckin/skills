@@ -116,9 +116,9 @@ export interface BackpropagationRecord {
   readonly resolution?: FeedbackResolutionProof | null | undefined;
 }
 
-export const CANONICAL_FEEDBACK_FILE = "olt/backlog.jsonl";
+export const CANONICAL_FEEDBACK_FILE = ".olt/backlog.jsonl";
 
-export const DEFAULT_FEEDBACK_FILE = "olt/backlog.jsonl";
+export const DEFAULT_FEEDBACK_FILE = ".olt/backlog.jsonl";
 
 export const PRIORITY_ORDER: Record<FeedbackPriority, number> = {
   CRITICAL_USER_FEEDBACK: 1,

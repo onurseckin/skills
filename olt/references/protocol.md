@@ -174,6 +174,27 @@ execution (`run:exec`), and performs an exhaustive adversarial invariant audit:
 - Visual/layout bounds, responsive constraints, typography, and styling for generated artifacts;
 - Substantive test verification (rejecting tautological, shallow, or mocked-out tests).
 
+#### Headful Visual Screenshot Review & Optical Inspection Mandate
+
+For UI tasks, automated Playwright test execution and DOM rendering checks are strictly **ONLY HALF OF THE JOB**. Automated test assertions verify that code compiles, components mount, and elements exist in the DOM tree, but automated scripts cannot perceive visual aesthetics, optical spacing rhythm, typography balance, font descender clipping, color contrast harmony, or visual defects.
+
+1. **Mandatory Headful Review of Screenshot Image Files**: Cognitive UI Validators MUST perform headful visual review of actual captured screenshot image artifacts (`.png`, `.jpg`, `.webp` $\ge 1024$ bytes) saved under `.olt/capsules/<run>/evidence/screenshots/` (using host file/image view tools `view_file` or `evidence:screenshots`).
+2. **Mandatory 4-Tier Viewport Resolution Matrix**: Reviewers must visually inspect rendered pixels across all 4 mandatory viewports:
+   - **Desktop-Wide (1920x1080)**: 16:9 widescreen layout, large data tables, multi-column grids, horizontal breathing room.
+   - **Desktop (1440x900)**: standard desktop layout, sidebars, expanded modals, header navigation.
+   - **Tablet (768x1024)**: adaptive collapsible navigation, split views, touch-responsive controls.
+   - **Mobile (390x844)**: stacked single-column layout, bottom sheets, full-width cards, 44px+ touch targets.
+3. **The 8 Optical Dimensions of Visual Inspection**: Reviewers must visually inspect rendered pixels across:
+   - _Visual Layout & Hierarchy_: Primary vs secondary prominence, alignment consistency, balanced grid structure.
+   - _Optical Spacing & Rhythm_: Whitespace rhythm, proximity grouping, proportional margins and padding.
+   - _Typography & Font Rendering_: Font hierarchy, line heights (1.4–1.6x), descender clipping prevention, anti-aliasing.
+   - _Clipping & Overflow_: Absence of horizontal scroll leaks (`overflow-x`), unclipped card boundaries, explicit ellipsis/truncation.
+   - _APCA Lightness Contrast_: `Lc >= 60` for body text, `Lc >= 45` for large headlines, WCAG 4.5:1 floor.
+   - _Theme Harmony & Color Mode Parity_: Aesthetic coherence and contrast parity across both Light and Dark themes.
+   - _Z-Index Stacking & Overlays_: Modal, tooltip, dropdown, and sticky header layering without collisions.
+   - _Touch Target Bounds & Operability_: Bounding boxes $\ge 44\times 44\text{px}$ with adequate tap spacing on touch viewports.
+4. **Strict Prohibition of `SUPERFICIAL_UI_APPROVAL`**: Approving a UI task based solely on Playwright code pass assertions, green test logs, or headless DOM dumps without opening and visually inspecting actual screenshot image files across all 4 viewports is strictly prohibited (`SUPERFICIAL_UI_APPROVAL`).
+
 **The round-1 adversarial check is a probe, not a rejection.** `task:probe --demand "Prove X"` files
 a `probe_demand` finding: it asserts nothing about the code, it leaves the task in `validating` under
 the same validator, and it does not touch `repair_round` or reassign the repairer. A sign-off is

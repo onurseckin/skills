@@ -1,7 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { ErrorCode } from "../core/errors/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
+import { resolveSkillHomeRepo } from "../core/index.ts";
 
 export interface StagnationTelemetry {
   readonly agentId: string;
@@ -51,6 +53,10 @@ export class VerbatimRoleInjector {
       join(repoRoot, "olt", "agents", `${role}.yml`),
       join(repoRoot, "agents", `${role}.yaml`),
       join(repoRoot, "agents", `${role}.yml`),
+      join(homedir(), ".agents", "skills", "olt", "agents", `${role}.yaml`),
+      join(homedir(), ".agents", "skills", "olt", "agents", `${role}.yml`),
+      join(resolveSkillHomeRepo(repoRoot), "olt", "agents", `${role}.yaml`),
+      join(resolveSkillHomeRepo(repoRoot), "olt", "agents", `${role}.yml`),
       resolve(import.meta.dir, "../../../agents", `${role}.yaml`),
       resolve(import.meta.dir, "../../../agents", `${role}.yml`),
     ];

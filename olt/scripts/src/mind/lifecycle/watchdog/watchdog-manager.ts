@@ -2,8 +2,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { resolveOltDir } from "../../../core/shared/paths.ts";
 
-export const CANONICAL_WATCHDOG_FILE = "olt/watchdogs.json";
-export const DEFAULT_WATCHDOG_FILE = "olt/watchdogs.json";
+export const CANONICAL_WATCHDOG_FILE = ".olt/watchdogs.json";
+export const DEFAULT_WATCHDOG_FILE = ".olt/watchdogs.json";
 
 export type WatchdogStatus = "active" | "terminated" | "expired" | "failed";
 

@@ -1,7 +1,7 @@
-export const DEFAULT_DEFECTS_FILE = "olt/defects.jsonl";
-export const CANONICAL_DEFECTS_FILE = "olt/defects.jsonl";
-export const DEFAULT_COMPLETED_DEFECTS_FILE = "olt/completed-defects.jsonl";
-export const CANONICAL_COMPLETED_DEFECTS_FILE = "olt/completed-defects.jsonl";
+export const DEFAULT_DEFECTS_FILE = ".olt/defects.jsonl";
+export const CANONICAL_DEFECTS_FILE = ".olt/defects.jsonl";
+export const DEFAULT_COMPLETED_DEFECTS_FILE = ".olt/completed-defects.jsonl";
+export const CANONICAL_COMPLETED_DEFECTS_FILE = ".olt/completed-defects.jsonl";
 
 export function requireDistinctLedgerPaths(activePath: string, completedPath: string): void {
   if (resolve(activePath) === resolve(completedPath)) {

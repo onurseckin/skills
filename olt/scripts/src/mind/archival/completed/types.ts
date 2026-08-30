@@ -68,21 +68,21 @@ export interface RecordCompletedTaskOptions {
   readonly updateDefects?: boolean | undefined;
 }
 
-export const CANONICAL_COMPLETED_TASKS_FILE = "olt/completed-tasks.jsonl";
+export const CANONICAL_COMPLETED_TASKS_FILE = ".olt/completed-tasks.jsonl";
 
-export const DEFAULT_COMPLETED_TASKS_FILE = "olt/completed-tasks.jsonl";
+export const DEFAULT_COMPLETED_TASKS_FILE = ".olt/completed-tasks.jsonl";
 
-export const CANONICAL_DEFECTS_FILE = "olt/defects.jsonl";
+export const CANONICAL_DEFECTS_FILE = ".olt/defects.jsonl";
 
-export const DEFAULT_DEFECTS_FILE = "olt/defects.jsonl";
+export const DEFAULT_DEFECTS_FILE = ".olt/defects.jsonl";
 
-export const CANONICAL_COMPLETED_DEFECTS_FILE = "olt/completed-defects.jsonl";
+export const CANONICAL_COMPLETED_DEFECTS_FILE = ".olt/completed-defects.jsonl";
 
-export const DEFAULT_COMPLETED_DEFECTS_FILE = "olt/completed-defects.jsonl";
+export const DEFAULT_COMPLETED_DEFECTS_FILE = ".olt/completed-defects.jsonl";
 
-export const CANONICAL_OBSERVATIONS_FILE = "olt/telemetry.jsonl";
+export const CANONICAL_OBSERVATIONS_FILE = ".olt/telemetry.jsonl";
 
-export const DEFAULT_OBSERVATIONS_FILE = "olt/telemetry.jsonl";
+export const DEFAULT_OBSERVATIONS_FILE = ".olt/telemetry.jsonl";
 
 export type LedgerPersistenceStage =
   | "before_write"

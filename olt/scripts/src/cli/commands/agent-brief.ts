@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { normalizeRoleKey, resolveAgentHostConfiguration } from "../../authority/host-bindings.ts";
 import { parseUnifiedAgentManifest } from "../../authority/manifest-schema.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
+import { findRepoRoot, resolveSkillHomeRepo } from "../../core/index.ts";
 import { detectActiveHost, isHostType, type HostType } from "../../platform/host-autodetect.ts";
 import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import type { AgentHostPolicy } from "../../policy/types/index.ts";
@@ -49,6 +50,8 @@ function findAgentManifestPath(role: string, repoRoot?: string): string {
     join(root, "agents"),
     join(import.meta.dir, "..", "..", "..", "..", "agents"),
     join(import.meta.dir, "..", "..", "..", "agents"),
+    join(homedir(), ".agents", "skills", "olt", "agents"),
+    join(resolveSkillHomeRepo(root), "olt", "agents"),
   ];
 
   for (const dir of searchDirs) {

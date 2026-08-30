@@ -20,8 +20,8 @@ describe("mind/watchdog-manager", () => {
   });
 
   it("exports constants", () => {
-    expect(CANONICAL_WATCHDOG_FILE).toBe("olt/watchdogs.json");
-    expect(DEFAULT_WATCHDOG_FILE).toBe("olt/watchdogs.json");
+    expect(CANONICAL_WATCHDOG_FILE).toBe(".olt/watchdogs.json");
+    expect(DEFAULT_WATCHDOG_FILE).toBe(".olt/watchdogs.json");
   });
 
   it("resolves canonical and custom watchdog store paths", () => {

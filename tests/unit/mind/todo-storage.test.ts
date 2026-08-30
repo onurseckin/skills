@@ -48,12 +48,12 @@ import { scratchRoot } from "../../support/scratch-root.ts";
 describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () => {
   describe("Standardized Canonical Constants & Layout Naming", () => {
     it("verifies canonical filenames adhere strictly to lowercase kebab-case naming", () => {
-      expect(CANONICAL_FEEDBACK_FILE).toBe("olt/backlog.jsonl");
-      expect(CANONICAL_COMPLETED_TASKS_FILE).toBe("olt/completed-tasks.jsonl");
-      expect(CANONICAL_DEFECTS_FILE).toBe("olt/defects.jsonl");
-      expect(CANONICAL_COMPLETED_DEFECTS_FILE).toBe("olt/completed-defects.jsonl");
-      expect(CANONICAL_OBSERVATIONS_FILE).toBe("olt/telemetry.jsonl");
-      expect(CANONICAL_WATCHDOG_FILE).toBe("olt/watchdogs.json");
+      expect(CANONICAL_FEEDBACK_FILE).toBe(".olt/backlog.jsonl");
+      expect(CANONICAL_COMPLETED_TASKS_FILE).toBe(".olt/completed-tasks.jsonl");
+      expect(CANONICAL_DEFECTS_FILE).toBe(".olt/defects.jsonl");
+      expect(CANONICAL_COMPLETED_DEFECTS_FILE).toBe(".olt/completed-defects.jsonl");
+      expect(CANONICAL_OBSERVATIONS_FILE).toBe(".olt/telemetry.jsonl");
+      expect(CANONICAL_WATCHDOG_FILE).toBe(".olt/watchdogs.json");
       expect(CANONICAL_COGNITIVE_MEMORY_FILE).toBe(".olt/memory.json");
     });
 

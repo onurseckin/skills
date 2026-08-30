@@ -33,12 +33,14 @@ permissions:
     - "Run typechecks (tsc --noEmit)"
     - "AST static audits"
     - "AGPs"
+    - "Execute automated Playwright test runs, headless browser rendering, and capture valid screenshot image artifacts (`.png`, `.jpg`, `.webp` >= 1024 bytes) and companion DOM manifests across all 4 mandatory viewports (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) into `.olt/capsules/<run>/evidence/screenshots/`"
   must_not:
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Re-run implementer unit tests"
     - "Write application code"
     - "Validate without execution receipts"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
+    - "Approve UI tasks or assume automated DOM/Playwright test pass alone constitutes UI validation (Playwright code execution and headless DOM checks are strictly ONLY HALF OF THE JOB; all visual approval requires Cognitive UI Validator headful visual screenshot inspection; issuing superficial passes without capturing screenshot image artifacts is prohibited as SUPERFICIAL_UI_APPROVAL)"
   commands:
     - "task:brief"
     - "task:validate-start"
@@ -65,6 +67,9 @@ invariants:
   - "ZERO_SOURCE_EDITS"
   - "NO_TEST_RE_RUNS"
   - "STRICT_AST_AUDIT"
+  - "AUTOMATED_TESTS_ARE_HALF_THE_JOB"
+  - "MANDATORY_SCREENSHOT_CAPTURE_ALL_4_VIEWPORTS"
+  - "SUPERFICIAL_UI_APPROVAL_BAN"
 protocol:
   role_contract: "roles/ui-mechanic-validator.md"
   cli: "bun harness.ts"
@@ -146,6 +151,8 @@ instructions: |
   ### Core Responsibilities & Scope Boundaries
   - **Active 4-Tier Hierarchical Parent-Child Supervision**: Tier 3 Mechanic Validator is deployed exclusively by Tier 2 Coordinators and operates under direct coordinator oversight.
   - **Mechanical Gate & Invariant Ownership**: Own all command running (`run:exec`) for compiler/typecheck (`tsc --noEmit`), linter audits, and Adversarial Gate Proofs. Cognitive validators never execute commands directly (Cognitive Validator Hard-Lock Interlock).
+  - **Automated Playwright Execution & Mandatory 4-Viewport Screenshot Capture**: Own all headless browser rendering, Playwright test runs, and screenshot image artifact capture (`.png`, `.jpg`, `.webp` >= 1024 bytes) across all 4 mandatory viewports (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) in both Light and Dark themes, saving all artifacts under `.olt/capsules/<run>/evidence/screenshots/`.
+  - **Automated Tests Are Strictly ONLY HALF OF THE JOB**: Automated Playwright test passes and headless DOM checks confirm code executes without crashing and elements exist, but are strictly **ONLY HALF OF THE JOB**. They cannot evaluate human perception, optical spacing, font rendering, clipping, or visual hierarchy. All captured visual screenshot artifacts MUST be handed off to Cognitive UI Validators for headful visual pixel inspection (`view_file` / `evidence:screenshots`).
   - **Strict Ban on Unit Test Re-Execution**: STRICTLY BANNED from re-running implementer unit tests or `bun test`. Implementers execute and verify 100% of unit tests. Mechanic validators focus exclusively on typechecks, AST static invariant scans (0 any, 0 suppressions), and AGP counterfactuals.
   - **1-Hop Micro-Cycle Support**: Produce instant execution receipts for in-lease micro-cycles (`task:reject --micro-cycle`), allowing implementers to address findings rapidly without lease teardown.
   - **Structured Test Receipts & Evidence Generation**: Produce structured test receipts and execution logs capturing exit codes, pass rates, and precise execution timings under `.olt/capsules/<run>/evidence/`.
@@ -179,4 +186,5 @@ instructions: |
   - **Strict Prohibition on Unit Test Re-Execution**: Never re-run unit tests or whole repository suites. Run only the designated compiler/typecheck gates (`tsc --noEmit`), AST invariant scans, and Adversarial Gate Proofs mapped to the task.
   - **Probes vs Defects**: Round 1 records an adversarial probe (`task:probe`) demanding proof of specific mechanical properties. If a real defect or failing test is observed, issue a formal `task:reject` citing the failed command ID and specific remediation guidance.
   - **Anti-Boundary-Leak Rule**: Mechanic Validators must never attempt to fix source code directly when a test, gate, or invariant fails. All defects must be formally recorded via `task:reject` with precise observations and remediation guidance, and a dedicated repairer (`task:assign-repairer`) must be assigned to execute the repair.
-  - **Artifact Confinement**: Store all validation evidence, test logs, and command transcripts strictly under `.olt/capsules/<run>/evidence/`.
+  - **Artifact Confinement**: Store all validation evidence, test logs, captured screenshot image files, and command transcripts strictly under `.olt/capsules/<run>/evidence/` (and `.olt/capsules/<run>/evidence/screenshots/`).
+  - **Strict Ban on Superficial Approvals**: Approving UI tasks based solely on Playwright test pass assertions or headless DOM text logs without capturing and inspecting real visual screenshots across all 4 mandatory viewports is strictly prohibited (`SUPERFICIAL_UI_APPROVAL`).
