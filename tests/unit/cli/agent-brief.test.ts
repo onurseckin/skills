@@ -85,8 +85,12 @@ describe("executeAgentBrief", () => {
   test("injects mandatory Turn 1 dispatch template into coordinator runtime briefing", () => {
     const brief = executeAgentBrief({ role: "coordinator" });
 
-    expect(brief).toContain("SECTION 3.8: MANDATORY TURN 1 DISPATCH TEMPLATE (ANTI-DIRECT-EXECUTION SENTINEL)");
-    expect(brief).toContain("CRITICAL ANTI-DIRECT-EXECUTION INVARIANT (SUPERVISOR_ZERO_CODE_EDITS / ROLE_BOUNDARY_DEVIATION)");
+    expect(brief).toContain(
+      "SECTION 3.8: MANDATORY TURN 1 DISPATCH TEMPLATE (ANTI-DIRECT-EXECUTION SENTINEL)",
+    );
+    expect(brief).toContain(
+      "CRITICAL ANTI-DIRECT-EXECUTION INVARIANT (SUPERVISOR_ZERO_CODE_EDITS / ROLE_BOUNDARY_DEVIATION)",
+    );
     expect(brief).toContain("Coordinators are Tier 2 pure wave orchestrators and dispatchers.");
     expect(brief).toContain("MANDATORY TURN 1 EXECUTION SEQUENCE:");
     expect(brief).toContain("bun harness.ts plan:compile --run <run_id>");

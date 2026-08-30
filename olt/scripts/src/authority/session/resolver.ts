@@ -99,7 +99,8 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
         readSessionFile,
       );
       const parsed =
-        session ?? readPersistedSession(identityPath, "workspace_directory_session", readSessionFile);
+        session ??
+        readPersistedSession(identityPath, "workspace_directory_session", readSessionFile);
 
       if (parsed) {
         mechanisms.push("workspace_directory_session");

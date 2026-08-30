@@ -42,9 +42,7 @@ export class SkillAuditorEngine {
         for (const entry of readdirSync(capsulesDir, { withFileTypes: true })) {
           if (entry.isDirectory()) addIfCapsule(join(capsulesDir, entry.name));
         }
-      } catch {
-
-      }
+      } catch {}
     }
 
     const dotCapsules = join(repoRoot, ".capsules");
@@ -53,9 +51,7 @@ export class SkillAuditorEngine {
         for (const entry of readdirSync(dotCapsules, { withFileTypes: true })) {
           if (entry.isDirectory()) addIfCapsule(join(dotCapsules, entry.name));
         }
-      } catch {
-
-      }
+      } catch {}
     }
 
     return [...roots];
@@ -93,9 +89,7 @@ export class SkillAuditorEngine {
           eventsAnalyzed++;
           maxEventSeq = Math.max(maxEventSeq, i);
         }
-      } catch {
-
-      }
+      } catch {}
     }
 
     const incidents = hasEvents

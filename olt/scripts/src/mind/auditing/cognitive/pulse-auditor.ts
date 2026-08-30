@@ -117,9 +117,7 @@ export function auditMindPulseHelper(
           pendingBacklogCount++;
         }
       }
-    } catch {
-
-    }
+    } catch {}
   }
 
   const countDefectLines = (defectsPath: string): number => {

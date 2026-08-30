@@ -71,7 +71,7 @@ Execution Order: [Task 1.1] ──► [Verification] ──► [Git Staging: git
 
 ## 5. Exhaustive Traceability Matrix
 
-| Defect / Backlog ID | Resolved By Task | Verification Target |
-| :--- | :--- | :--- |
-| `defect-skill-auditor-passive-logging-no-active-interjection` | Task 1.x | `tests/unit/validation/` |
-| `defect-coordinator-direct-execution-bias` | Task 1.x | `tests/unit/validation/` |
+| Defect / Backlog ID                                           | Resolved By Task | Verification Target      |
+| :------------------------------------------------------------ | :--------------- | :----------------------- |
+| `defect-skill-auditor-passive-logging-no-active-interjection` | Task 1.x         | `tests/unit/validation/` |
+| `defect-coordinator-direct-execution-bias`                    | Task 1.x         | `tests/unit/validation/` |

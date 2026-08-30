@@ -42,7 +42,10 @@ export function isCoordinatorRole(role: string): boolean {
 }
 
 export function isCoordinatorFileEditForbidden(toolNameOrCategory: string): boolean {
-  const norm = toolNameOrCategory.toLowerCase().trim().replace(/^mcp_[^_]+_/, "");
+  const norm = toolNameOrCategory
+    .toLowerCase()
+    .trim()
+    .replace(/^mcp_[^_]+_/, "");
   return (
     COORDINATOR_FILE_EDIT_TOOLS.has(norm) ||
     COORDINATOR_FILE_EDIT_CATEGORIES.has(norm) ||

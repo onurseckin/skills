@@ -37,9 +37,7 @@ afterEach(() => {
   for (const root of roots) {
     try {
       rmSync(root, { recursive: true, force: true });
-    } catch {
-
-    }
+    } catch {}
   }
   roots.length = 0;
 });

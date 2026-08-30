@@ -118,7 +118,6 @@ export function validateAuditAnswers(rawAnswers: unknown): readonly AuditAnswer[
       }
     }
   } else {
-
     const record = rawAnswers as Record<string, unknown>;
     for (const [key, value] of Object.entries(record)) {
       const qId = normalizeQuestionId(key);

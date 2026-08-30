@@ -17,16 +17,12 @@ export function readCommandOutput(resolution: WitnessResolution): {
   if (existsSync(stdStdoutPath)) {
     try {
       stdout = readFileSync(stdStdoutPath, "utf-8");
-    } catch {
-
-    }
+    } catch {}
   }
   if (existsSync(stdStderrPath)) {
     try {
       stderr = readFileSync(stdStderrPath, "utf-8");
-    } catch {
-
-    }
+    } catch {}
   }
 
   if (stdout.length === 0 && commandRecord.logs?.stdout?.path) {
@@ -35,9 +31,7 @@ export function readCommandOutput(resolution: WitnessResolution): {
     if (existsSync(customStdoutPath)) {
       try {
         stdout = readFileSync(customStdoutPath, "utf-8");
-      } catch {
-
-      }
+      } catch {}
     }
   }
 
@@ -47,9 +41,7 @@ export function readCommandOutput(resolution: WitnessResolution): {
     if (existsSync(customStderrPath)) {
       try {
         stderr = readFileSync(customStderrPath, "utf-8");
-      } catch {
-
-      }
+      } catch {}
     }
   }
 
@@ -68,9 +60,7 @@ export function readCommandOutput(resolution: WitnessResolution): {
         if (existsSync(attemptStdout)) {
           try {
             stdout = readFileSync(attemptStdout, "utf-8");
-          } catch {
-
-          }
+          } catch {}
         }
       }
       if (attempt.logs?.stderr?.path) {
@@ -81,9 +71,7 @@ export function readCommandOutput(resolution: WitnessResolution): {
         if (existsSync(attemptStderr)) {
           try {
             stderr = readFileSync(attemptStderr, "utf-8");
-          } catch {
-
-          }
+          } catch {}
         }
       }
       if (stdout.length > 0 || stderr.length > 0) {

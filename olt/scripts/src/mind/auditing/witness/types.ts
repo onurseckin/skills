@@ -48,9 +48,7 @@ function scanCapsulesDir(dir: string, roots: Set<string>): void {
         }
       }
     }
-  } catch {
-
-  }
+  } catch {}
 }
 
 export function collectCapsuleSearchRoots(startPath?: string): string[] {
@@ -135,9 +133,7 @@ export function resolveWitnessCommand(
           recordPath: directRecordPath,
           commandRecord: record,
         };
-      } catch {
-
-      }
+      } catch {}
     }
 
     const flatRecordPath = join(capsuleRoot, "commands", `${cleanId}.json`);
@@ -151,9 +147,7 @@ export function resolveWitnessCommand(
           recordPath: flatRecordPath,
           commandRecord: record,
         };
-      } catch {
-
-      }
+      } catch {}
     }
 
     const statePath = join(capsuleRoot, "state.json");
@@ -176,9 +170,7 @@ export function resolveWitnessCommand(
             commandRecord: record,
           };
         }
-      } catch {
-
-      }
+      } catch {}
     }
   }
 

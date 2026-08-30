@@ -55,9 +55,7 @@ function safeCause(error: unknown): string {
     const descriptor = Object.getOwnPropertyDescriptor(error, "message");
     if (descriptor && "value" in descriptor && typeof descriptor.value === "string")
       return bounded(descriptor.value);
-  } catch {
-
-  }
+  } catch {}
   return "unknown error";
 }
 

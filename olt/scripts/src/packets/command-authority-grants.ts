@@ -10,7 +10,7 @@ import {
   PROHIBITED_COGNITIVE_TOOLS,
 } from "./command-authority-predicates.ts";
 import { assertSpawnAuthorized, roleToTier } from "./command-authority-hierarchy.ts";
-import { assertCoordinatorPreToolGuard } from "../authority/guards/coordinator-tool-guard.ts";
+import { assertCoordinatorPreToolGuard } from "../authority/guards/index.ts";
 import {
   formatHardlockRemediation,
   formatSupervisionRemediation,
