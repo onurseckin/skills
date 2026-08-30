@@ -3,7 +3,6 @@ import {
   recordCompletedTasksBatch,
   type CompletedTaskRecord,
 } from "../../mind/archival/completed/index.ts";
-import type { TaskQueueFilterOptions, TaskQueueStats } from "./filters.ts";
 import { withTaskQueueTransaction } from "./locks.ts";
 import {
   cleanStaleTempFiles,
@@ -11,7 +10,13 @@ import {
   readTaskQueueFile,
   writeTaskQueueUnlocked,
 } from "./storage.ts";
-import { PRIORITY_WEIGHTS, resolveTaskQueuePath, type TaskQueueItem } from "./types.ts";
+import {
+  PRIORITY_WEIGHTS,
+  resolveTaskQueuePath,
+  type TaskQueueFilterOptions,
+  type TaskQueueItem,
+  type TaskQueueStats,
+} from "./types.ts";
 
 export function getQueueStats(
   customPathOrItems?: string | readonly TaskQueueItem[],
