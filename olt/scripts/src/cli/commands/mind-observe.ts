@@ -1,4 +1,5 @@
-import { dirname } from "node:path";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { JsonObject, JsonValue } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import {
@@ -14,6 +15,7 @@ import { transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
+import { initRepoPolicy } from "../../policy/index.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export interface MindObserveResult {
@@ -124,8 +126,12 @@ export function mindObserveCommand(flags: Flags, _context?: CommandContext): Min
     );
   }
 
-  // 2. Validate command ID resolves to a real recorded command
   const repoRoot = findRepoRoot(loaded.runRoot);
+  const policyFile = join(repoRoot, ".olt", "policy.json");
+  if (!existsSync(policyFile)) {
+    initRepoPolicy(repoRoot);
+  }
+
   const resolution = resolveCommandRecord(commandId, {
     runRoot: loaded.runRoot,
     repoRoot,

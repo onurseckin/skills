@@ -2251,7 +2251,7 @@
     {
       "rule": "directory_fanout",
       "path": "tests/unit/policy",
-      "observed": 12,
+      "observed": 13,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -12512,6 +12512,12 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "olt/scripts/src/policy/generator/toolchain-discovery.ts",
+      "observed": "olt/scripts/src/core/shared/paths.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "olt/scripts/src/policy/hooks/lifecycle-hooks-engine.ts",
       "observed": "olt/scripts/src/policy/repo-policy.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -21718,6 +21724,18 @@
       "rule": "facade_bypass",
       "path": "tests/unit/policy/repo-policy-planning.test.ts",
       "observed": "olt/scripts/src/policy/repo-policy.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/policy/toolchain-auto-discovery.test.ts",
+      "observed": "olt/scripts/src/cli/commands/mind-init.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/policy/toolchain-auto-discovery.test.ts",
+      "observed": "olt/scripts/src/cli/commands/mind-observe.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
