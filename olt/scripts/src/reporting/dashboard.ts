@@ -47,6 +47,7 @@ export interface DashboardMetrics {
   readonly activeAgents: number;
   readonly totalPushes: number;
   readonly totalProbes: number;
+  readonly quotaDeficitTasks: number;
 }
 
 export interface DashboardReport {
@@ -70,15 +71,20 @@ export function calculateDashboardMetrics(
   let totalWork = 0;
   let totalPushes = 0;
   let totalProbes = 0;
+  let quotaDeficitTasks = 0;
 
   for (const t of tasks) {
     const s = t.status.toLowerCase();
-    if (s === "done" || s === "completed" || s === "satisfied") satisfied++;
+    const isSatisfied = s === "done" || s === "completed" || s === "satisfied";
+    if (isSatisfied) satisfied++;
     else if (s === "running" || s === "validating" || s === "leased") active++;
     else standby++;
     totalWork += t.effort;
     totalPushes += t.pushes ?? 0;
     totalProbes += t.probes ?? 0;
+    if (isSatisfied && ((t.pushes ?? 0) < 5 || (t.probes ?? 0) < 5)) {
+      quotaDeficitTasks++;
+    }
   }
 
   const activeAgents = agents.filter((a) => a.status === "active").length;
@@ -95,6 +101,7 @@ export function calculateDashboardMetrics(
     activeAgents,
     totalPushes,
     totalProbes,
+    quotaDeficitTasks,
   };
 }
 
@@ -109,10 +116,19 @@ export function renderMicroCycleTelemetry(tasks: readonly DashboardTaskState[]):
     for (const t of activePairs) {
       const impl = t.implementerId ?? "unassigned";
       const val = t.validatorId ?? "unassigned";
-      const pushInfo = `Pushes: ${t.pushes ?? 0}/${t.maxPushes ?? 3}`;
-      const probeInfo = `Probes: ${t.probes ?? 0}`;
+      const pushes = t.pushes ?? 0;
+      const maxPushes = t.maxPushes ?? 5;
+      const probes = t.probes ?? 0;
       const repairInfo = `Repair: R${t.repairRound ?? 0}`;
-      const row = `│ ${t.id.padEnd(10)} [I: ${impl.slice(0, 10)}] ──► [V: ${val.slice(0, 10)}] | ${pushInfo} | ${probeInfo} | ${repairInfo}`;
+      const s = t.status.toLowerCase();
+      const isSatisfied = s === "done" || s === "completed" || s === "satisfied";
+      const isDeficit = isSatisfied && (pushes < 5 || probes < 5);
+      const deficitTag = isDeficit
+        ? ` | ⚠️ [DEFICIT: Pushes: ${pushes}/5, Probes: ${probes}/5]`
+        : "";
+      const pushInfo = `Pushes: ${pushes}/${maxPushes}`;
+      const probeInfo = `Probes: ${probes}`;
+      const row = `│ ${t.id.padEnd(10)} [I: ${impl.slice(0, 10)}] ──► [V: ${val.slice(0, 10)}] | ${pushInfo} | ${probeInfo} | ${repairInfo}${deficitTag}`;
       lines.push(row.padEnd(79) + "│");
     }
   }

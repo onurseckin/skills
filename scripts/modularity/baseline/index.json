@@ -235,7 +235,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/graph/sugiyama.ts",
-      "observed": 321,
+      "observed": 307,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -2511,12 +2511,6 @@
       "rule": "export_star",
       "path": "olt/scripts/src/mind/contracts/index.ts",
       "observed": 1,
-      "detail": "Facade must use explicit named exports instead of export-star."
-    },
-    {
-      "rule": "export_star",
-      "path": "olt/scripts/src/reporting/index.ts",
-      "observed": 37,
       "detail": "Facade must use explicit named exports instead of export-star."
     },
     {
