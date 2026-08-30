@@ -20,6 +20,7 @@ export {
   assertSingleLinkRegular,
   noFollow,
   openVerifiedDirectory,
+  resolveCapsuleStateCandidate,
   resolveGlobalSessionsDir,
   resolveSessionRepositoryRoot,
   sameInode,

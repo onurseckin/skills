@@ -10,7 +10,12 @@ import {
 } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
-import { findRepoRoot, isTestEnvironment, resolveScratchDir } from "../../core/shared/paths.ts";
+import {
+  findRepoRoot,
+  isTestEnvironment,
+  resolveCapsulesDir,
+  resolveScratchDir,
+} from "../../core/shared/paths.ts";
 
 export function resolveGlobalSessionsDir(repoRoot?: string): string {
   if (repoRoot) {
@@ -110,4 +115,34 @@ export function assertSessionPid(value: number, field: string): number {
     throw new HarnessError("INVALID_ARGUMENT", `${field} must be a positive safe integer`);
   }
   return value;
+}
+
+export function resolveCapsuleStateCandidate(
+  runId: string,
+  customCwd?: string,
+): string | undefined {
+  const trimmed = runId.trim();
+  const statePath = join(trimmed, "state.json");
+  if (existsSync(statePath)) return resolve(statePath);
+  const cwd = customCwd ?? (typeof process !== "undefined" ? process.cwd() : ".");
+  const candidates = [join(cwd, ".olt", "capsules", trimmed), join(cwd, "capsules", trimmed)];
+  try {
+    const repoRoot = findRepoRoot(trimmed);
+    candidates.push(
+      join(resolveCapsulesDir(repoRoot), trimmed),
+      join(repoRoot, ".olt", "capsules", trimmed),
+    );
+  } catch {}
+  try {
+    const defaultRepo = findRepoRoot(cwd);
+    candidates.push(
+      join(resolveCapsulesDir(defaultRepo), trimmed),
+      join(defaultRepo, ".olt", "capsules", trimmed),
+    );
+  } catch {}
+  for (const cand of candidates) {
+    const candState = join(cand, "state.json");
+    if (existsSync(candState)) return resolve(candState);
+  }
+  return undefined;
 }

@@ -106,7 +106,7 @@ export const PLAN_AUTHORING_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "plan:init",
-    aliases: [],
+    aliases: ["plan-init", "init-plan"],
     domain: "plan",
     summary: "Create a run capsule and capture the prompt bytes immutably.",
     description:

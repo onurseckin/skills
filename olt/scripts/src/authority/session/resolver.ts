@@ -11,7 +11,11 @@ import {
   roleToTier,
   type ExecutionTier,
 } from "../thread/index.ts";
-import { resolveGlobalSessionsDir, resolveSessionRepositoryRoot } from "./paths.ts";
+import {
+  resolveCapsuleStateCandidate,
+  resolveGlobalSessionsDir,
+  resolveSessionRepositoryRoot,
+} from "./paths.ts";
 import { readPersistedSession, secureReadSession } from "./io.ts";
 import type { ResolveSessionOptions, SessionIdentity } from "./types.ts";
 
@@ -270,40 +274,11 @@ export function requireTurn1Registration(session: SessionIdentity): void {
       `agent '${session.agent_id}' session has no valid durable registration mechanism`,
     );
   }
-  const trimmed = session.run_id.trim();
-  let statePath = join(trimmed, "state.json");
-  let resolved = trimmed;
-  if (!existsSync(statePath)) {
-    const candidates = [
-      join(process.cwd(), ".olt", "capsules", trimmed),
-      join(process.cwd(), "capsules", trimmed),
-    ];
-    try {
-      const repoRoot = findRepoRoot(trimmed);
-      candidates.push(
-        join(resolveCapsulesDir(repoRoot), trimmed),
-        join(repoRoot, ".olt", "capsules", trimmed),
-      );
-    } catch {}
-    try {
-      const defaultRepo = findRepoRoot();
-      candidates.push(
-        join(resolveCapsulesDir(defaultRepo), trimmed),
-        join(defaultRepo, ".olt", "capsules", trimmed),
-      );
-    } catch {}
-    for (const cand of candidates) {
-      if (existsSync(join(cand, "state.json"))) {
-        resolved = resolve(cand);
-        statePath = join(resolved, "state.json");
-        break;
-      }
-    }
-  }
-  if (!existsSync(statePath)) {
+  const statePath = resolveCapsuleStateCandidate(session.run_id);
+  if (!statePath) {
     throw new HarnessError(
       "INVALID_STATE",
-      `capsule state.json not found for run '${session.run_id}' at ${resolved}; execute run:init first`,
+      `capsule state.json not found for run '${session.run_id}'; execute run:init first`,
     );
   }
 }
