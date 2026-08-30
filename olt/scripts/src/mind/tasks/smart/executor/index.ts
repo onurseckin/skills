@@ -20,6 +20,7 @@ export {
   deriveWriteScopeForCategory,
   deriveGateForCategory,
   sanitizeSlug,
+  mapFeedbackPriorityToTaskPriority,
 } from "./orchestrator.ts";
 
 export { preplanMultiOrchestratorTasks } from "./execution.ts";

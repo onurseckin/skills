@@ -103,6 +103,7 @@ export {
   deriveWriteScopeForCategory,
   deriveGateForCategory,
   sanitizeSlug,
+  mapFeedbackPriorityToTaskPriority,
   preplanMultiOrchestratorTasks,
   validateMultiOrchestratorIsolation,
   stageTasksForMultiOrchestratorExecution,
