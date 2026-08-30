@@ -42,7 +42,7 @@ Closes an active execution round for an objective in Phase 4, recording successo
 | `--actor` | string | yes | no | - | Acting agent. |
 | `--objective` | string | yes | no | - | Objective id. |
 | `--round` | int | yes | no | - | Round index. |
-| `--result` | string | no | no | `converged` | Round result (converged | exhausted | escalated). |
+| `--result` | string | no | no | `converged` | Round result (converged \| exhausted \| escalated). |
 | `--terminal-reason` | string | no | no | - | Reason if round terminates without successor. |
 | `--successor-run` | string | no | no | - | Successor capsule run id. |
 

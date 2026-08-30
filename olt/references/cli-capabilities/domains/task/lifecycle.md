@@ -97,6 +97,27 @@ Assigns repair lease to replacement agent with recorded justification.
 bun harness.ts task:assign-repairer --run .olt/capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence "worker-1 released"
 ```
 
+### `task:release`
+
+Hand a live lease back without waiting for it to expire.
+
+The voluntary counterpart to `recover`. Requires the live lease token; the task returns to retry_ready, or to changes_requested when the released attempt was a repair. A branched task cannot be released - collect or abandon the branch first.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--task` | string | yes | no | - | Leased task id. |
+| `--agent` | string | yes | no | - | Agent holding the lease. |
+| `--token` | string | yes | no | - | Lease bearer token. |
+
+```bash
+bun harness.ts task:release --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>
+```
+
 ### `task:lease`
 
 Claim an active lease on a task in the queue.
@@ -119,25 +140,4 @@ Claims an exclusive active lease on a task for an agent worker.
 
 ```bash
 bun harness.ts task:lease --task task-1 --agent-id worker-1
-```
-
-### `task:release`
-
-Hand a live lease back without waiting for it to expire.
-
-The voluntary counterpart to `recover`. Requires the live lease token; the task returns to retry_ready, or to changes_requested when the released attempt was a repair. A branched task cannot be released - collect or abandon the branch first.
-
-- **Aliases**: none
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Leased task id. |
-| `--agent` | string | yes | no | - | Agent holding the lease. |
-| `--token` | string | yes | no | - | Lease bearer token. |
-
-```bash
-bun harness.ts task:release --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>
 ```

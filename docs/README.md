@@ -31,9 +31,12 @@ The repository maintains strict boundary separation across root entrypoints, rep
 │  ├── docs/                                    --> Central Documentation Hub                             │
 │  │   ├── README.md                            --> Master Documentation Index (You Are Here)             │
 │  │   ├── SKILL_COLLECTION_GUIDELINES.md       --> Monorepo Authoring, Invariants & Quality Standards    │
-│  │   ├── olt/                                 --> 10-Chapter OLT Educational Manual (Diátaxis)          │
-│  │   │   ├── README.md                        --> OLT Educational Manual Master Index                   │
-│  │   │   ├── 01-foundations/ ... 10-tutorial/ --> 30 in-depth architectural deep-dives                  │
+│  │   ├── olt/                                 --> 17-Chapter Architecture Book & Reference Hub (Diátaxis)│
+│  │   │   ├── README.md                        --> OLT Master Documentation Hub Index                    │
+│  │   │   ├── index.md                         --> Documentation Ecosystem Portal Entrypoint             │
+│  │   │   ├── GUIDELINES.md                    --> Documentation Authoring Charter & Standards           │
+│  │   │   ├── architecture/                    --> 17 In-Depth Architecture Book Chapters (Explanation)  │
+│  │   │   └── reference/                       --> Operator Quickstart, Diagnostic Sweep & Catalogs      │
 │  │   └── archive/                                                                                       │
 │  │       └── completed-plans/                 --> Archive of 30+ completed architectural execution plans│
 │  │                                                                                                      │
@@ -113,55 +116,46 @@ Our documentation follows the **Diátaxis Documentation Framework**, systematica
 │  LEARNING-ORIENTED:                          │  UNDERSTANDING-ORIENTED:                                 │
 │  [ TUTORIALS ]                               │  [ EXPLANATION ]                                         │
 │                                              │                                                          │
-│  • End-to-End Run Playbook                   │  • Why Long Tasks Fail                                   │
-│    Step-by-step capsule lifecycle guide      │    Context decay, write collisions, sycophancy           │
-│    ➔ [Run Playbook](../olt/references/run-playbook.md)│ ➔ [Protocol Specification](../olt/references/protocol.md)│
-│                                              │    ➔ [Foundations: Failures](./olt/01-foundations/01-why-long-tasks-fail.md)│
-│  • Hands-on 10-Stage Tutorial                │                                                          │
+│  • Operator Quickstart Tutorial              │  • Zero-Assumption & Core Invariants                     │
+│    Step-by-step task initialization & waves  │    Context decay, write collisions, epistemic grounding  │
+│    ➔ [Quickstart Tutorial](./olt/reference/quickstart.md)│ ➔ [Foundations & Invariants](./olt/architecture/01-foundations/01-why-long-tasks-fail.md)│
+│                                              │    ➔ [Protocol Specification](../olt/references/protocol.md)│
+│  • Run Playbook & Execution Flow             │                                                          │
 │    Complete walkthrough of a live task run   │  • DAG Scheduling & Concurrency Theory                   │
-│    ➔ [Hands-on Tutorial](./olt/10-tutorial-and-cli/01-end-to-end-tutorial.md)│ Brent's theorem P = ⌈W / S⌉ & wave scaling       │
-│    ➔ [Lifecycle Walkthrough](./olt/01-foundations/03-lifecycle-walkthrough.md)│ ➔ [Topology Exemplar](../olt/references/topology-exemplar.md)│
-│                                              │    ➔ [Graph Scheduler](./olt/03-graph-scheduler/02-topological-conflict-free-batching.md)│
+│    ➔ [Run Playbook](../olt/references/run-playbook.md)│ Brent's theorem P = ⌈W / S⌉ & wave scaling       │
+│    ➔ [Reference Index](./olt/reference/index.md)│ ➔ [Topological DAG Scheduler](./olt/architecture/06-topological-scheduler-dags/01-dependency-graph-theory.md)│
+│                                              │    ➔ [Concurrency & Straggler SLA](./olt/architecture/05-concurrency-straggler-sla/01-brents-theorem-scaling.md)│
 │                                              │                                                          │
 │                                              │  • Adversarial Validation Philosophy                     │
 │                                              │    Separation of concerns & independent proof            │
-│                                              │    ➔ [Adversarial Validation](./olt/06-validation-repair/01-adversarial-validation-philosophy.md)│
+│                                              │    ➔ [Adversarial Validation](./olt/architecture/08-adversarial-validation-repair/01-adversarial-validation-philosophy.md)│
 │                                              │                                                          │
 │                                              │  • 4-Tier Hierarchy & Supervisory Purity                 │
 │                                              │    Architectural defense against context pollution       │
-│                                              │    ➔ [Workforce Hierarchy](./olt/04-multi-agent/01-host-agnostic-architecture.md)│
+│                                              │    ➔ [Four-Tier Hierarchy](./olt/architecture/02-four-tier-hierarchy/01-host-agnostic-architecture.md)│
 │                                              │    ➔ [Universal AGENTS.md](../AGENTS.md)                 │
 ├──────────────────────────────────────────────┼──────────────────────────────────────────────────────────┤
 │  PROBLEM-ORIENTED:                           │  INFORMATION-ORIENTED:                                   │
 │  [ HOW-TO GUIDES ]                           │  [ REFERENCE ]                                           │
 │                                              │                                                          │
-│  • Plan Revision & Freezing                  │  • CLI Capabilities Manifest                             │
-│    Updating DAGs, re-baselining & freezing   │    Exhaustive listing of all harness commands            │
-│    ➔ [Plan Revision Guide](./olt/03-graph-scheduler/03-plan-revision-and-freezing.md)│ ➔ [CLI Capabilities](../olt/references/cli-capabilities.md)│
-│                                              │    ➔ [CLI Manual](../olt/references/cli.md)              │
+│  • Health & Diagnostics Runbook              │  • CLI Capabilities Manifest                             │
+│    10-domain diagnostic sweep & auto-healing │    Exhaustive listing of all harness commands            │
+│    ➔ [Health & Diagnostics](./olt/reference/health-and-status.md)│ ➔ [CLI Capabilities](../olt/references/cli-capabilities.md)│
+│                                              │    ➔ [Harness CLI Engine](./olt/architecture/14-harness-cli-and-command-engine/01-cli-architecture.md)│
 │  • Crash & Lease Recovery                    │                                                          │
-│    Reclaiming expired leases & repairing state│ • Protocol Specification & Schemas                      │
+│    Reclaiming expired leases & state repair  │  • Protocol Specification & Schemas                      │
 │    ➔ [Host Recovery](../olt/references/host-environment.md)│ Wire format, event types & hash chain validation   │
-│    ➔ [Durability & Recovery](./olt/08-durability-recovery/03-stale-worker-and-torn-tail-recovery.md)│ ➔ [Protocol Specification](../olt/references/protocol.md)│
-│                                              │    ➔ [Schema Examples](../olt/references/schema-examples.md)│
+│    ➔ [Durability & Merkle Chains](./olt/architecture/10-durability-recovery-capsules/01-tamper-proof-hash-chains.md)│ ➔ [Protocol Specification](../olt/references/protocol.md)│
+│                                              │    ➔ [State Schemas](./olt/architecture/15-state-schemas-and-event-ledger/01-task-state-machine.md)│
 │  • Multi-Client Setup & Adapters             │                                                          │
 │    Configuring Antigravity, Claude, Codex    │  • Agent Manifests & Role Contracts                      │
 │    ➔ [Host Configuration](../olt/references/configuration.md)│ Binding authority & role permission matrix       │
 │    ➔ [Host Adapters](../olt/references/host-adapters.md)│ ➔ [Agent Manifests](../olt/agents/)                   │
 │                                              │    ➔ [Universal Roles](../AGENTS.md)                     │
-│  • Visual Debugging & DOM Capture            │                                                          │
-│    Dual-channel DOM report & screenshot audit│  • State Model & Lifecycle Enums                         │
-│    ➔ [Host Environment](../olt/references/host-environment.md)│ Formal task state machine & transition rules     │
-│    ➔ [Structured Finding Schema](./olt/06-validation-repair/02-structured-finding-schema.md)│ ➔ [State Model Specification](../olt/references/state-model.md)│
-│                                              │                                                          │
-│                                              │  • Parity Matrix & Client Compatibility                  │
-│                                              │    Client feature parity and host bindings               │
-│                                              │    ➔ [Parity Matrix](../olt/references/parity-matrix.md)│
-│                                              │                                                          │
-│                                              │  • Failure Modes & Blunder Catalog                       │
-│                                              │    Comprehensive encyclopedia of agent error classes     │
-│                                              │    ➔ [Failure Modes Catalog](../olt/references/failure-modes.md)│
-│                                              │    ➔ [Blunder Dictionary](./olt/10-tutorial-and-cli/03-troubleshooting-and-faq.md)│
+│  • Worktree Branching & Confinement          │                                                          │
+│    Hermetic workspace isolation & landing    │  • Error Catalog & Blunder Encyclopedia                  │
+│    ➔ [Worktree Branching](./olt/architecture/11-worktree-branching-honesty/01-execution-time-branching.md)│ Comprehensive taxonomy of agent error classes    │
+│    ➔ [Verification Engines](./olt/architecture/17-verification-engines-and-gates/01-mandatory-gate-systems.md)│ ➔ [Error Catalog](./olt/architecture/16-error-catalog-and-blunders/01-failure-modes-catalog.md)│
 └──────────────────────────────────────────────┴──────────────────────────────────────────────────────────┘
 ```
 
@@ -195,23 +189,37 @@ Our documentation follows the **Diátaxis Documentation Framework**, systematica
 - [**Topology Exemplar**](../olt/references/topology-exemplar.md): Concrete examples of valid DAG topologies and wave schedules.
 - [**Quick CLI Cheatsheet**](../olt/references/cli.md): Fast reference for everyday colon commands.
 
-### 4. 10-Chapter OLT Educational Manual
+### 4. 17-Chapter OLT Architecture Book & Reference Hub
 
-- [**OLT Educational Manual Master Index**](./olt/README.md): Comprehensive 10-chapter architectural textbook.
-  - [Chapter 01: Mental Model & Architectural Foundations](./olt/01-foundations/01-why-long-tasks-fail.md)
-  - [Chapter 02: Prompt Compilation & Requirements Engine](./olt/02-requirements/01-prompt-capture-and-integrity.md)
-  - [Chapter 03: Graph Scheduler & Concurrency Engine](./olt/03-graph-scheduler/01-dependency-graph-theory.md)
-  - [Chapter 04: Multi-Agent Workforce & Role Contracts](./olt/04-multi-agent/01-host-agnostic-architecture.md)
-  - [Chapter 05: Task Execution & Lease Lifecycle](./olt/05-task-execution/01-leasing-and-heartbeats.md)
-  - [Chapter 06: Validation, Repair & Finding Engine](./olt/06-validation-repair/01-adversarial-validation-philosophy.md)
-  - [Chapter 07: Quality Gates & Completion Protocol](./olt/07-gates-and-completion/01-mandatory-gate-systems.md)
-  - [Chapter 08: Durability, Storage & Crash Recovery](./olt/08-durability-recovery/01-tamper-proof-hash-chains.md)
-  - [Chapter 09: Dynamic Execution Branching & Honesty](./olt/09-branching-and-honesty/01-execution-time-branching.md)
-  - [Chapter 10: Hands-on Tutorial & Operational Manual](./olt/10-tutorial-and-cli/01-end-to-end-tutorial.md)
+- [**OLT Master Documentation Hub**](./olt/README.md): Master portal and navigation hub.
+- [**Documentation Portal Entrypoint**](./olt/index.md): Ecosystem introduction and Diátaxis topology overview.
+- [**Documentation Guidelines & Charter**](./olt/GUIDELINES.md): Authoring standards, sizing bounds (250–800 lines), and 4-way navigation mesh rules.
+- [**Architecture Book Master Index**](./olt/architecture/index.md): Complete 17-chapter theoretical and algorithmic architecture specification.
+  - [Chapter 01: Mental Model & Architectural Foundations](./olt/architecture/01-foundations/01-why-long-tasks-fail.md)
+  - [Chapter 02: Four-Tier Workforce Hierarchy](./olt/architecture/02-four-tier-hierarchy/01-host-agnostic-architecture.md)
+  - [Chapter 03: Mind Product Owner & Infinite Cadence](./olt/architecture/03-mind-product-owner/01-infinite-autonomous-loop.md)
+  - [Chapter 04: Continuous Preplanning Factory](./olt/architecture/04-continuous-preplanning-factory/01-prompt-capture-and-integrity.md)
+  - [Chapter 05: Concurrency Scaling & Straggler SLA](./olt/architecture/05-concurrency-straggler-sla/01-brents-theorem-scaling.md)
+  - [Chapter 06: Topological DAG Scheduler](./olt/architecture/06-topological-scheduler-dags/01-dependency-graph-theory.md)
+  - [Chapter 07: Distributed Task Leasing & Execution](./olt/architecture/07-distributed-leasing-execution/01-leasing-and-heartbeats.md)
+  - [Chapter 08: Adversarial Validation & Monotonic Repair](./olt/architecture/08-adversarial-validation-repair/01-adversarial-validation-philosophy.md)
+  - [Chapter 09: Falsifiable Evidence & Completion Gates](./olt/architecture/09-falsifiable-evidence-gates/01-structured-finding-schema.md)
+  - [Chapter 10: Durability, Recovery & Merkle Chains](./olt/architecture/10-durability-recovery-capsules/01-tamper-proof-hash-chains.md)
+  - [Chapter 11: Worktree Branching & Honesty Gates](./olt/architecture/11-worktree-branching-honesty/01-execution-time-branching.md)
+  - [Chapter 12: Flock Mailboxes & Telemetry](./olt/architecture/12-flock-mailboxes-and-tui/01-mailbox-architecture.md)
+  - [Chapter 13: Policy, RBAC & Fail-Closed Engine](./olt/architecture/13-policy-rbac-failclosed-engine/01-autonomy-policy-engine.md)
+  - [Chapter 14: Harness CLI & Command Engine](./olt/architecture/14-harness-cli-and-command-engine/01-cli-architecture.md)
+  - [Chapter 15: State Schemas & Event Ledger](./olt/architecture/15-state-schemas-and-event-ledger/01-task-state-machine.md)
+  - [Chapter 16: Error Catalog & Empirical Blunders](./olt/architecture/16-error-catalog-and-blunders/01-failure-modes-catalog.md)
+  - [Chapter 17: Verification Engines & Gate Provers](./olt/architecture/17-verification-engines-and-gates/01-mandatory-gate-systems.md)
+- [**Reference Hub Index**](./olt/reference/index.md): Practical operator manuals, diagnostic playbooks, and quickstarts.
+  - [Quickstart & Onboarding Tutorial](./olt/reference/quickstart.md)
+  - [Health Diagnostics & Status Runbook](./olt/reference/health-and-status.md)
+  - [Reference Hub Authoring Guide](./olt/reference/GUIDE.md)
 
 ### 5. Architectural Archive
 
-- [**Completed Architectural Plans Archive**](./archive/completed-plans/): Historical catalog of 30+ completed design and implementation plans documenting the continuous evolution of this codebase.
+- [**Completed Architectural Plans Archive**](./archive/completed-plans/): Historical catalog of completed design and implementation plans documenting the continuous evolution of this codebase.
 
 ---
 

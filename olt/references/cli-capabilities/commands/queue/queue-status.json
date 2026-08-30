@@ -1,10 +1,6 @@
 {
   "name": "queue:status",
-  "aliases": [
-    "mind:queue:list",
-    "todo:list",
-    "feedback:list"
-  ],
+  "aliases": [],
   "domain": "queue",
   "summary": "List and inspect mind feedback queue items.",
   "flags": [

@@ -131,7 +131,7 @@ Runs the full harness health diagnostic suite (bun version, capsule root confine
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--write-scope` | string | no | yes | - | A .test.ts or .spec.ts file to adversarially mutate and verify falsifiability for. Omit to run only the non-adversarial health diagnostics. |
-| `--mutation-kind` | string | no | no | - | syntax_error | assertion_flip | return_override | empty_file | exception_injection. Defaults to syntax_error. |
+| `--mutation-kind` | string | no | no | - | syntax_error \| assertion_flip \| return_override \| empty_file \| exception_injection. Defaults to syntax_error. |
 | `--strict` | bool | no | no | - | Exit nonzero when the report is not certified. |
 
 ```bash

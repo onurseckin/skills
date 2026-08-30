@@ -1,10 +1,6 @@
 {
   "name": "queue:drain",
-  "aliases": [
-    "mind:queue:drain",
-    "todo:drain",
-    "feedback:drain"
-  ],
+  "aliases": [],
   "domain": "queue",
   "summary": "Drain and mark pending feedback items for execution.",
   "flags": [

@@ -4,11 +4,8 @@ import type { JsonObject } from "../core/contracts/index.ts";
 import { readCanonicalObject } from "../core/json.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
-import {
-  executePreparedCommand,
-  prepareCommand,
-  MAX_COMMAND_RECORD_BYTES,
-} from "../engine/runner/index.ts";
+import { MAX_COMMAND_RECORD_BYTES } from "../engine/runner/models/command/index.ts";
+import { executePreparedCommand, prepareCommand } from "../engine/runner/models/execution/index.ts";
 import { resolveArtifactPath } from "../engine/runner/core/artifact-paths.ts";
 import {
   assertCommandActor,

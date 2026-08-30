@@ -19,12 +19,12 @@
       "path": "task-assign-repairer.json"
     },
     {
-      "id": "task:lease",
-      "path": "task-lease.json"
-    },
-    {
       "id": "task:release",
       "path": "task-release.json"
+    },
+    {
+      "id": "task:lease",
+      "path": "task-lease.json"
     }
   ]
 }

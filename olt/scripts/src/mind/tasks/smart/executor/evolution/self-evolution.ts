@@ -3,10 +3,7 @@ import { enrichTaskPlanWithExactAnchors } from "../../planner/anti-batching.ts";
 import { assertAntiBatchingRule } from "../../planner/partitioning.ts";
 import { detectScopeOverlap } from "../../planner/collisions.ts";
 import { computeMacroMetrics } from "../../planner/index.ts";
-import type {
-  SmartTaskPlan,
-  SmartTaskSynthesisResult,
-} from "../../planner/models.ts";
+import type { SmartTaskPlan, SmartTaskSynthesisResult } from "../../planner/models.ts";
 import { updateCognitiveMemory } from "../../../../memory/core/index.ts";
 import { auditDefectLog } from "../../../../defects/index.ts";
 import {

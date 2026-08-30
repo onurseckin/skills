@@ -13,24 +13,24 @@
 
 All requirements and defects under Track 11 have been resolved, verified, and certified across 5 rounds of adversarial review by `validator_01`.
 
-| Metric | Target | Result | Status |
-| :--- | :--- | :--- | :--- |
-| `chatter-guard.ts` LOC | $\le 300$ | 228 | **PASS** |
-| `chatter-patterns.ts` LOC | $\le 300$ | 92 | **PASS** |
-| `grant-bootstrap-allowlist.ts` LOC | $\le 300$ | 87 | **PASS** |
-| `command-authority-remediation.ts` LOC | $\le 300$ | 115 | **PASS** |
-| `command-authority-grants.ts` LOC | $\le 300$ | 286 | **PASS** |
-| `role-boundary-engine.ts` LOC | $\le 300$ | 214 | **PASS** |
-| `heuristics.ts` LOC | $\le 300$ | 243 | **PASS** |
-| TypeScript Compilation (`tsc --noEmit`) | 0 errors | 0 errors | **PASS** |
-| Chatter Guard Suite (`chatter-guard.test.ts`) | 100% pass | 13/13 pass | **PASS** |
-| Grant Bootstrap Suite (`grant-bootstrap-allowlist.test.ts`) | 100% pass | 14/14 pass | **PASS** |
-| Command Authority Suite (`command-authority-fail-closed.test.ts`) | 100% pass | 52/52 pass | **PASS** |
-| Role Boundary Watchdog Suite (`role-boundary-watchdog.test.ts`) | 100% pass | 21/21 pass | **PASS** |
-| Meta Auditor Suite (`meta-auditor.test.ts`) | 100% pass | 36/36 pass | **PASS** |
-| Cognitive Auditors E2E (`cognitive-auditors-e2e.test.ts`) | 100% pass | 7/7 pass | **PASS** |
-| Total Tests Passing | 100% | 143/143 pass | **PASS** |
-| Adversarial Validation Rounds | 5/5 rounds | 5/5 APPROVED | **PASS** |
+| Metric                                                            | Target     | Result       | Status   |
+| :---------------------------------------------------------------- | :--------- | :----------- | :------- |
+| `chatter-guard.ts` LOC                                            | $\le 300$  | 228          | **PASS** |
+| `chatter-patterns.ts` LOC                                         | $\le 300$  | 92           | **PASS** |
+| `grant-bootstrap-allowlist.ts` LOC                                | $\le 300$  | 87           | **PASS** |
+| `command-authority-remediation.ts` LOC                            | $\le 300$  | 115          | **PASS** |
+| `command-authority-grants.ts` LOC                                 | $\le 300$  | 286          | **PASS** |
+| `role-boundary-engine.ts` LOC                                     | $\le 300$  | 214          | **PASS** |
+| `heuristics.ts` LOC                                               | $\le 300$  | 243          | **PASS** |
+| TypeScript Compilation (`tsc --noEmit`)                           | 0 errors   | 0 errors     | **PASS** |
+| Chatter Guard Suite (`chatter-guard.test.ts`)                     | 100% pass  | 13/13 pass   | **PASS** |
+| Grant Bootstrap Suite (`grant-bootstrap-allowlist.test.ts`)       | 100% pass  | 14/14 pass   | **PASS** |
+| Command Authority Suite (`command-authority-fail-closed.test.ts`) | 100% pass  | 52/52 pass   | **PASS** |
+| Role Boundary Watchdog Suite (`role-boundary-watchdog.test.ts`)   | 100% pass  | 21/21 pass   | **PASS** |
+| Meta Auditor Suite (`meta-auditor.test.ts`)                       | 100% pass  | 36/36 pass   | **PASS** |
+| Cognitive Auditors E2E (`cognitive-auditors-e2e.test.ts`)         | 100% pass  | 7/7 pass     | **PASS** |
+| Total Tests Passing                                               | 100%       | 143/143 pass | **PASS** |
+| Adversarial Validation Rounds                                     | 5/5 rounds | 5/5 APPROVED | **PASS** |
 
 ---
 

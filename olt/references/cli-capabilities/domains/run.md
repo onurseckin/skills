@@ -9,7 +9,7 @@ Initialize a capsule run root and write its initial manifest.
 
 Deterministic auto-initialization ensuring .olt/capsules/<run_id>/ exists on disk before any subagent work.
 
-- **Aliases**: `run-init`, `capsule-init`
+- **Aliases**: none
 - **Stdin**: reads stdin when `--prompt-stdin` is set
 - **Arguments after `--`**: rejected
 

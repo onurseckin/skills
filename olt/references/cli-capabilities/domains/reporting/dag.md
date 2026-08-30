@@ -9,7 +9,7 @@ Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle dia
 
 Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.
 
-- **Aliases**: `dag`, `dag:render`, `dag:view`, `graph:render`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

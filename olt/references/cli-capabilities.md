@@ -92,6 +92,7 @@ own status in `exit_code`.
 | `task:reject` | task | Reject a task with a structured finding for targeted repair. |
 | `task:assign-repairer` | task | Replace the original implementer as a task's repairer, with a recorded reason. |
 | `task:abandon` | task | Close an open attempt nobody submitted or released, on the coordinator's authority. |
+| `task:release` | task | Hand a live lease back without waiting for it to expire. |
 | `task:check` | task | Incremental verification. |
 | `task:add` | task | Enqueue a task in the task queue. |
 | `task:list` | task | List tasks in the task queue. |
@@ -164,7 +165,6 @@ own status in `exit_code`.
 | `doctor:repair` | diagnostics | Re-derive state.json from the event chain after a crash tears the log's tail. |
 | `doctor:certify` | diagnostics | Certify doctor's own checks are falsifiable via counterfactual mutation testing. |
 | `recover` | diagnostics | Release expired leases and interrupted validations. |
-| `task:release` | task | Hand a live lease back without waiting for it to expire. |
 | `meta-audit` | diagnostics | Deep behavioral forensics and anomaly detection across all agent telemetry. |
 | `finding:file` | diagnostics | Record a diagnostic finding or defect directly into the flock-locked defect store. |
 | `explain` | diagnostics | Explain a HarnessError code: the rule it enforces, common causes and the remedy for each. |
