@@ -10,7 +10,6 @@ export function checkTrivialConstantAssertion(
 ): AstLinterViolation | undefined {
   const expr = call.expression;
 
-  // Handle assert(true), assert.equal(1, 1), assert.isTrue(true), assert.strictEqual("a", "a")
   if (ts.isIdentifier(expr) && expr.text === "assert") {
     const firstArg = call.arguments[0];
     if (firstArg && firstArg.kind === ts.SyntaxKind.TrueKeyword) {
@@ -70,14 +69,12 @@ export function checkTrivialConstantAssertion(
       }
     }
 
-    // Handle expect(actual).matcher(expected)
     const matcherName = expr.name.text;
     const rootArg = getRootExpectArg(call);
 
     if (rootArg) {
       const expectedArg = call.arguments[0];
 
-      // Equality matchers comparing identical literals: expect(1).toBe(1), expect(true).toEqual(true)
       if (
         (matcherName === "toBe" ||
           matcherName === "toEqual" ||
@@ -100,7 +97,6 @@ export function checkTrivialConstantAssertion(
         };
       }
 
-      // Identity tautology: expect(x).toBe(x)
       if (
         (matcherName === "toBe" || matcherName === "toEqual" || matcherName === "toStrictEqual") &&
         expectedArg &&
@@ -120,7 +116,6 @@ export function checkTrivialConstantAssertion(
         };
       }
 
-      // Boolean/Null/Undefined/NaN/Defined matchers on literals
       if (
         (matcherName === "toBeTruthy" && rootArg.kind === ts.SyntaxKind.TrueKeyword) ||
         (matcherName === "toBeFalsy" && rootArg.kind === ts.SyntaxKind.FalseKeyword) ||

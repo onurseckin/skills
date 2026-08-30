@@ -45,7 +45,6 @@ export function lintTestAst(sourceCode: string, options?: AstLinterOptions): Ast
   let trivialConstantCount = 0;
 
   for (const { node, testName, callback } of testCalls) {
-    // 1. Check for empty test function
     if (detectEmpty) {
       if (!callback.body) {
         const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
@@ -80,13 +79,11 @@ export function lintTestAst(sourceCode: string, options?: AstLinterOptions): Ast
       }
     }
 
-    // 2. Check for trivial early returns
     if (detectReturns && callback.body && ts.isBlock(callback.body)) {
       let foundAssertionBefore = false;
       let earlyReturnViolation: AstLinterViolation | undefined = undefined;
 
       for (const stmt of callback.body.statements) {
-        // Check if statement contains assertion
         let hasAssertion = false;
         function checkAssertion(n: ts.Node): void {
           if (ts.isCallExpression(n) && isAssertionCall(n)) {
@@ -99,7 +96,6 @@ export function lintTestAst(sourceCode: string, options?: AstLinterOptions): Ast
           foundAssertionBefore = true;
         }
 
-        // Check if statement is an unconditional return
         if (ts.isReturnStatement(stmt)) {
           if (!foundAssertionBefore) {
             const { line, character } = sourceFile.getLineAndCharacterOfPosition(stmt.getStart());
@@ -116,7 +112,6 @@ export function lintTestAst(sourceCode: string, options?: AstLinterOptions): Ast
           }
         }
 
-        // Check if statement is `if (...) return;` before any assertion
         if (ts.isIfStatement(stmt) && !foundAssertionBefore) {
           const thenStmt = stmt.thenStatement;
           if (
@@ -147,7 +142,6 @@ export function lintTestAst(sourceCode: string, options?: AstLinterOptions): Ast
       }
     }
 
-    // 3. Check for trivial constant assertions inside test
     if (detectConstants && callback.body) {
       function scanConstantAssertions(n: ts.Node): void {
         if (ts.isCallExpression(n) && isAssertionCall(n)) {
@@ -162,7 +156,6 @@ export function lintTestAst(sourceCode: string, options?: AstLinterOptions): Ast
       scanConstantAssertions(callback.body);
     }
 
-    // 4. Check for mock tautologies
     if (detectMocks) {
       const mockViolation = checkMockTautology(callback, sourceFile, testName, fileName);
       if (mockViolation) {

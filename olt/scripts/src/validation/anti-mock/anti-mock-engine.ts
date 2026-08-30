@@ -32,7 +32,6 @@ export function formatAntiMockReport(report: AntiMockDiagnosticReport): string {
   }
   lines.push("");
 
-  // Pillar 1 Summary
   const p1 = report.pillar1AstLinter;
   const p1Status = p1.passed ? "✅ PASSED" : "❌ FAILED";
   lines.push(` ┌── Pillar 1: AST Early-Return & Mock Tautology Linter ────────────────────┐`);
@@ -53,7 +52,6 @@ export function formatAntiMockReport(report: AntiMockDiagnosticReport): string {
   lines.push(` └──────────────────────────────────────────────────────────────────────────┘`);
   lines.push("");
 
-  // Pillar 2 Summary
   const p2 = report.pillar2AssertionFloor;
   const p2Status = p2.passed ? "✅ PASSED" : "❌ FAILED";
   lines.push(` ┌── Pillar 2: Assertion Count Floor Enforcer ──────────────────────────────┐`);
@@ -73,7 +71,6 @@ export function formatAntiMockReport(report: AntiMockDiagnosticReport): string {
   lines.push(` └──────────────────────────────────────────────────────────────────────────┘`);
   lines.push("");
 
-  // Pillar 3 Summary
   lines.push(` ┌── Pillar 3: Mutation Gate Engine (Falsifiability Verification) ──────────┐`);
   if (report.pillar3MutationGate) {
     const p3 = report.pillar3MutationGate;

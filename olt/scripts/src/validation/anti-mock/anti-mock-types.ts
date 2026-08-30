@@ -84,6 +84,17 @@ export type MutationType =
   | "logical_operator_mutation"
   | "statement_removal";
 
+export interface MutationCandidate {
+  readonly mutationType: MutationType;
+  readonly description: string;
+  readonly startPosition: number;
+  readonly endPosition: number;
+  readonly originalText: string;
+  readonly replacementText: string;
+  readonly line: number;
+  readonly column: number;
+}
+
 export interface MutantRecord {
   readonly id: string;
   readonly mutationType: MutationType;

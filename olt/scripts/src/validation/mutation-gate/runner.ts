@@ -43,9 +43,6 @@ export async function runMutationGate(
       const outcome = await testRunner(mutant.mutatedSource, mutant);
       const durationMs = Date.now() - startTime;
 
-      // In mutation testing:
-      // If tests fail (passed: false, exitCode != 0), mutant was KILLED (success!)
-      // If tests pass (passed: true, exitCode == 0), mutant SURVIVED (failure - test suite missed it!)
       if (outcome.passed === false || (outcome.exitCode !== undefined && outcome.exitCode !== 0)) {
         killed++;
         const errDetails =
@@ -79,7 +76,6 @@ export async function runMutationGate(
     } catch (err) {
       const durationMs = Date.now() - startTime;
       const errorMsg = err instanceof Error ? err.message : String(err);
-      // Syntax errors or runner execution errors are recorded as errored
       errored++;
       results.push({
         mutant,

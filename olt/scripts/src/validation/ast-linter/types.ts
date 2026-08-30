@@ -60,7 +60,6 @@ export function findCallback(
 export function identifyTestCall(node: ts.CallExpression): TestCallInfo | undefined {
   const expr = node.expression;
 
-  // Pattern: test("...", fn) or it("...", fn)
   if (ts.isIdentifier(expr) && isTestIdentifier(expr.text)) {
     const callback = findCallback(node.arguments);
     if (callback) {
@@ -68,7 +67,6 @@ export function identifyTestCall(node: ts.CallExpression): TestCallInfo | undefi
     }
   }
 
-  // Pattern: test.only("...", fn), test.skip("...", fn), it.concurrent("...", fn), describe.test("...", fn)
   if (ts.isPropertyAccessExpression(expr)) {
     const obj = expr.expression;
     const prop = expr.name.text;
@@ -86,7 +84,6 @@ export function identifyTestCall(node: ts.CallExpression): TestCallInfo | undefi
     }
   }
 
-  // Pattern: test.each([...])("...", fn)
   if (ts.isCallExpression(expr)) {
     const innerExpr = expr.expression;
     if (
