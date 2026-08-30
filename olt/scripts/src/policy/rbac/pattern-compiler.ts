@@ -20,11 +20,12 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
 
   let patterns: RegExp[];
 
-  if (
+  const isValidator =
     normalizedRole === "validator" ||
     normalizedRole === "cognitive-validator" ||
     normalizedRole === "cognitive_validator" ||
     normalizedRole.startsWith("validator-") ||
+    normalizedRole.startsWith("validator_") ||
     normalizedRole === "critic" ||
     normalizedRole === "completeness-critic" ||
     normalizedRole === "completeness_critic" ||
@@ -32,11 +33,20 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
     normalizedRole === "plan-validator" ||
     normalizedRole === "plan_validator" ||
     normalizedRole === "sub-investigator" ||
-    normalizedRole === "sub_investigator"
-  ) {
-    patterns = [/.*/];
-  } else if (
+    normalizedRole === "sub_investigator" ||
+    normalizedRole === "sub-validator" ||
+    normalizedRole === "sub_validator" ||
+    normalizedRole === "ui-validator" ||
+    normalizedRole === "ui_validator" ||
+    normalizedRole === "mechanic-validator" ||
+    normalizedRole === "mechanic_validator" ||
+    normalizedRole === "ui-mechanic-validator" ||
+    normalizedRole === "ui_mechanic_validator";
+
+  const isSupervisor =
     normalizedRole === "mind" ||
+    normalizedRole === "mind_supervisor" ||
+    normalizedRole === "mind-supervisor" ||
     normalizedRole === "orchestrator" ||
     normalizedRole === "coordinator" ||
     normalizedRole === "skill-auditor" ||
@@ -44,8 +54,12 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
     normalizedRole === "meta-auditor" ||
     normalizedRole === "meta_auditor" ||
     normalizedRole === "mind-auditor" ||
-    normalizedRole === "mind_auditor"
-  ) {
+    normalizedRole === "mind_auditor" ||
+    normalizedRole === "autonomic_watchdog" ||
+    normalizedRole === "autonomic-watchdog" ||
+    normalizedRole === "watchdog";
+
+  if (isValidator || isSupervisor) {
     const supervisorPatterns = [...STATIC_SUPERVISOR_FORBIDDEN_PATTERNS];
     if (policy?.forbidden_commands) {
       for (const cmd of policy.forbidden_commands) {
@@ -53,18 +67,6 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
       }
     }
     patterns = supervisorPatterns;
-  } else if (
-    normalizedRole === "mechanic-validator" ||
-    normalizedRole === "mechanic_validator" ||
-    normalizedRole === "sub-validator" ||
-    normalizedRole === "sub_validator"
-  ) {
-    patterns = [
-      /^git\s+(commit|push|reset|checkout(\s+-b)?|merge|rebase)/i,
-      ...CODE_EDIT_TOOL_PATTERNS,
-      /^bun\s+harness.*task:review/i,
-      /^bun\s+harness.*run:complete/i,
-    ];
   } else {
     const implementerPatterns: RegExp[] = [...STATIC_IMPLEMENTER_FORBIDDEN_PATTERNS];
 

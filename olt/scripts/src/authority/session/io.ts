@@ -246,30 +246,22 @@ export function inferCanExecute(role: string): {
   can_edit_files: boolean;
 } {
   const normalized = role.trim().toLowerCase();
-  if (
-    normalized === "validator" ||
-    normalized === "cognitive-validator" ||
-    normalized === "cognitive_validator" ||
-    normalized.startsWith("validator-") ||
-    normalized === "critic" ||
-    normalized === "completeness-critic" ||
-    normalized === "completeness_critic" ||
-    normalized === "plan-validator" ||
-    normalized === "plan_validator" ||
-    normalized === "sub-investigator"
-  ) {
-    return { can_execute_shell: false, can_edit_files: false };
+  const isEditable =
+    normalized === "implementer" ||
+    normalized === "worker" ||
+    normalized === "repairer" ||
+    normalized === "owner" ||
+    normalized === "sub-implementer" ||
+    normalized === "sub_implementer" ||
+    normalized === "sub-task-worker" ||
+    normalized === "sub_task_worker" ||
+    normalized.startsWith("implementer-") ||
+    normalized.startsWith("implementer_");
+
+  if (isEditable) {
+    return { can_execute_shell: true, can_edit_files: true };
   }
-  if (
-    normalized === "mind" ||
-    normalized === "orchestrator" ||
-    normalized === "coordinator" ||
-    normalized === "meta-auditor" ||
-    normalized === "meta_auditor"
-  ) {
-    return { can_execute_shell: true, can_edit_files: false };
-  }
-  return { can_execute_shell: true, can_edit_files: true };
+  return { can_execute_shell: true, can_edit_files: false };
 }
 
 export function snapshotSession(path: string): SessionSnapshot {

@@ -11,7 +11,7 @@ tier: 0
 domain: "forensics"
 tools:
   enable_subagent_tools: false
-  enable_write_tools: false
+  enable_write_tools: true
 interface:
   display_name: "Skill Auditor"
   short_description: "Tier 0 Out-of-Band Skill Compliance & Telemetry Auditor"

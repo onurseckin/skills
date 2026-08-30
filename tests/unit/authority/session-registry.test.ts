@@ -301,7 +301,7 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
         agentId: `test-${role}`,
         role,
       });
-      expect(s.can_execute_shell).toBe(false);
+      expect(s.can_execute_shell).toBe(true);
       expect(s.can_edit_files).toBe(false);
     }
 
@@ -323,7 +323,7 @@ describe("Multi-Mechanism Automatic Session Registry & Anti-Spoofing Engine", ()
       expect(s.can_edit_files).toBe(false);
     }
 
-    const workerRoles = ["implementer", "repairer", "sub-implementer", "custom-role"];
+    const workerRoles = ["implementer", "repairer", "sub-implementer", "worker"];
     for (const role of workerRoles) {
       const s = registerSessionGrant({
         runRoot: sandboxDir,

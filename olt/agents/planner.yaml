@@ -10,7 +10,7 @@ provider:
 tier: 3
 tools:
   enable_subagent_tools: false
-  enable_write_tools: false
+  enable_write_tools: true
 interface:
   display_name: "Tier 3 Structured Planner"
   short_description: "Decomposes prompt bytes into 8-vector expanded execution plans adhering to Canonical 8-Level Plan Architecture"

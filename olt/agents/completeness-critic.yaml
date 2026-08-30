@@ -10,7 +10,7 @@ provider:
 tier: 3
 tools:
   enable_subagent_tools: false
-  enable_write_tools: false
+  enable_write_tools: true
 communication_contract:
   mandatory_turn_completion_actions:
     - "doctor:verify"

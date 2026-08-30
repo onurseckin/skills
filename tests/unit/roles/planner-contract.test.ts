@@ -112,7 +112,7 @@ describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () =>
       expect(manifest.role).toBe("planner");
       expect(manifest.tier).toBe(3);
       expect(manifest.tools?.enable_subagent_tools).toBe(false);
-      expect(manifest.tools?.enable_write_tools).toBe(false);
+      expect(manifest.tools?.enable_write_tools).toBe(true);
 
       expect(manifest.invariants).toBeDefined();
       expect(manifest.invariants).toContain("EIGHT_VECTOR_SOCRATIC_EXPANSION");
@@ -145,7 +145,7 @@ describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () =>
       expect(manifest.role).toBe("plan-validator");
       expect(manifest.tier).toBe(3);
       expect(manifest.tools?.enable_subagent_tools).toBe(false);
-      expect(manifest.tools?.enable_write_tools).toBe(false);
+      expect(manifest.tools?.enable_write_tools).toBe(true);
 
       expect(manifest.invariants).toBeDefined();
       expect(manifest.invariants).toContain("SHALLOW_PLAN_BLUNDER_REJECTION");

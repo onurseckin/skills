@@ -10,7 +10,7 @@ provider:
 tier: 3
 tools:
   enable_subagent_tools: false
-  enable_write_tools: false
+  enable_write_tools: true
 interface:
   display_name: "Tier 3 Completeness Critic"
   short_description: "Whole-run requirement fidelity judge against original prompt bytes and Canonical 8-Level Plan Architecture"

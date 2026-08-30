@@ -10,7 +10,7 @@ provider:
 tier: 3
 tools:
   enable_subagent_tools: false
-  enable_write_tools: false
+  enable_write_tools: true
 interface:
   display_name: "Tier 3 Branch Sub-Investigator"
   short_description: "Read-only root-cause diagnosis and reproduction supporting Canonical 8-Level Plan Architecture"

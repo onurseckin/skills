@@ -10,7 +10,7 @@ provider:
   - generic
 tools:
   enable_subagent_tools: true
-  enable_write_tools: false
+  enable_write_tools: true
 interface:
   display_name: "Tier 1 Meta-Orchestrator & Loop Runner"
   short_description: "The one agent the main thread ever dispatches"

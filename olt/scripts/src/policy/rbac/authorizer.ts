@@ -6,29 +6,7 @@ import { compileEffectiveForbiddenPatterns } from "./pattern-compiler.ts";
 import { hasUnshieldedSubshellOrChaining } from "./subshell-check.ts";
 import { isKnownTestRunner, isUntargetedTestCommand } from "./test-runners.ts";
 
-function inferRoleCanExecuteShell(role: string): boolean {
-  const normalized = role.trim().toLowerCase();
-  if (
-    normalized === "validator" ||
-    normalized === "cognitive-validator" ||
-    normalized === "cognitive_validator" ||
-    normalized.startsWith("validator-") ||
-    normalized === "critic" ||
-    normalized === "completeness-critic" ||
-    normalized === "completeness_critic" ||
-    normalized === "planner" ||
-    normalized === "plan-validator" ||
-    normalized === "plan_validator" ||
-    normalized === "sub-investigator" ||
-    normalized === "sub_investigator" ||
-    normalized === "mind" ||
-    normalized === "orchestrator" ||
-    normalized === "coordinator" ||
-    normalized === "meta-auditor" ||
-    normalized === "meta_auditor"
-  ) {
-    return false;
-  }
+function inferRoleCanExecuteShell(_role: string): boolean {
   return true;
 }
 
@@ -185,24 +163,13 @@ export function verifyCommandAuthorization(
     };
   }
 
-  if (isCognitiveValidator) {
-    return {
-      authorized: false,
-      error_code: "COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN",
-      reason: `Role '${role}' has 'can_execute_shell: false'`,
-      message:
-        `[COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN] Cognitive Validators are locked to 0 command execution.\n` +
-        `Focus exclusively on Socratic diff review and logic critique.`,
-    };
-  }
-
   const isTestCommand = isKnownTestRunner(argv) || /\.(test|spec)\.[a-z0-9]+$/i.test(argv[0] ?? "");
-  if (isSupervisor && isTestCommand) {
+  if ((isSupervisor || isCognitiveValidator) && isTestCommand) {
     return {
       authorized: false,
       error_code: "SUPERVISOR_TEST_EXECUTION_FORBIDDEN",
-      reason: `Supervisors cannot run tests: '${commandStr}'`,
-      message: `[SUPERVISOR_TEST_EXECUTION_FORBIDDEN] Coordinators and Orchestrators are mechanically blocked from running test commands.`,
+      reason: `Supervisors and validators cannot run tests: '${commandStr}'`,
+      message: `[SUPERVISOR_TEST_EXECUTION_FORBIDDEN] Supervisory and validator roles are mechanically blocked from running test commands.`,
     };
   }
 

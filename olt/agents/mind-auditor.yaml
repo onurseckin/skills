@@ -10,7 +10,7 @@ provider:
 tier: 0
 tools:
   enable_subagent_tools: false
-  enable_write_tools: false
+  enable_write_tools: true
 interface:
   display_name: "Mind Auditor"
   short_description: "Tier 0 Out-of-Band Stagnation & Mind Pulse Auditor"

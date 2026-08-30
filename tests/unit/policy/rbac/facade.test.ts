@@ -48,8 +48,9 @@ describe("RBAC Engine Public Facade & Integration", () => {
 
   test("compiles effective patterns for roles correctly through facade", () => {
     const patterns = compileEffectiveForbiddenPatterns("validator", samplePolicy);
-    expect(patterns.length).toBe(1);
-    expect(patterns[0]!.test("git status")).toBe(true);
+    expect(patterns.length).toBeGreaterThan(1);
+    expect(patterns.some((p) => p.test("bun test"))).toBe(true);
+    expect(patterns.some((p) => p.test("git status"))).toBe(false);
 
     const sup = compileEffectiveForbiddenPatterns("coordinator", samplePolicy);
     expect(sup.some((p) => p.test("bun test"))).toBe(true);
@@ -71,18 +72,18 @@ describe("RBAC Engine Public Facade & Integration", () => {
   });
 
   test("verifies authorization with fail-closed semantics for all key personas", () => {
-    // Unresolved actor
     const unres = verifyCommandAuthorization(null, "git status", samplePolicy);
     expect(unres.authorized).toBe(false);
     expect(unres.error_code).toBe("PERMISSION_DENIED");
 
-    // Cognitive validator hard-lock
-    const val = createActor("validator");
+    const val = createActor("validator", true);
     const valRes = verifyCommandAuthorization(val, "git status", samplePolicy);
-    expect(valRes.authorized).toBe(false);
-    expect(valRes.error_code).toBe("COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN");
+    expect(valRes.authorized).toBe(true);
 
-    // Supervisor test ban
+    const valTestRes = verifyCommandAuthorization(val, "bun test", samplePolicy);
+    expect(valTestRes.authorized).toBe(false);
+    expect(valTestRes.error_code).toBe("SUPERVISOR_TEST_EXECUTION_FORBIDDEN");
+
     const sup = { role: "coordinator", can_execute_shell: true };
     const supRes = verifyCommandAuthorization(sup, "bun test", samplePolicy);
     expect(supRes.authorized).toBe(false);

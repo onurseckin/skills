@@ -44,7 +44,7 @@
       "tier": 0,
       "silent_daemon": true,
       "rbac": {
-        "can_execute_shell": false,
+        "can_execute_shell": true,
         "can_edit_code": false,
         "allowed_spawns": ["orchestrator", "mind_auditor", "skill_auditor", "autonomic_watchdog"]
       },
@@ -236,7 +236,7 @@
       "tier": 3,
       "domain": "code_quality",
       "rbac": {
-        "can_execute_shell": false,
+        "can_execute_shell": true,
         "can_edit_code": false
       },
       "quotas": {
@@ -276,7 +276,7 @@
       "tier": 3,
       "domain": "ui_design",
       "rbac": {
-        "can_execute_shell": false,
+        "can_execute_shell": true,
         "can_edit_code": false
       },
       "quotas": {
@@ -316,7 +316,7 @@
       "tier": 3,
       "domain": "security",
       "rbac": {
-        "can_execute_shell": false,
+        "can_execute_shell": true,
         "can_edit_code": false
       },
       "quotas": {
@@ -356,7 +356,7 @@
       "tier": 3,
       "domain": "system_design",
       "rbac": {
-        "can_execute_shell": false,
+        "can_execute_shell": true,
         "can_edit_code": false
       },
       "quotas": {
@@ -396,7 +396,7 @@
       "tier": 3,
       "domain": "product",
       "rbac": {
-        "can_execute_shell": false,
+        "can_execute_shell": true,
         "can_edit_code": false
       },
       "quotas": {
@@ -436,7 +436,7 @@
       "tier": 3,
       "domain": "completeness",
       "rbac": {
-        "can_execute_shell": false,
+        "can_execute_shell": true,
         "can_edit_code": false
       },
       "quotas": {
@@ -476,7 +476,7 @@
       "tier": 0,
       "silent_daemon": true,
       "rbac": {
-        "can_execute_shell": false,
+        "can_execute_shell": true,
         "can_edit_code": false
       },
       "hosts": {

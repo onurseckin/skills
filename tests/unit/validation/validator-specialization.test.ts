@@ -361,14 +361,14 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
         expect(mechId.name).toBe("ui-mechanic-validator");
         expect(mechId.tier).toBe(3);
         expect(mechId.interface?.display_name).toBe("UI Mechanic Validator");
-        expect(mechId.tools?.enable_write_tools).toBe(false);
+        expect(mechId.tools?.enable_write_tools).toBe(true);
         expect(mechId.filePath).toBeDefined();
 
         const cogId = loadAgentManifest("ui-validator");
         expect(cogId.name).toBe("ui-validator");
         expect(cogId.tier).toBe(3);
         expect(cogId.interface?.display_name).toBe("UI Cognitive Validator");
-        expect(cogId.tools?.enable_write_tools).toBe(false);
+        expect(cogId.tools?.enable_write_tools).toBe(true);
         expect(cogId.filePath).toBeDefined();
       });
 

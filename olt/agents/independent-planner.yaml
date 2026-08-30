@@ -10,7 +10,7 @@ provider:
 tier: "independent"
 tools:
   enable_subagent_tools: false
-  enable_write_tools: false
+  enable_write_tools: true
 interface:
   display_name: "Independent Product Visionary & Planner"
   short_description: "Pure-English conceptual blueprinting and Canonical 8-Level Plan Architecture decoupled from mechanical execution"

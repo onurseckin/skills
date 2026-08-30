@@ -4,9 +4,8 @@ import { parseRepoPolicy, type RepoPolicy } from "../../../../olt/scripts/src/po
 import { createActor, samplePolicy } from "./fixtures.ts";
 
 describe("RBAC Role Confinement & Fail-Closed Enforcement", () => {
-  test("cognitive validators are hard-locked to 0 commands regardless of flags", () => {
+  test("validators and supervisors are authorized for read-only CLI commands and blocked when can_execute_shell: false", () => {
     const validatorActors = [
-      createActor("validator", false),
       createActor("validator", true),
       createActor("critic", true),
       createActor("completeness-critic", true),
@@ -15,10 +14,13 @@ describe("RBAC Role Confinement & Fail-Closed Enforcement", () => {
     ];
     for (const actor of validatorActors) {
       const res = verifyCommandAuthorization(actor, "git status", samplePolicy);
-      expect(res.authorized).toBe(false);
-      expect(res.error_code).toBe("COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN");
-      expect(res.message).toContain("Cognitive Validators are locked to 0 command execution");
+      expect(res.authorized).toBe(true);
     }
+
+    const disabledValidator = createActor("validator", false);
+    const disabledRes = verifyCommandAuthorization(disabledValidator, "git status", samplePolicy);
+    expect(disabledRes.authorized).toBe(false);
+    expect(disabledRes.error_code).toBe("PERMISSION_DENIED");
   });
 
   test("supervisors are forbidden from executing tests", () => {

@@ -11,31 +11,47 @@ describe("verifyCommandAuthorization", () => {
     expect(result.reason).toBe("EMPTY_COMMAND");
   });
 
-  test("locks cognitive validators from executing any commands", () => {
-    const validatorRoles = [
+  test("enforces zero test runs and zero code edits for supervisory and validator roles while allowing permitted CLI commands", () => {
+    const supervisoryAndValidatorRoles = [
+      "mind",
+      "mind-supervisor",
+      "mind-auditor",
+      "skill-auditor",
+      "orchestrator",
+      "coordinator",
+      "autonomic-watchdog",
       "validator",
       "critic",
       "cognitive-validator",
       "cognitive_validator",
       "completeness-critic",
       "ui-validator",
-      "mechanic-validator",
       "sub-validator",
-      "socratic-validator",
+      "plan-validator",
     ];
 
-    for (const role of validatorRoles) {
-      const res1 = verifyCommandAuthorization(role, ["bun", "test", "tests/unit/a.test.ts"]);
-      expect(res1.authorized).toBe(false);
-      expect(res1.reason).toBe("COGNITIVE_VALIDATOR_COMMAND_LOCK");
+    for (const role of supervisoryAndValidatorRoles) {
+      const resTest = verifyCommandAuthorization(role, ["bun", "test", "tests/unit/a.test.ts"]);
+      expect(resTest.authorized).toBe(false);
+      expect(resTest.reason).toBe("SUPERVISOR_ZERO_TEST_RUNS");
 
-      const res2 = verifyCommandAuthorization(role, ["ls", "-la"]);
-      expect(res2.authorized).toBe(false);
-      expect(res2.reason).toBe("COGNITIVE_VALIDATOR_COMMAND_LOCK");
+      const resCodeEdit = verifyCommandAuthorization(role, ["rm", "-rf", "src/app.ts"]);
+      expect(resCodeEdit.authorized).toBe(false);
+      expect(resCodeEdit.reason).toBe("SUPERVISOR_ZERO_CODE_EDITS");
 
-      const res3 = verifyCommandAuthorization(role, ["task:check"]);
-      expect(res3.authorized).toBe(false);
-      expect(res3.reason).toBe("COGNITIVE_VALIDATOR_COMMAND_LOCK");
+      const resWriteTool = verifyCommandAuthorization(role, ["write_to_file", "foo.ts"]);
+      expect(resWriteTool.authorized).toBe(false);
+      expect(resWriteTool.reason).toBe("SUPERVISOR_ZERO_CODE_EDITS");
+
+      const resStatus = verifyCommandAuthorization(role, ["git", "status"]);
+      expect(resStatus.authorized).toBe(true);
+      expect(resStatus.reason).toBeUndefined();
+
+      const resDiff = verifyCommandAuthorization(role, ["git", "diff"]);
+      expect(resDiff.authorized).toBe(true);
+
+      const resHarness = verifyCommandAuthorization(role, ["bun", "harness.ts", "task:check"]);
+      expect(resHarness.authorized).toBe(true);
     }
   });
 
@@ -116,13 +132,13 @@ describe("verifyCommandAuthorization", () => {
 });
 
 describe("executeShieldedCommand", () => {
-  test("denies unauthorized commands without execution", async () => {
-    const result = await executeShieldedCommand("validator-1", ["echo", "malicious"], {
+  test("denies file mutation commands for supervisor/validator without execution", async () => {
+    const result = await executeShieldedCommand("validator-1", ["rm", "-rf", "src/core"], {
       actorRole: "validator",
     });
     expect(result.success).toBe(false);
     expect(result.authorized).toBe(false);
-    expect(result.reason).toBe("COGNITIVE_VALIDATOR_COMMAND_LOCK");
+    expect(result.reason).toBe("SUPERVISOR_ZERO_CODE_EDITS");
     expect(result.exitCode).toBe(1);
   });
 
@@ -147,10 +163,15 @@ describe("executeShieldedCommand", () => {
     expect(result.stdout).toContain("shielded-execution-pass");
   });
 
-  test("infers validator role from actorId when role is omitted", async () => {
-    const result = await executeShieldedCommand("validator_task-1_sub", ["echo", "hello"]);
-    expect(result.authorized).toBe(false);
-    expect(result.reason).toBe("COGNITIVE_VALIDATOR_COMMAND_LOCK");
+  test("allows permitted CLI command execution for validator under shielded shell", async () => {
+    const result = await executeShieldedCommand(
+      "validator_task-1_sub",
+      ["node", "-e", "console.log('validator-read-pass')"],
+      { actorRole: "validator" },
+    );
+    expect(result.authorized).toBe(true);
+    expect(result.success).toBe(true);
+    expect(result.stdout).toContain("validator-read-pass");
   });
 
   test("captures error and exit code on command failure", async () => {

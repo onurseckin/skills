@@ -9,7 +9,7 @@ import { samplePolicy } from "./fixtures.ts";
 
 describe("RBAC Pattern Compiler & Test Runner Detection", () => {
   describe("compileEffectiveForbiddenPatterns", () => {
-    test("compiles catch-all for cognitive validators and caches pattern instances", () => {
+    test("compiles supervisor patterns for cognitive validators and caches pattern instances", () => {
       const cognitiveRoles = [
         "validator",
         "cognitive-validator",
@@ -26,9 +26,10 @@ describe("RBAC Pattern Compiler & Test Runner Detection", () => {
       ];
       for (const role of cognitiveRoles) {
         const patterns = compileEffectiveForbiddenPatterns(role, samplePolicy);
-        expect(patterns.length).toBe(1);
-        expect(patterns[0]!.test("git status")).toBe(true);
-        expect(patterns[0]!.test("anything")).toBe(true);
+        expect(patterns.length).toBeGreaterThan(1);
+        expect(patterns.some((p) => p.test("git commit -m 'msg'"))).toBe(true);
+        expect(patterns.some((p) => p.test("bun test"))).toBe(true);
+        expect(patterns.some((p) => p.test("git status"))).toBe(false);
       }
       expect(compileEffectiveForbiddenPatterns("validator", samplePolicy)).toBe(
         compileEffectiveForbiddenPatterns("validator", samplePolicy),

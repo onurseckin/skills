@@ -20,7 +20,7 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
       expect(manifest.role).toBe("mind-auditor");
       expect(manifest.tier).toBe(0);
       expect(manifest.tools.enable_subagent_tools).toBe(false);
-      expect(manifest.tools.enable_write_tools).toBe(false);
+      expect(manifest.tools.enable_write_tools).toBe(true);
       expect(manifest.interface.display_name).toBe("Mind Auditor");
       expect(manifest.interface.short_description).toBe(
         "Tier 0 Out-of-Band Stagnation & Mind Pulse Auditor",
@@ -70,7 +70,7 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
       expect(manifest.role).toBe("skill-auditor");
       expect(manifest.tier).toBe(0);
       expect(manifest.tools.enable_subagent_tools).toBe(false);
-      expect(manifest.tools.enable_write_tools).toBe(false);
+      expect(manifest.tools.enable_write_tools).toBe(true);
       expect(manifest.interface.display_name).toBe("Skill Auditor");
       expect(manifest.interface.short_description).toBe(
         "Tier 0 Out-of-Band Skill Compliance & Telemetry Auditor",
@@ -119,7 +119,7 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
         const manifest = parseUnifiedAgentManifest(rawYaml, filePath);
 
         expect(manifest.tier).toBe(0);
-        expect(manifest.tools.enable_write_tools).toBe(false);
+        expect(manifest.tools.enable_write_tools).toBe(true);
         expect(manifest.tools.enable_subagent_tools).toBe(false);
         expect(manifest.permissions.spawns).toEqual([]);
         expect(manifest.invariants).toContain("SUPERVISOR_ZERO_CODE_EDITS");

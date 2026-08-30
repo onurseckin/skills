@@ -24,16 +24,7 @@ export interface ShieldedCommandOptions {
 
 function isTestFileArgument(arg: string): boolean {
   if (arg.startsWith("-")) return false;
-  return (
-    arg.includes(".test.") ||
-    arg.includes(".spec.") ||
-    arg.endsWith(".test.ts") ||
-    arg.endsWith(".spec.ts") ||
-    arg.endsWith(".test.js") ||
-    arg.endsWith(".spec.js") ||
-    arg.endsWith(".test.tsx") ||
-    arg.endsWith(".spec.tsx")
-  );
+  return arg.includes(".test.") || arg.includes(".spec.") || /\.(test|spec)\.[tj]sx?$/u.test(arg);
 }
 
 function isWholeSuiteTestRun(cmd: readonly string[]): boolean {
@@ -43,8 +34,7 @@ function isWholeSuiteTestRun(cmd: readonly string[]): boolean {
 
   if (first === "vitest" || first === "jest") return true;
   if (first === "npx" && (second === "vitest" || second === "jest")) return true;
-
-  if (first === "npm" || first === "pnpm" || first === "yarn") {
+  if (["npm", "pnpm", "yarn"].includes(first)) {
     if (
       second === "test" ||
       second === "t" ||
@@ -53,20 +43,15 @@ function isWholeSuiteTestRun(cmd: readonly string[]): boolean {
       return true;
     }
   }
-
   if (first === "bun") {
-    if (second === "test") {
-      return !cmd.slice(2).some((arg) => isTestFileArgument(arg));
-    }
+    if (second === "test") return !cmd.slice(2).some((arg) => isTestFileArgument(arg));
     if (second === "run" && (cmd[2] ?? "").toLowerCase() === "test") {
       return !cmd.slice(3).some((arg) => isTestFileArgument(arg));
     }
   }
-
   if (first === "bun-test") {
     return !cmd.slice(1).some((arg) => isTestFileArgument(arg));
   }
-
   return false;
 }
 
@@ -87,88 +72,131 @@ function isUnauthorizedGitMutation(cmd: readonly string[]): boolean {
   }
   if (sub === "clean") {
     const cleanArgs = cmd.slice(2);
-    return (
-      cleanArgs.includes("-f") ||
-      cleanArgs.includes("-fd") ||
-      cleanArgs.includes("-fx") ||
-      cleanArgs.includes("-fxd") ||
-      cleanArgs.includes("-df") ||
-      cleanArgs.includes("--force") ||
-      cleanArgs.some((a) => a.startsWith("-") && a.includes("f"))
-    );
+    const forbidden = new Set(["-f", "-fd", "-fx", "-fxd", "-df", "--force"]);
+    return cleanArgs.some((a) => forbidden.has(a) || (a.startsWith("-") && a.includes("f")));
   }
   return false;
 }
 
-function isCognitiveValidatorRole(role: string): boolean {
+const FILE_MUTATION_COMMANDS = new Set([
+  "rm",
+  "touch",
+  "mv",
+  "cp",
+  "mkdir",
+  "tee",
+  "truncate",
+  "patch",
+  "chmod",
+  "chown",
+  "write_to_file",
+  "replace_file_content",
+  "edit_file",
+  "apply_diff",
+  "create_file",
+  "delete_file",
+  "file_writer",
+  "code_editor",
+  "write",
+  "edit",
+  "notebookedit",
+  "apply_patch",
+]);
+
+function isFileMutationCommand(cmd: readonly string[]): boolean {
+  if (cmd.length === 0) return false;
+  const first = (cmd[0] ?? "").toLowerCase();
+  const base = first.split(/[\\/]/).pop() ?? "";
+  if (FILE_MUTATION_COMMANDS.has(base)) return true;
+  if (
+    base === "sed" &&
+    cmd.slice(1).some((arg) => arg === "-i" || arg.startsWith("-i") || arg.startsWith("--in-place"))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function isAnyTestRun(cmd: readonly string[]): boolean {
+  if (cmd.length === 0) return false;
+  const first = (cmd[0] ?? "").toLowerCase();
+  const second = (cmd[1] ?? "").toLowerCase();
+
+  if (first === "vitest" || first === "jest" || first === "pytest") return true;
+  if (first === "npx" && (second === "vitest" || second === "jest" || second === "pytest")) {
+    return true;
+  }
+  if (["npm", "pnpm", "yarn", "cargo"].includes(first)) {
+    if (
+      second === "test" ||
+      second === "t" ||
+      (second === "run" && (cmd[2] ?? "").toLowerCase() === "test")
+    ) {
+      return true;
+    }
+  }
+  if (
+    first === "bun" &&
+    (second === "test" || (second === "run" && (cmd[2] ?? "").toLowerCase() === "test"))
+  ) {
+    return true;
+  }
+  if (first === "bun-test") return true;
+  return cmd.some((arg) => isTestFileArgument(arg));
+}
+
+const SUPERVISOR_OR_VALIDATOR_ROLES = new Set([
+  "mind",
+  "mind-supervisor",
+  "mind-auditor",
+  "skill-auditor",
+  "meta-auditor",
+  "orchestrator",
+  "coordinator",
+  "autonomic-watchdog",
+  "watchdog",
+  "planner",
+  "independent-planner",
+  "validator",
+  "critic",
+  "cognitive-validator",
+  "completeness-critic",
+  "socratic-validator",
+  "plan-validator",
+  "ui-validator",
+  "mechanic-validator",
+  "ui-mechanic-validator",
+  "sub-validator",
+  "sub-investigator",
+]);
+
+function isSupervisorOrValidatorRole(role: string): boolean {
   const norm = role.trim().toLowerCase().replace(/_/gu, "-");
   return (
-    norm === "validator" ||
-    norm === "critic" ||
-    norm === "cognitive-validator" ||
-    norm === "completeness-critic" ||
-    norm === "socratic-validator" ||
-    norm === "plan-validator" ||
-    norm === "ui-validator" ||
-    norm === "mechanic-validator" ||
-    norm === "ui-mechanic-validator" ||
-    norm === "sub-validator" ||
-    norm.includes("validator") ||
-    norm.includes("critic")
+    SUPERVISOR_OR_VALIDATOR_ROLES.has(norm) || norm.includes("validator") || norm.includes("critic")
   );
 }
 
 function inferActorRole(actorId: string): string {
   const norm = actorId.toLowerCase();
-  if (
-    norm.startsWith("validator") ||
-    norm.includes("-validator-") ||
-    norm.includes("_validator_") ||
-    norm.endsWith("validator")
-  )
-    return "validator";
-  if (
-    norm.startsWith("critic") ||
-    norm.includes("-critic-") ||
-    norm.includes("_critic_") ||
-    norm.endsWith("critic")
-  )
-    return "critic";
-  if (
-    norm.startsWith("implementer") ||
-    norm.includes("-implementer-") ||
-    norm.includes("_implementer_") ||
-    norm.endsWith("implementer")
-  )
-    return "implementer";
-  if (
-    norm.startsWith("worker") ||
-    norm.includes("-worker-") ||
-    norm.includes("_worker_") ||
-    norm.endsWith("worker")
-  )
-    return "worker";
-  if (
-    norm.startsWith("coordinator") ||
-    norm.includes("-coordinator-") ||
-    norm.includes("_coordinator_") ||
-    norm.endsWith("coordinator")
-  )
-    return "coordinator";
-  if (
-    norm.startsWith("orchestrator") ||
-    norm.includes("-orchestrator-") ||
-    norm.includes("_orchestrator_") ||
-    norm.endsWith("orchestrator")
-  )
-    return "orchestrator";
-  if (
-    norm.startsWith("mind") ||
-    norm.includes("-mind-") ||
-    norm.includes("_mind_") ||
-    norm.endsWith("mind")
-  )
-    return "mind";
+  for (const prefix of [
+    "validator",
+    "critic",
+    "implementer",
+    "worker",
+    "coordinator",
+    "orchestrator",
+    "mind",
+  ]) {
+    if (
+      norm.startsWith(prefix) ||
+      norm.includes(`-${prefix}-`) ||
+      norm.includes(`_${prefix}_`) ||
+      norm.endsWith(prefix)
+    ) {
+      return prefix;
+    }
+  }
   return "implementer";
 }
 
@@ -177,12 +205,20 @@ export function verifyCommandAuthorization(
   cmd: readonly string[],
 ): CommandAuthResult {
   if (cmd.length === 0) return { authorized: false, reason: "EMPTY_COMMAND", actorRole, cmd };
-  if (isCognitiveValidatorRole(actorRole))
-    return { authorized: false, reason: "COGNITIVE_VALIDATOR_COMMAND_LOCK", actorRole, cmd };
-  if (isWholeSuiteTestRun(cmd))
+  if (isWholeSuiteTestRun(cmd)) {
     return { authorized: false, reason: "WHOLE_SUITE_TEST_RUN_DENIED", actorRole, cmd };
-  if (isUnauthorizedGitMutation(cmd))
+  }
+  if (isUnauthorizedGitMutation(cmd)) {
     return { authorized: false, reason: "UNAUTHORIZED_GIT_MUTATION", actorRole, cmd };
+  }
+  if (isSupervisorOrValidatorRole(actorRole)) {
+    if (isAnyTestRun(cmd)) {
+      return { authorized: false, reason: "SUPERVISOR_ZERO_TEST_RUNS", actorRole, cmd };
+    }
+    if (isFileMutationCommand(cmd)) {
+      return { authorized: false, reason: "SUPERVISOR_ZERO_CODE_EDITS", actorRole, cmd };
+    }
+  }
   return { authorized: true, actorRole, cmd };
 }
 

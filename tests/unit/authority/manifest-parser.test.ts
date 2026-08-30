@@ -304,7 +304,7 @@ protocol:
     const valManifest = loadAgentManifest("validator");
     expect(valManifest.name).toBe("validator");
     expect(valManifest.tier).toBe(3);
-    expect(valManifest.tools?.enable_write_tools).toBe(false);
+    expect(valManifest.tools?.enable_write_tools).toBe(true);
   });
 
   test("loads unified agent model merging contract and manifest", () => {

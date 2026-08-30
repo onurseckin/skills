@@ -41,14 +41,14 @@ export function buildDefaultAgents(): Record<string, AgentPolicy> {
     max_turns_per_task: 15,
     escalate_on_exhausted_adversarial: true,
   };
-  const valRbac = { can_execute_shell: false, can_edit_code: false };
+  const valRbac = { can_execute_shell: true, can_edit_code: false };
 
   return {
     mind_supervisor: {
       tier: 0,
       silent_daemon: true,
       rbac: {
-        can_execute_shell: false,
+        can_execute_shell: true,
         can_edit_code: false,
         allowed_spawns: ["orchestrator", "mind_auditor", "skill_auditor", "autonomic_watchdog"],
       },
@@ -187,10 +187,22 @@ export function buildDefaultAgents(): Record<string, AgentPolicy> {
       rbac: valRbac,
       hosts: makeHosts("medium"),
     },
+    mind_auditor: {
+      tier: 0,
+      silent_daemon: true,
+      rbac: { can_execute_shell: true, can_edit_code: false },
+      hosts: makeHosts("xhigh"),
+    },
+    skill_auditor: {
+      tier: 0,
+      silent_daemon: true,
+      rbac: { can_execute_shell: true, can_edit_code: false },
+      hosts: makeHosts("xhigh"),
+    },
     autonomic_watchdog: {
       tier: 0,
       silent_daemon: true,
-      rbac: { can_execute_shell: false, can_edit_code: false },
+      rbac: { can_execute_shell: true, can_edit_code: false },
       hosts: makeHosts("medium", 300),
     },
     owner: {

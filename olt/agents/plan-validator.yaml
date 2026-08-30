@@ -10,7 +10,7 @@ provider:
 tier: 3
 tools:
   enable_subagent_tools: false
-  enable_write_tools: false
+  enable_write_tools: true
 interface:
   display_name: "Tier 3 Adversarial Plan Validator"
   short_description: "Adversarially audits compiled plan topologies and enforces Canonical 8-Level Plan Architecture"
