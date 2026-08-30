@@ -1,7 +1,7 @@
 # Track 4 Implementation Plan: Mind Auditing Cognitive and Facades
 
-**Cluster Path**: `docs/planning/mind-auditing-cognitive-and-facades/PLAN.md`  
-**Track**: Track 4  
+**Cluster Path**: `docs/archive/completed-plans/mind-auditing-cognitive-and-facades/PLAN.md`  
+**Track**: Track 4 (Track 08)  
 **Target Subsystems**: `olt/scripts/src/mind/auditing/cognitive/`, `olt/scripts/src/mind/auditing/witness/`, `olt/scripts/src/mind/lifecycle/pulse/`, `olt/scripts/src/mind/memory/value/`, `olt/scripts/src/mind/`  
 **Defect IDs**:
 
@@ -24,7 +24,7 @@
   - `olt/scripts/src/mind/auditing/cognitive/types.ts` (36 LOC) & `index.ts` (13 LOC): Verified clean facade.
   - `olt/scripts/src/mind/auditing/witness/types.ts` (194 LOC): Line 56 exports `collectCapsuleSearchRoots` and Line 107 exports `resolveWitnessCommand`.
   - `olt/scripts/src/mind/auditing/witness/verifier.ts` (169 LOC): Line 6 exports `readCommandOutput` and Line 113 exports `verifyDefectWitness`.
-  - `olt/scripts/src/mind/auditing/witness/index.ts` (6 LOC): Re-exports `collectCapsuleSearchRoots`, `resolveWitnessCommand`, `readCommandOutput`, `verifyDefectWitness`, `WitnessResolution`, `DefectWitnessVerification`.
+  - `olt/scripts/src/mind/auditing/witness/index.ts` (11 LOC): Re-exports `collectCapsuleSearchRoots`, `resolveWitnessCommand`, `readCommandOutput`, `verifyDefectWitness`, `WitnessResolution`, `DefectWitnessVerification`, `CommandStatus`, `CommandRecord`.
 
 ### 1.2 Defect 2: `defect-mind-facade-missing-pulse-reclaim-and-value`
 
@@ -34,11 +34,11 @@
   - `olt/scripts/src/mind/lifecycle/pulse/pulse-reclaim.ts` (284 LOC): Implements `reclaimDeadPulse`, `parseNowMs`.
   - `olt/scripts/src/mind/lifecycle/pulse/index.ts` (21 LOC): Named barrel re-exporting pulse operations.
   - `olt/scripts/src/mind/memory/value/types.ts` (85 LOC), `calculator.ts` (82 LOC), `index.ts` (26 LOC): Mechanical value calculation and jitter backoff.
-  - Missing top-level facades to author:
+  - Authored top-level facades:
     - `olt/scripts/src/mind/pulse-reclaim.ts`: Named facade re-exporting from `./lifecycle/pulse/index.ts`.
     - `olt/scripts/src/mind/value.ts`: Named facade re-exporting from `./memory/value/index.ts`.
     - `olt/scripts/src/mind/witness.ts`: Named facade re-exporting from `./auditing/witness/index.ts`.
-    - `olt/scripts/src/mind/index.ts` (162 LOC): Update to bind top-level facades.
+    - `olt/scripts/src/mind/index.ts` (162 LOC): Bound top-level facades.
 
 ---
 
@@ -50,7 +50,7 @@
    - `mind/auditing/witness/`: 3 files ($\le 10$)
    - `mind/lifecycle/pulse/`: 4 files ($\le 10$)
    - `mind/memory/value/`: 3 files ($\le 10$)
-   - `mind/`: 4 existing + 3 new facades = 7 files ($\le 10$)
+   - `mind/`: 7 files ($\le 10$)
 3. **Named Facades Invariant**: 0 wildcard `export *` statements; all exports are explicitly named.
 4. **Type Safety Invariant**: 0 `any` / 0 `@ts-ignore` / 0 `@ts-expect-error`.
 5. **Code Cleanliness Invariant**: 0 code comments in newly authored facade files.
@@ -100,31 +100,19 @@ graph TD
     W1_T3 --> W2_T4
 ```
 
-- **Work / Span Metrics**:
-  - Total Work ($W$): 4 task units
-  - Span ($S$): 2 sequential waves
-  - Parallelism Factor ($P$): $\lceil W / S \rceil = \lceil 4 / 2 \rceil = 2$ (Capacity: 3 in Wave 1, 1 in Wave 2)
-- **Wave Assignments**:
-  - **Wave 1 (Parallel Execution, $P=3$)**:
-    - Task 1: Create `olt/scripts/src/mind/pulse-reclaim.ts`
-    - Task 2: Create `olt/scripts/src/mind/value.ts`
-    - Task 3: Create `olt/scripts/src/mind/witness.ts`
-  - **Wave 2 (Sequential Convergence, $P=1$)**:
-    - Task 4: Link facades in `olt/scripts/src/mind/index.ts`, execute all verification test gates and modularity checks.
-
 ---
 
 ## Level 6: Fast Incremental Verification Gates
 
-| Gate ID    | Target Command                                              | Validation Scope                                                                    | Expected Exit Code / Behavior       |
-| :--------- | :---------------------------------------------------------- | :---------------------------------------------------------------------------------- | :---------------------------------- |
-| **GATE-1** | `bun test tests/unit/mind/cognitive-auditors.test.ts`       | Unit: Cognitive cursor store, Mode A/B stagnation, defect routing                   | Exit Code 0, all 13 tests pass      |
-| **GATE-2** | `bun test tests/unit/mind/pulse-reclaim.test.ts`            | Unit: Grace period, 3-crash HALT ladder, dead pulse reclamation                     | Exit Code 0, all 11 tests pass      |
-| **GATE-3** | `bun test tests/unit/mind/value.test.ts`                    | Unit: Mechanical value formula (6 included, 5 excluded), jitter clamping [10%, 20%] | Exit Code 0, all 14 tests pass      |
-| **GATE-4** | `bun test tests/unit/mind/witness.test.ts`                  | Unit: Witness command discovery, exit code 0 rejection, substring checks            | Exit Code 0, all 23 tests pass      |
-| **GATE-5** | `bun test tests/integration/cognitive-auditors-e2e.test.ts` | Integration: 6 end-to-end multi-agent cognitive auditor simulations                 | Exit Code 0, all 6 simulations pass |
-| **GATE-6** | `bun run typecheck`                                         | Static Type Integrity: Full AST typecheck across all modules                        | Exit Code 0, 0 type errors          |
-| **GATE-7** | `bun scripts/modularity/check.ts --mode ratchet`            | Modularity Ratchet: File length ($\le 300$), density ($\le 10$), facades, 0 cycles  | Exit Code 0, 0 new violations       |
+| Gate ID    | Target Command                                              | Validation Scope                                                                    | Expected Exit Code / Behavior       | Result |
+| :--------- | :---------------------------------------------------------- | :---------------------------------------------------------------------------------- | :---------------------------------- | :----- |
+| **GATE-1** | `bun test tests/unit/mind/cognitive-auditors.test.ts`       | Unit: Cognitive cursor store, Mode A/B stagnation, defect routing                   | Exit Code 0, all 18 tests pass      | PASS   |
+| **GATE-2** | `bun test tests/unit/mind/pulse-reclaim.test.ts`            | Unit: Grace period, 3-crash HALT ladder, dead pulse reclamation                     | Exit Code 0, all 13 tests pass      | PASS   |
+| **GATE-3** | `bun test tests/unit/mind/value.test.ts`                    | Unit: Mechanical value formula (6 included, 5 excluded), jitter clamping [10%, 20%] | Exit Code 0, all 20 tests pass      | PASS   |
+| **GATE-4** | `bun test tests/unit/mind/witness.test.ts`                  | Unit: Witness command discovery, exit code 0 rejection, substring checks            | Exit Code 0, all 21 tests pass      | PASS   |
+| **GATE-5** | `bun test tests/integration/cognitive-auditors-e2e.test.ts` | Integration: 7 end-to-end multi-agent cognitive auditor simulations                 | Exit Code 0, all 7 simulations pass | PASS   |
+| **GATE-6** | `bun run typecheck`                                         | Static Type Integrity: Full AST typecheck across all modules                        | Exit Code 0, 0 type errors          | PASS   |
+| **GATE-7** | `bun scripts/modularity/check.ts --mode ratchet`            | Modularity Ratchet: File length ($\le 300$), density ($\le 10$), facades, 0 cycles  | Exit Code 0, 0 new violations       | PASS   |
 
 ---
 
@@ -143,10 +131,32 @@ graph TD
 
 ## Level 8: Sealing, Release & Turn 1 Zero-Exploration Readiness Briefing
 
-- **Readiness State**:
-  - All file paths, symbols, exports, line budgets, and test gates are 100% verified against real disk state.
-  - Implementer Fleet can execute Wave 1 and Wave 2 with zero codebase exploration required.
-- **Release Commands**:
-  - Wave 1: Create `olt/scripts/src/mind/pulse-reclaim.ts`, `olt/scripts/src/mind/value.ts`, `olt/scripts/src/mind/witness.ts`.
-  - Wave 2: Update `olt/scripts/src/mind/index.ts`.
-  - Run verification gates: `bun test tests/unit/mind/cognitive-auditors.test.ts && bun test tests/unit/mind/pulse-reclaim.test.ts && bun test tests/unit/mind/value.test.ts && bun test tests/unit/mind/witness.test.ts && bun test tests/integration/cognitive-auditors-e2e.test.ts && bun run typecheck && bun scripts/modularity/check.ts --mode ratchet`.
+- **Readiness State**: All file paths, symbols, exports, line budgets, and test gates are 100% verified against real disk state.
+- **Verification Gates**: 100% Passing (79 unit and integration tests passing across all suites).
+
+---
+
+## Level 9: Execution & Verification Report
+
+### Implementation Execution
+
+- **Wave 1**:
+  - Authored `olt/scripts/src/mind/pulse-reclaim.ts` (17 LOC).
+  - Authored `olt/scripts/src/mind/value.ts` (28 LOC).
+  - Authored `olt/scripts/src/mind/witness.ts` (14 LOC).
+- **Wave 2**:
+  - Updated `olt/scripts/src/mind/auditing/witness/index.ts` to export `CommandStatus` and `CommandRecord`.
+  - Updated `olt/scripts/src/mind/index.ts` to wire canonical top-level facades.
+  - Executed full test verification gates (GATE-1 through GATE-7).
+
+---
+
+## Level 10: Adversarial Validation Sign-Off
+
+- **Validator**: validator_08 (`723d782b-e8b9-41dd-8ed1-a4132b836ab0`)
+- **Review History**:
+  - Round 1 (Contracts, Interfaces & Architecture): PASS
+  - Round 2 (Boundary Conditions, Error Handling & Edge Cases): PASS
+  - Round 3 (Monorepo Density, Barrel Facades & Purity): PASS
+  - Round 4 (Coverage, Mock Purity & Performance): PASS
+  - Round 5 (Final Certification & Release Sign-Off): CERTIFIED PASS
