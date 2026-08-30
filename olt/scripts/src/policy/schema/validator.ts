@@ -34,6 +34,7 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
     "agents",
     "docker_environment",
     "hooks",
+    "provenance",
   ]);
   for (const k of Object.keys(rec)) {
     if (!allowedKeys.has(k))
@@ -171,5 +172,6 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
         : 2,
     review_protocol: reviewProtocol,
     planning,
+    ...(typeof rec["provenance"] === "string" ? { provenance: rec["provenance"].trim() } : {}),
   };
 }

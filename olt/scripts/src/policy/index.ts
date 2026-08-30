@@ -29,8 +29,10 @@ export {
   DEFAULT_REVIEW_PROTOCOL_POLICY,
   DEFAULT_PLANNING_POLICY,
   detectRepoEcosystem,
+  discoverToolchain,
   generateCanonicalDefaultPolicy,
   generateDefaultRepoPolicy,
+  type DiscoveredToolchain,
 } from "./generator/index.ts";
 
 export { parseHooks, parseRepoPolicy } from "./schema/index.ts";

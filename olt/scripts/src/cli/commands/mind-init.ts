@@ -16,6 +16,7 @@ import { transact } from "../../engine/store/index.ts";
 import { enforceLineLimit, mindInitNextActions, nextActionsBlock } from "../formatters/index.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { resolveCapsulesDir } from "../../core/shared/paths.ts";
+import { initRepoPolicy } from "../../policy/index.ts";
 import { writeAgentLedger } from "../../workflow/agents/ledger.ts";
 
 export type MindInitGovernanceStatus = RepoGovernanceStatus;
@@ -145,6 +146,11 @@ export function mindInitCommand(
       "INVALID_STATE",
       `capsule already exists at ${targetCapsuleDir}; cannot re-initialize an existing mind capsule`,
     );
+  }
+
+  const policyFile = join(repoRoot, ".olt", "policy.json");
+  if (!existsSync(policyFile)) {
+    initRepoPolicy(repoRoot);
   }
 
   const runRoot = initRun(repoRoot, mindId, charterBytes, "file", true);
