@@ -29,7 +29,6 @@ export class RootDirectoryHygieneGuard {
         );
       }
 
-      // Check static package purity inside `olt/` (ignoring static reference docs)
       if (topDir === "olt" && !segments.includes("references")) {
         const lastSegment = segments[segments.length - 1];
         const fileName = typeof lastSegment === "string" ? lastSegment : "";
