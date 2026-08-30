@@ -7,17 +7,18 @@ import { findRepoRoot } from "../core/shared/paths.ts";
 import {
   executePreparedCommand,
   prepareCommand,
-} from "../engine/runner/models/execution/run-command.ts";
-import { resolveArtifactPath } from "../engine/runner/core/artifact-paths";
-import { MAX_COMMAND_RECORD_BYTES } from "../engine/runner/models/command/command-record-size.ts";
+  MAX_COMMAND_RECORD_BYTES,
+} from "../engine/runner/index.ts";
+import { resolveArtifactPath } from "../engine/runner/core/artifact-paths.ts";
 import {
   assertCommandActor,
   assertCommandArgv,
   assertCommandIdentities,
-} from "../engine/runner/core/policy";
-import type { CommandOptions, CommandResult } from "../engine/runner/types/types";
-import { verifyCommandRecord } from "../engine/runner/signing/verify-command";
-import { gateControlBindingsOverlapWriteScopes } from "../engine/runner/signing/gate-path-overlap";
+} from "../engine/runner/core/policy.ts";
+import type { CommandOptions, CommandResult } from "../engine/runner/types/types.ts";
+import { verifyCommandRecord } from "../engine/runner/signing/verify-command.ts";
+import { gateControlBindingsOverlapWriteScopes } from "../engine/runner/signing/gate-path-overlap.ts";
+
 import { loadRun, transact } from "../engine/store/index.ts";
 import {
   recoverAggregateFromAttempts,
