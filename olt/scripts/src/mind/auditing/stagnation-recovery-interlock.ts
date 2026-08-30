@@ -58,12 +58,9 @@ export function executeStagnationShockRecovery(
       : 1;
 
   const isChronic = consecutiveCount >= CHRONIC_STAGNATION_CYCLE_THRESHOLD;
-  const targetMode: StagnationMode = isChronic
-    ? MODE_A_AUTONOMIC_DISCOVERY
-    : MODE_STANDARD_PREPLAN;
+  const targetMode: StagnationMode = isChronic ? MODE_A_AUTONOMIC_DISCOVERY : MODE_STANDARD_PREPLAN;
 
-  const dispatchedTaskId =
-    options?.dispatchTaskId ?? `shock-recovery-${randomUUID().slice(0, 8)}`;
+  const dispatchedTaskId = options?.dispatchTaskId ?? `shock-recovery-${randomUUID().slice(0, 8)}`;
 
   const recoveryAction = isChronic
     ? "DISPATCH_AUTONOMIC_DISCOVERY_PULSE"

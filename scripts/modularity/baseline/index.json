@@ -2244,7 +2244,7 @@
     {
       "rule": "directory_fanout",
       "path": "tests/unit/mind",
-      "observed": 99,
+      "observed": 100,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -10558,6 +10558,12 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "olt/scripts/src/mind/auditing/plan-granularity-auditor.ts",
+      "observed": "olt/scripts/src/graph/scope-expansion.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "olt/scripts/src/mind/auditing/roles/auditor.ts",
       "observed": "olt/scripts/src/packets/command-authority.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -10614,6 +10620,12 @@
       "rule": "facade_bypass",
       "path": "olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts",
       "observed": "olt/scripts/src/orchestrator/velocity-rebalancer.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/mind/auditing/stagnation-recovery-interlock.ts",
+      "observed": "olt/scripts/src/mind/preplanning/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
@@ -19679,6 +19691,12 @@
     {
       "rule": "facade_bypass",
       "path": "tests/unit/mind/mind-stagnation-auditor.test.ts",
+      "observed": "olt/scripts/src/mind/auditing/stagnation-recovery-interlock.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/mind/mind-stagnation-auditor.test.ts",
       "observed": "olt/scripts/src/mind/preplanning/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
@@ -19692,6 +19710,12 @@
       "rule": "facade_bypass",
       "path": "tests/unit/mind/mind-wake.test.ts",
       "observed": "olt/scripts/src/cli/commands/mind-wake.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "tests/unit/mind/plan-granularity-auditor.test.ts",
+      "observed": "olt/scripts/src/mind/auditing/plan-granularity-auditor.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
     },
     {
