@@ -130,13 +130,13 @@ export function filterOpenDefects(defects: readonly DefectEntry[]): readonly Def
 
 export function mapDefectToDiscoveryItem(defect: DefectEntry): DiscoveryItem {
   const slug = sanitizeSlug(defect.id);
-  const desc = defect.observation || defect.description || defect.message || "Unspecified defect";
-  const category = (defect.category || "code_defect").toLowerCase();
+  const desc = defect.observation ?? defect.description ?? defect.message ?? "Unspecified defect";
+  const category = (defect.category ?? "code_defect").toLowerCase();
   const charterGoal = category === "boundary_violation" ? "G1" : "G2";
   const priority = mapDefectSeverityToPriority(defect.severity);
   const scope = ["olt/scripts/src/mind/", "tests/unit/mind/"];
   const remediation =
-    defect.remediation || defect.prescribed_remediation || "Fix root cause of defect";
+    defect.remediation ?? defect.prescribed_remediation ?? "Fix root cause of defect";
 
   return {
     id: `defect-${slug}`,
@@ -223,8 +223,8 @@ export function scanDefectRemediations(
       continue;
     }
 
-    const desc = defect.observation || defect.description || defect.message || "Unspecified defect";
-    const rem = defect.remediation || defect.prescribed_remediation || "Fix root cause of defect";
+    const desc = defect.observation ?? defect.description ?? defect.message ?? "Unspecified defect";
+    const rem = defect.remediation ?? defect.prescribed_remediation ?? "Fix root cause of defect";
     const issueType = mapCategoryToIssueType(defect.category);
     const severity = mapDefectSeverityToDiscoverySeverity(defect.severity);
 

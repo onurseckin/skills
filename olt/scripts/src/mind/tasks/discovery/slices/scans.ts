@@ -151,12 +151,12 @@ export function performDiscoveryScans(options: TaskDiscoveryOptions): DiscoveryS
   }
 
   for (const bl of openDefects) {
-    const desc = bl.observation || bl.description || bl.message || "Unspecified defect";
+    const desc = bl.observation ?? bl.description ?? bl.message ?? "Unspecified defect";
     const slug = sanitizeSlug(bl.id);
     const scope = ["olt/scripts/src/mind/", "tests/unit/mind/"];
     const titleSnippet = bl.observation ? bl.observation.slice(0, 50) : desc.slice(0, 50);
     const criteriaSnippet = bl.observation ? bl.observation.slice(0, 80) : desc.slice(0, 80);
-    const remediation = bl.remediation || bl.prescribed_remediation || "Fix root cause of defect";
+    const remediation = bl.remediation ?? bl.prescribed_remediation ?? "Fix root cause of defect";
     addDiscovery({
       id: `defect-${slug}`,
       category: "DEFECT_REMEDIATION",
