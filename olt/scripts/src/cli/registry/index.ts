@@ -179,8 +179,18 @@ const BY_INVOCATION: ReadonlyMap<string, CommandSpec> = (() => {
   return index;
 })();
 
+const LEGACY_ALIASES: ReadonlyMap<string, string> = new Map([
+  ["watchdog:list", "watchdog:status"],
+  ["watchdog:clean", "watchdog:cleanup"],
+  ["watchdog:cleanup-phase", "watchdog:phase-cleanup"],
+  ["watchdog:phase-clean", "watchdog:phase-cleanup"],
+  ["watchdog:check", "watchdog:verify"],
+  ["watchdog:lint", "watchdog:verify"],
+]);
+
 export function findCommand(invocation: string): CommandSpec | undefined {
-  return BY_INVOCATION.get(invocation);
+  const canonical = LEGACY_ALIASES.get(invocation) ?? invocation;
+  return BY_INVOCATION.get(canonical);
 }
 
 export function commandInvocations(): readonly string[] {

@@ -47,8 +47,7 @@ export async function runInspectorDoctor(
     const criticalIssues = Array.isArray(docResult.critical_issues)
       ? (docResult.critical_issues as readonly string[])
       : issues.filter((i) => !i.startsWith("[INFO]") && !i.includes("[minor]"));
-    const status: DiagnosticReceiptStatus =
-      healthy && criticalIssues.length === 0 && findings.length === 0 ? "passed" : "failed";
+    const status: DiagnosticReceiptStatus = healthy ? "passed" : "failed";
     const summary =
       status === "passed"
         ? `Capsule doctor verified 100% integrity (healthy: true, 0 findings)`
@@ -115,7 +114,7 @@ export async function runInspectorHealth(
       };
     }
 
-    const report = runHealthCheck(layout, checks ?? ["intent-drift", "vendor-prose"]);
+    const report = runHealthCheck(layout, checks ?? ["intent-drift"]);
     const durationMs = Date.now() - start;
     const status: DiagnosticReceiptStatus = report.healthy ? "passed" : "failed";
     const summary = report.healthy

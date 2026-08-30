@@ -4,13 +4,10 @@ export {
   generateTaskDagBadge,
   generateWaveLaneBadges,
   formatWorkSpanBadge,
-  type SchedulingMetrics,
 } from "./topology/metrics.ts";
+export type { SchedulingMetrics } from "./topology/metrics.ts";
 export { computeWorkSpanMetrics, computeResourceDisjointness } from "./topology/dynamic-metrics.ts";
-export {
-  type WorkSpanMetrics,
-  type ResourceDisjointnessMetrics,
-} from "./topology/dynamic-types.ts";
+export type { WorkSpanMetrics, ResourceDisjointnessMetrics } from "./topology/dynamic-types.ts";
 export {
   resourceConflict,
   scopeConflict,
@@ -26,22 +23,24 @@ export {
   calculateCriticConcurrency,
 } from "./topology/dynamic-allocations.ts";
 export { synthesizeDynamicTopology } from "./topology/dynamic-synthesize.ts";
-export {
-  type OrchestratorPartition,
-  type CrossOrchestratorBarrier,
-  type ValidatorDemand,
-  type DynamicTopologySynthesis,
-  type DynamicTopologyWave,
-  type DynamicTopologyOptions,
+export type {
+  OrchestratorPartition,
+  CrossOrchestratorBarrier,
+  ValidatorDemand,
+  DynamicTopologySynthesis,
+  DynamicTopologyWave,
+  DynamicTopologyOptions,
 } from "./topology/dynamic-types.ts";
 export {
   evaluateHierarchicalDecision,
   assertHierarchicalCompliance,
   HIERARCHICAL_TIERS,
-  type AgentRoleHierarchy,
-  type HierarchicalAction,
-  type HierarchicalDecisionContext,
-  type HierarchicalDecisionResult,
+} from "./conflict/decision-tree.ts";
+export type {
+  AgentRoleHierarchy,
+  HierarchicalAction,
+  HierarchicalDecisionContext,
+  HierarchicalDecisionResult,
 } from "./conflict/decision-tree.ts";
 export {
   SchedulerEngine,
@@ -65,31 +64,34 @@ export {
   probeStaleLeases,
   probeWorkSpanParallelizationHealth,
   recoverStaleTasks,
-  type AgentRegistryAccuracyAudit,
-  type CircularDependenciesProbeResult,
-  type DoctorErrorResolutionAudit,
-  type GateCoverageProbeResult,
-  type GraphHealthAuditReport,
-  type GraphHealthIssue,
-  type OrphanedTasksProbeResult,
-  type PlanEnhancementAudit,
-  type RoleBoundaryAdherenceAudit,
-  type ScopeCollisionHazard,
-  type ScopeCollisionProbeResult,
-  type StaleLeaseInfo,
-  type StaleLeasesProbeResult,
-  type Supervisory5PointHealthReport,
-  type Supervisory5PointOptions,
-  type SupervisoryProbeDispatchResult,
-  type SupervisoryTopLeader,
-  type SupervisoryWatchdogAuditReport,
-  type TaskRecoveryRecord,
-  type TaskRecoveryResult,
-  type WorkSpanHealthAudit,
-  type ScheduledTaskDispatch,
-  type BlockedTaskInfo,
-  type ScheduledWaveResult,
-  type SchedulerEngineOptions,
+} from "./core/index.ts";
+
+export type {
+  AgentRegistryAccuracyAudit,
+  CircularDependenciesProbeResult,
+  DoctorErrorResolutionAudit,
+  GateCoverageProbeResult,
+  GraphHealthAuditReport,
+  GraphHealthIssue,
+  OrphanedTasksProbeResult,
+  PlanEnhancementAudit,
+  RoleBoundaryAdherenceAudit,
+  ScopeCollisionHazard,
+  ScopeCollisionProbeResult,
+  StaleLeaseInfo,
+  StaleLeasesProbeResult,
+  Supervisory5PointHealthReport,
+  Supervisory5PointOptions,
+  SupervisoryProbeDispatchResult,
+  SupervisoryTopLeader,
+  SupervisoryWatchdogAuditReport,
+  TaskRecoveryRecord,
+  TaskRecoveryResult,
+  WorkSpanHealthAudit,
+  ScheduledTaskDispatch,
+  BlockedTaskInfo,
+  ScheduledWaveResult,
+  SchedulerEngineOptions,
 } from "./core/index.ts";
 export {
   computeReceiptHash,
@@ -102,22 +104,24 @@ export {
   runInspectorHealth,
   runInspectorUnifiedReport,
   runScriptBackedDiagnostics,
-  type CliDiagnosticReceipt,
-  type DiagnosticInspectorName,
-  type DiagnosticReceiptStatus,
-  type ScriptBackedDiagnosticsOptions,
-  type ScriptBackedDiagnosticsResult,
+} from "./diagnostics/index.ts";
+export type {
+  CliDiagnosticReceipt,
+  DiagnosticInspectorName,
+  DiagnosticReceiptStatus,
+  ScriptBackedDiagnosticsOptions,
+  ScriptBackedDiagnosticsResult,
 } from "./diagnostics/index.ts";
 export {
   executePulseTick,
   executePulseTickWithDiagnostics,
   runPulseLoop,
 } from "./feedback/pulse-core.ts";
-export {
-  type PulseLoopOptions,
-  type PulseLoopResult,
-  type PulseTickOptions,
-  type PulseTickResult,
+export type {
+  PulseLoopOptions,
+  PulseLoopResult,
+  PulseTickOptions,
+  PulseTickResult,
 } from "./feedback/pulse-types.ts";
 export {
   deriveCounterfactualRequirement,
@@ -127,16 +131,18 @@ export {
   compileRepairDag,
   routeCriticFeedback,
   evaluateRepairCycleConvergence,
-  type ReviewerRole,
-  type CriticFindingInput,
-  type CriticFindingDetail,
-  type ImplementerValidatorBinding,
-  type PairAssignmentStrategy,
-  type ClosedLoopRepairPayload,
-  type CompiledRepairDagNode,
-  type CompiledRepairDag,
-  type RouteCriticFeedbackOptions,
-  type RouteCriticFeedbackResult,
+} from "./diagnostics/critic/index.ts";
+export type {
+  ReviewerRole,
+  CriticFindingInput,
+  CriticFindingDetail,
+  ImplementerValidatorBinding,
+  PairAssignmentStrategy,
+  ClosedLoopRepairPayload,
+  CompiledRepairDagNode,
+  CompiledRepairDag,
+  RouteCriticFeedbackOptions,
+  RouteCriticFeedbackResult,
 } from "./diagnostics/critic/index.ts";
 export {
   classifyTaskDomain,
@@ -149,15 +155,17 @@ export {
   MULTI_DOMAIN_PARALLELISM_THRESHOLD,
   proposeMultiDomainWave,
   resolveParallelismFactor,
-  type MultiDomainBatchOptions,
-  type MultiDomainBatchResult,
-  type MultiDomainBlockedTaskInfo,
-  type MultiDomainTaskDispatch,
-  type MultiDomainValidatorDispatchOptions,
-  type MultiDomainValidatorDispatchResult,
-  type MultiDomainWaveOptions,
-  type MultiDomainWaveResult,
-  type TaskDomain,
+} from "./dispatch/multi-domain-dispatch.ts";
+export type {
+  MultiDomainBatchOptions,
+  MultiDomainBatchResult,
+  MultiDomainBlockedTaskInfo,
+  MultiDomainTaskDispatch,
+  MultiDomainValidatorDispatchOptions,
+  MultiDomainValidatorDispatchResult,
+  MultiDomainWaveOptions,
+  MultiDomainWaveResult,
+  TaskDomain,
 } from "./dispatch/multi-domain-dispatch.ts";
 export { SkillAuditorPolicy, MetaAuditorPolicy } from "./diagnostics/skill-auditor-policy.ts";
 export { scheduleUnlimitedDepthDAG } from "./topology/unlimited/unlimited-core.ts";
@@ -172,15 +180,15 @@ export {
   derivedRationale,
   computeCriticalPathDepth,
 } from "./topology/unlimited/unlimited-utils.ts";
-export {
-  type UnlimitedDepthSchedulerConfig,
-  type ValidatorPairingRecord,
-  type UnboundedWavePartition,
-  type DepthMetrics,
-  type CriticalPathDepthResult,
-  type DepthInvariantValidationResult,
-  type PairValidatorsOptions,
-  type UnlimitedDepthScheduleResult,
+export type {
+  UnlimitedDepthSchedulerConfig,
+  ValidatorPairingRecord,
+  UnboundedWavePartition,
+  DepthMetrics,
+  CriticalPathDepthResult,
+  DepthInvariantValidationResult,
+  PairValidatorsOptions,
+  UnlimitedDepthScheduleResult,
 } from "./topology/unlimited/unlimited-types.ts";
 export {
   resolveAgentSchedulerConfig,
