@@ -151,29 +151,31 @@ export function performDiscoveryScans(options: TaskDiscoveryOptions): DiscoveryS
   }
 
   for (const bl of openDefects) {
-    if (bl.observation) {
-      const slug = sanitizeSlug(bl.id);
-      const scope = ["olt/scripts/src/mind/", "tests/unit/mind/"];
-      addDiscovery({
-        id: `defect-${slug}`,
-        category: "DEFECT_REMEDIATION",
-        title: `Remediate Defect: ${bl.observation ? bl.observation.slice(0, 50) : ""}`,
-        description: bl.observation,
-        priority: "CRITICAL",
-        targetFiles: scope,
-        writeScope: scope,
-        gate: "bun test tests/unit/mind && bun run typecheck",
-        charterGoals: ["G2"],
-        acceptanceCriteria: [
-          `Resolve open defect ${bl.id}: ${bl.observation ? bl.observation.slice(0, 80) : ""}`,
-          "Verify regression immunity with unit tests",
-        ],
-        remediation: bl.remediation || "Fix root cause of defect",
-        sourceType: "defect_remediation",
-        sourceReference: bl.id,
-        metadata: { defect_id: bl.id, category: bl.category },
-      });
-    }
+    const desc = bl.observation || bl.description || bl.message || "Unspecified defect";
+    const slug = sanitizeSlug(bl.id);
+    const scope = ["olt/scripts/src/mind/", "tests/unit/mind/"];
+    const titleSnippet = bl.observation ? bl.observation.slice(0, 50) : desc.slice(0, 50);
+    const criteriaSnippet = bl.observation ? bl.observation.slice(0, 80) : desc.slice(0, 80);
+    const remediation = bl.remediation || bl.prescribed_remediation || "Fix root cause of defect";
+    addDiscovery({
+      id: `defect-${slug}`,
+      category: "DEFECT_REMEDIATION",
+      title: `Remediate Defect: ${titleSnippet}`,
+      description: desc,
+      priority: "CRITICAL",
+      targetFiles: scope,
+      writeScope: scope,
+      gate: "bun test tests/unit/mind && bun run typecheck",
+      charterGoals: ["G2"],
+      acceptanceCriteria: [
+        `Resolve open defect ${bl.id}: ${criteriaSnippet}`,
+        "Verify regression immunity with unit tests",
+      ],
+      remediation,
+      sourceType: "defect_remediation",
+      sourceReference: bl.id,
+      metadata: { defect_id: bl.id, category: bl.category },
+    });
   }
 
   for (const cg of cognitiveGapResult.findings) {
