@@ -125,6 +125,10 @@ export interface SupervisoryReminderEvaluationContext {
   readonly attemptedPrematureCompletion?: boolean | undefined;
   readonly adversarialProbeRecorded?: boolean | undefined;
   readonly hasUnresolvedProbeDemands?: boolean | undefined;
+  readonly evidenceVerification?:
+    | import("../../mind/evidence/types.ts").MilestoneEvidenceVerification
+    | undefined;
+  readonly evidenceVerificationFailed?: boolean | undefined;
   readonly now?: string | number | Date | undefined;
 }
 

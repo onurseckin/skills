@@ -1,26 +1,14 @@
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
-import type { AgentGrantRecord, JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import {
-  checkDailyBudget,
-  parseNowMs,
-  rollDayKeyIfNeeded,
-} from "../../mind/lifecycle/budget/index.ts";
+import { checkDailyBudget, parseNowMs } from "../../mind/lifecycle/budget/index.ts";
 import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/lifecycle/charter/index.ts";
-import { writeLastPulse } from "../../mind/lifecycle/pulse/index.ts";
-import { parseDuration } from "../../mind/memory/index.ts";
-import { loadRun, transact } from "../../engine/store/index.ts";
-import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
+import { loadRun } from "../../engine/store/index.ts";
+import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { resolveHostProviderLoose } from "../../core/config/host-canon.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
-import { constructSupervisoryPersonaReminder } from "../../authority/supervisory/index.ts";
-import {
-  generateAsciiDagBadges,
-  runScriptBackedDiagnostics,
-  type ScriptBackedDiagnosticsResult,
-} from "../../engine/scheduler/index.ts";
+import { verifyMilestoneEvidence } from "../../mind/evidence/index.ts";
 import {
   computeMindCognitiveTelemetry,
   type MindCognitiveTelemetry,
@@ -39,6 +27,7 @@ import {
   formatPulseDirective,
 } from "./mind-pulse-formatter.ts";
 import { handleOpenPulseTelemetry } from "./mind-pulse-telemetry.ts";
+import { executeOpenPulseTransaction } from "./mind-pulse-opener.ts";
 
 export {
   CLOSING_FORBIDDEN_FOR_MIND,
@@ -78,6 +67,15 @@ export async function mindPulseCommand(
     throw new HarnessError(
       "INVALID_STATE",
       `mind is halted (${haltReason}); cannot pulse. Outcome: halted. Next: human inspection required.`,
+    );
+  }
+
+  const actualRunRoot = loaded?.runRoot ?? run;
+  const evidenceVerification = verifyMilestoneEvidence(actualRunRoot, "pulse");
+  if (!evidenceVerification.hashChain.valid) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `milestone evidence verification failed: ${evidenceVerification.hashChain.error}. Outcome: halted. Next: repair capsule events with doctor:repair`,
     );
   }
 
@@ -153,7 +151,6 @@ export async function mindPulseCommand(
     });
   }
 
-  const actualRunRoot = loaded?.runRoot ?? run;
   const repoRoot = findRepoRoot(actualRunRoot);
   const charterRecord = (mindState.charter ?? {}) as Record<string, unknown>;
   const charterSourceRel =
@@ -210,174 +207,21 @@ export async function mindPulseCommand(
   }
 
   const currentCounter = typeof pulseState.counter === "number" ? pulseState.counter : 0;
-  const nextCounter = currentCounter + 1;
-  const pulseId = `pulse-${nextCounter}`;
-  const openedAt = new Date(nowMs).toISOString();
-  const pulseDeadlineMs =
-    typeof budgetRecord.pulse_deadline_ms === "number"
-      ? budgetRecord.pulse_deadline_ms
-      : DEFAULT_MIND_BUDGET.pulse_deadline_ms;
-  const deadlineAt = new Date(nowMs + pulseDeadlineMs).toISOString();
-  const scheduledIntervalMs = arm ? parseDuration(arm) : baseIntervalMs;
-  const nextWakeAt = new Date(nowMs + scheduledIntervalMs).toISOString();
 
-  let updatedPulsesToday = 1;
-  let updatedWallClockToday = 0;
-
-  transact(
+  return executeOpenPulseTransaction({
     run,
     actor,
-    "mind-pulse-opened",
-    {
-      pulse_id: pulseId,
-      opened_at: openedAt,
-      deadline_at: deadlineAt,
-      host,
-      driver,
-      cadence: "infinite_autonomous",
-      closing_permitted: false,
-      invariant: CLOSING_FORBIDDEN_FOR_MIND,
-    },
-    (working) => {
-      const workingLedger = readAgentLedger(working);
-      if (!findGrant(workingLedger, actor)) {
-        writeAgentLedger(working, [
-          ...workingLedger,
-          {
-            id: actor,
-            role: "mind",
-            parent_agent_id: null,
-            parent_task_id: null,
-            host,
-            granted_at: openedAt,
-            status: "active",
-          },
-        ]);
-      }
-      const workingBudget = (working.budget ?? {}) as Record<string, unknown>;
-      rollDayKeyIfNeeded(workingBudget, nowMs);
-      const currentToday =
-        typeof workingBudget.pulses_today === "number" ? workingBudget.pulses_today : 0;
-      updatedPulsesToday = currentToday + 1;
-      workingBudget.pulses_today = updatedPulsesToday;
-      updatedWallClockToday =
-        typeof workingBudget.wall_clock_ms_today === "number"
-          ? workingBudget.wall_clock_ms_today
-          : 0;
-      working.budget = workingBudget as unknown as JsonObject;
-
-      const workingPulse = (working.pulse ?? {}) as Record<string, unknown>;
-      workingPulse.counter = nextCounter;
-      workingPulse.open = {
-        pulse_id: pulseId,
-        opened_at: openedAt,
-        deadline_at: deadlineAt,
-        actor,
-        host,
-        driver,
-        cadence: "infinite_autonomous",
-        closing_permitted: false,
-        invariant: CLOSING_FORBIDDEN_FOR_MIND,
-      };
-      working.pulse = workingPulse as unknown as JsonObject;
-    },
-  );
-
-  writeLastPulse(run, {
-    at: openedAt,
-    pulse_id: pulseId,
-    outcome: "active",
-    next_wake_at: nextWakeAt,
-  });
-
-  const personaReminder = constructSupervisoryPersonaReminder({
-    role: "mind",
-    agentId: actor,
-    runId: run,
-    pulseId,
-    tickNumber: nextCounter,
-    cadenceMs: scheduledIntervalMs,
-    now: nowMs,
-    context: {
-      role: "mind",
-      agentId: actor,
-      runId: run,
-      pulseId,
-      tickNumber: nextCounter,
-      now: nowMs,
-    },
-  });
-
-  const cognitiveTelemetry = computeMindCognitiveTelemetry(state);
-  let diagResult: ScriptBackedDiagnosticsResult | undefined = undefined;
-  try {
-    diagResult = await runScriptBackedDiagnostics({
-      runRoot: run,
-      repoRoot,
-      state,
-      clock: { now: () => new Date(nowMs) },
-    });
-  } catch {}
-  const dagBadges = generateAsciiDagBadges(state);
-
-  const markdown = formatMindPulseOpenedBrief({
-    pulseId,
-    runRoot: run,
-    actor,
     host,
     driver,
-    openedAt,
-    deadlineAt,
-    scheduledIntervalMs,
-    nextWakeAt,
-    pulsesToday: updatedPulsesToday,
+    arm,
+    nowMs,
+    state,
+    budgetRecord,
+    baseIntervalMs,
     pulsesPerDay,
-    personaReminder,
-    workSpan: cognitiveTelemetry.workSpan,
-    activeAgents: cognitiveTelemetry.activeAgents,
-    waveLanes: cognitiveTelemetry.waveLanes,
-    cliReceiptSummaryBadge: diagResult?.receiptSummaryBadge,
-    dagBadges,
-    activeRuns: cognitiveTelemetry.activeAgents?.length ?? 0,
-    pendingBacklog:
-      (Array.isArray(state.planning_buffer) ? state.planning_buffer.length : 0) +
-      (typeof state.tasks === "object" && state.tasks
-        ? Object.values(state.tasks).filter(
-            (t) =>
-              t && typeof t === "object" && (t as Record<string, unknown>).status === "proposed",
-          ).length
-        : 0),
+    wallClockPerDay,
+    currentCounter,
+    repoRoot,
+    evidenceVerification,
   });
-
-  return {
-    markdown,
-    run_root: run,
-    pulse_id: pulseId,
-    status: "opened",
-    action: "opened",
-    actor,
-    host,
-    driver,
-    opened_at: openedAt,
-    deadline_at: deadlineAt,
-    scheduled_interval_ms: scheduledIntervalMs,
-    next_wake_at: nextWakeAt,
-    cadence: "infinite_autonomous",
-    closing_permitted: false,
-    invariant: CLOSING_FORBIDDEN_FOR_MIND,
-    persona_reminder: personaReminder,
-    work_span: cognitiveTelemetry.workSpan,
-    active_agents: cognitiveTelemetry.activeAgents,
-    wave_lanes: cognitiveTelemetry.waveLanes,
-    cli_receipts: diagResult?.receipts,
-    cli_receipt_summary_badge: diagResult?.receiptSummaryBadge,
-    dag_badges: dagBadges,
-    diagnostics: diagResult,
-    budget: {
-      pulses_today: updatedPulsesToday,
-      pulses_per_day: pulsesPerDay,
-      wall_clock_ms_today: updatedWallClockToday,
-      wall_clock_ms_per_day: wallClockPerDay,
-    },
-  };
 }

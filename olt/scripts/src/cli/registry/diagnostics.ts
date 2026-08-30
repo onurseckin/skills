@@ -136,6 +136,27 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     handler: doctorCommand,
   },
   {
+    name: "doctor:verify",
+    aliases: [],
+    domain: "diagnostics",
+    tier: "primary",
+    internal: false,
+    summary: "Verify capsule integrity, cryptographic hash chain and command receipts.",
+    description:
+      "Re-hashes the event chain, re-verifies every recorded command, reports workflow blockers and verifies milestone cryptographic evidence.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag("source", "string", "Skill source directory for the installation check."),
+      optionalFlag("home", "string", "Home directory for the installation check."),
+      optionalFlag("clients", "string", "Comma-separated clients for the installation check."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts doctor:verify --run .olt/capsules/<run-id>"],
+    handler: doctorCommand,
+  },
+  {
     name: "doctor:repair",
     aliases: [],
     domain: "diagnostics",

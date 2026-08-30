@@ -19,6 +19,7 @@ import { StateMachineAuditor } from "./state-machine-auditor.ts";
 import { runDoctorDiagnostics } from "./adversarial-doctor/index.ts";
 import { autoHealCapsule, type DoctorAutoHealResult } from "./engines.ts";
 import { computeCapsuleDoctorFacts, tierDoctorIssues } from "./facts.ts";
+import { verifyMilestoneEvidence } from "../../mind/evidence/index.ts";
 import { formatDoctorReport } from "./report-formatter.ts";
 import { generateRemedialGuidance, remedialActionsForIntegrityIssues } from "./guidance.ts";
 import { checkPreCompletionDiagnostics } from "./pre-completion.ts";
@@ -175,6 +176,14 @@ export async function runDoctor(
     autoHeal: autoHealEnabled,
   });
 
+  const isMindCapsule =
+    Boolean((loaded?.state as Record<string, unknown> | undefined)?.mind) ||
+    Boolean((loaded?.state as Record<string, unknown> | undefined)?.pulse);
+  const milestoneEvidence = verifyMilestoneEvidence(runRoot, isMindCapsule ? "ignition" : "");
+  const milestoneIssues = milestoneEvidence.certified
+    ? []
+    : milestoneEvidence.errors.map((err) => `evidence: ${err}`);
+
   const autoHealedNotices = autoHealResult.autoHealed.map((msg) => `[INFO] Auto-Healed: ${msg}`);
 
   const issues = [
@@ -191,6 +200,7 @@ export async function runDoctor(
     ...engineErrorIssues,
     ...engineWarnIssues,
     ...engineInfoIssues,
+    ...milestoneIssues,
     ...autoHealedNotices,
   ];
 
@@ -260,6 +270,7 @@ export async function runDoctor(
     engine_results: engineResults,
     doctor_findings: allEngineFindings,
     pre_completion_diagnostics: preCompletion,
+    milestone_evidence: milestoneEvidence,
     guidance: guidance.guidanceSummary,
     remedial_actions:
       guidance.remedialActions.length > 0

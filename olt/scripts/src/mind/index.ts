@@ -26,6 +26,8 @@ import * as defectCore from "./defects/core/index.ts";
 import * as defectDedup from "./defects/dedup/index.ts";
 import * as defectSync from "./defects/sync/index.ts";
 
+import * as evidence from "./evidence/index.ts";
+
 import * as feedback from "./feedback/index.ts";
 import * as feedbackQueue from "./feedback/queue/index.ts";
 import * as pushbacks from "./feedback/pushbacks/index.ts";
@@ -111,6 +113,7 @@ export {
   deploy,
   digest,
   dynamicRoles,
+  evidence,
   evolution,
   feedback,
   feedbackQueue,
