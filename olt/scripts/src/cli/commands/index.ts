@@ -144,7 +144,7 @@ export type { MindCandidate, MindCandidateResult } from "./mind-candidate.ts";
 export { formatMindCandidateBrief, mindCandidateCommand } from "./mind-candidate.ts";
 export { mindEscalateCommand } from "./mind-escalate.ts";
 export { mindHaltCommand } from "./mind-halt.ts";
-export type { MindInitResult } from "./mind-init.ts";
+export type { MindInitGovernanceStatus, MindInitResult } from "./mind-init.ts";
 export { formatMindInitBrief, mindInitCommand } from "./mind-init.ts";
 export type { MindObserveResult } from "./mind-observe.ts";
 export { formatMindObserveBrief, mindObserveCommand } from "./mind-observe.ts";

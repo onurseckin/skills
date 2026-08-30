@@ -10,12 +10,15 @@ import {
   parseCharter,
   type ParsedCharter,
 } from "../../mind/lifecycle/charter/index.ts";
+import { bootstrapRepoGovernance, type RepoGovernanceStatus } from "../../mind/governance/index.ts";
 import { initRun, loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
 import { enforceLineLimit, mindInitNextActions, nextActionsBlock } from "../formatters/index.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { resolveCapsulesDir } from "../../core/shared/paths.ts";
 import { writeAgentLedger } from "../../workflow/agents/ledger.ts";
+
+export type MindInitGovernanceStatus = RepoGovernanceStatus;
 
 export interface MindInitResult {
   markdown: string;
@@ -29,6 +32,7 @@ export interface MindInitResult {
     repo_roots: readonly string[];
   };
   manifest: unknown;
+  governance: RepoGovernanceStatus;
 }
 
 export function formatMindInitBrief(params: {
@@ -39,6 +43,7 @@ export function formatMindInitBrief(params: {
   charterSha256: string;
   goals: readonly string[];
   repoRoots: readonly string[];
+  governance?: RepoGovernanceStatus;
 }): string {
   const md = [
     `### Mind Initialized: ${params.mindId}`,
@@ -48,6 +53,11 @@ export function formatMindInitBrief(params: {
     `- **Charter SHA-256**: \`${params.charterSha256}\``,
     `- **Pinned Goals**: ${params.goals.join(", ")} (${params.goals.length} total)`,
     `- **Repo Roots**: ${params.repoRoots.map((r) => `\`${r}\``).join(", ")}`,
+    ...(params.governance
+      ? [
+          `- **Governance**: \`${params.governance.ready ? "ready" : "unready"}\` (policy, backlog, defects, session)`,
+        ]
+      : []),
     `- **Status**: Substrate ready for wake (\`mind:wake --run ${params.runRoot}\`).`,
     ...nextActionsBlock(mindInitNextActions(params.runRoot)),
   ].join("\n");
@@ -129,7 +139,6 @@ export function mindInitCommand(
 
   const relativeCharterPath = relative(repoRoot, resolvedCharterPath) || charterPathRaw;
 
-  // Refuse if capsule already exists
   const targetCapsuleDir = join(resolveCapsulesDir(repoRoot), mindId);
   if (existsSync(targetCapsuleDir)) {
     throw new HarnessError(
@@ -226,6 +235,12 @@ export function mindInitCommand(
     next_wake_at: null,
   });
 
+  const governance = bootstrapRepoGovernance({
+    repoRoot,
+    runRoot,
+    mindId,
+  });
+
   const markdown = formatMindInitBrief({
     mindId,
     runRoot,
@@ -234,6 +249,7 @@ export function mindInitCommand(
     charterSha256: pinnedDigest,
     goals: parsedCharter.goalIds,
     repoRoots: parsedCharter.repoRoots,
+    governance,
   });
 
   return {
@@ -248,5 +264,6 @@ export function mindInitCommand(
       repo_roots: parsedCharter.repoRoots,
     },
     manifest: loaded.manifest,
+    governance,
   };
 }
