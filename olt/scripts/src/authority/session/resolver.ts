@@ -57,20 +57,27 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   const globalSessionsDir = resolveGlobalSessionsDir(repoRoot);
   const checkPids = [ppid, pid].filter((p) => p > 0);
 
+  const applyParsed = (parsed: Record<string, unknown>): void => {
+    if (!detectedAgentId && typeof parsed["agent_id"] === "string")
+      detectedAgentId = parsed["agent_id"];
+    if (!detectedRole && typeof parsed["role"] === "string") detectedRole = parsed["role"];
+    if (!detectedToken && typeof parsed["token"] === "string") detectedToken = parsed["token"];
+    if (typeof parsed["can_execute_shell"] === "boolean")
+      detectedCanShell = parsed["can_execute_shell"];
+    if (typeof parsed["can_edit_files"] === "boolean") detectedCanEdit = parsed["can_edit_files"];
+    if (Array.isArray(parsed["write_scope"]))
+      detectedWriteScope = parsed["write_scope"] as string[];
+    if (typeof parsed["task_id"] === "string") detectedTaskId = parsed["task_id"];
+    if (typeof parsed["granted_at"] === "string") grantedAt = parsed["granted_at"];
+  };
+
   for (const checkPid of checkPids) {
     const sessionFile = join(globalSessionsDir, `${checkPid}.json`);
     const mechanism = `process_ancestry_pid_${checkPid}`;
     const parsed = readPersistedSession(sessionFile, mechanism, readSessionFile);
     if (!parsed) continue;
     mechanisms.push(mechanism);
-    if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
-    if (!detectedRole && typeof parsed.role === "string") detectedRole = parsed.role;
-    if (!detectedToken && typeof parsed.token === "string") detectedToken = parsed.token;
-    if (typeof parsed.can_execute_shell === "boolean") detectedCanShell = parsed.can_execute_shell;
-    if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
-    if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
-    if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
-    if (typeof parsed.granted_at === "string") grantedAt = parsed.granted_at;
+    applyParsed(parsed);
     break;
   }
 
@@ -88,15 +95,7 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
 
     if (parsed) {
       mechanisms.push("workspace_directory_session");
-      if (!detectedAgentId) detectedAgentId = parsed.agent_id as string;
-      if (!detectedRole && typeof parsed.role === "string") detectedRole = parsed.role;
-      if (!detectedToken && typeof parsed.token === "string") detectedToken = parsed.token;
-      if (typeof parsed.can_execute_shell === "boolean")
-        detectedCanShell = parsed.can_execute_shell;
-      if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
-      if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
-      if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
-      if (typeof parsed.granted_at === "string") grantedAt = parsed.granted_at;
+      applyParsed(parsed);
       break;
     }
 
@@ -124,15 +123,7 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     );
     if (parsed) {
       mechanisms.push("capsule_runtime_session");
-      detectedAgentId = parsed.agent_id as string;
-      if (typeof parsed.role === "string") detectedRole = parsed.role;
-      if (typeof parsed.token === "string") detectedToken = parsed.token;
-      if (typeof parsed.can_execute_shell === "boolean")
-        detectedCanShell = parsed.can_execute_shell;
-      if (typeof parsed.can_edit_files === "boolean") detectedCanEdit = parsed.can_edit_files;
-      if (Array.isArray(parsed.write_scope)) detectedWriteScope = parsed.write_scope as string[];
-      if (typeof parsed.task_id === "string") detectedTaskId = parsed.task_id;
-      if (typeof parsed.granted_at === "string") grantedAt = parsed.granted_at;
+      applyParsed(parsed);
     }
   }
 
