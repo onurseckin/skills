@@ -128,6 +128,17 @@ export function filterOpenDefects(defects: readonly DefectEntry[]): readonly Def
   });
 }
 
+export function extractDefectRemediation(defect: DefectEntry): string {
+  return (
+    defect.prescribed_remediation ??
+    defect.remediation ??
+    defect.observation ??
+    defect.description ??
+    defect.message ??
+    "Fix root cause of defect"
+  );
+}
+
 export function mapDefectToDiscoveryItem(defect: DefectEntry): DiscoveryItem {
   const slug = sanitizeSlug(defect.id);
   const desc = defect.observation || defect.description || defect.message || "Unspecified defect";
@@ -135,8 +146,7 @@ export function mapDefectToDiscoveryItem(defect: DefectEntry): DiscoveryItem {
   const charterGoal = category === "boundary_violation" ? "G1" : "G2";
   const priority = mapDefectSeverityToPriority(defect.severity);
   const scope = ["olt/scripts/src/mind/", "tests/unit/mind/"];
-  const remediation =
-    defect.remediation || defect.prescribed_remediation || "Fix root cause of defect";
+  const remediation = extractDefectRemediation(defect);
 
   return {
     id: `defect-${slug}`,
