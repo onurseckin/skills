@@ -72,4 +72,24 @@ describe("Wave 2 - Task 2.1: Native AST Static Purity Tokenizer", () => {
     expect(result.passed).toBe(true);
     expect(result.findings).toHaveLength(0);
   });
+
+  test("flags any type assertions inside template expressions while ignoring static string text", () => {
+    const code = `
+      const id = 123;
+      const msg = \`User \${id} has \${(id as any).foo}\`;
+    `;
+    const findings = scanFileForAstPurity("src/template.ts", code);
+    expect(findings.length).toBeGreaterThanOrEqual(1);
+    expect(findings.some((f) => f.violationType === "ANY_TYPE_ASSERTION")).toBe(true);
+  });
+
+  test("flags trailing comments and eslint-disable / ts-nocheck directives", () => {
+    const code = `
+      const x = 1; // eslint-disable-next-line
+      const y = 2; // @ts-nocheck
+    `;
+    const findings = scanFileForAstPurity("src/directives.ts", code);
+    expect(findings.length).toBe(2);
+    expect(findings.every((f) => f.violationType === "COMPILER_SUPPRESSION_DIRECTIVE")).toBe(true);
+  });
 });

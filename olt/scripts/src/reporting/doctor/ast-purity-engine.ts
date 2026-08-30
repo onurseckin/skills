@@ -27,38 +27,56 @@ export function scanFileForAstPurity(filePath: string, content: string): AstPuri
   );
   const scannedCommentRanges = new Set<string>();
 
+  const checkComment = (comment: ts.CommentRange) => {
+    const key = `${comment.pos}:${comment.end}`;
+    if (!scannedCommentRanges.has(key)) {
+      scannedCommentRanges.add(key);
+      const commentText = content.slice(comment.pos, comment.end);
+      if (
+        commentText.includes("@ts-ignore") ||
+        commentText.includes("@ts-expect-error") ||
+        commentText.includes("@ts-nocheck") ||
+        commentText.includes("eslint-disable")
+      ) {
+        const { line, character } = sourceFile.getLineAndCharacterOfPosition(comment.pos);
+        const trimmed = commentText.trim();
+        findings.push({
+          filePath,
+          lineNumber: line + 1,
+          columnNumber: character + 1,
+          violationType: "COMPILER_SUPPRESSION_DIRECTIVE",
+          nodeText: trimmed,
+          message: `Banned compiler suppression directive in comment at ${filePath}:${line + 1}:${character + 1}: "${trimmed}"`,
+        });
+      }
+    }
+  };
+
   let token = commentScanner.scan();
   while (token !== ts.SyntaxKind.EndOfFileToken) {
     const leadingComments = ts.getLeadingCommentRanges(content, commentScanner.getTokenPos());
     if (leadingComments) {
-      for (const comment of leadingComments) {
-        const key = `${comment.pos}:${comment.end}`;
-        if (!scannedCommentRanges.has(key)) {
-          scannedCommentRanges.add(key);
-          const commentText = content.slice(comment.pos, comment.end);
-          if (commentText.includes("@ts-ignore") || commentText.includes("@ts-expect-error")) {
-            const { line, character } = sourceFile.getLineAndCharacterOfPosition(comment.pos);
-            const trimmed = commentText.trim();
-            findings.push({
-              filePath,
-              lineNumber: line + 1,
-              columnNumber: character + 1,
-              violationType: "COMPILER_SUPPRESSION_DIRECTIVE",
-              nodeText: trimmed,
-              message: `Banned compiler suppression directive in comment at ${filePath}:${line + 1}:${character + 1}: "${trimmed}"`,
-            });
-          }
-        }
-      }
+      for (const comment of leadingComments) checkComment(comment);
+    }
+    const trailingComments = ts.getTrailingCommentRanges(content, commentScanner.getTokenPos());
+    if (trailingComments) {
+      for (const comment of trailingComments) checkComment(comment);
     }
     token = commentScanner.scan();
+  }
+
+  const eofLeading = ts.getLeadingCommentRanges(content, commentScanner.getTokenPos());
+  if (eofLeading) {
+    for (const comment of eofLeading) checkComment(comment);
   }
 
   function visit(node: ts.Node): void {
     if (
       ts.isStringLiteral(node) ||
       ts.isNoSubstitutionTemplateLiteral(node) ||
-      ts.isTemplateExpression(node) ||
+      ts.isTemplateHead(node) ||
+      ts.isTemplateMiddle(node) ||
+      ts.isTemplateTail(node) ||
       node.kind === ts.SyntaxKind.RegularExpressionLiteral
     ) {
       return;

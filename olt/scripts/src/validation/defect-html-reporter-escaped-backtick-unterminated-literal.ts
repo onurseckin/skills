@@ -1,11 +1,12 @@
-import type { CoverageSummary, FileCoverageMetric } from "../../../../scripts/testing/reporting/types.ts";
 import {
   buildHtmlDocument,
   extractCoverageFileData,
   generateInteractiveHtml,
   getClientScript,
   getHtmlStyles,
-} from "../../../../scripts/testing/reporting/html/index.ts";
+  type CoverageSummary,
+  type FileCoverageMetric,
+} from "../../../../scripts/testing/reporting/index.ts";
 
 export interface HtmlReporterDefectAuditResult {
   readonly defectRemediated: boolean;
@@ -66,6 +67,7 @@ export function verifyHtmlReporterTemplatePurity(): HtmlReporterDefectAuditResul
   }
 
   const dummyMetric: FileCoverageMetric = {
+    file: "src/example.ts",
     lines: { total: 10, covered: 9, skipped: 0, pct: 90 },
     statements: { total: 10, covered: 9, skipped: 0, pct: 90 },
     functions: { total: 2, covered: 2, skipped: 0, pct: 100 },
@@ -86,7 +88,11 @@ export function verifyHtmlReporterTemplatePurity(): HtmlReporterDefectAuditResul
       statements: { total: 10, covered: 9, skipped: 0, pct: 90 },
       functions: { total: 2, covered: 2, skipped: 0, pct: 100 },
     },
-    files: {},
+    "src/example.ts": {
+      lines: { total: 10, covered: 9, skipped: 0, pct: 90 },
+      statements: { total: 10, covered: 9, skipped: 0, pct: 90 },
+      functions: { total: 2, covered: 2, skipped: 0, pct: 100 },
+    },
   };
 
   const extracted = extractCoverageFileData(fileMap, process.cwd());

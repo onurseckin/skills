@@ -1,16 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { verifyHtmlReporterTemplatePurity } from "../../../../olt/scripts/src/validation/index.ts";
 import {
   buildHtmlDocument,
   extractCoverageFileData,
   generateInteractiveHtml,
   getClientScript,
   getHtmlStyles,
-  verifyHtmlReporterTemplatePurity,
-} from "../../../olt/scripts/src/validation/defect-html-reporter-escaped-backtick-unterminated-literal.ts";
-import { writeInteractiveHtml } from "../../../scripts/testing/reporting/html/index.ts";
-import type { CoverageSummary, FileCoverageMetric } from "../../../scripts/testing/reporting/types.ts";
+  writeInteractiveHtml,
+  type CoverageSummary,
+  type FileCoverageMetric,
+} from "../../../../scripts/testing/reporting/index.ts";
 
 describe("Defect Remediation: Unterminated template literal TS1160 in scripts/testing/reporting/html/", () => {
   test("runs automated verification audit function and confirms complete remediation", () => {
