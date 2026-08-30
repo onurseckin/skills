@@ -1,77 +1,54 @@
-import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync } from "node:fs";
-import { dirname } from "node:path";
-import type { AgentGrantRecord } from "../../core/contracts/index.ts";
-import type { JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import {
-  checkDailyBudget,
-  parseNowMs,
-  rollDayKeyIfNeeded,
-} from "../../mind/lifecycle/budget/index.ts";
-import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/lifecycle/charter/index.ts";
-import { formatDuration } from "../../mind/proposals/brief/index.ts";
-import { writeLastPulse } from "../../mind/lifecycle/pulse/index.ts";
+import { checkDailyBudget, parseNowMs } from "../../mind/lifecycle/budget/index.ts";
+import { DEFAULT_MIND_BUDGET } from "../../mind/lifecycle/charter/index.ts";
 import { parseDuration } from "../../mind/memory/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/index.ts";
-import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { resolveHostProviderLoose } from "../../core/config/host-canon.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
-import {
-  constructSupervisoryPersonaReminder,
-  type SupervisoryPersonaReminder,
-} from "../../authority/supervisory/index.ts";
+import { constructSupervisoryPersonaReminder, type SupervisoryPersonaReminder } from "../../authority/supervisory/index.ts";
 import {
   generateAsciiDagBadges,
   runScriptBackedDiagnostics,
   type CliDiagnosticReceipt,
   type ScriptBackedDiagnosticsResult,
 } from "../../engine/scheduler/index.ts";
-import { MindAutonomousDiscoveryEngine } from "../../mind/tasks/discovery/index.ts";
-import { type SmartTaskPlan, synthesizeAutonomousTasks } from "../../mind/tasks/smart/index.ts";
+import {
+  computeMindCognitiveTelemetry,
+  type MindCognitiveTelemetry,
+  type MindPulseActiveAgentCoordinate,
+  type MindPulseTelemetryBudget,
+  type MindPulseWaveLaneInfo,
+  type MindPulseWorkSpanMetrics,
+} from "./mind-pulse-metrics.ts";
+import {
+  formatMindPulseActiveBrief,
+  formatMindPulseOpenedBrief,
+  formatPulseDirective,
+} from "./mind-pulse-formatter.ts";
+import {
+  CLOSING_FORBIDDEN_FOR_MIND,
+  assertMindNotHalted,
+  executeOpenPulseTransaction,
+  resolveMindPulseGrant,
+  verifyMindCharterSha,
+} from "./mind-pulse-state.ts";
 
-export const CLOSING_FORBIDDEN_FOR_MIND = "CLOSING_FORBIDDEN_FOR_MIND" as const;
+export {
+  CLOSING_FORBIDDEN_FOR_MIND,
+  computeMindCognitiveTelemetry,
+  formatMindPulseActiveBrief,
+  formatMindPulseOpenedBrief,
+  formatPulseDirective,
+};
 
-export interface MindPulseTelemetryBudget {
-  readonly pulses_today: number;
-  readonly pulses_per_day: number | null;
-  readonly wall_clock_ms_today?: number | undefined;
-  readonly wall_clock_ms_per_day?: number | null | undefined;
-}
-
-export interface MindPulseWorkSpanMetrics {
-  readonly total_work: number;
-  readonly span: number;
-  readonly parallelism_factor: number;
-  readonly optimal_concurrency: number;
-  readonly active_concurrency: number;
-}
-
-export interface MindPulseActiveAgentCoordinate {
-  readonly agent_id: string;
-  readonly role: string;
-  readonly host: string;
-  readonly task_id: string | null;
-  readonly wave: number | null;
-  readonly lane: number | null;
-  readonly coordinate_badge: string;
-}
-
-export interface MindPulseWaveLaneInfo {
-  readonly wave: number;
-  readonly lane_count: number;
-  readonly status: string;
-  readonly is_active: boolean;
-}
-
-export interface MindCognitiveTelemetry {
-  readonly workSpan: MindPulseWorkSpanMetrics;
-  readonly activeAgents: readonly MindPulseActiveAgentCoordinate[];
-  readonly waveLanes: readonly MindPulseWaveLaneInfo[];
-}
+export type {
+  MindCognitiveTelemetry,
+  MindPulseActiveAgentCoordinate,
+  MindPulseTelemetryBudget,
+  MindPulseWaveLaneInfo,
+  MindPulseWorkSpanMetrics,
+};
 
 export interface MindPulseResult {
   readonly markdown: string;
@@ -102,390 +79,6 @@ export interface MindPulseResult {
   readonly [key: string]: unknown;
 }
 
-export function computeMindCognitiveTelemetry(
-  state: Record<string, unknown>,
-): MindCognitiveTelemetry {
-  const taskMap = (state.tasks && typeof state.tasks === "object" ? state.tasks : {}) as Record<
-    string,
-    unknown
-  >;
-  const planningBuffer = Array.isArray(state.planning_buffer)
-    ? (state.planning_buffer as readonly Record<string, unknown>[])
-    : [];
-
-  const rawTasks: {
-    readonly id: string;
-    readonly deps: readonly string[];
-    readonly effort: number;
-    readonly status: string;
-    readonly assignedAgent: string | null;
-    readonly assignedRole: string | null;
-  }[] = [];
-
-  const isCompiled = state.graph !== undefined && state.graph !== null;
-
-  if (isCompiled && Object.keys(taskMap).length > 0) {
-    for (const [id, t] of Object.entries(taskMap)) {
-      if (!t || typeof t !== "object") continue;
-      const tRecord = t as Record<string, unknown>;
-      const status = typeof tRecord.status === "string" ? tRecord.status : "proposed";
-      const deps = Array.isArray(tRecord.dependencies)
-        ? tRecord.dependencies.filter((d): d is string => typeof d === "string")
-        : [];
-      const effort = typeof tRecord.effort === "number" ? tRecord.effort : 1;
-      const lease =
-        tRecord.lease && typeof tRecord.lease === "object"
-          ? (tRecord.lease as Record<string, unknown>)
-          : null;
-      const assignedAgent =
-        lease && typeof lease.agent_id === "string" && lease.agent_id.trim().length > 0
-          ? lease.agent_id.trim()
-          : lease && typeof lease.agent === "string" && lease.agent.trim().length > 0
-            ? lease.agent.trim()
-            : null;
-      const assignedRole =
-        lease && typeof lease.role === "string" ? lease.role : assignedAgent ? "implementer" : null;
-
-      rawTasks.push({
-        id,
-        deps,
-        effort,
-        status,
-        assignedAgent,
-        assignedRole,
-      });
-    }
-  } else if (planningBuffer.length > 0) {
-    for (const item of planningBuffer) {
-      if (!item || typeof item !== "object") continue;
-      const id = typeof item.id === "string" ? item.id : "task";
-      const deps = Array.isArray(item.deps)
-        ? item.deps.filter((d): d is string => typeof d === "string")
-        : [];
-      const effort = typeof item.effort === "number" ? item.effort : 1;
-      rawTasks.push({
-        id,
-        deps,
-        effort,
-        status: "draft",
-        assignedAgent: null,
-        assignedRole: null,
-      });
-    }
-  }
-
-  const waveMap = new Map<string, number>();
-  const depMap = new Map<string, Set<string>>();
-  for (const t of rawTasks) {
-    depMap.set(t.id, new Set(t.deps));
-  }
-
-  let currentWave = 1;
-  const processed = new Set<string>();
-  while (processed.size < rawTasks.length) {
-    const readyInThisWave: string[] = [];
-    for (const t of rawTasks) {
-      if (processed.has(t.id)) continue;
-      const prereqs = depMap.get(t.id) ?? new Set<string>();
-      const allDone = [...prereqs].every((p) => waveMap.has(p));
-      if (allDone) {
-        readyInThisWave.push(t.id);
-      }
-    }
-
-    if (readyInThisWave.length === 0) {
-      for (const t of rawTasks) {
-        if (!processed.has(t.id)) {
-          waveMap.set(t.id, currentWave);
-          processed.add(t.id);
-        }
-      }
-      break;
-    }
-
-    for (const id of readyInThisWave) {
-      waveMap.set(id, currentWave);
-      processed.add(id);
-    }
-    currentWave += 1;
-  }
-
-  const maxWave = Math.max(1, currentWave - 1);
-
-  const waveGroups: {
-    wave: number;
-    tasks: {
-      id: string;
-      status: string;
-      effort: number;
-      assignedAgent: string | null;
-      assignedRole: string | null;
-      lane: number;
-    }[];
-  }[] = [];
-
-  for (let w = 1; w <= maxWave; w++) {
-    const tasksInW = rawTasks.filter((t) => (waveMap.get(t.id) ?? 1) === w);
-    if (tasksInW.length > 0) {
-      waveGroups.push({
-        wave: w,
-        tasks: tasksInW.map((t, idx) => ({ ...t, lane: idx + 1 })),
-      });
-    }
-  }
-
-  const totalWork = rawTasks.reduce((acc, t) => acc + t.effort, 0);
-  const span = rawTasks.length > 0 ? maxWave : 1;
-  const parallelismFactor = span > 0 && totalWork > 0 ? Number((totalWork / span).toFixed(2)) : 1;
-  const optimalConcurrency = Math.max(1, Math.min(8, Math.ceil(totalWork / span)));
-
-  const rawAgents = (Array.isArray(state.agents) ? state.agents : []) as readonly Record<
-    string,
-    unknown
-  >[];
-  const activeAgents: MindPulseActiveAgentCoordinate[] = [];
-
-  for (const a of rawAgents) {
-    if (!a || typeof a !== "object") continue;
-    if (a.status === "active") {
-      const agentId = typeof a.id === "string" ? a.id : "unknown";
-      const role = typeof a.role === "string" ? a.role : "agent";
-      const host = typeof a.host === "string" ? a.host : "unknown";
-
-      let assignedTask: { id: string; wave: number; lane: number; status: string } | null = null;
-      for (const wg of waveGroups) {
-        for (const t of wg.tasks) {
-          if (t.assignedAgent === agentId) {
-            assignedTask = { id: t.id, wave: wg.wave, lane: t.lane, status: t.status };
-            break;
-          }
-        }
-        if (assignedTask) break;
-      }
-
-      if (!assignedTask && typeof a.parent_task_id === "string") {
-        const pId = a.parent_task_id;
-        for (const wg of waveGroups) {
-          for (const t of wg.tasks) {
-            if (t.id === pId) {
-              assignedTask = { id: t.id, wave: wg.wave, lane: t.lane, status: t.status };
-              break;
-            }
-          }
-          if (assignedTask) break;
-        }
-      }
-
-      let coordBadge: string;
-      if (assignedTask) {
-        const actionPrefix = assignedTask.status === "validating" ? "VALIDATING" : "LEASED";
-        coordBadge = `[⚡ ${actionPrefix}: ${agentId} (${role}) @ ${assignedTask.id} [W${assignedTask.wave}:L${assignedTask.lane}]]`;
-      } else {
-        coordBadge = `[● ${role.toUpperCase()}: ${agentId}]`;
-      }
-
-      activeAgents.push({
-        agent_id: agentId,
-        role,
-        host,
-        task_id: assignedTask?.id ?? null,
-        wave: assignedTask?.wave ?? null,
-        lane: assignedTask?.lane ?? null,
-        coordinate_badge: coordBadge,
-      });
-    }
-  }
-
-  const waveLanes: MindPulseWaveLaneInfo[] = waveGroups.map((wg) => ({
-    wave: wg.wave,
-    lane_count: wg.tasks.length,
-    status: [...new Set(wg.tasks.map((t) => t.status))].join("/"),
-    is_active: wg.tasks.some(
-      (t) => t.status === "leased" || t.status === "running" || t.status === "validating",
-    ),
-  }));
-
-  const workSpan: MindPulseWorkSpanMetrics = {
-    total_work: totalWork,
-    span,
-    parallelism_factor: parallelismFactor,
-    optimal_concurrency: optimalConcurrency,
-    active_concurrency: activeAgents.length,
-  };
-
-  return {
-    workSpan,
-    activeAgents,
-    waveLanes,
-  };
-}
-
-export function formatMindPulseActiveBrief(params: {
-  readonly pulseId: string;
-  readonly runRoot: string;
-  readonly actor: string;
-  readonly host: string;
-  readonly driver: string;
-  readonly openedAt: string;
-  readonly deadlineAt: string;
-  readonly scheduledIntervalMs: number;
-  readonly nextWakeAt: string;
-  readonly pulsesToday: number;
-  readonly pulsesPerDay: number | null;
-  readonly personaReminder?: SupervisoryPersonaReminder | undefined;
-  readonly workSpan?: MindPulseWorkSpanMetrics | undefined;
-  readonly activeAgents?: readonly MindPulseActiveAgentCoordinate[] | undefined;
-  readonly waveLanes?: readonly MindPulseWaveLaneInfo[] | undefined;
-  readonly cliReceiptSummaryBadge?: string | undefined;
-  readonly dagBadges?: readonly string[] | undefined;
-  readonly activeRuns?: number;
-  readonly pendingBacklog?: number;
-}): string {
-  const limitStr = params.pulsesPerDay === null ? "∞" : params.pulsesPerDay;
-  const lines = [
-    `### Mind Pulse Active: ${params.pulseId}`,
-    `- **Status**: active (perpetual)`,
-    `- **Capsule Root**: \`${params.runRoot}\``,
-    `- **Actor**: \`${params.actor}\``,
-    `- **Host**: \`${params.host}\``,
-    `- **Driver**: \`${params.driver}\``,
-    `- **Opened At**: \`${params.openedAt}\``,
-    `- **Deadline At**: \`${params.deadlineAt}\``,
-    `- **Next Scheduled Interval**: \`${formatDuration(params.scheduledIntervalMs)}\` (\`${params.nextWakeAt}\`)`,
-    `- **Budget Headroom**: ${params.pulsesToday} / ${limitStr} pulses today`,
-  ];
-
-  if (params.cliReceiptSummaryBadge) {
-    lines.push(`- **CLI Diagnostics Receipts**: ${params.cliReceiptSummaryBadge}`);
-  }
-
-  if (params.workSpan && params.workSpan.total_work > 0) {
-    lines.push(
-      `- **Work/Span Concurrency**: Work=${params.workSpan.total_work}, Span=${params.workSpan.span}, P=${params.workSpan.parallelism_factor} (Optimal=${params.workSpan.optimal_concurrency}, Active=${params.workSpan.active_concurrency})`,
-    );
-  }
-
-  if (params.activeAgents && params.activeAgents.length > 0) {
-    const badges = params.activeAgents.map((a) => a.coordinate_badge).join(" ");
-    lines.push(`- **Active Agents**: ${badges}`);
-  }
-
-  if (params.dagBadges && params.dagBadges.length > 0) {
-    lines.push(`- **ASCII DAG Badges**: ${params.dagBadges.slice(0, 6).join(" ")}`);
-  }
-
-  if (params.waveLanes && params.waveLanes.length > 0) {
-    const lanesStr = params.waveLanes
-      .map(
-        (w) => `Wave ${w.wave}: ${w.lane_count} lane(s) [${w.status}]${w.is_active ? " ⚡" : ""}`,
-      )
-      .join(" | ");
-    lines.push(`- **Wave Lanes**: ${lanesStr}`);
-  }
-
-  if (params.personaReminder) {
-    lines.push(`- **Persona Mandate**: ${params.personaReminder.persona.coreMandate}`);
-  }
-
-  lines.push(
-    `- **Cadence**: infinite autonomous cadence (CLOSING_FORBIDDEN_FOR_MIND)`,
-    `- **Invariant**: Mind never self-terminates, dies, or closes. Runs indefinitely until human OS termination.`,
-    `- **Supervisory Invariants**: Strict 4-Tier Spawning Hierarchy & Supervisor Zero-File-Edit Invariant actively enforced.`,
-  );
-
-  if (typeof params.activeRuns === "number" && typeof params.pendingBacklog === "number") {
-    const directive = formatPulseDirective({
-      activeRuns: params.activeRuns,
-      pendingBacklog: params.pendingBacklog,
-    });
-    if (directive) lines.push(directive);
-  }
-  return enforceLineLimit(lines.join("\n"), 35);
-}
-
-export function formatMindPulseOpenedBrief(params: {
-  readonly pulseId: string;
-  readonly runRoot: string;
-  readonly actor: string;
-  readonly host: string;
-  readonly driver: string;
-  readonly openedAt: string;
-  readonly deadlineAt: string;
-  readonly scheduledIntervalMs: number;
-  readonly nextWakeAt: string;
-  readonly pulsesToday: number;
-  readonly pulsesPerDay: number | null;
-  readonly personaReminder?: SupervisoryPersonaReminder | undefined;
-  readonly workSpan?: MindPulseWorkSpanMetrics | undefined;
-  readonly activeAgents?: readonly MindPulseActiveAgentCoordinate[] | undefined;
-  readonly waveLanes?: readonly MindPulseWaveLaneInfo[] | undefined;
-  readonly cliReceiptSummaryBadge?: string | undefined;
-  readonly dagBadges?: readonly string[] | undefined;
-  readonly activeRuns?: number;
-  readonly pendingBacklog?: number;
-}): string {
-  const limitStr = params.pulsesPerDay === null ? "∞" : params.pulsesPerDay;
-  const lines = [
-    `### Mind Pulse Opened: ${params.pulseId}`,
-    `- **Status**: opened (perpetual)`,
-    `- **Capsule Root**: \`${params.runRoot}\``,
-    `- **Actor**: \`${params.actor}\``,
-    `- **Host**: \`${params.host}\``,
-    `- **Driver**: \`${params.driver}\``,
-    `- **Opened At**: \`${params.openedAt}\``,
-    `- **Deadline At**: \`${params.deadlineAt}\``,
-    `- **Next Scheduled Interval**: \`${formatDuration(params.scheduledIntervalMs)}\` (\`${params.nextWakeAt}\`)`,
-    `- **Budget Headroom**: ${params.pulsesToday} / ${limitStr} pulses today`,
-  ];
-
-  if (params.cliReceiptSummaryBadge) {
-    lines.push(`- **CLI Diagnostics Receipts**: ${params.cliReceiptSummaryBadge}`);
-  }
-
-  if (params.workSpan && params.workSpan.total_work > 0) {
-    lines.push(
-      `- **Work/Span Concurrency**: Work=${params.workSpan.total_work}, Span=${params.workSpan.span}, P=${params.workSpan.parallelism_factor} (Optimal=${params.workSpan.optimal_concurrency}, Active=${params.workSpan.active_concurrency})`,
-    );
-  }
-
-  if (params.activeAgents && params.activeAgents.length > 0) {
-    const badges = params.activeAgents.map((a) => a.coordinate_badge).join(" ");
-    lines.push(`- **Active Agents**: ${badges}`);
-  }
-
-  if (params.dagBadges && params.dagBadges.length > 0) {
-    lines.push(`- **ASCII DAG Badges**: ${params.dagBadges.slice(0, 6).join(" ")}`);
-  }
-
-  if (params.waveLanes && params.waveLanes.length > 0) {
-    const lanesStr = params.waveLanes
-      .map(
-        (w) => `Wave ${w.wave}: ${w.lane_count} lane(s) [${w.status}]${w.is_active ? " ⚡" : ""}`,
-      )
-      .join(" | ");
-    lines.push(`- **Wave Lanes**: ${lanesStr}`);
-  }
-
-  if (params.personaReminder) {
-    lines.push(`- **Persona Mandate**: ${params.personaReminder.persona.coreMandate}`);
-  }
-
-  lines.push(
-    `- **Cadence**: infinite autonomous cadence (CLOSING_FORBIDDEN_FOR_MIND)`,
-    `- **Invariant**: Mind never self-terminates, dies, or closes. Runs indefinitely until human OS termination.`,
-    `- **Supervisory Invariants**: Strict 4-Tier Spawning Hierarchy & Supervisor Zero-File-Edit Invariant actively enforced.`,
-  );
-
-  if (typeof params.activeRuns === "number" && typeof params.pendingBacklog === "number") {
-    const directive = formatPulseDirective({
-      activeRuns: params.activeRuns,
-      pendingBacklog: params.pendingBacklog,
-    });
-    if (directive) lines.push(directive);
-  }
-  return enforceLineLimit(lines.join("\n"), 35);
-}
-
 export async function mindPulseCommand(
   flags: Flags,
   _context?: CommandContext,
@@ -502,95 +95,51 @@ export async function mindPulseCommand(
   const state = loaded.state;
 
   const mindState = (state.mind ?? {}) as Record<string, unknown>;
-  if (mindState.halted === true) {
-    const haltReason =
-      typeof mindState.halt_reason === "string" ? mindState.halt_reason : "unknown reason";
-    throw new HarnessError(
-      "INVALID_STATE",
-      `mind is halted (${haltReason}); cannot pulse. Outcome: halted. Next: human inspection required.`,
-    );
-  }
-
-  const ledger = readAgentLedger(state);
-  let grant = findGrant(ledger, actor);
-  if (!grant) {
-    if (
-      actor === "mind" ||
-      actor === "mind-1" ||
-      actor.startsWith("mind-") ||
-      actor === "system" ||
-      actor === "harness" ||
-      actor === "test-actor" ||
-      actor === "planner" ||
-      actor === "coordinator"
-    ) {
-      const grantedAt = new Date(nowMs).toISOString();
-      grant = {
-        id: actor,
-        role: "mind",
-        parent_agent_id: null,
-        parent_task_id: null,
-        host,
-        granted_at: grantedAt,
-        status: "active",
-      };
-    } else {
-      throw new HarnessError(
-        "INVALID_STATE",
-        `agent ${actor} holds no grant; register it with agent:register first`,
-      );
-    }
-  } else if (
-    grant.role !== "mind" &&
-    grant.role !== "orchestrator" &&
-    grant.role !== "coordinator"
-  ) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `agent ${actor} holds role '${grant.role}'; role 'mind' is required for pulse operations`,
-    );
-  }
+  assertMindNotHalted(mindState);
+  resolveMindPulseGrant(state, actor, host, nowMs);
 
   const pulseState = (state.pulse ?? {}) as Record<string, unknown>;
   const openPulse = pulseState.open as Record<string, unknown> | null | undefined;
   const budgetRecord = (state.budget ?? mindState.budget ?? {}) as Record<string, unknown>;
-  const baseIntervalMs =
-    typeof budgetRecord.base_interval_ms === "number" ? budgetRecord.base_interval_ms : 900_000;
-  const pulsesPerDay =
-    typeof budgetRecord.pulses_per_day === "number"
-      ? budgetRecord.pulses_per_day
-      : DEFAULT_MIND_BUDGET.pulses_per_day;
-  const wallClockPerDay =
-    typeof budgetRecord.wall_clock_ms_per_day === "number"
-      ? budgetRecord.wall_clock_ms_per_day
-      : DEFAULT_MIND_BUDGET.wall_clock_ms_per_day;
+  const baseIntervalMs = typeof budgetRecord.base_interval_ms === "number" ? budgetRecord.base_interval_ms : 900_000;
+  const pulsesPerDay = typeof budgetRecord.pulses_per_day === "number" ? budgetRecord.pulses_per_day : DEFAULT_MIND_BUDGET.pulses_per_day;
+  const wallClockPerDay = typeof budgetRecord.wall_clock_ms_per_day === "number" ? budgetRecord.wall_clock_ms_per_day : DEFAULT_MIND_BUDGET.wall_clock_ms_per_day;
+  const scheduledIntervalMs = arm ? parseDuration(arm) : baseIntervalMs;
+  const repoRoot = findRepoRoot(loaded?.runRoot ?? run);
+
+  let diagResult: ScriptBackedDiagnosticsResult | undefined;
+  try {
+    diagResult = await runScriptBackedDiagnostics({
+      runRoot: run,
+      repoRoot,
+      state,
+      clock: { now: () => new Date(nowMs) },
+    });
+  } catch {}
+  const dagBadges = generateAsciiDagBadges(state);
+  const cognitiveTelemetry = computeMindCognitiveTelemetry(state);
+  const pendingBacklog =
+    (Array.isArray(state.planning_buffer) ? state.planning_buffer.length : 0) +
+    (typeof state.tasks === "object" && state.tasks
+      ? Object.values(state.tasks).filter((t) => t && typeof t === "object" && (t as Record<string, unknown>).status === "proposed").length
+      : 0);
 
   if (openPulse !== null && openPulse !== undefined && typeof openPulse === "object") {
-    const openPulseId =
-      typeof openPulse.pulse_id === "string" ? openPulse.pulse_id : "pulse-active";
-    const openedAt =
-      typeof openPulse.opened_at === "string" ? openPulse.opened_at : new Date(nowMs).toISOString();
-    const deadlineAt =
-      typeof openPulse.deadline_at === "string" ? openPulse.deadline_at : "unknown";
+    const openPulseId = typeof openPulse.pulse_id === "string" ? openPulse.pulse_id : "pulse-active";
+    const openedAt = typeof openPulse.opened_at === "string" ? openPulse.opened_at : new Date(nowMs).toISOString();
+    const deadlineAt = typeof openPulse.deadline_at === "string" ? openPulse.deadline_at : "unknown";
     const pulseActor = typeof openPulse.actor === "string" ? openPulse.actor : actor;
     const pulseHost = typeof openPulse.host === "string" ? openPulse.host : host;
     const pulseDriver = typeof openPulse.driver === "string" ? openPulse.driver : driver;
 
     const deadlineMs = Date.parse(deadlineAt);
     if (Number.isFinite(deadlineMs) && nowMs > deadlineMs) {
-      throw new HarnessError(
-        "INVALID_STATE",
-        `pulse ${openPulseId} is open and past its deadline (${deadlineAt}); reclaim it first with mind:wake --run ${run}`,
-      );
+      throw new HarnessError("INVALID_STATE", `pulse ${openPulseId} is open and past its deadline (${deadlineAt}); reclaim it first with mind:wake --run ${run}`);
     }
 
-    const scheduledIntervalMs = arm ? parseDuration(arm) : baseIntervalMs;
     const nextWakeAt = new Date(nowMs + scheduledIntervalMs).toISOString();
-    const pulsesToday =
-      typeof budgetRecord.pulses_today === "number" ? budgetRecord.pulses_today : 1;
-    const wallClockToday =
-      typeof budgetRecord.wall_clock_ms_today === "number" ? budgetRecord.wall_clock_ms_today : 0;
-
+    const pulsesToday = typeof budgetRecord.pulses_today === "number" ? budgetRecord.pulses_today : 1;
+    const wallClockToday = typeof budgetRecord.wall_clock_ms_today === "number" ? budgetRecord.wall_clock_ms_today : 0;
     const last = (pulseState.last ?? {}) as Record<string, unknown>;
     const zeroValueStreak = typeof last.zero_value_streak === "number" ? last.zero_value_streak : 0;
 
@@ -601,27 +150,8 @@ export async function mindPulseCommand(
       pulseId: openPulseId,
       cadenceMs: scheduledIntervalMs,
       now: nowMs,
-      context: {
-        role: "mind",
-        agentId: pulseActor,
-        runId: run,
-        pulseId: openPulseId,
-        now: nowMs,
-      },
+      context: { role: "mind", agentId: pulseActor, runId: run, pulseId: openPulseId, now: nowMs },
     });
-
-    const cognitiveTelemetry = computeMindCognitiveTelemetry(state);
-    const repoRoot = findRepoRoot(loaded?.runRoot ?? run);
-    let diagResult: ScriptBackedDiagnosticsResult | undefined = undefined;
-    try {
-      diagResult = await runScriptBackedDiagnostics({
-        runRoot: run,
-        repoRoot,
-        state,
-        clock: { now: () => new Date(nowMs) },
-      });
-    } catch {}
-    const dagBadges = generateAsciiDagBadges(state);
 
     const markdown = formatMindPulseActiveBrief({
       pulseId: openPulseId,
@@ -642,14 +172,7 @@ export async function mindPulseCommand(
       cliReceiptSummaryBadge: diagResult?.receiptSummaryBadge,
       dagBadges,
       activeRuns: cognitiveTelemetry.activeAgents?.length ?? 0,
-      pendingBacklog:
-        (Array.isArray(state.planning_buffer) ? state.planning_buffer.length : 0) +
-        (typeof state.tasks === "object" && state.tasks
-          ? Object.values(state.tasks).filter(
-              (t) =>
-                t && typeof t === "object" && (t as Record<string, unknown>).status === "proposed",
-            ).length
-          : 0),
+      pendingBacklog,
     });
 
     return {
@@ -677,148 +200,37 @@ export async function mindPulseCommand(
       cli_receipt_summary_badge: diagResult?.receiptSummaryBadge,
       dag_badges: dagBadges,
       diagnostics: diagResult,
-      budget: {
-        pulses_today: pulsesToday,
-        pulses_per_day: pulsesPerDay,
-        wall_clock_ms_today: wallClockToday,
-        wall_clock_ms_per_day: wallClockPerDay,
-      },
+      budget: { pulses_today: pulsesToday, pulses_per_day: pulsesPerDay, wall_clock_ms_today: wallClockToday, wall_clock_ms_per_day: wallClockPerDay },
     };
   }
 
-  const actualRunRoot = loaded?.runRoot ?? run;
-  const repoRoot = findRepoRoot(actualRunRoot);
-  const charterRecord = (mindState.charter ?? {}) as Record<string, unknown>;
-  const charterSourceRel =
-    typeof charterRecord.source_path === "string"
-      ? charterRecord.source_path
-      : "olt/agents/mind.yaml";
-  const charterRepoRoots = Array.isArray(charterRecord.repo_roots)
-    ? charterRecord.repo_roots.filter((r): r is string => typeof r === "string")
-    : undefined;
-  const charterFullPath = resolveCharterPath(repoRoot, charterSourceRel, charterRepoRoots);
-
-  if (!existsSync(charterFullPath) || !lstatSync(charterFullPath).isFile()) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `charter file at '${charterSourceRel}' is missing; pulse is halted. Outcome: halted. Next: restore charter file`,
-    );
-  }
-
-  try {
-    const charterBytes = readFileSync(charterFullPath);
-    const charterSha = createHash("sha256").update(charterBytes).digest("hex");
-    const pinnedSha =
-      (typeof charterRecord.pinned_sha256 === "string" && charterRecord.pinned_sha256) ||
-      loaded.manifest.prompt_sha256;
-    if (charterSha !== pinnedSha) {
-      throw new HarnessError(
-        "INVALID_STATE",
-        `charter sha256 mismatch (expected ${pinnedSha}, got ${charterSha}); charter has drifted. Outcome: halted. Next: inspect charter drift`,
-      );
-    }
-  } catch (err) {
-    if (err instanceof HarnessError) throw err;
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new HarnessError(
-      "INVALID_STATE",
-      `cannot read charter at '${charterSourceRel}': ${msg}. Outcome: halted.`,
-    );
-  }
-
+  verifyMindCharterSha(repoRoot, mindState, loaded.manifest.prompt_sha256);
   const eventSequence = state.event_sequence ?? 0;
   if (eventSequence >= 100_000) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `event headroom threshold reached (${eventSequence} >= 100000 events); pulse is halted. Outcome: halted.`,
-    );
+    throw new HarnessError("INVALID_STATE", `event headroom threshold reached (${eventSequence} >= 100000 events); pulse is halted. Outcome: halted.`);
   }
 
   const budgetCheck = checkDailyBudget(budgetRecord, nowMs);
   if (!budgetCheck.ok) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `${budgetCheck.reason}. Outcome: ${budgetCheck.outcome}. Next: ${budgetCheck.repairArgv}`,
-    );
+    throw new HarnessError("INVALID_STATE", `${budgetCheck.reason}. Outcome: ${budgetCheck.outcome}. Next: ${budgetCheck.repairArgv}`);
   }
 
   const currentCounter = typeof pulseState.counter === "number" ? pulseState.counter : 0;
   const nextCounter = currentCounter + 1;
   const pulseId = `pulse-${nextCounter}`;
-  const openedAt = new Date(nowMs).toISOString();
-  const pulseDeadlineMs =
-    typeof budgetRecord.pulse_deadline_ms === "number"
-      ? budgetRecord.pulse_deadline_ms
-      : DEFAULT_MIND_BUDGET.pulse_deadline_ms;
-  const deadlineAt = new Date(nowMs + pulseDeadlineMs).toISOString();
-  const scheduledIntervalMs = arm ? parseDuration(arm) : baseIntervalMs;
-  const nextWakeAt = new Date(nowMs + scheduledIntervalMs).toISOString();
+  const pulseDeadlineMs = typeof budgetRecord.pulse_deadline_ms === "number" ? budgetRecord.pulse_deadline_ms : DEFAULT_MIND_BUDGET.pulse_deadline_ms;
 
-  let updatedPulsesToday = 1;
-  let updatedWallClockToday = 0;
-
-  transact(
+  const txnResult = executeOpenPulseTransaction({
     run,
     actor,
-    "mind-pulse-opened",
-    {
-      pulse_id: pulseId,
-      opened_at: openedAt,
-      deadline_at: deadlineAt,
-      host,
-      driver,
-      cadence: "infinite_autonomous",
-      closing_permitted: false,
-      invariant: CLOSING_FORBIDDEN_FOR_MIND,
-    },
-    (working) => {
-      const workingLedger = readAgentLedger(working);
-      if (!findGrant(workingLedger, actor)) {
-        const autoGrant: AgentGrantRecord = {
-          id: actor,
-          role: "mind",
-          parent_agent_id: null,
-          parent_task_id: null,
-          host,
-          granted_at: openedAt,
-          status: "active",
-        };
-        writeAgentLedger(working, [...workingLedger, autoGrant]);
-      }
-      const workingBudget = (working.budget ?? {}) as Record<string, unknown>;
-      rollDayKeyIfNeeded(workingBudget, nowMs);
-      const currentToday =
-        typeof workingBudget.pulses_today === "number" ? workingBudget.pulses_today : 0;
-      updatedPulsesToday = currentToday + 1;
-      workingBudget.pulses_today = updatedPulsesToday;
-      updatedWallClockToday =
-        typeof workingBudget.wall_clock_ms_today === "number"
-          ? workingBudget.wall_clock_ms_today
-          : 0;
-      working.budget = workingBudget as unknown as JsonObject;
-
-      const workingPulse = (working.pulse ?? {}) as Record<string, unknown>;
-      workingPulse.counter = nextCounter;
-      workingPulse.open = {
-        pulse_id: pulseId,
-        opened_at: openedAt,
-        deadline_at: deadlineAt,
-        actor,
-        host,
-        driver,
-        cadence: "infinite_autonomous",
-        closing_permitted: false,
-        invariant: CLOSING_FORBIDDEN_FOR_MIND,
-      };
-      working.pulse = workingPulse as unknown as JsonObject;
-    },
-  );
-
-  writeLastPulse(run, {
-    at: openedAt,
-    pulse_id: pulseId,
-    outcome: "active",
-    next_wake_at: nextWakeAt,
+    host,
+    driver,
+    nowMs,
+    nextCounter,
+    pulseId,
+    scheduledIntervalMs,
+    pulseDeadlineMs,
+    state,
   });
 
   const personaReminder = constructSupervisoryPersonaReminder({
@@ -829,27 +241,8 @@ export async function mindPulseCommand(
     tickNumber: nextCounter,
     cadenceMs: scheduledIntervalMs,
     now: nowMs,
-    context: {
-      role: "mind",
-      agentId: actor,
-      runId: run,
-      pulseId,
-      tickNumber: nextCounter,
-      now: nowMs,
-    },
+    context: { role: "mind", agentId: actor, runId: run, pulseId, tickNumber: nextCounter, now: nowMs },
   });
-
-  const cognitiveTelemetry = computeMindCognitiveTelemetry(state);
-  let diagResult: ScriptBackedDiagnosticsResult | undefined = undefined;
-  try {
-    diagResult = await runScriptBackedDiagnostics({
-      runRoot: run,
-      repoRoot,
-      state,
-      clock: { now: () => new Date(nowMs) },
-    });
-  } catch {}
-  const dagBadges = generateAsciiDagBadges(state);
 
   const markdown = formatMindPulseOpenedBrief({
     pulseId,
@@ -857,11 +250,11 @@ export async function mindPulseCommand(
     actor,
     host,
     driver,
-    openedAt,
-    deadlineAt,
+    openedAt: txnResult.openedAt,
+    deadlineAt: txnResult.deadlineAt,
     scheduledIntervalMs,
-    nextWakeAt,
-    pulsesToday: updatedPulsesToday,
+    nextWakeAt: txnResult.nextWakeAt,
+    pulsesToday: txnResult.updatedPulsesToday,
     pulsesPerDay,
     personaReminder,
     workSpan: cognitiveTelemetry.workSpan,
@@ -870,14 +263,7 @@ export async function mindPulseCommand(
     cliReceiptSummaryBadge: diagResult?.receiptSummaryBadge,
     dagBadges,
     activeRuns: cognitiveTelemetry.activeAgents?.length ?? 0,
-    pendingBacklog:
-      (Array.isArray(state.planning_buffer) ? state.planning_buffer.length : 0) +
-      (typeof state.tasks === "object" && state.tasks
-        ? Object.values(state.tasks).filter(
-            (t) =>
-              t && typeof t === "object" && (t as Record<string, unknown>).status === "proposed",
-          ).length
-        : 0),
+    pendingBacklog,
   });
 
   return {
@@ -889,10 +275,10 @@ export async function mindPulseCommand(
     actor,
     host,
     driver,
-    opened_at: openedAt,
-    deadline_at: deadlineAt,
+    opened_at: txnResult.openedAt,
+    deadline_at: txnResult.deadlineAt,
     scheduled_interval_ms: scheduledIntervalMs,
-    next_wake_at: nextWakeAt,
+    next_wake_at: txnResult.nextWakeAt,
     cadence: "infinite_autonomous",
     closing_permitted: false,
     invariant: CLOSING_FORBIDDEN_FOR_MIND,
@@ -904,40 +290,6 @@ export async function mindPulseCommand(
     cli_receipt_summary_badge: diagResult?.receiptSummaryBadge,
     dag_badges: dagBadges,
     diagnostics: diagResult,
-    budget: {
-      pulses_today: updatedPulsesToday,
-      pulses_per_day: pulsesPerDay,
-      wall_clock_ms_today: updatedWallClockToday,
-      wall_clock_ms_per_day: wallClockPerDay,
-    },
+    budget: { pulses_today: txnResult.updatedPulsesToday, pulses_per_day: pulsesPerDay, wall_clock_ms_today: txnResult.updatedWallClockToday, wall_clock_ms_per_day: wallClockPerDay },
   };
-}
-
-export function formatPulseDirective(params: {
-  readonly activeRuns: number;
-  readonly pendingBacklog: number;
-}): string {
-  if (params.activeRuns === 0 && params.pendingBacklog === 0) {
-    const proposals = MindAutonomousDiscoveryEngine.generateProposals({
-      backlogCount: params.pendingBacklog,
-      activeRunCount: params.activeRuns,
-      unresolvedDefects: 0,
-    });
-    const lines = [
-      "### MODE A AUTONOMOUS DISCOVERY REQUIRED",
-      "- Active Runs: 0",
-      "- Pending Backlog: 0",
-      "- Action: Generate candidate proposals using MindAutonomousDiscoveryEngine.",
-      "- Invariant: CLOSING_FORBIDDEN_FOR_MIND",
-    ];
-    if (proposals.length > 0) {
-      lines.push("");
-      lines.push("#### Discovery Proposals:");
-      for (const p of proposals) {
-        lines.push(`- **${p.title}** (${p.category}): ${p.candidateGoal}`);
-      }
-    }
-    return lines.join("\n");
-  }
-  return "";
 }
