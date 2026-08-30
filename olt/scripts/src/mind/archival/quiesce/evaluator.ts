@@ -1,11 +1,41 @@
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   calculateExponentialBackoff,
   DEFAULT_BASE_INTERVAL_MS,
   DEFAULT_MAX_INTERVAL_MS,
   QUIESCENCE_INTERVAL_MULTIPLIER,
 } from "../../../core/scheduling/index.ts";
-import type { QuiescentDigest, QuiescentSourceObservation } from "./types.ts";
-import { QUIESCENT_DIGEST_STREAK_THRESHOLD } from "./types.ts";
+import type {
+  QuiescentDigest,
+  QuiescentSourceInput,
+  QuiescentSourceObservation,
+  QuiescentValidationResult,
+} from "./types.ts";
+import { QUIESCENT_DIGEST_STREAK_THRESHOLD, validateQuiescentScan } from "./types.ts";
+
+export interface ExecuteQuiesceLaneOptions {
+  readonly runRoot?: string | undefined;
+  readonly runId?: string | undefined;
+  readonly capsulesDir?: string | undefined;
+  readonly repoRoot?: string | undefined;
+  readonly sources?: readonly (string | QuiescentSourceInput)[] | undefined;
+  readonly previousStreak?: number | undefined;
+  readonly now?: string | Date | undefined;
+  readonly writeReport?: boolean | undefined;
+}
+
+export type QuiesceLaneOptions = ExecuteQuiesceLaneOptions;
+
+export interface QuiesceLaneResult {
+  readonly ok: boolean;
+  readonly streak: number;
+  readonly digest?: QuiescentDigest | undefined;
+  readonly markdown: string;
+  readonly reportPath?: string | undefined;
+  readonly validation: QuiescentValidationResult;
+  readonly nextIntervalMs: number;
+}
 
 export function computeQuiescentStreak(previousStreak?: number | null): number {
   if (
@@ -83,5 +113,62 @@ export function buildQuiescentDigest(params: {
     message,
     sourcesChecked: params.sources,
     markdown,
+  };
+}
+
+export async function executeQuiesceLane(
+  options: ExecuteQuiesceLaneOptions = {},
+): Promise<QuiesceLaneResult> {
+  const { runRoot, sources = [], previousStreak, writeReport = true } = options;
+  const validation = validateQuiescentScan(sources, {
+    runRoot,
+    capsulesDir: options.capsulesDir,
+    repoRoot: options.repoRoot,
+  });
+
+  const streak = validation.ok ? computeQuiescentStreak(previousStreak) : 0;
+  const nextIntervalMs = calculateQuiescentInterval(
+    DEFAULT_BASE_INTERVAL_MS,
+    DEFAULT_MAX_INTERVAL_MS,
+    streak,
+  );
+
+  let digest: QuiescentDigest | undefined = undefined;
+  let markdown = "";
+
+  if (validation.ok) {
+    digest = buildQuiescentDigest({
+      streak,
+      sources: validation.observations,
+      runId: options.runId ?? (runRoot ? runRoot.split("/").pop() : undefined),
+      generatedAt: typeof options.now === "string" ? options.now : options.now?.toISOString(),
+    });
+    markdown = digest.markdown;
+  } else {
+    markdown = `### Quiescent Lane Execution Failed\n- **Error**: ${validation.error ?? "Quiescence criteria not satisfied"}`;
+  }
+
+  let reportPath: string | undefined = undefined;
+  if (writeReport && runRoot && existsSync(runRoot) && digest) {
+    try {
+      const reportsDir = join(runRoot, "reports");
+      if (!existsSync(reportsDir)) {
+        mkdirSync(reportsDir, { recursive: true });
+      }
+      reportPath = join(reportsDir, "quiescent-digest.md");
+      writeFileSync(reportPath, markdown, "utf-8");
+    } catch {
+      reportPath = undefined;
+    }
+  }
+
+  return {
+    ok: validation.ok,
+    streak,
+    digest,
+    markdown,
+    reportPath,
+    validation,
+    nextIntervalMs,
   };
 }

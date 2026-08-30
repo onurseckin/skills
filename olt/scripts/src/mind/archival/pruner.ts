@@ -1,15 +1,9 @@
-import { readFileSync } from "node:fs";
-import { existsSync, lstatSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { readFileSync, existsSync, lstatSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { type ConsolidateCapsulesOptions, type ConsolidateCapsulesResult } from "./types.ts";
 import { archiveCapsule, pruneCapsuleBoilerplate } from "./validator.ts";
 
-/**
- * Consolidates capsules in a capsules directory:
- * - Archives legacy roots into .capsules/archive/
- * - Prunes boilerplate subdirectories to keep active capsule roots minimal
- */
 export function consolidateCapsules(
   capsulesDir: string,
   options: ConsolidateCapsulesOptions = {},
@@ -50,7 +44,6 @@ export function consolidateCapsules(
     }
     if (!entryStat.isDirectory() || entryStat.isSymbolicLink()) continue;
 
-    // Verify if it's a capsule directory (has manifest.json or prompt.md or state.json)
     const isCapsule =
       existsSync(join(fullPath, "manifest.json")) ||
       existsSync(join(fullPath, "state.json")) ||
@@ -58,7 +51,6 @@ export function consolidateCapsules(
 
     if (!isCapsule) continue;
 
-    // Determine if entry is legacy
     let isLegacy = false;
 
     if (activeRunIdsSet !== undefined) {
@@ -73,7 +65,6 @@ export function consolidateCapsules(
       }
     }
 
-    // Also check state for completed / rotated mind or run if neither explicit active list nor gen cutoff flagged it
     if (!isLegacy && activeRunIdsSet === undefined && cutoffGen === undefined) {
       try {
         const statePath = join(fullPath, "state.json");
@@ -92,7 +83,7 @@ export function consolidateCapsules(
           }
         }
       } catch {
-        // Skip read error
+        continue;
       }
     }
 

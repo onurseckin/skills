@@ -53,6 +53,23 @@ export interface QuiescentDigest {
   readonly markdown: string;
 }
 
+export interface QuiesceLaneOptions {
+  readonly runRoot?: string | undefined;
+  readonly actor?: string | undefined;
+  readonly streak?: number | undefined;
+  readonly sources?: readonly QuiescentSourceObservation[] | undefined;
+  readonly baseIntervalMs?: number | undefined;
+  readonly maxIntervalMs?: number | undefined;
+}
+
+export interface QuiesceLaneResult {
+  readonly streak: number;
+  readonly nextIntervalMs: number;
+  readonly digestTriggered: boolean;
+  readonly digest?: QuiescentDigest | undefined;
+  readonly markdown?: string | undefined;
+}
+
 export function parseQuiescentSourceSpec(spec: string): QuiescentSourceInput {
   if (typeof spec !== "string" || !spec.trim()) {
     throw new HarnessError(

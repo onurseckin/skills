@@ -45,9 +45,6 @@ export interface MindRecycleHealth {
   readonly timestamp: string;
 }
 
-/**
- * Diagnostic helper inspecting the autonomic loop recycling health and invariant compliance.
- */
 export function inspectRecycleHealth(
   state: Record<string, unknown>,
   runRoot: string,
@@ -65,9 +62,6 @@ export function inspectRecycleHealth(
   };
 }
 
-/**
- * Validates whether a mind capsule is ready for generational rollover.
- */
 export function validateRolloverReadiness(
   sourceState: Record<string, unknown>,
   targetGeneration?: number,

@@ -24,16 +24,6 @@ interface ObjectiveRecord {
   id: string;
 }
 
-/**
- * Executes generational state archival and pruning during mind:rotate.
- *
- * Rule: Completed items older than `retentionGenerations` (default: 2 generations,
- * i.e., generation <= currentGeneration - 2) are pruned from active state and archived
- * durably to ARCHIVED_OBJECTIVES.jsonl.
- *
- * Recent items (within last 2 generations: current and current - 1) and active items
- * remain in the carried active state.
- */
 export function pruneAndArchiveGenerationalState(
   options: PruneAndArchiveOptions,
 ): PruneAndArchiveResult {
@@ -47,7 +37,6 @@ export function pruneAndArchiveGenerationalState(
   const carriedObjectives: ObjectiveRecord[] = [];
   const carriedTasks: Record<string, unknown>[] = [];
 
-  // 1. Process Candidates
   const candidates = Array.isArray(sourceState["candidates"])
     ? (sourceState["candidates"] as Record<string, unknown>[])
     : [];
@@ -61,7 +50,6 @@ export function pruneAndArchiveGenerationalState(
     const completed = isItemCompleted(cand);
 
     if (completed && candGen <= cutoffGeneration) {
-      // Archive and prune from active state
       const completedAt =
         typeof cand["decided_at"] === "string" && cand["decided_at"]
           ? cand["decided_at"]
@@ -95,12 +83,10 @@ export function pruneAndArchiveGenerationalState(
         },
       });
     } else {
-      // Retain in active carried state (either active or recent generation)
       carriedCandidates.push(cand as unknown as CandidateRecord);
     }
   }
 
-  // 2. Process Objectives
   const objectives = Array.isArray(sourceState["objectives"])
     ? (sourceState["objectives"] as Record<string, unknown>[])
     : [];
@@ -114,7 +100,6 @@ export function pruneAndArchiveGenerationalState(
     const completed = isItemCompleted(obj);
 
     if (completed && objGen <= cutoffGeneration) {
-      // Archive and prune
       const completedAt =
         typeof obj["updated_at"] === "string" && obj["updated_at"]
           ? obj["updated_at"]
@@ -142,7 +127,6 @@ export function pruneAndArchiveGenerationalState(
     }
   }
 
-  // 3. Process Tasks
   const rawTasks = sourceState["tasks"];
   const taskList: Record<string, unknown>[] = [];
   if (Array.isArray(rawTasks)) {
@@ -189,7 +173,6 @@ export function pruneAndArchiveGenerationalState(
     }
   }
 
-  // 4. Durable write to ARCHIVED_OBJECTIVES.jsonl
   const archivalPath = resolveArchivedObjectivesPath(
     options.capsulesDir,
     options.customArchivalPath,
@@ -197,15 +180,12 @@ export function pruneAndArchiveGenerationalState(
 
   if (toArchive.length > 0) {
     const requiredArchiveCopies = [archivalPath];
-    // Also persist inside source capsule directory if available. Both copies are mandatory
-    // once selected; appendArchivedObjectivesCopies intentionally propagates any failure.
     if (options.sourceRunRoot && existsSync(options.sourceRunRoot)) {
       requiredArchiveCopies.push(join(options.sourceRunRoot, "ARCHIVED_OBJECTIVES.jsonl"));
     }
     appendArchivedObjectivesCopies(toArchive, requiredArchiveCopies);
   }
 
-  // 5. Prune boilerplate subdirectories & consolidate legacy capsule roots if requested
   const prunedBoilerplateDirs: string[] = [];
   if (options.pruneBoilerplateOnDisk !== false) {
     if (options.sourceRunRoot && existsSync(options.sourceRunRoot)) {

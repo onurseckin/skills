@@ -35,7 +35,6 @@ export function executeAutonomicRollover(
     throw new HarnessError("INVALID_STATE", `Capsule not ready for rollover: ${readiness.reason}`);
   }
 
-  // 1. Rotate generation
   const rotateResult = rotateMindGeneration({
     sourceRunRoot: options.sourceRunRoot,
     nextRunId: options.targetRunId,
@@ -44,7 +43,6 @@ export function executeAutonomicRollover(
     capsulesDir: options.capsulesDir,
   });
 
-  // 2. Drain feedback queue items into target capsule if autoDrain is true (default true)
   const shouldDrain = options.autoDrain !== false;
   let drainedFeedbackItems: readonly FeedbackItem[] = [];
   let admittedCandidates: readonly CandidateRecord[] = [];
@@ -60,7 +58,6 @@ export function executeAutonomicRollover(
     admittedCandidates = drainResult.admittedCandidates;
   }
 
-  // 3. Compile wave plan for successor generation
   const targetLoaded = loadRun(rotateResult.targetRunRoot, false);
   const wavePlan = compileAutonomicWavePlan(
     targetLoaded.state as Record<string, unknown>,
@@ -96,9 +93,6 @@ export function executeAutonomicRollover(
   };
 }
 
-/**
- * Formats a clean markdown brief for an autonomic generation rollover.
- */
 export function formatAutonomicRolloverBrief(params: {
   readonly sourceRunId: string;
   readonly targetRunId: string;
@@ -123,9 +117,6 @@ export function formatAutonomicRolloverBrief(params: {
   return enforceLineLimit(lines.join("\n"), 25);
 }
 
-/**
- * Plans an autonomous round recycle cycle, formatting the step-by-step instructions.
- */
 export function planAutonomousRoundRecycle(
   state: Record<string, unknown>,
   options: AutonomousRecycleOptions,
@@ -152,9 +143,6 @@ export function planAutonomousRoundRecycle(
   };
 }
 
-/**
- * Formats a clean, line-limited brief (<= 25 lines) for autonomous round recycling.
- */
 export function formatRecycleBrief(assessment: RecycleAssessment, runRoot: string): string {
   const lines = [
     `### Autonomous Mind Recycler`,
@@ -171,8 +159,3 @@ export function formatRecycleBrief(assessment: RecycleAssessment, runRoot: strin
 
   return enforceLineLimit(lines.join("\n"), 25);
 }
-
-/**
- * Strict invariant check preventing any agent from killing the mind process,
- * terminating schedulers, or breaking the infinite cadence.
- */

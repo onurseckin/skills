@@ -3,9 +3,6 @@ import { type ArchivedObjectiveRecord } from "./types.ts";
 import { readArchivedObjectives, validateArchivedObjectiveRecord } from "./generational.ts";
 import { withArchivedObjectivesTransaction } from "./compactor.ts";
 
-/**
- * Appends or updates archived objective records in ARCHIVED_OBJECTIVES.jsonl.
- */
 export function appendArchivedObjectives(
   records: readonly ArchivedObjectiveRecord[],
   customPath?: string,
@@ -25,11 +22,6 @@ export function appendArchivedObjectives(
   });
 }
 
-/**
- * Persists required global/local copies in one canonical order. Each copy owns a separate
- * transaction: root is always locked before its parent, and parents are visited in sorted
- * absolute-path order, so no operation can form an inverse parent-lock cycle.
- */
 export function appendArchivedObjectivesCopies(
   records: readonly ArchivedObjectiveRecord[],
   paths: readonly string[],
@@ -41,9 +33,6 @@ export function appendArchivedObjectivesCopies(
   for (const path of orderedPaths) appendArchivedObjectives(records, path);
 }
 
-/**
- * Determines whether a candidate, objective, or task is completed or closed.
- */
 export function isItemCompleted(item: Record<string, unknown>): boolean {
   const status = typeof item["status"] === "string" ? item["status"].trim().toLowerCase() : "";
   const result = typeof item["result"] === "string" ? item["result"].trim().toLowerCase() : "";
@@ -73,9 +62,6 @@ export function isItemCompleted(item: Record<string, unknown>): boolean {
   return false;
 }
 
-/**
- * Extracts generation number from an item, using fallback if not explicitly provided.
- */
 export function extractItemGeneration(
   item: Record<string, unknown>,
   fallbackGeneration: number,

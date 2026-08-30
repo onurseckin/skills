@@ -35,10 +35,8 @@ export function assessRecyclingState(
   const latestRound =
     allRounds.length > 0 ? [...allRounds].sort((a, b) => b.round - a.round)[0] : undefined;
 
-  // 1. Check if completeness critic has reviewed the current round
   if (completionReview && typeof completionReview.status === "string") {
     if (completionReview.status === "clean") {
-      // Round converged: look for next admitted candidate
       const nextCandidate = allCandidates.find(
         (c) =>
           c.status === "admitted" &&
@@ -68,7 +66,6 @@ export function assessRecyclingState(
         };
       }
 
-      // Check for un-admitted open candidates
       const openCandidate = allCandidates.find((c) => c.status === "opened" || c.status === "open");
       if (openCandidate) {
         const cmd = `bun harness.ts mind:admit --run ${runRoot} --actor ${actor} --candidate ${openCandidate.id}`;
@@ -86,7 +83,6 @@ export function assessRecyclingState(
         };
       }
 
-      // Check if feedback queue has pending items when checking queue
       if (options.checkFeedbackQueue === true || options.feedbackQueuePath !== undefined) {
         const pendingFeedbacks = readFeedbackQueueStrict(options.feedbackQueuePath).filter(
           (item) => item.status === "PENDING",
@@ -114,7 +110,6 @@ export function assessRecyclingState(
         }
       }
 
-      // No open/admitted candidates: recycle into discovery
       const wakeCmd = `bun harness.ts mind:wake --run ${runRoot}`;
       const candCmd = `bun harness.ts mind:candidate --run ${runRoot} --actor ${actor} --kind defect --statement "Autonomous candidate discovery" --charter-goal G1 --write-scope src/`;
       return {
@@ -133,7 +128,6 @@ export function assessRecyclingState(
     }
 
     if (completionReview.status === "findings") {
-      // Critic identified findings: carry forward into successor round if budget allows
       const currentObj = openRound?.objective_id
         ? openRound.objective_id
         : latestRound?.objective_id;
@@ -164,7 +158,6 @@ export function assessRecyclingState(
         };
       }
 
-      // Budget exhausted: recycle to discovery / next objective
       const cmd = `bun harness.ts mind:wake --run ${runRoot}`;
       return {
         canRecycle: true,
@@ -181,7 +174,6 @@ export function assessRecyclingState(
     }
   }
 
-  // 2. Check for admitted candidates ready to start a round
   const admittedCandidate = allCandidates.find(
     (c) =>
       c.status === "admitted" &&
@@ -208,7 +200,6 @@ export function assessRecyclingState(
     };
   }
 
-  // 3. Check for open candidates ready for admission
   const openCandidate = allCandidates.find((c) => c.status === "opened" || c.status === "open");
   if (openCandidate && !openRound) {
     const cmd = `bun harness.ts mind:admit --run ${runRoot} --actor ${actor} --candidate ${openCandidate.id}`;
@@ -226,7 +217,6 @@ export function assessRecyclingState(
     };
   }
 
-  // 4. Check if all rounds are closed and feedback queue has pending items for rollover
   if (
     !openRound &&
     allRounds.length > 0 &&
@@ -257,7 +247,6 @@ export function assessRecyclingState(
     }
   }
 
-  // 5. Default perpetual mind wake transition
   const wakeCmd = `bun harness.ts mind:wake --run ${runRoot}`;
   return {
     canRecycle: true,
@@ -272,8 +261,3 @@ export function assessRecyclingState(
     infiniteCadence: true,
   };
 }
-
-/**
- * Specifically transitions from completeness critic sign-off back into candidate
- * discovery and next wave planning.
- */

@@ -10,9 +10,6 @@ import {
   type PruneBoilerplateResult,
 } from "./types.ts";
 
-/**
- * Checks whether a directory is empty or contains only ignorable OS files / empty subdirectories.
- */
 export function isEffectivelyEmptyDirectory(dirPath: string): boolean {
   if (!existsSync(dirPath)) return true;
   try {
@@ -38,10 +35,6 @@ export function isEffectivelyEmptyDirectory(dirPath: string): boolean {
   }
 }
 
-/**
- * Prunes empty boilerplate subdirectories from an active or archived capsule.
- * Preserves core files and any directory that contains files or data.
- */
 export function pruneCapsuleBoilerplate(
   capsulePath: string,
   options: PruneBoilerplateOptions = {},
@@ -134,10 +127,6 @@ export function assertCapsuleCopyComplete(sourceRoot: string, targetRoot: string
   }
 }
 
-/**
- * Archives a legacy capsule root by moving it to .capsules/archive/<runId>
- * and pruning empty boilerplate subdirectories.
- */
 export function archiveCapsule(
   sourceCapsulePath: string,
   options: ArchiveCapsuleOptions = {},

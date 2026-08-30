@@ -93,7 +93,6 @@ export type LedgerPersistenceStage =
 
 export let ledgerPersistenceTestHook: ((stage: LedgerPersistenceStage) => void) | undefined;
 
-/** @internal deterministic persistence seam for the unit suite. */
 export function __setCompletedTasksPersistenceTestHook(
   hook: ((stage: LedgerPersistenceStage) => void) | undefined,
 ): void {
