@@ -1,6 +1,3 @@
-/**
- * Behavioral Audit: Subagent Pulse Termination & Daemon Interference
- */
 import type { CommandRecord, JsonObject } from "../../core/contracts/index.ts";
 import { isJsonObject } from "../../core/contracts/index.ts";
 import { inferRole, isSubagentRole } from "./predicates.ts";

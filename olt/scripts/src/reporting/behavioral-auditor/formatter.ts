@@ -1,6 +1,3 @@
-/**
- * Behavioral Auditor Health Summarizer & Markdown Formatter
- */
 import type { BehavioralFinding, BehavioralHealthSummary } from "./types.ts";
 
 export function summarizeBehavioralHealth(

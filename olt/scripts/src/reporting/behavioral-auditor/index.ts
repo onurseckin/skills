@@ -1,6 +1,3 @@
-/**
- * Behavioral Auditor Subsystem Facade
- */
 export {
   type BehavioralViolationType,
   type BehavioralSeverity,

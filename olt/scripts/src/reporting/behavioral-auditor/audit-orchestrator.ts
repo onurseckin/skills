@@ -1,6 +1,3 @@
-/**
- * Behavioral Audit: Orchestrator Direct Implementation
- */
 import type { AgentGrantRecord, AgentToolUse, CommandRecord } from "../../core/contracts/index.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import { isFullTestSuiteCommand, isOrchestratorRole } from "./predicates.ts";

@@ -1,6 +1,3 @@
-/**
- * Behavioral Auditor Predicates & Role Resolvers
- */
 import { isAgentRole, isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import type { BehavioralFinding } from "./types.ts";
 
