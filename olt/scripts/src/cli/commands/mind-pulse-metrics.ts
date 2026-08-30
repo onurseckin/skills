@@ -1,10 +1,3 @@
-export interface MindPulseTelemetryBudget {
-  readonly pulses_today: number;
-  readonly pulses_per_day: number | null;
-  readonly wall_clock_ms_today?: number | undefined;
-  readonly wall_clock_ms_per_day?: number | null | undefined;
-}
-
 export interface MindPulseWorkSpanMetrics {
   readonly total_work: number;
   readonly span: number;
@@ -145,6 +138,7 @@ export function computeMindCognitiveTelemetry(
   }
 
   const maxWave = Math.max(1, currentWave - 1);
+
   const waveGroups: {
     wave: number;
     tasks: {

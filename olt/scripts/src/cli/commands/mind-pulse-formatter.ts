@@ -1,37 +1,12 @@
-import { formatDuration } from "../../mind/proposals/brief/index.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import type { SupervisoryPersonaReminder } from "../../authority/supervisory/index.ts";
+import { formatDuration } from "../../mind/proposals/brief/index.ts";
 import { MindAutonomousDiscoveryEngine } from "../../mind/tasks/discovery/index.ts";
+import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import type {
   MindPulseActiveAgentCoordinate,
   MindPulseWaveLaneInfo,
   MindPulseWorkSpanMetrics,
 } from "./mind-pulse-metrics.ts";
-
-export function formatMindPulseOpenBrief(params: {
-  readonly pulseId: string;
-  readonly runRoot: string;
-  readonly actor: string;
-  readonly host: string;
-  readonly driver: string;
-  readonly openedAt: string;
-  readonly deadlineAt: string;
-  readonly pulsesToday: number;
-  readonly pulsesPerDay: number | null;
-}): string {
-  const limitStr = params.pulsesPerDay === null ? "∞" : params.pulsesPerDay;
-  const md = [
-    `### Mind Pulse Opened: ${params.pulseId}`,
-    `- **Capsule Root**: \`${params.runRoot}\``,
-    `- **Actor**: \`${params.actor}\``,
-    `- **Host**: \`${params.host}\``,
-    `- **Driver**: \`${params.driver}\``,
-    `- **Opened At**: \`${params.openedAt}\``,
-    `- **Deadline At**: \`${params.deadlineAt}\``,
-    `- **Budget Headroom**: ${params.pulsesToday} / ${limitStr} pulses today`,
-  ].join("\n");
-  return enforceLineLimit(md, 30);
-}
 
 export function formatPulseDirective(params: {
   readonly activeRuns: number;
