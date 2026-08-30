@@ -49,6 +49,8 @@ export {
 export {
   autoDeriveCallerIdentity,
   isSessionLedgerBacked,
-  requireTurn1Registration,
   resolveActiveSession,
 } from "./resolver.ts";
+
+export { requireTurn1Registration } from "./turn1-interlock.ts";
+

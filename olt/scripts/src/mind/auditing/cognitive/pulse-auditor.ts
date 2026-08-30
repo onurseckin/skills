@@ -12,6 +12,7 @@ import {
   type StagnationTelemetry,
 } from "../../../authority/verbatim-role-injector.ts";
 import { readLastPulse } from "../../lifecycle/pulse/index.ts";
+import { executeStagnationShockRecovery } from "../stagnation-recovery-interlock.ts";
 import { AuditorCursorStore } from "./cursor.ts";
 import { MindAuditorEngine } from "./engine.ts";
 import type { AuditorCursor, MindAuditLiveResult } from "./types.ts";
@@ -150,6 +151,12 @@ export function auditMindPulseHelper(
 
   const stagnationSignature = `${telemetry.agentId}|${pulseMs ?? "none"}|${threshold}`;
   if (stagnant) {
+    executeStagnationShockRecovery(repoRoot, {
+      idleDurationSeconds,
+      stagnationThresholdSeconds: threshold,
+      pendingBacklogCount,
+      now: nowIso,
+    });
     injectionPrompt = VerbatimRoleInjector.buildInjectionPrompt(repoRoot, "mind", telemetry);
     if (cursor.lastStagnationSignature !== stagnationSignature) {
       const routeResult = SplitChannelDefectRouter.routeDefect({

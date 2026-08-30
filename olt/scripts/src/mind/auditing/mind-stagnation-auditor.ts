@@ -7,6 +7,7 @@ import {
 } from "../preplanning/backlog-clusterer.ts";
 import { resolveLedgerPath } from "../preplanning/bridge-state.ts";
 import type { RawBacklogItem, RawDefectItem, StagnationAuditResult } from "../preplanning/types.ts";
+import { executeStagnationShockRecovery } from "./stagnation-recovery-interlock.ts";
 
 export const MIND_PREPLANNING_STAGNATION = "MIND_PREPLANNING_STAGNATION" as const;
 export const DEFAULT_STAGNATION_THRESHOLD_SECONDS = 180;
@@ -82,6 +83,11 @@ export function auditMindPreplanningStagnation(
   }
 
   if (idleDurationSeconds > thresholdSeconds) {
+    executeStagnationShockRecovery(root, {
+      idleDurationSeconds,
+      stagnationThresholdSeconds: thresholdSeconds,
+      pendingBacklogCount: eligibleBacklog.length,
+    });
     const formattedDuration =
       idleDurationSeconds === Number.POSITIVE_INFINITY
         ? "untracked duration"
