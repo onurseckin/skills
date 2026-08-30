@@ -2,52 +2,26 @@ import { resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 
 export type TaskQueueStatus =
-  | "PENDING"
-  | "ADMITTED"
-  | "IN_PROGRESS"
-  | "RUNNING"
-  | "VALIDATING"
-  | "COMPLETED"
-  | "FAILED"
-  | "BLOCKED"
-  | "ESCALATED";
+  | "PENDING" | "ADMITTED" | "IN_PROGRESS" | "RUNNING" | "VALIDATING"
+  | "COMPLETED" | "FAILED" | "BLOCKED" | "ESCALATED";
 
 export const TASK_QUEUE_STATUSES: readonly TaskQueueStatus[] = [
-  "PENDING",
-  "ADMITTED",
-  "IN_PROGRESS",
-  "RUNNING",
-  "VALIDATING",
-  "COMPLETED",
-  "FAILED",
-  "BLOCKED",
-  "ESCALATED",
+  "PENDING", "ADMITTED", "IN_PROGRESS", "RUNNING", "VALIDATING",
+  "COMPLETED", "FAILED", "BLOCKED", "ESCALATED",
 ];
 
 export type TaskPriority = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "BACKGROUND";
 export const TASK_PRIORITIES: readonly TaskPriority[] = [
-  "CRITICAL",
-  "HIGH",
-  "MEDIUM",
-  "LOW",
-  "BACKGROUND",
+  "CRITICAL", "HIGH", "MEDIUM", "LOW", "BACKGROUND",
 ];
 
 export const PRIORITY_WEIGHTS: Readonly<Record<TaskPriority, number>> = {
-  CRITICAL: 100,
-  HIGH: 75,
-  MEDIUM: 50,
-  LOW: 25,
-  BACKGROUND: 10,
+  CRITICAL: 100, HIGH: 75, MEDIUM: 50, LOW: 25, BACKGROUND: 10,
 };
 
 export type TaskSourceType =
-  | "external_intake"
-  | "feedback_intake"
-  | "self_evolution"
-  | "defect_remediation"
-  | "direct_prompt"
-  | "plan_enhancement";
+  | "external_intake" | "feedback_intake" | "self_evolution"
+  | "defect_remediation" | "direct_prompt" | "plan_enhancement";
 
 export interface TaskLease {
   readonly agent_id: string;
@@ -112,6 +86,31 @@ export interface CompletionReceipts {
   readonly assertions?: number | string | readonly string[] | null | undefined;
   readonly runtime_ms?: number | string | null | undefined;
   readonly commit_sha?: string | null | undefined;
+}
+
+export interface TaskQueueStats {
+  readonly total: number;
+  readonly pending: number;
+  readonly admitted: number;
+  readonly in_progress: number;
+  readonly running: number;
+  readonly validating: number;
+  readonly completed: number;
+  readonly failed: number;
+  readonly blocked: number;
+  readonly escalated: number;
+  readonly active_leases: number;
+  readonly expired_leases: number;
+}
+
+export interface TaskQueueFilterOptions {
+  readonly status?: TaskQueueStatus | undefined;
+  readonly priority?: TaskPriority | undefined;
+  readonly customPath?: string | undefined;
+  readonly limit?: number | undefined;
+  readonly agentId?: string | undefined;
+  readonly tags?: readonly string[] | undefined;
+  readonly search?: string | undefined;
 }
 
 export const DEFAULT_TASK_QUEUE_FILE = ".olt/tasks.jsonl";

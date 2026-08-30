@@ -2,7 +2,7 @@
 
 **Target Plan File**: `docs/planning/mind-feedback-and-archival-syntax/PLAN.md`  
 **Track**: Track 8 — Mind Feedback Queue, Task Queue, Pushbacks, Archival & Partition Syntax  
-**Certification Status**: **CERTIFIED & APPROVED (5/5 Rounds Complete)** by `plan_critic_01`  
+**Certification Status**: **CERTIFIED & APPROVED (5/5 Rounds Complete)** by `plan_critic_01` & `validator_05`  
 **Assigned Defects**:
 
 1. `defect-mind-feedback-queue-syntax-error`
@@ -39,16 +39,16 @@
 ## Level 2: Architectural Constraints & Invariants
 
 1. **Physical LOC Budget ($\le 300$ LOC / file)**:
-   - `olt/scripts/src/task/queue/types.ts`: ~285 LOC
-   - `olt/scripts/src/task/queue/lease.ts`: ~278 LOC
-   - `olt/scripts/src/task/queue/maintenance.ts`: 220 LOC
-   - `olt/scripts/src/task/queue/transitions.ts`: ~210 LOC
-   - `olt/scripts/src/task/queue/storage.ts`: 180 LOC
-   - `olt/scripts/src/task/queue/completion.ts`: ~175 LOC
-   - `olt/scripts/src/task/queue/dequeue.ts`: ~160 LOC
-   - `olt/scripts/src/task/queue/locks.ts`: 160 LOC
-   - `olt/scripts/src/task/queue/enqueue.ts`: 140 LOC
-   - `olt/scripts/src/task/queue/index.ts`: ~80 LOC
+   - `olt/scripts/src/task/queue/types.ts`: ~268 LOC
+   - `olt/scripts/src/task/queue/lease.ts`: ~282 LOC
+   - `olt/scripts/src/task/queue/maintenance.ts`: ~231 LOC
+   - `olt/scripts/src/task/queue/transitions.ts`: ~217 LOC
+   - `olt/scripts/src/task/queue/storage.ts`: ~236 LOC
+   - `olt/scripts/src/task/queue/completion.ts`: ~190 LOC
+   - `olt/scripts/src/task/queue/dequeue.ts`: ~179 LOC
+   - `olt/scripts/src/task/queue/locks.ts`: ~166 LOC
+   - `olt/scripts/src/task/queue/enqueue.ts`: ~160 LOC
+   - `olt/scripts/src/task/queue/index.ts`: ~103 LOC
 2. **Directory Density Budget ($\le 10$ files / directory)**:
    - `olt/scripts/src/task/queue/`: Exactly 10 files
    - `olt/scripts/src/mind/feedback/`: 3 files + 2 subdirectories
@@ -92,10 +92,10 @@
   - `olt/scripts/src/task/queue/types.ts`: Integrate `TaskQueueStats` & `TaskQueueFilterOptions`.
   - `olt/scripts/src/task/queue/filters.ts`: Removed (consolidated into `types.ts`).
   - `olt/scripts/src/task/queue/lease-helpers.ts`: Removed (consolidated into `lease.ts`).
-  - `olt/scripts/src/task/queue/lease.ts`: Created (~278 LOC).
-  - `olt/scripts/src/task/queue/dequeue.ts`: Refactored (~160 LOC).
-  - `olt/scripts/src/task/queue/completion.ts`: Created (~175 LOC).
-  - `olt/scripts/src/task/queue/transitions.ts`: Refactored (~210 LOC).
+  - `olt/scripts/src/task/queue/lease.ts`: Created (~282 LOC).
+  - `olt/scripts/src/task/queue/dequeue.ts`: Refactored (~179 LOC).
+  - `olt/scripts/src/task/queue/completion.ts`: Created (~190 LOC).
+  - `olt/scripts/src/task/queue/transitions.ts`: Refactored (~217 LOC).
   - `olt/scripts/src/task/queue/index.ts`: Updated named re-exports.
 
 ### Write Scope 2: Feedback Queue & Pushbacks Subpackages
@@ -145,6 +145,7 @@ bun test tests/unit/mind/feedback-category.test.ts
 # Gate 2: Task Queue Stateful Transitions, Leases & Dequeue Tests
 bun test tests/unit/task/queue/task-queue.test.ts
 bun test tests/unit/task/queue/dequeue.test.ts
+bun test tests/unit/task/queue/task-types.test.ts
 
 # Gate 3: Pushback Ingestion & Markdown Parsing Tests
 bun test tests/unit/mind/pushbacks.test.ts
@@ -175,8 +176,15 @@ bun run typecheck
 
 ---
 
-## Level 8: Sealing, Release, & Turn 1 Zero-Exploration Readiness Briefing
+## Level 8: Execution & Certification Report
 
-- **Zero-Exploration Ready**: Exact symbol signatures, line budgets, and file paths established.
-- **Deterministic Verification**: All 6 gates executable immediately.
-- **Certified By**: `plan_critic_01` (Official Executive Certification: Round 5 Approved).
+### Formal Validator Verdict: CERTIFIED PASS (5/5 Rounds Complete)
+- **Validator**: `validator_05`
+- **Implementers**: `implementer_09`, `implementer_10`
+- **Rounds Approved**:
+  - Round 1 (Contracts & Architecture): PASS
+  - Round 2 (8-Vector Edge Conditions): PASS
+  - Round 3 (Monorepo Density & Invariants): PASS
+  - Round 4 (Verification Gates & Coverage): PASS
+  - Round 5 (Release Certification): PASS
+- **All 6 Verification Gates**: PASSED (144 / 144 unit tests passing, 0 typecheck errors).

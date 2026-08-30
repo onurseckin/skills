@@ -6,13 +6,15 @@ import {
   assertSingleActiveLease,
   dequeueTask,
   admitTask,
-  claimTaskLease,
   popNextEligibleTask,
   popNextEligibleTaskWithCleanup,
+} from "../../../../olt/scripts/src/task/queue/dequeue.ts";
+import {
+  claimTaskLease,
   renewTaskLease,
   releaseTaskLease,
   startTaskValidation,
-} from "../../../../olt/scripts/src/task/queue/dequeue.ts";
+} from "../../../../olt/scripts/src/task/queue/lease.ts";
 import { enqueueTask, enqueueTasksBatch } from "../../../../olt/scripts/src/task/queue/enqueue.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 

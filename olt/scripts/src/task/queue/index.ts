@@ -6,6 +6,8 @@ export type {
   TaskQueueItem,
   NewTaskQueueInput,
   CompletionReceipts,
+  TaskQueueStats,
+  TaskQueueFilterOptions,
   TaskQueuePersistenceStage,
 } from "./types.ts";
 export {
@@ -24,7 +26,6 @@ export {
   validateSourceType,
   deserializeTaskQueueItem,
 } from "./types.ts";
-export type { TaskQueueStats, TaskQueueFilterOptions } from "./filters.ts";
 export {
   activeProcessInodes,
   assertStableDirectory,
@@ -59,18 +60,10 @@ export {
   assertSingleActiveLease,
   admitTaskUnlocked,
   admitTask,
-  claimTaskLeaseUnlocked,
-  claimTaskLease,
   popNextEligibleTaskUnlocked,
   popNextEligibleTask,
   popNextEligibleTaskWithCleanup,
   dequeueTask,
-  renewTaskLeaseUnlocked,
-  renewTaskLease,
-  releaseTaskLeaseUnlocked,
-  releaseTaskLease,
-  startTaskValidationUnlocked,
-  startTaskValidation,
 } from "./dequeue.ts";
 export {
   assertValidActiveLease,
@@ -78,12 +71,24 @@ export {
   assertWriteScopeASTPurity,
   stageWorktreeProgress,
   translateSuspendedLeases,
+  claimTaskLeaseUnlocked,
+  claimTaskLease,
+  renewTaskLeaseUnlocked,
+  renewTaskLease,
+  releaseTaskLeaseUnlocked,
+  releaseTaskLease,
+  startTaskValidationUnlocked,
+  startTaskValidation,
+} from "./lease.ts";
+export {
+  completeTaskUnlocked,
+  completeTask,
+} from "./completion.ts";
+export {
   escalateTaskUnlocked,
   escalateTask,
   failTaskUnlocked,
   failTask,
-  completeTaskUnlocked,
-  completeTask,
 } from "./transitions.ts";
 export {
   getQueueStats,
