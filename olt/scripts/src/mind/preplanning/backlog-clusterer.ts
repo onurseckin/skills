@@ -28,6 +28,7 @@ export function filterEligibleBacklogItems(
       item.status !== undefined && item.status !== null ? String(item.status) : "PENDING";
     const status = rawStatus.toUpperCase();
     const ineligible = [
+      "PLANNED",
       "COMPLETED",
       "PROCESSED",
       "DECLINED",
@@ -42,8 +43,6 @@ export function filterEligibleBacklogItems(
       const pathStr = item.plan_path.trim();
       const resolvedPath = isAbsolute(pathStr) ? pathStr : resolve(root, pathStr);
       if (existsSync(resolvedPath)) return false;
-    } else if (status === "PLANNED") {
-      return false;
     }
     return true;
   });

@@ -161,10 +161,14 @@ export function loadValidatorDomainContract(
     Buffer.from("\n\0checklist\0\n"),
     Buffer.from(checklist.bytes),
   ]);
+  const domainMay = [
+    ...contract.may,
+    `Execute domain-specific verification according to the ${domain} standing checklist`,
+  ];
   return {
     role: contract.role,
     tier: contract.tier,
-    may: contract.may,
+    may: domainMay,
     must_not: contract.must_not,
     commands: contract.commands,
     spawns: contract.spawns,

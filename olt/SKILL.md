@@ -27,7 +27,7 @@ When invoked via `/olt mind` or when autonomous creative product manager / infin
 
 1. Initialize mind if needed (`bun ~/.agents/skills/olt/scripts/harness.ts mind:init --repo . --charter olt/agents/mind.yaml --actor owner`), auto-running `policy:init` auto-discovery.
 2. Register a recurring supervisory watchdog (`schedule` cron) whose arm interval is resolved via `resolveSupervisoryCadence`.
-3. Deploy **BOTH** Tier 0 Mind (`agents/mind.yaml`) and companion Tier 0 Mind Auditor (`agents/mind-auditor.yaml`) in a single 1-shot batch via `invoke_subagent` with verbatim YAML manifests injected into their prompts.
+3. Deploy **BOTH** Tier 0 Mind (`agents/mind.yaml`) and companion Tier 0 Mind Auditor (`agents/mind-auditor.yaml`) in a single 1-shot batch via Antigravity `invoke_subagent` (or host subagent dispatch) with verbatim YAML manifests injected into their prompts.
 4. Stand down and await background milestone messages via `send_message` (zero main-thread tool chatter or code editing).
 
 ## Why the harness exists

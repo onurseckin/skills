@@ -283,10 +283,29 @@ Based on collaborative architectural validation and Product Owner sign-off, the 
 
 - **Host-Agnostic Sovereignty**: Eliminates hard dependencies on proprietary host tools (e.g. Antigravity's `send_message`). The POSIX Mailbox subsystem (`.olt/mailboxes/<agentId>/inbox.jsonl` / `outbox.jsonl` with `flock` and `cursor.json`) serves as the universal IPC substrate across all 4 canonical hosts (`antigravity`, `claude_code`, `codex`, `cursor`).
 - **Mandatory Turn-Start Inbox Drain Invariant (`MANDATORY_INBOX_DRAIN_INVARIANT`)**:
-  - Every agent across all 4 tiers (Tier 0 Mind/Auditors, Tier 1 Orchestrators, Tier 2 Coordinators, Tier 3 Workers) MUST execute `bun harness.ts msg:inbox --actor <agentId>` on Step 1 of Turn 1 and at the start of every subsequent reasoning turn.
+  - Every agent across all 4 tiers (Tier 0 Mind/Auditors, Tier 1 Orchestrators, Tier 2 Coordinators, Tier 3 Workers) MUST execute `olt msg:inbox --actor <agentId>` on Step 1 of Turn 1 and at the start of every subsequent reasoning turn.
   - The harness automatically checks for unread inbox envelopes and injects them directly into turn briefs during pulses and scheduled wake-ups, eliminating unread message accumulation.
 - **Atomic Cursor Advancement**: Reading the inbox advances the atomic read cursor (`cursor.json`) under advisory kernel locks, preventing ghost queues, message loss, or duplicate processing.
 - **Typed Envelopes**: All inter-agent communications flow through strict schema-validated message types (`SYSTEM_ALERT`, `WAKEUP_PROBE`, `DISPATCH_TASK`, `VALIDATION_REQUEST`, `VALIDATION_VERDICT`, `COGNITIVE_PUSHBACK`).
+
+### 🔒 Gap 6 (Locked): Global `olt` Binary Standardization, Shielded Shell Role RBAC & Socratic Denial Prompts
+
+- **Global 3-Letter `olt` CLI Standardization**:
+  - All agent manifests (`olt/agents/*.yaml`), system prompts, documentation, and automated briefings MUST standardize on the global 3-letter executable: **`olt <command>`** (e.g., `olt doctor`, `olt msg:inbox`, `olt task:claim`, `olt shell -- <cmd>`).
+  - Eliminates all hardcoded script path guessing (`bun /Users/.../harness.ts`) across different workspaces, repositories, and hosts.
+- **Explicit Role RBAC & Command Taxonomy in Agent Manifests**:
+  - Every agent YAML manifest explicitly details:
+    1. **Initial Recommended Run Steps**: E.g., `olt doctor` for health verification, `olt msg:inbox` for mailbox drainage, `olt task:claim` for leasing.
+    2. **Allowed CLI Commands**: The exact whitelist of permitted subcommands.
+    3. **Strictly Prohibited Actions**: Out-of-boundary commands (e.g. Validators running test runners; Supervisors running git mutations or code edits).
+- **Shielded Shell Execution (`olt shell`)**:
+  - Subagents execute shell commands exclusively through `olt shell --actor <agentId> -- <cmd>`, which enforces static + dynamic RBAC policies, prevents unshielded shell chaining (`&&`, `||`, `;`), and signs execution telemetry.
+- **Rich Socratic Denial Prompts on Unauthorized Execution**:
+  - When an agent attempts an unauthorized command (e.g., a Cognitive Validator attempting to run `bun test`), the CLI responds not with a cryptic error code, but with a **rich, Socratic natural English instructional prompt**:
+    > _"⛔ [ROLE_BOUNDARY_VIOLATION] You are acting as a Cognitive Validator (Tier 3). Your contractual mandate is 100% Socratic code analysis, optical screenshot inspection, and architectural critique. You are strictly forbidden from executing unit test suites or terminal scripts. Please inspect the source code directly, review visual screenshot artifacts, and emit your structured critique receipt via `olt task:review`."_
+  - Explicitly informs the agent that attempting to bypass `olt shell` using host-native command tools is an invariant contract breach that will be logged as an integrity defect.
+- **Strict Top-Down Spawning Hierarchy**:
+  - Enforces strict parent-child spawning: Tier 0 Mind spawns ONLY Tier 1 Orchestrator; Tier 1 Orchestrator spawns ONLY Tier 2 Coordinators; Tier 2 Coordinator spawns ONLY Tier 3 Implementers & Validators. Cross-tier bypassing is mechanically blocked by `spawn-validator.ts`.
 
 ---
 

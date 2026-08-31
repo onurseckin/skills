@@ -16,7 +16,7 @@ import { readReviewShape, reviewRecordedPayload } from "./review-event.ts";
 import { taskClassificationTexts } from "./role-evidence.ts";
 import { validateReview } from "./validate-review.ts";
 import {
-  archiveValidationForValidator,
+  archiveOpenValidations,
   everyApplicableDomainPassed,
   validationForValidator,
 } from "./validation-state.ts";
@@ -91,7 +91,7 @@ export function recordReview(
         now,
         exhausted ? "repair rounds exhausted" : "validator requested changes",
       );
-      archiveValidationForValidator(task, validatorId);
+      archiveOpenValidations(task);
       return;
     }
     assertProbeSatisfied(task, minProbes);

@@ -29,15 +29,7 @@ export function evaluateDualUiGates(params: DualUiEvaluationParams): DualUiAudit
 
   const mechanicInput: UiMechanicInspectionInput = {
     ...params.mechanicInput,
-    requireAllViewports:
-      params.mechanicInput?.requireAllViewports !== undefined
-        ? params.mechanicInput.requireAllViewports
-        : (params.mechanicInput?.screenshots !== undefined &&
-            params.mechanicInput.screenshots.length > 0) ||
-          (params.mechanicInput?.journeys !== undefined &&
-            params.mechanicInput.journeys.length > 0) ||
-          (params.mechanicInput?.viewports !== undefined &&
-            params.mechanicInput.viewports.length > 0),
+    requireAllViewports: params.mechanicInput?.requireAllViewports === true,
   };
 
   const mechanicReport = validateUiMechanic(mechanicInput);

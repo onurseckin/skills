@@ -26,11 +26,7 @@ export function validateUiMechanic(input: UiMechanicInspectionInput): UiMechanic
     }
   }
 
-  const isFullMatrixRequired =
-    input.requireAllViewports === true ||
-    input.viewports !== undefined ||
-    (input.screenshots !== undefined && input.screenshots.length > 0) ||
-    (input.journeys !== undefined && input.journeys.length > 0);
+  const isFullMatrixRequired = input.requireAllViewports === true;
 
   const missingViewports = isFullMatrixRequired
     ? targetViewports.filter((vp) => !recordedViewports.has(vp))
