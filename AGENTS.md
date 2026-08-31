@@ -493,12 +493,12 @@ To protect repository state and prevent common LLM blunder modes:
     - Test modularity follows the same rules as source code: $\le 300$ physical lines per file, $\le 10$ files per folder, modularized with semantic subdirectories matching domain concepts (e.g., `tests/features/fleet/rebalancing/`), never artificial numbered suites.
     - **Repository Root Scratch Cleanliness:** All agent scratch scripts, one-off python/shell tools, and experimental output directories belong strictly in `.tmp/` (gitignored). Never pollute the root directory.
 29. **UI Design System Compliance & Token Ground Truth (`UI_DESIGN_SYSTEM_GROUND_TRUTH`):**
-    - All UI components, screens, and design tokens must strictly adhere to canonical domain cognitive models (`docs/references/CHAUFFEUR_COGNITIVE_FRAMEWORK.md`) and design system references (`docs/references/luxury-design-system/`, `packages/tokens/`).
+    - All UI components, screens, and design tokens must strictly adhere to canonical domain cognitive models (`docs/references/HOW_TO_THINK.md`) and design system references (`docs/references/luxury-design-system/`, `packages/tokens/`).
     - Hardcoding ad-hoc hex values, skipping specular top hairlines (`border-t-white/15`), violating APCA contrast (`Lc >= 60`), or using interactive touch targets $< 44\times 44\text{pt}$ is strictly prohibited.
 30. **Semantic Plan Naming & Completed Wave Archival Lifecycle (`SEMANTIC_PLAN_ARCHIVAL_LIFECYCLE`):**
     - Active wave planning directories must follow semantic hyphenated names (`docs/planning/wave-<num>-<descriptive-slug>/`).
     - Completed waves must be systematically archived to `docs/planning/completed/wave-<num>-<descriptive-slug>/` upon gate sign-off.
-    - Stale or ephemeral handoff documents (e.g. `docs/planning/handoff/`) must be removed, and permanent design system/architecture specs (e.g. `docs/references/CHAUFFEUR_COGNITIVE_FRAMEWORK.md`) must reside under `docs/references/`.
+    - Stale or ephemeral handoff documents (e.g. `docs/planning/handoff/`) must be removed, and permanent design system/architecture specs (`docs/references/HOW_TO_THINK.md`) must reside under `docs/references/`.
 31. **Multi-Wave Parallel Concurrency via Git Worktrees & 50-Subagent Capacity Floor (`MULTI_WAVE_WORKTREE_CONCURRENCY`):**
     - Multiple disjoint waves can execute concurrently using isolated Git worktrees (`Workspace: "branch"` or `git worktree add .tmp/worktrees/wave-XX`).
     - Clean rebase and branch consolidation: when a wave finishes, rebase cleanly onto latest `main`, run gates, and merge cleanly (zero `--force` or `--no-verify`). Clean up worktree directory and branch upon completion.
@@ -509,6 +509,9 @@ To protect repository state and prevent common LLM blunder modes:
     - Interactive user journey testing: UI Validators must deploy headless/headful browser automation to actually interact with the living app (fill form fields, trigger gestures, scroll viewports, request rides, test fake data flows across all 4 personas).
     - Human-like Socratic cognitive critiques assessing luxury aesthetics, Obsidian depth, typography descenders, touch hitboxes, and real-world chauffeur ergonomics.
     - Mandatory Turn 1 initial reading of `AGENTS.md` by every deployed subagent across all tiers.
+33. **Strict Ban on Wave Numbers in Source Code, Storybook, Fixtures & Tests (`STRICT_BAN_ON_WAVE_NUMBERS_IN_CODE`):**
+    - Wave numbers are ephemeral planning constructs only. They must never appear in application components, Storybook stories (`Wave14Stories.tsx`), fixtures (`wave14-fixtures.ts`), mock data, test files (`wave2-ui-primitives.tsx`), or test folders (`tests/unit/ui/wave14/`).
+    - All code, storybook stories, and test suites must be named strictly by their permanent semantic business domain (e.g., `ShiftHandoverStories.tsx`, `tests/features/fleet/instant-payouts.test.ts`).
 
 ---
 
