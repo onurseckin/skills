@@ -20,28 +20,19 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
 
   let patterns: RegExp[];
 
-  const isValidator =
+  const isCognitiveValidator =
     normalizedRole === "validator" ||
     normalizedRole === "cognitive-validator" ||
     normalizedRole === "cognitive_validator" ||
     normalizedRole.startsWith("validator-") ||
     normalizedRole.startsWith("validator_") ||
-    normalizedRole === "critic" ||
-    normalizedRole === "completeness-critic" ||
-    normalizedRole === "completeness_critic" ||
     normalizedRole === "planner" ||
     normalizedRole === "plan-validator" ||
     normalizedRole === "plan_validator" ||
     normalizedRole === "sub-investigator" ||
     normalizedRole === "sub_investigator" ||
-    normalizedRole === "sub-validator" ||
-    normalizedRole === "sub_validator" ||
     normalizedRole === "ui-validator" ||
-    normalizedRole === "ui_validator" ||
-    normalizedRole === "mechanic-validator" ||
-    normalizedRole === "mechanic_validator" ||
-    normalizedRole === "ui-mechanic-validator" ||
-    normalizedRole === "ui_mechanic_validator";
+    normalizedRole === "ui_validator";
 
   const isSupervisor =
     normalizedRole === "mind" ||
@@ -59,7 +50,7 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
     normalizedRole === "autonomic-watchdog" ||
     normalizedRole === "watchdog";
 
-  if (isValidator || isSupervisor) {
+  if (isCognitiveValidator || isSupervisor) {
     const supervisorPatterns = [...STATIC_SUPERVISOR_FORBIDDEN_PATTERNS];
     if (policy?.forbidden_commands) {
       for (const cmd of policy.forbidden_commands) {

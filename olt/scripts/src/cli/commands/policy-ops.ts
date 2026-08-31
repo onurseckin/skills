@@ -10,6 +10,10 @@ import {
   type RepoEcosystem,
   type RepoPolicy,
 } from "../../policy/index.ts";
+import {
+  auditRepoGovernanceCoverage,
+  discoverAndCalibrateRepoPolicy,
+} from "../../mind/governance/policy-discovery.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 function getNestedValue(obj: unknown, path: string): unknown {
@@ -69,9 +73,19 @@ export async function policyInitCommand(
     textFlag(flags, "repo-root", false) ??
     textFlag(flags, "dir", false);
   const explicitEcosystem = textFlag(flags, "ecosystem", false) as RepoEcosystem | undefined;
+  const calibrate = boolFlag(flags, "calibrate") || boolFlag(flags, "auto-discover");
 
-  const policy = generateDefaultRepoPolicy(repo, explicitEcosystem);
-  const filePath = saveRepoPolicy(policy, repo);
+  let policy: RepoPolicy;
+  let filePath: string;
+
+  if (calibrate && !explicitEcosystem) {
+    const result = discoverAndCalibrateRepoPolicy(repo ?? ".");
+    policy = result.calibratedPolicy;
+    filePath = saveRepoPolicy(policy, repo);
+  } else {
+    policy = generateDefaultRepoPolicy(repo, explicitEcosystem);
+    filePath = saveRepoPolicy(policy, repo);
+  }
 
   return {
     ok: true,
@@ -179,5 +193,25 @@ export async function policyCheckDriftCommand(
     checksum: currentChecksum,
     policy_status: inspection.status,
     markdown: `### Policy Drift Status\n\n- **Status**: \`${status}\`\n- **Checksum**: \`${currentChecksum}\`\n- **Policy Status**: \`${inspection.status}\``,
+  };
+}
+
+export async function policyAuditCommand(
+  flags: Flags,
+  _context?: CommandContext,
+): Promise<Record<string, unknown>> {
+  const repo =
+    textFlag(flags, "repo", false) ??
+    textFlag(flags, "repo-root", false) ??
+    textFlag(flags, "dir", false);
+  const capsuleRun = textFlag(flags, "run", false) ?? textFlag(flags, "run-root", false);
+
+  const report = auditRepoGovernanceCoverage(repo ?? ".", capsuleRun);
+
+  return {
+    ok: true,
+    report,
+    ready: report.readyForMindAuditor,
+    markdown: `### Governance Coverage Audit\n\n- **Repo**: \`${report.repoRoot}\`\n- **Policy Present**: \`${report.policyPresent ? "yes" : "no"}\`\n- **Policy Valid**: \`${report.policyValid ? "yes" : "no"}\`\n- **Ecosystem**: \`${report.ecosystem}\`\n- **Has Test Runner**: \`${report.hasTestRunner ? "yes" : "no"}\`\n- **Has Typecheck**: \`${report.hasTypecheck ? "yes" : "no"}\`\n- **Has Linter**: \`${report.hasLinter ? "yes" : "no"}\`\n- **Allowed Commands**: ${report.allowedCommandCount}\n- **Ready For Mind Auditor**: \`${report.readyForMindAuditor ? "yes" : "no"}\``,
   };
 }

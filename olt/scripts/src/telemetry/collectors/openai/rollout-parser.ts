@@ -2,9 +2,8 @@ import type { TierResult } from "../../base-collector.ts";
 import type { NormalizedQuotaMetric, WindowType } from "../../types.ts";
 
 export function parseCodexRolloutUsage(codexUsage: unknown): TierResult | null {
-  if (!codexUsage || typeof codexUsage !== "object") {
-    return null;
-  }
+  if (!codexUsage) return null;
+  if (typeof codexUsage !== "object") return null;
   const root = codexUsage as Record<string, unknown>;
   const payload = (
     typeof root.payload === "object" && root.payload !== null ? root.payload : root
@@ -57,7 +56,10 @@ export function parseCodexRolloutUsage(codexUsage: unknown): TierResult | null {
         ? primary.windowMinutes
         : undefined;
 
-  const resetsAtRaw = primary?.resets_at ?? primary?.resetsAt ?? primary?.resetTime;
+  let resetsAtRaw: unknown = primary?.resets_at;
+  if (resetsAtRaw === undefined) resetsAtRaw = primary?.resetsAt;
+  if (resetsAtRaw === undefined) resetsAtRaw = primary?.resetTime;
+
   const resetsAtSec =
     typeof resetsAtRaw === "number"
       ? resetsAtRaw
@@ -92,6 +94,8 @@ export function parseCodexRolloutUsage(codexUsage: unknown): TierResult | null {
   const rawMetricName =
     windowMinutes === 10080 ? "Codex (7-Day Limit)" : `OpenAI Codex (${windowType})`;
 
+  const primaryObj = primary !== undefined ? primary : {};
+
   const metrics: NormalizedQuotaMetric[] = [
     {
       rawMetricName,
@@ -101,7 +105,7 @@ export function parseCodexRolloutUsage(codexUsage: unknown): TierResult | null {
       sourceTier: "tier1_cli_command",
       confidence: "verified_exact",
       rawPayload: {
-        ...(primary ?? {}),
+        ...primaryObj,
         used_percent: usedPercent,
         window_minutes: windowMinutes,
         resets_at: resetsAtSec,

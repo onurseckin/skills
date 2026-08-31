@@ -270,3 +270,18 @@ export {
   type CharterProhibitionAuditResult,
   type CharterAuditReport,
 } from "./charter-auditing.ts";
+
+export {
+  evaluateMindMode,
+  discoverGroundedFeatures,
+  runMindProductManagerLoop,
+  evaluateAntiStagnation,
+  recordNonZeroProgress,
+  type MindExecutionMode,
+  type CreativeEvolutionStep,
+  type GroundedFeatureProposal,
+  type AntiStagnationState,
+  type ProductManagerEvaluationResult,
+  type ProductManagerExpansionResult,
+  type MindProductManagerOptions,
+} from "../lifecycle/orchestration/index.ts";

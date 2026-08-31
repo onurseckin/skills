@@ -3,10 +3,11 @@ import { parseDuration } from "../../mind/memory/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { constructSupervisoryPersonaReminder } from "../../authority/supervisory/index.ts";
 import {
-  generateAsciiDagBadges,
   runScriptBackedDiagnostics,
   type ScriptBackedDiagnosticsResult,
-} from "../../engine/scheduler/index.ts";
+} from "../../engine/scheduler/diagnostics/index.ts";
+import { generateAsciiDagBadges } from "../../engine/scheduler/diagnostics/ascii-badges.ts";
+import { buildSchedulerLivePushReport } from "../../engine/scheduler/reporting/index.ts";
 import { computeMindCognitiveTelemetry } from "./mind-pulse-metrics.ts";
 import { CLOSING_FORBIDDEN_FOR_MIND, type MindPulseResult } from "./mind-pulse-state.ts";
 import { formatMindPulseActiveBrief } from "./mind-pulse-formatter.ts";
@@ -88,7 +89,26 @@ export async function handleOpenPulseTelemetry(params: {
       clock: { now: () => new Date(params.nowMs) },
     });
   } catch {}
-  const dagBadges = generateAsciiDagBadges(params.state);
+
+  const schedulerLivePush = buildSchedulerLivePushReport({
+    runRoot: params.run,
+    state: params.state,
+    nowMs: params.nowMs,
+    actor: pulseActor,
+    host: pulseHost,
+    driver: pulseDriver,
+    pulseId: openPulseId,
+    budget: {
+      pulsesToday,
+      pulsesPerDay: params.pulsesPerDay,
+      wallClockMsToday: wallClockToday,
+      wallClockMsPerDay: params.wallClockPerDay,
+    },
+    zeroValueStreak,
+    personaReminder,
+  });
+
+  const dagBadges = schedulerLivePush.asciiBadges.dagBadges;
 
   const markdown = formatMindPulseActiveBrief({
     pulseId: openPulseId,
@@ -108,6 +128,13 @@ export async function handleOpenPulseTelemetry(params: {
     waveLanes: cognitiveTelemetry.waveLanes,
     cliReceiptSummaryBadge: diagResult?.receiptSummaryBadge,
     dagBadges,
+    telemetryBanner: schedulerLivePush.asciiBadges.telemetryBanner,
+    diffSummary: schedulerLivePush.diff.summary,
+    isStagnating: schedulerLivePush.isStagnating,
+    stagnationStreak: schedulerLivePush.stagnation.streak,
+    stagnationReason: schedulerLivePush.stagnation.reason,
+    stagnationRemediation: schedulerLivePush.stagnation.remediation,
+    readyTasksCount: schedulerLivePush.snapshot.readyTasks,
     activeRuns: cognitiveTelemetry.activeAgents?.length ?? 0,
     pendingBacklog:
       (Array.isArray(params.state.planning_buffer) ? params.state.planning_buffer.length : 0) +
@@ -144,6 +171,10 @@ export async function handleOpenPulseTelemetry(params: {
     cli_receipt_summary_badge: diagResult?.receiptSummaryBadge,
     dag_badges: dagBadges,
     diagnostics: diagResult,
+    scheduler_live_push: schedulerLivePush,
+    is_stagnating: schedulerLivePush.isStagnating,
+    stagnation_warning: schedulerLivePush.stagnation,
+    progress_diff: schedulerLivePush.diff,
     budget: {
       pulses_today: pulsesToday,
       pulses_per_day: params.pulsesPerDay,

@@ -18,10 +18,12 @@ import {
   WatchdogRecord,
 } from "../../../authority/watchdog/index.ts";
 import { TransactionPort, systemClock } from "../../../workflow/types";
+import { generateCognitiveDirective } from "../prompt/directive-generator.ts";
 
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
 export function executePulseTick(
   port: TransactionPort,
   options: PulseTickOptions = {},
@@ -97,6 +99,18 @@ export function executePulseTick(
     const dagBadges = generateAsciiDagBadges(statePostRecovery);
     const diag = options.diagnosticsResult;
 
+    // 8. Cognitive Probing Directive Generator (replaces monotone ticks)
+    const cognitiveDirective = generateCognitiveDirective({
+      tickNumber,
+      cycleIndex: tickNumber,
+      state: statePostRecovery,
+      zeroValueStreak: options.zeroValueStreak,
+      stagnant: options.stagnant ?? !auditReport.healthy,
+      readyTasks: waveResult.readyTasks.map((t) => t.taskId),
+      activeTasks: waveResult.activeOccupiedTasks,
+      preferredDimension: options.preferredDimension,
+    });
+
     return {
       tickNumber,
       timestamp,
@@ -113,10 +127,18 @@ export function executePulseTick(
       cliReceipts: diag?.receipts,
       cliReceiptSummaryBadge: diag?.receiptSummaryBadge,
       dagBadges: diag?.dagBadges && diag.dagBadges.length > 0 ? diag.dagBadges : dagBadges,
+      cognitiveDirective,
+      cognitivePrompt: cognitiveDirective.formattedMarkdown,
     };
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     const fallbackAudit = auditGraphHealth(port.read(), { now });
+    const fallbackDirective = generateCognitiveDirective({
+      tickNumber,
+      cycleIndex: tickNumber,
+      recentErrors: [errorMsg],
+      preferredDimension: options.preferredDimension ?? "socratic_forensics",
+    });
 
     return {
       tickNumber,
@@ -126,10 +148,13 @@ export function executePulseTick(
       readyTasks: [],
       activeOccupiedTasks: [],
       workflowCompleted: false,
+      cognitiveDirective: fallbackDirective,
+      cognitivePrompt: fallbackDirective.formattedMarkdown,
       error: errorMsg,
     };
   }
 }
+
 export async function executePulseTickWithDiagnostics(
   port: TransactionPort,
   options: PulseTickOptions = {},
@@ -149,6 +174,7 @@ export async function executePulseTickWithDiagnostics(
     diagnosticsResult: diagResult,
   });
 }
+
 export async function runPulseLoop(
   port: TransactionPort,
   options: PulseLoopOptions = {},

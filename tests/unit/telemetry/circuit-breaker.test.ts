@@ -3,6 +3,9 @@ import {
   QuotaCircuitBreaker,
   extractResetTime,
   formatCircuitBreakerMarkdown,
+  normalizeCanonicalHost,
+  isPlatformMatchingHost,
+  detectActiveHost,
   CRITICAL_WRAP_UP_MESSAGE,
   AUTO_WAKE_PROMPT,
   DEFAULT_QUOTA_THRESHOLD,
@@ -68,6 +71,26 @@ function createMockReport(
   };
 }
 
+function createMultiPlatformReport(results: PlatformProbeResult[]): UnifiedTelemetryReport {
+  const detected = results.filter((r) => r.isDetected).length;
+  const allPercentages = results
+    .flatMap((r) => r.metrics)
+    .map((m) => m.remainingPercentage)
+    .filter((p): p is number => typeof p === "number" && Number.isFinite(p));
+  const lowest = allPercentages.length > 0 ? Math.min(...allPercentages) : null;
+
+  return {
+    timestamp: new Date().toISOString(),
+    results,
+    summary: {
+      totalCollectors: results.length,
+      detectedPlatforms: detected,
+      lowestRemainingQuota: lowest,
+      activeWarnings: lowest !== null && lowest < 20 ? [`Low quota: ${lowest}%`] : [],
+    },
+  };
+}
+
 describe("QuotaCircuitBreaker Engine", () => {
   const fixedNow = new Date("2026-08-24T12:00:00.000Z").getTime();
 
@@ -111,15 +134,11 @@ describe("QuotaCircuitBreaker Engine", () => {
     expect(result.constrainedModels[0]!.remainingPercentage).toBe(4.2);
     expect(result.constrainedModels[0]!.resetTime).toBe(resetTimeIso);
 
-    // Verify Wrap-Up Directives
     expect(result.wrapUpDirectives.length).toBe(1);
     expect(result.wrapUpDirectives[0]!.message).toBe(CRITICAL_WRAP_UP_MESSAGE);
     expect(result.wrapUpDirectives[0]!.action).toBe("idle");
     expect(result.wrapUpDirectives[0]!.forbidKill).toBe(true);
 
-    // Verify Auto-Wake Scheduler calculation
-    // resetDate = 14:18:42, targetWakeup = 14:18:42 + 60s = 14:19:42
-    // diff from fixedNow (12:00:00) = 2h 19m 42s = (2 * 3600) + (19 * 60) + 42 = 8382 seconds
     const expectedWakeupIso = "2026-08-24T14:19:42.000Z";
     const expectedDurationSec = 8382;
 
@@ -132,6 +151,34 @@ describe("QuotaCircuitBreaker Engine", () => {
     expect(result.autoWakeSchedule!.activeAgentsCount).toBe(3);
   });
 
+  it("triggers freeze at exactly 10.0% boundary condition (<= 10.0%)", () => {
+    const breaker = new QuotaCircuitBreaker();
+    const resetTimeIso = "2026-08-24T13:30:00.000Z";
+    const boundaryReport = createMockReport([
+      createMockMetric("boundary-model", 10.0, resetTimeIso),
+    ]);
+
+    const result = breaker.evaluate(boundaryReport, { now: fixedNow });
+
+    expect(result.status).toBe("QUOTA_EXHAUSTED_CIRCUIT_BROKEN");
+    expect(result.isTriggered).toBe(true);
+    expect(result.lowestRemainingQuota).toBe(10.0);
+    expect(result.constrainedModels.length).toBe(1);
+  });
+
+  it("remains OK at 10.01% remaining quota (> 10.0%)", () => {
+    const breaker = new QuotaCircuitBreaker();
+    const aboveReport = createMockReport([
+      createMockMetric("safe-model", 10.01, "2026-08-24T13:30:00.000Z"),
+    ]);
+
+    const result = breaker.evaluate(aboveReport, { now: fixedNow });
+
+    expect(result.status).toBe("OK");
+    expect(result.isTriggered).toBe(false);
+    expect(result.lowestRemainingQuota).toBe(10.01);
+  });
+
   it("triggers at exactly 0% remaining quota", () => {
     const breaker = new QuotaCircuitBreaker();
     const resetTimeIso = "2026-08-24T13:00:00.000Z";
@@ -142,7 +189,6 @@ describe("QuotaCircuitBreaker Engine", () => {
     expect(result.status).toBe("QUOTA_EXHAUSTED_CIRCUIT_BROKEN");
     expect(result.isTriggered).toBe(true);
     expect(result.lowestRemainingQuota).toBe(0.0);
-    // targetWakeup = 13:01:00Z -> diff from 12:00:00Z = 1h 1m = 3660s
     expect(result.autoWakeSchedule!.durationSeconds).toBe(3660);
     expect(result.autoWakeSchedule!.targetWakeupIso).toBe("2026-08-24T13:01:00.000Z");
   });
@@ -153,17 +199,13 @@ describe("QuotaCircuitBreaker Engine", () => {
       createMockMetric("model-late", 2.0, "2026-08-24T16:00:00.000Z"),
       createMockMetric("model-earliest", 1.5, "2026-08-24T13:30:00.000Z"),
       createMockMetric("model-mid", 3.0, "2026-08-24T14:45:00.000Z"),
-      createMockMetric("model-healthy", 90.0, "2026-08-24T12:30:00.000Z"), // healthy model with earlier reset should NOT be picked
+      createMockMetric("model-healthy", 90.0, "2026-08-24T12:30:00.000Z"),
     ]);
 
     const result = breaker.evaluate(report, { now: fixedNow });
 
     expect(result.status).toBe("QUOTA_EXHAUSTED_CIRCUIT_BROKEN");
     expect(result.constrainedModels.length).toBe(3);
-
-    // Earliest constrained reset time is 13:30:00Z
-    // targetWakeup = 13:30:00Z + 60s = 13:31:00Z
-    // diff from 12:00:00Z = 1h 31m = (1 * 3600) + (31 * 60) = 5460 seconds
     expect(result.autoWakeSchedule!.targetWakeupIso).toBe("2026-08-24T13:31:00.000Z");
     expect(result.autoWakeSchedule!.durationSeconds).toBe(5460);
   });
@@ -176,8 +218,6 @@ describe("QuotaCircuitBreaker Engine", () => {
 
     expect(result.status).toBe("QUOTA_EXHAUSTED_CIRCUIT_BROKEN");
     expect(result.constrainedModels[0]!.resetTime).toBeUndefined();
-
-    // Default safe window: 18000s (5h) + 60s buffer = 18060s
     expect(result.autoWakeSchedule!.durationSeconds).toBe(18060);
     const expectedWakeupDate = new Date(fixedNow + 18060 * 1000).toISOString();
     expect(result.autoWakeSchedule!.targetWakeupIso).toBe(expectedWakeupDate);
@@ -261,7 +301,7 @@ describe("QuotaCircuitBreaker Engine", () => {
       createMockMetric("gemini-2.5-pro", 3.5, "2026-08-24T14:18:42.000Z"),
     ]);
 
-    const triggeredEval = breaker.evaluate(triggeredReport, { now: fixedNow });
+    const triggeredEval = breaker.evaluate(triggeredReport, { now: fixedNow, activeHost: "antigravity" });
     const triggeredMd = formatCircuitBreakerMarkdown(triggeredEval, true);
 
     expect(triggeredMd).toContain("CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<10%)");
@@ -270,6 +310,7 @@ describe("QuotaCircuitBreaker Engine", () => {
     expect(triggeredMd).toContain("AGENT WRAP-UP DIRECTIVES");
     expect(triggeredMd).toContain("Do NOT kill active subagents");
     expect(triggeredMd).toContain("One-Shot Scheduler Registration Payload");
+    expect(triggeredMd).toContain("antigravity");
 
     const nominalReport = createMockReport([
       createMockMetric("gemini-2.5-pro", 95.0, "2026-08-24T14:18:42.000Z"),
@@ -331,6 +372,193 @@ describe("QuotaCircuitBreaker Engine", () => {
     expect(result.wrapUpDirectives.length).toBe(1);
     expect(result.autoWakeSchedule).not.toBeNull();
     expect(result.summary).toContain("unavailable or unmeasured");
+  });
+});
+
+describe("Active Host Isolation & Inactive Provider Cache Resilience", () => {
+  const fixedNow = new Date("2026-08-24T12:00:00.000Z").getTime();
+
+  it("evaluates healthy active host (antigravity) and ignores inactive provider caches (claude 0%, codex offline)", () => {
+    const report = createMultiPlatformReport([
+      {
+        platformId: "antigravity",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [createMockMetric("gemini-2.5-pro", 85.0, "2026-08-24T15:00:00.000Z", "antigravity")],
+        rawObservations: {},
+        errors: [],
+      },
+      {
+        platformId: "claude",
+        isDetected: true,
+        primaryTierUsed: "tier2_local_storage",
+        metrics: [createMockMetric("claude-3-7-sonnet", 0.0, "2026-08-24T13:00:00.000Z", "claude")],
+        rawObservations: {},
+        errors: [],
+      },
+      {
+        platformId: "codex",
+        isDetected: false,
+        primaryTierUsed: null,
+        metrics: [],
+        rawObservations: {},
+        errors: [],
+        reason: "Offline",
+      },
+    ]);
+
+    const breaker = new QuotaCircuitBreaker();
+    const result = breaker.evaluate(report, { activeHost: "antigravity", now: fixedNow });
+
+    expect(result.status).toBe("OK");
+    expect(result.isTriggered).toBe(false);
+    expect(result.lowestRemainingQuota).toBe(85.0);
+    expect(result.constrainedModels.length).toBe(0);
+    expect(result.activeHost).toBe("antigravity");
+  });
+
+  it("evaluates constrained active host (claude_code) while ignoring healthy inactive antigravity", () => {
+    const report = createMultiPlatformReport([
+      {
+        platformId: "antigravity",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [createMockMetric("gemini-2.5-pro", 95.0, "2026-08-24T15:00:00.000Z", "antigravity")],
+        rawObservations: {},
+        errors: [],
+      },
+      {
+        platformId: "claude",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [createMockMetric("claude-3-7-sonnet", 4.5, "2026-08-24T13:30:00.000Z", "claude")],
+        rawObservations: {},
+        errors: [],
+      },
+    ]);
+
+    const breaker = new QuotaCircuitBreaker();
+    const result = breaker.evaluate(report, { activeHost: "claude_code", now: fixedNow });
+
+    expect(result.status).toBe("QUOTA_EXHAUSTED_CIRCUIT_BROKEN");
+    expect(result.isTriggered).toBe(true);
+    expect(result.lowestRemainingQuota).toBe(4.5);
+    expect(result.constrainedModels.length).toBe(1);
+    expect(result.constrainedModels[0]!.modelName).toBe("claude-3-7-sonnet");
+    expect(result.activeHost).toBe("claude_code");
+  });
+
+  it("fails closed when active host (cursor) is undetected despite other hosts being healthy", () => {
+    const report = createMultiPlatformReport([
+      {
+        platformId: "antigravity",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [createMockMetric("gemini-2.5-pro", 90.0, undefined, "antigravity")],
+        rawObservations: {},
+        errors: [],
+      },
+      {
+        platformId: "cursor",
+        isDetected: false,
+        primaryTierUsed: null,
+        metrics: [],
+        rawObservations: {},
+        errors: [],
+        reason: "Cursor session unavailable",
+      },
+    ]);
+
+    const breaker = new QuotaCircuitBreaker();
+    const result = breaker.evaluate(report, { activeHost: "cursor", now: fixedNow });
+
+    expect(result.status).toBe("QUOTA_UNKNOWN_CIRCUIT_BROKEN");
+    expect(result.isTriggered).toBe(true);
+    expect(result.lowestRemainingQuota).toBeNull();
+  });
+
+  it("evaluates healthy active host (codex) matching openai platform probe result", () => {
+    const report = createMultiPlatformReport([
+      {
+        platformId: "openai",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [createMockMetric("o3-mini", 70.0, "2026-08-24T16:00:00.000Z", "openai")],
+        rawObservations: {},
+        errors: [],
+      },
+      {
+        platformId: "claude",
+        isDetected: true,
+        primaryTierUsed: "tier2_local_storage",
+        metrics: [createMockMetric("claude-3-7-sonnet", 0.0, undefined, "claude")],
+        rawObservations: {},
+        errors: [],
+      },
+    ]);
+
+    const breaker = new QuotaCircuitBreaker();
+    const result = breaker.evaluate(report, { activeHost: "codex", now: fixedNow });
+
+    expect(result.status).toBe("OK");
+    expect(result.isTriggered).toBe(false);
+    expect(result.lowestRemainingQuota).toBe(70.0);
+  });
+
+  it("auto-detects active host from environment variables", () => {
+    const report = createMultiPlatformReport([
+      {
+        platformId: "antigravity",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [createMockMetric("gemini-2.5-pro", 80.0, undefined, "antigravity")],
+        rawObservations: {},
+        errors: [],
+      },
+      {
+        platformId: "claude",
+        isDetected: true,
+        primaryTierUsed: "tier2_local_storage",
+        metrics: [createMockMetric("claude-3-7-sonnet", 0.0, undefined, "claude")],
+        rawObservations: {},
+        errors: [],
+      },
+    ]);
+
+    const breaker = new QuotaCircuitBreaker();
+    const result = breaker.evaluate(report, {
+      env: { ANTIGRAVITY_CLI: "1" },
+      now: fixedNow,
+    });
+
+    expect(result.status).toBe("OK");
+    expect(result.isTriggered).toBe(false);
+    expect(result.lowestRemainingQuota).toBe(80.0);
+    expect(result.activeHost).toBe("antigravity");
+  });
+
+  it("normalizes canonical hosts and matches platform IDs accurately", () => {
+    expect(normalizeCanonicalHost("antigravity")).toBe("antigravity");
+    expect(normalizeCanonicalHost("Gemini_CLI")).toBe("antigravity");
+    expect(normalizeCanonicalHost("claude-code")).toBe("claude_code");
+    expect(normalizeCanonicalHost("Claude Code")).toBe("claude_code");
+    expect(normalizeCanonicalHost("codex")).toBe("codex");
+    expect(normalizeCanonicalHost("OpenAI")).toBe("codex");
+    expect(normalizeCanonicalHost("cursor")).toBe("cursor");
+
+    expect(isPlatformMatchingHost("antigravity", "antigravity")).toBe(true);
+    expect(isPlatformMatchingHost("claude", "claude_code")).toBe(true);
+    expect(isPlatformMatchingHost("claude_code", "claude")).toBe(true);
+    expect(isPlatformMatchingHost("openai", "codex")).toBe(true);
+    expect(isPlatformMatchingHost("cursor", "cursor")).toBe(true);
+    expect(isPlatformMatchingHost("claude", "antigravity")).toBe(false);
+    expect(isPlatformMatchingHost("antigravity", "cursor")).toBe(false);
+
+    expect(detectActiveHost({ ANTIGRAVITY_CLI: "1" })).toBe("antigravity");
+    expect(detectActiveHost({ CLAUDE_CODE_VERSION: "2.1.0" })).toBe("claude_code");
+    expect(detectActiveHost({ CURSOR_VERSION: "0.45.0" })).toBe("cursor");
+    expect(detectActiveHost({ CODEX_CLI: "1" })).toBe("codex");
+    expect(detectActiveHost({})).toBeUndefined();
   });
 });
 

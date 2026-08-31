@@ -44,8 +44,9 @@ export class AntigravityCollector extends BaseTieredCollector {
           ? (userStatus.cascadeModelConfigData as Record<string, unknown>)
           : undefined;
 
-      const rawModels =
-        cascadeData?.clientModelConfigs ?? userStatus.models ?? userStatus.clientModelConfigs;
+      let rawModels: unknown = cascadeData?.clientModelConfigs;
+      if (rawModels === undefined) rawModels = userStatus.models;
+      if (rawModels === undefined) rawModels = userStatus.clientModelConfigs;
 
       const models = Array.isArray(rawModels) ? (rawModels as Array<Record<string, unknown>>) : [];
 
@@ -138,19 +139,40 @@ export class AntigravityCollector extends BaseTieredCollector {
                 ? userStatus.plan
                 : undefined;
 
+        const activeModel = this.env.activeModel;
         const rawObservations: Record<string, unknown> = {
           userStatus: statusPayload,
           userTier: userStatus.userTier,
           availableCredits: userTier?.availableCredits,
           plan,
+          name: activeModel !== undefined ? activeModel : (typeof plan === "string" ? plan : undefined),
           email: userStatus.email,
           activePort: port,
           queriedAt: new Date().toISOString(),
         };
 
+        const enrichedMetrics = activeModel
+          ? metrics.map((m) => {
+              let matches = false;
+              if (m.rawMetricName.toLowerCase().includes(activeModel.toLowerCase())) {
+                matches = true;
+              } else if (
+                typeof (m.rawPayload as { modelId?: string }).modelId === "string" &&
+                (m.rawPayload as { modelId: string }).modelId
+                  .toLowerCase()
+                  .includes(activeModel.toLowerCase())
+              ) {
+                matches = true;
+              }
+              return matches
+                ? { ...m, rawPayload: { ...m.rawPayload, name: activeModel } }
+                : m;
+            })
+          : metrics;
+
         return {
           sourceTier: "tier1_cli_command",
-          metrics,
+          metrics: enrichedMetrics,
           rawObservations,
         };
       }
@@ -234,6 +256,7 @@ export class AntigravityCollector extends BaseTieredCollector {
       join(home, ".config", "antigravity", "quota.json"),
     ];
 
+    const isExternalCache = !this.env.isHostActive("antigravity");
     for (const filePath of candidates) {
       const content = await this.env.readFile(filePath);
       if (content) {
@@ -264,10 +287,14 @@ export class AntigravityCollector extends BaseTieredCollector {
                   ),
                   sourceTier: "tier2_local_storage",
                   confidence: "cached",
-                  rawPayload: parsed,
+                  rawPayload: isExternalCache ? { ...parsed, isExternalCache: true } : parsed,
                 },
               ],
-              rawObservations: { storagePath: filePath, content: parsed },
+              rawObservations: {
+                storagePath: filePath,
+                content: parsed,
+                ...(isExternalCache ? { isExternalCache: true, isolatedFromActiveHost: true } : {}),
+              },
             };
           }
         } catch {}

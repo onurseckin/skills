@@ -30,6 +30,7 @@ import {
   formatPlanStatusBrief,
   formatTaskRegisteredBrief,
 } from "../formatters/index.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
 import {
   actorFlag,
   boolFlag,
@@ -82,8 +83,9 @@ export async function planInitCommand(
     runtimeSource === undefined ? {} : { runtimeSource },
   );
   const manifest = loadRun(runRoot).manifest;
+  const quotaTelemetry = await probeLiveQuotaTelemetry();
 
-  const markdown = formatCapsuleInitBrief({
+  let markdown = formatCapsuleInitBrief({
     runId: manifest.run_id,
     runRoot,
     promptSha256: manifest.prompt_sha256,
@@ -95,7 +97,11 @@ export async function planInitCommand(
       : { runtimePin: { sha256: manifest.runtime_sha256, files: manifest.runtime_files } }),
   });
 
-  return { markdown, run_root: runRoot, manifest, ignore_assurance };
+  if (quotaTelemetry.quotaBadge) {
+    markdown += `\n- **Quota Telemetry**: ${quotaTelemetry.quotaBadge} (${quotaTelemetry.activeHost})`;
+  }
+
+  return { markdown, run_root: runRoot, manifest, ignore_assurance, quota_telemetry: quotaTelemetry };
 }
 
 export function planEnhanceCommand(flags: Flags): Record<string, unknown> {

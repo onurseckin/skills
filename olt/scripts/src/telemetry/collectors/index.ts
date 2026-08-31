@@ -11,6 +11,25 @@ export {
   type CollectorEnvironment,
   type ProcessExecResult,
 } from "./common.ts";
+export {
+  CANONICAL_HOSTS,
+  canonicalHostToPlatformId,
+  detectActiveHost,
+  detectHostFromEnvironment,
+  detectHostFromExplicit,
+  detectHostFromModel,
+  detectHostFromProcessTree,
+  detectHostFromTerminal,
+  isCanonicalHost,
+  isPlatformMatchingHost,
+  normalizeHostName,
+  platformIdToCanonicalHost,
+  type CanonicalHost,
+  type HostDetectionMechanism,
+  type HostDetectionOptions,
+  type HostDetectionResult,
+  type HostDetectionSignal,
+} from "./host-detection.ts";
 export { AntigravityCollector } from "./antigravity.ts";
 export { ClaudeCollector } from "./claude.ts";
 export { CursorCollector } from "./cursor.ts";

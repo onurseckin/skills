@@ -10,17 +10,25 @@ import {
   type DoctorAutoHealResult,
   type DoctorDiagnosticFinding,
 } from "../../reporting/doctor.ts";
+import {
+  probeLiveQuotaTelemetry,
+  type LifecycleQuotaTelemetry,
+} from "./quota-lifecycle.ts";
 
 export interface PreFlightDoctorAuditOptions {
   readonly actor?: string | undefined;
   readonly repoRoot?: string | undefined;
   readonly graceSeconds?: number | undefined;
+  readonly checkQuota?: boolean | undefined;
+  readonly quotaThreshold?: number | undefined;
+  readonly strict?: boolean | undefined;
 }
 
 export interface PreFlightDoctorAuditResult {
   readonly healthy: boolean;
   readonly autoHealed: readonly string[];
   readonly autoHealResult: DoctorAutoHealResult;
+  readonly quotaTelemetry?: LifecycleQuotaTelemetry | undefined;
 }
 
 export interface PostFlightDoctorAuditOptions {
@@ -29,6 +37,8 @@ export interface PostFlightDoctorAuditOptions {
   readonly autoStageGit?: boolean | undefined;
   readonly enforceHygiene?: boolean | undefined;
   readonly enforceQuotas?: boolean | undefined;
+  readonly checkLiveQuota?: boolean | undefined;
+  readonly quotaThreshold?: number | undefined;
   readonly strict?: boolean | undefined;
 }
 
@@ -38,6 +48,7 @@ export interface PostFlightDoctorAuditResult {
   readonly findings: readonly DoctorDiagnosticFinding[];
   readonly errors: readonly string[];
   readonly warnings: readonly string[];
+  readonly quotaTelemetry?: LifecycleQuotaTelemetry | undefined;
 }
 
 /**
@@ -48,17 +59,32 @@ export async function executePreFlightDoctorAudit(
   runRoot: string,
   options: PreFlightDoctorAuditOptions = {},
 ): Promise<PreFlightDoctorAuditResult> {
-  const repoRoot = options.repoRoot ?? resolve(runRoot, "..", "..");
+  const repoRoot =
+    options.repoRoot !== undefined ? options.repoRoot : resolve(runRoot, "..", "..");
   const autoHealResult = autoHealCapsule(runRoot, {
     actor: options.actor,
     repoRoot,
     graceSeconds: options.graceSeconds,
   });
 
+  let quotaTelemetry: LifecycleQuotaTelemetry | undefined;
+  if (options.checkQuota) {
+    quotaTelemetry = await probeLiveQuotaTelemetry({
+      thresholdPercentage: options.quotaThreshold,
+    });
+    if (options.strict && quotaTelemetry.isTriggered) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `Pre-flight quota check failed: quota circuit breaker is triggered (${quotaTelemetry.lowestQuotaPercentage !== null ? `${quotaTelemetry.lowestQuotaPercentage.toFixed(1)}%` : "unknown"} <= ${quotaTelemetry.evaluation.thresholdPercentage}%).`,
+      );
+    }
+  }
+
   return {
     healthy: true,
     autoHealed: autoHealResult.autoHealed,
     autoHealResult,
+    ...(quotaTelemetry !== undefined ? { quotaTelemetry } : {}),
   };
 }
 
@@ -70,11 +96,12 @@ export async function executePostFlightDoctorAudit(
   runRoot: string,
   options: PostFlightDoctorAuditOptions = {},
 ): Promise<PostFlightDoctorAuditResult> {
-  const repoRoot = options.repoRoot ?? resolve(runRoot, "..", "..");
-  const autoStageGit = options.autoStageGit ?? true;
-  const enforceHygiene = options.enforceHygiene ?? true;
-  const enforceQuotas = options.enforceQuotas ?? true;
-  const strict = options.strict ?? false;
+  const repoRoot =
+    options.repoRoot !== undefined ? options.repoRoot : resolve(runRoot, "..", "..");
+  const autoStageGit = options.autoStageGit !== undefined ? options.autoStageGit : true;
+  const enforceHygiene = options.enforceHygiene !== undefined ? options.enforceHygiene : true;
+  const enforceQuotas = options.enforceQuotas !== undefined ? options.enforceQuotas : true;
+  const strict = options.strict !== undefined ? options.strict : false;
 
   const findings: DoctorDiagnosticFinding[] = [];
   const stagedFiles: string[] = [];
@@ -103,11 +130,29 @@ export async function executePostFlightDoctorAudit(
   if (enforceQuotas) {
     const doctorReport = await runDoctor(runRoot, { autoHeal: false });
     const quotaFindings =
-      (doctorReport.doctor_findings as DoctorDiagnosticFinding[] | undefined) ?? [];
+      Array.isArray(doctorReport.doctor_findings)
+        ? (doctorReport.doctor_findings as DoctorDiagnosticFinding[])
+        : [];
     for (const f of quotaFindings) {
       if (f.engine === "checkPushbackQuotas" && f.severity === "ERROR") {
         findings.push(f);
       }
+    }
+  }
+
+  // 4. Live Host Quota Audit
+  let quotaTelemetry: LifecycleQuotaTelemetry | undefined;
+  if (options.checkLiveQuota) {
+    quotaTelemetry = await probeLiveQuotaTelemetry({
+      thresholdPercentage: options.quotaThreshold,
+    });
+    if (quotaTelemetry.isTriggered) {
+      findings.push({
+        code: "QUOTA_CIRCUIT_BREAKER_TRIGGERED",
+        severity: "WARN",
+        engine: "probeLiveQuotaTelemetry",
+        message: `Live quota circuit breaker is triggered (${quotaTelemetry.lowestQuotaPercentage !== null ? `${quotaTelemetry.lowestQuotaPercentage.toFixed(1)}%` : "unknown"} <= ${quotaTelemetry.evaluation.thresholdPercentage}%)`,
+      });
     }
   }
 
@@ -128,5 +173,6 @@ export async function executePostFlightDoctorAudit(
     findings,
     errors,
     warnings,
+    ...(quotaTelemetry !== undefined ? { quotaTelemetry } : {}),
   };
 }

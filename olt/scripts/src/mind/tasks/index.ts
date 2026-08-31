@@ -237,3 +237,18 @@ export { SimpleQueue, QueueDrainage, type DrainableQueue } from "./drainage/inde
 export { MindAutonomousDiscoveryEngine } from "./discovery/index.ts";
 
 export { MindConcurrentLookaheadPipeline } from "./lookahead/index.ts";
+
+export {
+  evaluateMindMode,
+  discoverGroundedFeatures,
+  runMindProductManagerLoop,
+  evaluateAntiStagnation,
+  recordNonZeroProgress,
+  type MindExecutionMode,
+  type CreativeEvolutionStep,
+  type GroundedFeatureProposal,
+  type AntiStagnationState,
+  type ProductManagerEvaluationResult,
+  type ProductManagerExpansionResult,
+  type MindProductManagerOptions,
+} from "../lifecycle/orchestration/index.ts";

@@ -1,6 +1,9 @@
 export type {
   AntiIdleIntervalOptions,
   AntiIdleIntervalResult,
+  PulseValueMetrics,
+  TrailingValuePoint,
+  TrailingValueSeries,
 } from "../../../core/scheduling/index.ts";
 
 export {
@@ -9,15 +12,6 @@ export {
   parseDuration,
   parseIntervalDuration,
   projectIntervalProgression,
-} from "../../../core/scheduling/index.ts";
-
-export interface PulseValueMetrics {
-  readonly [key: string]: unknown;
-}
-
-export {
   generateTrailingValueSeries,
   extractTrailingValueSeriesFromState,
-  type TrailingValuePoint,
-  type TrailingValueSeries,
-} from "./state.ts";
+} from "../../../core/scheduling/index.ts";

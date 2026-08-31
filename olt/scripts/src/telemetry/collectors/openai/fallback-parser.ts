@@ -9,32 +9,55 @@ export async function parseCliFallback(
   tokenMetricName: string,
 ): Promise<TierResult | null> {
   const quotaResult = await env.exec(command, ["quota", "--json"]);
-  if (quotaResult && quotaResult.stdout.trim()) {
-    try {
-      const parsed = JSON.parse(quotaResult.stdout) as Record<string, unknown>;
-      const remaining =
-        typeof parsed.remaining_percentage === "number"
-          ? parsed.remaining_percentage
-          : typeof parsed.remainingPercentage === "number"
-            ? parsed.remainingPercentage
-            : null;
-      const metrics: NormalizedQuotaMetric[] = [
-        {
-          rawMetricName: tokenMetricName,
-          canonicalProvider: "openai",
-          windowType: "monthly",
-          remainingPercentage: remaining === null ? null : Math.max(0, Math.min(100, remaining)),
+  if (quotaResult) {
+    if (quotaResult.stdout.trim()) {
+      try {
+        const parsed = JSON.parse(quotaResult.stdout) as Record<string, unknown>;
+        let remaining: number | null = null;
+        if (typeof parsed.remaining_percentage === "number") {
+          remaining = parsed.remaining_percentage;
+        } else if (typeof parsed.remainingPercentage === "number") {
+          remaining = parsed.remainingPercentage;
+        }
+        const metrics: NormalizedQuotaMetric[] = [
+          {
+            rawMetricName: tokenMetricName,
+            canonicalProvider: "openai",
+            windowType: "monthly",
+            remainingPercentage: remaining === null ? null : Math.max(0, Math.min(100, remaining)),
+            sourceTier: "tier1_cli_command",
+            confidence: remaining === null ? "unknown" : "verified_exact",
+            rawPayload: parsed,
+          },
+        ];
+        return {
           sourceTier: "tier1_cli_command",
-          confidence: remaining === null ? "unknown" : "verified_exact",
-          rawPayload: parsed,
-        },
-      ];
-      return {
-        sourceTier: "tier1_cli_command",
-        metrics,
-        rawObservations: { cliOutput: parsed, command: `${command} quota --json` },
-      };
-    } catch {
+          metrics,
+          rawObservations: { cliOutput: parsed, command: `${command} quota --json` },
+        };
+      } catch {
+        return {
+          sourceTier: "tier1_cli_command",
+          metrics: [
+            {
+              rawMetricName: "cli_presence",
+              canonicalProvider: "openai",
+              windowType: "session",
+              remainingPercentage: null,
+              sourceTier: "tier1_cli_command",
+              confidence: "unknown",
+              rawPayload: { rawOutput: quotaResult.stdout.trim() },
+            },
+          ],
+          rawObservations: { rawOutput: quotaResult.stdout.trim() },
+        };
+      }
+    }
+  }
+
+  const verResult = await env.exec(command, ["--version"]);
+  if (verResult) {
+    if (verResult.stdout.trim()) {
       return {
         sourceTier: "tier1_cli_command",
         metrics: [
@@ -45,31 +68,12 @@ export async function parseCliFallback(
             remainingPercentage: null,
             sourceTier: "tier1_cli_command",
             confidence: "unknown",
-            rawPayload: { rawOutput: quotaResult.stdout.trim() },
+            rawPayload: { version: verResult.stdout.trim() },
           },
         ],
-        rawObservations: { rawOutput: quotaResult.stdout.trim() },
+        rawObservations: { version: verResult.stdout.trim() },
       };
     }
-  }
-
-  const verResult = await env.exec(command, ["--version"]);
-  if (verResult && verResult.stdout.trim()) {
-    return {
-      sourceTier: "tier1_cli_command",
-      metrics: [
-        {
-          rawMetricName: "cli_presence",
-          canonicalProvider: "openai",
-          windowType: "session",
-          remainingPercentage: null,
-          sourceTier: "tier1_cli_command",
-          confidence: "unknown",
-          rawPayload: { version: verResult.stdout.trim() },
-        },
-      ],
-      rawObservations: { version: verResult.stdout.trim() },
-    };
   }
 
   return null;
@@ -79,6 +83,7 @@ export async function parseOpenAIStorage(
   env: DefaultCollectorEnvironment,
 ): Promise<TierResult | null> {
   const home = env.homedir;
+  const isExternalCache = !env.isHostActive("openai");
   const candidates = [
     join(home, ".openai", "usage.json"),
     join(home, ".openai", "credentials"),
@@ -90,13 +95,14 @@ export async function parseOpenAIStorage(
     if (content) {
       try {
         const parsed = JSON.parse(content) as Record<string, unknown>;
-        const remaining =
-          typeof parsed.remainingPercentage === "number"
-            ? parsed.remainingPercentage
-            : typeof parsed.quotaRemaining === "number"
-              ? parsed.quotaRemaining
-              : undefined;
+        let remaining: number | undefined = undefined;
+        if (typeof parsed.remainingPercentage === "number") {
+          remaining = parsed.remainingPercentage;
+        } else if (typeof parsed.quotaRemaining === "number") {
+          remaining = parsed.quotaRemaining;
+        }
         if (remaining !== undefined) {
+          const reason = isExternalCache ? "[Isolated External Cache] Inactive host cache" : undefined;
           return {
             sourceTier: "tier2_local_storage",
             metrics: [
@@ -107,10 +113,14 @@ export async function parseOpenAIStorage(
                 remainingPercentage: Math.max(0, Math.min(100, remaining)),
                 sourceTier: "tier2_local_storage",
                 confidence: "cached",
-                rawPayload: parsed,
+                rawPayload: isExternalCache ? { ...parsed, isExternalCache: true } : parsed,
               },
             ],
-            rawObservations: { storagePath: filePath, content: parsed },
+            rawObservations: {
+              storagePath: filePath,
+              content: parsed,
+            },
+            reason,
           };
         }
       } catch {}
@@ -123,6 +133,7 @@ export async function parseCodexStorage(
   env: DefaultCollectorEnvironment,
 ): Promise<TierResult | null> {
   const home = env.homedir;
+  const isExternalCache = !env.isHostActive("codex");
   const candidates = [
     join(home, ".codex", "auth.json"),
     join(home, ".codex", "config.toml"),
@@ -137,14 +148,15 @@ export async function parseCodexStorage(
     if (content) {
       try {
         const parsed = JSON.parse(content) as Record<string, unknown>;
-        const remaining =
-          typeof parsed.remainingPercentage === "number"
-            ? parsed.remainingPercentage
-            : typeof parsed.quotaRemaining === "number"
-              ? parsed.quotaRemaining
-              : undefined;
+        let remaining: number | undefined = undefined;
+        if (typeof parsed.remainingPercentage === "number") {
+          remaining = parsed.remainingPercentage;
+        } else if (typeof parsed.quotaRemaining === "number") {
+          remaining = parsed.quotaRemaining;
+        }
 
         if (remaining !== undefined) {
+          const reason = isExternalCache ? "[Isolated External Cache] Inactive host cache" : undefined;
           return {
             sourceTier: "tier2_local_storage",
             metrics: [
@@ -155,21 +167,27 @@ export async function parseCodexStorage(
                 remainingPercentage: Math.max(0, Math.min(100, remaining)),
                 sourceTier: "tier2_local_storage",
                 confidence: "cached",
-                rawPayload: parsed,
+                rawPayload: isExternalCache ? { ...parsed, isExternalCache: true } : parsed,
               },
             ],
-            rawObservations: { storagePath: filePath, content: parsed },
+            rawObservations: {
+              storagePath: filePath,
+              content: parsed,
+            },
+            reason,
           };
         }
 
-        if (
-          parsed.tokens ||
-          parsed.session_token ||
-          parsed.auth_token ||
-          parsed.account ||
-          parsed.user_id ||
-          parsed.plan_type
-        ) {
+        let hasAuthToken = false;
+        if (parsed.tokens) hasAuthToken = true;
+        if (parsed.session_token) hasAuthToken = true;
+        if (parsed.auth_token) hasAuthToken = true;
+        if (parsed.account) hasAuthToken = true;
+        if (parsed.user_id) hasAuthToken = true;
+        if (parsed.plan_type) hasAuthToken = true;
+
+        if (hasAuthToken) {
+          const reason = isExternalCache ? "[Isolated External Cache] Inactive host cache" : undefined;
           return {
             sourceTier: "tier2_local_storage",
             metrics: [
@@ -184,16 +202,19 @@ export async function parseCodexStorage(
               },
             ],
             rawObservations: { storagePath: filePath, content: parsed },
+            reason,
           };
         }
       } catch {
-        if (
-          filePath.endsWith(".toml") &&
-          (content.includes("[auth]") ||
-            content.includes("api_key") ||
-            content.includes("session") ||
-            content.includes("model"))
-        ) {
+        let isConfigToml = false;
+        if (filePath.endsWith(".toml")) {
+          if (content.includes("[auth]")) isConfigToml = true;
+          if (content.includes("api_key")) isConfigToml = true;
+          if (content.includes("session")) isConfigToml = true;
+          if (content.includes("model")) isConfigToml = true;
+        }
+        if (isConfigToml) {
+          const reason = isExternalCache ? "[Isolated External Cache] Inactive host cache" : undefined;
           return {
             sourceTier: "tier2_local_storage",
             metrics: [
@@ -208,6 +229,7 @@ export async function parseCodexStorage(
               },
             ],
             rawObservations: { storagePath: filePath, rawConfig: content },
+            reason,
           };
         }
       }
@@ -218,12 +240,12 @@ export async function parseCodexStorage(
 
 export function parseRuntimeEnv(
   env: Record<string, string | undefined>,
-  variableNames: readonly string[],
+  targetVars: readonly string[],
 ): TierResult | null {
   const detected: string[] = [];
-  for (const variableName of variableNames) {
-    if (env[variableName]) {
-      detected.push(variableName);
+  for (const v of targetVars) {
+    if (env[v]) {
+      detected.push(v);
     }
   }
 

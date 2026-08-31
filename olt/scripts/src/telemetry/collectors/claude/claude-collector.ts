@@ -49,10 +49,11 @@ export class ClaudeCollector extends BaseTieredCollector {
       join(home, ".config", "claude", "session.json"),
     ];
 
+    const isExternalCache = !this.env.isHostActive("claude");
     for (const filePath of candidates) {
       const content = await this.env.readFile(filePath);
       if (content) {
-        const parsed = parseClaudeStoragePayload(content, filePath);
+        const parsed = parseClaudeStoragePayload(content, filePath, { isExternalCache });
         if (parsed) {
           return parsed;
         }

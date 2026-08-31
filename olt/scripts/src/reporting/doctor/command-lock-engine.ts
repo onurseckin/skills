@@ -13,17 +13,10 @@ const BANNED_VALIDATOR_ROLES = new Set([
   "validator",
   "cognitive-validator",
   "cognitive_validator",
-  "critic",
-  "completeness-critic",
-  "completeness_critic",
   "socratic-validator",
   "socratic_validator",
   "ui-validator",
-  "mechanic-validator",
-  "ui-mechanic-validator",
-  "sub-validator",
   "plan-validator",
-  "mind-auditor",
 ]);
 
 const IMPLEMENTER_ROLES = new Set([
@@ -40,12 +33,12 @@ const normalizeRole = (role: string): string => role.trim().toLowerCase().replac
 
 const isValidatorRole = (role: string): boolean => {
   const norm = normalizeRole(role);
+  if (norm.includes("mechanic") || norm.includes("critic")) return false;
   return (
     BANNED_VALIDATOR_ROLES.has(norm) ||
     BANNED_VALIDATOR_ROLES.has(role.trim().toLowerCase()) ||
     norm.startsWith("validator") ||
-    norm.includes("validator") ||
-    norm.includes("critic")
+    norm.includes("validator")
   );
 };
 

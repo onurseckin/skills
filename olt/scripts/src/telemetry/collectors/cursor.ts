@@ -96,6 +96,7 @@ export class CursorCollector extends BaseTieredCollector {
       join(home, ".cursor", "state.json"),
     ];
 
+    const isExternalCache = !this.env.isHostActive("cursor");
     for (const filePath of candidates) {
       const content = await this.env.readFile(filePath);
       if (content) {
@@ -118,10 +119,14 @@ export class CursorCollector extends BaseTieredCollector {
                   remaining === null ? null : Math.max(0, Math.min(100, remaining)),
                 sourceTier: "tier2_local_storage",
                 confidence: remaining === null ? "unknown" : "inferred_metric",
-                rawPayload: parsed,
+                rawPayload: isExternalCache ? { ...parsed, isExternalCache: true } : parsed,
               },
             ],
-            rawObservations: { storagePath: filePath, content: parsed },
+            rawObservations: {
+              storagePath: filePath,
+              content: parsed,
+            },
+            reason: isExternalCache ? "[Isolated External Cache] Inactive host cache" : undefined,
           };
         } catch {
           return {

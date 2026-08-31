@@ -131,9 +131,6 @@ export function verifyCommandAuthorization(
     normalizedRole === "cognitive-validator" ||
     normalizedRole === "cognitive_validator" ||
     normalizedRole.startsWith("validator-") ||
-    normalizedRole === "critic" ||
-    normalizedRole === "completeness-critic" ||
-    normalizedRole === "completeness_critic" ||
     normalizedRole === "plan-validator" ||
     normalizedRole === "plan_validator" ||
     normalizedRole === "sub-investigator" ||

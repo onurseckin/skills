@@ -12,15 +12,25 @@ export interface ProcessExecResult {
   exitCode: number;
 }
 
+import {
+  detectActiveHost,
+  isPlatformMatchingHost,
+  type CanonicalHost,
+} from "./host-detection.ts";
+
 export interface CollectorEnvironment {
-  exec?: (command: string, args: string[]) => Promise<ProcessExecResult | null>;
-  readFile?: (filePath: string) => Promise<string | null>;
-  exists?: (filePath: string) => Promise<boolean>;
-  env?: Record<string, string | undefined>;
-  homedir?: string;
-  fetchUserStatus?: (port: string) => Promise<Record<string, unknown> | null>;
-  fetchClaudeUsage?: () => Promise<Record<string, unknown> | null>;
-  fetchCodexUsage?: () => Promise<Record<string, unknown> | null>;
+  exec?: ((command: string, args: string[]) => Promise<ProcessExecResult | null>) | undefined;
+  readFile?: ((filePath: string) => Promise<string | null>) | undefined;
+  exists?: ((filePath: string) => Promise<boolean>) | undefined;
+  env?: Record<string, string | undefined> | undefined;
+  homedir?: string | undefined;
+  fetchUserStatus?: ((port: string) => Promise<Record<string, unknown> | null>) | undefined;
+  fetchClaudeUsage?: (() => Promise<Record<string, unknown> | null>) | undefined;
+  fetchCodexUsage?: (() => Promise<Record<string, unknown> | null>) | undefined;
+  activeHost?: CanonicalHost | string | undefined;
+  activeModel?: string | undefined;
+  processTree?: readonly string[] | string | undefined;
+  isolateExternalCaches?: boolean | undefined;
 }
 
 export class DefaultCollectorEnvironment implements Required<CollectorEnvironment> {
@@ -31,11 +41,41 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
   }
 
   public get homedir(): string {
-    return this.overrides.homedir ?? homedir();
+    return this.overrides.homedir !== undefined ? this.overrides.homedir : homedir();
   }
 
   public get env(): Record<string, string | undefined> {
-    return this.overrides.env ?? process.env;
+    return this.overrides.env !== undefined ? this.overrides.env : process.env;
+  }
+
+  public get activeHost(): CanonicalHost | string | undefined {
+    return this.overrides.activeHost;
+  }
+
+  public get activeModel(): string | undefined {
+    return this.overrides.activeModel;
+  }
+
+  public get processTree(): readonly string[] | string | undefined {
+    return this.overrides.processTree;
+  }
+
+  public get isolateExternalCaches(): boolean {
+    return this.overrides.isolateExternalCaches !== undefined
+      ? this.overrides.isolateExternalCaches
+      : true;
+  }
+
+  public isHostActive(platformId: string): boolean {
+    if (this.overrides.activeHost) {
+      return isPlatformMatchingHost(platformId, this.overrides.activeHost);
+    }
+    const detected = detectActiveHost({
+      env: this.env,
+      processTree: this.processTree,
+      model: this.activeModel,
+    });
+    return isPlatformMatchingHost(platformId, detected.activeHost);
   }
 
   public async exec(command: string, args: string[]): Promise<ProcessExecResult | null> {
@@ -91,9 +131,8 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       return null;
     }
 
-    if (port === "0" || port === "mock") {
-      return null;
-    }
+    if (port === "0") return null;
+    if (port === "mock") return null;
 
     try {
       const requestOptions = {
@@ -105,26 +144,14 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       };
       const res = await fetch(
         `https://127.0.0.1:${port}/exa.language_server_pb.LanguageServerService/GetUserStatus`,
-
         requestOptions as unknown as RequestInit,
       );
       if (res.ok) {
-        const data = (await res.json()) as Record<string, unknown>;
-        if (data) return data;
+        return (await res.json()) as Record<string, unknown>;
       }
     } catch {}
 
     return null;
-  }
-
-  public async fetchAntigravityFixture(): Promise<Record<string, unknown> | null> {
-    try {
-      const fixturePath = new URL("../fixtures/antigravity-sample.json", import.meta.url).pathname;
-      const raw = await readFile(fixturePath, "utf8");
-      return JSON.parse(raw) as Record<string, unknown>;
-    } catch {
-      return null;
-    }
   }
 
   public get hasFetchClaudeUsageOverride(): boolean {
@@ -142,15 +169,22 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
 
     try {
       const claudeJsonPath = join(this.homedir, ".claude.json");
-      const raw = await readFile(claudeJsonPath, "utf8");
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      if (parsed && (parsed.cachedUsageUtilization || parsed.oauthAccount || parsed.utilization)) {
+      const content = await readFile(claudeJsonPath, "utf8");
+      const parsed = JSON.parse(content) as Record<string, unknown>;
+      let hasUsage = false;
+      if (parsed.cachedUsageUtilization) hasUsage = true;
+      if (parsed.oauthAccount) hasUsage = true;
+      if (parsed.utilization) hasUsage = true;
+      if (hasUsage) {
         return parsed;
       }
     } catch {}
 
     try {
-      const token = this.env.CLAUDE_CODE_OAUTH_TOKEN ?? this.env.ANTHROPIC_OAUTH_TOKEN;
+      let token: string | undefined = this.env.CLAUDE_CODE_OAUTH_TOKEN;
+      if (token === undefined) {
+        token = this.env.ANTHROPIC_OAUTH_TOKEN;
+      }
       if (token) {
         const requestOptions = {
           method: "GET",
@@ -203,10 +237,13 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
       const entries = await readdir(sessionsDir, { recursive: true, withFileTypes: true });
       const rolloutFiles = entries
         .filter((e) => e.isFile() && e.name.startsWith("rollout-") && e.name.endsWith(".jsonl"))
-        .map((e) => ({
-          name: e.name,
-          fullPath: join(e.parentPath ?? (e as { path?: string }).path ?? sessionsDir, e.name),
-        }))
+        .map((e) => {
+          const dir = e.parentPath ?? (e as { path?: string }).path ?? sessionsDir;
+          return {
+            name: e.name,
+            fullPath: join(dir, e.name),
+          };
+        })
         .sort((a, b) => b.name.localeCompare(a.name));
 
       for (const file of rolloutFiles.slice(0, 20)) {
@@ -217,13 +254,12 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
             try {
               const parsed = JSON.parse(lines[i]!) as Record<string, unknown>;
               const payload = parsed?.payload as Record<string, unknown> | undefined;
-              if (
-                parsed &&
-                (payload?.type === "token_count" ||
-                  parsed.type === "token_count" ||
-                  payload?.rate_limits ||
-                  parsed.rate_limits)
-              ) {
+              let isTokenCount = false;
+              if (payload?.type === "token_count") isTokenCount = true;
+              if (parsed.type === "token_count") isTokenCount = true;
+              if (payload?.rate_limits) isTokenCount = true;
+              if (parsed.rate_limits) isTokenCount = true;
+              if (isTokenCount) {
                 return parsed;
               }
             } catch {}
@@ -233,15 +269,5 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
     } catch {}
 
     return null;
-  }
-
-  public async fetchCodexFixture(): Promise<Record<string, unknown> | null> {
-    try {
-      const fixturePath = new URL("../fixtures/openai-sample.json", import.meta.url).pathname;
-      const raw = await readFile(fixturePath, "utf8");
-      return JSON.parse(raw) as Record<string, unknown>;
-    } catch {
-      return null;
-    }
   }
 }

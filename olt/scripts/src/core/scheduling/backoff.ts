@@ -58,25 +58,47 @@ export function calculateBackoffWithStrategy(options: BackoffStrategyOptions): n
   }
 }
 
-export function projectIntervalProgression(options: {
+export interface ProjectProgressionOptions {
   readonly baseIntervalMs: number;
   readonly maxIntervalMs: number;
   readonly steps: number;
   readonly multiplier?: number | undefined;
   readonly strategy?: BackoffStrategy | undefined;
-}): readonly number[] {
-  const { baseIntervalMs, maxIntervalMs, steps, multiplier, strategy } = options;
-  const safeSteps = Math.max(0, steps);
+}
+
+export function projectIntervalProgression(
+  optionsOrBase: number | ProjectProgressionOptions,
+  maxIntervalMs?: number,
+  steps?: number,
+  strategy?: BackoffStrategy,
+  multiplier?: number,
+): readonly number[] {
+  if (typeof optionsOrBase === "number") {
+    const base = optionsOrBase;
+    const max = maxIntervalMs ?? DEFAULT_MAX_INTERVAL_MS;
+    const s = steps ?? 0;
+    return projectIntervalProgression({
+      baseIntervalMs: base,
+      maxIntervalMs: max,
+      steps: s,
+      strategy,
+      multiplier,
+    });
+  }
+
+  const { baseIntervalMs, maxIntervalMs: max, steps: s, multiplier: mult, strategy: strat } =
+    optionsOrBase;
+  const safeSteps = Math.max(0, s);
   const progression: number[] = [];
 
   for (let streak = 0; streak < safeSteps; streak++) {
     progression.push(
       calculateBackoffWithStrategy({
         baseIntervalMs,
-        maxIntervalMs,
+        maxIntervalMs: max,
         streak,
-        strategy,
-        multiplier,
+        strategy: strat,
+        multiplier: mult,
       }),
     );
   }

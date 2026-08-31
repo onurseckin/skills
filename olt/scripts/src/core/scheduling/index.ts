@@ -40,3 +40,12 @@ export {
 export { formatIntervalDuration, parseDuration, parseIntervalDuration } from "./duration.ts";
 export { computeAntiIdleInterval } from "./anti-idle.ts";
 export { AdaptiveTimerController } from "./adaptive-timer.ts";
+export {
+  generateTrailingValueSeries,
+  extractTrailingValueSeriesFromState,
+  extractTrailingValueSeriesFromEvents,
+  formatRawValueSeries,
+  type PulseValueMetrics,
+  type TrailingValuePoint,
+  type TrailingValueSeries,
+} from "./trailing-series.ts";

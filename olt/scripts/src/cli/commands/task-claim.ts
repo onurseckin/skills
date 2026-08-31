@@ -34,6 +34,8 @@ import {
   formatTaskHeartbeatBrief,
   formatTaskSubmitBrief,
 } from "../formatters/index.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
+import { detectHostApp } from "../../authority/thread/context.ts";
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
 import {
   boolFlag,
@@ -274,6 +276,14 @@ export async function taskClaimCommand(
   }
 
   const conflicts = probeAtTaskBoundary(run, agent, "task:claim");
+  const quotaTelemetry = await probeLiveQuotaTelemetry({ host: detectHostApp(process.env) });
+
+  if (quotaTelemetry.quotaBadge) {
+    markdown += `\n- **Live Quota**: ${quotaTelemetry.quotaBadge} (${quotaTelemetry.activeHost})`;
+  }
+  if (quotaTelemetry.isTriggered) {
+    markdown += `\n\n⚠️ **Quota Circuit Breaker Active**: Remaining quota (${quotaTelemetry.lowestQuotaPercentage !== null ? `${quotaTelemetry.lowestQuotaPercentage.toFixed(1)}%` : "unknown"}) <= ${quotaTelemetry.evaluation.thresholdPercentage}%. Wrap up current micro-step immediately.`;
+  }
 
   return withHostTelemetryConflicts(
     {
@@ -284,6 +294,7 @@ export async function taskClaimCommand(
       packet_id: published.record.id,
       packet_path: published.markdownPath,
       role_contract_sha256: published.packet.metadata.role_contract_sha256,
+      quota_telemetry: quotaTelemetry,
       ...(worktree
         ? {
             worktree_path: worktree.worktreePath,
@@ -410,13 +421,19 @@ export async function taskSubmitCommand(
     "utf-8",
   );
 
-  const markdown = formatTaskSubmitBrief({
+  const quotaTelemetry = await probeLiveQuotaTelemetry({ host: detectHostApp(process.env) });
+
+  let markdown = formatTaskSubmitBrief({
     taskId,
     agent,
     filesTouchedCount: (recordedReport.files_changed as string[]).length,
     writeScope: task.write_scope,
     reportPath,
   });
+
+  if (quotaTelemetry.quotaBadge) {
+    markdown += `\n- **Live Quota**: ${quotaTelemetry.quotaBadge} (${quotaTelemetry.activeHost})`;
+  }
 
   const handoffPath = refreshHandoff(run);
   const conflicts = probeAtTaskBoundary(run, agent, "task:submit");
@@ -428,6 +445,7 @@ export async function taskSubmitCommand(
       orphaned: result.orphaned,
       task,
       report_path: reportPath,
+      quota_telemetry: quotaTelemetry,
       ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
       ...(worktreeCommit.warning === undefined
         ? {}

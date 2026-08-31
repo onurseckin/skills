@@ -78,6 +78,10 @@ import {
   type PreCompletionBlocker,
 } from "./pre-completion.ts";
 import {
+  checkQuotaHealth,
+  type QuotaHealthCheckOptions,
+} from "./quota-health-engine.ts";
+import {
   generateRemedialGuidance,
   remedialActionsForIntegrityIssues,
   type DoctorRemedialAction,
@@ -96,6 +100,7 @@ export {
   checkCommandLockIntegrity,
   checkRoleBoundaryInterlock,
   checkPushbackQuotas,
+  checkQuotaHealth,
   checkRepositoryHygiene,
   purgeOrphanedScratch,
   checkGitIndexIntegrity,
@@ -133,6 +138,7 @@ export type {
   CognitiveValidatorCommandLockOptions,
   RoleBoundaryInterlockOptions,
   PushbackQuotasCheckOptions,
+  QuotaHealthCheckOptions,
   RepositoryHygieneOptions,
   GitIndexCheckOptions,
   AutoHealGitStateOptions,

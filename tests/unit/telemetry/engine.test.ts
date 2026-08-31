@@ -204,3 +204,339 @@ describe("renderProgressBar and formatTierBadge helpers", () => {
     expect(formatTierBadge(null)).toBe("None");
   });
 });
+
+describe("TelemetryNormalizationEngine Active Host Quota Isolation", () => {
+  it("isolates active host quota in Antigravity environment from stale external Claude cache", async () => {
+    const antigravityCollector: TelemetryCollector = {
+      platformId: "antigravity",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "antigravity",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [
+          {
+            rawMetricName: "overall_5_hour_quota",
+            canonicalProvider: "google",
+            windowType: "5_hour",
+            remainingPercentage: 85,
+            sourceTier: "tier1_cli_command",
+            confidence: "verified_exact",
+            rawPayload: {},
+          },
+        ],
+        rawObservations: {},
+        errors: [],
+      }),
+    };
+
+    const staleClaudeCollector: TelemetryCollector = {
+      platformId: "claude",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "claude",
+        isDetected: true,
+        primaryTierUsed: "tier2_local_storage",
+        metrics: [
+          {
+            rawMetricName: "stale_claude_cache",
+            canonicalProvider: "anthropic",
+            windowType: "session",
+            remainingPercentage: 0,
+            sourceTier: "tier2_local_storage",
+            confidence: "cached",
+            rawPayload: { isExternalCache: true },
+          },
+        ],
+        rawObservations: { isExternalCache: true, isolatedFromActiveHost: true },
+        errors: [],
+      }),
+    };
+
+    const engine = new TelemetryNormalizationEngine([antigravityCollector, staleClaudeCollector]);
+    const report = await engine.probeAll({
+      env: { ANTIGRAVITY_APP_DIR: "/app" },
+    });
+
+    expect(report.summary.activeHost).toBe("antigravity");
+    expect(report.summary.activePlatformId).toBe("antigravity");
+    expect(report.summary.activeHostQuotaRemaining).toBe(85);
+    // Crucial isolation check: lowestRemainingQuota MUST be 85% (active host), NOT 0% (stale external cache)
+    expect(report.summary.lowestRemainingQuota).toBe(85);
+    expect(report.summary.externalProviderCachesIsolated).toBe(true);
+    expect(report.summary.activeWarnings).toHaveLength(0);
+    expect((report.summary.isolatedWarnings as string[]).length).toBeGreaterThan(0);
+
+    const ascii = engine.formatAsciiReport(report);
+    expect(ascii).toContain("- **Active Host**: `antigravity`");
+    expect(ascii).toContain("- **Active Host Quota**: 85%");
+    expect(ascii).toContain("- **Lowest Remaining Quota**: 85% (active host isolated)");
+  });
+
+  it("isolates active host quota in Claude Code environment from stale Codex cache", async () => {
+    const claudeCollector: TelemetryCollector = {
+      platformId: "claude",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "claude",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [
+          {
+            rawMetricName: "Claude Code (5-Hour Window)",
+            canonicalProvider: "anthropic",
+            windowType: "5_hour",
+            remainingPercentage: 92,
+            sourceTier: "tier1_cli_command",
+            confidence: "verified_exact",
+            rawPayload: {},
+          },
+        ],
+        rawObservations: {},
+        errors: [],
+      }),
+    };
+
+    const staleCodexCollector: TelemetryCollector = {
+      platformId: "codex",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "codex",
+        isDetected: true,
+        primaryTierUsed: "tier2_local_storage",
+        metrics: [
+          {
+            rawMetricName: "stale_codex_usage",
+            canonicalProvider: "openai",
+            windowType: "monthly",
+            remainingPercentage: 5,
+            sourceTier: "tier2_local_storage",
+            confidence: "cached",
+            rawPayload: { isExternalCache: true },
+          },
+        ],
+        rawObservations: { isExternalCache: true },
+        errors: [],
+      }),
+    };
+
+    const engine = new TelemetryNormalizationEngine([claudeCollector, staleCodexCollector]);
+    const report = await engine.probeAll({
+      env: { CLAUDE_PROJECT_DIR: "/my-project" },
+    });
+
+    expect(report.summary.activeHost).toBe("claude_code");
+    expect(report.summary.activeHostQuotaRemaining).toBe(92);
+    expect(report.summary.lowestRemainingQuota).toBe(92);
+    expect(report.summary.externalProviderCachesIsolated).toBe(true);
+  });
+
+  it("isolates active host quota in Codex environment from low Antigravity storage", async () => {
+    const codexCollector: TelemetryCollector = {
+      platformId: "codex",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "codex",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [
+          {
+            rawMetricName: "codex_tokens_remaining",
+            canonicalProvider: "openai",
+            windowType: "weekly",
+            remainingPercentage: 78,
+            sourceTier: "tier1_cli_command",
+            confidence: "verified_exact",
+            rawPayload: {},
+          },
+        ],
+        rawObservations: {},
+        errors: [],
+      }),
+    };
+
+    const staleAntigravityCollector: TelemetryCollector = {
+      platformId: "antigravity",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "antigravity",
+        isDetected: true,
+        primaryTierUsed: "tier2_local_storage",
+        metrics: [
+          {
+            rawMetricName: "local_state_quota",
+            canonicalProvider: "google",
+            windowType: "daily",
+            remainingPercentage: 8,
+            sourceTier: "tier2_local_storage",
+            confidence: "cached",
+            rawPayload: {},
+          },
+        ],
+        rawObservations: {},
+        errors: [],
+      }),
+    };
+
+    const engine = new TelemetryNormalizationEngine([codexCollector, staleAntigravityCollector]);
+    const report = await engine.probeAll({
+      env: { CODEX_RUNTIME: "true" },
+    });
+
+    expect(report.summary.activeHost).toBe("codex");
+    expect(report.summary.activeHostQuotaRemaining).toBe(78);
+    expect(report.summary.lowestRemainingQuota).toBe(78);
+  });
+
+  it("isolates active host quota in Cursor environment", async () => {
+    const cursorCollector: TelemetryCollector = {
+      platformId: "cursor",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "cursor",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [
+          {
+            rawMetricName: "cursor_fast_requests",
+            canonicalProvider: "cursor",
+            windowType: "monthly",
+            remainingPercentage: 65,
+            sourceTier: "tier1_cli_command",
+            confidence: "verified_exact",
+            rawPayload: {},
+          },
+        ],
+        rawObservations: {},
+        errors: [],
+      }),
+    };
+
+    const staleClaudeCollector: TelemetryCollector = {
+      platformId: "claude",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "claude",
+        isDetected: true,
+        primaryTierUsed: "tier2_local_storage",
+        metrics: [
+          {
+            rawMetricName: "claude_cache",
+            canonicalProvider: "anthropic",
+            windowType: "session",
+            remainingPercentage: 2,
+            sourceTier: "tier2_local_storage",
+            confidence: "cached",
+            rawPayload: {},
+          },
+        ],
+        rawObservations: {},
+        errors: [],
+      }),
+    };
+
+    const engine = new TelemetryNormalizationEngine([cursorCollector, staleClaudeCollector]);
+    const report = await engine.probeAll({
+      env: { CURSOR_PROJECT_DIR: "/cursor-workspace" },
+    });
+
+    expect(report.summary.activeHost).toBe("cursor");
+    expect(report.summary.activeHostQuotaRemaining).toBe(65);
+    expect(report.summary.lowestRemainingQuota).toBe(65);
+  });
+
+  it("disables isolation when isolateActiveHost is false", async () => {
+    const antigravityCollector: TelemetryCollector = {
+      platformId: "antigravity",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "antigravity",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [
+          {
+            rawMetricName: "overall_5_hour_quota",
+            canonicalProvider: "google",
+            windowType: "5_hour",
+            remainingPercentage: 85,
+            sourceTier: "tier1_cli_command",
+            confidence: "verified_exact",
+            rawPayload: {},
+          },
+        ],
+        rawObservations: {},
+        errors: [],
+      }),
+    };
+
+    const staleClaudeCollector: TelemetryCollector = {
+      platformId: "claude",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "claude",
+        isDetected: true,
+        primaryTierUsed: "tier2_local_storage",
+        metrics: [
+          {
+            rawMetricName: "stale_claude_cache",
+            canonicalProvider: "anthropic",
+            windowType: "session",
+            remainingPercentage: 0,
+            sourceTier: "tier2_local_storage",
+            confidence: "cached",
+            rawPayload: {},
+          },
+        ],
+        rawObservations: {},
+        errors: [],
+      }),
+    };
+
+    const engine = new TelemetryNormalizationEngine([antigravityCollector, staleClaudeCollector]);
+    const report = await engine.probeAll({
+      env: { ANTIGRAVITY_APP_DIR: "/app" },
+      isolateActiveHost: false,
+    });
+
+    // When isolation is explicitly false, lowest quota falls back to global lowest (0%)
+    expect(report.summary.lowestRemainingQuota).toBe(0);
+    expect(report.summary.externalProviderCachesIsolated).toBe(false);
+  });
+
+  it("triggers low quota warning on active host when active quota is below 20%", async () => {
+    const activeLowCollector: TelemetryCollector = {
+      platformId: "antigravity",
+      probe: async (): Promise<PlatformProbeResult> => ({
+        platformId: "antigravity",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [
+          {
+            rawMetricName: "gemini_requests",
+            canonicalProvider: "google",
+            windowType: "5_hour",
+            remainingPercentage: 12.5,
+            sourceTier: "tier1_cli_command",
+            confidence: "verified_exact",
+            rawPayload: {},
+          },
+        ],
+        rawObservations: {},
+        errors: [],
+      }),
+    };
+
+    const engine = new TelemetryNormalizationEngine([activeLowCollector]);
+    const report = await engine.probeAll({
+      env: { ANTIGRAVITY_APP_DIR: "/app" },
+    });
+
+    expect(report.summary.lowestRemainingQuota).toBe(12.5);
+    expect(report.summary.activeWarnings).toHaveLength(1);
+    expect((report.summary.activeWarnings as string[])[0]).toContain("Low quota warning");
+    expect((report.summary.activeWarnings as string[])[0]).toContain("12.5%");
+  });
+
+  it("exposes detectHost method for standalone discovery", () => {
+    const engine = new TelemetryNormalizationEngine();
+    const result = engine.detectHost({
+      env: { CLAUDE_PROJECT_DIR: "/proj" },
+      model: "claude-3-7-sonnet",
+    });
+
+    expect(result.activeHost).toBe("claude_code");
+    expect(result.primaryPlatformId).toBe("claude");
+    expect(result.signal.mechanism).toBe("environment");
+  });
+});
+

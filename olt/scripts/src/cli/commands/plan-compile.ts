@@ -28,6 +28,7 @@ import { parseAuditAcceptance, recordAuditAcceptance, recordPlanAudit } from "./
 import { parseGateArgv } from "./plan-replan-bindings.ts";
 import type { AssignableTask } from "../../workflow/worktree/assign.ts";
 import { provisionWorktrees } from "../../workflow/worktree/provision.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
 
 function promptText(prompt: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: true }).decode(prompt);
@@ -97,7 +98,7 @@ function hasBrainstormingExecuted(loaded: RunFiles, runRoot: string): boolean {
   return false;
 }
 
-export function planCompileCommand(flags: Flags): Record<string, unknown> {
+export async function planCompileCommand(flags: Flags): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const actor = actorFlag(flags);
   const completionGate = parseGateArgv(textFlag(flags, "completion-gate")!);
@@ -214,7 +215,9 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
     config,
   });
 
-  const markdown = formatPlanCompileBrief({
+  const quotaTelemetry = await probeLiveQuotaTelemetry();
+
+  let markdown = formatPlanCompileBrief({
     revision: 1,
     totalTasks: buffer.length,
     topology: {
@@ -234,6 +237,10 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
     auditAccepted: acceptances,
     auditNotEvaluated: auditResult.not_evaluated.map((n) => n.reason),
   });
+
+  if (quotaTelemetry.quotaBadge) {
+    markdown += `\n- **Quota Telemetry**: ${quotaTelemetry.quotaBadge} (${quotaTelemetry.activeHost})`;
+  }
 
   const planningDir = join(run, "planning");
   mkdirSync(planningDir, { recursive: true });
@@ -272,6 +279,7 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
       accepted: acceptances,
       not_evaluated: auditResult.not_evaluated,
     },
+    quota_telemetry: quotaTelemetry,
     ...(provisioned.enabled ? { worktree_ledger: provisioned.ledger } : {}),
   };
 }

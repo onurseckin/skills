@@ -10,6 +10,10 @@ import type {
   TaskRecoveryResult,
   ScheduledTaskDispatch,
 } from "../core/types.ts";
+import type {
+  CognitiveDirectiveDimension,
+  CognitiveProbingDirective,
+} from "../prompt/index.ts";
 import type { Clock } from "../../../workflow/types.ts";
 
 export interface PulseTickOptions {
@@ -28,7 +32,11 @@ export interface PulseTickOptions {
   readonly runDiagnostics?: boolean | undefined;
   readonly diagnosticsResult?: ScriptBackedDiagnosticsResult | undefined;
   readonly diagnosticsOptions?: ScriptBackedDiagnosticsOptions | undefined;
+  readonly preferredDimension?: CognitiveDirectiveDimension | undefined;
+  readonly zeroValueStreak?: number | undefined;
+  readonly stagnant?: boolean | undefined;
 }
+
 export interface PulseTickResult {
   readonly tickNumber: number;
   readonly timestamp: string;
@@ -44,8 +52,11 @@ export interface PulseTickResult {
   readonly cliReceipts?: readonly CliDiagnosticReceipt[] | undefined;
   readonly cliReceiptSummaryBadge?: string | undefined;
   readonly dagBadges?: readonly string[] | undefined;
+  readonly cognitiveDirective?: CognitiveProbingDirective | undefined;
+  readonly cognitivePrompt?: string | undefined;
   readonly error?: string | undefined;
 }
+
 export interface PulseLoopOptions extends PulseTickOptions {
   readonly intervalMs?: number | undefined;
   readonly maxTicks?: number | undefined;
@@ -55,6 +66,7 @@ export interface PulseLoopOptions extends PulseTickOptions {
   readonly onError?: ((error: Error, tickNumber: number) => void) | undefined;
   readonly onStop?: ((reason: string, totalTicks: number) => void) | undefined;
 }
+
 export interface PulseLoopResult {
   readonly totalTicks: number;
   readonly totalRecovered: number;

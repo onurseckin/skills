@@ -24,7 +24,7 @@ import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
 import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";
-import { applicableGates, taskHasPassedGate } from "../../workflow/gates/gate-policy.ts";
+import { applicableGates, taskHasPassedGate, workflowGates } from "../../workflow/gates/gate-policy.ts";
 import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/consolidate.ts";
@@ -46,6 +46,7 @@ import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
 import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
 import { extractLeaseAgentId, generateUnifiedReport } from "../../reporting/unified/index.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
 
 function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParallel: number } {
   const config = getHarnessConfig(resolve(runRoot, "..", ".."), runRoot);
@@ -222,6 +223,8 @@ export async function runCompleteCommand(flags: Flags): Promise<Record<string, u
     // Non-blocking
   }
 
+  const quotaTelemetry = await probeLiveQuotaTelemetry();
+
   const completeBrief = formatRunCompleteBrief({
     runId: basename(run),
     capsulePath: run,
@@ -244,7 +247,10 @@ export async function runCompleteCommand(flags: Flags): Promise<Record<string, u
         }),
   });
 
-  const markdown = appendReleaseFailureWarning(completeBrief, autoSyncCommitResult.error);
+  let markdown = appendReleaseFailureWarning(completeBrief, autoSyncCommitResult.error);
+  if (quotaTelemetry.quotaBadge) {
+    markdown += `\n- **Live Quota**: ${quotaTelemetry.quotaBadge} (${quotaTelemetry.activeHost})`;
+  }
 
   return {
     markdown,
@@ -255,6 +261,7 @@ export async function runCompleteCommand(flags: Flags): Promise<Record<string, u
     ...(summaryWarning === undefined ? {} : { summary_warning: summaryWarning }),
     auto_sync_commit: autoSyncCommitResult,
     ...(prunedSubdirectories.length > 0 ? { pruned_subdirectories: prunedSubdirectories } : {}),
+    quota_telemetry: quotaTelemetry,
   };
 }
 
@@ -481,13 +488,23 @@ export async function runExecCommand(
     );
   }
 
-  if (gate && !task) {
-    throw new HarnessError("INVALID_ARGUMENT", "--gate requires --task");
+  const state = workflowPort(loaded.runRoot).read();
+  let gatePreflight: RunExecGatePreflight | undefined;
+  if (gate) {
+    if (task) {
+      gatePreflight = preflightRunExecGate(state, task, gate);
+    } else {
+      const runGate = workflowGates(state).find(
+        (candidate) => candidate.id === gate && candidate.scope === "run",
+      );
+      if (!runGate) {
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          `run-scoped gate does not exist or is not applicable: ${gate}`,
+        );
+      }
+    }
   }
-  const gatePreflight =
-    task && gate
-      ? preflightRunExecGate(workflowPort(loaded.runRoot).read(), task, gate)
-      : undefined;
 
   const cmdOpts = {
     runRoot: loaded.runRoot,

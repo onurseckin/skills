@@ -70,3 +70,26 @@ export type {
 } from "./types.ts";
 
 export { SchedulerEngine, createSchedulerEngine } from "./core-engine-class.ts";
+
+export {
+  CognitiveDirectiveGenerator,
+  formatDirectiveMarkdown,
+  generateCognitiveDirective,
+  generateCognitiveSchedulerPrompt,
+  generateProbingDirective,
+  COGNITIVE_DIRECTIVE_DIMENSIONS,
+  SOCRATIC_CATALOG,
+  selectSocraticQuestions,
+  assessStagnationState,
+  generateAntiStagnationTriggers,
+  generateCognitiveSteps,
+  extractContextAnchors,
+  type AntiStagnationTrigger,
+  type CognitiveDirectiveDimension,
+  type CognitiveProbingDirective,
+  type CognitivePromptOptions,
+  type CognitiveStep,
+  type ContextAnchor,
+  type SocraticQuestion,
+  type StagnationAssessment,
+} from "../prompt/index.ts";

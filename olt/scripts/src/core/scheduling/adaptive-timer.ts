@@ -200,8 +200,22 @@ export class AdaptiveTimerController {
     return this.applyAdjustment(target, reason, now);
   }
 
+  public recordActivePulse(
+    multiplier?: number,
+    now?: string | number | Date,
+  ): IntervalAdjustmentResult {
+    return this.boostActivity(multiplier, now);
+  }
+
+  public recordIdlePulse(
+    multiplier?: number,
+    now?: string | number | Date,
+  ): IntervalAdjustmentResult {
+    return this.decayIdle(multiplier, now);
+  }
+
   public resetInterval(
-    defaultIntervalMs: number,
+    defaultIntervalMs: number = DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS,
     intervalMs?: number,
     now?: string | number | Date,
   ): IntervalAdjustmentResult {

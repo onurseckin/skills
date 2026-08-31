@@ -1,13 +1,10 @@
 import type { NormalizedQuotaMetric, UnifiedTelemetryReport } from "./types.ts";
 
-export type CircuitBreakerStatus =
-  | "OK"
-  | "QUOTA_EXHAUSTED_CIRCUIT_BROKEN"
-  | "QUOTA_UNKNOWN_CIRCUIT_BROKEN";
+export type CircuitBreakerStatus = "OK" | "QUOTA_EXHAUSTED_CIRCUIT_BROKEN" | "QUOTA_UNKNOWN_CIRCUIT_BROKEN";
 
-export const DEFAULT_QUOTA_THRESHOLD = 10.0;
-export const DEFAULT_SAFE_WINDOW_SECONDS = 18000;
-export const DEFAULT_AUTO_WAKE_BUFFER_SECONDS = 60;
+export const DEFAULT_QUOTA_THRESHOLD: number = 10.0;
+export const DEFAULT_SAFE_WINDOW_SECONDS: number = 18000;
+export const DEFAULT_AUTO_WAKE_BUFFER_SECONDS: number = 60;
 
 export const CRITICAL_WRAP_UP_MESSAGE =
   "CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<10%). Wrap up current micro-step immediately. Do not claim or start new tasks. Keep working tree changes unstaged/stashed safely without destructive actions. Enter idle state.";
@@ -54,56 +51,72 @@ export interface CircuitBreakerEvaluation {
   readonly autoWakeSchedule: AutoWakeSchedulePayload | null;
   readonly summary: string;
   readonly evaluatedAt: string;
+  readonly activeHost?: string | null | undefined;
 }
 
 export interface QuotaCircuitBreakerOptions {
   readonly thresholdPercentage?: number | undefined;
   readonly activeAgentsCount?: number | undefined;
   readonly activeAgentIds?: readonly string[] | undefined;
+  readonly activeHost?: string | undefined;
   readonly now?: number | Date | string | undefined;
   readonly defaultSafeWindowSeconds?: number | undefined;
   readonly bufferSeconds?: number | undefined;
+  readonly env?: Record<string, string | undefined> | undefined;
+}
+
+export function normalizeCanonicalHost(host: string): string {
+  const norm = host.toLowerCase().trim().replace(/[-_ ]+/g, "_");
+  if (norm.includes("antigravity") || norm.includes("gemini")) return "antigravity";
+  if (norm.includes("claude")) return "claude_code";
+  if (norm.includes("codex") || norm.includes("openai")) return "codex";
+  if (norm.includes("cursor")) return "cursor";
+  return norm;
+}
+
+export function isPlatformMatchingHost(platformId: string, host: string): boolean {
+  const normP = normalizeCanonicalHost(platformId);
+  const normH = normalizeCanonicalHost(host);
+  if (normP === normH) return true;
+  const p = platformId.toLowerCase().trim();
+  const h = host.toLowerCase().trim();
+  return p === h || normP.includes(h) || normH.includes(p);
+}
+
+export function detectActiveHost(
+  env: Record<string, string | undefined> = typeof process !== "undefined" ? process.env : {},
+): string | undefined {
+  if (env["ANTIGRAVITY_CLI"] || env["GEMINI_CLI"] || env["ANTIGRAVITY_VERSION"] || env["ANTIGRAVITY_AGENT_ID"]) return "antigravity";
+  if (env["CLAUDE_CODE_VERSION"] || env["CLAUDE_CLI"] || env["CLAUDE_CODE_SESSION_ID"] || env["CLAUDE_CODE_ENTRYPOINT"]) return "claude_code";
+  const termProgram = env["TERM_PROGRAM"] ? env["TERM_PROGRAM"].toLowerCase() : "";
+  if (termProgram === "cursor" || env["CURSOR_VERSION"] || env["CURSOR_MODEL"]) return "cursor";
+  if (env["CODEX_VERSION"] || env["CODEX_CLI"] || env["CODEX"]) return "codex";
+  return undefined;
 }
 
 export function extractResetTime(metric: NormalizedQuotaMetric): string | undefined {
-  const payload = metric.rawPayload;
-  if (!payload || typeof payload !== "object") return undefined;
-
-  const record = payload as Record<string, unknown>;
-
-  if (typeof record.resetTime === "string" && record.resetTime.trim()) {
-    return record.resetTime.trim();
+  const p = metric.rawPayload;
+  if (!p || typeof p !== "object") return undefined;
+  const findReset = (obj: unknown): string | undefined => {
+    if (!obj || typeof obj !== "object") return undefined;
+    const r = obj as Record<string, unknown>;
+    if (typeof r["resetTime"] === "string" && r["resetTime"].trim()) return r["resetTime"].trim();
+    if (typeof r["reset_time"] === "string" && r["reset_time"].trim()) return r["reset_time"].trim();
+    return undefined;
+  };
+  const rec = p as Record<string, unknown>;
+  const direct = findReset(rec);
+  if (direct) return direct;
+  const qInfo = findReset(rec["quotaInfo"]);
+  if (qInfo) return qInfo;
+  const userStatus = rec["userStatus"];
+  if (userStatus && typeof userStatus === "object") {
+    const uRec = userStatus as Record<string, unknown>;
+    const uq = findReset(uRec["quotaInfo"]);
+    if (uq) return uq;
+    const ur = findReset(uRec);
+    if (ur) return ur;
   }
-  if (typeof record.reset_time === "string" && record.reset_time.trim()) {
-    return record.reset_time.trim();
-  }
-
-  if (typeof record.quotaInfo === "object" && record.quotaInfo !== null) {
-    const quotaInfo = record.quotaInfo as Record<string, unknown>;
-    if (typeof quotaInfo.resetTime === "string" && quotaInfo.resetTime.trim()) {
-      return quotaInfo.resetTime.trim();
-    }
-    if (typeof quotaInfo.reset_time === "string" && quotaInfo.reset_time.trim()) {
-      return quotaInfo.reset_time.trim();
-    }
-  }
-
-  if (typeof record.userStatus === "object" && record.userStatus !== null) {
-    const userStatus = record.userStatus as Record<string, unknown>;
-    if (typeof userStatus.quotaInfo === "object" && userStatus.quotaInfo !== null) {
-      const qInfo = userStatus.quotaInfo as Record<string, unknown>;
-      if (typeof qInfo.resetTime === "string" && qInfo.resetTime.trim()) {
-        return qInfo.resetTime.trim();
-      }
-      if (typeof qInfo.reset_time === "string" && qInfo.reset_time.trim()) {
-        return qInfo.reset_time.trim();
-      }
-    }
-    if (typeof userStatus.resetTime === "string" && userStatus.resetTime.trim()) {
-      return userStatus.resetTime.trim();
-    }
-  }
-
   return undefined;
 }
 
@@ -116,48 +129,65 @@ export function evaluateCircuitBreaker(
     buffer: DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
   },
 ): CircuitBreakerEvaluation {
-  const threshold = options?.thresholdPercentage ?? defaults.threshold;
-  const defaultSafeWindow = options?.defaultSafeWindowSeconds ?? defaults.safeWindow;
-  const bufferSec = options?.bufferSeconds ?? defaults.buffer;
-  const activeAgentsCount = options?.activeAgentsCount ?? options?.activeAgentIds?.length ?? 0;
+  const threshold = options && typeof options.thresholdPercentage === "number" ? options.thresholdPercentage : defaults.threshold;
+  const defaultSafeWindow = options && typeof options.defaultSafeWindowSeconds === "number" ? options.defaultSafeWindowSeconds : defaults.safeWindow;
+  const bufferSec = options && typeof options.bufferSeconds === "number" ? options.bufferSeconds : defaults.buffer;
+  const activeAgentsCount = options && typeof options.activeAgentsCount === "number" ? options.activeAgentsCount : (options && options.activeAgentIds ? options.activeAgentIds.length : 0);
+  const nowMs = options && options.now !== undefined
+    ? (options.now instanceof Date ? options.now.getTime() : (typeof options.now === "string" ? new Date(options.now).getTime() : options.now))
+    : Date.now();
 
-  const nowMs =
-    options?.now !== undefined
-      ? options.now instanceof Date
-        ? options.now.getTime()
-        : typeof options.now === "string"
-          ? new Date(options.now).getTime()
-          : options.now
-      : Date.now();
+  const explicitActiveHost = options && options.activeHost ? options.activeHost.trim() : undefined;
+  const summaryActiveHost = report.summary && typeof report.summary["activeHost"] === "string"
+    ? (report.summary["activeHost"] as string).trim()
+    : (report.summary && typeof (report.summary as Record<string, unknown>)["active_host"] === "string" ? String((report.summary as Record<string, unknown>)["active_host"]).trim() : undefined);
+
+  const env = options && options.env ? options.env : (typeof process !== "undefined" ? process.env : {});
+  const detectedHost = detectActiveHost(env);
+  let activeHost: string | undefined = undefined;
+  let isFilteredByHost = false;
+  let candidateResults = report.results;
+
+  if (explicitActiveHost) {
+    candidateResults = report.results.filter((res) => isPlatformMatchingHost(res.platformId, explicitActiveHost));
+    activeHost = explicitActiveHost;
+    isFilteredByHost = true;
+  } else {
+    const hostCandidate = summaryActiveHost || detectedHost;
+    if (hostCandidate) {
+      const matching = report.results.filter((res) => isPlatformMatchingHost(res.platformId, hostCandidate));
+      if (matching.length > 0) {
+        candidateResults = matching;
+        activeHost = hostCandidate;
+        isFilteredByHost = true;
+      }
+    }
+  }
 
   const constrainedModels: ConstrainedModelInfo[] = [];
   let lowestRemainingQuota: number | null = null;
   let measuredObservationCount = 0;
-  let hasUnmeasuredObservation = report.results.length === 0;
+  let hasUnmeasuredObservation = candidateResults.length === 0;
 
-  for (const res of report.results) {
+  for (const res of candidateResults) {
     if (res.isDetected !== true) {
       hasUnmeasuredObservation = true;
       continue;
     }
     if (res.errors.length > 0 || res.metrics.length === 0) hasUnmeasuredObservation = true;
     for (const metric of res.metrics) {
-      const remainingPercentage = metric.remainingPercentage;
-      if (typeof remainingPercentage !== "number" || !Number.isFinite(remainingPercentage)) {
+      const remaining = metric.remainingPercentage;
+      if (typeof remaining !== "number" || !Number.isFinite(remaining)) {
         hasUnmeasuredObservation = true;
         continue;
       }
       measuredObservationCount += 1;
-
-      if (lowestRemainingQuota === null || remainingPercentage < lowestRemainingQuota) {
-        lowestRemainingQuota = remainingPercentage;
-      }
-
-      if (remainingPercentage < threshold) {
+      if (lowestRemainingQuota === null || remaining < lowestRemainingQuota) lowestRemainingQuota = remaining;
+      if (remaining <= threshold) {
         constrainedModels.push({
           platformId: res.platformId,
           modelName: metric.rawMetricName,
-          remainingPercentage,
+          remainingPercentage: remaining,
           resetTime: extractResetTime(metric),
           sourceTier: metric.sourceTier,
           confidence: metric.confidence,
@@ -166,11 +196,12 @@ export function evaluateCircuitBreaker(
     }
   }
 
-  const summaryRemainingQuota = report.summary?.lowestRemainingQuota;
+  const summaryRemainingQuota = report.summary ? report.summary["lowestRemainingQuota"] : undefined;
   const summaryShowsExhaustion =
+    !isFilteredByHost &&
     typeof summaryRemainingQuota === "number" &&
     Number.isFinite(summaryRemainingQuota) &&
-    summaryRemainingQuota < threshold;
+    summaryRemainingQuota <= threshold;
   if (
     summaryShowsExhaustion &&
     (lowestRemainingQuota === null || summaryRemainingQuota < lowestRemainingQuota)
@@ -181,13 +212,13 @@ export function evaluateCircuitBreaker(
   const isExhausted = constrainedModels.length > 0 || summaryShowsExhaustion;
   const isUnknown = !isExhausted && (measuredObservationCount === 0 || hasUnmeasuredObservation);
   const isTriggered = isExhausted || isUnknown;
+  const activeHostVal = activeHost !== undefined ? activeHost : null;
 
   if (!isTriggered) {
     const summary =
       lowestRemainingQuota !== null
         ? `Quota healthy at ${lowestRemainingQuota.toFixed(2)}% (threshold: ${threshold.toFixed(2)}%). Circuit breaker inactive.`
         : "No quota metrics detected; execution running normally.";
-
     return {
       status: "OK",
       isTriggered: false,
@@ -198,49 +229,30 @@ export function evaluateCircuitBreaker(
       autoWakeSchedule: null,
       summary,
       evaluatedAt: new Date(nowMs).toISOString(),
+      activeHost: activeHostVal,
     };
   }
 
   const wrapUpMessage = isUnknown ? UNMEASURED_QUOTA_WRAP_UP_MESSAGE : CRITICAL_WRAP_UP_MESSAGE;
-  const wrapUpReason = isUnknown
-    ? "Quota availability is unavailable or unmeasured; fail closed."
-    : `Quota threshold breached (<${threshold}%).`;
+  const wrapUpReason = isUnknown ? "Quota availability is unavailable or unmeasured; fail closed." : `Quota threshold breached (<=${threshold}%).`;
   const wrapUpDirectives: WrapUpDirective[] =
-    options?.activeAgentIds && options.activeAgentIds.length > 0
-      ? options.activeAgentIds.map((agentId) => ({
-          recipient: agentId,
-          message: wrapUpMessage,
-          action: "idle" as const,
-          forbidKill: true as const,
-          reason: wrapUpReason,
-        }))
-      : [
-          {
-            recipient: "all_active_agents",
-            message: wrapUpMessage,
-            action: "idle" as const,
-            forbidKill: true as const,
-            reason: wrapUpReason,
-          },
-        ];
+    options && options.activeAgentIds && options.activeAgentIds.length > 0
+      ? options.activeAgentIds.map((agentId) => ({ recipient: agentId, message: wrapUpMessage, action: "idle" as const, forbidKill: true as const, reason: wrapUpReason }))
+      : [{ recipient: "all_active_agents", message: wrapUpMessage, action: "idle" as const, forbidKill: true as const, reason: wrapUpReason }];
 
   const validResetDates: Date[] = [];
   for (const model of constrainedModels) {
     if (model.resetTime) {
       const parsed = new Date(model.resetTime);
-      if (!isNaN(parsed.getTime())) {
-        validResetDates.push(parsed);
-      }
+      if (!isNaN(parsed.getTime())) validResetDates.push(parsed);
     }
   }
 
   let targetWakeupMs: number;
   let durationSeconds: number;
-
   if (validResetDates.length > 0) {
     validResetDates.sort((a, b) => a.getTime() - b.getTime());
     const earliestResetDate = validResetDates[0]!;
-
     targetWakeupMs = earliestResetDate.getTime() + bufferSec * 1000;
     const diffSeconds = Math.ceil((targetWakeupMs - nowMs) / 1000);
     durationSeconds = Math.max(bufferSec, diffSeconds);
@@ -259,14 +271,8 @@ export function evaluateCircuitBreaker(
   };
 
   const summary = isUnknown
-    ? `⚠️ Quota availability is unavailable or unmeasured. ${
-        lowestRemainingQuota !== null
-          ? `Lowest measured quota: ${lowestRemainingQuota.toFixed(2)}%. `
-          : "No trustworthy quota percentage was observed. "
-      }Auto-wake in ${durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`
-    : `🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<${threshold}%). Lowest quota: ${
-        lowestRemainingQuota !== null ? `${lowestRemainingQuota.toFixed(2)}%` : "unknown"
-      }. ${constrainedModels.length} constrained models. Auto-wake in ${durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`;
+    ? `⚠️ Quota availability is unavailable or unmeasured. ${lowestRemainingQuota !== null ? `Lowest measured quota: ${lowestRemainingQuota.toFixed(2)}%. ` : "No trustworthy quota percentage was observed. "}Auto-wake in ${durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`
+    : `🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<10%). Lowest quota: ${lowestRemainingQuota !== null ? `${lowestRemainingQuota.toFixed(2)}%` : "unknown"}. ${constrainedModels.length} constrained models. Auto-wake in ${durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`;
 
   return {
     status: isUnknown ? "QUOTA_UNKNOWN_CIRCUIT_BROKEN" : "QUOTA_EXHAUSTED_CIRCUIT_BROKEN",
@@ -278,5 +284,6 @@ export function evaluateCircuitBreaker(
     autoWakeSchedule,
     summary,
     evaluatedAt: new Date(nowMs).toISOString(),
+    activeHost: activeHostVal,
   };
 }

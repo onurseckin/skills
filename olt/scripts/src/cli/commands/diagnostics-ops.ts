@@ -16,6 +16,8 @@ import {
   recoverNextActions,
   type DoctorCriticalFinding,
 } from "../formatters/next-actions.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
+import { detectHostApp } from "../../authority/thread/context.ts";
 import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
 
 function runPlanVerified(run: string): boolean {
@@ -74,6 +76,7 @@ export async function doctorCommand(flags: Flags): Promise<Record<string, unknow
 
   const report = await runDoctor(run, installation);
   const planVerified = runPlanVerified(run);
+  const quotaTelemetry = await probeLiveQuotaTelemetry({ host: detectHostApp(process.env) });
   const personaReminder = constructSupervisoryPersonaReminder({
     role,
     agentId: actor,
@@ -87,7 +90,12 @@ export async function doctorCommand(flags: Flags): Promise<Record<string, unknow
     },
   });
 
-  const reportWithReadiness = { ...report, plan_verified: planVerified };
+  const reportWithReadiness = {
+    ...report,
+    plan_verified: planVerified,
+    quota_telemetry: quotaTelemetry,
+    quota_badge: quotaTelemetry.quotaBadge,
+  };
 
   return {
     ...reportWithReadiness,
@@ -159,11 +167,19 @@ export function formatDoctorBrief(run: string, report: Record<string, unknown>):
     typeof report.bun_version === "string" && report.bun_version.trim()
       ? report.bun_version
       : "unknown";
+  const quotaBadge =
+    typeof report.quota_badge === "string"
+      ? report.quota_badge
+      : typeof (report.quota_telemetry as Record<string, unknown> | undefined)?.quotaBadge ===
+          "string"
+        ? ((report.quota_telemetry as Record<string, unknown>).quotaBadge as string)
+        : undefined;
   const lines = [
     `### Capsule Doctor: \`${run}\``,
     `- **Healthy**: ${ternary(report.healthy, "yes", "no")}`,
     `- **Bun**: ${bunVersion} (${ternary(report.bun_supported, "supported", "unsupported")})`,
     `- **Gitignored**: ${ternary(report.gitignored, "yes", "no")}`,
+    ...(quotaBadge ? [`- **Quota Telemetry**: ${quotaBadge}`] : []),
     `- **Supervisory Invariants**: Strict Tier Hierarchy & Supervisor Zero-File-Edit Rule actively enforced`,
     `- **Git Preservation**: Zero-Destructive Git Invariant & User Edit Preservation actively enforced`,
     ...issueSectionLines(report),
