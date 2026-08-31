@@ -2,10 +2,18 @@ export {
   AuditorCursorStore,
   MindAuditorEngine,
   SkillAuditorEngine,
+  CognitiveChallengePromptGenerator,
+  generateCognitiveChallengePrompt,
+  generateZeroDeltaChallengePrompt,
+  COGNITIVE_CHALLENGE_DIMENSIONS,
   type AuditorCursor,
   type MindAuditLiveResult,
   type SkillAuditLiveResult,
   type StoredAuditorCursors,
+  type CognitiveChallengeDimension,
+  type CognitiveChallenge,
+  type CognitiveChallengeOptions,
+  type ZeroDeltaChallengeOptions,
 } from "./cognitive/index.ts";
 
 export {

@@ -11,12 +11,20 @@ export function formulateDefectHypotheses(
   defects: readonly DefectEntry[],
 ): readonly DefectHypothesis[] {
   return defects.map((defect) => {
-    const cat = defect.category || categorizeDefect(defect);
+    const cat =
+      defect.category !== undefined && defect.category !== ""
+        ? defect.category
+        : categorizeDefect(defect);
     if (cat === "boundary_violation") {
       return formulateBoundaryViolationHypothesis(defect);
     }
 
-    const obs = defect.observation || defect.message || "Unknown observation";
+    const obs =
+      defect.observation !== undefined && defect.observation !== ""
+        ? defect.observation
+        : defect.message !== undefined && defect.message !== ""
+          ? defect.message
+          : "Unknown observation";
     return {
       id: `hypo-${defect.id}`,
       defect_id: defect.id,
@@ -37,7 +45,10 @@ export function synthesizeBoundaryRemediationActions(
 
   for (const hypo of hypotheses) {
     const defect = defectMap.get(hypo.defect_id);
-    const defectType = defect?.type || "boundary_violation";
+    const defectType =
+      defect !== undefined && defect.type !== undefined && defect.type !== ""
+        ? defect.type
+        : "boundary_violation";
     const isCoord = defectType.includes("coordinator");
 
     actions.push({

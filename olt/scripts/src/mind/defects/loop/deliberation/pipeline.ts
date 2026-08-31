@@ -19,7 +19,7 @@ export function synthesizeDeliberationRound(params: {
   readonly options?: { readonly maxRounds?: number | undefined } | undefined;
 }): DeliberationSynthesis {
   const { round_number, defects, proofs = [], options } = params;
-  const maxRounds = options?.maxRounds ?? 3;
+  const maxRounds = options !== undefined && options.maxRounds !== undefined ? options.maxRounds : 3;
 
   const resolvedIds = new Set<string>();
   for (const proof of proofs) {
@@ -27,7 +27,11 @@ export function synthesizeDeliberationRound(params: {
   }
 
   const resolved_defect_ids = defects
-    .filter((d) => resolvedIds.has(d.id) || d.status === "resolved" || d.status === "completed")
+    .filter((d) => {
+      if (resolvedIds.has(d.id)) return true;
+      if (["resolved", "completed"].includes(d.status)) return true;
+      return false;
+    })
     .map((d) => d.id);
 
   const unresolved_defect_ids = defects
@@ -69,9 +73,9 @@ export function createDefectDeliberationRound(params: {
   readonly proofs?: readonly ResolutionProof[] | undefined;
   readonly options?: { readonly maxRounds?: number | undefined } | undefined;
 }): DefectDeliberationRound {
-  const round_number = params.round_number ?? 1;
+  const round_number = params.round_number !== undefined ? params.round_number : 1;
   const defects = params.defects;
-  const proofs = params.proofs ?? [];
+  const proofs = params.proofs !== undefined ? params.proofs : [];
   const hypotheses = formulateDefectHypotheses(defects);
   const remediation_actions = synthesizeRemediationActions(hypotheses, defects);
   const synthesis = synthesizeDeliberationRound({
@@ -137,11 +141,12 @@ export function advanceDeliberationRound(
     : Array.isArray(roundNumberOrProofs)
       ? roundNumberOrProofs
       : [];
-  const options =
-    optionsArg ??
-    (typeof defectsOrOptions === "object" && !Array.isArray(defectsOrOptions)
-      ? (defectsOrOptions as { readonly maxRounds?: number | undefined })
-      : undefined);
+  let options: { readonly maxRounds?: number | undefined } | undefined = undefined;
+  if (optionsArg !== undefined) {
+    options = optionsArg;
+  } else if (typeof defectsOrOptions === "object" && !Array.isArray(defectsOrOptions)) {
+    options = defectsOrOptions as { readonly maxRounds?: number | undefined };
+  }
   const combinedProofs = [...previousRound.proofs, ...proofs];
 
   return createDefectDeliberationRound({

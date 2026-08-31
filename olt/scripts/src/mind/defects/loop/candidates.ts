@@ -19,7 +19,8 @@ export function formulateDefectCandidates(
   defects: readonly DefectEntry[],
   charterGoals: readonly string[] = ["G1", "G2"],
 ): MindCandidateProposal[] {
-  if (!Array.isArray(defects) || defects.length === 0) return [];
+  if (!Array.isArray(defects)) return [];
+  if (defects.length === 0) return [];
   const goals =
     Array.isArray(charterGoals) && charterGoals.length > 0 ? charterGoals : ["G1", "G2"];
   const openDefects = defects.filter((b) => b.status === "open");
@@ -28,25 +29,49 @@ export function formulateDefectCandidates(
   for (const b of openDefects) {
     const sanitizedId = b.id.startsWith("defect-") ? b.id.slice("defect-".length) : b.id;
     const candidateId = `cand-defect-${sanitizedId}`;
-    const category = b.category || categorizeDefect(b);
+    const category =
+      b.category !== undefined && b.category !== "" ? b.category : categorizeDefect(b);
     const kind: "proposal" | "defect" = category === "code_defect" ? "defect" : "proposal";
 
     let matchedGoals: string[] = [];
     if (category === "boundary_violation") {
-      matchedGoals = goals.filter((g) => g === "G2" || g.toLowerCase().includes("invariant"));
+      matchedGoals = goals.filter((g) => {
+        if (g === "G2") return true;
+        if (g.toLowerCase().includes("invariant")) return true;
+        return false;
+      });
       if (matchedGoals.length === 0) matchedGoals = goals.slice(0, 1);
     } else if (category === "model_reasoning_error") {
-      matchedGoals = goals.filter((g) => g === "G1" || g === "G2");
+      matchedGoals = goals.filter((g) => {
+        if (g === "G1") return true;
+        if (g === "G2") return true;
+        return false;
+      });
       if (matchedGoals.length === 0) matchedGoals = goals.slice(0, 1);
     } else {
-      matchedGoals = goals.filter((g) => g === "G1" || g.toLowerCase().includes("type"));
+      matchedGoals = goals.filter((g) => {
+        if (g === "G1") return true;
+        if (g.toLowerCase().includes("type")) return true;
+        return false;
+      });
       if (matchedGoals.length === 0) matchedGoals = goals.slice(0, 1);
     }
 
-    const obs = b.observation || b.description || b.type || "unknown defect";
-    const rem = b.remediation || "Remediate defect violation";
+    const obs =
+      b.observation !== undefined && b.observation !== ""
+        ? b.observation
+        : b.description !== undefined && b.description !== ""
+          ? b.description
+          : b.type !== undefined && b.type !== ""
+            ? b.type
+            : "unknown defect";
+    const rem =
+      b.remediation !== undefined && b.remediation !== ""
+        ? b.remediation
+        : "Remediate defect violation";
     const statement = `Remediate ${category.replace(/_/g, " ")} defect: ${obs}`;
-    const rationale = `Defect [${b.id}] (${b.severity || "warning"}): ${rem}`;
+    const sev = b.severity !== undefined && b.severity !== "" ? b.severity : "warning";
+    const rationale = `Defect [${b.id}] (${sev}): ${rem}`;
 
     proposals.push({
       id: candidateId,
