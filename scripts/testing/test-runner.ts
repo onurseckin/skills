@@ -8,8 +8,7 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
   const isCoverage = rawArgs.includes("--coverage");
   const fileTargets = rawArgs.filter((arg) => !arg.startsWith("-"));
   const isBroadScope =
-    fileTargets.length === 0 ||
-    fileTargets.some((t) => t === "tests" || t === "tests/");
+    fileTargets.length === 0 || fileTargets.some((t) => t === "tests" || t === "tests/");
 
   const releaseLock = acquireTestLock(isBroadScope || isCoverage, rawArgs);
 
