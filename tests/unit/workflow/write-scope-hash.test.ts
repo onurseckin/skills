@@ -348,4 +348,29 @@ describe("hashWriteScope", () => {
     await symlink(join(root, "real.ts"), join(root, "src", "link.ts"));
     expect(() => hashWriteScope(root, ["src"])).toThrow(HarnessError);
   });
+
+  test("safeCause handles errors where toString throws", async () => {
+    const root = await repo("throwing-error");
+    await mkdir(join(root, "src"), { recursive: true });
+    const scopedPath = join(await realpath(root), "src", "planned.ts");
+
+    const weirdError = Object.create(null);
+    Object.defineProperty(weirdError, "toString", {
+      value: () => {
+        throw new Error("toString failed");
+      },
+    });
+
+    expectIntegrity(
+      () =>
+        hashWriteScope(root, ["src/planned.ts"], {
+          lstat() {
+            throw weirdError;
+          },
+        }),
+      scopedPath,
+      "unknown error",
+    );
+  });
 });
+

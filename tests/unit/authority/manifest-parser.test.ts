@@ -1259,21 +1259,15 @@ No closing delimiter here
       recentActions: [
         {
           timestamp: new Date().toISOString(),
-          actor: "coordinator",
           action: "claim_task",
-          description: "claimed task",
         },
         {
           timestamp: new Date().toISOString(),
-          actor: "coordinator",
           action: "implement_task",
-          description: "implemented task",
         },
         {
           timestamp: new Date().toISOString(),
-          actor: "coordinator",
           action: "repair_task",
-          description: "repaired task",
         },
       ],
     };
@@ -1288,10 +1282,8 @@ No closing delimiter here
       recentActions: [
         {
           timestamp: new Date().toISOString(),
-          actor: "mind",
           action: "spawn_subagent",
           spawnedRole: "implementer",
-          description: "spawned implementer directly",
         },
       ],
     };
@@ -1367,7 +1359,7 @@ No closing delimiter here
       ...reminderWithIso,
       evaluation: modifiedEvaluation,
     };
-    expect(reminderWithCustomEval.evaluation.checklist[0].status).toBe("neglected");
+    expect(reminderWithCustomEval.evaluation.checklist[0]?.status).toBe("neglected");
   });
 
   test("parseYaml handles nested flow maps, lists with multiple keys, and string escapes", () => {
@@ -1386,10 +1378,10 @@ multi_key_list:
     expect(parsed.flow_section).toBeDefined();
     const list = parsed.multi_key_list as Array<Record<string, unknown>>;
     expect(list.length).toBe(2);
-    expect(list[0].first_key).toBe(100);
-    expect(list[0].second_key).toBe("two hundred");
-    expect((list[0].nested_map as Record<string, unknown>).deep_a).toBe(true);
-    expect(list[1].only_key).toBe("single");
+    expect(list[0]?.first_key).toBe(100);
+    expect(list[0]?.second_key).toBe("two hundred");
+    expect((list[0]?.nested_map as Record<string, unknown> | undefined)?.deep_a).toBe(true);
+    expect(list[1]?.only_key).toBe("single");
   });
 
   test("loadAgentManifest scans agentsDir when filename does not match role directly", () => {
@@ -1568,11 +1560,11 @@ complex_items:
     const parsed = parseYaml(yaml) as Record<string, unknown>;
     expect(Array.isArray(parsed.complex_items)).toBe(true);
     const items = parsed.complex_items as Array<Record<string, unknown>>;
-    expect(items[0].id).toBe("item-1");
-    expect(typeof items[0].description).toBe("string");
-    expect((items[0].nested as Record<string, unknown>).deep_key).toBe("deep_value");
-    expect(items[0].empty_field).toBeNull();
-    expect(Array.isArray(items[1].flow_arr)).toBe(true);
+    expect(items[0]?.id).toBe("item-1");
+    expect(typeof items[0]?.description).toBe("string");
+    expect((items[0]?.nested as Record<string, unknown> | undefined)?.deep_key).toBe("deep_value");
+    expect(items[0]?.empty_field).toBeNull();
+    expect(Array.isArray(items[1]?.flow_arr)).toBe(true);
 
     // Top-level flow JSON with single quotes falling through JSON.parse
     const flowJson = "{ 'key': 'val' }";
@@ -1612,7 +1604,7 @@ data:
     const parsedNestedList = parseYaml(nestedListYaml) as {
       data: Array<{ nested_list: string[] }>;
     };
-    expect(parsedNestedList.data[0].nested_list).toEqual(["item1", "item2"]);
+    expect(parsedNestedList.data[0]?.nested_list).toEqual(["item1", "item2"]);
 
     // 4. parseBlock with continuation lines in list and stray non-colon line in mapping
     const continuationYaml = `

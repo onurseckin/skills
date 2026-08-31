@@ -3,6 +3,23 @@ import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { parseRepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
 import { canonicalHosts, canonicalPolicy } from "./policy-schema-core.test.ts";
 
+function setField(obj: Record<string, unknown>, path: readonly string[], val: unknown): void {
+  let cur: Record<string, unknown> = obj;
+  for (let i = 0; i < path.length - 1; i++) {
+    const key = path[i];
+    if (key !== undefined) {
+      const next = cur[key];
+      if (next && typeof next === "object") {
+        cur = next as Record<string, unknown>;
+      }
+    }
+  }
+  const lastKey = path[path.length - 1];
+  if (lastKey !== undefined) {
+    cur[lastKey] = val;
+  }
+}
+
 describe("Policy Schema Advanced - Host Profiles & Persona Enums", () => {
   test("rejects invalid or missing host profiles in agent configuration", () => {
     const raw = canonicalPolicy();
@@ -12,61 +29,40 @@ describe("Policy Schema Advanced - Host Profiles & Persona Enums", () => {
     expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
 
     const rawMissing = canonicalPolicy();
-    const agentsMissing = rawMissing["agents"] as Record<string, Record<string, unknown>>;
-    agentsMissing["mind_supervisor"] = {
-      ...agentsMissing["mind_supervisor"],
-      hosts: { antigravity: { model: "m", model_tier: "high" } },
-    };
+    setField(rawMissing, ["agents", "mind_supervisor", "hosts"], { antigravity: { model: "m", model_tier: "high" } });
     expect(() => parseRepoPolicy(rawMissing)).toThrow(HarnessError);
   });
 
   test("rejects invalid model_tier, thinking_effort, and persona roles", () => {
     const rawTier = canonicalPolicy();
-    const agents = rawTier["agents"] as Record<
-      string,
-      Record<string, Record<string, Record<string, unknown>>>
-    >;
-    agents["mind_supervisor"]["hosts"]["antigravity"]["model_tier"] = "ultra_tier";
+    setField(rawTier, ["agents", "mind_supervisor", "hosts", "antigravity", "model_tier"], "ultra_tier");
     expect(() => parseRepoPolicy(rawTier)).toThrow(HarnessError);
 
     const rawEffort = canonicalPolicy();
-    const agEffort = rawEffort["agents"] as Record<
-      string,
-      Record<string, Record<string, Record<string, unknown>>>
-    >;
-    agEffort["mind_supervisor"]["hosts"]["antigravity"]["thinking_effort"] = "extreme";
+    setField(rawEffort, ["agents", "mind_supervisor", "hosts", "antigravity", "thinking_effort"], "extreme");
     expect(() => parseRepoPolicy(rawEffort)).toThrow(HarnessError);
 
     const rawPersona = canonicalPolicy();
-    const de = rawPersona["docker_environment"] as Record<
-      string,
-      Record<string, Record<string, unknown>>
-    >;
-    de["test_user_personas"]["guest"] = {
-      ...de["test_user_personas"]["guest"],
-      role: "superadmin",
-    };
+    setField(rawPersona, ["docker_environment", "test_user_personas", "guest", "role"], "superadmin");
     expect(() => parseRepoPolicy(rawPersona)).toThrow(HarnessError);
   });
 
   test("rejects invalid cookie same_site values", () => {
     const raw = canonicalPolicy();
-    const de = raw["docker_environment"] as Record<string, Record<string, Record<string, unknown>>>;
-    de["session_cookie_templates"]["session_id"]["same_site"] = "Loose";
+    setField(raw, ["docker_environment", "session_cookie_templates", "session_id", "same_site"], "Loose");
     expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
   });
 });
 
+
 describe("Policy Schema Advanced - Numeric Bounds, Types & Command Conflicts", () => {
   test("rejects negative quotas and invalid quota ranges", () => {
     const raw = canonicalPolicy();
-    const ag = raw["agents"] as Record<string, Record<string, Record<string, unknown>>>;
-    ag["validator_code_quality"]["quotas"]["mandatory_cognitive_pushbacks"] = -1;
+    setField(raw, ["agents", "validator_code_quality", "quotas", "mandatory_cognitive_pushbacks"], -1);
     expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
 
     const rawOver = canonicalPolicy();
-    const agOver = rawOver["agents"] as Record<string, Record<string, Record<string, unknown>>>;
-    agOver["validator_code_quality"]["quotas"]["mandatory_cognitive_pushbacks"] = 101;
+    setField(rawOver, ["agents", "validator_code_quality", "quotas", "mandatory_cognitive_pushbacks"], 101);
     expect(() => parseRepoPolicy(rawOver)).toThrow(HarnessError);
   });
 
@@ -78,14 +74,13 @@ describe("Policy Schema Advanced - Numeric Bounds, Types & Command Conflicts", (
       parseRepoPolicy({ ...canonicalPolicy(), read_scope_neighborhood_depth: 3.14 }),
     ).toThrow(HarnessError);
     const rawTimeout = canonicalPolicy();
-    (rawTimeout["test_runner"] as Record<string, unknown>)["timeout_ms"] = -100;
+    setField(rawTimeout, ["test_runner", "timeout_ms"], -100);
     expect(() => parseRepoPolicy(rawTimeout)).toThrow(HarnessError);
   });
 
   test("rejects string representation where boolean is expected", () => {
     const raw = canonicalPolicy();
-    const ag = raw["agents"] as Record<string, Record<string, Record<string, unknown>>>;
-    ag["mind_supervisor"]["rbac"]["can_execute_shell"] = "false";
+    setField(raw, ["agents", "mind_supervisor", "rbac", "can_execute_shell"], "false");
     expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
   });
 
@@ -114,22 +109,15 @@ describe("Policy Schema Advanced - Numeric Bounds, Types & Command Conflicts", (
 
   test("validates docker containers array ports and required fields", () => {
     const rawNoPorts = canonicalPolicy();
-    const de = rawNoPorts["docker_environment"] as Record<
-      string,
-      Record<string, Record<string, unknown>>
-    >;
-    de["containers"]["web_app"]["ports"] = "3000:3000";
+    setField(rawNoPorts, ["docker_environment", "containers", "web_app", "ports"], "3000:3000");
     expect(() => parseRepoPolicy(rawNoPorts)).toThrow(HarnessError);
 
     const rawEmptyPort = canonicalPolicy();
-    const de2 = rawEmptyPort["docker_environment"] as Record<
-      string,
-      Record<string, Record<string, unknown>>
-    >;
-    de2["containers"]["web_app"]["ports"] = [""];
+    setField(rawEmptyPort, ["docker_environment", "containers", "web_app", "ports"], [""]);
     expect(() => parseRepoPolicy(rawEmptyPort)).toThrow(HarnessError);
   });
 });
+
 
 describe("Policy Schema Advanced - Lifecycle Hooks", () => {
   test("parses valid lifecycle hooks configuration with all event types", () => {
@@ -217,5 +205,26 @@ describe("Policy Schema Advanced - Lifecycle Hooks", () => {
       },
     };
     expect(() => parseRepoPolicy(rawNonString)).toThrow(HarnessError);
+  });
+
+  test("validates host temperature bounds and default test_runner fallback", () => {
+    const rawValidTemp = canonicalPolicy();
+    setField(rawValidTemp, ["agents", "mind_supervisor", "hosts", "antigravity", "temperature"], 0.7);
+    const parsed = parseRepoPolicy(rawValidTemp);
+    expect(parsed.agents?.["mind_supervisor"]?.hosts["antigravity"]?.temperature).toBe(0.7);
+
+    const rawHighTemp = canonicalPolicy();
+    setField(rawHighTemp, ["agents", "mind_supervisor", "hosts", "antigravity", "temperature"], 2.5);
+    expect(() => parseRepoPolicy(rawHighTemp)).toThrow(HarnessError);
+
+    const rawLowTemp = canonicalPolicy();
+    setField(rawLowTemp, ["agents", "mind_supervisor", "hosts", "antigravity", "temperature"], -0.5);
+    expect(() => parseRepoPolicy(rawLowTemp)).toThrow(HarnessError);
+
+    // Omitted test_runner
+    const rawNoTestRunner = canonicalPolicy();
+    delete (rawNoTestRunner as Record<string, unknown>)["test_runner"];
+    const parsedNoTestRunner = parseRepoPolicy(rawNoTestRunner);
+    expect(parsedNoTestRunner.test_runner.default_command).toBe("bun test");
   });
 });

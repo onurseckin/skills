@@ -231,6 +231,7 @@ describe("Singleton Skill Auditor Lease Lock Guard", () => {
   describe("assertSingletonSkillAuditor", () => {
     it("acquires lease with default and custom options and enforces collision", () => {
       const lease = assertSingletonSkillAuditor({
+        auditor_id: "skill_auditor",
         customLockPath: lockPath,
       });
       expect(lease.auditor_id).toBe("skill_auditor");
@@ -255,6 +256,114 @@ describe("Singleton Skill Auditor Lease Lock Guard", () => {
       expect(readAuditorLeaseLock(lockPath)).toBeNull();
       writeFileSync(lockPath, JSON.stringify({ auditor_id: "incomplete" }), "utf-8");
       expect(readAuditorLeaseLock(lockPath)).toBeNull();
+      writeFileSync(lockPath, JSON.stringify([1, 2, 3]), "utf-8");
+      expect(readAuditorLeaseLock(lockPath)).toBeNull();
+      writeFileSync(lockPath, JSON.stringify("a string"), "utf-8");
+      expect(readAuditorLeaseLock(lockPath)).toBeNull();
+      writeFileSync(lockPath, JSON.stringify(123), "utf-8");
+      expect(readAuditorLeaseLock(lockPath)).toBeNull();
+      // Test default lock path when no argument provided
+      expect(readAuditorLeaseLock()).toBeNull();
+      expect(readAuditorLeaseLock("   ")).toBeNull();
+    });
+  });
+
+  describe("pid liveness check error handling", () => {
+    it("handles EPERM and other error conditions in defaultIsPidAlive", () => {
+      // Test PID 1 (init/launchd) which often returns true or EPERM
+      expect(typeof defaultIsPidAlive(1)).toBe("boolean");
+
+      const origKill = process.kill;
+      try {
+        // Mock EPERM error object
+        (process as { kill: unknown }).kill = () => {
+          const err = new Error("EPERM") as Error & { code: string };
+          err.code = "EPERM";
+          throw err;
+        };
+        expect(defaultIsPidAlive(9999)).toBe(true);
+
+        // Mock generic error with code ESRCH
+        (process as { kill: unknown }).kill = () => {
+          const err = new Error("ESRCH") as Error & { code: string };
+          err.code = "ESRCH";
+          throw err;
+        };
+        expect(defaultIsPidAlive(9999)).toBe(false);
+
+        // Mock non-object error throw
+        (process as { kill: unknown }).kill = () => {
+          throw "string error";
+        };
+        expect(defaultIsPidAlive(9999)).toBe(false);
+      } finally {
+        process.kill = origKill;
+      }
+    });
+  });
+
+  describe("flock delay and timeout handling", () => {
+    it("throws LOCK_TIMEOUT when flock cannot be acquired before timeout", () => {
+      const origDateNow = Date.now;
+      let calls = 0;
+      try {
+        // Force Date.now to advance past 5000ms timeout on second check
+        Date.now = () => {
+          calls++;
+          return calls > 2 ? origDateNow() + 10000 : origDateNow();
+        };
+
+        const flockPath = `${lockPath}.flock`;
+        const { openSync, closeSync, constants } = require("node:fs");
+        const { tryExclusiveFlock, releaseFlock } = require("../../../olt/scripts/src/platform/index.ts");
+        const fd = openSync(flockPath, constants.O_RDWR | constants.O_CREAT, 0o600);
+        tryExclusiveFlock(fd);
+
+        try {
+          expect(() => {
+            acquireAuditorLeaseLock({
+              auditor_id: "auditor-timeout",
+              customLockPath: lockPath,
+            });
+          }).toThrow(HarnessError);
+        } finally {
+          releaseFlock(fd);
+          closeSync(fd);
+        }
+      } finally {
+        Date.now = origDateNow;
+      }
+    });
+  });
+
+  describe("releaseAuditorLeaseLock edge cases", () => {
+    it("returns false if existing lock file cannot be read or parsed", () => {
+      writeFileSync(lockPath, "{ invalid json", "utf-8");
+      expect(
+        releaseAuditorLeaseLock({
+          auditor_id: "auditor-1",
+          customLockPath: lockPath,
+        }),
+      ).toBe(false);
+    });
+
+    it("returns false if removing lock file throws filesystem error", async () => {
+      const lease = acquireAuditorLeaseLock({
+        auditor_id: "auditor-locked-dir",
+        customLockPath: lockPath,
+      });
+      const { chmodSync } = await import("node:fs");
+      try {
+        chmodSync(tempDir, 0o500);
+        const released = releaseAuditorLeaseLock({
+          auditor_id: "auditor-locked-dir",
+          lock_token: lease.lock_token,
+          customLockPath: lockPath,
+        });
+        expect(released).toBe(false);
+      } finally {
+        chmodSync(tempDir, 0o700);
+      }
     });
   });
 

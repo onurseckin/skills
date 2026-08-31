@@ -237,4 +237,48 @@ describe("Subagent Spawn Request Cardinality Validator", () => {
     expect(defaultIsPidAlive(0)).toBe(false);
     expect(defaultIsPidAlive(1.5)).toBe(false);
   });
+
+  it("handles various now option types in validateSubagentSpawnRequest", () => {
+    const activeLease = createActiveLease({
+      lease_expires_at: "2026-08-31T12:00:00Z",
+    });
+    const request: SubagentSpawnRequest = { role: "skill_auditor" };
+
+    // now as Date
+    const resDate = validateSubagentSpawnRequest(request, {
+      activeLeaseReader: () => activeLease,
+      isPidAliveFn: () => true,
+      now: new Date("2026-08-31T10:00:00Z"),
+    });
+    expect(resDate.allowed).toBe(false);
+
+    // now as ISO string
+    const resString = validateSubagentSpawnRequest(request, {
+      activeLeaseReader: () => activeLease,
+      isPidAliveFn: () => true,
+      now: "2026-08-31T10:00:00Z",
+    });
+    expect(resString.allowed).toBe(false);
+
+    // now as invalid string (falls back to Date.now())
+    const resInvalid = validateSubagentSpawnRequest(request, {
+      activeLeaseReader: () => activeLease,
+      isPidAliveFn: () => true,
+      now: "invalid-date-string",
+    });
+    expect(resInvalid.allowed).toBe(false);
+
+    // now as NaN number (falls back to Date.now())
+    const resNan = validateSubagentSpawnRequest(request, {
+      activeLeaseReader: () => activeLease,
+      isPidAliveFn: () => true,
+      now: NaN,
+    });
+    expect(resNan.allowed).toBe(false);
+
+    // null or undefined request
+    const resNull = validateSubagentSpawnRequest(null as unknown as SubagentSpawnRequest);
+    expect(resNull.allowed).toBe(false);
+    expect(resNull.role).toBe("unknown");
+  });
 });

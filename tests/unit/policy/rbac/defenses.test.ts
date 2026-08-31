@@ -107,5 +107,32 @@ describe("RBAC Subshell, Evaluator & Command Defenses", () => {
       samplePolicy,
     );
     expect(envRes.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+
+    // Env variants
+    expect(verifyCommandAuthorization(actor, ["env", "--", "git", "status"], samplePolicy).authorized).toBe(true);
+    expect(verifyCommandAuthorization(actor, ["env", "-i", "git", "status"], samplePolicy).authorized).toBe(true);
+    expect(verifyCommandAuthorization(actor, ["env", "--ignore-environment", "git", "status"], samplePolicy).authorized).toBe(true);
+    expect(verifyCommandAuthorization(actor, ["env", "-u", "FOO", "git", "status"], samplePolicy).authorized).toBe(true);
+    expect(verifyCommandAuthorization(actor, ["env", "--unset=FOO", "git", "status"], samplePolicy).authorized).toBe(true);
+
+    expect(verifyCommandAuthorization(actor, ["env", "-u"], samplePolicy).error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+    expect(verifyCommandAuthorization(actor, ["env", "-u", "-invalid", "git", "status"], samplePolicy).error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+    expect(verifyCommandAuthorization(actor, ["env", "-X", "git", "status"], samplePolicy).error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+    expect(verifyCommandAuthorization(actor, ["env", "VAR=1"], samplePolicy).error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+
+    // Git global option variants
+    expect(verifyCommandAuthorization(actor, ["git", "-C/tmp", "status"], samplePolicy).authorized).toBe(true);
+    expect(verifyCommandAuthorization(actor, ["git", "--git-dir=/tmp/.git", "status"], samplePolicy).authorized).toBe(true);
+    expect(verifyCommandAuthorization(actor, ["git", "--work-tree=/tmp", "status"], samplePolicy).authorized).toBe(true);
+    expect(verifyCommandAuthorization(actor, ["git", "-C"], samplePolicy).error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+    expect(verifyCommandAuthorization(actor, ["git", "-C", "-invalid", "status"], samplePolicy).error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+    expect(verifyCommandAuthorization(actor, ["git", "--unknown-global-opt", "status"], samplePolicy).error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
+
+    // Prefixed roles
+    const valSecurity = createActor("validator-security");
+    expect(verifyCommandAuthorization(valSecurity, ["git", "status"], samplePolicy).authorized).toBe(true);
+    const implBackend = createActor("implementer_backend");
+    expect(verifyCommandAuthorization(implBackend, ["git", "status"], samplePolicy).authorized).toBe(true);
   });
 });
+

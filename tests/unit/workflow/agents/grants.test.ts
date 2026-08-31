@@ -564,6 +564,114 @@ describe("workflow/agents/grants", () => {
           tokensEstimated: false,
         }),
       ).toThrow("released its grant and can no longer report");
+
+      // Reporting as different actor throws AUTHENTICATION_FAILURE
+      expect(() =>
+        recordAgentReport({
+          runRoot,
+          agentId: "agent-rel",
+          actor: "other-actor",
+          tools: [{ name: "view_file" }],
+          tokensEstimated: false,
+        }),
+      ).toThrow(HarnessError);
     });
   });
-});
+
+  test("releaseAgentGrant and registerAgentGrant authorization error branches", () => {
+    withRun((runRoot) => {
+        // Register parent coordinator
+        registerAgentGrant({
+          runRoot,
+          agentId: "coord-1",
+          role: "coordinator",
+          parentTaskId: null,
+          parentAgentId: null,
+          host: "antigravity",
+          authority: { kind: "conditional_genesis" },
+          maxAgents: 5,
+          telemetry: {},
+        });
+
+        // Register child worker under coord-1
+        registerAgentGrant({
+          runRoot,
+          agentId: "worker-1",
+          role: "implementer",
+          parentTaskId: "T-1",
+          parentAgentId: "coord-1",
+          host: "antigravity",
+          authority: { kind: "verified_parent", actorId: "coord-1" },
+          maxAgents: 5,
+          telemetry: {},
+        });
+
+        // Register worker-2 under coord-1
+        registerAgentGrant({
+          runRoot,
+          agentId: "worker-2",
+          role: "implementer",
+          parentTaskId: "T-1",
+          parentAgentId: "coord-1",
+          host: "antigravity",
+          authority: { kind: "verified_parent", actorId: "coord-1" },
+          maxAgents: 5,
+          telemetry: {},
+        });
+
+        // Releasing worker-1 as peer worker-2 throws AUTHENTICATION_FAILURE
+        expect(() =>
+          releaseAgentGrant({
+            runRoot,
+            agentId: "worker-1",
+            actor: "worker-2",
+            reason: "try release",
+          }),
+        ).toThrow("is not authenticated actor 'worker-2' or its active direct child");
+
+
+
+        // Releasing child as parent succeeds
+        const released = releaseAgentGrant({
+          runRoot,
+          agentId: "worker-1",
+          actor: "coord-1",
+          reason: "parent completed worker",
+        });
+        expect(released.grant.status).toBe("released");
+
+        // verified_parent registration with empty parentAgentId throws AUTHENTICATION_FAILURE
+        expect(() =>
+          registerAgentGrant({
+            runRoot,
+            agentId: "worker-bad",
+            role: "implementer",
+            parentTaskId: "T-1",
+            parentAgentId: null,
+            host: "antigravity",
+            authority: { kind: "verified_parent", actorId: "coord-1" },
+            maxAgents: 5,
+            telemetry: {},
+          }),
+        ).toThrow("verified parent registration requires a nonempty ledger and a named parent agent");
+
+        // conditional_genesis on non-empty ledger throws AUTHENTICATION_FAILURE
+        expect(() =>
+          registerAgentGrant({
+            runRoot,
+            agentId: "worker-noparent",
+            role: "implementer",
+            parentTaskId: "T-1",
+            parentAgentId: null,
+            host: "antigravity",
+            authority: { kind: "conditional_genesis" },
+            maxAgents: 5,
+            telemetry: {},
+          }),
+        ).toThrow("conditional agent genesis is valid only for the first grant in an empty ledger");
+
+      });
+    });
+  });
+
+

@@ -19,10 +19,11 @@ import {
   readTurboJson,
 } from "../../../olt/scripts/src/policy/generator/manifest-readers.ts";
 import {
-  detectEcosystem,
   inspectRepoPolicy,
   loadRepoPolicy,
 } from "../../../olt/scripts/src/policy/repo-policy.ts";
+import { detectRepoEcosystem } from "../../../olt/scripts/src/policy/generator/index.ts";
+
 import {
   isKnownTestRunner,
   isTargetTestArgument,
@@ -108,23 +109,24 @@ describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comp
     const auditFile = join(scratch, "audit.jsonl");
 
     const logger = new SecurityAuditLogger({
-      writerOptions: { auditLogPath: auditFile, inMemoryCapacity: 50 },
+      writerOptions: { logFilePath: auditFile, maxInMemoryEvents: 50 },
     });
 
     // Record various events
     await logger.logRbacDecision({
-      actor: { id: "worker-1", role: "implementer", tier: 3 },
+      actor: { id: "worker-1", role: "implementer" },
       command: "bun test",
       allowed: false,
       reason: "supervisory constraint",
     });
 
     await logger.logEnforcementAction({
-      actor: { id: "worker-1", role: "implementer", tier: 3 },
+      actor: { id: "worker-1", role: "implementer" },
       actionType: "file_density",
       allowed: true,
       target: "src/app.ts",
     });
+
 
     const recent = logger.queryAuditTrail({ limit: 10 });
     expect(recent.length).toBeGreaterThan(0);

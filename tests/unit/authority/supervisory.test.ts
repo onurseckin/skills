@@ -24,20 +24,20 @@ describe("Supervisory Invariant & Protocol Evaluation", () => {
     expect(computeScopeOverlaps([])).toEqual([]);
     expect(
       computeScopeOverlaps([
-        { taskId: "t1", writeScope: ["src/a.ts"] },
-        { taskId: "t2", writeScope: ["src/b.ts"] },
+        { taskId: "t1", agentId: "a1", writeScope: ["src/a.ts"] },
+        { taskId: "t2", agentId: "a2", writeScope: ["src/b.ts"] },
       ]),
     ).toEqual([]);
 
     const overlaps = computeScopeOverlaps([
-      { taskId: "t1", writeScope: ["src/a.ts", "src/shared.ts"] },
-      { taskId: "t2", writeScope: ["src/shared.ts", "src/b.ts"] },
-      { taskId: "t3", writeScope: [] },
+      { taskId: "t1", agentId: "a1", writeScope: ["src/a.ts", "src/shared.ts"] },
+      { taskId: "t2", agentId: "a2", writeScope: ["src/shared.ts", "src/b.ts"] },
+      { taskId: "t3", agentId: "a3", writeScope: [] },
     ]);
     expect(overlaps.length).toBe(1);
-    expect(overlaps[0].taskA).toBe("t1");
-    expect(overlaps[0].taskB).toBe("t2");
-    expect(overlaps[0].overlappingFiles).toEqual(["src/shared.ts"]);
+    expect(overlaps[0]?.taskA).toBe("t1");
+    expect(overlaps[0]?.taskB).toBe("t2");
+    expect(overlaps[0]?.overlappingFiles).toEqual(["src/shared.ts"]);
   });
 
   test("evaluateSupervisoryState returns compliant state for clean context", () => {
@@ -121,8 +121,8 @@ describe("Supervisory Invariant & Protocol Evaluation", () => {
     const context: SupervisoryReminderEvaluationContext = {
       role: "coordinator",
       activeLeases: [
-        { taskId: "task-A", writeScope: ["src/app.ts"] },
-        { taskId: "task-B", writeScope: ["src/app.ts"] },
+        { taskId: "task-A", agentId: "agent-a", writeScope: ["src/app.ts"] },
+        { taskId: "task-B", agentId: "agent-b", writeScope: ["src/app.ts"] },
       ],
     };
     const res = evaluateSupervisoryState(context);
@@ -136,6 +136,7 @@ describe("Supervisory Invariant & Protocol Evaluation", () => {
     const context: SupervisoryReminderEvaluationContext = {
       role: "coordinator",
       queueState: {
+        totalCount: 5,
         readyCount: 5,
         runningCount: 0,
         blockedCount: 0,
@@ -197,7 +198,7 @@ describe("Supervisory Invariant & Protocol Evaluation", () => {
       openFindingsCount: 2,
       failedGatesCount: 1,
       unprovenGatesCount: 1,
-      activeLeases: [{ taskId: "active-1", writeScope: [] }],
+      activeLeases: [{ taskId: "active-1", agentId: "agent-1", writeScope: [] }],
     };
     const res = evaluateSupervisoryState(context);
     expect(res.compliant).toBe(false);
@@ -242,9 +243,21 @@ describe("Supervisory Invariant & Protocol Evaluation", () => {
       evidenceVerificationFailed: true,
       evidenceVerification: {
         certified: false,
-        eventHashChainValid: false,
-        commandReceiptsValid: false,
+        milestone: "execution",
+        capsulePath: "/path/to/capsule",
+        hashChain: {
+          valid: false,
+          totalEvents: 10,
+          headHash: "hash-head",
+          brokenAtSequence: 4,
+          error: "Tampered hash at seq 4",
+        },
+        commandReceipts: [],
+        requiredEvents: [],
+        missingEvents: [],
+        failedReceipts: [],
         errors: ["Tampered hash at seq 4"],
+        summary: "Failed evidence verification",
       },
     };
     const res = evaluateSupervisoryState(context);
@@ -295,6 +308,52 @@ describe("Supervisory Invariant & Protocol Evaluation", () => {
     expect(minimal.runId).toBeNull();
     expect(minimal.pulseId).toBeNull();
     expect(minimal.compactPromptInjection).not.toContain("DIRECTIVES:");
+  });
+
+  test("covers low severity drift score and evidence verification object", () => {
+    // Evidence verification object with errors
+    const context: SupervisoryReminderEvaluationContext = {
+      role: "coordinator",
+      evidenceVerification: {
+        certified: false,
+        milestone: "execution",
+        capsulePath: "/path/to/capsule",
+        hashChain: {
+          valid: false,
+          totalEvents: 10,
+          headHash: "hash-head",
+          brokenAtSequence: 4,
+          error: "Cryptographic hash chain broken at sequence 4",
+        },
+        commandReceipts: [],
+        requiredEvents: [],
+        missingEvents: [],
+        failedReceipts: [],
+        errors: ["Cryptographic hash chain broken at sequence 4"],
+        summary: "Failed evidence verification",
+      },
+    };
+    const res = evaluateSupervisoryState(context);
+    expect(res.compliant).toBe(false);
+    expect(res.violations.some((v) => v.code === "PROSE_EVIDENCE_BIAS_BREACH")).toBe(true);
+
+    // Subagent idle warning producing low severity and 0.05 drift score
+    const idleContext: SupervisoryReminderEvaluationContext = {
+      role: "orchestrator",
+      subagentIdleWarningCount: 2,
+    };
+    const idleRes = evaluateSupervisoryState(idleContext);
+    expect(idleRes.compliant).toBe(false);
+    expect(idleRes.severity).toBe("low");
+    expect(idleRes.driftScore).toBe(0.05);
+
+    // Formatter handles reminder with low severity / idle warning
+    const reminderWithIdle = constructSupervisoryPersonaReminder({
+      role: "orchestrator",
+      context: idleContext,
+    });
+    expect(reminderWithIdle.renderedMarkdown).toContain("⚠️ NEGLECTED");
+    expect(reminderWithIdle.renderedMarkdown).toContain("subagent idle warning");
   });
 
   test("STANDING_CHECKLIST_DEFINITIONS and DECISION_PROTOCOLS constants integrity", () => {

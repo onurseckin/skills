@@ -14,7 +14,8 @@ import {
   resolveHostProvider,
   type SubagentDispatchPacket,
 } from "../../../olt/scripts/src/platform/index.ts";
-import { isCoordinatorPushbackCause } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { isCoordinatorPushbackCause, type JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+
 import {
   recordCoordinatorPushback,
   validateCoordinatorPushbackInput,
@@ -247,12 +248,13 @@ describe("Coordinator Pushback Execution Logic", () => {
       repair_round: 0,
     };
 
-    const report = evaluateUnfulfilledDemands(state as unknown as Record<string, unknown>);
+    const report = evaluateUnfulfilledDemands(state as unknown as JsonObject);
     expect(report.hasUnfulfilledDemands).toBeTrue();
     expect(report.totalUnfulfilled).toBeGreaterThan(0);
 
-    expect(() => assertNoUnfulfilledDemands(state as unknown as Record<string, unknown>)).toThrow(
+    expect(() => assertNoUnfulfilledDemands(state as unknown as JsonObject)).toThrow(
       /unfulfilled.*demand/i,
     );
+
   });
 });

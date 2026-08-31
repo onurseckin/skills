@@ -12,6 +12,8 @@ export interface TimerProtectionTarget {
 }
 
 export class TimerProtectionGuard {
+  public constructor() {}
+
   public static assertCanKillTimer(
     caller: TimerProtectionCaller,
     timer: TimerProtectionTarget,

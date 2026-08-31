@@ -247,4 +247,40 @@ describe("validateChecklistCoverage: malformed entries", () => {
     expect(result.adjacent_findings).toHaveLength(1);
     expect(result.adjacent_findings[0]!.id).toBe("AF-1");
   });
+
+  test("validateReview enforces individual command evidence on resolved_findings in passing review", () => {
+    const t = task({ requirement_ids: ["R-1"] });
+    const passingReviewWithoutEvidence = {
+      verdict: "pass" as const,
+      requirement_ids: ["R-1"],
+      checks: [{ command_id: "C-1" }],
+      findings: [],
+      resolved_findings: [
+        {
+          finding_id: "F-PREV",
+          method: "regression-test",
+          evidence: [], // Empty evidence violates anti-batching
+        },
+      ],
+    };
+
+    expect(() => validateReview(t, passingReviewWithoutEvidence)).toThrow(
+      /revalidation evidence for F-PREV must contain nonempty substantive objects/,
+    );
+
+
+    const passingReviewWithEvidence = {
+      ...passingReviewWithoutEvidence,
+      resolved_findings: [
+        {
+          finding_id: "F-PREV",
+          method: "regression-test",
+          evidence: [{ command_id: "C-2" }],
+        },
+      ],
+    };
+    const valid = validateReview(t, passingReviewWithEvidence);
+    expect(valid.verdict).toBe("pass");
+    expect(valid.resolved_findings).toHaveLength(1);
+  });
 });

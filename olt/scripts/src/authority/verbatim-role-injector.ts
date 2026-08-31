@@ -47,6 +47,8 @@ export interface SubagentDispatchPromptOptions {
 }
 
 export class VerbatimRoleInjector {
+  public constructor() {}
+
   public static resolveManifestPath(repoRoot: string, role: string): string {
     const candidates = [
       join(repoRoot, "olt", "agents", `${role}.yaml`),

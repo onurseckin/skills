@@ -173,6 +173,34 @@ describe("RootDirectoryHygieneGuard", () => {
     }).not.toThrow();
   });
 
+  it("blocks forbidden runtime directories and files inside olt/", () => {
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "olt/coverage/summary.json");
+    }).toThrow(HarnessError);
+
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "olt/quarantine/file.txt");
+    }).toThrow(HarnessError);
+
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "olt/.coverage/data.json");
+    }).toThrow(HarnessError);
+
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "olt/build.log");
+    }).toThrow(HarnessError);
+
+    // References directory inside olt is exempt
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "olt/references/schema.jsonl");
+    }).not.toThrow();
+
+    // Empty relative path
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "");
+    }).toThrow(HarnessError);
+  });
+
   it("can be instantiated without errors", () => {
     const guard = new RootDirectoryHygieneGuard();
     expect(guard).toBeDefined();

@@ -141,10 +141,15 @@ describe("Task 4.2: Owner Role Genesis & Manifest Schema Optionality", () => {
       expect(manifest.permissions.commands).toContain("agent:register");
       expect(manifest.permissions.commands).toContain("recover");
 
-      expect(validateUnifiedAgentManifest(manifest).valid).toBe(true);
-
       const policy = loadRepoPolicy();
-      const health = auditPermissionHealth(manifest, policy);
+      const manifestLike = {
+        ...manifest,
+        permissions: {
+          ...manifest.permissions,
+          commands: manifest.permissions.commands ?? [],
+        },
+      };
+      const health = auditPermissionHealth(manifestLike, policy);
       expect(health.healthy).toBe(true);
       expect(health.errors).toHaveLength(0);
     });

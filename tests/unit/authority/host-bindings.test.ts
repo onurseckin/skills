@@ -28,8 +28,11 @@ describe("host-bindings", () => {
       expect(normalizeRoleKey("tier-2")).toBe("coordinator");
       expect(normalizeRoleKey("tier-3")).toBe("implementer");
       expect(normalizeRoleKey("ui-validator")).toBe("validator_ui_design");
+      expect(normalizeRoleKey("independent-planner-audit")).toBe("skill_auditor");
       expect(normalizeRoleKey("owner")).toBe("owner");
       expect(normalizeRoleKey("")).toBe("");
+      expect(normalizeRoleKey(null as unknown as string)).toBe("");
+      expect(normalizeRoleKey(123 as unknown as string)).toBe("");
     });
   });
 
@@ -151,6 +154,18 @@ describe("host-bindings", () => {
           defaultPolicy,
         ),
       ).toThrow(/Cannot resolve agent role/i);
+    });
+
+    test("throws INVALID_ARGUMENT when host type is invalid", () => {
+      expect(() =>
+        resolveAgentHostConfiguration("mind", "invalid_host_type" as unknown as "antigravity", defaultPolicy),
+      ).toThrow(/Invalid host type/i);
+    });
+
+    test("falls back to generateDefaultRepoPolicy when policy.agents is undefined", () => {
+      const emptyPolicy = {} as RepoPolicy;
+      const config = resolveAgentHostConfiguration("mind", "antigravity", emptyPolicy);
+      expect(config.model).toBe("gemini-3.7-flash");
     });
 
     test("throws INTEGRITY when host configuration is missing for a role", () => {

@@ -179,4 +179,62 @@ describe("Aggressive Unfulfilled-Demand Pushback Engine", () => {
     expect(gateItem?.kind).toBe("gate");
     expect(gateItem?.rootCause).toContain("Mandatory gate 'gate-platform' has not passed");
   });
+
+  test("handles tasks defined only in graph.nodes, validating/submitted statuses, and targetTaskIds filter", () => {
+    const state: JsonObject = {
+      tasks: {
+        "task-sub": {
+          status: "submitted",
+          write_scope: ["src/sub.ts"],
+        },
+        "task-val": {
+          status: "validating",
+          write_scope: ["src/val.ts"],
+        },
+        "task-ignored": {
+          status: "ready",
+          write_scope: ["src/ignored.ts"],
+        },
+      },
+      graph: {
+        nodes: [
+          { id: "task-graph-only", type: "task", status: "proposed", write_scope: ["src/g.ts"], label: "Graph Only" },
+        ],
+      },
+    };
+
+    const report = evaluateUnfulfilledDemands(state, {
+      targetTaskIds: ["task-sub", "task-val", "task-graph-only"],
+    });
+
+    expect(report.hasUnfulfilledDemands).toBeTrue();
+    expect(report.unfulfilledItems.length).toBe(3);
+
+    const subItem = report.unfulfilledItems.find((i) => i.id === "task-sub");
+    expect(subItem?.rootCause).toContain("awaiting independent validator sign-off");
+
+    const valItem = report.unfulfilledItems.find((i) => i.id === "task-val");
+    expect(valItem?.rootCause).toContain("awaiting independent validator sign-off");
+
+    const graphOnlyItem = report.unfulfilledItems.find((i) => i.id === "task-graph-only");
+    expect(graphOnlyItem?.label).toBe("Graph Only");
+    expect(graphOnlyItem?.rootCause).toContain("never claimed by an implementer");
+  });
+
+  test("flags admitted candidates when 0 tasks exist in plan under strictCandidates", () => {
+    const state: JsonObject = {
+      candidates: [
+        { id: "cand-1", status: "admitted", write_scope: ["src/c1.ts"] },
+      ],
+    };
+
+    const report = evaluateUnfulfilledDemands(state, { strictCandidates: true });
+    expect(report.hasUnfulfilledDemands).toBeTrue();
+    const candItem = report.unfulfilledItems.find((i) => i.id === "cand-1");
+    expect(candItem).toBeDefined();
+    expect(candItem?.kind).toBe("action");
+    expect(candItem?.status).toBe("admitted_unplanned");
+    expect(candItem?.rootCause).toContain("no execution tasks were planned or completed");
+  });
 });
+

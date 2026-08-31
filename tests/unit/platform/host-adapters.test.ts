@@ -196,15 +196,15 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
       ];
 
       for (const [role, model, reasoningEffort] of policy) {
+        const { modelTier: _m, thinkingLevel: _t, ...rest } = samplePacket;
         const result = adapter.dispatchMechanical({
-          ...samplePacket,
+          ...rest,
           role,
-          modelTier: undefined,
-          thinkingLevel: undefined,
         });
         expect(result.toolArguments.model).toBe(model);
         expect(result.toolArguments.reasoning_effort).toBe(reasoningEffort);
       }
+
     });
 
     test("capabilities reflect Codex specifications", () => {
@@ -276,6 +276,44 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
     const fallback = dispatchSubagent("codex", samplePacket, { forceCognitiveFallback: true });
     expect(fallback.provider).toBe("codex");
     expect(fallback.mode).toBe("cognitive_fallback");
+
+    // Test dispatch with forceCognitiveFallback across all adapters directly
+    const adapters = [
+      new AntigravityHostAdapter(),
+      new ClaudeCodeHostAdapter(),
+      new CursorHostAdapter(),
+      new CodexHostAdapter(),
+      new ChatGptHostAdapter(),
+    ];
+
+    const minimalPacket: SubagentDispatchPacket = {
+      agentId: "worker-min",
+      role: "validator",
+      runRoot: ".olt/capsules/min",
+      taskDescription: "Minimal task description",
+      writeScope: [],
+      extraInstructions: "Extra rule instructions",
+      workspaceMode: "none",
+    };
+
+    for (const ad of adapters) {
+      const mech = ad.dispatch(samplePacket);
+      expect(mech.mode).toBe("mechanical");
+
+      const cog = ad.dispatch(samplePacket, { forceCognitiveFallback: true });
+      expect(cog.mode).toBe("cognitive_fallback");
+
+      const minCog = ad.dispatch(minimalPacket, { forceCognitiveFallback: true });
+      expect(minCog.mode).toBe("cognitive_fallback");
+
+      const minMech = ad.dispatch(minimalPacket);
+      expect(minMech.mode).toBe("mechanical");
+
+      const cliSeq = ad.buildMandatoryCliSequence(".olt/capsules/run", "agent-x", "implementer", "task-x");
+      expect(cliSeq.agentId).toBe("agent-x");
+      expect(cliSeq.taskId).toBe("task-x");
+    }
+
   });
 
   test("getHostAdapter throws INVALID_ARGUMENT on unknown host provider", () => {
@@ -285,4 +323,5 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
       ),
     ).toThrow(/Unsupported host provider/);
   });
+
 });

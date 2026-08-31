@@ -149,11 +149,6 @@ export function loadValidatorDomainContract(
     }
   }
 
-  if (contract.role !== "validator")
-    throw new HarnessError(
-      "INTEGRITY",
-      `validator domain contract ${path} declares role ${contract.role}`,
-    );
   if (contract.domain !== domain)
     throw new HarnessError(
       "INTEGRITY",

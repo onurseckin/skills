@@ -255,7 +255,8 @@ charter:
     expect(policy.allowed_commands).toContain("oxlint");
     expect(validateRepoPolicy(policy).schema_version).toBe(1);
 
-    const cmdDir = join(initRes.run_root, "commands");
+    const runRoot = typeof initRes.run_root === "string" ? initRes.run_root : "";
+    const cmdDir = join(runRoot, "commands");
     mkdirSync(cmdDir, { recursive: true });
     writeFileSync(
       join(cmdDir, "cmd-1.json"),
@@ -266,16 +267,38 @@ charter:
     expect(existsSync(join(dir, ".olt", "policy.json"))).toBe(false);
 
     mindObserveCommand({
-      run: initRes.run_root,
+      run: runRoot,
       actor: "mind-test-calib",
       source: "intent-drift",
       "command-id": "cmd-1",
-      count: 0,
+      count: "0",
     });
+
 
     expect(existsSync(join(dir, ".olt", "policy.json"))).toBe(true);
     const reloaded = loadRepoPolicy(dir);
     expect(reloaded.ecosystem).toBe("bun");
     expect(reloaded.lint_command).toBe("oxlint");
   });
+
+  test("discovers pnpm and yarn with TypeScript without custom typecheck script", () => {
+    const pnpmDir = join(scratch, "pnpm-ts-only");
+    mkdirSync(pnpmDir, { recursive: true });
+    writeFileSync(join(pnpmDir, "pnpm-lock.yaml"), "");
+    writeFileSync(join(pnpmDir, "tsconfig.json"), "{}");
+    writeFileSync(join(pnpmDir, "package.json"), JSON.stringify({ name: "pnpm-ts-app" }));
+
+    const pnpmDisc = discoverToolchain(pnpmDir, "node");
+    expect(pnpmDisc.typecheckCommand).toBe("pnpm exec tsc --noEmit");
+
+    const yarnDir = join(scratch, "yarn-ts-only");
+    mkdirSync(yarnDir, { recursive: true });
+    writeFileSync(join(yarnDir, "yarn.lock"), "");
+    writeFileSync(join(yarnDir, "tsconfig.json"), "{}");
+    writeFileSync(join(yarnDir, "package.json"), JSON.stringify({ name: "yarn-ts-app" }));
+
+    const yarnDisc = discoverToolchain(yarnDir, "node");
+    expect(yarnDisc.typecheckCommand).toBe("yarn tsc --noEmit");
+  });
 });
+

@@ -99,103 +99,57 @@ describe("Worktree Manager & Landing", () => {
     expect(activeList.some((t) => t.trackId === "track-beta")).toBe(true);
   });
 
-  test("landTrackToMain rebases onto origin/main, atomic pushes, and cleans up", () => {
-    const executed: string[][] = [];
-    const mockRunner: GitRunner = (_cwd, argv) => {
-      executed.push([...argv]);
-      if (argv[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
-      if (argv[0] === "rebase") return { status: 0, stdout: "", stderr: "" };
-      if (argv[0] === "rev-parse" && argv[1] === "HEAD") {
-        return { status: 0, stdout: "commit-sha-789\n", stderr: "" };
-      }
-      if (argv[0] === "push") return { status: 0, stdout: "", stderr: "" };
-      if (argv[0] === "worktree") return { status: 0, stdout: "", stderr: "" };
-      if (argv[0] === "branch") return { status: 0, stdout: "", stderr: "" };
-      return { status: 0, stdout: "", stderr: "" };
-    };
+  test("evicts stale locks with dead PIDs or corrupted JSON", () => {
+    const lockDir = join(TEST_DIR, ".olt", "worktrees", "locks");
+    mkdirSync(lockDir, { recursive: true });
 
-    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-land-1");
-    const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "track-land-1.lock");
-    mkdirSync(worktreeDir, { recursive: true });
-    mkdirSync(join(TEST_DIR, ".olt", "worktrees", "locks"), { recursive: true });
-    writeFileSync(lockPath, JSON.stringify({ pid: process.pid, trackId: "track-land-1" }), "utf8");
+    // 1. Dead PID lock
+    const deadLockPath = join(lockDir, "track-dead.lock");
+    writeFileSync(
+      deadLockPath,
+      JSON.stringify({ trackId: "track-dead", pid: 999999999, createdAt: new Date().toISOString() }),
+    );
 
-    let customHookFired = false;
-    const result = landTrackToMain({
-      trackId: "track-land-1",
+    const mockRunner: GitRunner = (_cwd, _argv) => ({ status: 0, stdout: "", stderr: "" });
+    const res1 = createTrackWorktree({
+      trackId: "track-dead",
       repoRoot: TEST_DIR,
-      remote: "origin",
-      targetBranch: "main",
       runner: mockRunner,
-      customHookExecutor: () => {
-        customHookFired = true;
-      },
     });
+    expect(res1.trackId).toBe("track-dead");
 
-    expect(result.success).toBe(true);
-    expect(result.trackId).toBe("track-land-1");
-    expect(result.commitSha).toBe("commit-sha-789");
-    expect(result.targetBranch).toBe("main");
-    expect(result.rebased).toBe(true);
-    expect(result.pushed).toBe(true);
-    expect(result.cleaned).toBe(true);
-    expect(result.tornDown).toBe(true);
-    expect(result.hookExecuted).toBe(true);
-    expect(customHookFired).toBe(true);
-
-    const pushCalls = executed.filter((c) => c[0] === "push");
-    expect(pushCalls.length).toBeGreaterThan(0);
-    expect(pushCalls[0]).toContain("--atomic");
-
-    const telemetryPath = join(TEST_DIR, ".olt", "telemetry.jsonl");
-    expect(existsSync(telemetryPath)).toBe(true);
-    const telemetry = JSON.parse(readFileSync(telemetryPath, "utf8").trim());
-    expect(telemetry.event).toBe("track_landed");
-    expect(telemetry.trackId).toBe("track-land-1");
-    expect(telemetry.commitSha).toBe("commit-sha-789");
-
-    expect(existsSync(lockPath)).toBe(false);
+    // 2. Corrupted JSON lock
+    destroyTrackWorktree({ trackId: "track-dead", repoRoot: TEST_DIR, runner: mockRunner });
+    const corruptLockPath = join(lockDir, "track-corrupt.lock");
+    writeFileSync(corruptLockPath, "invalid json content");
+    const res2 = createTrackWorktree({
+      trackId: "track-corrupt",
+      repoRoot: TEST_DIR,
+      runner: mockRunner,
+    });
+    expect(res2.trackId).toBe("track-corrupt");
   });
 
-  test("landTrackToMain with string parameter returns Promise<void>", async () => {
-    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-str-1");
-    mkdirSync(worktreeDir, { recursive: true });
-
-    const promise = landTrackToMain("missing-worktree-track");
-    expect(promise).toBeInstanceOf(Promise);
-    await expect(promise).rejects.toThrow(HarnessError);
-  });
-
-  test("landTrackToMain throws INTEGRITY error on rebase conflict", () => {
-    const mockRunner: GitRunner = (_cwd, argv) => {
-      if (argv[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
-      if (argv[0] === "rebase") {
-        return {
-          status: 1,
-          stdout: "CONFLICT (content): Merge conflict in src/file.ts\n",
-          stderr: "",
-        };
-      }
-      if (argv[0] === "diff") {
-        return { status: 0, stdout: "src/file.ts\n", stderr: "" };
-      }
-      return { status: 0, stdout: "", stderr: "" };
-    };
-
-    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-conflict");
-    mkdirSync(worktreeDir, { recursive: true });
+  test("throws LOCK_TIMEOUT when lock is held by living process beyond timeout", () => {
+    const lockDir = join(TEST_DIR, ".olt", "worktrees", "locks");
+    mkdirSync(lockDir, { recursive: true });
+    const lockPath = join(lockDir, "track-locked.lock");
+    // Write lock with current living PID
+    writeFileSync(
+      lockPath,
+      JSON.stringify({ trackId: "track-locked", pid: process.pid, createdAt: new Date().toISOString() }),
+    );
 
     expect(() =>
-      landTrackToMain({
-        trackId: "track-conflict",
+      createTrackWorktree({
+        trackId: "track-locked",
         repoRoot: TEST_DIR,
-        remote: "origin",
-        runner: mockRunner,
+        lockTimeoutMs: 50,
       }),
-    ).toThrow(HarnessError);
+    ).toThrow(/could not be acquired within 50ms/);
   });
 
-  test("destroyTrackWorktree cleans worktree directory, deletes branch, and releases lock", () => {
+  test("destroyTrackWorktree safely removes directory and releases lock on git error", () => {
     const executed: string[][] = [];
     const mockRunner: GitRunner = (_cwd, argv) => {
       executed.push([...argv]);
@@ -225,6 +179,52 @@ describe("Worktree Manager & Landing", () => {
     expect(executed.some((c) => c[0] === "worktree" && c[1] === "prune")).toBe(true);
   });
 
+  test("destroyTrackWorktree handles git remove failure by falling back to safeRmSync", () => {
+    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-git-fail");
+    mkdirSync(worktreeDir, { recursive: true });
+
+    const failingRunner: GitRunner = (_cwd, argv) => {
+      if (argv[0] === "worktree" && argv[1] === "remove") throw new Error("git worktree remove failed");
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+    const result = destroyTrackWorktree({
+      trackId: "track-git-fail",
+      repoRoot: TEST_DIR,
+      runner: failingRunner,
+    });
+    expect(result.cleaned).toBe(true);
+    expect(existsSync(worktreeDir)).toBe(false);
+  });
+
+  test("destroyTrackWorktree string overload executes and returns void", () => {
+    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-str-destroy");
+    mkdirSync(worktreeDir, { recursive: true });
+
+    destroyTrackWorktree({
+      trackId: "track-str-destroy",
+      repoRoot: TEST_DIR,
+      runner: () => ({ status: 0, stdout: "", stderr: "" }),
+    });
+    expect(existsSync(worktreeDir)).toBe(false);
+  });
+
+  test("listTrackWorktrees handles missing worktree root and corrupt meta files", () => {
+    // 1. Missing root
+    const missingRoot = join(TEST_DIR, "nonexistent-repo");
+    expect(listTrackWorktrees({ repoRoot: missingRoot })).toEqual([]);
+
+    // 2. Existing root with corrupt meta file
+    const wtDir = join(TEST_DIR, ".olt", "worktrees", "track-corrupt-meta");
+    mkdirSync(wtDir, { recursive: true });
+    writeFileSync(join(wtDir, ".worktree-meta.json"), "invalid json");
+
+    const list = listTrackWorktrees({ repoRoot: TEST_DIR });
+    expect(list.length).toBe(1);
+    expect(list[0].trackId).toBe("track-corrupt-meta");
+    expect(list[0].branch).toBe("track/track-corrupt-meta");
+  });
+
   test("cleanupTrackWorktree alias performs identical teardown", () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-clean-alias");
     mkdirSync(worktreeDir, { recursive: true });
@@ -243,7 +243,7 @@ describe("Worktree Manager & Landing", () => {
     const executed: string[][] = [];
     const mockRunner: GitRunner = (_cwd, argv) => {
       executed.push([...argv]);
-      if (argv[0] === "show-ref" && argv.includes("refs/heads/track/track-existing")) {
+      if (argv[0] === "rev-parse" && argv.includes("refs/heads/track/track-existing")) {
         return { status: 0, stdout: "abc\n", stderr: "" };
       }
       return { status: 0, stdout: "", stderr: "" };

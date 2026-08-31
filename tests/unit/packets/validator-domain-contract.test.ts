@@ -164,4 +164,81 @@ describe("B12.3: delivery of a validator domain's standing checklist through its
       expect(loadValidatorDomainContract(domain).commands).toEqual(base.commands);
     }
   });
+
+  test("loadValidatorDomainContract supports manifest without matched section", () => {
+    const yamlManifest = [
+      "name: validator",
+      "role: validator",
+      "tier: 3",
+      "permissions:",
+      "  may:",
+      "    - Validate",
+      "  must_not:",
+      "    - Implement",
+      "  commands:",
+      "    - task:review",
+      "  spawns: []",
+      "domain: security",
+      "instructions: |",
+      "  Standard security validator instructions without markdown section headers.",
+    ].join("\n");
+
+    const mockRead = (path: string) => {
+      if (path.includes("checklists/")) {
+        return encoder.encode(
+          "# Security checklist\nDomain: security\n\n## SEC-AUTHN-001\n\nrule: Token is verified\nrationale: Prevent spoofing\nhow-to-check: Verify signature\nseverity: critical\nsources:\n  - OWASP\n",
+        );
+      }
+      return encoder.encode(yamlManifest);
+    };
+
+    const contract = loadValidatorDomainContract("security", mockRead);
+    expect(contract.role).toBe("validator");
+    expect(contract.domain).toBe("security");
+    expect(contract.text).toContain("Standard security validator instructions");
+  });
+
+  test("loadValidatorDomainContract throws INTEGRITY when manifest declares wrong role", () => {
+    const yamlManifest = [
+      "name: implementer",
+      "role: implementer",
+      "tier: 3",
+      "permissions:",
+      "  may: []",
+      "  must_not: []",
+      "  commands: []",
+      "  spawns: []",
+      "domain: security",
+      "instructions: Implementer instructions.",
+    ].join("\n");
+
+    const mockRead = () => encoder.encode(yamlManifest);
+    expect(() => loadValidatorDomainContract("security", mockRead)).toThrow(/declares role implementer/u);
+  });
+
+  test("loadValidatorDomainContract throws INTEGRITY when manifest declares mismatched domain", () => {
+    const yamlManifest = [
+      "name: validator",
+      "role: validator",
+      "tier: 3",
+      "permissions:",
+      "  may: []",
+      "  must_not: []",
+      "  commands: []",
+      "  spawns: []",
+      "domain: product",
+      "instructions: Product instructions.",
+    ].join("\n");
+
+    const mockRead = (path: string) => {
+      if (path.includes("checklists/")) {
+        return encoder.encode(
+          "# Security checklist\nDomain: security\n\n## SEC-AUTHN-001\n\nrule: Token is verified\nrationale: Prevent spoofing\nhow-to-check: Verify signature\nseverity: critical\nsources:\n  - OWASP\n",
+        );
+      }
+      return encoder.encode(yamlManifest);
+    };
+
+    expect(() => loadValidatorDomainContract("security", mockRead)).toThrow(/declares domain product/u);
+  });
 });

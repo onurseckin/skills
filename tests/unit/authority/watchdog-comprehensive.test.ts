@@ -227,4 +227,67 @@ describe("Authority Watchdog Store, Lock, Operations & Verification Comprehensiv
 
     rmSync(scratch, { recursive: true, force: true });
   });
+
+  test("store and lock validation, error branches and authority roots", () => {
+    const scratch = scratchRoot(import.meta.path, "watchdog-lock-root-test");
+
+    const {
+      timestampMilliseconds,
+      validateWatchdogRecord,
+      validateWatchdogStore,
+    } = require("../../../olt/scripts/src/authority/watchdog/store.ts");
+
+    const {
+      assertRealDirectory,
+      openVerifiedParent,
+      watchdogAuthorityRoot,
+      requiredNoFollowFlag,
+      assertCurrentLockAuthority,
+    } = require("../../../olt/scripts/src/authority/watchdog/lock.ts");
+
+    // timestampMilliseconds
+    expect(() => timestampMilliseconds(123, "time")).toThrow("must be a timestamp string");
+    expect(() => timestampMilliseconds("", "time")).toThrow("must be a timestamp string");
+    expect(() => timestampMilliseconds("   ", "time")).toThrow("must be a timestamp string");
+
+    // validateWatchdogRecord
+    expect(() => validateWatchdogRecord(null, "record")).toThrow("must be an object");
+    expect(() => validateWatchdogRecord("not-obj", "record")).toThrow("must be an object");
+
+    // validateWatchdogStore
+    expect(() => validateWatchdogStore(null)).toThrow("root must be an object");
+    expect(() => validateWatchdogStore("string")).toThrow("root must be an object");
+
+    // requiredNoFollowFlag
+    expect(requiredNoFollowFlag()).toBeGreaterThan(0);
+
+    // assertRealDirectory with non-existent directory
+    expect(() => assertRealDirectory(join(scratch, "non-existent-dir"), "test")).toThrow(
+      "is unavailable",
+    );
+
+    // assertRealDirectory with file instead of directory
+    const testFile = join(scratch, "file.txt");
+    writeFileSync(testFile, "content", "utf-8");
+    expect(() => assertRealDirectory(testFile, "test")).toThrow("must be a real directory");
+
+    // openVerifiedParent with non-existent parent and create=false
+    expect(() => openVerifiedParent(join(scratch, "missing-parent"), false)).toThrow(
+      "watchdog store parent is unavailable",
+    );
+
+    // watchdogAuthorityRoot with .olt
+    const oltStorePath = join(scratch, ".olt", "watchdogs.json");
+    expect(watchdogAuthorityRoot(oltStorePath)).toBe(scratch);
+
+    // watchdogAuthorityRoot with direct directory
+    const customStorePath = join(scratch, "custom", "watchdogs.json");
+    mkdirSync(join(scratch, "custom"), { recursive: true });
+    expect(watchdogAuthorityRoot(customStorePath)).toBe(join(scratch, "custom"));
+
+    // assertCurrentLockAuthority when lock is not held
+    expect(() => assertCurrentLockAuthority(oltStorePath)).toThrow("has no active lock authority");
+
+    rmSync(scratch, { recursive: true, force: true });
+  });
 });

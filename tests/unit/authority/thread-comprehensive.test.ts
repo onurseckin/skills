@@ -144,12 +144,23 @@ describe("Authority Thread Context, Naming, Role Mapping & Spawning Comprehensiv
       agent_id: "main-user",
       observation: "Direct file modification on main thread",
       remediation: "Dispatch Tier 2 coordinator",
-      context: { cwd: scratch },
+      context: { cwd: scratch, indicators: {} },
     };
 
-    recordDefect(scratch, defect);
+    recordDefect(defect, { cwd: scratch });
     const defectFile = join(scratch, ".olt", "defects.jsonl");
     expect(recordDefect).toBeDefined();
+
+    // identifyExecutionContext with recordDefectInTest
+    const ctxWithDefect = identifyExecutionContext({
+      cwd: scratch,
+      runRoot: scratch,
+      isInteractiveMainThread: true,
+      argv: ["bun", "harness.ts", "task:claim"],
+      recordDefectInTest: true,
+    });
+    expect(ctxWithDefect.defect).toBeDefined();
+    expect(ctxWithDefect.defect?.severity).toBe("critical");
 
     rmSync(scratch, { recursive: true, force: true });
   });

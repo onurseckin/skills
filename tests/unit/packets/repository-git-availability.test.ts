@@ -216,4 +216,16 @@ describe("repository Git availability controls", () => {
     expect((caught as HarnessError).code).toBe("INVALID_STATE");
     expect((caught as HarnessError).message).toBe("repository Git command timed out");
   });
+
+  test("re-throws non-ENOENT errors during metadata inspection", () => {
+    const repo = repository();
+    const eacces = Object.assign(new Error("Permission denied"), { code: "EACCES" });
+    expect(() =>
+      preflightRepositoryGitMetadata(repo, {
+        lstatPath: () => {
+          throw eacces;
+        },
+      }),
+    ).toThrow("Permission denied");
+  });
 });

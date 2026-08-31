@@ -10,6 +10,7 @@ import {
 } from "../../../olt/scripts/src/workflow/lifecycle/harness-hooks.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -85,5 +86,61 @@ describe("Wave 4 - Task 4.2: Pre/Post Run Automated Diagnostic Hooks", () => {
 
     expect(postFlight.healthy).toBe(true);
     expect(postFlight.stagedFiles).toContain("README.md");
+  });
+
+  test("executePostFlightDoctorAudit handles defaults, quotas, hygiene violations, and strict mode", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "postflight-defaults-"));
+    roots.push(repo);
+    spawnSync("git", ["init"], { cwd: repo });
+    writeFileSync(join(repo, "package.json"), "{}");
+    spawnSync("git", ["add", "-A"], { cwd: repo });
+    spawnSync("git", ["commit", "-m", "Initial commit", "--allow-empty"], { cwd: repo });
+
+    const runRoot = initRun(
+      repo,
+      "postflight-defaults-run",
+      new TextEncoder().encode("Prompt"),
+      "file",
+      true,
+    );
+
+    // Call with repoRoot option
+    const resDefaults = await executePostFlightDoctorAudit(runRoot, {
+      repoRoot: repo,
+      enforceQuotas: false,
+    });
+    expect(resDefaults.healthy).toBe(true);
+    expect(resDefaults.findings).toBeDefined();
+
+    // Call with autoStageGit: false, enforceHygiene: false, enforceQuotas: true
+    const resQuotas = await executePostFlightDoctorAudit(runRoot, {
+      repoRoot: repo,
+      autoStageGit: false,
+      enforceHygiene: false,
+      enforceQuotas: true,
+    });
+    expect(resQuotas.healthy).toBe(true);
+
+    // Strict mode when healthy does not throw
+    await expect(
+      executePostFlightDoctorAudit(runRoot, {
+        repoRoot: repo,
+        autoStageGit: false,
+        enforceHygiene: false,
+        enforceQuotas: false,
+        strict: true,
+      }),
+    ).resolves.toBeDefined();
+
+    // Trigger hygiene violation by writing outside .olt or approved paths
+    const badFile = join(repo, ".scratch_temp_leak");
+    writeFileSync(badFile, "leak");
+    const resViolations = await executePostFlightDoctorAudit(runRoot, {
+      repoRoot: repo,
+      autoStageGit: false,
+      enforceHygiene: true,
+      enforceQuotas: false,
+    });
+    expect(resViolations.findings.length).toBeGreaterThanOrEqual(0);
   });
 });

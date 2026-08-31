@@ -154,4 +154,24 @@ describe("B12.2: the validator-family domain field", () => {
       }),
     ).toThrow("declares role validator");
   });
+
+  test("rejects cognitive validator declaring run:exec in manifest", () => {
+    const yamlManifest = [
+      "name: validator",
+      "role: validator",
+      "tier: 3",
+      "permissions:",
+      "  may: []",
+      "  must_not: []",
+      "  commands:",
+      "    - run:exec",
+      "    - task:review",
+      "  spawns: []",
+      "instructions: Cognitive validator instructions.",
+    ].join("\n");
+
+    expect(() =>
+      parseRoleContract(encoder.encode(yamlManifest), "validator.yaml"),
+    ).toThrow("must not declare run:exec in commands");
+  });
 });

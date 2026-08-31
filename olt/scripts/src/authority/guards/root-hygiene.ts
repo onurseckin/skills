@@ -3,6 +3,8 @@ import { HarnessError } from "../../core/errors/index.ts";
 import { ALLOWED_ROOT_DIRS, ALLOWED_ROOT_FILES } from "./constants.ts";
 
 export class RootDirectoryHygieneGuard {
+  public constructor() {}
+
   public static assertAllowedWritePath(repoRoot: string, targetPath: string): void {
     const absPath = isAbsolute(targetPath) ? targetPath : `${repoRoot}/${targetPath}`;
     const rel = relative(repoRoot, absPath);

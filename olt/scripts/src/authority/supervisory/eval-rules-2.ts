@@ -151,4 +151,16 @@ export function evaluateRulesBatch2(
       "**Resolution Path:**\n1. Re-verify SHA-256 event hash chain and CLI command receipts.\n2. Reject any milestone transition lacking cryptographic proof.",
     );
   }
+
+  if (context.subagentIdleWarningCount && context.subagentIdleWarningCount > 0) {
+    violations.push({
+      code: "STRICT_TIER_HIERARCHY_IDLE_WARNING",
+      rule: "Subagents should maintain continuous execution progress without prolonged idle stagnation.",
+      severity: "low",
+      message: `${context.subagentIdleWarningCount} subagent idle warning(s) detected.`,
+      correctiveDirective: "Inspect subagent execution progress and nudge active leases.",
+      evidence: { subagentIdleWarningCount: context.subagentIdleWarningCount },
+    });
+    correctiveDirectives.push("Inspect subagent execution progress and nudge active leases.");
+  }
 }

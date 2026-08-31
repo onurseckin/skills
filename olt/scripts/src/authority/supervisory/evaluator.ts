@@ -52,7 +52,7 @@ export function evaluateSupervisoryState(
         id: def.id,
         category: def.category,
         title: def.title,
-        status: "violated",
+        status: matchingViolation.severity === "low" ? "neglected" : "violated",
         reason: matchingViolation.message,
         correctiveDirective: matchingViolation.correctiveDirective,
       });

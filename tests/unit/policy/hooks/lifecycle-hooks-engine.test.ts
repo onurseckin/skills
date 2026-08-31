@@ -324,5 +324,29 @@ describe("Dynamic Policy Hooks Engine Evaluation", () => {
 
     const parsed = parseCommandLineArgs("run 'foo bar' \"baz qux\" regular");
     expect(parsed).toEqual(["run", "foo bar", "baz qux", "regular"]);
+
+    const escaped = parseCommandLineArgs('echo \\\"escaped\\\" test\\\\path');
+    expect(escaped).toEqual(["echo", '"escaped"', "test\\path"]);
+
+    const emptyRecord = executeHookCommand("", {});
+    expect(emptyRecord.success).toBe(false);
+    expect(emptyRecord.error).toBe("Empty command");
+
+    // Child with on and unref
+    let onCalled = false;
+    let unrefCalled = false;
+    const customChildRunner: HookSpawnRunner = () => ({
+      on: (evt: string, cb: (err: unknown) => void) => {
+        onCalled = true;
+      },
+      unref: () => {
+        unrefCalled = true;
+      },
+    });
+    const childRecord = executeHookCommand("test-cmd arg", {}, { customSpawn: customChildRunner });
+    expect(childRecord.success).toBe(true);
+    expect(onCalled).toBe(true);
+    expect(unrefCalled).toBe(true);
   });
 });
+

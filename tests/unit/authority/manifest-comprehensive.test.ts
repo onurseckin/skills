@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   clearManifestCache,
   findSkillRoot,
@@ -277,5 +277,87 @@ permissions:
     expect(loadUnifiedAgentModel("completeness-critic").archetype).toBe(
       "Run Completeness & Verification Critic",
     );
+  });
+
+  test("findSkillRoot fallback when agents dir is not found", () => {
+    // When customExists returns false and customModuleDir is provided
+    const rootWithMod = findSkillRoot(undefined, () => false, "/custom/path/to/mod");
+    expect(rootWithMod).toBe(resolve("/custom/path/to/mod", "../../../.."));
+
+    // When customExists returns false and customModuleDir is null
+    const rootWithCwd = findSkillRoot(undefined, () => false, null);
+    expect(rootWithCwd).toBe(process.cwd());
+
+    // When startDir has no agents dir in its tree
+    const root = findSkillRoot("/tmp/nonexistent-root-dir-for-test");
+    expect(root).toBeDefined();
+    expect(typeof root).toBe("string");
+  });
+
+  test("parseRoleContract edge cases without role or filePath", () => {
+    const noRoleYaml = "tier: 3\ninstructions: 'no role defined'";
+    const parsed = parseRoleContract(noRoleYaml);
+    expect(parsed.role).toBe("agent");
+    expect(parsed.tier).toBe(3);
+
+    const noRoleMd = "---\ntier: 2\n---\nbody text";
+    const parsedMd = parseRoleContract(noRoleMd);
+    expect(parsedMd.role).toBe("unknown");
+    expect(parsedMd.tier).toBe(2);
+  });
+
+  test("parseYaml block scalar variations and advanced structures", () => {
+    // Empty & whitespace
+    expect(parseYaml("")).toEqual({});
+    expect(parseYaml("   \n\t  \n")).toEqual({});
+
+    // JSON parse fallback
+    expect(parseYaml('{"jsonKey": 123}')).toEqual({ jsonKey: 123 });
+    expect(parseYaml('[10, 20, 30]')).toEqual([10, 20, 30]);
+
+    // Single scalar line
+    expect(parseYaml("single_scalar_value")).toBe("single_scalar_value");
+    expect(parseYaml("42")).toBe(42);
+
+    // List item with block scalar
+    const listBlockScalar = `
+items:
+  - desc: |
+      first line
+      second line
+  - name: item2
+`;
+    const parsedList = parseYaml(listBlockScalar) as { items: Array<{ desc?: string; name?: string }> };
+    expect(parsedList.items[0]?.desc).toContain("first line\nsecond line");
+    expect(parsedList.items[1]?.name).toBe("item2");
+
+    // List item with empty value after colon
+    const listEmptyVal = `
+items:
+  - key1:
+    nested: val
+  - key2:
+`;
+    const parsedEmpty = parseYaml(listEmptyVal) as Record<string, unknown>;
+    expect(parsedEmpty.items).toBeDefined();
+
+    // Folded block scalar
+    const foldedYaml = `
+folded: >
+  line one
+  line two
+
+  line three after blank
+`;
+    const parsedFolded = parseYaml(foldedYaml) as { folded: string };
+    expect(parsedFolded.folded).toContain("line one line two\n\nline three after blank");
+
+    // Block scalar with strip chomping |-
+    const stripYaml = `
+stripped: |-
+  text without trailing newline
+`;
+    const parsedStrip = parseYaml(stripYaml) as { stripped: string };
+    expect(parsedStrip.stripped).toBe("text without trailing newline");
   });
 });

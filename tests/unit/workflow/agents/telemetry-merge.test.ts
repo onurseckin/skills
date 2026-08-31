@@ -434,6 +434,27 @@ describe("workflow/agents/telemetry-merge", () => {
         },
       });
       expect(resTools).not.toBeNull();
+
+      // Grant becoming released concurrently during transact returns unchanged grant
+      const activeThenReleased = createGrant("agent-race", { status: "active" });
+      transact(runRoot, "test", "set-race", {}, (draft) => {
+        writeAgentLedger(draft, [activeThenReleased]);
+      });
+      // We simulate release right as transact starts or call when status is released inside
+      transact(runRoot, "test", "release-race", {}, (draft) => {
+        writeAgentLedger(draft, [{ ...activeThenReleased, status: "released" }]);
+      });
+      const resReleased = refreshAgentDerivedTelemetry({
+        runRoot,
+        agentId: "agent-race",
+        actor: "coordinator",
+        boundary: "b4",
+        derived: {
+          transcript: { sourcePath: "t4.jsonl", tools: [{ name: "t", calls: 1, failures: 0 }] },
+        },
+      });
+      expect(resReleased).toBeNull();
     });
   });
 });
+

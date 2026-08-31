@@ -23,14 +23,16 @@ describe("Mandatory CLI Action Registration Protocol", () => {
       role: "implementer",
       host: "antigravity",
       parentAgentId: "coord-1",
+      parentTaskId: "task-0",
       modelTier: "m",
       thinkingLevel: "high",
     });
 
     expect(cmd).toBe(
-      `bun harness.ts agent:register --run ${runRoot} --agent ${agentId} --role implementer --host antigravity --parent-agent coord-1 --model-tier m --thinking-level high`,
+      `bun harness.ts agent:register --run ${runRoot} --agent ${agentId} --role implementer --host antigravity --parent-agent coord-1 --parent-task task-0 --model-tier m --thinking-level high`,
     );
   });
+
 
   test("buildTaskClaimCommand formats task claim shell command", () => {
     const cmd = buildTaskClaimCommand(runRoot, taskId, agentId, "implementer");
@@ -92,6 +94,10 @@ describe("Mandatory CLI Action Registration Protocol", () => {
     const missingRes = verifyAgentRegistration(state, "nonexistent-agent");
     expect(missingRes.registered).toBeFalse();
 
+    const noAgentsRes = verifyAgentRegistration({}, "any-agent");
+    expect(noAgentsRes.registered).toBeFalse();
+
     expect(() => assertAgentRegistered(state, "nonexistent-agent")).toThrow(HarnessError);
+
   });
 });

@@ -49,10 +49,12 @@ interface FlockBindings {
   handle: unknown;
 }
 
-function loadBindings(): FlockBindings {
+export function loadBindings(
+  candidates: readonly string[] = libraryCandidates(),
+): FlockBindings {
   const errnoName = process.platform === "darwin" ? "__error" : "__errno_location";
   let lastError: unknown;
-  for (const path of libraryCandidates()) {
+  for (const path of candidates) {
     try {
       const library = dlopen(path, {
         flock: { args: [FFIType.i32, FFIType.i32], returns: FFIType.i32 },
@@ -101,8 +103,8 @@ export function releaseFlock(descriptor: number): void {
   for (;;) {
     if (native.flock(descriptor, LOCK_UN) === 0) return;
     const errno = lastErrno();
-    if (errno !== EINTR) {
-      throw new HarnessError("INVALID_STATE", `flock release failed with errno ${errno}`);
-    }
+    if (errno === EINTR) continue;
+    throw new HarnessError("INVALID_STATE", `flock release failed with errno ${errno}`);
   }
 }
+

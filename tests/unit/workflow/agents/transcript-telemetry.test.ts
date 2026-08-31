@@ -288,4 +288,42 @@ describe("workflow/agents/transcript-telemetry", () => {
       expect(telemetry!.agentType).toBeUndefined();
     });
   });
+
+  test("locates agent transcript inside subagents/workflows/<runDir>/ directory", () => {
+    withTempDir((homeDir) => {
+      const sessionId = "sess-workflow";
+      const sessionDir = join(homeDir, ".claude", "projects", "p1", sessionId);
+      const workflowRunDir = join(sessionDir, "subagents", "workflows", "run-123");
+      mkdirSync(workflowRunDir, { recursive: true });
+
+      const agentId = "agent-wf";
+      const jsonlPath = join(workflowRunDir, `agent-${agentId}.jsonl`);
+      const metaPath = join(workflowRunDir, `agent-${agentId}.meta.json`);
+
+      writeFileSync(metaPath, JSON.stringify({ agentType: "implementer", spawnDepth: 2 }));
+      writeFileSync(
+        jsonlPath,
+        JSON.stringify({
+          type: "assistant",
+          message: {
+            usage: { input_tokens: 10, output_tokens: 5 },
+            content: [],
+          },
+        }),
+      );
+
+      const telemetry = readAgentTranscriptTelemetry(agentId, {
+        homeDir,
+        env: { CLAUDE_CODE_SESSION_ID: sessionId },
+      });
+
+      expect(telemetry).not.toBeNull();
+      expect(telemetry!.sourcePath).toBe(jsonlPath);
+      expect(telemetry!.agentType).toBe("implementer");
+      expect(telemetry!.spawnDepth).toBe(2);
+      expect(telemetry!.tokensIn).toBe(10);
+      expect(telemetry!.tokensOut).toBe(5);
+    });
+  });
 });
+

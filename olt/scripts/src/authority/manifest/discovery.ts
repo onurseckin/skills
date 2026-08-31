@@ -10,7 +10,12 @@ export function normalizeRoleName(roleInput: string): string {
   return trimmed;
 }
 
-export function findSkillRoot(startDir?: string): string {
+export function findSkillRoot(
+  startDir?: string,
+  customExists?: (path: string) => boolean,
+  customModuleDir?: string | null,
+): string {
+  const exists = customExists ?? existsSync;
   const candidates: string[] = [];
 
   if (startDir) {
@@ -21,7 +26,7 @@ export function findSkillRoot(startDir?: string): string {
   candidates.push(process.cwd());
 
   // import.meta.dir relative
-  const moduleDir = import.meta.dir;
+  const moduleDir = customModuleDir !== undefined ? customModuleDir : import.meta.dir;
   if (moduleDir) {
     candidates.push(resolve(moduleDir, "../../../.."));
     candidates.push(resolve(moduleDir, "../../../../../olt"));
@@ -40,11 +45,11 @@ export function findSkillRoot(startDir?: string): string {
   for (const candidate of candidates) {
     let cur = candidate;
     for (let depth = 0; depth < 5; depth++) {
-      if (existsSync(join(cur, "agents"))) {
+      if (exists(join(cur, "agents"))) {
         return cur;
       }
       const sub = join(cur, "olt");
-      if (existsSync(join(sub, "agents"))) {
+      if (exists(join(sub, "agents"))) {
         return sub;
       }
       const parent = dirname(cur);

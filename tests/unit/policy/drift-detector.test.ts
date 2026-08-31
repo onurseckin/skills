@@ -1,6 +1,7 @@
 import { describe, expect, test, afterAll } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+
 import {
   checkAndHandlePolicyDrift,
   computePolicyChecksum,
@@ -197,8 +198,9 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
     const customEventsRel = join(".olt", "custom-events.jsonl");
     const customEventsAbs = join(dir, customEventsRel);
 
-    initRepoPolicy(dir, customPolicyRel);
+    saveRepoPolicy(generateDefaultRepoPolicy(dir), dir, customPolicyRel);
     const initialChecksum = computePolicyChecksum(dir, customPolicyRel);
+
 
     const updatedPolicy = { ...generateDefaultRepoPolicy(dir), read_scope_neighborhood_depth: 3 };
     saveRepoPolicy(updatedPolicy, dir, customPolicyRel);
@@ -219,6 +221,19 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
     expect(lastEvent.previous_checksum).toBe(initialChecksum);
     expect(lastEvent.new_checksum).toBe(result.currentChecksum);
 
+    // Test when parent directory of custom eventsLogPath does not exist
+    const nonExistentDir = join(scratchBase, "nonexistent-events-parent", "events.jsonl");
+    await handlePolicyDrift(updatedPolicy, {
+      previousChecksum: initialChecksum,
+      currentChecksum: result.currentChecksum,
+      repoRoot: dir,
+      customPath: customPolicyRel,
+      eventsLogPath: nonExistentDir,
+    });
+    expect(existsSync(nonExistentDir)).toBe(true);
+
     rmSync(dir, { recursive: true, force: true });
+    rmSync(dirname(nonExistentDir), { recursive: true, force: true });
   });
 });
+

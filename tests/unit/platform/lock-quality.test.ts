@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import {
   closeSync,
   constants,
@@ -9,16 +10,20 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   libraryCandidates,
   linuxLibcCandidates,
+  loadBindings,
   releaseFlock,
   tryExclusiveFlock,
 } from "../../../olt/scripts/src/platform/index.ts";
 import { withRunLock } from "../../../olt/scripts/src/platform/index.ts";
 import { clearObserver, publishObserver } from "../../../olt/scripts/src/platform/index.ts";
+import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
+
 
 const lockModule = new URL("../../../olt/scripts/src/platform/index.ts", import.meta.url).pathname;
 
@@ -33,6 +38,16 @@ describe("run-lock quality invariants", () => {
   test("distinguishes invalid flock errors from lock contention", () => {
     expect(() => tryExclusiveFlock(-1)).toThrow(/flock|errno/i);
     expect(() => releaseFlock(-1)).toThrow(/flock release failed with errno/i);
+  });
+
+  test("loadBindings loads native symbols or throws UNSUPPORTED_PLATFORM when candidates fail", () => {
+    const bindings = loadBindings();
+    expect(typeof bindings.flock).toBe("function");
+    expect(typeof bindings.errno).toBe("function");
+
+    expect(() => loadBindings(["/nonexistent/path/1.so", "/nonexistent/path/2.so"])).toThrow(
+      /could not load a libc flock implementation/i,
+    );
   });
 
   test("libraryCandidates resolves per-platform: darwin's single dylib, Linux's libc search, others unsupported", () => {
@@ -88,7 +103,23 @@ describe("run-lock quality invariants", () => {
         rmSync(run, { recursive: true, force: true });
       }),
     ).toThrow(/run root disappeared while locked/i);
+
+
+
+    // Test relative path resolution against capsules dir
+    const capsulesDir = resolveCapsulesDir();
+    const relName = `test-run-rel-${Date.now()}`;
+    const absPath = join(capsulesDir, relName);
+    mkdirSync(absPath, { recursive: true });
+    try {
+      expect(withRunLock(relName, () => 99)).toBe(99);
+    } finally {
+      rmSync(absPath, { recursive: true, force: true });
+    }
   });
+
+
+
 
   test("withRunLock times out (and its delay() retry loop runs) when another holder already has the lock", () => {
     const run = runRoot();

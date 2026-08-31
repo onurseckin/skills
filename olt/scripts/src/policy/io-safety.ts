@@ -24,12 +24,12 @@ export interface RepoPolicyReadDependencies {
   readonly afterLstatBeforeOpen?: (path: string) => void;
   readonly afterOpenBeforeRead?: (path: string) => void;
   readonly fstat?: typeof fstatSync;
+  readonly maxAttempts?: number | undefined;
 }
 
 const activeLocks = new Set<string>();
 
-export function reqNoFollow(): number {
-  const flag = constants.O_NOFOLLOW;
+export function reqNoFollow(flag: number = constants.O_NOFOLLOW): number {
   if (!Number.isInteger(flag) || flag === 0) {
     throw new HarnessError(
       "UNSUPPORTED_PLATFORM",
@@ -38,6 +38,7 @@ export function reqNoFollow(): number {
   }
   return flag;
 }
+
 
 export function sameInode(a: Pick<Stats, "dev" | "ino">, b: Pick<Stats, "dev" | "ino">): boolean {
   return a.dev === b.dev && a.ino === b.ino;
@@ -175,8 +176,10 @@ export function readVerifiedFile(
   deps: RepoPolicyReadDependencies = {},
 ): string | undefined {
   const maxAttempts =
-    deps.afterLstatBeforeOpen !== undefined || deps.afterOpenBeforeRead !== undefined ? 1 : 5;
+    deps.maxAttempts ??
+    (deps.afterLstatBeforeOpen !== undefined || deps.afterOpenBeforeRead !== undefined ? 1 : 5);
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+
     if (!existsSync(loc.filePath)) return undefined;
     const before = lstatSync(loc.filePath);
     assertOwnedPrivateFile(before, loc.filePath);

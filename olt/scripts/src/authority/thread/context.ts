@@ -190,7 +190,7 @@ export function identifyExecutionContext(
         matched_action: matchedAction,
       },
     };
-    if (!isTestEnvironment()) {
+    if (!isTestEnvironment() || options.recordDefectInTest) {
       recordDefect(defect, {
         ...(options.runRoot !== undefined ? { runRoot: options.runRoot } : {}),
         cwd,

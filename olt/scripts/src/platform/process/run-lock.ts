@@ -70,11 +70,8 @@ export function withRunLock<T>(
     constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | (constants.O_NOFOLLOW ?? 0),
   );
   const opened = fstatSync(descriptor);
-  if (!opened.isDirectory()) {
-    closeSync(descriptor);
-    throw new HarnessError("INVALID_ARGUMENT", `run root must be a directory: ${runRoot}`);
-  }
   assertPathIdentity(targetPath, opened);
+
   const root = realpathSync(targetPath);
   const maximum = timeout(options.timeoutMs ?? 10_000);
   const retry = timeout(options.retryMs ?? 10);

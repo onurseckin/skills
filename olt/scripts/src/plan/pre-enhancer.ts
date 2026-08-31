@@ -309,11 +309,7 @@ export function parseGateCommand(gateCommand: string | readonly string[]): reado
     if (trimmed.length === 0) {
       throw new HarnessError("INVALID_ARGUMENT", "Gate command must not be empty text");
     }
-    const parts = trimmed.split(/\s+/).filter((part) => part.length > 0);
-    if (parts.length === 0) {
-      throw new HarnessError("INVALID_ARGUMENT", "Gate command must contain at least one token");
-    }
-    return parts;
+    return trimmed.split(/\s+/).filter((part) => part.length > 0);
   }
   if (Array.isArray(gateCommand)) {
     if (gateCommand.length === 0) {

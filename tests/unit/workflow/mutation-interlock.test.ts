@@ -37,6 +37,13 @@ describe("Workflow Mutation Interlock Gate", () => {
       expect(res.reason).toContain("capsule state not found");
     });
 
+    it("rejects when capsule state.json contains corrupted JSON", () => {
+      writeFileSync(join(capsuleDir, "state.json"), "invalid json {", "utf8");
+      const res = verifyMutationInterlock(capsuleDir, "impl-1");
+      expect(res.allowed).toBe(false);
+      expect(res.reason).toContain("failed to read capsule state");
+    });
+
     it("blocks cognitive validator roles with role confinement violation", () => {
       const validatorRoles = [
         "validator",
@@ -75,7 +82,7 @@ describe("Workflow Mutation Interlock Gate", () => {
     });
 
     it("rejects agent with released grant", () => {
-      const state = {
+      const stateReleased = {
         schema_version: 1,
         run_id: "run-interlock-test-1",
         tasks: {},
@@ -93,12 +100,13 @@ describe("Workflow Mutation Interlock Gate", () => {
           },
         ],
       };
-      writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
+      writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(stateReleased), "utf8");
 
-      const res = verifyMutationInterlock(capsuleDir, "impl-released");
-      expect(res.allowed).toBe(false);
-      expect(res.reason).toContain("has been released");
+      const resReleased = verifyMutationInterlock(capsuleDir, "impl-released");
+      expect(resReleased.allowed).toBe(false);
+      expect(resReleased.reason).toContain("has been released");
     });
+
 
     it("rejects unleased agent not present in ledger or tasks", () => {
       const state = {
@@ -112,6 +120,26 @@ describe("Workflow Mutation Interlock Gate", () => {
       const res = verifyMutationInterlock(capsuleDir, "ghost-agent");
       expect(res.allowed).toBe(false);
       expect(res.reason).toContain("holds no active grant or task lease");
+    });
+
+    it("authorizes ungranted agent that holds an active unexpired task lease", () => {
+      const future = new Date(Date.now() + 600000).toISOString();
+      const state = {
+        schema_version: 1,
+        run_id: "run-interlock-test-1",
+        tasks: {
+          "task-1": {
+            id: "task-1",
+            status: "leased",
+            lease: { agent_id: "leased-worker", expires_at: future },
+          },
+        },
+        agents: [],
+      };
+      writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
+
+      const res = verifyMutationInterlock(capsuleDir, "leased-worker");
+      expect(res.allowed).toBe(true);
     });
 
     it("authorizes active implementer holding active grant", () => {
@@ -138,7 +166,7 @@ describe("Workflow Mutation Interlock Gate", () => {
       expect(res.reason).toBeUndefined();
     });
 
-    it("validates specific task lease with token and expiration check", () => {
+    it("validates specific task lease with token, lease holder, and expiration check", () => {
       const token = "tok_secret_task_123";
       const digest = tokenDigest(token);
       const future = new Date(Date.now() + 600000).toISOString();
@@ -155,6 +183,18 @@ describe("Workflow Mutation Interlock Gate", () => {
             attempts: [],
             history: [],
             lease: { agent_id: "impl-task", token_digest: digest, expires_at: future },
+          },
+          "task-other-agent": {
+            id: "task-other-agent",
+            status: "leased",
+            requirement_ids: [],
+            attempts: [],
+            history: [],
+            lease: { agent_id: "other-agent", token_digest: digest, expires_at: future },
+          },
+          "task-no-lease": {
+            id: "task-no-lease",
+            status: "ready",
           },
           "task-expired": {
             id: "task-expired",
@@ -174,6 +214,24 @@ describe("Workflow Mutation Interlock Gate", () => {
         token,
       });
       expect(resValid.allowed).toBe(true);
+
+      const resNoTask = verifyMutationInterlock(capsuleDir, "impl-task", {
+        taskId: "task-nonexistent",
+      });
+      expect(resNoTask.allowed).toBe(false);
+      expect(resNoTask.reason).toContain("has no active lease");
+
+      const resNoLease = verifyMutationInterlock(capsuleDir, "impl-task", {
+        taskId: "task-no-lease",
+      });
+      expect(resNoLease.allowed).toBe(false);
+      expect(resNoLease.reason).toContain("has no active lease");
+
+      const resWrongAgent = verifyMutationInterlock(capsuleDir, "impl-task", {
+        taskId: "task-other-agent",
+      });
+      expect(resWrongAgent.allowed).toBe(false);
+      expect(resWrongAgent.reason).toContain("lease held by 'other-agent', not 'impl-task'");
 
       const resMismatch = verifyMutationInterlock(capsuleDir, "impl-task", {
         taskId: "task-active",

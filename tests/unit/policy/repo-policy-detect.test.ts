@@ -6,11 +6,14 @@ import {
   DEFAULT_PLANNING_POLICY,
   DEFAULT_REVIEW_PROTOCOL_POLICY,
   detectRepoEcosystem,
+  discoverToolchainPolicy,
   generateDefaultRepoPolicy,
+  inspectRepoPolicy,
   loadRepoPolicy,
   parseRepoPolicy,
   validateRepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
+
 
 describe("Repo Policy Auto-Detection & Schema Validation", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "test-repo-policy-detect");
@@ -288,4 +291,48 @@ describe("Repo Policy Auto-Detection & Schema Validation", () => {
       }
     }
   });
+
+  test("discoverToolchainPolicy detects toolchain commands across repositories", () => {
+    const dir = join(scratchBase, "discover-toolchain-test");
+    mkdirSync(dir, { recursive: true });
+    try {
+      writeFileSync(join(dir, "bun.lock"), "");
+      writeFileSync(
+        join(dir, "package.json"),
+        JSON.stringify({
+          scripts: {
+            test: "bun test",
+            typecheck: "tsc --noEmit",
+            lint: "oxlint",
+            build: "bun build",
+          },
+        }),
+      );
+
+      const res = discoverToolchainPolicy(dir);
+      expect(res.toolchain).toBe("bun");
+      expect(res.commands.test).toBe("bun test");
+      expect(res.commands.typecheck).toBe("bun typecheck");
+      expect(res.commands.lint).toBe("bun lint");
+      expect(res.commands.build).toBe("bun run build");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("inspectRepoPolicy falls back to auto_detected when policy file does not exist", () => {
+    const dir = join(scratchBase, "nonexistent-policy-inspect-test");
+    mkdirSync(dir, { recursive: true });
+    try {
+      const res = inspectRepoPolicy(dir);
+      expect(res.status).toBe("auto_detected");
+      expect(res.provenance).toBe("auto_detected");
+      expect(res.policy.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
+
+
+

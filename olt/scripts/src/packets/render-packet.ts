@@ -20,7 +20,7 @@ import { uiDomainApplies } from "../core/contracts/index.ts";
 
 import type { AgentRole } from "../core/contracts/index.ts";
 
-function isUiTaskPacket(input: PacketInput): boolean {
+export function isUiTaskPacket(input: PacketInput): boolean {
   if (input.task) {
     const texts: string[] = [];
     if (typeof input.task.label === "string" && input.task.label.length > 0) {

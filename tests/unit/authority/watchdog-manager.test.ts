@@ -352,7 +352,7 @@ describe("WatchdogManager - Store Lifecycle & Resolution", () => {
       last_heartbeat_at: "2026-08-21T20:00:00.000Z",
       heartbeat_cadence_ms: 180_000,
       timeout_ms: 360_000,
-      status: "active",
+      status: "active" as const,
       terminated_at: null,
       termination_reason: null,
     };

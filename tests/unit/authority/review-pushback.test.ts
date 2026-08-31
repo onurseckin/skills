@@ -140,20 +140,20 @@ describe("Review Pushback Subsystem (authority/review-pushback.ts)", () => {
       expect(res1.violatingDomains).toContain("code-quality");
       expect(res1.reasons.some((r) => r.includes("has empty evidence payload"))).toBe(true);
 
-      const res2 = detectDomainBatching(["architecture", "testing"], {
-        architecture: [],
-        testing: "",
+      const res2 = detectDomainBatching(["system-design", "product"], {
+        "system-design": [],
+        product: "",
       });
       expect(res2.isBatched).toBe(true);
-      expect(res2.violatingDomains).toEqual(["architecture", "testing"]);
+      expect(res2.violatingDomains).toEqual(["system-design", "product"]);
     });
 
     it("detects identical duplicate evidence payloads across different domains", () => {
       const sharedEvidence = { passed: true, score: 100 };
-      const res = detectDomainBatching(["code-quality", "security", "architecture"], {
+      const res = detectDomainBatching(["code-quality", "security", "system-design"], {
         "code-quality": sharedEvidence,
         security: sharedEvidence,
-        architecture: { distinct: "spec-checked" },
+        "system-design": { distinct: "spec-checked" },
       });
 
       expect(res.isBatched).toBe(true);
@@ -387,8 +387,8 @@ describe("Review Pushback Subsystem (authority/review-pushback.ts)", () => {
 
       expect(h1.currentRound).toBe(1);
       expect(h1.rounds.length).toBe(1);
-      expect(h1.rounds[0].statusAfter).toBe("validating");
-      expect(h1.rounds[0].id).toContain("cpb-TASK-102-r1");
+      expect(h1.rounds[0]?.statusAfter).toBe("validating");
+      expect(h1.rounds[0]?.id).toContain("cpb-TASK-102-r1");
       expect(h1.isExhausted).toBe(false);
       expect(h1.lastCause).toBe("procedural");
 
@@ -408,12 +408,12 @@ describe("Review Pushback Subsystem (authority/review-pushback.ts)", () => {
 
       expect(h2.currentRound).toBe(2);
       expect(h2.rounds.length).toBe(2);
-      expect(h2.rounds[1].statusAfter).toBe("escalated");
+      expect(h2.rounds[1]?.statusAfter).toBe("escalated");
       expect(h2.isExhausted).toBe(true);
       expect(h2.lastCause).toBe("substantive");
       expect(h2.unresolvedRejectionReasons).toEqual(["Unhandled error type"]);
-      expect(h2.rounds[1].previousEvidenceDigest).toBe("sha256-hash-1");
-      expect(h2.rounds[1].previousEvidenceSummary).toBe("Previous summary text");
+      expect(h2.rounds[1]?.previousEvidenceDigest).toBe("sha256-hash-1");
+      expect(h2.rounds[1]?.previousEvidenceSummary).toBe("Previous summary text");
     });
 
     it("appends rounds with explicit round, timestamp, and statusAfter", () => {
@@ -431,8 +431,8 @@ describe("Review Pushback Subsystem (authority/review-pushback.ts)", () => {
       });
 
       expect(h1.currentRound).toBe(4);
-      expect(h1.rounds[0].timestamp).toBe("2026-08-24T00:00:00.000Z");
-      expect(h1.rounds[0].statusAfter).toBe("changes_requested");
+      expect(h1.rounds[0]?.timestamp).toBe("2026-08-24T00:00:00.000Z");
+      expect(h1.rounds[0]?.statusAfter).toBe("changes_requested");
       expect(h1.isExhausted).toBe(false);
     });
 
@@ -447,7 +447,7 @@ describe("Review Pushback Subsystem (authority/review-pushback.ts)", () => {
         remediation: "Rename to canonical identifier",
       });
 
-      expect(h1.rounds[0].statusAfter).toBe("changes_requested");
+      expect(h1.rounds[0]?.statusAfter).toBe("changes_requested");
     });
   });
 

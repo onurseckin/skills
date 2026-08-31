@@ -17,6 +17,8 @@ import {
   PILLAR_6_FIRST_PRINCIPLES,
   PILLAR_7_INFINITE_CADENCE,
   type CognitivePillar,
+  type CognitivePillarId,
+  type SupervisoryRole,
 } from "../../../olt/scripts/src/authority/pillars.ts";
 import {
   buildWatchdogAuditPrompt,
@@ -48,7 +50,7 @@ describe("Cognitive Pillars Subsystem (authority/pillars.ts)", () => {
     for (let id = 1; id <= 7; id++) {
       const pillar = COGNITIVE_PILLARS_MAP[id as 1 | 2 | 3 | 4 | 5 | 6 | 7];
       expect(pillar).toBeDefined();
-      expect(pillar.id).toBe(id);
+      expect(pillar.id).toBe(id as CognitivePillarId);
       expect(pillar.code.length).toBeGreaterThan(0);
       expect(pillar.title.length).toBeGreaterThan(0);
       expect(pillar.shortSummary.length).toBeGreaterThan(0);
@@ -657,9 +659,7 @@ describe("Watchdog Audit Prompts and Tick Reminders", () => {
       recentActions: [
         {
           timestamp: new Date().toISOString(),
-          actor: "orchestrator",
           action: "git_commit",
-          description: "commit on main thread",
         },
       ],
     });
@@ -786,5 +786,24 @@ describe("Watchdog Audit Prompts and Tick Reminders", () => {
     expect(tickReminderDefault).toContain(
       "Autonomic Watchdog 3-Minute Persona Grounding [Tick #1]",
     );
+
+    // 13. Action variants in eval-invariants
+    const actionVariantsAudit = evaluateReflexiveSelfAudit({
+      role: "orchestrator",
+      isMainThreadExecution: true,
+      recentActions: [
+        { action: "write_file" }, // undefined targetFile -> "unknown_file"
+        { action: "delete_file", targetFile: "obsolete.ts" },
+        { action: "implement_task" },
+        { action: "repair_task" },
+        { action: "spawn_subagent" }, // no spawnedRole -> returns false
+        { action: "spawn_subagent", spawnedRole: "unauthorized_admin" },
+        { action: "git_commit" },
+      ],
+    });
+    expect(actionVariantsAudit.invariantCompliance.zero_file_mutation).toBe(false);
+    expect(actionVariantsAudit.invariantCompliance.delegated_execution_only).toBe(false);
+    expect(actionVariantsAudit.invariantCompliance.strict_tier_hierarchy).toBe(false);
+    expect(actionVariantsAudit.invariantCompliance.background_finalization_confinement).toBe(false);
   });
 });

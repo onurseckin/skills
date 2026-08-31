@@ -133,12 +133,15 @@ export function inspectRepoPolicy(
     return { status: "auto_detected", policy, provenance: "auto_detected" };
   }
   try {
+
     ensureDir(loc.root, loc.parent);
     const raw = readVerifiedFile(loc, deps);
     if (raw === undefined) {
       const policy = { ...generateDefaultRepoPolicy(repoRoot), provenance: "auto_detected" };
       return { status: "auto_detected", policy, provenance: "auto_detected" };
     }
+
+
     const parsed = parseRepoPolicy(JSON.parse(raw) as unknown);
     const prov = parsed.provenance !== undefined ? parsed.provenance : "explicit_custom";
     const policy = { ...parsed, provenance: prov };
@@ -222,13 +225,7 @@ export function saveRepoPolicy(
       let offset = 0;
       while (offset < bytes.byteLength) {
         const written = write(fd, bytes, offset, bytes.byteLength - offset);
-        if (written <= 0) {
-          throw new HarnessError(
-            "INTEGRITY",
-            `Repository policy write made no progress: ${loc.filePath}`,
-          );
-        }
-        if (written > bytes.byteLength - offset) {
+        if (written <= 0 || written > bytes.byteLength - offset) {
           throw new HarnessError(
             "INTEGRITY",
             `Repository policy write made no progress: ${loc.filePath}`,
@@ -236,6 +233,7 @@ export function saveRepoPolicy(
         }
         offset += written;
       }
+
       sync(fd);
       close(fd);
       fd = undefined;

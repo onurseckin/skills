@@ -1,22 +1,23 @@
 export interface AgentManifestLike {
   readonly role: string;
   readonly tools: {
-    readonly enable_write_tools?: boolean;
-    readonly enable_mcp_tools?: boolean;
-    readonly enable_subagent_tools?: boolean;
+    readonly enable_write_tools?: boolean | undefined;
+    readonly enable_mcp_tools?: boolean | undefined;
+    readonly enable_subagent_tools?: boolean | undefined;
   };
   readonly permissions: {
-    readonly must_not?: readonly string[];
-    readonly commands?: readonly string[];
-    readonly spawns?: readonly string[];
+    readonly must_not?: readonly string[] | undefined;
+    readonly commands?: readonly string[] | undefined;
+    readonly spawns?: readonly string[] | undefined;
   };
-  readonly invariants?: readonly string[];
+  readonly invariants?: readonly string[] | undefined;
 }
 
 export interface RepoPolicy {
-  readonly allowed_commands?: readonly string[];
-  readonly registered_cli_specs?: readonly string[];
+  readonly allowed_commands?: readonly string[] | undefined;
+  readonly registered_cli_specs?: readonly string[] | undefined;
 }
+
 
 export function auditPermissionHealth(
   manifest: AgentManifestLike,

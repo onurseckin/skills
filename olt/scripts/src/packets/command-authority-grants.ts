@@ -40,7 +40,7 @@ export interface AuthenticatedCaller {
   readonly verified: boolean;
 }
 
-function assertAgentRegisterHierarchy(
+export function assertAgentRegisterHierarchy(
   flags: Flags,
   ledger: ReturnType<typeof readAgentLedger>,
   agentId: string | undefined,
@@ -106,7 +106,7 @@ function assertAgentRegisterHierarchy(
   assertSpawnAuthorized(actingGrant.role, childRole, agentId, childAgentId, activeHost);
 }
 
-function assertSubjectTargetPolicy(
+export function assertSubjectTargetPolicy(
   spec: CommandSpec,
   flags: Flags,
   caller: string,
@@ -262,22 +262,6 @@ export function assertGrantedCommand(
       "ROLE_CONFINEMENT_VIOLATION",
       `role ${grant.role} may not invoke execution tool '${toolName}': agent ${agentId} is a cognitive validator, and shell/execution tools belong exclusively to mechanic validators. ${remediation}`,
     );
-  }
-
-  if (spec.name === "agent:register") {
-    const childRole = identity(flags, "role");
-    const parentAgentId = identity(flags, "parent-agent");
-    if (childRole !== undefined && parentAgentId === undefined && roleToTier(childRole) > 1) {
-      const remediation = formatSupervisionRemediation(
-        childRole,
-        roleToTier(childRole),
-        activeHost,
-      );
-      throw new HarnessError(
-        "ROLE_CONFINEMENT_VIOLATION",
-        `Hierarchical supervision violation: Role '${childRole}' (Tier ${roleToTier(childRole)}) cannot be dispatched without a supervising parent agent. Tier 2 Coordinators must be spawned by Tier 1 Orchestrators, and Tier 3 workers must be spawned by Tier 2 Coordinators. ${remediation}`,
-      );
-    }
   }
 
   if (actsOnOwnGrant(spec, flags, agentId)) return;

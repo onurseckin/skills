@@ -482,4 +482,33 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
       recordMicroCycleCritique(port, "T-1", "val-1", "critique", { maxRounds: 3, clock }),
     ).toThrow(/MAX_MICRO_CYCLES_EXCEEDED/);
   });
+
+  test("recordMicroCycleCritique throws INVALID_STATE when original_implementer is blank string", () => {
+    const { port } = leasedPort();
+    port.transact("test", "set-blank-impl", {}, (draft) => {
+      const task = requireTask(draft, "T-1");
+      task.status = "validating";
+      task.lease = undefined;
+      task.original_implementer = "   ";
+    });
+
+    expect(() =>
+      recordMicroCycleCritique(port, "T-1", "val-1", "critique", { clock }),
+    ).toThrow(/has a blank original_implementer/);
+  });
+
+  test("formatMicroCycleFeedback includes repair lease token when provided", () => {
+    const record: MicroCycleRecord = {
+      round: 1,
+      validator_id: "val-1",
+      critique: "Needs fix",
+      status: "open",
+      created_at: "2026-08-22T12:00:00.000Z",
+    };
+
+    const formatted = formatMicroCycleFeedback("T-1", record, 3, "tok_repair_123");
+    expect(formatted).toContain("#### 🔑 Repair Lease Token");
+    expect(formatted).toContain("`tok_repair_123`");
+  });
 });
+

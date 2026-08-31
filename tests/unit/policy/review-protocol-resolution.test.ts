@@ -173,16 +173,22 @@ describe("ReviewProtocolEngine Config Resolution & Satisfaction", () => {
       assertReviewProtocolSatisfied(taskWithOpenFindings, {
         max_adversarial_pushes: 10,
         cognitive_pushes: 2,
+        escalate_on_exhausted_adversarial: true,
       }),
     ).toThrow(/open finding\(s\) remain unresolved/i);
 
     expect(() =>
       assertReviewProtocolSatisfied(
         taskWithOpenFindings,
-        { max_adversarial_pushes: 10, cognitive_pushes: 2 },
+        {
+          max_adversarial_pushes: 10,
+          cognitive_pushes: 2,
+          escalate_on_exhausted_adversarial: true,
+        },
         ["f-1"],
       ),
     ).toThrow(/Cognitive deepening protocol not satisfied/i);
+
   });
 
   test("ReviewProtocolEngine recordEntry supports explicit timestamp and partial config", () => {

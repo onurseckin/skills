@@ -3,7 +3,9 @@ export {
   libraryCandidates,
   tryExclusiveFlock,
   releaseFlock,
+  loadBindings,
 } from "./fs/flock-ffi.ts";
+
 export {
   withRunLock,
   type RunLockOptions,

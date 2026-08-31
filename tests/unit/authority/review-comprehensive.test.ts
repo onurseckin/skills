@@ -32,7 +32,7 @@ describe("Authority Review Audit, Evaluators, History and Validation Comprehensi
       remediation: "Run tests with coverage",
     });
     expect(h1.currentRound).toBe(1);
-    expect(h1.rounds[0].statusAfter).toBe("validating");
+    expect(h1.rounds[0]?.statusAfter).toBe("validating");
     expect(h1.isExhausted).toBe(false);
 
     // 2. Substantive pushback with custom parameters
@@ -53,7 +53,7 @@ describe("Authority Review Audit, Evaluators, History and Validation Comprehensi
     });
     expect(h2.currentRound).toBe(3);
     expect(h2.isExhausted).toBe(true);
-    expect(h2.rounds[1].previousEvidenceDigest).toBe("sha256:abc12345");
+    expect(h2.rounds[1]?.previousEvidenceDigest).toBe("sha256:abc12345");
   });
 
   test("validateReviewPushbackInput validation failures across all fields", () => {

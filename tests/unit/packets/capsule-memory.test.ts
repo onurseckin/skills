@@ -93,6 +93,12 @@ describe("Decoupled Capsule Memory & Rich Instruction Architecture", () => {
       for (const file of CAPSULE_FILES) {
         await writeFile(join(tempRoot, file), file.endsWith(".json") ? "{}" : "# test\n");
       }
+      const verifiedSync = verifyCapsuleLayoutSync(tempRoot);
+      expect(verifiedSync.valid).toBe(true);
+      expect(verifiedSync.missingDirectories).toEqual([]);
+      expect(verifiedSync.missingFiles).toEqual([]);
+      expect(verifiedSync.directories.every((d) => d.exists)).toBe(true);
+      expect(verifiedSync.files.every((f) => f.exists && f.sizeBytes !== undefined)).toBe(true);
 
       const verifiedAsync = await verifyCapsuleLayout(tempRoot);
       expect(verifiedAsync.valid).toBe(true);
@@ -100,6 +106,32 @@ describe("Decoupled Capsule Memory & Rich Instruction Architecture", () => {
       expect(verifiedAsync.missingFiles).toEqual([]);
       expect(verifiedAsync.directories.every((d) => d.exists)).toBe(true);
       expect(verifiedAsync.files.every((f) => f.exists)).toBe(true);
+    });
+
+    test("verifyCapsuleLayoutSync handles filesystem errors gracefully", async () => {
+      const tempRoot = await mkdtemp(join(tmpdir(), "capsule-layout-err-"));
+      roots.push(tempRoot);
+
+      for (const dir of CAPSULE_DIRECTORIES) {
+        await mkdir(join(tempRoot, dir), { recursive: true });
+      }
+      for (const file of CAPSULE_FILES) {
+        await writeFile(join(tempRoot, file), "{}");
+      }
+
+      const fs = await import("node:fs");
+      const { spyOn } = await import("bun:test");
+      const spy = spyOn(fs, "lstatSync").mockImplementation(() => {
+        throw new Error("Filesystem failure");
+      });
+      try {
+        const layout = verifyCapsuleLayoutSync(tempRoot);
+        expect(layout.valid).toBe(false);
+        expect(layout.missingDirectories.length).toBe(CAPSULE_DIRECTORIES.length);
+        expect(layout.missingFiles.length).toBe(CAPSULE_FILES.length);
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 

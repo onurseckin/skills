@@ -129,6 +129,7 @@ export interface SupervisoryReminderEvaluationContext {
     | import("../../mind/evidence/types.ts").MilestoneEvidenceVerification
     | undefined;
   readonly evidenceVerificationFailed?: boolean | undefined;
+  readonly subagentIdleWarningCount?: number | undefined;
   readonly now?: string | number | Date | undefined;
 }
 

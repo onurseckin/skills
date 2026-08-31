@@ -110,8 +110,10 @@ describe("Authority Guards, Host Bindings, RBAC Authorizer & Verbatim Injector C
 
     // Auditor with active non-expired lease is rejected
     const activeLease = {
-      auditor_id: "auditor-active",
+      auditor_id: "skill_auditor",
       pid: process.pid,
+      acquired_at: new Date().toISOString(),
+      lock_token: "tok_test_lock",
       host_type: "antigravity",
       lease_acquired_at: new Date().toISOString(),
       lease_expires_at: new Date(Date.now() + 100_000).toISOString(),
@@ -183,6 +185,7 @@ describe("Authority Guards, Host Bindings, RBAC Authorizer & Verbatim Injector C
       agentId: "mind_1",
       idleDurationSeconds: 150,
       pendingBacklogCount: 0,
+      pendingPlanCount: 0,
       unresolvedDefectCount: 0,
     });
     expect(promptModeA).toContain("MODE A: AUTONOMOUS SELF-EVOLUTION MANDATE");
@@ -192,6 +195,7 @@ describe("Authority Guards, Host Bindings, RBAC Authorizer & Verbatim Injector C
       agentId: "mind_1",
       idleDurationSeconds: 150,
       pendingBacklogCount: 5,
+      pendingPlanCount: 0,
       unresolvedDefectCount: 0,
     });
     expect(promptModeB).toContain("MODE B: ACTIVE INTAKE & WORK/SPAN SCALING MANDATE");

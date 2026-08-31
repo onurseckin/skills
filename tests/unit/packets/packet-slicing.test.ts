@@ -648,5 +648,59 @@ describe("Ultra-Lean Packet Architecture & Metadata Slicing", () => {
       const customAll = createMetadataSlice(state, { runId: "r1", target: "custom" });
       expect(customAll.totalCount).toBe(1);
     });
+
+    test("exercises sliceMarkdownSections without header and budget stepping back", () => {
+      const md = "Headerless content here at the start.\n\n## Section 2\nSome more content that extends the byte size significantly.";
+      const res = sliceMarkdownSections(md, { maxTotalBytes: 70 });
+      expect(res).toContain("Headerless content");
+      expect(res).toContain("[... Packet truncated to maximum total budget ...]");
+
+      // Multi-byte emoji to trigger the while loop stepping back
+      const emojiMd = "🚀".repeat(50);
+      const emojiRes = sliceMarkdownSections(emojiMd, { maxTotalBytes: 55 });
+      expect(emojiRes).toContain("[... Packet truncated to maximum total budget ...]");
+    });
+
+    test("sliceTaskContract handles validator and sub-validator roles", () => {
+      const task: TaskRecord = {
+        id: "T-1",
+        label: "Task 1",
+        write_scope: ["src/a.ts"],
+        resource_scope: ["res/1.json"],
+        requirement_ids: ["req-1"],
+        dependencies: [],
+        gate: "bun test",
+        repair_round: 1,
+        attempts: [{ attempt: 1, status: "failed" }] as unknown as TaskRecord["attempts"],
+        status: "ready",
+      } as unknown as TaskRecord;
+
+      const valContract = sliceTaskContract(task, { role: "validator" });
+      expect((valContract as JsonObject).repair_round).toBe(1);
+      expect((valContract as JsonObject).attempt_count).toBe(1);
+
+      const subValContract = sliceTaskContract(task, { role: "sub-validator" });
+      expect((subValContract as JsonObject).id).toBe("T-1");
+    });
+
+    test("sliceEventStream and formatLeanMarkdownBrief handle timeline without timestamp and custom guidance", () => {
+      const events = [
+        { id: "e1", event: "created" }, // no timestamp
+        { id: "e2", event: "updated", timestamp: "invalid-date" },
+        { id: "e3", event: "done", timestamp: "2026-08-15T12:00:00.000Z" },
+      ];
+
+      const sliced = sliceEventStream(events as unknown as Parameters<typeof sliceEventStream>[0], {
+        since: "2026-08-14T00:00:00.000Z",
+      });
+      expect(sliced.events.length).toBeGreaterThanOrEqual(1);
+
+      const brief = formatLeanMarkdownBrief(null, {
+        runId: "run-1",
+        customGuidance: ["Check custom rule A", "Check custom rule B"],
+      });
+      expect(brief).toContain("- Check custom rule A");
+      expect(brief).toContain("- Check custom rule B");
+    });
   });
 });

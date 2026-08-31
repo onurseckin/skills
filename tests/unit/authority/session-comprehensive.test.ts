@@ -26,6 +26,7 @@ import {
   sameInode,
   stageSessionGrant,
   withSessionAuthorityLock,
+  type SessionIdentity,
 } from "../../../olt/scripts/src/authority/session/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
@@ -39,6 +40,8 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
     // resolveGlobalSessionsDir
     const globalDir = resolveGlobalSessionsDir(scratch);
     expect(globalDir).toBeDefined();
+    const globalDefault = resolveGlobalSessionsDir();
+    expect(globalDefault).toBeDefined();
 
     // resolveSessionRepositoryRoot
     expect(resolveSessionRepositoryRoot(undefined, scratch)).toBeDefined();
@@ -54,11 +57,14 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
     const opened = openVerifiedDirectory(join(scratch, "new-sub-dir"), true, "new dir");
     expect(opened.fd).toBeGreaterThan(0);
     expect(opened.stat.isDirectory()).toBe(true);
+    expect(() =>
+      openVerifiedDirectory(join(scratch, "missing-dir-no-create"), false, "missing"),
+    ).toThrow("is unavailable");
 
-    // assertSingleLinkRegular
-    expect(assertSingleLinkRegular(join(scratch, "non-existent-file"))).toBeUndefined();
+    // assertRealDirectory with file throws PATH_SAFETY
     const regularFilePath = join(scratch, "regular.json");
     writeFileSync(regularFilePath, "{}", "utf-8");
+    expect(() => assertRealDirectory(regularFilePath, "not a dir")).toThrow("must be a real directory");
     expect(assertSingleLinkRegular(regularFilePath)).toBeDefined();
 
     // assertSafeSessionComponent
@@ -85,7 +91,7 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
     expect(() => assertSessionPid(0, "pid")).toThrow("must be a positive safe integer");
     expect(() => assertSessionPid(NaN, "pid")).toThrow("must be a positive safe integer");
 
-    // resolveCapsuleStateCandidate
+    // resolveCapsuleStateCandidate with .olt/capsules
     const capsuleDir = join(scratch, ".olt", "capsules", "run-candidate-1");
     mkdirSync(capsuleDir, { recursive: true });
     writeFileSync(
@@ -93,15 +99,30 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
       JSON.stringify({ run_id: "run-candidate-1" }),
       "utf-8",
     );
-
     const foundCand = resolveCapsuleStateCandidate("run-candidate-1", scratch);
     expect(foundCand).toBeDefined();
+
+    // resolveCapsuleStateCandidate with capsules/
+    const looseCapsuleDir = join(scratch, "capsules", "run-candidate-2");
+    mkdirSync(looseCapsuleDir, { recursive: true });
+    writeFileSync(
+      join(looseCapsuleDir, "state.json"),
+      JSON.stringify({ run_id: "run-candidate-2" }),
+      "utf-8",
+    );
+    const foundLoose = resolveCapsuleStateCandidate("run-candidate-2", scratch);
+    expect(foundLoose).toBeDefined();
+
+    // resolveCapsuleStateCandidate with direct runRoot path
+    const foundDirect = resolveCapsuleStateCandidate(looseCapsuleDir);
+    expect(foundDirect).toBeDefined();
+
     expect(resolveCapsuleStateCandidate("non-existent-run-xyz", scratch)).toBeUndefined();
 
     rmSync(scratch, { recursive: true, force: true });
   });
 
-  test("session io utilities and error formatting", () => {
+  test("session io utilities and error formatting", async () => {
     expect(formatSafeErrorCause(new Error("custom error"))).toBe("custom error");
     expect(formatSafeErrorCause("string error")).toBe("string error");
     expect(formatSafeErrorCause({ code: "EACCES" })).toBe("unknown error");
@@ -132,6 +153,28 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
     mkdirSync(sessionsDir, { recursive: true });
     const lockResult = withSessionAuthorityLock(scratch, sessionsDir, () => 42);
     expect(lockResult).toBe(42);
+
+    // Lock contention on root.fd
+    const { tryExclusiveFlock, releaseFlock } = await import("../../../olt/scripts/src/platform/index.ts");
+    const { closeSync } = await import("node:fs");
+    const rootDir = openVerifiedDirectory(scratch, false, "root");
+    tryExclusiveFlock(rootDir.fd);
+    try {
+      expect(() => withSessionAuthorityLock(scratch, sessionsDir, () => 1)).toThrow("session repository lock is busy");
+    } finally {
+      releaseFlock(rootDir.fd);
+      closeSync(rootDir.fd);
+    }
+
+    // Lock contention on session.fd
+    const sessDir = openVerifiedDirectory(sessionsDir, false, "session");
+    tryExclusiveFlock(sessDir.fd);
+    try {
+      expect(() => withSessionAuthorityLock(scratch, sessionsDir, () => 1)).toThrow("session directory lock is busy");
+    } finally {
+      releaseFlock(sessDir.fd);
+      closeSync(sessDir.fd);
+    }
 
     rmSync(scratch, { recursive: true, force: true });
   });
@@ -286,7 +329,7 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
     expect(derived.token).toBe("tok-1");
     expect(derived.verified).toBe(false);
 
-    const ledgerBacked = isSessionLedgerBacked(capsuleDir, "implementer_task-1");
+    const ledgerBacked = isSessionLedgerBacked(capsuleDir, "implementer_task-1", "implementer");
     expect(typeof ledgerBacked).toBe("boolean");
 
     rmSync(scratch, { recursive: true, force: true });
@@ -305,6 +348,8 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
         token: "unauthenticated",
         pid: 1,
         ppid: 1,
+        can_execute_shell: true,
+        can_edit_files: true,
         host: "generic",
         granted_at: new Date().toISOString(),
         mechanisms_detected: ["registration"],
@@ -319,6 +364,8 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
         token: "tok_valid",
         pid: 1,
         ppid: 1,
+        can_execute_shell: true,
+        can_edit_files: true,
         host: "generic",
         granted_at: new Date().toISOString(),
         mechanisms_detected: ["interactive_terminal_fallback"],
@@ -334,10 +381,191 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
         run_id: "run-non-existent-xyz",
         pid: 1,
         ppid: 1,
+        can_execute_shell: true,
+        can_edit_files: true,
         host: "generic",
         granted_at: new Date().toISOString(),
         mechanisms_detected: ["interactive_terminal_fallback"],
       }),
     ).toThrow("no valid durable registration mechanism");
+  });
+
+  test("requireTurn1Registration resolves candidate capsule paths successfully", () => {
+    const scratch = scratchRoot(import.meta.path, "turn1-cand-test");
+    const candDir = join(scratch, ".olt", "capsules", "run-turn1-found");
+    mkdirSync(candDir, { recursive: true });
+    writeFileSync(
+      join(candDir, "state.json"),
+      JSON.stringify({ schema_version: 1, run_id: "run-turn1-found", tasks: {}, agents: [] }),
+      "utf-8",
+    );
+
+    const origCwd = process.cwd();
+    try {
+      process.chdir(scratch);
+      expect(() =>
+        requireTurn1Registration({
+          agent_id: "agent-1",
+          role: "implementer",
+          tier: 3,
+          token: "tok_turn1_valid",
+          run_id: "run-turn1-found",
+          pid: process.pid,
+          ppid: process.ppid,
+          can_execute_shell: true,
+          can_edit_files: true,
+          host: "antigravity",
+          granted_at: new Date().toISOString(),
+          mechanisms_detected: ["capsule_runtime_session"],
+        }),
+      ).not.toThrow();
+    } finally {
+      process.chdir(origCwd);
+      rmSync(scratch, { recursive: true, force: true });
+    }
+  });
+
+  test("resolveActiveSession resolves capsule runtime session files", () => {
+    const scratch = scratchRoot(import.meta.path, "capsule-runtime-session-test");
+    const capsuleDir = join(scratch, ".olt", "capsules", "run-rt-1");
+    const runtimeSessionsDir = join(capsuleDir, "runtime", "sessions");
+    mkdirSync(runtimeSessionsDir, { recursive: true });
+    writeFileSync(
+      join(capsuleDir, "state.json"),
+      JSON.stringify({ schema_version: 1, run_id: "run-rt-1", tasks: {}, agents: [] }),
+      "utf-8",
+    );
+
+    writeFileSync(
+      join(runtimeSessionsDir, "implementer-worker-1.json"),
+      JSON.stringify({
+        agent_id: "implementer-worker-1",
+        role: "implementer",
+        token: "tok-rt-session",
+        can_execute_shell: true,
+        can_edit_files: true,
+        task_id: "task-rt-1",
+        write_scope: ["src/rt.ts"],
+      }),
+      "utf-8",
+    );
+
+    const session = resolveActiveSession({
+      cwd: scratch,
+      runRoot: capsuleDir,
+      explicitActor: "implementer-worker-1",
+      env: {},
+    });
+
+    expect(session).toBeDefined();
+    expect(session?.agent_id).toBe("implementer-worker-1");
+    expect(session?.mechanisms_detected).toContain("capsule_runtime_session");
+    expect(session?.task_id).toBe("task-rt-1");
+
+    rmSync(scratch, { recursive: true, force: true });
+  });
+
+  test("autoDeriveCallerIdentity fallback to interactive terminal", () => {
+    // When no session is found and no explicit actor
+    const derivedDefault = autoDeriveCallerIdentity({
+      env: {},
+      pid: 0,
+      ppid: 0,
+      cwd: "/tmp",
+    });
+    expect(derivedDefault.actor).toBe("mind");
+    expect(derivedDefault.role).toBe("mind");
+    expect(derivedDefault.tier).toBe(0);
+    expect(derivedDefault.mechanisms).toEqual(["interactive_terminal_fallback"]);
+    expect(derivedDefault.verified).toBe(false);
+
+    // When explicit actor with mapped prefix is provided
+    const derivedImpl = autoDeriveCallerIdentity({
+      explicitActor: "implementer_worker_1",
+      explicitToken: "tok-explicit-1",
+      env: {},
+      pid: 0,
+      ppid: 0,
+      cwd: "/tmp",
+    });
+    expect(derivedImpl.actor).toBe("implementer_worker_1");
+    expect(derivedImpl.role).toBe("implementer");
+    expect(derivedImpl.tier).toBe(3);
+    expect(derivedImpl.token).toBe("tok-explicit-1");
+
+    // When unmapped explicit actor is provided
+    const derivedExplicit = autoDeriveCallerIdentity({
+      explicitActor: "custom_actor_xyz",
+      env: {},
+      pid: 0,
+      ppid: 0,
+      cwd: "/tmp",
+    });
+    expect(derivedExplicit.actor).toBe("custom_actor_xyz");
+    expect(derivedExplicit.role).toBe("custom_actor_xyz");
+  });
+
+  test("assertActiveCapsuleLease handles active and expired task leases and error states", () => {
+    const scratch = scratchRoot(import.meta.path, "lease-assertion-test");
+    const capsuleDir = join(scratch, ".olt", "capsules", "run-lease-1");
+    mkdirSync(capsuleDir, { recursive: true });
+
+    // 1. Missing runRoot
+    expect(() => assertActiveCapsuleLease("", "agent-1")).toThrow("capsule runRoot is required");
+
+    // 2. Active task lease
+    const activeState = {
+      schema_version: 1,
+      run_id: "run-lease-1",
+      tasks: {
+        "task-1": {
+          id: "task-1",
+          lease: {
+            agent_id: "active-worker",
+            expires_at: new Date(Date.now() + 60000).toISOString(),
+          },
+        },
+      },
+      agents: [],
+    };
+    writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(activeState), "utf-8");
+    expect(() => assertActiveCapsuleLease(capsuleDir, "active-worker")).not.toThrow();
+
+    // 3. Expired task lease
+    const expiredState = {
+      schema_version: 1,
+      run_id: "run-lease-1",
+      tasks: {
+        "task-1": {
+          id: "task-1",
+          lease: {
+            agent_id: "expired-worker",
+            expires_at: new Date(Date.now() - 60000).toISOString(),
+          },
+        },
+      },
+      agents: [],
+    };
+    writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(expiredState), "utf-8");
+    expect(() => assertActiveCapsuleLease(capsuleDir, "expired-worker")).toThrow(
+      "does not hold an active lease",
+    );
+
+    // 4. Corrupt state.json
+    writeFileSync(join(capsuleDir, "state.json"), "{ invalid json", "utf-8");
+    expect(() => assertActiveCapsuleLease(capsuleDir, "any-agent")).toThrow(
+      "failed to load capsule state",
+    );
+
+    rmSync(scratch, { recursive: true, force: true });
+  });
+
+  test("formatSafeErrorCause handles throwing objects and symbols", () => {
+    const throwingObj = {
+      toString() {
+        throw new Error("toString failure");
+      },
+    };
+    expect(formatSafeErrorCause(throwingObj)).toBe("unknown error");
   });
 });

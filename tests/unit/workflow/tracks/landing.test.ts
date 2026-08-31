@@ -100,4 +100,91 @@ describe("track worktree landing pipeline", () => {
       HarnessError,
     );
   });
+
+  test("landTrackToMain handles activeBranch === targetBranch with fast-forward merge", () => {
+    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-ff");
+    mkdirSync(worktreeDir, { recursive: true });
+
+    const executed: string[][] = [];
+    const mockRunner: GitRunner = (cwd, argv) => {
+      executed.push([...argv]);
+      if (argv[0] === "symbolic-ref") return { status: 0, stdout: "main\n", stderr: "" };
+      if (argv[0] === "rev-parse" && argv[1] === "HEAD")
+        return { status: 0, stdout: "sha-ff\n", stderr: "" };
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+
+    const result = landTrackToMain({
+      trackId: "track-ff",
+      repoRoot: TEST_DIR,
+      targetBranch: "main",
+      runner: mockRunner,
+      releaseHook: false,
+    });
+
+    expect(result.success).toBe(true);
+    expect(executed.some((cmd) => cmd[0] === "merge" && cmd[1] === "--ff-only")).toBe(true);
+    expect(result.hookExecuted).toBe(false);
+  });
+
+  test("landTrackToMain handles remote fetch failure and non-atomic push fallback", () => {
+    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-fallback");
+    mkdirSync(worktreeDir, { recursive: true });
+
+    let pushCount = 0;
+    const mockRunner: GitRunner = (cwd, argv) => {
+      if (argv[0] === "fetch") throw new Error("fetch offline");
+      if (argv[0] === "rebase") return { status: 0, stdout: "", stderr: "" };
+      if (argv[0] === "rev-parse" && argv[1] === "HEAD")
+        return { status: 0, stdout: "sha-fb\n", stderr: "" };
+      if (argv[0] === "push") {
+        pushCount += 1;
+        if (argv[1] === "--atomic") throw new Error("atomic push unsupported");
+        return { status: 0, stdout: "", stderr: "" };
+      }
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+    const result = landTrackToMain({
+      trackId: "track-fallback",
+      repoRoot: TEST_DIR,
+      remote: "origin",
+      targetBranch: "main",
+      runner: mockRunner,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.pushed).toBe(true);
+    expect(pushCount).toBe(2); // atomic failed -> regular succeeded
+  });
+
+  test("landTrackToMain throws INTEGRITY when rebase encounters conflicts", () => {
+    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-conflict");
+    mkdirSync(worktreeDir, { recursive: true });
+
+    const mockRunner: GitRunner = (cwd, argv) => {
+      if (argv[0] === "rebase")
+        return { status: 1, stdout: "CONFLICT (content): Merge conflict in src/a.ts", stderr: "" };
+      if (argv[0] === "diff") return { status: 0, stdout: "src/a.ts\n", stderr: "" };
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+    expect(() =>
+      landTrackToMain({
+        trackId: "track-conflict",
+        repoRoot: TEST_DIR,
+        runner: mockRunner,
+      }),
+    ).toThrow(/Rebase onto target branch 'main' failed with conflicts: src\/a.ts/);
+  });
+
+  test("landTrackToMain string overload executes asynchronously", async () => {
+    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-str");
+    mkdirSync(worktreeDir, { recursive: true });
+
+    // Calling with string parameter returns Promise<void>
+    // In test environment, without git repo it will throw INVALID_STATE if worktree doesn't exist or fail gracefully
+    await expect(landTrackToMain("track-str")).rejects.toBeDefined();
+  });
 });

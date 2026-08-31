@@ -108,4 +108,60 @@ describe("Autonomous Toolchain Scanner & Policy Calibration", () => {
       rmSync(testDir, { recursive: true, force: true });
     }
   });
+
+  it("scans yarn repository with test:unit and check-types scripts", () => {
+    const testDir = join(tmpdir(), `test-toolchain-yarn-${Date.now()}`);
+    mkdirSync(testDir, { recursive: true });
+    writeFileSync(join(testDir, "yarn.lock"), "");
+    writeFileSync(
+      join(testDir, "package.json"),
+      JSON.stringify({
+        name: "test-yarn-app",
+        scripts: {
+          "test:unit": "jest",
+          "check-types": "tsc",
+          "check-lint": "eslint",
+        },
+      }),
+    );
+
+    try {
+      const analysis = scanRepositoryToolchain(testDir);
+      expect(analysis.ecosystem).toBe("node");
+      expect(analysis.packageManager).toBe("yarn");
+      expect(analysis.testRunner.default_command).toBe("yarn run test:unit");
+      expect(analysis.typecheckCommand).toBe("yarn run check-types");
+      expect(analysis.lintCommand).toBe("yarn run check-lint");
+    } finally {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
+
+  it("scans npm repository with package-lock.json, tsconfig fallback, and Turbo tasks format", () => {
+    const testDir = join(tmpdir(), `test-toolchain-npm-${Date.now()}`);
+    mkdirSync(testDir, { recursive: true });
+    writeFileSync(join(testDir, "package-lock.json"), "{}");
+    writeFileSync(join(testDir, "tsconfig.json"), "{}");
+    writeFileSync(join(testDir, "turbo.json"), JSON.stringify({ tasks: { build: {} } }));
+    writeFileSync(
+      join(testDir, "package.json"),
+      JSON.stringify({
+        name: "test-npm-app",
+        scripts: {
+          build: "next build",
+        },
+      }),
+    );
+
+    try {
+      const analysis = scanRepositoryToolchain(testDir);
+      expect(analysis.ecosystem).toBe("node");
+      expect(analysis.packageManager).toBe("npm");
+      expect(analysis.typecheckCommand).toBe("tsc --noEmit");
+      expect(analysis.lintCommand).toBeUndefined();
+    } finally {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
 });
+

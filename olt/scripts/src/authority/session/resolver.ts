@@ -234,9 +234,7 @@ export function autoDeriveCallerIdentity(
 
   const explicit = options.explicitActor?.trim();
   const fallbackRole = explicit ? (agentIdToRole(explicit) ?? explicit) : "mind";
-  const fallbackTier = (roleToTier(fallbackRole) ??
-    (explicit ? agentIdToTier(explicit) : 0) ??
-    0) as ExecutionTier;
+  const fallbackTier = roleToTier(fallbackRole);
 
   return {
     actor: explicit ?? "mind",

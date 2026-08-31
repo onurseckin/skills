@@ -89,6 +89,7 @@ export interface ExecutionContextOptions {
   tier?: ExecutionTier | undefined;
   isInteractiveMainThread?: boolean | undefined;
   argv?: readonly string[] | undefined;
+  recordDefectInTest?: boolean | undefined;
 }
 
 export interface TierSpawningValidationResult {

@@ -124,13 +124,10 @@ export function validateHooksIntegrity(hooks: unknown): readonly string[] {
 export function validatePolicyStructure(raw: unknown): PolicyValidationResult {
   try {
     const policy = parseRepoPolicy(raw);
-    const cmdErrors = validateCommandIntegrity(policy.allowed_commands, policy.forbidden_commands);
-    if (cmdErrors.length > 0) {
-      return { valid: false, errors: cmdErrors };
-    }
     return { valid: true, errors: [], policy };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     return { valid: false, errors: [msg] };
   }
 }
+

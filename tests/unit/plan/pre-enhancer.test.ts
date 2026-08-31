@@ -111,6 +111,8 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       expect(() => parseGateCommand([])).toThrow(HarnessError);
       expect(() => parseGateCommand(["bun", ""])).toThrow(HarnessError);
       expect(() => parseGateCommand(["bun", "   "])).toThrow(HarnessError);
+      expect(() => parseGateCommand(123 as unknown as string)).toThrow(HarnessError);
+      expect(() => parseGateCommand(null as unknown as string)).toThrow(HarnessError);
     });
 
     test("compileDiscriminatingGate augments bun test command when explicit test file is omitted", () => {
@@ -271,6 +273,15 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       const collidingScope = [["olt/scripts/src/plan/pre-enhancer.ts"]];
       const checklist = compileTaskInvariantChecklist(sampleTaskInput, collidingScope);
       expect(checklist.writeScopeBoundary.isDisjointFromConcurrentLanes).toBe(false);
+    });
+
+    test("throws INVALID_ARGUMENT on blank taskId in compileTaskInvariantChecklist", () => {
+      expect(() =>
+        compileTaskInvariantChecklist({
+          ...sampleTaskInput,
+          taskId: "",
+        }),
+      ).toThrow(HarnessError);
     });
   });
 
@@ -443,6 +454,16 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       expect(result.scopeIntegrity.issues.length).toBe(2);
     });
 
+    test("detects ast issues when sourceCodeMap contains forbidden syntax", () => {
+      const result = preEnhanceTask(sampleTaskInput, {
+        sourceCodeMap: {
+          "olt/scripts/src/plan/pre-enhancer.ts": "const x: any = 123; const y = a ?? b;",
+        },
+      });
+      expect(result.astBoundaries.some((b) => !b.compliant)).toBe(true);
+      expect(result.readinessScore).toBeLessThan(100);
+    });
+
     test("throws INVALID_ARGUMENT for invalid task structures", () => {
       expect(() => preEnhanceTask(null as unknown as PreEnhancementTaskInput)).toThrow(
         HarnessError,
@@ -517,11 +538,76 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       expect(validation.errors.length).toBe(0);
     });
 
+    test("validatePreEnhancedTask detects invalid task properties", () => {
+      const taskResult = preEnhanceTask(sampleTaskInput);
+      const invalidTask = {
+        ...taskResult,
+        taskId: "",
+        label: "  ",
+        compiledGateCommand: [],
+        discriminatingAssertions: [],
+        agpProbes: [],
+        scopeIntegrity: {
+          valid: false,
+          issues: ["disallowed traversal"],
+        },
+      };
+
+      const validation = validatePreEnhancedTask(invalidTask);
+      expect(validation.valid).toBe(false);
+      expect(validation.errors).toContain("Missing valid taskId");
+      expect(validation.errors).toContain("Missing valid task label");
+      expect(validation.errors).toContain("Compiled gate command must not be empty");
+      expect(validation.errors.some((e) => e.includes("Insufficient discriminating assertions"))).toBe(true);
+      expect(validation.errors.some((e) => e.includes("Insufficient AGP counterfactual probes"))).toBe(true);
+      expect(validation.errors.some((e) => e.includes("Scope integrity issue"))).toBe(true);
+    });
+
     test("validatePreEnhancedPlan returns valid for disjoint plan", () => {
       const planResult = preEnhancePlan([sampleTaskInput]);
       const validation = validatePreEnhancedPlan(planResult);
       expect(validation.valid).toBe(true);
       expect(validation.errors.length).toBe(0);
+    });
+
+    test("validatePreEnhancedPlan reports schema, empty tasks, scope collision, and task errors", () => {
+      const taskResult = preEnhanceTask(sampleTaskInput);
+      const invalidTask = {
+        ...taskResult,
+        taskId: "",
+      };
+      const invalidPlan = {
+        schema: "invalid.schema" as unknown as "harness.pre-enhanced-plan",
+        version: 1 as const,
+        generatedAt: new Date().toISOString(),
+        tasks: [invalidTask],
+        allScopesDisjoint: false,
+        totalAssertionsCount: 0,
+        totalAgpProbesCount: 0,
+        averageReadinessScore: 0,
+        globalInvariants: [],
+      };
+
+      const validation = validatePreEnhancedPlan(invalidPlan);
+      expect(validation.valid).toBe(false);
+      expect(validation.errors.some((e) => e.includes("Invalid schema"))).toBe(true);
+      expect(validation.errors.some((e) => e.includes("Plan contains overlapping write scopes"))).toBe(true);
+      expect(validation.errors.some((e) => e.includes("Task : Missing valid taskId"))).toBe(true);
+
+      const emptyPlan = {
+        schema: "harness.pre-enhanced-plan" as const,
+        version: 1 as const,
+        generatedAt: new Date().toISOString(),
+        tasks: [],
+        allScopesDisjoint: true,
+        totalAssertionsCount: 0,
+        totalAgpProbesCount: 0,
+        averageReadinessScore: 0,
+        globalInvariants: [],
+      };
+      const emptyValidation = validatePreEnhancedPlan(emptyPlan);
+      expect(emptyValidation.valid).toBe(false);
+      expect(emptyValidation.errors).toContain("Plan contains zero pre-enhanced tasks");
     });
   });
 

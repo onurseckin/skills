@@ -70,7 +70,7 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
     chmodSync(policyPath, 0o600);
     expect(() =>
       loadRepoPolicy(dir, undefined, {
-        fstat: (descriptor) => {
+        fstat: ((descriptor: number) => {
           const metadata = fstatSync(descriptor);
           return new Proxy(metadata, {
             get(target, key, receiver) {
@@ -78,8 +78,9 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
               return Reflect.get(target, key, receiver);
             },
           });
-        },
+        }) as typeof fstatSync,
       }),
+
     ).toThrow(/owned by the current user/i);
 
     const beforeOpen = join(dir, "before-open.json");
