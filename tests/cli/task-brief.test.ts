@@ -11,7 +11,7 @@ import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "./probe-fixture.ts";
-import { FIXTURE_ORCH_ROOT } from "../../support/agent-supervisor-chain.ts";
+import { FIXTURE_ORCH_ROOT } from "../shared/agent-supervisor-chain.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));

@@ -36,7 +36,7 @@ describe("registerAgentGrant: hierarchical spawning is enforced at the state-mut
   test("a released parent cannot supervise a new spawn at the state-mutation layer", async () => {
     const { run } = await emptyGrantRun("grants-defense-released-parent-");
     const { releaseAgentGrant } =
-      await import("../../../olt/scripts/src/workflow/agents/grants.ts");
+      await import("../../olt/scripts/src/workflow/agents/grants.ts");
     await registerAgentGrant({
       runRoot: run,
       agentId: "coord-1",

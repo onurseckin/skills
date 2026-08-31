@@ -108,7 +108,7 @@ describe("test-changed script", () => {
       };
     });
 
-    const mod = await import("../../../scripts/testing/test-changed.ts");
+    const mod = await import("../../scripts/testing/test-changed.ts");
     const exitCode = await mod.run();
     expect(exitCode).toBe(0);
   });

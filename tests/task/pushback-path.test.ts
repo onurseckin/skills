@@ -293,7 +293,7 @@ describe("task pushback path unit tests", () => {
   });
 
   it("verifies task/index.ts exports and guards", async () => {
-    const taskIndex = await import("../../../olt/scripts/src/task/index.ts");
+    const taskIndex = await import("../../olt/scripts/src/task/index.ts");
     expect(taskIndex.isCoordinatorPushbackCause("procedural")).toBe(true);
     expect(taskIndex.isCoordinatorPushbackCause("substantive")).toBe(true);
     expect(taskIndex.isCoordinatorPushbackCause("other")).toBe(false);

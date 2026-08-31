@@ -14,7 +14,7 @@ import {
   auditRemoteUrls,
   isPushTargetInert,
   SENSITIVE_PUSH_ENV_VARS,
-} from "../../support/remote-safety.ts";
+} from "../shared/remote-safety.ts";
 
 /**
  * Initializes a scratch git repository for testing.

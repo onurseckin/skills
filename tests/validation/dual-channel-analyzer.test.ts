@@ -1070,7 +1070,7 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
 describe("Ultra-Lean Packet Invariants & Fake Completion Purging Verification", () => {
   it("verifies sanitizeLeanContext purges fake completion assumptions and heavy metadata blobs", async () => {
     const { sanitizeLeanContext } =
-      await import("../../../olt/scripts/src/packets/validator-context.ts");
+      await import("../../olt/scripts/src/packets/validator-context.ts");
     expect(typeof sanitizeLeanContext).toBe("function");
 
     const payload = {

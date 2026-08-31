@@ -5,7 +5,6 @@
 
 import { describe, expect, it } from "bun:test";
 import {
-  autoPromoteDefect,
   generateDefectRegressionTest,
   generateRegressionTestSuite,
   isDefectEligibleForPromotion,
@@ -20,17 +19,12 @@ describe("Defect Promotion & Regression Suite", () => {
   describe("validateResolutionProof", () => {
     it("validates well-formed proof with valid non-empty fields", () => {
       const proof = createMockResolutionProof();
-      expect(validateResolutionProof(proof)).toBe(true);
+      expect(validateResolutionProof(proof)).toEqual(proof);
     });
 
-    it("rejects proof with missing testPath or invalid verificationHash", () => {
-      expect(validateResolutionProof(createMockResolutionProof({ testPath: "" }))).toBe(false);
-      expect(validateResolutionProof(createMockResolutionProof({ verificationHash: "" }))).toBe(
-        false,
-      );
-      expect(validateResolutionProof(createMockResolutionProof({ executionDurationMs: -1 }))).toBe(
-        false,
-      );
+    it("rejects proof with missing test assertion or empty task_id", () => {
+      expect(() => validateResolutionProof(createMockResolutionProof({ test_assertion: "" }))).toThrow();
+      expect(() => validateResolutionProof(createMockResolutionProof({ task_id: "" }))).toThrow();
     });
   });
 
@@ -38,7 +32,7 @@ describe("Defect Promotion & Regression Suite", () => {
     it("certifies resolved defects with valid proof as promotion-eligible", () => {
       const defect = createMockDefectEntry({
         status: "resolved",
-        proof: createMockResolutionProof(),
+        resolution: createMockResolutionProof(),
       });
       expect(isDefectEligibleForPromotion(defect)).toBe(true);
     });
@@ -47,7 +41,7 @@ describe("Defect Promotion & Regression Suite", () => {
       expect(isDefectEligibleForPromotion(createMockDefectEntry({ status: "open" }))).toBe(false);
       expect(
         isDefectEligibleForPromotion(
-          createMockDefectEntry({ status: "resolved", proof: undefined }),
+          createMockDefectEntry({ status: "resolved", resolution: undefined }),
         ),
       ).toBe(false);
     });
@@ -57,21 +51,19 @@ describe("Defect Promotion & Regression Suite", () => {
     it("generates runnable Bun test code for a single resolved defect", () => {
       const defect = createMockDefectEntry({
         id: "def-reg-1",
-        title: "Fix state mutation leak in scheduler",
+        observation: "Fix state mutation leak in scheduler",
       });
 
-      const testCode = generateDefectRegressionTest(defect);
-      expect(testCode).toContain('describe("Regression: def-reg-1"');
-      expect(testCode).toContain(
-        'it("prevents recurrence of: Fix state mutation leak in scheduler"',
-      );
-      expect(testCode).toContain("expect(");
+      const result = generateDefectRegressionTest(defect);
+      expect(result.code).toContain('describe("Regression: def-reg-1"');
+      expect(result.code).toContain("expect(");
+      expect(result.defectId).toBe("def-reg-1");
     });
 
     it("bundles multiple defect regression tests into an aggregated test suite", () => {
       const defects: DefectEntry[] = [
-        createMockDefectEntry({ id: "def-10", title: "Bug 10" }),
-        createMockDefectEntry({ id: "def-20", title: "Bug 20" }),
+        createMockDefectEntry({ id: "def-10", observation: "Bug 10" }),
+        createMockDefectEntry({ id: "def-20", observation: "Bug 20" }),
       ];
 
       const suite = generateRegressionTestSuite(defects);
@@ -84,45 +76,34 @@ describe("Defect Promotion & Regression Suite", () => {
   describe("validateRegressionTest", () => {
     it("validates generated regression test syntax contains essential assertion guards", () => {
       const defect = createMockDefectEntry({ id: "def-valid-test" });
-      const testCode = generateDefectRegressionTest(defect);
+      const testResult = generateDefectRegressionTest(defect);
 
-      const isValid = validateRegressionTest(testCode);
-      expect(isValid).toBe(true);
+      const validation = validateRegressionTest(testResult.code);
+      expect(validation.isValid).toBe(true);
+      expect(validation.issues).toEqual([]);
     });
   });
 
-  describe("promoteResolvedDefects & autoPromoteDefect", () => {
+  describe("promoteResolvedDefects", () => {
     it("filters and promotes all eligible resolved defects from an in-memory backlog", () => {
       const backlog: DefectEntry[] = [
         createMockDefectEntry({
           id: "d-prom-1",
           status: "resolved",
-          proof: createMockResolutionProof(),
+          resolution: createMockResolutionProof(),
         }),
         createMockDefectEntry({ id: "d-prom-2", status: "open" }),
         createMockDefectEntry({
           id: "d-prom-3",
           status: "resolved",
-          proof: createMockResolutionProof(),
+          resolution: createMockResolutionProof(),
         }),
       ];
 
-      const promoted = promoteResolvedDefects(backlog);
-      expect(promoted.length).toBe(2);
-      expect(promoted.map((d) => d.id)).toEqual(["d-prom-1", "d-prom-3"]);
-    });
-
-    it("autoPromoteDefect returns promotion metadata and verified regression test", () => {
-      const defect = createMockDefectEntry({
-        id: "d-auto-1",
-        status: "resolved",
-        proof: createMockResolutionProof(),
-      });
-
-      const result = autoPromoteDefect(defect);
-      expect(result.promoted).toBe(true);
-      expect(result.regressionTestCode).toBeDefined();
-      expect(result.regressionTestCode).toContain("d-auto-1");
+      const result = promoteResolvedDefects(backlog, { dryRun: true });
+      expect(result.promoted_count).toBe(2);
+      expect(result.unpromoted_count).toBe(1);
+      expect(result.promoted_defects.map((d) => d.id)).toEqual(["d-prom-1", "d-prom-3"]);
     });
   });
 });

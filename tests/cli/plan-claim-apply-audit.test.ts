@@ -241,7 +241,7 @@ describe("plan:audit", () => {
     const run = init.run_root as string;
 
     const { capsulePlanningStore } =
-      await import("../../../olt/scripts/src/cli/commands/plan-apply.ts");
+      await import("../../olt/scripts/src/cli/commands/plan-apply.ts");
     const store = capsulePlanningStore(run);
     const loaded = await store.load();
     expect(loaded.prompt).toBeDefined();

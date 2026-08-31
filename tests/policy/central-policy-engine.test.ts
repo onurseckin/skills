@@ -176,7 +176,7 @@ describe("Central Policy & Lifecycle Hooks Engine", () => {
     writeFileSync(join(dir, "bun.lock"), "");
 
     const { PolicyDiscoveryEngine } =
-      await import("../../../olt/scripts/src/engine/policy-discovery.ts");
+      await import("../../olt/scripts/src/engine/policy-discovery.ts");
     expect(PolicyDiscoveryEngine.isPolicyCalibrated(dir)).toBe(false);
 
     const policy = PolicyDiscoveryEngine.ensurePolicyCalibrated(dir);

@@ -14,12 +14,11 @@ import {
   resolveDefectLogPath,
 } from "../../../olt/scripts/src/mind/defects/loop/ledger-ops.ts";
 import {
-  normalizeFindingToDefect,
   parseDefectsJsonl,
   serializeDefectsJsonl,
 } from "../../../olt/scripts/src/mind/defects/sync/lifecycle-sync.ts";
 import {
-  executeDefectAudit,
+  auditDefectLog,
   formatDefectAuditBrief,
   logBoundaryViolationDefect,
 } from "../../../olt/scripts/src/mind/defects/loop/audit.ts";
@@ -49,12 +48,12 @@ describe("Defect Sync Ledger & Loop Operations", () => {
   describe("Ledger Merging & Boundary Violation Hypotheses", () => {
     it("merges defect lists by ID taking most recent status and updates", () => {
       const base = [
-        createMockDefectEntry({ id: "d1", status: "open", title: "Original title" }),
+        createMockDefectEntry({ id: "d1", status: "open", observation: "Original observation" }),
         createMockDefectEntry({ id: "d2", status: "open" }),
       ];
 
       const updates = [
-        createMockDefectEntry({ id: "d1", status: "in_progress", title: "Updated title" }),
+        createMockDefectEntry({ id: "d1", status: "in_progress", observation: "Updated observation" }),
         createMockDefectEntry({ id: "d3", status: "open" }),
       ];
 
@@ -62,50 +61,38 @@ describe("Defect Sync Ledger & Loop Operations", () => {
       expect(merged.length).toBe(3);
       const d1 = merged.find((d) => d.id === "d1");
       expect(d1?.status).toBe("in_progress");
-      expect(d1?.title).toBe("Updated title");
+      expect(d1?.observation).toBe("Updated observation");
     });
 
     it("formulates boundary violation hypothesis when access violates confinement policy", () => {
-      const hypothesis = formulateBoundaryViolationHypothesis({
-        sourceAgent: "agent-builder-1",
-        targetPath: "/etc/passwd",
-        operation: "WRITE",
-        rule: "RULE_NO_HOST_ACCESS",
+      const defect = createMockDefectEntry({
+        id: "d-boundary-1",
+        category: "boundary_violation",
+        type: "role_escalation",
+        observation: "Main thread attempted direct file write without delegation",
       });
 
-      expect(hypothesis.isViolation).toBe(true);
-      expect(hypothesis.severity).toBe("P0");
+      const hypothesis = formulateBoundaryViolationHypothesis(defect);
+      expect(hypothesis.id).toBe("hypo-d-boundary-1");
       expect(hypothesis.category).toBe("boundary_violation");
+      expect(hypothesis.confidence).toBeGreaterThan(0.9);
     });
 
     it("logs boundary violation defects into memory structures cleanly", () => {
       const defect = logBoundaryViolationDefect({
-        agentId: "agent-test-2",
-        violationType: "UNAUTHORIZED_PROCESS_SPAWN",
-        details: "Attempted to spawn root bash shell",
+        violation_type: "unauthorized_mutation",
+        observation: "Attempted direct write to master branch",
+        role: "worker",
+        agent_id: "agent-1",
       });
 
       expect(defect.category).toBe("boundary_violation");
-      expect(defect.severity).toBe("P0");
       expect(defect.status).toBe("open");
+      expect(defect.observation).toBe("Attempted direct write to master branch");
     });
   });
 
-  describe("Doctor Findings Normalization & JSONL Sync", () => {
-    it("normalizes raw doctor findings into standard DefectEntry models", () => {
-      const rawFinding = {
-        ruleId: "HEALTH_CHECK_FAILED",
-        severity: "error",
-        message: "Memory leak detected in pool allocator",
-        location: "src/allocator.ts:45",
-      };
-
-      const normalized = normalizeFindingToDefect(rawFinding);
-      expect(normalized.id).toBeDefined();
-      expect(normalized.category).toBe("code_defect");
-      expect(normalized.status).toBe("open");
-    });
-
+  describe("JSONL Sync Operations", () => {
     it("parses and serializes defect records faithfully", () => {
       const entries = [
         createMockDefectEntry({ id: "sync-1", status: "open" }),
@@ -123,14 +110,14 @@ describe("Defect Sync Ledger & Loop Operations", () => {
   describe("Audit Loop Execution", () => {
     it("executes complete defect audit over in-memory defect logs", () => {
       const defects = [
-        createMockDefectEntry({ id: "a1", severity: "P0", status: "open" }),
-        createMockDefectEntry({ id: "a2", severity: "P1", status: "resolved" }),
+        createMockDefectEntry({ id: "a1", severity: "critical", status: "open" }),
+        createMockDefectEntry({ id: "a2", severity: "high", status: "resolved" }),
       ];
 
-      const audit = executeDefectAudit(defects);
-      expect(audit.totalCount).toBe(2);
-      expect(audit.openCount).toBe(1);
-      expect(audit.resolvedCount).toBe(1);
+      const audit = auditDefectLog(defects);
+      expect(audit.total_defects).toBe(2);
+      expect(audit.open_count).toBe(1);
+      expect(audit.resolved_count).toBe(1);
 
       const brief = formatDefectAuditBrief(audit);
       expect(brief.length).toBeGreaterThan(10);

@@ -16,11 +16,11 @@ export const repositoryBinding = {
   total_bytes: 128,
 };
 
-export const TEST_GATE_ARGV = ["bun", "test", "tests/unit/runner/receipt/output-evidence.test.ts"];
+export const TEST_GATE_ARGV = ["bun", "test", "tests/runner/receipt/output-evidence.test.ts"];
 export const SECOND_TEST_GATE_ARGV = [
   "bun",
   "test",
-  "tests/unit/runner/signing/gate-path-binding.test.ts",
+  "tests/runner/signing/gate-path-binding.test.ts",
 ];
 
 export class TestPort implements TransactionPort {

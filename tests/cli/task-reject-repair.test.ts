@@ -13,7 +13,7 @@ import { claimSubmitValidateAndReject, setupCompiledRun } from "./file-persisten
 import {
   establishSupervisorChain,
   registerUnderChain,
-} from "../../support/agent-supervisor-chain.ts";
+} from "../shared/agent-supervisor-chain.ts";
 
 const roots: string[] = [];
 

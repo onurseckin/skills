@@ -256,7 +256,7 @@ describe("OrchestratorWatchdog Unit Tests", () => {
 describe("Invariants & Cleanliness Audit - Orchestrator Watchdog", () => {
   it("zero TypeScript any and zero suppressions across orchestrator watchdog files", () => {
     const sourceFiles = [
-      join(import.meta.dir, "../../../../olt/scripts/src/orchestrator/watchdog.ts"),
+      join(import.meta.dir, "../../../olt/scripts/src/orchestrator/watchdog.ts"),
       import.meta.path,
     ];
 

@@ -14,7 +14,7 @@ import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,
-} from "../../support/agent-supervisor-chain.ts";
+} from "../shared/agent-supervisor-chain.ts";
 
 /**
  * critic:start's readiness gate (completionReadinessIssues) demands a task done with validator

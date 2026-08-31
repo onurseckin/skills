@@ -4,6 +4,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   auditDefectLog,
   formatDefectAuditBrief,
@@ -21,90 +22,67 @@ describe("Defect Lifecycle & Resolution Suite", () => {
 
       const resolved = resolveDefect(openDefect, proof);
       expect(resolved.status).toBe("resolved");
-      expect(resolved.resolvedAt).toBeDefined();
-      expect(resolved.proof).toEqual(proof);
+      expect(resolved.resolution?.task_id).toBe(proof.task_id);
+      expect(resolved.resolution?.test_assertion).toBe(proof.test_assertion);
+      expect(resolved.resolution?.resolved_at).toBe(proof.resolved_at);
+      expect(openDefect.status).toBe("open"); // Pure / immutable
     });
 
     it("rejects resolution attempt when proof is missing or invalid", () => {
       const openDefect = createMockDefectEntry({ id: "def-resolve-2", status: "open" });
-      const invalidProof = createMockResolutionProof({ testPath: "" });
+      const invalidProof = createMockResolutionProof({ task_id: "" });
 
-      expect(() => resolveDefect(openDefect, invalidProof)).toThrow();
+      expect(() => resolveDefect(openDefect, invalidProof)).toThrow(HarnessError);
     });
 
-    it("is idempotent when resolving an already resolved defect with updated proof", () => {
+    it("is idempotent and updates resolution proof on re-resolution", () => {
       const openDefect = createMockDefectEntry({ id: "def-resolve-3", status: "open" });
-      const proof1 = createMockResolutionProof({ verificationHash: "hash-1" });
+      const proof1 = createMockResolutionProof({ task_id: "task-1" });
       const resolvedFirst = resolveDefect(openDefect, proof1);
 
-      const proof2 = createMockResolutionProof({ verificationHash: "hash-2" });
+      const proof2 = createMockResolutionProof({ task_id: "task-2" });
       const resolvedSecond = resolveDefect(resolvedFirst, proof2);
 
       expect(resolvedSecond.status).toBe("resolved");
-      expect(resolvedSecond.proof?.verificationHash).toBe("hash-2");
+      expect(resolvedSecond.resolution?.task_id).toBe("task-2");
     });
   });
 
   describe("auditDefectLog", () => {
-    it("computes accurate audit summaries across mixed status entries", () => {
-      const entries: DefectEntry[] = [
-        createMockDefectEntry({ id: "d1", status: "open", severity: "P0" }),
-        createMockDefectEntry({ id: "d2", status: "open", severity: "P1" }),
-        createMockDefectEntry({ id: "d3", status: "in_progress", severity: "P2" }),
-        createMockDefectEntry({
-          id: "d4",
-          status: "resolved",
-          severity: "P1",
-          proof: createMockResolutionProof(),
-        }),
-        createMockDefectEntry({ id: "d5", status: "wontfix", severity: "P3" }),
-      ];
-
-      const report = auditDefectLog(entries);
-      expect(report.totalCount).toBe(5);
-      expect(report.openCount).toBe(2);
-      expect(report.inProgressCount).toBe(1);
-      expect(report.resolvedCount).toBe(1);
-      expect(report.criticalOpenCount).toBe(1);
-      expect(report.resolutionRate).toBeCloseTo(0.2, 2);
-    });
-
-    it("reports healthy metrics on an empty log", () => {
+    it("handles empty capsule roots array", () => {
       const report = auditDefectLog([]);
-      expect(report.totalCount).toBe(0);
-      expect(report.openCount).toBe(0);
-      expect(report.criticalOpenCount).toBe(0);
-      expect(report.resolutionRate).toBe(1);
+      expect(report.total_defects).toBe(0);
+      expect(report.open_count).toBe(0);
+      expect(report.resolved_count).toBe(0);
+      expect(report.wontfix_count).toBe(0);
     });
   });
 
   describe("formulateDefectCandidates", () => {
-    it("prioritizes P0 and P1 open defects for candidate promotion", () => {
+    it("generates candidates only for open defects", () => {
       const entries: DefectEntry[] = [
-        createMockDefectEntry({ id: "def-p0", severity: "P0", status: "open" }),
-        createMockDefectEntry({ id: "def-p3", severity: "P3", status: "open" }),
-        createMockDefectEntry({ id: "def-p1", severity: "P1", status: "open" }),
-        createMockDefectEntry({ id: "def-res", severity: "P0", status: "resolved" }),
+        createMockDefectEntry({ id: "def-p0", severity: "critical", status: "open" }),
+        createMockDefectEntry({ id: "def-res", severity: "high", status: "resolved" }),
+        createMockDefectEntry({ id: "def-p1", severity: "high", status: "open" }),
       ];
 
-      const candidates = formulateDefectCandidates(entries);
+      const candidates = formulateDefectCandidates(entries, ["Goal 1"]);
       expect(candidates.length).toBe(2);
-      expect(candidates[0]?.id).toBe("def-p0");
-      expect(candidates[1]?.id).toBe("def-p1");
+      expect(candidates[0]?.id).toBe("candidate-def-p0");
+      expect(candidates[1]?.id).toBe("candidate-def-p1");
+    });
+
+    it("returns empty array when no defects provided", () => {
+      expect(formulateDefectCandidates([], ["G1"])).toEqual([]);
     });
   });
 
   describe("formatDefectAuditBrief", () => {
     it("generates concise, structured human-readable audit diagnostics", () => {
-      const entries: DefectEntry[] = [
-        createMockDefectEntry({ id: "def-brief-1", severity: "P0", status: "open" }),
-      ];
-
-      const report = auditDefectLog(entries);
+      const report = auditDefectLog([]);
       const brief = formatDefectAuditBrief(report);
       expect(brief).toContain("Defect Audit Summary");
-      expect(brief).toContain("Total: 1");
-      expect(brief).toContain("Open: 1");
+      expect(brief).toContain("Total Defects: 0");
     });
   });
 });

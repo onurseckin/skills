@@ -5,7 +5,7 @@ import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,
-} from "../../support/agent-supervisor-chain.ts";
+} from "../shared/agent-supervisor-chain.ts";
 export { establishSupervisorChain, registerUnderChain };
 
 /** Two tasks, one depending on the other, compiled and ready to be claimed. */

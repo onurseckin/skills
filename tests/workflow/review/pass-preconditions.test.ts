@@ -68,7 +68,7 @@ describe("gateRunEvidence", () => {
     const state = workflowState();
     state.gates.push({
       id: "G-2",
-      command: ["bun", "test", "tests/unit/runner/gate-path-binding.test.ts"],
+      command: ["bun", "test", "tests/runner/signing/gate-path-binding.test.ts"],
       cwd: ".",
       scope: "task",
       requirement_ids: ["R-1"],

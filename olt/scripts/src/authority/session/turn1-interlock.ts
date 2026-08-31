@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/paths.ts";
+import * as io from "./io.ts";
 import type { SessionIdentity } from "./types.ts";
 
 export function requireTurn1Registration(session: SessionIdentity): void {

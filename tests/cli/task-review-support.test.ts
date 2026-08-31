@@ -277,7 +277,7 @@ describe("finalizePassingTask", () => {
 describe("task-review-support additional helpers", () => {
   test("resolveCheckIds handles explicit evidence, commands object, and edge cases", async () => {
     const { resolveCheckIds } =
-      await import("../../../olt/scripts/src/cli/commands/task-review-support.ts");
+      await import("../../olt/scripts/src/cli/commands/task-review-support.ts");
 
     // 1. Explicit evidence list
     expect(resolveCheckIds("C-1, C-2 , C-3", null, "T-1", "val-1", true)).toEqual([
@@ -305,7 +305,7 @@ describe("task-review-support additional helpers", () => {
 
   test("gateProofCommand matches gate command from checkIds", async () => {
     const { gateProofCommand } =
-      await import("../../../olt/scripts/src/cli/commands/task-review-support.ts");
+      await import("../../olt/scripts/src/cli/commands/task-review-support.ts");
 
     const commands = {
       "C-1": { gate_id: "G-1" },
@@ -320,7 +320,7 @@ describe("task-review-support additional helpers", () => {
 
   test("dualChannelRefusalMessage formats error findings and fallback summary", async () => {
     const { dualChannelRefusalMessage } =
-      await import("../../../olt/scripts/src/cli/commands/task-review-support.ts");
+      await import("../../olt/scripts/src/cli/commands/task-review-support.ts");
 
     const auditWithErrors = {
       isUiTask: true,
@@ -357,7 +357,7 @@ describe("task-review-support additional helpers", () => {
 
   test("persistProbeReport and persistReviewReport write JSON files to reports directory", async () => {
     const { persistProbeReport, persistReviewReport } =
-      await import("../../../olt/scripts/src/cli/commands/task-review-support.ts");
+      await import("../../olt/scripts/src/cli/commands/task-review-support.ts");
     const { scratchRoot } = await import("../shared/scratch-root.ts");
     const runDir = scratchRoot(import.meta.path, "reports-test");
 
@@ -384,7 +384,7 @@ describe("task-review-support additional helpers", () => {
       runDualChannelAudit,
       repoRootOf,
       reviewPolicyFor,
-    } = await import("../../../olt/scripts/src/cli/commands/task-review-support.ts");
+    } = await import("../../olt/scripts/src/cli/commands/task-review-support.ts");
     const { scratchRoot } = await import("../shared/scratch-root.ts");
     const runDir = scratchRoot(import.meta.path, "manifests-test");
 

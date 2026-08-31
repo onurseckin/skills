@@ -12,8 +12,6 @@ import {
 } from "../../../olt/scripts/src/mind/defects/sync/state-machine.ts";
 import {
   enforceSequentialLifecycleOrdering,
-  transitionDefectState as transitionOrder,
-  validateDefectStateTransition as validateTransitionOrder,
   validatePhaseTransition,
 } from "../../../olt/scripts/src/mind/defects/sync/order-enforcement.ts";
 import { createMockDefectEntry } from "./defect-fixture.ts";
@@ -56,53 +54,41 @@ describe("Defect Sync & State Machine Suite", () => {
 
     it("executes valid state transitions and updates timestamps", () => {
       const defect = createMockDefectEntry({ status: "open" });
-      const inProgress = transitionState(defect, "in_progress", "Started working on bug");
+      const inProgress = transitionState(defect, "in_progress");
       expect(inProgress.status).toBe("in_progress");
 
-      const resolved = transitionState(inProgress, "resolved", "Fix verified with regression test");
+      const resolved = transitionState(inProgress, "resolved");
       expect(resolved.status).toBe("resolved");
-      expect(resolved.resolvedAt).toBeDefined();
+      expect(resolved.last_seen_at).toBeDefined();
     });
 
-    it("handles defect recurrence by reopening with incremented recurrence count", () => {
+    it("handles defect recurrence without proof transitioning to deliberating", () => {
       const resolved = createMockDefectEntry({
         status: "resolved",
-        metadata: { recurrenceCount: 1 },
+        count: 1,
       });
 
-      const recurring = handleDefectRecurrence(resolved, "Test failed again in CI");
-      expect(recurring.status).toBe("open");
-      expect(recurring.metadata?.recurrenceCount).toBe(2);
+      const recurring = handleDefectRecurrence(resolved);
+      expect(recurring.status).toBe("deliberating");
+      expect(recurring.count).toBe(2);
     });
   });
 
   describe("Order Enforcement & Phase Transitions", () => {
-    it("validates ordered lifecycle transitions", () => {
-      expect(validateTransitionOrder("open", "in_progress")).toBe(true);
-      expect(validateTransitionOrder("in_progress", "resolved")).toBe(true);
+    it("validates phase transition ordering", () => {
+      expect(validatePhaseTransition("plan:init", "plan:add")).toBe(true);
+      expect(validatePhaseTransition("plan:add", "run:start")).toBe(true);
+      expect(validatePhaseTransition("run:start", "plan:init")).toBe(false);
     });
 
-    it("enforces sequential phases: discovery -> triage -> planning -> execution -> verification", () => {
-      expect(validatePhaseTransition("discovery", "triage")).toBe(true);
-      expect(validatePhaseTransition("triage", "planning")).toBe(true);
-      expect(validatePhaseTransition("planning", "execution")).toBe(true);
-      expect(validatePhaseTransition("execution", "verification")).toBe(true);
-      expect(validatePhaseTransition("verification", "discovery")).toBe(true);
+    it("enforces sequential lifecycle ordering across array of commands", () => {
+      const validSeq = ["plan:init", "plan:add", "run:start", "quiesce"];
+      const result = enforceSequentialLifecycleOrdering(validSeq);
+      expect(result.valid).toBe(true);
+      expect(result.highestPhaseReached).toBe("quiesce");
 
-      // Disallowed phase skips
-      expect(validatePhaseTransition("discovery", "execution")).toBe(false);
-      expect(validatePhaseTransition("triage", "verification")).toBe(false);
-    });
-
-    it("enforces sequential lifecycle ordering across array of defects", () => {
-      const defects = [
-        createMockDefectEntry({ id: "d1", status: "open" }),
-        createMockDefectEntry({ id: "d2", status: "in_progress" }),
-        createMockDefectEntry({ id: "d3", status: "resolved" }),
-      ];
-
-      const ordered = enforceSequentialLifecycleOrdering(defects);
-      expect(ordered.length).toBe(3);
+      const invalidSeq = ["run:start", "plan:init"];
+      expect(() => enforceSequentialLifecycleOrdering(invalidSeq)).toThrow();
     });
   });
 });

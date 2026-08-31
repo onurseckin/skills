@@ -153,7 +153,7 @@ describe("attempt-failure-settle", () => {
 
   test("settleAndTerminateAttempt catches errors during probeRoot and uses realSettleClock wait", async () => {
     const attemptIntentModule =
-      await import("../../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts");
+      await import("../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts");
     let probeCount = 0;
     const probeSpy = spyOn(attemptIntentModule, "probeAttemptProcess").mockImplementation(() => {
       probeCount += 1;

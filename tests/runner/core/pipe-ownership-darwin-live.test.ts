@@ -88,7 +88,7 @@ describe("platform dispatch seam", () => {
 
   test("ownedProcessPids maps linux token owners to pids", async () => {
     const linuxPipes =
-      await import("../../../../olt/scripts/src/engine/runner/process/linux-pipes.ts");
+      await import("../../../olt/scripts/src/engine/runner/process/linux-pipes.ts");
     const spyOwners = spyOn(linuxPipes, "linuxPipeOwners").mockReturnValue(new Set([101, 102]));
     const spyTokens = spyOn(linuxPipes, "linuxTokenOwnerIdentities").mockReturnValue([
       { pid: 101, parent: 1, group: 101, birth: "1000" },
@@ -117,7 +117,7 @@ describe("ownedProcessPids / ownershipTokenIdentities (real darwin dispatch)", (
 
   test("ownedProcessPids maps darwin token owners to pids when owners exist", async () => {
     const darwinPipes =
-      await import("../../../../olt/scripts/src/engine/runner/process/darwin/darwin-pipes.ts");
+      await import("../../../olt/scripts/src/engine/runner/process/darwin/darwin-pipes.ts");
     const spyOwners = spyOn(darwinPipes, "darwinPipeOwners").mockReturnValue(new Set([201, 202]));
     const spyTokens = spyOn(darwinPipes, "darwinTokenOwnerIdentities").mockReturnValue([
       { pid: 201, parent: 1, group: 201, birth: "1000" },

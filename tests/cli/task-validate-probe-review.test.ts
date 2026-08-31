@@ -413,7 +413,7 @@ describe("task:review", () => {
 
   test("task:review enforces paired_validator_id authorization (assertValidReviewer)", async () => {
     const { assertValidReviewer } =
-      await import("../../../olt/scripts/src/cli/commands/task-review.ts");
+      await import("../../olt/scripts/src/cli/commands/task-review.ts");
 
     const taskWithPairedValidator: TaskRecord = {
       id: TASK_ID,

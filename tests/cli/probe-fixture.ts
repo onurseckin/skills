@@ -12,7 +12,7 @@ import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,
-} from "../../support/agent-supervisor-chain.ts";
+} from "../shared/agent-supervisor-chain.ts";
 
 export const TASK_ID = "task-core";
 export const VALIDATOR = "val-1";

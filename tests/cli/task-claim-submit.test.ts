@@ -365,7 +365,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
     await Bun.write(join(wtDir, "tests/unit/core/probe-target.ts"), "export const a = 1;\n");
 
     // Mock worktree assignment in state
-    const { transact } = await import("../../../olt/scripts/src/engine/store/index.ts");
+    const { transact } = await import("../../olt/scripts/src/engine/store/index.ts");
     transact(run, "coordinator", "worktree-assigned", {}, (draft) => {
       draft.worktree_ledger = {
         harness_branch: "harness/test",
@@ -538,7 +538,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
       "gate-core.ts",
     ]);
 
-    const { loadRun } = await import("../../../olt/scripts/src/engine/store/index.ts");
+    const { loadRun } = await import("../../olt/scripts/src/engine/store/index.ts");
     const loadedTask = (loadRun(run).state.tasks as Record<string, { requirement_ids?: string[] }>)[
       TASK_ID
     ];
@@ -603,7 +603,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
     await Bun.write(join(wtPath, "tests/unit/core/probe-target.ts"), "export const a = 1;\n");
     await Bun.write(join(repo, "tests/unit/core/probe-target.ts"), "export const a = 1;\n");
 
-    const { transact } = await import("../../../olt/scripts/src/engine/store/index.ts");
+    const { transact } = await import("../../olt/scripts/src/engine/store/index.ts");
     transact(run, "coordinator", "worktree-assigned", {}, (draft) => {
       draft.worktree_ledger = {
         harness_branch: "harness/test",
@@ -685,7 +685,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
     const { repo, run } = await setupRun("task-ops-wrappers", roots);
     await installRuntimeMetadata(run, "worker-1");
     const { taskSubmitCommand: opsSubmit, taskReleaseCommand: opsRelease } =
-      await import("../../../olt/scripts/src/cli/commands/task-ops.ts");
+      await import("../../olt/scripts/src/cli/commands/task-ops.ts");
 
     const claim = await execute([
       "task:claim",

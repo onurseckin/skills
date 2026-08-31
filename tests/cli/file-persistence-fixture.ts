@@ -7,7 +7,7 @@ import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,
-} from "../../support/agent-supervisor-chain.ts";
+} from "../shared/agent-supervisor-chain.ts";
 
 export async function setupCompiledRun(
   name: string,

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -16,7 +17,6 @@ import { dagViewCommand } from "../../../olt/scripts/src/cli/commands/dag-view.t
 import { autoDeriveCallerIdentity } from "../../../olt/scripts/src/authority/session/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
 
 const EXPECTED_INVOCATIONS: readonly string[] = COMMAND_REGISTRY.map((spec) => spec.name);
 
@@ -115,8 +115,7 @@ describe("CLI command registry", () => {
   });
 
   test("task:check never attributes an omitted --actor to a fabricated role-name literal", async () => {
-    const repo = scratchRoot(import.meta.path, "task-check-actor-attribution-repo");
-    mkdirSync(repo, { recursive: true });
+    const repo = mkdtempSync(join(tmpdir(), "task-check-actor-"));
     const cleanPath = join(repo, "clean.ts");
     writeFileSync(cleanPath, "export const cleanVal = 10;\n");
     const runRoot = initRun(
@@ -137,11 +136,11 @@ describe("CLI command registry", () => {
     const receiptEntry = receipts[receiptKeys[0] as string];
     expect(receiptEntry?.actor).not.toBe("mechanic-validator");
     expect(receiptEntry?.actor).toBe(autoDeriveCallerIdentity().actor);
+    rmSync(repo, { recursive: true, force: true });
   });
 
   test("a declared --json flag actually changes what the handler returns, for every command this lane owns", () => {
-    const repo = scratchRoot(import.meta.path, "declared-json-flag-is-live-repo");
-    mkdirSync(repo, { recursive: true });
+    const repo = mkdtempSync(join(tmpdir(), "declared-json-"));
     const run = initRun(
       repo,
       "declared-json-flag-run",

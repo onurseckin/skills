@@ -186,7 +186,7 @@ describe("CLI registry boundaries and behavioral characterization", () => {
 
     test("registry descriptors do not import execute composition root", () => {
       const registryIndex = readFileSync(
-        join(import.meta.dir, "../../../../olt/scripts/src/cli/registry/index.ts"),
+        join(import.meta.dir, "../../../olt/scripts/src/cli/registry/index.ts"),
         "utf-8",
       );
       expect(registryIndex).not.toContain("execute.ts");

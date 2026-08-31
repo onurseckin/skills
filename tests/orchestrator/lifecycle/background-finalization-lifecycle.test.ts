@@ -1,12 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { executeBackgroundFinalization } from "../../../olt/scripts/src/orchestrator/supervision-loop.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
 import { createMockGitRunner, createMockSyncRunner } from "./fixture.ts";
 
 describe("Background Finalization Engine - Lifecycle Execution", () => {
   it("executes full lifecycle: git add, commit, push, and global sync in background thread", async () => {
-    const testDir = scratchRoot(import.meta.path, "lifecycle-full");
+    const testDir = "/virtual/repo/lifecycle-full";
     const { runner: gitRunner, commands: gitCommands } = createMockGitRunner({
       commitSha: "sha-1234567890",
       statusOutput: " M src/engine.ts\n",
@@ -51,7 +50,7 @@ describe("Background Finalization Engine - Lifecycle Execution", () => {
   });
 
   it("skips commit when working tree is already clean but still pushes and syncs", async () => {
-    const testDir = scratchRoot(import.meta.path, "lifecycle-clean-tree");
+    const testDir = "/virtual/repo/lifecycle-clean-tree";
     const { runner: gitRunner, commands: gitCommands } = createMockGitRunner({
       statusOutput: "",
     });
@@ -82,7 +81,7 @@ describe("Background Finalization Engine - Lifecycle Execution", () => {
   });
 
   it("respects skipPush and skipSync configuration flags", async () => {
-    const testDir = scratchRoot(import.meta.path, "lifecycle-skips");
+    const testDir = "/virtual/repo/lifecycle-skips";
     const { runner: gitRunner } = createMockGitRunner();
     const { runner: syncRunner, commands: syncCommands } = createMockSyncRunner();
 
@@ -111,7 +110,7 @@ describe("Background Finalization Engine - Lifecycle Execution", () => {
   });
 
   it("handles git push or sync failures gracefully and records step failure", async () => {
-    const testDir = scratchRoot(import.meta.path, "lifecycle-failure");
+    const testDir = "/virtual/repo/lifecycle-failure";
     const { runner: gitRunner } = createMockGitRunner({
       pushStatus: 1,
       pushError: "fatal: remote disconnected",
@@ -134,7 +133,7 @@ describe("Background Finalization Engine - Lifecycle Execution", () => {
   });
 
   it("throws HarnessError on failure when throwOnError option is set", async () => {
-    const testDir = scratchRoot(import.meta.path, "lifecycle-throw-on-error");
+    const testDir = "/virtual/repo/lifecycle-throw-on-error";
     const { runner: gitRunner } = createMockGitRunner({
       addStatus: 1,
       addError: "fatal: pathspec error",

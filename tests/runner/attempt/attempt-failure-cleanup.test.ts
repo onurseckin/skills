@@ -162,7 +162,7 @@ describe("attempt-failure-cleanup: handleAttemptFailure", () => {
 
   test("handles missing terminalProof in cleanup when startedAt and activityRecord are set", async () => {
     const attemptCleanupModule =
-      await import("../../../../olt/scripts/src/engine/runner/execution/attempt-cleanup.ts");
+      await import("../../../olt/scripts/src/engine/runner/execution/attempt-cleanup.ts");
     const spyCleanup = spyOn(attemptCleanupModule, "cleanupFailedAttempt").mockResolvedValue({
       issues: [],
       signals: [],

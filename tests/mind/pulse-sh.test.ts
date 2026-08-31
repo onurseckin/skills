@@ -297,7 +297,7 @@ describe("pulse.sh driver seam", () => {
           driver: "pulse.sh",
         };
         working.pulse =
-          workingPulse as unknown as import("../../../olt/scripts/src/core/contracts/index.ts").JsonObject;
+          workingPulse as unknown as import("../../olt/scripts/src/core/contracts/index.ts").JsonObject;
       },
     );
 

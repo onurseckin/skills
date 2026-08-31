@@ -24,7 +24,7 @@ import {
   COMMAND_REGISTRY,
 } from "../../../olt/scripts/src/cli/registry/index.ts";
 
-const references = join(import.meta.dir, "..", "..", "..", "..", "olt", "references");
+const references = join(import.meta.dir, "..", "..", "..", "olt", "references");
 const splitRoot = join(references, "cli-capabilities");
 
 describe("CLI capability manifest", () => {

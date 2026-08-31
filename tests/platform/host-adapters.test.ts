@@ -322,7 +322,7 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
   test("getHostAdapter throws INVALID_ARGUMENT on unknown host provider", () => {
     expect(() =>
       getHostAdapter(
-        "unknown-host" as unknown as import("../../../olt/scripts/src/platform/index.ts").HostProvider,
+        "unknown-host" as unknown as import("../../olt/scripts/src/platform/index.ts").HostProvider,
       ),
     ).toThrow(/Unsupported host provider/);
   });

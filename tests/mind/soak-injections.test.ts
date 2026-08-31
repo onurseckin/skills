@@ -91,7 +91,7 @@ import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { verifyIntegrity } from "../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../olt/scripts/src/engine/store/index.ts";
-import { auditRemoteUrls, isPushTargetInert } from "../../support/remote-safety.ts";
+import { auditRemoteUrls, isPushTargetInert } from "../shared/remote-safety.ts";
 
 const roots: string[] = [];
 

@@ -206,7 +206,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
     test("refuses unknown capsule gate before recording command evidence", async () => {
       const { setupCompiledRun } = await import("./task-ops-fixture.ts");
       const { writeAgentMetadata, createAgentMetadata } =
-        await import("../../../olt/scripts/src/runtime/index.ts");
+        await import("../../olt/scripts/src/runtime/index.ts");
       const { join } = await import("node:path");
       const { run: runRoot } = await setupCompiledRun("shell-unknown-gate", []);
       writeAgentMetadata(
@@ -269,7 +269,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
     test("records task-only command evidence through the capsule lifecycle", async () => {
       const { join } = await import("node:path");
       const { writeFile } = await import("node:fs/promises");
-      const { execute } = await import("../../../olt/scripts/src/cli/execute.ts");
+      const { execute } = await import("../../olt/scripts/src/cli/execute.ts");
       const { scratchRoot } = await import("../shared/scratch-root.ts");
 
       const scratch = scratchRoot(import.meta.path, "shell-capsule-run");
@@ -339,7 +339,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
       ]);
 
       const { writeAgentMetadata, createAgentMetadata } =
-        await import("../../../olt/scripts/src/runtime/index.ts");
+        await import("../../olt/scripts/src/runtime/index.ts");
       writeAgentMetadata(
         createAgentMetadata({
           agent_id: "worker-1",

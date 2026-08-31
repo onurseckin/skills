@@ -158,7 +158,7 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
 
     // Lock contention on root.fd
     const { tryExclusiveFlock, releaseFlock } =
-      await import("../../../olt/scripts/src/platform/index.ts");
+      await import("../../olt/scripts/src/platform/index.ts");
     const { closeSync } = await import("node:fs");
     const rootDir = openVerifiedDirectory(scratch, false, "root");
     tryExclusiveFlock(rootDir.fd);
