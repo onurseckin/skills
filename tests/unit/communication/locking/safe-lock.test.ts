@@ -54,7 +54,7 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
   });
 
   describe("constants and validation helpers", () => {
-    it("exports standard configuration values and delay handles positive/zero/negative", () => {
+    it("validates constants, delay, process liveness, payload parsing and bad arguments", () => {
       expect(DEFAULT_LOCK_TIMEOUT_MS).toBe(10_000);
       expect(DEFAULT_STALE_THRESHOLD_MS).toBe(10_000);
       expect(DEFAULT_RETRY_INTERVAL_MS).toBe(25);
@@ -63,19 +63,15 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
       const start = performance.now();
       delay(15);
       expect(performance.now() - start).toBeGreaterThanOrEqual(10);
-    });
 
-    it("isProcessAlive detects running, dead, and invalid PIDs", () => {
       expect(isProcessAlive(process.pid)).toBe(true);
       for (const pid of [0, -1, Number.NaN, 1.5, 99_999_999]) {
         expect(isProcessAlive(pid)).toBe(false);
       }
-    });
 
-    it("parseLockPayload parses valid payload and rejects invalid inputs and malformed JSON", () => {
       const validPayload = { pid: 12345, holder: "agent-a", created_at: "2026-08-29T00:00:00.000Z" };
       expect(parseLockPayload(JSON.stringify(validPayload))).toEqual(validPayload);
-      const invalids = [
+      for (const invalid of [
         "",
         "invalid json",
         "{ invalid json }",
@@ -83,13 +79,12 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
         JSON.stringify({ pid: 1.5, holder: "a", created_at: "now" }),
         JSON.stringify({ pid: 1, holder: 123, created_at: "now" }),
         JSON.stringify({ pid: 1, holder: "a", created_at: 123 }),
-      ];
-      for (const invalid of invalids) expect(parseLockPayload(invalid)).toBeNull();
-    });
+      ]) {
+        expect(parseLockPayload(invalid)).toBeNull();
+      }
 
-    it("fails closed on invalid arguments with HarnessError", () => {
       const validPath = join(locksDir, "valid.lock");
-      const badCalls = [
+      for (const badCall of [
         () => acquireMailboxLock("", "agent-1"),
         () => acquireMailboxLock(123 as unknown as string, "agent-1"),
         () => acquireMailboxLock(validPath, ""),
@@ -98,17 +93,17 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
         () => acquireMailboxLock(validPath, "agent-1", { timeoutMs: Infinity }),
         () => acquireMailboxLock(validPath, "agent-1", { staleThresholdMs: Number.NaN }),
         () => acquireMailboxLock(validPath, "agent-1", { retryMs: -5 }),
-      ];
-      for (const call of badCalls) expect(call).toThrow(HarnessError);
+      ]) {
+        expect(badCall).toThrow(HarnessError);
+      }
     });
   });
 
   describe("physical disk lock acquisition and release", () => {
-    it("successfully acquires lock and writes structured payload to disk", () => {
+    it("acquires, re-enters, and verifies structured payload on disk", () => {
       const lockPath = join(locksDir, "agent-1.lock");
       const result = acquireMailboxLock(lockPath, "agent-1");
       expect(result.acquired).toBe(true);
-      expect(typeof result.lockFd).toBe("number");
       expect(result.lockFd).toBeGreaterThan(0);
       expect(result.lockPath).toBe(lockPath);
       expect(result.holderPid).toBe(process.pid);
@@ -124,25 +119,20 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
       });
     });
 
-    it("auto-creates non-existent parent directory when acquiring lock", () => {
-      const nestedLockPath = join(tempDir, "deep", "nested", "locks", "worker.lock");
-      const result = acquireMailboxLock(nestedLockPath, "nested-worker");
+    it("auto-creates parent dirs and throws INTEGRITY on mkdirSync/openSync failures", () => {
+      const nestedLock = join(tempDir, "deep", "nested", "locks", "worker.lock");
+      const result = acquireMailboxLock(nestedLock, "nested-worker");
       expect(result.acquired).toBe(true);
-      expect(existsSync(nestedLockPath)).toBe(true);
+      expect(existsSync(nestedLock)).toBe(true);
       releaseMailboxLock(result);
-    });
 
-    it("throws INTEGRITY when mkdirSync fails during parent directory creation", () => {
-      const blockingFilePath = join(tempDir, "blocker-file");
-      writeFileSync(blockingFilePath, "not-a-dir", "utf8");
-      const impossibleLockPath = join(blockingFilePath, "child", "lock.lock");
-      expect(() => acquireMailboxLock(impossibleLockPath, "agent-fail")).toThrow(HarnessError);
-    });
+      const blocker = join(tempDir, "blocker-file");
+      writeFileSync(blocker, "not-a-dir", "utf8");
+      expect(() => acquireMailboxLock(join(blocker, "c", "l.lock"), "agent-fail")).toThrow(HarnessError);
 
-    it("throws INTEGRITY when openSync fails on directory path", () => {
-      const dirAsLockPath = join(locksDir, "directory-path");
-      mkdirSync(dirAsLockPath);
-      expect(() => acquireMailboxLock(dirAsLockPath, "agent-fail")).toThrow(HarnessError);
+      const dirAsLock = join(locksDir, "directory-path");
+      mkdirSync(dirAsLock);
+      expect(() => acquireMailboxLock(dirAsLock, "agent-fail")).toThrow(HarnessError);
     });
 
     it("prevents concurrent acquisition on disk and handles release safely", () => {
@@ -161,38 +151,29 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
       releaseMailboxLock(thirdResult);
     });
 
-    it("readHolderPid returns PID for valid disk lock file and null for missing or invalid files", () => {
+    it("reads holder PID from disk and handles safe and faulty descriptor release", () => {
       const validPath = join(locksDir, "valid-holder.lock");
-      const payload = { pid: 4321, holder: "h1", created_at: "2026-08-30T00:00:00.000Z" };
-      writeFileSync(validPath, JSON.stringify(payload), "utf8");
+      writeFileSync(validPath, JSON.stringify({ pid: 4321, holder: "h1", created_at: "2026-08-30T00:00:00.000Z" }), "utf8");
       expect(readHolderPid(validPath)).toBe(4321);
       expect(readHolderPid(join(locksDir, "nonexistent.lock"))).toBeNull();
       const invalidPath = join(locksDir, "invalid-holder.lock");
       writeFileSync(invalidPath, "not json", "utf8");
       expect(readHolderPid(invalidPath)).toBeNull();
-    });
 
-    it("handles unacquired, null, and closed descriptors safely on release", () => {
-      expect(() =>
-        releaseMailboxLock({ acquired: false, lockFd: null, lockPath: "/none", holderPid: null }),
-      ).not.toThrow();
-      expect(() =>
-        releaseMailboxLock({ acquired: true, lockFd: -1, lockPath: "/none", holderPid: null }),
-      ).not.toThrow();
+      expect(() => releaseMailboxLock({ acquired: false, lockFd: null, lockPath: "/none", holderPid: null })).not.toThrow();
+      expect(() => releaseMailboxLock({ acquired: true, lockFd: -1, lockPath: "/none", holderPid: null })).not.toThrow();
 
-      const filePath = join(locksDir, "closed-fd.lock");
-      const fd = openSync(filePath, "w");
+      const closedFile = join(locksDir, "closed-fd.lock");
+      const fd = openSync(closedFile, "w");
       closeSync(fd);
-      expect(() =>
-        releaseMailboxLock({ acquired: true, lockFd: fd, lockPath: filePath, holderPid: process.pid }),
-      ).toThrow();
+      expect(() => releaseMailboxLock({ acquired: true, lockFd: fd, lockPath: closedFile, holderPid: process.pid })).toThrow();
     });
   });
 
   describe("in-memory zero-disk lock acquisition and release", () => {
     beforeEach(() => setInMemoryLocking(true));
 
-    it("acquires in-memory lock without creating physical files on disk", () => {
+    it("acquires and prevents concurrent in-memory acquisition with timeouts", () => {
       expect(isInMemoryLocking()).toBe(true);
       const lockPath = "/virtual/locks/in-mem-agent.lock";
       const result = acquireMailboxLock(lockPath, "mem-worker-1");
@@ -202,40 +183,28 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
       expect(existsSync(lockPath)).toBe(false);
 
       const memRecord = getInMemoryLock(lockPath);
-      expect(memRecord).not.toBeNull();
       expect(memRecord?.holder).toBe("mem-worker-1");
       expect(memRecord?.pid).toBe(process.pid);
       expect(readHolderPid(lockPath)).toBe(process.pid);
 
+      const start = performance.now();
+      const contended = acquireMailboxLock(lockPath, "agent-second", { timeoutMs: 40, retryMs: 10 });
+      expect(performance.now() - start).toBeGreaterThanOrEqual(30);
+      expect(contended.acquired).toBe(false);
+      expect(contended.holderPid).toBe(process.pid);
+
       releaseMailboxLock(result);
       expect(getInMemoryLock(lockPath)).toBeNull();
-    });
 
-    it("prevents concurrent in-memory acquisition on same lock path and times out", () => {
-      const lockPath = "/virtual/locks/contended.lock";
-      const res1 = acquireMailboxLock(lockPath, "agent-first");
-      expect(res1.acquired).toBe(true);
-
-      const start = performance.now();
-      const res2 = acquireMailboxLock(lockPath, "agent-second", { timeoutMs: 40, retryMs: 10 });
-      expect(performance.now() - start).toBeGreaterThanOrEqual(30);
-      expect(res2.acquired).toBe(false);
-      expect(res2.holderPid).toBe(process.pid);
-
-      releaseMailboxLock(res1);
       const res3 = acquireMailboxLock(lockPath, "agent-second", { timeoutMs: 50, retryMs: 10 });
       expect(res3.acquired).toBe(true);
       releaseMailboxLock(res3);
     });
 
-    it("supports seedInMemoryLock, getInMemoryLock, removeInMemoryLock, and resetInMemoryLocks", () => {
+    it("manages seed, get, remove, and reset of in-memory locks", () => {
       const path1 = "/mem/agent1.lock";
       const path2 = "/mem/agent2.lock";
-      const fd1 = seedInMemoryLock(path1, {
-        pid: 8888,
-        holder: "seeded-agent",
-        created_at: "2026-08-31T00:00:00.000Z",
-      });
+      const fd1 = seedInMemoryLock(path1, { pid: 8888, holder: "seeded-agent", created_at: "2026-08-31T00:00:00.000Z" });
       expect(fd1).toBeGreaterThanOrEqual(100_000);
       expect(readHolderPid(path1)).toBe(8888);
       expect(getInMemoryLock(path1)?.holder).toBe("seeded-agent");
@@ -263,9 +232,7 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
       expect(getInMemoryLock(lockPath)).toBeNull();
 
       const blocker = acquireMailboxLock(lockPath, "blocker");
-      expect(() =>
-        withExclusiveLock(lockPath, "blocked", () => "nope", { timeoutMs: 20, retryMs: 5 }),
-      ).toThrow(HarnessError);
+      expect(() => withExclusiveLock(lockPath, "blocked", () => "nope", { timeoutMs: 20, retryMs: 5 })).toThrow(HarnessError);
       await expect(
         withExclusiveLockAsync(lockPath, "blocked", async () => "nope", { timeoutMs: 20, retryMs: 5 }),
       ).rejects.toThrow(HarnessError);
