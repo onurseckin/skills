@@ -15,7 +15,6 @@ import {
 } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { releaseFlock, tryExclusiveFlock } from "../../platform/index.ts";
 import {
@@ -27,37 +26,34 @@ import {
 } from "./paths.ts";
 import { sessionLockCleanupFault, sessionPersistenceObserver } from "./testing-hooks.ts";
 import type { SessionSnapshot } from "./types.ts";
+import {
+  deleteInMemorySessionData,
+  getInMemorySessionData,
+  isInMemorySessionStoreEnabled,
+  setInMemorySessionData,
+} from "./in-memory-store.ts";
 
-let inMemorySessionStore: Map<string, string> | undefined;
+export {
+  clearInMemorySessionStore,
+  deleteInMemorySessionData,
+  disableInMemorySessionStore,
+  enableInMemorySessionStore,
+  getInMemorySessionData,
+  getInMemorySessionStore,
+  isInMemorySessionStoreEnabled,
+  setInMemorySessionData,
+} from "./in-memory-store.ts";
 
-export function enableInMemorySessionStore(initial?: Record<string, string>): Map<string, string> {
-  return (inMemorySessionStore = new Map(Object.entries(initial ?? {})));
-}
-export function disableInMemorySessionStore(): void {
-  inMemorySessionStore = undefined;
-}
-export function clearInMemorySessionStore(): void {
-  inMemorySessionStore?.clear();
-}
-export function isInMemorySessionStoreEnabled(): boolean {
-  return inMemorySessionStore !== undefined;
-}
-export function getInMemorySessionStore(): Map<string, string> | undefined {
-  return inMemorySessionStore;
-}
-export function setInMemorySessionData(path: string, payload: string): void {
-  inMemorySessionStore?.set(path, payload);
-}
-export function getInMemorySessionData(path: string): string | undefined {
-  return inMemorySessionStore?.get(path);
-}
-export function deleteInMemorySessionData(path: string): boolean {
-  return inMemorySessionStore?.delete(path) ?? false;
-}
+export {
+  formatSafeErrorCause,
+  inferCanExecute,
+  readOwnDataString,
+  readPersistedSession,
+} from "./session-validation.ts";
 
 export function secureReadSession(path: string): string {
-  if (inMemorySessionStore) {
-    const data = inMemorySessionStore.get(path);
+  if (isInMemorySessionStoreEnabled()) {
+    const data = getInMemorySessionData(path);
     if (data === undefined) throw Object.assign(new Error("missing session"), { code: "ENOENT" });
     return data;
   }
@@ -83,9 +79,9 @@ export function secureReadSession(path: string): string {
 }
 
 export function atomicSessionWrite(path: string, payload: string): void {
-  if (inMemorySessionStore) {
+  if (isInMemorySessionStoreEnabled()) {
     sessionPersistenceObserver?.("file-fsync", path);
-    inMemorySessionStore.set(path, payload);
+    setInMemorySessionData(path, payload);
     sessionPersistenceObserver?.("rename", path);
     sessionPersistenceObserver?.("directory-fsync", path);
     return;
@@ -137,7 +133,7 @@ export function withSessionAuthorityLock<T>(
   directory: string,
   operation: () => T,
 ): T {
-  if (inMemorySessionStore) {
+  if (isInMemorySessionStoreEnabled()) {
     let result!: T;
     let primary: unknown;
     let hasPrimary = false;
@@ -215,108 +211,17 @@ export function withSessionAuthorityLock<T>(
   return result;
 }
 
-export function readOwnDataString(error: unknown, key: "code" | "message"): string | null {
-  if ((typeof error !== "object" && typeof error !== "function") || error === null) return null;
-  try {
-    const descriptor = Object.getOwnPropertyDescriptor(error, key);
-    return descriptor && "value" in descriptor && typeof descriptor.value === "string"
-      ? descriptor.value
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-export function formatSafeErrorCause(error: unknown): string {
-  const message = readOwnDataString(error, "message");
-  if (message !== null) return message;
-  if (error === null || (typeof error !== "object" && typeof error !== "function")) {
-    try {
-      return String(error);
-    } catch {
-      return "unknown error";
-    }
-  }
-  return "unknown error";
-}
-
-export function readPersistedSession(
-  path: string,
-  mechanism: string,
-  readSessionFile: (path: string, encoding: "utf8") => string,
-): JsonObject | null {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(readSessionFile(path, "utf8"));
-  } catch (error: unknown) {
-    if (readOwnDataString(error, "code") === "ENOENT") return null;
-    throw new HarnessError(
-      "INTEGRITY",
-      `failed to read persisted ${mechanism} session evidence at ${path}: ${formatSafeErrorCause(error)}`,
-    );
-  }
-  const invalid = (cause: string): never => {
-    throw new HarnessError(
-      "INTEGRITY",
-      `invalid persisted ${mechanism} session evidence at ${path}: ${cause}`,
-    );
-  };
-  const session: JsonObject = isJsonObject(parsed) ? parsed : invalid("expected a JSON object");
-  if (typeof session.agent_id !== "string" || !session.agent_id.trim())
-    invalid("agent_id must be a nonempty string");
-  for (const f of ["role", "token"] as const) {
-    if (f in session && (typeof session[f] !== "string" || !session[f].trim())) {
-      invalid(`${f} must be a nonempty string when present`);
-    }
-  }
-  for (const f of ["can_execute_shell", "can_edit_files"] as const) {
-    if (f in session && typeof session[f] !== "boolean")
-      invalid(`${f} must be a boolean when present`);
-  }
-  if (
-    "write_scope" in session &&
-    (!Array.isArray(session.write_scope) || session.write_scope.some((e) => typeof e !== "string"))
-  ) {
-    invalid("write_scope must be an array of strings when present");
-  }
-  for (const f of ["task_id", "granted_at"] as const) {
-    if (f in session && typeof session[f] !== "string")
-      invalid(`${f} must be a string when present`);
-  }
-  return session;
-}
-
-export function inferCanExecute(role: string): {
-  can_execute_shell: boolean;
-  can_edit_files: boolean;
-} {
-  const norm = role.trim().toLowerCase();
-  const editable = [
-    "implementer",
-    "worker",
-    "repairer",
-    "owner",
-    "sub-implementer",
-    "sub_implementer",
-    "sub-task-worker",
-    "sub_task_worker",
-  ];
-  const isEditable =
-    editable.includes(norm) || norm.startsWith("implementer-") || norm.startsWith("implementer_");
-  return { can_execute_shell: true, can_edit_files: isEditable };
-}
-
 export function snapshotSession(path: string): SessionSnapshot {
-  if (inMemorySessionStore) return { path, bytes: inMemorySessionStore.get(path) ?? null };
+  if (isInMemorySessionStoreEnabled()) return { path, bytes: getInMemorySessionData(path) ?? null };
   return { path, bytes: existsSync(path) ? secureReadSession(path) : null };
 }
 
 export function restoreSnapshotIfUnchanged(snapshot: SessionSnapshot, payload: string): void {
-  if (inMemorySessionStore) {
-    const current = inMemorySessionStore.get(snapshot.path) ?? null;
+  if (isInMemorySessionStoreEnabled()) {
+    const current = getInMemorySessionData(snapshot.path) ?? null;
     if (current !== payload) return;
-    if (snapshot.bytes === null) inMemorySessionStore.delete(snapshot.path);
-    else inMemorySessionStore.set(snapshot.path, snapshot.bytes);
+    if (snapshot.bytes === null) deleteInMemorySessionData(snapshot.path);
+    else setInMemorySessionData(snapshot.path, snapshot.bytes);
     return;
   }
   const current = existsSync(snapshot.path) ? secureReadSession(snapshot.path) : null;
