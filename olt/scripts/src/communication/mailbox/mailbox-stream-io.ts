@@ -11,10 +11,7 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { MailboxEnvelope } from "../types.ts";
-import {
-  rewriteInMemoryInbox,
-  shouldUseInMemory,
-} from "./mailbox-stream-store.ts";
+import { rewriteInMemoryInbox, shouldUseInMemory } from "./mailbox-stream-store.ts";
 
 export function ensureParentDir(filePath: string): void {
   const dir = dirname(filePath);
