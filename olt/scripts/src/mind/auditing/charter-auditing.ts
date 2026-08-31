@@ -34,9 +34,6 @@ export {
   type ParsedCharter,
 };
 
-
-
-
 export function auditCharterGoals(
   charter: ParsedCharter,
   referencedGoalIds: readonly string[] = [],

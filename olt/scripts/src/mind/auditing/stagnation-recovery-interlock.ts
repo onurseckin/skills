@@ -5,7 +5,7 @@ export const MODE_A_AUTONOMIC_DISCOVERY = "MODE_A_AUTONOMIC_DISCOVERY" as const;
 export const MODE_B_BACKLOG_REACTIVE = "MODE_B_BACKLOG_REACTIVE" as const;
 export const MODE_STANDARD_PREPLAN = "MODE_STANDARD_PREPLAN" as const;
 export const MODE_DORMANT = "MODE_DORMANT" as const;
-export const CHRONIC_STAGNATION_CYCLE_THRESHOLD = 3;
+export const CHRONIC_STAGNATION_CYCLE_THRESHOLD = 2;
 
 export type StagnationMode =
   | typeof MODE_A_AUTONOMIC_DISCOVERY
@@ -14,6 +14,7 @@ export type StagnationMode =
   | typeof MODE_DORMANT;
 
 import type { StagnationAuditResult } from "../preplanning/index.ts";
+import { dispatchPeerMessage } from "../../communication/mailbox/mailbox-dispatcher.ts";
 
 export interface StagnationShockResult {
   readonly recovered: boolean;
@@ -28,6 +29,7 @@ export interface StagnationShockResult {
 }
 
 export interface StagnationRecoveryOptions {
+  readonly repoRoot?: string | undefined;
   readonly idleDurationSeconds?: number | undefined;
   readonly stagnationThresholdSeconds?: number | undefined;
   readonly consecutiveCycles?: number | undefined;
@@ -105,6 +107,26 @@ export function executeStagnationShockRecovery(
       opts.dispatchAction();
     }
 
+    const effectiveRepo = opts.repoRoot ?? process.cwd();
+    try {
+      dispatchPeerMessage({
+        senderId: "mind-auditor",
+        senderRole: "mind-auditor",
+        recipientRoleOrId: "mind",
+        messageType: "SYSTEM_ALERT",
+        payload: {
+          shock_reason: isCreative ? "MIND_CREATIVE_STAGNATION" : "CHRONIC_ZERO_DELTA_STAGNATION",
+          consecutive_cycles: consecutive,
+          directive: "EXECUTE_MODE_A_AUTONOMIC_PRODUCT_EXPANSION",
+          details:
+            "Mind was detected in back-to-back zero-delta / idle state. As Tier 0 Product Owner, remaining idle is strictly forbidden. Audit repository UX/UI across 4 viewports, discover feature enhancements, and compile the next wave plan.",
+        },
+        baseDir: effectiveRepo,
+      });
+    } catch {
+      // Non-fatal if mailbox directory is not yet initialized
+    }
+
     return {
       recovered: true,
       triggered: true,
@@ -142,18 +164,36 @@ export function executeStagnationShockRecovery(
   }
 
   const mode =
-    consecutive >= 3 || pendingBacklog === 0
+    consecutive >= 2 || pendingBacklog === 0
       ? "MODE_A_AUTONOMIC_DISCOVERY"
       : "MODE_B_BACKLOG_REACTIVE";
 
   const { resolvedCount } = resolveStagnationIncidents(repoRoot);
+
+  try {
+    dispatchPeerMessage({
+      senderId: "mind-auditor",
+      senderRole: "mind-auditor",
+      recipientRoleOrId: "mind",
+      messageType: "SYSTEM_ALERT",
+      payload: {
+        shock_reason: "IDLE_DURATION_THRESHOLD_EXCEEDED",
+        idle_duration_seconds: idle,
+        consecutive_cycles: consecutive,
+        directive: "EXECUTE_MODE_A_AUTONOMIC_PRODUCT_EXPANSION",
+      },
+      baseDir: repoRoot,
+    });
+  } catch {
+    // Non-fatal
+  }
 
   return {
     recovered: true,
     triggered: true,
     dispatchedTaskId: `task-shock-${Date.now()}`,
     mode,
-    escalated: consecutive >= 3,
+    escalated: consecutive >= 2,
     recoveryAction: "DISPATCH_PREPLANNING_SYNTHESIS",
     resolvedIncidents: resolvedCount,
     timestamp: now,

@@ -129,7 +129,8 @@ describe("OLT Book System and Canonical Guidelines Validation Suite", () => {
     expect(/\p{Extended_Pictographic}/u.test(rootFirstLine)).toBe(false);
 
     const oltGuidelinesContent = readFileSync(oltGuidelinesPath, "utf-8");
-    const oltFirstLine = oltGuidelinesContent.split("\n").find((l) => l.includes("[Previous:")) ?? "";
+    const oltFirstLine =
+      oltGuidelinesContent.split("\n").find((l) => l.includes("[Previous:")) ?? "";
     expect(oltFirstLine.length).toBeGreaterThan(0);
     expect(/\p{Extended_Pictographic}/u.test(oltFirstLine)).toBe(false);
   });

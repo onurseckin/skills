@@ -23,8 +23,9 @@ export function validateUiMechanic(input: UiMechanicInspectionInput): UiMechanic
     input.minTouchDimension ?? MIN_TOUCH_HITBOX_PT,
   );
 
-  const { evaluations: overflowEvals, violations: overflowViolations } =
-    inspectAllOverflowElements(input.overflowElements ?? []);
+  const { evaluations: overflowEvals, violations: overflowViolations } = inspectAllOverflowElements(
+    input.overflowElements ?? [],
+  );
 
   const validScreenshots = (input.screenshots ?? []).filter(
     (s) => s.sizeBytes >= MIN_SCREENSHOT_BYTES,
@@ -41,9 +42,7 @@ export function validateUiMechanic(input: UiMechanicInspectionInput): UiMechanic
       : 0);
 
   const passed =
-    touchFailures.length === 0 &&
-    overflowViolations.length === 0 &&
-    journeyFailures.length === 0;
+    touchFailures.length === 0 && overflowViolations.length === 0 && journeyFailures.length === 0;
 
   const summaryParts: string[] = [];
   summaryParts.push(

@@ -27,7 +27,7 @@ graph TD
     subgraph Engine ["2. Lifecycle Hooks & Audio Engine"]
         Filter["Anti-Noise Filter & Cooldown Throttler"]
         Dispatcher["Multi-Channel Dispatcher (.olt/hooks.json)"]
-        
+
         RunEv --> Filter
         TaskEv --> Filter
         WaveEv --> Filter
@@ -42,7 +42,7 @@ graph TD
         ShellChan["Shell Scripts<br/>(Interpolated Subprocesses)"]
         WebhookChan["HTTP Webhooks<br/>(Slack / Discord / Datadog)"]
         HandlerChan["Custom TS Handlers<br/>(In-Memory Programmatic)"]
-        
+
         Dispatcher --> AudioChan
         Dispatcher --> ShellChan
         Dispatcher --> WebhookChan
@@ -169,18 +169,19 @@ The Audio Engine provides crisp, non-intrusive auditory cues for long-horizon ba
 ### Native Sound Architecture
 
 OLT uses native OS binaries without pulling heavy third-party audio libraries or dependencies:
+
 - **macOS (`darwin`)**: Spawns `/usr/bin/afplay` using macOS System Sound bundles.
 - **Linux (`linux`)**: Probes `/usr/bin/paplay` (PulseAudio) $\to$ `/usr/bin/aplay` (ALSA) $\to$ `/usr/bin/canberra-gtk-play`.
 
 #### Standard macOS System Chimes
 
-| Sound Name | Absolute File Path | Recommended Event Pairing |
-| :--- | :--- | :--- |
-| `Bottle` | `/System/Library/Sounds/Bottle.aiff` | `orchestrator:complete`, `run:complete` |
-| `Glass` | `/System/Library/Sounds/Glass.aiff` | `wave:complete`, `task:complete` |
-| `Submarine`| `/System/Library/Sounds/Submarine.aiff` | `quota:freeze`, `run:freeze` |
-| `Sosumi` | `/System/Library/Sounds/Sosumi.aiff` | `run:fail`, `gate:fail`, `defect:opened` |
-| `Ping` | `/System/Library/Sounds/Ping.aiff` | `mind:pulse`, `quota:resumed` |
+| Sound Name  | Absolute File Path                      | Recommended Event Pairing                |
+| :---------- | :-------------------------------------- | :--------------------------------------- |
+| `Bottle`    | `/System/Library/Sounds/Bottle.aiff`    | `orchestrator:complete`, `run:complete`  |
+| `Glass`     | `/System/Library/Sounds/Glass.aiff`     | `wave:complete`, `task:complete`         |
+| `Submarine` | `/System/Library/Sounds/Submarine.aiff` | `quota:freeze`, `run:freeze`             |
+| `Sosumi`    | `/System/Library/Sounds/Sosumi.aiff`    | `run:fail`, `gate:fail`, `defect:opened` |
+| `Ping`      | `/System/Library/Sounds/Ping.aiff`      | `mind:pulse`, `quota:resumed`            |
 
 ### Anti-Noise Filter & Cooldown Throttling
 
@@ -249,17 +250,17 @@ Hooks are configured in `.olt/hooks.json` at the root of the repository or capsu
 
 Shell commands and webhook URLs support rich template variable interpolation:
 
-| Variable Token | Resolved Value | Example Output |
-| :--- | :--- | :--- |
-| `{event}` | Name of the triggering lifecycle event | `run:complete` |
-| `{run_id}` | Unique capsule run identifier slug | `2026-08-31-complete-documentation` |
-| `{task_id}` | ID of the active task (or `N/A`) | `task-3-subsystems-ch4-6` |
-| `{actor}` | Agent ID that emitted the event | `coordinator_documentation` |
-| `{role}` | Role of the acting agent | `coordinator` |
-| `{phase_name}` | Name of the completed phase | `Subsystems Deep Dive` |
-| `{commit_sha}` | Head commit SHA of the repository | `84e8cd79b679` |
-| `{duration_formatted}` | Elapsed time formatted as human text | `4m 12s` |
-| `{tasks_count}` | Total number of tasks completed in wave | `4` |
+| Variable Token         | Resolved Value                          | Example Output                      |
+| :--------------------- | :-------------------------------------- | :---------------------------------- |
+| `{event}`              | Name of the triggering lifecycle event  | `run:complete`                      |
+| `{run_id}`             | Unique capsule run identifier slug      | `2026-08-31-complete-documentation` |
+| `{task_id}`            | ID of the active task (or `N/A`)        | `task-3-subsystems-ch4-6`           |
+| `{actor}`              | Agent ID that emitted the event         | `coordinator_documentation`         |
+| `{role}`               | Role of the acting agent                | `coordinator`                       |
+| `{phase_name}`         | Name of the completed phase             | `Subsystems Deep Dive`              |
+| `{commit_sha}`         | Head commit SHA of the repository       | `84e8cd79b679`                      |
+| `{duration_formatted}` | Elapsed time formatted as human text    | `4m 12s`                            |
+| `{tasks_count}`        | Total number of tasks completed in wave | `4`                                 |
 
 ---
 

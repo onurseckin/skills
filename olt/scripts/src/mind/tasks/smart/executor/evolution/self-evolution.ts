@@ -21,13 +21,9 @@ import {
   deriveGateForCategory,
 } from "../orchestrator.ts";
 
-import {
-  detectRepositoryStructure,
-  type DetectedRepositoryStructure,
-} from "./repo-structure.ts";
+import { detectRepositoryStructure, type DetectedRepositoryStructure } from "./repo-structure.ts";
 
 export { detectRepositoryStructure, type DetectedRepositoryStructure };
-
 
 export interface SynthesizeSelfEvolutionOptions {
   readonly repoRoot?: string | undefined;

@@ -49,10 +49,7 @@ export class PolicyDiscoveryEngine {
     return discoverAndCalibrateRepoPolicy(repoRoot);
   }
 
-  public static auditCoverage(
-    repoRoot: string,
-    capsuleRunRoot?: string,
-  ): GovernanceCoverageReport {
+  public static auditCoverage(repoRoot: string, capsuleRunRoot?: string): GovernanceCoverageReport {
     return auditRepoGovernanceCoverage(repoRoot, capsuleRunRoot);
   }
 

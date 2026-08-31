@@ -14,12 +14,12 @@ This chapter details the theoretical foundations, architectural mechanisms, mult
 
 Autonomous agents must be aware of their host environment without requiring manual user configuration. OLT standardizes runtime host detection across **four canonical platforms**:
 
-| Canonical Host | Platform Identifier | Runtime Environment Indicators | Typical Context & Rate Enforcements |
-| :--- | :--- | :--- | :--- |
-| **Google Antigravity** | `antigravity` | `ANTIGRAVITY_CLI`, `ANTIGRAVITY_AGENT_ID`, `GEMINI_CLI`, `ANTIGRAVITY_VERSION` | Sliding 2M token context, high-throughput tool calling, rolling model quota |
-| **Claude Code** | `claude_code` | `CLAUDE_CODE_VERSION`, `CLAUDE_IS_ACTIVE`, `ANTHROPIC_API_KEY` | 200k context window, strict per-minute input/output token ceilings (TPM/RPM) |
-| **OpenAI Codex** | `codex` | `CODEX_VERSION`, `CODEX_CLI`, `OPENAI_API_KEY` | Structured output token bounds, multi-tier TPM limits |
-| **Cursor / Coding Agents** | `cursor` | `CURSOR_VERSION`, `CURSOR_IS_ACTIVE`, `CURSOR_AGENT_ID` | Fast micro-agent invocations, editor IPC bounds, rolling monthly quota |
+| Canonical Host             | Platform Identifier | Runtime Environment Indicators                                                 | Typical Context & Rate Enforcements                                          |
+| :------------------------- | :------------------ | :----------------------------------------------------------------------------- | :--------------------------------------------------------------------------- |
+| **Google Antigravity**     | `antigravity`       | `ANTIGRAVITY_CLI`, `ANTIGRAVITY_AGENT_ID`, `GEMINI_CLI`, `ANTIGRAVITY_VERSION` | Sliding 2M token context, high-throughput tool calling, rolling model quota  |
+| **Claude Code**            | `claude_code`       | `CLAUDE_CODE_VERSION`, `CLAUDE_IS_ACTIVE`, `ANTHROPIC_API_KEY`                 | 200k context window, strict per-minute input/output token ceilings (TPM/RPM) |
+| **OpenAI Codex**           | `codex`             | `CODEX_VERSION`, `CODEX_CLI`, `OPENAI_API_KEY`                                 | Structured output token bounds, multi-tier TPM limits                        |
+| **Cursor / Coding Agents** | `cursor`            | `CURSOR_VERSION`, `CURSOR_IS_ACTIVE`, `CURSOR_AGENT_ID`                        | Fast micro-agent invocations, editor IPC bounds, rolling monthly quota       |
 
 ### Detection Signal Hierarchy & Precedence
 
@@ -55,6 +55,7 @@ Multi-agent coordination requires strict regulation of context window utilizatio
 $$\Omega_{\text{effective}}(t) = \Omega_{\text{max}} - \left( \sum_{i=1}^{N} \tau_{\text{system}} + \tau_{\text{history}}(t) + \tau_{\text{tools}} + \tau_{\text{scratchpad}}(t) \right)$$
 
 Where:
+
 - $\Omega_{\text{max}}$ is the hard maximum context window (e.g., 200,000 tokens for Claude, 2,000,000 tokens for Antigravity/Gemini).
 - $\tau_{\text{system}}$ is the invariant prompt and role specification overhead.
 - $\tau_{\text{history}}(t)$ is the accumulated multi-turn message ledger at step $t$.
@@ -100,18 +101,19 @@ stateDiagram-v2
     WARNING --> QUOTA_EXHAUSTED: Quota <= 10.0%
     OK --> QUOTA_EXHAUSTED: Rapid Token Burn (<= 10.0%)
     OK --> QUOTA_UNKNOWN: Host Unreachable / Auth Failure
-    
+
     state QUOTA_EXHAUSTED {
         [*] --> EmitWrapUpDirectives
         EmitWrapUpDirectives --> StagingSafety
         StagingSafety --> ScheduleAutoWake
         ScheduleAutoWake --> GracefulFreeze
     }
-    
+
     QUOTA_EXHAUSTED --> OK: Auto-Wake Timer Triggered & Quota Reset
 ```
 
 When the circuit-breaker trips:
+
 1. **Immediate Execution Freeze**: No new tasks may be claimed (`task:claim` is refused with `CIRCUIT_BREAKER_ACTIVE`).
 2. **Wrap-Up Directive Dispatch**: All active child agents receive an urgent directive to wrap up their immediate atomic micro-step without launching new subprocesses.
 3. **Forbid-Kill Invariant**: Active subagents are **never** abruptly killed with `SIGKILL` or `process.kill()`. Terminating mid-write corrupts JSON trees and working trees.
@@ -158,12 +160,12 @@ $$\Delta t_{\text{sleep}} = \Delta t_{\text{safe\_window}} = 18{,}000\,\text{sec
 
 The table below contrasts naive agent termination against OLT's Graceful Freeze architecture:
 
-| Failure Vector | Naive Agent Architecture | OLT Host-Aware Quota Engine |
-| :--- | :--- | :--- |
-| **Token Exhaustion** | Abrupt process termination (`SIGKILL`); half-written files left on disk. | Orderly micro-step wrap-up, AST validation, and transactional git staging. |
-| **Task State** | Task remains in `leased` state until lease expires; marked `failed` by supervisor. | Task state preserved in `state.json`; lease timer paused until resumption. |
-| **Process Hygiene** | Orphaned background child processes continue consuming CPU and memory. | Subprocess trees quiesced cleanly through standard POSIX signals (`SIGTERM`). |
-| **Resumption** | Human must inspect git diffs, clean lock files, and manually re-dispatch tasks. | Autonomous auto-wake timer triggers `run:status`, checks fresh quota, and resumes wave. |
+| Failure Vector       | Naive Agent Architecture                                                           | OLT Host-Aware Quota Engine                                                             |
+| :------------------- | :--------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
+| **Token Exhaustion** | Abrupt process termination (`SIGKILL`); half-written files left on disk.           | Orderly micro-step wrap-up, AST validation, and transactional git staging.              |
+| **Task State**       | Task remains in `leased` state until lease expires; marked `failed` by supervisor. | Task state preserved in `state.json`; lease timer paused until resumption.              |
+| **Process Hygiene**  | Orphaned background child processes continue consuming CPU and memory.             | Subprocess trees quiesced cleanly through standard POSIX signals (`SIGTERM`).           |
+| **Resumption**       | Human must inspect git diffs, clean lock files, and manually re-dispatch tasks.    | Autonomous auto-wake timer triggers `run:status`, checks fresh quota, and resumes wave. |
 
 ### Code Inspection: Quota Evaluation Implementation
 

@@ -1,9 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
-import {
-  inspectToolchainDetails,
-  type DiscoveredToolchainDetails,
-} from "./toolchain-inspector.ts";
+import { inspectToolchainDetails, type DiscoveredToolchainDetails } from "./toolchain-inspector.ts";
 
 export interface EmpiricalCommandTestResult {
   readonly command: string;

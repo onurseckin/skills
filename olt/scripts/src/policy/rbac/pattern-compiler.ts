@@ -21,7 +21,8 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
   let patterns: RegExp[];
 
   const isCognitiveValidator =
-    normalizedRole.includes("validator") || normalizedRole.includes("critic") ||
+    normalizedRole.includes("validator") ||
+    normalizedRole.includes("critic") ||
     normalizedRole === "cognitive-validator" ||
     normalizedRole === "cognitive_validator" ||
     normalizedRole.startsWith("validator-") ||

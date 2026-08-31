@@ -36,6 +36,7 @@ cd skills
 ### Zero-Dependency Architectural Guarantee
 
 Unlike heavy orchestration frameworks that require Python virtual environments, Docker daemons, or dozens of npm dependencies, OLT is **100% native TypeScript** executed directly on Bun:
+
 - **0 external runtime dependencies** in `package.json`.
 - **Sub-millisecond CLI startup** time.
 - **Native POSIX file locking (`flock`)** and SHA-256 Merkle tree hashing built directly on Bun's fast native APIs.
@@ -132,6 +133,7 @@ bun olt/scripts/harness.ts run:init --name "feature-authentication-overhaul" --p
 ```
 
 The harness creates `.olt/capsules/<timestamp>-feature-authentication-overhaul/` containing:
+
 - `prompt.md`: The verbatim, immutable user prompt.
 - `index.json`: Run metadata and root Merkle SHA-256 hash.
 - `events.jsonl`: Cryptographically linked audit ledger.
@@ -148,6 +150,7 @@ bun olt/scripts/harness.ts plan:brainstorm --run .olt/capsules/<run-id> --rounds
 ```
 
 The 8 failure vectors evaluated are:
+
 1. `EMPTY_PAYLOAD`: Null checks, missing files, or syntactically malformed payloads.
 2. `TIMEOUT_STAGNATION`: Process deadlocks, unbounded waits, and heartbeat timeouts.
 3. `CONCURRENCY_MUTATION`: Race conditions, file collisions, and shared state mutations.
@@ -169,6 +172,7 @@ bun olt/scripts/harness.ts plan:compile --run .olt/capsules/<run-id>
 ```
 
 The compilation process:
+
 - Assigns each task a **strictly disjoint write scope** (e.g., `src/auth/jwt.ts`).
 - Binds each task to a mandatory verification gate (e.g., `bun test tests/unit/auth/jwt.test.ts`).
 - Executes Kahn's algorithm to partition independent tasks into **parallel execution waves**:
@@ -333,31 +337,31 @@ cat .olt/capsules/<run-id>/trace.md
 Sample trace excerpt:
 
 ```markdown
-| Seq | Timestamp (UTC) | Actor | Event Kind | Target | Details |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | 2026-08-31T12:00:00Z | orchestrator | `capsule-init` | run | Capsule created |
-| 2 | 2026-08-31T12:00:05Z | coordinator | `plan-compiled` | graph | 5 tasks, 3 waves compiled |
-| 3 | 2026-08-31T12:00:10Z | worker_jwt | `task-claimed` | task-1 | Leased to worker_jwt |
-| 4 | 2026-08-31T12:05:22Z | worker_jwt | `task-submitted`| task-1 | Submitted for review |
-| 5 | 2026-08-31T12:06:01Z | validator_jwt| `gate-proven` | task-1 | Gate 1 passed (exit 0) |
+| Seq | Timestamp (UTC)      | Actor         | Event Kind       | Target | Details                   |
+| :-- | :------------------- | :------------ | :--------------- | :----- | :------------------------ |
+| 1   | 2026-08-31T12:00:00Z | orchestrator  | `capsule-init`   | run    | Capsule created           |
+| 2   | 2026-08-31T12:00:05Z | coordinator   | `plan-compiled`  | graph  | 5 tasks, 3 waves compiled |
+| 3   | 2026-08-31T12:00:10Z | worker_jwt    | `task-claimed`   | task-1 | Leased to worker_jwt      |
+| 4   | 2026-08-31T12:05:22Z | worker_jwt    | `task-submitted` | task-1 | Submitted for review      |
+| 5   | 2026-08-31T12:06:01Z | validator_jwt | `gate-proven`    | task-1 | Gate 1 passed (exit 0)    |
 ```
 
 ---
 
 ## 5. Quick Reference Cheat Sheet
 
-| Workflow Step | Primary Command | Acting Agent | Primary Output / State Change |
-| :--- | :--- | :--- | :--- |
-| **System Sanity** | `bun harness.ts doctor` | Operator | Environment diagnostic report |
-| **Policy Init** | `bun harness.ts policy:init` | Operator | `.olt/policy.json` generated |
-| **Capsule Init** | `bun harness.ts run:init --prompt "..."` | Orchestrator | New `.olt/capsules/<run-id>/` created |
-| **Preplanning** | `bun harness.ts plan:brainstorm --rounds 3`| Coordinator | `brainstorming.json` with 8 vectors |
-| **DAG Compilation**| `bun harness.ts plan:compile` | Coordinator | `state.json` topological waves |
-| **Task Claim** | `bun harness.ts task:claim --task <id>` | Implementer | Active lease token & write scope lock |
-| **Task Heartbeat**| `bun harness.ts task:heartbeat --task <id>`| Implementer | Extends lease deadline |
-| **Task Submit** | `bun harness.ts task:submit --task <id>` | Implementer | Releases write scope; marks task submitted |
-| **Gate Proving** | `bun harness.ts gate:prove --task <id>` | Validator | Certifies gate evidence (exit 0) |
-| **Run Complete** | `bun harness.ts run:complete` | Orchestrator | Cryptographically seals capsule |
+| Workflow Step       | Primary Command                             | Acting Agent | Primary Output / State Change              |
+| :------------------ | :------------------------------------------ | :----------- | :----------------------------------------- |
+| **System Sanity**   | `bun harness.ts doctor`                     | Operator     | Environment diagnostic report              |
+| **Policy Init**     | `bun harness.ts policy:init`                | Operator     | `.olt/policy.json` generated               |
+| **Capsule Init**    | `bun harness.ts run:init --prompt "..."`    | Orchestrator | New `.olt/capsules/<run-id>/` created      |
+| **Preplanning**     | `bun harness.ts plan:brainstorm --rounds 3` | Coordinator  | `brainstorming.json` with 8 vectors        |
+| **DAG Compilation** | `bun harness.ts plan:compile`               | Coordinator  | `state.json` topological waves             |
+| **Task Claim**      | `bun harness.ts task:claim --task <id>`     | Implementer  | Active lease token & write scope lock      |
+| **Task Heartbeat**  | `bun harness.ts task:heartbeat --task <id>` | Implementer  | Extends lease deadline                     |
+| **Task Submit**     | `bun harness.ts task:submit --task <id>`    | Implementer  | Releases write scope; marks task submitted |
+| **Gate Proving**    | `bun harness.ts gate:prove --task <id>`     | Validator    | Certifies gate evidence (exit 0)           |
+| **Run Complete**    | `bun harness.ts run:complete`               | Orchestrator | Cryptographically seals capsule            |
 
 ---
 

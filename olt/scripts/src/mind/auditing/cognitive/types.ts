@@ -58,7 +58,6 @@ export interface SkillZeroDeltaResult {
   readonly summary: string;
 }
 
-
 export type {
   OpticalDimension,
   OpticalViewport,
@@ -69,4 +68,3 @@ export type {
   ParseCritiqueOptions,
   DesignIterationOptions,
 } from "./critique-parser.ts";
-

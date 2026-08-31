@@ -36,7 +36,9 @@ export interface ServerStateSnapshotInput {
   readonly envVariables?: Readonly<Record<string, string>> | undefined;
   readonly pidHistory?: readonly number[] | undefined;
   readonly portConfigurations?: readonly PortConfiguration[] | undefined;
-  readonly runFlags?: Readonly<Record<string, string | number | boolean | readonly string[]>> | undefined;
+  readonly runFlags?:
+    | Readonly<Record<string, string | number | boolean | readonly string[]>>
+    | undefined;
   readonly currentPid?: number | undefined;
   readonly timestamp?: string | undefined;
   readonly metadata?: Readonly<Record<string, string>> | undefined;
@@ -85,7 +87,9 @@ export interface ServerStartOptions {
   readonly bindTimeoutMs?: number | undefined;
   readonly bindPollIntervalMs?: number | undefined;
   readonly portChecker?: ((port: number, host?: string) => Promise<boolean>) | undefined;
-  readonly spawnServerFn?: ((options: ServerStartOptions) => Promise<{ readonly pid: number }>) | undefined;
+  readonly spawnServerFn?:
+    | ((options: ServerStartOptions) => Promise<{ readonly pid: number }>)
+    | undefined;
   readonly sleepFn?: ((ms: number) => Promise<void>) | undefined;
 }
 
@@ -112,7 +116,9 @@ export interface RestartOptions {
   readonly snapshotPath?: string | undefined;
   readonly customSnapshot?: ServerStateSnapshot | undefined;
   readonly rollbackOnError?: boolean | undefined;
-  readonly restoreOldServerFn?: ((snapshot: ServerStateSnapshot) => Promise<{ readonly pid: number }>) | undefined;
+  readonly restoreOldServerFn?:
+    | ((snapshot: ServerStateSnapshot) => Promise<{ readonly pid: number }>)
+    | undefined;
 }
 
 export interface RestartResult {

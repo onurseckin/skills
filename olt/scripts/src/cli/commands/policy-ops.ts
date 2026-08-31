@@ -89,11 +89,7 @@ export async function policyInitCommand(
   const flagRepoRoot = textFlag(flags, "repo-root", false);
   const flagDir = textFlag(flags, "dir", false);
   const repo =
-    flagRepo !== undefined
-      ? flagRepo
-      : flagRepoRoot !== undefined
-        ? flagRepoRoot
-        : flagDir;
+    flagRepo !== undefined ? flagRepo : flagRepoRoot !== undefined ? flagRepoRoot : flagDir;
 
   const flagRun = textFlag(flags, "run", false);
   const flagRunRoot = textFlag(flags, "run-root", false);
@@ -275,11 +271,7 @@ export async function policyAuditCommand(
   const flagRepoRoot = textFlag(flags, "repo-root", false);
   const flagDir = textFlag(flags, "dir", false);
   const repo =
-    flagRepo !== undefined
-      ? flagRepo
-      : flagRepoRoot !== undefined
-        ? flagRepoRoot
-        : flagDir;
+    flagRepo !== undefined ? flagRepo : flagRepoRoot !== undefined ? flagRepoRoot : flagDir;
 
   const flagRun = textFlag(flags, "run", false);
   const flagRunRoot = textFlag(flags, "run-root", false);

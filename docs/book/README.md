@@ -88,12 +88,12 @@ graph TD
 
 The OLT Book is organized according to the **Diátaxis Documentation Framework**, systematically categorizing knowledge into four distinct quadrants based on user orientation and cognitive intent:
 
-| Quadrant | Focus & Orientation | Target User Intent | Chapters in This Book |
-| :--- | :--- | :--- | :--- |
-| **Tutorials** | Learning-oriented | *"Teach me how to use OLT from scratch with hands-on guided steps."* | [Chapter 1: Quickstart & Getting Started](01-quickstart-and-getting-started.md) |
-| **Explanations** | Understanding-oriented | *"Help me understand why OLT works this way, its theory and mathematics."* | [Chapter 2: Core Philosophy & Brent Parallelism](02-core-philosophy-and-brent-parallelism.md)<br>[Chapter 3: Tier 0 Governance & Autonomous Mind](03-tier-0-governance-and-autonomous-mind.md)<br>[Chapter 4: Toolchain Discovery & Policy Engine](04-toolchain-discovery-and-policy-engine.md)<br>[Chapter 5: Mandatory Companion Auditors](05-mandatory-companion-auditors.md)<br>[Chapter 6: Lifecycle Hooks & Audio Engine](06-lifecycle-hooks-and-audio-engine.md)<br>[Chapter 7: Host-Aware Quota Engine & Graceful Freeze](07-host-aware-quota-engine-and-graceful-freeze.md) |
-| **How-To Guides** | Task-oriented | *"Show me the exact steps to solve a specific problem or execute a workflow."* | [Chapter 1: Quickstart & Getting Started](01-quickstart-and-getting-started.md)<br>[Chapter 3: Tier 0 Governance & Autonomous Mind](03-tier-0-governance-and-autonomous-mind.md)<br>[Chapter 8: Verification & Socratic Gating](08-verification-and-socratic-gating.md)<br>[Chapter 10: Troubleshooting & Anti-Blunder Compendium](10-troubleshooting-and-anti-blunder-compendium.md) |
-| **Reference** | Information-oriented | *"Give me complete, precise specifications, schemas, flags, and error codes."* | [Chapter 9: Full CLI Command Reference](09-full-cli-command-reference.md)<br>[Chapter 10: Troubleshooting & Anti-Blunder Compendium](10-troubleshooting-and-anti-blunder-compendium.md) |
+| Quadrant          | Focus & Orientation    | Target User Intent                                                             | Chapters in This Book                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| :---------------- | :--------------------- | :----------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tutorials**     | Learning-oriented      | _"Teach me how to use OLT from scratch with hands-on guided steps."_           | [Chapter 1: Quickstart & Getting Started](01-quickstart-and-getting-started.md)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **Explanations**  | Understanding-oriented | _"Help me understand why OLT works this way, its theory and mathematics."_     | [Chapter 2: Core Philosophy & Brent Parallelism](02-core-philosophy-and-brent-parallelism.md)<br>[Chapter 3: Tier 0 Governance & Autonomous Mind](03-tier-0-governance-and-autonomous-mind.md)<br>[Chapter 4: Toolchain Discovery & Policy Engine](04-toolchain-discovery-and-policy-engine.md)<br>[Chapter 5: Mandatory Companion Auditors](05-mandatory-companion-auditors.md)<br>[Chapter 6: Lifecycle Hooks & Audio Engine](06-lifecycle-hooks-and-audio-engine.md)<br>[Chapter 7: Host-Aware Quota Engine & Graceful Freeze](07-host-aware-quota-engine-and-graceful-freeze.md) |
+| **How-To Guides** | Task-oriented          | _"Show me the exact steps to solve a specific problem or execute a workflow."_ | [Chapter 1: Quickstart & Getting Started](01-quickstart-and-getting-started.md)<br>[Chapter 3: Tier 0 Governance & Autonomous Mind](03-tier-0-governance-and-autonomous-mind.md)<br>[Chapter 8: Verification & Socratic Gating](08-verification-and-socratic-gating.md)<br>[Chapter 10: Troubleshooting & Anti-Blunder Compendium](10-troubleshooting-and-anti-blunder-compendium.md)                                                                                                                                                                                                |
+| **Reference**     | Information-oriented   | _"Give me complete, precise specifications, schemas, flags, and error codes."_ | [Chapter 9: Full CLI Command Reference](09-full-cli-command-reference.md)<br>[Chapter 10: Troubleshooting & Anti-Blunder Compendium](10-troubleshooting-and-anti-blunder-compendium.md)                                                                                                                                                                                                                                                                                                                                                                                              |
 
 ---
 
@@ -130,56 +130,56 @@ The table below outlines the full structure of the OLT Book. Each chapter is des
 
 ### Detailed Chapter Directory
 
-1. [**Chapter 1: Quickstart & Getting Started**](01-quickstart-and-getting-started.md) *(Tutorial / How-To)*
+1. [**Chapter 1: Quickstart & Getting Started**](01-quickstart-and-getting-started.md) _(Tutorial / How-To)_
    - 1-Shot global installation (`npx skills add onurseckin/skills --skill olt` or `bunx skills add ...`).
    - Diagnostic validation with `bun harness.ts doctor` and CLI initialization.
    - Complete walkthrough of a task lifecycle: prompt ingestion, preplanning, DAG compilation, wave dispatch, paired execution, validation, and completion certification.
    - Inspecting runtime capsules, event ledgers (`events.jsonl`), and token telemetry.
 
-2. [**Chapter 2: Core Philosophy & Brent Parallelism**](02-core-philosophy-and-brent-parallelism.md) *(Explanation)*
+2. [**Chapter 2: Core Philosophy & Brent Parallelism**](02-core-philosophy-and-brent-parallelism.md) _(Explanation)_
    - The Zero-Assumption philosophy and the Hard Zeros (0 ungrounded assumptions, 0 any types, 0 suppressions, 0 unleased edits).
    - Concurrency mathematics: Brent's Theorem ($P = \lceil W/S \rceil$), Amdahl's Law, and Gustafson-Barsis bounds.
    - Anti-serialization invariants (A4 false-barrier prevention) and disjoint write scope independence.
    - Topological sorting via Kahn's algorithm and Tarjan's Strongly Connected Components (SCC) cycle breaking.
 
-3. [**Chapter 3: Tier 0 Governance & Autonomous Mind**](03-tier-0-governance-and-autonomous-mind.md) *(Explanation / How-To)*
+3. [**Chapter 3: Tier 0 Governance & Autonomous Mind**](03-tier-0-governance-and-autonomous-mind.md) _(Explanation / How-To)_
    - Tier 0 Autonomous Mind daemon loop (`mind:pulse`).
    - Mode A (Creative Product Owner / Proactive Expansion) vs. Mode B (Direct Triage & Bug Ingestion).
    - Central repository authority (`.olt/policy.json`) and repository charter discovery.
    - The 6 Admission Gates: deduplication, granularity, falsifiability, scope feasibility, invariant safety, and acyclicity.
    - Memory persistence (`.olt/memory.json`) and generational rotation.
 
-4. [**Chapter 4: Toolchain Discovery & Policy Engine**](04-toolchain-discovery-and-policy-engine.md) *(Explanation / How-To)*
+4. [**Chapter 4: Toolchain Discovery & Policy Engine**](04-toolchain-discovery-and-policy-engine.md) _(Explanation / How-To)_
    - Zero-config automatic toolchain detection across package managers, linters, formatters, and compilers.
    - Granular policy enforcement via `.olt/policy.json` (autonomy levels, tool permissions, budget ceilings).
    - Policy drift detection (`policy:check`), interactive initialization (`policy:init`), and security compartmentalization.
 
-5. [**Chapter 5: Mandatory Companion Auditors**](05-mandatory-companion-auditors.md) *(Explanation / Reference)*
+5. [**Chapter 5: Mandatory Companion Auditors**](05-mandatory-companion-auditors.md) _(Explanation / Reference)_
    - Dual continuous surveillance auditors: `mind-auditor` and `skill-auditor`.
    - 7 forensic heuristics for defect detection (stagnation, hallucinated tools, boundary leaks, phantom commits).
    - Defect logging and root cause allocation in `.olt/defects.jsonl`.
 
-6. [**Chapter 6: Lifecycle Hooks & Audio Engine**](06-lifecycle-hooks-and-audio-engine.md) *(Explanation / How-To)*
+6. [**Chapter 6: Lifecycle Hooks & Audio Engine**](06-lifecycle-hooks-and-audio-engine.md) _(Explanation / How-To)_
    - Exhaustive architecture of all **34 discrete lifecycle events** (from `capsule-init` to `run-completed`).
    - Multi-channel dispatch: shell commands, HTTP webhooks, logging handlers, and custom integrations.
    - The Real-Time Audio Synthesis Engine: procedural sound design, frequency-modulated audio feedback, and accessibility cues.
 
-7. [**Chapter 7: Host-Aware Quota Engine & Graceful Freeze**](07-host-aware-quota-engine-and-graceful-freeze.md) *(Explanation / How-To)*
+7. [**Chapter 7: Host-Aware Quota Engine & Graceful Freeze**](07-host-aware-quota-engine-and-graceful-freeze.md) _(Explanation / How-To)_
    - Real-time token consumption tracking across Anthropic, OpenAI, and custom host platforms.
    - The `< 10% Rate-Limit Graceful Freeze` circuit breaker: state serialization, lock quiescence, and auto-resumption.
    - Cowan token density budgeting and context leak prevention.
 
-8. [**Chapter 8: Verification & Socratic Gating**](08-verification-and-socratic-gating.md) *(How-To / Reference)*
+8. [**Chapter 8: Verification & Socratic Gating**](08-verification-and-socratic-gating.md) _(How-To / Reference)_
    - Adversarial validation philosophy: separate sessions, independent scrutiny, and zero trust.
    - 4-way evidence classification (harness-observed, host-reported, derived, agent-reported).
    - Visual APCA perceptual contrast verification and PNG binary IHDR parsing.
    - Socratic gating, finding records (`finding:record`), and 2-key cryptographically signed run completion.
 
-9. [**Chapter 9: Full CLI Command Reference**](09-full-cli-command-reference.md) *(Reference)*
+9. [**Chapter 9: Full CLI Command Reference**](09-full-cli-command-reference.md) _(Reference)_
    - Complete, authoritative reference for all harness CLI commands across domains: `task`, `plan`, `agent`, `mind`, `gate`, `finding`, `policy`, `queue`, `doctor`, and `run`.
    - Comprehensive table of argument flags, required inputs, JSON output schemas, and deterministic exit codes (0, 3, 4, 70).
 
-10. [**Chapter 10: Troubleshooting & Anti-Blunder Compendium**](10-troubleshooting-and-anti-blunder-compendium.md) *(How-To / Reference)*
+10. [**Chapter 10: Troubleshooting & Anti-Blunder Compendium**](10-troubleshooting-and-anti-blunder-compendium.md) _(How-To / Reference)_
     - Comprehensive diagnosis and remediation playbook for common operational failures.
     - Resolving lock contention (`LOCK_TIMEOUT`), role confinement violations, lease expirations, and broken DAGs.
     - Anti-blunder compendium: real-world post-mortems and preventative invariants.
@@ -210,7 +210,9 @@ graph LR
 ```
 
 ### 🛠️ Path A: The Run Operator
+
 **Audience:** Platform engineers, DevOps specialists, and developers running multi-agent tasks on local or CI environments.
+
 1. [Chapter 1: Quickstart & Getting Started](01-quickstart-and-getting-started.md) — Set up your harness and execute your first run.
 2. [Chapter 4: Toolchain Discovery & Policy Engine](04-toolchain-discovery-and-policy-engine.md) — Configure repo boundaries and tool execution rules.
 3. [Chapter 6: Lifecycle Hooks & Audio Engine](06-lifecycle-hooks-and-audio-engine.md) — Set up audio chimes, desktop alerts, and webhooks.
@@ -219,7 +221,9 @@ graph LR
 6. [Chapter 10: Troubleshooting & Anti-Blunder Compendium](10-troubleshooting-and-anti-blunder-compendium.md) — Diagnose and resolve runtime issues.
 
 ### 📐 Path B: The System Architect
+
 **Audience:** Software architects, AI safety researchers, and systems engineers designing multi-agent workflows and governance topologies.
+
 1. [Chapter 2: Core Philosophy & Brent Parallelism](02-core-philosophy-and-brent-parallelism.md) — Concurrency mathematics, Kahn DAGs, and Tarjan SCC.
 2. [Chapter 3: Tier 0 Governance & Autonomous Mind](03-tier-0-governance-and-autonomous-mind.md) — Continuous backlog management, Mode A/B, and 6 admission gates.
 3. [Chapter 4: Toolchain Discovery & Policy Engine](04-toolchain-discovery-and-policy-engine.md) — Policy models, sandboxing, and drift protection.
@@ -227,7 +231,9 @@ graph LR
 5. [Chapter 8: Verification & Socratic Gating](08-verification-and-socratic-gating.md) — Adversarial validation, cryptographic gates, and evidence hierarchy.
 
 ### 🤖 Path C: The Autonomous Agent
+
 **Audience:** LLM agent personas (Orchestrators, Coordinators, Implementers, Validators) operating within OLT.
+
 1. [Chapter 1: Quickstart & Getting Started](01-quickstart-and-getting-started.md) — Harness execution protocols and task lifecycle.
 2. [Chapter 2: Core Philosophy & Brent Parallelism](02-core-philosophy-and-brent-parallelism.md) — Disjoint write scopes, lease invariants, and zero-assumption execution.
 3. [Chapter 8: Verification & Socratic Gating](08-verification-and-socratic-gating.md) — Submitting falsifiable evidence, adversarial review, and finding records.

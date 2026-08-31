@@ -397,16 +397,16 @@ Commits must strictly conform to Conventional Commits formatting:
 
 ## 9. Governance Summary and Verification Checklist
 
-| Requirement | Formal Invariant | Verification Mechanism |
-| :--- | :--- | :--- |
-| **Type Safety** | 0 `any` annotations across all TypeScript files | `bun run typecheck` |
-| **Zero Suppressions** | 0 `@ts-ignore`, `@ts-expect-error`, `eslint-disable` | `bun test tests/unit` |
-| **File Sizing** | Prod $\le 200$ lines, Tests $\le 250$ lines | `tests/unit/architecture/file-size.test.ts` |
-| **Runtime Purity** | 0 external npm runtime dependencies (native Bun/Node) | `tests/unit/architecture/vendor-scanner.test.ts` |
-| **Scope Confinement** | 0 file mutations outside assigned task write scope | OLT Harness Lease Enforcer |
-| **Documentation** | Strict Diataxis quadrant compliance, 250-800 line sizing | `tests/unit/docs/` |
-| **Link Integrity** | 100% relative markdown link resolution, 0 broken links | Automated Link Scraper Gate |
-| **Navigation Mesh** | 4-way top & bottom navigation bars, 0 emojis | Documentation Linter Gate |
+| Requirement           | Formal Invariant                                         | Verification Mechanism                           |
+| :-------------------- | :------------------------------------------------------- | :----------------------------------------------- |
+| **Type Safety**       | 0 `any` annotations across all TypeScript files          | `bun run typecheck`                              |
+| **Zero Suppressions** | 0 `@ts-ignore`, `@ts-expect-error`, `eslint-disable`     | `bun test tests/unit`                            |
+| **File Sizing**       | Prod $\le 200$ lines, Tests $\le 250$ lines              | `tests/unit/architecture/file-size.test.ts`      |
+| **Runtime Purity**    | 0 external npm runtime dependencies (native Bun/Node)    | `tests/unit/architecture/vendor-scanner.test.ts` |
+| **Scope Confinement** | 0 file mutations outside assigned task write scope       | OLT Harness Lease Enforcer                       |
+| **Documentation**     | Strict Diataxis quadrant compliance, 250-800 line sizing | `tests/unit/docs/`                               |
+| **Link Integrity**    | 100% relative markdown link resolution, 0 broken links   | Automated Link Scraper Gate                      |
+| **Navigation Mesh**   | 4-way top & bottom navigation bars, 0 emojis             | Documentation Linter Gate                        |
 
 ---
 

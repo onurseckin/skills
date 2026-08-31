@@ -42,26 +42,32 @@ export interface UiMechanicInspectionInput {
   readonly writeScope?: readonly string[] | undefined;
   readonly viewports?: readonly UiViewportTier[] | undefined;
   readonly minTouchDimension?: number | undefined;
-  readonly touchTargets?: readonly {
-    selector: string;
-    width: number;
-    height: number;
-    isInteractive?: boolean | undefined;
-  }[] | undefined;
-  readonly overflowElements?: readonly {
-    selector: string;
-    viewport?: string | undefined;
-    scrollWidth: number;
-    clientWidth: number;
-    overflowX?: number | undefined;
-  }[] | undefined;
+  readonly touchTargets?:
+    | readonly {
+        selector: string;
+        width: number;
+        height: number;
+        isInteractive?: boolean | undefined;
+      }[]
+    | undefined;
+  readonly overflowElements?:
+    | readonly {
+        selector: string;
+        viewport?: string | undefined;
+        scrollWidth: number;
+        clientWidth: number;
+        overflowX?: number | undefined;
+      }[]
+    | undefined;
   readonly journeys?: readonly PlaywrightJourneyResult[] | undefined;
-  readonly screenshots?: readonly {
-    name: string;
-    path: string;
-    viewport?: string | undefined;
-    sizeBytes: number;
-  }[] | undefined;
+  readonly screenshots?:
+    | readonly {
+        name: string;
+        path: string;
+        viewport?: string | undefined;
+        sizeBytes: number;
+      }[]
+    | undefined;
 }
 
 export interface UiMechanicReport {
@@ -110,25 +116,31 @@ export interface AestheticHarmonyInspection {
 export interface UiCognitiveInspectionInput {
   readonly taskId?: string | undefined;
   readonly critique?: string | undefined;
-  readonly textElements?: readonly {
-    selector: string;
-    text: string;
-    fontSize: number;
-    lineHeight: number;
-    paddingBottom: number;
-    overflowClipped?: boolean | undefined;
-  }[] | undefined;
-  readonly hierarchyElements?: readonly {
-    selector: string;
-    tag: string;
-    fontSize: number;
-    fontWeight: number | string;
-  }[] | undefined;
-  readonly spacingElements?: readonly {
-    selector: string;
-    margin: number;
-    padding: number;
-  }[] | undefined;
+  readonly textElements?:
+    | readonly {
+        selector: string;
+        text: string;
+        fontSize: number;
+        lineHeight: number;
+        paddingBottom: number;
+        overflowClipped?: boolean | undefined;
+      }[]
+    | undefined;
+  readonly hierarchyElements?:
+    | readonly {
+        selector: string;
+        tag: string;
+        fontSize: number;
+        fontWeight: number | string;
+      }[]
+    | undefined;
+  readonly spacingElements?:
+    | readonly {
+        selector: string;
+        margin: number;
+        padding: number;
+      }[]
+    | undefined;
   readonly screenshotsReviewed?: readonly string[] | undefined;
   readonly attemptedShellCommands?: readonly string[] | undefined;
   readonly canExecuteShell?: boolean | undefined;

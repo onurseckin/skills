@@ -17,7 +17,7 @@ This chapter explores the theoretical foundations, mathematical invariants, and 
 
 Most software engineering failures in autonomous agent systems stem from **ungrounded assumptions**—speculative guesses regarding repository structures, hallucinated CLI arguments, invisible test commands, or unverified side-effects.
 
-OLT operates on the **Zero-Assumption Principle**: *An agent must never assume the existence, state, behavior, or correctness of any tool, file, or system component without direct, verifiable evidence.*
+OLT operates on the **Zero-Assumption Principle**: _An agent must never assume the existence, state, behavior, or correctness of any tool, file, or system component without direct, verifiable evidence._
 
 ```
 +---------------------------------------------------------------------------------------------------------+
@@ -35,13 +35,13 @@ OLT operates on the **Zero-Assumption Principle**: *An agent must never assume t
 
 ### The Invariant Spectrum
 
-| Invariant Code | Name | Formal Definition | Enforcement Mechanism |
-| :--- | :--- | :--- | :--- |
-| **I1** | **Disjoint Write Scope** | $\forall T_i, T_j \in \text{Wave}_k, i \neq j \implies \text{Scope}(T_i) \cap \text{Scope}(T_j) = \emptyset$ | Monotonic write locking in `task:claim` |
-| **I2** | **Zero-Suppression Typing** | $\text{Count}(\text{"any"} \cup \text{"@ts-ignore"} \cup \text{"eslint-disable"}) = 0$ | Fast AST parser in `task:check` |
-| **I3** | **Supervisor Purity** | $\text{Role} \in \{\text{Orchestrator}, \text{Coordinator}\} \implies \text{WriteScope} = \emptyset$ | Role confinement throw in harness runtime |
-| **I4** | **Adversarial Validation** | $\text{Session}(\text{Implementer}(T_i)) \cap \text{Session}(\text{Validator}(T_i)) = \emptyset$ | Subagent session isolation & token binding |
-| **I5** | **A4 False-Barrier Freedom** | $\text{Scope}(T_i) \cap \text{Scope}(T_j) = \emptyset \land \neg \text{CausalDep}(T_i, T_j) \implies \text{Parallel}(T_i, T_j)$ | Graph topological audit in `plan:compile` |
+| Invariant Code | Name                         | Formal Definition                                                                                                               | Enforcement Mechanism                      |
+| :------------- | :--------------------------- | :------------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------- |
+| **I1**         | **Disjoint Write Scope**     | $\forall T_i, T_j \in \text{Wave}_k, i \neq j \implies \text{Scope}(T_i) \cap \text{Scope}(T_j) = \emptyset$                    | Monotonic write locking in `task:claim`    |
+| **I2**         | **Zero-Suppression Typing**  | $\text{Count}(\text{"any"} \cup \text{"@ts-ignore"} \cup \text{"eslint-disable"}) = 0$                                          | Fast AST parser in `task:check`            |
+| **I3**         | **Supervisor Purity**        | $\text{Role} \in \{\text{Orchestrator}, \text{Coordinator}\} \implies \text{WriteScope} = \emptyset$                            | Role confinement throw in harness runtime  |
+| **I4**         | **Adversarial Validation**   | $\text{Session}(\text{Implementer}(T_i)) \cap \text{Session}(\text{Validator}(T_i)) = \emptyset$                                | Subagent session isolation & token binding |
+| **I5**         | **A4 False-Barrier Freedom** | $\text{Scope}(T_i) \cap \text{Scope}(T_j) = \emptyset \land \neg \text{CausalDep}(T_i, T_j) \implies \text{Parallel}(T_i, T_j)$ | Graph topological audit in `plan:compile`  |
 
 ---
 
@@ -81,6 +81,7 @@ graph TD
 ### Why Supervisor Purity Matters
 
 When a supervisor agent (Tier 1 Orchestrator or Tier 2 Coordinator) attempts to write code directly:
+
 1. **Context Window Contamination**: File contents, diffs, and lint errors pollute the supervisor's reasoning buffer, blinding it to high-level architectural milestones.
 2. **Coordination Starvation**: While the supervisor is editing a file, parallel subagents are left unmonitored, leading to deadlocks, expired leases, and unhandled stragglers.
 3. **Loss of Objective Oversight**: The supervisor develops epistemic bias towards its own code changes, degrading its ability to accurately evaluate progress.
@@ -94,6 +95,7 @@ Therefore, OLT strictly confines Tier 1 and Tier 2 agents from claiming file wri
 Multi-agent execution can be formalized as the scheduling of a Directed Acyclic Graph (DAG) $G = (V, E)$ over $p$ parallel execution units (subagents).
 
 Let:
+
 - $W$ (**Total Work**): The sum of execution times of all tasks in the DAG:
   $$W = \sum_{v \in V} t(v)$$
 - $S$ (**Span / Critical Path**): The longest sequential dependency path from source to sink in the DAG:
@@ -139,6 +141,7 @@ In agentic systems, not all operations can be parallelized (e.g., prompt capture
 Let $f$ be the parallelizable fraction of total work ($0 \le f \le 1$):
 
 #### 1. Amdahl's Law (Fixed Workload Bound)
+
 For a fixed-size software task, speedup is constrained by the strictly serial fraction $(1 - f)$:
 
 $$S_{\text{Amdahl}} = \frac{1}{(1 - f) + \frac{f}{p}}$$
@@ -146,6 +149,7 @@ $$S_{\text{Amdahl}} = \frac{1}{(1 - f) + \frac{f}{p}}$$
 As $p \to \infty$, maximum theoretical speedup is capped at $\frac{1}{1 - f}$. If 10% of a task is inherently serial ($f = 0.90$), maximum speedup can never exceed $10\times$, regardless of how many subagents are spawned.
 
 #### 2. Gustafson-Barsis Law (Scaled Problem Size)
+
 In autonomous software development, larger engineering initiatives allow decomposing features into broader independent modules, expanding the parallel workload:
 
 $$S_{\text{Gustafson}} = p - (1 - f)(p - 1)$$
@@ -161,7 +165,7 @@ A common failure mode in naive multi-agent planners is **artificial serializatio
 ### The A4 False-Barrier Invariant
 
 OLT enforces the **A4 Anti-Serialization Invariant** during DAG compilation:
-*If Task A and Task B have disjoint write scopes and neither task consumes an artifact produced by the other, they MUST NOT be placed in sequential dependency.*
+_If Task A and Task B have disjoint write scopes and neither task consumes an artifact produced by the other, they MUST NOT be placed in sequential dependency._
 
 ```
 +---------------------------------------------------------------------------------------------------------+
@@ -188,6 +192,7 @@ OLT enforces the **A4 Anti-Serialization Invariant** during DAG compilation:
 Let $\mathcal{F}$ be the set of all files in the repository. A task $T_i$ defines a write scope $W_i \subseteq \mathcal{F}$ and a read scope $R_i \subseteq \mathcal{F}$.
 
 According to Bernstein's Conditions for deterministic parallel execution:
+
 1. $W_i \cap W_j = \emptyset$ (No write-write race condition)
 2. $W_i \cap R_j = \emptyset$ (No write-after-read hazard)
 3. $R_i \cap W_j = \emptyset$ (No read-after-write hazard)
@@ -209,20 +214,20 @@ Kahn's algorithm calculates the in-degree of all vertices in $G = (V, E)$ and it
 function computeWaves(graph: TaskGraph, maxParallel: number): Wave[] {
   const inDegree = new Map<string, number>();
   const waves: Wave[] = [];
-  
+
   for (const node of graph.nodes) {
     inDegree.set(node.id, graph.incomingEdges(node.id).length);
   }
-  
-  let currentWaveNodes = graph.nodes.filter(n => inDegree.get(n.id) === 0);
-  
+
+  let currentWaveNodes = graph.nodes.filter((n) => inDegree.get(n.id) === 0);
+
   while (currentWaveNodes.length > 0) {
     // Partition current wave into chunks bounded by maxParallel
     const waveChunks = chunk(currentWaveNodes, maxParallel);
     for (const chunkNodes of waveChunks) {
-      waves.push({ taskIds: chunkNodes.map(n => n.id) });
+      waves.push({ taskIds: chunkNodes.map((n) => n.id) });
     }
-    
+
     // Decrement in-degree for dependents
     const nextWaveNodes: TaskNode[] = [];
     for (const node of currentWaveNodes) {
@@ -236,7 +241,7 @@ function computeWaves(graph: TaskGraph, maxParallel: number): Wave[] {
     }
     currentWaveNodes = nextWaveNodes;
   }
-  
+
   return waves;
 }
 ```
@@ -246,6 +251,7 @@ function computeWaves(graph: TaskGraph, maxParallel: number): Wave[] {
 If circular dependencies exist ($T_A \to T_B \to T_C \to T_A$), standard topological sorting fails. OLT employs Tarjan's depth-first SCC algorithm ($\mathcal{O}(|V| + |E|)$) to detect cycles immediately during `plan:compile`.
 
 When a cycle is detected:
+
 1. The cycle vertices are grouped into an SCC cluster.
 2. The planner identifies the weakest causal dependency link.
 3. The cycle is broken by converting the feedback link into a soft verification gate or splitting the shared resource into sub-phases.
@@ -279,6 +285,7 @@ gantt
 ### The 5-Minute Lease & Straggler SLA Protocol
 
 To prevent straggler bottlenecks:
+
 1. **Monotonic Lease Deadlines**: Every task lease is issued with a strict 20-minute maximum duration and a mandatory **5-minute heartbeat interval**.
 2. **Automated Heartbeat Extension**: Active workers must call `task:heartbeat` within every 5-minute window to confirm forward progress.
 3. **Zombie Lease Reclaiming**: If an agent fails to send a heartbeat within 5 minutes, the Coordinator marks the lease `stale`, revokes write tokens, and reclaims the task for immediate reallocation to a fresh repairer agent.

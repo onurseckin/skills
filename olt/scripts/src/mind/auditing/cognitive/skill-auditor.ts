@@ -11,18 +11,20 @@ import {
   type ForensicsIncident,
   type RootCauseCategory,
 } from "../meta/index.ts";
-import {
-  resolveCapsulesDir,
-} from "../../../core/shared/paths.ts";
+import { resolveCapsulesDir } from "../../../core/shared/paths.ts";
 import { dispatchPeerMessage } from "../../../communication/mailbox/index.ts";
 import { SplitChannelDefectRouter } from "../../../reporting/split-channel-defect-router.ts";
 import { AuditorCursorStore } from "./cursor.ts";
-import type { AuditorCursor, SkillAuditLiveResult, SkillAuditOptions, SkillZeroDeltaResult } from "./types.ts";
+import type {
+  AuditorCursor,
+  SkillAuditLiveResult,
+  SkillAuditOptions,
+  SkillZeroDeltaResult,
+} from "./types.ts";
 
 export class SkillAuditorEngine {
   public static readonly DEFAULT_CADENCE_INTERVAL_SECONDS = 60;
   public static readonly DEFAULT_CADENCE_INTERVAL_MS = 60_000;
-
 
   private static discoverCapsuleRoots(repoRoot: string): string[] {
     const roots = new Set<string>();
@@ -42,7 +44,6 @@ export class SkillAuditorEngine {
     return [...roots];
   }
 
-
   private static scanCapsuleForIncidents(
     capsuleRoot: string,
     cursor: AuditorCursor,
@@ -55,7 +56,9 @@ export class SkillAuditorEngine {
 
     if (hasEvents) {
       try {
-        const lines = readFileSync(eventsPath, "utf-8").split("\n").filter((l) => l.trim().length > 0);
+        const lines = readFileSync(eventsPath, "utf-8")
+          .split("\n")
+          .filter((l) => l.trim().length > 0);
         for (let i = 0; i < lines.length; i++) {
           if (i > cursor.lastInspectedEventIndex) {
             eventsAnalyzed++;
@@ -88,7 +91,9 @@ export class SkillAuditorEngine {
           if (raw && Array.isArray(raw.agents)) {
             const coord = raw.agents.find(
               (a: { id?: string; role?: string; status?: string }) =>
-                a.status === "active" && typeof a.role === "string" && a.role.toLowerCase().includes("coordinator"),
+                a.status === "active" &&
+                typeof a.role === "string" &&
+                a.role.toLowerCase().includes("coordinator"),
             );
             if (coord && typeof coord.id === "string") return coord.id;
           }
@@ -97,7 +102,6 @@ export class SkillAuditorEngine {
     }
     return undefined;
   }
-
 
   public static dispatchInterjection(
     repoRoot: string,
@@ -114,7 +118,10 @@ export class SkillAuditorEngine {
     }
 
     const observation = inc.observation ?? inc.description ?? "Direct execution detected";
-    const remediation = inc.remediation ?? inc.recommendation ?? "Halt direct execution and dispatch subagents via invoke_subagent.";
+    const remediation =
+      inc.remediation ??
+      inc.recommendation ??
+      "Halt direct execution and dispatch subagents via invoke_subagent.";
 
     try {
       dispatchPeerMessage({
@@ -142,7 +149,6 @@ export class SkillAuditorEngine {
       return false;
     }
   }
-
 
   public static compareSkillReportDelta(
     current: SkillAuditLiveResult,
@@ -204,7 +210,6 @@ export class SkillAuditorEngine {
     };
   }
 
-
   public static auditSkillCompliance(
     repoRoot: string,
     options?: SkillAuditOptions,
@@ -254,7 +259,8 @@ export class SkillAuditorEngine {
     };
 
     const delta = SkillAuditorEngine.compareSkillReportDelta(candidateResult, previousReport);
-    const shouldSuppress = (options?.suppressZeroDelta === true || previousReport !== undefined) && delta.isZeroDelta;
+    const shouldSuppress =
+      (options?.suppressZeroDelta === true || previousReport !== undefined) && delta.isZeroDelta;
 
     let defectsLogged = 0;
     if (options?.logDefects !== false && !shouldSuppress) {
@@ -267,7 +273,11 @@ export class SkillAuditorEngine {
             title: `Skill Compliance Incident: ${inc.category}`,
             description: inc.description,
             actor: "skill-auditor",
-            context: { incidentId: inc.id, severity: inc.severity, mitigationSuggestion: inc.recommendation },
+            context: {
+              incidentId: inc.id,
+              severity: inc.severity,
+              mitigationSuggestion: inc.recommendation,
+            },
           },
         });
         if (routeResult.routed) defectsLogged++;
@@ -278,7 +288,8 @@ export class SkillAuditorEngine {
     if (options?.interject !== false && !shouldSuppress) {
       for (const inc of incidents) {
         if (inc.category === "FALSE_SERIALIZATION" || inc.category === "ROLE_BOUNDARY_DEVIATION") {
-          if (SkillAuditorEngine.dispatchInterjection(repoRoot, inc, capsuleRoots)) interjectionsSent++;
+          if (SkillAuditorEngine.dispatchInterjection(repoRoot, inc, capsuleRoots))
+            interjectionsSent++;
         }
       }
     }
@@ -293,4 +304,3 @@ export class SkillAuditorEngine {
     };
   }
 }
-

@@ -220,14 +220,7 @@ export function buildDefaultAgents(): Record<string, AgentPolicy> {
       rbac: {
         can_execute_shell: true,
         can_edit_code: true,
-        allowed_commands: [
-          "bun harness.ts *",
-          "git status",
-          "git diff",
-          "git log",
-          "ls",
-          "grep",
-        ],
+        allowed_commands: ["bun harness.ts *", "git status", "git diff", "git log", "ls", "grep"],
         forbidden_patterns: ["^git\\s+(commit|push|reset|checkout\\s+-b)"],
       },
       hosts: makeHosts("xhigh"),

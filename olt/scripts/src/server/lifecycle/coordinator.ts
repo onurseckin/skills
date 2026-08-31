@@ -101,7 +101,12 @@ export class DevServerLifecycleManager {
       }
 
       let targetSnapPath = this.defaultSnapshotPath;
-      if (options !== undefined && options !== null && options.snapshotPath !== undefined && options.snapshotPath.length > 0) {
+      if (
+        options !== undefined &&
+        options !== null &&
+        options.snapshotPath !== undefined &&
+        options.snapshotPath.length > 0
+      ) {
         targetSnapPath = options.snapshotPath;
       }
       await this.preserver.save(initialSnapshot, targetSnapPath);
@@ -126,7 +131,12 @@ export class DevServerLifecycleManager {
       let startEnv = initialSnapshot.envVariables;
       let rawStartOptions: ServerStartOptions = {};
 
-      if (options !== undefined && options !== null && options.startOptions !== undefined && options.startOptions !== null) {
+      if (
+        options !== undefined &&
+        options !== null &&
+        options.startOptions !== undefined &&
+        options.startOptions !== null
+      ) {
         rawStartOptions = options.startOptions;
         if (options.startOptions.portConfigurations !== undefined) {
           startPortConfigs = options.startOptions.portConfigurations;
@@ -153,7 +163,11 @@ export class DevServerLifecycleManager {
           this.preserver.restore(initialSnapshot);
 
           // Restore old server process if a restorer function was provided
-          if (options !== undefined && options !== null && options.restoreOldServerFn !== undefined) {
+          if (
+            options !== undefined &&
+            options !== null &&
+            options.restoreOldServerFn !== undefined
+          ) {
             try {
               await options.restoreOldServerFn(initialSnapshot);
             } catch (rErr: unknown) {

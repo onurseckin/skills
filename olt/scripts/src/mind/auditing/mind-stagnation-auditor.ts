@@ -16,8 +16,8 @@ import { generateZeroDeltaChallengePrompt } from "./cognitive/challenge-generato
 export const MIND_PREPLANNING_STAGNATION = "MIND_PREPLANNING_STAGNATION" as const;
 export const MIND_CREATIVE_STAGNATION = "MIND_CREATIVE_STAGNATION" as const;
 export const DEFAULT_STAGNATION_THRESHOLD_SECONDS = 180;
-export const DEFAULT_ZERO_DELTA_THRESHOLD_CYCLES = 3;
-export const DEFAULT_MAINTENANCE_LOOP_THRESHOLD_CYCLES = 3;
+export const DEFAULT_ZERO_DELTA_THRESHOLD_CYCLES = 2;
+export const DEFAULT_MAINTENANCE_LOOP_THRESHOLD_CYCLES = 2;
 
 import {
   compareReportDelta,
@@ -26,9 +26,6 @@ import {
 } from "./stagnation-delta.ts";
 
 export * from "./stagnation-delta.ts";
-
-
-
 
 export function auditMindPreplanningStagnation(
   options?: StagnationAuditOptions | undefined,
@@ -44,15 +41,20 @@ export function auditMindPreplanningStagnation(
   const eligibleDefects = filterEligibleDefects(defectItems);
 
   const nowMs = options?.nowMs ?? Date.now();
-  const thresholdSeconds = options?.stagnationThresholdSeconds ?? DEFAULT_STAGNATION_THRESHOLD_SECONDS;
-  const zeroDeltaThreshold = options?.zeroDeltaThresholdCycles ?? DEFAULT_ZERO_DELTA_THRESHOLD_CYCLES;
-  const maintenanceThreshold = options?.maintenanceLoopThresholdCycles ?? DEFAULT_MAINTENANCE_LOOP_THRESHOLD_CYCLES;
+  const thresholdSeconds =
+    options?.stagnationThresholdSeconds ?? DEFAULT_STAGNATION_THRESHOLD_SECONDS;
+  const zeroDeltaThreshold =
+    options?.zeroDeltaThresholdCycles ?? DEFAULT_ZERO_DELTA_THRESHOLD_CYCLES;
+  const maintenanceThreshold =
+    options?.maintenanceLoopThresholdCycles ?? DEFAULT_MAINTENANCE_LOOP_THRESHOLD_CYCLES;
 
-  const lastPreplanMs = options?.lastPreplanTimestamp ? Date.parse(options.lastPreplanTimestamp) : 0;
-  const idleDurationSeconds = lastPreplanMs > 0 ? Math.max(0, (nowMs - lastPreplanMs) / 1000) : Number.POSITIVE_INFINITY;
+  const lastPreplanMs = options?.lastPreplanTimestamp
+    ? Date.parse(options.lastPreplanTimestamp)
+    : 0;
+  const idleDurationSeconds =
+    lastPreplanMs > 0 ? Math.max(0, (nowMs - lastPreplanMs) / 1000) : Number.POSITIVE_INFINITY;
   const totalUnplanned = eligibleBacklog.length + eligibleDefects.length;
   const recordedTimestamp = options?.lastPreplanTimestamp ?? null;
-
 
   const previousReport = options !== undefined ? options.previousReport : undefined;
   let isMaintenanceLoop = false;

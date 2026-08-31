@@ -178,7 +178,8 @@ export class OrchestratorCompanionAuditor {
       issues.push("Mandatory skill-auditor companion is not active in the agent ledger.");
     }
 
-    const healthy = (!isMandatory || (mindAuditorActive && skillAuditorActive)) && issues.length === 0;
+    const healthy =
+      (!isMandatory || (mindAuditorActive && skillAuditorActive)) && issues.length === 0;
 
     return {
       healthy,

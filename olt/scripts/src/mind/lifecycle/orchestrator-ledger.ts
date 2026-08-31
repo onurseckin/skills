@@ -55,7 +55,6 @@ function resolveLockPath(customLock?: string, customLedger?: string): string {
   return resolve(process.cwd(), DEFAULT_ORCHESTRATOR_LOCK_FILE);
 }
 
-
 function readRecordsUnsafe(ledgerPath: string): OrchestratorRegistrationRecord[] {
   if (!existsSync(ledgerPath)) return [];
   const content = readFileSync(ledgerPath, "utf8");

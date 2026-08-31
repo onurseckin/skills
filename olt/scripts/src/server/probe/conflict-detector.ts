@@ -133,8 +133,7 @@ export async function checkPortAvailability(
   port: number,
   host?: string | undefined,
 ): Promise<boolean> {
-  const options: ConflictDetectionOptions | undefined =
-    host !== undefined ? { host } : undefined;
+  const options: ConflictDetectionOptions | undefined = host !== undefined ? { host } : undefined;
   const result = await detectSocketConflict(port, options);
   return result.available;
 }
@@ -156,9 +155,7 @@ export async function findAvailablePort(
   validatePort(endPort);
 
   if (startPort > endPort) {
-    throw new RangeError(
-      `startPort (${startPort}) cannot be greater than endPort (${endPort})`,
-    );
+    throw new RangeError(`startPort (${startPort}) cannot be greater than endPort (${endPort})`);
   }
 
   const targetHost = options !== undefined ? options.host : undefined;
@@ -182,18 +179,14 @@ export async function findAvailablePort(
 export async function detectInterfaceConflicts(
   port: number,
 ): Promise<readonly SocketConflictResult[]> {
-  return await Promise.all(
-    COMMON_INTERFACES.map((host) => detectSocketConflict(port, { host })),
-  );
+  return await Promise.all(COMMON_INTERFACES.map((host) => detectSocketConflict(port, { host })));
 }
 
 /**
  * Performs a comprehensive multi-interface inspection including both TCP probe
  * and socket binding conflict detection.
  */
-export async function inspectComprehensivePort(
-  port: number,
-): Promise<ComprehensivePortStatus> {
+export async function inspectComprehensivePort(port: number): Promise<ComprehensivePortStatus> {
   const [probeResults, conflictResults] = await Promise.all([
     probeAllInterfaces(port),
     detectInterfaceConflicts(port),

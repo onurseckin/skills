@@ -3,13 +3,8 @@ import { join, resolve } from "node:path";
 import type { AgentGrantRecord } from "../../core/contracts/index.ts";
 import { registerSessionGrant } from "../../authority/session/grants.ts";
 import type { RepoEcosystem, RepoPolicy } from "../../policy/types/index.ts";
-import {
-  inspectToolchainDetails,
-} from "./toolchain-inspector.ts";
-import {
-  testToolchainEmpirically,
-  type EmpiricalToolchainReport,
-} from "./empirical-tester.ts";
+import { inspectToolchainDetails } from "./toolchain-inspector.ts";
+import { testToolchainEmpirically, type EmpiricalToolchainReport } from "./empirical-tester.ts";
 import {
   discoverAndCalibrateRepoPolicy,
   ensureCalibratedRepoPolicy,

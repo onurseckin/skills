@@ -90,6 +90,7 @@ bun harness.ts policy:detect
 ```
 
 **Example JSON Output (`--format json`)**:
+
 ```json
 {
   "detected": true,
@@ -127,23 +128,23 @@ The central policy file `.olt/policy.json` defines the definitive rulebook for e
 
 ### Top-Level Schema Specification
 
-| Top-Level Field | Type | Mandatory | Description |
-| :--- | :--- | :--- | :--- |
-| `schema_version` | `integer` | Yes | Schema version integer. Currently locked at `1`. |
-| `ecosystem` | `string` | Yes | Primary repository runtime: `"bun"`, `"node"`, `"python"`, `"cargo"`, `"unknown"`. |
-| `package_manager` | `string` | No | Active package manager: `"bun"`, `"npm"`, `"pnpm"`, `"yarn"`, `"poetry"`, `"pip"`, `"cargo"`. |
-| `skill_home_repo_root` | `string` | No | Absolute canonical repository root path. |
-| `test_runner` | `object` | Yes | Test runner configuration dictionary (default command, targeted pattern, full suite). |
-| `typecheck_command` | `string` | No | Shell invocation for static type checking (e.g., `"bun run typecheck"`, `"tsc --noEmit"`). |
-| `lint_command` | `string` | No | Shell invocation for linter execution (e.g., `"bun run lint"`, `"cargo clippy"`). |
-| `allowed_commands` | `array<string>` | No | Global whitelist of safe shell commands permitted for workforce execution. |
-| `forbidden_commands` | `array<string>` | No | Global blacklist of strictly forbidden shell commands (e.g., `git push`, `rm -rf /`). |
-| `read_scope_neighborhood_depth`| `integer` | No | Permitted directory hop distance for context reading (default: `2`). |
-| `review_protocol` | `object` | Yes | Adversarial review quotas (`max_adversarial_pushes`, `cognitive_pushes`). |
-| `planning` | `object` | Yes | Architectural preplanning invariants and socratic expansion depth. |
-| `agents` | `object` | Yes | Per-agent role definitions, RBAC sandboxes, quota budgets, and host bindings. |
-| `docker_environment` | `object` | No | Containerized testing environment, test user personas, and cookie templates. |
-| `hooks` | `object` | No | Universal lifecycle event dispatch hooks. |
+| Top-Level Field                 | Type            | Mandatory | Description                                                                                   |
+| :------------------------------ | :-------------- | :-------- | :-------------------------------------------------------------------------------------------- |
+| `schema_version`                | `integer`       | Yes       | Schema version integer. Currently locked at `1`.                                              |
+| `ecosystem`                     | `string`        | Yes       | Primary repository runtime: `"bun"`, `"node"`, `"python"`, `"cargo"`, `"unknown"`.            |
+| `package_manager`               | `string`        | No        | Active package manager: `"bun"`, `"npm"`, `"pnpm"`, `"yarn"`, `"poetry"`, `"pip"`, `"cargo"`. |
+| `skill_home_repo_root`          | `string`        | No        | Absolute canonical repository root path.                                                      |
+| `test_runner`                   | `object`        | Yes       | Test runner configuration dictionary (default command, targeted pattern, full suite).         |
+| `typecheck_command`             | `string`        | No        | Shell invocation for static type checking (e.g., `"bun run typecheck"`, `"tsc --noEmit"`).    |
+| `lint_command`                  | `string`        | No        | Shell invocation for linter execution (e.g., `"bun run lint"`, `"cargo clippy"`).             |
+| `allowed_commands`              | `array<string>` | No        | Global whitelist of safe shell commands permitted for workforce execution.                    |
+| `forbidden_commands`            | `array<string>` | No        | Global blacklist of strictly forbidden shell commands (e.g., `git push`, `rm -rf /`).         |
+| `read_scope_neighborhood_depth` | `integer`       | No        | Permitted directory hop distance for context reading (default: `2`).                          |
+| `review_protocol`               | `object`        | Yes       | Adversarial review quotas (`max_adversarial_pushes`, `cognitive_pushes`).                     |
+| `planning`                      | `object`        | Yes       | Architectural preplanning invariants and socratic expansion depth.                            |
+| `agents`                        | `object`        | Yes       | Per-agent role definitions, RBAC sandboxes, quota budgets, and host bindings.                 |
+| `docker_environment`            | `object`        | No        | Containerized testing environment, test user personas, and cookie templates.                  |
+| `hooks`                         | `object`        | No        | Universal lifecycle event dispatch hooks.                                                     |
 
 ### Complete Canonical `policy.json` Reference
 
@@ -174,12 +175,7 @@ The central policy file `.olt/policy.json` defines the definitive rulebook for e
     "cat",
     "wc"
   ],
-  "forbidden_commands": [
-    "git commit",
-    "git push",
-    "git reset",
-    "rm -rf /"
-  ],
+  "forbidden_commands": ["git commit", "git push", "git reset", "rm -rf /"],
   "read_scope_neighborhood_depth": 2,
   "review_protocol": {
     "max_adversarial_pushes": 20,
@@ -202,13 +198,38 @@ The central policy file `.olt/policy.json` defines the definitive rulebook for e
         "can_edit_code": false,
         "allowed_commands": ["bun harness.ts *", "git status", "git diff", "git log"],
         "forbidden_patterns": ["^bun\\s+test\\b", "^npm\\s+test\\b", "^git\\s+(commit|push|reset)"],
-        "allowed_spawns": ["coordinator", "implementer", "validator_code_quality", "validator_ui_design"]
+        "allowed_spawns": [
+          "coordinator",
+          "implementer",
+          "validator_code_quality",
+          "validator_ui_design"
+        ]
       },
       "hosts": {
-        "antigravity": { "model": "gemini-3.7-flash", "model_tier": "high", "thinking_effort": "high", "max_tokens": 8192 },
-        "claude_code": { "model": "claude-5-opus", "model_tier": "xhigh", "thinking_effort": "high", "max_tokens": 8192 },
-        "codex": { "model": "gpt-5.6-sol", "model_tier": "xhigh", "thinking_effort": "high", "max_tokens": 8192 },
-        "cursor": { "model": "cursor-latest", "model_tier": "high", "thinking_effort": "high", "max_tokens": 8192 }
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
       }
     },
     "coordinator": {
@@ -216,15 +237,47 @@ The central policy file `.olt/policy.json` defines the definitive rulebook for e
       "rbac": {
         "can_execute_shell": true,
         "can_edit_code": false,
-        "allowed_commands": ["bun harness.ts *", "git status", "git diff", "git commit", "git push", "git log"],
+        "allowed_commands": [
+          "bun harness.ts *",
+          "git status",
+          "git diff",
+          "git commit",
+          "git push",
+          "git log"
+        ],
         "forbidden_patterns": ["^bun\\s+test\\b", "^npm\\s+test\\b"],
-        "allowed_spawns": ["implementer", "validator_code_quality", "validator_ui_design", "completeness_critic"]
+        "allowed_spawns": [
+          "implementer",
+          "validator_code_quality",
+          "validator_ui_design",
+          "completeness_critic"
+        ]
       },
       "hosts": {
-        "antigravity": { "model": "gemini-3.7-flash", "model_tier": "high", "thinking_effort": "high", "max_tokens": 8192 },
-        "claude_code": { "model": "claude-5-opus", "model_tier": "xhigh", "thinking_effort": "high", "max_tokens": 8192 },
-        "codex": { "model": "gpt-5.6-sol", "model_tier": "xhigh", "thinking_effort": "high", "max_tokens": 8192 },
-        "cursor": { "model": "cursor-latest", "model_tier": "high", "thinking_effort": "high", "max_tokens": 8192 }
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-opus",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "model_tier": "xhigh",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "high",
+          "thinking_effort": "high",
+          "max_tokens": 8192
+        }
       }
     },
     "implementer": {
@@ -232,14 +285,46 @@ The central policy file `.olt/policy.json` defines the definitive rulebook for e
       "rbac": {
         "can_execute_shell": true,
         "can_edit_code": true,
-        "allowed_commands": ["bun test <target>", "bun run typecheck", "bun run lint", "git status", "git diff", "ls", "grep"],
-        "forbidden_patterns": ["^git\\s+(commit|push|reset|checkout\\s+-b)", "^bun\\s+test\\s*$", "^npm\\s+test\\s*$"]
+        "allowed_commands": [
+          "bun test <target>",
+          "bun run typecheck",
+          "bun run lint",
+          "git status",
+          "git diff",
+          "ls",
+          "grep"
+        ],
+        "forbidden_patterns": [
+          "^git\\s+(commit|push|reset|checkout\\s+-b)",
+          "^bun\\s+test\\s*$",
+          "^npm\\s+test\\s*$"
+        ]
       },
       "hosts": {
-        "antigravity": { "model": "gemini-3.7-flash", "model_tier": "medium", "thinking_effort": "medium", "max_tokens": 8192 },
-        "claude_code": { "model": "claude-5-sonnet", "model_tier": "medium", "thinking_effort": "medium", "max_tokens": 8192 },
-        "codex": { "model": "gpt-5.6-terra", "model_tier": "medium", "thinking_effort": "medium", "max_tokens": 8192 },
-        "cursor": { "model": "cursor-latest", "model_tier": "medium", "thinking_effort": "medium", "max_tokens": 8192 }
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
+          "max_tokens": 8192
+        }
       }
     }
   }
@@ -366,12 +451,12 @@ Before accepting any `task:submit`, the harness computes an exact git status dif
 
 Autonomous agents frequently hide underlying type errors by inserting compiler suppressions. OLT enforces **zero-tolerance AST static purity**:
 
-| Forbidden Token / Pattern | Rationale | Rejection Code |
-| :--- | :--- | :--- |
-| `@ts-ignore` | Silences TypeScript compiler errors without fixing underlying defects | `AST_PURITY_VIOLATION` |
-| `@ts-expect-error` | Masks fragile type signatures | `AST_PURITY_VIOLATION` |
-| `eslint-disable` | Bypasses code quality and security lint rules | `AST_PURITY_VIOLATION` |
-| `: any` / `as any` | Defeats static type safety and contract verification | `AST_PURITY_VIOLATION` |
+| Forbidden Token / Pattern | Rationale                                                             | Rejection Code         |
+| :------------------------ | :-------------------------------------------------------------------- | :--------------------- |
+| `@ts-ignore`              | Silences TypeScript compiler errors without fixing underlying defects | `AST_PURITY_VIOLATION` |
+| `@ts-expect-error`        | Masks fragile type signatures                                         | `AST_PURITY_VIOLATION` |
+| `eslint-disable`          | Bypasses code quality and security lint rules                         | `AST_PURITY_VIOLATION` |
+| `: any` / `as any`        | Defeats static type safety and contract verification                  | `AST_PURITY_VIOLATION` |
 
 ---
 

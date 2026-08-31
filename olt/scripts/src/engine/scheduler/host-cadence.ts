@@ -123,4 +123,3 @@ export function resolveQuotaAwareSchedulerIntervalSeconds(
   }
   return baseInterval;
 }
-

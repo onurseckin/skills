@@ -25,7 +25,10 @@ import {
 } from "../../validation/ui/index.ts";
 import { tokenDigest } from "../../workflow/lease/token.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
-import type { CompanionManifestData, DualChannelAuditResult } from "../../validation/dual-channel-analyzer/index.ts";
+import type {
+  CompanionManifestData,
+  DualChannelAuditResult,
+} from "../../validation/dual-channel-analyzer/index.ts";
 
 export type ChecklistCoverageResult =
   | ({ applicable: true } & ChecklistCoverageReport)

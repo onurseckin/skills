@@ -5,7 +5,16 @@
  * to prevent race conditions during concurrent server restart triggers.
  */
 
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync, openSync, closeSync, constants } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+  openSync,
+  closeSync,
+  constants,
+} from "node:fs";
 import { dirname, resolve } from "node:path";
 import type { LockHandle, LockOptions } from "./types.ts";
 
@@ -185,7 +194,12 @@ export async function forceReleaseLock(lockPath?: string): Promise<boolean> {
  */
 export async function acquireLock(options?: LockOptions): Promise<LockHandle> {
   let rawPath = DEFAULT_LOCK_PATH;
-  if (options !== undefined && options !== null && options.lockPath !== undefined && options.lockPath.length > 0) {
+  if (
+    options !== undefined &&
+    options !== null &&
+    options.lockPath !== undefined &&
+    options.lockPath.length > 0
+  ) {
     rawPath = options.lockPath;
   }
   const lockPath = resolve(rawPath);
@@ -206,7 +220,12 @@ export async function acquireLock(options?: LockOptions): Promise<LockHandle> {
   }
 
   let lockHolderId = `process_${process.pid}_${Math.random().toString(36).slice(2, 10)}`;
-  if (options !== undefined && options !== null && options.lockHolderId !== undefined && options.lockHolderId.length > 0) {
+  if (
+    options !== undefined &&
+    options !== null &&
+    options.lockHolderId !== undefined &&
+    options.lockHolderId.length > 0
+  ) {
     lockHolderId = options.lockHolderId;
   }
 

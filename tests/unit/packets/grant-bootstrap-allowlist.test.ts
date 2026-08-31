@@ -36,8 +36,7 @@ describe("grant bootstrap allowlist data", () => {
         "doctor",
         "explain",
         "health",
-        
-        
+
         "mind:audit:live",
         "role:cheat-sheet",
         "skill:audit:live",

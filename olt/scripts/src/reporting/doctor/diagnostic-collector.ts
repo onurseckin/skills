@@ -13,6 +13,7 @@ import {
   checkMailboxHealth,
   checkWorktreeHealth,
   checkCliRegistryTaxonomy,
+  checkTier0CompanionsHealth,
   type DoctorCheckEngineResult,
   type DoctorDiagnosticFinding,
 } from "./engines.ts";
@@ -124,6 +125,11 @@ export function collectDiagnosticEngines(
 
   const engine14 = checkCliRegistryTaxonomy();
 
+  const engine15 = checkTier0CompanionsHealth({
+    state: (state as Record<string, unknown> | undefined) ?? null,
+    repoRoot: repository,
+  });
+
   const allEngineFindings: DoctorDiagnosticFinding[] = [
     ...engine1.findings,
     ...engine2.findings,
@@ -139,6 +145,7 @@ export function collectDiagnosticEngines(
     ...engine12.findings,
     ...engine13.findings,
     ...engine14.findings,
+    ...engine15.findings,
   ];
 
   const engineErrorIssues = allEngineFindings
@@ -169,6 +176,7 @@ export function collectDiagnosticEngines(
       checkMailboxHealth: engine12,
       checkWorktreeHealth: engine13,
       checkCliRegistryTaxonomy: engine14,
+      checkTier0CompanionsHealth: engine15,
     },
     allEngineFindings,
     engineErrorIssues,

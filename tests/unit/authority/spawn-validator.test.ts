@@ -240,7 +240,7 @@ describe("Subagent Spawn Request Cardinality Validator", () => {
 
   it("handles various now option types in validateSubagentSpawnRequest", () => {
     const activeLease = createActiveLease({
-      lease_expires_at: "2026-08-31T12:00:00Z",
+      lease_expires_at: new Date(Date.now() + 3_600_000).toISOString(),
     });
     const request: SubagentSpawnRequest = { role: "skill_auditor" };
 
@@ -248,7 +248,7 @@ describe("Subagent Spawn Request Cardinality Validator", () => {
     const resDate = validateSubagentSpawnRequest(request, {
       activeLeaseReader: () => activeLease,
       isPidAliveFn: () => true,
-      now: new Date("2026-08-31T10:00:00Z"),
+      now: new Date(Date.now() - 60_000),
     });
     expect(resDate.allowed).toBe(false);
 
@@ -256,7 +256,7 @@ describe("Subagent Spawn Request Cardinality Validator", () => {
     const resString = validateSubagentSpawnRequest(request, {
       activeLeaseReader: () => activeLease,
       isPidAliveFn: () => true,
-      now: "2026-08-31T10:00:00Z",
+      now: new Date(Date.now() - 60_000).toISOString(),
     });
     expect(resString.allowed).toBe(false);
 

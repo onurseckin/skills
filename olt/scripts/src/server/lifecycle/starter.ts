@@ -69,7 +69,12 @@ function defaultSleep(ms: number): Promise<void> {
  */
 async function defaultSpawn(options: ServerStartOptions): Promise<{ pid: number }> {
   let command = "bun";
-  if (options !== undefined && options !== null && options.command !== undefined && options.command.length > 0) {
+  if (
+    options !== undefined &&
+    options !== null &&
+    options.command !== undefined &&
+    options.command.length > 0
+  ) {
     command = options.command;
   }
 
@@ -79,7 +84,12 @@ async function defaultSpawn(options: ServerStartOptions): Promise<{ pid: number 
   }
 
   let cwd = process.cwd();
-  if (options !== undefined && options !== null && options.cwd !== undefined && options.cwd.length > 0) {
+  if (
+    options !== undefined &&
+    options !== null &&
+    options.cwd !== undefined &&
+    options.cwd.length > 0
+  ) {
     cwd = options.cwd;
   }
 
@@ -140,7 +150,11 @@ export async function startServer(options: ServerStartOptions): Promise<ServerSt
 
   // Determine target ports to verify
   const targetPorts: number[] = [];
-  if (options.portConfigurations !== undefined && options.portConfigurations !== null && options.portConfigurations.length > 0) {
+  if (
+    options.portConfigurations !== undefined &&
+    options.portConfigurations !== null &&
+    options.portConfigurations.length > 0
+  ) {
     for (const pc of options.portConfigurations) {
       if (!targetPorts.includes(pc.port)) {
         targetPorts.push(pc.port);

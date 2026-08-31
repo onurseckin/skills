@@ -40,7 +40,6 @@ export class MindAuditorEngine {
   public static synthesizeDesignIterations = CognitiveUiCritiqueParser.synthesizeDesignIterations;
   public static critiqueToFeedbackItems = CognitiveUiCritiqueParser.toFeedbackItems;
 
-
   public static auditRepositoryGovernance(
     repoRoot: string,
     capsuleRunRoot?: string,

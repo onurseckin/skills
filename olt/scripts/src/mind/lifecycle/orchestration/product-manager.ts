@@ -129,7 +129,6 @@ import { discoverGroundedFeatures } from "./feature-discovery.ts";
 
 export { discoverGroundedFeatures };
 
-
 export function runMindProductManagerLoop(
   options: MindProductManagerOptions = {},
 ): ProductManagerExpansionResult {

@@ -36,7 +36,6 @@ export {
   type MindCompanionDeploymentResult,
 };
 
-
 export interface MindInitLifecycleOptions {
   readonly repo: string;
   readonly charter: string;
@@ -65,7 +64,6 @@ export interface MindInitLifecycleResult {
 export function initializeMindLifecycle(
   options: MindInitLifecycleOptions,
 ): MindInitLifecycleResult {
-
   const repoRaw = options.repo;
   if (!existsSync(repoRaw) || !lstatSync(repoRaw).isDirectory()) {
     throw new HarnessError(

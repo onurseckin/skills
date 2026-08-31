@@ -43,7 +43,12 @@ export function captureSnapshot(input?: ServerStateSnapshotInput): ServerStateSn
   }
 
   const pidHistory: number[] = [];
-  if (input !== undefined && input !== null && input.pidHistory !== undefined && input.pidHistory.length > 0) {
+  if (
+    input !== undefined &&
+    input !== null &&
+    input.pidHistory !== undefined &&
+    input.pidHistory.length > 0
+  ) {
     for (const p of input.pidHistory) {
       pidHistory.push(p);
     }
@@ -180,9 +185,7 @@ export async function saveSnapshot(
 /**
  * Synchronously or asynchronously loads a server state snapshot from disk.
  */
-export async function loadSnapshot(
-  filepath?: string,
-): Promise<ServerStateSnapshot | null> {
+export async function loadSnapshot(filepath?: string): Promise<ServerStateSnapshot | null> {
   let targetPath = DEFAULT_SNAPSHOT_PATH;
   if (filepath !== undefined && filepath !== null && filepath.length > 0) {
     targetPath = filepath;
@@ -206,9 +209,7 @@ export async function loadSnapshot(
 /**
  * Clears the snapshot file from disk if present.
  */
-export async function clearSnapshot(
-  filepath?: string,
-): Promise<boolean> {
+export async function clearSnapshot(filepath?: string): Promise<boolean> {
   let targetPath = DEFAULT_SNAPSHOT_PATH;
   if (filepath !== undefined && filepath !== null && filepath.length > 0) {
     targetPath = filepath;
@@ -246,10 +247,7 @@ export class StatePreserver {
     return snapshot;
   }
 
-  public async save(
-    snapshot?: ServerStateSnapshot,
-    filepath?: string,
-  ): Promise<void> {
+  public async save(snapshot?: ServerStateSnapshot, filepath?: string): Promise<void> {
     let target: ServerStateSnapshot;
     if (snapshot !== undefined && snapshot !== null) {
       target = snapshot;

@@ -128,16 +128,12 @@ export function checkCompanionAuditorsDoctor(
   };
 }
 
-export function isCompanionAuditorCompliant(
-  options: CompanionAuditorDoctorOptions = {},
-): boolean {
+export function isCompanionAuditorCompliant(options: CompanionAuditorDoctorOptions = {}): boolean {
   const findings = auditCompanionAuditors(options);
   return !findings.some((f) => f.severity === "ERROR");
 }
 
-export function assertCompanionAuditorsDoctor(
-  options: CompanionAuditorDoctorOptions = {},
-): void {
+export function assertCompanionAuditorsDoctor(options: CompanionAuditorDoctorOptions = {}): void {
   const findings = auditCompanionAuditors(options);
   const errorFinding = findings.find((f) => f.severity === "ERROR");
   if (errorFinding) {

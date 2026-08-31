@@ -93,7 +93,12 @@ describe("Dual UI Validators: Separation & Invariants", () => {
           { name: "desktop.png", path: "sc/desktop.png", viewport: "desktop", sizeBytes: 5400 },
           { name: "mobile.png", path: "sc/mobile.png", viewport: "mobile", sizeBytes: 2100 },
           { name: "tablet.png", path: "sc/tablet.png", viewport: "tablet", sizeBytes: 3200 },
-          { name: "desktop-wide.png", path: "sc/wide.png", viewport: "desktop-wide", sizeBytes: 8500 },
+          {
+            name: "desktop-wide.png",
+            path: "sc/wide.png",
+            viewport: "desktop-wide",
+            sizeBytes: 8500,
+          },
         ],
       });
 
@@ -109,7 +114,9 @@ describe("Dual UI Validators: Separation & Invariants", () => {
         touchTargets: [{ selector: "button.tiny", width: 28, height: 28 }],
         overflowElements: [{ selector: "table.grid", scrollWidth: 500, clientWidth: 390 }],
         journeys: [{ name: "failing", viewport: "mobile", passed: false, durationMs: 400 }],
-        screenshots: [{ name: "tiny.png", path: "sc/tiny.png", viewport: "mobile", sizeBytes: 512 }],
+        screenshots: [
+          { name: "tiny.png", path: "sc/tiny.png", viewport: "mobile", sizeBytes: 512 },
+        ],
       });
 
       expect(report.passed).toBe(false);
@@ -133,7 +140,13 @@ describe("Dual UI Validators: Separation & Invariants", () => {
     });
 
     it("rejects superficial / robotic checklist critiques", () => {
-      const roboticPhrases = ["lgtm", "looks good", "all tests pass", "verified manually", "ui checklist verified"];
+      const roboticPhrases = [
+        "lgtm",
+        "looks good",
+        "all tests pass",
+        "verified manually",
+        "ui checklist verified",
+      ];
       for (const phrase of roboticPhrases) {
         const report = validateUiCognitive({ critique: phrase });
         expect(report.isSuperficial).toBe(true);
@@ -158,38 +171,54 @@ describe("Dual UI Validators: Separation & Invariants", () => {
 
     it("inspects descender integrity and flags clipped descender letters", () => {
       const passResult = inspectDescenderIntegrity([
-        { selector: "span.label", text: "Typography jump", fontSize: 16, lineHeight: 24, paddingBottom: 4 },
+        {
+          selector: "span.label",
+          text: "Typography jump",
+          fontSize: 16,
+          lineHeight: 24,
+          paddingBottom: 4,
+        },
       ]);
       expect(passResult.passed).toBe(true);
 
       const failResult = inspectDescenderIntegrity([
-        { selector: "span.clipped", text: "Typography jump", fontSize: 16, lineHeight: 16, paddingBottom: 0, overflowClipped: true },
+        {
+          selector: "span.clipped",
+          text: "Typography jump",
+          fontSize: 16,
+          lineHeight: 16,
+          paddingBottom: 0,
+          overflowClipped: true,
+        },
       ]);
       expect(failResult.passed).toBe(false);
       expect(failResult.clippedElements).toContain("span.clipped");
     });
 
     it("evaluates aesthetic harmony across 4/8pt spacing rhythm", () => {
-      const passResult = evaluateAestheticHarmony([
-        { selector: ".card", margin: 16, padding: 24 },
-      ]);
+      const passResult = evaluateAestheticHarmony([{ selector: ".card", margin: 16, padding: 24 }]);
       expect(passResult.passed).toBe(true);
 
-      const failResult = evaluateAestheticHarmony([
-        { selector: ".card", margin: 13, padding: 27 },
-      ]);
+      const failResult = evaluateAestheticHarmony([{ selector: ".card", margin: 13, padding: 27 }]);
       expect(failResult.passed).toBe(false);
     });
 
     it("passes cognitive validation when all human-level aesthetic criteria are met", () => {
       const report = validateUiCognitive({
-        critique: "The header typography establishes clear visual hierarchy. Spacing follows an 8pt rhythm with adequate line-height for descenders on action buttons.",
+        critique:
+          "The header typography establishes clear visual hierarchy. Spacing follows an 8pt rhythm with adequate line-height for descenders on action buttons.",
         hierarchyElements: [
           { selector: "h1", tag: "h1", fontSize: 36, fontWeight: 800 },
           { selector: "p", tag: "p", fontSize: 16, fontWeight: 400 },
         ],
         textElements: [
-          { selector: "p.body", text: "Quality typography and styling", fontSize: 16, lineHeight: 24, paddingBottom: 8 },
+          {
+            selector: "p.body",
+            text: "Quality typography and styling",
+            fontSize: 16,
+            lineHeight: 24,
+            paddingBottom: 8,
+          },
         ],
         spacingElements: [{ selector: "div.section", margin: 32, padding: 24 }],
         canExecuteShell: false,
@@ -225,9 +254,18 @@ describe("Dual UI Validators: Separation & Invariants", () => {
           ],
         },
         cognitiveInput: {
-          critique: "Deep Socratic critique evaluating optical balance and typographic scale across all breakpoints.",
+          critique:
+            "Deep Socratic critique evaluating optical balance and typographic scale across all breakpoints.",
           hierarchyElements: [{ selector: "h1", tag: "h1", fontSize: 32, fontWeight: 700 }],
-          textElements: [{ selector: "h1", text: "Typography Page", fontSize: 32, lineHeight: 40, paddingBottom: 8 }],
+          textElements: [
+            {
+              selector: "h1",
+              text: "Typography Page",
+              fontSize: 32,
+              lineHeight: 40,
+              paddingBottom: 8,
+            },
+          ],
           canExecuteShell: false,
         },
       });
@@ -241,7 +279,10 @@ describe("Dual UI Validators: Separation & Invariants", () => {
       const result = evaluateDualUiGates({
         isUiTask: true,
         mechanicInput: { touchTargets: [{ selector: "button.small", width: 28, height: 28 }] },
-        cognitiveInput: { critique: "The layout looks aesthetically balanced.", canExecuteShell: false },
+        cognitiveInput: {
+          critique: "The layout looks aesthetically balanced.",
+          canExecuteShell: false,
+        },
       });
       expect(result.passed).toBe(false);
       expect(result.mode).toBe("cognitive_only");

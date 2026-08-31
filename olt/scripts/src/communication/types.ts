@@ -5,7 +5,8 @@ export type MailboxMessageType =
   | "VALIDATION_VERDICT"
   | "COGNITIVE_PUSHBACK"
   | "PULSE_HEARTBEAT"
-  | "DEFECT_ESCALATION";
+  | "DEFECT_ESCALATION"
+  | "SYSTEM_ALERT";
 
 export interface MailboxEnvelope<T = Record<string, unknown>> {
   readonly id: string;

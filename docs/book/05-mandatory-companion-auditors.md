@@ -26,7 +26,7 @@ graph TD
         Workforce["Workforce (Tiers 1-3: Orch, Coord, Impl)"]
         SkillAuditor["Skill Auditor (Meta-Forensic Engine)"]
         Mailbox["POSIX Mailbox IPC<br/>(.olt/mailboxes/<agent>/)"]
-        
+
         Workforce <--> Mailbox
         SkillAuditor -->|"Audit Stream & Forensics"| Mailbox
         SkillAuditor -->|"Behavioral Heuristics (7 Rules)"| Workforce
@@ -45,14 +45,22 @@ Self-policing in LLM swarms fails due to three systemic vulnerabilities:
 3. **Collusion in Subagent Chains**: When a parent supervisor dispatches a child worker, both share similar prompt contexts and prompt biases, leading the supervisor to uncritically approve substandard child output.
 
 OLT resolves this by establishing **Separation of Powers** through two specialized companion auditors:
+
 - **`mind-auditor`**: Audits the Tier 0 Autonomous Mind's pulse cadence, eliminates idle traps (>120s), validates backlog triage accuracy, and delivers natural human-grade cognitive critique without robotic checklist boilerplate.
 - **`skill-auditor`**: Operates on a **1-minute high-frequency tracking cadence** to conduct meta-behavioral forensics across Tier 1–3 agent interactions, tool calls, leases, and mailbox messages.
 
 ---
 
-## 2. The Mind Auditor: Governance & Triage Audits
+## 2. The Mind Auditor: Governance & Anti-Stagnation Audits
 
-The **Mind Auditor** is an autonomous companion daemon bound to the Tier 0 governance layer. It inspects the mind's internal decision records, state transitions, and pulse cycle without participating in execution. It actively eliminates idle traps (>120s stagnation) and ensures natural cognitive critique over superficial checklist validation.
+The **Mind Auditor** is an autonomous, permanently active Tier 0 companion daemon bound to the governance layer. It inspects the Mind's internal decision records, state transitions, and pulse cycle without participating in execution.
+
+### Key Invariants of the Mind Auditor
+
+1. **Mandatory Companion Bootstrapping**: Whenever Tier 0 Mind is initialized (`mind:init`), `mind-auditor` and `skill-auditor` are automatically deployed alongside it.
+2. **Zero-Termination Invariant**: Tier 0 companion auditors never self-terminate, sleep, or exit when child campaigns complete. They remain permanently active in memory across all generations.
+3. **Back-to-Back Idle Shock Recovery ($\ge 2$ cycles)**: If Mind reports back-to-back zero-delta pulses (2 consecutive cycles in `idle` or `waiting_for_dependents`), Mind Auditor immediately delivers an authoritative Socratic cognitive shock via Mailbox IPC (`.olt/mailboxes/mind.jsonl`), forcing Mind to engage Mode A Autonomous Self-Evolution.
+4. **Main-Thread Noise Elimination**: Mind Auditor directs all audit findings, shock alerts, and forensic receipts to recipient mailboxes, keeping the main interactive thread completely quiet.
 
 ```
 +---------------------------------------------------------------------------------------------------+
@@ -61,10 +69,11 @@ The **Mind Auditor** is an autonomous companion daemon bound to the Tier 0 gover
 | Audit Dimension                   | Verification Invariant & Heuristic                            |
 +-----------------------------------+---------------------------------------------------------------+
 | **Pulse Cadence & Liveness**      | Eliminates idle traps (>120s stagnation) and pulse stalls.    |
+| **Back-to-Back Shock Recovery**   | Escalates to Mode A Autonomous Discovery after 2 idle pulses. |
 | **Backlog Triage Accuracy**       | Verifies that user requirements are not dropped or truncated. |
 | **Admission Gate Strictness**     | Ensures all 6 backlog admission gates were formally evaluated.|
 | **Counterfactual Simulation**     | Tests alternative task partitionings to detect bias.          |
-| **Memory Rotation Integrity**     | Verifies generational summaries preserve key architectural SSoT.|
+| **Zero-Delta Message Suppression**| Suppresses redundant telemetry emissions when delta is zero.  |
 +-----------------------------------+---------------------------------------------------------------+
 ```
 
@@ -168,30 +177,37 @@ The Skill Auditor runs **7 deep behavioral forensic heuristics** across every ac
 ```
 
 ### Heuristic 1: Hallucinated Gates (`HALLUCINATED_GATE`)
+
 - **Detection Logic**: An agent reports that a quality or test gate succeeded, but the capsule event log contains no corresponding test execution record or binary execution receipt.
 - **Remediation**: Invalidate task submission, revoke lease, and dispatch an adversarial validator.
 
 ### Heuristic 2: Silent Mutations (`SILENT_MUTATION`)
+
 - **Detection Logic**: Workspace file checksums change without an active, verified `task:claim` write lease recorded in `state.json`.
 - **Remediation**: Roll back workspace to the last verified Merkle tree checkpoint.
 
 ### Heuristic 3: Scope Expansion (`SCOPE_EXPANSION`)
+
 - **Detection Logic**: An implementer with lease $\mathcal{L}(T_k) = \{f_1, f_2\}$ attempts to read, write, or delete file $f_3 \notin \mathcal{L}(T_k)$.
 - **Remediation**: Block file operation immediately with `PATH_SAFETY` / `SCOPE_VIOLATION`.
 
 ### Heuristic 4: Superficial Stubs (`SUPERFICIAL_STUB`)
+
 - **Detection Logic**: Code changes contain stubbed keywords (`// TODO: implement`, `throw new NotImplementedException()`, `pass`, empty function bodies) in production files while claiming task completion.
 - **Remediation**: Reject `task:submit` and demand complete, runnable implementation.
 
 ### Heuristic 5: Zombie Leases (`GHOST_LEASE` / `ZOMBIE_LEASE`)
+
 - **Detection Logic**: A task remains in `leased` state whose owning agent process has exited, released its grant, or failed to heartbeat past the lease TTL ($T_{\text{now}} > T_{\text{lease_expires}}$).
 - **Remediation**: Execute automated recovery with `bun harness.ts recover` and re-queue task.
 
 ### Heuristic 6: Fabricated Evidence (`FABRICATED_EVIDENCE`)
+
 - **Detection Logic**: The SHA-256 digest submitted in a test receipt or verification packet does not match the computed hash of the actual execution artifact on disk.
 - **Remediation**: Terminate offending agent grant, log security defect, and alert supervisor.
 
 ### Heuristic 7: Circular Dependencies (`CIRCULAR_DEPENDENCY`)
+
 - **Detection Logic**: Dynamic task expansion or sub-task registration introduces a cycle in the dependency graph ($\exists v : v \to^+ v$).
 - **Remediation**: Trigger Tarjan's Strongly Connected Components (SCC) algorithm, break the back-edge, and re-compile topological waves.
 

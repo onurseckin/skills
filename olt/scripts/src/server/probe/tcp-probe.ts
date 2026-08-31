@@ -186,9 +186,7 @@ export async function probePorts(
   const results: TcpProbeResult[] = [];
 
   for (const chunk of chunks) {
-    const chunkResults = await Promise.all(
-      chunk.map((port) => probeTcpPort(port, options)),
-    );
+    const chunkResults = await Promise.all(chunk.map((port) => probeTcpPort(port, options)));
     for (const r of chunkResults) {
       results.push(r);
     }

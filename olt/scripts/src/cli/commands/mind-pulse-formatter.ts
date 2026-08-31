@@ -34,7 +34,7 @@ export function formatPulseDirective(params: PulseDirectiveOptions): string {
     return lines.join("\n");
   }
 
-  // 2. Mode A Autonomous Discovery
+  // 2. Mode A Autonomous Creative Product Expansion
   if (params.activeRuns === 0 && params.pendingBacklog === 0) {
     const proposals = MindAutonomousDiscoveryEngine.generateProposals({
       backlogCount: params.pendingBacklog,
@@ -42,11 +42,15 @@ export function formatPulseDirective(params: PulseDirectiveOptions): string {
       unresolvedDefects: 0,
     });
     const lines = [
-      "### MODE A AUTONOMOUS DISCOVERY REQUIRED",
-      "- Active Runs: 0",
-      "- Pending Backlog: 0",
-      "- Action: Generate candidate proposals using MindAutonomousDiscoveryEngine.",
-      "- Invariant: CLOSING_FORBIDDEN_FOR_MIND",
+      "### 🚀 MODE A AUTONOMOUS DISCOVERY REQUIRED: CREATIVE PRODUCT EXPANSION (ZERO-IDLE MANDATE)",
+      "- **Status**: All prior tasks certified; 0 pending external backlog.",
+      "- **Mandate**: As Tier 0 Creative Product Owner, remaining idle, sleeping, or reporting 'waiting_for_dependents' is STRICTLY FORBIDDEN.",
+      "- **Next Action**: Execute the 3-Step Autonomous Self-Evolution cycle:",
+      "  1. **Step 1 (Quality)**: Run `bun harness.ts doctor` and audit AST/typecheck invariants.",
+      "  2. **Step 2 (UX Perfection)**: Inspect application views across 4 viewports (390px, 768px, 1440px, 1920px).",
+      "  3. **Step 3 (Ideation & Dispatch)**: Run `bun harness.ts mind:self-evolve` or `bun harness.ts plan:init` to compile and dispatch the next wave in parallel worktrees.",
+      "- **Worktree Rule**: Use `workspace_mode: 'branch' | 'share'` for parallel feature implementation.",
+      "- **Invariant**: CLOSING_FORBIDDEN_FOR_MIND (Continuous Autonomous Innovation).",
     ];
     if (proposals.length > 0) {
       lines.push("");

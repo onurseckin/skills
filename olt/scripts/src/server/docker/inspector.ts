@@ -30,7 +30,8 @@ export const defaultDockerRunner: DockerRunner = (
     });
 
     if (result.error !== undefined) {
-      const statusVal = result.status !== null && result.status !== undefined ? result.status : null;
+      const statusVal =
+        result.status !== null && result.status !== undefined ? result.status : null;
       const stdoutVal = result.stdout !== null && result.stdout !== undefined ? result.stdout : "";
       const stderrVal = result.stderr !== null && result.stderr !== undefined ? result.stderr : "";
       return {
@@ -64,10 +65,7 @@ export const defaultDockerRunner: DockerRunner = (
 /**
  * Checks whether an error or stderr message indicates Docker daemon absence or disconnect.
  */
-export function isDockerDaemonUnavailableError(
-  stderr: string,
-  error?: Error | undefined,
-): boolean {
+export function isDockerDaemonUnavailableError(stderr: string, error?: Error | undefined): boolean {
   if (error !== undefined) {
     const errorObj = error as unknown as Record<string, unknown>;
     const code = errorObj["code"];
@@ -113,7 +111,8 @@ export function inspectRunningContainers(
 
   // If binary missing or daemon unavailable on first try
   const isErr = res.error !== undefined;
-  const isNonZeroUnavailable = res.status !== 0 && isDockerDaemonUnavailableError(res.stderr, res.error);
+  const isNonZeroUnavailable =
+    res.status !== 0 && isDockerDaemonUnavailableError(res.stderr, res.error);
 
   if (isErr) {
     let errMsg = "Docker daemon unavailable";
@@ -201,10 +200,7 @@ export async function inspectRunningContainersAsync(
   // If CLI inspection failed and a socket is present, try direct socket HTTP API
   if (isDockerSocketPresent(options.socketPath)) {
     const timeout = options.timeoutMs !== undefined ? options.timeoutMs : DEFAULT_DOCKER_TIMEOUT_MS;
-    const socketResult = await inspectContainersViaSocket(
-      options.socketPath,
-      timeout,
-    );
+    const socketResult = await inspectContainersViaSocket(options.socketPath, timeout);
     if (socketResult.isDockerAvailable && socketResult.isDaemonRunning) {
       return socketResult;
     }
@@ -220,8 +216,7 @@ export function detectDockerPortConflicts(
   ports: number | readonly number[],
   options: DockerInspectorOptions = {},
 ): DockerConflictCheckResult {
-  const portList: readonly number[] =
-    typeof ports === "number" ? [ports] : Array.from(ports);
+  const portList: readonly number[] = typeof ports === "number" ? [ports] : Array.from(ports);
 
   const inspectResult = inspectRunningContainers(options);
 
@@ -310,8 +305,7 @@ export async function detectDockerPortConflictsAsync(
   ports: number | readonly number[],
   options: DockerInspectorOptions = {},
 ): Promise<DockerConflictCheckResult> {
-  const portList: readonly number[] =
-    typeof ports === "number" ? [ports] : Array.from(ports);
+  const portList: readonly number[] = typeof ports === "number" ? [ports] : Array.from(ports);
 
   const inspectResult = await inspectRunningContainersAsync(options);
 
@@ -402,11 +396,7 @@ export function checkPortDockerCollision(
   options: DockerInspectorOptions = {},
 ): DockerContainerConflict | null {
   const result = detectDockerPortConflicts([port], options);
-  if (
-    result.hasConflict &&
-    result.conflicts.length > 0 &&
-    result.conflicts[0] !== undefined
-  ) {
+  if (result.hasConflict && result.conflicts.length > 0 && result.conflicts[0] !== undefined) {
     return result.conflicts[0];
   }
   return null;
@@ -420,11 +410,7 @@ export async function checkPortDockerCollisionAsync(
   options: DockerInspectorOptions = {},
 ): Promise<DockerContainerConflict | null> {
   const result = await detectDockerPortConflictsAsync([port], options);
-  if (
-    result.hasConflict &&
-    result.conflicts.length > 0 &&
-    result.conflicts[0] !== undefined
-  ) {
+  if (result.hasConflict && result.conflicts.length > 0 && result.conflicts[0] !== undefined) {
     return result.conflicts[0];
   }
   return null;
@@ -474,9 +460,7 @@ export class DockerInspector {
     return inspectRunningContainersAsync(this.options);
   }
 
-  public detectConflicts(
-    ports: number | readonly number[],
-  ): DockerConflictCheckResult {
+  public detectConflicts(ports: number | readonly number[]): DockerConflictCheckResult {
     return detectDockerPortConflicts(ports, this.options);
   }
 

@@ -154,4 +154,49 @@ export const DECISION_PROTOCOLS: Readonly<Record<DecisionProtocolId, DecisionPro
         "During Quota Freeze, do not kill any active subagents, pause all supervisory schedules, and await auto-wake sentinel to resume.",
       applicableTiers: [0, 1, 2],
     },
+    perpetual_creative_product_owner: {
+      id: "perpetual_creative_product_owner",
+      name: "Perpetual Creative Product Owner & Anti-Idle Invariant",
+      summary:
+        "When active queues and feedback backlogs are clear, Mind is strictly forbidden from remaining passive or reporting waiting_for_dependents. Mind must autonomously engage Mode A Self-Evolution (Baseline Quality -> Product/UX Perfection -> Creative Feature Ideation), using git worktrees for parallel execution.",
+      formulaOrRule: "Queue Clear -> Engage Mode A Autonomous Self-Evolution (Zero Idle)",
+      keyInvariants: [
+        "Zero-Idle Invariant: Mind never sleeps, idles, or stays passive when queues finish.",
+        "Mode A 3-Step Flow: (1) Baseline Quality & Invariants Audit, (2) Multi-Viewport UI/UX Perfection (390px, 768px, 1440px, 1920px), (3) Creative Feature Ideation & Next-Generation Capabilities.",
+        "Worktree Concurrency: Dispatch independent feature waves across isolated git worktrees (`workspace_mode: 'branch' | 'share'`) to eliminate working-tree merge collisions.",
+      ],
+      operationalGuidance:
+        "Continuously audit repository routes, discover grounded performance and UI refinements, and author next-generation wave plans via `bun harness.ts plan:init`.",
+      applicableTiers: [0, 1],
+    },
+    mandatory_tier_0_companion_auditors: {
+      id: "mandatory_tier_0_companion_auditors",
+      name: "Mandatory Tier 0 Companion Auditors (Zero-Termination)",
+      summary:
+        "Tier 0 Mind must always be accompanied by active, non-terminating Mind Auditor and Skill Auditor companions. Tier 0 companions are permanently active and immune to termination or teardown when campaigns finish.",
+      formulaOrRule: "Tier 0 Fleet = [mind + mind-auditor + skill-auditor] (Always Active)",
+      keyInvariants: [
+        "Mandatory Bootstrapping: Deploying Tier 0 Mind automatically deploys mind-auditor and skill-auditor.",
+        "Zero-Termination: Tier 0 companion auditors never self-terminate and cannot be torn down when child tasks complete.",
+        "Back-to-Back Shock: On >=2 consecutive zero-delta / idle cycles, Mind Auditor must shock Mind via Mailbox IPC with rich Socratic challenges.",
+      ],
+      operationalGuidance:
+        "Verify companion auditor presence on every pulse tick and ensure out-of-band surveillance remains continuous.",
+      applicableTiers: [0],
+    },
+    mailbox_ipc_main_thread_silence: {
+      id: "mailbox_ipc_main_thread_silence",
+      name: "Mailbox IPC & Main-Thread Noise Elimination",
+      summary:
+        "All inter-agent chatter, status updates, and routine supervisory heartbeats must flow strictly through Mailbox IPC (`.olt/mailboxes/`). The main interactive thread is strictly reserved for fatal unrecoverable errors and user-requested milestone deliveries.",
+      formulaOrRule: "Inter-Agent Traffic = .olt/mailboxes/ | Main Thread = Silent Relay",
+      keyInvariants: [
+        "Zero Main-Thread Spam: Never output repetitive 'Supervisory Watchdog Heartbeat' or 'Standing down' messages to the user.",
+        "Mailbox Isolation: All peer communication uses `bun harness.ts msg:send` and `.olt/mailboxes/`.",
+        "Escalation-Only Relay: Push to the main interactive thread only when an unrecoverable health failure or explicit human intervention is required.",
+      ],
+      operationalGuidance:
+        "Direct all supervisory diagnostics and inter-agent directives to recipient mailboxes, keeping the main thread quiet.",
+      applicableTiers: [0, 1, 2, 3],
+    },
   };

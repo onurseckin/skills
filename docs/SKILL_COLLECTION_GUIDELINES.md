@@ -8,7 +8,7 @@
 
 > [!IMPORTANT]
 > The single canonical Source of Truth (SSoT) for authoring, packaging, orchestrating, testing, and governing AI agent skills across the `@onurseckin/skills` monorepo is located at:
-> 
+>
 > 👉 **[`olt/docs/guidelines.md`](../olt/docs/guidelines.md)**
 
 This document provides a high-level executive summary and architectural orientation for human engineers and autonomous agents interacting with the skill collection.
@@ -40,25 +40,31 @@ This document provides a high-level executive summary and architectural orientat
 The `@onurseckin/skills` repository enforces five core engineering pillars:
 
 ### 2.1 Open Agent Skills Standard (`agentskills.io`)
+
 Skills implement a three-tier progressive disclosure model:
+
 - **Discovery (< 500 tokens):** Parsing YAML frontmatter in `SKILL.md`.
 - **Activation (< 4,000 tokens):** Loading core instructions upon task triggering.
 - **Execution (< 150,000 tokens):** On-demand reference querying and concise CLI receipts.
 
 ### 2.2 Diataxis Documentation Framework
+
 Documentation is strictly organized into four cognitive quadrants:
+
 - **Tutorials (Learning-Oriented):** Guided walk-throughs (`docs/book/01-quickstart-and-getting-started.md`).
 - **Explanations (Understanding-Oriented):** Core philosophy and mathematics (`docs/book/02-core-philosophy-and-brent-parallelism.md`).
 - **How-To Guides (Problem-Oriented):** Operational recovery playbooks (`docs/book/08-verification-and-socratic-gating.md`).
 - **Reference (Information-Oriented):** CLI dictionaries and schema catalogs (`docs/book/09-full-cli-command-reference.md`).
 
 ### 2.3 Four-Tier Multi-Agent Hierarchy
+
 - **Tier 0 (Autonomous Mind):** Background Product Owner loop (`observe` -> `triage` -> `admit`), zero file mutations.
 - **Tier 1 (Interactive Orchestrator):** Initiative root supervisor, Merkle capsule genesis, zero direct file edits.
 - **Tier 2 (Run Coordinator):** Kahn DAG topological scheduling, Brent Concurrency allocation ($P = \lceil W/S \rceil$), lease arbitration.
 - **Tier 3 (Workforce):** Leased implementers bound to strict write scopes, paired with independent adversarial validators under the Two-Key Principle.
 
 ### 2.4 Strict Quality Invariants (Hard Zeros)
+
 - **Exact 0 TypeScript `any`:** 100% strict type safety across all production and test files.
 - **Zero Compiler / Linter Suppressions:** No `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `eslint-disable`.
 - **Context File Limits:** Production source $\le 200$ physical lines, test suites $\le 250$ physical lines.
@@ -67,7 +73,9 @@ Documentation is strictly organized into four cognitive quadrants:
 - **Ephemeral Capsule Isolation:** All active execution state confined to `.olt/capsules/<run-id>/`.
 
 ### 2.5 Universal Multi-Client Discovery
+
 Every skill provides declarative descriptors under `<skill>/agents/` supporting:
+
 - Google Antigravity (`agents/antigravity.yaml`)
 - Claude Code (`agents/claude.yaml`)
 - OpenAI Codex (`agents/codex.yaml`)

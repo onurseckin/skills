@@ -122,14 +122,23 @@ graph LR
     Issues --> Defects --> Regression
 ```
 
-### Mode A: Creative Product Owner & Expansion
-In Mode A, the Mind acts as an autonomous technical product manager:
-- **Proactive Tech Debt Elimination**: Scans for deprecated APIs, dead code, slow tests, or missing documentation.
-- **Architectural Evolution**: Identifies opportunities for modularization, performance optimization, and concurrency improvements.
-- **Test Suite Densification**: Proactively authors edge-case test suites for components with low mutation scores.
+### Mode A: Creative Product Owner & Autonomous Self-Evolution
+
+In Mode A, the Mind acts as an autonomous technical product manager and creative owner:
+
+- **Zero-Idle Invariant (`PERPETUAL_CREATIVE_PRODUCT_OWNER`)**: When external backlogs and active tasks are clear, Mind is strictly forbidden from sitting idle, sleeping, or reporting `waiting_for_dependents`.
+- **The 3-Step Autonomous Self-Evolution Flow**:
+  1. **Step 1 (Baseline Quality & Invariant Hygiene)**: Runs `doctor`, audits AST purity (0 TypeScript `any`, 0 compiler/linter suppressions), and verifies test suite stability.
+  2. **Step 2 (Application UI/UX & Interaction Quality Audit)**: Inspects frontend views and user flows across all 4 responsive viewports (Mobile 390px, Tablet 768px, Desktop 1440px, Widescreen 1920px), verifying layout fluidity, APCA contrast, and touch hitboxes.
+  3. **Step 3 (Autonomous Creative Product Ideation & Roadmap Authoring)**: Discovers high-leverage architectural and product capabilities from scratch, formulating structured roadmap plans in `docs/planning/<cluster>/PLAN.md`.
+- **Worktree Concurrency**: Mind authorizes parallel task dispatch across isolated git worktrees (`workspace_mode: 'branch' | 'share'`) to execute concurrent feature streams without working-tree file conflicts.
+- **Anti-Amnesia Context Re-Injection**: Prevents LLM context drift during long-running scheduler loops by dynamically re-injecting canonical role charters and product manager directives on consecutive pulses.
+- **Mailbox IPC & Main-Thread Noise Elimination**: All routine inter-agent coordination flows silently via `.olt/mailboxes/`, keeping the main interactive thread reserved strictly for fatal unrecoverable errors and user-requested milestones.
 
 ### Mode B: Direct Ingestion & Defect Triage
+
 In Mode B, the Mind operates as a deterministic intake engine:
+
 - **Direct Prompt Ingestion**: Deconstructs user feature requests into actionable engineering requirements.
 - **Defect Forensics**: Ingests failure reports from companion auditors, isolates root causes, and schedules targeted repair tasks.
 - **Regression Prevention**: Automatically pins reproduction test cases before executing code fixes.
@@ -154,17 +163,8 @@ The Mind derives all its execution boundaries and autonomy permissions from the 
     "freeze_at_quota_percent": 10.0
   },
   "write_boundaries": {
-    "allowed_roots": [
-      "src/",
-      "docs/",
-      "tests/"
-    ],
-    "strictly_forbidden": [
-      ".git/",
-      ".env",
-      "credentials.json",
-      "package-lock.json"
-    ]
+    "allowed_roots": ["src/", "docs/", "tests/"],
+    "strictly_forbidden": [".git/", ".env", "credentials.json", "package-lock.json"]
   },
   "toolchains": {
     "runtime": "bun",

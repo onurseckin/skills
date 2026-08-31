@@ -532,12 +532,10 @@ describe("Policy & Repository Auto-Discovery Engine", () => {
     });
 
     it("verifies Tier 0 Policy Discovery elevation across default agents and host aliases", async () => {
-      const { buildDefaultAgents } = await import(
-        "../../../../olt/scripts/src/policy/generator/default-agents.ts"
-      );
-      const { ROLE_KEY_ALIASES } = await import(
-        "../../../../olt/scripts/src/authority/host-bindings.ts"
-      );
+      const { buildDefaultAgents } =
+        await import("../../../../olt/scripts/src/policy/generator/default-agents.ts");
+      const { ROLE_KEY_ALIASES } =
+        await import("../../../../olt/scripts/src/authority/host-bindings.ts");
 
       const defaultAgents = buildDefaultAgents();
       expect(defaultAgents.policy_discovery).toBeDefined();

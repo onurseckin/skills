@@ -1,11 +1,6 @@
-export type {
-  DiscoveredToolchainDetails,
-} from "./toolchain-inspector.ts";
+export type { DiscoveredToolchainDetails } from "./toolchain-inspector.ts";
 
-export type {
-  EmpiricalCommandTestResult,
-  EmpiricalToolchainReport,
-} from "./empirical-tester.ts";
+export type { EmpiricalCommandTestResult, EmpiricalToolchainReport } from "./empirical-tester.ts";
 
 export type {
   GovernanceCoverageReport,
@@ -18,9 +13,7 @@ export type {
   Tier0AwakeningResult,
 } from "./tier0-awakening.ts";
 
-export {
-  inspectToolchainDetails,
-} from "./toolchain-inspector.ts";
+export { inspectToolchainDetails } from "./toolchain-inspector.ts";
 
 export {
   testCommandEmpirically,

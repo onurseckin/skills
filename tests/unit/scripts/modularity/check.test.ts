@@ -202,16 +202,7 @@ test("runs check.ts directly via bun cli", async () => {
   await writeFile(join(tempDir, "src", "index.ts"), "export const value = 1;\n");
   const scriptPath = join(process.cwd(), "scripts/modularity/check.ts");
   const proc = Bun.spawn(
-    [
-      "bun",
-      scriptPath,
-      "--mode",
-      "strict",
-      "--source",
-      "tree",
-      "--format",
-      "json",
-    ],
+    ["bun", scriptPath, "--mode", "strict", "--source", "tree", "--format", "json"],
     { cwd: tempDir, stdout: "pipe", stderr: "pipe" },
   );
   const exitCode = await proc.exited;

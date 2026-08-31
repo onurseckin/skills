@@ -15,10 +15,7 @@ import {
   DEFAULT_DEV_PORTS,
   type ServerPortStatus,
 } from "../../olt/scripts/src/cli/commands/server-ops.ts";
-import {
-  probeTcpPort,
-  findAvailablePort,
-} from "../../olt/scripts/src/server/probe/index.ts";
+import { probeTcpPort, findAvailablePort } from "../../olt/scripts/src/server/probe/index.ts";
 import {
   captureSnapshot,
   restartDevServer,
@@ -125,8 +122,8 @@ describe("Smart Dev Server Port Conflict Guard - E2E Lifecycle Suite", () => {
       expect(result["total_scanned"]).toBe(1);
       expect(result["target_ports"]).toEqual([candidatePort]);
       expect(result["markdown"]).toBeString();
-      expect((result["markdown"] as string)).toContain("Dev Server Status Report");
-      expect((result["markdown"] as string)).toContain(String(candidatePort));
+      expect(result["markdown"] as string).toContain("Dev Server Status Report");
+      expect(result["markdown"] as string).toContain(String(candidatePort));
 
       const ports = result["ports"] as readonly ServerPortStatus[];
       expect(ports.length).toBe(1);
@@ -150,8 +147,8 @@ describe("Smart Dev Server Port Conflict Guard - E2E Lifecycle Suite", () => {
       const dryRunResult = await serverCleanCommand(dryRunFlags);
       expect(dryRunResult["dry_run"]).toBe(true);
       expect(dryRunResult["markdown"]).toBeString();
-      expect((dryRunResult["markdown"] as string)).toContain("Dev Server Port Cleanup Summary");
-      expect((dryRunResult["markdown"] as string)).toContain("Dry Run");
+      expect(dryRunResult["markdown"] as string).toContain("Dev Server Port Cleanup Summary");
+      expect(dryRunResult["markdown"] as string).toContain("Dry Run");
       expect(dryRunResult["reclaimed_count"]).toBe(1);
     });
 
@@ -166,8 +163,8 @@ describe("Smart Dev Server Port Conflict Guard - E2E Lifecycle Suite", () => {
       expect(restartResult["dry_run"]).toBe(true);
       expect(restartResult["success"]).toBe(true);
       expect(restartResult["markdown"]).toBeString();
-      expect((restartResult["markdown"] as string)).toContain("Dev Server Restart");
-      expect((restartResult["markdown"] as string)).toContain("Dry Run");
+      expect(restartResult["markdown"] as string).toContain("Dev Server Restart");
+      expect(restartResult["markdown"] as string).toContain("Dry Run");
     });
   });
 

@@ -27,7 +27,6 @@ export {
   type DesignIterationOptions,
 } from "./cognitive/index.ts";
 
-
 export {
   CANONICAL_SELF_QUESTIONING_QUESTION,
   COGNITIVE_DIMENSIONS,

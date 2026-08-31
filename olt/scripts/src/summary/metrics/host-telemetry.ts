@@ -16,7 +16,6 @@ export interface DetectHostIdentityOptions {
   cwd?: string;
 }
 
-
 function parseJsonSafe(raw: string): Record<string, unknown> | null {
   try {
     const trimmed = raw.trim();

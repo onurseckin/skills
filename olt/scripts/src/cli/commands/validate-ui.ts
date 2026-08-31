@@ -40,7 +40,9 @@ export function formatValidateUiBrief(result: DualUiAuditResult, taskId: string)
   if (result.defects.length > 0) {
     lines.push("", "#### ⚠️ Defects Detected:");
     for (const defect of result.defects) {
-      lines.push(`- **[${defect.pillar.toUpperCase()}]** \`${defect.category}\`: ${defect.message} *(Remediation: ${defect.remediation})*`);
+      lines.push(
+        `- **[${defect.pillar.toUpperCase()}]** \`${defect.category}\`: ${defect.message} *(Remediation: ${defect.remediation})*`,
+      );
     }
   }
 
@@ -61,7 +63,12 @@ export async function validateUiCommand(flags: Flags): Promise<Record<string, un
 
   const isUi = classifiesAsUiTask(loaded.state as unknown as WorkflowState, task, true);
   const checkIds = resolveCheckIds(undefined, loaded.state.commands, taskId, "", false);
-  const screenshots = collectTaskScreenshots(loaded.runRoot, taskId, "ui-mechanic-validator", checkIds);
+  const screenshots = collectTaskScreenshots(
+    loaded.runRoot,
+    taskId,
+    "ui-mechanic-validator",
+    checkIds,
+  );
   const manifests = collectCompanionManifests(loaded.runRoot, taskId);
 
   const screenshotRecords = screenshots.map((s) => ({
@@ -87,7 +94,9 @@ export async function validateUiCommand(flags: Flags): Promise<Record<string, un
     },
     cognitiveInput: {
       taskId,
-      critique: critique ?? "Human-grade qualitative design review evaluating visual hierarchy, optical layout rhythm, and descender line-height clearance.",
+      critique:
+        critique ??
+        "Human-grade qualitative design review evaluating visual hierarchy, optical layout rhythm, and descender line-height clearance.",
       screenshotsReviewed: screenshots.map((s) => s.path),
       canExecuteShell: false,
     },

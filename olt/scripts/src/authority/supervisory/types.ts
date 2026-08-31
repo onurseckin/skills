@@ -26,7 +26,10 @@ export type DecisionProtocolId =
   | "infinite_pulse_cadence"
   | "dual_channel_validation"
   | "standardized_agent_naming"
-  | "quota_freeze_zero_kill_resume";
+  | "quota_freeze_zero_kill_resume"
+  | "perpetual_creative_product_owner"
+  | "mandatory_tier_0_companion_auditors"
+  | "mailbox_ipc_main_thread_silence";
 
 export interface DecisionProtocolDefinition {
   readonly id: DecisionProtocolId;

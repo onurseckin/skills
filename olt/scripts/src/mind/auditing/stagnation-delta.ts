@@ -38,7 +38,6 @@ export interface StagnationAuditOptions {
   readonly suppressZeroDelta?: boolean | undefined;
 }
 
-
 export function computeStateSignature(report: Partial<StagnationAuditResult>): string {
   const isStagnant = report.is_stagnant !== undefined ? report.is_stagnant : false;
   const pending = report.pending_backlog_count !== undefined ? report.pending_backlog_count : 0;

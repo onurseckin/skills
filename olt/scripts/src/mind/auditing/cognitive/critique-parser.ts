@@ -1,5 +1,9 @@
 import { HarnessError } from "../../../core/errors/index.ts";
-import type { FeedbackCategory, FeedbackItem, FeedbackPriority } from "../../feedback/queue/types.ts";
+import type {
+  FeedbackCategory,
+  FeedbackItem,
+  FeedbackPriority,
+} from "../../feedback/queue/types.ts";
 
 export type OpticalDimension =
   | "visual_hierarchy"
@@ -88,28 +92,74 @@ function detectDimensionsInText(text: string): OpticalDimension[] {
   const lower = text.toLowerCase();
   const detected: OpticalDimension[] = [];
 
-  if (lower.includes("hierarchy") || lower.includes("layout") || lower.includes("focal") || lower.includes("balance")) {
+  if (
+    lower.includes("hierarchy") ||
+    lower.includes("layout") ||
+    lower.includes("focal") ||
+    lower.includes("balance")
+  ) {
     detected.push("visual_hierarchy");
   }
-  if (lower.includes("spacing") || lower.includes("margin") || lower.includes("padding") || lower.includes("rhythm") || lower.includes("alignment")) {
+  if (
+    lower.includes("spacing") ||
+    lower.includes("margin") ||
+    lower.includes("padding") ||
+    lower.includes("rhythm") ||
+    lower.includes("alignment")
+  ) {
     detected.push("optical_spacing");
   }
-  if (lower.includes("typography") || lower.includes("font") || lower.includes("line height") || lower.includes("font-size") || lower.includes("tracking")) {
+  if (
+    lower.includes("typography") ||
+    lower.includes("font") ||
+    lower.includes("line height") ||
+    lower.includes("font-size") ||
+    lower.includes("tracking")
+  ) {
     detected.push("typography");
   }
-  if (lower.includes("clipping") || lower.includes("overflow") || lower.includes("scroll") || lower.includes("truncat")) {
+  if (
+    lower.includes("clipping") ||
+    lower.includes("overflow") ||
+    lower.includes("scroll") ||
+    lower.includes("truncat")
+  ) {
     detected.push("clipping_overflow");
   }
-  if (lower.includes("contrast") || lower.includes("apca") || lower.includes("wcag") || lower.includes("lightness") || lower.includes("readability")) {
+  if (
+    lower.includes("contrast") ||
+    lower.includes("apca") ||
+    lower.includes("wcag") ||
+    lower.includes("lightness") ||
+    lower.includes("readability")
+  ) {
     detected.push("contrast_fidelity");
   }
-  if (lower.includes("theme") || lower.includes("dark mode") || lower.includes("light mode") || lower.includes("color palette") || lower.includes("specular")) {
+  if (
+    lower.includes("theme") ||
+    lower.includes("dark mode") ||
+    lower.includes("light mode") ||
+    lower.includes("color palette") ||
+    lower.includes("specular")
+  ) {
     detected.push("theme_harmony");
   }
-  if (lower.includes("z-index") || lower.includes("overlay") || lower.includes("modal") || lower.includes("layer") || lower.includes("stacking")) {
+  if (
+    lower.includes("z-index") ||
+    lower.includes("overlay") ||
+    lower.includes("modal") ||
+    lower.includes("layer") ||
+    lower.includes("stacking")
+  ) {
     detected.push("z_index_overlay");
   }
-  if (lower.includes("touch") || lower.includes("target") || lower.includes("44px") || lower.includes("48px") || lower.includes("clickable")) {
+  if (
+    lower.includes("touch") ||
+    lower.includes("target") ||
+    lower.includes("44px") ||
+    lower.includes("48px") ||
+    lower.includes("clickable")
+  ) {
     detected.push("touch_targets");
   }
 
@@ -129,7 +179,12 @@ function detectViewportsInText(text: string): OpticalViewport[] {
   if (lower.includes("768") || lower.includes("tablet") || lower.includes("1024")) {
     detected.push("tablet");
   }
-  if (lower.includes("390") || lower.includes("mobile") || lower.includes("844") || lower.includes("phone")) {
+  if (
+    lower.includes("390") ||
+    lower.includes("mobile") ||
+    lower.includes("844") ||
+    lower.includes("phone")
+  ) {
     detected.push("mobile");
   }
 
@@ -142,15 +197,16 @@ export class CognitiveUiCritiqueParser {
     options: ParseCritiqueOptions = {},
   ): ParsedUiCritique {
     const rawText =
-      typeof critiqueInput === "string"
-        ? critiqueInput
-        : JSON.stringify(critiqueInput, null, 2);
+      typeof critiqueInput === "string" ? critiqueInput : JSON.stringify(critiqueInput, null, 2);
 
     if (!rawText.trim()) {
       throw new HarnessError("INVALID_ARGUMENT", "Critique text cannot be empty.");
     }
 
-    const lines = rawText.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+    const lines = rawText
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
     const title = lines[0]?.replace(/^[#*-\s]+/, "") ?? "Cognitive UI Aesthetic Critique";
     const nowIso = options.now ?? new Date().toISOString();
 
@@ -161,25 +217,43 @@ export class CognitiveUiCritiqueParser {
     const actionItems: string[] = [];
 
     // Check for robotic checklist boilerplate vs human-grade review
-    const hasRoboticChecks = rawText.includes("[x]") || rawText.includes("[ ]") || rawText.toLowerCase().includes("checklist completed");
+    const hasRoboticChecks =
+      rawText.includes("[x]") ||
+      rawText.includes("[ ]") ||
+      rawText.toLowerCase().includes("checklist completed");
     const isHumanGrade = !hasRoboticChecks || dimensions.length >= 2;
 
     for (const line of lines) {
       const lower = line.toLowerCase();
-      if (lower.startsWith("action:") || lower.startsWith("- action:") || lower.startsWith("remediation:") || lower.startsWith("fix:")) {
+      if (
+        lower.startsWith("action:") ||
+        lower.startsWith("- action:") ||
+        lower.startsWith("remediation:") ||
+        lower.startsWith("fix:")
+      ) {
         const item = line.replace(/^[-*]*\s*(action|remediation|fix):\s*/i, "");
         if (item.length > 0) actionItems.push(item);
       }
     }
 
     for (const dim of dimensions) {
-      const dimLines = lines.filter((l) => l.toLowerCase().includes(dim.replace(/_/g, " ")) || l.toLowerCase().includes(dim.split("_")[0]!));
-      const observation = dimLines.length > 0 ? dimLines.join(" ") : `Cognitive inspection noted polish opportunity in ${dim.replace(/_/g, " ")}.`;
-      const remediation = actionItems.find((a) => a.toLowerCase().includes(dim.split("_")[0]!)) ?? `Refine ${dim.replace(/_/g, " ")} across responsive viewports.`;
+      const dimLines = lines.filter(
+        (l) =>
+          l.toLowerCase().includes(dim.replace(/_/g, " ")) ||
+          l.toLowerCase().includes(dim.split("_")[0]!),
+      );
+      const observation =
+        dimLines.length > 0
+          ? dimLines.join(" ")
+          : `Cognitive inspection noted polish opportunity in ${dim.replace(/_/g, " ")}.`;
+      const remediation =
+        actionItems.find((a) => a.toLowerCase().includes(dim.split("_")[0]!)) ??
+        `Refine ${dim.replace(/_/g, " ")} across responsive viewports.`;
 
       let severity: "critical" | "high" | "medium" | "low" = options.fallbackSeverity ?? "medium";
       if (dim === "contrast_fidelity" || dim === "clipping_overflow") severity = "high";
-      if (dim === "touch_targets" && (observation.includes("44") || observation.includes("48"))) severity = "high";
+      if (dim === "touch_targets" && (observation.includes("44") || observation.includes("48")))
+        severity = "high";
 
       findings.push({
         dimension: dim,
@@ -209,7 +283,10 @@ export class CognitiveUiCritiqueParser {
   ): readonly ActionableDesignIteration[] {
     const iterations: ActionableDesignIteration[] = [];
     const appPath = options.defaultAppPath ?? "apps/web";
-    const defaultScope = options.baseWriteScope ?? [`${appPath}/src/components/`, `${appPath}/src/styles/`];
+    const defaultScope = options.baseWriteScope ?? [
+      `${appPath}/src/components/`,
+      `${appPath}/src/styles/`,
+    ];
     const defaultGate = options.defaultGate ?? "bun test tests/unit/ui/ && bun run typecheck";
 
     for (let i = 0; i < critique.findings.length; i++) {

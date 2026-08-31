@@ -69,7 +69,10 @@ export interface QuotaCircuitBreakerOptions {
 }
 
 export function normalizeCanonicalHost(host: string): string {
-  const norm = host.toLowerCase().trim().replace(/[-_ ]+/g, "_");
+  const norm = host
+    .toLowerCase()
+    .trim()
+    .replace(/[-_ ]+/g, "_");
   if (norm.includes("antigravity") || norm.includes("gemini")) return "antigravity";
   if (norm.includes("claude")) return "claude_code";
   if (norm.includes("codex") || norm.includes("openai")) return "codex";
@@ -78,25 +81,54 @@ export function normalizeCanonicalHost(host: string): string {
 }
 
 export function isPlatformMatchingHost(platformId: string, host: string): boolean {
-  const normP = normalizeCanonicalHost(platformId), normH = normalizeCanonicalHost(host);
+  const normP = normalizeCanonicalHost(platformId),
+    normH = normalizeCanonicalHost(host);
   if (normP === normH) return true;
-  const p = platformId.toLowerCase().trim(), h = host.toLowerCase().trim();
+  const p = platformId.toLowerCase().trim(),
+    h = host.toLowerCase().trim();
   return p === h || normP.includes(h) || normH.includes(p);
 }
 
-export function detectActiveHost(env: Record<string, string | undefined> = typeof process !== "undefined" ? process.env : {}): string | undefined {
-  if (env["ANTIGRAVITY_CLI"] || env["GEMINI_CLI"] || env["ANTIGRAVITY_VERSION"] || env["ANTIGRAVITY_AGENT_ID"]) return "antigravity";
+export function detectActiveHost(
+  env: Record<string, string | undefined> = typeof process !== "undefined" ? process.env : {},
+): string | undefined {
+  if (
+    env["ANTIGRAVITY_CLI"] ||
+    env["GEMINI_CLI"] ||
+    env["ANTIGRAVITY_VERSION"] ||
+    env["ANTIGRAVITY_AGENT_ID"]
+  )
+    return "antigravity";
   if (env["CURSOR_VERSION"] || env["CURSOR_IS_ACTIVE"]) return "cursor";
   if (env["CLAUDE_CODE_VERSION"] || env["CLAUDE_IS_ACTIVE"]) return "claude_code";
-  if (env["CODEX_VERSION"] || env["CODEX_CLI"] || env["CODEX"] || (env["OPENAI_API_KEY"] && env["CODEX_VERSION"])) return "codex";
+  if (
+    env["CODEX_VERSION"] ||
+    env["CODEX_CLI"] ||
+    env["CODEX"] ||
+    (env["OPENAI_API_KEY"] && env["CODEX_VERSION"])
+  )
+    return "codex";
   return undefined;
 }
 
 export function extractResetTime(metric: NormalizedQuotaMetric): string | undefined {
   const p = metric.rawPayload as Record<string, unknown>;
   if (!p || typeof p !== "object") return undefined;
-  const f = (o?: unknown): string | undefined => typeof o === "object" && o ? (typeof (o as Record<string, unknown>)["resetTime"] === "string" ? (o as Record<string, unknown>)["resetTime"] as string : typeof (o as Record<string, unknown>)["reset_time"] === "string" ? (o as Record<string, unknown>)["reset_time"] as string : undefined) : undefined;
-  return f(p) || f(p["quotaInfo"]) || f((p["userStatus"] as Record<string, unknown> | undefined)?.["quotaInfo"]) || f(p["userStatus"]) || undefined;
+  const f = (o?: unknown): string | undefined =>
+    typeof o === "object" && o
+      ? typeof (o as Record<string, unknown>)["resetTime"] === "string"
+        ? ((o as Record<string, unknown>)["resetTime"] as string)
+        : typeof (o as Record<string, unknown>)["reset_time"] === "string"
+          ? ((o as Record<string, unknown>)["reset_time"] as string)
+          : undefined
+      : undefined;
+  return (
+    f(p) ||
+    f(p["quotaInfo"]) ||
+    f((p["userStatus"] as Record<string, unknown> | undefined)?.["quotaInfo"]) ||
+    f(p["userStatus"]) ||
+    undefined
+  );
 }
 
 export function evaluateCircuitBreaker(
@@ -112,7 +144,14 @@ export function evaluateCircuitBreaker(
   const defaultSafeWindow = options?.defaultSafeWindowSeconds ?? defaults.safeWindow;
   const bufferSec = options?.bufferSeconds ?? defaults.buffer;
   const activeAgentsCount = options?.activeAgentsCount ?? options?.activeAgentIds?.length ?? 0;
-  const nowMs = options?.now !== undefined ? (options.now instanceof Date ? options.now.getTime() : typeof options.now === "string" ? new Date(options.now).getTime() : options.now) : Date.now();
+  const nowMs =
+    options?.now !== undefined
+      ? options.now instanceof Date
+        ? options.now.getTime()
+        : typeof options.now === "string"
+          ? new Date(options.now).getTime()
+          : options.now
+      : Date.now();
 
   const explicitActiveHost = options && options.activeHost ? options.activeHost.trim() : undefined;
   const summaryActiveHost =

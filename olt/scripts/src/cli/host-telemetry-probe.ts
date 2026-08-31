@@ -46,4 +46,3 @@ function toDerivedTelemetry(probe: HostTelemetryProbe | null): DerivedTelemetryI
     ...(Object.keys(capabilities).length === 0 ? {} : { capabilities }),
   };
 }
-

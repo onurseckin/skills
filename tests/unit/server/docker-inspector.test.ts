@@ -309,14 +309,16 @@ describe("Docker Inspector - Collision Detection and Conflict Resolution", () =>
 describe("Docker Inspector - Daemon Absence and Resilience", () => {
   it("classifies daemon errors correctly", () => {
     expect(
-      isDockerDaemonUnavailableError("Cannot connect to the Docker daemon at unix:///var/run/docker.sock"),
+      isDockerDaemonUnavailableError(
+        "Cannot connect to the Docker daemon at unix:///var/run/docker.sock",
+      ),
     ).toBe(true);
     expect(isDockerDaemonUnavailableError("docker: command not found")).toBe(true);
     expect(isDockerDaemonUnavailableError("Is the docker daemon running?")).toBe(true);
-    expect(isDockerDaemonUnavailableError("error during connect: Get http://...: connection refused")).toBe(true);
     expect(
-      isDockerDaemonUnavailableError("", new Error("spawnSync docker ENOENT")),
+      isDockerDaemonUnavailableError("error during connect: Get http://...: connection refused"),
     ).toBe(true);
+    expect(isDockerDaemonUnavailableError("", new Error("spawnSync docker ENOENT"))).toBe(true);
     expect(isDockerDaemonUnavailableError("some random error")).toBe(false);
   });
 
@@ -352,7 +354,8 @@ describe("Docker Inspector - Daemon Absence and Resilience", () => {
       return {
         status: 1,
         stdout: "",
-        stderr: "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?",
+        stderr:
+          "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?",
       };
     };
 

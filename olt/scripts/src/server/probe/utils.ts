@@ -3,12 +3,7 @@ import type { IpFamily } from "./types.ts";
 
 export const DEFAULT_PROBE_TIMEOUT_MS = 200;
 export const DEFAULT_PROBE_HOST = "127.0.0.1";
-export const COMMON_INTERFACES: readonly string[] = [
-  "127.0.0.1",
-  "0.0.0.0",
-  "::1",
-  "::",
-] as const;
+export const COMMON_INTERFACES: readonly string[] = ["127.0.0.1", "0.0.0.0", "::1", "::"] as const;
 
 /**
  * Validates that a port number is a safe positive integer within the 1-65535 range.

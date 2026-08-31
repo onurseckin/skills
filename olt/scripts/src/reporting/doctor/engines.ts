@@ -79,6 +79,10 @@ import {
 } from "./pre-completion.ts";
 import { checkQuotaHealth, type QuotaHealthCheckOptions } from "./quota-health-engine.ts";
 import {
+  checkTier0CompanionsHealth,
+  type Tier0CompanionsCheckOptions,
+} from "./tier0-companions-engine.ts";
+import {
   generateRemedialGuidance,
   remedialActionsForIntegrityIssues,
   type DoctorRemedialAction,
@@ -118,6 +122,7 @@ export {
   autoHealWorktreeState,
   checkEpistemicConfidence,
   checkCliRegistryTaxonomy,
+  checkTier0CompanionsHealth,
   checkPreCompletionDiagnostics,
   generateRemedialGuidance,
   remedialActionsForIntegrityIssues,
@@ -147,6 +152,7 @@ export type {
   WorktreeHealthOptions,
   EpistemicConfidenceCheckOptions,
   CliRegistryTaxonomyCheckOptions,
+  Tier0CompanionsCheckOptions,
   PreCompletionDiagnosticsOptions,
   PreCompletionDiagnosticsResult,
   PreCompletionBlocker,

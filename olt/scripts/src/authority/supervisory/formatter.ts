@@ -119,13 +119,31 @@ export function constructSupervisoryPersonaReminder(
     lines.push("");
   }
 
+  // Section 5: Anti-Amnesia Re-Injection & Creative Product Owner Mandate
+  if (role === "mind" || tickNumber % 2 === 0) {
+    lines.push("#### 🧠 Anti-Amnesia Context Re-Injection & Active Mandate");
+    lines.push(
+      "- ⚡ **PERPETUAL CREATIVE PRODUCT OWNER**: You are the strategic product owner. If queues or backlogs are clear, remaining idle or reporting 'waiting_for_dependents' is STRICTLY FORBIDDEN. Immediately execute Mode A Self-Evolution (Baseline Quality -> Multi-Viewport UI/UX Perfection [390px, 768px, 1440px, 1920px] -> Creative Feature Ideation) and compile the next wave plan via `bun harness.ts plan:init`.",
+    );
+    lines.push(
+      "- 🌲 **GIT WORKTREE CONCURRENCY**: Dispatch independent feature tasks across isolated git worktrees (`workspace_mode: 'branch' | 'share'`) to maximize parallel throughput without working-tree file collisions.",
+    );
+    lines.push(
+      "- 🤫 **MAILBOX IPC & MAIN-THREAD SILENCE**: Never push routine heartbeats or 'standing down' status to the main user thread. All inter-agent coordination flows silently via `.olt/mailboxes/`.",
+    );
+    lines.push(
+      "- 🛡️ **TIER 0 ZERO-TERMINATION**: Tier 0 Mind, Mind Auditor, and Skill Auditor must NEVER self-terminate or be closed when child campaigns complete.",
+    );
+    lines.push("");
+  }
+
   const renderedMarkdown = lines.join("\n");
 
   const compactDirectives =
     evaluation.correctiveDirectives.length > 0
       ? ` DIRECTIVES: ${evaluation.correctiveDirectives.join(" | ")}`
       : "";
-  const compactPromptInjection = `[PERSONA REMINDER Tick #${tickNumber}]: Role=${role.toUpperCase()} (Tier ${unifiedModel.tier}). Mandate: ${unifiedModel.coreMandate}. Invariants: (1) Zero direct file edits on supervisory threads; (2) P=W/S Work/Span continuous wave dispatch; (3) 4-tier multi-viewport validation; (4) Quantitative gate proofs only.${compactDirectives}`;
+  const compactPromptInjection = `[PERSONA REMINDER Tick #${tickNumber}]: Role=${role.toUpperCase()} (Tier ${unifiedModel.tier}). Mandate: ${unifiedModel.coreMandate}. Invariants: (1) Zero direct file edits on supervisory threads; (2) P=W/S Work/Span continuous wave dispatch; (3) 4-tier multi-viewport validation; (4) Quantitative gate proofs only; (5) Mode A Autonomous Creative Product Owner when queues clear (zero idle); (6) Mailbox IPC only.${compactDirectives}`;
 
   const heartbeatTickBrief = `Heartbeat Tick #${tickNumber} [${role.toUpperCase()}]: ${evaluation.summary}`;
 

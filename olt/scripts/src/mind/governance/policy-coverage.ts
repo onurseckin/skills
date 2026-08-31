@@ -20,10 +20,7 @@ import {
   type ToolchainAnalysis,
 } from "../../policy/generator/index.ts";
 import type { RepoEcosystem, RepoPolicy } from "../../policy/types/index.ts";
-import {
-  inspectToolchainDetails,
-  type DiscoveredToolchainDetails,
-} from "./toolchain-inspector.ts";
+import { inspectToolchainDetails, type DiscoveredToolchainDetails } from "./toolchain-inspector.ts";
 
 export interface GovernanceCoverageReport {
   readonly repoRoot: string;
@@ -104,10 +101,8 @@ export function auditRepoGovernanceCoverage(
         typeof policy.test_runner.default_command === "string" &&
         policy.test_runner.default_command.trim().length > 0;
       hasTypecheck =
-        typeof policy.typecheck_command === "string" &&
-        policy.typecheck_command.trim().length > 0;
-      hasLinter =
-        typeof policy.lint_command === "string" && policy.lint_command.trim().length > 0;
+        typeof policy.typecheck_command === "string" && policy.typecheck_command.trim().length > 0;
+      hasLinter = typeof policy.lint_command === "string" && policy.lint_command.trim().length > 0;
       allowedCommandCount = Array.isArray(policy.allowed_commands)
         ? policy.allowed_commands.length
         : 0;

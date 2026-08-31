@@ -8,7 +8,7 @@
 
 > [!IMPORTANT]
 > The single canonical Source of Truth (SSoT) for authoring, packaging, orchestrating, testing, and governing AI agent skills and documentation across the `@onurseckin/skills` repository is located at:
-> 
+>
 > 👉 **[`olt/docs/guidelines.md`](../../olt/docs/guidelines.md)**
 
 This charter synthesizes the **Open Agent Skills Standard (`agentskills.io`)**, the **Diataxis Documentation Framework**, and **Stripe-Grade Developer Experience Principles** into a binding, extensible standard for authoring technical documentation across `docs/olt/` and the 10-chapter OLT Book (`docs/book/`).

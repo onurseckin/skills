@@ -139,7 +139,10 @@ describe("Server Conflict Guard - Multi-Lane Integration Suite", () => {
       let targetAlive = true;
       const killedSignals: Array<{ pid: number; signal: "SIGTERM" | "SIGKILL" }> = [];
 
-      const mockExec = async (cmd: string, _args: readonly string[]): Promise<CommandExecutionResult> => {
+      const mockExec = async (
+        cmd: string,
+        _args: readonly string[],
+      ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") {
           return {
             stdout: targetAlive ? "12345\n" : "",
@@ -149,9 +152,7 @@ describe("Server Conflict Guard - Multi-Lane Integration Suite", () => {
         }
         if (cmd === "ps") {
           return {
-            stdout: targetAlive
-              ? "12345 1 S 50000 /usr/local/bin/node /app/server.js\n"
-              : "",
+            stdout: targetAlive ? "12345 1 S 50000 /usr/local/bin/node /app/server.js\n" : "",
             stderr: "",
             exitCode: 0,
           };
@@ -261,13 +262,14 @@ describe("Server Conflict Guard - Multi-Lane Integration Suite", () => {
       const mockRunner = (_cmd: string, _args: readonly string[]) => {
         return {
           status: 0,
-          stdout: JSON.stringify({
-            ID: "c1234567890a",
-            Image: "postgres:16-alpine",
-            Status: "Up 2 hours",
-            Ports: "0.0.0.0:5432->5432/tcp, 127.0.0.1:3000->3000/tcp",
-            Names: "test-postgres-dev",
-          }) + "\n",
+          stdout:
+            JSON.stringify({
+              ID: "c1234567890a",
+              Image: "postgres:16-alpine",
+              Status: "Up 2 hours",
+              Ports: "0.0.0.0:5432->5432/tcp, 127.0.0.1:3000->3000/tcp",
+              Names: "test-postgres-dev",
+            }) + "\n",
           stderr: "",
         };
       };
@@ -291,7 +293,8 @@ describe("Server Conflict Guard - Multi-Lane Integration Suite", () => {
       const mockFailingRunner = () => ({
         status: 1,
         stdout: "",
-        stderr: "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?",
+        stderr:
+          "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?",
       });
 
       const result = detectDockerPortConflicts([3000, 5173], {
@@ -443,7 +446,10 @@ describe("Server Conflict Guard - Multi-Lane Integration Suite", () => {
       let lsofCalled = false;
       const alivePids = new Set([1001, 1002]);
 
-      const mockExec = async (cmd: string, args: readonly string[]): Promise<CommandExecutionResult> => {
+      const mockExec = async (
+        cmd: string,
+        args: readonly string[],
+      ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") {
           lsofCalled = true;
           return {
@@ -454,7 +460,8 @@ describe("Server Conflict Guard - Multi-Lane Integration Suite", () => {
         }
         if (cmd === "ps") {
           const targetPid = args[1];
-          const command = targetPid === "1001" ? "/usr/local/bin/node server.js" : "/usr/local/bin/bun run dev";
+          const command =
+            targetPid === "1001" ? "/usr/local/bin/node server.js" : "/usr/local/bin/bun run dev";
           return {
             stdout: `${targetPid} 1 S 50000 ${command}\n`,
             stderr: "",

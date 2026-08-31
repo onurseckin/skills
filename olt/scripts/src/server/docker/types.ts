@@ -74,10 +74,7 @@ export interface DockerRunnerResult {
 /**
  * Runner function signature for executing Docker commands.
  */
-export type DockerRunner = (
-  command: string,
-  args: readonly string[],
-) => DockerRunnerResult;
+export type DockerRunner = (command: string, args: readonly string[]) => DockerRunnerResult;
 
 /**
  * Options for configuring DockerInspector.

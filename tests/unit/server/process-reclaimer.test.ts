@@ -124,7 +124,10 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
 
   describe("port inspection & fallback mechanism", () => {
     it("findPidsOnPort uses lsof when successful", async () => {
-      const mockExec = async (cmd: string, args: readonly string[]): Promise<CommandExecutionResult> => {
+      const mockExec = async (
+        cmd: string,
+        args: readonly string[],
+      ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") {
           return { stdout: "4321\n", stderr: "", exitCode: 0 };
         }
@@ -136,7 +139,10 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
     });
 
     it("findPidsOnPort falls back to fuser if lsof fails", async () => {
-      const mockExec = async (cmd: string, args: readonly string[]): Promise<CommandExecutionResult> => {
+      const mockExec = async (
+        cmd: string,
+        args: readonly string[],
+      ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") {
           return { stdout: "", stderr: "command not found", exitCode: 127 };
         }
@@ -151,7 +157,10 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
     });
 
     it("findPidsOnPort falls back to ss if lsof and fuser fail", async () => {
-      const mockExec = async (cmd: string, args: readonly string[]): Promise<CommandExecutionResult> => {
+      const mockExec = async (
+        cmd: string,
+        args: readonly string[],
+      ): Promise<CommandExecutionResult> => {
         if (cmd === "ss") {
           return {
             stdout: "LISTEN 0 128 *:8080 *:* users:(('node',pid=9988,fd=4))\n",
@@ -176,7 +185,10 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
     });
 
     it("getProcessDetails handles ps command execution and parsing", async () => {
-      const mockExec = async (cmd: string, args: readonly string[]): Promise<CommandExecutionResult> => {
+      const mockExec = async (
+        cmd: string,
+        args: readonly string[],
+      ): Promise<CommandExecutionResult> => {
         if (cmd === "ps" && args.includes("2001")) {
           return {
             stdout: "2001 1 S 15000 Mon Aug 31 05:00:00 2026 bun dev\n",
@@ -198,7 +210,10 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
     });
 
     it("inspectPortOccupancy aggregates PIDs and details", async () => {
-      const mockExec = async (cmd: string, args: readonly string[]): Promise<CommandExecutionResult> => {
+      const mockExec = async (
+        cmd: string,
+        args: readonly string[],
+      ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") {
           return { stdout: "3001\n", stderr: "", exitCode: 0 };
         }
@@ -222,14 +237,27 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
     });
 
     it("inspectProcessesOnPorts inspects multiple ports concurrently", async () => {
-      const mockExec = async (cmd: string, args: readonly string[]): Promise<CommandExecutionResult> => {
+      const mockExec = async (
+        cmd: string,
+        args: readonly string[],
+      ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") {
           if (args.includes(":3000")) return { stdout: "100\n", stderr: "", exitCode: 0 };
           if (args.includes(":3001")) return { stdout: "200\n", stderr: "", exitCode: 0 };
         }
         if (cmd === "ps") {
-          if (args.includes("100")) return { stdout: "100 1 S 1000 Mon Aug 31 05:00:00 2026 bun a\n", stderr: "", exitCode: 0 };
-          if (args.includes("200")) return { stdout: "200 1 S 2000 Mon Aug 31 05:00:00 2026 bun b\n", stderr: "", exitCode: 0 };
+          if (args.includes("100"))
+            return {
+              stdout: "100 1 S 1000 Mon Aug 31 05:00:00 2026 bun a\n",
+              stderr: "",
+              exitCode: 0,
+            };
+          if (args.includes("200"))
+            return {
+              stdout: "200 1 S 2000 Mon Aug 31 05:00:00 2026 bun b\n",
+              stderr: "",
+              exitCode: 0,
+            };
         }
         return { stdout: "", stderr: "", exitCode: 1 };
       };
@@ -264,7 +292,11 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
       const signaled: Array<{ pid: number; sig: string }> = [];
       const mockExec = async (cmd: string): Promise<CommandExecutionResult> => {
         if (cmd === "ps") {
-          return { stdout: "1234 1 S 1000 Mon Aug 31 05:00:00 2026 node app.js\n", stderr: "", exitCode: 0 };
+          return {
+            stdout: "1234 1 S 1000 Mon Aug 31 05:00:00 2026 node app.js\n",
+            stderr: "",
+            exitCode: 0,
+          };
         }
         return { stdout: "", stderr: "", exitCode: 1 };
       };
@@ -406,16 +438,27 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
 
     it("reclaimZombieProcesses only targets orphaned, zombie, or runtime processes", async () => {
       const signaled: Array<{ pid: number; sig: string }> = [];
-      const mockExec = async (cmd: string, args: readonly string[]): Promise<CommandExecutionResult> => {
+      const mockExec = async (
+        cmd: string,
+        args: readonly string[],
+      ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") return { stdout: "101\n102\n", stderr: "", exitCode: 0 };
         if (cmd === "ps") {
           if (args.includes("101")) {
             // Node runtime process (orphaned)
-            return { stdout: "101 1 S 1000 Mon Aug 31 05:00:00 2026 node app.js\n", stderr: "", exitCode: 0 };
+            return {
+              stdout: "101 1 S 1000 Mon Aug 31 05:00:00 2026 node app.js\n",
+              stderr: "",
+              exitCode: 0,
+            };
           }
           if (args.includes("102")) {
             // Non-runtime, non-orphaned, non-zombie system process
-            return { stdout: "102 5000 S 1000 Mon Aug 31 05:00:00 2026 /sbin/launchd\n", stderr: "", exitCode: 0 };
+            return {
+              stdout: "102 5000 S 1000 Mon Aug 31 05:00:00 2026 /sbin/launchd\n",
+              stderr: "",
+              exitCode: 0,
+            };
           }
         }
         return { stdout: "", stderr: "", exitCode: 1 };
@@ -437,9 +480,17 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
     });
 
     it("ProcessReclaimer class encapsulates all methods with defaults", async () => {
-      const mockExec = async (cmd: string, args: readonly string[]): Promise<CommandExecutionResult> => {
+      const mockExec = async (
+        cmd: string,
+        args: readonly string[],
+      ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") return { stdout: "5050\n", stderr: "", exitCode: 0 };
-        if (cmd === "ps") return { stdout: "5050 1 S 5000 Mon Aug 31 05:00:00 2026 bun dev\n", stderr: "", exitCode: 0 };
+        if (cmd === "ps")
+          return {
+            stdout: "5050 1 S 5000 Mon Aug 31 05:00:00 2026 bun dev\n",
+            stderr: "",
+            exitCode: 0,
+          };
         return { stdout: "", stderr: "", exitCode: 1 };
       };
 

@@ -74,7 +74,10 @@ export function parseSingleDockerPortMapping(entry: string): DockerPortMapping[]
   if (right.includes("/")) {
     const slashIdx = right.indexOf("/");
     containerPortPart = right.slice(0, slashIdx).trim();
-    const protoPart = right.slice(slashIdx + 1).trim().toLowerCase();
+    const protoPart = right
+      .slice(slashIdx + 1)
+      .trim()
+      .toLowerCase();
     if (protoPart.length > 0) {
       protocol = protoPart;
     }
@@ -195,10 +198,7 @@ function extractString(
 /**
  * Extracts field from record by candidate keys.
  */
-function extractField(
-  record: Record<string, unknown>,
-  keys: readonly string[],
-): unknown {
+function extractField(record: Record<string, unknown>, keys: readonly string[]): unknown {
   for (const key of keys) {
     const val = record[key];
     if (val !== undefined && val !== null) {
@@ -223,7 +223,12 @@ function parseApiPortsArray(items: readonly unknown[]): DockerPortMapping[] {
       }
 
       const hostPortVal = extractField(obj, ["PublicPort", "publicPort", "HostPort", "hostPort"]);
-      const containerPortVal = extractField(obj, ["PrivatePort", "privatePort", "ContainerPort", "containerPort"]);
+      const containerPortVal = extractField(obj, [
+        "PrivatePort",
+        "privatePort",
+        "ContainerPort",
+        "containerPort",
+      ]);
       const protocolVal = extractField(obj, ["Type", "type", "Protocol", "protocol"]);
 
       let hostPort = NaN;
@@ -298,13 +303,7 @@ export function normalizeContainerRecord(
   ]);
   const containerName = (rawName !== undefined ? rawName : "").replace(/^\//, "");
 
-  const rawImage = extractString(record, [
-    "Image",
-    "image",
-    "ImageName",
-    "imageName",
-    "IMAGE",
-  ]);
+  const rawImage = extractString(record, ["Image", "image", "ImageName", "imageName", "IMAGE"]);
   const image = rawImage !== undefined ? rawImage : "";
 
   const status = extractString(record, ["Status", "status", "StatusText", "STATUS"]);

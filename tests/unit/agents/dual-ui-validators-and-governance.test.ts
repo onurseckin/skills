@@ -114,13 +114,21 @@ describe("Dual UI Validators & Governance Manifests", () => {
       expect(skillMd).toContain("Dual UI Validator Separation");
       expect(skillMd).toContain("ui-headless-validator");
       expect(skillMd).toContain("ui-optical-validator");
-      expect(skillMd).toContain("Tier 0 Policy Discovery & Cold-Start Bootstrapping First Responder");
+      expect(skillMd).toContain(
+        "Tier 0 Policy Discovery & Cold-Start Bootstrapping First Responder",
+      );
       expect(skillMd).toContain("1-minute tracking cadence");
     });
 
     it("verifies book chapters 03, 04, 05, and 08 contain updated governance invariants", () => {
-      const ch3 = readFileSync(join(BOOK_DIR, "03-tier-0-governance-and-autonomous-mind.md"), "utf-8");
-      const ch4 = readFileSync(join(BOOK_DIR, "04-toolchain-discovery-and-policy-engine.md"), "utf-8");
+      const ch3 = readFileSync(
+        join(BOOK_DIR, "03-tier-0-governance-and-autonomous-mind.md"),
+        "utf-8",
+      );
+      const ch4 = readFileSync(
+        join(BOOK_DIR, "04-toolchain-discovery-and-policy-engine.md"),
+        "utf-8",
+      );
       const ch5 = readFileSync(join(BOOK_DIR, "05-mandatory-companion-auditors.md"), "utf-8");
       const ch8 = readFileSync(join(BOOK_DIR, "08-verification-and-socratic-gating.md"), "utf-8");
 
@@ -133,7 +141,9 @@ describe("Dual UI Validators & Governance Manifests", () => {
       expect(ch5).toContain("1-minute high-frequency tracking cadence");
       expect(ch5).toContain("Eliminates idle traps (>120s stagnation)");
 
-      expect(ch8).toContain("Dual UI Validator Separation (Headless Playwright & Optical Visual Review)");
+      expect(ch8).toContain(
+        "Dual UI Validator Separation (Headless Playwright & Optical Visual Review)",
+      );
       expect(ch8).toContain("ui-headless-validator");
       expect(ch8).toContain("ui-optical-validator");
       expect(ch8).toContain("AUTOMATED_TESTS_ARE_HALF_THE_JOB");
