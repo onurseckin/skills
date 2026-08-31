@@ -21,12 +21,58 @@ export {
   type LockPayload,
   type SafeLockOptions,
 };
-
 export { reclaimStaleLocks } from "./lock-reclaim.ts";
 
+export interface InMemoryLockRecord {
+  readonly pid: number;
+  readonly holder: string;
+  readonly created_at: string;
+  readonly mtimeMs: number;
+  readonly fd: number;
+}
+
+const IN_MEMORY_LOCKS = new Map<string, InMemoryLockRecord>();
+let inMemoryLockingEnabled = false;
+let syntheticFdCounter = 100_000;
+
+export function setInMemoryLocking(enabled: boolean): void {
+  inMemoryLockingEnabled = enabled;
+}
+export function isInMemoryLocking(): boolean {
+  return inMemoryLockingEnabled;
+}
+export function resetInMemoryLocks(): void {
+  IN_MEMORY_LOCKS.clear();
+  syntheticFdCounter = 100_000;
+}
+export function getInMemoryLock(lockPath: string): InMemoryLockRecord | null {
+  return IN_MEMORY_LOCKS.get(lockPath) ?? null;
+}
+export function removeInMemoryLock(lockPath: string): boolean {
+  return IN_MEMORY_LOCKS.delete(lockPath);
+}
+export function getInMemoryLockEntries(): ReadonlyMap<string, InMemoryLockRecord> {
+  return IN_MEMORY_LOCKS;
+}
+
+export function seedInMemoryLock(
+  lockPath: string,
+  payload: LockPayload,
+  mtimeMs = Date.now(),
+): number {
+  const fd = ++syntheticFdCounter;
+  IN_MEMORY_LOCKS.set(lockPath, {
+    pid: payload.pid,
+    holder: payload.holder,
+    created_at: payload.created_at,
+    mtimeMs,
+    fd,
+  });
+  return fd;
+}
+
 export function delay(milliseconds: number): void {
-  if (milliseconds <= 0) return;
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+  if (milliseconds > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
 }
 
 export function isProcessAlive(pid: number): boolean {
@@ -59,6 +105,8 @@ export function parseLockPayload(content: string): LockPayload | null {
 }
 
 export function readHolderPid(lockPath: string): number | null {
+  const mem = IN_MEMORY_LOCKS.get(lockPath);
+  if (mem) return mem.pid;
   try {
     return parseLockPayload(fs.readFileSync(lockPath, "utf8"))?.pid ?? null;
   } catch {
@@ -71,16 +119,13 @@ function validateLockArgs(
   agentId: string,
   options?: SafeLockOptions,
 ): { timeoutMs: number; staleThresholdMs: number; retryMs: number } {
-  if (!lockPath || typeof lockPath !== "string") {
+  if (!lockPath || typeof lockPath !== "string")
     throw new HarnessError("INVALID_ARGUMENT", "lockPath must be a non-empty string");
-  }
-  if (!agentId || typeof agentId !== "string") {
+  if (!agentId || typeof agentId !== "string")
     throw new HarnessError("INVALID_ARGUMENT", "agentId must be a non-empty string");
-  }
   const check = (val: number, name: string): number => {
-    if (!Number.isFinite(val) || val < 0) {
+    if (!Number.isFinite(val) || val < 0)
       throw new HarnessError("INVALID_ARGUMENT", `${name} must be finite and non-negative`);
-    }
     return val;
   };
   return {
@@ -109,8 +154,8 @@ function ensureLockDir(lockPath: string): void {
 
 function verifyLockedInode(descriptor: number, lockPath: string): boolean {
   try {
-    const fStat = fs.statSync(lockPath);
-    const dStat = fs.fstatSync(descriptor);
+    const fStat = fs.statSync(lockPath),
+      dStat = fs.fstatSync(descriptor);
     return fStat.ino === dStat.ino && fStat.dev === dStat.dev;
   } catch {
     return false;
@@ -128,10 +173,28 @@ function writeLockPayload(descriptor: number, agentId: string): void {
   fs.fsyncSync(descriptor);
 }
 
-function acquireLoopStep(
+function tryAcquireStep(
   lockPath: string,
+  agentId: string,
   descriptor: number | null,
-): { fd: number | null; acquired: boolean } {
+  inMem: boolean,
+): { fd: number | null; acquired: boolean; holderPid: number | null } {
+  if (inMem) {
+    const existing = IN_MEMORY_LOCKS.get(lockPath);
+    if (!existing) {
+      const fd = ++syntheticFdCounter;
+      const now = Date.now();
+      IN_MEMORY_LOCKS.set(lockPath, {
+        pid: process.pid,
+        holder: agentId,
+        created_at: new Date(now).toISOString(),
+        mtimeMs: now,
+        fd,
+      });
+      return { fd, acquired: true, holderPid: process.pid };
+    }
+    return { fd: null, acquired: false, holderPid: existing.pid };
+  }
   let fd = descriptor;
   if (fd === null) {
     try {
@@ -144,12 +207,25 @@ function acquireLoopStep(
     }
   }
   if (tryExclusiveFlock(fd)) {
-    if (verifyLockedInode(fd, lockPath)) return { fd, acquired: true };
+    if (verifyLockedInode(fd, lockPath)) {
+      try {
+        writeLockPayload(fd, agentId);
+        return { fd, acquired: true, holderPid: process.pid };
+      } catch (error) {
+        try {
+          releaseFlock(fd);
+        } catch {}
+        try {
+          fs.closeSync(fd);
+        } catch {}
+        throw error;
+      }
+    }
     releaseFlock(fd);
     fs.closeSync(fd);
     fd = null;
   }
-  return { fd, acquired: false };
+  return { fd, acquired: false, holderPid: null };
 }
 
 function executeAcquire(
@@ -159,31 +235,21 @@ function executeAcquire(
   waitFn: (ms: number) => void | Promise<void>,
 ): LockAcquisitionResult | Promise<LockAcquisitionResult> {
   const { timeoutMs, retryMs } = validateLockArgs(lockPath, agentId, options);
-  ensureLockDir(lockPath);
+  const inMem = inMemoryLockingEnabled;
+  if (!inMem) ensureLockDir(lockPath);
   const deadline = performance.now() + timeoutMs;
   let descriptor: number | null = null;
 
   const loop = (): LockAcquisitionResult | Promise<LockAcquisitionResult> => {
     while (true) {
-      const step = acquireLoopStep(lockPath, descriptor);
+      const step = tryAcquireStep(lockPath, agentId, descriptor, inMem);
       descriptor = step.fd;
       if (step.acquired && descriptor !== null) {
-        try {
-          writeLockPayload(descriptor, agentId);
-          return { acquired: true, lockFd: descriptor, lockPath, holderPid: process.pid };
-        } catch (error) {
-          try {
-            releaseFlock(descriptor);
-          } catch {}
-          try {
-            fs.closeSync(descriptor);
-          } catch {}
-          throw error;
-        }
+        return { acquired: true, lockFd: descriptor, lockPath, holderPid: process.pid };
       }
       const remaining = deadline - performance.now();
       if (remaining <= 0) {
-        const holderPid = readHolderPid(lockPath);
+        const holderPid = inMem ? step.holderPid : readHolderPid(lockPath);
         if (descriptor !== null) fs.closeSync(descriptor);
         return { acquired: false, lockFd: null, lockPath, holderPid };
       }
@@ -213,6 +279,11 @@ export async function acquireMailboxLockAsync(
 export function releaseMailboxLock(result: LockAcquisitionResult): void {
   if (!result.acquired || result.lockFd === null || result.lockFd < 0) return;
   const fd = result.lockFd;
+  if (fd >= 100_000) {
+    const existing = IN_MEMORY_LOCKS.get(result.lockPath);
+    if (existing && existing.fd === fd) IN_MEMORY_LOCKS.delete(result.lockPath);
+    return;
+  }
   let err: unknown;
   try {
     releaseFlock(fd);

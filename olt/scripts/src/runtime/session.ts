@@ -8,7 +8,6 @@ import {
   renameSync,
   rmSync,
   writeSync,
-  type Stats,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/index.ts";
@@ -35,13 +34,47 @@ import {
   sameInode,
 } from "./util.ts";
 
+let inMemoryAgentMetadataStore: Map<string, string> | undefined;
+
+export function enableInMemoryAgentMetadata(initial?: Record<string, string>): Map<string, string> {
+  inMemoryAgentMetadataStore = new Map(Object.entries(initial ?? {}));
+  return inMemoryAgentMetadataStore;
+}
+
+export function disableInMemoryAgentMetadata(): void {
+  inMemoryAgentMetadataStore = undefined;
+}
+
+export function clearInMemoryAgentMetadata(): void {
+  inMemoryAgentMetadataStore?.clear();
+}
+
+export function isInMemoryAgentMetadataEnabled(): boolean {
+  return inMemoryAgentMetadataStore !== undefined;
+}
+
+export function getInMemoryAgentMetadataStore(): Map<string, string> | undefined {
+  return inMemoryAgentMetadataStore;
+}
+
+export function getInMemoryAgentMetadata(filePath: string): string | undefined {
+  return inMemoryAgentMetadataStore?.get(filePath);
+}
+
+export function setInMemoryAgentMetadata(filePath: string, serialized: string): void {
+  inMemoryAgentMetadataStore?.set(filePath, serialized);
+}
+
+export function deleteInMemoryAgentMetadata(filePath: string): boolean {
+  return inMemoryAgentMetadataStore?.delete(filePath) ?? false;
+}
+
 export function getAgentMetadataPath(agentId: string, runRoot?: string): string {
   assertSafeAgentId(agentId);
   if (runRoot !== undefined) {
     return join(resolve(runRoot), "runtime", `agent-${agentId}.json`);
   }
-  const repoRoot = findRepoRoot();
-  return join(resolveScratchDir(repoRoot), "runtime", `agent-${agentId}.json`);
+  return join(resolveScratchDir(findRepoRoot()), "runtime", `agent-${agentId}.json`);
 }
 
 export function writeAgentMetadata(metadata: AgentMetadata, runRoot?: string): string {
@@ -81,6 +114,10 @@ export function serializeValidatedAgentMetadata(metadata: AgentMetadata, filePat
 }
 
 export function replaceAgentMetadataUnlocked(filePath: string, serialized: string): void {
+  if (inMemoryAgentMetadataStore) {
+    inMemoryAgentMetadataStore.set(filePath, serialized);
+    return;
+  }
   assertActiveMetadataAuthority(filePath);
   assertExistingMetadataAuthorityFiles(filePath);
   const parent = dirname(filePath);
@@ -145,6 +182,18 @@ export function withAgentMetadataMutationLock<T>(filePath: string, operation: ()
       "LOCK_TIMEOUT",
       `agent metadata is already active in this process: ${filePath}`,
     );
+  }
+  if (inMemoryAgentMetadataStore) {
+    activeAgentMetadataParents.add(parent);
+    activeAgentMetadataRoots.add(root);
+    activeAgentMetadataAuthority.set(parent, root);
+    try {
+      return operation();
+    } finally {
+      activeAgentMetadataParents.delete(parent);
+      activeAgentMetadataRoots.delete(root);
+      activeAgentMetadataAuthority.delete(parent);
+    }
   }
   let rootDescriptor: number | undefined;
   let parentDescriptor: number | undefined;

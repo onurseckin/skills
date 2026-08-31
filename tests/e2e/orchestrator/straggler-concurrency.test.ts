@@ -33,7 +33,6 @@ import {
 } from "../../../olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts";
 import type {
   AssemblyStation,
-  GitStagingInvariantRecord,
   RawDefectItem,
 } from "../../../olt/scripts/src/mind/preplanning/types.ts";
 
@@ -155,38 +154,18 @@ describe("5-Minute Straggler SLA & Brent Concurrency Engine E2E Suite (Wave 4)",
       expect(host.max_single_task_seconds).toBe(300);
     }
 
-    expect(getHostSchedulerConfig("antigravity").default_cadence_seconds).toBe(300);
-    expect(resolveModelForTier("antigravity", "tier_0_2")).toEqual({
-      model: "gemini-3.7-flash",
-      thinking: "high",
-    });
-    expect(resolveModelForTier("antigravity", "tier_3")).toEqual({
-      model: "gemini-3.7-flash",
-      thinking: "high",
-    });
-    expect(getHostSchedulerConfig("claude_code").default_cadence_seconds).toBe(900);
-    expect(resolveModelForTier("claude_code", "tier_0_2")).toEqual({
-      model: "claude-5-opus",
-      thinking: "high",
-    });
-    expect(resolveModelForTier("claude_code", "tier_3")).toEqual({
-      model: "claude-5-sonnet",
-      thinking: "high",
-    });
-    expect(getHostSchedulerConfig("codex").default_cadence_seconds).toBe(900);
-    expect(resolveModelForTier("codex", "tier_0_2")).toEqual({
-      model: "gpt-5.6-sol",
-      thinking: "high",
-    });
-    expect(resolveModelForTier("codex", "tier_3")).toEqual({
-      model: "gpt-5.6-terra",
-      thinking: "high",
-    });
-    expect(getHostSchedulerConfig("cursor").default_cadence_seconds).toBe(300);
-    expect(resolveModelForTier("cursor", "tier_0_2")).toEqual({
-      model: "cursor-latest",
-      thinking: "high",
-    });
+    const hostExpectations: Record<string, { cadence: number; t02: string; t3: string }> = {
+      antigravity: { cadence: 300, t02: "gemini-3.7-flash", t3: "gemini-3.7-flash" },
+      claude_code: { cadence: 900, t02: "claude-5-opus", t3: "claude-5-sonnet" },
+      codex: { cadence: 900, t02: "gpt-5.6-sol", t3: "gpt-5.6-terra" },
+      cursor: { cadence: 300, t02: "cursor-latest", t3: "cursor-latest" },
+    };
+
+    for (const [name, exp] of Object.entries(hostExpectations)) {
+      expect(getHostSchedulerConfig(name).default_cadence_seconds).toBe(exp.cadence);
+      expect(resolveModelForTier(name, "tier_0_2")).toEqual({ model: exp.t02, thinking: "high" });
+      expect(resolveModelForTier(name, "tier_3")).toEqual({ model: exp.t3, thinking: "medium" });
+    }
   });
 
   it("audits concurrency saturation transition from under-saturated queue to fully saturated lifecycle convergence", () => {

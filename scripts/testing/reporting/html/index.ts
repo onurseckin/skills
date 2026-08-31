@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { CoverageSummary, FileCoverageMetric } from "../types.ts";
+import type { CoverageSummary, FileCoverageMetric, TestRuntimeSummary } from "../types.ts";
 import { getClientScript } from "./client-script.ts";
 import { extractCoverageFileData } from "./data-extractor.ts";
 import { getHtmlStyles } from "./styles.ts";
@@ -15,6 +15,7 @@ export function generateInteractiveHtml(
   fileMap: Map<string, FileCoverageMetric>,
   summary: CoverageSummary,
   repoRoot: string = process.cwd(),
+  runtime?: TestRuntimeSummary,
 ): string {
   const root = resolve(repoRoot);
   const total =
@@ -27,11 +28,13 @@ export function generateInteractiveHtml(
         };
 
   const filesArray = extractCoverageFileData(fileMap, root);
+  const activeRuntime = runtime ?? summary.runtime;
 
   const payloadJson = JSON.stringify({
     generatedAt: new Date().toISOString(),
     total,
     files: filesArray,
+    runtime: activeRuntime,
   }).replace(/<\/script>/gi, "<\\/script>");
 
   const styles = getHtmlStyles();
@@ -44,6 +47,7 @@ export function writeInteractiveHtml(
   summary: CoverageSummary,
   repoRoot: string = process.cwd(),
   coverageDirName: string = "coverage",
+  runtime?: TestRuntimeSummary,
 ): string {
   const root = resolve(repoRoot);
   const covDir = join(root, coverageDirName);
@@ -51,7 +55,7 @@ export function writeInteractiveHtml(
     mkdirSync(covDir, { recursive: true });
   }
   const outPath = join(covDir, "index.html");
-  const html = generateInteractiveHtml(fileMap, summary, root);
+  const html = generateInteractiveHtml(fileMap, summary, root, runtime);
   writeFileSync(outPath, html, "utf-8");
   return outPath;
 }

@@ -28,12 +28,41 @@ import {
 import { sessionLockCleanupFault, sessionPersistenceObserver } from "./testing-hooks.ts";
 import type { SessionSnapshot } from "./types.ts";
 
+let inMemorySessionStore: Map<string, string> | undefined;
+
+export function enableInMemorySessionStore(initial?: Record<string, string>): Map<string, string> {
+  return (inMemorySessionStore = new Map(Object.entries(initial ?? {})));
+}
+export function disableInMemorySessionStore(): void {
+  inMemorySessionStore = undefined;
+}
+export function clearInMemorySessionStore(): void {
+  inMemorySessionStore?.clear();
+}
+export function isInMemorySessionStoreEnabled(): boolean {
+  return inMemorySessionStore !== undefined;
+}
+export function getInMemorySessionStore(): Map<string, string> | undefined {
+  return inMemorySessionStore;
+}
+export function setInMemorySessionData(path: string, payload: string): void {
+  inMemorySessionStore?.set(path, payload);
+}
+export function getInMemorySessionData(path: string): string | undefined {
+  return inMemorySessionStore?.get(path);
+}
+export function deleteInMemorySessionData(path: string): boolean {
+  return inMemorySessionStore?.delete(path) ?? false;
+}
+
 export function secureReadSession(path: string): string {
-  const before = assertSingleLinkRegular(path);
-  if (!before) {
-    const error = Object.assign(new Error("missing session"), { code: "ENOENT" });
-    throw error;
+  if (inMemorySessionStore) {
+    const data = inMemorySessionStore.get(path);
+    if (data === undefined) throw Object.assign(new Error("missing session"), { code: "ENOENT" });
+    return data;
   }
+  const before = assertSingleLinkRegular(path);
+  if (!before) throw Object.assign(new Error("missing session"), { code: "ENOENT" });
   const fd = openSync(path, constants.O_RDONLY | noFollow());
   try {
     const opened = fstatSync(fd);
@@ -54,6 +83,13 @@ export function secureReadSession(path: string): string {
 }
 
 export function atomicSessionWrite(path: string, payload: string): void {
+  if (inMemorySessionStore) {
+    sessionPersistenceObserver?.("file-fsync", path);
+    inMemorySessionStore.set(path, payload);
+    sessionPersistenceObserver?.("rename", path);
+    sessionPersistenceObserver?.("directory-fsync", path);
+    return;
+  }
   assertSingleLinkRegular(path);
   const parent = dirname(path);
   const temporary = join(parent, `.${basename(path)}.${randomUUID()}.tmp`);
@@ -101,6 +137,28 @@ export function withSessionAuthorityLock<T>(
   directory: string,
   operation: () => T,
 ): T {
+  if (inMemorySessionStore) {
+    let result!: T;
+    let primary: unknown;
+    let hasPrimary = false;
+    try {
+      result = operation();
+    } catch (error) {
+      hasPrimary = true;
+      primary = error;
+    }
+    let cleanup: unknown;
+    let hasCleanup = false;
+    try {
+      if (sessionLockCleanupFault.enabled) throw sessionLockCleanupFault.value;
+    } catch (error) {
+      hasCleanup = true;
+      cleanup = error;
+    }
+    if (hasPrimary) throw primary;
+    if (hasCleanup) throw cleanup;
+    return result;
+  }
   const root = openVerifiedDirectory(repoRoot, false, "session repository root");
   let session: { fd: number; stat: Stats } | undefined;
   let rootLocked = false;
@@ -111,16 +169,13 @@ export function withSessionAuthorityLock<T>(
   let hasCleanup = false;
   let result!: T;
   try {
-    if (!tryExclusiveFlock(root.fd)) {
+    if (!tryExclusiveFlock(root.fd))
       throw new HarnessError("LOCK_TIMEOUT", "session repository lock is busy");
-    }
     rootLocked = true;
-    const olt = dirname(directory);
-    assertRealDirectory(olt, "session authority parent");
+    assertRealDirectory(dirname(directory), "session authority parent");
     session = openVerifiedDirectory(directory, true, "session authority directory");
-    if (!tryExclusiveFlock(session.fd)) {
+    if (!tryExclusiveFlock(session.fd))
       throw new HarnessError("LOCK_TIMEOUT", "session directory lock is busy");
-    }
     sessionLocked = true;
     if (
       !sameInode(root.stat, assertRealDirectory(repoRoot, "session repository root")) ||
@@ -161,9 +216,7 @@ export function withSessionAuthorityLock<T>(
 }
 
 export function readOwnDataString(error: unknown, key: "code" | "message"): string | null {
-  if ((typeof error !== "object" && typeof error !== "function") || error === null) {
-    return null;
-  }
+  if ((typeof error !== "object" && typeof error !== "function") || error === null) return null;
   try {
     const descriptor = Object.getOwnPropertyDescriptor(error, key);
     return descriptor && "value" in descriptor && typeof descriptor.value === "string"
@@ -196,47 +249,39 @@ export function readPersistedSession(
   try {
     parsed = JSON.parse(readSessionFile(path, "utf8"));
   } catch (error: unknown) {
-    if (readOwnDataString(error, "code") === "ENOENT") {
-      return null;
-    }
+    if (readOwnDataString(error, "code") === "ENOENT") return null;
     throw new HarnessError(
       "INTEGRITY",
       `failed to read persisted ${mechanism} session evidence at ${path}: ${formatSafeErrorCause(error)}`,
     );
   }
-
   const invalid = (cause: string): never => {
     throw new HarnessError(
       "INTEGRITY",
       `invalid persisted ${mechanism} session evidence at ${path}: ${cause}`,
     );
   };
-
   const session: JsonObject = isJsonObject(parsed) ? parsed : invalid("expected a JSON object");
-  if (typeof session.agent_id !== "string" || !session.agent_id.trim()) {
+  if (typeof session.agent_id !== "string" || !session.agent_id.trim())
     invalid("agent_id must be a nonempty string");
-  }
-  for (const field of ["role", "token"] as const) {
-    if (field in session && (typeof session[field] !== "string" || !session[field].trim())) {
-      invalid(`${field} must be a nonempty string when present`);
+  for (const f of ["role", "token"] as const) {
+    if (f in session && (typeof session[f] !== "string" || !session[f].trim())) {
+      invalid(`${f} must be a nonempty string when present`);
     }
   }
-  for (const field of ["can_execute_shell", "can_edit_files"] as const) {
-    if (field in session && typeof session[field] !== "boolean") {
-      invalid(`${field} must be a boolean when present`);
-    }
+  for (const f of ["can_execute_shell", "can_edit_files"] as const) {
+    if (f in session && typeof session[f] !== "boolean")
+      invalid(`${f} must be a boolean when present`);
   }
   if (
     "write_scope" in session &&
-    (!Array.isArray(session.write_scope) ||
-      session.write_scope.some((entry) => typeof entry !== "string"))
+    (!Array.isArray(session.write_scope) || session.write_scope.some((e) => typeof e !== "string"))
   ) {
     invalid("write_scope must be an array of strings when present");
   }
-  for (const field of ["task_id", "granted_at"] as const) {
-    if (field in session && typeof session[field] !== "string") {
-      invalid(`${field} must be a string when present`);
-    }
+  for (const f of ["task_id", "granted_at"] as const) {
+    if (f in session && typeof session[f] !== "string")
+      invalid(`${f} must be a string when present`);
   }
   return session;
 }
@@ -245,35 +290,37 @@ export function inferCanExecute(role: string): {
   can_execute_shell: boolean;
   can_edit_files: boolean;
 } {
-  const normalized = role.trim().toLowerCase();
+  const norm = role.trim().toLowerCase();
+  const editable = [
+    "implementer",
+    "worker",
+    "repairer",
+    "owner",
+    "sub-implementer",
+    "sub_implementer",
+    "sub-task-worker",
+    "sub_task_worker",
+  ];
   const isEditable =
-    normalized === "implementer" ||
-    normalized === "worker" ||
-    normalized === "repairer" ||
-    normalized === "owner" ||
-    normalized === "sub-implementer" ||
-    normalized === "sub_implementer" ||
-    normalized === "sub-task-worker" ||
-    normalized === "sub_task_worker" ||
-    normalized.startsWith("implementer-") ||
-    normalized.startsWith("implementer_");
-
-  if (isEditable) {
-    return { can_execute_shell: true, can_edit_files: true };
-  }
-  return { can_execute_shell: true, can_edit_files: false };
+    editable.includes(norm) || norm.startsWith("implementer-") || norm.startsWith("implementer_");
+  return { can_execute_shell: true, can_edit_files: isEditable };
 }
 
 export function snapshotSession(path: string): SessionSnapshot {
+  if (inMemorySessionStore) return { path, bytes: inMemorySessionStore.get(path) ?? null };
   return { path, bytes: existsSync(path) ? secureReadSession(path) : null };
 }
 
 export function restoreSnapshotIfUnchanged(snapshot: SessionSnapshot, payload: string): void {
+  if (inMemorySessionStore) {
+    const current = inMemorySessionStore.get(snapshot.path) ?? null;
+    if (current !== payload) return;
+    if (snapshot.bytes === null) inMemorySessionStore.delete(snapshot.path);
+    else inMemorySessionStore.set(snapshot.path, snapshot.bytes);
+    return;
+  }
   const current = existsSync(snapshot.path) ? secureReadSession(snapshot.path) : null;
   if (current !== payload) return;
-  if (snapshot.bytes === null) {
-    unlinkSync(snapshot.path);
-  } else {
-    writeFileSync(snapshot.path, snapshot.bytes, "utf8");
-  }
+  if (snapshot.bytes === null) unlinkSync(snapshot.path);
+  else writeFileSync(snapshot.path, snapshot.bytes, "utf8");
 }

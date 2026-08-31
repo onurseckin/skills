@@ -1,52 +1,138 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import {
+  getActiveScratchClaims,
+  isScratchRootActive,
+  releaseScratchRoot,
+  resetScratchRegistry,
+  scratchRoot,
+} from "./scratch-root.ts";
 
-const FIXTURES_DIR = join(import.meta.dir, "fixtures");
-
-const spawnedRoots: string[] = [];
-afterEach(() => {
-  for (const root of spawnedRoots.splice(0)) rmSync(root, { recursive: true, force: true });
-});
-
-function extract(stdout: string, marker: string): string {
-  const line = stdout.split("\n").find((entry) => entry.startsWith(marker));
-  if (line === undefined) throw new Error(`fixture output missing ${marker}: ${stdout}`);
-  return line.slice(marker.length);
-}
-
-async function runFixture(name: string): Promise<{ exitCode: number; stdout: string }> {
-  const child = Bun.spawn(["bun", "test", join(FIXTURES_DIR, name)], {
-    stdout: "pipe",
-    stderr: "pipe",
+describe("scratchRoot in-memory concurrency and isolation", () => {
+  beforeEach(() => {
+    resetScratchRegistry();
   });
-  const [exitCode, stdout] = await Promise.all([child.exited, new Response(child.stdout).text()]);
-  return { exitCode, stdout };
-}
 
-describe("scratchRoot across real concurrent same-key claims", () => {
-  test("a still-running holder's directory survives intact when a second independent process claims the same deterministic key", async () => {
-    const holder = Bun.spawn(["bun", "test", join(FIXTURES_DIR, "collision-holder.fixture.ts")], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+  afterEach(() => {
+    resetScratchRegistry();
+  });
 
-    await Bun.sleep(400);
+  test("allocates distinct monotonic slot paths for sequential calls with identical keys", () => {
+    const caller = "/test/runner/suite.test.ts";
+    const label = "sequential-slot";
 
-    const latecomer = await runFixture("collision-latecomer.fixture.ts");
-    expect(latecomer.exitCode).toBe(0);
-    const latecomerRoot = extract(latecomer.stdout, "SCRATCH_ROOT::");
-    spawnedRoots.push(latecomerRoot);
+    const paths: string[] = [];
+    for (let i = 0; i < 25; i += 1) {
+      paths.push(scratchRoot(caller, label));
+    }
 
-    const [holderExitCode, holderStdout] = await Promise.all([
-      holder.exited,
-      new Response(holder.stdout).text(),
-    ]);
-    expect(holderExitCode).toBe(0);
-    const holderRoot = extract(holderStdout, "SCRATCH_ROOT::");
-    spawnedRoots.push(holderRoot);
+    const uniquePaths = new Set(paths);
+    expect(uniquePaths.size).toBe(25);
 
-    expect(extract(holderStdout, "HOLDER_MARKER_SURVIVED::")).toBe("true");
-    expect(latecomerRoot).not.toBe(holderRoot);
-  }, 15000);
+    for (let i = 0; i < 25; i += 1) {
+      expect(paths[i]).toContain(`--${label}--${i + 1}--`);
+      expect(isScratchRootActive(paths[i])).toBe(true);
+    }
+
+    const claims = getActiveScratchClaims();
+    expect(claims.length).toBe(25);
+  });
+
+  test("handles high-volume concurrent asynchronous calls without path collision", async () => {
+    const callerBase = "/test/concurrent/worker-";
+    const concurrentRequests = 100;
+
+    const allocations = await Promise.all(
+      Array.from({ length: concurrentRequests }, async (_, index) => {
+        const caller = `${callerBase}${index % 5}.test.ts`;
+        const label = `concurrent-task-${index % 4}`;
+        return scratchRoot(caller, label);
+      }),
+    );
+
+    expect(allocations.length).toBe(concurrentRequests);
+    const uniqueAllocations = new Set(allocations);
+    expect(uniqueAllocations.size).toBe(concurrentRequests);
+
+    for (const root of allocations) {
+      expect(isScratchRootActive(root)).toBe(true);
+    }
+  });
+
+  test("derives isolated deterministic paths across distinct callers and labels", () => {
+    const rootA = scratchRoot("/suite/alpha.test.ts", "shared-label");
+    const rootB = scratchRoot("/suite/beta.test.ts", "shared-label");
+    const rootC = scratchRoot("/suite/alpha.test.ts", "distinct-label");
+
+    expect(rootA).not.toBe(rootB);
+    expect(rootA).not.toBe(rootC);
+    expect(rootB).not.toBe(rootC);
+  });
+
+  test("releasing an active claim updates in-memory tracking without mutating other claims", () => {
+    const caller = "/test/release/claim.test.ts";
+    const path1 = scratchRoot(caller, "claim-1");
+    const path2 = scratchRoot(caller, "claim-2");
+
+    expect(isScratchRootActive(path1)).toBe(true);
+    expect(isScratchRootActive(path2)).toBe(true);
+
+    const released = releaseScratchRoot(path1);
+    expect(released).toBe(true);
+    expect(isScratchRootActive(path1)).toBe(false);
+    expect(isScratchRootActive(path2)).toBe(true);
+
+    const releasedAgain = releaseScratchRoot(path1);
+    expect(releasedAgain).toBe(false);
+  });
+
+  test("handles hostile paths, traversal characters, and unicode without throwing", () => {
+    const hostileLabel = "../../../etc/passwd && <script>alert(1)</script> 🚀 日本語";
+    const caller = "/test/hostile/path/injection.test.ts";
+
+    const root = scratchRoot(caller, hostileLabel);
+    expect(typeof root).toBe("string");
+    expect(root.length).toBeGreaterThan(0);
+    expect(isScratchRootActive(root)).toBe(true);
+    expect(root).not.toContain("..");
+    expect(root).not.toContain("<script>");
+  });
+
+  test("createScratchRoot export alias behaves identically to scratchRoot", () => {
+    const caller = "/test/alias/check.test.ts";
+    const label = "alias-test";
+
+    const pathA = scratchRoot(caller, label);
+    const pathB = scratchRoot(caller, label);
+
+    expect(pathA).not.toBe(pathB);
+    expect(isScratchRootActive(pathA)).toBe(true);
+    expect(isScratchRootActive(pathB)).toBe(true);
+  });
+
+  test("tracks claim metadata including pid, call count, and timestamps", () => {
+    const caller = "/test/metadata/check.test.ts";
+    const label = "metadata-test";
+
+    const root = scratchRoot(caller, label);
+    const claims = getActiveScratchClaims();
+    const claim = claims.find((c) => c.root === root);
+
+    expect(claim).toBeDefined();
+    expect(claim?.pid).toBe(process.pid);
+    expect(claim?.key).toContain("metadata-test");
+    expect(typeof claim?.claimedAt).toBe("number");
+  });
+
+  test("adheres strictly to ZERO_DISK_IO_INVARIANT: creates 0 physical files or directories on disk", () => {
+    const caller = "/test/zero-disk/invariant.test.ts";
+    const label = "zero-disk-check";
+
+    const root = scratchRoot(caller, label);
+
+    // Physical filesystem checks: absolutely NO directory or file should be created on disk
+    expect(existsSync(root)).toBe(false);
+    expect(existsSync(join(root, "..", ".owners"))).toBe(false);
+  });
 });

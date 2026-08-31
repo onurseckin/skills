@@ -1,77 +1,87 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  createSignedEnvelope,
+  verifyEnvelopeHmac,
+} from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
+import {
   broadcastWaveNotification,
+  clearInMemoryCursors,
   collectInboxReceipts,
   dispatchPeerMessage,
-  resolveMailboxPaths,
+  getInMemoryCursor,
   resolveRecipientAgentIds,
-  verifyEnvelopeHmac,
-} from "../../../olt/scripts/src/communication/mailbox/index.ts";
+} from "../../../olt/scripts/src/communication/mailbox/mailbox-dispatcher.ts";
+import {
+  clearInMemoryMailboxDirs,
+  registerInMemoryMailboxDir,
+  resolveMailboxPaths,
+} from "../../../olt/scripts/src/communication/mailbox/mailbox-paths.ts";
+import {
+  clearInMemoryMailboxStore,
+  getInMemoryMailbox,
+  setInMemoryStreamMode,
+} from "../../../olt/scripts/src/communication/mailbox/mailbox-stream.ts";
 import type { MailboxEnvelope } from "../../../olt/scripts/src/communication/types.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
-describe("P2P Mailbox Dispatcher & Role Resolution", () => {
-  let testRoot: string;
+describe("P2P Mailbox Dispatcher & Role Resolution (In-Memory)", () => {
+  const virtualRoot = "virtual://dispatcher-suite";
 
   beforeEach(() => {
-    testRoot = join(
-      process.cwd(),
-      "coverage",
-      "test-isolation",
-      `disp-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
-    mkdirSync(testRoot, { recursive: true });
+    clearInMemoryMailboxStore();
+    clearInMemoryMailboxDirs();
+    clearInMemoryCursors();
+    setInMemoryStreamMode(true);
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) rmSync(testRoot, { recursive: true, force: true });
+    clearInMemoryMailboxStore();
+    clearInMemoryMailboxDirs();
+    clearInMemoryCursors();
+    setInMemoryStreamMode(false);
   });
 
   describe("resolveRecipientAgentIds", () => {
-    it("resolves exact matches and role substrings from mailbox directories and locks", () => {
-      const mbRoot = join(testRoot, ".olt", "mailboxes");
-      mkdirSync(join(mbRoot, "worker-alpha"), { recursive: true });
-      mkdirSync(join(mbRoot, "worker_beta"), { recursive: true });
-      mkdirSync(join(mbRoot, "lead_worker_node"), { recursive: true });
-      mkdirSync(join(mbRoot, "coordinator-0"), { recursive: true });
-      mkdirSync(join(mbRoot, ".locks"), { recursive: true });
-      writeFileSync(join(mbRoot, ".locks", "validator-1.lock"), "");
-      mkdirSync(join(testRoot, ".olt", "locks", "mailboxes"), { recursive: true });
-      writeFileSync(join(testRoot, ".olt", "locks", "mailboxes", "repairer-1.lock"), "");
-      mkdirSync(join(testRoot, ".olt", "locks"), { recursive: true });
-      writeFileSync(join(testRoot, ".olt", "locks", "critic-1.lock"), "");
+    it("resolves exact matches and role substrings from registered in-memory mailbox directories", () => {
+      registerInMemoryMailboxDir("virtual://dispatcher-suite/.olt/mailboxes/worker-alpha");
+      registerInMemoryMailboxDir("virtual://dispatcher-suite/.olt/mailboxes/worker_beta");
+      registerInMemoryMailboxDir("virtual://dispatcher-suite/.olt/mailboxes/lead_worker_node");
+      registerInMemoryMailboxDir("virtual://dispatcher-suite/.olt/mailboxes/coordinator-0");
+      registerInMemoryMailboxDir(
+        "virtual://dispatcher-suite/.olt/locks/mailboxes/validator-1.lock",
+      );
+      registerInMemoryMailboxDir("virtual://dispatcher-suite/.olt/locks/mailboxes/repairer-1.lock");
 
-      expect(resolveRecipientAgentIds("worker-alpha", testRoot)).toEqual(["worker-alpha"]);
-      expect(resolveRecipientAgentIds("worker", testRoot)).toEqual([
+      expect(resolveRecipientAgentIds("worker-alpha", virtualRoot)).toEqual(["worker-alpha"]);
+      expect(resolveRecipientAgentIds("worker", virtualRoot)).toEqual([
         "lead_worker_node",
         "worker-alpha",
         "worker_beta",
       ]);
-      expect(resolveRecipientAgentIds("coordinator", testRoot)).toEqual(["coordinator-0"]);
-      expect(resolveRecipientAgentIds("validator", testRoot)).toEqual(["validator-1"]);
-      expect(resolveRecipientAgentIds("repairer", testRoot)).toEqual(["repairer-1"]);
-      expect(resolveRecipientAgentIds("critic", testRoot)).toEqual(["critic-1"]);
-      expect(resolveRecipientAgentIds("custom-agent-99", testRoot)).toEqual(["custom-agent-99"]);
+      expect(resolveRecipientAgentIds("coordinator", virtualRoot)).toEqual(["coordinator-0"]);
+      expect(resolveRecipientAgentIds("validator", virtualRoot)).toEqual(["validator-1"]);
+      expect(resolveRecipientAgentIds("repairer", virtualRoot)).toEqual(["repairer-1"]);
+      expect(resolveRecipientAgentIds("custom-agent-99", virtualRoot)).toEqual(["custom-agent-99"]);
     });
 
     it("rejects invalid roles, empty strings, and path traversal attempts", () => {
-      expect(() => resolveRecipientAgentIds("", testRoot)).toThrow(HarnessError);
-      expect(() => resolveRecipientAgentIds("   ", testRoot)).toThrow(HarnessError);
-      expect(() => resolveRecipientAgentIds(123 as unknown as string, testRoot)).toThrow(
+      expect(() => resolveRecipientAgentIds("", virtualRoot)).toThrow(HarnessError);
+      expect(() => resolveRecipientAgentIds("   ", virtualRoot)).toThrow(HarnessError);
+      expect(() => resolveRecipientAgentIds(123 as unknown as string, virtualRoot)).toThrow(
         HarnessError,
       );
-      expect(() => resolveRecipientAgentIds(".", testRoot)).toThrow(HarnessError);
-      expect(() => resolveRecipientAgentIds("../outside", testRoot)).toThrow(HarnessError);
-      expect(() => resolveRecipientAgentIds("sub/agent", testRoot)).toThrow(HarnessError);
-      expect(() => resolveRecipientAgentIds("sub\\agent", testRoot)).toThrow(HarnessError);
-      expect(() => resolveRecipientAgentIds("null\0byte", testRoot)).toThrow(HarnessError);
+      expect(() => resolveRecipientAgentIds(".", virtualRoot)).toThrow(HarnessError);
+      expect(() => resolveRecipientAgentIds("../outside", virtualRoot)).toThrow(HarnessError);
+      expect(() => resolveRecipientAgentIds("sub/agent", virtualRoot)).toThrow(HarnessError);
+      expect(() => resolveRecipientAgentIds("sub\\agent", virtualRoot)).toThrow(HarnessError);
+      expect(() => resolveRecipientAgentIds("null\0byte", virtualRoot)).toThrow(HarnessError);
     });
   });
 
   describe("dispatchPeerMessage", () => {
-    it("signs envelope with HMAC and appends to recipient inbox and sender outbox", () => {
+    it("signs envelope with HMAC and appends to in-memory recipient inbox and sender outbox", () => {
       const envelope = dispatchPeerMessage({
         senderId: "coordinator-1",
         senderRole: "coordinator",
@@ -79,7 +89,7 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
         messageType: "DISPATCH_TASK",
         payload: { task: "process-chunk", chunkId: 42 },
         correlationId: "corr-100",
-        baseDir: testRoot,
+        baseDir: virtualRoot,
       });
 
       expect(envelope.id).toBeDefined();
@@ -88,12 +98,10 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
       expect(envelope.correlation_id).toBe("corr-100");
       expect(verifyEnvelopeHmac(envelope).valid).toBe(true);
 
-      const recipientPaths = resolveMailboxPaths("worker-1", testRoot);
-      const senderPaths = resolveMailboxPaths("coordinator-1", testRoot);
-      expect(existsSync(recipientPaths.inboxPath)).toBe(true);
-      expect(existsSync(senderPaths.outboxPath)).toBe(true);
+      const recipientPaths = resolveMailboxPaths("worker-1", virtualRoot);
+      const senderPaths = resolveMailboxPaths("coordinator-1", virtualRoot);
 
-      const inboxLines = readFileSync(recipientPaths.inboxPath, "utf8").trim().split("\n");
+      const inboxLines = getInMemoryMailbox(recipientPaths.inboxPath) ?? [];
       expect(inboxLines.length).toBe(1);
       const firstInbox = inboxLines[0];
       expect(firstInbox).toBeDefined();
@@ -103,7 +111,7 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
         expect(parsedInbox.payload.task).toBe("process-chunk");
       }
 
-      const outboxLines = readFileSync(senderPaths.outboxPath, "utf8").trim().split("\n");
+      const outboxLines = getInMemoryMailbox(senderPaths.outboxPath) ?? [];
       expect(outboxLines.length).toBe(1);
       const firstOutbox = outboxLines[0];
       expect(firstOutbox).toBeDefined();
@@ -112,15 +120,15 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
       }
     });
 
-    it("resolves role name to agent ID on dispatch", () => {
-      mkdirSync(join(testRoot, ".olt", "mailboxes", "worker-42"), { recursive: true });
+    it("resolves role name to agent ID on dispatch in memory", () => {
+      registerInMemoryMailboxDir("virtual://dispatcher-suite/.olt/mailboxes/worker-42");
       const envelope = dispatchPeerMessage({
         senderId: "coord-1",
         senderRole: "coordinator",
         recipientRoleOrId: "worker",
         messageType: "DISPATCH_TASK",
         payload: { ready: true },
-        baseDir: testRoot,
+        baseDir: virtualRoot,
       });
       expect(envelope.recipient_id).toBe("worker-42");
     });
@@ -166,10 +174,10 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
   });
 
   describe("broadcastWaveNotification", () => {
-    it("dispatches notifications to all target recipients and resolves roles", () => {
-      mkdirSync(join(testRoot, ".olt", "mailboxes", "worker-a"), { recursive: true });
-      mkdirSync(join(testRoot, ".olt", "mailboxes", "worker-b"), { recursive: true });
-      mkdirSync(join(testRoot, ".olt", "mailboxes", "validator-1"), { recursive: true });
+    it("dispatches notifications to all target recipients in-memory and resolves roles", () => {
+      registerInMemoryMailboxDir("virtual://dispatcher-suite/.olt/mailboxes/worker-a");
+      registerInMemoryMailboxDir("virtual://dispatcher-suite/.olt/mailboxes/worker-b");
+      registerInMemoryMailboxDir("virtual://dispatcher-suite/.olt/mailboxes/validator-1");
 
       const envelopes = broadcastWaveNotification({
         senderId: "coordinator-0",
@@ -178,7 +186,7 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
         messageType: "PULSE_HEARTBEAT",
         payload: { wave: 1 },
         correlationId: "wave-corr-1",
-        baseDir: testRoot,
+        baseDir: virtualRoot,
       });
 
       expect(envelopes.length).toBe(3);
@@ -186,8 +194,9 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
       expect(recipientIds).toEqual(["validator-1", "worker-a", "worker-b"]);
 
       for (const id of recipientIds) {
-        const inbox = resolveMailboxPaths(id, testRoot).inboxPath;
-        expect(existsSync(inbox)).toBe(true);
+        const inbox = resolveMailboxPaths(id, virtualRoot).inboxPath;
+        const lines = getInMemoryMailbox(inbox) ?? [];
+        expect(lines.length).toBe(1);
       }
     });
 
@@ -198,7 +207,7 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
         recipientIds: [],
         messageType: "PULSE_HEARTBEAT",
         payload: {},
-        baseDir: testRoot,
+        baseDir: virtualRoot,
       });
       expect(res).toEqual([]);
       expect(() =>
@@ -223,8 +232,8 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
     });
   });
 
-  describe("collectInboxReceipts", () => {
-    it("collects unread messages, filters by correlationId/messageType, and advances cursor", () => {
+  describe("collectInboxReceipts & in-memory cursor tracking", () => {
+    it("collects unread messages, filters by correlationId/messageType, and advances in-memory cursor", () => {
       dispatchPeerMessage({
         senderId: "agent-sender",
         senderRole: "sender",
@@ -232,7 +241,7 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
         messageType: "HANDOFF_RECEIPT",
         payload: { task: 1 },
         correlationId: "corr-A",
-        baseDir: testRoot,
+        baseDir: virtualRoot,
       });
       dispatchPeerMessage({
         senderId: "agent-sender",
@@ -241,23 +250,28 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
         messageType: "DISPATCH_TASK",
         payload: { task: 2 },
         correlationId: "corr-B",
-        baseDir: testRoot,
+        baseDir: virtualRoot,
       });
 
       const filteredByCorr = collectInboxReceipts("agent-receiver", {
-        baseDir: testRoot,
+        baseDir: virtualRoot,
         correlationId: "corr-A",
       });
       expect(filteredByCorr.totalReceipts).toBe(1);
       expect(filteredByCorr.receipts[0]?.correlation_id).toBe("corr-A");
 
+      const receiverPaths = resolveMailboxPaths("agent-receiver", virtualRoot);
       const filteredByType = collectInboxReceipts("agent-receiver", {
-        baseDir: testRoot,
+        baseDir: virtualRoot,
         messageType: "DISPATCH_TASK",
         advanceCursor: true,
       });
       expect(filteredByType.totalReceipts).toBe(1);
       expect(filteredByType.receipts[0]?.message_type).toBe("DISPATCH_TASK");
+
+      const savedCursor = getInMemoryCursor(receiverPaths.cursorPath);
+      expect(savedCursor).toBeDefined();
+      expect(savedCursor?.seen_ids.length).toBeGreaterThan(0);
     });
   });
 

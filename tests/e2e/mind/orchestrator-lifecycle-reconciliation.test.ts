@@ -259,7 +259,6 @@ describe("Orchestrator Lifecycle & Singleton Auditor E2E Reconciliation Suite", 
   it("enforces singleton skill auditor fleet constraint and rejects duplicates", () => {
     const root = scratchRoot(import.meta.path, "singleton-auditor");
     const lockPath = join(root, ".olt", "locks", "skill_auditor.lock");
-
     const livePids = new Set<number>([30001]);
     const isPidAliveFn = (pid: number): boolean => livePids.has(pid);
 

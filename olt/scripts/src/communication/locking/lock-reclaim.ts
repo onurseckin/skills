@@ -1,9 +1,15 @@
 import * as fs from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { releaseFlock, tryExclusiveFlock } from "../../platform/index.ts";
 import { DEFAULT_STALE_THRESHOLD_MS } from "../types.ts";
-import { isProcessAlive, parseLockPayload } from "./safe-lock.ts";
+import {
+  getInMemoryLockEntries,
+  isInMemoryLocking,
+  isProcessAlive,
+  parseLockPayload,
+  removeInMemoryLock,
+} from "./safe-lock.ts";
 
 function verifyLockedInode(descriptor: number, lockPath: string): boolean {
   try {
@@ -53,6 +59,40 @@ function tryReclaimFile(fullPath: string, staleThresholdMs: number, now: number)
   }
 }
 
+function isPathInDir(filePath: string, dirPath: string): boolean {
+  try {
+    return resolve(dirname(filePath)) === resolve(dirPath);
+  } catch {
+    return false;
+  }
+}
+
+export function reclaimInMemoryStaleLocks(
+  locksDir: string,
+  staleThresholdMs: number = DEFAULT_STALE_THRESHOLD_MS,
+): readonly string[] {
+  if (!locksDir || typeof locksDir !== "string") {
+    throw new HarnessError("INVALID_ARGUMENT", "locksDir must be a non-empty string");
+  }
+  if (!Number.isFinite(staleThresholdMs) || staleThresholdMs < 0) {
+    throw new HarnessError("INVALID_ARGUMENT", "staleThresholdMs must be finite and non-negative");
+  }
+  const reclaimed: string[] = [];
+  const entries = getInMemoryLockEntries();
+  const now = Date.now();
+  for (const [lockPath, entry] of entries) {
+    if (!lockPath.endsWith(".lock")) continue;
+    if (!isPathInDir(lockPath, locksDir)) continue;
+    const createdTime = Date.parse(entry.created_at);
+    const lockAgeMs = Number.isNaN(createdTime) ? now - entry.mtimeMs : now - createdTime;
+    if (lockAgeMs > staleThresholdMs && !isProcessAlive(entry.pid)) {
+      removeInMemoryLock(lockPath);
+      reclaimed.push(lockPath);
+    }
+  }
+  return reclaimed;
+}
+
 export function reclaimStaleLocks(
   locksDir: string,
   staleThresholdMs: number = DEFAULT_STALE_THRESHOLD_MS,
@@ -63,11 +103,14 @@ export function reclaimStaleLocks(
   if (!Number.isFinite(staleThresholdMs) || staleThresholdMs < 0) {
     throw new HarnessError("INVALID_ARGUMENT", "staleThresholdMs must be finite and non-negative");
   }
+  const memReclaimed = reclaimInMemoryStaleLocks(locksDir, staleThresholdMs);
+  if (isInMemoryLocking()) return memReclaimed;
+
   try {
-    if (!fs.statSync(locksDir).isDirectory()) return [];
+    if (!fs.existsSync(locksDir) || !fs.statSync(locksDir).isDirectory()) return memReclaimed;
     const entries = fs.readdirSync(locksDir);
     const now = Date.now();
-    const reclaimed: string[] = [];
+    const reclaimed: string[] = [...memReclaimed];
     for (const e of entries) {
       if (!e.endsWith(".lock")) continue;
       const fullPath = join(locksDir, e);
@@ -75,6 +118,6 @@ export function reclaimStaleLocks(
     }
     return reclaimed;
   } catch {
-    return [];
+    return memReclaimed;
   }
 }

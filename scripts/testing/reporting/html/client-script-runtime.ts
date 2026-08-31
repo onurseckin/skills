@@ -1,0 +1,159 @@
+export function getClientScriptRuntime(): string {
+  return `
+    let activeTab = "coverage";
+    let runtimePage = 1;
+    const runtimePageSize = 50;
+    let runtimeSearch = "";
+    let runtimeSortCol = "duration";
+    let runtimeSortAsc = false;
+
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+      const activeBtn = document.getElementById("tab-" + tab);
+      if (activeBtn) activeBtn.classList.add("active");
+
+      const covSection = document.getElementById("coverage-section");
+      const rtSection = document.getElementById("runtime-section");
+      if (covSection && rtSection) {
+        if (tab === "runtime") {
+          covSection.style.display = "none";
+          rtSection.style.display = "block";
+          renderRuntimeView();
+        } else {
+          covSection.style.display = "block";
+          rtSection.style.display = "none";
+          render();
+        }
+      }
+    }
+
+    function initRuntimeMetrics() {
+      if (!DATA.runtime || !DATA.runtime.files || DATA.runtime.files.length === 0) {
+        const tabBtn = document.getElementById("tab-runtime");
+        if (tabBtn) tabBtn.style.display = "none";
+        return;
+      }
+      const r = DATA.runtime;
+      const valTotal = document.getElementById("val-rt-total");
+      const subTotal = document.getElementById("sub-rt-total");
+      if (valTotal) valTotal.textContent = r.totalDurationMs + "ms";
+      if (subTotal) subTotal.textContent = r.totalFiles + " test files executed";
+
+      const valAvg = document.getElementById("val-rt-avg");
+      const subAvg = document.getElementById("sub-rt-avg");
+      if (valAvg) valAvg.textContent = r.avgDurationMs + "ms";
+      if (subAvg) subAvg.textContent = "Median: " + r.medianDurationMs + "ms";
+
+      const p50Pct = r.totalFiles > 0 ? Math.round((r.pareto50.fileCount / r.totalFiles) * 1000) / 10 : 0;
+      const valP50 = document.getElementById("val-rt-p50");
+      const subP50 = document.getElementById("sub-rt-p50");
+      if (valP50) valP50.textContent = r.pareto50.fileCount + " files (" + p50Pct + "%)";
+      if (subP50) subP50.textContent = "Accounts for 50% runtime (" + r.pareto50.cumulativeDurationMs + "ms)";
+
+      const p90Pct = r.totalFiles > 0 ? Math.round((r.pareto90.fileCount / r.totalFiles) * 1000) / 10 : 0;
+      const valP90 = document.getElementById("val-rt-p90");
+      const subP90 = document.getElementById("sub-rt-p90");
+      if (valP90) valP90.textContent = r.pareto90.fileCount + " files (" + p90Pct + "%)";
+      if (subP90) subP90.textContent = "Accounts for 90% runtime (" + r.pareto90.cumulativeDurationMs + "ms)";
+
+      const valSlow = document.getElementById("val-rt-slowest");
+      const subSlow = document.getElementById("sub-rt-slowest");
+      if (r.slowestFile) {
+        const shortName = r.slowestFile.file.split("/").slice(-2).join("/");
+        if (valSlow) valSlow.textContent = r.slowestFile.durationMs + "ms";
+        if (subSlow) subSlow.textContent = shortName + " (" + r.slowestFile.percentage + "%)";
+      }
+    }
+
+    function setRuntimeSort(col) {
+      if (runtimeSortCol === col) {
+        runtimeSortAsc = !runtimeSortAsc;
+      } else {
+        runtimeSortCol = col;
+        runtimeSortAsc = col === "file";
+      }
+      runtimePage = 1;
+      renderRuntimeView();
+    }
+
+    function changeRuntimePage(delta) {
+      runtimePage += delta;
+      renderRuntimeView();
+    }
+
+    function renderRuntimeView() {
+      if (!DATA.runtime || !DATA.runtime.files) return;
+      initRuntimeMetrics();
+
+      let files = [...DATA.runtime.files];
+      if (runtimeSearch) {
+        const q = runtimeSearch.toLowerCase();
+        files = files.filter(f => f.file.toLowerCase().includes(q));
+      }
+
+      files.sort((a, b) => {
+        let valA = a.durationMs, valB = b.durationMs;
+        if (runtimeSortCol === "file") {
+          valA = a.file; valB = b.file;
+          return runtimeSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (runtimeSortCol === "pct") {
+          valA = a.percentage; valB = b.percentage;
+        }
+        return runtimeSortAsc ? valA - valB : valB - valA;
+      });
+
+      const totalItems = files.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / runtimePageSize));
+      runtimePage = Math.max(1, Math.min(runtimePage, totalPages));
+
+      const startIdx = (runtimePage - 1) * runtimePageSize;
+      const endIdx = Math.min(startIdx + runtimePageSize, totalItems);
+      const pageFiles = files.slice(startIdx, endIdx);
+      const maxDur = DATA.runtime.slowestFile ? DATA.runtime.slowestFile.durationMs : 1;
+
+      let html = '<table><thead><tr>';
+      html += '<th style="width: 60px;"># Rank</th>';
+      html += '<th onclick="setRuntimeSort(\\'file\\')">Test File ' + (runtimeSortCol === 'file' ? (runtimeSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th onclick="setRuntimeSort(\\'duration\\')" style="width: 140px;">Duration ' + (runtimeSortCol === 'duration' ? (runtimeSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th onclick="setRuntimeSort(\\'pct\\')" style="width: 120px;">Time Share ' + (runtimeSortCol === 'pct' ? (runtimeSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th style="width: 160px;">Concentration</th>';
+      html += '<th style="width: 90px;">Status</th>';
+      html += '</tr></thead><tbody>';
+
+      pageFiles.forEach((f, idx) => {
+        const globalRank = startIdx + idx + 1;
+        const durBarPct = maxDur > 0 ? Math.min(100, Math.round((f.durationMs / maxDur) * 100)) : 0;
+        const statusBadge = f.passed === false ? '<span class="badge badge-fail">FAIL</span>' : '<span class="badge badge-pass">PASS</span>';
+
+        html += '<tr>';
+        html += '<td style="font-family: \\'JetBrains Mono\\', monospace; color: var(--text-dim);">' + globalRank + '</td>';
+        html += '<td><div class="item-name">🧪 <strong>' + escapeHtml(f.file) + '</strong></div></td>';
+        html += '<td><span style="font-family: \\'JetBrains Mono\\', monospace; font-weight: 700; color: var(--text-main);">' + f.durationMs + 'ms</span></td>';
+        html += '<td><span class="badge badge-neutral">' + f.percentage + '%</span></td>';
+        html += '<td><div class="runtime-bar-cell"><div class="runtime-bar-track"><div class="runtime-bar-fill" style="width:' + durBarPct + '%"></div></div><span style="font-size: 0.75rem; color: var(--text-dim); font-family: \\'JetBrains Mono\\', monospace;">' + durBarPct + '%</span></div></td>';
+        html += '<td>' + statusBadge + '</td>';
+        html += '</tr>';
+      });
+
+      if (pageFiles.length === 0) {
+        html += '<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 2rem;">No test files matched search query.</td></tr>';
+      }
+
+      html += '</tbody></table>';
+
+      // Pagination bar
+      html += '<div class="pagination-bar">';
+      html += '<div style="font-size: 0.85rem; color: var(--text-muted);">Showing <strong>' + (totalItems > 0 ? startIdx + 1 : 0) + ' - ' + endIdx + '</strong> of <strong>' + totalItems + '</strong> files (50 per page)</div>';
+      html += '<div class="page-controls">';
+      html += '<button class="page-btn" ' + (runtimePage <= 1 ? 'disabled' : '') + ' onclick="changeRuntimePage(-1)">&lt; Prev</button>';
+      html += '<span class="page-indicator">Page ' + runtimePage + ' of ' + totalPages + '</span>';
+      html += '<button class="page-btn" ' + (runtimePage >= totalPages ? 'disabled' : '') + ' onclick="changeRuntimePage(1)">Next &gt;</button>';
+      html += '</div>';
+      html += '</div>';
+
+      const rtView = document.getElementById("runtime-content-view");
+      if (rtView) rtView.innerHTML = html;
+    }
+  `;
+}

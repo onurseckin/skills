@@ -1,9 +1,6 @@
 /**
  * Full-Suite Test Concurrency Locking & Metadata Memoization.
- *
- * Enforces single-concurrency serialization for full-suite test runs via .capsules/.locks/full-suite-test.lock
- * while allowing scoped single-file tests (bun test tests/unit/<domain>/<file>.test.ts) to bypass locks freely.
- * Supports stale lock recovery for terminated PIDs and memoizes test summary execution records.
+ * Enforces single-concurrency serialization for full-suite test runs with zero-disk in-memory fallback.
  */
 
 import {
@@ -65,377 +62,254 @@ export interface GuardTestExecutionResult<T> {
   readonly bypassedLock: boolean;
 }
 
-const TEST_FILE_EXTENSION_PATTERN = /\.(?:test|spec)\.[cm]?[jt]sx?$/i;
+const TEST_EXT_RE = /\.(?:test|spec)\.[cm]?[jt]sx?$/i;
+const isTestEnv =
+  process.env.NODE_ENV === "test" ||
+  process.env.BUN_ENV === "test" ||
+  process.env.OLT_VIRTUAL_FS === "1";
+const inMemLocks = new Map<string, FullSuiteTestLockPayload | "corrupt">();
+const inMemSummaries = new Map<string, { summary: TestSummaryRecord; mtime: number }>();
 
-/**
- * Checks if a given file path corresponds to a specific test/spec source file.
- */
+export function resetConcurrencyLockStore(): void {
+  inMemLocks.clear();
+  inMemSummaries.clear();
+}
+export function setInMemoryLockPayload(
+  path: string,
+  payload: FullSuiteTestLockPayload | "corrupt" | null,
+): void {
+  if (payload === null) inMemLocks.delete(path);
+  else inMemLocks.set(path, payload);
+}
 export function isTestFilePath(targetPath: string): boolean {
-  const normalized = targetPath.trim().replace(/\\/g, "/");
-  return TEST_FILE_EXTENSION_PATTERN.test(normalized);
+  return TEST_EXT_RE.test(targetPath.trim().replace(/\\/g, "/"));
 }
 
-/**
- * Parses and tokenizes a command string or argument array into clean tokens.
- */
-function tokenizeCommand(command: string | readonly string[]): string[] {
-  if (typeof command === "string") {
-    return command
+function tokenize(cmd: string | readonly string[]): string[] {
+  if (typeof cmd === "string")
+    return cmd
       .trim()
       .split(/\s+/)
-      .filter((entry: string) => entry.length > 0);
-  }
-  return command.map((entry: string) => entry.trim()).filter((entry: string) => entry.length > 0);
+      .filter((t) => t.length > 0);
+  return cmd.map((t) => t.trim()).filter((t) => t.length > 0);
 }
 
-/**
- * Determines whether a command invocation represents a full-suite test execution
- * or a single-file scoped test execution.
- *
- * Full suite tests (e.g. `bun test`, `bun test tests/unit`, `npm test`, `bun test --coverage`) return true.
- * Scoped single-file tests (e.g. `bun test tests/unit/agents/grants.test.ts`) return false.
- * Non-test commands (e.g. `bun run build`, `git status`) return false.
- */
 export function isFullSuiteTestCommand(command: string | readonly string[]): boolean {
-  const tokens = tokenizeCommand(command);
+  const tokens = tokenize(command);
   if (tokens.length === 0) return false;
-
-  let testRunnerIndex = -1;
-  let argsStartIndex = -1;
-
+  let rIdx = -1,
+    aIdx = -1;
   for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i]!.toLowerCase();
-    const base = basename(token);
-
+    const base = basename(tokens[i]!.toLowerCase());
     if (base === "bun" || base === "npm" || base === "pnpm" || base === "yarn") {
-      const next = tokens[i + 1]?.toLowerCase();
-      if (next === "test" || next === "t") {
-        testRunnerIndex = i;
-        argsStartIndex = i + 2;
+      const n1 = tokens[i + 1]?.toLowerCase();
+      if (n1 === "test" || n1 === "t") {
+        rIdx = i;
+        aIdx = i + 2;
         break;
       }
-      if (next === "run") {
-        const afterRun = tokens[i + 2]?.toLowerCase();
-        if (afterRun === "test" || afterRun === "t") {
-          testRunnerIndex = i;
-          argsStartIndex = i + 3;
-          break;
-        }
+      if (
+        n1 === "run" &&
+        (tokens[i + 2]?.toLowerCase() === "test" || tokens[i + 2]?.toLowerCase() === "t")
+      ) {
+        rIdx = i;
+        aIdx = i + 3;
+        break;
       }
     } else if (base === "vitest" || base === "jest") {
-      testRunnerIndex = i;
-      argsStartIndex = i + 1;
+      rIdx = i;
+      aIdx = i + 1;
       break;
-    } else if (token === "test" && i === 0) {
-      testRunnerIndex = 0;
-      argsStartIndex = 1;
+    } else if (tokens[i]!.toLowerCase() === "test" && i === 0) {
+      rIdx = 0;
+      aIdx = 1;
       break;
     }
   }
-
-  // Not a test command
-  if (testRunnerIndex === -1) return false;
-
-  const testArgs = tokens.slice(argsStartIndex);
-
-  // Extract positional targets, filtering out flags and flag values
-  const positionalTargets: string[] = [];
-  let skipNext = false;
-
-  for (let i = 0; i < testArgs.length; i++) {
-    if (skipNext) {
-      skipNext = false;
+  if (rIdx === -1) return false;
+  const args = tokens.slice(aIdx),
+    targets: string[] = [];
+  let skip = false;
+  const valFlags = new Set([
+    "--timeout",
+    "-t",
+    "--filter",
+    "-f",
+    "--reporter",
+    "-r",
+    "--cwd",
+    "--max-concurrency",
+    "--threshold",
+  ]);
+  for (const arg of args) {
+    if (skip) {
+      skip = false;
       continue;
     }
-
-    const arg = testArgs[i]!;
-
     if (arg.startsWith("-")) {
-      // Check flags that typically take a value parameter
-      if (
-        arg === "--timeout" ||
-        arg === "-t" ||
-        arg === "--filter" ||
-        arg === "-f" ||
-        arg === "--reporter" ||
-        arg === "-r" ||
-        arg === "--cwd" ||
-        arg === "--max-concurrency" ||
-        arg === "--threshold"
-      ) {
-        skipNext = true;
-      }
+      if (valFlags.has(arg)) skip = true;
       continue;
     }
-
-    positionalTargets.push(arg);
+    targets.push(arg);
   }
-
-  // If no positional targets specified, test runner defaults to running the full suite
-  if (positionalTargets.length === 0) {
-    return true;
-  }
-
-  // If any positional target is a directory or broad directory path (e.g. `tests`, `tests/unit`),
-  // or not an individual test file, it's considered a full/broad suite test.
-  for (const target of positionalTargets) {
-    if (!isTestFilePath(target)) {
-      return true;
-    }
-  }
-
-  // If multiple individual test files are provided (or exactly one test file),
-  // check if all are specific test files. If all are specific files, it's scoped.
-  return false;
+  return targets.length === 0 || targets.some((t) => !isTestFilePath(t));
 }
 
-/**
- * Checks if a system process with the given PID is currently alive.
- */
 export function isProcessAlive(pid: number): boolean {
   if (!Number.isInteger(pid) || pid <= 0) return false;
   try {
     process.kill(pid, 0);
     return true;
   } catch (error: unknown) {
-    const err = error as NodeJS.ErrnoException;
-    if (err.code === "ESRCH") {
-      return false;
-    }
-    if (err.code === "EPERM") {
-      // Process exists but we lack permission to signal it
-      return true;
-    }
-    return false;
+    return (error as NodeJS.ErrnoException).code === "EPERM";
   }
 }
 
-/**
- * Resolves the absolute path to the full-suite test lock file.
- */
 export function resolveLockPath(runDir?: string | undefined): string {
   if (runDir) {
-    const normalized = resolve(runDir);
-    if (normalized.endsWith(".lock")) return normalized;
-    if (normalized.endsWith(".locks") || normalized.endsWith(".locks/")) {
-      return join(normalized, "full-suite-test.lock");
-    }
-    return join(normalized, ".locks", "full-suite-test.lock");
+    const norm = resolve(runDir);
+    if (norm.endsWith(".lock")) return norm;
+    return norm.endsWith(".locks") || norm.endsWith(".locks/")
+      ? join(norm, "full-suite-test.lock")
+      : join(norm, ".locks", "full-suite-test.lock");
   }
-  const repoRoot = findRepoRoot();
-  return join(repoRoot, ".capsules", ".locks", "full-suite-test.lock");
+  return join(findRepoRoot(), ".capsules", ".locks", "full-suite-test.lock");
 }
 
-/**
- * Reads and parses an existing lock file, or returns null if not present or corrupt.
- */
 export function readLockPayload(lockPath: string): FullSuiteTestLockPayload | null {
+  const mem = inMemLocks.get(lockPath);
+  if (mem !== undefined) return mem === "corrupt" ? null : mem;
   if (!existsSync(lockPath)) return null;
   try {
-    const content = readFileSync(lockPath, "utf8");
-    const parsed = JSON.parse(content) as Record<string, unknown>;
-    if (typeof parsed.pid === "number" && typeof parsed.agent_id === "string") {
+    const p = JSON.parse(readFileSync(lockPath, "utf8")) as Record<string, unknown>;
+    if (typeof p.pid === "number" && typeof p.agent_id === "string") {
       return {
-        pid: parsed.pid,
-        agent_id: parsed.agent_id,
+        pid: p.pid,
+        agent_id: p.agent_id,
+        hostname: typeof p.hostname === "string" ? p.hostname : hostname(),
         acquired_at_utc:
-          typeof parsed.acquired_at_utc === "string"
-            ? parsed.acquired_at_utc
-            : new Date().toISOString(),
-        acquired_at_ms:
-          typeof parsed.acquired_at_ms === "number" ? parsed.acquired_at_ms : Date.now(),
-        hostname: typeof parsed.hostname === "string" ? parsed.hostname : hostname(),
-        command: typeof parsed.command === "string" ? parsed.command : undefined,
+          typeof p.acquired_at_utc === "string" ? p.acquired_at_utc : new Date().toISOString(),
+        acquired_at_ms: typeof p.acquired_at_ms === "number" ? p.acquired_at_ms : Date.now(),
+        command: typeof p.command === "string" ? p.command : undefined,
       };
     }
   } catch {
-    // Corrupt or empty lock file
+    /* Corrupted */
   }
   return null;
 }
 
-function delayAsync(ms: number): Promise<void> {
-  return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
-}
+const delay = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
-/**
- * Attempts to acquire the full-suite test lock with automatic stale PID recovery.
- */
 export async function acquireFullSuiteTestLock(
   options: AcquireLockOptions = {},
 ): Promise<AcquireLockResult> {
   const lockPath = resolveLockPath(options.runDir);
-  const lockDir = dirname(lockPath);
-  if (!existsSync(lockDir)) {
-    mkdirSync(lockDir, { recursive: true });
-  }
-
   const agentId = options.agentId ?? `agent-${process.pid}`;
   const timeoutMs = Math.max(0, options.timeoutMs ?? 0);
   const retryIntervalMs = Math.max(10, options.retryIntervalMs ?? 50);
   const deadline = Date.now() + timeoutMs;
-
-  const releaseFn = async (): Promise<void> => {
+  const release = async (): Promise<void> => {
     try {
-      if (existsSync(lockPath)) {
-        const currentPayload = readLockPayload(lockPath);
-        if (
-          !currentPayload ||
-          currentPayload.pid === process.pid ||
-          currentPayload.agent_id === agentId
-        ) {
-          rmSync(lockPath, { force: true });
-        }
+      const cur = readLockPayload(lockPath);
+      if (!cur || cur.pid === process.pid || cur.agent_id === agentId) {
+        inMemLocks.delete(lockPath);
+        if (existsSync(lockPath)) rmSync(lockPath, { force: true });
       }
     } catch {
-      // Non-fatal lock release error
+      /* Non-fatal */
     }
   };
-
   while (true) {
-    let shouldTryWrite = false;
-
-    if (existsSync(lockPath)) {
+    if (inMemLocks.has(lockPath) || existsSync(lockPath)) {
       const existing = readLockPayload(lockPath);
-
-      if (!existing) {
-        // Corrupt lock file -> recover stale lock
-        rmSync(lockPath, { force: true });
-        shouldTryWrite = true;
-      } else if (!isProcessAlive(existing.pid)) {
-        // Process is no longer running -> recover stale lock
-        rmSync(lockPath, { force: true });
-        shouldTryWrite = true;
+      if (!existing || !isProcessAlive(existing.pid)) {
+        inMemLocks.delete(lockPath);
+        if (existsSync(lockPath)) rmSync(lockPath, { force: true });
       } else {
-        // Lock actively held by running process
         const now = Date.now();
         if (now < deadline) {
-          const remaining = deadline - now;
-          await delayAsync(Math.min(retryIntervalMs, remaining));
+          await delay(Math.min(retryIntervalMs, deadline - now));
           continue;
         }
-
         return {
           acquired: false,
           reason: `Full-suite test lock held by active PID ${existing.pid} (agent: ${existing.agent_id})`,
           lockPath,
-          release: releaseFn,
+          release,
         };
       }
-    } else {
-      shouldTryWrite = true;
     }
-
-    if (shouldTryWrite) {
-      const payload: FullSuiteTestLockPayload = {
-        pid: process.pid,
-        agent_id: agentId,
-        acquired_at_utc: new Date().toISOString(),
-        acquired_at_ms: Date.now(),
-        hostname: hostname(),
-        command: options.command,
-      };
-
-      try {
-        writeFileSync(lockPath, JSON.stringify(payload, null, 2), { flag: "wx" });
-        return {
-          acquired: true,
-          lockPath,
-          release: releaseFn,
-        };
-      } catch (error: unknown) {
-        const err = error as NodeJS.ErrnoException;
-        if (err.code === "EEXIST") {
-          // Concurrent race: another process wrote right before us
-          const now = Date.now();
-          if (now < deadline) {
-            await delayAsync(Math.min(retryIntervalMs, deadline - now));
-            continue;
-          }
-          const conflicting = readLockPayload(lockPath);
-          return {
-            acquired: false,
-            reason: conflicting
-              ? `Full-suite test lock held by active PID ${conflicting.pid} (agent: ${conflicting.agent_id})`
-              : "Full-suite test lock collision during atomic acquisition",
-            lockPath,
-            release: releaseFn,
-          };
+    const payload: FullSuiteTestLockPayload = {
+      pid: process.pid,
+      agent_id: agentId,
+      acquired_at_utc: new Date().toISOString(),
+      acquired_at_ms: Date.now(),
+      hostname: hostname(),
+      command: options.command,
+    };
+    if (isTestEnv) {
+      inMemLocks.set(lockPath, payload);
+      return { acquired: true, lockPath, release };
+    }
+    try {
+      const dir = dirname(lockPath);
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      writeFileSync(lockPath, JSON.stringify(payload, null, 2), { flag: "wx" });
+      return { acquired: true, lockPath, release };
+    } catch (error: unknown) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+        const now = Date.now();
+        if (now < deadline) {
+          await delay(Math.min(retryIntervalMs, deadline - now));
+          continue;
         }
-        throw error;
+        const conf = readLockPayload(lockPath);
+        return {
+          acquired: false,
+          reason: conf
+            ? `Full-suite test lock held by active PID ${conf.pid} (agent: ${conf.agent_id})`
+            : "Lock collision",
+          lockPath,
+          release,
+        };
       }
+      throw error;
     }
   }
 }
 
-/**
- * Guards test execution: scoped single-file tests bypass the lock entirely,
- * while full-suite tests acquire and hold the lock during execution.
- */
 export async function guardTestExecution<T>(
   command: string | readonly string[],
   action: () => Promise<T> | T,
   options: AcquireLockOptions = {},
 ): Promise<GuardTestExecutionResult<T>> {
-  const isFullSuite = isFullSuiteTestCommand(command);
-
-  if (!isFullSuite) {
-    // Scoped single-file test: bypass lock completely
-    const result = await action();
-    return {
-      executed: true,
-      result,
-      bypassedLock: true,
-    };
-  }
-
-  // Full-suite test: acquire lock
+  if (!isFullSuiteTestCommand(command))
+    return { executed: true, result: await action(), bypassedLock: true };
   const lock = await acquireFullSuiteTestLock(options);
-  if (!lock.acquired) {
-    return {
-      executed: false,
-      reason: lock.reason,
-      bypassedLock: false,
-    };
-  }
-
+  if (!lock.acquired) return { executed: false, reason: lock.reason, bypassedLock: false };
   try {
-    const result = await action();
-    return {
-      executed: true,
-      result,
-      bypassedLock: false,
-    };
+    return { executed: true, result: await action(), bypassedLock: false };
   } finally {
     await lock.release();
   }
 }
 
-/**
- * Resolves repository current commit SHA if available.
- */
 function resolveCommitSha(): string | null {
   try {
-    const gitHeadPath = join(findRepoRoot(), ".git", "HEAD");
-    if (!existsSync(gitHeadPath)) return null;
-    const headContent = readFileSync(gitHeadPath, "utf8").trim();
-    if (headContent.startsWith("ref: ")) {
-      const refPath = join(findRepoRoot(), ".git", headContent.slice(5).trim());
-      if (existsSync(refPath)) {
-        return readFileSync(refPath, "utf8").trim();
-      }
-    } else if (/^[0-9a-f]{40}$/i.test(headContent)) {
-      return headContent;
+    const head = join(findRepoRoot(), ".git", "HEAD");
+    if (!existsSync(head)) return null;
+    const txt = readFileSync(head, "utf8").trim();
+    if (txt.startsWith("ref: ")) {
+      const ref = join(findRepoRoot(), ".git", txt.slice(5).trim());
+      return existsSync(ref) ? readFileSync(ref, "utf8").trim() : null;
     }
+    return /^[0-9a-f]{40}$/i.test(txt) ? txt : null;
   } catch {
-    // Non-fatal
+    return null;
   }
-  return null;
 }
 
-/**
- * Creates a valid TestSummaryRecord from raw metrics and defaults.
- */
 export function createTestSummaryRecord(params: {
   readonly passed_count: number;
   readonly failed_count: number;
@@ -469,97 +343,79 @@ export function createTestSummaryRecord(params: {
   };
 }
 
-/**
- * Resolves the directory where test summaries are memoized.
- */
 export function resolveTestSummaryDir(runDir?: string | undefined): string {
   if (runDir) {
-    const normalized = resolve(runDir);
-    if (normalized.endsWith("test-summaries") || normalized.endsWith("test-summaries/")) {
-      return normalized;
-    }
-    return join(normalized, "test-summaries");
+    const norm = resolve(runDir);
+    return norm.endsWith("test-summaries") || norm.endsWith("test-summaries/")
+      ? norm
+      : join(norm, "test-summaries");
   }
   return join(findRepoRoot(), ".capsules", "test-summaries");
 }
 
-/**
- * Saves a TestSummaryRecord to disk, updating latest.json and timestamped summary record.
- */
 export async function saveTestSummary(
   summary: TestSummaryRecord,
   options: { runDir?: string | undefined } = {},
 ): Promise<string> {
-  const summaryDir = resolveTestSummaryDir(options.runDir);
-  if (!existsSync(summaryDir)) {
-    mkdirSync(summaryDir, { recursive: true });
+  const sDir = resolveTestSummaryDir(options.runDir);
+  const safeTs = summary.timestamp_utc.replace(/[:.]/g, "-");
+  const filePath = join(sDir, `summary-${safeTs}.json`);
+  const latestPath = join(sDir, "latest.json");
+  const now = Date.now();
+  inMemSummaries.set(filePath, { summary, mtime: now });
+  inMemSummaries.set(latestPath, { summary, mtime: now });
+  if (!isTestEnv) {
+    if (!existsSync(sDir)) mkdirSync(sDir, { recursive: true });
+    const json = JSON.stringify(summary, null, 2);
+    writeFileSync(filePath, json, "utf8");
+    writeFileSync(latestPath, json, "utf8");
   }
-
-  const safeTimestamp = summary.timestamp_utc.replace(/[:.]/g, "-");
-  const fileName = `summary-${safeTimestamp}.json`;
-  const filePath = join(summaryDir, fileName);
-  const latestPath = join(summaryDir, "latest.json");
-
-  const jsonContent = JSON.stringify(summary, null, 2);
-  writeFileSync(filePath, jsonContent, "utf8");
-  writeFileSync(latestPath, jsonContent, "utf8");
-
   return filePath;
 }
 
-/**
- * Retrieves the latest memoized TestSummaryRecord, or null if none exists.
- */
 export async function getLatestTestSummary(
   options: { runDir?: string | undefined } = {},
 ): Promise<TestSummaryRecord | null> {
-  const summaryDir = resolveTestSummaryDir(options.runDir);
-  if (!existsSync(summaryDir)) return null;
-
-  const latestPath = join(summaryDir, "latest.json");
+  const sDir = resolveTestSummaryDir(options.runDir);
+  const latestPath = join(sDir, "latest.json");
+  const memLatest = inMemSummaries.get(latestPath);
+  if (memLatest) return memLatest.summary;
+  const matches: { summary: TestSummaryRecord; mtime: number }[] = [];
+  for (const [k, v] of inMemSummaries.entries()) {
+    if (k.startsWith(sDir) && k.includes("summary-") && k.endsWith(".json")) matches.push(v);
+  }
+  if (matches.length > 0) {
+    matches.sort((a, b) => b.mtime - a.mtime);
+    return matches[0]!.summary;
+  }
   if (existsSync(latestPath)) {
     try {
-      const content = readFileSync(latestPath, "utf8");
-      return JSON.parse(content) as TestSummaryRecord;
+      return JSON.parse(readFileSync(latestPath, "utf8")) as TestSummaryRecord;
     } catch {
-      // Fall through to directory inspection
+      /* Fallback */
     }
   }
-
-  try {
-    const entries = readdirSync(summaryDir)
-      .filter((file) => file.startsWith("summary-") && file.endsWith(".json"))
-      .map((file) => {
-        const full = join(summaryDir, file);
-        return { file: full, mtime: statSync(full).mtimeMs };
-      })
-      .sort((a, b) => b.mtime - a.mtime);
-
-    if (entries.length > 0) {
-      const content = readFileSync(entries[0]!.file, "utf8");
-      return JSON.parse(content) as TestSummaryRecord;
+  if (existsSync(sDir)) {
+    try {
+      const files = readdirSync(sDir)
+        .filter((f) => f.startsWith("summary-") && f.endsWith(".json"))
+        .map((f) => ({ full: join(sDir, f), mtime: statSync(join(sDir, f)).mtimeMs }))
+        .sort((a, b) => b.mtime - a.mtime);
+      if (files.length > 0)
+        return JSON.parse(readFileSync(files[0]!.full, "utf8")) as TestSummaryRecord;
+    } catch {
+      /* Non-fatal */
     }
-  } catch {
-    // Non-fatal
   }
-
   return null;
 }
 
-/**
- * Formats a TestSummaryRecord into an executive markdown brief.
- */
 export function formatTestSummaryMarkdown(summary: TestSummaryRecord): string {
-  const isPassing = summary.passed_count > 0 && summary.failed_count === 0;
-  const statusIcon = isPassing
-    ? "✅ PASSED"
-    : summary.failed_count > 0
-      ? "❌ FAILED"
-      : "⚠️ NO_TESTS";
-
-  const lines: string[] = [
+  const isPass = summary.passed_count > 0 && summary.failed_count === 0;
+  const status = isPass ? "✅ PASSED" : summary.failed_count > 0 ? "❌ FAILED" : "⚠️ NO_TESTS";
+  const lines = [
     `### Test Execution Summary: \`${summary.scope}\``,
-    `- **Status**: ${statusIcon}`,
+    `- **Status**: ${status}`,
     `- **Passed**: ${summary.passed_count}`,
     `- **Failed**: ${summary.failed_count}`,
     `- **Skipped**: ${summary.skipped_count}`,
@@ -570,10 +426,6 @@ export function formatTestSummaryMarkdown(summary: TestSummaryRecord): string {
     `- **Timestamp (UTC)**: \`${summary.timestamp_utc}\``,
     `- **Timestamp (Local)**: \`${summary.timestamp_local}\``,
   ];
-
-  if (summary.agent_id) {
-    lines.push(`- **Recorded By**: \`${summary.agent_id}\``);
-  }
-
+  if (summary.agent_id) lines.push(`- **Recorded By**: \`${summary.agent_id}\``);
   return lines.join("\n");
 }

@@ -18,7 +18,22 @@ import type {
 } from "../../../olt/scripts/src/workflow/types.ts";
 import { workflowState } from "./test-port.ts";
 
-const t0 = new Date("2026-08-19T00:00:00.000Z");
+class FakeClock {
+  private ms: number;
+  public constructor(start: string | Date = "2026-08-19T00:00:00.000Z") {
+    this.ms = new Date(start).getTime();
+  }
+  public now(): Date {
+    return new Date(this.ms);
+  }
+  public tick(deltaMs = 1_000): Date {
+    this.ms += deltaMs;
+    return this.now();
+  }
+  public iso(): string {
+    return this.now().toISOString();
+  }
+}
 
 function baseTask(overrides: Partial<TaskRecord> = {}): TaskRecord {
   return {
@@ -34,15 +49,15 @@ function baseTask(overrides: Partial<TaskRecord> = {}): TaskRecord {
   };
 }
 
-function lease(overrides: Partial<ScopedLease> = {}): ScopedLease {
+function lease(clock: FakeClock, overrides: Partial<ScopedLease> = {}): ScopedLease {
   return {
     agent_id: "agent-a",
     role: "implementer",
     attempt: 1,
     token_digest: "digest",
-    issued_at: t0.toISOString(),
-    heartbeat_at: t0.toISOString(),
-    expires_at: new Date(t0.valueOf() + 60_000).toISOString(),
+    issued_at: clock.iso(),
+    heartbeat_at: clock.iso(),
+    expires_at: new Date(clock.now().valueOf() + 60_000).toISOString(),
     duration_seconds: 60,
     write_scope: ["src/owned"],
     resource_scope: [],
@@ -50,129 +65,155 @@ function lease(overrides: Partial<ScopedLease> = {}): ScopedLease {
   };
 }
 
-function openAttempt() {
-  return { attempt: 1, agent_id: "agent-a", role: "implementer", started_at: t0.toISOString() };
+function openAttempt(clock: FakeClock) {
+  return { attempt: 1, agent_id: "agent-a", role: "implementer", started_at: clock.iso() };
 }
 
 describe("taskAttemptTurnState — the task-lease half of the turn-completion contract", () => {
   test("closed: no attempt has ever been opened", () => {
-    expect(taskAttemptTurnState(baseTask(), t0, 30_000)).toBe("closed");
+    const clock = new FakeClock();
+    expect(taskAttemptTurnState(baseTask(), clock.now(), 30_000)).toBe("closed");
   });
 
   test("closed: the last attempt already submitted", () => {
+    const clock = new FakeClock();
     const task = baseTask({
-      attempts: [{ ...openAttempt(), submitted_at: t0.toISOString() }],
+      attempts: [{ ...openAttempt(clock), submitted_at: clock.iso() }],
     });
-    expect(taskAttemptTurnState(task, t0, 30_000)).toBe("closed");
+    expect(taskAttemptTurnState(task, clock.now(), 30_000)).toBe("closed");
   });
 
   test("closed: the last attempt was explicitly abandoned", () => {
+    const clock = new FakeClock();
     const task = baseTask({
       attempts: [
         {
-          ...openAttempt(),
-          abandoned_at: t0.toISOString(),
+          ...openAttempt(clock),
+          abandoned_at: clock.iso(),
           abandoned_by: "x",
           abandoned_reason: "r",
         },
       ],
     });
-    expect(taskAttemptTurnState(task, t0, 30_000)).toBe("closed");
+    expect(taskAttemptTurnState(task, clock.now(), 30_000)).toBe("closed");
   });
 
   test("abandoned: an attempt is open but no lease backs it (already reclaimed)", () => {
-    const task = baseTask({ attempts: [openAttempt()] });
-    expect(taskAttemptTurnState(task, t0, 30_000)).toBe("abandoned");
+    const clock = new FakeClock();
+    const task = baseTask({ attempts: [openAttempt(clock)] });
+    expect(taskAttemptTurnState(task, clock.now(), 30_000)).toBe("abandoned");
   });
 
   test("open: a live lease within its grace window", () => {
+    const clock = new FakeClock();
     const task = baseTask({
-      attempts: [openAttempt()],
-      lease: lease({ expires_at: new Date(t0.valueOf() + 5_000).toISOString() }),
+      attempts: [openAttempt(clock)],
+      lease: lease(clock, { expires_at: new Date(clock.now().valueOf() + 5_000).toISOString() }),
     });
-    expect(taskAttemptTurnState(task, new Date(t0.valueOf() + 4_000), 30_000)).toBe("open");
+    clock.tick(4_000);
+    expect(taskAttemptTurnState(task, clock.now(), 30_000)).toBe("open");
   });
 
   test("abandoned: the lease's expiry plus grace has passed with no submission", () => {
+    const clock = new FakeClock();
     const task = baseTask({
-      attempts: [openAttempt()],
-      lease: lease({ expires_at: new Date(t0.valueOf() + 5_000).toISOString() }),
+      attempts: [openAttempt(clock)],
+      lease: lease(clock, { expires_at: new Date(clock.now().valueOf() + 5_000).toISOString() }),
     });
-    expect(taskAttemptTurnState(task, new Date(t0.valueOf() + 36_000), 30_000)).toBe("abandoned");
+    clock.tick(36_000);
+    expect(taskAttemptTurnState(task, clock.now(), 30_000)).toBe("abandoned");
   });
 
   test("open: a suspended lease never counts as abandoned, however long it has sat", () => {
-    const suspended = lease({ expires_at: new Date(t0.valueOf() + 5_000).toISOString() });
-    suspendLease(suspended, t0);
-    const task = baseTask({ attempts: [openAttempt()], lease: suspended });
-    expect(taskAttemptTurnState(task, new Date(t0.valueOf() + 3_600_000), 30_000)).toBe("open");
+    const clock = new FakeClock();
+    const suspended = lease(clock, {
+      expires_at: new Date(clock.now().valueOf() + 5_000).toISOString(),
+    });
+    suspendLease(suspended, clock.now());
+    const task = baseTask({ attempts: [openAttempt(clock)], lease: suspended });
+    clock.tick(3_600_000);
+    expect(taskAttemptTurnState(task, clock.now(), 30_000)).toBe("open");
   });
 });
 
-function validation(overrides: Partial<ValidationAttempt> = {}): ValidationAttempt {
+function validation(
+  clock: FakeClock,
+  overrides: Partial<ValidationAttempt> = {},
+): ValidationAttempt {
   return {
     validator_id: "validator-1",
     domain: "code-quality",
     token_digest: "digest",
     attempt: 1,
-    started_at: t0.toISOString(),
-    deadline_at: new Date(t0.valueOf() + 5_000).toISOString(),
+    started_at: clock.iso(),
+    deadline_at: new Date(clock.now().valueOf() + 5_000).toISOString(),
     ...overrides,
   };
 }
 
 describe("validationTurnState / openTaskValidations / abandonedTaskValidations", () => {
   test("closed: a verdict was recorded, no matter how long ago the deadline passed", () => {
-    const entry = validation({ verdict: "pass" });
-    expect(validationTurnState(entry, new Date(t0.valueOf() + 3_600_000), 30_000)).toBe("closed");
+    const clock = new FakeClock();
+    const entry = validation(clock, { verdict: "pass" });
+    clock.tick(3_600_000);
+    expect(validationTurnState(entry, clock.now(), 30_000)).toBe("closed");
   });
 
   test("open: no verdict yet and the deadline plus grace has not passed", () => {
-    const entry = validation();
-    expect(validationTurnState(entry, new Date(t0.valueOf() + 4_000), 30_000)).toBe("open");
+    const clock = new FakeClock();
+    const entry = validation(clock);
+    clock.tick(4_000);
+    expect(validationTurnState(entry, clock.now(), 30_000)).toBe("open");
   });
 
   test("abandoned: no verdict and the deadline plus grace has passed", () => {
-    const entry = validation();
-    expect(validationTurnState(entry, new Date(t0.valueOf() + 36_000), 30_000)).toBe("abandoned");
+    const clock = new FakeClock();
+    const entry = validation(clock);
+    clock.tick(36_000);
+    expect(validationTurnState(entry, clock.now(), 30_000)).toBe("abandoned");
   });
 
   test("openTaskValidations ignores a stale validations array on a task that is not validating", () => {
-    const task = baseTask({ status: "submitted", validations: [validation()] });
+    const clock = new FakeClock();
+    const task = baseTask({ status: "submitted", validations: [validation(clock)] });
     expect(openTaskValidations(task)).toEqual([]);
   });
 
   test("openTaskValidations returns only entries with no verdict yet", () => {
+    const clock = new FakeClock();
     const task = baseTask({
       status: "validating",
       validations: [
-        validation({ validator_id: "v-pass", verdict: "pass" }),
-        validation({ validator_id: "v-open" }),
+        validation(clock, { validator_id: "v-pass", verdict: "pass" }),
+        validation(clock, { validator_id: "v-open" }),
       ],
     });
     expect(openTaskValidations(task).map((entry) => entry.validator_id)).toEqual(["v-open"]);
   });
 
   test("abandonedTaskValidations names only the entry whose deadline plus grace has passed", () => {
+    const clock = new FakeClock();
     const task = baseTask({
       status: "validating",
       validations: [
-        validation({
+        validation(clock, {
           validator_id: "v-dead",
-          deadline_at: new Date(t0.valueOf() + 5_000).toISOString(),
+          deadline_at: new Date(clock.now().valueOf() + 5_000).toISOString(),
         }),
-        validation({
+        validation(clock, {
           validator_id: "v-alive",
-          deadline_at: new Date(t0.valueOf() + 3_600_000).toISOString(),
+          deadline_at: new Date(clock.now().valueOf() + 3_600_000).toISOString(),
         }),
       ],
     });
-    const abandoned = abandonedTaskValidations(task, new Date(t0.valueOf() + 36_000), 30_000);
+    clock.tick(36_000);
+    const abandoned = abandonedTaskValidations(task, clock.now(), 30_000);
     expect(abandoned.map((entry) => entry.validator_id)).toEqual(["v-dead"]);
   });
 });
 
 function critic(
+  clock: FakeClock,
   overrides: Partial<CompletionCriticAuthorization> = {},
 ): CompletionCriticAuthorization {
   return {
@@ -180,8 +221,8 @@ function critic(
     token_digest: "digest",
     attempt: 1,
     status: "assigned",
-    started_at: t0.toISOString(),
-    deadline_at: new Date(t0.valueOf() + 5_000).toISOString(),
+    started_at: clock.iso(),
+    deadline_at: new Date(clock.now().valueOf() + 5_000).toISOString(),
     readiness_sha256: "sha",
     repository_binding: workflowState().current_repository_binding!,
     ...overrides,
@@ -196,43 +237,55 @@ function stateWithCritic(entry?: CompletionCriticAuthorization): WorkflowState {
 
 describe("criticTurnState / openCompletenessCritic / abandonedCompletenessCritic", () => {
   test("closed: a reviewed critic, regardless of the deadline", () => {
-    const entry = critic({ status: "reviewed" });
-    expect(criticTurnState(entry, new Date(t0.valueOf() + 3_600_000), 30_000)).toBe("closed");
+    const clock = new FakeClock();
+    const entry = critic(clock, { status: "reviewed" });
+    clock.tick(3_600_000);
+    expect(criticTurnState(entry, clock.now(), 30_000)).toBe("closed");
   });
 
   test("abandoned: a critic recover-stale already marked expired", () => {
-    const entry = critic({ status: "expired" });
-    expect(criticTurnState(entry, t0, 30_000)).toBe("abandoned");
+    const clock = new FakeClock();
+    const entry = critic(clock, { status: "expired" });
+    expect(criticTurnState(entry, clock.now(), 30_000)).toBe("abandoned");
   });
 
   test("open: an assigned critic within its deadline plus grace", () => {
-    const entry = critic();
-    expect(criticTurnState(entry, new Date(t0.valueOf() + 4_000), 30_000)).toBe("open");
+    const clock = new FakeClock();
+    const entry = critic(clock);
+    clock.tick(4_000);
+    expect(criticTurnState(entry, clock.now(), 30_000)).toBe("open");
   });
 
   test("abandoned: an assigned critic past its deadline plus grace", () => {
-    const entry = critic();
-    expect(criticTurnState(entry, new Date(t0.valueOf() + 36_000), 30_000)).toBe("abandoned");
+    const clock = new FakeClock();
+    const entry = critic(clock);
+    clock.tick(36_000);
+    expect(criticTurnState(entry, clock.now(), 30_000)).toBe("abandoned");
   });
 
   test("openCompletenessCritic reports nothing when there is no critic, and nothing once it is reviewed or expired", () => {
+    const clock = new FakeClock();
     expect(openCompletenessCritic(stateWithCritic())).toBeUndefined();
-    expect(openCompletenessCritic(stateWithCritic(critic({ status: "reviewed" })))).toBeUndefined();
-    expect(openCompletenessCritic(stateWithCritic(critic({ status: "expired" })))).toBeUndefined();
-    expect(openCompletenessCritic(stateWithCritic(critic()))?.critic_id).toBe("critic-1");
+    expect(
+      openCompletenessCritic(stateWithCritic(critic(clock, { status: "reviewed" }))),
+    ).toBeUndefined();
+    expect(
+      openCompletenessCritic(stateWithCritic(critic(clock, { status: "expired" }))),
+    ).toBeUndefined();
+    expect(openCompletenessCritic(stateWithCritic(critic(clock)))?.critic_id).toBe("critic-1");
   });
 
   test("abandonedCompletenessCritic does not re-flag a critic recover-stale already expired", () => {
-    const state = stateWithCritic(critic({ status: "expired" }));
-    expect(
-      abandonedCompletenessCritic(state, new Date(t0.valueOf() + 3_600_000), 30_000),
-    ).toBeUndefined();
+    const clock = new FakeClock();
+    const state = stateWithCritic(critic(clock, { status: "expired" }));
+    clock.tick(3_600_000);
+    expect(abandonedCompletenessCritic(state, clock.now(), 30_000)).toBeUndefined();
   });
 
   test("abandonedCompletenessCritic names a live-looking critic once its deadline plus grace has passed", () => {
-    const state = stateWithCritic(critic());
-    expect(
-      abandonedCompletenessCritic(state, new Date(t0.valueOf() + 36_000), 30_000)?.critic_id,
-    ).toBe("critic-1");
+    const clock = new FakeClock();
+    const state = stateWithCritic(critic(clock));
+    clock.tick(36_000);
+    expect(abandonedCompletenessCritic(state, clock.now(), 30_000)?.critic_id).toBe("critic-1");
   });
 });

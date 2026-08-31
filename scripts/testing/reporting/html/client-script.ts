@@ -1,4 +1,5 @@
 import { getClientScriptHelpers } from "./client-script-helpers.ts";
+import { getClientScriptRuntime } from "./client-script-runtime.ts";
 
 export function getClientScript(payloadJson: string): string {
   return `
@@ -35,35 +36,52 @@ export function getClientScript(payloadJson: string): string {
       
       const linesPct = t.lines.pct;
       const headerBadge = document.getElementById("header-badge");
-      headerBadge.textContent = linesPct + "% Line Coverage";
-      headerBadge.className = "badge " + badgeClass(linesPct);
+      if (headerBadge) {
+        headerBadge.textContent = linesPct + "% Line Coverage";
+        headerBadge.className = "badge " + badgeClass(linesPct);
+      }
 
-      document.getElementById("val-lines").textContent = t.lines.pct + "%";
-      document.getElementById("sub-lines").textContent = t.lines.covered + " / " + t.lines.total + " lines";
-      document.getElementById("gauge-lines").innerHTML = createGaugeSvg(t.lines.pct, colorForPct(t.lines.pct));
+      const valLines = document.getElementById("val-lines");
+      const subLines = document.getElementById("sub-lines");
+      const gaugeLines = document.getElementById("gauge-lines");
+      if (valLines) valLines.textContent = t.lines.pct + "%";
+      if (subLines) subLines.textContent = t.lines.covered + " / " + t.lines.total + " lines";
+      if (gaugeLines) gaugeLines.innerHTML = createGaugeSvg(t.lines.pct, colorForPct(t.lines.pct));
 
-      document.getElementById("val-statements").textContent = t.statements.pct + "%";
-      document.getElementById("sub-statements").textContent = t.statements.covered + " / " + t.statements.total + " stmts";
-      document.getElementById("gauge-statements").innerHTML = createGaugeSvg(t.statements.pct, colorForPct(t.statements.pct));
+      const valStmts = document.getElementById("val-statements");
+      const subStmts = document.getElementById("sub-statements");
+      const gaugeStmts = document.getElementById("gauge-statements");
+      if (valStmts) valStmts.textContent = t.statements.pct + "%";
+      if (subStmts) subStmts.textContent = t.statements.covered + " / " + t.statements.total + " stmts";
+      if (gaugeStmts) gaugeStmts.innerHTML = createGaugeSvg(t.statements.pct, colorForPct(t.statements.pct));
 
-      document.getElementById("val-funcs").textContent = t.functions.pct + "%";
-      document.getElementById("sub-funcs").textContent = t.functions.covered + " / " + t.functions.total + " funcs";
-      document.getElementById("gauge-funcs").innerHTML = createGaugeSvg(t.functions.pct, colorForPct(t.functions.pct));
+      const valFuncs = document.getElementById("val-funcs");
+      const subFuncs = document.getElementById("sub-funcs");
+      const gaugeFuncs = document.getElementById("gauge-funcs");
+      if (valFuncs) valFuncs.textContent = t.functions.pct + "%";
+      if (subFuncs) subFuncs.textContent = t.functions.covered + " / " + t.functions.total + " funcs";
+      if (gaugeFuncs) gaugeFuncs.innerHTML = createGaugeSvg(t.functions.pct, colorForPct(t.functions.pct));
 
-      document.getElementById("val-files").textContent = DATA.files.length;
-      document.getElementById("gauge-files").innerHTML = createGaugeSvg(100, "var(--brand-accent)");
+      const valFiles = document.getElementById("val-files");
+      const gaugeFiles = document.getElementById("gauge-files");
+      if (valFiles) valFiles.textContent = DATA.files.length;
+      if (gaugeFiles) gaugeFiles.innerHTML = createGaugeSvg(100, "var(--brand-accent)");
+
+      initRuntimeMetrics();
     }
 
     function setFilter(f) {
       statusFilter = f;
       document.querySelectorAll(".filter-btn").forEach(btn => btn.classList.remove("active"));
-      document.getElementById("filter-" + f).classList.add("active");
+      const btn = document.getElementById("filter-" + f);
+      if (btn) btn.classList.add("active");
       currentFile = null;
       render();
     }
 
     function renderBreadcrumbs() {
       const el = document.getElementById("breadcrumbs");
+      if (!el) return;
       el.innerHTML = "";
 
       const rootCrumb = document.createElement("span");
@@ -193,9 +211,11 @@ export function getClientScript(payloadJson: string): string {
       });
 
       html += '</tbody></table>';
-      document.getElementById("content-view").innerHTML = html;
+      const cView = document.getElementById("content-view");
+      if (cView) cView.innerHTML = html;
     }
     
     ${getClientScriptHelpers()}
+    ${getClientScriptRuntime()}
   `.trim();
 }

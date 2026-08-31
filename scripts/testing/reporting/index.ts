@@ -7,8 +7,19 @@ import { join, resolve } from "node:path";
 import { writeInteractiveHtml } from "./html/index.ts";
 import { parseLcov } from "./lcov-parser.ts";
 import { writeMarkdownReport } from "./markdown-reporter.ts";
+import {
+  calculateParetoThreshold,
+  computeRuntimeSummary,
+  parseDurationToMs,
+  parseTestRuntimeOutput,
+  sliceRuntimePagination,
+} from "./runtime-telemetry.ts";
 import { buildCoverageSummary, writeSummaryJson } from "./summary-reporter.ts";
-import type { CoverageArtifactResult } from "./types.ts";
+import type {
+  CoverageArtifactResult,
+  ProcessCoverageOptions,
+  TestRuntimeSummary,
+} from "./types.ts";
 
 export type {
   CoverageArtifactResult,
@@ -17,12 +28,28 @@ export type {
   FileCoverageMetric,
   FileDetailData,
   MetricItem,
+  ParetoThreshold,
+  ProcessCoverageOptions,
   SourceLineDetail,
+  TestFileRuntime,
+  TestRuntimeSummary,
+  WriteCoverageOptions,
 } from "./types.ts";
 export { calculatePct, createMetricItem } from "./types.ts";
 export { parseLcov } from "./lcov-parser.ts";
 export { buildCoverageSummary, writeSummaryJson } from "./summary-reporter.ts";
-export { buildMarkdownReport, writeMarkdownReport } from "./markdown-reporter.ts";
+export {
+  formatRuntimeMarkdown,
+  buildMarkdownReport,
+  writeMarkdownReport,
+} from "./markdown-reporter.ts";
+export {
+  calculateParetoThreshold,
+  computeRuntimeSummary,
+  parseDurationToMs,
+  parseTestRuntimeOutput,
+  sliceRuntimePagination,
+} from "./runtime-telemetry.ts";
 export {
   buildHtmlDocument,
   extractCoverageFileData,
@@ -35,27 +62,53 @@ export {
 export function processCoverageArtifacts(
   repoRoot?: string,
   coverageDirName: string = "coverage",
+  options?: ProcessCoverageOptions,
 ): CoverageArtifactResult {
   const root = repoRoot ? resolve(repoRoot) : process.cwd();
   const coverageDir = join(root, coverageDirName);
   const lcovPath = join(coverageDir, "lcov.info");
 
-  if (!existsSync(lcovPath)) {
-    return { lcovExists: false, filesCount: 0, totalPct: 0 };
+  let lcovContent = options?.lcovContent;
+  if (typeof lcovContent !== "string") {
+    if (!existsSync(lcovPath)) {
+      return { lcovExists: false, filesCount: 0, totalPct: 0 };
+    }
+    lcovContent = readFileSync(lcovPath, "utf-8");
   }
 
-  const lcovContent = readFileSync(lcovPath, "utf-8");
+  let runtime: TestRuntimeSummary | undefined = options?.runtime;
+  if (!runtime && options?.testOutput) {
+    runtime = parseTestRuntimeOutput(
+      options.testOutput,
+      options.startTime,
+      options.endTime,
+      options.totalDurationMs,
+    );
+  }
+
   const fileMap = parseLcov(lcovContent, root);
-  const summary = buildCoverageSummary(fileMap);
+  const summary = buildCoverageSummary(fileMap, runtime);
 
-  // 1. Write standard Istanbul/NYC coverage-summary.json
-  const summaryPath = writeSummaryJson(summary, root, coverageDirName);
+  const shouldWriteToDisk = options?.writeToDisk !== false;
 
-  // 2. Write human-readable REPORT.md
-  const reportPath = writeMarkdownReport(fileMap, summary, root, coverageDirName);
+  let summaryPath: string | undefined;
+  let reportPath: string | undefined;
+  let htmlPath: string | undefined;
 
-  // 3. Write modern interactive HTML dashboard index.html
-  const htmlPath = writeInteractiveHtml(fileMap, summary, root, coverageDirName);
+  if (shouldWriteToDisk) {
+    // 1. Write standard Istanbul/NYC coverage-summary.json
+    summaryPath = writeSummaryJson(summary, root, coverageDirName, {
+      writeToDisk: true,
+      skipIfUnchanged: options?.skipIfUnchanged,
+      runtime,
+    });
+
+    // 2. Write human-readable REPORT.md
+    reportPath = writeMarkdownReport(fileMap, summary, root, coverageDirName, runtime);
+
+    // 3. Write modern interactive HTML dashboard index.html
+    htmlPath = writeInteractiveHtml(fileMap, summary, root, coverageDirName, runtime);
+  }
 
   const totalPct =
     typeof summary.total !== "undefined" &&
@@ -72,6 +125,8 @@ export function processCoverageArtifacts(
     summaryPath,
     reportPath,
     htmlPath,
+    summary,
+    runtime,
   };
 }
 

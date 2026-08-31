@@ -27,13 +27,13 @@ export function getClientScriptHelpers(): string {
       let html = '<div class="file-viewer-header">';
       html += '<div style="display: flex; gap: 0.75rem; align-items: center;">';
       html += '<button class="btn" onclick="goBack()">&larr; Back to Tree</button>';
-      html += '<div style="font-family: \\'JetBrains Mono\\', monospace; font-weight: 600;">' + f.path + '</div>';
+      html += '<div style="font-family: \\'JetBrains Mono\\', monospace; font-weight: 600;">' + escapeHtml(f.path) + '</div>';
       html += '</div>';
       html += '<div style="display: flex; gap: 0.5rem; align-items: center;">';
       html += '<span class="badge ' + badgeClass(f.linesPct) + '">Lines: ' + f.linesPct + '%</span>';
       html += '<span class="badge ' + badgeClass(f.statementsPct) + '">Statements: ' + f.statementsPct + '%</span>';
       html += '<span class="badge ' + badgeClass(f.funcsPct) + '">Funcs: ' + f.funcsPct + '%</span>';
-      html += '<button class="btn" onclick="copyPath(\\'' + f.path + '\\')">📋 Copy</button>';
+      html += '<button class="btn" onclick="copyPath(\\'' + escapeHtml(f.path) + '\\')">📋 Copy</button>';
       html += '</div>';
       html += '</div>';
 
@@ -67,10 +67,12 @@ export function getClientScriptHelpers(): string {
         html += '</div>';
       }
 
-      document.getElementById("content-view").innerHTML = html;
+      const cView = document.getElementById("content-view");
+      if (cView) cView.innerHTML = html;
     }
 
     function escapeHtml(str) {
+      if (typeof str !== "string") return "";
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
@@ -103,7 +105,9 @@ export function getClientScriptHelpers(): string {
     }
 
     function copyPath(p) {
-      navigator.clipboard.writeText(p);
+      if (navigator && navigator.clipboard) {
+        navigator.clipboard.writeText(p);
+      }
     }
 
     function render() {
@@ -115,11 +119,23 @@ export function getClientScriptHelpers(): string {
       }
     }
 
-    document.getElementById("search-box").addEventListener("input", (e) => {
-      searchQuery = e.target.value.trim();
-      currentFile = null;
-      render();
-    });
+    const searchEl = document.getElementById("search-box");
+    if (searchEl) {
+      searchEl.addEventListener("input", (e) => {
+        searchQuery = e.target.value.trim();
+        currentFile = null;
+        render();
+      });
+    }
+
+    const rtSearchEl = document.getElementById("runtime-search-box");
+    if (rtSearchEl) {
+      rtSearchEl.addEventListener("input", (e) => {
+        runtimeSearch = e.target.value.trim();
+        runtimePage = 1;
+        renderRuntimeView();
+      });
+    }
 
     initMetrics();
     render();

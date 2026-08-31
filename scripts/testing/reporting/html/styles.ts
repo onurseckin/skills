@@ -1,4 +1,5 @@
 import { getCodeViewerStyles } from "./styles-code-viewer.ts";
+import { getRuntimeStyles } from "./styles-runtime.ts";
 
 export function getHtmlStyles(): string {
   return `
@@ -43,11 +44,7 @@ export function getHtmlStyles(): string {
       top: 0;
       z-index: 50;
     }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
     .brand-icon {
       width: 32px;
       height: 32px;
@@ -59,11 +56,7 @@ export function getHtmlStyles(): string {
       font-weight: 800;
       color: white;
     }
-    .brand-text {
-      font-size: 1.15rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
+    .brand-text { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
     .badge {
       font-size: 0.75rem;
       padding: 0.25rem 0.65rem;
@@ -124,26 +117,11 @@ export function getHtmlStyles(): string {
       margin-top: 0.25rem;
       font-family: 'JetBrains Mono', monospace;
     }
-    .radial-gauge {
-      width: 68px;
-      height: 68px;
-      position: relative;
-    }
-    .radial-gauge svg {
-      transform: rotate(-90deg);
-      width: 68px;
-      height: 68px;
-    }
-    .radial-gauge circle {
-      fill: none;
-      stroke-width: 6;
-      stroke-linecap: round;
-    }
+    .radial-gauge { width: 68px; height: 68px; position: relative; }
+    .radial-gauge svg { transform: rotate(-90deg); width: 68px; height: 68px; }
+    .radial-gauge circle { fill: none; stroke-width: 6; stroke-linecap: round; }
     .gauge-bg { stroke: var(--bg-card); }
-    .gauge-fill {
-      stroke: var(--brand-accent);
-      transition: stroke-dashoffset 0.8s ease;
-    }
+    .gauge-fill { stroke: var(--brand-accent); transition: stroke-dashoffset 0.8s ease; }
 
     .controls-bar {
       background: var(--bg-surface);
@@ -171,19 +149,9 @@ export function getHtmlStyles(): string {
       border-radius: 0.375rem;
       transition: all 0.15s ease;
     }
-    .crumb-chip:hover {
-      background: var(--bg-card);
-      color: var(--text-main);
-    }
-    .crumb-active {
-      color: var(--text-main);
-      font-weight: 600;
-    }
-    .filters-group {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
+    .crumb-chip:hover { background: var(--bg-card); color: var(--text-main); }
+    .crumb-active { color: var(--text-main); font-weight: 600; }
+    .filters-group { display: flex; align-items: center; gap: 0.5rem; }
     .filter-btn {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
@@ -210,10 +178,7 @@ export function getHtmlStyles(): string {
       width: 280px;
       transition: border-color 0.15s ease;
     }
-    .search-input:focus {
-      outline: none;
-      border-color: var(--brand-accent);
-    }
+    .search-input:focus { outline: none; border-color: var(--brand-accent); }
 
     table {
       width: 100%;
@@ -264,5 +229,6 @@ export function getHtmlStyles(): string {
     .mini-progress-fill { height: 100%; border-radius: 999px; }
 
     ${getCodeViewerStyles()}
+    ${getRuntimeStyles()}
   `.trim();
 }

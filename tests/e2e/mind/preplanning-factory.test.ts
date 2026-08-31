@@ -156,6 +156,7 @@ describe("Mind Pre-Planning Factory End-to-End Suite (Task 3.2)", () => {
         rootDir: tempDir,
         backlogFile: backlogPath,
         defectsFile: defectsPath,
+        targetDir: join(tempDir, "docs/planning"),
         dryRun: true,
       });
       expect(dryResult.clusters.length).toBe(6); // core, mind, validation, tooling, engine, reporting
@@ -171,6 +172,7 @@ describe("Mind Pre-Planning Factory End-to-End Suite (Task 3.2)", () => {
         rootDir: tempDir,
         backlogFile: backlogPath,
         defectsFile: defectsPath,
+        targetDir: join(tempDir, "docs/planning"),
       });
 
       expect(liveResult.clusters.length).toBe(6);

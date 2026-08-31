@@ -3,7 +3,6 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { spawnSync } from "node:child_process";
 import {
   runDoctor,
   autoHealCapsule,
@@ -35,11 +34,9 @@ describe("Wave 4 - Task 4.3: Comprehensive Master Doctor Engine E2E Integration 
     const repo = await mkdtemp(join(tmpdir(), "master-doctor-e2e-"));
     roots.push(repo);
 
-    spawnSync("git", ["init"], { cwd: repo });
+    await mkdir(join(repo, ".git"), { recursive: true });
     writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "e2e-project" }));
     writeFileSync(join(repo, "README.md"), "# E2E Project");
-    spawnSync("git", ["add", "-A"], { cwd: repo });
-    spawnSync("git", ["commit", "-m", "Initial commit"], { cwd: repo });
 
     const runRoot = initRun(
       repo,

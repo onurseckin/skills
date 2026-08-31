@@ -23,13 +23,38 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
 
     const finalArgs = ["test", ...defaultFlags, ...coverageFlags, ...rawArgs];
 
+    const startMs = Date.now();
+    const startTime = new Date(startMs).toISOString();
+
     const result = spawnSync("bun", finalArgs, {
-      stdio: "inherit",
-      env: process.env,
+      stdio: "pipe",
+      encoding: "utf-8",
+      env: {
+        ...process.env,
+        OLT_VIRTUAL_FS: "1",
+        BUN_ENV: "test",
+      },
     });
 
+    const endMs = Date.now();
+    const endTime = new Date(endMs).toISOString();
+    const totalDurationMs = Math.max(0, endMs - startMs);
+
+    if (result.stdout) {
+      process.stdout.write(result.stdout);
+    }
+    if (result.stderr) {
+      process.stderr.write(result.stderr);
+    }
+
     if (isCoverage) {
-      const reportRes = processCoverageArtifacts();
+      const outputText = [result.stdout ?? "", result.stderr ?? ""].join("\n");
+      const reportRes = processCoverageArtifacts(process.cwd(), "coverage", {
+        testOutput: outputText,
+        startTime,
+        endTime,
+        totalDurationMs,
+      });
       if (reportRes.lcovExists) {
         console.log(
           `\n[coverage] Generated coverage/lcov.info, coverage/coverage-summary.json, coverage/REPORT.md, and coverage/index.html across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).`,

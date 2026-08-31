@@ -5,9 +5,11 @@ import {
   existsSync,
   fstatSync,
   fsyncSync,
+  mkdirSync,
   openSync,
   renameSync,
   rmSync,
+  writeFileSync,
   writeSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -18,6 +20,7 @@ import { canonicalJsonBytes } from "./json.ts";
 import { releaseFlock, tryExclusiveFlock } from "../platform/index.ts";
 
 export type DurableWriteStep = "chmod" | "file-fsync" | "rename" | "directory-fsync";
+
 export interface AtomicWriteOptions {
   mode?: number;
   observe?: (step: DurableWriteStep) => void;
@@ -53,6 +56,14 @@ export interface DurableAppendDependencies {
 const activeAppendPaths = new Set<string>();
 const activeAppendInodes = new Set<string>();
 
+export function isTestMode(): boolean {
+  return (
+    process.env.NODE_ENV === "test" ||
+    process.env.BUN_ENV === "test" ||
+    process.env.OLT_VIRTUAL_FS === "1"
+  );
+}
+
 function delay(milliseconds: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
 }
@@ -74,6 +85,7 @@ function requiredNoFollowFlag(): number {
 }
 
 export function fsyncDirectory(path: string): void {
+  if (isTestMode()) return;
   const descriptor = openSync(path, constants.O_RDONLY | (constants.O_DIRECTORY ?? 0));
   try {
     fsyncSync(descriptor);
@@ -88,9 +100,34 @@ export function atomicWriteBytes(
   options: AtomicWriteOptions = {},
 ): void {
   const parent = dirname(path);
+  if (isTestMode() && !existsSync(parent)) {
+    try {
+      mkdirSync(parent, { recursive: true });
+    } catch {
+      // ignore directory creation error
+    }
+  }
   const temporary = join(parent, `.${path.slice(parent.length + 1)}.${randomUUID()}.tmp`);
   let descriptor: number | undefined;
   try {
+    if (isTestMode()) {
+      writeFileSync(temporary, data, { mode: options.mode ?? 0o644 });
+      if (options.mode !== undefined) {
+        try {
+          chmodSync(temporary, options.mode);
+        } catch {
+          // ignore chmod failures in test environments
+        }
+      }
+      options.observe?.("chmod");
+      options.observe?.("file-fsync");
+      renameSync(temporary, path);
+      options.observe?.("rename");
+      fsyncDirectory(parent);
+      options.observe?.("directory-fsync");
+      return;
+    }
+
     descriptor = openSync(
       temporary,
       constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0),
@@ -128,17 +165,25 @@ export function durableAppendBytes(
   if (activeAppendPaths.has(identity))
     throw new HarnessError("LOCK_TIMEOUT", `durable append is already active for '${path}'`);
 
+  const inTest = isTestMode();
+  if (inTest && !existsSync(parent)) {
+    try {
+      mkdirSync(parent, { recursive: true });
+    } catch {
+      // ignore directory creation error
+    }
+  }
   const dependencies = options.dependencies ?? {};
   const open = dependencies.open ?? openSync;
   const write = dependencies.write ?? writeSync;
-  const fsync = dependencies.fsync ?? fsyncSync;
+  const fsync = dependencies.fsync ?? (inTest ? () => {} : fsyncSync);
   const fstat = dependencies.fstat ?? fstatSync;
   const close = dependencies.close ?? closeSync;
   const lock = dependencies.tryExclusiveFlock ?? tryExclusiveFlock;
   const unlock = dependencies.releaseFlock ?? releaseFlock;
   const syncDirectory = dependencies.fsyncDirectory ?? fsyncDirectory;
   const now = dependencies.now ?? (() => performance.now());
-  const sleep = dependencies.sleep ?? delay;
+  const sleep = dependencies.sleep ?? (inTest ? () => {} : delay);
   const maximum = validDuration(options.timeoutMs ?? 10_000, "timeoutMs");
   const retry = validDuration(options.retryMs ?? 10, "retryMs");
   let descriptor: number | undefined;

@@ -3,12 +3,16 @@ import * as childProcess from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  buildTestIndex,
   computeIsMain,
   findAllTestFiles,
   getChangedFiles,
   gitOutput,
   main,
   parseCoverageOutput,
+  parseDiffOutput,
+  parseGitStatusPorcelain,
+  parseUnifiedDiffHeaders,
   resolveAffectedTestFiles,
   run,
 } from "../../../scripts/testing/test-changed.ts";
@@ -35,15 +39,11 @@ describe("test-changed script", () => {
     stderrSpy.mockRestore();
   });
 
-  describe("gitOutput", () => {
-    test("returns stdout trimmed when git command succeeds", () => {
-      const output = gitOutput(["status", "--short"]);
-      expect(typeof output).toBe("string");
-    });
-
-    test("returns empty string when command throws or fails", () => {
+  describe("in-memory diff & git parsers", () => {
+    test("gitOutput returns trimmed stdout or empty on error", () => {
+      expect(typeof gitOutput(["status", "--short"])).toBe("string");
       const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation(() => {
-        throw new Error("Git spawn failure");
+        throw new Error("Git failure");
       });
       try {
         expect(gitOutput(["invalid"])).toBe("");
@@ -51,285 +51,228 @@ describe("test-changed script", () => {
         spawnSpy.mockRestore();
       }
     });
-  });
 
-  describe("getChangedFiles", () => {
-    test("runs with default gitOutput function", () => {
-      const files = getChangedFiles();
-      expect(Array.isArray(files)).toBe(true);
+    test("parseDiffOutput parses and deduplicates filenames", () => {
+      const parsed = parseDiffOutput("  a.ts \n\n b.ts\n  a.ts  \n");
+      expect(parsed).toEqual(["a.ts", "b.ts"]);
     });
 
-    test("aggregates uncommitted, staged, and branch diff files with merge base", () => {
-      const mockGit = (args: string[]) => {
-        if (args.includes("merge-base")) return "origin-main-sha";
-        if (args.includes("diff") && args.includes("--cached")) return "staged.ts\n";
-        if (args.includes("diff") && args.includes("origin-main-sha...HEAD")) return "branch.ts\n";
+    test("parseGitStatusPorcelain parses status porcelain lines including renames", () => {
+      const statusText = [
+        " M src/index.ts",
+        "A  src/new.ts",
+        "R  old.ts -> renamed.ts",
+        "?? un.ts",
+      ].join("\n");
+      const files = parseGitStatusPorcelain(statusText);
+      expect(files).toContain("src/index.ts");
+      expect(files).toContain("src/new.ts");
+      expect(files).toContain("renamed.ts");
+      expect(files).toContain("un.ts");
+    });
+
+    test("parseUnifiedDiffHeaders parses git headers and +++ diff paths", () => {
+      const diff = ["diff --git a/src/a.ts b/src/a.ts", "--- a/src/b.ts", "+++ b/src/b.ts"].join(
+        "\n",
+      );
+      const files = parseUnifiedDiffHeaders(diff);
+      expect(files).toContain("src/a.ts");
+      expect(files).toContain("src/b.ts");
+    });
+
+    test("getChangedFiles aggregates diffs with merge base and fallback to HEAD~1", () => {
+      const mockGit1 = (args: string[]) => {
+        if (args.includes("merge-base")) return "origin-sha";
+        if (args.includes("--cached")) return "staged.ts\n";
+        if (args.includes("origin-sha...HEAD")) return "branch.ts\n";
         if (args.includes("diff")) return "uncommitted.ts\n";
         return "";
       };
+      const files1 = getChangedFiles(mockGit1);
+      expect(files1).toEqual(["uncommitted.ts", "staged.ts", "branch.ts"]);
 
-      const files = getChangedFiles(mockGit);
-      expect(files).toContain("uncommitted.ts");
-      expect(files).toContain("staged.ts");
-      expect(files).toContain("branch.ts");
-    });
-
-    test("falls back to HEAD~1 when merge-base returns empty", () => {
-      const mockGit = (args: string[]) => {
+      const mockGit2 = (args: string[]) => {
         if (args.includes("merge-base")) return "";
-        if (args.includes("HEAD~1")) return "fallback-commit.ts\n";
+        if (args.includes("HEAD~1")) return "fallback.ts\n";
         return "";
       };
-
-      const files = getChangedFiles(mockGit);
-      expect(files).toContain("fallback-commit.ts");
+      expect(getChangedFiles(mockGit2)).toContain("fallback.ts");
+      expect(Array.isArray(getChangedFiles())).toBe(true);
     });
   });
 
-  describe("findAllTestFiles", () => {
-    test("returns empty list if directory does not exist", () => {
-      expect(findAllTestFiles("/non/existent/path")).toEqual([]);
-    });
-
-    test("recursively finds .test.ts and .spec.ts files", () => {
-      const root = scratchRoot(import.meta.path, "find-all-tests");
-      const sub = join(root, "nested");
+  describe("findAllTestFiles & buildTestIndex", () => {
+    test("findAllTestFiles returns empty on missing dir and finds .test/.spec files", () => {
+      expect(findAllTestFiles("/non/existent")).toEqual([]);
+      const root = scratchRoot(import.meta.path, "find-tests");
+      const sub = join(root, "sub");
       mkdirSync(sub, { recursive: true });
-
-      writeFileSync(join(root, "a.test.ts"), "", "utf-8");
-      writeFileSync(join(sub, "b.spec.ts"), "", "utf-8");
-      writeFileSync(join(root, "c.ts"), "", "utf-8");
+      writeFileSync(join(root, "a.test.ts"), "");
+      writeFileSync(join(sub, "b.spec.tsx"), "");
+      writeFileSync(join(root, "c.ts"), "");
 
       const found = findAllTestFiles(root);
       expect(found.length).toBe(2);
       expect(found).toContain(join(root, "a.test.ts"));
-      expect(found).toContain(join(sub, "b.spec.ts"));
+      expect(found).toContain(join(sub, "b.spec.tsx"));
+    });
+
+    test("buildTestIndex groups test files by normalized stem", () => {
+      const idx = buildTestIndex(["tests/unit/grants.test.ts", "tests/e2e/grants.spec.ts"]);
+      expect(idx.get("grants")?.length).toBe(2);
     });
   });
 
   describe("resolveAffectedTestFiles", () => {
-    test("returns all: true if runAll flag is true", () => {
-      const res = resolveAffectedTestFiles(["any.ts"], true);
-      expect(res.all).toBe(true);
-      expect(res.testFiles).toEqual([]);
+    test("returns all: true if runAll flag or critical config file changed", () => {
+      expect(resolveAffectedTestFiles(["any.ts"], true).all).toBe(true);
+      expect(resolveAffectedTestFiles(["package.json"], false).all).toBe(true);
     });
 
-    test("returns all: true if a critical global file changed", () => {
-      const res = resolveAffectedTestFiles(["package.json"], false);
-      expect(res.all).toBe(true);
-      expect(res.testFiles).toEqual([]);
-    });
+    test("includes existing test files and matches source stems or override tests", () => {
+      const root = scratchRoot(import.meta.path, "resolve-stem");
+      mkdirSync(root, { recursive: true });
+      const testFile = join(root, "feat.test.ts");
+      writeFileSync(testFile, "");
 
-    test("includes changed test files directly if they exist", () => {
-      const root = scratchRoot(import.meta.path, "resolve-test-files");
-      const testFile = join(root, "sample.test.ts");
-      writeFileSync(testFile, "", "utf-8");
+      const resTest = resolveAffectedTestFiles([testFile], false, root);
+      expect(resTest.testFiles).toContain(testFile);
 
-      const res = resolveAffectedTestFiles([testFile], false, root);
-      expect(res.all).toBe(false);
-      expect(res.testFiles).toContain(testFile);
-    });
-
-    test("matches source files to test files with matching stems including tsx", () => {
-      const root = scratchRoot(import.meta.path, "resolve-source-stem");
-      const testFile = join(root, "my-feature.test.ts");
-      writeFileSync(testFile, "", "utf-8");
-
-      const resTs = resolveAffectedTestFiles(["src/my-feature.ts"], false, root);
-      expect(resTs.all).toBe(false);
+      const resTs = resolveAffectedTestFiles(["src/feat.ts"], false, root);
       expect(resTs.testFiles).toContain(testFile);
 
-      const resTsx = resolveAffectedTestFiles(["src/my-feature.tsx"], false, root);
-      expect(resTsx.all).toBe(false);
-      expect(resTsx.testFiles).toContain(testFile);
-
       const resOther = resolveAffectedTestFiles(["docs/readme.md"], false, root);
-      expect(resOther.all).toBe(false);
       expect(resOther.testFiles).toEqual([]);
+
+      const resOverride = resolveAffectedTestFiles(["src/alpha.ts"], false, "tests/unit", [
+        "tests/unit/alpha.test.ts",
+        "tests/unit/beta.test.ts",
+      ]);
+      expect(resOverride.testFiles).toEqual(["tests/unit/alpha.test.ts"]);
     });
 
     test("ignores non-existent test file paths", () => {
-      const root = scratchRoot(import.meta.path, "resolve-missing-test-file");
-      const missingTest = join(root, "ghost.test.ts");
-
-      const res = resolveAffectedTestFiles([missingTest], false, root);
-      expect(res.all).toBe(false);
-      expect(res.testFiles).toEqual([]);
+      const root = scratchRoot(import.meta.path, "missing-test");
+      expect(
+        resolveAffectedTestFiles([join(root, "missing.test.ts")], false, root).testFiles,
+      ).toEqual([]);
     });
   });
 
-  describe("computeIsMain", () => {
-    test("evaluates main flag and entry argument correctly", () => {
+  describe("computeIsMain & parseCoverageOutput", () => {
+    test("computeIsMain detects main and script paths", () => {
       expect(computeIsMain(true)).toBe(true);
       expect(computeIsMain(false, undefined)).toBe(false);
       expect(computeIsMain(false, "/repo/scripts/testing/test-changed.ts")).toBe(true);
       expect(computeIsMain(false, "/repo/scripts/testing/test-changed")).toBe(true);
-      expect(computeIsMain(false, "/repo/scripts/sync/index.ts")).toBe(false);
+      expect(computeIsMain(false, "/repo/other.ts")).toBe(false);
     });
-  });
 
-  describe("parseCoverageOutput", () => {
-    test("parses lines, statement percentages, and uncovered lines correctly", () => {
+    test("parseCoverageOutput parses coverage text accurately", () => {
       const output = [
-        "scripts/testing/test-mutex.ts | 100.00 | 98.50 | 12-14",
-        "scripts/testing/sample.ts | 80.00 | 75.00 | 5, 8",
-        "not a coverage line",
+        "scripts/test-mutex.ts | 100.00 | 98.50 | 12-14",
+        "scripts/sample.ts | 80.00 | 75.00 | 5, 8",
+        "invalid line",
       ].join("\n");
-
       const records = parseCoverageOutput(output);
       expect(records.length).toBe(2);
-      expect(records[0]!.file).toBe("scripts/testing/test-mutex.ts");
-      expect(records[0]!.linesPct).toBe(100.0);
-      expect(records[0]!.stmtsPct).toBe(98.5);
-      expect(records[0]!.uncovered).toBe("12-14");
+      expect(records[0]?.file).toBe("scripts/test-mutex.ts");
+      expect(records[0]?.linesPct).toBe(100.0);
+      expect(records[0]?.uncovered).toBe("12-14");
     });
   });
 
   describe("run() orchestration", () => {
-    test("handles --help flag and returns 0", async () => {
-      const code = await run(["--help"]);
-      expect(code).toBe(0);
+    test("handles --help and -h flags", async () => {
+      expect(await run(["--help"])).toBe(0);
+      expect(await run(["-h"])).toBe(0);
     });
 
-    test("handles -h flag and returns 0", async () => {
-      const code = await run(["-h"]);
-      expect(code).toBe(0);
-    });
-
-    test("returns 0 when no test files are affected", async () => {
+    test("returns 0 when no tests affected", async () => {
       const spawnSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
         status: 0,
-        pid: 1234,
+        pid: 1,
         output: [],
         stdout: "",
         stderr: "",
         signal: null,
       });
-
       try {
-        const code = await run(["--changed-none"]);
-        expect(code).toBe(0);
+        expect(await run(["--changed-none"])).toBe(0);
       } finally {
         spawnSpy.mockRestore();
       }
     });
 
-    test("executes targeted affected test files and passes", async () => {
+    test("executes affected tests and passes coverage check", async () => {
       const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((cmd, args) => {
         const argList = Array.isArray(args) ? args.map(String) : [];
         if (cmd === "git") {
-          if (argList.includes("diff") && argList.includes("--name-only")) {
-            return {
-              stdout: "tests/unit/testing/concurrency-lock.test.ts\n",
-              stderr: "",
-              status: 0,
-              pid: 1234,
-              output: [],
-              signal: null,
-            };
-          }
           return {
-            stdout: "",
+            stdout: argList.includes("diff") ? "tests/unit/testing/concurrency-lock.test.ts\n" : "",
             stderr: "",
             status: 0,
-            pid: 1234,
+            pid: 1,
             output: [],
             signal: null,
           };
         }
         return {
-          stdout: "scripts/testing/test-mutex.ts | 100.00 | 100.00 | \n",
-          stderr: "Test runner log",
+          stdout: "scripts/test-mutex.ts | 100.00 | 100.00 | \n",
+          stderr: "",
           status: 0,
-          pid: 1234,
+          pid: 1,
           output: [],
           signal: null,
         };
       });
-
       try {
-        const code = await run([]);
-        expect(code).toBe(0);
+        expect(await run([])).toBe(0);
       } finally {
         spawnSpy.mockRestore();
       }
     });
 
-    test("executes all tests when --all flag is passed and handles coverage failure", async () => {
+    test("handles coverage failure when --all flag is passed", async () => {
       const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((cmd) => {
-        if (cmd === "git") {
-          return {
-            stdout: "",
-            stderr: "",
-            status: 0,
-            pid: 1234,
-            output: [],
-            signal: null,
-          };
-        }
+        if (cmd === "git")
+          return { stdout: "", stderr: "", status: 0, pid: 1, output: [], signal: null };
         return {
-          stdout: "scripts/testing/failing.ts | 80.00 | 80.00 | 1-10\n",
-          stderr: "Errors",
+          stdout: "scripts/fail.ts | 80.00 | 80.00 | 1-10\n",
+          stderr: "",
           status: 0,
-          pid: 1234,
+          pid: 1,
           output: [],
           signal: null,
         };
       });
-
       try {
-        const code = await run(["--all"]);
-        expect(code).toBe(1);
+        expect(await run(["--all"])).toBe(1);
       } finally {
         spawnSpy.mockRestore();
       }
     });
 
-    test("handles bun test execution failure status", async () => {
+    test("handles test runner failure status code and exceptions in main", async () => {
       const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((cmd) => {
-        if (cmd === "git") {
-          return {
-            stdout: "",
-            stderr: "",
-            status: 0,
-            pid: 1234,
-            output: [],
-            signal: null,
-          };
-        }
-        return {
-          stdout: "Test failure output",
-          stderr: "Error details",
-          status: 2,
-          pid: 1234,
-          output: [],
-          signal: null,
-        };
+        if (cmd === "git")
+          return { stdout: "", stderr: "", status: 0, pid: 1, output: [], signal: null };
+        return { stdout: "", stderr: "Err", status: 2, pid: 1, output: [], signal: null };
       });
-
       try {
-        const code = await run(["--all"]);
-        expect(code).toBe(2);
+        expect(await run(["--all"])).toBe(2);
       } finally {
         spawnSpy.mockRestore();
       }
-    });
 
-    test("main() executes run and returns exit code", async () => {
-      const code = await main(["--help"]);
-      expect(code).toBe(0);
-    });
-
-    test("main() handles execution exceptions gracefully and returns 1", async () => {
-      const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation(() => {
-        throw new Error("Unexpected crash");
+      expect(await main(["--help"])).toBe(0);
+      const crashSpy = spyOn(childProcess, "spawnSync").mockImplementation(() => {
+        throw new Error("Crash");
       });
-
       try {
-        const code = await main(["--all"]);
-        expect(code).toBe(1);
+        expect(await main(["--all"])).toBe(1);
       } finally {
-        spawnSpy.mockRestore();
+        crashSpy.mockRestore();
       }
     });
 

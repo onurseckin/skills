@@ -15,65 +15,102 @@ export function gitOutput(args: string[]): string {
   }
 }
 
+export function parseDiffOutput(diffText: string): string[] {
+  const files = new Set<string>();
+  for (const line of diffText.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed) files.add(trimmed);
+  }
+  return Array.from(files);
+}
+
+export function parseGitStatusPorcelain(statusText: string): string[] {
+  const files = new Set<string>();
+  for (const rawLine of statusText.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const match = line.match(/^[MADRCU?!]{1,2}\s+(.+)$/);
+    if (match && match[1]) {
+      const rawTarget = match[1];
+      const target = rawTarget.includes(" -> ")
+        ? (rawTarget.split(" -> ")[1]?.trim() ?? rawTarget)
+        : rawTarget.trim();
+      if (target) files.add(target);
+    }
+  }
+  return Array.from(files);
+}
+
+export function parseUnifiedDiffHeaders(rawDiff: string): string[] {
+  const files = new Set<string>();
+  for (const line of rawDiff.split("\n")) {
+    const gitMatch = line.match(/^diff --git a\/(.+?) b\/(.+)$/);
+    if (gitMatch && gitMatch[2]) {
+      files.add(gitMatch[2].trim());
+      continue;
+    }
+    const plusMatch = line.match(/^\+\+\+ b\/(.+)$/);
+    if (plusMatch && plusMatch[1] && plusMatch[1] !== "/dev/null") {
+      files.add(plusMatch[1].trim());
+    }
+  }
+  return Array.from(files);
+}
+
 export function getChangedFiles(customGitOutput?: (args: string[]) => string): string[] {
   const gitFn = customGitOutput ?? gitOutput;
-  const files = new Set<string>();
-
-  // 1. Uncommitted working tree & staged changes
   const uncommitted = gitFn(["diff", "--name-only"]);
   const staged = gitFn(["diff", "--cached", "--name-only"]);
-  for (const line of `${uncommitted}\n${staged}`.split("\n")) {
-    if (line.trim()) files.add(line.trim());
-  }
-
-  // 2. Committed changes against upstream or previous commit
-  let diffBase = "";
   const mergeBase = gitFn(["merge-base", "origin/main", "HEAD"]);
-  if (mergeBase) {
-    diffBase = `${mergeBase}...HEAD`;
-  } else {
-    diffBase = "HEAD~1";
-  }
-
+  const diffBase = mergeBase ? `${mergeBase}...HEAD` : "HEAD~1";
   const branchDiff = gitFn(["diff", "--name-only", diffBase]);
-  for (const line of branchDiff.split("\n")) {
-    if (line.trim()) files.add(line.trim());
-  }
-
-  return Array.from(files);
+  return parseDiffOutput(`${uncommitted}\n${staged}\n${branchDiff}`);
 }
 
 export function findAllTestFiles(dir: string): string[] {
   const results: string[] = [];
   if (!existsSync(dir)) return results;
 
-  const entries = readdirSync(dir);
-  for (const entry of entries) {
+  for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     const stat = statSync(full);
     if (stat.isDirectory()) {
       results.push(...findAllTestFiles(full));
-    } else if (entry.endsWith(".test.ts") || entry.endsWith(".spec.ts")) {
+    } else if (/\.(test|spec)\.(ts|tsx)$/.test(entry)) {
       results.push(full);
     }
   }
   return results;
 }
 
+export function buildTestIndex(testFiles: readonly string[]): Map<string, string[]> {
+  const index = new Map<string, string[]>();
+  for (const testPath of testFiles) {
+    const stem = basename(testPath)
+      .replace(/\.(test|spec)\.(ts|tsx|js|jsx)$/, "")
+      .toLowerCase();
+    const existing = index.get(stem);
+    if (existing) existing.push(testPath);
+    else index.set(stem, [testPath]);
+  }
+  return index;
+}
+
+const CRITICAL_GLOBAL_FILES = [
+  "package.json",
+  "bunfig.toml",
+  "tsconfig.json",
+  "lefthook.yml",
+  "scripts/testing/test-changed.ts",
+];
+
 export function resolveAffectedTestFiles(
-  changedFiles: string[],
-  runAll: boolean = false,
-  unitTestDir: string = "tests/unit",
+  changedFiles: readonly string[],
+  runAll = false,
+  unitTestDir = "tests/unit",
+  allTestsOverride?: readonly string[],
 ): { all: boolean; testFiles: string[] } {
   if (runAll) return { all: true, testFiles: [] };
-
-  const CRITICAL_GLOBAL_FILES = [
-    "package.json",
-    "bunfig.toml",
-    "tsconfig.json",
-    "lefthook.yml",
-    "scripts/testing/test-changed.ts",
-  ];
 
   for (const file of changedFiles) {
     if (CRITICAL_GLOBAL_FILES.includes(file)) {
@@ -84,26 +121,29 @@ export function resolveAffectedTestFiles(
     }
   }
 
-  const allTests = findAllTestFiles(unitTestDir);
+  const allTests = allTestsOverride ? Array.from(allTestsOverride) : findAllTestFiles(unitTestDir);
+  const testIndex = buildTestIndex(allTests);
   const affected = new Set<string>();
 
   for (const file of changedFiles) {
-    // If a test file itself changed
     if (
-      file.startsWith("tests/unit/") &&
-      (file.endsWith(".test.ts") || file.endsWith(".spec.ts"))
+      (file.startsWith("tests/unit/") || file.startsWith(unitTestDir)) &&
+      /\.(test|spec)\.(ts|tsx)$/.test(file)
     ) {
-      if (existsSync(file)) affected.add(file);
+      if (allTestsOverride ? allTests.includes(file) : existsSync(file)) {
+        affected.add(file);
+      }
       continue;
     }
 
-    // If a TypeScript source file changed
-    if (file.endsWith(".ts") || file.endsWith(".tsx")) {
-      const stem = basename(file, extname(file));
-      // Look for directly matching test file names
+    if (/\.(ts|tsx|js|jsx)$/.test(file)) {
+      const stem = basename(file, extname(file)).toLowerCase();
+      const directMatches = testIndex.get(stem);
+      if (directMatches) {
+        for (const m of directMatches) affected.add(m);
+      }
       for (const testFile of allTests) {
-        const testStem = basename(testFile);
-        if (testStem.includes(stem)) {
+        if (basename(testFile).toLowerCase().includes(stem)) {
           affected.add(testFile);
         }
       }
@@ -122,14 +162,10 @@ export interface FileCoverageSummary {
 
 export function parseCoverageOutput(output: string): FileCoverageSummary[] {
   const results: FileCoverageSummary[] = [];
-  const lines = output.split("\n");
-  for (const line of lines) {
+  for (const line of output.split("\n")) {
     const match = line.match(/^\s*(\S+\.ts)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*(.*)$/);
     if (match) {
-      const file = match[1];
-      const rawLines = match[2];
-      const rawStmts = match[3];
-      const rawUncovered = match[4];
+      const [, file, rawLines, rawStmts, rawUncovered] = match;
       if (file !== undefined && rawLines !== undefined && rawStmts !== undefined) {
         results.push({
           file,
@@ -166,17 +202,14 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
   }
 
   const testArgs = ["test", "--timeout", "30000", "--parallel", "--no-isolate", "--coverage"];
-
   if (all) {
     testArgs.push("tests/unit");
     console.log(
-      `[test-changed] Running full test suite with mandatory 95% coverage check (${all ? "all files" : testFiles.length + " files"})...`,
+      `[test-changed] Running full test suite (${all ? "all files" : `${testFiles.length} files`})...`,
     );
   } else {
     testArgs.push(...testFiles);
-    console.log(
-      `[test-changed] Running ${testFiles.length} affected test file(s) with mandatory 95% coverage check:`,
-    );
+    console.log(`[test-changed] Running ${testFiles.length} affected test file(s):`);
     for (const f of testFiles) console.log(`  - ${f}`);
   }
 
@@ -186,7 +219,6 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
     cwd: process.cwd(),
   });
 
-  // Print test output
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
 
@@ -195,10 +227,7 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
     return result.status ?? 1;
   }
 
-  // Parse coverage and enforce 95% threshold across evaluated production files
-  const combinedOutput = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
-  const coverageRecords = parseCoverageOutput(combinedOutput);
-
+  const coverageRecords = parseCoverageOutput(`${result.stdout ?? ""}\n${result.stderr ?? ""}`);
   if (coverageRecords.length > 0) {
     const COVERAGE_THRESHOLD = 95.0;
     const failingFiles = coverageRecords.filter(
@@ -209,37 +238,17 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
     );
 
     if (failingFiles.length > 0) {
-      console.error(
-        "\n❌ [coverage-gate] Mandatory +95% Coverage Check Failed for the following file(s):",
-      );
-      console.error(
-        "┌────────────────────────────────────────────────────────┬─────────────┬─────────────┬──────────────────────────┐",
-      );
-      console.error(
-        "│ File                                                   │ % Lines     │ % Statements│ Uncovered Lines          │",
-      );
-      console.error(
-        "├────────────────────────────────────────────────────────┼─────────────┼─────────────┼──────────────────────────┤",
-      );
+      console.error("\n❌ [coverage-gate] Mandatory +95% Coverage Check Failed for file(s):");
       for (const f of failingFiles) {
-        const filePad = f.file.padEnd(54).slice(0, 54);
-        const linesPad = `${f.linesPct.toFixed(1)}%`.padEnd(11);
-        const stmtsPad = `${f.stmtsPct.toFixed(1)}%`.padEnd(11);
-        const uncovPad = f.uncovered.padEnd(24).slice(0, 24);
-        console.error(`│ ${filePad} │ ${linesPad} │ ${stmtsPad} │ ${uncovPad} │`);
+        console.error(
+          `  - ${f.file}: Lines ${f.linesPct}%, Stmts ${f.stmtsPct}% (Uncovered: ${f.uncovered})`,
+        );
       }
-      console.error(
-        "└────────────────────────────────────────────────────────┴─────────────┴─────────────┴──────────────────────────┘",
-      );
-      console.error(
-        "All production TypeScript modules must achieve >= 95.0% coverage before push.",
-      );
       return 1;
-    } else {
-      console.log(
-        "\n✓ [coverage-gate] Mandatory +95% Coverage Check passed across all evaluated modules.",
-      );
     }
+    console.log(
+      "\n✓ [coverage-gate] Mandatory +95% Coverage Check passed across all evaluated modules.",
+    );
   }
 
   return 0;

@@ -3,7 +3,11 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { join } from "node:path";
 import {
   acquireTestLock,
+  createMemoryLockStore,
+  getActiveLockStore,
   isProcessAlive,
+  resetLockStore,
+  setLockStore,
   type TestLockData,
 } from "../../../scripts/testing/test-mutex.ts";
 
@@ -16,6 +20,7 @@ describe("test-mutex", () => {
   let errorSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
+    resetLockStore();
     rmSync(LOCK_DIR, { recursive: true, force: true });
     exitSpy = spyOn(process, "exit").mockImplementation((code) => {
       throw new Error(`process.exit called with ${code as string | number}`);
@@ -30,6 +35,7 @@ describe("test-mutex", () => {
       } catch {}
       release = undefined;
     }
+    resetLockStore();
     rmSync(LOCK_DIR, { recursive: true, force: true });
     exitSpy.mockRestore();
     errorSpy.mockRestore();
@@ -45,16 +51,12 @@ describe("test-mutex", () => {
     release = acquireTestLock(true, ["tests"]);
     expect(existsSync(BROAD_LOCK_FILE)).toBe(true);
 
-    const lockData: TestLockData = JSON.parse(
-      readFileSync(BROAD_LOCK_FILE, "utf-8"),
-    ) as TestLockData;
+    const lockData = JSON.parse(readFileSync(BROAD_LOCK_FILE, "utf-8")) as TestLockData;
     expect(lockData.pid).toBe(process.pid);
     expect(lockData.scope).toBe("broad");
 
     release();
     expect(existsSync(BROAD_LOCK_FILE)).toBe(false);
-
-    // Calling release a second time should be idempotent
     expect(() => release?.()).not.toThrow();
   });
 
@@ -62,7 +64,6 @@ describe("test-mutex", () => {
     release = acquireTestLock(true, ["tests"]);
     expect(existsSync(BROAD_LOCK_FILE)).toBe(true);
 
-    // Overwrite lock with another PID
     const otherLock: TestLockData = {
       pid: 123456,
       scope: "broad",
@@ -77,11 +78,9 @@ describe("test-mutex", () => {
 
   test("Release handles missing or corrupt lock file gracefully", () => {
     release = acquireTestLock(true, ["tests"]);
-    // Delete lock file before release
     rmSync(BROAD_LOCK_FILE, { force: true });
     expect(() => release?.()).not.toThrow();
 
-    // With corrupt JSON
     const release2 = acquireTestLock(true, ["tests"]);
     writeFileSync(BROAD_LOCK_FILE, "invalid json");
     expect(() => release2()).not.toThrow();
@@ -128,7 +127,7 @@ describe("test-mutex", () => {
     expect(newLock.pid).toBe(process.pid);
   });
 
-  test("Process signal handlers (SIGINT, SIGTERM, uncaughtException, exit) trigger cleanup and appropriate exit codes", () => {
+  test("Process signal handlers trigger cleanup and appropriate exit codes", () => {
     release = acquireTestLock(true, ["tests"]);
 
     const sigintListeners = process.rawListeners("SIGINT");
@@ -146,14 +145,12 @@ describe("test-mutex", () => {
     expect(typeof newUncaughtHandler).toBe("function");
     expect(typeof newExitHandler).toBe("function");
 
-    // Test SIGINT handler
     if (typeof newSigintHandler === "function") {
       expect(() => {
         (newSigintHandler as () => void)();
       }).toThrow("process.exit called with 130");
     }
 
-    // Clean lock and re-acquire for SIGTERM handler
     rmSync(LOCK_DIR, { recursive: true, force: true });
     release = acquireTestLock(true, ["tests"]);
     if (typeof newSigtermHandler === "function") {
@@ -162,7 +159,6 @@ describe("test-mutex", () => {
       }).toThrow("process.exit called with 143");
     }
 
-    // Clean lock and re-acquire for uncaughtException handler
     rmSync(LOCK_DIR, { recursive: true, force: true });
     release = acquireTestLock(true, ["tests"]);
     const uncaughtListenersUpdated = process.rawListeners("uncaughtException");
@@ -175,7 +171,6 @@ describe("test-mutex", () => {
       expect(errorSpy).toHaveBeenCalledWith(testErr);
     }
 
-    // Clean lock and re-acquire for exit handler
     rmSync(LOCK_DIR, { recursive: true, force: true });
     release = acquireTestLock(true, ["tests"]);
     if (typeof newExitHandler === "function") {
@@ -188,5 +183,38 @@ describe("test-mutex", () => {
   test("isProcessAlive correctly checks process health", () => {
     expect(isProcessAlive(process.pid)).toBe(true);
     expect(isProcessAlive(999999)).toBe(false);
+  });
+
+  test("In-memory mode operates with zero disk I/O", () => {
+    const memStore = createMemoryLockStore();
+    setLockStore(memStore);
+    expect(getActiveLockStore().isMemory).toBe(true);
+
+    release = acquireTestLock(true, ["tests"], { skipSignalHandlers: true });
+    expect(existsSync(BROAD_LOCK_FILE)).toBe(false);
+    expect(memStore.existsSync(BROAD_LOCK_FILE)).toBe(true);
+
+    const lockData = JSON.parse(memStore.readFileSync(BROAD_LOCK_FILE)) as TestLockData;
+    expect(lockData.pid).toBe(process.pid);
+
+    release();
+    expect(memStore.existsSync(BROAD_LOCK_FILE)).toBe(false);
+    expect(existsSync(BROAD_LOCK_FILE)).toBe(false);
+  });
+
+  test("In-memory lock handles missing file on read and reclaim of dead PID", () => {
+    const memStore = createMemoryLockStore({
+      [BROAD_LOCK_FILE]: JSON.stringify({
+        pid: 999999,
+        scope: "broad",
+        args: ["tests"],
+        startedAt: new Date().toISOString(),
+      }),
+    });
+
+    expect(() => memStore.readFileSync("/nonexistent")).toThrow("ENOENT");
+    release = acquireTestLock(true, ["tests"], { store: memStore, skipSignalHandlers: true });
+    const lockData = JSON.parse(memStore.readFileSync(BROAD_LOCK_FILE)) as TestLockData;
+    expect(lockData.pid).toBe(process.pid);
   });
 });

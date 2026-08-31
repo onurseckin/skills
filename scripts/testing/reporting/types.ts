@@ -2,6 +2,7 @@
  * Universal Coverage Types and Data Contracts
  * Defines standardized coverage summary interfaces, file metrics, and artifact result models.
  * Focuses on the 3 core coverage categories: Lines, Statements, and Functions.
+ * Includes Test Runtime Telemetry and Pareto ranking models.
  */
 
 export interface MetricItem {
@@ -26,7 +27,37 @@ export interface CoverageSummaryItem {
   readonly functions: MetricItem;
 }
 
-export type CoverageSummary = Readonly<Record<string, CoverageSummaryItem>>;
+export interface TestFileRuntime {
+  readonly file: string;
+  readonly durationMs: number;
+  readonly percentage: number;
+  readonly passed?: boolean | undefined;
+  readonly testCount?: number | undefined;
+}
+
+export interface ParetoThreshold {
+  readonly percentage: number;
+  readonly fileCount: number;
+  readonly cumulativeDurationMs: number;
+  readonly files: readonly TestFileRuntime[];
+}
+
+export interface TestRuntimeSummary {
+  readonly startTime: string;
+  readonly endTime: string;
+  readonly totalDurationMs: number;
+  readonly totalFiles: number;
+  readonly avgDurationMs: number;
+  readonly medianDurationMs: number;
+  readonly slowestFile?: TestFileRuntime | undefined;
+  readonly files: readonly TestFileRuntime[];
+  readonly pareto50: ParetoThreshold;
+  readonly pareto90: ParetoThreshold;
+}
+
+export type CoverageSummary = Readonly<Record<string, CoverageSummaryItem>> & {
+  readonly runtime?: TestRuntimeSummary | undefined;
+};
 
 export interface SourceLineDetail {
   readonly no: number;
@@ -57,6 +88,25 @@ export interface CoverageArtifactResult {
   readonly summaryPath?: string | undefined;
   readonly reportPath?: string | undefined;
   readonly htmlPath?: string | undefined;
+  readonly summary?: CoverageSummary | undefined;
+  readonly runtime?: TestRuntimeSummary | undefined;
+}
+
+export interface ProcessCoverageOptions {
+  readonly writeToDisk?: boolean | undefined;
+  readonly lcovContent?: string | undefined;
+  readonly skipIfUnchanged?: boolean | undefined;
+  readonly runtime?: TestRuntimeSummary | undefined;
+  readonly testOutput?: string | undefined;
+  readonly totalDurationMs?: number | undefined;
+  readonly startTime?: string | undefined;
+  readonly endTime?: string | undefined;
+}
+
+export interface WriteCoverageOptions {
+  readonly writeToDisk?: boolean | undefined;
+  readonly skipIfUnchanged?: boolean | undefined;
+  readonly runtime?: TestRuntimeSummary | undefined;
 }
 
 export function calculatePct(covered: number, total: number): number {

@@ -16,10 +16,16 @@ import { agentIdToTier, detectHostApp, roleToTier, type ExecutionTier } from "..
 import { assertSafeSessionComponent, assertSessionPid, resolveGlobalSessionsDir } from "./paths.ts";
 import {
   atomicSessionWrite,
+  deleteInMemorySessionData,
+  enableInMemorySessionStore,
   formatSafeErrorCause,
+  getInMemorySessionData,
+  getInMemorySessionStore,
   inferCanExecute,
+  isInMemorySessionStoreEnabled,
   readOwnDataString,
   restoreSnapshotIfUnchanged,
+  setInMemorySessionData,
   snapshotSession,
   withSessionAuthorityLock,
 } from "./io.ts";
@@ -30,14 +36,29 @@ import type {
   StagedSessionGrant,
 } from "./types.ts";
 
+function resolveSessionRepoRoot(runRoot?: string): string {
+  try {
+    return findRepoRoot(runRoot);
+  } catch (error) {
+    if (isInMemorySessionStoreEnabled()) return runRoot ? resolve(runRoot) : "/virtual/repo";
+    throw error;
+  }
+}
+
+function resolveRunRootPath(runRoot: string, repoRoot: string): string {
+  const trimmed = runRoot.trim();
+  return isAbsolute(trimmed) || isInsideCapsule(trimmed)
+    ? resolve(trimmed)
+    : join(resolveCapsulesDir(repoRoot), trimmed);
+}
+
 export function stageSessionGrant(options: RegisterSessionOptions): StagedSessionGrant {
-  const repoRoot = findRepoRoot(options.runRoot);
+  const repoRoot = resolveSessionRepoRoot(options.runRoot);
   const agentId = assertSafeSessionComponent(options.agentId, "agentId");
   const role = assertSafeSessionComponent(options.role, "role");
   const token = options.customToken ?? `tok_live_${randomBytes(24).toString("hex")}`;
-  if (typeof token !== "string" || !token.trim()) {
+  if (typeof token !== "string" || !token.trim())
     throw new HarnessError("INVALID_ARGUMENT", "customToken must be a nonempty string");
-  }
   const pid = assertSessionPid(
     options.pid ?? (typeof process !== "undefined" ? process.pid : 0),
     "pid",
@@ -52,14 +73,8 @@ export function stageSessionGrant(options: RegisterSessionOptions): StagedSessio
   const granted_at = new Date().toISOString();
 
   let resolvedRunRoot: string | undefined;
-  if (options.runRoot && options.runRoot.trim()) {
-    const trimmed = options.runRoot.trim();
-    if (isAbsolute(trimmed) || isInsideCapsule(trimmed)) {
-      resolvedRunRoot = resolve(trimmed);
-    } else {
-      resolvedRunRoot = join(resolveCapsulesDir(repoRoot), trimmed);
-    }
-  }
+  if (options.runRoot && options.runRoot.trim())
+    resolvedRunRoot = resolveRunRootPath(options.runRoot, repoRoot);
 
   const session: SessionIdentity = {
     agent_id: agentId,
@@ -82,14 +97,14 @@ export function stageSessionGrant(options: RegisterSessionOptions): StagedSessio
   const bindProcessAncestry = options.bindProcessAncestry ?? true;
   const globalDir = resolveGlobalSessionsDir(repoRoot);
   const paths = bindProcessAncestry
-    ? [...new Set([pid, ppid])].map((processId) => join(globalDir, `${processId}.json`))
+    ? [...new Set([pid, ppid])].map((p) => join(globalDir, `${p}.json`))
     : [];
   let processSnapshots: readonly SessionSnapshot[] = [];
   let capsuleSnapshot: SessionSnapshot | undefined;
 
   if (paths.length > 0) {
     try {
-      mkdirSync(globalDir, { recursive: true });
+      if (!isInMemorySessionStoreEnabled()) mkdirSync(globalDir, { recursive: true });
       withSessionAuthorityLock(repoRoot, globalDir, () => {
         processSnapshots = paths.map(snapshotSession);
         try {
@@ -109,12 +124,17 @@ export function stageSessionGrant(options: RegisterSessionOptions): StagedSessio
 
   if (resolvedRunRoot) {
     const runtimeSessionsDir = join(resolvedRunRoot, "runtime", "sessions");
-    try {
-      mkdirSync(runtimeSessionsDir, { recursive: true });
-      const path = join(runtimeSessionsDir, `${agentId}.json`);
+    const path = join(runtimeSessionsDir, `${agentId}.json`);
+    if (isInMemorySessionStoreEnabled()) {
       capsuleSnapshot = snapshotSession(path);
-      writeFileSync(path, payload, "utf8");
-    } catch {}
+      setInMemorySessionData(path, payload);
+    } else {
+      try {
+        mkdirSync(runtimeSessionsDir, { recursive: true });
+        capsuleSnapshot = snapshotSession(path);
+        writeFileSync(path, payload, "utf8");
+      } catch {}
+    }
   }
 
   return {
@@ -129,25 +149,31 @@ export function stageSessionGrant(options: RegisterSessionOptions): StagedSessio
 
 export function rollbackStagedSessionGrant(stage: StagedSessionGrant): void {
   withSessionAuthorityLock(stage.repoRoot, stage.globalDir, () => {
-    for (const snapshot of stage.processSnapshots) {
+    for (const snapshot of stage.processSnapshots)
       restoreSnapshotIfUnchanged(snapshot, stage.payload);
-    }
-    if (stage.capsuleSnapshot !== undefined) {
+    if (stage.capsuleSnapshot !== undefined)
       restoreSnapshotIfUnchanged(stage.capsuleSnapshot, stage.payload);
-    }
   });
 }
 
 export function registerSessionGrant(options: RegisterSessionOptions): SessionIdentity {
   const stage = stageSessionGrant(options);
-
-  if (options.worktreeDir && existsSync(options.worktreeDir)) {
-    try {
-      writeFileSync(join(options.worktreeDir, ".session.json"), stage.payload, "utf8");
-    } catch {}
+  if (options.worktreeDir) {
+    const path = join(options.worktreeDir, ".session.json");
+    if (isInMemorySessionStoreEnabled()) {
+      setInMemorySessionData(path, stage.payload);
+    } else if (existsSync(options.worktreeDir)) {
+      try {
+        writeFileSync(path, stage.payload, "utf8");
+      } catch {}
+    }
   }
-
   return stage.session;
+}
+
+export function registerInMemorySessionGrant(options: RegisterSessionOptions): SessionIdentity {
+  if (!isInMemorySessionStoreEnabled()) enableInMemorySessionStore();
+  return registerSessionGrant(options);
 }
 
 export function revokeSessionGrant(options: {
@@ -156,25 +182,35 @@ export function revokeSessionGrant(options: {
   readonly pid: number;
   readonly ppid: number;
 }): void {
-  const repoRoot = findRepoRoot(options.runRoot);
+  const repoRoot = resolveSessionRepoRoot(options.runRoot);
   const agentId = assertSafeSessionComponent(options.agentId, "agentId");
   const pid = assertSessionPid(options.pid, "pid");
   const ppid = assertSessionPid(options.ppid, "ppid");
   for (const processId of new Set([pid, ppid])) {
     const path = join(resolveGlobalSessionsDir(repoRoot), `${processId}.json`);
-    if (existsSync(path)) unlinkSync(path);
+    if (isInMemorySessionStoreEnabled()) deleteInMemorySessionData(path);
+    else if (existsSync(path)) unlinkSync(path);
   }
   if (options.runRoot && options.runRoot.trim()) {
     const runRoot = resolve(options.runRoot);
     const path = join(runRoot, "runtime", "sessions", `${agentId}.json`);
-    if (existsSync(path)) unlinkSync(path);
+    if (isInMemorySessionStoreEnabled()) deleteInMemorySessionData(path);
+    else if (existsSync(path)) unlinkSync(path);
   }
 }
 
 export function pruneStaleSessions(maxAgeMs = 86400000): void {
+  if (isInMemorySessionStoreEnabled()) {
+    const store = getInMemorySessionStore();
+    if (store) {
+      for (const key of [...store.keys()]) {
+        if (key.includes(".sessions") && key.endsWith(".json")) store.delete(key);
+      }
+    }
+    return;
+  }
   const globalDir = resolveGlobalSessionsDir(findRepoRoot());
   if (!existsSync(globalDir)) return;
-
   try {
     const files = readdirSync(globalDir);
     const now = Date.now();
@@ -187,16 +223,12 @@ export function pruneStaleSessions(maxAgeMs = 86400000): void {
           unlinkSync(filePath);
           continue;
         }
-
-        const pidStr = file.replace(".json", "");
-        const pid = parseInt(pidStr, 10);
+        const pid = parseInt(file.replace(".json", ""), 10);
         if (!Number.isNaN(pid) && pid > 0) {
           try {
             process.kill(pid, 0);
           } catch (e: unknown) {
-            if (readOwnDataString(e, "code") === "ESRCH") {
-              unlinkSync(filePath);
-            }
+            if (readOwnDataString(e, "code") === "ESRCH") unlinkSync(filePath);
           }
         }
       } catch {}
@@ -204,30 +236,59 @@ export function pruneStaleSessions(maxAgeMs = 86400000): void {
   } catch {}
 }
 
+function resolveCapsuleStateLocation(trimmed: string): { resolved: string; statePath: string } {
+  let resolved = trimmed;
+  let statePath = join(trimmed, "state.json");
+  try {
+    const repoRoot = findRepoRoot(trimmed);
+    resolved =
+      isAbsolute(trimmed) || isInsideCapsule(trimmed)
+        ? resolve(trimmed)
+        : join(resolveCapsulesDir(repoRoot), trimmed);
+    statePath = join(resolved, "state.json");
+  } catch {}
+  return { resolved, statePath };
+}
+
 export function assertActiveCapsuleLease(runRoot: string, agentId: string): void {
-  if (!runRoot || !runRoot.trim()) {
+  if (!runRoot || !runRoot.trim())
     throw new HarnessError("INVALID_STATE", "capsule runRoot is required");
-  }
   const agent = assertSafeSessionComponent(agentId, "agentId");
   const trimmed = runRoot.trim();
   let statePath = join(trimmed, "state.json");
   let resolved = trimmed;
-  if (!existsSync(statePath)) {
+  let raw: string | undefined;
+
+  if (isInMemorySessionStoreEnabled()) {
+    raw = getInMemorySessionData(statePath);
+    if (!raw) {
+      const loc = resolveCapsuleStateLocation(trimmed);
+      resolved = loc.resolved;
+      statePath = loc.statePath;
+      raw = getInMemorySessionData(statePath);
+    }
+  }
+
+  if (raw === undefined) {
+    if (!existsSync(statePath)) {
+      const loc = resolveCapsuleStateLocation(trimmed);
+      resolved = loc.resolved;
+      statePath = loc.statePath;
+    }
+    if (!existsSync(statePath))
+      throw new HarnessError("INVALID_STATE", `capsule state not found at ${resolved}`);
     try {
-      const repoRoot = findRepoRoot(trimmed);
-      resolved =
-        isAbsolute(trimmed) || isInsideCapsule(trimmed)
-          ? resolve(trimmed)
-          : join(resolveCapsulesDir(repoRoot), trimmed);
-      statePath = join(resolved, "state.json");
-    } catch {}
+      raw = readFileSync(statePath, "utf8");
+    } catch (error) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `failed to load capsule state at ${resolved}: ${formatSafeErrorCause(error)}`,
+      );
+    }
   }
-  if (!existsSync(statePath)) {
-    throw new HarnessError("INVALID_STATE", `capsule state not found at ${resolved}`);
-  }
+
   let state: Record<string, unknown>;
   try {
-    const raw = readFileSync(statePath, "utf8");
     state = JSON.parse(raw) as Record<string, unknown>;
   } catch (error) {
     throw new HarnessError(
@@ -236,18 +297,19 @@ export function assertActiveCapsuleLease(runRoot: string, agentId: string): void
     );
   }
   const ledger = readAgentLedger(state as Parameters<typeof readAgentLedger>[0]);
-  const activeGrant = ledger.find((entry) => entry.id === agent && entry.status === "active");
-  if (activeGrant) return;
+  if (ledger.some((entry) => entry.id === agent && entry.status === "active")) return;
   const tasks = state.tasks;
   if (tasks && typeof tasks === "object") {
-    const hasActiveTaskLease = Object.values(tasks).some((t) => {
+    const hasActive = Object.values(tasks).some((t) => {
       if (!t || typeof t !== "object") return false;
       const lease = (t as { lease?: { agent_id?: string; expires_at?: string } }).lease;
-      if (!lease || lease.agent_id !== agent) return false;
-      if (lease.expires_at && Date.parse(lease.expires_at) <= Date.now()) return false;
-      return true;
+      return Boolean(
+        lease &&
+        lease.agent_id === agent &&
+        (!lease.expires_at || Date.parse(lease.expires_at) > Date.now()),
+      );
     });
-    if (hasActiveTaskLease) return;
+    if (hasActive) return;
   }
   throw new HarnessError(
     "INVALID_STATE",
