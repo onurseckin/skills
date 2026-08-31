@@ -73,17 +73,9 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
     });
 
     it("parseLockPayload parses valid payload and rejects invalid inputs and malformed JSON", () => {
-      const valid = JSON.stringify({
-        pid: 12345,
-        holder: "agent-a",
-        created_at: "2026-08-29T00:00:00.000Z",
-      });
-      expect(parseLockPayload(valid)).toEqual({
-        pid: 12345,
-        holder: "agent-a",
-        created_at: "2026-08-29T00:00:00.000Z",
-      });
-      for (const invalid of [
+      const validPayload = { pid: 12345, holder: "agent-a", created_at: "2026-08-29T00:00:00.000Z" };
+      expect(parseLockPayload(JSON.stringify(validPayload))).toEqual(validPayload);
+      const invalids = [
         "",
         "invalid json",
         "{ invalid json }",
@@ -91,14 +83,13 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
         JSON.stringify({ pid: 1.5, holder: "a", created_at: "now" }),
         JSON.stringify({ pid: 1, holder: 123, created_at: "now" }),
         JSON.stringify({ pid: 1, holder: "a", created_at: 123 }),
-      ]) {
-        expect(parseLockPayload(invalid)).toBeNull();
-      }
+      ];
+      for (const invalid of invalids) expect(parseLockPayload(invalid)).toBeNull();
     });
 
     it("fails closed on invalid arguments with HarnessError", () => {
       const validPath = join(locksDir, "valid.lock");
-      for (const call of [
+      const badCalls = [
         () => acquireMailboxLock("", "agent-1"),
         () => acquireMailboxLock(123 as unknown as string, "agent-1"),
         () => acquireMailboxLock(validPath, ""),
@@ -107,9 +98,8 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
         () => acquireMailboxLock(validPath, "agent-1", { timeoutMs: Infinity }),
         () => acquireMailboxLock(validPath, "agent-1", { staleThresholdMs: Number.NaN }),
         () => acquireMailboxLock(validPath, "agent-1", { retryMs: -5 }),
-      ]) {
-        expect(call).toThrow(HarnessError);
-      }
+      ];
+      for (const call of badCalls) expect(call).toThrow(HarnessError);
     });
   });
 
@@ -173,11 +163,8 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
 
     it("readHolderPid returns PID for valid disk lock file and null for missing or invalid files", () => {
       const validPath = join(locksDir, "valid-holder.lock");
-      writeFileSync(
-        validPath,
-        JSON.stringify({ pid: 4321, holder: "h1", created_at: "2026-08-30T00:00:00.000Z" }),
-        "utf8",
-      );
+      const payload = { pid: 4321, holder: "h1", created_at: "2026-08-30T00:00:00.000Z" };
+      writeFileSync(validPath, JSON.stringify(payload), "utf8");
       expect(readHolderPid(validPath)).toBe(4321);
       expect(readHolderPid(join(locksDir, "nonexistent.lock"))).toBeNull();
       const invalidPath = join(locksDir, "invalid-holder.lock");
@@ -197,12 +184,7 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
       const fd = openSync(filePath, "w");
       closeSync(fd);
       expect(() =>
-        releaseMailboxLock({
-          acquired: true,
-          lockFd: fd,
-          lockPath: filePath,
-          holderPid: process.pid,
-        }),
+        releaseMailboxLock({ acquired: true, lockFd: fd, lockPath: filePath, holderPid: process.pid }),
       ).toThrow();
     });
   });
@@ -260,11 +242,7 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
       expect(removeInMemoryLock(path1)).toBe(true);
       expect(getInMemoryLock(path1)).toBeNull();
 
-      seedInMemoryLock(path2, {
-        pid: 9999,
-        holder: "agent-2",
-        created_at: "2026-08-31T00:00:00.000Z",
-      });
+      seedInMemoryLock(path2, { pid: 9999, holder: "agent-2", created_at: "2026-08-31T00:00:00.000Z" });
       resetInMemoryLocks();
       expect(getInMemoryLock(path2)).toBeNull();
     });
@@ -280,11 +258,7 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
       expect(syncVal).toBe(999);
       expect(getInMemoryLock(lockPath)).toBeNull();
 
-      const asyncVal = await withExclusiveLockAsync(
-        lockPath,
-        "async-agent",
-        async () => "async-ok",
-      );
+      const asyncVal = await withExclusiveLockAsync(lockPath, "async-agent", async () => "async-ok");
       expect(asyncVal).toBe("async-ok");
       expect(getInMemoryLock(lockPath)).toBeNull();
 
@@ -293,10 +267,7 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
         withExclusiveLock(lockPath, "blocked", () => "nope", { timeoutMs: 20, retryMs: 5 }),
       ).toThrow(HarnessError);
       await expect(
-        withExclusiveLockAsync(lockPath, "blocked", async () => "nope", {
-          timeoutMs: 20,
-          retryMs: 5,
-        }),
+        withExclusiveLockAsync(lockPath, "blocked", async () => "nope", { timeoutMs: 20, retryMs: 5 }),
       ).rejects.toThrow(HarnessError);
       releaseMailboxLock(blocker);
     });
@@ -307,17 +278,11 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
       expect(res1.acquired).toBe(true);
       expect(res1.lockFd).toBeGreaterThanOrEqual(100_000);
 
-      const res2 = await acquireMailboxLockAsync(lockPath, "async-2", {
-        timeoutMs: 25,
-        retryMs: 5,
-      });
+      const res2 = await acquireMailboxLockAsync(lockPath, "async-2", { timeoutMs: 25, retryMs: 5 });
       expect(res2.acquired).toBe(false);
 
       releaseMailboxLock(res1);
-      const res3 = await acquireMailboxLockAsync(lockPath, "async-2", {
-        timeoutMs: 50,
-        retryMs: 5,
-      });
+      const res3 = await acquireMailboxLockAsync(lockPath, "async-2", { timeoutMs: 50, retryMs: 5 });
       expect(res3.acquired).toBe(true);
       releaseMailboxLock(res3);
     });
