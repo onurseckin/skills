@@ -26,6 +26,7 @@ export {
 export { countLayerCrossings, barycentricSort, minimizeCrossingsBarycenter } from "./crossing.ts";
 export {
   buildOrthogonalRouteSegments,
+  insertVirtualDummyNodes,
   renderOrthogonalConnectors,
   renderInterWaveConnector,
   renderLaneSeparator,
@@ -49,5 +50,12 @@ export {
   renderSubagentExpandedItems,
   expandSubagentSubgraphs,
 } from "./subagent-expansion.ts";
-export { renderSugiyamaNodeBox, renderRoundedNodeBox } from "./render-box.ts";
+export {
+  renderSugiyamaNodeBox,
+  renderRoundedNodeBox,
+  getOpticalDisplayWidth,
+  stripAnsiCodes,
+  padOptical,
+  truncateOptical,
+} from "./render-box.ts";
 export { renderSugiyamaDag, generateSugiyamaDagReport, buildSugiyamaDagReport } from "./render.ts";

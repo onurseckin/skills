@@ -7,6 +7,7 @@ export function detectMockDeclarations(
   sourceFile: ts.SourceFile,
 ): MockInfo[] {
   const mocks: MockInfo[] = [];
+  const destructuredFactories = new Set<string>();
 
   function checkInitializer(init: ts.Expression): {
     isMock: boolean;
@@ -29,10 +30,15 @@ export function detectMockDeclarations(
             }
             curr = curr.expression.expression;
           } else if (ts.isIdentifier(curr.expression)) {
+            const idName = curr.expression.text;
             if (
-              curr.expression.text === "mock" ||
-              curr.expression.text === "vi" ||
-              curr.expression.text === "jest"
+              idName === "mock" ||
+              idName === "vi" ||
+              idName === "jest" ||
+              idName === "fn" ||
+              idName === "spyOn" ||
+              MOCK_FACTORIES.has(idName) ||
+              destructuredFactories.has(idName)
             ) {
               const firstArg = curr.arguments[0];
               if (firstArg && (ts.isArrowFunction(firstArg) || ts.isFunctionExpression(firstArg))) {
@@ -64,32 +70,106 @@ export function detectMockDeclarations(
   }
 
   function walk(node: ts.Node): void {
-    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
-      const { isMock, stubbedValue } = checkInitializer(node.initializer);
-      if (isMock) {
-        mocks.push({ varName: node.name.text, stubbedReturnValue: stubbedValue });
-      } else if (ts.isObjectLiteralExpression(node.initializer)) {
-        let hasMockProp = false;
-        for (const prop of node.initializer.properties) {
-          if (ts.isPropertyAssignment(prop) && prop.initializer) {
-            const propRes = checkInitializer(prop.initializer);
-            if (propRes.isMock) {
-              hasMockProp = true;
-              break;
+    if (ts.isVariableDeclaration(node) && node.initializer) {
+      if (ts.isIdentifier(node.name)) {
+        const { isMock, stubbedValue } = checkInitializer(node.initializer);
+        if (isMock) {
+          mocks.push({ varName: node.name.text, stubbedReturnValue: stubbedValue });
+        } else if (ts.isObjectLiteralExpression(node.initializer)) {
+          let hasMockProp = false;
+          for (const prop of node.initializer.properties) {
+            if (ts.isPropertyAssignment(prop) && prop.initializer) {
+              const propRes = checkInitializer(prop.initializer);
+              if (propRes.isMock) {
+                hasMockProp = true;
+                const propName = prop.name.getText(sourceFile);
+                mocks.push({
+                  varName: `${node.name.text}.${propName}`,
+                  stubbedReturnValue: propRes.stubbedValue,
+                });
+              }
             }
           }
+          if (hasMockProp) {
+            mocks.push({ varName: node.name.text, isMockObject: true });
+          }
         }
-        if (hasMockProp) {
-          mocks.push({ varName: node.name.text, isMockObject: true });
+      } else if (ts.isObjectBindingPattern(node.name)) {
+        const isViOrJest =
+          (ts.isIdentifier(node.initializer) &&
+            (node.initializer.text === "vi" || node.initializer.text === "jest")) ||
+          checkInitializer(node.initializer).isMock;
+        for (const elem of node.name.elements) {
+          if (ts.isIdentifier(elem.name) && (isViOrJest || MOCK_FACTORIES.has(elem.name.text))) {
+            mocks.push({ varName: elem.name.text });
+            destructuredFactories.add(elem.name.text);
+          }
         }
       }
     }
+
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      ts.isPropertyAccessExpression(node.left)
+    ) {
+      const propRes = checkInitializer(node.right);
+      if (propRes.isMock) {
+        const fullName = node.left.getText(sourceFile);
+        const objName = node.left.expression.getText(sourceFile);
+        mocks.push({ varName: fullName, stubbedReturnValue: propRes.stubbedValue });
+        mocks.push({ varName: objName, isMockObject: true });
+      }
+    }
+
+    if (ts.isCallExpression(node)) {
+      let curr: ts.Expression = node;
+      let stubbedValue: string | undefined = undefined;
+      while (ts.isCallExpression(curr) || ts.isPropertyAccessExpression(curr)) {
+        if (ts.isCallExpression(curr)) {
+          if (ts.isPropertyAccessExpression(curr.expression)) {
+            const pName = curr.expression.name.text;
+            if (pName === "mockReturnValue" || pName === "mockResolvedValue") {
+              const valArg = curr.arguments[0];
+              if (valArg) stubbedValue = valArg.getText(sourceFile);
+            }
+            if (
+              (pName === "spyOn" || pName === "mock") &&
+              ts.isIdentifier(curr.expression.expression) &&
+              (curr.expression.expression.text === "vi" ||
+                curr.expression.expression.text === "jest")
+            ) {
+              const targetObj = curr.arguments[0]?.getText(sourceFile);
+              const targetMethod = curr.arguments[1]?.getText(sourceFile)?.replace(/['"]/g, "");
+              if (targetObj) {
+                mocks.push({ varName: targetObj, isMockObject: true });
+                if (targetMethod) {
+                  mocks.push({
+                    varName: `${targetObj}.${targetMethod}`,
+                    stubbedReturnValue: stubbedValue,
+                  });
+                }
+              }
+              break;
+            }
+          }
+          curr = curr.expression;
+        } else {
+          curr = curr.expression;
+        }
+      }
+    }
+
     ts.forEachChild(node, walk);
   }
 
-  if (callback.body && ts.isBlock(callback.body)) {
-    for (const stmt of callback.body.statements) {
-      walk(stmt);
+  if (callback.body) {
+    if (ts.isBlock(callback.body)) {
+      for (const stmt of callback.body.statements) {
+        walk(stmt);
+      }
+    } else {
+      walk(callback.body);
     }
   }
 
@@ -125,12 +205,14 @@ export function checkMockTautology(
           ts.isIdentifier(node.expression) && mockNames.has(node.expression.text);
         const isDirectMockMethod =
           ts.isPropertyAccessExpression(node.expression) &&
-          ts.isIdentifier(node.expression.expression) &&
-          mockNames.has(node.expression.expression.text);
+          (mockNames.has(node.expression.getText(sourceFile)) ||
+            (ts.isIdentifier(node.expression.expression) &&
+              mockNames.has(node.expression.expression.text)));
 
         if (!isDirectMockCall && !isDirectMockMethod) {
           for (const arg of node.arguments) {
-            if (ts.isIdentifier(arg) && mockNames.has(arg.text)) {
+            const argText = arg.getText(sourceFile);
+            if (mockNames.has(argText) || (ts.isIdentifier(arg) && mockNames.has(arg.text))) {
               mockExercisedInSut = true;
             }
           }
@@ -138,7 +220,8 @@ export function checkMockTautology(
       }
     } else if (ts.isNewExpression(node)) {
       for (const arg of node.arguments ?? []) {
-        if (ts.isIdentifier(arg) && mockNames.has(arg.text)) {
+        const argText = arg.getText(sourceFile);
+        if (mockNames.has(argText) || (ts.isIdentifier(arg) && mockNames.has(arg.text))) {
           mockExercisedInSut = true;
         }
       }
@@ -152,8 +235,8 @@ export function checkMockTautology(
 
   for (const assertion of assertions) {
     const rootArg = getRootExpectArg(assertion);
-    if (rootArg && ts.isCallExpression(rootArg) && ts.isIdentifier(rootArg.expression)) {
-      const calledName = rootArg.expression.text;
+    if (rootArg && ts.isCallExpression(rootArg)) {
+      const calledName = rootArg.expression.getText(sourceFile);
       const stubbed = stubbedValuesMap.get(calledName);
       if (stubbed !== undefined && assertion.arguments.length > 0) {
         const expectedArg = assertion.arguments[0];

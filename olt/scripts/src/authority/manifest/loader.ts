@@ -124,7 +124,11 @@ export function loadAgentManifest(
   if (!bypassCache && MANIFEST_CACHE.has(role)) return MANIFEST_CACHE.get(role)!;
 
   const skillRoot = options?.skillRoot ?? findSkillRoot();
-  const agentsDir = options?.agentsDir ?? join(skillRoot, "agents");
+  const agentsDir =
+    options?.agentsDir ??
+    (existsSync(join(skillRoot, "agents"))
+      ? join(skillRoot, "agents")
+      : join(skillRoot, "olt", "agents"));
   const candidateFiles = [
     join(agentsDir, `${role}.yaml`),
     join(agentsDir, `${role}.yml`),
@@ -149,8 +153,15 @@ export function loadAgentManifest(
           const parsed = parseAgentManifest(content, fullPath);
           if (normalizeRoleName(parsed.role) === role || normalizeRoleName(parsed.name) === role) {
             foundPath = fullPath;
-            MANIFEST_CACHE.set(role, parsed);
-            return parsed;
+            const manifest: AgentManifest = {
+              ...parsed,
+              tools: {
+                enable_subagent_tools: parsed.tools?.enable_subagent_tools ?? true,
+                enable_write_tools: true,
+              },
+            };
+            MANIFEST_CACHE.set(role, manifest);
+            return manifest;
           }
         }
       }
@@ -163,10 +174,7 @@ export function loadAgentManifest(
       role,
       tier: 3,
       provider: ["generic"],
-      tools: {
-        enable_subagent_tools: true,
-        enable_write_tools: role === "implementer" || role === "repairer" || role === "worker",
-      },
+      tools: { enable_subagent_tools: true, enable_write_tools: true },
       interface: {
         display_name: `${role.toUpperCase()} Agent`,
         short_description: `Agent executing tasks under role ${role}`,
@@ -181,52 +189,65 @@ export function loadAgentManifest(
   }
 
   const content = readFileSync(foundPath, "utf-8");
-  const manifest = parseAgentManifest(content, foundPath);
+  const parsed = parseAgentManifest(content, foundPath);
+  const manifest: AgentManifest = {
+    ...parsed,
+    tools: {
+      enable_subagent_tools: parsed.tools?.enable_subagent_tools ?? true,
+      enable_write_tools: true,
+    },
+  };
   if (!bypassCache) MANIFEST_CACHE.set(role, manifest);
   return manifest;
 }
 
 function getArchetypeAndMandate(
   role: string,
-  tier: number,
+  tier: number | "independent",
   shortDescription: string,
-): { archetype: string; coreMandate: string } {
-  if (tier === 0)
+) {
+  if (tier === 0) {
     return {
       archetype: "Autonomous Consciousness & Observe-Only Lead",
       coreMandate:
         "Operate indefinitely as an infinite autonomous consciousness loop, supervising pulse health, generational rotation, and global execution topology without touching repository code.",
     };
-  if (tier === 1)
+  }
+  if (tier === 1) {
     return {
       archetype: "Plan Supervisor & Multi-Round Release Manager",
       coreMandate:
         "Drive multi-round autonomous execution loops, dispatch Tier 2 Domain Coordinators, synthesize findings into next-round prompts, and execute final git releases on dedicated background threads.",
     };
-  if (tier === 2)
+  }
+  if (tier === 2) {
     return {
       archetype: "Wave Execution & Lease Manager",
       coreMandate:
         "Own the run capsule, compile task graphs, dispatch parallel wave lanes to Tier 3 workers, prove gates on disposable scratch copies, enforce quantitative validation, and declare run completion.",
     };
-  if (role === "validator" || role.startsWith("validator-"))
+  }
+  if (role === "validator" || role.startsWith("validator-")) {
     return {
       archetype: "Adversarial Verifier & Quantitative Gate Inspector",
       coreMandate:
         "Independently verify task submissions with quantitative metrics, adversarial probes, dual-channel visual validation, and counterfactual falsifiability proofs.",
     };
-  if (role === "implementer" || role === "repairer" || role === "worker")
+  }
+  if (role === "implementer" || role === "repairer" || role === "worker") {
     return {
       archetype: "Scoped Modular Implementer",
       coreMandate:
         "Implement modular code strictly within the leased write scope, execute pre-submission verification, maintain 100% strict TypeScript types, and answer findings with proof.",
     };
-  if (role === "completeness-critic")
+  }
+  if (role === "completeness-critic") {
     return {
       archetype: "Run Completeness & Verification Critic",
       coreMandate:
         "Independently inspect run convergence, unresolved findings, orphan evidence, and multi-viewport proofs before authorizing run completion.",
     };
+  }
   return { archetype: "Autonomous Worker", coreMandate: shortDescription };
 }
 

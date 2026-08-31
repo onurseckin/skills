@@ -103,21 +103,12 @@ export class RunSupervisor {
   private readonly clock: Clock;
   private readonly sleepFn: (ms: number) => Promise<void>;
   private readonly repoRoot: string;
-  // Live per-tick diffs (reclaim.reclaimed) are already correctly scoped to this call and this
-  // actor; buildMorningReport's deadAgentsReclaimed is not — it filters the run's ENTIRE persisted
-  // event log by kind alone, so a reclaim a different orchestrator actor recorded hours earlier on
-  // this same run keeps counting on every later report. Summing the live per-tick diffs ourselves,
-  // bounded to this RunSupervisor instance's own lifetime, sidesteps that unscoped re-derivation
-  // entirely instead of trying to make the historical scan itself actor/time aware.
   private sessionReclaimedCount = 0;
 
   public constructor(private readonly options: RunSupervisorOptions) {
     this.port = workflowPort(options.runRoot);
-    this.clock = options.clock !== undefined ? options.clock : systemClock;
-    this.sleepFn =
-      options.sleep !== undefined
-        ? options.sleep
-        : (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    this.clock = options.clock ?? systemClock;
+    this.sleepFn = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.repoRoot = findRepoRoot(options.runRoot);
   }
 
@@ -129,12 +120,12 @@ export class RunSupervisor {
     const o = this.options;
     const reclaim = runSupervisionTick(this.port, o.actor, {
       clock: this.clock,
-      ...(o.recoveryEnabled === undefined ? {} : { recoveryEnabled: o.recoveryEnabled }),
-      ...(o.graceSeconds === undefined ? {} : { graceSeconds: o.graceSeconds }),
-      ...(o.deterministicRepeatThreshold === undefined
-        ? {}
-        : { deterministicRepeatThreshold: o.deterministicRepeatThreshold }),
-      ...(o.maxElapsedMsPerTask === undefined ? {} : { maxElapsedMs: o.maxElapsedMsPerTask }),
+      ...(o.recoveryEnabled !== undefined ? { recoveryEnabled: o.recoveryEnabled } : {}),
+      ...(o.graceSeconds !== undefined ? { graceSeconds: o.graceSeconds } : {}),
+      ...(o.deterministicRepeatThreshold !== undefined
+        ? { deterministicRepeatThreshold: o.deterministicRepeatThreshold }
+        : {}),
+      ...(o.maxElapsedMsPerTask !== undefined ? { maxElapsedMs: o.maxElapsedMsPerTask } : {}),
     });
     this.sessionReclaimedCount += reclaim.reclaimed.length;
 
@@ -142,7 +133,6 @@ export class RunSupervisor {
     const freeSlots = Math.max(0, o.maxParallel - reclaim.occupied);
     const selection = selectDispatchable(loaded.state, loaded.events, freeSlots, this.clock.now());
 
-    // Execute out-of-band behavioral forensics per tick
     const behavioralForensics = OrchestratorCompanionAuditor.executeForensics(this.repoRoot, {
       capsuleRunRoot: this.options.runRoot,
       now: this.clock.now().toISOString(),
@@ -157,7 +147,7 @@ export class RunSupervisor {
       occupied: reclaim.occupied,
       maxParallel: o.maxParallel,
       behavioralForensics,
-      ...(o.gateMaxParallel === undefined ? {} : { gateMaxParallel: o.gateMaxParallel }),
+      ...(o.gateMaxParallel !== undefined ? { gateMaxParallel: o.gateMaxParallel } : {}),
     };
     if (o.dispatcher !== undefined) await this.dispatchReady(outcome, loaded.events);
     return outcome;
@@ -179,7 +169,7 @@ export class RunSupervisor {
         recordDispatchOutcome(this.port, this.options.actor, {
           taskId: entry.task_id,
           outcome: "dispatched",
-          ...(result.agentId === undefined ? {} : { agentId: result.agentId }),
+          ...(result.agentId !== undefined ? { agentId: result.agentId } : {}),
         });
         continue;
       }
@@ -193,22 +183,20 @@ export class RunSupervisor {
     events: readonly DispatchLogEvent[],
   ): void {
     const now = this.clock.now();
-    const signal =
-      failure !== undefined && failure.signal !== undefined ? failure.signal : "unknown";
-    const detail =
-      failure !== undefined && failure.detail !== undefined ? failure.detail : "unknown";
+    const signal = failure?.signal ?? "unknown";
+    const detail = failure?.detail ?? "unknown";
     const history = readDispatchHistory(events, taskId);
     const classification = classifyFailure({
       signal,
       detail,
       priorFailures: history.failures,
       now,
-      ...(this.options.deterministicRepeatThreshold === undefined
-        ? {}
-        : { deterministicRepeatThreshold: this.options.deterministicRepeatThreshold }),
-      ...(this.options.maxElapsedMsPerTask === undefined
-        ? {}
-        : { maxElapsedMs: this.options.maxElapsedMsPerTask }),
+      ...(this.options.deterministicRepeatThreshold !== undefined
+        ? { deterministicRepeatThreshold: this.options.deterministicRepeatThreshold }
+        : {}),
+      ...(this.options.maxElapsedMsPerTask !== undefined
+        ? { maxElapsedMs: this.options.maxElapsedMsPerTask }
+        : {}),
     });
     if (classification.failureClass === "transient") {
       const delayMs = nextBackoffDelayMs(classification.repeatCount, this.options.backoff);
@@ -238,11 +226,7 @@ export class RunSupervisor {
         this.clock,
       );
     } catch (error) {
-      let isIgnorable = false;
-      if (error instanceof HarnessError) {
-        if (error.code === "INVALID_STATE") isIgnorable = true;
-      }
-      if (!isIgnorable) throw error;
+      if (!(error instanceof HarnessError && error.code === "INVALID_STATE")) throw error;
     }
   }
 
@@ -251,92 +235,48 @@ export class RunSupervisor {
     const o = this.options;
     const built = buildMorningReport(this.port.read(), loaded.events, this.clock.now(), {
       maxParallel: o.maxParallel,
-      ...(o.gateMaxParallel === undefined ? {} : { gateMaxParallel: o.gateMaxParallel }),
+      ...(o.gateMaxParallel !== undefined ? { gateMaxParallel: o.gateMaxParallel } : {}),
     });
     return { ...built, deadAgentsReclaimed: this.sessionReclaimedCount };
   }
 
   public async run(): Promise<SupervisionRunResult> {
-    // 1. Auto-pair companion Skill Auditor
     const companionPairing = OrchestratorCompanionAuditor.pairCompanion(this.repoRoot, {
       strictPolicy: this.options.strictAuditorPolicy,
     });
 
     const startedAt = this.clock.now().valueOf();
-    const maxTotalElapsedMs =
-      this.options.maxTotalElapsedMs !== undefined
-        ? this.options.maxTotalElapsedMs
-        : DEFAULT_MAX_TOTAL_ELAPSED_MS;
-    const pollIntervalMs =
-      this.options.pollIntervalMs !== undefined
-        ? this.options.pollIntervalMs
-        : DEFAULT_POLL_INTERVAL_MS;
+    const maxTotalElapsedMs = this.options.maxTotalElapsedMs ?? DEFAULT_MAX_TOTAL_ELAPSED_MS;
+    const pollIntervalMs = this.options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
 
     let ticks = 0;
     let last = await this.tick();
     ticks += 1;
 
-    if (this.options.dispatcher === undefined) {
-      const summaryReport = OrchestratorCompanionAuditor.executeForensics(this.repoRoot, {
+    const buildResult = (stopReason: SupervisorStopReason): SupervisionRunResult => ({
+      stopReason,
+      ticks,
+      lastTick: last,
+      report: this.report(),
+      companionPairing,
+      behavioralForensicsSummary: OrchestratorCompanionAuditor.executeForensics(this.repoRoot, {
         capsuleRunRoot: this.options.runRoot,
         now: this.clock.now().toISOString(),
-      });
-      return {
-        stopReason: "single_tick",
-        ticks,
-        lastTick: last,
-        report: this.report(),
-        companionPairing,
-        behavioralForensicsSummary: summaryReport,
-      };
+      }),
+    });
+
+    if (this.options.dispatcher === undefined) {
+      return buildResult("single_tick");
     }
 
     for (;;) {
       const state = this.port.read();
-      if (isRunTerminal(state)) {
-        const summaryReport = OrchestratorCompanionAuditor.executeForensics(this.repoRoot, {
-          capsuleRunRoot: this.options.runRoot,
-          now: this.clock.now().toISOString(),
-        });
-        return {
-          stopReason: "terminal",
-          ticks,
-          lastTick: last,
-          report: this.report(),
-          companionPairing,
-          behavioralForensicsSummary: summaryReport,
-        };
-      }
-      if (this.clock.now().valueOf() - startedAt >= maxTotalElapsedMs) {
-        const summaryReport = OrchestratorCompanionAuditor.executeForensics(this.repoRoot, {
-          capsuleRunRoot: this.options.runRoot,
-          now: this.clock.now().toISOString(),
-        });
-        return {
-          stopReason: "elapsed_budget_exhausted",
-          ticks,
-          lastTick: last,
-          report: this.report(),
-          companionPairing,
-          behavioralForensicsSummary: summaryReport,
-        };
-      }
-      const stuck =
-        last.dispatchable.length === 0 && last.occupied === 0 && last.backingOff.length === 0;
-      if (stuck) {
-        const summaryReport = OrchestratorCompanionAuditor.executeForensics(this.repoRoot, {
-          capsuleRunRoot: this.options.runRoot,
-          now: this.clock.now().toISOString(),
-        });
-        return {
-          stopReason: "stalled",
-          ticks,
-          lastTick: last,
-          report: this.report(),
-          companionPairing,
-          behavioralForensicsSummary: summaryReport,
-        };
-      }
+      if (isRunTerminal(state)) return buildResult("terminal");
+      if (this.clock.now().valueOf() - startedAt >= maxTotalElapsedMs)
+        return buildResult("elapsed_budget_exhausted");
+      if (last.dispatchable.length === 0 && last.occupied === 0 && last.backingOff.length === 0)
+        return buildResult("stalled");
+
       let soonestRetry: number | undefined;
       for (const task of last.backingOff) {
         const at = Date.parse(task.retryAt);

@@ -29,11 +29,10 @@ communication_contract:
 dispatch_contract: "zero_exploration_exact_anchor"
 mandatory_turn1_actions:
   - "run:init"
-  - "plan:compile"
 permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
-    - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees."
+    - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately dispatch child subagents via host subagent dispatch facility to execute ready wave lanes in parallel worktrees."
     - "Turn 1 MUST execute: run:init (bun harness.ts run:init --run <run_id>) to instantiate .olt/capsules/<run_id>/state.json and .olt/capsules/<run_id>/events.jsonl on disk before dispatching Tier 2 Coordinators"
     - "Autonomous startup and execution driven from parent Mind briefings and charter goals without human prompts"
     - "Execute host tools vs pinned harness CLI commands with strict separation (dispatch via host subagent tools, round operations via harness CLI)"
@@ -152,7 +151,7 @@ instructions: |
   - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
 
   # Continuous Active Execution & Immediate Dispatch Mandate
-  - Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees.
+  - Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately dispatch child subagents via host subagent dispatch facility to execute ready wave lanes in parallel worktrees.
 
   # Orchestrator
 

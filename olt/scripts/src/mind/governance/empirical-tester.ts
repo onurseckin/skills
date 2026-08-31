@@ -1,6 +1,9 @@
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { delimiter, join, resolve } from "node:path";
 import { inspectToolchainDetails, type DiscoveredToolchainDetails } from "./toolchain-inspector.ts";
+
+export type CommandExecutionStatus = "passed" | "failed" | "not_found" | "timeout" | "syntax_error";
 
 export interface EmpiricalCommandTestResult {
   readonly command: string;
@@ -8,50 +11,145 @@ export interface EmpiricalCommandTestResult {
   readonly exitCode: number | null;
   readonly output?: string | undefined;
   readonly executionTimeMs: number;
+  readonly status?: CommandExecutionStatus | undefined;
+  readonly resolvedPath?: string | undefined;
 }
 
 export interface EmpiricalToolchainReport {
   readonly repoRoot: string;
   readonly verifiedCommands: readonly EmpiricalCommandTestResult[];
   readonly passed: boolean;
+  readonly requiredSuccess?: boolean | undefined;
+  readonly quorumAchieved?: boolean | undefined;
+  readonly failureReasons?: readonly string[] | undefined;
+}
+
+export function tokenizeCommandArgs(command: string): { exe: string; args: string[] } {
+  const trimmed = command.trim();
+  if (trimmed.length === 0) {
+    return { exe: "", args: [] };
+  }
+
+  const tokens: string[] = [];
+  let current = "";
+  let inDouble = false;
+  let inSingle = false;
+  let isEscaped = false;
+
+  for (let i = 0; i < trimmed.length; i++) {
+    const char = trimmed[i];
+    if (char === undefined) {
+      continue;
+    }
+
+    if (isEscaped) {
+      current += char;
+      isEscaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      isEscaped = true;
+      continue;
+    }
+
+    if (char === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+
+    if (char === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+
+    if (/\s/.test(char) && !inDouble && !inSingle) {
+      if (current.length > 0) {
+        tokens.push(current);
+        current = "";
+      }
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (current.length > 0) {
+    tokens.push(current);
+  }
+
+  const exe = tokens[0] ?? "";
+  const args = tokens.slice(1);
+  return { exe, args };
+}
+
+function resolveLocalBinary(exe: string, cwd: string): { exePath: string; isLocal: boolean } {
+  if (exe.length === 0) return { exePath: "", isLocal: false };
+
+  const localNodeBin = join(cwd, "node_modules", ".bin", exe);
+  if (existsSync(localNodeBin)) {
+    return { exePath: localNodeBin, isLocal: true };
+  }
+
+  return { exePath: exe, isLocal: false };
 }
 
 export function testCommandEmpirically(
   command: string,
   cwd: string,
-  timeoutMs = 5000,
+  timeoutMs = 2500,
 ): EmpiricalCommandTestResult {
   const startTime = Date.now();
+  const { exe, args } = tokenizeCommandArgs(command);
+
+  if (exe.length === 0) {
+    return {
+      command,
+      available: false,
+      exitCode: 1,
+      executionTimeMs: 0,
+      status: "syntax_error",
+    };
+  }
+
   try {
-    const parts = command.trim().split(/\s+/);
-    const exe = parts[0];
-    if (exe === undefined) {
-      return {
-        command,
-        available: false,
-        exitCode: 1,
-        executionTimeMs: 0,
-      };
-    }
-    if (exe.length === 0) {
-      return {
-        command,
-        available: false,
-        exitCode: 1,
-        executionTimeMs: 0,
-      };
-    }
-    const testArgs = parts.slice(1);
-    const res = spawnSync(exe, testArgs, {
+    const { exePath, isLocal } = resolveLocalBinary(exe, cwd);
+    const nodeBinDir = join(cwd, "node_modules", ".bin");
+    const augmentedPath = process.env.PATH
+      ? `${nodeBinDir}${delimiter}${process.env.PATH}`
+      : nodeBinDir;
+
+    const res = spawnSync(exePath, args, {
       cwd,
       timeout: timeoutMs,
       stdio: ["ignore", "pipe", "pipe"],
       encoding: "utf-8",
+      env: {
+        ...process.env,
+        PATH: augmentedPath,
+      },
     });
+
     const executionTimeMs = Date.now() - startTime;
-    const isSuccessStatus = res.status !== null && res.status !== undefined && res.status === 0;
-    const isSpawnSuccess = res.error === undefined && res.status !== null && res.status !== 127;
-    const available = isSpawnSuccess ? true : isSuccessStatus;
+    const isTimeout =
+      res.error !== undefined && "code" in res.error && res.error.code === "ETIMEDOUT";
+    const isNotFound =
+      (res.error !== undefined && "code" in res.error && res.error.code === "ENOENT") ||
+      res.status === 127;
+    const isSuccess = res.status === 0;
+
+    let status: CommandExecutionStatus;
+    if (isTimeout) {
+      status = "timeout";
+    } else if (isNotFound) {
+      status = "not_found";
+    } else if (isSuccess) {
+      status = "passed";
+    } else {
+      status = "failed";
+    }
+
+    const available = status !== "not_found";
 
     let exitCode: number | null = 0;
     if (res.status !== null && res.status !== undefined) {
@@ -73,6 +171,8 @@ export function testCommandEmpirically(
       exitCode,
       ...(output !== undefined ? { output } : {}),
       executionTimeMs,
+      status,
+      ...(isLocal ? { resolvedPath: exePath } : {}),
     };
   } catch {
     return {
@@ -80,6 +180,7 @@ export function testCommandEmpirically(
       available: false,
       exitCode: 1,
       executionTimeMs: Date.now() - startTime,
+      status: "failed",
     };
   }
 }
@@ -87,53 +188,81 @@ export function testCommandEmpirically(
 export function testToolchainEmpirically(
   repoRoot: string,
   details?: DiscoveredToolchainDetails,
+  options?: { timeoutMs?: number | undefined },
 ): EmpiricalToolchainReport {
   const root = resolve(repoRoot);
   const discovered = details !== undefined ? details : inspectToolchainDetails(root);
   const commandsToTest: string[] = [];
+  const timeoutMs = options?.timeoutMs ?? 2500;
 
   const runnerCmd = discovered.testRunner.default_command;
+  let testRunnerBinary: string | undefined = undefined;
   if (typeof runnerCmd === "string" && runnerCmd.length > 0) {
-    const baseRunner = runnerCmd.split(" ")[0];
-    if (baseRunner !== undefined && baseRunner.length > 0) {
-      commandsToTest.push(`${baseRunner} --version`);
+    const { exe } = tokenizeCommandArgs(runnerCmd);
+    if (exe.length > 0) {
+      testRunnerBinary = exe;
+      commandsToTest.push(`${exe} --version`);
     }
   }
 
   const tcCmd = discovered.typecheckCommand;
   if (typeof tcCmd === "string" && tcCmd.length > 0) {
-    const baseTc = tcCmd.split(" ")[0];
-    if (baseTc !== undefined && baseTc.length > 0) {
-      commandsToTest.push(`${baseTc} --version`);
+    const { exe } = tokenizeCommandArgs(tcCmd);
+    if (exe.length > 0 && !commandsToTest.includes(`${exe} --version`)) {
+      commandsToTest.push(`${exe} --version`);
     }
   }
 
   const lintCmd = discovered.lintCommand;
   if (typeof lintCmd === "string" && lintCmd.length > 0) {
-    const baseLint = lintCmd.split(" ")[0];
-    if (baseLint !== undefined && baseLint.length > 0) {
-      commandsToTest.push(`${baseLint} --version`);
+    const { exe } = tokenizeCommandArgs(lintCmd);
+    if (exe.length > 0 && !commandsToTest.includes(`${exe} --version`)) {
+      commandsToTest.push(`${exe} --version`);
     }
   }
 
   const fmtCmd = discovered.formatCommand;
   if (typeof fmtCmd === "string" && fmtCmd.length > 0) {
-    const baseFmt = fmtCmd.split(" ")[0];
-    if (baseFmt !== undefined && baseFmt.length > 0) {
-      commandsToTest.push(`${baseFmt} --version`);
+    const { exe } = tokenizeCommandArgs(fmtCmd);
+    if (exe.length > 0 && !commandsToTest.includes(`${exe} --version`)) {
+      commandsToTest.push(`${exe} --version`);
     }
   }
 
   const verifiedCommands = commandsToTest.map((cmd) => {
-    return testCommandEmpirically(cmd, root);
+    return testCommandEmpirically(cmd, root, timeoutMs);
   });
 
+  const failureReasons: string[] = [];
+  let requiredSuccess = true;
+
+  if (testRunnerBinary !== undefined) {
+    const runnerResult = verifiedCommands.find((c) => c.command.startsWith(`${testRunnerBinary} `));
+    if (runnerResult === undefined || !runnerResult.available) {
+      requiredSuccess = false;
+      failureReasons.push(`Critical test runner '${testRunnerBinary}' is not available`);
+    } else if (runnerResult.exitCode !== 0 || runnerResult.status !== "passed") {
+      requiredSuccess = false;
+      failureReasons.push(
+        `Critical test runner '${testRunnerBinary}' probe failed with status '${runnerResult.status}' (exit code: ${runnerResult.exitCode})`,
+      );
+    }
+  }
+
+  const hasAnyPassed = verifiedCommands.some((c) => c.status === "passed" && c.exitCode === 0);
   const hasAnyAvailable = verifiedCommands.some((c) => c.available);
+  const quorumAchieved =
+    verifiedCommands.length === 0
+      ? true
+      : requiredSuccess && (testRunnerBinary !== undefined ? true : hasAnyPassed);
   const passed = verifiedCommands.length === 0 ? true : hasAnyAvailable;
 
   return {
     repoRoot: root,
     verifiedCommands,
     passed,
+    requiredSuccess,
+    quorumAchieved,
+    ...(failureReasons.length > 0 ? { failureReasons } : {}),
   };
 }

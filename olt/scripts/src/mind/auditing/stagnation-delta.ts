@@ -38,12 +38,21 @@ export interface StagnationAuditOptions {
   readonly suppressZeroDelta?: boolean | undefined;
 }
 
+export function sanitizeFindingForDelta(finding: string): string {
+  return finding
+    .replace(/\b\d+(\.\d+)?s\b/g, "<duration>")
+    .replace(/\b\d+ cycles?\b/gi, "<cycles>")
+    .replace(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?\b/g, "<timestamp>");
+}
+
 export function computeStateSignature(report: Partial<StagnationAuditResult>): string {
   const isStagnant = report.is_stagnant !== undefined ? report.is_stagnant : false;
   const pending = report.pending_backlog_count !== undefined ? report.pending_backlog_count : 0;
   const defects = report.open_defects_count !== undefined ? report.open_defects_count : 0;
   const errorCode = report.error_code !== undefined ? report.error_code : "NONE";
-  const findingsHash = (report.findings !== undefined ? report.findings : []).join("::");
+  const findingsHash = (
+    report.findings !== undefined ? report.findings.map(sanitizeFindingForDelta) : []
+  ).join("::");
   const remediation =
     report.recommended_remediation !== undefined ? report.recommended_remediation : "NONE";
   return `${isStagnant}|${pending}|${defects}|${errorCode}|${findingsHash}|${remediation}`;
@@ -78,8 +87,12 @@ export function compareReportDelta(
   let findingsDelta = false;
   if (current.findings.length !== previous.findings.length) {
     findingsDelta = true;
-  } else if (current.findings.some((f, idx) => f !== previous.findings[idx])) {
-    findingsDelta = true;
+  } else {
+    const curSanitized = current.findings.map(sanitizeFindingForDelta);
+    const prevSanitized = previous.findings.map(sanitizeFindingForDelta);
+    if (curSanitized.some((f, idx) => f !== prevSanitized[idx])) {
+      findingsDelta = true;
+    }
   }
   const signatureChanged = computeStateSignature(current) !== computeStateSignature(previous);
 

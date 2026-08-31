@@ -136,12 +136,12 @@ export function stageAndCommit(
       "stageAndCommit needs at least one write-scope path",
     );
   }
-  const added = runner(worktreePath, ["add", "--", ...pathspecs]);
+  const added = runner(worktreePath, ["add", "-A", "--", ...pathspecs]);
   if (added.status !== 0) {
     if (/did not match any files/u.test(added.stderr)) return null;
     throw new HarnessError(
       "INTEGRITY",
-      `git add -- ${pathspecs.join(" ")} exited ${added.status}: ${added.stderr.trim()}`,
+      `git add -A -- ${pathspecs.join(" ")} exited ${added.status}: ${added.stderr.trim()}`,
     );
   }
   const staged = runner(worktreePath, ["diff", "--cached", "--quiet"]);
@@ -159,4 +159,30 @@ export function commitChangedLines(
   const inserted = /(\d+) insertion/u.exec(output);
   const deleted = /(\d+) deletion/u.exec(output);
   return (inserted ? Number(inserted[1]) : 0) + (deleted ? Number(deleted[1]) : 0);
+}
+
+export interface CommitProvenanceRecord {
+  parentSha?: string;
+  treeSha?: string;
+}
+
+export function commitProvenance(
+  worktreePath: string,
+  sha: string,
+  runner: GitRunner = runGit,
+): CommitProvenanceRecord {
+  let parentSha: string | undefined;
+  let treeSha: string | undefined;
+  const parentRes = runner(worktreePath, ["rev-parse", "--verify", "-q", `${sha}^`]);
+  if (parentRes.status === 0 && parentRes.stdout.trim() !== "") {
+    parentSha = parentRes.stdout.trim();
+  }
+  const treeRes = runner(worktreePath, ["rev-parse", "--verify", "-q", `${sha}^{tree}`]);
+  if (treeRes.status === 0 && treeRes.stdout.trim() !== "") {
+    treeSha = treeRes.stdout.trim();
+  }
+  return {
+    ...(parentSha ? { parentSha } : {}),
+    ...(treeSha ? { treeSha } : {}),
+  };
 }

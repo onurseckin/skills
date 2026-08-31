@@ -1,7 +1,17 @@
-import { describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readlinkSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
-import { deployCanonicalSkill } from "../../../scripts/sync/skill-deployer.ts";
+import {
+  deployCanonicalSkill,
+  rollbackAssistantLinks,
+  type AssistantLinkTransaction,
+} from "../../../scripts/sync/skill-deployer.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { git, initFakeSkillsRepo } from "./skill-deployer-fixtures.ts";
 
@@ -134,5 +144,43 @@ describe("deployCanonicalSkill", () => {
     });
 
     expect(result.targetDir).toBe(targetOlt);
+  });
+
+  test("rollbackAssistantLinks restores previous symlink state or removes newly created links", async () => {
+    const root = scratchRoot(import.meta.path, "deploy-rollback-assistant-links");
+    const dir1 = join(root, "dir1");
+    const dir2 = join(root, "dir2");
+    mkdirSync(dir1, { recursive: true });
+    mkdirSync(dir2, { recursive: true });
+
+    const targetA = join(root, "targetA");
+    const targetB = join(root, "targetB");
+    mkdirSync(targetA, { recursive: true });
+    mkdirSync(targetB, { recursive: true });
+
+    const txs: AssistantLinkTransaction[] = [
+      {
+        dir: dir1,
+        oltPath: join(dir1, "olt"),
+        previousTarget: targetA,
+        existed: true,
+        status: "created",
+      },
+      {
+        dir: dir2,
+        oltPath: join(dir2, "olt"),
+        previousTarget: null,
+        existed: false,
+        status: "created",
+      },
+    ];
+
+    symlinkSync(targetB, join(dir1, "olt"));
+    symlinkSync(targetB, join(dir2, "olt"));
+
+    rollbackAssistantLinks(txs, [root]);
+
+    expect(readlinkSync(join(dir1, "olt"))).toBe(targetA);
+    expect(existsSync(join(dir2, "olt"))).toBe(false);
   });
 });

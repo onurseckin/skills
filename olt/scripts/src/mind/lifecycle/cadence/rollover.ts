@@ -1,33 +1,28 @@
-import { HarnessError } from "../../../core/errors/index.ts";
 import { DEFAULT_MAX_PAUSE_INTERVAL_MS } from "../interval/index.ts";
-import {
-  DEFAULT_CADENCE_BASE_INTERVAL_MS,
-  DEFAULT_CADENCE_MAX_INTERVAL_MS,
-  ZERO_SLEEP_DELAY_MS,
-  PERPETUAL_NON_STOPPING_CADENCE,
-  CLOSING_FORBIDDEN_FOR_MIND,
-  createCadenceTrigger,
-} from "./types.ts";
-import type {
-  CadenceEvent,
-  CadenceEventListener,
-  CadencePhase,
-  CadenceState,
-  CadenceTelemetry,
-  CadenceTrigger,
-  CadenceTriggerType,
-  RolloverDecision,
-  RolloverEvaluationOptions,
-  CadenceStepInput,
-  CadenceStepResult,
-} from "./types.ts";
 import type { MindCadenceEngineOptions } from "./state.ts";
 import {
   CadenceTriggerDispatcher,
   createInitialCadenceState,
-  enforceInfiniteMindCadence,
   evaluateAntiIdleRollover,
 } from "./state.ts";
+import type {
+  CadenceEvent,
+  CadenceEventListener,
+  CadenceState,
+  CadenceStepInput,
+  CadenceStepResult,
+  CadenceTelemetry,
+  CadenceTrigger,
+  CadenceTriggerType,
+  RolloverDecision,
+} from "./types.ts";
+import {
+  CLOSING_FORBIDDEN_FOR_MIND,
+  createCadenceTrigger,
+  DEFAULT_CADENCE_BASE_INTERVAL_MS,
+  DEFAULT_CADENCE_MAX_INTERVAL_MS,
+  ZERO_SLEEP_DELAY_MS,
+} from "./types.ts";
 
 /**
  * Autonomous Mind Cadence Engine.
@@ -96,10 +91,18 @@ export class MindCadenceEngine {
     trigger: CadenceTrigger = createCadenceTrigger("POLLING" as CadenceTriggerType),
     pendingTasks: number = 0,
     pendingFeedback: number = 0,
+    options?: {
+      readonly activeRunnableTasks?: number | undefined;
+      readonly inFlightTasks?: number | undefined;
+      readonly blockedTasks?: number | undefined;
+    },
   ): RolloverDecision {
     return evaluateAntiIdleRollover({
       trigger,
       pendingTasks,
+      activeRunnableTasks: options?.activeRunnableTasks,
+      inFlightTasks: options?.inFlightTasks,
+      blockedTasks: options?.blockedTasks,
       pendingFeedback,
       zeroValueStreak: this.state.zeroValueStreak,
       baseIntervalMs: this.baseIntervalMs,
@@ -127,6 +130,9 @@ export class MindCadenceEngine {
     const decision = evaluateAntiIdleRollover({
       trigger,
       pendingTasks: input.pendingTasks ?? 0,
+      activeRunnableTasks: input.activeRunnableTasks,
+      inFlightTasks: input.inFlightTasks,
+      blockedTasks: input.blockedTasks,
       pendingFeedback: input.pendingFeedback ?? 0,
       zeroValueStreak: this.state.zeroValueStreak,
       baseIntervalMs: this.baseIntervalMs,
@@ -227,7 +233,6 @@ export class MindCadenceEngine {
   }
 
   public resume(): void {
-    const nowIso = new Date().toISOString();
     this.state = {
       ...this.state,
       status: "RUNNING",

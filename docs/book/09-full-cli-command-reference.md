@@ -1,8 +1,13 @@
-[← Previous: Chapter 08: Verification and Socratic Gating](08-verification-and-socratic-gating.md) | [Table of Contents](SUMMARY.md) | [Next: Chapter 10: Troubleshooting and Anti-Blunder Compendium →](10-troubleshooting-and-anti-blunder-compendium.md)
+# Chapter 9: Full CLI Command Reference
+
+[← Previous: Chapter 8 — Verification & Socratic Gating](08-verification-and-socratic-gating.md) | [📖 Table of Contents](SUMMARY.md) | [Next: Chapter 10 — Troubleshooting & Anti-Blunder Compendium →](10-troubleshooting-and-anti-blunder-compendium.md)
 
 ---
 
-# Chapter 09: Full CLI Command Reference
+[![Diátaxis: Reference](https://img.shields.io/badge/Diátaxis-Reference-blue.svg)](#diátaxis-documentation-matrix)
+[![Subsystem: CLI Engine](https://img.shields.io/badge/Subsystem-CLI_Registry_v1-blue.svg)](SUMMARY.md)
+[![Exit Codes: Deterministic](https://img.shields.io/badge/Exit_Codes-Deterministic_0_3_4_70-emerald.svg)](../../olt/scripts/src/cli/registry/types.ts)
+[![Strict Typings: 0 any](https://img.shields.io/badge/Typings-0_any-blue.svg)](../../tsconfig.json)
 
 This chapter is the **definitive reference manual** for the OLT Harness CLI (`bun olt/scripts/harness.ts`). All inter-agent coordination, lifecycle progression, file modifications, validation gates, and mental states are driven through strictly typed colon commands.
 
@@ -181,4 +186,4 @@ The `task` domain governs task claiming, heartbeats, submissions, and Socratic v
 
 ---
 
-[← Previous: Chapter 08: Verification and Socratic Gating](08-verification-and-socratic-gating.md) | [Table of Contents](SUMMARY.md) | [Next: Chapter 10: Troubleshooting and Anti-Blunder Compendium →](10-troubleshooting-and-anti-blunder-compendium.md)
+[← Previous: Chapter 8 — Verification & Socratic Gating](08-verification-and-socratic-gating.md) | [📖 Table of Contents](SUMMARY.md) | [Next: Chapter 10 — Troubleshooting & Anti-Blunder Compendium →](10-troubleshooting-and-anti-blunder-compendium.md)

@@ -1,4 +1,12 @@
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  readlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { canonicalJsonBytes } from "../../olt/scripts/src/core/json.ts";
@@ -27,6 +35,15 @@ export interface DeploySkillResult {
   targetDir: string;
   assistantDirsCount: number;
   legacyHomePurged: boolean;
+  transactions?: AssistantLinkTransaction[];
+}
+
+export interface AssistantLinkTransaction {
+  readonly dir: string;
+  readonly oltPath: string;
+  readonly previousTarget: string | null;
+  readonly existed: boolean;
+  readonly status: "created" | "skipped";
 }
 
 const LEGACY_NAME = "orchestrating-long-tasks";
@@ -45,18 +62,38 @@ export function getAssistantSkillDirs(home: string): string[] {
   ];
 }
 
+export function rollbackAssistantLinks(
+  transactions: readonly AssistantLinkTransaction[],
+  allowedRoots: readonly string[] = [],
+): void {
+  for (const record of [...transactions].reverse()) {
+    if (record.status !== "created") continue;
+    try {
+      if (record.existed && record.previousTarget !== null) {
+        smartEnsureSymlink(record.previousTarget, record.oltPath, {
+          allowedRoots: [record.dir, ...allowedRoots],
+          allowGitRepositoryDeletion: true,
+          onAudit: logDestructiveOp,
+        });
+      } else {
+        guardedRemoveSync(record.oltPath, {
+          allowedRoots: [record.dir, ...allowedRoots],
+          missingOk: true,
+          allowGitRepositoryDeletion: true,
+          onAudit: logDestructiveOp,
+        });
+      }
+    } catch (err) {
+      console.warn(`[sync] Failed to rollback link at ${record.oltPath}:`, err);
+    }
+  }
+}
+
 function assertIsSkillsRepoRoot(sourceRepoRoot: string): string {
   const resolved = resolve(sourceRepoRoot);
   const hasOlt = existsSync(join(resolved, "olt"));
   const hasGit = existsSync(join(resolved, ".git"));
-  if (!hasOlt) {
-    throw new Error(
-      `refusing to sync from '${resolved}': it does not look like the skills repository ` +
-        `(expected both 'olt/' and '.git' to exist here). Pass an explicit sourceRepoRoot ` +
-        `pointing at the skills checkout.`,
-    );
-  }
-  if (!hasGit) {
+  if (!hasOlt || !hasGit) {
     throw new Error(
       `refusing to sync from '${resolved}': it does not look like the skills repository ` +
         `(expected both 'olt/' and '.git' to exist here). Pass an explicit sourceRepoRoot ` +
@@ -67,17 +104,10 @@ function assertIsSkillsRepoRoot(sourceRepoRoot: string): string {
 }
 
 export function readJsonStringField(filePath: string, field: string): string | undefined {
-  if (!existsSync(filePath)) {
-    return undefined;
-  }
+  if (!existsSync(filePath)) return undefined;
   try {
     const value = JSON.parse(readFileSync(filePath, "utf-8")) as unknown;
-    if (!value) {
-      return undefined;
-    }
-    if (typeof value !== "object") {
-      return undefined;
-    }
+    if (!value || typeof value !== "object") return undefined;
     const fieldValue = (value as Record<string, unknown>)[field];
     return typeof fieldValue === "string" ? fieldValue : undefined;
   } catch {
@@ -88,17 +118,12 @@ export function readJsonStringField(filePath: string, field: string): string | u
 function isOwnedLegacyDeployment(targetOlt: string, sourceRepoRoot: string): boolean {
   const resolvedRoot = resolve(sourceRepoRoot);
   const homeRepoRoot = readJsonStringField(join(targetOlt, "skill-config.json"), "home_repo_root");
-  if (homeRepoRoot && resolve(homeRepoRoot) === resolvedRoot) {
-    return true;
-  }
+  if (homeRepoRoot && resolve(homeRepoRoot) === resolvedRoot) return true;
   const policyHomeRoot = readJsonStringField(
     join(targetOlt, "policy.json"),
     "skill_home_repo_root",
   );
-  if (policyHomeRoot && resolve(policyHomeRoot) === resolvedRoot) {
-    return true;
-  }
-  return false;
+  return Boolean(policyHomeRoot && resolve(policyHomeRoot) === resolvedRoot);
 }
 
 export async function migrateOwnedLegacyDeployment(
@@ -199,33 +224,58 @@ export async function deployCanonicalSkill(
   const assistantSkillDirs = getAssistantSkillDirs(home);
   let syncedCount = 0;
   let skippedCount = 0;
+  const transactions: AssistantLinkTransaction[] = [];
 
-  for (const dir of assistantSkillDirs) {
-    try {
-      mkdirSync(dir, { recursive: true });
+  try {
+    for (const dir of assistantSkillDirs) {
+      try {
+        mkdirSync(dir, { recursive: true });
 
-      const legacyPath = join(dir, LEGACY_NAME);
-      guardedRemoveSync(legacyPath, {
-        allowedRoots: [dir],
-        missingOk: true,
-        allowGitRepositoryDeletion: true,
-        onAudit: logDestructiveOp,
-      });
+        const legacyPath = join(dir, LEGACY_NAME);
+        guardedRemoveSync(legacyPath, {
+          allowedRoots: [dir],
+          missingOk: true,
+          allowGitRepositoryDeletion: true,
+          onAudit: logDestructiveOp,
+        });
 
-      const oltPath = join(dir, "olt");
-      const status = smartEnsureSymlink(targetOlt, oltPath, {
-        allowedRoots: [dir],
-        allowGitRepositoryDeletion: true,
-        onAudit: logDestructiveOp,
-      });
-      if (status === "created") {
-        syncedCount++;
-      } else {
-        skippedCount++;
+        const oltPath = join(dir, "olt");
+        let existed = false;
+        let previousTarget: string | null = null;
+        try {
+          const st = lstatSync(oltPath);
+          existed = true;
+          if (st.isSymbolicLink()) {
+            previousTarget = readlinkSync(oltPath);
+          }
+        } catch {}
+
+        const status = smartEnsureSymlink(targetOlt, oltPath, {
+          allowedRoots: [dir],
+          allowGitRepositoryDeletion: true,
+          onAudit: logDestructiveOp,
+        });
+
+        transactions.push({
+          dir,
+          oltPath,
+          previousTarget,
+          existed,
+          status,
+        });
+
+        if (status === "created") {
+          syncedCount++;
+        } else {
+          skippedCount++;
+        }
+      } catch (err) {
+        console.warn(`[sync] Could not process ${dir}:`, err);
       }
-    } catch (err) {
-      console.warn(`[sync] Could not process ${dir}:`, err);
     }
+  } catch (error) {
+    rollbackAssistantLinks(transactions, [home]);
+    throw error;
   }
 
   return {
@@ -234,5 +284,6 @@ export async function deployCanonicalSkill(
     targetDir: targetOlt,
     assistantDirsCount: assistantSkillDirs.length,
     legacyHomePurged,
+    transactions,
   };
 }

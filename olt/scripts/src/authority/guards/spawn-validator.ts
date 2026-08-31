@@ -3,19 +3,39 @@ import {
   type AuditorLeaseLock,
   DEFAULT_AUDITOR_LOCK_FILE,
   defaultIsPidAlive,
+  normalizeAuditorRole,
   readAuditorLeaseLock,
 } from "./singleton-auditor-guard.ts";
+import {
+  agentIdToRole,
+  agentIdToTier,
+  roleToTier,
+  validateTierSpawning,
+  type ExecutionTier,
+} from "../thread/index.ts";
 
 export {
   type AuditorLeaseLock,
   DEFAULT_AUDITOR_LOCK_FILE,
   defaultIsPidAlive,
+  normalizeAuditorRole,
   readAuditorLeaseLock,
 };
 
 export const DEFAULT_SINGLETON_AUDITOR_ROLE = "skill_auditor";
 export const DUPLICATE_SINGLETON_AUDITOR_MESSAGE =
   "DUPLICATE_SINGLETON_AUDITOR_ERROR: Active skill auditor already running";
+
+export function isSingletonAuditorRole(role: string): boolean {
+  const norm = normalizeAuditorRole(role);
+  return (
+    norm === "skill-auditor" ||
+    norm === "meta-auditor" ||
+    norm === "mind-auditor" ||
+    norm === "singleton-auditor" ||
+    norm === "auditor"
+  );
+}
 
 export interface SubagentSpawnRequest {
   readonly role: string;
@@ -24,6 +44,7 @@ export interface SubagentSpawnRequest {
   readonly conversation_id?: string | undefined;
   readonly target_tier?: number | string | undefined;
   readonly requested_by?: string | undefined;
+  readonly parent_tier?: number | undefined;
 }
 
 export interface SubagentSpawnValidationResult {
@@ -62,8 +83,40 @@ export function validateSubagentSpawnRequest(
   }
 
   const role = request.role;
-  const normalizedRole = role.trim().toLowerCase();
-  if (normalizedRole !== DEFAULT_SINGLETON_AUDITOR_ROLE) {
+  const normalizedRole = normalizeAuditorRole(role);
+
+  // If tier context is provided, validate tier spawning hierarchy
+  if (request.parent_tier !== undefined || request.requested_by !== undefined) {
+    const parentTier =
+      request.parent_tier ??
+      (request.requested_by
+        ? (roleToTier(agentIdToRole(request.requested_by) ?? request.requested_by) ??
+          agentIdToTier(request.requested_by) ??
+          0)
+        : 0);
+    const childTier = (
+      typeof request.target_tier === "number"
+        ? request.target_tier
+        : (roleToTier(role) ?? agentIdToTier(request.subagent_id ?? role) ?? 3)
+    ) as ExecutionTier;
+
+    const tierResult = validateTierSpawning(
+      parentTier as ExecutionTier,
+      childTier,
+      request.requested_by,
+      role,
+    );
+    if (!tierResult.allowed) {
+      return {
+        allowed: false,
+        role,
+        reason: tierResult.reason ?? "ROLE_CONFINEMENT_VIOLATION: Invalid tier spawning hierarchy",
+        active_lease: null,
+      };
+    }
+  }
+
+  if (!isSingletonAuditorRole(normalizedRole)) {
     return {
       allowed: true,
       role,

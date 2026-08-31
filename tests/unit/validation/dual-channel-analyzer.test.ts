@@ -6,7 +6,6 @@ import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runne
 import {
   analyzeDualChannel,
   isUiScope,
-  validateCrossChannelConsistency,
   validateCompanionManifestCriteria,
   type DualChannelInput,
   type ScreenshotMetadata,

@@ -90,6 +90,9 @@ export function parseTierValue(value: string | undefined): ExecutionTier | null 
 }
 
 export function roleToTier(role: string): ExecutionTier {
+  if (!role || typeof role !== "string") {
+    return 3;
+  }
   const normalized = role.toLowerCase().trim();
   if (
     normalized === "mind" ||
@@ -121,7 +124,11 @@ export function roleToTier(role: string): ExecutionTier {
 }
 
 export function agentIdToTier(agentId: string): ExecutionTier | null {
-  const normalized = agentId.toLowerCase().trim();
+  if (!agentId || typeof agentId !== "string") return null;
+  const normalized = agentId
+    .toLowerCase()
+    .trim()
+    .replace(/^(?:parent|agent)[-_]/i, "");
   if (/^mind[-_]audit|^audit/i.test(normalized)) return 1;
   if (/^mind|^human/i.test(normalized)) return 0;
   if (/^orch/i.test(normalized)) return 1;
@@ -135,7 +142,11 @@ export function agentIdToTier(agentId: string): ExecutionTier | null {
 }
 
 export function agentIdToRole(agentId: string): string | null {
-  const normalized = agentId.toLowerCase().trim();
+  if (!agentId || typeof agentId !== "string") return null;
+  const normalized = agentId
+    .toLowerCase()
+    .trim()
+    .replace(/^(?:parent|agent)[-_]/i, "");
   if (/^mind[-_]audit|^audit/i.test(normalized)) return "mind-auditor";
   if (/^mind/i.test(normalized)) return "mind";
   if (/^human/i.test(normalized)) return "human";

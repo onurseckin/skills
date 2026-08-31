@@ -3,7 +3,6 @@ import type { MultiProbeOptions, ProbeOptions, TcpProbeResult } from "./types.ts
 import {
   chunkArray,
   COMMON_INTERFACES,
-  DEFAULT_PROBE_HOST,
   DEFAULT_PROBE_TIMEOUT_MS,
   normalizeHost,
   resolveFamily,

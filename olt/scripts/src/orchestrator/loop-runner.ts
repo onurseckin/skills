@@ -215,7 +215,6 @@ export class AutonomousLoopRunner {
         const openFindings = result.findings.filter((f) => f.status !== "resolved");
         const resolvedFindings = result.findings.filter((f) => f.status === "resolved");
         const gateStatus = roundGateStatus(result.gateResults);
-        const isApprovedByCritic = result.criticDecision === "approve";
         lastCriticDecision = result.criticDecision;
 
         const telemetry: RoundTelemetry = {
@@ -243,7 +242,7 @@ export class AutonomousLoopRunner {
 
         if (
           result.status === "completed" &&
-          isApprovedByCritic &&
+          result.criticDecision === "approve" &&
           gateStatus === "passed" &&
           openFindings.length === 0
         ) {

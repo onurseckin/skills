@@ -1,8 +1,8 @@
-export type RoleTier = 0 | 1 | 2 | 3;
+export type RoleTier = 0 | 1 | 2 | 3 | "independent";
 
 export interface RoleContractFrontmatter {
   readonly role?: string | undefined;
-  readonly tier?: number | undefined;
+  readonly tier?: number | "independent" | undefined;
   readonly domain?: string | undefined;
   readonly permissions?:
     | {
@@ -21,7 +21,7 @@ export interface RoleContractFrontmatter {
 
 export interface RoleContract {
   readonly role: string;
-  readonly tier: number;
+  readonly tier: number | "independent";
   readonly domain?: string | undefined;
   readonly may: readonly string[];
   readonly mustNot: readonly string[];
@@ -43,7 +43,7 @@ export interface AgentManifestInterface {
   readonly display_name?: string | undefined;
   readonly short_description?: string | undefined;
   readonly role?: string | undefined;
-  readonly tier?: number | undefined;
+  readonly tier?: number | "independent" | undefined;
   readonly tools?: AgentToolsConfig | undefined;
   readonly config?: Readonly<Record<string, unknown>> | undefined;
   readonly milestone_notifications?: Readonly<Record<string, boolean>> | undefined;
@@ -79,7 +79,7 @@ export interface AgentManifestPermissions {
 export interface AgentManifest {
   readonly name: string;
   readonly role: string;
-  readonly tier: number;
+  readonly tier: number | "independent";
   readonly domain?: string | undefined;
   readonly provider?: readonly string[] | undefined;
   readonly tools?: AgentToolsConfig | undefined;
@@ -92,6 +92,8 @@ export interface AgentManifest {
   readonly communication_contract?: AgentManifestCommunicationContract | undefined;
   readonly mandatory_turn1_actions?: readonly string[] | undefined;
   readonly dispatch_contract?: string | undefined;
+  readonly deprecated?: boolean | undefined;
+  readonly deprecation_notice?: string | undefined;
   readonly filePath?: string | undefined;
   readonly raw?: string | undefined;
   readonly [key: string]: unknown;
@@ -100,7 +102,7 @@ export interface AgentManifest {
 export interface UnifiedAgentModel {
   readonly role: string;
   readonly name: string;
-  readonly tier: number;
+  readonly tier: number | "independent";
   readonly domain?: string | undefined;
   readonly displayName: string;
   readonly shortDescription: string;

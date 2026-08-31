@@ -15,7 +15,6 @@ const rolesRoot = dirname(resolveRoleContractPath("planner"));
 // plus `domain:`, so every workflow check keyed on the literal role string "validator" (packet
 // isolation, token authorization, task:review acceptance) keeps working unchanged. Its filename
 // therefore does not match a member of AGENT_ROLES the way every other role document's does.
-const domainFiles = VALIDATOR_DOMAINS.map((domain) => `validator-${domain}`).sort();
 
 describe("canonical role documents", () => {
   test("agents/ holds unified manifests for all canonical roles", () => {

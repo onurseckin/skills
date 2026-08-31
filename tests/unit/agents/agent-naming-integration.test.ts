@@ -306,7 +306,7 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
         const manifest = loadAgentManifest(roleName);
 
         expect(manifest.name).toBe(roleName);
-        expect([0, 1, 2, 3]).toContain(manifest.tier);
+        expect([0, 1, 2, 3, "independent"]).toContain(manifest.tier);
 
         // If manifest has protocol instructions, verify it references standardized naming
         if (manifest.protocol?.instructions) {
@@ -333,7 +333,7 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
         const roleName = file.replace(/\.ya?ml$/, "");
         const contract = loadRoleContract(roleName);
 
-        expect([0, 1, 2, 3]).toContain(contract.tier);
+        expect([0, 1, 2, 3, "independent"]).toContain(contract.tier);
         expect(contract.may.length).toBeGreaterThan(0);
         expect(contract.mustNot.length).toBeGreaterThan(0);
       }

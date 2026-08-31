@@ -10,9 +10,11 @@ import {
   mkdirSync,
   readFileSync,
   unlinkSync,
-  writeFileSync,
   openSync,
   closeSync,
+  writeSync,
+  fsyncSync,
+  statSync,
   constants,
 } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -51,9 +53,7 @@ export class ServerLockError extends Error {
  * Checks if a process with given PID is alive.
  */
 function isPidAlive(pid: number): boolean {
-  if (pid <= 0) {
-    return false;
-  }
+  if (pid <= 0) return false;
   try {
     process.kill(pid, 0);
     return true;
@@ -63,49 +63,50 @@ function isPidAlive(pid: number): boolean {
 }
 
 /**
- * Checks if a lock file is stale.
+ * Checks if a lock file is stale with race-resilient timestamp and PID validation.
  */
 function isLockStale(lockPath: string, staleLockAgeMs: number): boolean {
-  if (!existsSync(lockPath)) {
-    return false;
-  }
+  if (!existsSync(lockPath)) return false;
   try {
+    const stat = statSync(lockPath);
+    const fileAge = Date.now() - stat.mtimeMs;
+
     const raw = readFileSync(lockPath, "utf-8");
+    if (raw.trim().length === 0) {
+      // Allow a 2-second grace period for newly created lock files mid-write
+      return fileAge > Math.min(staleLockAgeMs, 2000);
+    }
+
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed === "object" && parsed !== null) {
-      if ("pid" in parsed && "acquiredAt" in parsed) {
-        const payload = parsed as { pid?: number; acquiredAt?: string };
-        const holderPid = payload.pid;
-        const acquiredAt = payload.acquiredAt;
+      const payload = parsed as Partial<LockFilePayload>;
+      const holderPid = payload.pid;
+      const acquiredAt = payload.acquiredAt;
 
-        if (typeof holderPid === "number") {
-          if (holderPid !== process.pid) {
-            const alive = isPidAlive(holderPid);
-            if (!alive) {
-              return true;
-            }
-          }
-        }
+      if (typeof holderPid === "number" && holderPid !== process.pid) {
+        if (!isPidAlive(holderPid)) return true;
+      }
 
-        if (typeof acquiredAt === "string") {
-          const parsedTime = Date.parse(acquiredAt);
-          if (!Number.isNaN(parsedTime)) {
-            const age = Date.now() - parsedTime;
-            if (age > staleLockAgeMs) {
-              return true;
-            }
-          }
+      if (typeof acquiredAt === "string") {
+        const parsedTime = Date.parse(acquiredAt);
+        if (!Number.isNaN(parsedTime)) {
+          if (Date.now() - parsedTime > staleLockAgeMs) return true;
         }
       }
     }
   } catch {
-    return true;
+    try {
+      const stat = statSync(lockPath);
+      return Date.now() - stat.mtimeMs > staleLockAgeMs;
+    } catch {
+      return true;
+    }
   }
   return false;
 }
 
 /**
- * Attempts a single atomic file lock creation using O_CREAT | O_EXCL.
+ * Attempts single atomic file lock creation writing directly to acquired file descriptor.
  */
 function tryCreateLockFile(
   lockPath: string,
@@ -117,14 +118,11 @@ function tryCreateLockFile(
     mkdirSync(dir, { recursive: true });
   }
 
-  if (existsSync(lockPath)) {
-    const stale = isLockStale(lockPath, staleLockAgeMs);
-    if (stale) {
-      try {
-        unlinkSync(lockPath);
-      } catch {
-        // Ignore race in unlink
-      }
+  if (existsSync(lockPath) && isLockStale(lockPath, staleLockAgeMs)) {
+    try {
+      unlinkSync(lockPath);
+    } catch {
+      // Ignore race in unlink
     }
   }
 
@@ -132,7 +130,8 @@ function tryCreateLockFile(
     const fd = openSync(lockPath, constants.O_CREAT | constants.O_EXCL | constants.O_RDWR, 0o600);
     try {
       const content = JSON.stringify(payload, null, 2);
-      writeFileSync(lockPath, content, "utf-8");
+      writeSync(fd, content, 0, "utf-8");
+      fsyncSync(fd);
     } finally {
       closeSync(fd);
     }
@@ -142,9 +141,6 @@ function tryCreateLockFile(
   }
 }
 
-/**
- * Sleep helper function.
- */
 function delay(ms: number): Promise<void> {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
@@ -153,29 +149,18 @@ function delay(ms: number): Promise<void> {
  * Checks whether the given lock path is currently locked.
  */
 export async function isLocked(lockPath?: string): Promise<boolean> {
-  let path = DEFAULT_LOCK_PATH;
-  if (lockPath !== undefined && lockPath !== null && lockPath.length > 0) {
-    path = lockPath;
-  }
+  const path = lockPath && lockPath.length > 0 ? lockPath : DEFAULT_LOCK_PATH;
   const resolved = resolve(path);
-  if (inProcessLocks.has(resolved)) {
-    return true;
-  }
-  if (!existsSync(resolved)) {
-    return false;
-  }
-  const stale = isLockStale(resolved, DEFAULT_STALE_LOCK_AGE_MS);
-  return !stale;
+  if (inProcessLocks.has(resolved)) return true;
+  if (!existsSync(resolved)) return false;
+  return !isLockStale(resolved, DEFAULT_STALE_LOCK_AGE_MS);
 }
 
 /**
  * Forcefully releases a lock by removing file and in-memory flag.
  */
 export async function forceReleaseLock(lockPath?: string): Promise<boolean> {
-  let path = DEFAULT_LOCK_PATH;
-  if (lockPath !== undefined && lockPath !== null && lockPath.length > 0) {
-    path = lockPath;
-  }
+  const path = lockPath && lockPath.length > 0 ? lockPath : DEFAULT_LOCK_PATH;
   const resolved = resolve(path);
   inProcessLocks.delete(resolved);
   if (existsSync(resolved)) {
@@ -193,41 +178,12 @@ export async function forceReleaseLock(lockPath?: string): Promise<boolean> {
  * Acquires the atomic restart lock.
  */
 export async function acquireLock(options?: LockOptions): Promise<LockHandle> {
-  let rawPath = DEFAULT_LOCK_PATH;
-  if (
-    options !== undefined &&
-    options !== null &&
-    options.lockPath !== undefined &&
-    options.lockPath.length > 0
-  ) {
-    rawPath = options.lockPath;
-  }
-  const lockPath = resolve(rawPath);
-
-  let timeoutMs = DEFAULT_LOCK_TIMEOUT_MS;
-  if (options !== undefined && options !== null && typeof options.timeoutMs === "number") {
-    timeoutMs = options.timeoutMs;
-  }
-
-  let pollIntervalMs = DEFAULT_POLL_INTERVAL_MS;
-  if (options !== undefined && options !== null && typeof options.pollIntervalMs === "number") {
-    pollIntervalMs = options.pollIntervalMs;
-  }
-
-  let staleLockAgeMs = DEFAULT_STALE_LOCK_AGE_MS;
-  if (options !== undefined && options !== null && typeof options.staleLockAgeMs === "number") {
-    staleLockAgeMs = options.staleLockAgeMs;
-  }
-
-  let lockHolderId = `process_${process.pid}_${Math.random().toString(36).slice(2, 10)}`;
-  if (
-    options !== undefined &&
-    options !== null &&
-    options.lockHolderId !== undefined &&
-    options.lockHolderId.length > 0
-  ) {
-    lockHolderId = options.lockHolderId;
-  }
+  const lockPath = resolve(options?.lockPath ?? DEFAULT_LOCK_PATH);
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_LOCK_TIMEOUT_MS;
+  const pollIntervalMs = options?.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
+  const staleLockAgeMs = options?.staleLockAgeMs ?? DEFAULT_STALE_LOCK_AGE_MS;
+  const lockHolderId =
+    options?.lockHolderId ?? `process_${process.pid}_${Math.random().toString(36).slice(2, 10)}`;
 
   const startTime = Date.now();
   let acquired = false;
@@ -235,12 +191,7 @@ export async function acquireLock(options?: LockOptions): Promise<LockHandle> {
 
   while (!acquired) {
     if (!inProcessLocks.has(lockPath)) {
-      const payload: LockFilePayload = {
-        lockHolderId,
-        pid: process.pid,
-        acquiredAt,
-      };
-
+      const payload: LockFilePayload = { lockHolderId, pid: process.pid, acquiredAt };
       if (tryCreateLockFile(lockPath, payload, staleLockAgeMs)) {
         inProcessLocks.add(lockPath);
         acquired = true;
@@ -258,19 +209,16 @@ export async function acquireLock(options?: LockOptions): Promise<LockHandle> {
     }
 
     const remaining = timeoutMs - elapsed;
-    const waitTime = Math.min(pollIntervalMs, Math.max(5, remaining));
-    await delay(waitTime);
+    await delay(Math.min(pollIntervalMs, Math.max(5, remaining)));
   }
 
   let released = false;
-  const handle: LockHandle = {
+  return {
     lockPath,
     lockHolderId,
     acquiredAt,
     release: async (): Promise<void> => {
-      if (released) {
-        return;
-      }
+      if (released) return;
       released = true;
       inProcessLocks.delete(lockPath);
       if (existsSync(lockPath)) {
@@ -282,8 +230,6 @@ export async function acquireLock(options?: LockOptions): Promise<LockHandle> {
       }
     },
   };
-
-  return handle;
 }
 
 /**

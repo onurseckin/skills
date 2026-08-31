@@ -11,8 +11,14 @@ import type {
   SugiyamaNode,
 } from "./types.ts";
 
+// eslint-disable-next-line no-control-regex
+const ANSI_REGEX = /\u001b\[[0-9;]*[a-zA-Z]|\u001b\].*?(\u0007|\u001b\\)/g;
+// eslint-disable-next-line no-control-regex
+const XML_CONTROL_REGEX = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
+
 function escapeXml(unsafe: string): string {
-  return unsafe
+  const clean = unsafe.replaceAll(ANSI_REGEX, "").replaceAll(XML_CONTROL_REGEX, "");
+  return clean
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")

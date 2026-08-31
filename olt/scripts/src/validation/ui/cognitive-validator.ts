@@ -7,6 +7,12 @@ import type {
   UiCognitiveReport,
 } from "./types.ts";
 
+function isRhythmAligned(val: number, grid: number = 4): boolean {
+  if (!Number.isFinite(val)) return true;
+  const remainder = Math.abs(val) % grid;
+  return remainder <= 0.5 || remainder >= grid - 0.5;
+}
+
 export function evaluateAestheticHarmony(
   spacingElements?: readonly { selector: string; margin: number; padding: number }[],
 ): AestheticHarmonyInspection {
@@ -27,8 +33,11 @@ export function evaluateAestheticHarmony(
   let score = 100;
 
   for (const el of spacingElements) {
-    const isMarginValid = el.margin % 4 === 0;
-    const isPaddingValid = el.padding % 4 === 0;
+    if (!Number.isFinite(el.margin) || !Number.isFinite(el.padding)) {
+      continue;
+    }
+    const isMarginValid = isRhythmAligned(el.margin, 4);
+    const isPaddingValid = isRhythmAligned(el.padding, 4);
     if (!isMarginValid || !isPaddingValid) {
       issues.push(
         `Irregular spacing on ${el.selector} (margin: ${el.margin}px, padding: ${el.padding}px; off 4/8pt rhythm)`,

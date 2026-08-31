@@ -15,12 +15,17 @@ export function calculateRelativeLuminance(rgb: {
   return 0.2126 * rLin + 0.7152 * gLin + 0.0722 * bLin;
 }
 
-export function calculateWcagContrast(fg: string, bg: string): number {
+export function calculateWcagContrast(
+  fg: string,
+  bg: string,
+  canvasBg: string = "#ffffff",
+): number {
   const fgParsed = parseRgb(fg);
   const bgParsed = parseRgb(bg);
+  const baseParsed = parseRgb(canvasBg);
+  const solidBase = baseParsed.a < 1 ? { r: 255, g: 255, b: 255, a: 1 } : baseParsed;
 
-  const effectiveBg =
-    bgParsed.a < 1 ? compositeRgb(bgParsed, { r: 255, g: 255, b: 255, a: 1 }) : bgParsed;
+  const effectiveBg = bgParsed.a < 1 ? compositeRgb(bgParsed, solidBase) : bgParsed;
 
   const effectiveFg = fgParsed.a < 1 ? compositeRgb(fgParsed, effectiveBg) : fgParsed;
 
@@ -35,12 +40,17 @@ export function calculateWcagContrast(fg: string, bg: string): number {
   return Math.round(clamped * 100) / 100;
 }
 
-export function calculateApcaContrast(fg: string, bg: string): number {
+export function calculateApcaContrast(
+  fg: string,
+  bg: string,
+  canvasBg: string = "#ffffff",
+): number {
   const fgParsed = parseRgb(fg);
   const bgParsed = parseRgb(bg);
+  const baseParsed = parseRgb(canvasBg);
+  const solidBase = baseParsed.a < 1 ? { r: 255, g: 255, b: 255, a: 1 } : baseParsed;
 
-  const effectiveBg =
-    bgParsed.a < 1 ? compositeRgb(bgParsed, { r: 255, g: 255, b: 255, a: 1 }) : bgParsed;
+  const effectiveBg = bgParsed.a < 1 ? compositeRgb(bgParsed, solidBase) : bgParsed;
 
   const effectiveFg = fgParsed.a < 1 ? compositeRgb(fgParsed, effectiveBg) : fgParsed;
 

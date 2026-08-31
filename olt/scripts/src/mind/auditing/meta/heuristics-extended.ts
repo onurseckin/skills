@@ -1,8 +1,8 @@
 import { generateIncidentId } from "./types.ts";
-import type { ForensicsIncident, ForensicsSeverity, HeuristicsContext } from "./types.ts";
+import type { ForensicsSeverity, HeuristicsContext } from "./types.ts";
 
 export function runExtendedForensicsHeuristics(ctx: HeuristicsContext): void {
-  const { allToolCalls, events, state, agentLedger, addIncident } = ctx;
+  const { allToolCalls, state, agentLedger, addIncident } = ctx;
 
   let pollingCallsCount = 0;
   let pollingAgent: string | undefined;
@@ -26,7 +26,12 @@ export function runExtendedForensicsHeuristics(ctx: HeuristicsContext): void {
     });
   }
 
-  const agentsToCheck: { id: string; tokens: number }[] = [];
+  const agentsToCheck: {
+    id: string;
+    tokensIn: number;
+    tokensOut: number;
+    totalTokens: number;
+  }[] = [];
   if (agentLedger && agentLedger.length > 0) {
     for (const a of agentLedger) {
       const rec = a as unknown as Record<string, unknown>;
@@ -35,7 +40,7 @@ export function runExtendedForensicsHeuristics(ctx: HeuristicsContext): void {
       const tokensOut = typeof rec["tokens_out"] === "number" ? rec["tokens_out"] : 0;
       const totalTokens =
         typeof rec["total_tokens"] === "number" ? rec["total_tokens"] : tokensIn + tokensOut;
-      agentsToCheck.push({ id, tokens: totalTokens });
+      agentsToCheck.push({ id, tokensIn, tokensOut, totalTokens });
     }
   } else if (state && Array.isArray(state["agents"])) {
     for (const a of state["agents"]) {
@@ -46,21 +51,29 @@ export function runExtendedForensicsHeuristics(ctx: HeuristicsContext): void {
         const tokensOut = typeof rec["tokens_out"] === "number" ? rec["tokens_out"] : 0;
         const totalTokens =
           typeof rec["total_tokens"] === "number" ? rec["total_tokens"] : tokensIn + tokensOut;
-        agentsToCheck.push({ id, tokens: totalTokens });
+        agentsToCheck.push({ id, tokensIn, tokensOut, totalTokens });
       }
     }
   }
 
-  for (const { id, tokens } of agentsToCheck) {
-    if (tokens > 150000) {
-      const severity: ForensicsSeverity = tokens > 180000 ? "CRITICAL" : "HIGH";
+  for (const { id, tokensIn, totalTokens } of agentsToCheck) {
+    if (totalTokens > 150000 || tokensIn > 120000) {
+      const severity: ForensicsSeverity =
+        totalTokens > 180000 || tokensIn > 150000 ? "CRITICAL" : "HIGH";
+      const isPromptBloat = tokensIn > 120000 && totalTokens <= 150000;
+      const observation = isPromptBloat
+        ? `Agent '${id}' prompt payload (${tokensIn} tokens_in) approached context window boundary.`
+        : `Agent '${id}' consumed ${totalTokens} tokens.`;
+
       addIncident({
         id: generateIncidentId("CONTEXT_OVERFLOW", id),
         category: "CONTEXT_OVERFLOW",
         severity,
-        title: "Context Overflow: Agent Exceeded Token Threshold",
-        observation: `Agent '${id}' consumed ${tokens} tokens.`,
-        description: `Agent '${id}' consumed ${tokens} tokens.`,
+        title: isPromptBloat
+          ? "Context Overflow: Active Prompt Token Bloat"
+          : "Context Overflow: Agent Exceeded Token Threshold",
+        observation,
+        description: observation,
         remediation: "Quiesce and rotate agent to prevent context degeneration.",
         recommendation: "Quiesce and rotate agent to prevent context degeneration.",
         agentId: id,
@@ -134,17 +147,38 @@ export function runExtendedForensicsHeuristics(ctx: HeuristicsContext): void {
     }
 
     if (taskDurations.length > 0) {
-      const avgDuration =
-        taskDurations.reduce((acc, t) => acc + t.durationSec, 0) / taskDurations.length;
+      const N = taskDurations.length;
+      const avgDuration = taskDurations.reduce((acc, t) => acc + t.durationSec, 0) / N;
+
       for (const { id, durationSec } of taskDurations) {
-        if (durationSec > 120 && durationSec > 3 * avgDuration) {
+        let isStraggler = false;
+        let stragglerRatio = 1;
+
+        if (N === 1) {
+          if (durationSec > 300) {
+            isStraggler = true;
+            stragglerRatio = Math.round(durationSec / 120);
+          }
+        } else if (N === 2) {
+          if (durationSec > 120 && durationSec > 3 * avgDuration) {
+            isStraggler = true;
+            stragglerRatio = Math.round(durationSec / avgDuration);
+          }
+        } else {
+          if (durationSec > 120 && durationSec > 3 * avgDuration) {
+            isStraggler = true;
+            stragglerRatio = Math.round(durationSec / avgDuration);
+          }
+        }
+
+        if (isStraggler) {
           addIncident({
             id: generateIncidentId("STRAGGLER", id),
             category: "STRAGGLER",
             severity: "MEDIUM",
             title: "Straggler: Task Execution Time Disproportionately Long",
-            observation: `Task '${id}' ran for ${Math.round(durationSec)}s (${Math.round(durationSec / avgDuration)}x average).`,
-            description: `Task '${id}' ran for ${Math.round(durationSec)}s (${Math.round(durationSec / avgDuration)}x average).`,
+            observation: `Task '${id}' ran for ${Math.round(durationSec)}s (${stragglerRatio}x average).`,
+            description: `Task '${id}' ran for ${Math.round(durationSec)}s (${stragglerRatio}x average).`,
             remediation: "Decompose complex requirements into smaller granular tasks.",
             recommendation: "Decompose complex requirements into smaller granular tasks.",
             taskId: id,

@@ -1,10 +1,10 @@
+# Chapter 6: Lifecycle Hooks & Audio Engine
+
 [← Previous: Chapter 5 — Mandatory Companion Auditors](05-mandatory-companion-auditors.md) | [📖 Table of Contents](SUMMARY.md) | [Next: Chapter 7 — Host-Aware Quota Engine & Graceful Freeze →](07-host-aware-quota-engine-and-graceful-freeze.md)
 
 ---
 
-# Chapter 6: Lifecycle Hooks & Audio Engine
-
-[![Diátaxis: Reference & How-To](https://img.shields.io/badge/Diátaxis-Reference_%26_How--To-blue.svg)](#diátaxis-quadrant)
+[![Diátaxis: Reference & How-To](https://img.shields.io/badge/Diátaxis-Reference_%26_How--To-blue.svg)](#diátaxis-documentation-matrix)
 [![Subsystem: Lifecycle Engine](https://img.shields.io/badge/Subsystem-Lifecycle_Engine_v1-blue.svg)](SUMMARY.md)
 [![Audio: Native macOS/Linux](https://img.shields.io/badge/Audio-afplay_%2F_paplay-purple.svg)](../../olt/scripts/src/orchestrator/completion-audio.ts)
 [![Events: 34 Event Catalog](https://img.shields.io/badge/Events-34_Canonical_Events-emerald.svg)](../../olt/scripts/src/hooks/types.ts)
@@ -16,12 +16,12 @@ The **OLT Lifecycle Hooks & Audio Engine** provides a unified event-driven notif
 ```mermaid
 graph TD
     subgraph EventSources ["1. Event Sources (34 Lifecycle Events)"]
-        RunEv["Run Domain<br/>(run:start, run:complete, run:fail)"]
-        TaskEv["Task Domain<br/>(task:claim, task:submit, task:complete)"]
-        WaveEv["Wave Domain<br/>(wave:start, wave:complete)"]
-        MindEv["Mind Domain<br/>(mind:pulse, mind:admit)"]
-        QuotaEv["Quota Domain<br/>(quota:low, quota:freeze, quota:resume)"]
-        GateEv["Verification Domain<br/>(gate:pass, gate:fail, defect:opened)"]
+        RunEv["Run Domain (run:start, run:complete, run:fail)"]
+        TaskEv["Task Domain (task:claim, task:submit, task:complete)"]
+        WaveEv["Wave Domain (wave:start, wave:complete)"]
+        MindEv["Mind Domain (mind:pulse, mind:admit)"]
+        QuotaEv["Quota Domain (quota:low, quota:freeze, quota:resume)"]
+        GateEv["Verification Domain (gate:pass, gate:fail, defect:opened)"]
     end
 
     subgraph Engine ["2. Lifecycle Hooks & Audio Engine"]
@@ -38,10 +38,10 @@ graph TD
     end
 
     subgraph Channels ["3. Dispatch Channels"]
-        AudioChan["Native Audio Chimes<br/>(afplay / paplay / aplay)"]
-        ShellChan["Shell Scripts<br/>(Interpolated Subprocesses)"]
-        WebhookChan["HTTP Webhooks<br/>(Slack / Discord / Datadog)"]
-        HandlerChan["Custom TS Handlers<br/>(In-Memory Programmatic)"]
+        AudioChan["Native Audio Chimes (afplay / paplay)"]
+        ShellChan["Shell Scripts (Subprocesses)"]
+        WebhookChan["HTTP Webhooks (Slack / Discord)"]
+        HandlerChan["Custom TS Handlers (Programmatic)"]
 
         Dispatcher --> AudioChan
         Dispatcher --> ShellChan
@@ -104,61 +104,26 @@ OLT standardizes every discrete state transition across the swarm into **34 cano
 +---+----------------------+-----------------------------+----------------------------------------------------------+
 ```
 
-### Event Payload Schema
-
-Every lifecycle event emitted by the harness carries a standardized payload:
-
-```json
-{
-  "event": "run:complete",
-  "run_id": "2026-08-31-complete-documentation-and-book-system-overhaul",
-  "timestamp": "2026-08-31T12:55:00.000Z",
-  "actor": "coordinator_documentation",
-  "role": "coordinator",
-  "task_id": null,
-  "payload": {
-    "tasks_completed": 5,
-    "waves_executed": 2,
-    "total_duration_ms": 342000,
-    "duration_formatted": "5m 42s",
-    "efficiency_score": 98.5,
-    "defects_count": 0,
-    "final_commit_sha": "a1b2c3d4e5f6"
-  }
-}
-```
-
 ---
 
-## 2. Multi-Channel Hook Dispatch Engine
+## 2. Multi-Channel Hook Dispatch & Fail-Safe Isolation
 
-The Hook Dispatch Engine supports four independent execution channels configured declaratively in `.olt/hooks.json` or within `.olt/policy.json`.
+The Hook Dispatch Engine supports four independent execution channels configured in `.olt/hooks.json`:
 
-```
-+---------------------------------------------------------------------------------------------------+
-|                                    MULTI-CHANNEL DISPATCH MATRIX                                  |
-+-------------------+----------------------------+-----------------------+--------------------------+
-| Channel           | Implementation Mechanism   | Supported Platforms   | Typical Use Case         |
-+-------------------+----------------------------+-----------------------+--------------------------+
-| **Audio**         | Native CLI player spawned  | macOS (`darwin`),     | Completion chimes,       |
-|                   | (`afplay` / `paplay`)      | Linux (`linux`)       | freeze alerts            |
-+-------------------+----------------------------+-----------------------+--------------------------+
-| **Shell**         | Subprocess execution with  | POSIX, macOS,         | CI notifications, git    |
-|                   | variable interpolation     | Linux, Windows        | auto-tags, build steps   |
-+-------------------+----------------------------+-----------------------+--------------------------+
-| **Webhook**       | HTTP POST/PUT JSON payload | Universal             | Slack, Discord, Datadog, |
-|                   | to remote endpoint         |                       | web telemetry            |
-+-------------------+----------------------------+-----------------------+--------------------------+
-| **Custom TS**     | In-memory asynchronous TS  | Bun Runtime           | Programmatic integration |
-|                   | function callback          |                       | in testing suites        |
-+-------------------+----------------------------+-----------------------+--------------------------+
-```
+| Channel       | Mechanism                  | Platforms                          | Typical Use Case                  |
+| :------------ | :------------------------- | :--------------------------------- | :-------------------------------- |
+| **Audio**     | Native CLI player spawned  | macOS (`afplay`), Linux (`paplay`) | Completion chimes, freeze alarms  |
+| **Shell**     | Subprocess invocation      | POSIX, macOS, Linux                | CI notifications, git auto-tags   |
+| **Webhook**   | HTTP POST/PUT JSON payload | Universal                          | Slack, Discord, Datadog alerts    |
+| **Custom TS** | In-memory async callback   | Bun Native                         | Programmatic testing integrations |
 
-### Execution Models: Synchronous vs. Non-Blocking Async
+### Non-Blocking Fail-Safe Hook Isolation
 
-Hooks default to **non-blocking asynchronous execution** (`detached: true`). The harness forks the hook process in the background and immediately continues swarm operations, preventing slow network webhooks or audio playback from adding latency to the critical path.
+External notification failures must never destabilize or freeze the core orchestration engine:
 
-For hooks that must complete before the next phase begins (e.g., pre-commit linters or test suite setup), setting `"sync": true` executes the hook synchronously with a strict timeout guard (`timeout_ms: 10000`).
+1. **Detached Asynchronous Execution (`detached: true`)**: Hook tasks are forked non-blockingly. The swarm immediately continues without waiting for network webhooks or audio completion.
+2. **Strict Timeout Caps (`timeout_ms: 5000`)**: If an external webhook or shell script hangs, it is terminated after 5 seconds.
+3. **Fail-Safe Error Swallowing**: Network timeouts, HTTP 500 errors, or missing sound devices emit diagnostic warnings to `.olt/telemetry.jsonl` but are **strictly swallowed**, guaranteeing 0 disruption to parent DAG waves.
 
 ---
 

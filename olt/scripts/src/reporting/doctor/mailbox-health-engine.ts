@@ -141,8 +141,35 @@ export function healCorruptedCursor(cursorPath: string, inboxPath: string): bool
     let lastReadSeq = 0;
     let lastReadId = "";
     const seenIds: string[] = [];
+
+    const outboxPath = join(dirname(inboxPath), "outbox.jsonl");
+    const outboxEnvelopes = existsSync(outboxPath) ? readJsonlEnvelopes(outboxPath).envelopes : [];
+    const respondedCorrelations = new Set<string>(
+      outboxEnvelopes.map((e) => e.correlation_id).filter((c) => Boolean(c)),
+    );
+
+    const ACTIONABLE_UNACK_TYPES = new Set([
+      "VALIDATION_REQUEST",
+      "TASK_ASSIGNMENT",
+      "TASK_DISPATCH",
+      "TASK_CLAIM",
+      "APPROVAL_REQUEST",
+      "WORKFLOW_DISPATCH",
+      "PROMPT",
+    ]);
+
     if (existsSync(inboxPath)) {
-      for (const env of readJsonlEnvelopes(inboxPath).envelopes) {
+      const inboxEnvelopes = readJsonlEnvelopes(inboxPath).envelopes;
+      for (const env of inboxEnvelopes) {
+        if (
+          ACTIONABLE_UNACK_TYPES.has(env.message_type) &&
+          env.correlation_id &&
+          !respondedCorrelations.has(env.correlation_id)
+        ) {
+          // Stop advancing sequence past this unacknowledged envelope to avoid task starvation
+          break;
+        }
+
         seenIds.push(env.id);
         if (env.sequence > lastReadSeq) {
           lastReadSeq = env.sequence;

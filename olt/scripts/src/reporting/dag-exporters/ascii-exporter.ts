@@ -1,3 +1,4 @@
+import { getOpticalDisplayWidth, padOptical, truncateOptical } from "../sugiyama-dag/index.ts";
 import { computeOptimizedLayout } from "./layout-optimizer.ts";
 import type {
   DagExportOptions,
@@ -26,11 +27,6 @@ function formatBoxCharacters(style: "rounded" | "sharp" | "ascii"): {
   return { tl: "+", tr: "+", bl: "+", br: "+", h: "-", v: "|", arrow: "v" };
 }
 
-function padRight(str: string, length: number): string {
-  if (str.length >= length) return str.slice(0, length);
-  return str + " ".repeat(length - str.length);
-}
-
 function renderAsciiCard(
   node: DagLayoutNodePoint,
   box: ReturnType<typeof formatBoxCharacters>,
@@ -40,11 +36,10 @@ function renderAsciiCard(
   const statusStr = `[${node.status.toUpperCase()}]`;
   const coordsStr = `W${node.wave}:L${node.lane}`;
   const topText = `${node.id} ${coordsStr}`;
-  const firstLine = padRight(` ${topText} ${statusStr}`, innerWidth);
+  const firstLine = padOptical(` ${topText} ${statusStr}`, innerWidth, "left");
 
-  let labelStr =
-    node.label.length > innerWidth - 2 ? `${node.label.slice(0, innerWidth - 5)}...` : node.label;
-  const secondLine = padRight(` ${labelStr}`, innerWidth);
+  const labelTruncated = truncateOptical(node.label, innerWidth - 2);
+  const secondLine = padOptical(` ${labelTruncated}`, innerWidth, "left");
 
   let agentStr = "";
   if (node.assignedAgent) {
@@ -52,7 +47,9 @@ function renderAsciiCard(
   } else if (node.gate) {
     agentStr = ` Gate: ${node.gate}`;
   }
-  const thirdLine = agentStr ? padRight(agentStr, innerWidth) : padRight("", innerWidth);
+  const thirdLine = agentStr
+    ? padOptical(agentStr, innerWidth, "left")
+    : padOptical("", innerWidth, "left");
 
   const topBorder = box.tl + box.h.repeat(innerWidth) + box.tr;
   const line1 = box.v + firstLine + box.v;
@@ -86,9 +83,10 @@ export function exportDagToAscii(
 
   if (options.title || layout.title) {
     const title = options.title || layout.title || "";
-    const lineLen = Math.max(50, title.length + 8);
+    const titleWidth = getOpticalDisplayWidth(title);
+    const lineLen = Math.max(50, titleWidth + 8);
     lines.push(box.tl + box.h.repeat(lineLen - 2) + box.tr);
-    lines.push(box.v + padRight(`  ${title}`, lineLen - 2) + box.v);
+    lines.push(box.v + padOptical(`  ${title}`, lineLen - 2, "left") + box.v);
     lines.push(box.bl + box.h.repeat(lineLen - 2) + box.br);
     lines.push("");
   }
@@ -102,6 +100,7 @@ export function exportDagToAscii(
   }
 
   const sortedWaves = [...nodesByWave.keys()].sort((a, b) => a - b);
+  const maxCardsPerRow = Math.max(1, options.maxParallel ?? 3);
 
   for (let wIdx = 0; wIdx < sortedWaves.length; wIdx++) {
     const wave = sortedWaves[wIdx]!;
@@ -112,18 +111,28 @@ export function exportDagToAscii(
     );
     lines.push("");
 
-    const renderedCards = waveNodes.map((n) => renderAsciiCard(n, box));
-    const cardHeight = renderedCards[0]?.length ?? 0;
-
-    for (let r = 0; r < cardHeight; r++) {
-      const rowParts: string[] = [];
-      for (const card of renderedCards) {
-        rowParts.push(card[r] || "");
-      }
-      lines.push(`  ${rowParts.join("   ")}`);
+    const cardChunks: DagLayoutNodePoint[][] = [];
+    for (let i = 0; i < waveNodes.length; i += maxCardsPerRow) {
+      cardChunks.push(waveNodes.slice(i, i + maxCardsPerRow));
     }
 
-    lines.push("");
+    for (let cIdx = 0; cIdx < cardChunks.length; cIdx++) {
+      const chunk = cardChunks[cIdx]!;
+      if (cIdx > 0) {
+        lines.push("                           ┆ (lane wrap)");
+      }
+      const renderedCards = chunk.map((n) => renderAsciiCard(n, box));
+      const cardHeight = renderedCards[0]?.length ?? 0;
+
+      for (let r = 0; r < cardHeight; r++) {
+        const rowParts: string[] = [];
+        for (const card of renderedCards) {
+          rowParts.push(card[r] || "");
+        }
+        lines.push(`  ${rowParts.join("   ")}`);
+      }
+      lines.push("");
+    }
 
     if (wIdx < sortedWaves.length - 1) {
       lines.push("                           │");

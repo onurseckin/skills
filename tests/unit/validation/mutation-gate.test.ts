@@ -158,6 +158,32 @@ describe("Mutation Gate & AST Mutators", () => {
       expect(result.violations.length).toBeGreaterThan(0);
     });
 
+    it("segregates compilation and syntax errors from test assertion kills", async () => {
+      const source = `export function compute(x: number): number { return x * 2; }`;
+      const testRunner: MutationTestRunner = async (
+        _mutatedSource: string,
+        mutant: MutantRecord,
+      ) => {
+        // Returns syntax/compilation error for arithmetic mutant
+        if (mutant.mutationType === "arithmetic_mutation") {
+          return {
+            passed: false,
+            exitCode: 1,
+            error: "SyntaxError: Unexpected token",
+            isCompilationError: true,
+          };
+        }
+        return { passed: false, exitCode: 1, error: "Assertion failed: expected 4 got 0" };
+      };
+
+      const result = await runMutationGate(source, testRunner);
+      expect(result.passed).toBe(false);
+      expect(result.erroredMutants).toBeGreaterThan(0);
+      const errResult = result.mutantResults.find((r) => r.status === "error");
+      expect(errResult).toBeDefined();
+      expect(errResult?.details).toContain("SyntaxError");
+    });
+
     it("handles source code with 0 mutants", async () => {
       const source = `// Just comments`;
       const testRunner: MutationTestRunner = async () => ({ passed: true });
@@ -175,6 +201,14 @@ describe("Mutation Gate & AST Mutators", () => {
         resolve(
           import.meta.dir,
           "../../../olt/scripts/src/validation/mutation-gate/candidate-visitors.ts",
+        ),
+        resolve(
+          import.meta.dir,
+          "../../../olt/scripts/src/validation/mutation-gate/expression-mutators.ts",
+        ),
+        resolve(
+          import.meta.dir,
+          "../../../olt/scripts/src/validation/mutation-gate/statement-mutators.ts",
         ),
         resolve(
           import.meta.dir,

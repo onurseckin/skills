@@ -13,34 +13,52 @@ export {
   CodexCollector,
   CursorCollector,
   DefaultCollectorEnvironment,
+  MAX_FUTURE_CLOCK_SKEW_MS,
+  MAX_STORAGE_CACHE_TTL_MS,
   OpenAICollector,
   createDefaultCollectors,
+  validateStorageCacheFreshness,
+  type CacheFreshnessResult,
   type CollectorEnvironment,
   type ProcessExecResult,
 } from "./collectors/index.ts";
 export {
   TelemetryNormalizationEngine,
+  TokenReservoir,
+  formatAsciiReport,
   formatPreciseProgressBar,
   formatResetTime,
   formatTierBadge,
   formatTierShort,
   renderProgressBar,
+  type ProbeAllOptions,
+  type ReservoirStatus,
+  type TelemetryNormalizationEngineOptions,
 } from "./engine.ts";
 export {
   AUTO_WAKE_PROMPT,
   CRITICAL_WRAP_UP_MESSAGE,
   DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
+  DEFAULT_COOLDOWN_SECONDS,
   DEFAULT_QUOTA_THRESHOLD,
+  DEFAULT_RECOVERY_THRESHOLD,
   DEFAULT_SAFE_WINDOW_SECONDS,
   QuotaCircuitBreaker,
   UNMEASURED_QUOTA_WRAP_UP_MESSAGE,
+  checkQuotaCircuitBreaker,
+  detectActiveHost,
+  evaluateCircuitBreaker,
   extractResetTime,
   formatCircuitBreakerMarkdown,
+  isPlatformMatchingHost,
+  normalizeCanonicalHost,
   type AutoWakeSchedulePayload,
   type CircuitBreakerEvaluation,
   type CircuitBreakerStatus,
+  type CircuitBreakerVerdict,
   type ConstrainedModelInfo,
   type QuotaCircuitBreakerOptions,
+  type QuotaState,
   type WrapUpDirective,
 } from "./circuit-breaker.ts";
 export {
@@ -64,3 +82,4 @@ export {
 } from "./dag-snapshot.ts";
 
 export { injectTraceEnvironment, resolveTraceContext, type TraceContext } from "./trace-context.ts";
+export { type ReservoirLease, type ReserveLeaseOptions } from "./token-reservoir.ts";

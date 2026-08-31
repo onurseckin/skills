@@ -3,6 +3,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  statSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -59,13 +60,27 @@ interface LockPayload {
 }
 
 const TRACK_ID_REGEX = /^[a-zA-Z0-9_-]+$/;
+const DEFAULT_LOCK_TIMEOUT_MS = 5000;
+const STALE_LOCK_THRESHOLD_MS = 60_000;
+const IN_FLIGHT_LOCK_GRACE_MS = 2000;
 
 function isProcessAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
   try {
     process.kill(pid, 0);
     return true;
   } catch {
     return false;
+  }
+}
+
+function sleepSync(ms: number): void {
+  if (ms <= 0) return;
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {}
   }
 }
 
@@ -78,28 +93,41 @@ function resolveRepo(repoRoot?: string): string {
   }
 }
 
-function acquireTrackLock(lockPath: string, trackId: string, timeoutMs = 5000): void {
-  const lockDir = dirname(lockPath);
-  mkdirSync(lockDir, { recursive: true });
-
+function acquireTrackLock(
+  lockPath: string,
+  trackId: string,
+  timeoutMs = DEFAULT_LOCK_TIMEOUT_MS,
+): void {
+  mkdirSync(dirname(lockPath), { recursive: true });
   const startTime = Date.now();
+  let backoffMs = 10;
   while (true) {
     if (existsSync(lockPath)) {
       try {
         const raw = readFileSync(lockPath, "utf-8");
-        const payload: LockPayload = JSON.parse(raw);
-        if (!isProcessAlive(payload.pid)) {
+        const fileStat = statSync(lockPath);
+        let isStale = false;
+        try {
+          const payload: LockPayload = JSON.parse(raw);
+          const age = Date.now() - new Date(payload.createdAt).getTime();
+          if (
+            !isProcessAlive(payload.pid) ||
+            (Number.isFinite(age) && age > STALE_LOCK_THRESHOLD_MS)
+          ) {
+            isStale = true;
+          }
+        } catch {
+          if (Date.now() - fileStat.mtimeMs > IN_FLIGHT_LOCK_GRACE_MS) {
+            isStale = true;
+          }
+        }
+        if (isStale) {
           try {
             unlinkSync(lockPath);
           } catch {}
         }
-      } catch {
-        try {
-          unlinkSync(lockPath);
-        } catch {}
-      }
+      } catch {}
     }
-
     try {
       const payload: LockPayload = {
         trackId,
@@ -109,12 +137,15 @@ function acquireTrackLock(lockPath: string, trackId: string, timeoutMs = 5000): 
       writeFileSync(lockPath, JSON.stringify(payload), { flag: "wx" });
       return;
     } catch {
-      if (Date.now() - startTime >= timeoutMs) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= timeoutMs) {
         throw new HarnessError(
           "LOCK_TIMEOUT",
           `Track worktree lock for '${trackId}' could not be acquired within ${timeoutMs}ms`,
         );
       }
+      sleepSync(Math.min(backoffMs, timeoutMs - elapsed));
+      backoffMs = Math.min(backoffMs * 2, 100);
     }
   }
 }
@@ -185,13 +216,12 @@ export function createTrackWorktree(
     };
 
     mkdirSync(worktreePath, { recursive: true });
-    const metaPath = join(worktreePath, ".worktree-meta.json");
-    writeFileSync(metaPath, JSON.stringify(info, null, 2), "utf-8");
-
-    if (typeof trackIdOrOptions === "string") {
-      return worktreePath;
-    }
-    return info;
+    writeFileSync(
+      join(worktreePath, ".worktree-meta.json"),
+      JSON.stringify(info, null, 2),
+      "utf-8",
+    );
+    return typeof trackIdOrOptions === "string" ? worktreePath : info;
   } catch (error) {
     releaseTrackLock(lockPath);
     throw error;
@@ -229,26 +259,31 @@ export function destroyTrackWorktree(
         });
       }
     }
-
+    try {
+      pruneWorktrees(repo, runner);
+    } catch {}
     if (shouldDeleteBranch && branchExists(repo, branch, runner)) {
-      gitDeleteBranch(repo, branch, runner);
+      try {
+        gitDeleteBranch(repo, branch, runner);
+      } catch {}
     }
-
-    pruneWorktrees(repo, runner);
+    try {
+      pruneWorktrees(repo, runner);
+    } catch {}
   } finally {
     if (existsSync(worktreePath)) {
-      safeRmSync(worktreePath, {
-        allowedRoots: [worktreesRoot],
-        allowGitRepositoryDeletion: true,
-        missingOk: true,
-      });
+      try {
+        safeRmSync(worktreePath, {
+          allowedRoots: [worktreesRoot],
+          allowGitRepositoryDeletion: true,
+          missingOk: true,
+        });
+      } catch {}
     }
     releaseTrackLock(lockPath);
   }
 
-  if (typeof trackIdOrOptions === "string") {
-    return;
-  }
+  if (typeof trackIdOrOptions === "string") return;
   return { cleaned: true, trackId: options.trackId };
 }
 
@@ -271,8 +306,7 @@ export function listTrackWorktrees(options?: ListWorktreesOptions): readonly Tra
 
     if (existsSync(metaPath)) {
       try {
-        const raw = readFileSync(metaPath, "utf-8");
-        const parsed: TrackWorktreeInfo = JSON.parse(raw);
+        const parsed: TrackWorktreeInfo = JSON.parse(readFileSync(metaPath, "utf-8"));
         results.push(parsed);
         continue;
       } catch {}

@@ -30,7 +30,7 @@ export interface FlagSuggestion {
 function levenshteinDistance(source: string, target: string): number {
   const rows = source.length + 1;
   const cols = target.length + 1;
-  const distances = new Array<number>(rows * cols);
+  const distances = Array.from<number>({ length: rows * cols });
   for (let row = 0; row < rows; row += 1) distances[row * cols] = row;
   for (let col = 0; col < cols; col += 1) distances[col] = col;
   for (let row = 1; row < rows; row += 1) {
@@ -86,6 +86,29 @@ export function suggestFlag(
   return { names, text: formatAlternatives(names.map((name) => `--${name}`)) };
 }
 
+export function suggestCommand(
+  commandName: string,
+  candidates: readonly string[],
+): string | undefined {
+  const prefixed = candidates
+    .filter((candidate) => candidate !== commandName && candidate.startsWith(commandName))
+    .sort(
+      (a, b) =>
+        levenshteinDistance(commandName, a) - levenshteinDistance(commandName, b) ||
+        a.localeCompare(b),
+    );
+  if (prefixed.length > 0 && prefixed[0] !== undefined) return prefixed[0];
+
+  const ranked = candidates
+    .map((candidate) => ({ candidate, distance: levenshteinDistance(commandName, candidate) }))
+    .sort((a, b) => a.distance - b.distance || a.candidate.localeCompare(b.candidate));
+  const nearest = ranked[0];
+  if (nearest === undefined) return undefined;
+  const threshold = Math.max(2, Math.floor(commandName.length / 2));
+  if (nearest.distance > threshold) return undefined;
+  return nearest.candidate;
+}
+
 function takesValue(name: string, shapes: FlagShapes | undefined): boolean {
   const shape = shapes?.get(name);
   return shape === undefined ? ALWAYS_VALUED.includes(name) : shape.takesValue;
@@ -99,7 +122,11 @@ function consumesFollowing(
   if (following === undefined || following === "--") return false;
   if (!following.startsWith("--")) return true;
   if (shapes === undefined || !takesValue(name, shapes)) return false;
-  return !shapes.has(following.slice(2));
+  if (following.includes(" ")) return true;
+  const flagCandidate = following.includes("=")
+    ? following.slice(2, following.indexOf("="))
+    : following.slice(2);
+  return !shapes.has(flagCandidate);
 }
 
 export function parseArguments(argv: readonly string[], shapes?: FlagShapes): ParsedArguments {
@@ -131,29 +158,60 @@ export function parseArguments(argv: readonly string[], shapes?: FlagShapes): Pa
         "prefix it with -- to name a flag, or move it after a literal -- if a child command should receive it",
       );
     }
-    const name = token.slice(2);
-    if (!FLAG_NAME.test(name)) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        `invalid option: ${token}`,
-        [],
-        undefined,
-        "flag names must match --[a-z][a-z0-9-]*, e.g. --run-id",
-      );
-    }
-    const following = tokens[index + 1];
+    let name: string;
     let value: FlagValue = true;
-    if (consumesFollowing(name, following, shapes)) {
-      value = following!;
-      index += 1;
-    } else if (following === undefined && takesValue(name, shapes)) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        `option --${name} requires a value`,
-        [],
-        undefined,
-        `pass a value, e.g. --${name} <value>`,
-      );
+    if (token.includes("=")) {
+      const eqIndex = token.indexOf("=");
+      name = token.slice(2, eqIndex);
+      const inlineValue = token.slice(eqIndex + 1);
+      if (!FLAG_NAME.test(name)) {
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          `invalid option: ${token}`,
+          [],
+          undefined,
+          "flag names must match --[a-z][a-z0-9-]*, e.g. --run-id",
+        );
+      }
+      if (shapes !== undefined && !takesValue(name, shapes)) {
+        if (inlineValue === "true") {
+          value = true;
+        } else {
+          throw new HarnessError(
+            "INVALID_ARGUMENT",
+            `option --${name} does not take a value`,
+            [],
+            undefined,
+            `omit the value, e.g. --${name}`,
+          );
+        }
+      } else {
+        value = inlineValue;
+      }
+    } else {
+      name = token.slice(2);
+      if (!FLAG_NAME.test(name)) {
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          `invalid option: ${token}`,
+          [],
+          undefined,
+          "flag names must match --[a-z][a-z0-9-]*, e.g. --run-id",
+        );
+      }
+      const following = tokens[index + 1];
+      if (consumesFollowing(name, following, shapes)) {
+        value = following!;
+        index += 1;
+      } else if (following === undefined && takesValue(name, shapes)) {
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          `option --${name} requires a value`,
+          [],
+          undefined,
+          `pass a value, e.g. --${name} <value>`,
+        );
+      }
     }
     if (shapes?.get(name)?.repeatable === true) {
       (repeats[name] ??= []).push(value);
@@ -179,9 +237,14 @@ export function flagPositions(tokens: readonly string[], shapes?: FlagShapes): s
     const token = tokens[index]!;
     if (token === "--") break;
     if (!token.startsWith("--")) continue;
-    const name = token.slice(2);
-    names.push(name);
-    if (consumesFollowing(name, tokens[index + 1], shapes)) index += 1;
+    if (token.includes("=")) {
+      const name = token.slice(2, token.indexOf("="));
+      names.push(name);
+    } else {
+      const name = token.slice(2);
+      names.push(name);
+      if (consumesFollowing(name, tokens[index + 1], shapes)) index += 1;
+    }
   }
   return names;
 }

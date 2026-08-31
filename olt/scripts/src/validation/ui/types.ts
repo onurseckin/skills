@@ -37,10 +37,29 @@ export interface PlaywrightJourneyResult {
   readonly error?: string | undefined;
 }
 
+export interface BrowserLifecycleInvariants {
+  readonly fontsReady?: boolean | undefined;
+  readonly networkIdle?: boolean | undefined;
+  readonly layoutQuiet?: boolean | undefined;
+  readonly freshContextPerViewport?: boolean | undefined;
+  readonly hydrationComplete?: boolean | undefined;
+}
+
+export interface ScreenshotInspectionInput {
+  readonly name: string;
+  readonly path: string;
+  readonly viewport?: string | undefined;
+  readonly sizeBytes: number;
+  readonly entropyScore?: number | undefined;
+  readonly isBlank?: boolean | undefined;
+}
+
 export interface UiMechanicInspectionInput {
   readonly taskId?: string | undefined;
   readonly writeScope?: readonly string[] | undefined;
   readonly viewports?: readonly UiViewportTier[] | undefined;
+  readonly requireAllViewports?: boolean | undefined;
+  readonly lifecycleInvariants?: BrowserLifecycleInvariants | undefined;
   readonly minTouchDimension?: number | undefined;
   readonly touchTargets?:
     | readonly {
@@ -57,17 +76,11 @@ export interface UiMechanicInspectionInput {
         scrollWidth: number;
         clientWidth: number;
         overflowX?: number | undefined;
+        deviceScaleFactor?: number | undefined;
       }[]
     | undefined;
   readonly journeys?: readonly PlaywrightJourneyResult[] | undefined;
-  readonly screenshots?:
-    | readonly {
-        name: string;
-        path: string;
-        viewport?: string | undefined;
-        sizeBytes: number;
-      }[]
-    | undefined;
+  readonly screenshots?: readonly ScreenshotInspectionInput[] | undefined;
 }
 
 export interface UiMechanicReport {
@@ -80,8 +93,15 @@ export interface UiMechanicReport {
   readonly overflowViolations: readonly OverflowInspection[];
   readonly journeyResults: readonly PlaywrightJourneyResult[];
   readonly validScreenshotsCount: number;
+  readonly lifecycleViolations: readonly string[];
   readonly totalDefects: number;
   readonly summary: string;
+}
+
+export interface ContainerHierarchyEvaluation {
+  readonly container: string;
+  readonly passed: boolean;
+  readonly issues: readonly string[];
 }
 
 export interface OpticalHierarchyInspection {
@@ -89,6 +109,7 @@ export interface OpticalHierarchyInspection {
   readonly passed: boolean;
   readonly headingScaleRatio: number;
   readonly visualWeightBalanced: boolean;
+  readonly containerEvaluations?: readonly ContainerHierarchyEvaluation[] | undefined;
   readonly notes: string;
   readonly issues: readonly string[];
 }
@@ -113,6 +134,16 @@ export interface AestheticHarmonyInspection {
   readonly issues: readonly string[];
 }
 
+export interface HierarchyElementInput {
+  readonly selector: string;
+  readonly tag: string;
+  readonly fontSize: number;
+  readonly fontWeight: number | string;
+  readonly containerSelector?: string | undefined;
+  readonly letterSpacing?: number | undefined;
+  readonly lineHeight?: number | undefined;
+}
+
 export interface UiCognitiveInspectionInput {
   readonly taskId?: string | undefined;
   readonly critique?: string | undefined;
@@ -126,14 +157,7 @@ export interface UiCognitiveInspectionInput {
         overflowClipped?: boolean | undefined;
       }[]
     | undefined;
-  readonly hierarchyElements?:
-    | readonly {
-        selector: string;
-        tag: string;
-        fontSize: number;
-        fontWeight: number | string;
-      }[]
-    | undefined;
+  readonly hierarchyElements?: readonly HierarchyElementInput[] | undefined;
   readonly spacingElements?:
     | readonly {
         selector: string;

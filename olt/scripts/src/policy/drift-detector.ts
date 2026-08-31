@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { generateDefaultRepoPolicy } from "./generator/index.ts";
+import { synthesizeCalibratedRepoPolicy } from "./generator/index.ts";
 import { resolvePolicyLocation } from "./io-safety.ts";
 import { loadRepoPolicy } from "./repo-policy.ts";
 import type { RepoPolicy } from "./types/index.ts";
@@ -32,7 +32,7 @@ export interface PolicyDriftResult {
 export function computePolicyChecksum(repoRoot?: string, customPath?: string): string {
   const loc = resolvePolicyLocation(repoRoot, customPath);
   if (!existsSync(loc.filePath)) {
-    const fallbackPolicy = generateDefaultRepoPolicy(loc.root);
+    const fallbackPolicy = synthesizeCalibratedRepoPolicy(loc.root);
     const content = JSON.stringify(fallbackPolicy, Object.keys(fallbackPolicy).sort(), 2);
     return createHash("sha256").update(content, "utf8").digest("hex");
   }

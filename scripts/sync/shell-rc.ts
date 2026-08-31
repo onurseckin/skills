@@ -72,25 +72,47 @@ export function detectShellRcPath(options?: {
   return process.platform === "darwin" ? zshrc : bashrc;
 }
 
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function isPathDeclaredInContent(content: string, binDir: string, home: string): boolean {
-  if (content.includes(binDir)) {
-    return true;
-  }
+  const candidateTokens: string[] = [binDir];
   if (binDir.startsWith(home)) {
     const relToHome = binDir.slice(home.length).replace(/^[/\\]/, "");
-    if (content.includes(`$HOME/${relToHome}`)) {
-      return true;
+    candidateTokens.push(`$HOME/${relToHome}`);
+    candidateTokens.push(`\${HOME}/${relToHome}`);
+    candidateTokens.push(`~/${relToHome}`);
+  }
+
+  const tokenPatterns = candidateTokens.map(
+    (tok) => new RegExp(`(^|[\\s"':=(])${escapeRegex(tok)}($|[\\s"':;)])`),
+  );
+
+  const lines = content.split("\n");
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (line.startsWith("#") || line.length === 0) {
+      continue;
     }
-    if (content.includes(`\${HOME}/${relToHome}`)) {
-      return true;
-    }
-    if (content.includes(`~/${relToHome}`)) {
-      return true;
-    }
-    if (relToHome === ".local/bin" && content.includes(".local/bin")) {
-      return true;
+
+    const isPathLine =
+      /(?:^|\s)(?:export\s+)?PATH\s*=/i.test(line) ||
+      /(?:^|\s)fish_add_path\b/i.test(line) ||
+      /(?:^|\s)path\+\s*=/i.test(line) ||
+      /(?:^|\s)path=\(/i.test(line) ||
+      /(?:^|\s)set\s+.*PATH/i.test(line) ||
+      /(?:^|\s)(?:export\s+)?PATH\b/i.test(line);
+
+    if (isPathLine) {
+      for (const pattern of tokenPatterns) {
+        if (pattern.test(line)) {
+          return true;
+        }
+      }
     }
   }
+
   return false;
 }
 

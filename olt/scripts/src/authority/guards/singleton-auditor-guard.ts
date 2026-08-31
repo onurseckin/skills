@@ -58,6 +58,10 @@ export function defaultIsPidAlive(pid: number): boolean {
   }
 }
 
+export function normalizeAuditorRole(roleOrId: string): string {
+  return roleOrId.trim().toLowerCase().replace(/_/gu, "-");
+}
+
 function resolveLockPath(customPath?: string): string {
   return customPath?.trim()
     ? resolve(customPath.trim())
@@ -162,6 +166,7 @@ export function acquireAuditorLeaseLock(options: AcquireAuditorLeaseOptions): Au
     throw new HarnessError("INVALID_ARGUMENT", "auditor_id must be a non-empty string");
   }
   const auditorId = options.auditor_id.trim();
+  const normAuditorId = normalizeAuditorRole(auditorId);
 
   const pid = options.pid ?? process.pid;
   if (!Number.isInteger(pid) || pid <= 0) {
@@ -188,7 +193,7 @@ export function acquireAuditorLeaseLock(options: AcquireAuditorLeaseOptions): Au
       const isAlive = isPidAlive(existing.pid);
 
       if (isAlive && !isExpired) {
-        if (existing.auditor_id === auditorId && existing.pid === pid) {
+        if (normalizeAuditorRole(existing.auditor_id) === normAuditorId && existing.pid === pid) {
           const renewed: AuditorLeaseLock = {
             auditor_id: existing.auditor_id,
             pid: existing.pid,
@@ -231,6 +236,7 @@ export function releaseAuditorLeaseLock(options: ReleaseAuditorLeaseOptions): bo
     return false;
   }
   const auditorId = options.auditor_id.trim();
+  const normAuditorId = normalizeAuditorRole(auditorId);
   const lockPath = resolveLockPath(options.customLockPath);
 
   if (!existsSync(lockPath)) {
@@ -242,7 +248,10 @@ export function releaseAuditorLeaseLock(options: ReleaseAuditorLeaseOptions): bo
     if (!existing) {
       return false;
     }
-    if (existing.auditor_id !== auditorId) {
+    if (
+      existing.auditor_id !== auditorId &&
+      normalizeAuditorRole(existing.auditor_id) !== normAuditorId
+    ) {
       return false;
     }
     if (options.lock_token && existing.lock_token !== options.lock_token.trim()) {

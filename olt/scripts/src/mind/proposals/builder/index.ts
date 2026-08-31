@@ -5,17 +5,15 @@ export type {
   AnchorOptions,
   ExactAnchorBriefingOptions,
   ExactAnchorBriefing,
-} from "./types.ts";
-
-export { extractSymbolsFromSource } from "./symbols.ts";
+} from "../../../cli/briefing/index.ts";
 
 export {
+  extractSymbolsFromSource,
   extractFileSymbols,
   createDropInAnchor,
   findAnchorByPattern,
   extractFileAnchors,
-} from "./anchors.ts";
-
-export { deriveRecommendedTestCommands, formatExactAnchorBriefingMarkdown } from "./formatter.ts";
-
-export { buildExactAnchorBriefing } from "./briefing.ts";
+  deriveRecommendedTestCommands,
+  formatExactAnchorBriefingMarkdown,
+  buildExactAnchorBriefing,
+} from "../../../cli/briefing/index.ts";

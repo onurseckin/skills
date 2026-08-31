@@ -31,7 +31,7 @@ describe("Mailbox Quarantine Engine", () => {
 
   describe("ingestToQuarantine", () => {
     it("appends malformed envelope to quarantine.log and returns structured entry", () => {
-      const entry = ingestToQuarantine(
+      const _entry = ingestToQuarantine(
         "agent-alpha",
         { broken: "payload", raw: 123 },
         "CORRUPTED_PAYLOAD",
@@ -230,6 +230,30 @@ describe("Mailbox Quarantine Engine", () => {
       writeFileSync(paths.inboxPath, '{"broken\n{"also-broken\n', "utf8");
       expect(quarantineTornLines(paths.inboxPath, paths.quarantinePath)).toBe(2);
       expect(readFileSync(paths.inboxPath, "utf8")).toBe("");
+    });
+
+    it("safely escapes and unescapes multi-line error stack traces and markdown", () => {
+      const multiLinePayload = "Error: stack trace failure\n  at file.ts:12\n  at async foo.ts:34";
+      const entry = ingestToQuarantine("agent-multiline", multiLinePayload, "STACK_TRACE", {
+        baseDir: testRoot,
+      });
+      const lines = readFileSync(entry.quarantinePath, "utf8").trim().split("\n");
+      expect(lines.length).toBe(1);
+      expect(lines[0]).toContain("\\n  at file.ts:12");
+
+      const sweep = sweepQuarantineDeadLetters({ baseDir: testRoot, agentId: "agent-multiline" });
+      expect(sweep.deadLetters.length).toBe(1);
+      expect(sweep.deadLetters[0]?.rawEnvelope).toBe(multiLinePayload);
+    });
+
+    it("reversibly preserves escaped backslashes in JSON literals without converting to control chars", () => {
+      const jsonWithEscapes = '{"msg":"hello\\\\nworld","path":"C:\\\\Users\\\\test"}';
+      ingestToQuarantine("agent-escapes", jsonWithEscapes, "LITERAL_JSON", {
+        baseDir: testRoot,
+      });
+      const sweep = sweepQuarantineDeadLetters({ baseDir: testRoot, agentId: "agent-escapes" });
+      expect(sweep.deadLetters.length).toBe(1);
+      expect(sweep.deadLetters[0]?.rawEnvelope).toBe(jsonWithEscapes);
     });
   });
 });

@@ -23,6 +23,13 @@ import { checkThemeRegressions } from "./regression-detector.ts";
 
 export { resolveIsLargeText, getRequiredThreshold, evaluateSingleStandard };
 
+export const THEME_CANVAS_BACKGROUNDS: Record<ThemeMode, string> = {
+  light: "#ffffff",
+  dark: "#0d1117",
+  "high-contrast-light": "#ffffff",
+  "high-contrast-dark": "#000000",
+};
+
 export function evaluateThemeContrastMatrix(
   elements: readonly ElementThemePair[],
   standards: readonly ContrastStandard[] = CONTRAST_STANDARDS,
@@ -132,13 +139,14 @@ export function evaluateThemeContrastMatrix(
       }
 
       const isLarge = resolveIsLargeText(pair.isLargeText, pair.fontSize, pair.fontWeight);
-      const wcagRatio = calculateWcagContrast(pair.foregroundColor, pair.backgroundColor);
-      const apcaLc = calculateApcaContrast(pair.foregroundColor, pair.backgroundColor);
+      const canvasBg = THEME_CANVAS_BACKGROUNDS[theme] ?? "#ffffff";
+      const wcagRatio = calculateWcagContrast(pair.foregroundColor, pair.backgroundColor, canvasBg);
+      const apcaLc = calculateApcaContrast(pair.foregroundColor, pair.backgroundColor, canvasBg);
 
       const fgRgb = parseRgb(pair.foregroundColor);
       const bgRgb = parseRgb(pair.backgroundColor);
-      const effectiveBg =
-        bgRgb.a < 1 ? compositeRgb(bgRgb, { r: 255, g: 255, b: 255, a: 1 }) : bgRgb;
+      const canvasRgb = parseRgb(canvasBg);
+      const effectiveBg = bgRgb.a < 1 ? compositeRgb(bgRgb, canvasRgb) : bgRgb;
       const effectiveFg = fgRgb.a < 1 ? compositeRgb(fgRgb, effectiveBg) : fgRgb;
 
       const evaluations: ContrastEvaluation[] = [];

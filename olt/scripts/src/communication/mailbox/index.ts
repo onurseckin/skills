@@ -53,8 +53,10 @@ export {
 } from "./chatter-guard.ts";
 
 export {
+  escapeQuarantinePayload,
   ingestToQuarantine,
   sweepQuarantineDeadLetters,
+  unescapeQuarantinePayload,
   type QuarantineIngestOptions,
   type QuarantinedDeadLetter,
   type QuarantinedEntry,

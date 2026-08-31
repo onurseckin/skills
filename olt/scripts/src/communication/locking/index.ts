@@ -7,6 +7,7 @@ export {
   parseLockPayload,
   readHolderPid,
   acquireMailboxLock,
+  acquireMailboxLockAsync,
   releaseMailboxLock,
   withExclusiveLock,
   withExclusiveLockAsync,

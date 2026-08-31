@@ -1,22 +1,21 @@
-import { basename, resolve } from "node:path";
 import { readFileSync } from "node:fs";
+import { basename } from "node:path";
 import { getHarnessConfig } from "../../core/config/index.ts";
+import type { Finding } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { recordTopology } from "../../engine/scheduler/index.ts";
+import { loadRun, transact } from "../../engine/store/index.ts";
 import { dependencyMap } from "../../graph/dependency-map.ts";
-import { normalizeScopePath } from "../../graph/scope-analyzer.ts";
 import { projectPlan } from "../../graph/project-plan.ts";
 import { guardPlanRevision } from "../../graph/revision-guard.ts";
+import { normalizeScopePath } from "../../graph/scope-analyzer.ts";
 import { isRecord } from "../../requirements/predicates.ts";
-import { recordTopology } from "../../engine/scheduler/index.ts";
-import { loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/index.ts";
-import { formatPlanReplanBrief } from "../formatters/index.ts";
 import { partitionFindingsIntoScopes } from "../../workflow/scope-partitioner.ts";
 import { utc } from "../../workflow/task-state.ts";
-import type { Finding } from "../../core/contracts/index.ts";
-import type { TaskRecord, GateRuntime } from "../../workflow/types.ts";
+import type { GateRuntime, TaskRecord } from "../../workflow/types.ts";
+import { formatPlanReplanBrief } from "../formatters/index.ts";
 import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
-import { collectReplanFindings } from "./plan-replan-findings.ts";
 import {
   parseGateArgv,
   readPlanBindings,
@@ -24,6 +23,7 @@ import {
   resolveClusterGate,
   type GateSource,
 } from "./plan-replan-bindings.ts";
+import { collectReplanFindings } from "./plan-replan-findings.ts";
 
 export function planReplanCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
@@ -230,7 +230,7 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
     },
   );
 
-  const repoRoot = resolve(run, "..", "..");
+  const repoRoot = findRepoRoot(run);
   const config = getHarnessConfig(repoRoot, run);
   recordTopology(run, actor, config);
 

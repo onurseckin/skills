@@ -47,6 +47,123 @@ export function findCycles(dependencies: ReadonlyMap<string, ReadonlySet<string>
   return cycles;
 }
 
+function computeTarjanSccs(
+  allNodes: readonly string[],
+  adj: ReadonlyMap<string, readonly string[]>,
+): string[][] {
+  let index = 0;
+  const indices = new Map<string, number>();
+  const lowlinks = new Map<string, number>();
+  const onStack = new Map<string, boolean>();
+  const stack: string[] = [];
+  const sccs: string[][] = [];
+
+  function strongConnect(v: string): void {
+    indices.set(v, index);
+    lowlinks.set(v, index);
+    index += 1;
+    stack.push(v);
+    onStack.set(v, true);
+
+    for (const w of adj.get(v) ?? []) {
+      if (!indices.has(w)) {
+        strongConnect(w);
+        lowlinks.set(v, Math.min(lowlinks.get(v) ?? 0, lowlinks.get(w) ?? 0));
+      } else if (onStack.get(w)) {
+        lowlinks.set(v, Math.min(lowlinks.get(v) ?? 0, indices.get(w) ?? 0));
+      }
+    }
+
+    if (lowlinks.get(v) === indices.get(v)) {
+      const scc: string[] = [];
+      let w: string | undefined;
+      do {
+        w = stack.pop();
+        if (w !== undefined) {
+          onStack.set(w, false);
+          scc.push(w);
+        }
+      } while (w !== undefined && w !== v);
+
+      if (scc.length > 1) {
+        sccs.push(scc);
+      } else if (
+        scc.length === 1 &&
+        scc[0] !== undefined &&
+        (adj.get(scc[0]) ?? []).includes(scc[0])
+      ) {
+        sccs.push(scc);
+      }
+    }
+  }
+
+  for (const node of allNodes) {
+    if (!indices.has(node)) strongConnect(node);
+  }
+  return sccs;
+}
+
+export function extractFeedbackArcsTarjan(dependencies: ReadonlyMap<string, ReadonlySet<string>>): {
+  feedbackArcs: { from: string; to: string }[];
+  sccs: string[][];
+} {
+  const allNodes = Array.from(dependencies.keys()).sort();
+  const adj = new Map<string, string[]>();
+  for (const node of allNodes) {
+    adj.set(
+      node,
+      Array.from(dependencies.get(node) ?? []).filter((p) => dependencies.has(p)),
+    );
+  }
+
+  const sccs = computeTarjanSccs(allNodes, adj);
+  const feedbackArcs: { from: string; to: string }[] = [];
+  const faSet = new Set<string>();
+
+  for (const scc of sccs) {
+    if (scc.length === 1 && scc[0] !== undefined) {
+      const single = scc[0];
+      const key = `${single}->${single}`;
+      if (!faSet.has(key)) {
+        faSet.add(key);
+        feedbackArcs.push({ from: single, to: single });
+      }
+      continue;
+    }
+
+    const sccSet = new Set(scc);
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+
+    function dfs(u: string): void {
+      visited.add(u);
+      visiting.add(u);
+
+      for (const v of adj.get(u) ?? []) {
+        if (!sccSet.has(v)) continue;
+        if (visiting.has(v)) {
+          const key = `${u}->${v}`;
+          if (!faSet.has(key)) {
+            faSet.add(key);
+            feedbackArcs.push({ from: u, to: v });
+          }
+        } else if (!visited.has(v)) {
+          dfs(v);
+        }
+      }
+      visiting.delete(u);
+    }
+
+    for (const node of scc) {
+      if (!visited.has(node)) {
+        dfs(node);
+      }
+    }
+  }
+
+  return { feedbackArcs, sccs };
+}
+
 export function breakCycles(dependencies: ReadonlyMap<string, ReadonlySet<string>>): {
   readonly acyclicDependencies: Map<string, Set<string>>;
   readonly remainingDag: Map<string, Set<string>>;
@@ -58,68 +175,19 @@ export function breakCycles(dependencies: ReadonlyMap<string, ReadonlySet<string
   }
 
   const brokenEdges: CycleBreakCandidate[] = [];
-  let safetyCounter = 0;
-  const maxIterations = dependencies.size * 2 + 10;
+  const { feedbackArcs, sccs } = extractFeedbackArcsTarjan(mutDeps);
 
-  while (!isAcyclic(mutDeps) && safetyCounter < maxIterations) {
-    safetyCounter += 1;
-    const cycles = findCycles(mutDeps);
-    if (cycles.length === 0) {
-      const order = topologicalOrder(mutDeps);
-      const unresolved = Array.from(mutDeps.keys())
-        .filter((id) => !order.includes(id))
-        .sort();
-      if (unresolved.length === 0) break;
-
-      const firstUnresolved = unresolved[0];
-      if (firstUnresolved !== undefined) {
-        const prereqs = extractNeighbors(mutDeps, firstUnresolved);
-        if (prereqs.length > 0) {
-          const dropPrereq = prereqs[0];
-          if (dropPrereq !== undefined) {
-            const targetSet = mutDeps.get(firstUnresolved);
-            if (targetSet !== undefined) {
-              targetSet.delete(dropPrereq);
-            }
-            brokenEdges.push({
-              fromTaskId: firstUnresolved,
-              toTaskId: dropPrereq,
-              edgeDescription: `${firstUnresolved} --deps ${dropPrereq}`,
-              rationale: `Cycle-breaking heuristic: dropped feedback edge ${firstUnresolved} -> ${dropPrereq}`,
-              cycle: [firstUnresolved, dropPrereq],
-            });
-          }
-        }
-      }
-      continue;
-    }
-
-    const cycle = cycles[0];
-    if (cycle === undefined) break;
-    if (cycle.length === 0) break;
-
-    const fromTaskId = cycle[0];
-    let toTaskId = cycle[0];
-    if (cycle.length > 1) {
-      const second = cycle[1];
-      if (second !== undefined) {
-        toTaskId = second;
-      }
-    }
-
-    if (fromTaskId !== undefined && toTaskId !== undefined) {
-      const set = mutDeps.get(fromTaskId);
-      if (set !== undefined) {
-        set.delete(toTaskId);
-      }
-      const firstCycleNode = cycle[0];
-      const loopBack = firstCycleNode !== undefined ? firstCycleNode : fromTaskId;
+  for (const { from, to } of feedbackArcs) {
+    const set = mutDeps.get(from);
+    if (set !== undefined && set.has(to)) {
+      set.delete(to);
+      const matchedScc = sccs.find((s) => s.includes(from) && s.includes(to)) ?? [from, to];
       brokenEdges.push({
-        fromTaskId,
-        toTaskId,
-        edgeDescription: `${fromTaskId} --deps ${toTaskId}`,
-        rationale: `Broke cycle [${cycle.join(" -> ")} -> ${loopBack}] by dropping edge ${fromTaskId} -> ${toTaskId}`,
-        cycle,
+        fromTaskId: from,
+        toTaskId: to,
+        edgeDescription: `${from} --deps ${to}`,
+        rationale: `Tarjan SCC FAS cycle-breaking: dropped feedback back-edge ${from} -> ${to} to preserve forward critical path`,
+        cycle: matchedScc,
       });
     }
   }

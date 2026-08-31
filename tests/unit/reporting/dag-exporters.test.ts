@@ -244,5 +244,29 @@ describe("Visual DAG Layout Optimizer & Exporters (dag-exporters)", () => {
       expect(all.dot?.format).toBe("dot");
       expect(all.json?.format).toBe("json");
     });
+
+    it("sanitizes complex characters in Mermaid and DOT exports", () => {
+      const complexNodes = [
+        createNode("task[complex]", { label: 'Special "quotes" & <tags> [brackets] `code`' }),
+      ];
+      const mermaid = exportDagToMermaid(complexNodes, []);
+      expect(mermaid.content).not.toContain("<tags>");
+      expect(mermaid.content).toContain("&lt;tags&gt;");
+
+      const dot = exportDagToDot(complexNodes, []);
+      expect(dot.content).toContain("&quot;quotes&quot;");
+      expect(dot.content).toContain("&lt;tags&gt;");
+    });
+
+    it("adaptively chunks waves with many parallel tasks in ASCII export", () => {
+      const parallelNodes = [
+        createNode("p1", { wave: 1, lane: 1 }),
+        createNode("p2", { wave: 1, lane: 2 }),
+        createNode("p3", { wave: 1, lane: 3 }),
+        createNode("p4", { wave: 1, lane: 4 }),
+      ];
+      const ascii = exportDagToAscii(parallelNodes, [], { maxParallel: 2 });
+      expect(ascii.content).toContain("lane wrap");
+    });
   });
 });

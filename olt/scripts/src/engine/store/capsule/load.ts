@@ -30,6 +30,8 @@ function loadRunFiles(
     const candidate = join(baseCapsulesDir, runRoot);
     if (existsSync(candidate)) {
       targetPath = candidate;
+    } else {
+      throw new HarnessError("INVALID_ARGUMENT", `run_root directory does not exist: ${runRoot}`);
     }
   }
   const rootStat = lstatSync(targetPath);
@@ -57,7 +59,7 @@ function loadRunFiles(
   if (!promptStat.isFile() || promptStat.isSymbolicLink())
     throw new HarnessError("INTEGRITY", "prompt.md is not a regular file");
   const prompt = readRegularFileNoFollow(promptPath);
-  let events = [] as RunFiles["events"];
+  let events: RunFiles["events"] = [];
   if (collectEvents) {
     const chain = validateEventChain(
       eventsPath,

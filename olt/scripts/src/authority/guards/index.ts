@@ -1,10 +1,15 @@
 export { ALLOWED_ROOT_DIRS, ALLOWED_ROOT_FILES } from "./constants.ts";
 export { RootDirectoryHygieneGuard } from "./root-hygiene.ts";
-export { TimerProtectionGuard } from "./timer-protection.ts";
+export {
+  TimerProtectionGuard,
+  type TimerProtectionCaller,
+  type TimerProtectionTarget,
+} from "./timer-protection.ts";
 export {
   DEFAULT_AUDITOR_LOCK_FILE,
   DEFAULT_AUDITOR_LEASE_DURATION_MS,
   defaultIsPidAlive,
+  normalizeAuditorRole,
   readAuditorLeaseLock,
   acquireAuditorLeaseLock,
   releaseAuditorLeaseLock,
@@ -17,6 +22,7 @@ export {
 export {
   DEFAULT_SINGLETON_AUDITOR_ROLE,
   DUPLICATE_SINGLETON_AUDITOR_MESSAGE,
+  isSingletonAuditorRole,
   rejectDuplicateAuditorSpawn,
   validateSubagentSpawnRequest,
   type SpawnValidatorOptions,

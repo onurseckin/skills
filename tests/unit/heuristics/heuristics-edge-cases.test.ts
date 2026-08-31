@@ -25,7 +25,6 @@ import {
   type ModalFocusTrapInput,
 } from "../../../olt/scripts/src/heuristics/modal-focus-traps/index.ts";
 import {
-  CANONICAL_FRACTIONAL_DPR_SCALES,
   evaluateAntiAliasingEdgeContrast,
   evaluateEdgeContrast,
   evaluateElementSubpixelPhysics,
@@ -36,10 +35,6 @@ import {
   snapToDevicePixels,
   validateElementSubpixelPhysics,
   validateSubpixelBorders,
-  type AntiAliasingEdgeContrastResult,
-  type EdgeContrastEvaluation,
-  type SubpixelBorderWidths,
-  type SubpixelDriftResult,
   type SubpixelElementBounds,
   type SubpixelElementInput,
 } from "../../../olt/scripts/src/heuristics/subpixel-borders/index.ts";
@@ -50,13 +45,10 @@ import {
   CANONICAL_VIEWPORTS,
   CANONICAL_VIEWPORT_SPECS,
   computePhysicalViewportMetrics,
-  MANDATORY_PILLARS,
   normalizePillar,
   synthesizeDprAwareCompanionManifest,
   verifyMultiViewportManifests,
-  type CanonicalViewportSpec,
   type MultiViewportBundleInput,
-  type PhysicalViewportMetrics,
   type ScreenshotArtifact,
 } from "../../../olt/scripts/src/heuristics/multi-viewport-manifest/index.ts";
 import {
@@ -1443,6 +1435,7 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
       join(import.meta.dir, "../../../olt/scripts/src/heuristics/modal-focus-traps/index.ts"),
       join(import.meta.dir, "../../../olt/scripts/src/heuristics/subpixel-borders/index.ts"),
       join(import.meta.dir, "../../../olt/scripts/src/heuristics/multi-viewport-manifest/index.ts"),
+      join(import.meta.dir, "../../../olt/scripts/src/heuristics/behavioral-forensics/index.ts"),
       join(import.meta.dir, "heuristics-edge-cases.test.ts"),
       join(
         import.meta.dir,

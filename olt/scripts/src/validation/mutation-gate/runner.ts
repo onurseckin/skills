@@ -7,6 +7,21 @@ import type {
 } from "./types.ts";
 import { generateMutants } from "./ast-mutators.ts";
 
+export function isSyntaxOrCompilationError(errorMsg?: string): boolean {
+  if (!errorMsg) return false;
+  const lower = errorMsg.toLowerCase();
+  return (
+    lower.includes("syntaxerror") ||
+    lower.includes("typescript error") ||
+    lower.includes("compilation error") ||
+    lower.includes("compile error") ||
+    lower.includes("parse error") ||
+    lower.includes("unexpected token") ||
+    lower.includes("cannot find module") ||
+    /\bts\d{4,5}\b/i.test(errorMsg)
+  );
+}
+
 export async function runMutationGate(
   sourceCode: string,
   testRunner: MutationTestRunner,
@@ -43,7 +58,21 @@ export async function runMutationGate(
       const outcome = await testRunner(mutant.mutatedSource, mutant);
       const durationMs = Date.now() - startTime;
 
-      if (outcome.passed === false || (outcome.exitCode !== undefined && outcome.exitCode !== 0)) {
+      const isCompilationFail =
+        outcome.isCompilationError === true || isSyntaxOrCompilationError(outcome.error);
+
+      if (isCompilationFail) {
+        errored++;
+        results.push({
+          mutant,
+          status: "error",
+          details: outcome.error ?? "Compilation / syntax error during mutant test execution.",
+          durationMs,
+        });
+      } else if (
+        outcome.passed === false ||
+        (outcome.exitCode !== undefined && outcome.exitCode !== 0)
+      ) {
         killed++;
         const errDetails =
           typeof outcome.error === "string" && outcome.error.length > 0

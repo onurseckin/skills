@@ -1,12 +1,17 @@
-[← Previous: Chapter 07: Host-Aware Quota Engine and Graceful Freeze](07-host-aware-quota-engine-and-graceful-freeze.md) | [Table of Contents](SUMMARY.md) | [Next: Chapter 09: Full CLI Command Reference →](09-full-cli-command-reference.md)
+# Chapter 8: Verification & Socratic Gating
+
+[← Previous: Chapter 7 — Host-Aware Quota Engine & Graceful Freeze](07-host-aware-quota-engine-and-graceful-freeze.md) | [📖 Table of Contents](SUMMARY.md) | [Next: Chapter 9 — Full CLI Command Reference →](09-full-cli-command-reference.md)
 
 ---
 
-# Chapter 08: Verification and Socratic Gating
+[![Diátaxis: How-To & Reference](https://img.shields.io/badge/Diátaxis-How--To_%26_Reference-blue.svg)](#diátaxis-documentation-matrix)
+[![Subsystem: Verification](https://img.shields.io/badge/Subsystem-Socratic_Gating_v1-blue.svg)](SUMMARY.md)
+[![Separation: 2-Key Certification](https://img.shields.io/badge/Separation-2--Key_Certification-purple.svg)](../../.olt/policy.json)
+[![Evidence: Monitored Execution](https://img.shields.io/badge/Evidence-Harness_Observed_v1-emerald.svg)](../../olt/scripts/src/validation/types.ts)
 
 In autonomous software engineering, LLMs suffer from **self-grading bias** and **validation theatre**: an agent that writes code is cognitively anchored to its own implementation decisions and will consistently overlook its own edge-case omissions, unhandled errors, and specification drifts.
 
-OLT eliminates self-grading through a mathematically grounded, dual-channel verification architecture termed **Socratic Gating**. This chapter details the operational mechanics of the **2-Key Validator Pairing**, the **1-Hop In-Lease Micro-Cycle**, the **Completeness Critic**, and **Falsifiable Counterfactual Evidence Collection**.
+OLT eliminates self-grading through a mathematically grounded, dual-channel verification architecture termed **Socratic Gating**. This chapter details the operational mechanics of the **2-Key Validator Pairing**, the **1-Hop In-Lease Micro-Cycle**, the **Completeness Critic**, and **Read-Only Counterfactual Gate Probing**.
 
 ---
 
@@ -80,85 +85,40 @@ sequenceDiagram
 ### In-Lease Micro-Cycle Invariants
 
 1. **Lease Continuity**: When a validator issues a probe demand (`task:probe --demand "<condition>"`), the task remains in `validating` status under the **same** lease without releasing or dropping the token.
-2. **Bounded Iteration Count ($k \le 5$)**:
-
-   $$\text{Round Count: } k \in [1, 5]$$
-
-   If an implementer fails to satisfy validator demands within $k_{\text{max}} = 5$ rounds, the harness automatically escalates the task to `escalated` and invokes `task:reject`, transferring repair responsibility to an assigned repair specialist via `task:assign-repairer`.
-
-3. **Anti-Ritual Probe Mandate**: The validator cannot issue generic prose rejections. Every demand must be a structured record containing `finding_id`, `requirement_id`, and a verifiable counterfactual check.
+2. **Bounded Iteration Count ($k \le 5$)**: If an implementer fails within $k_{\text{max}} = 5$ rounds, the task escalates to `escalated` for re-assignment via `task:assign-repairer`.
+3. **Anti-Ritual Probe Mandate**: The validator cannot issue generic prose rejections; every demand must be a structured record with `finding_id`, `requirement_id`, and a verifiable counterfactual check.
 
 ---
 
-## 3. Dual UI Validator Separation (Headless Playwright & Optical Visual Review)
+## 3. Dual UI Validator Separation
 
-For all tasks modifying frontend UI components, layouts, or stylesheets, OLT enforces a hardwired **Dual UI Validator Separation Pipeline**:
+For all tasks modifying frontend UI components, layouts, or stylesheets, OLT enforces a hardwired **Dual UI Validator Separation Pipeline** where automated Playwright tests are strictly **ONLY HALF OF THE JOB** (`AUTOMATED_TESTS_ARE_HALF_THE_JOB`):
 
 ```mermaid
 graph TD
-    subgraph UI Pipeline ["Dual UI Validator Separation"]
-        Submit["UI Task Submission (task:submit)"]
+    Submit["UI Task Submission (task:submit)"]
+    HV["Gate 1: ui-headless-validator (Playwright & DOM)"]
+    PW["4-Viewport Screenshot Capture (1920, 1440, 768, 390)"]
+    Hitbox["Hitbox Geometry Audit (>= 44pt Touch Targets)"]
+    OV["Gate 2: ui-optical-validator (Visual Critic)"]
+    View["Headful Image Inspection (view_file)"]
+    Optical["8 Optical Dimensions & APCA Contrast (Lc >= 60)"]
+    Review["Dual Sign-off (task:review --status pass)"]
 
-        subgraph Gate1 ["Gate 1: Headless Mechanical Validation"]
-            HV["ui-headless-validator<br/>(Playwright & DOM Engine)"]
-            PW["Playwright Headless Runs<br/>(run:exec)"]
-            Captures["4-Viewport Screenshot Capture<br/>(Desktop-Wide, Desktop, Tablet, Mobile)"]
-            Hitbox["Hitbox Geometry Audit<br/>(>= 44pt Touch Targets, >= 48pt Cockpit HUD)"]
-
-            HV --> PW
-            PW --> Captures
-            PW --> Hitbox
-        end
-
-        subgraph Gate2 ["Gate 2: Optical Cognitive Validation"]
-            OV["ui-optical-validator<br/>(Human-Grade Visual Critic)"]
-            View["Headful Screenshot Review<br/>(view_file / evidence:screenshots)"]
-            Optical["8 Optical Dimensions & APCA (Lc >= 60)<br/>Natural Socratic Critique (0 Commands)"]
-
-            OV --> View
-            View --> Optical
-        end
-
-        Review["Dual Sequential Sign-off<br/>(task:review --status pass)"]
-
-        Submit --> Gate1
-        Gate1 -->|Screenshots & DOM Manifests Validated| Gate2
-        Gate2 --> Review
-    end
+    Submit --> HV --> PW --> Hitbox --> OV --> View --> Optical --> Review
 ```
 
-### The Two Specialized UI Validator Roles
-
-| Dimension               | Gate 1: `ui-headless-validator`                                                                           | Gate 2: `ui-optical-validator`                                                                           |
-| :---------------------- | :-------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------- |
-| **Validator Category**  | Mechanical UI Validator (Tier 3)                                                                          | Cognitive UI Validator (Tier 3)                                                                          |
-| **Command Privileges**  | Shell execution enabled (`run:exec`, `task:check`)                                                        | Zero command execution (`can_execute_shell: false`, 0 commands)                                          |
-| **Primary Mandate**     | Automated Playwright runs, DOM element tree verification, multi-viewport screenshot captures              | Headful visual inspection of screenshot images, human-grade Socratic critique, optical rhythm            |
-| **Viewport Matrix**     | Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844)                         | All 4 viewports inspected visually via `view_file`                                                       |
-| **Quantitative Floors** | Touch target hitboxes $\ge 44\text{pt}$ ($\ge 48\text{pt}$ for cockpit HUD), screenshot bytes $\ge 1024$  | APCA lightness contrast $\text{Lc} \ge 60$ (body), $\text{Lc} \ge 45$ (large titles), WCAG 4.5:1 floor   |
-| **Strict Prohibition**  | Approving UI tasks without capturing full screenshot image artifacts (`AUTOMATED_TESTS_ARE_HALF_THE_JOB`) | Shell commands, source edits, approving without opening screenshot files (`SUPERFICIAL_UI_APPROVAL_BAN`) |
+| Dimension               | Gate 1: `ui-headless-validator`                                  | Gate 2: `ui-optical-validator`                                        |
+| :---------------------- | :--------------------------------------------------------------- | :-------------------------------------------------------------------- |
+| **Command Privileges**  | Shell execution enabled (`run:exec`, `task:check`)               | Zero command execution (`can_execute_shell: false`, 0 commands)       |
+| **Primary Mandate**     | Playwright runs, DOM element checks, multi-viewport screenshots  | Headful visual inspection of screenshot images, optical rhythm        |
+| **Quantitative Floors** | Touch hitboxes $\ge 44\text{pt}$ ($\ge 48\text{pt}$ cockpit HUD) | APCA lightness contrast $\text{Lc} \ge 60$ (body), $\text{Lc} \ge 45$ |
 
 ---
 
 ## 4. The Completeness Critic & Requirement Mapping
 
-While task validators focus on individual task write scopes, the **Completeness Critic** operates at the whole-repository boundary before run completion.
-
-```
-+-----------------------------------------------------------------------------------+
-|                        COMPLETENESS CRITIC RECONCILIATION                         |
-+-----------------------------------------------------------------------------------+
-| Requirement ID      | Assigned Artifact           | Falsifiable Evidence Receipt |
-| :------------------ | :-------------------------- | :--------------------------- |
-| req-1-auth-engine   | src/auth/engine.ts          | cmd-receipt-89f41 (Exit 0)   |
-| req-2-quota-freeze  | src/telemetry/breaker.ts    | cmd-receipt-89f42 (Exit 0)   |
-| req-3-cli-reference | docs/book/09-cli-ref.md     | cmd-receipt-89f43 (Exit 0)   |
-+-----------------------------------------------------------------------------------+
-```
-
-### The Critic Review Protocol
-
-Before `run:complete` can be executed, the Completeness Critic audits the complete repository diff against the original requirement ledger:
+While task validators focus on individual task write scopes, the **Completeness Critic** operates at the whole-repository boundary before run completion:
 
 ```bash
 # Completeness critic reviews full run diff against all acceptance criteria
@@ -168,116 +128,60 @@ bun olt/scripts/harness.ts critic:review \
   --decision approve
 ```
 
-If any requirement in `state.json` lacks an evidenced proof receipt or has unaddressed findings, the harness rejects approval:
-
-```
-Error (CRITIC_REQUIREMENT_UNPROVEN): Requirement 'req-4-subsystems-ch7-10' has no recorded proof receipt.
-Approval refused. Run remains in active phase.
-```
+If any requirement in `state.json` lacks an evidenced proof receipt or has unaddressed findings, approval is refused (`CRITIC_REQUIREMENT_UNPROVEN`).
 
 ---
 
-## 4. Falsifiable Evidence Collection (`run:exec`) & Counterfactual Gate Proofs
+## 5. Falsifiable Evidence Collection & Counterfactual Gate Proofs
 
-### The Principle of Monitored Execution
-
-In OLT, agents are forbidden from validating code by asserting subjective confidence (e.g., _"I have verified the code and it works"_). Validation is valid **if and only if** it is backed by an immutable shell execution receipt captured by the harness via `run:exec`.
+Validation is valid **if and only if** backed by an immutable shell execution receipt captured by the harness via `run:exec`:
 
 ```bash
 # Execute a test gate under monitored harness instrumentation
 bun olt/scripts/harness.ts run:exec \
   --run .olt/capsules/<run-id> \
-  --task task-4-subsystems-ch7-10 \
-  -- bun test tests/unit/docs/book-system.test.ts
+  --task task-1 \
+  -- bun test tests/unit/auth.test.ts
 ```
 
-### The Monitored Receipt Schema
+### Read-Only Counterfactual Gate Probing Recipes
 
-`run:exec` wraps the child process, measures standard streams, and records an unalterable receipt into `.olt/capsules/<run-id>/evidence/`:
+Read-only validators must verify that gates fail when expected without modifying codebase files:
 
-```json
-{
-  "command_id": "cmd-89f42a1b",
-  "task_id": "task-4-subsystems-ch7-10",
-  "actor": "mechanic-validator-1",
-  "argv": ["bun", "test", "tests/unit/docs/book-system.test.ts"],
-  "exit_code": 0,
-  "stdout_sha256": "4a7d1ed414474e4033ac29ccb8653d9b",
-  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb924",
-  "duration_ms": 342,
-  "timestamp": "2026-08-31T12:50:00.000Z",
-  "evidence_class": "harness_observed"
-}
-```
-
-### Counterfactual Gate Proofs (Adversarial Probing)
-
-To prove that a test gate is not a **tautology** (a test that passes regardless of whether the code works), validators must execute **Counterfactual Probing**:
-
-1. **Positive Assertion**: The gate passes when the implementation is present.
-2. **Negative Counterfactual**: The gate fails when the required behavior is commented out or an invalid input is supplied.
-
-If a gate command passes on both valid and invalid codebases, the mechanic validator marks the gate as **non-discriminating** (`DISCRIMINATION_FAILURE`) and rejects the submission.
+1. **Negative Option Invocations**: Run commands with conflicting or invalid flags via `run:exec` to assert deterministic exit code 3 (`INVALID_ARGUMENT`):
+   ```bash
+   bun olt/scripts/harness.ts run:exec --run .olt/capsules/<run-id> --task task-1 -- bun harness.ts plan:compile --max-parallel -5
+   ```
+2. **Malformed Stdin Ingestion**: Pipe malformed payloads to verify parser rejection without disk mutation:
+   ```bash
+   bun olt/scripts/harness.ts run:exec --run .olt/capsules/<run-id> --task task-1 -- sh -c 'echo "{bad_json" | bun harness.ts smart-task:ingest --stdin'
+   ```
+3. **Subshell Environment Overrides**: Probe fallback behaviors by temporarily overriding environment variables in subshell invocations:
+   ```bash
+   bun olt/scripts/harness.ts run:exec --run .olt/capsules/<run-id> --task task-1 -- sh -c 'ANTIGRAVITY_AGENT_ID="" bun harness.ts doctor:verify'
+   ```
 
 ---
 
-## 5. How-To: Step-by-Step Validation Workflow
-
-Follow this procedure when assigned as an independent validator on a task.
-
-### Step 1: Start Validation & Inspect Submission
+## 6. How-To: Step-by-Step Validation Workflow
 
 ```bash
-# Initialize validation session
-bun olt/scripts/harness.ts task:validate-start \
-  --run .olt/capsules/<run-id> \
-  --task <task-id> \
-  --validator <agent-id>
-```
+# Step 1: Start validation session
+bun olt/scripts/harness.ts task:validate-start --run .olt/capsules/<run-id> --task <task-id> --validator <agent-id>
 
-### Step 2: Execute Deterministic Static & Type Verification
+# Step 2: Execute fast static typechecks and AST linting
+bun olt/scripts/harness.ts task:check --run .olt/capsules/<run-id> --task <task-id>
 
-```bash
-# Execute fast typecheck and lint checks
-bun olt/scripts/harness.ts task:check \
-  --run .olt/capsules/<run-id> \
-  --task <task-id>
-```
+# Step 3: Run monitored test gate
+bun olt/scripts/harness.ts run:exec --run .olt/capsules/<run-id> --task <task-id> -- bun test <target-test>
 
-### Step 3: Execute Monitored Test Gates
+# Step 4: Issue probe demand (if clarification needed)
+bun olt/scripts/harness.ts task:probe --run .olt/capsules/<run-id> --task <task-id> --agent <agent-id> --demand "..."
 
-```bash
-# Run unit tests through monitored harness execution
-bun olt/scripts/harness.ts run:exec \
-  --run .olt/capsules/<run-id> \
-  --task <task-id> \
-  -- bun test tests/unit/my-subsystem.test.ts
-```
-
-### Step 4: Issue a Probe Demand (If Clarification Needed)
-
-```bash
-# Demand proof of negative boundary handling without failing the task lease
-bun olt/scripts/harness.ts task:probe \
-  --run .olt/capsules/<run-id> \
-  --task <task-id> \
-  --agent <agent-id> \
-  --demand "Demonstrate handling of malformed UTF-8 inputs with explicit test assertion"
-```
-
-### Step 5: File Final Approval with Evidence Resolution
-
-```bash
-# Record final approval linked to the execution command receipt
-bun olt/scripts/harness.ts task:review \
-  --run .olt/capsules/<run-id> \
-  --task <task-id> \
-  --agent <agent-id> \
-  --token <lease-token> \
-  --status pass \
-  --resolve probe-finding-1=cmd-89f42a1b
+# Step 5: File final approval with evidence resolution
+bun olt/scripts/harness.ts task:review --run .olt/capsules/<run-id> --task <task-id> --agent <agent-id> --token <lease-token> --status pass --resolve probe-finding-1=<cmd-receipt-id>
 ```
 
 ---
 
-[← Previous: Chapter 07: Host-Aware Quota Engine and Graceful Freeze](07-host-aware-quota-engine-and-graceful-freeze.md) | [Table of Contents](SUMMARY.md) | [Next: Chapter 09: Full CLI Command Reference →](09-full-cli-command-reference.md)
+[← Previous: Chapter 7 — Host-Aware Quota Engine & Graceful Freeze](07-host-aware-quota-engine-and-graceful-freeze.md) | [📖 Table of Contents](SUMMARY.md) | [Next: Chapter 9 — Full CLI Command Reference →](09-full-cli-command-reference.md)

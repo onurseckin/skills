@@ -89,7 +89,12 @@ export function parseRoleContract(content: string, filePath?: string): RoleContr
       : filePath
         ? basename(filePath, extname(filePath))
         : "unknown";
-  const tier = typeof frontmatter.tier === "number" ? frontmatter.tier : 3;
+  const tier =
+    frontmatter.tier === "independent"
+      ? "independent"
+      : typeof frontmatter.tier === "number"
+        ? frontmatter.tier
+        : 3;
   const domain = typeof frontmatter.domain === "string" ? frontmatter.domain : undefined;
 
   const rawMay = Array.isArray(frontmatter.may)

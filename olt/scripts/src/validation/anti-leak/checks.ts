@@ -41,18 +41,17 @@ export const PROHIBITED_COGNITIVE_ACTIONS: ReadonlySet<string> = new Set([
   "cargo",
 ]);
 
+export const MECHANIC_VALIDATOR_ROLES: ReadonlySet<string> = new Set([
+  "mechanic-validator",
+  "ui-mechanic-validator",
+  "ui-headless-validator",
+  "headless-validator",
+  "mechanic_validator",
+]);
+
 export function isMechanicValidatorRole(role: string): boolean {
   const normalized = role.trim().toLowerCase();
-  return (
-    normalized === "mechanic-validator" ||
-    normalized === "ui-mechanic-validator" ||
-    normalized === "ui-headless-validator" ||
-    normalized === "headless-validator" ||
-    normalized === "mechanic_validator" ||
-    normalized.startsWith("mechanic-") ||
-    normalized.endsWith("-mechanic-validator") ||
-    normalized.endsWith("-headless-validator")
-  );
+  return MECHANIC_VALIDATOR_ROLES.has(normalized);
 }
 
 export function isCognitiveValidatorRole(role: string): boolean {

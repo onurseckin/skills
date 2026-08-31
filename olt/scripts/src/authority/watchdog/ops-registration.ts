@@ -141,8 +141,8 @@ export function heartbeatWatchdogUnlocked(
     ...(options.metadata !== undefined || existing.metadata !== undefined
       ? {
           metadata: {
-            ...(existing.metadata ?? {}),
-            ...(options.metadata ?? {}),
+            ...existing.metadata,
+            ...options.metadata,
           },
         }
       : {}),
@@ -199,8 +199,8 @@ export function terminateWatchdogUnlocked(
     ...(options.metadata !== undefined || existing.metadata !== undefined
       ? {
           metadata: {
-            ...(existing.metadata ?? {}),
-            ...(options.metadata ?? {}),
+            ...existing.metadata,
+            ...options.metadata,
           },
         }
       : {}),

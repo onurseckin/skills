@@ -40,13 +40,33 @@ function findCallback(args: ts.NodeArray<ts.Expression>): ts.FunctionLikeDeclara
   return undefined;
 }
 
+function getRootTestIdentifier(expr: ts.Expression): string | undefined {
+  if (ts.isIdentifier(expr)) {
+    return expr.text;
+  }
+  if (ts.isPropertyAccessExpression(expr)) {
+    return getRootTestIdentifier(expr.expression);
+  }
+  if (ts.isCallExpression(expr)) {
+    return getRootTestIdentifier(expr.expression);
+  }
+  return undefined;
+}
+
 function identifyTestCall(
   node: ts.CallExpression,
   sourceFile: ts.SourceFile,
 ): TestScopeInfo | undefined {
   const expr = node.expression;
+  const rootId = getRootTestIdentifier(expr);
 
-  if (ts.isIdentifier(expr) && isTestIdentifier(expr.text)) {
+  const isTest =
+    (rootId !== undefined && isTestIdentifier(rootId)) ||
+    (ts.isPropertyAccessExpression(expr) &&
+      ts.isIdentifier(expr.name) &&
+      isTestIdentifier(expr.name.text));
+
+  if (isTest) {
     const callback = findCallback(node.arguments);
     if (callback) {
       const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
@@ -59,50 +79,6 @@ function identifyTestCall(
     }
   }
 
-  if (ts.isPropertyAccessExpression(expr)) {
-    const obj = expr.expression;
-    const prop = expr.name.text;
-    if (
-      (ts.isIdentifier(obj) && isTestIdentifier(obj.text)) ||
-      (ts.isIdentifier(obj) && obj.text === "describe" && isTestIdentifier(prop)) ||
-      (ts.isPropertyAccessExpression(obj) &&
-        ts.isIdentifier(obj.name) &&
-        isTestIdentifier(obj.name.text))
-    ) {
-      const callback = findCallback(node.arguments);
-      if (callback) {
-        const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
-        return {
-          testName: extractTestName(node.arguments),
-          callback,
-          line: line + 1,
-          column: character + 1,
-        };
-      }
-    }
-  }
-
-  if (ts.isCallExpression(expr)) {
-    const innerExpr = expr.expression;
-    if (
-      ts.isPropertyAccessExpression(innerExpr) &&
-      ts.isIdentifier(innerExpr.expression) &&
-      isTestIdentifier(innerExpr.expression.text) &&
-      innerExpr.name.text === "each"
-    ) {
-      const callback = findCallback(node.arguments);
-      if (callback) {
-        const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
-        return {
-          testName: extractTestName(node.arguments),
-          callback,
-          line: line + 1,
-          column: character + 1,
-        };
-      }
-    }
-  }
-
   return undefined;
 }
 
@@ -110,17 +86,29 @@ function isAssertionCall(call: ts.CallExpression, customIdentifiers: Set<string>
   const expr = call.expression;
 
   if (ts.isIdentifier(expr)) {
-    if (expr.text === "expect" || expr.text === "assert" || customIdentifiers.has(expr.text)) {
-      return true;
-    }
+    return expr.text === "expect" || expr.text === "assert" || customIdentifiers.has(expr.text);
   }
 
-  if (ts.isPropertyAccessExpression(expr)) {
-    if (ts.isIdentifier(expr.expression)) {
-      const id = expr.expression.text;
-      if (id === "assert" || id === "t" || customIdentifiers.has(id)) {
-        return true;
+  let curr: ts.Expression = expr;
+  while (ts.isPropertyAccessExpression(curr) || ts.isCallExpression(curr)) {
+    if (ts.isPropertyAccessExpression(curr)) {
+      if (ts.isIdentifier(curr.expression)) {
+        const id = curr.expression.text;
+        if (id === "assert" || id === "expect" || id === "t" || customIdentifiers.has(id)) {
+          return true;
+        }
       }
+      curr = curr.expression;
+    } else if (ts.isCallExpression(curr)) {
+      if (ts.isIdentifier(curr.expression)) {
+        const id = curr.expression.text;
+        if (id === "expect" || id === "assert" || customIdentifiers.has(id)) {
+          return true;
+        }
+      }
+      curr = curr.expression;
+    } else {
+      break;
     }
   }
 
@@ -132,17 +120,34 @@ function countAssertionsInCallback(
   customIdentifiers: Set<string>,
 ): number {
   let count = 0;
+  const countedNodes = new Set<ts.Node>();
 
   function walk(node: ts.Node): void {
     if (ts.isCallExpression(node)) {
       if (isAssertionCall(node, customIdentifiers)) {
-        count++;
+        let isNested = false;
+        let parent = node.parent;
+        while (parent && parent !== callback.body) {
+          if (ts.isCallExpression(parent) && isAssertionCall(parent, customIdentifiers)) {
+            isNested = true;
+            break;
+          }
+          parent = parent.parent;
+        }
+        if (!isNested && !countedNodes.has(node)) {
+          countedNodes.add(node);
+          count++;
+        }
       }
     }
     ts.forEachChild(node, walk);
   }
 
   if (callback.body) {
+    if (ts.isCallExpression(callback.body) && isAssertionCall(callback.body, customIdentifiers)) {
+      countedNodes.add(callback.body);
+      count++;
+    }
     walk(callback.body);
   }
 

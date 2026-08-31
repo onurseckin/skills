@@ -57,45 +57,33 @@ export function findCallback(
   return undefined;
 }
 
+export function getRootTestIdentifier(expr: ts.Expression): string | undefined {
+  if (ts.isIdentifier(expr)) {
+    return expr.text;
+  }
+  if (ts.isPropertyAccessExpression(expr)) {
+    return getRootTestIdentifier(expr.expression);
+  }
+  if (ts.isCallExpression(expr)) {
+    return getRootTestIdentifier(expr.expression);
+  }
+  return undefined;
+}
+
 export function identifyTestCall(node: ts.CallExpression): TestCallInfo | undefined {
   const expr = node.expression;
+  const rootId = getRootTestIdentifier(expr);
 
-  if (ts.isIdentifier(expr) && isTestIdentifier(expr.text)) {
+  const isTest =
+    (rootId !== undefined && isTestIdentifier(rootId)) ||
+    (ts.isPropertyAccessExpression(expr) &&
+      ts.isIdentifier(expr.name) &&
+      isTestIdentifier(expr.name.text));
+
+  if (isTest) {
     const callback = findCallback(node.arguments);
     if (callback) {
       return { node, testName: extractTestName(node.arguments), callback };
-    }
-  }
-
-  if (ts.isPropertyAccessExpression(expr)) {
-    const obj = expr.expression;
-    const prop = expr.name.text;
-    if (
-      (ts.isIdentifier(obj) && isTestIdentifier(obj.text)) ||
-      (ts.isIdentifier(obj) && obj.text === "describe" && isTestIdentifier(prop)) ||
-      (ts.isPropertyAccessExpression(obj) &&
-        ts.isIdentifier(obj.name) &&
-        isTestIdentifier(obj.name.text))
-    ) {
-      const callback = findCallback(node.arguments);
-      if (callback) {
-        return { node, testName: extractTestName(node.arguments), callback };
-      }
-    }
-  }
-
-  if (ts.isCallExpression(expr)) {
-    const innerExpr = expr.expression;
-    if (
-      ts.isPropertyAccessExpression(innerExpr) &&
-      ts.isIdentifier(innerExpr.expression) &&
-      isTestIdentifier(innerExpr.expression.text) &&
-      innerExpr.name.text === "each"
-    ) {
-      const callback = findCallback(node.arguments);
-      if (callback) {
-        return { node, testName: extractTestName(node.arguments), callback };
-      }
     }
   }
 

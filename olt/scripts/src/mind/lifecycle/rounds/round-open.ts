@@ -5,12 +5,19 @@ import { HarnessError } from "../../../core/errors/index.ts";
 import { DEFAULT_MIND_BUDGET } from "../charter/index.ts";
 import type { ObjectiveRecord, RoundRecord, RoundResult } from "./types.ts";
 
+export interface ValidatePriorRoundOptions {
+  readonly allowLeaseMigration?: boolean | undefined;
+  readonly migratableTaskIds?: readonly string[] | undefined;
+}
+
 /**
- * Refuses round opening if the prior round has a live lease or unclosed attempt/branch/pulse.
+ * Refuses round opening if the prior round has an unclosed attempt/branch/pulse,
+ * while permitting task lease migration when configured for multi-round roadmaps.
  */
 export function validatePriorRoundCompleted(
   chainFromCapsulePath?: string,
   chainFromRunId?: string,
+  options?: ValidatePriorRoundOptions,
 ): void {
   if (!chainFromCapsulePath || !existsSync(chainFromCapsulePath)) {
     return;
@@ -41,7 +48,11 @@ export function validatePriorRoundCompleted(
             lease !== null &&
             (typeof lease.expires_at !== "string" || Date.parse(lease.expires_at) > Date.now()));
 
-        if (isLeased) {
+        const isMigratable =
+          options?.allowLeaseMigration === true ||
+          (options?.migratableTaskIds !== undefined && options.migratableTaskIds.includes(taskId));
+
+        if (isLeased && !isMigratable) {
           throw new HarnessError(
             "INVALID_STATE",
             `prior round '${priorId}' has a live lease on task '${taskId}'; cannot open new round until prior round leases are closed`,
@@ -67,9 +78,12 @@ export function validatePriorRoundCompleted(
       }
     }
 
-    // Check unclosed pulse in prior round if applicable
+    // Check unclosed pulse in prior round if applicable.
+    // Under CLOSING_FORBIDDEN_FOR_MIND, Mind runs never close pulses themselves.
+    // Generational succession seamlessly transitions from a predecessor's unclosed pulse.
+    const isMindCapsule = priorState.mind !== undefined && priorState.mind !== null;
     const pulseState = priorState.pulse as Record<string, unknown> | undefined;
-    if (pulseState?.open && typeof pulseState.open === "object") {
+    if (!isMindCapsule && pulseState?.open && typeof pulseState.open === "object") {
       const openPulse = pulseState.open as Record<string, unknown>;
       const openPulseId = String(openPulse.pulse_id ?? "open-pulse");
       throw new HarnessError(

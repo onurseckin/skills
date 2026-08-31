@@ -1,12 +1,11 @@
-import { HarnessError } from "../../core/errors/index.ts";
-import type { Finding } from "../../core/contracts/index.ts";
 import { MAX_REPAIR_ROUNDS } from "../../core/config/contracts.ts";
+import type { Finding } from "../../core/contracts/index.ts";
+import { HarnessError } from "../../core/errors/index.ts";
+import { tokenMatches } from "../lease/token.ts";
+import { assertPublishedTaskPacket } from "../packet-authority.ts";
 import { taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
-import { validateReview } from "./validate-review.ts";
-import { tokenMatches } from "../lease/token.ts";
 import { assertValidatorCommands } from "./command-evidence.ts";
-import { assertPublishedTaskPacket } from "../packet-authority.ts";
 import { findingFalsifiabilityVerdict } from "./finding-falsifiability.ts";
 import {
   assertGateProofFalsifiable,
@@ -14,12 +13,13 @@ import {
   assertProbeSatisfied,
 } from "./pass-preconditions.ts";
 import { readReviewShape, reviewRecordedPayload } from "./review-event.ts";
+import { taskClassificationTexts } from "./role-evidence.ts";
+import { validateReview } from "./validate-review.ts";
 import {
-  archiveOpenValidations,
+  archiveValidationForValidator,
   everyApplicableDomainPassed,
   validationForValidator,
 } from "./validation-state.ts";
-import { taskClassificationTexts } from "./role-evidence.ts";
 
 export function recordReview(
   port: TransactionPort,
@@ -91,7 +91,7 @@ export function recordReview(
         now,
         exhausted ? "repair rounds exhausted" : "validator requested changes",
       );
-      archiveOpenValidations(task);
+      archiveValidationForValidator(task, validatorId);
       return;
     }
     assertProbeSatisfied(task, minProbes);

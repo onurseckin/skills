@@ -1,13 +1,20 @@
-import type { NormalizedQuotaMetric, UnifiedTelemetryReport } from "./types.ts";
+import type { UnifiedTelemetryReport } from "./types.ts";
+import {
+  AUTO_WAKE_PROMPT,
+  computeAutoWakeSchedule,
+  extractResetTime,
+} from "./circuit-breaker-autowake.ts";
 
 export type CircuitBreakerStatus =
   | "OK"
   | "QUOTA_EXHAUSTED_CIRCUIT_BROKEN"
   | "QUOTA_UNKNOWN_CIRCUIT_BROKEN";
 
-export const DEFAULT_QUOTA_THRESHOLD: number = 10.0;
-export const DEFAULT_SAFE_WINDOW_SECONDS: number = 18000;
-export const DEFAULT_AUTO_WAKE_BUFFER_SECONDS: number = 60;
+export const DEFAULT_QUOTA_THRESHOLD = 10.0;
+export const DEFAULT_RECOVERY_THRESHOLD = 15.0;
+export const DEFAULT_SAFE_WINDOW_SECONDS = 18000;
+export const DEFAULT_AUTO_WAKE_BUFFER_SECONDS = 60;
+export const DEFAULT_COOLDOWN_SECONDS = 60;
 
 export const CRITICAL_WRAP_UP_MESSAGE =
   "CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<10%). Wrap up current micro-step immediately. Do not claim or start new tasks. Keep working tree changes unstaged/stashed safely without destructive actions. Enter idle state.";
@@ -15,8 +22,7 @@ export const CRITICAL_WRAP_UP_MESSAGE =
 export const UNMEASURED_QUOTA_WRAP_UP_MESSAGE =
   "Quota availability is unavailable or unmeasured. Wrap up current micro-step immediately. Do not claim or start new tasks until a measured quota observation is available. Keep working tree changes unstaged/stashed safely without destructive actions. Enter idle state.";
 
-export const AUTO_WAKE_PROMPT =
-  "Quota limit refreshed (+1m buffer). Resuming autonomous execution from idle state.";
+export { AUTO_WAKE_PROMPT, computeAutoWakeSchedule, extractResetTime };
 
 export interface WrapUpDirective {
   readonly recipient: string;
@@ -33,6 +39,7 @@ export interface AutoWakeSchedulePayload {
   readonly prompt: string;
   readonly timerCondition: "never";
   readonly activeAgentsCount: number;
+  readonly jitterSeconds?: number | undefined;
 }
 
 export interface ConstrainedModelInfo {
@@ -48,6 +55,7 @@ export interface CircuitBreakerEvaluation {
   readonly status: CircuitBreakerStatus;
   readonly isTriggered: boolean;
   readonly thresholdPercentage: number;
+  readonly recoveryThresholdPercentage?: number | undefined;
   readonly lowestRemainingQuota: number | null;
   readonly constrainedModels: readonly ConstrainedModelInfo[];
   readonly wrapUpDirectives: readonly WrapUpDirective[];
@@ -55,17 +63,29 @@ export interface CircuitBreakerEvaluation {
   readonly summary: string;
   readonly evaluatedAt: string;
   readonly activeHost?: string | null | undefined;
+  readonly inCooldown?: boolean | undefined;
 }
 
 export interface QuotaCircuitBreakerOptions {
   readonly thresholdPercentage?: number | undefined;
+  readonly recoveryThresholdPercentage?: number | undefined;
+  readonly previousStatus?: CircuitBreakerStatus | "TRIPPED" | "OK" | undefined;
+  readonly cooldownSeconds?: number | undefined;
+  readonly lastTrippedAt?: number | Date | string | undefined;
   readonly activeAgentsCount?: number | undefined;
   readonly activeAgentIds?: readonly string[] | undefined;
+  readonly agentIndex?: number | undefined;
   readonly activeHost?: string | undefined;
   readonly now?: number | Date | string | undefined;
   readonly defaultSafeWindowSeconds?: number | undefined;
   readonly bufferSeconds?: number | undefined;
   readonly env?: Record<string, string | undefined> | undefined;
+  readonly enableJitter?: boolean | undefined;
+  readonly jitter?: boolean | undefined;
+  readonly jitterSeconds?: number | undefined;
+  readonly jitterFactor?: number | undefined;
+  readonly disableJitter?: boolean | undefined;
+  readonly jitterSeed?: number | undefined;
 }
 
 export function normalizeCanonicalHost(host: string): string {
@@ -81,11 +101,11 @@ export function normalizeCanonicalHost(host: string): string {
 }
 
 export function isPlatformMatchingHost(platformId: string, host: string): boolean {
-  const normP = normalizeCanonicalHost(platformId),
-    normH = normalizeCanonicalHost(host);
+  const normP = normalizeCanonicalHost(platformId);
+  const normH = normalizeCanonicalHost(host);
   if (normP === normH) return true;
-  const p = platformId.toLowerCase().trim(),
-    h = host.toLowerCase().trim();
+  const p = platformId.toLowerCase().trim();
+  const h = host.toLowerCase().trim();
   return p === h || normP.includes(h) || normH.includes(p);
 }
 
@@ -111,24 +131,11 @@ export function detectActiveHost(
   return undefined;
 }
 
-export function extractResetTime(metric: NormalizedQuotaMetric): string | undefined {
-  const p = metric.rawPayload as Record<string, unknown>;
-  if (!p || typeof p !== "object") return undefined;
-  const f = (o?: unknown): string | undefined =>
-    typeof o === "object" && o
-      ? typeof (o as Record<string, unknown>)["resetTime"] === "string"
-        ? ((o as Record<string, unknown>)["resetTime"] as string)
-        : typeof (o as Record<string, unknown>)["reset_time"] === "string"
-          ? ((o as Record<string, unknown>)["reset_time"] as string)
-          : undefined
-      : undefined;
-  return (
-    f(p) ||
-    f(p["quotaInfo"]) ||
-    f((p["userStatus"] as Record<string, unknown> | undefined)?.["quotaInfo"]) ||
-    f(p["userStatus"]) ||
-    undefined
-  );
+function resolveNowMs(now?: number | Date | string): number {
+  if (now instanceof Date) return now.getTime();
+  if (typeof now === "string") return new Date(now).getTime();
+  if (typeof now === "number") return now;
+  return Date.now();
 }
 
 export function evaluateCircuitBreaker(
@@ -141,51 +148,47 @@ export function evaluateCircuitBreaker(
   },
 ): CircuitBreakerEvaluation {
   const threshold = options?.thresholdPercentage ?? defaults.threshold;
-  const defaultSafeWindow = options?.defaultSafeWindowSeconds ?? defaults.safeWindow;
-  const bufferSec = options?.bufferSeconds ?? defaults.buffer;
-  const activeAgentsCount = options?.activeAgentsCount ?? options?.activeAgentIds?.length ?? 0;
-  const nowMs =
-    options?.now !== undefined
-      ? options.now instanceof Date
-        ? options.now.getTime()
-        : typeof options.now === "string"
-          ? new Date(options.now).getTime()
-          : options.now
-      : Date.now();
+  const recoveryThreshold = options?.recoveryThresholdPercentage ?? DEFAULT_RECOVERY_THRESHOLD;
+  const cooldownSec = options?.cooldownSeconds ?? DEFAULT_COOLDOWN_SECONDS;
+  const nowMs = resolveNowMs(options?.now);
 
-  const explicitActiveHost = options && options.activeHost ? options.activeHost.trim() : undefined;
+  const isPreviouslyTripped =
+    options?.previousStatus === "QUOTA_EXHAUSTED_CIRCUIT_BROKEN" ||
+    options?.previousStatus === "QUOTA_UNKNOWN_CIRCUIT_BROKEN" ||
+    options?.previousStatus === "TRIPPED";
+
+  const effectiveThreshold = isPreviouslyTripped ? recoveryThreshold : threshold;
+
+  let inCooldown = false;
+  if (isPreviouslyTripped && options?.lastTrippedAt !== undefined) {
+    const lastTrippedMs = resolveNowMs(options.lastTrippedAt);
+    if (nowMs - lastTrippedMs < cooldownSec * 1000) inCooldown = true;
+  }
+
+  const explicitActiveHost = options?.activeHost?.trim();
   const summaryActiveHost =
-    report.summary && typeof report.summary["activeHost"] === "string"
-      ? (report.summary["activeHost"] as string).trim()
-      : report.summary &&
-          typeof (report.summary as Record<string, unknown>)["active_host"] === "string"
-        ? String((report.summary as Record<string, unknown>)["active_host"]).trim()
-        : undefined;
+    typeof report.summary?.activeHost === "string" ? report.summary.activeHost.trim() : undefined;
+  const detectedHost = detectActiveHost(
+    options?.env ?? (typeof process !== "undefined" ? process.env : {}),
+  );
+  const targetHost = explicitActiveHost ?? summaryActiveHost ?? detectedHost;
 
-  const env =
-    options && options.env ? options.env : typeof process !== "undefined" ? process.env : {};
-  const detectedHost = detectActiveHost(env);
+  let candidateResults = report.results;
   let activeHost: string | undefined = undefined;
   let isFilteredByHost = false;
-  let candidateResults = report.results;
 
-  if (explicitActiveHost) {
-    candidateResults = report.results.filter((res) =>
-      isPlatformMatchingHost(res.platformId, explicitActiveHost),
+  if (targetHost) {
+    const matching = report.results.filter((res) =>
+      isPlatformMatchingHost(res.platformId, targetHost),
     );
-    activeHost = explicitActiveHost;
-    isFilteredByHost = true;
-  } else {
-    const hostCandidate = summaryActiveHost || detectedHost;
-    if (hostCandidate) {
-      const matching = report.results.filter((res) =>
-        isPlatformMatchingHost(res.platformId, hostCandidate),
-      );
-      if (matching.length > 0) {
-        candidateResults = matching;
-        activeHost = hostCandidate;
-        isFilteredByHost = true;
-      }
+    if (matching.length > 0) {
+      candidateResults = matching;
+      activeHost = targetHost;
+      isFilteredByHost = true;
+    } else if (explicitActiveHost) {
+      candidateResults = [];
+      activeHost = explicitActiveHost;
+      isFilteredByHost = true;
     }
   }
 
@@ -195,7 +198,7 @@ export function evaluateCircuitBreaker(
   let hasUnmeasuredObservation = candidateResults.length === 0;
 
   for (const res of candidateResults) {
-    if (res.isDetected !== true) {
+    if (!res.isDetected) {
       hasUnmeasuredObservation = true;
       continue;
     }
@@ -209,7 +212,7 @@ export function evaluateCircuitBreaker(
       measuredObservationCount += 1;
       if (lowestRemainingQuota === null || remaining < lowestRemainingQuota)
         lowestRemainingQuota = remaining;
-      if (remaining <= threshold) {
+      if (remaining <= effectiveThreshold) {
         constrainedModels.push({
           platformId: res.platformId,
           modelName: metric.rawMetricName,
@@ -222,22 +225,24 @@ export function evaluateCircuitBreaker(
     }
   }
 
-  const summaryRemainingQuota = report.summary ? report.summary["lowestRemainingQuota"] : undefined;
+  const summaryRemaining = report.summary
+    ? (report.summary["lowestRemainingQuota"] as number | undefined)
+    : undefined;
   const summaryShowsExhaustion =
     !isFilteredByHost &&
-    typeof summaryRemainingQuota === "number" &&
-    Number.isFinite(summaryRemainingQuota) &&
-    summaryRemainingQuota <= threshold;
+    typeof summaryRemaining === "number" &&
+    Number.isFinite(summaryRemaining) &&
+    summaryRemaining <= effectiveThreshold;
   if (
     summaryShowsExhaustion &&
-    (lowestRemainingQuota === null || summaryRemainingQuota < lowestRemainingQuota)
+    (lowestRemainingQuota === null || summaryRemaining < lowestRemainingQuota)
   ) {
-    lowestRemainingQuota = summaryRemainingQuota;
+    lowestRemainingQuota = summaryRemaining;
   }
 
   const isExhausted = constrainedModels.length > 0 || summaryShowsExhaustion;
   const isUnknown = !isExhausted && (measuredObservationCount === 0 || hasUnmeasuredObservation);
-  const isTriggered = isExhausted || isUnknown;
+  const isTriggered = isExhausted || isUnknown || inCooldown;
   const activeHostVal = activeHost !== undefined ? activeHost : null;
 
   if (!isTriggered) {
@@ -249,6 +254,7 @@ export function evaluateCircuitBreaker(
       status: "OK",
       isTriggered: false,
       thresholdPercentage: threshold,
+      recoveryThresholdPercentage: recoveryThreshold,
       lowestRemainingQuota,
       constrainedModels: [],
       wrapUpDirectives: [],
@@ -256,70 +262,43 @@ export function evaluateCircuitBreaker(
       summary,
       evaluatedAt: new Date(nowMs).toISOString(),
       activeHost: activeHostVal,
+      inCooldown: false,
     };
   }
 
   const wrapUpMessage = isUnknown ? UNMEASURED_QUOTA_WRAP_UP_MESSAGE : CRITICAL_WRAP_UP_MESSAGE;
   const wrapUpReason = isUnknown
     ? "Quota availability is unavailable or unmeasured; fail closed."
-    : `Quota threshold breached (<=${threshold}%).`;
-  const wrapUpDirectives: WrapUpDirective[] =
-    options && options.activeAgentIds && options.activeAgentIds.length > 0
-      ? options.activeAgentIds.map((agentId) => ({
-          recipient: agentId,
-          message: wrapUpMessage,
-          action: "idle" as const,
-          forbidKill: true as const,
-          reason: wrapUpReason,
-        }))
-      : [
-          {
-            recipient: "all_active_agents",
-            message: wrapUpMessage,
-            action: "idle" as const,
-            forbidKill: true as const,
-            reason: wrapUpReason,
-          },
-        ];
+    : `Quota threshold breached (<=${effectiveThreshold}%).`;
+  const recipients =
+    options?.activeAgentIds && options.activeAgentIds.length > 0
+      ? options.activeAgentIds
+      : ["all_active_agents"];
+  const wrapUpDirectives: WrapUpDirective[] = recipients.map((recipient) => ({
+    recipient,
+    message: wrapUpMessage,
+    action: "idle",
+    forbidKill: true,
+    reason: wrapUpReason,
+  }));
 
-  const validResetDates: Date[] = [];
-  for (const model of constrainedModels) {
-    if (model.resetTime) {
-      const parsed = new Date(model.resetTime);
-      if (!isNaN(parsed.getTime())) validResetDates.push(parsed);
-    }
-  }
-
-  let targetWakeupMs: number;
-  let durationSeconds: number;
-  if (validResetDates.length > 0) {
-    validResetDates.sort((a, b) => a.getTime() - b.getTime());
-    const earliestResetDate = validResetDates[0]!;
-    targetWakeupMs = earliestResetDate.getTime() + bufferSec * 1000;
-    const diffSeconds = Math.ceil((targetWakeupMs - nowMs) / 1000);
-    durationSeconds = Math.max(bufferSec, diffSeconds);
-  } else {
-    durationSeconds = defaultSafeWindow + bufferSec;
-    targetWakeupMs = nowMs + durationSeconds * 1000;
-  }
-
-  const autoWakeSchedule: AutoWakeSchedulePayload = {
-    type: "one_shot_timer",
-    durationSeconds,
-    targetWakeupIso: new Date(targetWakeupMs).toISOString(),
-    prompt: AUTO_WAKE_PROMPT,
-    timerCondition: "never",
-    activeAgentsCount,
-  };
+  const autoWakeSchedule = computeAutoWakeSchedule(
+    constrainedModels,
+    nowMs,
+    options?.bufferSeconds ?? defaults.buffer,
+    options?.defaultSafeWindowSeconds ?? defaults.safeWindow,
+    options,
+  );
 
   const summary = isUnknown
-    ? `⚠️ Quota availability is unavailable or unmeasured. ${lowestRemainingQuota !== null ? `Lowest measured quota: ${lowestRemainingQuota.toFixed(2)}%. ` : "No trustworthy quota percentage was observed. "}Auto-wake in ${durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`
-    : `🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<10%). Lowest quota: ${lowestRemainingQuota !== null ? `${lowestRemainingQuota.toFixed(2)}%` : "unknown"}. ${constrainedModels.length} constrained models. Auto-wake in ${durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`;
+    ? `⚠️ Quota availability is unavailable or unmeasured. ${lowestRemainingQuota !== null ? `Lowest measured quota: ${lowestRemainingQuota.toFixed(2)}%. ` : "No trustworthy quota percentage was observed. "}Auto-wake in ${autoWakeSchedule.durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`
+    : `🚨 CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (${isPreviouslyTripped ? `hysteresis <=${recoveryThreshold}%` : `<${threshold}%`}${inCooldown ? " [in cooldown]" : ""}). Lowest quota: ${lowestRemainingQuota !== null ? `${lowestRemainingQuota.toFixed(2)}%` : "unknown"}. ${constrainedModels.length} constrained models. Auto-wake in ${autoWakeSchedule.durationSeconds}s at ${autoWakeSchedule.targetWakeupIso}.`;
 
   return {
     status: isUnknown ? "QUOTA_UNKNOWN_CIRCUIT_BROKEN" : "QUOTA_EXHAUSTED_CIRCUIT_BROKEN",
     isTriggered: true,
     thresholdPercentage: threshold,
+    recoveryThresholdPercentage: recoveryThreshold,
     lowestRemainingQuota,
     constrainedModels,
     wrapUpDirectives,
@@ -327,5 +306,6 @@ export function evaluateCircuitBreaker(
     summary,
     evaluatedAt: new Date(nowMs).toISOString(),
     activeHost: activeHostVal,
+    inCooldown,
   };
 }

@@ -1,8 +1,13 @@
-[← Previous: Chapter 09: Full CLI Command Reference](09-full-cli-command-reference.md) | [Table of Contents](SUMMARY.md) | [Next: Book Index & Overview →](README.md)
+# Chapter 10: Troubleshooting & Anti-Blunder Compendium
+
+[← Previous: Chapter 9 — Full CLI Command Reference](09-full-cli-command-reference.md) | [📖 Table of Contents](SUMMARY.md) | [Next: Book Index & Overview →](README.md)
 
 ---
 
-# Chapter 10: Troubleshooting and Anti-Blunder Compendium
+[![Diátaxis: How-To & Reference](https://img.shields.io/badge/Diátaxis-How--To_%26_Reference-orange.svg)](#diátaxis-documentation-matrix)
+[![Subsystem: Troubleshooting](https://img.shields.io/badge/Subsystem-Anti--Blunder_Compendium_v1-blue.svg)](SUMMARY.md)
+[![Blunder Catalog: 28 Invariants](https://img.shields.io/badge/Blunder_Catalog-28_Historical_Invariants-darkred.svg)](SUMMARY.md)
+[![Recovery: Auto-Doctor](https://img.shields.io/badge/Recovery-Auto--Doctor_Healing-emerald.svg)](../../olt/scripts/src/doctor/index.ts)
 
 Operating autonomous multi-agent engineering swarms requires rigorous fault tolerance. LLM agents frequently encounter edge cases—ranging from filesystem lock contention and torn JSON events to cognitive regressions and role-boundary leaks.
 
@@ -134,4 +139,4 @@ Before marking any run completed:
 
 ---
 
-[← Previous: Chapter 09: Full CLI Command Reference](09-full-cli-command-reference.md) | [Table of Contents](SUMMARY.md) | [Next: Book Index & Overview →](README.md)
+[← Previous: Chapter 9 — Full CLI Command Reference](09-full-cli-command-reference.md) | [📖 Table of Contents](SUMMARY.md) | [Next: Book Index & Overview →](README.md)

@@ -31,7 +31,7 @@ export {
   writeIndex,
 } from "./capsule-index.ts";
 
-export { initRun, type InitRunOptions } from "./capsule.ts";
+export { initRun, type InitRunOptions, type RuntimeLinkMode } from "./capsule.ts";
 
 export {
   CAPTURES_FILE,

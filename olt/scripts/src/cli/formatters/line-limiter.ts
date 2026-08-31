@@ -8,13 +8,41 @@ export function enforceLineLimit(markdown: string, maxLines = 30): string {
   if (lines.length <= maxLines) {
     return lines.join("\n");
   }
-  const keepCount = maxLines - 2;
+
+  const fenceAtLine: (string | null)[] = Array.from({ length: lines.length });
+  let currentFence: string | null = null;
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]!.trim();
+    if (line.startsWith("```")) {
+      currentFence = currentFence === "```" ? null : currentFence === null ? "```" : currentFence;
+    } else if (line.startsWith("~~~")) {
+      currentFence = currentFence === "~~~" ? null : currentFence === null ? "~~~" : currentFence;
+    }
+    fenceAtLine[i] = currentFence;
+  }
+
+  let keepCount = maxLines - 2;
+  if (keepCount > 0 && fenceAtLine[keepCount - 1] !== null) {
+    keepCount = maxLines - 3;
+  }
+
+  if (keepCount < 1) {
+    keepCount = Math.max(1, maxLines - 3);
+  }
+
+  const activeFence = keepCount > 0 ? fenceAtLine[keepCount - 1] : null;
   const truncated = lines.slice(0, keepCount);
   const remainingCount = lines.length - keepCount;
+
+  if (activeFence) {
+    truncated.push(activeFence);
+  }
   truncated.push("");
   truncated.push(
     `*... [truncated ${remainingCount} additional lines; use --all or query specific task for full details]*`,
   );
+
   return truncated.slice(0, maxLines).join("\n");
 }
 

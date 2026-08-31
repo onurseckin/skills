@@ -13,7 +13,7 @@ interface:
   short_description: "Headful visual screenshot inspection (view_file), human-grade cognitive aesthetic critique, optical rhythm"
 tools:
   enable_subagent_tools: false
-  enable_write_tools: true
+  enable_write_tools: false
 communication_contract:
   mandatory_turn_completion_actions:
     - "doctor:verify"

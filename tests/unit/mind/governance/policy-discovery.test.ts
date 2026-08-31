@@ -6,15 +6,10 @@ import {
   PolicyDiscoveryEngine,
   auditRepoGovernanceCoverage,
   discoverAndCalibrateRepoPolicy,
-  awakenTier0Governance,
-  testRepoToolchainEmpirically,
-  createTier0AgentGrants,
   type DiscoveredToolchainDetails,
   type GovernanceCoverageReport,
   type GovernanceToolchainDiscoveryResult,
   type RepoGovernanceStatus,
-  type Tier0AwakeningResult,
-  type EmpiricalToolchainReport,
 } from "../../../../olt/scripts/src/mind/governance/policy-discovery.ts";
 import {
   auditGovernanceReadiness,
@@ -23,6 +18,7 @@ import {
   scaffoldTailoredRepoPolicy,
   verifyRepoGovernance,
 } from "../../../../olt/scripts/src/mind/governance/policy-scaffold.ts";
+import { computeCharterSha256 } from "../../../../olt/scripts/src/mind/governance/charter.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   computePolicyChecksum,
@@ -632,6 +628,61 @@ describe("Policy & Repository Auto-Discovery Engine", () => {
       expect(cliResult.file_path).toBe(join(testDir, ".olt", "policy.json"));
       expect(Array.isArray(cliResult.awakened_agents)).toBe(true);
       expect((cliResult.awakened_agents as Array<{ role: string }>).length).toBe(3);
+    });
+
+    it("detects nested toolchain definitions inside workspace member subpackages", () => {
+      writeFileSync(join(testDir, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'\n");
+      writeFileSync(join(testDir, "package.json"), JSON.stringify({ name: "monorepo-root" }));
+      const pkgDir = join(testDir, "packages", "core");
+      mkdirSync(pkgDir, { recursive: true });
+      writeFileSync(
+        join(pkgDir, "package.json"),
+        JSON.stringify({
+          name: "@mono/core",
+          devDependencies: { vitest: "^1.0.0", eslint: "^8.0.0" },
+        }),
+      );
+
+      const details = PolicyDiscoveryEngine.inspect(testDir);
+      expect(details.isMonorepo).toBe(true);
+      expect(details.detectedTestRunners).toContain("vitest");
+      expect(details.detectedLinters).toContain("eslint");
+    });
+
+    it("enforces functional health in quorum report", () => {
+      const report = PolicyDiscoveryEngine.testToolchainEmpirically(testDir, {
+        ecosystem: "bun",
+        packageManager: "bun",
+        testRunner: {
+          default_command: "nonexistent-command-xyz --probe",
+          targeted_pattern: "nonexistent-command-xyz <path>",
+          full_suite_command: "nonexistent-command-xyz",
+          timeout_ms: 1000,
+        },
+        detectedFormatters: [],
+        detectedLinters: [],
+        detectedTypecheckers: [],
+        detectedTestRunners: ["nonexistent-command-xyz"],
+        detectedPackageManagers: ["bun"],
+        allowedCommands: [],
+        forbiddenCommands: [],
+        isMonorepo: false,
+        isTypeScript: true,
+      });
+
+      expect(report.requiredSuccess).toBe(false);
+      expect(report.quorumAchieved).toBe(false);
+      expect(report.failureReasons).toBeDefined();
+      expect(report.failureReasons?.length).toBeGreaterThan(0);
+    });
+
+    it("normalizes CRLF line endings when computing and verifying charter sha256", () => {
+      const lfContent = "identity: test-mind\ngoals:\n  - id: G1\n    statement: goal1\n";
+      const crlfContent = "identity: test-mind\r\ngoals:\r\n  - id: G1\r\n    statement: goal1\r\n";
+
+      const lfHash = computeCharterSha256(lfContent);
+      const crlfHash = computeCharterSha256(crlfContent);
+      expect(lfHash).toBe(crlfHash);
     });
   });
 });

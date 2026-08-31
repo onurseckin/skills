@@ -11,4 +11,4 @@ export type {
 
 export { generateMutants, shouldSkipStringLiteral } from "./ast-mutators.ts";
 
-export { runMutationGate } from "./runner.ts";
+export { isSyntaxOrCompilationError, runMutationGate } from "./runner.ts";

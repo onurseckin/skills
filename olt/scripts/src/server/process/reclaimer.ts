@@ -1,5 +1,5 @@
 /**
- * Safe process reclaimer with graceful SIGTERM escalation and SIGKILL fallback.
+ * Safe process reclaimer with graceful SIGTERM escalation, SIGKILL fallback, and EPERM fast-fail.
  */
 
 import {
@@ -25,12 +25,8 @@ export function defaultIsProcessAlive(pid: number): boolean {
   } catch (err: unknown) {
     if (typeof err === "object" && err !== null && "code" in err) {
       const nodeErr = err as { code?: string };
-      if (nodeErr.code === "EPERM") {
-        return true;
-      }
-      if (nodeErr.code === "ESRCH") {
-        return false;
-      }
+      if (nodeErr.code === "EPERM") return true;
+      if (nodeErr.code === "ESRCH") return false;
     }
     return false;
   }
@@ -38,12 +34,34 @@ export function defaultIsProcessAlive(pid: number): boolean {
 
 export function defaultSignalSender(pid: number, signal: "SIGTERM" | "SIGKILL"): boolean {
   if (pid <= 0) return false;
+  let killed = false;
+  let hasEperm = false;
+
+  try {
+    process.kill(-pid, signal);
+    killed = true;
+  } catch (err: unknown) {
+    if (typeof err === "object" && err !== null && (err as { code?: string }).code === "EPERM") {
+      hasEperm = true;
+    }
+  }
+
   try {
     process.kill(pid, signal);
-    return true;
-  } catch {
-    return false;
+    killed = true;
+  } catch (err: unknown) {
+    if (typeof err === "object" && err !== null && (err as { code?: string }).code === "EPERM") {
+      hasEperm = true;
+    }
   }
+
+  if (!killed && hasEperm) {
+    const error = new Error(`EPERM: operation not permitted, kill ${pid}`);
+    (error as Error & { code: string }).code = "EPERM";
+    throw error;
+  }
+
+  return killed;
 }
 
 export function defaultSleep(ms: number): Promise<void> {
@@ -51,13 +69,7 @@ export function defaultSleep(ms: number): Promise<void> {
 }
 
 /**
- * Safely reclaims a process occupying a port.
- *
- * 1. Checks if process is alive. If already dead, returns immediately.
- * 2. In dry-run mode, returns simulated outcome without sending signals.
- * 3. In force mode, immediately sends SIGKILL.
- * 4. In standard mode, sends SIGTERM and polls until gracePeriod expires;
- *    if process is still alive, escalates to SIGKILL.
+ * Safely reclaims a process occupying a port with EPERM fast-fail.
  */
 export async function reclaimProcess(
   pid: number,
@@ -65,28 +77,12 @@ export async function reclaimProcess(
   options?: ReclaimOptions & ProcessInspectorOptions,
 ): Promise<ReclaimResult> {
   const startTs = performance.now();
-  const isAlive =
-    typeof options !== "undefined" && typeof options.isAliveChecker === "function"
-      ? options.isAliveChecker
-      : defaultIsProcessAlive;
-  const sendSignal =
-    typeof options !== "undefined" && typeof options.signalSender === "function"
-      ? options.signalSender
-      : defaultSignalSender;
-  const sleep =
-    typeof options !== "undefined" && typeof options.sleepFn === "function"
-      ? options.sleepFn
-      : defaultSleep;
-  const gracePeriodMs =
-    typeof options !== "undefined" && typeof options.gracePeriodMs === "number"
-      ? options.gracePeriodMs
-      : 1000;
-  const pollIntervalMs =
-    typeof options !== "undefined" && typeof options.pollIntervalMs === "number"
-      ? options.pollIntervalMs
-      : 50;
+  const isAlive = options?.isAliveChecker ?? defaultIsProcessAlive;
+  const sendSignal = options?.signalSender ?? defaultSignalSender;
+  const sleep = options?.sleepFn ?? defaultSleep;
+  const gracePeriodMs = options?.gracePeriodMs ?? 1000;
+  const pollIntervalMs = options?.pollIntervalMs ?? 50;
 
-  // Check if process exists
   if (!isAlive(pid)) {
     return {
       pid,
@@ -98,15 +94,10 @@ export async function reclaimProcess(
     };
   }
 
-  // Retrieve process details for reporting
   const details = await getProcessDetails(pid, options);
-  const processName =
-    details !== null && typeof details.name === "string" && details.name.length > 0
-      ? details.name
-      : `pid-${pid}`;
+  const processName = details?.name && details.name.length > 0 ? details.name : `pid-${pid}`;
 
-  // Handle dry-run mode
-  if (typeof options !== "undefined" && Boolean(options.dryRun)) {
+  if (options?.dryRun) {
     return {
       pid,
       name: processName,
@@ -117,9 +108,34 @@ export async function reclaimProcess(
     };
   }
 
-  // Handle force mode (immediate SIGKILL)
-  if (typeof options !== "undefined" && Boolean(options.force)) {
-    sendSignal(pid, "SIGKILL");
+  const triggerSignal = (sig: "SIGTERM" | "SIGKILL"): { ok: boolean; eperm: boolean } => {
+    try {
+      const ok = sendSignal(pid, sig);
+      return { ok, eperm: false };
+    } catch (err: unknown) {
+      if (
+        (typeof err === "object" && err !== null && (err as { code?: string }).code === "EPERM") ||
+        (err instanceof Error && err.message.includes("EPERM"))
+      ) {
+        return { ok: false, eperm: true };
+      }
+      return { ok: false, eperm: false };
+    }
+  };
+
+  if (options?.force) {
+    const sigRes = triggerSignal("SIGKILL");
+    if (sigRes.eperm) {
+      return {
+        pid,
+        name: processName,
+        port,
+        reclaimed: false,
+        signalSent: "SIGKILL",
+        durationMs: Math.round(performance.now() - startTs),
+        error: `Permission denied to signal process ${pid} (${processName}) (EPERM)`,
+      };
+    }
     await sleep(Math.min(100, gracePeriodMs));
     const deadAfterKill = !isAlive(pid);
     return {
@@ -133,9 +149,19 @@ export async function reclaimProcess(
     };
   }
 
-  // Standard graceful escalation: SIGTERM -> wait -> SIGKILL
   let signalSent: ReclaimSignal = "SIGTERM";
-  sendSignal(pid, "SIGTERM");
+  const termRes = triggerSignal("SIGTERM");
+  if (termRes.eperm) {
+    return {
+      pid,
+      name: processName,
+      port,
+      reclaimed: false,
+      signalSent: "SIGTERM",
+      durationMs: Math.round(performance.now() - startTs),
+      error: `Permission denied to signal process ${pid} (${processName}) (EPERM)`,
+    };
+  }
 
   const termDeadline = Date.now() + gracePeriodMs;
   let terminated = false;
@@ -148,10 +174,20 @@ export async function reclaimProcess(
     }
   }
 
-  // If still running after grace period, escalate to SIGKILL
   if (!terminated && isAlive(pid)) {
     signalSent = "SIGKILL";
-    sendSignal(pid, "SIGKILL");
+    const killRes = triggerSignal("SIGKILL");
+    if (killRes.eperm) {
+      return {
+        pid,
+        name: processName,
+        port,
+        reclaimed: false,
+        signalSent: "SIGKILL",
+        durationMs: Math.round(performance.now() - startTs),
+        error: `Permission denied to signal process ${pid} (${processName}) (EPERM)`,
+      };
+    }
     const killDeadline = Date.now() + Math.min(500, gracePeriodMs);
     while (Date.now() < killDeadline) {
       await sleep(pollIntervalMs);
@@ -176,27 +212,19 @@ export async function reclaimProcess(
   };
 }
 
-/**
- * Inspects port and reclaims all processes listening on it.
- */
 export async function reclaimPort(
   port: number,
   options?: ReclaimOptions & ProcessInspectorOptions,
 ): Promise<ReclaimResult[]> {
   const pids = await findPidsOnPort(port, options);
   if (pids.length === 0) return [];
-
   const results: ReclaimResult[] = [];
   for (const pid of pids) {
-    const res = await reclaimProcess(pid, port, options);
-    results.push(res);
+    results.push(await reclaimProcess(pid, port, options));
   }
   return results;
 }
 
-/**
- * Reclaims orphaned or zombie Node/Bun/server processes occupying the given ports.
- */
 export async function reclaimZombieProcesses(
   ports: readonly number[],
   options?: ReclaimOptions & ProcessInspectorOptions,
@@ -206,20 +234,11 @@ export async function reclaimZombieProcesses(
 
   for (const occupancy of occupancies) {
     for (const proc of occupancy.processes) {
-      let shouldReclaim = false;
-      if (proc.isZombie) {
-        shouldReclaim = true;
-      } else if (proc.isOrphaned) {
-        shouldReclaim = true;
-      } else if (proc.isRuntimeProcess) {
-        shouldReclaim = true;
-      } else if (typeof options !== "undefined" && Boolean(options.force)) {
-        shouldReclaim = true;
-      }
+      const shouldReclaim =
+        proc.isZombie || proc.isOrphaned || proc.isRuntimeProcess || Boolean(options?.force);
 
       if (shouldReclaim) {
-        const res = await reclaimProcess(proc.pid, occupancy.port, options);
-        results.push(res);
+        results.push(await reclaimProcess(proc.pid, occupancy.port, options));
       }
     }
   }
@@ -227,14 +246,11 @@ export async function reclaimZombieProcesses(
   return results;
 }
 
-/**
- * ProcessReclaimer class encapsulating inspection and reclamation logic.
- */
 export class ProcessReclaimer {
   private readonly defaultOptions: ReclaimOptions & ProcessInspectorOptions;
 
   constructor(options?: ReclaimOptions & ProcessInspectorOptions) {
-    this.defaultOptions = typeof options !== "undefined" ? options : {};
+    this.defaultOptions = options ?? {};
   }
 
   public async findPidsOnPort(port: number): Promise<number[]> {
@@ -258,35 +274,20 @@ export class ProcessReclaimer {
     port: number,
     overrideOptions?: ReclaimOptions,
   ): Promise<ReclaimResult> {
-    const merged: ReclaimOptions & ProcessInspectorOptions = Object.assign(
-      {},
-      this.defaultOptions,
-      typeof overrideOptions !== "undefined" ? overrideOptions : {},
-    );
-    return await reclaimProcess(pid, port, merged);
+    return await reclaimProcess(pid, port, { ...this.defaultOptions, ...overrideOptions });
   }
 
   public async reclaimPort(
     port: number,
     overrideOptions?: ReclaimOptions,
   ): Promise<ReclaimResult[]> {
-    const merged: ReclaimOptions & ProcessInspectorOptions = Object.assign(
-      {},
-      this.defaultOptions,
-      typeof overrideOptions !== "undefined" ? overrideOptions : {},
-    );
-    return await reclaimPort(port, merged);
+    return await reclaimPort(port, { ...this.defaultOptions, ...overrideOptions });
   }
 
   public async reclaimZombies(
     ports: readonly number[],
     overrideOptions?: ReclaimOptions,
   ): Promise<ReclaimResult[]> {
-    const merged: ReclaimOptions & ProcessInspectorOptions = Object.assign(
-      {},
-      this.defaultOptions,
-      typeof overrideOptions !== "undefined" ? overrideOptions : {},
-    );
-    return await reclaimZombieProcesses(ports, merged);
+    return await reclaimZombieProcesses(ports, { ...this.defaultOptions, ...overrideOptions });
   }
 }

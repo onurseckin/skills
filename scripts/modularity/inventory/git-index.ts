@@ -15,7 +15,8 @@ interface IndexEntry {
   readonly oid: string;
 }
 
-const INDEX_RECORD = /^(100644|100755|120000) ([0-9a-f]{40}|[0-9a-f]{64}) [0-3]\t([\s\S]+)$/;
+const INDEX_RECORD =
+  /^(100644|100755|120000|160000) ([0-9a-f]{40}|[0-9a-f]{64}) ([0-3])\t([\s\S]+)$/;
 const BATCH_HEADER = /^([0-9a-f]{40}|[0-9a-f]{64}) blob ([0-9]+)$/;
 const DEFAULT_GIT_COMMAND: GitCommandPrefix = ["git"];
 
@@ -54,20 +55,41 @@ function parseIndexRecords(output: Uint8Array): readonly IndexEntry[] {
   const records = new TextDecoder("utf-8", { fatal: true }).decode(output).split("\0");
   if (records.pop() !== "") failure("ls-files output was not NUL-terminated");
 
-  const paths = new Set<string>();
-  return records
-    .map((record) => {
-      const match = INDEX_RECORD.exec(record);
-      if (!match) failure(`malformed ls-files record: ${record}`);
-      const oid = match[2];
-      const path = match[3];
-      if (oid === undefined) failure(`malformed ls-files record: ${record}`);
-      if (path === undefined) failure(`malformed ls-files record: ${record}`);
-      assertRepositoryRelativePosixPath(path);
-      if (paths.has(path)) failure(`duplicate index path: ${path}`);
-      paths.add(path);
-      return { oid, path };
-    })
+  const pathMap = new Map<string, { oid: string; stage: number }>();
+  for (const record of records) {
+    const match = INDEX_RECORD.exec(record);
+    if (!match) failure(`malformed ls-files record: ${record}`);
+    const mode = match[1];
+    const oid = match[2];
+    const stageStr = match[3];
+    const path = match[4];
+    if (oid === undefined || stageStr === undefined || path === undefined) {
+      failure(`malformed ls-files record: ${record}`);
+    }
+    if (mode === "160000") continue;
+    assertRepositoryRelativePosixPath(path);
+    const stage = Number(stageStr);
+    const existing = pathMap.get(path);
+    if (existing !== undefined) {
+      if (existing.stage === 0 && stage === 0) {
+        failure(`duplicate index path: ${path}`);
+      }
+      const priority = (s: number): number => {
+        if (s === 2) return 3;
+        if (s === 3) return 2;
+        if (s === 1) return 1;
+        return 0;
+      };
+      if (priority(stage) > priority(existing.stage)) {
+        pathMap.set(path, { oid, stage });
+      }
+    } else {
+      pathMap.set(path, { oid, stage });
+    }
+  }
+
+  return [...pathMap.entries()]
+    .map(([path, entry]) => ({ path, oid: entry.oid }))
     .sort((left, right) => comparePaths(left.path, right.path));
 }
 
@@ -127,9 +149,10 @@ export async function readIndexedBlobs(
     stdout: "pipe",
     stderr: "pipe",
   });
+  const collectPromise = collect(batch);
   batch.stdin.write(entries.map((entry) => `${entry.oid}\n`).join(""));
   batch.stdin.end();
-  const result = await collect(batch);
+  const result = await collectPromise;
   if (result.status !== 0) {
     const errorMsg = result.stderr.trim();
     failure(errorMsg.length > 0 ? errorMsg : "git cat-file failed");

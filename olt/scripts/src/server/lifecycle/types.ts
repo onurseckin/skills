@@ -124,6 +124,8 @@ export interface RestartOptions {
 export interface RestartResult {
   readonly success: boolean;
   readonly rolledBack: boolean;
+  readonly snapshotRestored?: boolean | undefined;
+  readonly serverProcessRestored?: boolean | undefined;
   readonly newPid?: number | undefined;
   readonly oldPid?: number | undefined;
   readonly snapshot: ServerStateSnapshot;

@@ -31,8 +31,16 @@ export function parseAgentManifest(content: string, filePath?: string): AgentMan
         : "agent";
   const role =
     typeof record.role === "string" ? normalizeRoleName(record.role) : normalizeRoleName(name);
-  const tier = typeof record.tier === "number" ? record.tier : 3;
+  const tier =
+    record.tier === "independent"
+      ? "independent"
+      : typeof record.tier === "number"
+        ? record.tier
+        : 3;
   const domain = typeof record.domain === "string" ? record.domain : undefined;
+  const deprecated = typeof record.deprecated === "boolean" ? record.deprecated : undefined;
+  const deprecation_notice =
+    typeof record.deprecation_notice === "string" ? record.deprecation_notice : undefined;
 
   const provider: readonly string[] = Array.isArray(record.provider)
     ? record.provider.map((p) => String(p).trim()).filter(Boolean)
@@ -113,6 +121,8 @@ export function parseAgentManifest(content: string, filePath?: string): AgentMan
     communication_contract,
     mandatory_turn1_actions,
     dispatch_contract,
+    deprecated,
+    deprecation_notice,
     filePath,
     raw: content,
   };

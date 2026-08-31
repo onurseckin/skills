@@ -21,11 +21,12 @@ export function cloneObject<T extends JsonObject>(value: T): T {
   return structuredClone(value);
 }
 
+const RESERVED_STATE_KEY_SET = new Set<string>(RESERVED_STATE_KEYS);
+
 export function businessFields(state: JsonObject): JsonObject {
-  const reserved: readonly string[] = RESERVED_STATE_KEYS;
   const result: JsonObject = {};
   for (const key of Object.keys(state)) {
-    if (reserved.includes(key)) continue;
+    if (RESERVED_STATE_KEY_SET.has(key)) continue;
     result[key] = state[key]!;
   }
   return result;

@@ -2,7 +2,13 @@ import { isJsonObject } from "../../core/contracts/index.ts";
 import type { WorktreeCommitRecord } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { transact } from "../../engine/store/index.ts";
-import { commitChangedLines, runGit, stageAndCommit, type GitRunner } from "./git-ops.ts";
+import {
+  commitChangedLines,
+  commitProvenance,
+  runGit,
+  stageAndCommit,
+  type GitRunner,
+} from "./git-ops.ts";
 import { readWorktreeLedger, writeWorktreeLedger } from "./ledger.ts";
 
 const CONVENTIONAL_COMMIT_TYPES = new Set([
@@ -72,6 +78,7 @@ export function commitSubphase(input: CommitSubphaseInput): CommitSubphaseOutcom
   const sha = stageAndCommit(input.worktreePath, input.writeScope.map(toPathspec), subject, runner);
   if (sha === null) return { committed: false };
   const changedLines = commitChangedLines(input.worktreePath, sha, runner);
+  const provenance = commitProvenance(input.worktreePath, sha, runner);
   const overLimit = changedLines > input.maxCommitLines;
   const commit: WorktreeCommitRecord = {
     task_id: input.taskId,
@@ -81,6 +88,8 @@ export function commitSubphase(input: CommitSubphaseInput): CommitSubphaseOutcom
     changed_lines: changedLines,
     over_limit: overLimit,
     committed_at: (input.now ?? new Date()).toISOString(),
+    ...(provenance.parentSha ? { parent_sha: provenance.parentSha } : {}),
+    ...(provenance.treeSha ? { tree_sha: provenance.treeSha } : {}),
   };
   return {
     committed: true,

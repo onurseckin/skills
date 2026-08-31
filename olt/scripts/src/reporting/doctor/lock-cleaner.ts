@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync, unlinkSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, unlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { recoverStale } from "../../workflow/lease/recover-stale.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
@@ -9,6 +9,7 @@ export interface LockCleanerOptions {
   readonly repoRoot?: string | undefined;
   readonly lockDirs?: readonly string[] | undefined;
   readonly staleSeconds?: number | undefined;
+  readonly maxLockAgeSeconds?: number | undefined;
 }
 
 export interface StaleLeaseOptions {
@@ -30,6 +31,7 @@ export function isProcessAlive(pid: number): boolean {
 export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[] {
   const repoRoot = options.repoRoot ?? process.cwd();
   const staleSeconds = options.staleSeconds ?? 300;
+  const maxLockAgeSeconds = options.maxLockAgeSeconds ?? 1800;
   const now = Date.now();
   const defaultDirs = [
     join(repoRoot, ".locks"),
@@ -57,14 +59,19 @@ export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[]
       const fullPath = join(dir, file);
 
       try {
-        const stats = statSync(fullPath);
+        const stats = lstatSync(fullPath);
         if (!stats.isFile()) continue;
 
         let shouldClean = false;
         let reason = "";
 
         const ageSeconds = (now - stats.mtimeMs) / 1000;
-        if (ageSeconds > staleSeconds) {
+        if (stats.size === 0) {
+          if (ageSeconds > 10) {
+            shouldClean = true;
+            reason = `zero-byte stagnant lock file (${Math.round(ageSeconds)}s > 10s grace)`;
+          }
+        } else if (ageSeconds > staleSeconds || ageSeconds > maxLockAgeSeconds) {
           shouldClean = true;
           reason = `stale lock age (${Math.round(ageSeconds)}s > ${staleSeconds}s)`;
         } else {
@@ -72,7 +79,10 @@ export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[]
             const content = readFileSync(fullPath, "utf-8").trim();
             if (content.startsWith("{") && content.endsWith("}")) {
               const parsed = JSON.parse(content) as Record<string, unknown>;
-              if (typeof parsed["pid"] === "number") {
+              if (typeof parsed["expiresAt"] === "number" && parsed["expiresAt"] < now) {
+                shouldClean = true;
+                reason = `expired lock lease at ${parsed["expiresAt"]}`;
+              } else if (typeof parsed["pid"] === "number") {
                 const pid = parsed["pid"];
                 if (!isProcessAlive(pid)) {
                   shouldClean = true;
@@ -87,7 +97,7 @@ export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[]
               }
             }
           } catch {
-            if (ageSeconds > 60) {
+            if (ageSeconds > 30) {
               shouldClean = true;
               reason = `unparseable lock file with age ${Math.round(ageSeconds)}s`;
             }
@@ -96,8 +106,11 @@ export function cleanseDanglingLocks(options: LockCleanerOptions = {}): string[]
 
         if (shouldClean) {
           try {
-            unlinkSync(fullPath);
-            cleared.push(`${fullPath} (${reason})`);
+            const preUnlinkStat = lstatSync(fullPath);
+            if (preUnlinkStat.ino === stats.ino && preUnlinkStat.mtimeMs === stats.mtimeMs) {
+              unlinkSync(fullPath);
+              cleared.push(`${fullPath} (${reason})`);
+            }
           } catch {}
         }
       } catch {}

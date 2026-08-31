@@ -11,7 +11,6 @@ import type {
   CrossChannelProof,
   DualChannelAuditResult,
   DualChannelInput,
-  ScreenshotMetadata,
   StructuredFinding,
   ViewportMetrics,
   VisualMetricsReport,

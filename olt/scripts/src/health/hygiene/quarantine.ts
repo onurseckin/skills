@@ -1,7 +1,46 @@
-import { existsSync, mkdirSync, readdirSync, renameSync, statSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  cpSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readlinkSync,
+  renameSync,
+  rmSync,
+  symlinkSync,
+  unlinkSync,
+  utimesSync,
+  type Stats,
+} from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { ALLOWED_ROOT_DIRS, ALLOWED_ROOT_FILES } from "../../authority/guards/constants.ts";
 import type { QuarantinedFileRecord, RootHygieneFinding } from "./types.ts";
+
+function safeAtomicMove(source: string, dest: string, stats: Stats): void {
+  try {
+    renameSync(source, dest);
+  } catch (err: unknown) {
+    const isExdev =
+      err instanceof Error && "code" in err && (err as { code: string }).code === "EXDEV";
+    if (!isExdev) throw err;
+
+    if (stats.isSymbolicLink()) {
+      const target = readlinkSync(source);
+      symlinkSync(target, dest);
+      unlinkSync(source);
+    } else if (stats.isDirectory()) {
+      cpSync(source, dest, { recursive: true, preserveTimestamps: true });
+      rmSync(source, { recursive: true, force: true });
+    } else {
+      copyFileSync(source, dest);
+      chmodSync(dest, stats.mode);
+      utimesSync(dest, stats.atime, stats.mtime);
+      unlinkSync(source);
+    }
+  }
+}
 
 export function quarantineViolations(
   repoRoot: string,
@@ -10,18 +49,28 @@ export function quarantineViolations(
 ): QuarantinedFileRecord[] {
   const qDir = targetQuarantineDir
     ? resolve(targetQuarantineDir)
-    : join(resolve(repoRoot), ".olt", "scratch", "quarantine");
+    : join(resolve(repoRoot), ".olt", "quarantine");
   const records: QuarantinedFileRecord[] = [];
+  let sequence = 0;
+
   for (const finding of violations) {
     if (!existsSync(finding.path)) continue;
     try {
-      const stats = statSync(finding.path);
-      if (stats.isFile()) {
+      const stats = lstatSync(finding.path);
+      if (stats.isFile() || stats.isDirectory() || stats.isSymbolicLink()) {
         if (!existsSync(qDir)) mkdirSync(qDir, { recursive: true, mode: 0o700 });
         const stamp = Date.now();
-        const safeName = `${stamp}-${finding.scope}-${basename(finding.path)}`;
-        const dest = join(qDir, safeName);
-        renameSync(finding.path, dest);
+        sequence += 1;
+        let safeName = `${stamp}-${sequence}-${finding.scope}-${basename(finding.path)}`;
+        let dest = join(qDir, safeName);
+        let collisionIndex = 0;
+        while (existsSync(dest)) {
+          collisionIndex += 1;
+          safeName = `${stamp}-${sequence}_${collisionIndex}-${finding.scope}-${basename(finding.path)}`;
+          dest = join(qDir, safeName);
+        }
+
+        safeAtomicMove(finding.path, dest, stats);
         records.push({
           originalPath: finding.path,
           relativePath: finding.relativePath,
@@ -60,19 +109,29 @@ export function purgeOrphanedScratch(repoRoot: string): string[] {
     return scrubbed;
   }
 
+  let seq = 0;
   for (const entry of entries) {
     if (ALLOWED_ROOT_FILES.has(entry)) continue;
     if (ALLOWED_ROOT_DIRS.has(entry)) continue;
 
     const fullPath = join(root, entry);
     try {
-      const stats = statSync(fullPath);
-      if (stats.isFile()) {
+      const stats = lstatSync(fullPath);
+      if (stats.isFile() || stats.isDirectory() || stats.isSymbolicLink()) {
         if (!existsSync(orphanedDir)) {
           mkdirSync(orphanedDir, { recursive: true, mode: 0o700 });
         }
-        const targetPath = join(orphanedDir, `${Date.now()}-${entry}`);
-        renameSync(fullPath, targetPath);
+        seq += 1;
+        const stamp = Date.now();
+        let targetName = `${stamp}-${seq}-${entry}`;
+        let targetPath = join(orphanedDir, targetName);
+        let col = 0;
+        while (existsSync(targetPath)) {
+          col += 1;
+          targetName = `${stamp}-${seq}_${col}-${entry}`;
+          targetPath = join(orphanedDir, targetName);
+        }
+        safeAtomicMove(fullPath, targetPath, stats);
         scrubbed.push(entry);
       }
     } catch {

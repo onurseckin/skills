@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
@@ -83,9 +84,25 @@ export function scanFileForAstPurity(filePath: string, content: string): AstPuri
     }
 
     if (node.kind === ts.SyntaxKind.AnyKeyword) {
-      const parent = node.parent;
-      const isAssertion =
-        parent && (ts.isAsExpression(parent) || ts.isTypeAssertionExpression(parent));
+      let curr: ts.Node | undefined = node.parent;
+      let enclosingAssertion: ts.AsExpression | ts.TypeAssertion | null = null;
+      while (
+        curr &&
+        !ts.isSourceFile(curr) &&
+        !ts.isStatement(curr) &&
+        !ts.isFunctionDeclaration(curr) &&
+        !ts.isArrowFunction(curr) &&
+        !ts.isClassDeclaration(curr) &&
+        !ts.isInterfaceDeclaration(curr) &&
+        !ts.isTypeAliasDeclaration(curr)
+      ) {
+        if (ts.isAsExpression(curr) || ts.isTypeAssertionExpression(curr)) {
+          enclosingAssertion = curr;
+          break;
+        }
+        curr = curr.parent;
+      }
+
       const { line, character } = sourceFile.getLineAndCharacterOfPosition(
         node.getStart(sourceFile),
       );
@@ -93,12 +110,11 @@ export function scanFileForAstPurity(filePath: string, content: string): AstPuri
         filePath,
         lineNumber: line + 1,
         columnNumber: character + 1,
-        violationType: isAssertion ? "ANY_TYPE_ASSERTION" : "EXPLICIT_ANY",
-        nodeText: (isAssertion && parent ? parent : node).getText(sourceFile),
-        message:
-          isAssertion && parent
-            ? `Banned 'any' type assertion at ${filePath}:${line + 1}:${character + 1} ("${parent.getText(sourceFile)}")`
-            : `Explicit 'any' type prohibited at ${filePath}:${line + 1}:${character + 1}`,
+        violationType: enclosingAssertion ? "ANY_TYPE_ASSERTION" : "EXPLICIT_ANY",
+        nodeText: (enclosingAssertion ? enclosingAssertion : node).getText(sourceFile),
+        message: enclosingAssertion
+          ? `Banned 'any' type assertion at ${filePath}:${line + 1}:${character + 1} ("${enclosingAssertion.getText(sourceFile)}")`
+          : `Explicit 'any' type prohibited at ${filePath}:${line + 1}:${character + 1}`,
       });
     }
 
@@ -107,6 +123,18 @@ export function scanFileForAstPurity(filePath: string, content: string): AstPuri
 
   visit(sourceFile);
   return findings;
+}
+
+export function sanitizeGitPorcelainPath(rawPathEntry: string): string {
+  let p = rawPathEntry.trim();
+  if (p.includes(" -> ")) {
+    const parts = p.split(" -> ");
+    p = parts[parts.length - 1]!.trim();
+  }
+  if (p.startsWith('"') && p.endsWith('"') && p.length >= 2) {
+    p = p.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+  }
+  return p;
 }
 
 export function checkAstPurity(options: AstPurityCheckOptions = {}): DoctorCheckEngineResult {
@@ -141,18 +169,42 @@ export function checkAstPurity(options: AstPurityCheckOptions = {}): DoctorCheck
     };
   }
 
+  const targets: string[] = [];
   if (options.writeScope && options.writeScope.length > 0) {
-    for (const relPath of options.writeScope) {
-      const fullPath = options.repoRoot ? resolve(options.repoRoot, relPath) : resolve(relPath);
-      if (existsSync(fullPath)) {
-        try {
-          const stat = statSync(fullPath);
-          if (stat.isFile() && (fullPath.endsWith(".ts") || fullPath.endsWith(".tsx"))) {
-            const content = readFileSync(fullPath, "utf-8");
-            recordFindings(scanFileForAstPurity(relPath, content));
+    targets.push(...options.writeScope);
+  } else {
+    try {
+      const cwd = options.repoRoot ? resolve(options.repoRoot) : process.cwd();
+      const res = spawnSync("git", ["status", "--porcelain"], {
+        cwd,
+        encoding: "utf-8",
+        timeout: 5000,
+      });
+      if (res.status === 0 && res.stdout) {
+        const lines = res.stdout.split("\n").filter((l) => l.trim().length > 0);
+        for (const line of lines) {
+          if (line.length < 3) continue;
+          const rawRel = line.slice(3);
+          const rel = sanitizeGitPorcelainPath(rawRel);
+          if (rel.endsWith(".ts") || rel.endsWith(".tsx")) {
+            targets.push(rel);
           }
-        } catch {}
+        }
       }
+    } catch {}
+  }
+
+  const uniqueTargets = Array.from(new Set(targets));
+  for (const relPath of uniqueTargets) {
+    const fullPath = options.repoRoot ? resolve(options.repoRoot, relPath) : resolve(relPath);
+    if (existsSync(fullPath)) {
+      try {
+        const stat = statSync(fullPath);
+        if (stat.isFile() && (fullPath.endsWith(".ts") || fullPath.endsWith(".tsx"))) {
+          const content = readFileSync(fullPath, "utf-8");
+          recordFindings(scanFileForAstPurity(relPath, content));
+        }
+      } catch {}
     }
   }
 

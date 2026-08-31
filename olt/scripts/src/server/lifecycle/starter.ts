@@ -8,6 +8,7 @@
 import { Socket } from "node:net";
 import { spawn } from "node:child_process";
 import type { ServerStartOptions, ServerStartResult } from "./types.ts";
+import { shutdownProcess } from "./shutdown.ts";
 
 export const DEFAULT_BIND_TIMEOUT_MS = 5000;
 export const DEFAULT_BIND_POLL_INTERVAL_MS = 100;
@@ -218,10 +219,13 @@ export async function startServer(options: ServerStartOptions): Promise<ServerSt
     await sleep(bindPollIntervalMs);
   }
 
-  // If failed to bind, clean up the spawned process
+  // If failed to bind, clean up with SIGTERM and escalate to SIGKILL if unresponsive
   if (pid > 0) {
     try {
-      process.kill(pid, "SIGTERM");
+      await shutdownProcess(pid, {
+        gracePeriodMs: 500,
+        pollIntervalMs: 50,
+      });
     } catch {
       // Ignore cleanup error
     }

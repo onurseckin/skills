@@ -29,6 +29,8 @@ export const COORDINATOR_FILE_EDIT_CATEGORIES: ReadonlySet<string> = new Set([
   "file-write",
   "code-edit",
   "file-mutation",
+  "file_modification",
+  "code_modification",
 ]);
 
 export function isCoordinatorRole(role: string): boolean {
@@ -46,13 +48,13 @@ export function isCoordinatorFileEditForbidden(toolNameOrCategory: string): bool
     .toLowerCase()
     .trim()
     .replace(/^mcp_[^_]+_/, "");
-  return (
-    COORDINATOR_FILE_EDIT_TOOLS.has(norm) ||
-    COORDINATOR_FILE_EDIT_CATEGORIES.has(norm) ||
-    norm.includes("write") ||
-    norm.includes("edit") ||
-    norm.includes("replace")
-  );
+
+  if (COORDINATOR_FILE_EDIT_TOOLS.has(norm) || COORDINATOR_FILE_EDIT_CATEGORIES.has(norm)) {
+    return true;
+  }
+
+  // Exact token boundary matching for file modification capabilities
+  return /(?:^|[-_])(?:write|edit|replace|mutation|mutate|delete|patch)(?:[-_]|$)/u.test(norm);
 }
 
 export function assertCoordinatorPreToolGuard(

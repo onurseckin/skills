@@ -11,6 +11,60 @@ import type { SugiyamaNode } from "./types.ts";
 
 export { formatNodeBadges, getNodeStatusGlyph };
 
+// eslint-disable-next-line no-control-regex
+const ANSI_REGEX = /\u001b\[[0-9;]*[a-zA-Z]|\u001b\].*?(\u0007|\u001b\\)/g;
+
+export function stripAnsiCodes(text: string): string {
+  return text.replaceAll(ANSI_REGEX, "");
+}
+
+export function getOpticalDisplayWidth(text: string): number {
+  return stripAnsiCodes(text).length;
+}
+
+export function truncateOptical(text: string, maxDisplayWidth: number, ellipsis = "..."): string {
+  const clean = stripAnsiCodes(text);
+  if (clean.length <= maxDisplayWidth) return text;
+  const target = Math.max(0, maxDisplayWidth - ellipsis.length);
+
+  if (typeof Intl !== "undefined" && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+    let acc = "";
+    for (const { segment } of segmenter.segment(clean)) {
+      if (acc.length + segment.length > target) break;
+      acc += segment;
+    }
+    return acc + ellipsis;
+  }
+
+  const chars = Array.from(clean);
+  let acc = "";
+  for (const ch of chars) {
+    if (acc.length + ch.length > target) break;
+    acc += ch;
+  }
+  return acc + ellipsis;
+}
+
+export function padOptical(
+  text: string,
+  targetDisplayWidth: number,
+  align: "left" | "right" | "center" = "left",
+): string {
+  const currentWidth = getOpticalDisplayWidth(text);
+  if (currentWidth >= targetDisplayWidth) return text;
+  const needed = targetDisplayWidth - currentWidth;
+  if (align === "right") {
+    return " ".repeat(needed) + text;
+  }
+  if (align === "center") {
+    const leftPad = Math.floor(needed / 2);
+    const rightPad = needed - leftPad;
+    return " ".repeat(leftPad) + text + " ".repeat(rightPad);
+  }
+  return text + " ".repeat(needed);
+}
+
 export interface RenderSugiyamaNodeBoxOptions {
   readonly detailed?: boolean | undefined;
   readonly boxStyle?: "rounded" | "sharp" | "ascii" | undefined;
@@ -158,7 +212,7 @@ export function renderSugiyamaNodeBox(
     rows.push(`Tool:  ${task.assignedTool}`);
   }
 
-  const maxRowLen = Math.max(0, ...rows.map((r) => r.length));
+  const maxRowLen = Math.max(0, ...rows.map((r) => getOpticalDisplayWidth(r)));
   const defaultWidth = options.boxWidth ?? 63;
   const targetWidth = Math.max(defaultWidth, maxRowLen + 4);
   const finalWidth = targetWidth % 2 === 0 ? targetWidth + 1 : targetWidth;
@@ -168,10 +222,9 @@ export function renderSugiyamaNodeBox(
   const bottomBorder = `${cornerBL}${horiz.repeat(finalWidth - 2)}${cornerBR}`;
 
   const formattedRows = rows.map((row) => {
-    const truncatedRow =
-      row.length > innerWidth ? `${row.slice(0, Math.max(0, innerWidth - 3))}...` : row;
-    const padding = Math.max(0, innerWidth - truncatedRow.length);
-    return `${vert} ${truncatedRow}${" ".repeat(padding)} ${vert}`;
+    const truncatedRow = truncateOptical(row, innerWidth);
+    const paddedRow = padOptical(truncatedRow, innerWidth, "left");
+    return `${vert} ${paddedRow} ${vert}`;
   });
 
   return [topBorder, ...formattedRows, bottomBorder];

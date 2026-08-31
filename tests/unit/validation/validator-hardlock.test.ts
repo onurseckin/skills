@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
@@ -10,7 +10,6 @@ import {
   isExecutionCommand,
   isExecutionToolCategory,
   isProhibitedCognitiveTool,
-  roleToTier,
   validateHierarchicalSpawning,
   assertHierarchicalSpawning,
   assertCognitiveValidatorHardlock,

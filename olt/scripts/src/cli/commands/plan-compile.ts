@@ -1,11 +1,12 @@
-import { basename, resolve, join } from "node:path";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import { getHarnessConfig } from "../../core/config/index.ts";
-import type { RunFiles } from "../../core/contracts/index.ts";
-import type { JsonValue } from "../../core/contracts/index.ts";
+import type { JsonValue, RunFiles } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { recordTopology } from "../../engine/scheduler/index.ts";
+import { loadRun, transact } from "../../engine/store/index.ts";
 import { compileGraphDocument, compilePlanMarkdown } from "../../graph/compiler.ts";
-import { executeDagViewCommand } from "./dag-view.ts";
 import { advisoryFindings, blockingFindings } from "../../graph/plan-audit.ts";
 import { projectPlan } from "../../graph/project-plan.ts";
 import { guardPlanRevision } from "../../graph/revision-guard.ts";
@@ -19,16 +20,14 @@ import {
   compileRequirementsFromPrompt,
   type TaskDeclaration,
 } from "../../requirements/compiler.ts";
-import { recordTopology } from "../../engine/scheduler/index.ts";
-import { loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/index.ts";
-import { formatPlanCompileBrief } from "../formatters/index.ts";
-import { actorFlag, listFlag, textFlag, type Flags } from "../options.ts";
-import { parseAuditAcceptance, recordAuditAcceptance, recordPlanAudit } from "./plan-audit.ts";
-import { parseGateArgv } from "./plan-replan-bindings.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
 import type { AssignableTask } from "../../workflow/worktree/assign.ts";
 import { provisionWorktrees } from "../../workflow/worktree/provision.ts";
-import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
+import { formatPlanCompileBrief } from "../formatters/index.ts";
+import { actorFlag, listFlag, textFlag, type Flags } from "../options.ts";
+import { executeDagViewCommand } from "./dag-view.ts";
+import { parseAuditAcceptance, recordAuditAcceptance, recordPlanAudit } from "./plan-audit.ts";
+import { parseGateArgv } from "./plan-replan-bindings.ts";
 
 function promptText(prompt: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: true }).decode(prompt);
@@ -198,7 +197,7 @@ export async function planCompileCommand(flags: Flags): Promise<Record<string, u
     state.planning_tasks = buffer as unknown as JsonValue;
   });
 
-  const repoRoot = resolve(run, "..", "..");
+  const repoRoot = findRepoRoot(run);
   const config = getHarnessConfig(repoRoot, run);
   const { topology } = recordTopology(run, actor, config);
 

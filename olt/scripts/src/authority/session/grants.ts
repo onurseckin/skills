@@ -12,13 +12,7 @@ import { randomBytes } from "node:crypto";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot, isInsideCapsule, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
-import {
-  agentIdToRole,
-  agentIdToTier,
-  detectHostApp,
-  roleToTier,
-  type ExecutionTier,
-} from "../thread/index.ts";
+import { agentIdToTier, detectHostApp, roleToTier, type ExecutionTier } from "../thread/index.ts";
 import { assertSafeSessionComponent, assertSessionPid, resolveGlobalSessionsDir } from "./paths.ts";
 import {
   atomicSessionWrite,

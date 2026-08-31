@@ -1,7 +1,16 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { discoverToolchain } from "../../policy/generator/index.ts";
 import type { PackageManager, RepoEcosystem, TestRunnerPolicy } from "../../policy/types/index.ts";
+
+export type WorkspaceKind =
+  | "pnpm"
+  | "turborepo"
+  | "npm_yarn_bun"
+  | "cargo"
+  | "go_work"
+  | "lerna"
+  | "nx";
 
 export interface DiscoveredToolchainDetails {
   readonly ecosystem: RepoEcosystem;
@@ -19,200 +28,310 @@ export interface DiscoveredToolchainDetails {
   readonly forbiddenCommands: readonly string[];
   readonly isMonorepo: boolean;
   readonly isTypeScript: boolean;
+  readonly workspaceKind?: WorkspaceKind | undefined;
+  readonly workspaceMembers?: readonly string[] | undefined;
+  readonly monorepoRunner?: string | undefined;
 }
 
-function fileExistsInRoot(root: string, filename: string): boolean {
-  return existsSync(join(root, filename));
-}
-
-function anyFileExists(root: string, filenames: readonly string[]): boolean {
-  for (const f of filenames) {
-    if (fileExistsInRoot(root, f)) {
-      return true;
-    }
-  }
-  return false;
+function hasAny(root: string, files: readonly string[]): boolean {
+  return files.some((f) => existsSync(join(root, f)));
 }
 
 function parsePackageJson(root: string): {
+  raw: Record<string, unknown>;
   deps: Record<string, string>;
   devDeps: Record<string, string>;
   scripts: Record<string, string>;
 } {
   const pkgPath = join(root, "package.json");
-  if (!existsSync(pkgPath)) {
-    return { deps: {}, devDeps: {}, scripts: {} };
-  }
+  if (!existsSync(pkgPath)) return { raw: {}, deps: {}, devDeps: {}, scripts: {} };
   try {
     const raw = JSON.parse(readFileSync(pkgPath, "utf8")) as Record<string, unknown>;
-    const deps =
-      typeof raw.dependencies === "object" && raw.dependencies !== null
-        ? (raw.dependencies as Record<string, string>)
-        : {};
-    const devDeps =
+    const deps = (
+      typeof raw.dependencies === "object" && raw.dependencies !== null ? raw.dependencies : {}
+    ) as Record<string, string>;
+    const devDeps = (
       typeof raw.devDependencies === "object" && raw.devDependencies !== null
-        ? (raw.devDependencies as Record<string, string>)
-        : {};
-    const scripts =
-      typeof raw.scripts === "object" && raw.scripts !== null
-        ? (raw.scripts as Record<string, string>)
-        : {};
-    return { deps, devDeps, scripts };
+        ? raw.devDependencies
+        : {}
+    ) as Record<string, string>;
+    const scripts = (
+      typeof raw.scripts === "object" && raw.scripts !== null ? raw.scripts : {}
+    ) as Record<string, string>;
+    return { raw, deps, devDeps, scripts };
   } catch {
-    return { deps: {}, devDeps: {}, scripts: {} };
+    return { raw: {}, deps: {}, devDeps: {}, scripts: {} };
   }
+}
+
+function detectWorkspaceTopology(
+  root: string,
+  rawPkg: Record<string, unknown>,
+): {
+  isMonorepo: boolean;
+  workspaceKind?: WorkspaceKind;
+  workspaceMembers?: readonly string[];
+  monorepoRunner?: string;
+} {
+  let workspaceKind: WorkspaceKind | undefined;
+  const workspaceMembers: string[] = [];
+  let monorepoRunner: string | undefined;
+
+  if (existsSync(join(root, "pnpm-workspace.yaml"))) {
+    workspaceKind = "pnpm";
+    try {
+      const content = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith("-")) {
+          const item = trimmed
+            .replace(/^-\s*['"]?/, "")
+            .replace(/['"]?$/, "")
+            .trim();
+          if (item.length > 0) workspaceMembers.push(item);
+        }
+      }
+    } catch {}
+  }
+  if (existsSync(join(root, "turbo.json"))) {
+    monorepoRunner = "turbo";
+    workspaceKind = workspaceKind ?? "turborepo";
+  }
+  if (existsSync(join(root, "nx.json"))) {
+    monorepoRunner = "nx";
+    workspaceKind = workspaceKind ?? "nx";
+  }
+  if (existsSync(join(root, "lerna.json"))) {
+    monorepoRunner = "lerna";
+    workspaceKind = workspaceKind ?? "lerna";
+  }
+  if (existsSync(join(root, "go.work"))) {
+    workspaceKind = "go_work";
+  }
+  if (existsSync(join(root, "Cargo.toml"))) {
+    try {
+      if (readFileSync(join(root, "Cargo.toml"), "utf8").includes("[workspace]")) {
+        workspaceKind = "cargo";
+        monorepoRunner = monorepoRunner ?? "cargo";
+      }
+    } catch {}
+  }
+  if (rawPkg["workspaces"] !== undefined) {
+    workspaceKind = workspaceKind ?? "npm_yarn_bun";
+    const rawWs = rawPkg["workspaces"];
+    const list = Array.isArray(rawWs)
+      ? rawWs
+      : typeof rawWs === "object" &&
+          rawWs !== null &&
+          Array.isArray((rawWs as { packages?: unknown[] }).packages)
+        ? (rawWs as { packages: unknown[] }).packages
+        : [];
+    for (const w of list) {
+      if (typeof w === "string") workspaceMembers.push(w);
+    }
+  }
+
+  return {
+    isMonorepo: workspaceKind !== undefined,
+    ...(workspaceKind ? { workspaceKind } : {}),
+    ...(workspaceMembers.length > 0 ? { workspaceMembers } : {}),
+    ...(monorepoRunner ? { monorepoRunner } : {}),
+  };
+}
+
+function collectWorkspaceMemberDirs(root: string, members?: readonly string[]): string[] {
+  const dirs: string[] = [];
+  const candidateParents = ["packages", "apps", "libs", "crates", "modules"];
+  for (const parent of candidateParents) {
+    const parentPath = join(root, parent);
+    if (existsSync(parentPath)) {
+      try {
+        const entries = readdirSync(parentPath, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            dirs.push(join(parentPath, entry.name));
+            if (dirs.length >= 8) break;
+          }
+        }
+      } catch {}
+    }
+  }
+
+  if (members && members.length > 0 && dirs.length === 0) {
+    for (const mem of members) {
+      const clean = mem.replace(/\/\*.*$/, "");
+      const full = join(root, clean);
+      if (existsSync(full)) {
+        try {
+          const entries = readdirSync(full, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.isDirectory()) {
+              dirs.push(join(full, entry.name));
+              if (dirs.length >= 8) break;
+            }
+          }
+        } catch {
+          dirs.push(full);
+        }
+      }
+    }
+  }
+  return dirs.slice(0, 8);
 }
 
 export function inspectToolchainDetails(repoRoot: string): DiscoveredToolchainDetails {
   const root = resolve(repoRoot);
   const discovered = discoverToolchain(root);
-
-  const detectedPackageManagers: string[] = [];
-  const detectedTestRunners: string[] = [];
-  const detectedTypecheckers: string[] = [];
-  const detectedLinters: string[] = [];
-  const detectedFormatters: string[] = [];
+  const { raw, deps, devDeps, scripts } = parsePackageJson(root);
+  const hasDep = (name: string): boolean => name in deps || name in devDeps;
 
   // 1. Package Managers
-  if (anyFileExists(root, ["bun.lock", "bun.lockb", "bunfig.toml"])) {
-    detectedPackageManagers.push("bun");
-  }
-  if (anyFileExists(root, ["pnpm-lock.yaml", "pnpm-workspace.yaml"])) {
-    detectedPackageManagers.push("pnpm");
-  }
-  if (anyFileExists(root, ["yarn.lock", ".yarnrc.yml"])) {
-    detectedPackageManagers.push("yarn");
-  }
-  if (fileExistsInRoot(root, "package-lock.json")) {
-    detectedPackageManagers.push("npm");
-  }
-  if (anyFileExists(root, ["Cargo.toml", "Cargo.lock"])) {
-    detectedPackageManagers.push("cargo");
-  }
-  if (fileExistsInRoot(root, "poetry.lock")) {
-    detectedPackageManagers.push("poetry");
-  }
-  if (anyFileExists(root, ["Pipfile", "Pipfile.lock"])) {
-    detectedPackageManagers.push("pipenv");
-  }
-  if (anyFileExists(root, ["requirements.txt", "setup.py"])) {
-    detectedPackageManagers.push("pip");
-  }
-  if (anyFileExists(root, ["go.mod", "go.sum"])) {
-    detectedPackageManagers.push("go");
-  }
-
-  const { deps, devDeps, scripts } = parsePackageJson(root);
-  const hasDep = (name: string): boolean => {
-    return Object.prototype.hasOwnProperty.call(deps, name)
-      ? true
-      : Object.prototype.hasOwnProperty.call(devDeps, name);
-  };
+  const pmRules: Array<[string[], string]> = [
+    [["bun.lock", "bun.lockb", "bunfig.toml"], "bun"],
+    [["pnpm-lock.yaml", "pnpm-workspace.yaml"], "pnpm"],
+    [["yarn.lock", ".yarnrc.yml"], "yarn"],
+    [["package-lock.json"], "npm"],
+    [["Cargo.toml", "Cargo.lock"], "cargo"],
+    [["poetry.lock"], "poetry"],
+    [["Pipfile", "Pipfile.lock"], "pipenv"],
+    [["requirements.txt", "setup.py"], "pip"],
+    [["go.mod", "go.sum"], "go"],
+  ];
+  const detectedPackageManagers = pmRules
+    .filter(([files]) => hasAny(root, files))
+    .map(([, name]) => name);
 
   // 2. Test Runners
+  const detectedTestRunners: string[] = [];
   const testScript = scripts["test"];
-  const scriptHasBunTest = typeof testScript === "string" && testScript.includes("bun test");
-  if (detectedPackageManagers.includes("bun") ? true : scriptHasBunTest) {
+  if (
+    detectedPackageManagers.includes("bun") ||
+    (typeof testScript === "string" && testScript.includes("bun test"))
+  ) {
     detectedTestRunners.push("bun test");
   }
-  if (hasDep("vitest") ? true : anyFileExists(root, ["vitest.config.ts", "vitest.config.js"])) {
+  if (hasDep("vitest") || hasAny(root, ["vitest.config.ts", "vitest.config.js"]))
     detectedTestRunners.push("vitest");
-  }
-  if (hasDep("jest") ? true : anyFileExists(root, ["jest.config.js", "jest.config.ts"])) {
+  if (hasDep("jest") || hasAny(root, ["jest.config.js", "jest.config.ts"]))
     detectedTestRunners.push("jest");
-  }
-  if (anyFileExists(root, ["pytest.ini", "tests", "test", "pyproject.toml"])) {
-    const isPythonPm = detectedPackageManagers.some((pm) => {
-      return pm === "poetry" ? true : pm === "pipenv" ? true : pm === "pip";
-    });
-    if (isPythonPm) {
+  if (hasAny(root, ["pytest.ini", "tests", "test", "pyproject.toml"])) {
+    if (detectedPackageManagers.some((pm) => ["poetry", "pipenv", "pip"].includes(pm)))
       detectedTestRunners.push("pytest");
-    }
   }
-  if (fileExistsInRoot(root, "Cargo.toml")) {
-    detectedTestRunners.push("cargo test");
-  }
-  if (fileExistsInRoot(root, "go.mod")) {
-    detectedTestRunners.push("go test");
-  }
+  if (existsSync(join(root, "Cargo.toml"))) detectedTestRunners.push("cargo test");
+  if (existsSync(join(root, "go.mod"))) detectedTestRunners.push("go test");
 
   // 3. Typecheckers
-  if (fileExistsInRoot(root, "tsconfig.json") ? true : hasDep("typescript")) {
+  const detectedTypecheckers: string[] = [];
+  if (existsSync(join(root, "tsconfig.json")) || hasDep("typescript"))
     detectedTypecheckers.push("tsc");
-  }
-  if (fileExistsInRoot(root, "pyrightconfig.json")) {
-    detectedTypecheckers.push("pyright");
-  }
-  if (anyFileExists(root, ["mypy.ini", ".mypy.ini"])) {
-    detectedTypecheckers.push("mypy");
-  }
-  if (fileExistsInRoot(root, "Cargo.toml")) {
-    detectedTypecheckers.push("cargo check");
-  }
-  if (fileExistsInRoot(root, "go.mod")) {
-    detectedTypecheckers.push("go vet");
-  }
+  if (existsSync(join(root, "pyrightconfig.json"))) detectedTypecheckers.push("pyright");
+  if (hasAny(root, ["mypy.ini", ".mypy.ini"])) detectedTypecheckers.push("mypy");
+  if (existsSync(join(root, "Cargo.toml"))) detectedTypecheckers.push("cargo check");
+  if (existsSync(join(root, "go.mod"))) detectedTypecheckers.push("go vet");
 
   // 4. Linters
-  const hasEslintFile = anyFileExists(root, [
+  const detectedLinters: string[] = [];
+  const eslintFiles = [
     "eslint.config.js",
     "eslint.config.mjs",
     "eslint.config.ts",
     ".eslintrc.json",
     ".eslintrc.js",
-  ]);
-  if (hasDep("eslint") ? true : hasEslintFile) {
-    detectedLinters.push("eslint");
-  }
-  if (hasDep("oxlint") ? true : anyFileExists(root, [".oxlintrc.json", "oxlint.json"])) {
+  ];
+  if (hasDep("eslint") || hasAny(root, eslintFiles)) detectedLinters.push("eslint");
+  if (hasDep("oxlint") || hasAny(root, [".oxlintrc.json", "oxlint.json"]))
     detectedLinters.push("oxlint");
-  }
-  const hasBiome = hasDep("@biomejs/biome") ? true : hasDep("biome");
-  if (hasBiome ? true : anyFileExists(root, ["biome.json", "biome.jsonc"])) {
-    detectedLinters.push("biome");
-  }
-  if (anyFileExists(root, ["ruff.toml", ".ruff.toml"])) {
-    detectedLinters.push("ruff");
-  }
-  if (fileExistsInRoot(root, "Cargo.toml")) {
-    detectedLinters.push("clippy");
-  }
-  if (anyFileExists(root, [".golangci.yml", ".golangci.yaml"])) {
-    detectedLinters.push("golangci-lint");
-  }
-  if (fileExistsInRoot(root, ".flake8")) {
-    detectedLinters.push("flake8");
-  }
+  const hasBiome =
+    hasDep("@biomejs/biome") || hasDep("biome") || hasAny(root, ["biome.json", "biome.jsonc"]);
+  if (hasBiome) detectedLinters.push("biome");
+  if (hasAny(root, ["ruff.toml", ".ruff.toml"])) detectedLinters.push("ruff");
+  if (existsSync(join(root, "Cargo.toml"))) detectedLinters.push("clippy");
+  if (hasAny(root, [".golangci.yml", ".golangci.yaml"])) detectedLinters.push("golangci-lint");
+  if (existsSync(join(root, ".flake8"))) detectedLinters.push("flake8");
 
   // 5. Formatters
-  const hasPrettierFile = anyFileExists(root, [
+  const detectedFormatters: string[] = [];
+  const prettierFiles = [
     ".prettierrc",
     ".prettierrc.json",
     ".prettierrc.js",
     "prettier.config.js",
     "prettier.config.mjs",
-  ]);
-  if (hasDep("prettier") ? true : hasPrettierFile) {
-    detectedFormatters.push("prettier");
-  }
-  if (hasBiome ? true : anyFileExists(root, ["biome.json", "biome.jsonc"])) {
-    detectedFormatters.push("biome");
-  }
-  if (anyFileExists(root, ["ruff.toml", ".ruff.toml"])) {
-    detectedFormatters.push("ruff format");
-  }
-  if (anyFileExists(root, ["rustfmt.toml", ".rustfmt.toml"])) {
-    detectedFormatters.push("rustfmt");
-  }
-  if (fileExistsInRoot(root, "go.mod")) {
-    detectedFormatters.push("gofmt");
+  ];
+  if (hasDep("prettier") || hasAny(root, prettierFiles)) detectedFormatters.push("prettier");
+  if (hasBiome) detectedFormatters.push("biome");
+  if (hasAny(root, ["ruff.toml", ".ruff.toml"])) detectedFormatters.push("ruff format");
+  if (hasAny(root, ["rustfmt.toml", ".rustfmt.toml"])) detectedFormatters.push("rustfmt");
+  if (existsSync(join(root, "go.mod"))) detectedFormatters.push("gofmt");
+
+  const topology = detectWorkspaceTopology(root, raw);
+
+  // 6. Monorepo nested member inspection and runner preferences
+  if (topology.isMonorepo) {
+    if (topology.monorepoRunner === "turbo" && !detectedTestRunners.includes("turbo test")) {
+      detectedTestRunners.push("turbo test");
+    }
+    if (
+      topology.workspaceKind === "cargo" &&
+      !detectedTestRunners.includes("cargo test --workspace")
+    ) {
+      detectedTestRunners.push("cargo test --workspace");
+    }
+
+    const memberDirs = collectWorkspaceMemberDirs(root, topology.workspaceMembers);
+    for (const subDir of memberDirs) {
+      const subPkg = parsePackageJson(subDir);
+      const hasSubDep = (name: string): boolean => name in subPkg.deps || name in subPkg.devDeps;
+
+      if (
+        (hasSubDep("vitest") || hasAny(subDir, ["vitest.config.ts", "vitest.config.js"])) &&
+        !detectedTestRunners.includes("vitest")
+      ) {
+        detectedTestRunners.push("vitest");
+      }
+      if (
+        (hasSubDep("jest") || hasAny(subDir, ["jest.config.js", "jest.config.ts"])) &&
+        !detectedTestRunners.includes("jest")
+      ) {
+        detectedTestRunners.push("jest");
+      }
+      if (
+        (existsSync(join(subDir, "tsconfig.json")) || hasSubDep("typescript")) &&
+        !detectedTypecheckers.includes("tsc")
+      ) {
+        detectedTypecheckers.push("tsc");
+      }
+      if (
+        (hasSubDep("eslint") || hasAny(subDir, ["eslint.config.js", ".eslintrc.json"])) &&
+        !detectedLinters.includes("eslint")
+      ) {
+        detectedLinters.push("eslint");
+      }
+      if (
+        (hasSubDep("oxlint") || hasAny(subDir, [".oxlintrc.json", "oxlint.json"])) &&
+        !detectedLinters.includes("oxlint")
+      ) {
+        detectedLinters.push("oxlint");
+      }
+      if (
+        (hasSubDep("prettier") || hasAny(subDir, [".prettierrc", ".prettierrc.json"])) &&
+        !detectedFormatters.includes("prettier")
+      ) {
+        detectedFormatters.push("prettier");
+      }
+      if (hasSubDep("@biomejs/biome") || hasSubDep("biome") || hasAny(subDir, ["biome.json"])) {
+        if (!detectedLinters.includes("biome")) detectedLinters.push("biome");
+        if (!detectedFormatters.includes("biome")) detectedFormatters.push("biome");
+      }
+    }
   }
 
-  let formatCommand: string | undefined = undefined;
+  let formatCommand: string | undefined;
   if (detectedFormatters.includes("biome")) {
     formatCommand = "biome format --write .";
   } else if (detectedFormatters.includes("prettier")) {
-    const pm = discovered.packageManager !== undefined ? discovered.packageManager : "npm";
+    const pm = discovered.packageManager ?? "npm";
     formatCommand =
       pm === "bun"
         ? "bunx prettier --write ."
@@ -241,7 +360,10 @@ export function inspectToolchainDetails(repoRoot: string): DiscoveredToolchainDe
     detectedPackageManagers,
     allowedCommands: discovered.allowedCommands,
     forbiddenCommands: discovered.forbiddenCommands,
-    isMonorepo: Boolean(discovered.isMonorepo),
-    isTypeScript: Boolean(discovered.isTypeScript),
+    isMonorepo: topology.isMonorepo || Boolean(discovered.isMonorepo),
+    isTypeScript: Boolean(discovered.isTypeScript) || detectedTypecheckers.includes("tsc"),
+    ...(topology.workspaceKind ? { workspaceKind: topology.workspaceKind } : {}),
+    ...(topology.workspaceMembers ? { workspaceMembers: topology.workspaceMembers } : {}),
+    ...(topology.monorepoRunner ? { monorepoRunner: topology.monorepoRunner } : {}),
   };
 }

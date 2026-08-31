@@ -67,6 +67,8 @@ export interface OpenRoundInStateOptions {
   readonly statement?: string | undefined;
   readonly nowIso: string;
   readonly chainFromCapsulePath?: string | undefined;
+  readonly allowLeaseMigration?: boolean | undefined;
+  readonly migratableTaskIds?: readonly string[] | undefined;
 }
 
 export interface CloseRoundInStateOptions {

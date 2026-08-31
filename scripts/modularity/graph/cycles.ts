@@ -9,13 +9,23 @@ function compare(left: string, right: string): number {
 export function stronglyConnectedComponents(
   edges: readonly ImportEdge[],
 ): readonly (readonly string[])[] {
-  const nodes = new Set(edges.flatMap((edge) => [edge.from, edge.to]));
+  const adjMap = new Map<string, Set<string>>();
+  const nodes = new Set<string>();
+  for (const edge of edges) {
+    nodes.add(edge.from);
+    nodes.add(edge.to);
+    let targets = adjMap.get(edge.from);
+    if (targets === undefined) {
+      targets = new Set<string>();
+      adjMap.set(edge.from, targets);
+    }
+    targets.add(edge.to);
+  }
+
   const adjacency = new Map<string, readonly string[]>();
   for (const node of nodes) {
-    adjacency.set(
-      node,
-      [...new Set(edges.filter((edge) => edge.from === node).map((edge) => edge.to))].sort(compare),
-    );
+    const targets = adjMap.get(node);
+    adjacency.set(node, targets !== undefined ? [...targets].sort(compare) : []);
   }
 
   const indices = new Map<string, number>();

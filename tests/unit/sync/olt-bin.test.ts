@@ -5,11 +5,14 @@ import { buildOltBinaryContent, ensureGlobalOltBinary } from "../../../scripts/s
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("buildOltBinaryContent", () => {
-  test("generates expected bash wrapper script", () => {
+  test("generates expected bash wrapper script with multi-path Bun discovery", () => {
     const content = buildOltBinaryContent("/custom/path/harness.ts");
     expect(content).toContain("#!/usr/bin/env bash");
     expect(content).toContain('GLOBAL_HARNESS="/custom/path/harness.ts"');
-    expect(content).toContain('exec bun "${GLOBAL_HARNESS}" "$@"');
+    expect(content).toContain("command -v bun");
+    expect(content).toContain("${HOME}/.bun/bin/bun");
+    expect(content).toContain("/opt/homebrew/bin/bun");
+    expect(content).toContain('exec "${BUN_BIN}" "${GLOBAL_HARNESS}" "$@"');
   });
 });
 

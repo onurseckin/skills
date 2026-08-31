@@ -93,7 +93,7 @@ export function resolveExporterTheme(
     nodeFill: customTheme.nodeFill ?? base.nodeFill,
     statusColors: {
       ...base.statusColors,
-      ...(customTheme.statusColors ?? {}),
+      ...customTheme.statusColors,
     },
     fontFamily: customTheme.fontFamily ?? base.fontFamily,
     fontSize: customTheme.fontSize ?? base.fontSize,
@@ -113,5 +113,42 @@ export function getStatusStyle(
     fill: theme.nodeFill,
     stroke: theme.border,
     text: theme.textPrimary,
+  };
+}
+
+export interface DagDimensions {
+  readonly nodeWidth: number;
+  readonly nodeHeight: number;
+  readonly nodeSpacing: number;
+  readonly rankSpacing: number;
+  readonly paddingX: number;
+  readonly paddingY: number;
+  readonly layerSpacing: number;
+}
+
+export function resolveDimensions(options?: {
+  readonly nodeWidth?: number | undefined;
+  readonly nodeHeight?: number | undefined;
+  readonly nodeSpacing?: number | undefined;
+  readonly rankSpacing?: number | undefined;
+  readonly paddingX?: number | undefined;
+  readonly paddingY?: number | undefined;
+  readonly layerSpacing?: number | undefined;
+}): DagDimensions {
+  const nodeWidth = options?.nodeWidth ?? 180;
+  const nodeHeight = options?.nodeHeight ?? 60;
+  const nodeSpacing = options?.nodeSpacing ?? 40;
+  const rankSpacing = options?.rankSpacing ?? 80;
+  const paddingX = options?.paddingX ?? 40;
+  const paddingY = options?.paddingY ?? 40;
+  const layerSpacing = options?.layerSpacing ?? rankSpacing;
+  return {
+    nodeWidth,
+    nodeHeight,
+    nodeSpacing,
+    rankSpacing,
+    paddingX,
+    paddingY,
+    layerSpacing,
   };
 }

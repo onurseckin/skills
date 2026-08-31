@@ -82,10 +82,11 @@ function validateViolation(value: unknown): Violation {
 }
 
 function violationIdentity(violation: Violation): string {
-  if (violation.rule === "line_limit") {
-    return `${violation.rule}:${violation.path}`;
-  }
-  if (violation.rule === "directory_fanout") {
+  if (
+    violation.rule === "line_limit" ||
+    violation.rule === "directory_fanout" ||
+    violation.rule === "dependency_cycle"
+  ) {
     return `${violation.rule}:${violation.path}`;
   }
   return `${violation.rule}:${violation.path}:${String(violation.observed)}`;

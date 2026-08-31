@@ -2,16 +2,19 @@ import { lstatSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { JsonObject } from "../core/contracts/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
-import { parseArguments } from "./arguments.ts";
+import { parseArguments, suggestCommand } from "./arguments.ts";
 import { assertFlags, type CommandContext } from "./options.ts";
 import {
   assertGrantedCommand,
   explicitActingClaim,
   requiresActingIdentity,
 } from "../packets/command-authority.ts";
-import { findCommand, flagShapes, type CommandSpec } from "./registry/index.ts";
+import { commandInvocations, findCommand, flagShapes, type CommandSpec } from "./registry/index.ts";
 import { autoDeriveCallerIdentity } from "../authority/session/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
+import { CumulativePhaseInvariantEngine, DeductiveStateMachine } from "./phase-invariants.ts";
+
+export { DeductiveStateMachine, CumulativePhaseInvariantEngine };
 
 function isEnoent(error: unknown): boolean {
   return (
@@ -108,9 +111,32 @@ export async function execute(
   argv: readonly string[],
   context: CommandContext = {},
 ): Promise<JsonObject> {
-  const spec = findCommand(argv[0] ?? "");
-  const parsed = parseArguments(argv, spec === undefined ? undefined : flagShapes(spec.flags));
-  if (!spec) throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${parsed.command}`);
+  let effectiveArgv = [...argv];
+  if (
+    effectiveArgv.length >= 2 &&
+    effectiveArgv[0] !== undefined &&
+    effectiveArgv[1] !== undefined &&
+    !effectiveArgv[0].startsWith("-") &&
+    !effectiveArgv[1].startsWith("-") &&
+    effectiveArgv[1] !== "--"
+  ) {
+    const subCandidate = `${effectiveArgv[0]}:${effectiveArgv[1]}`;
+    if (findCommand(subCandidate) !== undefined) {
+      effectiveArgv = [subCandidate, ...effectiveArgv.slice(2)];
+    }
+  }
+
+  const spec = findCommand(effectiveArgv[0] ?? "");
+  const parsed = parseArguments(
+    effectiveArgv,
+    spec === undefined ? undefined : flagShapes(spec.flags),
+  );
+  if (!spec) {
+    const suggestions = commandInvocations();
+    const hintCommand = suggestCommand(parsed.command, suggestions);
+    const hint = hintCommand !== undefined ? `; did you mean '${hintCommand}'?` : "";
+    throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${parsed.command}${hint}`);
+  }
   if (parsed.remainder.length && !spec.takesRemainder) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
@@ -194,104 +220,4 @@ export async function execute(
     { ...context, authenticatedCaller: identity },
     parsed.remainder,
   )) as JsonObject;
-}
-
-export class DeductiveStateMachine {
-  constructor(public readonly state: Record<string, unknown>) {}
-
-  public isPhaseVerified(phase: string): boolean {
-    switch (phase) {
-      case "plan":
-        return (
-          !!this.state.requirements ||
-          !!this.state.plan_compiled ||
-          !!this.state.graph ||
-          !!this.state.completion_review ||
-          (!!this.state.tasks &&
-            typeof this.state.tasks === "object" &&
-            Object.keys(this.state.tasks as object).length > 0)
-        );
-      case "queue":
-        return (
-          !!this.state.graph ||
-          !!this.state.completion_review ||
-          !!this.state.completion_critic ||
-          (!!this.state.tasks &&
-            typeof this.state.tasks === "object" &&
-            this.state.tasks !== null &&
-            Object.keys(this.state.tasks as object).length > 0)
-        );
-      case "task":
-        return (
-          !!this.state.graph ||
-          !!this.state.completion_review ||
-          !!this.state.completion_critic ||
-          (!!this.state.tasks &&
-            typeof this.state.tasks === "object" &&
-            this.state.tasks !== null &&
-            Object.keys(this.state.tasks as object).length > 0)
-        );
-      case "critic":
-        return (
-          !!this.state.critic_verdict ||
-          !!this.state.critic_review ||
-          !!this.state.completion_review ||
-          (!!this.state.completion_critic &&
-            (this.state.completion_critic as { status?: string }).status === "reviewed")
-        );
-      case "run":
-        return !!this.state.completion_result;
-      default:
-        return true;
-    }
-  }
-}
-
-const PHASE_REMEDIAL_COMMAND: Readonly<Record<string, string>> = {
-  plan: "plan:compile",
-  queue: "queue:wave",
-  task: "queue:wave",
-  critic: "critic:start",
-};
-
-const READ_ONLY_INSPECTOR_COMMANDS: ReadonlySet<string> = new Set(["run:status"]);
-
-export class CumulativePhaseInvariantEngine {
-  public static verify(spec: CommandSpec, state: Record<string, unknown>): void {
-    const machine = new DeductiveStateMachine(state);
-    const prerequisitePhases = CumulativePhaseInvariantEngine.getPrerequisitePhases(spec);
-
-    for (const prereq of prerequisitePhases) {
-      if (!machine.isPhaseVerified(prereq)) {
-        throw new HarnessError(
-          "INVALID_STATE",
-          `Cumulative Phase Invariant Violation: cannot execute command '${spec.name}' because higher prerequisite phase '${prereq}' is unverified.`,
-          [],
-          3,
-          PHASE_REMEDIAL_COMMAND[prereq]
-            ? `Run '${PHASE_REMEDIAL_COMMAND[prereq]}' first to verify the '${prereq}' phase, then retry '${spec.name}'.`
-            : undefined,
-        );
-      }
-    }
-  }
-
-  private static getPrerequisitePhases(spec: CommandSpec): readonly string[] {
-    const name = spec.name;
-    if (READ_ONLY_INSPECTOR_COMMANDS.has(name)) {
-      return [];
-    }
-    if (name === "run:complete") return ["plan", "queue", "task", "critic"];
-    if (
-      name === "run:exec" ||
-      name === "shell" ||
-      spec.domain === "critic" ||
-      name.startsWith("critic:")
-    ) {
-      return ["plan", "queue", "task"];
-    }
-    if (spec.domain === "task" || name.startsWith("task:")) return ["plan", "queue"];
-    if (spec.domain === "queue" || name.startsWith("queue:")) return ["plan"];
-    return [];
-  }
 }

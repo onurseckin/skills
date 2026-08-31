@@ -90,6 +90,7 @@ export interface DagExportOptions {
   readonly showClusters?: boolean | undefined;
   readonly includeMetadata?: boolean | undefined;
   readonly direction?: "TB" | "LR" | "BT" | "RL" | undefined;
+  readonly maxParallel?: number | undefined;
   readonly customTheme?: Partial<DagExporterTheme> | undefined;
 }
 

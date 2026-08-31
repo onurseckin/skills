@@ -1,8 +1,13 @@
-[← Previous: Chapter 06: Lifecycle Hooks and Audio Engine](06-lifecycle-hooks-and-audio-engine.md) | [Table of Contents](SUMMARY.md) | [Next: Chapter 08: Verification and Socratic Gating →](08-verification-and-socratic-gating.md)
+# Chapter 7: Host-Aware Quota Engine & Graceful Freeze
+
+[← Previous: Chapter 6 — Lifecycle Hooks & Audio Engine](06-lifecycle-hooks-and-audio-engine.md) | [📖 Table of Contents](SUMMARY.md) | [Next: Chapter 8 — Verification & Socratic Gating →](08-verification-and-socratic-gating.md)
 
 ---
 
-# Chapter 07: Host-Aware Quota Engine and Graceful Freeze
+[![Diátaxis: Explanation & How-To](https://img.shields.io/badge/Diátaxis-Explanation_%26_How--To-blue.svg)](#diátaxis-documentation-matrix)
+[![Subsystem: Quota Engine](https://img.shields.io/badge/Subsystem-Quota_Engine_v1-blue.svg)](SUMMARY.md)
+[![Safety: Graceful Freeze <=10%](https://img.shields.io/badge/Safety-Graceful_Freeze_%3C%3D10%25-darkred.svg)](../../.olt/policy.json)
+[![Resumption: Transactional Reflog](https://img.shields.io/badge/Resumption-Transactional_Reflog-emerald.svg)](../../olt/scripts/src/telemetry/circuit-breaker-evaluator.ts)
 
 The **Host-Aware Quota Engine** is OLT's autonomous resource-governance subsystem. Modern AI agent operations run across diverse execution environments—ranging from terminal CLI wrappers to IDE extensions and cloud orchestrators—each enforcing strict rate limits, context windows, and rolling quota ceilings. Without active host awareness, autonomous multi-agent swarms inevitably suffer from abrupt token exhaustion, torn state transitions, mid-task process termination, and uncommitted codebase corruption.
 
@@ -124,35 +129,29 @@ When the circuit-breaker trips:
 
 A primary vulnerability in autonomous swarms is the loss of in-flight work when quotas exhaust. OLT guarantees **Transactional Reflog Staging Safety**:
 
-### Staging and State Preservation Algorithm
-
-```
+```text
 Step 1: Quota Engine detects Quota <= 10.0%
 Step 2: Harness notifies active Implementers: "Wrap up current micro-step immediately."
 Step 3: Implementers complete atomic AST syntax validation.
-Step 4: Harness executes safe transactional staging:
-        git add -A
-        git commit -m "chore(freeze): transactional snapshot for auto-wake [run-id]"
-Step 5: Write capsule state snapshot to .olt/capsules/<run-id>/state.json:
-        - Freeze active task leases (suspend lease clock).
-        - Persist agent ledger status: "frozen_for_quota".
-        - Calculate target wakeup timestamp: T_wake = T_reset + 60s.
-Step 6: Arm non-blocking background auto-wake timer:
-        schedule(DurationSeconds = T_wake - T_now, Prompt = "Quota limit refreshed (+1m buffer)...")
+Step 4: Harness executes safe transactional staging (git add -A && git commit -m "chore(freeze)...").
+Step 5: Write capsule state snapshot to .olt/capsules/<run-id>/state.json and pause lease clocks.
+Step 6: Arm non-blocking background auto-wake timer: schedule(DurationSeconds = T_wake - T_now).
 Step 7: Enter quiescent idle loop (Zero CPU / Zero Token burn).
 ```
 
-### Mathematical Formula for Auto-Wake Scheduling
+### Auto-Wake Scheduling & Double-Stall Backoff
 
-To ensure the upstream provider has fully refreshed the quota before the swarm awakens, OLT introduces a safety buffer $\Delta t_{\text{buffer}} = 60\,\text{seconds}$:
+To ensure the upstream provider has fully refreshed quota before awakening, OLT adds a safety buffer $\Delta t_{\text{buffer}} = 60\,\text{s}$:
 
-$$t_{\text{wakeup}} = t_{\text{reset}} + \Delta t_{\text{buffer}}$$
+$$t_{\text{wakeup}} = t_{\text{reset}} + \Delta t_{\text{buffer}}, \quad \Delta t_{\text{sleep}} = \max(t_{\text{wakeup}} - t_{\text{current}},\, 60)$$
 
-$$\Delta t_{\text{sleep}} = \max\left(t_{\text{wakeup}} - t_{\text{current}},\, 60\right)$$
+#### Double-Stall Circuit-Breaker Re-Arming
 
-If the provider does not supply an exact $t_{\text{reset}}$ timestamp in API headers or telemetry payloads, OLT applies the **Default Safe Window Heuristic**:
+If upon auto-wake awakening the probed quota remains $\le 10.0\%$ (e.g. rate limit window extended or concurrent tokens consumed), OLT prevents a **double-stall cascade** by incrementing the stall count $S \gets S + 1$ and applying exponential backoff:
 
-$$\Delta t_{\text{sleep}} = \Delta t_{\text{safe\_window}} = 18{,}000\,\text{seconds}\ (5\text{ hours})$$
+$$\Delta t_{\text{backoff}}(S) = \min\left( \Delta t_{\text{base}} \cdot 2^{S-1} + \Delta t_{\text{jitter}},\, \Delta t_{\text{max}} \right)$$
+
+Where $\Delta t_{\text{base}} = 300\,\text{s}$ (5 minutes), $\Delta t_{\text{jitter}} \in [0, 60]\,\text{s}$, and $\Delta t_{\text{max}} = 14{,}400\,\text{s}$ (4 hours). Lease clocks remain safely paused.
 
 ---
 

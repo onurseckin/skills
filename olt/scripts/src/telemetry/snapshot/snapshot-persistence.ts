@@ -21,7 +21,7 @@ import {
   type QuotaDagSnapshotWave,
   type SnapshotPersistenceStage,
 } from "./types.ts";
-import { canonicalPath, isOwnCode, regular, withSnapshotLock } from "./snapshot-lock.ts";
+import { regular, withSnapshotLock } from "./snapshot-lock.ts";
 
 export { withSnapshotLock };
 
@@ -137,9 +137,7 @@ export function writeAtomic(path: string, snapshot: QuotaDagSnapshot): void {
     if (!renamed) {
       try {
         unlinkSync(temporary);
-      } catch (error) {
-        if (!isOwnCode(error, "ENOENT")) throw error;
-      }
+      } catch {}
     }
   }
 }

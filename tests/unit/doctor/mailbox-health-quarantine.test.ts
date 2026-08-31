@@ -68,7 +68,7 @@ describe("Mailbox Health Quarantine & Torn-Tail Auto-Repair Suite", () => {
       sequence: 1,
       senderId: "coordinator",
       recipientId: "agent-rebuild",
-      messageType: "TASK_ASSIGNMENT",
+      messageType: "NOTIFICATION",
       correlationId: "corr-101",
       payload: { taskId: "task-1" },
     });
@@ -76,7 +76,7 @@ describe("Mailbox Health Quarantine & Torn-Tail Auto-Repair Suite", () => {
       sequence: 2,
       senderId: "coordinator",
       recipientId: "agent-rebuild",
-      messageType: "TASK_ASSIGNMENT",
+      messageType: "NOTIFICATION",
       correlationId: "corr-102",
       payload: { taskId: "task-2" },
     });

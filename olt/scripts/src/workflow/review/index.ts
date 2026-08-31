@@ -85,6 +85,8 @@ export {
 
 export {
   archiveOpenValidations,
+  archiveValidationForDomain,
+  archiveValidationForValidator,
   earliestOpenValidation,
   everyApplicableDomainPassed,
   openValidations,

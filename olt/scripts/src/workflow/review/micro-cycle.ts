@@ -163,6 +163,24 @@ export function recordMicroCycleCritique(
           micro_cycles: updatedCycles,
           micro_cycle_round: computedRound,
         };
+
+        const existingPacket = Object.values(draft.packets ?? {}).find(
+          (p) =>
+            p.status === "published" &&
+            p.task_id === taskId &&
+            p.role === priorRole &&
+            p.agent_id === repairAgentId,
+        );
+        if (existingPacket) {
+          const repairPacketId = `pkt-${taskId}-${priorRole}-${repairAgentId}-att${attemptNumber}`;
+          draft.packets ??= {};
+          draft.packets[repairPacketId] = {
+            ...existingPacket,
+            id: repairPacketId,
+            attempt: attemptNumber,
+            published_at: utc(now),
+          };
+        }
       }
 
       if (task.status !== "leased") {

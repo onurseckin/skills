@@ -1,4 +1,13 @@
-import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { logDestructiveOp, smartEnsureSymlink } from "./fs-helpers.ts";
@@ -34,8 +43,41 @@ if [ ! -f "\${GLOBAL_HARNESS}" ]; then
   exit 1
 fi
 
-exec bun "\${GLOBAL_HARNESS}" "$@"
+BUN_BIN=""
+if command -v bun >/dev/null 2>&1; then
+  BUN_BIN="$(command -v bun)"
+elif [ -x "\${HOME}/.bun/bin/bun" ]; then
+  BUN_BIN="\${HOME}/.bun/bin/bun"
+elif [ -x "/opt/homebrew/bin/bun" ]; then
+  BUN_BIN="/opt/homebrew/bin/bun"
+elif [ -x "/usr/local/bin/bun" ]; then
+  BUN_BIN="/usr/local/bin/bun"
+elif [ -x "/usr/bin/bun" ]; then
+  BUN_BIN="/usr/bin/bun"
+else
+  echo "Error: Bun runtime not found. Please install Bun (https://bun.sh) or add it to PATH." >&2
+  exit 1
+fi
+
+exec "\${BUN_BIN}" "\${GLOBAL_HARNESS}" "$@"
 `;
+}
+
+function atomicallyWriteExecutable(targetPath: string, content: string): void {
+  const nonce = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 8)}`;
+  const tempPath = `${targetPath}.tmp-${nonce}`;
+  try {
+    writeFileSync(tempPath, content, { encoding: "utf-8", mode: 0o755 });
+    chmodSync(tempPath, 0o755);
+    renameSync(tempPath, targetPath);
+  } catch (error) {
+    try {
+      if (existsSync(tempPath)) {
+        unlinkSync(tempPath);
+      }
+    } catch {}
+    throw error;
+  }
 }
 
 export function ensureGlobalOltBinary(options?: EnsureBinaryOptions): EnsureBinaryResult {
@@ -62,21 +104,15 @@ export function ensureGlobalOltBinary(options?: EnsureBinaryOptions): EnsureBina
       if (existingContent === expectedContent && isExecutable) {
         status = "verified";
       } else {
-        writeFileSync(binaryPath, expectedContent, { encoding: "utf-8", mode: 0o755 });
-        chmodSync(binaryPath, 0o755);
+        atomicallyWriteExecutable(binaryPath, expectedContent);
         status = "updated";
       }
     } catch {
-      try {
-        chmodSync(binaryPath, 0o755);
-      } catch {}
-      writeFileSync(binaryPath, expectedContent, { encoding: "utf-8", mode: 0o755 });
-      chmodSync(binaryPath, 0o755);
+      atomicallyWriteExecutable(binaryPath, expectedContent);
       status = "updated";
     }
   } else {
-    writeFileSync(binaryPath, expectedContent, { encoding: "utf-8", mode: 0o755 });
-    chmodSync(binaryPath, 0o755);
+    atomicallyWriteExecutable(binaryPath, expectedContent);
     status = "created";
   }
 

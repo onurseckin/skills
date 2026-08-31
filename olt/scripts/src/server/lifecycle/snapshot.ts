@@ -1,11 +1,23 @@
 /**
  * Dev Server State Snapshot Capture & Persistence Subsystem.
  *
- * Captures, serializes, loads, and manages server state snapshots
+ * Captures, serializes, loads, and atomically persists server state snapshots
  * (active endpoints, environment variables, PID history, port configs, run flags).
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  openSync,
+  closeSync,
+  writeSync,
+  fsyncSync,
+  renameSync,
+  unlinkSync,
+  constants,
+} from "node:fs";
+import { randomBytes } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import type {
   ServerEndpoint,
@@ -21,93 +33,56 @@ export const DEFAULT_SNAPSHOT_PATH = ".locks/server-state.json";
  * Captures an immutable snapshot of current dev server state.
  */
 export function captureSnapshot(input?: ServerStateSnapshotInput): ServerStateSnapshot {
-  let envSource: Record<string, string | undefined> = {};
-  if (input !== undefined && input !== null && input.envVariables !== undefined) {
-    envSource = input.envVariables;
-  } else if (typeof process !== "undefined" && process.env !== undefined) {
-    envSource = process.env;
-  }
-
+  const envSource = input?.envVariables ?? (typeof process !== "undefined" ? process.env : {});
   const safeEnv: Record<string, string> = {};
-  for (const [key, val] of Object.entries(envSource)) {
-    if (typeof val === "string") {
-      safeEnv[key] = val;
-    }
+  for (const [k, v] of Object.entries(envSource)) {
+    if (typeof v === "string") safeEnv[k] = v;
   }
 
-  let currentPid: number | undefined = undefined;
-  if (input !== undefined && input !== null && input.currentPid !== undefined) {
-    currentPid = input.currentPid;
-  } else if (typeof process !== "undefined") {
-    currentPid = process.pid;
-  }
+  const currentPid =
+    input?.currentPid ?? (typeof process !== "undefined" ? process.pid : undefined);
 
-  const pidHistory: number[] = [];
-  if (
-    input !== undefined &&
-    input !== null &&
-    input.pidHistory !== undefined &&
-    input.pidHistory.length > 0
-  ) {
-    for (const p of input.pidHistory) {
-      pidHistory.push(p);
-    }
+  let pidHistory: number[] = [];
+  if (input?.pidHistory && input.pidHistory.length > 0) {
+    pidHistory = [...input.pidHistory];
   } else if (currentPid !== undefined) {
-    pidHistory.push(currentPid);
+    pidHistory = [currentPid];
   }
 
-  const activeEndpoints: ServerEndpoint[] = [];
-  if (input !== undefined && input !== null && input.activeEndpoints !== undefined) {
-    for (const ep of input.activeEndpoints) {
-      activeEndpoints.push({
-        path: ep.path,
-        method: ep.method,
-        port: ep.port,
-        name: ep.name,
-      });
-    }
-  }
+  const activeEndpoints: ServerEndpoint[] = (input?.activeEndpoints ?? []).map((ep) => ({
+    path: ep.path,
+    ...(ep.method !== undefined ? { method: ep.method } : {}),
+    ...(ep.port !== undefined ? { port: ep.port } : {}),
+    ...(ep.name !== undefined ? { name: ep.name } : {}),
+  }));
 
-  const portConfigurations: PortConfiguration[] = [];
-  if (input !== undefined && input !== null && input.portConfigurations !== undefined) {
-    for (const pc of input.portConfigurations) {
-      portConfigurations.push({
-        port: pc.port,
-        protocol: pc.protocol,
-        host: pc.host,
-        isPrimary: pc.isPrimary,
-        name: pc.name,
-      });
-    }
-  }
+  const portConfigurations: PortConfiguration[] = (input?.portConfigurations ?? []).map((pc) => ({
+    port: pc.port,
+    ...(pc.protocol !== undefined ? { protocol: pc.protocol } : {}),
+    ...(pc.host !== undefined ? { host: pc.host } : {}),
+    ...(pc.isPrimary !== undefined ? { isPrimary: pc.isPrimary } : {}),
+    ...(pc.name !== undefined ? { name: pc.name } : {}),
+  }));
 
   const runFlags: Record<string, string | number | boolean | readonly string[]> = {};
-  if (input !== undefined && input !== null && input.runFlags !== undefined) {
-    for (const [key, val] of Object.entries(input.runFlags)) {
-      if (typeof val === "string") {
-        runFlags[key] = val;
-      } else if (typeof val === "number") {
-        runFlags[key] = val;
-      } else if (typeof val === "boolean") {
-        runFlags[key] = val;
-      } else if (Array.isArray(val)) {
-        runFlags[key] = val;
+  if (input?.runFlags) {
+    for (const [k, v] of Object.entries(input.runFlags)) {
+      if (
+        typeof v === "string" ||
+        typeof v === "number" ||
+        typeof v === "boolean" ||
+        Array.isArray(v)
+      ) {
+        runFlags[k] = v;
       }
     }
   }
 
   const metadata: Record<string, string> = {};
-  if (input !== undefined && input !== null && input.metadata !== undefined) {
-    for (const [key, val] of Object.entries(input.metadata)) {
-      if (typeof val === "string") {
-        metadata[key] = val;
-      }
+  if (input?.metadata) {
+    for (const [k, v] of Object.entries(input.metadata)) {
+      if (typeof v === "string") metadata[k] = v;
     }
-  }
-
-  let timestamp = new Date().toISOString();
-  if (input !== undefined && input !== null && input.timestamp !== undefined) {
-    timestamp = input.timestamp;
   }
 
   return {
@@ -117,7 +92,7 @@ export function captureSnapshot(input?: ServerStateSnapshotInput): ServerStateSn
     portConfigurations: Object.freeze(portConfigurations),
     runFlags: Object.freeze(runFlags),
     currentPid,
-    timestamp,
+    timestamp: input?.timestamp ?? new Date().toISOString(),
     metadata: Object.freeze(metadata),
   };
 }
@@ -128,79 +103,67 @@ export const captureServerStateSnapshot = captureSnapshot;
  * Validates whether an unknown object conforms to the ServerStateSnapshot schema.
  */
 export function isValidServerStateSnapshot(data: unknown): data is ServerStateSnapshot {
-  if (typeof data !== "object") {
-    return false;
-  }
-  if (data === null) {
-    return false;
-  }
+  if (typeof data !== "object" || data === null) return false;
   const obj = data as Record<string, unknown>;
-  if (!Array.isArray(obj["activeEndpoints"])) {
-    return false;
-  }
-  if (typeof obj["envVariables"] !== "object") {
-    return false;
-  }
-  if (obj["envVariables"] === null) {
-    return false;
-  }
-  if (!Array.isArray(obj["pidHistory"])) {
-    return false;
-  }
-  if (!Array.isArray(obj["portConfigurations"])) {
-    return false;
-  }
-  if (typeof obj["runFlags"] !== "object") {
-    return false;
-  }
-  if (obj["runFlags"] === null) {
-    return false;
-  }
-  if (typeof obj["timestamp"] !== "string") {
-    return false;
-  }
-  return true;
+  return (
+    Array.isArray(obj["activeEndpoints"]) &&
+    typeof obj["envVariables"] === "object" &&
+    obj["envVariables"] !== null &&
+    Array.isArray(obj["pidHistory"]) &&
+    Array.isArray(obj["portConfigurations"]) &&
+    typeof obj["runFlags"] === "object" &&
+    obj["runFlags"] !== null &&
+    typeof obj["timestamp"] === "string"
+  );
 }
 
 /**
- * Synchronously or asynchronously saves a server state snapshot to disk.
+ * Atomically saves a server state snapshot to disk via temp-file + fsync + rename.
  */
 export async function saveSnapshot(
   snapshot: ServerStateSnapshot,
   filepath?: string,
 ): Promise<void> {
-  let targetPath = DEFAULT_SNAPSHOT_PATH;
-  if (filepath !== undefined && filepath !== null && filepath.length > 0) {
-    targetPath = filepath;
-  }
-  const resolvedPath = resolve(targetPath);
+  const resolvedPath = resolve(filepath && filepath.length > 0 ? filepath : DEFAULT_SNAPSHOT_PATH);
   const dir = dirname(resolvedPath);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
+
+  const nonce = randomBytes(4).toString("hex");
+  const tempPath = `${resolvedPath}.${process.pid}.${Date.now()}.${nonce}.tmp`;
   const serialized = JSON.stringify(snapshot, null, 2);
-  writeFileSync(resolvedPath, serialized, "utf-8");
+
+  const fd = openSync(tempPath, constants.O_CREAT | constants.O_WRONLY | constants.O_TRUNC, 0o600);
+  try {
+    writeSync(fd, serialized, 0, "utf-8");
+    fsyncSync(fd);
+  } finally {
+    closeSync(fd);
+  }
+
+  try {
+    renameSync(tempPath, resolvedPath);
+  } catch (err) {
+    try {
+      unlinkSync(tempPath);
+    } catch {
+      // Ignore temp file cleanup error
+    }
+    throw err;
+  }
 }
 
 /**
  * Synchronously or asynchronously loads a server state snapshot from disk.
  */
 export async function loadSnapshot(filepath?: string): Promise<ServerStateSnapshot | null> {
-  let targetPath = DEFAULT_SNAPSHOT_PATH;
-  if (filepath !== undefined && filepath !== null && filepath.length > 0) {
-    targetPath = filepath;
-  }
-  const resolvedPath = resolve(targetPath);
-  if (!existsSync(resolvedPath)) {
-    return null;
-  }
+  const resolvedPath = resolve(filepath && filepath.length > 0 ? filepath : DEFAULT_SNAPSHOT_PATH);
+  if (!existsSync(resolvedPath)) return null;
   try {
     const content = readFileSync(resolvedPath, "utf-8");
     const parsed: unknown = JSON.parse(content);
-    if (isValidServerStateSnapshot(parsed)) {
-      return parsed;
-    }
-    return null;
+    return isValidServerStateSnapshot(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -210,14 +173,8 @@ export async function loadSnapshot(filepath?: string): Promise<ServerStateSnapsh
  * Clears the snapshot file from disk if present.
  */
 export async function clearSnapshot(filepath?: string): Promise<boolean> {
-  let targetPath = DEFAULT_SNAPSHOT_PATH;
-  if (filepath !== undefined && filepath !== null && filepath.length > 0) {
-    targetPath = filepath;
-  }
-  const resolvedPath = resolve(targetPath);
-  if (!existsSync(resolvedPath)) {
-    return false;
-  }
+  const resolvedPath = resolve(filepath && filepath.length > 0 ? filepath : DEFAULT_SNAPSHOT_PATH);
+  if (!existsSync(resolvedPath)) return false;
   try {
     unlinkSync(resolvedPath);
     return true;
@@ -234,11 +191,7 @@ export class StatePreserver {
   private readonly defaultPath: string;
 
   public constructor(defaultPath?: string) {
-    let resolved = DEFAULT_SNAPSHOT_PATH;
-    if (defaultPath !== undefined && defaultPath !== null && defaultPath.length > 0) {
-      resolved = defaultPath;
-    }
-    this.defaultPath = resolved;
+    this.defaultPath = defaultPath && defaultPath.length > 0 ? defaultPath : DEFAULT_SNAPSHOT_PATH;
   }
 
   public capture(input?: ServerStateSnapshotInput): ServerStateSnapshot {
@@ -248,42 +201,20 @@ export class StatePreserver {
   }
 
   public async save(snapshot?: ServerStateSnapshot, filepath?: string): Promise<void> {
-    let target: ServerStateSnapshot;
-    if (snapshot !== undefined && snapshot !== null) {
-      target = snapshot;
-    } else if (this.currentSnapshot !== null) {
-      target = this.currentSnapshot;
-    } else {
-      target = captureSnapshot();
-    }
+    const target = snapshot ?? this.currentSnapshot ?? captureSnapshot();
     this.currentSnapshot = target;
-
-    let path = this.defaultPath;
-    if (filepath !== undefined && filepath !== null && filepath.length > 0) {
-      path = filepath;
-    }
-    await saveSnapshot(target, path);
+    await saveSnapshot(target, filepath ?? this.defaultPath);
   }
 
   public async load(filepath?: string): Promise<ServerStateSnapshot | null> {
-    let path = this.defaultPath;
-    if (filepath !== undefined && filepath !== null && filepath.length > 0) {
-      path = filepath;
-    }
-    const loaded = await loadSnapshot(path);
-    if (loaded !== null) {
-      this.currentSnapshot = loaded;
-    }
+    const loaded = await loadSnapshot(filepath ?? this.defaultPath);
+    if (loaded !== null) this.currentSnapshot = loaded;
     return loaded;
   }
 
   public async clear(filepath?: string): Promise<boolean> {
     this.currentSnapshot = null;
-    let path = this.defaultPath;
-    if (filepath !== undefined && filepath !== null && filepath.length > 0) {
-      path = filepath;
-    }
-    return clearSnapshot(path);
+    return clearSnapshot(filepath ?? this.defaultPath);
   }
 
   public getLatest(): ServerStateSnapshot | null {
@@ -295,7 +226,7 @@ export class StatePreserver {
     return {
       restored: true,
       snapshot,
-      targetPid: snapshot.currentPid,
+      ...(snapshot.currentPid !== undefined ? { targetPid: snapshot.currentPid } : {}),
     };
   }
 }

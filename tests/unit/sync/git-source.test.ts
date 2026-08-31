@@ -3,8 +3,10 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  areSignalHooksRegistered,
   decideSyncSource,
   firstNonEmpty,
+  getActiveCleanupsCount,
   getDirtyOltPaths,
   materializeOltFromHead,
   parsePorcelainStatus,
@@ -151,9 +153,12 @@ describe("materializeOltFromHead", () => {
     const targetFile = join(root, "olt", "SKILL.md");
     writeFileSync(targetFile, "dirty-edit-not-in-git\n", "utf-8");
 
+    const initialCount = getActiveCleanupsCount();
     const tmpParent = join(root, "my-custom-tmp");
     const source = materializeOltFromHead(root, tmpParent);
     try {
+      expect(getActiveCleanupsCount()).toBe(initialCount + 1);
+      expect(areSignalHooksRegistered()).toBe(true);
       expect(existsSync(source.sourceOltDir)).toBe(true);
       expect(source.sourceOltDir.startsWith(tmpParent)).toBe(true);
       expect(readFileSync(join(source.sourceOltDir, "SKILL.md"), "utf-8")).toBe(
@@ -163,6 +168,8 @@ describe("materializeOltFromHead", () => {
       source.cleanup();
     }
 
+    expect(getActiveCleanupsCount()).toBe(initialCount);
+    expect(areSignalHooksRegistered()).toBe(false);
     expect(existsSync(source.sourceOltDir)).toBe(false);
   });
 

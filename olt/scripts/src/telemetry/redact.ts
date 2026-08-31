@@ -41,7 +41,7 @@ const SECRET_VALUE_PATTERNS: RegExp[] = [
 export function redactSecretsInString(value: string): string {
   let result = value;
   for (const pattern of SECRET_VALUE_PATTERNS) {
-    result = result.replace(pattern, (match, ...groups: unknown[]) => {
+    result = result.replace(pattern, (_match, ...groups: unknown[]) => {
       if (groups.length >= 2 && typeof groups[0] === "string" && typeof groups[1] === "string") {
         return `${groups[0]}${REDACTED}${groups[1]}`;
       }

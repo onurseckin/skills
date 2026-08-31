@@ -4,7 +4,7 @@ import type { CapsuleMode } from "../../../core/contracts/index.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
 import { resolveCapsulesDir } from "./paths.ts";
 import { normalizeRunId } from "./run-id.ts";
-import { initRun } from "./capsule.ts";
+import { initRun, type RuntimeLinkMode } from "./capsule.ts";
 
 export interface InitCapsuleRunOptions {
   readonly repo?: string;
@@ -13,6 +13,7 @@ export interface InitCapsuleRunOptions {
   readonly captureMode?: string;
   readonly sourceVerified?: boolean;
   readonly runtimeSource?: string;
+  readonly runtimeLinkMode?: RuntimeLinkMode;
   readonly beforeRuntimeSourceRecheck?: () => void;
   readonly allowExisting?: boolean;
 }
@@ -48,6 +49,7 @@ export function initCapsuleRun(
   initRun(repo, runId, promptBytes, captureMode, sourceVerified, {
     ...(options.mode !== undefined ? { mode: options.mode } : {}),
     ...(options.runtimeSource !== undefined ? { runtimeSource: options.runtimeSource } : {}),
+    ...(options.runtimeLinkMode !== undefined ? { runtimeLinkMode: options.runtimeLinkMode } : {}),
     ...(options.beforeRuntimeSourceRecheck !== undefined
       ? { beforeRuntimeSourceRecheck: options.beforeRuntimeSourceRecheck }
       : {}),

@@ -1,44 +1,32 @@
-import { basename, dirname, resolve } from "node:path";
-import { getHarnessConfig } from "../../core/config/index.ts";
+import { basename } from "node:path";
 import { isJsonObject, type JsonObject, type JsonValue } from "../../core/contracts/index.ts";
-import { readBoundedBytes } from "../../core/json.ts";
 import { HarnessError } from "../../core/errors/index.ts";
+import { readBoundedBytes } from "../../core/json.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { initRun, loadRun, transact } from "../../engine/store/index.ts";
 import { partitionByGlob, slugifyScope } from "../../graph/auto-partition.ts";
-import { compileGraphDocument } from "../../graph/compiler.ts";
-import { projectPlan } from "../../graph/project-plan.ts";
-import { guardPlanRevision } from "../../graph/revision-guard.ts";
-import { analyzeScopeIndependence } from "../../graph/scope-analyzer.ts";
-import { dependencyData } from "../../graph/topology.ts";
+import { discoverGatePaths, gateBreadthWarning } from "../../graph/gate-breadth.ts";
 import { assertInstalledRuntimeFresh } from "../../installer/runtime-freshness.ts";
-import {
-  compileRequirementsFromPrompt,
-  type TaskDeclaration,
-} from "../../requirements/compiler.ts";
+import { type TaskDeclaration } from "../../requirements/compiler.ts";
 import { buildEnhancedPlan, writeEnhancedPlan } from "../../requirements/enhanced-plan.ts";
 import { parseRequirementLines } from "../../requirements/requirement-lines.ts";
-import { recordTopology } from "../../engine/scheduler/index.ts";
-import { initRun, loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/index.ts";
-import { ensureHarnessIgnored } from "../git-ignore.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
-import { discoverGatePaths, gateBreadthWarning } from "../../graph/gate-breadth.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
 import {
   formatAutoPartitionBrief,
   formatCapsuleInitBrief,
-  formatPlanCompileBrief,
   formatPlanEnhanceBrief,
   formatPlanStatusBrief,
   formatTaskRegisteredBrief,
 } from "../formatters/index.ts";
-import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
+import { ensureHarnessIgnored } from "../git-ignore.ts";
 import {
   actorFlag,
   boolFlag,
   integerFlag,
   listFlag,
   textFlag,
-  type Flags,
   type CommandContext,
+  type Flags,
 } from "../options.ts";
 
 function promptText(prompt: Uint8Array): string {
@@ -53,7 +41,6 @@ export async function planInitCommand(
   if (!runId) throw new HarnessError("INVALID_ARGUMENT", "must provide --run or --run-id");
 
   const fromFile = textFlag(flags, "prompt-file", false);
-  const fromStdin = boolFlag(flags, "prompt-stdin");
   const prompt =
     fromFile === undefined ? context.stdin : readBoundedBytes(fromFile, 64 * 1024 * 1024);
   if (prompt === undefined)
@@ -360,7 +347,7 @@ function planAddAutoPartitionCommand(
     throw new HarnessError("INVALID_ARGUMENT", "--group-by must be 'file' or 'directory'");
   }
   const actor = actorFlag(flags);
-  const repoRoot = resolve(run, "..", "..", "..");
+  const repoRoot = findRepoRoot(run);
   const partitions = partitionByGlob(repoRoot, glob, groupBy);
 
   const generated: TaskDeclaration[] = partitions.map((entry) => ({

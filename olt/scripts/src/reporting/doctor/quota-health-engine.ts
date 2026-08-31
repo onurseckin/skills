@@ -13,19 +13,56 @@ export interface QuotaHealthCheckOptions {
   readonly quota?: number | null | undefined;
 }
 
-function canonicalHostMatch(platformId: string, activeHost: string): boolean {
-  if (activeHost === "unknown") return true;
+const KNOWN_PROVIDER_STEMS: readonly string[] = [
+  "claude",
+  "anthropic",
+  "cursor",
+  "codex",
+  "openai",
+  "chatgpt",
+  "gemini",
+  "antigravity",
+  "deepseek",
+  "ollama",
+  "bedrock",
+  "amazon",
+  "groq",
+  "mistral",
+  "openrouter",
+  "azure",
+  "together",
+  "fireworks",
+  "cohere",
+  "vertex",
+];
+
+function normalizeHostStem(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+export function canonicalHostMatch(platformId: string, activeHost: string): boolean {
+  if (!activeHost || activeHost === "unknown" || !platformId) return false;
   if (platformId === activeHost) return true;
-  const pLower = platformId.toLowerCase().replace(/[-_]/g, "");
-  const hLower = activeHost.toLowerCase().replace(/[-_]/g, "");
-  if (pLower === hLower) return true;
-  if (hLower.includes("claude") && pLower.includes("claude")) return true;
-  if (hLower.includes("cursor") && pLower.includes("cursor")) return true;
-  if (hLower.includes("codex")) {
-    if (pLower.includes("codex")) return true;
-    if (pLower.includes("openai")) return true;
+
+  const pNorm = normalizeHostStem(platformId);
+  const hNorm = normalizeHostStem(activeHost);
+  if (pNorm === hNorm) return true;
+  if (pNorm.includes(hNorm) || hNorm.includes(pNorm)) return true;
+
+  for (const stem of KNOWN_PROVIDER_STEMS) {
+    if (pNorm.includes(stem) && hNorm.includes(stem)) return true;
   }
-  if (hLower.includes("antigravity") && pLower.includes("antigravity")) return true;
+
+  const isCodexOrOpenAi = (s: string) =>
+    s.includes("codex") || s.includes("openai") || s.includes("chatgpt");
+  if (isCodexOrOpenAi(pNorm) && isCodexOrOpenAi(hNorm)) return true;
+
+  const isGeminiOrAntigravity = (s: string) => s.includes("gemini") || s.includes("antigravity");
+  if (isGeminiOrAntigravity(pNorm) && isGeminiOrAntigravity(hNorm)) return true;
+
+  const isBedrockOrAmazon = (s: string) => s.includes("bedrock") || s.includes("amazon");
+  if (isBedrockOrAmazon(pNorm) && isBedrockOrAmazon(hNorm)) return true;
+
   return false;
 }
 
@@ -37,9 +74,9 @@ export async function checkQuotaHealth(
       ? options.thresholdPercentage
       : DEFAULT_QUOTA_THRESHOLD;
 
-  const resolvedHost = resolveHostProviderLoose(options.host);
-  const host =
-    typeof resolvedHost === "string" && resolvedHost.length > 0 ? resolvedHost : "unknown";
+  const rawHost = typeof options.host === "string" ? options.host.trim() : "";
+  const resolvedHost = rawHost.length > 0 ? resolveHostProviderLoose(rawHost) : "unknown";
+  const host = resolvedHost !== "unknown" ? resolvedHost : rawHost.length > 0 ? rawHost : "unknown";
 
   const findings: DoctorDiagnosticFinding[] = [];
 

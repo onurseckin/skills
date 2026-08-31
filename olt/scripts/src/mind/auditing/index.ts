@@ -218,6 +218,7 @@ export {
   isZeroDeltaReport,
   suppressZeroDeltaReport,
   computeStateSignature,
+  sanitizeFindingForDelta,
   MIND_PREPLANNING_STAGNATION,
   MIND_CREATIVE_STAGNATION,
   DEFAULT_STAGNATION_THRESHOLD_SECONDS,

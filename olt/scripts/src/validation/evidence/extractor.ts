@@ -1,4 +1,4 @@
-import type { MilestoneType, ProseMilestoneClaim } from "./types.ts";
+import type { ProseMilestoneClaim } from "./types.ts";
 import {
   IGNITION_REGEX,
   INVARIANT_REGEX,

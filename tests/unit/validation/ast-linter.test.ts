@@ -2,15 +2,6 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
-  checkMockTautology,
-  checkTrivialConstantAssertion,
-  detectMockDeclarations,
-  extractTestName,
-  findCallback,
-  getRootExpectArg,
-  identifyTestCall,
-  isAssertionCall,
-  isLiteralOrConstant,
   isTestIdentifier,
   lintTestAst,
   MOCK_FACTORIES,
@@ -152,6 +143,43 @@ describe("AST Linter & Anti-Mock Verification", () => {
       const result = lintTestAst(code);
       expect(result.passed).toBe(false);
       expect(result.mockTautologyCount).toBe(1);
+    });
+
+    it("detects destructured mock declarations without SUT execution", () => {
+      const code = `
+        test("destructured mock test", () => {
+          const { fn } = vi;
+          const myMock = fn();
+          expect(myMock).toHaveBeenCalledTimes(0);
+        });
+      `;
+      const result = lintTestAst(code);
+      expect(result.passed).toBe(false);
+      expect(result.mockTautologyCount).toBe(1);
+    });
+
+    it("detects monkey-patched property mock assertions without SUT execution", () => {
+      const code = `
+        test("monkey-patched mock test", () => {
+          const service = { get: () => 0 };
+          service.get = vi.fn().mockReturnValue(42);
+          expect(service.get()).toBe(42);
+        });
+      `;
+      const result = lintTestAst(code);
+      expect(result.passed).toBe(false);
+      expect(result.mockTautologyCount).toBe(1);
+    });
+
+    it("recognizes chained test runners and concise arrow function bodies", () => {
+      const code = `
+        test.concurrent("concurrent concise test", () => expect(1).toBe(1));
+        it.skip("skipped block test", () => { return; expect(2).toBe(2); });
+      `;
+      const result = lintTestAst(code);
+      expect(result.totalTestsAnalyzed).toBe(2);
+      expect(result.trivialConstantCount).toBe(2);
+      expect(result.trivialReturnCount).toBe(1);
     });
   });
 

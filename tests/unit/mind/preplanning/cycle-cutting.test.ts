@@ -9,10 +9,7 @@ import type {
   SugiyamaEdge,
   SugiyamaNode,
 } from "../../../../olt/scripts/src/reporting/sugiyama-dag/types.ts";
-import {
-  compileSmartTasksToWavePlan,
-  planWaveExecution,
-} from "../../../../olt/scripts/src/mind/tasks/smart/planner/waves.ts";
+import { compileSmartTasksToWavePlan } from "../../../../olt/scripts/src/mind/tasks/smart/planner/waves.ts";
 import type { SmartTaskPlan } from "../../../../olt/scripts/src/mind/tasks/smart/planner/models.ts";
 
 describe("Mind Strategic Tarjan SCC Cycle-Cutting & Acyclic Wave Partitioning", () => {
@@ -152,7 +149,7 @@ describe("Mind Strategic Tarjan SCC Cycle-Cutting & Acyclic Wave Partitioning", 
       }
     }
 
-    const { feedbackArcs, acyclicEdges } = extractFeedbackArcSet(nodes, edges);
+    const { feedbackArcs } = extractFeedbackArcSet(nodes, edges);
     expect(feedbackArcs.length).toBe(1);
 
     const cutEdgeSet = new Set(feedbackArcs.map((fa) => `${fa.from}->${fa.to}`));
@@ -190,24 +187,39 @@ describe("Mind Strategic Tarjan SCC Cycle-Cutting & Acyclic Wave Partitioning", 
     expect(bypassResult.alert).toContain("BYPASS DETECTED");
   });
 
-  test("passes clean acyclic graph with zero cycles and zero feedback arcs", () => {
+  test("preserves forward critical paths and multi-branch DAG topology while severing cycle back-edges", () => {
+    // Pipeline: start -> b1 -> join -> end
+    //           start -> b2 -> join -> end
+    // Back-edge: join -> start (poisonous cycle)
     const nodes: SugiyamaNode[] = [
-      { id: "root", label: "Root" },
-      { id: "leaf-1", label: "Leaf 1" },
-      { id: "leaf-2", label: "Leaf 2" },
+      { id: "start", label: "Start" },
+      { id: "b1", label: "Branch 1" },
+      { id: "b2", label: "Branch 2" },
+      { id: "join", label: "Join" },
+      { id: "end", label: "End" },
     ];
     const edges: SugiyamaEdge[] = [
-      { from: "root", to: "leaf-1" },
-      { from: "root", to: "leaf-2" },
+      { from: "start", to: "b1" },
+      { from: "start", to: "b2" },
+      { from: "b1", to: "join" },
+      { from: "b2", to: "join" },
+      { from: "join", to: "end" },
+      { from: "join", to: "start" }, // Back-edge
     ];
 
     const diag = detectCyclesTarjan(nodes, edges);
-    expect(diag.hasCycle).toBe(false);
-    expect(diag.cyclePaths).toEqual([]);
-    expect(diag.cycleNodeIds).toEqual([]);
+    expect(diag.hasCycle).toBe(true);
 
-    const fas = extractFeedbackArcSet(nodes, edges);
-    expect(fas.feedbackArcs).toEqual([]);
-    expect(fas.acyclicEdges).toEqual(edges);
+    const { feedbackArcs, acyclicEdges } = extractFeedbackArcSet(nodes, edges);
+    expect(feedbackArcs).toEqual([{ from: "join", to: "start" }]);
+    expect(acyclicEdges.length).toBe(5);
+    expect(acyclicEdges.some((e) => e.from === "start" && e.to === "b1")).toBe(true);
+    expect(acyclicEdges.some((e) => e.from === "start" && e.to === "b2")).toBe(true);
+    expect(acyclicEdges.some((e) => e.from === "b1" && e.to === "join")).toBe(true);
+    expect(acyclicEdges.some((e) => e.from === "b2" && e.to === "join")).toBe(true);
+    expect(acyclicEdges.some((e) => e.from === "join" && e.to === "end")).toBe(true);
+
+    const checkDiag = detectCyclesTarjan(nodes, acyclicEdges);
+    expect(checkDiag.hasCycle).toBe(false);
   });
 });

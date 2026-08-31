@@ -10,19 +10,31 @@ export interface ImportEdge {
   readonly viaFacade: boolean;
 }
 
+function isFacadeTarget(to: string): boolean {
+  return (
+    to === "index.ts" ||
+    to === "index.tsx" ||
+    to === "index.mts" ||
+    to === "index.cts" ||
+    to.endsWith("/index.ts") ||
+    to.endsWith("/index.tsx") ||
+    to.endsWith("/index.mts") ||
+    to.endsWith("/index.cts")
+  );
+}
+
 export function buildImportEdges(blobs: readonly IndexedBlob[]): readonly ImportEdge[] {
-  const paths = blobs.map((blob) => blob.path);
+  const pathSet = new Set(blobs.map((blob) => blob.path));
   return blobs.flatMap((blob) => {
     if (!classifyPath(blob.path).importScanned) return [];
     return scanImports(blob).flatMap((reference) => {
       if (!reference.specifier.startsWith(".")) return [];
-      const to = resolveImport({ ...reference, from: blob.path }, paths);
-      const isFacade = to === "index.ts" ? true : to.endsWith("/index.ts");
+      const to = resolveImport({ ...reference, from: blob.path }, pathSet);
       return {
         from: blob.path,
         to,
         typeOnly: reference.typeOnly,
-        viaFacade: isFacade,
+        viaFacade: isFacadeTarget(to),
       };
     });
   });

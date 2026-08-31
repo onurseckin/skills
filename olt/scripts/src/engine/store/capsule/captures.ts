@@ -40,12 +40,39 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function storedCapture(value: unknown): CaptureRecord | undefined {
   if (!isObject(value)) return undefined;
-  const { kind, name, sha256, path } = value;
+  const {
+    kind,
+    name,
+    sha256,
+    path,
+    bytes,
+    blob_path,
+    storage,
+    original_path,
+    command_id,
+    task_id,
+    actor,
+    timestamp,
+  } = value;
   if (kind !== "screenshot" && kind !== "visual_report") return undefined;
   if (typeof name !== "string" || name.length === 0) return undefined;
   if (typeof sha256 !== "string" || sha256.length !== 64) return undefined;
   if (typeof path !== "string" || path.length === 0) return undefined;
-  return value as unknown as CaptureRecord;
+  if (storage !== "hardlink" && storage !== "copy") return undefined;
+  return {
+    kind,
+    name,
+    sha256,
+    bytes: typeof bytes === "number" ? bytes : 0,
+    blob_path: typeof blob_path === "string" ? blob_path : "",
+    path,
+    storage,
+    original_path: typeof original_path === "string" ? original_path : "",
+    ...(typeof command_id === "string" ? { command_id } : {}),
+    ...(typeof task_id === "string" ? { task_id } : {}),
+    ...(typeof actor === "string" ? { actor } : {}),
+    ...(typeof timestamp === "string" ? { timestamp } : {}),
+  };
 }
 
 export function readCaptures(runRoot: string): CaptureRecord[] {
@@ -80,6 +107,9 @@ export function recordCaptures(runRoot: string, additions: readonly CaptureRecor
     captures: merged,
     updated_at: new Date().toISOString(),
   };
-  atomicWriteBytes(capturesPath(runRoot), Buffer.from(`${JSON.stringify(ledger, null, 2)}\n`));
+  atomicWriteBytes(
+    capturesPath(runRoot),
+    new TextEncoder().encode(`${JSON.stringify(ledger, null, 2)}\n`),
+  );
   return true;
 }

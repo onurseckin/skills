@@ -1,8 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import type {
-  PlatformProbeResult,
-  NormalizedQuotaMetric,
-} from "../../../olt/scripts/src/telemetry/types.ts";
+import type { PlatformProbeResult } from "../../../olt/scripts/src/telemetry/types.ts";
 
 describe("Telemetry Resilience", () => {
   it("preserves unmapped empirical observations without data loss", () => {

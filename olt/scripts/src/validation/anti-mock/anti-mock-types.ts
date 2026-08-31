@@ -131,6 +131,7 @@ export interface MutationTestRunOutcome {
   readonly passed: boolean;
   readonly exitCode?: number | undefined;
   readonly error?: string | undefined;
+  readonly isCompilationError?: boolean | undefined;
 }
 
 export type MutationTestRunner = (

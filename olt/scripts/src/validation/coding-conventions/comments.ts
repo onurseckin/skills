@@ -175,7 +175,7 @@ export function validateZeroCommentsInCode(
       const isKw = /(?:return|case|typeof|void|delete|throw|yield|await|in|of|instanceof)\s*$/.test(
         code.slice(Math.max(0, p - 10), p + 1),
       );
-      if (pc === "" || /[\(\[\{,;:\?=\!&|\+\-\*%<>~^]/.test(pc) || isKw) state = "REGEX";
+      if (pc === "" || /[([{},;:?=!&|+\-*%<>~^]/.test(pc) || isKw) state = "REGEX";
     }
     i++;
     col++;

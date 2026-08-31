@@ -150,7 +150,7 @@ export function constructSupervisoryPersonaReminder(
   return {
     id,
     role,
-    tier: unifiedModel.tier,
+    tier: typeof unifiedModel.tier === "number" ? unifiedModel.tier : 1,
     agentId: options.agentId ?? null,
     runId: options.runId ?? null,
     pulseId: options.pulseId ?? null,

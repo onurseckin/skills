@@ -145,23 +145,23 @@ test("reports export-star separately", () => {
   ).toEqual([expect.objectContaining({ rule: "export_star", path: "slice/index.ts" })]);
 });
 
-test("reports test-origin and missing-facade bypasses once per edge identity and sorts with tie-break", () => {
+test("reports missing-facade bypasses once per edge identity and sorts with tie-break", () => {
   const edges = [
     {
-      from: "tests/unit/source.ts",
-      to: "src/private_b.ts",
+      from: "src/caller.ts",
+      to: "src/pkg/private_b.ts",
       typeOnly: false,
       viaFacade: false,
     },
     {
-      from: "tests/unit/source.ts",
-      to: "src/private_a.ts",
+      from: "src/caller.ts",
+      to: "src/pkg/private_a.ts",
       typeOnly: false,
       viaFacade: false,
     },
     {
-      from: "tests/unit/source.ts",
-      to: "src/private_a.ts",
+      from: "src/caller.ts",
+      to: "src/pkg/private_a.ts",
       typeOnly: false,
       viaFacade: false,
     },
@@ -181,7 +181,86 @@ test("reports test-origin and missing-facade bypasses once per edge identity and
 
   const violations = findFacadeViolations(edges);
   expect(violations.length).toBe(3);
-  expect(violations[0].path).toBe("src/source.ts");
-  expect(violations[1].observed).toBe("src/private_a.ts");
-  expect(violations[2].observed).toBe("src/private_b.ts");
+  expect(violations[0].path).toBe("src/caller.ts");
+  expect(violations[0].observed).toBe("src/pkg/private_a.ts");
+  expect(violations[1].observed).toBe("src/pkg/private_b.ts");
+  expect(violations[2].path).toBe("src/source.ts");
+});
+
+test("resolves NodeNext ESM .js, .mjs, .cjs, and .jsx imports to source TypeScript files", () => {
+  const paths = ["slice/service.ts", "slice/helper.tsx", "slice/module.mts", "slice/common.cts"];
+  expect(
+    resolveImport(
+      { from: "slice/index.ts", specifier: "./service.js", typeOnly: false, kind: "import" },
+      paths,
+    ),
+  ).toBe("slice/service.ts");
+  expect(
+    resolveImport(
+      { from: "slice/index.ts", specifier: "./helper.jsx", typeOnly: false, kind: "import" },
+      paths,
+    ),
+  ).toBe("slice/helper.tsx");
+  expect(
+    resolveImport(
+      { from: "slice/index.ts", specifier: "./module.mjs", typeOnly: false, kind: "import" },
+      paths,
+    ),
+  ).toBe("slice/module.mts");
+  expect(
+    resolveImport(
+      { from: "slice/index.ts", specifier: "./common.cjs", typeOnly: false, kind: "import" },
+      paths,
+    ),
+  ).toBe("slice/common.cts");
+});
+
+test("exempts test-to-test cross-directory imports and white-box test imports from facade bypass", () => {
+  const edges = [
+    {
+      from: "tests/unit/a/test.ts",
+      to: "tests/unit/helpers/fixture.ts",
+      typeOnly: false,
+      viaFacade: false,
+    },
+    {
+      from: "tests/unit/core/scope.test.ts",
+      to: "src/core/scope.ts",
+      typeOnly: false,
+      viaFacade: false,
+    },
+  ];
+  expect(findFacadeViolations(edges)).toEqual([]);
+});
+
+test("resolves directory facades with .tsx, .mts, and .cts extensions", () => {
+  const paths = ["components/ui/index.tsx", "services/auth/index.mts", "common/utils/index.cts"];
+  expect(
+    resolveImport(
+      { from: "app.tsx", specifier: "./components/ui", typeOnly: false, kind: "import" },
+      paths,
+    ),
+  ).toBe("components/ui/index.tsx");
+  expect(
+    resolveImport(
+      { from: "app.ts", specifier: "./services/auth", typeOnly: false, kind: "import" },
+      paths,
+    ),
+  ).toBe("services/auth/index.mts");
+  expect(
+    resolveImport(
+      { from: "app.ts", specifier: "./common/utils", typeOnly: false, kind: "import" },
+      paths,
+    ),
+  ).toBe("common/utils/index.cts");
+});
+
+test("findMissingFacades recognizes index.tsx, index.mts, and index.cts as valid facades", () => {
+  const blobs = [
+    blob("ui/Button.tsx", "export const Button = () => null;"),
+    blob("ui/index.tsx", 'export * as Button from "./Button.tsx";'),
+    blob("esm/helper.mts", "export const x = 1;"),
+    blob("esm/index.mts", 'export * as helper from "./helper.mts";'),
+  ];
+  expect(findMissingFacades(blobs)).toEqual([]);
 });

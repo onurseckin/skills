@@ -1,25 +1,20 @@
-import { HarnessError } from "../../../core/errors/index.ts";
 import {
   DEFAULT_MAX_PAUSE_INTERVAL_MS,
-  calculateExponentialBackoff,
   applyIntervalJitter,
+  calculateExponentialBackoff,
 } from "../interval/index.ts";
-import {
-  DEFAULT_CADENCE_BASE_INTERVAL_MS,
-  DEFAULT_CADENCE_MAX_INTERVAL_MS,
-  ZERO_SLEEP_DELAY_MS,
-  PERPETUAL_NON_STOPPING_CADENCE,
-  CLOSING_FORBIDDEN_FOR_MIND,
-} from "./types.ts";
 import type {
   CadenceEvent,
   CadenceEventListener,
-  CadencePhase,
   CadenceState,
-  CadenceTelemetry,
-  CadenceTrigger,
   RolloverDecision,
   RolloverEvaluationOptions,
+} from "./types.ts";
+import {
+  CLOSING_FORBIDDEN_FOR_MIND,
+  DEFAULT_CADENCE_BASE_INTERVAL_MS,
+  DEFAULT_CADENCE_MAX_INTERVAL_MS,
+  ZERO_SLEEP_DELAY_MS,
 } from "./types.ts";
 
 /**
@@ -30,6 +25,9 @@ export function evaluateAntiIdleRollover(options: RolloverEvaluationOptions): Ro
   const {
     trigger,
     pendingTasks = 0,
+    activeRunnableTasks,
+    inFlightTasks = 0,
+    blockedTasks = 0,
     pendingFeedback = 0,
     zeroValueStreak = 0,
     baseIntervalMs = DEFAULT_CADENCE_BASE_INTERVAL_MS,
@@ -42,6 +40,12 @@ export function evaluateAntiIdleRollover(options: RolloverEvaluationOptions): Ro
     random = Math.random,
   } = options;
 
+  const totalInFlight = inFlightTasks + blockedTasks;
+  const runnableTasks =
+    activeRunnableTasks !== undefined
+      ? activeRunnableTasks
+      : Math.max(0, pendingTasks - totalInFlight);
+
   if (isHalted || trigger.type === "SAFETY_HALT") {
     return {
       shouldRolloverImmediately: false,
@@ -53,22 +57,25 @@ export function evaluateAntiIdleRollover(options: RolloverEvaluationOptions): Ro
       hasPendingWork: false,
       pendingTaskCount: pendingTasks,
       pendingFeedbackCount: pendingFeedback,
+      activeRunnableCount: 0,
+      inFlightCount: totalInFlight,
     };
   }
 
-  const hasPendingWork = pendingTasks > 0 || pendingFeedback > 0;
+  const hasActionableWork = runnableTasks > 0 || pendingFeedback > 0;
+  const hasInFlightOnly = !hasActionableWork && totalInFlight > 0;
 
-  // Case 1: Work available or feedback received or explicit immediate rollover trigger
+  // Case 1: Actively runnable work available or feedback received or explicit immediate rollover trigger
   if (
-    hasPendingWork ||
+    hasActionableWork ||
     trigger.type === "WORK_AVAILABLE" ||
     trigger.type === "FEEDBACK_RECEIVED" ||
     trigger.type === "IMMEDIATE_ROLLOVER"
   ) {
-    const workItems = pendingTasks + pendingFeedback;
+    const workItems = runnableTasks + pendingFeedback;
     const desc =
       workItems > 0
-        ? `${pendingTasks} task(s), ${pendingFeedback} feedback item(s)`
+        ? `${runnableTasks} runnable task(s), ${pendingFeedback} feedback item(s)`
         : `event '${trigger.type}'`;
     return {
       shouldRolloverImmediately: true,
@@ -80,10 +87,33 @@ export function evaluateAntiIdleRollover(options: RolloverEvaluationOptions): Ro
       hasPendingWork: true,
       pendingTaskCount: pendingTasks,
       pendingFeedbackCount: pendingFeedback,
+      activeRunnableCount: runnableTasks,
+      inFlightCount: totalInFlight,
     };
   }
 
-  // Case 2: Pulse completed with positive value
+  // Case 2: Only in-flight / asynchronously blocked tasks (prevent 0ms storming)
+  if (hasInFlightOnly) {
+    const delay = Math.min(baseIntervalMs, 60_000);
+    const targetDelayMs = applyJitter
+      ? applyIntervalJitter(delay, { random, maxIntervalMs })
+      : delay;
+    return {
+      shouldRolloverImmediately: false,
+      targetDelayMs,
+      targetPhase: "RESTING",
+      reason: `Anti-idle throttled: ${totalInFlight} task(s) in-flight/leased; resting ${targetDelayMs}ms without 0ms storming`,
+      trigger,
+      zeroValueStreak,
+      hasPendingWork: true,
+      pendingTaskCount: pendingTasks,
+      pendingFeedbackCount: pendingFeedback,
+      activeRunnableCount: 0,
+      inFlightCount: totalInFlight,
+    };
+  }
+
+  // Case 3: Pulse completed with positive value
   if (trigger.type === "PULSE_COMPLETED") {
     const pulseValue = typeof trigger.payload?.value === "number" ? trigger.payload.value : 0;
     if (pulseValue > 0) {
@@ -97,6 +127,8 @@ export function evaluateAntiIdleRollover(options: RolloverEvaluationOptions): Ro
         hasPendingWork: false,
         pendingTaskCount: 0,
         pendingFeedbackCount: 0,
+        activeRunnableCount: 0,
+        inFlightCount: 0,
       };
     }
   }

@@ -29,6 +29,8 @@ export {
   diffStat,
   stageAndCommit,
   commitChangedLines,
+  commitProvenance,
+  type CommitProvenanceRecord,
   type MergeOutcome,
 } from "./git-ops.ts";
 export {

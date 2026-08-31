@@ -115,6 +115,36 @@ export interface GateFalsifiabilityStatus {
   proof?: GateProofRecord;
 }
 
+export function isBaseShaReconciled(
+  proofBase: string,
+  expectedBase: string | undefined,
+  task: TaskRecord,
+  state: WorkflowState,
+): boolean {
+  if (expectedBase === undefined) return true;
+  if (proofBase === expectedBase) return true;
+  if (proofBase === "HEAD") return true;
+  if (state.current_repository_binding?.head_sha === proofBase) return true;
+  if (
+    task.attempts.some(
+      (a) =>
+        isEvidenced(
+          a.claimed_base_sha,
+          (candidate): candidate is string => typeof candidate === "string",
+        ) && a.claimed_base_sha.value === proofBase,
+    )
+  ) {
+    return true;
+  }
+  if (
+    task.worktree_commit?.parent_sha === proofBase ||
+    task.worktree_commit?.commit_sha === proofBase
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function gateFalsifiabilityStatuses(
   state: WorkflowState,
   task: TaskRecord,
@@ -127,7 +157,7 @@ export function gateFalsifiabilityStatuses(
       proof !== undefined &&
       proof.falsifiable === true &&
       sameWriteScope(proof.write_scope, task.write_scope) &&
-      (expectedBase === undefined || proof.base === expectedBase);
+      isBaseShaReconciled(proof.base, expectedBase, task, state);
     return { gate_id: gate.id, gate_argv: argv, proven, ...(proof ? { proof } : {}) };
   });
 }

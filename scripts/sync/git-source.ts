@@ -67,11 +67,59 @@ export function refuseSyncSourceMessage(dirtyPaths: readonly string[]): string {
   return `refusing to sync from a dirty olt/ tree; commit these paths or pass --allow-dirty:\n${list}`;
 }
 
+const activeCleanups = new Set<() => void>();
+let hooksRegistered = false;
+
+function handleExit(): void {
+  for (const cleanup of activeCleanups) {
+    try {
+      cleanup();
+    } catch {}
+  }
+  activeCleanups.clear();
+  deregisterSignalHooks();
+}
+
+function handleSigInt(): void {
+  handleExit();
+  process.exit(130);
+}
+
+function handleSigTerm(): void {
+  handleExit();
+  process.exit(143);
+}
+
+function registerSignalHooks(): void {
+  if (hooksRegistered) return;
+  hooksRegistered = true;
+  process.on("exit", handleExit);
+  process.on("SIGINT", handleSigInt);
+  process.on("SIGTERM", handleSigTerm);
+}
+
+function deregisterSignalHooks(): void {
+  if (!hooksRegistered) return;
+  hooksRegistered = false;
+  process.off("exit", handleExit);
+  process.off("SIGINT", handleSigInt);
+  process.off("SIGTERM", handleSigTerm);
+}
+
+export function areSignalHooksRegistered(): boolean {
+  return hooksRegistered;
+}
+
+export function getActiveCleanupsCount(): number {
+  return activeCleanups.size;
+}
+
 export function materializeOltFromHead(
   repoRoot: string,
   tmpParentDir?: string,
   customSpawn: typeof spawnSync = spawnSync,
 ): ResolvedOltSource {
+  registerSignalHooks();
   let tmpParent: string;
   if (tmpParentDir !== undefined) {
     tmpParent = tmpParentDir;
@@ -82,13 +130,21 @@ export function materializeOltFromHead(
   const resolvedTmpParent = resolve(tmpParent);
   const extractDir = mkdtempSync(join(resolvedTmpParent, "olt-sync-head-"));
 
+  let cleanedUp = false;
   const removeExtractDir = (): void => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    activeCleanups.delete(removeExtractDir);
+    if (activeCleanups.size === 0) {
+      deregisterSignalHooks();
+    }
     safeRmSync(extractDir, {
       allowedRoots: [resolvedTmpParent],
       missingOk: true,
       onAudit: logDestructiveOp,
     });
   };
+  activeCleanups.add(removeExtractDir);
 
   const archiveResult = customSpawn("git", ["archive", "--format=tar", "HEAD", "--", "olt/"], {
     cwd: repoRoot,

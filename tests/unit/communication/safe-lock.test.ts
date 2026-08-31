@@ -17,6 +17,7 @@ import {
   DEFAULT_RETRY_INTERVAL_MS,
   DEFAULT_STALE_THRESHOLD_MS,
   acquireMailboxLock,
+  acquireMailboxLockAsync,
   delay,
   isProcessAlive,
   parseLockPayload,
@@ -278,6 +279,29 @@ describe("SafeLock Advisory File Locking Engine", () => {
       const followUp = acquireMailboxLock(lockPath, "async-agent");
       expect(followUp.acquired).toBe(true);
       releaseMailboxLock(followUp);
+    });
+
+    it("acquireMailboxLockAsync acquires and releases lock asynchronously with non-blocking polling", async () => {
+      const lockPath = join(locksDir, "async-direct.lock");
+      const res1 = await acquireMailboxLockAsync(lockPath, "agent-async-1");
+      expect(res1.acquired).toBe(true);
+      expect(typeof res1.lockFd).toBe("number");
+
+      const res2 = await acquireMailboxLockAsync(lockPath, "agent-async-2", {
+        timeoutMs: 30,
+        retryMs: 10,
+      });
+      expect(res2.acquired).toBe(false);
+      expect(res2.lockFd).toBeNull();
+
+      releaseMailboxLock(res1);
+
+      const res3 = await acquireMailboxLockAsync(lockPath, "agent-async-2", {
+        timeoutMs: 50,
+        retryMs: 10,
+      });
+      expect(res3.acquired).toBe(true);
+      releaseMailboxLock(res3);
     });
   });
 

@@ -31,7 +31,6 @@ import {
   createServerLifecycleManager,
 } from "../../../olt/scripts/src/server/lifecycle/coordinator.ts";
 import type {
-  ServerStateSnapshot,
   ServerStateSnapshotInput,
   ServerEndpoint,
   PortConfiguration,
@@ -248,6 +247,18 @@ describe("Dev Server Lifecycle Subsystem", () => {
 
       expect(newHandle !== undefined).toBe(true);
       await newHandle.release();
+    });
+
+    it("does not treat a recently created empty lock file as stale immediately", async () => {
+      await forceReleaseLock(TEST_LOCK_PATH);
+      // Create empty lock file
+      await Bun.write(TEST_LOCK_PATH, "");
+
+      // Lock should be considered active / not stale within initial grace period
+      const locked = await isLocked(TEST_LOCK_PATH);
+      expect(locked).toBe(true);
+
+      await forceReleaseLock(TEST_LOCK_PATH);
     });
   });
 
@@ -478,6 +489,8 @@ describe("Dev Server Lifecycle Subsystem", () => {
 
       expect(result.success).toBe(false);
       expect(result.rolledBack).toBe(true);
+      expect(result.snapshotRestored).toBe(true);
+      expect(result.serverProcessRestored).toBe(true);
       expect(result.restoredState?.currentPid).toBe(3333);
       expect(oldRestored).toBe(true);
       expect(result.error !== undefined).toBe(true);

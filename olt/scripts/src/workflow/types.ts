@@ -1,15 +1,20 @@
-import type { AgentGrantRecord } from "../core/contracts/index.ts";
-import type { BranchRecord } from "../core/contracts/index.ts";
-import type { CommandRecord } from "../core/contracts/index.ts";
 import type {
+  AgentGrantRecord,
+  BranchRecord,
+  CommandRecord,
+  Evidenced,
   Finding,
   GateResult,
+  JsonObject,
+  JsonValue,
   Lease,
+  RepositoryBinding,
   TaskStatus,
   ValidatorDomain,
+  WorktreeCommitRecord,
+  WorktreeLedgerState,
 } from "../core/contracts/index.ts";
-import type { Evidenced } from "../core/contracts/index.ts";
-import type { JsonObject, JsonValue } from "../core/contracts/index.ts";
+import type { GateProofRecord } from "../graph/gate-proof.ts";
 import type {
   CompletionArtifactVerification,
   CompletionCriticAuthorization,
@@ -17,11 +22,8 @@ import type {
   CompletionResult,
   CompletionReview,
 } from "./completion/types.ts";
-import type { RepositoryBinding } from "../core/contracts/index.ts";
-import type { GateProofRecord } from "../graph/gate-proof.ts";
 import type { OrphanEvidenceDisposition } from "./orphan-evidence/types.ts";
-import type { WorktreeCommitRecord, WorktreeLedgerState } from "../core/contracts/index.ts";
-import type { PlanFinding, PlanReview, PlanValidationAuthorization } from "./plan-review/types.ts";
+import type { PlanReview, PlanValidationAuthorization } from "./plan-review/types.ts";
 
 export type {
   PlanDependencyEdge,
@@ -30,6 +32,12 @@ export type {
   PlanValidationAuthorization,
 } from "./plan-review/types.ts";
 
+export {
+  applicableValidatorDomains,
+  isValidatorDomain,
+  VALIDATOR_DOMAINS,
+} from "../core/contracts/index.ts";
+export type { ValidatorDomain } from "../core/contracts/index.ts";
 export type {
   CompletionArtifactPacket,
   CompletionArtifactVerification,
@@ -44,12 +52,6 @@ export type {
   CompletionReview,
 } from "./completion/types.ts";
 export type { OrphanEvidenceDisposition } from "./orphan-evidence/types.ts";
-export {
-  applicableValidatorDomains,
-  isValidatorDomain,
-  VALIDATOR_DOMAINS,
-} from "../core/contracts/index.ts";
-export type { ValidatorDomain } from "../core/contracts/index.ts";
 
 export interface TaskHistory extends JsonObject {
   at: string;
@@ -110,6 +112,7 @@ export interface TaskRecord extends JsonObject {
   findings?: Finding[];
   gate_results?: GateResult[];
   worktree_commit?: WorktreeCommitRecord;
+  initial_write_scope_content_hash?: Evidenced<string>;
   no_op?: TaskNoOpDeclaration;
 }
 

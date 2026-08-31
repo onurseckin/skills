@@ -128,7 +128,6 @@ export class OrchestratorWatchdog {
 
     for (const monitor of this.monitors.values()) {
       if (monitor.status === "closed") continue;
-
       const elapsedWall = now - monitor.startedAt;
       const elapsedHeartbeat = now - monitor.lastHeartbeatAt;
       const elapsedIdle = now - monitor.lastActivityAt;
@@ -167,9 +166,8 @@ export class OrchestratorWatchdog {
       }
     }
 
-    const healthy = stalledCount === 0 && timedOutCount === 0;
     return {
-      healthy,
+      healthy: stalledCount === 0 && timedOutCount === 0,
       activeCount,
       stalledCount,
       timedOutCount,
@@ -202,7 +200,7 @@ export class OrchestratorWatchdog {
         agentId: monitor.agentId,
         taskId: monitor.taskId,
         runId: monitor.runId,
-        details: `Max wake attempts (${this.maxWakeRetries}) exceeded. Escalating for a human or coordinator to act on; the harness dispatched nothing. Reason: ${reason ?? "unknown"}`,
+        details: `Max wake attempts (${this.maxWakeRetries}) exceeded. Escalating for coordinator action. Reason: ${reason ?? "unknown"}`,
         attempt: monitor.wakeAttempts,
       });
 
@@ -212,7 +210,7 @@ export class OrchestratorWatchdog {
         attempt: monitor.wakeAttempts,
         outcome: "escalated",
         dispatched: false,
-        message: `Max wake attempts exceeded for monitor ${monitorId}; escalation was recorded for a human or coordinator to act on. No agent was dispatched.`,
+        message: `Max wake attempts exceeded for monitor ${monitorId}; escalation recorded.`,
       };
     }
 
@@ -223,7 +221,7 @@ export class OrchestratorWatchdog {
       agentId: monitor.agentId,
       taskId: monitor.taskId,
       runId: monitor.runId,
-      details: `Wake request recorded for monitor ${monitorId} (attempt ${monitor.wakeAttempts}/${this.maxWakeRetries}, action "${this.autoWakeAction}"). No agent was dispatched; the harness cannot make model calls, only a host-side driver reading this event can act on it. Reason: ${reason ?? "unknown"}`,
+      details: `Wake request recorded for monitor ${monitorId} (attempt ${monitor.wakeAttempts}/${this.maxWakeRetries}, action "${this.autoWakeAction}"). Reason: ${reason ?? "unknown"}`,
       attempt: monitor.wakeAttempts,
     });
 
@@ -233,7 +231,7 @@ export class OrchestratorWatchdog {
       attempt: monitor.wakeAttempts,
       outcome: "wake_recorded",
       dispatched: false,
-      message: `Wake request recorded for monitor ${monitorId} via action "${this.autoWakeAction}". No agent was dispatched; a host-side driver must read this event and act on it.`,
+      message: `Wake request recorded for monitor ${monitorId} via action "${this.autoWakeAction}".`,
     };
   }
 
@@ -250,21 +248,15 @@ export class OrchestratorWatchdog {
   }
 
   private emit(event: WatchdogEvent): void {
-    const specific = this.listeners.get(event.type);
-    if (specific) {
-      for (const listener of specific) {
-        try {
-          listener(event);
-        } catch {}
-      }
+    for (const listener of this.listeners.get(event.type) ?? []) {
+      try {
+        listener(event);
+      } catch {}
     }
-    const wildcard = this.listeners.get("*");
-    if (wildcard) {
-      for (const listener of wildcard) {
-        try {
-          listener(event);
-        } catch {}
-      }
+    for (const listener of this.listeners.get("*") ?? []) {
+      try {
+        listener(event);
+      } catch {}
     }
   }
 

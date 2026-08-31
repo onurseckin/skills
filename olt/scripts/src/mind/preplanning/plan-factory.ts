@@ -1,6 +1,41 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import type { RawBacklogItem, RawDefectItem, ThematicCluster } from "./types.ts";
+
+export function deriveDisjointTaskScope(
+  domain: string,
+  id: string,
+  title?: string,
+): {
+  writeScope: string;
+  testScope: string;
+  testCommand: string;
+  baseSlug: string;
+  scopeEnvelope: readonly string[];
+} {
+  const rawTitle = title !== undefined && title.trim().length > 0 ? title.trim() : "";
+  const titleSlug = rawTitle
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const cleanId = id
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const baseSlug =
+    titleSlug.length > 0 && titleSlug !== cleanId
+      ? `${titleSlug}-${cleanId}`
+      : cleanId.length > 0
+        ? cleanId
+        : "task";
+
+  const writeScope = `olt/scripts/src/${domain}/${baseSlug}.ts`;
+  const testScope = `tests/unit/${domain}/${baseSlug}.test.ts`;
+  const testCommand = `bun test ${testScope}`;
+  const scopeEnvelope = Object.freeze([writeScope, testScope]);
+
+  return { writeScope, testScope, testCommand, baseSlug, scopeEnvelope };
+}
 
 export function generatePlanMarkdown(
   cluster: ThematicCluster,
@@ -57,24 +92,28 @@ export function generatePlanMarkdown(
   ];
 
   let taskIndex = 1;
+  const taskScopeMap = new Map<string, { taskLabel: string; testScope: string }>();
+  const executionSteps: string[] = [];
 
   if (matchedItems.length === 0 && matchedDefects.length === 0) {
     const backlogSummary =
       cluster.backlog_item_ids.length > 0 ? cluster.backlog_item_ids.join(", ") : "None";
     const defectSummary = cluster.defect_ids.length > 0 ? cluster.defect_ids.join(", ") : "None";
+    const scope = deriveDisjointTaskScope(cluster.domain, cluster.cluster_id, cluster.title);
+    executionSteps.push(`[Task 1.1: ${cluster.title}]`);
 
     lines.push(`### Task 1.1: ${cluster.title} Implementation`);
     lines.push("");
     lines.push("- **Owner / Tier:** Tier 3 Implementer + Independent Validator");
-    lines.push(`- **Write Scope:** \`olt/scripts/src/${cluster.domain}/${cluster.cluster_id}.ts\``);
-    lines.push(`- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\``);
+    lines.push(`- **Write Scope:** \`${scope.writeScope}\`, \`${scope.testScope}\``);
+    lines.push(
+      `- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\`, \`tests/unit/${cluster.domain}/\``,
+    );
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
     lines.push(`  - Resolves backlog items: ${backlogSummary}.`);
     lines.push(`  - Resolves defects: ${defectSummary}.`);
     lines.push("  - Zero TypeScript `any`, zero compiler suppressions.");
-    lines.push(
-      `  - Command: \`bun test tests/unit/${cluster.domain}/${cluster.cluster_id}.test.ts\` (100% PASS).`,
-    );
+    lines.push(`  - Command: \`${scope.testCommand}\` (100% PASS).`);
     lines.push("");
   }
 
@@ -86,19 +125,25 @@ export function generatePlanMarkdown(
         : item.title !== undefined && item.title.length > 0
           ? item.title
           : item.id;
+    const scope = deriveDisjointTaskScope(cluster.domain, item.id, item.title);
+    const taskLabel = `Task 1.${taskIndex}`;
+    taskScopeMap.set(item.id, { taskLabel, testScope: scope.testScope });
+    executionSteps.push(`[${taskLabel}: ${taskName}]`);
 
-    lines.push(`### Task 1.${taskIndex}: Feature: ${taskName}`);
+    lines.push(`### ${taskLabel}: Feature: ${taskName}`);
     lines.push("");
     lines.push("- **Owner / Tier:** Tier 3 Implementer + Independent Validator");
     lines.push(`- **Backlog Ref:** \`${item.id}\``);
-    lines.push(`- **Write Scope:** \`olt/scripts/src/${cluster.domain}/\``);
-    lines.push(`- **Read-Only Scope:** \`olt/scripts/src/\``);
+    lines.push(`- **Write Scope:** \`${scope.writeScope}\`, \`${scope.testScope}\``);
+    lines.push(
+      `- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\`, \`tests/unit/${cluster.domain}/\``,
+    );
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
     lines.push(`  - Implement: ${itemDetail}`);
     lines.push(
       "  - Zero TypeScript `any`, zero compiler suppressions, zero comments in .ts files.",
     );
-    lines.push(`  - Command: \`bun test tests/unit/${cluster.domain}/\` (100% PASS).`);
+    lines.push(`  - Command: \`${scope.testCommand}\` (100% PASS).`);
     lines.push("");
     taskIndex++;
   }
@@ -119,19 +164,25 @@ export function generatePlanMarkdown(
           : defect.title !== undefined && defect.title.length > 0
             ? defect.title
             : defect.id;
+    const scope = deriveDisjointTaskScope(cluster.domain, defect.id, defect.title);
+    const taskLabel = `Task 1.${taskIndex}`;
+    taskScopeMap.set(defect.id, { taskLabel, testScope: scope.testScope });
+    executionSteps.push(`[${taskLabel}: ${defectName}]`);
 
-    lines.push(`### Task 1.${taskIndex}: Defect Remediation: ${defectName}`);
+    lines.push(`### ${taskLabel}: Defect Remediation: ${defectName}`);
     lines.push("");
     lines.push("- **Owner / Tier:** Tier 3 Implementer + Independent Validator");
     lines.push(`- **Defect Ref:** \`${defect.id}\` (Error Code: \`${errCode}\`)`);
-    lines.push(`- **Write Scope:** \`olt/scripts/src/${cluster.domain}/\``);
-    lines.push(`- **Read-Only Scope:** \`olt/scripts/src/\``);
+    lines.push(`- **Write Scope:** \`${scope.writeScope}\`, \`${scope.testScope}\``);
+    lines.push(
+      `- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\`, \`tests/unit/${cluster.domain}/\``,
+    );
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
     lines.push(`  - Remediate: ${defectDetail}`);
     lines.push(
       "  - Zero TypeScript `any`, zero compiler suppressions, zero comments in .ts files.",
     );
-    lines.push(`  - Command: \`bun test tests/unit/${cluster.domain}/\` (100% PASS).`);
+    lines.push(`  - Command: \`${scope.testCommand}\` (100% PASS).`);
     lines.push("");
     taskIndex++;
   }
@@ -141,9 +192,8 @@ export function generatePlanMarkdown(
   lines.push("## 4. Sequential Execution Order & Critical Path");
   lines.push("");
   lines.push("```text");
-  lines.push(
-    `Execution Order: [Task 1.1] ──► [Verification] ──► [Git Staging: git add -A] ──► [Landing]`,
-  );
+  const flowDiagram = `${executionSteps.join(" ──► ")} ──► [Verification: bun test tests/unit/${cluster.domain}/] ──► [Git Staging: git add -A] ──► [Landing]`;
+  lines.push(`Execution Flow: ${flowDiagram}`);
   lines.push("```");
   lines.push("");
   lines.push("---");
@@ -154,10 +204,16 @@ export function generatePlanMarkdown(
   lines.push("| :--- | :--- | :--- |");
 
   for (const itemId of cluster.backlog_item_ids) {
-    lines.push(`| \`${itemId}\` | Task 1.x | \`tests/unit/${cluster.domain}/\` |`);
+    const mapping = taskScopeMap.get(itemId);
+    const resolvedBy = mapping?.taskLabel ?? "Task 1.x";
+    const target = mapping?.testScope ?? `tests/unit/${cluster.domain}/`;
+    lines.push(`| \`${itemId}\` | ${resolvedBy} | \`${target}\` |`);
   }
   for (const defId of cluster.defect_ids) {
-    lines.push(`| \`${defId}\` | Task 1.x | \`tests/unit/${cluster.domain}/\` |`);
+    const mapping = taskScopeMap.get(defId);
+    const resolvedBy = mapping?.taskLabel ?? "Task 1.x";
+    const target = mapping?.testScope ?? `tests/unit/${cluster.domain}/`;
+    lines.push(`| \`${defId}\` | ${resolvedBy} | \`${target}\` |`);
   }
 
   lines.push("");

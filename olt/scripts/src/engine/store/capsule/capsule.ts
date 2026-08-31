@@ -1,14 +1,13 @@
-import { existsSync, lstatSync, mkdirSync, realpathSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { existsSync, lstatSync, mkdirSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import type { CapsuleMode, Manifest } from "../../../core/contracts/index.ts";
 import { atomicWriteBytes, atomicWriteJson, fsyncDirectory } from "../../../core/durable-write.ts";
-import { copyPinnedRuntime } from "../../../core/runtime-tree.ts";
-import { safeRepoPath } from "./paths.ts";
-import { sha256Bytes } from "../../../core/json.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
+import { sha256Bytes } from "../../../core/json.ts";
+import { copyPinnedRuntime, runtimeTreeSnapshot } from "../../../core/runtime-tree.ts";
+import { safeRmSync } from "../../../core/shared/safe-fs/index.ts";
 import { captureAssurance, isCaptureMode } from "../integrity/assurance.ts";
-import { BUN_COMPATIBILITY } from "../recovery/bun-compatibility.ts";
 import {
   FORMAT_VERSION,
   MANIFEST_SCHEMA,
@@ -16,17 +15,20 @@ import {
   RUNTIME_VERSION,
 } from "../layout/constants.ts";
 import { initialCapsuleDirectories, renderLayoutReadme } from "../layout/layout.ts";
-import { initialState } from "./state.ts";
-import { writeIndex } from "./capsule-index.ts";
-import { normalizeRunId } from "./run-id.ts";
+import { BUN_COMPATIBILITY } from "../recovery/bun-compatibility.ts";
 import { writeTrace } from "../recovery/trace.ts";
+import { writeIndex } from "./capsule-index.ts";
 import { isInsideCapsule, resolveCapsulesDir } from "./paths.ts";
-import { safeRmSync } from "../../../core/shared/safe-fs/index.ts";
+import { normalizeRunId } from "./run-id.ts";
+import { initialState } from "./state.ts";
+
+export type RuntimeLinkMode = "copy" | "symlink" | "reference";
 
 export interface InitRunOptions {
-  runtimeSource?: string;
-  beforeRuntimeSourceRecheck?: () => void;
-  mode?: CapsuleMode;
+  readonly runtimeSource?: string;
+  readonly runtimeLinkMode?: RuntimeLinkMode;
+  readonly beforeRuntimeSourceRecheck?: () => void;
+  readonly mode?: CapsuleMode;
 }
 
 export function initRun(
@@ -69,14 +71,64 @@ export function initRun(
       mkdirSync(join(runRoot, directory), { mode: 0o755 });
     fsyncDirectory(runRoot);
     atomicWriteBytes(join(runRoot, "prompt.md"), prompt, { mode: 0o444 });
-    const pin =
-      options.runtimeSource === undefined
-        ? undefined
-        : copyPinnedRuntime(options.runtimeSource, join(runRoot, "runtime"), {
-            ...(options.beforeRuntimeSourceRecheck === undefined
-              ? {}
-              : { beforeSourceRecheck: options.beforeRuntimeSourceRecheck }),
-          });
+
+    const linkMode = options.runtimeLinkMode ?? "copy";
+    let pin: { digest: string; fileCount: number } | undefined;
+    if (options.runtimeSource !== undefined) {
+      if (linkMode === "symlink") {
+        if (!existsSync(options.runtimeSource) || !lstatSync(options.runtimeSource).isDirectory()) {
+          throw new HarnessError(
+            "INVALID_ARGUMENT",
+            `runtime source must be a directory: ${options.runtimeSource}`,
+          );
+        }
+        const canonicalSource = realpathSync(options.runtimeSource);
+        if (isInsideCapsule(canonicalSource)) {
+          throw new HarnessError(
+            "PATH_SAFETY",
+            `cannot link runtime from inside capsule workspace: ${canonicalSource}`,
+          );
+        }
+        pin = copyPinnedRuntime(
+          options.runtimeSource,
+          join(runRoot, "runtime"),
+          options.beforeRuntimeSourceRecheck === undefined
+            ? {}
+            : { beforeSourceRecheck: options.beforeRuntimeSourceRecheck },
+        );
+      } else if (linkMode === "reference") {
+        if (!existsSync(options.runtimeSource) || !lstatSync(options.runtimeSource).isDirectory()) {
+          throw new HarnessError(
+            "INVALID_ARGUMENT",
+            `runtime source must be a directory: ${options.runtimeSource}`,
+          );
+        }
+        const canonicalSource = realpathSync(options.runtimeSource);
+        if (isInsideCapsule(canonicalSource)) {
+          throw new HarnessError(
+            "PATH_SAFETY",
+            `cannot reference runtime from inside capsule workspace: ${canonicalSource}`,
+          );
+        }
+        options.beforeRuntimeSourceRecheck?.();
+        const snapshot = runtimeTreeSnapshot(canonicalSource, { filterRuntimeSource: true });
+        pin = { digest: snapshot.digest, fileCount: snapshot.fileCount };
+      } else {
+        pin = copyPinnedRuntime(
+          options.runtimeSource,
+          join(runRoot, "runtime"),
+          options.beforeRuntimeSourceRecheck === undefined
+            ? {}
+            : { beforeSourceRecheck: options.beforeRuntimeSourceRecheck },
+        );
+      }
+    }
+
+    const hasHarnessEntry =
+      options.runtimeSource !== undefined &&
+      (existsSync(join(runRoot, "runtime", "harness.ts")) ||
+        (linkMode === "reference" && existsSync(join(options.runtimeSource, "harness.ts"))));
+
     const manifest: Manifest = {
       schema: MANIFEST_SCHEMA,
       version: FORMAT_VERSION,
@@ -97,9 +149,7 @@ export function initRun(
         : {
             runtime_sha256: pin.digest,
             runtime_files: pin.fileCount,
-            ...(existsSync(join(runRoot, "runtime", "harness.ts"))
-              ? { runtime_entrypoint: "runtime/harness.ts" }
-              : {}),
+            ...(hasHarnessEntry ? { runtime_entrypoint: "runtime/harness.ts" } : {}),
           }),
     };
     atomicWriteJson(join(runRoot, "manifest.json"), manifest);

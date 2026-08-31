@@ -6,9 +6,12 @@ import {
   isPreplanningNeeded,
   runPreplanningTick,
   startPreplanningDaemon,
+  updateBridgeStateBatch,
   type RawBacklogItem,
   type RawDefectItem,
+  type ThematicCluster,
 } from "../../../../olt/scripts/src/mind/preplanning/index.ts";
+import { topologicalOrder } from "../../../../olt/scripts/src/graph/topology.ts";
 import {
   compileSmartTasksToWavePlan,
   planWaveExecution,
@@ -112,6 +115,83 @@ describe("Continuous Preplanner Engine & PO Toposort Verification", () => {
 
     expect(daemonResult.totalTicks).toBe(2);
     expect(daemonResult.totalPlanned).toBe(1);
+  });
+
+  test("updateBridgeStateBatch performs atomic batch updates across multiple clusters and ledgers", () => {
+    const item1: RawBacklogItem = {
+      id: "b1",
+      title: "Item 1",
+      category: "core",
+      status: "PENDING",
+    };
+    const item2: RawBacklogItem = {
+      id: "b2",
+      title: "Item 2",
+      category: "engine",
+      status: "PENDING",
+    };
+    const defect1: RawDefectItem = {
+      id: "d1",
+      title: "Defect 1",
+      category: "core",
+      status: "OPEN",
+    };
+    const defect2: RawDefectItem = {
+      id: "d2",
+      title: "Defect 2",
+      category: "engine",
+      status: "OPEN",
+    };
+
+    writeFileSync(backlogPath, `${JSON.stringify(item1)}\n${JSON.stringify(item2)}\n`);
+    writeFileSync(defectsPath, `${JSON.stringify(defect1)}\n${JSON.stringify(defect2)}\n`);
+
+    const cluster1: ThematicCluster = {
+      cluster_id: "c1",
+      domain: "core",
+      title: "Core Cluster",
+      plan_path: "docs/planning/c1/PLAN.md",
+      backlog_item_ids: ["b1"],
+      defect_ids: ["d1"],
+      planned_at: "2026-08-31T00:00:00.000Z",
+    };
+    const cluster2: ThematicCluster = {
+      cluster_id: "c2",
+      domain: "engine",
+      title: "Engine Cluster",
+      plan_path: "docs/planning/c2/PLAN.md",
+      backlog_item_ids: ["b2"],
+      defect_ids: ["d2"],
+      planned_at: "2026-08-31T00:00:00.000Z",
+    };
+
+    const batchRes = updateBridgeStateBatch([cluster1, cluster2], { rootDir: testDir });
+    expect(batchRes.itemsUpdated).toBe(2);
+    expect(batchRes.defectsUpdated).toBe(2);
+
+    const bContent = readFileSync(backlogPath, "utf-8");
+    expect(bContent).toContain('"plan_path":"docs/planning/c1/PLAN.md"');
+    expect(bContent).toContain('"plan_path":"docs/planning/c2/PLAN.md"');
+
+    const dContent = readFileSync(defectsPath, "utf-8");
+    expect(dContent).toContain('"plan_path":"docs/planning/c1/PLAN.md"');
+    expect(dContent).toContain('"plan_path":"docs/planning/c2/PLAN.md"');
+  });
+
+  test("Kahn topologicalOrder handles dangling prerequisites without deadlocking or false cycles", () => {
+    const depMap = new Map<string, ReadonlySet<string>>([
+      ["task-a", new Set()],
+      ["task-b", new Set(["task-a", "non-existent-prereq"])],
+      ["task-c", new Set(["task-b"])],
+    ]);
+
+    const danglingReported: { dep: string; prereq: string }[] = [];
+    const order = topologicalOrder(depMap, {
+      onDanglingPrerequisite: (dep, prereq) => danglingReported.push({ dep, prereq }),
+    });
+
+    expect(order).toEqual(["task-a", "task-b", "task-c"]);
+    expect(danglingReported).toEqual([{ dep: "task-b", prereq: "non-existent-prereq" }]);
   });
 
   test("Mind PO DAG compiles smart task plans into Kahn toposort waves with disjoint write scopes", () => {

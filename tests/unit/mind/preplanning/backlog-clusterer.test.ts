@@ -30,37 +30,51 @@ describe("Backlog Clusterer Engine & Cluster DAG Verification", () => {
     if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
   });
 
-  test("filterEligibleBacklogItems filters out completed, processed, or already planned items", () => {
+  test("filterEligibleBacklogItems checks actual disk existence rather than path prefix", () => {
+    const existingPlan = join(testDir, "existing-plan.md");
+    writeFileSync(existingPlan, "# Existing Plan\n");
+
     const items: RawBacklogItem[] = [
       { id: "i1", status: "PENDING" },
       { id: "i2", status: "COMPLETED" },
       { id: "i3", status: "PROCESSED" },
       { id: "i4", status: "DECLINED" },
       { id: "i5", status: "BLOCKED" },
-      { id: "i6", status: "PLANNED", plan_path: "docs/planning/p1/PLAN.md" },
-      { id: "i7", status: "PLANNED", plan_path: "" },
+      { id: "i6", status: "PLANNED", plan_path: existingPlan },
+      { id: "i7", status: "PENDING", plan_path: "docs/planning/non-existent/PLAN.md" },
       { id: "i8", status: "OPEN" },
+      { id: "i9", status: "DISPATCHED" },
+      { id: "i10", status: "IN_PROGRESS" },
+      { id: "i11", status: "CLAIMED" },
+      { id: "i12", status: "RUNNING" },
     ];
 
-    const eligible = filterEligibleBacklogItems(items);
-    expect(eligible.map((i) => i.id)).toEqual(["i1", "i8"]);
+    const eligible = filterEligibleBacklogItems(items, { rootDir: testDir });
+    expect(eligible.map((i) => i.id)).toEqual(["i1", "i7", "i8"]);
   });
 
-  test("filterEligibleDefects filters out completed, resolved, or already planned defects", () => {
+  test("filterEligibleDefects checks disk existence for plan path and filters in-flight defects", () => {
+    const existingPlan = join(testDir, "existing-defect-plan.md");
+    writeFileSync(existingPlan, "# Defect Plan\n");
+
     const defects: RawDefectItem[] = [
       { id: "d1", status: "OPEN" },
       { id: "d2", status: "RESOLVED" },
       { id: "d3", status: "COMPLETED" },
       { id: "d4", status: "CLOSED" },
-      { id: "d5", status: "PLANNED", plan_path: "docs/planning/p1/PLAN.md" },
-      { id: "d6", status: "REOPENED" },
+      { id: "d5", status: "PLANNED", plan_path: existingPlan },
+      { id: "d6", status: "REOPENED", plan_path: "docs/planning/unwritten/PLAN.md" },
+      { id: "d7", status: "DISPATCHED" },
+      { id: "d8", status: "IN_PROGRESS" },
+      { id: "d9", status: "CLAIMED" },
+      { id: "d10", status: "RUNNING" },
     ];
 
-    const eligible = filterEligibleDefects(defects);
+    const eligible = filterEligibleDefects(defects, { rootDir: testDir });
     expect(eligible.map((d) => d.id)).toEqual(["d1", "d6"]);
   });
 
-  test("classifyDomain categorizes correctly across canonical domains", () => {
+  test("classifyDomain categorizes correctly across canonical domains with word boundary precision", () => {
     expect(CANONICAL_DOMAINS.length).toBe(6);
     expect(classifyDomain("Brainstorm Mind Charter")).toBe("mind");
     expect(classifyDomain("APCA Contrast Coverage Test")).toBe("validation");
@@ -69,6 +83,11 @@ describe("Backlog Clusterer Engine & Cluster DAG Verification", () => {
     expect(classifyDomain("Doctor Telemetry Summary Report")).toBe("reporting");
     expect(classifyDomain("Unknown item", "", "validation")).toBe("validation");
     expect(classifyDomain("Random untagged task")).toBe("core");
+
+    // Word boundary anti-false-positive validation
+    expect(classifyDomain("A mindless wanderer in the system")).toBe("core");
+    expect(classifyDomain("New testament generator")).toBe("core");
+    expect(classifyDomain("A client library connection")).toBe("core");
   });
 
   test("generateClusterId and generatePlanPath produce deterministic identifiers", () => {

@@ -1,12 +1,19 @@
-import { generateIncidentId } from "./types.ts";
+import { isCoordinatorRole, isOrchestratorRole, isValidatorRole } from "../roles/index.ts";
+import {
+  isContractuallyReadOnlyRole,
+  isPermittedValidatorTool,
+  parseTaskEntry,
+  resolveAgentRole,
+} from "./classifier.ts";
 import { runExtendedForensicsHeuristics } from "./heuristics-extended.ts";
 import type {
+  AgentGrantRecord,
+  ExtractedToolCall,
   ForensicsIncident,
   ForensicsSeverity,
   RootCauseCategory,
-  AgentGrantRecord,
-  ExtractedToolCall,
 } from "./types.ts";
+import { generateIncidentId } from "./types.ts";
 
 export interface HeuristicsContext {
   readonly allToolCalls: readonly ExtractedToolCall[];
@@ -15,6 +22,37 @@ export interface HeuristicsContext {
   readonly agentLedger: readonly AgentGrantRecord[];
   readonly agentId?: string | undefined;
   readonly addIncident: (inc: ForensicsIncident) => void;
+}
+
+const REM_DIR_EDIT = "Direct agent to targeted edit site with explicit file paths and symbols.";
+const REM_WAVE_CONC =
+  "Implement Wave Concurrency by grouping ready tasks with disjoint write scopes.";
+const REM_DELEGATE =
+  "Supervisors and orchestrators must delegate code edits exclusively to Tier 3 Implementers.";
+const REM_READ_ONLY = "Cognitive Validators must evaluate deliverables via read-only inspection.";
+const REM_ANCHORS = "Provide localized symbol anchors to reduce exploratory context bloat.";
+
+function inc(
+  cat: RootCauseCategory,
+  target: string,
+  title: string,
+  desc: string,
+  remediation: string,
+  severity: ForensicsSeverity = "MEDIUM",
+  opts?: { agentId?: string | undefined; toolCallsCount?: number | undefined },
+): ForensicsIncident {
+  return {
+    id: generateIncidentId(cat, target),
+    category: cat,
+    severity,
+    title,
+    observation: desc,
+    description: desc,
+    remediation,
+    recommendation: remediation,
+    agentId: opts?.agentId,
+    toolCallsCount: opts?.toolCallsCount,
+  };
 }
 
 export function runForensicsHeuristics(ctx: HeuristicsContext): {
@@ -31,48 +69,49 @@ export function runForensicsHeuristics(ctx: HeuristicsContext): {
   }
 
   for (const [aid, agentCalls] of callsByAgent.entries()) {
+    const role = resolveAgentRole(aid, agentCalls, agentLedger, state);
+    if (isContractuallyReadOnlyRole(role)) continue;
+
     let readsBeforeWrite = 0;
-    let writeFound = false;
     for (const call of agentCalls) {
-      if (call.isWrite) {
-        writeFound = true;
-        break;
-      }
-      if (call.isRead) {
-        readsBeforeWrite++;
-      }
+      if (call.isWrite) break;
+      if (call.isRead) readsBeforeWrite++;
     }
     if (readsBeforeWrite >= 5) {
       const severity: ForensicsSeverity = readsBeforeWrite > 10 ? "CRITICAL" : "HIGH";
-      addIncident({
-        id: generateIncidentId("TOKEN_BURNING", `excessive_reads_${aid}`),
-        category: "TOKEN_BURNING",
-        severity,
-        title: "Token Burning: Excessive Read Exploration Before First Edit",
-        observation: `Agent '${aid}' executed ${readsBeforeWrite} read operations before first code modification.`,
-        description: `Agent '${aid}' executed ${readsBeforeWrite} read operations before first code modification.`,
-        remediation: "Direct agent to targeted edit site with explicit file paths and symbols.",
-        recommendation: "Direct agent to targeted edit site with explicit file paths and symbols.",
-        agentId: aid,
-        toolCallsCount: readsBeforeWrite,
-      });
+      addIncident(
+        inc(
+          "TOKEN_BURNING",
+          `excessive_reads_${aid}`,
+          "Token Burning: Excessive Read Exploration Before First Edit",
+          `Agent '${aid}' executed ${readsBeforeWrite} read operations before first code modification.`,
+          REM_DIR_EDIT,
+          severity,
+          { agentId: aid, toolCallsCount: readsBeforeWrite },
+        ),
+      );
     }
   }
 
-  const readCalls = allToolCalls.filter((c) => c.isRead).length;
-  const explorationRatio = allToolCalls.length > 0 ? readCalls / allToolCalls.length : 0;
-  if (allToolCalls.length >= 15 && explorationRatio > 0.85) {
-    addIncident({
-      id: generateIncidentId("TOKEN_BURNING", "high_exploration_ratio"),
-      category: "TOKEN_BURNING",
-      severity: "MEDIUM",
-      title: "Token Burning: High Exploration-to-Edit Ratio",
-      observation: `Exploration ratio of ${Math.round(explorationRatio * 100)}% exceeds 85% threshold.`,
-      description: `Exploration ratio of ${Math.round(explorationRatio * 100)}% exceeds 85% threshold.`,
-      remediation: "Provide localized symbol anchors to reduce exploratory context bloat.",
-      recommendation: "Provide localized symbol anchors to reduce exploratory context bloat.",
-      toolCallsCount: readCalls,
-    });
+  const nonReadOnlyCalls = allToolCalls.filter(
+    (c) => !isContractuallyReadOnlyRole(resolveAgentRole(c.agentId || "", [c], agentLedger, state)),
+  );
+  if (nonReadOnlyCalls.length >= 15) {
+    const readCalls = nonReadOnlyCalls.filter((c) => c.isRead).length;
+    const explorationRatio = readCalls / nonReadOnlyCalls.length;
+    if (explorationRatio > 0.85) {
+      addIncident(
+        inc(
+          "TOKEN_BURNING",
+          "high_exploration_ratio",
+          "Token Burning: High Exploration-to-Edit Ratio",
+          `Exploration ratio of ${Math.round(explorationRatio * 100)}% exceeds 85% threshold.`,
+          REM_ANCHORS,
+          "MEDIUM",
+          { toolCallsCount: readCalls },
+        ),
+      );
+    }
   }
 
   if (
@@ -81,118 +120,76 @@ export function runForensicsHeuristics(ctx: HeuristicsContext): {
     typeof state["tasks"] === "object" &&
     state["tasks"] !== null
   ) {
-    const rawTasks = Object.values(state["tasks"] as Record<string, Record<string, unknown>>);
-    const taskList: {
-      id: string;
-      writeScope: string[];
-      startedAt?: number | undefined;
-      completedAt?: number | undefined;
-    }[] = [];
-
-    for (const t of rawTasks) {
-      const id = String(t["id"] ?? "");
-      const writeScope = Array.isArray(t["write_scope"]) ? (t["write_scope"] as string[]) : [];
-      let startedAt: number | undefined;
-      let completedAt: number | undefined;
-
-      if (Array.isArray(t["attempts"]) && t["attempts"].length > 0) {
-        const lastAtt = t["attempts"][t["attempts"].length - 1] as Record<string, unknown>;
-        if (typeof lastAtt["started_at"] === "string")
-          startedAt = Date.parse(lastAtt["started_at"]);
-        if (typeof lastAtt["completed_at"] === "string")
-          completedAt = Date.parse(lastAtt["completed_at"]);
-      }
-
-      taskList.push({ id, writeScope, startedAt, completedAt });
-    }
-
-    taskList.sort((a, b) => (a.startedAt ?? 0) - (b.startedAt ?? 0));
+    const taskList = Object.values(state["tasks"] as Record<string, Record<string, unknown>>)
+      .map(parseTaskEntry)
+      .sort((a, b) => (a.startedAt ?? 0) - (b.startedAt ?? 0));
 
     for (let i = 0; i < taskList.length - 1; i++) {
       const tA = taskList[i];
       const tB = taskList[i + 1];
       if (tA && tB && tA.writeScope.length > 0 && tB.writeScope.length > 0) {
         const hasOverlap = tA.writeScope.some((f) => tB.writeScope.includes(f));
-        if (!hasOverlap && tA.completedAt && tB.startedAt && tB.startedAt >= tA.completedAt) {
+        const hasCausalDependency =
+          tB.dependencies.includes(tA.id) || tA.dependencies.includes(tB.id);
+        if (
+          !hasOverlap &&
+          !hasCausalDependency &&
+          tA.completedAt &&
+          tB.startedAt &&
+          tB.startedAt >= tA.completedAt
+        ) {
           sequentialWaveBottlenecks++;
         }
       }
     }
 
     if (sequentialWaveBottlenecks >= 2) {
-      addIncident({
-        id: generateIncidentId("FALSE_SERIALIZATION", "wave_bottleneck"),
-        category: "FALSE_SERIALIZATION",
-        severity: "MEDIUM",
-        title: "False Serialization Detected: Disjoint Tasks Executed Serially",
-        observation: `Identified ${sequentialWaveBottlenecks} instances where tasks with non-overlapping write scopes were executed in sequence.`,
-        description: `Identified ${sequentialWaveBottlenecks} instances where tasks with non-overlapping write scopes were executed in sequence.`,
-        remediation:
-          "Implement Wave Concurrency by grouping ready tasks with disjoint write scopes.",
-        recommendation:
-          "Implement Wave Concurrency by grouping ready tasks with disjoint write scopes.",
-      });
+      addIncident(
+        inc(
+          "FALSE_SERIALIZATION",
+          "wave_bottleneck",
+          "False Serialization Detected: Disjoint Tasks Executed Serially",
+          `Identified ${sequentialWaveBottlenecks} instances where tasks with non-overlapping write scopes were executed in sequence.`,
+          REM_WAVE_CONC,
+        ),
+      );
     }
   }
 
   for (const call of allToolCalls) {
-    const role = String(call.agentRole || call.agentId || "").toLowerCase();
+    const rawRole = resolveAgentRole(call.agentId || "", [call], agentLedger, state);
     const tool = String(call.toolName || call.name || "").toLowerCase();
-    const isCoord = role.includes("coord") || role.includes("orch") || role.includes("superv");
-    const isVal = role.includes("val");
-    const isWrite =
-      tool.includes("write") ||
-      tool.includes("replace") ||
-      tool.includes("edit") ||
-      tool.includes("patch");
-    const isExec = tool === "run_command" || tool.includes("exec") || tool.includes("bash");
+    const isCoord =
+      isCoordinatorRole(rawRole) ||
+      isOrchestratorRole(rawRole) ||
+      rawRole.toLowerCase().includes("superv");
+    const isVal = isValidatorRole(rawRole);
 
-    if (isCoord && isWrite) {
-      addIncident({
-        id: generateIncidentId("ROLE_BOUNDARY_DEVIATION", `coord_write_${tool}`),
-        category: "ROLE_BOUNDARY_DEVIATION",
-        severity: "CRITICAL",
-        title: "Role Boundary Deviation: Coordinator Direct Code Modification",
-        observation: `Coordinator '${call.agentId}' executed code modification tool '${tool}'.`,
-        description: `Coordinator '${call.agentId}' executed code modification tool '${tool}'.`,
-        remediation: "Coordinators must delegate code edits exclusively to Tier 3 Implementers.",
-        recommendation: "Coordinators must delegate code edits exclusively to Tier 3 Implementers.",
-        agentId: call.agentId,
-      });
+    if (isCoord && call.isWrite) {
+      addIncident(
+        inc(
+          "ROLE_BOUNDARY_DEVIATION",
+          `coord_write_${tool}`,
+          "Role Boundary Deviation: Coordinator Direct Code Modification",
+          `Coordinator '${call.agentId}' executed code modification tool '${tool}'.`,
+          REM_DELEGATE,
+          "CRITICAL",
+          { agentId: call.agentId },
+        ),
+      );
     }
-    if (isVal) {
-      let isForbidden = isWrite;
-      if (isExec) {
-        const cmd = String(
-          call.rawArguments?.["CommandLine"] ?? call.rawArguments?.["command"] ?? "",
-        );
-        const isTestCommand = cmd.includes("test") || cmd.includes("spec") || cmd.includes("check");
-        if (!isTestCommand) isForbidden = true;
-      }
-      if (isForbidden) {
-        addIncident({
-          id: generateIncidentId("ROLE_BOUNDARY_DEVIATION", `validator_${tool}`),
-          category: "ROLE_BOUNDARY_DEVIATION",
-          severity: "HIGH",
-          title: "Role Boundary Deviation: Validator Execution/Write Tool Call",
-          observation:
-            "Validator agent `" +
-            String(call.agentId ?? "") +
-            "` attempted forbidden tool '" +
-            tool +
-            "'.",
-          description:
-            "Validator agent `" +
-            String(call.agentId ?? "") +
-            "` attempted forbidden tool '" +
-            tool +
-            "'.",
-          remediation: "Cognitive Validators must evaluate deliverables via read-only inspection.",
-          recommendation:
-            "Cognitive Validators must evaluate deliverables via read-only inspection.",
-          agentId: call.agentId,
-        });
-      }
+    if (isVal && !isPermittedValidatorTool(call)) {
+      addIncident(
+        inc(
+          "ROLE_BOUNDARY_DEVIATION",
+          `validator_${tool}`,
+          "Role Boundary Deviation: Validator Execution/Write Tool Call",
+          `Validator agent \`${String(call.agentId ?? "")}\` attempted forbidden tool '${tool}'.`,
+          REM_READ_ONLY,
+          "HIGH",
+          { agentId: call.agentId },
+        ),
+      );
     }
   }
 
@@ -214,24 +211,20 @@ export function runForensicsHeuristics(ctx: HeuristicsContext): {
           : "unknown";
       const eventActor =
         typeof evt["actor"] === "string" && evt["actor"].length > 0 ? evt["actor"] : "unknown";
-
-      addIncident({
-        id: generateIncidentId("ROLE_BOUNDARY_DEVIATION", eventTarget),
-        category: "ROLE_BOUNDARY_DEVIATION",
-        severity: "CRITICAL",
-        title: "Role Boundary Deviation: Supervisor Direct Code Modification",
-        observation: eventMessage,
-        description: eventMessage,
-        remediation:
-          "Supervisors and orchestrators must delegate code edits exclusively to Tier 3 Implementers.",
-        recommendation:
-          "Supervisors and orchestrators must delegate code edits exclusively to Tier 3 Implementers.",
-        agentId: eventActor,
-      });
+      addIncident(
+        inc(
+          "ROLE_BOUNDARY_DEVIATION",
+          eventTarget,
+          "Role Boundary Deviation: Supervisor Direct Code Modification",
+          eventMessage,
+          REM_DELEGATE,
+          "CRITICAL",
+          { agentId: eventActor },
+        ),
+      );
     }
   }
 
   runExtendedForensicsHeuristics(ctx);
-
   return { sequentialWaveBottlenecks };
 }

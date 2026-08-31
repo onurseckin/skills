@@ -77,18 +77,42 @@ describe("isPathDeclaredInContent", () => {
       true,
     );
     expect(isPathDeclaredInContent("fish_add_path ~/.local/bin", binDir, home)).toBe(true);
-    expect(isPathDeclaredInContent("PATH=$PATH:.local/bin", binDir, home)).toBe(true);
+    expect(isPathDeclaredInContent("PATH=$PATH:$HOME/.local/bin", binDir, home)).toBe(true);
   });
 
-  test("returns false when path is not declared", () => {
+  test("returns false when .local/bin is preceded by an unmanaged variable or path", () => {
     const home = "/Users/test";
     const binDir = "/Users/test/.local/bin";
-    expect(isPathDeclaredInContent('export PATH="/usr/bin:$PATH"', binDir, home)).toBe(false);
+    expect(
+      isPathDeclaredInContent('export PATH="$OTHER_PROJECT/.local/bin:$PATH"', binDir, home),
+    ).toBe(false);
   });
 
-  test("returns false when binDir does not start with home and is not in content", () => {
+  test("returns false when path is only present inside comments", () => {
+    const home = "/Users/test";
+    const binDir = "/Users/test/.local/bin";
     expect(
-      isPathDeclaredInContent('export PATH="/usr/bin:$PATH"', "/opt/custom/bin", "/Users/test"),
+      isPathDeclaredInContent(
+        '# export PATH="$HOME/.local/bin:$PATH"\n# fish_add_path ~/.local/bin',
+        binDir,
+        home,
+      ),
+    ).toBe(false);
+  });
+
+  test("returns false when path is in an unrelated variable assignment", () => {
+    const home = "/Users/test";
+    const binDir = "/Users/test/.local/bin";
+    expect(isPathDeclaredInContent('export OTHER_TOOL_HOME="$HOME/.local/bin"', binDir, home)).toBe(
+      false,
+    );
+  });
+
+  test("returns false when path is a prefix of a different folder name", () => {
+    const home = "/Users/test";
+    const binDir = "/Users/test/.local/bin";
+    expect(
+      isPathDeclaredInContent('export PATH="$HOME/.local/bin_extra:$PATH"', binDir, home),
     ).toBe(false);
   });
 });

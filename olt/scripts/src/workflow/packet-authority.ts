@@ -14,7 +14,13 @@ export function assertPublishedTaskPacket(
       packet.task_id === taskId &&
       packet.role === role &&
       packet.agent_id === agentId &&
-      packet.attempt === attempt,
+      (packet.attempt === attempt ||
+        (attempt > 1 &&
+          ((Array.isArray(state.tasks[taskId]?.micro_cycles) &&
+            state.tasks[taskId].micro_cycles.length > 0) ||
+            (typeof state.tasks[taskId]?.micro_cycle_round === "number" &&
+              state.tasks[taskId].micro_cycle_round > 0)) &&
+          packet.attempt <= attempt)),
   );
   if (!authorized)
     throw new HarnessError(

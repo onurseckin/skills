@@ -1,3 +1,7 @@
+export const DEFAULT_LOCK_TIMEOUT_MS = 10_000;
+export const DEFAULT_STALE_THRESHOLD_MS = 10_000;
+export const DEFAULT_RETRY_INTERVAL_MS = 25;
+
 export type MailboxMessageType =
   | "DISPATCH_TASK"
   | "HANDOFF_RECEIPT"
@@ -40,6 +44,14 @@ export interface LockAcquisitionResult {
   readonly lockPath: string;
   readonly holderPid: number | null;
 }
+
+export interface SafeLockOptions {
+  readonly timeoutMs?: number;
+  readonly staleThresholdMs?: number;
+  readonly retryMs?: number;
+}
+
+export type LockOptions = SafeLockOptions;
 
 export interface MailboxPaths {
   readonly agentMailboxDir: string;

@@ -48,7 +48,15 @@ function parseTokens(
         "prefix it with -- to name a flag",
       );
     }
-    const name = token.slice(2);
+    let name: string;
+    let inlineValue: string | undefined = undefined;
+    if (token.includes("=")) {
+      const eqIdx = token.indexOf("=");
+      name = token.slice(2, eqIdx);
+      inlineValue = token.slice(eqIdx + 1);
+    } else {
+      name = token.slice(2);
+    }
     if (!FLAG_NAME_PATTERN.test(name)) {
       throw new HarnessError("INVALID_ARGUMENT", `invalid option: ${token}`);
     }
@@ -58,10 +66,27 @@ function parseTokens(
       throw new HarnessError("INVALID_ARGUMENT", `unknown option: --${name}${hint}`);
     }
     const isBool = nonValuedFlags.has(name);
-    const following = tokens[i + 1];
     let val: string | true = true;
-    if (!isBool) {
-      if (following === undefined || following === "--" || following.startsWith("--")) {
+    if (isBool) {
+      if (inlineValue !== undefined && inlineValue !== "true") {
+        throw new HarnessError("INVALID_ARGUMENT", `option --${name} does not take a value`);
+      }
+      val = true;
+    } else if (inlineValue !== undefined) {
+      val = inlineValue;
+    } else {
+      const following = tokens[i + 1];
+      if (
+        following === undefined ||
+        following === "--" ||
+        (following.startsWith("--") &&
+          !following.includes(" ") &&
+          allowed.has(
+            following.includes("=")
+              ? following.slice(2, following.indexOf("="))
+              : following.slice(2),
+          ))
+      ) {
         throw new HarnessError("INVALID_ARGUMENT", `option --${name} requires a value`);
       }
       val = following;

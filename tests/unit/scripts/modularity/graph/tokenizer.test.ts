@@ -165,3 +165,63 @@ test("skips a hashbang only when it begins the source", () => {
   ]);
   expect(scanImports(blob("slice/single-line-hashbang.ts", "#!/usr/bin/env bun"))).toEqual([]);
 });
+
+test("handles ASI with semicolon-less exports and declarations", () => {
+  const source = `
+    export const x = 1
+    export function foo() { return 2 }
+    export default class Bar {}
+    import "./real.ts"
+    export { x } from "./export.ts"
+  `;
+  expect(scanImports(blob("slice/asi.ts", source))).toEqual([
+    { specifier: "./real.ts", typeOnly: false, kind: "import" },
+    { specifier: "./export.ts", typeOnly: false, kind: "export" },
+  ]);
+});
+
+test("handles template literals with nested expressions, quotes, and regexes", () => {
+  const source = `
+    const t1 = \`hello \${ \`nested \${ 'deep \${ import "./fake.ts" }' }\` } world\`;
+    const t2 = \`before \${ /export\\s+.*from/g.test("foo") ? 1 : 2 } after\`;
+    import "./valid.ts";
+  `;
+  expect(scanImports(blob("slice/template.ts", source))).toEqual([
+    { specifier: "./valid.ts", typeOnly: false, kind: "import" },
+  ]);
+});
+
+test("scans dynamic imports with string literals", () => {
+  const source = `
+    const mod = await import("./dynamic.ts");
+    const runtime = import(variablePath);
+  `;
+  expect(scanImports(blob("slice/dynamic.ts", source))).toEqual([
+    { specifier: "./dynamic.ts", typeOnly: false, kind: "import" },
+  ]);
+});
+
+test("disambiguates export * as Name namespace re-exports from bare export *", () => {
+  const namespaceTarget = blob(
+    "slice/index.ts",
+    'export * as DomainPolicy from "./policy/index.ts";',
+  );
+  expect(scanImports(namespaceTarget)).toEqual([
+    { specifier: "./policy/index.ts", typeOnly: false, kind: "export" },
+  ]);
+  expect(countExportStars(namespaceTarget)).toBe(0);
+
+  const wildcardTarget = blob("slice/index.ts", 'export * from "./policy/index.ts";');
+  expect(countExportStars(wildcardTarget)).toBe(1);
+});
+
+test("prevents cross-line specifier ingestion bleed under ASI with property access", () => {
+  const source = `
+    export { a, b }
+    const records = db.from("users");
+    import "./real.ts";
+  `;
+  expect(scanImports(blob("slice/asi-bleed.ts", source))).toEqual([
+    { specifier: "./real.ts", typeOnly: false, kind: "import" },
+  ]);
+});

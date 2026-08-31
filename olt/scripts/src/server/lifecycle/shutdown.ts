@@ -26,12 +26,20 @@ function defaultSignalSender(pid: number, signal: "SIGTERM" | "SIGKILL"): boolea
   if (pid <= 0) {
     return false;
   }
+  let killed = false;
+  try {
+    process.kill(-pid, signal);
+    killed = true;
+  } catch {
+    // Process group fallback
+  }
   try {
     process.kill(pid, signal);
-    return true;
+    killed = true;
   } catch {
-    return false;
+    // Process single fallback
   }
+  return killed;
 }
 
 function defaultSleep(ms: number): Promise<void> {

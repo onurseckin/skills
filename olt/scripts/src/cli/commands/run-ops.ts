@@ -1,27 +1,36 @@
-import { executeAutoSyncAndCommit } from "../../workflow/completion/auto-sync-and-commit.ts";
-import { dispatchLifecycleHook } from "../../hooks/index.ts";
-import { readAgentMetadata } from "../../runtime/index.ts";
-import { verifyCommandAuthorization } from "../../policy/index.ts";
-import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { readFileSync, realpathSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import type { JsonObject } from "../../core/contracts/index.ts";
+import { basename, isAbsolute, join, resolve } from "node:path";
 import { getHarnessConfig } from "../../core/config/index.ts";
+import type { JsonObject, WorktreeConsolidationRecord } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { runAndRecordCommand } from "../../integration/record-command.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
-import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
+import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import { verifyCommandRecord } from "../../engine/runner/signing/verify-command";
 import { loadRun } from "../../engine/store/index.ts";
+import { dispatchLifecycleHook } from "../../hooks/index.ts";
+import { runAndRecordCommand } from "../../integration/record-command.ts";
+import { workflowPort } from "../../integration/store-ports.ts";
 import {
   archiveCapsule,
   consolidateCapsules,
   pruneCapsuleBoilerplate,
 } from "../../mind/archival/index.ts";
 import { drainBacklogOnRunCompletion } from "../../mind/tasks/smart/index.ts";
+import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
+import { verifyCommandAuthorization } from "../../policy/index.ts";
+import { loadRepoPolicy } from "../../policy/repo-policy.ts";
+import { ingestBrowserRun } from "../../reporting/browser-run-ingestion.ts";
+import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
+import { refreshHandoff } from "../../reporting/handoff.ts";
+import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
+import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
+import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
+import { extractLeaseAgentId, generateUnifiedReport } from "../../reporting/unified/index.ts";
+import { readAgentMetadata } from "../../runtime/index.ts";
+import { generateSummarySuite } from "../../summary/formatters/index.ts";
+import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
+import { executeAutoSyncAndCommit } from "../../workflow/completion/auto-sync-and-commit.ts";
 import { completeRun } from "../../workflow/completion/complete-run.ts";
 import { gateTally } from "../../workflow/completion/completion-state.ts";
-import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
 import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";
 import {
@@ -29,11 +38,10 @@ import {
   taskHasPassedGate,
   workflowGates,
 } from "../../workflow/gates/gate-policy.ts";
-import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/paths.ts";
+import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/consolidate.ts";
 import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
-import type { WorktreeConsolidationRecord } from "../../core/contracts/index.ts";
 import {
   formatRunCompleteBrief,
   formatRunExecBrief,
@@ -41,19 +49,10 @@ import {
 } from "../formatters/index.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { declaredToolFlags } from "../taxonomy-flags.ts";
-import { generateSummarySuite } from "../../summary/formatters/index.ts";
-import { ingestBrowserRun } from "../../reporting/browser-run-ingestion.ts";
-import { refreshHandoff } from "../../reporting/handoff.ts";
-import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
-import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
-import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
-import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
-import { extractLeaseAgentId, generateUnifiedReport } from "../../reporting/unified/index.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
-import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
 
 function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParallel: number } {
-  const config = getHarnessConfig(resolve(runRoot, "..", ".."), runRoot);
+  const config = getHarnessConfig(findRepoRoot(runRoot), runRoot);
   return { maxParallel: config.default_max_parallel, gateMaxParallel: config.gate_max_parallel };
 }
 
@@ -94,7 +93,7 @@ function consolidateIfProvisioned(
   run: string,
   actor: string,
 ): WorktreeConsolidationRecord | undefined {
-  const repoRoot = resolve(run, "..", "..");
+  const repoRoot = findRepoRoot(run);
   const config = getHarnessConfig(repoRoot, run);
   if (!config.worktree_isolation) return undefined;
   const ledger = readWorktreeLedger(loadRun(run).state);

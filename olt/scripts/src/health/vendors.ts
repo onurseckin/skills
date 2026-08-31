@@ -16,11 +16,22 @@ export interface VendorTree {
 }
 
 export const PRODUCT_GRAMMAR_MODULES: readonly string[] = [
+  "src/cli/briefing/generic-symbols.ts",
+  "src/cli/commands/server-ops.ts",
+  "src/mind/governance/policy-coverage.ts",
+  "src/mind/governance/toolchain-inspector.ts",
   "src/platform/capture/governance-sync.ts",
   "src/platform/capture/persona-governance.ts",
   "src/platform/capture/index.ts",
+  "src/reporting/doctor/quota-health-engine.ts",
+  "src/server/docker",
+  "src/telemetry/collectors/host-detection-rules.ts",
   "src/telemetry/collectors/host-detection.ts",
   "src/telemetry/engine.ts",
+  "src/validation/ast-linter/mock-detectors.ts",
+  "src/validation/ui/index.ts",
+  "src/validation/ui/types.ts",
+  "src/validation/index.ts",
   "src/engine/policy-discovery.ts",
   "src/authority/manifest/constants.ts",
   "src/capture/docker-health.ts",

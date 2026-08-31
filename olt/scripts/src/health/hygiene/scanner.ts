@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync } from "node:fs";
 import { extname, join, relative, resolve } from "node:path";
 import { ALLOWED_ROOT_DIRS, ALLOWED_ROOT_FILES } from "../../authority/guards/constants.ts";
 import { HarnessError } from "../../core/errors/index.ts";
@@ -21,6 +21,21 @@ export function isExecutable(fullPath: string, mode: number): boolean {
   return EXECUTABLE_EXTENSIONS.has(extname(fullPath).toLowerCase());
 }
 
+function isAllowedRootFile(entry: string, allowedFiles: ReadonlySet<string>): boolean {
+  if (allowedFiles.has(entry)) return true;
+  if (
+    entry.startsWith(".env.") &&
+    !entry.endsWith(".jsonl") &&
+    !entry.endsWith(".log") &&
+    !entry.endsWith(".sh") &&
+    !entry.endsWith(".ts") &&
+    !entry.endsWith(".js")
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function scanRepoRoot(
   root: string,
   allowedFiles: ReadonlySet<string>,
@@ -36,8 +51,8 @@ export function scanRepoRoot(
   for (const entry of entries) {
     const fullPath = join(root, entry);
     try {
-      const stats = statSync(fullPath);
-      if (stats.isFile() && !allowedFiles.has(entry)) {
+      const stats = lstatSync(fullPath);
+      if ((stats.isFile() || stats.isSymbolicLink()) && !isAllowedRootFile(entry, allowedFiles)) {
         const isScratch = SCRATCH_PATTERNS.some((p) => p.test(entry));
         const isExec = isExecutable(fullPath, stats.mode);
         const violationType: HygieneViolationType = isScratch
@@ -92,7 +107,7 @@ export function scanScriptsRoot(
     const fullPath = join(scriptsDir, entry);
     const relPath = relative(repoRoot, fullPath);
     try {
-      const stats = statSync(fullPath);
+      const stats = lstatSync(fullPath);
       if (stats.isFile() && !allowedFiles.has(entry)) {
         const isTestArt = TEST_ARTIFACT_PATTERNS.some((p) => p.test(entry));
         const isExec = isExecutable(fullPath, stats.mode);
@@ -130,14 +145,23 @@ export function scanScriptsRoot(
   return { count: entries.length, findings };
 }
 
+const MAX_STATIC_TRAVERSAL_DEPTH = 12;
+
 export function scanStaticPackage(
   oltDir: string,
   repoRoot: string,
 ): { count: number; findings: RootHygieneFinding[] } {
   if (!existsSync(oltDir)) return { count: 0, findings: [] };
   const findings: RootHygieneFinding[] = [];
+  const visited = new Set<string>();
   let count = 0;
-  function traverse(dir: string): void {
+
+  function traverse(dir: string, depth: number): void {
+    if (depth > MAX_STATIC_TRAVERSAL_DEPTH) return;
+    const realDir = resolve(dir);
+    if (visited.has(realDir)) return;
+    visited.add(realDir);
+
     let entries: string[] = [];
     try {
       entries = readdirSync(dir);
@@ -149,9 +173,9 @@ export function scanStaticPackage(
       const fullPath = join(dir, entry);
       const relPath = relative(repoRoot, fullPath);
       try {
-        const stats = statSync(fullPath);
+        const stats = lstatSync(fullPath);
         if (stats.isDirectory()) {
-          if (["coverage", ".coverage", "logs", "quarantine"].includes(entry)) {
+          if (["coverage", ".coverage", "logs", "quarantine", ".tmp", "scratch"].includes(entry)) {
             findings.push({
               path: fullPath,
               relativePath: relPath,
@@ -162,30 +186,36 @@ export function scanStaticPackage(
               isExecutable: false,
               sizeBytes: 0,
             });
-          } else if (entry !== "references") {
-            traverse(fullPath);
+          } else {
+            traverse(fullPath, depth + 1);
           }
-        } else if (
-          stats.isFile() &&
-          (entry.endsWith(".jsonl") || entry.endsWith(".log") || entry === "defects.jsonl")
-        ) {
-          findings.push({
-            path: fullPath,
-            relativePath: relPath,
-            scope: "static_package",
-            violationType: "STATIC_PACKAGE_RUNTIME_POLLUTION",
-            severity: "ERROR",
-            message: `Runtime file '${entry}' in static package 'olt/'.`,
-            isExecutable: false,
-            sizeBytes: stats.size,
-          });
+        } else if (stats.isFile()) {
+          const isRuntimeFile =
+            entry.endsWith(".jsonl") ||
+            entry.endsWith(".log") ||
+            entry.endsWith(".tmp") ||
+            entry === "defects.jsonl" ||
+            entry === ".session.json" ||
+            entry === "report.json";
+          if (isRuntimeFile) {
+            findings.push({
+              path: fullPath,
+              relativePath: relPath,
+              scope: "static_package",
+              violationType: "STATIC_PACKAGE_RUNTIME_POLLUTION",
+              severity: "ERROR",
+              message: `Runtime file '${entry}' in static package 'olt/'.`,
+              isExecutable: false,
+              sizeBytes: stats.size,
+            });
+          }
         }
       } catch {
         continue;
       }
     }
   }
-  traverse(oltDir);
+  traverse(oltDir, 0);
   return { count, findings };
 }
 
@@ -204,11 +234,7 @@ export function scanRootHygiene(options: RootHygieneOptions = {}): RootHygieneSc
     options.allowedScriptsDirs ?? DEFAULT_ALLOWED_SCRIPTS_DIRS,
   );
   const oltRes = scanStaticPackage(join(repoRoot, "olt"), repoRoot);
-  const violations: RootHygieneFinding[] = [
-    ...rootRes.findings,
-    ...scriptsRes.findings,
-    ...oltRes.findings,
-  ];
+  const violations = [...rootRes.findings, ...scriptsRes.findings, ...oltRes.findings];
   const quarantinedFiles =
     options.fix === true && violations.length > 0
       ? quarantineViolations(repoRoot, violations, options.quarantineDir)
@@ -241,14 +267,11 @@ export class RootHygieneEngine {
   public scan(overrides?: RootHygieneOptions): RootHygieneScanResult {
     return scanRootHygiene({ ...this.options, ...overrides });
   }
-  public quarantine(
-    violations: readonly RootHygieneFinding[],
-    qDir?: string,
-  ): QuarantinedFileRecord[] {
+  public quarantine(v: readonly RootHygieneFinding[], q?: string): QuarantinedFileRecord[] {
     return quarantineViolations(
       resolve(this.options.repoRoot ?? process.cwd()),
-      violations,
-      qDir ?? this.options.quarantineDir,
+      v,
+      q ?? this.options.quarantineDir,
     );
   }
   public assertClean(overrides?: RootHygieneOptions): void {
@@ -258,11 +281,11 @@ export class RootHygieneEngine {
     return scanRootHygiene(options);
   }
   public static quarantine(
-    repoRoot: string,
-    violations: readonly RootHygieneFinding[],
-    targetQuarantineDir?: string,
+    root: string,
+    v: readonly RootHygieneFinding[],
+    q?: string,
   ): QuarantinedFileRecord[] {
-    return quarantineViolations(repoRoot, violations, targetQuarantineDir);
+    return quarantineViolations(root, v, q);
   }
   public static assertClean(options?: RootHygieneOptions): void {
     assertCleanRootHygiene(options);

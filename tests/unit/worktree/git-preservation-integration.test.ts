@@ -1,22 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
-  assertNonDestructiveWriteScope,
   assertZeroDestructiveGit,
-  buildInclusiveStageArgs,
-  filterPathsToScope,
   isDestructiveGitCommand,
-  isPathInWriteScope,
-  partitionObservedChanges,
 } from "../../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts";
-import {
-  createGitRunner,
-  git,
-  worktreeGitEnvironment,
-  type GitRunner,
-  type GitSpawn,
-} from "../../../olt/scripts/src/workflow/worktree/git.ts";
+import { createGitRunner, type GitSpawn } from "../../../olt/scripts/src/workflow/worktree/git.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservation", () => {

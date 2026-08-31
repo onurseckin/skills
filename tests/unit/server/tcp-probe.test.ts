@@ -188,6 +188,12 @@ describe("TCP Port Probe & Socket Conflict Detector", () => {
       expect(ipv6.port).toBe(ipv4Port);
       expect(ipv6.family).toBe("IPv6");
     });
+
+    test("probeAllInterfaces probes common loopback and bind interfaces", async () => {
+      const results = await probeAllInterfaces(ipv4Port, { timeoutMs: 150 });
+      expect(results.length).toBeGreaterThanOrEqual(2);
+      expect(results.some((r) => r.inUse)).toBe(true);
+    });
   });
 
   describe("Batch Probing (probePorts)", () => {

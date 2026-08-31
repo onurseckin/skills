@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
 import { getHarnessConfig } from "../../core/config/index.ts";
-import { readBoundedBytes } from "../../core/json.ts";
 import { HarnessError } from "../../core/errors/index.ts";
+import { readBoundedBytes } from "../../core/json.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 import { AutonomousLoopRunner } from "../../orchestrator/loop-runner.ts";
 import { formatMorningReportMarkdown } from "../../orchestrator/morning-report.ts";
 import { runSupervisionWatch } from "../../orchestrator/supervision-watch.ts";
@@ -116,7 +116,7 @@ export async function orchestratorRunCommand(
 }
 
 function repoConfigFor(runRoot: string): ReturnType<typeof getHarnessConfig> {
-  return getHarnessConfig(resolve(runRoot, "..", ".."), runRoot);
+  return getHarnessConfig(findRepoRoot(runRoot), runRoot);
 }
 
 interface SuperviseWatchInput {

@@ -21,7 +21,7 @@ export function evaluateSupervisoryState(
 ): SupervisoryStateEvaluation {
   const role = normalizeRoleName(context.role);
   const model = unifiedModel ?? loadUnifiedAgentModel(role);
-  const tier = model.tier;
+  const tier: number = typeof model.tier === "number" ? model.tier : 1;
 
   const violations: PersonaViolation[] = [];
   const correctiveDirectives: string[] = [];

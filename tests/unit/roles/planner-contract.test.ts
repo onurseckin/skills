@@ -3,17 +3,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   loadAgentManifest,
-  loadRoleContract as loadAuthorityRoleContract,
   loadUnifiedAgentModel,
-  parseAgentManifest,
-  parseMarkdownFrontmatter,
-  parseRoleContract as parseAuthorityRoleContract,
-  type AgentManifest,
 } from "../../../olt/scripts/src/authority/manifest/index.ts";
-import {
-  loadRoleContract as loadPacketRoleContract,
-  resolveRoleContractPath,
-} from "../../../olt/scripts/src/packets/role-contract.ts";
+import { loadRoleContract as loadPacketRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
 
 describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () => {
   const repoRoot = process.cwd();

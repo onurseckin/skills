@@ -34,6 +34,26 @@ export interface DiagnosticCollectionResult {
   readonly engineInfoIssues: readonly string[];
 }
 
+function safeRunEngine(name: string, fn: () => DoctorCheckEngineResult): DoctorCheckEngineResult {
+  try {
+    return fn();
+  } catch (err: unknown) {
+    return {
+      engine: name,
+      passed: false,
+      findings: [
+        {
+          code: "DOCTOR_ENGINE_FAULT",
+          severity: "ERROR",
+          engine: name,
+          message: `Engine fault in ${name}: ${err instanceof Error ? err.message : String(err)}`,
+          details: { error: err instanceof Error ? (err.stack ?? err.message) : String(err) },
+        },
+      ],
+    };
+  }
+}
+
 export function collectDiagnosticEngines(
   options: DiagnosticCollectionOptions,
 ): DiagnosticCollectionResult {
@@ -41,94 +61,122 @@ export function collectDiagnosticEngines(
   const state = options.state;
   const events = options.events as readonly Record<string, unknown>[] | undefined;
 
-  const engine1 = checkPlanningDag({
-    tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
-    graph: (state?.graph as { nodes?: []; edges?: [] } | undefined) ?? null,
-  });
+  const engine1 = safeRunEngine("checkPlanningDag", () =>
+    checkPlanningDag({
+      tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
+      graph: (state?.graph as { nodes?: []; edges?: [] } | undefined) ?? null,
+    }),
+  );
 
-  const engine2 = checkAstPurity({
-    repoRoot: repository,
-    writeScope: options.writeScope ?? [],
-  });
+  const engine2 = safeRunEngine("checkAstPurity", () =>
+    checkAstPurity({
+      repoRoot: repository,
+      writeScope: options.writeScope ?? [],
+    }),
+  );
 
-  const engine3 = checkAntiMockMutation({
-    repoRoot: repository,
-    targetPaths: options.testPaths,
-  });
+  const engine3 = safeRunEngine("checkAntiMockMutation", () =>
+    checkAntiMockMutation({
+      repoRoot: repository,
+      targetFiles: options.testPaths,
+      targetPaths: options.testPaths,
+      testFiles: options.testPaths,
+    }),
+  );
 
-  const engine4 = checkAntiBatchingIsolation({
-    state: (state as Record<string, unknown> | undefined) ?? null,
-    tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
-    grants: (state?.grants as readonly unknown[] | undefined) ?? null,
-  });
+  const engine4 = safeRunEngine("checkAntiBatchingIsolation", () =>
+    checkAntiBatchingIsolation({
+      state: (state as Record<string, unknown> | undefined) ?? null,
+      tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
+      grants: (state?.grants as readonly unknown[] | undefined) ?? null,
+    }),
+  );
 
-  const engine5 = checkDualChannelUi();
+  const engine5 = safeRunEngine("checkDualChannelUi", () => checkDualChannelUi());
 
-  const engine6 = checkCognitiveValidatorCommandLock({
-    state: (state as Record<string, unknown> | undefined) ?? null,
-    commands: (state?.commands as Record<string, unknown> | undefined) ?? null,
-    events: events ?? null,
-    grants: (state?.grants as readonly unknown[] | undefined) ?? null,
-  });
+  const engine6 = safeRunEngine("checkCognitiveValidatorCommandLock", () =>
+    checkCognitiveValidatorCommandLock({
+      state: (state as Record<string, unknown> | undefined) ?? null,
+      commands: (state?.commands as Record<string, unknown> | undefined) ?? null,
+      events: events ?? null,
+      grants: (state?.grants as readonly unknown[] | undefined) ?? null,
+    }),
+  );
 
-  const engine7 = checkRoleBoundaryInterlock({
-    state: (state as Record<string, unknown> | undefined) ?? null,
-    commands: (state?.commands as Record<string, unknown> | undefined) ?? null,
-    events: events ?? null,
-    grants: (state?.grants as readonly unknown[] | undefined) ?? null,
-  });
+  const engine7 = safeRunEngine("checkRoleBoundaryInterlock", () =>
+    checkRoleBoundaryInterlock({
+      state: (state as Record<string, unknown> | undefined) ?? null,
+      commands: (state?.commands as Record<string, unknown> | undefined) ?? null,
+      events: events ?? null,
+      grants: (state?.grants as readonly unknown[] | undefined) ?? null,
+    }),
+  );
 
-  const engine8 = checkPushbackQuotas({
-    state: (state as Record<string, unknown> | undefined) ?? null,
-    tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
-    events: events ?? null,
-    repoRoot: repository,
-  });
+  const engine8 = safeRunEngine("checkPushbackQuotas", () =>
+    checkPushbackQuotas({
+      state: (state as Record<string, unknown> | undefined) ?? null,
+      tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
+      events: events ?? null,
+      repoRoot: repository,
+    }),
+  );
 
-  const engine9 = checkPolicyDoctor({
-    repoRoot: repository,
-    state: (state as Record<string, unknown> | undefined) ?? null,
-    tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
-    commands: (state?.commands as Record<string, unknown> | undefined) ?? null,
-    events: events ?? null,
-    grants: (state?.grants as readonly unknown[] | undefined) ?? null,
-  });
+  const engine9 = safeRunEngine("checkPolicyDoctor", () =>
+    checkPolicyDoctor({
+      repoRoot: repository,
+      state: (state as Record<string, unknown> | undefined) ?? null,
+      tasks: (state?.tasks as Record<string, unknown> | undefined) ?? null,
+      commands: (state?.commands as Record<string, unknown> | undefined) ?? null,
+      events: events ?? null,
+      grants: (state?.grants as readonly unknown[] | undefined) ?? null,
+    }),
+  );
 
-  const hygieneResult = checkRepositoryHygiene({ repoRoot: repository });
-  const engine10: DoctorCheckEngineResult = {
-    engine: "checkRepositoryHygiene",
-    passed: hygieneResult.passed,
-    findings: hygieneResult.violations.map((v) => ({
-      code: v.violationType,
-      severity: v.severity,
+  const engine10 = safeRunEngine("checkRepositoryHygiene", () => {
+    const hygieneResult = checkRepositoryHygiene({ repoRoot: repository });
+    return {
       engine: "checkRepositoryHygiene",
-      message: v.message,
-      details: { path: v.path, violationType: v.violationType },
-    })),
-  };
-
-  const gitIndexResult = checkGitIndexIntegrity({ repoRoot: repository });
-  const engine11: DoctorCheckEngineResult = {
-    engine: "checkGitIndexIntegrity",
-    passed: gitIndexResult.healthy,
-    findings: gitIndexResult.findings,
-  };
-
-  const engine12 = checkMailboxHealth({ repoRoot: repository });
-
-  const worktreeResult = checkWorktreeHealth({ repoRoot: repository });
-  const engine13: DoctorCheckEngineResult = {
-    engine: "checkWorktreeHealth",
-    passed: worktreeResult.healthy,
-    findings: worktreeResult.findings,
-  };
-
-  const engine14 = checkCliRegistryTaxonomy();
-
-  const engine15 = checkTier0CompanionsHealth({
-    state: (state as Record<string, unknown> | undefined) ?? null,
-    repoRoot: repository,
+      passed: hygieneResult.passed,
+      findings: hygieneResult.violations.map((v) => ({
+        code: v.violationType,
+        severity: v.severity,
+        engine: "checkRepositoryHygiene",
+        message: v.message,
+        details: { path: v.path, violationType: v.violationType },
+      })),
+    };
   });
+
+  const engine11 = safeRunEngine("checkGitIndexIntegrity", () => {
+    const gitIndexResult = checkGitIndexIntegrity({ repoRoot: repository });
+    return {
+      engine: "checkGitIndexIntegrity",
+      passed: gitIndexResult.healthy,
+      findings: gitIndexResult.findings,
+    };
+  });
+
+  const engine12 = safeRunEngine("checkMailboxHealth", () =>
+    checkMailboxHealth({ repoRoot: repository }),
+  );
+
+  const engine13 = safeRunEngine("checkWorktreeHealth", () => {
+    const worktreeResult = checkWorktreeHealth({ repoRoot: repository });
+    return {
+      engine: "checkWorktreeHealth",
+      passed: worktreeResult.healthy,
+      findings: worktreeResult.findings,
+    };
+  });
+
+  const engine14 = safeRunEngine("checkCliRegistryTaxonomy", () => checkCliRegistryTaxonomy());
+
+  const engine15 = safeRunEngine("checkTier0CompanionsHealth", () =>
+    checkTier0CompanionsHealth({
+      state: (state as Record<string, unknown> | undefined) ?? null,
+      repoRoot: repository,
+    }),
+  );
 
   const allEngineFindings: DoctorDiagnosticFinding[] = [
     ...engine1.findings,

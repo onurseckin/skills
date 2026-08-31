@@ -4,7 +4,7 @@ import {
   loadBacklogItems,
   loadDefectItems,
 } from "./backlog-clusterer.ts";
-import { resolveLedgerPath, updateBridgeState } from "./bridge-state.ts";
+import { resolveLedgerPath, updateBridgeStateBatch } from "./bridge-state.ts";
 import { generateAndWritePlan } from "./plan-factory.ts";
 import type {
   ClusterOptions,
@@ -92,20 +92,21 @@ export function runPreplanningTick(options?: PreplannerOptions): PreplanningRunR
     } else {
       const planResult = generateAndWritePlan(cluster, backlogItems, defectItems, root);
       writtenPlanFiles.push(planResult.planPath);
-
-      const bridgeResult = updateBridgeState(cluster, {
-        ...(options !== undefined && options.backlogFile !== undefined
-          ? { backlogFile: options.backlogFile }
-          : {}),
-        ...(options !== undefined && options.defectsFile !== undefined
-          ? { defectsFile: options.defectsFile }
-          : {}),
-        rootDir: root,
-      });
-
-      totalItemsPlanned += bridgeResult.itemsUpdated;
-      totalDefectsPlanned += bridgeResult.defectsUpdated;
     }
+  }
+
+  if (!(options !== undefined && options.dryRun)) {
+    const bridgeResult = updateBridgeStateBatch(clusters, {
+      ...(options !== undefined && options.backlogFile !== undefined
+        ? { backlogFile: options.backlogFile }
+        : {}),
+      ...(options !== undefined && options.defectsFile !== undefined
+        ? { defectsFile: options.defectsFile }
+        : {}),
+      rootDir: root,
+    });
+    totalItemsPlanned = bridgeResult.itemsUpdated;
+    totalDefectsPlanned = bridgeResult.defectsUpdated;
   }
 
   const completedAt = new Date().toISOString();

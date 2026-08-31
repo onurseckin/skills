@@ -15,6 +15,7 @@ import {
   parseSingleDockerPortMapping,
   parseTableLine,
   resolveDockerSocketPath,
+  getCandidateSocketPaths,
   type DockerInspectorOptions,
   type DockerRunner,
 } from "../../../olt/scripts/src/server/docker/index.ts";
@@ -416,6 +417,10 @@ describe("Docker Inspector - Class and Socket Utilities", () => {
 
   it("resolves Docker socket path from options and environment", () => {
     expect(resolveDockerSocketPath("/custom/docker.sock")).toBe("/custom/docker.sock");
+
+    const candidates = getCandidateSocketPaths();
+    expect(candidates.length).toBeGreaterThanOrEqual(1);
+    expect(candidates.includes("/var/run/docker.sock")).toBe(true);
 
     const originalDockerHost = process.env["DOCKER_HOST"];
     process.env["DOCKER_HOST"] = "unix:///tmp/custom-docker.sock";

@@ -1,3 +1,4 @@
+import { CANONICAL_4_VIEWPORTS, DEFAULT_SUBPIXEL_TOLERANCE_PX } from "./constants.ts";
 import type { OverflowInspection, UiViewportTier } from "./types.ts";
 
 export function inspectHorizontalOverflow(
@@ -6,11 +7,14 @@ export function inspectHorizontalOverflow(
   scrollWidth: number,
   clientWidth: number,
   overflowX?: number,
+  deviceScaleFactor?: number,
 ): OverflowInspection {
+  const dpr = deviceScaleFactor ?? CANONICAL_4_VIEWPORTS[viewport]?.deviceScaleFactor ?? 1;
+  const subpixelTolerance = Math.max(DEFAULT_SUBPIXEL_TOLERANCE_PX, 1 / dpr + 0.1);
   const delta = overflowX !== undefined ? overflowX : Math.max(0, scrollWidth - clientWidth);
-  const hasOverflow = delta > 0.5;
+  const hasOverflow = delta > subpixelTolerance;
   const message = hasOverflow
-    ? `Horizontal overflow detected in ${selector} on ${viewport} (scrollWidth ${scrollWidth}px > clientWidth ${clientWidth}px, overflow +${delta}px)`
+    ? `Horizontal overflow detected in ${selector} on ${viewport} (scrollWidth ${scrollWidth}px > clientWidth ${clientWidth}px, overflow +${delta.toFixed(2)}px exceeding ${subpixelTolerance.toFixed(2)}px DPR tolerance)`
     : `No horizontal overflow in ${selector} on ${viewport}`;
 
   return {
@@ -31,6 +35,7 @@ export function inspectAllOverflowElements(
     scrollWidth: number;
     clientWidth: number;
     overflowX?: number | undefined;
+    deviceScaleFactor?: number | undefined;
   }[],
   defaultViewport: UiViewportTier = "mobile",
 ): {
@@ -48,6 +53,7 @@ export function inspectAllOverflowElements(
       el.scrollWidth,
       el.clientWidth,
       el.overflowX,
+      el.deviceScaleFactor,
     );
     evaluations.push(result);
     if (result.hasOverflow) {

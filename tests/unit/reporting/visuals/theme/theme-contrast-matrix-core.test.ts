@@ -1,12 +1,10 @@
 import { describe, it, expect } from "bun:test";
 import {
-  NAMED_COLORS,
   clampByte,
   clampAlpha,
   parseChannelValue,
   parseAlphaValue,
   parseHue,
-  parsePercentage,
   isValidColor,
   parseRgb,
   compositeRgb,
@@ -88,5 +86,15 @@ describe("theme color-space core", () => {
     expect(blended.a).toBe(1);
     expect(blended.r).toBeGreaterThan(0);
     expect(blended.b).toBeGreaterThan(0);
+  });
+
+  it("calculates contrast accurately with dark mode canvas backing", () => {
+    const translucentBg = "rgba(255, 255, 255, 0.1)";
+    const text = "#ffffff";
+    const contrastOnDark = calculateWcagContrast(text, translucentBg, "#000000");
+    expect(contrastOnDark).toBeGreaterThan(5);
+
+    const apcaOnDark = calculateApcaContrast(text, translucentBg, "#000000");
+    expect(Math.abs(apcaOnDark)).toBeGreaterThan(40);
   });
 });

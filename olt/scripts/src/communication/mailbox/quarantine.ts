@@ -54,6 +54,19 @@ export interface SweepQuarantineResult {
 
 const LINE_REGEX = /^\[([^\]]+)\] \[REASON: ([^\]]+)\] (.*)$/u;
 
+export function escapeQuarantinePayload(str: string): string {
+  return str.replace(/\\/g, "\\\\").replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+}
+
+export function unescapeQuarantinePayload(str: string): string {
+  return str.replace(/\\(\\|r|n)/g, (_, ch) => {
+    if (ch === "n") return "\n";
+    if (ch === "r") return "\r";
+    if (ch === "\\") return "\\";
+    return ch;
+  });
+}
+
 export function ingestToQuarantine(
   agentId: string,
   rawEnvelope: unknown,
@@ -78,7 +91,7 @@ export function ingestToQuarantine(
 
   const entryId = randomUUID();
   const timestamp = new Date().toISOString();
-  const formattedLine = `[${timestamp}] [REASON: ${reason}] ${rawStr}\n`;
+  const formattedLine = `[${timestamp}] [REASON: ${reason}] ${escapeQuarantinePayload(rawStr)}\n`;
 
   const appendOp = (): void => {
     const fd = openSync(
@@ -124,7 +137,7 @@ function parseQuarantineFile(agentId: string, filePath: string): QuarantinedDead
         agentId,
         timestamp: match[1],
         reason: match[2],
-        rawEnvelope: match[3],
+        rawEnvelope: unescapeQuarantinePayload(match[3]),
       });
     } else {
       entries.push({
@@ -189,7 +202,10 @@ export function sweepQuarantineDeadLetters(
           purgedEntries += entries.length;
         } else {
           const newContent = kept
-            .map((k) => `[${k.timestamp}] [REASON: ${k.reason}] ${k.rawEnvelope}\n`)
+            .map(
+              (k) =>
+                `[${k.timestamp}] [REASON: ${k.reason}] ${escapeQuarantinePayload(k.rawEnvelope)}\n`,
+            )
             .join("");
           writeFileSync(paths.quarantinePath, newContent, "utf8");
           purgedEntries += entries.length - kept.length;

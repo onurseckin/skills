@@ -8,6 +8,18 @@ describe("CLI execute dispatcher", () => {
     );
   });
 
+  test("routes space-separated sub-commands deductively to colon syntax", async () => {
+    const result = await execute(["role", "list"]);
+    expect(result).toBeDefined();
+    expect(result.roles).toBeDefined();
+  });
+
+  test("provides nearest command suggestion on typo", async () => {
+    await expect(execute(["role:lst"])).rejects.toThrow(
+      "unknown command: role:lst; did you mean 'role:list'?",
+    );
+  });
+
   test("throws when non-run command receives trailing -- remainder arguments", async () => {
     await expect(
       execute(["plan:status", "--run", "some-run", "--", "extra", "args"]),

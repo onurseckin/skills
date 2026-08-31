@@ -126,8 +126,12 @@ export function submitTask(
 
     const claimedHash = lease.write_scope_content_hash;
     const submittedHash = effortEvidence.currentWriteScopeContentHash;
+    const initialHash = task.initial_write_scope_content_hash;
     if (claimedHash !== undefined && submittedHash !== undefined) {
-      const unchanged = claimedHash.value === submittedHash.value;
+      const unchangedSinceClaim = claimedHash.value === submittedHash.value;
+      const unchangedSinceInitial =
+        initialHash !== undefined ? initialHash.value === submittedHash.value : unchangedSinceClaim;
+      const unchanged = unchangedSinceClaim && unchangedSinceInitial;
       if (unchanged && !effortEvidence.noOp) {
         throw new HarnessError(
           "INVALID_STATE",

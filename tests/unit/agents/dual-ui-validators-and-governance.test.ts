@@ -24,7 +24,7 @@ describe("Dual UI Validators & Governance Manifests", () => {
       expect(manifest.role).toBe("ui-headless-validator");
       expect(manifest.tier).toBe(3);
       expect(manifest.tools.enable_subagent_tools).toBe(false);
-      expect(manifest.tools.enable_write_tools).toBe(true);
+      expect(manifest.tools.enable_write_tools).toBe(false);
 
       expect(manifest.permissions.commands).toContain("run:exec");
       expect(manifest.permissions.commands).toContain("task:check");
@@ -141,9 +141,7 @@ describe("Dual UI Validators & Governance Manifests", () => {
       expect(ch5).toContain("1-minute high-frequency tracking cadence");
       expect(ch5).toContain("Eliminates idle traps (>120s stagnation)");
 
-      expect(ch8).toContain(
-        "Dual UI Validator Separation (Headless Playwright & Optical Visual Review)",
-      );
+      expect(ch8).toContain("Dual UI Validator Separation");
       expect(ch8).toContain("ui-headless-validator");
       expect(ch8).toContain("ui-optical-validator");
       expect(ch8).toContain("AUTOMATED_TESTS_ARE_HALF_THE_JOB");

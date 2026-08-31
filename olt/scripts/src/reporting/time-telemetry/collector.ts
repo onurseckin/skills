@@ -97,7 +97,7 @@ export class OmnipresentTelemetryCollector {
       metadata: {
         command,
         exitCode,
-        ...(details ?? {}),
+        ...details,
       },
     };
 
@@ -132,7 +132,7 @@ export class OmnipresentTelemetryCollector {
       metadata: {
         gateCommand,
         passed,
-        ...(details ?? {}),
+        ...details,
       },
     };
 
@@ -168,7 +168,7 @@ export class OmnipresentTelemetryCollector {
         intervalMs,
         expectedTickMs,
         actualTickMs: actualDual.timestamp_ms,
-        ...(details ?? {}),
+        ...details,
       },
     };
 

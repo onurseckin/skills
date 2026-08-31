@@ -152,7 +152,7 @@ describe("commitSubphase", () => {
       runner,
     });
     const addCall = calls.find((c) => c.argv[0] === "add")!;
-    expect(addCall.argv).toEqual(["add", "--", "src/pkg", ":(glob)src/*.ts", "README.md"]);
+    expect(addCall.argv).toEqual(["add", "-A", "--", "src/pkg", ":(glob)src/*.ts", "README.md"]);
   });
 
   test("collapses a bare '/**' write-scope entry (empty directory) to '.'", () => {
@@ -175,7 +175,7 @@ describe("commitSubphase", () => {
       runner,
     });
     const addCall = calls.find((c) => c.argv[0] === "add")!;
-    expect(addCall.argv).toEqual(["add", "--", "."]);
+    expect(addCall.argv).toEqual(["add", "-A", "--", "."]);
   });
 });
 

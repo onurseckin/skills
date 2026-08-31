@@ -213,3 +213,37 @@ test("gitInFixture throws on failed git command", async () => {
   fixtures.push(repo);
   await expect(gitInFixture(repo, ["checkout", "nonexistent-branch"])).rejects.toThrow();
 });
+
+test("resolves merge conflict stages by selecting stage 2 (ours)", async () => {
+  const repo = await createIndexedFixture({ staged: "root", working: "root" });
+  fixtures.push(repo);
+  const oidAncestor = "1".repeat(40);
+  const oidOurs = "2".repeat(40);
+  const oidTheirs = "3".repeat(40);
+  const lsOutput =
+    `100644 ${oidAncestor} 1\tslice/conflict.ts\0` +
+    `100644 ${oidOurs} 2\tslice/conflict.ts\0` +
+    `100644 ${oidTheirs} 3\tslice/conflict.ts\0`;
+  const blobs = await readWithFakeGit(repo, {
+    lsFilesOutput: lsOutput,
+    catFileOutput: `${oidOurs} blob 4\nours\n`,
+  });
+
+  expect(blobs.length).toBe(1);
+  expect(blobs[0].path).toBe("slice/conflict.ts");
+  expect(new TextDecoder().decode(blobs[0].bytes)).toBe("ours");
+});
+
+test("skips submodules (mode 160000) without crashing", async () => {
+  const repo = await createIndexedFixture({ staged: "root", working: "root" });
+  fixtures.push(repo);
+  const subOid = "4".repeat(40);
+  const fileOid = "5".repeat(40);
+  const lsOutput = `160000 ${subOid} 0\tsubmodule\0` + `100644 ${fileOid} 0\tslice/file.ts\0`;
+  const blobs = await readWithFakeGit(repo, {
+    lsFilesOutput: lsOutput,
+    catFileOutput: `${fileOid} blob 4\nfile\n`,
+  });
+
+  expect(blobs.map((blob) => blob.path)).toEqual(["slice/file.ts"]);
+});

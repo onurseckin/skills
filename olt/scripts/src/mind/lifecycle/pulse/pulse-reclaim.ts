@@ -7,32 +7,13 @@ import type { Clock } from "../../../workflow/types.ts";
 import { writeLastPulse } from "./last-pulse.ts";
 
 /**
- * Default consecutive-crash halt threshold. Shared so the classifier here, the rescue lane's
- * duplicate Rung 4 accounting (mind/lanes/rescue.ts), and the lane selector's halted precondition
- * (mind/lane.ts) cannot drift out of sync with each other.
+ * Default consecutive-crash halt threshold shared across classifier, rescue lane, and lane selector.
  */
 export const DEFAULT_CONSECUTIVE_CRASH_THRESHOLD = 3;
 
 /**
- * Determines whether a pulse produced observable activity while it was open, derived strictly
- * from the capsule's own event log (never from wall-clock elapsed time).
- *
- * CLOSING_FORBIDDEN_FOR_MIND (mind/cadence.ts) means the Mind can never close a pulse itself, so
- * every pulse that reaches its deadline is, by construction, "unclosed" -- that alone cannot be
- * evidence of a crash. What distinguishes a genuine crash from a Mind that was working exactly as
- * its own invariant requires is whether anything was recorded in the hash chain after the pulse
- * opened.
- *
- * Anchor resolution, in order:
- * 1. The most recent "mind-pulse-opened" event whose payload.pulse_id matches this pulse. This is
- *    the precise anchor for the real mind:pulse-open flow.
- * 2. Fallback: the most recent "mind-initialized" event. Some capsules (including this module's
- *    own long-standing test fixtures) seed an already-open pulse directly into the founding state
- *    mutation rather than emitting a separate "mind-pulse-opened" event; treating that founding
- *    event as the anchor preserves those capsules' existing "no activity recorded" semantics.
- *
- * If neither anchor exists, no activity can be attributed to this pulse and it is not classified
- * as having produced activity.
+ * Determines whether a pulse produced observable activity derived strictly from event log.
+ * Under CLOSING_FORBIDDEN_FOR_MIND, an unclosed pulse is canonical; hash chain activity distinguishes crashes.
  */
 export function pulseProducedActivity(events: readonly HarnessEvent[], pulseId: string): boolean {
   let anchorSequence = 0;
@@ -180,8 +161,23 @@ export function reclaimDeadPulse(
   // "completed", never "crashed", and does not extend or start a crash streak.
   const deadlinePassedByMs = Math.max(0, nowMs - deadlineMs);
   const pulseId = open.pulse_id;
-  const producedActivity = pulseProducedActivity(loaded.events, pulseId);
 
+  // Re-read fresh run state under lock to prevent TOCTOU race conditions
+  const freshLoaded = loadRun(runRoot, false);
+  const freshPulse = (freshLoaded.state.pulse ?? {}) as Record<string, unknown>;
+  const freshOpen = freshPulse.open as Record<string, unknown> | null | undefined;
+  if (!freshOpen || freshOpen.pulse_id !== pulseId) {
+    return {
+      reclaimed: false,
+      pulseId,
+      consecutiveCrashes: currentCrashes,
+      halted: currentlyHalted,
+      ...(typeof mindState.halt_reason === "string" ? { haltReason: mindState.halt_reason } : {}),
+      reason: "pulse was closed or reclaimed concurrently",
+    };
+  }
+
+  const producedActivity = pulseProducedActivity(freshLoaded.events, pulseId);
   const threshold = options.deterministicCrashThreshold ?? DEFAULT_CONSECUTIVE_CRASH_THRESHOLD;
   const outcome: "crashed" | "completed" = producedActivity ? "completed" : "crashed";
   const consecutiveCrashCount = producedActivity ? 0 : currentCrashes + 1;
@@ -214,6 +210,10 @@ export function reclaimDeadPulse(
     },
     (working) => {
       const workingPulse = (working.pulse ?? {}) as Record<string, unknown>;
+      const workingOpen = workingPulse.open as Record<string, unknown> | null | undefined;
+      if (!workingOpen || workingOpen.pulse_id !== pulseId) {
+        throw new HarnessError("INVALID_STATE", "pulse was closed or reclaimed concurrently");
+      }
       const workingLast = (workingPulse.last ?? {}) as Record<string, unknown>;
       workingPulse.open = null;
 
@@ -259,16 +259,13 @@ export function reclaimDeadPulse(
     },
   );
 
-  try {
-    writeLastPulse(runRoot, {
-      at: nowIso,
-      pulse_id: pulseId,
-      outcome,
-      next_wake_at: null,
-    });
-  } catch {
-    // Best-effort write for external liveness reader
-  }
+  // Synchronous durable reconciliation of last_pulse.json with reclaimed state
+  writeLastPulse(runRoot, {
+    at: nowIso,
+    pulse_id: pulseId,
+    outcome,
+    next_wake_at: null,
+  });
 
   return {
     reclaimed: true,

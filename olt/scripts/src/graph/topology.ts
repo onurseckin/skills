@@ -1,14 +1,30 @@
 export type DependencyMap = Map<string, Set<string>>;
 
-export function topologicalOrder(dependencies: ReadonlyMap<string, ReadonlySet<string>>): string[] {
+export function topologicalOrder(
+  dependencies: ReadonlyMap<string, ReadonlySet<string>>,
+  options?: {
+    readonly onDanglingPrerequisite?: (dependent: string, prerequisite: string) => void;
+  },
+): string[] {
+  const validIds = new Set(dependencies.keys());
   const downstream = new Map<string, Set<string>>();
   const remaining = new Map<string, number>();
   for (const [id, prerequisites] of dependencies) {
     downstream.set(id, new Set());
-    remaining.set(id, prerequisites.size);
+    let validCount = 0;
+    for (const prereq of prerequisites) {
+      if (validIds.has(prereq)) {
+        validCount++;
+      } else if (options?.onDanglingPrerequisite) {
+        options.onDanglingPrerequisite(id, prereq);
+      }
+    }
+    remaining.set(id, validCount);
   }
   for (const [dependent, prerequisites] of dependencies) {
-    for (const prerequisite of prerequisites) downstream.get(prerequisite)?.add(dependent);
+    for (const prerequisite of prerequisites) {
+      if (validIds.has(prerequisite)) downstream.get(prerequisite)?.add(dependent);
+    }
   }
   const ready = [...remaining]
     .filter(([, count]) => count === 0)
@@ -48,6 +64,7 @@ export function describeCycle(
   dependencies: ReadonlyMap<string, ReadonlySet<string>>,
   order?: readonly string[],
 ): string {
+  const validIds = new Set(dependencies.keys());
   const resolved = new Set(order ?? topologicalOrder(dependencies));
   const unresolved = new Set([...dependencies.keys()].filter((id) => !resolved.has(id)));
   if (unresolved.size === 0) return "no cycle detected";
@@ -58,7 +75,7 @@ export function describeCycle(
     const visited = new Set<string>();
 
     const startNeighbors = [...(dependencies.get(start) ?? [])]
-      .filter((id) => unresolved.has(id))
+      .filter((id) => validIds.has(id) && unresolved.has(id))
       .sort();
     stack.push({ node: start, edgeIdx: 0, neighbors: startNeighbors });
     inStack.add(start);
@@ -84,7 +101,7 @@ export function describeCycle(
           visited.add(next);
           inStack.add(next);
           const nextNeighbors = [...(dependencies.get(next) ?? [])]
-            .filter((id) => unresolved.has(id))
+            .filter((id) => validIds.has(id) && unresolved.has(id))
             .sort();
           stack.push({ node: next, edgeIdx: 0, neighbors: nextNeighbors });
         }
@@ -135,9 +152,12 @@ export function dependencyData(
 export function downstreamMap(
   dependencies: ReadonlyMap<string, ReadonlySet<string>>,
 ): DependencyMap {
+  const validIds = new Set(dependencies.keys());
   const downstream: DependencyMap = new Map([...dependencies.keys()].map((id) => [id, new Set()]));
   for (const [dependent, prerequisites] of dependencies) {
-    for (const prerequisite of prerequisites) downstream.get(prerequisite)?.add(dependent);
+    for (const prerequisite of prerequisites) {
+      if (validIds.has(prerequisite)) downstream.get(prerequisite)?.add(dependent);
+    }
   }
   return downstream;
 }

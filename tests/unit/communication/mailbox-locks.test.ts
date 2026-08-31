@@ -13,7 +13,7 @@ import {
   resolvePolicyLocation,
   resolveSystemLockPath,
   withLock,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../../olt/scripts/src/policy/io-safety.ts";
 
 describe("Mailbox and System Lock Path Consolidation", () => {
   let testRoot: string;

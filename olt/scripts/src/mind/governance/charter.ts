@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 import { HarnessError } from "../../core/errors/index.ts";
 import {
   DEFAULT_CHARTER_RELATIVE_PATH,
@@ -40,6 +42,15 @@ export {
   resolveCharterPath,
   loadCharter,
 };
+
+export function normalizeCharterContent(content: string): string {
+  return content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
+export function computeCharterSha256(content: string): string {
+  const normalized = normalizeCharterContent(content);
+  return createHash("sha256").update(normalized, "utf8").digest("hex");
+}
 
 export function validateGovernanceCharter(parsed: ParsedCharter): boolean {
   if (!parsed) {
@@ -133,8 +144,19 @@ export function verifyCharterIntegrity(
   charterSourceRel?: string,
 ): CharterIntegrityResult {
   const charterPath = resolveCharterPath(repoRoot, charterSourceRel);
-  const charter = loadCharter(repoRoot, charterSourceRel);
-  const actualSha256 = charter.sha256;
+  let actualSha256: string;
+  if (existsSync(charterPath)) {
+    try {
+      const raw = readFileSync(charterPath, "utf8");
+      actualSha256 = computeCharterSha256(raw);
+    } catch {
+      const charter = loadCharter(repoRoot, charterSourceRel);
+      actualSha256 = charter.sha256;
+    }
+  } else {
+    const charter = loadCharter(repoRoot, charterSourceRel);
+    actualSha256 = charter.sha256;
+  }
   const valid = expectedSha256 ? actualSha256 === expectedSha256 : true;
   return {
     valid,

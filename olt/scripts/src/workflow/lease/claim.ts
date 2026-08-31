@@ -98,6 +98,9 @@ export function claimTask(
       kind: repair ? "repair" : "implementation",
       ...(options.claimedBaseSha === undefined ? {} : { claimed_base_sha: options.claimedBaseSha }),
     });
+    if (options.writeScopeContentHash !== undefined && !task.initial_write_scope_content_hash) {
+      task.initial_write_scope_content_hash = options.writeScopeContentHash;
+    }
     task.original_implementer ??= agentId;
     transition(task, "leased", agentId, now, repair ? "repair claimed" : "implementation claimed");
   });

@@ -157,10 +157,13 @@ export class DevServerLifecycleManager {
       // Step 5: Check startup result
       if (!startResult.started) {
         let rollbackError: string | undefined = undefined;
+        let snapshotRestored = false;
+        let serverProcessRestored = false;
 
         if (rollbackOnError) {
-          // Transactional rollback: restore snapshot
+          // Transactional rollback: restore snapshot in memory
           this.preserver.restore(initialSnapshot);
+          snapshotRestored = true;
 
           // Restore old server process if a restorer function was provided
           if (
@@ -170,6 +173,7 @@ export class DevServerLifecycleManager {
           ) {
             try {
               await options.restoreOldServerFn(initialSnapshot);
+              serverProcessRestored = true;
             } catch (rErr: unknown) {
               let rMsg = String(rErr);
               if (rErr instanceof Error) {
@@ -200,6 +204,8 @@ export class DevServerLifecycleManager {
         return {
           success: false,
           rolledBack: rollbackOnError,
+          snapshotRestored,
+          serverProcessRestored,
           oldPid,
           snapshot: initialSnapshot,
           restoredState: restoredStateResult,

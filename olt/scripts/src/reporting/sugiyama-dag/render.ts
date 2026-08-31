@@ -1,7 +1,11 @@
 import { countLayerCrossings, minimizeCrossingsBarycenter } from "./crossing.ts";
 import { assignSugiyamaRanks } from "./ranking.ts";
-import { renderRoundedNodeBox, renderSugiyamaNodeBox } from "./render-box.ts";
-import { renderInterWaveConnector, renderLaneSeparator } from "./routing.ts";
+import { renderSugiyamaNodeBox } from "./render-box.ts";
+import {
+  insertVirtualDummyNodes,
+  renderInterWaveConnector,
+  renderLaneSeparator,
+} from "./routing.ts";
 import {
   detectCyclesTarjan,
   detectIllegalBypasses,
@@ -35,18 +39,18 @@ export function renderSugiyamaDag(
   bypassDiagnostic: BypassDiagnostic;
 } {
   const isArray = Array.isArray(graphOrNodes);
-  const nodes: readonly SugiyamaNode[] = isArray
+  const nodes = isArray
     ? (graphOrNodes as readonly SugiyamaNode[])
     : (graphOrNodes as DirectedGraph).nodes;
-  const edges: readonly SugiyamaEdge[] = isArray
+  const edges = isArray
     ? Array.isArray(edgesOrOptions)
       ? (edgesOrOptions as readonly SugiyamaEdge[])
       : []
     : (graphOrNodes as DirectedGraph).edges;
   const opts: SugiyamaRenderOptions = isArray
     ? (options ??
-      (!Array.isArray(edgesOrOptions) &&
-      typeof edgesOrOptions === "object" &&
+      (typeof edgesOrOptions === "object" &&
+      !Array.isArray(edgesOrOptions) &&
       edgesOrOptions !== null
         ? (edgesOrOptions as SugiyamaRenderOptions)
         : {}))
@@ -71,7 +75,7 @@ export function renderSugiyamaDag(
   }
 
   const { feedbackArcs, acyclicEdges } = extractFeedbackArcSet(nodes, edges);
-  reverseCycleEdges(edges, feedbackArcs);
+  const normalizedEdges = reverseCycleEdges(edges, feedbackArcs);
 
   const rankMap = assignSugiyamaRanks(
     nodes,
@@ -79,7 +83,7 @@ export function renderSugiyamaDag(
     cycleDiagnostic.cycleNodeIds,
     opts.maxWidth,
   );
-  const maxRank = Math.max(0, ...[...rankMap.values()]);
+  const maxRank = Math.max(0, ...rankMap.values());
 
   const initialLayers: SugiyamaLayer[] = [];
   for (let r = 0; r <= maxRank; r++) {
@@ -100,9 +104,14 @@ export function renderSugiyamaDag(
     if (nodesInRank.length > 0) initialLayers.push({ rank: r, nodes: nodesInRank });
   }
 
-  const optimizedLayers = minimizeCrossingsBarycenter(
+  const { layers: layeredWithDummies, edges: dummyEdges } = insertVirtualDummyNodes(
     initialLayers,
-    acyclicEdges,
+    normalizedEdges,
+  );
+
+  const optimizedLayers = minimizeCrossingsBarycenter(
+    layeredWithDummies,
+    dummyEdges,
     opts.passes ?? 4,
   );
   const flatRankedNodes = optimizedLayers.flatMap((l) => l.nodes);
@@ -151,22 +160,28 @@ export function renderSugiyamaDag(
       if (!task) continue;
       const isLastTaskInWave = tIdx === waveTasks.length - 1;
 
-      lines.push(
-        ...renderSugiyamaNodeBox(task, {
-          detailed: opts.detailed,
-          boxStyle: opts.boxStyle,
-          boxWidth: opts.minBoxWidth ?? 63,
-          isCycle: cycleSet.has(task.id),
-          isBypass: bypassSet.has(task.id),
-        }),
-      );
+      if (task.isDummy) {
+        lines.push(
+          `  │  ┆ [TRANSIT CONDUIT] ${task.origSource} ────▶ ${task.origTarget} (pass-through) ┆  │`,
+        );
+      } else {
+        lines.push(
+          ...renderSugiyamaNodeBox(task, {
+            detailed: opts.detailed,
+            boxStyle: opts.boxStyle,
+            boxWidth: opts.minBoxWidth ?? 63,
+            isCycle: cycleSet.has(task.id),
+            isBypass: bypassSet.has(task.id),
+          }),
+        );
+      }
 
       if (!isLastTaskInWave) lines.push(...renderLaneSeparator());
     }
 
     if (!isLastWave) {
       const nextLayer = optimizedLayers[lIdx + 1];
-      if (nextLayer) lines.push(...renderInterWaveConnector(layer, nextLayer, edges));
+      if (nextLayer) lines.push(...renderInterWaveConnector(layer, nextLayer, dummyEdges));
     }
   }
 

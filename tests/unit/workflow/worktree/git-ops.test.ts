@@ -14,6 +14,7 @@ import {
   rebaseOnto,
   removeWorktree,
   stageAndCommit,
+  commitProvenance,
 } from "../../../../olt/scripts/src/workflow/worktree/git-ops.ts";
 import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
 
@@ -225,7 +226,7 @@ describe("stageAndCommit", () => {
       return ok();
     });
     expect(() => stageAndCommit("/scratch", ["src/x"], "feat: x", runner)).toThrow(
-      /git add -- src\/x exited 1: fatal: permission denied/,
+      /git add -A -- src\/x exited 1: fatal: permission denied/,
     );
   });
 
@@ -248,6 +249,7 @@ describe("stageAndCommit", () => {
     });
     expect(stageAndCommit("/scratch", ["src/x"], "feat: x", runner)).toBe("cafef00d");
     expect(calls.some((c) => c.argv[0] === "commit" && c.argv.includes("feat: x"))).toBe(true);
+    expect(calls.some((c) => c.argv[0] === "add" && c.argv.includes("-A"))).toBe(true);
   });
 
   test("throws INVALID_ARGUMENT when given no pathspecs", () => {
@@ -274,5 +276,47 @@ describe("commitChangedLines", () => {
   test("returns zero when shortstat reports no changes at all", () => {
     const { runner } = recordingRunner(() => ok(""));
     expect(commitChangedLines("/scratch", "cafef00d", runner)).toBe(0);
+  });
+});
+
+describe("stageAndCommit with deletions", () => {
+  test("stages additions, modifications, and deletions atomically via add -A", () => {
+    const { runner, calls } = recordingRunner((call) => {
+      if (call.argv[0] === "add") return ok();
+      if (call.argv[0] === "diff") return fail("", 1); // changes staged
+      if (call.argv[0] === "commit") return ok();
+      if (call.argv[0] === "rev-parse") return ok("deleted-sha\n");
+      return ok();
+    });
+    const sha = stageAndCommit("/scratch", ["src/deleted.ts"], "feat: delete file", runner);
+    expect(sha).toBe("deleted-sha");
+    expect(calls.some((c) => c.argv[0] === "add" && c.argv.includes("-A"))).toBe(true);
+  });
+});
+
+describe("commitProvenance", () => {
+  test("resolves parentSha and treeSha from git rev-parse", () => {
+    const { runner } = recordingRunner((call) => {
+      if (call.argv.includes("HEAD^")) return ok("parent-sha-123\n");
+      if (call.argv.includes("HEAD^{tree}")) return ok("tree-sha-456\n");
+      return ok();
+    });
+    const prov = commitProvenance("/scratch", "HEAD", runner);
+    expect(prov).toEqual({
+      parentSha: "parent-sha-123",
+      treeSha: "tree-sha-456",
+    });
+  });
+
+  test("handles root commit without parentSha", () => {
+    const { runner } = recordingRunner((call) => {
+      if (call.argv.includes("HEAD^")) return fail("bad revision", 1);
+      if (call.argv.includes("HEAD^{tree}")) return ok("tree-sha-456\n");
+      return ok();
+    });
+    const prov = commitProvenance("/scratch", "HEAD", runner);
+    expect(prov).toEqual({
+      treeSha: "tree-sha-456",
+    });
   });
 });

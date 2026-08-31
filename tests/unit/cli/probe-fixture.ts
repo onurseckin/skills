@@ -1,6 +1,6 @@
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { readPlanBindings } from "../../../olt/scripts/src/cli/commands/plan-replan-bindings.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -25,6 +25,11 @@ export async function setupRun(
 ): Promise<{ repo: string; run: string }> {
   const repo = await mkdtemp(join(tmpdir(), `harness-probe-${name}-`));
   roots.push(repo);
+  const staleWorktrees = join(dirname(repo), ".harness-worktrees", name);
+  roots.push(staleWorktrees);
+  try {
+    await rm(staleWorktrees, { recursive: true, force: true });
+  } catch {}
   await writeFile(
     join(repo, "harness.config.json"),
     JSON.stringify({ min_adversarial_probes: 1, ...config }),
@@ -35,6 +40,15 @@ export async function setupRun(
   await writeFile(join(repo, CHANGED_FILE), "export const probed = true;\n");
   await writeFile(join(repo, "gate-core.ts"), "console.log('gate-core');\n");
   await writeFile(join(repo, "gate-red.ts"), "process.exit(1);\n");
+  if (config?.worktree_isolation) {
+    const { spawnSync } = await import("node:child_process");
+    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo });
+    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo });
+    spawnSync("git", ["config", "user.name", "Test"], { cwd: repo });
+    await writeFile(join(repo, ".gitignore"), ".olt/capsules\n.olt\n.worktrees\ncapsules\n");
+    spawnSync("git", ["add", ".gitignore"], { cwd: repo });
+    spawnSync("git", ["commit", "-m", "init"], { cwd: repo });
+  }
   await mkdir(join(repo, "olt"), { recursive: true });
   await mkdir(join(repo, ".olt"), { recursive: true });
   const policyContent = JSON.stringify({

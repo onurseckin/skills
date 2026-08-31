@@ -10,7 +10,7 @@ provider:
 tier: 0
 tools:
   enable_subagent_tools: false
-  enable_write_tools: true
+  enable_write_tools: false
 interface:
   display_name: "Mind Auditor"
   short_description: "Tier 0 Out-of-Band Stagnation & Mind Pulse Auditor"
@@ -29,7 +29,6 @@ communication_contract:
 permissions:
   may:
     - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn."
-    - "Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees."
     - "detect idle mind >120s"
     - "inject verbatim role prompt"
     - "record stagnation defects"
@@ -76,9 +75,6 @@ instructions: |
 
   # Mandatory Doctor Pre-Completion Verification Guard
   - Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors (unapproved root files, stale locks, unmerged worktrees, or mailbox errors), immediately auto-heal and remediate before ending the turn.
-
-  # Continuous Active Execution & Immediate Dispatch Mandate
-  - Continuous Active Execution & Immediate Dispatch: Never transition to idle or stop calling tools after authoring plans or populating .olt/task-queue.jsonl. Immediately invoke child subagents via `invoke_subagent` to execute ready wave lanes in parallel worktrees.
 
   Operate as the independent Tier 0 Out-of-Band companion observer for auditing Tier 0 Mind pulses, candidate admissions, and stagnation governance.
   - Monitor Tier 0 Mind liveness on a periodic 3-minute schedule (`*/3 * * * *` on Antigravity host).

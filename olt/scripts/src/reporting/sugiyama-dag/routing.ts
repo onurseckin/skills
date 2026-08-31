@@ -55,6 +55,92 @@ export function buildOrthogonalRouteSegments(
   return segments;
 }
 
+export function insertVirtualDummyNodes(
+  layers: readonly SugiyamaLayer[],
+  edges: readonly SugiyamaEdge[],
+): {
+  readonly layers: SugiyamaLayer[];
+  readonly edges: SugiyamaEdge[];
+  readonly dummyNodes: SugiyamaRankedNode[];
+} {
+  const nodeRankMap = new Map<string, number>();
+  for (const layer of layers) {
+    for (const node of layer.nodes) {
+      nodeRankMap.set(node.id, layer.rank);
+    }
+  }
+
+  const newLayers = layers.map((l) => ({
+    rank: l.rank,
+    nodes: [...l.nodes],
+  }));
+  const layerByRank = new Map<number, SugiyamaRankedNode[]>();
+  for (const l of newLayers) {
+    layerByRank.set(l.rank, l.nodes);
+  }
+
+  const normalizedEdges: SugiyamaEdge[] = [];
+  const dummyNodes: SugiyamaRankedNode[] = [];
+
+  for (const edge of edges) {
+    const srcRank = nodeRankMap.get(edge.from);
+    const tgtRank = nodeRankMap.get(edge.to);
+
+    if (srcRank === undefined || tgtRank === undefined || tgtRank - srcRank <= 1) {
+      normalizedEdges.push(edge);
+      continue;
+    }
+
+    let prevNodeId = edge.from;
+    for (let r = srcRank + 1; r < tgtRank; r++) {
+      const dummyId = `__dummy__${edge.from}__${edge.to}__r${r}`;
+      const existingInRank = layerByRank.get(r) ?? [];
+      const dummyOrder = existingInRank.length;
+
+      const dummyNode: SugiyamaRankedNode = {
+        id: dummyId,
+        label: `(transit: ${edge.from} ➔ ${edge.to})`,
+        status: "pending",
+        dependencies: [prevNodeId],
+        isDummy: true,
+        origSource: edge.from,
+        origTarget: edge.to,
+        rank: r,
+        order: dummyOrder,
+        wave: r + 1,
+        lane: dummyOrder + 1,
+        coordinates: { wave: r + 1, lane: dummyOrder + 1, rank: r, order: dummyOrder },
+      };
+
+      existingInRank.push(dummyNode);
+      dummyNodes.push(dummyNode);
+      nodeRankMap.set(dummyId, r);
+
+      normalizedEdges.push({
+        from: prevNodeId,
+        to: dummyId,
+        type: "virtual",
+        reason: edge.reason,
+      });
+
+      prevNodeId = dummyId;
+    }
+
+    normalizedEdges.push({
+      from: prevNodeId,
+      to: edge.to,
+      type: "virtual",
+      reason: edge.reason,
+    });
+  }
+
+  return {
+    layers: newLayers,
+    edges: normalizedEdges,
+    dummyNodes,
+  };
+}
+
 export function renderOrthogonalConnectors(
   fromLayer: SugiyamaLayer,
   toLayer: SugiyamaLayer,
@@ -166,9 +252,9 @@ export function renderOrthogonalConnectors(
     channelType = "CROSS-LANE JUNCTION";
   }
 
-  const row1 = new Array<string>(maxCol + 1).fill(" ");
-  const row2 = new Array<string>(maxCol + 1).fill(" ");
-  const row3 = new Array<string>(maxCol + 1).fill(" ");
+  const row1: string[] = Array.from({ length: maxCol + 1 }, () => " ");
+  const row2: string[] = Array.from({ length: maxCol + 1 }, () => " ");
+  const row3: string[] = Array.from({ length: maxCol + 1 }, () => " ");
 
   for (let c = 0; c <= maxCol; c++) {
     if (hasTopDrop[c]) {

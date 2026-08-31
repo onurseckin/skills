@@ -3,7 +3,15 @@ import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { executeLifecycleHooks } from "../../policy/index.ts";
-import { currentBranch, headSha, rebaseOnto, runGit, type GitRunner } from "./git-ops.ts";
+import {
+  branchExists,
+  createBranch,
+  currentBranch,
+  headSha,
+  rebaseOnto,
+  runGit,
+  type GitRunner,
+} from "./git-ops.ts";
 import { git } from "./git.ts";
 import { cleanupTrackWorktree } from "./manager.ts";
 
@@ -97,23 +105,56 @@ function executeLandTrack(options: LandTrackOptions): LandTrackResult {
 
   const commitSha = headSha(worktreePath, runner);
   const activeBranch = currentBranch(repo, runner);
+  const trackBranch = `track/${options.trackId}`;
+
   if (activeBranch === targetBranch) {
-    git(repo, ["merge", "--ff-only", `track/${options.trackId}`], runner);
+    git(repo, ["merge", "--ff-only", trackBranch], runner);
+  } else if (branchExists(repo, targetBranch, runner)) {
+    const isAncestor =
+      runner(repo, ["merge-base", "--is-ancestor", targetBranch, commitSha]).status === 0;
+    if (!isAncestor) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `Cannot advance target branch '${targetBranch}' to ${commitSha}: non-fast-forward update detected`,
+      );
+    }
+    const oldShaRes = runner(repo, ["rev-parse", "--verify", "-q", `refs/heads/${targetBranch}`]);
+    const oldSha =
+      oldShaRes.status === 0 && oldShaRes.stdout.trim() !== ""
+        ? oldShaRes.stdout.trim()
+        : undefined;
+    if (oldSha) {
+      git(repo, ["update-ref", `refs/heads/${targetBranch}`, commitSha, oldSha], runner);
+    } else {
+      git(repo, ["update-ref", `refs/heads/${targetBranch}`, commitSha], runner);
+    }
   } else {
-    git(repo, ["branch", "-f", targetBranch, commitSha], runner);
+    createBranch(repo, targetBranch, commitSha, runner);
   }
 
   let pushed = false;
   if (options.remote) {
+    let pushSuccess = false;
+    let lastPushError: string | undefined;
     try {
       git(repo, ["push", "--atomic", options.remote, `${targetBranch}:${targetBranch}`], runner);
-      pushed = true;
-    } catch {
+      pushSuccess = true;
+    } catch (atomicErr) {
+      lastPushError = atomicErr instanceof Error ? atomicErr.message : String(atomicErr);
       try {
         git(repo, ["push", options.remote, `${targetBranch}:${targetBranch}`], runner);
-        pushed = true;
-      } catch {}
+        pushSuccess = true;
+      } catch (fallbackErr) {
+        lastPushError = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+      }
     }
+    if (!pushSuccess) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `Failed to push '${targetBranch}' to remote '${options.remote}': ${lastPushError ?? "unknown push error"}`,
+      );
+    }
+    pushed = true;
   }
 
   let hookExecuted = false;

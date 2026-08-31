@@ -33,9 +33,54 @@ export function auditCompanionAuditors(
         (g as AgentGrantRecord).status === "active",
     );
   } else if (state && isJsonObject(state)) {
-    const rawLedger = readAgentLedger(state);
-    activeGrants = rawLedger.filter((g) => g.status === "active");
+    try {
+      const rawLedger = readAgentLedger(state);
+      activeGrants = rawLedger.filter((g) => g.status === "active");
+    } catch {
+      if (Array.isArray(state.agents)) {
+        activeGrants = (state.agents as AgentGrantRecord[]).filter(
+          (g) => typeof g === "object" && g !== null && g.status === "active",
+        );
+      } else if (Array.isArray(state.grants)) {
+        activeGrants = (state.grants as AgentGrantRecord[]).filter(
+          (g) => typeof g === "object" && g !== null && g.status === "active",
+        );
+      }
+    }
   }
+
+  const hasMindGrant = activeGrants.some(
+    (g) =>
+      (g.role as string) === "mind" ||
+      (g.role as string) === "mind-auditor" ||
+      g.id.includes("mind"),
+  );
+
+  const hasOrchestratorGrant = activeGrants.some(
+    (g) =>
+      (g.role as string) === "orchestrator" ||
+      (g.role as string) === "coordinator" ||
+      (g.role as string) === "supervisor" ||
+      (g.role as string) === "skill-auditor",
+  );
+
+  const isExplicitMind = Boolean(
+    state &&
+    (Boolean(state.mind) ||
+      Boolean(state.pulse) ||
+      (typeof state.run_id === "string" && state.run_id.includes("mind"))),
+  );
+
+  const isExplicitOrchestrator = Boolean(
+    state &&
+    (Boolean(state.orchestrator) ||
+      (typeof state.run_id === "string" && state.run_id.includes("orchestrator"))),
+  );
+
+  const isMindCapsule = isExplicitMind || hasMindGrant;
+  const isOrchestratorCapsule = isExplicitOrchestrator || hasOrchestratorGrant;
+
+  const hasOnlyWorkerGrants = activeGrants.length > 0 && !hasMindGrant && !hasOrchestratorGrant;
 
   const hasMindAuditor = activeGrants.some(
     (g) =>
@@ -51,7 +96,23 @@ export function auditCompanionAuditors(
       g.id.includes("skill-auditor"),
   );
 
-  if (!hasMindAuditor && isMandatory) {
+  const requiresMindAuditor =
+    isMandatory &&
+    (hasOnlyWorkerGrants
+      ? false
+      : state
+        ? isMindCapsule
+        : isMindCapsule || activeGrants.length === 0);
+
+  const requiresSkillAuditor =
+    isMandatory &&
+    (hasOnlyWorkerGrants
+      ? false
+      : state
+        ? isMindCapsule || isOrchestratorCapsule
+        : isMindCapsule || isOrchestratorCapsule || activeGrants.length === 0);
+
+  if (!hasMindAuditor && requiresMindAuditor) {
     findings.push({
       code: "MISSING_MIND_AUDITOR",
       severity: "ERROR",
@@ -66,7 +127,7 @@ export function auditCompanionAuditors(
     });
   }
 
-  if (!hasSkillAuditor && isMandatory) {
+  if (!hasSkillAuditor && requiresSkillAuditor) {
     findings.push({
       code: "MISSING_SKILL_AUDITOR",
       severity: "ERROR",

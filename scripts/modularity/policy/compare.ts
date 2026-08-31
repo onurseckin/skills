@@ -2,13 +2,7 @@ import type { CheckReport, Violation } from "../core/index.ts";
 import type { ModularityBaseline } from "./baseline.ts";
 
 function identity(violation: Violation): string {
-  if (violation.rule === "line_limit") {
-    return `${violation.rule}:${violation.path}`;
-  }
-  if (violation.rule === "directory_fanout") {
-    return `${violation.rule}:${violation.path}`;
-  }
-  if (violation.rule === "dependency_cycle") {
+  if (violation.rule === "line_limit" || violation.rule === "directory_fanout") {
     return `${violation.rule}:${violation.path}`;
   }
   return `${violation.rule}:${violation.path}:${String(violation.observed)}`;
@@ -35,10 +29,14 @@ export function compareBaseline(
   baseline: ModularityBaseline,
   current: ModularityBaseline,
 ): Pick<CheckReport, "baselineDelta" | "passed"> {
-  const expected = index(baseline.violations);
-  const actual = index(current.violations);
+  const baseNonCycle = baseline.violations.filter((v) => v.rule !== "dependency_cycle");
+  const currNonCycle = current.violations.filter((v) => v.rule !== "dependency_cycle");
+  const expected = index(baseNonCycle);
+  const actual = index(currNonCycle);
+
   const added: Violation[] = [];
   const worsenedFindings: Violation[] = [];
+
   for (const [key, violation] of actual) {
     const existing = expected.get(key);
     if (!existing) {
@@ -47,9 +45,43 @@ export function compareBaseline(
       worsenedFindings.push(violation);
     }
   }
-  const resolved = [...expected]
+
+  const resolved: Violation[] = [...expected]
     .filter(([key]) => !actual.has(key))
     .map(([, violation]) => violation);
+
+  const baseCycles = baseline.violations.filter((v) => v.rule === "dependency_cycle");
+  const currCycles = current.violations.filter((v) => v.rule === "dependency_cycle");
+
+  for (const curr of currCycles) {
+    const currNodes = String(curr.observed).split(",");
+    const matchingBase = baseCycles.find((base) => {
+      const baseNodes = new Set(String(base.observed).split(","));
+      return currNodes.some((node) => baseNodes.has(node));
+    });
+
+    if (!matchingBase) {
+      added.push(curr);
+    } else {
+      const baseNodes = new Set(String(matchingBase.observed).split(","));
+      const hasNewNodes = currNodes.some((node) => !baseNodes.has(node));
+      if (hasNewNodes || currNodes.length > baseNodes.size) {
+        worsenedFindings.push(curr);
+      }
+    }
+  }
+
+  for (const base of baseCycles) {
+    const baseNodes = new Set(String(base.observed).split(","));
+    const hasActiveSubCycle = currCycles.some((curr) => {
+      const currNodes = String(curr.observed).split(",");
+      return currNodes.some((node) => baseNodes.has(node));
+    });
+    if (!hasActiveSubCycle) {
+      resolved.push(base);
+    }
+  }
+
   return {
     baselineDelta: { added, worsened: worsenedFindings, resolved },
     passed: added.length === 0 && worsenedFindings.length === 0,

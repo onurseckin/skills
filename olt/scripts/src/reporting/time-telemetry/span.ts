@@ -206,7 +206,7 @@ export class ActionSpan {
 
     const mergedDetails =
       details !== undefined || this._activeSubStep.details !== undefined
-        ? { ...(this._activeSubStep.details ?? {}), ...(details ?? {}) }
+        ? { ...this._activeSubStep.details, ...details }
         : undefined;
 
     this._subSteps.push({
@@ -251,7 +251,7 @@ export class ActionSpan {
   ): HarnessActionTimeRecord {
     const errorMsg = error instanceof Error ? error.message : String(error);
     this._error = errorMsg;
-    return this.finish("error", { ...(metadata ?? {}), error: errorMsg }, timestamp);
+    return this.finish("error", { ...metadata, error: errorMsg }, timestamp);
   }
 
   public toRecord(): HarnessActionTimeRecord {

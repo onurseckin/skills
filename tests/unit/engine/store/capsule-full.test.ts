@@ -1,13 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  realpathSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
@@ -18,10 +10,6 @@ import {
   loadIndex,
 } from "../../../../olt/scripts/src/engine/store/capsule/capsule-index.ts";
 import {
-  indexTasks,
-  indexCommands,
-  indexPackets,
-  indexReports,
   captureLedgerDigest,
   optional,
   text,
@@ -39,7 +27,12 @@ import {
   loadRun,
   loadRunProjection,
 } from "../../../../olt/scripts/src/engine/store/capsule/load.ts";
-import { initialState } from "../../../../olt/scripts/src/engine/store/capsule/state.ts";
+import {
+  businessFields,
+  cloneObject,
+  initialState,
+  isTerminalState,
+} from "../../../../olt/scripts/src/engine/store/capsule/state.ts";
 
 function makeTmpDir(prefix: string): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));
@@ -82,7 +75,7 @@ describe("engine/store/capsule/captures.ts", () => {
         bytes: 100,
         blob_path: "blobs/sha",
         path: "evidence/screen.png",
-        storage: "blob",
+        storage: "copy",
         original_path: "/tmp/screen.png",
       };
       const recorded = recordCaptures(tmp, [record]);
@@ -101,6 +94,24 @@ describe("engine/store/capsule/captures.ts", () => {
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
+  });
+});
+
+describe("engine/store/capsule/state.ts", () => {
+  it("filters business fields and detects terminal states", () => {
+    const state = initialState();
+    state.custom_prop = "hello";
+    const filtered = businessFields(state);
+    expect(filtered.custom_prop).toBe("hello");
+    expect(filtered.schema).toBeUndefined();
+    expect(filtered.revision).toBeUndefined();
+
+    const cloned = cloneObject(state);
+    expect(cloned).toEqual(state);
+
+    expect(isTerminalState(state)).toBe(false);
+    state.completion_result = { status: "complete" };
+    expect(isTerminalState(state)).toBe(true);
   });
 });
 
@@ -133,7 +144,7 @@ describe("engine/store/capsule/capsule-index.ts & types", () => {
         true,
       );
 
-      const state = initialState("test-run-index", "cap-123", "prompt test");
+      const state = initialState();
       state.tasks = {
         "task-1": {
           id: "task-1",
@@ -185,10 +196,12 @@ describe("engine/store/capsule/capsule.ts & load.ts", () => {
       expect(() => initRun(tmp, "run-1", new Uint8Array(), "invalid_capture_mode", true)).toThrow(
         HarnessError,
       );
-      expect(() => initRun(tmp, "run-1", "not-bytes" as any, "file", true)).toThrow(HarnessError);
-      expect(() => initRun(tmp, "run-1", new Uint8Array(), "file", "not-bool" as any)).toThrow(
-        HarnessError,
-      );
+      expect(() =>
+        initRun(tmp, "run-1", "not-bytes" as unknown as Uint8Array, "file", true),
+      ).toThrow(HarnessError);
+      expect(() =>
+        initRun(tmp, "run-1", new Uint8Array(), "file", "not-bool" as unknown as boolean),
+      ).toThrow(HarnessError);
       expect(() =>
         initRun(join(tmp, "nonexistent"), "run-1", new Uint8Array(), "file", true),
       ).toThrow(HarnessError);
@@ -209,6 +222,42 @@ describe("engine/store/capsule/capsule.ts & load.ts", () => {
       const projection = loadRunProjection(runRoot);
       expect(projection.manifest.run_id).toBe("valid-run-1");
       expect(projection.events.length).toBe(0);
+
+      expect(() => loadRun(join(tmp, "does-not-exist"))).toThrow(HarnessError);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("supports reference runtime linking mode without duplicating files", () => {
+    const tmp = makeTmpDir("capsule-ref-runtime-");
+    try {
+      mkdirSync(join(tmp, ".olt"), { recursive: true });
+      const runtimeDir = join(tmp, "canonical-runtime");
+      mkdirSync(runtimeDir, { recursive: true });
+      writeFileSync(join(runtimeDir, "harness.ts"), "export const ok = true;\n");
+      writeFileSync(join(runtimeDir, "package.json"), "{}\n");
+
+      const runRoot = initRun(
+        tmp,
+        "run-with-ref",
+        new TextEncoder().encode("Reference mode test"),
+        "file",
+        true,
+        {
+          runtimeSource: runtimeDir,
+          runtimeLinkMode: "reference",
+        },
+      );
+
+      expect(existsSync(runRoot)).toBe(true);
+      // In reference mode, runtime directory is NOT duplicated into runRoot
+      expect(existsSync(join(runRoot, "runtime"))).toBe(false);
+
+      const loaded = loadRun(runRoot, false);
+      expect(loaded.manifest.runtime_sha256).toBeDefined();
+      expect(loaded.manifest.runtime_files).toBe(2);
+      expect(loaded.manifest.runtime_entrypoint).toBe("runtime/harness.ts");
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

@@ -1,6 +1,7 @@
-import { resolve } from "node:path";
 import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { loadRun, transact } from "../../engine/store/index.ts";
 import {
   AUDIT_INVARIANT_IDS,
   auditPlan,
@@ -11,8 +12,6 @@ import {
   type PlanAuditResult,
 } from "../../graph/plan-audit.ts";
 import type { TaskDeclaration } from "../../requirements/compiler.ts";
-import { loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/index.ts";
 import { formatPlanAuditBrief } from "../formatters/index.ts";
 import { actorFlag, textFlag, type Flags } from "../options.ts";
 
@@ -71,7 +70,7 @@ export function recordPlanAudit(
   state: JsonObject,
   prompt = "",
 ): { result: PlanAuditResult; revision: number } {
-  const repoRoot = resolve(run, "..", "..");
+  const repoRoot = findRepoRoot(run);
   const tasks = auditTasksFromBuffer(buffer);
   const result = auditPlan(repoRoot, tasks, state, prompt);
   let revision = 1;

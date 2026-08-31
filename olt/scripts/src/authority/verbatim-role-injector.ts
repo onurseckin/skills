@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import type { ErrorCode } from "../core/errors/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { resolveSkillHomeRepo } from "../core/index.ts";
 

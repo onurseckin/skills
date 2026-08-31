@@ -1,10 +1,10 @@
+# Chapter 5: Mandatory Companion Auditors
+
 [← Previous: Chapter 4 — Toolchain Discovery & Policy Engine](04-toolchain-discovery-and-policy-engine.md) | [📖 Table of Contents](SUMMARY.md) | [Next: Chapter 6 — Lifecycle Hooks & Audio Engine →](06-lifecycle-hooks-and-audio-engine.md)
 
 ---
 
-# Chapter 5: Mandatory Companion Auditors
-
-[![Diátaxis: Explanation & Reference](https://img.shields.io/badge/Diátaxis-Explanation_%26_Reference-purple.svg)](#diátaxis-quadrant)
+[![Diátaxis: Explanation & Reference](https://img.shields.io/badge/Diátaxis-Explanation_%26_Reference-purple.svg)](#diátaxis-documentation-matrix)
 [![Subsystem: Forensic Auditors](https://img.shields.io/badge/Subsystem-Companion_Auditors_v1-blue.svg)](SUMMARY.md)
 [![IPC: POSIX Mailbox Protocol](https://img.shields.io/badge/IPC-POSIX_Mailbox_flock-emerald.svg)](../../olt/mailboxes)
 [![Forensics: 7 Heuristic Detectors](https://img.shields.io/badge/Forensics-7_Heuristic_Detectors-darkred.svg)](../../olt/scripts/src/mind/auditing/meta/heuristics.ts)

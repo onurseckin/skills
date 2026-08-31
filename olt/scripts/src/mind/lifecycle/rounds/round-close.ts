@@ -1,16 +1,13 @@
-import { join } from "node:path";
 import { HarnessError } from "../../../core/errors/index.ts";
 import { enforceLineLimit } from "../cadence/types.ts";
 import type {
   CloseRoundInStateOptions,
-  ObjectiveRecord,
   OpenRoundInStateOptions,
   RoundRecord,
   RoundResult,
 } from "./types.ts";
 import {
   ROUND_RESULTS,
-  carryForwardFindingsAndRequirements,
   isRoundResult,
   validateCandidateAdmitted,
   validateObjectiveStatement,
@@ -19,8 +16,8 @@ import {
 
 import {
   getAllRounds,
-  reconcileRoundState,
   getOpenRoundForObjective,
+  reconcileRoundState,
   validatePriorRoundCompleted,
   validateRoundCloseArmingRail,
 } from "./round-open.ts";
@@ -35,7 +32,7 @@ export function openRoundInState(
   const {
     objective,
     candidate: candidateId,
-    actor,
+    actor: actorId,
     round: requestedRound,
     chainFrom,
     statement: explicitStatement,
@@ -71,9 +68,12 @@ export function openRoundInState(
   // 5. Validate round budget
   validateRoundBudget(state, roundIndex, objective);
 
-  // 6. Validate prior round has no live lease or unclosed branch/attempt
+  // 6. Validate prior round has no unclosed branch/attempt (or unmigrated leases)
   if (chainFrom || chainFromCapsulePath) {
-    validatePriorRoundCompleted(chainFromCapsulePath, chainFrom);
+    validatePriorRoundCompleted(chainFromCapsulePath, chainFrom, {
+      allowLeaseMigration: options.allowLeaseMigration,
+      migratableTaskIds: options.migratableTaskIds,
+    });
   }
 
   const roundId = `round-${objective}-r${roundIndex}`;
@@ -93,7 +93,7 @@ export function openRoundInState(
     terminal_reason: null,
     opened_at: nowIso,
     closed_at: null,
-    actor,
+    actor: actorId,
   };
 
   if (!Array.isArray(state.rounds)) {
@@ -123,15 +123,7 @@ export function closeRoundInState(
   state: Record<string, unknown>,
   options: CloseRoundInStateOptions,
 ): RoundRecord {
-  const {
-    objective,
-    round: roundNumber,
-    actor,
-    result,
-    successor,
-    terminalReason,
-    nowIso,
-  } = options;
+  const { objective, round: roundNumber, result, successor, terminalReason, nowIso } = options;
 
   if (!isRoundResult(result)) {
     throw new HarnessError(

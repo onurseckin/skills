@@ -13,7 +13,7 @@ interface:
   short_description: "Automated Playwright test execution, multi-viewport capture, and DOM hitbox inspection"
 tools:
   enable_subagent_tools: false
-  enable_write_tools: true
+  enable_write_tools: false
 communication_contract:
   mandatory_turn_completion_actions:
     - "doctor:verify"

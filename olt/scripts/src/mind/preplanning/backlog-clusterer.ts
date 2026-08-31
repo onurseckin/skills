@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
+import { isAbsolute, resolve } from "node:path";
 import type {
   ClusterOptions,
   DomainCategory,
@@ -19,34 +20,62 @@ export const CANONICAL_DOMAINS: readonly DomainCategory[] = [
 
 export function filterEligibleBacklogItems(
   items: readonly RawBacklogItem[],
+  options?: { readonly rootDir?: string | undefined } | undefined,
 ): readonly RawBacklogItem[] {
+  const root = options?.rootDir !== undefined ? options.rootDir : process.cwd();
   return items.filter((item) => {
     const rawStatus =
       item.status !== undefined && item.status !== null ? String(item.status) : "PENDING";
     const status = rawStatus.toUpperCase();
-    const ineligible = ["COMPLETED", "PROCESSED", "DECLINED", "BLOCKED"];
+    const ineligible = [
+      "COMPLETED",
+      "PROCESSED",
+      "DECLINED",
+      "BLOCKED",
+      "DISPATCHED",
+      "IN_PROGRESS",
+      "CLAIMED",
+      "RUNNING",
+    ];
     if (ineligible.includes(status)) return false;
     if (item.plan_path && item.plan_path.trim() !== "") {
       const pathStr = item.plan_path.trim();
-      if (existsSync(pathStr) || pathStr.startsWith("docs/planning/")) return false;
+      const resolvedPath = isAbsolute(pathStr) ? pathStr : resolve(root, pathStr);
+      if (existsSync(resolvedPath)) return false;
+    } else if (status === "PLANNED") {
+      return false;
     }
-    if (status === "PLANNED" && (!item.plan_path || item.plan_path.trim() === "")) return false;
     return true;
   });
 }
 
-export function filterEligibleDefects(defects: readonly RawDefectItem[]): readonly RawDefectItem[] {
+export function filterEligibleDefects(
+  defects: readonly RawDefectItem[],
+  options?: { readonly rootDir?: string | undefined } | undefined,
+): readonly RawDefectItem[] {
+  const root = options?.rootDir !== undefined ? options.rootDir : process.cwd();
   return defects.filter((defect) => {
     const rawStatus =
       defect.status !== undefined && defect.status !== null ? String(defect.status) : "OPEN";
     const status = rawStatus.toUpperCase();
-    const ineligible = ["COMPLETED", "RESOLVED", "CLOSED", "DECLINED"];
+    const ineligible = [
+      "COMPLETED",
+      "RESOLVED",
+      "CLOSED",
+      "DECLINED",
+      "DISPATCHED",
+      "IN_PROGRESS",
+      "CLAIMED",
+      "RUNNING",
+    ];
     if (ineligible.includes(status)) return false;
     if (defect.plan_path && defect.plan_path.trim() !== "") {
       const pathStr = defect.plan_path.trim();
-      if (existsSync(pathStr) || pathStr.startsWith("docs/planning/")) return false;
+      const resolvedPath = isAbsolute(pathStr) ? pathStr : resolve(root, pathStr);
+      if (existsSync(resolvedPath)) return false;
+    } else if (status === "PLANNED") {
+      return false;
     }
-    if (status === "PLANNED" && (!defect.plan_path || defect.plan_path.trim() === "")) return false;
     return true;
   });
 }
@@ -60,64 +89,41 @@ export function classifyDomain(
   const descStr = description !== undefined ? description : "";
   const catStr = category !== undefined ? category : "";
   const errStr = errorCode !== undefined ? errorCode : "";
-  const combined = `${title} ${descStr} ${catStr} ${errStr}`.toLowerCase();
+  const combined = `${title} ${descStr} ${catStr} ${errStr}`;
 
   if (category && CANONICAL_DOMAINS.includes(category.toLowerCase() as DomainCategory)) {
     return category.toLowerCase() as DomainCategory;
   }
 
-  const mindKeywords = [
-    "mind",
-    "cognitive",
-    "feedback",
-    "hyper-cognition",
-    "pulse",
-    "brainstorm",
-    "charter",
-  ];
-  if (mindKeywords.some((w) => combined.includes(w))) return "mind";
-
-  const valKeywords = [
-    "validat",
-    "test",
-    "assert",
-    "coverage",
-    "apca",
-    "contrast",
-    "audit",
-    "verifier",
-    "spec",
-  ];
-  if (valKeywords.some((w) => combined.includes(w))) return "validation";
-
-  const toolKeywords = [
-    "cli",
-    "command",
-    "tool",
-    "script",
-    "shell",
-    "harness",
-    "flags",
-    "factory-ops",
-  ];
-  if (toolKeywords.some((w) => combined.includes(w))) return "tooling";
-
-  const engKeywords = [
-    "engine",
-    "store",
-    "storage",
-    "ledger",
-    "cache",
-    "kv",
-    "scheduler",
-    "queue",
-    "pipeline",
-    "bridge",
-  ];
-  if (engKeywords.some((w) => combined.includes(w))) return "engine";
-
-  const repKeywords = ["report", "brief", "summary", "metrics", "telemetry", "doctor"];
-  if (repKeywords.some((w) => combined.includes(w))) return "reporting";
+  if (/\b(mind|cognitive|feedback|hyper-cognition|pulse|brainstorm|charter)\b/i.test(combined)) {
+    return "mind";
+  }
+  if (
+    /\b(validat(e|ed|ing|ion|or|ions|ors)?|test(s|ed|ing|er|ers)?|assert(s|ed|ing|ion|ions)?|coverage|apca|contrast|audit(s|ed|ing|or|ors)?|verifier|verif(y|ied|ying)|spec(s|ification|ifications)?)\b/i.test(
+      combined,
+    )
+  ) {
+    return "validation";
+  }
+  if (
+    /\b(cli|command(s|ed|ing)?|tool(s|ing)?|script(s|ed|ing)?|shell|harness|flags|factory-ops)\b/i.test(
+      combined,
+    )
+  ) {
+    return "tooling";
+  }
+  if (
+    /\b(engine|store|storage|ledger|cache|kv|scheduler|queue|pipeline|bridge)\b/i.test(combined)
+  ) {
+    return "engine";
+  }
+  if (
+    /\b(report(s|ed|ing|er|ers)?|brief(s|ed|ing)?|summary|metrics|telemetry|doctor)\b/i.test(
+      combined,
+    )
+  ) {
+    return "reporting";
+  }
 
   return "core";
 }
@@ -145,8 +151,8 @@ export function clusterBacklogAndDefects(
   defects: readonly RawDefectItem[],
   options?: ClusterOptions,
 ): readonly ThematicCluster[] {
-  const eligibleItems = filterEligibleBacklogItems(items);
-  const eligibleDefects = filterEligibleDefects(defects);
+  const eligibleItems = filterEligibleBacklogItems(items, options);
+  const eligibleDefects = filterEligibleDefects(defects, options);
 
   if (eligibleItems.length === 0 && eligibleDefects.length === 0) return [];
 

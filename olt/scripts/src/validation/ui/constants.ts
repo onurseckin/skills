@@ -2,6 +2,8 @@ import type { UiViewportSpec, UiViewportTier } from "./types.ts";
 
 export const MIN_TOUCH_HITBOX_PT = 44;
 export const MIN_SCREENSHOT_BYTES = 1024;
+export const MIN_VISUAL_ENTROPY_SCORE = 0.15;
+export const DEFAULT_SUBPIXEL_TOLERANCE_PX = 0.5;
 export const DESCENDER_CHARS: readonly string[] = ["g", "j", "p", "q", "y", "Q", "J"];
 
 export const CANONICAL_4_VIEWPORTS: Readonly<Record<UiViewportTier, UiViewportSpec>> = {

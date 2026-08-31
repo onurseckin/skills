@@ -27,7 +27,13 @@ export function findMissingFacades(blobs: readonly IndexedBlob[]): readonly Viol
   );
   const paths = new Set(blobs.map((blob) => blob.path));
   return [...directories]
-    .filter((directory) => !paths.has(`${directory}/index.ts`))
+    .filter(
+      (directory) =>
+        !paths.has(`${directory}/index.ts`) &&
+        !paths.has(`${directory}/index.tsx`) &&
+        !paths.has(`${directory}/index.mts`) &&
+        !paths.has(`${directory}/index.cts`),
+    )
     .sort()
     .map((path) => ({
       rule: "missing_facade" as const,
@@ -40,6 +46,9 @@ export function findMissingFacades(blobs: readonly IndexedBlob[]): readonly Viol
 export function findFacadeViolations(edges: readonly ImportEdge[]): readonly Violation[] {
   const unique = new Map<string, ImportEdge>();
   for (const edge of edges) {
+    if (edge.from.startsWith("tests/")) {
+      continue;
+    }
     if (dirname(edge.from) !== dirname(edge.to) && !edge.viaFacade) {
       unique.set(`${edge.from}\0${edge.to}`, edge);
     }

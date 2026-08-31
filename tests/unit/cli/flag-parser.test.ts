@@ -86,6 +86,25 @@ describe("parseCommandFlags", () => {
     expect(result.priority).toEqual([1, 2]);
   });
 
+  it("parses --key=value syntax correctly", () => {
+    interface Parsed {
+      readonly track: string;
+      readonly count: number;
+      readonly "dry-run": boolean;
+      readonly tag?: readonly string[];
+    }
+
+    const result = parseCommandFlags<Parsed>(
+      ["test:action", "--track=TRK-99", "--count=7", "--dry-run=true", "--tag=gamma"],
+      SAMPLE_SPEC,
+    );
+
+    expect(result.track).toBe("TRK-99");
+    expect(result.count).toBe(7);
+    expect(result["dry-run"]).toBe(true);
+    expect(result.tag).toEqual(["gamma"]);
+  });
+
   it("applies default values for omitted optional flags", () => {
     interface Parsed {
       readonly track: string;

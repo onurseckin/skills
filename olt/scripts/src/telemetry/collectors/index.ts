@@ -8,6 +8,10 @@ import { OpenAICollector } from "./openai.ts";
 
 export {
   DefaultCollectorEnvironment,
+  MAX_FUTURE_CLOCK_SKEW_MS,
+  MAX_STORAGE_CACHE_TTL_MS,
+  validateStorageCacheFreshness,
+  type CacheFreshnessResult,
   type CollectorEnvironment,
   type ProcessExecResult,
 } from "./common.ts";

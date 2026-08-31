@@ -12,29 +12,40 @@ export type { AntiMockMutationCheckOptions, CounterfactualCheckRecord };
 const EMPTY_TEST_BODY_REGEX =
   /(?:it|test)\s*\(\s*["'][^"']+["']\s*,\s*(?:async\s*)?\(\s*\)\s*=>\s*\{\s*\}\s*\)/gu;
 
-const TRIVIAL_ASSERTION_PATTERNS: readonly { readonly pattern: RegExp; readonly name: string }[] = [
-  {
-    pattern: /expect\s*\(\s*true\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*true\s*\)/u,
-    name: "expect(true).toBe(true)",
-  },
-  {
-    pattern: /expect\s*\(\s*false\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*false\s*\)/u,
-    name: "expect(false).toBe(false)",
-  },
-  {
-    pattern: /expect\s*\(\s*1\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*1\s*\)/u,
-    name: "expect(1).toBe(1)",
-  },
-  {
-    pattern: /expect\s*\(\s*0\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*0\s*\)/u,
-    name: "expect(0).toBe(0)",
-  },
-  {
-    pattern:
-      /expect\s*\(\s*["'][^"']*["']\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*["'][^"']*["']\s*\)/u,
-    name: "expect('literal').toBe('literal')",
-  },
-];
+function isTrivialPositiveAssertion(line: string): {
+  readonly isTrivial: boolean;
+  readonly name: string;
+} {
+  // Negative matchers (.not.toBe, .not.toEqual) represent inequality proofs and must not be flagged
+  if (/\.not\s*\.\s*(?:toBe|toEqual)/u.test(line)) {
+    return { isTrivial: false, name: "" };
+  }
+
+  if (/expect\s*\(\s*true\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*true\s*\)/u.test(line)) {
+    return { isTrivial: true, name: "expect(true).toBe(true)" };
+  }
+  if (/expect\s*\(\s*false\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*false\s*\)/u.test(line)) {
+    return { isTrivial: true, name: "expect(false).toBe(false)" };
+  }
+  if (/expect\s*\(\s*1\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*1\s*\)/u.test(line)) {
+    return { isTrivial: true, name: "expect(1).toBe(1)" };
+  }
+  if (/expect\s*\(\s*0\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*0\s*\)/u.test(line)) {
+    return { isTrivial: true, name: "expect(0).toBe(0)" };
+  }
+
+  const literalMatch = line.match(
+    /expect\s*\(\s*(["'])([^"']*)\1\s*\)\s*\.\s*(?:toBe|toEqual)\s*\(\s*(["'])([^"']*)\3\s*\)/u,
+  );
+  if (literalMatch && literalMatch[2] === literalMatch[4]) {
+    return {
+      isTrivial: true,
+      name: `expect('${literalMatch[2]}').toBe('${literalMatch[4]}')`,
+    };
+  }
+
+  return { isTrivial: false, name: "" };
+}
 
 function scanCodeForBannedMocks(filePath: string, content: string): DoctorDiagnosticFinding[] {
   const findings: DoctorDiagnosticFinding[] = [];
@@ -55,16 +66,15 @@ function scanCodeForBannedMocks(filePath: string, content: string): DoctorDiagno
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i]!;
     const trimmed = line.trim();
-    for (const { pattern, name } of TRIVIAL_ASSERTION_PATTERNS) {
-      if (pattern.test(line)) {
-        findings.push({
-          code: "ANTI_MOCK_TRIVIAL_ASSERTION",
-          severity: "ERROR",
-          engine: "checkAntiMockMutation",
-          message: `Banned mock defect in ${normalizedPath}:${i + 1}: Trivial assertion without system verification: ${name}`,
-          details: { filePath: normalizedPath, lineNumber: i + 1, snippet: trimmed },
-        });
-      }
+    const { isTrivial, name } = isTrivialPositiveAssertion(trimmed);
+    if (isTrivial) {
+      findings.push({
+        code: "ANTI_MOCK_TRIVIAL_ASSERTION",
+        severity: "ERROR",
+        engine: "checkAntiMockMutation",
+        message: `Banned mock defect in ${normalizedPath}:${i + 1}: Trivial assertion without system verification: ${name}`,
+        details: { filePath: normalizedPath, lineNumber: i + 1, snippet: trimmed },
+      });
     }
   }
 
@@ -87,8 +97,15 @@ export function checkAntiMockMutation(
     };
   }
 
-  if (options.targetFiles && options.targetFiles.length > 0) {
-    for (const p of options.targetFiles) {
+  const candidatePaths: string[] = [];
+  if (options.targetFiles) candidatePaths.push(...options.targetFiles);
+  if (options.targetPaths) candidatePaths.push(...options.targetPaths);
+  if (options.testFiles) candidatePaths.push(...options.testFiles);
+  if (options.sourceFiles) candidatePaths.push(...options.sourceFiles);
+
+  const uniquePaths = Array.from(new Set(candidatePaths));
+  if (uniquePaths.length > 0) {
+    for (const p of uniquePaths) {
       const relPath = String(p);
       const fullPath = options.repoRoot
         ? resolve(String(options.repoRoot), relPath)

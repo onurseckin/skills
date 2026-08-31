@@ -163,7 +163,7 @@ function renderOverview(internal: boolean): string {
       "`bun harness.ts help <command>` prints flags, stdin rules and exit codes for one command.",
       "Full manifest: `olt/references/cli-capabilities.md`.",
     ];
-    return enforceLineLimit(lines.join("\n"));
+    return lines.join("\n");
   }
 
   const rows = PRIMARY_VERBS.map((verb) => {

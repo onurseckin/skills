@@ -10,11 +10,13 @@ import {
   renameSync,
   writeSync,
 } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { withExclusiveLock } from "../locking/index.ts";
 import type { MailboxCursor, MailboxEnvelope } from "../types.ts";
+import { createEmptyCursor, isMessageProcessed } from "./cursor-tracker.ts";
 import { verifyEnvelopeHmac } from "./envelope.ts";
+import { escapeQuarantinePayload } from "./quarantine.ts";
 
 export interface ReadUnreadMessagesOptions {
   readonly quarantinePath?: string;
@@ -43,27 +45,31 @@ function ensureParentDir(filePath: string): void {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true, mode: 0o700 });
 }
 
+function defaultLockPathFor(filePath: string): string {
+  const res = resolve(filePath);
+  const match = res.match(/(.*)[/\\]\.olt[/\\]mailboxes[/\\]([^/\\]+)[/\\]/);
+  if (match && match[1] && match[2]) {
+    return join(match[1], ".olt", "locks", "mailboxes", `${match[2]}.lock`);
+  }
+  return `${filePath}.lock`;
+}
+
 export function isValidEnvelopeStructure(obj: unknown): obj is MailboxEnvelope<unknown> {
   if (typeof obj !== "object" || obj === null) return false;
   const r = obj as Record<string, unknown>;
+  const isStr = (k: string): boolean =>
+    typeof r[k] === "string" && (r[k] as string).trim().length > 0;
   return (
-    typeof r["id"] === "string" &&
-    r["id"].trim().length > 0 &&
+    isStr("id") &&
     typeof r["sequence"] === "number" &&
     Number.isFinite(r["sequence"]) &&
-    typeof r["sender_id"] === "string" &&
-    r["sender_id"].trim().length > 0 &&
+    isStr("sender_id") &&
     typeof r["sender_role"] === "string" &&
-    typeof r["recipient_id"] === "string" &&
-    r["recipient_id"].trim().length > 0 &&
-    typeof r["message_type"] === "string" &&
-    r["message_type"].trim().length > 0 &&
-    typeof r["timestamp"] === "string" &&
-    r["timestamp"].trim().length > 0 &&
-    typeof r["correlation_id"] === "string" &&
-    r["correlation_id"].trim().length > 0 &&
-    typeof r["hmac_signature"] === "string" &&
-    r["hmac_signature"].trim().length > 0 &&
+    isStr("recipient_id") &&
+    isStr("message_type") &&
+    isStr("timestamp") &&
+    isStr("correlation_id") &&
+    isStr("hmac_signature") &&
     "payload" in r
   );
 }
@@ -78,7 +84,9 @@ function writeQuarantinedLog(quarantinePath: string, items: readonly Quarantined
   );
   try {
     const ts = new Date().toISOString();
-    const formatted = items.map((i) => `[${ts}] [REASON: ${i.reason}] ${i.line}\n`).join("");
+    const formatted = items
+      .map((i) => `[${ts}] [REASON: ${i.reason}] ${escapeQuarantinePayload(i.line)}\n`)
+      .join("");
     writeSync(fd, formatted);
     fsyncSync(fd);
   } finally {
@@ -99,8 +107,7 @@ function atomicRewriteInbox(
   );
   try {
     if (envelopes.length > 0) {
-      const content = envelopes.map((env) => JSON.stringify(env) + "\n").join("");
-      writeSync(tmpFd, content);
+      writeSync(tmpFd, envelopes.map((env) => JSON.stringify(env) + "\n").join(""));
     }
     fsyncSync(tmpFd);
   } finally {
@@ -136,11 +143,8 @@ export function appendMailboxMessage(
     }
   };
 
-  if (lockPath && lockPath.trim().length > 0) {
-    withExclusiveLock(lockPath, envelope.recipient_id || envelope.sender_id || "stream", writeOp);
-  } else {
-    writeOp();
-  }
+  const lock = lockPath?.trim() || defaultLockPathFor(inboxPath);
+  withExclusiveLock(lock, envelope.recipient_id || envelope.sender_id || "stream", writeOp);
 }
 
 export function readUnreadMessages(
@@ -154,8 +158,7 @@ export function readUnreadMessages(
 
   const readOp = (): ReadUnreadMessagesResult => {
     if (!existsSync(inboxPath)) return { messages: [], quarantinedCount: 0 };
-    const content = readFileSync(inboxPath, "utf8");
-    const rawLines = content.split("\n");
+    const rawLines = readFileSync(inboxPath, "utf8").split("\n");
     const validEnvelopes: MailboxEnvelope<unknown>[] = [];
     const quarantined: QuarantinedItem[] = [];
 
@@ -199,18 +202,13 @@ export function readUnreadMessages(
       atomicRewriteInbox(inboxPath, validEnvelopes);
     }
 
-    const lastReadSeq = cursor?.last_read_sequence ?? 0;
-    const seenIds = new Set(cursor?.seen_ids ?? []);
-    const unread = validEnvelopes.filter(
-      (env) => env.sequence > lastReadSeq && !seenIds.has(env.id),
-    );
+    const effectiveCursor = cursor ?? createEmptyCursor();
+    const unread = validEnvelopes.filter((env) => !isMessageProcessed(env, effectiveCursor));
     return { messages: unread, quarantinedCount: quarantined.length };
   };
 
-  if (options?.lockPath && options.lockPath.trim().length > 0) {
-    return withExclusiveLock(options.lockPath, "mailbox-reader", readOp);
-  }
-  return readOp();
+  const lock = options?.lockPath?.trim() || defaultLockPathFor(inboxPath);
+  return withExclusiveLock(lock, "mailbox-reader", readOp);
 }
 
 export function quarantineTornLines(inboxPath: string, quarantinePath: string): number {
@@ -273,8 +271,6 @@ export function rotateMailboxMessages(
     return excess;
   };
 
-  if (options?.lockPath && options.lockPath.trim().length > 0) {
-    return withExclusiveLock(options.lockPath, "mailbox-rotator", rotateOp);
-  }
-  return rotateOp();
+  const lock = options?.lockPath?.trim() || defaultLockPathFor(inboxPath);
+  return withExclusiveLock(lock, "mailbox-rotator", rotateOp);
 }

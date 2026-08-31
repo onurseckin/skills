@@ -18,11 +18,7 @@ import {
   reclaimProcess,
   reclaimZombieProcesses,
 } from "../../../olt/scripts/src/server/process/index.ts";
-import type {
-  CommandExecutionResult,
-  ProcessDetails,
-  ReclaimSignal,
-} from "../../../olt/scripts/src/server/process/index.ts";
+import type { CommandExecutionResult } from "../../../olt/scripts/src/server/process/index.ts";
 
 describe("process reclaimer subsystem", () => {
   describe("output parsers", () => {
@@ -126,7 +122,7 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
     it("findPidsOnPort uses lsof when successful", async () => {
       const mockExec = async (
         cmd: string,
-        args: readonly string[],
+        _args: readonly string[],
       ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") {
           return { stdout: "4321\n", stderr: "", exitCode: 0 };
@@ -141,7 +137,7 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
     it("findPidsOnPort falls back to fuser if lsof fails", async () => {
       const mockExec = async (
         cmd: string,
-        args: readonly string[],
+        _args: readonly string[],
       ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") {
           return { stdout: "", stderr: "command not found", exitCode: 127 };
@@ -159,7 +155,7 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
     it("findPidsOnPort falls back to ss if lsof and fuser fail", async () => {
       const mockExec = async (
         cmd: string,
-        args: readonly string[],
+        _args: readonly string[],
       ): Promise<CommandExecutionResult> => {
         if (cmd === "ss") {
           return {
@@ -412,6 +408,32 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
       expect(result.error).toBeDefined();
       expect(result.error).toContain("did not respond to SIGTERM or SIGKILL escalation");
     });
+
+    it("fails fast immediately on EPERM without polling", async () => {
+      let pollCount = 0;
+      const start = performance.now();
+
+      const result = await reclaimProcess(1, 80, {
+        gracePeriodMs: 5000,
+        pollIntervalMs: 10,
+        isAliveChecker: () => true,
+        signalSender: () => {
+          const err = new Error("EPERM: operation not permitted");
+          (err as Error & { code: string }).code = "EPERM";
+          throw err;
+        },
+        sleepFn: async () => {
+          pollCount++;
+        },
+      });
+
+      const elapsed = performance.now() - start;
+      expect(result.reclaimed).toBe(false);
+      expect(result.error).toContain("Permission denied");
+      expect(result.error).toContain("EPERM");
+      expect(pollCount).toBe(0); // Should fail fast without polling
+      expect(elapsed).toBeLessThan(100);
+    });
   });
 
   describe("batch reclaimer functions & ProcessReclaimer class", () => {
@@ -482,7 +504,7 @@ LISTEN 0 128 *:8080 *:* users:(("bun",pid=44556,fd=7),("bun",pid=11223,fd=8))
     it("ProcessReclaimer class encapsulates all methods with defaults", async () => {
       const mockExec = async (
         cmd: string,
-        args: readonly string[],
+        _args: readonly string[],
       ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") return { stdout: "5050\n", stderr: "", exitCode: 0 };
         if (cmd === "ps")

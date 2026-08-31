@@ -5,8 +5,6 @@ import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract
 import { isAgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   MIND_STRATEGIC_ALTITUDE,
-  MIND_HARD_ZEROS,
-  MIND_PROACTIVE_BANDWIDTH_ACTIVITIES,
   verifyMindRoleStrategicInvariants,
 } from "../../../olt/scripts/src/mind/lifecycle/purpose/index.ts";
 

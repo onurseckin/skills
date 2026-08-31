@@ -27,7 +27,20 @@ export function evaluateDualUiGates(params: DualUiEvaluationParams): DualUiAudit
     };
   }
 
-  const mechanicReport = validateUiMechanic(params.mechanicInput ?? {});
+  const mechanicInput: UiMechanicInspectionInput = {
+    ...params.mechanicInput,
+    requireAllViewports:
+      params.mechanicInput?.requireAllViewports !== undefined
+        ? params.mechanicInput.requireAllViewports
+        : (params.mechanicInput?.screenshots !== undefined &&
+            params.mechanicInput.screenshots.length > 0) ||
+          (params.mechanicInput?.journeys !== undefined &&
+            params.mechanicInput.journeys.length > 0) ||
+          (params.mechanicInput?.viewports !== undefined &&
+            params.mechanicInput.viewports.length > 0),
+  };
+
+  const mechanicReport = validateUiMechanic(mechanicInput);
   const cognitiveReport = validateUiCognitive(params.cognitiveInput ?? { critique: "" });
 
   const defects: {
@@ -58,6 +71,40 @@ export function evaluateDualUiGates(params: DualUiEvaluationParams): DualUiAudit
       message: overflow.message ?? `Horizontal overflow in ${overflow.selector}`,
       severity: "critical",
       remediation: `Prevent horizontal overflow on viewport ${overflow.viewport}.`,
+    });
+  }
+
+  for (const vp of mechanicReport.missingViewports) {
+    defects.push({
+      id: `ui-mech-missing-viewport-${vp}`,
+      pillar: "mechanical",
+      category: "viewport-matrix",
+      message: `Missing required canonical viewport tier '${vp}' in test execution or screenshots`,
+      severity: "critical",
+      remediation: `Execute UI validation and capture screenshots on '${vp}' viewport.`,
+    });
+  }
+
+  for (const lv of mechanicReport.lifecycleViolations) {
+    defects.push({
+      id: "ui-mech-lifecycle-violation",
+      pillar: "mechanical",
+      category: "browser-lifecycle",
+      message: lv,
+      severity: "critical",
+      remediation:
+        "Ensure browser lifecycle invariants (document.fonts.ready, networkIdle, fresh context) are satisfied before assertions.",
+    });
+  }
+
+  for (const j of mechanicReport.journeyResults.filter((r) => !r.passed)) {
+    defects.push({
+      id: `ui-mech-journey-${j.name.replace(/[^a-zA-Z0-9]/g, "-")}`,
+      pillar: "mechanical",
+      category: "playwright-journey",
+      message: `Playwright user journey '${j.name}' failed on viewport '${j.viewport}'${j.error ? `: ${j.error}` : ""}`,
+      severity: "critical",
+      remediation: `Fix failing Playwright user journey '${j.name}' on viewport '${j.viewport}'.`,
     });
   }
 
@@ -103,6 +150,17 @@ export function evaluateDualUiGates(params: DualUiEvaluationParams): DualUiAudit
       message: issue,
       severity: "important",
       remediation: "Restore progressive optical scale hierarchy across headings.",
+    });
+  }
+
+  for (const issue of cognitiveReport.aestheticHarmony.issues) {
+    defects.push({
+      id: "ui-cog-aesthetic-harmony",
+      pillar: "cognitive",
+      category: "aesthetic-harmony",
+      message: issue,
+      severity: "important",
+      remediation: "Align spacing margins, paddings, and rhythm to 4pt/8pt harmonic grid.",
     });
   }
 

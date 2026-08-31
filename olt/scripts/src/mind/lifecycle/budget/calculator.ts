@@ -1,21 +1,13 @@
-import type {
-  BudgetCheckResult,
-  DailyBudgetCheckResult,
-  BudgetOutcome,
-  BudgetRefusalKey,
-  BudgetLadderOptions,
+import type { BudgetCheckResult, BudgetLadderOptions, DailyBudgetCheckResult } from "./types.ts";
+import {
+  checkDailyPulseLimit,
+  checkDailyWallClockLimit,
+  checkQuietHours,
+  checkQuietHoursBudget,
+  computeTopologicalConcurrency,
 } from "./types.ts";
 
 export type { DailyBudgetCheckResult };
-import {
-  parseNowMs,
-  computeTopologicalConcurrency,
-  rollDayKeyIfNeeded,
-  checkQuietHours,
-  checkQuietHoursBudget,
-  checkDailyPulseLimit,
-  checkDailyWallClockLimit,
-} from "./types.ts";
 
 export function checkMaxAgentsInFlight(
   budget: Record<string, unknown>,
@@ -171,12 +163,14 @@ export function evaluateBudgetRefusalLadder(
 export function checkDailyBudget(
   budget: Record<string, unknown>,
   nowInput?: number | Date | string,
+  options?: { readonly dryRun?: boolean; readonly timezone?: string },
 ): DailyBudgetCheckResult {
-  rollDayKeyIfNeeded(budget, nowInput);
-
+  const tz =
+    options?.timezone ?? (typeof budget.timezone === "string" ? budget.timezone : undefined);
   const quiet = checkQuietHours(
     typeof budget.quiet_hours === "string" ? budget.quiet_hours : null,
     nowInput,
+    tz,
   );
   if (quiet.inQuietHours) {
     return {

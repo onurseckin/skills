@@ -13,7 +13,18 @@ function sanitizeMermaidId(id: string): string {
 }
 
 function sanitizeMermaidLabel(text: string): string {
-  return text.replaceAll('"', "'").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return text
+    .replaceAll('"', "'")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("[", "&#91;")
+    .replaceAll("]", "&#93;")
+    .replaceAll("(", "&#40;")
+    .replaceAll(")", "&#41;")
+    .replaceAll("{", "&#123;")
+    .replaceAll("}", "&#125;")
+    .replaceAll("`", "&#96;")
+    .replaceAll("\n", " ");
 }
 
 function renderMermaidNode(node: DagLayoutNodePoint): string {

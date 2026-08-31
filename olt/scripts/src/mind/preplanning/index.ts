@@ -35,7 +35,9 @@ export {
 } from "./backlog-clusterer.ts";
 export {
   assertValidBlueprintStructure,
+  deriveDisjointTaskScope,
   generateAndWritePlan,
+  generatePlanBlueprint,
   generatePlanMarkdown,
   writePlanFile,
 } from "./plan-factory.ts";
@@ -44,6 +46,7 @@ export {
   transitionBacklogItemsToPlanned,
   transitionDefectsToPlanned,
   updateBridgeState,
+  updateBridgeStateBatch,
 } from "./bridge-state.ts";
 export {
   type DaemonOptions,

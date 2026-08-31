@@ -18,6 +18,8 @@ export interface GhostOrchestratorFinding {
   readonly action_taken: GhostActionTaken;
 }
 
+export const DEFAULT_GHOST_STARTUP_GRACE_WINDOW_MS = 5_000;
+
 export interface LiveSubagentInfo {
   readonly subagent_id: string;
   readonly role: string;
@@ -25,6 +27,8 @@ export interface LiveSubagentInfo {
   readonly conversation_id?: string | undefined;
   readonly run_id?: string | undefined;
   readonly status?: string | undefined;
+  readonly spawned_at?: string | number | Date | undefined;
+  readonly started_at?: string | number | Date | undefined;
 }
 
 export interface DetectGhostOptions {
@@ -32,6 +36,11 @@ export interface DetectGhostOptions {
   readonly manifestPath?: string | undefined;
   readonly validateManifest?: boolean | undefined;
   readonly isPidAliveFn?: ((pid: number) => boolean) | undefined;
+  readonly startupGraceWindowMs?: number | undefined;
+  readonly now?: string | number | Date | undefined;
+  readonly verifyProcessStartTime?:
+    | ((pid: number, expectedStartedAt?: string) => boolean)
+    | undefined;
 }
 
 export interface TerminateOptions {
@@ -40,6 +49,7 @@ export interface TerminateOptions {
   readonly killFn?: ((pid: number, signal: NodeJS.Signals | string) => boolean) | undefined;
   readonly customLedgerPath?: string | undefined;
   readonly customLockPath?: string | undefined;
+  readonly verifyProcessStartTime?: ((pid: number) => boolean) | undefined;
 }
 
 export interface ReconcileRosterOptions {
@@ -52,6 +62,11 @@ export interface ReconcileRosterOptions {
   readonly runRoot?: string | undefined;
   readonly manifestPath?: string | undefined;
   readonly validateManifest?: boolean | undefined;
+  readonly startupGraceWindowMs?: number | undefined;
+  readonly now?: string | number | Date | undefined;
+  readonly verifyProcessStartTime?:
+    | ((pid: number, expectedStartedAt?: string) => boolean)
+    | undefined;
 }
 
 export interface RosterReconciliationResult {
@@ -73,11 +88,22 @@ export function detectGhostOrchestrators(
   }
 
   const findings: GhostOrchestratorFinding[] = [];
-  const now = new Date().toISOString();
+  const nowMs = options?.now !== undefined ? new Date(options.now).getTime() : Date.now();
+  const now = new Date(nowMs).toISOString();
+  const graceMs = options?.startupGraceWindowMs ?? DEFAULT_GHOST_STARTUP_GRACE_WINDOW_MS;
 
   for (const agent of liveAgents) {
     if (agent.role.trim().toLowerCase() !== "orchestrator") {
       continue;
+    }
+
+    // Startup grace window protection
+    const spawnInput = agent.spawned_at ?? agent.started_at;
+    if (spawnInput !== undefined) {
+      const spawnMs = new Date(spawnInput).getTime();
+      if (Number.isFinite(spawnMs) && Math.max(0, nowMs - spawnMs) < graceMs) {
+        continue;
+      }
     }
 
     if (options?.isPidAliveFn && !options.isPidAliveFn(agent.pid)) {
@@ -85,6 +111,14 @@ export function detectGhostOrchestrators(
     }
 
     const record = ledgerMap.get(agent.subagent_id);
+
+    // PID recycling verification hook
+    if (
+      options?.verifyProcessStartTime &&
+      !options.verifyProcessStartTime(agent.pid, record?.spawned_at)
+    ) {
+      continue;
+    }
 
     if (!record) {
       findings.push({
@@ -173,7 +207,8 @@ export function terminateDetachedOrchestrator(
   finding: GhostOrchestratorFinding,
   options?: TerminateOptions,
 ): boolean {
-  if (options?.dryRun) {
+  if (options?.dryRun) return false;
+  if (options?.verifyProcessStartTime && !options.verifyProcessStartTime(finding.process_id)) {
     return false;
   }
 
@@ -215,27 +250,22 @@ export function reconcileOrchestratorRoster(
   options?: ReconcileRosterOptions,
 ): RosterReconciliationResult {
   const liveAgents = options?.liveAgents ?? [];
-  const customLedgerPath = options?.customLedgerPath;
-  const customLockPath = options?.customLockPath;
-  const autoTerminate = options?.autoTerminate ?? false;
-  const killFn = options?.killFn;
-  const isPidAliveFn = options?.isPidAliveFn;
-  const runRoot = options?.runRoot;
-  const manifestPath = options?.manifestPath;
-  const validateManifest = options?.validateManifest;
-
-  const rawFindings = detectGhostOrchestrators(liveAgents, customLedgerPath, {
-    runRoot,
-    manifestPath,
-    validateManifest,
-    isPidAliveFn,
+  const rawFindings = detectGhostOrchestrators(liveAgents, options?.customLedgerPath, {
+    runRoot: options?.runRoot,
+    manifestPath: options?.manifestPath,
+    validateManifest: options?.validateManifest,
+    isPidAliveFn: options?.isPidAliveFn,
+    startupGraceWindowMs: options?.startupGraceWindowMs,
+    now: options?.now,
+    verifyProcessStartTime: options?.verifyProcessStartTime,
   });
 
   const ghostPids = new Set(rawFindings.map((f) => f.process_id));
+  const isPidAlive = options?.isPidAliveFn;
   const liveOrchestratorCount = liveAgents.filter(
     (a) =>
       a.role.trim().toLowerCase() === "orchestrator" &&
-      (!isPidAliveFn || isPidAliveFn(a.pid)) &&
+      (!isPidAlive || isPidAlive(a.pid)) &&
       !ghostPids.has(a.pid),
   ).length;
 
@@ -243,17 +273,15 @@ export function reconcileOrchestratorRoster(
   const terminatedPids: number[] = [];
 
   for (const finding of rawFindings) {
-    if (autoTerminate) {
+    if (options?.autoTerminate) {
       const killed = terminateDetachedOrchestrator(finding, {
-        killFn,
-        customLedgerPath,
-        customLockPath,
+        killFn: options.killFn,
+        customLedgerPath: options.customLedgerPath,
+        customLockPath: options.customLockPath,
+        verifyProcessStartTime: options.verifyProcessStartTime,
       });
       if (killed) {
-        finalFindings.push({
-          ...finding,
-          action_taken: "TERMINATED",
-        });
+        finalFindings.push({ ...finding, action_taken: "TERMINATED" });
         terminatedPids.push(finding.process_id);
       } else {
         finalFindings.push(finding);

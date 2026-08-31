@@ -113,26 +113,22 @@ When tasks are uniformly sized ($t(v) \approx 1$ time unit), the optimal concurr
 $$P = \left\lceil \frac{W}{S} \right\rceil$$
 
 ```text
-+---------------------------------------------------------------------------------------------------------+
-|                                      BRENT CONCURRENCY ILLUSTRATION                                     |
-+---------------------------------------------------------------------------------------------------------+
-|                                                                                                         |
-|  Total Work W = 12 tasks                                                                                |
-|  Critical Path Span S = 3 sequential levels                                                             |
-|                                                                                                         |
-|  Optimal Parallel Width P = ceil(W / S) = ceil(12 / 3) = 4 parallel workers                            |
-|                                                                                                         |
-|  Wave 1 (4 parallel tasks):   [Task 1]   [Task 2]   [Task 3]   [Task 4]                                 |
-|                                  |          |          |          |                                     |
-|  Wave 2 (4 parallel tasks):   [Task 5]   [Task 6]   [Task 7]   [Task 8]                                 |
-|                                  |          |          |          |                                     |
-|  Wave 3 (4 parallel tasks):   [Task 9]   [Task 10]  [Task 11]  [Task 12]                                |
-|                                                                                                         |
-|  Theoretical Wall-Clock Time: T_4 = 3 time units (compared to T_1 = 12 time units sequentially)         |
-|  Theoretical Speedup: S_4 = T_1 / T_4 = 12 / 3 = 4.00x (Linear 100% parallel efficiency)               |
-|                                                                                                         |
-+---------------------------------------------------------------------------------------------------------+
+Work W = 12 tasks, Span S = 3 levels ==> P = ceil(W/S) = 4 parallel workers
+Wave 1 (width 4): [T1] [T2] [T3] [T4]
+Wave 2 (width 4): [T5] [T6] [T7] [T8]
+Wave 3 (width 4): [T9] [T10] [T11] [T12]
+Speedup: S_4 = T_1 / T_4 = 12 / 3 = 4.00x (100% parallel efficiency)
 ```
+
+### Minimum Task Grain Size & Subagent Spawn Overhead
+
+Spawning an autonomous subagent incurs fixed coordination latency: process instantiation ($\delta_{\text{spawn}}$), prompt and role context ingestion, and POSIX file lock acquisition ($\delta_{\text{lock}}$).
+
+To prevent **task hyper-fragmentation** (where scheduling and IPC overheads exceed execution time, resulting in parallel slowdown), OLT enforces the **Minimum Task Grain Size Rule**:
+
+$$\Delta t_{\text{task}} \ge 5 \cdot (\delta_{\text{spawn}} + \delta_{\text{lock}})$$
+
+When a planned task requires $< 15\text{s}$ of execution or touches a trivial one-line edit, the compiler coalesces it into an atomic module within the same write scope rather than spawning an isolated worker.
 
 ### Amdahl's Law vs. Gustafson-Barsis Speedup
 

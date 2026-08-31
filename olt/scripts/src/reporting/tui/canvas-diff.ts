@@ -99,17 +99,36 @@ export class DoubleBufferedCanvas {
     }
 
     let currentCol = col;
-    for (let i = 0; i < text.length; i++) {
-      if (currentCol >= this.width) {
-        break;
+    if (typeof Intl !== "undefined" && Intl.Segmenter) {
+      const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+      for (const { segment } of segmenter.segment(text)) {
+        if (currentCol >= this.width) break;
+        const cp = segment.codePointAt(0) ?? 0;
+        const isWide =
+          (cp >= 0x1100 && cp <= 0x11ff) ||
+          (cp >= 0x2e80 && cp <= 0x9fff) ||
+          (cp >= 0xac00 && cp <= 0xd7af) ||
+          (cp >= 0x1f000 && cp <= 0x1faff) ||
+          (cp >= 0x2600 && cp <= 0x27bf);
+        const cellWidth = isWide ? 2 : 1;
+        this.writeCell(row, currentCol, {
+          char: segment,
+          width: cellWidth,
+          ...style,
+        });
+        currentCol += cellWidth;
       }
-      const ch = text[i] ?? "";
-      this.writeCell(row, currentCol, {
-        char: ch,
-        width: 1,
-        ...style,
-      });
-      currentCol += 1;
+    } else {
+      const chars = Array.from(text);
+      for (const ch of chars) {
+        if (currentCol >= this.width) break;
+        this.writeCell(row, currentCol, {
+          char: ch,
+          width: 1,
+          ...style,
+        });
+        currentCol += 1;
+      }
     }
   }
 

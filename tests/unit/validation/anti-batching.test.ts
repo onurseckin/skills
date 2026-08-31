@@ -13,7 +13,6 @@ import {
   partitionIntoDisjointWaves,
   synthesizeAutonomousTasks,
   validateAntiBatchingIsolation,
-  validateAntiBatchingRule,
   type SmartTaskPlan,
 } from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
 import {
@@ -590,6 +589,68 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       const res = validateCriticAntiBatching(mockWorkflowState, validDiscriminatingCriticInput);
       expect(res.valid).toBe(true);
       expect(res.violations.length).toBe(0);
+    });
+
+    it("rejects review when a pairwise subset of disparate requirements share identical evidence", () => {
+      const pairwiseBatchedCriticInput = {
+        summary: "Partial collision assessment",
+        status: "clean" as const,
+        findings: [],
+        unresolved_finding_ids: [],
+        requirement_proofs: [
+          {
+            requirement_id: "REQ-PERF",
+            status: "satisfied" as const,
+            evidence: [{ kind: "command", reference: "cmd-perf", observation: "18ms" }],
+          },
+          {
+            requirement_id: "REQ-SECURITY",
+            status: "satisfied" as const,
+            evidence: [
+              { kind: "command", reference: "cmd-shared-token", observation: "Token verified" },
+            ],
+          },
+          {
+            requirement_id: "REQ-AUTH",
+            status: "satisfied" as const,
+            evidence: [
+              { kind: "command", reference: "cmd-shared-token", observation: "Auth verified" },
+            ], // Collision with REQ-SECURITY
+          },
+        ],
+        residual_risks: [],
+      };
+
+      const res = validateCriticAntiBatching(mockWorkflowState, pairwiseBatchedCriticInput);
+      expect(res.valid).toBe(false);
+      expect(
+        res.violations.some((v) => v.includes("reuses identical evidence as 'REQ-SECURITY'")),
+      ).toBe(true);
+    });
+
+    it("rejects task review when checks count meets requirement count but reuses duplicate command IDs", () => {
+      const task: TaskRecord = {
+        id: "task-multi-req",
+        category: "implementation",
+        created_at: new Date().toISOString(),
+        description: "Multi req task",
+        kind: "task",
+        priority: "HIGH",
+        status: "claimed",
+        summary: "Task covering 2 reqs",
+        updated_at: new Date().toISOString(),
+        requirement_ids: ["REQ-1", "REQ-2"],
+      };
+
+      const reviewPayload = {
+        verdict: "pass" as const,
+        requirement_ids: ["REQ-1", "REQ-2"],
+        checks: [{ command_id: "cmd-duplicate-id" }, { command_id: "cmd-duplicate-id" }],
+      };
+
+      const res = validateReviewAntiBatching(task, reviewPayload);
+      expect(res.valid).toBe(false);
+      expect(res.violations.some((v) => v.includes("duplicate command IDs detected"))).toBe(true);
     });
   });
 

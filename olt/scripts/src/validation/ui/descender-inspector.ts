@@ -20,7 +20,15 @@ export function inspectDescenderIntegrity(
     if (!hasDescender) continue;
     inspectedCount++;
 
-    const lineHeightRatio = el.fontSize > 0 ? el.lineHeight / el.fontSize : 1.2;
+    // Normalize line-height: unitless multiplier (<= 3.0) vs absolute pixel dimension (> 3.0)
+    const isUnitless = el.lineHeight <= 3.0;
+    const computedLineHeight = isUnitless ? el.lineHeight * el.fontSize : el.lineHeight;
+    const lineHeightRatio = isUnitless
+      ? el.lineHeight
+      : el.fontSize > 0
+        ? el.lineHeight / el.fontSize
+        : 1.2;
+
     const isTightLineHeight = lineHeightRatio < 1.15;
     const isZeroPaddingClipped = el.paddingBottom < 2 && el.overflowClipped === true;
 
@@ -29,10 +37,10 @@ export function inspectDescenderIntegrity(
       issues.push(
         `Descender clipping risk on ${el.selector} (line-height ratio ${lineHeightRatio.toFixed(2)} with overflow clip and paddingBottom ${el.paddingBottom}px truncating letters '${DESCENDER_CHARS.filter((c) => el.text.includes(c)).join(", ")}')`,
       );
-    } else if (el.overflowClipped === true && el.lineHeight < el.fontSize) {
+    } else if (el.overflowClipped === true && computedLineHeight < el.fontSize) {
       clippedElements.push(el.selector);
       issues.push(
-        `Descender truncated on ${el.selector}: lineHeight (${el.lineHeight}px) < fontSize (${el.fontSize}px) with hidden overflow`,
+        `Descender truncated on ${el.selector}: lineHeight (${computedLineHeight}px) < fontSize (${el.fontSize}px) with hidden overflow`,
       );
     }
   }

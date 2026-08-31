@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   assertValidBlueprintStructure,
+  deriveDisjointTaskScope,
   generateAndWritePlan,
   generatePlanMarkdown,
   writePlanFile,
@@ -75,10 +76,38 @@ describe("Plan Factory Engine", () => {
     expect(markdown).toContain("## 5. Exhaustive Traceability Matrix");
 
     expect(markdown).toContain("### Task 1.1: Feature: Add Core Store");
+    expect(markdown).toContain(
+      "- **Write Scope:** `olt/scripts/src/core/add-core-store-item-1.ts`, `tests/unit/core/add-core-store-item-1.test.ts`",
+    );
+    expect(markdown).toContain("`bun test tests/unit/core/add-core-store-item-1.test.ts`");
     expect(markdown).toContain("### Task 1.2: Feature: Add Cache");
+    expect(markdown).toContain(
+      "- **Write Scope:** `olt/scripts/src/core/add-cache-item-2.ts`, `tests/unit/core/add-cache-item-2.test.ts`",
+    );
+    expect(markdown).toContain("`bun test tests/unit/core/add-cache-item-2.test.ts`");
     expect(markdown).toContain("### Task 1.3: Defect Remediation: Store Memory Leak");
+    expect(markdown).toContain(
+      "- **Write Scope:** `olt/scripts/src/core/store-memory-leak-def-1.ts`, `tests/unit/core/store-memory-leak-def-1.test.ts`",
+    );
+    expect(markdown).toContain("`bun test tests/unit/core/store-memory-leak-def-1.test.ts`");
     expect(markdown).toContain("`ERR_MEM_LEAK`");
+    expect(markdown).toContain(
+      "Execution Flow: [Task 1.1: Add Core Store] ──► [Task 1.2: Add Cache] ──► [Task 1.3: Store Memory Leak] ──► [Verification: bun test tests/unit/core/] ──► [Git Staging: git add -A] ──► [Landing]",
+    );
     expect(assertValidBlueprintStructure(markdown)).toBe(true);
+  });
+
+  test("deriveDisjointTaskScope produces unique suffixed file paths and scope envelopes", () => {
+    const scope1 = deriveDisjointTaskScope("engine", "req-1", "KV Store WAL Sync");
+    const scope2 = deriveDisjointTaskScope("engine", "req-2", "KV Store WAL Sync");
+
+    expect(scope1.writeScope).toBe("olt/scripts/src/engine/kv-store-wal-sync-req-1.ts");
+    expect(scope2.writeScope).toBe("olt/scripts/src/engine/kv-store-wal-sync-req-2.ts");
+    expect(scope1.writeScope).not.toBe(scope2.writeScope); // Zero slug collision
+    expect(scope1.scopeEnvelope).toEqual([
+      "olt/scripts/src/engine/kv-store-wal-sync-req-1.ts",
+      "tests/unit/engine/kv-store-wal-sync-req-1.test.ts",
+    ]);
   });
 
   test("generatePlanMarkdown generates fallback task when no matched items", () => {

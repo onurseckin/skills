@@ -19,27 +19,12 @@ OLT is distributed as a zero-runtime-dependency skill package designed to integr
 
 ### Installation Options
 
-You can install OLT directly into your project repository or global agent skill collection using your preferred package manager:
-
 ```bash
-# Option A: Install via npx (Node.js / npm ecosystem)
-npx skills add onurseckin/skills --skill olt
-
-# Option B: Install via bunx (Fastest, Bun native)
-bunx skills add onurseckin/skills --skill olt
-
-# Option C: Direct Git Clone / Submodule
-git clone https://github.com/onurseckin/skills.git
-cd skills
+npx skills add onurseckin/skills --skill olt   # Node / npm
+bunx skills add onurseckin/skills --skill olt  # Bun native
 ```
 
-### Zero-Dependency Architectural Guarantee
-
-Unlike heavy orchestration frameworks that require Python virtual environments, Docker daemons, or dozens of npm dependencies, OLT is **100% native TypeScript** executed directly on Bun:
-
-- **0 external runtime dependencies** in `package.json`.
-- **Sub-millisecond CLI startup** time.
-- **Native POSIX file locking (`flock`)** and SHA-256 Merkle tree hashing built directly on Bun's fast native APIs.
+**Zero-Dependency Guarantee**: OLT runs 100% native TypeScript on Bun with 0 runtime dependencies in `package.json`, sub-millisecond startup, and native POSIX `flock` synchronization.
 
 ---
 
@@ -63,20 +48,9 @@ bun olt/scripts/harness.ts doctor
 Sample output:
 
 ```text
-================================================================================
-                            OLT HARNESS DIAGNOSTIC REPORT
-================================================================================
-  Runtime Engine:       Bun v1.2.0 (Darwin arm64)
-  Repository Root:      /Users/onurseckinsenoglu/repos/skills
-  TypeScript Strict:    Verified (0 any annotations, tsconfig.json compliant)
-  Runtime Dependencies: 0 (Pure native standard library)
-  POSIX Flock Support:  Available (O_RDWR | O_CREAT | O_EXCL)
-  Host Environment:     Antigravity Multi-Agent Runtime
-  Telemetry Tracker:    Active (.olt/telemetry.jsonl)
-  Policy Engine:        Configured (.olt/policy.json)
---------------------------------------------------------------------------------
-  [PASS] All 8 diagnostic checks passed. System ready for orchestration.
-================================================================================
+[PASS] Runtime Engine: Bun Native | TypeScript: Strict 0 any | POSIX Flock: Available
+[PASS] Policy Engine: Configured (.olt/policy.json) | Telemetry: Active
+[PASS] All 8 diagnostic checks passed. System ready for orchestration.
 ```
 
 ### Initializing Repository Policy
@@ -149,16 +123,7 @@ Before generating a task list, the system performs structured preplanning, analy
 bun olt/scripts/harness.ts plan:brainstorm --run .olt/capsules/<run-id> --rounds 3
 ```
 
-The 8 failure vectors evaluated are:
-
-1. `EMPTY_PAYLOAD`: Null checks, missing files, or syntactically malformed payloads.
-2. `TIMEOUT_STAGNATION`: Process deadlocks, unbounded waits, and heartbeat timeouts.
-3. `CONCURRENCY_MUTATION`: Race conditions, file collisions, and shared state mutations.
-4. `HOST_BOUNDARY`: Protocol conformance and anti-hallucination guards.
-5. `STATE_TRANSITION`: State machine crash recovery and rollback integrity.
-6. `TYPE_INVARIANT`: Zero `any` types, zero `@ts-ignore`, and strict compiler guarantees.
-7. `CLI_TELEMETRY`: Parseable stdout/stderr and deterministic exit codes.
-8. `ADVERSARIAL_GATE`: Counterfactual negative test cases and anti-mock proofs.
+The 8 failure vectors evaluated: `EMPTY_PAYLOAD` (null checks), `TIMEOUT_STAGNATION` (deadlocks), `CONCURRENCY_MUTATION` (races), `HOST_BOUNDARY` (conformance), `STATE_TRANSITION` (recovery), `TYPE_INVARIANT` (0 any), `CLI_TELEMETRY` (exit codes), and `ADVERSARIAL_GATE` (counterfactual negative proofs).
 
 ---
 
@@ -171,23 +136,12 @@ The planner decomposes requirements into discrete, atomic tasks and compiles the
 bun olt/scripts/harness.ts plan:compile --run .olt/capsules/<run-id>
 ```
 
-The compilation process:
-
-- Assigns each task a **strictly disjoint write scope** (e.g., `src/auth/jwt.ts`).
-- Binds each task to a mandatory verification gate (e.g., `bun test tests/unit/auth/jwt.test.ts`).
-- Executes Kahn's algorithm to partition independent tasks into **parallel execution waves**:
+Compilation assigns each task a **disjoint write scope**, binds verification gates, and applies Kahn's algorithm to partition tasks into parallel waves:
 
 ```text
-Wave 1 (Parallel width: 3):
-  ├── task-1: Auth Models & Token Schemas     [Write Scope: src/auth/types.ts]
-  ├── task-2: Password Hashing Subsystem      [Write Scope: src/auth/hash.ts]
-  └── task-3: Redis Token Store Client        [Write Scope: src/auth/store.ts]
-
-Wave 2 (Parallel width: 1, depends on Wave 1):
-  └── task-4: JWT Middleware & Rate Limiter   [Write Scope: src/auth/middleware.ts]
-
-Wave 3 (Parallel width: 1, depends on Wave 2):
-  └── task-5: End-to-End Integration Suite    [Write Scope: tests/integration/auth.test.ts]
+Wave 1 (width 3): task-1 (src/auth/types.ts), task-2 (src/auth/hash.ts), task-3 (src/auth/store.ts)
+Wave 2 (width 1): task-4 (src/auth/middleware.ts) [depends on Wave 1]
+Wave 3 (width 1): task-5 (tests/integration/auth.test.ts) [depends on Wave 2]
 ```
 
 ---
@@ -228,16 +182,7 @@ bun olt/scripts/harness.ts task:claim \
   --role implementer
 ```
 
-Sample output:
-
-```text
-### Task Leased: task-1
-- Agent: worker_jwt_models
-- Lease Token: tok_lease_9a8f7c6e5d4b3a210fedcba987654321
-- Duration: 20 minutes (Deadline: 14:35:00 UTC)
-- Assigned Write Scope: src/auth/types.ts
-- Warning: Unleased file modifications will be rejected with LEASE_REQUIRED.
-```
+Sample output: `### Task Leased: task-1 (Scope: src/auth/types.ts, Token: tok_lease_9a8f..., Duration: 20m)`
 
 The implementer authors the code strictly within `src/auth/types.ts` and runs local typechecks. During long executions, the implementer sends heartbeats to maintain its lease:
 
@@ -313,37 +258,14 @@ The capsule is marked `completed`, file write permissions are locked to read-onl
 
 Every OLT run maintains full observability and forensic traceability:
 
-```text
-.olt/capsules/<run-id>/
-├── index.json             --> Run status, timestamps, and Merkle root
-├── manifest.json          --> Host metadata and runtime environment
-├── prompt.md              --> Verbatim user prompt (SHA-256 bound)
-├── state.json             --> Real-time task graph, leases, and agent states
-├── events.jsonl           --> Immutable, append-only SHA-256 event chain
-├── trace.md               --> Human-readable living markdown timeline
-├── defects.jsonl          --> Recorded defects and root-cause allocations
-├── runtime/               --> Active PID locks and ephemeral session tokens
-└── reports/               --> Formatted completion reports and evidence packs
-```
+Capsule layout: `index.json` (Merkle root), `manifest.json` (host metadata), `prompt.md` (verbatim prompt), `state.json` (DAG/leases), `events.jsonl` (SHA-256 ledger), `trace.md` (timeline), and `reports/`.
 
 ### Viewing the Living Execution Trace
 
-To observe the real-time event timeline of any active or completed run, inspect `trace.md`:
+Inspect the real-time event timeline of any active or completed run:
 
 ```bash
 cat .olt/capsules/<run-id>/trace.md
-```
-
-Sample trace excerpt:
-
-```markdown
-| Seq | Timestamp (UTC)      | Actor         | Event Kind       | Target | Details                   |
-| :-- | :------------------- | :------------ | :--------------- | :----- | :------------------------ |
-| 1   | 2026-08-31T12:00:00Z | orchestrator  | `capsule-init`   | run    | Capsule created           |
-| 2   | 2026-08-31T12:00:05Z | coordinator   | `plan-compiled`  | graph  | 5 tasks, 3 waves compiled |
-| 3   | 2026-08-31T12:00:10Z | worker_jwt    | `task-claimed`   | task-1 | Leased to worker_jwt      |
-| 4   | 2026-08-31T12:05:22Z | worker_jwt    | `task-submitted` | task-1 | Submitted for review      |
-| 5   | 2026-08-31T12:06:01Z | validator_jwt | `gate-proven`    | task-1 | Gate 1 passed (exit 0)    |
 ```
 
 ---

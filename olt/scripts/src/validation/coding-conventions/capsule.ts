@@ -15,8 +15,8 @@ export interface CapsuleHygieneValidationResult {
 
 const DIRTY_PATTERNS = [
   /^scratch/i,
-  /^temp[_\-\.]/i,
-  /^tmp[_\-\.]/i,
+  /^temp[_\-.]/i,
+  /^tmp[_\-.]/i,
   /\.tmp$/i,
   /\.temp$/i,
   /\.bak$/i,

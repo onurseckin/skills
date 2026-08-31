@@ -11,7 +11,6 @@ export type BudgetRefusalKey =
 export interface BudgetCheckPass {
   readonly ok: true;
 }
-
 export interface BudgetCheckRefusal {
   readonly ok: false;
   readonly key: BudgetRefusalKey;
@@ -76,26 +75,99 @@ export function computeTopologicalConcurrency(
   return Math.min(maxConcurrency, Math.max(minConcurrency, p));
 }
 
+export interface DayKeyOptions {
+  readonly dryRun?: boolean | undefined;
+  readonly timezone?: string | undefined;
+}
+
+export function getTimeInTimezone(
+  nowMs: number,
+  timeZone: string = "UTC",
+): { hours: number; minutes: number } {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(new Date(nowMs));
+    let hours = 0;
+    let minutes = 0;
+    for (const part of parts) {
+      if (part.type === "hour") {
+        hours = parseInt(part.value, 10);
+      } else if (part.type === "minute") {
+        minutes = parseInt(part.value, 10);
+      }
+    }
+    return { hours: hours === 24 ? 0 : hours, minutes };
+  } catch {
+    const date = new Date(nowMs);
+    return { hours: date.getUTCHours(), minutes: date.getUTCMinutes() };
+  }
+}
+
+export function computeDayKey(nowInput?: number | Date | string, timeZone: string = "UTC"): string {
+  const nowMs = parseNowMs(nowInput);
+  try {
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    return formatter.format(new Date(nowMs));
+  } catch {
+    return new Date(nowMs).toISOString().slice(0, 10);
+  }
+}
+
+export function getEffectiveDailyBudget(
+  budget: Record<string, unknown>,
+  nowInput?: number | Date | string,
+  timezone?: string,
+): { dayKey: string; pulsesToday: number; wallClockToday: number; rolled: boolean } {
+  const tz = timezone ?? (typeof budget.timezone === "string" ? budget.timezone : "UTC");
+  const todayKey = computeDayKey(nowInput, tz);
+  const isDifferent = budget.day_key !== todayKey;
+  return {
+    dayKey: todayKey,
+    pulsesToday: isDifferent
+      ? 0
+      : typeof budget.pulses_today === "number"
+        ? budget.pulses_today
+        : 0,
+    wallClockToday: isDifferent
+      ? 0
+      : typeof budget.wall_clock_ms_today === "number"
+        ? budget.wall_clock_ms_today
+        : 0,
+    rolled: isDifferent,
+  };
+}
+
 export function rollDayKeyIfNeeded(
   budget: Record<string, unknown>,
   nowInput?: number | Date | string,
+  options?: DayKeyOptions,
 ): RollDayKeyResult {
-  const nowMs = parseNowMs(nowInput);
-  const todayKey = new Date(nowMs).toISOString().slice(0, 10);
+  const tz = options?.timezone ?? (typeof budget.timezone === "string" ? budget.timezone : "UTC");
+  const effective = getEffectiveDailyBudget(budget, nowInput, tz);
 
-  if (budget.day_key !== todayKey) {
-    budget.day_key = todayKey;
+  if (effective.rolled && !options?.dryRun) {
+    budget.day_key = effective.dayKey;
     budget.pulses_today = 0;
     budget.wall_clock_ms_today = 0;
-    return { rolled: true, dayKey: todayKey };
   }
 
-  return { rolled: false, dayKey: todayKey };
+  return { rolled: effective.rolled, dayKey: effective.dayKey };
 }
 
 export function checkQuietHours(
   quietHours: string | null | undefined,
   nowInput?: number | Date | string,
+  timeZoneOverride?: string,
 ): QuietHoursCheckResult {
   if (
     quietHours === null ||
@@ -108,7 +180,9 @@ export function checkQuietHours(
   }
 
   const trimmed = quietHours.trim();
-  const match = trimmed.match(/^(\d{1,2}):(\d{2})\s*[-–—]\s*(\d{1,2}):(\d{2})$/);
+  const match = trimmed.match(
+    /^(\d{1,2}):(\d{2})\s*[-–—]\s*(\d{1,2}):(\d{2})(?:\s+([A-Za-z0-9_/+:-]+))?$/,
+  );
   if (!match) {
     return { inQuietHours: false, quietHours: trimmed };
   }
@@ -117,6 +191,7 @@ export function checkQuietHours(
   const startM = parseInt(match[2]!, 10);
   const endH = parseInt(match[3]!, 10);
   const endM = parseInt(match[4]!, 10);
+  const detectedTz = match[5] ?? timeZoneOverride ?? "UTC";
 
   if (
     startH < 0 ||
@@ -135,8 +210,8 @@ export function checkQuietHours(
   const endMinutes = endH * 60 + endM;
 
   const nowMs = parseNowMs(nowInput);
-  const date = new Date(nowMs);
-  const nowMinutes = date.getUTCHours() * 60 + date.getUTCMinutes();
+  const { hours, minutes } = getTimeInTimezone(nowMs, detectedTz);
+  const nowMinutes = hours * 60 + minutes;
 
   let inQuietHours: boolean;
   if (startMinutes <= endMinutes) {
@@ -155,6 +230,7 @@ export function checkQuietHoursBudget(
   const quiet = checkQuietHours(
     typeof budget.quiet_hours === "string" ? budget.quiet_hours : null,
     nowInput,
+    typeof budget.timezone === "string" ? budget.timezone : undefined,
   );
   if (quiet.inQuietHours) {
     return {
@@ -174,9 +250,9 @@ export function checkDailyPulseLimit(
   budget: Record<string, unknown>,
   nowInput?: number | Date | string,
 ): BudgetCheckResult {
-  rollDayKeyIfNeeded(budget, nowInput);
-
-  const pulsesToday = typeof budget.pulses_today === "number" ? budget.pulses_today : 0;
+  const tz = typeof budget.timezone === "string" ? budget.timezone : "UTC";
+  const effective = getEffectiveDailyBudget(budget, nowInput, tz);
+  const pulsesToday = effective.pulsesToday;
   const pulsesPerDay =
     typeof budget.pulses_per_day === "number"
       ? budget.pulses_per_day
@@ -185,10 +261,11 @@ export function checkDailyPulseLimit(
         : Infinity;
 
   if (Number.isFinite(pulsesPerDay) && pulsesToday >= pulsesPerDay) {
+    const tzSuffix = tz === "UTC" ? "next UTC day" : `next day (${tz})`;
     return {
       ok: false,
       key: "daily_pulse_limit",
-      reason: `daily pulse budget exhausted (${pulsesToday}/${pulsesPerDay} pulses); pulse is deferred until next UTC day`,
+      reason: `daily pulse budget exhausted (${pulsesToday}/${pulsesPerDay} pulses); pulse is deferred until ${tzSuffix}`,
       outcome: "deferred",
       repairArgv: "mind:wake",
       current: pulsesToday,
@@ -203,10 +280,9 @@ export function checkDailyWallClockLimit(
   budget: Record<string, unknown>,
   nowInput?: number | Date | string,
 ): BudgetCheckResult {
-  rollDayKeyIfNeeded(budget, nowInput);
-
-  const wallClockToday =
-    typeof budget.wall_clock_ms_today === "number" ? budget.wall_clock_ms_today : 0;
+  const tz = typeof budget.timezone === "string" ? budget.timezone : "UTC";
+  const effective = getEffectiveDailyBudget(budget, nowInput, tz);
+  const wallClockToday = effective.wallClockToday;
   const wallClockPerDay =
     typeof budget.wall_clock_ms_per_day === "number"
       ? budget.wall_clock_ms_per_day
@@ -215,10 +291,11 @@ export function checkDailyWallClockLimit(
         : Infinity;
 
   if (Number.isFinite(wallClockPerDay) && wallClockToday >= wallClockPerDay) {
+    const tzSuffix = tz === "UTC" ? "next UTC day" : `next day (${tz})`;
     return {
       ok: false,
       key: "daily_wall_clock_limit_ms",
-      reason: `daily wall clock budget exhausted (${wallClockToday}ms / ${wallClockPerDay}ms); pulse is deferred until next UTC day`,
+      reason: `daily wall clock budget exhausted (${wallClockToday}ms / ${wallClockPerDay}ms); pulse is deferred until ${tzSuffix}`,
       outcome: "deferred",
       repairArgv: "mind:wake",
       current: wallClockToday,

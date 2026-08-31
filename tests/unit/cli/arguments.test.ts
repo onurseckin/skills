@@ -61,6 +61,34 @@ describe("CLI argument parsing", () => {
     expect(shouldReadPromptStdin(["run", "--", "--prompt-stdin"])).toBeFalse();
     expect(shouldReadPromptStdin(["status", "--run", "/tmp/run", "--prompt-stdin"])).toBeFalse();
   });
+
+  test("parses --key=value syntax correctly", () => {
+    expect(
+      parseArguments(["task:reject", "--run=/tmp/run", "--reason=--fix-all", "--task=task-1"]),
+    ).toEqual({
+      command: "task:reject",
+      flags: { run: "/tmp/run", reason: "--fix-all", task: "task-1" },
+      remainder: [],
+    });
+  });
+
+  test("handles text values starting with -- without colliding with flag names", () => {
+    const shapes = new Map([
+      ["run", { takesValue: true, repeatable: false }],
+      ["reason", { takesValue: true, repeatable: false }],
+      ["task", { takesValue: true, repeatable: false }],
+    ]);
+    expect(
+      parseArguments(
+        ["task:reject", "--run", "/tmp/run", "--reason", "--fix all defects", "--task", "task-1"],
+        shapes,
+      ),
+    ).toEqual({
+      command: "task:reject",
+      flags: { run: "/tmp/run", reason: "--fix all defects", task: "task-1" },
+      remainder: [],
+    });
+  });
 });
 
 describe("nearest-flag suggestions", () => {

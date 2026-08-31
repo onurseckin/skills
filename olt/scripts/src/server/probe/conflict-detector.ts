@@ -86,6 +86,25 @@ export function detectSocketConflict(
         return;
       }
 
+      if (
+        code === "EADDRNOTAVAIL" ||
+        code === "EAFNOSUPPORT" ||
+        code === "EINVAL" ||
+        code === "ENOTFOUND" ||
+        code === "EPROTONOSUPPORT" ||
+        code === "EHOSTUNREACH"
+      ) {
+        resolve({
+          port,
+          address: host,
+          family,
+          status: "available",
+          inUse: false,
+          available: true,
+        });
+        return;
+      }
+
       let errorMessage: string;
       if (err.message.length > 0) {
         errorMessage = err.message;
@@ -174,12 +193,18 @@ export async function findAvailablePort(
 }
 
 /**
- * Checks binding conflicts across common network interfaces (IPv4 and IPv6).
+ * Checks binding conflicts across common network interfaces (IPv4 and IPv6) sequentially
+ * to prevent concurrent bind collisions across wildcard interfaces.
  */
 export async function detectInterfaceConflicts(
   port: number,
 ): Promise<readonly SocketConflictResult[]> {
-  return await Promise.all(COMMON_INTERFACES.map((host) => detectSocketConflict(port, { host })));
+  const results: SocketConflictResult[] = [];
+  for (const host of COMMON_INTERFACES) {
+    const res = await detectSocketConflict(port, { host });
+    results.push(res);
+  }
+  return results;
 }
 
 /**
@@ -187,10 +212,8 @@ export async function detectInterfaceConflicts(
  * and socket binding conflict detection.
  */
 export async function inspectComprehensivePort(port: number): Promise<ComprehensivePortStatus> {
-  const [probeResults, conflictResults] = await Promise.all([
-    probeAllInterfaces(port),
-    detectInterfaceConflicts(port),
-  ]);
+  const probeResults = await probeAllInterfaces(port);
+  const conflictResults = await detectInterfaceConflicts(port);
 
   const anyProbeInUse = probeResults.some((r) => r.inUse);
   const anyConflictInUse = conflictResults.some((c) => c.inUse);

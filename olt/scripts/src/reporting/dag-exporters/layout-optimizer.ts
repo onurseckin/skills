@@ -1,11 +1,11 @@
 import { minimizeCrossingsBarycenter } from "../sugiyama-dag/crossing.ts";
 import { assignSugiyamaRanks } from "../sugiyama-dag/ranking.ts";
-import { extractFeedbackArcSet } from "../sugiyama-dag/tarjan.ts";
+import { insertVirtualDummyNodes } from "../sugiyama-dag/routing.ts";
+import { extractFeedbackArcSet, reverseCycleEdges } from "../sugiyama-dag/tarjan.ts";
 import type {
   SugiyamaEdge,
   SugiyamaLayer,
   SugiyamaNode,
-  SugiyamaRankedNode,
   SugiyamaWaveMetrics,
 } from "../sugiyama-dag/types.ts";
 import type {
@@ -15,26 +15,9 @@ import type {
   DagLayoutNodePoint,
   DagOptimizedLayout,
 } from "./types.ts";
+import { type DagDimensions, resolveDimensions } from "./theme.ts";
 
-export interface LayoutDimensions {
-  readonly nodeWidth: number;
-  readonly nodeHeight: number;
-  readonly layerSpacing: number;
-  readonly nodeSpacing: number;
-  readonly paddingX: number;
-  readonly paddingY: number;
-}
-
-export function resolveDimensions(options?: DagExportOptions): LayoutDimensions {
-  return {
-    nodeWidth: options?.nodeWidth ?? 220,
-    nodeHeight: options?.nodeHeight ?? 90,
-    layerSpacing: options?.layerSpacing ?? 80,
-    nodeSpacing: options?.nodeSpacing ?? 40,
-    paddingX: 40,
-    paddingY: 40,
-  };
-}
+export { resolveDimensions, type DagDimensions as LayoutDimensions };
 
 export function computeOptimizedLayout(
   nodes: readonly SugiyamaNode[],
@@ -65,9 +48,10 @@ export function computeOptimizedLayout(
     };
   }
 
-  const { acyclicEdges } = extractFeedbackArcSet(nodes, edges);
+  const { feedbackArcs, acyclicEdges } = extractFeedbackArcSet(nodes, edges);
+  const normalizedEdges = reverseCycleEdges(edges, feedbackArcs);
   const rankMap = assignSugiyamaRanks(nodes, acyclicEdges, []);
-  const maxRank = Math.max(0, ...[...rankMap.values()]);
+  const maxRank = Math.max(0, ...rankMap.values());
 
   const initialLayers: SugiyamaLayer[] = [];
   for (let r = 0; r <= maxRank; r++) {
@@ -90,7 +74,11 @@ export function computeOptimizedLayout(
     }
   }
 
-  const optimizedLayers = minimizeCrossingsBarycenter(initialLayers, acyclicEdges, 4);
+  const { layers: layeredWithDummies, edges: dummyEdges } = insertVirtualDummyNodes(
+    initialLayers,
+    normalizedEdges,
+  );
+  const optimizedLayers = minimizeCrossingsBarycenter(layeredWithDummies, dummyEdges, 4);
   const dims = resolveDimensions(options);
   const isHorizontal = options.direction === "LR";
 

@@ -163,6 +163,8 @@ describe("consolidateWorktrees", () => {
     expect(calls.filter((c) => c.argv[0] === "merge" && c.argv.includes("--no-ff"))).toHaveLength(
       1,
     );
+    // the scratch worktree is atomically reset back to base_sha
+    expect(calls.some((c) => c.argv[0] === "reset" && c.argv[1] === "base-sha")).toBe(true);
     // the scratch worktree is still torn down even though consolidation did not finish
     expect(
       calls.some(
@@ -228,9 +230,9 @@ describe("consolidateWorktrees", () => {
     expect(calls.some((c) => c.argv[0] === "rebase")).toBe(false);
   });
 
-  test("skips rebasing when there is no base branch on record, even when requested", () => {
-    const repoRoot = trackedDir("consolidate-no-base-branch");
-    const ledger = ledgerWith(repoRoot, { commits: [] });
+  test("rebases onto ledger.base_sha when base_branch is absent under detached HEAD and rebaseOnComplete is true", () => {
+    const repoRoot = trackedDir("consolidate-detached-head-rebase");
+    const ledger = ledgerWith(repoRoot, { base_sha: "detached-base-sha", commits: [] });
     const { runner, calls } = scripted(() => ok());
     const result = consolidateWorktrees({
       repoRoot,
@@ -239,9 +241,10 @@ describe("consolidateWorktrees", () => {
       rebaseOnComplete: true,
       runner,
     });
-    expect(result.rebased).toBe(false);
-    expect(result.rebase_target).toBeUndefined();
-    expect(calls.some((c) => c.argv[0] === "rebase")).toBe(false);
+    expect(result.rebased).toBe(true);
+    expect(result.rebase_target).toBe("detached-base-sha");
+    const rebaseCall = calls.find((c) => c.argv[0] === "rebase");
+    expect(rebaseCall?.argv).toContain("detached-base-sha");
   });
 
   test("defaults consolidated_at to the current time when now is not supplied", () => {

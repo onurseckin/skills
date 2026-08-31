@@ -1,11 +1,13 @@
 import type { TelemetryNormalizationEngine } from "./engine.ts";
-import type { NormalizedQuotaMetric, UnifiedTelemetryReport } from "./types.ts";
+import type { UnifiedTelemetryReport } from "./types.ts";
 import { formatCircuitBreakerMarkdown } from "./circuit-breaker-markdown.ts";
 import {
   AUTO_WAKE_PROMPT,
   CRITICAL_WRAP_UP_MESSAGE,
   DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
+  DEFAULT_COOLDOWN_SECONDS,
   DEFAULT_QUOTA_THRESHOLD,
+  DEFAULT_RECOVERY_THRESHOLD,
   DEFAULT_SAFE_WINDOW_SECONDS,
   UNMEASURED_QUOTA_WRAP_UP_MESSAGE,
   detectActiveHost,
@@ -34,7 +36,9 @@ export {
   AUTO_WAKE_PROMPT,
   CRITICAL_WRAP_UP_MESSAGE,
   DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
+  DEFAULT_COOLDOWN_SECONDS,
   DEFAULT_QUOTA_THRESHOLD,
+  DEFAULT_RECOVERY_THRESHOLD,
   DEFAULT_SAFE_WINDOW_SECONDS,
   UNMEASURED_QUOTA_WRAP_UP_MESSAGE,
   detectActiveHost,
@@ -135,30 +139,30 @@ export function checkQuotaCircuitBreaker(
 
 export class QuotaCircuitBreaker {
   private readonly defaultThreshold: number;
+  private readonly defaultRecoveryThreshold: number;
   private readonly defaultSafeWindowSeconds: number;
   private readonly defaultBufferSeconds: number;
+  private readonly defaultCooldownSeconds: number;
   private readonly defaultActiveHost?: string | undefined;
+  private lastEvaluation?: CircuitBreakerEvaluation | undefined;
+  private lastTrippedAt?: number | undefined;
 
   constructor(
     options: {
       thresholdPercentage?: number;
+      recoveryThresholdPercentage?: number;
       defaultSafeWindowSeconds?: number;
       bufferSeconds?: number;
+      cooldownSeconds?: number;
       activeHost?: string;
     } = {},
   ) {
-    this.defaultThreshold =
-      typeof options.thresholdPercentage === "number"
-        ? options.thresholdPercentage
-        : DEFAULT_QUOTA_THRESHOLD;
-    this.defaultSafeWindowSeconds =
-      typeof options.defaultSafeWindowSeconds === "number"
-        ? options.defaultSafeWindowSeconds
-        : DEFAULT_SAFE_WINDOW_SECONDS;
-    this.defaultBufferSeconds =
-      typeof options.bufferSeconds === "number"
-        ? options.bufferSeconds
-        : DEFAULT_AUTO_WAKE_BUFFER_SECONDS;
+    this.defaultThreshold = options.thresholdPercentage ?? DEFAULT_QUOTA_THRESHOLD;
+    this.defaultRecoveryThreshold =
+      options.recoveryThresholdPercentage ?? DEFAULT_RECOVERY_THRESHOLD;
+    this.defaultSafeWindowSeconds = options.defaultSafeWindowSeconds ?? DEFAULT_SAFE_WINDOW_SECONDS;
+    this.defaultBufferSeconds = options.bufferSeconds ?? DEFAULT_AUTO_WAKE_BUFFER_SECONDS;
+    this.defaultCooldownSeconds = options.cooldownSeconds ?? DEFAULT_COOLDOWN_SECONDS;
     this.defaultActiveHost = options.activeHost;
   }
 
@@ -166,19 +170,39 @@ export class QuotaCircuitBreaker {
     report: UnifiedTelemetryReport,
     options?: QuotaCircuitBreakerOptions,
   ): CircuitBreakerEvaluation {
-    const activeHost =
-      options && typeof options.activeHost === "string"
-        ? options.activeHost
-        : this.defaultActiveHost;
+    const activeHost = options?.activeHost ?? this.defaultActiveHost;
+    const previousStatus = options?.previousStatus;
+    const lastTrippedAt = options?.lastTrippedAt ?? this.lastTrippedAt;
+    const recoveryThresholdPercentage =
+      options?.recoveryThresholdPercentage ?? this.defaultRecoveryThreshold;
+    const cooldownSeconds = options?.cooldownSeconds ?? this.defaultCooldownSeconds;
+
     const mergedOptions: QuotaCircuitBreakerOptions = {
       ...options,
       ...(activeHost !== undefined ? { activeHost } : {}),
+      ...(previousStatus !== undefined ? { previousStatus } : {}),
+      ...(lastTrippedAt !== undefined ? { lastTrippedAt } : {}),
+      recoveryThresholdPercentage,
+      cooldownSeconds,
     };
-    return evaluateCircuitBreaker(report, mergedOptions, {
+
+    const evaluation = evaluateCircuitBreaker(report, mergedOptions, {
       threshold: this.defaultThreshold,
       safeWindow: this.defaultSafeWindowSeconds,
       buffer: this.defaultBufferSeconds,
     });
+
+    this.lastEvaluation = evaluation;
+    if (evaluation.isTriggered) {
+      if (this.lastTrippedAt === undefined) {
+        this.lastTrippedAt =
+          options?.now !== undefined ? new Date(options.now).getTime() : Date.now();
+      }
+    } else {
+      this.lastTrippedAt = undefined;
+    }
+
+    return evaluation;
   }
 
   public async evaluateAsync(
@@ -187,6 +211,15 @@ export class QuotaCircuitBreaker {
   ): Promise<CircuitBreakerEvaluation> {
     const report = await engine.probeAll();
     return this.evaluate(report, options);
+  }
+
+  public reset(): void {
+    this.lastEvaluation = undefined;
+    this.lastTrippedAt = undefined;
+  }
+
+  public getLastEvaluation(): CircuitBreakerEvaluation | undefined {
+    return this.lastEvaluation;
   }
 
   public static evaluate(

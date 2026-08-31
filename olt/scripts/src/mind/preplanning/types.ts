@@ -47,6 +47,7 @@ export interface RawDefectItem {
 }
 
 export interface ClusterOptions {
+  readonly rootDir?: string | undefined;
   readonly targetDir?: string | undefined;
   readonly timestamp?: string | undefined;
   readonly minItemsPerCluster?: number | undefined;

@@ -1,6 +1,6 @@
 import { DoubleBufferedCanvas } from "./canvas-diff.ts";
 import { parseKeySequence } from "./key-parser.ts";
-import { KeyBindingRegistry, KeyDispatcher, type KeyBinding } from "./keybindings.ts";
+import { KeyDispatcher, type KeyBinding } from "./keybindings.ts";
 import { ReactiveRenderLoop, type RenderLoopOptions } from "./render-loop.ts";
 import { StreamMultiplexer, type MultiplexerOptions } from "./stream-multiplexer.ts";
 import type { StreamSource } from "./stream-sources.ts";

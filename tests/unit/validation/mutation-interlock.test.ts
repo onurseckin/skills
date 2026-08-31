@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { assertLeaseTokenForFileMutation } from "../../../olt/scripts/src/validation/anti-leak/index.ts";
 import { registerSessionGrant } from "../../../olt/scripts/src/authority/session/index.ts";
@@ -36,13 +36,45 @@ describe("Mutation Interlock Enforcement", () => {
     }
   });
 
-  it("permits mutation when a valid token is provided without active session restrictions", () => {
+  it("permits mutation when a valid token is provided with an authorized active session", () => {
+    const sandboxDir = scratchRoot(import.meta.path, "valid-token-allow");
+    mkdirSync(join(sandboxDir, ".olt", ".sessions"), { recursive: true });
+
+    const session = registerSessionGrant({
+      runRoot: sandboxDir,
+      agentId: "impl-authorized",
+      role: "implementer",
+      customToken: "tok_live_validtoken123456789",
+      pid: 91100,
+      ppid: 91099,
+    });
+
+    expect(() =>
+      assertLeaseTokenForFileMutation("olt/scripts/src/workflow/lease/guard.ts", session.token, {
+        runRoot: sandboxDir,
+      }),
+    ).not.toThrow();
+
+    rmSync(sandboxDir, { recursive: true, force: true });
+  });
+
+  it("rejects mutation when a token has no active registered session (fail-closed)", () => {
     expect(() =>
       assertLeaseTokenForFileMutation(
         "olt/scripts/src/workflow/lease/guard.ts",
-        "tok_live_validtoken123456789",
+        "tok_live_nonexistent_token_abc123",
       ),
-    ).not.toThrow();
+    ).toThrow(HarnessError);
+
+    try {
+      assertLeaseTokenForFileMutation(
+        "olt/scripts/src/workflow/lease/guard.ts",
+        "tok_live_nonexistent_token_abc123",
+      );
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(HarnessError);
+      expect((error as HarnessError).code).toBe("PERMISSION_DENIED");
+    }
   });
 
   it("rejects file mutation when the authenticated session role cannot edit files", () => {

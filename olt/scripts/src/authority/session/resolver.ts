@@ -16,11 +16,7 @@ import {
   roleToTier,
   type ExecutionTier,
 } from "../thread/index.ts";
-import {
-  resolveCapsuleStateCandidate,
-  resolveGlobalSessionsDir,
-  resolveSessionRepositoryRoot,
-} from "./paths.ts";
+import { resolveGlobalSessionsDir, resolveSessionRepositoryRoot } from "./paths.ts";
 import { readPersistedSession, secureReadSession } from "./io.ts";
 import type { ResolveSessionOptions, SessionIdentity } from "./types.ts";
 

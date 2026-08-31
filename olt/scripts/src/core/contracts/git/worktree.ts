@@ -22,6 +22,8 @@ export interface WorktreeCommitRecord extends JsonObject {
   changed_lines: number;
   over_limit: boolean;
   committed_at: string;
+  parent_sha?: string;
+  tree_sha?: string;
 }
 
 export interface WorktreeMergeConflict extends JsonObject {
@@ -83,7 +85,9 @@ function isWorktreeCommitRecord(value: unknown): value is WorktreeCommitRecord {
     typeof value.subject === "string" &&
     isSafeInteger(value.changed_lines) &&
     typeof value.over_limit === "boolean" &&
-    typeof value.committed_at === "string"
+    typeof value.committed_at === "string" &&
+    (value.parent_sha === undefined || typeof value.parent_sha === "string") &&
+    (value.tree_sha === undefined || typeof value.tree_sha === "string")
   );
 }
 

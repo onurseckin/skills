@@ -33,17 +33,45 @@ export function everyApplicableDomainPassed(
   const applicable = applicableValidatorDomains(task.write_scope, requirementTexts);
   if (applicable.length === 0) return false;
   const open = openValidations(task);
-  if (open.length === 0) {
-    const history = task.validation_history ?? [];
-    const passedHistory = new Set(
-      history.filter((entry) => entry.verdict === "pass").map((entry) => entry.domain),
-    );
-    return applicable.every((domain) => passedHistory.has(domain));
+  const history = task.validation_history ?? [];
+  const passed = new Set<ValidatorDomain>();
+  for (const entry of open) {
+    if (entry.verdict === "pass") passed.add(entry.domain);
   }
-  const passed = new Set(
-    open.filter((entry) => entry.verdict === "pass").map((entry) => entry.domain),
-  );
+  for (const entry of history) {
+    if (entry.verdict === "pass") passed.add(entry.domain);
+  }
   return applicable.every((domain) => passed.has(domain));
+}
+
+export function archiveValidationForDomain(task: TaskRecord, domain: ValidatorDomain): void {
+  if (!task.validations) return;
+  const targetIndex = task.validations.findIndex((entry) => entry.domain === domain);
+  if (targetIndex !== -1) {
+    const [removed] = task.validations.splice(targetIndex, 1);
+    if (removed) {
+      task.validation_history ??= [];
+      task.validation_history.push(removed);
+    }
+  }
+  if (task.validations.length === 0) {
+    delete task.validations;
+  }
+}
+
+export function archiveValidationForValidator(task: TaskRecord, validatorId: string): void {
+  if (!task.validations) return;
+  const targetIndex = task.validations.findIndex((entry) => entry.validator_id === validatorId);
+  if (targetIndex !== -1) {
+    const [removed] = task.validations.splice(targetIndex, 1);
+    if (removed) {
+      task.validation_history ??= [];
+      task.validation_history.push(removed);
+    }
+  }
+  if (task.validations.length === 0) {
+    delete task.validations;
+  }
 }
 
 export function archiveOpenValidations(task: TaskRecord): void {

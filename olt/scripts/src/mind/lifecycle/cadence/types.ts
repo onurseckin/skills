@@ -1,4 +1,3 @@
-import { join } from "node:path";
 /**
  * Perpetual Autonomic Mind Cadence & Anti-Idle Immediate Rollover Engine.
  *
@@ -9,17 +8,6 @@ import { join } from "node:path";
  * - Zero artificial sleep loops: transitions between phases are strictly non-blocking.
  * - Deterministic trigger dispatching and dynamic backoff coordination.
  */
-
-import { HarnessError } from "../../../core/errors/index.ts";
-
-import {
-  applyIntervalJitter,
-  calculateExponentialBackoff,
-  DEFAULT_BASE_INTERVAL_MS,
-  DEFAULT_MAX_INTERVAL_MS,
-  DEFAULT_MAX_PAUSE_INTERVAL_MS,
-  type JitterOptions,
-} from "../interval/index.ts";
 
 export const PERPETUAL_NON_STOPPING_CADENCE = "infinite_autonomous" as const;
 
@@ -75,6 +63,8 @@ export interface RolloverDecision {
   readonly hasPendingWork: boolean;
   readonly pendingTaskCount: number;
   readonly pendingFeedbackCount: number;
+  readonly activeRunnableCount?: number | undefined;
+  readonly inFlightCount?: number | undefined;
 }
 
 export interface CadenceState {
@@ -126,6 +116,9 @@ export type CadenceEventListener = (event: CadenceEvent) => void | Promise<void>
 export interface RolloverEvaluationOptions {
   readonly trigger: CadenceTrigger;
   readonly pendingTasks?: number | undefined;
+  readonly activeRunnableTasks?: number | undefined;
+  readonly inFlightTasks?: number | undefined;
+  readonly blockedTasks?: number | undefined;
   readonly pendingFeedback?: number | undefined;
   readonly zeroValueStreak?: number | undefined;
   readonly baseIntervalMs?: number | undefined;
@@ -142,6 +135,9 @@ export interface RolloverEvaluationOptions {
 export interface CadenceStepInput {
   readonly trigger?: CadenceTrigger | undefined;
   readonly pendingTasks?: number | undefined;
+  readonly activeRunnableTasks?: number | undefined;
+  readonly inFlightTasks?: number | undefined;
+  readonly blockedTasks?: number | undefined;
   readonly pendingFeedback?: number | undefined;
   readonly pulseOutcome?: string | undefined;
   readonly pulseValue?: number | undefined;

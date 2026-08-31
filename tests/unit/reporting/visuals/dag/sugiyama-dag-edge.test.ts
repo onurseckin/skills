@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   barycentricSort,
   countLayerCrossings,
+  insertVirtualDummyNodes,
   minimizeCrossingsBarycenter,
   type SugiyamaEdge,
   type SugiyamaLayer,
@@ -251,6 +252,29 @@ describe("sugiyama-dag-edge (Barycentric Crossing Minimization)", () => {
       expect(resSingle[0]?.nodes[0]?.wave).toBe(1);
       expect(resSingle[0]?.nodes[0]?.lane).toBe(1);
       expect(resSingle[0]?.nodes[0]?.coordinates).toEqual({ wave: 1, lane: 1, rank: 0, order: 0 });
+    });
+  });
+
+  describe("insertVirtualDummyNodes (Long-Span Edge Preservation)", () => {
+    it("inserts virtual dummy nodes for edges spanning across multiple layers", () => {
+      const layers: SugiyamaLayer[] = [
+        { rank: 0, nodes: [node("A", 0, 0)] },
+        { rank: 1, nodes: [node("B", 1, 0)] },
+        { rank: 2, nodes: [node("C", 2, 0)] },
+      ];
+      const edges: SugiyamaEdge[] = [
+        { from: "A", to: "B" },
+        { from: "B", to: "C" },
+        { from: "A", to: "C" },
+      ];
+
+      const res = insertVirtualDummyNodes(layers, edges);
+      expect(res.dummyNodes).toHaveLength(1);
+      expect(res.dummyNodes[0]?.isDummy).toBe(true);
+      expect(res.dummyNodes[0]?.origSource).toBe("A");
+      expect(res.dummyNodes[0]?.origTarget).toBe("C");
+      expect(res.dummyNodes[0]?.rank).toBe(1);
+      expect(res.layers[1]?.nodes.some((n) => n.isDummy)).toBe(true);
     });
   });
 });
