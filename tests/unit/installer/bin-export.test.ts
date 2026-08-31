@@ -39,7 +39,7 @@ describe("olt-bin installer", () => {
 
     expect(script).toContain("#!/usr/bin/env bash");
     expect(script).toContain(`GLOBAL_HARNESS="${harness}"`);
-    expect(script).toContain('exec bun "${GLOBAL_HARNESS}" "$@"');
+    expect(script).toContain('exec "${BUN_BIN}" "${GLOBAL_HARNESS}" "$@"');
   });
 
   test("ensureGlobalOltBinary creates binary with 0o755 permissions", () => {

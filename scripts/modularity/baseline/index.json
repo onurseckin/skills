@@ -514,13 +514,6 @@
     },
     {
       "rule": "line_limit",
-      "path": "olt/scripts/src/telemetry/circuit-breaker-evaluator.ts",
-      "observed": 310,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
       "path": "olt/scripts/src/telemetry/collectors/antigravity.ts",
       "observed": 310,
       "limit": 300,

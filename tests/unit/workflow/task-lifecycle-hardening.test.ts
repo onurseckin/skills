@@ -184,9 +184,9 @@ describe("Domain 13 Hardening: Task Lifecycle & State Machines", () => {
     const history = taskAfterReject.validation_history ?? [];
     expect(history.some((v) => v.validator_id === "val-core" && v.verdict === "reject")).toBe(true);
 
-    // UI validation was NOT abruptly destroyed or wiped out with invalid data
-    const stillOpenUi = openValidations(taskAfterReject);
-    expect(stillOpenUi.some((v) => v.validator_id === "val-ui")).toBe(true);
+    // UI validation was properly archived to history when reject ended the round
+    expect(history.some((v) => v.validator_id === "val-ui")).toBe(true);
+    expect(openValidations(taskAfterReject).length).toBe(0);
   });
 
   test("Challenge 5: Stale lease recovery with write-scope baseline preservation", () => {
