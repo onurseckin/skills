@@ -18,45 +18,28 @@ describe("Defect Categorization & Log Serialization", () => {
       expect(categorizeDefect({ category: "code_defect" })).toBe("code_defect");
       expect(categorizeDefect({ category: "model_reasoning_error" })).toBe("model_reasoning_error");
       expect(categorizeDefect({ category: "boundary_violation" })).toBe("boundary_violation");
-      expect(categorizeDefect({ category: "process_gap" })).toBe("process_gap");
-      expect(categorizeDefect({ category: "flakiness" })).toBe("flakiness");
-      expect(categorizeDefect({ category: "dependency_drift" })).toBe("dependency_drift");
+      expect(categorizeDefect({ category: "documentation" })).toBe("documentation");
+      expect(categorizeDefect({ category: "security_risk" })).toBe("security_risk");
+      expect(categorizeDefect({ category: "modularity_violation" })).toBe("modularity_violation");
     });
 
     it("infers category from error messages and descriptions", () => {
-      expect(categorizeDefect({ description: "SyntaxError: Unexpected token in JSON" })).toBe(
-        "code_defect",
-      );
-      expect(
-        categorizeDefect({ description: "TypeError: Cannot read properties of undefined" }),
-      ).toBe("code_defect");
-      expect(categorizeDefect({ description: "Model hallucinated invalid tool argument" })).toBe(
-        "model_reasoning_error",
-      );
-      expect(categorizeDefect({ description: "Permission denied write outside bounds" })).toBe(
-        "boundary_violation",
-      );
-      expect(categorizeDefect({ description: "Intermittent timeout after 5000ms" })).toBe(
-        "flakiness",
-      );
-      expect(categorizeDefect({ description: "Missing mandatory step in protocol" })).toBe(
-        "process_gap",
-      );
-      expect(categorizeDefect({ description: "Package version mismatch in lockfile" })).toBe(
-        "dependency_drift",
-      );
+      expect(categorizeDefect({ observation: "syntax error unexpected token in JSON" })).toBe("code_defect");
+      expect(categorizeDefect({ observation: "hallucination in model prompt generation" })).toBe("model_reasoning_error");
+      expect(categorizeDefect({ observation: "permission denied breach of container bounds" })).toBe("boundary_violation");
+      expect(categorizeDefect({ observation: "unauthorized file access escalation" })).toBe("boundary_violation");
     });
 
     it("defaults to code_defect when unclassifiable", () => {
       expect(categorizeDefect({})).toBe("code_defect");
-      expect(categorizeDefect({ description: "Miscellaneous issue occurred" })).toBe("code_defect");
+      expect(categorizeDefect({ observation: "Miscellaneous issue occurred" })).toBe("code_defect");
     });
   });
 
   describe("parseDefectLog", () => {
     it("parses valid JSONL log strings into strongly-typed DefectEntry arrays", () => {
-      const e1 = createMockDefectEntry({ id: "def-101", title: "Bug 1" });
-      const e2 = createMockDefectEntry({ id: "def-102", title: "Bug 2" });
+      const e1 = createMockDefectEntry({ id: "def-101", observation: "Bug 1" });
+      const e2 = createMockDefectEntry({ id: "def-102", observation: "Bug 2" });
       const jsonl = `${JSON.stringify(e1)}\n${JSON.stringify(e2)}`;
 
       const parsed = parseDefectLog(jsonl);
@@ -80,11 +63,11 @@ describe("Defect Categorization & Log Serialization", () => {
     });
 
     it("normalizes and sanitizes missing optional fields", () => {
-      const minimal = { id: "def-min", title: "Minimal bug" };
+      const minimal = { id: "def-min", message: "Minimal bug" };
       const parsed = parseDefectLog(JSON.stringify(minimal));
       expect(parsed.length).toBe(1);
       expect(parsed[0]?.status).toBe("open");
-      expect(parsed[0]?.severity).toBe("P2");
+      expect(parsed[0]?.severity).toBe("warning");
       expect(parsed[0]?.category).toBe("code_defect");
     });
   });
@@ -92,8 +75,8 @@ describe("Defect Categorization & Log Serialization", () => {
   describe("serializeDefectLog", () => {
     it("serializes entries to canonical newline-delimited JSON format", () => {
       const entries: DefectEntry[] = [
-        createMockDefectEntry({ id: "def-1", title: "First" }),
-        createMockDefectEntry({ id: "def-2", title: "Second" }),
+        createMockDefectEntry({ id: "def-1", observation: "First" }),
+        createMockDefectEntry({ id: "def-2", observation: "Second" }),
       ];
 
       const serialized = serializeDefectLog(entries);
@@ -104,8 +87,8 @@ describe("Defect Categorization & Log Serialization", () => {
 
     it("round-trips serialize and parse without data loss", () => {
       const original: DefectEntry[] = [
-        createMockDefectEntry({ id: "def-rt-1", severity: "P0", category: "boundary_violation" }),
-        createMockDefectEntry({ id: "def-rt-2", severity: "P3", category: "flakiness" }),
+        createMockDefectEntry({ id: "def-rt-1", severity: "critical", category: "boundary_violation" }),
+        createMockDefectEntry({ id: "def-rt-2", severity: "low", category: "documentation" }),
       ];
 
       const jsonl = serializeDefectLog(original);
@@ -113,6 +96,7 @@ describe("Defect Categorization & Log Serialization", () => {
       expect(parsed.length).toBe(2);
       expect(parsed[0]?.id).toBe(original[0]?.id);
       expect(parsed[0]?.severity).toBe(original[0]?.severity);
+      expect(parsed[0]?.category).toBe(original[0]?.category);
       expect(parsed[1]?.category).toBe(original[1]?.category);
     });
   });

@@ -15,12 +15,11 @@ export function createMockResolutionProof(
   overrides?: Partial<DefectResolutionProof>,
 ): DefectResolutionProof {
   return {
-    testPath: "tests/unit/mind/defects/lifecycle-and-resolution.test.ts",
-    testSuite: "DefectLifecycleSuite",
-    passTimestamp: Date.now(),
-    executionDurationMs: 42,
-    assertionCount: 5,
-    verificationHash: "sha256-mock-verified-resolution-hash-999",
+    task_id: "task-001",
+    test_assertion: "expect(isResolved).toBe(true)",
+    resolved_at: "2026-08-24T12:00:00.000Z",
+    verified_by: "tester",
+    remediation_notes: "Fixed null check",
     ...overrides,
   };
 }
@@ -28,12 +27,12 @@ export function createMockResolutionProof(
 export function createMockDefectEntry(overrides?: Partial<DefectEntry>): DefectEntry {
   return {
     id: "def-001",
-    title: "Unexpected null reference in queue processor",
-    description: "Job payload lacks mandatory customerId field during batch processing",
+    type: "type_error",
+    observation: "Job payload lacks mandatory customerId field during batch processing",
     status: "open" as DefectStatus,
-    severity: "P1" as DefectSeverity,
+    severity: "high" as DefectSeverity,
     category: "code_defect" as DefectCategory,
-    detectedAt: Date.now() - 3600_000,
+    timestamp: "2026-08-24T12:00:00.000Z",
     ...overrides,
   };
 }
@@ -44,10 +43,10 @@ export function createSampleDefectsJsonl(count = 3): string {
     entries.push(
       createMockDefectEntry({
         id: `def-${i.toString().padStart(3, "0")}`,
-        title: `Sample Defect ${i}`,
-        severity: i === 1 ? "P0" : i === 2 ? "P1" : "P2",
+        type: `error_type_${i}`,
+        severity: i === 1 ? "critical" : i === 2 ? "high" : "low",
         status: i === 3 ? "resolved" : "open",
-        proof: i === 3 ? createMockResolutionProof() : undefined,
+        resolution: i === 3 ? createMockResolutionProof() : undefined,
       }),
     );
   }
